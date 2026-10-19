@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/andy.s/HodorReflexes---DPS-ULT-tracker__2311",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "andy.s",
   "canonical_id": "esoui:2311",
   "category_id": "25",
@@ -61,7 +62,7 @@
     "HodorReflexes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2311/",
-  "fingerprint": "ca0d3d33d3be2fd8641d82b9b0f31fff71751ca3b504bd28358e5681ad3fcfdf",
+  "fingerprint": "3d06d41e867c3ad5bccb20e1e6555301a64ea7be5fd141f2bff92583f21e248e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14723.png",
     "https://cdn-eso.mmoui.com/preview/pvw14899.png",
@@ -73,11 +74,11 @@
   "source_id": "2311",
   "source_url": "https://www.esoui.com/downloads/info2311-HodorReflexes-DPSULTtracker.html",
   "stats": {
-    "downloads": 3458082,
-    "favorites": 418,
-    "monthly_downloads": 5785
+    "downloads": 3473711,
+    "favorites": 421,
+    "monthly_downloads": 7111
   },
   "title": "HodorReflexes - DPS & ULT tracker",
-  "updated_at": 1779009326000,
-  "version": "2026-05-17"
+  "updated_at": 1792320043000,
+  "version": "2026-10-18"
 }

@@ -1683,6 +1683,30 @@ install, every setting gone -- for no gain. The slash commands stay `/pbhud` and
 The in-game add-on browser shows the uploader's name field, not `## Title` (LISTING.md), so that field
 has to be changed by hand on the uploader.
 
+## 72. The effect stayed over a bar the game had faded out (1.27.17)
+
+From the PS5: with the game's "Show resource bars" set to show them only when needed, a bar out of
+combat and full fades away -- and in Liquid and Crystal the effect stayed on screen without it.
+
+The game fades a bar by animating its **container's own alpha** from 1 to 0 over 500 ms
+(`PlayerAttributeBarAnimation`, `ZO_PlayerAttributeBar:UpdateContextualFading`). The effect's root is
+a child of that container, so it ought to go with it. It did not: on a PS5 the effect, drawn at
+another tier, does not take the alpha an animation gives its parent. That is very likely what
+flickered while the bars faded in from a menu too (§64-70): there it was the group above, here the
+container, and in both cases the parent's alpha was being animated.
+
+So the effect no longer relies on inheriting it. Every update the container's own alpha is read
+(`plain:ContextFade`) and given to the effect's root with `SetAlpha`; when it is below 0.01 the
+effect is neither drawn nor shown. The fill and frame are the game's own and fade as they always
+did. Leaving the style puts the root's alpha back to 1.
+
+If a PS5 does carry some of the parent's alpha after all, the effect fades a little faster than the
+bar during those 500 ms (alpha times alpha); at the ends -- shown, hidden -- it is exact.
+
+**Tests**: at the container's 1, 0.4, 0, 0 again, 0.6 and 1 the effect is shown at full, at 0.4,
+hidden, still hidden, back at 0.6 and at full; another bar's effect is untouched; another style puts
+the alpha back. Without the follow, eight fail.
+
 ---
 
 ## Still to measure on a PS5
@@ -1800,3 +1824,6 @@ has to be changed by hand on the uploader.
     say whether the flicker is there in Standard too: if it is, it is the game's, not this add-on's.
 31. **Do the bars come back cleanly?** With Liquid or Crystal, open and close the menu a few times:
     the bars fade in, and the liquid or crystal appears as the fade ends, with no flicker.
+32. **Does the effect go with the bar out of combat?** With "Show resource bars" on automatic, stand
+    out of combat with a bar full: as the game fades the bar out, the liquid or crystal must fade
+    with it and be gone when the bar is; and come back with it in combat.

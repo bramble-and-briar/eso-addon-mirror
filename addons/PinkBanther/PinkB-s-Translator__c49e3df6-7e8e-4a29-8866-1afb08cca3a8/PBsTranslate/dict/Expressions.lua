@@ -421,7 +421,6 @@ fair enough=なるほど
 makes sense=なるほど
 that makes sense=なるほど
 no idea=分かりません
-i have no idea=全然分かりません
 who knows=誰にも分かりません
 it depends=場合によります
 whatever you want=お好きにどうぞ
@@ -1834,4 +1833,12 @@ wtm=次はどうする？
 rinsed=完敗した
 permabanned=永久追放された
 baited=だまされた
+]])
+
+D("x", [[
+see you next time=また次回
+see you next week=また来週
+see you in game=ゲーム内でまた会いましょう
+nice meeting you=お会いできて嬉しいです
+nice to meet you all=皆さん、はじめまして
 ]])

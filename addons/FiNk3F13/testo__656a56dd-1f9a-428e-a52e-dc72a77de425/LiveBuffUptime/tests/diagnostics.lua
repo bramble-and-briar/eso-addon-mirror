@@ -1,4 +1,4 @@
-dofile("Diagnostics.lua")
+dofile("tests/helpers/UptimeAudit.lua")
 local Audit = LiveBuffUptimeDiagnostics
 local lines = {}
 local audit = Audit.New(function(line) lines[#lines + 1] = line end)

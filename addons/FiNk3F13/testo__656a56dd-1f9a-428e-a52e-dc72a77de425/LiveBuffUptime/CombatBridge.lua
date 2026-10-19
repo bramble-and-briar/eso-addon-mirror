@@ -1,13 +1,14 @@
+local L = LiveBuffUptimeLocalization and LiveBuffUptimeLocalization.Text or function(text) return text end
 LiveBuffUptimeCombatBridge = {}
 local Bridge = LiveBuffUptimeCombatBridge
 
 -- LibCombat2 uses dot-call registration and unified logs, unlike the PC v1 API.
 function Bridge.Create(lib)
     if not lib or type(lib.RegisterForCombatEvent) ~= "function"
-        or type(lib.GetUnitById) ~= "function" or type(lib.GetPlayerUnitId) ~= "function" then return nil, "LibCombat2 oder benoetigte API-Funktionen fehlen" end
+        or type(lib.GetUnitById) ~= "function" or type(lib.GetPlayerUnitId) ~= "function" then return nil, L("LibCombat2 oder benoetigte API-Funktionen fehlen") end
     local required = { "LOG_EVENT_COMBATSTATE", "LOG_EVENT_DAMAGE", "LOG_EVENT_HEAL", "LOG_EVENT_EFFECT",
         "EVENT_FIGHTSUMMARY", "MESSAGE_COMBATSTART" }
-    for _, name in ipairs(required) do if not _G["LIBCOMBAT_" .. name] then return nil, "Konstante fehlt: LIBCOMBAT_" .. name end end
+    for _, name in ipairs(required) do if not _G["LIBCOMBAT_" .. name] then return nil, L("Konstante fehlt: LIBCOMBAT_") .. name end end
     local api, callbacks, registrations = {}, {}, {}
     local status = { state = 0, damage = 0, heal = 0, effect = 0, summary = 0, dispatched = 0,
         unclassified = 0, errors = 0, registered = 0, registrationFailures = 0,
@@ -81,7 +82,7 @@ function Bridge.Create(lib)
         -- Only a deferred library end needs polling; ordinary fights do no boss scans.
         if not pending or resumed then return end
         local ok, err = pcall(function()
-            if not continuing() then finish(pending, "Boss beendet, zurueckgesetzt oder gewechselt") end
+            if not continuing() then finish(pending, L("Boss beendet, zurueckgesetzt oder gewechselt")) end
         end)
         if not ok then status.errors = status.errors + 1; status.lastError = string.sub(tostring(err), 1, 400) end
     end
@@ -147,7 +148,7 @@ function Bridge.Create(lib)
                     resumed, segments = true, segments + 1
                     status.continuedSegments = status.continuedSegments + 1
                 else
-                    if pending then finish(pending, "Getrennter Kampf oder Boss-Reset") end
+                    if pending then finish(pending, L("Getrennter Kampf oder Boss-Reset")) end
                     first, last, closed, segments = nil, nil, false, 1
                     rawUnits, rawUnitCount = {}, 0
                 end
@@ -235,7 +236,7 @@ function Bridge.Create(lib)
                 pending, pendingBosses, resumed = summary, bosses, false
                 status.pendingBoss = true
                 status.deferredSummaries = status.deferredSummaries + 1
-            else finish(summary, "Bibliotheksabschluss") end
+            else finish(summary, L("Bibliotheksabschluss")) end
         end,
     }
     function api:RegisterForCombatEvent(name, event, callback)
@@ -256,7 +257,7 @@ function Bridge.Create(lib)
                 status.registered = status.registered + 1
             else
                 status.registrationFailures = status.registrationFailures + 1
-                status.lastError = string.sub(ok and ("Registrierung abgelehnt: " .. key) or tostring(registered), 1, 400)
+                status.lastError = string.sub(ok and (L("Registrierung abgelehnt: ") .. key) or tostring(registered), 1, 400)
             end
         end
     end

@@ -207,6 +207,37 @@ local function ContainsNonASCII(text)
 	return false
 end
 
+-- Inspect code points without depending on utf8 (unavailable in Lua 5.1) or locale.
+-- Han also occurs in Chinese; mixed Han/English chat is intentionally excluded.
+local function ContainsJapanese(text)
+	local i = 1
+	while i <= #text do
+		local a, b, c, d = text:byte(i, i + 3)
+		local size = a >= 0xE0 and a <= 0xEF and 3
+			or a >= 0xF0 and a <= 0xF4 and 4 or 1
+		local cp
+		if size >= 3 and b and c and b >= 0x80 and b <= 0xBF and c >= 0x80 and c <= 0xBF then
+			if size == 3 then
+				cp = (a - 0xE0) * 4096 + (b - 0x80) * 64 + c - 0x80
+			elseif d and d >= 0x80 and d <= 0xBF then
+				cp = (a - 0xF0) * 262144 + (b - 0x80) * 4096 + (c - 0x80) * 64 + d - 0x80
+			end
+		end
+		if cp and ((cp >= 0x3040 and cp <= 0x30FF) -- hiragana / katakana
+			or (cp >= 0x31F0 and cp <= 0x31FF)
+			or (cp >= 0xFF66 and cp <= 0xFF9F) -- half-width kana
+			or (cp >= 0x3400 and cp <= 0x4DBF) or (cp >= 0x4E00 and cp <= 0x9FFF)
+			or (cp >= 0xF900 and cp <= 0xFAFF)
+			or (cp >= 0x20000 and cp <= 0x2FA1F) or (cp >= 0x30000 and cp <= 0x323AF)
+			or (cp >= 0x1B000 and cp <= 0x1B16F)
+			or cp == 0x3005 or cp == 0x3006 or cp == 0x3007) then
+			return true
+		end
+		i = i + (cp and size or 1)
+	end
+	return false
+end
+
 function addon:Direction()
 	return self.sv and self.sv.direction == "ja2en" and "ja2en" or "en2ja"
 end
@@ -253,6 +284,9 @@ function addon:TranslateLine(text)
 	end
 	if self:Direction() == "ja2en" then
 		return self:TranslateJaLine(text)
+	end
+	if ContainsJapanese(text) then
+		return nil, "contains Japanese"
 	end
 	if not text:find("[A-Za-z]") then
 		return nil, "no letters"
@@ -542,7 +576,9 @@ end
 -- ---------------------------------------------------------------------------------------
 
 function addon:ApplyUserWords()
-	T.SetUserEntries(self.sv.userWords)
+	local ok = T.SetUserEntries(self.sv.userWords)
+	if not ok then Print("%s", GetString(SI_PBSTR_ERROR_WORD_BUDGET)) end
+	return ok
 end
 
 local USER_POS = { n = true, v = true, a = true, adv = true, x = true, pn = true }
@@ -565,6 +601,9 @@ function addon:StoreUserWord(english, value)
 	end
 	if not T.IsValidUTF8(english) or not T.IsValidUTF8(value) then
 		return nil, GetString(SI_PBSTR_ERROR_ADD_FORMAT)
+	end
+	if not T.CheckUserWordBudget(self.sv.userWords, english, value) then
+		return nil, GetString(SI_PBSTR_ERROR_WORD_BUDGET)
 	end
 	self.sv.userWords[english] = value
 	self:ApplyUserWords()

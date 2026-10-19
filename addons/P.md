@@ -53,7 +53,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Perfect Rockgrove](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Perfect-Rockgrove__3238) | buldezir | PC / Mac | 1.0.7 |
 | [Perfect Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Perfect-Weave__2918) | andy.s | PC / Mac | 0.8 |
 | [Perfect Weave (bugfix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Perfect-Weave-bugfix__4468) | code65536 | PC / Mac | 0.9 |
-| [PerfectPixel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/PerfectPixel__2103) | KLISK | PC / Mac | 0.13.39 |
+| [PerfectPixel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/PerfectPixel__2103) | KLISK | PC / Mac | 0.13.40 |
 | [PerfectWeavePort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/PerfectWeavePort__c0bb6f24-c2ad-470f-885d-34928944caba) | mYoda01 | Console | — |
 | [Performance Statz](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toirealach/Performance-Statz__3458) | Toirealach | PC / Mac | 1.0.13 |
 | [PermAlmalexia: Permanent Mementos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/PermAlmalexia-Permanent-Mementos__3578) | Mouton | PC / Mac | 1.2.1 |
@@ -104,6 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's CyrodiilAlert(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CyrodiilAlert-Beta__233a612c-6650-451b-80d8-b1862f95c90a) | PinkBanther | Console | — |
 | [PinkB's DiceExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension__c8c74e10-f091-4e38-b894-20bb194c9b87) | PinkBanther | Console | — |
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
+| [PinkB's F-MEGA(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-F-MEGA-Beta__a73b49be-3025-4010-b2de-104c419bec54) | PinkBanther | Console | — |
 | [PinkB's FurnitureEditor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor__656edbf4-6ad8-4faf-8bd8-25f06199c990) | PinkBanther | Console | — |
 | [PinkB's FurnitureEditor(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor-Beta__c2c3621e-0b20-4fae-9195-05862d266eef) | PinkBanther | Console | — |
 | [PinkB's GammaAdjuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster__612f9579-3c45-4ab4-84e0-6989fb59bd19) | PinkBanther | Console | — |

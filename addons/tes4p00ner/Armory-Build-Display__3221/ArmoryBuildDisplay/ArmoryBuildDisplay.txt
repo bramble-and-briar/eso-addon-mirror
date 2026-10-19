@@ -5,10 +5,10 @@
 ## Title: Armory Build Display
 ## Description: Gives a simple display to show what Armory Station Build you have enabled.
 ## Author: @tes4p00ner
-## Version: 1.0.8
-## APIVersion: 101041 101042
+## Version: 1.0.9
+## APIVersion: 101051
 ## SavedVariables: ArmoryBuildDisplaySavedVariables
-## DependsOn: LibAddonMenu-2.0>=32
+## DependsOn: LibAddonMenu-2.0>=43
 
 ArmoryBuildDisplay.lua
 ArmoryBuildDisplay.xml
@@ -16,6 +16,10 @@ ArmoryBuildDisplayMenu.lua
 
 ; Changelog:
 ;
+; Version 1.0.9 (2026/10/18)
+; * API Bump to Season One
+; * Fix Armory build tracking after failed restores and slot edits
+
 ; Version 1.0.8 (2024/5/20)
 ; * API Bump to Scions of Ithelia
 ; * Show the Armory Build Display while in the Armory Menu

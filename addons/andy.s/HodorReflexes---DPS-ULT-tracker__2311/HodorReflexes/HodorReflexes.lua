@@ -16,7 +16,7 @@ local addon = {
     name = "HodorReflexes",
     friendlyName = "Hodor Reflexes",
     slashCmd = "hodor",
-    version = "2026-05-17",
+    version = "2026-10-18",
     author = "|cFFFF00@andy.s|r, |c76c3f4@m00nyONE|r",
 
     debug = false,

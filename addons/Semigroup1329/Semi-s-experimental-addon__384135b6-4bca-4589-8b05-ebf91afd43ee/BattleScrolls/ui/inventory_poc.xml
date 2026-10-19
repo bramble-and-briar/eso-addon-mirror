@@ -1,0 +1,5 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="BattleScrollsInventoryPocLog" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true"/>
+    </Controls>
+</GuiXml>

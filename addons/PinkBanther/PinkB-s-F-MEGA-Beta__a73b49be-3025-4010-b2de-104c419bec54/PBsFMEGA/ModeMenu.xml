@@ -1,0 +1,7 @@
+<GuiXml>
+ <Controls>
+  <!-- The third menu level: the course list. Built on the client's own gamepad list screen, the
+       same template its Lore Library and Options screens use, and brought to life from ModeMenu.lua. -->
+  <TopLevelControl name="PBsFMEGAModeMenu" inherits="ZO_Gamepad_ParametricList_Screen" />
+ </Controls>
+</GuiXml>

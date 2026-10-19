@@ -1,23 +1,66 @@
-Sora Sorc Reticle Tracker
+AI ASSISTANCE DISCLOSURE
 
-A compact reticle-side Sorcerer tracker designed to keep important combat information near the reticle.
+This addon was developed with AI assistance. The code was reviewed against the
+current ESO API / ESOUI source and tested in game by sora0v0.
 
-Features
-- Crystal Fragments proc timer on the left side of the reticle.
-- Bound Armaments stack count on the right side of the reticle.
-- Optional text-only Maelstrom Arena back-bar ground-skill timer below the reticle.
-- Crystal Fragments works even while the skill is on the inactive weapon bar.
-- Bound Armaments stack colors: 1-2 white, 3 gold, 4+ red.
-- Maelstrom timer colors: white normally, gold at 5 seconds, red at 2 seconds.
-- Independent position and size settings.
-- Server-specific SavedVariables.
 
-Optional Maelstrom timer supports:
+SORA SORC RETICLE TRACKER
+
+A compact combat HUD for Sorcerer players who want to keep their eyes near the
+reticle instead of repeatedly checking the action bar.
+
+FEATURES
+
+Crystal Fragments
+- Displays the Crystal Fragments proc timer near the reticle.
+- Works even when Crystal Fragments is slotted on the inactive weapon bar.
+- Cyan Armory-style icon with the remaining proc time in the center.
+- Independent size and position controls.
+
+Bound Armaments
+- Displays the current Bound Armaments stack count.
+- Purple Armory-style sword icon.
+- Stack colors:
+  1-2: white
+  3: gold
+  4+: red
+- Independent size and position controls.
+
+OPTIONAL MAELSTROM BACK-BAR TIMER
+
+A simple text-only timer is available for common Maelstrom Arena back-bar
+ground skills. It only tracks a pair when the matching Maelstrom weapon is
+equipped on the backup weapon bar and the matching skill is slotted there.
+
+Supported combinations:
 - Merciless Charge / Perfected Merciless Charge + Stampede
 - Crushing Wall / Perfected Crushing Wall + Elemental Blockade or Unstable Wall of Elements
 - Thunderous Volley / Perfected Thunderous Volley + Endless Hail
 
-Dependency
-- LibAddonMenu-2.0
+Timer colors:
+- More than 5 seconds: white
+- 5 seconds or less: gold
+- 2 seconds or less: red
 
-Development note: This addon was created with AI assistance. Code was reviewed and tested in game by sora0v0.
+Each Maelstrom timer type can be enabled or disabled individually.
+
+DEPENDENCY
+
+LibAddonMenu-2.0 r43 or newer.
+
+SLASH COMMANDS
+
+/ssrt crystal
+/ssrt bound
+/ssrt maelstrom
+/ssrt stop
+/ssrt reset
+
+CREDITS / REFERENCES
+
+ESOUI source and ESO API documentation were used to validate API and event
+behavior.
+
+Crystal Fragments proc ID 46327 and Bound Armaments stack ID 203447 were
+cross-checked against EZOCombat by Zuriplayer. No EZOCombat code is bundled or
+copied.

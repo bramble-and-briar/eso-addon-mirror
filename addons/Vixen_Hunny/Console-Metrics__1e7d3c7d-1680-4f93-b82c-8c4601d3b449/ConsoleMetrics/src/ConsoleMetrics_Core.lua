@@ -17,6 +17,7 @@ ConsoleMetrics = {
         uiPanelEnabled = false,
         dialogAutoHide = true,
         dialogAutoHideSeconds = 12,
+        closeOnMove = false,
         debugEnabled = false,
         debugIntervalSeconds = 5,
         drSampleAlpha = 0.35,
@@ -1240,6 +1241,7 @@ local function BuildChampionSnapshot()
                 name = disciplineName,
                 points = totalPoints,
                 stars = {},
+                slottedStars = {},
                 debug = {
                     disciplineId = disciplineId,
                     disciplineType = disciplineType,
@@ -1270,6 +1272,7 @@ local function BuildChampionSnapshot()
                             end
                         end
                         entry.stars[#entry.stars + 1] = starName
+                        entry.slottedStars[#entry.slottedStars + 1] = { name = starName, skillId = starId }
                     end
                 end
             end
@@ -1599,6 +1602,7 @@ local function BuildChampionSnapshot()
                 name = disciplineName,
                 points = ReadMaxNumberFromFunctionNamesWithArgLists(pointsFnNames, pointsArgs) or 0,
                 stars = {},
+                slottedStars = {},
                 debug = {
                     disciplineId = disciplineId,
                     disciplineIndex = index,
@@ -1733,6 +1737,7 @@ local function BuildChampionSnapshot()
                 if not skillState.slotted and (IsSkillSlottedById(skillId, disciplineId, skillIndex) or IsSkillSlottedById(skillId, disciplineType, skillIndex)) then
                     skillState.slotted = true
                     entry.stars[#entry.stars + 1] = skillName
+                    entry.slottedStars[#entry.slottedStars + 1] = { name = skillName, skillId = skillId }
                 end
             end
 
@@ -2022,6 +2027,8 @@ local function NewFight(nowMs)
         totalIncomingShieldedDamage = 0,
         hits = 0,
         crits = 0,
+        minHitValue = nil,
+        maxHitValue = nil,
         peakDps = 0,
         peakHps = 0,
         damageWindowTracker = NewThroughputWindowTracker(THROUGHPUT_WINDOW_INTERVAL_MS),
@@ -2041,6 +2048,10 @@ local function NewFight(nowMs)
         majorMinorEffects = {},
         -- Tracks popular PvE/PvP set procs by alias.
         setEffects = {},
+        -- Separated tracking: buffs = effects whose target is the player,
+        -- debuffs = effects the player applies to non-player targets.
+        buffEffects   = {},
+        debuffEffects = {},
         -- Resource snapshots sampled during combat for avg/median display.
         resourceSamples = {
             lastSampleMs = nil,
@@ -2089,6 +2100,9 @@ local function NewFight(nowMs)
 end
 
 function ConsoleMetrics:IsFightViewDialogShowing()
+    if not IsConsoleUI() and not (type(IsGamepadPreferred) == "function" and IsGamepadPreferred()) then
+        return self:IsFightViewDialogShowingPC()
+    end
     return self.ui.fightViewDialog ~= nil
         and self.ui.fightViewDialog.selected == true
         and LibHarvensAddonSettings ~= nil
@@ -2108,6 +2122,17 @@ function ConsoleMetrics:ArmDialogAutoHide()
 end
 
 function ConsoleMetrics:CloseFightViewDialog(silent, reason)
+    -- PC path: close the native window
+    if not IsConsoleUI() and not IsInGamepadPreferredMode() then
+        self:ClosePCDialog()
+        self.dialogPanel      = "main"
+        self.dialogAutoHideAtMs  = nil
+        self.dialogRefreshAtMs   = nil
+        self.lastDialogRefreshKey = nil
+        self.wasFightViewDialogShowing = false
+        return
+    end
+
     -- Treat any close/cancel as "return to main panel, then exit".
     self.dialogPanel = "main"
     self.dialogAutoHideAtMs = nil
@@ -2546,19 +2571,27 @@ local function BuildResourceSampleSummary(values)
             samples = 0,
             averagePct = 0,
             medianPct = 0,
+            minPct = 0,
+            maxPct = 0,
             hasData = false,
         }
     end
 
     local normalized = {}
+    local minPct, maxPct = math.huge, -math.huge
     for i = startIndex, #values do
-        normalized[#normalized + 1] = tonumber(values[i]) or 0
+        local v = tonumber(values[i]) or 0
+        normalized[#normalized + 1] = v
+        if v < minPct then minPct = v end
+        if v > maxPct then maxPct = v end
     end
 
     return {
         samples = #normalized,
         averagePct = Mean(normalized),
         medianPct = Median(normalized),
+        minPct = minPct,
+        maxPct = maxPct,
         hasData = true,
     }
 end

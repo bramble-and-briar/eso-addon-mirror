@@ -1,22 +1,17 @@
 CompanionRoster = CompanionRoster or {}
 local CompanionRoster = CompanionRoster -- local reference, faster than repeated _G lookups
 
--- LibAddonMenu-2.0 exposes a bare global (LibAddonMenu2) in addition to the
--- usual LibStub("LibAddonMenu-2.0") lookup - used directly here since this
--- setup doesn't have LibStub installed, and there's no other reason to
--- require it.
+CompanionRoster.Settings = {}
+
+-- LibAddonMenu-2.0 sets the bare global LibAddonMenu2, used directly.
 local LAM = LibAddonMenu2
 
--- Dropdown labels ("None", "Tank", ..., "Tank + DPS", ...) and the role pair
+-- Dropdown labels ("None", "Tank", ..., "Tank + Damage", ...) and the role pair
 -- each one stands for, built from the same CompanionRoster.Data.ROLE_CHOICES
--- the right-click menu uses so the two can't drift apart.
-local ROLE_CHOICES = { "None" }
+-- the right-click menu uses so the two can't drift apart. Filled in by
+-- Settings.Initialize, once the client's strings are ready.
+local ROLE_CHOICES = {}
 local ROLE_CHOICE_TO_ROLES = {}
-for _, choice in ipairs(CompanionRoster.Data.ROLE_CHOICES) do
-    local label = CompanionRoster.Data.GetRoleLabel(choice.primary, choice.secondary)
-    table.insert(ROLE_CHOICES, label)
-    ROLE_CHOICE_TO_ROLES[label] = choice
-end
 
 -- SLASH_COMMANDS is the real base-game table every slash command (library-
 -- registered or not) ends up in - LibSlashCommander's own alias lookup reads
@@ -31,37 +26,148 @@ local function IsSlashCommandTaken(command)
     return switchLookup[command] ~= nil
 end
 
+-- The command is typed WITHOUT its slash: the panel draws a "/" in front of the
+-- box (see the LAM-PanelControlsCreated hook in Settings.Initialize), so it can never
+-- end up as only a slash. A slash typed anyway is accepted and dropped.
+local COMMAND_EDITBOX_REFERENCE = "CompanionRosterCommandEditbox"
+
+-- The red line under the box, "" when there's nothing to say. Chat isn't
+-- visible while the settings panel is open, so problems show here instead.
+local commandMessage = ""
+
+-- The saved command without its leading slash, as shown in the box.
+local function GetCommandName()
+    return (CompanionRoster.Data.GetSlashCommand():gsub("^/", ""))
+end
+
 -- Applied live via LibSlashCommander's Command:RemoveAlias/AddAlias, not
 -- just saved for next login - see CompanionRoster.slashCommand, set up in
 -- CompanionRoster_UI.lua.
 local function SetSlashCommand(input)
-    local newCommand = zo_strlower(input or ""):gsub("%s+", "")
-    if newCommand == "" then
+    local name = (zo_strlower(input or ""):gsub("%s+", ""))
+    name = (name:gsub("^/+", ""))
+    if name == "" then
+        -- The working command stays in effect; the box is left blank so the
+        -- message below it explains what's missing.
+        commandMessage = GetString(COMPANIONROSTER_SETTINGS_COMMAND_REQUIRED)
         return
-    end
-    if newCommand:sub(1, 1) ~= "/" then
-        newCommand = "/" .. newCommand
     end
 
+    local newCommand = "/" .. name
     local oldCommand = CompanionRoster.Data.GetSlashCommand()
     if newCommand == oldCommand then
+        commandMessage = ""
         return
+    end
+
+    -- Put the box back on the command that's still in effect, with the reason.
+    local function Reject(message)
+        commandMessage = message
+        local control = _G[COMMAND_EDITBOX_REFERENCE]
+        if control and control.editbox then
+            control.editbox:SetText(GetCommandName())
+        end
     end
 
     if IsSlashCommandTaken(newCommand) then
-        d(zo_strformat("Feliks' Companion Roster: <<1>> is already used by another command - pick something else.", newCommand))
+        Reject(zo_strformat(COMPANIONROSTER_SETTINGS_COMMAND_TAKEN, newCommand))
+        return
+    end
+
+    -- Nothing to rename if the command never got registered at load.
+    if CompanionRoster.slashCommand == nil then
+        Reject(GetString(COMPANIONROSTER_SETTINGS_COMMAND_NOT_REGISTERED))
         return
     end
 
     CompanionRoster.slashCommand:RemoveAlias(oldCommand)
     CompanionRoster.slashCommand:AddAlias(newCommand)
     CompanionRoster.Data.SetSlashCommand(newCommand)
+    commandMessage = ""
 end
 
 -- LAM wants a color default as { r =, g =, b = }.
 local function ColorDefault(kind)
     local color = CompanionRoster.Data.DEFAULT_COLORS[kind]
     return { r = color[1], g = color[2], b = color[3] }
+end
+
+-- The Colors section is one row per color: "Done Color   [swatch]  5500/5500",
+-- the sample text drawn in the color as it's picked. LAM can't put a label, a
+-- swatch and a preview on one row by itself, so each picker is a full-width
+-- row and the swatch is moved next to its label and the preview added beside
+-- it from the LAM-PanelControlsCreated hook in Settings.Initialize.
+-- One real Guild skill line ("Fighters 5") from the first companion with any
+-- recorded, in the game's own name. Before any companion
+-- has been summoned there is nothing recorded, so a made-up sample is used.
+local function GetGuildSampleItems()
+    for _, companion in ipairs(CompanionRoster.Data.GetAllCompanions()) do
+        for _, group in ipairs(CompanionRoster.Data.GetSkillLinesForCompanion(companion.id) or {}) do
+            if CompanionRoster.Data.IsGuildSkillGroup(group) and #group.lines > 0 then
+                -- " Guild" is dropped from the name, as the Level tooltip does.
+                local line = group.lines[1]
+                return (line.name:gsub(" Guild$", "")) .. " " .. line.rank
+            end
+        end
+    end
+    return GetString(COMPANIONROSTER_SETTINGS_COLOR_LABEL_SAMPLE)
+end
+
+local COLOR_SWATCH_X = 200 -- where the swatch starts, so the three rows line up
+local COLOR_ROWS = {
+    {
+        kind = "done", name = COMPANIONROSTER_SETTINGS_COLOR_DONE,
+        tooltip = COMPANIONROSTER_SETTINGS_COLOR_DONE_TIP,
+        sample = function(hex) return "|c" .. hex .. "5500/5500|r" end,
+        redrawsRoster = true,
+    },
+    {
+        kind = "inProgress", name = COMPANIONROSTER_SETTINGS_COLOR_IN_PROGRESS,
+        tooltip = COMPANIONROSTER_SETTINGS_COLOR_IN_PROGRESS_TIP,
+        sample = function(hex) return "|c" .. hex .. "3075/5500|r" end,
+        redrawsRoster = true,
+    },
+    {
+        kind = "tooltipLabel", name = COMPANIONROSTER_SETTINGS_COLOR_LABEL,
+        tooltip = COMPANIONROSTER_SETTINGS_COLOR_LABEL_TIP,
+        -- The Guild line as the Level tooltip draws it, label in the picked color.
+        sample = function(hex)
+            -- The rest of the line is in the game's default tooltip text color,
+            -- like the Level tooltip, where only the label is colored.
+            return "|c" .. hex .. zo_strformat(COMPANIONROSTER_LEVEL_TIP_LABEL, GetString("SI_SKILLTYPE", SKILL_TYPE_GUILD)) .. "|r |c" .. ZO_TOOLTIP_DEFAULT_COLOR:ToHex() .. GetGuildSampleItems() .. "|r"
+        end,
+    },
+}
+
+local function ColorRowReference(row)
+    return "CompanionRosterColor_" .. row.kind
+end
+
+-- Redraws a row's sample text in the color currently saved for it.
+local function UpdateColorSample(row)
+    local control = _G[ColorRowReference(row)]
+    if control and control.companionRosterSample then
+        control.companionRosterSample:SetText(row.sample(CompanionRoster.Data.GetColorHex(row.kind)))
+    end
+end
+
+local function ColorRowOption(row)
+    return {
+        type = "colorpicker",
+        name = GetString(row.name),
+        tooltip = GetString(row.tooltip),
+        getFunc = function() return CompanionRoster.Data.GetColor(row.kind) end,
+        setFunc = function(r, g, b)
+            CompanionRoster.Data.SetColor(row.kind, r, g, b)
+            if row.redrawsRoster then
+                CompanionRoster.RefreshGrid()
+            end
+            UpdateColorSample(row)
+        end,
+        default = ColorDefault(row.kind),
+        reference = ColorRowReference(row),
+        width = "full",
+    }
 end
 
 -- Companion Info frame helpers. Every setting writes through to saved vars and
@@ -81,11 +187,11 @@ local function HudColorDefault()
     return { r = color[1], g = color[2], b = color[3] }
 end
 
-local function HudCheckbox(key, name, tooltip)
+local function HudCheckbox(key, nameId, tooltipId)
     return {
         type = "checkbox",
-        name = name,
-        tooltip = tooltip,
+        name = GetString(nameId),
+        tooltip = GetString(tooltipId),
         getFunc = function() return CompanionRoster.Data.GetHudOption(key) end,
         setFunc = function(value) SetHudOption(key, value) end,
         disabled = HudIsOff,
@@ -94,16 +200,21 @@ local function HudCheckbox(key, name, tooltip)
     }
 end
 
-local function OnAddOnLoaded(eventCode, addOnName)
-    if addOnName ~= CompanionRoster.name then
-        return
+-- Called once from the addon's single EVENT_ADD_ON_LOADED handler
+-- (CompanionRoster.lua), after the saved data is ready.
+function CompanionRoster.Settings.Initialize()
+    local noneLabel = GetString(COMPANIONROSTER_ROLE_NONE)
+    ROLE_CHOICES = { noneLabel }
+    for _, choice in ipairs(CompanionRoster.Data.ROLE_CHOICES) do
+        local label = CompanionRoster.Data.GetRoleLabel(choice.primary, choice.secondary)
+        table.insert(ROLE_CHOICES, label)
+        ROLE_CHOICE_TO_ROLES[label] = choice
     end
-    EVENT_MANAGER:UnregisterForEvent("CompanionRoster_Settings", EVENT_ADD_ON_LOADED)
 
     local panelData = {
         type = "panel",
-        name = "Feliks' Companion Roster",
-        displayName = "Feliks' Companion Roster",
+        name = CompanionRoster.title,
+        displayName = CompanionRoster.title,
         author = "Feliks Blackwood",
         version = CompanionRoster.version,
         registerForRefresh = true,
@@ -113,34 +224,89 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- being viewed (LAM-PanelOpened / LAM-PanelClosed hand back this object).
     CompanionRoster.settingsPanel = LAM:RegisterAddonPanel("CompanionRoster_Options", panelData)
 
+    -- LAM builds the panel's controls the first time it's opened. The "/" in
+    -- front of the Chat Command box is added then, as a plain label next to the
+    -- box's own backdrop; a leftover message is cleared when the panel closes.
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", function(panel)
+        if panel ~= CompanionRoster.settingsPanel then
+            return
+        end
+        local box = _G[COMMAND_EDITBOX_REFERENCE]
+        if box and box.bg then
+            local slash = WINDOW_MANAGER:CreateControl(nil, box, CT_LABEL)
+            slash:SetFont("ZoFontWinH3")
+            slash:SetText("/")
+            slash:SetAnchor(RIGHT, box.bg, LEFT, -4, 0)
+        end
+
+        -- Each color row: swatch moved up next to its label (the label is
+        -- anchored to the swatch's holder, so it shrinks to fit) and a sample of
+        -- the color drawn to the right of the swatch.
+        for _, row in ipairs(COLOR_ROWS) do
+            local control = _G[ColorRowReference(row)]
+            if control and control.container and control.color and control.color.border then
+                control.container:ClearAnchors()
+                control.container:SetAnchor(TOPLEFT, control, TOPLEFT, COLOR_SWATCH_X, 0)
+
+                local sample = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+                sample:SetFont("ZoFontGame")
+                sample:SetAnchor(LEFT, control.color.border, RIGHT, 12, 0)
+                control.companionRosterSample = sample
+                UpdateColorSample(row)
+            end
+        end
+    end)
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
+        if panel == CompanionRoster.settingsPanel then
+            commandMessage = ""
+        end
+    end)
+
     local optionsTable = {
         {
             type = "header",
-            name = "General",
+            name = GetString(COMPANIONROSTER_SETTINGS_GENERAL),
             width = "full",
         },
         {
             type = "editbox",
-            name = "Chat Command",
-            tooltip = "The chat command that toggles the roster window. Takes effect immediately, no reload needed.",
-            getFunc = function() return CompanionRoster.Data.GetSlashCommand() end,
+            name = GetString(COMPANIONROSTER_SETTINGS_COMMAND),
+            tooltip = GetString(COMPANIONROSTER_SETTINGS_COMMAND_TIP),
+            getFunc = GetCommandName,
             setFunc = SetSlashCommand,
-            default = "/fcr",
+            default = "fcr",
+            maxChars = 32,
+            reference = COMMAND_EDITBOX_REFERENCE,
             width = "half",
         },
         {
+            -- Empty unless the command was rejected or left blank; follows
+            -- commandMessage whenever the panel refreshes (registerForRefresh).
+            type = "description",
+            text = function()
+                if commandMessage == "" then
+                    return ""
+                end
+                return "|cFF6666" .. commandMessage .. "|r"
+            end,
+            width = "full",
+        },
+        {
             type = "checkbox",
-            name = "Close Window When Entering Combat",
-            tooltip = "Close when entering combat.",
+            name = GetString(COMPANIONROSTER_SETTINGS_CLOSE_COMBAT),
+            tooltip = GetString(COMPANIONROSTER_SETTINGS_CLOSE_COMBAT_TIP),
             getFunc = function() return CompanionRoster.Data.GetCloseOnCombat() end,
-            setFunc = function(value) CompanionRoster.Data.SetCloseOnCombat(value) end,
+            setFunc = function(value)
+                CompanionRoster.Data.SetCloseOnCombat(value)
+                CompanionRoster.UpdateCombatEvent()
+            end,
             default = false,
             width = "full",
         },
         {
             type = "checkbox",
-            name = "Show Roles in Collections",
-            tooltip = "Shows each companion's Role icon on their tile in the Collections screen. Keyboard and mouse UI only.",
+            name = GetString(COMPANIONROSTER_SETTINGS_SHOW_ROLES),
+            tooltip = GetString(COMPANIONROSTER_SETTINGS_SHOW_ROLES_TIP),
             getFunc = function() return CompanionRoster.Data.GetShowRoleOnCollections() end,
             setFunc = function(value) CompanionRoster.Data.SetShowRoleOnCollections(value) end,
             default = true,
@@ -148,8 +314,8 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "checkbox",
-            name = "Show Rapport in Collections",
-            tooltip = "Shows each companion's current rapport number under their portrait in the Collections screen. Keyboard and mouse UI only.",
+            name = GetString(COMPANIONROSTER_SETTINGS_SHOW_RAPPORT),
+            tooltip = GetString(COMPANIONROSTER_SETTINGS_SHOW_RAPPORT_TIP),
             getFunc = function() return CompanionRoster.Data.GetShowRapportOnCollections() end,
             setFunc = function(value) CompanionRoster.Data.SetShowRapportOnCollections(value) end,
             default = true,
@@ -157,28 +323,28 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "header",
-            name = "Companion Info Frame",
+            name = GetString(COMPANIONROSTER_SETTINGS_HUD_HEADER),
             width = "full",
         },
         {
             type = "description",
-            text = "A small always-visible line showing your active companion. Move it with Game Menu > Edit HUD.",
+            text = GetString(COMPANIONROSTER_SETTINGS_HUD_DESCRIPTION),
             width = "full",
         },
         {
             type = "checkbox",
-            name = "Show Companion Info Frame",
-            tooltip = "Turns the whole frame on or off. When off, it also disappears from Edit HUD.",
+            name = GetString(COMPANIONROSTER_SETTINGS_HUD_ENABLED),
+            tooltip = GetString(COMPANIONROSTER_SETTINGS_HUD_ENABLED_TIP),
             getFunc = function() return CompanionRoster.Data.GetHudOption("enabled") end,
             setFunc = function(value) SetHudOption("enabled", value) end,
             default = CompanionRoster.Data.HUD_DEFAULTS.enabled,
             width = "full",
         },
-        HudCheckbox("bold", "Bold Text", "Use the bold game font instead of the regular one."),
+        HudCheckbox("bold", COMPANIONROSTER_SETTINGS_HUD_BOLD, COMPANIONROSTER_SETTINGS_HUD_BOLD_TIP),
         {
             type = "colorpicker",
-            name = "Text Color",
-            tooltip = "The color of the whole line.",
+            name = GetString(COMPANIONROSTER_SETTINGS_HUD_COLOR),
+            tooltip = GetString(COMPANIONROSTER_SETTINGS_HUD_COLOR_TIP),
             getFunc = function() return CompanionRoster.Data.GetHudColor() end,
             setFunc = function(r, g, b)
                 CompanionRoster.Data.SetHudColor(r, g, b)
@@ -190,68 +356,37 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "description",
-            text = "Parts to show (the companion's name is always shown):",
+            text = GetString(COMPANIONROSTER_SETTINGS_HUD_PARTS),
             width = "full",
         },
-        HudCheckbox("level", "Level", "For example Lv:16."),
-        HudCheckbox("xpRaw", "XP (current/needed)", "For example (94938/116000). Hidden at max level."),
-        HudCheckbox("xpPercent", "XP Percent", "For example 81%. Hidden at max level."),
-        HudCheckbox("xpGain", "XP Gain", "The most recent XP gain, for example [+120]. Hidden at max level."),
-        HudCheckbox("rapportLevel", "Rapport Level", "For example Rap:6."),
-        HudCheckbox("rapportChange", "Rapport Change", "The most recent rapport gain or loss, for example [+25]."),
-        HudCheckbox("rapportNumber", "Rapport Number", "Your current rapport points, for example (3247)."),
+        HudCheckbox("level", COMPANIONROSTER_SETTINGS_HUD_LEVEL, COMPANIONROSTER_SETTINGS_HUD_LEVEL_TIP),
+        HudCheckbox("xpRaw", COMPANIONROSTER_SETTINGS_HUD_XP_RAW, COMPANIONROSTER_SETTINGS_HUD_XP_RAW_TIP),
+        HudCheckbox("xpPercent", COMPANIONROSTER_SETTINGS_HUD_XP_PERCENT, COMPANIONROSTER_SETTINGS_HUD_XP_PERCENT_TIP),
+        HudCheckbox("xpGain", COMPANIONROSTER_SETTINGS_HUD_XP_GAIN, COMPANIONROSTER_SETTINGS_HUD_XP_GAIN_TIP),
+        HudCheckbox("rapportLevel", COMPANIONROSTER_SETTINGS_HUD_RAPPORT_LEVEL, COMPANIONROSTER_SETTINGS_HUD_RAPPORT_LEVEL_TIP),
+        HudCheckbox("rapportChange", COMPANIONROSTER_SETTINGS_HUD_RAPPORT_CHANGE, COMPANIONROSTER_SETTINGS_HUD_RAPPORT_CHANGE_TIP),
+        HudCheckbox("rapportNumber", COMPANIONROSTER_SETTINGS_HUD_RAPPORT_NUMBER, COMPANIONROSTER_SETTINGS_HUD_RAPPORT_NUMBER_TIP),
         {
             type = "header",
-            name = "Colors",
+            name = GetString(COMPANIONROSTER_SETTINGS_COLORS_HEADER),
             width = "full",
         },
         {
             type = "description",
-            text = "The colors used for rapport and Guild ranks in the roster window, the Collections screen and chat search results.",
+            text = GetString(COMPANIONROSTER_SETTINGS_COLORS_DESCRIPTION),
             width = "full",
         },
-        {
-            type = "colorpicker",
-            name = "Done Color",
-            tooltip = "Maxed rapport and maxed Guild ranks.",
-            getFunc = function() return CompanionRoster.Data.GetColor("done") end,
-            setFunc = function(r, g, b)
-                CompanionRoster.Data.SetColor("done", r, g, b)
-                CompanionRoster.RefreshGrid()
-            end,
-            default = ColorDefault("done"),
-            width = "half",
-        },
-        {
-            type = "colorpicker",
-            name = "In Progress Color",
-            tooltip = "Rapport and Guild ranks that can still go up.",
-            getFunc = function() return CompanionRoster.Data.GetColor("inProgress") end,
-            setFunc = function(r, g, b)
-                CompanionRoster.Data.SetColor("inProgress", r, g, b)
-                CompanionRoster.RefreshGrid()
-            end,
-            default = ColorDefault("inProgress"),
-            width = "half",
-        },
-        {
-            -- Re-evaluated whenever the panel refreshes (registerForRefresh),
-            -- so this follows the pickers as they change.
-            type = "description",
-            text = function()
-                return string.format("Preview:   |c%s5500/5500|r Done      |c%s3075/5500|r In Progress",
-                    CompanionRoster.Data.GetColorHex("done"), CompanionRoster.Data.GetColorHex("inProgress"))
-            end,
-            width = "full",
-        },
+        ColorRowOption(COLOR_ROWS[1]),
+        ColorRowOption(COLOR_ROWS[2]),
+        ColorRowOption(COLOR_ROWS[3]),
         {
             type = "header",
-            name = "Companion Roles",
+            name = GetString(COMPANIONROSTER_SETTINGS_ROLES_HEADER),
             width = "full",
         },
         {
             type = "description",
-            text = "Purely a label you set yourself - there's no way to detect a companion's build from their gear or slotted skills. Account-wide, same as the companion itself. Right-clicking a companion's Role icon in the roster window does the same thing.",
+            text = GetString(COMPANIONROSTER_SETTINGS_ROLES_DESCRIPTION),
             width = "full",
         },
     }
@@ -264,19 +399,17 @@ local function OnAddOnLoaded(eventCode, addOnName)
             choices = ROLE_CHOICES,
             getFunc = function()
                 local primary, secondary = CompanionRoster.Data.GetCompanionRoles(companionId)
-                return CompanionRoster.Data.GetRoleLabel(primary, secondary) or "None"
+                return CompanionRoster.Data.GetRoleLabel(primary, secondary) or noneLabel
             end,
             setFunc = function(choice)
                 local roles = ROLE_CHOICE_TO_ROLES[choice]
                 CompanionRoster.Data.SetCompanionRoles(companionId, roles and roles.primary, roles and roles.secondary)
                 CompanionRoster.RefreshGrid()
             end,
-            default = "None",
+            default = noneLabel,
             width = "half",
         })
     end
 
     LAM:RegisterOptionControls("CompanionRoster_Options", optionsTable)
 end
-
-EVENT_MANAGER:RegisterForEvent("CompanionRoster_Settings", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

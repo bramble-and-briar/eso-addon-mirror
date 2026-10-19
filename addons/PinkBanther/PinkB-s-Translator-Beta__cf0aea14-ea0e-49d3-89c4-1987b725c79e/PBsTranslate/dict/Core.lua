@@ -12,6 +12,11 @@ D("pn", [[
 i=私
 me=私
 myself=自分
+himself=自分
+herself=自分
+itself=自分
+themselves=自分
+ourselves=自分
 mine=私のもの
 you=あなた
 yourself=自分
@@ -716,4 +721,9 @@ regarding=に関して
 D("pn", [[
 none=どれも
 others=他の人たち
+]])
+
+D("adv", [[
+right there=ちょうどそこ/place
+right here=ちょうどここ/place
 ]])

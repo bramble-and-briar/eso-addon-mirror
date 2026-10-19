@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Harven/Harven-s-Quest-Journal__580",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Harven",
   "canonical_id": "esoui:580",
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Scions of Ithelia",
-      "version": "9.3.0"
-    },
-    {
-      "name": "Endless Archive",
-      "version": "9.2.5"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:580",
@@ -21,7 +18,7 @@
     "HarvensQuestJournal"
   ],
   "download_url": "https://www.esoui.com/downloads/dl580/",
-  "fingerprint": "e56f659459389bccb9a7314ae765b95d1658e254b18d80e8b3360bf2261ad5ad",
+  "fingerprint": "13c40ed17915730b847cec94d552f576aaf7afb0d6627db0a66184579947f838",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw1773.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw1774.jpg",
@@ -39,11 +36,11 @@
   "source_id": "580",
   "source_url": "https://www.esoui.com/downloads/info580-HarvensQuestJournal.html",
   "stats": {
-    "downloads": 119042,
+    "downloads": 119641,
     "favorites": 296,
-    "monthly_downloads": 141
+    "monthly_downloads": 307
   },
   "title": "Harven's Quest Journal",
-  "updated_at": 1709990173000,
-  "version": "2.9.2"
+  "updated_at": 1792326217000,
+  "version": "3.0.0"
 }

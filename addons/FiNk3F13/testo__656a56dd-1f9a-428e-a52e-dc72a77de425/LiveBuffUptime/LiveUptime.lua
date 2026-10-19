@@ -163,11 +163,8 @@ function LiveUptime.Action(fight, event, time, source, target, value, overflow)
 end
 
 function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own, stacks, sourceType, expires)
-    local debug = LiveBuffUptimeBuffDebug
-    local reason = LiveUptime.IsPet(sourceType) and "abgewiesen: Begleiterquelle" or nil
     local recipient = LiveUptime.Touch(fight, id, time)
     if not recipient then
-        if debug and debug.active then debug.Processed(fight, tracker, time, id, ability, slot, false, "abgewiesen: Kampf geschlossen/keine Einheit") end
         return
     end
     recipient.hasEffects = true
@@ -189,7 +186,7 @@ function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own,
         unit.slots[slot], previous = nil, nil
     end
     if gained and expires and expires > 0 and expires <= time then
-        gained, reason = false, "abgewiesen: bereits abgelaufen"
+        gained = false
     end
     if gained then
         if previous and previous.ability ~= ability then
@@ -210,7 +207,6 @@ function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own,
         Meter.ScopeEvent(unit.all, slot, time, false)
         Meter.ScopeEvent(unit.own, slot, time, false)
     end
-    if debug and debug.active then debug.Processed(fight, tracker, time, id, ability, slot, gained, reason) end
 end
 
 function LiveUptime.Expire(fight, tracker, time)
@@ -244,10 +240,6 @@ function LiveUptime.Remember(unit, ability, slot, gained, own, stacks, sourceTyp
 end
 
 function LiveUptime.Seed(fight, tracker, now, matches)
-    if tracker.freezeCheck and tracker.freezeCheck.record.freeze.violations == 0 then
-        tracker.freezeCheck.record.freeze.status = "beendet: Tracker geaendert"
-    end
-    tracker.freezeCheck = nil
     tracker.liveUptimeUnits = {}
     if not fight or not fight.running then return end
     for id, unit in pairs(fight.units) do

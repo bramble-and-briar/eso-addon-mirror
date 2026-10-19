@@ -16,6 +16,9 @@ local EMPTY_WIDTH = 200 -- editor box width when there's no text to measure
 -- Default spot: the top-left corner, in the free strip above the buff boxes
 -- and left of the compass (the bottom-left spot ran into the ability bar once
 -- the line got long). Anchored to the corner so it holds up across screen sizes.
+-- This is the real default (passed to HUD_MANAGER below). The control's
+-- placeholder anchor in CompanionRoster_Window.xml repeats these two numbers
+-- so it doesn't jump when registration applies the default - keep them equal.
 local DEFAULT_OFFSET_X = 9
 local DEFAULT_OFFSET_Y = 6
 
@@ -56,7 +59,7 @@ local function BuildText()
 
     local level, currentXp = GetActiveCompanionLevelInfo()
     if Data.GetHudOption("level") then
-        table.insert(parts, "Lv:" .. level)
+        table.insert(parts, zo_strformat(COMPANIONROSTER_HUD_LEVEL, level))
     end
 
     -- Same max-level test the base game's companion manager uses: no XP
@@ -75,7 +78,7 @@ local function BuildText()
     end
 
     if Data.GetHudOption("rapportLevel") then
-        table.insert(parts, "Rap:" .. GetActiveCompanionRapportLevel())
+        table.insert(parts, zo_strformat(COMPANIONROSTER_HUD_RAPPORT_LEVEL, GetActiveCompanionRapportLevel()))
     end
     if Data.GetHudOption("rapportChange") then
         table.insert(parts, string.format("[%s]", SignedNumber(lastRapportChange)))
@@ -156,8 +159,29 @@ local function AttachScenes()
     end
 end
 
+-- Which companion the two values above belong to. A loading screen unloads and
+-- reloads the same companion (firing DEACTIVATED/ACTIVATED), so the values are
+-- only cleared when the companion really changes or is dismissed in the world.
+local trackedCompanionId = nil
+
+local function GetActiveCompanionId()
+    if HasActiveCompanion() then
+        local companionId = GetActiveCompanionDefId()
+        if companionId ~= nil and companionId ~= 0 then
+            return companionId
+        end
+    end
+    return nil
+end
+
+local function ResetGains()
+    lastXpGain = 0
+    lastRapportChange = 0
+end
+
 local function OnExperienceGain(_, companionId, previousLevel, previousExperience, currentExperience)
     if companionId == GetActiveCompanionDefId() then
+        trackedCompanionId = companionId
         lastXpGain = currentExperience - previousExperience
     end
     HUD.Refresh()
@@ -165,48 +189,91 @@ end
 
 local function OnRapportUpdate(_, companionId, previousRapport, currentRapport)
     if companionId == GetActiveCompanionDefId() then
+        trackedCompanionId = companionId
         lastRapportChange = currentRapport - previousRapport
     end
     HUD.Refresh()
 end
 
-local function OnCompanionChanged()
-    lastXpGain = 0
-    lastRapportChange = 0
+-- The XP, rapport and skills events only matter while a companion is out, so
+-- they are registered only then. No event filter applies to any of them (none
+-- has a filterable parameter).
+local EVENT_NAMESPACE = "CompanionRoster_HUD"
+local COMPANION_EVENTS = {
+    [EVENT_COMPANION_EXPERIENCE_GAIN] = OnExperienceGain,
+    [EVENT_COMPANION_RAPPORT_UPDATE] = OnRapportUpdate,
+    [EVENT_COMPANION_SKILLS_FULL_UPDATE] = function() HUD.Refresh() end,
+}
+local companionEventsRegistered = false
+
+local function SetCompanionEventsRegistered(enabled)
+    if enabled == companionEventsRegistered then
+        return
+    end
+    companionEventsRegistered = enabled
+    for eventCode, handler in pairs(COMPANION_EVENTS) do
+        if enabled then
+            EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, eventCode, handler)
+        else
+            EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE, eventCode)
+        end
+    end
+end
+
+local function OnCompanionActivated()
+    SetCompanionEventsRegistered(true)
+    local companionId = GetActiveCompanionId()
+    if companionId ~= trackedCompanionId then
+        ResetGains()
+        trackedCompanionId = companionId
+    end
     HUD.Refresh()
 end
 
-local function OnPlayerActivated()
+local function OnCompanionDeactivated()
+    SetCompanionEventsRegistered(false)
+    -- Ignored during a loading screen (the player isn't activated then): the
+    -- same companion comes straight back and keeps its values.
+    if IsPlayerActivated() then
+        ResetGains()
+        trackedCompanionId = nil
+    end
+    HUD.Refresh()
+end
+
+-- Called from the addon's single EVENT_PLAYER_ACTIVATED handler
+-- (CompanionRoster.lua) on every activation.
+function HUD.OnPlayerActivated()
+    SetCompanionEventsRegistered(HasActiveCompanion())
+    trackedCompanionId = trackedCompanionId or GetActiveCompanionId()
     AttachScenes() -- picks up any scene that didn't exist yet at addon load
     if registrationError then
-        d("Feliks' Companion Roster: the Companion Info frame could not be set up for Edit HUD (" .. registrationError .. ").")
+        CompanionRoster.Say(COMPANIONROSTER_SAY_HUD_FAILED, registrationError)
         registrationError = nil
     end
     HUD.Refresh()
 end
 
-local function OnAddOnLoaded(_, addOnName)
-    if addOnName ~= CompanionRoster.name then
-        return
-    end
-    EVENT_MANAGER:UnregisterForEvent("CompanionRoster_HUD", EVENT_ADD_ON_LOADED)
-
+-- Called once from the addon's single EVENT_ADD_ON_LOADED handler
+-- (CompanionRoster.lua).
+function HUD.Initialize()
     frame = CompanionRosterHUD
     textLabel = frame:GetNamedChild("Text")
     backdrop = frame:GetNamedChild("BG")
 
     if HUD_MANAGER then
         local ok, result = pcall(function()
-            return HUD_MANAGER:RegisterKeyboardElement(frame, "Companion Info",
+            local registered = HUD_MANAGER:RegisterKeyboardElement(frame, GetString(COMPANIONROSTER_HUD_ELEMENT_NAME),
                 {
                     defaultAnchor = ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, DEFAULT_OFFSET_X, DEFAULT_OFFSET_Y),
                     -- Turning the frame off in settings also removes its box from Edit HUD.
                     isValid = function() return CompanionRoster.Data.GetHudOption("enabled") end,
                 })
+            registered:RevertOffsetModifications()
+            return registered
         end)
         if ok then
             element = result
-            element:RevertOffsetModifications()
         else
             registrationError = tostring(result)
         end
@@ -231,14 +298,10 @@ local function OnAddOnLoaded(_, addOnName)
         end
     end)
 
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_COMPANION_ACTIVATED, OnCompanionChanged)
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_COMPANION_DEACTIVATED, OnCompanionChanged)
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_COMPANION_EXPERIENCE_GAIN, OnExperienceGain)
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_COMPANION_RAPPORT_UPDATE, OnRapportUpdate)
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_COMPANION_SKILLS_FULL_UPDATE, HUD.Refresh)
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    -- A companion being summoned or dismissed is what turns the rest on and off.
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_COMPANION_DEACTIVATED, OnCompanionDeactivated)
+    SetCompanionEventsRegistered(HasActiveCompanion())
 
     HUD.Refresh()
 end
-
-EVENT_MANAGER:RegisterForEvent("CompanionRoster_HUD", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

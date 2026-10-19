@@ -17,6 +17,7 @@ local strings = {
 	["HARVEN_QUEST_JOURNAL_SORT_TIMEOFSTART"] = "Date of acceptance",
 	["HARVEN_QUEST_JOURNAL_SORT_LEVEL"] = GetString(SI_ITEM_FORMAT_STR_LEVEL),
 	["HARVEN_QUEST_JOURNAL_SORT_ASC"] = "Ascending",
+	["HARVEN_QUEST_JOURNAL_SORT_DESC"] = "Descending",
 	["HARVEN_QUEST_JOURNAL_SET_FOCUS"] = "Set Focus",
 	["HARVEN_QUEST_JOURNAL_BACK"] = "Back",
 	["HARVEN_QUEST_JOURNAL_DELETE"] = "Delete",
@@ -34,7 +35,12 @@ local strings = {
 	["HARVEN_QUEST_JOURNAL_SAVED_COMPLETED_DAILIES"] = "Save Completed Daily Quests",
 	["HARVEN_QUEST_JOURNAL_COMPLETED_REPEATABLE"] = "Save Completed Repeatable Quests",
 	["HARVEN_QUEST_JOURNAL_PLAY_EMOTE"] = "Play Emote on opening Journal",
-	["HARVEN_QUEST_JOURNAL_SHOW_MAIN_MENU"] = "Show In Main Menu"
+	["HARVEN_QUEST_JOURNAL_SHOW_MAIN_MENU"] = "Show In Main Menu",
+	["HARVEN_QUEST_JOURNAL_ACTIVE_RUMORS_TITLE"] = "Active Rumors",
+	["HARVEN_QUEST_JOURNAL_COMPLETED_RUMORS_TITLE"] = "Completed Rumors",
+	["HARVEN_QUEST_JOURNAL_RUMOR_HINTS"] = "Discovered Hints:",
+	["HARVEN_QUEST_JOURNAL_RUMOR_STARTER_HINT"] = "Starter Hint:",
+	["HARVEN_QUEST_JOURNAL_RUMORS_KEYBIND"] = "Rumors"
 }
 local ZO_CreateStringId = ZO_CreateStringId
 for id, text in pairs(strings) do

@@ -10,7 +10,7 @@ main map or the various minimap addons
 
 
 local MIN_PIN_SIZE = 8
-local NO_MAP_MODE, MAIN_MAP_MODE, VOTAN_MODE, FYR_MODE, AUI_MODE
+local NO_MAP_MODE, MAIN_MAP_MODE, VOTAN_MODE, FYR_MODE, AUI_MODE, LUIE_MODE
 
 local PinTypeManager = ZO_Object:Subclass()
 
@@ -31,11 +31,13 @@ function PinController:Initialize()
 	PinController.minZoom, PinController.maxZoom = self.zoom.minZoom, self.zoom.maxZoom
 		
 	ZO_PreHook(ZO_WorldMapPins_Manager, "UpdatePinsForMapSizeChange", function() 
+		PinController:CheckMapMode()
 		PinController:OnMapSizeChange(ZO_WorldMapContainer:GetDimensions()) 
 	end)
 	ZO_PreHook(PinController.zoom, "SetZoomMinMax", function(self, min, max)
 		PinController.minZoom = min
 		PinController.maxZoom = max
+		PinController:CheckMapMode()
 		PinController:OnMapSizeChange(ZO_WorldMapContainer:GetDimensions())
 	end)
 	
@@ -51,6 +53,7 @@ function PinController:Initialize()
 	
 	self:InitializeFyr()
 	self:InitializeAUI()
+	self:InitializeLUIE()
 	
 	ZO_PreHook("ZO_WorldMap_MouseEnter", function() 
 	
@@ -205,6 +208,15 @@ function PinController:InitializeAUI()
 	end)
 end
 
+function PinController:InitializeLUIE()
+	if self.luieMinimapHooked then return end
+	if not LUIE or not LUIE.MiniMap or not LUIE.MiniMap.MAP_MODE_LUIE_MINIMAP then return end
+	if not LUIE_MiniMap_Scroll_Map or not LUIE_MiniMap_Scroll_Map_Pins then return end
+	self:HookMinimap(LUIE_MiniMap_Scroll_Map)
+	self.luieMinimapHooked = true
+end
+
+
 function PinController:SetMode(mode)
 	assert(mode)
 	local previousMode = self.activeMode
@@ -227,6 +239,11 @@ function PinController:CheckMapMode()
 		if VOTANS_MINIMAP then
 			mode = VOTAN_MODE
 		end
+		if LUIE and LUIE.MiniMap and LUIE.MiniMap.Enabled and LUIE.MiniMap.MAP_MODE_LUIE_MINIMAP and LUIE_MiniMap_Scroll_Map_Pins then
+			self:InitializeLUIE()
+			mode = LUIE_MODE
+		end
+
 	end
 	self:SetMode(mode)
 end
@@ -534,5 +551,22 @@ AUI_MODE = {
 		local rotatedX = AUI_MODE.cos * x - AUI_MODE.sin * y
 		local rotatedY = AUI_MODE.sin * x + AUI_MODE.cos * y
 		self.composite:SetInsets(pinIndex, rotatedX, rotatedX, rotatedY, rotatedY)
+	end,
+}
+LUIE_MODE = {
+	Activate = function(self)
+		PinController.container:ClearAnchors()
+		PinController.container:SetParent(LUIE_MiniMap_Scroll_Map_Pins)
+		PinController.container:SetAnchor(TOPLEFT, LUIE_MiniMap_Scroll_Map_Pins, TOPLEFT, 0, 0)
+		PinTypeManager.UpdateLocationOfPinWithIndex = OriginalUpdateLocation
+	end,
+	GetDimensions = function(self)
+		if LUIE_MiniMap_Scroll_Map then
+			local width, height = LUIE_MiniMap_Scroll_Map:GetDimensions()
+			if width > 0 and height > 0 then
+				return width, height
+			end
+		end
+		return ZO_WorldMapContainer:GetDimensions()
 	end,
 }

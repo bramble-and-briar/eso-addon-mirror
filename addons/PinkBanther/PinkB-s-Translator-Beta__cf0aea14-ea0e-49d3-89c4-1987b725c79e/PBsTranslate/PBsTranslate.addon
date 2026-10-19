@@ -1,10 +1,10 @@
 ## To release a new version, edit the version in the two lines below and nothing else.
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
-## Title: |cFF69B4PB’s Translate|r 1.3.2-dev
+## Title: |cFF69B4PB’s Translate|r 1.4.0-dev
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Shows a Japanese translation under English chat messages -- your own and other players'. Translation runs entirely inside the add-on, with a built-in dictionary of everyday English, chat shorthand, ESO terms and Cyrodiil PvP calls and a small grammar that reorders English into Japanese, so the result is a rough literal rendering. /jp <text> translates a line for you alone; /pbtr add english = 日本語 adds your own words.
-## Version: 1.3.2-dev
+## Version: 1.4.0-dev
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106 LibGroupBroadcast
 ## SavedVariables: PBsTranslate_Data
@@ -17,6 +17,8 @@ Lexicon.lua
 Tokenizer.lua
 Grammar.lua
 Semantic.lua
+Syntax.lua
+SyntaxGen.lua
 JaToEn.lua
 
 dict/Core.lua

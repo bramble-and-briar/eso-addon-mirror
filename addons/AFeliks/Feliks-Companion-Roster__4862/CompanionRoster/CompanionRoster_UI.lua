@@ -1,10 +1,6 @@
 CompanionRoster = CompanionRoster or {}
 local CompanionRoster = CompanionRoster -- local reference, faster than repeated _G lookups
-
--- Display name for the keybind action declared in Bindings.xml (action name
--- COMPANIONROSTER_TOGGLE). Must run before the Keybindings menu is ever
--- opened, so top-level code here is fine.
-ZO_CreateStringId("SI_BINDING_NAME_COMPANIONROSTER_TOGGLE", "Toggle Feliks' Companion Roster")
+CompanionRoster.UI = {}
 
 -- Number of pre-created row controls (CompanionRosterWindowRow1..N in the
 -- XML) - a display ceiling, not a data limit. CompanionRoster.Data.GetAllCompanions()
@@ -34,14 +30,48 @@ local GAP_LEVEL_RAPPORT = 2
 local RAPPORT_NORMAL_WIDTH = 90
 local RAPPORT_SPANNED_WIDTH = ROLE_WIDTH + GAP_ROLE_LEVEL + LEVEL_WIDTH + GAP_LEVEL_RAPPORT + RAPPORT_NORMAL_WIDTH
 
+-- Widths set in CompanionRoster_Window.xml. The window is widened from these
+-- when a name or a status message is longer than they allow (see
+-- FitWindowToText), never narrowed below them.
+local BASE_NAME_WIDTH = 136
+local BASE_HEADER_WIDTH = 150
+local BASE_ROW_WIDTH = 350
+local BASE_WINDOW_WIDTH = 360
+local MAX_EXTRA_WIDTH = 120 -- per kind of text, so one huge string can't make the window absurd
+local MEASURE_PADDING = 6
+
+-- Width of the blank-state status text; grows with FitWindowToText.
+local rapportSpannedWidth = RAPPORT_SPANNED_WIDTH
+
 -- The addon's own ESOUI download page - opened when the footer is clicked.
 local ESOUI_PAGE_URL = "https://www.esoui.com/downloads/info4862.html"
 local FOOTER_COLOR = { 0.6, 0.6, 0.6, 1 }
 local FOOTER_HOVER_COLOR = { 0.6, 0.8, 1, 1 }
 
+-- Every chat message from this addon starts with its name. Takes a string ID
+-- (lang/default.lua) and its <<1>>, <<2>> values. Public so the HUD file prints
+-- the same way.
+local function Say(stringId, ...)
+    d(CompanionRoster.title .. ": " .. zo_strformat(stringId, ...))
+end
+CompanionRoster.Say = Say
+
+local function Trim(text)
+    return (text:match("^%s*(.-)%s*$"))
+end
+
+-- A typed name matched more than one companion: list them instead of guessing.
+local function SayAmbiguousMatch(term, matches)
+    local names = {}
+    for _, match in ipairs(matches) do
+        table.insert(names, match.name)
+    end
+    Say(COMPANIONROSTER_SAY_AMBIGUOUS, term, table.concat(names, ", "))
+end
+
 -- Role icon sizes: one role is drawn at the full 20px, a hybrid as two 16px
 -- icons side by side in the same column. Role names/choices live in
--- CompanionRoster.Data (ROLE_NAMES, ROLE_CHOICES) so the menu, the settings
+-- CompanionRoster.Data (GetRoleLabel, ROLE_CHOICES) so the menu, the settings
 -- panel and this window can't drift apart.
 local ROLE_ICON_SIZE_SINGLE = 20
 local ROLE_ICON_SIZE_HYBRID = 16
@@ -55,26 +85,23 @@ local ROLE_HINT_ALPHA = 0.35
 local function SetRowBlank(row)
     row.hasInfo = false
     row.rapportLevelText = nil
-    row.passivePerkName = nil
-    row.passivePerkDescription = nil
-    row.skillLines = nil
 
     row:GetNamedChild("Level"):SetText("")
 
     local rapport = row:GetNamedChild("Rapport")
     if not row.isOwned then
-        rapport:SetText("Not Owned")
+        rapport:SetText(GetString(COMPANIONROSTER_STATUS_NOT_OWNED))
     elseif row.canSummon == false then
-        rapport:SetText("Quest Not Done")
+        rapport:SetText(GetString(COMPANIONROSTER_STATUS_QUEST_NOT_DONE))
     else
-        rapport:SetText("No Info")
+        rapport:SetText(GetString(COMPANIONROSTER_STATUS_NO_INFO))
     end
     rapport:SetColor(0.7, 0.7, 0.7, 1)
 
     -- These status messages are too wide for the Rapport column alone to
     -- fit on one line - span it across the (blank) Level column too
     -- instead of wrapping and overflowing into the row below.
-    rapport:SetWidth(RAPPORT_SPANNED_WIDTH)
+    rapport:SetWidth(rapportSpannedWidth)
     rapport:ClearAnchors()
     rapport:SetAnchor(LEFT, row:GetNamedChild("Companion"), RIGHT, GAP_COMPANION_ROLE)
 end
@@ -82,11 +109,8 @@ end
 local function SetRowData(row, info)
     row.hasInfo = true
     row.rapportLevelText = info.rapportLevelText
-    row.passivePerkName = info.passivePerkName
-    row.passivePerkDescription = info.passivePerkDescription
-    row.skillLines = info.skillLines
 
-    row:GetNamedChild("Level"):SetText(info.level and ("Lv." .. info.level) or "Lv.?")
+    row:GetNamedChild("Level"):SetText(info.level and zo_strformat(COMPANIONROSTER_LEVEL_CELL, info.level) or GetString(COMPANIONROSTER_LEVEL_UNKNOWN))
 
     local rapport = row:GetNamedChild("Rapport")
     rapport:SetText(info.rapportValue .. "/" .. info.rapportMax)
@@ -104,16 +128,31 @@ end
 -- OnMouseEnter handler on the Rapport label calls this by name.
 function CompanionRoster.OnRapportMouseEnter(control)
     local row = control:GetParent()
+    local text
     if row.hasInfo == false then
         if not row.isOwned then
-            ZO_Tooltips_ShowTextTooltip(control, TOP, "You don't own this companion yet.")
+            text = GetString(COMPANIONROSTER_TIP_NOT_OWNED)
         elseif row.canSummon == false then
-            ZO_Tooltips_ShowTextTooltip(control, TOP, "You haven't completed this companion's recruitment quest on this character yet.")
+            text = GetString(COMPANIONROSTER_TIP_QUEST_NOT_DONE)
         else
-            ZO_Tooltips_ShowTextTooltip(control, TOP, "Rapport data will be recorded when this companion is summoned.")
+            text = GetString(COMPANIONROSTER_TIP_NO_RAPPORT_DATA)
         end
-    elseif row.rapportLevelText then
-        ZO_Tooltips_ShowTextTooltip(control, TOP, row.rapportLevelText)
+    else
+        text = row.rapportLevelText
+    end
+
+    local hint = "|c999999" .. GetString(COMPANIONROSTER_TIP_CLICK_RAPPORT) .. "|r"
+    ZO_Tooltips_ShowTextTooltip(control, TOP, text and (text .. "\n" .. hint) or hint)
+end
+
+-- Same popup as the chat command's "c <name>". Rapport tips are static data,
+-- so this works on every row, including ones with no recorded rapport yet.
+-- On the CompanionRoster table because the XML OnMouseUp handler calls it.
+function CompanionRoster.OnRapportMouseUp(control)
+    local companionId = control:GetParent().companionId
+    local companionName = companionId and CompanionRoster.Data.GetCompanionNameById(companionId)
+    if companionName then
+        CompanionRoster.RunCompanionLookup(companionName)
     end
 end
 
@@ -127,10 +166,10 @@ function CompanionRoster.OnCompanionMouseEnter(control)
 
     local nameLine = row.passivePerkName
     if row.keepsakeUnlocked then
-        nameLine = nameLine .. " |c66FF66- Unlocked|r"
+        nameLine = nameLine .. " |c66FF66" .. GetString(COMPANIONROSTER_TIP_UNLOCKED) .. "|r"
     end
 
-    ZO_Tooltips_ShowTextTooltip(control, TOP, nameLine .. "\n" .. row.passivePerkDescription .. "\n|c999999Click to summon|r")
+    ZO_Tooltips_ShowTextTooltip(control, TOP, nameLine .. "\n" .. row.passivePerkDescription .. "\n|c999999" .. GetString(COMPANIONROSTER_TIP_CLICK_SUMMON) .. "|r")
 end
 
 -- The one set of summon rules, shared by clicking a name in the roster and
@@ -140,7 +179,7 @@ end
 -- known-unavailable; nil (never recorded) is left to the game to decide.
 local function TrySummonCompanion(companionId, companionName, canSummon)
     if canSummon == false then
-        d(string.format("Feliks' Companion Roster: %s can't be summoned on this character yet.", companionName))
+        Say(COMPANIONROSTER_SAY_CANT_SUMMON_YET, companionName)
         return
     end
 
@@ -150,7 +189,7 @@ local function TrySummonCompanion(companionId, companionName, canSummon)
     end
     if IsCollectibleBlocked(collectibleId, GAMEPLAY_ACTOR_CATEGORY_PLAYER) then
         local reason = GetCollectibleBlockReason(collectibleId, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-        d(string.format("Feliks' Companion Roster: can't summon %s - %s", companionName, zo_strformat(GetString("SI_COLLECTIBLEUSAGEBLOCKREASON", reason))))
+        Say(COMPANIONROSTER_SAY_CANT_SUMMON_REASON, companionName, zo_strformat(GetString("SI_COLLECTIBLEUSAGEBLOCKREASON", reason)))
         return
     end
 
@@ -164,7 +203,7 @@ function CompanionRoster.OnCompanionMouseUp(control)
     local companionName = control:GetText()
 
     if selectedCharacterKey ~= CompanionRoster.Data.GetCurrentCharacterName() then
-        d(string.format("Feliks' Companion Roster: switch the dropdown to the character you're playing to summon %s.", companionName))
+        Say(COMPANIONROSTER_SAY_SWITCH_CHARACTER, companionName)
         return
     end
 
@@ -191,15 +230,11 @@ function CompanionRoster.SummonCompanionByName(term)
     end
 
     if #matches == 0 then
-        d(string.format("Feliks' Companion Roster: no companion found matching \"%s\".", term))
+        Say(COMPANIONROSTER_SAY_NO_COMPANION, term)
         return
     end
     if #matches > 1 then
-        local names = {}
-        for _, match in ipairs(matches) do
-            table.insert(names, match.name)
-        end
-        d(string.format("Feliks' Companion Roster: \"%s\" matches more than one companion: %s", term, table.concat(names, ", ")))
+        SayAmbiguousMatch(term, matches)
         return
     end
 
@@ -208,9 +243,98 @@ function CompanionRoster.SummonCompanionByName(term)
     TrySummonCompanion(companion.id, companion.name, canSummon)
 end
 
+-- The game's tooltip wraps at roughly 40 characters of normal text and breaks
+-- inside names ("One Hand and / Shield"), so each group is packed into lines no
+-- longer than this many visible characters, breaking only after a comma. Lower
+-- it if a line still wraps; raise it if lines break too early.
+local LEVEL_TIP_LINE_CHARS = 40
+local NBSP = "\194\160"
+local LEVEL_TIP_INDENT = NBSP .. NBSP -- continuation lines of a group
+
+-- Length of a string as drawn (color codes take no room, a no-break space is one).
+local function VisibleLength(text)
+    return #(text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""):gsub(NBSP, " "))
+end
+
+-- One group as tooltip lines: a yellow "Label:" followed by the items on the
+-- same line, wrapping after a comma (never inside a name) onto indented lines:
+-- "Guild: Fighters 2, Mages 7" / "Weapon: Destruction 20," + "  Restoration 4".
+local function BuildGroupLines(label, items)
+    local lines = {}
+    -- The label color is the configurable "tooltipLabel" color (yellow by default).
+    local current = string.format("|c%s%s|r", CompanionRoster.Data.GetColorHex("tooltipLabel"), zo_strformat(COMPANIONROSTER_LEVEL_TIP_LABEL, label))
+    local firstOnLine = true
+    for _, item in ipairs(items) do
+        if firstOnLine then
+            current = current .. " " .. item
+            firstOnLine = false
+        elseif VisibleLength(current .. ", " .. item) > LEVEL_TIP_LINE_CHARS then
+            table.insert(lines, current .. ",")
+            current = LEVEL_TIP_INDENT .. item
+        else
+            current = current .. ", " .. item
+        end
+    end
+    table.insert(lines, current)
+    return lines
+end
+
+-- The items shown for one skill type group, e.g. { "One Hand and Shield 20",
+-- "Dual Wield 19", "Bow 3" }. A maxed rank is drawn in the Done color instead
+-- of a "(Maxed)" tag, and a group whose lines are all maxed at the same rank
+-- collapses to one item, "all maxed (N)". Words the group label already says
+-- (Guild, Armor, Staff) are dropped from the names. Class/Weapon/Armor skills
+-- still at rank 1 are left out and returned as the second result (full names,
+-- for the tooltip's "Untrained" line); Guild lines are always listed, since
+-- rank 1 there means no quests done yet, which is useful to see. The first
+-- result is empty when nothing in the group is worth listing.
+local function FormatSkillGroup(group)
+    local isGuild = CompanionRoster.Data.IsGuildSkillGroup(group)
+    local doneHex = CompanionRoster.Data.GetColorHex("done")
+
+    local listed, untrained = {}, {}
+    for _, skillLine in ipairs(group.lines) do
+        if not isGuild and skillLine.rank <= 1 and not skillLine.isMaxed then
+            table.insert(untrained, skillLine.name)
+        else
+            table.insert(listed, skillLine)
+        end
+    end
+    if #listed == 0 then
+        return {}, untrained
+    end
+
+    local allMaxedAtOneRank = true
+    for _, skillLine in ipairs(listed) do
+        if not skillLine.isMaxed or skillLine.rank ~= listed[1].rank then
+            allMaxedAtOneRank = false
+            break
+        end
+    end
+    if allMaxedAtOneRank then
+        return { string.format("|c%s%s|r", doneHex, zo_strformat(COMPANIONROSTER_LEVEL_TIP_ALL_MAXED, listed[1].rank)) }, untrained
+    end
+
+    local items = {}
+    for _, skillLine in ipairs(listed) do
+        local name = skillLine.name:gsub(" Guild$", ""):gsub(" Armor$", ""):gsub(" Staff$", "")
+        local rankText = tostring(skillLine.rank)
+        if skillLine.isMaxed then
+            rankText = string.format("|c%s%s|r", doneHex, rankText)
+        end
+        table.insert(items, name .. " " .. rankText)
+    end
+    return items, untrained
+end
+
 -- On the CompanionRoster table (not a separate bare global) because the XML
--- OnMouseEnter handler on the Level label calls this by name. Shows skill
--- line names + current rank grouped by type (Class/Weapon/Armor/Guild).
+-- OnMouseEnter handler on the Level label calls this by name. Each skill type
+-- (Guild first, then Class/Weapon/Armor) is one "Label: items" line in a plain
+-- text tooltip (wrapping after commas, see BuildGroupLines), with the never-used
+-- rank 1 skills together on a last "Untrained:" line. Hal rejected a version
+-- with bold headings on their own lines (one AddLine per line spaces them far
+-- apart and a tooltip can't mix bold inside a line) - a single text block keeps
+-- the lines tight.
 function CompanionRoster.OnLevelMouseEnter(control)
     local row = control:GetParent()
     if row.skillLines == nil then
@@ -218,34 +342,51 @@ function CompanionRoster.OnLevelMouseEnter(control)
         if row.hasInfo == false and (not row.isOwned or row.canSummon == false) then
             return
         end
-        ZO_Tooltips_ShowTextTooltip(control, TOP, "Skill data will be recorded when this companion is summoned.")
+        ZO_Tooltips_ShowTextTooltip(control, TOP, GetString(COMPANIONROSTER_TIP_NO_SKILL_DATA))
         return
     end
 
-    local lines = {}
-    for _, group in ipairs(row.skillLines) do
-        table.insert(lines, group.typeName .. ":")
-        for _, skillLine in ipairs(group.lines) do
-            local rankText = skillLine.rank .. (skillLine.isMaxed and " (Maxed)" or "")
-            table.insert(lines, skillLine.name .. ": " .. rankText)
+    local lines, untrained = {}, {}
+    for pass = 1, 2 do -- pass 1 = the Guild group, pass 2 = the others
+        for _, group in ipairs(row.skillLines) do
+            if CompanionRoster.Data.IsGuildSkillGroup(group) == (pass == 1) then
+                local items, rankOne = FormatSkillGroup(group)
+                if #items > 0 then
+                    -- The game's current name for the type; typeName was recorded
+                    -- in whatever language the client had at the time.
+                    local typeName = group.skillType and GetString("SI_SKILLTYPE", group.skillType) or group.typeName
+                    for _, text in ipairs(BuildGroupLines(typeName, items)) do
+                        table.insert(lines, text)
+                    end
+                end
+                for _, name in ipairs(rankOne) do
+                    table.insert(untrained, name)
+                end
+            end
         end
-        table.insert(lines, "")
     end
-    table.remove(lines) -- drop the trailing blank line between groups
+    if #untrained > 0 then
+        for _, text in ipairs(BuildGroupLines(GetString(COMPANIONROSTER_LEVEL_TIP_UNTRAINED), untrained)) do
+            table.insert(lines, text)
+        end
+    end
+    if #lines == 0 then
+        return
+    end
 
     ZO_Tooltips_ShowTextTooltip(control, TOP, table.concat(lines, "\n"))
 end
 
 -- On the CompanionRoster table (not a separate bare global) because the XML
--- OnMouseEnter handler on the Role texture calls this by name.
+-- OnMouseEnter handler on the Role control calls this by name.
 function CompanionRoster.OnRoleMouseEnter(control)
     local row = control:GetParent()
     local roleName = row.role and CompanionRoster.Data.GetRoleLabel(row.role, row.roleSecondary)
-    ZO_Tooltips_ShowTextTooltip(control, TOP, roleName or "Right-click to tag this companion's role (Tank, Healer, DPS, or a hybrid of two).")
+    ZO_Tooltips_ShowTextTooltip(control, TOP, roleName or GetString(COMPANIONROSTER_TIP_ROLE_HINT))
 end
 
 -- On the CompanionRoster table (not a separate bare global) because the XML
--- OnMouseUp handler on the Role texture calls this by name. Purely a manual
+-- OnMouseUp handler on the Role control calls this by name. Purely a manual
 -- label - there's no API to detect a companion's build from gear or slotted
 -- skills, so this is the player's own tag, not derived data.
 function CompanionRoster.OnRoleMouseUp(control)
@@ -266,12 +407,69 @@ function CompanionRoster.OnRoleMouseUp(control)
         label = label .. " " .. CompanionRoster.Data.GetRoleLabel(choice.primary, choice.secondary)
         AddMenuItem(label, function() SetRolesAndRefresh(choice.primary, choice.secondary) end)
     end
-    AddMenuItem("Clear Role", function() SetRolesAndRefresh(nil, nil) end)
+    AddMenuItem(GetString(COMPANIONROSTER_ROLE_CLEAR), function() SetRolesAndRefresh(nil, nil) end)
     ShowMenu(control)
 end
 
+-- Width of a string as the roster's text font draws it, measured on an
+-- invisible label with no width limit.
+local measureLabel = nil
+
+local function MeasureTextWidth(text)
+    if measureLabel == nil then
+        measureLabel = WINDOW_MANAGER:CreateControl(nil, CompanionRosterWindow, CT_LABEL)
+        measureLabel:SetFont("ZoFontWinH5")
+        measureLabel:SetAlpha(0)
+    end
+    measureLabel:SetText(text)
+    return measureLabel:GetTextWidth()
+end
+
+-- Extra width needed for a text of this width in a space of `available`.
+local function ExtraWidthFor(textWidth, available)
+    return zo_max(0, zo_min(MAX_EXTRA_WIDTH, zo_ceil(textWidth + MEASURE_PADDING - available)))
+end
+
+-- Widens the window when this client's longest companion name, or longest
+-- status message ("Quest Not Done", ...), doesn't fit the columns - translated
+-- text is often much longer than English. English stays as the XML has it.
+-- The Role, Level and Rapport columns are anchored to the Companion label, so
+-- they move with it.
+local function FitWindowToText(companions)
+    local longestName = 0
+    for _, companion in ipairs(companions) do
+        longestName = zo_max(longestName, MeasureTextWidth(companion.name))
+    end
+
+    local longestStatus = 0
+    for _, stringId in ipairs({ COMPANIONROSTER_STATUS_NOT_OWNED, COMPANIONROSTER_STATUS_QUEST_NOT_DONE, COMPANIONROSTER_STATUS_NO_INFO }) do
+        longestStatus = zo_max(longestStatus, MeasureTextWidth(GetString(stringId)))
+    end
+
+    local nameExtra = ExtraWidthFor(longestName, BASE_NAME_WIDTH)
+    local statusExtra = ExtraWidthFor(longestStatus, RAPPORT_SPANNED_WIDTH)
+    rapportSpannedWidth = RAPPORT_SPANNED_WIDTH + statusExtra
+
+    local totalExtra = nameExtra + statusExtra
+    for i = 1, MAX_COMPANION_ROWS do
+        local row = _G["CompanionRosterWindowRow" .. i]
+        row:SetWidth(BASE_ROW_WIDTH + totalExtra)
+        row:GetNamedChild("Companion"):SetWidth(BASE_NAME_WIDTH + nameExtra)
+    end
+    CompanionRosterWindowColumnCompanion:SetWidth(BASE_HEADER_WIDTH + nameExtra)
+    CompanionRosterWindow:SetWidth(BASE_WINDOW_WIDTH + totalExtra)
+end
+
+-- Redraws the roster grid. Does nothing while the window is hidden, so
+-- callers outside it (the settings panel, new data being recorded) cost
+-- nothing then - ToggleWindow shows the window first and then calls this.
 function CompanionRoster.RefreshGrid()
+    if CompanionRosterWindow:IsHidden() then
+        return
+    end
+
     local companions = CompanionRoster.Data.GetAllCompanions()
+    FitWindowToText(companions)
     local companionsForCharacter = selectedCharacterKey and CompanionRoster.Data.GetCompanionsForCharacter(selectedCharacterKey) or {}
 
     for i = 1, MAX_COMPANION_ROWS do
@@ -283,7 +481,7 @@ function CompanionRoster.RefreshGrid()
         else
             row:SetHidden(false)
             row.companionId = companion.id
-            row.keepsakeUnlocked = CompanionRoster.Data.IsKeepsakeUnlocked(companion.name)
+            row.keepsakeUnlocked = CompanionRoster.Data.IsKeepsakeUnlocked(companion.id)
             row.isOwned = CompanionRoster.Data.IsCompanionOwned(companion.id)
             row.canSummon = selectedCharacterKey and CompanionRoster.Data.CanSummonCompanion(selectedCharacterKey, companion.id)
 
@@ -336,13 +534,10 @@ function CompanionRoster.RefreshGrid()
                 SetRowBlank(row)
             end
 
-            if row.passivePerkName == nil then
-                row.passivePerkName, row.passivePerkDescription = CompanionRoster.Data.GetPassivePerkInfo(companion.id)
-            end
-
-            if row.skillLines == nil then
-                row.skillLines = CompanionRoster.Data.GetSkillLinesForCompanion(companion.id)
-            end
+            -- Perk and skill lines are account-wide, so they come from the
+            -- shared record whichever character the row is showing.
+            row.passivePerkName, row.passivePerkDescription = CompanionRoster.Data.GetPassivePerkInfo(companion.id)
+            row.skillLines = CompanionRoster.Data.GetSkillLinesForCompanion(companion.id)
 
             -- Guild skill line can only progress via quests, not grinding -
             -- color the Level cell to call out that it's been fully maxed.
@@ -538,7 +733,7 @@ end
 function CompanionRoster.OnResultNameMouseEnter(control)
     local companionId = control:GetParent().companionId
     local summary = companionId and CompanionRoster.Data.GetGuildSkillLineSummary(companionId)
-    ZO_Tooltips_ShowTextTooltip(control, TOP, summary or "No Guild skill line data recorded yet for this companion.")
+    ZO_Tooltips_ShowTextTooltip(control, TOP, summary or GetString(COMPANIONROSTER_TIP_NO_GUILD_DATA))
 end
 
 -- "<command> search <term>" (or "s") and "<command> companion <name>" (or
@@ -548,19 +743,19 @@ end
 -- this) opens/closes the roster window. One-line messages (usage, no match)
 -- still go to chat.
 function CompanionRoster.RunRapportSearch(term)
-    term = term:match("^%s*(.-)%s*$")
+    term = Trim(term)
     if term == "" then
-        d(string.format("Feliks' Companion Roster: usage - %s s <term>, e.g. %s s Undaunted", CompanionRoster.Data.GetSlashCommand(), CompanionRoster.Data.GetSlashCommand()))
+        Say(COMPANIONROSTER_SAY_USAGE_SEARCH, CompanionRoster.Data.GetSlashCommand())
         return
     end
 
     local results = CompanionRoster.Data.SearchRapportTips(term)
     if #results == 0 then
-        d(string.format("Feliks' Companion Roster: no rapport tips found for \"%s\".", term))
+        Say(COMPANIONROSTER_SAY_NO_TIPS, term)
         return
     end
 
-    CompanionRoster.ShowResults(string.format("Rapport tips: %s", term))
+    CompanionRoster.ShowResults(zo_strformat(COMPANIONROSTER_RESULTS_SEARCH_TITLE, term))
     for _, result in ipairs(results) do
         -- Info beside the name: current rapport (e.g. 3075/5500), left off when
         -- this character has never had that companion's rapport recorded, then,
@@ -572,14 +767,18 @@ function CompanionRoster.RunRapportSearch(term)
         end
         local guildParts = {}
         for _, line in ipairs(result.skillLineRanks) do
-            table.insert(guildParts, string.format("%s: |c%s%d%s|r", line.name, CompanionRoster.Data.GetColorHex(line.isMaxed and "done" or "inProgress"), line.rank, line.isMaxed and " (Maxed)" or ""))
+            local rankText = tostring(line.rank)
+            if line.isMaxed then
+                rankText = rankText .. " " .. GetString(COMPANIONROSTER_MAXED)
+            end
+            table.insert(guildParts, zo_strformat(COMPANIONROSTER_NAME_VALUE, line.name, string.format("|c%s%s|r", CompanionRoster.Data.GetColorHex(line.isMaxed and "done" or "inProgress"), rankText)))
         end
         if #guildParts > 0 then
             table.insert(infoParts, table.concat(guildParts, ", "))
         end
 
         local amountText = "+" .. (result.amountLabel or tostring(result.amount))
-        CompanionRoster.AddResultRow(result.companionId, result.companionName, table.concat(infoParts, " "), string.format("%s - %s (%s)", amountText, result.description, result.cooldown))
+        CompanionRoster.AddResultRow(result.companionId, result.companionName, table.concat(infoParts, " "), zo_strformat(COMPANIONROSTER_SEARCH_DETAIL, amountText, result.description, result.cooldown))
     end
 end
 
@@ -590,53 +789,49 @@ local function FormatTipLine(action)
     else
         amountText = action.amountLabel and ("-" .. action.amountLabel) or tostring(action.amount)
     end
-    return string.format("%s: %s (%s)", amountText, action.description, action.cooldown)
+    return zo_strformat(COMPANIONROSTER_TIP_LINE, amountText, action.description, action.cooldown)
 end
 
 function CompanionRoster.RunCompanionLookup(term)
-    term = term:match("^%s*(.-)%s*$")
+    term = Trim(term)
     -- Everything is always shown now, so a trailing "all" (what this command
     -- used to need) is just dropped rather than treated as part of the name.
     term = term:match("^(.-)%s+[Aa][Ll][Ll]$") or term
 
     if term == "" then
-        d(string.format("Feliks' Companion Roster: usage - %s c <name>, e.g. %s c tan", CompanionRoster.Data.GetSlashCommand(), CompanionRoster.Data.GetSlashCommand()))
+        Say(COMPANIONROSTER_SAY_USAGE_COMPANION, CompanionRoster.Data.GetSlashCommand())
         return
     end
 
     local matches = CompanionRoster.Data.FindRapportTipsByName(term)
     if #matches == 0 then
-        d(string.format("Feliks' Companion Roster: no companion found matching \"%s\".", term))
+        Say(COMPANIONROSTER_SAY_NO_COMPANION, term)
         return
     end
     if #matches > 1 then
-        local names = {}
-        for _, match in ipairs(matches) do
-            table.insert(names, match.name)
-        end
-        d(string.format("Feliks' Companion Roster: \"%s\" matches more than one companion: %s", term, table.concat(names, ", ")))
+        SayAmbiguousMatch(term, matches)
         return
     end
 
     local companion = matches[1]
-    CompanionRoster.ShowResults(companion.name .. " Rapport")
+    CompanionRoster.ShowResults(zo_strformat(COMPANIONROSTER_RESULTS_COMPANION_TITLE, companion.name))
 
     -- Fixed green/red headings: these mean "raises/lowers", not the
     -- configurable done/in-progress colors.
-    CompanionRoster.AddResultText("|c66FF66Likes|r", true)
+    CompanionRoster.AddResultText("|c66FF66" .. GetString(COMPANIONROSTER_RESULTS_LIKES) .. "|r", true)
     for _, action in ipairs(companion.likes) do
         CompanionRoster.AddResultText(FormatTipLine(action))
     end
     if #companion.likes == 0 then
-        CompanionRoster.AddResultText("(none)")
+        CompanionRoster.AddResultText(GetString(COMPANIONROSTER_RESULTS_NONE))
     end
 
-    CompanionRoster.AddResultText("|cFF6666Dislikes|r", true)
+    CompanionRoster.AddResultText("|cFF6666" .. GetString(COMPANIONROSTER_RESULTS_DISLIKES) .. "|r", true)
     for _, action in ipairs(companion.dislikes) do
         CompanionRoster.AddResultText(FormatTipLine(action))
     end
     if #companion.dislikes == 0 then
-        CompanionRoster.AddResultText("(none)")
+        CompanionRoster.AddResultText(GetString(COMPANIONROSTER_RESULTS_NONE))
     end
 end
 
@@ -652,7 +847,7 @@ function CompanionRoster.OnSlashCommand(input)
     else
         -- Anything else is a companion name to summon. Uses the whole input,
         -- not just the first word, so a two-word name like "bastian hallix" works.
-        CompanionRoster.SummonCompanionByName(input:match("^%s*(.-)%s*$"))
+        CompanionRoster.SummonCompanionByName(Trim(input))
     end
 end
 
@@ -662,11 +857,18 @@ end
 function CompanionRoster.ToggleWindow()
     if CompanionRosterWindow:IsHidden() then
         PopulateDropdown()
-        CompanionRoster.RefreshGrid()
         CompanionRosterWindow:SetHidden(false)
+        CompanionRoster.RefreshGrid() -- must come after the window is shown
     else
         CompanionRosterWindow:SetHidden(true)
     end
+end
+
+-- Called by CompanionRoster_Data.lua whenever it records fresh companion data
+-- (a summon, an XP or rapport change), so an open window shows it right away
+-- instead of the stale row. RefreshGrid is a no-op while the window is hidden.
+function CompanionRoster.OnDataRecorded()
+    CompanionRoster.RefreshGrid()
 end
 
 -- Every addon's EVENT_ADD_ON_LOADED fires during the loading screen, before
@@ -676,8 +878,13 @@ end
 -- table LibSlashCommander itself reads from (see the collision check in
 -- CompanionRoster_Settings.lua) - if our own alias no longer points at our
 -- own Command object there, something else claimed it after us.
+local slashCommandChecked = false
+
 local function CheckSlashCommandHijack()
-    EVENT_MANAGER:UnregisterForEvent("CompanionRoster_UI", EVENT_PLAYER_ACTIVATED)
+    if slashCommandChecked then
+        return
+    end
+    slashCommandChecked = true
 
     local currentCommand = CompanionRoster.Data.GetSlashCommand()
     local owner = SLASH_COMMANDS[zo_strlower(currentCommand)]
@@ -685,7 +892,7 @@ local function CheckSlashCommandHijack()
         return
     end
 
-    local who = "another addon"
+    local who = GetString(COMPANIONROSTER_ANOTHER_ADDON)
     if LibSlashCommander.IsCommand(owner) then
         local description = owner:GetDescription()
         if description then
@@ -693,25 +900,64 @@ local function CheckSlashCommandHijack()
         end
     end
 
-    d(string.format("|cFF0000!!!! WARNING !!!!|r Feliks' Companion Roster: %s has been taken over by %s and won't open this window anymore. Check Settings > Add-Ons > Feliks' Companion Roster to pick a different command.", currentCommand, who))
+    d(zo_strformat(COMPANIONROSTER_COMMAND_TAKEN_WARNING, CompanionRoster.title, currentCommand, who))
+end
+
+-- Called from the addon's single EVENT_PLAYER_ACTIVATED handler
+-- (CompanionRoster.lua). Only the first activation checks the command: by
+-- then every addon that is going to register a slash command already has.
+function CompanionRoster.UI.OnPlayerActivated()
+    CheckSlashCommandHijack()
 end
 
 -- Real event, confirmed against the client source (EVENT_PLAYER_COMBAT_STATE
 -- fires with an inCombat boolean - dozens of built-in ESO UI elements, e.g.
 -- the combat overlay and buff/debuff trackers, already hide/show off this
 -- exact event). Only closes the window, never opens it, and only when
--- opted in via the settings panel (off by default).
+-- opted in via the settings panel (off by default). Registered only while
+-- the window is open and that option is on (see UpdateCombatEvent): the
+-- event has no filterable parameter.
+local COMBAT_EVENT_NAMESPACE = "CompanionRoster_UI"
+local combatEventRegistered = false
+
 local function OnPlayerCombatState(eventCode, inCombat)
     if inCombat and CompanionRoster.Data.GetCloseOnCombat() and not CompanionRosterWindow:IsHidden() then
         CompanionRosterWindow:SetHidden(true)
     end
 end
 
-local function OnAddOnLoaded(eventCode, addOnName)
-    if addOnName ~= CompanionRoster.name then
+function CompanionRoster.UpdateCombatEvent()
+    local wanted = not CompanionRosterWindow:IsHidden() and CompanionRoster.Data.GetCloseOnCombat() == true
+    if wanted == combatEventRegistered then
         return
     end
-    EVENT_MANAGER:UnregisterForEvent("CompanionRoster_UI", EVENT_ADD_ON_LOADED)
+    combatEventRegistered = wanted
+    if wanted then
+        EVENT_MANAGER:RegisterForEvent(COMBAT_EVENT_NAMESPACE, EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
+    else
+        EVENT_MANAGER:UnregisterForEvent(COMBAT_EVENT_NAMESPACE, EVENT_PLAYER_COMBAT_STATE)
+    end
+end
+
+-- The roster window's OnEffectivelyShown / OnEffectivelyHidden handlers in the
+-- XML call these by name, so the combat event follows the window however it
+-- is opened or closed.
+function CompanionRoster.OnWindowShown()
+    CompanionRoster.UpdateCombatEvent()
+end
+
+function CompanionRoster.OnWindowHidden()
+    CompanionRoster.UpdateCombatEvent()
+end
+
+-- Called once from the addon's single EVENT_ADD_ON_LOADED handler
+-- (CompanionRoster.lua), after the saved data is ready.
+function CompanionRoster.UI.Initialize()
+    -- Window text. Set here, not in the XML, so it comes from lang/.
+    CompanionRosterWindowHeaderTitle:SetText(CompanionRoster.title)
+    CompanionRosterWindowColumnCompanion:SetText(GetString(COMPANIONROSTER_COLUMN_COMPANION))
+    CompanionRosterWindowColumnLevel:SetText(GetString(COMPANIONROSTER_COLUMN_LEVEL))
+    CompanionRosterWindowColumnRapport:SetText(GetString(COMPANIONROSTER_COLUMN_RAPPORT))
 
     characterDropdown = ZO_ComboBox_ObjectFromContainer(CompanionRosterWindowCharacterDropdown)
     characterDropdown:SetSortsItems(false)
@@ -733,16 +979,12 @@ local function OnAddOnLoaded(eventCode, addOnName)
         CompanionRosterResults:SetAnchor(savedResultsPosition.point, nil, savedResultsPosition.relativePoint, savedResultsPosition.offsetX, savedResultsPosition.offsetY)
     end
 
-    CompanionRosterWindowFooter:SetText("Feliks' Companion Roster - Version: " .. CompanionRoster.version)
-    CompanionRosterWindowFooter:SetColor(unpack(FOOTER_COLOR))
+    -- The roster window and the results popup carry the same footer.
+    local footerText = zo_strformat(COMPANIONROSTER_FOOTER, CompanionRoster.title, CompanionRoster.version)
+    for _, footer in ipairs({ CompanionRosterWindowFooter, CompanionRosterResultsFooter }) do
+        footer:SetText(footerText)
+        footer:SetColor(unpack(FOOTER_COLOR))
+    end
 
-    -- The results popup carries the same footer.
-    CompanionRosterResultsFooter:SetText("Feliks' Companion Roster - Version: " .. CompanionRoster.version)
-    CompanionRosterResultsFooter:SetColor(unpack(FOOTER_COLOR))
-
-    CompanionRoster.slashCommand = LibSlashCommander:Register(CompanionRoster.Data.GetSlashCommand(), CompanionRoster.OnSlashCommand, "Feliks' Companion Roster")
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_UI", EVENT_PLAYER_ACTIVATED, CheckSlashCommandHijack)
-    EVENT_MANAGER:RegisterForEvent("CompanionRoster_UI", EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
+    CompanionRoster.slashCommand = LibSlashCommander:Register(CompanionRoster.Data.GetSlashCommand(), CompanionRoster.OnSlashCommand, CompanionRoster.title)
 end
-
-EVENT_MANAGER:RegisterForEvent("CompanionRoster_UI", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

@@ -511,7 +511,10 @@ local function AddEntry(english, entry, bias)
 end
 
 local function AddLexicon(lexicon, bias)
+	local scanned = 0
 	for english, entry in pairs(lexicon or {}) do
+		scanned = scanned + 1
+		if scanned % 64 == 0 then T.ReclaimTemporaryMemory() end
 		if type(english) == "string" then
 			AddEntry(english, entry, bias)
 			for _, alternative in pairs(entry.alts or {}) do
@@ -541,6 +544,7 @@ local function BuildReverse()
 	-- An ending can make a surface longer than any stored key.
 	REV.maxChars = math.min(REV.maxChars + 8, 24)
 	reverseUserTable = T.userLexicon
+	T.ReclaimTemporaryMemory(true)
 end
 
 local function EnsureReverse()
@@ -695,6 +699,7 @@ end
 -- Translate. Returns the English, a list of the Japanese it could not read (empty when
 -- everything was understood), and how many pieces it did read.
 function T.TranslateJaToEn(text)
+	T.ReclaimTemporaryMemory()
 	local out, unknown, known = {}, {}, 0
 	local pieces = T.JaSegment(tostring(text or ""))
 

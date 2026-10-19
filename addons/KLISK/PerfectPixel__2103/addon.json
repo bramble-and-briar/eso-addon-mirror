@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -70,7 +74,7 @@
     "PerfectPixel"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2103/",
-  "fingerprint": "8fc26d85782a572a86efc299282388e79bf2a82e7ca5f8d1620fd22df1f6da2d",
+  "fingerprint": "d156d00a5088923f4d00b18e054fb894d90584a336c2cdc1be151d4887e3b4de",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8425.png",
     "https://cdn-eso.mmoui.com/preview/pvw8427.png",
@@ -87,11 +91,11 @@
   "source_id": "2103",
   "source_url": "https://www.esoui.com/downloads/info2103-PerfectPixel.html",
   "stats": {
-    "downloads": 1454295,
-    "favorites": 463,
-    "monthly_downloads": 6427
+    "downloads": 1465626,
+    "favorites": 464,
+    "monthly_downloads": 15361
   },
   "title": "PerfectPixel",
-  "updated_at": 1790625802000,
-  "version": "0.13.39"
+  "updated_at": 1792339093000,
+  "version": "0.13.40"
 }

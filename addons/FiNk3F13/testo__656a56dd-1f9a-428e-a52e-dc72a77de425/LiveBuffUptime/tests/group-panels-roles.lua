@@ -31,6 +31,17 @@ end
 assert(env.controls.LiveBuffUptimeGroupPanel2Name9.hidden)
 assert(env.controls.LiveBuffUptimeGroupPanel2Name1.text == "player")
 assert(env.controls.LiveBuffUptimeGroupPanel2Name8.text == "group8")
+assert(env.controls.LiveBuffUptimeGroupPanel2Name4.x == 26 and env.controls.LiveBuffUptimeGroupPanel2Name4.y == 102)
+assert(env.controls.LiveBuffUptimeGroupPanel2Name5.x == 242 and env.controls.LiveBuffUptimeGroupPanel2Name5.y == 30,
+    "Eight DDs must be balanced four per column, not six plus two")
+assert(env.controls.LiveBuffUptimeGroupPanel2Timer8.y == 102)
+local width = env.setting("Panelbreite")
+width.setFunction(300)
+assert(env.controls.LiveBuffUptimeGroupPanel2Name8.x == 26 and env.controls.LiveBuffUptimeGroupPanel2Name8.y == 198,
+    "DD-only single-column panels must stack all eight DDs")
+assert(env.controls.LiveBuffUptimeGroupPanel2Name9.hidden)
+assert(env.saved().trackers[1].groupPanel.width == 420, "Changing the selected panel must not alter another panel")
+width.setFunction(420)
 assert(env.controls.LiveBuffUptimeGroupPanel2Timer3.text == "-", "DDs without a buff must remain visible")
 assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == first and env.controls.LiveBuffUptimeTracker2.labels[2].text == second,
     "Filtering panel rows must not change uptime values")

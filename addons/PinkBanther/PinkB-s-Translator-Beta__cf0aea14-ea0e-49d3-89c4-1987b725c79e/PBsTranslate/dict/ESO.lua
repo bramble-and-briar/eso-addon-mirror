@@ -229,9 +229,9 @@ wood elf=ウッドエルフ
 orc=オーク
 imperial=インペリアル
 -- items and economy
-gold=ゴールド
+gold=ゴールド/unit
 g=ゴールド
-crowns=クラウン
+crowns=クラウン/unit
 crown=クラウン
 crown store=クラウンストア
 crown crate=クラウン箱

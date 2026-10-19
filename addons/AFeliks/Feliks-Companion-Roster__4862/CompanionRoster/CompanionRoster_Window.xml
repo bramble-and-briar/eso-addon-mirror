@@ -63,6 +63,11 @@
                 <Label name="$(parent)Rapport" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER" mouseEnabled="true">
                     <Dimensions x="90" />
                     <Anchor point="LEFT" relativeTo="$(parent)Level" relativePoint="RIGHT" offsetX="2" />
+                    <OnMouseUp>
+                        if button == MOUSE_BUTTON_INDEX_LEFT and upInside then
+                            CompanionRoster.OnRapportMouseUp(self)
+                        end
+                    </OnMouseUp>
                     <OnMouseEnter>
                         CompanionRoster.OnRapportMouseEnter(self)
                     </OnMouseEnter>
@@ -80,6 +85,12 @@
             <OnMoveStop>
                 CompanionRoster.OnWindowMoveStop(self)
             </OnMoveStop>
+            <OnEffectivelyShown>
+                CompanionRoster.OnWindowShown()
+            </OnEffectivelyShown>
+            <OnEffectivelyHidden>
+                CompanionRoster.OnWindowHidden()
+            </OnEffectivelyHidden>
 
             <Controls>
                 <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop">
@@ -101,7 +112,7 @@
                     </OnMouseUp>
 
                     <Controls>
-                        <Label name="$(parent)Title" font="ZoFontWinH3" text="Feliks' Companion Roster" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                        <Label name="$(parent)Title" font="ZoFontWinH3" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <AnchorFill />
                         </Label>
                     </Controls>
@@ -118,15 +129,15 @@
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="20" offsetY="10" />
                 </Control>
 
-                <Label name="$(parent)ColumnCompanion" font="ZoFontWinH5" text="Companion" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnCompanion" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="150" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)CharacterDropdown" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="14" />
                 </Label>
-                <Label name="$(parent)ColumnLevel" font="ZoFontWinH5" text="Level" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnLevel" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Dimensions x="55" />
                     <Anchor point="LEFT" relativeTo="$(parent)ColumnCompanion" relativePoint="RIGHT" offsetX="28" />
                 </Label>
-                <Label name="$(parent)ColumnRapport" font="ZoFontWinH5" text="Rapport" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnRapport" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Dimensions x="90" />
                     <Anchor point="LEFT" relativeTo="$(parent)ColumnLevel" relativePoint="RIGHT" offsetX="2" />
                 </Label>
@@ -284,8 +295,11 @@
              Inherits ZO_HUDManager_Element so the base game's Edit HUD can move
              it: the control needs exactly ONE anchor, and the inherited
              $(parent)HUDElementRef child is what sizes its box in the editor.
-             The default position is set in Lua (config.defaultAnchor) and the
-             width is set to fit the text, so none is given here. -->
+             The real default position is DEFAULT_OFFSET_X/Y in
+             CompanionRoster_HUD.lua (passed as config.defaultAnchor); the single
+             anchor below is only the placeholder used until that is applied, so
+             keep its offsets (9, 6) equal to those constants. The width is set to
+             fit the text, so none is given here. -->
         <TopLevelControl name="CompanionRosterHUD" inherits="ZO_HUDManager_Element" hidden="true">
             <Dimensions x="200" y="24" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="9" offsetY="6" />

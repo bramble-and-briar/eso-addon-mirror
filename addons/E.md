@@ -78,7 +78,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO-Database.com Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Export-AddOn__916) | Keldor | PC / Mac | 4.6.18 |
 | [ESO-Database.com Game Data Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Game-Data-Export-AddOn__2687) | Keldor | PC / Mac | 1.0.24 |
 | [ESO-Database.com Leaderboard Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Leaderboard-Export-AddOn__3438) | Keldor | PC / Mac | 1.0.13 |
-| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.10.12.02.54 |
+| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.10.19.02.53 |
 | [ESO-Skillfactory.com Build Export](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Skillfactory.com-Build-Export__2899) | Keldor | PC / Mac | 1.2.12 |
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |
@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Event Ticket Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ibex.rc/Event-Ticket-Notifier__2787) | ibex.rc | PC / Mac | 12 |
 | [Event Tickets (Clockwork City Event)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/Event-Tickets-Clockwork-City-Event__2174) | kafeijao | PC / Mac | 2.0 |
 | [Event Tickets Warning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Event-Tickets-Warning__3307) | Smaxx | PC / Mac | 1.0.1 |
-| [Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelinmiriel/Event-Tracker__2504) | Kelinmiriel | PC / Mac | 2.430 |
+| [Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelinmiriel/Event-Tracker__2504) | Kelinmiriel | PC / Mac | 2.440 |
 | [EventBuffReminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bluebuiy/EventBuffReminder__2993) | bluebuiy | PC / Mac | 4 |
 | [Eventor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Eventor__2793) | Ek1 | PC / Mac | 1049.260402 |
 | [EWPFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/EWPFinder__bf9cbf1c-54ac-48f3-b489-a2aeda4996e8) | Vixen_Hunny | Console | — |

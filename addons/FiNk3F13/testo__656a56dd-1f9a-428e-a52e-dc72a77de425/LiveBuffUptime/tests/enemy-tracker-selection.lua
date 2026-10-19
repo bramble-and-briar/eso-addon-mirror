@@ -21,7 +21,7 @@ env.setting("Effekt-ID").setFunction("39077")
 env.setting("Tracker hinzufuegen").clickHandler()
 local config = saved.trackers[2]
 assert(config.unit == "reticleover" and config.groupRole == nil)
-assert(LiveBuffUptimeGroupPanels.Config({config = config}).target == "enemies")
+assert(LiveBuffUptimeGroupPanels.Config({config = config}).target == "group")
 local function unitSetting()
     local found
     for _, descriptor in ipairs(env.panel.descriptors) do

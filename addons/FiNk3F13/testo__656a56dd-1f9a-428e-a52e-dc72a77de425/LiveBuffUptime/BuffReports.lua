@@ -1,3 +1,4 @@
+local L = LiveBuffUptimeLocalization and LiveBuffUptimeLocalization.Text or function(text) return text end
 local Reports = {}
 LiveBuffUptimeReports = Reports
 local saved, window, scene, previousScene, previousUI, previousCamera
@@ -23,36 +24,47 @@ local sceneName = "LiveBuffUptimeReportScene"
 local keybinds, opened = nil, false
 local ROWS = 12
 local HISTORY_LIMIT = 300
+local function trimHistory(history)
+    for index = #history, 1, -1 do
+        if #history <= HISTORY_LIMIT then break end
+        if not history[index].locked then table.remove(history, index) end
+    end
+end
 local DEFAULT_PLACE_ICON = "EsoUI/Art/LFG/Gamepad/LFG_menuIcon_zoneStories.dds"
+local LOCK_MARKER = " |t28:28:EsoUI/Art/Miscellaneous/locked_up.dds|t"
 local placeIcons = {}
 local function decimal(value, format)
+    if LiveBuffUptimeLocalization then return LiveBuffUptimeLocalization.Decimal(value, format) end
     return (string.format(format or "%.2f", value):gsub("%.", ","))
 end
 
 local function displayTitle(report)
-    local name = report and (report.encounterLabel or report.enemyName or report.title or report.zone) or "Kampf"
-    return zo_strformat("<<C:1>>", name or "Kampf")
+    local name = report and (report.encounterLabel or report.enemyName or report.title or report.zone) or L("Kampf")
+    return zo_strformat("<<C:1>>", name or L("Kampf"))
 end
 
 local function reportDate(report)
     local date = tostring(report.date or "")
     local year, month, day = date:match("^(%d%d%d%d)(%d%d)(%d%d)$")
-    if year then return day .. "." .. month .. "." .. year end
-    return "Datum unbekannt"
+    if year then
+        if LiveBuffUptimeLocalization and LiveBuffUptimeLocalization.language ~= "de" then return year .. "-" .. month .. "-" .. day end
+        return day .. "." .. month .. "." .. year
+    end
+    return L("Datum unbekannt")
 end
 
 local function zoneKey(report)
     local key = type(report.zoneId) == "number" and report.zoneId > 0 and ("id:" .. report.zoneId)
-        or ("name:" .. zo_strformat("<<1>>", report.zone or "Unbekanntes Gebiet"))
+        or ("name:" .. zo_strformat("<<1>>", report.zone or L("Unbekanntes Gebiet")))
     return report.date and (key .. ":date:" .. tostring(report.date)) or key
 end
 
 local function zoneTitle(report)
-    return zo_strformat("<<C:1>>", report.zone or "Unbekanntes Gebiet")
+    return zo_strformat("<<C:1>>", report.zone or L("Unbekanntes Gebiet"))
 end
 
 local function enemyTitle(report)
-    return zo_strformat("<<C:1>>", report.encounterLabel or report.enemyName or report.title or "Gegner unbekannt")
+    return zo_strformat("<<C:1>>", report.encounterLabel or report.enemyName or report.title or L("Gegner unbekannt"))
 end
 
 local function refreshBossCandidates()
@@ -98,11 +110,10 @@ local function encounterLabel(report)
             if #labels == 0 or #(table.concat(labels, ", ") .. ", " .. name) <= 60 then labels[#labels + 1] = name end
         end
     end
-    return #labels > 0 and ("Gegnergruppe: " .. table.concat(labels, ", ")) or "Gegner unbekannt"
+    return #labels > 0 and (L("Gegnergruppe: ") .. table.concat(labels, ", ")) or L("Gegner unbekannt")
 end
 
 function Reports.BeginEncounter(now, running, playerKey)
-    if LiveBuffUptimeEnemyDebug then LiveBuffUptimeEnemyDebug.Begin(now, running) end
     encounterTargets, encounterBoss = {}, nil
     encounterBossNames, bossCandidates, bossCheckedAt = {}, {}, nil
     refreshBossCandidates()
@@ -124,10 +135,6 @@ function Reports.BeginEncounter(now, running, playerKey)
     for key, effect in pairs(activeEnemyEffects) do
         if effect.ends and effect.ends > now then
             Reports.RecordDebuff(effect.id, effect.targetId, effect.name, effect.slot, now, effect.ends, true)
-            if LiveBuffUptimeEnemyDebug then
-                LiveBuffUptimeEnemyDebug.Effect(effect.id, effect.targetId, now, EFFECT_RESULT_GAINED,
-                    effect.slot, effect.ends, "Vor Kampf aktiv", nil, true)
-            end
         else activeEnemyEffects[key] = nil end
     end
     encounterLocation = { zone = GetUnitZone and GetUnitZone("player"), zoneIndex = GetUnitZoneIndex and GetUnitZoneIndex("player") }
@@ -143,14 +150,24 @@ end
 
 function Reports.RecordBuffReceipt(id, key, slot, change, starts, time, ends)
     if not id or not key or not slot then return end
+    if change ~= EFFECT_RESULT_GAINED and change ~= EFFECT_RESULT_UPDATED and change ~= EFFECT_RESULT_FADED then
+        return
+    end
     local activeBuff = activeReceipts[id]
     if not activeBuff then activeBuff = {}; activeReceipts[id] = activeBuff end
     local activeMember = activeBuff[key]
     if not activeMember then activeMember = {}; activeBuff[key] = activeMember end
     local previous = activeMember[slot]
-    local wasActive = false
+    local wasActive, activeExpiry = false, 0
     for _, effect in pairs(activeMember) do
-        if effect.expires > time then wasActive = true; break end
+        if effect.expires > time then
+            wasActive = true
+            activeExpiry = math.max(activeExpiry, effect.expires)
+        end
+    end
+    -- Missing/stale expiry data must not erase a known active application in the counters.
+    if change == EFFECT_RESULT_UPDATED and (not ends or ends <= time) then
+        return
     end
     local fades = receiptFades[id]
     if not fades then fades = {}; receiptFades[id] = fades end
@@ -158,8 +175,8 @@ function Reports.RecordBuffReceipt(id, key, slot, change, starts, time, ends)
     -- Some replacements arrive as FADED + GAINED in the same event burst.
     local replaced = faded and time >= faded.time and time - faded.time <= 0.05 and faded.expires > time
     local duplicate = change == EFFECT_RESULT_GAINED and previous and previous.starts == starts and previous.expires == ends
-    local renewed = change == EFFECT_RESULT_UPDATED and previous and previous.expires > time
-        and ends and ends > previous.expires
+    local previousExpiry = previous and previous.expires > time and previous.expires or activeExpiry
+    local renewed = change == EFFECT_RESULT_UPDATED and wasActive and ends and ends > previousExpiry
     if change == EFFECT_RESULT_GAINED and not duplicate then renewed = wasActive or replaced end
     if change == EFFECT_RESULT_FADED then
         if previous and previous.expires > time then fades[key] = {time = time, expires = previous.expires} end
@@ -318,14 +335,14 @@ function Reports.RecordDamage(sourceType, targetType, targetId, targetName, dama
     end
     if targetName and targetName ~= "" then entry.name = zo_strformat("<<C:1>>", targetName) end
     entry.damage = entry.damage + damage
-    if LiveBuffUptimeEnemyDebug then
-        LiveBuffUptimeEnemyDebug.Enemy(targetId, entry.name, GetFrameTimeSeconds and GetFrameTimeSeconds() or 0)
-    end
     refreshBossCandidates()
     if entry.name and bossCandidates[entry.name] then encounterBossNames[entry.name] = true end
 end
 
-local function attachEncounter(report, trackers)
+local function attachEncounter(report, trackers, receiptWindow)
+    -- Applications belong to the combat, even when damage-based uptime ends earlier.
+    local receiptStart = receiptWindow and receiptWindow.started or report.started
+    local receiptEnd = receiptWindow and receiptWindow.ended or report.ended
     local reportIds = {}
     for _, tracker in ipairs(trackers) do
         if tracker.config.enabled ~= false and tracker.config.showInReports ~= false then
@@ -335,7 +352,7 @@ local function attachEncounter(report, trackers)
     if encounterLocation then report.zone, report.zoneIndex = encounterLocation.zone, encounterLocation.zoneIndex end
     report.enemies = {}
     for _, target in pairs(encounterTargets) do
-        report.enemies[#report.enemies + 1] = { id = target.id, name = target.name or ("Gegner " .. target.id), damage = target.damage }
+        report.enemies[#report.enemies + 1] = { id = target.id, name = target.name or (L("Gegner ") .. target.id), damage = target.damage }
     end
     table.sort(report.enemies, function(a, b) if a.damage == b.damage then return a.name < b.name end; return a.damage > b.damage end)
     report.enemyName = report.enemies[1] and report.enemies[1].name or encounterBoss or report.title
@@ -353,7 +370,7 @@ local function attachEncounter(report, trackers)
                 local result = Reports.DebuffResult(id, targetId, report.started, report.ended)
                 local covered = result.covered
                 debuff.members[#debuff.members + 1] = { id = targetId,
-                    name = zo_strformat("<<C:1>>", target.name or encounterTargets[targetId].name or "Gegner"),
+                    name = zo_strformat("<<C:1>>", target.name or encounterTargets[targetId].name or L("Gegner")),
                     covered = covered, duration = duration }
                 debuff.covered, debuff.duration = debuff.covered + covered, debuff.duration + duration
             end
@@ -373,11 +390,11 @@ local function attachEncounter(report, trackers)
             row.received, row.renewed = 0, 0
             if receipts then
                 for _, time in ipairs(receipts.times) do
-                    if time >= report.started and time <= report.ended then row.received = row.received + 1 end
+                    if time >= receiptStart and time <= receiptEnd then row.received = row.received + 1 end
                 end
                 if receipts.truncated then row.received = nil end
                 for _, time in ipairs(receipts.renewals) do
-                    if time >= report.started and time <= report.ended then row.renewed = row.renewed + 1 end
+                    if time >= receiptStart and time <= receiptEnd then row.renewed = row.renewed + 1 end
                 end
                 if receipts.renewalsTruncated then row.renewed = nil end
             end
@@ -395,7 +412,6 @@ local function attachEncounter(report, trackers)
         end
     end
     encounterRunning = false
-    if LiveBuffUptimeEnemyDebug then LiveBuffUptimeEnemyDebug.Finish(report.started, report.ended) end
 end
 
 local function placeIcon(zone, zoneIndex)
@@ -424,9 +440,9 @@ local function placeIcon(zone, zoneIndex)
 end
 
 local function roleName(role)
-    if role ~= nil and role == LFG_ROLE_DPS then return "DD" end
+    if role ~= nil and role == LFG_ROLE_DPS then return L("DD") end
     if role ~= nil and role == LFG_ROLE_TANK then return "Tank" end
-    if role ~= nil and role == LFG_ROLE_HEAL then return "Heiler" end
+    if role ~= nil and role == LFG_ROLE_HEAL then return L("Heiler") end
     return "-"
 end
 
@@ -440,7 +456,8 @@ function Reports.Init(settings)
     saved = settings
     saved.uptimeHistory = saved.uptimeHistory or {}
     if #saved.uptimeHistory == 0 and saved.lastUptimeReport then saved.uptimeHistory[1] = saved.lastUptimeReport end
-    while #saved.uptimeHistory > HISTORY_LIMIT do table.remove(saved.uptimeHistory) end
+    trimHistory(saved.uptimeHistory)
+    saved.lastUptimeReport = saved.uptimeHistory[1]
     selectedFight = 1
     category, listCategory = "buffs", nil
     selectionChosen = false
@@ -451,6 +468,21 @@ local function currentReport()
     local history = saved and saved.uptimeHistory or {}
     selectedFight = math.max(1, math.min(selectedFight, #history))
     return history[selectedFight]
+end
+
+local function selectionLocked()
+    if listMode == "zones" then
+        local count, locked = 0, 0
+        for _, report in ipairs(saved and saved.uptimeHistory or {}) do
+            if zoneKey(report) == selectedZone then
+                count = count + 1
+                if report.locked then locked = locked + 1 end
+            end
+        end
+        return count > 0 and count == locked
+    end
+    local report = currentReport()
+    return report and report.locked == true or false
 end
 
 local function currentEffects(report)
@@ -497,7 +529,7 @@ function Reports.Capture(fight, trackers, playerId, targetId, nameOf)
             local function add(id, name, account, row, role)
                 local deathKey = account or encounterPlayerKey
                 if account == "player" or (account and account:match("^group%d+$")) then account = nil end
-                buff.members[#buff.members + 1] = { id = id, name = name or "Spieler", account = account, role = role,
+                buff.members[#buff.members + 1] = { id = id, name = name or L("Spieler"), account = account, role = role,
                     deathKey = deathKey,
                     counted = tracker.config.groupRole ~= "damage" or (LFG_ROLE_DPS ~= nil and role == LFG_ROLE_DPS),
                     covered = row and row.covered or 0, duration = row and row.duration or 0 }
@@ -539,16 +571,23 @@ function Reports.Save(report)
         report.zoneIndex = report.zoneIndex or (GetUnitZoneIndex and GetUnitZoneIndex("player"))
         report.zoneId = report.zoneId or (report.zoneIndex and GetZoneId and GetZoneId(report.zoneIndex))
         report.placeIcon = report.placeIcon or placeIcon(report.zone, report.zoneIndex)
-        saved.lastUptimeReport = report
         table.insert(saved.uptimeHistory, 1, report)
-        if #saved.uptimeHistory > HISTORY_LIMIT then table.remove(saved.uptimeHistory) end
-        if previous then selectedFight = math.min(selectedFight + 1, #saved.uptimeHistory)
+        trimHistory(saved.uptimeHistory)
+        saved.lastUptimeReport = saved.uptimeHistory[1]
+        if saved.uptimeHistory[1] ~= report then
+            d(L("LiveBuffUptime: Kampfspeicher vollstaendig gesperrt. Neuen Kampf nicht gespeichert; bitte einen Kampf entsperren oder loeschen."))
+        end
+        if previous then
+            selectedFight = math.min(selectedFight + 1, #saved.uptimeHistory)
+            for index, record in ipairs(saved.uptimeHistory) do
+                if record == previous then selectedFight = index; break end
+            end
         else selectedFight, selected, page = 1, 1, 1 end
         if opened then Reports.Refresh() end
     end
 end
 
-function Reports.CaptureFallback(trackers, starts, ends, duration, scoped, nameOf, roster, exclude, personalRole)
+function Reports.CaptureFallback(trackers, starts, ends, duration, scoped, nameOf, roster, exclude, personalRole, receiptWindow)
     if not saved or not starts or not ends or ends <= starts then return end
     local meter = LiveBuffUptimeMeter
     local names = {}
@@ -584,14 +623,14 @@ function Reports.CaptureFallback(trackers, starts, ends, duration, scoped, nameO
                 buff.covered = meter.IntervalTotal(intervals, first, ends)
                 if exclude(tracker) then eligible = math.max(1, eligible - meter.ExcludedTotal(intervals, tracker.cooldownState, first, ends)) end
                 buff.duration = eligible
-                buff.members[1] = { name = GetUnitName and GetUnitName("player") or "Spieler", account = GetUnitDisplayName and GetUnitDisplayName("player"),
+                buff.members[1] = { name = GetUnitName and GetUnitName("player") or L("Spieler"), account = GetUnitDisplayName and GetUnitDisplayName("player"),
                     covered = buff.covered, duration = buff.duration, role = personalRole }
             end
             table.sort(buff.members, function(a, b) return (a.account or a.name) < (b.account or b.name) end)
             report.buffs[#report.buffs + 1] = buff
         end
     end
-    attachEncounter(report, trackers)
+    attachEncounter(report, trackers, receiptWindow)
     Reports.Save(report)
 end
 
@@ -625,10 +664,11 @@ function Reports.Refresh()
         for index, record in ipairs(history) do
             local key = zoneKey(record)
             if not seen[key] then
-                seen[key] = { key = key, record = record, count = 0, first = index }
+                seen[key] = { key = key, record = record, count = 0, locked = 0, first = index }
                 zones[#zones + 1] = seen[key]
             end
             seen[key].count = seen[key].count + 1
+            if record.locked then seen[key].locked = seen[key].locked + 1 end
         end
         if not selectedZone or not seen[selectedZone] then selectedZone = report and zoneKey(report) end
         if report and selectedZone and zoneKey(report) ~= selectedZone then
@@ -641,15 +681,22 @@ function Reports.Refresh()
             or (listMode == "fights" and listZone ~= selectedZone)
             or (listMode == "buffs" and (listCategory ~= category or listReport ~= report)) then
             nativeList:Clear()
-            nativeList:SetNoItemText(listMode == "buffs" and "Keine aufgezeichneten Effekte" or "Noch kein abgeschlossener Kampf")
+            nativeList:SetNoItemText(listMode == "buffs" and L("Keine aufgezeichneten Effekte") or L("Noch kein abgeschlossener Kampf"))
             selectionIndices = {}
             if listMode == "zones" then
                 for _, zone in ipairs(zones) do
-                    local entry = ZO_GamepadEntryData:New(zoneTitle(zone.record), zone.record.placeIcon or DEFAULT_PLACE_ICON)
+                    local fullyLocked = zone.locked == zone.count
+                    local entry = ZO_GamepadEntryData:New(zoneTitle(zone.record) .. (fullyLocked and LOCK_MARKER or ""),
+                        zone.record.placeIcon or DEFAULT_PLACE_ICON)
                     entry.zoneKey = zone.key
+                    entry.locked = fullyLocked
                     if entry.AddSubLabel then
-                        entry:AddSubLabel(string.format("%s | %d %s", reportDate(zone.record), zone.count,
-                            zone.count == 1 and "Kampf" or "Kaempfe"))
+                        local subtitle = string.format("%s | %d %s", reportDate(zone.record), zone.count,
+                            zone.count == 1 and L("Kampf") or L("Kaempfe"))
+                        if zone.locked > 0 and not fullyLocked then
+                            subtitle = subtitle .. " | " .. string.format(L("%d gesperrt"), zone.locked)
+                        end
+                        entry:AddSubLabel(subtitle)
                     end
                     nativeList:AddEntry("ZO_GamepadMenuEntryTemplate", entry)
                     selectionIndices[#selectionIndices + 1] = zone.key
@@ -658,19 +705,22 @@ function Reports.Refresh()
                 for index, buff in ipairs(currentEffects(report)) do
                     local entry = ZO_GamepadEntryData:New(buff.name, GetAbilityIcon(buff.id))
                     entry.buffIndex = index
-                    if entry.AddSubLabel then entry:AddSubLabel(category == "debuffs" and "Auf dem Gegner" or buff.groupRole == "damage" and "Nur DDs"
-                        or buff.unit == "group" and "Auf der Gruppe" or "Auf mir") end
+                    if entry.AddSubLabel then entry:AddSubLabel(category == "debuffs" and L("Auf dem Gegner") or buff.groupRole == "damage" and L("Nur DDs")
+                        or buff.unit == "group" and L("Auf der Gruppe") or L("Auf mir")) end
                     nativeList:AddEntry("ZO_GamepadMenuEntryTemplate", entry)
                     selectionIndices[#selectionIndices + 1] = index
                 end
             else
                 for index, record in ipairs(history) do
                     if zoneKey(record) == selectedZone then
-                        local entry = ZO_GamepadEntryData:New(enemyTitle(record), record.placeIcon or DEFAULT_PLACE_ICON)
+                        local entry = ZO_GamepadEntryData:New(enemyTitle(record) .. (record.locked and LOCK_MARKER or ""),
+                            record.placeIcon or DEFAULT_PLACE_ICON)
                         entry.fightIndex = index
                         local duration = math.max(0, (record.ended or 0) - (record.started or 0))
-                        if entry.AddSubLabel then entry:AddSubLabel(string.format("%s  %s  |  %d:%s", reportDate(record), record.clock or "",
-                            math.floor(duration / 60), decimal(duration % 60, "%04.1f"))) end
+                        entry.locked = record.locked == true
+                        if entry.AddSubLabel then entry:AddSubLabel((record.locked and (L("Gesperrt") .. " | ") or "") ..
+                            string.format("%s  %s  |  %d:%s", reportDate(record), record.clock or "",
+                                math.floor(duration / 60), decimal(duration % 60, "%04.1f"))) end
                         nativeList:AddEntry("ZO_GamepadMenuEntryTemplate", entry)
                         selectionIndices[#selectionIndices + 1] = index
                     end
@@ -691,44 +741,44 @@ function Reports.Refresh()
             else nativeList:SetSelectedIndex(index) end
         end
         rebuildingList = false
-        nativeScreen.headerData.titleText = listMode == "zones" and "Kampfstatistiken"
-            or listMode == "fights" and (report and zoneTitle(report) or "Kaempfe") or (category == "debuffs" and "Debuff-Uptime" or "Buff-Uptime")
+        nativeScreen.headerData.titleText = listMode == "zones" and L("Kampfstatistiken")
+            or listMode == "fights" and (report and zoneTitle(report) or L("Kaempfe")) or (category == "debuffs" and L("Debuff-Uptime") or L("Buff-Uptime"))
         if nativeScreen.header and ZO_GamepadGenericHeader_Refresh then
             ZO_GamepadGenericHeader_Refresh(nativeScreen.header, nativeScreen.headerData)
         end
     end
     local buffs = currentEffects(report)
     local debuffs = category == "debuffs"
-    controls.heading:SetText(debuffs and "Debuff-Uptime" or "Buff-Uptime")
-    controls.subject:SetText(debuffs and "Gegner" or "Spieler")
-    controls.coverage:SetText(debuffs and "Debuffzeit" or "Buffzeit")
+    controls.heading:SetText(debuffs and L("Debuff-Uptime") or L("Buff-Uptime"))
+    controls.subject:SetText(debuffs and L("Gegner") or L("Spieler"))
+    controls.coverage:SetText(debuffs and L("Debuffzeit") or L("Buffzeit"))
     controls.receiptHeading:SetHidden(debuffs)
     selected = math.max(1, math.min(selected, #buffs))
     local buff = buffs[selected]
     local members = buff and buff.members or {}
     local pages = math.max(1, math.ceil(#members / ROWS))
     page = math.max(1, math.min(page, pages))
-    controls.buff:SetText(buff and (buff.name .. "  |  " .. (debuffs and "Auf dem Gegner" or buff.groupRole == "damage" and "Nur DDs"
-        or buff.unit == "group" and "Auf der Gruppe" or "Auf mir")) or (report and "Keine aufgezeichneten Effekte" or "Noch kein abgeschlossener Kampf"))
+    controls.buff:SetText(buff and (buff.name .. "  |  " .. (debuffs and L("Auf dem Gegner") or buff.groupRole == "damage" and L("Nur DDs")
+        or buff.unit == "group" and L("Auf der Gruppe") or L("Auf mir"))) or (report and L("Keine aufgezeichneten Effekte") or L("Noch kein abgeschlossener Kampf")))
     controls.selection:SetText(string.format("%d / %d", buff and selected or 0, #buffs))
     local duration = report and math.max(0, (report.ended or 0) - (report.started or 0)) or 0
-    controls.subtitle:SetText(report and string.format("%s  |  %d:%s  |  %d %s", displayTitle(report), math.floor(duration / 60), decimal(duration % 60, "%04.1f"), #members, debuffs and "Gegner" or "Spieler") or "")
+    controls.subtitle:SetText(report and string.format("%s  |  %d:%s  |  %d %s", displayTitle(report), math.floor(duration / 60), decimal(duration % 60, "%04.1f"), #members, debuffs and L("Gegner") or L("Spieler")) or "")
     if buff and buff.groupRole == "damage" then
         local count = 0
         for _, member in ipairs(members) do if member.counted ~= false then count = count + 1 end end
-        controls.subtitle:SetText(string.format("%s  |  %d:%s  |  %d Spieler, %d DDs gewertet",
+        controls.subtitle:SetText(string.format(L("%s  |  %d:%s  |  %d Spieler, %d DDs gewertet"),
             displayTitle(report), math.floor(duration / 60), decimal(duration % 60, "%04.1f"), #members, count))
     end
-    controls.basis:SetText(buff and (debuffs and "Kampfzeit" or report.fallback and "Ersatzmessung: HUD-Bezugszeit"
-        or buff.unit == "group" and "Gruppen-Lebendzeit" or buff.basis == "alive" and "Lebendzeit" or "Aktive Kampfzeit") or "")
+    controls.basis:SetText(buff and (debuffs and L("Kampfzeit") or report.fallback and L("Ersatzmessung: HUD-Bezugszeit")
+        or buff.unit == "group" and L("Gruppen-Lebendzeit") or buff.basis == "alive" and L("Lebendzeit") or L("Aktive Kampfzeit")) or "")
     for index = 1, ROWS do
         local member = members[(page - 1) * ROWS + index]
         local row = controls.rows[index]
         local counted = member and member.counted ~= false
         row.background:SetHidden(member == nil)
         row.name:SetText(member and (member.account or member.name) or "")
-        row.death:SetText(not debuffs and member and (member.deaths ~= nil and string.format("%d Tode / %s s tot", member.deaths,
-            decimal(member.deadTime or 0, "%.1f")) or "Keine Todesdaten") or "")
+        row.death:SetText(not debuffs and member and (member.deaths ~= nil and string.format(L("%d Tode / %s s tot"), member.deaths,
+            decimal(member.deadTime or 0, "%.1f")) or L("Keine Todesdaten")) or "")
         row.name:SetColor(counted and 0.91 or 0.55, counted and 0.93 or 0.59, counted and 0.94 or 0.6, 1)
         row.role:SetText(not debuffs and member and roleName(member.role) or "")
         local icon = not debuffs and member and roleIcon(member.role)
@@ -745,13 +795,13 @@ function Reports.Refresh()
             member.received ~= nil and tostring(member.received) or "-",
             member.renewed ~= nil and tostring(member.renewed) or "-") or "")
     end
-    controls.total:SetText(buff and string.format("%s  %s %%", debuffs and "Debuff-Uptime" or buff.groupRole == "damage" and "DD-Uptime"
-        or buff.unit == "group" and "Gruppen-Uptime" or "Persoenliche Uptime", decimal(buff.percent, "%.1f")) or "")
-    controls.times:SetText(buff and string.format("%s %s s  /  Bezugszeit %s s", debuffs and "Debuffzeit" or "Buffzeit", decimal(buff.covered), decimal(buff.duration)) or "")
-    local pageText = debuffs and "Seite 2 / 2" or "Seite 1 / 2"
-    if pages > 1 then pageText = pageText .. string.format("\n%s %d / %d", debuffs and "Gegner" or "Spieler", page, pages) end
+    controls.total:SetText(buff and string.format("%s  %s %%", debuffs and L("Debuff-Uptime") or buff.groupRole == "damage" and L("DD-Uptime")
+        or buff.unit == "group" and L("Gruppen-Uptime") or L("Persoenliche Uptime"), decimal(buff.percent, "%.1f")) or "")
+    controls.times:SetText(buff and string.format(L("%s %s s  /  Bezugszeit %s s"), debuffs and L("Debuffzeit") or L("Buffzeit"), decimal(buff.covered), decimal(buff.duration)) or "")
+    local pageText = debuffs and L("Seite 2 / 2") or L("Seite 1 / 2")
+    if pages > 1 then pageText = pageText .. string.format("\n%s %d / %d", debuffs and L("Gegner") or L("Spieler"), page, pages) end
     controls.page:SetText(pageText)
-    controls.warning:SetText(buff and buff.truncated and "Einzelwerte unvollstaendig" or "")
+    controls.warning:SetText(buff and buff.truncated and L("Einzelwerte unvollstaendig") or "")
     if opened and keybinds and KEYBIND_STRIP and KEYBIND_STRIP.UpdateKeybindButtonGroup then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(keybinds)
     end
@@ -822,8 +872,35 @@ function Reports.ConfirmSelection()
     elseif listMode == "fights" then Reports.ShowBuffs() end
 end
 
+function Reports.ToggleLock()
+    if deletePending or (listMode ~= "fights" and listMode ~= "zones") then return end
+    local report = currentReport()
+    if not report then return end
+    local locked = not selectionLocked() or nil
+    if listMode == "zones" then
+        for _, record in ipairs(saved.uptimeHistory) do
+            if zoneKey(record) == selectedZone then record.locked = locked end
+        end
+    else report.locked = locked end
+    selectionChosen = true
+    historyCount = nil
+    Reports.Refresh()
+end
+
+local function canDeleteSelection()
+    local report = currentReport()
+    if not report then return false end
+    if listMode == "fights" then return not report.locked end
+    if listMode == "zones" then
+        for _, record in ipairs(saved.uptimeHistory) do
+            if zoneKey(record) == selectedZone and not record.locked then return true end
+        end
+    end
+    return false
+end
+
 function Reports.DeleteFight(report)
-    if not saved or not report then return end
+    if not saved or not report or report.locked then return end
     for index, record in ipairs(saved.uptimeHistory) do
         if record == report then
             table.remove(saved.uptimeHistory, index)
@@ -847,7 +924,7 @@ function Reports.DeleteZone(records)
     for _, report in ipairs(records) do targets[report] = true end
     local previous = currentReport()
     for index = #saved.uptimeHistory, 1, -1 do
-        if targets[saved.uptimeHistory[index]] then table.remove(saved.uptimeHistory, index) end
+        if targets[saved.uptimeHistory[index]] and not saved.uptimeHistory[index].locked then table.remove(saved.uptimeHistory, index) end
     end
     selectedFight = math.max(1, math.min(selectedFight, #saved.uptimeHistory))
     for index, report in ipairs(saved.uptimeHistory) do
@@ -875,12 +952,16 @@ function Reports.RequestDelete()
     if (listMode ~= "fights" and listMode ~= "zones") or deletePending then return end
     local report = currentReport()
     if not report then return end
+    if listMode == "fights" and report.locked then return end
     if not ZO_Dialogs_RegisterCustomDialog or not ZO_Dialogs_ShowGamepadDialog then return end
     local data = { report = report }
     if listMode == "zones" then
-        data.zone, data.records = zoneTitle(report) .. " (" .. reportDate(report) .. ")", {}
+        data.zone, data.records, data.protectedCount = zoneTitle(report) .. " (" .. reportDate(report) .. ")", {}, 0
         for _, record in ipairs(saved.uptimeHistory) do
-            if zoneKey(record) == selectedZone then data.records[#data.records + 1] = record end
+            if zoneKey(record) == selectedZone then
+                if record.locked then data.protectedCount = data.protectedCount + 1
+                else data.records[#data.records + 1] = record end
+            end
         end
         if #data.records == 0 then return end
     end
@@ -888,16 +969,20 @@ function Reports.RequestDelete()
         ZO_Dialogs_RegisterCustomDialog(deleteDialogName, {
             mustChoose = true,
             gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-            title = { text = function(dialog) return dialog.data.records and "Gebiet loeschen?" or "Kampf loeschen?" end },
+            title = { text = function(dialog) return dialog.data.records and L("Gebiet loeschen?") or L("Kampf loeschen?") end },
             finishedCallback = finishDeleteDialog,
             mainText = { text = function(dialog)
                 if dialog.data.records then
-                    return string.format("%s: %d gespeicherte Kaempfe wirklich loeschen?", dialog.data.zone, #dialog.data.records)
+                    local text = string.format(L("%s: %d gespeicherte Kaempfe wirklich loeschen?"), dialog.data.zone, #dialog.data.records)
+                    if (dialog.data.protectedCount or 0) > 0 then
+                        text = text .. "\n" .. string.format(L("%d gesperrte Kaempfe bleiben erhalten."), dialog.data.protectedCount)
+                    end
+                    return text
                 end
-                return string.format("%s (%s) wirklich loeschen?", displayTitle(dialog.data.report), dialog.data.report.clock or "")
+                return string.format(L("%s (%s) wirklich loeschen?"), displayTitle(dialog.data.report), dialog.data.report.clock or "")
             end },
             buttons = {
-                { text = "Loeschen", callback = function(dialog)
+                { text = L("Loeschen"), callback = function(dialog)
                     if dialog.data.records then Reports.DeleteZone(dialog.data.records)
                     else Reports.DeleteFight(dialog.data.report) end
                 end },
@@ -913,7 +998,7 @@ function Reports.RequestDelete()
     detailWindow:SetHidden(true)
     if KEYBIND_STRIP then KEYBIND_STRIP:RemoveKeybindButtonGroup(keybinds) end
     local ok, reason = pcall(ZO_Dialogs_ShowGamepadDialog, deleteDialogName, data)
-    if not ok then finishDeleteDialog(); d("LiveBuffUptime: Loeschbestaetigung konnte nicht geoeffnet werden: " .. tostring(reason)) end
+    if not ok then finishDeleteDialog(); d(L("LiveBuffUptime: Loeschbestaetigung konnte nicht geoeffnet werden: ") .. tostring(reason)) end
 end
 
 function Reports.ChangeFight(delta)
@@ -962,7 +1047,7 @@ local function createWindow()
     consoleLayout = ZO_Gamepad_ParametricList_Screen and ZO_GamepadEntryData and wm.CreateControlFromVirtual
         and ZO_SharedGamepadEntry_OnSetup and ZO_GamepadMenuEntryTemplateParametricListFunction
     if not consoleLayout then
-        d("LiveBuffUptime: Konsolen-Menue nicht verfuegbar; bitte Controller-Modus aktivieren und /reloadui ausfuehren.")
+        d(L("LiveBuffUptime: Konsolen-Menue nicht verfuegbar; bitte Controller-Modus aktivieren und /reloadui ausfuehren."))
         return false
     end
     if consoleLayout then
@@ -992,7 +1077,7 @@ local function createWindow()
         scene:AddFragment(nativeScreen:GetHeaderFragment())
         scene:AddFragment(nativeScreen:GetListFragment(nativeList))
         nativeList:AddDataTemplate("ZO_GamepadMenuEntryTemplate", ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
-        nativeList:SetNoItemText("Noch kein abgeschlossener Kampf")
+        nativeList:SetNoItemText(L("Noch kein abgeschlossener Kampf"))
         nativeList:SetOnSelectedDataChangedCallback(function(_, entry)
             if rebuildingList or not entry then return end
             if entry.zoneKey then Reports.SelectZone(entry.zoneKey)
@@ -1003,7 +1088,7 @@ local function createWindow()
                 Reports.Refresh()
             end
         end)
-        nativeScreen.headerData = { titleText = "Kampfstatistiken" }
+        nativeScreen.headerData = { titleText = L("Kampfstatistiken") }
         if nativeScreen.header and ZO_GamepadGenericHeader_Refresh then
             ZO_GamepadGenericHeader_Refresh(nativeScreen.header, nativeScreen.headerData)
         end
@@ -1027,19 +1112,19 @@ local function createWindow()
     end
     local heading = label(window, nil, 28, 0, 760, 46, "ZoFontGamepad42")
     controls.heading = heading
-    heading:SetText("Buff-Uptime")
+    heading:SetText(L("Buff-Uptime"))
     controls.subtitle = label(window, "LiveBuffUptimeReportSubtitle", 28, 48, 880, 32, "ZoFontGamepad27")
     controls.buff = label(window, "LiveBuffUptimeReportBuff", 28, 82, 740, 44, "ZoFontGamepad42")
     controls.selection = label(window, nil, 820, 82, 100, 44, "ZoFontGamepad34")
     controls.basis = label(window, nil, 28, 126, 720, 30, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
-    local columns = { { "Spieler", 36, 308 }, { "Buffzeit", 362, 150 }, { "Bezugszeit", 528, 150 }, { "Uptime", 694, 150 } }
+    local columns = { { L("Spieler"), 36, 308 }, { L("Buffzeit"), 362, 150 }, { L("Bezugszeit"), 528, 150 }, { "Uptime", 694, 150 } }
     for index, column in ipairs(columns) do
         local control = label(window, nil, column[2], 158, column[3], 38, "ZoFontGamepad34")
         control:SetText(column[1])
         if index == 1 then controls.subject = control elseif index == 2 then controls.coverage = control end
     end
     controls.receiptHeading = label(window, "LiveBuffUptimeReportReceiptHeading", 854, 150, 80, 44, "ZoFontGamepad18")
-    controls.receiptHeading:SetText("Erhalten /\nErneuert")
+    controls.receiptHeading:SetText(L("Erhalten /\nErneuert"))
     controls.receiptHeading:SetMaxLineCount(2)
     controls.receiptHeading:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     controls.rows = {}
@@ -1074,20 +1159,24 @@ local function createWindow()
     controls.warning = label(window, nil, 650, 1054, 282, 28, "ZoFontGamepad22", { 1, 0.7, 0.4, 1 })
     keybinds = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        { name = "Zurueck", keybind = "UI_SHORTCUT_NEGATIVE", callback = Reports.Back },
-        { name = function() return category == "buffs" and "Debuff-Uptime" or "Buff-Uptime" end,
+        { name = L("Zurueck"), keybind = "UI_SHORTCUT_NEGATIVE", callback = Reports.Back },
+        { name = function() return category == "buffs" and L("Debuff-Uptime") or L("Buff-Uptime") end,
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER", callback = Reports.ChangeCategory,
             visible = function() return listMode == "buffs" end },
-        { name = function() return category == "buffs" and "Debuff-Uptime" or "Buff-Uptime" end,
+        { name = function() return category == "buffs" and L("Debuff-Uptime") or L("Buff-Uptime") end,
             keybind = "UI_SHORTCUT_LEFT_SHOULDER", callback = Reports.ChangeCategory,
             visible = function() return listMode == "buffs" end },
-        { name = function() return category == "debuffs" and "Weitere Gegner" or "Weitere Spieler" end,
+        { name = function() return category == "debuffs" and L("Weitere Gegner") or L("Weitere Spieler") end,
             keybind = "UI_SHORTCUT_RIGHT_TRIGGER", callback = Reports.ChangePage,
             visible = function() local effect = currentEffects(currentReport())[selected]; return listMode == "buffs" and effect and #effect.members > ROWS end },
-        { name = function() return listMode == "zones" and "Kaempfe anzeigen" or "Buffs anzeigen" end,
+        { name = function() return listMode == "zones" and L("Kaempfe anzeigen") or L("Buffs anzeigen") end,
             keybind = "UI_SHORTCUT_PRIMARY", callback = Reports.ConfirmSelection,
             visible = function() return listMode ~= "buffs" and currentReport() ~= nil end },
-        { name = "Loeschen", keybind = "UI_SHORTCUT_RIGHT_STICK", callback = Reports.RequestDelete,
+        { name = L("Loeschen"), keybind = "UI_SHORTCUT_RIGHT_STICK", callback = Reports.RequestDelete,
+            enabled = canDeleteSelection,
+            visible = function() return (listMode == "fights" or listMode == "zones") and currentReport() ~= nil end },
+        { name = function() return selectionLocked() and L("Entsperren") or L("Sperren") end,
+            keybind = "UI_SHORTCUT_SECONDARY", callback = Reports.ToggleLock,
             visible = function() return (listMode == "fights" or listMode == "zones") and currentReport() ~= nil end },
     }
     if ZO_Scene and ZO_FadeSceneFragment and SCENE_MANAGER then

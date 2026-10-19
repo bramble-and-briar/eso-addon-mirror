@@ -72,11 +72,23 @@ local ANIMATE_WORDS = {
 	["ギルドトレーダー"] = true, ["メンバー"] = true, ["プレイヤー"] = true, ["雑魚"] = true, ["NPC"] = true,
 	["ガンカー"] = true, ["ボマー"] = true, ["ボールグループ"] = true, ["馬"] = true, ["ペット"] = true,
 	["ドミニオン"] = true, ["カバナント"] = true, ["パクト"] = true, ["陣営"] = true, ["トレイン"] = true,
+	["人々"] = true, ["人間"] = true, ["男性"] = true, ["女性"] = true, ["子供"] = true, ["先生"] = true,
 }
 local ANIMATE_SUFFIXES = { "人", "者", "師", "員", "士", "手", "商", "勢" }
 
+-- 左手 ends in 手 like 運転手 does, and is not a person.
+local NOT_PEOPLE = { "左手", "右手", "両手", "握手", "拍手", "素手", "相手", "上手", "下手", "上手", "入手", "着手", "先手", "後手" }
+
 local function IsAnimate(entry)
 	if not entry or not entry.ja then
+		return false
+	end
+	for _, word in ipairs(NOT_PEOPLE) do
+		if entry.ja:sub(-#word) == word then
+			return false
+		end
+	end
+	if entry.ja == "手" then
 		return false
 	end
 	for word in pairs(ANIMATE_WORDS) do
@@ -173,6 +185,8 @@ local INTRANSITIVE = {
 	["拡大する"] = { ja = "拡大する", class = "s" },
 }
 
+T.INTRANSITIVE = INTRANSITIVE
+
 local REQUEST_SUBJECTS = { you = true, someone = true, somebody = true, anyone = true, anybody = true }
 
 -- Chaining verbs: "want to X", "need to X".
@@ -200,6 +214,7 @@ local CONJUNCTIONS = {
 	["until"] = { kind = "sub", form = { plain = true }, after = "まで、" },
 	after = { kind = "sub", form = { plain = true, past = true }, after = "後で、" },
 	before = { kind = "sub", form = { plain = true }, after = "前に、" },
+	whenever = { kind = "sub", form = { plain = true }, after = "ときはいつでも、" },
 }
 
 -- Only split on these when a new clause visibly starts after them; otherwise they join nouns
@@ -218,6 +233,8 @@ local EXPRESSION_OBJECTS = {
 	{ "おめでとう", "on", "" },
 	{ "おめでとう", "for", "" },
 	{ "頑張って", "with", "" },
+	{ "頑張って", "on", "" },
+	{ "頑張って", "in", "" },
 	{ "どう思いますか", "about", "について" },
 	{ "どう思いますか", "of", "について" },
 	{ "向かっている途中", "to", "に" },
@@ -241,6 +258,10 @@ local CLAUSE_OPENERS = {
 	lol = true, guys = true, everyone = true, all = true, ["and"] = true, but = true, so = true,
 	["then"] = true,
 }
+-- Interjections that a noun phrase may follow: "sorry my internet is lagging".
+local INTERJECTIONS = { sorry = true, thanks = true, hi = true, hello = true, hey = true, oops = true, thx = true, ty = true }
+local DETERMINERS_AFTER_INTERJECTION = { my = true, our = true, their = true, his = true, your = true, the = true, this = true,
+	these = true, those = true, its = true }
 
 local function Tag(tokens)
 	local items = {}
@@ -281,12 +302,27 @@ local function Tag(tokens)
 								end
 							end
 						end
+						-- "daily quests": a noun phrase of the dictionary with its last word in the plural
+						if not entry then
+							local _, lastInflection, lastBase = T.Lookup(words[length])
+							if lastInflection == "plural" and lastBase then
+								local singular = {}
+								for index, word in ipairs(words) do singular[index] = word end
+								singular[length] = lastBase
+								local candidate = T.As(T.Exact(table.concat(singular, " ")), "n")
+								if candidate then
+									entry, inflection = candidate, "plural"
+									base = table.concat(singular, " ")
+								end
+							end
+						end
 						-- A multi-word expression in the middle of a sentence is usually not that
 						-- expression: "help me" is one, "help me with this" is a sentence.
 						if entry and entry.pos == "x" then
 							local following = tokens[i + length]
 							local thanksFor = following and following.kind == "word" and ExpressionTakesObject(entry.ja, following.w)
-							if following and following.kind == "word" and not CLAUSE_OPENERS[following.w] and not thanksFor then
+							local afterInterjection = INTERJECTIONS[key] and following and following.kind == "word" and DETERMINERS_AFTER_INTERJECTION[following.w]
+							if following and following.kind == "word" and not CLAUSE_OPENERS[following.w] and not thanksFor and not afterInterjection then
 								-- not the expression; the same words may still be a verb or noun phrase
 								entry = entry.alts and (entry.alts.v or entry.alts.n) or nil
 							end
@@ -414,6 +450,7 @@ local function Disambiguate(items)
 			local joinedBefore = previous and previous.kind == "word"
 				and not (previous.entry and previous.entry.pos == "x") and not CONJUNCTIONS[previous.w]
 			local joinedAfter = following and following.kind == "word" and not CLAUSE_OPENERS[following.w]
+				and not (INTERJECTIONS[item.w] and DETERMINERS_AFTER_INTERJECTION[following.w])
 				and not (following.entry and following.entry.pos == "x")
 				and not ExpressionTakesObject(entry.ja, following.w)
 			if joinedBefore or joinedAfter then
@@ -504,7 +541,8 @@ local function Disambiguate(items)
 				local joinedBefore = previous and (previous.kind == "word" or previous.kind == "num")
 					and not (previous.entry and previous.entry.pos == "x")
 				local joinedAfter = following and (following.kind == "raw" and following.v:sub(1, 2) == "|H"
-					or following.kind == "word" and not CLAUSE_OPENERS[following.w])
+					or following.kind == "word" and not CLAUSE_OPENERS[following.w]
+						and not (INTERJECTIONS[item.w] and DETERMINERS_AFTER_INTERJECTION[following.w]))
 					and not (following.entry and following.entry.pos == "x")
 					and not ExpressionTakesObject(entry.ja, following.w)
 				if joinedBefore or joinedAfter then
@@ -576,8 +614,32 @@ local function ExpandIts(tokens)
 	return out
 end
 
+-- "you guys", "you all": one plural "you", read as みんな.
+local PLURAL_YOU = { guys = true, all = true, lot = true, folks = true, gals = true, people = true }
+local function MergePluralYou(items)
+	local out = {}
+	local index = 1
+	while index <= #items do
+		local item, following = items[index], items[index + 1]
+		if item.kind == "word" and item.w == "you" and following and following.kind == "word" and PLURAL_YOU[following.w]
+			and not T.userLexicon.you and not T.userLexicon[following.w] and not (items[index + 2] and items[index + 2].kind == "word"
+			and items[index + 2].entry and items[index + 2].entry.pos == "n") then
+			local merged = {}
+			for k, v in pairs(item) do merged[k] = v end
+			merged.entry = { pos = "pn", ja = "みんな" }
+			merged.plural = true
+			out[#out + 1] = merged
+			index = index + 2
+		else
+			out[#out + 1] = item
+			index = index + 1
+		end
+	end
+	return out
+end
+
 T.Tag = function(tokens)
-	return Disambiguate(Tag(ExpandIts(tokens)))
+	return MergePluralYou(Disambiguate(Tag(ExpandIts(tokens))))
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -846,6 +908,9 @@ function Clause:NounPhrase(i)
 			self:Count(item)
 			info.too = true
 			i = i + 1
+		elseif entry and entry.pos == "adv" and self:Pos(i + 1) == "a" and info.head and self.parsingSubject then
+			-- "is the server so laggy": so belongs to laggy, not to the subject
+			break
 		elseif entry and entry.pos == "adv" and self:Pos(i + 1) == "a" then
 			self:Count(item)
 			if #parts == 0 then
@@ -1053,6 +1118,28 @@ function Clause:PostModifierStart(i, info)
 		end
 	end
 	return nil
+end
+
+-- Is there a verb after the noun phrase that starts at i -- uninflected after do/can/will, a
+-- past participle after have? That is what tells "does the trial start" from "does the trial".
+function Clause:VerbAfterSubject(i, participle)
+	local items = self.items
+	local k = i
+	-- skip the noun phrase: determiners, adjectives, nouns
+	while items[k] and items[k].kind == "word" do
+		local item = items[k]
+		local entry = item.entry
+		local isVerb = entry and (entry.pos == "v" or (entry.alts and entry.alts.v)) and not BE[item.w]
+		if k > i and isVerb and (participle and item.infl == "past" or not participle and not item.infl) then
+			return true
+		end
+		if k > i and not (ARTICLES[item.w] or entry and (entry.pos == "n" or entry.pos == "a" or entry.pos == "det"
+			or (entry.alts and (entry.alts.n or entry.alts.a)))) then
+			return false
+		end
+		k = k + 1
+	end
+	return false
 end
 
 -- Is there a be/modal/finite verb after i? (whether a subject noun phrase can still end)
@@ -1388,6 +1475,12 @@ function Clause:Translate(options)
 			else
 				subjectFollows = SUBJECT_PRONOUNS[nextWord or ""] or nextWord == "there" or self:Pos(i + 1) == "pn"
 					or (NEGATORS[nextWord or ""] and SUBJECT_PRONOUNS[self:W(i + 2) or ""])
+				-- "does the trial start tonight", "can the healer come", "has the boss spawned":
+				-- a noun-phrase subject, then the bare verb (or participle) the auxiliary asked for.
+				if not subjectFollows and (i == 1 or wh) and self:IsNounPhraseStart(i + 1) and not NEGATORS[nextWord or ""]
+					and not BE[nextWord or ""] and self:VerbAfterSubject(i + 1, HAVE[w] ~= nil) then
+					subjectFollows = true
+				end
 			end
 			if subjectFollows and (i == 1 or wh) then
 				invertedAux = i
@@ -2017,9 +2110,29 @@ function Clause:Translate(options)
 		end
 	end
 	local omitSpeaker = subject and subject.pronoun == "i" and subject.ja == "私"
-		and not speakerEmphasis and hasPredicate and not question and not options.subordinate and not options.questionMark and not options.keepSubject
+		and not speakerEmphasis and hasPredicate and not question and (not options.subordinate or options.sameSubject)
+		and not options.questionMark and not options.keepSubject
 		and not options.plain and self.unknown == 0 and not T.userLexicon.i
-	if subject and subject.ja ~= "" and form.mode ~= "request" and not omitSpeaker then
+-- The person spoken to is left out of Japanese: "do you know where it is" -> どこにあるか知っていますか.
+	-- Kept for a contrast, an emphasis, a relative clause ("the item you need"), and "who are you".
+	local addresseeEmphasis = false
+	for _, item in ipairs(items) do
+		if item.w == "only" or item.w == "too" or item.w == "also" or item.w == "yourself" or item.w == "alone" then addresseeEmphasis = true end
+	end
+	if not omitSpeaker and subject and subject.pronoun == "you" and subject.ja == "あなた" and hasPredicate
+		and not addresseeEmphasis and not options.keepSubject and not options.relative and not options.plain
+		and not (isCopula and whItem ~= nil) and self.unknown == 0 and not T.userLexicon.you then
+		omitSpeaker = true
+	end
+	-- "We" in an action sentence is left out the same way: "we lost the keep" -> 砦を失いました.
+	-- A description of the group ("we are friendly") keeps it.
+	if not omitSpeaker and subject and subject.pronoun == "we" and subject.ja == "私たち" and hasPredicate
+		and not isCopula and not speakerEmphasis and not question and (not options.subordinate or options.sameSubject)
+		and not options.questionMark
+		and not options.keepSubject and not options.plain and self.unknown == 0 and not T.userLexicon.we then
+		omitSpeaker = true
+	end
+if subject and subject.ja ~= "" and form.mode ~= "request" and not omitSpeaker then
 		if hasPredicate then
 			local particle = (subject.negative and (subject.pronoun or subject.neither)) and "" or ((options.subordinate or INDEFINITE_PRONOUNS[subject.pronoun or ""]) and "が" or "は")
 			if verbItem and verbItem.base == "have" and objects[1] and (objects[1].remaining or state.haveAnimate) and not T.userLexicon.have then particle = "には" end
@@ -2395,8 +2508,77 @@ function T.ReadNominal(items, first, last)
 	return np
 end
 
-local function TranslateSegment(items, stats, questionMark, keepSubject)
+-- Who a clause is about, when it says so: its first word if that is a person pronoun, or a noun
+-- phrase. Imperatives and verbless calls name no one.
+local function LeadSubject(items)
+	local first = items[1]
+	if first and first.kind == "word" and CONJUNCTIONS[first.w] and not first.phrase then
+		-- "..., so you should hurry": a consequence is not a contrast
+		if first.w == "so" or first.w == "because" or first.w == "since" or first.w == "then" then return nil end
+		first = items[2]
+	end
+	if not first or first.kind ~= "word" then return nil end
+	local w = first.w
+	if SUBJECT_PRONOUNS[w] then return w end
+	if w == "there" or IsGrammarWord(w) and not ARTICLES[w] then return nil end
+	if ARTICLES[w] or DEMONSTRATIVE_DET[w] then return "n:" .. w end
+	local pos = first.entry and first.entry.pos
+	if pos == "n" or pos == "det" or pos == "pn" then return "n:" .. w end
+	return nil
+end
+
+-- Two parallel clauses about different people are a contrast, and keep their subjects:
+-- "I heal but you attack". A single speaker's run of clauses does not: "thanks, I appreciate it".
+-- A subordinate clause ("before we pull the boss") is not parallel to the one it hangs on.
+local PERSON_LEADS = { i = true, you = true, we = true, he = true, she = true, they = true }
+local function HasContrast(leads, hasBut)
+	if hasBut then return true end
+	local seen, distinct = {}, 0
+	for _, lead in ipairs(leads) do
+		-- a thing as the other subject ("I got a sword and it is strong") is not a contrast
+		if lead and PERSON_LEADS[lead] and not seen[lead] then
+			seen[lead] = true
+			distinct = distinct + 1
+		end
+	end
+	return distinct >= 2
+end
+
+local function TranslateSegment(items, stats, questionMark, keepSubject, isLast)
 	local clauses = SplitClauses(items)
+	local leads, hasBut = {}, false
+	for _, clause in ipairs(clauses) do
+		local conj = clause.conj and CONJUNCTIONS[clause.conj]
+		if clause.conj == "but" then hasBut = true end
+		if #clause.items > 0 and not (conj and conj.kind == "sub") then
+			leads[#leads + 1] = LeadSubject(clause.items)
+		end
+	end
+	local contrast = HasContrast(leads, hasBut)
+
+	-- The structural reader answers first, when it understood every word of the segment and
+	-- no clause is one the PvP readers (Semantic.lua) know by heart.
+	if T.Syntax and T.Syntax.enabled and T.Syntax.Translate then
+		local semantic = false
+		if T.Semantic then
+			-- fixed expressions around the clause ("hi", "pls") do not stop Semantic reading it
+			local bare = {}
+			for _, item in ipairs(items) do
+				if not (item.kind == "word" and (item.w == "please" or (item.entry and item.entry.pos == "x"))) then bare[#bare + 1] = item end
+			end
+			for _, clause in ipairs(SplitClauses(bare)) do
+				if #clause.items > 0 and T.Semantic.Analyze(clause.items, {}) then semantic = true break end
+			end
+		end
+		if not semantic then
+			local text, question = T.Syntax.Translate(items, stats, questionMark, keepSubject or contrast, isLast)
+			if text then return text, question end
+		end
+	end
+	local mainLead
+	for _, lead in ipairs(leads) do
+		if lead then mainLead = lead break end
+	end
 	local subordinate, main = {}, {}
 	local mainQuestion = false
 
@@ -2405,8 +2587,13 @@ local function TranslateSegment(items, stats, questionMark, keepSubject)
 			local conj = clause.conj and CONJUNCTIONS[clause.conj]
 			local parser = NewClause(clause.items)
 			local text
-			local options = conj and conj.kind == "sub" and { form = conj.form, subordinate = true, invertNegation = conj.invertNegation }
-				or { questionMark = questionMark, keepSubject = keepSubject or #clauses > 1 }
+			-- "when I was a kid, I played": the same speaker twice says it once. The person spoken to
+			-- is understood under an imperative ("if you need help, let me know").
+			local lead = conj and conj.kind == "sub" and LeadSubject(clause.items)
+			local sameSubject = lead and (lead == mainLead or (lead == "you" and mainLead == nil)) and not contrast
+			local options = conj and conj.kind == "sub" and { form = conj.form, subordinate = true, invertNegation = conj.invertNegation,
+				sameSubject = sameSubject or nil }
+				or { questionMark = questionMark, keepSubject = keepSubject or contrast }
 			local plan = T.Semantic and T.Semantic.Analyze(clause.items, options)
 			if plan then
 				text, parser.question = T.Semantic.Render(plan, options)
@@ -2414,12 +2601,13 @@ local function TranslateSegment(items, stats, questionMark, keepSubject)
 				stats.structured = (stats.structured or 0) + 1
 			end
 			if conj and conj.kind == "sub" then
-				text = text or parser:Translate({ form = conj.form, subordinate = true, invertNegation = conj.invertNegation })
+				text = text or parser:Translate({ form = conj.form, subordinate = true, invertNegation = conj.invertNegation,
+						sameSubject = options.sameSubject })
 				if text ~= "" then
 					subordinate[#subordinate + 1] = (conj.before or "") .. text .. conj.after
 				end
 			else
-				text = text or parser:Translate({ questionMark = questionMark, keepSubject = keepSubject or #clauses > 1 })
+				text = text or parser:Translate({ questionMark = questionMark, keepSubject = keepSubject or contrast })
 				if text ~= "" then
 					local joined = text
 					if conj and #main > 0 then
@@ -2486,8 +2674,14 @@ function T.Translate(text)
 		if #segments > 0 then
 			local parts = {}
 			local question = false
+			local leads, hasBut = {}, false
 			for _, run in ipairs(segments) do
-				local ja, isQuestion = TranslateSegment(run, stats, mark == "?", #segments > 1)
+				leads[#leads + 1] = LeadSubject(run)
+				if run[1] and run[1].kind == "word" and run[1].w == "but" and not run[1].phrase then hasBut = true end
+			end
+			local contrast = #segments > 1 and HasContrast(leads, hasBut)
+			for index, run in ipairs(segments) do
+				local ja, isQuestion = TranslateSegment(run, stats, mark == "?", contrast, index == #segments)
 				if ja ~= "" then
 					parts[#parts + 1] = ja
 				end

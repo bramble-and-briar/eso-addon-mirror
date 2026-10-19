@@ -759,6 +759,9 @@ end
 
 ---Initializes onboarding system (called from main.lua after storage is ready)
 function onboarding:Initialize()
-    -- Wait for player activation to show chat message
-    EVENT_MANAGER:RegisterForEvent("BattleScrolls_Onboarding", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    if IsPlayerActivated() then
+        OnPlayerActivated()
+    else
+        EVENT_MANAGER:RegisterForEvent("BattleScrolls_Onboarding", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    end
 end

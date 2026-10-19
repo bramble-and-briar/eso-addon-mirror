@@ -69,6 +69,41 @@
         })
     end
 
+    local function AddFightNavButtons()
+        AddActionButton("Previous Fight", "Cycle to previous fight in history", function()
+            self:StepFightView(-1)
+        end, function()
+            return #self.fightHistory == 0
+        end)
+        AddActionButton("Next Fight", "Cycle to next fight in history", function()
+            self:StepFightView(1)
+        end, function()
+            return #self.fightHistory == 0
+        end)
+        AddActionButton("View Live Fight", "Return to current live fight view", function()
+            self.viewFightIndex = 0
+        end)
+    end
+
+    local function AddMomentSection(label, moments, maxCount, emptyText, emptyTooltip)
+        dialog:AddSetting({ type = LibHarvensAddonSettings.ST_SECTION, label = label })
+        if not moments or #moments == 0 then
+            AddScrollableStatLine(emptyText, emptyTooltip)
+            return
+        end
+        for i = 1, math.min(maxCount, #moments) do
+            local moment = moments[i]
+            AddScrollableStatLine(string.format("%d) %s", i, moment.label), moment.tooltip)
+        end
+    end
+
+    local function AddHealingAndMitigationMoments(snapshot, mitigationEmptyTooltip)
+        AddMomentSection("Top Healing Moments (30)", snapshot.topHealingMoments, 30,
+            "No healing moments yet.", "No healing events in this fight")
+        AddMomentSection("Top Mitigation Moments (30)", snapshot.topMitigationMoments, 30,
+            "No mitigation moments yet.", mitigationEmptyTooltip)
+    end
+
     local function FormatMs(ms)
         return string.format("%.1fs", (ms or 0) / 1000)
     end
@@ -84,33 +119,14 @@
         end
 
         local stats = self.fpsRuntime
-        if type(stats) ~= "table" or (stats.samples or 0) <= 0 then
+        if type(stats) ~= "table" or (stats.fpsSamples or 0) <= 0 then
             return string.format("%s (avg n/a / min n/a / 1%% low n/a)", currentText)
         end
 
-        local avg = (stats.total or 0) / math.max(stats.samples or 1, 1)
-        local minFps = stats.min
-        local low1 = nil
-        if type(stats.bins) == "table" then
-            local worstCount = math.max(1, math.floor((stats.samples or 0) * 0.01 + 0.5))
-            local remaining = worstCount
-            local total = 0
-            for bucket = 0, 120 do
-                local count = tonumber(stats.bins[bucket + 1]) or 0
-                if count > 0 then
-                    local take = math.min(count, remaining)
-                    total = total + (bucket * take)
-                    remaining = remaining - take
-                    if remaining <= 0 then
-                        break
-                    end
-                end
-            end
-            if worstCount > 0 then
-                low1 = total / worstCount
-            end
-        end
-
+        -- Shared 1% low helper (same bins/samples shape as trace state).
+        local avg = (stats.fpsTotal or 0) / math.max(stats.fpsSamples, 1)
+        local minFps = stats.fpsMin
+        local low1 = self:GetTraceOnePercentLow(stats)
         local low1Text = type(low1) == "number" and string.format("%.1f", low1) or "n/a"
         if type(minFps) ~= "number" then
             return string.format("%s (avg %.1f / min n/a / 1%% low %s)", currentText, avg, low1Text)
@@ -152,20 +168,7 @@
         AddActionButton("Open Saved Fights Panel", string.format("Save and load fights across sessions (%d saved)", #self.saved.savedFights), function()
             self.dialogPanel = "saves"
         end)
-        AddActionButton("Previous Fight", "Cycle to previous fight in history", function()
-            self:StepFightView(-1)
-        end, function()
-            return #self.fightHistory == 0
-        end)
-        AddActionButton("Next Fight", "Cycle to next fight in history", function()
-            self:StepFightView(1)
-        end, function()
-            
-            return #self.fightHistory == 0
-        end)
-        AddActionButton("View Live Fight", "Return to current live fight view", function()
-            self.viewFightIndex = 0
-        end)
+        AddFightNavButtons()
 
         AddActionButton("Open Overview Panel", "General fight totals and timeline controls", function()
             self.dialogPanel = "overview"
@@ -193,6 +196,9 @@
         end)
         AddActionButton("Open Options Panel", "Toggles, clear, and help explanations", function()
             self.dialogPanel = "options"
+        end)
+        AddActionButton("Open Share Panel", "Send fight stats or build to chat", function()
+            self.dialogPanel = "share"
         end)
 
         AddCloseButton()
@@ -229,6 +235,7 @@
             string.format("Healing Done: %s", NumberText(snapshot.totalHeal)),
             string.format("Damage Taken: %s", NumberText(snapshot.totalTaken)),
             string.format("Crit Rate: %.1f%%", snapshot.critPct),
+            string.format("Hit Value Range: %s - %s", NumberText(snapshot.minHitValue or 0), NumberText(snapshot.maxHitValue or 0)),
             string.format("Peak DPS: %s", ShortNumber(snapshot.peakDps or 0)),
             string.format("Peak HPS: %s", ShortNumber(snapshot.peakHps or 0)),
             string.format("Burst Window Interval: %s", IntervalText(burstStats)),
@@ -242,19 +249,7 @@
             AddScrollableStatLine(overviewLines[i], "Overview statistic")
         end
 
-        AddActionButton("Previous Fight", "Cycle to previous fight in history", function()
-            self:StepFightView(-1)
-        end, function()
-            return #self.fightHistory == 0
-        end)
-        AddActionButton("Next Fight", "Cycle to next fight in history", function()
-            self:StepFightView(1)
-        end, function()
-            return #self.fightHistory == 0
-        end)
-        AddActionButton("View Live Fight", "Return to current live fight view", function()
-            self.viewFightIndex = 0
-        end)
+        AddFightNavButtons()
 
         AddBackButton()
         AddCloseButton()
@@ -570,25 +565,7 @@
             end
         end
 
-        dialog:AddSetting({ type = LibHarvensAddonSettings.ST_SECTION, label = "Top Healing Moments (30)" })
-        if not snapshot.topHealingMoments or #snapshot.topHealingMoments == 0 then
-            AddScrollableStatLine("No healing moments yet.", "No healing events in this fight")
-        else
-            for i = 1, math.min(30, #snapshot.topHealingMoments) do
-                local moment = snapshot.topHealingMoments[i]
-                AddScrollableStatLine(string.format("%d) %s", i, moment.label), moment.tooltip)
-            end
-        end
-
-        dialog:AddSetting({ type = LibHarvensAddonSettings.ST_SECTION, label = "Top Mitigation Moments (30)" })
-        if not snapshot.topMitigationMoments or #snapshot.topMitigationMoments == 0 then
-            AddScrollableStatLine("No mitigation moments yet.", "No blocked or shielded moments in this fight")
-        else
-            for i = 1, math.min(30, #snapshot.topMitigationMoments) do
-                local moment = snapshot.topMitigationMoments[i]
-                AddScrollableStatLine(string.format("%d) %s", i, moment.label), moment.tooltip)
-            end
-        end
+        AddHealingAndMitigationMoments(snapshot, "No blocked or shielded moments in this fight")
 
         AddBackButton()
         AddCloseButton()
@@ -1041,25 +1018,7 @@
             end
         end
 
-        dialog:AddSetting({ type = LibHarvensAddonSettings.ST_SECTION, label = "Top Healing Moments (30)" })
-        if not snapshot.topHealingMoments or #snapshot.topHealingMoments == 0 then
-            AddScrollableStatLine("No healing moments yet.", "No healing events in this fight")
-        else
-            for i = 1, math.min(30, #snapshot.topHealingMoments) do
-                local moment = snapshot.topHealingMoments[i]
-                AddScrollableStatLine(string.format("%d) %s", i, moment.label), moment.tooltip)
-            end
-        end
-
-        dialog:AddSetting({ type = LibHarvensAddonSettings.ST_SECTION, label = "Top Mitigation Moments (30)" })
-        if not snapshot.topMitigationMoments or #snapshot.topMitigationMoments == 0 then
-            AddScrollableStatLine("No mitigation moments yet.", "No mitigation events in this fight")
-        else
-            for i = 1, math.min(30, #snapshot.topMitigationMoments) do
-                local moment = snapshot.topMitigationMoments[i]
-                AddScrollableStatLine(string.format("%d) %s", i, moment.label), moment.tooltip)
-            end
-        end
+        AddHealingAndMitigationMoments(snapshot, "No mitigation events in this fight")
 
         AddBackButton()
         AddCloseButton()
@@ -1597,6 +1556,121 @@
         for i = 1, #optionHelpLines do
             AddScrollableStatLine(optionHelpLines[i], "Option explanation")
         end
+
+        AddBackButton()
+        AddCloseButton()
+        return
+    end
+
+    if panel == "share" then
+        local snap, isLive = self:GetViewedFightSnapshot()
+        local viewLabel = isLive and "Live" or string.format("Fight %d", self.viewFightIndex or 0)
+
+        dialog:AddSetting({
+            type = LibHarvensAddonSettings.ST_SECTION,
+            label = string.format("Share Panel (%s)", viewLabel),
+            tooltip = "Pre-fill the chat virtual keyboard with stats or your build. Choose a channel and confirm to send.",
+        })
+
+        AddActionButton(
+            "Share Front Bar Links to Chat",
+            "Pre-fills chat with clickable ability links for every skill on your front bar.",
+            function()
+                self:ShareFrontBarLinksToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Back Bar Links to Chat",
+            "Pre-fills chat with clickable ability links for every skill on your back bar.",
+            function()
+                self:ShareBackBarLinksToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Armor Links to Chat",
+            "Pre-fills chat with clickable item links for your 7 armor pieces. Recipients can hover for full tooltips.",
+            function()
+                self:ShareArmorLinksToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Jewelry Links to Chat",
+            "Pre-fills chat with clickable item links for neck and both rings.",
+            function()
+                self:ShareJewelryLinksToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Weapon Links to Chat",
+            "Pre-fills chat with clickable item links for your front and back weapon slots.",
+            function()
+                self:ShareWeaponLinksToChat()
+            end
+        )
+
+        dialog:AddSetting({ type = LibHarvensAddonSettings.ST_SECTION, label = "Stats" })
+
+        AddActionButton(
+            "Share Fight Stats to Chat",
+            string.format("Pre-fills chat with: duration, DPS, HPS, damage, healing, taken, crit rate for %s.", viewLabel),
+            function()
+                self:ShareFightToChat(viewLabel)
+            end
+        )
+
+        AddActionButton(
+            "Share Top Skills to Chat",
+            "Pre-fills chat with your top 5 damage skills as ability links with totals.",
+            function()
+                self:ShareTopSkillsToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Sustain / Resources to Chat",
+            "Pre-fills chat with average HP, Magicka, and Stamina percentages.",
+            function()
+                self:ShareResourceToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Build Summary to Chat",
+            "Sends a text summary line (CP, sets, boon, bars) and prints linked bars to your chat log.",
+            function()
+                self:ShareBuildToChat()
+            end
+        )
+
+        AddActionButton(
+            "Share Full Snapshot to Chat",
+            "Combines fight stats and build summary into one pre-filled message.",
+            function()
+                self:ShareFullSnapshotToChat()
+            end
+        )
+
+        dialog:AddSetting({
+            type = LibHarvensAddonSettings.ST_SECTION,
+            label = "How It Works",
+            tooltip = "On Xbox the virtual keyboard opens pre-filled with the text. Choose a channel (Say, Party, Zone, etc.) and press Confirm to post it.",
+        })
+        AddScrollableStatLine(
+            "1. Press a Share button above",
+            "The virtual keyboard will open with the text already filled in."
+        )
+        AddScrollableStatLine(
+            "2. Choose your chat channel",
+            "Press LB/RB to switch channels in the chat input box."
+        )
+        AddScrollableStatLine(
+            "3. Press Confirm / A to send",
+            "Your stats or build will be posted to chat."
+        )
 
         AddBackButton()
         AddCloseButton()

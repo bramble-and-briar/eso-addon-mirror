@@ -1,7 +1,7 @@
 dofile("Uptime.lua")
 dofile("StackUptime.lua")
 dofile("LiveUptime.lua")
-dofile("Diagnostics.lua")
+dofile("tests/helpers/UptimeAudit.lua")
 COMBAT_UNIT_TYPE_PLAYER, COMBAT_UNIT_TYPE_GROUP, COMBAT_UNIT_TYPE_PLAYER_PET = 1, 2, 3
 COMBAT_UNIT_TYPE_PLAYER_COMPANION, COMBAT_UNIT_TYPE_GROUP_COMPANION = 5, 6
 local E, A = LiveBuffUptimeEngine, LiveBuffUptimeDiagnostics

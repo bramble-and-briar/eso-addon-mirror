@@ -345,7 +345,7 @@ ImmutableEffect.__index = Effect
 local yieldEffect = setmetatable({ _tag = "yield", _isEffect = true }, ImmutableEffect)
 local yieldWithGCEffect = setmetatable({ _tag = "yieldGC", _isEffect = true }, ImmutableEffect)
 
----Create an Effect that yields to the next frame
+---Yield to LibAsync, which may resume in the same frame if budget remains
 ---@return Effect<nil>
 function Effect.Yield()
     return yieldEffect
@@ -668,11 +668,11 @@ local function runAsync(effect, fiber, onDone)
             return
         end
 
-        -- Regular yield - continue on next frame
+        -- Regular yield - return control to the scheduler.
         task:Call(step)
     end
 
-    -- Start on next frame
+    -- Schedule the body within LibAsync's budget.
     task:Call(step)
 end
 

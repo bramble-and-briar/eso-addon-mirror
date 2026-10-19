@@ -34,7 +34,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Harven's Mute NPCs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Mute-NPCs__1196) | Harven | PC / Mac | 0.7 |
 | [Harven's Potions Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Potions-Alert__562) | Harven | PC / Mac | 2.2.2 |
 | [Harven's Potions Alert Patched (NOT SUPPORTED)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nesferatum/Harven-s-Potions-Alert-Patched-NOT-SUPPORTED__3405) | Nesferatum | PC / Mac | 1.11 |
-| [Harven's Quest Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Quest-Journal__580) | Harven | PC / Mac | 2.9.2 |
+| [Harven's Quest Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Quest-Journal__580) | Harven | PC / Mac | 3.0.0 |
 | [Harven's Research Timers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Research-Timers__521) | Harven | PC / Mac | 2.0.0 |
 | [Harven's Simple Chat Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Simple-Chat-Filter__516) | Harven | PC / Mac | 1.2e |
 | [Harven's Stack Split Slider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Stack-Split-Slider__458) | Harven | PC / Mac | 2.0.0 |
@@ -42,7 +42,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Harven's Subtitles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Subtitles__339) | Harven | PC / Mac | 2.0.4 |
 | [Harven's Thieves Troves Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Thieves-Troves-Marker__1313) | Harven | PC / Mac | 1.1.0 |
 | [Harven's Trait and Style](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Trait-and-Style__436) | Harven | PC / Mac | 2.10.3 |
-| [HarvestMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/HarvestMap__57) | Shinni | PC / Mac | 3.16.12 |
+| [HarvestMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/HarvestMap__57) | Shinni | PC / Mac | 3.16.13 |
 | [HarvestMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni42/HarvestMap__f552385a-cc51-4031-bf63-43abd2709e70) | Shinni42 | Console | — |
 | [HarvestMap-Data](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/HarvestMap-Data__3034) | Shinni | PC / Mac | 3.15.3 |
 | [HarvestPins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hatory/HarvestPins__2435) | Hatory | PC / Mac | 1.9 |
@@ -108,7 +108,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Hodor Reflex - Piou Icons Roster \[DEPRECATED\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/Hodor-Reflex---Piou-Icons-Roster-DEPRECATED__3842) | Tenshiraito | PC / Mac | 2.9 |
 | [Hodor Restyle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Hodor-Restyle__3533) | Hyperioxes | PC / Mac | 2.5 |
 | [HodorReflexes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/HodorReflexes__fef0db78-bc0e-4c89-b77e-f03d570d10a9) | m00nyONE | Console | — |
-| [HodorReflexes - DPS & ULT tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/HodorReflexes---DPS-ULT-tracker__2311) | andy.s | PC / Mac | 2026-05-17 |
+| [HodorReflexes - DPS & ULT tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/HodorReflexes---DPS-ULT-tracker__2311) | andy.s | PC / Mac | 2026-10-18 |
 | [HodorReflexesIconExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/HodorReflexesIconExtension__3520) | sshogrin | PC / Mac | 1.4.1 |
 | [HOF Swap Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/HOF-Swap-Notifier__1848) | Dolgubon | PC / Mac | 1 |
 | [Home Storage Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thurderan/Home-Storage-Tracker__4196) | Thurderan | PC / Mac | 15.3 |

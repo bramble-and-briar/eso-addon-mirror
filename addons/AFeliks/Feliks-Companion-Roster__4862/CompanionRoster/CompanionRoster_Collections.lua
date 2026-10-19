@@ -20,15 +20,6 @@ local ROLE_ICON_SIZE = 24
 local ROLE_ICON_OFFSET_X = -12
 local ROLE_ICON_OFFSET_Y = -2
 
-local function GetCompanionIdForCollectible(collectibleId)
-    for _, companion in ipairs(CompanionRoster.Data.GetAllCompanions()) do
-        if GetCompanionCollectibleId(companion.id) == collectibleId then
-            return companion.id
-        end
-    end
-    return nil
-end
-
 local function GetOrCreateRoleIcon(tile)
     if tile.companionRosterRoleIcon == nil then
         local tileControl = tile:GetControl()
@@ -56,8 +47,6 @@ local function GetOrCreateSecondRoleIcon(tile)
     return tile.companionRosterRoleIcon2
 end
 
--- Colored like the roster window's Rapport column (the configurable
--- "done"/"in progress" colors - see CompanionRoster.Data.GetColor).
 local RAPPORT_OFFSET_Y = 0 -- below the portrait, above the name label
 
 local function GetOrCreateRapportLabel(tile)
@@ -87,7 +76,7 @@ local function OnTileLayout(tile)
     local collectibleData = tile.collectibleData
     local companionId = nil
     if collectibleData and collectibleData:IsCategoryType(COLLECTIBLE_CATEGORY_TYPE_COMPANION) then
-        companionId = GetCompanionIdForCollectible(collectibleData:GetId())
+        companionId = CompanionRoster.Data.GetCompanionIdForCollectible(collectibleData:GetId())
     end
 
     local role, secondaryRole
@@ -116,6 +105,8 @@ local function OnTileLayout(tile)
     if rapportValue then
         local label = GetOrCreateRapportLabel(tile)
         label:SetText(tostring(rapportValue))
+        -- Colored like the roster window's Rapport column: the configurable
+        -- "done" / "in progress" colors (see CompanionRoster.Data.GetColor).
         local r, g, b = CompanionRoster.Data.GetColor((rapportMax and rapportValue >= rapportMax) and "done" or "inProgress")
         label:SetColor(r, g, b, 1)
         label:SetHidden(false)

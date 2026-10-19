@@ -1419,9 +1419,42 @@ function plain:EffectAlpha(bar, alpha)
 	end
 end
 
+-- The game fades a bar out when it is not needed -- out of combat and full, with "Show resource
+-- bars" on automatic -- by animating its container's own alpha (PlayerAttributeBarAnimation,
+-- ZO_PlayerAttributeBar:UpdateContextualFading). The effect is a child of that container, and on a
+-- PS5 it stayed fully visible over a bar faded right out (FINDINGS 72): drawn at another tier, it
+-- does not take the alpha the animation gives its parent -- the same thing that made it flicker while
+-- the bars faded in from a menu. So it is given the container's own alpha directly, every update,
+-- and hidden when that is nothing.
+local CONTEXT_HIDDEN_BELOW = 0.01
+
+-- How far the game has faded this bar: its container's own alpha.
+function plain:ContextFade(bar)
+	local container = Control(bar.container)
+	return container and addon.OwnAlpha(container) or 1
+end
+
+-- Called after the effect is drawn, so only while the bar is showing at all; faded right out, the
+-- effect is not drawn and stays hidden (the loop above).
+function plain:FollowContextualFade(bar, entry)
+	local group = self.effectGroups and self.effectGroups[entry.name]
+	if not group then
+		return
+	end
+	local fade = self:ContextFade(bar)
+	if group.contextAlpha ~= fade then
+		group.control:SetAlpha(fade)
+		group.contextAlpha = fade
+	end
+end
+
 function plain:RestoreLiquid()
 	for _, group in pairs(self.effectGroups or {}) do
 		group.control:SetHidden(true)
+		if group.contextAlpha and group.contextAlpha ~= 1 then
+			group.control:SetAlpha(1)
+		end
+		group.contextAlpha = nil
 	end
 	for control, colours in pairs(self.effectColours or {}) do
 		addon:Write("effect colour", control.SetGradientColors, control, unpack(colours))
@@ -1466,6 +1499,10 @@ function plain:UpdateLiquid(style)
 				if control and type(control.SetGradientColors) == "function" then
 					self.effectColours[control] = self.effectColours[control] or { r, g, b, a, r2, g2, b2, a2 }
 					local drawEffect, writeColour = self:TestOn("effect"), self:TestOn("colour")
+					-- Faded right out by the game: nothing of the effect drawn or shown (FINDINGS 72).
+					if self:ContextFade(bar) < CONTEXT_HIDDEN_BELOW then
+						drawEffect = false
+					end
 					local holdEffect = not self.fadeDone
 					if drawEffect and holdEffect then
 						-- Drawn, so it is ready, and kept out of sight until the fade ends.
@@ -1500,6 +1537,7 @@ function plain:UpdateLiquid(style)
 							r * dark, g * dark, b * dark, a,
 							r2 + (1 - r2) * light, g2 + (1 - g2) * light, b2 + (1 - b2) * light, a2) end
 					end
+					self:FollowContextualFade(bar, entry)
 				end
 			end
 		end

@@ -7,7 +7,10 @@
                 <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- WPD">
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--">
+                    <AnchorFill />
+                </Label>
+                <Label name="$(parent)Suffix" layer="OVERLAY" level="6" text="WPD">
                     <AnchorFill />
                 </Label>
             </Controls>
@@ -20,7 +23,10 @@
                 <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--/-- ARM">
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--/--">
+                    <AnchorFill />
+                </Label>
+                <Label name="$(parent)Suffix" layer="OVERLAY" level="6" text="ARM">
                     <AnchorFill />
                 </Label>
             </Controls>
@@ -33,7 +39,10 @@
                 <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- MREG">
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--">
+                    <AnchorFill />
+                </Label>
+                <Label name="$(parent)Suffix" layer="OVERLAY" level="6" text="MREG">
                     <AnchorFill />
                 </Label>
             </Controls>
@@ -46,7 +55,10 @@
                 <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- SREG">
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--">
+                    <AnchorFill />
+                </Label>
+                <Label name="$(parent)Suffix" layer="OVERLAY" level="6" text="SREG">
                     <AnchorFill />
                 </Label>
             </Controls>
@@ -59,7 +71,10 @@
                 <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- CRIT">
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--">
+                    <AnchorFill />
+                </Label>
+                <Label name="$(parent)Suffix" layer="OVERLAY" level="6" text="CRIT">
                     <AnchorFill />
                 </Label>
             </Controls>
@@ -72,7 +87,10 @@
                 <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--/-- PEN">
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--/--">
+                    <AnchorFill />
+                </Label>
+                <Label name="$(parent)Suffix" layer="OVERLAY" level="6" text="PEN">
                     <AnchorFill />
                 </Label>
             </Controls>

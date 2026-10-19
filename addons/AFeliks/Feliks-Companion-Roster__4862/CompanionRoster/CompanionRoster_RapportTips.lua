@@ -6,8 +6,10 @@ local CompanionRoster = CompanionRoster -- local reference, faster than repeated
 -- There's no API for this - the game only exposes the resulting rapport
 -- number and delta (EVENT_COMPANION_RAPPORT_UPDATE), never *why* it
 -- changed - so like KEEPSAKE_COLLECTIBLE_IDS in CompanionRoster_Data.lua,
--- this is hand-transcribed, not derived live. Keyed by the exact name
--- GetCompanionName() returns (matches KEEPSAKE_COLLECTIBLE_IDS's keys).
+-- this is hand-transcribed, not derived live. Keyed by companionId (the
+-- same ids GetAllCompanions() returns, the name is in the comment beside
+-- each key), not by name: a companion's displayed name depends on the
+-- client's language, the id doesn't.
 --
 -- `amount` is a plain number for ranking (the higher figure when the wiki
 -- lists two, e.g. "+25 / +5" -> 25); `amountLabel` is the exact wiki text
@@ -15,7 +17,7 @@ local CompanionRoster = CompanionRoster -- local reference, faster than repeated
 -- (not an exhaustive fixed enum) matched by CompanionRoster.Data.SearchRapportTips
 -- against both the tags and the description text.
 CompanionRoster.RapportTips = {
-    ["Bastian Hallix"] = {
+    [1] = { -- Bastian Hallix
         positive = {
             { amount = 500, description = "Complete Things Lost, Things Found and Family Secrets companion quests", cooldown = "Once each", categories = { "Companion Quest" } },
             { amount = 125, description = "Complete a Mages Guild daily offered by Alvur Baren", cooldown = "No cooldown", categories = { "Mages Guild" } },
@@ -41,7 +43,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Mirri Elendis"] = {
+    [2] = { -- Mirri Elendis
         positive = {
             { amount = 500, description = "Return A Mother's Obsession and Dead Weight companion quests", cooldown = "Once each", categories = { "Companion Quest" } },
             { amount = 125, description = "Return a Dark Anchor contract offered by Cardea Gallus in the Fighters Guild", cooldown = "No cooldown", categories = { "Fighters Guild" } },
@@ -64,7 +66,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Ember"] = {
+    [5] = { -- Ember
         positive = {
             { amount = 500, description = "Return Cold Trail, Cold Blood, Old Pain, or Green with Envy companion quests", cooldown = "Once each", categories = { "Companion Quest" } },
             { amount = 125, description = "Return a Thieves Guild heist", cooldown = "Daily", categories = { "Thieves Guild" } },
@@ -95,7 +97,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Isobel Veloise"] = {
+    [6] = { -- Isobel Veloise
         positive = {
             { amount = 500, description = "Complete The Lost Symbol, A Mother's Request, and The Princess Detective companion quests", cooldown = "Once each", categories = { "Companion Quest" } },
             { amount = 125, description = "Return an Undaunted daily challenge offered by Bolgrul", cooldown = "Daily", categories = { "Undaunted" } },
@@ -122,7 +124,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Sharp-as-Night"] = {
+    [8] = { -- Sharp-as-Night
         positive = {
             { amount = 500, description = "Complete Between a Rock and a Whetstone, Dim and Distant Pasts, and Light the Way to Freedom companion quests", cooldown = "Once each", categories = { "Companion Quest" } },
             { amount = 125, description = "Return a Daily Boss quest offered by Ordinator Nelyn in Necrom", cooldown = "Daily", categories = { "World Boss" } },
@@ -153,7 +155,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Azandar"] = {
+    [9] = { -- Azandar
         positive = {
             { amount = 500, description = "Complete Paths Unwalked, Adversarial Adventures, and Tempting Fates companion quests", cooldown = "Once each", categories = { "Companion Quest" } },
             { amount = 125, description = "Return the Ordinator Tilena Necrom delve daily", cooldown = "Daily", categories = { "Dungeon" } },
@@ -185,7 +187,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Tanlorin"] = {
+    [12] = { -- Tanlorin
         positive = {
             { amount = 500, description = "Return their companion quests", cooldown = "Once", categories = { "Companion Quest" } },
             { amount = 125, description = "Return an Alchemy Writ daily", cooldown = "Daily", categories = { "Alchemy" } },
@@ -235,7 +237,7 @@ CompanionRoster.RapportTips = {
         },
     },
 
-    ["Zerith-var"] = {
+    [13] = { -- Zerith-var
         positive = {
             { amount = 500, description = "Complete his companion quests", cooldown = "Once per quest", categories = { "Companion Quest" } },
             { amount = 150, description = "Complete Maw of Lorkhaj with Zerith-var present", cooldown = "Unknown", categories = { "Trial" } },
@@ -279,15 +281,6 @@ CompanionRoster.RapportTips = {
     },
 }
 
-local function GetCompanionIdByName(name)
-    for _, companion in ipairs(CompanionRoster.Data.GetAllCompanions()) do
-        if companion.name == name then
-            return companion.id
-        end
-    end
-    return nil
-end
-
 local function ActionMatches(action, term)
     for _, category in ipairs(action.categories) do
         if zo_strlower(category):find(term, 1, true) then
@@ -308,9 +301,8 @@ local function GetMatchingGuildLines(companionId, term)
         return matches
     end
 
-    local guildTypeName = GetString("SI_SKILLTYPE", SKILL_TYPE_GUILD)
     for _, group in ipairs(skillLines) do
-        if group.typeName == guildTypeName then
+        if CompanionRoster.Data.IsGuildSkillGroup(group) then
             for _, line in ipairs(group.lines) do
                 if zo_strlower(line.name):find(term, 1, true) then
                     table.insert(matches, { name = line.name, rank = line.rank, isMaxed = line.isMaxed })
@@ -337,7 +329,7 @@ function CompanionRoster.Data.SearchRapportTips(term)
     local recordedCompanions = CompanionRoster.Data.GetCompanionsForCharacter(characterKey)
 
     local results = {}
-    for companionName, tips in pairs(CompanionRoster.RapportTips) do
+    for companionId, tips in pairs(CompanionRoster.RapportTips) do
         local bestMatch = nil
         for _, action in ipairs(tips.positive) do
             if ActionMatches(action, term) and (bestMatch == nil or action.amount > bestMatch.amount) then
@@ -345,9 +337,11 @@ function CompanionRoster.Data.SearchRapportTips(term)
             end
         end
 
-        if bestMatch then
-            local companionId = GetCompanionIdByName(companionName)
-            local recorded = companionId and recordedCompanions[companionId]
+        -- The name shown is the live (language-appropriate) one; a tips entry
+        -- for a companion the game doesn't list is skipped.
+        local companionName = bestMatch and CompanionRoster.Data.GetCompanionNameById(companionId)
+        if bestMatch and companionName then
+            local recorded = recordedCompanions[companionId]
             local isMaxed = recorded ~= nil and recorded.rapportValue ~= nil and recorded.rapportMax ~= nil
                 and recorded.rapportValue >= recorded.rapportMax
 
@@ -436,17 +430,18 @@ function CompanionRoster.Data.FindRapportTipsByName(term)
     end
 
     local matches = {}
-    for companionName, tips in pairs(CompanionRoster.RapportTips) do
-        local lowerName = zo_strlower(companionName)
-        local entry = {
-            name = companionName,
-            likes = SortedByMagnitude(tips.positive, true),
-            dislikes = SortedByMagnitude(tips.negative, false),
-        }
-        if lowerName == term then
-            return { entry }
-        end
-        if lowerName:find(term, 1, true) then
+    for _, companion in ipairs(CompanionRoster.Data.GetAllCompanions()) do
+        local tips = CompanionRoster.RapportTips[companion.id]
+        local lowerName = zo_strlower(companion.name)
+        if tips and (lowerName == term or lowerName:find(term, 1, true)) then
+            local entry = {
+                name = companion.name,
+                likes = SortedByMagnitude(tips.positive, true),
+                dislikes = SortedByMagnitude(tips.negative, false),
+            }
+            if lowerName == term then
+                return { entry }
+            end
             table.insert(matches, entry)
         end
     end

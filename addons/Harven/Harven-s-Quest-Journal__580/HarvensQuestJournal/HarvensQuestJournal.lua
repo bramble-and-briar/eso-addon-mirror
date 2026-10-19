@@ -1,6 +1,7 @@
 local QUEST_LINK_TYPE = "HarvensQuestJournalQuest"
 local QUEST_CATEGORY_LINK_TYPE = "HarvensQuestJournalCategory"
 local NPC_LINK_TYPE = "HarvensQuestJournalNPC"
+local RUMOR_LINK_TYPE = "HarvensQuestJournalRumor"
 
 local tableInsert = table.insert
 local tableConcat = table.concat
@@ -54,6 +55,17 @@ local QS_GOLD = 2
 local QS_EXPERIENCE = 3
 local QS_CHAMPION_POINTS = 4
 
+-- SavedVariable rumor structure (RS_*)
+local RS_NAME = 1
+local RS_BACKGROUND = 2
+local RS_HINTS = 3
+local RS_STARTTIME = 4
+local RS_COMPLETEDTIME = 5
+local RS_TYPE = 6
+local RS_ID = 7
+local RS_STARTER_HINT = 8
+local RS_COMPLETED_TEXT = 9
+
 local DEFAULT_PAGE_HEIGHT = 660
 
 --journal sections
@@ -63,6 +75,9 @@ local JS_CURRENT_QUEST = 3
 local JS_COMPLETED_QUEST = 4
 local JS_CONVERSATION = 5
 local JS_COMPLETED_QUEST_CATEGORY = 6
+local JS_RUMORS = 7
+local JS_COMPLETED_RUMORS = 8
+local JS_RUMOR_DETAIL = 9
 
 local SORT_ALPHABETICALLY = 0
 local SORT_TIMEOFCOMPLETION = 1
@@ -78,6 +93,13 @@ local categoryIdToName = {
 	[QUEST_CATEGORY_ZONE] = SI_QUEST_JOURNAL_ZONE_FORMAT
 }
 
+local rumorTypeToName = {
+	[RUMOR_TYPE_WHISPER or 1] = GetString(SI_RUMOR_TYPE_WHISPER) ~= "" and GetString(SI_RUMOR_TYPE_WHISPER) or "Whisper",
+	[RUMOR_TYPE_PLOT or 2] = GetString(SI_RUMOR_TYPE_PLOT) ~= "" and GetString(SI_RUMOR_TYPE_PLOT) or "Plot",
+	[RUMOR_TYPE_CONSPIRACY or 3] = GetString(SI_RUMOR_TYPE_CONSPIRACY) ~= "" and GetString(SI_RUMOR_TYPE_CONSPIRACY) or "Conspiracy",
+	[RUMOR_TYPE_NONE or 0] = GetString(SI_RUMOR_TYPE_NONE) ~= "" and GetString(SI_RUMOR_TYPE_NONE) or "Rumor"
+}
+
 local function GetTimeZoneOffset()
 	local ssm = GetSecondsSinceMidnight()
 	local now = GetTimeStamp()
@@ -90,6 +112,159 @@ local function CreateLink(text, color, type, ...)
 end
 
 local CLOCK_FORMAT = (GetCVar("Language.2") == "en") and TIME_FORMAT_PRECISION_TWELVE_HOUR or TIME_FORMAT_PRECISION_TWENTY_FOUR_HOUR
+
+function HarvensQuestJournal:AddRumor(rumorId)
+	if not rumorId then
+		return nil
+	end
+	local rawName = GetRumorDisplayName(rumorId)
+	if not rawName or #rawName == 0 then
+		return nil
+	end
+	local name = zo_strformat("<<1>>", rawName)
+
+	if not self.sv.rumors then
+		self.sv.rumors = {}
+	end
+
+	local sv = self.sv.rumors[name] or {}
+	sv[RS_NAME] = name
+	sv[RS_ID] = rumorId
+	sv[RS_BACKGROUND] = GetRumorBackgroundText(rumorId)
+	sv[RS_STARTER_HINT] = GetRumorStarterHint(rumorId)
+	sv[RS_TYPE] = GetRumorType(rumorId)
+
+	if not sv[RS_STARTTIME] then
+		sv[RS_STARTTIME] = GetTimeStamp()
+	end
+
+	sv[RS_HINTS] = sv[RS_HINTS] or {}
+	local numHints = GetNumHintsForPendingRumor(rumorId)
+	if numHints and numHints > 0 then
+		for i = 1, numHints do
+			if HasDiscoveredRumorHint(rumorId, i) then
+				local hintDesc = GetRumorHintDescription(rumorId, i)
+				local hintTitle = GetRumorHintDisplayName(rumorId, i)
+				local exists = false
+				for _, h in ipairs(sv[RS_HINTS]) do
+					if type(h) == "table" and h.desc == hintDesc then
+						exists = true
+						break
+					elseif type(h) == "string" and h == hintDesc then
+						exists = true
+						break
+					end
+				end
+				if not exists then
+					tableInsert(sv[RS_HINTS], {name = hintTitle, desc = hintDesc, time = GetTimeStamp()})
+				end
+			end
+		end
+	end
+
+	self.sv.rumors[name] = sv
+	return sv
+end
+
+function HarvensQuestJournal:CompleteRumor(rumorId)
+	if not rumorId then
+		return
+	end
+	local rawName = GetRumorDisplayName(rumorId)
+	if not rawName or #rawName == 0 then
+		return
+	end
+	local name = zo_strformat("<<1>>", rawName)
+
+	if not self.sv.completedRumors then
+		self.sv.completedRumors = {}
+	end
+
+	local sv = self.sv.rumors and self.sv.rumors[name]
+	if not sv then
+		sv = {
+			[RS_NAME] = name,
+			[RS_ID] = rumorId,
+			[RS_BACKGROUND] = GetRumorBackgroundText(rumorId),
+			[RS_TYPE] = GetRumorType(rumorId),
+			[RS_STARTTIME] = GetTimeStamp(),
+			[RS_HINTS] = {}
+		}
+	end
+
+	sv[RS_COMPLETEDTIME] = GetTimeStamp()
+	sv[RS_COMPLETED_TEXT] = GetRumorCompleteText(rumorId)
+
+	self.sv.completedRumors[name] = sv
+	if self.sv.rumors then
+		self.sv.rumors[name] = nil
+	end
+end
+
+function HarvensQuestJournal:ShowRumor()
+	local completed = (self.currentSection == JS_COMPLETED_RUMORS or self.currentRumorCompleted)
+	local rumor = completed and (self.sv.completedRumors and self.sv.completedRumors[self.currentRumor]) or (self.sv.rumors and self.sv.rumors[self.currentRumor])
+
+	if not rumor then
+		return
+	end
+
+	self.title:SetText(zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, rumor[RS_NAME]))
+
+	local text = {}
+	if rumor[RS_STARTTIME] then
+		text[#text + 1] = GetDateStringFromTimestamp(rumor[RS_STARTTIME])
+		text[#text + 1] = " "
+		text[#text + 1] = FormatTimeSeconds(rumor[RS_STARTTIME] + GetTimeZoneOffset(), TIME_FORMAT_STYLE_CLOCK_TIME, CLOCK_FORMAT, TIME_FORMAT_DIRECTION_NONE)
+	end
+
+	if rumor[RS_TYPE] then
+		local typeName = rumorTypeToName[rumor[RS_TYPE]] or "Rumor"
+		text[#text + 1] = "\n(" .. typeName .. ")\n\n"
+	else
+		text[#text + 1] = "\n\n"
+	end
+
+	if rumor[RS_BACKGROUND] and #rumor[RS_BACKGROUND] > 0 then
+		text[#text + 1] = rumor[RS_BACKGROUND]
+	end
+
+	if rumor[RS_STARTER_HINT] and #rumor[RS_STARTER_HINT] > 0 then
+		text[#text + 1] = "\n\n"
+		text[#text + 1] = GetString(HARVEN_QUEST_JOURNAL_RUMOR_STARTER_HINT)
+		text[#text + 1] = "\n" .. rumor[RS_STARTER_HINT]
+	end
+
+	if rumor[RS_HINTS] and #rumor[RS_HINTS] > 0 then
+		text[#text + 1] = "\n\n"
+		text[#text + 1] = GetString(HARVEN_QUEST_JOURNAL_RUMOR_HINTS)
+		for i = 1, #rumor[RS_HINTS] do
+			text[#text + 1] = "\n\n- "
+			local hint = rumor[RS_HINTS][i]
+			if type(hint) == "table" then
+				if hint.name and #hint.name > 0 then
+					text[#text + 1] = hint.name .. "\n  "
+				end
+				text[#text + 1] = hint.desc
+			else
+				text[#text + 1] = hint
+			end
+		end
+	end
+
+	if completed then
+		text[#text + 1] = "\n\n"
+		if rumor[RS_COMPLETEDTIME] then
+			text[#text + 1] = zo_strformat(GetString(HARVEN_QUEST_JOURNAL_COMPLETED_AT_TIME), GetDateStringFromTimestamp(rumor[RS_COMPLETEDTIME]), FormatTimeSeconds(rumor[RS_COMPLETEDTIME] + GetTimeZoneOffset(), TIME_FORMAT_STYLE_CLOCK_TIME, CLOCK_FORMAT, TIME_FORMAT_DIRECTION_NONE))
+		end
+		if rumor[RS_COMPLETED_TEXT] and #rumor[RS_COMPLETED_TEXT] > 0 then
+			text[#text + 1] = "\n\n" .. rumor[RS_COMPLETED_TEXT]
+		end
+	end
+
+	self:ShowText(tableConcat(text))
+end
+
 function HarvensQuestJournal:ShowQuest()
 	local quest = self:GetQuestSavedVariable(self.currentQuestType, self.currentQuestZone, self.currentQuest, (self.currentSection == JS_COMPLETED_QUEST and true or false))
 	if not quest then
@@ -101,7 +276,7 @@ function HarvensQuestJournal:ShowQuest()
 	local text = {}
 	text[#text + 1] = GetDateStringFromTimestamp(quest[QS_STARTTIME])
 	text[#text + 1] = " "
-	text[#text + 1] = FormatTimeSeconds(quest[QS_STARTTIME] + GetTimeZoneOffset(), TIME_FORMAT_STYLE_CLOCK_TIME, CLOCK_FORMAT, TIME_FORMAT_DIRECTION_NONE)
+	text[#text + 1] = FormatTimeSeconds((quest[QS_STARTTIME] or 0) + GetTimeZoneOffset(), TIME_FORMAT_STYLE_CLOCK_TIME, CLOCK_FORMAT, TIME_FORMAT_DIRECTION_NONE)
 	if quest[QS_BESTOWER] then
 		text[#text + 1] = " "
 		text[#text + 1] = zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, quest[QS_BESTOWER][QS_NPCLOCATION])
@@ -227,7 +402,7 @@ function HarvensQuestJournal:AppendQuest(quest, zone)
 	--local color = DarkenColor(GetConColor(quest[QS_LEVEL]))
 	local completed = (self.currentSection == JS_CURRENT and 0 or 1)
 
-	name = CreateLink(zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, quest[QS_NAME]), self.questColor, QUEST_LINK_TYPE, completed, quest[QS_TYPE], zone)
+	local name = CreateLink(zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, quest[QS_NAME]), self.questColor, QUEST_LINK_TYPE, completed, quest[QS_TYPE], zone)
 	local isAssisted = false
 	if completed == 0 then
 		isAssisted = GetTrackedIsAssisted(TRACK_TYPE_QUEST, self.activeQuests[quest[QS_NAME]])
@@ -304,8 +479,8 @@ function HarvensQuestJournal:CreateSortedList(svtable)
 						list[i],
 						{
 							name = k,
-							started = v[QS_STARTTIME],
-							level = v[QS_LEVEL]
+							started = v[QS_STARTTIME] or 0,
+							level = v[QS_LEVEL] or 0
 						}
 					)
 
@@ -326,84 +501,149 @@ function HarvensQuestJournal:CreateSortedList(svtable)
 	return list
 end
 
-function HarvensQuestJournal:ShowIndexPage()
-	local svtable
-	if self.currentSection == JS_CURRENT then
-		self.title:SetText(GetString(HARVEN_QUEST_JOURNAL_CURRENT_QUESTS_TITLE))
-		svtable = self.sv.quests
-		if not self.sortedListCurrent then
-			self.sortedListCurrent = self:CreateSortedList(svtable)
+do
+	local textHelper = WINDOW_MANAGER:CreateControl(nil, GuiRoot, CT_LABEL)
+	function HarvensQuestJournal:ShowIndexPage()
+		local svtable
+		if self.currentSection == JS_CURRENT then
+			self.title:SetText(GetString(HARVEN_QUEST_JOURNAL_CURRENT_QUESTS_TITLE))
+			svtable = self.sv.quests
+			if not self.sortedListCurrent then
+				self.sortedListCurrent = self:CreateSortedList(svtable)
+			end
+		else
+			self.title:SetText(GetString(HARVEN_QUEST_JOURNAL_COMPLETED_QUESTS_TITLE))
+			svtable = self.sv.completed
+			if not self.sortedListCompleted then
+				self.sortedListCompleted = self:CreateSortedList(svtable)
+			end
 		end
-	else
-		self.title:SetText(GetString(HARVEN_QUEST_JOURNAL_COMPLETED_QUESTS_TITLE))
-		svtable = self.sv.completed
-		if not self.sortedListCompleted then
-			self.sortedListCompleted = self:CreateSortedList(svtable)
+
+		local sortedList = self.currentSection == JS_CURRENT and self.sortedListCurrent or self.sortedListCompleted
+
+		local startPos = self.bodyFontHeight
+		local link
+
+		textHelper:SetFont(self.leftPage.body:GetFont())
+		local bodyWidth = self.leftPage.body:GetWidth()
+		local function GetTextHeight(text)
+			textHelper:SetText(text)
+			local result = mathFloor((textHelper:GetWidth() + bodyWidth - 1) / bodyWidth) * self.bodyFontHeight
+			return result
 		end
-	end
 
-	local sortedList = self.currentSection == JS_CURRENT and self.sortedListCurrent or self.sortedListCompleted
+		if self.currentSection == JS_COMPLETED and self.sv.showCompletedByCategory then
+			local text = {}
+			for i, v in pairs(sortedList) do
+				if i ~= QUEST_CATEGORY_ZONE then
+					text[#text + 1] = "\n"
+					text[#text + 1] = categoryIdToName[i]
+					self.clickMap[mathFloor(startPos)] = CreateLink(categoryIdToName[i], self.questColor, QUEST_CATEGORY_LINK_TYPE, i)
+					startPos = startPos + GetTextHeight(text[#text])
+				end
 
-	local startPos = self.bodyFontHeight
-	local link
+				for j = 1, #sortedList[i] do
+					if i == QUEST_CATEGORY_ZONE then
+						local zoneName = sortedList[i][j][1].zone
+						text[#text + 1] = "\n"
+						text[#text + 1] = zo_strformat(categoryIdToName[i], zoneName)
+						self.clickMap[mathFloor(startPos)] = CreateLink(zo_strformat(categoryIdToName[i], zoneName), self.questColor, QUEST_CATEGORY_LINK_TYPE, i, j)
+						startPos = startPos + GetTextHeight(text[#text])
+					end
+				end
+			end
+			self:ShowText(tableConcat(text))
+			return
+		end
 
-	if self.currentSection == JS_COMPLETED and self.sv.showCompletedByCategory then
 		local text = {}
+
 		for i, v in pairs(sortedList) do
 			if i ~= QUEST_CATEGORY_ZONE then
 				text[#text + 1] = "\n"
 				text[#text + 1] = categoryIdToName[i]
-				self.clickMap[mathFloor(startPos)] = CreateLink(categoryIdToName[i], self.questColor, QUEST_CATEGORY_LINK_TYPE, i)
-				startPos = startPos + self.bodyFontHeight --assume that category name fits in one line
+				startPos = startPos + GetTextHeight(text[#text])
 			end
 
 			for j = 1, #sortedList[i] do
 				if i == QUEST_CATEGORY_ZONE then
-					local zoneName = sortedList[i][j][1].zone
-					text[#text + 1] = "\n"
-					text[#text + 1] = zo_strformat(categoryIdToName[i], zoneName)
-					self.clickMap[mathFloor(startPos)] = CreateLink(zo_strformat(categoryIdToName[i], zoneName), self.questColor, QUEST_CATEGORY_LINK_TYPE, i, j)
-					startPos = startPos + self.bodyFontHeight --assume that zone name fits in one line
+					local zoneName = ""
+					for k = 1, #sortedList[i][j] do
+						if #zoneName == 0 then
+							zoneName = sortedList[i][j][k].zone
+							text[#text + 1] = "\n"
+							text[#text + 1] = zo_strformat(categoryIdToName[i], zoneName)
+							startPos = startPos + GetTextHeight(text[#text])
+						end
+						link = self:AppendQuest(svtable[i][sortedList[i][j][k].zone][sortedList[i][j][k].name], sortedList[i][j][k].zone)
+						text[#text + 1] = link
+						self.clickMap[mathFloor(startPos)] = link
+						startPos = startPos + GetTextHeight(text[#text])
+					end
+				elseif i ~= QUEST_CATEGORY_ZONE then
+					link = self:AppendQuest(svtable[i][sortedList[i][j].name], nil)
+					text[#text + 1] = link
+					self.clickMap[mathFloor(startPos)] = link
+					startPos = startPos + GetTextHeight(text[#text])
 				end
 			end
 		end
 		self:ShowText(tableConcat(text))
-		return
 	end
-
-	local text = {}
-
-	for i, v in pairs(sortedList) do
-		if i ~= QUEST_CATEGORY_ZONE then
-			text[#text + 1] = "\n"
-			text[#text + 1] = categoryIdToName[i]
-			startPos = startPos + self.bodyFontHeight --assume that category name fits in one line
+	function HarvensQuestJournal:ShowRumorsIndex()
+		local isCompleted = (self.currentSection == JS_COMPLETED_RUMORS)
+		if isCompleted then
+			self.title:SetText(GetString(HARVEN_QUEST_JOURNAL_COMPLETED_RUMORS_TITLE))
+		else
+			self.title:SetText(GetString(HARVEN_QUEST_JOURNAL_ACTIVE_RUMORS_TITLE))
 		end
 
-		for j = 1, #sortedList[i] do
-			if i == QUEST_CATEGORY_ZONE then
-				local zoneName = ""
-				for k = 1, #sortedList[i][j] do
-					if #zoneName == 0 then
-						zoneName = sortedList[i][j][k].zone
-						text[#text + 1] = "\n"
-						text[#text + 1] = zo_strformat(categoryIdToName[i], zoneName)
-						startPos = startPos + self.bodyFontHeight --assume that zone name fits in one line
-					end
-					link = self:AppendQuest(svtable[i][sortedList[i][j][k].zone][sortedList[i][j][k].name], sortedList[i][j][k].zone)
-					text[#text + 1] = link
-					self.clickMap[mathFloor(startPos)] = link
-					startPos = startPos + self.bodyFontHeight --assume that quest name fits in one line
-				end
-			elseif i ~= QUEST_CATEGORY_ZONE then
-				link = self:AppendQuest(svtable[i][sortedList[i][j].name], nil)
-				text[#text + 1] = link
-				self.clickMap[mathFloor(startPos)] = link
-				startPos = startPos + self.bodyFontHeight --assume that quest name fits in one line
+		local svtable = isCompleted and self.sv.completedRumors or self.sv.rumors
+		if not svtable then
+			self:ShowText("")
+			return
+		end
+
+		local rumorList = {}
+		for name, rumor in pairs(svtable) do
+			tableInsert(
+				rumorList,
+				{
+					name = name,
+					rumor = rumor
+				}
+			)
+		end
+		tableSort(
+			rumorList,
+			function(a, b)
+				return a.name < b.name
 			end
+		)
+
+		local startPos = self.bodyFontHeight
+		textHelper:SetFont(self.leftPage.body:GetFont())
+		local bodyWidth = self.leftPage.body:GetWidth()
+		local function GetTextHeight(text)
+			textHelper:SetText(text)
+			local result = mathFloor((textHelper:GetWidth() + bodyWidth - 1) / bodyWidth) * self.bodyFontHeight
+			return result
 		end
+
+		local text = {}
+
+		for i = 1, #rumorList do
+			local rName = rumorList[i].name
+			local compFlag = isCompleted and 1 or 0
+			local link = CreateLink(zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, rName), self.questColor, RUMOR_LINK_TYPE, compFlag, rName)
+			local lineText = string.format("\n  - %s", link)
+			text[#text + 1] = lineText
+			self.clickMap[mathFloor(startPos)] = link
+			startPos = startPos + GetTextHeight(lineText)
+		end
+
+		self:ShowText(tableConcat(text))
 	end
-	self:ShowText(tableConcat(text))
 end
 
 function HarvensQuestJournal:ShowIndexCategoryPage()
@@ -448,22 +688,18 @@ function HarvensQuestJournal:UpdateJournal(silence)
 	self.currentPage = 1
 	self.clickMap = nil
 	self.clickMap = {}
-	self.sortControl:SetHidden(true)
 	if self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED then
-		if not (self.currentSection == JS_COMPLETED and self.sv.showCompletedByCategory) then
-			self.sortControl:SetHidden(false)
-		end
 		self:ShowIndexPage()
+	elseif self.currentSection == JS_RUMORS or self.currentSection == JS_COMPLETED_RUMORS then
+		self:ShowRumorsIndex()
 	elseif self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
-		self.sortControl:SetHidden(false)
 		self:ShowIndexCategoryPage()
 	elseif self.currentSection == JS_CURRENT_QUEST or self.currentSection == JS_COMPLETED_QUEST then
-		self.keybindStripDescriptor[5].name = self.currentSection == JS_CURRENT_QUEST and GetString(SI_QUEST_JOURNAL_ABANDON) or GetString(HARVEN_QUEST_JOURNAL_DELETE)
 		self:ShowQuest()
-		self.keybindStripDescriptor[1].name = GetString(HARVEN_QUEST_JOURNAL_BACK)
+	elseif self.currentSection == JS_RUMOR_DETAIL then
+		self:ShowRumor()
 	elseif self.currentSection == JS_CONVERSATION then
 		self:ShowConversation()
-		self.keybindStripDescriptor[1].name = GetString(HARVEN_QUEST_JOURNAL_BACK)
 	end
 	KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
 end
@@ -486,7 +722,6 @@ function HarvensQuestJournal:OpenAtFocused()
 end
 
 function HarvensQuestJournal:OpenJournal()
-	PlaySound(SOUNDS.BOOK_OPEN)
 	self.activeQuests = {}
 	for i = 1, MAX_JOURNAL_QUESTS do
 		if IsValidQuestIndex(i) then
@@ -494,11 +729,9 @@ function HarvensQuestJournal:OpenJournal()
 		end
 	end
 
-	self.keybindStripDescriptor[1].name = GetString(HARVEN_QUEST_JOURNAL_COMPLETED_QUESTS_KEYBIND)
-
 	if self.sv.openAtTracked then
 		self:OpenAtFocused()
-	else
+	elseif not self.currentSection then
 		self.currentSection = JS_CURRENT
 	end
 
@@ -510,7 +743,7 @@ end
 
 function HarvensQuestJournal:HandleLinkClick(control, linkData, linkText, button)
 	local _, _, type = ZO_LinkHandler_ParseLink(linkText)
-	if type == QUEST_LINK_TYPE then
+	if type == QUEST_LINK_TYPE or type == RUMOR_LINK_TYPE then
 		return
 	end
 
@@ -520,12 +753,24 @@ function HarvensQuestJournal:HandleLinkClick(control, linkData, linkText, button
 end
 
 function HarvensQuestJournal:HandleQuestClick(control, button)
-	local _, y = GetUIMousePosition()
+	local _, y
+	if ZO_IsConsoleOrGameCoreUI() or (IsInGamepadPreferredMode() and LibMousePointer) then
+		_, y = LibMousePointer:GetCursorPosition()
+	else
+		_, y = GetUIMousePosition()
+	end
 	y = y - control:GetTop()
 	local key = mathFloor(mathFloor(y / self.bodyFontHeight) * self.bodyFontHeight)
 	if self.clickMap[key] then
 		self:HandleLink(button, ZO_LinkHandler_ParseLink(self.clickMap[key]))
+		return
 	end
+	key = mathFloor(mathFloor((y - self.bodyFontHeight) / self.bodyFontHeight) * self.bodyFontHeight) -- we may be in the second line of the title, so check the line above as well
+	if self.clickMap[key] then
+		self:HandleLink(button, ZO_LinkHandler_ParseLink(self.clickMap[key]))
+		return
+	end
+	return self:OnPageClicked(control, button)
 end
 
 function HarvensQuestJournal:SortChanged(control, selectedText, selectedItem)
@@ -548,11 +793,11 @@ function HarvensQuestJournal:InitJournal(control)
 	self.leftPage = GetControl(self.journal, "LeftPage")
 	self.leftPage.container = GetControl(self.leftPage, "Container")
 	self.title = GetControl(self.leftPage.container, "Title")
-	self.title:SetFont(self.sv.layout.titleFont)
+	--self.title:SetFont(self.sv.layout.titleFont)
 	self.title:SetColor(self.sv.layout.fontR, self.sv.layout.fontG, self.sv.layout.fontB, self.sv.layout.fontA)
 	self.title:SetStyleColor(0, 0, 0, 1)
 	self.leftPage.body = GetControl(self.leftPage.container, "Body")
-	self.leftPage.body:SetFont(self.sv.layout.bodyFont)
+	--self.leftPage.body:SetFont(self.sv.layout.bodyFont)
 	self.leftPage.body:SetColor(self.sv.layout.fontR, self.sv.layout.fontG, self.sv.layout.fontB, self.sv.layout.fontA)
 	self.leftPage.body:SetStyleColor(0, 0, 0, 1)
 	self.leftPage.body:SetMouseEnabled(true)
@@ -572,7 +817,7 @@ function HarvensQuestJournal:InitJournal(control)
 	self.rightPage = GetControl(self.journal, "RightPage")
 	self.rightPage.container = GetControl(self.rightPage, "Container")
 	self.rightPage.body = GetControl(self.rightPage.container, "Body")
-	self.rightPage.body:SetFont(self.sv.layout.bodyFont)
+	--self.rightPage.body:SetFont(self.sv.layout.bodyFont)
 	self.rightPage.body:SetColor(self.sv.layout.fontR, self.sv.layout.fontG, self.sv.layout.fontB, self.sv.layout.fontA)
 	self.rightPage.body:SetStyleColor(0, 0, 0, 1)
 	self.rightPage.body:SetMouseEnabled(true)
@@ -588,46 +833,9 @@ function HarvensQuestJournal:InitJournal(control)
 			self:HandleQuestClick(...)
 		end
 	)
-
-	self.leftPage.body:SetText("TEST")
-	self.bodyFontHeight = self.leftPage.body:GetFontHeight()
+	self:ApplySkin(self.sv.layout.skin)
 
 	self.clickMap = {}
-
-	self.sortControl = GetControl(self.journal, "Sort")
-	self.sortControl.combobox = GetControl(self.sortControl, "Dropdown").m_comboBox
-	local sortItems = {
-		[SORT_ALPHABETICALLY] = GetString(HARVEN_QUEST_JOURNAL_SORT_ALPHABETICALLY),
-		[SORT_TIMEOFCOMPLETION] = GetString(HARVEN_QUEST_JOURNAL_SORT_TIMEOFCOMPLETION),
-		[SORT_TIMEOFSTART] = GetString(HARVEN_QUEST_JOURNAL_SORT_TIMEOFSTART),
-		[SORT_LEVEL] = GetString(HARVEN_QUEST_JOURNAL_SORT_LEVEL)
-	}
-	local item
-	for k, v in pairs(sortItems) do
-		item =
-			self.sortControl.combobox:CreateItemEntry(
-			v,
-			function(...)
-				self:SortChanged(...)
-			end
-		)
-		item.sortID = k
-		self.sortControl.combobox:AddItem(item)
-	end
-	self.sortControl.combobox:SetSelectedItem(sortItems[self.sv.sort])
-
-	local ascCheckbox = GetControl(self.sortControl, "Ascending")
-	ZO_CheckButton_SetLabelText(ascCheckbox, GetString(HARVEN_QUEST_JOURNAL_SORT_ASC))
-	ZO_CheckButton_SetCheckState(ascCheckbox, self.sv.sortAscending)
-	ZO_CheckButton_SetToggleFunction(
-		ascCheckbox,
-		function()
-			self.sv.sortAscending = ZO_CheckButton_IsChecked(ascCheckbox)
-			self.sortedListCurrent = nil
-			self.sortedListCompleted = nil
-			self:UpdateJournal()
-		end
-	)
 end
 
 function HarvensQuestJournal:HandleLink(button, text, color, linkType, completed, ...)
@@ -647,6 +855,13 @@ function HarvensQuestJournal:HandleLink(button, text, color, linkType, completed
 		self.currentQuest = text
 		self.currentQuestType = tonumber(type)
 		self.currentQuestZone = zone
+		self:UpdateJournal()
+		return true
+	elseif linkType == RUMOR_LINK_TYPE then
+		local rumorName = select(2, ...) or text
+		self.currentSection = JS_RUMOR_DETAIL
+		self.currentRumorCompleted = (tonumber(completed) == 1)
+		self.currentRumor = rumorName
 		self:UpdateJournal()
 		return true
 	elseif linkType == NPC_LINK_TYPE then
@@ -723,7 +938,6 @@ end
 
 function HarvensQuestJournal:SetCompletedSavedVariable(quest, zone)
 	local category = self:GetQuestCategory(quest[QS_TYPE], zone)
-	local ret
 
 	if not self.sv.completed[category] then
 		self.sv.completed[category] = {}
@@ -790,7 +1004,7 @@ end
 
 function HarvensQuestJournal:AddQuest(questIndex)
 	local name, backgroundText, activeStepText, _, _, _, _, level, _, type = GetJournalQuestInfo(questIndex)
-	zoneName = GetJournalQuestLocationInfo(questIndex)
+	local zoneName = GetJournalQuestLocationInfo(questIndex)
 	if zoneName and #zoneName > 0 then
 		zoneName = zo_strformat("<<1>>", zoneName)
 	end
@@ -836,6 +1050,9 @@ function HarvensQuestJournal:SwitchPage(direction)
 end
 
 local deleteConfirmationDialog = {
+	gamepadInfo = {
+		dialogType = GAMEPAD_DIALOGS.BASIC
+	},
 	title = {
 		text = GetString(HARVEN_QUEST_JOURNAL_DELETE_QUEST)
 	},
@@ -846,10 +1063,10 @@ local deleteConfirmationDialog = {
 		[1] = {
 			text = SI_NOTIFICATIONS_DELETE,
 			callback = function(dialog)
-				HarvensQuestJournal.DeleteCompletedQuest(HarvensQuestJournal, dialog.data.questType, dialog.data.questZone, dialog.data.questName)
+				HarvensQuestJournal:DeleteCompletedQuest(dialog.data.questType, dialog.data.questZone, dialog.data.questName)
 				HarvensQuestJournal.currentSection = JS_COMPLETED
 				HarvensQuestJournal.sortedListCompleted = nil
-				HarvensQuestJournal.UpdateJournal(HarvensQuestJournal)
+				HarvensQuestJournal:UpdateJournal()
 			end
 		},
 		[2] = {
@@ -860,116 +1077,183 @@ local deleteConfirmationDialog = {
 
 ZO_Dialogs_RegisterCustomDialog("HarvensDeleteQuestConfirmationDialog", deleteConfirmationDialog)
 
+function HarvensQuestJournal:OnPageClicked(control, button)
+	if button == MOUSE_BUTTON_INDEX_LEFT then
+		self:SwitchPage(-1)
+	elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+		self:SwitchPage(1)
+	end
+end
+
 function HarvensQuestJournal:InitKeybindStripDescriptor()
+	local sortItems = {
+		[SORT_ALPHABETICALLY] = GetString(HARVEN_QUEST_JOURNAL_SORT_ALPHABETICALLY),
+		[SORT_TIMEOFCOMPLETION] = GetString(HARVEN_QUEST_JOURNAL_SORT_TIMEOFCOMPLETION),
+		[SORT_TIMEOFSTART] = GetString(HARVEN_QUEST_JOURNAL_SORT_TIMEOFSTART),
+		[SORT_LEVEL] = GetString(HARVEN_QUEST_JOURNAL_SORT_LEVEL)
+	}
 	self.keybindStripDescriptor = {
 		{
 			alignment = KEYBIND_STRIP_ALIGN_LEFT,
 			order = 0,
-			name = GetString(HARVEN_QUEST_JOURNAL_COMPLETED_QUESTS_KEYBIND),
-			keybind = "UI_SHORTCUT_QUATERNARY",
-			callback = function(keyUp)
-				descriptor = self.keybindStripDescriptor[1]
-				if self.currentSection == JS_COMPLETED or self.currentSection == JS_CURRENT_QUEST then
-					descriptor.name = GetString(HARVEN_QUEST_JOURNAL_COMPLETED_QUESTS_KEYBIND)
-					self.currentSection = JS_CURRENT
-				elseif self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED_QUEST then
-					descriptor.name = GetString(HARVEN_QUEST_JOURNAL_CURRENT_QUESTS_KEYBIND)
-					if self.sv.showCompletedByCategory and self.currentSection == JS_COMPLETED_QUEST then
-						self.currentSection = JS_COMPLETED_QUEST_CATEGORY
-					else
-						self.currentSection = JS_COMPLETED
-					end
-				elseif self.currentSection == JS_CONVERSATION and self.currentQuestCompleted then
-					descriptor.name = GetString(HARVEN_QUEST_JOURNAL_BACK)
-					self.currentSection = JS_COMPLETED_QUEST
-				elseif self.currentSection == JS_CONVERSATION and not self.currentQuestCompleted then
-					descriptor.name = GetString(HARVEN_QUEST_JOURNAL_BACK)
-					self.currentSection = JS_CURRENT_QUEST
-				elseif self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
-					descriptor.name = GetString(HARVEN_QUEST_JOURNAL_CURRENT_QUESTS_KEYBIND)
-					self.currentSection = JS_COMPLETED
+			name = function()
+				if self.currentSection == JS_CURRENT then
+					return GetString(HARVEN_QUEST_JOURNAL_COMPLETED_QUESTS_KEYBIND)
+				elseif self.currentSection == JS_COMPLETED then
+					return GetString(HARVEN_QUEST_JOURNAL_RUMORS_KEYBIND)
+				elseif self.currentSection == JS_RUMORS then
+					return GetString(HARVEN_QUEST_JOURNAL_COMPLETED_RUMORS_TITLE)
+				elseif self.currentSection == JS_COMPLETED_RUMORS then
+					return GetString(HARVEN_QUEST_JOURNAL_CURRENT_QUESTS_KEYBIND)
+				elseif self.currentSection == JS_CURRENT_QUEST then
+					return GetString(SI_QUEST_JOURNAL_SHOW_ON_MAP)
 				end
+			end,
+			keybind = "UI_SHORTCUT_SECONDARY",
+			callback = function(keyUp)
+				if self.currentSection == JS_COMPLETED then
+					self.currentSection = JS_RUMORS
+				elseif self.currentSection == JS_CURRENT then
+					self.currentSection = JS_COMPLETED
+				elseif self.currentSection == JS_RUMORS then
+					self.currentSection = JS_COMPLETED_RUMORS
+				elseif self.currentSection == JS_COMPLETED_RUMORS then
+					self.currentSection = JS_CURRENT
+				elseif self.currentSection == JS_RUMOR_DETAIL then
+					self.currentSection = self.currentRumorCompleted and JS_COMPLETED_RUMORS or JS_RUMORS
+				elseif self.currentSection == JS_CURRENT_QUEST then
+					ZO_WorldMap_ShowQuestOnMap(self.activeQuests[self.currentQuest])
+					return
+				end
+				-- if self.currentSection == JS_COMPLETED or self.currentSection == JS_CURRENT_QUEST then
+				-- 	self.currentSection = JS_CURRENT
+				-- elseif self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED_QUEST then
+				-- 	if self.sv.showCompletedByCategory and self.currentSection == JS_COMPLETED_QUEST then
+				-- 		self.currentSection = JS_COMPLETED_QUEST_CATEGORY
+				-- 	else
+				-- 		self.currentSection = JS_COMPLETED
+				-- 	end
+				-- elseif self.currentSection == JS_CONVERSATION and self.currentQuestCompleted then
+				-- 	self.currentSection = JS_COMPLETED_QUEST
+				-- elseif self.currentSection == JS_CONVERSATION and not self.currentQuestCompleted then
+				-- 	self.currentSection = JS_CURRENT_QUEST
+				-- elseif self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
+				-- 	self.currentSection = JS_COMPLETED
+				-- end
 				self:UpdateJournal()
+			end,
+			visible = function(descriptor)
+				return self.currentSection == JS_CURRENT
+				 or self.currentSection == JS_COMPLETED
+				 or self.currentSection == JS_CURRENT_QUEST
+				 or self.currentSection == JS_RUMORS or
+				 self.currentSection == JS_COMPLETED_RUMORS
 			end
 		},
 		{
 			alignment = KEYBIND_STRIP_ALIGN_LEFT,
 			order = 1,
 			name = GetString(SI_LORE_READER_PREVIOUS_PAGE),
-			keybind = "UI_SHORTCUT_PRIMARY",
+			keybind = "UI_SHORTCUT_LEFT_TRIGGER",
 			callback = function(keyUp)
 				self:SwitchPage(-1)
 			end,
+			enabled = function(descriptor)
+				return self.currentPage > 1
+			end,
 			visible = function(descriptor)
-				return (self.numPages > 1 and true or false)
+				return self.numPages > 1
 			end
 		},
 		{
 			alignment = KEYBIND_STRIP_ALIGN_LEFT,
 			order = 2,
 			name = GetString(SI_LORE_READER_NEXT_PAGE),
-			keybind = "UI_SHORTCUT_SECONDARY",
+			keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
 			callback = function(keyUp)
 				self:SwitchPage(1)
 			end,
+			enabled = function(descriptor)
+				return self.currentPage < self.numPages
+			end,
 			visible = function(descriptor)
-				return (self.numPages > 1 and true or false)
+				return self.numPages > 1
+			end
+		},
+		-- {
+		-- 	alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+		-- 	order = 1,
+		-- 	keybind = "UI_SHORTCUT_SHOW_QUEST_ON_MAP",
+		-- 	name = GetString(SI_QUEST_JOURNAL_SHOW_ON_MAP),
+		-- 	callback = function(keyUp)
+		-- 		ZO_WorldMap_ShowQuestOnMap(self.activeQuests[self.currentQuest])
+		-- 	end,
+		-- 	visible = function(descriptor)
+		-- 		return self.currentSection == JS_CURRENT_QUEST
+		-- 	end
+		-- },
+		{
+			alignment = KEYBIND_STRIP_ALIGN_LEFT,
+			order = 0,
+			name = function()
+				return GetString(HARVEN_QUEST_JOURNAL_BACK)
+			end,
+			keybind = "UI_SHORTCUT_NEGATIVE",
+			callback = function(keyUp)
+				if self.currentSection == JS_CURRENT_QUEST then
+					self.currentSection = JS_CURRENT
+				elseif self.currentSection == JS_COMPLETED_QUEST then
+					if self.sv.showCompletedByCategory and self.currentSection == JS_COMPLETED_QUEST then
+						self.currentSection = JS_COMPLETED_QUEST_CATEGORY
+					else
+						self.currentSection = JS_COMPLETED
+					end
+				elseif self.currentSection == JS_CONVERSATION and self.currentQuestCompleted then
+					self.currentSection = JS_COMPLETED_QUEST
+				elseif self.currentSection == JS_CONVERSATION and not self.currentQuestCompleted then
+					self.currentSection = JS_CURRENT_QUEST
+				elseif self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
+					self.currentSection = JS_COMPLETED
+				elseif self.currentSection == JS_RUMOR_DETAIL and self.currentRumorCompleted then
+					self.currentSection = JS_COMPLETED_RUMORS
+				elseif self.currentSection == JS_RUMOR_DETAIL and not self.currentRumorCompleted then
+					self.currentSection = JS_RUMORS
+				else
+					SCENE_MANAGER:HideCurrentScene()
+					return
+				end
+				self:UpdateJournal()
 			end
 		},
 		{
 			alignment = KEYBIND_STRIP_ALIGN_RIGHT,
 			order = 1,
-			keybind = "UI_SHORTCUT_SHOW_QUEST_ON_MAP",
-			name = GetString(SI_QUEST_JOURNAL_SHOW_ON_MAP),
-			callback = function(keyUp)
-				ZO_WorldMap_ShowQuestOnMap(self.activeQuests[self.currentQuest])
-			end,
-			visible = function(descriptor)
-				if self.currentSection == JS_CURRENT_QUEST then
-					return true
+			name = function()
+				if self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED or self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
+					return self.sv.sortAscending and GetString(HARVEN_QUEST_JOURNAL_SORT_ASC) or GetString(HARVEN_QUEST_JOURNAL_SORT_DESC)
 				end
-				return false
-			end
-		},
-		{
-			alignment = KEYBIND_STRIP_ALIGN_RIGHT,
-			order = 0,
-			name = GetString(SI_QUEST_JOURNAL_ABANDON),
-			keybind = "UI_SHORTCUT_NEGATIVE",
+				return GetString(HARVEN_QUEST_JOURNAL_SET_FOCUS)
+			end,
 			callback = function(keyUp)
 				if self.currentSection == JS_CURRENT_QUEST then
-					QUEST_JOURNAL_MANAGER:ConfirmAbandonQuest(self.activeQuests[self.currentQuest])
-				else
-					local quest = self:GetQuestSavedVariable(self.currentQuestType, self.currentQuestZone, self.currentQuest, (self.currentSection == JS_COMPLETED_QUEST and true or false))
-					if not quest then
-						return
-					end
-
-					ZO_Dialogs_ShowDialog("HarvensDeleteQuestConfirmationDialog", {questType = self.currentQuestType, questZone = self.currentQuestZone, questName = self.currentQuest}, {mainTextParams = {zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, quest[QS_NAME])}})
+					FOCUSED_QUEST_TRACKER:ForceAssist(self.activeQuests[self.currentQuest])
+					KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+				elseif self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED or self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
+					self.sv.sortAscending = not self.sv.sortAscending
+					self.sortedListCurrent = nil
+					self.sortedListCompleted = nil
+					self:UpdateJournal()
 				end
 			end,
-			visible = function(descriptor)
-				if (self.currentSection == JS_CURRENT_QUEST and self.currentQuestType ~= QUEST_TYPE_MAIN_STORY) or self.currentSection == JS_COMPLETED_QUEST then
-					return true
-				end
-				return false
-			end
-		},
-		{
-			alignment = KEYBIND_STRIP_ALIGN_CENTER,
-			order = 0,
-			name = GetString(HARVEN_QUEST_JOURNAL_SET_FOCUS),
-			callback = function(keyUp)
-				FOCUSED_QUEST_TRACKER:ForceAssist(self.activeQuests[self.currentQuest])
-				KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
-			end,
-			keybind = "UI_SHORTCUT_REPORT_PLAYER",
+			keybind = "UI_SHORTCUT_QUATERNARY",
 			visible = function(descriptor)
 				if self.currentSection == JS_CURRENT_QUEST then
 					local isAssisted = GetTrackedIsAssisted(TRACK_TYPE_QUEST, self.activeQuests[self.currentQuest])
 					if not isAssisted then
 						return true
 					end
+				elseif self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED or self.currentSection == JS_COMPLETED_QUEST_CATEGORY then
+					return true
 				end
 				return false
 			end
@@ -988,71 +1272,159 @@ function HarvensQuestJournal:InitKeybindStripDescriptor()
 				end
 				return false
 			end
+		},
+		{
+			alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+			order = 2,
+			keybind = "UI_SHORTCUT_QUINARY",
+			name = function()
+				if self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED then
+					return sortItems[self.sv.sort] -- or GetString(HARVEN_QUEST_JOURNAL_SORT_BY)
+				elseif self.currentSection == JS_CURRENT_QUEST then
+					return GetString(SI_QUEST_JOURNAL_ABANDON)
+				elseif self.currentSection == JS_COMPLETED_QUEST then
+					return GetString(HARVEN_QUEST_JOURNAL_DELETE)
+				end
+			end,
+			callback = function(keyUp)
+				if self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED then
+					self.sv.sort = next(sortItems, self.sv.sort) or next(sortItems)
+					self.sortedListCurrent = nil
+					self.sortedListCompleted = nil
+					self:UpdateJournal()
+				elseif self.currentSection == JS_CURRENT_QUEST and self.currentQuestType ~= QUEST_TYPE_MAIN_STORY then
+					QUEST_JOURNAL_MANAGER:ConfirmAbandonQuest(self.activeQuests[self.currentQuest])
+				elseif self.currentSection == JS_COMPLETED_QUEST then
+					local quest = self:GetQuestSavedVariable(self.currentQuestType, self.currentQuestZone, self.currentQuest, (self.currentSection == JS_COMPLETED_QUEST and true or false))
+					if not quest then
+						return
+					end
+
+					local data = {questType = self.currentQuestType, questZone = self.currentQuestZone, questName = self.currentQuest}
+					local textParams = {mainTextParams = {zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, quest[QS_NAME])}}
+					if ZO_IsConsoleOrGameCoreUI() or IsInGamepadPreferredMode() then
+						ZO_Dialogs_ShowGamepadDialog("HarvensDeleteQuestConfirmationDialog", data, textParams)
+					else
+						ZO_Dialogs_ShowDialog("HarvensDeleteQuestConfirmationDialog", data, textParams)
+					end
+				end
+			end,
+			visible = function(descriptor)
+				return self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED or self.currentSection == JS_CURRENT_QUEST or self.currentSection == JS_COMPLETED_QUEST
+			end
 		}
 	}
+	-- local backKeybind =
+	-- 	KEYBIND_STRIP:GenerateGamepadBackButtonDescriptor(
+	-- 	function()
+	-- 		SCENE_MANAGER:HideCurrentScene()
+	-- 	end
+	-- )
+	-- -- backKeybind.visible = function()
+	-- -- 	return self.currentSection == JS_CURRENT_QUEST or self.currentSection == JS_COMPLETED_QUEST or (self.currentSection == JS_CONVERSATION and self.currentQuestCompleted)
+	-- -- end
+	-- self.keybindStripDescriptor[#self.keybindStripDescriptor + 1] = backKeybind
+	-- self.keybindStripDescriptor[#self.keybindStripDescriptor + 1] = {
+	-- 	alignment = KEYBIND_STRIP_ALIGN_LEFT,
+	-- 	order = -1000,
+	-- 	name = GetString(SI_GAMEPAD_SELECT_OPTION),
+	-- 	keybind = "UI_SHORTCUT_PRIMARY",
+	-- 	callback = function(keyUp)
+	-- 		LibMousePointer:InvokeClick()
+	-- 	end
+	-- }
+	if not ZO_IsConsoleOrGameCoreUI() then
+		local customKeybindControl = self.control:GetNamedChild("KeyStripMouseButtons")
+		customKeybindControl:SetHidden(true)
+		customKeybindControl.owner = self
+		self.keybindStripDescriptor[#self.keybindStripDescriptor + 1] = {
+			alignment = KEYBIND_STRIP_ALIGN_CENTER,
+			name = GetString(SI_LORE_READER_TURN_PAGES),
+			keybind = "CUSTOM_LORE_READER",
+			callback = function()
+			end,
+			customKeybindControl = customKeybindControl,
+			visible = function()
+				return self.numPages > 1 and not IsInGamepadPreferredMode()
+			end
+		}
+	end
 end
 
 function HarvensQuestJournal:ToggleJournal()
 	if not SCENE_MANAGER:IsShowing("HarvensQuestJournal") then
-		SCENE_MANAGER:Show("HarvensQuestJournal")
+		SCENE_MANAGER:Push("HarvensQuestJournal")
 	else
 		SCENE_MANAGER:Hide("HarvensQuestJournal")
 	end
 end
 
+function HarvensQuestJournal:ApplySkin(name)
+	self.background:SetTexture(self.skinsToTextures[name])
+	local fontBody, fontTitle
+	if ZO_IsConsoleOrGameCoreUI() or IsInGamepadPreferredMode() then
+		fontBody = "ZoFontGamepadBook" .. name
+		fontTitle = fontBody .. "Title"
+	else
+		fontBody = "ZoFontBook" .. name
+		fontTitle = fontBody .. "Title"
+	end
+	self.leftPage.body:SetFont(fontBody)
+	self.rightPage.body:SetFont(fontBody)
+	self.title:SetFont(fontTitle)
+
+	self.leftPage.body:SetText("TEST")
+	self.bodyFontHeight = self.leftPage.body:GetFontHeight()
+end
+
 function HarvensQuestJournal:SetupOptions()
 	local settings = LibHarvensAddonSettings:AddAddon("Harven's Quest Journal")
-	settings.version = "2.9.2"
+	settings.version = "3.0.0"
 
 	local skin = {
 		type = LibHarvensAddonSettings.ST_DROPDOWN,
 		label = GetString(HARVEN_QUEST_JOURNAL_BOOK_SKIN),
 		items = {
-			{
-				name = "Paper"
-			},
-			{
-				name = "Skin"
-			},
-			{
-				name = "Rubbing"
-			}
+			{name = "Paper"},
+			{name = "Skin"},
+			{name = "Rubbing"},
+			{name = "Metal"}
 		},
 		getFunction = function()
 			return self.sv.layout.skin
 		end,
 		setFunction = function(combobox, name)
 			self.sv.layout.skin = name
-			self.background:SetTexture(HarvensQuestJournal.skinsToTextures[name])
+			self:ApplySkin(name)
 		end
 	}
 
-	local bodyFont = {
-		type = LibHarvensAddonSettings.ST_EDIT,
-		label = GetString(HARVEN_QUEST_JOURNAL_BODY_FONT),
-		getFunction = function()
-			return self.sv.layout.bodyFont
-		end,
-		setFunction = function(newValue)
-			self.sv.layout.bodyFont = newValue
-			self.leftPage.body:SetFont(self.sv.layout.bodyFont)
-			self.rightPage.body:SetFont(self.sv.layout.bodyFont)
-			self.leftPage.body:SetText("TEST")
-			self.bodyFontHeight = self.leftPage.body:GetFontHeight()
-		end
-	}
+	-- local bodyFont = {
+	-- 	type = LibHarvensAddonSettings.ST_EDIT,
+	-- 	label = GetString(HARVEN_QUEST_JOURNAL_BODY_FONT),
+	-- 	getFunction = function()
+	-- 		return self.sv.layout.bodyFont
+	-- 	end,
+	-- 	setFunction = function(newValue)
+	-- 		self.sv.layout.bodyFont = newValue
+	-- 		--self.leftPage.body:SetFont(self.sv.layout.bodyFont)
+	-- 		--self.rightPage.body:SetFont(self.sv.layout.bodyFont)
+	-- 		self.leftPage.body:SetText("TEST")
+	-- 		self.bodyFontHeight = self.leftPage.body:GetFontHeight()
+	-- 	end
+	-- }
 
-	local titleFont = {
-		type = LibHarvensAddonSettings.ST_EDIT,
-		label = GetString(HARVEN_QUEST_JOURNAL_TITLE_FONT),
-		getFunction = function()
-			return self.sv.layout.titleFont
-		end,
-		setFunction = function(newValue)
-			self.sv.layout.titleFont = newValue
-			self.title:SetFont(self.sv.layout.titleFont)
-		end
-	}
+	-- local titleFont = {
+	-- 	type = LibHarvensAddonSettings.ST_EDIT,
+	-- 	label = GetString(HARVEN_QUEST_JOURNAL_TITLE_FONT),
+	-- 	getFunction = function()
+	-- 		return self.sv.layout.titleFont
+	-- 	end,
+	-- 	setFunction = function(newValue)
+	-- 		self.sv.layout.titleFont = newValue
+	-- 		--self.title:SetFont(self.sv.layout.titleFont)
+	-- 	end
+	-- }
 
 	local fontColor = {
 		type = LibHarvensAddonSettings.ST_COLOR,
@@ -1150,7 +1522,7 @@ function HarvensQuestJournal:SetupOptions()
 		end
 	}
 
-	settings:AddSettings({openAtTracked, skin, titleFont, bodyFont, fontColor, questColor, npcNamesColor, showCompletedByCategory, saveDailyQuests, saveRepeatableQuests, playEmote})
+	settings:AddSettings({openAtTracked, skin, fontColor, questColor, npcNamesColor, showCompletedByCategory, saveDailyQuests, saveRepeatableQuests, playEmote})
 	if LibMainMenu2 then
 		settings:AddSetting {
 			type = LibHarvensAddonSettings.ST_CHECKBOX,
@@ -1235,10 +1607,8 @@ function HarvensQuestJournal:FixZones()
 	self.sv.zonesFixed = true
 end
 
-function HarvensQuestJournal.AddonLoaded(eventType, addonName)
-	if addonName ~= "HarvensQuestJournal" then
-		return
-	end
+function HarvensQuestJournal:Initialize()
+	self.control = HarvensQuestJournalTopLevel
 
 	local re, gr, bl = GetInterfaceColor(INTERFACE_COLOR_TYPE_BOOK_MEDIUM, BOOK_MEDIUM_YELLOWED_PAPER)
 	local defaults = {
@@ -1268,61 +1638,86 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 		sortAscending = true,
 		showCompletedByCategory = false,
 		playEmote = true,
-		showInMainMenu = true
+		showInMainMenu = true,
+		rumors = {},
+		completedRumors = {}
 	}
+	-- if ZO_IsConsoleOrGameCoreUI() then
+	-- 	defaults.layout.bodyFont = "ZoFontGamepadBookPaper"
+	-- 	defaults.layout.titleFont = "ZoFontGamepadBookPaperTitle"
+	-- end
 
-	HarvensQuestJournal.sv = ZO_SavedVars:New("HarvensQuestJournal_SavedVariables", 1, nil, defaults)
+	self.sv = ZO_SavedVars:New("HarvensQuestJournal_SavedVariables", 1, nil, defaults)
 
-	if not HarvensQuestJournal.sv.quests and not HarvensQuestJournal.sv.completed then
-		HarvensQuestJournal.sv.quests = {
+	if not self.sv.quests and not self.sv.completed then
+		self.sv.quests = {
 			[QUEST_CATEGORY_MAIN_STORY] = {},
 			[QUEST_CATEGORY_GUILD] = {},
 			[QUEST_CATEGORY_ZONE] = {},
 			[QUEST_CATEGORY_MISC] = {}
 		}
 
-		HarvensQuestJournal.sv.completed = {
+		self.sv.completed = {
 			[QUEST_CATEGORY_MAIN_STORY] = {},
 			[QUEST_CATEGORY_GUILD] = {},
 			[QUEST_CATEGORY_ZONE] = {},
 			[QUEST_CATEGORY_MISC] = {}
 		}
-		HarvensQuestJournal.sv.zonesFixed = true
+		self.sv.zonesFixed = true
 	end
 
-	HarvensQuestJournalTopLevel:SetHandler(
-		"OnHide",
-		function()
-			PlaySound(SOUNDS.BOOK_CLOSE)
-		end
-	)
+	if not self.sv.rumors then
+		self.sv.rumors = {}
+	end
+	if not self.sv.completedRumors then
+		self.sv.completedRumors = {}
+	end
 
-	HarvensQuestJournal.numPages = 1
-	HarvensQuestJournal.currentPage = 1
-	HarvensQuestJournal.currentSection = JS_CURRENT
-	HarvensQuestJournal.currentQuest = ""
-	HarvensQuestJournal.skinsToTextures = {
+	self.numPages = 1
+	self.currentPage = 1
+	self.currentSection = JS_CURRENT
+	self.currentQuest = ""
+	self.skinsToTextures = {
 		["Paper"] = "EsoUI/Art/LoreLibrary/loreLibrary_paperBook.dds",
 		["Skin"] = "EsoUI/Art/LoreLibrary/loreLibrary_skinBook.dds",
-		["Rubbing"] = "EsoUI/Art/LoreLibrary/loreLibrary_rubbingBook.dds"
+		["Rubbing"] = "EsoUI/Art/LoreLibrary/loreLibrary_rubbingBook.dds",
+		["Metal"] = "EsoUI/Art/LoreLibrary/loreLibrary_dwemerBook.dds"
 	}
 
-	local fragment = ZO_FadeSceneFragment:New(HarvensQuestJournalTopLevel)
+	local fragment = ZO_SimpleSceneFragment:New(HarvensQuestJournalTopLevel)
 
 	local sceneName = "HarvensQuestJournal"
 	local scene = ZO_Scene:New(sceneName, SCENE_MANAGER)
-	if FRAGMENT_GROUP.UI_WINDOW then
-		scene:AddFragmentGroup(FRAGMENT_GROUP.UI_WINDOW)
-	else
-		scene:AddFragmentGroup(FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
-	end
-	scene:AddFragment(fragment)
-	scene:AddFragment(UNIFORM_BLUR_FRAGMENT)
 
-	HarvensQuestJournal:InitKeybindStripDescriptor()
+	local function modeChange()
+		local isGamepad = ZO_IsConsoleOrGameCoreUI() or IsInGamepadPreferredMode()
+		if isGamepad then
+			scene:RemoveFragmentGroup(FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
+			scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+		else
+			scene:RemoveFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+			scene:AddFragmentGroup(FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
+		end
+		if MOUSE_POINTER_FRAGMENT then
+			if isGamepad then
+				scene:AddFragment(MOUSE_POINTER_FRAGMENT)
+			else
+				scene:RemoveFragment(MOUSE_POINTER_FRAGMENT)
+			end
+		end
+	end
+	scene:AddFragment(UNIFORM_BLUR_FRAGMENT)
+	modeChange()
+	self.control:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, modeChange)
+
+	scene:AddFragment(fragment)
+	scene:AddFragment(FRAME_EMOTE_FRAGMENT_MAP)
+	scene:AddFragment(ZO_WindowSoundFragment:New(SOUNDS.BOOK_OPEN, SOUNDS.BOOK_CLOSE))
+
+	self:InitKeybindStripDescriptor()
 
 	local function doEmote(name)
-		if not HarvensQuestJournal.sv.playEmote then
+		if not self.sv.playEmote then
 			return
 		end
 		local emote = SLASH_COMMANDS[name]
@@ -1330,27 +1725,27 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 			emote()
 		end
 	end
-	scene:RegisterCallback(
+	fragment:RegisterCallback(
 		"StateChange",
 		function(oldState, newState)
 			if newState == SCENE_SHOWING then
-				KEYBIND_STRIP:AddKeybindButtonGroup(HarvensQuestJournal.keybindStripDescriptor)
-				HarvensQuestJournal:OpenJournal()
 			elseif newState == SCENE_SHOWN then
+				self:OpenJournal()
+				KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
 				doEmote("/read")
 			elseif newState == SCENE_HIDING then
 				doEmote("/idle")
+				KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
 			elseif newState == SCENE_HIDDEN then
-				KEYBIND_STRIP:RemoveKeybindButtonGroup(HarvensQuestJournal.keybindStripDescriptor)
 			end
 		end
 	)
 
+	ZO_CreateStringId("SI_HARVENS_QUEST_JOURNAL", "Harven's Quest Journal")
 	local LMM2 = LibMainMenu2
 	if LMM2 then
 		LMM2:Init()
 
-		ZO_CreateStringId("SI_HARVENS_QUEST_JOURNAL", "Harven's Quest Journal")
 		-- Add to main menu
 		local categoryLayoutInfo = {
 			binding = "TOGGLE_HARVENSQUESTJOURNAL",
@@ -1371,11 +1766,42 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 		LMM2:AddMenuItem(sceneName, sceneName, categoryLayoutInfo, nil)
 	end
 
-	SLASH_COMMANDS["/journal"] = function()
-		HarvensQuestJournal:ToggleJournal()
+	local function CreateEntry(id, data)
+		local name = data.name
+		if type(name) == "function" then
+			name = "" --will be updated whenever the list is generated
+		end
+
+		local entry = ZO_GamepadEntryData:New(name, data.icon, nil, nil, data.isNewCallback)
+		entry:SetIconTintOnSelection(true)
+		entry:SetIconDisabledTintOnSelection(true)
+
+		entry.data = data
+		entry.id = id
+		return entry
 	end
 
-	HarvensQuestJournal:InitJournal(HarvensQuestJournalTopLevel)
+	local data = {
+		name = GetString(SI_HARVENS_QUEST_JOURNAL),
+		icon = "/esoui/art/tradinghouse/gamepad/gp_tradinghouse_racial_style_motif_book.dds",
+		activatedCallback = function()
+			self:ToggleJournal()
+		end
+	}
+
+	for i = 1, #ZO_MENU_ENTRIES do
+		if ZO_MENU_ENTRIES[i].id == ZO_MENU_MAIN_ENTRIES.JOURNAL then
+			local entry = CreateEntry(sceneName, data)
+			tableInsert(ZO_MENU_ENTRIES[i].subMenu, entry)
+			break
+		end
+	end
+
+	SLASH_COMMANDS["/journal"] = function()
+		self:ToggleJournal()
+	end
+
+	self:InitJournal(HarvensQuestJournalTopLevel)
 
 	local GetOfferedQuestInfoOrg = GetOfferedQuestInfo
 	GetOfferedQuestInfo = function(...)
@@ -1441,6 +1867,7 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 				quest[QS_COMPLETEDTIME] = GetTimeStamp()
 				quest[QS_TERMINATOR] = HarvensQuestJournal.chatter
 				quest[QS_REWARD] = HarvensQuestJournal.reward
+				quest[QS_NAME] = questName
 				HarvensQuestJournal:SetCompletedSavedVariable(quest, zoneName)
 			end
 			HarvensQuestJournal:DeleteQuest(quest[QS_TYPE], zoneName, quest[QS_NAME])
@@ -1505,7 +1932,7 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 		EVENT_QUEST_ADDED,
 		function(eventType, journalIndex, questName, objectiveName)
 			--d("EVENT_QUEST_ADDED")
-			quest = HarvensQuestJournal:AddQuest(journalIndex)
+			local quest = HarvensQuestJournal:AddQuest(journalIndex)
 			quest[QS_BESTOWER] = HarvensQuestJournal.chatter
 			HarvensQuestJournal.sortedListCurrent = nil
 		end
@@ -1590,6 +2017,15 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 --]]
 	EVENT_MANAGER:RegisterForEvent(
 		"HarvensQuestJournal",
+		EVENT_RUMOR_ENDING_INITIATED,
+		function(eventType, rumorId, rumorEndingId)
+			HarvensQuestJournal:CompleteRumor(rumorId)
+			HarvensQuestJournal:UpdateJournal(true)
+		end
+	)
+
+	EVENT_MANAGER:RegisterForEvent(
+		"HarvensQuestJournal",
 		EVENT_PLAYER_ACTIVATED,
 		function(eventCode, initial)
 			EVENT_MANAGER:UnregisterForEvent("HarvensQuestJournal", EVENT_PLAYER_ACTIVATED)
@@ -1609,6 +2045,7 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 						for name, quest in pairs(quests) do
 							if not HarvensQuestJournal.activeQuests[name] then
 								quest[QS_COMPLETEDTIME] = GetTimeStamp()
+								quest[QS_NAME] = quest[QS_NAME] or name
 								HarvensQuestJournal:SetCompletedSavedVariable(quest, quest[QS_ZONE])
 								HarvensQuestJournal:DeleteQuest(quest[QS_TYPE], quest[QS_ZONE], quest[QS_NAME])
 								quest = nil
@@ -1619,6 +2056,7 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 					for name, quest in pairs(v) do
 						if not HarvensQuestJournal.activeQuests[name] then
 							quest[QS_COMPLETEDTIME] = GetTimeStamp()
+							quest[QS_NAME] = quest[QS_NAME] or name
 							HarvensQuestJournal:SetCompletedSavedVariable(quest, nil)
 							HarvensQuestJournal:DeleteQuest(quest[QS_TYPE], nil, quest[QS_NAME])
 							quest = nil
@@ -1633,6 +2071,78 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 				end
 			end
 
+			-- Reconcile rumors state on load
+			if GetNextPendingRumorId then
+				HarvensQuestJournal.activeRumors = {}
+				local rumorId = GetNextPendingRumorId(nil)
+				while rumorId do
+					if IsRumorPending(rumorId) then
+						local rName = zo_strformat("<<1>>", GetRumorDisplayName(rumorId))
+						HarvensQuestJournal.activeRumors[rName] = rumorId
+						HarvensQuestJournal:AddRumor(rumorId)
+					end
+					rumorId = GetNextPendingRumorId(rumorId)
+				end
+
+				if HarvensQuestJournal.sv.rumors then
+					for rName, rumor in pairs(HarvensQuestJournal.sv.rumors) do
+						if not HarvensQuestJournal.activeRumors[rName] then
+							rumor[RS_COMPLETEDTIME] = GetTimeStamp()
+							if not HarvensQuestJournal.sv.completedRumors then
+								HarvensQuestJournal.sv.completedRumors = {}
+							end
+							HarvensQuestJournal.sv.completedRumors[rName] = rumor
+							HarvensQuestJournal.sv.rumors[rName] = nil
+						end
+					end
+				end
+			end
+
+			-- Rumor Event Listeners
+			EVENT_MANAGER:RegisterForEvent(
+				"HarvensQuestJournal",
+				EVENT_RUMOR_STARTED,
+				function(eventType, rumorId)
+					HarvensQuestJournal:AddRumor(rumorId)
+					HarvensQuestJournal:UpdateJournal(true)
+				end
+			)
+
+			EVENT_MANAGER:RegisterForEvent(
+				"HarvensQuestJournal",
+				EVENT_RUMOR_UPDATED,
+				function(eventType, rumorId)
+					HarvensQuestJournal:AddRumor(rumorId)
+					HarvensQuestJournal:UpdateJournal(true)
+				end
+			)
+
+			EVENT_MANAGER:RegisterForEvent(
+				"HarvensQuestJournal",
+				EVENT_RUMORS_UPDATED,
+				function(eventType)
+					if GetNextPendingRumorId then
+						local rumorId = GetNextPendingRumorId(nil)
+						while rumorId do
+							if IsRumorPending(rumorId) then
+								HarvensQuestJournal:AddRumor(rumorId)
+							end
+							rumorId = GetNextPendingRumorId(rumorId)
+						end
+					end
+					HarvensQuestJournal:UpdateJournal(true)
+				end
+			)
+
+			EVENT_MANAGER:RegisterForEvent(
+				"HarvensQuestJournal",
+				EVENT_RUMOR_COMPLETED,
+				function(eventType, rumorId)
+					HarvensQuestJournal:CompleteRumor(rumorId)
+					HarvensQuestJournal:UpdateJournal(true)
+				end
+			)
+
 			if not HarvensQuestJournal.sv.linksConverted then
 				HarvensQuestJournal:ConvertLinks()
 			end
@@ -1644,8 +2154,16 @@ function HarvensQuestJournal.AddonLoaded(eventType, addonName)
 	)
 
 	HarvensQuestJournal:SetupOptions()
-
-	HARVENS_QUEST_JOURNAL = HarvensQuestJournal
 end
 
-EVENT_MANAGER:RegisterForEvent("HarvensQuestJournal", EVENT_ADD_ON_LOADED, HarvensQuestJournal.AddonLoaded)
+HARVENS_QUEST_JOURNAL = HarvensQuestJournal
+
+local function AddonLoaded(eventType, addonName)
+	if addonName ~= "HarvensQuestJournal" then
+		return
+	end
+	EVENT_MANAGER:UnregisterForEvent("HarvensQuestJournal", EVENT_ADD_ON_LOADED)
+	HarvensQuestJournal:Initialize()
+end
+
+EVENT_MANAGER:RegisterForEvent("HarvensQuestJournal", EVENT_ADD_ON_LOADED, AddonLoaded)

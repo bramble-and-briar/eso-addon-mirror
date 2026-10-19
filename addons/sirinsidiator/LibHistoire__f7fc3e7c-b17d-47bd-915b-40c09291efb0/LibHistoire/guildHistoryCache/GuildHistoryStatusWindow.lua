@@ -565,7 +565,7 @@ end
 function GuildHistoryStatusWindow:ShowDebugInfo()
     local debugInfo = internal.historyCache:GetDebugInfo()
     debugInfo.zoomMode = self:GetZoomMode()
-    debugInfo.version = "v2.7.1.1103"
+    debugInfo.version = "v2.7.2.1105"
     debugInfo.created = GetTimeStamp()
     debugInfo.systemDisabled = internal:IsGuildHistorySystemDisabled()
     debugInfo = ToJSON(debugInfo, 0)

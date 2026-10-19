@@ -1,11 +1,48 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/tes4p00ner/Armory-Build-Display__3221",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "tes4p00ner",
   "canonical_id": "esoui:3221",
   "category_id": "27",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
     {
       "name": "Gold Road",
       "version": "10.0.0"
@@ -37,7 +74,7 @@
     "ArmoryBuildDisplay"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3221/",
-  "fingerprint": "8511cc0d777449b4465d4707caa1e6da7df26f96110e8c6c4a53bf79fded3253",
+  "fingerprint": "56e95bb9e75e1a2688e65a9ab5ebe915b79b28c34bd500b37608418732a3e760",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10987.png"
   ],
@@ -47,11 +84,11 @@
   "source_id": "3221",
   "source_url": "https://www.esoui.com/downloads/info3221-ArmoryBuildDisplay.html",
   "stats": {
-    "downloads": 7494,
+    "downloads": 7806,
     "favorites": 12,
-    "monthly_downloads": 151
+    "monthly_downloads": 133
   },
   "title": "Armory Build Display",
-  "updated_at": 1716233005000,
-  "version": "1.0.8"
+  "updated_at": 1792303707000,
+  "version": "1.0.9"
 }

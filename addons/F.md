@@ -116,7 +116,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FOV Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/UsefulEejit/FOV-Zoom__4519) | UsefulEejit | PC / Mac | 1.0 |
 | [Fr Localization PersonalAssistant V3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bellad0ne/Fr-Localization-PersonalAssistant-V3__3956) | Bellad0ne | PC / Mac | 0.0 |
 | [Fragment Collectible Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XJDHDR/Fragment-Collectible-Tracker__4272) | XJDHDR | PC / Mac | 2510.0 |
-| [Frank's Gear Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frank/Frank-s-Gear-Grinder__3892) | Frank | PC / Mac | 1.8.3 |
+| [Frank's Gear Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frank/Frank-s-Gear-Grinder__3892) | Frank | PC / Mac | 51.0.0 |
 | [Franz' Banana Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Orejana/Franz-Banana-Counter__2909) | Orejana | PC / Mac | 1.0.7 |
 | [Free Dialog Camera (First and Third Person)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/Free-Dialog-Camera-First-and-Third-Person__1601) | Shinni | PC / Mac | 1.1 |
 | [FreeSlots Resurrected](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marlonbrando/FreeSlots-Resurrected__1977) | marlonbrando | PC / Mac | 2.24 |

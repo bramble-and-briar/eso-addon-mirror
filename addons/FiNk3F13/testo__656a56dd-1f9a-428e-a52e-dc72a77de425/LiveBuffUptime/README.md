@@ -4,7 +4,15 @@ Eigenstaendiges ESO-Addon fuer frei platzierbare Effekt-Tracker.
 Restzeit im Icon, Live-Uptime direkt rechts daneben.
 Tracker werden in Menues und auf der Karte ausgeblendet; die Messung laeuft im Hintergrund weiter. Im Move-UI-Modus bleiben die Tracker zum Verschieben sichtbar.
 
+## Sprache
+
+Das Addon verwendet automatisch die ESO-Spielesprache: Deutsch bleibt deutsch, Englisch verwendet `lang/en.lua`. Weitere Spielsprachen verwenden vorerst Englisch als Ersatz. Es ist kein manueller Sprachschalter notwendig. Nach einem Sprachwechsel `/reloadui` ausfuehren. Buff-, Boss- und Ortsnamen stammen aus dem Spiel; bereits gespeicherte Kampfnamen bleiben in ihrer urspruenglichen Sprache. Uptime-Zeiten, IDs und gespeicherte Einstellungen sind sprachunabhaengig.
+
+The addon automatically follows the ESO client language. English includes settings, tooltips, combat reports, group panels and status messages. Other unsupported languages fall back to English. No manual language selection is required.
+
 ## Einrichtung
+
+Kampfsperre: Mit X (Xbox) bzw. Quadrat (PlayStation) sperren/entsperren. Auf der ersten Seite gilt dies fuer alle bereits gespeicherten Kaempfe des ausgewaehlten Gebiets-/Datumseintrags, in der Kampfliste fuer einen einzelnen Kampf. Ein Schloss hinter dem Namen kennzeichnet vollstaendig gesperrte Eintraege; bei teilweiser Sperre steht die gesperrte Anzahl im Untertitel. Gesperrte Kaempfe bleiben beim automatischen Aufraeumen und beim Loeschen eines Raid-Tages erhalten. Zum einzelnen Loeschen zuerst entsperren. Die Sperre wird gespeichert; in der Buff-/Debuff-Detailansicht gibt es keine Sperraktion. Es bleiben maximal 300 regulaere Speicherplaetze: Sind alle gesperrt, werden neue Kaempfe mit einem Hinweis nicht gespeichert. Beim naechsten Speichern wird sonst der aelteste ungesperrte Kampf ersetzt.
 
 Todesanzeige: Unter jedem Account-/PSN-Namen stehen beobachtete Todesanzahl und gesamte Totzeit des gespeicherten Kampfzeitfensters, beispielsweise `2 Tode / 18,4 s tot`. Doppelte Todesmeldungen werden nicht mehrfach gezaehlt; Wiederbelebung schliesst das Zeitintervall, ein noch toter Spieler wird bis zum Messende erfasst. Schon tot beim ersten Snapshot ist kein neuer Todesfall. Offline-/nicht beobachtbare Phasen werden nicht als Totzeit geraten. Die Angaben werden auch bei nicht gewerteten Support-Mitgliedern gespeichert und veraendern keine Uptime-Zeiten oder Summen. Alte Berichte ohne diese Daten zeigen `Keine Todesdaten`.
 
@@ -22,7 +30,7 @@ Kampfverwaltung: R3 (rechter Stick) fordert eine Loeschbestaetigung fuer den aus
 
 Berichtsmenue: links einen Kampf waehlen und mit der primaeren Aktion bestaetigen, dann zeigt die linke Liste dessen Buffs. Die rechte Tabelle folgt der ausgewaehlten Zeile. L1/R1 wechseln Buffs; Zurueck fuehrt von der Buff-Liste zur Kampfliste und danach aus dem Menue. Die native Screen-Vorlage ist als eigener TopLevelControl in `BuffReports.xml` definiert und wird vor dem Lua-Berichtsmodul geladen.
 
-Einheit pro Tracker: **Auf mir**, **Auf der Gruppe** oder **Nur DDs**. Die DD-Auswahl nutzt ESOs ausgewaehlte Schadensrolle (`GetGroupMemberSelectedRole`, solo `GetSelectedLFGRole`), keine Schaetzung anhand von Schaden. Tanks, Heiler und unbekannte Rollen werden ausgeschlossen; bekannte DDs ohne Buff bleiben im Nenner. Der Filter gilt fuer HUD, Mitgliederzaehler, gespeicherten Kampfbericht und Gruppen-Debug. Bestehende Gruppentracker bleiben unveraendert auf allen Mitgliedern.
+Einheit pro Tracker: **Auf mir**, **Auf der Gruppe** oder **Nur DDs**. Die DD-Auswahl nutzt ESOs ausgewaehlte Schadensrolle (`GetGroupMemberSelectedRole`, solo `GetSelectedLFGRole`), keine Schaetzung anhand von Schaden. Tanks, Heiler und unbekannte Rollen werden ausgeschlossen; bekannte DDs ohne Buff bleiben im Nenner. Der Filter gilt fuer HUD, Mitgliederzaehler, gespeicherten Kampfbericht . Bestehende Gruppentracker bleiben unveraendert auf allen Mitgliedern.
 
 Konsolenansicht: Die Kampfstatistiken verwenden ausschliesslich ESOs native `ZO_Gamepad_ParametricList_Screen`-Ansicht. Es gibt keine separate Maus-Ansicht und keine Maus-Schaltflaechen. Hoch/Runter bewegt die Kampfliste; L1/R1 (LB/RB am Xbox-Controller) wechseln den Buff, die sekundaere Aktion die Spielerseite und die negative Aktion schliesst. Die rechte Tabelle richtet sich an den Konsolen-Quadranten aus. Fuer den Test am PC vor `/reloadui` den Controller-Modus aktivieren.
 
@@ -32,15 +40,7 @@ Kampfstatistiken mit Verlauf: links eine auswaehlbare Kampfliste, rechts die Buf
 
 Kampfbericht: Der Eintrag **Kampfstatistiken** oberhalb von **Neuer Tracker** oeffnet die Kampfstatistiken, alternativ `/lbu uptime`. Gespeichert werden aktive Spieler-/Gruppen-HUD-Tracker beim Bibliotheksabschluss bzw. im Ersatzmodus beim Ende des Spieler-Kampfs, ohne Debug einschalten zu muessen. Pro Buff stehen Account-/PSN-Name (soweit ESO bereitstellt), Charaktername, Buffzeit, Bezugszeit und Uptime; Gruppenberichte enthalten auch nie gebuffte Mitglieder und die Gruppen-Gesamtsumme. Die letzten 30 Kaempfe bleiben auch ueber `/reloadui` erhalten. Keine staendige Berichtsspeicherung im Live-Tick. Controller: R1 naechster Buff, L1 vorheriger Buff, sekundaere naechste Spielerseite, negative Aktion zurueck, Hoch/Runter Kampfwahl. Zwoelf Spieler pro Seite. Persoenliche Bezugszeit folgt weiterhin der jeweiligen Plattform; Gegner-Tracker sind in dieser Buff-Berichtsansicht nicht enthalten.
 
-Gruppen-Buff-Debug: `/lbu buffdebug group 61771` einmal einschalten. Ein passender aktiver Gruppentracker und die Live-Uptime-Anbindung sind erforderlich. Debug wartet ausserhalb des Kampfes; jeder echte Bibliotheks-Kampfbeginn setzt Zaehlungen und Bericht automatisch zurueck. Boss-Fortsetzungen innerhalb derselben Begegnung setzen nicht zurueck. Beim Abschluss friert der Bericht ein; ausserhalb des Kampfes werden keine Buffmeldungen mitgezaehlt. Nach jedem Kampf denselben Befehl zum Abfragen eingeben, ohne Off/On. Der Bericht zeigt Namen, ESO-Erhalten-/Erneuert-/Beendet-Zaehler, Buffzeit, Lebendzeit und Uptime je Mitglied, auch fuer nie gebuffte Mitglieder. Die Zeitunion wird aus den erfassten Intervallen und Lebendzeitfenstern separat nachgerechnet; die Summe wird mit der HUD-Uptime verglichen. Gleiche Eingangsdaten, kein unabhaengiger Beweis vollstaendiger ESO-Daten. Meldungszaehler sind keine Skill-Cast-Zaehler. Bei Einschalten mitten im Kampf fehlen die vorherigen Rohmeldungen. `/lbu buffdebug off` schaltet ganz aus; `/reloadui` ebenfalls. Nur der aktuelle/zuletzt abgeschlossene Kampf bleibt gespeichert, bis der naechste beginnt. Uptime-Berechnung bleibt unveraendert.
-
-Persoenlicher Buff-Debug: `/lbu buffdebug 61771` arbeitet ebenfalls automatisch pro Kampf, ohne laufende Chat-Ausgabe. Derselbe Befehl zeigt den laufenden oder eingefrorenen Abschlussbericht. Eine andere ID waehlt einen anderen Buff. Die Buffzeit ist die Vereinigung erkannter ESO-Buffslots, mit bekannten Ablaufzeiten auch ohne Fade; der Abschluss wird auf das gemeldete Kampfende begrenzt. Bereits beim Kampfbeginn aktive Buffs werden als Snapshot ab Messbeginn erfasst. Engine-Meldungen beeinflussen diese separate Debug-Buffzeit nicht. Ohne bekannte Ablaufzeit/Fade kann dieser Debug ein fehlendes Ende nicht beweisen. Dies ist keine persoenliche CMX-Uptime-Berechnung.
-
-Optionaler ausfuehrlicher Buff-Debug: `/lbu buffdebug start 61771` (ohne ID: erster aktiver Spieler-/Gruppentracker) zeigt im Kampf einzelne Meldungen. Auch dieser Modus setzt automatisch pro Kampf zurueck. `/lbu buffdebug report` zeigt Zaehler und die letzten zwoelf Zeilen; `/lbu buffdebug stop` schaltet aus. Standardmaessig aus, nicht gespeichert. Speicher begrenzt auf 100 Logzeilen, Live-Chat auf 120 Zeilen je Kampf; Zaehler laufen danach weiter. Keine zusaetzlichen Buff-Scans pro Tick. Rohmeldungen und Engine-Aufrufe sind wegen Bibliotheksmeldungen, Snapshots und mehreren Trackern nicht 1:1. Nicht von ESO gelieferte Meldungen kann der Debug nicht nachweisen.
-
-Performance-Debug ist standardmaessig aus und wird nicht gespeichert. `/lbu perf start` startet eine neue Messung; nach zwei bis drei Minuten beendet `/lbu perf stop` die Messung und zeigt eine Zusammenfassung. `/lbu perf report` zeigt die bisherigen Daten ohne Stopp. Gemessen werden unsere Live-Update-/ESO-/Bibliotheks-Callbacks und Bildzeiten. Die Gesamtarbeit zaehlt verschachtelte Aufrufe nur einmal; Kategorie-Laufzeiten enthalten ihre Unteraufrufe. Ruckler ab 50ms werden mit mindestens 5ms eigener Arbeit im vorherigen Frame verglichen. Diese zeitliche Korrelation beweist keine Ursache und erfasst keine sonstige Bibliotheks-/Spiel-/GPU-/GC-Arbeit. Der aktive Debug erzeugt selbst Messaufwand. Fuer einen Vergleich ohne Addon ESOs eigene FPS-Anzeige verwenden. Uptime-Regeln bleiben unveraendert.
-
-Die eigene FPS-Anzeige ist entfernt. Alte FPS-Einstellungen werden beim Laden geloescht. Fuer eine dauerhafte FPS-Anzeige ein separates Addon verwenden; der abschaltbare Performance-Debug bleibt verfuegbar.
+Die eigene FPS-Anzeige ist entfernt. Alte FPS-Einstellungen werden beim Laden geloescht. Fuer eine dauerhafte FPS-Anzeige ein separates Addon verwenden.
 
 1. Addon aktivieren und `/reloadui` ausfuehren.
 2. Unter Einstellungen > Addons das Panel **LiveBuffUptime** oeffnen.
@@ -49,7 +49,7 @@ Die eigene FPS-Anzeige ist entfernt. Alte FPS-Einstellungen werden beim Laden ge
 5. Den ausgewaehlten Tracker mit der Maus ziehen oder mit dem rechten Stick verschieben.
 6. Nach 3 Sekunden ohne Bewegung wird die Position automatisch gespeichert und gesperrt, wie in Weaving Metronome. Waehrend des Ziehens bleibt der Modus aktiv. Die Groesse laesst sich weiterhin im Panel einstellen.
 
-Die Pflichtabhaengigkeiten fuer LibCombat/LibCombat2 sind vorerst entfernt. `LibHarvensAddonSettings` bleibt erforderlich; `OptionalDependsOn: LibCombat LibCombat2` stellt die Ladereihenfolge vorhandener Kampf-Bibliotheken sicher. Laufzeitanbindung und Uptime-Berechnung bleiben unveraendert. Fuer die vollstaendige Live-Auswertung und Kampfberichte ist weiterhin eine geeignete aktive Kampf-Bibliothek noetig: LibCombat am PC beziehungsweise LibCombat2 auf der Konsole. Ohne geeignete Bibliothek gibt es eine Warnung und nur die Ersatzmessung. BattleScrolls ist nicht erforderlich. Bereits eingetragene Pflichtabhaengigkeiten im Veroeffentlichungsportal werden durch eine lokale Manifest-Aenderung nicht automatisch entfernt.
+Ab 2.2.5 ist LibCombat2 auf der Konsole ueber `ConsoleDependsOn: LibCombat2` verpflichtend. Ohne installierte und aktivierte Bibliothek kann das Addon dort nicht geladen werden. `LibHarvensAddonSettings` bleibt auf beiden Plattformen erforderlich. Am PC bleibt LibCombat optional und wird ueber `OptionalDependsOn: LibCombat` vorher geladen. Laufzeitanbindung und Uptime-Berechnung bleiben unveraendert; eine inkompatible oder fehlerhaft registrierte Bibliothek kann weiterhin zur Warnung und Ersatzmessung fuehren. BattleScrolls ist nicht erforderlich. Abhaengigkeiten im Veroeffentlichungsportal muessen gegebenenfalls separat angepasst werden. Die Pflichtabhaengigkeit allein garantiert keine vollstaendige Ereignislieferung oder identisches HUD-Verhalten auf beiden Plattformen.
 
 `CombatBridge.lua` bindet die gemeinsame Schaden-/Heilung-/Effekt-Schnittstelle und die anders aufgebaute Zusammenfassung von LibCombat2 an. Die Schnittstelle wurde mit dem [Console-Release-Quellcode](https://github.com/Solinur/LibCombat/tree/console_releases/LibCombat2) abgeglichen. Registrierungen erfolgen mit der v2-Dot-API genau einmal je benoetigtem Ereignis. Spieler-/Gruppenzuordnung verwendet die Einheiten-API. Aktive CMX-Zeit und Begegnungszeit fuer die Lebendzeit-Auswertung werden getrennt gefuehrt. Die neue Lebendzeit-Auswertung wurde simuliert getestet; ein echter Spielvergleich steht noch aus.
 Es werden anfangs keine Tracker vorgegeben.
@@ -101,12 +101,11 @@ Gruppen-Bufferkennung: Mit [Group Buff Panels 2.3.3.1](https://www.esoui.com/dow
 
 - `/lbu move`: Positionen entsperren/sperren.
 - `/lbu reset`: aktuelle Uptime-Messung zuruecksetzen.
-Mit 1.6.9 wurden der alte Performance-Debug, Cooldown-Debug, Selbstpruefung und Uptime-Chatberichte entfernt.
-Der neue Performance-Debug ist ausschliesslich per `/lbu perf start` einschaltbar und endet mit `/lbu perf stop`.
-Alte Debug-Einstellungen und gespeicherte Debug-Berichte werden beim Laden geloescht.
-Uptime-Berechnung und Aktualisierungstakt bleiben unveraendert. Anschlussstatus und
-wichtige Bibliothekswarnungen bleiben erhalten. Alte Diagnose-Hilfen in `Diagnostics.lua` dienen
-nur noch den Entwicklertests und werden nicht vom Addon-Manifest geladen.
+Ab 2.2.2 sind Buff-/Gruppen-/Gegner-/Zaehler-Debugs und der Performance-Profiler entfernt, einschliesslich automatischer Rohereignis-Puffer. `/lbu status` bleibt eine manuelle Statusabfrage ohne Kampfaufzeichnung. Kampfstatistiken, Erhalten/Erneuert-Zaehler, Sperren und die Platzierungsvorschau bleiben erhalten. Alte Debug-Einstellungen werden beim Laden bereinigt. Unabhaengige Pruefhilfen liegen nur unter `tests/helpers/UptimeAudit.lua` und werden nicht vom Addon geladen.
+
+Ab 2.2.3 zaehlen Erhalten/Erneuert im Ersatzmodus bestaetigte Effektmeldungen im gesamten Kampf, auch vor dem ersten und nach dem letzten Schadentreffer. Die schadensbasierte Bezugszeit, Buffzeit und Uptime bleiben unveraendert. Bei verzoegerten Bibliotheksberichten gilt das gemeldete Kampfende, nicht die Ankunftszeit des Berichts. Bereits gespeicherte Zaehler werden nicht nachtraeglich rekonstruiert.
+
+Ab 2.2.4 ist die Platzierungsvorschau mit Testnamen aus dem Gruppenpanel entfernt. Das echte Panel, Move UI, Breite und Groesse bleiben erhalten; zum Verschieben muss das Gruppenpanel eingeschaltet sein.
 
 ## Weitere Support-Set-Profile
 

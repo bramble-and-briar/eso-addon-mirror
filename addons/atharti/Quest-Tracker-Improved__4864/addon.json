@@ -18,14 +18,14 @@
     "QuestTrackerImproved"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4864/",
-  "fingerprint": "f438965883099417e34ac53f5e5152b8e0f9300550cbb76d43db0540952b11e0",
+  "fingerprint": "800e9a3182f7fda4ae1a733b494a0f0d5d59b8babcd91bba2daa8fe85a76c70b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17931.png",
     "https://cdn-eso.mmoui.com/preview/pvw17499.png",
     "https://cdn-eso.mmoui.com/preview/pvw17953.png",
     "https://cdn-eso.mmoui.com/preview/pvw17498.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17954.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17497.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18063.png"
   ],
   "platform": "pc",
   "published": true,
@@ -33,11 +33,11 @@
   "source_id": "4864",
   "source_url": "https://www.esoui.com/downloads/info4864-QuestTrackerImproved.html",
   "stats": {
-    "downloads": 342,
-    "favorites": 1,
-    "monthly_downloads": 335
+    "downloads": 445,
+    "favorites": 2,
+    "monthly_downloads": 436
   },
   "title": "Quest Tracker Improved",
-  "updated_at": 1791796159000,
-  "version": "1.9"
+  "updated_at": 1792325548000,
+  "version": "2.0"
 }

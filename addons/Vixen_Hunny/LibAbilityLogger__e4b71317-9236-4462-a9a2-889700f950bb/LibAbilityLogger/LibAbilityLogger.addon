@@ -1,8 +1,8 @@
 ## Title: |cff00ccLibAbilityLogger|r
 ## APIVersion: 101046
-## AddOnVersion: 1
+## AddOnVersion: 3.0.0
 ## Author: |cff00ffAwh_Lina|r
 ## Description: |cff0000[FOR DEVS] Log your abilities with ease!|r 
 ## DependsOn: LibAddonMenu-2.0
-## SavedVariables: 
+## SavedVariables: LibAbilityLogger_SavedVars 
 LibAbilityLogger.lua

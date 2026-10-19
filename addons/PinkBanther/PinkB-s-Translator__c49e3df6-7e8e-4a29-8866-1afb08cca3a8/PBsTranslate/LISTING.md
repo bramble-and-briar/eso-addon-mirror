@@ -14,13 +14,13 @@ PB's Translate
 
 英語のチャットの下に日本語訳を表示します。翻訳はすべてアドオン内で行い、インターネットには
 接続しません。日常英語、チャットの略語、ネットゲームのスラング、ESO用語、シロディールの
-PvP用語を収録した約7,000項目の辞書と、語順を日本語に並べ替える文法規則で訳します。
+PvP用語を収録した約9,000項目の辞書と、語順を日本語に並べ替える文法規則で訳します。
 /en で日本語を英語にして入力欄に入れることもできます。
 
 ## Overview (EN)
 
 Shows a Japanese translation under English chat messages. Everything runs inside the add-on
-with no internet connection: a built-in dictionary of about 7,000 entries (everyday English,
+with no internet connection: a built-in dictionary of about 9,000 entries (everyday English,
 chat shorthand, online-game slang, ESO terms and Cyrodiil PvP calls) and a small grammar that
 reorders English into Japanese. /en also turns Japanese into English in the chat entry box.
 
@@ -40,7 +40,7 @@ reorders English into Japanese. /en also turns Japanese into English in the chat
 ・訳文の文字色を変更できます。
 ・/jp <英文> で、入力した英文の訳を自分にだけ表示します。
 
-■ 辞書（約7,000項目）
+■ 辞書（約9,000項目）
 
 ・日常会話と高校レベルの英単語・熟語
 ・チャットの略語と崩した綴り（ty, omw, idk, u, ur, shud など）
@@ -111,7 +111,7 @@ PB's Translate carries its own dictionary and grammar rules and translates chat 
 - The colour of the translation can be changed.
 - /jp <text> translates a line and shows it to you alone.
 
-■ Dictionary (about 7,000 entries)
+■ Dictionary (about 9,000 entries)
 
 - Everyday and high-school-level English words and phrases
 - Chat shorthand and casual spellings (ty, omw, idk, u, ur, shud and so on)

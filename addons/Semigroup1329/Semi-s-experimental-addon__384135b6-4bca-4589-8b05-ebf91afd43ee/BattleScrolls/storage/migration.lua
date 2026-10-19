@@ -545,7 +545,7 @@ function migration:Initialize()
     if BattleScrolls.storage.savedVariables.migrationDoneV20Setups then
         return
     end
-    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED, function()
+    local function onPlayerActivated()
         EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED)
         if everythingMigrated() then
             BattleScrolls.storage.savedVariables.migrationDoneV20Setups = true
@@ -563,5 +563,10 @@ function migration:Initialize()
         end
         -- Legacy data exists but only where this session cannot touch it
         -- (the live instance); the next session picks it up
-    end)
+    end
+    if IsPlayerActivated() then
+        onPlayerActivated()
+    else
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED, onPlayerActivated)
+    end
 end

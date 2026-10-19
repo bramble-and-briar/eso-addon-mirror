@@ -70,7 +70,7 @@ Engine.Effect(fight, tracker, 5, 10, 61771, 1, true, true, 4)
 Engine.Effect(fight, tracker, 10, 10, 61771, 1, false, true, 4)
 local result = Engine.Calculate(fight, tracker, nil, nil, true)
 near(result.percent, 62.5); near(result.normalCovered, 10)
-dofile("Diagnostics.lua")
+dofile("tests/helpers/UptimeAudit.lua")
 local lines = {}
 local audit = LiveBuffUptimeDiagnostics.New(function(line) lines[#lines + 1] = line end)
 LiveBuffUptimeDiagnostics.SetEnabled(audit, true)

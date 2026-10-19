@@ -50,15 +50,6 @@ assert(#debuff.members == 6 and debuff.covered == 30 and debuff.duration == 60 a
 for _, member in ipairs(debuff.members) do
     assert(member.covered == 5 and member.duration == 10, "Every confirmed recipient must have its own five-second interval")
 end
-local from = #env.messages + 1
-SLASH_COMMANDS["/lbu"]("debuffdebug 34384")
-local debugText = table.concat(env.messages, "\n", from)
-assert(debugText:find("6 Gegner", 1, true))
-assert(debugText:find("[106] Gegner 106: LibCombat 1/0/1", 1, true), "Library-only recipient must retain its own source counters")
-from = #env.messages + 1
-SLASH_COMMANDS["/lbu"]("debuffdebug 34384 106")
-assert(table.concat(env.messages, "\n", from):find("+5.000s LibCombat beendet", 1, true))
-assert(saved.lastUptimeReport == report and report.debuffs[1].percent == 50, "Diagnostic queries must not change saved or HUD calculations")
 -- Different recipients must keep individual results, not inherit the all-enemy average.
 send("EVENT_MESSAGES", 200, LIBCOMBAT_MESSAGE_COMBATSTART)
 for id = 101, 106 do

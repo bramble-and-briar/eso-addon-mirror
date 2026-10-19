@@ -53,7 +53,8 @@ end
 function MapMode:IsInMinimapMode()
 	local isMinimap = false
 	if not ZO_WorldMap_IsWorldMapShowing() then -- minimap
-		isMinimap = FyrMM or (AUI and AUI.Minimap:IsEnabled()) or VOTANS_MINIMAP
+		local isLUIE = (LUIE and LUIE.MiniMap and LUIE.MiniMap.Enabled and LUIE.MiniMap.MAP_MODE_LUIE_MINIMAP)
+		isMinimap = FyrMM or (AUI and AUI.Minimap:IsEnabled()) or VOTANS_MINIMAP or isLUIE
 	end
 	return isMinimap
 end

@@ -1,19 +1,20 @@
+local L = LiveBuffUptimeLocalization and LiveBuffUptimeLocalization.Text or function(text) return text end
 LiveBuffUptimeCooldowns = {}
 local Cooldowns = LiveBuffUptimeCooldowns
 Cooldowns.profiles = {
-    { key = "turningTide", name = "Turning Tide (eigener Proc)", id = 167350, seconds = 15, effect = 106754, unit = "reticleover" },
-    { key = "archdruid", name = "Archdruid Devyric (eigener Proc)", id = 176813, seconds = 15, effect = 106754, unit = "reticleover" },
-    { key = "nunatak", name = "Nunatak (eigener Proc)", id = 167682, seconds = 15, effect = 145977, unit = "reticleover" },
-    { key = "roaring", name = "Roaring Opportunist (pro Empfaenger)", id = 135923, seconds = 22, effect = 93109, recipient = true },
-    { key = "tremorscale", name = "Tremorscale (eigener Proc)", id = 80517, seconds = 10, effect = 80866, unit = "reticleover" },
-    { key = "crimsonOath", name = "Crimson Oath's Rive (eigener Proc)", id = 159291, seconds = 12, effect = 159288, unit = "reticleover" },
-    { key = "martialKnowledge", name = "Martial Knowledge (eigener Proc)", id = 127070, seconds = 8, effect = 127070, unit = "reticleover" },
-    { key = "drakesRush", name = "Drake's Rush (eigener Proc)", id = 150974, seconds = 18, effect = 61709, friendly = true },
-    { key = "magmaIncarnate", name = "Magma Incarnate (eigener Proc)", id = 161527, seconds = 15, effect = 61693, effects = {61693, 147417}, friendly = true },
-    { key = "pillager", name = "Pillager's Profit (pro Empfaenger)", id = 172056, ids = {172056, 172055}, seconds = 45, effect = 172055, recipient = true, gainOnly = true },
-    { key = "symphony", name = "Symphony of Blades (pro Empfaenger)", id = 117111, seconds = 18, effect = 117111, recipient = true },
-    { key = "crusader", name = "Crusader (eigener Proc)", id = 160395, seconds = 20, effect = 147417, friendly = true },
-    { key = "imperium", name = "Brands of Imperium (eigener Proc)", id = 66887, seconds = 12, effect = 66887, friendly = true },
+    { key = "turningTide", name = L("Turning Tide (eigener Proc)"), id = 167350, seconds = 15, effect = 106754, unit = "reticleover" },
+    { key = "archdruid", name = L("Archdruid Devyric (eigener Proc)"), id = 176813, seconds = 15, effect = 106754, unit = "reticleover" },
+    { key = "nunatak", name = L("Nunatak (eigener Proc)"), id = 167682, seconds = 15, effect = 145977, unit = "reticleover" },
+    { key = "roaring", name = L("Roaring Opportunist (pro Empfaenger)"), id = 135923, seconds = 22, effect = 93109, recipient = true },
+    { key = "tremorscale", name = L("Tremorscale (eigener Proc)"), id = 80517, seconds = 10, effect = 80866, unit = "reticleover" },
+    { key = "crimsonOath", name = L("Crimson Oath's Rive (eigener Proc)"), id = 159291, seconds = 12, effect = 159288, unit = "reticleover" },
+    { key = "martialKnowledge", name = L("Martial Knowledge (eigener Proc)"), id = 127070, seconds = 8, effect = 127070, unit = "reticleover" },
+    { key = "drakesRush", name = L("Drake's Rush (eigener Proc)"), id = 150974, seconds = 18, effect = 61709, friendly = true },
+    { key = "magmaIncarnate", name = L("Magma Incarnate (eigener Proc)"), id = 161527, seconds = 15, effect = 61693, effects = {61693, 147417}, friendly = true },
+    { key = "pillager", name = L("Pillager's Profit (pro Empfaenger)"), id = 172056, ids = {172056, 172055}, seconds = 45, effect = 172055, recipient = true, gainOnly = true },
+    { key = "symphony", name = L("Symphony of Blades (pro Empfaenger)"), id = 117111, seconds = 18, effect = 117111, recipient = true },
+    { key = "crusader", name = L("Crusader (eigener Proc)"), id = 160395, seconds = 20, effect = 147417, friendly = true },
+    { key = "imperium", name = L("Brands of Imperium (eigener Proc)"), id = 66887, seconds = 12, effect = 66887, friendly = true },
 }
 local procs = {}
 

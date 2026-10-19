@@ -24,5 +24,5 @@ assert(report.buffs[1].percent == 50 and report.buffs[1].covered == 5 and report
     "Renewal metadata must not affect any uptime inputs or outputs")
 local file = assert(io.open("LiveBuffUptime.addon", "r"))
 local manifest = file:read("*a"); file:close()
-assert(manifest:find("## Version: 2.0.1", 1, true))
+assert(manifest:find("## Version: 2.2.5", 1, true))
 print("Renewals: active extensions, duplicate updates, prebuff, unknown/expired slots, report window and release version passed")

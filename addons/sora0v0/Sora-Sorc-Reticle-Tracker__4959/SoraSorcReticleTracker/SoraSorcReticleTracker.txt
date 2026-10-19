@@ -1,9 +1,9 @@
 ## Title: Sora Sorc Reticle Tracker
 ## APIVersion: 101050 101051
-## Version: 0.5.1
-## Author: Sora
+## Version: 1.0.2
+## Author: sora0v0
 ## Description: Compact Sorcerer reticle tracker for Crystal Fragments, Bound Armaments, and optional Maelstrom back-bar ground-skill timers.
-## AddOnVersion: 501
+## AddOnVersion: 10002
 ## SavedVariables: SoraSorcReticleTrackerSavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43
 

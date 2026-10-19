@@ -49,9 +49,9 @@ local defaultSV = {
 	hintDescSize = 15,
 	hintDescStyle = "soft-shadow-thin",
 	hintDescColor = { r = 0, g = 0.7607843280, b = 0.7215686440, a = 1 },
-	
+
 	----
-	
+
 	dynamicEventsHeaderFont = "$(ANTIQUE_FONT)",
 	dynamicEventsHeaderSize = 18,
 	dynamicEventsHeaderStyle = "soft-shadow-thin",
@@ -61,9 +61,9 @@ local defaultSV = {
 	dynamicEventsSubLabelSize = 16,
 	dynamicEventsSubLabelStyle = "soft-shadow-thin",
 	dynamicEventsSubLabelColor = { r = 1, g = 1, b = 1, a = 1 },
-	
+
 	----
-	
+
 	houseHeaderFont = "$(ANTIQUE_FONT)",
 	houseHeaderSize = 18,
 	houseHeaderStyle = "soft-shadow-thin",
@@ -85,14 +85,15 @@ local defaultSV = {
 	houseTagsColor = { r = 0.5450980663, g = 0.5490196347, b = 0.5215686560, a = 1 },
 
 	houseWidth = 350,
-	
+
 	dynamicEventsWidth = 240,
 	dynamicEventsIconSize = 32,
 
 	width = 240,
 	iconSize = 32,
-	
+
 	hidePursuits = false,
+	hideArchive = false,
 	stickyTrackers = true,
 }
 
@@ -428,23 +429,27 @@ function QTI.OnAddOnLoaded(_, addOnName)
 	QTI.ResizePanel()
 	QTI.RefreshHeaderIcons()
 	QTI.ApplyTreeIndent()
-	
+
 	QTI.HookDynamicEventsTracker()
 	QTI.HookHouseTracker()
-	
+
 	if QTI.SV.hidePursuits then
-		TIMED_ACTIVITY_TRACKER:GetFragment():SetHiddenForReason("QTI", true)
+		ClearTrackedPromotionalEventActivity()
+	end
+
+	if QTI.SV.hideArchive then
+		ENDLESS_DUNGEON_HUD_TRACKER:GetFragment():SetHiddenForReason("QTI_HideArchive", true)
 	end
 
 	EM:RegisterForEvent(QTI.name, EVENT_ADD_ONS_LOADED, function()
 		EM:UnregisterForEvent(QTI.name, EVENT_ADD_ONS_LOADED)
-		
+
 		QTI.DetachQuestTracker()
-		
+
 		if QTI.SV.stickyTrackers then
 			QTI.AnchorSharedTrackersUnderQuest()
 		end
-		
+
 		QTI.RestoreLeftTreeAnchor()
 		QTI.HideArchiveButton()
 	end)

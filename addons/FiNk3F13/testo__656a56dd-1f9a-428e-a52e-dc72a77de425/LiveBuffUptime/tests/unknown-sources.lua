@@ -1,4 +1,4 @@
-dofile("Diagnostics.lua")
+dofile("tests/helpers/UptimeAudit.lua")
 EFFECT_RESULT_GAINED, EFFECT_RESULT_UPDATED, EFFECT_RESULT_FADED = 1, 2, 3
 local A = LiveBuffUptimeDiagnostics
 local disabled = {}

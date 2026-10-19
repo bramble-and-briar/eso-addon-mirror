@@ -18,7 +18,7 @@
     "DailyDeeds"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4504/",
-  "fingerprint": "3b059b60f47d6152ebedd8f450892aaca5672f7e95f98d1778c56c4bb40eefbd",
+  "fingerprint": "092ef65abb72baa70fe3c0fead39c9d7110514755f766e7f9eef91e6cfd09a3f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15709.png",
     "https://cdn-eso.mmoui.com/preview/pvw15710.png"
@@ -29,11 +29,11 @@
   "source_id": "4504",
   "source_url": "https://www.esoui.com/downloads/info4504-DailyDeedsCurrencyTrackers.html",
   "stats": {
-    "downloads": 620,
+    "downloads": 659,
     "favorites": 2,
-    "monthly_downloads": 63
+    "monthly_downloads": 96
   },
   "title": "Daily Deeds \u2014 Currency Trackers",
-  "updated_at": 1792156479000,
-  "version": "1.6"
+  "updated_at": 1792316334000,
+  "version": "1.7"
 }

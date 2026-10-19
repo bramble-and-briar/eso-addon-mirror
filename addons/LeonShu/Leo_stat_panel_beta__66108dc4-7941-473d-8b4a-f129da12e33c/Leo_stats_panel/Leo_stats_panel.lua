@@ -2,10 +2,18 @@ local ADDON_NAME = "Leo_stats_panel"
 local SAVED_VARS_NAME = "Leo_stats_panel_SavedVariables"
 local UPDATE_NAME = ADDON_NAME .. "_Update"
 
-local VERSION = "0.2.3"
+local VERSION = "0.2.7"
 local UPDATE_INTERVAL_MS = 500
 local MIN_SCALE = 0.5
 local MAX_SCALE = 2.0
+local MIN_BLOCK_WIDTH = 64
+local MAX_BLOCK_WIDTH = 500
+local BLOCK_HEIGHT = 48
+local TEXT_WIDTH_BUFFER = 8
+local SUFFIX_INSET = 2
+local SUFFIX_GAP = 4
+local MIN_SUFFIX_SIZE = 8
+local MAX_SUFFIX_SIZE = 18
 local MIN_TEXT_SIZE = 10
 local MAX_TEXT_SIZE = 32
 local MIN_SIDE_PADDING = 0
@@ -65,6 +73,8 @@ for _, definition in ipairs(BLOCK_DEFINITIONS) do
         y = definition.defaultY,
         scale = 1.0,
         textSize = 18,
+        suffixEnabled = true,
+        suffixTextSize = 10,
         sidePadding = 8,
     }
 end
@@ -72,6 +82,7 @@ end
 local panelControls = {}
 local appliedStyles = {}
 local lastRenderedText = {}
+local lastRenderedSuffix = {}
 local lastHiddenState = {}
 local savedVars
 local settingsPanel
@@ -113,10 +124,12 @@ local function IsFontStyleValid(value)
     return type(value) == "string" and FONT_STYLES[value] ~= nil
 end
 
-local function GetFontName(config)
+local function GetFontName(config, sizeOverride)
     local style = IsFontStyleValid(savedVars.fontStyle) and savedVars.fontStyle or DEFAULTS.fontStyle
     local fontStyle = FONT_STYLES[style]
-    local textSize = Clamp(tonumber(config and config.textSize) or 18, MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+    local minimumSize = sizeOverride ~= nil and MIN_SUFFIX_SIZE or MIN_TEXT_SIZE
+    local maximumSize = sizeOverride ~= nil and MAX_SUFFIX_SIZE or MAX_TEXT_SIZE
+    local textSize = Clamp(tonumber(sizeOverride or (config and config.textSize) or 18), minimumSize, maximumSize)
     local cacheKey = style .. ":" .. tostring(textSize)
     if fontCache[cacheKey] then
         return fontCache[cacheKey]
@@ -205,40 +218,82 @@ local function ReadStats()
     state.physicalPenetration = IsBlockEnabled("pen") and ReadPlayerStat(STAT_PHYSICAL_PENETRATION) or nil
 end
 
-local function FormatSingle(value, suffix)
-    return string.format("%s %s", value and tostring(value) or "--", suffix)
-end
-
-local function FormatPair(first, second, suffix)
-    return string.format(
-        "%s/%s %s",
-        first and tostring(first) or "--",
-        second and tostring(second) or "--",
-        suffix
-    )
-end
-
-local function GetBlockText(blockId)
+local function GetBlockValueText(blockId)
     if blockId == "wpd" then
-        return FormatSingle(state.wpd, "WPD")
+        return state.wpd and tostring(state.wpd) or "--"
     elseif blockId == "arm" then
-        return FormatPair(state.spellResist, state.physicalResist, "ARM")
+        return string.format(
+            "%s/%s",
+            state.spellResist and tostring(state.spellResist) or "--",
+            state.physicalResist and tostring(state.physicalResist) or "--"
+        )
     elseif blockId == "mreg" then
-        return FormatSingle(state.magickaRecovery, "MREG")
+        return state.magickaRecovery and tostring(state.magickaRecovery) or "--"
     elseif blockId == "sreg" then
-        return FormatSingle(state.staminaRecovery, "SREG")
+        return state.staminaRecovery and tostring(state.staminaRecovery) or "--"
     elseif blockId == "crit" then
-        return FormatSingle(state.critical, "CRIT")
+        return state.critical and tostring(state.critical) or "--"
     elseif blockId == "pen" then
-        return FormatPair(state.spellPenetration, state.physicalPenetration, "PEN")
+        return string.format(
+            "%s/%s",
+            state.spellPenetration and tostring(state.spellPenetration) or "--",
+            state.physicalPenetration and tostring(state.physicalPenetration) or "--"
+        )
     end
 
     return "--"
 end
 
+local function GetBlockSuffix(blockId)
+    if blockId == "wpd" then
+        return "WPD"
+    elseif blockId == "arm" then
+        return "ARM"
+    elseif blockId == "mreg" then
+        return "MREG"
+    elseif blockId == "sreg" then
+        return "SREG"
+    elseif blockId == "crit" then
+        return "CRIT"
+    elseif blockId == "pen" then
+        return "PEN"
+    end
+
+    return ""
+end
+
+local function ConfigureSingleLineLabel(label)
+    if type(label.SetMaxLineCount) == "function" then
+        label:SetMaxLineCount(1)
+    end
+
+    if type(label.SetWrapMode) == "function" and TEXT_WRAP_MODE_TRUNCATE ~= nil then
+        label:SetWrapMode(TEXT_WRAP_MODE_TRUNCATE)
+    end
+end
+
+local function MeasureLabelWidth(label, fallbackWidth, height)
+    -- Measure while the label has enough room for the complete value. If it
+    -- is measured while already wrapped, GetTextWidth can return the width of
+    -- only one character and make the final block too narrow.
+    label:ClearAnchors()
+    label:SetDimensions(MAX_BLOCK_WIDTH, height)
+
+    local measuredWidth = type(label.GetTextWidth) == "function" and tonumber(label:GetTextWidth()) or nil
+    if measuredWidth and measuredWidth > 0 then
+        return math.ceil(measuredWidth)
+    end
+
+    return fallbackWidth
+end
+
 local function ApplyBlockStyle(definition, controls)
     local config = GetBlockConfig(definition)
+    local suffixEnabled = config.suffixEnabled == true
     local font = GetFontName(config)
+    local suffixSize = Clamp(math.floor(tonumber(config.suffixTextSize) or 10), MIN_SUFFIX_SIZE, MAX_SUFFIX_SIZE)
+    local suffixFont = suffixEnabled and GetFontName(config, suffixSize) or ""
+    local valueText = lastRenderedText[definition.id] or ""
     local cachedStyle = appliedStyles[definition.id]
     if cachedStyle
         and cachedStyle.x == config.x
@@ -247,24 +302,67 @@ local function ApplyBlockStyle(definition, controls)
         and cachedStyle.textSize == config.textSize
         and cachedStyle.sidePadding == config.sidePadding
         and cachedStyle.panelAlpha == savedVars.panelAlpha
-        and cachedStyle.font == font then
+        and cachedStyle.font == font
+        and cachedStyle.suffixFont == suffixFont
+        and cachedStyle.suffixEnabled == suffixEnabled
+        and cachedStyle.suffixTextSize == config.suffixTextSize
+        and cachedStyle.valueText == valueText
+        then
         return
     end
 
+    -- Apply the font before measuring the value. Otherwise a Text size
+    -- change would calculate the block width using the previous font size.
+    controls.text:SetFont(font)
+    ConfigureSingleLineLabel(controls.text)
+    if suffixEnabled then
+        controls.suffix:SetFont(suffixFont)
+        ConfigureSingleLineLabel(controls.suffix)
+    end
+
+    local valueFallback = math.max(100, math.ceil(#valueText * config.textSize * 0.7))
+    local valueWidth = MeasureLabelWidth(controls.text, valueFallback, BLOCK_HEIGHT)
+
+    local suffixWidth = 0
+    if suffixEnabled then
+        local suffixText = GetBlockSuffix(definition.id)
+        local suffixFallback = math.max(24, math.ceil(suffixSize * 0.6 * #suffixText))
+        suffixWidth = MeasureLabelWidth(controls.suffix, suffixFallback, suffixSize + 4)
+    end
+
+    local width = Clamp(
+        math.ceil(valueWidth) + TEXT_WIDTH_BUFFER + config.sidePadding * 2 + suffixWidth + (suffixEnabled and SUFFIX_GAP or 0),
+        MIN_BLOCK_WIDTH,
+        MAX_BLOCK_WIDTH
+    )
+    local valueRightInset = config.sidePadding + suffixWidth + (suffixEnabled and SUFFIX_GAP or 0)
+
     controls.control:ClearAnchors()
     controls.control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, config.x, config.y)
+    controls.control:SetDimensions(width, BLOCK_HEIGHT)
     controls.control:SetScale(config.scale)
     controls.background:SetAlpha(savedVars.panelAlpha)
     controls.text:ClearAnchors()
     controls.text:SetAnchor(TOPLEFT, controls.control, TOPLEFT, config.sidePadding, 0)
-    controls.text:SetAnchor(BOTTOMRIGHT, controls.control, BOTTOMRIGHT, -config.sidePadding, 0)
-    controls.text:SetFont(font)
+    controls.text:SetAnchor(BOTTOMRIGHT, controls.control, BOTTOMRIGHT, -valueRightInset, 0)
     controls.text:SetColor(1, 1, 1, 1)
     controls.text:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     controls.text:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     controls.text:SetDrawLayer(DL_OVERLAY)
     controls.text:SetDrawTier(DT_HIGH)
     controls.text:SetDrawLevel(5)
+    controls.suffix:ClearAnchors()
+    if suffixEnabled then
+        controls.suffix:SetDimensions(suffixWidth, suffixSize + 4)
+        controls.suffix:SetAnchor(TOPRIGHT, controls.control, TOPRIGHT, -SUFFIX_INSET, SUFFIX_INSET)
+        controls.suffix:SetColor(1, 1, 1, 1)
+        controls.suffix:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        controls.suffix:SetVerticalAlignment(TEXT_ALIGN_TOP)
+        controls.suffix:SetDrawLayer(DL_OVERLAY)
+        controls.suffix:SetDrawTier(DT_HIGH)
+        controls.suffix:SetDrawLevel(6)
+    end
+    controls.suffix:SetHidden(not suffixEnabled)
     appliedStyles[definition.id] = {
         x = config.x,
         y = config.y,
@@ -273,6 +371,12 @@ local function ApplyBlockStyle(definition, controls)
         sidePadding = config.sidePadding,
         panelAlpha = savedVars.panelAlpha,
         font = font,
+        suffixFont = suffixFont,
+        suffixEnabled = suffixEnabled,
+        suffixTextSize = config.suffixTextSize,
+        valueText = valueText,
+        suffixWidth = suffixWidth,
+        width = width,
     }
 end
 
@@ -293,6 +397,7 @@ local function RenderBlock(definition)
     local config = GetBlockConfig(definition)
     if not config.enabled then
         lastRenderedText[definition.id] = nil
+        lastRenderedSuffix[definition.id] = nil
         if lastHiddenState[definition.id] ~= true then
             controls.control:SetHidden(true)
             lastHiddenState[definition.id] = true
@@ -300,10 +405,16 @@ local function RenderBlock(definition)
         return
     end
 
-    local text = GetBlockText(definition.id)
+    local text = GetBlockValueText(definition.id)
     if lastRenderedText[definition.id] ~= text then
         controls.text:SetText(text)
         lastRenderedText[definition.id] = text
+    end
+
+    local suffix = GetBlockSuffix(definition.id)
+    if lastRenderedSuffix[definition.id] ~= suffix then
+        controls.suffix:SetText(suffix)
+        lastRenderedSuffix[definition.id] = suffix
     end
 
     local hidden = not IsBlockAllowedByVisibility(config)
@@ -525,6 +636,8 @@ local function ResetBlock(definition)
         y = defaults.y,
         scale = defaults.scale,
         textSize = defaults.textSize,
+        suffixEnabled = defaults.suffixEnabled,
+        suffixTextSize = defaults.suffixTextSize,
         sidePadding = defaults.sidePadding,
     }
 end
@@ -597,8 +710,8 @@ local function AppendBlockSettings(options, definition)
     }
     options[#options + 1] = {
         type = "slider",
-        name = definition.label .. " Text size",
-        tooltip = "Changes the text size inside this block.",
+        name = definition.label .. " Value text size",
+        tooltip = "Changes the size of the main value inside this block.",
         min = MIN_TEXT_SIZE,
         max = MAX_TEXT_SIZE,
         step = 1,
@@ -609,6 +722,32 @@ local function AppendBlockSettings(options, definition)
             ApplyAllBlockSettings()
         end,
         default = GetBlockDefaults(definition).textSize,
+    }
+    options[#options + 1] = {
+        type = "checkbox",
+        name = "Show " .. definition.label .. " label",
+        tooltip = "Shows or hides the small label in the top-right corner of this block.",
+        getFunc = function() return GetBlockConfig(definition).suffixEnabled end,
+        setFunc = function(value)
+            GetBlockConfig(definition).suffixEnabled = value == true
+            ApplyAllBlockSettings()
+        end,
+        default = GetBlockDefaults(definition).suffixEnabled,
+    }
+    options[#options + 1] = {
+        type = "slider",
+        name = definition.label .. " Label text size",
+        tooltip = "Changes the size of the small label in the top-right corner of this block.",
+        min = MIN_SUFFIX_SIZE,
+        max = MAX_SUFFIX_SIZE,
+        step = 1,
+        decimals = 0,
+        getFunc = function() return GetBlockConfig(definition).suffixTextSize end,
+        setFunc = function(value)
+            GetBlockConfig(definition).suffixTextSize = Clamp(math.floor(tonumber(value) or 10), MIN_SUFFIX_SIZE, MAX_SUFFIX_SIZE)
+            ApplyAllBlockSettings()
+        end,
+        default = GetBlockDefaults(definition).suffixTextSize,
     }
     options[#options + 1] = {
         type = "slider",
@@ -781,6 +920,8 @@ local function NormalizeSavedVars()
         config.y = Clamp(math.floor(tonumber(config.y) or defaults.y), MIN_POSITION_Y, MAX_POSITION_Y)
         config.scale = Clamp(tonumber(config.scale) or defaults.scale, MIN_SCALE, MAX_SCALE)
         config.textSize = Clamp(math.floor(tonumber(config.textSize) or defaults.textSize), MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+        config.suffixEnabled = config.suffixEnabled ~= false
+        config.suffixTextSize = Clamp(math.floor(tonumber(config.suffixTextSize) or defaults.suffixTextSize), MIN_SUFFIX_SIZE, MAX_SUFFIX_SIZE)
         config.sidePadding = Clamp(math.floor(tonumber(config.sidePadding) or defaults.sidePadding), MIN_SIDE_PADDING, MAX_SIDE_PADDING)
     end
 end
@@ -791,7 +932,8 @@ local function CreateBlockControls()
         local control = _G[rootName]
         local background = control and control:GetNamedChild("Background")
         local text = control and control:GetNamedChild("Text")
-        if not control or not background or not text then
+        local suffix = control and control:GetNamedChild("Suffix")
+        if not control or not background or not text or not suffix then
             AddChatLine("HUD controls missing for block " .. definition.label)
             return false
         end
@@ -800,6 +942,7 @@ local function CreateBlockControls()
             control = control,
             background = background,
             text = text,
+            suffix = suffix,
         }
     end
 

@@ -56,39 +56,24 @@ function QTI.RegisterSettings()
 			name = "|t35:35:/esoui/art/treeicons/gamepad/gp_tools.dds|t General Settings",
 		},
 		{
-			type = "slider",
-			name = "Width",
-			tooltip = "Total width of the quest tracker panel and its lines.",
-			min = 100,
-			max = 600,
-			step = 1,
-			getFunc = function() return QTI.SV.width end,
-			setFunc = function(value) QTI.SV.width = value; QTI.RefreshAll() end,
-		},
-		{
-			type = "slider",
-			name = "Icon Size",
-			tooltip = "Size of the quest icon shown next to the header.",
-			min = 8,
-			max = 48,
-			step = 1,
-			getFunc = function() return QTI.SV.iconSize end,
-			setFunc = function(value) QTI.SV.iconSize = value; QTI.RefreshAll() end,
-		},
-		{
 			type = "checkbox",
 			name = "Hide Pinned Golden Pursuits",
 			tooltip = "Hides pinned Golden Pursuits task under quest tracker.",
-			min = 8,
-			max = 48,
-			step = 1,
 			getFunc = function() return QTI.SV.hidePursuits end,
 			setFunc = function(value) QTI.SV.hidePursuits = value end,
 			requiresReload = true,
 		},
 		{
 			type = "checkbox",
-			name = "Keep Activities Under QuestTracker",
+			name = "Hide Infinite Archive Tracker",
+			tooltip = "Hides Infinite Archive Tracker panel.",
+			getFunc = function() return QTI.SV.hideArchive end,
+			setFunc = function(value) QTI.SV.hideArchive = value end,
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
+			name = "Keep ActivityTrackers Under QuestTracker",
 			tooltip = "Anchors the shared tracker container (activity, housing, etc.) under the quest tracker.",
 			getFunc = function() return QTI.SV.stickyTrackers end,
 			setFunc = function(value)
@@ -97,203 +82,227 @@ function QTI.RegisterSettings()
 			requiresReload = true,
 		},
 		{
-			type = "header",
-			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Quest Header",
-		},
-		{
-			type = "dropdown",
-			name = "Font",
-			tooltip = "Font used for the quest name.",
-			choices = FONT_CHOICES,
-			choicesValues = FONT_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.headerFont end,
-			setFunc = function(value) QTI.SV.headerFont = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "slider",
-			name = "Size",
-			tooltip = "Size of the quest name font.",
-			min = 8,
-			max = 40,
-			step = 1,
-			getFunc = function() return QTI.SV.headerSize end,
-			setFunc = function(value) QTI.SV.headerSize = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "colorpicker",
-			name = "Color",
-			tooltip = "Text color of the quest name.",
-			getFunc = function()
-				local c = QTI.SV.headerColor
-				return c.r, c.g, c.b, c.a
-			end,
-			setFunc = function(r, g, b, a)
-				QTI.SV.headerColor = { r = r, g = g, b = b, a = a }
-				QTI.RefreshAll()
-			end,
-			width = "half",
-		},
-		{
-			type = "dropdown",
-			name = "Style",
-			tooltip = "Text style of the quest name.",
-			choices = STYLE_CHOICES,
-			choicesValues = STYLE_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.headerStyle end,
-			setFunc = function(value) QTI.SV.headerStyle = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-
-		{
-			type = "header",
-			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Description",
-		},
-		{
-			type = "dropdown",
-			name = "Font",
-			tooltip = "Font used for main quest conditions.",
-			choices = FONT_CHOICES,
-			choicesValues = FONT_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.conditionFont end,
-			setFunc = function(value) QTI.SV.conditionFont = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "slider",
-			name = "Size",
-			tooltip = "Size of the condition font.",
-			min = 8,
-			max = 40,
-			step = 1,
-			getFunc = function() return QTI.SV.conditionSize end,
-			setFunc = function(value) QTI.SV.conditionSize = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "colorpicker",
-			name = "Color",
-			tooltip = "Text color of main quest conditions.",
-			getFunc = function()
-				local c = QTI.SV.conditionColor
-				return c.r, c.g, c.b, c.a
-			end,
-			setFunc = function(r, g, b, a)
-				QTI.SV.conditionColor = { r = r, g = g, b = b, a = a }
-				QTI.RefreshAll()
-			end,
-			width = "half",
-		},
-		{
-			type = "dropdown",
-			name = "Style",
-			tooltip = "Text style of conditions.",
-			choices = STYLE_CHOICES,
-			choicesValues = STYLE_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.conditionStyle end,
-			setFunc = function(value) QTI.SV.conditionStyle = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-
-		{
-			type = "header",
-			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Hints",
-		},
-		{
-			type = "dropdown",
-			name = "Font",
-			tooltip = "Font used for hint steps.",
-			choices = FONT_CHOICES,
-			choicesValues = FONT_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.hintFont end,
-			setFunc = function(value) QTI.SV.hintFont = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "slider",
-			name = "Size",
-			tooltip = "Size of the hint font.",
-			min = 8,
-			max = 40,
-			step = 1,
-			getFunc = function() return QTI.SV.hintSize end,
-			setFunc = function(value) QTI.SV.hintSize = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "colorpicker",
-			name = "Color",
-			tooltip = "Text color of hint steps.",
-			getFunc = function()
-				local c = QTI.SV.hintColor
-				return c.r, c.g, c.b, c.a
-			end,
-			setFunc = function(r, g, b, a)
-				QTI.SV.hintColor = { r = r, g = g, b = b, a = a }
-				QTI.RefreshAll()
-			end,
-			width = "half",
-		},
-		{
-			type = "dropdown",
-			name = "Style",
-			tooltip = "Text style of hint steps.",
-			choices = STYLE_CHOICES,
-			choicesValues = STYLE_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.hintStyle end,
-			setFunc = function(value) QTI.SV.hintStyle = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-
-		{
-			type = "header",
-			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Hint Description",
-		},
-		{
-			type = "dropdown",
-			name = "Font",
-			tooltip = "Font used for hint section headers.",
-			choices = FONT_CHOICES,
-			choicesValues = FONT_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.hintDescFont end,
-			setFunc = function(value) QTI.SV.hintDescFont = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "slider",
-			name = "Size",
-			tooltip = "Size of the hint description font.",
-			min = 8,
-			max = 40,
-			step = 1,
-			getFunc = function() return QTI.SV.hintDescSize end,
-			setFunc = function(value) QTI.SV.hintDescSize = value; QTI.RefreshAll() end,
-			width = "half",
-		},
-		{
-			type = "colorpicker",
-			name = "Color",
-			tooltip = "Text color of hint section headers.",
-			getFunc = function()
-				local c = QTI.SV.hintDescColor
-				return c.r, c.g, c.b, c.a
-			end,
-			setFunc = function(r, g, b, a)
-				QTI.SV.hintDescColor = { r = r, g = g, b = b, a = a }
-				QTI.RefreshAll()
-			end,
-			width = "half",
-		},
-		{
-			type = "dropdown",
-			name = "Style",
-			tooltip = "Text style of hint descriptions.",
-			choices = STYLE_CHOICES,
-			choicesValues = STYLE_CHOICES_VALUES,
-			getFunc = function() return QTI.SV.hintDescStyle end,
-			setFunc = function(value) QTI.SV.hintDescStyle = value; QTI.RefreshAll() end,
-			width = "half",
+			type = "submenu",
+			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Quest Tracker",
+			tooltip = "Styling for the quest tracker panel.",
+			controls = {
+				{
+					type = "slider",
+					name = "Width",
+					tooltip = "Total width of the quest tracker panel and its lines.",
+					min = 100,
+					max = 600,
+					step = 1,
+					getFunc = function() return QTI.SV.width end,
+					setFunc = function(value) QTI.SV.width = value; QTI.RefreshAll() end,
+				},
+				{
+					type = "slider",
+					name = "Icon Size",
+					tooltip = "Size of the quest icon shown next to the header.",
+					min = 8,
+					max = 48,
+					step = 1,
+					getFunc = function() return QTI.SV.iconSize end,
+					setFunc = function(value) QTI.SV.iconSize = value; QTI.RefreshAll() end,
+				},
+				{
+					type = "header",
+					name = "Quest Header",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for the quest name.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.headerFont end,
+					setFunc = function(value) QTI.SV.headerFont = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the quest name font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.headerSize end,
+					setFunc = function(value) QTI.SV.headerSize = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of the quest name.",
+					getFunc = function()
+						local c = QTI.SV.headerColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.headerColor = { r = r, g = g, b = b, a = a }
+						QTI.RefreshAll()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of the quest name.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.headerStyle end,
+					setFunc = function(value) QTI.SV.headerStyle = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "header",
+					name = "Description",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for main quest conditions.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.conditionFont end,
+					setFunc = function(value) QTI.SV.conditionFont = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the condition font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.conditionSize end,
+					setFunc = function(value) QTI.SV.conditionSize = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of main quest conditions.",
+					getFunc = function()
+						local c = QTI.SV.conditionColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.conditionColor = { r = r, g = g, b = b, a = a }
+						QTI.RefreshAll()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of conditions.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.conditionStyle end,
+					setFunc = function(value) QTI.SV.conditionStyle = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "header",
+					name = "Hints",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for hint steps.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.hintFont end,
+					setFunc = function(value) QTI.SV.hintFont = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the hint font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.hintSize end,
+					setFunc = function(value) QTI.SV.hintSize = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of hint steps.",
+					getFunc = function()
+						local c = QTI.SV.hintColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.hintColor = { r = r, g = g, b = b, a = a }
+						QTI.RefreshAll()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of hint steps.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.hintStyle end,
+					setFunc = function(value) QTI.SV.hintStyle = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "header",
+					name = "Hint Description",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for hint section headers.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.hintDescFont end,
+					setFunc = function(value) QTI.SV.hintDescFont = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the hint description font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.hintDescSize end,
+					setFunc = function(value) QTI.SV.hintDescSize = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of hint section headers.",
+					getFunc = function()
+						local c = QTI.SV.hintDescColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.hintDescColor = { r = r, g = g, b = b, a = a }
+						QTI.RefreshAll()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of hint descriptions.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.hintDescStyle end,
+					setFunc = function(value) QTI.SV.hintDescStyle = value; QTI.RefreshAll() end,
+					width = "half",
+				},
+			},
 		},
 --DynamicEvents
 		{
@@ -328,11 +337,12 @@ function QTI.RegisterSettings()
 					end,
 				},
 				{
-					type = "divider",
+					type = "header",
+					name = "Header",
 				},
 				{
 					type = "dropdown",
-					name = "Header Font",
+					name = "Font",
 					tooltip = "Font used for the dynamic event step name.",
 					choices = FONT_CHOICES,
 					choicesValues = FONT_CHOICES_VALUES,
@@ -342,7 +352,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "slider",
-					name = "Header Size",
+					name = "Size",
 					tooltip = "Size of the dynamic event step name.",
 					min = 8,
 					max = 40,
@@ -353,7 +363,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "colorpicker",
-					name = "Header Color",
+					name = "Color",
 					tooltip = "Text color of the dynamic event step name.",
 					getFunc = function()
 						local c = QTI.SV.dynamicEventsHeaderColor
@@ -367,7 +377,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "dropdown",
-					name = "Header Style",
+					name = "Style",
 					tooltip = "Text style of the dynamic event step name.",
 					choices = STYLE_CHOICES,
 					choicesValues = STYLE_CHOICES_VALUES,
@@ -376,11 +386,12 @@ function QTI.RegisterSettings()
 					width = "half",
 				},
 				{
-					type = "divider",
+					type = "header",
+					name = "Description",
 				},
 				{
 					type = "dropdown",
-					name = "Description Font",
+					name = "Font",
 					tooltip = "Font used for the dynamic event step description.",
 					choices = FONT_CHOICES,
 					choicesValues = FONT_CHOICES_VALUES,
@@ -390,7 +401,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "slider",
-					name = "Description Size",
+					name = "Size",
 					tooltip = "Size of the dynamic event step description.",
 					min = 8,
 					max = 40,
@@ -401,7 +412,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "colorpicker",
-					name = "Description Color",
+					name = "Color",
 					tooltip = "Text color of the dynamic event step description.",
 					getFunc = function()
 						local c = QTI.SV.dynamicEventsSubLabelColor
@@ -415,7 +426,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "dropdown",
-					name = "Description Style",
+					name = "Style",
 					tooltip = "Text style of the dynamic event step description.",
 					choices = STYLE_CHOICES,
 					choicesValues = STYLE_CHOICES_VALUES,
@@ -444,11 +455,12 @@ function QTI.RegisterSettings()
 					end,
 				},
 				{
-					type = "divider",
+					type = "header",
+					name = "House Name",
 				},
 				{
 					type = "dropdown",
-					name = "House Name Font",
+					name = "Font",
 					tooltip = "Font used for the house name.",
 					choices = FONT_CHOICES,
 					choicesValues = FONT_CHOICES_VALUES,
@@ -458,7 +470,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "slider",
-					name = "House Name Size",
+					name = "Size",
 					tooltip = "Size of the house name font.",
 					min = 8,
 					max = 40,
@@ -469,7 +481,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "colorpicker",
-					name = "House Name Color",
+					name = "Color",
 					tooltip = "Text color of the house name.",
 					getFunc = function()
 						local c = QTI.SV.houseHeaderColor
@@ -483,7 +495,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "dropdown",
-					name = "House Name Style",
+					name = "Style",
 					tooltip = "Text style of the house name.",
 					choices = STYLE_CHOICES,
 					choicesValues = STYLE_CHOICES_VALUES,
@@ -492,11 +504,12 @@ function QTI.RegisterSettings()
 					width = "half",
 				},
 				{
-					type = "divider",
+					type = "header",
+					name = "Description",
 				},
 				{
 					type = "dropdown",
-					name = "Description Font",
+					name = "Font",
 					tooltip = "Font used for the nickname and owner lines.",
 					choices = FONT_CHOICES,
 					choicesValues = FONT_CHOICES_VALUES,
@@ -506,7 +519,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "slider",
-					name = "Description Size",
+					name = "Size",
 					tooltip = "Size of the nickname and owner font.",
 					min = 8,
 					max = 40,
@@ -517,7 +530,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "colorpicker",
-					name = "Description Color",
+					name = "Color",
 					tooltip = "Text color of the nickname and owner lines.",
 					getFunc = function()
 						local c = QTI.SV.houseSubLabelColor
@@ -531,7 +544,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "dropdown",
-					name = "Description Style",
+					name = "Style",
 					tooltip = "Text style of the nickname and owner lines.",
 					choices = STYLE_CHOICES,
 					choicesValues = STYLE_CHOICES_VALUES,
@@ -540,11 +553,12 @@ function QTI.RegisterSettings()
 					width = "half",
 				},
 				{
-					type = "divider",
+					type = "header",
+					name = "Population",
 				},
 				{
 					type = "dropdown",
-					name = "Population Font",
+					name = "Font",
 					tooltip = "Font used for the population line.",
 					choices = FONT_CHOICES,
 					choicesValues = FONT_CHOICES_VALUES,
@@ -554,7 +568,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "slider",
-					name = "Population Size",
+					name = "Size",
 					tooltip = "Size of the population font.",
 					min = 8,
 					max = 40,
@@ -565,7 +579,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "colorpicker",
-					name = "Population Color",
+					name = "Color",
 					tooltip = "Text color of the population line.",
 					getFunc = function()
 						local c = QTI.SV.housePopulationColor
@@ -579,7 +593,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "dropdown",
-					name = "Population Style",
+					name = "Style",
 					tooltip = "Text style of the population line.",
 					choices = STYLE_CHOICES,
 					choicesValues = STYLE_CHOICES_VALUES,
@@ -588,11 +602,12 @@ function QTI.RegisterSettings()
 					width = "half",
 				},
 				{
-					type = "divider",
+					type = "header",
+					name = "Tags",
 				},
 				{
 					type = "dropdown",
-					name = "Tags Font",
+					name = "Font",
 					tooltip = "Font used for the tags line.",
 					choices = FONT_CHOICES,
 					choicesValues = FONT_CHOICES_VALUES,
@@ -602,7 +617,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "slider",
-					name = "Tags Size",
+					name = "Size",
 					tooltip = "Size of the tags font.",
 					min = 8,
 					max = 40,
@@ -613,7 +628,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "colorpicker",
-					name = "Tags Color",
+					name = "Color",
 					tooltip = "Text color of the tags line.",
 					getFunc = function()
 						local c = QTI.SV.houseTagsColor
@@ -627,7 +642,7 @@ function QTI.RegisterSettings()
 				},
 				{
 					type = "dropdown",
-					name = "Tags Style",
+					name = "Style",
 					tooltip = "Text style of the tags line.",
 					choices = STYLE_CHOICES,
 					choicesValues = STYLE_CHOICES_VALUES,
@@ -641,4 +656,39 @@ function QTI.RegisterSettings()
 
 	LAM:RegisterAddonPanel("QuestTrackerImprovedPanel", panelData)
 	LAM:RegisterOptionControls("QuestTrackerImprovedPanel", optionsData)
+
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+		if panel == QuestTrackerImprovedPanel then
+			QTI.ShowPreview()
+		end
+	end)
+
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
+		if panel == QuestTrackerImprovedPanel then
+			QTI.HidePreview()
+		end
+	end)
+end
+
+local TRACKER_FRAGMENTS = {
+	FOCUSED_QUEST_TRACKER:GetFragment(),
+	DYNAMIC_EVENTS_TRACKER:GetFragment(),
+	HOUSE_INFORMATION_TRACKER:GetFragment(),
+	ACTIVITY_TRACKER:GetFragment(),
+	TIMED_ACTIVITY_TRACKER:GetFragment(),
+	ENDLESS_DUNGEON_HUD_TRACKER:GetFragment(),
+}
+
+function QTI.ShowPreview()
+	local scene = SCENE_MANAGER:GetScene("gameMenuInGame")
+	for _, fragment in ipairs(TRACKER_FRAGMENTS) do
+		scene:AddFragment(fragment)
+	end
+end
+
+function QTI.HidePreview()
+	local scene = SCENE_MANAGER:GetScene("gameMenuInGame")
+	for _, fragment in ipairs(TRACKER_FRAGMENTS) do
+		scene:RemoveFragment(fragment)
+	end
 end

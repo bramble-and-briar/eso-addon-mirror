@@ -11,10 +11,23 @@ PP = {
 	ADDON_NAME		= 'PerfectPixel',
 	ADDON_AUTHOR	= '@KL1SK, Baertram, Dakjaniels',
 	ADDON_WEBSITE	= 'https://www.esoui.com/downloads/info2103-PerfectPixel.html',
-	ADDON_VERSION 	= '0.13.39',
+	ADDON_VERSION 	= '0.13.40',
 }
 
 local PP = PP ---@class PP
+
+--[[ LATEST UPDATE
+Version:	0.13.40
+Date:		2026-10-18
+Author:		@DakJaniels
+
+fix: edgecase error
+feat: add HUD trackers module and integrate with progress bars
+feat: add styling for Rumor Rewards dialog in dialogsMenu
+feat: implement generic selector scene and style interact window comp… -> prepared for Update 52
+feat: refactor mail scene layout and styling
+]]
+
 
 --====================================================================
 -- PP Constants -v-
@@ -65,6 +78,7 @@ EVENT_MANAGER:RegisterForEvent(PP.ADDON_NAME, EVENT_ADD_ON_LOADED, function(even
 		PP.contextMenus()
 		PP.compass()
 		PP.reticle()
+		PP.hudTrackers()
 		PP.tabs()
 		PP.dialogsMenu()
 		PP.chatWindow()
@@ -80,6 +94,9 @@ EVENT_MANAGER:RegisterForEvent(PP.ADDON_NAME, EVENT_ADD_ON_LOADED, function(even
 		PP.craftStationScenes()
 		PP.statsScene()
         PP.challengeDifficultyScene()
+		PP.genericSelectorScene()
+		-- Trial progression UI is delayed until U52.
+		--PP.trialProgressionScene()
 		PP.skillsScene()
 		PP.journalSceneGroup()
 		PP.collectionsSceneGroup()

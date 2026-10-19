@@ -1,0 +1,331 @@
+-- Developer-only audit oracle; never loaded by the addon manifest.
+local L = LiveBuffUptimeLocalization and LiveBuffUptimeLocalization.Text or function(text) return text end
+LiveBuffUptimeDiagnostics = {}
+local Audit = LiveBuffUptimeDiagnostics
+
+function Audit.NewPerformance(clock)
+    return { enabled = false, clock = clock, buckets = {}, depth = 0, total = 0,
+        frames = 0, frameMS = 0, maxFrameMS = 0, slowFrames = 0 }
+end
+
+function Audit.PerformanceEnabled(perf, enabled)
+    perf.enabled = enabled
+    if enabled then
+        perf.buckets, perf.depth, perf.total = {}, 0, 0
+        perf.frames, perf.frameMS, perf.maxFrameMS, perf.slowFrames = 0, 0, 0, 0
+        perf.started = perf.clock()
+        perf.stopped = nil
+    end
+end
+
+function Audit.Profile(perf, label, callback)
+    return function(...)
+        if not perf.enabled then return callback(...) end
+        local started = perf.clock()
+        local outer = perf.depth == 0
+        perf.depth = perf.depth + 1
+        local ok, reason = pcall(callback, ...)
+        perf.depth = perf.depth - 1
+        local elapsed = math.max(0, perf.clock() - started)
+        local bucket = perf.buckets[label]
+        if not bucket then
+            bucket = { count = 0, total = 0, max = 0, slow = 0, errors = 0 }
+            perf.buckets[label] = bucket
+        end
+        bucket.count, bucket.total = bucket.count + 1, bucket.total + elapsed
+        bucket.max = math.max(bucket.max, elapsed)
+        if elapsed >= 5 then bucket.slow = bucket.slow + 1 end
+        if not ok then bucket.errors = bucket.errors + 1 end
+        -- Nested callbacks appear in their category, but only once in the overall total.
+        if outer then perf.total = perf.total + elapsed end
+        if not ok then error(reason, 0) end
+    end
+end
+
+function Audit.PerformanceFrame(perf, seconds)
+    if not perf.enabled or not seconds or seconds <= 0 then return end
+    local ms = seconds * 1000
+    perf.frames, perf.frameMS = perf.frames + 1, perf.frameMS + ms
+    perf.maxFrameMS = math.max(perf.maxFrameMS, ms)
+    if ms >= 50 then perf.slowFrames = perf.slowFrames + 1 end
+end
+
+function Audit.ShowPerformance(perf, output)
+    local duration = perf.started and math.max(0, (perf.stopped or perf.clock()) - perf.started) or 0
+    output(string.format(L("LiveBuffUptime Performance: %s | %.1fs | gemessene Addon-Arbeit %.2fms (%.2f%% der Messzeit)"),
+        perf.enabled and L("aktiv") or L("aus"), duration / 1000, perf.total,
+        duration > 0 and perf.total / duration * 100 or 0))
+    for _, label in ipairs({ "Live-Update", L("ESO-Ereignisse"), L("Bibliotheks-Ereignisse"), L("Verschieben") }) do
+        local b = perf.buckets[label]
+        if b then output(string.format(L("%s: %d Aufrufe | Mittel %.3fms | Max %.2fms | ab 5ms: %d | Fehler: %d"),
+            label, b.count, b.total / b.count, b.max, b.slow, b.errors)) end
+    end
+    if perf.frames > 0 then
+        output(string.format(L("Bildzeiten: Mittel %.2fms (~%.1f FPS) | Max %.2fms | ab 50ms: %d"),
+            perf.frameMS / perf.frames, perf.frames * 1000 / perf.frameMS, perf.maxFrameMS, perf.slowFrames))
+    end
+    output(L("Nur unsere Callback-Laufzeiten, keine gesamte LibCombat-/Spiel-/GPU-Zeit. FPS-Ursache nicht automatisch bewiesen; Vergleich mit deaktiviertem Addon noetig."))
+end
+local MAX_JOBS, MAX_OPERATIONS, SLICE = 12, 16384, 128
+local MAX_UNKNOWN = 24
+
+function Audit.RecordUnknown(fight, time, ability, recipient, change, kind)
+    local data = fight and fight.diagnostics
+    if not data then return end
+    data.unknownSourceEvents = (data.unknownSourceEvents or 0) + 1
+    data.unknownEffects = data.unknownEffects or {}
+    fight.unknownEffectIndex = fight.unknownEffectIndex or {}
+    local key = tostring(ability) .. ":" .. tostring(recipient)
+    local entry = fight.unknownEffectIndex[key]
+    if not entry then
+        if #data.unknownEffects >= MAX_UNKNOWN then
+            data.unknownDetailsDropped = (data.unknownDetailsDropped or 0) + 1
+            return
+        end
+        entry = { id = ability, recipient = recipient, kind = kind, first = time, last = time,
+            count = 0, gained = 0, updated = 0, faded = 0 }
+        data.unknownEffects[#data.unknownEffects + 1] = entry
+        fight.unknownEffectIndex[key] = entry
+    end
+    entry.count = entry.count + 1
+    entry.first, entry.last = math.min(entry.first, time), math.max(entry.last, time)
+    entry.kind = kind or entry.kind
+    local field = change == EFFECT_RESULT_GAINED and "gained" or change == EFFECT_RESULT_UPDATED and "updated" or "faded"
+    entry[field] = entry[field] + 1
+end
+
+local function finite(value)
+    return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+
+local function inspect(job)
+    local operations, slice, warnings = 0, 0, {}
+    local function warn(message)
+        if #warnings < 4 then warnings[#warnings + 1] = message end
+    end
+    if job.truncated then warn(L("Mitglieder-Prueflimit erreicht; Ergebnis unvollstaendig")) end
+    if job.incomplete then warn(L("Diagnose nicht ab Messbeginn aktiv")) end
+    local function charge()
+        operations, slice = operations + 1, slice + 1
+        if operations > MAX_OPERATIONS then error(L("Prueflimit erreicht; Ergebnis unvollstaendig"), 0) end
+        if slice >= SLICE then slice = 0; coroutine.yield() end
+    end
+    if not finite(job.starts) or not finite(job.ends) or job.ends < job.starts then
+        return L("WARN: ungueltiges Kampfzeitfenster")
+    end
+    local function sum(intervals, starts, ends)
+        starts, ends = starts or job.starts, ends or job.ends
+        local total, full, previousEnd, clipped = 0, 0, nil, {}
+        for _, interval in ipairs(intervals or {}) do
+            charge()
+            local first, last = interval[1], interval[2]
+            if not finite(first) or not finite(last) or last < first then
+                warn(L("ungueltiger Zeitabschnitt"))
+            else
+                if previousEnd and first < previousEnd then warn(L("ueberlappende Zeitabschnitte")) end
+                previousEnd = last
+                full = full + last - first
+                if interval[3] and (not finite(interval[3]) or math.abs(interval[3] - full) > 0.001) then
+                    warn(L("abweichende Zwischensumme"))
+                end
+                first, last = math.max(starts, first), math.min(ends, last)
+                if last > first then
+                    total = total + last - first
+                    clipped[#clipped + 1] = { first, last }
+                end
+            end
+        end
+        return total, clipped
+    end
+    local function member(data)
+        local starts, ends = data.starts or job.starts, data.ends or job.ends
+        if job.selection and data.placeholder then warn(L("Spieler nicht beobachtet; keine Einheitentyp-Pruefung")) end
+        if job.selection and not data.placeholder then
+            if not finite(starts) or not finite(ends) or ends < starts then
+                warn(L("ungueltige Einheitenzeit"))
+                starts, ends = job.starts, job.starts
+            elseif starts < job.starts - 0.001 or ends > job.ends + 0.001 then
+                warn(L("Einheitenzeit ausserhalb Kampf"))
+            end
+            if LiveBuffUptimeEngine and LiveBuffUptimeEngine.IsPet(data.kind) then warn(L("Begleiter mitgezaehlt")) end
+            if job.selection == "group" and data.kind ~= COMBAT_UNIT_TYPE_PLAYER and data.kind ~= COMBAT_UNIT_TYPE_GROUP then
+                warn(L("Nicht-Spieler in Gruppenmessung"))
+            elseif data.kind == nil then warn(L("Einheitentyp unbekannt")) end
+        end
+        local covered, active = sum(data.intervals, starts, ends)
+        if data.open then
+            if not finite(data.open) then warn(L("ungueltiger offener Buff")) else
+                local first = math.max(starts, data.open)
+                if ends > first then
+                    covered = covered + ends - first
+                    active[#active + 1] = { first, ends }
+                end
+            end
+        end
+        local function eligibleLength(first, last)
+            if not data.aliveWindows then return math.max(0, last - first) end
+            local total = 0
+            for _, window in ipairs(data.aliveWindows) do
+                charge()
+                total = total + math.max(0, math.min(last, window[2]) - math.max(first, window[1]))
+            end
+            return total
+        end
+        if data.aliveWindows then
+            covered = 0
+            for _, interval in ipairs(active) do covered = covered + eligibleLength(interval[1], interval[2]) end
+        end
+        if data.weighted then
+            covered = 0
+            for _, instance in pairs(data.weighted) do
+                charge()
+                local weighted = data.source == "own" and instance.own or instance.all
+                local total, prefix = 0, 0
+                for _, interval in ipairs(weighted.intervals) do
+                    charge()
+                    if not finite(interval[4]) or interval[4] < 0 then warn(L("ungueltiger Stapelwert")) else
+                        prefix = prefix + (interval[2] - interval[1]) * interval[4]
+                        if math.abs(interval[3] - prefix) > 0.001 then warn(L("abweichende Stapel-Zwischensumme")) end
+                        total = total + eligibleLength(math.max(starts, interval[1]), math.min(ends, interval[2])) * interval[4]
+                    end
+                end
+                if weighted.starts then total = total + eligibleLength(math.max(starts, weighted.starts), ends) * weighted.weight end
+                if instance.maxStacks > 0 then covered = covered + total / instance.maxStacks end
+            end
+        end
+        local duration = data.duration or (data.eligibility and sum(data.eligibility, starts, ends) or job.duration)
+        local excluded = 0
+        if data.excluded then
+            local blocked, intervals = sum(data.excluded, starts, ends)
+            local overlap, a, b = 0, 1, 1
+            while active[a] and intervals[b] do
+                charge()
+                local effect, cooldown = active[a], intervals[b]
+                overlap = overlap + math.max(0, math.min(effect[2], cooldown[2]) - math.max(effect[1], cooldown[1]))
+                if effect[2] <= cooldown[2] then a = a + 1 else b = b + 1 end
+            end
+            excluded = blocked - overlap
+        end
+        if not finite(duration) or duration < 0 then warn(L("ungueltige Kampfzeit")); duration = 0 end
+        if not job.weighted and covered > duration + 0.001 then warn(L("Buffzeit groesser als Kampfzeit")) end
+        if data.normalCovered and data.normalCovered > duration + 0.001 then warn(L("Normale Buffzeit groesser als Bezugszeit")) end
+        if excluded < -0.001 or excluded > duration + 0.001 then warn(L("ungueltiger Zeitabzug")) end
+        return covered, duration, excluded
+    end
+    local covered, duration, excluded = 0, 0, 0
+    for _, data in ipairs(job.members) do
+        charge()
+        local active, eligible, blocked = member(data)
+        covered, duration, excluded = covered + active, duration + eligible, excluded + blocked
+    end
+    local denominator = job.group and math.max(0, duration - excluded) or math.max(1, duration - excluded)
+    local percent = denominator > 0 and covered / denominator * 100 or 0
+    local comparedPercent = job.weighted and math.max(0, percent) or math.min(100, math.max(0, percent))
+    if not finite(job.percent) or math.abs(comparedPercent - job.percent) > 0.11 then
+        warn(L("Anzeige und Nachrechnung weichen ab"))
+    end
+    return string.format(L("%s %.1f%% (Buff %.2fs / Zeit %.2fs / Abzug %.2fs)%s"),
+        #warnings == 0 and L("OK intern") or "WARN", percent, covered, duration, excluded,
+        #warnings > 0 and " | " .. table.concat(warnings, "; ") or "")
+end
+
+local freezeFields = { "unit", "view", "personalTime", "uptimeMetric", "includeOverheal", "enabled" }
+
+function Audit.Freeze(tracker, fight, record, now, playerId, targetId)
+    local config = {}
+    for _, field in ipairs(freezeFields) do config[field] = tracker.config[field] end
+    record.freeze = { status = L("wartet"), checks = 0, violations = 0 }
+    tracker.freezeCheck = { fight = fight, record = record, config = config, nextAt = now + 1,
+        since = tracker.state.since, playerId = playerId, targetId = targetId,
+        starts = fight.starts, ends = fight.ends }
+end
+
+function Audit.CheckFrozen(audit, tracker, fight, result, now, playerId, targetId)
+    local check = tracker.freezeCheck
+    if not audit.enabled or not check or check.fight ~= fight or now < check.nextAt then return end
+    check.nextAt = now + 1
+    local changed = check.since ~= tracker.state.since or check.playerId ~= playerId
+        or (tracker.config.unit == "reticleover" and check.targetId ~= targetId)
+    for _, field in ipairs(freezeFields) do changed = changed or check.config[field] ~= tracker.config[field] end
+    if changed then
+        check.record.freeze.status = L("beendet: Auswahl geaendert")
+        tracker.freezeCheck = nil
+        return
+    end
+    local state, record = check.record.freeze, check.record
+    state.checks = state.checks + 1
+    if fight.running or fight.starts ~= check.starts or fight.ends ~= check.ends
+        or not finite(result.covered) or not finite(result.duration) or not finite(result.percent)
+        or math.abs(result.covered - record.covered) > 0.001
+        or math.abs(result.duration - record.duration) > 0.001 or math.abs(result.percent - record.percent) > 0.001 then
+        state.violations = state.violations + 1
+        state.status = L("WARN: Endwerte veraendert")
+        if state.violations == 1 then
+            pcall(audit.output, L("LiveBuffUptime Check: WARN Endwerte nach Kampfabschluss veraendert (ID ") .. record.id .. ").")
+        end
+    elseif state.violations == 0 then state.status = L("OK unveraendert") end
+end
+
+function Audit.New(output)
+    return { enabled = false, jobs = {}, last = {}, output = output, samples = 0, totalMS = 0, maxMS = 0, slow = 0, dropped = 0 }
+end
+
+function Audit.SetEnabled(audit, enabled)
+    audit.enabled = enabled and true or false
+    audit.jobs, audit.last = {}, {}
+    audit.samples, audit.totalMS, audit.maxMS, audit.slow, audit.dropped = 0, 0, 0, 0, 0
+end
+
+function Audit.Queue(audit, job)
+    if not audit.enabled then return end
+    if #audit.jobs >= MAX_JOBS then audit.dropped = audit.dropped + 1; return end
+    audit.jobs[#audit.jobs + 1] = { label = job.label, worker = coroutine.create(function() return inspect(job) end) }
+end
+
+function Audit.RecordTime(audit, elapsed)
+    if not audit.enabled or not finite(elapsed) or elapsed < 0 then return end
+    audit.samples = audit.samples + 1
+    audit.totalMS = audit.totalMS + elapsed
+    audit.maxMS = math.max(audit.maxMS, elapsed)
+    if elapsed >= 5 then audit.slow = audit.slow + 1 end
+end
+
+local function emit(audit, line)
+    -- A broken chat/output hook must not affect the combat addon.
+    pcall(audit.output, "LiveBuffUptime Check: " .. line)
+end
+
+function Audit.Tick(audit)
+    if not audit.enabled or not audit.jobs[1] then return end
+    local job = audit.jobs[1]
+    local ok, result = coroutine.resume(job.worker)
+    if not ok or coroutine.status(job.worker) == "dead" then
+        table.remove(audit.jobs, 1)
+        local line = tostring(job.label or "Tracker") .. ": " .. (ok and tostring(result) or "WARN: " .. tostring(result))
+        if #audit.last >= MAX_JOBS then table.remove(audit.last, 1) end
+        audit.last[#audit.last + 1] = line
+        if audit.persist then pcall(audit.persist, audit) end
+        emit(audit, line)
+        if #audit.jobs == 0 then
+            emit(audit, string.format(L("UI-Rechenzeit max %.2fms / Mittel %.2fms (%d Messungen, %d ab 5ms); %d Pruefungen ausgelassen. OK prueft nur interne Konsistenz."),
+                audit.maxMS, audit.samples > 0 and audit.totalMS / audit.samples or 0, audit.samples, audit.slow, audit.dropped))
+        end
+    end
+end
+
+function Audit.Restore(audit, saved, persist)
+    audit.persist = persist
+    if type(saved) ~= "table" then return end
+    for _, line in ipairs(saved.last or {}) do
+        if type(line) == "string" and #audit.last < MAX_JOBS then audit.last[#audit.last + 1] = line end
+    end
+    for _, key in ipairs({ "samples", "totalMS", "maxMS", "slow", "dropped" }) do
+        if finite(saved[key]) and saved[key] >= 0 then audit[key] = saved[key] end
+    end
+end
+
+function Audit.ShowLast(audit)
+    if #audit.jobs > 0 then emit(audit, tostring(#audit.jobs) .. L(" Pruefungen werden noch bearbeitet.")) end
+    if #audit.last == 0 then emit(audit, L("Noch kein Ergebnis; Pruefung aktivieren und einen Kampf abschliessen.")) end
+    for _, line in ipairs(audit.last) do emit(audit, line) end
+end

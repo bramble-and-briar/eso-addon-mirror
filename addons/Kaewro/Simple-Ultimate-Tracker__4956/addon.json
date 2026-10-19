@@ -18,7 +18,7 @@
     "SimpleUltimateTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4956/",
-  "fingerprint": "63ba65bf3eb15bfca5abf93c6205cde7400f32bac0d904f49e9c3131019ad245",
+  "fingerprint": "87fad35e5fabc023b01121ef02de469bfe68e0591345c6874f0e149d16f698ec",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18005.png",
     "https://cdn-eso.mmoui.com/preview/pvw18006.png",
@@ -30,11 +30,11 @@
   "source_id": "4956",
   "source_url": "https://www.esoui.com/downloads/info4956-SimpleUltimateTracker.html",
   "stats": {
-    "downloads": 66,
+    "downloads": 81,
     "favorites": 2,
-    "monthly_downloads": 33
+    "monthly_downloads": 76
   },
   "title": "Simple Ultimate Tracker",
-  "updated_at": 1792286298000,
-  "version": "1.0.3"
+  "updated_at": 1792371121000,
+  "version": "1.0.4"
 }

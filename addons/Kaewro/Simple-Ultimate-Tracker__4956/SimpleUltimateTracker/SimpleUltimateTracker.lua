@@ -37,6 +37,8 @@ local OPP_LOOK = {
     alpha         = 0.57,  -- picture alpha
     desaturation  = 0,     -- picture desaturation
     backdropAlpha = 1,     -- backdrop behind the picture
+    readyGlow     = 0.25,  -- steady glow while an ultimate is ready
+    flashTime     = 1400,  -- ms a ready flash lasts (3 x 2 x 220 ms, plus a little)
 }
 
 -- Choices for the settings menu
@@ -110,6 +112,8 @@ local DEFAULTS = {
     glowColor          = { r = 1, g = 0.8, b = 0.2, a = 0.45 },
     alertSound         = soundChoices[2] or "None",
     alertFlash         = true,  -- flash the icon when the ultimate becomes ready
+    alertOpposite      = false, -- also alert when the other bar's ultimate becomes ready
+    hideSameOpposite   = true,  -- hide the opposite icon when both bars have the same ultimate
     -- saved positions of the texts (centre, relative to their icon's centre);
     -- by default current/required and the bottom text sit right of the icon
     textPosT           = {
@@ -341,41 +345,57 @@ local function MakeTimeline(control, lowAlpha, highAlpha, duration, loops)
     down:SetDuration(duration)
 
     timeline:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, loops)
-    timeline:SetHandler("OnStop", function() control:SetAlpha(0) end)
     return timeline
 end
 
-local function EnsureTimelines(part)
-    if part.pulse then return end
-    part.pulse = MakeTimeline(part.glow, 0.05, 0.35, 700, LOOP_INDEFINITELY)
-    part.flash = MakeTimeline(part.glow, 0, 0.75, 220, 3)
+-- Two separate layers on an icon while an ultimate is ready:
+--  part.steady: a soft glow, simply shown or hidden (never animated)
+--  part.glow:   the flash, only shown while it plays and hidden right after
+-- (keeping them apart means a finished animation can never leave the icon
+-- covered in colour)
+local function PlayFlash(part)
+    if not part.flashAnim then
+        part.flashAnim = MakeTimeline(part.glow, 0, 0.75, 220, 3)
+    end
+    local c = settings.readyColor
+    part.glow:SetColor(c.r, c.g, c.b, 1)
+    part.glow:SetHidden(false)
+    part.flashAnim:PlayFromStart()
+    part.flashToken = (part.flashToken or 0) + 1
+    local token = part.flashToken
+    zo_callLater(function()
+        if token ~= part.flashToken then return end  -- a newer flash is playing
+        part.flashAnim:Stop()
+        part.glow:SetHidden(true)
+    end, OPP_LOOK.flashTime)
 end
 
-local function SetHighlight(part, on)
+-- Highlight while an ultimate is ready: a short flash the moment it becomes
+-- ready (flash = true), then a steady soft glow (no flash e.g. after a bar swap)
+local function SetHighlight(part, on, flash)
     if on then
-        part.glow:SetColor(settings.readyColor.r, settings.readyColor.g, settings.readyColor.b, 1)
+        local c = settings.readyColor
+        part.steady:SetColor(c.r, c.g, c.b, OPP_LOOK.readyGlow)
+        part.steady:SetHidden(false)
         if not part.pulsing then
             part.pulsing = true
-            EnsureTimelines(part)
-            part.pulse:PlayFromStart()
+            if flash then PlayFlash(part) end
         end
     elseif part.pulsing then
         part.pulsing = false
-        part.pulse:Stop()
-        part.glow:SetAlpha(0)
+        part.steady:SetHidden(true)
     end
 end
 
+-- Ready alert / Test alert
 local function FlashPart(part)
-    EnsureTimelines(part)
-    part.glow:SetColor(settings.readyColor.r, settings.readyColor.g, settings.readyColor.b, 1)
-    part.flash:PlayFromStart()
+    PlayFlash(part)
 end
 
 -- Style of the opposite icon: glow + tinted frame when castable, dimmed otherwise
-local function ApplyOppStyle(part, castable)
+local function ApplyOppStyle(part, castable, flash)
     local highlight = castable and settings.highlightOpposite
-    SetHighlight(part, highlight)
+    SetHighlight(part, highlight, flash)
 
     if part.frame then
         local style = settings.borderStyle
@@ -516,10 +536,17 @@ end
 --  legacy: true for a moment after login while old screen positions are
 --  converted; the layout is then built the way older versions did (without
 --  following rows)
-local textLayout = { layoutReady = false, legacy = false }
+local textLayout = { layoutReady = false, legacy = false, wasReady = {} }
 
 -- "Automatic" placement: with two skill rows each ultimate goes in its own
 -- bar's row (also with static bars); with one row the icon goes above
+-- The opposite icon is in use: switched on, and not hidden because both bars
+-- have the same ultimate (then everything behaves as with the icon off,
+-- e.g. the ultimate is centred between two skill rows)
+textLayout.oppActive = function()
+    return settings.showOpposite and not textLayout.sameUlt
+end
+
 local function FollowRows()
     return settings.oppPlacement == "Automatic" and not textLayout.legacy
 end
@@ -551,7 +578,7 @@ textLayout.swapKey = {
 
 -- true when your ultimate is in the bottom row and the opposite icon in the top row
 local function RowsSwapped()
-    if not (settings.showOpposite and FollowRows()) then return false end
+    if not (textLayout.oppActive() and FollowRows()) then return false end
     local n = ULT_SLOT - 1
     local a = _G["ActionButton" .. n .. "Icon"]
     local b = _G["ActionButton" .. (n + 20) .. "Icon"]
@@ -1050,9 +1077,15 @@ end
 -- They are always shown while positions are unlocked or the settings page is
 -- open, so they can still be set up. The texts are never shown while hidden
 -- (checked where they are shown), so nothing can flash them back, e.g. a bar swap.
+-- The texts are also hidden while you are dead (the game hides the action bar
+-- then, the texts live in their own windows and would stay on screen).
 local function UpdateCombatOnly()
-    local hide = settings.combatOnly and not textsUnlocked and not barInMenu
-        and not IsUnitInCombat("player")
+    -- (textLayout.isDead is set by the death / alive events: right when the
+    -- event fires, IsUnitDead can still report the old state)
+    local dead = textLayout.isDead and not textsUnlocked and not barInMenu
+    textLayout.dead = dead
+    local hide = dead or (settings.combatOnly and not textsUnlocked and not barInMenu
+        and not IsUnitInCombat("player"))
     if hide ~= combatHidden then
         combatHidden = hide
         Refresh()
@@ -1099,7 +1132,8 @@ local function UpdateUltTimer()
         local label = h.label
         local running = left > 0
         -- while positions are unlocked, show a sample so the timer can be moved
-        local show = settings.showTimer and (running or (textsUnlocked and settings.enabled))
+        local show = settings.showTimer and not textLayout.dead
+            and (running or (textsUnlocked and settings.enabled))
         if show then
             label:SetFont(font)
             label:SetColor(c.r, c.g, c.b, c.a)
@@ -1381,7 +1415,7 @@ local function ApplyUltCentering()
                 local topY, bottomY = math.min(ay, by), math.max(ay, by)
                 local gap = bottomY - topY
                 local pos = OppSide()
-                if not settings.showOpposite then
+                if not textLayout.oppActive() then
                     desired = (topY + bottomY) / 2 - defaultY
                 elseif FollowRows() then
                     -- the ultimate goes in the row of the bar you are on
@@ -1409,14 +1443,14 @@ end
 -- shown and one for when it is off (without it, the ultimate is centred on
 -- the action bar until you move it yourself).
 local function SavedUltPos()
-    if settings.showOpposite then
+    if textLayout.oppActive() then
         return settings.ultPos
     end
     return settings.ultPosNoOpp
 end
 
 local function SaveUltPos(pos)
-    if settings.showOpposite then
+    if textLayout.oppActive() then
         settings.ultPos = pos
     else
         settings.ultPosNoOpp = pos
@@ -1428,7 +1462,7 @@ end
 -- height snaps to the row of the bar you are on; your sideways position is
 -- kept. Returns the new top, or nil to leave the position as it is.
 local function RowSnapY(pos)
-    if not (settings.showOpposite and FollowRows()) then return nil end
+    if not (textLayout.oppActive() and FollowRows()) then return nil end
     local n = ULT_SLOT - 1
     local a = _G["ActionButton" .. n .. "Icon"]
     local b = _G["ActionButton" .. (n + 20) .. "Icon"]
@@ -1451,7 +1485,7 @@ local function ApplyUltPosition()
     local pos = nil
     if settings.enabled then
         pos = SavedUltPos()
-        if not pos and textsUnlocked and ultDragMode == settings.showOpposite then
+        if not pos and textsUnlocked and ultDragMode == textLayout.oppActive() then
             pos = ultDragPos
         end
     end
@@ -1501,7 +1535,7 @@ local function CreateUltHandle()
         local pos = { x = self:GetLeft(), y = self:GetTop() }
         SaveUltPos(pos)
         ultDragPos = pos
-        ultDragMode = settings.showOpposite
+        ultDragMode = textLayout.oppActive()
         ultMoved = false  -- force the anchors to be set again
         ApplyUltPosition()
         RefreshPanel()  -- update the X/Y sliders
@@ -1585,7 +1619,14 @@ local function CreateGlowAndLabels(part, icon, prefix, scale, posKey)
     part.glow:SetAnchorFill(icon)
     part.glow:SetDrawLayer(DL_OVERLAY)
     part.glow:SetDrawLevel(5)
-    part.glow:SetAlpha(0)
+    part.glow:SetHidden(true)
+
+    -- steady soft glow while the ultimate is ready
+    part.steady = wm:CreateControl(prefix .. "_Steady", icon, CT_TEXTURE)
+    part.steady:SetAnchorFill(icon)
+    part.steady:SetDrawLayer(DL_OVERLAY)
+    part.steady:SetDrawLevel(5)
+    part.steady:SetHidden(true)
 
     part.valueHolder   = CreateMovableLabel(prefix .. "_Value",   icon, TOP,    posKey .. "Value")
     part.percentHolder = CreateMovableLabel(prefix .. "_Percent", icon, BOTTOM, posKey .. "Percent")
@@ -2058,6 +2099,16 @@ end
 Refresh = function()
     if not created then return end
 
+    -- the same ultimate on both bars: the opposite icon would only be a copy
+    -- (the live slot can report another id for the same skill, so both ids are compared)
+    do
+        local bar = GetActiveHotbarCategory()
+        local other = (bar == HOTBAR_CATEGORY_PRIMARY) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
+        local otherUlt = GetSlotBoundId(ULT_SLOT, other)
+        textLayout.sameUlt = settings.hideSameOpposite and otherUlt ~= nil and otherUlt ~= 0
+            and (otherUlt == GetSlotBoundId(ULT_SLOT) or otherUlt == GetSlotBoundId(ULT_SLOT, bar))
+    end
+
     ApplyUltPosition()
     ApplyUltCentering()
 
@@ -2095,15 +2146,21 @@ Refresh = function()
     local ready = liveId ~= nil and liveCost ~= nil and liveCost > 0 and current >= liveCost
 
     -- glow and green border on your ultimate while it is ready
+    -- (flash only when this ultimate itself just became ready)
+    local wasReady = textLayout.wasReady
+    local flashMain = liveId ~= nil and ready and wasReady[liveId] == false
+    if liveId then wasReady[liveId] = ready end
     local highlight = ready and settings.highlightActive
-    SetHighlight(mainPart, highlight)
+    SetHighlight(mainPart, highlight, flashMain)
     if highlight then
         local c = settings.readyColor
         mainPart.readyFrame:SetEdgeColor(c.r, c.g, c.b, 1)
     end
     mainPart.readyFrame:SetHidden(not highlight)
+    local alerted = false
     if liveId and liveId == prevLiveId and ready and not prevReady then
         TriggerAlert()
+        alerted = true
     end
     prevLiveId, prevReady = liveId, ready
 
@@ -2112,7 +2169,7 @@ Refresh = function()
     local otherBar  = (activeBar == HOTBAR_CATEGORY_PRIMARY) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
 
     local otherId = GetSlotBoundId(ULT_SLOT, otherBar)
-    local hasOther = settings.showOpposite and otherId and otherId ~= 0
+    local hasOther = textLayout.oppActive() and otherId and otherId ~= 0
     if hasOther then
         -- Safety net: a different ultimate must never show the icon your
         -- ultimate button shows; if it would, use the game's own icon for it
@@ -2127,7 +2184,16 @@ Refresh = function()
         oppPart.abilityId = otherId
         local otherCost = OtherCost(otherId)
         ApplyTexts(oppPart, current, otherCost)
-        ApplyOppStyle(oppPart, otherCost and otherCost > 0 and current >= otherCost)
+        local oppReady = otherCost ~= nil and otherCost > 0 and current >= otherCost
+        local flashOpp = oppReady and textLayout.wasReady[otherId] == false
+        textLayout.wasReady[otherId] = oppReady
+        ApplyOppStyle(oppPart, oppReady, flashOpp)
+
+        -- optional ready alert for the other bar's ultimate (so you know to swap)
+        if flashOpp and settings.alertOpposite then
+            if not alerted then PlayAlertSound() end
+            if settings.alertFlash then FlashPart(oppPart) end
+        end
     else
         SetHighlight(oppPart, false)
         oppPart.value:SetHidden(true)
@@ -2218,7 +2284,7 @@ local function UnlockTexts(fromMenu)
 
     -- Same for the ultimate skill itself
     ultDragPos = SavedUltPos() or { x = ultButton:GetLeft(), y = ultButton:GetTop() }
-    ultDragMode = settings.showOpposite
+    ultDragMode = textLayout.oppActive()
     ultMoved = false
     ApplyUltPosition()
     ultHandle.win:SetDimensions(ultButton:GetWidth(), ultButton:GetHeight())
@@ -2288,7 +2354,7 @@ local function ResetPositions()
 
         if textsUnlocked then
             ultDragPos = { x = ultButton:GetLeft(), y = ultButton:GetTop() }
-            ultDragMode = settings.showOpposite
+            ultDragMode = textLayout.oppActive()
             ApplyUltPosition()
             PlaceOppHandle()
         end
@@ -2362,7 +2428,7 @@ local function BuildSettingsMenu()
         name = "SimpleUltimateTracker",
         displayName = "Simple Ultimate Tracker",
         author = "Kaewro",
-        version = "1.0.3",
+        version = "1.0.4",
         registerForRefresh = true,
         registerForDefaults = true,
     }
@@ -2512,7 +2578,7 @@ local function BuildSettingsMenu()
                 local pos = { x = cur.x, y = cur.y }
                 pos[axis] = value
                 SaveUltPos(pos)
-                ultDragPos, ultDragMode = pos, settings.showOpposite
+                ultDragPos, ultDragMode = pos, textLayout.oppActive()
                 ApplyUltPosition()
                 Refresh()
             end,
@@ -2627,6 +2693,8 @@ local function BuildSettingsMenu()
                     c.disabled = function() return not settings.showOpposite end
                     return c
                 end)(),
+                NeedsOpposite(Checkbox("Hide when both bars have the same ultimate", "hideSameOpposite",
+                    "The opposite icon is hidden while your other bar has the same ultimate as the bar you are on, since it would only be a copy.")),
                 NeedsOpposite(Checkbox("Show tooltip on hover", "oppTooltip")),
                 NeedsOpposite(Slider("Size (%)", "oppSize", 50, 100, 5)),
                 (function()
@@ -2766,6 +2834,8 @@ local function BuildSettingsMenu()
             controls = {
                 soundDropdown,
                 Checkbox("Flash icon", "alertFlash"),
+                Checkbox("Also alert for the opposite ultimate", "alertOpposite",
+                    "Also plays the alert (and flashes the opposite icon) when the ultimate on your other bar becomes ready, so you know to swap."),
                 {
                     type = "button",
                     name = "Test alert",
@@ -2829,6 +2899,7 @@ end
 -- Events
 -------------------------------------------------------------------------------
 local function OnPlayerActivated()
+    textLayout.isDead = IsUnitDead("player")  -- e.g. after a /reloadui while dead
     if not created then
         CreateUI()
     end
@@ -2957,6 +3028,16 @@ local function OnAddOnLoaded(_, addonName)
             StartUpdates()
         end
     end)
+    -- hide the texts while dead, show them again when you are alive
+    local function OnDeathChanged(isDead)
+        textLayout.isDead = isDead
+        if created then
+            UpdateCombatOnly()
+            StartUpdates()
+        end
+    end
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_DEAD, function() OnDeathChanged(true) end)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ALIVE, function() OnDeathChanged(false) end)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Slots", EVENT_ACTION_SLOTS_FULL_UPDATE, RefreshSoon)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Hotbars", EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED, RefreshSoon)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Used", EVENT_ACTION_SLOT_ABILITY_USED, OnUltimateUsed)

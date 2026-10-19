@@ -128,6 +128,15 @@ local function PotentialStem(word, class)
 	return word
 end
 
+local O_ROW = { ["う"]="お", ["く"]="こ", ["ぐ"]="ご", ["す"]="そ", ["つ"]="と", ["ぬ"]="の", ["ぶ"]="ぼ", ["む"]="も", ["る"]="ろ" }
+local function Volitional(word, class)
+	if class == "s" then return SuruBase(word) .. "しよう" end
+	if class == "k" then return KuruStem(word, "こ") .. "よう" end
+	local head, last = SplitLast(word)
+	if class == "1" then return head .. "よう" end
+	return head .. (O_ROW[last] or last) .. "う"
+end
+
 T.Stem = Stem
 T.NaiStem = NaiStem
 T.TeForm = TeForm
@@ -326,7 +335,7 @@ function T.Predicate(entry, form)
 		local nested = {}
 		for key, value in pairs(form) do nested[key] = value end
 		nested.aspect = nil
-		local ja = form.aspect == "passive" and (T.PassiveStem(entry.ja, entry.class) .. "る")
+		local ja = form.aspect == "passive" and (T.PassiveStem(entry.ja, entry.class) .. (form.passiveProgressive and "ている" or "る"))
 			or (TeForm(entry.ja, entry.class) .. "いる")
 		return T.Predicate({ja = ja, class = "1"}, nested)
 	end
@@ -334,7 +343,7 @@ function T.Predicate(entry, form)
 		return T.PlainPredicate({ja = PotentialStem(entry.ja, entry.class) .. "る", class = "1"}, form)
 	end
 	if form.plain and form.mode and not PoliteOnlyModes[form.mode] and entry.class ~= "i" and entry.class ~= "na" then
-		local polite = T.Predicate(entry, { past = form.past, negative = form.negative, mode = form.mode })
+		local polite = T.Predicate(entry, { past = form.past, negative = form.negative, mode = form.mode, passiveProgressive = form.passiveProgressive })
 		return ToPlain(polite)
 	end
 	local word, class = entry.ja, entry.class
@@ -387,6 +396,8 @@ function T.Predicate(entry, form)
 		return word .. (past and (negative and "べきではありませんでした" or "べきでした") or (negative and "べきではありません" or "べきです"))
 	elseif mode == "need" then
 		return word .. (past and (negative and "必要はありませんでした" or "必要がありました") or (negative and "必要はありません" or "必要があります"))
+	elseif mode == "try_progressive" then
+		return Masu(Volitional(word, class) .. "としてい", past, negative)
 	elseif mode == "try" then
 		return Masu(TeForm(word, class) .. "み", past, negative)
 	elseif mode == "intend" then
@@ -406,7 +417,7 @@ function T.Predicate(entry, form)
 		-- "have (never) seen" -> 見たことがあります / 見たことがありません
 		return T.PlainPredicate(entry, { past = true }) .. (negative and "ことがありません" or "ことがあります")
 	elseif mode == "passive" then
-		if not past then
+		if not past or form.passiveProgressive then
 			-- "the keep is flipped" is a state: 奪われています
 			return Masu(T.PassiveStem(word, class) .. "てい", past, negative)
 		end

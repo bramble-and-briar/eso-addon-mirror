@@ -14,8 +14,6 @@ local function isEffectsTab(tab)
     return tab == STATS_TAB.EFFECTS_PLAYER or tab == STATS_TAB.EFFECTS_BOSS or tab == STATS_TAB.EFFECTS_GROUP
 end
 
-local canAddToMainMenu = false
-
 -------------------------
 -- BattleScrolls Journal UI (Gamepad)
 -------------------------
@@ -106,8 +104,6 @@ local function AddToMainMenu()
         MAIN_MENU_GAMEPAD:RefreshLists()
         MAIN_MENU_GAMEPAD:UpdateEntryEnabledStates()
     end
-
-    canAddToMainMenu = false
 end
 
 function BattleScrolls_Journal_Gamepad:Initialize(control)
@@ -116,7 +112,9 @@ function BattleScrolls_Journal_Gamepad:Initialize(control)
     self.defaultEncounterPosition = 2  -- Skip Aggregate entry
 
     LibEffect.Async(function()
-        LibEffect.Sleep(1850):Await()
+        -- Startup waits for load and activation delivery. Menu construction
+        -- stays outside both event dispatches, with storage already available.
+        BattleScrolls.startupFiber:Await()
 
         -- Initialize overview panel (before fragment/scene so it's available
         -- to character stats integration before the Journal is ever opened)
@@ -248,9 +246,7 @@ function BattleScrolls_Journal_Gamepad:Initialize(control)
         self:SetListsUseTriggerKeybinds(true)
         LibEffect.YieldWithGC():Await()
 
-        if canAddToMainMenu then
-            AddToMainMenu()
-        end
+        AddToMainMenu()
     end):Run()
 end
 
@@ -909,18 +905,6 @@ end
 function BattleScrolls_Journal_Gamepad:ShowFilterDialog()
     BattleScrolls.journal.filters.showDialog(self)
 end
-
--- Register to add menu entry after player is activated
-EVENT_MANAGER:RegisterForEvent("BattleScrolls_JournalUI", EVENT_PLAYER_ACTIVATED, function()
-    local sceneExists = SCENE_MANAGER:GetScene("battleScrollsJournalGamepad") ~= nil
-    if sceneExists then
-        AddToMainMenu()
-    else
-        canAddToMainMenu = true
-    end
-
-    EVENT_MANAGER:UnregisterForEvent("BattleScrolls_JournalUI", EVENT_PLAYER_ACTIVATED)
-end)
 
 -- Label widths are measured at render time; a resize changes glyph metrics
 EVENT_MANAGER:RegisterForEvent("BattleScrolls_JournalUI_Resize", EVENT_SCREEN_RESIZED, function()

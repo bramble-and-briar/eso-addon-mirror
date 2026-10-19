@@ -30,6 +30,18 @@
 PBsTranslate = PBsTranslate or {}
 local T = PBsTranslate
 
+-- Normal translations advance the collector in bounded slices without changing
+-- global GC tuning. A dictionary rebuild can request a completed collection to
+-- release its obsolete index (important with generational collectors). Hosts
+-- may restrict this API; failure disables explicit steps without breaking translation.
+local canStepGC = type(collectgarbage) == "function"
+function T.ReclaimTemporaryMemory(dictionaryRebuilt)
+	if canStepGC then
+		local ok = pcall(collectgarbage, dictionaryRebuilt and "collect" or "step", 128)
+		if not ok then canStepGC = false end
+	end
+end
+
 -- ---------------------------------------------------------------------------------------
 -- Byte-safe text helpers
 -- Lua's character classes (%a %w %s %u) and string.lower/upper ask the C library, and the C
@@ -298,9 +310,35 @@ end
 -- removing one gives the shipped meaning back.
 T.userLexicon = T.userLexicon or {}
 
+-- Bound compiled user data as well as temporary analysis. Saved data is never
+-- deleted on failure; callers must reject an oversized edit/import atomically.
+T.USER_WORD_LIMIT = 2000
+T.USER_BYTE_LIMIT = 128 * 1024
+function T.CheckUserWordBudget(entries, replaceKey, replaceValue)
+	local count, bytes, cost = 0, 0, 0
+	local function include(k, v)
+		if type(k) ~= "string" or type(v) ~= "string" then return true end
+		count = count + 1; bytes = bytes + #k + #v
+		local pos = v:match("^([A-Za-z]+):")
+		cost = cost + (pos == "v" and 12 or pos == "a" and 6 or 1)
+		return #k <= 192 and #v <= 768 and count <= T.USER_WORD_LIMIT and cost <= T.USER_WORD_LIMIT and bytes <= T.USER_BYTE_LIMIT
+	end
+	for k, v in pairs(entries or {}) do
+		if k ~= replaceKey and not include(k, v) then return false end
+	end
+	if replaceKey and not include(replaceKey, replaceValue) then return false end
+	return true
+end
+local builtinPhraseWords
 function T.SetUserEntries(entries)
+	if not T.CheckUserWordBudget(entries) then return false, "budget" end
+	builtinPhraseWords = builtinPhraseWords or T.maxPhraseWords
+	T.maxPhraseWords = builtinPhraseWords
 	T.userLexicon = {}
+	local scanned = 0
 	for english, value in pairs(entries or {}) do
+		scanned = scanned + 1
+		if scanned % 64 == 0 then T.ReclaimTemporaryMemory() end
 		if type(english) == "string" and type(value) == "string" then
 			local pos, rest = value:match("^([A-Za-z]+):(.+)$")
 			if not pos then
@@ -316,6 +354,7 @@ function T.SetUserEntries(entries)
 			end
 		end
 	end
+	return true
 end
 
 local function Exact(key)

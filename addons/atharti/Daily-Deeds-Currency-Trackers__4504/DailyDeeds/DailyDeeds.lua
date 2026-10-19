@@ -21,7 +21,10 @@ local TELVAR_TARGET_ZONE_IDS = {
 	584,
 }
 
-local FORTUNES_TARGET_ZONE_ID = 1436
+local FORTUNES_TARGET_ZONE_IDS = {
+	1436,
+	1533,
+}
 
 local function clamp(val, min, max)
 	return math.max(min, math.min(max, val))
@@ -69,7 +72,13 @@ function DD.IsInTelvarZone()
 end
 
 function DD.IsInFortunesZone()
-	return GetCurrentZoneId() == FORTUNES_TARGET_ZONE_ID
+	local currentZone = GetCurrentZoneId()
+	for _, zoneId in ipairs(FORTUNES_TARGET_ZONE_IDS) do
+		if zoneId == currentZone then
+			return true
+		end
+	end
+	return false
 end
 
 function DD.GetSettings(trackerId)

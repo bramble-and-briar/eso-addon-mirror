@@ -1,5 +1,4 @@
-SoraSorcReticleTracker = {}
-local SSRT = SoraSorcReticleTracker
+local SSRT = {}
 
 local ADDON_NAME = "SoraSorcReticleTracker"
 local SAVED_VARS = "SoraSorcReticleTrackerSavedVariables"
@@ -9,17 +8,19 @@ local CRYSTAL_FRAGMENTS_PROC_EFFECT_ID = 46327
 local BOUND_ARMAMENTS_ABILITY_ID = 24165
 local BOUND_ARMAMENTS_STACK_EFFECT_ID = 203447
 
-local MAELSTROM_MERCILESS_CHARGE = {
-    [369] = true,
-    [522] = true,
+local MAELSTROM_SET_SETTING = {
+    [369] = "maelstromStampedeEnabled",
+    [522] = "maelstromStampedeEnabled",
+    [373] = "maelstromWallEnabled",
+    [526] = "maelstromWallEnabled",
+    [372] = "maelstromHailEnabled",
+    [525] = "maelstromHailEnabled",
 }
-local MAELSTROM_CRUSHING_WALL = {
-    [373] = true,
-    [526] = true,
-}
-local MAELSTROM_THUNDEROUS_VOLLEY = {
-    [372] = true,
-    [525] = true,
+
+local MAELSTROM_SETTING_KIND = {
+    maelstromStampedeEnabled = "stampede",
+    maelstromWallEnabled = "wall",
+    maelstromHailEnabled = "hail",
 }
 
 local STAMPEDE_IDS = {
@@ -57,6 +58,9 @@ local BOUND_ARMORY_ICON_INDEX = 39
 
 local SLOT_FIRST = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1
 local SLOT_LAST = SLOT_FIRST + 4
+
+local GEAR_EVENT_NAME = ADDON_NAME .. "Gear"
+local UpdateMaelstromEventRegistration
 local defaults = {
     crystalOffsetX = -78,
     crystalOffsetY = 0,
@@ -84,7 +88,6 @@ SSRT.crystalEndTime = 0
 SSRT.boundStacks = 0
 SSRT.maelstromKind = nil
 SSRT.maelstromSlot = nil
-SSRT.maelstromTexture = nil
 SSRT.moveTarget = nil
 
 local function Chat(text)
@@ -431,7 +434,7 @@ local function ScanCrystalProc()
         local _, _, buffEndTime, _, _, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", buffIndex)
         if abilityId == CRYSTAL_FRAGMENTS_PROC_EFFECT_ID then
             active = true
-            endTime = tonumber(buffEndTime) or 0
+            endTime = buffEndTime or 0
             break
         end
     end
@@ -442,20 +445,22 @@ end
 
 local function IsBoundArmamentsSlot(slotIndex, hotbarCategory)
     local abilityId = GetSlotBoundId(slotIndex, hotbarCategory)
+    if not abilityId or abilityId == 0 then
+        return false
+    end
+
     if abilityId == BOUND_ARMAMENTS_ABILITY_ID then
         return true
     end
-    if abilityId and abilityId ~= 0 and type(GetEffectiveAbilityIdForAbilityOnHotbar) == "function" then
-        return GetEffectiveAbilityIdForAbilityOnHotbar(abilityId, hotbarCategory) == BOUND_ARMAMENTS_ABILITY_ID
-    end
-    return false
+
+    return GetEffectiveAbilityIdForAbilityOnHotbar(abilityId, hotbarCategory) == BOUND_ARMAMENTS_ABILITY_ID
 end
 
 local function ScanBoundBuffStacks()
     for buffIndex = 1, GetNumBuffs("player") do
         local _, _, _, _, stackCount, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", buffIndex)
         if abilityId == BOUND_ARMAMENTS_STACK_EFFECT_ID then
-            return math.max(0, tonumber(stackCount) or 0)
+            return math.max(0, stackCount or 0)
         end
     end
     return 0
@@ -465,14 +470,12 @@ local function ScanBoundStacks()
     local best = 0
     local categories = { HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }
 
-    if type(GetActionSlotEffectStackCount) == "function" then
-        for _, hotbarCategory in ipairs(categories) do
-            for slotIndex = SLOT_FIRST, SLOT_LAST do
-                if IsBoundArmamentsSlot(slotIndex, hotbarCategory) then
-                    local stacks = tonumber(GetActionSlotEffectStackCount(slotIndex, hotbarCategory)) or 0
-                    if stacks > best then
-                        best = stacks
-                    end
+    for _, hotbarCategory in ipairs(categories) do
+        for slotIndex = SLOT_FIRST, SLOT_LAST do
+            if IsBoundArmamentsSlot(slotIndex, hotbarCategory) then
+                local stacks = GetActionSlotEffectStackCount(slotIndex, hotbarCategory) or 0
+                if stacks > best then
+                    best = stacks
                 end
             end
         end
@@ -491,7 +494,16 @@ local function GetEquippedSetId(equipSlot)
 
     local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(itemLink)
     if not hasSet then return 0 end
-    return tonumber(setId) or 0
+    return setId or 0
+end
+
+local function IsMaelstromTrackingEnabled()
+    return SSRT.sv.maelstromEnabled
+        and (
+            SSRT.sv.maelstromStampedeEnabled
+            or SSRT.sv.maelstromWallEnabled
+            or SSRT.sv.maelstromHailEnabled
+        )
 end
 
 local function GetBackbarArenaKind()
@@ -500,19 +512,12 @@ local function GetBackbarArenaKind()
         setId = GetEquippedSetId(EQUIP_SLOT_BACKUP_OFF)
     end
 
-    if MAELSTROM_MERCILESS_CHARGE[setId] and SSRT.sv.maelstromStampedeEnabled then
-        return "stampede"
+    local settingName = MAELSTROM_SET_SETTING[setId]
+    if not settingName or not SSRT.sv[settingName] then
+        return nil
     end
 
-    if MAELSTROM_CRUSHING_WALL[setId] and SSRT.sv.maelstromWallEnabled then
-        return "wall"
-    end
-
-    if MAELSTROM_THUNDEROUS_VOLLEY[setId] and SSRT.sv.maelstromHailEnabled then
-        return "hail"
-    end
-
-    return nil
+    return MAELSTROM_SETTING_KIND[settingName]
 end
 
 local function IdMatches(id, idSet)
@@ -520,19 +525,18 @@ local function IdMatches(id, idSet)
 end
 
 local function TextureMatches(texture, token)
-    if not texture or texture == "" or not token then return false end
+    if not texture or texture == "" then return false end
     return zo_strlower(texture):find(token, 1, true) ~= nil
 end
 
 local function GetSlotIds(slotIndex)
     local hotbarCategory = HOTBAR_CATEGORY_BACKUP
     local boundId = GetSlotBoundId(slotIndex, hotbarCategory) or 0
-    local effectiveId = boundId
-
-    if boundId ~= 0 and type(GetEffectiveAbilityIdForAbilityOnHotbar) == "function" then
-        effectiveId = GetEffectiveAbilityIdForAbilityOnHotbar(boundId, hotbarCategory) or boundId
+    if boundId == 0 then
+        return 0, 0
     end
 
+    local effectiveId = GetEffectiveAbilityIdForAbilityOnHotbar(boundId, hotbarCategory) or boundId
     return boundId, effectiveId
 end
 
@@ -563,9 +567,8 @@ end
 local function RefreshMaelstromBinding()
     SSRT.maelstromKind = nil
     SSRT.maelstromSlot = nil
-    SSRT.maelstromTexture = nil
-
-    if not SSRT.sv.maelstromEnabled then
+    
+    if not IsMaelstromTrackingEnabled() then
         return
     end
 
@@ -578,7 +581,6 @@ local function RefreshMaelstromBinding()
         if IsTrackedMaelstromSkill(slotIndex, kind) then
             SSRT.maelstromKind = kind
             SSRT.maelstromSlot = slotIndex
-            SSRT.maelstromTexture = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_BACKUP)
             return
         end
     end
@@ -596,17 +598,11 @@ local function ReadMaelstromTimer()
         HOTBAR_CATEGORY_BACKUP
     ) or 0
 
-    local durationMs = GetActionSlotEffectDuration(
-        SSRT.maelstromSlot,
-        HOTBAR_CATEGORY_BACKUP
-    ) or 0
-
     if remainingMs <= 0 and GetActiveHotbarCategory() == HOTBAR_CATEGORY_BACKUP then
         remainingMs = GetActionSlotEffectTimeRemaining(SSRT.maelstromSlot) or 0
-        durationMs = GetActionSlotEffectDuration(SSRT.maelstromSlot) or durationMs
     end
 
-    return math.max(0, remainingMs), math.max(0, durationMs)
+    return math.max(0, remainingMs)
 end
 
 local function RefreshState()
@@ -699,8 +695,8 @@ local function RegisterSettings()
         type = "panel",
         name = "Sora Sorc Reticle Tracker",
         displayName = "Sora Sorc Reticle Tracker",
-        author = "Sora",
-        version = "0.5.1",
+        author = "sora0v0",
+        version = "1.0.2",
         registerForRefresh = true,
         registerForDefaults = true,
     })
@@ -813,7 +809,11 @@ local function RegisterSettings()
             getFunc = function() return SSRT.sv.maelstromEnabled end,
             setFunc = function(value)
                 SSRT.sv.maelstromEnabled = value
+                UpdateMaelstromEventRegistration()
                 RefreshMaelstromBinding()
+                if not IsMaelstromTrackingEnabled() then
+                    SSRT.maelstromWindow:SetHidden(true)
+                end
             end,
             default = defaults.maelstromEnabled,
             width = "full",
@@ -824,7 +824,11 @@ local function RegisterSettings()
             getFunc = function() return SSRT.sv.maelstromStampedeEnabled end,
             setFunc = function(value)
                 SSRT.sv.maelstromStampedeEnabled = value
+                UpdateMaelstromEventRegistration()
                 RefreshMaelstromBinding()
+                if not IsMaelstromTrackingEnabled() then
+                    SSRT.maelstromWindow:SetHidden(true)
+                end
             end,
             default = defaults.maelstromStampedeEnabled,
             width = "full",
@@ -835,7 +839,11 @@ local function RegisterSettings()
             getFunc = function() return SSRT.sv.maelstromWallEnabled end,
             setFunc = function(value)
                 SSRT.sv.maelstromWallEnabled = value
+                UpdateMaelstromEventRegistration()
                 RefreshMaelstromBinding()
+                if not IsMaelstromTrackingEnabled() then
+                    SSRT.maelstromWindow:SetHidden(true)
+                end
             end,
             default = defaults.maelstromWallEnabled,
             width = "full",
@@ -846,7 +854,11 @@ local function RegisterSettings()
             getFunc = function() return SSRT.sv.maelstromHailEnabled end,
             setFunc = function(value)
                 SSRT.sv.maelstromHailEnabled = value
+                UpdateMaelstromEventRegistration()
                 RefreshMaelstromBinding()
+                if not IsMaelstromTrackingEnabled() then
+                    SSRT.maelstromWindow:SetHidden(true)
+                end
             end,
             default = defaults.maelstromHailEnabled,
             width = "full",
@@ -919,26 +931,22 @@ local function HandleSlash(text)
     end
 end
 
-local function OnCrystalEffectChanged(_, changeType, _, _, unitTag, _, endTime, _, _, _, _, _, _, _, _, abilityId)
-    if unitTag ~= "player" or abilityId ~= CRYSTAL_FRAGMENTS_PROC_EFFECT_ID then
-        return
-    end
-
+local function OnCrystalEffectChanged(_, changeType, _, _, _, _, endTime)
     if changeType == EFFECT_RESULT_FADED then
         SSRT.crystalActive = false
         SSRT.crystalEndTime = 0
     else
         SSRT.crystalActive = true
-        SSRT.crystalEndTime = tonumber(endTime) or 0
+        SSRT.crystalEndTime = endTime or 0
     end
 end
 
-local function OnBoundEffectChanged(_, _, _, _, unitTag, _, _, stackCount, _, _, _, _, _, _, _, abilityId)
-    if unitTag ~= "player" or abilityId ~= BOUND_ARMAMENTS_STACK_EFFECT_ID then
-        return
+local function OnBoundEffectChanged(_, changeType, _, _, _, _, _, stackCount)
+    if changeType == EFFECT_RESULT_FADED then
+        SSRT.boundStacks = 0
+    else
+        SSRT.boundStacks = math.max(0, stackCount or 0)
     end
-
-    SSRT.boundStacks = math.max(0, tonumber(stackCount) or 0)
 end
 
 local function OnPlayerActivated()
@@ -948,12 +956,40 @@ end
 local function OnActionStateChanged()
     zo_callLater(function()
         ScanBoundStacks()
-        RefreshMaelstromBinding()
+        if IsMaelstromTrackingEnabled() then
+            RefreshMaelstromBinding()
+        end
     end, 50)
 end
 
 local function OnWornInventoryChanged()
     zo_callLater(RefreshMaelstromBinding, 100)
+end
+
+UpdateMaelstromEventRegistration = function()
+    local shouldRegister = IsMaelstromTrackingEnabled()
+
+    if shouldRegister == SSRT.maelstromGearEventRegistered then
+        return
+    end
+
+    if shouldRegister then
+        EVENT_MANAGER:RegisterForEvent(
+            GEAR_EVENT_NAME,
+            EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            OnWornInventoryChanged
+        )
+        EVENT_MANAGER:AddFilterForEvent(
+            GEAR_EVENT_NAME,
+            EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, BAG_WORN,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT
+        )
+    else
+        EVENT_MANAGER:UnregisterForEvent(GEAR_EVENT_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    end
+
+    SSRT.maelstromGearEventRegistered = shouldRegister
 end
 
 local function Initialize()
@@ -997,19 +1033,9 @@ local function Initialize()
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED, OnActionStateChanged)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTIVE_WEAPON_PAIR_CHANGED, OnActionStateChanged)
 
-    EVENT_MANAGER:RegisterForEvent(
-        ADDON_NAME .. "Gear",
-        EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-        OnWornInventoryChanged
-    )
-    EVENT_MANAGER:AddFilterForEvent(
-        ADDON_NAME .. "Gear",
-        EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-        REGISTER_FILTER_BAG_ID, BAG_WORN
-    )
+    UpdateMaelstromEventRegistration()
 
     EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "Display", 100, UpdateUI)
-    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "BoundFallback", 500, ScanBoundStacks)
 
     zo_callLater(RefreshState, 500)
 end

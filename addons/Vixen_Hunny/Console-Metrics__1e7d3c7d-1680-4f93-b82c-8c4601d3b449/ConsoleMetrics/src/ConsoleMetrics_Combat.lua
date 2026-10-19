@@ -144,6 +144,9 @@ function ConsoleMetrics:EnsureIoTraceState(nowMs)
         eventEffect = 0,
         totalValue = 0,
         totalOverflow = 0,
+        hitValueSamples = 0,
+        minHitValue = nil,
+        maxHitValue = nil,
         skippedNotCombat = 0,
         skippedZero = 0,
         skippedEffectThrottle = 0,
@@ -180,6 +183,9 @@ function ConsoleMetrics:ResetIoTraceState(nowMs)
     state.eventEffect = 0
     state.totalValue = 0
     state.totalOverflow = 0
+    state.hitValueSamples = 0
+    state.minHitValue = nil
+    state.maxHitValue = nil
     state.skippedNotCombat = 0
     state.skippedZero = 0
     state.skippedEffectThrottle = 0
@@ -436,7 +442,7 @@ function ConsoleMetrics:EmitIoTraceHeartbeat(nowMs)
     self:TraceIoLine(
         nowMs,
         string.format(
-            "TRACE SUMMARY %.1fs fps=%s avg=%s min=%s low1=%s ev=%d(%.1f/s) ok=%d in=%d out=%d oth=%d dmg=%d heal=%d fx=%d val=%s ovf=%s skip[nc=%d zero=%d thr=%d tflt=%d proc=%d samp=%d] samples=%d ticks=%d dropped=%d",
+            "TRACE SUMMARY %.1fs fps=%s avg=%s min=%s low1=%s ev=%d(%.1f/s) ok=%d in=%d out=%d oth=%d dmg=%d heal=%d fx=%d val=%s ovf=%s hit[min=%s max=%s n=%d] skip[nc=%d zero=%d thr=%d tflt=%d proc=%d samp=%d] samples=%d ticks=%d dropped=%d",
             elapsedSec,
             self:GetTraceFpsDisplay(),
             self:GetTraceFpsDisplayForValue(avgFps),
@@ -453,6 +459,9 @@ function ConsoleMetrics:EmitIoTraceHeartbeat(nowMs)
             state.eventEffect,
             NumberText(state.totalValue),
             NumberText(state.totalOverflow),
+            NumberText(state.minHitValue or 0),
+            NumberText(state.maxHitValue or 0),
+            state.hitValueSamples,
             state.skippedNotCombat,
             state.skippedZero,
             state.skippedEffectThrottle,
@@ -533,16 +542,20 @@ function ConsoleMetrics:TrackSkill(abilityId, abilityName, damageValue, healValu
             heal = 0,
             hits = 0,
             crits = 0,
+            maxHit  = 0,
+            maxHeal = 0,
         }
         self.fight.skillMap[skillId] = info
     end
 
     info.damage = info.damage + damageValue
-    info.heal = info.heal + healValue
-    info.hits = info.hits + 1
+    info.heal   = info.heal   + healValue
+    info.hits   = info.hits   + 1
     if isCrit then
         info.crits = info.crits + 1
     end
+    if damageValue > info.maxHit  then info.maxHit  = damageValue end
+    if healValue   > info.maxHeal then info.maxHeal = healValue   end
     self.skillListDirty = true
 end
 
@@ -557,6 +570,7 @@ function ConsoleMetrics:TrackDotTick(abilityId, abilityName, damageValue, isCrit
             heal = 0,
             hits = 0,
             crits = 0,
+            maxHit = 0,
         }
         self.fight.dotMap[skillId] = info
     end
@@ -565,6 +579,7 @@ function ConsoleMetrics:TrackDotTick(abilityId, abilityName, damageValue, isCrit
     if isCrit then
         info.crits = info.crits + 1
     end
+    if damageValue > info.maxHit then info.maxHit = damageValue end
 end
 
 function ConsoleMetrics:TrackHotTick(abilityId, abilityName, healValue, isCrit)
@@ -578,6 +593,7 @@ function ConsoleMetrics:TrackHotTick(abilityId, abilityName, healValue, isCrit)
             heal = 0,
             hits = 0,
             crits = 0,
+            maxHeal = 0,
         }
         self.fight.hotMap[skillId] = info
     end
@@ -586,6 +602,7 @@ function ConsoleMetrics:TrackHotTick(abilityId, abilityName, healValue, isCrit)
     if isCrit then
         info.crits = info.crits + 1
     end
+    if healValue > info.maxHeal then info.maxHeal = healValue end
 end
 
 function ConsoleMetrics:TrackIncomingSkill(abilityId, abilityName, damageValue, isCrit, sourceName)
@@ -738,6 +755,7 @@ function ConsoleMetrics:StartFight()
     end
 
     self:PushScrollLine("Combat started", COMBAT_TEXT_COLORS.start)
+    d("ConsoleMetrics: Combat Started with " .. (self.saved and self.saved.ioTraceMode or "summary") .. " trace mode")
     self:UpdateMetrics()
 end
 
@@ -772,6 +790,10 @@ function ConsoleMetrics:StopFight()
     self:AddCurrentFightToHistory()
     if self:IsFightViewDialogShowing() then
         self:ArmDialogAutoHide()
+        if self.ui.fightViewDialog then
+            self:PopulateFightViewDialog(self.ui.fightViewDialog)
+            self.lastDialogRefreshKey = nil
+        end
     end
     self:UpdateMetrics()
 end
@@ -888,10 +910,19 @@ function ConsoleMetrics:OnCombatEvent(
         end
         traceState.totalValue = traceState.totalValue + math.max(0, totalCombatValue)
         traceState.totalOverflow = traceState.totalOverflow + math.max(0, overflowValue)
+        if (didDamage or didHeal) and effectiveValue > 0 then
+            traceState.hitValueSamples = (traceState.hitValueSamples or 0) + 1
+            if traceState.minHitValue == nil or effectiveValue < traceState.minHitValue then
+                traceState.minHitValue = effectiveValue
+            end
+            if traceState.maxHitValue == nil or effectiveValue > traceState.maxHitValue then
+                traceState.maxHitValue = effectiveValue
+            end
+        end
     end
     local allowScrollLine = self:ShouldPushCombatScrollLine(nowMs)
 
-    -- Accumulate every unique ability nameâ†’ID pair seen this session for /cm dumpsets discovery.
+    -- Accumulate every unique ability name -> ID pair seen this session for /cm dumpsets discovery.
     local safeIdForLog = SafeAbilityId(abilityId)
     if safeIdForLog > 0 and safeAbilityName ~= "Unknown Skill" and not self.observedAbilityLog[safeIdForLog] then
         local maxObserved = tonumber(OBSERVED_ABILITY_LOG_MAX) or 2048
@@ -967,6 +998,14 @@ function ConsoleMetrics:OnCombatEvent(
         self.fight.totalHeal = self.fight.totalHeal + healValue
         self.fight.totalOverflowHeal = self.fight.totalOverflowHeal + overflowHealValue
         self.fight.hits = self.fight.hits + 1
+        if effectiveValue > 0 then
+            if self.fight.minHitValue == nil or effectiveValue < self.fight.minHitValue then
+                self.fight.minHitValue = effectiveValue
+            end
+            if self.fight.maxHitValue == nil or effectiveValue > self.fight.maxHitValue then
+                self.fight.maxHitValue = effectiveValue
+            end
+        end
         if isCrit then
             self.fight.crits = self.fight.crits + 1
         end
@@ -1229,6 +1268,31 @@ function ConsoleMetrics:UpdateTopSkills()
     end
 end
 
+-- Metric-cache helpers (module-level so UpdateMetrics does not allocate closures per call).
+local function SetTextIfChanged(metricCache, cacheKey, control, text)
+    if metricCache[cacheKey] ~= text then
+        control:SetText(text)
+        metricCache[cacheKey] = text
+    end
+end
+
+local function SetBarRangeIfChanged(metricCache, cacheKey, bar, minValue, maxValue)
+    local cached = metricCache[cacheKey]
+    if not cached or cached.min ~= minValue or cached.max ~= maxValue then
+        bar:SetMinMax(minValue, maxValue)
+        metricCache[cacheKey] = { min = minValue, max = maxValue }
+    end
+end
+
+local function SetBarValueIfChanged(metricCache, cacheKey, bar, value, epsilon)
+    local cached = metricCache[cacheKey]
+    epsilon = epsilon or 0.1
+    if cached == nil or math.abs(cached - value) >= epsilon then
+        bar:SetValue(value)
+        metricCache[cacheKey] = value
+    end
+end
+
 function ConsoleMetrics:UpdateMetrics()
     if not self.fight then
         return
@@ -1251,54 +1315,30 @@ function ConsoleMetrics:UpdateMetrics()
     local rateMax = math.max(dps, hps, 1)
     local metricCache = self.uiMetricCache or {}
     self.uiMetricCache = metricCache
+    local rows = self.ui.rows
 
-    local function SetTextIfChanged(cacheKey, control, text)
-        if metricCache[cacheKey] ~= text then
-            control:SetText(text)
-            metricCache[cacheKey] = text
-        end
-    end
+    SetTextIfChanged(metricCache, "durationText", self.ui.durationLabel, string.format("Encounter  %.1fs", duration))
 
-    local function SetBarRangeIfChanged(cacheKey, bar, minValue, maxValue)
-        local cached = metricCache[cacheKey]
-        if not cached or cached.min ~= minValue or cached.max ~= maxValue then
-            bar:SetMinMax(minValue, maxValue)
-            metricCache[cacheKey] = { min = minValue, max = maxValue }
-        end
-    end
+    SetTextIfChanged(metricCache, "dpsText",    rows.dps.value,    ShortNumber(dps))
+    SetTextIfChanged(metricCache, "hpsText",    rows.hps.value,    ShortNumber(hps))
+    SetTextIfChanged(metricCache, "damageText", rows.damage.value, NumberText(self.fight.totalDamage))
+    SetTextIfChanged(metricCache, "healText",   rows.heal.value,   NumberText(self.fight.totalHeal))
+    SetTextIfChanged(metricCache, "takenText",  rows.taken.value,  NumberText(self.fight.totalTaken))
+    SetTextIfChanged(metricCache, "critText",   rows.crit.value,   string.format("%.1f%%", critPct))
 
-    local function SetBarValueIfChanged(cacheKey, bar, value, epsilon)
-        local cached = metricCache[cacheKey]
-        epsilon = epsilon or 0.1
-        if cached == nil or math.abs(cached - value) >= epsilon then
-            bar:SetValue(value)
-            metricCache[cacheKey] = value
-        end
-    end
+    SetBarRangeIfChanged(metricCache, "dpsRange",    rows.dps.bar,    0, rateMax)
+    SetBarRangeIfChanged(metricCache, "hpsRange",    rows.hps.bar,    0, rateMax)
+    SetBarRangeIfChanged(metricCache, "damageRange", rows.damage.bar, 0, totalMax)
+    SetBarRangeIfChanged(metricCache, "healRange",   rows.heal.bar,   0, totalMax)
+    SetBarRangeIfChanged(metricCache, "takenRange",  rows.taken.bar,  0, totalMax)
+    SetBarRangeIfChanged(metricCache, "critRange",   rows.crit.bar,   0, 100)
 
-    local durationText = string.format("Encounter  %.1fs", duration)
-    SetTextIfChanged("durationText", self.ui.durationLabel, durationText)
-
-    SetTextIfChanged("dpsText", self.ui.rows.dps.value, ShortNumber(dps))
-    SetTextIfChanged("hpsText", self.ui.rows.hps.value, ShortNumber(hps))
-    SetTextIfChanged("damageText", self.ui.rows.damage.value, NumberText(self.fight.totalDamage))
-    SetTextIfChanged("healText", self.ui.rows.heal.value, NumberText(self.fight.totalHeal))
-    SetTextIfChanged("takenText", self.ui.rows.taken.value, NumberText(self.fight.totalTaken))
-    SetTextIfChanged("critText", self.ui.rows.crit.value, string.format("%.1f%%", critPct))
-
-    SetBarRangeIfChanged("dpsRange", self.ui.rows.dps.bar, 0, rateMax)
-    SetBarRangeIfChanged("hpsRange", self.ui.rows.hps.bar, 0, rateMax)
-    SetBarRangeIfChanged("damageRange", self.ui.rows.damage.bar, 0, totalMax)
-    SetBarRangeIfChanged("healRange", self.ui.rows.heal.bar, 0, totalMax)
-    SetBarRangeIfChanged("takenRange", self.ui.rows.taken.bar, 0, totalMax)
-    SetBarRangeIfChanged("critRange", self.ui.rows.crit.bar, 0, 100)
-
-    SetBarValueIfChanged("dpsValue", self.ui.rows.dps.bar, dps, 0.05)
-    SetBarValueIfChanged("hpsValue", self.ui.rows.hps.bar, hps, 0.05)
-    SetBarValueIfChanged("damageValue", self.ui.rows.damage.bar, self.fight.totalDamage, 1)
-    SetBarValueIfChanged("healValue", self.ui.rows.heal.bar, self.fight.totalHeal, 1)
-    SetBarValueIfChanged("takenValue", self.ui.rows.taken.bar, self.fight.totalTaken, 1)
-    SetBarValueIfChanged("critValue", self.ui.rows.crit.bar, critPct, 0.05)
+    SetBarValueIfChanged(metricCache, "dpsValue",    rows.dps.bar,    dps, 0.05)
+    SetBarValueIfChanged(metricCache, "hpsValue",    rows.hps.bar,    hps, 0.05)
+    SetBarValueIfChanged(metricCache, "damageValue", rows.damage.bar, self.fight.totalDamage, 1)
+    SetBarValueIfChanged(metricCache, "healValue",   rows.heal.bar,   self.fight.totalHeal, 1)
+    SetBarValueIfChanged(metricCache, "takenValue",  rows.taken.bar,  self.fight.totalTaken, 1)
+    SetBarValueIfChanged(metricCache, "critValue",   rows.crit.bar,   critPct, 0.05)
 
     self:UpdateTopSkills()
     self:UpdateTopHealing()

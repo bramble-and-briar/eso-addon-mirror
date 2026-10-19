@@ -119,7 +119,7 @@ local function trackSpiritMender(changeType, effectSlot, abilityId)
 
         local elapsed = now - summon.spawnTime
 
-        if elapsed >= summon.threshold then
+        if elapsed >= summon.threshold and IsUnitInCombat("player") then
             addSpiritMenderCorpse()
         end
 
@@ -614,12 +614,86 @@ local function trackAnimateBlastbones()
         local corpseConsumed = math.floor(howManyBB / 2)
         corpsesAvailable = math.max(0, corpsesAvailable - corpseConsumed)
         libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-        printMessage("trackAnimateBlastbones | events: " .. tostring(howManyBB) .. " | corpses consumed: " .. tostring(corpseConsumed))
+        --printMessage("trackAnimateBlastbones | events: " .. tostring(howManyBB) .. " | corpses consumed: " .. tostring(corpseConsumed))
     end, 300)
 end
 -----------------------------------------------------------------------------------------------------end animate blastbones 
 
 
+-----------------------------------------------------------------------------------------------------start bitter harvest
+local BitterHarvestAbilityIds = {
+    115240, --bitter harvest
+    124193, --necrotic potency
+    124165, --deaden pain
+}
+
+local bitterHarvestTracked = false
+local necroticPotencyTracked = false
+local deadenPainTracked = false
+
+local function removeBitterHarvest(totalCorpsesConsumed, skillName)
+    local corpsesRemoved = math.min(math.max(0, corpsesAvailable), totalCorpsesConsumed)
+    corpsesAvailable = math.max(0, corpsesAvailable - corpsesRemoved)
+    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+    --printMessage(skillName .. " | corpses detected: " .. tostring(totalCorpsesConsumed) .. " | corpses removed: " .. tostring(corpsesRemoved))
+end
+
+local function trackBitterHarvest(changeType, abilityID, beginTime, endTime)
+    local tracked = false
+    local baseDuration = 0.0
+    local extraDuration = 0
+    local skillName = ""
+
+    if abilityID == 115240 then
+        tracked = bitterHarvestTracked
+        skillName = "Bitter Harvest"
+        baseDuration = 1.4
+        extraDuration = 2
+    elseif abilityID == 124193 then
+        tracked = necroticPotencyTracked
+        skillName = "Necrotic Potency"
+        baseDuration = 1.4
+        extraDuration = 2
+    elseif abilityID == 124165 then
+        tracked = deadenPainTracked
+        skillName = "Deaden Pain"
+        baseDuration = 3.4
+        extraDuration = 4
+    else
+        return
+    end
+
+    if changeType == 2 then
+        if abilityID == 115240 then
+            bitterHarvestTracked = false
+        elseif abilityID == 124193 then
+            necroticPotencyTracked = false
+        elseif abilityID == 124165 then
+            deadenPainTracked = false
+        end
+        return
+    end
+
+    if changeType ~= 1 or tracked then return end
+    if type(beginTime) ~= "number" or type(endTime) ~= "number" then return end
+
+    local duration = endTime - beginTime
+    if duration <= 0 then return end
+
+    local totalCorpsesConsumed = math.floor((duration - baseDuration) / extraDuration + 0.5) + 1
+    totalCorpsesConsumed = math.max(1, math.min(6, totalCorpsesConsumed))
+
+    if abilityID == 115240 then
+        bitterHarvestTracked = true
+    elseif abilityID == 124193 then
+        necroticPotencyTracked = true
+    elseif abilityID == 124165 then
+        deadenPainTracked = true
+    end
+
+    removeBitterHarvest(totalCorpsesConsumed, skillName)
+end
+-----------------------------------------------------------------------------------------------------end bitter harvest
 
 
 
@@ -628,12 +702,13 @@ end
 
 
 
+--check boneyard for counting
 
 
 
 
-
-
+local lastNecromancersBannerTime = nil
+local necromancersBannerStartTime = nil
 
 
 ---------------------------------end corpse consumption
@@ -715,8 +790,28 @@ local function effectReport(eventCode, changeType, effectSlot, effectName, unitT
     --life amid death and morph
     elseif abilityID == 115326 or abilityID == 118022 then
         trackLifeAmidDeath(changeType, abilityID, beginTime, endTime)
+    --bitter harvest and morphs
+    elseif abilityID == 115240 or abilityID == 124193 or abilityID == 124165 then
+        trackBitterHarvest(changeType, abilityID, beginTime, endTime)
+    elseif abilityID == 227112 then
+        local now = GetGameTimeMilliseconds()
+
+    if not necromancersBannerStartTime then
+        necromancersBannerStartTime = now
+    end
+
+    local elapsed = (now - necromancersBannerStartTime) / 1000
+
+    printMessage(
+        "effectReport- abilityID: " .. tostring(abilityID)
+        .. " effectName: " .. tostring(effectName)
+        .. " beginTime: " .. tostring(beginTime)
+        .. " endTime: " .. tostring(endTime)
+        .. " changeType: " .. tostring(changeType)
+        .. " time since start: " .. string.format("%.2f", elapsed) .. "s"
+    )
     else
-            printMessage("effectReport- abilityID: " .. tostring(abilityID) .. " effectName: " .. tostring(effectName))
+        --printMessage("effectReport- abilityID: " .. tostring(abilityID) .. " effectName: " .. tostring(effectName) .. " beginTime: " .. tostring(beginTime) .. " endTime: " .. tostring(endTime) .. " changeType: " .. tostring(changeType))
     end
 end
 
@@ -809,7 +904,7 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     elseif abilityID == 118448 and trackingAnimateBlastbones then
         howManyBB = howManyBB + 1
     else
-        printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName))
+        --printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName))
     end
 
 end
@@ -921,7 +1016,7 @@ local function libLoaded(event, name)
         EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, abilityId)
     end
 
-    --register for life amid death and morphs
+    --register for life amid death and morphs effect events
     for _, abilityId in ipairs(lifeAmidDeathAbilityIds) do
         local eventName = "NecroTrackerLifeAmidDeath" .. abilityId
         EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, effectReport)
@@ -933,6 +1028,13 @@ local function libLoaded(event, name)
         local eventName = "NecroTrackerAnimateBlastbones" .. abilityId
         EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, combatReport)
         EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, abilityId)
+    end
+
+    --register for bitter harvest and morphs effect events
+    for _, abilityId in ipairs(BitterHarvestAbilityIds) do
+        local eventName = "NecroTrackerBitterHarvest" .. abilityId
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, effectReport)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
     end
 
     --register for malevolent promise notifications 

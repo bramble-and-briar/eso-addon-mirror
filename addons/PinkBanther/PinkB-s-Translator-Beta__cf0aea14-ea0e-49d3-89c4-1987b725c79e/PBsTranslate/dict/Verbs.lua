@@ -164,7 +164,7 @@ sell=売る/5
 pay=払う/5
 trade=交換する/s
 spend=使う/5
-cost=かかる/5
+cost=かかる/5/
 earn=稼ぐ/5
 farm=周回する/s
 grind=周回する/s
@@ -1530,4 +1530,25 @@ stun=スタンさせる/1
 silence=沈黙させる/1
 root=動きを封じる/1
 immobilize=動きを封じる/1
+]])
+
+D("v", [[
+team up=チームを組む/5
+start over=やり直す/5
+]])
+
+D("v", [[
+play guitar=ギターを弾く/5
+play the guitar=ギターを弾く/5
+play piano=ピアノを弾く/5
+play the piano=ピアノを弾く/5
+play drums=ドラムを叩く/5
+play bass=ベースを弾く/5
+play violin=バイオリンを弾く/5
+play flute=フルートを吹く/5
+]])
+
+D("v", [[
+stay back=下がる/5
+run back=走って戻る/5
 ]])

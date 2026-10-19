@@ -32,7 +32,7 @@ Engine.Finish(fight, summary, function(ms) return ms / 1000 end)
 result = Engine.Calculate(fight, tracker, 10, nil, true)
 near(result.percent, expected.calculated.units[10].buffs[61771].groupUptime / referenceDuration(summary, {}) * 100)
 near(result.duration, 8)
-dofile("Diagnostics.lua")
+dofile("tests/helpers/UptimeAudit.lua")
 local audit = LiveBuffUptimeDiagnostics.New(function() end)
 LiveBuffUptimeDiagnostics.SetEnabled(audit, true)
 LiveBuffUptimeDiagnostics.Queue(audit, { label = "Personal", starts = 2, ends = 10, duration = 8,

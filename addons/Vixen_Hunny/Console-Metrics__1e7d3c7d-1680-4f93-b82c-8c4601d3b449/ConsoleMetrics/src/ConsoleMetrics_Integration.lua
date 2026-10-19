@@ -1,4 +1,11 @@
 ﻿function ConsoleMetrics:OpenFightViewDialog(forceLive)
+    -- PC keyboard path: use the custom scrollable window
+    if not IsConsoleUI() and not (type(IsGamepadPreferred) == "function" and IsGamepadPreferred()) then
+        self:OpenPCDialog(forceLive)
+        return
+    end
+
+    -- Console / gamepad path: LibConsoleDialogs
     if not LibConsoleDialogs or not LibHarvensAddonSettings then
         self:Print("LibConsoleDialogs not found. Install/enable it in this game folder to use /cm view.")
         return
@@ -6,7 +13,7 @@
 
     if forceLive then
         self.viewFightIndex = 0
-        self.dialogPanel = "main"
+        self.dialogPanel    = "main"
     elseif not self.dialogPanel then
         self.dialogPanel = "main"
     end
@@ -22,7 +29,7 @@
     self:PopulateFightViewDialog(self.ui.fightViewDialog)
     self.ui.fightViewDialog:Show()
     self:ArmDialogAutoHide()
-    self.dialogRefreshAtMs = 0
+    self.dialogRefreshAtMs    = 0
     self.lastDialogRefreshKey = nil
     self.wasFightViewDialogShowing = true
 end
@@ -319,7 +326,7 @@ function ConsoleMetrics:LinkBuildToChat()
 
     if type(CHAT_SYSTEM) == "table" and type(CHAT_SYSTEM.StartTextEntry) == "function" then
         CHAT_SYSTEM:StartTextEntry(chatLine)
-        self:Print("Build ready to link â€” choose a channel and press Enter.")
+        self:Print("Chat pre-filled - choose a channel and confirm to send.")
     else
         self:Print(chatLine)
         self:Print("(Copy the line above and paste it into chat.)")

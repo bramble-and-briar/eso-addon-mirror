@@ -182,6 +182,7 @@ function UI:Import(review,overwrite)
     local encoded,count=S.Encode(review.words)
     if not encoded or not S.Decode(encoded,count) then Say(errors.invalid);return end
     local merged,added,replaced,_,skipped=S.Merge(addon.sv.userWords,review.words,overwrite)
+    if not T.CheckUserWordBudget(merged) then Say(GetString(SI_PBSTR_ERROR_WORD_BUDGET));return end
     addon.sv.shareBackup={};for k,v in pairs(addon.sv.userWords) do addon.sv.shareBackup[k]=v end
     addon.sv.userWords=merged;addon:ApplyUserWords()
     self.session.review=nil
@@ -192,6 +193,7 @@ function UI:Restore()
     self:Show(L("辞書を直前の取り込み前へ戻します。取り込み後の手動登録も元に戻ります。", "Restore the dictionary before the last import? This also undoes manual edits made since."),{
         {text=L("復元する","Restore"),callback=function()
             local words=addon.sv.shareBackup
+            if words and not T.CheckUserWordBudget(words) then Say(GetString(SI_PBSTR_ERROR_WORD_BUDGET));return end
             if words then addon.sv.userWords=words;addon.sv.shareBackup=nil;addon:ApplyUserWords();Say(L("復元しました。","Restored.")) end
         end}, {text=CANCEL},
     })

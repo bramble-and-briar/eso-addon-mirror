@@ -66,6 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Set Hunter - Gear Finder & XP Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882) | brianmit | PC / Mac | 1.1.0 |
 | [Set Junker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HerrPulaRau/Set-Junker__2572) | HerrPulaRau | PC / Mac | 1.3.1 |
 | [Set Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoltActionBalrog/Set-Master__3192) | BoltActionBalrog | PC / Mac | 1.3.1 |
+| [Set Perk Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Set-Perk-Tracker__9e3a7462-c06e-4ee2-a7da-ac5279f979c8) | SugaComa | Console | — |
 | [Set Tracker updated 2025 01](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Set-Tracker-updated-2025-01__4019) | Shinntarou | PC / Mac | 3.2.0 |
 | [SetCollectionColoredLibrary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/SetCollectionColoredLibrary__3237) | tim99 | PC / Mac | 1 |
 | [SetLocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Xebrox/SetLocker__2681) | Xebrox | PC / Mac | 2.0.1 |
@@ -141,7 +142,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Slash Command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Slash-Command__2554) | ShadowMau | PC / Mac | 0.1.2 |
 | [Simple Text Box](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Text-Box__2564) | ShadowMau | PC / Mac | 1.0 |
 | [Simple Tooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Tooltip__3043) | ShadowMau | PC / Mac | 1.0.3 |
-| [Simple Ultimate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Ultimate-Tracker__4956) | Kaewro | PC / Mac | 1.0.3 |
+| [Simple Ultimate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Ultimate-Tracker__4956) | Kaewro | PC / Mac | 1.0.4 |
 | [Simple Vote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Simple-Vote__3077) | M0R | PC / Mac | 1.0 |
 | [SimpleAddonMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/SimpleAddonMenu__441715a3-5c4e-4ba6-8004-86dbf4485eb0) | Vixen_Hunny | Console | — |
 | [SimpleChatLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/SimpleChatLogger__2799) | Coorbin | PC / Mac | 1.0 |
@@ -237,7 +238,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Solaris](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fosterwerks/Solaris__2521) | Fosterwerks | PC / Mac | 0.3.2 |
 | [Soldatii La Dreptate Guildhalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/animalu/Soldatii-La-Dreptate-Guildhalls__3037) | animalu | PC / Mac | 0.0.6 |
 | [Soloists of Tamriel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptivAzn/Soloists-of-Tamriel__3873) | CaptivAzn | PC / Mac | 1.70 |
-| [Sora Sorc Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Sorc-Reticle-Tracker__4959) | sora0v0 | PC / Mac | 1.0.0 |
+| [Sora Sorc Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Sorc-Reticle-Tracker__4959) | sora0v0 | PC / Mac | 1.0.2 |
 | [Sora Ultimate Pair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Ultimate-Pair__4583) | sora0v0 | PC / Mac | 1.0.61 |
 | [Sorc Overload Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smasharooisold/Sorc-Overload-Tracker__4785) | Smasharooisold | PC / Mac | 1.0 |
 | [Sorcerer Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vahrokh/Sorcerer-Helper__2576) | Vahrokh | PC / Mac | 3.2.1 |

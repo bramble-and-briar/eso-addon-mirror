@@ -1,4 +1,5 @@
 local strings = {
+	SI_PBSTR_ERROR_WORD_BUDGET = "User dictionary limit: 2,000 units (verbs 12, adjectives 6, others 1) / 128 KiB total, 192 bytes per key and 768 per value. No saved entries were deleted. Remove or shorten entries and try again.",
 	SI_PBSTR_ONLY = "Translation only",
 	SI_PBSTR_ONLY_TOOLTIP = "Replace translated message bodies while keeping the sender and channel. Untranslated messages keep their original text.",
 	SI_PBSTR_HELP_ONLY = "/pbtr only on | off -- show only the translation",

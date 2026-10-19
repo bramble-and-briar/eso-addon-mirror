@@ -141,16 +141,12 @@ function MapPins:RefreshVisibleDistance(newVisibleDistance)
 			newVisibleDistance = Harvest.GetPinVisibleDistance()
 		end
 	end
-	--newVisibleDistance = 0 -- debug
-	--d(self.visibleDistance , "vs", newVisibleDistance)
-	if newVisibleDistance ~= self.visibleDistance then
-		self.visibleDistance = newVisibleDistance
-		self:RedrawPins()
-		if newVisibleDistance > 0 then
-			EVENT_MANAGER:RegisterForUpdate("HarvestMap-VisibleRange", 2500, MapPins.UpdateVisibleMapPins)
-		else
-			EVENT_MANAGER:UnregisterForUpdate("HarvestMap-VisibleRange")
-		end
+	
+	self.visibleDistance = newVisibleDistance
+	self:RedrawPins()
+	EVENT_MANAGER:UnregisterForUpdate("HarvestMap-VisibleRange")
+	if newVisibleDistance > 0 then
+		EVENT_MANAGER:RegisterForUpdate("HarvestMap-VisibleRange", 2500, MapPins.UpdateVisibleMapPins)
 	end
 end
 
@@ -168,6 +164,7 @@ function MapPins:RedrawPins(shouldRefreshLayout)
 	
 	local validMapMode = Harvest.AreMapPinsVisible() and not Harvest.mapMode:IsInMinimapMode()
 	local validMinimapMode = Harvest.AreMinimapPinsVisible() and Harvest.mapMode:IsInMinimapMode()
+	
 	if not (validMapMode or validMinimapMode) then return end
 	
 	-- remove old cache and load the new one

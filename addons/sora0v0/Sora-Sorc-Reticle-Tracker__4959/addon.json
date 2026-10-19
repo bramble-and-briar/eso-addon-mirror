@@ -18,7 +18,7 @@
     "SoraSorcReticleTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4959/",
-  "fingerprint": "e5e51985cadb1f97665fe2b1b092abcca80fc3670556e636bb294b674e9182f9",
+  "fingerprint": "6a524c8a91abd74e866ad3f0d1a74a41ec704c01ab21d57ed13a0fa4969cf28d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18029.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4959",
   "source_url": "https://www.esoui.com/downloads/info4959-SoraSorcReticleTracker.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 19,
     "favorites": 0,
-    "monthly_downloads": 5
+    "monthly_downloads": 14
   },
   "title": "Sora Sorc Reticle Tracker",
-  "updated_at": 1792241187000,
-  "version": "1.0.0"
+  "updated_at": 1792333610000,
+  "version": "1.0.2"
 }

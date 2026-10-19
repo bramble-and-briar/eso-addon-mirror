@@ -1,0 +1,9 @@
+## Title: Leo Ability Inspector
+## Author: Leo_Kujo
+## Description: Short diagnostic recording of visible ESO buffs and debuffs.
+## APIVersion: 101051
+## Version: 0.1.1
+## DependsOn: LibAddonMenu-2.0
+## ConsoleDependsOn: LibHarvensAddonSettings
+Leo_AbilityInspector.xml
+Leo_AbilityInspector.lua

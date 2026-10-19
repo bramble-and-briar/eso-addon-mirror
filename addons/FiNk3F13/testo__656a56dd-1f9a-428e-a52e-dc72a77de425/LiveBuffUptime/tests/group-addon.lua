@@ -70,8 +70,10 @@ env.events[EVENT_EFFECT_CHANGED](nil, EFFECT_RESULT_FADED, 4, "Effect", "group2"
 assert(window.labels[1].text == "--")
 assert(window.labels[3].text == "0/2")
 local switched = false
+local trackerSection = false
 for _, descriptor in ipairs(env.panel.descriptors) do
-    if descriptor.label == "Einheit" and descriptor.tooltip then
+    if descriptor.type == LibHarvensAddonSettings.ST_SECTION then trackerSection = descriptor.label:find("(123)", 1, true) ~= nil end
+    if trackerSection and descriptor.label == "Einheit" then
         descriptor.setFunction(nil, nil, { data = "player" })
         assert(window.labels[3].hidden and window.labels[2].height == 48)
         descriptor.setFunction(nil, nil, { data = "group" })

@@ -3047,3 +3047,17 @@ za=ピザ
 sussy baka=怪しいおバカ
 turtling=守りに徹する戦い方
 ]])
+
+-- Nouns for words the dictionary already knows as a verb or an adjective.
+D("n", [[
+lag=ラグ
+grind=グラインド
+]])
+
+D("n", [[
+daily quest=デイリークエスト
+daily reset=デイリーリセット
+daily login=デイリーログイン
+daily reward=デイリー報酬
+daily rewards=デイリー報酬
+]])

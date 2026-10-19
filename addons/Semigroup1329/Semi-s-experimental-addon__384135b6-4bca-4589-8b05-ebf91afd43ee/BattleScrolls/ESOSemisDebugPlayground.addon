@@ -1,12 +1,12 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 548
-## Version: 0.0.548
+## AddOnVersion: 559
+## Version: 0.0.559
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
-## OptionalDependsOn: LibHarvensAddonSettings
-## SavedVariables: BattleScrollsSavedVariables
+## OptionalDependsOn: LibHarvensAddonSettings WizardsWardrobe LibCharacterKnowledge TSCPriceFetcher2
+## SavedVariables: BattleScrollsSavedVariables BattleScrollsInventoryPocSavedVariables
 
 ; Localization - default (English) must load first
 lang/default.lua
@@ -28,6 +28,7 @@ lib/deflate.lua
 ; Core infrastructure
 core/utils.lua
 core/effect.lua
+core/startup.lua
 core/gc.lua
 core/log.lua
 
@@ -137,6 +138,21 @@ ui/onboarding/onboarding.xml
 
 ; UI - Character Stats integration
 ui/character/character_stats.lua
+
+; Personal inventory proof of concept (hidden SavedVariables opt-in)
+inventory_poc/policy.lua
+inventory_poc/facts.lua
+inventory_poc/runtime.lua
+inventory_poc/companions.lua
+inventory_poc/builds.lua
+inventory_poc/returns.lua
+inventory_poc/market.lua
+ui/inventory_poc_inspect.lua
+ui/inventory_poc.xml
+ui/inventory_poc.lua
+
+; Personal antiquity reminders (requires inventory automation)
+antiquity_leads.lua
 
 ; Reclaim load-time garbage before SavedVariables: must be the last file
 core/startup_gc.lua

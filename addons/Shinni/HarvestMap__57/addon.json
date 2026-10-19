@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Shinni/HarvestMap__57",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Shinni",
   "canonical_id": "esoui:57",
   "category_id": "24",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -49,7 +54,7 @@
     "HarvestMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl57/",
-  "fingerprint": "9c95f304ba1aed1293c83b4ae71b43f4bfa4aee14aa5dc3591eb4bc85747510b",
+  "fingerprint": "a92a73dae41219b2613cf276c61abfab04488b04e84d9b373a4adff13b34b737",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw4842.png",
     "https://cdn-eso.mmoui.com/preview/pvw4267.png",
@@ -61,11 +66,11 @@
   "source_id": "57",
   "source_url": "https://www.esoui.com/downloads/info57-HarvestMap.html",
   "stats": {
-    "downloads": 9594333,
-    "favorites": 5243,
-    "monthly_downloads": 117915
+    "downloads": 9655376,
+    "favorites": 5264,
+    "monthly_downloads": 22046
   },
   "title": "HarvestMap",
-  "updated_at": 1783976431000,
-  "version": "3.16.12"
+  "updated_at": 1792344322000,
+  "version": "3.16.13"
 }

@@ -1,5 +1,10 @@
-Sora Sorc Reticle Tracker 0.5.1 TEST
-====================================
+Sora Sorc Reticle Tracker 1.0.2
+================================
+
+AI assistance disclosure
+------------------------
+This addon was developed with AI assistance. The code was reviewed against the
+current ESO API / ESOUI source and tested in game by sora0v0.
 
 A compact reticle-side Sorcerer tracker for Crystal Fragments, Bound Armaments,
 and optional Maelstrom Arena back-bar ground-skill timers.
@@ -26,50 +31,25 @@ Bound Armaments
 Maelstrom back-bar timer
 ------------------------
 Optional feature, enabled by default.
-
-The back-bar timer is intentionally text-only: no skill icon is shown.
-
-It appears only when:
-1. the matching Maelstrom Arena weapon is equipped on the backup weapon bar,
-2. the matching ground skill is slotted on the backup bar,
-3. that skill currently has a native action-slot effect timer running.
+The timer is intentionally text-only.
 
 Supported weapon/skill pairs:
-- Merciless Charge / Perfected Merciless Charge:
-  Stampede
+- Merciless Charge / Perfected Merciless Charge: Stampede
 - Crushing Wall / Perfected Crushing Wall:
-  Elemental Blockade or Unstable Wall of Elements, including elemental variants
-- Thunderous Volley / Perfected Thunderous Volley:
-  Endless Hail
+  Elemental Blockade or Unstable Wall of Elements
+- Thunderous Volley / Perfected Thunderous Volley: Endless Hail
 
-Timer color:
+Timer colors:
 - More than 5 seconds: white
 - 5 seconds or less: gold
 - 2 seconds or less: red
 
-The Maelstrom timer is positioned below the reticle by default and can be moved independently.
-
 Settings
 --------
-Requires LibAddonMenu-2.0.
+Requires LibAddonMenu-2.0 r43 or newer.
 
-Crystal:
-- icon size
-- timer text size
-- move / reset
-
-Bound:
-- icon size
-- stack text size
-- move / reset
-
-Maelstrom:
-- master on/off
-- Stampede on/off
-- Blockade / Unstable Wall on/off
-- Endless Hail on/off
-- timer text size
-- move / reset
+All three displays have independent position/size controls.
+The Maelstrom section also has a master toggle and per-weapon toggles.
 
 Commands
 --------
@@ -79,6 +59,9 @@ Commands
 /ssrt stop
 /ssrt reset
 
-Development note
-----------------
-This addon was created with AI assistance. Code was reviewed and tested in game by sora0v0.
+Credits / references
+--------------------
+ESOUI source and ESO API documentation were used to validate API/event behavior.
+Crystal Fragments proc ID 46327 and Bound Armaments stack ID 203447 were
+cross-checked against EZOCombat by Zuriplayer. No third-party addon code is
+bundled or copied.

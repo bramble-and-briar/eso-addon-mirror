@@ -97,25 +97,24 @@ GUILD_EVENT_NAME_CHANGED = 18
 GUILD_EVENT_REMOVED_FROM_BLACKLIST = 47
 
 internal.LEGACY_EVENT_ID_OFFSET = 3000000000
+local LEGACY_EVENT_ID_LIMIT = 10000000000
+
 local function ConvertEventIdToLegacyId64(eventId)
-    local idString = tostring(eventId)
-    assert(#idString < 10, "eventId is too large to convert")
-    while #idString < 9 do
-        idString = "0" .. idString
-    end
-    return StringToId64("3" .. idString)
+    local legacyId = eventId + internal.LEGACY_EVENT_ID_OFFSET
+    assert(legacyId < LEGACY_EVENT_ID_LIMIT, "eventId is too large to convert")
+    return StringToId64(tostring(legacyId))
 end
+internal.ConvertEventIdToLegacyId64 = ConvertEventIdToLegacyId64
 
 local function ConvertLegacyId64ToEventId(id64)
     local idString = Id64ToString(id64)
     if idString == "0" then return 0 end
 
-    local idNumber, lostPrecision
-    if #idString == 10 and idString:sub(1, 1) == "3" then
-        local id = StringToId64(idString:sub(2))
-        idNumber, lostPrecision = Id64ToNumber(id)
-        if lostPrecision then
-            logger:Warn("Lost precision converting legacy eventId", idString)
+    local idNumber
+    if #idString == 10 then
+        local firstDigit = tonumber(idString:sub(1, 1))
+        if firstDigit >= 3 and firstDigit <= 9 then
+            idNumber = tonumber(idString) - internal.LEGACY_EVENT_ID_OFFSET
         end
     end
     if not idNumber then

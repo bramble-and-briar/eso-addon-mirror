@@ -1,0 +1,20 @@
+<Bindings>
+ <Layer name="PBsFMEGAInput" allowFallthrough="false">
+  <Category name="PBsFMEGA">
+   <!-- Held buttons are reported as a press and a release of the client's own UI shortcut, which is
+        what PBsTetris does for the directions. Back (UI_SHORTCUT_NEGATIVE) is left to the keybind strip. -->
+   <Action name="PBSFMEGA_LEFT" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT" hideAction="true" rebindable="false"><Down>PBF.App:Input("left",true)</Down><Up>PBF.App:Input("left",false)</Up></Action>
+   <Action name="PBSFMEGA_RIGHT" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT" hideAction="true" rebindable="false"><Down>PBF.App:Input("right",true)</Down><Up>PBF.App:Input("right",false)</Up></Action>
+   <Action name="PBSFMEGA_UP" inheritsBindFrom="UI_SHORTCUT_INPUT_UP" hideAction="true" rebindable="false"><Down>PBF.App:Input("up",true)</Down><Up>PBF.App:Input("up",false)</Up></Action>
+   <Action name="PBSFMEGA_DOWN" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN" hideAction="true" rebindable="false"><Down>PBF.App:Input("down",true)</Down><Up>PBF.App:Input("down",false)</Up></Action>
+   <Action name="PBSFMEGA_ACCEL" inheritsBindFrom="UI_SHORTCUT_PRIMARY" hideAction="true" rebindable="false"><Down>PBF.App:Input("accel",true)</Down><Up>PBF.App:Input("accel",false)</Up></Action>
+   <Action name="PBSFMEGA_BRAKE" inheritsBindFrom="UI_SHORTCUT_SECONDARY" hideAction="true" rebindable="false"><Down>PBF.App:Input("brake",true)</Down><Up>PBF.App:Input("brake",false)</Up></Action>
+   <Action name="PBSFMEGA_BOOST" inheritsBindFrom="UI_SHORTCUT_TERTIARY" hideAction="true" rebindable="false"><Down>PBF.App:Input("boost",true)</Down><Up>PBF.App:Input("boost",false)</Up></Action>
+   <Action name="PBSFMEGA_LEAN_L" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER" hideAction="true" rebindable="false"><Down>PBF.App:Input("leanL",true)</Down><Up>PBF.App:Input("leanL",false)</Up></Action>
+   <Action name="PBSFMEGA_LEAN_R" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER" hideAction="true" rebindable="false"><Down>PBF.App:Input("leanR",true)</Down><Up>PBF.App:Input("leanR",false)</Up></Action>
+   <Action name="PBSFMEGA_TRIG_L" inheritsBindFrom="UI_SHORTCUT_LEFT_TRIGGER" hideAction="true" rebindable="false"><Down>PBF.App:Input("trigL",true)</Down><Up>PBF.App:Input("trigL",false)</Up></Action>
+   <Action name="PBSFMEGA_TRIG_R" inheritsBindFrom="UI_SHORTCUT_RIGHT_TRIGGER" hideAction="true" rebindable="false"><Down>PBF.App:Input("trigR",true)</Down><Up>PBF.App:Input("trigR",false)</Up></Action>
+   <AllowAction name="UI_SHORTCUT_NEGATIVE" />
+  </Category>
+ </Layer>
+</Bindings>

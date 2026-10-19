@@ -55,9 +55,4 @@ for _, member in ipairs(debuff.members) do
     assert(member.duration == 15.5)
 end
 assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "80.3 %")
-local from = #env.messages + 1
-SLASH_COMMANDS["/lbu"]("debuffdebug 34384 18836")
-local text = table.concat(env.messages, "\n", from)
-assert(text:find("vorgemerkt", 1, true) and text:find("Ende nicht angegeben", 1, true))
-assert(not text:find("Ende -", 1, true), "Zero fade timestamps must not be printed as negative durations")
 print("First-hit order: exact screenshot replay, provisional native IDs, reversed stale/valid expiry events, later enemy confirmation and HUD/report agreement passed")

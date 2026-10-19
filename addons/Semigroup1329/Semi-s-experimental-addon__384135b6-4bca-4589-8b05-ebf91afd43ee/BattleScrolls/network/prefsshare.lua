@@ -129,6 +129,7 @@ function prefsShare:Initialize()
     EVENT_MANAGER:RegisterForEvent("BattleScrolls_PrefsShare", EVENT_PLAYER_ACTIVATED, function()
         self:Send()
     end)
+    if IsPlayerActivated() then self:Send() end
     -- Send after group composition changes, debounced a couple of seconds so
     -- freshly joined members have their addon and LGB session ready
     local function onRosterChanged()

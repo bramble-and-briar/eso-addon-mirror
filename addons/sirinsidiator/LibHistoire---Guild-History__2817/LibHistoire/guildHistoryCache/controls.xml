@@ -83,7 +83,7 @@ SPDX-License-Identifier: Artistic-2.0 -->
                 </Label>
 
                 <Label name="$(parent)Version" font="ZoFontGameSmall"
-                    text="v2.7.1.1103"
+                    text="v2.7.2.1105"
                     color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SUBTLE">
                     <Anchor point="LEFT" relativeTo="$(parent)Label" relativePoint="RIGHT"
                         offsetX="10" />

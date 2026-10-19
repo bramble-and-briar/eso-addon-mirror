@@ -1,0 +1,40 @@
+## Title: |cFF69B4PB's F-MEGA|r 0.2.0
+## Author: |cFF69B4PinkBanther|r
+## Description: Hover-racing game in the spirit of the SNES classics. Launch it from Game Center PX in the main menu.
+## Version: 0.2.0
+## AddOnVersion: 200
+## APIVersion: 101050 101051
+## SavedVariables: PBsFMEGASavedVariables
+
+Core.lua
+Track.lua
+Courses.lua
+Machine.lua
+AI.lua
+Race.lua
+Atlas.lua
+View.lua
+Audio.lua
+UI.lua
+ModeMenu.xml
+ModeMenu.lua
+Menu.lua
+Main.lua
+Bindings.xml
+assets/white.dds
+assets/world.dds
+assets/hud.dds
+assets/sky_vivec.dds
+assets/far_vivec.dds
+assets/near_vivec.dds
+assets/road_vivec.dds
+assets/sky_bruma.dds
+assets/far_bruma.dds
+assets/near_bruma.dds
+assets/road_bruma.dds
+assets/sky_solitude.dds
+assets/far_solitude.dds
+assets/near_solitude.dds
+assets/road_solitude.dds
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

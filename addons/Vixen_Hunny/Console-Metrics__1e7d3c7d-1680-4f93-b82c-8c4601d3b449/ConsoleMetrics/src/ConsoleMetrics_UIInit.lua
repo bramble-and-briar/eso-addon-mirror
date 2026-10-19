@@ -496,7 +496,7 @@ function ConsoleMetrics:HandleSlash(rawInput)
         end
 
         self:Print(string.format(
-            "Trace status: enabled=%s mode=%s target=%s focus=%s sampleSkip=%s min=%d cap=%d/s summary=%ds",
+            "Trace status: enabled=%s mode=%s target=%s focus=%s sampleSkip=%s min=%d cap=%d/s summary=%ds hit[min=%s max=%s n=%d]",
             tostring(self.saved.ioTraceEnabled == true),
             tostring(self.saved.ioTraceMode),
             targetText,
@@ -504,7 +504,10 @@ function ConsoleMetrics:HandleSlash(rawInput)
             tostring(self.saved.ioTraceSkipResourceSampling == true),
             tonumber(self.saved.ioTraceMinValue) or 0,
             tonumber(self.saved.ioTraceMaxLinesPerSecond) or 40,
-            tonumber(self.saved.ioTraceSummarySeconds) or 1
+            tonumber(self.saved.ioTraceSummarySeconds) or 1,
+            NumberText(self.ioTraceState and self.ioTraceState.minHitValue or 0),
+            NumberText(self.ioTraceState and self.ioTraceState.maxHitValue or 0),
+            self.ioTraceState and self.ioTraceState.hitValueSamples or 0
         ))
         if self.saved.ioTraceEnabled then
             PrintTraceDangerWarning()
@@ -512,8 +515,28 @@ function ConsoleMetrics:HandleSlash(rawInput)
         return
     end
 
-    if input == "linkbuild" or input == "buildlink" or input == "chatbuild" then
-        self:LinkBuildToChat()
+    if input == "linkbuild" or input == "buildlink" or input == "chatbuild" or input == "share build" then
+        self:ShareBuildToChat()
+        return
+    end
+
+    if input == "share" or input == "share fight" or input == "sharefight" then
+        self:ShareFightToChat()
+        return
+    end
+
+    if input == "share skills" or input == "topskills" then
+        self:ShareTopSkillsToChat()
+        return
+    end
+
+    if input == "share sustain" or input == "sharesustain" or input == "shareresources" then
+        self:ShareResourceToChat()
+        return
+    end
+
+    if input == "share all" or input == "shareall" or input == "snapshot" then
+        self:ShareFullSnapshotToChat()
         return
     end
 
@@ -673,7 +696,7 @@ function ConsoleMetrics:HandleSlash(rawInput)
         self.ioTraceState = nil
         self.observedAbilityLog = {}
         self.observedAbilityCount = 0
-        self.fpsRuntime = { samples = 0, total = 0, min = nil, bins = {} }
+        self.fpsRuntime = { fpsSamples = 0, fpsTotal = 0, fpsMin = nil, fpsBins = {} }
         if self.ui.root then
             self.ui.root:SetHidden(true)
         end
@@ -684,37 +707,46 @@ function ConsoleMetrics:HandleSlash(rawInput)
     self:Print("Unknown command. Use /cm help")
 end
 
+-- Live-refresh key: only rebuild the dialog when panel, combat state, snapshot revision, or fight index changes.
+local function BuildLiveDialogRefreshKey(self)
+    local fight = self.fight or {}
+    return string.format(
+        "%s|%d|%d|%d",
+        tostring(self.dialogPanel or "main"),
+        self.inCombat and 1 or 0,
+        math.floor(tonumber(fight.snapshotRev) or 0),
+        self.viewFightIndex or 0
+    )
+end
+
 function ConsoleMetrics:OnUpdate()
     local nowMs = GetFrameTimeMilliseconds()
     local dialogShowing = self:IsFightViewDialogShowing()
 
+    -- Refresh the PC dialog on a timer while it is visible
+    if not IsConsoleUI() and not (type(IsGamepadPreferred) == "function" and IsGamepadPreferred()) and dialogShowing then
+        if not self.dialogRefreshAtMs or nowMs >= self.dialogRefreshAtMs then
+            self:RefreshPCDialog()
+            self.dialogRefreshAtMs = nowMs + DIALOG_LIVE_REFRESH_MS
+        end
+    end
     local getFramerate = type(_G) == "table" and _G.GetFramerate or nil
     if type(getFramerate) == "function" then
         local fps = tonumber(getFramerate())
         if fps and fps > 0 then
-            self.fpsRuntime = self.fpsRuntime or { samples = 0, total = 0, min = nil, bins = {} }
-            self.fpsRuntime.samples = (self.fpsRuntime.samples or 0) + 1
-            self.fpsRuntime.total = (self.fpsRuntime.total or 0) + fps
-            if self.fpsRuntime.min == nil or fps < self.fpsRuntime.min then
-                self.fpsRuntime.min = fps
+            self.fpsRuntime = self.fpsRuntime or { fpsSamples = 0, fpsTotal = 0, fpsMin = nil, fpsBins = {} }
+            local rt = self.fpsRuntime
+            rt.fpsSamples = (rt.fpsSamples or 0) + 1
+            rt.fpsTotal = (rt.fpsTotal or 0) + fps
+            if rt.fpsMin == nil or fps < rt.fpsMin then
+                rt.fpsMin = fps
             end
-            local bins = self.fpsRuntime.bins or {}
-            self.fpsRuntime.bins = bins
+            local bins = rt.fpsBins or {}
+            rt.fpsBins = bins
             local bucket = math.max(0, math.min(120, math.floor(fps + 0.5)))
             local key = bucket + 1
             bins[key] = (bins[key] or 0) + 1
         end
-    end
-
-    local function BuildLiveDialogRefreshKey()
-        local fight = self.fight or {}
-        return string.format(
-            "%s|%d|%d|%d",
-            tostring(self.dialogPanel or "main"),
-            self.inCombat and 1 or 0,
-            math.floor(tonumber(fight.snapshotRev) or 0),
-            self.viewFightIndex or 0
-        )
     end
 
     -- Two-step gamepad cancel behavior:
@@ -764,7 +796,7 @@ function ConsoleMetrics:OnUpdate()
 
     if dialogShowing and self.viewFightIndex == 0 then
         if not self.dialogRefreshAtMs or nowMs >= self.dialogRefreshAtMs then
-            local refreshKey = BuildLiveDialogRefreshKey()
+            local refreshKey = BuildLiveDialogRefreshKey(self)
             if self.ui.fightViewDialog and self.lastDialogRefreshKey ~= refreshKey then
                 self:PopulateFightViewDialog(self.ui.fightViewDialog)
                 self.lastDialogRefreshKey = refreshKey
@@ -802,6 +834,191 @@ function ConsoleMetrics:OnUpdate()
 
     self.wasFightViewDialogShowing = dialogShowing
     self:EmitIoTraceHeartbeat(nowMs)
+end
+
+function ConsoleMetrics:RegisterLAMSettings()
+    if not LibHarvensAddonSettings then
+        return
+    end
+
+    local panel = LibHarvensAddonSettings:AddAddon("Console Metrics")
+
+    -- General
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SECTION,
+        label = "General",
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Show HUD Out of Combat",
+        tooltip = "Keep the metrics panel visible when not in combat.",
+        getFunction = function() return self.saved.showOutOfCombat end,
+        setFunction = function(v)
+            self.saved.showOutOfCombat = v
+            if self.ui.root then
+                self.ui.root:SetHidden(not v and not self.inCombat)
+            end
+        end,
+        default = self.defaults.showOutOfCombat,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Auto Clear on Next Fight",
+        tooltip = "Wipe the live scroll panel when a new combat encounter begins.",
+        getFunction = function() return self.saved.autoClearOnNextFight end,
+        setFunction = function(v) self.saved.autoClearOnNextFight = v end,
+        default = self.defaults.autoClearOnNextFight,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Max Fight History",
+        tooltip = "How many past fights to keep in memory for browsing (5–40).",
+        min = 5,
+        max = 40,
+        step = 1,
+        format = "%d",
+        getFunction = function() return tonumber(self.saved.maxFightHistory) or self.defaults.maxFightHistory end,
+        setFunction = function(v)
+            self.saved.maxFightHistory = math.max(5, math.min(40, math.floor(v + 0.5)))
+            self:EnforceFightHistoryLimit()
+        end,
+        default = self.defaults.maxFightHistory,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Scroll Feed Lines",
+        tooltip = "Number of combat feed lines shown in the HUD (requires /reloadui).",
+        min = 1,
+        max = 20,
+        step = 1,
+        format = "%d",
+        getFunction = function() return tonumber(self.saved.scrollSize) or self.defaults.scrollSize end,
+        setFunction = function(v)
+            self.saved.scrollSize = math.max(1, math.min(20, math.floor(v + 0.5)))
+        end,
+        default = self.defaults.scrollSize,
+    })
+
+    -- Dialog
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SECTION,
+        label = "Fight Dialog",
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Dialog Auto Hide",
+        tooltip = "Automatically close the fight view dialog after combat ends.",
+        getFunction = function() return self.saved.dialogAutoHide end,
+        setFunction = function(v)
+            self.saved.dialogAutoHide = v
+            if v then self:ArmDialogAutoHide() else self.dialogAutoHideAtMs = nil end
+        end,
+        default = self.defaults.dialogAutoHide,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Auto Hide Delay (seconds)",
+        tooltip = "Seconds after combat to wait before auto-closing the dialog (3–120).",
+        min = 3,
+        max = 120,
+        step = 1,
+        format = "%d",
+        getFunction = function() return tonumber(self.saved.dialogAutoHideSeconds) or self.defaults.dialogAutoHideSeconds end,
+        setFunction = function(v)
+            self.saved.dialogAutoHideSeconds = math.max(3, math.min(120, math.floor(v + 0.5)))
+        end,
+        default = self.defaults.dialogAutoHideSeconds,
+        disable = function() return not self.saved.dialogAutoHide end,
+    })
+
+    -- Performance
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SECTION,
+        label = "Performance",
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Performance Mode",
+        tooltip = "Apply Series S / low-end console preset (enables low memory mode, disables ML model and trace).",
+        getFunction = function() return self.saved.performanceMode end,
+        setFunction = function(v)
+            self.saved.performanceMode = v
+            if v then self:ApplyConsolePerformancePreset() end
+        end,
+        default = self.defaults.performanceMode,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Low Memory Mode",
+        tooltip = "Compact fight snapshots to reduce memory usage. Disables some detailed breakdowns.",
+        getFunction = function() return self.saved.lowMemoryMode end,
+        setFunction = function(v)
+            self.saved.lowMemoryMode = v
+            if v and self.fightHistory and #self.fightHistory > 0 then
+                self:ApplyLowMemoryModeToHistory()
+            end
+        end,
+        default = self.defaults.lowMemoryMode,
+    })
+
+    -- ML Model
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SECTION,
+        label = "Behavior Model (ML)",
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Enable Behavior Model",
+        tooltip = "Run the ML-lite resistance and behavior prediction model during combat.",
+        getFunction = function() return self.saved.behaviorModelEnabled end,
+        setFunction = function(v)
+            self.saved.behaviorModelEnabled = v
+            if not v then self.behaviorModelCache = nil end
+        end,
+        default = self.defaults.behaviorModelEnabled,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Model Refresh (ms)",
+        tooltip = "How often the behavior model recalculates during combat (250–5000 ms).",
+        min = 250,
+        max = 5000,
+        step = 250,
+        format = "%d",
+        getFunction = function() return tonumber(self.saved.behaviorModelRefreshMs) or self.defaults.behaviorModelRefreshMs end,
+        setFunction = function(v)
+            self.saved.behaviorModelRefreshMs = math.max(250, math.min(5000, math.floor(v / 250 + 0.5) * 250))
+        end,
+        default = self.defaults.behaviorModelRefreshMs,
+        disable = function() return not self.saved.behaviorModelEnabled end,
+    })
+
+    -- Actions
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_SECTION,
+        label = "Actions",
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_BUTTON,
+        label = "Apply Performance Preset",
+        tooltip = "Apply the low-memory / high-performance preset (same as /cm perf on).",
+        buttonText = "Apply",
+        clickHandler = function()
+            self.saved.performanceMode = true
+            self:ApplyConsolePerformancePreset()
+            self:Print("Performance preset applied.")
+        end,
+    })
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_BUTTON,
+        label = "Clear All Fight Data",
+        tooltip = "Wipe current fight and full fight history from memory.",
+        buttonText = "Clear",
+        clickHandler = function()
+            self:ResetFightData(false)
+            self:Print("Fight data cleared.")
+        end,
+    })
 end
 
 function ConsoleMetrics:Initialize()
@@ -917,7 +1134,7 @@ function ConsoleMetrics:Initialize()
     self.ioTraceState = nil
     self.observedAbilityLog = {}
     self.observedAbilityCount = 0
-    self.fpsRuntime = { samples = 0, total = 0, min = nil, bins = {} }
+    self.fpsRuntime = { fpsSamples = 0, fpsTotal = 0, fpsMin = nil, fpsBins = {} }
 
     if self.saved.uiPanelEnabled then
         self:CreateUI()

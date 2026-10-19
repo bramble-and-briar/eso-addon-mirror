@@ -383,6 +383,8 @@ function ConsoleMetrics:BuildFightSummaryFromFight(fight, nowMs)
     local allEffectList = BuildTrackedEffectList(fight.allEffects, duration, nowMs)
     local majorMinorList = BuildTrackedEffectList(fight.majorMinorEffects, duration, nowMs)
     local setProcList = BuildTrackedEffectList(fight.setEffects, duration, nowMs)
+    local buffList    = BuildTrackedEffectList(fight.buffEffects,   duration, nowMs)
+    local debuffList  = BuildTrackedEffectList(fight.debuffEffects, duration, nowMs)
     local resourceSamples = fight.resourceSamples or {}
     local healthResourceSummary = BuildResourceSampleSummary(resourceSamples.healthPct or {})
     local magickaResourceSummary = BuildResourceSampleSummary(resourceSamples.magickaPct or {})
@@ -412,6 +414,8 @@ function ConsoleMetrics:BuildFightSummaryFromFight(fight, nowMs)
         totalIncomingOverflowDamage = fight.totalIncomingOverflowDamage or 0,
         totalIncomingBlockedDamage = fight.totalIncomingBlockedDamage or 0,
         totalIncomingShieldedDamage = fight.totalIncomingShieldedDamage or 0,
+        minHitValue = fight.minHitValue,
+        maxHitValue = fight.maxHitValue,
         critPct = critPct,
         skillList = CloneListShallow(sortCache.skillList or {}),
         healSkillList = CloneListShallow(sortCache.healSkillList or {}),
@@ -430,6 +434,8 @@ function ConsoleMetrics:BuildFightSummaryFromFight(fight, nowMs)
         allEffectList = allEffectList,
         majorMinorList = majorMinorList,
         setProcList = setProcList,
+        buffList    = buffList,
+        debuffList  = debuffList,
         protectionSummary = protectionSummary,
         inferredProtectionLabel = (fight.protectionInfo and fight.protectionInfo.currentLabel) or "No mitigation data",
         inferredProtectionConfidence = (fight.protectionInfo and fight.protectionInfo.confidence) or 0,
@@ -496,6 +502,8 @@ function ConsoleMetrics:CompactFightSummaryForHistory(summary)
     TrimListInPlace(summary.allEffectList, effectLimit)
     TrimListInPlace(summary.majorMinorList, effectLimit)
     TrimListInPlace(summary.setProcList, effectLimit)
+    TrimListInPlace(summary.buffList,   effectLimit)
+    TrimListInPlace(summary.debuffList, effectLimit)
 
     return summary
 end
@@ -570,6 +578,15 @@ function ConsoleMetrics:TrackMajorMinorAndSets(nowMs, result, abilityId, ability
             StartTrackedEffect(allEffectTrack, nowMs)
         else
             StopTrackedEffect(allEffectTrack, nowMs)
+        end
+
+        -- Buff/debuff separation: effect on player = buff; player applies to enemy = debuff.
+        if targetIsPlayer then
+            local buffTrack = AcquireTrackedEffect(self.fight.buffEffects, lowerName, abilityName, "Buff", abilityId, abilityName)
+            if gained then StartTrackedEffect(buffTrack, nowMs) else StopTrackedEffect(buffTrack, nowMs) end
+        elseif sourceIsPlayer then
+            local debuffTrack = AcquireTrackedEffect(self.fight.debuffEffects, lowerName, abilityName, "Debuff", abilityId, abilityName)
+            if gained then StartTrackedEffect(debuffTrack, nowMs) else StopTrackedEffect(debuffTrack, nowMs) end
         end
     end
 
@@ -874,7 +891,7 @@ function ConsoleMetrics:AddPCTSetEntry(setName, entry)
         end
     end
 
-    -- Derive scene from procType (synergies/passives â†’ PvE leaning; sets â†’ PvP default).
+    -- Derive scene from procType (synergies/passives -> PvE leaning; sets -> PvP default).
     local scene = "PvP"
     if type(entry.procType) == "string" then
         local pt = string.lower(entry.procType)

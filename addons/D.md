@@ -11,7 +11,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Daily Alchemy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Daily-Alchemy__1899) | Marify | PC / Mac | 1.5.2 |
 | [Daily Crabs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/A5ha/Daily-Crabs__4350) | A5ha | PC / Mac | 3 |
 | [Daily Craft Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/czerepx/Daily-Craft-Status__2510) | czerepx | PC / Mac | 0.2.16 |
-| [Daily Deeds — Currency Trackers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Daily-Deeds-Currency-Trackers__4504) | atharti | PC / Mac | 1.6 |
+| [Daily Deeds — Currency Trackers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Daily-Deeds-Currency-Trackers__4504) | atharti | PC / Mac | 1.7 |
 | [Daily Mail](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Daily-Mail__4406) | Hyborem | PC / Mac | v.1.1.2 |
 | [Daily Pledge Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DerpyNoodle/Daily-Pledge-Manager__4336) | DerpyNoodle | PC / Mac | 1.2.9 |
 | [Daily Provisioning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Daily-Provisioning__1901) | Marify | PC / Mac | 1.5.3 |

@@ -13,5 +13,5 @@ env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
 assert(saved.fps == nil, "Legacy FPS settings must be cleared")
 for index = 1, 10 do env.events.tick() end
 assert(calls == 0, "Addon must no longer poll native FPS")
-assert(LiveBuffUptimePerformance and not LiveBuffUptimePerformance.active, "Opt-in performance debug must remain available")
-print("FPS removal: no overlay, settings or polling; migrated saved data and retained performance debug passed")
+assert(LiveBuffUptimePerformance == nil, "Performance debug must no longer be loaded")
+print("FPS removal: no overlay, settings, polling or profiler; migrated saved data passed")

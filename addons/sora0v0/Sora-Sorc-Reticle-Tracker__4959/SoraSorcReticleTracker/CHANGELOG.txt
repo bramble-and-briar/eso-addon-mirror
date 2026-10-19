@@ -1,0 +1,24 @@
+Version 1.0.2
+- Fixed Bound Armaments stack display remaining visible after the stack effect expired.
+- The EVENT_EFFECT_CHANGED fade result now clears the displayed stack count immediately.
+- No polling/fallback updater was added; the fix remains event-driven.
+
+Version 1.0.1
+- Updated internal code to follow ESOUI upload best practices.
+- Removed an unnecessary global addon table.
+- Added the inventory update-reason filter for equipped-item changes.
+- Maelstrom equipment events now register only while Maelstrom tracking is enabled.
+- Removed redundant Lua checks already handled by EVENT_EFFECT_CHANGED filters.
+- Removed unnecessary API-existence checks after validating the APIs against ESOUI source.
+- Replaced repeated Maelstrom set checks with lookup tables.
+- Removed the unnecessary Bound Armaments fallback updater.
+- Moved the AI-assistance disclosure to the top of the ESOUI description.
+- Added source/reference credit information.
+- No intended gameplay or display changes.
+
+Version 1.0.0
+- Initial public release.
+- Crystal Fragments proc timer near the reticle.
+- Bound Armaments stack tracking with warning colors.
+- Optional text-only Maelstrom back-bar timers.
+- Independent position and size settings.

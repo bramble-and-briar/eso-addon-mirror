@@ -88,7 +88,7 @@ local gcCycleEffect = LibEffect.Async(function()
                 end
 
                 if not finishedByWeak then
-                    -- Yield to next frame before continuing
+                    -- Return control to LibAsync before continuing.
                     LibEffect.Yield():Await()
                 end
             end

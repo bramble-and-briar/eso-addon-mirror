@@ -117,26 +117,29 @@ function ArmoryBuildDisplay.OnMoveStop()
 end
 
 --Callback from the ZOS Armory Manager when a full update has been triggered
-function ArmoryBuildDisplay.BuildFullUpdate(_, buildIndex)
-    --CHAT_SYSTEM:AddMessage("ArmoryBuildDisplay EVENT_ARMORY_BUILDS_FULL_UPDATE")
-    ArmoryBuildDisplay.UpdateBuildIDs(buildIndex)
+function ArmoryBuildDisplay.BuildFullUpdate()
+    ArmoryBuildDisplay.UpdateBuildIDs(ArmoryBuildDisplay.GetVar("lastBuildID"))
 end
 
 --Callback from the ZOS Armory Manager when a build has been updated
 function ArmoryBuildDisplay.BuildUpdate(_, buildIndex)
-    --CHAT_SYSTEM:AddMessage("ArmoryBuildDisplay EVENT_ARMORY_BUILD_UPDATED")
-    ArmoryBuildDisplay.UpdateBuildIDs(buildIndex)
+    -- Renaming or changing another slot does not equip it.
+    if buildIndex == ArmoryBuildDisplay.GetVar("lastBuildID") then
+        ArmoryBuildDisplay.UpdateBuildIDs(buildIndex)
+    end
 end
 
 --Callback from the ZOS Armory Manager when a build has been restored/loaded
 function ArmoryBuildDisplay.BuildRestored(_, result, buildIndex)
-    --CHAT_SYSTEM:AddMessage("ArmoryBuildDisplay EVENT_ARMORY_BUILD_RESTORE_RESPONSE")
-    ArmoryBuildDisplay.UpdateBuildIDs(buildIndex)
+    if result == ARMORY_BUILD_RESTORE_RESULT_SUCCESS then
+        ArmoryBuildDisplay.UpdateBuildIDs(buildIndex)
+    end
 end
 
 --Store the last build ID and if build ID is valid, store the last build icon ID and update the display
 function ArmoryBuildDisplay.UpdateBuildIDs(buildIndex)
-    if buildIndex ~= nil then
+    if type(buildIndex) == "number" and buildIndex >= 1 and
+        buildIndex <= GetNumUnlockedArmoryBuilds() and buildIndex == math.floor(buildIndex) then
         ArmoryBuildDisplay.SetVar("lastBuildID", buildIndex)
         if buildIndex > 0 then
             ArmoryBuildDisplay.SetVar("lastBuildIconID", GetArmoryBuildIconIndex(buildIndex))
@@ -165,7 +168,7 @@ function ArmoryBuildDisplay.SetBuildIcon(buildIconIndex)
     -- Set the build icon texture if valid otherwise show a blank icon.
     if buildIconIndex >= 1 and buildIconIndex <= ARMORY_NUM_BUILD_ICONS and ArmoryBuildDisplay.GetVar("showIcon") then
         ArmoryBuildDisplayFrame:GetNamedChild("Icon"):SetTexture(
-            string.format(ARMORY_BUILD_ICON_TEXTURE_FORMATTER , ArmoryBuildDisplay.vars.lastBuildIconID)
+            string.format(ARMORY_BUILD_ICON_TEXTURE_FORMATTER, buildIconIndex)
         )
     else
         ArmoryBuildDisplayFrame:GetNamedChild("Icon"):SetTexture("/esoui/art/icons/heraldrycrests_misc_blank_01.dds")
@@ -241,24 +244,25 @@ end
 function ArmoryBuildDisplay.RegisterEvents()
     EM:RegisterForEvent(ArmoryBuildDisplay.name, EVENT_ARMORY_BUILD_UPDATED, ArmoryBuildDisplay.BuildUpdate)
     EM:RegisterForEvent(ArmoryBuildDisplay.name, EVENT_ARMORY_BUILD_RESTORE_RESPONSE, ArmoryBuildDisplay.BuildRestored)
-    EM:RegisterForEvent(ArmoryBuildDisplay.name, EVENT_OPEN_ARMORY_MENU, ArmoryBuildDisplay.Show)
+    EM:RegisterForEvent(ArmoryBuildDisplay.name, EVENT_ARMORY_BUILDS_FULL_UPDATE, ArmoryBuildDisplay.BuildFullUpdate)
+    EM:RegisterForEvent(ArmoryBuildDisplay.name, EVENT_PLAYER_ACTIVATED, ArmoryBuildDisplay.BuildFullUpdate)
+    EM:RegisterForEvent(ArmoryBuildDisplay.name, EVENT_OPEN_ARMORY_MENU, ArmoryBuildDisplay.UpdateUI)
 end
 
 --Unregisters all Armory events.
 function ArmoryBuildDisplay.UnRegisterEvents()
     EM:UnregisterForEvent(ArmoryBuildDisplay.name, EVENT_ARMORY_BUILD_UPDATED)
     EM:UnregisterForEvent(ArmoryBuildDisplay.name, EVENT_ARMORY_BUILD_RESTORE_RESPONSE)
+    EM:UnregisterForEvent(ArmoryBuildDisplay.name, EVENT_ARMORY_BUILDS_FULL_UPDATE)
+    EM:UnregisterForEvent(ArmoryBuildDisplay.name, EVENT_PLAYER_ACTIVATED)
     EM:UnregisterForEvent(ArmoryBuildDisplay.name, EVENT_OPEN_ARMORY_MENU)
 end
 
 
 --Triggers the UI update.
 function ArmoryBuildDisplay.ApplySettings()
-    if ArmoryBuildDisplay.GetVar("enabled") then
-        ArmoryBuildDisplay.RegisterEvents()
-    else
-        ArmoryBuildDisplay.UnRegisterEvents()
-    end
+    -- Keep tracking equips while hidden so re-enabling shows the current slot.
+    ArmoryBuildDisplay.RegisterEvents()
     ArmoryBuildDisplay.UpdateUI()
 end
 

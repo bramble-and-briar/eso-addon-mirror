@@ -18,7 +18,7 @@
     "EventTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2504/",
-  "fingerprint": "cd44f8f736239fbda63e81c71b6bfdb26dfeb9346cddb4b5511585823e62a6ee",
+  "fingerprint": "3f6c06b72741b4b39bebb091a0f808ac88b5411905c97cece8cb0c27c2577d42",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9098.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw9099.jpg",
@@ -33,11 +33,11 @@
   "source_id": "2504",
   "source_url": "https://www.esoui.com/downloads/info2504-EventTracker.html",
   "stats": {
-    "downloads": 253615,
+    "downloads": 255217,
     "favorites": 129,
-    "monthly_downloads": 399
+    "monthly_downloads": 2015
   },
   "title": "Event Tracker",
-  "updated_at": 1791701384000,
-  "version": "2.430"
+  "updated_at": 1792382995000,
+  "version": "2.440"
 }

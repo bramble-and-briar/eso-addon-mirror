@@ -342,6 +342,14 @@ local function MenuOptions_Init()	--Menu options
 	}
 
 	MenuOptions["MenuPlayerFrames"]={
+    { type="slider", name="Basegame Attribute Bar Width", min=250, max=370, step=5,
+      getFunc=function() return (BUI.Vars and BUI.Vars.MyUI_NativeAttributeWidth) or 300 end,
+      setFunc=function(value)
+          BUI.Vars.MyUI_NativeAttributeWidth=value
+          if BUI.AttributeWidth then BUI.AttributeWidth.Apply() end
+      end,
+      default=300,
+    },
 --		type="submenu", name="PlayerHeader", controls={
 	--Player Frames
 	{	type		="dropdown",

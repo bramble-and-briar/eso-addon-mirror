@@ -1,8 +1,109 @@
 RodZillaTraderStats = {}
 RodZillaTraderStats.name = "RodZillaTraderStats"
-RodZillaTraderStats.version = "0.1.7"
+RodZillaTraderStats.version = "0.1.10"
 
 local RZTS = RodZillaTraderStats
+
+-- TEMPORARY UPSTREAM-BUG WORKAROUND, added 2026-10-19 -- see memory/eso-console-port-blockers
+-- 4g and the ESOUI forum report (not yet posted as of this commit). Root cause confirmed by
+-- reading LibHistoire's own source, not guessed: GuildHistoryCacheCategory's
+-- GetIndexRangeForEventIdRange calls the base-game GetGuildHistoryEventIndex directly, with
+-- no nil-check, and can legitimately return nil for startIndex while endIndex still resolves.
+-- GuildHistoryProcessingRequest:StartProcessing then passes that straight into LibAsync's
+-- task:For(startIndex, endIndex, -1) -- task:Do's own assert("Do without For") checks `p1`
+-- truthiness and fires, crashing LibHistoire's internal scheduler with zero frames of our own
+-- code on the stack. Confirmed via a real "assert: Do without For" error on real Xbox
+-- hardware, twice -- including once rendering behind our own dialog (hence the console Load
+-- button's separate pcall guard added in v0.1.8; that one can't catch this specific crash,
+-- since it's thrown asynchronously from LibHistoire's own scheduler, never from any call site
+-- of ours).
+--
+-- This is NOT a copy of LibHistoire's file -- it's an independently-written replacement for
+-- exactly one method, installed at runtime over LibHistoire's own shared class table the same
+-- way any addon hooks another's public API (method lookup on a ZO_InitializingObject
+-- subclass happens dynamically via __index at call time, so overwriting the field here
+-- changes what every caller gets, including LibHistoire's own internals). Everything below
+-- the new nil-check is otherwise identical in behavior to the original -- same helper calls,
+-- same fallback path the original already uses two sections above for the equivalent
+-- startId/endId-level check; this just extends that same pattern to the index-level values
+-- too, which the original never re-checks after resolving them.
+--
+-- Affects every LibHistoire consumer in the session, not just this addon's own requests --
+-- deliberately not scoped to console or to this addon only, since it only changes behavior in
+-- an already-crashing degenerate case; every other case behaves byte-for-byte as before.
+--
+-- REMOVE whenever LibHistoire ships a real fix -- check the ESOUI forum thread (see
+-- memory/eso-console-port-blockers) before assuming this is still needed after an update.
+local function RZTS_InstallStartProcessingPatch()
+    local lib = LibHistoire
+    local internal = lib and lib.internal
+    local GuildHistoryProcessingRequest = internal and internal.class and internal.class.GuildHistoryProcessingRequest
+    if not GuildHistoryProcessingRequest then
+        -- LibHistoire's internals moved or aren't ready yet -- don't hard-fail our own addon
+        -- over an optional safety patch; just skip it.
+        return
+    end
+
+    local logger = internal.logger
+
+    function GuildHistoryProcessingRequest:StartProcessing(endId)
+        if logger then logger:Debug("start processing (RZTS patched)", self.processor:GetKey()) end
+        assert(self.processor:IsRunning(),
+            string.format("Processor %s should be running (%s)", self.processor:GetKey(), self.processor.addonName or "-"))
+        self:StopProcessing()
+
+        local hasProcessedEvents = false
+        local processor = self.processor
+        local startId = processor.currentEventId
+        if not startId then
+            startId = self:FindStartId()
+        end
+
+        if not startId then
+            self:EnsureIterationIsComplete(hasProcessedEvents)
+            return
+        end
+
+        endId = endId or self:FindEndId()
+
+        if not endId or startId > endId then
+            self:EnsureIterationIsComplete(hasProcessedEvents)
+            return
+        end
+
+        local startIndex, endIndex = processor.categoryCache:GetIndexRangeForEventIdRange(startId, endId)
+
+        -- THE ACTUAL FIX: the original has no equivalent check here, even though the same
+        -- "nothing resolvable yet" situation is already handled two sections above for the
+        -- id-level values. A nil startIndex/endIndex going straight into task:For() is what
+        -- crashes.
+        if not startIndex or not endIndex then
+            if logger then logger:Debug("RZTS patch: no index range yet - are we done?") end
+            self:EnsureIterationIsComplete(hasProcessedEvents)
+            return
+        end
+
+        self.currentIndex = startIndex
+        self.endIndex = endIndex
+        self.performanceTracker:Reset()
+        self.task = internal:CreateAsyncTask()
+        self.task:For(startIndex, endIndex, -1):Do(function(i)
+            self.currentIndex = i
+            self.performanceTracker:Increment()
+            local event = processor.categoryCache:GetEvent(i)
+            local eventId = event:GetEventId()
+            if eventId < startId or eventId > endId then
+                return
+            end
+            self.onEvent(processor, event)
+            hasProcessedEvents = true
+        end):Then(function()
+            self.task = nil
+            self:EnsureIterationIsComplete(hasProcessedEvents)
+        end)
+    end
+end
+RZTS_InstallStartProcessingPatch()
 
 -- Data layer: aggregated per-item stats only (count, gold total, min/max/avg, last N sale timestamps).
 -- Deliberately NOT storing the raw event log long-term -- keeps SavedVariables/memory footprint
@@ -816,9 +917,13 @@ local function BuildConsoleLoadDialogText()
     return table.concat(sections, "\n\n")
 end
 
-local function ShowConsoleLoadDialog()
+-- overrideText lets the console Load button's error handler (see RegisterAddonMenu below)
+-- force specific content into the dialog without touching RZTS.traderStats -- that table is
+-- shared with PC's canvas, so writing an error string into it here would risk PC seeing it
+-- too the next time it renders.
+local function ShowConsoleLoadDialog(overrideText)
     local dialog = GetConsoleLoadDialog()
-    dialog.mainText.text = BuildConsoleLoadDialogText()
+    dialog.mainText.text = overrideText or BuildConsoleLoadDialogText()
     if IsInGamepadPreferredMode() then
         ZO_Dialogs_ShowGamepadDialog(RZTS_CONSOLE_LOAD_DIALOG)
     else
@@ -921,9 +1026,52 @@ function RZTS.RegisterAddonMenu()
         -- the dialog built from real scan data (see BuildConsoleLoadDialogText above).
         optionsTable[2].name = "Load"
         optionsTable[2].tooltip = "Loads this guild's trader history and opens the stats screen."
+        -- Console-only safety net, found 2026-10-19: a Lua error surfacing here (e.g. from a
+        -- LibHistoire/base-game API call inside the shared ComputeTraderStats path) normally
+        -- shows as the game's own error popup -- confirmed capable of rendering BEHIND this
+        -- dialog on real hardware, unreadable (same dialog-layering issue already flagged for
+        -- LibHistoire's own shutdown-warning dialog). Catching it here and putting the message
+        -- straight into our own dialog's text guarantees it's actually readable, whatever it
+        -- turns out to be.
+        --
+        -- Deliberately scoped to ONLY this console branch's call site -- PC's Refresh button
+        -- above (same optionsTable[2], its original func) still calls RZTS.ComputeTraderStats()
+        -- completely unwrapped, so an error there behaves on PC exactly as it always has. This
+        -- only catches errors thrown synchronously during the button press itself (covers
+        -- IsTraderHistoryUpToDate's first, synchronous check) -- a later error thrown from an
+        -- async retry/callback after this call returns wouldn't be caught here either, since
+        -- that runs on its own separate call stack outside this pcall.
+        --
+        -- FOUND 2026-10-19, real hardware: Load used to call RZTS.ComputeTraderStats()
+        -- unconditionally on every press -- but that always starts with ClearTraderStats(),
+        -- which stops whatever scan is already running. Since the only way to check progress
+        -- on console is to press Load again (no live-updating view -- see
+        -- BuildConsoleLoadDialogText's one-shot build below), "checking on it" and "resetting
+        -- it" were the same action: a long-running scan could never survive being checked on.
+        -- Confirmed directly -- waiting nearly 10 minutes then pressing Load produced the
+        -- exact same frozen "scanning" snapshot as the first press, because the press itself
+        -- restarted the scan from zero before building that snapshot.
+        --
+        -- Fix: only call ComputeTraderStats() when nothing is already in flight for the
+        -- selected guild -- same inFlight condition PC's `disabled` function above already
+        -- uses to gate a retry. Reusing a guild's dropdown setFunc already calls
+        -- ComputeTraderStats() itself on switch (see optionsTable[1] above), so
+        -- RZTS.traderStats always corresponds to whichever guild is currently selected --
+        -- Load pressed again for the SAME guild while a scan is active just reopens the
+        -- dialog against the current (possibly further along, possibly finished) stats
+        -- instead of discarding them.
         optionsTable[2].func = function()
-            RZTS.ComputeTraderStats()
-            ShowConsoleLoadDialog()
+            local ok, err = pcall(function()
+                local s = RZTS.traderStats
+                local inFlight = s ~= nil and s.phase ~= "done" and s.phase ~= "error"
+                if not inFlight then
+                    RZTS.ComputeTraderStats()
+                end
+                ShowConsoleLoadDialog()
+            end)
+            if not ok then
+                ShowConsoleLoadDialog("Something went wrong loading trader stats:\n\n" .. tostring(err))
+            end
         end
         -- FOUND 2026-10-12, real hardware: the shared `disabled` function above (disable
         -- while scanning, re-enable on phase "done"/"error") relies on registerForRefresh's

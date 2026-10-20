@@ -81,6 +81,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Test suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tekatsu/Test-suite__dc420d92-00cf-428d-8c89-a7cb5ceecd44) | Tekatsu | Console | — |
 | [Test suite 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tekatsu/Test-suite-2__e1fa49c2-830c-41dc-9927-0d013ba1f21d) | Tekatsu | Console | — |
 | [Test01 Better Twins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Test01-Better-Twins__4dd951d1-312d-470c-b02c-f1961618b998) | BMGxSancho | Console | — |
+| [Testin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testin__dda5dca2-4511-4e45-9dd2-769c7eb40feb) | FiNk3F13 | Console | — |
 | [Testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testing__8cd10e06-846e-4b81-9858-f1a6943f0b32) | FiNk3F13 | Console | — |
 | [TestMapAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/TestMapAddon__cee315a7-bef0-44c7-9a12-dbc6bdb6674d) | PinkBanther | Console | — |
 | [Testo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testo__216fbb06-0224-40a3-bc08-d47f6a6a1157) | FiNk3F13 | Console | — |

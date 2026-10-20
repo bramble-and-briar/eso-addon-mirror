@@ -1,0 +1,145 @@
+if _G.ADR_EMBED_SKIP then return end
+--========================================
+--        vars
+--========================================
+---@type adr.addon.M
+local addon = ActionDurationReminder
+local l = {}
+---@type adr.settings.M
+local m = { l = l }
+local SV_NAME = "ADRSV"
+local SV_VER = "1.0"
+
+--========================================
+--        types
+--========================================
+---@type adr.settings.SavedVars
+local savedVarsDefaults = {
+  settingsAccountWide = false,
+}
+
+---LibAddonMenu2菜单项(字段随LAM2控件类型扩展)
+---@class adr.settings.MenuOption
+---@field type? string
+---@field name? string
+---@field getFunc? fun(): any
+---@field setFunc? fun(value: any)
+---@field width? string|number
+---@field default? any
+
+---存档变量(字段随各模块addDefaults扩展)
+---持久化设置。各模块通过同名类声明扩展自己的字段(见各模块 SavedVarsDefaults 处)
+---@class adr.settings.SavedVars
+---@field settingsAccountWide? boolean
+
+---Settings模块公开表(addon.register("Settings#M"))
+---@class adr.settings.M
+---@field EXTKEY_ADD_DEFAULTS? string
+---@field EXTKEY_ADD_MENUS? string
+---@field addDefaults? fun(...: any)
+---@field addMenuOptions? fun(...: adr.settings.MenuOption)
+---@field getAccountSavedVars? fun(): adr.settings.SavedVars
+---@field getCharacterSavedVars? fun(): adr.settings.SavedVars
+---@field getSavedVars? fun(): adr.settings.SavedVars
+
+--========================================
+--        l
+--========================================
+---@type adr.settings.SavedVars
+l.accountSavedVars = {}
+---@type adr.settings.SavedVars
+l.characterSavedVars = {}
+---@type adr.settings.MenuOption[]
+l.menuOptions = {}
+
+---@type fun()
+l.onStart = function()
+  -- load saved vars with defaults
+  -- first, pick up addon-level defaults directly from addon
+  if addon.debugDefaults then
+    zo_mixin(savedVarsDefaults, addon.debugDefaults)
+  end
+  -- then let modules add their own defaults
+  addon.callExtension(m.EXTKEY_ADD_DEFAULTS)
+  -- Embedded copies store their settings under a host-specific SV name
+  -- (set via ADR_EMBED.activate's 2nd argument) so the embedded copy never
+  -- shares "ADRSV" with the standalone addon (declaring the same SV name in
+  -- two addons makes both SavedVariables files fight over the same global).
+  local svName = _G.ADR_EMBED_SV_NAME or SV_NAME
+  l.accountSavedVars = ZO_SavedVars:NewAccountWide(svName, SV_VER, nil, savedVarsDefaults)
+  l.characterSavedVars = ZO_SavedVars:New(svName, SV_VER, nil, savedVarsDefaults)
+  -- register addon panel
+  local LAM2 = LibAddonMenu2
+  if LAM2 == nil then
+    return
+  end
+  local panelData = {
+    type = "panel",
+    name = addon.title or addon.name,
+    displayName = "ADR Settings",
+    author = "Cloudor",
+    version = addon.version,
+    website = "https://www.esoui.com/downloads/info1536-ActionDurationReminder.html",
+    feedback = "https://www.esoui.com/downloads/info1536-ActionDurationReminder.html#comments",
+    slashCommand = "/adrset",
+    registerForRefresh = true,
+    registerForDefaults = true,
+  }
+  LAM2:RegisterAddonPanel("ADRAddonOptions", panelData)
+  -- init menu options
+  m.addMenuOptions({
+    type = "checkbox",
+    name = addon.text("Account Wide Configuration"),
+    getFunc = function()
+      return l.characterSavedVars.settingsAccountWide
+    end,
+    setFunc = function(value)
+      l.characterSavedVars.settingsAccountWide = value
+    end,
+    width = "full",
+    default = true,
+  })
+  addon.callExtension(m.EXTKEY_ADD_MENUS)
+  LAM2:RegisterOptionControls("ADRAddonOptions", l.menuOptions)
+end
+
+--========================================
+--        m
+--========================================
+m.EXTKEY_ADD_DEFAULTS = "Settings:addDefaults"
+m.EXTKEY_ADD_MENUS = "Settings:addMenus"
+
+---@type fun(...: any)
+m.addDefaults = function(...)
+  zo_mixin(savedVarsDefaults, ...)
+end
+
+---@type fun(...: adr.settings.MenuOption)
+m.addMenuOptions = function(...)
+  for i = 1, select("#", ...) do
+    local option = select(i, ...)
+    table.insert(l.menuOptions, option)
+  end
+end
+
+---@type fun(): adr.settings.SavedVars
+m.getAccountSavedVars = function()
+  return l.accountSavedVars
+end
+
+---@type fun(): adr.settings.SavedVars
+m.getCharacterSavedVars = function()
+  return l.characterSavedVars
+end
+
+---@type fun(): adr.settings.SavedVars
+m.getSavedVars = function()
+  return l.characterSavedVars.settingsAccountWide and l.accountSavedVars or l.characterSavedVars
+end
+
+--========================================
+--        register
+--========================================
+addon.register("Settings#M", m)
+addon.register("Settings", m)
+addon.hookStart(l.onStart)

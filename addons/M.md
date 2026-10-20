@@ -64,7 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Masquerade__1514) | Werewolf Finds Dragon | PC / Mac | 010-100022 |
 | [Mass Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ahmetertem/Mass-Deconstructor__1118) | ahmetertem | PC / Mac | 7.3 |
 | [Master Baiter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Master-Baiter__fcf311fe-14ad-4eff-ae72-cee32d7b5943) | TheGreyWolf98 | Console | — |
-| [Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Master-Merchant-3.0__2753) | Sharlikran | PC / Mac | 3.8.33 |
+| [Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Master-Merchant-3.0__2753) | Sharlikran | PC / Mac | 3.8.34 |
 | [Master Merchant RU Patch (for v1.9.2)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/Master-Merchant-RU-Patch-for-v1.9.2__1450) | ForgottenLight | PC / Mac | 1.9.2.1 |
 | [Master Writ Inventory Marker (WritWorthy Extension)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Master-Writ-Inventory-Marker-WritWorthy-Extension__2887) | code65536 | PC / Mac | 4.0.4 |
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Adalan/MasterThief__1014) | Adalan | PC / Mac | 1.9 |

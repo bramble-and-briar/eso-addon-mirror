@@ -220,7 +220,6 @@ function CT:GetOptions()
             type          = "submenu",
             name          = "Chat Travel",
             icon          = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_textChat.dds",
-            childrenAlign = "center",
             options       = {
                 {
                     type = "button",

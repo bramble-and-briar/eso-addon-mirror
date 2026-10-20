@@ -1,8 +1,8 @@
-## Title: |cFFFF00Event Tracker |c00CCFFHigh Seas|r v2.430
+## Title: |cFFFF00Event Tracker |c00CCFFWitches Fest|r v2.440
 ## Description: Helps track Event Tickets so you don't miss any.
 ## Author: |cAA00FFKelinmiriel|r
-## Version: 2.430
-## AddOnVersion: 2430
+## Version: 2.440
+## AddOnVersion: 2440
 ## APIVersion: 101051
 ## SavedVariables: EventTrackerVars EventTrackerShared
 ## OptionalDependsOn: LibSlashCommander
@@ -37,6 +37,7 @@ EVTUserInterface.lua
 EventTracker.xml
 
 ; Recent changes:
+; Version 2.440 (2026/10/18) Witches Fest
 ; Version 2.430 (2026/10/10) High Seas
 ; Version 2.420 (2026/06/24) Zeal of Zenithar; U51 API for next PTS
 ; Version 2.412 (2026/04/13) Zeal of Zenithar on PTS

@@ -54,7 +54,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Urich's Coffer Timer (Blackwood update)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sooperbeans/Urich-s-Coffer-Timer-Blackwood-update__3194) | sooperbeans | PC / Mac | 3.2.0 |
 | [Urich's Coffer Timer - greymoor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Matt_Eweroun/Urich-s-Coffer-Timer---greymoor__2691) | Matt_Eweroun | PC / Mac | 3.1.1 |
 | [Urich's Hireling Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fritzOSU03/Urich-s-Hireling-Timer__1841) | fritzOSU03 | PC / Mac | 2.1.0 |
-| [Urich's Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fritzOSU03/Urich-s-Skill-Point-Finder__1863) | fritzOSU03 | PC / Mac | 7.5.0 |
+| [Urich's Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fritzOSU03/Urich-s-Skill-Point-Finder__1863) | fritzOSU03 | PC / Mac | 7.5.1 |
 | [Usable Containers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Usable-Containers__9237369e-344f-4e5c-8966-b0f04b0be2c9) | dicen9 | Console | — |
 | [use buff group panels to track pilly cd now](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NamesJacks/use-buff-group-panels-to-track-pilly-cd-now__64f89b81-db7d-4b9c-9027-3f6185a2d96c) | NamesJacks | Console | — |
 | [Use Ultimate Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eymix/Use-Ultimate-Reminder__2538) | Eymix | PC / Mac | 5.3 |

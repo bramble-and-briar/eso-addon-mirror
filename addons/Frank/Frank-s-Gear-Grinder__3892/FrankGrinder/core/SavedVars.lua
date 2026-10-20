@@ -1,4 +1,3 @@
-local function deepCopy(t) return ZO_DeepTableCopy(t) end
 
 FrankGrinder.defaults = {
     firstRun = true,
@@ -35,7 +34,9 @@ FrankGrinder.defaults = {
         hideAdventureZoneHudTracker = false,
         
         enableElmsInjection = false,
-        
+
+        keyChordingEnabled = false,
+
         -- Night Market Group Finder automation config
         nmAutomationConfig = {
             mode = "argent",        -- "dungeon" | "argent" | "adventure"
@@ -55,6 +56,11 @@ FrankGrinder.defaults = {
         },
     },
     leadWarning = {},
+
+    -- Markers this addon has injected into ElmsMarkers, keyed by zoneId.
+    -- Persisted so a crash or hard exit can't orphan them there.
+    elmsZoneTrackMarkers = {},
+
     version = FrankGrinder.savedVarsSchemaVersion,
 }
 

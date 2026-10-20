@@ -956,7 +956,7 @@ function GL:GetOptions()
             type          = "submenu",
             name          = "Guild Loop",
             icon          = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_guilds.dds",
-            childrenAlign = "center",
+            tooltip       = ME.SAVED_CHARACTER_TIP,
             options       = {
                 {
                     type = "button",
@@ -981,6 +981,23 @@ function GL:Init()
     self:NormalizeSettings()
     self:InstallHooks()
     self:ScheduleHookRetries()
+end
+
+function GL:OnReset()
+    local saved = self.savedVars
+    if not IsTable(saved) then
+        return
+    end
+
+    self:StopRotation()
+
+    saved.favorites  = {}
+    saved.enabled    = false
+    saved.timerIndex = self.loopDefaults.timerIndex
+    saved.timerUnit  = self.loopDefaults.timerUnit
+
+    self:NormalizeSettings()
+    self:RefreshDropdownKeybinds(self.currentDropdown)
 end
 
 ME:RegisterFeature(GL)

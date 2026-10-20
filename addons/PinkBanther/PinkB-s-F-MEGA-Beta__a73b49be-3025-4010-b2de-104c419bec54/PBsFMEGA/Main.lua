@@ -80,11 +80,11 @@ function A:RefreshGarage()
  t.ovSub:SetText(string.format('%s\n全長 %.1f km　%d周',def.blurb,self.track.length/1000,def.laps))
  t.ovMachine:SetText('◀　'..st.name..'　▶')
  for i,name in ipairs({'最高速','加速','旋回','グリップ'}) do self.ui.statNames[i]:SetText(name) end
- self.ui:SetBars({st.top/110,st.accel/55,st.turn/2.8,st.grip/9})
+ self.ui:SetBars({st.top/250,st.accel/80,st.turn/2.8,st.grip/9})
  t.ovNote:SetText(st.note)
  t.ovLevel:SetText('ライバルの強さ：'..A.LEVELS[self.saved.level]..'　（上下）')
  t.ovMusic:SetText((best and ('ベストタイム '..C.FormatTime(best.time)..'　／　') or '')..self.audio:Label()..'（□）')
- t.ovHint:SetText('左右：機体　上下：ライバルの強さ　□：BGM　×：スタート　○：戻る')
+ t.ovHint:SetText('左右：機体　上下：ライバルの強さ　□：BGM　×：スタート　△：戻る')
 end
 function A:StartRace()
  if self.state~='garage' then return end
@@ -96,7 +96,7 @@ function A:StartRace()
  self.ui.text.ovHint:SetHidden(true)
  self.ui:UpdateKeybinds()
  self.footerUntil=GetFrameTimeSeconds()+6
- self.ui.footer:SetText('R2/×：アクセル　L2/□：ブレーキ　△：ブースト　L1/R1：スライド　○：一時停止');self.ui.footer:SetHidden(false)
+ self.ui.footer:SetText('R2/×：アクセル　L2/□：ブレーキ　○：ブースト　L1/R1：スライド　△：一時停止');self.ui.footer:SetHidden(false)
 end
 function A:Pause()
  if self.state~='race' then return end
@@ -104,7 +104,7 @@ function A:Pause()
  local t=self.ui.text
  self.ui:ShowPanel('result')
  t.ovTitle:SetText('一時停止');t.ovSub:SetText(self:Course().name)
- t.ovA:SetText('');t.ovB:SetText('×　再開\n□　やり直し\n○　終了');t.ovC:SetText('')
+ t.ovA:SetText('');t.ovB:SetText('×　再開\n□　やり直し\n△　終了');t.ovC:SetText('')
  t.ovHint:SetText('');self.ui:UpdateKeybinds()
 end
 function A:Resume()
@@ -138,7 +138,7 @@ function A:ShowResult()
  t.ovTitle:SetText(p.finished and ('第'..p.rank..'位') or 'リタイア')
  t.ovSub:SetText(sub)
  t.ovA:SetText(table.concat(rows,'\n'));t.ovB:SetText(table.concat(names,'\n'));t.ovC:SetText(table.concat(times,'\n'))
- t.ovHint:SetText('×：もう一度　□：機体を選ぶ　○：終了')
+ t.ovHint:SetText('×：もう一度　□：機体を選ぶ　△：終了')
  self.ui:UpdateKeybinds()
 end
 function A:Close()
@@ -216,6 +216,9 @@ function A:OnEvent(kind,m,a)
   ui:Shake(min(22,a*.6));ui:Hit(a);self.audio:Play(kind)
   if self.saved.rumble then self:Probe('rumble',rumble,120,min(1,a/40)) end
  elseif kind=='pad' then self.audio:Play('pad')
+ elseif kind=='jump' then ui:Banner('JUMP!',.8,1.6);self.audio:Play('jump')
+ elseif kind=='loop' then ui:Banner('SKY LOOP!',1.1,1.8);self.audio:Play('loop')
+ elseif kind=='land' then ui:Shake(5);self.audio:Play('land')
  elseif kind=='explode' then
   if m.player then ui:Banner('リタイア',2.4,2.2);ui:Shake(30);self.audio:Play('explode') end
  elseif kind=='over' then

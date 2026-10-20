@@ -30,16 +30,6 @@ function ADDON.InitializeSettings()
     settings.author = ADDON.author
     settings.version = ADDON.version
 
-    -- The preview follows the panel -- see "Following the settings panel" in Preview.lua for why
-    -- this callback alone is not enough on console. Registered on the client's callback manager,
-    -- beside everyone else's.
-    CALLBACK_MANAGER:RegisterCallback(
-        "LibHarvensAddonSettings_AddonSelected",
-        function(_, addonSettings)
-            ADDON.preview:OnAddonSelected(addonSettings)
-        end
-    )
-
     local sv = ADDON.sv
     local defaults = ADDON.defaults
 
@@ -104,6 +94,142 @@ function ADDON.InitializeSettings()
     -- Moving the window with the mouse needs a mouse; there is nothing to unlock on a console.
     if ADDON.CAN_EDIT_WITH_MOUSE then
         AddCheckbox("UNLOCK", "UNLOCK_TIP", false, ADDON.IsUnlocked, ADDON.SetUnlocked)
+    end
+
+    -- ---- Rank ----------------------------------------------------------------------------
+    -- The rows' text is a function: it is worked out when the row is drawn, so it is current
+    -- whenever the section is opened.
+    AddSection("SECTION_RANK")
+    settings:AddSetting({
+        type = Library.ST_LABEL,
+        label = function() return ADDON.records:RankLine() end,
+        tooltip = L("RANK_ROW_TIP"),
+        canSelect = true,
+    })
+    settings:AddSetting({
+        type = Library.ST_LABEL,
+        label = function() return ADDON.records:StatsLine() end,
+        tooltip = L("RANK_ROW_TIP"),
+        canSelect = true,
+    })
+    -- ---- Ranking window, daily records and attacks -------------------------------------------------------
+    -- The number of days is not fixed, so these rows are built again every time the panel is
+    -- opened and after the records are cleared. They sit in one run of the list, so the run can be
+    -- taken out and a new one put in its place. Every row can be selected, which is what lets the
+    -- d-pad scroll a long list.
+    local MAX_DAY_ROWS = 30
+    local scope = "all"
+    local dynamicStart = #settings.settings + 1
+    local dynamicCount = 0
+
+    local function BuildRecordRows()
+        local records = ADDON.records
+        scope = "all"
+
+        local rows = {}
+        local function Row(text)
+            rows[#rows + 1] = { type = Library.ST_LABEL, label = text, canSelect = true }
+        end
+
+        -- The ranking window: on or off, and which period it counts. The periods are the days and months
+        -- that have records, so they are listed afresh each time.
+        rows[#rows + 1] = { type = Library.ST_SECTION, label = L("SECTION_RANKING") }
+        rows[#rows + 1] = {
+            type = Library.ST_BUTTON,
+            label = L("RANKING_BUTTON"),
+            tooltip = L("RANKING_BUTTON_TIP"),
+            buttonText = L("RANKING_BUTTON_TEXT"),
+            clickHandler = function() ADDON.ranking:Toggle() end,
+        }
+        local periodItems = {}
+        for _, token in ipairs(records:RankingScopes()) do
+            periodItems[#periodItems + 1] = { name = records:ScopeText(token), data = token }
+        end
+        rows[#rows + 1] = {
+            type = Library.ST_DROPDOWN,
+            label = L("RANKING_PERIOD"),
+            tooltip = L("RANKING_PERIOD_TIP"),
+            items = periodItems,
+            default = periodItems[1].name,
+            -- "Reset to defaults" must not pop the ranking window up.
+            ignoreDefault = true,
+            getFunction = function()
+                for _, item in ipairs(periodItems) do
+                    if item.data == ADDON.ranking.scope then
+                        return item.name
+                    end
+                end
+                return periodItems[1].name
+            end,
+            setFunction = function(combobox, name, item)
+                ADDON.ranking:SetScope(item.data)
+                -- Choosing a period is asking to see it.
+                if not ADDON.ranking.wanted then
+                    ADDON.ranking:SetWanted(true)
+                end
+            end,
+        }
+
+        rows[#rows + 1] = { type = Library.ST_SECTION, label = L("SECTION_DAYS") }
+        Row(function() return records:TodayLine() end)
+        local days = records:DayKeys()
+        if #days == 0 then
+            Row(L("NO_RECORDS"))
+        end
+        for index = 1, math.min(#days, MAX_DAY_ROWS) do
+            Row(records:DayLine(days[index]))
+        end
+        if #days > MAX_DAY_ROWS then
+            Row(string.format(L("MORE_DAYS"), #days - MAX_DAY_ROWS))
+        end
+
+        rows[#rows + 1] = { type = Library.ST_SECTION, label = L("SECTION_ABILITIES") }
+        local items = { { name = L("SCOPE_ALL"), data = "all" } }
+        for index = 1, math.min(#days, MAX_DAY_ROWS) do
+            items[#items + 1] = { name = records:DayLine(days[index]), data = days[index] }
+        end
+        rows[#rows + 1] = {
+            type = Library.ST_DROPDOWN,
+            label = L("SCOPE"),
+            tooltip = L("SCOPE_TIP"),
+            items = items,
+            default = items[1].name,
+            getFunction = function()
+                for _, item in ipairs(items) do
+                    if item.data == scope then
+                        return item.name
+                    end
+                end
+                return items[1].name
+            end,
+            setFunction = function(combobox, name, item)
+                scope = item.data
+                -- The lists below read the scope when they are drawn.
+                settings:UpdateControls()
+            end,
+        }
+        local function AddList(headingKey, kind)
+            Row(L(headingKey))
+            for rank = 1, 5 do
+                Row(function() return records:EntryLine(kind, rank, records:Top(kind, scope, 5)[rank]) end)
+            end
+        end
+        AddList("KILLED_WITH", "killedWith")
+        AddList("DIED_TO", "diedTo")
+        return rows
+    end
+
+    function ADDON.RebuildRecordRows()
+        settings:RemoveSettings(dynamicStart, dynamicCount)
+        local rows = BuildRecordRows()
+        settings:AddSettings(rows, dynamicStart)
+        dynamicCount = #rows
+    end
+
+    do
+        local rows = BuildRecordRows()
+        settings:AddSettings(rows)
+        dynamicCount = #rows
     end
 
     -- ---- Window --------------------------------------------------------------------------
@@ -173,4 +299,33 @@ function ADDON.InitializeSettings()
         buttonText = L("BUTTON_RUN"),
         clickHandler = ADDON.ClearLog,
     })
+
+    -- Deleting records is asked about first, and does nothing if it cannot be asked.
+    for _, button in ipairs({ { key = "CLEAR_DAYS", kind = "days" }, { key = "RESET_ALL", kind = "all" } }) do
+        settings:AddSetting({
+            type = Library.ST_BUTTON,
+            label = L(button.key),
+            tooltip = L(button.key .. "_TIP"),
+            buttonText = L("BUTTON_RUN"),
+            clickHandler = function()
+                if not ADDON.records:ConfirmClear(button.kind, ADDON.RebuildRecordRows) then
+                    ADDON.Print(L("ERR_NO_DIALOG"))
+                end
+            end,
+        })
+    end
+
+    -- Registered on the client's callback manager, beside everyone else's. It runs before the
+    -- library draws the panel, so the day rows are current when it appears. The preview follows the
+    -- panel as well -- see "Following the settings panel" in Preview.lua for why this callback alone
+    -- is not enough on console.
+    CALLBACK_MANAGER:RegisterCallback(
+        "LibHarvensAddonSettings_AddonSelected",
+        function(_, addonSettings)
+            if addonSettings == settings then
+                ADDON.RebuildRecordRows()
+            end
+            ADDON.preview:OnAddonSelected(addonSettings)
+        end
+    )
 end

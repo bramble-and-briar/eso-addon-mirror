@@ -32,7 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AchievementInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asto/AchievementInfo__350) | Asto | PC / Mac | 4.17 |
 | [Action Bar Labels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CMDRMitchcraft/Action-Bar-Labels__4348) | CMDRMitchcraft | PC / Mac | 1.0 |
 | [Action Bar Skill Styles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Action-Bar-Skill-Styles__3928) | Anthonysc | PC / Mac | 0.0.4 |
-| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.167 |
+| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.168 |
 | [Action Duration Reminder ES by Kroon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KKroon/Action-Duration-Reminder-ES-by-Kroon__3706) | KKroon | PC / Mac | 3.96 |
 | [Activity Finder Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Activity-Finder-Plus__4676) | FirewoodDoge | PC / Mac | 1.0.2 |
 | [Acuity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Acuity__1950) | Wheels | PC / Mac | 2.4 |
@@ -154,7 +154,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.8 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.9 |
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/ALC-Benchmark__4960) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/ALC-Benchmark__e96f0d83-b3f0-47a8-a59a-2d6020816550) | APH0NlC | Console | — |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
@@ -182,7 +182,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alliance Rank Progress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty-Warehouse/Alliance-Rank-Progress__8e880053-fe2b-4934-9745-a0670e1e12d6) | Dusty-Warehouse | Console | — |
 | [Alliance Rank Progress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DustyWarehouse/Alliance-Rank-Progress__2772) | DustyWarehouse | PC / Mac | 1.18 |
 | [AllianceBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Minceraft/AllianceBuddy__872) | Minceraft | PC / Mac | 3.2 |
-| [AlphaGear 2 (Builds, Gear, Skills, Banking)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Builds-Gear-Skills-Banking__1812) | mesota | PC / Mac | 7.0.0 |
+| [AlphaGear 2 (Builds, Gear, Skills, Banking)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Builds-Gear-Skills-Banking__1812) | mesota | PC / Mac | 7.0.1 |
 | [AlphaGear 2 Preview Channel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Preview-Channel__2170) | mesota | PC / Mac | 6.4.1 beta 3 |
 | [AlphaScry (Leads, Antiquities, Filter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaScry-Leads-Antiquities-Filter__2689) | mesota | PC / Mac | 1.0.0 |
 | [AlphaStyle (Outfit, Mount, Pet, Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaStyle-Outfit-Mount-Pet-Collectibles__2411) | mesota | PC / Mac | 1.0.0 |
@@ -333,7 +333,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Complete](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Complete__2026) | Dolgubon | PC / Mac | 1.0.2 |
 | [Auto Daily Rewards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Auto-Daily-Rewards__2041) | SDPhantom | PC / Mac | 1.2 |
 | [Auto Daily Rewards - Notifications](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Auto-Daily-Rewards---Notifications__2051) | SDPhantom | PC / Mac | 1.0 |
-| [Auto Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Auto-Destroy__4139) | atharti | PC / Mac | 2.3 |
+| [Auto Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Auto-Destroy__4139) | atharti | PC / Mac | 2.4 |
 | [Auto Eat, Recharge, Repair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Auto-Eat-Recharge-Repair__2198) | Jodynn | PC / Mac | 1.1 |
 | [Auto Extract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Auto-Extract__0763042f-816e-4f4f-baae-c50159fc5bd5) | msetten | Console | — |
 | [Auto Guild Welcome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/Auto-Guild-Welcome__2387) | Phobus11 | PC / Mac | 0.2.0 |

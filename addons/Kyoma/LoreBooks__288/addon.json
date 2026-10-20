@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Kyoma/LoreBooks__288",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Kyoma",
   "canonical_id": "esoui:288",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:288",
@@ -17,7 +18,7 @@
     "LoreBooks"
   ],
   "download_url": "https://www.esoui.com/downloads/dl288/",
-  "fingerprint": "71e5f0aa6f568c1b8dfa45bf9af174bc8740e79c2146aecd5c0a5f2ce28ac001",
+  "fingerprint": "4c48e8384616e5bf0ab6131c9c46dbea9c6dfdcdbd27b2bf5606cb30c5839198",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw4579.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw11348.jpg",
@@ -36,11 +37,11 @@
   "source_id": "288",
   "source_url": "https://www.esoui.com/downloads/info288-LoreBooks.html",
   "stats": {
-    "downloads": 13160144,
-    "favorites": 5895,
-    "monthly_downloads": 27511
+    "downloads": 13210187,
+    "favorites": 5905,
+    "monthly_downloads": 19194
   },
   "title": "LoreBooks",
-  "updated_at": 1782088787000,
-  "version": "107"
+  "updated_at": 1792426598000,
+  "version": "108"
 }

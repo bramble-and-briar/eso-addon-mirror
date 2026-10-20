@@ -255,6 +255,18 @@ function FrankGrinder:BuildMenu()
         width = "full",
     })
 
+    table.insert(optionsTable, { type = "header", name = GetString(GG_MENU_KC_HEADER), width = "full" })
+    table.insert(optionsTable, { type = "description", text = GetString(GG_MENU_KC_DESC), width = "full" })
+    table.insert(optionsTable, {
+        type = "checkbox",
+        name = GetString(GG_MENU_KC_ENABLED),
+        tooltip = GetString(GG_MENU_KC_ENABLED_TT),
+        getFunc = function() return self:GetSettingKeyChordingEnabled() end,
+        setFunc = function(v) self:SetSettingKeyChordingEnabled(v) end,
+        default = false,
+        width = "full",
+    })
+
     table.insert(optionsTable, { type = "header", name = "Debug", width = "full" })
     table.insert(optionsTable, {
         type = "checkbox",

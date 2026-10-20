@@ -1,9 +1,10 @@
 -- Added: --EVENTUPDATE tag to mark places in all .lua files that need to be updated or at least checked with every event update.
-local Latest_Version = 2.430
+local Latest_Version = 2.440
 
 -- ****** Line 1100 ****** Remember to change the collectibles for each event as appropriate!
 -- 3220 If version increased by more than 0.12, pop up info box. Adjust according to whether there's new info
 
+-- 2.440 Witches Fest
 -- 2.430 High Seas; Witches
 -- 2.420 Zeal of Zenithar; U50; U51 for PTS
 -- 2.412 Zeal of Zenithar on PTS
@@ -362,7 +363,7 @@ EVT_EVENT_INFO_BOX = "Get purple boxes from daily crafting writs (1 total) and m
 EVT_UPCOMING_INFO = "Aug, Nov: Mayhem (no bars); Oct: Witches(300). (number)=Trade Bars per day, per account."
 ]]
 
--- 2.430 High Seas 9/30-10/14/26 (PTS 8/3-10)
+--[[ 2.430 High Seas 9/30-10/14/26 (PTS 8/3-10)
 EVT_EVENT_START = MonthCode["69"] + EVT_ONE_DAY*30
 EVT_EVENT_END   = MonthCode["6A"] + EVT_ONE_DAY*14
 EVT_NEXT_EVENT  = "High Seas"
@@ -376,11 +377,11 @@ EVT_EVENT_DETAILS = {
 EVT_EVENT_INFO_BEGIN = "(opt.) Pick up the FREE quest in the Crown Store to start (it doesn't cost anything.) Find Baron-Captain Olsien Guy Mard west of Anvil in the Gold Coast; complete the 'Raising the Riotous Redress' quest to unlock dailies."
 EVT_EVENT_INFO_BOX = "Get purple boxes from repeating Olsien Guy Mard's High Seas quest on additional characters."
 EVT_UPCOMING_INFO = "Oct: Witches(300; DOUBLE XP); Nov: Mayhem (NO TRADE BARS); Dec: New Life(300; DOUBLE XP). (number)=Trade Bars per day, per account."
-
+]]
 
 -- 2.250 Witches 10/24-11/6/24 (EST)
 -- 2.350 10/23-11/5/25 (EST)
---[[ 2.430 10/21-11/4/26 (EST) NO PTS
+-- 2.440 10/21-11/4/26 (EST) NO PTS
 EVT_EVENT_START = MonthCode["6A"] + EVT_ONE_DAY*21
 EVT_EVENT_END   = MonthCode["6B"] + EVT_ONE_DAY*4 -- EST
 EVT_NEXT_EVENT  = "Witches"
@@ -388,14 +389,14 @@ EVT_EVENT_DETAILS = {
 ["Name"] = "Witches",
 ["T_Types_1"] = "Witches",
 ["T_Types_2"] = "not used",
-["T_Tickets"] = {2,0,0,0,},
+["T_Tickets"] = {300,0,0,0,},
 ["T_ToDo"] = {1,0,0,},
 }
 
 EVT_EVENT_INFO_BEGIN = "Check Crown Store for FREE starter quest."
 EVT_EVENT_INFO_BOX = "There's a chance of additional boxes from any boss, even the little daedric incursions that pop up all over. LOOT ALL BODIES AND REWARD CHESTS!"
 EVT_UPCOMING_INFO = "Nov: Mayhem (NO TRADE BARS). Dec: New Life(300)*. Feb: Heart's Week(200). March: Jester's(300)*. April: Anniversary(300)*. (number)=Tickets per day, per account. *=DBL XP"
-]]
+
 
 
 -- PTS events around line 2900
@@ -1145,8 +1146,8 @@ local function ShowCollectibles()
 		WhichMonthInQuarter = CycleLookup[LookupEvent][2]
 	end
 
-	-- 2.430 Collectibles disabled until I have time to update it properly.
-	if EVT.vars.Current_Event == "High Seas" then return end
+	-- 2.440 Collectibles disabled because there was no Witches on the PTS so I don't know what's coming up next.
+	if EVT.vars.Current_Event == "Witches" then return end
 
 --[[ Heart's Week fragments: (10 tickets each)
 Crimson Bat Statuette
@@ -2492,7 +2493,7 @@ function EVT.SignonMsg()
 -- 1.95 Moved (from here) this as early as possible, because somehow version is getting updated before entering this function
 --WAS Special message, if needed
 
--- 1.71 Message to let new people know to get IC for free from Crown Store.
+--[[ 2.440 Removed because IC is base game now. 1.71 Message to let new people know to get IC for free from Crown Store.
 	if EVT.vars.Current_Event == "Whitestrake's Mayhem" and not EVT.vars.autoHide then
 		local dlc_ID = 154			-- Imperial City
 		local collectibleName, _, _, _, Imp_City_unlocked = GetCollectibleInfo(dlc_ID) -- Will return true or false. If the user unlocked through ESO+ without buying DLC it will return true.
@@ -2506,6 +2507,7 @@ function EVT.SignonMsg()
 			CHAT_ROUTER:AddSystemMessage("|cFFFFFFPurchase, (check it costs zero!), confirm!|r")
 		end
 	end
+]]
 
 --[[ 1.86 removed 1.83 Message to let new people know to get High Isle bundle for free from Crown Store.
 	if EVT.FindCurrentTime() < (1664546400 + EVT_ONE_DAY*21) and (EVT.FindCurrentTime() - EVT.vars.Message_Time > EVT_MESSAGE_DELAY) and not EVT.vars.autoHide then
@@ -2882,21 +2884,6 @@ function EVT.Initialize()
 		if EVT_EVENT_END < EVT.FindCurrentTime() then
 
 
--- 2.430 10/21-11/4/26 (EST) NO PTS
-EVT_EVENT_START = MonthCode["6A"] + EVT_ONE_DAY*21
-EVT_EVENT_END   = MonthCode["6B"] + EVT_ONE_DAY*4 -- EST
-EVT_NEXT_EVENT  = "Witches"
-EVT_EVENT_DETAILS = {
-["Name"] = "Witches",
-["T_Types_1"] = "Witches",
-["T_Types_2"] = "not used",
-["T_Tickets"] = {2,0,0,0,},
-["T_ToDo"] = {1,0,0,},
-}
-
-EVT_EVENT_INFO_BEGIN = "Check Crown Store for FREE starter quest."
-EVT_EVENT_INFO_BOX = "There's a chance of additional boxes from any boss, even the little daedric incursions that pop up all over. LOOT ALL BODIES AND REWARD CHESTS!"
-EVT_UPCOMING_INFO = "Nov: Mayhem (NO TRADE BARS). Dec: New Life(300)*. Feb: Heart's Week(200). March: Jester's(300)*. April: Anniversary(300)*. (number)=Tickets per day, per account. *=DBL XP"
 
 
 

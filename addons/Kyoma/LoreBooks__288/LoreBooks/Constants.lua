@@ -60,7 +60,7 @@ internal.collectionInfoCache = internal.collectionInfoCache or {}
 --Local constants -------------------------------------------------------------
 internal.ADDON_NAME = "LoreBooks"
 internal.ADDON_AUTHOR = "Garkin, Ayantir, Kyoma, |cFF9B15Sharlikran|r"
-internal.ADDON_VERSION = "106"
+internal.ADDON_VERSION = "108"
 internal.ADDON_WEBSITE = "http://www.esoui.com/downloads/info288-LoreBooks.html"
 internal.ADDON_PANEL = "LoreBooksPanel"
 internal.SAVEDVARIABLES_VERSION = 3

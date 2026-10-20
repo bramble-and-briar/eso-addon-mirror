@@ -179,6 +179,7 @@ local function IsLocalPlayer(displayName, characterName)
     end
     return characterName ~= "" and characterName == GetRawUnitName("player")
 end
+ADDON.IsLocalPlayer = IsLocalPlayer
 
 -- The sound the Tales of Tribute board plays when a card's health runs out (ZO_TributeCard:
 -- UpdateDefeatCost). The UI has no separate sound for a card being destroyed.
@@ -227,7 +228,18 @@ local function OnPvpKillFeedDeath(_, killLocation, killerDisplayName, killerChar
         victimRank = victimRank,
     })
 
-    if sv.killSound and IsLocalPlayer(killerDisplayName, killerCharacterName) then
+    local playerIsKiller = IsLocalPlayer(killerDisplayName, killerCharacterName)
+    local playerIsVictim = IsLocalPlayer(victimDisplayName, victimCharacterName)
+
+    -- Counted whatever the sound option is. A player on both sides (which the feed should not
+    -- report) is counted once, as a death.
+    if playerIsVictim then
+        ADDON.records:OnDeath(killerDisplayName, killerCharacterName)
+    elseif playerIsKiller then
+        ADDON.records:OnKill(victimDisplayName, victimCharacterName)
+    end
+
+    if sv.killSound and playerIsKiller then
         ADDON.PlayKillSound()
     end
 end
@@ -338,6 +350,7 @@ end
 local function Print(text)
     CHAT_ROUTER:AddSystemMessage("[PBsKillLog] " .. text)
 end
+ADDON.Print = Print
 
 local function OnSlashCommand(argument)
     local command, option = string.lower(argument or ""):match("^%s*(%S*)%s*(%S*)")
@@ -355,6 +368,20 @@ local function OnSlashCommand(argument)
     elseif command == "clear" then
         ADDON.ClearLog()
         Print(L("CMD_CLEARED"))
+    elseif command == "stats" then
+        for _, line in ipairs(ADDON.records:SummaryLines()) do
+            Print(line)
+        end
+    elseif command == "ranking" then
+        -- "day", "month" or "all" choose the period and show the window; nothing flips it on and off
+        local periods = { day = "today", month = "thismonth", all = "all" }
+        if periods[option] then
+            ADDON.ranking:SetScope(periods[option])
+            ADDON.ranking:SetWanted(true)
+            Print(string.format(L("CMD_RANKING_SCOPE"), ADDON.records:ScopeText(periods[option])))
+        else
+            Print(ADDON.ranking:Toggle() and L("CMD_RANKING_ON") or L("CMD_RANKING_OFF"))
+        end
     elseif command == "preview" then
         Print(ADDON.preview and ADDON.preview:Toggle() and L("CMD_PREVIEW_ON") or L("CMD_PREVIEW_OFF"))
     elseif command == "sound" then
@@ -406,6 +433,7 @@ local function OnAddOnLoaded(_, addonName)
     ADDON.defaults = BuildDefaults()
     sv = ZO_SavedVars:NewAccountWide(SAVED_VARS_NAME, SAVED_VARS_VERSION, nil, ADDON.defaults)
     ADDON.sv = sv
+    ADDON.records:Initialize(sv)
 
     window = PBsKillLogWindow
     frame = PBsKillLogWindowFrame

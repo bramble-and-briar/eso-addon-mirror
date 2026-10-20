@@ -45,6 +45,7 @@ BUI_StatShare.lua
 BUI_OnScreen.lua
 BUI_Log.lua
 BUI_Themes.lua
+MyUI_CompassWidth.lua
 BUI_HealerHelper.lua
 BUI_Automation.lua
 BUI_Panel.lua
@@ -54,6 +55,9 @@ BUI_Markers.lua
 SXUI_ChampionPriority.lua
 MyUI_ChatLayout.lua
 SXUI_FrameEditor.lua
+MyUI_ImprovedAttributeBars.lua
+MyUI_AttributeWidth.lua
+MyUI_NPCInteraction.lua
 BUI_Initialize.lua
 
 lang\en.lua

@@ -19,13 +19,34 @@ function FrankGrinder:IsTrial(text)
     return self.Trials[text] ~= nil or self.ZoneNameToTrial[text] ~= nil
 end
 
+-- The background check rewrites the player's Group Finder filters. Don't do
+-- that while they have the Group Finder open and are setting filters by hand.
+function FrankGrinder:IsGroupFinderUIShowing()
+    if GROUP_FINDER_KEYBOARD_SCENE and GROUP_FINDER_KEYBOARD_SCENE:IsShowing() then return true end
+    if GROUP_FINDER_GAMEPAD_SCENE and GROUP_FINDER_GAMEPAD_SCENE:IsShowing() then return true end
+
+    if SCENE_MANAGER and SCENE_MANAGER.GetCurrentSceneName then
+        local sceneName = SCENE_MANAGER:GetCurrentSceneName()
+        if sceneName and zo_strlower(sceneName):find("groupfinder", 1, true) then
+            return true
+        end
+    end
+
+    return false
+end
+
 function FrankGrinder:GroupFinderCheck()
 
     -- Silent skip: NM automation owns Group Finder while active
     if self.IsNMKeyFarmEnabled and self:IsNMKeyFarmEnabled() then
         return
     end
-    
+
+    -- Silent skip: don't clobber filters the player is editing
+    if self:IsGroupFinderUIShowing() then
+        return
+    end
+
     self:DebugMsg("GroupFinderCheck called")
 
     -- HARDENING: Check if Group Finder is available at all
@@ -80,9 +101,12 @@ function FrankGrinder:GroupFinderSearchComplete(eventCode, result, searchId)
 
     if GetGroupFinderSearchNumListings() > 0 then
         for i = 1, GetGroupFinderSearchNumListings() do
-            local title = GetGroupFinderSearchListingTitleByIndex(i)
+            -- Any of these can come back nil for a malformed listing, and they
+            -- all get concatenated into the chat output below.
+            local title = GetGroupFinderSearchListingTitleByIndex(i) or ""
             local leader = GetGroupFinderSearchListingLeaderDisplayNameByIndex(i)
             local _, secondary = GetGroupFinderSearchListingOptionsSelectionTextByIndex(i)
+            secondary = secondary or ""
 
             local tankReq, tankAct = GetGroupFinderSearchListingRoleStatusCount(i, LFG_ROLE_TANK)
             local healReq, healAct = GetGroupFinderSearchListingRoleStatusCount(i, LFG_ROLE_HEAL)
@@ -98,7 +122,8 @@ function FrankGrinder:GroupFinderSearchComplete(eventCode, result, searchId)
                 dpsReq = dpsReq, dpsAct = dpsAct,
             }
 
-            if self:IsGroupFinderTrialIncluded(secondary) or not self:IsTrial(secondary) then
+            -- leader keys the snapshot; without it we can't diff the listing
+            if leader and leader ~= "" and self:IsGroupFinderTrialIncluded(secondary) then
                 newSnapshot[leader] = listing
 
                 local old = oldSnapshot[leader]
@@ -119,7 +144,7 @@ function FrankGrinder:GroupFinderSearchComplete(eventCode, result, searchId)
 
     for leader, oldListing in pairs(oldSnapshot) do
         if not newSnapshot[leader] then
-            self:ChatMsg("|cFF0000" .. GetString(GG_GF_REMOVED_LISTING) .. ":|r |cffffff[" .. leader .. "]|r " .. oldListing.title .. "|r (" .. oldListing.trial .. ")")
+            self:ChatMsg("|cFF0000" .. GetString(GG_GF_REMOVED_LISTING) .. ":|r |cffffff[" .. leader .. "]|r " .. (oldListing.title or "") .. "|r (" .. (oldListing.trial or "") .. ")")
         end
     end
 

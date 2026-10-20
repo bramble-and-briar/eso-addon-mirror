@@ -230,6 +230,9 @@ local CRAFT_BAG_TYPES = {
     [ITEMTYPE_FISH] = true,
 }
 
+-- Note: "craft bag item" here means "an item type that belongs in the craft
+-- bag", matched against the backpack. The craft bag itself (BAG_VIRTUAL) is
+-- never iterated - its contents can't be attached to mail at all.
 local function IsCraftBagItem(bagId, slotIndex)
     if IsItemStolen(bagId, slotIndex) then return false end
     local itemType = GetItemType(bagId, slotIndex)
@@ -326,8 +329,10 @@ local function ResolveSlot(entry)
 
     if not uid then return entry.slot end
 
+    -- uniqueId is an id64: it must be compared with AreId64sEqual, not ==
     for slot = 0, GetBagSize(bag) - 1 do
-        if GetItemUniqueId(bag, slot) == uid then
+        local slotUid = GetItemUniqueId(bag, slot)
+        if slotUid and AreId64sEqual(slotUid, uid) then
             return slot
         end
     end
@@ -339,10 +344,27 @@ end
 -- Unified Item Classifier for Mailing
 ------------------------------------------------------------
 
+-- An item that can't leave your hands can't be attached to a mail. Queueing
+-- one addresses the mail and then silently fails at QueueItemAttachment, so
+-- everything that gets classified has to pass this first.
+local function CanMailItem(bagId, slotIndex)
+    if IsItemStolen(bagId, slotIndex) then return false end
+    if IsItemPlayerLocked(bagId, slotIndex) then return false end
+
+    -- Anything already bound (BoP that has been looted, bound crafting
+    -- materials such as scribing inks and scripts, character-bound rewards).
+    if IsItemBound(bagId, slotIndex) then return false end
+
+    local bindType = GetItemBindType(bagId, slotIndex)
+    if bindType == BIND_TYPE_ON_PICKUP then return false end
+    if BIND_TYPE_ON_PICKUP_BACKPACK and bindType == BIND_TYPE_ON_PICKUP_BACKPACK then return false end
+
+    return true
+end
+
 function FrankGrinder:ClassifyItemForMail(bagId, slot)
     if not HasItemInSlot(bagId, slot) then return nil end
-    if IsItemStolen(bagId, slot) then return nil end
-    if IsItemPlayerLocked(bagId, slot) then return nil end
+    if not CanMailItem(bagId, slot) then return nil end
 
     local itemLink = GetItemLink(bagId, slot)
     local itemType = GetItemType(bagId, slot)
@@ -450,49 +472,6 @@ function FrankGrinder:ClassifyItemForMail(bagId, slot)
     return nil
 end
 
--- ------------------------------------------------------------
--- -- Mail Recipient Resolver
--- ------------------------------------------------------------
-
--- function FrankGrinder:ResolveMailRecipient(info)
---     if not info or not info.bucket then return nil end
-
---     local acctItems = self:GetSettingMailItemsAccount()
---     local acctMats  = self:GetSettingMailMatsAccount()
-
---     -- items account / if on items account no mailing.
---     if info.bucket == "intricate" then return acctItems end
---     if info.bucket == "glyph" then return acctItems end
---     if info.bucket == "boe" then return acctItems end
-
---     -- Directed account based on routing
---     if info.bucket == "items" or info.bucket == "recipe" or info.bucket == "motif" or info.bucket == "style" then 
---         if info.route and info.route.mailToAccount then
---             return info.route.mailToAccount 
---         end
---         return acctItems -- fallback.
---     end
-
---     -- crafter account / if on crafter account no mailing.
---     if info.bucket == "survey" or info.bucket == "writ" or info.bucket == "treasure" then 
---         local _, crafterAccount = self:PA_GetCharacterIdCached(self:GetSettingCrafterCharacterName(), "crafter")
---         if GetDisplayName() == crafterAccount then
---             return nil
---         end
---         return crafterAccount 
---     end
-
---     -- Mats account / if on mats account no mailing.
---     if info.bucket == "mats" then return acctMats end
-
---     return nil
--- end
-
--- ------------------------------------------------------------
--- ResolveMailRecipient (DROP-IN REPLACEMENT)
--- Key change: For learn-routing on SAME account (mailToAccount == nil),
--- return nil (do not mail). Only Sell routes go to Items account.
--- ------------------------------------------------------------
 function FrankGrinder:ResolveMailRecipient(info)
   if not info or not info.bucket then return nil end
 
@@ -537,51 +516,6 @@ function FrankGrinder:ResolveMailRecipient(info)
   return nil
 end
 
--- ------------------------------------------------------------
--- -- BuildQueue_LooseItems (Items button)
--- ------------------------------------------------------------
-
--- function FrankGrinder:BuildQueue_LooseItems()
---     local buckets = {}
---     local acctItems = self:GetSettingMailItemsAccount()
-
---     local function add(slot)
---         if not acctItems or acctItems == "" then return end
---         buckets[acctItems] = buckets[acctItems] or {}
---         table.insert(buckets[acctItems], {
---             slot = slot,
---             uniqueId = GetItemUniqueId(BAG_BACKPACK, slot),
---         })
---     end
-
---     for slot in ZO_IterateBagSlots(BAG_BACKPACK) do
---         local info = self:ClassifyItemForMail(BAG_BACKPACK, slot)
---         if info then
---             if
---                 info.bucket == "intricate"
---                 or info.bucket == "glyph"
---                 or info.bucket == "boe"
---                 or (info.bucket == "items" and not info.route)
---                 -- surplus recipes, motifs, style pages, items
---                 or (info.route and info.route.reason == "Sell")
---             then
---                 add(slot)
---             end
---         end
---     end
-
---     for account, items in pairs(buckets) do
---         self:QueueMail(account, "GG: Items", items)
---     end
--- end
-
--- ------------------------------------------------------------
--- BuildQueue_LooseItems (DROP-IN REPLACEMENT)
--- Key change: DO NOT include (bucket=="items" and route==nil).
--- Items button sends only:
---   - intricate/glyph/boe
---   - any routed item explicitly marked as Sell
--- ------------------------------------------------------------
 function FrankGrinder:BuildQueue_LooseItems()
   local buckets = {}
   local acctItems = self:GetSettingMailItemsAccount()
@@ -603,6 +537,7 @@ function FrankGrinder:BuildQueue_LooseItems()
         or info.bucket == "boe"
         or (info.route and info.route.reason == "Sell")
       then
+        self:DebugMailCandidate("Items", slot, info)
         add(slot)
       end
     end
@@ -649,6 +584,7 @@ function FrankGrinder:BuildQueue_Directed()
                     and info.route
                     and info.route.reason ~= "Sell")
             then
+                self:DebugMailCandidate("Directed", slot, info)
                 local account = self:ResolveMailRecipient(info)
                 add(account, slot)
             end
@@ -658,6 +594,21 @@ function FrankGrinder:BuildQueue_Directed()
     for account, items in pairs(buckets) do
         self:QueueMail(account, "GG: Directed", items)
     end
+end
+
+------------------------------------------------------------
+-- Debug: report what a build pass picked up and why
+------------------------------------------------------------
+
+function FrankGrinder:DebugMailCandidate(queueName, slot, info)
+    if not self:IsDebugEnabled() then return end
+
+    self:DebugMsg(string.format("%s: slot %d %s -> bucket=%s route=%s",
+        queueName,
+        slot,
+        tostring(GetItemLink(BAG_BACKPACK, slot)),
+        tostring(info and info.bucket),
+        tostring(info and info.route and info.route.reason or "none")))
 end
 
 ------------------------------------------------------------
@@ -680,6 +631,7 @@ function FrankGrinder:BuildQueue_Mats()
     for slot in ZO_IterateBagSlots(BAG_BACKPACK) do
         local info = self:ClassifyItemForMail(BAG_BACKPACK, slot)
         if info and info.bucket == "mats" then
+            self:DebugMailCandidate("Mats", slot, info)
             add(slot)
         end
     end
@@ -693,7 +645,35 @@ end
 -- Attachment Pipeline
 ------------------------------------------------------------
 
-local function ProcessNextAttachment()
+local ATTACH_TIMEOUT_MS = 5000
+
+local ProcessNextAttachment
+
+-- If the game never fires EVENT_MAIL_ATTACHMENT_ADDED for the slot we just
+-- queued (bag full, item became untradeable, ...) the chain would stall
+-- silently with attachActive = true. Abort the run instead.
+local function ScheduleAttachWatchdog(slot)
+    local M = FrankGrinder.mailer
+    local expectedIndex = M.attachIndex
+    local itemLink = GetItemLink(BAG_BACKPACK, slot)
+
+    M.attachWatchdogToken = (M.attachWatchdogToken or 0) + 1
+    local token = M.attachWatchdogToken
+
+    zo_callLater(function()
+        local m = FrankGrinder.mailer
+        if not m.attachActive then return end
+        if m.attachWatchdogToken ~= token then return end
+        if m.attachIndex ~= expectedIndex then return end
+
+        -- Name the item: this almost always means it can't be mailed at all
+        FrankGrinder:ChatMsg("|cFF4444Could not attach " .. tostring(itemLink)
+            .. " - mailing run cancelled|r")
+        FrankGrinder:ResetMailer()
+    end, ATTACH_TIMEOUT_MS)
+end
+
+ProcessNextAttachment = function()
     local M = FrankGrinder.mailer
     if not M.attachActive then return end
 
@@ -708,8 +688,14 @@ local function ProcessNextAttachment()
     local slot = ResolveSlot(entry)
     if slot then
         QueueItemAttachment(BAG_BACKPACK, slot, M.attachIndex)
+        ScheduleAttachWatchdog(slot)
     else
-        self:ChatMsg("|cFF4444Could not resolve slot for attachment|r")
+        -- Item moved or was consumed since the queue was built: skip it and
+        -- keep going rather than leaving the chain wedged.
+        FrankGrinder:ChatMsg("|cFF4444Could not resolve slot for attachment - skipped|r")
+        M.attachIndex = M.attachIndex - 1
+        table.remove(M.attachQueue, M.attachIndex + 1)
+        zo_callLater(ProcessNextAttachment, 10)
     end
 end
 
@@ -795,8 +781,6 @@ function FrankGrinder:PrepareNextMail()
 
     zo_callLater(ProcessNextAttachment, 10)
 
-    -- GG mail is now prepared and waiting for Send
-    M.pending = true
 end
 
 ------------------------------------------------------------
@@ -852,8 +836,16 @@ function FrankGrinder:CreateMailer_Gamepad()
         -- Let the base game build its list first
         original(self, ...)
 
-        -- Our GG Mailer header + entries
-        self:AddMainListEntry("GG Items", nil, nil, function()
+        -- Respect the setting: the hook is permanent, the entries are not
+        if not FrankGrinder:GetSettingMailToOtherAccountEnabled() then
+            return
+        end
+
+        -- AddMainListEntry(text, header, icon, callback, ...) - the header is
+        -- drawn above the entry it is attached to, so it goes on the first of
+        -- the group, the same way the base game heads "Attach Items" with
+        -- "Items" and "Send" with "Send".
+        self:AddMainListEntry("GG Items", FrankGrinder.displayTitle, nil, function()
             FrankGrinder:StartMailing(function()
                 FrankGrinder:BuildQueue_LooseItems()
             end)
@@ -932,9 +924,34 @@ end
 -- Initialization
 ------------------------------------------------------------
 
+-- Shows/hides the keyboard buttons to match the setting. The gamepad list
+-- entries are added by the PopulateMainList hook, which checks the setting
+-- itself, so there is nothing to toggle there.
+function FrankGrinder:SetMailerButtonsShown(shown)
+    for _, name in ipairs({ "FrankGrinder_SendItems", "FrankGrinder_SendDirected", "FrankGrinder_SendMats" }) do
+        local btn = _G[name]
+        if btn then btn:SetHidden(not shown) end
+    end
+end
+
 function FrankGrinder:InitializeMailer()
-    if not self.GetSettingMailToOtherAccountEnabled
-       or not self:GetSettingMailToOtherAccountEnabled() then
+    local enabled = self.GetSettingMailToOtherAccountEnabled
+        and self:GetSettingMailToOtherAccountEnabled()
+
+    if not enabled then
+        -- Setting may have just been turned off: tear down and cancel any run.
+        if self._mailerInstalled then
+            EVENT_MANAGER:UnregisterForEvent("FrankGrinderMailerAttach", EVENT_MAIL_ATTACHMENT_ADDED)
+            EVENT_MANAGER:UnregisterForEvent("FrankGrinderMailerSent", EVENT_MAIL_SEND_SUCCESS)
+            self:ResetMailer()
+            self:SetMailerButtonsShown(false)
+            self._mailerInstalled = false
+        end
+        return
+    end
+
+    if self._mailerInstalled then
+        self:SetMailerButtonsShown(true)
         return
     end
 
@@ -947,46 +964,29 @@ function FrankGrinder:InitializeMailer()
 
     ------------------------------------------------------------
     -- CANCEL RUN WHEN MAIL UI CLOSES
+    -- Registered once for the life of the session: RegisterCallback has no
+    -- matching unregister here, so re-registering would stack duplicates.
     ------------------------------------------------------------
 
-    if MAIL_SEND_SCENE then
-        MAIL_SEND_SCENE:RegisterCallback("StateChange", function(_, newState)
-            if newState == SCENE_HIDDEN then
-                FrankGrinder:ResetMailer()
-            end
-        end)
+    if not self._mailerScenesHooked then
+        self._mailerScenesHooked = true
+
+        if MAIL_SEND_SCENE then
+            MAIL_SEND_SCENE:RegisterCallback("StateChange", function(_, newState)
+                if newState == SCENE_HIDDEN then
+                    FrankGrinder:ResetMailer()
+                end
+            end)
+        end
+
+        if MAIL_GAMEPAD_SCENE then
+            MAIL_GAMEPAD_SCENE:RegisterCallback("StateChange", function(_, newState)
+                if newState == SCENE_HIDDEN then
+                    FrankGrinder:ResetMailer()
+                end
+            end)
+        end
     end
-
-    if MAIL_GAMEPAD_SCENE then
-        MAIL_GAMEPAD_SCENE:RegisterCallback("StateChange", function(_, newState)
-            if newState == SCENE_HIDDEN then
-                FrankGrinder:ResetMailer()
-            end
-        end)
-    end
-
-    -- ------------------------------------------------------------
-    -- -- DELAY UNTIL MAIL UI EXISTS, THEN PATCH CLEAR LOGIC
-    -- ------------------------------------------------------------
-
-    -- zo_callLater(function()
-    --     if MAIL_SEND and MAIL_SEND.ClearFields then
-    --         ZO_PreHook(MAIL_SEND, "ClearFields", function()
-    --             local M = FrankGrinder.mailer
-
-    --             self:DebugMsg(" ClearFields triggered")
-
-    --             -- System Clear after GG Send → ignore
-    --             if M.pending then
-    --                 return false
-    --             end
-
-    --             -- User Clear → cancel run
-    --             FrankGrinder:ResetMailer()
-    --             return false
-    --         end)
-    --     end
-    -- end, 200)
 
     ------------------------------------------------------------
     -- CREATE UI BUTTONS (KEYBOARD + GAMEPAD)
@@ -994,4 +994,7 @@ function FrankGrinder:InitializeMailer()
 
     self:CreateMailer_Keyboard()
     self:CreateMailer_Gamepad()
+    self:SetMailerButtonsShown(true)
+
+    self._mailerInstalled = true
 end

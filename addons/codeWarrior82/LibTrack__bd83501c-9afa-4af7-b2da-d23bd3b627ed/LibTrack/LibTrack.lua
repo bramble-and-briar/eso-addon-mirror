@@ -194,6 +194,8 @@ local sacrificialBonesAbilities = {
     [117718] = true, -- Blighted Blastbones travel effect
 }
 
+local sacrificialBonesCorpseTracked = false
+
 local function addSacrificialBonesCorpse()
     corpsesAvailable = corpsesAvailable + 1
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
@@ -205,20 +207,23 @@ local function trackSacrificialBones(changeType, abilityId)
         return
     end
 
-    -- Corpse is created when the explosion occurs or Blastbones hits.
-    if changeType ~= 2 then
+    if changeType ~= 2 or sacrificialBonesCorpseTracked then
         return
     end
 
+    sacrificialBonesCorpseTracked = true
+
+    zo_callLater(function()
+        sacrificialBonesCorpseTracked = false
+    end, 300)
+
     if abilityId == 117718 then
-        -- Delay only Blighted Blastbones to allow combat state to update.
         zo_callLater(function()
             if IsUnitInCombat("player") then
                 addSacrificialBonesCorpse()
             end
         end, 200)
     else
-        -- Other skills check combat immediately.
         if not IsUnitInCombat("player") then
             return
         end
@@ -343,10 +348,12 @@ end
 ---------------------------------start corpse consumption
 -----------------------------------------------------------------------------------------------------start boneyard
 local boneyardAbilityIds = {
-    115252, -- Boneyard cast
+    115252, -- Boneyard cast 
     117089, -- Boneyard corpse consumed
-    117850, -- Avid Boneyard 
+    117850, -- Avid Boneyard 117853
+    117853, -- Avid Boneyard corpse consumed
     117805, -- Unnerving Boneyard
+    117808, -- Unnerving Boneyard corpse consumed
 }
 
 local boneyardCast = false
@@ -375,7 +382,7 @@ local function trackBoneyard(abilityId)
         end, 400)
 
     --corpse consumption confirmed
-    elseif abilityId == 117089 and not boneyardCorpseConfirm then
+    elseif (abilityId == 117089 or abilityId == 117853 or abilityId == 117808) and not boneyardCorpseConfirm then
         boneyardCorpseCheck = false
         boneyardCorpseConfirm = true
     end
@@ -694,71 +701,40 @@ local function trackBitterHarvest(changeType, abilityID, beginTime, endTime)
     removeBitterHarvest(totalCorpsesConsumed, skillName)
 end
 -----------------------------------------------------------------------------------------------------end bitter harvest
-
-
-
-
-
-
-
-
---check boneyard for counting
-
-
-
-
-local lastNecromancersBannerTime = nil
-local necromancersBannerStartTime = nil
-
-
 ---------------------------------end corpse consumption
+
+
+---------------------------------start scribing skills
+-----------------------------------------------------------------------------------------------------start banner bearer
+local bannerBearerAbilityIds = {
+    227114, --create corpse
+    227113, --consume corpse
+}
+
+local function trackBannerBearer(result, abilityID)
+    if result ~= 2240 then return end
+
+    if abilityID == 227114 then
+        corpsesAvailable = corpsesAvailable + 1
+        printMessage("add corpse from banner")
+    elseif abilityID == 227113 then
+        corpsesAvailable = math.max(0, corpsesAvailable - 1)
+        printMessage("remove corpse from banner")
+    else
+        return
+    end
+
+    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+end
+-----------------------------------------------------------------------------------------------------end banner bearer
+---------------------------------end scribing skills
+
+
 
 --handle effect events
 local function effectReport(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType,
     effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
---[[
-    --life amid death and enduring undeath debug
-    if abilityID == 115532 or abilityID == 118018 or abilityID == 118810 then
-        printMessage(string.format(
-            "effectReport | changeType: %s | effectName: %s | unitTag: %s | stackCount: %s | buffType: %s | effectType: %s | abilityType: %s | statusEffectType: %s | unitName: %s | unitID: %s | abilityID: %s",
-            tostring(changeType),
-            tostring(effectName),
-            tostring(unitTag),
-            tostring(stackCount),
-            tostring(buffType),
-            tostring(effectType),
-            tostring(abilityType),
-            tostring(statusEffectType),
-            tostring(unitName),
-            tostring(unitID),
-            tostring(abilityID)
-        ))
-    end
-]]
---[[
-    --life amid death, renewing undeath and enduring undeath debug
-    if abilityID == 115326 or abilityID == 118022 or abilityID == 118814 then
-        printMessage(string.format(
-            "effectReport | eventCode: %s | changeType: %s | effectSlot: %s | effectName: %s | unitTag: %s | beginTime: %s | endTime: %s | stackCount: %s | iconName: %s | buffType: %s | effectType: %s | abilityType: %s | statusEffectType: %s | unitName: %s | unitID: %s | abilityID: %s",
-            tostring(eventCode),
-            tostring(changeType),
-            tostring(effectSlot),
-            tostring(effectName),
-            tostring(unitTag),
-            tostring(beginTime),
-            tostring(endTime),
-            tostring(stackCount),
-            tostring(iconName),
-            tostring(buffType),
-            tostring(effectType),
-            tostring(abilityType),
-            tostring(statusEffectType),
-            tostring(unitName),
-            tostring(unitID),
-            tostring(abilityID)
-        ))
-    end
-]]
+
     local nameTmp = GetUnitName("player")
     if nameTmp ~= cleanName(unitName) then
         --printMessage("effectReport- abilityID: " .. tostring(abilityID) .. " effectName: " .. tostring(effectName))
@@ -793,23 +769,6 @@ local function effectReport(eventCode, changeType, effectSlot, effectName, unitT
     --bitter harvest and morphs
     elseif abilityID == 115240 or abilityID == 124193 or abilityID == 124165 then
         trackBitterHarvest(changeType, abilityID, beginTime, endTime)
-    elseif abilityID == 227112 then
-        local now = GetGameTimeMilliseconds()
-
-    if not necromancersBannerStartTime then
-        necromancersBannerStartTime = now
-    end
-
-    local elapsed = (now - necromancersBannerStartTime) / 1000
-
-    printMessage(
-        "effectReport- abilityID: " .. tostring(abilityID)
-        .. " effectName: " .. tostring(effectName)
-        .. " beginTime: " .. tostring(beginTime)
-        .. " endTime: " .. tostring(endTime)
-        .. " changeType: " .. tostring(changeType)
-        .. " time since start: " .. string.format("%.2f", elapsed) .. "s"
-    )
     else
         --printMessage("effectReport- abilityID: " .. tostring(abilityID) .. " effectName: " .. tostring(effectName) .. " beginTime: " .. tostring(beginTime) .. " endTime: " .. tostring(endTime) .. " changeType: " .. tostring(changeType))
     end
@@ -823,55 +782,11 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     if isError then
         return
     end
---[[
-    --life amid death and enduring undeath debug
-    if abilityID == 115532 or abilityID == 118018 or abilityID == 118810 then
-        printMessage(string.format(
-            "combatReport | result: %s | abilityName: %s | sourceName: %s | sourceType: %s | targetName: %s | targetType: %s | hitValue: %s | powerType: %s | sourceUnitId: %s | targetUnitId: %s | abilityID: %s",
-            tostring(result),
-            tostring(abilityName),
-            tostring(sourceName),
-            tostring(sourceType),
-            tostring(targetName),
-            tostring(targetType),
-            tostring(hitValue),
-            tostring(powerType),
-            tostring(sourceUnitId),
-            tostring(targetUnitId),
-            tostring(abilityID)
-        ))
-    end
-]]
---[[
-    --life amid death, renewing undeath and enduring undeath debug
-    if abilityID == 115326 or abilityID == 118022 or abilityID == 118814 then
-        printMessage(string.format(
-            "combatReport | eventCode: %s | result: %s | isError: %s | abilityName: %s | abilityGraphic: %s | abilityActionSlotType: %s | sourceName: %s | sourceType: %s | targetName: %s | targetType: %s | hitValue: %s | powerType: %s | damageType: %s | log: %s | sourceUnitId: %s | targetUnitId: %s | abilityID: %s | overflow: %s",
-            tostring(eventCode),
-            tostring(result),
-            tostring(isError),
-            tostring(abilityName),
-            tostring(abilityGraphic),
-            tostring(abilityActionSlotType),
-            tostring(sourceName),
-            tostring(sourceType),
-            tostring(targetName),
-            tostring(targetType),
-            tostring(hitValue),
-            tostring(powerType),
-            tostring(damageType),
-            tostring(log),
-            tostring(sourceUnitId),
-            tostring(targetUnitId),
-            tostring(abilityID),
-            tostring(overflow)
-        ))
-    end
-]]
 
     --if not player cast skill return
     local nameTmp = GetUnitName("player")
     if nameTmp ~= cleanName(sourceName) then
+        --printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " result: " .. tostring(result))
         --malevolent promise, hack due to result-2250 giving no name
         if abilityID == 263468 and result == 2250 then
             trackMalevolentPromise(abilityID, result)
@@ -883,7 +798,7 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     if abilityID == 143946 and not trackingEmbrace then
         trackGhostlyEmbrace()
     --boneyard, morphs and corpse consumption
-    elseif abilityID == 115252 or abilityID == 117850 or abilityID == 117805 or abilityID == 117089 then
+    elseif abilityID == 115252 or abilityID == 117850 or abilityID == 117805 or abilityID == 117089  or abilityID == 117853 or abilityID == 117808 then
         trackBoneyard(abilityID)
     --blood scarifice
     elseif abilityID == 117888 or abilityID == 117891 then
@@ -903,8 +818,11 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     --count blighted blastbones combat events after animate blastbones is cast
     elseif abilityID == 118448 and trackingAnimateBlastbones then
         howManyBB = howManyBB + 1
+    --track banner bearer corpse creation and consumption
+    elseif abilityID == 227114 or abilityID == 227113 then
+        trackBannerBearer(result, abilityID)
     else
-        --printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName))
+        --printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " result: " .. tostring(result))
     end
 
 end
@@ -1037,6 +955,13 @@ local function libLoaded(event, name)
         EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
     end
 
+     --register for banner bearer combat events
+    for _, abilityId in ipairs(bannerBearerAbilityIds) do
+        local eventName = "NecroTrackerBannerBearer" .. abilityId
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, combatReport)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, abilityId)
+    end
+
     --register for malevolent promise notifications 
     EVENT_MANAGER:RegisterForEvent("NecroTrackerMalevolentPromise263468", EVENT_COMBAT_EVENT, combatReport)
     EVENT_MANAGER:AddFilterForEvent("NecroTrackerMalevolentPromise263468", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 263468)--malevolent promise, abilityId
@@ -1057,9 +982,9 @@ local function libLoaded(event, name)
 
 
 
-    EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
+    --EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
     --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 115924)
-    EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
+    --EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
     --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 116445)
 
 end

@@ -28,7 +28,7 @@ function U.New(app)
  black:SetAnchorFill(curtain);black:SetCenterColor(0,0,0,1);black:SetEdgeColor(0,0,0,0);black:SetEdgeTexture('',1,1,1)
  self.curtain=curtain
  self.keybinds={alignment=KEYBIND_STRIP_ALIGN_CENTER,
-  {keybind='UI_SHORTCUT_NEGATIVE',name=function() return app:BackLabel() end,callback=function() app:Back() end}}
+  {keybind='UI_SHORTCUT_TERTIARY',name=function() return app:BackLabel() end,callback=function() app:Back() end}}
  self.scene=ZO_Scene:New('pbfGame',SCENE_MANAGER)
  self.scene:AddFragment(ZO_SimpleSceneFragment:New(self.root));self.scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
  self.scene:AddFragment(ZO_ActionLayerFragment:New('PBsFMEGAInput'))
@@ -41,7 +41,9 @@ function U.New(app)
  return self
 end
 function U:Fit()
- if self.content then self.content:SetScale(min(GuiRoot:GetWidth()/VW,GuiRoot:GetHeight()/VH)) end
+ -- Full bleed: cover the viewport instead of letterboxing it. On screens that are not exactly
+ -- 16:9 the outer edge is cropped, but no black strip is left above or below the race.
+ if self.content then self.content:SetScale(max(GuiRoot:GetWidth()/VW,GuiRoot:GetHeight()/VH)) end
 end
 -- A HUD plate: flat-coloured until the pictures are in use, then a cell of the HUD sheet.
 -- `cell` is nil for plates that stay flat (the map dots).
@@ -209,11 +211,15 @@ end
 function U:BuildHud()
  local p=self.content
  local t=self.text
- self.hudBack=self:Plate(0,0,VW,96,0,0,0,.28,2,'topbar')
- t.rank=label(p,28,6,260,52,42,'',TEXT_ALIGN_LEFT)
- t.lap=label(p,30,58,300,30,22,'',TEXT_ALIGN_LEFT)
- t.time=label(p,420,6,440,52,42,'')
- t.best=label(p,420,58,440,30,22,'')
+ -- Separate instruments leave the sky visible. The old full-width top and bottom bands made
+ -- the game feel letterboxed and hid the scenery they were meant to frame.
+ self.rankPlate=self:Plate(18,4,330,88,0,0,0,.28,2,'plate_rank')
+ self.timePlate=self:Plate(430,4,420,88,0,0,0,.28,2,'plate_time')
+ self.hudBack=self.rankPlate -- kept as the compatibility handle used by the loader tests
+ t.rank=label(p,36,8,288,48,42,'',TEXT_ALIGN_LEFT)
+ t.lap=label(p,38,56,286,28,22,'',TEXT_ALIGN_LEFT)
+ t.time=label(p,442,8,396,48,42,'')
+ t.best=label(p,442,57,396,26,22,'')
  self.speedPlate=self:Plate(868,610,380,92,0,0,0,0,3,'plate_speed')
  t.speed=label(p,860,630,380,60,42,'',TEXT_ALIGN_RIGHT)
  t.speedUnit=label(p,860,676,380,30,18,'SPEED',TEXT_ALIGN_RIGHT)
@@ -477,7 +483,7 @@ function U:Hud(race,saved)
  self:Text('lap',string.format('ラップ %d / %d',min(p.lap,race.laps),race.laps))
  self:Text('time',C.FormatTime(race.time))
  self:Text('best',race.bestLap and ('ベストラップ '..C.FormatTime(race.bestLap)) or '')
- self:Text('speed',string.format('%d km/h',floor(p.speed*5)))
+ self:Text('speed',string.format('%d km/h',floor(p.speed*3.6)))
  local e=C.clamp(p.energy/100,0,1)
  local w=max(1,floor(416*e))
  if self.energyW~=w then
@@ -493,7 +499,7 @@ function U:Hud(race,saved)
  end
  local can=p.lap>=PBF.Race.BOOST_FROM_LAP and p.energy>PBF.Machine.BOOST_MIN
  local text=''
- if p.lap>=PBF.Race.BOOST_FROM_LAP then text=p.energy>PBF.Machine.BOOST_MIN and (p.boosting and 'ブースト中！' or 'ブースト可：△') or 'ブースト不可' else text='ブーストは2周目から' end
+ if p.lap>=PBF.Race.BOOST_FROM_LAP then text=p.energy>PBF.Machine.BOOST_MIN and (p.boosting and 'ブースト中！' or 'ブースト可：○') or 'ブースト不可' else text='ブーストは2周目から' end
  self:Text('boost',text)
  if self.hudRich and self.boostLit~=can then
   self.boostLit=can
@@ -517,7 +523,7 @@ end
 function U:HideHud(hidden)
  local t=self.text
  for k,c in pairs(t) do if k:sub(1,2)~='ov' and k~='banner' then c:SetHidden(hidden) end end
- self.energyFrame:SetHidden(hidden);self.energyFill:SetHidden(hidden);self.hudBack:SetHidden(hidden)
+ self.energyFrame:SetHidden(hidden);self.energyFill:SetHidden(hidden);self.rankPlate:SetHidden(hidden);self.timePlate:SetHidden(hidden)
  -- the speed plate and the boost icon only exist as pictures
  local rich=self.hudRich
  self.speedPlate:SetHidden(hidden or not rich);self.boostIcon:SetHidden(hidden or not rich)

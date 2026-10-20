@@ -381,11 +381,16 @@ function FrankGrinder:BuildNMKeyFarmTitleAndDescription()
   end
 
   title = self:GF_SanitiseText(title)
-  desc  = self:GF_SanitiseText(desc)
   title = self:GF_SmartTruncate(title, GF_TITLE_MAX)
-  desc  = self:GF_SmartTruncate(desc,  GF_DESC_MAX - #NM_FG_ADDON_ADVERT)
 
-  desc = (desc or "") .. NM_FG_ADDON_ADVERT
+  -- Sanitise the advert too, then budget for it, so the final description is
+  -- control-character free and within the Group Finder limit.
+  local advert = self:GF_SanitiseText(NM_FG_ADDON_ADVERT)
+  if advert ~= "" then advert = " " .. advert end
+
+  desc = self:GF_SanitiseText(desc)
+  desc = self:GF_SmartTruncate(desc, GF_DESC_MAX - #advert)
+  desc = desc .. advert
 
   return title, desc
 end
@@ -579,10 +584,21 @@ function FrankGrinder:NM_OnCreateListingResult(result)
     if not self._nmFallbackTried then
         self._nmFallbackTried = true
 
-        -- Only retry if we still need a listing (group < 12, no listing exists, Night Market active, not all keys done)
+        local mode = self:NM_GetKeyFarmConfig().mode
+
+        -- "All keys done" means different bosses per mode; Adventuring has no
+        -- key goal at all, so it never auto-completes.
+        local allKeysDone = false
+        if mode == NM_MODE_DUNGEON then
+            allKeysDone = self:NM_DungeonAllKeysObtained()
+        elseif mode == NM_MODE_ARGENT then
+            allKeysDone = self:NM_AllKeysObtained()
+        end
+
+        -- Only retry if we still need a listing (group not full, no listing exists, Night Market active, not all keys done)
         if IsAdventureZoneActive()
-           and not self:NM_AllKeysObtained()
-           and GetGroupSize() < NM_GetTargetSizeForMode(self:NM_GetKeyFarmConfig().mode)
+           and not allKeysDone
+           and GetGroupSize() < NM_GetTargetSizeForMode(mode)
            and GetCurrentGroupFinderUserType() ~= GROUP_FINDER_GROUP_LISTING_USER_TYPE_CREATED_GROUP_LISTING
         then
             if self:IsDebugEnabled() then
@@ -875,6 +891,12 @@ function FrankGrinder:RemoveMarkerListFromZone(zoneId, zoneList, list)
         ElmsMarkers.savedVars.positions[zoneId] = nil
         self:DebugMsg("RemoveMarkerListFromZone: Zone " .. tostring(zoneId) .. " removed (no markers left).")
     end
+
+    -- CheckActivation only clears icons for zones still present in
+    -- positions, so an emptied zone would keep its icons drawn.
+    if ElmsMarkers.RemovePositionIcons then
+        ElmsMarkers.RemovePositionIcons(zoneId)
+    end
 end
 
 
@@ -1109,22 +1131,32 @@ function FrankGrinder:ElmsInstall()
     if not self:GetSettingEnableElmsInjection() then return end
 
     self:DebugMsg("ElmsInstall: Elms injection enabled.")
-    self:OnElmsZoneChanged()
 
-    --EVENT_MANAGER:UnregisterForEvent("FrankGrinder_ElmsLogoutCleanup", EVENT_PLAYER_DEACTIVATED)
-    -- EVENT_MANAGER:RegisterForEvent("FrankGrinder_ElmsLogoutCleanup", EVENT_PLAYER_DEACTIVATED,
-    --     function()
-    --         self:DebugMsg("Player deactivated, removing Elms markers...")
-    --         self:ElmsUninstall()
-    --     end
-    -- )
-    EVENT_MANAGER:RegisterForEvent("FrankGrinder_LogoutCleanup", EVENT_LOGOUT_DEFERRED, 
+    -- These are torn down by ElmsUninstall, so they have to be registered
+    -- here rather than once at load, or toggling the setting off and back on
+    -- would leave the watcher dead until a reload.
+    EVENT_MANAGER:RegisterForEvent("FrankGrinder_ElmsZoneChanged", EVENT_ZONE_CHANGED,
+        function()
+            self:DebugMsg("EVENT_ZONE_CHANGED fired")
+            self:OnElmsZoneChanged()
+        end
+    )
+
+    EVENT_MANAGER:RegisterForEvent("FrankGrinder_ElmsPlayerActivated", EVENT_PLAYER_ACTIVATED,
+        function()
+            self:DebugMsg("EVENT_PLAYER_ACTIVATED fired")
+            self:OnElmsZoneChanged()
+        end
+    )
+
+    EVENT_MANAGER:RegisterForEvent("FrankGrinder_LogoutCleanup", EVENT_LOGOUT_DEFERRED,
         function()
             self:DebugMsg("EVENT_LOGOUT_DEFERRED fired")
             self:ElmsUninstall()
         end
     )
 
+    self:OnElmsZoneChanged()
 end
 
 ------------------------------------------------------------
@@ -1135,7 +1167,6 @@ function FrankGrinder:ElmsUninstall()
     self:ElmsRemoveMarkers()
     self.lastElmsZoneId = nil
 
-    --EVENT_MANAGER:UnregisterForEvent("FrankGrinder_ElmsLogoutCleanup", EVENT_PLAYER_DEACTIVATED)
     EVENT_MANAGER:UnregisterForEvent("FrankGrinder_LogoutCleanup", EVENT_LOGOUT_DEFERRED)
     EVENT_MANAGER:UnregisterForEvent("FrankGrinder_ElmsZoneChanged", EVENT_ZONE_CHANGED)
     EVENT_MANAGER:UnregisterForEvent("FrankGrinder_ElmsPlayerActivated", EVENT_PLAYER_ACTIVATED)
@@ -1289,18 +1320,6 @@ function FrankGrinder:NM_CreateKeyFarmConfigWindowIfNeeded()
       end)
 
   -- Role row helper
-local function makeIconButton(parent, textureUp, textureDown, w, h)
-    local btn = WINDOW_MANAGER:CreateControl(nil, parent, CT_BUTTON)
-    btn:SetDimensions(w, h)
-    btn:SetNormalTexture(textureUp)
-    btn:SetPressedTexture(textureDown or textureUp)
-    btn:SetMouseOverTexture(textureUp)
-    btn:SetHandler("OnMouseEnter", function() btn:SetAlpha(1.0) end)
-    btn:SetHandler("OnMouseExit", function() btn:SetAlpha(0.9) end)
-    btn:SetAlpha(0.9)
-    return btn
-  end
-
 local function makeRoleRow(y, roleType)
     local row = WINDOW_MANAGER:CreateControl(nil, win, CT_CONTROL)
     row:SetDimensions(380, 34)
@@ -1392,7 +1411,9 @@ local function makeRoleRow(y, roleType)
       or (c.mode == NM_MODE_ADVENTURE and "Adventuring")
       or "Argent Keyfarm"
 
-    combo:SetSelectedItem(modeName)
+    -- ignoreCallback = true: without it SetSelectedItem fires the item's
+    -- callback (setMode), which calls back into refreshFromConfig forever.
+    combo:SetSelectedItem(modeName, true)
 
     prefixEdit:SetText(tostring(c.titlePrefix or ""))
     cpEdit:SetText(tostring(c.cp or ""))
@@ -1508,21 +1529,12 @@ end
 function FrankGrinder:InitializeNightMarket()
     self:ElmsCreateSettingsMenu()
 
-    EVENT_MANAGER:RegisterForEvent("FrankGrinder_ElmsZoneChanged", EVENT_ZONE_CHANGED, 
-        function() 
-            self:DebugMsg("EVENT_ZONE_CHANGED fired")
-            self:OnElmsZoneChanged() 
-        end
-    )
-
-    EVENT_MANAGER:RegisterForEvent("FrankGrinder_ElmsPlayerActivated", EVENT_PLAYER_ACTIVATED,
-        function() 
-            self:DebugMsg("EVENT_PLAYER_ACTIVATED fired")
-            self:OnElmsZoneChanged() 
-        end
-    )
-
     self:ApplyAdventureZoneHudTrackerSettingWithRetry()
+
+    -- Sweep any markers left behind by a crash or a hard exit while injection
+    -- was on. Runs even when the setting is off, because that is exactly the
+    -- case where nothing else would ever clean them up.
+    self:ElmsRemoveMarkers()
 
     self:ElmsInstall()
 end

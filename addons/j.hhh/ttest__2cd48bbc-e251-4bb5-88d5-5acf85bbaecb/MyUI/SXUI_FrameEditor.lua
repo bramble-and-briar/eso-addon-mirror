@@ -379,6 +379,11 @@ function Editor:Open()
             -- No chat control available at this moment; leave the editor usable.
         end
     end
+    -- Actual NPC "X TALK" reticle prompt (distinct from player-to-player prompt).
+    local npcPrompt=rawget(_G,'RETICLE') and RETICLE.interact
+    if hasGeometry(npcPrompt) then
+        include(npcPrompt,'MyUI_NPCInteraction',nil,'NPC Interaction (X Talk)')
+    end
     -- Only one selection for the native quest / BG / archive tracker region.
     local tracker=sharedTracker()
     if hasGeometry(tracker) then

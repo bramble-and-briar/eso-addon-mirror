@@ -1,3 +1,7 @@
+1.0.9 — Long buff layout / Расположение длительных бафов
+EN: Long player buffs now use up to three columns of ten icons each at the right edge in every custom style. Raised the entire block by one icon height (32 pixels) to leave room for bottom-screen notifications.
+RU: Длительные бафы игрока справа теперь располагаются максимум в три столбика по десять иконок во всех пользовательских стилях. Весь блок поднят на высоту одной иконки (32 пикселя), чтобы освободить место для сообщений внизу экрана.
+
 1.0.8 — Camera direction on the map / Направление камеры на карте
 EN: The player arrow on the minimap and map overlay now follows the camera direction, including turns while standing still. Applies to every style; map position and other group members’ headings are unchanged.
 RU: Стрелка игрока на миникарте и оверлее теперь показывает направление камеры, включая поворот на месте. Работает во всех стилях; положение карты и направления остальных участников группы не меняются.

@@ -35,6 +35,10 @@ local strings = {
     GG_MENU_PA_TRADER_CHARACTER_NAME_TT = "The name of the character who is the Trader.",
     GG_MENU_PA_WITHDRAW_TO_TRADER_ENABLED = "Withdraw to Trader Enabled?",
     GG_MENU_PA_WITHDRAW_TO_TRADER_ENABLED_TT = "Suplus items are withdrawn from the bank to the Trader character.",
+    GG_MENU_KC_HEADER = "Key Chording",
+    GG_MENU_KC_DESC = "Allows Shift, Ctrl and Alt to act as modifiers in Settings > Controls, so you can bind combinations such as Alt+1 to Alt+9 (e.g. Wizard's Wardrobe setups).",
+    GG_MENU_KC_ENABLED = "Enable Modifier Keybinds",
+    GG_MENU_KC_ENABLED_TT = "Lets you bind Shift, Ctrl and Alt combinations to any action in the Controls menu.",
 
     -----------
     -- core

@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/fritzOSU03/Urich-s-Skill-Point-Finder__1863",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "fritzOSU03",
   "canonical_id": "esoui:1863",
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1863",
@@ -17,7 +18,7 @@
     "USPF"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1863/",
-  "fingerprint": "e3cd5476930724269881e928c374289543a9ce7b9ea03165717ae7848a19b47b",
+  "fingerprint": "7f789540d81a47eb486380651c2dd77a01784cdbd8a3df3a653a360f3245fd2e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10859.png",
     "https://cdn-eso.mmoui.com/preview/pvw10860.png",
@@ -30,11 +31,11 @@
   "source_id": "1863",
   "source_url": "https://www.esoui.com/downloads/info1863-UrichsSkillPointFinder.html",
   "stats": {
-    "downloads": 1840700,
-    "favorites": 1016,
-    "monthly_downloads": 3719
+    "downloads": 1853525,
+    "favorites": 1024,
+    "monthly_downloads": 5925
   },
   "title": "Urich's Skill Point Finder",
-  "updated_at": 1764864437000,
-  "version": "7.5.0"
+  "updated_at": 1792428048000,
+  "version": "7.5.1"
 }

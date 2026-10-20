@@ -93,181 +93,17 @@ local function Setup_TargetFrame()
 	end
 end
 
+-- My UI console: do not draw decorative Advanced Theme geometry.
+-- Core theme textures, functional bars, and editor selection outlines remain.
 local function Setup_AdvancedTheme()
-	local a_color={BUI.Vars.AdvancedThemeColor[1],BUI.Vars.AdvancedThemeColor[2],BUI.Vars.AdvancedThemeColor[3],BUI.Vars.AdvancedThemeColor[4]/2}
-    local questKeyLabel=rawget(_G,'ZO_FocusedQuestTrackerPanelContainerQuestContainerAssistedKeyLabel')
-    if questKeyLabel and questKeyLabel.SetHidden then questKeyLabel:SetHidden(false) end
-	local function HideElements(hide)
-		-- Keep compass and top boss-bar controls native and visible on Xbox.
-		for _,text in pairs({"Center","Left","Right"}) do local frame=_G["ZO_CompassFrame"..text] if frame then frame:SetHidden(false) end end
-		for _,text in pairs({"Left","Right"}) do local frame=_G["ZO_BossBarBracket"..text] if frame then frame:SetHidden(false) end end
-		-- These keyboard UI controls are absent on some ESO console/gamepad builds.
-		local optionalControls = {
-			"ZO_ChatWindowDivider", "ZO_ChatWindowBg", "ZO_PerformanceMetersBg",
-			"ZO_FocusedQuestTrackerPanelContainerQuestContainerAssistedKeyLabel",
-		}
-		if BUI.Vars.StatsMiniMeter then optionalControls[#optionalControls+1] = "BUI_MiniMeter_BG" end
-		for _,name in ipairs(optionalControls) do
-			local frame = _G[name]
-			if frame and frame.SetHidden then frame:SetHidden(hide) end
-		end
-	end
-	if BUI.Vars.Theme~=7 then
-		if BUI_AdvancedTheme then
-			BUI_AdvancedTheme:SetHidden(true) if BUI_Chat_Edge then BUI_Chat_Edge:SetHidden(true) end HideElements(false)
-		end
-		return
-	elseif BUI_AdvancedTheme then
-		BUI_AdvancedTheme:SetHidden(false) if BUI_Chat_Edge then BUI_Chat_Edge:SetHidden(false) end HideElements(true)
-		local frames={"BUI_AdvancedTheme","BUI_Chat_Edge","BUI_Compass_Edge"}
-		for _,name in pairs(frames) do
-			local control=_G[name]
-			if control then
-				for i=1,control:GetNumChildren() do
-					local obj=control:GetChild(i)
-					if obj and obj:GetType()==CT_LINE then obj:SetColor(unpack(a_color)) end
-				end
-			end
-		end
-		return
-	end
-	HideElements(true)
-	local ui=BUI.UI.Control("BUI_AdvancedTheme", SatuveUI, "inherit", {TOPLEFT,TOPLEFT,0,0}, false)
---[[	--HUD
-	if BUI.Vars.CurvedFrame==0 then
-		local w,h=SatuveUI:GetDimensions()
-		local points={
-			{ui,CENTER,w/6-20,-h/4-10},
-			{ui,CENTER,w/6-10,-h/4},
-			{ui,CENTER,w/6-10,h/6-74-10},
-			{ui,CENTER,w/6,h/6-74},
-			{ui,CENTER,w/6,h/6},
-			{ui,CENTER,w/6-10,h/6+10},
-		}
-		BUI.UI.Path(nil, ui, points, a_color, 2)
-		local points={
-			{ui,CENTER,-w/6+20,-h/4-10},
-			{ui,CENTER,-w/6+10,-h/4},
-			{ui,CENTER,-w/6+10,h/6-74-10},
-			{ui,CENTER,-w/6,h/6-74},
-			{ui,CENTER,-w/6,h/6},
-			{ui,CENTER,-w/6+10,h/6+10},
-		}
-		BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
---]]
-	--Compass
-	local w,h=ZO_CompassFrame:GetDimensions() h=h*.6
-	local sw,sh=14,3
-	local w1,h1=w/sw,h/sh
-	local compass=BUI.UI.Control("BUI_Compass_Edge", ui, {w+h,h}, {TOPLEFT,TOPLEFT,-h/2,h*.33,ZO_CompassFrame}, false)
-	for i=0,sh do
-		local line=BUI.UI.Line(nil, compass, {w+i*h1,0}, {TOPLEFT,TOPLEFT,(h-i*h1)/2,i*h1}, a_color, 2)
-	end
-	for i=0,sw do
-		local pos=(w+h)/sw*i-i*w1-h/2
-		local line=BUI.UI.Line(nil, compass, {pos,h}, {TOPLEFT,TOPLEFT,i*w1+h/2,0}, a_color, 2)
-	end
-	--Chat
-	if not BUI.GamepadMode and ZO_ChatWindow and ZO_ChatWindowTabTemplate1 then
-		local chat=BUI.UI.Control("BUI_Chat_Edge", ZO_ChatWindow, "inherit", {TOPLEFT,TOPLEFT,0,0}, false)
-		BUI.UI.Path(nil, chat, {{ZO_ChatWindowDivider,TOPLEFT,0,0},{ZO_ChatWindowDivider,TOPRIGHT,0,0}}, a_color, 2)
-		local offset=ZO_ChatWindow:GetTop()-ZO_ChatWindowTabTemplate1:GetTop()
-		local points={
-			{ZO_ChatWindow,BOTTOMLEFT,0,-10},
-			{ZO_ChatWindow,TOPLEFT,0,10-offset},
-			{ZO_ChatWindowTabTemplate1,TOPLEFT,ZO_ChatWindow:GetLeft()-ZO_ChatWindowTabTemplate1:GetLeft()+10,0},
-			{ZO_ChatWindowNewWindowTab,TOPRIGHT,0,ZO_ChatWindowTabTemplate1:GetTop()-ZO_ChatWindowNewWindowTab:GetTop()},
-			{ZO_ChatWindowNewWindowTab,TOPRIGHT,offset,ZO_ChatWindowTabTemplate1:GetTop()-ZO_ChatWindowNewWindowTab:GetTop()+offset},
-			{ZO_ChatWindow,TOPRIGHT,-10,0},
-			{ZO_ChatWindow,TOPRIGHT,0,10},
-			{ZO_ChatWindow,BOTTOMRIGHT,0,-10},
-			{ZO_ChatWindow,BOTTOMRIGHT,-10,0},
-			{ZO_ChatWindow,BOTTOMLEFT,10,0},
-			{ZO_ChatWindow,BOTTOMLEFT,0,-10}
-		}
-		BUI.UI.Path(nil, chat, points, a_color, 2)
-	end
---[[	--World Map
-	local points={
-		{ZO_WorldMapMapFrame,TOPLEFT,0,0},
-		{ZO_WorldMapMapFrame,TOPLEFT,-10,10},
-		{ZO_WorldMapMapFrame,TOPLEFT,-10,100},
-		{ZO_WorldMapMapFrame,TOPLEFT,0,110},
-	}
-	BUI.UI.Path(nil, ZO_WorldMapMapFrame, points, a_color, 2)
---]]
-	--BUI_MiniMeter
-	if BUI_MiniMeter then
-	local points={
-		{BUI_MiniMeter,BOTTOMLEFT,0,-10-5},
-		{BUI_MiniMeter,BOTTOMLEFT,10,-5},
-		{BUI_MiniMeter,BOTTOMRIGHT,-10,-5},
-		{BUI_MiniMeter,BOTTOMRIGHT,0,-10-5},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
-	--BUI_GroupDPS
-	if BUI_GroupDPS then
-	local points={
-		{BUI_GroupDPS,TOPLEFT,-10,10},
-		{BUI_GroupDPS,TOPLEFT,0,0},
-		{BUI_GroupDPS,TOPRIGHT,0,0},
-		{BUI_GroupDPS,TOPRIGHT,10,10},
-	}
-	BUI.UI.Path(nil, BUI_GroupDPS, points, a_color, 2)
-	end
-	--BUI_HornInfo
-	if BUI_HornInfo then
-	local points={
-		{BUI_HornInfo,TOPLEFT,-10,10},
-		{BUI_HornInfo,TOPLEFT,0,0},
-		{BUI_HornInfo,TOPRIGHT,0,0},
-		{BUI_HornInfo,TOPRIGHT,10,10},
-	}
-	BUI.UI.Path(nil, BUI_HornInfo, points, a_color, 2)
-	end
-	--Performance Meters
-	if ZO_PerformanceMeters then
-	local points={
-		{ZO_PerformanceMeters,BOTTOMLEFT,0,-10-20},
-		{ZO_PerformanceMeters,BOTTOMLEFT,10,-20},
-		{ZO_PerformanceMeters,BOTTOMRIGHT,-10,-20},
-		{ZO_PerformanceMeters,BOTTOMRIGHT,0,-10-20},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
-	--QuestTracker frame line removed for My UI on console
-	--ActionBar line removed for My UI on console
-	--BUI_BuffsP_Panel
-	if BUI_BuffsP_Panel then
-	local points={
-		{BUI_BuffsP_Panel,BOTTOMLEFT,-5,-5},
-		{BUI_BuffsP_Panel,BOTTOMLEFT,5,5},
-		{BUI_BuffsP_Panel,BOTTOMRIGHT,-5,5},
-		{BUI_BuffsP_Panel,BOTTOMRIGHT,5,-5},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
-	--BUI_BuffsT_Panel
-	if BUI_BuffsT_Panel then
-	local points={
-		{BUI_BuffsT_Panel,BOTTOMLEFT,-5,-5},
-		{BUI_BuffsT_Panel,BOTTOMLEFT,5,5},
-		{BUI_BuffsT_Panel,BOTTOMRIGHT,-5,5},
-		{BUI_BuffsT_Panel,BOTTOMRIGHT,5,-5},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
-	--BUI_BuffsPas
-	if BUI_BuffsPas then
-	local points={
-		{BUI_BuffsPas_Base,BOTTOMLEFT,-5,0},
-		{BUI_BuffsPas_Base,TOPLEFT,-5,5},
-		{BUI_BuffsPas_Base,TOPLEFT,5,-5},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
+    for _,name in ipairs({"BUI_AdvancedTheme", "BUI_Chat_Edge", "BUI_Compass_Edge"}) do
+        local control=rawget(_G,name)
+        if control and control.SetHidden then control:SetHidden(true) end
+    end
+    -- Preserve the PlayStation quest interaction hints in every theme.
+    local label=rawget(_G,"ZO_FocusedQuestTrackerPanelContainerQuestContainerAssistedKeyLabel")
+    if label and label.SetHidden then label:SetHidden(false) end
+
 end
 
 function BUI.Themes_Setup(change)
@@ -312,13 +148,13 @@ function BUI.Themes_Setup(change)
 		frame:SetTexture(texture) if color then frame:SetColor(unpack(color)) end
 	end
 	local frame=_G["ZO_PlayerAttributeWerewolfFrame"] if frame then
-		local texture=BUI.Vars.Theme<=3 and "/esoui/art/unitattributevisualizer/attributebar_small_frame.dds" or "/MyUI/textures/theme/attributebar_small_frame.dds"
-		frame:SetTexture(texture) if color then frame:SetColor(unpack(color)) end
-	end
+        -- Hide the extra thin frame line; leave the native fill/status bar intact.
+        frame:SetHidden(true)
+    end
 	local frame=_G["ZO_PlayerAttributeMountStaminaFrame"] if frame then
-		local texture=BUI.Vars.Theme<=3 and "/esoui/art/unitattributevisualizer/attributebar_small_frame.dds" or "/MyUI/textures/theme/attributebar_small_frame.dds"
-		frame:SetTexture(texture) if color then frame:SetColor(unpack(color)) end
-	end
+        -- Hide the extra thin frame line; leave the native fill/status bar intact.
+        frame:SetHidden(true)
+    end
 	--Target frame
 	Setup_TargetFrame()
 	--Worldmap

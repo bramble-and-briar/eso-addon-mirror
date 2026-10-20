@@ -1,0 +1,11 @@
+## Title: LibUser562
+## Author: user562
+## Version: 1
+## AddOnVersion: 1
+## APIVersion: 101048 101049 101050 101051
+## IsLibrary: true
+
+LibUser562.lua
+Window.xml
+Window.lua
+MainMenu.lua

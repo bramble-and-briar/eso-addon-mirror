@@ -3,7 +3,7 @@ Persona = Persona or {}
 local ADDON_NAME = "Persona"
 local EM = EVENT_MANAGER
 
-Persona.version = "1.0.0"
+Persona.version = "1.1.0-test1"
 Persona.savedVersion = 1
 
 Persona.IDLE_DISABLED = 0
@@ -11,6 +11,8 @@ Persona.IDLE_PERSONALITY = 1
 Persona.IDLE_CUSTOM_ACT = 2
 
 Persona.defaults = {
+    _personaStorageInitialized = false,
+
     enabled = true,
     debug = false,
 
@@ -51,6 +53,60 @@ Persona.defaults = {
     lootEmote3 = "NONE", lootEmote4 = "NONE",
     lootEmote5 = "NONE",
 }
+
+Persona.storageDefaults = {
+    useAccountWide = true,
+}
+
+local accountSettings
+local characterSettings
+local storageSettings
+
+local function DeepCopy(value)
+    if type(value) ~= "table" then return value end
+
+    local copy = {}
+    for key, childValue in pairs(value) do
+        copy[DeepCopy(key)] = DeepCopy(childValue)
+    end
+    return copy
+end
+
+local function CopySettings(source, target)
+    for key in pairs(Persona.defaults) do
+        if key ~= "_personaStorageInitialized" then
+            target[key] = DeepCopy(source[key])
+        end
+    end
+    target._personaStorageInitialized = true
+end
+
+function Persona.UsesAccountWideSettings()
+    return not storageSettings or storageSettings.useAccountWide ~= false
+end
+
+function Persona.GetSettingsModeName()
+    if Persona.UsesAccountWideSettings() then return "ACCOUNT-WIDE" end
+    return "CURRENT CHARACTER"
+end
+
+function Persona.SetSettingsMode(useAccountWide)
+    useAccountWide = useAccountWide ~= false
+    if not storageSettings or storageSettings.useAccountWide == useAccountWide then return end
+
+    if not useAccountWide and characterSettings._personaStorageInitialized ~= true then
+        CopySettings(accountSettings, characterSettings)
+        Persona.Chat("Account settings copied to this character's new profile.")
+    end
+
+    storageSettings.useAccountWide = useAccountWide
+    PersonaDB = useAccountWide and accountSettings or characterSettings
+    Persona.Chat(
+        useAccountWide
+        and "Using account-wide settings. Refresh or reopen settings to update the panel."
+        or "Using this character's settings. Refresh or reopen settings to update the panel."
+    )
+end
 
 local runtime = {
     ready = false,
@@ -553,9 +609,30 @@ local function OnInventorySlotUpdated(
 end
 
 local function Initialize()
-    PersonaDB=ZO_SavedVars:NewAccountWide(
+    accountSettings=ZO_SavedVars:NewAccountWide(
         "Persona_SV",Persona.savedVersion,nil,Persona.defaults
     )
+    characterSettings=ZO_SavedVars:NewCharacterIdSettings(
+        "Persona_SV",Persona.savedVersion,nil,Persona.defaults
+    )
+    storageSettings=ZO_SavedVars:NewAccountWide(
+        "Persona_SV",Persona.savedVersion,"Storage",Persona.storageDefaults
+    )
+
+    -- Persona 1.0.0 stored settings account-wide at the un-namespaced path.
+    -- Keep that path unchanged so existing users retain their configuration.
+    accountSettings._personaStorageInitialized=true
+
+    -- The first time character mode is used on a character, seed it from the
+    -- account profile. Later switches never overwrite either stored profile.
+    if not Persona.UsesAccountWideSettings()
+        and characterSettings._personaStorageInitialized ~= true then
+        CopySettings(accountSettings,characterSettings)
+    end
+
+    PersonaDB=Persona.UsesAccountWideSettings()
+        and accountSettings
+        or characterSettings
 
     BuildEmotes()
     BuildPersonalities()
@@ -596,7 +673,7 @@ local function Initialize()
         INVENTORY_UPDATE_REASON_DEFAULT
     )
 
-    Persona.Chat("loaded version 1.0.0")
+    Persona.Chat("loaded version "..Persona.version)
 end
 
 local function OnAddonLoaded(_,addonName)

@@ -2,7 +2,11 @@ FrankGrinder = FrankGrinder or {}
 
 FrankGrinder.name         = "FrankGrinder"
 FrankGrinder.author       = "@Frank.o"
-FrankGrinder.addonVersion = "1.8.3"
+FrankGrinder.addonVersion = "51.0.0"
+
+-- Display name, as shown in the window title and as the gamepad mail header.
+-- A proper noun, so it is deliberately not localised.
+FrankGrinder.displayTitle = "Frank's Gear Grinder"
 
 -- ZO_SavedVars storage namespace version (NOT your schema version)
 FrankGrinder.savedVarsApiVersion = 2
@@ -167,10 +171,15 @@ local function _e(x)
 end
 
 function FrankGrinder.A()
-    
-    local x = _c(FrankGrinder.author)
-    local y = _e(sha1(zo_strlower(GetDisplayName())))
 
-    if (x or y) then return false else return true end
+    -- The display name can't change within a session, so hash it once instead
+    -- of on every keybind press. The ignore-list check stays live.
+    if FrankGrinder._aHashed == nil then
+        FrankGrinder._aHashed = _e(sha1(zo_strlower(GetDisplayName())))
+    end
+
+    if FrankGrinder._aHashed then return false end
+
+    return not _c(FrankGrinder.author)
 
 end

@@ -1,9 +1,9 @@
 ## Title: VerticalBuffsDebuffs
 ## Author: user562
-## Version: 1.6
+## Version: 1.7
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: VerticalBuffsDebuffs_SavedVars
-## DependsOn: LibConsoleMenu LibCombatAlerts AAAConsoleUIShim
+## DependsOn: LibUser562
 
 VerticalBuffsDebuffs.xml
 VerticalBuffsDebuffs.lua

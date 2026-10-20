@@ -12,6 +12,11 @@ local QUALITY_ITEMS={
     {name="LEGENDARY ONLY",data=5},
 }
 
+local SETTINGS_MODES={
+    {name="ACCOUNT-WIDE",data=true},
+    {name="CURRENT CHARACTER",data=false},
+}
+
 local function FindName(items,value,fallback)
     for _,item in ipairs(items) do if item.data==value then return item.name end end
     return fallback
@@ -53,6 +58,18 @@ function Persona.Settings.Initialize()
     local L=LibHarvensAddonSettings
     local panel=L:AddAddon("Persona",{allowDefaults=true,allowRefresh=true})
     if not panel then return end
+
+    panel:AddSetting({
+        type=L.ST_DROPDOWN,
+        label="Settings Profile",
+        tooltip="Choose one shared profile for every character or a separate profile for each character. A new character profile starts as a copy of the account-wide settings. Switching profiles does not delete or overwrite an existing profile. Use Refresh or reopen the panel after changing this option.",
+        items=SETTINGS_MODES,
+        getFunction=Persona.GetSettingsModeName,
+        setFunction=function(_,_,item)
+            Persona.SetSettingsMode(item.data)
+        end,
+        default="ACCOUNT-WIDE",
+    })
 
     panel:AddSetting({
         type=L.ST_CHECKBOX,label="Enable Persona",

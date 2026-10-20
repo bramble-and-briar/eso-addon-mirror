@@ -2,7 +2,7 @@ SetTracker = SetTracker or {}
 
 local ST = SetTracker
 local ADDON_NAME = "SetTracker"
-local VERSION = "0.2.7-test8"
+local VERSION = "0.2.10-test11"
 local MENU_PREVIEW_SECONDS = 6
 
 local BAR_BOTH = 0
@@ -41,6 +41,8 @@ local DEFAULTS = {
     autoDetect = true,
     debug = false,
     hideInMenus = true,
+    hideOutOfCombat = true,
+    outOfCombatHideDelay = 3,
     sets = {},
 }
 
@@ -54,14 +56,29 @@ ST.barSets = {
 ST.effects = {}
 ST.buffIcons = {}
 ST.runtimeAbilityIds = {}
+ST.ignoredSets = {}
 ST.menuSections = {}
 ST.nextDefaultPosition = 0
 ST.activeBar = BAR_FRONT
+ST.inCombat = false
+ST.gameInCombat = false
+ST.combatTransitionId = 0
 ST.previewKey = nil
 ST.previewUntil = 0
 
 local function Lower(value)
     return zo_strlower(tostring(value or ""))
+end
+
+local function NormalizeDescription(description)
+    local text = Lower(description)
+    text = string.gsub(text, "|c%x%x%x%x%x%x", "")
+    text = string.gsub(text, "|r", "")
+    text = string.gsub(text, "%-", " ")
+    text = string.gsub(text, "–", " ")
+    text = string.gsub(text, "—", " ")
+    text = string.gsub(text, "%s+", " ")
+    return text
 end
 
 local function TaggedMessage(message, force)
@@ -121,28 +138,30 @@ local function HighestRequiredBonus(itemLink, numberOfBonuses, maximumEquipped)
 end
 
 local function ExtractCooldownSeconds(description)
-    local text = Lower(description)
-    text = string.gsub(text, "|c%x%x%x%x%x%x", "")
-    text = string.gsub(text, "|r", "")
-    if not string.find(text, "every", 1, true) then
-        return nil
-    end
+    local text = NormalizeDescription(description)
 
-    local found
-    for numberText in string.gmatch(text, "([%d]+[%.%,]?[%d]*)%s*seconds?") do
-        local normalizedNumber = string.gsub(numberText, ",", ".")
-        found = tonumber(normalizedNumber)
-    end
-    if found and found > 0 then
-        return found
+    local cooldownPatterns = {
+        "every%s+([%d]+[%.%,]?[%d]*)%s*(seconds?)",
+        "every%s+([%d]+[%.%,]?[%d]*)%s*(minutes?)",
+        "once%s+per%s+([%d]+[%.%,]?[%d]*)%s*(seconds?)",
+        "once%s+per%s+([%d]+[%.%,]?[%d]*)%s*(minutes?)",
+    }
+    for _, pattern in ipairs(cooldownPatterns) do
+        local numberText, unit = string.match(text, pattern)
+        local normalizedNumber = numberText and string.gsub(numberText, ",", ".") or nil
+        local duration = tonumber(normalizedNumber)
+        if duration and duration > 0 then
+            if unit and string.find(unit, "minute", 1, true) then
+                return duration * 60
+            end
+            return duration
+        end
     end
     return nil
 end
 
-local function ExtractProcActivitySeconds(description)
-    local text = Lower(description)
-    text = string.gsub(text, "|c%x%x%x%x%x%x", "")
-    text = string.gsub(text, "|r", "")
+local function ExtractEffectDurationSeconds(description)
+    local text = NormalizeDescription(description)
 
     local cooldownClause = string.find(text, "this effect can occur", 1, true)
     if cooldownClause then
@@ -150,11 +169,19 @@ local function ExtractProcActivitySeconds(description)
     end
 
     local longest = 0
-    for numberText in string.gmatch(text, "after%s+([%d]+[%.%,]?[%d]*)%s*seconds?") do
-        local normalizedNumber = string.gsub(numberText, ",", ".")
-        local seconds = tonumber(normalizedNumber) or 0
-        if seconds > longest then
-            longest = seconds
+    local durationPatterns = {
+        "for%s+([%d]+[%.%,]?[%d]*)%s*seconds?",
+        "over%s+([%d]+[%.%,]?[%d]*)%s*seconds?",
+        "lasts%s+([%d]+[%.%,]?[%d]*)%s*seconds?",
+        "after%s+([%d]+[%.%,]?[%d]*)%s*seconds?",
+    }
+    for _, pattern in ipairs(durationPatterns) do
+        for numberText in string.gmatch(text, pattern) do
+            local normalizedNumber = string.gsub(numberText, ",", ".")
+            local seconds = tonumber(normalizedNumber) or 0
+            if seconds > longest then
+                longest = seconds
+            end
         end
     end
     if longest > 0 then
@@ -164,9 +191,7 @@ local function ExtractProcActivitySeconds(description)
 end
 
 local function ExtractMaxStacks(description)
-    local text = Lower(description)
-    text = string.gsub(text, "|c%x%x%x%x%x%x", "")
-    text = string.gsub(text, "|r", "")
+    local text = NormalizeDescription(description)
 
     local patterns = {
         "stacks%s+up%s+to%s+(%d+)%s+times",
@@ -183,6 +208,139 @@ local function ExtractMaxStacks(description)
     return nil
 end
 
+local function IsChanceBasedDescription(description)
+    local text = NormalizeDescription(description)
+
+    local probabilityPhrases = {
+        "chance to",
+        "chance of",
+        "chance for",
+        "has a chance",
+        "have a chance",
+        "percent chance",
+        "probability",
+        "random chance",
+        "randomly trigger",
+        "randomly activate",
+        "randomly proc",
+        "random major buff",
+        "random minor buff",
+        "random major/minor buff",
+        "random major or minor buff",
+        "random minor or major buff",
+        "randomly grant",
+        "one of the random",
+        "of the time",
+    }
+    for _, phrase in ipairs(probabilityPhrases) do
+        if string.find(text, phrase, 1, true) then
+            return true
+        end
+    end
+    return string.match(text, "[%d]+[%.%,]?[%d]*%%%s*chance") ~= nil
+end
+
+local function HasPlayerControlledTrigger(description)
+    local text = NormalizeDescription(description)
+
+    local triggerPhrases = {
+        "when you",
+        "whenever you",
+        "after you",
+        "casting",
+        "cast an ability",
+        "activating",
+        "activate a",
+        "using an ability",
+        "using a ",
+        "use an ability",
+        "drinking a potion",
+        "drink a potion",
+        "dealing damage",
+        "dealing damage with",
+        "deal damage",
+        "you damage with",
+        "bracing",
+        "blocking",
+        "bashing",
+        "interrupting",
+        "dodging",
+        "applying a status effect",
+        "apply a status effect",
+        "when an ally activates your synergy",
+        "completing a heavy attack",
+        "fully charged heavy attack",
+        "your heavy attack",
+    }
+    for _, phrase in ipairs(triggerPhrases) do
+        if string.find(text, phrase, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+local function GetTrackingMode(cooldownSeconds, maxStacks, effectDurationSeconds)
+    local hasCooldown = cooldownSeconds ~= nil and cooldownSeconds > 0
+    local hasStacks = maxStacks ~= nil and maxStacks > 0
+    local hasDuration = effectDurationSeconds ~= nil and effectDurationSeconds > 0
+    if hasCooldown and hasStacks then
+        return "STACK_COOLDOWN"
+    elseif hasStacks then
+        return "STACK"
+    elseif hasCooldown then
+        return "COOLDOWN"
+    elseif hasDuration then
+        return "DURATION"
+    end
+    return nil
+end
+
+local function GetUserTriggerKind(description)
+    local text = NormalizeDescription(description)
+    if string.find(text, "heavy attack", 1, true) then
+        return "HEAVY_ATTACK"
+    elseif string.find(text, "drink", 1, true) and string.find(text, "potion", 1, true) then
+        return "POTION"
+    elseif string.find(text, "synergy", 1, true) then
+        return "SYNERGY"
+    elseif string.find(text, "bash", 1, true) then
+        return "BASH"
+    elseif string.find(text, "block", 1, true) or string.find(text, "bracing", 1, true) then
+        return "BLOCK"
+    elseif string.find(text, "dodg", 1, true) then
+        return "DODGE"
+    elseif string.find(text, "interrupt", 1, true) then
+        return "INTERRUPT"
+    elseif string.find(text, "status effect", 1, true) then
+        return "STATUS"
+    elseif string.find(text, "cast", 1, true) or string.find(text, "using a", 1, true) then
+        return "ABILITY"
+    elseif string.find(text, "damage", 1, true) then
+        return "DAMAGE"
+    end
+    return "ACTION"
+end
+
+local function IsTrackableProcDescription(description, cooldownSeconds, maxStacks, effectDurationSeconds)
+    local text = NormalizeDescription(description)
+    if text == "" then
+        return false, "UNCLASSIFIED", nil, "no final perk description"
+    end
+    if IsChanceBasedDescription(text) then
+        return false, "RNJESUS", nil, "chance-based activation"
+    end
+    if not HasPlayerControlledTrigger(text) then
+        return false, "UNCLASSIFIED", nil, "no player-controlled activation"
+    end
+
+    local trackingMode = GetTrackingMode(cooldownSeconds, maxStacks, effectDurationSeconds)
+    if not trackingMode then
+        return false, "USER", nil, "no cooldown, duration, or stack counter"
+    end
+    return true, "USER", trackingMode, nil
+end
+
 local function NormalizeName(value)
     return string.gsub(Lower(value), "[^%w]", "")
 end
@@ -196,6 +354,14 @@ local function NamesMatch(left, right)
     return normalizedLeft == normalizedRight
         or string.find(normalizedLeft, normalizedRight, 1, true) ~= nil
         or string.find(normalizedRight, normalizedLeft, 1, true) ~= nil
+end
+
+local function AbilityAppearsInDescription(abilityName, description)
+    local normalizedAbility = NormalizeName(abilityName)
+    if string.len(normalizedAbility) < 5 then
+        return false
+    end
+    return string.find(NormalizeName(description), normalizedAbility, 1, true) ~= nil
 end
 
 local function GetSlotSetData(slotIndex, equipped)
@@ -349,7 +515,10 @@ local function RefreshRow(entry, now)
         and ST.previewKey == entry.key
         and (ST.previewUntil or 0) > now
     local shouldShow = ST.sv.enabled
-        and ((not menuOpen and config.enabled) or previewing)
+        and ((not menuOpen
+            and config.enabled
+            and (not ST.sv.hideOutOfCombat or ST.inCombat))
+            or previewing)
     row.window:SetHidden(not shouldShow)
     if not shouldShow then
         return
@@ -385,6 +554,22 @@ local function RefreshRow(entry, now)
     elseif entry.maxStacks then
         row.status:SetText("0")
         row.status:SetColor(0.25, 0.94, 0.38, 1)
+    elseif entry.trackingMode == "DURATION" then
+        local prompts = {
+            HEAVY_ATTACK = "HA",
+            POTION = "POTION",
+            SYNERGY = "SYNERGY",
+            BASH = "BASH",
+            BLOCK = "BLOCK",
+            DODGE = "DODGE",
+            INTERRUPT = "INT",
+            STATUS = "APPLY",
+            ABILITY = "CAST",
+            DAMAGE = "HIT",
+            ACTION = "APPLY",
+        }
+        row.status:SetText(prompts[entry.triggerKind] or "APPLY")
+        row.status:SetColor(0.92, 0.72, 0.18, 1)
     else
         row.status:SetText("READY")
         row.status:SetColor(0.92, 0.72, 0.18, 1)
@@ -517,9 +702,55 @@ end
 local function BuildDetectedUnion()
     local oldDetected = ST.detected
     local newDetected = {}
-    for _, setMap in pairs(ST.barSets) do
-        for key, entry in pairs(setMap) do
-            newDetected[key] = entry
+
+    for key, entry in pairs(ST.barSets[BAR_BOTH] or {}) do
+        newDetected[key] = entry
+    end
+    for key, entry in pairs(ST.barSets[BAR_FRONT] or {}) do
+        newDetected[key] = entry
+    end
+    for backKey, backEntry in pairs(ST.barSets[BAR_BACK] or {}) do
+        local frontKey = SetKey(backEntry.setId, BAR_FRONT)
+        local frontEntry = (ST.barSets[BAR_FRONT] or {})[frontKey]
+        if frontEntry then
+            local sharedEntry = {}
+            for field, value in pairs(frontEntry) do
+                sharedEntry[field] = value
+            end
+            sharedEntry.key = frontKey
+            sharedEntry.barPair = BAR_BOTH
+            sharedEntry.sharedBars = true
+            newDetected[frontKey] = sharedEntry
+
+            local frontEffect = ST.effects[frontKey]
+            local backEffect = ST.effects[backKey]
+            if backEffect then
+                local frontDeadline = frontEffect and math.max(tonumber(frontEffect.endTime) or 0, tonumber(frontEffect.cooldownEnd) or 0) or 0
+                local backDeadline = math.max(tonumber(backEffect.endTime) or 0, tonumber(backEffect.cooldownEnd) or 0)
+                local frontStacks = frontEffect and (tonumber(frontEffect.stacks) or 0) or 0
+                local backStacks = tonumber(backEffect.stacks) or 0
+                if not frontEffect or backDeadline > frontDeadline or (backDeadline == frontDeadline and backStacks > frontStacks) then
+                    ST.effects[frontKey] = backEffect
+                end
+                ST.effects[backKey] = nil
+            end
+
+            if not ST.buffIcons[frontKey] and ST.buffIcons[backKey] then
+                ST.buffIcons[frontKey] = ST.buffIcons[backKey]
+            end
+            local frontConfig = EnsureSetConfig(sharedEntry)
+            local backConfig = ST.sv.sets and ST.sv.sets[backKey]
+            if backConfig then
+                frontConfig.buffIcon = frontConfig.buffIcon or backConfig.buffIcon
+                frontConfig.procAbilityId = frontConfig.procAbilityId or backConfig.procAbilityId
+            end
+            for abilityId, mappedKey in pairs(ST.runtimeAbilityIds) do
+                if mappedKey == backKey then
+                    ST.runtimeAbilityIds[abilityId] = frontKey
+                end
+            end
+        else
+            newDetected[backKey] = backEntry
         end
     end
     ST.detected = newDetected
@@ -529,7 +760,7 @@ local function BuildDetectedUnion()
         CreateRow(entry)
         AddSetMenu(entry)
         if not oldDetected[key] then
-            TaggedMessage(string.format("Detected complete set: %s (%d/%d, %s)", entry.name, entry.equipped, entry.required, BarLabel(entry.barPair)))
+            TaggedMessage(string.format("Detected complete set [%s/%s]: %s (%d/%d, %s)", entry.filterType or "USER", entry.trackingMode or "NONE", entry.name, entry.equipped, entry.required, BarLabel(entry.barPair)))
         end
     end
     for key, entry in pairs(oldDetected) do
@@ -557,6 +788,10 @@ local function ScanEquippedSets(reason)
             if not entry then
                 local totalEquipped = math.min(data.numberEquipped + data.numberPerfectedEquipped, data.maximumEquipped)
                 local required, finalDescription = HighestRequiredBonus(data.itemLink, data.numberOfBonuses, data.maximumEquipped)
+                local cooldownSeconds = ExtractCooldownSeconds(finalDescription)
+                local maxStacks = ExtractMaxStacks(finalDescription)
+                local effectDurationSeconds = ExtractEffectDurationSeconds(finalDescription)
+                local trackable, filterType, trackingMode, ignoredReason = IsTrackableProcDescription(finalDescription, cooldownSeconds, maxStacks, effectDurationSeconds)
                 entry = {
                     setId = data.setId,
                     name = data.name,
@@ -564,9 +799,15 @@ local function ScanEquippedSets(reason)
                     equipped = totalEquipped,
                     required = required,
                     finalDescription = finalDescription,
-                    cooldownSeconds = ExtractCooldownSeconds(finalDescription),
-                    procActivitySeconds = ExtractProcActivitySeconds(finalDescription),
-                    maxStacks = ExtractMaxStacks(finalDescription),
+                    cooldownSeconds = cooldownSeconds,
+                    procActivitySeconds = effectDurationSeconds,
+                    effectDurationSeconds = effectDurationSeconds,
+                    maxStacks = maxStacks,
+                    trackable = trackable,
+                    filterType = filterType,
+                    trackingMode = trackingMode,
+                    triggerKind = GetUserTriggerKind(finalDescription),
+                    ignoredReason = ignoredReason,
                 }
                 bySetId[data.setId] = entry
             end
@@ -580,7 +821,7 @@ local function ScanEquippedSets(reason)
     local newBarSets = {}
     local newBothSets = {}
     for setId, entry in pairs(bySetId) do
-        if entry.required > 0 and entry.equipped >= entry.required then
+        if entry.required > 0 and entry.equipped >= entry.required and entry.trackable then
             local weaponWeight = activeWeaponWeight[setId] or 0
             if weaponWeight > 0 and (entry.equipped - weaponWeight) < entry.required then
                 entry.barPair = activeBar
@@ -594,6 +835,9 @@ local function ScanEquippedSets(reason)
                 ST.barSets[BAR_FRONT][SetKey(setId, BAR_FRONT)] = nil
                 ST.barSets[BAR_BACK][SetKey(setId, BAR_BACK)] = nil
             end
+        elseif entry.required > 0 and entry.equipped >= entry.required and not ST.ignoredSets[setId] then
+            ST.ignoredSets[setId] = true
+            TaggedMessage(string.format("Ignored %s [%s/%s]: %s", entry.name, entry.filterType or "UNCLASSIFIED", entry.trackingMode or "NONE", entry.ignoredReason or "not a controllable cooldown or stack perk"))
         end
     end
 
@@ -707,7 +951,7 @@ local function OnEffectChanged(_, changeType, _, effectName, unitTag, beginTime,
     RefreshAllRows()
 end
 
-local function OnCombatEvent(_, _, isError, abilityName, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
+local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
     if isError or not abilityName or abilityName == "" then
         return
     end
@@ -718,7 +962,34 @@ local function OnCombatEvent(_, _, isError, abilityName, _, _, _, _, _, _, _, _,
             local config = EnsureSetConfig(entry)
             local learnedMatch = tonumber(config.procAbilityId) == tonumber(abilityId)
             local nameMatch = NamesMatch(abilityName, entry.name)
-            if learnedMatch or nameMatch then
+            local descriptionMatch = AbilityAppearsInDescription(abilityName, entry.finalDescription)
+            local isEffectApplied = result == ACTION_RESULT_EFFECT_GAINED
+                or result == ACTION_RESULT_EFFECT_GAINED_DURATION
+            local isHeavyAttackHit = entry.triggerKind == "HEAVY_ATTACK"
+                and abilityActionSlotType == ACTION_SLOT_TYPE_HEAVY_ATTACK
+                and (tonumber(hitValue) or 0) > 0
+            local durationTriggerMatch = entry.trackingMode == "DURATION"
+                and descriptionMatch
+                and (isEffectApplied or isHeavyAttackHit)
+
+            if durationTriggerMatch then
+                local effectDuration = entry.effectDurationSeconds or 0
+                if effectDuration > 0 then
+                    ST.effects[key] = {
+                        name = abilityName,
+                        beginTime = now,
+                        endTime = now + effectDuration,
+                        stacks = 0,
+                        isCooldown = false,
+                    }
+                    if isEffectApplied then
+                        config.procAbilityId = abilityId
+                        local iconName = GetAbilityIcon and GetAbilityIcon(abilityId) or nil
+                        LearnBuffIcon(entry, iconName)
+                    end
+                    TaggedMessage(string.format("Duration refreshed for %s: %s (%d), %.1fs", entry.name, abilityName, tonumber(abilityId) or 0, effectDuration))
+                end
+            elseif learnedMatch or nameMatch then
                 local duration = entry.cooldownSeconds
                 if not duration and GetAbilityCooldown and abilityId and abilityId > 0 then
                     local durationMs = GetAbilityCooldown(abilityId, "player")
@@ -770,6 +1041,35 @@ local function OnWeaponPairChanged(_, activeWeaponPair)
     QueueScan("weapon bar changed")
 end
 
+local function OnPlayerCombatState(_, inCombat)
+    ST.gameInCombat = inCombat == true
+    ST.combatTransitionId = ST.combatTransitionId + 1
+    local transitionId = ST.combatTransitionId
+
+    if ST.gameInCombat then
+        ST.inCombat = true
+        RefreshAllRows()
+        return
+    end
+
+    local hideDelaySeconds = math.max(0, tonumber(ST.sv.outOfCombatHideDelay) or DEFAULTS.outOfCombatHideDelay)
+    if hideDelaySeconds == 0 then
+        ST.inCombat = false
+        RefreshAllRows()
+        TaggedMessage("Combat ended; HUD hidden immediately.")
+        return
+    end
+
+    TaggedMessage(string.format("Combat ended; HUD hide delayed by %d second(s).", hideDelaySeconds))
+    zo_callLater(function()
+        if transitionId == ST.combatTransitionId and not ST.gameInCombat then
+            ST.inCombat = false
+            RefreshAllRows()
+            TaggedMessage("Out-of-combat grace period ended; HUD hidden.")
+        end
+    end, hideDelaySeconds * 1000)
+end
+
 local function AddSettings()
     if not LibHarvensAddonSettings then
         TaggedMessage("LibHarvensAddonSettings is not installed; HUD tracking remains available.")
@@ -786,6 +1086,8 @@ local function AddSettings()
             ST.sv.autoDetect = DEFAULTS.autoDetect
             ST.sv.debug = DEFAULTS.debug
             ST.sv.hideInMenus = DEFAULTS.hideInMenus
+            ST.sv.hideOutOfCombat = DEFAULTS.hideOutOfCombat
+            ST.sv.outOfCombatHideDelay = DEFAULTS.outOfCombatHideDelay
             for _, config in pairs(ST.sv.sets or {}) do
                 local index = config.defaultIndex or 0
                 config.enabled = true
@@ -839,12 +1141,42 @@ local function AddSettings()
     })
     settings:AddSetting({
         type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "Hide HUD out of combat",
+        tooltip = "Keeps normal exploration clean by showing set trackers only during combat. Menu position previews still appear.",
+        getFunction = function() return ST.sv.hideOutOfCombat end,
+        setFunction = function(value)
+            ST.sv.hideOutOfCombat = value
+            RefreshAllRows()
+        end,
+        default = DEFAULTS.hideOutOfCombat,
+    })
+    settings:AddSetting({
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Out-of-combat hide delay",
+        tooltip = "Seconds to keep the HUD visible after combat ends. Set to 0 to hide immediately. This does not pause or change set timers.",
+        min = 0,
+        max = 30,
+        step = 1,
+        getFunction = function() return ST.sv.outOfCombatHideDelay end,
+        setFunction = function(value)
+            ST.sv.outOfCombatHideDelay = value
+        end,
+        default = DEFAULTS.outOfCombatHideDelay,
+    })
+    settings:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
         label = "Debug chat output",
         tooltip = "Every message begins with [SetTracker] for accessibility-reader identification.",
         getFunction = function() return ST.sv.debug end,
         setFunction = function(value)
             ST.sv.debug = value
+            if value then
+                ST.ignoredSets = {}
+            end
             TaggedMessage(value and "Debug output enabled." or "Debug output disabled.", true)
+            if value then
+                QueueScan("debug enabled")
+            end
         end,
         default = DEFAULTS.debug,
     })
@@ -857,6 +1189,12 @@ local function AddSettings()
             ScanPlayerEffects()
         end,
     })
+    settings:AddSetting({
+        type = LibHarvensAddonSettings.ST_LABEL,
+        label = "|cFFD700Built on tea, toast and ADHD – tested live on PS5.|r\n"
+            .. "|cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r\n"
+            .. "|cAAAAAArik-sprint.co.uk/contact|r",
+    })
 
     for _, entry in pairs(ST.detected) do
         AddSetMenu(entry)
@@ -867,10 +1205,13 @@ local function Initialize()
     ST.sv = ZO_SavedVars:NewAccountWide("SetTrackerSavedVariables", 2, nil, DEFAULTS)
     ST.sv.sets = ST.sv.sets or {}
     ST.activeBar = GetActiveBar()
+    ST.inCombat = IsUnitInCombat and IsUnitInCombat("player") or false
+    ST.gameInCombat = ST.inCombat
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySlotUpdate)
     EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTIVE_WEAPON_PAIR_CHANGED, OnWeaponPairChanged)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, OnEffectChanged)
     EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "Combat", EVENT_COMBAT_EVENT, OnCombatEvent)

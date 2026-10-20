@@ -106,19 +106,22 @@ function FrankGrinder:FillLine(currLine, currItem)
 end
 
 function FrankGrinder:InitialiseTimeLines()
-    for i = 1, GetNumCharacters() do
-        local currLine = FrankGrinder_GUI_ListHolder.lines[i]
+    -- Iterate the rows that actually exist, not the current character count:
+    -- rows are built once and the count can drift if a character is created
+    -- or deleted mid-session.
+    local lines = FrankGrinder_GUI_ListHolder.lines or {}
+
+    for i = 1, #lines do
+        local currLine = lines[i]
         local currData = FrankGrinder_GUI_ListHolder.dataLines[i]
 
-        if currData ~= nil then
+        if currLine then
             self:FillLine(currLine, currData)
-        else
-            self:FillLine(currLine, nil)
-        end
 
-        local isCurrent = currData and currData.name == self._currentCharacterName
-        currLine:GetNamedChild("_TopDiv"):SetHidden(not isCurrent)
-        currLine:GetNamedChild("_BottomDiv"):SetHidden(not isCurrent)
+            local isCurrent = currData and currData.name == self._currentCharacterName
+            currLine:GetNamedChild("_TopDiv"):SetHidden(not isCurrent)
+            currLine:GetNamedChild("_BottomDiv"):SetHidden(not isCurrent)
+        end
     end
 
     FrankGrinder_GUI_TimeUntilReset:SetText(FrankGrinder.SecondsToClock(FrankGrinder.GetTimeRemaining(GetTimeStamp()), "first_two"))
@@ -265,17 +268,20 @@ function FrankGrinder:UpdateCharList()
 
     self.SV.timeData = self.SV.timeData or {}
 
-    for i = 1, GetNumCharacters() do
-        local id = self.charList[i].charId
+    -- Drive off charList, not GetNumCharacters(): if the two ever disagree
+    -- this would index past the end of the list.
+    for i = 1, #self.charList do
+        local entry = self.charList[i]
+        local id = entry.charId
 
         if self.SV.timeData[id] == nil then
             self.SV.timeData[id] = ZO_DeepTableCopy(self.timeDataDefaults)
         end
 
-        self.SV.timeData[id].charName = self.charList[i].charName
+        self.SV.timeData[id].charName = entry.charName
 
         if GCCId() == id then
-            self._currentCharacterName = self.charList[i].charName
+            self._currentCharacterName = entry.charName
         end
     end
 
@@ -325,7 +331,7 @@ function FrankGrinder:OnStart()
 
     self:CreateListHolder()
 
-    FrankGrinder_GUI_Header_Title:SetText("Frank's Gear Grinder")
+    FrankGrinder_GUI_Header_Title:SetText(self.displayTitle)
     FrankGrinder_GUI_Header_HeaderName:SetText(GetString(GG_CHARACTERS))
 
     for trialKey in pairs(self.Trials) do

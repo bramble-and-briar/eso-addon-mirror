@@ -183,15 +183,9 @@ function FrankGrinder:SetSettingMailToOtherAccountEnabled(value)
 
     self:DebugMsg("Mail to other account = " ..
         tostring(self.SV.options.mailToOtherAccount))
-end
 
-function FrankGrinder:GetSettingMailMapsAccount()
-    local x = self.SV.options.mailMapsAccount
-    return x ~= nil and x or self.defaults.options.mailMapsAccount
-end
-
-function FrankGrinder:SetSettingMailMapsAccount(value)
-    self.SV.options.mailMapsAccount = value ~= nil and tostring(value) or self.defaults.options.mailMapsAccount
+    -- Apply immediately rather than waiting for a reload
+    self:InitializeMailer()
 end
 
 function FrankGrinder:GetSettingMailItemsAccount()
@@ -344,6 +338,19 @@ end
 function FrankGrinder:SetSettingEnableElmsInjection(value)
     self.SV.options.enableElmsInjection = 
         boolOrDefault(value, self.defaults.options.enableElmsInjection)
+end
+
+-- Key Chording (Shift/Ctrl/Alt modifier keybinds)
+function FrankGrinder:GetSettingKeyChordingEnabled()
+    local x = self.SV.options.keyChordingEnabled
+    return boolOrDefault(x, self.defaults.options.keyChordingEnabled)
+end
+
+function FrankGrinder:SetSettingKeyChordingEnabled(value)
+    self.SV.options.keyChordingEnabled =
+        boolOrDefault(value, self.defaults.options.keyChordingEnabled)
+
+    self:ApplyKeyChording(self.SV.options.keyChordingEnabled)
 end
 
 -- ------------------------------------------------------------

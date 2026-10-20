@@ -26,13 +26,17 @@ function FrankGrinder:PA_ClearCaches()
 end
 
 function FrankGrinder:PA_GetCharacterIdCached(name, slot)
-    if not name or name == "" then return nil end
+    if not name or name == "" then return nil, nil end
+
+    -- LibCharacterKnowledge is an optional dependency
+    local LCK = LibCharacterKnowledge
+    if not LCK or not LCK.GetCharacterList then return nil, nil end
 
     local c = self.PAOverride.cache
     if slot == "crafter" and name == c.crafterName then return c.crafterId, c.crafterAccount end
     if slot == "trader"  and name == c.traderName  then return c.traderId, c.traderAccount end
 
-    for _, v in ipairs(LibCharacterKnowledge.GetCharacterList()) do
+    for _, v in ipairs(LCK.GetCharacterList()) do
         if v.name == name then
             if slot == "crafter" then
                 c.crafterName, c.crafterId, c.crafterAccount = name, v.id, v.account
@@ -99,189 +103,6 @@ local function GetItemSaleValue(itemLink)
 end
 
 -- ------------------------------------------------------------
--- -- ResolveRoutingTarget 
--- ------------------------------------------------------------
-
--- function FrankGrinder:ResolveRoutingTarget(itemLink)
---     local LCK = LibCharacterKnowledge
---     if not LCK then return nil end
-
---     local list = LCK.GetItemKnowledgeList(itemLink)
---     if not list or #list == 0 then return nil end
-
---     local myAccount = GetDisplayName()
-
---     local crafterId = self:PA_GetCharacterIdCached(self:GetSettingCrafterCharacterName(), "crafter")
---     local traderId = self:PA_GetCharacterIdCached(self:GetSettingTraderCharacterName(), "trader")
---     local itemAccount = self:GetSettingMailItemsAccount()
-
---     ------------------------------------------------------------
---     -- 1. Crafter priority
---     ------------------------------------------------------------
---     for _, entry in ipairs(list) do
---         if entry.knowledge == LCK.KNOWLEDGE_UNKNOWN
---            and entry.id == crafterId then
-
---             local bankToId = nil
---             local mailToAccount = nil
---             if myAccount ~= entry.account then
---                 bankToId = traderId
---                 mailToAccount = entry.account
---             end
-
---             return {
---                 learnerAccount = entry.account, -- main account of crafter
---                 learnerId      = entry.id,      -- crafter character ID
---                 viaId          = bankToId,      -- trader character ID (if cross-account) or nil   
---                 mailToAccount  = mailToAccount, -- crafter account (if cross-account) or nil
---                 reason         = "Crafter",
---             }
---         end
---     end
-
---     ------------------------------------------------------------
---     -- 2. Low value -> First Unknown 
---     ------------------------------------------------------------
---     local threshold = self:GetSettingSaleValueThreshold()
---     local value     = GetItemSaleValue(itemLink)
-
---     if value <= threshold then
---         for _, entry in ipairs(list) do
---             if entry.knowledge == LCK.KNOWLEDGE_UNKNOWN then
-                
---                 local bankToId = nil
---                 local mailToAccount = nil
---                 if myAccount ~= entry.account then
---                     bankToId = traderId
---                     mailToAccount = entry.account
---                 end
-
---                 return {
---                     learnerAccount = entry.account, -- account of learner
---                     learnerId      = entry.id,      -- learner character ID
---                     viaId          = bankToId,      -- trader character ID (if cross-account) or nil   
---                     mailToAccount  = mailToAccount, -- learner account (if cross-account) or nil
---                     reason         = "Unknown",
---                 }
---             end
---         end
---     end
-
---     ------------------------------------------------------------
---     -- 3. High Value + All known -> Surplus, Sell at any Trader
---     ------------------------------------------------------------
---     return {
---         learnerAccount = nil,           -- no learner
---         learnerId      = nil,           -- no learner
---         viaId          = traderId,      -- Sell at trader character ID
---         mailToAccount  = itemAccount,   -- Send to Item account
---         reason         = "Sell",
---     }
--- end
-
--- -- ------------------------------------------------------------
--- -- ResolveRoutingTarget (DROP-IN REPLACEMENT)
--- -- Behaviour:
--- -- 1) If crafter is UNKNOWN -> route to crafter (always, regardless of price)
--- -- 2) If item is HIGH value (value > threshold) and crafter already knows it -> SELL
--- -- 3) If item is LOW value and not known by all -> route to first UNKNOWN
--- -- 4) Otherwise (LOW value and known by all) -> SELL
--- -- ------------------------------------------------------------
--- function FrankGrinder:ResolveRoutingTarget(itemLink)
---   local LCK = LibCharacterKnowledge
---   if not LCK then return nil end
-
---   local list = LCK.GetItemKnowledgeList(itemLink)
---   if not list or #list == 0 then return nil end
-
---   local myAccount = GetDisplayName()
-
---   -- NOTE: PA_GetCharacterIdCached returns (id, account)
---   local crafterId, crafterAccount = self:PA_GetCharacterIdCached(self:GetSettingCrafterCharacterName(), "crafter")
---   local traderId, traderAccount   = self:PA_GetCharacterIdCached(self:GetSettingTraderCharacterName(), "trader")
-
---   local itemAccount = self:GetSettingMailItemsAccount()
-
---   local threshold = self:GetSettingSaleValueThreshold()
---   local value = GetItemSaleValue(itemLink)
-
---   -- ------------------------------------------------------------
---   -- 1) Crafter priority ALWAYS (high or low value)
---   -- ------------------------------------------------------------
---   if crafterId then
---     for _, entry in ipairs(list) do
---       if entry.id == crafterId and entry.knowledge == LCK.KNOWLEDGE_UNKNOWN then
---         local bankToId = nil
---         local mailToAccount = nil
-
---         -- Cross-account: trader withdraws and mails to learner's account
---         if myAccount ~= entry.account then
---           bankToId = traderId
---           mailToAccount = entry.account
---         end
-
---         return {
---           learnerAccount = entry.account,
---           learnerId      = entry.id,
---           viaId          = bankToId,
---           mailToAccount  = mailToAccount,
---           reason         = "Crafter",
---         }
---       end
---     end
---   end
-
---   -- ------------------------------------------------------------
---   -- 2) HIGH value: if crafter already knows it, we SELL (do NOT route to other learners)
---   -- ------------------------------------------------------------
---   if value > threshold then
---     return {
---       learnerAccount = nil,
---       learnerId      = nil,
---       viaId          = traderId,      -- trader should withdraw to inventory
---       mailToAccount  = itemAccount,   -- send to items account for consolidation
---       reason         = "Sell",
---     }
---   end
-
---   -- ------------------------------------------------------------
---   -- 3) LOW value: if not known by all, route to first UNKNOWN
---   -- ------------------------------------------------------------
---   if not self:IsItemKnownByAllCharacters(itemLink) then
---     for _, entry in ipairs(list) do
---       if entry.knowledge == LCK.KNOWLEDGE_UNKNOWN then
---         local bankToId = nil
---         local mailToAccount = nil
-
---         if myAccount ~= entry.account then
---           bankToId = traderId
---           mailToAccount = entry.account
---         end
-
---         return {
---           learnerAccount = entry.account,
---           learnerId      = entry.id,
---           viaId          = bankToId,
---           mailToAccount  = mailToAccount,
---           reason         = "Unknown",
---         }
---       end
---     end
---   end
-
---   -- ------------------------------------------------------------
---   -- 4) LOW value and known by all -> SELL
---   -- ------------------------------------------------------------
---   return {
---     learnerAccount = nil,
---     learnerId      = nil,
---     viaId          = traderId,
---     mailToAccount  = itemAccount,
---     reason         = "Sell",
---   }
--- end
-
--- ------------------------------------------------------------
 -- ResolveRoutingTarget (DROP-IN REPLACEMENT - Cross-account safe)
 -- Core behaviour:
 --   - If item cannot be moved cross-account (bound/non-tradable), only route to
@@ -309,7 +130,7 @@ function FrankGrinder:ResolveRoutingTarget(itemLink)
   -- ------------------------------------------------------------
   -- Determine whether cross-account mailing is valid for this item
   -- We treat anything that is not BIND_TYPE_NONE / BIND_TYPE_ON_EQUIP as "not cross-account mailable".
-  -- Uses item link API: GetItemLinkBindType / IsItemLinkBound. [2](https://alcasthq.com/eso-scribing-guide/)
+  -- Uses item link API: GetItemLinkBindType / IsItemLinkBound.
   -- ------------------------------------------------------------
   local bindType = nil
   if GetItemLinkBindType then

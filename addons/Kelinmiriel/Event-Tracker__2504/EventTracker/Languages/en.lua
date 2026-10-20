@@ -105,19 +105,19 @@ local strings = {
 
 -- *************** NON-ANNUAL EVENTS
 -- 2.430 "High Seas"
-	EVT_EVENT_INFO_HIGH_SEAS = "Sept. 30-Oct. 14, 2026. 300 trade bars, once/day/acct: Completing the daily quest 'Bounty of the Abecean Sea', or the starter quest 'Raising the Riotous Redress'.",
+	EVT_EVENT_INFO_HIGH_SEAS = "Sept. 30-Oct. 14, 2026 (4500 bars). 300 trade bars, once/day/acct: Completing the daily quest 'Bounty of the Abecean Sea', or the starter quest 'Raising the Riotous Redress'.",
 -- 2.360 Brought back
 	EVT_EVENT_INFO_DAEDRIC_WAR = "Nov. 20-Dec. 2, 2025. (26 tickets) 2 tickets/day/account, from zone DAILY or trial WEEKLY quest: 1 Morrowind/HoF OR Clockwork City/AS; PLUS 1 Summerset/CR.",
 	-- 2.240 "Pan-Tamriel"
 	EVT_EVENT_INFO_PAN_TAMRIEL = "Jan. 23-Feb. 4, 2025. (39 tickets) 3 tickets, once/day/acct: World or pub dungeon boss; Tho'at; FINAL boss of delve, dark fissure, dolmen/dragon/etc, dungeon, arena, or trial. ONLY ONE GOLD BOX PER DAY.",
 --	EVT_EVENT_INFO_PAN_TAMRIEL = "Jan. 23-Feb. 4, 2025. 3 tickets, once/day/acct: World or pub dungeon boss; Tho'at; FINAL boss of delve, dark fissure, dolmen/dragon/etc, dungeon, arena, or trial. CAN GET ONE GOLD BOX FROM EACH OF THOSE PER DAY!",
 -- 2.240 "Legacy of the Bretons"
-	EVT_EVENT_INFO_BRETONS = "Nov. 21-Dec. 3, 2024. 2 tickets/day/account, from your first High Isle/Tribute or Galen DAILY quest, Dreadsail WEEKLY quest, or the final boss of Coral Aerie, Shipwright's Regret, Earthen Root, or Graven Deep.",
--- 2.240 "Fallen Leaves of the West Weald"
-	EVT_EVENT_INFO_WEST_WEALD = "Sept. 26-Oct. 8, 2024. 2 tickets/day/account, from your first Gold Road or event (Gandrinar) DAILY quest, or Lucent Citadel WEEKLY quest.",
 
 
 -- *************** DEPRECATED EVENTS
+	EVT_EVENT_INFO_BRETONS = "Nov. 21-Dec. 3, 2024. 2 tickets/day/account, from your first High Isle/Tribute or Galen DAILY quest, Dreadsail WEEKLY quest, or the final boss of Coral Aerie, Shipwright's Regret, Earthen Root, or Graven Deep.",
+-- 2.240 "Fallen Leaves of the West Weald"
+	EVT_EVENT_INFO_WEST_WEALD = "Sept. 26-Oct. 8, 2024. 2 tickets/day/account, from your first Gold Road or event (Gandrinar) DAILY quest, or Lucent Citadel WEEKLY quest.",
 -- 2.020 "Secrets of the Telvanni"
 	EVT_EVENT_INFO_TELVANNI = "Sept. 28-Oct. 10, 2023. 2 tickets per day per account, from your first Necrom DAILY quest, or Sanity's Edge WEEKLY quest.",
 -- 2.020 "Gates of Oblivion Celebration" (Oblivion)

@@ -54,9 +54,24 @@ local NAME_SCALE     = 26 / 31
 
 local PERMANENT_MS   = 3600000
 
-local MOVE_TIMEOUT   = 30000
-local MOVE_SNAP      = 10
-local MOVE_DIM_ALPHA = 0.35
+local ICON_CATEGORY = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
+local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
+
+local SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
+local SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
+local PREVIEW_TIP         = "Shows it on screen so you can place it. Stays on until you turn it off."
+
+local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
+
+local RAINBOW_PALETTE = { "FF2222", "FF9900", "FFEE00", "33DD33", "00CCCC", "3399FF", "BB44EE" }
+
+local WINDOW_DEFAULTS = {
+    settingsFontSize       = 30,
+    settingsOpacity        = 100,
+    settingsHighlight      = "Alliance",
+    settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
+    settingsRemember       = true,
+}
 
 local ORANGE_THRESHOLD = 0.50
 local RED_THRESHOLD    = 0.25
@@ -438,8 +453,8 @@ function VerticalBuffsDebuffs:RefreshDisplay()
     local buffVisible,   buffHeight   = self:RenderBoxes(buffBoxes,   buffsToShow,   false)
     local debuffVisible, debuffHeight = self:RenderBoxes(debuffBoxes, debuffsToShow, true)
 
-    local showBuffs   = self.savedVariables.showBuffs   or self.movingBuffs   or self.previewBuffs
-    local showDebuffs = self.savedVariables.showDebuffs or self.movingDebuffs or self.previewDebuffs
+    local showBuffs   = self.savedVariables.showBuffs   or self.previewBuffs
+    local showDebuffs = self.savedVariables.showDebuffs or self.previewDebuffs
 
     self.buffPanel:SetHidden(not showBuffs or buffVisible == 0)
     if showBuffs and buffVisible > 0 then
@@ -573,6 +588,32 @@ function VerticalBuffsDebuffs:GetCharacterProfile()
     return self.characterVars
 end
 
+function VerticalBuffsDebuffs:GetToggleVars()
+    if not self.toggleVars then
+        self.toggleVars = ZO_SavedVars:NewCharacterIdSettings(
+            "VerticalBuffsDebuffs_SavedVars",
+            2,
+            "CharacterToggle",
+            {}
+        )
+        if self.toggleVars.useCharacterSettings == nil then
+            self.toggleVars.useCharacterSettings = self.profileVars and self.profileVars.useCharacterSettings == true
+        end
+    end
+    return self.toggleVars
+end
+
+function VerticalBuffsDebuffs:UsesCharacterSettings()
+    return self:GetToggleVars().useCharacterSettings == true
+end
+
+function VerticalBuffsDebuffs:SeedCharacterProfile(account, character)
+    for key in pairs(self.defaults) do
+        character[key] = account[key]
+    end
+    character.seeded = true
+end
+
 function VerticalBuffsDebuffs:MigrateProfile(sv)
     if sv.fontSize then
         sv.buffSize   = sv.fontSize
@@ -585,15 +626,12 @@ function VerticalBuffsDebuffs:LoadProfile()
     local account = self:GetAccountProfile()
     self:MigrateProfile(account)
 
-    if self.profileVars.useCharacterSettings then
+    if self:UsesCharacterSettings() then
         local character = self:GetCharacterProfile()
         self:MigrateProfile(character)
 
         if not character.seeded then
-            for key in pairs(self.defaults) do
-                character[key] = account[key]
-            end
-            character.seeded = true
+            self:SeedCharacterProfile(account, character)
         end
 
         self.savedVariables = character
@@ -603,18 +641,52 @@ function VerticalBuffsDebuffs:LoadProfile()
 end
 
 function VerticalBuffsDebuffs:SetUseCharacterSettings(value)
-    if self.profileVars.useCharacterSettings == value then return end
+    value = value == true
+    local toggle = self:GetToggleVars()
+    if (toggle.useCharacterSettings == true) == value then return end
 
-    self.profileVars.useCharacterSettings = value
+    toggle.useCharacterSettings = value
     self:LoadProfile()
 
     self:ApplyBuffPosition()
     self:ApplyDebuffPosition()
     self:RefreshDisplay()
 
-    if self.menu and self.menu.UpdateControls then
-        self.menu:UpdateControls()
+    local panel = self.settingsPanel
+    if panel and panel.Refresh then
+        panel:Refresh()
     end
+end
+
+--------------------------------------------------
+-- Settings Window
+--------------------------------------------------
+local function RainbowText(text)
+    local out = {}
+    local idx = 1
+    for i = 1, #text do
+        local ch = text:sub(i, i)
+        if ch == " " then
+            out[#out + 1] = ch
+        else
+            local color = RAINBOW_PALETTE[((idx - 1) % #RAINBOW_PALETTE) + 1]
+            out[#out + 1] = "|c" .. color .. ch .. "|r"
+            idx = idx + 1
+        end
+    end
+    return table.concat(out)
+end
+
+local function PanelCall(method)
+    local panel = VerticalBuffsDebuffs.settingsPanel
+    if panel and panel[method] then panel[method](panel) end
+end
+
+local function LayoutTip()
+    if VerticalBuffsDebuffs.profileVars and VerticalBuffsDebuffs:UsesCharacterSettings() then
+        return SAVED_CHARACTER_TIP
+    end
+    return SAVED_ACCOUNT_TIP
 end
 
 --------------------------------------------------
@@ -627,395 +699,294 @@ function VerticalBuffsDebuffs:ResetSettings()
         self.savedVariables[key] = value
     end
 
+    local profile = self.profileVars
+    if profile then
+        for key, value in pairs(WINDOW_DEFAULTS) do
+            if type(value) == "table" then
+                local copy = {}
+                for k, v in pairs(value) do copy[k] = v end
+                profile[key] = copy
+            else
+                profile[key] = value
+            end
+        end
+        profile.settingsLastPage = nil
+    end
+
     self.previewBuffs   = false
     self.previewDebuffs = false
     self:ApplyBuffPosition()
     self:ApplyDebuffPosition()
     self:RefreshDisplay()
-end
 
---------------------------------------------------
--- Move Mode
---------------------------------------------------
-function VerticalBuffsDebuffs:GetMover(isDebuff)
-    local LCA = LibCombatAlerts
-    if not LCA then return nil end
-
-    if isDebuff then
-        if not self.debuffMover then
-            self.debuffMover = LCA.MoveableControl:New(self.debuffPanel, { color = 0xFF3333FF, size = 2 })
-            self.debuffMover:SetSnap(MOVE_SNAP)
-            self.debuffMover:RegisterCallback(
-                "VerticalBuffsDebuffs_DebuffMoveStop",
-                LCA.EVENT_CONTROL_MOVE_STOP,
-                function() VerticalBuffsDebuffs:OnMoveStopped(true) end
-            )
-        end
-        return self.debuffMover
-    end
-
-    if not self.buffMover then
-        self.buffMover = LCA.MoveableControl:New(self.buffPanel, { color = 0x33FF33FF, size = 2 })
-        self.buffMover:SetSnap(MOVE_SNAP)
-        self.buffMover:RegisterCallback(
-            "VerticalBuffsDebuffs_BuffMoveStop",
-            LCA.EVENT_CONTROL_MOVE_STOP,
-            function() VerticalBuffsDebuffs:OnMoveStopped(false) end
-        )
-    end
-    return self.buffMover
-end
-
-function VerticalBuffsDebuffs:EnsureKeybind()
-    if self.keybindDescriptor then return end
-
-    self.actionLayerName = GetString(SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS)
-
-    self.keybindDescriptor = {
-        {
-            name     = "Save & Exit",
-            keybind  = "UI_SHORTCUT_NEGATIVE",
-            callback = function() VerticalBuffsDebuffs:StopMove() end,
-        },
-        {
-            name = function()
-                if VerticalBuffsDebuffs.moveTarget then
-                    return "Move |c33FF33Buffs|r"
-                end
-                return "Move |cFF3333Debuffs|r"
-            end,
-            keybind                 = "UI_SHORTCUT_INPUT_LEFT",
-            gamepadPreferredKeybind = "UI_SHORTCUT_LEFT_SHOULDER",
-            alignment               = KEYBIND_STRIP_ALIGN_RIGHT,
-            callback                = function() VerticalBuffsDebuffs:SwitchMoveTarget() end,
-        },
-        {
-            name = function()
-                if VerticalBuffsDebuffs.moveTarget then
-                    return "Move |c33FF33Buffs|r"
-                end
-                return "Move |cFF3333Debuffs|r"
-            end,
-            keybind                 = "UI_SHORTCUT_INPUT_RIGHT",
-            gamepadPreferredKeybind = "UI_SHORTCUT_RIGHT_SHOULDER",
-            alignment               = KEYBIND_STRIP_ALIGN_RIGHT,
-            callback                = function() VerticalBuffsDebuffs:SwitchMoveTarget() end,
-        },
-    }
-end
-
-function VerticalBuffsDebuffs:AddKeybind()
-    self:EnsureKeybind()
-
-    local scene = SCENE_MANAGER:GetCurrentScene()
-    if KEYBIND_STRIP_GAMEPAD_FRAGMENT and scene
-       and not scene:HasFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT) then
-        scene:AddFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT)
-        self.keybindFragmentScene = scene
-    end
-
-    if self.keybindActive then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptor)
-    else
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindDescriptor)
-        PushActionLayerByName(self.actionLayerName)
-        self.keybindActive = true
-    end
-end
-
-function VerticalBuffsDebuffs:UpdateMoveFocus()
-    if not self.moveActive then
-        self.buffPanel:SetAlpha(1)
-        self.debuffPanel:SetAlpha(1)
-        return
-    end
-
-    if self.moveTarget then
-        self.buffPanel:SetAlpha(MOVE_DIM_ALPHA)
-        self.debuffPanel:SetAlpha(1)
-    else
-        self.buffPanel:SetAlpha(1)
-        self.debuffPanel:SetAlpha(MOVE_DIM_ALPHA)
-    end
-end
-
-function VerticalBuffsDebuffs:ExitMoveMode()
-    if self.keybindActive then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindDescriptor)
-        RemoveActionLayerByName(self.actionLayerName)
-        self.keybindActive = false
-    end
-
-    if self.keybindFragmentScene then
-        if KEYBIND_STRIP_GAMEPAD_FRAGMENT then
-            self.keybindFragmentScene:RemoveFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT)
-        end
-        self.keybindFragmentScene = nil
-    end
-
-    self.moveActive     = false
-    self.movingBuffs    = false
-    self.movingDebuffs  = false
-    self.previewBuffs   = false
-    self.previewDebuffs = false
-
-    self:UpdateMoveFocus()
-    self:RefreshDisplay()
-end
-
-function VerticalBuffsDebuffs:SaveMoverPosition(isDebuff)
-    local panel = isDebuff and self.debuffPanel or self.buffPanel
-
-    local x = math.max(0, math.floor(panel:GetLeft()))
-    local y = math.max(0, math.floor(panel:GetTop()))
-
-    if isDebuff then
-        self.savedVariables.debuffPosX = x
-        self.savedVariables.debuffPosY = y
-        self:ApplyDebuffPosition()
-    else
-        self.savedVariables.buffPosX = x
-        self.savedVariables.buffPosY = y
-        self:ApplyBuffPosition()
-    end
-end
-
-function VerticalBuffsDebuffs:OnMoveStopped(isDebuff)
-    self:SaveMoverPosition(isDebuff)
-
-    if not self.switchingTarget then
-        self:ExitMoveMode()
-    end
-end
-
-function VerticalBuffsDebuffs:StopMove()
-    if self.buffMover then
-        self.buffMover:ToggleGamepadMove(false)
-    end
-    if self.debuffMover then
-        self.debuffMover:ToggleGamepadMove(false)
-    end
-
-    self:ExitMoveMode()
-end
-
-function VerticalBuffsDebuffs:SwitchMoveTarget()
-    if not self.moveActive then return end
-
-    local current = self:GetMover(self.moveTarget)
-
-    self.switchingTarget = true
-    if current then
-        current:ToggleGamepadMove(false)
-    end
-    self.switchingTarget = false
-
-    self.moveTarget = not self.moveTarget
-
-    local nextMover = self:GetMover(self.moveTarget)
-    if nextMover then
-        nextMover:ToggleGamepadMove(true, MOVE_TIMEOUT)
-    end
-
-    self:UpdateMoveFocus()
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptor)
-end
-
-function VerticalBuffsDebuffs:StartMove()
-    local mover = self:GetMover(false)
-    if not mover then return end
-
-    self:StopMove()
-
-    SCENE_MANAGER:ShowBaseScene()
-
-    self.moveActive     = true
-    self.moveTarget     = false
-    self.movingBuffs    = true
-    self.movingDebuffs  = true
-    self.previewBuffs   = true
-    self.previewDebuffs = true
-
-    self:UpdateMoveFocus()
-    self:RefreshDisplay()
-
-    zo_callLater(function()
-        VerticalBuffsDebuffs:AddKeybind()
-        mover:ToggleGamepadMove(true, MOVE_TIMEOUT)
-    end, 250)
+    PanelCall("ApplyTextSize")
+    PanelCall("ApplyOpacity")
+    PanelCall("ApplyAccent")
 end
 
 --------------------------------------------------
 -- Settings
 --------------------------------------------------
-function VerticalBuffsDebuffs:HasConsoleMenu()
-    return type(LibConsoleMenu) == "table"
-       and type(LibConsoleMenu.CreateAddonMenu) == "function"
+function VerticalBuffsDebuffs:PanelMenu(isDebuff)
+    local prefix  = isDebuff and "debuff" or "buff"
+    local posX    = prefix .. "PosX"
+    local posY    = prefix .. "PosY"
+    local size    = prefix .. "Size"
+    local cap     = prefix .. "Cap"
+    local shown   = isDebuff and "showDebuffs" or "showBuffs"
+    local text    = isDebuff and "showDebuffText" or "showBuffText"
+    local preview = isDebuff and "previewDebuffs" or "previewBuffs"
+    local noun    = isDebuff and "debuff" or "buff"
+    local Noun    = isDebuff and "Debuff" or "Buff"
+
+    local screenW, screenH = GuiRoot:GetDimensions()
+    screenW = math.floor(tonumber(screenW) or 1920)
+    screenH = math.floor(tonumber(screenH) or 1080)
+
+    local function ApplyPosition()
+        if isDebuff then self:ApplyDebuffPosition() else self:ApplyBuffPosition() end
+    end
+
+    return {
+        type    = "submenu",
+        name    = isDebuff and "|cFF3333Debuffs|r" or "|c33FF33Buffs|r",
+        icon    = ICON_CATEGORY,
+        tooltip = LayoutTip,
+        options = {
+            {
+                type    = "toggle",
+                name    = "Preview",
+                tooltip = PREVIEW_TIP,
+                getFunc = function() return self[preview] == true end,
+                setFunc = function(val)
+                    self[preview] = val
+                    self:RefreshDisplay()
+                end,
+            },
+            {
+                type    = "toggle",
+                name    = "Enabled",
+                preset  = "YES_NO",
+                default = self.defaults[shown],
+                getFunc = function() return self.savedVariables[shown] end,
+                setFunc = function(val)
+                    self.savedVariables[shown] = val
+                    self:RefreshDisplay()
+                end,
+            },
+            {
+                type    = "toggle",
+                name    = "Text",
+                preset  = "SHOW_HIDE",
+                default = self.defaults[text],
+                getFunc = function() return self.savedVariables[text] end,
+                setFunc = function(val)
+                    self.savedVariables[text] = val
+                    self:RefreshDisplay()
+                end,
+            },
+            {
+                type    = "slider",
+                name    = "Size",
+                min     = 18, max = 60, step = 1,
+                default = self.defaults[size],
+                tooltip = "Default is " .. self.defaults[size] .. ".",
+                getFunc = function() return self.savedVariables[size] end,
+                setFunc = function(val)
+                    self.savedVariables[size] = val
+                    self:RefreshDisplay()
+                end,
+            },
+            {
+                type    = "dropdown",
+                name    = "Cap At",
+                choices = self.capChoices,
+                default = 0,
+                details = function()
+                    local count = tonumber(self.savedVariables[cap]) or 0
+                    if count <= 0 then return "Shows every " .. noun .. "." end
+                    return string.format("Shows at most %d %ss. %ss past that are hidden.", count, noun, Noun)
+                end,
+                getFunc = function() return self.savedVariables[cap] end,
+                setFunc = function(val)
+                    self.savedVariables[cap] = val
+                    self:RefreshDisplay()
+                end,
+            },
+            {
+                type    = "slider",
+                name    = "Horizontal Position",
+                min     = 0, max = screenW, step = 5,
+                default = self.defaults[posX],
+                tooltip = "Default is " .. self.defaults[posX] .. ".",
+                getFunc = function() return self.savedVariables[posX] end,
+                setFunc = function(val)
+                    self.savedVariables[posX] = val
+                    ApplyPosition()
+                end,
+            },
+            {
+                type    = "slider",
+                name    = "Vertical Position",
+                min     = 0, max = screenH, step = 5,
+                default = self.defaults[posY],
+                tooltip = "Default is " .. self.defaults[posY] .. ".",
+                getFunc = function() return self.savedVariables[posY] end,
+                setFunc = function(val)
+                    self.savedVariables[posY] = val
+                    ApplyPosition()
+                end,
+            },
+        },
+    }
+end
+
+function VerticalBuffsDebuffs:SettingsMenu()
+    local profile = self.profileVars
+    return {
+        type    = "submenu",
+        name    = "Settings",
+        icon    = ICON_SETTINGS,
+        tooltip = SAVED_ACCOUNT_TIP .. " Character Settings is set separately on each character.",
+        options = {
+            {
+                type    = "toggle",
+                name    = "Character Settings",
+                tooltip = "Off uses one layout for the whole account. On gives this character its own layout, copied from the account layout the first time you turn it on.\n\n" .. SAVED_CHARACTER_TIP,
+                details = function()
+                    if self:UsesCharacterSettings() then
+                        return "This character has its own layout."
+                    end
+                    return "All your characters share one layout."
+                end,
+                getFunc = function() return self:UsesCharacterSettings() end,
+                setFunc = function(val) self:SetUseCharacterSettings(val) end,
+            },
+            {
+                type    = "slider",
+                name    = "Font Size",
+                min     = 18, max = 44, step = 1,
+                default = WINDOW_DEFAULTS.settingsFontSize,
+                tooltip = "Default is 30.",
+                getFunc = function() return profile.settingsFontSize end,
+                setFunc = function(val)
+                    profile.settingsFontSize = val
+                    PanelCall("ApplyTextSize")
+                end,
+            },
+            {
+                type    = "slider",
+                name    = "Opacity",
+                min     = 0, max = 100, step = 5,
+                default = WINDOW_DEFAULTS.settingsOpacity,
+                tooltip = "Default is 100.",
+                getFunc = function() return profile.settingsOpacity end,
+                setFunc = function(val)
+                    profile.settingsOpacity = val
+                    PanelCall("ApplyOpacity")
+                end,
+            },
+            {
+                type         = "stylecolor",
+                name         = RainbowText("Highlight / Slider Color"),
+                choices      = { "Alliance", "Custom" },
+                customValue  = "Custom",
+                default      = WINDOW_DEFAULTS.settingsHighlight,
+                colorDefault = { r = 1, g = 1, b = 1 },
+                details      = function()
+                    if profile.settingsHighlight == "Custom" then
+                        return "Highlights and sliders use your color."
+                    end
+                    return "Highlights and sliders use your alliance color."
+                end,
+                getFunc  = function() return profile.settingsHighlight end,
+                setFunc  = function(val)
+                    profile.settingsHighlight = val
+                    PanelCall("ApplyAccent")
+                end,
+                getColor = function()
+                    local c = profile.settingsHighlightColor
+                    if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                    return 1, 1, 1
+                end,
+                setColor = function(r, g, b)
+                    profile.settingsHighlightColor = { r = r, g = g, b = b, a = 1 }
+                    PanelCall("ApplyAccent")
+                end,
+            },
+            {
+                type    = "toggle",
+                name    = "Remember Last Page",
+                preset  = "YES_NO",
+                default = WINDOW_DEFAULTS.settingsRemember,
+                tooltip = "Reopens the last page where you left off.",
+                getFunc = function() return profile.settingsRemember end,
+                setFunc = function(val) profile.settingsRemember = val end,
+            },
+            {
+                type       = "button",
+                name       = "|cFF3333Reset All|r",
+                buttonText = "Reset All",
+                tooltip    = "Puts every Vertical Buffs Debuffs setting back to its default.",
+                details    = function()
+                    if self:UsesCharacterSettings() then
+                        return "Resets only this character's layout."
+                    end
+                    return "Resets the account layout, used by every character with Character Settings off."
+                end,
+                confirm    = "Reset every Vertical Buffs Debuffs setting to its default? This can't be undone.",
+                func       = function() self:ResetSettings() end,
+            },
+        },
+    }
 end
 
 function VerticalBuffsDebuffs:CreateSettings()
-    if not self:HasConsoleMenu() then
+    local lib = rawget(_G, "LibUser562")
+    if not (lib and lib.RegisterSettings) then
         VerticalBuffsDebuffs.settingsUnavailable = true
         return
     end
 
-    local LCM = LibConsoleMenu
-
-    local menu = LCM:CreateAddonMenu("VerticalBuffsDebuffs", {
-        title          = "Vertical Buffs Debuffs",
-        author         = "user562",
-        version        = "1.6",
-        category       = MOD_BROWSER_CATEGORY_TYPE_BUFFS_AND_DEBUFFS,
-        enableDefaults = true,
-        enableReset    = true,
-        childrenAlign  = "center",
-        resetFunc      = function() self:ResetSettings() end,
-    })
-
-    if not menu then return end
-
-    self.menu = menu
+    local profile = self.profileVars
 
     local options = {
-
-        {
-            type    = "toggle",
-            name    = "Character Settings",
-            tooltip = "Off uses one layout for the whole account. On gives this character its own, starting as a copy of the account layout.",
-            getFunc = function() return self.profileVars.useCharacterSettings end,
-            setFunc = function(val) self:SetUseCharacterSettings(val) end,
-        },
-
-        {
-            type    = "submenu",
-            name    = "|c33FF33Buffs|r",
-            icon    = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds",
-            options = {
-                {
-                    type    = "toggle",
-                    name    = "Preview",
-                    getFunc = function() return self.previewBuffs end,
-                    setFunc = function(val)
-                        self.previewBuffs = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Enabled",
-                    preset  = "YES_NO",
-                    default = self.defaults.showBuffs,
-                    getFunc = function() return self.savedVariables.showBuffs end,
-                    setFunc = function(val)
-                        self.savedVariables.showBuffs = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Text",
-                    preset  = "SHOW_HIDE",
-                    default = self.defaults.showBuffText,
-                    getFunc = function() return self.savedVariables.showBuffText end,
-                    setFunc = function(val)
-                        self.savedVariables.showBuffText = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "slider",
-                    name    = "Size",
-                    min     = 18, max = 60, step = 1,
-                    default = self.defaults.buffSize,
-                    getFunc = function() return self.savedVariables.buffSize end,
-                    setFunc = function(val)
-                        self.savedVariables.buffSize = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "dropdown",
-                    name    = "Cap At",
-                    choices = self.capChoices,
-                    default = 0,
-                    getFunc = function() return self.savedVariables.buffCap end,
-                    setFunc = function(val)
-                        self.savedVariables.buffCap = val
-                        self:RefreshDisplay()
-                    end,
-                },
-            },
-        },
-
-        {
-            type    = "submenu",
-            name    = "|cFF3333Debuffs|r",
-            icon    = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds",
-            options = {
-                {
-                    type    = "toggle",
-                    name    = "Preview",
-                    getFunc = function() return self.previewDebuffs end,
-                    setFunc = function(val)
-                        self.previewDebuffs = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Enabled",
-                    preset  = "YES_NO",
-                    default = self.defaults.showDebuffs,
-                    getFunc = function() return self.savedVariables.showDebuffs end,
-                    setFunc = function(val)
-                        self.savedVariables.showDebuffs = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Text",
-                    preset  = "SHOW_HIDE",
-                    default = self.defaults.showDebuffText,
-                    getFunc = function() return self.savedVariables.showDebuffText end,
-                    setFunc = function(val)
-                        self.savedVariables.showDebuffText = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "slider",
-                    name    = "Size",
-                    min     = 18, max = 60, step = 1,
-                    default = self.defaults.debuffSize,
-                    getFunc = function() return self.savedVariables.debuffSize end,
-                    setFunc = function(val)
-                        self.savedVariables.debuffSize = val
-                        self:RefreshDisplay()
-                    end,
-                },
-                {
-                    type    = "dropdown",
-                    name    = "Cap At",
-                    choices = self.capChoices,
-                    default = 0,
-                    getFunc = function() return self.savedVariables.debuffCap end,
-                    setFunc = function(val)
-                        self.savedVariables.debuffCap = val
-                        self:RefreshDisplay()
-                    end,
-                },
-            },
-        },
-
-        {
-            type    = "button",
-            name    = "Move |c33FF33Buffs|r / |cFF3333Debuffs|r",
-            func    = function() self:StartMove() end,
-        },
+        self:PanelMenu(false),
+        self:PanelMenu(true),
+        self:SettingsMenu(),
     }
 
-    menu:AddOptions(options)
+    self.settingsPanel = lib:RegisterSettings({
+        name            = "VerticalBuffsDebuffs",
+        placement       = "addons",
+        menuTitle       = "Vertical Buffs Debuffs",
+        menuIcon        = ICON_CATEGORY,
+        title           = "Vertical Buffs Debuffs",
+        author          = "user562",
+        version         = "1.7",
+        frameColor      = FRAME_GREY,
+        previewControls = function()
+            local controls = {}
+            if self.buffPanel then controls[#controls + 1] = self.buffPanel end
+            if self.debuffPanel then controls[#controls + 1] = self.debuffPanel end
+            return controls
+        end,
+        textSize        = function() return profile.settingsFontSize end,
+        windowOpacity   = function() return profile.settingsOpacity end,
+        rememberPage    = function() return profile.settingsRemember == true end,
+        lastPage        = function()
+            if type(profile.settingsLastPage) ~= "table" then profile.settingsLastPage = {} end
+            return profile.settingsLastPage
+        end,
+        accentColor     = function()
+            if profile.settingsHighlight ~= "Custom" then return nil end
+            local c = profile.settingsHighlightColor
+            if type(c) ~= "table" then return nil end
+            return c.r or 1, c.g or 1, c.b or 1
+        end,
+        options         = options,
+    })
+    if not self.settingsPanel then VerticalBuffsDebuffs.settingsUnavailable = true end
 end
 
 --------------------------------------------------
@@ -1028,7 +999,7 @@ local function OnAddonLoaded(event, addonName)
             "VerticalBuffsDebuffs_SavedVars",
             2,
             "Profile",
-            { useCharacterSettings = false }
+            WINDOW_DEFAULTS
         )
 
         VerticalBuffsDebuffs:LoadProfile()

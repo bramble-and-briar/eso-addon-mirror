@@ -178,7 +178,17 @@ end
 ------------------------------------------------------------
 -- ElmsMarkers injection + removal (unchanged logic)
 ------------------------------------------------------------
+-- The record of what we injected lives in SavedVars, not just in memory, so
+-- that markers can still be cleaned up after a crash or an exit-to-desktop.
+function FrankGrinder:GetZoneTrackMarkerRecord()
+    if not self.SV then return {} end
+    self.SV.elmsZoneTrackMarkers = self.SV.elmsZoneTrackMarkers or {}
+    return self.SV.elmsZoneTrackMarkers
+end
+
 function FrankGrinder:AddZoneTrackMarkerToElms(zoneId, x, y, z)
+    if not self:GetSettingEnableElmsInjection() then return end
+
     if not (ElmsMarkers and ElmsMarkers.savedVars and ElmsMarkers.savedVars.positions) then
         -- ElmsMarkers not installed/ready
         return
@@ -188,25 +198,23 @@ function FrankGrinder:AddZoneTrackMarkerToElms(zoneId, x, y, z)
     local marker = { x, y, z, ZONE_TRACK_ICON }
     table.insert(ElmsMarkers.savedVars.positions[zoneId], marker)
 
-    self._zoneTrackElmsMarkers = self._zoneTrackElmsMarkers or {}
-    self._zoneTrackElmsMarkers[zoneId] = self._zoneTrackElmsMarkers[zoneId] or {}
-    table.insert(self._zoneTrackElmsMarkers[zoneId], marker)
+    local record = self:GetZoneTrackMarkerRecord()
+    record[zoneId] = record[zoneId] or {}
+    table.insert(record[zoneId], { x, y, z, ZONE_TRACK_ICON })
 
     ElmsMarkers.CheckActivation()
 end
 
 function FrankGrinder:RemoveZoneTrackMarkersFromElms()
+    local record = self:GetZoneTrackMarkerRecord()
+
     if not (ElmsMarkers and ElmsMarkers.savedVars and ElmsMarkers.savedVars.positions) then
-        self._zoneTrackElmsMarkers = {}
+        -- Nothing to remove from; drop the record so it can't go stale
+        for k in pairs(record) do record[k] = nil end
         return
     end
 
-    if type(self._zoneTrackElmsMarkers) ~= "table" then
-        self._zoneTrackElmsMarkers = {}
-        return
-    end
-
-    for zoneId, injectedList in pairs(self._zoneTrackElmsMarkers) do
+    for zoneId, injectedList in pairs(record) do
         local zoneList = ElmsMarkers.savedVars.positions[zoneId]
         if type(zoneList) == "table" and type(injectedList) == "table" then
             for _, marker in ipairs(injectedList) do
@@ -218,18 +226,27 @@ function FrankGrinder:RemoveZoneTrackMarkersFromElms()
             end
 
             if next(zoneList) == nil then
-                ElmsMarkers.savedVars.positions[zoneId] = zoneList
+                ElmsMarkers.savedVars.positions[zoneId] = nil
             end
+        end
+
+        -- CheckActivation only clears icons for zones still present in
+        -- positions, so a zone we just emptied would keep its icons drawn.
+        -- Discard them here; CheckActivation re-places whatever remains.
+        if ElmsMarkers.RemovePositionIcons then
+            ElmsMarkers.RemovePositionIcons(zoneId)
         end
     end
 
-    self._zoneTrackElmsMarkers = {}
+    for k in pairs(record) do record[k] = nil end
     ElmsMarkers.CheckActivation()
 end
 
 ------------------------------------------------------------
 -- Event handler (unchanged)
 ------------------------------------------------------------
+local MAX_LOCATION_HISTORY = 500
+
 function FrankGrinder:ZoneChanger(eventCode, ...)
     local zoneId, x, y, z = GetUnitRawWorldPosition("player")
 
@@ -240,6 +257,11 @@ function FrankGrinder:ZoneChanger(eventCode, ...)
         y = y,
         z = z,
     }
+
+    -- Subzone changes fire constantly while running around; keep this bounded
+    while #self._locationHistory > MAX_LOCATION_HISTORY do
+        table.remove(self._locationHistory, 1)
+    end
 
     self:AddZoneTrackMarkerToElms(zoneId, x, y, z)
 end
@@ -268,7 +290,6 @@ function FrankGrinder:SetZoneChangeEnabled(enabled)
         )
 
         self._locationHistory = self._locationHistory or {}
-        self._zoneTrackElmsMarkers = self._zoneTrackElmsMarkers or {}
 
         -- Show + auto-start measuring
         self:StartDistanceTracker()

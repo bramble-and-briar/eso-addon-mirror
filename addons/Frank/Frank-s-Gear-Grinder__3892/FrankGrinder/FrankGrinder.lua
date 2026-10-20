@@ -4,17 +4,27 @@ local EM = EVENT_MANAGER
 
 
 
-function FrankGrinder:DelayedStart()
-    local ready = false
-    local LCK = LibCharacterKnowledge
+-- LCK may be installed but never fire EVENT_INITIALIZED (broken install,
+-- version mismatch). Give up waiting after this many ticks and start anyway
+-- rather than polling forever.
+local MAX_DELAYED_START_TRIES = 40   -- 40 x 500ms = 20s
 
-    if (LCK and self._lckIsLoaded == true) or (not LCK) then
-        ready = true
+function FrankGrinder:DelayedStart()
+    local LCK = LibCharacterKnowledge
+    local ready = (not LCK) or (self._lckIsLoaded == true)
+
+    if not ready then
+        self._delayedStartTries = (self._delayedStartTries or 0) + 1
+        if self._delayedStartTries < MAX_DELAYED_START_TRIES then
+            return
+        end
+        self:ChatMsg("LibCharacterKnowledge did not initialise - starting without it.")
     end
 
-    if not ready then return end
-
     EM:UnregisterForUpdate(self.name .. ".DelayedStart")
+
+    -- Clear any ElmsMarkers entries left over from a crash or hard exit
+    self:RemoveZoneTrackMarkersFromElms()
 
     self:InitializeLeadWarning()
 
@@ -44,6 +54,8 @@ function FrankGrinder:Initialize(eventCode, addonName)
 
         local world = GetWorldName()
         self:InitSavedVars(world)
+
+        self:InitializeKeyChording()
 
         EM:RegisterForEvent(self.name, EVENT_QUEST_REMOVED, function(...) self:UpdateTime(...) end)
 

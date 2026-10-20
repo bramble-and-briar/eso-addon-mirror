@@ -261,20 +261,6 @@ function FrankGrinder:ShowLeadExpiryWarning()
             end
         end
 
-        -- if self:GetSettingLeadWarningAnnounce() then
-        --     local c = GetAntiquityQualityColor(anyLead.quality)
-        --     local t = c:Colorize(anyLead.name)
-
-        --     local announceText = GetString(GG_LE_EXPIRING_IN) .. FrankGrinder.SecondsToClock(anyLead.time, "first_two")
-        --     local msg = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, SOUNDS.LEVEL_UP)
-
-        --     msg:SetText(announceText, t .. GetString(GG_LE_FOUND_IN) .. anyLead.zone)
-        --     msg:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_CHAMPION_POINT_GAINED)
-        --     msg:MarkSuppressIconFrame()
-
-        --     CENTER_SCREEN_ANNOUNCE:DisplayMessage(msg)
-        -- end
-
         if self:GetSettingLeadWarningAnnounce() then
             local c = GetAntiquityQualityColor(anyLead.quality)
             local t = c:Colorize(anyLead.name)

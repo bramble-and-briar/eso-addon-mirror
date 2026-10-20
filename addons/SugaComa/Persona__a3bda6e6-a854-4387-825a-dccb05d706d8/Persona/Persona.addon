@@ -1,7 +1,7 @@
 ## Title: Persona
-## APIVersion: 101049 101050
+## APIVersion: 101051
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Version: 1.0.0
+## Version: 1.1.0-test1
 ## Description: Console-first character personality and contextual emote addon.
 ## DependsOn: LibHarvensAddonSettings
 ## SavedVariables: Persona_SV

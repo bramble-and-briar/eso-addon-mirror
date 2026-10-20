@@ -312,8 +312,13 @@ function preview:OnAddonSelected(addonSettings)
     self:SetPanelOpen(true)
 end
 
--- The settings panel was opened (true) or another add-on's panel was picked (false).
+-- The settings panel was opened (true) or another add-on's panel was picked (false). The ranking
+-- window is told as well: it is drawn over the panel too.
 function preview:SetPanelOpen(open)
+    ADDON.panelOpen = open and true or false
+    if ADDON.ranking then
+        ADDON.ranking:OnPanelOpen(ADDON.panelOpen)
+    end
     self.forPanel = open and true or false
     if self.forPanel and ADDON.sv.preview then
         self:Show()

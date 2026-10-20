@@ -48,8 +48,10 @@ local function Icon(pool,index,root,size)
 end
 local function Draw(list,pool,root,long,now)
     local size=long and 32 or 40
-    local perColumn=math.max(1,math.floor((GuiRoot:GetHeight()*0.45)/(size+5)))
-    for i,effect in ipairs(list) do
+    local perColumn=10
+    local visibleCount=long and math.min(30,#list) or #list
+    for i=1,visibleCount do
+        local effect=list[i]
         local item=Icon(pool,i,root,size) local c=item.control
         c:ClearAnchors()
         if long then
@@ -65,7 +67,7 @@ local function Draw(list,pool,root,long,now)
         else item.bg:SetEdgeColor(0.35,0.45,0.35,0.95) end
         c:SetHidden(false)
     end
-    for i=#list+1,#pool do pool[i].control:SetHidden(true) end
+    for i=visibleCount+1,#pool do pool[i].control:SetHidden(true) end
 end
 local function Update()
     if AlabuzyaUI.Theme.ds3 then
@@ -98,7 +100,7 @@ local function Update()
 end
 function AlabuzyaUI.Buffs.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
-    longRoot=Root('AlabuzyaUILongBuffs',32,32,BOTTOMRIGHT,BOTTOMRIGHT,-5,-8)
+    longRoot=Root('AlabuzyaUILongBuffs',106,365,BOTTOMRIGHT,BOTTOMRIGHT,-5,-40)
     shortRoot=Root('AlabuzyaUIShortBuffs',450,40,BOTTOM,BOTTOM,0,-230)
     if AlabuzyaUI.Theme.ds3 then
         AlabuzyaUI.DS3Theme.ShortBuffAnchor(shortRoot)

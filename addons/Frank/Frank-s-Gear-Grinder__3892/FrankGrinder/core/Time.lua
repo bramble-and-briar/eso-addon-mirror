@@ -38,9 +38,9 @@ function FrankGrinder.SecondsToClock(value, timeFmt)
         mins = math.floor(seconds / 60); seconds = seconds - (mins * 60)
         secs = math.floor(seconds)
 
-        if (days == "0" and hours == "0" and mins == "0") then return string.format("%01.f " .. GetString(GG_TIME_SECONDS), secs)
-        elseif (days == "0" and hours == "0") then return string.format("%01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), mins, secs)
-        elseif (days == "0") then return string.format("%01.f " .. GetString(GG_TIME_HOURS) .. ", %01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), hours, mins, secs)
+        if (days == 0 and hours == 0 and mins == 0) then return string.format("%01.f " .. GetString(GG_TIME_SECONDS), secs)
+        elseif (days == 0 and hours == 0) then return string.format("%01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), mins, secs)
+        elseif (days == 0) then return string.format("%01.f " .. GetString(GG_TIME_HOURS) .. ", %01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), hours, mins, secs)
         else return string.format("%01.f " .. GetString(GG_TIME_DAYS) .. ", %01.f " .. GetString(GG_TIME_HOURS) .. ", %01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), days, hours, mins, secs)
         end
 
@@ -63,8 +63,8 @@ function FrankGrinder.SecondsToClock(value, timeFmt)
         mins = math.floor(seconds / 60); seconds = seconds - (mins * 60)
         secs = math.floor(seconds)
 
-        if (hours == "0" and mins == "0") then return string.format("%01.f " .. GetString(GG_TIME_SECONDS), secs)
-        elseif (hours == "0") then return string.format("%01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), mins, secs)
+        if (hours == 0 and mins == 0) then return string.format("%01.f " .. GetString(GG_TIME_SECONDS), secs)
+        elseif (hours == 0) then return string.format("%01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), mins, secs)
         else return string.format("%01.f " .. GetString(GG_TIME_HOURS) .. ", %01.f " .. GetString(GG_TIME_MINUTES) .. ", %01.f " .. GetString(GG_TIME_SECONDS), hours, mins, secs)
         end
 

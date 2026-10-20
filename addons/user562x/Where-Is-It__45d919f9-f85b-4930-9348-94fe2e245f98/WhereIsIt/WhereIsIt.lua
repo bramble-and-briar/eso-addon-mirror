@@ -1,6 +1,6 @@
 WhereIsIt = {}
 WhereIsIt.name = "WhereIsIt"
-WhereIsIt.version = "1.3"
+WhereIsIt.version = "1.4"
 
 --------------------------------------------------
 -- Utility Functions

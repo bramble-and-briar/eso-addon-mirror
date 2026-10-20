@@ -21,9 +21,6 @@ local CRUX_FONT_SCALE  = 1.5
 local ORANGE_THRESHOLD = 0.50
 local RED_THRESHOLD    = 0.25
 
-local MOVE_TIMEOUT     = 30000
-local MOVE_SNAP        = 10
-
 local RING_R, RING_G, RING_B = 0.2, 1.0, 0.2
 
 local SUBMENU_ICON = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
@@ -283,7 +280,7 @@ end
 function Trackers:RefreshDisplay()
     if not self.panel then return end
 
-    if self.sceneHidden and not self.moveActive then
+    if self.sceneHidden then
         self.panel:SetHidden(true)
         return
     end
@@ -371,9 +368,6 @@ function Trackers:RefreshDisplay()
         else
             self.panel:SetDimensions(frameSize, length)
         end
-        self.panel:SetHidden(false)
-    elseif self.moveActive then
-        self.panel:SetDimensions(frameSize, frameSize)
         self.panel:SetHidden(false)
     else
         self.panel:SetHidden(true)
@@ -487,124 +481,31 @@ function Trackers:InitializeSceneHiding()
 end
 
 --------------------------------------------------
--- Move Mode
---------------------------------------------------
-function Trackers:GetMover()
-    local LCA = LibCombatAlerts
-    if not LCA then return nil end
-
-    if not self.mover then
-        self.mover = LCA.MoveableControl:New(self.panel, { color = 0x33FF33FF, size = 2 })
-        self.mover:SetSnap(MOVE_SNAP)
-        self.mover:RegisterCallback(
-            "MyExtras_TrackerMoveStop",
-            LCA.EVENT_CONTROL_MOVE_STOP,
-            function() Trackers:OnMoveStopped() end
-        )
-    end
-    return self.mover
-end
-
-function Trackers:EnsureKeybind()
-    if self.keybindDescriptor then return end
-
-    self.actionLayerName = GetString(SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS)
-
-    self.keybindDescriptor = {
-        {
-            name     = "Save & Exit",
-            keybind  = "UI_SHORTCUT_NEGATIVE",
-            callback = function() Trackers:StopMove() end,
-        },
-    }
-end
-
-function Trackers:AddKeybind()
-    self:EnsureKeybind()
-
-    local scene = SCENE_MANAGER:GetCurrentScene()
-    if KEYBIND_STRIP_GAMEPAD_FRAGMENT and scene
-       and not scene:HasFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT) then
-        scene:AddFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT)
-        self.keybindFragmentScene = scene
-    end
-
-    if not self.keybindActive then
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindDescriptor)
-        PushActionLayerByName(self.actionLayerName)
-        self.keybindActive = true
-    end
-end
-
-function Trackers:ExitMoveMode()
-    if self.keybindActive then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindDescriptor)
-        RemoveActionLayerByName(self.actionLayerName)
-        self.keybindActive = false
-    end
-
-    if self.keybindFragmentScene then
-        if KEYBIND_STRIP_GAMEPAD_FRAGMENT then
-            self.keybindFragmentScene:RemoveFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT)
-        end
-        self.keybindFragmentScene = nil
-    end
-
-    self.moveActive = false
-    self.preview    = false
-    self:RefreshDisplay()
-end
-
-function Trackers:SaveMoverPosition()
-    SV().trackerPosX = math.max(0, math.floor(self.panel:GetLeft()))
-    SV().trackerPosY = math.max(0, math.floor(self.panel:GetTop()))
-    self:ApplyPosition()
-end
-
-function Trackers:OnMoveStopped()
-    self:SaveMoverPosition()
-    self:ExitMoveMode()
-end
-
-function Trackers:StopMove()
-    if self.mover then
-        self.mover:ToggleGamepadMove(false)
-    end
-    self:ExitMoveMode()
-end
-
-function Trackers:StartMove()
-    local mover = self:GetMover()
-    if not mover then return end
-
-    self:StopMove()
-
-    SCENE_MANAGER:ShowBaseScene()
-
-    self.moveActive = true
-    self:SetPreview(true)
-
-    zo_callLater(function()
-        Trackers:AddKeybind()
-        mover:ToggleGamepadMove(true, MOVE_TIMEOUT)
-    end, 250)
-end
-
---------------------------------------------------
 -- Settings
 --------------------------------------------------
+function Trackers:GetPreviewControls()
+    if self.panel then return { self.panel } end
+    return {}
+end
+
 function Trackers:GetOptions()
     local defaults = self.defaults
+
+    local screenW, screenH = GuiRoot:GetDimensions()
+    screenW = math.floor(tonumber(screenW) or 1920)
+    screenH = math.floor(tonumber(screenH) or 1080)
 
     return {
         {
             type    = "submenu",
             name    = "Trackers",
             icon    = SUBMENU_ICON,
+            tooltip = ME.SAVED_ACCOUNT_TIP,
             options = {
                 {
                     type    = "toggle",
                     name    = "Preview",
+                    tooltip = ME.PREVIEW_TIP,
                     getFunc = function() return Trackers.preview end,
                     setFunc = function(val) Trackers:SetPreview(val) end,
                 },
@@ -646,6 +547,7 @@ function Trackers:GetOptions()
                     name    = "Size",
                     min     = 18, max = 60, step = 1,
                     default = defaults.trackerSize,
+                    tooltip = "Default is " .. defaults.trackerSize .. ".",
                     getFunc = function() return SV().trackerSize end,
                     setFunc = function(val)
                         SV().trackerSize = val
@@ -653,9 +555,28 @@ function Trackers:GetOptions()
                     end,
                 },
                 {
-                    type = "button",
-                    name = "Move",
-                    func = function() Trackers:StartMove() end,
+                    type    = "slider",
+                    name    = "Horizontal Position",
+                    min     = 0, max = screenW, step = 5,
+                    default = defaults.trackerPosX,
+                    tooltip = "Default is " .. defaults.trackerPosX .. ".",
+                    getFunc = function() return SV().trackerPosX end,
+                    setFunc = function(val)
+                        SV().trackerPosX = val
+                        Trackers:ApplyPosition()
+                    end,
+                },
+                {
+                    type    = "slider",
+                    name    = "Vertical Position",
+                    min     = 0, max = screenH, step = 5,
+                    default = defaults.trackerPosY,
+                    tooltip = "Default is " .. defaults.trackerPosY .. ".",
+                    getFunc = function() return SV().trackerPosY end,
+                    setFunc = function(val)
+                        SV().trackerPosY = val
+                        Trackers:ApplyPosition()
+                    end,
                 },
             },
         },

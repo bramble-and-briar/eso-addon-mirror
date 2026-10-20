@@ -6,24 +6,27 @@ local cos,sin,exp,sqrt,abs,max,min=math.cos,math.sin,math.exp,math.sqrt,math.abs
 -- to half of that at top speed. grip: how fast sideways speed is bled off per second, so a high
 -- value corners on rails and a low one slides. mass only matters in a collision.
 M.Types={
- {id='falcon',name='ルナ・ファルコン',note='扱いやすい標準機体',top=90,accel=46,turn=2.15,grip=7.0,mass=1.0,
-  body={.3,.55,.95},wing={.14,.26,.6},top2={.9,.95,1},glow={.5,.8,1}},
- {id='drake',name='クリムゾン・ドレイク',note='最高速重視。曲がりにくい',top=100,accel=44,turn=1.8,grip=5.6,mass=1.15,
-  body={.9,.25,.28},wing={.5,.1,.14},top2={1,.9,.85},glow={1,.55,.35}},
- {id='fox',name='ミント・フォクス',note='旋回重視。最高速は控えめ',top=82,accel=50,turn=2.55,grip=8.5,mass=.85,
-  body={.3,.85,.6},wing={.1,.5,.34},top2={.9,1,.95},glow={.55,1,.8}},
- {id='bear',name='ゴールド・ベア',note='頑丈で体当たりに強い',top=86,accel=42,turn=2.0,grip=6.5,mass=1.5,
-  body={.95,.75,.25},wing={.55,.4,.1},top2={1,.98,.85},glow={1,.85,.45}},
+ {id='falcon',name='ルナ・ファルコン',note='扱いやすい標準機体',top=220,accel=70,turn=2.15,grip=7.0,mass=1.0,
+  body={.22,.46,.98},wing={.08,.18,.48},top2={.9,.97,1},glow={.2,.82,1}},
+ {id='drake',name='クリムゾン・ドレイク',note='最高速重視。曲がりにくい',top=235,accel=66,turn=1.8,grip=5.6,mass=1.15,
+  body={.94,.13,.22},wing={.42,.045,.09},top2={1,.78,.7},glow={1,.2,.12}},
+ {id='fox',name='ミント・フォクス',note='旋回重視。最高速は控えめ',top=205,accel=76,turn=2.55,grip=8.5,mass=.85,
+  body={.18,.9,.62},wing={.055,.46,.28},top2={.88,1,.95},glow={.25,1,.74}},
+ {id='bear',name='ゴールド・ベア',note='頑丈で体当たりに強い',top=215,accel=62,turn=2.0,grip=6.5,mass=1.5,
+  body={1,.7,.13},wing={.48,.3,.045},top2={1,.94,.68},glow={.16,.78,1}},
 }
 M.RADIUS=1.8
-M.BOOST_TOP=1.42
+M.BOOST_TOP=1.25
 M.BOOST_COST=15
 M.BOOST_MIN=12
-M.PAD_TOP=1.32
+M.PAD_TOP=1.15
+M.JUMP_SPEED=11.5
+M.GRAVITY=16
 function M.New(kind,x,y,h)
  local st=M.Types[kind]
  return {type=st,kind=kind,x=x,y=y,h=h,vx=0,vy=0,speed=0,energy=100,boost=0,pad=0,
-  s=0,d=0,idx=1,hit=0,scrape=false,bank=0,steer=0,wrecked=false,healing=false,rough=false,slip=false}
+  s=0,d=0,idx=1,hit=0,scrape=false,bank=0,steer=0,wrecked=false,healing=false,rough=false,slip=false,
+  height=0,vz=0,airborne=false,zone=nil}
 end
 -- One physics step. `inp` = {steer=-1..1 (right positive), throttle=0..1, brake=0..1,
 -- boost=bool, lean=-1|0|1}; `canBoost` is the race's rule (no boost on the first lap).
@@ -37,8 +40,26 @@ function M.Step(m,track,inp,dt,canBoost)
  end
  local fx,fy=cos(m.h),sin(m.h)
  local vf=m.vx*fx+m.vy*fy
- local zone=track:ZoneAt(m.s,m.d)
+ local zoneInfo=track:Zone(m.s,m.d)
+ local zone=zoneInfo and zoneInfo.kind
  m.rough,m.slip,m.healing=zone=='rough',zone=='slip',zone=='heal'
+ if zone=='loop' and m.zone~='loop' and not m.airborne then
+  m.looping=true;m.loopT=0;m.loopDistance=zoneInfo.distance or 150;m.loopHeight=zoneInfo.height or 24
+  m.airborne=true;m.looped=true
+ elseif zone=='jump' and m.zone~='jump' and not m.airborne then
+  m.vz=M.JUMP_SPEED;m.airborne=true;m.jumped=true
+ end
+ m.zone=zone
+ if m.looping then
+  m.loopT=m.loopT+max(vf,45)*dt/m.loopDistance
+  local a=min(1,m.loopT)*math.pi*2
+  m.height=m.loopHeight*(1-cos(a));m.loopAngle=a
+  if m.loopT>=1 then m.height,m.vz,m.airborne,m.looping,m.loopAngle=0,0,false,false,nil;m.landed=true end
+ elseif m.airborne then
+  m.height=m.height+m.vz*dt
+  m.vz=m.vz-M.GRAVITY*dt
+  if m.height<=0 and m.vz<0 then m.height,m.vz,m.airborne=0,0,false;m.landed=true end
+ end
  -- Boost is a held button that burns energy, the way the SNES original treats it: you pay for
  -- speed with the same bar that keeps you alive, and below a floor it simply stops.
  local boosting=inp.boost and canBoost and m.energy>M.BOOST_MIN
@@ -66,6 +87,7 @@ function M.Step(m,track,inp,dt,canBoost)
  vf=m.vx*fx+m.vy*fy
  local vr=m.vx*rx+m.vy*ry
  local grip=st.grip*(lean~=0 and .4 or 1)
+ if m.airborne then grip=grip*.14 end
  if m.slip then grip=grip*.18 end
  if m.rough then grip=grip*1.4 end
  vr=vr*exp(-grip*dt)
@@ -93,13 +115,16 @@ function M.Step(m,track,inp,dt,canBoost)
   if vn>0 then
    m.vx=m.vx-(1+.3)*vn*nx;m.vy=m.vy-(1+.3)*vn*ny
    m.hit=max(m.hit,vn)
-   m.energy=m.energy-max(0,vn-5)*.16
+   -- Jet-car impact protection: the old damage scale was tuned for 500 km/h and made a single
+   -- high-speed correction fatal after the 1000 km/h retune.
+   m.energy=m.energy-max(0,vn-8)*.035
   end
   local k=exp(-.9*dt);m.vx,m.vy=m.vx*k,m.vy*k
-  m.energy=m.energy-1.4*dt*(sqrt(m.vx*m.vx+m.vy*m.vy)/60)
+  m.energy=m.energy-.6*dt*(sqrt(m.vx*m.vx+m.vy*m.vy)/180)
   m.scrape=true
  end
  m.s,m.d,m.idx=s,d,idx
+ m.roadZ=track:Elevation(s);m.grade=track:Slope(s)
  if m.healing then m.energy=min(100,m.energy+24*dt) end
  if m.energy<=0 then m.energy=0;m.wrecked=true;m.exploded=true end
  m.speed=sqrt(m.vx*m.vx+m.vy*m.vy)
@@ -107,6 +132,7 @@ end
 -- Two machines overlap: pull them apart in proportion to mass and trade the speed along the line
 -- between them. Returns the closing speed so the race can score a bump.
 function M.Collide(a,b)
+ if abs((a.height or 0)-(b.height or 0))>2 then return 0 end
  local dx,dy=b.x-a.x,b.y-a.y;local d2=dx*dx+dy*dy;local r=2*M.RADIUS
  if d2>=r*r or d2<1e-6 then return 0 end
  local d=sqrt(d2);local nx,ny=dx/d,dy/d
@@ -119,7 +145,7 @@ function M.Collide(a,b)
  local j=(1+.45)*rel/(1/ma+1/mb)
  a.vx=a.vx-j*nx/ma;a.vy=a.vy-j*ny/ma
  b.vx=b.vx+j*nx/mb;b.vy=b.vy+j*ny/mb
- local dmg=max(0,rel-4)*.12
+ local dmg=max(0,rel-6)*.03
  a.energy=a.energy-dmg*mb/total*1.6;b.energy=b.energy-dmg*ma/total*1.6
  a.hit=max(a.hit,rel);b.hit=max(b.hit,rel)
  return rel

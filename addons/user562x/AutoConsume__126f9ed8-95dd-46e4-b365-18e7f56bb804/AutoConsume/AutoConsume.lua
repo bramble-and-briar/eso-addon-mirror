@@ -33,6 +33,12 @@ local DEFAULTS = {
     hudPosY       = 500,
     hudIconSize   = 40,
     hudHorizontal = false,
+
+    settingsFontSize       = 30,
+    settingsOpacity        = 100,
+    settingsHighlight      = "Alliance",
+    settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
+    settingsRemember       = true,
 }
 
 --------------------------------------------------
@@ -221,10 +227,31 @@ local pending = {
     apItemID = nil,
 }
 
-local ICON_GENERIC = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
+local ICON_GENERIC  = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
+local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 
-local MOVE_TIMEOUT = 30000
-local MOVE_SNAP    = 10
+local SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
+local PREVIEW_TIP         = "Shows it on screen so you can place it. Stays on until you turn it off."
+
+local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
+
+local RAINBOW_PALETTE = { "FF2222", "FF9900", "FFEE00", "33DD33", "00CCCC", "3399FF", "BB44EE" }
+
+local function RainbowText(text)
+    local out = {}
+    local idx = 1
+    for i = 1, #text do
+        local ch = text:sub(i, i)
+        if ch == " " then
+            out[#out + 1] = ch
+        else
+            local color = RAINBOW_PALETTE[((idx - 1) % #RAINBOW_PALETTE) + 1]
+            out[#out + 1] = "|c" .. color .. ch .. "|r"
+            idx = idx + 1
+        end
+    end
+    return table.concat(out)
+end
 
 local function BuildChoices(names, values)
     local out = {}
@@ -364,18 +391,101 @@ function AC:ScanBagAndReload()
     end, 500)
 end
 
-function AC:HasConsoleMenu()
-    return type(LibConsoleMenu) == "table"
-       and type(LibConsoleMenu.CreateAddonMenu) == "function"
+local function PanelCall(method)
+    local panel = AC.settingsPanel
+    if panel and panel[method] then panel[method](panel) end
+end
+
+function AC:SettingsMenu()
+    return {
+        type    = "submenu",
+        name    = "Settings",
+        icon    = ICON_SETTINGS,
+        tooltip = SAVED_CHARACTER_TIP,
+        options = {
+            {
+                type    = "slider",
+                name    = "Font Size",
+                min     = 18,
+                max     = 44,
+                step    = 1,
+                default = DEFAULTS.settingsFontSize,
+                tooltip = "Default is 30.",
+                getFunc = function() return AC.savedVariables.settingsFontSize end,
+                setFunc = function(val)
+                    AC.savedVariables.settingsFontSize = val
+                    PanelCall("ApplyTextSize")
+                end,
+            },
+            {
+                type    = "slider",
+                name    = "Opacity",
+                min     = 0,
+                max     = 100,
+                step    = 5,
+                default = DEFAULTS.settingsOpacity,
+                tooltip = "Default is 100.",
+                getFunc = function() return AC.savedVariables.settingsOpacity end,
+                setFunc = function(val)
+                    AC.savedVariables.settingsOpacity = val
+                    PanelCall("ApplyOpacity")
+                end,
+            },
+            {
+                type         = "stylecolor",
+                name         = RainbowText("Highlight / Slider Color"),
+                choices      = { "Alliance", "Custom" },
+                customValue  = "Custom",
+                default      = DEFAULTS.settingsHighlight,
+                colorDefault = { r = 1, g = 1, b = 1 },
+                details      = function()
+                    if AC.savedVariables.settingsHighlight == "Custom" then
+                        return "Highlights and sliders use your color."
+                    end
+                    return "Highlights and sliders use your alliance color."
+                end,
+                getFunc  = function() return AC.savedVariables.settingsHighlight end,
+                setFunc  = function(val)
+                    AC.savedVariables.settingsHighlight = val
+                    PanelCall("ApplyAccent")
+                end,
+                getColor = function()
+                    local c = AC.savedVariables.settingsHighlightColor
+                    if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                    return 1, 1, 1
+                end,
+                setColor = function(r, g, b)
+                    AC.savedVariables.settingsHighlightColor = { r = r, g = g, b = b, a = 1 }
+                    PanelCall("ApplyAccent")
+                end,
+            },
+            {
+                type    = "toggle",
+                name    = "Remember Last Page",
+                preset  = "YES_NO",
+                default = DEFAULTS.settingsRemember,
+                tooltip = "Reopens the last page where you left off.",
+                getFunc = function() return AC.savedVariables.settingsRemember end,
+                setFunc = function(val) AC.savedVariables.settingsRemember = val end,
+            },
+            {
+                type       = "button",
+                name       = "|cFF3333Reset All|r",
+                buttonText = "Reset All",
+                tooltip    = "Puts every AutoConsume setting back to its default.",
+                confirm    = "Reset every AutoConsume setting to its default? This can't be undone.",
+                func       = function() AC:ResetSettings() end,
+            },
+        },
+    }
 end
 
 function AC:CreateSettings()
-    if not self:HasConsoleMenu() then
+    local lib = rawget(_G, "LibUser562")
+    if not (lib and lib.RegisterSettings) then
         AC.settingsUnavailable = true
         return
     end
-
-    local LCM = LibConsoleMenu
 
     ScanBag()
 
@@ -383,18 +493,9 @@ function AC:CreateSettings()
     pending.xpItemID = AC.savedVariables.xpItemID
     pending.apItemID = AC.savedVariables.apItemID
 
-    local menu = LCM:CreateAddonMenu("AutoConsume", {
-        title          = "AutoConsume",
-        author         = "user562",
-        version        = "3.4",
-        category       = MOD_BROWSER_CATEGORY_TYPE_BUFFS_AND_DEBUFFS,
-        enableDefaults = true,
-        enableReset    = true,
-        resetFunc      = function() AC:ResetSettings() end,
-        childrenAlign  = "center",
-    })
-
-    if not menu then return end
+    local screenW, screenH = GuiRoot:GetDimensions()
+    screenW = math.floor(tonumber(screenW) or 1920)
+    screenH = math.floor(tonumber(screenH) or 1080)
 
     local options = {
 
@@ -402,6 +503,7 @@ function AC:CreateSettings()
             type    = "submenu",
             name    = "Food/Drink",
             icon    = ICON_GENERIC,
+            tooltip = SAVED_CHARACTER_TIP,
             options = {
                 {
                     type    = "toggle",
@@ -420,6 +522,7 @@ function AC:CreateSettings()
                     max     = 30,
                     step    = 1,
                     default = DEFAULTS.foodMinutes,
+                    tooltip = "Default is " .. DEFAULTS.foodMinutes .. ".",
                     getFunc = function() return AC.savedVariables.foodMinutes end,
                     setFunc = function(val)
                         AC.savedVariables.foodMinutes = val
@@ -433,7 +536,7 @@ function AC:CreateSettings()
                 {
                     type    = "dropdown",
                     name    = "Food/Drink",
-                    tooltip = "Scroll to pick your food/drink. Press Scan Bag first if your item is missing.",
+                    tooltip = "Press Scan Bag first if your item is missing.",
                     choices = BuildChoices(cachedFoodChoices, cachedFoodVals),
                     default = 0,
                     getFunc = function() return pending.foodID or 0 end,
@@ -442,18 +545,20 @@ function AC:CreateSettings()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "|c00FF00Confirm|r",
-                    func    = function()
+                    type       = "button",
+                    name       = "|c00FF00Confirm|r",
+                    buttonText = "Confirm",
+                    func       = function()
                         AC.savedVariables.foodID = pending.foodID
                         Notify("Food/Drink set to: |c00FF00" .. GetItemNameByID(pending.foodID))
                         AC:ForceCheckFood()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "|cFF8800Scan Bag|r",
-                    tooltip = "Will ReloadUI",
+                    type       = "button",
+                    name       = "|cFF8800Scan Bag|r",
+                    buttonText = "Scan Bag",
+                    tooltip    = "Will ReloadUI",
                     func    = function() AC:ScanBagAndReload() end,
                 },
             },
@@ -463,6 +568,7 @@ function AC:CreateSettings()
             type    = "submenu",
             name    = "|cE6C800XP Bonus|r",
             icon    = ICON_GENERIC,
+            tooltip = SAVED_CHARACTER_TIP,
             options = {
                 {
                     type    = "toggle",
@@ -477,7 +583,7 @@ function AC:CreateSettings()
                 {
                     type    = "dropdown",
                     name    = "XP Item",
-                    tooltip = "Scroll to pick your XP bonus. Press Scan Bag first if your item is missing.",
+                    tooltip = "Press Scan Bag first if your item is missing.",
                     choices = BuildChoices(cachedXPChoices, cachedXPVals),
                     default = 0,
                     getFunc = function() return pending.xpItemID or 0 end,
@@ -486,18 +592,20 @@ function AC:CreateSettings()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "|c00FF00Confirm|r",
-                    func    = function()
+                    type       = "button",
+                    name       = "|c00FF00Confirm|r",
+                    buttonText = "Confirm",
+                    func       = function()
                         AC.savedVariables.xpItemID = pending.xpItemID
                         Notify("XP Item set to: |c00FF00" .. GetItemNameByID(pending.xpItemID))
                         AC:CheckXP()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "|cFF8800Scan Bag|r",
-                    tooltip = "Will ReloadUI",
+                    type       = "button",
+                    name       = "|cFF8800Scan Bag|r",
+                    buttonText = "Scan Bag",
+                    tooltip    = "Will ReloadUI",
                     func    = function() AC:ScanBagAndReload() end,
                 },
             },
@@ -507,6 +615,7 @@ function AC:CreateSettings()
             type    = "submenu",
             name    = "|c00FF00AP Bonus|r",
             icon    = ICON_GENERIC,
+            tooltip = SAVED_CHARACTER_TIP,
             options = {
                 {
                     type    = "toggle",
@@ -521,7 +630,7 @@ function AC:CreateSettings()
                 {
                     type    = "dropdown",
                     name    = "AP Item",
-                    tooltip = "Scroll to pick your AP bonus item. Press Scan Bag first if your item is missing.",
+                    tooltip = "Press Scan Bag first if your item is missing.",
                     choices = BuildChoices(cachedAPChoices, cachedAPVals),
                     default = 0,
                     getFunc = function() return pending.apItemID or 0 end,
@@ -530,18 +639,20 @@ function AC:CreateSettings()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "|c00FF00Confirm|r",
-                    func    = function()
+                    type       = "button",
+                    name       = "|c00FF00Confirm|r",
+                    buttonText = "Confirm",
+                    func       = function()
                         AC.savedVariables.apItemID = pending.apItemID
                         Notify("AP Item set to: |c00FF00" .. GetItemNameByID(pending.apItemID))
                         AC:CheckAP()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "|cFF8800Scan Bag|r",
-                    tooltip = "Will ReloadUI",
+                    type       = "button",
+                    name       = "|cFF8800Scan Bag|r",
+                    buttonText = "Scan Bag",
+                    tooltip    = "Will ReloadUI",
                     func    = function() AC:ScanBagAndReload() end,
                 },
             },
@@ -551,6 +662,7 @@ function AC:CreateSettings()
             type    = "submenu",
             name    = "Buff Icons",
             icon    = ICON_GENERIC,
+            tooltip = SAVED_CHARACTER_TIP,
             options = {
                 {
                     type    = "toggle",
@@ -560,17 +672,24 @@ function AC:CreateSettings()
                     getFunc = function() return AC.savedVariables.hudEnabled end,
                     setFunc = function(val)
                         AC.savedVariables.hudEnabled = val
+                        if not val then AC:EndPreview() end
                         if AC_HUD.updateScenes then
                             AC_HUD.updateScenes()
                         elseif AC_HUD.panel then
                             AC_HUD.panel:SetHidden(not val)
                         end
+                        AC:HUDRefresh()
                     end,
                 },
                 {
-                    type    = "button",
-                    name    = "Move",
-                    func    = function() AC:StartMove() end,
+                    type     = "toggle",
+                    name     = "Preview",
+                    tooltip  = PREVIEW_TIP,
+                    disabled = function() return not AC.savedVariables.hudEnabled end,
+                    getFunc  = function() return AC.previewing == true end,
+                    setFunc  = function(val)
+                        if val then AC:StartPreview() else AC:EndPreview() end
+                    end,
                 },
                 {
                     type    = "dropdown",
@@ -580,6 +699,7 @@ function AC:CreateSettings()
                     getFunc = function() return AC.savedVariables.hudHorizontal and "Horizontal" or "Vertical" end,
                     setFunc = function(val)
                         AC.savedVariables.hudHorizontal = (val == "Horizontal")
+                        AC:HUDRefresh()
                     end,
                 },
                 {
@@ -589,16 +709,78 @@ function AC:CreateSettings()
                     max     = 100,
                     step    = 2,
                     default = DEFAULTS.hudIconSize,
+                    tooltip = "Default is " .. DEFAULTS.hudIconSize .. ".",
                     getFunc = function() return AC.savedVariables.hudIconSize end,
                     setFunc = function(val)
                         AC.savedVariables.hudIconSize = val
+                        AC:HUDRefresh()
+                    end,
+                },
+                {
+                    type    = "slider",
+                    name    = "Horizontal Position",
+                    min     = 0,
+                    max     = screenW,
+                    step    = 5,
+                    default = DEFAULTS.hudPosX,
+                    tooltip = "Default is " .. DEFAULTS.hudPosX .. ".",
+                    getFunc = function() return AC.savedVariables.hudPosX end,
+                    setFunc = function(val)
+                        AC.savedVariables.hudPosX = val
+                        AC:ApplyHUDPosition()
+                    end,
+                },
+                {
+                    type    = "slider",
+                    name    = "Vertical Position",
+                    min     = 0,
+                    max     = screenH,
+                    step    = 5,
+                    default = DEFAULTS.hudPosY,
+                    tooltip = "Default is " .. DEFAULTS.hudPosY .. ".",
+                    getFunc = function() return AC.savedVariables.hudPosY end,
+                    setFunc = function(val)
+                        AC.savedVariables.hudPosY = val
+                        AC:ApplyHUDPosition()
                     end,
                 },
             },
         },
+
+        AC:SettingsMenu(),
     }
 
-    menu:AddOptions(options)
+    AC.settingsPanel = lib:RegisterSettings({
+        name            = "AutoConsume",
+        placement       = "addons",
+        menuTitle       = "AutoConsume",
+        menuIcon        = ICON_GENERIC,
+        title           = "AutoConsume",
+        author          = "user562",
+        version         = "3.5",
+        frameColor      = FRAME_GREY,
+        previewControls = function()
+            if AC_HUD.panel then return { AC_HUD.panel } end
+            return {}
+        end,
+        textSize        = function() return AC.savedVariables.settingsFontSize end,
+        windowOpacity   = function() return AC.savedVariables.settingsOpacity end,
+        rememberPage    = function() return AC.savedVariables.settingsRemember == true end,
+        lastPage        = function()
+            local sv = AC.savedVariables
+            if type(sv.settingsLastPage) ~= "table" then sv.settingsLastPage = {} end
+            return sv.settingsLastPage
+        end,
+        accentColor     = function()
+            local sv = AC.savedVariables
+            if sv.settingsHighlight ~= "Custom" then return nil end
+            local c = sv.settingsHighlightColor
+            if type(c) ~= "table" then return nil end
+            return c.r or 1, c.g or 1, c.b or 1
+        end,
+        options         = options,
+    })
+    if not AC.settingsPanel then AC.settingsUnavailable = true end
 end
 
 --------------------------------------------------
@@ -884,125 +1066,81 @@ function AC:HUDInit()
     end
 end
 
-function AC:GetMover()
-    local LCA = LibCombatAlerts
-    if not LCA then return nil end
-
-    if not AC.mover then
-        AC.mover = LCA.MoveableControl:New(AC_HUD.panel, { color = 0xFF8800FF, size = 2 })
-        AC.mover:SetSnap(MOVE_SNAP)
-        AC.mover:RegisterCallback(
-            "AutoConsume_MoveStop",
-            LCA.EVENT_CONTROL_MOVE_STOP,
-            function() AC:OnMoveStopped() end
-        )
-    end
-    return AC.mover
-end
-
-function AC:EnsureKeybind()
-    if AC.keybindDescriptor then return end
-
-    AC.actionLayerName = GetString(SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS)
-
-    AC.keybindDescriptor = {
-        {
-            name     = "Save & Exit",
-            keybind  = "UI_SHORTCUT_NEGATIVE",
-            callback = function() AC:StopMove() end,
-        },
-    }
-end
-
-function AC:AddKeybind()
-    AC:EnsureKeybind()
-
-    local scene = SCENE_MANAGER:GetCurrentScene()
-    if KEYBIND_STRIP_GAMEPAD_FRAGMENT and scene
-       and not scene:HasFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT) then
-        scene:AddFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT)
-        AC.keybindFragmentScene = scene
-    end
-
-    if AC.keybindActive then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(AC.keybindDescriptor)
-    else
-        KEYBIND_STRIP:AddKeybindButtonGroup(AC.keybindDescriptor)
-        PushActionLayerByName(AC.actionLayerName)
-        AC.keybindActive = true
-    end
-end
-
-function AC:ExitMoveMode()
-    if AC.keybindActive then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(AC.keybindDescriptor)
-        RemoveActionLayerByName(AC.actionLayerName)
-        AC.keybindActive = false
-    end
-
-    if AC.keybindFragmentScene then
-        if KEYBIND_STRIP_GAMEPAD_FRAGMENT then
-            AC.keybindFragmentScene:RemoveFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT)
-        end
-        AC.keybindFragmentScene = nil
-    end
-
-    AC.movingPanel = false
-    AC:HUDRefresh()
-end
-
-function AC:OnMoveStopped()
-    AC.savedVariables.hudPosX = math.max(0, math.floor(AC_HUD.panel:GetLeft()))
-    AC.savedVariables.hudPosY = math.max(0, math.floor(AC_HUD.panel:GetTop()))
-
+function AC:ApplyHUDPosition()
+    if not AC_HUD.panel then return end
     AC_HUD.panel:ClearAnchors()
     AC_HUD.panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
         AC.savedVariables.hudPosX,
         AC.savedVariables.hudPosY)
-
-    AC:ExitMoveMode()
 end
 
-function AC:StopMove()
-    if AC.mover then
-        AC.mover:ToggleGamepadMove(false)
+--------------------------------------------------
+-- PREVIEW
+--------------------------------------------------
+
+local function PreviewIcon(itemID)
+    local slotId = FindItemSlot(itemID)
+    if slotId then
+        local icon = GetItemInfo(BAG_BACKPACK, slotId)
+        if icon and icon ~= "" then return icon end
     end
-    AC:ExitMoveMode()
+    return ICON_GENERIC
 end
 
-function AC:StartMove()
-    local mover = AC:GetMover()
-    if not mover then return end
-
-    AC:StopMove()
-
-    SCENE_MANAGER:ShowBaseScene()
-
-    AC.movingPanel = true
+function AC:StartPreview()
+    if AC.previewing then return end
+    AC.previewing = true
+    AC.previewIcons = {
+        PreviewIcon(AC.savedVariables.foodID),
+        PreviewIcon(AC.savedVariables.xpItemID),
+        PreviewIcon(AC.savedVariables.apItemID),
+    }
     AC:HUDRefresh()
-
-    zo_callLater(function()
-        AC:AddKeybind()
-        mover:ToggleGamepadMove(true, MOVE_TIMEOUT)
-    end, 250)
 end
+
+function AC:EndPreview()
+    if not AC.previewing then return end
+    AC.previewing = false
+    AC.previewIcons = nil
+    AC_HUD.hadEntries = false
+    if AC_HUD.updateScenes then AC_HUD.updateScenes() end
+    AC:HUDRefresh()
+end
+
+--------------------------------------------------
+-- RESET
+--------------------------------------------------
 
 function AC:ResetSettings()
     if not AC.savedVariables then return end
 
+    AC:EndPreview()
+
     for key, value in pairs(DEFAULTS) do
-        AC.savedVariables[key] = value
+        if type(value) == "table" then
+            local copy = {}
+            for k, v in pairs(value) do copy[k] = v end
+            AC.savedVariables[key] = copy
+        else
+            AC.savedVariables[key] = value
+        end
     end
+    AC.savedVariables.foodID   = nil
+    AC.savedVariables.xpItemID = nil
+    AC.savedVariables.apItemID = nil
+    AC.savedVariables.settingsLastPage = nil
 
-    if AC_HUD.panel then
-        AC_HUD.panel:ClearAnchors()
-        AC_HUD.panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
-            AC.savedVariables.hudPosX,
-            AC.savedVariables.hudPosY)
-    end
+    pending.foodID   = nil
+    pending.xpItemID = nil
+    pending.apItemID = nil
 
+    AC:ApplyHUDPosition()
     if AC_HUD.updateScenes then AC_HUD.updateScenes() end
     AC:HUDRefresh()
+
+    PanelCall("ApplyTextSize")
+    PanelCall("ApplyOpacity")
+    PanelCall("ApplyAccent")
 end
 
 function AC:HUDScan()
@@ -1064,7 +1202,7 @@ end
 function AC:HUDRefresh()
     if not AC_HUD.panel then return end
 
-    if not AC.movingPanel and not AC.savedVariables.hudEnabled then
+    if not AC.previewing and not AC.savedVariables.hudEnabled then
         AC_HUD.panel:SetHidden(true)
         return
     end
@@ -1075,19 +1213,31 @@ function AC:HUDRefresh()
     local iconSize   = AC.savedVariables.hudIconSize
     local horizontal = AC.savedVariables.hudHorizontal
 
-    local foodEntry, xpEntry, apEntry, delveEntry = nil, nil, nil, nil
-    for slot, entry in pairs(AC_HUD.active) do
-        if entry.buffType == "food"  and not foodEntry  then foodEntry  = entry end
-        if entry.buffType == "xp"    and not xpEntry    then xpEntry    = entry end
-        if entry.buffType == "ap"    and not apEntry    then apEntry    = entry end
-        if entry.buffType == "delve" and not delveEntry then delveEntry = entry end
-    end
-
     local entries = {}
-    if foodEntry  then entries[#entries+1] = foodEntry  end
-    if xpEntry    then entries[#entries+1] = xpEntry    end
-    if apEntry    then entries[#entries+1] = apEntry    end
-    if delveEntry then entries[#entries+1] = delveEntry end
+    if AC.previewing then
+        local icons = AC.previewIcons or {}
+        for i = 1, #icons do
+            entries[i] = {
+                icon      = icons[i],
+                endTime   = now + 3600,
+                startTime = now,
+                buffType  = "preview" .. i,
+            }
+        end
+    else
+        local foodEntry, xpEntry, apEntry, delveEntry = nil, nil, nil, nil
+        for slot, entry in pairs(AC_HUD.active) do
+            if entry.buffType == "food"  and not foodEntry  then foodEntry  = entry end
+            if entry.buffType == "xp"    and not xpEntry    then xpEntry    = entry end
+            if entry.buffType == "ap"    and not apEntry    then apEntry    = entry end
+            if entry.buffType == "delve" and not delveEntry then delveEntry = entry end
+        end
+
+        if foodEntry  then entries[#entries+1] = foodEntry  end
+        if xpEntry    then entries[#entries+1] = xpEntry    end
+        if apEntry    then entries[#entries+1] = apEntry    end
+        if delveEntry then entries[#entries+1] = delveEntry end
+    end
 
     local offset = 0
     for i = 1, 4 do
@@ -1138,6 +1288,9 @@ function AC:HUDRefresh()
         if AC_HUD.hadEntries == false then
             AC_HUD.hadEntries = true
             if AC_HUD.updateScenes then AC_HUD.updateScenes() end
+        end
+        if AC.previewing then
+            AC_HUD.panel:SetHidden(false)
         end
     else
         if AC_HUD.hadEntries ~= false then

@@ -18,7 +18,7 @@
     "LibEsoHubPrices"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4095/",
-  "fingerprint": "3673ca544879b29523b9ef5929d36ba87203fb009272a26516a7a3f1c96e365c",
+  "fingerprint": "b227fe09e0e42c5706a032b71235ad242551beb25800049cb82d8c86b721b8d0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13963.png",
     "https://cdn-eso.mmoui.com/preview/pvw13964.png",
@@ -31,11 +31,11 @@
   "source_id": "4095",
   "source_url": "https://www.esoui.com/downloads/info4095-ESO-HubTrading.html",
   "stats": {
-    "downloads": 172171,
+    "downloads": 174892,
     "favorites": 29,
-    "monthly_downloads": 9213
+    "monthly_downloads": 10319
   },
   "title": "ESO-Hub Trading",
-  "updated_at": 1791773683000,
-  "version": "2026.10.12.02.54"
+  "updated_at": 1792378444000,
+  "version": "2026.10.19.02.53"
 }

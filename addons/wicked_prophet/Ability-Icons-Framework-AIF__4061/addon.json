@@ -10,10 +10,6 @@
     {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:4061",
@@ -22,7 +18,7 @@
     "AbilityIconsFramework"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4061/",
-  "fingerprint": "a26c28ca22c6ededdce22a8026439bb1081476b0945fe5061b54c7a980a010c1",
+  "fingerprint": "7cb848d9315bc4234e7b78c1b96e2568652fa288cd8696bd7f5674c0912240de",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13832.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw13833.jpg",
@@ -38,11 +34,11 @@
   "source_id": "4061",
   "source_url": "https://www.esoui.com/downloads/info4061-AbilityIconsFrameworkAIF.html",
   "stats": {
-    "downloads": 23450,
-    "favorites": 26,
-    "monthly_downloads": 642
+    "downloads": 25517,
+    "favorites": 29,
+    "monthly_downloads": 578
   },
   "title": "Ability Icons Framework (AIF)",
-  "updated_at": 1786805656000,
-  "version": "1.6.0"
+  "updated_at": 1792529806000,
+  "version": "2.0.1"
 }

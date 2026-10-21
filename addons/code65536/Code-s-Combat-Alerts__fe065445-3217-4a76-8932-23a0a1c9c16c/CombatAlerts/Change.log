@@ -1,3 +1,12 @@
+Version 2.6.8 (2026/10/21)
+* The alert for Astral Shield in Rockgrove is now a 2-stage alert to show both
+  the initial start of the channel and the resulting shield count
+* The alert for Arcane Conveyance in Lucent Citadel is now a 2-stage alert to
+  show both the initial start of the channel and the resulting tether targets
+* Added the option to show hard mode brand stack positions in Dreadsail Reef
+  - This feature is disabled by default and can be enabled in the settings panel
+  - The positions are compatible with those used in Crutch Alerts and Qcell's
+
 Version 2.6.7 (2026/09/30)
 * Added alert for Lure of the Sea in Dreadsail Reef
   - This alert is disabled by default and can be enabled in the settings panel

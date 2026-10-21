@@ -1,0 +1,20 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_BINDING_CATEGORY_NAGA_UI">
+            <Action name="NAGA_MINIMAP_WAYPOINT">
+                <Down>NAGA_UI.Minimap:PlaceWaypointAtCursor()</Down>
+            </Action>
+        </Category>
+        <Category name="AbyssQuest">
+            <Action name="QUICKTRAVELMENU_TOGGLE">
+                <Down>AbyssQuest.Toggle()</Down>
+            </Action>
+            <Action name="QUICKTRAVELMENU_QUEST">
+                <Down>AbyssQuest.QuestTravel:TravelMain()</Down>
+            </Action>
+            <Action name="QUICKTRAVELMENU_LOCK">
+                <Down>AbyssQuest.Buttons:SetLocked(not AbyssQuest.sv.buttonsLocked)</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

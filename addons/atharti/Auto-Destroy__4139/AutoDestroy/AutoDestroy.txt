@@ -1,6 +1,6 @@
 ## Title: |cFFD700Auto Destroy|r
 ## APIVersion: 101051
-## Version: 2.3
+## Version: 2.4
 ## Author: |cFFD700@Atharti|r, |cFFD700@imPDA|r
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
 ## SavedVariables: AutoDestroy_SV

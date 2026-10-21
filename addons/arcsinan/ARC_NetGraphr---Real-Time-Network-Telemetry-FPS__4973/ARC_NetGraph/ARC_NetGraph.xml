@@ -1,0 +1,47 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="ARC_NetGraph_HUD" clampedToScreen="true" movable="true" mouseEnabled="true" hidden="true">
+            <Dimensions x="300" y="32" />
+            <Anchor point="TOPRIGHT" relativeTo="GuiRoot" relativePoint="TOPRIGHT" offsetX="-40" offsetY="30" />
+
+            <Controls>
+                <!-- Modern Dark Backdrop -->
+                <Backdrop name="$(parent)_Backdrop" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <!-- Thin Top Accent Line -->
+                <Texture name="$(parent)_TopBar" color="00D4FF">
+                    <Dimensions y="2" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="1" offsetY="1" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-1" offsetY="1" />
+                </Texture>
+
+                <!-- Single Line / Compact / Minimal Label -->
+                <Label name="$(parent)_SingleLineLabel" font="ZoFontGameMedium" color="FFFFFF" verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-10" offsetY="-4" />
+                </Label>
+
+                <!-- Multi-Line Detailed Container -->
+                <Control name="$(parent)_DetailedContainer" hidden="true">
+                    <AnchorFill />
+                    <Controls>
+                        <Label name="$(parent)_Row1" font="ZoFontGame" color="FFFFFF">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="12" offsetY="8" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-12" offsetY="8" />
+                        </Label>
+                        <Label name="$(parent)_Row2" font="ZoFontGame" color="FFFFFF">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)_Row1" relativePoint="BOTTOMLEFT" offsetY="3" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)_Row1" relativePoint="BOTTOMRIGHT" offsetY="3" />
+                        </Label>
+                        <Label name="$(parent)_Row3" font="ZoFontGame" color="FFFFFF">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)_Row2" relativePoint="BOTTOMLEFT" offsetY="3" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)_Row2" relativePoint="BOTTOMRIGHT" offsetY="3" />
+                        </Label>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

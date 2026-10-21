@@ -1,0 +1,18 @@
+## Title: |c00D4FFARC_SetGlowGuard|r - Set Glow & Equipment Tracker
+## Author: @arcsinan
+## Contributors: Baertram (Best Practice Guidance)
+## Version: 1.0.2
+## AddOnVersion: 10002
+## APIVersion: 101050 101051
+## SavedVariables: ARC_SetGlowGuard_SavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+## Description: Highlights equipped sets and matching backpack items with coordinated glowing colors. Prevents accidental set breakage. Required: LibAddonMenu-2.0. Special thanks to Baertram for feedback and guidance.
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+
+localization/en.lua
+localization/tr.lua
+ARC_SetGlowGuardSettings.lua
+ARC_SetGlowGuard.lua

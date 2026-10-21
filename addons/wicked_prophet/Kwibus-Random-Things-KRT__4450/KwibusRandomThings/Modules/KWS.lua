@@ -1,3 +1,4 @@
+KwibusRandomThings = KwibusRandomThings or {}
 local KRT = KwibusRandomThings
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -6,7 +7,15 @@ local ADDON_NAME = KRT.name
 local DEFAULTS = {
     kws = {
         enabled = true,
+        enableAutoLead = true,
+        enableChat = true,
         debug = false,
+        kickingPerson = "",
+        actualLead = "",
+        kickDelay = 2,
+        returnDelay = 2,
+        kalPhase = 0, -- 0 idle, 1 waiting for drop, 2 waiting for rebuild/return
+        knownAccounts = {},
         profiles = {},
         lastProfile = "",
         offsetX = 150,
@@ -16,11 +25,13 @@ local DEFAULTS = {
 
 KRT.KWS = {
     id = "kws",
+    defaults = DEFAULTS.kws,
     ui = nil,
     rows = {},
     selectedPlayers = {},
     selectedKicker = "",
     selectedLead = "",
+    selectedProfile = "",
     leadHeader = nil,
     kickerLabel = nil,
     kickerControl = nil,
@@ -40,68 +51,524 @@ KRT.KWS = {
     isPopulating = false,
     myDisplayNameLower = "",
 }
-local self = KRT.KWS
+local mod = KRT.KWS
 
 local function SV()
-    if not KRT.sv then KRT.sv = {} end
-    if not KRT.sv.kws then
-        KRT.sv.kws = ZO_DeepTableCopy(DEFAULTS.kws)
-    end
-    if KRT.sv.kws.debug == nil then
-        KRT.sv.kws.debug = DEFAULTS.kws.debug
-    end
-    return KRT.sv.kws
+    return KRT.GetModuleSV("kws", DEFAULTS.kws)
 end
 
-local function SyncKALSettings(kicker, lead)
-    if self.isPopulating then return end
-
-    if not KRT.sv then return end
-    if not KRT.sv.kal then
-        KRT.sv.kal = {}
-    end
-
-    local changed = false
-
-    if kicker and kicker ~= "" then
-        KRT.sv.kal.kickingPerson = kicker
-        if KRT.sv.kal.knownAccounts then
-            KRT.sv.kal.knownAccounts[kicker] = true
+-- Backwards-compatible SavedVariables migration from standalone KAL
+local function MigrateSV()
+    local sv = SV()
+    if KRT.sv and KRT.sv.kal then
+        local old = KRT.sv.kal
+        if (sv.kickingPerson == nil or sv.kickingPerson == "") and old.kickingPerson and old.kickingPerson ~= "" then
+            sv.kickingPerson = old.kickingPerson
         end
-        changed = true
-    end
-
-    if lead and lead ~= "" then
-        KRT.sv.kal.actualLead = lead
-        if KRT.sv.kal.knownAccounts then
-            KRT.sv.kal.knownAccounts[lead] = true
+        if (sv.actualLead == nil or sv.actualLead == "") and old.actualLead and old.actualLead ~= "" then
+            sv.actualLead = old.actualLead
         end
-        changed = true
+        if sv.kickDelay == nil and old.kickDelay ~= nil then
+            sv.kickDelay = old.kickDelay
+        end
+        if sv.returnDelay == nil and old.returnDelay ~= nil then
+            sv.returnDelay = old.returnDelay
+        end
+        if sv.enableChat == nil and old.enableChat ~= nil then
+            sv.enableChat = old.enableChat
+        end
+        if sv.enableAutoLead == nil and old.enabled ~= nil then
+            sv.enableAutoLead = old.enabled
+        end
+        if old.knownAccounts and type(old.knownAccounts) == "table" then
+            sv.knownAccounts = sv.knownAccounts or {}
+            for acc, val in pairs(old.knownAccounts) do
+                if sv.knownAccounts[acc] == nil then
+                    sv.knownAccounts[acc] = val
+                end
+            end
+        end
+        if (sv.profiles == nil or next(sv.profiles) == nil) and old.profiles and type(old.profiles) == "table" then
+            sv.profiles = ZO_DeepTableCopy(old.profiles)
+        end
+        if (sv.lastProfile == nil or sv.lastProfile == "") and old.lastProfile and old.lastProfile ~= "" then
+            sv.lastProfile = old.lastProfile
+        end
+    end
+    if sv.knownAccounts == nil then
+        sv.knownAccounts = {}
+    end
+    if sv.kickingPerson and sv.kickingPerson ~= "" then
+        sv.knownAccounts[sv.kickingPerson] = true
+    end
+    if sv.actualLead and sv.actualLead ~= "" then
+        sv.knownAccounts[sv.actualLead] = true
+    end
+    -- Keep backwards-compatible alias so anything referencing KRT.sv.kal points directly here
+    if KRT.sv then
+        KRT.sv.kal = sv
+    end
+    return sv
+end
+
+-- =========================================================
+-- Auto Lead Passing State & Logic
+-- =========================================================
+
+local POLL_UPDATE_NAME = ADDON_NAME .. "_KWS_Poll"
+
+local kalState = {
+    lastDifficultyKey = nil,
+    isZoning = false,
+    lastActivationTime = 0,
+
+    kickPassTimer = nil,
+    returnPassTimer = nil,
+
+    preKickGroupSize = 0,
+    expectedGroupSize = 0,
+    lowestObservedGroupSize = 0,
+    lastObservedGroupSize = -1,
+    highWaterGroupSize = 0,
+    lastSizeChangeMs = 0,
+    polling = false,
+}
+
+local function Lower(value)
+    return string.lower(value or "")
+end
+
+local Now = GetGameTimeMilliseconds
+
+local function Notice(msg)
+    local sv = SV()
+    if sv and sv.enabled and sv.enableChat then
+        d("[Kwibus Spaulder] " .. tostring(msg))
+    end
+end
+
+local function ClearTimer(timerId)
+    if timerId then
+        zo_removeCallLater(timerId)
+    end
+    return nil
+end
+
+local function StopPolling()
+    if kalState.polling then
+        EM:UnregisterForUpdate(POLL_UPDATE_NAME)
+        kalState.polling = false
+    end
+end
+
+local function StartPolling(pollFunc)
+    if kalState.polling then return end
+    kalState.polling = true
+    EM:RegisterForUpdate(POLL_UPDATE_NAME, 1000, pollFunc)
+end
+
+local function ClearAllTimers()
+    kalState.kickPassTimer = ClearTimer(kalState.kickPassTimer)
+    kalState.returnPassTimer = ClearTimer(kalState.returnPassTimer)
+end
+
+local function ResetWorkflow()
+    ClearAllTimers()
+    StopPolling()
+
+    local sv = SV()
+    if sv then sv.kalPhase = 0 end
+    kalState.preKickGroupSize = 0
+    kalState.expectedGroupSize = 0
+    kalState.lowestObservedGroupSize = 0
+    kalState.lastObservedGroupSize = -1
+    kalState.lastSizeChangeMs = 0
+end
+
+local function UpdateObservedGroupSize(currentSize)
+    currentSize = currentSize or (GetGroupSize() or 0)
+
+    if currentSize > kalState.highWaterGroupSize then
+        kalState.highWaterGroupSize = currentSize
     end
 
-    if changed and LibAddonMenu2 and LibAddonMenu2.UpdatePanelControls then
-        local panel = _G[ADDON_NAME .. "_Panel"]
-        if panel then
-            LibAddonMenu2:UpdatePanelControls(panel)
+    if currentSize ~= kalState.lastObservedGroupSize then
+        kalState.lastObservedGroupSize = currentSize
+        kalState.lastSizeChangeMs = Now()
+    end
+end
+
+local function GetDifficultyKey()
+    if IsGroupUsingVeteranDifficulty ~= nil then
+        return IsGroupUsingVeteranDifficulty() and 2 or 1
+    end
+    return nil
+end
+
+local function OnPlayerDeactivated()
+    kalState.isZoning = true
+end
+
+local function OnPlayerActivated()
+    kalState.isZoning = false
+    kalState.lastActivationTime = Now()
+end
+
+local function RememberAccount(name)
+    if not name or name == "" or name == "None" or name == "Select" then return end
+    local sv = SV()
+    if sv then
+        if not sv.knownAccounts then sv.knownAccounts = {} end
+        sv.knownAccounts[name] = true
+    end
+end
+
+local function FindGroupUnitTagByName(targetName)
+    if not targetName or targetName == "" then return nil end
+    local targetLower = Lower(targetName)
+
+    for i = 1, GetGroupSize() do
+        local unitTag = GetGroupUnitTagByIndex(i)
+        if unitTag then
+            local accName = Lower(GetUnitDisplayName(unitTag) or "")
+            if accName == targetLower then
+                return unitTag
+            end
+
+            local rawCharName = GetUnitName(unitTag) or ""
+            local charName = Lower(zo_strformat("<<1>>", rawCharName))
+            if charName == targetLower then
+                return unitTag
+            end
+        end
+    end
+    return nil
+end
+
+local function PassLeadTo(targetName)
+    if not IsUnitGroupLeader("player") then
+        return false, "I am not the group leader"
+    end
+
+    local currentSize = GetGroupSize() or 0
+    if currentSize <= 6 then
+        return false, "Group size is 6 or less"
+    end
+
+    if not targetName or targetName == "" then
+        return false, "Target name is empty"
+    end
+
+    local unitTag = FindGroupUnitTagByName(targetName)
+    if not unitTag then
+        return false, "Target not found in current group"
+    end
+
+    GroupPromote(unitTag)
+    return true, nil
+end
+
+local function IsLocalPlayerConfiguredKicker()
+    local kicker = SV().kickingPerson or ""
+    return kicker ~= "" and Lower(kicker) == Lower(GetDisplayName() or "")
+end
+
+local function ArmPhase(phase, targetSize, observedSize)
+    ClearAllTimers()
+
+    SV().kalPhase = phase
+    kalState.preKickGroupSize = targetSize
+    kalState.expectedGroupSize = targetSize
+    kalState.lowestObservedGroupSize = observedSize
+    kalState.lastObservedGroupSize = observedSize
+    kalState.lastSizeChangeMs = Now()
+end
+
+local PollWorkflow
+
+local function EnsureLocalKickerWorkflow()
+    local sv = SV()
+    if not (sv and sv.enabled and sv.enableAutoLead) then return end
+    if (sv.kalPhase or 0) ~= 0 then return end
+    if not IsUnitGroupLeader("player") then return end
+    if not IsLocalPlayerConfiguredKicker() then return end
+
+    local actualLead = sv.actualLead or ""
+    if actualLead == "" then return end
+
+    local currentSize = GetGroupSize() or 0
+    if currentSize <= 6 then return end
+
+    UpdateObservedGroupSize(currentSize)
+
+    ArmPhase(1, currentSize, currentSize)
+    StartPolling(PollWorkflow)
+end
+
+local function ScheduleKickPass(delayMs, kicker)
+    local currentSize = GetGroupSize() or 0
+    if currentSize <= 6 then return end
+
+    if kalState.kickPassTimer then return end
+
+    kalState.kickPassTimer = zo_callLater(function()
+        kalState.kickPassTimer = nil
+
+        local sv = SV()
+        if not (sv and sv.enabled and sv.enableAutoLead) then return end
+        if (GetGroupSize() or 0) <= 6 then return end
+
+        local ok = PassLeadTo(kicker)
+        if ok then
+            Notice("Passed lead to Kicking Person: " .. tostring(kicker))
+        else
+            Notice("Could not pass lead to Kicking Person (" .. tostring(kicker) .. ").")
+        end
+    end, delayMs)
+end
+
+local function ScheduleReturnPass(delayMs)
+    local currentSize = GetGroupSize() or 0
+    if currentSize <= 6 then return end
+
+    if kalState.returnPassTimer then return end
+
+    kalState.returnPassTimer = zo_callLater(function()
+        kalState.returnPassTimer = nil
+
+        local sv = SV()
+        if not (sv and sv.enabled and sv.enableAutoLead) then return end
+
+        local phase = sv.kalPhase or 0
+        local nowSize = GetGroupSize() or 0
+        local requiredSize = kalState.preKickGroupSize or 0
+
+        if phase ~= 2 then return end
+
+        if nowSize <= 6 or requiredSize <= 6 or nowSize < requiredSize then return end
+
+        local actualLead = sv.actualLead or ""
+        if actualLead == "" then return end
+
+        if Lower(actualLead) == Lower(GetDisplayName() or "") then
+            ResetWorkflow()
+            return
+        end
+
+        local ok = PassLeadTo(actualLead)
+        if ok then
+            Notice("Passed lead back to Actual Lead: " .. tostring(actualLead))
+        else
+            Notice("Could not pass lead back to Actual Lead (" .. tostring(actualLead) .. ").")
+        end
+        ResetWorkflow()
+    end, delayMs)
+end
+
+PollWorkflow = function()
+    local sv = SV()
+    if not (sv and sv.enabled and sv.enableAutoLead) then
+        StopPolling()
+        return
+    end
+
+    EnsureLocalKickerWorkflow()
+
+    local phase = sv.kalPhase or 0
+    if phase == 0 then
+        StopPolling()
+        return
+    end
+
+    local currentSize = GetGroupSize() or 0
+    UpdateObservedGroupSize(currentSize)
+
+    if (kalState.preKickGroupSize or 0) <= 6 or not IsUnitGrouped("player") then
+        ResetWorkflow()
+        return
+    end
+
+    if phase == 1 then
+        if kalState.preKickGroupSize > 6 and currentSize < kalState.preKickGroupSize then
+            kalState.lowestObservedGroupSize = currentSize
+            sv.kalPhase = 2
+        end
+        return
+    end
+
+    if phase == 2 then
+        if kalState.lowestObservedGroupSize == 0 or currentSize < kalState.lowestObservedGroupSize then
+            kalState.lowestObservedGroupSize = currentSize
+        end
+
+        if kalState.preKickGroupSize > 6 and currentSize >= kalState.preKickGroupSize then
+            ScheduleReturnPass((sv.returnDelay or 2) * 1000)
+        else
+            kalState.returnPassTimer = ClearTimer(kalState.returnPassTimer)
         end
     end
 end
+
+local function CheckGroupState()
+    local sv = SV()
+    if not (sv and sv.enabled and sv.enableAutoLead) then return end
+
+    local currentSize = GetGroupSize() or 0
+    if not IsUnitGrouped("player") or currentSize <= 1 then
+        ResetWorkflow()
+        return
+    end
+
+    if (sv.kalPhase or 0) == 0 and currentSize <= 6 then
+        return
+    end
+
+    UpdateObservedGroupSize(currentSize)
+
+    EnsureLocalKickerWorkflow()
+
+    if (sv.kalPhase or 0) ~= 0 then
+        StartPolling(PollWorkflow)
+        PollWorkflow()
+    end
+end
+
+local function OnDifficultyChanged()
+    local sv = SV()
+    if not (sv and sv.enabled and sv.enableAutoLead) then return end
+
+    local newKey = GetDifficultyKey()
+    if newKey == nil then return end
+
+    if kalState.isZoning or (Now() - kalState.lastActivationTime < 2500) then
+        kalState.lastDifficultyKey = newKey
+        return
+    end
+
+    local prevKey = kalState.lastDifficultyKey
+    kalState.lastDifficultyKey = newKey
+    if prevKey == nil or prevKey == newKey then return end
+
+    local currentSize = GetGroupSize() or 0
+    if currentSize <= 6 then return end
+
+    UpdateObservedGroupSize(currentSize)
+
+    kalState.preKickGroupSize = currentSize
+
+    if IsLocalPlayerConfiguredKicker() then
+        ArmPhase(1, currentSize, currentSize)
+        StartPolling(PollWorkflow)
+        PollWorkflow()
+        return
+    end
+
+    local kicker = sv.kickingPerson or ""
+    if kicker == "" then return end
+
+    if not IsUnitGroupLeader("player") then return end
+
+    ScheduleKickPass((sv.kickDelay or 2) * 1000, kicker)
+end
+
+-- =========================================================
+-- Shared Dropdown Choices (LAM & In-Game UI)
+-- =========================================================
+
+local KWSChoices = { "Select" }
+local KWSValues = { "" }
+
+local function RefreshDropdownControl(control)
+    if not control then return end
+    if control.UpdateChoices then
+        control:UpdateChoices(KWSChoices, KWSValues)
+    end
+    if control.UpdateValue then
+        control:UpdateValue(false)
+    end
+end
+
+local function RebuildGroupRosterChoices()
+    ZO_ClearTable(KWSChoices)
+    ZO_ClearTable(KWSValues)
+
+    table.insert(KWSChoices, "Select")
+    table.insert(KWSValues, "")
+
+    local added = {}
+    local sv = SV()
+    local gs = GetGroupSize() or 0
+
+    for i = 1, gs do
+        local unitTag = GetGroupUnitTagByIndex(i)
+        if unitTag and DoesUnitExist(unitTag) then
+            local acc = GetUnitDisplayName(unitTag) or ""
+            if acc ~= "" and not added[acc] then
+                table.insert(KWSChoices, acc)
+                table.insert(KWSValues, acc)
+                added[acc] = true
+            end
+        end
+    end
+
+    local savedNames = {}
+    if sv and sv.knownAccounts then
+        for acc, flag in pairs(sv.knownAccounts) do
+            if flag and acc ~= "" and not added[acc] then
+                table.insert(savedNames, acc)
+            end
+        end
+    end
+    table.sort(savedNames)
+
+    for _, acc in ipairs(savedNames) do
+        table.insert(KWSChoices, acc .. " (Saved)")
+        table.insert(KWSValues, acc)
+        added[acc] = true
+    end
+
+    if sv then
+        if sv.kickingPerson and sv.kickingPerson ~= "" and not added[sv.kickingPerson] then
+            table.insert(KWSChoices, sv.kickingPerson .. " (Saved)")
+            table.insert(KWSValues, sv.kickingPerson)
+            added[sv.kickingPerson] = true
+        end
+
+        if sv.actualLead and sv.actualLead ~= "" and not added[sv.actualLead] then
+            table.insert(KWSChoices, sv.actualLead .. " (Saved)")
+            table.insert(KWSValues, sv.actualLead)
+            added[sv.actualLead] = true
+        end
+    end
+
+    RefreshDropdownControl(KRT_KWS_Kicker_Dropdown)
+    RefreshDropdownControl(KRT_KWS_Lead_Dropdown)
+end
+
+-- =========================================================
+-- Profile Management
+-- =========================================================
 
 local function SaveProfileData(pName)
-    SV().profiles[pName] = {
-        selectedPlayers = ZO_DeepTableCopy(self.selectedPlayers),
-        kicker = self.selectedKicker,
-        lead = self.selectedLead,
+    local sv = SV()
+    if not sv.profiles then
+        sv.profiles = {}
+    end
+    sv.profiles[pName] = {
+        selectedPlayers = ZO_DeepTableCopy(mod.selectedPlayers),
+        kicker = mod.selectedKicker,
+        lead = mod.selectedLead,
     }
-    SV().lastProfile = pName
-    self:UpdateProfileDropdown()
-    if self.editBox then
-        self.editBox:SetText("")
+    sv.lastProfile = pName
+    mod.selectedProfile = pName
+    mod:UpdateProfileDropdown(pName)
+    if mod.editBox then
+        mod.editBox:SetText(pName)
     end
 end
 
 local function RegisterOverwriteDialog()
-    ESO_Dialogs["KWS_CONFIRM_OVERWRITE"] = {
+    ZO_Dialogs_RegisterCustomDialog("KWS_CONFIRM_OVERWRITE", {
         title = { text = "Overwrite Profile?" },
         mainText = { text = "A profile named '<<1>>' already exists. Do you want to overwrite it?" },
         buttons = {
@@ -117,17 +584,22 @@ local function RegisterOverwriteDialog()
                 text = SI_DIALOG_NO,
             },
         },
-    }
+    })
 end
+
+-- =========================================================
+-- In-Game Lead / Kicker Dropdowns
+-- =========================================================
 
 function KRT.KWS:PopulateLeadKickerDropdowns(members)
     if not self.kickerComboBox or not self.leadComboBox or not members then return end
 
-    if (not self.selectedLead or self.selectedLead == "") and KRT.sv and KRT.sv.kal and KRT.sv.kal.actualLead then
-        self.selectedLead = KRT.sv.kal.actualLead
+    local sv = SV()
+    if (not self.selectedLead or self.selectedLead == "") and sv.actualLead then
+        self.selectedLead = sv.actualLead
     end
-    if (not self.selectedKicker or self.selectedKicker == "") and KRT.sv and KRT.sv.kal and KRT.sv.kal.kickingPerson then
-        self.selectedKicker = KRT.sv.kal.kickingPerson
+    if (not self.selectedKicker or self.selectedKicker == "") and sv.kickingPerson then
+        self.selectedKicker = sv.kickingPerson
     end
 
     KRT.DebounceNextFrame(ADDON_NAME .. "_PopulateDropdowns", function()
@@ -144,6 +616,8 @@ function KRT.KWS:PopulateLeadKickerDropdowns(members)
 
         local noneEntry1 = self.kickerComboBox:CreateItemEntry("None", function()
             self.selectedKicker = ""
+            SV().kickingPerson = ""
+            RebuildGroupRosterChoices()
             if self.kickerComboBox and self.kickerComboBox.HideDropdown then
                 self.kickerComboBox:HideDropdown()
             end
@@ -152,21 +626,29 @@ function KRT.KWS:PopulateLeadKickerDropdowns(members)
 
         local noneEntry2 = self.leadComboBox:CreateItemEntry("None", function()
             self.selectedLead = ""
+            SV().actualLead = ""
+            RebuildGroupRosterChoices()
             if self.leadComboBox and self.leadComboBox.HideDropdown then
                 self.leadComboBox:HideDropdown()
             end
         end)
         self.leadComboBox:AddItem(noneEntry2, ZO_COMBOBOX_SUPPRESS_UPDATE)
 
+        local addedAccounts = {}
+
         for i = 1, #members do
             local displayName = members[i].displayName
-            if displayName and displayName ~= "" then
+            if displayName and displayName ~= "" and not addedAccounts[displayName] then
+                addedAccounts[displayName] = true
                 index = index + 1
                 local displayNameLower = string.lower(displayName)
 
                 local kickerEntry = self.kickerComboBox:CreateItemEntry(displayName, function()
                     self.selectedKicker = displayName
-                    SyncKALSettings(displayName, nil)
+                    SV().kickingPerson = displayName
+                    RememberAccount(displayName)
+                    RebuildGroupRosterChoices()
+                    EnsureLocalKickerWorkflow()
                     if self.kickerComboBox and self.kickerComboBox.HideDropdown then
                         self.kickerComboBox:HideDropdown()
                     end
@@ -179,7 +661,10 @@ function KRT.KWS:PopulateLeadKickerDropdowns(members)
 
                 local leadEntry = self.leadComboBox:CreateItemEntry(displayName, function()
                     self.selectedLead = displayName
-                    SyncKALSettings(nil, displayName)
+                    SV().actualLead = displayName
+                    RememberAccount(displayName)
+                    RebuildGroupRosterChoices()
+                    EnsureLocalKickerWorkflow()
                     if self.leadComboBox and self.leadComboBox.HideDropdown then
                         self.leadComboBox:HideDropdown()
                     end
@@ -187,6 +672,55 @@ function KRT.KWS:PopulateLeadKickerDropdowns(members)
                 self.leadComboBox:AddItem(leadEntry, ZO_COMBOBOX_SUPPRESS_UPDATE)
 
                 if string.lower(self.selectedLead) == displayNameLower then
+                    leadIndex = index
+                end
+            end
+        end
+
+        -- Add any saved accounts that are not currently in the group
+        if sv.knownAccounts then
+            local savedList = {}
+            for acc, flag in pairs(sv.knownAccounts) do
+                if flag and acc ~= "" and not addedAccounts[acc] then
+                    table.insert(savedList, acc)
+                end
+            end
+            table.sort(savedList)
+
+            for _, acc in ipairs(savedList) do
+                index = index + 1
+                local accLower = string.lower(acc)
+                local displayLabel = acc .. " (Saved)"
+
+                local kickerEntry = self.kickerComboBox:CreateItemEntry(displayLabel, function()
+                    self.selectedKicker = acc
+                    SV().kickingPerson = acc
+                    RememberAccount(acc)
+                    RebuildGroupRosterChoices()
+                    EnsureLocalKickerWorkflow()
+                    if self.kickerComboBox and self.kickerComboBox.HideDropdown then
+                        self.kickerComboBox:HideDropdown()
+                    end
+                end)
+                self.kickerComboBox:AddItem(kickerEntry, ZO_COMBOBOX_SUPPRESS_UPDATE)
+
+                if string.lower(self.selectedKicker) == accLower then
+                    kickerIndex = index
+                end
+
+                local leadEntry = self.leadComboBox:CreateItemEntry(displayLabel, function()
+                    self.selectedLead = acc
+                    SV().actualLead = acc
+                    RememberAccount(acc)
+                    RebuildGroupRosterChoices()
+                    EnsureLocalKickerWorkflow()
+                    if self.leadComboBox and self.leadComboBox.HideDropdown then
+                        self.leadComboBox:HideDropdown()
+                    end
+                end)
+                self.leadComboBox:AddItem(leadEntry, ZO_COMBOBOX_SUPPRESS_UPDATE)
+
+                if string.lower(self.selectedLead) == accLower then
                     leadIndex = index
                 end
             end
@@ -201,6 +735,10 @@ function KRT.KWS:PopulateLeadKickerDropdowns(members)
         self.isPopulating = false
     end)
 end
+
+-- =========================================================
+-- UI Creation
+-- =========================================================
 
 function KRT.KWS:CreateUI()
     if self.ui and self.ui:GetNamedChild("Title") and #self.rows == 12 then
@@ -299,6 +837,8 @@ function KRT.KWS:CreateUI()
             kickBtn:SetWidth(230)
             kickBtn:SetText("Kick & Re-invite Selected")
             kickBtn:SetHandler("OnClicked", function() self:KickAndReinvite() end)
+            local isLeader = IsUnitGrouped("player") and IsUnitGroupLeader("player")
+            kickBtn:SetEnabled(isLeader and not self.isProcessing)
             self.kickBtn = kickBtn
         end
     end
@@ -402,29 +942,52 @@ function KRT.KWS:CreateUI()
             loadBtn:SetAnchor(LEFT, comboCtrl, RIGHT, 10, 0)
             loadBtn:SetText("Load")
             loadBtn:SetHandler("OnClicked", function()
-                if self.comboBox then
-                    local selected = self.comboBox:GetSelectedItemData()
-                    if selected and selected.name then
-                        SV().lastProfile = selected.name
-                        local profData = SV().profiles and SV().profiles[selected.name]
-                        if profData then
-                            if profData.selectedPlayers then
-                                self.selectedPlayers = ZO_DeepTableCopy(profData.selectedPlayers)
-                            else
-                                self.selectedPlayers = ZO_DeepTableCopy(profData)
+                local sv = SV()
+                local selected = self.comboBox and self.comboBox:GetSelectedItemData()
+                local pName = (selected and selected.name) or (self.editBox and self.editBox:GetText()) or self.selectedProfile or sv.lastProfile
+                if pName and pName ~= "" then
+                    local profData = sv.profiles and sv.profiles[pName]
+                    if not profData and sv.profiles then
+                        for k, v in pairs(sv.profiles) do
+                            if string.lower(k) == string.lower(pName) then
+                                pName = k
+                                profData = v
+                                break
                             end
-
-                            if profData.kicker and profData.kicker ~= "" then
-                                self.selectedKicker = profData.kicker
-                            end
-
-                            if profData.lead and profData.lead ~= "" then
-                                self.selectedLead = profData.lead
-                            end
-
-                            SyncKALSettings(self.selectedKicker, self.selectedLead)
-                            self:RefreshRows()
                         end
+                    end
+
+                    if profData then
+                        self.selectedProfile = pName
+                        sv.lastProfile = pName
+                        if self.editBox then
+                            self.editBox:SetText(pName)
+                        end
+                        if self.comboBox and (not selected or selected.name ~= pName) then
+                            self:UpdateProfileDropdown(pName)
+                        end
+
+                        if profData.selectedPlayers then
+                            self.selectedPlayers = ZO_DeepTableCopy(profData.selectedPlayers)
+                        else
+                            self.selectedPlayers = ZO_DeepTableCopy(profData)
+                        end
+
+                        if profData.kicker and profData.kicker ~= "" then
+                            self.selectedKicker = profData.kicker
+                            sv.kickingPerson = profData.kicker
+                            RememberAccount(profData.kicker)
+                        end
+
+                        if profData.lead and profData.lead ~= "" then
+                            self.selectedLead = profData.lead
+                            sv.actualLead = profData.lead
+                            RememberAccount(profData.lead)
+                        end
+
+                        RebuildGroupRosterChoices()
+                        EnsureLocalKickerWorkflow()
+                        self:RefreshRows()
                     end
                 end
             end)
@@ -436,26 +999,42 @@ function KRT.KWS:CreateUI()
             deleteBtn:SetAnchor(LEFT, loadBtn, RIGHT, 10, 0)
             deleteBtn:SetText("Delete")
             deleteBtn:SetHandler("OnClicked", function()
-                if self.comboBox then
-                    local selected = self.comboBox:GetSelectedItemData()
-                    if selected and selected.name then
-                        if SV().profiles then
-                            SV().profiles[selected.name] = nil
+                local selected = self.comboBox and self.comboBox:GetSelectedItemData()
+                local pName = (selected and selected.name) or (self.editBox and self.editBox:GetText()) or self.selectedProfile
+                if pName and pName ~= "" then
+                    local sv = SV()
+                    if sv.profiles then
+                        if sv.profiles[pName] then
+                            sv.profiles[pName] = nil
+                        else
+                            for k in pairs(sv.profiles) do
+                                if string.lower(k) == string.lower(pName) then
+                                    sv.profiles[k] = nil
+                                    break
+                                end
+                            end
                         end
-                        if SV().lastProfile == selected.name then
-                            SV().lastProfile = ""
-                        end
-                        self:UpdateProfileDropdown()
                     end
+                    if string.lower(sv.lastProfile or "") == string.lower(pName) then
+                        sv.lastProfile = ""
+                    end
+                    if string.lower(self.selectedProfile or "") == string.lower(pName) then
+                        self.selectedProfile = ""
+                    end
+                    if self.editBox and string.lower(self.editBox:GetText() or "") == string.lower(pName) then
+                        self.editBox:SetText("")
+                    end
+                    self:UpdateProfileDropdown()
                 end
             end)
         end
     end
 
     self.ui = win
+    self:UpdateProfileDropdown()
 end
 
-function KRT.KWS:UpdateProfileDropdown()
+function KRT.KWS:UpdateProfileDropdown(preferredProfileName)
     if not self.comboBox then return end
     self.comboBox:ClearItems()
 
@@ -464,25 +1043,75 @@ function KRT.KWS:UpdateProfileDropdown()
         sv.profiles = {}
     end
 
-    local targetIndex = 1
-    local currentIndex = 1
-
+    local profileNames = {}
     for pName, _ in pairs(sv.profiles) do
-        local entry = self.comboBox:CreateItemEntry(pName, function() end)
+        if type(pName) == "string" and pName ~= "" then
+            table.insert(profileNames, pName)
+        end
+    end
+    table.sort(profileNames, function(a, b) return string.lower(a) < string.lower(b) end)
+
+    if #profileNames == 0 then
+        self.selectedProfile = ""
+        sv.lastProfile = ""
+        if self.editBox then
+            self.editBox:SetText("")
+        end
+        return
+    end
+
+    local targetName = preferredProfileName
+    if not targetName or targetName == "" then
+        targetName = self.selectedProfile
+    end
+    if not targetName or targetName == "" then
+        targetName = sv.lastProfile
+    end
+
+    local matchedName = nil
+    if targetName and targetName ~= "" then
+        local targetLower = string.lower(targetName)
+        for _, name in ipairs(profileNames) do
+            if string.lower(name) == targetLower then
+                matchedName = name
+                break
+            end
+        end
+    end
+
+    if not matchedName then
+        matchedName = profileNames[1]
+    end
+
+    local targetEntry = nil
+    for _, name in ipairs(profileNames) do
+        local entry = self.comboBox:CreateItemEntry(name, function()
+            self.selectedProfile = name
+            SV().lastProfile = name
+            if self.editBox then
+                self.editBox:SetText(name)
+            end
+            if self.comboBox and self.comboBox.HideDropdown then
+                self.comboBox:HideDropdown()
+            end
+        end)
         if entry then
             self.comboBox:AddItem(entry, ZO_COMBOBOX_SUPPRESS_UPDATE)
-
-            if sv.lastProfile == pName then
-                targetIndex = currentIndex
+            if name == matchedName then
+                targetEntry = entry
             end
-            currentIndex = currentIndex + 1
         end
     end
 
     self.comboBox:UpdateItems()
-    local first = next(sv.profiles)
-    if first then
-        self.comboBox:SelectItemByIndex(targetIndex)
+
+    if targetEntry then
+        self.comboBox:SelectItem(targetEntry, true)
+        self.selectedProfile = matchedName
+        sv.lastProfile = matchedName
+        if self.editBox then
+            self.editBox:SetText(matchedName)
+        end
     end
 end
 
@@ -504,6 +1133,8 @@ local function SortGroupMembers(a, b)
     return (a.displayName or "") < (b.displayName or "")
 end
 
+local _refreshMembers = {}
+
 function KRT.KWS:RefreshRows()
     if not self.ui then
         self:CreateUI()
@@ -511,17 +1142,22 @@ function KRT.KWS:RefreshRows()
 
     if not self.ui or self.ui:IsHidden() then return end
 
-    local isKalEnabled = KRT.sv and KRT.sv.kal and KRT.sv.kal.enabled
+    if self.comboBox and (not self.comboBox:GetSelectedItemData() or self.comboBox:GetNumItems() == 0) then
+        self:UpdateProfileDropdown()
+    end
 
-    if self.leadHeader then self.leadHeader:SetHidden(not isKalEnabled) end
-    if self.kickerLabel then self.kickerLabel:SetHidden(not isKalEnabled) end
-    if self.kickerControl then self.kickerControl:SetHidden(not isKalEnabled) end
-    if self.leadLabel then self.leadLabel:SetHidden(not isKalEnabled) end
-    if self.leadControl then self.leadControl:SetHidden(not isKalEnabled) end
+    local sv = SV()
+    local isAutoLeadEnabled = sv.enabled and (sv.enableAutoLead ~= false)
+
+    if self.leadHeader then self.leadHeader:SetHidden(not isAutoLeadEnabled) end
+    if self.kickerLabel then self.kickerLabel:SetHidden(not isAutoLeadEnabled) end
+    if self.kickerControl then self.kickerControl:SetHidden(not isAutoLeadEnabled) end
+    if self.leadLabel then self.leadLabel:SetHidden(not isAutoLeadEnabled) end
+    if self.leadControl then self.leadControl:SetHidden(not isAutoLeadEnabled) end
 
     if self.profilesHeader then
         self.profilesHeader:ClearAnchors()
-        if isKalEnabled then
+        if isAutoLeadEnabled then
             self.profilesHeader:SetAnchor(TOPLEFT, self.ui, TOPLEFT, 15, 510)
             self.ui:SetHeight(650)
         else
@@ -530,15 +1166,15 @@ function KRT.KWS:RefreshRows()
         end
     end
 
-    local isLeader = IsUnitGroupLeader("player")
+    local isLeader = IsUnitGrouped("player") and IsUnitGroupLeader("player")
     if self.kickBtn then
-        self.kickBtn:SetEnabled((isLeader or SV().debug) and not self.isProcessing)
+        self.kickBtn:SetEnabled(isLeader and not self.isProcessing)
     end
 
     local isGrouped = IsUnitGrouped("player")
     local groupSize = isGrouped and GetGroupSize() or 1
     local myZoneId = GetUnitZoneIndex("player")
-    local members = {}
+    local members = _refreshMembers
 
     for i = 1, groupSize do
         local tag = isGrouped and GetGroupUnitTagByIndex(i) or "player"
@@ -557,20 +1193,27 @@ function KRT.KWS:RefreshRows()
 
         local isSelf = AreUnitsEqual(tag, "player") or (displayName and string.lower(displayName) == self.myDisplayNameLower)
 
-        table.insert(members, {
-            tag = tag,
-            displayName = displayName,
-            role = role,
-            roleWeight = roleWeight,
-            inMyZone = (unitZoneId == myZoneId),
-            isOnline = IsUnitOnline(tag),
-            isSelf = isSelf,
-        })
+        local member = members[i]
+        if not member then
+            member = {}
+            members[i] = member
+        end
+        member.tag = tag
+        member.displayName = displayName
+        member.role = role
+        member.roleWeight = roleWeight
+        member.inMyZone = (unitZoneId == myZoneId)
+        member.isOnline = IsUnitOnline(tag)
+        member.isSelf = isSelf
+    end
+
+    for j = groupSize + 1, #members do
+        members[j] = nil
     end
 
     table.sort(members, SortGroupMembers)
 
-    if isKalEnabled then
+    if isAutoLeadEnabled then
         self:PopulateLeadKickerDropdowns(members)
     end
 
@@ -664,7 +1307,7 @@ function KRT.KWS:ExecuteInvites()
                 GroupInviteByName(name)
             end
         end
-        d("[Kwibus Spaulder] Re-invited " .. #self.pendingInvites .. " players.")
+        Notice("Re-invited " .. #self.pendingInvites .. " players.")
     end
 
     self.pendingInvites = {}
@@ -678,9 +1321,23 @@ function KRT.KWS:KickAndReinvite()
         return
     end
 
-    if not IsUnitGroupLeader("player") and not SV().debug then
+    local sv = SV()
+    if not (IsUnitGrouped("player") and IsUnitGroupLeader("player")) then
         d("[Kwibus Spaulder] You must be the group leader to kick players!")
         return
+    end
+
+    local groupSize = GetGroupSize() or 0
+
+    -- Arm auto lead workflow if configured (only for raid groups > 6 players)
+    if sv and sv.enabled and sv.enableAutoLead and IsLocalPlayerConfiguredKicker() then
+        if groupSize > 6 then
+            if (kalState.preKickGroupSize or 0) <= 6 then
+                kalState.preKickGroupSize = groupSize
+            end
+            ArmPhase(1, kalState.preKickGroupSize, groupSize)
+            StartPolling(PollWorkflow)
+        end
     end
 
     self.isProcessing = true
@@ -691,7 +1348,6 @@ function KRT.KWS:KickAndReinvite()
         self.kickBtn:SetEnabled(false)
     end
 
-    local groupSize = GetGroupSize() or 0
     for i = 1, groupSize do
         local tag = GetGroupUnitTagByIndex(i)
         if tag then
@@ -741,20 +1397,20 @@ function KRT.KWS:ToggleFragment()
 end
 
 function KRT.KWS:Initialize()
-    SV()
+    local sv = MigrateSV()
     self.myDisplayNameLower = string.lower(GetDisplayName() or "")
 
-    if KRT.sv and KRT.sv.kal then
-        if KRT.sv.kal.actualLead then
-            self.selectedLead = KRT.sv.kal.actualLead
-        end
-        if KRT.sv.kal.kickingPerson then
-            self.selectedKicker = KRT.sv.kal.kickingPerson
-        end
-    end
+    self.selectedLead = sv.actualLead or ""
+    self.selectedKicker = sv.kickingPerson or ""
+    self.selectedProfile = sv.lastProfile or ""
+
+    ResetWorkflow()
+    kalState.lastDifficultyKey = GetDifficultyKey()
+    UpdateObservedGroupSize(GetGroupSize() or 0)
 
     RegisterOverwriteDialog()
     self:CreateUI()
+    self:UpdateProfileDropdown()
 
     self.ui = _G["KwibusSpaulderUI"] or self.ui
     if not self.ui or not self.ui.SetHidden then
@@ -764,18 +1420,29 @@ function KRT.KWS:Initialize()
 
     if not self.fragment then
         self.fragment = ZO_SimpleSceneFragment:New(self.ui)
+        self.fragment:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_FRAGMENT_SHOWN or newState == SCENE_FRAGMENT_SHOWING then
+                self:RefreshRows()
+                self:UpdateProfileDropdown()
+            end
+        end)
     end
 
     self:ToggleFragment()
 
     local function OnGroupUpdate()
+        if not SV().enabled then return end
         self:ToggleFragment()
         if self.ui and not self.ui:IsHidden() then
             self:RefreshRows()
         end
+        if SV().enableAutoLead then
+            CheckGroupState()
+        end
     end
 
     local function OnGroupMemberLeft(eventCode, memberCharacterName, reason, isLocalPlayer, isLeader, memberDisplayName, actionRequiredVote)
+        if not SV().enabled then return end
         OnGroupUpdate()
 
         if self.pendingKicksCount > 0 then
@@ -799,10 +1466,21 @@ function KRT.KWS:Initialize()
     EM:RegisterForEvent(ADDON_NAME .. "_KWSRole", EVENT_GROUP_MEMBER_ROLE_CHANGED, OnGroupUpdate)
     EM:RegisterForEvent(ADDON_NAME .. "_KWSLeader", EVENT_LEADER_UPDATE, OnGroupUpdate)
 
-    self.ui:SetHandler("OnEffectivelyShown", function()
-        self:RefreshRows()
-        self:UpdateProfileDropdown()
+    EM:RegisterForEvent(ADDON_NAME .. "_KWS_Deactivated", EVENT_PLAYER_DEACTIVATED, OnPlayerDeactivated)
+    EM:RegisterForEvent(ADDON_NAME .. "_KWS_Activated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    EM:RegisterForEvent(ADDON_NAME .. "_KWS_VetChanged", EVENT_VETERAN_DIFFICULTY_CHANGED, OnDifficultyChanged)
+
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+        if panel and panel.GetName and panel:GetName() == ADDON_NAME .. "_Panel" then
+            RebuildGroupRosterChoices()
+        end
     end)
+
+    RebuildGroupRosterChoices()
+
+    zo_callLater(function()
+        EnsureLocalKickerWorkflow()
+    end, 1500)
 end
 
 function KRT.KWS:GetLAMSubmenu()
@@ -812,22 +1490,191 @@ function KRT.KWS:GetLAMSubmenu()
         controls = {
             {
                 type = "checkbox",
-                name = "Enable Kwibus Spaulder",
+                name = "Enable Module",
+                tooltip = "Master switch for the Spaulder kicking UI and automated lead passing.",
                 getFunc = function()
-                    if SV().enabled == nil then
-                        return true
-                    else
-                        return SV().enabled
-                    end
+                    local sv = SV()
+                    if sv.enabled == nil then return true else return sv.enabled end
                 end,
                 setFunc = function(value)
                     SV().enabled = value
                     self:ToggleFragment()
+                    if not value then
+                        ResetWorkflow()
+                        if self.inviteTimeoutTimer then
+                            zo_removeCallLater(self.inviteTimeoutTimer)
+                            self.inviteTimeoutTimer = nil
+                        end
+                        self.pendingInvites = {}
+                        self.pendingKicksCount = 0
+                        self.isProcessing = false
+                        if self.ui then
+                            self.ui:SetHidden(true)
+                        end
+                    else
+                        EnsureLocalKickerWorkflow()
+                    end
+                    self:RefreshRows()
+                end,
+                width = "full",
+            },
+            {
+                type = "checkbox",
+                name = "Enable Auto Lead Passing",
+                tooltip = "Automatically passes lead to the kicker upon instance reset, and returns lead to actual lead once group is rebuilt.",
+                getFunc = function()
+                    local sv = SV()
+                    if sv.enableAutoLead == nil then return true else return sv.enableAutoLead end
+                end,
+                setFunc = function(value)
+                    SV().enableAutoLead = value
+                    if not value then
+                        ResetWorkflow()
+                    else
+                        EnsureLocalKickerWorkflow()
+                    end
+                    self:RefreshRows()
+                end,
+                width = "full",
+                disabled = function() return not SV().enabled end,
+            },
+            {
+                type = "checkbox",
+                name = "Enable Chat Notifications",
+                tooltip = "Show lead-pass and re-invite messages in chat.",
+                getFunc = function()
+                    local sv = SV()
+                    if sv.enableChat == nil then return true else return sv.enableChat end
+                end,
+                setFunc = function(value)
+                    SV().enableChat = value
+                end,
+                width = "full",
+                disabled = function() return not SV().enabled end,
+            },
+            {
+                type = "dropdown",
+                name = "Kicking Person (Pick from group or saved)",
+                tooltip = "Who should receive lead after difficulty changes? Saves AccountName.",
+                choices = KWSChoices,
+                choicesValues = KWSValues,
+                getFunc = function()
+                    return SV().kickingPerson or ""
+                end,
+                setFunc = function(value)
+                    if value and value ~= "" then
+                        SV().kickingPerson = value
+                        self.selectedKicker = value
+                        RememberAccount(value)
+                        RebuildGroupRosterChoices()
+                        EnsureLocalKickerWorkflow()
+                        self:RefreshRows()
+                    end
+                end,
+                reference = "KRT_KWS_Kicker_Dropdown",
+                width = "full",
+                disabled = function()
+                    return not SV().enabled or not SV().enableAutoLead
+                end,
+            },
+            {
+                type = "slider",
+                name = "Delay: Pass to Kicker",
+                tooltip = "Seconds to wait after difficulty change before passing lead to the kicker.",
+                min = 1,
+                max = 10,
+                step = 1,
+                getFunc = function()
+                    return SV().kickDelay or 2
+                end,
+                setFunc = function(value)
+                    SV().kickDelay = value
+                end,
+                width = "full",
+                disabled = function()
+                    return not SV().enabled or not SV().enableAutoLead
+                end,
+            },
+            {
+                type = "dropdown",
+                name = "Actual Lead (Pick from group or saved)",
+                tooltip = "Who should receive lead back after reinvites/rebuild? Saves AccountName.",
+                choices = KWSChoices,
+                choicesValues = KWSValues,
+                getFunc = function()
+                    return SV().actualLead or ""
+                end,
+                setFunc = function(value)
+                    if value and value ~= "" then
+                        SV().actualLead = value
+                        self.selectedLead = value
+                        RememberAccount(value)
+                        RebuildGroupRosterChoices()
+                        EnsureLocalKickerWorkflow()
+                        self:RefreshRows()
+                    end
+                end,
+                reference = "KRT_KWS_Lead_Dropdown",
+                width = "full",
+                disabled = function()
+                    return not SV().enabled or not SV().enableAutoLead
+                end,
+            },
+            {
+                type = "slider",
+                name = "Delay: Return to Lead",
+                tooltip = "Seconds to wait after rebuild before returning lead.",
+                min = 1,
+                max = 10,
+                step = 1,
+                getFunc = function()
+                    return SV().returnDelay or 2
+                end,
+                setFunc = function(value)
+                    SV().returnDelay = value
+                end,
+                width = "full",
+                disabled = function()
+                    return not SV().enabled or not SV().enableAutoLead
+                end,
+            },
+            {
+                type = "button",
+                name = "Reset Horizontal Position",
+                func = function()
+                    if KRT.KWS.ui then
+                        local rootW = GuiRoot:GetWidth()
+                        local w = KRT.KWS.ui:GetWidth()
+                        SV().offsetX = (rootW - w) / 2
+                        KRT.KWS.ui:ClearAnchors()
+                        KRT.KWS.ui:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SV().offsetX, SV().offsetY or 150)
+                    end
+                end,
+                width = "half",
+                disabled = function()
+                    return not SV().enabled
+                end,
+            },
+            {
+                type = "button",
+                name = "Reset Vertical Position",
+                func = function()
+                    if KRT.KWS.ui then
+                        local rootH = GuiRoot:GetHeight()
+                        local h = KRT.KWS.ui:GetHeight()
+                        SV().offsetY = (rootH - h) / 2
+                        KRT.KWS.ui:ClearAnchors()
+                        KRT.KWS.ui:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SV().offsetX or 150, SV().offsetY)
+                    end
+                end,
+                width = "half",
+                disabled = function()
+                    return not SV().enabled
                 end,
             },
             {
                 type = "checkbox",
-                name = "Debug Mode (Force UI Visible)",
+                name = "Enable Debug Mode (Force UI Visible)",
                 tooltip = "Force UI overlay to show in group menu regardless of group status or group size.",
                 getFunc = function()
                     return SV().debug or false
@@ -836,26 +1683,15 @@ function KRT.KWS:GetLAMSubmenu()
                     SV().debug = value
                     self:ToggleFragment()
                 end,
-            },
-            {
-                type = "button",
-                name = "Center Position",
-                func = function()
-                    if KRT.KWS.ui then
-                        local rootW = GuiRoot:GetWidth()
-                        local rootH = GuiRoot:GetHeight()
-                        local w = KRT.KWS.ui:GetWidth()
-                        local h = KRT.KWS.ui:GetHeight()
-                        SV().offsetX = (rootW - w) / 2
-                        SV().offsetY = (rootH - h) / 2
-                        KRT.KWS.ui:ClearAnchors()
-                        KRT.KWS.ui:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SV().offsetX, SV().offsetY)
-                    end
-                end,
                 width = "full",
                 disabled = function()
                     return not SV().enabled
                 end,
+            },
+            {
+                type = "description",
+                text = "Both kicking player and actual lead need to have addon installed. When instance difficulty is reset, lead is auto-passed to the kicking player. Once the spaulder kicks and reinvites are complete and the group is full, lead is automatically returned to the actual lead.",
+                width = "full",
             },
         }
     }

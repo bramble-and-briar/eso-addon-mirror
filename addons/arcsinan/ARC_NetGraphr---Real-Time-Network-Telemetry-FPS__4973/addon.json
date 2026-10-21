@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/arcsinan/ARC_NetGraphr---Real-Time-Network-Telemetry-FPS__4973",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "arcsinan",
+  "canonical_id": "esoui:4973",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4973",
+  "deleted": false,
+  "directories": [
+    "ARC_NetGraph"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4973/",
+  "fingerprint": "e73b2ac7d9e6a1eb9eab1f5876100b6778fdd057679d78ba9f5a0844a80474eb",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18089.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18087.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18088.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4973",
+  "source_url": "https://www.esoui.com/downloads/info4973-ARC_NetGraphr-Real-TimeNetworkTelemetryFPS.html",
+  "stats": {
+    "downloads": 10,
+    "favorites": 1,
+    "monthly_downloads": 7
+  },
+  "title": "ARC_NetGraphr - Real-Time Network Telemetry & FPS",
+  "updated_at": 1792517067000,
+  "version": "1.0.0"
+}

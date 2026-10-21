@@ -470,27 +470,37 @@ function GR.SetupGuildProcessor(guildId, guildName)
 		processor:SetAfterEventTime(cutoffTime)
 	end
 
-	processor:SetNextEventCallback(function(event)
+	local function HandleEvent(event)
 		local info = event:GetEventInfo()
-		if info.eventType == GUILD_HISTORY_TRADER_EVENT_ITEM_SOLD then
-			local eventId = event:GetEventId()
-			local timestamp = event:GetEventTimestampS()
-			local seller = info.sellerDisplayName
-			local buyer = "@" .. info.buyerDisplayName
-			local quantity = info.quantity
-			local itemLink = info.itemLink
-			local price = info.price
-			local tax = info.tax
-
-			GR.AddPriceHistory(itemLink, price, quantity, timestamp)
-			GR.SV.lastEventIds[guildName] = eventId
-
-			if "@" .. seller == GR.displayName then
-				GR.AddSale(eventId, timestamp, guildName, seller, buyer,
-						   quantity, itemLink, price, tax)
-			end
+		if info.eventType ~= GUILD_HISTORY_TRADER_EVENT_ITEM_SOLD then
+			return
 		end
-	end)
+
+		local eventId   = event:GetEventId()
+		local timestamp = event:GetEventTimestampS()
+		local seller    = info.sellerDisplayName
+		local buyer     = "@" .. info.buyerDisplayName
+		local quantity  = info.quantity
+		local itemLink  = info.itemLink
+		local price     = info.price
+		local tax       = info.tax
+
+		GR.AddPriceHistory(itemLink, price, quantity, timestamp)
+
+		local prev = GR.SV.lastEventIds[guildName]
+		if not prev or eventId > prev then
+			GR.SV.lastEventIds[guildName] = eventId
+		end
+
+		if "@" .. seller == GR.displayName then
+			GR.AddSale(eventId, timestamp, guildName, seller, buyer,
+					   quantity, itemLink, price, tax)
+		end
+	end
+
+	processor:SetNextEventCallback(HandleEvent)
+	processor:SetMissedEventCallback(HandleEvent)
+	processor:SetReceiveMissedEventsOutsideIterationRange(true)
 
 	processor:Start()
 end

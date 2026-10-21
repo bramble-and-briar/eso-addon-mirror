@@ -1,0 +1,53 @@
+ARC Custom Fonts - Open Source Font Licenses & Attributions
+================================================================
+
+All fonts included in ARC_CustomFonts are 100% free, royalty-free, and distributed 
+under open-source licenses (SIL Open Font License 1.1 or Bitstream Vera / Public Domain).
+They are legally free to use, bundle, and distribute for any commercial or non-commercial purpose.
+
+1. Cinzel
+   - Designer: Natanael Gama
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/Cinzel
+
+2. Cinzel Decorative
+   - Designer: Natanael Gama
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/Cinzel+Decorative
+
+3. MedievalSharp
+   - Designer: Wojciech Kalinowski
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/MedievalSharp
+
+4. Bebas Neue
+   - Designer: Ryoichi Tsunekawa
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/Bebas+Neue
+
+5. Inter
+   - Designer: Rasmus Andersson
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/Inter
+
+6. Outfit
+   - Designer: Onsen (Rodrigo Fuenzalida)
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/Outfit
+
+7. Lora
+   - Designer: Cyreal, Alexei Vanyashin, Olga Karpushina
+   - License: SIL Open Font License, 1.1 (OFL)
+   - Source: https://fonts.google.com/specimen/Lora
+
+8. DejaVu Sans
+   - Design: DejaVu Fonts Team (Bitstream Vera Derivative)
+   - License: Free / Public Domain & Bitstream Vera License
+   - Source: https://dejavu-fonts.github.io/
+
+----------------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font Software,
+subject to the conditions stated in the SIL Open Font License.

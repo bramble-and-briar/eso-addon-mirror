@@ -190,7 +190,7 @@ function LCA_MoveableControl:GetPosition( bypassCache )
 		if (self.X == "C") then
 			pos.center = control:GetCenter() - GuiRoot:GetCenter()
 		elseif (self.X == "R") then
-			pos.right = control:GetRight() - GuiRoot:GetWidth()
+			pos.right = control:GetRight() - GuiRoot:GetRight()
 		else
 			pos.left = control:GetLeft()
 		end
@@ -198,7 +198,7 @@ function LCA_MoveableControl:GetPosition( bypassCache )
 		if (self.Y == "M") then
 			pos.mid = select(2, control:GetCenter()) - select(2, GuiRoot:GetCenter())
 		elseif (self.Y == "B") then
-			pos.bottom = control:GetBottom() - GuiRoot:GetHeight()
+			pos.bottom = control:GetBottom() - GuiRoot:GetBottom()
 		else
 			pos.top = control:GetTop()
 		end

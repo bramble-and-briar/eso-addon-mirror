@@ -7,6 +7,88 @@ RH.ui = { checks = {}, selectedPreset = nil }
 ---------------------------------------------------------------------------
 -- 部品
 ---------------------------------------------------------------------------
+function RH.AttachTip(ctl, text)
+    if not ctl or not text then return end
+    local function show(self)
+        pcall(function()
+            InitializeTooltip(InformationTooltip, self, RIGHT, -8, 0, LEFT)
+            InformationTooltip:AddLine(text, "", 1, 1, 1, LEFT, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_LEFT, true)
+        end)
+    end
+    local function hide() pcall(ClearTooltip, InformationTooltip) end
+    ctl:SetMouseEnabled(true)
+    ZO_PostHookHandler(ctl, "OnMouseEnter", show)
+    ZO_PostHookHandler(ctl, "OnMouseExit", hide)
+end
+
+local function BuildGrip(win, name, posKey)
+    -- 右下の三角マーク: ドラッグでウィンドウの大きさ(表示倍率は変えない)を変更 / ダブルクリックで初期サイズ
+    local grip = WM:CreateControl(name .. "Grip", win, CT_BUTTON)
+    grip:SetDimensions(26, 26)
+    grip:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -1, -1)
+    grip:SetMouseEnabled(true)
+    grip:SetDrawLevel(100)
+    local pieces = {}
+    local function Line(i, x1, y1, x2, y2)
+        local t = WM:CreateControl(name .. "GripL" .. i, grip, CT_LINE)
+        t:SetThickness(2)
+        t:SetAnchor(TOPLEFT, grip, TOPLEFT, x1, y1)
+        t:SetAnchor(BOTTOMRIGHT, grip, TOPLEFT, x2, y2)
+        t:SetDrawLevel(101)
+        pcall(t.SetColor, t, 1, 0.8, 0.1, 1)
+        pieces[#pieces + 1] = t
+    end
+    -- 右下が直角の三角形(ふち取り + 斜線のしま)
+    Line(1, 3, 21, 21, 21)      -- 下辺
+    Line(2, 21, 3, 21, 21)      -- 右辺
+    Line(3, 7, 21, 21, 7)       -- 斜線
+    Line(4, 12, 21, 21, 12)
+    Line(5, 17, 21, 21, 17)
+    local function Tint(r, g, b)
+        for _, t in ipairs(pieces) do pcall(t.SetColor, t, r, g, b, 1) end
+    end
+    local function ApplySize(nw, nh, save)
+        local base = win.rhBase
+        nw = math.max(base.w, nw); nh = math.max(base.h, nh)
+        local dw, dh = nw - base.w, nh - base.h
+        win:SetDimensions(nw, nh)
+        for _, fn in ipairs(win.rhLayout) do fn(dw, dh) end
+        if save then
+            if dw == 0 and dh == 0 then RH.sv.winSize[posKey] = nil else RH.sv.winSize[posKey] = { w = nw, h = nh } end
+        end
+    end
+    win.rhApplySize = ApplySize
+    local lastClick = 0
+    grip:SetHandler("OnMouseEnter", function() Tint(1, 1, 1) end)
+    grip:SetHandler("OnMouseExit", function() Tint(1, 0.8, 0.1) end)
+    grip:SetHandler("OnMouseDown", function(self, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        local now = GetFrameTimeMilliseconds()
+        if now - lastClick < 350 then ApplySize(0, 0, true); lastClick = 0; return end
+        lastClick = now
+        self.dragging = true
+        win:SetMovable(false)
+        self:SetHandler("OnUpdate", function()
+            if not self.dragging then return end
+            if IsMouseButtonDown and not IsMouseButtonDown(MOUSE_BUTTON_INDEX_LEFT) then
+                self.dragging = false; self:SetHandler("OnUpdate", nil); win:SetMovable(true); return
+            end
+            local mx, my = GetUIMousePosition()
+            local rootW, rootH = GuiRoot:GetDimensions()
+            local nw = math.min(mx - win:GetLeft() + 10, rootW - win:GetLeft())
+            local nh = math.min(my - win:GetTop() + 10, rootH - win:GetTop())
+            ApplySize(math.floor(nw), math.floor(nh), true)
+        end)
+    end)
+    grip:SetHandler("OnMouseUp", function(self)
+        self.dragging = false
+        self:SetHandler("OnUpdate", nil)
+        win:SetMovable(true)
+    end)
+    RH.AttachTip(grip, L.TIP_resize)
+    win.rhGrip = grip
+end
+
 local function CreateWindow(name, w, h, titleText, posKey, defX, defY)
     local win = WM:CreateTopLevelWindow(name)
     win:SetDimensions(w, h)
@@ -17,10 +99,14 @@ local function CreateWindow(name, w, h, titleText, posKey, defX, defY)
     win:SetHidden(true)
     win:ClearAnchors()
     local pos = RH.sv[posKey]
+    RH.sv.winSize = RH.sv.winSize or {}
     win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, pos and pos.x or defX, pos and pos.y or defY)
     win:SetHandler("OnMoveStop", function(self)
         RH.sv[posKey] = { x = self:GetLeft(), y = self:GetTop() }
     end)
+    win.rhLayout = {}
+    win.rhBase = { w = w, h = h }
+
 
     local bg = WM:CreateControlFromVirtual(name .. "BG", win, "ZO_DefaultBackdrop")
     bg:SetAnchorFill(win)
@@ -34,7 +120,29 @@ local function CreateWindow(name, w, h, titleText, posKey, defX, defY)
     local close = WM:CreateControlFromVirtual(name .. "Close", win, "ZO_CloseButton")
     close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -6, 6)
     close:SetHandler("OnClicked", function() win:SetHidden(true) end)
+    BuildGrip(win, name, posKey)
     return win
+end
+
+-- ウィンドウを広げたとき追従させる部品を登録する(x,y,w,h は初期値。mx,my,mw,mh は増加分に掛ける係数)
+local function Track(win, ctl, x, y, w, h, mx, my, mw, mh)
+    table.insert(win.rhLayout, function(dw, dh)
+        if (mx or 0) ~= 0 or (my or 0) ~= 0 then
+            ctl:ClearAnchors()
+            ctl:SetAnchor(TOPLEFT, win, TOPLEFT, x + (mx or 0) * dw, y + (my or 0) * dh)
+        end
+        if (mw or 0) ~= 0 or (mh or 0) ~= 0 then
+            ctl:SetDimensions(w + (mw or 0) * dw, h + (mh or 0) * dh)
+        end
+    end)
+end
+
+-- 構築完了: 高さを確定し、それを最小サイズにして、保存済みのサイズを復元する
+local function FinishWindow(win, posKey, y)
+    win:SetHeight(y)
+    win.rhBase.h = y
+    local sz = RH.sv.winSize and RH.sv.winSize[posKey]
+    if sz and win.rhApplySize then win.rhApplySize(sz.w or 0, sz.h or 0, false) end
 end
 
 local function Label(parent, name, text, x, y, font, color)
@@ -55,7 +163,15 @@ local function Button(parent, name, text, x, y, w, onClick)
     return b
 end
 
-local function Check(parent, name, text, x, y, getter, setter, labelWidth)
+local function TintButton(b, r, g, bl)
+    pcall(function()
+        b:SetNormalFontColor(r, g, bl, 1)
+        b:SetMouseOverFontColor(math.min(1, r + 0.25), math.min(1, g + 0.25), math.min(1, bl + 0.25), 1)
+        b:SetPressedFontColor(r * 0.8, g * 0.8, bl * 0.8, 1)
+    end)
+end
+
+local function Check(parent, name, text, x, y, getter, setter, labelWidth, tip)
     local c = WM:CreateControlFromVirtual(parent:GetName() .. name, parent, "ZO_CheckButton")
     c:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y + 3)
     ZO_CheckButton_SetLabelText(c, text)
@@ -67,6 +183,7 @@ local function Check(parent, name, text, x, y, getter, setter, labelWidth)
     ZO_CheckButton_SetCheckState(c, getter())
     ZO_CheckButton_SetToggleFunction(c, function(_, checked) setter(checked) end)
     table.insert(RH.ui.checks, { control = c, getter = getter })
+    if tip then RH.AttachTip(c, tip); pcall(function() RH.AttachTip(ZO_CheckButton_GetLabelControl(c), tip) end) end
     return c
 end
 
@@ -125,7 +242,7 @@ local function BuildPanel()
     for i, slot in ipairs(RH.armorSlots) do
         local nameLbl = WM:CreateControl(win:GetName() .. "CoverName" .. i, win, CT_LABEL)
         nameLbl:SetFont("ZoFontGameSmall")
-        nameLbl:SetColor(ZO_DISABLED_TEXT:UnpackRGBA())
+        nameLbl:SetColor(ZO_SELECTED_TEXT:UnpackRGBA())
         nameLbl:SetText(RH.GetSlotName(slot))
         nameLbl:SetDimensions(cw, 16)
         nameLbl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
@@ -139,8 +256,18 @@ local function BuildPanel()
         mark:SetText("-")
         mark:SetColor(ZO_DISABLED_TEXT:UnpackRGBA())
         RH.ui.coverCells[slot] = mark
+
+        local wl = WM:CreateControl(win:GetName() .. "CoverWeight" .. i, win, CT_LABEL)
+        wl:SetFont("ZoFontGameSmall")
+        wl:SetDimensions(cw, 16)
+        wl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        wl:SetAnchor(TOPLEFT, win, TOPLEFT, pad + (i - 1) * cw, y + 40)
+        wl:SetColor(ZO_SELECTED_TEXT:UnpackRGBA())
+        wl:SetText("")
+        RH.ui.coverWeights = RH.ui.coverWeights or {}
+        RH.ui.coverWeights[slot] = wl
     end
-    y = y + 42
+    y = y + 58
     Label(win, "CoverLegend", L.COVER_LEGEND, pad, y, "ZoFontGameSmall", ZO_DISABLED_TEXT)
     y = y + 24
 
@@ -162,21 +289,31 @@ local function BuildPanel()
         { "weaponDye",      L.OPT_WEAPON_DYE },
         { "unifyWeight",    L.OPT_UNIFY_WEIGHT },
         { "lockDyes",       L.OPT_LOCK_DYES },
+        { "keepDyes",       L.OPT_KEEP_DYES },
+        { "preferRobe",     L.OPT_PREFER_ROBE },
         { "orderPerSlot",   L.OPT_ORDER_PER_SLOT },
         { "favoritesOnly",  L.OPT_FAVORITES_ONLY },
         { "hideMissing",    L.OPT_HIDE_MISSING },
+        { "previewUnownedStyles", L.OPT_PREVIEW_UNOWNED_STYLE },
+        { "previewUnownedDyes",   L.OPT_PREVIEW_UNOWNED_DYE },
         { "shareMessages",  L.OPT_SHARE_MSGS },
     }
     for _, o in ipairs(opts) do
         local key = o[1]
         Check(win, "Opt" .. key, o[2], pad, y,
-            function() if key == "shareMessages" then return RH.sv[key] ~= false end return RH.sv[key] == true end,
-            function(v) RH.sv[key] = v end)
+            function() if key == "shareMessages" or key == "keepDyes" then return RH.sv[key] ~= false end return RH.sv[key] == true end,
+            function(v)
+                RH.sv[key] = v
+                if key == "previewUnownedStyles" then RH.styleIndex = nil end
+                if key == "previewUnownedDyes" and RH.RefreshColorsWindow then RH.RefreshColorsWindow() end
+            end, nil, L["TIP_" .. key])
         y = y + 24
     end
 
     -- スタイル統一の最小部位数(− / + で 1〜7)
     local minLbl = Label(win, "ThemeMinLbl", "", pad, y + 5, "ZoFontGame", ZO_NORMAL_TEXT)
+    minLbl:SetMouseEnabled(true)
+    RH.AttachTip(minLbl, L.TIP_themeMin)
     local function RefreshMin()
         minLbl:SetText(string.format(L.OPT_THEME_MIN, RH.sv.themeMinSlots or 5))
     end
@@ -190,8 +327,20 @@ local function BuildPanel()
     RefreshMin()
     y = y + 36
 
-    Button(win, "ChestAll", L.BTN_CHEST_TO_ALL, pad, y, W - pad * 2, function() RH.ApplyChestToAll() end)
+    Track(win, Button(win, "ChestAll", L.BTN_CHEST_TO_ALL, pad, y, W - pad * 2, function() RH.ApplyChestToAll() end), pad, y, W - pad * 2, 28, 0, 0, 1, 0)
     y = y + 32
+    local third = math.floor((W - pad * 2 - 16) / 3)
+    for i, k in ipairs({ "light", "medium", "heavy" }) do
+        Button(win, "Weight" .. k, L["WEIGHT_" .. k], pad + (i - 1) * (third + 8), y, third, function() RH.SwitchWeight(k) end)
+    end
+    y = y + 32
+    Track(win, Button(win, "FavCur", L.BTN_FAV_CURRENT, pad, y, W - pad * 2, function() RH.FavoriteCurrent() end), pad, y, W - pad * 2, 28, 0, 0, 1, 0)
+    y = y + 32
+    RH.ui.unownedLabel = Label(win, "UnownedLbl", L.WARN_UNOWNED, pad, y, "ZoFontGameSmall", ZO_ERROR_COLOR)
+    RH.ui.unownedLabel:SetWidth(W - pad * 2)
+    RH.ui.unownedLabel:SetMaxLineCount(2)
+    RH.ui.unownedLabel:SetHidden(true)
+    y = y + 34
     Button(win, "Fav",      L.BTN_FAVORITES,    pad,            y, half, function() RH.ShowFavoritesWindow(true) end)
     Button(win, "Share",    L.BTN_SHARE,        pad + half + 8, y, half, function() RH.ShowShareWindow(true) end)
     y = y + 38
@@ -199,7 +348,7 @@ local function BuildPanel()
     hint:SetWidth(W - pad * 2)
     y = y + 24
 
-    win:SetHeight(y)
+    FinishWindow(win, 'panelPos', y)
 end
 
 local COVER_MARKS = {
@@ -218,9 +367,27 @@ function RH.RefreshCoverage()
     else
         ui.coverTitle:SetText(L.COVER_TITLE .. "  " .. L.COVER_NONE)
     end
+    -- 各部位の防具の重さ(軽/中/重)を四角の下に表示
+    local om = RH.GetCurrentOutfitManipulator and RH.GetCurrentOutfitManipulator()
+    for slot, wl in pairs(ui.coverWeights or {}) do
+        local txt = ""
+        local sm = om and RH.GetSlotManip(om, slot)
+        local st = sm and RH.GetSlotState(sm)
+        if st and st.id ~= 0 and GetOutfitStyleVisualArmorType then
+            local refId = GetCollectibleReferenceId and GetCollectibleReferenceId(st.id) or st.id
+            local at = GetOutfitStyleVisualArmorType(refId)
+            at = RH.NormWeight(at)
+            if at ~= 0 then txt = L["WSHORT_" .. at] or "" end
+        end
+        wl:SetText(txt)
+    end
     for slot, mark in pairs(ui.coverCells) do
         local st = cov and cov.states[slot]
         local def = st and COVER_MARKS[st]
+        -- 緑 = 所持している / 赤 = 未所持のスタイルを使っている
+        if def and (st == "ok" or st == "sub") and RH.unownedSlots and RH.unownedSlots[slot] then
+            def = COVER_MARKS.missing
+        end
         if def then
             mark:SetText(def[1])
             mark:SetColor(def[2], def[3], def[4], 1)
@@ -304,11 +471,12 @@ local function BuildShareWindow()
     local comboCtrl = WM:CreateControlFromVirtual(win:GetName() .. "Combo", win, "ZO_ComboBox")
     comboCtrl:SetDimensions(W - pad * 2, 28)
     comboCtrl:SetAnchor(TOPLEFT, win, TOPLEFT, pad, y)
+    Track(win, comboCtrl, pad, y, W - pad * 2, 28, 0, 0, 1, 0)
     RH.ui.combo = ZO_ComboBox_ObjectFromContainer(comboCtrl)
     RH.ui.combo:SetSortsItems(false)
     y = y + 34
 
-    Button(win, "PApply", L.BTN_APPLY, pad, y, bw, function()
+    local applyBtn = Button(win, "PApply", L.BTN_APPLY, pad, y, bw, function()
         local p = GetSelectedPreset()
         if p then
             local entries = RH.DecodeBody(p.body)
@@ -333,7 +501,17 @@ local function BuildShareWindow()
         local entries = p and RH.DecodeBody(p.body)
         if entries then RH.InspectEntries(entries, p.name) end
     end)
-    Button(win, "PDelete", L.BTN_DELETE, pad + (bw + 8) * 2, y, bw, function()
+    Button(win, "POverwrite", L.BTN_OVERWRITE, pad + bw + 8, y, bw, function()
+        local idx = RH.ui.selectedPreset
+        if not (idx and RH.sv.presets[idx]) then RH.Msg(L.MSG_SELECT_PRESET); return end
+        local entries = RH.CaptureCurrent()
+        if entries and RH.OverwritePreset(idx, RH.EncodeEntries(entries)) then
+            RefreshPresetCombo()
+            RH.ui.combo:SelectItemByIndex(idx)
+            RH.ui.selectedPreset = idx
+        end
+    end)
+    local deleteBtn = Button(win, "PDelete", L.BTN_DELETE, pad + (bw + 8) * 2, y, bw, function()
         if RH.ui.selectedPreset and RH.sv.presets[RH.ui.selectedPreset] then
             RH.DeletePreset(RH.ui.selectedPreset)
             RefreshPresetCombo()
@@ -341,21 +519,25 @@ local function BuildShareWindow()
             RH.Msg(L.MSG_SELECT_PRESET)
         end
     end)
+    TintButton(applyBtn, 0.45, 0.9, 0.45)
+    TintButton(deleteBtn, 1.0, 0.4, 0.4)
     y = y + 44
 
     -- 名前 + 保存
     Label(win, "NameLbl", L.LBL_NAME, pad, y + 4, "ZoFontGame")
     RH.ui.nameEdit = EditBox(win, "NameEdit", pad + 50, y, W - pad * 2 - 50 - bw - 8, 28, false)
+    Track(win, RH.ui.nameEdit:GetParent(), pad + 50, y, W - pad * 2 - 50 - bw - 8, 28, 0, 0, 1, 0)
     -- 日本語は1文字が複数バイトのため、入力欄は余裕を持たせ、文字数の制限は保存時(UTF-8文字単位)で行う
     RH.ui.nameEdit:SetMaxInputChars(80)
     pcall(function() RH.ui.nameEdit:SetFont("ZoFontGame") end)
-    Button(win, "SaveCur", L.BTN_SAVE_CURRENT, W - pad - bw, y, bw, function()
+    local saveCurBtn = Button(win, "SaveCur", L.BTN_SAVE_CURRENT, W - pad - bw, y, bw, function()
         local entries = RH.CaptureCurrent()
         if entries then
             RH.SavePreset(RH.ui.nameEdit:GetText(), RH.EncodeEntries(entries))
             RefreshPresetCombo()
         end
     end)
+    Track(win, saveCurBtn, W - pad - bw, y, bw, 28, 1, 0, 0, 0)
     y = y + 40
 
     -- 共有文字列
@@ -363,35 +545,38 @@ local function BuildShareWindow()
     strLbl:SetWidth(W - pad * 2)
     y = y + 38
     RH.ui.stringEdit = EditBox(win, "StrEdit", pad, y, W - pad * 2, 140, true)
+    Track(win, RH.ui.stringEdit:GetParent(), pad, y, W - pad * 2, 140, 0, 0, 1, 1)
     y = y + 148
 
-    Button(win, "Export", L.BTN_EXPORT, pad, y, bw, function()
+    local bottomBtns = {}
+    bottomBtns[#bottomBtns + 1] = { Button(win, "Export", L.BTN_EXPORT, pad, y, bw, function()
         local str = RH.ExportCurrent(RH.ui.nameEdit:GetText())
         if str then
             ShowString(str)
             RH.Msg(L.MSG_EXPORTED)
         end
-    end)
-    Button(win, "ImpApply", L.BTN_IMPORT_APPLY, pad + bw + 8, y, bw, function()
+    end), pad, y }
+    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpApply", L.BTN_IMPORT_APPLY, pad + bw + 8, y, bw, function()
         local name, _, entries = ParseFromEdit()
         if entries then RH.ApplyEntries(entries, name) end
-    end)
-    Button(win, "ImpSave", L.BTN_IMPORT_SAVE, pad + (bw + 8) * 2, y, bw, function()
+    end), pad + bw + 8, y }
+    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpSave", L.BTN_IMPORT_SAVE, pad + (bw + 8) * 2, y, bw, function()
         local name, body, entries = ParseFromEdit()
         if entries then
             local typed = RH.ui.nameEdit:GetText()
             RH.SavePreset((typed ~= "" and typed) or name, body)
             RefreshPresetCombo()
         end
-    end)
+    end), pad + (bw + 8) * 2, y }
     y = y + 32
-    Button(win, "ImpInspect", L.BTN_INSPECT, pad, y, bw, function()
+    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpInspect", L.BTN_INSPECT, pad, y, bw, function()
         local name, _, entries = ParseFromEdit()
         if entries then RH.InspectEntries(entries, name) end
-    end)
+    end), pad, y }
+    for _, b in ipairs(bottomBtns) do Track(win, b[1], b[2], b[3], bw, 28, 0, 1, 0, 0) end
     y = y + 40
 
-    win:SetHeight(y)
+    FinishWindow(win, 'sharePos', y)
 end
 
 function RH.ShowShareWindow(show)
@@ -450,7 +635,7 @@ local function BuildFavoritesWindow()
 
         row.detail = WM:CreateControl(row:GetName() .. "Detail", row, CT_LABEL)
         row.detail:SetFont("ZoFontGameSmall")
-        row.detail:SetColor(ZO_DISABLED_TEXT:UnpackRGBA())
+        row.detail:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
         row.detail:SetAnchor(TOPLEFT, row, TOPLEFT, 198, 2)
         row.detail:SetDimensions(150, 16)
         row.detail:SetMaxLineCount(1)
@@ -466,6 +651,19 @@ local function BuildFavoritesWindow()
             if row.item then RH.ApplyFavoriteToSlot(row.item.id) end
         end)
         rm:SetHeight(24); all:SetHeight(24); wear:SetHeight(24)
+        -- ウィンドウを広げたら、名前欄を広げて、詳細とボタンを右へ動かす
+        local offs = { rm = bx - 30, all = bx - 30 - 4 - 56, wear = bx - 30 - 4 - 56 - 4 - 64 }
+        table.insert(win.rhLayout, function(dw)
+            row:SetWidth(W - pad * 2 + dw)
+            row.name:SetWidth(190 + dw * 0.6)
+            row.detail:ClearAnchors()
+            row.detail:SetAnchor(TOPLEFT, row, TOPLEFT, 198 + dw * 0.6, 2)
+            row.detail:SetWidth(150 + dw * 0.4)
+            for k, ctl in pairs({ rm = rm, all = all, wear = wear }) do
+                ctl:ClearAnchors()
+                ctl:SetAnchor(TOPLEFT, row, TOPLEFT, offs[k] + dw, 0)
+            end
+        end)
 
         RH.ui.favRows[i] = row
         y = y + FAV_ROW_H + 2
@@ -479,12 +677,13 @@ local function BuildFavoritesWindow()
         RH.RefreshFavoritesWindow()
     end)
     RH.ui.favPageLabel = Label(win, "PageLbl", "", pad + 52, y + 4, "ZoFontGame")
-    Button(win, "Next", ">", W - pad - 40, y, 40, function()
+    local nextBtn = Button(win, "Next", ">", W - pad - 40, y, 40, function()
         RH.ui.favPage = (RH.ui.favPage or 1) + 1
         RH.RefreshFavoritesWindow()
     end)
+    Track(win, nextBtn, W - pad - 40, y, 40, 28, 1, 0, 0, 0)
     y = y + 40
-    win:SetHeight(y)
+    FinishWindow(win, 'favPos', y)
 end
 
 function RH.ShowFavoritesWindow(show)
@@ -606,7 +805,7 @@ local function BuildColorsWindow()
         RH.RefreshColorsWindow()
     end)
     y = y + 40
-    win:SetHeight(y)
+    FinishWindow(win, 'colorsPos', y)
 end
 
 function RH.RefreshColorsWindow()

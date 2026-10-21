@@ -46,8 +46,8 @@ function V.New(cfg)
  self.f=cfg.focal or 834
  self.camH=cfg.camHeight or 4.5
  self.camBack=cfg.camBack or 14
- self.maxZ=cfg.maxZ or 700
- self.ahead=cfg.ahead or 118
+ self.maxZ=cfg.maxZ or 580
+ self.ahead=cfg.ahead or 96
  self.theme=V.Themes.default
  self.themeName='default'
  self.wantRich=cfg.rich~=false
@@ -161,7 +161,6 @@ end
 -- Interval pool: for every (band, layer) a few runs of one rectangle each.
 local pool={cnt={},xa={},xb={},r={},g={},b={},a={},u0={},u1={},v0={},v1={},id={}}
 local FIELDS={pool.xa,pool.xb,pool.r,pool.g,pool.b,pool.a,pool.u0,pool.u1,pool.v0,pool.v1,pool.id}
-local S={}                  -- one crossing: x at each end, with the picture coordinates there
 local qx,qz,qu,qt={}, {}, {}, {}
 local function crossing(z,x1,z1,x2,z2,lo,hi)
  if (z1<=z and z2>z) or (z2<=z and z1>z) then
@@ -170,15 +169,6 @@ local function crossing(z,x1,z1,x2,z2,lo,hi)
   if not hi or x>hi then hi=x end
  end
  return lo,hi
-end
-local function crossUV(i,j,z)
- local z1,z2=qz[i],qz[j]
- if (z1<=z and z2>z) or (z2<=z and z1>z) then
-  local k=(z-z1)/(z2-z1)
-  local x=qx[i]+(qx[j]-qx[i])*k
-  if not S.lo or x<S.lo then S.lo,S.ulo,S.tlo=x,qu[i]+(qu[j]-qu[i])*k,qt[i]+(qt[j]-qt[i])*k end
-  if not S.hi or x>S.hi then S.hi,S.uhi,S.thi=x,qu[i]+(qu[j]-qu[i])*k,qt[i]+(qt[j]-qt[i])*k end
- end
 end
 local function addInterval(key,xa,xb,r,g,b,a,u0,u1,v0,v1,id)
  local n=pool.cnt[key]
@@ -221,42 +211,88 @@ end
 -- the picture is the road's cross-section, whose window is picked by `variant`; otherwise `cell`
 -- is the uv table of a plate in the world atlas. The crossing keeps the picture coordinate at
 -- each end of the run, so a road seen at an angle is stretched and flipped correctly.
+-- Written for the interpreter (this is the loop the frame rate is spent in): the corners live in
+-- locals, the four edges are tested inline, and nothing is called per row but addInterval.
 local function fillUV(self,layer,road,variant,cell,tr,tg,tb,dtdz)
- local zmin=min(min(qz[1],qz[2]),min(qz[3],qz[4]));local zmax=max(max(qz[1],qz[2]),max(qz[3],qz[4]))
- local nb=self.nb
+ local x1,z1,x2,z2,x3,z3,x4,z4=qx[1],qz[1],qx[2],qz[2],qx[3],qz[3],qx[4],qz[4]
+ local zmin,zmax=z1,z1
+ if z2<zmin then zmin=z2 elseif z2>zmax then zmax=z2 end
+ if z3<zmin then zmin=z3 elseif z3>zmax then zmax=z3 end
+ if z4<zmin then zmin=z4 elseif z4>zmax then zmax=z4 end
  if zmax<=0 then return end
+ local nb=self.nb
  local K,band=self.K,self.band
- local b0=ceil(K/(min(zmax,self.maxZ)*band)-.5);local b1=floor(K/(max(zmin,.01)*band)-.5)
+ local b0=ceil(K/((zmax<self.maxZ and zmax or self.maxZ)*band)-.5);local b1=floor(K/((zmin>.01 and zmin or .01)*band)-.5)
  if b0<0 then b0=0 end
  if b1>nb-1 then b1=nb-1 end
+ if b0>b1 then return end
  local nl=self.nLayer
  local ti=self.tinfo
- local vc,vh,u0a,u1a
+ local u1,t1,u2,t2,u3,t3,u4,t4=qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]
+ local bandZ,bandScale,bandFog,bandDZ=self.bandZ,self.bandScale,self.bandFog,self.bandDZ
+ local half=self.W/2
+ local vc,vh,u0a,u1a,span
  if road then
   vc=(variant*ti.strip+ti.strip*.5)/ti.roadH;vh=.25/ti.roadH
   u0a,u1a=.5/ti.roadW,1-.5/ti.roadW
+  span=u1a-u0a
  end
  for row=b0,b1 do
-  local z=self.bandZ[row]
+  local z=bandZ[row]
   if z>=zmin and z<=zmax then
-   S.lo,S.hi=nil,nil
-   crossUV(1,2,z);crossUV(2,3,z);crossUV(3,4,z);crossUV(4,1,z)
-   if S.lo and S.hi and S.hi>S.lo then
-    local sc=self.bandScale[row]
-    local alpha=1-self.bandFog[row]*.95
+   local lo,hi,ulo,uhi,tlo,thi
+   if (z1<=z and z2>z) or (z2<=z and z1>z) then
+    local k=(z-z1)/(z2-z1);local x=x1+(x2-x1)*k
+    if not lo then lo=x;ulo=u1+(u2-u1)*k;tlo=t1+(t2-t1)*k;hi=lo;uhi=ulo;thi=tlo
+    else
+     if x<lo then lo=x;ulo=u1+(u2-u1)*k;tlo=t1+(t2-t1)*k end
+     if x>hi then hi=x;uhi=u1+(u2-u1)*k;thi=t1+(t2-t1)*k end
+    end
+   end
+   if (z2<=z and z3>z) or (z3<=z and z2>z) then
+    local k=(z-z2)/(z3-z2);local x=x2+(x3-x2)*k
+    if not lo then lo=x;ulo=u2+(u3-u2)*k;tlo=t2+(t3-t2)*k;hi=lo;uhi=ulo;thi=tlo
+    else
+     if x<lo then lo=x;ulo=u2+(u3-u2)*k;tlo=t2+(t3-t2)*k end
+     if x>hi then hi=x;uhi=u2+(u3-u2)*k;thi=t2+(t3-t2)*k end
+    end
+   end
+   if (z3<=z and z4>z) or (z4<=z and z3>z) then
+    local k=(z-z3)/(z4-z3);local x=x3+(x4-x3)*k
+    if not lo then lo=x;ulo=u3+(u4-u3)*k;tlo=t3+(t4-t3)*k;hi=lo;uhi=ulo;thi=tlo
+    else
+     if x<lo then lo=x;ulo=u3+(u4-u3)*k;tlo=t3+(t4-t3)*k end
+     if x>hi then hi=x;uhi=u3+(u4-u3)*k;thi=t3+(t4-t3)*k end
+    end
+   end
+   if (z4<=z and z1>z) or (z1<=z and z4>z) then
+    local k=(z-z4)/(z1-z4);local x=x4+(x1-x4)*k
+    if not lo then lo=x;ulo=u4+(u1-u4)*k;tlo=t4+(t1-t4)*k;hi=lo;uhi=ulo;thi=tlo
+    else
+     if x<lo then lo=x;ulo=u4+(u1-u4)*k;tlo=t4+(t1-t4)*k end
+     if x>hi then hi=x;uhi=u4+(u1-u4)*k;thi=t4+(t1-t4)*k end
+    end
+   end
+   if lo and hi>lo then
+    local sc=bandScale[row]
+    local alpha=1-bandFog[row]*.95
     local ua,ub,va,vb
     if road then
-     ua,ub=u0a+S.ulo*(u1a-u0a),u0a+S.uhi*(u1a-u0a)
+     ua,ub=u0a+ulo*span,u0a+uhi*span
      va,vb=vc-vh,vc+vh
     else
-     local tm=(S.tlo+S.thi)*.5
-     local dt=abs(dtdz)*self.bandDZ[row]*.5
+     local tm=(tlo+thi)*.5
+     local dt=abs(dtdz)*bandDZ[row]*.5
      local vtop,vbot=1-(tm+dt),1-(tm-dt)
      if vtop<0 then vtop=0 end;if vbot>1 then vbot=1 end;if vbot<vtop then vbot=vtop end
-     ua,ub=cell.u0+C.clamp(S.ulo,0,1)*(cell.u1-cell.u0),cell.u0+C.clamp(S.uhi,0,1)*(cell.u1-cell.u0)
-     va,vb=cell.v0+vtop*(cell.v1-cell.v0),cell.v0+vbot*(cell.v1-cell.v0)
+     local cu0,cu1,cv0,cv1=cell.u0,cell.u1,cell.v0,cell.v1
+     local ul,ur=ulo,uhi
+     if ul<0 then ul=0 elseif ul>1 then ul=1 end
+     if ur<0 then ur=0 elseif ur>1 then ur=1 end
+     ua,ub=cu0+ul*(cu1-cu0),cu0+ur*(cu1-cu0)
+     va,vb=cv0+vtop*(cv1-cv0),cv0+vbot*(cv1-cv0)
     end
-    addInterval(row*nl+layer-1,self.W/2+S.lo*sc,self.W/2+S.hi*sc,tr,tg,tb,alpha,ua,ub,va,vb,variant)
+    addInterval(row*nl+layer-1,half+lo*sc,half+hi*sc,tr,tg,tb,alpha,ua,ub,va,vb,variant)
    end
   end
  end
@@ -265,34 +301,46 @@ end
 -- that continue each other (same picture, same colour, picture coordinate carries on) join; if
 -- there are still too many, the closest pair is joined whatever it is, which only ever costs a
 -- stripe in a hairpin.
-local function move(to,from) for _,arr in ipairs(FIELDS) do arr[to]=arr[from] end end
+-- This runs for every band and layer on every frame, so it is written for the interpreter: the
+-- eleven fields are moved by name rather than looped over, the arrays are locals, and a band with
+-- a single run (nearly all of them) returns before doing anything.
+local Pxa,Pxb,Pr,Pg,Pb,Pa,Pu0,Pu1,Pv0,Pv1,Pid=pool.xa,pool.xb,pool.r,pool.g,pool.b,pool.a,pool.u0,pool.u1,pool.v0,pool.v1,pool.id
+local Pcnt=pool.cnt
+local function move(to,from)
+ Pxa[to]=Pxa[from];Pxb[to]=Pxb[from];Pr[to]=Pr[from];Pg[to]=Pg[from];Pb[to]=Pb[from];Pa[to]=Pa[from]
+ Pu0[to]=Pu0[from];Pu1[to]=Pu1[from];Pv0[to]=Pv0[from];Pv1[to]=Pv1[from];Pid[to]=Pid[from]
+end
 local function settle(key,slots)
- local n=pool.cnt[key];if n==0 then return 0 end
+ local n=Pcnt[key]
+ if n<=1 then return n end
  local base=key*CAP
- local xa=pool.xa
  for i=2,n do
-  -- insertion sort on xa; slot 0 of the key is free (entries are 1..CAP) and serves as scratch
-  move(base,base+i)
-  local j=i-1
-  while j>=1 and xa[base+j]>xa[base] do move(base+j+1,base+j);j=j-1 end
-  move(base+j+1,base)
+  -- insertion sort on xa, only for a run that is out of order; slot 0 of the key is free
+  -- (entries are 1..CAP) and serves as scratch
+  if Pxa[base+i]<Pxa[base+i-1] then
+   move(base,base+i)
+   local j=i-1
+   local x=Pxa[base]
+   while j>=1 and Pxa[base+j]>x do move(base+j+1,base+j);j=j-1 end
+   move(base+j+1,base)
+  end
  end
  local m=1
  for i=2,n do
   local at=base+m;local nx=base+i
-  local near=abs(pool.r[nx]-pool.r[at])<1e-4 and abs(pool.g[nx]-pool.g[at])<1e-4 and abs(pool.b[nx]-pool.b[at])<1e-4 and abs(pool.a[nx]-pool.a[at])<.02
-  local carries=pool.id[nx]==pool.id[at] and abs(pool.u0[nx]-pool.u1[at])<.004 and abs(pool.v0[nx]-pool.v0[at])<.02
-  if xa[nx]<=pool.xb[at]+1.5 and near and carries then
-   if pool.xb[nx]>pool.xb[at] then pool.xb[at]=pool.xb[nx];pool.u1[at]=pool.u1[nx] end
+  if Pxa[nx]<=Pxb[at]+1.5 and Pid[nx]==Pid[at]
+   and abs(Pa[nx]-Pa[at])<.02 and abs(Pr[nx]-Pr[at])<1e-4 and abs(Pg[nx]-Pg[at])<1e-4 and abs(Pb[nx]-Pb[at])<1e-4
+   and abs(Pu0[nx]-Pu1[at])<.004 and abs(Pv0[nx]-Pv0[at])<.02 then
+   if Pxb[nx]>Pxb[at] then Pxb[at]=Pxb[nx];Pu1[at]=Pu1[nx] end
   else m=m+1;move(base+m,nx) end
  end
  while m>slots do
   local best,bi=1e9,1
   for i=1,m-1 do
-   local gap=xa[base+i+1]-pool.xb[base+i]
+   local gap=Pxa[base+i+1]-Pxb[base+i]
    if gap<best then best,bi=gap,i end
   end
-  if pool.xb[base+bi+1]>pool.xb[base+bi] then pool.xb[base+bi]=pool.xb[base+bi+1];pool.u1[base+bi]=pool.u1[base+bi+1] end
+  if Pxb[base+bi+1]>Pxb[base+bi] then Pxb[base+bi]=Pxb[base+bi+1];Pu1[base+bi]=Pu1[base+bi+1] end
   for i=bi+1,m-1 do move(base+i,base+i+1) end
   m=m-1
  end
@@ -306,53 +354,72 @@ end
 -- Scratch space reused every frame: the renderer runs thirty times a second and the garbage a
 -- fresh set of tables would leave is memory the console has to collect while the race runs.
 local tcx,tcz,trcx,trcz,tcdepth,trdepth,twd={}, {}, {}, {}, {}, {}, {}
-local G={cx=0,cy=0,fx=0,fy=0,rx=0,ry=0,elev=0,pitch=0,camH=0}
-local function elevated(x,z,h,elev,pitch,camH)
- local cp,sp=cos(pitch),sin(pitch)
- local up=(h-(elev+camH))
+local G={cx=0,cy=0,fx=0,fy=0,rx=0,ry=0,elev=0,pitch=0,camH=0,cp=1,sp=0}
+-- Where a point `h` metres up lands, as the (x, z) of a flat floor that would put it in the same
+-- place on screen, plus its true depth. The pitch's sine and cosine are passed in: they are the
+-- same for every point of a frame, and working them out per point was most of this function.
+local function elevatedCS(x,z,h,elev,cp,sp,camH)
+ local up=h-(elev+camH)
  local depth=z*cp+up*sp
- local cameraUp=-z*sp+up*cp
  if depth<.05 then return x,z,depth end
- local pseudo=camH*depth/max(.35,-cameraUp)
+ local d=up*cp-z*sp
+ d=-d;if d<.35 then d=.35 end
+ local pseudo=camH*depth/d
  return x*pseudo/depth,pseudo,depth
 end
+local function elevated(x,z,h,elev,pitch,camH) return elevatedCS(x,z,h,elev,cos(pitch),sin(pitch),camH) end
 local function cam2(x,y,h)
  local dx,dy=x-G.cx,y-G.cy
- local xx,zz=dx*G.rx+dy*G.ry,dx*G.fx+dy*G.fy
- return elevated(xx,zz,h or 0,G.elev,G.pitch,G.camH)
+ return elevatedCS(dx*G.rx+dy*G.ry,dx*G.fx+dy*G.fy,h or 0,G.elev,G.cp,G.sp,G.camH)
 end
 -- Paints the decals whose s lies in [lo,hi]. Point() wraps s, so a window that runs past the
--- start line needs no special casing here.
-local function paintDecals(self,track,list,lo,hi)
+-- start line needs no special casing here. A decal never moves, so its four corners and their
+-- heights are worked out the first time it is wanted and kept on the decal. Dashes are 9 m
+-- slivers: beyond DASH_RANGE they are smaller than a band, so they are not drawn.
+local DASH_RANGE=260
+local DASHCELL={u0=0,u1=0,v0=0,v1=0}
+local function paintDecals(self,track,list,lo,hi,camS)
  local rich=self.rich
  local ids=self.layerAt.mark
  local world=rich and self.atlas.world
  local white=rich and self:CellUV(world,'white')
  local neon=self.theme.neon
+ local L=track.length
+ local cu,cv
+ if white then cu,cv=(white.u0+white.u1)*.5,(white.v0+white.v1)*.5 end
  for _,dc in ipairs(list) do
   if dc.s0>hi then break end
   if dc.s1>=lo then
-   local x1,y1=track:Point(dc.s0,dc.d0);local x2,y2=track:Point(dc.s1,dc.d0)
-   local x3,y3=track:Point(dc.s1,dc.d1);local x4,y4=track:Point(dc.s0,dc.d1)
-   local h0,h1=track:Elevation(dc.s0),track:Elevation(dc.s1)
-   local a1,b1=cam2(x1,y1,h0);local a2,b2=cam2(x2,y2,h1);local a3,b3=cam2(x3,y3,h1);local a4,b4=cam2(x4,y4,h0)
-   if not rich then
-    fillQuad(self,ids,a1,b1,a2,b2,a3,b3,a4,b4,dc.r,dc.g,dc.b)
-   else
-    qx[1],qz[1],qx[2],qz[2],qx[3],qz[3],qx[4],qz[4]=a1,b1,a2,b2,a3,b3,a4,b4
-    if dc.cell then
-     -- (u,t): u across the plate, t along it; vertex order matches the quad above
-     qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,1,1,1,1,0
-     local cell=self:CellUV(world,dc.cell)
-     local dz=abs(b2-b1);if dz<.05 then dz=abs(b3-b4) end
-     local tr,tg,tb=1,1,1
-     if dc.tint=='neon' then tr,tg,tb=neon[1],neon[2],neon[3] end
-     fillUV(self,ids,false,0,cell,tr,tg,tb,1/max(.05,dz))
+   local far=false
+   if not dc.cell and rich then
+    local dist=dc.s0-camS;if dist<0 then dist=dist+L end
+    far=dist>DASH_RANGE
+   end
+   if not far then
+    if not dc.wx1 then
+     dc.wx1,dc.wy1=track:Point(dc.s0,dc.d0);dc.wx2,dc.wy2=track:Point(dc.s1,dc.d0)
+     dc.wx3,dc.wy3=track:Point(dc.s1,dc.d1);dc.wx4,dc.wy4=track:Point(dc.s0,dc.d1)
+     dc.wh0,dc.wh1=track:Elevation(dc.s0),track:Elevation(dc.s1)
+    end
+    local a1,b1=cam2(dc.wx1,dc.wy1,dc.wh0);local a2,b2=cam2(dc.wx2,dc.wy2,dc.wh1)
+    local a3,b3=cam2(dc.wx3,dc.wy3,dc.wh1);local a4,b4=cam2(dc.wx4,dc.wy4,dc.wh0)
+    if not rich then
+     fillQuad(self,ids,a1,b1,a2,b2,a3,b3,a4,b4,dc.r,dc.g,dc.b)
     else
-     qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,0,0,0,0,0
-     local cu,cv=(white.u0+white.u1)*.5,(white.v0+white.v1)*.5
-     local cell={u0=cu,u1=cu,v0=cv,v1=cv}
-     fillUV(self,ids,false,0,cell,dc.r,dc.g,dc.b,0)
+     qx[1],qz[1],qx[2],qz[2],qx[3],qz[3],qx[4],qz[4]=a1,b1,a2,b2,a3,b3,a4,b4
+     if dc.cell then
+      -- (u,t): u across the plate, t along it; vertex order matches the quad above
+      qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,1,1,1,1,0
+      local cell=self:CellUV(world,dc.cell)
+      local dz=abs(b2-b1);if dz<.05 then dz=abs(b3-b4) end
+      local tr,tg,tb=1,1,1
+      if dc.tint=='neon' then tr,tg,tb=neon[1],neon[2],neon[3] end
+      fillUV(self,ids,false,0,cell,tr,tg,tb,1/max(.05,dz))
+     else
+      qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,0,0,0,0,0
+      DASHCELL.u0,DASHCELL.u1,DASHCELL.v0,DASHCELL.v1=cu,cu,cv,cv
+      fillUV(self,ids,false,0,DASHCELL,dc.r,dc.g,dc.b,0)
+     end
     end
    end
   end
@@ -366,6 +433,7 @@ function V:Ground(track)
  local n=track.n
  local NS=self.ahead
  local i0=cam.idx-6
+ local cp,sp,camH=cos(cam.pitch),sin(cam.pitch),self.camH
  -- Camera-space centre and right vector of every sample in view.
  local cx,cz,rcx,rcz,depth,rdepth,wd=tcx,tcz,trcx,trcz,tcdepth,trdepth,twd
  for j=0,NS do
@@ -373,8 +441,8 @@ function V:Ground(track)
   local dx,dy=track.x[i]-cam.x,track.y[i]-cam.y
   local ox,oz=dx*rx+dy*ry,dx*fx+dy*fy
   local orx,orz=track.rx[i]*rx+track.ry[i]*ry,track.rx[i]*fx+track.ry[i]*fy
-  local ex,ez,ed=elevated(ox,oz,track.z[i],cam.elev,cam.pitch,self.camH)
-  local erx,erz,erd=elevated(ox+orx,oz+orz,track.z[i],cam.elev,cam.pitch,self.camH)
+  local ex,ez,ed=elevatedCS(ox,oz,track.z[i],cam.elev,cp,sp,camH)
+  local erx,erz,erd=elevatedCS(ox+orx,oz+orz,track.z[i],cam.elev,cp,sp,camH)
   cx[j],cz[j],rcx[j],rcz[j]=ex,ez,erx-ex,erz-ez
   depth[j],rdepth[j]=ed,erd-ed
   wd[j]=track.w[i]
@@ -393,8 +461,8 @@ function V:Ground(track)
     qx[3],qz[3]=cx[b]+rcx[b]*db,cz[b]+rcz[b]*db
     qx[4],qz[4]=cx[a]+rcx[a]*da,cz[a]+rcz[a]*da
     qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,0,1,0,1,0
-    -- stripe along the lap, barrier stripe, and a running light that creeps with the clock
-    local variant=(floor((i-1)/2)%2)+((i-1)%2)*2+((i+chase)%4)*4
+    -- stripe along the lap (24 m), barrier stripe (12 m), and a running light that creeps with the clock
+    local variant=(floor((i-1)/4)%2)+(floor((i-1)/2)%2)*2+(floor((i+chase)/2)%4)*4
     fillUV(self,roadL,true,variant,nil,1,1,1,0)
    end
   end
@@ -414,53 +482,79 @@ function V:Ground(track)
   end
  end
  -- Decals: the dashes, the grid, the arrows and the zone plates.
- G.cx,G.cy,G.fx,G.fy,G.rx,G.ry,G.elev,G.pitch,G.camH=cam.x,cam.y,fx,fy,rx,ry,cam.elev,cam.pitch,self.camH
+ G.cx,G.cy,G.fx,G.fy,G.rx,G.ry,G.elev,G.pitch,G.camH,G.cp,G.sp=cam.x,cam.y,fx,fy,rx,ry,cam.elev,cam.pitch,self.camH,cp,sp
  local L=track.length
  local sA=cam.s-18;local sB=cam.s+self.maxZ*1.02
  local list=self.rich and track.decalsRich or track.decals
- if sA<0 then paintDecals(self,track,list,sA+L,L) end
- paintDecals(self,track,list,max(sA,0),min(sB,L))
- if sB>L then paintDecals(self,track,list,0,sB-L) end
- -- Emit.
- local o=self.o;o.n=0
+ if sA<0 then paintDecals(self,track,list,sA+L,L,cam.s) end
+ paintDecals(self,track,list,max(sA,0),min(sB,L),cam.s)
+ if sB>L then paintDecals(self,track,list,0,sB-L,cam.s) end
+ -- Emit. Every array is a local and the rectangle is written in place: this loop runs for every
+ -- band on every frame.
+ local o=self.o
+ local oslot,ox,oy,ow,oh,or_,og,ob,oa,ou0,ou1,ov0,ov1=o.slot,o.x,o.y,o.w,o.h,o.r,o.g,o.b,o.a,o.u0,o.u1,o.v0,o.v1
+ local on=0
  local W=self.W
  local rich=self.rich
+ local spb,band=self.spb,self.band
+ local layers,layerBase=self.layers,self.layerBase
+ local hy=self.hy
+ local voidAt=rich and (self.layerBase[self.layerAt.void]) or 0
+ local stripes=self.stripes
+ local bandZ,bandVoid,voidAlt=self.bandZ,self.bandVoid,self.voidAlt
+ local white=self.whiteUV
+ if rich and not white then white=self:CellUV(self.atlas.world,'white');self.whiteUV=white end
+ local cu,cv=0,0
+ if rich then cu,cv=(white.u0+white.u1)*.5,(white.v0+white.v1)*.5 end
+ local odo=cam.odo
  for row=0,nb-1 do
-  local y=self.hy+row*self.band
+  local y=hy+row*band
   for layer=1,nl do
-   local layerDef=self.layers[layer]
+   local layerDef=layers[layer]
    if layerDef[1]~='void' then
     local key=row*nl+layer-1
-    local m=settle(key,layerDef[2])
-    local base=key*CAP
-    for q=1,m do
-     local xa,xb=pool.xa[base+q],pool.xb[base+q]
-     local u0,u1=pool.u0[base+q],pool.u1[base+q]
-     if rich then
-      local span=xb-xa
-      if span>0 then
-       local du=pool.u1[base+q]-pool.u0[base+q]
-       if xa<0 then u0=pool.u0[base+q]+(0-xa)/span*du end
-       if xb>W then u1=pool.u0[base+q]+(W-xa)/span*du end
+    local n=Pcnt[key]
+    if n>0 then
+     local m=settle(key,layerDef[2])
+     local base=key*CAP
+     local slot0=row*spb+layerBase[layer]-1
+     for q=1,m do
+      local at=base+q
+      local xa,xb=Pxa[at],Pxb[at]
+      local u0,u1=Pu0[at],Pu1[at]
+      if rich then
+       local span=xb-xa
+       if span>0 and (xa<0 or xb>W) then
+        local du=u1-u0
+        if xa<0 then u0=Pu0[at]+(0-xa)/span*du end
+        if xb>W then u1=Pu0[at]+(W-xa)/span*du end
+       end
+      end
+      if xa<0 then xa=0 end
+      if xb>W then xb=W end
+      if xb-xa>=.5 then
+       on=on+1
+       oslot[on],ox[on],oy[on],ow[on],oh[on]=slot0+q,xa,y,xb-xa,band+.5
+       or_[on],og[on],ob[on],oa[on]=Pr[at],Pg[at],Pb[at],Pa[at]
+       ou0[on],ou1[on],ov0[on],ov1[on]=u0,u1,Pv0[at],Pv1[at]
       end
      end
-     if xa<0 then xa=0 end
-     if xb>W then xb=W end
-     if xb-xa>=.5 then push(o,row*self.spb+self.layerBase[layer]+q-1,xa,y,xb-xa,self.band+.5,pool.r[base+q],pool.g[base+q],pool.b[base+q],pool.a[base+q],u0,u1,pool.v0[base+q],pool.v1[base+q]) end
     end
    end
   end
   if rich then
-   -- The ground outside the road: two tones that slide towards the camera as the machine moves.
-   local z=self.bandZ[row]
-   local par=floor((z+cam.odo)/26)%2
-   local c=par==0 and self.bandVoid[row] or self.voidAlt[row]
-   local white=self.whiteUV
-   if not white then white=self:CellUV(self.atlas.world,'white');self.whiteUV=white end
-   local cu,cv=(white.u0+white.u1)*.5,(white.v0+white.v1)*.5
-   push(o,row*self.spb+self.layerBase[self.layerAt.void],0,y,W,self.band+1,c[1],c[2],c[3],1,cu,cu,cv,cv)
+   -- The ground outside the road. With stripes (high quality) it is two tones that slide towards
+   -- the camera as the machine moves; without, one tone that never changes, so its control is
+   -- never touched after the first frame.
+   local c=bandVoid[row]
+   if stripes and floor((bandZ[row]+odo)/26)%2==1 then c=voidAlt[row] end
+   on=on+1
+   oslot[on],ox[on],oy[on],ow[on],oh[on]=row*spb+voidAt,0,y,W,band+1
+   or_[on],og[on],ob[on],oa[on]=c[1],c[2],c[3],1
+   ou0[on],ou1[on],ov0[on],ov1[on]=cu,cu,cv,cv
   end
  end
+ o.n=on
  return o.n
 end
 -- ---------------------------------------------------------------------------------------
@@ -615,20 +709,23 @@ function V:WorldSprites(race,track)
    end
   end
  end
- -- Posts along both edges every 36 m, and the start gantry.
+ -- Posts along both edges every 48 m, and the start gantry.
  if track then
   local pylons=self.theme.pylons
   local signs=self.theme.signs or {'sign_cyan','sign_pink'}
   local n=track.n
   local i0=cam.idx-6
   local cx,cz,rcx,rcz,depth,rdepth,wd=tcx,tcz,trcx,trcz,tcdepth,trdepth,twd
+  local propRange=self.lite and 170 or 300
   for j=0,self.ahead do
    local i=(i0+j-1)%n+1
    local z=depth[j]
    if z>10 and z<self.maxZ*.78 and cz[j]>0 then
     local side=wd[j]+self.wall+.9
-    if (i-1)%6==0 then
-     local cell=self:CellUV(world_,pylons[((i-1)/6)%2+1])
+    -- Posts and signs are 6 m tall: past this they are a few pixels and not worth a control each
+    local near=z<propRange
+    if near and (i-1)%8==0 then
+     local cell=self:CellUV(world_,pylons[((i-1)/8)%2+1])
      for s=-1,1,2 do
       local px=cx[j]+s*rcx[j]*side
       local pz=cz[j]+s*rcz[j]*side
@@ -642,7 +739,7 @@ function V:WorldSprites(race,track)
     end
     -- A sparse run of luminous sponsor-style signs gives the road a proper race venue without
     -- costing a control for every roadside sample.
-    if (i-16)%30==0 then
+    if near and not self.lite and (i-16)%30==0 then
      local which=floor((i-16)/30)%2+1
      local cell=self:CellUV(world_,signs[which])
      local sideSign=wd[j]+self.wall+2.4
@@ -768,7 +865,7 @@ function V:PanoWindows(heading,parallax,out)
  return 2
 end
 function V:Frame(track,race)
- self.chase=floor(race.time*11)
+ self.chase=floor(race.time*5)
  self:Ground(track)
  if self.rich then self:WorldSprites(race,track) else self:Sprites(race) end
  return self.o.n

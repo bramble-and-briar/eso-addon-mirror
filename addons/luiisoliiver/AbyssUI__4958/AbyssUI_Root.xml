@@ -1,0 +1,74 @@
+<GuiXml>
+    <Controls>
+        <!-- Ability bar group -->
+        <TopLevelControl name="NAGARoot" mouseEnabled="true" movable="true" hidden="false" clampedToScreen="true" tier="MEDIUM" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="900" y="120" />
+            <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetX="0" offsetY="-52" />
+        </TopLevelControl>
+
+        <!-- HUD DE PERSONAGEM (vida/magicka/vigor + XP/montaria) no Edit HUD nativo -->
+        <TopLevelControl name="NAGA_UI_ResourceBarsRoot" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true" tier="HIGH" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="420" y="80" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-120" />
+        </TopLevelControl>
+
+        <!-- Target frame (same Edit HUD path as MiniMap) -->
+        <TopLevelControl name="NAGA_UI_TargetFrameRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="MEDIUM" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="280" y="55" />
+            <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="88" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_UI_CastBarRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="MEDIUM" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="400" y="20" />
+            <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetX="0" offsetY="-180" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_UI_GroupFramesRoot" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true" tier="MEDIUM" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="260" y="200" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="28" offsetY="100" />
+        </TopLevelControl>
+
+        <!-- NAGA Companion Frame: native ESO Edit HUD element. -->
+        <TopLevelControl name="NAGA_CompanionFrameRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="MEDIUM" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="220" y="90" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="250" offsetY="280" />
+        </TopLevelControl>
+
+        <!-- NAGA Buffs: player/target seguem as barras correspondentes em runtime. -->
+        <TopLevelControl name="NAGA_BuffsPlayerRoot" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="480" y="48" />
+            <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetX="0" offsetY="8" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_BuffsTargetRoot" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="480" y="48" />
+            <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="-8" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_BuffsPassiveRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="44" y="656" />
+            <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_BuffsCustomRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="160" y="320" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="300" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_BuffsSynergyRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="160" y="240" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="-300" offsetY="200" />
+        </TopLevelControl>
+
+        <TopLevelControl name="NAGA_BuffsWidgetsRoot" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="200" y="320" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="400" offsetY="350" />
+        </TopLevelControl>
+
+        <!-- NAGA Info Panel: must be a real ZO_HUDManager_Element so ESO Edit HUD can safely read its anchors. -->
+        <TopLevelControl name="NAGA_InfoPanel" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true" tier="HIGH" layer="OVERLAY" level="0" inherits="ZO_HUDManager_Element">
+            <Dimensions x="10" y="48" />
+            <Anchor point="TOPRIGHT" relativeTo="GuiRoot" relativePoint="TOPRIGHT" offsetX="-24" offsetY="20" />
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

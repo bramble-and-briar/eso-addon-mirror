@@ -28,6 +28,11 @@ Module.STRINGS = {
 
 local DEFAULT_VOLATILE_SHELL_MODE = ZO_IsConsoleOrGameCoreUI() and 1 or 2
 
+local ASTRAL_STATE_NONE = 0
+local ASTRAL_STATE_CASTING = 1
+local ASTRAL_STATE_SHIELDED = 2
+local ASTRAL_STATE_SHIELDED_CASTING = 3
+
 Module.DEFAULT_SETTINGS = {
 	eyeLeftRight = false,
 	eyeArrow = 0x99CCFF66,
@@ -107,7 +112,12 @@ function Module:Initialize( )
 	}
 
 	self.vars = {
-		astralShields = 0,
+		astral = {
+			bannerId = nil,
+			state = ASTRAL_STATE_NONE,
+			stateEnd = 0,
+			count = 0,
+		},
 		coneCount = 0,
 		bahsei = false,
 		behemothExclusions = { },
@@ -121,6 +131,26 @@ function Module:Initialize( )
 
 	self:HandleCompatibility()
 	self:MigrateLegacyGroundArrowSettings() -- TODO: Remove in 2027
+
+	self.BannerPoll_Astral = function( )
+		local a = Vars.astral
+		if (a.stateEnd < GetGameTimeMilliseconds()) then
+			CA1.DisableBanner(a.bannerId)
+			a.bannerId = nil
+			a.state = ASTRAL_STATE_NONE
+		end
+		if (a.bannerId) then
+			local statusText
+			if (a.state == ASTRAL_STATE_SHIELDED) then
+				statusText = string.format("%d×", a.count)
+			elseif (a.state == ASTRAL_STATE_SHIELDED_CASTING) then
+				statusText = string.format("%d× + %s", a.count, GetString(SI_LCA_CHANNELING))
+			else
+				statusText = GetString(SI_LCA_CHANNELING)
+			end
+			CA1.ModifyBanner(a.bannerId, nil, string.format("%s: %s", LCA.GetAbilityName(DATA.astral.shield), statusText), 0x00FFFFFF)
+		end
+	end
 end
 
 function Module:PreStartListening( )
@@ -170,12 +200,28 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		CA1.Alert(nil, LCA.GetAbilityName(abilityId), 0xFF9900FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 3000)
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.meteorCall) then
 		CA1.Alert(nil, LCA.GetAbilityName(abilityId), 0xFF9900FF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
+	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.astral.cast) then
+		local a = Vars.astral
+		a.stateEnd = GetGameTimeMilliseconds() + hitValue + 500
+		if (a.state == ASTRAL_STATE_NONE) then
+			a.state = ASTRAL_STATE_CASTING
+			a.bannerId = CA1.AlertBannerEx(nil, nil, nil, nil, true, SOUNDS.CHAMPION_POINTS_COMMITTED, self.BannerPoll_Astral)
+		elseif (a.state == ASTRAL_STATE_SHIELDED) then
+			a.state = ASTRAL_STATE_SHIELDED_CASTING
+		end
 	elseif (result == ACTION_RESULT_EFFECT_GAINED and abilityId == DATA.astral.shield) then
-		Vars.astralShields = Vars.astralShields + 1
-		LCA.CoalescedDelayedCall("u30astral", 50, function( )
-			CA1.Alert(nil, LCA.GetAbilityName(abilityId) .. string.format(" (%d)", Vars.astralShields), 0x00FFFFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-			Vars.astralShields = 0
-		end)
+		local a = Vars.astral
+		if (a.state ~= ASTRAL_STATE_NONE) then
+			if (a.state ~= ASTRAL_STATE_SHIELDED) then
+				if (a.state ~= ASTRAL_STATE_SHIELDED_CASTING) then
+					a.count = 0
+				end
+				a.state = ASTRAL_STATE_SHIELDED
+				a.stateEnd = GetGameTimeMilliseconds() + 2000
+				LCA.PlaySounds("RAID_TRIAL_FAILED") -- Or DEATH_RECAP_KILLING_BLOW_SHOWN?
+			end
+			a.count = a.count + 1
+		end
 	elseif (result == ACTION_RESULT_EFFECT_GAINED and DATA.eye[abilityId]) then
 		self:CreepingEye(unpack(DATA.eye[abilityId]))
 	elseif (result == ACTION_RESULT_EFFECT_GAINED and targetType == COMBAT_UNIT_TYPE_PLAYER and abilityId == DATA.takingAim) then
@@ -240,9 +286,15 @@ function Module:GetSettingsControls( )
 end
 
 function Module:HandleCompatibility( )
-	-- Disable bad parts from Qcell's addon
-	if (QRH and QRH.savedVariables) then
-		QRH.savedVariables.showBahseiSlamForTanks = false
+	-- Disable broken or incompatible parts from Qcell's addon
+	if (QRH) then
+		if (QRH.savedVariables) then
+			QRH.savedVariables.showBahseiSlamForTanks = false
+		end
+		if (QRH.data) then
+			QRH.data.soulweaver_shield = "off"
+			QRH.data.soulweaver_remnant = "off"
+		end
 	end
 end
 

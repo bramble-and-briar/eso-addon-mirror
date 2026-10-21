@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/luiisoliiver/AbyssUI__4958",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "luiisoliiver",
   "canonical_id": "esoui:4958",
   "category_id": "159",
@@ -21,7 +20,7 @@
     "modules"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4958/",
-  "fingerprint": "ea084df5cb728da10d860786c21e9a1c7c3b9c2780ef6c5ea4448d9a097176b3",
+  "fingerprint": "a1d5e6d458fc2bc3152b5383a52a5025526e7608b0835b7ac37a0013cb5fbf74",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18020.png",
     "https://cdn-eso.mmoui.com/preview/pvw18021.png",
@@ -36,11 +35,11 @@
   "source_id": "4958",
   "source_url": "https://www.esoui.com/downloads/info4958-AbyssUI.html",
   "stats": {
-    "downloads": 1,
+    "downloads": 51,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 48
   },
   "title": "AbyssUI",
-  "updated_at": 1792208938000,
-  "version": "17/10/2026"
+  "updated_at": 1792554246000,
+  "version": "21/10/2026"
 }

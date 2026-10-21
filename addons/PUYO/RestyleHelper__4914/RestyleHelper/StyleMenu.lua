@@ -29,7 +29,7 @@ function RH.ApplyStyleToAll(collectibleId, respectLocks)
         if not (respectLocks and RH.sv.locks[slot]) then
             local sm = RH.GetSlotManip(om, slot)
             if sm then
-                local id, sub = RH.FindInStyle(info.styleId, slot, info.armorType, collectibleId)
+                local id, sub = RH.FindInStyle(info.styleId, slot, info.weight, collectibleId)
                 if id then
                     local cur = RH.GetSlotState(sm)
                     -- 同じピースなら素材インデックスは維持
@@ -163,4 +163,82 @@ function RH.InstallStyleMenuHooks()
             ShowMenu(nil)
         end, 50)
     end)
+end
+
+---------------------------------------------------------------------------
+-- 今のスタイルを軽装 / 中装 / 重装に切り替える(防具7部位。同じスタイルの別の重さのピースに差し替え)
+-- 武器・重さのないスタイル・該当ピースが無い(未所持を含む)部位は変更しない
+---------------------------------------------------------------------------
+RH.WEIGHT_TYPES = {
+    light  = VISUAL_ARMORTYPE_LIGHT  or 1,
+    medium = VISUAL_ARMORTYPE_MEDIUM or 2,
+    heavy  = VISUAL_ARMORTYPE_HEAVY  or 3,
+}
+
+function RH.SwitchWeight(weightKey)
+    local armorType = RH.WEIGHT_TYPES[weightKey]
+    local om = RH.RequireManipulator()
+    if not (om and armorType) then return end
+    local idx = RH.GetStyleIndex()
+    RH.PushUndo(om)
+    local changed, same, missing = 0, 0, {}
+    for _, slot in ipairs(RH.armorSlots) do
+        local sm = RH.GetSlotManip(om, slot)
+        local st = sm and RH.GetSlotState(sm)
+        local id = st and st.id or 0
+        local info = id ~= 0 and idx.info[id] or nil
+        if info and info.styleId ~= 0 and info.weight ~= 0 then
+            if info.weight == armorType or not RH.SlotHasWeightVariants(info.styleId, slot) then
+                same = same + 1   -- 重さが1種類しか無い部位は、そのまま(切り替え対象外)
+            else
+                local newId, substituted = RH.FindInStyle(info.styleId, slot, armorType)
+                if newId and not substituted and newId ~= id and RH.SetSlotStyle(sm, newId, RH.DEFAULT_MATERIAL) then
+                    changed = changed + 1
+                else
+                    missing[#missing + 1] = RH.GetSlotName(slot)
+                end
+            end
+        end
+    end
+    RH.forceMsg = true
+    if changed + same == 0 and #missing == 0 then
+        RH.Msg(L.MSG_WEIGHT_NONE)
+    else
+        RH.Msg(L.MSG_WEIGHT_DONE, L["WEIGHT_" .. weightKey], changed, same, #missing > 0 and table.concat(missing, ", ") or L.COVER_NONE)
+    end
+    RH.forceMsg = false
+end
+
+---------------------------------------------------------------------------
+-- 未所持のスタイル / 染料が保留に含まれているときの警告表示
+-- (未所持が含まれる間は、ゲームの仕様で服飾台の「適用」ができない)
+---------------------------------------------------------------------------
+function RH.UpdateUnownedWarning(om)
+    local lbl = RH.ui and RH.ui.unownedLabel
+    if not lbl then return end
+    local warn = false
+    local styleSlots, dyeCount = {}, 0
+    RH.unownedSlots = {}
+    if om then
+        RH.GetKnownDyes()
+        local hidden = RH.GetHiddenStyleSet()
+        for _, slot in ipairs(RH.allSlots) do
+            local sm = RH.GetSlotManip(om, slot)
+            local st = sm and RH.GetSlotState(sm)
+            if st then
+                if st.id ~= 0 and not hidden[st.id] and RH.IsStyleCollectible(st.id) and not RH.IsUnlocked(st.id) then warn = true; styleSlots[#styleSlots + 1] = RH.GetSlotName(slot); RH.unownedSlots[slot] = true end
+                for _, d in ipairs({ st.p, st.s, st.a }) do
+                    if d and d ~= 0 and RH.dyeInfo[d] and not RH.dyeOwned[d] then warn = true; dyeCount = dyeCount + 1 end
+                end
+            end
+        end
+    end
+    if warn then
+        local parts = {}
+        if #styleSlots > 0 then parts[#parts + 1] = string.format(L.WARN_UNOWNED_STYLE, table.concat(styleSlots, ",")) end
+        if dyeCount > 0 then parts[#parts + 1] = string.format(L.WARN_UNOWNED_DYE, dyeCount) end
+        lbl:SetText(string.format(L.WARN_UNOWNED_FMT, table.concat(parts, " ")))
+    end
+    lbl:SetHidden(not warn)
+    if RH.RefreshCoverage then RH.RefreshCoverage() end
 end

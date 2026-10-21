@@ -1,13 +1,68 @@
+-- =============================================================================
+-- Ability Icons Framework (AIF) - Core Utilities & Engine Redirection Helpers
+-- =============================================================================
+-- This module houses the heavy-lifting utility functions that bridge the gap
+-- between ESO's action bar system and our texture replacement engine.
+--
+-- Key Responsibilities:
+-- 1. Skill ID Resolution: Traversing ESO's SkillsDataManager hierarchy from
+--    any evolved skill morph back to its primordial root (MORPH_SLOT_BASE),
+--    or resolving crafted Scribing abilities to their base Grimoire ID.
+-- 2. Low-Overhead Texture Redirection: Delta-checking every texture swap
+--    against an internal cache (`activeRedirects`) to ensure we only invoke the
+--    underlying C++ `RedirectTexture()` engine API when a target path genuinely changes.
+-- 3. The Sacred Stagger Stomp Protection: Shielding Dragonknight's Stomp texture
+--    from being clobbered by overzealous pack replacements.
+-- =============================================================================
+
 --- @class (partial) AbilityIconsFramework
+AbilityIconsFramework = AbilityIconsFramework or {}
 local AbilityIconsFramework = AbilityIconsFramework
 
--- Do not allow any icon pack / base-game replacement to redirect this one.
+-- -----------------------------------------------------------------------------
+-- Localized API Cache: Faster lookups, less garbage collection
+-- -----------------------------------------------------------------------------
+local pairs                           = pairs
+local tonumber                        = tonumber
+local GetSlotBoundId                  = GetSlotBoundId
+local GetSlotType                     = GetSlotType
+local GetAbilityIdForCraftedAbilityId = GetAbilityIdForCraftedAbilityId
+local RedirectTexture                 = RedirectTexture
+
+-- -----------------------------------------------------------------------------
+-- The Sacred Dragonknight Stagger Stomp Exemption
+-- -----------------------------------------------------------------------------
+-- Dragonknight's Stonefist / Obsidian Shard / Staggering Claw morph sequence
+-- contains a notorious internal quirk: the stomp sub-phase icon
+-- (`ability_dragonknight_013_a_stomp.dds`) shares base asset pointers in ways
+-- that cause bizarre visual artifacts or unwanted texture bleed if modified.
+-- We fiercely guard this specific icon behind a VIP velvet rope—no matter what
+-- icon pack or setting tries to touch it, it is perpetually forced back onto its
+-- vanilla path.
 local STAGGER_STOMP_BASE_ICON = "/esoui/art/icons/ability_dragonknight_013_a_stomp.dds"
 
---- Retrieves the base ability id of the skill with the specified ability id.
---- @param slotIndex number The index of a given skill in the action bar.
---- @param hotbarCategory number The category of the hotbar in question.
---- @return number? baseAbilityId The base ability id of the specified skill.
+-- -----------------------------------------------------------------------------
+-- Action Bar Slot & Ability ID Inspection Helpers
+-- -----------------------------------------------------------------------------
+
+--- Retrieves the root/base ability ID of a skill (its unmorphed Rank I version).
+---
+--- In ESO, every skill morph possesses its own distinct integer ID (e.g., morph 1,
+--- morph 2, and the base morph are completely different numbers in ZOS's database).
+--- However, third-party icon packs and replacement tables almost universally register
+--- their high-res textures against the unmorphed base ability.
+---
+--- If a player morphs Cleave into Brawler, `GetAbilityId` returns Brawler's ID.
+--- This function traverses ESO's `SKILLS_DATA_MANAGER` progression tree backwards
+--- to extract the underlying `MORPH_SLOT_BASE` ID so our lookup tables always match.
+---
+--- For Scribing (Gold Road), crafted abilities use `ACTION_TYPE_CRAFTED_ABILITY`,
+--- which requires delegating to `GetAbilityIdForCraftedAbilityId` to retrieve the
+--- base Grimoire ability ID.
+---
+--- @param slotIndex number The action bar slot index (3-8).
+--- @param hotbarCategory number The active hotbar category (Primary, Backup, etc.).
+--- @return number? baseAbilityId The root unmorphed ability ID, or nil if the slot is empty.
 function AbilityIconsFramework.GetBaseAbilityId(slotIndex, hotbarCategory)
     local abilityId = AbilityIconsFramework.GetAbilityId(slotIndex, hotbarCategory)
     if not abilityId then return nil end
@@ -27,10 +82,15 @@ function AbilityIconsFramework.GetBaseAbilityId(slotIndex, hotbarCategory)
     return baseMorphData and baseMorphData:GetAbilityId() or abilityId
 end
 
---- Retrieves the ability id of the skill found in the specified slotIndex.
---- @param slotIndex number The index of a given skill in the action bar.
---- @param hotbarCategory number The category of the hotbar in question.
---- @return number? abilityId The ability id that corresponds to the skill in question.
+--- Retrieves the raw ability ID bound to an action bar slot.
+---
+--- Guards against invalid slot indices: in ESO, slots 1 and 2 are engine-reserved
+--- for Light and Heavy attacks. Standard player-slotted skills only occupy slots 3
+--- through 8 (slot 8 being the Ultimate).
+---
+--- @param slotIndex number The slot index (3-8).
+--- @param hotbarCategory number The hotbar category (Primary, Backup, etc.).
+--- @return number? abilityId The bound ability ID, or nil if out-of-bounds/empty.
 function AbilityIconsFramework.GetAbilityId(slotIndex, hotbarCategory)
     local index = tonumber(slotIndex) or 0
     if index < AbilityIconsFramework.MIN_INDEX or index > AbilityIconsFramework.MAX_INDEX then
@@ -40,222 +100,65 @@ function AbilityIconsFramework.GetAbilityId(slotIndex, hotbarCategory)
     return GetSlotBoundId(slotIndex, hotbarCategory)
 end
 
--- Mapping of effect names in different languages
-local effectTranslations = {
-    ["en"] = {
-        ["flame"] = "flame",
-        ["frost"] = "frost",
-        ["shock"] = "shock",
-        ["magic"] = "magic",
-        ["heal"] = "heal",
-        ["resources"] = "resources",
-        ["ultimate"] = "ultimate",
-        ["stun"] = "stun",
-        ["immobilize"] = "immobilize",
-        ["knockback"] = "knockback",
-        ["dispel"] = "dispel",
-        ["shield"] = "shield",
-        ["physical"] = "physical",
-        ["multi-target"] = "multi-target",
-        ["bleed"] = "bleed",
-        ["trauma"] = "trauma",
-        ["poison"] = "poison",
-        ["disease"] = "disease",
-        ["mitigation"] = "mitigation",
-        ["taunt"] = "taunt",
-        ["pull"] = "pull",
-    },
-    ["de"] = {
-        ["flame"] = "flammen",
-        ["frost"] = "frost",
-        ["shock"] = "schock",
-        ["magic"] = "magie",
-        ["heal"] = "heilung",
-        ["resources"] = "ressourcen",
-        ["ultimate"] = "ultimativ",
-        ["stun"] = "betäubung",
-        ["immobilize"] = "festhalten",
-        ["knockback"] = "rückstoß",
-        ["dispel"] = "bannen",
-        ["shield"] = "schild",
-        ["physical"] = "physisch",
-        ["multi-target"] = "mehrere",
-        ["bleed"] = "blutung",
-        ["trauma"] = "trauma",
-        ["poison"] = "gift",
-        ["disease"] = "seuche",
-        ["mitigation"] = "mitigation",
-        ["taunt"] = "verspotten",
-        ["pull"] = "ziehen",
-    },
-    ["fr"] = {
-        ["flame"] = "flamme",
-        ["frost"] = "givre",
-        ["shock"] = "foudre",
-        ["magic"] = "magique",
-        ["heal"] = "soin",
-        ["resources"] = "ressources",
-        ["ultimate"] = "ultime",
-        ["stun"] = "étourdissement",
-        ["immobilize"] = "immobiliser",
-        ["knockback"] = "repousse",
-        ["dispel"] = "dissiper",
-        ["shield"] = "bouclier",
-        ["physical"] = "physique",
-        ["multi-target"] = "cible multiple",
-        ["bleed"] = "saignement",
-        ["trauma"] = "trauma",
-        ["poison"] = "poison",
-        ["disease"] = "maladie",
-        ["mitigation"] = "absorption",
-        ["taunt"] = "provocation",
-        ["pull"] = "attraction",
-    },
-    ["es"] = {
-        ["flame"] = "fuego",
-        ["frost"] = "escarcha",
-        ["shock"] = "descarga",
-        ["magic"] = "mágic",
-        ["heal"] = "cura",
-        ["resources"] = "recursos",
-        ["ultimate"] = "habilidad máxima",
-        ["stun"] = "aturdimiento",
-        ["immobilize"] = "inmovilizar",
-        ["knockback"] = "empuj",
-        ["dispel"] = "disipar",
-        ["shield"] = "escudo",
-        ["physical"] = "físico",
-        ["multi-target"] = "multiobjetivo",
-        ["bleed"] = "sangrado",
-        ["trauma"] = "trauma",
-        ["poison"] = "veneno",
-        ["disease"] = "enfermedad",
-        ["mitigation"] = "mitigación",
-        ["taunt"] = "provocar",
-        ["pull"] = "atracción",
-    },
-    ["ru"] = {
-        ["flame"] = "огненный",
-        ["frost"] = "мороз",
-        ["shock"] = "электричество",
-        ["magic"] = "магический",
-        ["heal"] = "исцеление",
-        ["resources"] = "ресурс",
-        ["ultimate"] = "суперспособности",
-        ["stun"] = "оглушение",
-        ["immobilize"] = "обездвиживание",
-        ["knockback"] = "отбрасывание",
-        ["dispel"] = "рассеивание",
-        ["shield"] = "щит",
-        ["physical"] = "физический",
-        ["multi-target"] = "нескольким целям",
-        ["bleed"] = "кровотечения",
-        ["trauma"] = "рана",
-        ["poison"] = "яд",
-        ["disease"] = "болезнетворный",
-        ["mitigation"] = "увеличение эффективности",
-        ["taunt"] = "провоцирование",
-        ["pull"] = "притяжение",
-    },
-}
+-- -----------------------------------------------------------------------------
+-- Texture Redirection Pipeline
+-- -----------------------------------------------------------------------------
 
---- Maps the given scriptName and defaultIcon to their corresponding custom icon.
---- @param scriptName string The name of the focus script based on which the custom icon will be applied.
---- @param defaultIcon string The path of the base game icon to be replaced with our own.
---- @return string? abilityIcon The path of the icon to be applied to the skill in question.
-function MapScriptToIcon(scriptName, defaultIcon)
-    local customIcons = AbilityIconsFramework.CUSTOM_ABILITY_ICONS[defaultIcon]
-    if not customIcons then
-        return nil
+-- Tracks currently active redirection targets to prevent redundant C++ engine calls.
+-- Crossing the Lua-to-C++ boundary in ESO's graphics engine via `RedirectTexture`
+-- is surprisingly heavy when spammed across hundreds of textures per frame.
+-- This dictionary acts as our cache layer so we only issue draw calls on real deltas.
+AbilityIconsFramework.activeRedirects = AbilityIconsFramework.activeRedirects or {}
+local activeRedirects = AbilityIconsFramework.activeRedirects
+
+--- Centralized texture redirection helper.
+---
+--- Enforces cache delta-checking: if `oldTexture` is already redirected to `newTexture`,
+--- this function early-exits in $O(1)$ time without disturbing ESO's C++ graphics pipeline.
+--- Also guarantees the legendary Stagger Stomp always stays safely on its vanilla track.
+---
+--- @param oldTexture string The base game texture path to redirect (e.g. "/esoui/art/icons/...").
+--- @param newTexture string The destination replacement texture path.
+function AbilityIconsFramework.RedirectTexture(oldTexture, newTexture)
+    if not oldTexture then return end
+    if oldTexture == STAGGER_STOMP_BASE_ICON then
+        newTexture = STAGGER_STOMP_BASE_ICON
     end
-
-    local currentLang = GetCVar("Language.2")
-    scriptName = string.lower(scriptName)
-    local translations = effectTranslations[currentLang] or effectTranslations["en"]
-
-    for key, value in pairs(customIcons) do
-        local translatedEffect = translations[key]
-        if translatedEffect and string.find(scriptName, translatedEffect, 1, true) then
-            return value
-        end
+    if activeRedirects[oldTexture] ~= newTexture then
+        RedirectTexture(oldTexture, newTexture)
+        activeRedirects[oldTexture] = newTexture
     end
-
-    return customIcons[AbilityIconsFramework.DEFAULT]
 end
 
---- Calls RedirectTexture to replace an existing skill icon with a different one.
+--- Iterates through configured base-game texture replacements and swaps
+--- outdated low-resolution 2014 textures for crisp, high-definition replacements.
+---
+--- Skips custom Scribing icons (which are dynamically governed by Focus Scripts in Scribing.lua).
+--- Employs our delta-checked `RedirectTexture()` so toggling settings or switching zones
+--- only touches textures that actually changed.
 function AbilityIconsFramework.ReplaceMismatchedIcons()
-    local doReplace = AbilityIconsFramework:GetSettings().replaceMismatchedBaseIcons
+    local doReplace = AbilityIconsFramework.GetSettings().replaceMismatchedBaseIcons
 
     for key, value in pairs(AbilityIconsFramework.BASE_GAME_ICONS_TO_REPLACE) do
-        -- Never redirect the stagger stomp icon, and skip scribing icons here.
-        if key ~= STAGGER_STOMP_BASE_ICON and AbilityIconsFramework.CUSTOM_ABILITY_ICONS[key] == nil then
-            if doReplace then
-                RedirectTexture(key, value)
-            else
-                RedirectTexture(key, key)
-            end
+        -- Skip scribing icons here (handled separately).
+        if AbilityIconsFramework.CUSTOM_ABILITY_ICONS[key] == nil then
+            local target = doReplace and value or key
+            AbilityIconsFramework.RedirectTexture(key, target)
         end
     end
 
-    -- Safety: always restore it (even if something else attempted to redirect it earlier).
-    RedirectTexture(STAGGER_STOMP_BASE_ICON, STAGGER_STOMP_BASE_ICON)
+    -- Safety: always guarantee Stagger Stomp stays on its vanilla track
+    AbilityIconsFramework.RedirectTexture(STAGGER_STOMP_BASE_ICON, STAGGER_STOMP_BASE_ICON)
 end
 
-function AbilityIconsFramework.UpdateDefaultScribingIcons()
-    local EffectsList = AbilityIconsFramework.GetEffectsList()
-    if EffectsList == nil then return end
-
-    for BaseIcon, IconDataList in pairs(AbilityIconsFramework.CUSTOM_ABILITY_ICONS) do
-        local CustomDefaultIcon = IconDataList[EffectsList.DEFAULT]
-        local CustomScribedIcon = nil
-
-        if IsCraftedAbilityScribed(IconDataList[AbilityIconsFramework.SCRIBING_ID_KEY]) then
-            local primaryScriptId = GetCraftedAbilityActiveScriptIds(IconDataList[AbilityIconsFramework.SCRIBING_ID_KEY])
-            local scriptName = GetCraftedAbilityScriptDisplayName(primaryScriptId)
-            CustomScribedIcon = MapScriptToIcon(scriptName, BaseIcon) or nil
-        end
-
-        if CustomScribedIcon ~= nil and AbilityIconsFramework:GetSettings().showCustomScribeIcons then
-            RedirectTexture(BaseIcon, CustomScribedIcon)
-        elseif CustomDefaultIcon ~= nil and AbilityIconsFramework:GetSettings().showCustomScribeIcons then
-            RedirectTexture(BaseIcon, CustomDefaultIcon)
-        else
-            RedirectTexture(BaseIcon, BaseIcon)
-        end
-    end
-end
-
--- Custom iteration function going over icon pack data in their load order.
-local packSortFunc = function(t, a, b) return t[b].loadOrder < t[a].loadOrder end
-
-function AbilityIconsFramework.packPairs()
-    local settings = AbilityIconsFramework:GetSettings()
-
-    local keys = {}
-    for k, _ in pairs(settings.iconPacksData) do
-        -- Iterate only over currently enabled icon packs
-        if AbilityIconsFramework.ENABLED_ICON_PACKS[k] ~= nil then
-            keys[#keys + 1] = k
-        end
-    end
-
-    table.sort(keys, function(a, b) return packSortFunc(settings.iconPacksData, a, b) end)
-
-    local i = 0
-    return function()
-        i = i + 1
-        if keys[i] then
-            return keys[i], settings.iconPacksData[keys[i]]
-        end
-    end
-end
-
+--- Resets all redirected textures back to vanilla defaults.
+--- Called when clearing or disabling active icon packs to clean up the UI
+--- without leaving phantom textures lingering in ESO's graphics memory.
 function AbilityIconsFramework.ResetAllTextureRedirects()
     for key, _ in pairs(AbilityIconsFramework.BASE_GAME_ICONS_TO_REPLACE) do
-        RedirectTexture(key, key)
+        AbilityIconsFramework.RedirectTexture(key, key)
     end
 
     -- Extra safety
-    RedirectTexture(STAGGER_STOMP_BASE_ICON, STAGGER_STOMP_BASE_ICON)
+    AbilityIconsFramework.RedirectTexture(STAGGER_STOMP_BASE_ICON, STAGGER_STOMP_BASE_ICON)
 end

@@ -98,6 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's ChatWindowCustomizer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatWindowCustomizer-Beta__f06dec51-6718-4699-841e-ae9898433a01) | PinkBanther | Console | — |
 | [PinkB's Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Clock__cebcd954-5127-461d-9d39-52bcbffe79ca) | PinkBanther | Console | — |
 | [PinkB's Clock(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Clock-Beta__61641950-b365-49c6-bb98-dff4fa7bcc01) | PinkBanther | Console | — |
+| [PinkB's Compass for AD Stalkers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Compass-for-AD-Stalkers__9cf7a466-7ad1-4e05-b1d9-093450347229) | PinkBanther | Console | — |
 | [PinkB's CraftMaterialAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CraftMaterialAssistant__c7f082bc-03e0-4e0c-b82b-d7903e5101ad) | PinkBanther | Console | — |
 | [PinkB's CraftMaterialAssistant(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CraftMaterialAssistant-Beta__bb9043ae-169f-4492-8abb-7d3111e97820) | PinkBanther | Console | — |
 | [PinkB's CyrodiilAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CyrodiilAlert__da931320-7488-4ce0-83a2-100180a2f3f2) | PinkBanther | Console | — |
@@ -136,6 +137,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's Tamriel de Tetris](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Tamriel-de-Tetris__e8b21bff-aae1-4a24-b91b-8c49cd6acfd6) | PinkBanther | Console | — |
 | [PinkB's Tamriel de Tetris(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Tamriel-de-Tetris-Beta__15f83719-bd33-413d-b56d-23d5ab418501) | PinkBanther | Console | — |
 | [PinkB's Tamriel de Trade(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Tamriel-de-Trade-Beta__a213bf5d-d4a4-4bfb-bd6b-e10a127ea56e) | PinkBanther | Console | — |
+| [PinkB's TargetPlayer for AD Stalkers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-TargetPlayer-for-AD-Stalkers__2bf3c6a5-adf1-407e-8e3a-47b49f92d9fc) | PinkBanther | Console | — |
 | [PinkB's Translator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Translator__c49e3df6-7e8e-4a29-8866-1afb08cca3a8) | PinkBanther | Console | — |
 | [PinkB's Translator(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Translator-Beta__cf0aea14-ea0e-49d3-89c4-1987b725c79e) | PinkBanther | Console | — |
 | [PinkB's UltraDetailedStats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-UltraDetailedStats__f00e5b13-5452-4284-98f7-2bdbe3caff63) | PinkBanther | Console | — |
@@ -240,6 +242,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PurchaseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/be.ste/PurchaseTracker__2891) | be.ste | PC / Mac | 1.0.0 |
 | [Purge Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ohs62szjw-mozmail.com/Purge-Radar__4952) | ohs62szjw@mozmail.com | PC / Mac | 1.4.3 |
 | [Purge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Purge-Tracker__1803) | code65536 | PC / Mac | 1.3.2 |
+| [PurgeRadar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/supersecrettech/PurgeRadar__4969) | supersecrettech | PC / Mac | 1.5.1 |
 | [PUt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/PUt__8f749129-7ffe-4951-a1f9-bf3ac664788f) | user562x | Console | — |
 | [PvDoor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/PvDoor__3098) | skineh | PC / Mac | 1.0.2 |
 | [PVP Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alpha-AC/PVP-Buddy__643e39fa-2b3f-46f8-aef4-eee9ff92360d) | Alpha-AC | Console | — |

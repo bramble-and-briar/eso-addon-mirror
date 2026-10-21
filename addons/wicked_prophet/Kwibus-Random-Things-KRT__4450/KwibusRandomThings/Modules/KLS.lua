@@ -1,12 +1,6 @@
 local KRT = KwibusRandomThings
 local EM = EVENT_MANAGER
-local WM = WINDOW_MANAGER
 local ADDON_NAME = KRT.name
-
-local EnsureTable = KRT.EnsureTable
-local IsNonEmptyString = KRT.IsNonEmptyString
-local DebounceNextFrame = KRT.DebounceNextFrame
-local RGBToHex = KRT.RGBToHex
 
 -- Module-local defaults wrapper
 local DEFAULTS = { kls = {
@@ -24,14 +18,9 @@ KRT.KLS = {
     defaults = DEFAULTS.kls,
   TIMER_NAME = ADDON_NAME .. "_KLS_Timer",
   wasInTrial = false,
-  trialZoneIds = {
-    [114]  = true, [108]  = true, [14]   = true, [725]  = true,
-    [975]  = true, [1000] = true, [1051] = true, [1121] = true,
-    [1196] = true, [1263] = true, [1344] = true, [1420] = true, [1478] = true,
-  },
 }
 
-function KRT.KLS:SV() return KRT.sv and KRT.sv.kls end
+function KRT.KLS:SV() return KRT.GetModuleSV(self.id, self.defaults) end
 function KRT.KLS:Dbg(msg) local sv = self:SV(); if sv and sv.debug then d("[KLS] " .. tostring(msg)) end end
 
 function KRT.KLS:AttemptSwapBackPrompt()
@@ -47,7 +36,7 @@ function KRT.KLS:OnPlayerActivated()
   local sv = self:SV()
   if not (sv and sv.enabled) then return end
   local zoneId = GetZoneId(GetUnitZoneIndex("player"))
-  local isTrial = self.trialZoneIds[zoneId] or false
+  local isTrial = (IsRaidZone and IsRaidZone()) or (KRT.TRIAL_ZONES and KRT.TRIAL_ZONES[zoneId]) or false
 
   if isTrial then
     EM:UnregisterForUpdate(self.TIMER_NAME)
@@ -94,41 +83,60 @@ end
 
 -- =========================================================
 
-local function SV() return KRT.sv end
+local function SV() return KRT.KLS:SV() end
 
 function KRT.KLS:GetLAMSubmenu()
     return {
       type = "submenu",
       name = "Kwibus Language Swap",
       controls = {
-        { type = "checkbox", name = "Enable LanguageSwap",
-          getFunc = function() return SV().kls.enabled end,
-          setFunc = function(v) SV().kls.enabled = v end,
+        {
+          type = "checkbox",
+          name = "Enable Module",
+          getFunc = function() return SV().enabled end,
+          setFunc = function(v)
+            SV().enabled = v
+            if not v then
+              EM:UnregisterForUpdate(KRT.KLS.TIMER_NAME)
+              KRT.KLS.wasInTrial = false
+            end
+          end,
           width = "full",
         },
-        { type = "checkbox", name = "Prompt to swap to English on trial entry",
-          getFunc = function() return SV().kls.promptToEnglishOnTrial end,
-          setFunc = function(v) SV().kls.promptToEnglishOnTrial = v end,
+        {
+          type = "checkbox",
+          name = "Prompt to Swap to English on Trial Entry",
+          getFunc = function() return SV().promptToEnglishOnTrial end,
+          setFunc = function(v) SV().promptToEnglishOnTrial = v end,
           width = "full",
-          disabled = function() return not SV().kls.enabled end,
+          disabled = function() return not SV().enabled end,
         },
-        { type = "checkbox", name = "Prompt to swap back to Russian after leaving",
-          getFunc = function() return SV().kls.promptBackToRussian end,
-          setFunc = function(v) SV().kls.promptBackToRussian = v end,
+        {
+          type = "checkbox",
+          name = "Prompt to Swap Back to Russian After Leaving",
+          getFunc = function() return SV().promptBackToRussian end,
+          setFunc = function(v) SV().promptBackToRussian = v end,
           width = "full",
-          disabled = function() return not SV().kls.enabled end,
+          disabled = function() return not SV().enabled end,
         },
-        { type = "slider", name = "Swap-back delay (seconds)", min = 5, max = 900, step = 5,
-          getFunc = function() return math.floor((SV().kls.swapBackDelayMs or 300000) / 1000) end,
-          setFunc = function(v) SV().kls.swapBackDelayMs = v * 1000 end,
+        {
+          type = "slider",
+          name = "Swap-Back Delay (Seconds)",
+          min = 5,
+          max = 900,
+          step = 5,
+          getFunc = function() return math.floor((SV().swapBackDelayMs or 300000) / 1000) end,
+          setFunc = function(v) SV().swapBackDelayMs = v * 1000 end,
           width = "full",
-          disabled = function() return not SV().kls.enabled end,
+          disabled = function() return not SV().enabled end,
         },
-        { type = "checkbox", name = "KLS debug",
-          getFunc = function() return SV().kls.debug end,
-          setFunc = function(v) SV().kls.debug = v end,
+        {
+          type = "checkbox",
+          name = "Enable Debug Logging",
+          getFunc = function() return SV().debug end,
+          setFunc = function(v) SV().debug = v end,
           width = "full",
-          disabled = function() return not SV().kls.enabled end,
+          disabled = function() return not SV().enabled end,
         },
       },
     }

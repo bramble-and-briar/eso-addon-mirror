@@ -9,6 +9,10 @@ local SPARKS,LINES=16,14
 -- Colours are rounded to 1/64 before they are compared with what a control already shows: a
 -- rectangle whose colour drifts by a thousandth would otherwise cost an API call every frame.
 local function q(v) return floor(v*63+.5)/63 end
+local function qa(v) return floor(v*32+.5)/32 end   -- alpha: a fade is smooth at 1/32 and costs a call only when it steps
+-- Far bands change little from one frame to the next, so they take turns: the bands are grouped
+-- in blocks of LOD_BLOCK, and a far block is only written every `lodEvery` frames.
+local LOD_BLOCK=6
 local function label(parent,x,y,w,h,size,value,align)
  local c=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL);c:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);c:SetDimensions(w,h)
  c:SetFont('ZoFontGamepad'..size);c:SetHorizontalAlignment(align or TEXT_ALIGN_CENTER);c:SetColor(.95,.95,1,1)
@@ -18,7 +22,7 @@ end
 -- inside is built the first time the game is opened, behind the curtain, so a player who never
 -- launches it pays for none of them.
 function U.New(app)
- local self=setmetatable({app=app,slots={},active={},nextActive={},activeN=0,frame=0,sky={},text={},plates={},panos={},win={{},{},{}},
+ local self=setmetatable({app=app,lodBands=0,lodEvery=2,slots={},active={},nextActive={},activeN=0,frame=0,sky={},text={},plates={},panos={},win={{},{},{}},
   sparks={},lines={}},U)
  local root=WINDOW_MANAGER:CreateTopLevelWindow('PBsFMEGAWindow');self.root=root
  root:SetAnchorFill(GuiRoot);root:SetHidden(true)
@@ -100,6 +104,7 @@ function U:Configure(view,track)
   self:BindSlot(c,view,slot)
  end
  self.active,self.nextActive,self.activeN={}, {},0
+ self.lodBands=floor(view.nb*.5);self.lodEvery=self.lite and 3 or 2
  self.staticControls=self.staticControls or {}
  for _,c in ipairs(self.staticControls) do c:SetHidden(true) end
  for _,e in ipairs(self.sky) do e.control:SetHidden(true);e.on=false end
@@ -333,7 +338,7 @@ function U:Rect(view,slot,x,y,w,h,r,g,b,a,u0,u1,v0,v1)
  local c=self.slots[slot] or self:Slot(view,slot)
  if c.cx~=x or c.cy~=y then c:SetAnchor(TOPLEFT,self.content,TOPLEFT,x,y);c.cx,c.cy=x,y end
  if c.cw~=w or c.ch~=h then c:SetDimensions(w,h);c.cw,c.ch=w,h end
- r,g,b=q(r),q(g),q(b)
+ r,g,b,a=q(r),q(g),q(b),qa(a)
  if c.cr~=r or c.cg~=g or c.cb~=b or c.ca~=a then c:SetColor(r,g,b,a);c.cr,c.cg,c.cb,c.ca=r,g,b,a end
  if u0 and (c.cu0~=u0 or c.cu1~=u1 or c.cv0~=v0 or c.cv1~=v1) then
   -- a left coordinate above the right one mirrors the picture, which is how a road seen from
@@ -359,6 +364,12 @@ function U:Pano(view,key,parallax,windows,y,h)
   elseif e.on then c:SetHidden(true);e.on=false end
  end
 end
+-- Is this ground slot in a far block that sits this frame out?
+function U:Deferred(slot,ground,spb,frame)
+ if slot>=ground then return false end
+ local band=floor(slot/spb)
+ return band<self.lodBands and (floor(band/LOD_BLOCK)+frame)%self.lodEvery~=0
+end
 function U:Draw(track,race,dt)
  local view=self.view
  self.frame=self.frame+1
@@ -367,17 +378,36 @@ function U:Draw(track,race,dt)
  view:Frame(track,race)
  local x,y,w,h,r,g,b,a,slot=o.x,o.y,o.w,o.h,o.r,o.g,o.b,o.a,o.slot
  local u0,u1,v0,v1=o.u0,o.u1,o.v0,o.v1
+ local frame=self.frame
+ local spb=view.spb;local ground=view.nb*spb
+ local lodBands,lodEvery=self.lodBands,self.lodEvery
+ local slots=self.slots
  -- Whole pixels: a fractional position makes the engine filter the edge of a flat rectangle,
  -- which shows as a seam between two bands.
- for i=1,o.n do self:Rect(view,slot[i],floor(x[i]+.5),floor(y[i]+.5),max(1,floor(w[i]+.5)),max(1,floor(h[i]+.5)),r[i],g[i],b[i],a[i],u0[i],u1[i],v0[i],v1[i]) end
- -- Whatever was drawn last frame and not this one goes.
- local nextActive=self.nextActive
- for i=1,o.n do nextActive[i]=slot[i] end
- for i=1,self.activeN do
-  local c=self.slots[self.active[i]]
-  if c.seen~=self.frame and c.shown then c:SetHidden(true);c.shown=false end
+ for i=1,o.n do
+  local s=slot[i]
+  if s<ground and floor(s/spb)<lodBands and (floor(floor(s/spb)/LOD_BLOCK)+frame)%lodEvery~=0 then
+   -- a far block's turn comes round next frame: leave the control as it is, but do not let it be
+   -- taken for one that has gone
+   local c=slots[s];if c then c.seen=frame end
+  else
+   self:Rect(view,s,floor(x[i]+.5),floor(y[i]+.5),max(1,floor(w[i]+.5)),max(1,floor(h[i]+.5)),r[i],g[i],b[i],a[i],u0[i],u1[i],v0[i],v1[i])
+  end
  end
- self.active,self.nextActive,self.activeN=nextActive,self.active,o.n
+ -- Whatever was drawn last frame and not this one goes (a far block that is sitting out keeps
+ -- its place on the list and is judged on its own turn).
+ local nextActive=self.nextActive
+ local n=o.n
+ for i=1,n do nextActive[i]=slot[i] end
+ for i=1,self.activeN do
+  local s=self.active[i]
+  local c=slots[s]
+  if c and c.seen~=frame and c.shown then
+   if self:Deferred(s,ground,spb,frame) then n=n+1;nextActive[n]=s
+   else c:SetHidden(true);c.shown=false end
+  end
+ end
+ self.active,self.nextActive,self.activeN=nextActive,self.active,n
  if view.rich then
   self:Pano(view,'sky',1.0,self.win[1],0,view.hy)
   self:Pano(view,'far',.96,self.win[2],view.hy-self.layerH,self.layerH)
@@ -416,7 +446,7 @@ function U:Effects(race,dt,racing)
  elseif self.vigShown then v:SetHidden(true);self.vigShown=false end
  -- speed streaks
  -- only while boosting or on a dash plate: a streak on every frame at top speed is just noise
- local fast=racing and (p.boosting or (p.pad and p.pad>0))
+ local fast=racing and not self.lite and (p.boosting or (p.pad and p.pad>0))
  for i,e in ipairs(self.lines) do
   local c=e.control
   if fast then
@@ -434,7 +464,7 @@ function U:Effects(race,dt,racing)
  -- sparks
  if racing and p.scrape then
   local side=p.d>0 and 1 or -1
-  for _=1,2 do
+  for _=1,(self.lite and 1 or 2) do
    for _,e in ipairs(self.sparks) do
     if e.life<=0 then
      e.life=.35+math.random()*.35
@@ -479,11 +509,18 @@ function U:Text(key,value)
 end
 function U:Hud(race,saved)
  local p=race.player;local t=self.text
- self:Text('rank',string.format('%d位 / %d台',p.rank,#race.machines))
- self:Text('lap',string.format('ラップ %d / %d',min(p.lap,race.laps),race.laps))
- self:Text('time',C.FormatTime(race.time))
- self:Text('best',race.bestLap and ('ベストラップ '..C.FormatTime(race.bestLap)) or '')
- self:Text('speed',string.format('%d km/h',floor(p.speed*3.6)))
+ -- Setting a label's text makes the engine lay the glyphs out again, and the clock and the speed
+ -- change every frame: they are written at half the draw rate, the map at a third.
+ self.hudN=(self.hudN or 0)+1
+ local textTurn=self.hudN%2==0 or self.shownText==nil
+ local mapTurn=self.hudN%3==0 or not self.mapShown
+ if textTurn then
+  self:Text('rank',string.format('%d位 / %d台',p.rank,#race.machines))
+  self:Text('lap',string.format('ラップ %d / %d',min(p.lap,race.laps),race.laps))
+  self:Text('time',C.FormatTime(race.time))
+  self:Text('best',race.bestLap and ('ベストラップ '..C.FormatTime(race.bestLap)) or '')
+  self:Text('speed',string.format('%d km/h',floor(p.speed*3.6)))
+ end
  local e=C.clamp(p.energy/100,0,1)
  local w=max(1,floor(416*e))
  if self.energyW~=w then
@@ -507,6 +544,8 @@ function U:Hud(race,saved)
   self.boostIcon:SetTextureCoords(uv.u0,uv.u1,uv.v0,uv.v1)
  end
  -- Machines on the map.
+ if not mapTurn then return end
+ self.mapShown=true
  for i,m in ipairs(race.machines) do
   local d=self.mapMachines[i]
   if not d then d=self:Plate(0,0,i==1 and 7 or 5,i==1 and 7 or 5,1,1,1,1,9);self.mapMachines[i]=d end

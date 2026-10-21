@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/arcsinan/ARC_SetGlowGuard---Set-Glow-Equipment-Tracker__4970",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "arcsinan",
+  "canonical_id": "esoui:4970",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4970",
+  "deleted": false,
+  "directories": [
+    "ARC_SetGlowGuard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4970/",
+  "fingerprint": "0832538bea12bdd6292ae5e12a7fa89e5828947c3d233b8bfe2f7e5f95583cf1",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18083.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4970",
+  "source_url": "https://www.esoui.com/downloads/info4970-ARC_SetGlowGuard-SetGlowEquipmentTracker.html",
+  "stats": {
+    "downloads": 18,
+    "favorites": 0,
+    "monthly_downloads": 12
+  },
+  "title": "ARC_SetGlowGuard - Set Glow & Equipment Tracker",
+  "updated_at": 1792509747000,
+  "version": "1.0.2"
+}

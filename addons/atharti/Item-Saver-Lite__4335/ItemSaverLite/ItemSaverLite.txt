@@ -1,6 +1,6 @@
 ## Title: |cFFD700Item Saver Lite|r
 ## Author: |cFFD700@Atharti|r
-## Version: 2.2
+## Version: 2.3
 ## APIVersion: 101051
 ## SavedVariables: ItemSaverLite_SV
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730

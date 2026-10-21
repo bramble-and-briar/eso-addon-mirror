@@ -956,12 +956,17 @@ function GL:GetOptions()
             type          = "submenu",
             name          = "Guild Loop",
             icon          = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_guilds.dds",
-            tooltip       = ME.SAVED_CHARACTER_TIP,
+            tooltip       = "Cycles through your favorite guilds on a timer.\n\n"
+                         .. "Take Me There just shows you where Guild Loop is: the guild list on your Character screen. "
+                         .. "You don't need to come back here each time. Open that list from your Character screen whenever you want to use it.\n\n"
+                         .. ME.SAVED_CHARACTER_TIP,
             options       = {
                 {
-                    type = "button",
-                    name = "Take Me There",
-                    func = function() GL:TakeMeThere() end,
+                    type    = "button",
+                    name    = "Take Me There",
+                    tooltip = "Opens the guild list on your Character screen. From there you can Favorite guilds, "
+                           .. "set the Timer, and pick Cycle Favorite Guild to start the loop.",
+                    func    = function() GL:TakeMeThere() end,
                 },
             },
         },

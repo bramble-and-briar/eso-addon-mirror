@@ -30,15 +30,31 @@ RH.To36, RH.From36 = To36, From36
 ---------------------------------------------------------------------------
 -- 名前の整形（区切り文字を除去、UTF-8で最大 NAME_MAX_CHARS 文字）
 ---------------------------------------------------------------------------
+-- 文字の判定は byte() の数値、コピーは sub() だけで行う(パターン・string.char は使わない)
+local BAD_BYTES = {}
+for _, c in ipairs({ 124, 58, 91, 93, 96, 42, 95, 126, 92 }) do BAD_BYTES[c] = true end   -- | : [ ] ` * _ ~ \
+
 function RH.SanitizeName(name)
     name = tostring(name or "")
-    name = name:gsub("[|:%[%]%c`%*_~\\]", ""):gsub("^%s+", ""):gsub("%s+$", "")  -- Discord の装飾記号も除去
-    local out, count = {}, 0
-    for ch in name:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-        count = count + 1
-        if count > NAME_MAX_CHARS then break end
-        out[#out + 1] = ch
+    local out, count, started = {}, 0, false
+    local lastSpace = 0
+    for i = 1, #name do
+        local c = name:byte(i)
+        local piece = name:sub(i, i)
+        if c >= 128 and c < 192 then
+            -- UTF-8 の続きのバイト: 直前の文字にくっつける
+            if started and #out > 0 and count <= NAME_MAX_CHARS then out[#out] = out[#out] .. piece end
+        elseif c == 32 or (c > 32 and c ~= 127 and not BAD_BYTES[c]) then
+            if not (c == 32 and not started) then
+                count = count + 1
+                if count > NAME_MAX_CHARS then break end
+                out[#out + 1] = piece
+                started = true
+            end
+        end
     end
+    -- 末尾の空白を除く
+    while #out > 0 and out[#out] == " " do out[#out] = nil end
     return table.concat(out)
 end
 
@@ -150,6 +166,7 @@ function RH.ApplyEntries(entries, name)
     RH.PushUndo(om)
 
     local applied, missingStyles, missingDyes = 0, {}, 0
+    local states = {}
     for _, e in ipairs(entries) do
         if RH.isValidSlot[e.slot] then
             local sm = RH.GetSlotManip(om, e.slot)
@@ -159,11 +176,14 @@ function RH.ApplyEntries(entries, name)
                 if e.id == 0 then
                     RH.SetSlotStyle(sm, 0, RH.DEFAULT_MATERIAL)
                     touched = true
-                elseif RH.IsUnlocked(e.id) or RH.GetStyleSetIsHidden(e.id) then
+                    states[e.slot] = nil
+                elseif RH.IsUsable(e.id) or RH.GetStyleSetIsHidden(e.id) then
                     RH.SetSlotStyle(sm, e.id, e.mat)
                     touched = true
+                    states[e.slot] = "ok"
                 else
                     missingStyles[#missingStyles + 1] = RH.GetCollectibleDisplayName(e.id)
+                    states[e.slot] = "missing"
                 end
 
                 local dyes = { e.p, e.s, e.a }
@@ -179,6 +199,8 @@ function RH.ApplyEntries(entries, name)
             end
         end
     end
+
+    if RH.SetCoverage then RH.SetCoverage((name and name ~= "") and name or "?", states) end
 
     -- 読み込み結果(特に「未所持でスキップした」通知)は、チャット表示オフでも必ず出す
     RH.forceMsg = RH.sv.shareMessages ~= false
@@ -204,7 +226,19 @@ end
 -- プリセット
 ---------------------------------------------------------------------------
 function RH.SavePreset(name, body)
-    name = RH.SanitizeName(name)
+    local raw = tostring(name or "")
+    name = RH.SanitizeName(raw)
+    if name == "" then
+        -- 診断: 入力欄の中身(長さと先頭バイト)を表示
+        local hex = {}
+        for i = 1, math.min(#raw, 12) do hex[#hex + 1] = string.format("%02X", raw:byte(i)) end
+        RH.forceMsg = true
+        RH.Msg("name field: length=%d bytes=%s -> default name used (v2)", #raw, table.concat(hex, " "))
+        RH.forceMsg = false
+        -- 整形で空になった場合の保険: 区切り文字だけ除いて、入力された名前をそのまま使う
+        local fb = raw:gsub("[|:]", "")
+        if #fb > 0 then name = fb:sub(1, 60) end
+    end
     if name == "" then name = string.format(L.DEFAULT_PRESET_NAME, #RH.sv.presets + 1) end
     -- 同名は上書き
     for _, p in ipairs(RH.sv.presets) do
@@ -216,6 +250,14 @@ function RH.SavePreset(name, body)
     end
     table.insert(RH.sv.presets, { name = name, body = body, time = GetTimeStamp() })
     RH.Msg(L.MSG_PRESET_SAVED, name)
+end
+
+function RH.OverwritePreset(index, body)
+    local p = RH.sv.presets[index]
+    if not p then return false end
+    p.body, p.time = body, GetTimeStamp()
+    RH.Msg(L.MSG_PRESET_OVERWRITTEN, p.name)
+    return true
 end
 
 function RH.DeletePreset(index)

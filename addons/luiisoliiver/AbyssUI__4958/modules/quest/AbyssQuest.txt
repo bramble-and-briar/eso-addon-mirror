@@ -1,0 +1,47 @@
+## Title: AbyssQuest
+## Author: N A G A
+## Version: 3.3.1
+## APIVersion: 101050 101051
+## Description: AbyssQuest — embedded inside AbyssUI (modules/quest). This manifest is documentation only; files are loaded by AbyssUI.txt because this folder is not a top-level AddOn.
+## SavedVariables: AbyssQuest_SavedVariables
+## DependsOn: LibAddonMenu-2.0
+
+# NOTE FOR REVIEWERS / MAINTAINERS:
+# ESO only loads .txt manifests from top-level AddOns/<Name>/<Name>.txt folders.
+# AbyssQuest ships exclusively as part of AbyssUI, so all files below are listed
+# and loaded from AbyssUI/AbyssUI.txt. This file exists so the module has a clear
+# identity, version and SavedVariables declaration.
+
+# Strings.lua
+# lang/de.lua
+# lang/fr.lua
+# lang/es.lua
+# lang/pt.lua
+# lang/pl.lua
+# lang/zh.lua
+# lang/jp.lua
+# AbyssQuest.lua
+# Data.lua
+# Presence.lua
+# Route.lua
+# Style.lua
+# Icons.lua
+# Menu.lua
+# Buttons.lua
+# Wheel.lua
+# Pickers.lua
+# SlotEditor.lua
+# WheelEditor.lua
+# Settings.lua
+# MapIntegration.lua
+# MapPanel.lua
+# Quests.lua
+# QuestDrag.lua
+# QuestTravel.lua
+# ZoomBar.lua
+# InfoPanel.lua
+# QuestTracker.lua
+# Guild.lua
+# Preview.lua
+# SocialIntegration.lua
+# AbyssQuest.xml

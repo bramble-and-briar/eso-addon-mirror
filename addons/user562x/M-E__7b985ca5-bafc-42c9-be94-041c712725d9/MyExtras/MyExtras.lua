@@ -79,13 +79,25 @@ end
 function MyExtras:ResetSettings()
     if not self.savedVariables then return end
 
+    local skip = {}
+    for _, feature in ipairs(self.features) do
+        if type(feature.ResetSkipKeys) == "function" then
+            local ok, keys = pcall(feature.ResetSkipKeys, feature)
+            if ok and type(keys) == "table" then
+                for i = 1, #keys do skip[keys[i]] = true end
+            end
+        end
+    end
+
     for key, value in pairs(self.defaults) do
-        if type(value) == "table" then
-            local copy = {}
-            for k, v in pairs(value) do copy[k] = v end
-            self.savedVariables[key] = copy
-        else
-            self.savedVariables[key] = value
+        if not skip[key] then
+            if type(value) == "table" then
+                local copy = {}
+                for k, v in pairs(value) do copy[k] = v end
+                self.savedVariables[key] = copy
+            else
+                self.savedVariables[key] = value
+            end
         end
     end
     self.savedVariables.settingsLastPage = nil
@@ -174,6 +186,13 @@ function MyExtras:SettingsMenu()
                 name       = "|cFF3333Reset All|r",
                 buttonText = "Reset All",
                 tooltip    = "Puts every MyExtras setting back to its default. Guild Loop is only reset on this character.",
+                details    = function()
+                    local trackers = MyExtras.Trackers
+                    if trackers and trackers.UsesCharacterSettings and trackers:UsesCharacterSettings() then
+                        return "Resets only this character's Trackers layout."
+                    end
+                    return "Resets the account Trackers layout, used by every character with Character Settings off."
+                end,
                 confirm    = "Reset every MyExtras setting to its default? This can't be undone.",
                 func       = function() self:ResetSettings() end,
             },

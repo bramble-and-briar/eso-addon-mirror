@@ -153,6 +153,9 @@ only appears for a slot whose effect is still running and disappears again when 
 is always there, so both sets can be read at a glance. If you want only this one, turn the game's
 Back Row setting off.
 
+**The row's ultimate shows how full it is**, with the game's own gauge round its sides, measured
+against that ultimate's own cost, and glows when it can be cast after a swap.
+
 **The row follows your display setting, even while weapon swapping is temporarily locked.**
 The Oakensoul Ring is an exception: equipping it in either ring slot hides the row; removing
 it restores your saved display choice without changing that setting. It inherits

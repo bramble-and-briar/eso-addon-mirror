@@ -261,13 +261,15 @@ local function AddAtIfNeeded(str)
   return str
 end
 
+-- Patched 2026-10-19: EU server eventIds passed 1,000,000,000 (10 digits) on 2026-10-17.
+-- The old code padded the id to 9 digits and prefixed "3" (i.e. eventId + 3000000000),
+-- and asserted on anything with 10+ digits. We now compute eventId + 3000000000 directly,
+-- exactly like LibHistoire's ConvertEventIdToLegacyId64, so ids stay identical to the
+-- ones produced by the LibHistoire listener (same result as before for 9-digit ids).
+local LEGACY_EVENT_ID_OFFSET = 3000000000
 local function ConvertEventIdLibHistoireId(eventId)
-  local idString = tostring(eventId)
-  assert(#idString < 10, "eventId is too large to convert")
-  while #idString < 9 do
-    idString = "0" .. idString
-  end
-  return "3" .. idString
+  local legacyId = (tonumber(eventId) or 0) + LEGACY_EVENT_ID_OFFSET
+  return string.format("%.0f", legacyId)
 end
 
 -- /script LibGuildStore_Internal:TestRefresh()
@@ -349,7 +351,7 @@ function internal:TestRefresh()
           local thePlayer = zo_strlower(GetDisplayName())
           local isSelfSale = zo_strlower(theEvent.seller) == thePlayer
           local added = false
-          
+
           if (theEvent.timestamp > daysOfHistoryToKeep) then
             local duplicate = CheckForDuplicateSale(theEvent.itemLink, theEvent.id)
             if not duplicate then

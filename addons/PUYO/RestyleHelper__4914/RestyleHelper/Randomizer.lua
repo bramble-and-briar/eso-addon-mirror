@@ -5,8 +5,8 @@ local function UnlockedPool(slot, armorType, favSet)
     local idx = RH.GetStyleIndex()
     local out = {}
     for _, id in ipairs(idx.bySlot[slot] or {}) do
-        if RH.IsUnlocked(id) and (not favSet or RH.IsFavoriteMatch(id, favSet)) then
-            if not armorType or not RH.isArmor[slot] or idx.info[id].armorType == armorType then
+        if RH.IsUsable(id) and (not favSet or RH.IsFavoriteMatch(id, favSet)) then
+            if not armorType or not RH.isArmor[slot] or idx.info[id].weight == armorType then
                 out[#out + 1] = id
             end
         end
@@ -20,8 +20,8 @@ local function PickArmorType()
     local seen, types = {}, {}
     local chest = OUTFIT_SLOT_CHEST
     for _, id in ipairs(idx.bySlot[chest] or {}) do
-        local at = idx.info[id].armorType
-        if at and at ~= 0 and not seen[at] and RH.IsUnlocked(id) then
+        local at = idx.info[id].weight
+        if at and at ~= 0 and not seen[at] and RH.IsUsable(id) then
             seen[at] = true
             types[#types + 1] = at
         end
@@ -43,7 +43,7 @@ local function PickThemeStyle(styleSlots, favSet, minSlots)
             local c = 0
             for _, slot in ipairs(styleSlots) do
                 for _, id in ipairs(bySlot[slot] or {}) do
-                    if RH.IsUnlocked(id) then c = c + 1 break end
+                    if RH.IsUsable(id) then c = c + 1 break end
                 end
             end
             if c > 0 then
@@ -189,7 +189,7 @@ function RH.Randomize(mode)
         if not themeArmorType then
             -- テーマ内で胴体ピースの重さを基準にする
             local chestId = RH.FindInStyle(themeStyleId, OUTFIT_SLOT_CHEST)
-            if chestId then themeArmorType = RH.GetStyleIndex().info[chestId].armorType end
+            if chestId then themeArmorType = RH.GetStyleIndex().info[chestId].weight end
         end
     end
 
@@ -318,13 +318,18 @@ function RH.ShuffleDyeOrder()
                         if ApplyPerm(dyes, perm, D) then any = true break end
                     end
                     if any then work[#work + 1] = w end
-                    -- 基準パレット(最初に見つかった2チャンネル以上染められるパーツの配色)
-                    if not refTriple then refTriple = { dyes[1], dyes[2], dyes[3] } end
+                    -- 基準パレット: 各チャンネルの色は、そのチャンネルを染められる最初のパーツの色を採用
+                    refTriple = refTriple or { 0, 0, 0 }
+                    for _, i in ipairs(D) do
+                        if refTriple[i] == 0 and dyes[i] and dyes[i] ~= 0 then refTriple[i] = dyes[i] end
+                    end
                     for _, i in ipairs(D) do
                         local v = dyes[i]
                         if v and v ~= 0 and not seenColor[v] then seenColor[v] = true; colors[#colors + 1] = v end
                     end
                 elseif #D == 1 then
+                    refTriple = refTriple or { 0, 0, 0 }
+                    if refTriple[D[1]] == 0 and dyes[D[1]] and dyes[D[1]] ~= 0 then refTriple[D[1]] = dyes[D[1]] end
                     singles[#singles + 1] = { sm = sm, i = D[1], cur = dyes[D[1]] }
                 end
             end
@@ -376,7 +381,21 @@ function RH.ShuffleDyeOrder()
     for _, w in ipairs(work) do
         local out
         if shared then
-            out = ApplyPerm(w.dyes, shared, w.D)
+            if #w.D < 3 and refTriple then
+                -- 一部のチャンネルしか染められない部位: 全身の配色(基準パレット)を同じ並べ替えで当てはめる
+                -- (染められないチャンネルに残った見えない色を使わない)
+                local o, changed = { w.dyes[1], w.dyes[2], w.dyes[3] }, false
+                for _, i in ipairs(w.D) do
+                    local v = refTriple[shared[i]]
+                    if v and v ~= 0 then
+                        o[i] = v
+                        if v ~= w.dyes[i] then changed = true end
+                    end
+                end
+                if changed then out = o else out = ApplyPerm(w.dyes, shared, w.D) end
+            else
+                out = ApplyPerm(w.dyes, shared, w.D)
+            end
         else
             local options = {}
             for _, p in ipairs(PERMUTATIONS) do

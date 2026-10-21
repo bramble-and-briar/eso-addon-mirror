@@ -2,7 +2,7 @@ AG = {}
 
 AG.name = 'AlphaGear'
 AG.displayname = 'AlphaGear 2'
-AG.version = 'v7.0.0'
+AG.version = 'v7.0.1'
 AG.author = 'mesota, Kyzeragon'
 AG.init = false
 AG.pendingSet = -1
@@ -3231,7 +3231,9 @@ end
 function AG.AlignMainPanel(parent, xOffset)
     trace('AlignMainPanel')
     AG_Panel:ClearAnchors()
-    AG_Panel:SetAnchor(RIGHT, parent, LEFT, xOffset, 0)
+    -- AG_Panel:SetAnchor(RIGHT, parent, LEFT, xOffset, 0) -- unintended behavior starting in U51: dragging a toplevel anchored to non-GuiRoot makes it offset all weird
+    local x, y = ZO_GetControlPointOffsetFromGuiRoot(parent, LEFT)
+    AG_Panel:SetAnchor(RIGHT, GuiRoot, LEFT, x + xOffset, y)
 end
 
 --- Resets the position of the main panel to it's previous state 

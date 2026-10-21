@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/arcsinan/ARC_ZoneExplorer---Zone-Arrival-Exploration-HUD__4972",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "arcsinan",
+  "canonical_id": "esoui:4972",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4972",
+  "deleted": false,
+  "directories": [
+    "ARC_ZoneExplorer"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4972/",
+  "fingerprint": "a4df3712823d4091db372f9533efd3cb1ea5c703562299950724af5d841f2fad",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18084.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18085.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18086.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4972",
+  "source_url": "https://www.esoui.com/downloads/info4972-ARC_ZoneExplorer-ZoneArrivalExplorationHUD.html",
+  "stats": {
+    "downloads": 12,
+    "favorites": 1,
+    "monthly_downloads": 7
+  },
+  "title": "ARC_ZoneExplorer - Zone Arrival & Exploration HUD",
+  "updated_at": 1792516181000,
+  "version": "1.0.0"
+}

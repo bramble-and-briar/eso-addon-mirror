@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/supersecrettech/PurgeRadar__4969",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "supersecrettech",
+  "canonical_id": "esoui:4969",
+  "category_id": "45",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4969",
+  "deleted": false,
+  "directories": [
+    "PurgeRadar"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4969/",
+  "fingerprint": "2a0ea90178405e732770ebb5467ac61b07f0f309791619c38aced53aa9be54e2",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4969",
+  "source_url": "https://www.esoui.com/downloads/info4969-PurgeRadar.html",
+  "stats": {
+    "downloads": 10,
+    "favorites": 0,
+    "monthly_downloads": 9
+  },
+  "title": "PurgeRadar",
+  "updated_at": 1792466926000,
+  "version": "1.5.1"
+}

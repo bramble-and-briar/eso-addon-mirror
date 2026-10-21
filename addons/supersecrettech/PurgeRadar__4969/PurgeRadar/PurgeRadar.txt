@@ -1,0 +1,10 @@
+## Title: PurgeRadar
+## Description: Instant purge and heal-check radar for group content. Tracks deadly DoTs and Ice Tomb heal-checks, shows center-screen alerts, floating icons, and optional group-frame color overrides.
+## Author: SuperSecretTech
+## Version: 1.5.1
+## AddOnVersion: 151
+## APIVersion: 101051 101052
+## SavedVariables: PurgeRadarSavedVars
+## OptionalDependsOn: LibAddonMenu-2.0 LibFloatingIcons
+
+PurgeRadar.lua

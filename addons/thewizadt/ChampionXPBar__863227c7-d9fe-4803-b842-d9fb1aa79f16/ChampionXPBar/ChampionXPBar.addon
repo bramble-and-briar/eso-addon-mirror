@@ -1,7 +1,7 @@
-## Title: ChampionXPBar
-## APIVersion: 101047
+## Title: |cFFFF00ChampionXPBar|r
+## APIVersion: 101051
 ## Version: 1.7
-## Author: Thewizadt
+## Author: |c00FFCCThewizadt|r
 ## Description: Shows CP or XP in a movable label.
 ## SavedVariables: ChampionXPBarSavedVars
 ChampionXPBar.lua

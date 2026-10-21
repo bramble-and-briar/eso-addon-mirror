@@ -1,0 +1,477 @@
+<GuiXml>
+    <Animations>
+        <AnimationTimeline name="NAGA_LootHistory_IconEntrance">
+            <Animations>
+                <AlphaAnimation duration="120" startAlpha="0" endAlpha="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+                <ScaleAnimation duration="150" startScale="1.55" endScale="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </ScaleAnimation>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_FadeLabelAndBg">
+            <Animations>
+                <AlphaAnimation duration="115" startAlpha="0" endAlpha="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+                <AlphaAnimation duration="135" startAlpha="0" endAlpha="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_ContainerFade">
+            <Animations>
+                <AlphaAnimation duration="220" startAlpha="1" endAlpha="0"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_RarityPulse">
+            <Animations>
+                <AlphaAnimation applyToChildControlName="RarityGlow" duration="90" startAlpha="0.2" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityGlow" delay="90" duration="330" startAlpha="1" endAlpha="0.18"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" duration="90" startAlpha="0" endAlpha="0.35"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" delay="90" duration="300" startAlpha="0.35" endAlpha="0"/>
+                <ScaleAnimation applyToChildControlName="RarityGlow" duration="110" startScale="0.88" endScale="1"/>
+                <ScaleAnimation applyToChildControlName="RarityBurst" duration="240" startScale="0.85" endScale="1.16"/>
+                <ScaleAnimation applyToChildControlName="Icon" duration="95" startScale="1" endScale="1.08"/>
+                <ScaleAnimation applyToChildControlName="Icon" delay="95" duration="125" startScale="1.08" endScale="1"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_EpicPulse">
+            <Animations>
+                <AlphaAnimation applyToChildControlName="RarityGlow" duration="95" startAlpha="0.35" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityGlow" delay="95" duration="520" startAlpha="1" endAlpha="0.28"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" duration="120" startAlpha="0" endAlpha="0.72"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" delay="120" duration="500" startAlpha="0.72" endAlpha="0"/>
+                <ScaleAnimation applyToChildControlName="RarityGlow" duration="140" startScale="0.78" endScale="1.08"/>
+                <ScaleAnimation applyToChildControlName="RarityBurst" duration="420" startScale="0.74" endScale="1.32"/>
+                <ScaleAnimation applyToChildControlName="Icon" duration="100" startScale="1" endScale="1.12"/>
+                <ScaleAnimation applyToChildControlName="Icon" delay="100" duration="130" startScale="1.12" endScale="1"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_LegendaryPulse">
+            <Animations>
+                <AlphaAnimation applyToChildControlName="RarityGlow" duration="110" startAlpha="0.55" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityGlow" delay="110" duration="760" startAlpha="1" endAlpha="0.42"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" duration="120" startAlpha="0" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" delay="120" duration="760" startAlpha="1" endAlpha="0"/>
+                <AlphaAnimation applyToChildControlName="Glass" duration="120" startAlpha="0.12" endAlpha="0.18"/>
+                <AlphaAnimation applyToChildControlName="Glass" delay="120" duration="420" startAlpha="0.18" endAlpha="0.06"/>
+                <ScaleAnimation applyToChildControlName="RarityGlow" duration="170" startScale="0.68" endScale="1.08"/>
+                <ScaleAnimation applyToChildControlName="RarityBurst" duration="620" startScale="0.62" endScale="1.55"/>
+                <ScaleAnimation applyToChildControlName="IconFrame" duration="120" startScale="0.84" endScale="1.24"/>
+                <ScaleAnimation applyToChildControlName="IconFrame" delay="120" duration="150" startScale="1.24" endScale="1"/>
+                <ScaleAnimation applyToChildControlName="Icon" duration="105" startScale="1" endScale="1.18"/>
+                <ScaleAnimation applyToChildControlName="Icon" delay="105" duration="155" startScale="1.18" endScale="1"/>
+            </Animations>
+        </AnimationTimeline>
+        <AnimationTimeline name="NAGA_LootHistory_Legacy_IconEntrance">
+            <Animations>
+                <AlphaAnimation duration="120" startAlpha="0" endAlpha="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+                <ScaleAnimation duration="150" startScale="2.35" endScale="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </ScaleAnimation>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_Legacy_FadeLabelAndBg">
+            <Animations>
+                <AlphaAnimation duration="115" startAlpha="0" endAlpha="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+                <AlphaAnimation duration="135" startAlpha="0" endAlpha="1">
+                    <EasingFunction>
+                        return ZO_EaseOutQuadratic(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_Legacy_ContainerFade">
+            <Animations>
+                <AlphaAnimation duration="220" startAlpha="1" endAlpha="0"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_Legacy_RarityPulse">
+            <Animations>
+                <AlphaAnimation applyToChildControlName="RarityGlow" duration="90" startAlpha="0.2" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityGlow" delay="90" duration="330" startAlpha="1" endAlpha="0.18"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" duration="90" startAlpha="0" endAlpha="0.35"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" delay="90" duration="300" startAlpha="0.35" endAlpha="0"/>
+                <ScaleAnimation applyToChildControlName="RarityGlow" duration="110" startScale="0.88" endScale="1"/>
+                <ScaleAnimation applyToChildControlName="RarityBurst" duration="240" startScale="0.85" endScale="1.16"/>
+                <ScaleAnimation applyToChildControlName="Icon" duration="95" startScale="1" endScale="1.18"/>
+                <ScaleAnimation applyToChildControlName="Icon" delay="95" duration="125" startScale="1.18" endScale="1"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_Legacy_EpicPulse">
+            <Animations>
+                <AlphaAnimation applyToChildControlName="RarityGlow" duration="95" startAlpha="0.35" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityGlow" delay="95" duration="520" startAlpha="1" endAlpha="0.28"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" duration="120" startAlpha="0" endAlpha="0.72"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" delay="120" duration="500" startAlpha="0.72" endAlpha="0"/>
+                <ScaleAnimation applyToChildControlName="RarityGlow" duration="140" startScale="0.78" endScale="1.08"/>
+                <ScaleAnimation applyToChildControlName="RarityBurst" duration="420" startScale="0.74" endScale="1.32"/>
+                <ScaleAnimation applyToChildControlName="Icon" duration="100" startScale="1" endScale="1.26"/>
+                <ScaleAnimation applyToChildControlName="Icon" delay="100" duration="130" startScale="1.26" endScale="1"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <AnimationTimeline name="NAGA_LootHistory_Legacy_LegendaryPulse">
+            <Animations>
+                <AlphaAnimation applyToChildControlName="RarityGlow" duration="110" startAlpha="0.55" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityGlow" delay="110" duration="760" startAlpha="1" endAlpha="0.42"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" duration="120" startAlpha="0" endAlpha="1"/>
+                <AlphaAnimation applyToChildControlName="RarityBurst" delay="120" duration="760" startAlpha="1" endAlpha="0"/>
+                <AlphaAnimation applyToChildControlName="Glass" duration="120" startAlpha="0.12" endAlpha="0.45"/>
+                <AlphaAnimation applyToChildControlName="Glass" delay="120" duration="420" startAlpha="0.45" endAlpha="0.16"/>
+                <ScaleAnimation applyToChildControlName="RarityGlow" duration="170" startScale="0.68" endScale="1.18"/>
+                <ScaleAnimation applyToChildControlName="RarityBurst" duration="620" startScale="0.62" endScale="1.55"/>
+                <ScaleAnimation applyToChildControlName="IconFrame" duration="120" startScale="0.84" endScale="1.24"/>
+                <ScaleAnimation applyToChildControlName="IconFrame" delay="120" duration="150" startScale="1.24" endScale="1"/>
+                <ScaleAnimation applyToChildControlName="Icon" duration="105" startScale="1" endScale="1.38"/>
+                <ScaleAnimation applyToChildControlName="Icon" delay="105" duration="155" startScale="1.38" endScale="1"/>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+
+    <Controls>
+        <Control name="NAGA_LootHistory_KeyboardEntry" virtual="true">
+            <Dimensions x="360" y="68"/>
+            <Anchor point="BOTTOMRIGHT"/>
+            <OnInitialized>
+                NAGA_UI_LootHistory_Entry_OnInitialized(self)
+            </OnInitialized>
+            <Controls>
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD181510" layer="BACKGROUND" level="0">
+                    <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
+                    <Anchor point="TOPLEFT" offsetX="-30" offsetY="7"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="12" offsetY="-7"/>
+                    <Controls>
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                            <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                            <Dimensions x="160" y="56"/>
+                            <Anchor point="LEFT" offsetX="-8"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)RarityGlow" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="174" y="64"/>
+                    <Anchor point="LEFT" offsetX="0"/>
+                </Texture>
+
+                <Texture name="$(parent)RarityBurst" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="246" y="64"/>
+                    <Anchor point="LEFT" offsetX="0"/>
+                </Texture>
+
+                <Texture name="$(parent)Glass" textureFile="EsoUI/Art/Loot/Glass.dds" color="0FFFFFFF" blendMode="ADD" excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Bg" offsetX="6" offsetY="3"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Bg" offsetX="-8" offsetY="-3"/>
+                </Texture>
+
+                <Texture name="$(parent)Icon" tier="MEDIUM" pixelRoundingEnabled="false" excludeFromResizeToFitExtents="true">
+                    <Dimensions x="40" y="40"/>
+                    <Anchor point="LEFT" offsetX="16"/>
+                    <Controls>
+                        <Label name="$(parent)OverlayText" font="ZoFontGameOutline" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                            <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
+                        </Label>
+                        <Texture name="$(parent)StatusIcon" hidden="true">
+                            <Dimensions x="22" y="22"/>
+                            <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Control name="$(parent)IconFrame" excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-2" offsetY="-2"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="2" offsetY="2"/>
+                </Control>
+
+                <Texture name="$(parent)RarityAccent" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="240" y="3"/>
+                    <Anchor point="LEFT" offsetX="69" offsetY="20"/>
+                </Texture>
+
+                <Texture name="$(parent)TopEdge" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" color="70DCC59A" blendMode="ADD">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="140" y="2"/>
+                    <Anchor point="LEFT" offsetX="65" offsetY="-22"/>
+                </Texture>
+
+                <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                    <Dimensions x="264"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="22"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="NAGA_LootHistory_GamepadEntry" virtual="true">
+            <Dimensions x="360" y="72"/>
+            <Anchor point="BOTTOMRIGHT"/>
+            <OnInitialized>
+                NAGA_UI_LootHistory_GamepadEntry_OnInitialized(self)
+            </OnInitialized>
+            <Controls>
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD181510" layer="BACKGROUND" level="0">
+                    <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
+                    <Anchor point="TOPLEFT" offsetX="-30" offsetY="7"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="12" offsetY="-7"/>
+                    <Controls>
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                            <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                            <Dimensions x="160" y="58"/>
+                            <Anchor point="LEFT" offsetX="-8"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)RarityGlow" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="174" y="68"/>
+                    <Anchor point="LEFT" offsetX="0"/>
+                </Texture>
+
+                <Texture name="$(parent)RarityBurst" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="246" y="68"/>
+                    <Anchor point="LEFT" offsetX="0"/>
+                </Texture>
+
+                <Texture name="$(parent)Glass" textureFile="EsoUI/Art/Loot/Glass.dds" color="0FFFFFFF" blendMode="ADD" excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Bg" offsetX="6" offsetY="3"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Bg" offsetX="-8" offsetY="-3"/>
+                </Texture>
+
+                <Texture name="$(parent)Icon" tier="MEDIUM" pixelRoundingEnabled="false" excludeFromResizeToFitExtents="true">
+                    <Dimensions x="44" y="44"/>
+                    <Anchor point="LEFT" offsetX="16"/>
+                    <Controls>
+                        <Label name="$(parent)OverlayText" inherits="ZO_GamepadMenuEntryStackCountTemplate" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                            <Dimensions x="55"/>
+                            <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
+                        </Label>
+                        <Texture name="$(parent)StatusIcon" hidden="true">
+                            <Dimensions x="22" y="22"/>
+                            <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Control name="$(parent)IconFrame" excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-2" offsetY="-2"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="2" offsetY="2"/>
+                </Control>
+
+                <Texture name="$(parent)RarityAccent" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="240" y="3"/>
+                    <Anchor point="LEFT" offsetX="69" offsetY="20"/>
+                </Texture>
+
+                <Texture name="$(parent)TopEdge" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" color="70DCC59A" blendMode="ADD">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="140" y="2"/>
+                    <Anchor point="LEFT" offsetX="65" offsetY="-22"/>
+                </Texture>
+
+                <Label name="$(parent)Label" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                    <Dimensions x="260"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="22"/>
+                    <OnInitialized>
+                        local fonts =
+                        {
+                            {
+                                font = "ZoFontGamepad34",
+                                lineLimit = 1,
+                            },
+                            {
+                                font = "ZoFontGamepad27",
+                                lineLimit = 1,
+                            },
+                            {
+                                font = "ZoFontGamepad22",
+                                lineLimit = 2,
+                            },
+                        }
+                        ZO_FontAdjustingWrapLabel_OnInitialized(self, fonts, TEXT_WRAP_MODE_ELLIPSIS)
+                    </OnInitialized>
+                </Label>
+            </Controls>
+        </Control>
+        <Control name="NAGA_LootHistory_Legacy_KeyboardEntry" virtual="true">
+            <Dimensions x="340" y="56"/>
+            <Anchor point="BOTTOMRIGHT"/>
+            <OnInitialized>
+                NAGA_UI_LootHistory_Legacy_Entry_OnInitialized(self)
+            </OnInitialized>
+            <Controls>
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD060606">
+                    <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
+                    <Anchor point="TOPLEFT" offsetX="-72"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="42"/>
+                    <Controls>
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                            <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                            <Dimensions x="160" y="56"/>
+                            <Anchor point="LEFT" offsetX="-8"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)RarityGlow" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="192" y="56"/>
+                    <Anchor point="LEFT" offsetX="-58"/>
+                </Texture>
+
+                <Texture name="$(parent)RarityBurst" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="280" y="64"/>
+                    <Anchor point="LEFT" offsetX="-78"/>
+                </Texture>
+
+                <Texture name="$(parent)Glass" textureFile="EsoUI/Art/Loot/Glass.dds" color="24FFFFFF" blendMode="ADD" excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Bg" offsetX="6" offsetY="3"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Bg" offsetX="-8" offsetY="-3"/>
+                </Texture>
+
+                <Texture name="$(parent)Icon" tier="MEDIUM" pixelRoundingEnabled="false" excludeFromResizeToFitExtents="true">
+                    <Dimensions x="48" y="48"/>
+                    <Anchor point="LEFT" offsetX="-4"/>
+                    <Controls>
+                        <Label name="$(parent)OverlayText" font="ZoFontGameOutline" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                            <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
+                        </Label>
+                        <Texture name="$(parent)StatusIcon" hidden="true">
+                            <Dimensions x="34" y="34"/>
+                            <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)IconFrame" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="40FFFFFF" blendMode="ADD" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-4" offsetY="-4"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="4" offsetY="4"/>
+                </Texture>
+
+                <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                    <Dimensions x="270"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="12"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="NAGA_LootHistory_Legacy_GamepadEntry" virtual="true">
+            <Dimensions x="340" y="58"/>
+            <Anchor point="BOTTOMRIGHT"/>
+            <OnInitialized>
+                NAGA_UI_LootHistory_Legacy_GamepadEntry_OnInitialized(self)
+            </OnInitialized>
+            <Controls>
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD060606">
+                    <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
+                    <Anchor point="TOPLEFT" offsetX="-72"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="42"/>
+                    <Controls>
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                            <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                            <Dimensions x="160" y="58"/>
+                            <Anchor point="LEFT" offsetX="-8"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)RarityGlow" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="192" y="58"/>
+                    <Anchor point="LEFT" offsetX="-58"/>
+                </Texture>
+
+                <Texture name="$(parent)RarityBurst" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" alpha="0" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".75"/>
+                    <Dimensions x="280" y="66"/>
+                    <Anchor point="LEFT" offsetX="-78"/>
+                </Texture>
+
+                <Texture name="$(parent)Glass" textureFile="EsoUI/Art/Loot/Glass.dds" color="24FFFFFF" blendMode="ADD" excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Bg" offsetX="6" offsetY="3"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Bg" offsetX="-8" offsetY="-3"/>
+                </Texture>
+
+                <Texture name="$(parent)Icon" tier="MEDIUM" pixelRoundingEnabled="false" excludeFromResizeToFitExtents="true">
+                    <Dimensions x="50" y="50"/>
+                    <Anchor point="LEFT" offsetX="-4"/>
+                    <Controls>
+                        <Label name="$(parent)OverlayText" inherits="ZO_GamepadMenuEntryStackCountTemplate" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                            <Dimensions x="55"/>
+                            <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
+                        </Label>
+                        <Texture name="$(parent)StatusIcon" hidden="true">
+                            <Dimensions x="34" y="34"/>
+                            <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)IconFrame" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="40FFFFFF" blendMode="ADD" excludeFromResizeToFitExtents="true">
+                    <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-4" offsetY="-4"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="4" offsetY="4"/>
+                </Texture>
+
+                <Label name="$(parent)Label" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                    <Dimensions x="260"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="12"/>
+                    <OnInitialized>
+                        local fonts =
+                        {
+                            {
+                                font = "ZoFontGamepad34",
+                                lineLimit = 1,
+                            },
+                            {
+                                font = "ZoFontGamepad27",
+                                lineLimit = 1,
+                            },
+                            {
+                                font = "ZoFontGamepad22",
+                                lineLimit = 2,
+                            },
+                        }
+                        ZO_FontAdjustingWrapLabel_OnInitialized(self, fonts, TEXT_WRAP_MODE_ELLIPSIS)
+                    </OnInitialized>
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

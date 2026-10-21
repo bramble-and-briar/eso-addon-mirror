@@ -515,17 +515,11 @@ function AD.OnAddonLoaded(event, addonName)
 
 	AD.RegisterDialog()
 	AD.RegisterContextMenu()
+	AD.SetupSettings()
 
 	EM:RegisterForEvent(AD.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AD.OnSingleSlotUpdated)
 	EM:RegisterForEvent(AD.name, EVENT_INVENTORY_FULL_UPDATE, AD.OnInventoryUpdated)
 	EM:RegisterForEvent(AD.name, EVENT_PLAYER_COMBAT_STATE, AD.OnCombatState)
-
-	local myPanel = AD.SetupSettings()
-
-	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
-		if panel ~= myPanel then return end
-		AD.RefreshDropdown()
-	end)
 
 	ZO_PreHook(SYSTEMS:GetObject("loot"), "UpdateLootWindow", AD.OnLootUpdated)
 end

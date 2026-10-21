@@ -107,5 +107,10 @@ function AD.SetupSettings()
 	}
 
 	LAM:RegisterOptionControls("AutoDestroyOptions", optionsData)
-	LAM:RegisterAddonPanel("AutoDestroyOptions", panelData)
+	local mySettingsPanel = LAM:RegisterAddonPanel("AutoDestroyOptions", panelData)
+
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+		if panel ~= mySettingsPanel then return end
+		AD.RefreshDropdown()
+	end)
 end

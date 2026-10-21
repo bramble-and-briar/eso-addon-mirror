@@ -18,7 +18,7 @@
     "AlphaGear"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1812/",
-  "fingerprint": "c2c1a9ac79cc1b768c1f33ab48daf2b80b29c29c7b54582d9dea7da0111701ae",
+  "fingerprint": "7ff75098af019b26cbfca0eed78f707f2574ff3f2540a2a1e6ff92fb58a61fe2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8625.png",
     "https://cdn-eso.mmoui.com/preview/pvw8626.png",
@@ -37,11 +37,11 @@
   "source_id": "1812",
   "source_url": "https://www.esoui.com/downloads/info1812-AlphaGear2BuildsGearSkillsBanking.html",
   "stats": {
-    "downloads": 853987,
-    "favorites": 667,
-    "monthly_downloads": 858
+    "downloads": 861326,
+    "favorites": 669,
+    "monthly_downloads": 8485
   },
   "title": "AlphaGear 2 (Builds, Gear, Skills, Banking)",
-  "updated_at": 1790988556000,
-  "version": "7.0.0"
+  "updated_at": 1792463157000,
+  "version": "7.0.1"
 }

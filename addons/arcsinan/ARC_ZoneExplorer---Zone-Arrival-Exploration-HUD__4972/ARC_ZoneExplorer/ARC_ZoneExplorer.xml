@@ -1,0 +1,86 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="ARC_ZoneExplorer_HUD" clampedToScreen="true" movable="true" mouseEnabled="true" hidden="true">
+            <Dimensions x="640" y="320" />
+            <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetY="75" />
+
+            <Controls>
+                <!-- Sleek Dark Modern Backdrop -->
+                <Backdrop name="$(parent)_Backdrop" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <!-- Thin Cyan Border Accent -->
+                <Texture name="$(parent)_TopBar" color="00D4FF">
+                    <Dimensions y="3" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="2" offsetY="2" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-2" offsetY="2" />
+                </Texture>
+
+                <!-- Close Button -->
+                <Button name="$(parent)_CloseBtn" inherits="ZO_ButtonBehaviorClickSound">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-8" offsetY="8" />
+                    <Textures
+                        normal="EsoUI/Art/Buttons/close_up.dds"
+                        pressed="EsoUI/Art/Buttons/close_down.dds"
+                        mouseOver="EsoUI/Art/Buttons/close_over.dds"
+                    />
+                </Button>
+
+                <!-- Welcome Small Header -->
+                <Label name="$(parent)_Welcome" font="ZoFontHeader3" color="00D4FF" modifyTextType="UPPERCASE" text="WELCOME TO">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="20" offsetY="14" />
+                </Label>
+
+                <!-- Main Zone Name -->
+                <Label name="$(parent)_ZoneName" font="ZoFontWindowTitle" color="FFFFFF" text="Tamriel Zone">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_Welcome" relativePoint="BOTTOMLEFT" offsetY="0" />
+                </Label>
+
+                <!-- Subzone / POI Name -->
+                <Label name="$(parent)_SubZoneName" font="ZoFontGameMedium" color="AAAAAA" text="Subzone Area">
+                    <Anchor point="LEFT" relativeTo="$(parent)_ZoneName" relativePoint="RIGHT" offsetX="15" />
+                </Label>
+
+                <!-- Left Column Header: Zone Exploration -->
+                <Label name="$(parent)_ExplorationHeader" font="ZoFontHeader" color="FFD700" text="Zone Exploration">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="20" offsetY="82" />
+                </Label>
+
+                <!-- Left Column Activities Container -->
+                <Control name="$(parent)_ActivitiesList">
+                    <Dimensions x="280" y="200" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_ExplorationHeader" relativePoint="BOTTOMLEFT" offsetY="8" />
+                </Control>
+
+                <!-- Right Column Header: Item Sets & Dailies -->
+                <Label name="$(parent)_SetsHeader" font="ZoFontHeader" color="FFD700" text="Zone Item Sets (Stickerbook)">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="330" offsetY="82" />
+                </Label>
+
+                <!-- Right Column Sets Container -->
+                <Control name="$(parent)_SetsList">
+                    <Dimensions x="290" y="110" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_SetsHeader" relativePoint="BOTTOMLEFT" offsetY="8" />
+                </Control>
+
+                <!-- Daily Statuses Header -->
+                <Label name="$(parent)_DailiesHeader" font="ZoFontGameBold" color="00D4FF" text="Daily Status">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_SetsList" relativePoint="BOTTOMLEFT" offsetY="10" />
+                </Label>
+
+                <!-- Riding Training Label -->
+                <Label name="$(parent)_RidingLabel" font="ZoFontGameMedium" color="FFFFFF" text="Riding Training: ...">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_DailiesHeader" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Label>
+
+                <!-- Daily Writs Label -->
+                <Label name="$(parent)_WritsLabel" font="ZoFontGameMedium" color="FFFFFF" text="Daily Crafting Writs: ...">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_RidingLabel" relativePoint="BOTTOMLEFT" offsetY="3" />
+                </Label>
+
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

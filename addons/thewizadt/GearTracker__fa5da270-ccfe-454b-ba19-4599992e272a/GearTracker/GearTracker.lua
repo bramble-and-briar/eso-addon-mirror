@@ -225,6 +225,13 @@ end
 -----------------------------------------------------------
 local function ScanBagContents(bagId, storageTarget)
     if not GetBagSize or not GetItemLink then return end
+    
+    -- Ensure the global game enums are safely referenced
+    local ARMOR_LIGHT  = ARMOR_TYPE_LIGHT  or 1
+    local ARMOR_MEDIUM = ARMOR_TYPE_MEDIUM or 2
+    local ARMOR_HEAVY  = ARMOR_TYPE_HEAVY  or 3
+    local ARMOR_NONE   = ARMOR_TYPE_NONE   or 0
+
     for slot = 0, GetBagSize(bagId) - 1 do
         local link = GetItemLink(bagId, slot)
         if link ~= "" then
@@ -247,28 +254,34 @@ local function ScanBagContents(bagId, storageTarget)
                 if equipType == EQUIP_TYPE_OFF_HAND then
                     weightType = "Shield"
                 else
-                    local armorRating = GetItemLinkArmorRating(link) or 0
-                    if equipType == EQUIP_TYPE_CHEST or equipType == EQUIP_TYPE_LEGS then
-                        if armorRating > 2000 then weightType = "Heavy"
-                        elseif armorRating > 1100 then weightType = "Medium"
-                        else weightType = "Light" end
-                    elseif equipType == EQUIP_TYPE_HEAD or equipType == EQUIP_TYPE_SHOULDERS or equipType == EQUIP_TYPE_FEET then
-                        if armorRating > 1700 then weightType = "Heavy"
-                        elseif armorRating > 950 then weightType = "Medium"
-                        else weightType = "Light" end
-                    else 
-                        if armorRating > 1000 then weightType = "Heavy"
-                        elseif armorRating > 600 then weightType = "Medium"
-                        else weightType = "Light" end
+                    -- Safely fetch and evaluate the armor weight constant
+                    local armorType = GetItemLinkArmorType(link)
+                    if armorType == ARMOR_LIGHT then
+                        weightType = "Light"
+                    elseif armorType == ARMOR_MEDIUM then
+                        weightType = "Medium"
+                    elseif armorType == ARMOR_HEAVY then
+                        weightType = "Heavy"
+                    elseif armorType == ARMOR_NONE then
+                        weightType = "None" -- For non-combat clothes or costumes
+                    else
+                        weightType = "Unknown"
                     end
                 end
             end
 
             if internalCategory then
-                TABLE_INSERT(storageTarget, {
+                -- Safely handle items that have no trait
+                local traitType = GetItemLinkTraitInfo(link)
+                local traitString = ""
+                if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE then
+                    traitString = GetString("SI_ITEMTRAITTYPE", traitType)
+                end
+
+                table.insert(storageTarget, {
                     link = link, 
                     name = zo_strformat("<<1>>", GetItemLinkName(link)), 
-                    trait = GetString("SI_ITEMTRAITTYPE", GetItemLinkTraitInfo(link)),
+                    trait = traitString,
                     type = internalCategory,
                     weight = weightType 
                 })
@@ -276,6 +289,8 @@ local function ScanBagContents(bagId, storageTarget)
         end
     end
 end
+
+
 
 _G.AutoScanCharacter = function()
     if not SV or not GetUnitName then return end
@@ -316,12 +331,10 @@ local function CreateLAMPanel()
         {
             type = "submenu",
             name = "|c00CCFF✦ Search & Controls|r",
-            tooltip = "Manage active search queries, inventory scanning, and overlay visibility.",
             controls = {
                 {
                     type = "editbox",
                     name = "Search Query",
-                    tooltip = "Type your search.",
                     getFunc = function() return searchText end,
                     setFunc = function(text) 
                         searchText = text
@@ -334,7 +347,6 @@ local function CreateLAMPanel()
                 {
                     type = "button",
                     name = "▲ Search Scroll Up",
-                    tooltip = "Scroll search results up",
                     func = function()
                         scrollOffset = math.max(0, scrollOffset - 1)
                         UpdateResultsUI()
@@ -344,7 +356,6 @@ local function CreateLAMPanel()
                 {
                     type = "button",
                     name = "▼ Search Scroll Down",
-                    tooltip = "Scroll search results down",
                     func = function()
                         local maxOffset = math.max(0, #searchResults - (SV.visibleCount or 8))
                         scrollOffset = math.min(maxOffset, scrollOffset + 1)
@@ -367,7 +378,6 @@ local function CreateLAMPanel()
                 {
                     type = "button",
                     name = "|c00FFCCRun Inventory Scan|r",
-                    tooltip = "Scan equipped and bag items on this character.",
                     func = function() 
                         _G.AutoScanCharacter()
                         ApplyInventoryFilter()
@@ -386,7 +396,6 @@ local function CreateLAMPanel()
         {
             type = "submenu",
             name = "|cFFCC00⚙ Overlay Settings|r",
-            tooltip = "Adjust font sizes and screen positions.",
             controls = {
                 {
                     type = "slider",
@@ -434,13 +443,11 @@ local function CreateLAMPanel()
         {
             type = "submenu",
             name = "|c00FF99🛡 Account Data Repository|r",
-            tooltip = "View character database summaries or clear saved data.",
             controls = {
                 -- Added dedicated Roster Scroll Controls for gamepad/keyboard users
                 {
                     type = "button",
                     name = "▲ Roster Scroll Up",
-                    tooltip = "Scroll roster view up",
                     func = function()
                         rosterOffset = math.max(0, rosterOffset - 2)
                         -- Forces the LAM settings panel control to refresh its description
@@ -451,7 +458,6 @@ local function CreateLAMPanel()
                 {
                     type = "button",
                     name = "▼ Roster Scroll Down",
-                    tooltip = "Scroll roster view down",
                     func = function()
                         rosterOffset = rosterOffset + 2
                         CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", "GearTracker_Panel")

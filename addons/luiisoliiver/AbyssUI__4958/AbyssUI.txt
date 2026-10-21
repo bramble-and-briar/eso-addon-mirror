@@ -1,0 +1,101 @@
+## Title: |cFF0000Abyss|rUI
+## APIVersion: 101050 101051
+## Version: 1.9.32
+## Author: |cFF0000N A G A|r
+## Description: ABYSSUI — módulos NAGA + Minimap DS_3 + AbyssQuest (modules/quest).
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: NAGA_Account NAGA_Servers NAGA_Character NAGA_StatisticsReports NagaMapUI_SavedVariables NaguiUI_Account NaguiUI_Servers NaguiUI_Character NaguiUI_StatisticsReports AlabuzyaUISavedVariables AbyssQuest_SavedVariables
+
+Bindings.xml
+modules/loot_history.xml
+AbyssUI_Root.xml
+
+# Central init (single EVENT_ADD_ON_LOADED)
+modules/bootstrap.lua
+
+# Localization core (language packs register themselves when loaded)
+modules/locale/Locale.lua
+modules/locale/en.lua
+modules/locale/pt.lua
+modules/locale/de.lua
+modules/locale/fr.lua
+modules/locale/es.lua
+modules/locale/ru.lua
+modules/locale/jp.lua
+modules/locale/zh.lua
+modules/locale/pl.lua
+
+modules/settings.lua
+modules/automations.lua
+modules/master_mover.lua
+modules/statistics_core.lua
+modules/statistics_settings.lua
+modules/statistics_controls.lua
+modules/statistics.lua
+modules/statistics_combat.lua
+modules/no_mouse_wheel_slider.lua
+modules/achievement_alert.lua
+modules/adventure_camera.lua
+modules/bar_visuals.lua
+modules/compass.lua
+modules/damage_numbers.lua
+modules/experience_tracker.lua
+modules/group_callouts.lua
+modules/immersive_teleport.lua
+modules/kill_sound.lua
+modules/level_visuals.lua
+modules/loot_history.lua
+modules/pvp.lua
+modules/synergy_alert.lua
+
+modules/target_frame.lua
+modules/group_frames.lua
+modules/cast_bar.lua
+modules/resource_bars.lua
+modules/action_bar_frames.lua
+modules/info_panel.lua
+modules/companion_frame.lua
+modules/buffs.lua
+
+# Minimap (DS_3)
+modules/init.lua
+modules/SavedVariables.lua
+modules/Theme.lua
+modules/DS3Theme.lua
+modules/Minimap.lua
+modules/bridge.lua
+
+# AbyssQuest (embedded with AbyssUI — see modules/quest/AbyssQuest.txt for module identity)
+modules/quest/Strings.lua
+modules/quest/lang/de.lua
+modules/quest/lang/fr.lua
+modules/quest/lang/es.lua
+modules/quest/lang/pt.lua
+modules/quest/lang/pl.lua
+modules/quest/lang/zh.lua
+modules/quest/lang/jp.lua
+modules/quest/AbyssQuest.lua
+modules/quest/Data.lua
+modules/quest/Presence.lua
+modules/quest/Route.lua
+modules/quest/Style.lua
+modules/quest/Icons.lua
+modules/quest/Menu.lua
+modules/quest/Buttons.lua
+modules/quest/Wheel.lua
+modules/quest/Pickers.lua
+modules/quest/SlotEditor.lua
+modules/quest/WheelEditor.lua
+modules/quest/Settings.lua
+modules/quest/MapIntegration.lua
+modules/quest/MapPanel.lua
+modules/quest/Quests.lua
+modules/quest/QuestDrag.lua
+modules/quest/QuestTravel.lua
+modules/quest/ZoomBar.lua
+modules/quest/InfoPanel.lua
+modules/quest/QuestTracker.lua
+modules/quest/Guild.lua
+modules/quest/Preview.lua
+modules/quest/SocialIntegration.lua
+modules/quest/AbyssQuest.xml

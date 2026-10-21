@@ -1,10 +1,10 @@
+KwibusRandomThings = KwibusRandomThings or {}
 local KRT = KwibusRandomThings
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
 local ADDON_NAME = KRT.name
 
 local IsNonEmptyString = KRT.IsNonEmptyString
-local DebounceNextFrame = KRT.DebounceNextFrame
 
 local DEFAULTS = { kow = {
     enabled = true,
@@ -27,7 +27,7 @@ KRT.KOW = {
 }
 
 function KRT.KOW:SV()
-    return KRT.sv and KRT.sv.kow
+    return KRT.GetModuleSV(self.id, self.defaults)
 end
 
 function KRT.KOW:HasOverloadBuff()
@@ -92,76 +92,19 @@ function KRT.KOW:UpdateTextStyle()
         lbl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     end
 
-    DebounceNextFrame("KOW_Resize", function()
-        local tries = 0
-        local function ResizeHitbox()
-            tries = tries + 1
-            local w = (lbl:GetTextWidth() or 0) * scale + 24
-            local h = (lbl:GetTextHeight() or 0) * scale + 24
-            if (w <= 26 or h <= 26) and tries < 6 then
-                zo_callLater(ResizeHitbox, 0)
-                return
-            end
-            if w < 80 then w = 80 end
-            if h < 30 then h = 30 end
-            lbl:SetDimensions(w / scale, h / scale)
-            ui:SetDimensions(w, h)
-        end
-        ResizeHitbox()
-    end)
+    KRT.ResizeTextHitbox("KOW_Resize", ui, lbl, scale, 80, 30)
 end
 
 function KRT.KOW:ApplyAnchor()
-    local sv = self:SV()
-    if not (self.ui and sv) then return end
-    self.ui:ClearAnchors()
-    self.ui:SetAnchor(CENTER, GuiRoot, CENTER, sv.offsetX or 0, sv.offsetY or DEFAULTS.kow.offsetY)
+    KRT.ApplyCenterAnchor(self.ui, self:SV(), DEFAULTS.kow.offsetY)
 end
 
 function KRT.KOW:EnableDragging(enable)
     local sv = self:SV()
-    local ui, lbl = self.ui, self.lbl
-    if not (ui and lbl and sv) then return end
-
-    ui:SetMouseEnabled(false)
-    ui:SetMovable(true)
-    ui:SetClampedToScreen(true)
-    ui:SetDrawTier(DT_HIGH)
-    ui:SetDrawLayer(DL_OVERLAY)
-
-    if enable then
-        ui:SetHidden(false)
-        lbl:SetMouseEnabled(true)
-
-        lbl:SetHandler("OnMouseDown", function(_, button)
-            if button == MOUSE_BUTTON_INDEX_LEFT then
-                ui:StartMoving()
-            end
-        end)
-
-        lbl:SetHandler("OnMouseUp", function(_, button)
-            if button == MOUSE_BUTTON_INDEX_LEFT then
-                ui:StopMovingOrResizing()
-            end
-        end)
-
-        ui:SetHandler("OnMoveStop", function(control)
-            local rootCx, rootCy = GuiRoot:GetCenter()
-            local ux, uy = control:GetCenter()
-            sv.offsetX = zo_round(ux - rootCx)
-            sv.offsetY = zo_round(uy - rootCy)
-            self:ApplyAnchor()
-        end)
-    else
-        lbl:SetMouseEnabled(false)
-        lbl:SetHandler("OnMouseDown", nil)
-        lbl:SetHandler("OnMouseUp", nil)
-        ui:SetHandler("OnMoveStop", nil)
-        self:UpdateDisplay()
-    end
+    KRT.EnableDragging(self.ui, self.lbl, sv, enable, function() self:ApplyAnchor() end, function() self:UpdateDisplay() end)
 end
 
-function KRT.KOW:UpdateDisplay()
+function KRT.KOW:UpdateDisplay(hasBuff)
     local sv = self:SV()
     if not sv then return end
     if not self.ui then return end
@@ -176,7 +119,11 @@ function KRT.KOW:UpdateDisplay()
         return
     end
 
-    self.ui:SetHidden(not self:HasOverloadBuff())
+    if hasBuff == nil then
+        hasBuff = self:HasOverloadBuff()
+    end
+
+    self.ui:SetHidden(not hasBuff)
 end
 
 function KRT.KOW:Initialize()
@@ -189,21 +136,30 @@ function KRT.KOW:Initialize()
     self:EnableDragging(sv.enableReposition)
 
     EM:RegisterForEvent(ADDON_NAME .. "_KOW_Activated", EVENT_PLAYER_ACTIVATED, function()
+        local sv2 = self:SV()
+        if not (sv2 and sv2.enabled) then return end
         self:UpdateDisplay()
     end)
 
-    EM:RegisterForEvent(ADDON_NAME .. "_KOW_Effect", EVENT_EFFECT_CHANGED, function(_, changeType, _, _, unitTag, _, _, _, _, _, _, _, _, _, _, abilityId)
-        if unitTag ~= "player" then return end
-        if abilityId ~= self.TARGET_BUFF_ID then return end
-        self:UpdateDisplay()
+    EM:RegisterForEvent(ADDON_NAME .. "_KOW_Effect", EVENT_EFFECT_CHANGED, function(_, changeType)
+        local sv2 = self:SV()
+        if not (sv2 and sv2.enabled) then return end
+        if changeType == EFFECT_RESULT_GAINED then
+            self:UpdateDisplay(true)
+        elseif changeType == EFFECT_RESULT_FADED then
+            self:UpdateDisplay(false)
+        else
+            self:UpdateDisplay()
+        end
     end)
     EM:AddFilterForEvent(ADDON_NAME .. "_KOW_Effect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
+    EM:AddFilterForEvent(ADDON_NAME .. "_KOW_Effect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, self.TARGET_BUFF_ID)
 
     self:UpdateDisplay()
 end
 
 local function SV()
-    return KRT.sv
+    return KRT.KOW:SV()
 end
 
 function KRT.KOW:GetLAMSubmenu()
@@ -213,85 +169,91 @@ function KRT.KOW:GetLAMSubmenu()
         controls = {
             {
                 type = "checkbox",
-                name = "Enable Overload Watcher",
-                getFunc = function() return SV().kow.enabled end,
+                name = "Enable Module",
+                getFunc = function() return SV().enabled end,
                 setFunc = function(v)
-                    SV().kow.enabled = v
-                    KRT.KOW:UpdateDisplay()
+                    SV().enabled = v
+                    if not v then
+                        KRT.KOW:EnableDragging(false)
+                        if KRT.KOW.ui then KRT.KOW.ui:SetHidden(true) end
+                    else
+                        KRT.KOW:UpdateDisplay()
+                    end
                 end,
                 width = "full",
             },
             {
                 type = "checkbox",
-                name = "Enable repositioning (drag)",
-                getFunc = function() return SV().kow.enableReposition end,
+                name = "Enable Repositioning (Drag)",
+                tooltip = "Allows you to drag and reposition the reminder overlay.",
+                getFunc = function() return SV().enableReposition end,
                 setFunc = function(v)
-                    SV().kow.enableReposition = v
+                    SV().enableReposition = v
                     KRT.KOW:EnableDragging(v)
                     KRT.KOW:ApplyAnchor()
                 end,
                 width = "full",
-                disabled = function() return not SV().kow.enabled end,
+                disabled = function() return not SV().enabled end,
             },
             {
-                type = "dropdown",
-                name = "Text side",
-                choices = { "Left", "Center", "Right" },
-                choicesValues = { "left", "center", "right" },
-                getFunc = function() return SV().kow.textSide end,
-                setFunc = function(v)
-                    SV().kow.textSide = v
-                    KRT.KOW:UpdateTextStyle()
+                type = "button",
+                name = "Reset Horizontal Position",
+                func = function()
+                    SV().offsetX = 0
+                    KRT.KOW:ApplyAnchor()
                 end,
-                width = "full",
-                disabled = function() return not SV().kow.enabled end,
+                width = "half",
+                disabled = function() return not SV().enabled or not SV().enableReposition end,
+            },
+            {
+                type = "button",
+                name = "Reset Vertical Position",
+                func = function()
+                    SV().offsetY = DEFAULTS.kow.offsetY
+                    KRT.KOW:ApplyAnchor()
+                end,
+                width = "half",
+                disabled = function() return not SV().enabled or not SV().enableReposition end,
             },
             {
                 type = "editbox",
-                name = "Reminder text",
+                name = "Reminder Text",
                 isMultiline = false,
-                getFunc = function() return SV().kow.text end,
+                getFunc = function() return SV().text end,
                 setFunc = function(v)
-                    SV().kow.text = IsNonEmptyString(v) and v or DEFAULTS.kow.text
+                    SV().text = IsNonEmptyString(v) and v or DEFAULTS.kow.text
                     KRT.KOW:UpdateTextStyle()
                     KRT.KOW:UpdateDisplay()
                 end,
                 width = "full",
-                disabled = function() return not SV().kow.enabled end,
+                disabled = function() return not SV().enabled end,
             },
             {
                 type = "slider",
-                name = "Text scale",
+                name = "Text Scale",
                 min = 0.5,
                 max = 3.0,
                 step = 0.1,
-                getFunc = function() return SV().kow.fontScale end,
+                getFunc = function() return SV().fontScale end,
                 setFunc = function(v)
-                    SV().kow.fontScale = v
+                    SV().fontScale = v
                     KRT.KOW:UpdateTextStyle()
                 end,
                 width = "full",
-                disabled = function() return not SV().kow.enabled end,
+                disabled = function() return not SV().enabled end,
             },
             {
-                type = "button",
-                name = "Reset horizontal position",
-                func = function()
-                    SV().kow.offsetX = 0
-                    KRT.KOW:ApplyAnchor()
+                type = "dropdown",
+                name = "Text Side",
+                choices = { "Left", "Center", "Right" },
+                choicesValues = { "left", "center", "right" },
+                getFunc = function() return SV().textSide end,
+                setFunc = function(v)
+                    SV().textSide = v
+                    KRT.KOW:UpdateTextStyle()
                 end,
-                width = "half",
-                disabled = function() return not SV().kow.enabled or not SV().kow.enableReposition end,
-            },
-            {
-                type = "button",
-                name = "Reset vertical position",
-                func = function()
-                    SV().kow.offsetY = DEFAULTS.kow.offsetY
-                    KRT.KOW:ApplyAnchor()
-                end,
-                width = "half",
-                disabled = function() return not SV().kow.enabled or not SV().kow.enableReposition end,
+                width = "full",
+                disabled = function() return not SV().enabled end,
             },
         },
     }

@@ -25,6 +25,10 @@ local RING_R, RING_G, RING_B = 0.2, 1.0, 0.2
 
 local SUBMENU_ICON = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
 
+Trackers.charDefaults = {
+    trackersUseCharacter = false,
+}
+
 Trackers.defaults = {
     trackerPosX   = 900,
     trackerPosY   = 400,
@@ -62,8 +66,49 @@ local previewStart = 0
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
+local function CharLayout()
+    local cv = ME.charVariables
+    if not cv then return nil end
+    if type(cv.trackerCharLayout) ~= "table" then cv.trackerCharLayout = {} end
+    local layout = cv.trackerCharLayout
+    if not layout.seeded then
+        local account = ME.savedVariables
+        for key, value in pairs(Trackers.defaults) do
+            local current = account and account[key]
+            if current == nil then current = value end
+            layout[key] = current
+        end
+        layout.seeded = true
+    end
+    return layout
+end
+
+function Trackers:UsesCharacterSettings()
+    return ME.charVariables ~= nil and ME.charVariables.trackersUseCharacter == true
+end
+
 local function SV()
+    if Trackers:UsesCharacterSettings() then
+        return CharLayout() or ME.savedVariables
+    end
     return ME.savedVariables
+end
+
+local function LayoutTip()
+    if Trackers:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
+    return ME.SAVED_ACCOUNT_TIP
+end
+
+function Trackers:SetUseCharacterSettings(value)
+    local cv = ME.charVariables
+    if not cv then return end
+    value = value == true
+    if (cv.trackersUseCharacter == true) == value then return end
+    cv.trackersUseCharacter = value
+    self:ApplyPosition()
+    self:RefreshDisplay()
+    local panel = ME.settingsPanel
+    if panel and panel.Refresh then panel:Refresh() end
 end
 
 local function GetTimerColor(remaining, totalDuration)
@@ -500,8 +545,22 @@ function Trackers:GetOptions()
             type    = "submenu",
             name    = "Trackers",
             icon    = SUBMENU_ICON,
-            tooltip = ME.SAVED_ACCOUNT_TIP,
+            tooltip = LayoutTip,
             options = {
+                {
+                    type    = "toggle",
+                    name    = "Character Settings",
+                    tooltip = "Off uses one layout for the whole account. On gives this character its own layout, "
+                           .. "copied from the account layout the first time you turn it on.\n\n" .. ME.SAVED_CHARACTER_TIP,
+                    details = function()
+                        if Trackers:UsesCharacterSettings() then
+                            return "This character has its own layout."
+                        end
+                        return "All your characters share one layout."
+                    end,
+                    getFunc = function() return Trackers:UsesCharacterSettings() end,
+                    setFunc = function(val) Trackers:SetUseCharacterSettings(val) end,
+                },
                 {
                     type    = "toggle",
                     name    = "Preview",
@@ -602,8 +661,24 @@ function Trackers:OnPlayerActivated()
     self:RefreshDisplay()
 end
 
+function Trackers:ResetSkipKeys()
+    local keys = {}
+    if self:UsesCharacterSettings() then
+        for key in pairs(self.defaults) do keys[#keys + 1] = key end
+    end
+    return keys
+end
+
 function Trackers:OnReset()
     self.preview = false
+    if self:UsesCharacterSettings() then
+        local layout = CharLayout()
+        if layout then
+            for key, value in pairs(self.defaults) do
+                layout[key] = value
+            end
+        end
+    end
     self:ApplyPosition()
     self:RefreshDisplay()
 end

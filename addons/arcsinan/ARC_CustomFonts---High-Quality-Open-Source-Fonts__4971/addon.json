@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/arcsinan/ARC_CustomFonts---High-Quality-Open-Source-Fonts__4971",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "arcsinan",
+  "canonical_id": "esoui:4971",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4971",
+  "deleted": false,
+  "directories": [
+    "ARC_CustomFonts"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4971/",
+  "fingerprint": "2a49f8f73df8943632d94181e5157ba56b2385d42aeb51e495f31c827b101456",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4971",
+  "source_url": "https://www.esoui.com/downloads/info4971-ARC_CustomFonts-High-QualityOpen-SourceFonts.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "ARC_CustomFonts - High-Quality Open-Source Fonts",
+  "updated_at": 1792513472000,
+  "version": "1.0.0"
+}

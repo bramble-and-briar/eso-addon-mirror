@@ -1,0 +1,19 @@
+## Title: |c00D4FFARC_NetGraph|r - Real-Time Network Telemetry & FPS
+## Author: @arcsinan
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101050 101051
+## SavedVariables: ARC_NetGraph_SavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+## Description: Real-time network telemetry HUD displaying Ping, Jitter, Min/Max latency spikes, and Framerate (FPS) with dynamic color coding and extensive customization. Required: LibAddonMenu-2.0.
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+
+localization/en.lua
+localization/tr.lua
+
+ARC_NetGraph.xml
+ARC_NetGraph.lua
+ARC_NetGraphSettings.lua

@@ -1,44 +1,69 @@
 -- ============================================================================
--- ConsoleCPQoL - Fully Automatic Gamepad CP Addon (Engine Post-Hook Fix)
+-- ConsoleCPQoL - Fully Automatic Gamepad CP Addon (Sub-Menu & Cluster Fix v1.3)
 -- ============================================================================
 
 local ConsoleCPQoL = {}
 ConsoleCPQoL.name = "ConsoleCPQoL"
 
 local activeLabels = {}
+local labelPool = {}
 local isCPUIOpen = false
+local SV
+
+-- Default Saved Variables
+local defaultSettings = {
+    fontColorR = 1.0,
+    fontColorG = 0.9,
+    fontColorB = 0.2,
+    fontColorA = 1.0,
+    fontSize = 24,
+}
 
 local function ClearPerkLabels()
     for _, label in pairs(activeLabels) do
         if label then
             label:SetHidden(true)
             label:SetText("")
+            table.insert(labelPool, label)
         end
     end
-    -- Sweep all possible label indices
-    for i = 1, 300 do
-        local n = WINDOW_MANAGER:GetControlByName("ConsoleCPQoL_StarLabel_" .. i)
-        if n then
-            n:SetHidden(true)
-            n:SetText("")
-        end
+    activeLabels = {}
+end
+
+local function GetPooledLabel(index)
+    local label = table.remove(labelPool)
+    if not label then
+        local labelName = "ConsoleCPQoL_StarLabel_" .. index
+        label = WINDOW_MANAGER:CreateControl(labelName, ZO_ChampionPerksCanvas, CT_LABEL)
+        label:SetDrawLayer(DL_OVERLAY)
+        label:SetDrawLevel(2)
+        label:SetDrawTier(DT_HIGH)
+        label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     end
+    
+    if SV then
+        label:SetColor(SV.fontColorR, SV.fontColorG, SV.fontColorB, SV.fontColorA)
+    end
+    
+    return label
 end
 
 local function RefreshPerkLabels()
     if not isCPUIOpen then return end
     if not ZO_ChampionPerksCanvas then return end
 
-    local fontSize = 24
+    ClearPerkLabels()
+
+    local fontSize = (SV and SV.fontSize) or 24
     local fontString = string.format("$(MEDIUM_FONT)|%d|soft-shadow-thin", fontSize)
 
     local childCount = ZO_ChampionPerksCanvas:GetNumChildren()
-    local createdCount = 0
+    local pooledIndex = 1
 
     for i = 1, childCount do
         local child = ZO_ChampionPerksCanvas:GetChild(i)
         
-        if child and child.star then
+        if child and child.star and not child:IsHidden() then
             local skillName = nil
 
             if child.star.championSkillData then
@@ -54,17 +79,8 @@ local function RefreshPerkLabels()
             end
 
             if skillName and skillName ~= "" then
-                local labelName = "ConsoleCPQoL_StarLabel_" .. i
-                local n = WINDOW_MANAGER:GetControlByName(labelName)
-                
-                if not n then
-                    n = WINDOW_MANAGER:CreateControl(labelName, ZO_ChampionPerksCanvas, CT_LABEL)
-                    n:SetColor(1, 0.9, 0.2, 1) -- Bright Gold
-                    n:SetDrawLayer(DL_OVERLAY)
-                    n:SetDrawLevel(2)
-                    n:SetDrawTier(DT_HIGH)
-                    n:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-                end
+                local n = GetPooledLabel(pooledIndex)
+                pooledIndex = pooledIndex + 1
 
                 n:SetFont(fontString)
                 n:ClearAnchors()
@@ -73,19 +89,16 @@ local function RefreshPerkLabels()
                 n:SetHidden(false)
                 
                 table.insert(activeLabels, n)
-                createdCount = createdCount + 1
             end
         end
     end
 end
 
--- Secure hook into ESO's Gamepad Tooltips engine framework
-local function InitializeTooltipHooks()
+-- Secure hooks for Gamepad Tooltips and Navigation
+local function InitializeHooks()
     if GAMEPAD_TOOLTIPS then
-        -- Hook when any gamepad tooltip is laid out/shown
         if GAMEPAD_TOOLTIPS.LayoutChampionPerkSkill and not GAMEPAD_TOOLTIPS._ccpHooked then
             SecurePostHook(GAMEPAD_TOOLTIPS, "LayoutChampionPerkSkill", function()
-                d("[CCP Debug] Tooltip Laid Out (Showing)")
                 ClearPerkLabels()
                 if ZO_ChampionPerksCanvas then
                     ZO_ChampionPerksCanvas:SetHidden(true)
@@ -94,10 +107,8 @@ local function InitializeTooltipHooks()
             GAMEPAD_TOOLTIPS._ccpHooked = true
         end
 
-        -- Hook when tooltips are cleared/hidden
         if GAMEPAD_TOOLTIPS.ClearTooltip and not GAMEPAD_TOOLTIPS._ccpClearHooked then
             SecurePostHook(GAMEPAD_TOOLTIPS, "ClearTooltip", function()
-                d("[CCP Debug] Tooltip Cleared (Hidden)")
                 if ZO_ChampionPerksCanvas then
                     ZO_ChampionPerksCanvas:SetHidden(false)
                 end
@@ -108,13 +119,98 @@ local function InitializeTooltipHooks()
             GAMEPAD_TOOLTIPS._ccpClearHooked = true
         end
     end
+
+    if ZO_ChampionPerks_Gamepad and not ZO_ChampionPerks_Gamepad._ccpNavHooked then
+        -- Hook selection changes so entering/exiting sub-menus refreshes labels instantly
+        if ZO_ChampionPerks_Gamepad.OnSelectionChanged then
+            SecurePostHook(ZO_ChampionPerks_Gamepad, "OnSelectionChanged", function()
+                if isCPUIOpen then
+                    zo_callLater(RefreshPerkLabels, 30)
+                end
+            end)
+        end
+        if ZO_ChampionPerks_Gamepad.Update then
+            SecurePostHook(ZO_ChampionPerks_Gamepad, "Update", function()
+                if isCPUIOpen then
+                    zo_callLater(RefreshPerkLabels, 30)
+                end
+            end)
+        end
+        ZO_ChampionPerks_Gamepad._ccpNavHooked = true
+    end
+end
+
+-- Create LAM2 Settings Menu
+local function CreateSettingsPanel()
+    local LAM = LibAddonMenu2
+    if not LAM then return end
+
+    local panelName = "ConsoleCPQoL_OptionsPanel"
+    local panelData = {
+        type = "panel",
+        name = "Console CP QoL",
+        displayName = "|cFFD700Console CP |c00CCFFQoL Settings|r",
+        author = "|c00FFCCtheWiz|r",
+        version = "1.3",
+        registerForRefresh = true,
+        registerForDefaults = true,
+    }
+
+    LAM:RegisterAddonPanel(panelName, panelData)
+
+    local optionsData = {
+        {
+            type = "description",
+            text = "|cFFD700Customize the appearance of the star skill labels in the Champion Points gamepad UI.|r",
+        },
+        {
+            type = "slider",
+            name = "|cFFFFFFFont Size|r",
+            tooltip = "Adjust the text size for the champion skill labels.",
+            min = 12,
+            max = 36,
+            step = 1,
+            getFunc = function() return SV.fontSize end,
+            setFunc = function(value)
+                SV.fontSize = value
+                RefreshPerkLabels()
+            end,
+            default = defaultSettings.fontSize,
+        },
+        {
+            type = "colorpicker",
+            name = "|cFFFFFFStar Label Color|r",
+            tooltip = "Choose the text color for the champion skill names.",
+            getFunc = function() 
+                return SV.fontColorR, SV.fontColorG, SV.fontColorB, SV.fontColorA 
+            end,
+            setFunc = function(r, g, b, a)
+                SV.fontColorR = r
+                SV.fontColorG = g
+                SV.fontColorB = b
+                SV.fontColorA = a
+                RefreshPerkLabels()
+            end,
+            default = {
+                r = defaultSettings.fontColorR,
+                g = defaultSettings.fontColorG,
+                b = defaultSettings.fontColorB,
+                a = defaultSettings.fontColorA,
+            },
+        },
+    }
+
+    LAM:RegisterOptionControls(panelName, optionsData)
 end
 
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= ConsoleCPQoL.name then return end
     EVENT_MANAGER:UnregisterForEvent(ConsoleCPQoL.name, EVENT_ADD_ON_LOADED)
     
-    InitializeTooltipHooks()
+    SV = ZO_SavedVars:NewAccountWide("ConsoleCPQoL_SavedVars", 1, nil, defaultSettings)
+
+    InitializeHooks()
+    CreateSettingsPanel()
 
     if SCENE_MANAGER then
         local cpScene = SCENE_MANAGER:GetScene("gamepad_championPerks_root")
@@ -122,9 +218,10 @@ local function OnAddOnLoaded(_, addonName)
             cpScene:RegisterCallback("StateChange", function(oldState, newState)
                 if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
                     isCPUIOpen = true
-                    InitializeTooltipHooks()
-                    zo_callLater(RefreshPerkLabels, 200)
-                    zo_callLater(RefreshPerkLabels, 600)
+                    InitializeHooks()
+                    zo_callLater(RefreshPerkLabels, 150)
+                    zo_callLater(RefreshPerkLabels, 400)
+                    zo_callLater(RefreshPerkLabels, 800)
                 elseif newState == SCENE_HIDDEN or newState == SCENE_HIDING then
                     isCPUIOpen = false
                     ClearPerkLabels()
@@ -136,18 +233,12 @@ end
 
 EVENT_MANAGER:RegisterForEvent(ConsoleCPQoL.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
 
-if ZO_ChampionPerks_Gamepad then
-    local oldUpdate = ZO_ChampionPerks_Gamepad.Update
-    if oldUpdate then
-        ZO_ChampionPerks_Gamepad.Update = function(self, ...)
-            oldUpdate(self, ...)
-            if isCPUIOpen then
-                InitializeTooltipHooks()
-                zo_callLater(RefreshPerkLabels, 30)
-            end
-        end
+-- Active background update ticker while CP menu is open to guarantee sub-menus display labels
+EVENT_MANAGER:RegisterForUpdate(ConsoleCPQoL.name .. "_Ticker", 250, function()
+    if isCPUIOpen then
+        RefreshPerkLabels()
     end
-end
+end)
 
 SLASH_COMMANDS["/ccptest"] = function()
     isCPUIOpen = true
@@ -159,5 +250,4 @@ SLASH_COMMANDS["/ccpclear"] = function()
     if ZO_ChampionPerksCanvas then
         ZO_ChampionPerksCanvas:SetHidden(true)
     end
-    d("[CCP Debug] Manual clear executed via /ccpclear")
 end

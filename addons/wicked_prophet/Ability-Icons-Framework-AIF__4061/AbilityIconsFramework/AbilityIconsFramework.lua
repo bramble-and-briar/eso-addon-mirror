@@ -1,207 +1,174 @@
-AbilityIconsFramework = {}
+-- =============================================================================
+-- Ability Icons Framework (AIF) - Core Engine Lifecycle & Bar Synchronization
+-- =============================================================================
+-- Coordinates high-resolution texture redirection, dynamic Scribing Grimoire
+-- icon resolution, third-party action bar synchronizations (FancyActionBar / FAB+),
+-- and critical visual sanity fixes (such as taming the monstrous vAS tip icon).
+--
+-- Think of this file as the central air traffic controller: it makes sure that
+-- whether you just logged in, ported to a trial, or finished scribing a spicy new
+-- Grimoire at the Scholarium altar, your action bars actually show the right art.
+-- =============================================================================
 
 --- @class (partial) AbilityIconsFramework
+AbilityIconsFramework = AbilityIconsFramework or {}
+
 local AbilityIconsFramework = AbilityIconsFramework
 
-------------------
--- Declarations --
-------------------
+-- Cached engine globals for quick access and cleaner call sites
+local GetActiveHotbarCategory = GetActiveHotbarCategory
+local ZO_ActionBar_GetButton  = ZO_ActionBar_GetButton
+local zo_callLater            = zo_callLater
 
-local ADDON_VERSION = "160"
+--------------------------------------------------------------------------------
+-- Declarations & Versioning
+--------------------------------------------------------------------------------
+
+local ADDON_VERSION = "2.0.1"
 
 AbilityIconsFramework.version = ADDON_VERSION
-AbilityIconsFramework.name = "AbilityIconsFramework"
+AbilityIconsFramework.name    = "AbilityIconsFramework"
 
--- If icon packs call AddCustomIconPack before settings exist, queue them here.
-AbilityIconsFramework._earlyIconPacks = AbilityIconsFramework._earlyIconPacks or {}
+--------------------------------------------------------------------------------
+-- Visual Bug Fixes & Engine Workarounds
+--------------------------------------------------------------------------------
 
----------------
--- Functions --
----------------
-
-local function ProcessEarlyIconPacks()
-    if not AbilityIconsFramework._earlyIconPacks then return end
-    if AbilityIconsFramework.GetSettings == nil then return end
-
-    for packDir, packIcons in pairs(AbilityIconsFramework._earlyIconPacks) do
-        -- Re-run AddCustomIconPack now that settings exist
-        AbilityIconsFramework.AddCustomIconPack(packDir, packIcons)
+--- Tames an infamous ESO visual bug in Veteran Asylum Sanctorium (vAS).
+--- Without dimension constraints, the combat tip warning icon can expand to
+--- truly elephantine proportions, blotting out Saint Olms, your group, and
+--- any hope of seeing incoming boss mechanics.
+--- Clamping it firmly to 64x64 ensures it remains a helpful tip rather than
+--- an accidental full-screen flashbang.
+function AbilityIconsFramework.ApplyFixVas()
+    if ZO_ActiveCombatTipsTipIcon then
+        ZO_ActiveCombatTipsTipIcon:SetDimensionConstraints(64, 64, 64, 64)
     end
-
-    AbilityIconsFramework._earlyIconPacks = {}
 end
 
---- Initializes the saved variables and replaces mismatched base skill icons, if the saved variables dictate it.
-function AbilityIconsFramework.Initialize()
-    AbilityIconsFramework.ResetAllTextureRedirects() -- reset in case we had some icon pack disabled
+--------------------------------------------------------------------------------
+-- Master Initialization Sequence
+--------------------------------------------------------------------------------
 
-    AbilityIconsFramework.InitializeSettings()
-    ProcessEarlyIconPacks()
-
-    AbilityIconsFramework.InitializeAutoConfirm()
-	
-	AbilityIconsFramework.ApplyFixVas()
-
+--- Master initialization sequence for the framework.
+--- Order of operations here is paramount:
+---   1. Tame the vAS combat tip before it consumes your screen.
+---   2. Reconcile user-defined icon pack priority orders.
+---   3. Compile the comprehensive replacement dictionary (Base + Packs + Scribing).
+---   4. Apply delta-checked redirects for base-game mismatched abilities.
+---   5. Inspect slotted Grimoires and redirect textures to match their active Focus Scripts.
+---   6. Hook Heroism Potion visual overrides and metadata filters.
+---   7. Force a synchronous action bar repaint (unless deferred to post-activation).
+---
+--- @param skipSlotUpdate boolean? If true, defers immediate bar repaints to the caller.
+function AbilityIconsFramework.Initialize(skipSlotUpdate)
+    AbilityIconsFramework.ApplyFixVas()
+    AbilityIconsFramework.InitializeSortOrderEntries()
     AbilityIconsFramework.GenerateReplacementLists()
     AbilityIconsFramework.ReplaceMismatchedIcons()
     AbilityIconsFramework.UpdateDefaultScribingIcons()
 
-    AbilityIconsFramework.InitializeSortOrderEntries()
-
-    AbilityIconsFramework:InitializeHeroismPotions()
-
-    AbilityIconsFramework.UpdateAllSlots()
-
-    -- completely reset all base game redirects in case there were changes in loaded icon packs
-    AbilityIconsFramework.SetOptionMismatchedIcons(false)
-    AbilityIconsFramework.SetOptionMismatchedIcons(true)
-
-    -- Already has UpdateAllSlots() inside it
-    AbilityIconsFramework.OnScribingUpdate()
-end
-
-function AbilityIconsFramework.AddCustomIconPack(PackDirectory, PackIcons)
-    if PackDirectory == nil or PackIcons == nil or #PackIcons == 0 then
-        return
+    if AbilityIconsFramework.InitializeHeroismPotions then
+        AbilityIconsFramework.InitializeHeroismPotions()
     end
 
-    -- Always register as enabled
-    AbilityIconsFramework.ENABLED_ICON_PACKS[PackDirectory] = PackIcons
-
-    -- Settings might not exist yet (if another addon calls us very early)
-    if AbilityIconsFramework.GetSettings == nil then
-        AbilityIconsFramework._earlyIconPacks[PackDirectory] = PackIcons
-        return
-    end
-
-    local settings = AbilityIconsFramework:GetSettings()
-    if settings == nil then
-        AbilityIconsFramework._earlyIconPacks[PackDirectory] = PackIcons
-        return
-    end
-
-    -- If we already had this pack's info saved we can exit
-    if settings.iconPacksData[PackDirectory] ~= nil then
-        return
-    end
-
-    -- Get pack's addon folder name
-    local packName = PackDirectory:match("/(.*)/")
-    if packName then
-        packName = packName:match("(.*)/") or packName
-    else
-        packName = PackDirectory
-    end
-
-    local highestOrder = 0
-    if AbilityIconsFramework.GetHighestIconPackOrder ~= nil then
-        highestOrder = AbilityIconsFramework.GetHighestIconPackOrder()
-    end
-
-    settings.iconPacksData[PackDirectory] = {
-        packDisplayName = packName,
-        loadOrder = highestOrder + 1,
-        packExampleTexture = PackDirectory .. PackIcons[1],
-    }
-end
-
--- Auto confirm logic
-function AbilityIconsFramework.InitializeAutoConfirm()
-    if AbilityIconsFramework._autoConfirmHooked then return end
-    AbilityIconsFramework._autoConfirmHooked = true
-	
-    --- Applies or removes the vAS 64x64 dimension constraints to the combat tips icon.
-    function AbilityIconsFramework.ApplyFixVas()
-        if AbilityIconsFramework.GetSettings == nil then return end
-        local settings = AbilityIconsFramework:GetSettings()
-        
-        if ZO_ActiveCombatTipsTipIcon then
-            if settings and settings.fixVas then
-                ZO_ActiveCombatTipsTipIcon:SetDimensionConstraints(64, 64, 64, 64)
-            else
-                -- 0 removes the constraint, restoring default UI behavior
-                ZO_ActiveCombatTipsTipIcon:SetDimensionConstraints(0, 0, 0, 0) 
-            end
+    if not skipSlotUpdate then
+        if AbilityIconsFramework.RefreshInventoryHeroismPotions then
+            AbilityIconsFramework.RefreshInventoryHeroismPotions()
         end
+        AbilityIconsFramework.UpdateAllSlots()
     end
-
-    local function hook(...)
-        zo_callLater(function()
-            if AbilityIconsFramework.GetSettings == nil then return end
-            local settings = AbilityIconsFramework:GetSettings()
-            if settings == nil or not settings.autoTypeConfirm then return end
-
-            if ZO_Dialog1 and ZO_Dialog1.textParams and ZO_Dialog1.textParams.mainTextParams then
-                for _, v in pairs(ZO_Dialog1.textParams.mainTextParams) do
-                    if type(v) == "string" and v == string.upper(v) then
-                        if ZO_Dialog1EditBox and ZO_Dialog1EditBox.SetText then
-                            ZO_Dialog1EditBox:SetText(v)
-                            ZO_Dialog1EditBox:LoseFocus()
-                        end
-                    end
-                end
-            end
-        end, 10)
-    end
-
-    ZO_PreHook("ZO_Dialogs_ShowDialog", hook)
+    AbilityIconsFramework.isInitialized = true
 end
 
-------------
--- Events --
-------------
+--------------------------------------------------------------------------------
+-- Action Bar Slot Updating & Third-Party Compatibility
+--------------------------------------------------------------------------------
 
-function AbilityIconsFramework.OnScribingUpdate()
-    if AbilityIconsFramework:GetSettings().showCustomScribeIcons then
-        AbilityIconsFramework.SetOptionCustomIcons(false)
-        AbilityIconsFramework.SetOptionCustomIcons(true)
-    end
-
-    AbilityIconsFramework.UpdateAllSlots()
-end
-
+--- Signals ESO's native ActionButton controller to repaint a given slot.
+--- If the slot controller exists and has a HandleSlotChanged method, we invoke
+--- it with the specified hotbar category to force the engine to re-query the icon.
+--- @param actionSlotIndex number The action bar slot index (3-8 for skills, 9 for quickslot).
+--- @param hotbarCategory number The hotbar category (HOTBAR_CATEGORY_PRIMARY or BACKUP).
 function AbilityIconsFramework.HandleSlotChanged(actionSlotIndex, hotbarCategory)
     local btn = ZO_ActionBar_GetButton(actionSlotIndex, hotbarCategory)
-    if btn then
-        btn:HandleSlotChanged()
+    if btn and btn.HandleSlotChanged then
+        btn:HandleSlotChanged(hotbarCategory)
     end
 end
 
--- This function not only triggers action bar icons update, but has a side-effect of force-updating any other pending texture redirects
+--- Comprehensive action bar refresh routine.
+--- Synchronizes icons across:
+---   1. Vanilla UI active and inactive hotbars (slots 3-8).
+---   2. The player's assigned Quickslot button (slot 9).
+---   3. Inactive/backbar physical buttons in FancyActionBar and FancyActionBar+.
+--- Poking both primary and backup bars ensures that bar-swapping doesn't reveal
+--- un-redirected low-res textures waiting in ambush on your backbar.
 function AbilityIconsFramework.UpdateAllSlots()
     local activeHotbarCategory = GetActiveHotbarCategory()
-    local inactiveHotbarCategory = activeHotbarCategory == HOTBAR_CATEGORY_BACKUP and HOTBAR_CATEGORY_PRIMARY or HOTBAR_CATEGORY_BACKUP
+    local inactiveHotbarCategory = activeHotbarCategory == HOTBAR_CATEGORY_BACKUP and HOTBAR_CATEGORY_PRIMARY or
+    HOTBAR_CATEGORY_BACKUP
 
+    -- 1. Base Game Action Bars (Vanilla UI & active bar of FancyActionBar / FancyActionBar+)
     for slotIndex = AbilityIconsFramework.MIN_INDEX, AbilityIconsFramework.MAX_INDEX do
-        -- Update base game action bars
         AbilityIconsFramework.HandleSlotChanged(slotIndex, activeHotbarCategory)
         AbilityIconsFramework.HandleSlotChanged(slotIndex, inactiveHotbarCategory)
     end
-end
 
---- To be used during game initialization. Code contained in this method needs to run conditionally, for this addon only.
---- @param eventCode any
---- @param addOnName any
-function AbilityIconsFramework.OnAddOnLoaded(eventCode, addOnName)
-    if addOnName == AbilityIconsFramework.name then
-        EVENT_MANAGER:UnregisterForEvent(AbilityIconsFramework.name, EVENT_ADD_ON_LOADED)
+    -- Quickslot button (slot 9)
+    AbilityIconsFramework.HandleSlotChanged(9, activeHotbarCategory)
+    AbilityIconsFramework.HandleSlotChanged(9, inactiveHotbarCategory)
 
-        AbilityIconsFramework.CreateSlashCommands()
-
-        -- Slight delay to let icon pack changes to be applied first
-        zo_callLater(function()
-            AbilityIconsFramework.Initialize()
-        end, 250)
-
-        -- Event firing when scribing craft completes - so we might want to update scribing icons
-        CALLBACK_MANAGER:RegisterCallback("CraftingAnimationsStopped", function()
-            AbilityIconsFramework.OnScribingUpdate()
-        end)
+    -- 2. FancyActionBar+ & FancyActionBar inactive/backbar buttons compatibility
+    -- Backbar buttons in FAB/FAB+ use offset physical indices (23-28) rather than
+    -- standard action slots, requiring specialized texture injection via our bridge.
+    if FancyActionBar and AbilityIconsFramework.UpdateInactiveBarButtonFAB then
+        for slotIndex = AbilityIconsFramework.MIN_INDEX, AbilityIconsFramework.MAX_INDEX do
+            AbilityIconsFramework.UpdateInactiveBarButtonFAB(slotIndex, inactiveHotbarCategory)
+        end
     end
 end
 
-----------
--- Main --
-----------
+--------------------------------------------------------------------------------
+-- Event Handlers & Lifecycle Registration
+--------------------------------------------------------------------------------
+
+--- Addon startup handler triggered when our manifest loads.
+--- Registers settings, chat commands, and event listeners.
+--- @param eventCode number Event ID.
+--- @param addOnName string Name of the addon currently being loaded.
+function AbilityIconsFramework.OnAddOnLoaded(eventCode, addOnName)
+    if addOnName ~= AbilityIconsFramework.name then return end
+
+    EVENT_MANAGER:UnregisterForEvent(AbilityIconsFramework.name, EVENT_ADD_ON_LOADED)
+
+    AbilityIconsFramework.InitializeSettings()
+    AbilityIconsFramework.CreateSlashCommands()
+
+    -- Re-apply scribed icons whenever you finish crafting a new Grimoire at the Scribing altar.
+    -- ESO fires "CraftingAnimationsStopped" once the altar craft sequence completes.
+    CALLBACK_MANAGER:RegisterCallback("CraftingAnimationsStopped", AbilityIconsFramework.OnScribingUpdate)
+
+    -- Defer primary initialization until PLAYER_ACTIVATED.
+    -- At this point, all external icon pack addons, SavedVariables, skills data managers,
+    -- and UI controllers are fully initialized and ready for redirection.
+    EVENT_MANAGER:RegisterForEvent(AbilityIconsFramework.name .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
+        function()
+            EVENT_MANAGER:UnregisterForEvent(AbilityIconsFramework.name .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED)
+            -- Pass true to skip redundant immediate repaint; the deferred call below handles it cleanly
+            AbilityIconsFramework.Initialize(true)
+
+            -- Deferred update: gives third-party action bar addons (like FancyActionBar+)
+            -- and inventory managers a brief moment to finish their own initial layouts
+            -- so our texture overrides aren't immediately clobbered by their startup logic.
+            zo_callLater(AbilityIconsFramework.UpdateAllSlots, 100)
+            if AbilityIconsFramework.RefreshInventoryHeroismPotions then
+                zo_callLater(AbilityIconsFramework.RefreshInventoryHeroismPotions, 200)
+            end
+        end)
+end
+
+--------------------------------------------------------------------------------
+-- Engine Hook
+--------------------------------------------------------------------------------
 
 EVENT_MANAGER:RegisterForEvent(AbilityIconsFramework.name, EVENT_ADD_ON_LOADED, AbilityIconsFramework.OnAddOnLoaded)

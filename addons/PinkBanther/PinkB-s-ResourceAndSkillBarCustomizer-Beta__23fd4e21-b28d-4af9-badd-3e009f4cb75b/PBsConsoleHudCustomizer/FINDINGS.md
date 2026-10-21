@@ -1707,6 +1707,32 @@ bar during those 500 ms (alpha times alpha); at the ends -- shown, hidden -- it 
 hidden, still hidden, back at 0.6 and at full; another bar's effect is untouched; another style puts
 the alpha back. Without the follow, eight fail.
 
+## 73. The other set's ultimate gets the game's gauge (1.27.18)
+
+The game's ultimate button shows how full the ultimate is (ActionButton:SetUltimateMeter): two
+`gp_UltimateFill_512.dds` textures, 71 x 139, at 35 either side of the 67 icon's middle, each running
+an 8 x 4 `TextureAnimation` (`UltimateBarFillLoopAnimation`) that is stopped at the cell for the
+fraction -- `PlayAnimationFromOffset` at `floor(duration * fraction)` -- the right one mirrored; and,
+once full, the `UltimateReadyLoop` glow (`abilityHighlight_mage_med.dds`, 64 cells, added) over the
+icon. The cost it measures against is `GetSlotAbilityCost(8, COMBAT_MECHANIC_FLAGS_ULTIMATE, hotbar)`.
+
+The row's ultimate slot now has the same, from the template (`UltLeft`, `UltRight`, `UltReady`, hidden;
+with plain-Lua fallbacks): the same art, scaled to the row's 44 icon by 44/67 -- 47 x 91 at 23 either
+side. Rather than play the flipbook, the cell is chosen directly: `min(31, floor(fraction * 32))`,
+column `cell % 8`, row `floor(cell / 8)`, the right texture with its U coordinates swapped. The
+fraction is the player's ultimate over **the other set's** ultimate's cost, so with ultimates of
+different cost on the two sets the row shows when *that* one can be cast after a swap. Full, the glow
+is shown and the game's own `UltimateReadyLoop` timeline is played on it (its first frame where no
+timeline can be made); no sound. No ultimate on the other set, no gauge. The other slots of the row,
+built from the same template, have the parts hidden explicitly.
+
+Coordinates are written only when the cell changes, visibility only when it changes.
+
+**Tests**, mutation-checked: at 0, 125, 250, 300 and 100 points of a 250-point back ultimate (the front
+one costing 125) the cells are 0, 16, 31, 31 and 12, the right one mirrored, the glow and its loop on
+only when full; an empty slot has no gauge; no other slot shows one. Measuring against the front
+ultimate's cost, or not mirroring, fails them.
+
 ---
 
 ## Still to measure on a PS5
@@ -1827,3 +1853,6 @@ the alpha back. Without the follow, eight fail.
 32. **Does the effect go with the bar out of combat?** With "Show resource bars" on automatic, stand
     out of combat with a bar full: as the game fades the bar out, the liquid or crystal must fade
     with it and be gone when the bar is; and come back with it in combat.
+33. **Does the row's ultimate show its gauge?** With an ultimate on both sets, build ultimate: the
+    row's ultimate must fill round its sides like the bar's own, against its own cost, and glow when
+    it can be cast. If the gauge sits too far out or overlaps the bar below, say how far.

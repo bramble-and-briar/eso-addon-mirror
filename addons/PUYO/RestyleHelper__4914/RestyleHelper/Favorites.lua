@@ -76,7 +76,7 @@ end
 function RH.ApplyFavoriteToSlot(id)
     local om = RH.RequireManipulator()
     if not om then return end
-    if not RH.IsUnlocked(id) then
+    if not RH.IsUsable(id) then
         RH.Msg(L.MSG_FAV_LOCKED, RH.GetCollectibleDisplayName(id))
         return
     end
@@ -220,4 +220,37 @@ function RH.PrintStats()
     RH.Msg(L.STATS_LINE1, total, unlocked, idx.noStyle)
     RH.Msg(L.STATS_LINE2, styles, styleWithOwned)
     RH.Msg(L.STATS_LINE3, cover[7] or 0, cover[6] or 0, cover[5] or 0, cover[4] or 0, cover[3] or 0, cover[2] or 0, cover[1] or 0)
+end
+
+---------------------------------------------------------------------------
+-- 今プレビュー(保留中/着ている)のスタイルをまとめてお気に入りに登録
+-- 全部位の今のピースを登録する(非表示スタイル・スタイルなしは除く)
+---------------------------------------------------------------------------
+function RH.FavoriteCurrent()
+    local om = RH.RequireManipulator()
+    if not om then return end
+    local hidden = RH.GetHiddenStyleSet()
+    local added, already = 0, 0
+    for _, slot in ipairs(RH.allSlots) do
+        local sm = RH.GetSlotManip(om, slot)
+        local st = sm and RH.GetSlotState(sm)
+        local id = st and st.id
+        if id and id ~= 0 and not hidden[id] and RH.IsStyleCollectible(id) then
+            if RH.sv.favorites[id] then
+                already = already + 1
+            else
+                RH.sv.favorites[id] = GetTimeStamp()
+                added = added + 1
+            end
+        end
+    end
+    RH.forceMsg = true
+    if added + already == 0 then
+        RH.Msg(L.MSG_FAV_CURRENT_NONE)
+    else
+        RH.Msg(L.MSG_FAV_CURRENT, added, already)
+    end
+    RH.forceMsg = false
+    if RH.RefreshFavoritesWindow then RH.RefreshFavoritesWindow() end
+    RH.RefreshStylePanel()
 end

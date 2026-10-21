@@ -942,6 +942,16 @@ local FALLBACK_PARTS = {
 			width = 44, height = 44, level = 2 },
 		{ name = "Timer", kind = "label", point = "CENTER", relative = "CENTER", x = 0, y = 0, level = 3 },
 		{ name = "Count", kind = "label", point = "TOPLEFT", relative = "TOPLEFT", x = -2, y = -4, level = 3 },
+		-- The ultimate's gauge (see Controls.xml); the icon is centred in the slot.
+		{ name = "UltLeft", kind = "texture", point = "CENTER", relative = "CENTER", x = -23, y = 0,
+			file = "EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds", width = 47, height = 91,
+			coords = { 0, 0.125, 0, 0.25 }, level = 2, hidden = true },
+		{ name = "UltRight", kind = "texture", point = "CENTER", relative = "CENTER", x = 23, y = 0,
+			file = "EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds", width = 47, height = 91,
+			coords = { 0.125, 0, 0, 0.25 }, level = 2, hidden = true },
+		{ name = "UltReady", kind = "texture", point = "CENTER", relative = "CENTER", x = 0, y = 0,
+			file = "EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds", width = 44, height = 44,
+			coords = { 0, 0.015625, 0, 1 }, level = 2, hidden = true, blend = "add" },
 	},
 	PBsConsoleHudCustomizerShade = {},
 	-- The plain look's rectangles. The anchors, widths and colours are set from Lua, so the
@@ -1016,6 +1026,12 @@ function timers:BuildFallback(name, parent, template)
 		end
 		if part.level and type(child.SetDrawLevel) == "function" then
 			child:SetDrawLevel(part.level)
+		end
+		if part.blend == "add" and type(child.SetBlendMode) == "function" and TEX_BLEND_MODE_ADD then
+			child:SetBlendMode(TEX_BLEND_MODE_ADD)
+		end
+		if part.hidden then
+			child:SetHidden(true)
 		end
 		-- One level of nesting, for a bar built out of a cap, a middle and a cap.
 		if part.children then
@@ -1139,6 +1155,20 @@ function timers:BackSlot(slot)
 		button = button,
 		isBack = true,
 	}
+	if slot == LAST_SLOT then
+		entry.ultLeft = Child(control, "UltLeft")
+		entry.ultRight = Child(control, "UltRight")
+		entry.ultReady = Child(control, "UltReady")
+	else
+		-- Every slot is built from the same template; only the ultimate's shows the gauge. Hidden
+		-- here as well as in the template, so it never rests on the template's default.
+		for _, name in ipairs({ "UltLeft", "UltRight", "UltReady" }) do
+			local part = Child(control, name)
+			if part then
+				part:SetHidden(true)
+			end
+		end
+	end
 	self.back[slot] = entry
 	self:AnchorBackSlot(entry)
 	self:StyleLabels(entry)
@@ -1623,6 +1653,95 @@ local function SetText(label, text)
 	end
 end
 
+-- ---------------------------------------------------------------------------------------
+-- The other set's ultimate: the gauge the game draws round its own
+--
+-- The game's ultimate button shows how full the ultimate is with two flipbook textures, one each
+-- side of the icon, stopped at the cell for the fraction (ActionButton:SetUltimateMeter and
+-- PlayUltimateFillAnimation: an 8 x 4 TextureAnimation, the right one mirrored), and a looping glow
+-- over the icon once it is full. The row's ultimate gets the same, measured against what *its*
+-- ultimate costs (GetSlotAbilityCost on the other set's bar) -- the two sets can hold ultimates of
+-- different cost, and which can be cast after a swap is what the row is for.
+-- ---------------------------------------------------------------------------------------
+local ULT_CELLS_WIDE, ULT_CELLS_HIGH = 8, 4
+local ULT_CELLS = ULT_CELLS_WIDE * ULT_CELLS_HIGH
+
+local function Show(control, shown)
+	if control and addon.OwnHidden(control) == shown then
+		control:SetHidden(not shown)
+	end
+end
+
+function timers:UpdateBackUltimate(entry, slot, hotbar)
+	local cost = 0
+	if type(GetSlotAbilityCost) == "function" and COMBAT_MECHANIC_FLAGS_ULTIMATE then
+		local ok, value = pcall(GetSlotAbilityCost, slot, COMBAT_MECHANIC_FLAGS_ULTIMATE, hotbar)
+		if ok and type(value) == "number" then
+			cost = value
+		end
+	end
+	local used = true
+	if type(IsSlotUsed) == "function" then
+		local ok, value = pcall(IsSlotUsed, slot, hotbar)
+		used = ok and value and true or false
+	end
+	local power = 0
+	if type(GetUnitPower) == "function" and COMBAT_MECHANIC_FLAGS_ULTIMATE then
+		local ok, value = pcall(GetUnitPower, "player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
+		if ok and type(value) == "number" then
+			power = value
+		end
+	end
+
+	if not used or cost <= 0 then
+		Show(entry.ultLeft, false)
+		Show(entry.ultRight, false)
+		self:BackUltimateReady(entry, false)
+		entry.ultCell = nil
+		return
+	end
+
+	local fraction = math.min(1, power / cost)
+	local cell = math.min(ULT_CELLS - 1, math.floor(fraction * ULT_CELLS))
+	if entry.ultCell ~= cell then
+		local column, row = cell % ULT_CELLS_WIDE, math.floor(cell / ULT_CELLS_WIDE)
+		local u0, u1 = column / ULT_CELLS_WIDE, (column + 1) / ULT_CELLS_WIDE
+		local v0, v1 = row / ULT_CELLS_HIGH, (row + 1) / ULT_CELLS_HIGH
+		entry.ultLeft:SetTextureCoords(u0, u1, v0, v1)
+		entry.ultRight:SetTextureCoords(u1, u0, v0, v1)
+		entry.ultCell = cell
+	end
+	Show(entry.ultLeft, true)
+	Show(entry.ultRight, true)
+	self:BackUltimateReady(entry, power >= cost)
+end
+
+-- The glow of a full ultimate: the game's own loop (UltimateReadyLoop) where it can be played, its
+-- first frame where it cannot.
+function timers:BackUltimateReady(entry, ready)
+	local glow = entry.ultReady
+	if not glow then
+		return
+	end
+	if ready then
+		if not entry.ultTimeline and ANIMATION_MANAGER and type(ANIMATION_MANAGER.CreateTimelineFromVirtual) == "function" then
+			local ok, timeline = pcall(ANIMATION_MANAGER.CreateTimelineFromVirtual, ANIMATION_MANAGER, "UltimateReadyLoop", glow)
+			entry.ultTimeline = ok and timeline or false
+		end
+		if addon.OwnHidden(glow) then
+			glow:SetHidden(false)
+			if entry.ultTimeline then
+				pcall(entry.ultTimeline.PlayFromStart, entry.ultTimeline)
+			end
+		end
+	elseif not addon.OwnHidden(glow) then
+		glow:SetHidden(true)
+		if entry.ultTimeline then
+			pcall(entry.ultTimeline.Stop, entry.ultTimeline)
+		end
+	end
+end
+
 function timers:Update()
 	if addon.skillbar then addon.skillbar:RepairIcons() end
 	local now = Now()
@@ -1694,6 +1813,9 @@ function timers:Update()
 							entry.shadeEntry = shade
 						end
 						self:UpdateShade(shade, slot, shadeEnabled and backHotbar or nil, icon, backRemaining, backDuration)
+					end
+					if entry.ultLeft then
+						self:UpdateBackUltimate(entry, slot, backHotbar)
 					end
 				end
 			end

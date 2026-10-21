@@ -42,6 +42,7 @@ Module.STRINGS = {
 	statusPanel = { default = "Enable status panel" },
 	portSounds = { default = "Sound chime for summoning each teleport location" },
 	extraSounds = { default = "Additional audio cues" },
+	brandMarker = { default = "Show marker for hard mode brand stack" },
 	clockLabels = { default = "Show clock numbers for Veteran Taleria" },
 	bridgeExitMarkers = { default = "Mark exit points for active bridges" },
 	showWaveAlert = { default = "Show timer for Crashing Wave targeting others" },
@@ -53,6 +54,7 @@ Module.DEFAULT_SETTINGS = {
 	statusPanel = true,
 	portSounds = false,
 	extraSounds = true,
+	brandMarker = false,
 	clockLabels = true,
 	bridgeExitMarkers = true,
 	showWaveAlert = true,
@@ -135,6 +137,8 @@ Module.DATA = {
 	brands = {
 		[166358] = COLOR_FIRE, -- Firebrand
 		[166445] = COLOR_ICE, -- Frostbrand
+		duration = 6250, -- 1250 projectile + 5000 effect
+		X = { 68548, 69510 }, Y = 36125, Z = 85165,
 	},
 
 	-- Boss 2
@@ -258,6 +262,11 @@ function Module:Initialize( )
 		nextWeaponId = nil,
 		prevWeaponTime = { },
 		numWeapons = { },
+		brands = {
+			[COLOR_FIRE] = { },
+			[COLOR_ICE] = { },
+			prev = 0,
+		},
 		guardians = {
 			hearts = 0,
 			units = { },
@@ -291,7 +300,7 @@ function Module:Initialize( )
 		if (self:GetSetting("statusPanel") and CA2.StatusGetOwnerId() ~= "u34b1") then
 			local rowLabels = {
 				[3] = GetString("SI_ATTRIBUTES", ATTRIBUTE_HEALTH),
-				[4] = LCA.GetAbilityName(167637),
+				[4] = GetString(SI_LCA_STUNNED),
 				[5] = GetString("SI_GAMEPADITEMCATEGORY", GAMEPAD_ITEM_CATEGORY_WEAPONS),
 			}
 			for abilityId, data in pairs(DATA.dome) do
@@ -417,6 +426,10 @@ function Module:Initialize( )
 			CA2.StatusSetCellText(r, 3, "")
 			Vars.domeHolder[r] = nil
 		end
+	end
+
+	self.BrandSort = function( unitIdA, unitIdB )
+		return select(2, LCA.IdentifyGroupUnitId(unitIdA, true)) < select(2, LCA.IdentifyGroupUnitId(unitIdB, true))
 	end
 
 	-- Boss 2 ------------------------------------------------------------------
@@ -689,8 +702,42 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		end
 	elseif (result == ACTION_RESULT_BEGIN and DATA.summon_atroBegin[abilityId] and LCA.DoesPlayerHaveTauntSlotted()) then
 		CA1.Alert(nil, LCA.GetAbilityName(abilityId), DATA.summon_atroBegin[abilityId], SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and DATA.brands[abilityId] and targetType == COMBAT_UNIT_TYPE_PLAYER and hitValue == 1) then
-		CA1.Alert(nil, LCA.GetAbilityName(abilityId), 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
+	elseif (result == ACTION_RESULT_EFFECT_GAINED and DATA.brands[abilityId] and hitValue == 1) then
+		local currentTime = GetGameTimeMilliseconds()
+		local db = DATA.brands
+		local vb = Vars.brands
+		if (vb.prev < currentTime - db.duration) then
+			vb.prev = currentTime
+			vb.selfId = nil
+			ZO_ClearTable(vb[COLOR_FIRE])
+			ZO_ClearTable(vb[COLOR_ICE])
+		end
+		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
+			CA1.Alert(nil, LCA.GetAbilityName(abilityId), 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
+			vb.selfId = targetUnitId
+		end
+		if (self:GetSetting("brandMarker")) then
+			table.insert(vb[db[abilityId]], targetUnitId)
+			if (vb.selfId and #vb[COLOR_FIRE] == 2 and #vb[COLOR_ICE] == 2) then
+				table.sort(vb[COLOR_FIRE], self.BrandSort)
+				table.sort(vb[COLOR_ICE], self.BrandSort)
+				for i = 1, 2 do
+					if (vb.selfId == vb[COLOR_FIRE][i] or vb.selfId == vb[COLOR_ICE][i]) then
+						CA2.WorldTexturePlace({
+							pos = { db.X[i], db.Y, db.Z },
+							texture = "world-teardrop-down",
+							size = 120,
+							elevation = 60,
+							color = 0xCC339999,
+							disableDepthBuffers = true,
+							playerFacing = true,
+						})
+						zo_callLater(CA2.WorldCanvasClear, db.duration)
+						break
+					end
+				end
+			end
+		end
 	elseif (targetType == COMBAT_UNIT_TYPE_PLAYER and DATA.domeCooldown[abilityId]) then
 		local index = DATA.domeCooldown[abilityId]
 		if (result == ACTION_RESULT_EFFECT_GAINED_DURATION) then
@@ -884,6 +931,13 @@ function Module:GetSettingsControls( )
 			name = self:GetString("extraSounds"),
 			getFunc = function() return self:GetSetting("extraSounds") end,
 			setFunc = function(enabled) self:SetSetting("extraSounds", enabled) end,
+		},
+		--------------------
+		{
+			type = "checkbox",
+			name = self:GetString("brandMarker"),
+			getFunc = function() return self:GetSetting("brandMarker") end,
+			setFunc = function(enabled) self:SetSetting("brandMarker", enabled) end,
 		},
 		--------------------
 		{

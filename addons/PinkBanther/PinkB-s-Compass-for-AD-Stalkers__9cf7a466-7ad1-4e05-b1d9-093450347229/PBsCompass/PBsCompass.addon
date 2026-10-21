@@ -1,0 +1,21 @@
+## Title: |cFF69B4PB's Compass for AD Stalkers|r 1.0.0
+## Author: |cFF69B4PinkBanther|r
+## Description: For two named players only. A translucent compass ring around the screen-centre reticle: N, E, S and W turn with the camera, and your group members appear inside the ring in the direction they are from you, nearer the centre the closer they are.
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsCompass_Data
+
+lang/strings.lua
+lang/$(language).lua
+Core.lua
+Tracker.lua
+UI.lua
+Preview.lua
+Settings.lua
+Main.lua
+assets/tri.dds
+assets/ring.dds
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

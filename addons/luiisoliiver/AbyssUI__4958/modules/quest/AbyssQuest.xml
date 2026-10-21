@@ -1,0 +1,1749 @@
+<GuiXml>
+    <Controls>
+
+        <!-- =========================================================
+             Плитка: квадрат с заливкой, бликом, рамкой и значком.
+             Раскрашивается из Lua функцией Style.PaintTile.
+             ========================================================= -->
+        <Control name="AbyssQuest_Tile" virtual="true">
+            <Dimensions x="56" y="56" />
+            <Controls>
+                <Texture name="$(parent)Glow" textureFile="EsoUI/Art/Quickslots/quickslot_highlight_blob.dds"
+                         blendMode="ADD" alpha="0" level="1">
+                    <Dimensions x="112" y="112" />
+                    <Anchor point="CENTER" />
+                </Texture>
+                <Texture name="$(parent)Fill" color="FF101114" level="2">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Shine" color="00FFFFFF" level="3">
+                    <Dimensions y="24" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+                </Texture>
+                <Texture name="$(parent)Shade" color="00000000" level="3">
+                    <Dimensions y="24" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+                <Texture name="$(parent)Icon" level="4">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="CENTER" />
+                </Texture>
+                <Texture name="$(parent)BorderTop" color="FFFFFFFF" level="5">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+                </Texture>
+                <Texture name="$(parent)BorderBottom" color="FFFFFFFF" level="5">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+                <Texture name="$(parent)BorderLeft" color="FFFFFFFF" level="5">
+                    <Dimensions x="1" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="BOTTOMLEFT" />
+                </Texture>
+                <Texture name="$(parent)BorderRight" color="FFFFFFFF" level="5">
+                    <Dimensions x="1" />
+                    <Anchor point="TOPRIGHT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+                <Label name="$(parent)Label" font="ZoFontGameShadow" color="E6E6E6" horizontalAlignment="CENTER"
+                       wrapMode="ELLIPSIS" maxLineCount="1" hidden="true" level="5">
+                    <Dimensions x="96" />
+                    <Anchor point="TOP" relativePoint="BOTTOM" offsetY="3" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Кнопка на экране -->
+        <Control name="AbyssQuest_HudButton" inherits="AbyssQuest_Tile" mouseEnabled="true"
+                 movable="true" clampedToScreen="true" virtual="true">
+            <OnMouseEnter>AbyssQuest.Buttons:OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.Buttons:OnMouseExit(self)</OnMouseExit>
+            <OnMouseDown>AbyssQuest.Buttons:OnMouseDown(self, button)</OnMouseDown>
+            <OnMouseUp>AbyssQuest.Buttons:OnMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMoveStop>AbyssQuest.Buttons:OnMoveStop(self)</OnMoveStop>
+        </Control>
+
+
+        <!-- Строка в списке редактора кнопок / колеса -->
+        <Control name="AbyssQuest_SlotRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="230" y="52" />
+            <OnMouseEnter>AbyssQuest.SlotEditor.OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.SlotEditor.OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then AbyssQuest.SlotEditor.OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="18FFFFFF" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Selected" color="285DC1E8" hidden="true">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "accent", 0.16)</OnInitialized>
+                    <AnchorFill />
+                </Texture>
+                <Control name="$(parent)Tile" inherits="AbyssQuest_Tile">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="LEFT" offsetX="6" />
+                </Control>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Tile" relativePoint="TOPRIGHT" offsetX="10" offsetY="1" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" color="8A8A8A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Tile" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="-1" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Окно выбора места: заголовок локации и строка места -->
+        <Control name="AbyssQuest_PickerHeader" virtual="true">
+            <Dimensions x="400" y="30" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
+                </Label>
+                <Texture name="$(parent)Line" color="40E6D9A8">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title", 0.25)</OnInitialized>
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+        <Control name="AbyssQuest_PickerRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="400" y="30" />
+            <OnMouseEnter>AbyssQuest.PlacePicker:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.PlacePicker:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then AbyssQuest.PlacePicker:OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="335DC1E8" alpha="0">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "accent", 0.2)</OnInitialized>
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Info" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Строка места в окне колеса: её можно перетащить на колесо -->
+        <Control name="AbyssQuest_DragRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="30" />
+            <OnMouseEnter>AbyssQuest.WheelEditor:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.WheelEditor:OnRowExit(self)</OnMouseExit>
+            <OnDragStart>AbyssQuest.WheelEditor:OnRowDragStart(self, button)</OnDragStart>
+            <OnMouseUp>AbyssQuest.WheelEditor:OnRowMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="335DC1E8" alpha="0">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "accent", 0.2)</OnInitialized>
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Info" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Строка списка на панели карты: полоска цвета места, плитка, название,
+             локация и метки «колесо» / «кнопка». Цвета задаются из Lua. -->
+        <Control name="AbyssQuest_PanelPill" virtual="true">
+            <Dimensions x="70" y="18" />
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <AnchorFill />
+                </Texture>
+                <Label name="$(parent)Text" font="ZoFontGameSmall" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="AbyssQuest_PanelRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="340" y="56" />
+            <OnMouseEnter>AbyssQuest.MapPanel:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.MapPanel:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>if upInside then AbyssQuest.MapPanel:OnRowClicked(self, button) end</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <Anchor point="TOPLEFT" offsetY="2" />
+                    <Anchor point="BOTTOMRIGHT" offsetY="-2" />
+                </Texture>
+                <Texture name="$(parent)Stripe">
+                    <Dimensions x="3" />
+                    <Anchor point="TOPLEFT" offsetY="2" />
+                    <Anchor point="BOTTOMLEFT" offsetY="-2" />
+                </Texture>
+                <Control name="$(parent)Tile" inherits="AbyssQuest_Tile">
+                    <Anchor point="LEFT" offsetX="14" />
+                </Control>
+                <Control name="$(parent)Pill1" inherits="AbyssQuest_PanelPill">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="9" />
+                </Control>
+                <Control name="$(parent)Pill2" inherits="AbyssQuest_PanelPill">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="30" />
+                </Control>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="TOPLEFT" offsetX="64" offsetY="7" />
+                    <Anchor point="TOPRIGHT" offsetX="-90" offsetY="7" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="TOPLEFT" offsetX="64" offsetY="31" />
+                    <Anchor point="TOPRIGHT" offsetX="-90" offsetY="31" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Настройка места на панели карты (лежит внутри прокрутки).
+             Ширина задаётся из Lua; всё привязано к левому и правому краю. -->
+        <Control name="AbyssQuest_PanelEditor" virtual="true">
+            <Dimensions x="330" y="810" />
+            <Controls>
+                <!-- Карточка места -->
+                <Control name="$(parent)Preview" inherits="AbyssQuest_Tile">
+                    <Anchor point="TOPLEFT" />
+                </Control>
+                <Button name="$(parent)Rename">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="TOPRIGHT" />
+                    <Textures normal="EsoUI/Art/Buttons/edit_up.dds" pressed="EsoUI/Art/Buttons/edit_down.dds"
+                              mouseOver="EsoUI/Art/Buttons/edit_over.dds" />
+                    <OnClicked>AbyssQuest.MapPanel:Rename()</OnClicked>
+                    <OnMouseEnter>AbyssQuest.ShowTip("windows", self, TOP, AbyssQuest.L.CTX_RENAME)</OnMouseEnter>
+                    <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontWinH4" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="78" offsetY="2" />
+                    <Anchor point="TOPRIGHT" offsetX="-34" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="78" offsetY="30" />
+                    <Anchor point="TOPRIGHT" offsetY="30" />
+                </Label>
+                <Label name="$(parent)Price" font="ZoFontGameSmall" color="C5C29E" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="78" offsetY="48" />
+                    <Anchor point="TOPRIGHT" offsetY="48" />
+                </Label>
+                <Button name="$(parent)Travel" inherits="ZO_DefaultButton">
+                    <Dimensions x="330" y="30" />
+                    <Anchor point="TOPLEFT" offsetY="80" />
+                    <OnClicked>AbyssQuest.MapPanel:Travel()</OnClicked>
+                </Button>
+
+                <!-- Значок и цвет -->
+                <Label name="$(parent)LookCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="128" />
+                </Label>
+                <Texture name="$(parent)LookLine">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" offsetY="150" />
+                    <Anchor point="TOPRIGHT" offsetY="150" />
+                </Texture>
+                <Button name="$(parent)Icon" inherits="ZO_DefaultButton">
+                    <Dimensions x="160" y="28" />
+                    <Anchor point="TOPLEFT" offsetY="162" />
+                    <OnClicked>AbyssQuest.MapPanel:PickIcon()</OnClicked>
+                </Button>
+                <Button name="$(parent)ResetIcon" inherits="ZO_DefaultButton">
+                    <Dimensions x="160" y="28" />
+                    <Anchor point="TOPRIGHT" offsetY="162" />
+                    <OnClicked>AbyssQuest.MapPanel:ResetIcon()</OnClicked>
+                </Button>
+                <Control name="$(parent)Palette">
+                    <Dimensions x="330" y="26" />
+                    <Anchor point="TOPLEFT" offsetY="202" />
+                </Control>
+                <Button name="$(parent)Tint" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetY="242" />
+                </Button>
+
+                <!-- Колесо -->
+                <Label name="$(parent)WheelCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="276" />
+                </Label>
+                <Texture name="$(parent)WheelLine">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" offsetY="298" />
+                    <Anchor point="TOPRIGHT" offsetY="298" />
+                </Texture>
+                <Label name="$(parent)WheelStatus" font="ZoFontGame" color="5DC1E8" horizontalAlignment="CENTER">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "accent")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="308" />
+                    <Anchor point="TOPRIGHT" offsetY="308" />
+                </Label>
+                <Control name="$(parent)Wheel">
+                    <Dimensions x="176" y="176" />
+                    <Anchor point="TOP" offsetY="334" />
+                    <Controls>
+                        <Label name="$(parent)Center" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="CENTER">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                            <Dimensions x="80" />
+                            <Anchor point="CENTER" />
+                        </Label>
+                    </Controls>
+                </Control>
+                <Label name="$(parent)WheelHelp" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="CENTER">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="518" />
+                    <Anchor point="TOPRIGHT" offsetY="518" />
+                </Label>
+
+                <!-- Кнопка на экране -->
+                <Label name="$(parent)ButtonCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="576" />
+                </Label>
+                <Texture name="$(parent)ButtonLine">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" offsetY="598" />
+                    <Anchor point="TOPRIGHT" offsetY="598" />
+                </Texture>
+                <Label name="$(parent)ButtonStatus" font="ZoFontGame" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="610" />
+                    <Anchor point="TOPRIGHT" offsetY="610" />
+                </Label>
+                <Button name="$(parent)ButtonToggle" inherits="ZO_DefaultButton">
+                    <Dimensions x="330" y="30" />
+                    <Anchor point="TOPLEFT" offsetY="640" />
+                    <OnClicked>AbyssQuest.MapPanel:ToggleButton()</OnClicked>
+                </Button>
+                <Label name="$(parent)SizeCaption" font="ZoFontGame" color="C5C29E">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="688" />
+                </Label>
+                <Button name="$(parent)SizePlus">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="TOPRIGHT" offsetY="684" />
+                    <Textures normal="EsoUI/Art/Buttons/pointsPlus_up.dds" pressed="EsoUI/Art/Buttons/pointsPlus_down.dds"
+                              mouseOver="EsoUI/Art/Buttons/pointsPlus_over.dds" />
+                    <OnClicked>AbyssQuest.MapPanel:ChangeButtonSize(4)</OnClicked>
+                </Button>
+                <Label name="$(parent)SizeValue" font="ZoFontGame" color="FFFFFF" horizontalAlignment="CENTER">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                    <Dimensions x="44" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)SizePlus" relativePoint="LEFT" />
+                </Label>
+                <Button name="$(parent)SizeMinus">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)SizeValue" relativePoint="LEFT" />
+                    <Textures normal="EsoUI/Art/Buttons/pointsMinus_up.dds" pressed="EsoUI/Art/Buttons/pointsMinus_down.dds"
+                              mouseOver="EsoUI/Art/Buttons/pointsMinus_over.dds" />
+                    <OnClicked>AbyssQuest.MapPanel:ChangeButtonSize(-4)</OnClicked>
+                </Button>
+                <Button name="$(parent)ShowLabel" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetY="726" />
+                </Button>
+                <Label name="$(parent)ButtonHelp" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetY="758" />
+                    <Anchor point="TOPRIGHT" offsetY="758" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Строка сетки значков (ячейки создаются из Lua) -->
+        <Control name="AbyssQuest_IconRow" virtual="true">
+            <Dimensions x="520" y="52" />
+        </Control>
+
+        <!-- Содержимое окна редактора кнопок / колеса -->
+        <Control name="AbyssQuest_SlotEditorBody" virtual="true">
+            <AnchorFill />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                </Button>
+
+                <!-- Список слева -->
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Dimensions x="256" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="56" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-120" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="4" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+                <Button name="$(parent)Add" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" relativePoint="BOTTOMLEFT" offsetY="8" />
+                </Button>
+                <Button name="$(parent)Remove" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)ListBg" relativePoint="BOTTOMRIGHT" offsetY="8" />
+                </Button>
+                <Button name="$(parent)Up" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Add" relativePoint="BOTTOMLEFT" offsetY="6" />
+                </Button>
+                <Button name="$(parent)Down" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Remove" relativePoint="BOTTOMRIGHT" offsetY="6" />
+                </Button>
+
+                <!-- Пусто -->
+                <Label name="$(parent)Empty" font="ZoFontGame" color="A0A0A0" horizontalAlignment="CENTER"
+                       verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" offsetX="290" offsetY="56" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-120" />
+                </Label>
+
+                <!-- Свойства справа -->
+                <Control name="$(parent)Details">
+                    <Anchor point="TOPLEFT" offsetX="292" offsetY="58" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-40" />
+                    <Controls>
+                        <Control name="$(parent)Preview" inherits="AbyssQuest_Tile">
+                            <Anchor point="CENTER" relativePoint="TOPLEFT" offsetX="48" offsetY="48" />
+                        </Control>
+                        <Label name="$(parent)PlaceName" font="ZoFontWinH3" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                            <Anchor point="TOPLEFT" offsetX="116" offsetY="0" />
+                            <Anchor point="TOPRIGHT" offsetY="0" />
+                        </Label>
+                        <Label name="$(parent)PlaceInfo" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                            <Anchor point="TOPLEFT" offsetX="116" offsetY="34" />
+                            <Anchor point="TOPRIGHT" offsetY="34" />
+                        </Label>
+                        <Label name="$(parent)PlacePrice" font="ZoFontGame">
+                            <Anchor point="TOPLEFT" offsetX="116" offsetY="54" />
+                        </Label>
+                        <Button name="$(parent)PickPlace" inherits="ZO_DefaultButton">
+                            <Dimensions x="190" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="112" offsetY="80" />
+                        </Button>
+                        <Button name="$(parent)RenamePlace" inherits="ZO_DefaultButton">
+                            <Dimensions x="140" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="308" offsetY="80" />
+                        </Button>
+
+                        <!-- Значок -->
+                        <Label name="$(parent)IconCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                            <Anchor point="TOPLEFT" offsetY="124" />
+                        </Label>
+                        <Control name="$(parent)IconPreview" inherits="AbyssQuest_Tile">
+                            <Dimensions x="44" y="44" />
+                            <Anchor point="TOPLEFT" offsetY="148" />
+                        </Control>
+                        <Button name="$(parent)PickIcon" inherits="ZO_DefaultButton">
+                            <Dimensions x="170" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="56" offsetY="156" />
+                        </Button>
+                        <Button name="$(parent)ResetIcon" inherits="ZO_DefaultButton">
+                            <Dimensions x="170" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="232" offsetY="156" />
+                        </Button>
+
+                        <!-- Цвет -->
+                        <Label name="$(parent)ColorCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                            <Anchor point="TOPLEFT" offsetY="206" />
+                        </Label>
+                        <Control name="$(parent)ColorSwatch" inherits="AbyssQuest_Tile" mouseEnabled="true">
+                            <Dimensions x="44" y="44" />
+                            <Anchor point="TOPLEFT" offsetY="230" />
+                        </Control>
+                        <Control name="$(parent)Palette">
+                            <Dimensions x="384" y="26" />
+                            <Anchor point="TOPLEFT" offsetX="56" offsetY="239" />
+                        </Control>
+                        <Button name="$(parent)Tint" inherits="ZO_CheckButton">
+                            <Anchor point="TOPLEFT" offsetY="292" />
+                        </Button>
+
+                        <!-- Только для кнопок -->
+                        <Control name="$(parent)ButtonOptions">
+                            <Anchor point="TOPLEFT" offsetY="326" />
+                            <Anchor point="BOTTOMRIGHT" />
+                            <Controls>
+                                <Label name="$(parent)SizeCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                                    <Anchor point="TOPLEFT" offsetY="4" />
+                                </Label>
+                                <Button name="$(parent)SizeMinus" inherits="ZO_DefaultButton">
+                                    <Dimensions x="40" y="28" />
+                                    <Anchor point="TOPLEFT" offsetX="110" />
+                                </Button>
+                                <Label name="$(parent)SizeValue" font="ZoFontWinH4" color="FFFFFF" horizontalAlignment="CENTER">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                                    <Dimensions x="50" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)SizeMinus" relativePoint="RIGHT" />
+                                </Label>
+                                <Button name="$(parent)SizePlus" inherits="ZO_DefaultButton">
+                                    <Dimensions x="40" y="28" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)SizeValue" relativePoint="RIGHT" />
+                                </Button>
+                                <Button name="$(parent)ShowLabel" inherits="ZO_CheckButton">
+                                    <Anchor point="TOPLEFT" offsetY="44" />
+                                </Button>
+                                <Button name="$(parent)Visible" inherits="ZO_CheckButton">
+                                    <Anchor point="TOPLEFT" offsetY="74" />
+                                </Button>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Dimensions x="728" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </Control>
+        <!-- =========================================================
+             Шаблоны строк (virtual): из них ZO_ScrollList создаёт строки
+             ========================================================= -->
+
+        <!-- Заголовок локации в быстром меню -->
+        <Control name="AbyssQuest_MenuHeader" virtual="true">
+            <Dimensions x="400" y="26" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
+                </Label>
+                <Texture name="$(parent)Line" color="40E6D9A8">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title", 0.25)</OnInitialized>
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Строка места в быстром меню: иконка, название, цена -->
+        <Control name="AbyssQuest_MenuRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="400" y="30" />
+            <OnMouseEnter>AbyssQuest.Menu:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.Menu:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then AbyssQuest.Menu:OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="33C5A75E" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Price" font="ZoFontGame" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Price" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Текст «список пуст» (общий для меню и редактора) -->
+        <Control name="AbyssQuest_Empty" virtual="true">
+            <Dimensions x="400" y="80" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontGame" color="A0A0A0"
+                       horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" offsetX="10" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Заголовок локации в редакторе (щелчок = отметить/снять всё) -->
+        <Control name="AbyssQuest_EditorHeader" virtual="true" mouseEnabled="true">
+            <Dimensions x="500" y="32" />
+            <OnMouseEnter>AbyssQuest.Settings:OnHeaderEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.Settings:OnHeaderExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then AbyssQuest.Settings:OnHeaderClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH4" color="E6D9A8">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
+                </Label>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="A0A0A0">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="BOTTOMRIGHT" offsetX="-8" offsetY="-5" />
+                </Label>
+                <Texture name="$(parent)Line" color="40E6D9A8">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title", 0.25)</OnInitialized>
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Строка места в редакторе: галочка, иконка, название, тип/статус -->
+        <Control name="AbyssQuest_EditorRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="500" y="30" />
+            <OnMouseEnter>AbyssQuest.Settings:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.Settings:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then AbyssQuest.Settings:OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="22FFFFFF" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Button name="$(parent)Check" inherits="ZO_CheckButton">
+                    <Anchor point="LEFT" offsetX="6" />
+                </Button>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Check" relativePoint="RIGHT" offsetX="8" />
+                </Texture>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Info" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- =========================================================
+             Окно быстрого меню
+             ========================================================= -->
+        <TopLevelControl name="AbyssQuestWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="440" y="300" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <OnMoveStop>AbyssQuest.Menu:OnMoveStop()</OnMoveStop>
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>AbyssQuest.Menu:Hide()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)Edit">
+                    <Dimensions x="32" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Close" relativePoint="LEFT" offsetX="-6" />
+                    <Textures normal="EsoUI/Art/Buttons/edit_up.dds" pressed="EsoUI/Art/Buttons/edit_down.dds"
+                              mouseOver="EsoUI/Art/Buttons/edit_over.dds" />
+                    <OnClicked>AbyssQuest.Menu:OnEditClicked()</OnClicked>
+                </Button>
+
+                <Label name="$(parent)Status" font="ZoFontGameSmall">
+                    <Dimensions x="408" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Label>
+
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" offsetX="12" offsetY="66" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-34" />
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-10" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Окно «Мои места»
+             ========================================================= -->
+        <TopLevelControl name="AbyssQuestEditorWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="660" y="700" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <OnMoveStop>AbyssQuest.Settings:OnMoveStop()</OnMoveStop>
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>AbyssQuest.Settings:Hide()</OnClicked>
+                </Button>
+
+                <!-- Подписи над полями -->
+                <Label name="$(parent)SearchCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
+                </Label>
+                <Label name="$(parent)ZoneCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="296" offsetY="52" />
+                </Label>
+                <Label name="$(parent)TypeCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="496" offsetY="52" />
+                </Label>
+
+                <!-- Поиск, локация, тип -->
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Dimensions x="270" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="72" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Control name="$(parent)Zone" inherits="ZO_ComboBox">
+                    <Dimensions x="190" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="296" offsetY="72" />
+                </Control>
+                <Control name="$(parent)Type" inherits="ZO_ComboBox">
+                    <Dimensions x="148" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="496" offsetY="72" />
+                </Control>
+
+                <!-- Фильтры, счётчик, «Снять все» -->
+                <Button name="$(parent)OnlyFav" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="118" />
+                </Button>
+                <Button name="$(parent)OnlyOpen" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="210" offsetY="118" />
+                </Button>
+                <Button name="$(parent)Clear" inherits="ZO_DefaultButton">
+                    <Dimensions x="140" y="28" />
+                    <Anchor point="TOPRIGHT" offsetX="-16" offsetY="110" />
+                </Button>
+                <Label name="$(parent)Counter" font="ZoFontGame" color="FFFFFF">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                    <Anchor point="RIGHT" relativeTo="$(parent)Clear" relativePoint="LEFT" offsetX="-12" />
+                </Label>
+
+                <!-- Список мест -->
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="150" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-40" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="6" offsetY="6" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-6" offsetY="-6" />
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Подсказка бесплатного пути: «Повзаимодействуйте со святилищем…»
+             В стиле окон аддона. Крестик (в режиме курсора) отменяет путь.
+             ========================================================= -->
+        <TopLevelControl name="AbyssQuestRouteHint">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Box" hidden="true" mouseEnabled="true">
+                    <Dimensions x="520" y="84" />
+                    <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetY="140" />
+                    <Controls>
+                        <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                            <AnchorFill />
+                        </Backdrop>
+                        <Control name="$(parent)Tile" inherits="AbyssQuest_Tile">
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="16" />
+                        </Control>
+                        <Label name="$(parent)Title" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                            <Anchor point="TOPLEFT" offsetX="74" offsetY="12" />
+                        </Label>
+                        <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                            <Anchor point="TOPRIGHT" offsetX="-10" offsetY="12" />
+                            <OnClicked>AbyssQuest.Route:OnHintClicked(MOUSE_BUTTON_INDEX_LEFT)</OnClicked>
+                        </Button>
+                        <Label name="$(parent)Text" font="ZoFontGame" color="FFFFFF">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                            <Dimensions x="410" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="4" />
+                        </Label>
+                        <Label name="$(parent)Sub" font="ZoFontGameSmall" color="8A8A8A">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                            <Dimensions x="410" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Text" relativePoint="BOTTOMLEFT" offsetY="4" />
+                        </Label>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Слой кнопок на экране
+             ========================================================= -->
+        <TopLevelControl name="AbyssQuestHud">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Container">
+                    <AnchorFill />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+
+        <!-- Редактор кнопок и редактор колеса -->
+        <TopLevelControl name="AbyssQuestButtonsWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="760" y="600" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Control name="$(parent)Body" inherits="AbyssQuest_SlotEditorBody" />
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Окно «Колесо: быстрое перемещение» -->
+        <TopLevelControl name="AbyssQuestWheelWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="1120" y="640" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>AbyssQuest.WheelEditor:Hide()</OnClicked>
+                </Button>
+
+                <!-- Места -->
+                <Label name="$(parent)PlacesCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
+                </Label>
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Dimensions x="330" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="76" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)OnlyFav" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="116" />
+                </Button>
+                <Button name="$(parent)OnlyOpen" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="196" offsetY="116" />
+                </Button>
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Dimensions x="330" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="144" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-40" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="4" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+
+                <!-- Колесо: ячейки создаются из Lua -->
+                <Control name="$(parent)WheelArea" mouseEnabled="true">
+                    <Dimensions x="512" y="512" />
+                    <Anchor point="TOPLEFT" offsetX="362" offsetY="52" />
+                    <Controls>
+                        <Texture name="$(parent)Background" textureFile="EsoUI/Art/HUD/radialMenu_bg_unselected.dds" alpha="0.85">
+                            <Dimensions x="512" y="512" />
+                            <Anchor point="CENTER" />
+                        </Texture>
+                        <Label name="$(parent)CenterName" font="ZoFontWinH3" color="FFFFFF" horizontalAlignment="CENTER"
+                               wrapMode="ELLIPSIS" maxLineCount="2">
+                            <Dimensions x="210" />
+                            <Anchor point="BOTTOM" relativePoint="CENTER" offsetY="4" />
+                        </Label>
+                        <Label name="$(parent)CenterInfo" font="ZoFontGameSmall" color="9A9A9A" horizontalAlignment="CENTER"
+                               wrapMode="ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="210" />
+                            <Anchor point="TOP" relativePoint="CENTER" offsetY="10" />
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <!-- Свойства выбранной ячейки -->
+                <Control name="$(parent)Details">
+                    <Dimensions x="214" />
+                    <Anchor point="TOPLEFT" offsetX="890" offsetY="60" />
+                    <Anchor point="BOTTOMLEFT" offsetX="890" offsetY="-40" />
+                    <Controls>
+                        <Control name="$(parent)Preview" inherits="AbyssQuest_Tile">
+                            <Dimensions x="64" y="64" />
+                            <Anchor point="TOPLEFT" />
+                        </Control>
+                        <Label name="$(parent)Name" font="ZoFontWinH4" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="2">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                            <Dimensions x="214" />
+                            <Anchor point="TOPLEFT" offsetY="74" />
+                        </Label>
+                        <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                            <Dimensions x="214" />
+                            <Anchor point="TOPLEFT" offsetY="126" />
+                        </Label>
+                        <Label name="$(parent)Empty" font="ZoFontGame" color="A0A0A0">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                            <Dimensions x="214" />
+                            <Anchor point="TOPLEFT" offsetY="160" />
+                        </Label>
+                        <Control name="$(parent)Controls">
+                            <Anchor point="TOPLEFT" offsetY="156" />
+                            <Anchor point="BOTTOMRIGHT" />
+                            <Controls>
+                                <Button name="$(parent)PickIcon" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" />
+                                </Button>
+                                <Button name="$(parent)ResetIcon" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" offsetY="34" />
+                                </Button>
+                                <Label name="$(parent)ColorCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                                    <Anchor point="TOPLEFT" offsetY="78" />
+                                </Label>
+                                <Control name="$(parent)ColorSwatch" inherits="AbyssQuest_Tile" mouseEnabled="true">
+                                    <Dimensions x="40" y="40" />
+                                    <Anchor point="TOPLEFT" offsetY="102" />
+                                </Control>
+                                <Control name="$(parent)Palette">
+                                    <Dimensions x="162" y="49" />
+                                    <Anchor point="TOPLEFT" offsetX="52" offsetY="98" />
+                                </Control>
+                                <Button name="$(parent)Tint" inherits="ZO_CheckButton">
+                                    <Anchor point="TOPLEFT" offsetY="162" />
+                                </Button>
+                                <Button name="$(parent)Rename" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" offsetY="200" />
+                                </Button>
+                                <Button name="$(parent)Clear" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" offsetY="236" />
+                                </Button>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Dimensions x="1088" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Значок под курсором при перетаскивании -->
+        <TopLevelControl name="AbyssQuestDragIcon" hidden="true" tier="HIGH" layer="OVERLAY">
+            <Dimensions x="52" y="52" />
+            <Controls>
+                <Control name="$(parent)Tile" inherits="AbyssQuest_Tile">
+                    <Dimensions x="52" y="52" />
+                    <Anchor point="CENTER" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Выбор места -->
+        <TopLevelControl name="AbyssQuestPlacePicker" hidden="true" mouseEnabled="true" movable="true"
+                         clampedToScreen="true" tier="HIGH">
+            <Dimensions x="520" y="620" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>AbyssQuest.PlacePicker:Close()</OnClicked>
+                </Button>
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
+                    <Anchor point="TOPRIGHT" offsetX="-16" offsetY="52" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)OnlyOpen" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="94" />
+                </Button>
+                <Button name="$(parent)OnlyFav" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="220" offsetY="94" />
+                </Button>
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="124" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-40" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="4" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Выбор значка -->
+        <TopLevelControl name="AbyssQuestIconPicker" hidden="true" mouseEnabled="true" movable="true"
+                         clampedToScreen="true" tier="HIGH">
+            <Dimensions x="600" y="640" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "window")</OnInitialized>
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>AbyssQuest.IconPicker:Close()</OnClicked>
+                </Button>
+                <Button name="$(parent)Tab1" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="50" />
+                </Button>
+                <Button name="$(parent)Tab2" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Tab1" relativePoint="RIGHT" offsetX="6" />
+                </Button>
+                <Button name="$(parent)Tab3" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Tab2" relativePoint="RIGHT" offsetX="6" />
+                </Button>
+                <Button name="$(parent)Tab4" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Tab3" relativePoint="RIGHT" offsetX="6" />
+                </Button>
+                <Texture name="$(parent)TabIndicator" color="FF5DC1E8">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "accent")</OnInitialized>
+                    <Dimensions y="2" />
+                </Texture>
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="90" />
+                    <Anchor point="TOPRIGHT" offsetX="-120" offsetY="90" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="RIGHT">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="TOPRIGHT" offsetX="-18" offsetY="96" />
+                </Label>
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="128" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-88" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="8" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+                <Label name="$(parent)PathCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-56" />
+                </Label>
+                <Backdrop name="$(parent)PathBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-16" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-160" offsetY="-16" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)Apply" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-16" />
+                </Button>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Панель слева от карты мира: две вкладки —
+             «Завершение области» (панель самой игры, встроенная сюда)
+             и «AbyssQuest» (ваши места и их настройка).
+             Привязывается к левому краю окна карты из Lua.
+             ========================================================= -->
+        <TopLevelControl name="AbyssQuestMapPanelRoot" tier="LOW" hidden="true">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Panel" hidden="true" mouseEnabled="true">
+                    <Dimensions x="400" y="700" />
+                    <Anchor point="LEFT" relativeTo="GuiRoot" relativePoint="LEFT" offsetX="20" />
+                    <Controls>
+                        <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "panel")</OnInitialized>
+                            <AnchorFill />
+                        </Backdrop>
+
+                        <!-- Вкладки -->
+                        <Button name="$(parent)TabZone">
+                            <Dimensions x="200" y="30" />
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="10" />
+                            <OnClicked>AbyssQuest.MapPanel:SelectTab("zone")</OnClicked>
+                            <Controls>
+                                <Label name="$(parent)Text" font="ZoFontWinH4" modifyTextType="UPPERCASE">
+                                    <Anchor point="LEFT" />
+                                </Label>
+                            </Controls>
+                        </Button>
+                        <Button name="$(parent)TabGate">
+                            <Dimensions x="140" y="30" />
+                            <Anchor point="LEFT" relativeTo="$(parent)TabZone" relativePoint="RIGHT" offsetX="16" />
+                            <OnClicked>AbyssQuest.MapPanel:SelectTab("gate")</OnClicked>
+                            <Controls>
+                                <Label name="$(parent)Text" font="ZoFontWinH4" modifyTextType="UPPERCASE">
+                                    <Anchor point="LEFT" />
+                                </Label>
+                            </Controls>
+                        </Button>
+                        <!-- Язык аддона: код текущего языка, щелчок — меню выбора -->
+                        <Texture name="$(parent)LangBg">
+                            <Dimensions x="44" y="24" />
+                            <Anchor point="TOPRIGHT" offsetX="-12" offsetY="13" />
+                        </Texture>
+                        <Button name="$(parent)Lang">
+                            <Dimensions x="44" y="24" />
+                            <Anchor point="TOPRIGHT" offsetX="-12" offsetY="13" />
+                            <OnClicked>AbyssQuest.MapPanel:ShowLanguageMenu(self)</OnClicked>
+                            <OnMouseEnter>AbyssQuest.MapPanel:OnLanguageEnter(self)</OnMouseEnter>
+                            <OnMouseExit>AbyssQuest.MapPanel:OnLanguageExit(self)</OnMouseExit>
+                            <Controls>
+                                <Label name="$(parent)Text" font="ZoFontGameSmall" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                                    <AnchorFill />
+                                </Label>
+                            </Controls>
+                        </Button>
+                        <Texture name="$(parent)TabLine">
+                            <Dimensions y="1" />
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="42" />
+                            <Anchor point="TOPRIGHT" offsetX="-16" offsetY="42" />
+                        </Texture>
+                        <Texture name="$(parent)TabIndicator">
+                            <Dimensions y="2" />
+                        </Texture>
+
+                        <!-- AbyssQuest: сэкономленное золото и действия -->
+                        <Control name="$(parent)GateHeader" mouseEnabled="true">
+                            <Dimensions y="30" />
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="50" />
+                            <Anchor point="TOPRIGHT" offsetX="-12" offsetY="50" />
+                            <OnMouseEnter>AbyssQuest.MapPanel:OnSavedEnter(self)</OnMouseEnter>
+                            <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
+                            <Controls>
+                                <Button name="$(parent)Options">
+                                    <Dimensions x="28" y="28" />
+                                    <Anchor point="RIGHT" />
+                                    <Textures normal="EsoUI/Art/ChatWindow/chat_options_up.dds" pressed="EsoUI/Art/ChatWindow/chat_options_down.dds"
+                                              mouseOver="EsoUI/Art/ChatWindow/chat_options_over.dds" />
+                                    <OnClicked>AbyssQuest.Settings:OpenPanel()</OnClicked>
+                                    <OnMouseEnter>AbyssQuest.ShowTip("mapPanel", self, BOTTOM, AbyssQuest.L.PANEL_OPTIONS)</OnMouseEnter>
+                                    <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
+                                </Button>
+                                <Button name="$(parent)Add">
+                                    <Dimensions x="28" y="28" />
+                                    <Anchor point="RIGHT" relativeTo="$(parent)Options" relativePoint="LEFT" offsetX="-4" />
+                                    <Textures normal="EsoUI/Art/Buttons/plus_up.dds" pressed="EsoUI/Art/Buttons/plus_down.dds"
+                                              mouseOver="EsoUI/Art/Buttons/plus_over.dds" />
+                                    <OnClicked>AbyssQuest.MapPanel:AddPlace()</OnClicked>
+                                    <OnMouseEnter>AbyssQuest.ShowTip("mapPanel", self, BOTTOM, AbyssQuest.L.PANEL_ADD)</OnMouseEnter>
+                                    <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
+                                </Button>
+                                <Label name="$(parent)Saved" font="ZoFontGame" color="E6D9A8" wrapMode="ELLIPSIS" maxLineCount="1">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                                    <Anchor point="LEFT" />
+                                    <Anchor point="RIGHT" relativeTo="$(parent)Add" relativePoint="LEFT" offsetX="-8" />
+                                </Label>
+                            </Controls>
+                        </Control>
+
+                        <!-- Завершение области: сюда встраивается панель игры -->
+                        <Control name="$(parent)Zone">
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="54" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
+                            <Controls>
+                                <Label name="$(parent)Empty" font="ZoFontGame" color="8A8A8A" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                                    <AnchorFill />
+                                </Label>
+                            </Controls>
+                        </Control>
+
+                        <!-- AbyssQuest: список мест -->
+                        <Control name="$(parent)ListView">
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="88" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
+                            <Controls>
+                                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                                    <Dimensions y="28" />
+                                    <Anchor point="TOPLEFT" />
+                                    <Anchor point="TOPRIGHT" offsetX="-4" />
+                                    <Controls>
+                                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                                    </Controls>
+                                </Backdrop>
+                                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                                    <Anchor point="TOPLEFT" offsetY="38" />
+                                    <Anchor point="BOTTOMRIGHT" />
+                                </Control>
+                            </Controls>
+                        </Control>
+
+                        <!-- AbyssQuest: настройка места -->
+                        <Control name="$(parent)EditView" hidden="true">
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="88" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
+                            <Controls>
+                                <Button name="$(parent)Back">
+                                    <Dimensions x="220" y="28" />
+                                    <Anchor point="TOPLEFT" />
+                                    <OnClicked>AbyssQuest.MapPanel:ShowList()</OnClicked>
+                                    <Controls>
+                                        <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/large_leftArrow_up.dds">
+                                            <Dimensions x="28" y="28" />
+                                            <Anchor point="LEFT" offsetX="-6" />
+                                        </Texture>
+                                        <Label name="$(parent)Text" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                            <OnInitialized>AbyssQuest.Style.Themed(self, "caption")</OnInitialized>
+                                            <Anchor point="LEFT" offsetX="24" />
+                                        </Label>
+                                    </Controls>
+                                </Button>
+                                <Control name="$(parent)Scroll" inherits="ZO_ScrollContainer">
+                                    <Anchor point="TOPLEFT" offsetY="38" />
+                                    <Anchor point="BOTTOMRIGHT" />
+                                </Control>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Масштаб карты: ползунок внизу окна карты
+             ========================================================= -->
+        <TopLevelControl name="AbyssQuestZoomBar" tier="MEDIUM" hidden="true">
+            <Dimensions x="260" y="28" />
+            <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetY="-120" />
+            <Controls>
+                <Control name="$(parent)Content" mouseEnabled="true">
+                    <AnchorFill />
+                    <OnMouseWheel>AbyssQuest.ZoomBar:OnWheel(delta)</OnMouseWheel>
+                    <Controls>
+                        <Button name="$(parent)Minus" inherits="ZO_MinusButton">
+                            <Dimensions x="20" y="20" />
+                            <Anchor point="LEFT" offsetX="2" />
+                            <OnClicked>AbyssQuest.ZoomBar:Step(-1)</OnClicked>
+                        </Button>
+                        <Button name="$(parent)Plus" inherits="ZO_PlusButton">
+                            <Dimensions x="20" y="20" />
+                            <Anchor point="RIGHT" offsetX="-2" />
+                            <OnClicked>AbyssQuest.ZoomBar:Step(1)</OnClicked>
+                        </Button>
+                        <Control name="$(parent)Track" mouseEnabled="true">
+                            <Dimensions y="22" />
+                            <Anchor point="LEFT" relativeTo="$(parent)Minus" relativePoint="RIGHT" offsetX="12" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)Plus" relativePoint="LEFT" offsetX="-12" />
+                            <OnMouseDown>AbyssQuest.ZoomBar:OnTrackDown(button)</OnMouseDown>
+                            <OnMouseUp>AbyssQuest.ZoomBar:OnTrackUp(button)</OnMouseUp>
+                            <OnMouseEnter>AbyssQuest.ZoomBar:OnThumbEnter()</OnMouseEnter>
+                            <OnMouseExit>AbyssQuest.ZoomBar:OnThumbExit()</OnMouseExit>
+                            <Controls>
+                                <Texture name="$(parent)Line">
+                                    <Dimensions y="2" />
+                                    <Anchor point="LEFT" />
+                                    <Anchor point="RIGHT" />
+                                </Texture>
+                                <Texture name="$(parent)Fill" level="2">
+                                    <Dimensions x="1" y="2" />
+                                    <Anchor point="LEFT" />
+                                </Texture>
+                                <Texture name="$(parent)Thumb" textureFile="EsoUI/Art/Buttons/smoothSliderButton_up.dds" level="3">
+                                    <Dimensions x="16" y="16" />
+                                    <Anchor point="CENTER" relativePoint="LEFT" />
+                                </Texture>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Правая панель карты: задания, фильтры, локации, дома,
+             реликвии и обозначения
+             ========================================================= -->
+        <Control name="AbyssQuest_InfoTab" virtual="true" mouseEnabled="true">
+            <Dimensions x="40" y="40" />
+            <OnMouseEnter>AbyssQuest.InfoPanel:OnTabEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.InfoPanel:OnTabExit(self)</OnMouseExit>
+            <OnMouseUp>if upInside and button == MOUSE_BUTTON_INDEX_LEFT then AbyssQuest.InfoPanel:SelectTab(self.tabKey) end</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="CENTER" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Кнопка-значок в строке задания: перемещение, закрепить, главное -->
+        <Button name="AbyssQuest_QuestButton" virtual="true">
+            <Dimensions x="26" y="26" />
+            <Controls>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="CENTER" />
+                </Texture>
+            </Controls>
+        </Button>
+
+        <!-- Раздел списка заданий (щелчок — свернуть/развернуть) -->
+        <Control name="AbyssQuest_QuestSection" virtual="true" mouseEnabled="true">
+            <Dimensions x="340" y="34" />
+            <OnMouseEnter>AbyssQuest.InfoPanel:OnSectionEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.InfoPanel:OnSectionExit(self)</OnMouseExit>
+            <OnMouseUp>if upInside then AbyssQuest.InfoPanel:OnSectionClicked(self, button) end</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/tree_open_up.dds">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="BOTTOMLEFT" offsetX="-2" offsetY="-6" />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-4" />
+                </Texture>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="RIGHT">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="BOTTOMRIGHT" offsetX="-6" offsetY="-6" />
+                </Label>
+                <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="46" offsetY="-6" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Count" relativePoint="BOTTOMLEFT" offsetX="-8" />
+                </Label>
+                <Texture name="$(parent)Line">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Подзаголовок: локация задания, кампания стремлений, вид заданий фолианта -->
+        <Control name="AbyssQuest_QuestGroup" virtual="true" mouseEnabled="true">
+            <Dimensions x="340" y="26" />
+            <OnMouseUp>if upInside then AbyssQuest.InfoPanel:OnGroupClicked(self, button) end</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/tree_closed_up.dds" hidden="true">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="BOTTOMLEFT" offsetX="4" offsetY="-2" />
+                </Texture>
+                <Label name="$(parent)Text" font="ZoFontGameSmall" color="8FB7C9" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "group")</OnInitialized>
+                    <Anchor point="BOTTOMLEFT" offsetX="8" offsetY="-3" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-6" offsetY="-3" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Строка задания -->
+        <Control name="AbyssQuest_QuestRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="340" y="56" />
+            <OnMouseEnter>AbyssQuest.InfoPanel:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.InfoPanel:OnRowExit(self)</OnMouseExit>
+            <OnDragStart>AbyssQuest.InfoPanel:OnRowDragStart(self, button)</OnDragStart>
+            <OnMouseUp>AbyssQuest.InfoPanel:OnRowMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <Anchor point="TOPLEFT" offsetY="2" />
+                    <Anchor point="BOTTOMRIGHT" offsetY="-2" />
+                </Texture>
+                <Texture name="$(parent)Stripe">
+                    <Dimensions x="3" />
+                    <Anchor point="TOPLEFT" offsetY="2" />
+                    <Anchor point="BOTTOMLEFT" offsetY="-2" />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="30" y="30" />
+                    <Anchor point="LEFT" offsetX="10" />
+                </Texture>
+                <Button name="$(parent)Main" inherits="AbyssQuest_QuestButton">
+                    <Anchor point="RIGHT" offsetX="-4" />
+                    <OnClicked>AbyssQuest.InfoPanel:OnMainClicked(self:GetParent())</OnClicked>
+                    <OnMouseEnter>AbyssQuest.InfoPanel:OnButtonEnter(self, "main")</OnMouseEnter>
+                    <OnMouseExit>AbyssQuest.InfoPanel:OnButtonExit(self)</OnMouseExit>
+                </Button>
+                <Button name="$(parent)Pin" inherits="AbyssQuest_QuestButton">
+                    <Anchor point="RIGHT" relativeTo="$(parent)Main" relativePoint="LEFT" />
+                    <OnClicked>AbyssQuest.InfoPanel:OnPinClicked(self:GetParent())</OnClicked>
+                    <OnMouseEnter>AbyssQuest.InfoPanel:OnButtonEnter(self, "pin")</OnMouseEnter>
+                    <OnMouseExit>AbyssQuest.InfoPanel:OnButtonExit(self)</OnMouseExit>
+                </Button>
+                <Button name="$(parent)Travel" inherits="AbyssQuest_QuestButton">
+                    <Anchor point="RIGHT" relativeTo="$(parent)Pin" relativePoint="LEFT" />
+                    <OnClicked>AbyssQuest.InfoPanel:OnTravelClicked(self:GetParent())</OnClicked>
+                    <OnMouseEnter>AbyssQuest.InfoPanel:OnButtonEnter(self, "travel")</OnMouseEnter>
+                    <OnMouseExit>AbyssQuest.InfoPanel:OnButtonExit(self)</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="TOPLEFT" offsetX="48" offsetY="6" />
+                    <Anchor point="TOPRIGHT" offsetX="-88" offsetY="6" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="48" offsetY="29" />
+                    <Anchor point="TOPRIGHT" offsetX="-88" offsetY="29" />
+                </Label>
+                <Texture name="$(parent)BarBg">
+                    <Dimensions y="3" />
+                    <Anchor point="BOTTOMLEFT" offsetX="48" offsetY="-6" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-88" offsetY="-6" />
+                </Texture>
+                <Texture name="$(parent)BarFill" level="2">
+                    <Dimensions x="1" y="3" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BarBg" relativePoint="LEFT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="AbyssQuestInfoRoot" tier="LOW" hidden="true">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Panel" hidden="true" mouseEnabled="true">
+                    <Dimensions x="400" y="700" />
+                    <Anchor point="RIGHT" relativeTo="GuiRoot" relativePoint="RIGHT" offsetX="-20" />
+                    <Controls>
+                        <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "panel")</OnInitialized>
+                            <AnchorFill />
+                        </Backdrop>
+                        <Control name="$(parent)Tabs">
+                            <Dimensions y="40" />
+                            <Anchor point="TOPLEFT" offsetX="12" offsetY="6" />
+                            <Anchor point="TOPRIGHT" offsetX="-12" offsetY="6" />
+                        </Control>
+                        <Texture name="$(parent)TabLine">
+                            <Dimensions y="1" />
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="50" />
+                            <Anchor point="TOPRIGHT" offsetX="-16" offsetY="50" />
+                        </Texture>
+                        <Texture name="$(parent)TabIndicator">
+                            <Dimensions x="28" y="2" />
+                        </Texture>
+                        <Label name="$(parent)Title" font="ZoFontWinH4" color="E6D9A8" modifyTextType="UPPERCASE" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="58" />
+                            <Anchor point="TOPRIGHT" offsetX="-12" offsetY="58" />
+                        </Label>
+
+                        <!-- Поиск группы: очередь в подземелье, набор в испытание -->
+                        <Control name="$(parent)Status" hidden="true" mouseEnabled="true">
+                            <Dimensions y="60" />
+                            <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
+                            <Controls>
+                                <Texture name="$(parent)Bg">
+                                    <AnchorFill />
+                                </Texture>
+                                <Texture name="$(parent)Stripe">
+                                    <Dimensions x="3" />
+                                    <Anchor point="TOPLEFT" />
+                                    <Anchor point="BOTTOMLEFT" />
+                                </Texture>
+                                <Texture name="$(parent)Line">
+                                    <Dimensions y="1" />
+                                    <Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" offsetY="-6" />
+                                    <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetY="-6" />
+                                </Texture>
+                                <Texture name="$(parent)Icon">
+                                    <Dimensions x="34" y="34" />
+                                    <Anchor point="TOPLEFT" offsetX="10" offsetY="10" />
+                                </Texture>
+                                <Label name="$(parent)Title" font="ZoFontGameBold" color="E6D9A8" wrapMode="ELLIPSIS" maxLineCount="1">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                                    <Anchor point="TOPLEFT" offsetX="52" offsetY="6" />
+                                    <Anchor point="TOPRIGHT" offsetX="-8" offsetY="6" />
+                                </Label>
+                                <Label name="$(parent)Info" font="ZoFontGameSmall" color="C8C8C8">
+                                    <OnInitialized>AbyssQuest.Style.Themed(self, "detail")</OnInitialized>
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="2" />
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetY="2" />
+                                </Label>
+                                <Button name="$(parent)Travel" inherits="ZO_DefaultButton">
+                                    <Dimensions x="180" y="28" />
+                                    <Anchor point="BOTTOMRIGHT" offsetX="-6" offsetY="-6" />
+                                    <OnClicked>AbyssQuest.InfoPanel:OnStatusTravel()</OnClicked>
+                                </Button>
+                            </Controls>
+                        </Control>
+
+                        <!-- Сюда встраиваются вкладки игры -->
+                        <Control name="$(parent)Content">
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="92" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
+                        </Control>
+
+                        <!-- Задания AbyssQuest -->
+                        <Control name="$(parent)Quests">
+                            <Anchor point="TOPLEFT" offsetX="16" offsetY="92" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
+                            <Controls>
+                                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                                    <Dimensions y="28" />
+                                    <Anchor point="TOPLEFT" />
+                                    <Anchor point="TOPRIGHT" offsetX="-4" />
+                                    <Controls>
+                                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                                    </Controls>
+                                </Backdrop>
+                                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                                    <Anchor point="TOPLEFT" offsetY="34" />
+                                    <Anchor point="BOTTOMRIGHT" />
+                                </Control>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Панель заданий на экране: главное и закреплённые
+             ========================================================= -->
+        <Control name="AbyssQuest_TrackerEntry" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="40" />
+            <OnMouseEnter>AbyssQuest.QuestTracker:OnEntryEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.QuestTracker:OnEntryExit(self)</OnMouseExit>
+            <OnDragStart>AbyssQuest.QuestTracker:OnEntryDragStart(self, button)</OnDragStart>
+            <OnMouseUp>AbyssQuest.QuestTracker:OnEntryMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <Anchor point="TOPLEFT" offsetY="1" />
+                    <Anchor point="BOTTOMRIGHT" offsetY="-1" />
+                </Texture>
+                <Texture name="$(parent)Stripe">
+                    <Dimensions x="3" />
+                    <Anchor point="TOPLEFT" offsetY="1" />
+                    <Anchor point="BOTTOMLEFT" offsetY="-1" />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="TOPLEFT" offsetX="9" offsetY="5" />
+                </Texture>
+                <Button name="$(parent)Travel" inherits="AbyssQuest_QuestButton">
+                    <Anchor point="TOPRIGHT" offsetX="-4" offsetY="3" />
+                    <OnClicked>AbyssQuest.QuestTracker:OnTravelClicked(self:GetParent())</OnClicked>
+                    <OnMouseEnter>AbyssQuest.QuestTracker:OnTravelEnter(self)</OnMouseEnter>
+                    <OnMouseExit>AbyssQuest.QuestTracker:OnTravelExit(self)</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontGameBold">
+                    <Anchor point="TOPLEFT" offsetX="38" offsetY="5" />
+                </Label>
+                <Label name="$(parent)Lines" font="ZoFontGameSmall" color="C8C8C8">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "detail")</OnInitialized>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="BOTTOMLEFT" offsetY="1" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Name" relativePoint="BOTTOMRIGHT" offsetY="1" />
+                </Label>
+                <Texture name="$(parent)BarBg">
+                    <Dimensions y="3" />
+                </Texture>
+                <Texture name="$(parent)BarFill" level="2">
+                    <Dimensions x="1" y="3" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BarBg" relativePoint="LEFT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Простая панель заданий: раздел (локация, стремления, фолиант) — щелчок сворачивает -->
+        <Control name="AbyssQuest_TrackerSimpleHeader" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="26" />
+            <OnMouseEnter>AbyssQuest.QuestTracker:OnHeaderEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.QuestTracker:OnHeaderExit(self)</OnMouseExit>
+            <OnDragStart>AbyssQuest.QuestTracker:OnHeaderDragStart(self, button)</OnDragStart>
+            <OnMouseUp>AbyssQuest.QuestTracker:OnHeaderMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/tree_open_up.dds">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="LEFT" offsetX="0" />
+                </Texture>
+                <Label name="$(parent)Count" font="ZoFontGameShadow" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-4" />
+                </Label>
+                <Label name="$(parent)Text" font="ZoFontWinH4" modifyTextType="UPPERCASE" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" offsetX="20" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Count" relativePoint="LEFT" offsetX="-6" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Простая панель заданий: задание без карточки — значок, название и условия -->
+        <Control name="AbyssQuest_TrackerSimpleEntry" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="26" />
+            <OnMouseEnter>AbyssQuest.QuestTracker:OnEntryEnter(self)</OnMouseEnter>
+            <OnMouseExit>AbyssQuest.QuestTracker:OnEntryExit(self)</OnMouseExit>
+            <OnDragStart>AbyssQuest.QuestTracker:OnEntryDragStart(self, button)</OnDragStart>
+            <OnMouseUp>AbyssQuest.QuestTracker:OnEntryMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="TOPLEFT" offsetX="14" offsetY="1" />
+                </Texture>
+                <Button name="$(parent)Travel" inherits="AbyssQuest_QuestButton">
+                    <Anchor point="TOPRIGHT" offsetX="-2" offsetY="0" />
+                    <OnClicked>AbyssQuest.QuestTracker:OnTravelClicked(self:GetParent())</OnClicked>
+                    <OnMouseEnter>AbyssQuest.QuestTracker:OnTravelEnter(self)</OnMouseEnter>
+                    <OnMouseExit>AbyssQuest.QuestTracker:OnTravelExit(self)</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontWinH5">
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Lines" font="ZoFontGameShadow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="BOTTOMLEFT" offsetX="14" offsetY="1" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="AbyssQuestQuestTracker" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" resizeHandleSize="8">
+            <Dimensions x="310" y="60" />
+            <DimensionConstraints minX="220" maxX="640" />
+            <Anchor point="TOPRIGHT" relativeTo="GuiRoot" relativePoint="TOPRIGHT" offsetX="-24" offsetY="210" />
+            <OnMoveStop>AbyssQuest.QuestTracker:SavePosition()</OnMoveStop>
+            <OnResizeStop>AbyssQuest.QuestTracker:SaveSize()</OnResizeStop>
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Line">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" offsetX="6" offsetY="27" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="27" />
+                </Texture>
+                <Texture name="$(parent)HeaderIcon" textureFile="EsoUI/Art/Compass/quest_icon_assisted.dds">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="TOPLEFT" offsetX="8" offsetY="5" />
+                </Texture>
+                <Label name="$(parent)Title" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "title")</OnInitialized>
+                    <Anchor point="TOPLEFT" offsetX="32" offsetY="6" />
+                </Label>
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="7A7A7A" horizontalAlignment="RIGHT">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "info")</OnInitialized>
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="8" />
+                </Label>
+                <!-- Замок: закрепить панель или разрешить перетаскивать -->
+                <Button name="$(parent)Lock">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="4" />
+                    <OnClicked>AbyssQuest.QuestTracker:ToggleLock()</OnClicked>
+                    <OnMouseEnter>AbyssQuest.QuestTracker:OnLockEnter(self)</OnMouseEnter>
+                    <OnMouseExit>AbyssQuest.QuestTracker:OnLockExit(self)</OnMouseExit>
+                    <Controls>
+                        <Texture name="$(parent)Icon">
+                            <AnchorFill />
+                        </Texture>
+                    </Controls>
+                </Button>
+                <Control name="$(parent)Entries">
+                    <Anchor point="TOPLEFT" offsetX="6" offsetY="30" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="30" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Перетаскивание заданий: карточка у курсора и линия, куда задание встанет -->
+        <TopLevelControl name="AbyssQuestQuestDrag" tier="HIGH" hidden="true">
+            <Dimensions x="270" y="34" />
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Stripe">
+                    <Dimensions x="3" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="BOTTOMLEFT" />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="LEFT" offsetX="9" />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGame" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>AbyssQuest.Style.Themed(self, "text")</OnInitialized>
+                    <Anchor point="LEFT" offsetX="40" />
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+        <TopLevelControl name="AbyssQuestQuestDropLine" tier="HIGH" hidden="true">
+            <Controls>
+                <Texture name="$(parent)Fill">
+                    <AnchorFill />
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

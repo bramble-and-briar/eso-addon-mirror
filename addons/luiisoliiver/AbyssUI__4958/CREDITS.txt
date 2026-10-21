@@ -1,0 +1,16 @@
+AbyssUI - author: N A G A
+
+Addons used as a base / reference to build this addon:
+- AbyssUI (original concepts)
+- LuiExtended
+- Bandits User Interface
+- MiniMap (FyrMM)
+
+Not affiliated with or sponsored by ZeniMax Media Inc.
+
+AbyssQuest (modules/quest) — N A G A.
+
+AI assistance disclosure:
+Portions of code organization, localization structure, and refactoring toward
+ESOUI best practices were assisted by AI tools. All final design decisions,
+testing responsibility, and maintenance remain with the author (N A G A).

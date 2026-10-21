@@ -15,10 +15,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [A Super Useful Gadget Bar - by Gol](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Golnebo/A-Super-Useful-Gadget-Bar---by-Gol__1982) | Golnebo | PC / Mac | 1.42 |
 | [AA_Profiler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/spoqster/AA_Profiler__66400ef3-3d78-4737-a158-c48633706a83) | spoqster | Console | — |
 | [Ability Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jultzy94/Ability-Frames__1714) | jultzy94 | PC / Mac | 1.1 |
-| [Ability Icons Framework (AIF)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Ability-Icons-Framework-AIF__4061) | wicked_prophet | PC / Mac | 1.6.0 |
+| [Ability Icons Framework (AIF)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Ability-Icons-Framework-AIF__4061) | wicked_prophet | PC / Mac | 2.0.1 |
 | [ABnC Gold Manager - revisited](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dbojan/ABnC-Gold-Manager---revisited__2890) | dbojan | PC / Mac | 1.3.100009a rv3 |
 | [Above Me Icon Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Above-Me-Icon-Browser__c1746be9-5c6a-4516-aa21-e54bd8e5a25e) | BMGxSancho | Console | — |
-| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 17/10/2026 |
+| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 21/10/2026 |
 | [Accept or Decline Group Invites](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Accept-or-Decline-Group-Invites__4371) | TwinLamps | PC / Mac | 1.1 |
 | [Accessorize](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deadohiosky48/Accessorize__2541) | deadohiosky48 | PC / Mac | 24 |
 | [Account Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/QuantumPie/Account-Achievements__2905) | QuantumPie | PC / Mac | 2.0.2 |
@@ -244,6 +244,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
 | [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.0.0 |
+| [ARC_CustomFonts - High-Quality Open-Source Fonts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_CustomFonts---High-Quality-Open-Source-Fonts__4971) | arcsinan | PC / Mac | 1.0.0 |
+| [ARC_NetGraphr - Real-Time Network Telemetry & FPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_NetGraphr---Real-Time-Network-Telemetry-FPS__4973) | arcsinan | PC / Mac | 1.0.0 |
+| [ARC_SetGlowGuard - Set Glow & Equipment Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_SetGlowGuard---Set-Glow-Equipment-Tracker__4970) | arcsinan | PC / Mac | 1.0.2 |
+| [ARC_ZoneExplorer - Zone Arrival & Exploration HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_ZoneExplorer---Zone-Arrival-Exploration-HUD__4972) | arcsinan | PC / Mac | 1.0.0 |
 | [Arcanist Crux Job Gauge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ViciousTomato/Arcanist-Crux-Job-Gauge__3661) | ViciousTomato | PC / Mac | 1.1 |
 | [Arcanist Mastery Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Arcanist-Mastery-Tracker__4823) | its_wifey | PC / Mac | 1.6 |
 | [Arcanum Artis GuildHall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Arcanum-Artis-GuildHall__3013) | Niwasaka | PC / Mac | 1.22.0 |

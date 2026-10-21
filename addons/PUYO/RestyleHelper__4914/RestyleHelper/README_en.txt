@@ -1,4 +1,4 @@
-Restyle Helper v1.13.2 - Outfit station helper for The Elder Scrolls Online
+Restyle Helper v1.15.37 (test) - Outfit station helper for The Elder Scrolls Online
 Author: PUYO
 
 INSTALL
@@ -70,4 +70,121 @@ LICENSE
   Free for personal, non-commercial use with ESO (see LICENSE.txt). No selling or commercial use.
 
 DISCLAIMER
+
+CHANGES v1.15.37 (test)
+ - Fewer split style groups: jerkin ("shirt") icons join their set; sets are also merged by common
+   piece name regardless of ID distance (no merge if the same slot x weight would clash).
+
+CHANGES v1.15.36 (test)
+  - Fixed /rsh dump being captured by an old diagnostic (capped at 120 entries); it now writes every style (styleDump). The old command is /rsh dumpold.
+
+CHANGES v1.15.35 (test)
+  - /rsh dump now starts with a header line (game total / indexed / excluded counts); excluded items are listed in styleDumpSkipped.
+
+CHANGES v1.15.34 (test)
+  - Added /rsh dump: writes every style (id, name, slots, weight, game style id, add-on group, owned, icon) and the group merge log to SavedVariables.
+
+CHANGES v1.15.33 (test)
+  - Preset window: Apply is green, Delete is red.
+  - Favorites window: detail text uses the same colour as names/buttons.
+  - Style grouping: besides the group name, the first piece name and icon name prefix are used to decide that two groups are the same set (fix for light/medium/heavy being split). /rsh find now also lists the merge decisions.
+
+CHANGES v1.15.32 (test)
+  - Preset names with Japanese text fixed again: character handling no longer uses patterns, and the typed name is used as-is if cleaning leaves it empty.
+
+CHANGES v1.15.31 (test)
+  - Diagnostics: when a preset name falls back to the default, the name field length and first bytes are printed. The weight trace now includes the style name.
+
+CHANGES v1.15.30 (test)
+  - Fixed weight mismatches in style unify etc.: when the chest was a robe (a weight value other than light/medium/heavy), no other slot matched it and every slot was treated as another weight. Robes now count as light.
+  - If a style truly lacks that weight for a slot, it is still substituted as before.
+
+CHANGES v1.15.29 (test)
+  - Diagnostics: while /rsh trace is on, a weight substitution prints the style, slot and candidate list to chat.
+
+CHANGES v1.15.28 (test)
+  - Fixed preset names with Japanese text being replaced by the default name (name cleaning is now byte-based).
+  - /rsh find now also saves its output to SavedVariables (findLog).
+
+CHANGES v1.15.27 (test)
+  - Slot names and weight letters in the status row use the same colour as the style name.
+  - Weight unify: pieces without weight data are now treated as usable for any weight instead of falling back to another weight.
+
+CHANGES v1.15.26 (test)
+  - Removed the 0.05 s periodic check. The add-on now reacts to the game's change notifications and checks once at the scheduled restore time (0.1 s later).
+
+CHANGES v1.15.25 (test)
+  - Fixed the resize triangle not showing (it was hidden behind the window background); now drawn as a yellow triangle at the bottom-right.
+  - Widening the Favorites window now widens the name column and moves details/buttons right so hidden text becomes visible.
+  - Load fix: the weight display in the status row was triggering a full style-index build; it now uses a light query.
+
+CHANGES v1.15.24 (test)
+  - The armor weight of each slot (L/M/H) is now shown under the status squares.
+
+CHANGES v1.15.23 (test)
+  - Every slot that cannot be applied (unowned / no piece / hidden) now shows a red x.
+
+CHANGES v1.15.22 (test)
+  - Dye shuffle (shared order): pieces with only some dyeable channels now receive colours using the same permutation as the whole body; hidden leftover colours are not used.
+  - A triangle grip at each window's bottom-right resizes the window itself (not the display scale). Double-click resets. Text areas in the Share window grow with it.
+  - Main panel status squares now show ownership: green = owned, red = unowned style in use.
+
+CHANGES v1.15.21 (test)
+  - Loading a preset / shared outfit now updates the main panel's style status (name and per-slot result).
+
+CHANGES v1.15.20 (test)
+  - New option "Prefer robe over jerkin for chest": styles with both a jerkin and a robe always use the robe.
+  - The red warning (unowned items included) now lists which slots / how many dyes are unowned. The green square only means the style has that slot, not that you own it.
+  - New "Overwrite selected" button in the Share / Presets window: overwrites the selected preset with the current outfit.
+
+CHANGES v1.15.19 (test)
+  - Removed the "(test)" label from "Preview unowned styles / dyes"; they are now regular features.
+  - Windows can be resized (0.6x-2.0x) by dragging the bottom-right corner; double-click it to reset. The scale is saved.
+  - Hovering an option shows a box with a detailed description.
+  - Removed the dye watch window: colours are restored once, 0.1 s after a style change (colours the game writes later are not undone).
+
+CHANGES v1.15.18 (test)
+  - Applied (visible) colours now carry over to another style even if you never changed colours in the preview. The hidden old colours the game keeps for non-dyeable channels are not used; those channels are filled from the nearest visible channel.
+
+CHANGES v1.15.17 (test)
+  - Dye overwrite now runs for 0.1 s starting 0.1 s after a style change (check interval 0.05 s).
+
+CHANGES v1.15.16 (test)
+  - Fixed styles that exist in only one weight being shown as "other weight" (~). Slots without weight variants are no longer treated as substituted, and the Light/Medium/Heavy buttons leave them as they are.
+
+CHANGES v1.15.15 (test)
+  - Removed the chat warning when the weapon options are turned on (menu label only).
+
+CHANGES v1.15.14 (test)
+  - Added a cost warning to the "apply to weapons" options.
+
+CHANGES v1.15.13 (test)
+  - Dye overwrite now runs for 0.3 s starting 0.3 s after a style change (previously until 1.5 s).
+
+CHANGES v1.15.12 (test)
+  - Colours given to non-dyeable channels are remembered too and applied when a style with that channel is chosen. Empty (undyed) channels are filled from the nearest remembered channel of that part.
+
+CHANGES v1.15.11 (test)
+  - Improved style set grouping (icon abbreviations hvy/med/lgt, singular piece names, auto-merge of split sets). Fixes shoulders being treated as a separate set (x marks, weight switching).
+
+CHANGES v1.15.10 (test)
+  - Added diagnostic command /rsh find <name> (to inspect style set grouping).
+
+CHANGES v1.15.9 (test)
+  - Detects the game's own Revert (no pending changes left) and discards the dye memory.
+
+CHANGES v1.15.8 (test)
+  - Keeps your current dyes when you change a style at the station (the game otherwise mixes in dyes previously saved for that style). Option "Keep current dyes when changing style", default ON.
+  - Dye overwrite now starts 0.3 s after a style change, and the preview is refreshed once when watching ends (fixes unpainted parts).
+  - The game's own Revert (back to the applied state) is no longer overridden.
+  - Single-dye-channel parts use that part's remembered colour. Watch time extended to 1.5 s.
+  - Remembers your dyes per slot even when passing through styles with fewer dye channels. Added /rsh trace and /rsh slots diagnostics.
+
+CHANGES v1.15.0 (test)
+  - New options "Preview unowned styles" / "Preview unowned dyes" (default OFF). They include unowned items in random, favorites, presets and dye choices.
+    Note: while unowned items are included, the station's Apply is blocked by the game (a red warning is shown).
+    Note: whether the game accepts unowned dyes in preview is unverified in-game.
+  - "Favorite current styles" button: registers the styles of all slots currently previewed/worn.
+  - "Light / Medium / Heavy" buttons: switch current armor to another weight of the same style (locks ignored; slots without a match are left unchanged).
+
   This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

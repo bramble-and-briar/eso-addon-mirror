@@ -1,0 +1,25 @@
+<GuiXml>
+	<!-- The alert band. Console-safe on purpose, the way PB's KillLog's window is:
+	     - The font is ZoFontGamepad34, a face the console UI already has loaded (the group frames
+	       use it). A face nothing else is drawing with has to be built on use, out of the memory
+	       every add-on shares, and that has crashed a PS5.
+	     - The background is a plain colour texture, not a backdrop template.
+	     - Nothing takes input: a control that wants input takes every gamepad button away from
+	       the game while it is up.
+	     The window itself is shown and hidden by a scene fragment (Main.lua); the two children
+	     are shown only while an alert is up. -->
+	<Controls>
+		<TopLevelControl name="PBsTargetPlayerAlert" hidden="true" mouseEnabled="false">
+			<Dimensions x="1100" y="72"/>
+			<Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="200"/>
+			<Controls>
+				<Texture name="$(parent)Background" color="000000" alpha="0.6" hidden="true">
+					<AnchorFill/>
+				</Texture>
+				<Label name="$(parent)Text" font="ZoFontGamepad34" color="FFFFFF" horizontalAlignment="CENTER" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="1" hidden="true">
+					<AnchorFill/>
+				</Label>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

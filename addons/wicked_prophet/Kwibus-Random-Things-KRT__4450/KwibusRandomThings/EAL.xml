@@ -1,6 +1,6 @@
 <GuiXml>
   <Controls>
-    <TopLevelControl name="EncounterAutoLogIndicator" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true">
+    <TopLevelControl name="KwibusEncounterAutoLogIndicator" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true">
       <Dimensions x="220" y="40" />
       <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0" />
 

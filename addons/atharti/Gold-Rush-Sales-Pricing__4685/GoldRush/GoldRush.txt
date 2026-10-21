@@ -2,7 +2,7 @@
 ## Description: Track your guild sales with ease. Shows your sales across all guilds with item price tracking.
 ## APIVersion: 101051
 ## Author: |cFFD700@Atharti|r
-## Version: 2.5
+## Version: 2.7
 ## DependsOn: LibHistoire>=1103 LibAddonMenu-2.0>=43
 ## SavedVariables: GoldRush_SV
 
@@ -10,5 +10,6 @@
 GoldRush.lua
 GoldRush_Kiosk.lua
 GoldRush_Settings.lua
+GoldRush_Rescan.lua
 
 GoldRush_UI.xml

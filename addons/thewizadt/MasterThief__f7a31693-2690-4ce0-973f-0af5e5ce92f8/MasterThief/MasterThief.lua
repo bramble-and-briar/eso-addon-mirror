@@ -1,5 +1,5 @@
 -----------------------------------------------------------
--- MasterThief v2.33 - HUD Remaining Fence Transactions
+-- MasterThief v2.39 - Timer Starts on First Stolen Item Looted
 -----------------------------------------------------------
 local MasterThief = MasterThief or {}
 MasterThief.name = "MasterThief"
@@ -20,9 +20,7 @@ MasterThief.defaultSettings = {
     announceInChat = true,
     playLootSound = true,
     autoSellFences = true,
-    autoDestroyGreens = false,
-    autoDestroyBlues = false,
-    autoDestroyPurples = false,
+    autoLaunderItems = true,
     fontSize = 11,
     posX = 60,
     posY = 100,
@@ -31,6 +29,10 @@ MasterThief.defaultSettings = {
     bgColorB = 0.1,
     bgColorA = 0.75,
     lastResetDay = 0,
+    cachedLaundersUsed = 0,
+    cachedMaxLaunders = 140,
+    cachedSellsUsed = 0,
+    cachedMaxSells = 140,
     charStats = {},
 }
 
@@ -62,33 +64,60 @@ function MasterThief.SafeGetItemStackCount(bagId, slotIndex)
     local stackCount = 1
     if type(GetSlotStackSize) == "function" then
         local ok, sc = pcall(GetSlotStackSize, bagId, slotIndex)
-        if ok and sc and sc > 0 then
-            return sc
-        end
+        if ok and sc and sc > 0 then return sc end
     end
     if type(GetItemStackInfo) == "function" then
         local _, sc = pcall(GetItemStackInfo, bagId, slotIndex)
-        if sc and type(sc) == "number" and sc > 0 then
-            stackCount = sc
-        end
+        if sc and type(sc) == "number" and sc > 0 then stackCount = sc end
     end
     return stackCount
 end
 
 -----------------------------------------------------------
--- FENCE TRANSACTION HUD DISPLAY WRAPPER
+-- FENCE & LAUNDER TRANSACTION HUD DISPLAY WRAPPERS
 -----------------------------------------------------------
 function MasterThief.SafeGetFenceSellTransactionInfo()
     if type(GetFenceSellTransactionInfo) == "function" then
         local ok, v1, v2 = pcall(GetFenceSellTransactionInfo)
-        if ok and v1 and v2 then
+        if ok and v1 and v2 and v1 > 0 then
             local maxSellsAllowed = v1
             local totalSellsUsed = v2
             local remaining = maxSellsAllowed - totalSellsUsed
+            if MasterThief.savedVars then
+                MasterThief.savedVars.cachedMaxSells = maxSellsAllowed
+                MasterThief.savedVars.cachedSellsUsed = totalSellsUsed
+            end
             return maxSellsAllowed, totalSellsUsed, remaining, string_format("%d/%d", totalSellsUsed, maxSellsAllowed)
         end
     end
-    return 120, 0, 120, "N/A"
+    if MasterThief.savedVars then
+        local maxS = MasterThief.savedVars.cachedMaxSells or 140
+        local usedS = MasterThief.savedVars.cachedSellsUsed or 0
+        return maxS, usedS, maxS - usedS, string_format("%d/%d", usedS, maxS)
+    end
+    return 140, 0, 140, "0/140"
+end
+
+function MasterThief.SafeGetFenceLaunderTransactionInfo()
+    if type(GetFenceLaunderTransactionInfo) == "function" then
+        local ok, v1, v2 = pcall(GetFenceLaunderTransactionInfo)
+        if ok and v1 and v2 and v1 > 0 then
+            local maxLaundersAllowed = v1
+            local totalLaundersUsed = v2
+            local remaining = maxLaundersAllowed - totalLaundersUsed
+            if MasterThief.savedVars then
+                MasterThief.savedVars.cachedMaxLaunders = maxLaundersAllowed
+                MasterThief.savedVars.cachedLaundersUsed = totalLaundersUsed
+            end
+            return maxLaundersAllowed, totalLaundersUsed, remaining, string_format("%d/%d", totalLaundersUsed, maxLaundersAllowed)
+        end
+    end
+    if MasterThief.savedVars then
+        local maxL = MasterThief.savedVars.cachedMaxLaunders or 140
+        local usedL = MasterThief.savedVars.cachedLaundersUsed or 0
+        return maxL, usedL, maxL - usedL, string_format("%d/%d", usedL, maxL)
+    end
+    return 140, 0, 140, "0/140"
 end
 
 function MasterThief.GetCustomFont(size)
@@ -107,7 +136,7 @@ function MasterThief.GetFormattedSessionTime()
 end
 
 function MasterThief.ResetSessionTimer()
-    MasterThief.sessionStartTime = GetTimeStamp()
+    MasterThief.sessionStartTime = nil -- Timer stays nil until a new stolen item is looted
     local stats = MasterThief.GetActiveCharacterStats()
     if stats then
         stats.totalStolen = 0
@@ -115,6 +144,7 @@ function MasterThief.ResetSessionTimer()
         stats.greenLoot = 0
         stats.blueLoot = 0
         stats.purpleLoot = 0
+        stats.LegendaryLoot = 0
         stats.estimatedGold = 0
     end
     MasterThief.UpdateHUDContent()
@@ -131,6 +161,8 @@ function MasterThief.CheckDailyReset()
         MasterThief.savedVars.lastResetDay = currentDayId
     elseif MasterThief.savedVars.lastResetDay ~= currentDayId then
         MasterThief.savedVars.lastResetDay = currentDayId
+        MasterThief.savedVars.cachedSellsUsed = 0
+        MasterThief.savedVars.cachedLaundersUsed = 0
         MasterThief.ResetSessionTimer()
     end
 end
@@ -149,6 +181,7 @@ function MasterThief.GetActiveCharacterStats()
             greenLoot = 0,
             blueLoot = 0,
             purpleLoot = 0,
+            LegendaryLoot = 0,
             estimatedGold = 0,
         }
     end
@@ -168,7 +201,6 @@ local function IsValidTreasure(bagId, slotIndex, link)
     end
 
     local quality = MasterThief.SafeGetItemQuality(bagId, slotIndex, link)
-    
     if itemType == ITEMTYPE_TREASURE or (quality >= 2 and quality <= 5) then
         return true
     end
@@ -177,17 +209,16 @@ local function IsValidTreasure(bagId, slotIndex, link)
 end
 
 -----------------------------------------------------------
--- AUTO-SELL TO FENCES LOGIC (EVENT_OPEN_FENCE)
+-- AUTO-LAUNDER LOGIC
 -----------------------------------------------------------
-local function OnFenceOpen(eventCode)
-    if not MasterThief.savedVars then return end
-    if not MasterThief.savedVars.autoSellFences then return end
+local function ProcessAutoLaunder()
+    if not MasterThief.savedVars or not MasterThief.savedVars.autoLaunderItems then return end
 
-    local maxLimit, used, remaining, sellsText = MasterThief.SafeGetFenceSellTransactionInfo()
+    local maxLimit, used, remaining, launderText = MasterThief.SafeGetFenceLaunderTransactionInfo()
     
     if remaining and remaining <= 0 then
         if MasterThief.savedVars.announceInChat then
-            CHAT_ROUTER:AddSystemMessage("|cFF6666[MasterThief]|r Daily fence transaction limit reached! Skipping auto-sell.")
+            CHAT_ROUTER:AddSystemMessage("|cFF6666[MasterThief]|r Daily launder transaction limit reached!")
         end
         return
     end
@@ -195,69 +226,135 @@ local function OnFenceOpen(eventCode)
     local bagId = BAG_BACKPACK
     local totalSlots = (type(GetBagSize) == "function" and GetBagSize(bagId)) or 200
     local delay = 0
-    local soldCount = 0
+    local launderCount = 0
 
-    local targetQualities = { 4, 3, 2 }
+    for slotIndex = 0, totalSlots - 1 do
+        local link = (type(GetItemLink) == "function") and GetItemLink(bagId, slotIndex) or ""
+        
+        if link and link ~= "" and MasterThief.SafeIsItemStolen(bagId, slotIndex) then
+            local itemType = 0
+            if type(GetItemLinkItemType) == "function" then
+                pcall(function() itemType = GetItemLinkItemType(link) or 0 end)
+            end
 
-    for _, targetQuality in ipairs(targetQualities) do
-        for slotIndex = 0, totalSlots - 1 do
-            local link = (type(GetItemLink) == "function") and GetItemLink(bagId, slotIndex) or ""
-            
-            if link and link ~= "" and MasterThief.SafeIsItemStolen(bagId, slotIndex) then
-                local itemType = 0
-                if type(GetItemLinkItemType) == "function" then
-                    pcall(function() itemType = GetItemLinkItemType(link) or 0 end)
-                end
+            local shouldLaunder = (itemType == ITEMTYPE_RACIAL_STYLE_MOTIF or 
+                                   itemType == ITEMTYPE_RECIPE or 
+                                   itemType == ITEMTYPE_FURNISHING or
+                                   itemType == ITEMTYPE_WEAPON or
+                                   itemType == ITEMTYPE_ARMOR or
+                                   itemType == ITEMTYPE_JEWELRY)
 
-                -- Skip motifs, recipes, and furnishing items from auto-selling
-                local isExemptFromFence = (itemType == ITEMTYPE_RACIAL_STYLE_MOTIF or 
-                                           itemType == ITEMTYPE_RECIPE or 
-                                           itemType == ITEMTYPE_FURNISHING)
+            if shouldLaunder then
+                if launderCount >= remaining then break end
 
-                if not isExemptFromFence then
-                    local quality = MasterThief.SafeGetItemQuality(bagId, slotIndex, link)
-                    if quality >= 4 then quality = 4 end
+                local currentStackSize = MasterThief.SafeGetItemStackCount(bagId, slotIndex)
+                local capturedSlot = slotIndex
+                local capturedStack = currentStackSize
+                local capturedLink = link
 
-                    if IsValidTreasure(bagId, slotIndex, link) and quality == targetQuality then
-                        local currentStackSize = MasterThief.SafeGetItemStackCount(bagId, slotIndex)
-                        
-                        local capturedSlot = slotIndex
-                        local capturedStack = currentStackSize
-                        local capturedLink = link
-
-                        zo_callLater(function()
-                            if type(SellInventoryItem) == "function" then
-                                SellInventoryItem(bagId, capturedSlot, capturedStack)
-                                if MasterThief.savedVars.announceInChat then
-                                    CHAT_ROUTER:AddSystemMessage(string_format("|c00FF00[MasterThief]|r Sold: %s x%d", capturedLink, capturedStack))
-                                end
-                            end
-                        end, delay)
-                        
-                        soldCount = soldCount + 1
-                        delay = delay + 50
+                zo_callLater(function()
+                    if type(LaunderItem) == "function" then
+                        LaunderItem(bagId, capturedSlot, capturedStack)
+                    elseif type(LaunderInventoryItem) == "function" then
+                        LaunderInventoryItem(bagId, capturedSlot, capturedStack)
                     end
-                end
+
+                    if MasterThief.savedVars.announceInChat then
+                        CHAT_ROUTER:AddSystemMessage(string_format("|c00BFFF[MasterThief]|r Laundered: %s x%d", capturedLink, capturedStack))
+                    end
+                end, delay)
+
+                launderCount = launderCount + 1
+                delay = delay + 100
             end
         end
     end
 
-    if soldCount > 0 and MasterThief.savedVars.announceInChat then
+    if launderCount > 0 and MasterThief.savedVars.announceInChat then
         zo_callLater(function()
-            CHAT_ROUTER:AddSystemMessage(string_format("|c00FF00[MasterThief]|r Finished queuing |cFFD700%d|r items to sell.", soldCount))
-        end, delay + 25)
+            CHAT_ROUTER:AddSystemMessage(string_format("|c00BFFF[MasterThief]|r Queued |cFFD700%d|r items to launder.", launderCount))
+            MasterThief.ScanExistingInventory()
+        end, delay + 50)
     end
-    
-    zo_callLater(function()
-        MasterThief.ScanExistingInventory()
-    end, delay + 50)
 end
 
 -----------------------------------------------------------
--- LAUNDER EVENT HANDLER (EVENT_OPEN_LAUNDER)
+-- AUTO-SELL TO FENCES LOGIC (Purple -> Blue -> Green)
 -----------------------------------------------------------
+local function OnFenceOpen(eventCode)
+    if not MasterThief.savedVars then return end
+
+    MasterThief.SafeGetFenceSellTransactionInfo()
+    MasterThief.SafeGetFenceLaunderTransactionInfo()
+
+    if MasterThief.savedVars.autoSellFences then
+        local maxLimit, used, remaining, sellsText = MasterThief.SafeGetFenceSellTransactionInfo()
+        
+        if remaining and remaining > 0 then
+            local bagId = BAG_BACKPACK
+            local totalSlots = (type(GetBagSize) == "function" and GetBagSize(bagId)) or 200
+            local delay = 0
+            local soldCount = 0
+
+            local targetQualities = { 4, 3, 2 }
+
+            for _, targetQuality in ipairs(targetQualities) do
+                for slotIndex = 0, totalSlots - 1 do
+                    local link = (type(GetItemLink) == "function") and GetItemLink(bagId, slotIndex) or ""
+                    
+                    if link and link ~= "" and MasterThief.SafeIsItemStolen(bagId, slotIndex) then
+                        local itemType = 0
+                        if type(GetItemLinkItemType) == "function" then
+                            pcall(function() itemType = GetItemLinkItemType(link) or 0 end)
+                        end
+
+                        local isExemptFromFence = (itemType == ITEMTYPE_RACIAL_STYLE_MOTIF or 
+                                                   itemType == ITEMTYPE_RECIPE or 
+                                                   itemType == ITEMTYPE_FURNISHING)
+
+                        if not isExemptFromFence then
+                            local quality = MasterThief.SafeGetItemQuality(bagId, slotIndex, link)
+                            if quality >= 4 then quality = 4 end
+
+                            if IsValidTreasure(bagId, slotIndex, link) and quality == targetQuality then
+                                local currentStackSize = MasterThief.SafeGetItemStackCount(bagId, slotIndex)
+                                local capturedSlot = slotIndex
+                                local capturedStack = currentStackSize
+                                local capturedLink = link
+
+                                zo_callLater(function()
+                                    if type(SellInventoryItem) == "function" then
+                                        SellInventoryItem(bagId, capturedSlot, capturedStack)
+                                        if MasterThief.savedVars.announceInChat then
+                                            CHAT_ROUTER:AddSystemMessage(string_format("|c00FF00[MasterThief]|r Sold: %s x%d", capturedLink, capturedStack))
+                                        end
+                                    end
+                                end, delay)
+                                
+                                soldCount = soldCount + 1
+                                delay = delay + 100
+                            end
+                        end
+                    end
+                end
+            end
+
+            if soldCount > 0 and MasterThief.savedVars.announceInChat then
+                zo_callLater(function()
+                    CHAT_ROUTER:AddSystemMessage(string_format("|c00FF00[MasterThief]|r Finished queuing |cFFD700%d|r items to sell.", soldCount))
+                end, delay + 50)
+            end
+        end
+    end
+
+    ProcessAutoLaunder()
+    MasterThief.UpdateHUDContent()
+end
+
 local function OnLaunderOpen(eventCode)
-    -- Reserved placeholder for launder actions if needed
+    MasterThief.SafeGetFenceLaunderTransactionInfo()
+    ProcessAutoLaunder()
+    MasterThief.UpdateHUDContent()
 end
 
 -----------------------------------------------------------
@@ -270,15 +367,16 @@ function MasterThief.ScanExistingInventory()
     stats.greenLoot = 0
     stats.blueLoot = 0
     stats.purpleLoot = 0
+    stats.LegendaryLoot = 0
     stats.estimatedGold = 0
     stats.totalStolen = 0
 
-    local treasureValues = {
+    local treasureValues = { 
         [2] = 100,  -- Green = 100g
         [3] = 250,  -- Blue = 250g
         [4] = 500,  -- Purple = 500g
+        [5] = 1000, -- Legendary = 1000g
     }
-
     local bagId = BAG_BACKPACK
     local totalSlots = (type(GetBagSize) == "function" and GetBagSize(bagId)) or 200
 
@@ -291,9 +389,7 @@ function MasterThief.ScanExistingInventory()
                 local stackCount = MasterThief.SafeGetItemStackCount(bagId, slotIndex)
 
                 local itemName = (type(GetItemLinkName) == "function") and GetItemLinkName(link) or ""
-                if string_find(string_lower(itemName), "red squirrel paw") then
-                    quality = 3 
-                end
+                if string_find(string_lower(itemName), "red squirrel paw") then quality = 3 end
 
                 stats.totalStolen = stats.totalStolen + 1
 
@@ -301,8 +397,10 @@ function MasterThief.ScanExistingInventory()
                     stats.greenLoot = stats.greenLoot + stackCount
                 elseif quality == 3 then
                     stats.blueLoot = stats.blueLoot + stackCount
-                elseif quality >= 4 then
+                elseif quality == 4 then
                     stats.purpleLoot = stats.purpleLoot + stackCount
+                elseif quality >= 5 then
+                    stats.LegendaryLoot = (stats.LegendaryLoot or 0) + stackCount
                 end
                 
                 local treasureValue = treasureValues[quality] or 100
@@ -336,10 +434,6 @@ function MasterThief.OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNew)
         local isStolen = MasterThief.SafeIsItemStolen(bagId, slotIndex)
         local quality = MasterThief.SafeGetItemQuality(bagId, slotIndex, link)
         local stackCount = MasterThief.SafeGetItemStackCount(bagId, slotIndex)
-        
-        if string_find(string_lower(itemName), "red squirrel paw") then
-            quality = 3
-        end
 
         local itemType = 0
         if type(GetItemLinkItemType) == "function" then
@@ -373,35 +467,22 @@ function MasterThief.OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNew)
                         itemType == ITEMTYPE_JEWELRY or
                         itemType == ITEMTYPE_SHIELD)
 
+        -- START TIMER ON FIRST LOOTED STOLEN ITEM
         if not isQuestItem and not isProtectedMaterial and isStolen then
             if MasterThief.savedVars.showTimer and not MasterThief.sessionStartTime then
                 MasterThief.sessionStartTime = GetTimeStamp()
             end
         end
 
-        -- Read exact current boolean settings
-        local destroyGreens = (MasterThief.savedVars.autoDestroyGreens == true)
-        local destroyBlues = (MasterThief.savedVars.autoDestroyBlues == true)
-        local destroyPurples = (MasterThief.savedVars.autoDestroyPurples == true)
-
         local shouldDestroyJunk = (not isQuestItem and not isProtectedMaterial and isStolen and quality <= 1)
         local shouldDestroyGear = (not isQuestItem and isStolen and isGear)
-        local shouldDestroyGreen = (not isQuestItem and not isProtectedMaterial and isStolen and quality == 2 and destroyGreens)
-        local shouldDestroyBlue = (not isQuestItem and not isProtectedMaterial and isStolen and quality == 3 and destroyBlues)
-        local shouldDestroyPurple = (not isQuestItem and not isProtectedMaterial and isStolen and quality >= 4 and destroyPurples)
 
-        if shouldDestroyJunk or shouldDestroyGear or shouldDestroyGreen or shouldDestroyBlue or shouldDestroyPurple then
+        if shouldDestroyJunk or shouldDestroyGear then
             local stats = MasterThief.GetActiveCharacterStats()
             stats.whiteJunkDestroyed = (tonumber(stats.whiteJunkDestroyed) or 0) + stackCount
             
             if MasterThief.savedVars.announceInChat then
-                local destroyTypeLabel = "Destroyed Stolen Item"
-                if shouldDestroyGear then destroyTypeLabel = "Destroyed Stolen Gear"
-                elseif shouldDestroyGreen then destroyTypeLabel = "Destroyed Stolen Green"
-                elseif shouldDestroyBlue then destroyTypeLabel = "Destroyed Stolen Blue"
-                elseif shouldDestroyPurple then destroyTypeLabel = "Destroyed Stolen Purple"
-                elseif shouldDestroyJunk then destroyTypeLabel = "Destroyed Stolen Junk" end
-                
+                local destroyTypeLabel = shouldDestroyGear and "Destroyed Stolen Gear" or "Destroyed Stolen Junk"
                 CHAT_ROUTER:AddSystemMessage(string_format("|cFF6666[MasterThief] %s:|r %s", destroyTypeLabel, link))
             end
             
@@ -481,20 +562,22 @@ function MasterThief.UpdateHUDContent()
         local stats = MasterThief.GetActiveCharacterStats()
         local timerText = ""
         if MasterThief.savedVars.showTimer ~= false then
-            timerText = string_format("Time: |cFFD700%s|r   ", MasterThief.GetFormattedSessionTime())
+            timerText = string_format("Time: |cFFD700%s|r  ", MasterThief.GetFormattedSessionTime())
         end
 
-        table_insert(buffer, string_format("%sDestroyed: |cFF6666%d|r   Green: |c2DC800%d|r   Blue: |c3A92FF%d|r   Purple: |cA335EE%d|r", 
+        table_insert(buffer, string_format("%sDestroyed: |cFF6666%d|r  Green: |c2DC800%d|r  Blue: |c3A92FF%d|r  Purple: |cA335EE%d|r  Legendary : |cFFE600%d|r", 
             timerText,
             stats.whiteJunkDestroyed or 0, 
             stats.greenLoot or 0, 
             stats.blueLoot or 0, 
-            stats.purpleLoot or 0
+            stats.purpleLoot or 0,
+            stats.LegendaryLoot or 0
         ))
 
         local _, _, _, sellsText = MasterThief.SafeGetFenceSellTransactionInfo()
+        local _, _, _, launderText = MasterThief.SafeGetFenceLaunderTransactionInfo()
 
-        table_insert(buffer, string_format("Est. Value: |cFFD700%d g|r   Sells: |c00BFFF%s|r", stats.estimatedGold or 0, sellsText or "N/A"))
+        table_insert(buffer, string_format("Est. Value: |cFFD700%d g|r  Sells: |c00BFFF%s|r  Launders: |c00FFCC%s|r", stats.estimatedGold or 0, sellsText, launderText))
     end
 
     MasterThief.contentLabel:SetText(table.concat(buffer, "\n"))
@@ -514,7 +597,7 @@ function MasterThief.CreateSettingsPanel()
         name = "Master Thief",
         displayName = "|cFFD700Master |c00BFFFThief |cFF69B4Settings|r",
         author = "|c00FF00Thief|r",
-        version = "2.33",
+        version = "2.39",
         slashCommand = "/thiefsettings",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -525,11 +608,11 @@ function MasterThief.CreateSettingsPanel()
     local optionsData = {
         {
             type = "description",
-            text = "|cFFD700Track stolen treasures, auto-destroy worthless white trash and stolen gear, and monitor daily fence transaction limits directly on your HUD!|r",
+            text = "|cFFD700Track stolen treasures (Green to Legendary), auto-destroy worthless white trash and stolen gear, auto-sell, and monitor daily fence/launder limits directly on your HUD!|r",
         },
         {
             type = "header",
-            name = "|c00BFFFDisplay & Notifications|r",
+            name = "|c00BFFFDisplay & Automation|r",
         },
         {
             type = "checkbox",
@@ -551,37 +634,17 @@ function MasterThief.CreateSettingsPanel()
             default = MasterThief.defaultSettings.autoSellFences,
         },
         {
-            type = "header",
-            name = "|cFF6666Auto-Destroy Specific Rarity Toggles|r",
-        },
-        {
             type = "checkbox",
-            name = "|c2DC800Auto-Destroy Stolen Greens|r",
-            tooltip = "Automatically delete stolen green items on pick-up.",
-            getFunc = function() return (MasterThief.savedVars.autoDestroyGreens == true) end,
-            setFunc = function(value) MasterThief.savedVars.autoDestroyGreens = (value == true) end,
-            default = MasterThief.defaultSettings.autoDestroyGreens,
-        },
-        {
-            type = "checkbox",
-            name = "|c3A92FFAuto-Destroy Stolen Blues|r",
-            tooltip = "Automatically delete stolen blue items on pick-up.",
-            getFunc = function() return (MasterThief.savedVars.autoDestroyBlues == true) end,
-            setFunc = function(value) MasterThief.savedVars.autoDestroyBlues = (value == true) end,
-            default = MasterThief.defaultSettings.autoDestroyBlues,
-        },
-        {
-            type = "checkbox",
-            name = "|cA335EEAuto-Destroy Stolen Purples|r",
-            tooltip = "Automatically delete stolen purple items on pick-up.",
-            getFunc = function() return (MasterThief.savedVars.autoDestroyPurples == true) end,
-            setFunc = function(value) MasterThief.savedVars.autoDestroyPurples = (value == true) end,
-            default = MasterThief.defaultSettings.autoDestroyPurples,
+            name = "|c00FFCCAuto-Launder Valuable Items|r",
+            tooltip = "Automatically launders motifs, recipes, furnishings, and stolen gear when visiting a launderer.",
+            getFunc = function() return MasterThief.savedVars.autoLaunderItems end,
+            setFunc = function(value) MasterThief.savedVars.autoLaunderItems = value end,
+            default = MasterThief.defaultSettings.autoLaunderItems,
         },
         {
             type = "checkbox",
             name = "|cFF6666Announce Actions in Chat|r",
-            tooltip = "Prints notification logs in chat when auto-selling or auto-destroying items.",
+            tooltip = "Prints notification logs in chat when auto-selling, auto-laundering, or auto-destroying items.",
             getFunc = function() return MasterThief.savedVars.announceInChat end,
             setFunc = function(value) MasterThief.savedVars.announceInChat = value end,
             default = MasterThief.defaultSettings.announceInChat,
@@ -589,7 +652,7 @@ function MasterThief.CreateSettingsPanel()
         {
             type = "checkbox",
             name = "|cA335EEPlay Audio on Valuable Loot|r",
-            tooltip = "Plays a subtle sound cue when you steal a Green, Blue, or Purple quality item.",
+            tooltip = "Plays a subtle sound cue when you steal a Green, Blue, Purple, or Legendary quality item.",
             getFunc = function() return MasterThief.savedVars.playLootSound end,
             setFunc = function(value) MasterThief.savedVars.playLootSound = value end,
             default = MasterThief.defaultSettings.playLootSound,

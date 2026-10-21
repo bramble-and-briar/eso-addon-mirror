@@ -7,8 +7,8 @@
 ## Title: Restyle Helper
 ## Description: Outfit station helper - randomize with slot locks, apply one style to all slots, share outfit presets.
 ## Author: PUYO
-## Version: 1.13.2
-## AddOnVersion: 11302
+## Version: 1.2
+## AddOnVersion: 12000
 ## APIVersion: 101050 101051
 ## SavedVariables: RestyleHelperSV
 

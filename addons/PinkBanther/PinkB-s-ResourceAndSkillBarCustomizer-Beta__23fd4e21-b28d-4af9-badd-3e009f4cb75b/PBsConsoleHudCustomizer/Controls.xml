@@ -67,6 +67,28 @@
                 <Label name="$(parent)Count" inherits="PBsConsoleHudCustomizerCountLabel" level="3">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPLEFT" offsetX="-2" offsetY="-4"/>
                 </Label>
+                <!--
+                    The ultimate's gauge, used on the ultimate's slot only and hidden on the others:
+                    the game's own art and placement (ZO_UltimateActionButton's FillAnimationLeft and
+                    FillAnimationRight, 71 x 139 at 35 either side of a 67 icon's middle, and
+                    ReadyLoop over the icon), scaled to this 44 icon by 44/67. The fill is a flipbook
+                    of 8 x 4 cells; the cell for how full the ultimate is is chosen from Lua.
+                -->
+                <Texture name="$(parent)UltLeft" textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds" level="2" hidden="true">
+                    <Dimensions x="47" y="91"/>
+                    <Anchor point="CENTER" relativeTo="$(parent)Icon" relativePoint="CENTER" offsetX="-23"/>
+                    <TextureCoords left="0" right="0.125" top="0" bottom="0.25"/>
+                </Texture>
+                <Texture name="$(parent)UltRight" textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds" level="2" hidden="true">
+                    <Dimensions x="47" y="91"/>
+                    <Anchor point="CENTER" relativeTo="$(parent)Icon" relativePoint="CENTER" offsetX="23"/>
+                    <TextureCoords left="0.125" right="0" top="0" bottom="0.25"/>
+                </Texture>
+                <Texture name="$(parent)UltReady" textureFile="EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds" blendMode="ADD" level="2" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPLEFT"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="BOTTOMRIGHT"/>
+                    <TextureCoords left="0" right="0.015625" top="0" bottom="1"/>
+                </Texture>
             </Controls>
         </Control>
 

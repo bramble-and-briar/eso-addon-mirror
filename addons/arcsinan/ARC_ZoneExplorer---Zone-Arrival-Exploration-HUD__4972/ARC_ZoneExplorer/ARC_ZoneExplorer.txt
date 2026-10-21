@@ -1,0 +1,20 @@
+## Title: |c00D4FFARC_ZoneExplorer|r - Zone Arrival & Exploration HUD
+## Author: @arcsinan
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101050 101051
+## SavedVariables: ARC_ZoneExplorer_SavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibSets
+## Description: Displays an elegant zone arrival summary and exploration HUD upon teleporting. Shows Zone Guide completion, item set collection (stickerbook), and character daily statuses. Required: LibAddonMenu-2.0. Optional: LibSets.
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+
+localization/en.lua
+localization/tr.lua
+
+ARC_ZoneExplorer.xml
+ARC_ZoneExplorer.lua
+ARC_ZoneExplorerSettings.lua

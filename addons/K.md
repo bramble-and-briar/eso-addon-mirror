@@ -67,7 +67,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [KR Patch for WPamA (What Pledges at my Alts)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/whya5448/KR-Patch-for-WPamA-What-Pledges-at-my-Alts__2386) | whya5448 | PC / Mac | 0.1.0 |
 | [KR Patch for WPamA NEW](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dedo2/KR-Patch-for-WPamA-NEW__2507) | dedo2 | PC / Mac | 1.1.6 |
 | [KWerewolfTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KWerewolfTracker__4727) | Konten | PC / Mac | 1.6.0 |
-| [Kwibus Random Things (KRT)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Kwibus-Random-Things-KRT__4450) | wicked_prophet | PC / Mac | 1.3.3 |
+| [Kwibus Random Things (KRT)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Kwibus-Random-Things-KRT__4450) | wicked_prophet | PC / Mac | 1.4.6 |
 | [Kyoma's Global Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Kyoma-s-Global-Achievements__1867) | Kyoma | PC / Mac | 2.4.0 |
 | [Kyoma's Repair 'n Recharge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Kyoma-s-Repair-n-Recharge__1828) | Kyoma | PC / Mac | 1.1 |
 | [Kyoma's Repair 'n Recharge - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tarkasion/Kyoma-s-Repair-n-Recharge---Updated__3275) | Tarkasion | PC / Mac | 1.3 |

@@ -16,6 +16,7 @@ function ISL.CreateSettingsMenu()
 	}
 
 	local markerTexturePaths, markerTextureNames = ISL.GetMarkerTextureArrays()
+	local savedChoices, savedValues = ISL.GetSavedItemChoices()
 
 	local optionsData = {
 		{
@@ -135,12 +136,103 @@ function ISL.CreateSettingsMenu()
 			end,
 			requiresReload = true,
 		},
+		{
+			type = "header",
+			name = "|t35:35:/esoui/art/lfg/gamepad/gp_lfg_groupfinder_editlisting.dds|t Saved Items",
+		},
+		{
+			type = "description",
+			reference = "ISL_SavedItemCountLabel",
+			title = function()
+				return string.format("Total: |cFFD700%d|r", ISL.GetSavedItemCount())
+			end,
+			text = "",
+			width = "full",
+		},
+		{
+			type = "dropdown",
+			name = "Item List:",
+			choices = savedChoices,
+			choicesValues = savedValues,
+			getFunc = function() return end,
+			setFunc = function(value)
+				ISL.selectedSavedItem = value
+			end,
+			width = "half",
+			reference = "ISL_SAVED_ITEMS_LIST",
+		},
+		{
+			type = "button",
+			name = "Remove",
+			width = "half",
+			func = function()
+				local entry = ISL.selectedSavedItem
+				if not entry then
+					d("|cFF0000[ItemSaverLite]|r No item selected.")
+					return
+				end
+
+				if entry.kind == "unique" then
+					ISL.SV.savedUniqueItems[entry.key] = nil
+				else
+					ISL.SV.savedItems[entry.key] = nil
+				end
+
+				ISL.selectedSavedItem = nil
+				ISL.RefreshSavedItemsDropdown()
+				ISL.RefreshAll()
+				
+				local labelControl = _G["ISL_SavedItemCountLabel"]
+				labelControl:UpdateValue()				
+			end,
+		},
 	}
 
-	LAM:RegisterAddonPanel("ItemSaverLiteSettingsPanel", {
+	LAM:RegisterOptionControls("ItemSaverLiteSettingsPanel", optionsData)
+	local mySettingsPanel = LAM:RegisterAddonPanel("ItemSaverLiteSettingsPanel", {
 		type = "panel",
 		name = "|cFFD700Item Saver Lite|r",
 		author = "|cFFD700@Atharti|r"
 	})
-	LAM:RegisterOptionControls("ItemSaverLiteSettingsPanel", optionsData)
+
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+		if panel ~= mySettingsPanel then return end
+		ISL.RefreshSavedItemsDropdown()
+		
+		local labelControl = _G["ISL_SavedItemCountLabel"]
+		labelControl:UpdateValue()
+	end)
+end
+
+function ISL.GetSavedItemChoices()
+	local choices = {}
+	local values = {}
+
+	for itemLink in pairs(ISL.SV.savedUniqueItems) do
+		table.insert(choices, itemLink)
+		table.insert(values, { kind = "unique", key = itemLink })
+	end
+
+	for itemId in pairs(ISL.SV.savedItems) do
+		local displayLink = ("|H1:item:%d:0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:10000:0|h|h"):format(itemId)
+		table.insert(choices, displayLink)
+		table.insert(values, { kind = "id", key = itemId })
+	end
+
+	return choices, values
+end
+
+function ISL.RefreshSavedItemsDropdown()
+	if not ISL_SAVED_ITEMS_LIST then return end
+	local choices, values = ISL.GetSavedItemChoices()
+	ISL.currentSavedDropdownValues = values
+	ISL_SAVED_ITEMS_LIST:UpdateChoices(choices, values)
+	ISL_SAVED_ITEMS_LIST:UpdateValue()
+end
+
+function ISL.GetSavedItemCount()
+	local n = 0
+	for _ in pairs(ISL.SV.savedUniqueItems) do n = n + 1 end
+	for _ in pairs(ISL.SV.savedItems) do n = n + 1 end
+	return n
 end

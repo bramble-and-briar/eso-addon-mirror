@@ -198,9 +198,9 @@ Data.REAGENT_EFFECTS = {
 
 Data.RECIPE_QUALITY_PASSIVE = 69953
 
--- How many dishes each writ type asks for. Event amounts depend on the dish's quality; amounts from
--- Dolgubon's Lazy Writ Crafter. Returns nil when the amount isn't known.
-function Data.GetProvisioningItemsRequired(event, resultItemId, displayQuality, isFood)
+-- How many items (food, drink or furnishings) each writ type asks for. Event amounts depend on the item's quality;
+-- amounts from Dolgubon's Lazy Writ Crafter. Returns nil when the amount isn't known.
+function Data.GetProvisioningItemsRequired(event, resultItemId, displayQuality, isFurnishing)
     if event == "master" then
         return 8
     elseif event == "witchesFestival" then
@@ -221,7 +221,8 @@ function Data.GetProvisioningItemsRequired(event, resultItemId, displayQuality, 
         if displayQuality == ITEM_DISPLAY_QUALITY_NORMAL then
             return 3
         elseif displayQuality == ITEM_DISPLAY_QUALITY_MAGIC then
-            return isFood and 12 or 1
+            -- Lazy Writ Crafter's rule: twelve of a green dish or drink, one green furnishing.
+            return isFurnishing and 1 or 12
         end
     end
     return nil

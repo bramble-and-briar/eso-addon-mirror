@@ -3,24 +3,28 @@ local panel = {}
 SimpleGroupDPS_DPSPanel = panel
 local function getLayout(options)
     options = type(options) == "table" and options or {}
-    local width = math.max(420, math.min(800, tonumber(options.dpsWidth) or 520))
+    local width = math.max(280, math.min(400, tonumber(options.dpsWidth) or 400))
     local font = math.floor(math.max(14, math.min(30, tonumber(options.dpsFontSize) or 22)))
     local spacing = math.max(0, math.min(16, tonumber(options.dpsRowSpacing) or 8))
-    return width, font, math.max(font + 2, font + spacing)
+    local valueFont = tonumber(options.dpsValueFontSize)
+    if valueFont then valueFont = math.floor(math.max(14, math.min(32, valueFont))) end
+    return width, font, math.max(font + 2, font + spacing, valueFont and valueFont + 2 or 0), valueFont
 end
 
-local function layoutRow(row, header, width, font, rowHeight)
-    local valueWidth = header and 96 or math.floor((width - 48) * 0.49)
+local function layoutRow(row, header, width, font, rowHeight, requestedValueFont)
+    local valueWidth = header and 96 or math.floor((width - 48) * (requestedValueFont and 0.56 or 0.49))
     local nameWidth = header and (width - 124) or (width - 48 - valueWidth)
     row:SetDimensions(nameWidth, rowHeight)
-    local nameFont = header and math.min(font, math.floor(nameWidth / 15)) or font
+    local nameFont = header and math.max(14, math.min(font, math.floor(nameWidth / 15))) or font
     row:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin", nameFont))
     row:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     row.swtDPSValue:ClearAnchors()
     row.swtDPSValue:SetAnchor(TOPLEFT, row, TOPRIGHT, header and 0 or 4, 0)
     row.swtDPSValue:SetDimensions(valueWidth, rowHeight)
-    local valueFont = header and font or math.min(font, math.floor(valueWidth / 10.5))
+    local valueFont = header and font or requestedValueFont or math.min(font + 2, rowHeight - 2, math.floor(valueWidth / 9.5))
     row.swtDPSValue:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin", valueFont))
+    row.swtDPSValue.requestedFontSize = valueFont
+    row.swtDPSValue.availableWidth = valueWidth
     row.swtDPSValue:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     if not header then
         row.swtBar:SetDimensions(width - 16, rowHeight - 1)
@@ -30,8 +34,17 @@ local function layoutRow(row, header, width, font, rowHeight)
         row.swtIcon:SetAnchor(TOPLEFT, row, TOPLEFT, -28, (rowHeight - iconSize) / 2)
     end
 end
+local function setValue(control, text)
+    control:SetText(text)
+    local size = control.requestedFontSize
+    local textWidth = control.GetTextWidth and control:GetTextWidth()
+    if type(textWidth) == "number" and textWidth > control.availableWidth then
+        size = math.max(10, math.floor(size * control.availableWidth / textWidth))
+        control:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin", size))
+    end
+end
 local function formatValue(value)
-    if value == nil then return "--" end
+    if value == nil then return "" end
     if value == math.huge then return ">1,048 Mio." end
     if ZO_AbbreviateAndLocalizeNumber then
         return ZO_AbbreviateAndLocalizeNumber(value, 1, false)
@@ -42,11 +55,9 @@ local function formatValue(value)
 end
 
 local function formatMetrics(member, bossFight)
-    local function metric(value)
-        return (not member.isPlayer and value ~= nil and value < math.huge and "~" or "") .. formatValue(value)
-    end
-    if bossFight then return metric(member.bossDPS) .. " / " .. metric(member.dps) end
-    return metric(member.dps)
+    if bossFight and member.bossDPS == nil then return "(" .. formatValue(member.dps) .. ")" end
+    if bossFight then return formatValue(member.bossDPS) .. " (" .. formatValue(member.dps) .. ")" end
+    return formatValue(member.dps)
 end
 
 local function createRow(parent, header)
@@ -54,11 +65,14 @@ local function createRow(parent, header)
     local row = wm:CreateControl(nil, parent, CT_LABEL)
     row:SetFont("$(BOLD_FONT)|22|soft-shadow-thin")
     row:SetMaxLineCount(1)
+    if TEXT_WRAP_MODE_ELLIPSIS then row:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
     row:SetDrawLayer(DL_CONTROLS)
 
     local value = wm:CreateControl(nil, row, CT_LABEL)
     value:SetAnchor(TOPLEFT, row, TOPRIGHT, header and 0 or 4, 0)
     value:SetFont("$(BOLD_FONT)|22|soft-shadow-thin")
+    value:SetMaxLineCount(1)
+    if TEXT_WRAP_MODE_ELLIPSIS then value:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
     value:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     value:SetDrawLayer(DL_CONTROLS)
     row.swtDPSValue = value
@@ -81,8 +95,8 @@ local function createRow(parent, header)
     return row
 end
 
-function panel:Render(parent, members, bossFight, durationMS, options)
-    local width, font, rowHeight = getLayout(options)
+function panel:Render(parent, members, bossFight, durationMS, options, localTotals)
+    local width, font, rowHeight, valueFont = getLayout(options)
     local rows = parent.swtGroupDPSLabels
     if not rows then rows = {}; parent.swtGroupDPSLabels = rows end
     for _, row in pairs(rows) do row:SetHidden(true) end
@@ -118,30 +132,31 @@ function panel:Render(parent, members, bossFight, durationMS, options)
     layoutRow(header, true, width, font, rowHeight)
     header:ClearAnchors()
     header:SetAnchor(TOPLEFT, parent, TOPLEFT, 12, 4)
-    header:SetText(bossFight and "Boss-Schaden / Gesamtschaden" or "Gesamtschaden")
+    header:SetText(bossFight and "Boss-Schaden (Gesamtschaden)" or "Gesamtschaden")
     header:SetColor(0.9, 0.96, 1, 1)
     local seconds = math.floor(math.max(0, durationMS or 0) / 1000)
-    header.swtDPSValue:SetText(string.format("%d:%02d", math.floor(seconds / 60), seconds % 60))
+    -- Show completed seconds explicitly; the formatter must not round 5.1s up to 6s.
+    local durationText = string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
+    setValue(header.swtDPSValue, durationText)
     header.swtDPSValue:SetColor(0.9, 0.96, 1, 1)
     header:SetHidden(false)
 
-    local maximum, sum, bossSum, unknownBoss, approximate = 0, 0, 0, false, false
+    local maximum, sum, bossSum, unknownBoss = 0, 0, 0, false
     for _, member in ipairs(members) do
         local metric = member.dps
         if bossFight then metric = member.bossDPS end
         maximum = math.max(maximum, math.min(metric or 0, 1048576))
         sum = sum + member.dps
         if member.bossDPS ~= nil then bossSum = bossSum + member.bossDPS else unknownBoss = true end
-        approximate = approximate or not member.isPlayer
     end
     for i, member in ipairs(members) do
         local row = rows[i] or createRow(parent, false)
         rows[i] = row
-        layoutRow(row, false, width, font, rowHeight)
+        layoutRow(row, false, width, font, rowHeight, valueFont)
         row:ClearAnchors()
         row:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + i * rowHeight)
         row:SetText((member.name:gsub("^@", "")))
-        row.swtDPSValue:SetText(formatMetrics(member, bossFight))
+        setValue(row.swtDPSValue, formatMetrics(member, bossFight))
         if member.isPlayer then
             row:SetColor(1, 0.82, 0.35, 1)
         else
@@ -156,14 +171,19 @@ function panel:Render(parent, members, bossFight, durationMS, options)
         row:SetHidden(false)
     end
 
+    -- Prefer the local encounter; received member DPS can use unrelated fight clocks.
+    if localTotals and localTotals.groupDPS ~= nil then
+        sum = localTotals.groupDPS
+        bossSum = localTotals.groupBossDPS
+        unknownBoss = bossSum == nil
+    end
     local summary = rows.summary or createRow(parent, false)
     rows.summary = summary
-    layoutRow(summary, false, width, font, rowHeight)
+    layoutRow(summary, false, width, font, rowHeight, valueFont)
     summary:ClearAnchors()
     summary:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + (#members + 1) * rowHeight)
-    summary:SetText("Summe (angezeigt)")
-    summary.swtDPSValue:SetText(formatMetrics({ dps = sum, bossDPS = not unknownBoss and bossSum or nil,
-        isPlayer = not approximate }, bossFight))
+    summary:SetText("Summe")
+    setValue(summary.swtDPSValue, formatMetrics({ dps = sum, bossDPS = not unknownBoss and bossSum or nil }, bossFight))
     summary:SetColor(0.9, 0.96, 1, 1)
     summary.swtDPSValue:SetColor(0.9, 0.96, 1, 1)
     summary.swtIcon:SetHidden(true)
@@ -174,3 +194,8 @@ function panel:Render(parent, members, bossFight, durationMS, options)
 end
 
 function panel:GetWidth(options) return (getLayout(options)) end
+
+function panel:GetValueFontSize(options)
+    local width, font, rowHeight, valueFont = getLayout(options)
+    return valueFont or math.min(font + 2, rowHeight - 2, math.floor(math.floor((width - 48) * 0.49) / 9.5))
+end

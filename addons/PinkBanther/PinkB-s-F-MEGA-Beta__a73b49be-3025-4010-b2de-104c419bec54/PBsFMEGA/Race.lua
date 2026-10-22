@@ -39,6 +39,7 @@ function R.New(track,opts)
   m.slot=slot;m.id=i;m.player=i==1
   m.s,m.d,m.idx=track:Locate(x,y,nil)
   m.roadZ=track:Elevation(m.s);m.grade=track:Slope(m.s)
+  m.lookGrade=(track:Elevation(m.s+160)-track:Elevation(m.s+20))/140
   m.dist=s;m.prevS=m.s;m.lap=1;m.lapStart=0;m.lapTimes={};m.finished=false;m.finishTime=nil
   if i>1 then
    local spread=(i-2)/max(1,rivals-1)
@@ -124,7 +125,6 @@ function R:Step(dt)
   progress(self,m)
   if m.padded then m.padded=false;if m.player then self:Emit('pad',m) end end
   if m.jumped then m.jumped=false;if m.player then self:Emit('jump',m) end end
-  if m.looped then m.looped=false;if m.player then self:Emit('loop',m) end end
   if m.landed then m.landed=false;if m.player then self:Emit('land',m) end end
   if m.hit>0 then
    if m.player and m.hit>5 then self:Emit('wall',m,m.hit) end

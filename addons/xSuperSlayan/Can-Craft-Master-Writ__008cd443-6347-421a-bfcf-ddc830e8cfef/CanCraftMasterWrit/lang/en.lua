@@ -43,6 +43,8 @@ local strings = {
     SI_CCMW_RECIPE_MISSING = "Recipe Not Known",
     SI_CCMW_RECIPE_NOT_FOUND = "Recipe Not Found",
     SI_CCMW_RECIPE_QUALITY = "Recipe Quality",
+    SI_CCMW_FINAL_ITEM = "Final Item",
+    SI_CCMW_FINAL_ITEM_OK = "Final Item in Stock",
 
     -- Shared by every craft.
     SI_CCMW_SKILLS_OK = "Skills Learned",

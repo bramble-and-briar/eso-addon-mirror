@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.9"
-MSAL.addonVersion = 80309
+MSAL.version = "8.3.10"
+MSAL.addonVersion = 80310
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -169,7 +169,8 @@ local curtType = {
     CURT_TOME_POINTS,
     CURT_TOME_POINT_CACHES,
     CURT_TOME_TOKENS,
-    CURT_TRADE_BARS
+    CURT_TRADE_BARS,
+    CURT_UNDAUNTED_CRESTS
 }
 
 local writRewardContainerSuffix = {
@@ -945,7 +946,7 @@ local function OnInventoryUpdate(_, bagId, slotId, _, _, _, _)
         -- if wouldNotLoot then
         --     BufferItemReceivedLog(zo_strformat(GetString(MSAL_DELEGATED_LOOT_CONFLICT), link))
         -- end
-        local filterKey, _ = MSAL.FilterItem(link, false, nil)
+        local filterKey, _, wasConsidered = MSAL.FilterItem(link, false, nil)
         if filterKey then
             DebugLog("Non-loot item matched filter: " .. filterKey)
             if quality >= db.printLootThreshold then
@@ -1003,7 +1004,7 @@ local function OnInventoryUpdate(_, bagId, slotId, _, _, _, _)
         else
             DebugLog("Non-loot item did not match any filter")
         end
-        if not filterKey and not wouldNotLoot then
+        if not filterKey and not wouldNotLoot and wasConsidered then
             local disposerApplied = isGear and db.gearDisposer or db.unwantedItemsDisposer
             if disposerApplied == "destroy" then
                 if CanGemifyItem(bagId, slotId) then
@@ -1932,10 +1933,11 @@ function MSAL.FilterItem(link, isQuest, lootType)
             ITEM_TRAIT_TYPE_JEWELRY_INFUSED or trait == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE or trait ==
             ITEM_TRAIT_TYPE_JEWELRY_ORNATE or trait == ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE or trait ==
             ITEM_TRAIT_TYPE_JEWELRY_SWIFT or trait == ITEM_TRAIT_TYPE_JEWELRY_TRIUNE
-    if isQuest or itemType == ITEMTYPE_NONE or specializedItemType ==
+    local isQuestLoot = isQuest or itemType == ITEMTYPE_NONE or specializedItemType ==
         SPECIALIZED_ITEMTYPE_TROPHY_DUNGEON_BUFF_INGREDIENT or specializedItemType ==
         SPECIALIZED_ITEMTYPE_TROPHY_TRIBUTE_CLUE or specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_UPGRADE_FRAGMENT or
-        specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_MUSEUM_PIECE then
+        specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_MUSEUM_PIECE
+    if isQuestLoot then
         if ShouldLootMisc(db.filters.questItems, link) then
             return "questItems", "quest item"
         end
@@ -2198,9 +2200,13 @@ function MSAL.FilterItem(link, isQuest, lootType)
         if ShouldLootForSell(db.filters.trash, link) then
             return "trash", "trash"
         end
+    else
+        if not isQuestLoot then
+            return nil, nil, false
+        end
     end
 
-    return nil, nil
+    return nil, nil, true
 end
 
 local function LootCurrenciesByRules(showOverlimitWarning)
@@ -2362,7 +2368,7 @@ local function OnLootUpdated()
             LootItemById(lootId)
             lootedAs = "on whitelist"
         else
-            local filterKey, filterCategory = MSAL.FilterItem(link, isQuest, lootType)
+            local filterKey, filterCategory, wasConsidered = MSAL.FilterItem(link, isQuest, lootType)
             if isSetItem then
                 isRepetitiveGear = ArrayHasItem(setItemList, name)
                 table.insert(setItemList, name)
@@ -2421,6 +2427,13 @@ local function OnLootUpdated()
                     end
                 elseif filterKey == "styleMaterials3rd" then
                     chatlogPostfix = chatlogPostfix .. GetString(SI_ITEMTYPE44)
+                end
+            elseif not wasConsidered then
+                LootItemById(lootId)
+                lootedAs = "unrecognized item type"
+                if GetDisplayName() == "@Lykeion" then
+                    ChatboxLog(string.format("未找到%s对应的筛选器, type = %s, typeId = %d, specTypeId = %d", link,
+                        GetString("SI_ITEMTYPE", itemType), itemType, specializedItemType))
                 end
             end
         end
@@ -4721,11 +4734,13 @@ function MSAL.testProcess(itemlinks)
         elseif itemOnList(itemlink, WLIST_TOKEN) then
             verdict = "whitelist"
         else
-            local filterKey, filterCategory = MSAL.FilterItem(itemlink, isQuest, lootType)
+            local filterKey, filterCategory, wasConsidered = MSAL.FilterItem(itemlink, isQuest, lootType)
             if filterKey then
                 verdict = "filter: " .. filterKey .. " (" .. filterCategory .. ")"
-            else
+            elseif wasConsidered then
                 verdict = "missed"
+            else
+                verdict = "missed (unrecognized type -> kept)"
             end
         end
 

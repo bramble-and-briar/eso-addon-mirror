@@ -11,6 +11,7 @@ local DARK_ANCHOR_ZONE_IDS = {
 local GUILD_DAILY_ZONE_IDS = { [19] = true, [57] = true, [383] = true }
 local THIEVES_DEN_ZONE_IDS = { [3] = true, [816] = true } -- Daggerfall and Abah's Landing.
 local DAGGERFALL_ZONE_IDS = { [3] = true }
+local HARROWSTORM_ZONE_IDS = { [1160] = true, [1161] = true, [1207] = true, [1208] = true }
 
 TTMP:RegisterChallengeData({
     {
@@ -140,11 +141,9 @@ TTMP:RegisterChallengeData({
         label = "World Events",
         icon = ICONS.worldEventGeneric,
         bonusIcon = ICONS.worldEvent,
-        bonusZoneIds = {
-            [3] = true,
-        },
-        bonusActivityIds = {
-            [757] = true,
+        bonusZoneIdsByActivityId = {
+            [757] = { [3] = true },
+            [830] = HARROWSTORM_ZONE_IDS,
         },
         genericIcons = {
             default = ICONS.worldEventGenericIncomplete,
@@ -153,20 +152,30 @@ TTMP:RegisterChallengeData({
             undiscovered = ICONS.worldEventGenericIncomplete,
         },
         genericChallenge = true,
-        activityIds = { 187, 292, 293, 295, 296, 597, 724, 757 },
+        activityIds = { 187, 292, 293, 295, 296, 597, 724, 757, 830 },
         activityZoneIds = {
             [292] = DARK_ANCHOR_ZONE_IDS,
             [597] = DARK_ANCHOR_ZONE_IDS,
             [293] = { [1011] = true }, -- Summerset geysers.
-            [295] = { [1160] = true, [1161] = true, [1207] = true, [1208] = true }, -- Harrowstorms.
+            [295] = HARROWSTORM_ZONE_IDS,
             [296] = { [1261] = true, [1286] = true }, -- Blackwood and Deadlands portals.
         },
+        dynamicPinType = "worldEvent",
+    },
+    {
+        key = "alikr_dark_anchors",
+        label = "Dark Anchors in the Alik'r Desert",
+        icon = ICONS.worldEvent,
+        activityIds = { 840 },
+        activityZoneIds = { [840] = { [104] = true } },
         dynamicPinType = "worldEvent",
     },
     {
         key = "u50_world_bosses",
         label = "World Bosses",
         icon = ICONS.worldBossGeneric,
+        bonusIcon = ICONS.worldBoss,
+        bonusZoneIdsByActivityId = { [834] = HARROWSTORM_ZONE_IDS },
         genericIcons = {
             default = ICONS.worldBossGeneric,
             complete = ICONS.worldBossGenericComplete,
@@ -174,7 +183,7 @@ TTMP:RegisterChallengeData({
             undiscovered = ICONS.worldBossGenericIncomplete,
         },
         genericChallenge = true,
-        activityIds = { 54, 740, 747, 750 },
+        activityIds = { 54, 740, 747, 750, 834 },
         dynamicPinType = "worldBoss",
     },
     {
@@ -298,6 +307,8 @@ TTMP:RegisterChallengeData({
         key = "u50_public_dungeon_bosses",
         label = "Public Dungeons",
         icon = ICONS.publicDungeonGeneric,
+        bonusIcon = ICONS.publicDungeon,
+        bonusZoneIdsByActivityId = { [835] = { [1160] = true, [1161] = true, [1208] = true } },
         genericIcons = {
             default = ICONS.publicDungeonGeneric,
             complete = ICONS.publicDungeonGenericComplete,
@@ -305,7 +316,7 @@ TTMP:RegisterChallengeData({
             undiscovered = ICONS.publicDungeonGenericIncomplete,
         },
         genericChallenge = true,
-        activityIds = { 153, 183, 412, 634, 739, 746, 749 },
+        activityIds = { 153, 183, 412, 634, 739, 746, 749, 835 },
         dynamicPinType = "publicDungeon",
     },
     {
@@ -314,7 +325,7 @@ TTMP:RegisterChallengeData({
         hideDescription = true,
         icon = ICONS.dynamicEncounterGeneric,
         genericChallenge = true,
-        activityIds = { 755 },
+        activityIds = { 187, 755, 830 },
         -- Encounter locations are not POIs; coordinates from Map Pins' zone data.
         pins = {
             { type = "coordinates", id = "dynamic_encounter", zoneId = 3, x = .663, y = .301, label = "Vampire Hunt" },
@@ -336,11 +347,8 @@ TTMP:RegisterChallengeData({
         label = "Complete 1 Dungeon",
         icon = ICONS.groupDungeonGeneric,
         bonusIcon = ICONS.groupDungeon,
-        bonusZoneIds = {
-            [3] = true,
-        },
-        bonusActivityIds = {
-            [761] = true,
+        bonusZoneIdsByActivityId = {
+            [761] = { [3] = true },
         },
         genericIcons = {
             default = ICONS.groupDungeonGeneric,
@@ -348,8 +356,32 @@ TTMP:RegisterChallengeData({
             incomplete = ICONS.groupDungeonGenericIncomplete,
         },
         genericChallenge = true,
-        activityIds = { 182, 318, 446, 447, 448, 449, 450, 605, 671, 761 },
+        activityIds = { 182, 318, 446, 447, 448, 449, 450, 605, 671, 761, 831, 836 },
         dynamicPinType = "groupDungeon",
+    },
+    {
+        key = "season_two_dungeon_bonus",
+        label = "Season Two Dungeon Bonus",
+        icon = ICONS.groupDungeon,
+        activityIds = { 831 },
+        pins = {
+            { type = "poi", zoneId = 383, poiIndex = 62, label = "Lair of Maarselok" },
+            { type = "poi", zoneId = 108, poiIndex = 61, label = "March of Sacrifices" },
+            { type = "poi", zoneId = 382, poiIndex = 62, label = "Moon Hunter Keep" },
+        },
+    },
+    {
+        key = "complete_solo_dungeon",
+        label = "Complete Solo Dungeons",
+        icon = ICONS.groupDungeonGeneric,
+        genericIcons = {
+            default = ICONS.groupDungeonGeneric,
+            complete = ICONS.groupDungeonGenericComplete,
+            incomplete = ICONS.groupDungeonGenericIncomplete,
+        },
+        genericChallenge = true,
+        activityIds = { 832, 836 },
+        dynamicPinType = "soloDungeon",
     },
     {
         key = "complete_trial",
@@ -361,7 +393,16 @@ TTMP:RegisterChallengeData({
             incomplete = ICONS.trialGenericIncomplete,
         },
         genericChallenge = true,
-        activityIds = { 185, 319, 413, 451, 452, 453, 454 },
+        activityIds = { 185, 319, 413, 451, 452, 453, 454, 833 },
         dynamicPinType = "trial",
+    },
+    {
+        key = "season_two_trial_bonus",
+        label = "Kyne's Aegis Bonus",
+        icon = ICONS.trial,
+        activityIds = { 833 },
+        pins = {
+            { type = "poi", zoneId = 1160, poiIndex = 39, label = "Kyne's Aegis" },
+        },
     },
 })

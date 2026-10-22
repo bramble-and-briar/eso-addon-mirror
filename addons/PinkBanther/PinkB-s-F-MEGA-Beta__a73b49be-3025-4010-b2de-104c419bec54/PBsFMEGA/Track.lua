@@ -69,31 +69,30 @@ function T.New(def)
   else w[i]=widths or 12 end
  end
  self.x,self.y,self.tx,self.ty,self.rx,self.ry,self.curv,self.w=x,y,tx,ty,rx,ry,curv,w
- -- Elevation is a periodic list of {lap fraction, metres}. Smoothstep interpolation keeps the
- -- camera pitch continuous enough for the band renderer while preserving authored summits.
+ -- Elevation: a closed list of {fraction of the lap, metres}, eased between the points so the
+ -- road has no kinks and the slope is continuous at every summit and bottom. `z` is the height
+ -- of every sample and `grade` the slope along the road there (rise over run, positive uphill).
  local elev=def.elevation or {{0,0},{1,0}}
- if elev[1][1]>0 then table.insert(elev,1,{0,elev[#elev][2]}) end
- if elev[#elev][1]<1 then elev[#elev+1]={1,elev[1][2]} end
- local zh={}
- local function heightAt(f)
-  local lo,hi=elev[1],elev[#elev]
-  for q=1,#elev-1 do if f>=elev[q][1] and f<=elev[q+1][1] then lo,hi=elev[q],elev[q+1];break end end
-  local a=(f-lo[1])/math.max(1e-9,hi[1]-lo[1]);a=a*a*(3-2*a)
-  return lo[2]+(hi[2]-lo[2])*a
- end
- for i=1,n do zh[i]=heightAt((i-1)/n) end
- local grade={}
+ local pts2={}
+ for _,e in ipairs(elev) do pts2[#pts2+1]=e end
+ if pts2[1][1]>0 then table.insert(pts2,1,{0,pts2[#pts2][2]}) end
+ if pts2[#pts2][1]<1 then pts2[#pts2+1]={1,pts2[1][2]} end
+ local zh,grade={}, {}
  for i=1,n do
-  local a,b=(i-2)%n+1,i%n+1
-  grade[i]=(zh[b]-zh[a])/(2*step)
+  local f=(i-1)/n
+  local lo,hi=pts2[1],pts2[#pts2]
+  for q=1,#pts2-1 do if f>=pts2[q][1] and f<=pts2[q+1][1] then lo,hi=pts2[q],pts2[q+1];break end end
+  local a=(f-lo[1])/math.max(1e-9,hi[1]-lo[1]);a=a*a*(3-2*a)
+  zh[i]=lo[2]+(hi[2]-lo[2])*a
  end
+ for i=1,n do grade[i]=(zh[i%n+1]-zh[(i-2)%n+1])/(2*step) end
  self.z,self.grade=zh,grade
  self.minRadius=minRadius
  self.maxW=0;for i=1,n do self.maxW=math.max(self.maxW,w[i]) end
  self.zones={}
  for _,z in ipairs(def.zones or {}) do
   local s0=z.at*self.length
-  self.zones[#self.zones+1]={kind=z.kind,s0=s0,s1=s0+z.len,d0=z.d-z.width/2,d1=z.d+z.width/2,distance=z.distance,height=z.height}
+  self.zones[#self.zones+1]={kind=z.kind,s0=s0,s1=s0+z.len,d0=z.d-z.width/2,d1=z.d+z.width/2}
  end
  self:BuildDecals()
  return self
@@ -138,15 +137,9 @@ function T:Point(s,d)
  local cx=self.x[i0]+(self.x[i1]-self.x[i0])*a;local cy=self.y[i0]+(self.y[i1]-self.y[i0])*a
  local tx=self.tx[i0]+(self.tx[i1]-self.tx[i0])*a;local ty=self.ty[i0]+(self.ty[i1]-self.ty[i0])*a
  local l=sqrt(tx*tx+ty*ty);tx,ty=tx/l,ty/l
- local z=self.z[i0]+(self.z[i1]-self.z[i0])*a
- return cx+ty*d,cy-tx*d,C.atan2(ty,tx),z
+ return cx+ty*d,cy-tx*d,C.atan2(ty,tx),self.z[i0]+(self.z[i1]-self.z[i0])*a
 end
-function T:Zone(s,d)
- for _,z in ipairs(self.zones) do
-  if s>=z.s0 and s<=z.s1 and d>=z.d0 and d<=z.d1 then return z end
- end
-end
-function T:ZoneAt(s,d) local z=self:Zone(s,d);return z and z.kind end
+-- Height and slope of the road at s (metres, and rise over run).
 function T:Elevation(s)
  s=self:WrapS(s);local f=s/self.step;local i=floor(f);local a=f-i
  return self.z[i%self.n+1]*(1-a)+self.z[(i+1)%self.n+1]*a
@@ -155,8 +148,13 @@ function T:Slope(s)
  s=self:WrapS(s);local f=s/self.step;local i=floor(f);local a=f-i
  return self.grade[i%self.n+1]*(1-a)+self.grade[(i+1)%self.n+1]*a
 end
+function T:ZoneAt(s,d)
+ for _,z in ipairs(self.zones) do
+  if s>=z.s0 and s<=z.s1 and d>=z.d0 and d<=z.d1 then return z.kind end
+ end
+end
 local ZONE_COLORS={
- pad={.12,.42,.3},heal={.1,.5,.2},rough={.34,.22,.12},slip={.3,.62,.74},jump={.62,.18,.7},loop={.12,.48,.72},
+ pad={.12,.42,.3},heal={.1,.5,.2},rough={.34,.22,.12},slip={.3,.62,.74},jump={.42,.16,.62},
 }
 -- Everything painted flat on the road: the centre dashes, the grid, and the zone markings.
 -- They are kept as lateral/longitudinal rectangles, not textures, because the renderer fills
@@ -174,16 +172,13 @@ function T:BuildDecals()
   elseif z.kind=='heal' then
    local s=z.s0+2
    while s+2<z.s1 do add(s,s+2,z.d0+.5,z.d1-.5,.7,1,.75,'healbar');s=s+6 end
-  elseif z.kind=='jump' or z.kind=='loop' then
-   -- Alternating bars make the launch strip readable even when pictures are disabled.
-   local s=z.s0+.7;local bright=true
-   while s<z.s1-.4 do
-    local e=math.min(s+1.2,z.s1-.4)
-    local r,g,b
-    if z.kind=='loop' then r,g,b=bright and .2 or .05,bright and .9 or .35,bright and 1 or .65
-    else r,g,b=bright and 1 or .35,bright and .72 or .2,bright and .18 or .62 end
-    add(s,e,z.d0+.4,z.d1-.4,r,g,b,z.kind..'bar')
-    bright=not bright;s=s+2.2
+  elseif z.kind=='jump' then
+   -- Gold and violet bars across the whole plate: readable as a launch bar with no picture at all.
+   local s=z.s0+.5;local gold=true
+   while s<z.s1-.3 do
+    local e=math.min(s+1.4,z.s1-.3)
+    if gold then add(s,e,z.d0+.4,z.d1-.4,1,.78,.2,'jumpbar') else add(s,e,z.d0+.4,z.d1-.4,.62,.22,.95,'jumpbar') end
+    gold=not gold;s=s+2.2
    end
   end
  end
@@ -210,7 +205,7 @@ end
 function T:BuildRichDecals()
  local list={}
  local function add(s0,s1,d0,d1,cell,tint) list[#list+1]={s0=s0,s1=s1,d0=d0,d1=d1,cell=cell,tint=tint,r=.78,g=.84,b=.95} end
- local zoneCell={pad='d_pad',heal='d_heal',rough='d_rough',slip='d_slip',jump='d_jump',loop='d_loop'}
+ local zoneCell={pad='d_pad',heal='d_heal',rough='d_rough',slip='d_slip',jump='d_jump'}
  for _,z in ipairs(self.zones) do add(z.s0,z.s1,z.d0,z.d1,zoneCell[z.kind]) end
  local w=self:HalfWidth(0)
  add(0,4.4,-w,w,'d_grid')

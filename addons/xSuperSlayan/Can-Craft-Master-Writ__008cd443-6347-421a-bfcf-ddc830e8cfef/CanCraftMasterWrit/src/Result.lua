@@ -24,6 +24,7 @@ Result.CATEGORY_SET = "set"
 Result.CATEGORY_RUNES = "runes"
 Result.CATEGORY_REAGENTS = "reagents"
 Result.CATEGORY_RECIPE = "recipe"
+Result.CATEGORY_ITEM = "item"
 Result.CATEGORY_SKILLS = "skills"
 Result.CATEGORY_MATERIALS = "materials"
 

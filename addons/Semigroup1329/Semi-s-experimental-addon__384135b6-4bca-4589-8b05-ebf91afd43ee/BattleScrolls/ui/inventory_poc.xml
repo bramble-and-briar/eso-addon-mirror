@@ -1,5 +1,25 @@
 <GuiXml>
     <Controls>
+        <Control name="BattleScrollsInventoryPocHUD" hidden="true" mouseEnabled="false">
+            <Dimensions x="48" y="48"/>
+            <Controls>
+                <Texture name="$(parent)Pack" textureFile="EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_inventory.dds" color="EF2929">
+                    <Anchor point="RIGHT"/>
+                    <Dimensions x="48" y="48"/>
+                </Texture>
+                <Texture name="$(parent)Warning" textureFile="EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new_64.dds" color="EF2929" level="1">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Pack"/>
+                    <Dimensions x="20" y="20"/>
+                </Texture>
+                <Texture name="$(parent)Action" color="FFFFFF">
+                    <Dimensions x="36" y="36"/>
+                </Texture>
+                <Label name="$(parent)Or" font="ZoFontGamepad18" color="CCCCCC" hidden="true"/>
+                <Texture name="$(parent)Fallback" color="CCCCCC" hidden="true">
+                    <Dimensions x="28" y="28"/>
+                </Texture>
+            </Controls>
+        </Control>
         <TopLevelControl name="BattleScrollsInventoryPocLog" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true"/>
     </Controls>
 </GuiXml>

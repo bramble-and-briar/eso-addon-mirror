@@ -1,17 +1,19 @@
 ## To release a new version, edit the version in the two lines below and nothing else.
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
-## Title: |cFF69B4PB's ScreenshotModeShortcut|r 1.0.6
+## Title: |cFF69B4PB's ScreenshotModeShortcut|r 1.1.1
 ## Author: |cFF69B4PinkBanther|r
-## Description: Hold L2 and press D-pad Left on the HUD to go straight into the game's screenshot mode, instead of walking down to it through Options > Video. /pbshot to set it up.
-## Version: 1.0.6
+## Description: Hold L2 and press D-pad Left on the HUD to go straight into the game's screenshot mode, instead of walking down to it through Options > Video. Quick shot mode takes the picture with the interface hidden and puts it straight back. /pbshot to set it up.
+## Version: 1.1.1
 ## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsScreenshotModeShortcut_Data
 
 lang/strings.lua
-lang/ja.lua
+lang/$(language).lua
 
 Main.lua
+Settings.lua
 
 Bindings.xml
 

@@ -1,14 +1,21 @@
 ## Title: Corpse Tracker
-## Description: Estimated Necromancer corpse count and expiry time.
+## Description: Necromancer corpse count and expiry estimate. Includes optional diagnostics.
+## Author: @mettaleggroll; AI assistance: ChatGPT (Codex)
+## Version: 0.4.3
+## AddOnVersion: 403
 ## APIVersion: 101051
-## Version: 0.3.6
-## AddOnVersion: 306
-## Author: @mettaleggroll and Codex
-## SavedVariables: CorpseTrackerSaved
 ## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: CorpseTrackerSaved
+
+# This Add-on is not created by, affiliated with, or sponsored by,
+# ZeniMax Media Inc. or its affiliates.
+# The Elder Scrolls® and related logos are registered trademarks or trademarks
+# of ZeniMax Media Inc. in the United States and/or other countries.
+# All rights reserved.
 
 Engine.lua
 Localization.lua
+# Load English String IDs first; translation callbacks preserve manual choices.
 Locales/default.lua
 Locales/ru.lua
 Locales/de.lua
@@ -20,12 +27,3 @@ Locales/br.lua
 Abilities.lua
 Settings.lua
 CorpseTracker.lua
-
-; This Add-on is not created by, affiliated with, or sponsored by,
-; ZeniMax Media Inc. or its affiliates.
-; The Elder Scrolls® and related logos are registered trademarks or trademarks
-; of ZeniMax Media Inc. in the United States and/or other countries.
-; All rights reserved.
-;
-; You can read the full terms at:
-; https://account.elderscrollsonline.com/add-on-terms

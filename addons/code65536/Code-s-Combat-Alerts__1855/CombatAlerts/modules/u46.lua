@@ -210,7 +210,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		CA2.UpdateNightbladeCutthroatExclusionStopTime(GetGameTimeMilliseconds() + hitValue + 100)
 	elseif (sourceType == COMBAT_UNIT_TYPE_PLAYER and hitValue == 1 and LCA.DAMAGE_EVENTS[result] and Vars.scales[targetUnitId] and not (LCA.isTank and self:GetSetting("scalesNoTanks"))) then
 		if (self:GetSetting("scalesChat")) then
-			CA2.ChatMessage(zo_strformat("[<<1>>] <<2>>", LCA.GetAbilityName(DATA.scalesNameId), LCA.GetAbilityName(abilityId)))
+			CA2.ChatMessage(string.format("[%s] %s", LCA.GetAbilityName(DATA.scalesNameId), LCA.GetAbilityName(abilityId)))
 		end
 		self:ShowScalesBorder()
 

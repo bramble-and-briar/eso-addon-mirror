@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/lousytourist/Crafting-Daily-Notification__4974",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "lousytourist",
+  "canonical_id": "esoui:4974",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4974",
+  "deleted": false,
+  "directories": [
+    "CraftingDailyNotification"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4974/",
+  "fingerprint": "4037989af3be2e69c05b920feffa44d95d26c5d56b69f24fb469cff3c3ef6212",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4974",
+  "source_url": "https://www.esoui.com/downloads/info4974-CraftingDailyNotification.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Crafting Daily Notification",
+  "updated_at": 1792621409000,
+  "version": "1"
+}

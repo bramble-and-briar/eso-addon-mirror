@@ -3,7 +3,6 @@ if not SemisPlaygroundCheckAccess() then return end
 
 local poc = BattleScrolls.inventoryPoc
 local SCENE_NAME = 'battleScrollsInventoryPoc'
-local ICON = 'EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_inventory.dds'
 local SELECTED_ICON = 'EsoUI/Art/Miscellaneous/Gamepad/gp_checkmark.dds'
 
 ---@class InventoryPocUI
@@ -90,6 +89,12 @@ local function showLogTooltip(entry)
     end
     if entry.setupName then lines[#lines + 1] = entry.setupName end
     if entry.buildIssue then lines[#lines + 1] = buildIssueDetails(entry.buildIssue) end
+    if entry.marketIssue then
+        if entry.guildId then lines[#lines + 1] = GetGuildName(entry.guildId) end
+        local result = entry.marketIssue.result
+        if result then lines[#lines + 1] = GetString('SI_TRADINGHOUSERESULT', result) end
+        lines[#lines + 1] = entry.marketIssue.diagnostics
+    end
     if entry.itemLink ~= '' then
         local link = entry.itemLink
         local itemType, specializedType = GetItemLinkItemType(link)
@@ -282,17 +287,21 @@ end
 
 ---@param enabled boolean
 function ui.setEnabled(enabled)
+    BattleScrolls.inventoryPocWorkUI.setEnabled(enabled)
     BattleScrolls.inventoryPocInspect.setEnabled(enabled)
+    if enabled then BattleScrolls.inventoryPocUseUI.initialize() end
+    BattleScrolls.inventoryPocHUD.setEnabled(enabled)
     if enabled and not menuEntry then
         if not screen then createScreen() end
         local function isNew()
             return poc.saved and poc.saved.unread == true
         end
         local title = GetString(BATTLESCROLLS_IPOC_TITLE)
-        menuEntry = ZO_GamepadEntryData:New(title, ICON, nil, nil, isNew)
+        local icon = 'BattleScrolls/art/your_pack_menu.dds'
+        menuEntry = ZO_GamepadEntryData:New(title, icon, nil, nil, isNew)
         menuEntry:SetIconTintOnSelection(true)
         menuEntry:SetIconDisabledTintOnSelection(true)
-        menuEntry.data = { name = title, icon = ICON, scene = SCENE_NAME, isNewCallback = isNew }
+        menuEntry.data = { name = title, icon = icon, scene = SCENE_NAME, isNewCallback = isNew }
         menuEntry.id = 997
         menuParent = ZO_MENU_ENTRIES
         for _, entry in ipairs(ZO_MENU_ENTRIES) do

@@ -1,0 +1,38 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="BattleScrollsInventoryPocWork" hidden="true" mouseEnabled="true" tier="HIGH" level="100">
+            <AnchorFill/>
+            <Controls>
+                <Texture name="$(parent)Shade" color="000000" alpha="0.3">
+                    <AnchorFill/>
+                </Texture>
+                <Control name="$(parent)Panel" inherits="ZO_GamepadGrid_NavQuadrant_1_Anchors">
+                    <Controls>
+                        <Control name="$(parent)Bg" inherits="ZO_SharedGamepadDialog_Background_Template"/>
+                        <Control name="$(parent)HeaderContainer" inherits="ZO_GamepadScreenHeaderContainer ZO_GamepadGrid_NavQuadrant_ContainerAnchors"/>
+                        <Control name="$(parent)Spinner" inherits="ZO_LoadingIcon_Gamepad_Footer">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderContainerHeader" relativePoint="BOTTOMLEFT" offsetY="44"/>
+                        </Control>
+                        <Label name="$(parent)Task" font="ZoFontGamepadCondensed34" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Spinner" relativePoint="BOTTOMLEFT" offsetY="24"/>
+                            <Dimensions x="ZO_GAMEPAD_CONTENT_WIDTH"/>
+                        </Label>
+                        <Label name="$(parent)Item" font="ZoFontGamepadCondensed27" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Task" relativePoint="BOTTOMLEFT" offsetY="18"/>
+                            <Dimensions x="ZO_GAMEPAD_CONTENT_WIDTH"/>
+                        </Label>
+                    </Controls>
+                </Control>
+                <Texture name="$(parent)HintBar" textureFile="EsoUI/Art/Windows/Gamepad/gp_hintbar.dds">
+                    <Dimensions y="ZO_GAMEPAD_KEYBIND_STRIP_BACKGROUND_HEIGHT"/>
+                    <Anchor point="BOTTOMLEFT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                    <TextureCoords left="0" right="0.9375" top="0" bottom="1"/>
+                </Texture>
+                <Control name="$(parent)Cancel" inherits="ZO_KeybindButton_Gamepad">
+                    <Anchor point="LEFT" relativePoint="BOTTOMLEFT" offsetX="96" offsetY="-80.5"/>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

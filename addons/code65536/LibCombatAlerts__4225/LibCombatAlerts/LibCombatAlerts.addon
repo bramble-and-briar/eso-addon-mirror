@@ -8,11 +8,9 @@
 ## Description: Library for alerting players to combat mechanics
 ## Author: @code65536
 ## IsLibrary: true
-## Version: 0.8.5.2
-## AddOnVersion: 8052
+## Version: 0.8.6
+## AddOnVersion: 8060
 ## APIVersion: 101051
-
-DakJanielsApostropheFix.lua
 
 LibCodesCommonCode.lua
 

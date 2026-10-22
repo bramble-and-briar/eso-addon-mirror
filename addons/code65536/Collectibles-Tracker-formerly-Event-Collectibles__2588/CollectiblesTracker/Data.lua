@@ -73,11 +73,14 @@ function DataGen.ct() return {
 	},
 
 	----------------------------------------------------------------------------
-	--[[
 	{
 		zo_strformat(SI_COLLECTIBLESTRACKER_SOURCE_SEASON, 2),
 		{
 			14423, -14432, -- Maarselok Slayer (weapons)
+			14750, -- Shagrath's Web
+			14752, -- Blightguard Jawplate
+			14755, -- Maarselok Slayer Piercings
+			14946, -- Volley, Azureblight
 		},
 		premium = {
 			15166, -- Season Two Premium Tome (must be first entry in the premium list)
@@ -86,15 +89,12 @@ function DataGen.ct() return {
 			14700, -- Azureblight Recall
 			14742, -- Maarselok Slayer Mammoth
 			14749, -- Spider Hunter Silks
-			14750, -- Shagrath's Web
-			14752, -- Blightguard Jawplate
 			14753, -- Maarselok Hunter's Horns
-			14755, -- Maarselok Slayer Piercings
 			14757, -- Maarselok Dragon Imp
-			14945, -14950, -- Miscellaneous
+			14945, -- Dawnbreaker, Azureblight
+			14947, -14950, -- Miscellaneous
 		},
 	},
-	--]]
 
 	----------------------------------------------------------------------------
 	{
@@ -439,7 +439,7 @@ function DataGen.ec() return {
 			{ 13739, 14059, -14061, true }, -- Roseblood Bat
 			{ 14050, 14062, -14064 }, -- Roseblood Wings Recall
 			{ 13910, 14385, -14387 }, -- Thorn's Bite Withersteed
-		--	{ 14778, 15010, -15014 }, -- Grotto of Desires
+			{ 14778, 15010, -15014 }, -- Grotto of Desires
 		},
 	},
 
@@ -594,7 +594,7 @@ function DataGen.ec() return {
 			11588, -11594, -- Crowborne Hunter
 			12320, -12326, -- Eltheric Revenant
 			13380, -13386, -- Wickerchain Soul
-		--	14803, -14809, -- Zhekleg
+			14803, -14809, -- Zhekleg
 		},
 	},
 

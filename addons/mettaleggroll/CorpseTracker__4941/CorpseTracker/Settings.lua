@@ -48,7 +48,7 @@ function CT.RegisterSettings()
     end
     CT.settingsPanel = LAM:RegisterAddonPanel("CorpseTrackerSettings", {
         type = "panel", name = "Corpse Tracker", displayName = "Corpse Tracker",
-        author = "@mettaleggroll and Codex", version = CT.version,
+        author = "@mettaleggroll; AI assistance: ChatGPT (Codex)", version = CT.version,
         registerForRefresh = true, registerForDefaults = true,
     })
     local function Label(key) return function() return CT.T(key) end end
@@ -61,6 +61,12 @@ function CT.RegisterSettings()
         end
         return option
     end
+    local function SourceCheckbox(key, label, default)
+        return { type="checkbox", name=Label(label),
+            getFunc=function() return CT.GetSourceSelection()[key] == true end,
+            setFunc=function(value) CT.SetSourceEnabled(key, value); CT.SourceSettingsChanged() end,
+            default=default, reference="CorpseTrackerOption_source_" .. key }
+    end
     local languageChoices, languageValues = { CT.T("AUTOMATIC") }, { "auto" }
     for i, code in ipairs(CT.languageCodes) do
         languageChoices[#languageChoices + 1] = CT.languageNames[i]
@@ -71,10 +77,15 @@ function CT.RegisterSettings()
             choices = languageChoices, choicesValues = languageValues,
             getFunc = Get("language"), setFunc = function(value) CT.saved.language = value end,
             default = "auto", requiresReload = true, reference = "CorpseTrackerOption_language" },
-        { type = "dropdown", name = Label("SOURCES"), tooltip = Label("SOURCES_TIP"),
-            choices = { Choice("PRIMARY"), Choice("ALL") }, choicesValues = { "primary", "all" },
-            getFunc = Get("sourceMode"), setFunc = Set("sourceMode"), default = "primary",
-            reference = "CorpseTrackerOption_sourceMode" },
+        { type = "header", name = Label("SOURCES"), reference = "CorpseTrackerOption_sources" },
+        SourceCheckbox("bb", "SOURCE_BB", true),
+        SourceCheckbox("skull", "SOURCE_SKULL", true),
+        SourceCheckbox("skeletal", "SOURCE_ARCHER", false),
+        SourceCheckbox("spirit", "SOURCE_SPIRIT", false),
+        SourceCheckbox("armor", "SOURCE_ARMOR", false),
+        SourceCheckbox("promise", "SOURCE_PROMISE", false),
+        SourceCheckbox("banner", "SOURCE_BANNER", false),
+        { type="description", text=Label("SOURCES_NOTICE") },
         Checkbox("LOCK", "locked", "LOCK_TIP", false),
         { type = "slider", name = Label("SIZE"), min = 40, max = 140, step = 4,
             getFunc = Get("squareSize"), setFunc = Set("squareSize"), default = 64,
@@ -88,11 +99,8 @@ function CT.RegisterSettings()
             disabled = function() return CT.saved.countMode == "light" end,
             reference = "CorpseTrackerOption_displayMode" },
         Checkbox("DEBUG", "debugMode", "DEBUG_TIP", false),
-        { type = "button", name = Label("NEWTEST"), tooltip = Label("NEWTEST_TIP"),
-            func = function() CT.StartDiagnostics("new_test"); CT.ApplySettings() end,
-            reference = "CorpseTrackerOption_newTest" },
         { type = "button", name = Label("CLEARLOG"), tooltip = Label("CLEARLOG_TIP"),
-            func = function() CT.saved.log = {} end, reference = "CorpseTrackerOption_clearLog" },
+            func = function() CT.ClearLogs() end, reference = "CorpseTrackerOption_clearLog" },
         Checkbox("CAPTURE", "capture", "CAPTURE_TIP", false),
         { type = "dropdown", name = Label("COUNT_MODE"), tooltip = Label("COUNT_TIP"),
             choices = { Choice("LIGHT"), Choice("EXTENDED") }, choicesValues = { "light", "extended" },
@@ -109,13 +117,15 @@ function CT.RegisterSettings()
             disabled = function() return CT.saved.countMode == "light" or CT.saved.rangeMode ~= "manual" end,
             reference = "CorpseTrackerOption_manualRange" },
         Checkbox("UNKNOWN", "includeUnknown", "UNKNOWN_TIP", true),
+        SourceCheckbox("rules", "SOURCE_RULES", false),
         { type = "slider", name = Label("RADIUS"), tooltip = Label("RADIUS_TIP"), min = 1, max = 60, step = 1,
             getFunc = Get("radius"), setFunc = Set("radius"), default = 12 },
         { type = "description", title = Label("BANNER_UNAVAILABLE"), text = Label("BANNER_TIP") },
         Checkbox("PHYSICAL", "physicalOnly", "PHYSICAL_TIP", false),
     }
     for _, source in ipairs({ { "SOURCE_BB", "bbTTL", 5 }, { "SOURCE_SKULL", "skullTTL", 5 },
-            { "SOURCE_ARCHER", "archerTTL", 10 }, { "SOURCE_BANNER", "bannerTTL", 5 } }) do
+            { "SOURCE_ARCHER", "archerTTL", 10 }, { "SOURCE_SPIRIT", "spiritTTL", 10 },
+            { "SOURCE_BANNER", "bannerTTL", 5 } }) do
         local sourceKey = source[1]
         diagnostics[#diagnostics + 1] = { type = "slider", name = function() return CT.T("TTL", CT.T(sourceKey)) end,
             min = 1, max = 60, step = 1, getFunc = Get(source[2]), setFunc = Set(source[2]), default = source[3],

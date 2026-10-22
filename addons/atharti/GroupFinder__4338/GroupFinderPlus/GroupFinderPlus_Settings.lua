@@ -8,7 +8,6 @@ function GF.RegisterLAMPanel()
 		return string.format("|t%d:%d:%s|t %s", size, size, iconPath, name)
 	end
 
-	GF.SV.CategoriesEnabled = GF.SV.CategoriesEnabled or {}
 	for _, cat in ipairs(GF.Categories) do
 		if GF.SV.CategoriesEnabled[cat.id] == nil then
 			GF.SV.CategoriesEnabled[cat.id] = true
@@ -80,11 +79,6 @@ function GF.RegisterLAMPanel()
 			end,
 			setFunc = function(value)
 				GF.SV.ShowInstanceModeButton = value
-
-				if GF.leftTopButton then
-					GF.leftTopButton:SetHidden(not value)
-				end
-
 				GF.UpdateInstanceModeButtonVisibility()
 			end,
 			default = true,
@@ -241,10 +235,7 @@ function GF.RegisterLAMPanel()
 				GF.RefreshUI()
 				GF.Popup("Unblacklisted " .. selectedBlacklistedPlayer, nil, "00FF00")
 				selectedBlacklistedPlayer = ""
-				if GF_BLACKLIST_DROPDOWN then
-					GF_BLACKLIST_DROPDOWN:UpdateChoices(GF.GetBlacklistChoices())
-					GF_BLACKLIST_DROPDOWN:UpdateValue()
-				end
+				GF.RefreshBlacklistDropdown()
 			end
 		end,
 		width = "full",
@@ -259,13 +250,16 @@ function GF.RegisterLAMPanel()
 		registerForDefaults = true,
 	}
 
-	LAM:RegisterAddonPanel("GroupFinderPlusPanel", panelData)
 	LAM:RegisterOptionControls("GroupFinderPlusPanel", optionsData)
+	local myPanel = LAM:RegisterAddonPanel("GroupFinderPlusPanel", panelData)
 
-	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function()
-		if GF_BLACKLIST_DROPDOWN then
-			GF_BLACKLIST_DROPDOWN:UpdateChoices(GF.GetBlacklistChoices())
-			GF_BLACKLIST_DROPDOWN:UpdateValue()
-		end
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+		if panel ~= myPanel then return end
+		GF.RefreshBlacklistDropdown()
 	end)
+end
+
+function GF.RefreshBlacklistDropdown()
+	GF_BLACKLIST_DROPDOWN:UpdateChoices(GF.GetBlacklistChoices())
+	GF_BLACKLIST_DROPDOWN:UpdateValue()
 end

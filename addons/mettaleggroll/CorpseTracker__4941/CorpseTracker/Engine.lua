@@ -2,7 +2,8 @@
 -- identity, and consumption have all been independently verified.
 CorpseTracker = CorpseTracker or {}
 local CT = CorpseTracker
-CT.name, CT.version = "CorpseTracker", "0.3.6"
+CT.name, CT.version = "CorpseTracker", "0.4.3"
+local math, table, string = math, table, string
 local Ledger = {}
 Ledger.__index = Ledger
 
@@ -11,12 +12,143 @@ local function Finite(value)
         value ~= math.huge and value ~= -math.huge
 end
 
+-- Display selection only. Creation and consumption always retain every source.
+CT.sourceKeys = { "bb", "skull", "skeletal", "spirit", "armor", "promise", "banner", "rules" }
+local defaultSources = { bb=true, skull=true }
+local sourceLabels = { bb="SOURCE_BB", skull="SOURCE_SKULL", skeletal="SOURCE_ARCHER", spirit="SOURCE_SPIRIT",
+    armor="SOURCE_ARMOR", promise="SOURCE_PROMISE", banner="SOURCE_BANNER", rules="SOURCE_RULES" }
+local function CopySelection(selection)
+    local copy = {}
+    for _, key in ipairs(CT.sourceKeys) do copy[key] = selection[key] == true end
+    return copy
+end
+-- Read retired saved profiles once. The active legacy mode takes precedence
+-- over a remembered, inactive custom mask. Never change the SavedVars schema.
+function CT.NormalizeSourceSettings(saved)
+    local mode, selection = saved.sourceMode, saved.sourceSelection
+    if type(saved.sourceRules) ~= "boolean" then
+        saved.sourceRules = mode == "all" or
+            ((mode == "custom" or mode == nil) and type(selection) == "table" and selection.rules == true) or false
+    end
+    if mode == "all" then
+        selection = { bb=true, skull=true, skeletal=true, spirit=true, armor=true, promise=true, banner=true }
+    elseif mode == "physical" then
+        selection = { bb=true, skull=true, skeletal=true, spirit=true, banner=true }
+    elseif mode == "virtual" then
+        selection = { armor=true, promise=true }
+    elseif mode ~= nil and mode ~= "custom" then
+        selection = defaultSources
+    end
+    if type(selection) ~= "table" then selection = defaultSources end
+    -- One source switch per skill. Merge old per-morph display choices once;
+    -- an explicit new-family false must survive subsequent normalizations.
+    local grouped = CopySelection(selection)
+    if type(selection.spirit) ~= "boolean" then
+        grouped.spirit = selection.guardian == true or selection.mender == true
+    end
+    saved.sourceSelection = grouped
+    saved.sourceSelection.rules = saved.sourceRules
+    saved.sourceMode = nil
+end
+function CT.GetSourceSelection(saved)
+    saved = saved or CT.saved
+    if not saved then return defaultSources end
+    if type(saved.sourceSelection) ~= "table" then CT.NormalizeSourceSettings(saved) end
+    saved.sourceSelection.rules = saved.sourceRules == true
+    return saved.sourceSelection
+end
+function CT.CopySourceSelection()
+    return CopySelection(CT.GetSourceSelection())
+end
+function CT.SetSourceEnabled(key, enabled)
+    if not sourceLabels[key] then return false end
+    local selection = CT.CopySourceSelection()
+    selection[key] = enabled == true
+    if key == "rules" then CT.saved.sourceRules = enabled == true end
+    CT.saved.sourceSelection = selection
+    return true
+end
+local cachedSelection, cachedLanguage, cachedLabel
+function CT.SourceLabel()
+    local selection = CT.GetSourceSelection()
+    if selection ~= cachedSelection or CT.language ~= cachedLanguage then
+        local labels = {}
+        for _, key in ipairs(CT.sourceKeys) do
+            if selection[key] then labels[#labels + 1] = CT.T(sourceLabels[key]) end
+        end
+        cachedLabel = #labels > 0 and table.concat(labels, ", ") or CT.T("NO_SOURCES")
+        cachedSelection, cachedLanguage = selection, CT.language
+    end
+    return cachedLabel
+end
+
 function CT.NewLedger(mode)
     local ledger = setmetatable({ bodies = {}, seen = {}, created = 0, consumed = 0,
         expired = 0, unmatched = 0, untrackedConsumed = 0, guessed = 0, serial = 0,
         possibilities = { {} }, units = {}, entries = {}, uncertainSpends = {} }, Ledger)
     ledger:SetMode(mode)
     return ledger
+end
+
+-- A Living Corpse is one effect on the player, not a physical world corpse.
+-- Keep it outside the physical ledger and do not infer quantity from stacks=0.
+local Living = {}
+Living.__index = Living
+function CT.NewLivingCorpse()
+    return setmetatable({ created = 0, consumed = 0, expired = 0 }, Living)
+end
+function Living:Expire(now)
+    if self.active and self.active.ending <= now then
+        self.active = nil
+        self.expired = self.expired + 1
+    end
+    if self.faded and now - self.faded.at > 0.8 then self.faded = nil end
+end
+function Living:Effect(phase, slot, beginning, ending, now)
+    self:Expire(now)
+    if phase == "gained" or phase == "updated" then
+        if not Finite(ending) or ending <= now or ending > now + 60 then return end
+        local refresh = self.active or (self.faded and not self.faded.used and
+            math.abs(now - self.faded.at) <= 0.05)
+        if not refresh then self.created = self.created + 1 end
+        self.active = { slot = slot, beginning = beginning, ending = ending }
+        -- A same-frame FADED/GAINED is replacement, not a second spendable item.
+        self.faded = nil
+        return refresh and "refreshed" or "created"
+    elseif phase == "faded" and self.active and self.active.slot == slot then
+        local previous = self.active
+        self.active = nil
+        self.faded = { at = now, ending = previous.ending, beginning = previous.beginning,
+            early = previous.ending - now > 0.05 }
+        return "faded"
+    end
+end
+function Living:Relevant(now)
+    self:Expire(now)
+    return self.active ~= nil or (self.faded and now - self.faded.at <= 0.25)
+end
+function Living:TryConsume(at, now)
+    local fade = self.faded
+    if not fade or fade.used or not fade.early or math.abs(fade.at - at) > 0.25 or
+            now - fade.at > 0.8 or (Finite(fade.beginning) and fade.beginning > at) then return false end
+    fade.used = true
+    self.consumed = self.consumed + 1
+    return true
+end
+function Living:Project(count, now, selected)
+    self:Expire(now)
+    if not self.active then count.virtual = 0; return count end
+    count.all = count.all + 1
+    count.breakdown.other = count.breakdown.other + 1
+    count.virtual = selected and 1 or 0
+    if selected then
+        count.total = count.total + 1
+        count.minimum, count.maximum = (count.minimum or 0) + 1, (count.maximum or 0) + 1
+        if not count.light then count.inside = count.inside + 1 end
+        count.nextExpiry = math.min(count.nextExpiry or math.huge, self.active.ending - now)
+        if count.light then count.uncertain = count.total > 0 and count.minimum == 0 end
+    end
+    return count
 end
 
 function Ledger:SetMode(mode)
@@ -50,6 +182,14 @@ local function Primary(body)
 end
 
 local function Selected(body, mode)
+    if type(mode) == "table" then
+        local key = body.source == "blastbones" and "bb" or body.source == "skull?" and "skull" or
+            body.source == "skeletal?" and "skeletal" or
+            (body.source == "guardian" or body.source == "mender") and "spirit" or
+            body.source == "banner" and "banner" or
+            (type(body.source) == "string" and body.source:match("^rule:") and "rules")
+        return key ~= nil and mode[key] == true
+    end
     return mode ~= "primary" or Primary(body)
 end
 
@@ -273,7 +413,11 @@ function Ledger:Consume(amount, now, key, ambiguous, targetUnitId, options)
         for i, body in ipairs(self.bodies) do
             if body.id == target.id then table.remove(self.bodies, i); found = true; break end
         end
-        if not found and self.boundsBroad and target.estimatedSpend then
+        -- Reassign an earlier guessed spend before choosing a replacement
+        -- point estimate. Otherwise worlds[1] can be the untracked-consumption
+        -- hypothesis and silently restore a corpse already paid for.
+        -- Keep those wider possibilities for bounds, not as the point estimate.
+        if not found and target.estimatedSpend then
             local pick = self:ReconcileSpend(target)
             if pick then table.remove(self.bodies, pick); found = true end
         end
@@ -422,6 +566,128 @@ function Ledger:Count(now, playerPosition, radiusMeters, mode, filter)
         nextExpiry = nextExpiry and nextExpiry - now }
 end
 
+-- Malevolent Promise is a target-bound virtual resource. A same-frame fade /
+-- gain can spend the old mark and create a new one, so retain faded generations
+-- independently of the active marks. Never add them to physical FIFO choices.
+local Promise = {}
+Promise.__index = Promise
+function CT.NewPromise()
+    return setmetatable({ marks = {}, recent = {}, serial = 0,
+        created = 0, consumed = 0, expired = 0 }, Promise)
+end
+function Promise:Expire(now)
+    for unit, mark in pairs(self.marks) do
+        if mark.ending <= now then
+            self.marks[unit] = nil
+            mark.at, mark.expired = mark.ending, true
+            self.recent[#self.recent + 1] = mark
+            self.expired = self.expired + 1
+        end
+    end
+    for i = #self.recent, 1, -1 do
+        if now - self.recent[i].at > 0.8 then table.remove(self.recent, i) end
+    end
+end
+function Promise:Effect(phase, unit, slot, beginning, ending, now, position)
+    self:Expire(now)
+    if not Finite(unit) or unit <= 0 or unit ~= math.floor(unit) then return end
+    local previous = self.marks[unit]
+    if phase == "gained" or phase == "updated" then
+        if not Finite(beginning) or not Finite(ending) or ending <= now or
+                ending > now + 10 or beginning > now + 0.1 then return end
+        -- Updates and duplicate unit-tag routes describe the same active mark.
+        if previous and math.abs(previous.beginning - beginning) < 0.01 then
+            previous.ending, previous.position = ending, position or previous.position
+            return "updated"
+        end
+        self.serial, self.created = self.serial + 1, self.created + 1
+        self.marks[unit] = { unit = unit, slot = slot, beginning = beginning,
+            ending = ending, generation = self.serial, position = position }
+        return "created"
+    elseif phase == "faded" and previous and previous.slot == slot then
+        if Finite(beginning) and beginning > 0 and math.abs(beginning - previous.beginning) > 0.01 then return end
+        if Finite(ending) and ending > 0 and math.abs(ending - previous.ending) > 0.01 then return end
+        self.marks[unit] = nil
+        previous.at, previous.early = now, previous.ending - now > 0.05
+        self.recent[#self.recent + 1] = previous
+        return "faded"
+    end
+end
+function Promise:Relevant(now, unit)
+    self:Expire(now)
+    if unit and self.marks[unit] then return true end
+    if not unit and next(self.marks) then return true end
+    for _, mark in ipairs(self.recent) do
+        if not mark.used and (not unit or mark.unit == unit) and now - mark.at <= 0.25 then return true end
+    end
+    return false
+end
+function Promise:Size(now)
+    self:Expire(now)
+    local size = 0
+    for _ in pairs(self.marks) do size = size + 1 end
+    return size
+end
+function Promise:Snapshot(now)
+    self:Expire(now)
+    local marks = {}
+    for _, mark in pairs(self.marks) do
+        marks[#marks + 1] = { unit = mark.unit, beginning = mark.beginning,
+            ending = mark.ending, slot = mark.slot, position = mark.position }
+    end
+    return marks
+end
+function Promise:TryConsume(at, now, unit, cutoff)
+    self:Expire(now)
+    local chosen, distance
+    for _, mark in ipairs(self.recent) do
+        local age = math.abs(mark.at - at)
+        if not mark.used and (not unit or mark.unit == unit) and
+                (not cutoff or mark.generation <= cutoff) and mark.beginning <= at and
+                age <= 0.25 and (mark.early or (unit and mark.ending > at)) and
+                (not distance or age < distance) then chosen, distance = mark, age end
+    end
+    -- An exact application to an observed marked unit is consumption evidence,
+    -- even if its FADED callback is missing. A self effect alone is not.
+    if not chosen and unit then
+        local mark = self.marks[unit]
+        if mark and mark.beginning <= at and (not cutoff or mark.generation <= cutoff) then
+            chosen = mark
+            self.marks[unit] = nil
+            mark.at = at
+            self.recent[#self.recent + 1] = mark
+        end
+    end
+    if not chosen then return false end
+    chosen.used = true
+    if chosen.expired then self.expired = self.expired - 1 end
+    self.consumed = self.consumed + 1
+    return true, chosen.unit
+end
+function Promise:Project(count, now, selected, playerPosition, radius, filter)
+    self:Expire(now)
+    count.promise = 0
+    for _, mark in pairs(self.marks) do
+        count.all, count.breakdown.other = count.all + 1, count.breakdown.other + 1
+        if selected then
+            local included = true
+            if not count.light then
+                local location = Location(mark, playerPosition, filter and filter.enabled and filter.range or radius)
+                count[location] = count[location] + 1
+                included = not filter or not filter.enabled or location == "inside" or
+                    (location == "unknown" and filter.includeUnknown)
+            end
+            if included then
+                count.total, count.promise = count.total + 1, count.promise + 1
+                count.minimum, count.maximum = (count.minimum or 0) + 1, (count.maximum or 0) + 1
+                count.nextExpiry = math.min(count.nextExpiry or math.huge, mark.ending - now)
+            end
+        end
+    end
+    if count.light then count.uncertain = count.total > 0 and count.minimum == 0 end
+    return count
+end
+
 -- Independent evidence never silently replaces the ledger.
 function CT.ValidateSnapshot(count, radius, verified, now, sampledAt)
     if type(count) ~= "number" or count ~= count or count < 0 or
@@ -433,4 +699,140 @@ function CT.ValidateSnapshot(count, radius, verified, now, sampledAt)
     if type(sampledAt) ~= "number" or sampledAt ~= sampledAt or
         sampledAt > now or sampledAt < now - 60 then return nil end
     return { count = count, radius = radius, verified = verified == true, at = sampledAt }
+end
+
+-- Guardian helpers.
+do
+-- Timed pets (Spirit Guardian / Intensive Mender): cache the own-pet summon,
+-- then require a death callback
+-- near its recorded end. Recasting/despawning alone never creates a corpse.
+local CT = CorpseTracker
+local math, pairs, type = math, pairs, type
+local Tracker = {}
+Tracker.__index = Tracker
+local GRACE = 0.25
+
+local function Finite(value)
+    return type(value) == "number" and value == value and
+        value ~= math.huge and value ~= -math.huge
+end
+
+function CT.NewGuardianTracker()
+    return setmetatable({ tags = {} }, Tracker)
+end
+
+function Tracker:Track(tag, unitId, beginning, ending, now)
+    if type(tag) ~= "string" or not tag:match("^playerpet%d+$") or
+            not Finite(unitId) or unitId <= 0 or unitId ~= math.floor(unitId) or
+            not Finite(beginning) or not Finite(ending) or not Finite(now) or
+            beginning > now + GRACE or ending <= beginning or ending - beginning > 60 or
+            ending < now - GRACE or ending > now + 60 then return false end
+    local previous = self.tags[tag]
+    if previous and previous.unitId == unitId and
+            math.abs(previous.beginning - beginning) <= GRACE then
+        -- Duplicate/updated effect routes must retain the death deduplication.
+        previous.ending = ending
+        return true
+    end
+    self.tags[tag] = { unitId = unitId, beginning = beginning, ending = ending }
+    return true
+end
+
+function Tracker:Death(tag, now)
+    local summon = self.tags[tag]
+    if not summon or summon.counted or not Finite(now) then return nil end
+    summon.counted = true
+    if math.abs(now - summon.ending) > GRACE then return nil end
+    return summon
+end
+
+function Tracker:Forget(tag)
+    self.tags[tag] = nil
+end
+
+function Tracker:Cleanup(now)
+    for tag, summon in pairs(self.tags) do
+        if now > summon.ending + 60 then self.tags[tag] = nil end
+    end
+end
+
+end
+
+-- Consumers helpers.
+do
+-- Aggregate confirmed consumer markers before reconciling virtual/physical
+-- resources. UI casts, healing hits and duration values never enter this queue.
+local CT = CorpseTracker
+local math, type, ipairs, table = math, type, ipairs, table
+local Queue = {}
+Queue.__index = Queue
+local SETTLE, GROUP_WINDOW = 0.25, 0.35
+local EMPTY_READY = {}
+local targeted = { blood = true, tether = true, harvest = true }
+local function Finite(value)
+    return type(value) == "number" and value == value and
+        value ~= math.huge and value ~= -math.huge
+end
+
+function CT.NewConsumerQueue()
+    return setmetatable({ pending = {}, recent = {}, serial = 0 }, Queue)
+end
+
+function Queue:Add(kind, now, amount, target, targetType, bodyCutoff, promiseCutoff)
+    if (not targeted[kind] and kind ~= "enduring" and kind ~= "renewing") or not Finite(now) or
+            not Finite(amount) or amount < 1 or amount > 10 or amount ~= math.floor(amount) then return end
+    if kind == "renewing" and amount ~= 1 then return end
+    if targeted[kind] and (amount ~= 1 or not Finite(target) or target <= 0 or
+            target ~= math.floor(target)) then return end
+    for index = #self.recent, 1, -1 do
+        local previous = self.recent[index]
+        if now - previous.at > GROUP_WINDOW then table.remove(self.recent, index)
+        elseif previous.kind == kind and now >= previous.at and
+                (not targeted[kind] or (previous.target == target and previous.targetType == targetType)) then
+            return -- a duplicate after an immediate/settled commit
+        end
+    end
+    for _, transaction in ipairs(self.pending) do
+        if transaction.kind == kind and now >= transaction.at and
+                now - transaction.at <= GROUP_WINDOW and
+                (not targeted[kind] or (transaction.target == target and transaction.targetType == targetType)) then
+            transaction.amount = math.max(transaction.amount, amount)
+            transaction.lastAt = now
+            return transaction
+        end
+    end
+    if #self.pending >= 32 then return end
+    self.serial = self.serial + 1
+    local transaction = { serial = self.serial, kind = kind, at = now, lastAt = now,
+        amount = amount, target = target, targetType = targetType,
+        bodyCutoff = bodyCutoff, promiseCutoff = promiseCutoff }
+    self.pending[#self.pending + 1] = transaction
+    return transaction
+end
+
+function Queue:TakeReady(now, force)
+    -- Normal play usually has no pending confirmations. Reuse the read-only
+    -- empty result instead of allocating two tables on every HUD refresh.
+    if #self.pending == 0 then return EMPTY_READY end
+    local ready, retained = {}, {}
+    for _, transaction in ipairs(self.pending) do
+        if force or now - transaction.lastAt >= SETTLE then
+            ready[#ready + 1] = transaction
+            self.recent[#self.recent + 1] = transaction
+        else retained[#retained + 1] = transaction end
+    end
+    self.pending = retained
+    return ready
+end
+
+function Queue:Take(transaction)
+    for index, pending in ipairs(self.pending) do
+        if pending == transaction then
+            table.remove(self.pending, index)
+            self.recent[#self.recent + 1] = pending
+            return pending
+        end
+    end
+end
+
 end

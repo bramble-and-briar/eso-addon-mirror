@@ -129,7 +129,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Groupbound – All-in-One Group Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Groupbound-All-in-One-Group-Finder__4951) | brianmit | PC / Mac | 1.0.0 |
 | [GroupBuffTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/GroupBuffTracker__4120) | Tenshiraito | PC / Mac | 2.8 |
 | [GroupEncore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/GroupEncore__6a072e95-965d-4368-9c0f-196d198ad5dd) | SugaComa | Console | — |
-| [GroupFinder+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/GroupFinder__4338) | atharti | PC / Mac | 6.7 |
+| [GroupFinder+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/GroupFinder__4338) | atharti | PC / Mac | 6.8 |
 | [GroupHealth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ckau/GroupHealth__2527) | Ckau | PC / Mac | 1.2 |
 | [GroupRegenTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/GroupRegenTracker__1422) | 2ch | PC / Mac | 6.2 |
 | [GroupResources](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/GroupResources__1338) | sirinsidiator | PC / Mac | 0.10.0 |

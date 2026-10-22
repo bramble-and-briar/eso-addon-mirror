@@ -446,6 +446,13 @@ function TTMP:GetPOIChallengeKind(zoneIndex, poiIndex, poiIcon)
         return nil
     end
 
+    -- Solo entrances share group-dungeon art; indices verified in the live client.
+    if (poiIndex == 62 and GetZoneId(zoneIndex) == 108)
+        or (poiIndex == 63 and GetZoneId(zoneIndex) == 382)
+    then
+        return "soloDungeon"
+    end
+
     local normalizedIcon = NormalizeTexturePath(poiIcon)
     if normalizedIcon == "" then
         normalizedIcon = NormalizeTexturePath(select(4, GetPOIMapInfo(zoneIndex, poiIndex)))
@@ -507,12 +514,8 @@ end
 
 function TTMP:IsBonusDynamicMatch(match, zoneId)
     local entry = match.entry
-    return zoneId
-        and entry.bonusIcon
-        and entry.bonusZoneIds
-        and entry.bonusZoneIds[zoneId]
-        and entry.bonusActivityIds
-        and entry.bonusActivityIds[match.activityId]
+    local zones = entry.bonusZoneIdsByActivityId and entry.bonusZoneIdsByActivityId[match.activityId]
+    return zones and zones[zoneId]
 end
 
 function TTMP:GetDynamicPinIcon(match, zoneId)
@@ -566,7 +569,7 @@ function TTMP:GetDynamicChallengeMatch(challengeKind, zoneId)
         local zoneRestrictions = match.entry.activityZoneIds
         local allowedZones = zoneRestrictions and zoneRestrictions[match.activityId]
         if not allowedZones or allowedZones[zoneId] then
-            if self:IsBonusDynamicMatch(match, zoneId) then
+            if self.goldBookIcons[match.entry.icon] or self:IsBonusDynamicMatch(match, zoneId) then
                 selectedMatch = match
                 break
             end
@@ -1048,10 +1051,9 @@ function TTMP:AddGlobalPins()
                 else
                     zones = allowedZones
                 end
-            elseif entry.bonusActivityIds and entry.bonusActivityIds[match.activityId]
-                and self.goldBookIcons[entry.bonusIcon]
+            elseif entry.bonusZoneIdsByActivityId and self.goldBookIcons[entry.bonusIcon]
             then
-                zones = entry.bonusZoneIds
+                zones = entry.bonusZoneIdsByActivityId[match.activityId]
             end
             if zones then
                 for zoneId in pairs(zones) do

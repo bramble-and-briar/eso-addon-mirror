@@ -69,6 +69,8 @@ local COLOR_HOVER_BG = {0.45, 0.45, 0.45, 0.25}
 local COLOR_PENDING = {1.0,	 1.0,  0.6,	 0.5}
 local COLOR_JOINED = {0.6,	1.0,  0.6,	0.4}
 
+GF.ROLE_ORDER = { LFG_ROLE_TANK, LFG_ROLE_HEAL, LFG_ROLE_DPS }
+
 GF.ROW_HEIGHT = 26
 GF.BASE_WIDTH = 360
 GF.PADDING = 4
@@ -85,7 +87,6 @@ GF.championPoints = 0
 GF.hiddenListings = {}
 GF.rows = {}
 GF.listings = {}
-GF.tempListings = {}
 GF.filteredListings = {}
 GF.tooltipLines = {}
 GF.achievementLinks = {}
@@ -96,6 +97,12 @@ GF.ROLE_ICONS = {
 	[LFG_ROLE_TANK] = "esoui/art/lfg/lfg_icon_tank.dds",
 	[LFG_ROLE_HEAL] = "esoui/art/lfg/lfg_icon_healer.dds",
 	[LFG_ROLE_DPS]	= "esoui/art/lfg/lfg_icon_dps.dds",
+}
+
+local SIZE_MAP = {
+	[1] = 2,   -- Duo
+	[2] = 4,   -- Dungeon
+	[4] = 12,  -- Trial
 }
 
 
@@ -305,11 +312,6 @@ buildZoneLookup(GF.Arenas, GF.ArenaNameToZoneID, GF.ZoneToArenaShort)
 function GF.BlacklistLeader(displayName)
 	GF.SV.BlacklistedLeaders[displayName] = true
 	GF.RefreshUI()
-
-	if GF_BLACKLIST_DROPDOWN then
-		GF_BLACKLIST_DROPDOWN:UpdateChoices(GF.GetBlacklistChoices())
-		GF_BLACKLIST_DROPDOWN:UpdateValue()
-	end
 end
 
 function GF.IsLeaderBlacklisted(displayName)
@@ -334,7 +336,7 @@ function GroupFinderPlus_ToggleWindow()
 end
 
 function GroupFinderPlus_CycleCategory()
-	if not GF.win or GF.SV.isHidden or GF.isMasterHidden then return end
+	if GF.SV.isHidden or GF.isMasterHidden then return end
 
 	local nextIndex = GF.GetNextEnabledCategoryIndex()
 	if not nextIndex then return end
@@ -345,11 +347,8 @@ function GroupFinderPlus_CycleCategory()
 
 	GF.SV.LastCategory = GF.SV.SaveLastCategory and GF.currentCategory or nil
 
-	if GF.topButton then
-		GF.topButton:ClearAnchors()
-		GF.topButton:SetTexture(cat.icon)
-		GF.topButton:SetDimensions(cat.size or GF.TOP_BUTTON_SIZE, cat.size or GF.TOP_BUTTON_SIZE)
-	end
+	GF.topButton:SetTexture(cat.icon)
+	GF.topButton:SetDimensions(GF.TOP_BUTTON_SIZE, GF.TOP_BUTTON_SIZE)
 
 	GF.UpdateTopButtonAnchors()
 	GF.UpdateInstanceModeButtonVisibility()
@@ -368,24 +367,20 @@ function GroupFinderPlus_CycleCategory()
 end
 
 function GroupFinderPlus_SwitchMode()
-	if not GF.win or GF.SV.isHidden or GF.isMasterHidden then return end
+	if GF.SV.isHidden or GF.isMasterHidden then return end
 
 	if not GF.CategoriesWithPrefix[GF.currentCategory] then return end
 
-	GF.instanceMode = (GF.instanceMode == 1) and 2 or 1
-	GF.SV.InstanceMode = GF.instanceMode
+	GF.SV.InstanceMode = (GF.SV.InstanceMode == 1) and 2 or 1
 
-	if GF.leftTopButton then
-		GF.leftTopButton:ClearAnchors()
-		local icon = (GF.instanceMode == 1) and ICON_NORMAL or ICON_VETERAN
-		GF.leftTopButton:SetTexture(icon)
-		GF.leftTopButton:SetDimensions(24, 24)
-	end
+	local icon = (GF.SV.InstanceMode == 1) and ICON_NORMAL or ICON_VETERAN
+	GF.leftTopButton:SetTexture(icon)
+	GF.leftTopButton:SetDimensions(24, 24)
 
 	GF.UpdateTopButtonAnchors()
 	GF.UpdateInstanceModeButtonVisibility()
 
-	SetGroupFinderFilterPrimaryOptionByIndex(GF.instanceMode, true)
+	SetGroupFinderFilterPrimaryOptionByIndex(GF.SV.InstanceMode, true)
 
 	GF.ClearListingsUI()
 	GF.firstSearchAfterCategoryChange = true
@@ -439,18 +434,12 @@ function GF.GetCurrentIndexBySessionId(sessionId)
 end
 
 local function GetActualGroupSize(sizeIndex)
-	local sizeMap = {
-		[1] = 2,   -- Duo
-		[2] = 4,   -- Dungeon
-		[4] = 12,  -- Trial
-	}
-	return sizeMap[sizeIndex]
+	return SIZE_MAP[sizeIndex]
 end
 
 -- =========================================================
 -- GetShortCode
 -- =========================================================
-
 function GF.GetShortCode(listingIndex)
 	local _, listingName = GetGroupFinderSearchListingOptionsSelectionTextByIndex(listingIndex)
 
@@ -491,7 +480,6 @@ function GF.CreateWindow()
 	GF.win:SetDrawTier(DT_MEDIUM)
 	GF.win:SetDrawLevel(0)
 	GF.win:ClearAnchors()
-	GF.ApplyWindowAnchor()
 	GF.win:SetHidden(true)
 
 	GF.win:SetHandler("OnMouseDown", function(self, button)
@@ -510,7 +498,6 @@ function GF.CreateWindow()
 		local left	  = self:GetLeft()
 		local right	  = self:GetRight()
 		local top	  = self:GetTop()
-		local width	  = self:GetWidth()
 
 		local EPS	  = 2
 		local anchor  = GF.SV.windowAnchor
@@ -601,60 +588,49 @@ function GF.CreateWindow()
 	button:SetDimensions(GF.TOP_BUTTON_SIZE, GF.TOP_BUTTON_SIZE)
 	button:SetTexture(GF.Categories[GF.currentCategoryIndex].icon)
 	button:SetMouseEnabled(true)
-
-	button:SetAnchor(
-		TOPRIGHT,
-		GF.win,
-		TOPRIGHT,
-		-GF.TOP_BUTTON_PADDING - 2,
-		GF.TOP_BUTTON_PADDING + 10
-	)
-
 	button:SetDrawLayer(DL_OVERLAY)
 	button:SetDrawTier(DT_HIGH)
 	button:SetDrawLevel(5)
 
 	button:SetHandler("OnMouseUp", function(self, buttonId)
-	if buttonId == MOUSE_BUTTON_INDEX_LEFT then
-		GroupFinderPlus_CycleCategory()
-	end
+		if buttonId == MOUSE_BUTTON_INDEX_LEFT then
+			GroupFinderPlus_CycleCategory()
+		end
 	end)
 
 	-- =====================================================
 	-- Normal / Veteran
 	-- =====================================================
-	if GF.SV.ShowInstanceModeButton then
-		local leftButton = WINDOW_MANAGER:CreateControl(nil, GF.win, CT_TEXTURE)
-		GF.leftTopButton = leftButton
 
-		local icon = (GF.instanceMode == 1) and ICON_NORMAL or ICON_VETERAN
-		leftButton:SetTexture(icon)
+	local leftButton = WINDOW_MANAGER:CreateControl(nil, GF.win, CT_TEXTURE)
+	GF.leftTopButton = leftButton
 
-		leftButton:SetDimensions(24, 24)
+	local icon = (GF.SV.InstanceMode == 1) and ICON_NORMAL or ICON_VETERAN
+	leftButton:SetTexture(icon)
+	leftButton:SetDimensions(24, 24)
+	leftButton:SetMouseEnabled(true)
+	leftButton:SetDrawLayer(DL_OVERLAY)
+	leftButton:SetDrawTier(DT_HIGH)
+	leftButton:SetDrawLevel(5)
 
-		leftButton:SetMouseEnabled(true)
-
-		leftButton:SetAnchor(RIGHT, GF.topButton, LEFT, 0, 0)
-
-		leftButton:SetDrawLayer(DL_OVERLAY)
-		leftButton:SetDrawTier(DT_HIGH)
-		leftButton:SetDrawLevel(5)
-
-		leftButton:SetHandler("OnMouseUp", function(_, buttonId)
-			if buttonId == MOUSE_BUTTON_INDEX_LEFT then
-				GroupFinderPlus_SwitchMode()
-			end
-		end)
-	end
+	leftButton:SetHandler("OnMouseUp", function(_, buttonId)
+		if buttonId == MOUSE_BUTTON_INDEX_LEFT then
+			GroupFinderPlus_SwitchMode()
+		end
+	end)
+	
+	GF.dummyLabel = WM:CreateControl(nil, GuiRoot, CT_LABEL)
+	GF.dummyLabel:SetFont("ZoFontGame")
+	GF.dummyLabel:SetHidden(true)
 
 	GF.UpdateTopButtonAnchors()
+	GF.UpdateInstanceModeButtonVisibility()
+	GF.ApplyWindowAnchor()
 end
 
 function GF.ApplyWindowAnchor()
-	if not GF.win then return end
-
-	local x = GF.SV.windowOffsetX or 0
-	local y = GF.SV.windowOffsetY or 0
+	local x = GF.SV.windowOffsetX
+	local y = GF.SV.windowOffsetY
 
 	GF.win:ClearAnchors()
 
@@ -669,23 +645,20 @@ end
 
 function GF.UpdateInstanceModeButtonVisibility()
 	if not GF.SV.ShowInstanceModeButton then
-		if GF.leftTopButton then
-			GF.leftTopButton:SetHidden(true)
-		end
+		GF.leftTopButton:SetHidden(true)
 		return
 	end
 
-	local show = GF.currentCategory == GROUP_FINDER_CATEGORY_TRIAL or GF.currentCategory == GROUP_FINDER_CATEGORY_DUNGEON or GF.currentCategory == GROUP_FINDER_CATEGORY_ARENA
+	local show = GF.currentCategory == GROUP_FINDER_CATEGORY_TRIAL
+			  or GF.currentCategory == GROUP_FINDER_CATEGORY_DUNGEON
+			  or GF.currentCategory == GROUP_FINDER_CATEGORY_ARENA
 
-	if GF.leftTopButton then
-		GF.leftTopButton:SetHidden(not show or GF.isMasterHidden or GF.SV.isHidden)
+	GF.leftTopButton:SetHidden(not show or GF.isMasterHidden or GF.SV.isHidden)
 
-		if show and not GF.isMasterHidden and not GF.SV.isHidden then
-			local icon = (GF.instanceMode == 1) and ICON_NORMAL or ICON_VETERAN
-			GF.leftTopButton:SetTexture(icon)
-
-			GF.leftTopButton:SetDimensions(24, 24)
-		end
+	if show and not GF.isMasterHidden and not GF.SV.isHidden then
+		local icon = (GF.SV.InstanceMode == 1) and ICON_NORMAL or ICON_VETERAN
+		GF.leftTopButton:SetTexture(icon)
+		GF.leftTopButton:SetDimensions(24, 24)
 	end
 end
 
@@ -697,7 +670,7 @@ function GF.SetEmptyIconSearching(isSearching)
 		GF.searchIcon:SetHidden(true)
 
 		local rowCount = #GF.listings
-		if rowCount == 0 and GF.emptyIcon then
+		if rowCount == 0 then
 			GF.emptyIcon:SetHidden(false)
 			GF.emptyIcon:SetColor(0.5, 0.5, 0.5, 1)
 		end
@@ -738,7 +711,7 @@ function GF.CreateRow()
 
 	row.roleControls = {}
 	local prev
-	for _, role in ipairs({ LFG_ROLE_TANK, LFG_ROLE_HEAL, LFG_ROLE_DPS }) do
+	for _, role in ipairs(GF.ROLE_ORDER) do
 		local icon = WM:CreateControl(nil, row.roles, CT_TEXTURE)
 		icon:SetDimensions(18, 18)
 		icon:SetTexture(GF.ROLE_ICONS[role])
@@ -852,9 +825,8 @@ end
 
 function GF.GetFullRoleData(listingIndex)
 	local roleData = {}
-	local roles = { LFG_ROLE_TANK, LFG_ROLE_HEAL, LFG_ROLE_DPS }
 
-	for _, role in ipairs(roles) do
+	for _, role in ipairs(GF.ROLE_ORDER) do
 		local requested, current = GetGroupFinderSearchListingRoleStatusCount(listingIndex, role)
 		roleData[role] = {
 			requested = requested or 0,
@@ -891,10 +863,8 @@ end
 -- =========================================================
 function GF.BuildListings()
 	ZO_ClearNumericallyIndexedTable(GF.listings)
-	ZO_ClearNumericallyIndexedTable(GF.tempListings)
 
 	local count = GetGroupFinderSearchNumListings()
-	local tempListings = GF.tempListings
 
 	for i = 1, count do
 		local title = GetGroupFinderSearchListingTitleByIndex(i)
@@ -967,7 +937,7 @@ function GF.BuildListings()
 				local enforcesRoles = DoesGroupFinderSearchListingEnforceRoles(i)
 				local groupSizeIndex = GetGroupFinderSearchListingGroupSizeByIndex(i)
 
-				table.insert(tempListings, {
+				table.insert(GF.listings, {
 					index = i,
 					sessionId = sessionId,
 					title = title,
@@ -996,10 +966,6 @@ function GF.BuildListings()
 			end
 		end
 	end
-
-	for _, listing in ipairs(tempListings) do
-		table.insert(GF.listings, listing)
-	end
 end
 
 -- =========================================================
@@ -1019,7 +985,7 @@ function GF.RefreshUI()
 	local playerCP = GF.championPoints
 
 	local CP_ICON_WIDTH = 22
-	local showCpColumn = false
+	local cpOffset = 0
 
 	-- =====================================================
 	-- Filter Low CP
@@ -1043,49 +1009,21 @@ function GF.RefreshUI()
 	-- Empty state
 	-- =====================================================
 	if rowCount == 0 then
-		for i = 1, #GF.rows do
-			GF.rows[i]:SetHidden(true)
-		end
-		if GF.emptyIcon then GF.emptyIcon:SetHidden(false) end
-		if GF.dragArea then GF.dragArea:SetHidden(false) end
-
-		local symbolSize  = 64
-		local padding	  = -15
-		local totalWidth  = symbolSize + padding * 2
-		local totalHeight = symbolSize + padding * 2 + GF.TOP_CONTENT_OFFSET
-
-		GF.win:SetDimensions(totalWidth, totalHeight)
-		GF.bg:SetWidth(totalWidth)
-		GF.bg:SetHeight(totalHeight - GF.TOP_CONTENT_OFFSET)
-
-		GF.ApplyWindowAnchor()
-
-		GF.SetupBackgroundColors()
-
-		if GF.emptyIcon then
-			GF.emptyIcon:ClearAnchors()
-			GF.emptyIcon:SetAnchor(CENTER, GF.bg, CENTER, 0, -1)
-		end
+		GF.ClearListingsUI()
 		return
 	end
 
 	-- =====================================================
 	-- Normal listings
 	-- =====================================================
-	if GF.emptyIcon then GF.emptyIcon:SetHidden(true) end
-	if GF.dragArea then GF.dragArea:SetHidden(true) end
+	GF.emptyIcon:SetHidden(true)
+	GF.dragArea:SetHidden(true)
 
 	GF.SetupBackgroundColors()
 
 	-- =====================================================
 	-- Calculate max label width
 	-- =====================================================
-	if not GF.dummyLabel then
-		GF.dummyLabel = WM:CreateControl(nil, GuiRoot, CT_LABEL)
-		GF.dummyLabel:SetFont("ZoFontGame")
-		GF.dummyLabel:SetHidden(true)
-	end
-
 	local dummy = GF.dummyLabel
 
 	for _, listing in ipairs(filteredListings) do
@@ -1098,7 +1036,7 @@ function GF.RefreshUI()
 	-- =====================================================
 	for _, listing in ipairs(filteredListings) do
 		if listing.requiresCP and playerCP < listing.requiredCP then
-			showCpColumn = true
+			cpOffset = CP_ICON_WIDTH
 			break
 		end
 	end
@@ -1175,7 +1113,7 @@ function GF.RefreshUI()
 		end
 
 		local rolesWidth = 0
-		local roles = { LFG_ROLE_TANK, LFG_ROLE_HEAL, LFG_ROLE_DPS }
+		local roles = GF.ROLE_ORDER
 
 		if row.enforcesRoles then
 			local maxGroupSize = GetActualGroupSize(row.groupSizeIndex)
@@ -1260,10 +1198,10 @@ function GF.RefreshUI()
 		end
 
 		row.roles:ClearAnchors()
-		row.roles:SetAnchor(LEFT, row, LEFT, maxLabelWidth + rolesGap + (showCpColumn and CP_ICON_WIDTH or 0), 0)
+		row.roles:SetAnchor(LEFT, row, LEFT, maxLabelWidth + rolesGap + cpOffset, 0)
 		row.roles:SetWidth(rolesWidth)
 
-		local rowWidth = maxLabelWidth + rolesGap + (showCpColumn and CP_ICON_WIDTH or 0) + rolesWidth + GF.PADDING + rowExtraWidth
+		local rowWidth = maxLabelWidth + rolesGap + cpOffset + rolesWidth + GF.PADDING + rowExtraWidth
 
 		maxRowWidth = math.max(maxRowWidth, rowWidth)
 
@@ -1272,10 +1210,8 @@ function GF.RefreshUI()
 		row:SetAnchor(TOPLEFT, prev or GF.win, prev and BOTTOMLEFT or TOPLEFT, 0, prev and 0 or (bgPadding + GF.TOP_CONTENT_OFFSET))
 
 		row:SetWidth(rowWidth)
-		row:SetHeight(GF.ROW_HEIGHT)
 		row:SetHidden(false)
 		row.bg:SetWidth(rowWidth)
-		row.bg:SetHeight(GF.ROW_HEIGHT)
 
 		prev = row
 	end
@@ -1297,8 +1233,8 @@ function GF.ClearListingsUI()
 		GF.rows[i]:SetHidden(true)
 	end
 
-	if GF.emptyIcon then GF.emptyIcon:SetHidden(false) end
-	if GF.dragArea then GF.dragArea:SetHidden(false) end
+	GF.emptyIcon:SetHidden(false)
+	GF.dragArea:SetHidden(false)
 
 	local symbolSize  = 64
 	local padding	  = -15
@@ -1309,33 +1245,22 @@ function GF.ClearListingsUI()
 	GF.bg:SetWidth(totalWidth)
 	GF.bg:SetHeight(totalHeight - GF.TOP_CONTENT_OFFSET)
 	GF.ApplyWindowAnchor()
+	GF.SetupBackgroundColors()
 
-	if GF.emptyIcon then
-		GF.emptyIcon:ClearAnchors()
-		GF.emptyIcon:SetAnchor(CENTER, GF.bg, CENTER, 0, -1)
-	end
+	GF.emptyIcon:ClearAnchors()
+	GF.emptyIcon:SetAnchor(CENTER, GF.bg, CENTER, 0, -1)
 end
 
 function GF.UpdateTopButtonAnchors()
-	if not GF.topButton then return end
-
 	GF.topButton:ClearAnchors()
-	if GF.leftTopButton then
-		GF.leftTopButton:ClearAnchors()
-	end
+	GF.leftTopButton:ClearAnchors()
 
 	if GF.SV.windowAnchor == "RIGHT" then
 		GF.topButton:SetAnchor(TOPRIGHT, GF.win, TOPRIGHT, -GF.TOP_BUTTON_PADDING - 2, GF.TOP_BUTTON_PADDING + 10)
-
-		if GF.leftTopButton then
-			GF.leftTopButton:SetAnchor(RIGHT, GF.topButton, LEFT, 0, 0)
-		end
+		GF.leftTopButton:SetAnchor(RIGHT, GF.topButton, LEFT, 0, 0)
 	else
 		GF.topButton:SetAnchor(TOPLEFT, GF.win, TOPLEFT, GF.TOP_BUTTON_PADDING - 6, GF.TOP_BUTTON_PADDING + 10)
-
-		if GF.leftTopButton then
-			GF.leftTopButton:SetAnchor(LEFT, GF.topButton, RIGHT, 0, 0)
-		end
+		GF.leftTopButton:SetAnchor(LEFT, GF.topButton, RIGHT, 0, 0)
 	end
 end
 
@@ -1392,14 +1317,10 @@ function GF.ShowContextMenu(row)
 
 	for _, link in ipairs(achievementLinks) do
 		local achievementId = GetAchievementIdFromLink(link)
-		if achievementId then
-			local myLink = GetAchievementLink(achievementId)
-			if myLink then
-				AddCustomMenuItem(myLink, function()
-					ZO_LinkHandler_OnLinkClicked(myLink, 1, nil)
-				end)
-			end
-		end
+		local myLink = GetAchievementLink(achievementId)
+		AddCustomMenuItem(myLink, function()
+			ZO_LinkHandler_OnLinkClicked(myLink, 1, nil)
+		end)
 	end
 
 	AddCustomMenuItem("Hide This Listing (Session)", function()
@@ -1424,8 +1345,8 @@ end
 function GF.MasterToggleCheck()
 	local hosting = GetCurrentGroupFinderUserType() == 1
 	local inBattleground = IsActiveWorldBattleground()
-	local inInstance = GF.IsInstanced == true and GF.SV.HideInInstance
-	local lowLevel = GF.playerLevel and GF.playerLevel < 10
+	local inInstance = GF.IsInstanced and GF.SV.HideInInstance
+	local lowLevel = GF.playerLevel < 10
 
 	GF.isMasterHidden = hosting or inBattleground or inInstance or lowLevel
 
@@ -1468,7 +1389,6 @@ function GF.RequestCurrentCategorySearch()
 
 	if GF.CategoriesWithPrefix[GF.currentCategory] then
 		SetGroupFinderFilterPrimaryOptionByIndex(GF.SV.InstanceMode, true)
-		GF.instanceMode = GF.SV.InstanceMode
 	end
 
 	GF.UpdateInstanceModeButtonVisibility()
@@ -1528,7 +1448,10 @@ end
 -- =========================================================
 -- Init
 -- =========================================================
-function GF.Initialize()
+function GF.Init(_, addonName)
+	if addonName ~= GF.name then return end
+	EM:UnregisterForEvent(GF.name, EVENT_ADD_ON_LOADED)
+
 	GF.SV = ZO_SavedVars:NewAccountWide("GroupFinderPlus_SavedVariables", 1, nil, defaultSV)
 
 	for i, cat in ipairs(GF.Categories) do
@@ -1539,7 +1462,6 @@ function GF.Initialize()
 		end
 	end
 
-	GF.instanceMode = GF.SV.InstanceMode
 	GF.RegisterLAMPanel()
 	GF.RegisterBlacklistDialog()
 	GF.AllowAllRoles()
@@ -1571,10 +1493,4 @@ function GF.Initialize()
 	EM:RegisterForEvent(GF.name, EVENT_PLAYER_DEACTIVATED, GF.OnPlayerDeactivated)
 end
 
-local function OnAddonLoaded(_, addonName)
-	if addonName ~= GF.name then return end
-	EM:UnregisterForEvent(GF.name, EVENT_ADD_ON_LOADED)
-	GF.Initialize()
-end
-
-EM:RegisterForEvent(GF.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+EM:RegisterForEvent(GF.name, EVENT_ADD_ON_LOADED, GF.Init)

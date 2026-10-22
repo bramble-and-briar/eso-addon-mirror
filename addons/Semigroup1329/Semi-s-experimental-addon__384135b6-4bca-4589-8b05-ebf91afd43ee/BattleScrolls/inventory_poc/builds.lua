@@ -51,7 +51,8 @@ local builds = {
 BattleScrolls.inventoryPocBuilds = builds
 local poc = BattleScrolls.inventoryPoc
 local facts = BattleScrolls.inventoryPocFacts
-local EVENT_NAME = 'BattleScrollsInventoryPocBuilds'
+---@type Fiber|nil
+local armoryFiber
 -- Healers Haven's gearing-up pages, checked 2026-10-18. Includes situational
 -- and beginner healer choices, named support alternatives, and perfected
 -- variants. Sources and LibSets' numeric ID mapping are in research.md.
@@ -158,6 +159,7 @@ end
 
 function builds.stop()
     poc.wake()
+    if armoryFiber then armoryFiber:Cancel(); armoryFiber = nil end
     local state = builds.state()
     if builds.request and state then
         state.status, state.applying = 'paused', nil
@@ -175,6 +177,7 @@ function builds.choose(choice)
         if entry.id == choice then
             state.choice, state.armoryDone, state.status = choice, false, 'bank'
             setIssue(state, nil)
+            poc.cancelled = false
             poc.wake()
             return
         end
@@ -227,6 +230,53 @@ local function healerExtra(item)
     if item.kind ~= 'gear' or not IsItemPlayerLocked(item.bag, item.slot) then return false end
     local _, _, _, _, _, setId = GetItemLinkSetInfo(item.link, false)
     return HEALER_SETS[setId] == true
+end
+
+---@param state InventoryPocBuildState
+---@param selected InventoryPocBuildProfile
+---@param setups table<number, InventoryPocWardrobeSetup>
+---@param reserved table<string, boolean>
+---@param backpack InventoryPocItem[]
+---@param bank InventoryPocItem[]
+---@return table<string, boolean> wanted
+---@return table<string, boolean> all
+local function gearPlan(state, selected, setups, reserved, backpack, bank)
+    local wanted, all = {}, {}
+    for id in pairs(reserved) do all[id] = true end
+    for _, memory in pairs(state.armory) do for _, id in pairs(memory.gear) do all[id] = true end end
+    for _, id in pairs(state.armory[selected.armoryIndex].gear) do wanted[id] = true end
+    for _, setup in pairs(setups) do for slot, ref in pairs(setup.gear or {}) do
+        if type(slot) == 'number' and type(ref) == 'table' and ref.id and ref.id ~= '0' then wanted[ref.id] = true end
+    end end
+    for _, list in ipairs({ backpack, bank }) do for _, item in ipairs(list) do
+        if healerExtra(item) then
+            all[item.uniqueId] = true
+            if selected.id == 'healer' then wanted[item.uniqueId] = true end
+        end
+    end end
+    return wanted, all
+end
+
+---Run within LibEffect.Async to estimate deposits for the selected build.
+---@param reserved table<string, boolean>
+---@param backpack InventoryPocItem[]
+---@return table<string, boolean>
+function builds.depositIds(reserved, backpack)
+    local result = {}
+    local state, selected, ww = builds.state(), profile(), wardrobe()
+    if not state or not selected or state.status == 'paused' or builds.request then return result end
+    if not ww or not ww.conditions or not ww.gui or not ww.pages or not ww.setups then return result end
+    local page = pageId(ww, selected.pageName)
+    local setups = page and ww.setups.SUB and ww.setups.SUB[page]
+    if not setups or not ww.pages.SUB[0] or not ww.zones.SUB then return result end
+    captureArmory(state)
+    if not state.armory[selected.armoryIndex]
+        or zo_strlower(GetArmoryBuildName(selected.armoryIndex)) ~= zo_strlower(selected.armoryName) then return result end
+    local wanted, all = gearPlan(state, selected, setups, reserved, backpack, {})
+    for _, item in ipairs(backpack) do
+        if all[item.uniqueId] and not wanted[item.uniqueId] then result[item.uniqueId] = true end
+    end
+    return result
 end
 
 ---@param gear table<number, string>
@@ -304,6 +354,39 @@ local function wardrobeMismatch(request, ww)
     end
 end
 
+---@param request InventoryPocBuildRequest
+local function restoreArmory(request)
+    local restore = LibEffect.Async(function()
+        return LibEffect.Events(function(events, resolve)
+            events:On(EVENT_ARMORY_BUILD_RESTORE_RESPONSE, function(_, result, index)
+                if index == request.armoryIndex then resolve(result) end
+            end)
+            builds.ownRequest = true
+            local ok, err = pcall(RestoreArmoryBuild, request.armoryIndex)
+            builds.ownRequest = false
+            if not ok then error(err, 0) end
+        end):Deadline(request.started + 90000):Await()
+    end)
+    local fiber = restore:Run()
+    armoryFiber = fiber
+    fiber:OnComplete(function(completed)
+        if armoryFiber ~= fiber then return end
+        armoryFiber = nil
+        local state = builds.state()
+        if builds.request ~= request or not state then return end
+        builds.request, state.applying = nil, nil
+        if completed:IsSucceeded() and completed._value == ARMORY_BUILD_RESTORE_RESULT_SUCCESS then
+            state.armoryDone, state.status = true, 'bank'
+            log('done')
+        else
+            state.status = 'paused'
+            log('uncertain')
+            if completed:IsFailed() and not LibEffect.IsTimeoutError(completed._error) then LibEffect.RaiseError(completed._error) end
+        end
+        poc.wake()
+    end)
+end
+
 ---A transition owns inventory work only while Armory/WW is actually applying.
 ---The selected bundle stays bankable after completion without re-equipping it.
 ---@param reserved table<string, boolean>
@@ -316,6 +399,7 @@ function builds.step(reserved, pass)
     local ww = wardrobe()
     local request = builds.request
     if request then
+        if request.kind == 'armory' then return true end
         if request.kind == 'wardrobe' and ww and request.sawSelector then
             local kind, slot, bar, expected, actual = wardrobeMismatch(request, ww)
             setIssue(state, kind, slot, bar, expected, actual)
@@ -347,13 +431,7 @@ function builds.step(reserved, pass)
     if zo_strlower(GetArmoryBuildName(selected.armoryIndex)) ~= zo_strlower(selected.armoryName) or not base then
         state.status = 'missing'; return false
     end
-    local wanted, all, carried = {}, {}, {}
-    for id in pairs(reserved) do all[id] = true end
-    for _, memory in pairs(state.armory) do for _, id in pairs(memory.gear) do all[id] = true end end
-    for _, id in pairs(base.gear) do wanted[id] = true end
-    for _, setup in pairs(setups) do for slot, ref in pairs(setup.gear or {}) do
-        if type(slot) == 'number' and type(ref) == 'table' and ref.id and ref.id ~= '0' then wanted[ref.id] = true end
-    end end
+    local carried = {}
     local backpack = pass and pass.backpack or facts.bag(BAG_BACKPACK, reserved)
     local worn = pass and pass.worn or facts.bag(BAG_WORN, reserved)
     if pass then pass.worn = worn end
@@ -366,12 +444,7 @@ function builds.step(reserved, pass)
         for _, bag in ipairs(bags) do for _, item in ipairs(facts.bag(bag, reserved)) do bank[#bank + 1] = item end end
         if pass then pass.bank = bank end
     end
-    for _, list in ipairs({ backpack, bank }) do for _, item in ipairs(list) do
-        if healerExtra(item) then
-            all[item.uniqueId] = true
-            if selected.id == 'healer' then wanted[item.uniqueId] = true end
-        end
-    end end
+    local wanted, all = gearPlan(state, selected, setups, reserved, backpack, bank)
     builds.moving = {}
     if bankOpen then
         -- Make room first; worn items are never unequipped just to bank them.
@@ -403,9 +476,7 @@ function builds.step(reserved, pass)
                 armoryIndex = selected.armoryIndex, page = page, base = base.gear, sawSelector = false }
             state.applying = true
             setIssue(state, nil)
-            builds.ownRequest = true
-            RestoreArmoryBuild(selected.armoryIndex)
-            builds.ownRequest = false
+            restoreArmory(builds.request)
             return true
         end
         state.status = complete and 'armory' or 'bank'
@@ -449,17 +520,6 @@ function builds.initialize()
         setIssue(current, 'interrupted')
         log('uncertain')
     end
-    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_ARMORY_BUILD_RESTORE_RESPONSE, function(_, result, index)
-        local request, state = builds.request, builds.state()
-        if not state or not request or request.kind ~= 'armory' or request.armoryIndex ~= index then return end
-        builds.request = nil
-        state.applying = nil
-        if result == ARMORY_BUILD_RESTORE_RESULT_SUCCESS then
-            state.armoryDone, state.status = true, 'bank'
-            log('done')
-        else state.status = 'paused'; log('uncertain') end
-        poc.wake()
-    end)
     ZO_PreHook('RestoreArmoryBuild', function()
         if poc.enabled and not builds.ownRequest then
             local state = builds.state()

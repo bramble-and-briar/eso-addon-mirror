@@ -5,7 +5,7 @@ local floor,min,max,abs=math.floor,math.min,math.max,math.abs
 A.LEVELS={'やさしい','ふつう','つよい'}
 -- Pixel height of one band of road rows in the 1280x720 picture. Smaller is smoother and costs
 -- more controls; 6 is the default until a PS5 says otherwise.
-A.QUALITY={low={9,'低',false},mid={7,'中',false},high={5,'高',true}}   -- {band px, name, scrolling stripes outside the road}
+A.QUALITY={low={8,'低'},mid={6,'中'},high={4,'高'}}
 A.QUALITY_ORDER={'low','mid','high'}
 function A:Alert(message) ZO_Alert(UI_ALERT_CATEGORY_ALERT,nil,message) end
 function A:ClearKeys() self.keys={};self.steer=0 end
@@ -57,11 +57,7 @@ end
 function A:Prepare()
  local def=self:Course()
  self.track=self:TrackFor(self.courseIndex)
- if not self.view then
-  local q=A.QUALITY[self.saved.quality or 'mid']
-  self.view=PBF.View.New({band=q[1],rich=self.saved.rich~=false});self.view.stripes=q[3]
-  self.view.lite=self.gov>=1
- end
+ if not self.view then self.view=PBF.View.New({band=A.QUALITY[self.saved.quality or 'mid'][1],rich=self.saved.rich~=false,hideBehind=self.saved.hide~=false}) end
  self.view:SetTheme(def.id)
  self.ui:EnsureBuilt(self.view,self.track)
  self.ui.view=self.view
@@ -84,7 +80,7 @@ function A:RefreshGarage()
  t.ovSub:SetText(string.format('%s\n全長 %.1f km　%d周',def.blurb,self.track.length/1000,def.laps))
  t.ovMachine:SetText('◀　'..st.name..'　▶')
  for i,name in ipairs({'最高速','加速','旋回','グリップ'}) do self.ui.statNames[i]:SetText(name) end
- self.ui:SetBars({st.top/250,st.accel/80,st.turn/2.8,st.grip/9})
+ self.ui:SetBars({st.top/110,st.accel/55,st.turn/2.8,st.grip/9})
  t.ovNote:SetText(st.note)
  t.ovLevel:SetText('ライバルの強さ：'..A.LEVELS[self.saved.level]..'　（上下）')
  t.ovMusic:SetText((best and ('ベストタイム '..C.FormatTime(best.time)..'　／　') or '')..self.audio:Label()..'（□）')
@@ -100,7 +96,6 @@ function A:StartRace()
  self.ui.text.ovHint:SetHidden(true)
  self.ui:UpdateKeybinds()
  self.footerUntil=GetFrameTimeSeconds()+6
- self.watch={t=0,n=0,since=0,slow=0}
  self.ui.footer:SetText('R2/×：アクセル　L2/□：ブレーキ　○：ブースト　L1/R1：スライド　△：一時停止');self.ui.footer:SetHidden(false)
 end
 function A:Pause()
@@ -222,8 +217,7 @@ function A:OnEvent(kind,m,a)
   if self.saved.rumble then self:Probe('rumble',rumble,120,min(1,a/40)) end
  elseif kind=='pad' then self.audio:Play('pad')
  elseif kind=='jump' then ui:Banner('JUMP!',.8,1.6);self.audio:Play('jump')
- elseif kind=='loop' then ui:Banner('SKY LOOP!',1.1,1.8);self.audio:Play('loop')
- elseif kind=='land' then ui:Shake(5);self.audio:Play('land')
+ elseif kind=='land' then ui:Shake(6);self.audio:Play('land')
  elseif kind=='explode' then
   if m.player then ui:Banner('リタイア',2.4,2.2);ui:Shake(30);self.audio:Play('explode') end
  elseif kind=='over' then
@@ -233,23 +227,11 @@ end
 -- ------------------------------------------------------------------------------------------
 function A:Tick()
  local now=GetFrameTimeSeconds()
- local raw=now-(self.lastTick or now)
- local dt=min(.1,max(0,raw));self.lastTick=now
+ local dt=min(.1,max(0,now-(self.lastTick or now)));self.lastTick=now
  local ui=self.ui
  ui:Tick(dt)
  if not self.state or not ui.scene:IsShowing() or not self.race then self.audio:Sync(false);return end
  self.audio:Sync(true)
- -- The reading counts every frame the engine ran, drawn or not: counting only the frames this
- -- add-on drew flatters it, because the drawn ones are exactly the slow ones.
- if self.saved.showFps then
-  self.fpsAcc=(self.fpsAcc or 0)+min(raw,.25);self.fpsN=(self.fpsN or 0)+1
-  if self.fpsAcc>=1 then
-   self.fps=self.fpsN/self.fpsAcc
-   ui:Text('fps',string.format('%d fps  %d rects  段階%d',floor(self.fps+.5),ui.view.o.n,self.gov))
-   self.fpsAcc,self.fpsN=0,0
-  end
- end
- if self.state=='race' and self.race.state=='racing' then self:Watch(raw) end
  if self.state=='race' then
   self:Controls(dt)
   local boosting=self.race.player.boosting
@@ -258,7 +240,8 @@ function A:Tick()
   self.wasBoosting=boosting
  end
  if now>=(self.drawAt or 0) then
-  self.drawAt=now+max(self.saved.frameMs or 33,self.drawMs or 0)/1000
+  local frame=max(dt,.001)
+  self.drawAt=now+(self.saved.frameMs or 33)/1000
   local drawDt=min(.1,now-(self.lastDraw or now))
   ui:Draw(self.track,self.race,drawDt);self.lastDraw=now
   ui:Effects(self.race,drawDt,self.state=='race')
@@ -267,71 +250,45 @@ function A:Tick()
   if self.state~='garage' then ui:Hud(self.race,self.saved) end
   ui:TickBanner(now);ui:TickShake(dt)
   if self.footerUntil and now>self.footerUntil then self.footerUntil=nil;ui.footer:SetHidden(true) end
+  if self.saved.showFps then
+   self.fpsAcc=(self.fpsAcc or 0)+frame;self.fpsN=(self.fpsN or 0)+1
+   if self.fpsAcc>=1 then
+    ui:Text('fps',string.format('%d fps  %d rects',floor(self.fpsN/self.fpsAcc+.5),ui.view.o.n))
+    self.fpsAcc,self.fpsN=0,0
+   end
+  end
  end
-end
--- ------------------------------------------------------------------------------------------
--- Frame-rate watch. Drawing is the expensive part and how expensive depends on the machine, so
--- rather than guess, the race measures its own frame rate and, if it stays low, lightens the
--- drawing one step at a time. It only ever lightens: a game that keeps changing its mind is worse
--- than one that settles. Steps: 1 fewer effects and roadside objects, far road updated a third
--- as often; 2 drawn every 50 ms; 3 drawn every 66 ms. The physics never slows down.
-A.GOV_FLOOR=26          -- frames per second below which a window counts as slow
-function A:Watch(raw)
- -- A stall (a scene change, the pause menu, a hitch) says nothing about the load.
- if raw>.25 then return end
- local w=self.watch
- w.t=w.t+raw;w.n=w.n+1;w.since=w.since+raw
- if w.t<2 then return end
- local fps=w.n/w.t
- w.t,w.n=0,0
- -- the first seconds of a race (the countdown's last moment, textures arriving) are not typical
- if w.since<5 or self.saved.governor==false or self.gov>=3 then w.slow=0;return end
- if fps<A.GOV_FLOOR then w.slow=w.slow+1 else w.slow=0 end
- if w.slow>=2 then w.slow=0;self:Lighten(fps) end
-end
-function A:Lighten(fps)
- self.gov=self.gov+1
- if self.gov==1 then
-  self.ui.lite=true;if self.view then self.view.lite=true end
-  self.ui.lodEvery=3
- elseif self.gov==2 then self.drawMs=50
- else self.drawMs=66 end
- self:Alert(string.format('F-MEGA：動作が重い（約%dfps）ため、描画を軽くしました（段階%d）。/pbfm gov で自動調整を切れます。',floor(fps+.5),self.gov))
-end
-function A:ResetGov()
- self.gov=0;self.drawMs=nil
- if self.ui then self.ui.lite=false;self.ui.lodEvery=2 end
- if self.view then self.view.lite=false end
- self.watch={t=0,n=0,since=0,slow=0}
 end
 function A:Initialize()
  self.saved=ZO_SavedVars:NewAccountWide('PBsFMEGASavedVariables',1,nil,{
   kind=1,level=2,quality='mid',musicMode='dueling',soundEnabled=true,showFps=false,
-  analog=false,rumble=false,autoAccel=false,frameMs=33,lastCourse=1,rich=true,governor=true,verified={},best={}})
+  analog=false,rumble=false,autoAccel=false,frameMs=33,lastCourse=1,rich=true,verified={},best={}})
  local s=self.saved
  if s.pending then s[s.pending]=false;self.pendingNotice=s.pending;s.pending=nil end
  if not PBF.Machine.Types[s.kind] then s.kind=1 end
  if not A.QUALITY[s.quality] then s.quality='mid' end
  self.audio=PBF.Audio.New(s)
- self.gov=0;self.watch={t=0,n=0,since=0,slow=0}
  self.ui=PBF.UI.New(self);PBF.HookMenus(self)
  SLASH_COMMANDS['/pbfm']=function(arg)
   local word,rest=(arg or ''):match('^(%S*)%s*(.-)$')
   if word=='' then self:Open(s.lastCourse or 1)
-  elseif word=='gov' then s.governor=not s.governor;self:ResetGov();self:Alert('自動で描画を軽くする：'..(s.governor and '入' or '切'))
   elseif word=='fps' then s.showFps=not s.showFps;self:Alert('FPS表示：'..(s.showFps and '入' or '切'))
   elseif word=='quality' then
-   if A.QUALITY[rest] then s.quality=rest;self:ResetGov();self:ApplyQuality() else self:Alert('quality low / mid / high') end
+   if A.QUALITY[rest] then s.quality=rest;self:ApplyQuality() else self:Alert('quality low / mid / high') end
   elseif word=='analog' then s.analog=not s.analog;s.verified.analog=nil;self:Alert('アナログ入力：'..(s.analog and '入（未検証）' or '切'))
   elseif word=='rumble' then s.rumble=not s.rumble;s.verified.rumble=nil;self:Alert('振動：'..(s.rumble and '入（未検証）' or '切'))
   elseif word=='auto' then s.autoAccel=not s.autoAccel;self:Alert('オートアクセル：'..(s.autoAccel and '入' or '切'))
   elseif word=='flat' then self:SetRich(false);self:Alert('描画：矩形のみ（画像なし）')
   elseif word=='rich' then self:SetRich(true);self:Alert('描画：画像あり')
+  elseif word=='hide' then
+   -- road behind a nearer crest is not drawn; /pbfm hide turns that off to tell a hiding fault from a drawing one
+   s.hide=(s.hide==false);if self.view then self.view.hideBehind=s.hide end
+   self:Alert('隠れ面の省略：'..(s.hide and '入' or '切（比較用）'))
   elseif word=='music' then self:Alert(self.audio:Cycle(self.state~=nil))
   elseif word=='sound' then s.soundEnabled=not s.soundEnabled;self:Alert('効果音：'..(s.soundEnabled and '入' or '切'))
-  elseif word=='frame' then local ms=tonumber(rest);if ms and ms>=16 and ms<=100 then s.frameMs=ms;self:ResetGov();self:Alert('描画間隔：'..ms..' ms') else self:Alert('frame 16-100 (ミリ秒)') end
+  elseif word=='frame' then local ms=tonumber(rest);if ms and ms>=16 and ms<=100 then s.frameMs=ms;self:Alert('描画間隔：'..ms..' ms') else self:Alert('frame 16-100 (ミリ秒)') end
   elseif word=='debug' then d(self:Report())
-  else self:Alert('/pbfm [fps|gov|quality low|mid|high|rich|flat|analog|rumble|auto|music|sound|frame ms|debug]') end
+  else self:Alert('/pbfm [fps|quality low|mid|high|rich|flat|hide|analog|rumble|auto|music|sound|frame ms|debug]') end
  end
  self.lastTick=GetFrameTimeSeconds()
  EVENT_MANAGER:RegisterForUpdate('PBsFMEGATick',0,function() self:Tick() end)
@@ -364,7 +321,6 @@ end
 function A:ApplyQuality()
  local band=A.QUALITY[self.saved.quality][1]
  if self.view then
-  self.view.stripes=A.QUALITY[self.saved.quality][3]
   self.view:SetBand(band)
   if self.state then self.ui:Configure(self.view,self.track) end
  end
@@ -372,9 +328,9 @@ function A:ApplyQuality()
 end
 function A:Report()
  local v=self.view
- return string.format('F-MEGA state=%s mode=%s quality=%s band=%s rects=%s controls=%d frameMs=%s lua=%.1fMB analog=%s rumble=%s gov=%d fps=%s',tostring(self.state),(v and v.rich) and 'rich' or 'flat',tostring(self.saved.quality),
+ return string.format('F-MEGA state=%s mode=%s hide=%s quality=%s band=%s rects=%s controls=%d frameMs=%s lua=%.1fMB analog=%s rumble=%s',tostring(self.state),(v and v.rich) and 'rich' or 'flat',tostring(self.saved.hide~=false),tostring(self.saved.quality),
   v and v.band or '-',v and v.o.n or '-',self.ui and (function() local n=0 for _ in pairs(self.ui.slots) do n=n+1 end return n end)() or 0,
-  tostring(self.saved.frameMs),collectgarbage('count')/1024,tostring(self.saved.analog),tostring(self.saved.rumble),self.gov,self.fps and string.format('%.0f',self.fps) or '-')
+  tostring(self.saved.frameMs),collectgarbage('count')/1024,tostring(self.saved.analog),tostring(self.saved.rumble))
 end
 EVENT_MANAGER:RegisterForEvent('PBsFMEGA',EVENT_ADD_ON_LOADED,function(_,name)
  if name=='PBsFMEGA' then EVENT_MANAGER:UnregisterForEvent('PBsFMEGA',EVENT_ADD_ON_LOADED);A:Initialize() end

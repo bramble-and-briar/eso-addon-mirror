@@ -18,7 +18,7 @@
     "TamrielTomes_MapPins"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4591/",
-  "fingerprint": "8958e81f180b977bca067bcbf7751492d937a90065c9949360d28d5ec6b54a3b",
+  "fingerprint": "6c7c5eea5b011dc0a26e02bcb2404fcb5f7fb7baaa06332fdb68973a6d594226",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16109.png",
     "https://cdn-eso.mmoui.com/preview/pvw16110.png"
@@ -29,11 +29,11 @@
   "source_id": "4591",
   "source_url": "https://www.esoui.com/downloads/info4591-TamrielTomesMapPins.html",
   "stats": {
-    "downloads": 1101,
+    "downloads": 1397,
     "favorites": 6,
-    "monthly_downloads": 73
+    "monthly_downloads": 325
   },
   "title": "Tamriel Tomes Map Pins",
-  "updated_at": 1791452339000,
-  "version": "1.2.2"
+  "updated_at": 1792605722000,
+  "version": "1.2.3"
 }

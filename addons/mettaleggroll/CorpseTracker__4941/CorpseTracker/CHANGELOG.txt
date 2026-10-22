@@ -1,53 +1,44 @@
+0.4.3 - Public beta
+
+- Add recognized Spirit Guardian and Intensive Mender corpses, with a shared
+  10-second lifetime after natural expiry. Recasts/despawns alone are not proof.
+- Group source switches by whole skill, including morphs. Preserve old source
+  choices and merge previous Guardian/Mender settings without resetting others.
+- Reconcile confirmed Blood Sacrifice, Enduring/Renewing Undeath, base Restoring
+  Tether and Bitter Harvest consumption, including multi-target Harvest.
+- Keep Living Corpse and Promise consumption separate from physical corpses;
+  prevent duplicate markers and later-created resources from being spent twice.
+- Fix Skeletal Arcanist corpse identity and Extended reconciliation when an
+  exact target corrects an earlier unidentified consumption.
+- Right-align the counter tooltip and remove source checkbox hover descriptions.
+- Use /crpst test to start/stop both diagnostic streams. Clear on start, retain
+  on stop, record counter transitions; cap recording at 15 minutes/30000 events.
+- Reduce empty-queue allocations and filter pet lifecycle events before Lua.
+- Restore the compact 17-file release layout used in 0.3.6. Keep tests, reports
+  and website copy outside the installation archive.
+
+0.4.2 - Public beta
+
+- Replace source presets with individual checkboxes and migrate old selections.
+- Open source settings with a right-click or /crpst sources.
+
+0.4.1 - Public beta
+
+- Add observed Living Corpse, Malevolent Promise and Banner Class Flourish.
+- Preserve hidden resources for correct consumption accounting.
+- Improve Graveyard confirmation and protect later corpse creations.
+- Restrict world-position requests to the player, own pets and group members.
+
 0.3.6 - Public beta
 
-- Fix translation loading and the resulting settings initialization error in
-  0.3.5. Load the English defaults and seven translation callback files directly
-  from the manifest; remove Locales.xml with its unsupported Script elements.
-- Keep Automatic and all eight manual language choices, native String IDs,
-  client number formatting, existing SavedVariables and corpse accounting.
-- Check manifest file existence and translation order before automated tests.
-  Test translations using the real manifest instead of an XML Script regex;
-  verify that AUTOMATIC resolves before settings and SavedVariables initialize.
-- Extend test loading to reject accidental new globals, existing API overwrites
-  and explicit _G writes in addon files and exercised callbacks. Review event
-  filters and SavedVariables against ESOUI guidance; their runtime code remains
-  unchanged. ESO Addon Validation is an external reference, not a dependency.
-- After updating the manifest, restart ESO or log out to character selection
-  and log back in. /crpst status must report v0.3.6.
+- Fix translation loading and settings initialization in 0.3.5.
+- Keep Automatic, eight manual languages and existing saved settings.
 
 0.3.5 - Public beta
 
-- Require LibAddonMenu-2.0 AddOnVersion 43 or newer in the manifest.
-- Add the standard ZeniMax non-affiliation and trademark notice to the
-  manifest, help files, credits and ESOUI description. Review manifest
-  encoding, load order and external library packaging guidance.
-- Use ESO String IDs, SafeAddString and GetString for translations. Register
-  English defaults first and apply the selected translation after reading settings,
-  with English fallback for missing strings or unsupported client languages.
-- Name the English base file Locales/default.lua and prefix addon String IDs
-  with CORPSETRACKER_ to keep them outside the game's reserved SI_ namespace.
-- Retain Automatic and all eight manual language choices independently of the
-  client language. Preserve existing manual selections; changes require /reloadui.
-- Format all 27 parameterized strings in each of the eight languages with
-  indexed ESO zo_strformat placeholders. Translators can reorder parameters;
-  game names are processed without displaying grammar tags such as ^m.
-- Use native client number separators and grouping for counts and diagnostics.
-  Keep the compact timer at one decimal place and its positive final tenth;
-  API and ability IDs remain plain. Escape literal pipe characters in UI/help.
-- Use local references to the addon namespace, library and ESO manager tables.
-- Filter combat events by ability ID and own player/pet source before Lua;
-  filter effects by ability ID and player unit-tag prefix. Refresh registrations
-  when ability variants or custom rules change. Death diagnostics register only
-  while recording is enabled and never add corpses.
-- Retain SavedVariables schema version 1 and account-wide megaserver profiles.
-  Preserve existing positions, modes, custom lifetimes, rules and recorded logs.
-- Add AI disclosure and credits to both help files and CREDITS.txt; move the
-  public AI disclosure to the beginning of the ESOUI description.
-- Keep the existing corpse accounting, timer, uncertainty marker and quiet
-  Light-mode defaults. The new build still needs in-game validation.
+- Add versioned LibAddonMenu dependency and native localized String IDs.
+- Improve event filters, namespace isolation, number formatting and credits.
 
 0.3.4 - Public beta
 
-- Skip unchanged text and colour writes; cache displayed timer tenths.
-- Skip periodic UI writes while the HUD is hidden; refresh immediately on show.
-- Continue corpse consumption and expiry tracking in menus.
+- Avoid unchanged UI writes and continue tracking while menus hide the HUD.

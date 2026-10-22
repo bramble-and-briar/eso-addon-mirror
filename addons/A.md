@@ -18,7 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ability Icons Framework (AIF)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Ability-Icons-Framework-AIF__4061) | wicked_prophet | PC / Mac | 2.0.1 |
 | [ABnC Gold Manager - revisited](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dbojan/ABnC-Gold-Manager---revisited__2890) | dbojan | PC / Mac | 1.3.100009a rv3 |
 | [Above Me Icon Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Above-Me-Icon-Browser__c1746be9-5c6a-4516-aa21-e54bd8e5a25e) | BMGxSancho | Console | — |
-| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 21/10/2026 |
+| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 22/10/2026 |
 | [Accept or Decline Group Invites](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Accept-or-Decline-Group-Invites__4371) | TwinLamps | PC / Mac | 1.1 |
 | [Accessorize](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deadohiosky48/Accessorize__2541) | deadohiosky48 | PC / Mac | 24 |
 | [Account Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/QuantumPie/Account-Achievements__2905) | QuantumPie | PC / Mac | 2.0.2 |

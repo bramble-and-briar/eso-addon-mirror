@@ -1,12 +1,18 @@
 -- One encounter clock for all-target, boss and non-boss DPS.
--- Live and finalized DPS use the same window ending at the last damage event.
--- UI refreshes continue between hits without inventing extra damage time.
+-- Battle Scrolls clock: combat-entry time to last observed damage event.
+-- Before a later damage timestamp exists, use current time (first-hit fallback).
+-- Dummies, adds and bosses use the same DPS clock; no dummy/chat correction.
+-- HUD timer, DPS and chat all use the same measured damage duration.
 -- Damage uses effective hitValue; overkill is not added to the total.
 local meter = {}
 SimpleGroupDPS_DamageMeter = meter
 local state
 local last = { total = 0, dps = 0, durationMS = 0 }
+local completedClock
 local pending = {}
+local RESET_UPDATE = "SimpleGroupDPSDamageReset"
+local lastAliveMS
+local portalEffects = { [108045] = true, [121216] = true }
 local results = {}
 for _, name in ipairs({ "ACTION_RESULT_DAMAGE", "ACTION_RESULT_CRITICAL_DAMAGE",
     "ACTION_RESULT_DOT_TICK", "ACTION_RESULT_DOT_TICK_CRITICAL",
@@ -40,6 +46,10 @@ local function isBossTarget(target)
     return state.bossIds[target.id] or (state.bossNames[target.name] and not state.confirmedNames[target.name])
 end
 
+local function currentZone()
+    if GetZoneId and GetCurrentMapZoneIndex then return GetZoneId(GetCurrentMapZoneIndex()) end
+end
+
 function meter:RefreshBosses()
     if not state then return end
     for i = 1, (_G.MAX_BOSSES or _G.BOSS_RANK_ITERATION_END or 12) do
@@ -63,45 +73,121 @@ end
 
 local function accumulate(event)
     local key = event.id and event.id ~= 0 and event.id or ("name:" .. (event.name or ""))
-    if event.outgoing then state.observedTargets[key] = { id = event.id, name = event.name } end
-    if not event.personal then return end
+    if not event.outgoing then return end
+    state.observedTargets[key] = { id = event.id, name = event.name }
     local target = state.targets[key]
     if not target then
-        target = { id = event.id, name = event.name, total = 0 }
+        target = { id = event.id, name = event.name, total = 0, groupTotal = 0 }
         state.targets[key] = target
     end
-    target.total = target.total + event.value
-    state.total = state.total + event.value
+    target.groupTotal = target.groupTotal + event.value
+    state.groupTotal = state.groupTotal + event.value
+    if event.personal then
+        target.total = target.total + event.value
+        state.total = state.total + event.value
+    end
 end
 
 function meter:Start(timeMS)
+    EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
     if state then return end
-    state = { startMS = timeMS, endMS = timeMS, total = 0, targets = {},
-        observedTargets = {}, bossIds = {}, bossNames = {}, confirmedNames = {} }
+    state = { startMS = timeMS, endMS = timeMS, total = 0, groupTotal = 0, targets = {},
+        observedTargets = {}, bossIds = {}, bossNames = {}, confirmedNames = {}, zoneId = currentZone(),
+        damageEvents = 0, personalEvents = 0, otherEvents = 0 }
     self:RefreshBosses()
     for _, event in ipairs(pending) do
         if event.time >= timeMS - 1000 then accumulate(event) end
     end
     pending = {}
-    if SimpleGroupDPS_BattleScrolls then SimpleGroupDPS_BattleScrolls:Clear() end
+    -- Peers can be in a different encounter and may not send another result yet.
+    if SimpleGroupDPS_BattleScrolls then SimpleGroupDPS_BattleScrolls:ResetSendClock() end
 end
 
 function meter:IsActive() return state ~= nil end
 
-function meter:GetStats(finalizing)
+function meter:ClearResult()
+    if state then return false end
+    last = {total = 0, dps = 0, durationMS = 0}
+    completedClock = nil
+    return true
+end
+
+-- On-demand diagnostics: receiving damage and refreshing the UI are separate clocks.
+function meter:GetDiagnostics()
+    local stats = self:GetStats()
+    local clock = state or completedClock
+    return {
+        active = state ~= nil, inCombat = IsUnitInCombat("player"),
+        durationMS = stats.durationMS, dps = stats.dps,
+        damageAgeMS = clock and clock.damageAtMS and math.max(0, GetGameTimeMilliseconds() - clock.damageAtMS),
+        finishedAgeMS = not state and clock and math.max(0, GetGameTimeMilliseconds() - clock.finishedAtMS),
+        damageEvents = clock and clock.damageEvents or 0,
+        personalEvents = clock and clock.personalEvents or 0,
+        otherEvents = clock and clock.otherEvents or 0,
+    }
+end
+
+-- Match Battle Scrolls' encounter lifetime, including temporary combat drops.
+function meter:ShouldFinish()
+    if not state or IsUnitInCombat("player") or state.inPortal then return false end
+    local pvp = (IsPlayerInAvAWorld and IsPlayerInAvAWorld())
+        or (IsActiveWorldBattleground and IsActiveWorldBattleground())
+    if not pvp and GetGroupSize and ZO_Group_GetUnitTagForGroupIndex and IsUnitOnline then
+        for i = 1, GetGroupSize() do
+            local tag = ZO_Group_GetUnitTagForGroupIndex(i)
+            if tag and not AreUnitsEqual(tag, "player") and IsUnitOnline(tag) and IsUnitInCombat(tag) then
+                return false
+            end
+        end
+    end
+    local now = GetGameTimeMilliseconds()
+    local dead = IsUnitDeadOrReincarnating and IsUnitDeadOrReincarnating("player")
+    if (dead or (lastAliveMS and now - lastAliveMS < 500)) and now - state.endMS < 4000 then
+        return false
+    end
+    local health, maximum = 0, 0
+    if GetUnitPower and GetRawUnitName and IsUnitDead then
+        for i = (_G.BOSS_RANK_ITERATION_BEGIN or 1), (_G.BOSS_RANK_ITERATION_END or _G.MAX_BOSSES or 12) do
+            local tag = "boss" .. i
+            if GetRawUnitName(tag) ~= "" and not IsUnitDead(tag) then
+                local current, max = GetUnitPower(tag, COMBAT_MECHANIC_FLAGS_HEALTH)
+                health, maximum = health + current, maximum + max
+            end
+        end
+    end
+    return not (health > 0 and health < maximum)
+end
+
+function meter:ScheduleFinish()
+    EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
+    if not state then return end
+    local function check()
+        EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
+        if self:ShouldFinish() then
+            self:Finish()
+        elseif state and not IsUnitInCombat("player") then
+            EVENT_MANAGER:RegisterForUpdate(RESET_UPDATE, 500, check)
+        end
+    end
+    EVENT_MANAGER:RegisterForUpdate(RESET_UPDATE, 150, check)
+end
+
+function meter:GetStats()
     if not state then return last end
     local endMS = state.endMS
+    if endMS <= state.startMS then endMS = GetGameTimeMilliseconds() end
     local durationMS = math.max(0, endMS - state.startMS)
-    local bossTotal
+    local bossTotal, groupBossTotal
     local hasBoss = false
     for _, target in pairs(state.observedTargets) do
         if isBossTarget(target) then hasBoss = true; break end
     end
     if hasBoss then
-        bossTotal = 0
+        bossTotal, groupBossTotal = 0, 0
         for _, target in pairs(state.targets) do
             if isBossTarget(target) then
                 bossTotal = bossTotal + target.total
+                groupBossTotal = groupBossTotal + target.groupTotal
             end
         end
     end
@@ -110,58 +196,98 @@ function meter:GetStats(finalizing)
         total = state.total, dps = state.total * scale, durationMS = durationMS,
         bossTotal = bossTotal, bossDPS = bossTotal and bossTotal * scale,
         addsDPS = bossTotal and math.max(0, state.total - bossTotal) * scale,
+        groupTotal = state.groupTotal, groupDPS = durationMS >= 1 and state.groupTotal * scale or nil,
+        groupBossTotal = groupBossTotal,
+        groupBossDPS = durationMS >= 1 and groupBossTotal and groupBossTotal > 0 and groupBossTotal * scale or nil,
     }
 end
 
 function meter:Finish()
+    EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
     if not state then return end
-    last = self:GetStats(true)
+    last = self:GetStats()
+    completedClock = { damageAtMS = state.damageAtMS, finishedAtMS = GetGameTimeMilliseconds(),
+        damageEvents = state.damageEvents, personalEvents = state.personalEvents, otherEvents = state.otherEvents }
     state = nil
     if self.onFinished then self.onFinished(last) end
 end
 
 function meter:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId)
     hitValue = tonumber(hitValue)
-    if isError or not results[result] or not hitValue or hitValue <= 0
+    if isError or not results[result] or not hitValue or hitValue < 0
         or hitValue ~= hitValue or hitValue == math.huge then return end
-    if isFriendly(sourceType) and isFriendly(targetType) then return end
     local timeMS = GetGameTimeMilliseconds()
     local event = { time = timeMS, name = normalizeName(targetName), id = targetId, value = hitValue,
         outgoing = isFriendly(sourceType) and not isFriendly(targetType),
         personal = isPersonal(sourceType) and not isFriendly(targetType) }
     if not state then
-        if IsUnitInCombat("player") then
-            self:Start(timeMS)
-        else
-            local recent = {}
-            for _, previous in ipairs(pending) do
-                if previous.time >= timeMS - 1000 then recent[#recent + 1] = previous end
-            end
-            if event.personal then recent[#recent + 1] = event end
-            pending = recent
-            return
+        -- Initialize on the combat-state event, not on a preceding hit.
+        local recent = {}
+        for _, previous in ipairs(pending) do
+            if previous.time >= timeMS - 1000 then recent[#recent + 1] = previous end
         end
+        if hitValue > 0 and event.outgoing then recent[#recent + 1] = event end
+        if #recent > 200 then table.remove(recent, 1) end
+        pending = recent
+        return
     end
     state.endMS = math.max(state.endMS, timeMS)
-    accumulate(event)
+    state.damageAtMS = timeMS
+    state.damageEvents = state.damageEvents + 1
+    if event.personal then state.personalEvents = state.personalEvents + 1
+    else state.otherEvents = state.otherEvents + 1 end
+    if hitValue > 0 and not (isFriendly(sourceType) and isFriendly(targetType)) then accumulate(event) end
 end
 
 function meter:Initialize(saved)
     if type(saved) == "table" then
         last = { total = tonumber(saved.damageTotal) or 0, dps = tonumber(saved.dps) or 0,
             bossTotal = tonumber(saved.bossDamageTotal), bossDPS = tonumber(saved.bossDPS),
-            addsDPS = tonumber(saved.addsDPS), durationMS = tonumber(saved.damageDurationMS or saved.durationMS) or 0 }
+            addsDPS = tonumber(saved.addsDPS), durationMS = tonumber(saved.damageDurationMS or saved.durationMS) or 0,
+            groupTotal = tonumber(saved.groupDamageTotal), groupDPS = tonumber(saved.groupDPS),
+            groupBossTotal = tonumber(saved.groupBossDamageTotal), groupBossDPS = tonumber(saved.groupBossDPS) }
     end
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamage", EVENT_COMBAT_EVENT,
         function(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, _, targetId)
             self:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId)
         end)
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageState", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
-        if inCombat then self:Start(GetGameTimeMilliseconds()) else self:Finish() end
+        if inCombat then self:Start(GetGameTimeMilliseconds()) else self:ScheduleFinish() end
     end)
-    EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageBosses", EVENT_BOSSES_CHANGED, function() self:RefreshBosses() end)
+    EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageBosses", EVENT_BOSSES_CHANGED, function()
+        self:RefreshBosses()
+        self:ScheduleFinish()
+    end)
+    if EVENT_PLAYER_ALIVE then
+        EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageAlive", EVENT_PLAYER_ALIVE, function()
+            lastAliveMS = GetGameTimeMilliseconds()
+            self:ScheduleFinish()
+        end)
+    end
+    if EVENT_PLAYER_ACTIVATED then
+        EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageActivated", EVENT_PLAYER_ACTIVATED, function()
+            local zone = currentZone()
+            if state and zone and state.zoneId and zone ~= state.zoneId then self:Finish() end
+            if state then state.inPortal = false; self:RefreshBosses(); self:ScheduleFinish() end
+            if IsUnitInCombat("player") then self:Start(GetGameTimeMilliseconds()) end
+        end)
+    end
+    if EVENT_UNIT_CREATED then
+        EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageCreated", EVENT_UNIT_CREATED, function(_, tag)
+            if type(tag) == "string" and tag:match("^boss%d+$") then self:RefreshBosses() end
+        end)
+    end
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageEffects", EVENT_EFFECT_CHANGED,
-        function(_, changeType, _, _, tag, _, _, _, _, _, _, _, _, name, id)
+        function(_, changeType, _, _, tag, _, _, _, _, _, _, _, _, name, id, abilityId)
+            -- Aetherian Archive: the Mage arrival starts a new encounter after the add waves.
+            if state and abilityId == 50184 and changeType == _G.EFFECT_RESULT_GAINED and state.total > 0 then
+                self:Finish()
+                self:Start(GetGameTimeMilliseconds())
+            end
+            if state and portalEffects[abilityId] then
+                state.inPortal = changeType == _G.EFFECT_RESULT_GAINED
+                if not state.inPortal then self:RefreshBosses(); self:ScheduleFinish() end
+            end
             if changeType ~= _G.EFFECT_RESULT_FADED then self:CorrelateBoss(tag, id, name) end
         end)
 end

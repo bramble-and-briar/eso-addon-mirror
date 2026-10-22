@@ -92,7 +92,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field companionName string
 ---@field companionGear InventoryPocItem[]
 ---@field addons InventoryPocAddon[]
----@field guildId number|nil
+---@field guildIds number[]
 ---@field crafterId string|nil
 
 ---@class InventoryPocFacts
@@ -189,12 +189,19 @@ function facts.crafterId()
     end
 end
 
----@return number|nil
-function facts.guildId()
+local TRADING_GUILDS = { 'hermits', 'dynasty' }
+
+---@return number[] In listing priority order
+function facts.guildIds()
+    local membership, result = {}, {}
     for index = 1, GetNumGuilds() do
         local id = GetGuildId(index)
-        if zo_strlower(GetGuildName(id)) == 'hermits' then return id end
+        membership[zo_strlower(GetGuildName(id))] = id
     end
+    for _, name in ipairs(TRADING_GUILDS) do
+        if membership[name] then result[#result + 1] = membership[name] end
+    end
+    return result
 end
 
 ---TSC 120's 18-field records store white through gold in columns 1–15.
@@ -558,6 +565,6 @@ function facts.snapshot(items)
         armory = facts.armory(), wardrobe = wardrobe, items = items,
         companionId = companionId, companionName = companionId > 0 and GetCompanionName(companionId) or '',
         companionGear = companionId > 0 and facts.bag(BAG_COMPANION_WORN, reserved) or {},
-        addons = addons, guildId = facts.guildId(), crafterId = facts.crafterId(),
+        addons = addons, guildIds = facts.guildIds(), crafterId = facts.crafterId(),
     }, reserved
 end

@@ -1,7 +1,7 @@
 PBF=PBF or {}
 local C=PBF.Core
 local V={};V.__index=V;PBF.View=V
-local floor,ceil,min,max,abs,cos,sin,sqrt,atan=math.floor,math.ceil,math.min,math.max,math.abs,math.cos,math.sin,math.sqrt,math.atan
+local floor,ceil,min,max,abs,cos,sin,sqrt=math.floor,math.ceil,math.min,math.max,math.abs,math.cos,math.sin,math.sqrt
 -- This is a Mode 7 style floor: every ground feature is a flat polygon, a horizontal line of the
 -- screen hits the ground at one depth, and so each band of rows is the sum of where that line
 -- crosses each polygon. The result is a short list of rectangles, which is the only thing the
@@ -29,13 +29,13 @@ V.NOZZLE_X,V.NOZZLE_Y=1.5,.64    -- thruster centres, metres from the middle / f
 local WALL_FLAT=1.7  -- width of the barrier strip outside the road in flat mode, metres
 V.Themes={
  default={road={{.17,.2,.31},{.21,.24,.37}},wall={{.95,.26,.36},{.93,.95,1}},fog={.5,.33,.58},void={.035,.04,.08},
-  skyTop={.03,.03,.11},skyLow={.55,.34,.62},skyline={.07,.06,.14},neon={.35,.85,1},pylons={'pylon_cyan','pylon_pink'},signs={'sign_cyan','sign_pink'}},
+  skyTop={.03,.03,.11},skyLow={.55,.34,.62},skyline={.07,.06,.14},neon={.35,.85,1},pylons={'pylon_cyan','pylon_pink'}},
  vivec={road={{.17,.2,.31},{.21,.24,.37}},wall={{.95,.26,.36},{.93,.95,1}},fog={.52,.33,.58},void={.04,.035,.085},
-  skyTop={.04,.03,.12},skyLow={.62,.34,.6},skyline={.08,.06,.15},neon={.35,.85,1},pylons={'pylon_cyan','pylon_pink'},signs={'sign_pink','sign_cyan'}},
+  skyTop={.04,.03,.12},skyLow={.62,.34,.6},skyline={.08,.06,.15},neon={.35,.85,1},pylons={'pylon_cyan','pylon_pink'}},
  bruma={road={{.18,.23,.32},{.23,.29,.4}},wall={{.3,.75,1},{.92,.97,1}},fog={.45,.58,.72},void={.04,.06,.1},
-  skyTop={.04,.07,.16},skyLow={.62,.78,.92},skyline={.1,.14,.22},neon={.6,1,1},pylons={'pylon_cyan','pylon_cyan'},signs={'sign_cyan','sign_gold'}},
+  skyTop={.04,.07,.16},skyLow={.62,.78,.92},skyline={.1,.14,.22},neon={.6,1,1},pylons={'pylon_cyan','pylon_cyan'}},
  solitude={road={{.17,.24,.22},{.21,.3,.27}},wall={{1,.7,.25},{.96,.96,.9}},fog={.45,.62,.55},void={.03,.07,.06},
-  skyTop={.03,.08,.1},skyLow={.62,.82,.7},skyline={.06,.13,.12},neon={1,.85,.4},pylons={'pylon_amber','pylon_green'},signs={'sign_gold','sign_cyan'}},
+  skyTop={.03,.08,.1},skyLow={.62,.82,.7},skyline={.06,.13,.12},neon={1,.85,.4},pylons={'pylon_amber','pylon_green'}},
 }
 local function mix(a,b,t) return a+(b-a)*t end
 function V.New(cfg)
@@ -46,11 +46,12 @@ function V.New(cfg)
  self.f=cfg.focal or 834
  self.camH=cfg.camHeight or 4.5
  self.camBack=cfg.camBack or 14
- self.maxZ=cfg.maxZ or 580
- self.ahead=cfg.ahead or 96
+ self.maxZ=cfg.maxZ or 700
+ self.ahead=cfg.ahead or 118
  self.theme=V.Themes.default
  self.themeName='default'
  self.wantRich=cfg.rich~=false
+ self.hideBehind=cfg.hideBehind~=false   -- road behind nearer road is not drawn (off only for tests)
  self.cam={x=0,y=0,h=0,idx=1,bank=0,odo=0,elev=0,pitch=0}
  self.o={n=0,slot={},x={},y={},w={},h={},r={},g={},b={},a={},u0={},u1={},v0={},v1={}}
  self.uv={}
@@ -133,17 +134,21 @@ function V:Follow(m,dt,snap)
   cam.h=cam.h+C.wrapAngle(want-cam.h)*k
  end
  local tx,ty=m.x-cos(cam.h)*self.camBack,m.y-sin(cam.h)*self.camBack
- local wantPitch=atan(m.grade or 0)
  if snap then cam.x,cam.y=tx,ty else
   local k=1-math.exp(-16*dt)
   cam.x=cam.x+(tx-cam.x)*k;cam.y=cam.y+(ty-cam.y)*k
   cam.odo=cam.odo+m.speed*dt
  end
+ -- The camera rides the road's height, eased so a crest lifts it gently; it does not follow a jump
+ -- and tilts to the slope it is on, so that a long climb stays in the picture instead of rising
+ -- above the horizon (the sky does not tilt with it)
+ -- towards the road a little way ahead, not the slope underfoot: a climb steepens towards its summit,
+ -- and a camera that only matched its own slope would let the road ahead rise above the horizon
+ local wantPitch=math.atan(m.lookGrade or m.grade or 0)
  if snap then cam.elev,cam.pitch=m.roadZ or 0,wantPitch
  else
-  local pk=1-math.exp(-5*dt)
-  cam.elev=cam.elev+((m.roadZ or 0)-cam.elev)*pk
-  cam.pitch=cam.pitch+(wantPitch-cam.pitch)*pk
+  cam.elev=cam.elev+((m.roadZ or 0)-cam.elev)*(1-math.exp(-6*dt))
+  cam.pitch=cam.pitch+(wantPitch-cam.pitch)*(1-math.exp(-5*dt))
  end
  cam.idx=m.idx;cam.s=m.s
 end
@@ -162,6 +167,13 @@ end
 local pool={cnt={},xa={},xb={},r={},g={},b={},a={},u0={},u1={},v0={},v1={},id={}}
 local FIELDS={pool.xa,pool.xb,pool.r,pool.g,pool.b,pool.a,pool.u0,pool.u1,pool.v0,pool.v1,pool.id}
 local qx,qz,qu,qt={}, {}, {}, {}
+-- Hiding, per band row: the depth of the nearest road drawn on it so far and the stretch of the
+-- row that road covers. Road that is deeper than that AND lies wholly inside the stretch is behind
+-- it (the far side of a crest) and is not drawn. On level ground nothing is ever deeper than the
+-- road at its own row, so nothing is ever hidden; a road that crosses the screen sideways, or
+-- bends back, is not inside anything either.
+local rowNear,rowL,rowR={}, {}, {}
+local HIDE_MARGIN=3
 local function crossing(z,x1,z1,x2,z2,lo,hi)
  if (z1<=z and z2>z) or (z2<=z and z1>z) then
   local x=x1+(x2-x1)*(z-z1)/(z2-z1)
@@ -180,7 +192,7 @@ local function addInterval(key,xa,xb,r,g,b,a,u0,u1,v0,v1,id)
 end
 -- Fills bands for the quad with corners (x1,z1)..(x4,z4), in camera space (x to the right, z
 -- ahead), painting it `layer` in a flat colour. Flat mode only.
-local function fillQuad(self,layer,x1,z1,x2,z2,x3,z3,x4,z4,r,g,b,rowColors,par)
+local function fillQuad(self,layer,x1,z1,x2,z2,x3,z3,x4,z4,r,g,b,rowColors,par,dscale)
  local zmin=min(min(z1,z2),min(z3,z4));local zmax=max(max(z1,z2),max(z3,z4))
  local nb=self.nb
  if zmax<=0 then return end
@@ -188,6 +200,7 @@ local function fillQuad(self,layer,x1,z1,x2,z2,x3,z3,x4,z4,r,g,b,rowColors,par)
  local b0=ceil(K/(min(zmax,self.maxZ)*band)-.5);local b1=floor(K/(max(zmin,.01)*band)-.5)
  if b0<0 then b0=0 end
  if b1>nb-1 then b1=nb-1 end
+ if b0>b1 then return end
  local nl=self.nLayer
  for row=b0,b1 do
   local z=self.bandZ[row]
@@ -197,12 +210,25 @@ local function fillQuad(self,layer,x1,z1,x2,z2,x3,z3,x4,z4,r,g,b,rowColors,par)
    lo,hi=crossing(z,x3,z3,x4,z4,lo,hi);lo,hi=crossing(z,x4,z4,x1,z1,lo,hi)
    if lo and hi then
     local sc=self.bandScale[row];local cr,cg,cb
-    if rowColors then local c=rowColors[row][par];cr,cg,cb=c[1],c[2],c[3]
+    local xa,xb=self.W/2+lo*sc,self.W/2+hi*sc
+    local d=z/dscale
+    local near=rowNear[row]
+    if near and self.hideBehind and d>near+HIDE_MARGIN and xa>=rowL[row]-3 and xb<=rowR[row]+3 then
+     -- behind nearer road: not drawn
     else
-     local fk=self.bandFog[row];local fog=self.theme.fog
-     cr,cg,cb=mix(r,fog[1],fk),mix(g,fog[2],fk),mix(b,fog[3],fk)
+     if rowColors then local c=rowColors[row][par];cr,cg,cb=c[1],c[2],c[3]
+     else
+      local fk=self.bandFog[row];local fog=self.theme.fog
+      cr,cg,cb=mix(r,fog[1],fk),mix(g,fog[2],fk),mix(b,fog[3],fk)
+     end
+     addInterval(row*nl+layer-1,xa,xb,cr,cg,cb,1,0,0,0,0,0)
+     if not near then rowNear[row],rowL[row],rowR[row]=d,xa,xb
+     else
+      if d<near then rowNear[row]=d end
+      if xa<rowL[row] then rowL[row]=xa end
+      if xb>rowR[row] then rowR[row]=xb end
+     end
     end
-    addInterval(row*nl+layer-1,self.W/2+lo*sc,self.W/2+hi*sc,cr,cg,cb,1,0,0,0,0,0)
    end
   end
  end
@@ -211,9 +237,12 @@ end
 -- the picture is the road's cross-section, whose window is picked by `variant`; otherwise `cell`
 -- is the uv table of a plate in the world atlas. The crossing keeps the picture coordinate at
 -- each end of the run, so a road seen at an angle is stretched and flipped correctly.
+-- `dscale` is pseudo-depth over true depth for this quad: it turns a row's depth into a true depth,
+-- which is what is compared with the nearest road already drawn on that row (see rowNear).
+-- hidden behind it (the far side of a crest).
 -- Written for the interpreter (this is the loop the frame rate is spent in): the corners live in
 -- locals, the four edges are tested inline, and nothing is called per row but addInterval.
-local function fillUV(self,layer,road,variant,cell,tr,tg,tb,dtdz)
+local function fillUV(self,layer,road,variant,cell,tr,tg,tb,dtdz,dscale)
  local x1,z1,x2,z2,x3,z3,x4,z4=qx[1],qz[1],qx[2],qz[2],qx[3],qz[3],qx[4],qz[4]
  local zmin,zmax=z1,z1
  if z2<zmin then zmin=z2 elseif z2>zmax then zmax=z2 end
@@ -292,7 +321,20 @@ local function fillUV(self,layer,road,variant,cell,tr,tg,tb,dtdz)
      ua,ub=cu0+ul*(cu1-cu0),cu0+ur*(cu1-cu0)
      va,vb=cv0+vtop*(cv1-cv0),cv0+vbot*(cv1-cv0)
     end
-    addInterval(row*nl+layer-1,half+lo*sc,half+hi*sc,tr,tg,tb,alpha,ua,ub,va,vb,variant)
+    local xa,xb=half+lo*sc,half+hi*sc
+    local d=z/dscale
+    local near=rowNear[row]
+    if near and self.hideBehind and d>near+HIDE_MARGIN and xa>=rowL[row]-3 and xb<=rowR[row]+3 then
+     -- behind nearer road: not drawn
+    else
+     addInterval(row*nl+layer-1,xa,xb,tr,tg,tb,alpha,ua,ub,va,vb,variant)
+     if not near then rowNear[row],rowL[row],rowR[row]=d,xa,xb
+     else
+      if d<near then rowNear[row]=d end
+      if xa<rowL[row] then rowL[row]=xa end
+      if xb>rowR[row] then rowR[row]=xb end
+     end
+    end
    end
   end
  end
@@ -353,73 +395,71 @@ local function push(o,slot,x,y,w,h,r,g,b,a,u0,u1,v0,v1)
 end
 -- Scratch space reused every frame: the renderer runs thirty times a second and the garbage a
 -- fresh set of tables would leave is memory the console has to collect while the race runs.
-local tcx,tcz,trcx,trcz,tcdepth,trdepth,twd={}, {}, {}, {}, {}, {}, {}
-local G={cx=0,cy=0,fx=0,fy=0,rx=0,ry=0,elev=0,pitch=0,camH=0,cp=1,sp=0}
--- Where a point `h` metres up lands, as the (x, z) of a flat floor that would put it in the same
--- place on screen, plus its true depth. The pitch's sine and cosine are passed in: they are the
--- same for every point of a frame, and working them out per point was most of this function.
+local tcx,tcz,trcx,trcz,twd={}, {}, {}, {}, {}
+local tsc,tdz,trdz={}, {}, {}        -- per sample: pseudo-depth over true depth, true depth, and how true depth changes across the road
+local G={cx=0,cy=0,fx=0,fy=0,rx=0,ry=0,elev=0,camH=4.5,cp=1,sp=0}
+-- Hills. A point h metres up, seen from a camera `elev + camH` up and tilted by `pitch`, lands on
+-- the screen exactly where a point on a flat floor would if its camera-space (x, z) were moved to
+-- (x * pseudo / depth, pseudo), where `depth` is its true distance along the view axis and
+-- pseudo = camH * depth / (how far below the view axis it is). The band renderer then fills
+-- polygons made of such points as if the floor were flat. Level, with no tilt, pseudo = z and
+-- nothing changes. The floor under 0.35 m is the horizon: whatever is level with the view axis
+-- or above it runs off the top of the picture. The pitch's sine and cosine are passed in, because
+-- they are the same for every point of a frame and working them out per point was most of the cost.
 local function elevatedCS(x,z,h,elev,cp,sp,camH)
  local up=h-(elev+camH)
  local depth=z*cp+up*sp
  if depth<.05 then return x,z,depth end
- local d=up*cp-z*sp
- d=-d;if d<.35 then d=.35 end
- local pseudo=camH*depth/d
+ local below=z*sp-up*cp
+ if below<.35 then below=.35 end
+ local pseudo=camH*depth/below
  return x*pseudo/depth,pseudo,depth
 end
-local function elevated(x,z,h,elev,pitch,camH) return elevatedCS(x,z,h,elev,cos(pitch),sin(pitch),camH) end
 local function cam2(x,y,h)
  local dx,dy=x-G.cx,y-G.cy
- return elevatedCS(dx*G.rx+dy*G.ry,dx*G.fx+dy*G.fy,h or 0,G.elev,G.cp,G.sp,G.camH)
+ local ex,ez,ed=elevatedCS(dx*G.rx+dy*G.ry,dx*G.fx+dy*G.fy,h,G.elev,G.cp,G.sp,G.camH)
+ return ex,ez,ed>0.05 and ez/ed or 1
 end
 -- Paints the decals whose s lies in [lo,hi]. Point() wraps s, so a window that runs past the
--- start line needs no special casing here. A decal never moves, so its four corners and their
--- heights are worked out the first time it is wanted and kept on the decal. Dashes are 9 m
--- slivers: beyond DASH_RANGE they are smaller than a band, so they are not drawn.
-local DASH_RANGE=260
+-- start line needs no special casing here.
 local DASHCELL={u0=0,u1=0,v0=0,v1=0}
-local function paintDecals(self,track,list,lo,hi,camS)
+local function paintDecals(self,track,list,lo,hi)
  local rich=self.rich
  local ids=self.layerAt.mark
  local world=rich and self.atlas.world
  local white=rich and self:CellUV(world,'white')
  local neon=self.theme.neon
- local L=track.length
  local cu,cv
  if white then cu,cv=(white.u0+white.u1)*.5,(white.v0+white.v1)*.5 end
  for _,dc in ipairs(list) do
   if dc.s0>hi then break end
   if dc.s1>=lo then
-   local far=false
-   if not dc.cell and rich then
-    local dist=dc.s0-camS;if dist<0 then dist=dist+L end
-    far=dist>DASH_RANGE
+   -- A decal never moves: its four corners in the world are worked out the first time it is
+   -- wanted and kept on the decal.
+   if not dc.wx1 then
+    dc.wx1,dc.wy1=track:Point(dc.s0,dc.d0);dc.wx2,dc.wy2=track:Point(dc.s1,dc.d0)
+    dc.wx3,dc.wy3=track:Point(dc.s1,dc.d1);dc.wx4,dc.wy4=track:Point(dc.s0,dc.d1)
+    dc.wh0,dc.wh1=track:Elevation(dc.s0),track:Elevation(dc.s1)
    end
-   if not far then
-    if not dc.wx1 then
-     dc.wx1,dc.wy1=track:Point(dc.s0,dc.d0);dc.wx2,dc.wy2=track:Point(dc.s1,dc.d0)
-     dc.wx3,dc.wy3=track:Point(dc.s1,dc.d1);dc.wx4,dc.wy4=track:Point(dc.s0,dc.d1)
-     dc.wh0,dc.wh1=track:Elevation(dc.s0),track:Elevation(dc.s1)
-    end
-    local a1,b1=cam2(dc.wx1,dc.wy1,dc.wh0);local a2,b2=cam2(dc.wx2,dc.wy2,dc.wh1)
-    local a3,b3=cam2(dc.wx3,dc.wy3,dc.wh1);local a4,b4=cam2(dc.wx4,dc.wy4,dc.wh0)
-    if not rich then
-     fillQuad(self,ids,a1,b1,a2,b2,a3,b3,a4,b4,dc.r,dc.g,dc.b)
+   local a1,b1,sc1=cam2(dc.wx1,dc.wy1,dc.wh0);local a2,b2=cam2(dc.wx2,dc.wy2,dc.wh1)
+   local a3,b3=cam2(dc.wx3,dc.wy3,dc.wh1);local a4,b4=cam2(dc.wx4,dc.wy4,dc.wh0)
+   local lim=sc1   -- the scale at its start, which turns a row's depth back into a true one
+   if not rich then
+    fillQuad(self,ids,a1,b1,a2,b2,a3,b3,a4,b4,dc.r,dc.g,dc.b,nil,nil,lim)
+   else
+    qx[1],qz[1],qx[2],qz[2],qx[3],qz[3],qx[4],qz[4]=a1,b1,a2,b2,a3,b3,a4,b4
+    if dc.cell then
+     -- (u,t): u across the plate, t along it; vertex order matches the quad above
+     qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,1,1,1,1,0
+     local cell=self:CellUV(world,dc.cell)
+     local dz=abs(b2-b1);if dz<.05 then dz=abs(b3-b4) end
+     local tr,tg,tb=1,1,1
+     if dc.tint=='neon' then tr,tg,tb=neon[1],neon[2],neon[3] end
+     fillUV(self,ids,false,0,cell,tr,tg,tb,1/max(.05,dz),lim)
     else
-     qx[1],qz[1],qx[2],qz[2],qx[3],qz[3],qx[4],qz[4]=a1,b1,a2,b2,a3,b3,a4,b4
-     if dc.cell then
-      -- (u,t): u across the plate, t along it; vertex order matches the quad above
-      qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,1,1,1,1,0
-      local cell=self:CellUV(world,dc.cell)
-      local dz=abs(b2-b1);if dz<.05 then dz=abs(b3-b4) end
-      local tr,tg,tb=1,1,1
-      if dc.tint=='neon' then tr,tg,tb=neon[1],neon[2],neon[3] end
-      fillUV(self,ids,false,0,cell,tr,tg,tb,1/max(.05,dz))
-     else
-      qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,0,0,0,0,0
-      DASHCELL.u0,DASHCELL.u1,DASHCELL.v0,DASHCELL.v1=cu,cu,cv,cv
-      fillUV(self,ids,false,0,DASHCELL,dc.r,dc.g,dc.b,0)
-     end
+     qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,0,0,0,0,0
+     DASHCELL.u0,DASHCELL.u1,DASHCELL.v0,DASHCELL.v1=cu,cu,cv,cv
+     fillUV(self,ids,false,0,DASHCELL,dc.r,dc.g,dc.b,0,lim)
     end
    end
   end
@@ -429,23 +469,28 @@ end
 function V:Ground(track)
  local cam=self.cam;local nb=self.nb;local nl=self.nLayer
  for k=0,nb*nl-1 do pool.cnt[k]=0 end
+ for r=0,nb-1 do rowNear[r]=nil end
  local fx,fy=cos(cam.h),sin(cam.h);local rx,ry=fy,-fx
  local n=track.n
  local NS=self.ahead
  local i0=cam.idx-6
- local cp,sp,camH=cos(cam.pitch),sin(cam.pitch),self.camH
  -- Camera-space centre and right vector of every sample in view.
- local cx,cz,rcx,rcz,depth,rdepth,wd=tcx,tcz,trcx,trcz,tcdepth,trdepth,twd
+ local cx,cz,rcx,rcz,wd=tcx,tcz,trcx,trcz,twd
+ local camH,celev=self.camH,cam.elev
+ local cp,sp=cos(cam.pitch),sin(cam.pitch)
  for j=0,NS do
   local i=(i0+j-1)%n+1
   local dx,dy=track.x[i]-cam.x,track.y[i]-cam.y
   local ox,oz=dx*rx+dy*ry,dx*fx+dy*fy
   local orx,orz=track.rx[i]*rx+track.ry[i]*ry,track.rx[i]*fx+track.ry[i]*fy
-  local ex,ez,ed=elevatedCS(ox,oz,track.z[i],cam.elev,cp,sp,camH)
-  local erx,erz,erd=elevatedCS(ox+orx,oz+orz,track.z[i],cam.elev,cp,sp,camH)
+  local zi=track.z[i]
+  -- the centre of the road, and the centre one metre to the right: their difference is the right
+  -- vector as the hill and the tilt leave it (see elevatedCS)
+  local ex,ez,ed=elevatedCS(ox,oz,zi,celev,cp,sp,camH)
+  local erx,erz,erd=elevatedCS(ox+orx,oz+orz,zi,celev,cp,sp,camH)
   cx[j],cz[j],rcx[j],rcz[j]=ex,ez,erx-ex,erz-ez
-  depth[j],rdepth[j]=ed,erd-ed
-  wd[j]=track.w[i]
+  wd[j]=track.w[i];tdz[j]=ed;trdz[j]=erd-ed
+  tsc[j]=(ed>.05 and ez/ed) or 1
  end
  local WALL,RIM=self.wall,self.rim
  if self.rich then
@@ -461,9 +506,9 @@ function V:Ground(track)
     qx[3],qz[3]=cx[b]+rcx[b]*db,cz[b]+rcz[b]*db
     qx[4],qz[4]=cx[a]+rcx[a]*da,cz[a]+rcz[a]*da
     qu[1],qt[1],qu[2],qt[2],qu[3],qt[3],qu[4],qt[4]=0,0,0,0,1,0,1,0
-    -- stripe along the lap (24 m), barrier stripe (12 m), and a running light that creeps with the clock
-    local variant=(floor((i-1)/4)%2)+(floor((i-1)/2)%2)*2+(floor((i+chase)/2)%4)*4
-    fillUV(self,roadL,true,variant,nil,1,1,1,0)
+    -- stripe along the lap, barrier stripe, and a running light that creeps with the clock
+    local variant=(floor((i-1)/2)%2)+((i-1)%2)*2+((i+chase)%4)*4
+    fillUV(self,roadL,true,variant,nil,1,1,1,0,(tsc[a]+tsc[b])*.5)
    end
   end
  else
@@ -475,20 +520,21 @@ function V:Ground(track)
    if cz[a]>-60 or cz[b]>-60 then
     local wa,wb=wd[a],wd[b]
     local rp=floor((i-1)/2)%2+1;local wp=(i-1)%2+1
-    fillQuad(self,RD,cx[a]-rcx[a]*wa,cz[a]-rcz[a]*wa,cx[b]-rcx[b]*wb,cz[b]-rcz[b]*wb,cx[b]+rcx[b]*wb,cz[b]+rcz[b]*wb,cx[a]+rcx[a]*wa,cz[a]+rcz[a]*wa,0,0,0,roadCols,rp)
-    fillQuad(self,WL,cx[a]-rcx[a]*(wa+WALL),cz[a]-rcz[a]*(wa+WALL),cx[b]-rcx[b]*(wb+WALL),cz[b]-rcz[b]*(wb+WALL),cx[b]-rcx[b]*wb,cz[b]-rcz[b]*wb,cx[a]-rcx[a]*wa,cz[a]-rcz[a]*wa,0,0,0,wallCols,wp)
-    fillQuad(self,WR,cx[a]+rcx[a]*wa,cz[a]+rcz[a]*wa,cx[b]+rcx[b]*wb,cz[b]+rcz[b]*wb,cx[b]+rcx[b]*(wb+WALL),cz[b]+rcz[b]*(wb+WALL),cx[a]+rcx[a]*(wa+WALL),cz[a]+rcz[a]*(wa+WALL),0,0,0,wallCols,wp)
+    local lim=(tsc[a]+tsc[b])*.5
+    fillQuad(self,RD,cx[a]-rcx[a]*wa,cz[a]-rcz[a]*wa,cx[b]-rcx[b]*wb,cz[b]-rcz[b]*wb,cx[b]+rcx[b]*wb,cz[b]+rcz[b]*wb,cx[a]+rcx[a]*wa,cz[a]+rcz[a]*wa,0,0,0,roadCols,rp,lim)
+    fillQuad(self,WL,cx[a]-rcx[a]*(wa+WALL),cz[a]-rcz[a]*(wa+WALL),cx[b]-rcx[b]*(wb+WALL),cz[b]-rcz[b]*(wb+WALL),cx[b]-rcx[b]*wb,cz[b]-rcz[b]*wb,cx[a]-rcx[a]*wa,cz[a]-rcz[a]*wa,0,0,0,wallCols,wp,lim)
+    fillQuad(self,WR,cx[a]+rcx[a]*wa,cz[a]+rcz[a]*wa,cx[b]+rcx[b]*wb,cz[b]+rcz[b]*wb,cx[b]+rcx[b]*(wb+WALL),cz[b]+rcz[b]*(wb+WALL),cx[a]+rcx[a]*(wa+WALL),cz[a]+rcz[a]*(wa+WALL),0,0,0,wallCols,wp,lim)
    end
   end
  end
  -- Decals: the dashes, the grid, the arrows and the zone plates.
- G.cx,G.cy,G.fx,G.fy,G.rx,G.ry,G.elev,G.pitch,G.camH,G.cp,G.sp=cam.x,cam.y,fx,fy,rx,ry,cam.elev,cam.pitch,self.camH,cp,sp
+ G.cx,G.cy,G.fx,G.fy,G.rx,G.ry,G.elev,G.camH,G.cp,G.sp=cam.x,cam.y,fx,fy,rx,ry,cam.elev,self.camH,cp,sp
  local L=track.length
  local sA=cam.s-18;local sB=cam.s+self.maxZ*1.02
  local list=self.rich and track.decalsRich or track.decals
- if sA<0 then paintDecals(self,track,list,sA+L,L,cam.s) end
- paintDecals(self,track,list,max(sA,0),min(sB,L),cam.s)
- if sB>L then paintDecals(self,track,list,0,sB-L,cam.s) end
+ if sA<0 then paintDecals(self,track,list,sA+L,L) end
+ paintDecals(self,track,list,max(sA,0),min(sB,L))
+ if sB>L then paintDecals(self,track,list,0,sB-L) end
  -- Emit. Every array is a local and the rectangle is written in place: this loop runs for every
  -- band on every frame.
  local o=self.o
@@ -500,7 +546,6 @@ function V:Ground(track)
  local layers,layerBase=self.layers,self.layerBase
  local hy=self.hy
  local voidAt=rich and (self.layerBase[self.layerAt.void]) or 0
- local stripes=self.stripes
  local bandZ,bandVoid,voidAlt=self.bandZ,self.bandVoid,self.voidAlt
  local white=self.whiteUV
  if rich and not white then white=self:CellUV(self.atlas.world,'white');self.whiteUV=white end
@@ -543,11 +588,9 @@ function V:Ground(track)
    end
   end
   if rich then
-   -- The ground outside the road. With stripes (high quality) it is two tones that slide towards
-   -- the camera as the machine moves; without, one tone that never changes, so its control is
-   -- never touched after the first frame.
+   -- The ground outside the road: two tones that slide towards the camera as the machine moves.
    local c=bandVoid[row]
-   if stripes and floor((bandZ[row]+odo)/26)%2==1 then c=voidAlt[row] end
+   if floor((bandZ[row]+odo)/26)%2==1 then c=voidAlt[row] end
    on=on+1
    oslot[on],ox[on],oy[on],ow[on],oh[on]=row*spb+voidAt,0,y,W,band+1
    or_[on],og[on],ob[on],oa[on]=c[1],c[2],c[3],1
@@ -573,21 +616,43 @@ local SHADOW={0,0,0}
 local function sortFar(a,b) return a.z>b.z end
 local entries={}
 local sprites={}
+-- Is the point (sx, sy) on the screen, at true depth `depth`, behind road that is nearer? (Where a
+-- post meets the ground, mostly.)
+function V:Covered(sx,sy,depth)
+ local row=floor((sy-self.hy)/self.band)
+ local near=rowNear[row]
+ return near~=nil and depth>near+HIDE_MARGIN and sx>=rowL[row]-3 and sx<=rowR[row]+3
+end
+-- Where a machine's feet are on the screen: (x, y, true depth, size scale), or nil when it is out of
+-- range or behind a hill. The feet are at pseudo-depth ez, so `hy + camH * f / ez` down the picture,
+-- on some band row; if the road drawn on that row is nearer than the machine and covers its x, the
+-- machine is behind that road. The player's own machine never is.
+function V:Spot(m,cam,fx,fy,rx,ry)
+ local dx,dy=m.x-cam.x,m.y-cam.y
+ local ex,ez,z=elevatedCS(dx*rx+dy*ry,dx*fx+dy*fy,m.roadZ or 0,cam.elev,G.cp,G.sp,self.camH)
+ if z<=1.5 or z>=self.maxZ*.9 or ez<=0 then return nil end
+ local f=self.f
+ local sx=self.W/2+ex*f/ez
+ local sy=self.hy+self.camH*f/ez
+ if not m.player and self.hideBehind then
+  local row=floor((sy-self.hy)/self.band)
+  local near=rowNear[row]
+  if near and z>near+HIDE_MARGIN and sx>=rowL[row]-3 and sx<=rowR[row]+3 then return nil end
+ end
+ return sx,sy,z,f/z
+end
 -- Projects every machine and appends its rectangles. Farthest first, so a nearer one is
 -- always later in slot order and therefore on top.
 function V:Sprites(race)
  local cam=self.cam;local fx,fy=cos(cam.h),sin(cam.h);local rx,ry=fy,-fx
- local track=race.track
  local o=self.o;local list=sprites
  local count0=#list
  local n=0
  for _,m in ipairs(race.machines) do
-  local dx,dy=m.x-cam.x,m.y-cam.y
-  local ox,oz=dx*rx+dy*ry,dx*fx+dy*fy
-  local gx,gz,z=elevated(ox,oz,track:Elevation(m.s),cam.elev,cam.pitch,self.camH)
-  if z>1.5 and z<self.maxZ*.9 and gz>0 then
+  local sx,sy,z,k=self:Spot(m,cam,fx,fy,rx,ry)
+  if sx then
    n=n+1;local e=entries[n];if not e then e={};entries[n]=e end
-   e.m,e.z,e.sx,e.sy,e.k=m,z,self.W/2+gx*self.f/gz,self.hy+self.camH*self.f/gz,self.f/z;list[n]=e
+   e.m,e.z,e.sx,e.sy,e.k=m,z,sx,sy,k;list[n]=e
   end
  end
  for i=n+1,count0 do list[i]=nil end
@@ -598,6 +663,7 @@ function V:Sprites(race)
   if q>V.MAX_SPRITES then break end
   local m=e.m;local k=e.k
   local sx,sy=e.sx,e.sy
+  local lift=(m.height or 0)*k
   local st=m.type
   local fogK=min(.7,(e.z/700)^1.4);local fog=self.theme.fog
   local flick=1
@@ -615,14 +681,8 @@ function V:Sprites(race)
    if key=='glow' then u0,u1=u0*gscale,u1*gscale;v1=v1+(gscale-1)*.15 end
    local lean=m.bank*.35
    local x0=sx+(u0+lean*(v0))*k;local x1=sx+(u1+lean*(v1))*k
-   local visualHeight=m.looping and min(m.height or 0,4.5) or (m.height or 0)
-   local lift=visualHeight*k
-   local y0=sy-v1*k-lift;local y1=sy-v0*k-lift
-   if key=='shadow' then
-    local hs=1/(1+(m.height or 0)*.08)
-    local mid=(x0+x1)*.5;x0=mid+(x0-mid)*hs;x1=mid+(x1-mid)*hs
-    y0,y1=sy-v1*k,sy-v0*k
-   end
+   local y0=sy-v1*k;local y1=sy-v0*k
+   if key~='shadow' then y0=y0-lift;y1=y1-lift end
    local a=key=='shadow' and .4*(1-fogK)/(1+(m.height or 0)*.12) or 1
    if m.exploded or (m.wrecked and p>1) then a=.65 end
    push(o,base+p-1,x0,y0,max(1,x1-x0),max(1,y1-y0),r,g,b,a,0,0,0,0)
@@ -641,9 +701,12 @@ local function addWorld(z,x,yTop,w,h,r,g,b,a,u0,u1,v0,v1,part)
  local e=world[worldN];if not e then e={};world[worldN]=e end
  e.z,e.x,e.y,e.w,e.h,e.r,e.g,e.b,e.a,e.u0,e.u1,e.v0,e.v1,e.part=z,x,yTop,w,h,r,g,b,a,u0,u1,v0,v1,part
 end
+-- Equal depths happen (the two posts of a straight are level), and table.sort does not keep ties in
+-- order, so the left-to-right position settles them: the same race always draws the same picture.
 local function sortWorld(a,b)
  if a.z~=b.z then return a.z>b.z end
- return a.part<b.part
+ if a.part~=b.part then return a.part<b.part end
+ return a.x<b.x
 end
 local glows={}
 local glowN=0
@@ -652,7 +715,10 @@ local function addGlow(z,x,y,size,r,g,b,a)
  local e=glows[glowN];if not e then e={};glows[glowN]=e end
  e.z,e.x,e.y,e.size,e.r,e.g,e.b,e.a=z,x,y,size,r,g,b,a
 end
-local function sortGlow(a,b) return a.z>b.z end
+local function sortGlow(a,b)
+ if a.z~=b.z then return a.z>b.z end
+ return a.x<b.x
+end
 local BOOM_FRAME=.11
 function V:WorldSprites(race,track)
  local cam=self.cam;local fx,fy=cos(cam.h),sin(cam.h);local rx,ry=fy,-fx
@@ -664,32 +730,23 @@ function V:WorldSprites(race,track)
  local time=race.time
  local shadowUV=self:CellUV(world_,'shadow')
  for _,m in ipairs(race.machines) do
-  local dx,dy=m.x-cam.x,m.y-cam.y
-  local ox,oz=dx*rx+dy*ry,dx*fx+dy*fy
-  local gx,gz,z=elevated(ox,oz,track:Elevation(m.s),cam.elev,cam.pitch,self.camH)
-  if z>1.5 and z<self.maxZ*.9 and gz>0 then
-   local k=f/z
-   local sx=W/2+gx*f/gz;local sy=self.hy+self.camH*f/gz
+  local sx,sy,z,k=self:Spot(m,cam,fx,fy,rx,ry)
+  if sx then
    local fade=1-min(.75,(z/700)^1.4)
    local boom=m.wreckTime and (time-m.wreckTime) or nil
    if not boom or boom<.2 then
-    -- The loop's physical height is tens of metres. Cap only its screen displacement so the
-    -- player remains visible to the chase camera while the vertical squash/flip shows rotation.
-    local visualHeight=m.looping and min(m.height or 0,4.5) or (m.height or 0)
-    local hover=.38+.12*sin(time*5+m.id*1.7)+visualHeight
-    -- the shadow stays on the road; the craft floats above it
+    -- off the ground by its hover and, in a jump, by its height; the shadow stays on the road
+    -- and shrinks and fades as the craft rises
+    local air=m.height or 0
+    local hover=.38+.12*sin(time*5+m.id*1.7)+air
     local sh=shadowUV
-    local shadowScale=1/(1+(m.height or 0)*.08)
-    addWorld(z,sx-2.5*k*shadowScale,sy-.55*k,5.0*k*shadowScale,1.1*k*shadowScale,1,1,1,.62*fade/(1+(m.height or 0)*.12),sh.u0,sh.u1,sh.v0,sh.v1,0)
+    local shrink=1/(1+air*.1)
+    addWorld(z,sx-2.5*k*shrink,sy-.55*k,5.0*k*shrink,1.1*k*shrink,1,1,1,.62*fade/(1+air*.12),sh.u0,sh.u1,sh.v0,sh.v1,0)
     local idx=C.clamp(floor(m.bank*3+(m.bank>=0 and .5 or -.5))+4,1,7)
     local c=self:CellUV(world_,'m_'..m.type.id..'_'..idx)
     local w,h=V.CELL_M_W*k,V.CELL_M_H*k
-    local loopCos=m.loopAngle and cos(m.loopAngle) or 1
-    local drawH=h*max(.14,abs(loopCos))
-    local centreY=sy-hover*k-(V.FOOT-.5)*h
     local shade=m.wrecked and .45 or 1
-    local va,vb=c.v0,c.v1;if loopCos<0 then va,vb=vb,va end
-    addWorld(z,sx-w/2,centreY-drawH/2,w,drawH,shade,shade,shade,fade,c.u0,c.u1,va,vb,1)
+    addWorld(z,sx-w/2,sy-hover*k-V.FOOT*h,w,h,shade,shade,shade,fade,c.u0,c.u1,c.v0,c.v1,1)
     if not m.wrecked then
      local bank=m.bank*math.rad(24)
      local gs=1.7*(m.boosting and 2.1 or ((m.pad and m.pad>0) and 1.5 or (m.speed>5 and 1 or .45)))
@@ -709,65 +766,51 @@ function V:WorldSprites(race,track)
    end
   end
  end
- -- Posts along both edges every 48 m, and the start gantry.
+ -- Posts along both edges every 36 m, and the start gantry.
  if track then
   local pylons=self.theme.pylons
-  local signs=self.theme.signs or {'sign_cyan','sign_pink'}
   local n=track.n
   local i0=cam.idx-6
-  local cx,cz,rcx,rcz,depth,rdepth,wd=tcx,tcz,trcx,trcz,tcdepth,trdepth,twd
-  local propRange=self.lite and 170 or 300
+  local cx,cz,rcx,rcz,wd=tcx,tcz,trcx,trcz,twd
   for j=0,self.ahead do
    local i=(i0+j-1)%n+1
-   local z=depth[j]
+   local z=tdz[j]
+   -- (cx, cz) are the screen position's pseudo-depth (see elevatedCS); sizes and fades use the true
+   -- depth, which for a post to one side of the road is the road's plus its sideways share.
    if z>10 and z<self.maxZ*.78 and cz[j]>0 then
     local side=wd[j]+self.wall+.9
-    -- Posts and signs are 6 m tall: past this they are a few pixels and not worth a control each
-    local near=z<propRange
-    if near and (i-1)%8==0 then
-     local cell=self:CellUV(world_,pylons[((i-1)/8)%2+1])
+    if (i-1)%6==0 then
+     local cell=self:CellUV(world_,pylons[((i-1)/6)%2+1])
      for s=-1,1,2 do
       local px=cx[j]+s*rcx[j]*side
       local pz=cz[j]+s*rcz[j]*side
-      local dz=depth[j]+s*rdepth[j]*side
+      local dz=z+s*trdz[j]*side
       if pz>6 and dz>6 then
-       local kk=f/dz
-       local w,h=1.9*kk,6.2*kk
-       addWorld(dz,W/2+px*f/pz-w/2,self.hy+self.camH*f/pz-h,w,h,1,1,1,1-min(.85,(dz/560)^1.3),cell.u0,cell.u1,cell.v0,cell.v1,3)
+       local kk=f/pz;local kt=f/dz
+       local w,h=1.9*kt,6.2*kt
+       local sx,sy=W/2+px*kk,self.hy+self.camH*kk
+       if not self.hideBehind or not self:Covered(sx,sy,dz) then
+        addWorld(dz,sx-w/2,sy-h,w,h,1,1,1,1-min(.85,(dz/560)^1.3),cell.u0,cell.u1,cell.v0,cell.v1,3)
+       end
       end
-     end
-    end
-    -- A sparse run of luminous sponsor-style signs gives the road a proper race venue without
-    -- costing a control for every roadside sample.
-    if near and not self.lite and (i-16)%30==0 then
-     local which=floor((i-16)/30)%2+1
-     local cell=self:CellUV(world_,signs[which])
-     local sideSign=wd[j]+self.wall+2.4
-     local sg=which==1 and -1 or 1
-     local px=cx[j]+sg*rcx[j]*sideSign;local pz=cz[j]+sg*rcz[j]*sideSign
-     local dz=depth[j]+sg*rdepth[j]*sideSign
-     if pz>8 and dz>8 then
-      local ks=f/dz;local sw,sh=5.8*ks,3.5*ks
-      addWorld(dz,W/2+px*f/pz-sw/2,self.hy+self.camH*f/pz-4.2*ks,sw,sh,1,1,1,1-min(.85,(dz/560)^1.3),cell.u0,cell.u1,cell.v0,cell.v1,3)
      end
     end
     if i==1 then
      local side2=wd[j]+self.wall+1.4
-     local kk=f/z
+     local kk=f/cz[j];local kt=f/z
      local post=self:CellUV(world_,'gantry_post');local beam=self:CellUV(world_,'gantry_beam')
      for s=-1,1,2 do
       local px=cx[j]+s*rcx[j]*side2
       local pz=cz[j]+s*rcz[j]*side2
-      local dz=depth[j]+s*rdepth[j]*side2
+      local dz=z+s*trdz[j]*side2
       if pz>6 and dz>6 then
-       local kp=f/dz
-       local w,h=3.5*kp,9.2*kp
-       addWorld(dz,W/2+px*f/pz-w/2,self.hy+self.camH*f/pz-h,w,h,1,1,1,1,post.u0,post.u1,post.v0,post.v1,3)
+       local kp=f/pz;local kpt=f/dz
+       local w,h=3.5*kpt,9.2*kpt
+       addWorld(dz,W/2+px*kp-w/2,self.hy+self.camH*kp-h,w,h,1,1,1,1,post.u0,post.u1,post.v0,post.v1,3)
       end
      end
      local lx=cx[j]-rcx[j]*side2;local rxx=cx[j]+rcx[j]*side2
-     local pz=cz[j]
-     addWorld(z,W/2+lx*f/pz,self.hy+self.camH*f/pz-9.4*kk,(rxx-lx)*f/pz,3.4*kk,1,1,1,1,beam.u0,beam.u1,beam.v0,beam.v1,4)
+     addWorld(z,W/2+lx*kk,self.hy+self.camH*kk-9.4*kt,(rxx-lx)*kk,3.4*kt,1,1,1,1,beam.u0,beam.u1,beam.v0,beam.v1,4)
     end
    end
   end
@@ -865,7 +908,7 @@ function V:PanoWindows(heading,parallax,out)
  return 2
 end
 function V:Frame(track,race)
- self.chase=floor(race.time*5)
+ self.chase=floor(race.time*11)
  self:Ground(track)
  if self.rich then self:WorldSprites(race,track) else self:Sprites(race) end
  return self.o.n

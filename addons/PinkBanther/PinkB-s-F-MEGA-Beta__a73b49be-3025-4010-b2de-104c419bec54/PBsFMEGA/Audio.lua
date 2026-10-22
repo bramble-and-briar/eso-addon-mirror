@@ -4,10 +4,9 @@ local Audio={};Audio.__index=Audio;PBF.Audio=Audio
 -- simply plays nothing, so the lookup is guarded rather than trusted.
 local ids={count='COUNTDOWN_TICK',go='BATTLEGROUND_COUNTDOWN_FINISH',lap='LEVEL_UP',finalLap='DUEL_BOUNDARY_WARNING',
  finish='DUEL_WON',lose='DUEL_FORFEIT',wall='LOCKPICKING_CHAMBER_LOCKED',bump='NEGATIVE_CLICK',pad='SCRYING_CAPTURE_HEX_LARGE',
- boost='ENCHANTING_POTENCY_RUNE_PLACED',explode='ABILITY_FAILED',select='DEFAULT_CLICK'}
-ids.jump='BATTLEGROUND_CAPTURE_AREA_CAPTURED_OTHER_TEAM'
-ids.loop='BATTLEGROUND_COUNTDOWN_FINISH'
-ids.land='LOCKPICKING_CHAMBER_STRESS'
+ boost='ENCHANTING_POTENCY_RUNE_PLACED',explode='ABILITY_FAILED',select='DEFAULT_CLICK',
+ -- the two sounds of a jump: the launch, and the thump of coming back down (both checked against the client's sound table)
+ jump='SCRYING_CAPTURE_GOAL',land='LOCKPICKING_CHAMBER_STRESS'}
 local modes={{key='off',label='BGM：切'},{key='dueling',label='BGM：決闘'},{key='champion',label='BGM：星座'},{key='tribute',label='BGM：カード'},{key='credits',label='BGM：終幕'}}
 -- The music override is the mechanism PBsTetris already proved on a PS5. Named outright rather
 -- than looked up in _G, and resolved on first use so the client has certainly finished loading.

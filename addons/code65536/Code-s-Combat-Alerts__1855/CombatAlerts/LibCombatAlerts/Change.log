@@ -1,5 +1,5 @@
-Version 0.8.5.2 (2026/10/05)
-* Added temporary workaround fix for the apostrophe bug
+Version 0.8.6 (2026/10/21)
+* Added a few new SI_LCA_* localized string definitions
 
 Version 0.8.5 (2026/09/21)
 * Added IsNightbladeCutthroatPassiveActive

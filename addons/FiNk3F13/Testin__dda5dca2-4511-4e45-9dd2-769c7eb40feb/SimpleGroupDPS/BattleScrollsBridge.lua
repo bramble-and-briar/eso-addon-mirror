@@ -8,7 +8,12 @@ local receiverReady = false
 local receiverAttempted = false
 local damageProtocol
 local lastSendAt
+local lastSendResult
+local connectionError
+local receivedCount, queuedCount = 0, 0
+local lastReceivedAt
 local STALE_MS = 15000
+local SEND_INTERVAL_MS = 300
 
 local function decodeDPS(encoded, bits, literalMax)
     local maxValue = 2 ^ bits - 1
@@ -32,7 +37,9 @@ local function onData(unitTag, data)
     if not DoesUnitExist(unitTag) or AreUnitsEqual(unitTag, "player") then return end
     if type(data) ~= "table" then return end
     if data.messageType ~= "damage" then
+        local hadMember = members[unitTag] ~= nil
         members[unitTag] = nil
+        if hadMember and bridge.onChanged then bridge.onChanged() end
         return
     end
     local dps = tonumber(data.allTargetsDPS)
@@ -49,6 +56,9 @@ local function onData(unitTag, data)
         addsDPS = bossDPS and bossDPS < math.huge and dps < math.huge and math.max(0, dps - bossDPS) or nil,
         receivedAt = GetGameTimeMilliseconds(),
     }
+    receivedCount = receivedCount + 1
+    lastReceivedAt = GetGameTimeMilliseconds()
+    if bridge.onChanged then bridge.onChanged() end
 end
 
 function bridge:Connect()
@@ -64,14 +74,20 @@ function bridge:Connect()
         handler:SetDescription("Teilt eigene DPS und empfaengt Gruppen-DPS im Battle-Scrolls-Format.")
         -- DeclareProtocol rejects occupied IDs. Leave any existing owner intact.
         local ok, damage = pcall(handler.DeclareProtocol, handler, 430, "SimpleGroupDPS_BattleScrollsDamage")
-        if not ok or not damage then return false end
+        if not ok or not damage then
+            connectionError = "DPS-Protokoll 430 konnte nicht registriert werden (moeglicherweise bereits belegt)."
+            return false
+        end
         damage:AddField(lgb.CreateNumericField("encodedAllDPS", { minValue = 0, numBits = 11 }))
         damage:AddField(lgb.CreateOptionalField(lgb.CreateNumericField("encodedBossDPS", { minValue = 0, numBits = 12 })))
         damage:OnData(function(unitTag, data)
             onData(unitTag, { messageType = "damage", allTargetsDPS = decodeDPS(data.encodedAllDPS, 11, 255),
                 bossDPS = decodeDPS(data.encodedBossDPS, 12, 511) })
         end)
-        if not damage:Finalize({ isRelevantInCombat = true, replaceQueuedMessages = true }) then return false end
+        if not damage:Finalize({ isRelevantInCombat = true, replaceQueuedMessages = true }) then
+            connectionError = "DPS-Protokoll 430 konnte nicht aktiviert werden."
+            return false
+        end
         damageProtocol = damage
         -- A healing update replaces the sender's previous damage metric.
         local healingOK, healing = pcall(handler.DeclareProtocol, handler, 431, "SimpleGroupDPS_BattleScrollsHealing")
@@ -99,22 +115,50 @@ function bridge:Clear()
     lastSendAt = nil
 end
 
+function bridge:ResetSendClock()
+    lastSendAt = nil
+end
+
+function bridge:Expire(ageMS)
+    local now = GetGameTimeMilliseconds()
+    for tag, member in pairs(members) do
+        if now - member.receivedAt >= ageMS then members[tag] = nil end
+    end
+end
+
 function bridge:SendDPS(dps, force, bossDPS)
     -- A local Battle Scrolls installation already owns and sends this metric.
     if BattleScrolls and BattleScrolls.dpsShare then return false end
+    if not damageProtocol then self:Connect() end
     if not damageProtocol or not IsUnitGrouped("player") or not damageProtocol:IsEnabled() then return false end
     dps = tonumber(dps)
     if not dps or dps ~= dps or dps < 0 or dps == math.huge then return false end
     local now = GetGameTimeMilliseconds()
-    if not force and lastSendAt and now - lastSendAt < 1000 then return false end
+    if not force and lastSendAt and now - lastSendAt < SEND_INTERVAL_MS then return false end
     local encodedBoss
     bossDPS = tonumber(bossDPS)
     if bossDPS and bossDPS >= 0 and bossDPS < math.huge then
         encodedBoss = encodeDPS(math.min(dps, bossDPS), 12, 511)
     end
     local queued = damageProtocol:Send({ encodedAllDPS = encodeDPS(dps, 11, 255), encodedBossDPS = encodedBoss })
-    if queued then lastSendAt = now end
+    lastSendResult = queued and "queued" or "failed"
+    if queued then lastSendAt = now; queuedCount = queuedCount + 1 end
     return queued
+end
+
+-- Queue acceptance is observable here; delivery to another client is not.
+function bridge:GetStatus()
+    local localShare = BattleScrolls and BattleScrolls.dpsShare
+    return {
+        grouped = IsUnitGrouped("player"),
+        connected = (localShare and registeredShare == localShare) or damageProtocol ~= nil,
+        localBattleScrolls = localShare ~= nil,
+        enabled = damageProtocol and damageProtocol:IsEnabled() or false,
+        lastSendAt = lastSendAt,
+        lastSendResult = lastSendResult,
+        error = connectionError,
+        receivedCount = receivedCount, queuedCount = queuedCount, lastReceivedAt = lastReceivedAt,
+    }
 end
 
 function bridge:GetRows()

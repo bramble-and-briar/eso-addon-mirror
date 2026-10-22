@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="BattleScrollsInventoryWork" allowFallthrough="false">
+        <Category>
+            <Action name="BATTLESCROLLS_IPOC_CANCEL_WORK" hideAction="true" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>BattleScrolls.inventoryPoc.cancelWork()</Down>
+            </Action>
+            <Action name="BATTLESCROLLS_IPOC_EXIT_WORK" hideAction="true" inheritsBindFrom="UI_SHORTCUT_EXIT">
+                <Down>BattleScrolls.inventoryPoc.cancelWork()</Down>
+            </Action>
+            <AllowAction name="TAKE_SCREENSHOT"/>
+            <AllowAction name="TOGGLE_FULLSCREEN"/>
+            <AllowAction name="CLEAR_ACTIVE_NARRATION"/>
+        </Category>
+    </Layer>
+</Bindings>

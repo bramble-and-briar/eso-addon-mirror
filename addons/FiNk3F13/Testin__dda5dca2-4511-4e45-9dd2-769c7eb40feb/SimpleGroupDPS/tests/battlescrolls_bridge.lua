@@ -44,7 +44,12 @@ assert(protocols[430].fields[1].bits == 11)
 assert(protocols[430].fields[2].bits == 12 and protocols[430].fields[2].optional)
 assert(protocols[431].fields[1].bits == 12 and protocols[431].fields[2].bits == 12)
 local receive = protocols[430].receive
+local changes = 0
+bridge.onChanged = function() changes = changes + 1 end
 receive("group1", { encodedAllDPS = 255 })
+assert(changes == 1, "received DPS notifies the display immediately")
+assert(bridge:GetStatus().receivedCount == 1 and bridge:GetStatus().lastReceivedAt == clock,
+    "diagnostics record actual accepted group packets")
 receive("group2", { encodedAllDPS = 2046 })
 receive("group3", { encodedAllDPS = 2046 })
 receive("player", { encodedAllDPS = 2046 })
@@ -76,8 +81,14 @@ assert(#sent == 0, "receiving alone never broadcasts")
 assert(bridge:SendDPS(255), "first outgoing DPS queued")
 assert(sent[1].id == 430 and sent[1].data.encodedAllDPS == 255)
 assert(sent[1].data.encodedBossDPS == nil, "unknown boss DPS omitted")
-assert(not bridge:SendDPS(500), "broadcasts throttled to once per second")
-clock = clock + 1000
+assert(bridge:GetStatus().queuedCount == 1, "queued counter counts successful submissions")
+assert(bridge:GetStatus().connected and bridge:GetStatus().enabled
+    and bridge:GetStatus().lastSendAt == clock and bridge:GetStatus().lastSendResult == "queued",
+    "status reports queue acceptance, not remote delivery")
+assert(not bridge:SendDPS(500), "duplicate send in the same tick is throttled")
+clock = clock + 299
+assert(not bridge:SendDPS(500), "send interval matches Battle Scrolls' 300ms tick")
+clock = clock + 1
 assert(bridge:SendDPS(256) and sent[2].data.encodedAllDPS == 256)
 assert(bridge:SendDPS(1048576, true) and sent[3].data.encodedAllDPS == 2046)
 assert(bridge:SendDPS(1048577, true) and sent[4].data.encodedAllDPS == 2047)
@@ -108,12 +119,14 @@ assert(not bridge:SendDPS(500, true), "no solo broadcasts")
 grouped = true
 sendEnabled = false
 assert(not bridge:SendDPS(500, true), "LibGroupBroadcast sharing preference respected")
+assert(not bridge:GetStatus().enabled, "status exposes disabled library protocol")
 sendEnabled = true
 assert(not bridge:SendDPS(-1, true) and not bridge:SendDPS(0 / 0, true)
     and not bridge:SendDPS(math.huge, true), "invalid DPS never transmitted")
 clock = clock + 1000
 sendSucceeds = false
 assert(not bridge:SendDPS(500), "queue failure reported")
+assert(bridge:GetStatus().lastSendResult == "failed", "rejected queue submission is visible in status")
 sendSucceeds = true
 assert(bridge:SendDPS(500), "queue failure does not throttle retry")
 
@@ -137,4 +150,5 @@ LibGroupBroadcast = nil
 dofile("BattleScrollsBridge.lua")
 assert(not SimpleGroupDPS_BattleScrolls:Connect(), "missing optional dependencies are harmless")
 assert(not SimpleGroupDPS_BattleScrolls:SendDPS(100), "missing dependency cannot send")
+assert(not SimpleGroupDPS_BattleScrolls:GetStatus().connected, "missing dependency status stays disconnected")
 print("PASS: Battle Scrolls send/receive, wire codec, throttling, preferences, callbacks and group changes")

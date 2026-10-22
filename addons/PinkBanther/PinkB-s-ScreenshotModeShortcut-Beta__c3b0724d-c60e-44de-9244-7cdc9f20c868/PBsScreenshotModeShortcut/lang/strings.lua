@@ -15,5 +15,39 @@ local strings = {
     SI_PBSSMS_HELP_BINDS = "/pbshot binds — show inherited bindings",
     SI_PBSSMS_HELP_MASTER = "/pbshot on|off — enable/disable",
     SI_PBSSMS_HELP_RESET = "/pbshot reset — restore defaults",
+    SI_PBSSMS_HELP_QUICK = "/pbshot quick on|off — quick shot mode",
+    SI_PBSSMS_HELP_HOLD = "/pbshot hold 1|3|5|10 — seconds the interface stays down",
+
+    SI_PBSSMS_QUICK_ON = "Quick shot mode on. The chord takes the interface away for a few seconds and puts it back by itself -- take the picture with the console's capture button.",
+    SI_PBSSMS_QUICK_OFF = "Quick shot mode off. The chord opens screenshot mode again.",
+    SI_PBSSMS_HOLD_SET = "The interface stays down for %g seconds.",
+    SI_PBSSMS_ERROR_HOLD = "Use /pbshot hold 1, 3, 5 or 10.",
+    SI_PBSSMS_ERROR_ON_OR_OFF = "That wants on or off.",
+
+    -- ---- Settings panel ---------------------------------------------------------------
+    SI_PBSSMS_EXPLANATION = "Hold L2 and press D-pad Left on the gamepad HUD. Normally that opens the game's own screenshot mode, where the interface goes away and the camera is yours. Quick shot mode does the other thing: it takes the interface away for a few seconds and puts it back by itself, without leaving what you were doing. The picture is taken with the console's own capture button -- the client refuses to take one for an add-on.",
+    SI_PBSSMS_SECTION_SHORTCUT = "The shortcut",
+    SI_PBSSMS_SECTION_QUICK = "Quick shot mode",
+    SI_PBSSMS_ENABLED = "Enable the shortcut",
+    SI_PBSSMS_ENABLED_TOOLTIP = "Off, nothing listens for the buttons and D-pad Left is left entirely alone.",
+    SI_PBSSMS_MODE = "What the chord opens",
+    SI_PBSSMS_MODE_TOOLTIP = "Screenshot mode is the game's own. Hide the interface is the fallback for a client that will not open it: the interface stays down until you press the chord again. Ignored while quick shot mode is on.",
+    SI_PBSSMS_MODE_AUTO = "Screenshot mode, or hide the interface",
+    SI_PBSSMS_MODE_SCENE = "Screenshot mode only",
+    SI_PBSSMS_MODE_GUI = "Hide the interface only",
+    SI_PBSSMS_QUICK = "Use quick shot mode",
+    SI_PBSSMS_QUICK_TOOLTIP = "On, the chord clears the interface for a few seconds and brings it back by itself, instead of opening screenshot mode. Press the console's capture button while it is down.",
+    SI_PBSSMS_HOLD = "Interface stays down for",
+    SI_PBSSMS_HOLD_TOOLTIP = "How long the interface stays down -- the window in which to press the console's capture button. It also ends early on a second chord, or on anything that leaves the HUD.",
+    SI_PBSSMS_HOLD_ITEM = "%g seconds",
+    SI_PBSSMS_RUN_NOW = "Try it now",
+    SI_PBSSMS_RUN_NOW_TOOLTIP = "Does what the chord does. Close this panel first: nothing happens unless you are on the HUD.",
+    SI_PBSSMS_RUN_NOW_BUTTON = "Run",
+    SI_PBSSMS_RESET_ROW = "Restore defaults",
+    SI_PBSSMS_RESET_ROW_TOOLTIP = "Every setting back to what it shipped with.",
+    SI_PBSSMS_RESET_BUTTON = "Reset",
 }
-for id, value in pairs(strings) do ZO_CreateStringId(id, value) end
+for stringId, stringValue in pairs(strings) do
+	ZO_CreateStringId(stringId, stringValue)
+	SafeAddVersion(stringId, 1)
+end

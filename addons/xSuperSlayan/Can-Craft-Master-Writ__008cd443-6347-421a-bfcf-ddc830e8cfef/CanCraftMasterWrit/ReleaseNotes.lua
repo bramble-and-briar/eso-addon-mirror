@@ -16,9 +16,20 @@
 CanCraftMasterWrit.releaseNotes = {
     ----
     {
+        version = "1.2.0",
+        highlights = {
+            "Added a 'Final Item' line to provisioning & holiday writs showing what to hand in & how many you have.",
+            "Items you've already made now count towards the writ, so materials are only counted for the rest.",
+            "Fixed holiday furnishing writs asking for too few materials when the plan isn't known yet.",
+            "Fixed furnishing plans not listing the other skills they need, such as Woodworking.",
+            "Various UI tweaks and fixes.",
+        },
+    },
+    ----
+    {
         version = "1.1.0",
         highlights = {
-            "Alchemy reagents now show which reagents are needed to complete the writ & whether you have have them.",
+            "Alchemy reagents now show which reagents are needed to complete the writ & whether you have them.",
             "Fixed generic `Materials In Stock` message in provisioning to display what ingredient is missing.",
             "Enhanced gamepad tool tip to display the missing items first on the list for better UX.",
             "Increased timing for 'What's New?' display to 10s, up from 3s.",

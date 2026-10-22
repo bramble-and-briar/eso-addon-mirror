@@ -148,7 +148,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
 | [Collectible Toggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Collectible-Toggler__2699) | MrPikPik | PC / Mac | 1.2 |
-| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.3 |
+| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.4 |
 | [Collection bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarth/Collection-bars__2339) | Jarth | PC / Mac | 1.1.14 |
 | [Color Blind Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Color-Blind-Mode__2981) | attriel | PC / Mac | 1.0.12 |
 | [Colorful Map Areas - Quests, Forward Camps, Dig Sites!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/Colorful-Map-Areas---Quests-Forward-Camps-Dig-Sites__3393) | Valve | PC / Mac | 1.2.0 |
@@ -227,7 +227,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CoordsAndHeading Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-Patch__2875) | Jord56 | PC / Mac | 1.0.1 |
 | [CoordsAndHeading Patch 1.0.2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-Patch-1.0.2__2876) | Jord56 | PC / Mac | 1.0.2 |
 | [Coral Aerie Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Coral-Aerie-Helper__3554) | branddi | PC / Mac | 1.0.2 |
-| [CorpseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mettaleggroll/CorpseTracker__4941) | mettaleggroll | PC / Mac | 0.3.6 |
+| [CorpseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mettaleggroll/CorpseTracker__4941) | mettaleggroll | PC / Mac | 0.4.3 |
 | [Cosmetic Cupboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AnotherORC/Cosmetic-Cupboard__3329) | AnotherORC | PC / Mac | v3.4.1 |
 | [Cost Calculator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Cost-Calculator__2530) | TheBunnynator1001 | PC / Mac | 1.0.0 |
 | [Countess Quester](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aarfie/Countess-Quester__2379) | Aarfie | PC / Mac | 1.3 |
@@ -259,6 +259,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Crafted Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/Crafted-Potions__1232) | Ayantir | PC / Mac | 2.0.1 |
 | [Crafter Paradise](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3M3nT0r/Crafter-Paradise__3351) | Th3M3nT0r | PC / Mac | 2.1.3 |
 | [Crafting Build Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mightyjo/Crafting-Build-Alert__3246) | mightyjo | PC / Mac | 1.2.0 |
+| [Crafting Daily Notification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Crafting-Daily-Notification__4974) | lousytourist | PC / Mac | 1 |
 | [Crafting Experience](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/t31os/Crafting-Experience__2407) | t31os | PC / Mac | 1.0.1 |
 | [Crafting Price for PerfectPixel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vel_33/Crafting-Price-for-PerfectPixel__3806) | Vel_33 | PC / Mac | 1.0.6 |
 | [Crafting Station Sp Cp Display Ninja - Refine&Deconstruct support](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Crafting-Station-Sp-Cp-Display-Ninja---Refine-Deconstruct-support__4007) | Shinntarou | PC / Mac | 2.0 |
@@ -288,7 +289,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrownCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/CrownCustomizer__1548) | triase | PC / Mac | 1.0.5 |
 | [CroZone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Obijovi/CroZone__4641) | Obijovi | PC / Mac | 1.1.0 |
 | [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__21f0cc83-5ba3-4776-ac75-a5a266fde574) | Kyzeragon | Console | — |
-| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.27.0 |
+| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.28.0 |
 | [CrutchAlerts Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts-Extensions__4693) | Kyzeragon | PC / Mac | 0.3.0 |
 | [CrutchAlerts-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/CrutchAlerts-KR__4517) | Ricci Curvature | PC / Mac | 1.0.0 |
 | [Crux Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Crux-Counter__3639) | g4rr3t | PC / Mac | 1.3.0 |

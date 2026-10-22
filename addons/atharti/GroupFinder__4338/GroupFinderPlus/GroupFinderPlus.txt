@@ -1,7 +1,7 @@
 ## Title: |cFFD700GroupFinder+|r
 ## Author: |cFFD700@Atharti|r
 ## Description: Group Finder on the tip of your fingers.
-## Version: 6.7
+## Version: 6.8
 ## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
 ## SavedVariables: GroupFinderPlus_SavedVariables

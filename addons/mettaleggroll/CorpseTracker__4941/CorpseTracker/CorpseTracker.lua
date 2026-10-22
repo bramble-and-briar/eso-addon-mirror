@@ -1,3 +1,337 @@
+-- Optional diagnostic recorder, registered only during /crpst test.
+do
+-- Opt-in discovery recorder. Raw observations never enter the corpse ledger.
+-- AI-assisted implementation; see README.txt. No private API discovery.
+local CT = CorpseTracker
+local EM = EVENT_MANAGER
+local Now, GetAbilityName = GetFrameTimeSeconds, GetAbilityName
+local GetAPIVersion, GetWorldName, GetCVar = GetAPIVersion, GetWorldName, GetCVar
+local IsUnitInCombat = IsUnitInCombat
+local GetSpecificSkillAbilityKeysByAbilityId = GetSpecificSkillAbilityKeysByAbilityId
+local GetSpecificSkillAbilityInfo = GetSpecificSkillAbilityInfo
+local d, tostring, type, pairs, ipairs, select = d, tostring, type, pairs, ipairs, select
+local GetSlotBoundId = GetSlotBoundId
+local GetSlotName = GetSlotName
+local GetNumBuffs, GetUnitBuffInfo = GetNumBuffs, GetUnitBuffInfo
+local DoesUnitExist, GetUnitName, IsUnitDead = DoesUnitExist, GetUnitName, IsUnitDead
+local math, string, table = math, string, table
+local NAME = "CorpseTracker_Research"
+local MAX_ROWS, MAX_ABILITIES, MAX_EFFECTS, MAX_SECONDS = 30000, 1024, 2048, 900
+local R = { active=false, maxRows=MAX_ROWS, maxSeconds=MAX_SECONDS }
+-- These are progression lookup seeds from the user's UESP export (2026-10-19),
+-- not claimed creation/consumption markers. Client rank IDs are authoritative.
+local targets = {
+    {family="mender",seed=115710}, {family="tether",seed=115926},
+    {family="life",seed=115315}, {family="flesh",seed=114196},
+    {family="harvest",seed=115238}, {family="grasp",seed=115177},
+    {family="reanimate",seed=115410}, {family="armor",seed=115206},
+    {family="bones",seed=114860}, {family="skeletal",seed=114317},
+    {family="skull",seed=114108}, {family="yard",seed=115252},
+    {family="siphon",seed=115924},
+}
+local registrations, ownedEffects, ownedCount, abilityCount = {}, {}, 0, 0
+local phases = { [EFFECT_RESULT_GAINED]="gained", [EFFECT_RESULT_UPDATED]="updated",
+    [EFFECT_RESULT_FADED]="faded" }
+
+local function Finite(value)
+    return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge
+end
+local function Short(value, limit)
+    if type(value)~="string" then return "" end
+    local cut=math.min(#value,limit or 120)
+    while cut>0 do
+        local nextByte=value:byte(cut+1)
+        if not nextByte or nextByte<128 or nextByte>=192 then break end
+        cut=cut-1
+    end
+    return value:sub(1,cut)
+end
+local function Say(key,...)
+    d("|c88ddccCorpse Tracker|r "..CT.T(key,...))
+end
+local function Unregister()
+    for _, item in ipairs(registrations) do EM:UnregisterForEvent(item.name,item.event) end
+    registrations={}
+    ownedEffects,ownedCount={},0
+end
+local function Register(suffix,event,callback,...)
+    local name=NAME..suffix
+    EM:RegisterForEvent(name,event,callback)
+    registrations[#registrations+1]={name=name,event=event}
+    if select("#",...)>0 then EM:AddFilterForEvent(name,event,...) end
+end
+local function Own(source)
+    return source==COMBAT_UNIT_TYPE_PLAYER or source==COMBAT_UNIT_TYPE_PLAYER_PET
+end
+local function FriendlyTag(tag)
+    return type(tag)=="string" and (tag=="player" or tag:match("^playerpet%d+$") or tag:match("^group%d+$"))
+end
+
+function R:Initialize(saved)
+    self:Stop("reload",false)
+    self.saved=saved
+    local data=saved.research
+    if type(data)~="table" or data.format~=1 or type(data.rows)~="table" then
+        saved.research=nil
+        return
+    end
+    -- Keep first observations, bounded even after malformed external edits.
+    local length,write=#data.rows,0
+    for read=1,math.min(length,MAX_ROWS) do
+        if type(data.rows[read])=="table" then write=write+1; data.rows[write]=data.rows[read] end
+    end
+    for index=write+1,length do data.rows[index]=nil end
+    if length>MAX_ROWS then data.truncated=true end
+    local retainedBudget=Finite(data.recordedSeconds)
+    if not retainedBudget then
+        local ending=data.stoppedAt or (data.rows[#data.rows] and data.rows[#data.rows].t)
+        data.recordedSeconds=Finite(ending) and Finite(data.startedAt) and
+            math.max(0,math.min(MAX_SECONDS,ending-data.startedAt)) or 0
+    else data.recordedSeconds=math.max(0,math.min(MAX_SECONDS,data.recordedSeconds)) end
+    if data.recording then
+        local last=data.rows[#data.rows]
+        if retainedBudget and Finite(data.segmentStartedAt) and last and Finite(last.t) then
+            data.recordedSeconds=math.min(MAX_SECONDS,data.recordedSeconds+
+                math.max(0,last.t-data.segmentStartedAt))
+        end
+        data.stoppedAt,data.stopReason,data.closedOnReload=Now(),"reload",true
+        if #data.rows<MAX_ROWS then
+            data.rows[#data.rows+1]={kind="stop",reason="reload",t=Now(),sequence=#data.rows+1}
+        end
+    end
+    data.recording=false
+    -- Retained ability dictionaries are bounded independently of event rows.
+    if type(data.abilities)~="table" then data.abilities={} end
+    local kept=0
+    for id,value in pairs(data.abilities) do
+        kept=kept+1
+        if kept>MAX_ABILITIES or type(value)~="table" then data.abilities[id]=nil end
+    end
+end
+
+local function Elapsed(data, running)
+    local seconds = Finite(data.recordedSeconds) and data.recordedSeconds or 0
+    if running then
+        seconds = seconds + math.max(0, Now() - (data.segmentStartedAt or data.startedAt))
+    end
+    return seconds
+end
+function R:Limit(reason)
+    self.saved.research.truncated=true
+    self:Stop(reason,false)
+    CT.StopTestRecording("limit")
+    Say("RESEARCH_LIMIT")
+end
+
+function R:Record(kind,data)
+    if not self.active then return false end
+    local log=self.saved.research
+    if Elapsed(log,true)>=MAX_SECONDS or #log.rows>=MAX_ROWS-1 then
+        self:Limit(#log.rows>=MAX_ROWS-1 and "row_limit" or "time_limit")
+        return false
+    end
+    data.kind,data.t,data.sequence=kind,Now(),#log.rows+1
+    log.rows[#log.rows+1]=data
+    return true
+end
+
+function R:Ability(id,name)
+    if not self.active or not Finite(id) or id<=0 or id~=math.floor(id) then return end
+    local data=self.saved.research
+    local key=tostring(id)
+    if data.abilities[key] then return end
+    if abilityCount>=MAX_ABILITIES then data.abilityCatalogLimited=true; return end
+    abilityCount=abilityCount+1
+    data.abilities[key]={name=Short(GetAbilityName(id)),observedName=Short(name)}
+end
+
+function R:Snapshot(label)
+    if not self.active then return end
+    local count=CT.displayCount or {}
+    if not self:Record("snapshot",{label=Short(label),inCombat=IsUnitInCombat("player")==true,
+        selected=CT.CopySourceSelection(),estimate=count.total,minimum=count.minimum,maximum=count.maximum,
+        countMode=CT.saved.countMode}) then return end
+    local tags={"player","reticleover"}
+    for index=1,8 do tags[#tags+1]="playerpet"..index end
+    for index=1,24 do tags[#tags+1]="group"..index end
+    for _, tag in ipairs(tags) do
+        if not self.active then return end
+        if DoesUnitExist(tag) then
+            if not self:Record("unit",{tag=tag,name=Short(GetUnitName(tag)),dead=IsUnitDead(tag)==true}) then return end
+            local n=GetNumBuffs(tag)
+            if Finite(n) and n>=0 then
+                if n>128 then self.saved.research.snapshotBuffsLimited=true end
+                for index=1,math.min(n,128) do
+                    local name,beginning,ending,slot,stacks,icon,buffType,effectType,
+                        abilityType,statusType,id,canClickOff,castByPlayer=GetUnitBuffInfo(tag,index)
+                    -- All self/pet buffs; other units only known-own buffs.
+                    if tag=="player" or tag:match("^playerpet%d+$") or castByPlayer then
+                        self:Ability(id,name)
+                        if not self:Record("buff",{tag=tag,ability=id,name=Short(name),slot=slot,
+                            beginTime=beginning,endTime=ending,stacks=stacks,icon=Short(icon,200),
+                            buffType=buffType,effectType=effectType,abilityType=abilityType,
+                            statusType=statusType,canClickOff=canClickOff,castByPlayer=castByPlayer}) then return end
+                    end
+                end
+            end
+        end
+    end
+    for _, bar in ipairs({HOTBAR_CATEGORY_PRIMARY,HOTBAR_CATEGORY_BACKUP}) do
+        for slot=3,8 do
+            if not self.active then return end
+            local id=GetSlotBoundId(slot,bar)
+            self:Ability(id)
+            if not self:Record("slot",{bar=bar,slot=slot,ability=id}) then return end
+        end
+    end
+end
+
+local function Combat(_,result,isError,name,graphic,actionSlotType,sourceName,sourceType,
+    targetName,targetType,value,powerType,damageType,log,sourceId,targetId,id,overflow)
+    if not R.active or not Own(sourceType) then return end
+    R:Ability(id,name)
+    R:Record("combat",{ability=id,name=Short(name),result=result,error=isError,
+        source=sourceId,target=targetId,sourceName=Short(sourceName),targetName=Short(targetName),
+        sourceType=sourceType,targetType=targetType,amount=value,powerType=powerType,
+        damageType=damageType,overflow=overflow})
+end
+
+local function Effect(_,change,slot,name,tag,beginning,ending,stacks,icon,buffType,
+    effectType,abilityType,statusType,unitName,unitId,id,sourceType)
+    if not R.active then return end
+    local key=tostring(Finite(unitId) and unitId>0 and unitId or tag)..":"..tostring(slot)..":"..tostring(id)
+    local known=ownedEffects[key]
+    if not Own(sourceType) and not FriendlyTag(tag) and not known then return end
+    if change==EFFECT_RESULT_FADED then
+        if known then ownedEffects[key]=nil; ownedCount=ownedCount-1 end
+    elseif Own(sourceType) and not known then
+        if ownedCount<MAX_EFFECTS then ownedEffects[key]=true; ownedCount=ownedCount+1
+        else R.saved.research.effectTrackingLimited=true end
+    end
+    R:Ability(id,name)
+    R:Record("effect",{ability=id,name=Short(name),phase=phases[change],change=change,
+        slot=slot,tag=Short(tag),beginTime=beginning,endTime=ending,stacks=stacks,
+        icon=Short(icon,200),buffType=buffType,effectType=effectType,abilityType=abilityType,
+        statusType=statusType,unitName=Short(unitName),unit=unitId,sourceType=sourceType,
+        previouslyOwned=known==true})
+end
+
+local function ResolveVariants()
+    local variants={}
+    for _, target in ipairs(targets) do
+        local st,line,skill=GetSpecificSkillAbilityKeysByAbilityId(target.seed)
+        if st and line and skill then
+            for morph=0,2 do
+                for rank=1,4 do
+                    local id=GetSpecificSkillAbilityInfo(st,line,skill,morph,rank)
+                    if Finite(id) and id>0 then
+                        variants[#variants+1]={ability=id,family=target.family,morph=morph,rank=rank}
+                    end
+                end
+            end
+        end
+    end
+    return variants
+end
+
+function R:Start(notify)
+    self:Stop("new_test",false)
+    self.saved=CT.saved
+    self.saved.research={format=1,addonVersion=CT.version,apiVersion=GetAPIVersion(),
+        world=GetWorldName(),language=GetCVar("language.2"),startedAt=Now(),
+        recording=true,rows={},abilities={},maxRows=MAX_ROWS,maxSeconds=MAX_SECONDS,
+        variants=ResolveVariants(),constants={gained=EFFECT_RESULT_GAINED,updated=EFFECT_RESULT_UPDATED,
+            faded=EFFECT_RESULT_FADED,player=COMBAT_UNIT_TYPE_PLAYER,pet=COMBAT_UNIT_TYPE_PLAYER_PET,
+            none=COMBAT_UNIT_TYPE_NONE,other=COMBAT_UNIT_TYPE_OTHER,
+            unitCreated=EVENT_UNIT_CREATED,unitDestroyed=EVENT_UNIT_DESTROYED,unitDeath=EVENT_UNIT_DEATH_STATE_CHANGED,damage=ACTION_RESULT_DAMAGE,critical=ACTION_RESULT_CRITICAL_DAMAGE,
+            effectGained=ACTION_RESULT_EFFECT_GAINED,effectDuration=ACTION_RESULT_EFFECT_GAINED_DURATION,
+            effectFaded=ACTION_RESULT_EFFECT_FADED,died=ACTION_RESULT_DIED,diedXP=ACTION_RESULT_DIED_XP}}
+    local data=self.saved.research
+    data.recording,data.segmentStartedAt,data.stoppedAt,data.stopReason=true,Now(),nil,nil
+    data.lastAddonVersion=CT.version
+    data.recordedSeconds=data.recordedSeconds or 0
+    abilityCount,ownedCount,ownedEffects=0,0,{}
+    for _ in pairs(data.abilities) do abilityCount=abilityCount+1 end
+    self.active=true
+    if not self:Record("start",{scope="own_combat_and_observed_effects",
+            inference="none",addonVersion=CT.version}) then return false end
+    for _, source in ipairs({COMBAT_UNIT_TYPE_PLAYER,COMBAT_UNIT_TYPE_PLAYER_PET}) do
+        Register("_Combat_"..source,EVENT_COMBAT_EVENT,Combat,REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,source)
+    end
+    Register("_Effects",EVENT_EFFECT_CHANGED,Effect)
+    Register("_Cast",EVENT_ACTION_SLOT_ABILITY_USED,function(_,slot)
+        if not R.active then return end
+        local id=GetSlotBoundId(slot)
+        local name=Short(GetSlotName(slot))
+        R:Ability(id,name)
+        R:Record("cast",{slot=slot,ability=id,name=name,inCombat=IsUnitInCombat("player")==true})
+    end)
+    Register("_CombatState",EVENT_PLAYER_COMBAT_STATE,function(_,active)
+        R:Record("combat_state",{active=active})
+    end)
+    for _, event in ipairs({EVENT_UNIT_CREATED,EVENT_UNIT_DESTROYED,EVENT_UNIT_DEATH_STATE_CHANGED}) do
+        local eventId=event
+        Register("_Unit_"..eventId,eventId,function(_,tag,dead)
+            if FriendlyTag(tag) or tag=="reticleover" then
+                R:Record("unit_event",{event=eventId,tag=Short(tag),dead=dead,
+                    name=DoesUnitExist(tag) and Short(GetUnitName(tag)) or ""})
+            end
+        end)
+    end
+    self:Snapshot("start")
+    if notify and self.active then Say("RESEARCH_STARTED") end
+    return self.active
+end
+
+function R:Stop(reason,snapshot)
+    if not self.active then Unregister(); return false end
+    if snapshot then self:Snapshot("stop") end
+    if not self.active then return false end
+    local data=self.saved.research
+    data.recordedSeconds=math.min(MAX_SECONDS,Elapsed(data,true))
+    self.active=false
+    Unregister()
+    data.recording,data.stoppedAt,data.stopReason=false,Now(),reason or "manual"
+    -- One reserved row closes the file without deleting its beginning.
+    if #data.rows<MAX_ROWS then
+        data.rows[#data.rows+1]={kind="stop",reason=data.stopReason,t=Now(),sequence=#data.rows+1}
+    end
+    return true
+end
+
+function R:Tick()
+    if self.active and Elapsed(self.saved.research,true)>=MAX_SECONDS then
+        self:Limit("time_limit")
+    end
+end
+function R:Mark(label)
+    if not self.active then Say("RESEARCH_IDLE"); return false end
+    label=Short(label)
+    if label=="" then label="test" end
+    if not self:Record("mark",{label=label}) then return false end
+    self:Snapshot(label)
+    Say("RESEARCH_MARK",(label:gsub("|","||")))
+    return true
+end
+function R:Clear(keepRecording)
+    local restart=self.active and keepRecording
+    self:Stop("clear",false)
+    if CT.saved then CT.saved.research=nil end
+    if restart then self:Start(false) end
+end
+function R:Status()
+    self:Tick()
+    local data=CT.saved.research
+    Say("RESEARCH_STATUS",CT.T(self.active and "ENABLED" or "DISABLED"),
+        data and #data.rows or 0,MAX_ROWS)
+end
+
+-- Replace only this addon's listeners when the module itself is reloaded.
+if CT.Research then CT.Research:Stop("module_reload",false) end
+CT.Research=R
+
+end
+
 local CT = CorpseTracker
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -16,12 +350,12 @@ local function RegisterEvent(event, callback)
     EM:UnregisterForEvent(CT.name, event)
     EM:RegisterForEvent(CT.name, event, callback)
 end
-local MAX_LOG_ROWS = 2500
+local MAX_LOG_ROWS = 6000
 local defaults = {
     x = 480, y = 340, locked = false,
-    radius = 12, bbTTL = 5, archerTTL = 10, bannerTTL = 5, skullTTL = 5,
+    radius = 12, bbTTL = 5, archerTTL = 10, spiritTTL = 10, bannerTTL = 5, skullTTL = 5,
     capture = false, physicalOnly = false, bannerUnits = false,
-    sourceMode = "primary", debugMode = false, displayMode = "compact", countMode = "light", squareSize = 64,
+    debugMode = false, displayMode = "compact", countMode = "light", squareSize = 64,
     rangeMode = "siphon", manualRange = 28, includeUnknown = true, language = "auto",
     rules = {}, log = {},
 }
@@ -32,6 +366,15 @@ local watch = {
     [227112] = true, [227113] = true, [227114] = true,
     [263461] = true, [263462] = true, [120612] = true,
     [220102] = true,
+    [118843] = true, -- Intensive Mender own-pet effect, verified natural expiry.
+    [118018] = true, -- Renewing Undeath: successful corpse extension, not ground cast/healing.
+    [118913] = true, -- Own Spirit Guardian pet effect; the owner effect is not another summon.
+    [117891] = true, -- Blood Sacrifice: exact resource target.
+    [118817] = true, -- Enduring Undeath: final stack value is the resource quantity.
+    [115926] = true, -- Restoring Tether: confirmed application to the consumed resource.
+    [119372] = true, -- Bitter Harvest: one target marker per resource; 650 is duration.
+    [122680] = true, -- Summoner's Armor Living Corpse, verified in the probe trace.
+    [263468] = true, -- Own Malevolent Promise mark on a living enemy.
     [117850] = true, [117852] = true, [117853] = true, [117854] = true,
     [117860] = true, [115567] = true, [115548] = true,
 }
@@ -41,9 +384,14 @@ local inCombat = false
 local rawBanner, direct, frame, label, timer, question, sourceButton, background, icon
 local timerShown, questionShown, lastQuestionCount
 local renderedText = {}
+local lastCounterSample
 local lastLabelUncertain, lastTimerTenth
 local unitBindings, cachedFilter, nextRangeRead = {}, nil, 0
 local summons = {}
+local guardians = CT.NewGuardianTracker()
+local menders = CT.NewGuardianTracker()
+local newConsumers = CT.NewConsumerQueue()
+local lastAction
 local summonSerial = 0
 local knownUnits, unitStates = {}, {}
 local rowSerial = 0
@@ -54,6 +402,10 @@ local yardSerial, yardCasts, yardConsumed, yardUnconfirmed = 0, 0, 0, 0
 local combatBaseline = { created = 0, consumed = 0, expired = 0, unmatched = 0,
     untrackedConsumed = 0, remaining = 0, yardConsumed = 0, yardUnconfirmed = 0 }
 local nextCleanup = 0
+local armor = CT.NewLivingCorpse()
+CT.armor = armor
+local promise = CT.NewPromise()
+CT.promise = promise
 
 local function Finite(value)
     return type(value) == "number" and value == value and
@@ -62,9 +414,16 @@ end
 
 local function NormalizeSaved()
     local saved = CT.saved
+    if not saved.spiritTTLRevision then
+        local previous = saved.guardianTTL
+        if not Finite(previous) or previous < 1 or previous > 60 then previous = saved.menderTTL end
+        if Finite(previous) and previous >= 1 and previous <= 60 then saved.spiritTTL = previous end
+        saved.spiritTTLRevision = 1
+    end
+    saved.guardianTTL, saved.menderTTL = nil, nil
     local limits = { x = {-100000,100000}, y = {-100000,100000},
         squareSize = {40,140}, radius = {1,100}, manualRange = {1,60},
-        bbTTL = {1,60}, skullTTL = {1,60}, archerTTL = {1,60}, bannerTTL = {1,60} }
+        bbTTL = {1,60}, skullTTL = {1,60}, archerTTL = {1,60}, spiritTTL = {1,60}, bannerTTL = {1,60} }
     for key, bounds in pairs(limits) do
         local value = saved[key]
         saved[key] = Finite(value) and math.max(bounds[1], math.min(bounds[2], value)) or defaults[key]
@@ -112,13 +471,105 @@ local function Record(kind, data)
     if #log > MAX_LOG_ROWS then table.remove(log, 1) end
 end
 
+local ApplyConsumer
+local function QueueConsumer(kind, amount, target, targetType)
+    local now = Now()
+    local cutoff = lastAction and now - lastAction.at <= 0.8 and lastAction.promiseCutoff or promise.serial
+    local transaction = newConsumers:Add(kind, now, amount, target, targetType,
+        CT.ledger.serial, cutoff)
+    if transaction then
+        consumeWitness = nil
+        if kind ~= "enduring" and targetType == COMBAT_UNIT_TYPE_PLAYER_PET then
+            -- The marker already identifies a physical own-pet corpse.
+            -- Spend it before a near-expiry body can time out during settling.
+            ApplyConsumer(newConsumers:Take(transaction), now)
+        end
+    end
+end
+
+ApplyConsumer = function(transaction, now)
+    local left, virtual, marks = transaction.amount, 0, 0
+    local identity, source, accepted
+    local exact = transaction.kind ~= "enduring" and transaction.kind ~= "renewing"
+    local exactVirtual = exact and
+        transaction.targetType == COMBAT_UNIT_TYPE_PLAYER
+    if not exact or exactVirtual then
+        if armor:TryConsume(transaction.at, now) then
+            virtual, left = 1, left - 1
+            Record("armor_consumed", { consumer = transaction.kind, serial = transaction.serial })
+        end
+    end
+    while left > 0 and not exactVirtual do
+        local marked, unit = promise:TryConsume(transaction.at, now,
+            exact and transaction.target or nil, transaction.promiseCutoff)
+        if not marked then break end
+        marks, left = marks + 1, left - 1
+        Record("promise_consumed", { consumer = transaction.kind,
+            target = unit, serial = transaction.serial })
+        if exact then break end
+    end
+    local physical = left
+    if exactVirtual then
+        -- A self-targeted resource marker cannot justify spending a physical
+        -- corpse if the Living Corpse fade was unavailable.
+        physical = 0
+        identity = virtual == 1 and "armor" or "unresolved-virtual"
+    elseif physical > 0 then
+        local target = exact and transaction.target or nil
+        local bound = target and CT.ledger.units[target]
+        if bound and bound.id > transaction.bodyCutoff then
+            -- A corpse born after the marker cannot pay for this cast.
+            identity = "late-target"
+        else
+            accepted, identity, source = CT.ledger:Consume(physical, now,
+                transaction.kind .. ":" .. transaction.serial, not CT.saved.physicalOnly, target,
+                { strictTarget = exact, allowUntracked = true,
+                    maxBodyId = transaction.bodyCutoff })
+        end
+    else identity = marks > 0 and "promise" or "armor" end
+    Record(transaction.kind .. "_consumed", { serial = transaction.serial,
+        amount = transaction.amount, physical = physical, armor = virtual, promise = marks,
+        target = transaction.target, identity = identity, source = source,
+        confirmedAt = transaction.at,
+        applied = (exactVirtual and virtual == 1) or
+            (not exactVirtual and (physical == 0 or accepted == true)) })
+    consumeWitness = nil
+end
+
+local function FlushConsumers(force)
+    local now = Now()
+    for _, transaction in ipairs(newConsumers:TakeReady(now, force)) do
+        ApplyConsumer(transaction, now)
+    end
+end
+
 local function FinishYard()
     if not pendingYard or pendingYard.counted or not pendingYard.markerAt or
-        not consumeWitness or Now() - pendingYard.at > 0.8 or
-        math.abs(pendingYard.markerAt - consumeWitness.at) > 0.15 then return end
+        Now() - pendingYard.at > 0.8 then return end
+    -- Wait for the possible Armor FADED callback before choosing a physical body.
+    if (armor:Relevant(Now()) or promise:Relevant(Now())) and Now() - pendingYard.at < 0.25 then return end
+    local virtual = armor:TryConsume(pendingYard.at, Now())
+    local marked, markedUnit
+    if not virtual then marked, markedUnit = promise:TryConsume(pendingYard.at, Now(), nil, pendingYard.promiseCutoff) end
+    if not virtual and not marked and (not consumeWitness or
+        math.abs(pendingYard.markerAt - consumeWitness.at) > 0.15) then return end
+    if not virtual and not marked and consumeWitness.evidence == "Malevolent Promise gain" then
+        -- A new mark proves a consumption, but can belong to a Siphon whose
+        -- exact/self callback has not arrived yet. Let those routes reconcile
+        -- before attributing this witness to the pending Yard.
+        if pendingSiphon or Now() - lastSiphonAt < 0.25 then consumeWitness = nil; return end
+        if Now() - consumeWitness.at < 0.25 then return end
+    end
     pendingYard.counted = true
+    if virtual or marked then
+        yardConsumed = yardConsumed + 1
+        Record(virtual and "armor_consumed" or "promise_consumed",
+            { consumer = "yard", serial = pendingYard.serial, target = markedUnit })
+        consumeWitness = nil
+        return
+    end
     if CT.ledger:Consume(1, Now(), "yard:" .. pendingYard.serial, not CT.saved.physicalOnly,
-            nil, { allowUntracked = true }) then
+            nil, { allowUntracked = true, maxBodyId = pendingYard.maxBodyId }) then
         yardConsumed = yardConsumed + 1
         Record("yard_consumed", { serial = pendingYard.serial,
             evidence = consumeWitness.evidence, physicalAssumption = CT.saved.physicalOnly,
@@ -140,7 +591,7 @@ local function ArmYard()
     ExpireYard()
     if pendingYard then return end -- skill event and self effect are one cast
     yardSerial, yardCasts = yardSerial + 1, yardCasts + 1
-    pendingYard = { at = Now(), serial = yardSerial }
+    pendingYard = { at = Now(), serial = yardSerial, promiseCutoff = promise.serial }
     Record("yard_cast", { serial = yardSerial })
 end
 
@@ -172,9 +623,19 @@ local function SeedWaste()
     end
 end
 
+local function SeedArmor()
+    for index = 1, GetNumBuffs("player") do
+        local _, beginning, ending, slot, _, _, _, _, _, _, id = GetUnitBuffInfo("player", index)
+        if id == 122680 then armor:Effect("gained", slot, beginning, ending, Now()) end
+    end
+end
+
 local function Position(tag)
     if CT.saved.countMode == "light" and not (CT.saved.debugMode and CT.saved.capture) then return nil end
-    if not tag or not DoesUnitExist(tag) then return nil end
+    -- Public positions are used only for the player, own pets and group tags.
+    -- Enemy/reticle tags remain unknown; do not probe unavailable NPC positions.
+    if type(tag) ~= "string" or not (tag == "player" or tag:match("^playerpet%d+$") or
+            tag:match("^group%d+$")) or not DoesUnitExist(tag) then return nil end
     local zone, x, y, z = GetUnitWorldPosition(tag)
     -- Zero coordinates commonly mean unavailable world position.
     if not Finite(zone) or zone == 0 or not Finite(x) or not Finite(y) or not Finite(z) or
@@ -207,6 +668,15 @@ local function SkullIdentity(unitId)
     end
 end
 
+local function BannerCreated(unitId, tag)
+    if not Finite(unitId) or unitId <= 0 or unitId ~= math.floor(unitId) then return end
+    if CT.ledger:Add("banner", Now(), CT.saved.bannerTTL, tag and Position(tag),
+            "banner:" .. tostring(unitId), CT.saved.bannerTTL, unitId) then
+        Record("banner_created", { unit = unitId, marker = 227114 })
+    end
+    if tag then UpdateBodyPosition(tag, unitId) end
+end
+
 local function ConsumeSiphon(targetUnitId, targetType, maxBodyId)
     local accepted, identity, source = CT.ledger:Consume(1, Now(), "siphon-application",
         not CT.saved.physicalOnly, targetUnitId, { strictTarget = true, maxBodyId = maxBodyId })
@@ -219,18 +689,37 @@ local function ConsumeSiphon(targetUnitId, targetType, maxBodyId)
 end
 
 local function FlushSiphon(force)
-    if pendingSiphon and (force or Now() - pendingSiphon.at >= 0.25) then
+    if pendingSiphon and (Now() - pendingSiphon.at >= 0.25 or
+            (force and not armor:Relevant(Now()) and not promise:Relevant(Now(), pendingSiphon.target))) then
         local pending = pendingSiphon
         pendingSiphon = nil
         -- Without a target ID, only bodies present when the self effect arrived
         -- can be candidates. A later BB explosion cannot be spent retroactively.
-        ConsumeSiphon(nil, nil, pending.maxBodyId)
+        local marked, markedUnit
+        if pending.target then
+            marked, markedUnit = promise:TryConsume(pending.at, Now(), pending.target, pending.promiseCutoff)
+        elseif not armor:TryConsume(pending.at, Now()) then
+            marked, markedUnit = promise:TryConsume(pending.at, Now(), nil, pending.promiseCutoff)
+        else
+            lastSiphonAt, consumeWitness = Now(), nil
+            Record("armor_consumed", { consumer = "siphon" })
+            return
+        end
+        if marked then
+            lastSiphonAt, consumeWitness = Now(), nil
+            Record("promise_consumed", { consumer = "siphon", target = markedUnit })
+        else ConsumeSiphon(pending.target, pending.targetType, pending.maxBodyId) end
     end
 end
 
-local function QueueSiphon()
+local function QueueSiphon(target, targetType)
+    if pendingSiphon then
+        if target then pendingSiphon.target, pendingSiphon.targetType = target, targetType end
+        return
+    end
     if Now() - lastSiphonAt >= 0.25 and not pendingSiphon then
-        pendingSiphon = { at = Now(), maxBodyId = CT.ledger.serial }
+        pendingSiphon = { at = Now(), maxBodyId = CT.ledger.serial,
+            promiseCutoff = promise.serial, target = target, targetType = targetType }
         Record("siphon_pending", { maxBodyId = pendingSiphon.maxBodyId })
     end
     consumeWitness = nil
@@ -238,6 +727,9 @@ end
 
 local function YardMarker()
     if pendingYard and Now() - pendingYard.at <= 0.8 then
+        -- Reconciliation may wait for virtual-resource and witness callbacks.
+        -- A corpse born after this server-side activation cannot pay that Yard.
+        if not pendingYard.markerAt then pendingYard.maxBodyId = CT.ledger.serial end
         pendingYard.markerAt = Now()
         FinishYard()
     end
@@ -282,6 +774,8 @@ end
 local function Cleanup(now)
     if now < nextCleanup then return end
     nextCleanup = now + 1
+    guardians:Cleanup(now)
+    menders:Cleanup(now)
     -- FADED/UNIT_DESTROYED may be missed during transitions. Retain a grace
     -- window for late callbacks; discarding a stale summon never creates a corpse.
     for key, instance in pairs(summons) do
@@ -309,12 +803,17 @@ local function RangeFilter()
 end
 
 local function CurrentCount()
+    local selection = CT.GetSourceSelection()
     if CT.saved.countMode == "light" then
         local filter = { enabled = false, mode = "none", light = true }
-        return CT.ledger:Count(Now(), nil, nil, CT.saved.sourceMode), filter
+        local c = armor:Project(CT.ledger:Count(Now(), nil, nil, selection), Now(), selection.armor)
+        return promise:Project(c, Now(), selection.promise), filter
     end
     local filter = RangeFilter()
-    return CT.ledger:Count(Now(), Position("player"), CT.saved.radius, CT.saved.sourceMode, filter), filter
+    local player = Position("player")
+    local c = armor:Project(CT.ledger:Count(Now(), player, CT.saved.radius, selection, filter),
+        Now(), selection.armor)
+    return promise:Project(c, Now(), selection.promise, player, CT.saved.radius, filter), filter
 end
 
 local function SetTextIfChanged(control, text)
@@ -327,10 +826,26 @@ end
 local function Refresh()
     local now = Now()
     Cleanup(now)
+    FlushConsumers(false)
     FlushSiphon(false)
+    FinishYard()
     ExpireYard()
     local c, filter = CurrentCount()
     CT.displayCount, CT.displayFilter = c, filter
+    if CT.saved.capture then
+        local visible = not frame:IsHidden()
+        local pending = #newConsumers.pending
+        local stamp = table.concat({c.total, c.minimum or 0, c.maximum or 0,
+            #CT.ledger.bodies, c.virtual or 0, c.promise or 0, pending,
+            pendingSiphon and 1 or 0, visible and 1 or 0, CT.saved.countMode}, ":")
+        if stamp ~= lastCounterSample then
+            lastCounterSample = stamp
+            Record("counter", { total=c.total, minimum=c.minimum, maximum=c.maximum,
+                physical=#CT.ledger.bodies, armor=c.virtual or 0, promise=c.promise or 0,
+                pending=pending, pendingSiphon=pendingSiphon~=nil, visible=visible,
+                nextExpiry=c.nextExpiry, countMode=CT.saved.countMode })
+        end
+    end
     -- Keep consumption and expiry current while menus hide the HUD. Rendering
     -- resumes on OnShow; hidden controls need no text, colour or layout writes.
     if frame:IsHidden() then return end
@@ -372,9 +887,9 @@ local function Refresh()
         end
         return
     end
-    local mode = CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL")
+    local mode = CT.SourceLabel()
     local range = c.minimum ~= c.maximum and " " .. CT.T("POSSIBLE", c.minimum, c.maximum) or ""
-    SetTextIfChanged(sourceButton, CT.T("SOURCE_BUTTON", mode))
+    SetTextIfChanged(sourceButton, CT.T("SOURCE_BUTTON"))
     local probe = CT.T("API_MISSING")
     if direct then
         local age = now - direct.at
@@ -467,6 +982,11 @@ function CT.ApplySettings()
     Refresh()
 end
 
+function CT.SourceSettingsChanged()
+    Record("source_selection", { selection = CT.CopySourceSelection() })
+    CT.ApplySettings()
+end
+
 local function InspectUnit(tag)
     if not CT.saved.capture or not CT.saved.debugMode then return end
     if not DoesUnitExist(tag) then unitStates[tag] = nil; return end
@@ -500,6 +1020,18 @@ local function CombatEvent(_, result, isError, abilityName, _, _, sourceName,
             targetType = targetType, amount = hitValue })
     end
     if isError then return end
+    if sourceType == COMBAT_UNIT_TYPE_PLAYER and result == ACTION_RESULT_EFFECT_GAINED then
+        if abilityId == 117891 then QueueConsumer("blood", 1, targetId, targetType)
+        elseif abilityId == 115926 and hitValue == 1 then
+            QueueConsumer("tether", 1, targetId, targetType)
+        elseif abilityId == 119372 and hitValue == 1 then
+            QueueConsumer("harvest", 1, targetId, targetType)
+        elseif abilityId == 118018 and targetType == COMBAT_UNIT_TYPE_PLAYER and hitValue == 1 then
+            QueueConsumer("renewing", 1)
+        elseif abilityId == 118817 and targetType == COMBAT_UNIT_TYPE_PLAYER then
+            QueueConsumer("enduring", hitValue)
+        end
+    end
     local selfEvent = sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER
     -- Here hitValue is a stack count for GAINED, milliseconds for DURATION.
     -- Never interpret duration/fade values as corpse counts.
@@ -520,6 +1052,14 @@ local function CombatEvent(_, result, isError, abilityName, _, _, sourceName,
     -- First hits can precede COMBAT_STATE(true); corpses can remain usable
     -- after COMBAT_STATE(false). The combat flag is not a corpse lifetime.
     if not IsOwn(sourceType) then return end
+    if abilityId == 227114 and sourceType == COMBAT_UNIT_TYPE_PLAYER and
+            targetType == COMBAT_UNIT_TYPE_PLAYER_PET and result == ACTION_RESULT_EFFECT_GAINED then
+        BannerCreated(targetId)
+    end
+    if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER and
+            result == ACTION_RESULT_EFFECT_GAINED and CT.IsSiphonApplication(abilityId) then
+        QueueSiphon()
+    end
     if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER_PET and
             result == ACTION_RESULT_EFFECT_GAINED then
         if abilityId == 220102 then SkullIdentity(targetId) end
@@ -527,8 +1067,11 @@ local function CombatEvent(_, result, isError, abilityName, _, _, sourceName,
     if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType ~= COMBAT_UNIT_TYPE_PLAYER and
             result == ACTION_RESULT_EFFECT_GAINED and CT.IsSiphonApplication(abilityId) then
         if type(targetId) == "number" and targetId > 0 then
-            pendingSiphon = nil
-            ConsumeSiphon(targetId, targetType)
+            if promise:Relevant(Now(), targetId) then QueueSiphon(targetId, targetType)
+            else
+                pendingSiphon = nil
+                ConsumeSiphon(targetId, targetType)
+            end
         else
             QueueSiphon()
         end
@@ -557,12 +1100,35 @@ local function CombatEvent(_, result, isError, abilityName, _, _, sourceName,
     end
 end
 
-local function EffectChanged(_, change, _, name, tag, beginTime, endTime, stacks,
+local function EffectChanged(_, change, effectSlot, name, tag, beginTime, endTime, stacks,
         _, _, _, _, _, unitName, unitId, abilityId, sourceType)
     local rule = CT.saved.rules[tostring(abilityId)]
     local family = CT.AbilityFamily(abilityId)
     local yardEffect = CT.IsYardActivation(abilityId)
     if not watch[abilityId] and not family and not rule then return end
+    if abilityId == 263468 then
+        -- The player-only unit-tag filter would discard this enemy debuff,
+        -- including the valid empty-tag route. Ownership is checked here.
+        local known = promise.marks[unitId]
+        local ownFade = change == EFFECT_RESULT_FADED and sourceType == COMBAT_UNIT_TYPE_NONE and
+            known and known.slot == effectSlot
+        if (sourceType ~= COMBAT_UNIT_TYPE_PLAYER and not ownFade) or tag == "player" or
+                (type(tag) == "string" and tag:match("^playerpet%d+$")) then return end
+        local transition = promise:Effect(phaseNames[change], unitId, effectSlot,
+            beginTime, endTime, Now(), change ~= EFFECT_RESULT_FADED and Position(tag) or nil)
+        Record("promise_effect", { phase = phaseNames[change], transition = transition,
+            target = unitId, slot = effectSlot, beginTime = beginTime, endTime = endTime, tag = tag })
+        if change == EFFECT_RESULT_GAINED and transition == "created" and
+                Finite(beginTime) and math.abs(Now() - beginTime) <= 0.25 and
+                not pendingSiphon and Now() - lastSiphonAt >= 0.25 then
+            -- An actually new own mark is an independent consumption witness.
+            -- Old effects revealed by changing targets and duplicate tag routes
+            -- must never turn a no-corpse Yard into another spend.
+            consumeWitness = { at = Now(), evidence = "Malevolent Promise gain" }
+            FinishYard()
+        end
+        return
+    end
     if sourceType == COMBAT_UNIT_TYPE_PLAYER and tag:match("^playerpet%d+$") and
             type(unitId) == "number" and unitId > 0 then
         if change == EFFECT_RESULT_GAINED or change == EFFECT_RESULT_UPDATED then
@@ -575,10 +1141,28 @@ local function EffectChanged(_, change, _, name, tag, beginTime, endTime, stacks
             tag = tag, beginTime = beginTime, endTime = endTime, stacks = stacks,
             unitName = unitName, unit = unitId, sourceType = sourceType })
     end
+    if abilityId == 122680 and tag == "player" and
+            (sourceType == COMBAT_UNIT_TYPE_PLAYER or change == EFFECT_RESULT_FADED) then
+        local transition = armor:Effect(phaseNames[change], effectSlot, beginTime, endTime, Now())
+        Record("armor_effect", { phase = phaseNames[change], transition = transition,
+            slot = effectSlot, ending = endTime })
+    end
+    if abilityId == 227114 and sourceType == COMBAT_UNIT_TYPE_PLAYER and
+            tag:match("^playerpet%d+$") and change == EFFECT_RESULT_GAINED then
+        BannerCreated(unitId, tag)
+    end
     if (family == "skeletal" or abilityId == 118681) and
             (tag == "player" or tag:match("^playerpet%d+$")) and
             sourceType == COMBAT_UNIT_TYPE_PLAYER then
         SummonChanged(abilityId, tag, unitId, change, beginTime, endTime)
+    end
+    if abilityId == 118913 and sourceType == COMBAT_UNIT_TYPE_PLAYER and
+            (change == EFFECT_RESULT_GAINED or change == EFFECT_RESULT_UPDATED) then
+        guardians:Track(tag, unitId, beginTime, endTime, Now())
+    end
+    if abilityId == 118843 and sourceType == COMBAT_UNIT_TYPE_PLAYER and
+            (change == EFFECT_RESULT_GAINED or change == EFFECT_RESULT_UPDATED) then
+        menders:Track(tag, unitId, beginTime, endTime, Now())
     end
     if abilityId == 220102 and sourceType == COMBAT_UNIT_TYPE_PLAYER and
             tag:match("^playerpet%d+$") and change == EFFECT_RESULT_GAINED then
@@ -658,8 +1242,10 @@ function CT.UpdateAbilityEventFilters()
         if not filteredAbilityIds[id] then
             local effectName = AbilityNamespace(id)
             EM:RegisterForEvent(effectName, EVENT_EFFECT_CHANGED, EffectChanged)
-            EM:AddFilterForEvent(effectName, EVENT_EFFECT_CHANGED,
-                REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_UNIT_TAG_PREFIX, "player")
+            EM:AddFilterForEvent(effectName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
+            if id ~= 263468 then
+                EM:AddFilterForEvent(effectName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "player")
+            end
             for _, sourceType in ipairs({ COMBAT_UNIT_TYPE_PLAYER, COMBAT_UNIT_TYPE_PLAYER_PET }) do
                 local name = AbilityNamespace(id, sourceType)
                 EM:RegisterForEvent(name, EVENT_COMBAT_EVENT, CombatEvent)
@@ -692,9 +1278,13 @@ local function UpdateDeathEventFilters()
 end
 
 local function SaveCombatSummary(reason)
+    FlushConsumers(true)
     FlushSiphon(true)
+    FinishYard()
     ExpireYard()
     CT.ledger:Expire(Now())
+    armor:Expire(Now())
+    promise:Expire(Now())
     local summary = { at = Now(), created = CT.ledger.created - combatBaseline.created,
         consumed = CT.ledger.consumed - combatBaseline.consumed,
         expired = CT.ledger.expired - combatBaseline.expired,
@@ -703,10 +1293,20 @@ local function SaveCombatSummary(reason)
         remaining = #CT.ledger.bodies, carried = combatBaseline.remaining,
         yardConsumed = yardConsumed - combatBaseline.yardConsumed,
         yardUnconfirmed = yardUnconfirmed - combatBaseline.yardUnconfirmed,
-        banner = rawBanner, sourceMode = CT.saved.sourceMode, addonVersion = CT.version,
+        banner = rawBanner, sourceSelection = CT.CopySourceSelection(), addonVersion = CT.version,
         countMode = CT.saved.countMode, displayMode = CT.saved.displayMode, debugMode = CT.saved.debugMode,
+        armorCreated = armor.created - (combatBaseline.armorCreated or 0),
+        armorConsumed = armor.consumed - (combatBaseline.armorConsumed or 0),
+        armorExpired = armor.expired - (combatBaseline.armorExpired or 0),
+        armorRemaining = armor.active and 1 or 0,
+        promiseCreated = promise.created - (combatBaseline.promiseCreated or 0),
+        promiseConsumed = promise.consumed - (combatBaseline.promiseConsumed or 0),
+        promiseExpired = promise.expired - (combatBaseline.promiseExpired or 0),
+        promiseRemaining = promise:Size(Now()),
         endedBy = reason }
-    if CT.saved.capture and (summary.created > 0 or summary.consumed > 0 or not CT.saved.lastCombat) then
+    if CT.saved.capture and (summary.created > 0 or summary.consumed > 0 or
+            summary.armorCreated > 0 or summary.armorConsumed > 0 or
+            summary.promiseCreated > 0 or summary.promiseConsumed > 0 or not CT.saved.lastCombat) then
         CT.saved.lastCombat = summary
     end
     Record("combat_summary", summary)
@@ -714,7 +1314,9 @@ local function SaveCombatSummary(reason)
     combatBaseline = { created = CT.ledger.created, consumed = CT.ledger.consumed,
         expired = CT.ledger.expired, unmatched = CT.ledger.unmatched,
         untrackedConsumed = CT.ledger.untrackedConsumed, remaining = #CT.ledger.bodies,
-        yardConsumed = yardConsumed, yardUnconfirmed = yardUnconfirmed }
+        yardConsumed = yardConsumed, yardUnconfirmed = yardUnconfirmed,
+        armorCreated = armor.created, armorConsumed = armor.consumed, armorExpired = armor.expired,
+        promiseCreated = promise.created, promiseConsumed = promise.consumed, promiseExpired = promise.expired }
     return summary
 end
 
@@ -724,8 +1326,13 @@ local function Reset(reason)
     -- segment before clearing it, so the following empty end cannot hide it.
     if inCombat then SaveCombatSummary("reset:" .. reason) end
     CT.ledger = CT.NewLedger(CT.saved.countMode)
+    armor = CT.NewLivingCorpse(); CT.armor = armor
+    promise = CT.NewPromise(); CT.promise = promise
     rawBanner, direct = nil, nil
     summons = {}
+    guardians = CT.NewGuardianTracker()
+    menders = CT.NewGuardianTracker()
+    newConsumers, lastAction = CT.NewConsumerQueue(), nil
     pendingYard, consumeWitness = nil, nil
     lastSkullBody, lastSkullMarker = nil, nil
     pendingSiphon, lastSiphonAt = nil, -math.huge
@@ -733,6 +1340,7 @@ local function Reset(reason)
     combatBaseline = { created = 0, consumed = 0, expired = 0, unmatched = 0,
         untrackedConsumed = 0, remaining = 0, yardConsumed = 0, yardUnconfirmed = 0 }
     SeedWaste()
+    SeedArmor()
     unitStates, unitBindings = {}, {}
     -- Keep seen tags until UNIT_DESTROYED; resetting the ledger must not make
     -- an already observed corpse look newly created.
@@ -761,7 +1369,14 @@ local function Slots(silent)
     end
 end
 
+function CT.ClearLogs()
+    lastCounterSample = nil
+    CT.saved.log = {}
+    CT.Research:Clear(true)
+end
+
 function CT.ClearDiagnostics()
+    CT.Research:Clear(false)
     CT.saved.capture = false
     UpdateDeathEventFilters()
     CT.saved.log, rowSerial = {}, 0
@@ -771,6 +1386,7 @@ function CT.ClearDiagnostics()
 end
 
 function CT.StartDiagnostics(reason, append)
+    lastCounterSample = nil
     -- Begin a fresh recording without throwing away corpses already in play.
     -- Capture resumes append a new state snapshot; only a new test clears it.
     if not append then CT.ClearDiagnostics() end
@@ -779,10 +1395,14 @@ function CT.StartDiagnostics(reason, append)
     CT.saved.diagnosticStartedAt = Now()
     unitStates = {}
     CT.ledger:Expire(Now())
+    armor:Expire(Now())
+    promise:Expire(Now())
     combatBaseline = { created = CT.ledger.created, consumed = CT.ledger.consumed,
         expired = CT.ledger.expired, unmatched = CT.ledger.unmatched,
         untrackedConsumed = CT.ledger.untrackedConsumed, remaining = #CT.ledger.bodies,
-        yardConsumed = yardConsumed, yardUnconfirmed = yardUnconfirmed }
+        yardConsumed = yardConsumed, yardUnconfirmed = yardUnconfirmed,
+        armorCreated = armor.created, armorConsumed = armor.consumed, armorExpired = armor.expired,
+        promiseCreated = promise.created, promiseConsumed = promise.consumed, promiseExpired = promise.expired }
     local bodies = {}
     for _, body in ipairs(CT.ledger.bodies) do
         bodies[#bodies + 1] = { id = body.id, unitId = body.unitId,
@@ -792,7 +1412,12 @@ function CT.StartDiagnostics(reason, append)
     Record("diagnostic_start", { reason = reason or "manual", bodies = bodies,
         created = CT.ledger.created, consumed = CT.ledger.consumed,
         expired = CT.ledger.expired, untrackedConsumed = CT.ledger.untrackedConsumed,
-        sourceMode = CT.saved.sourceMode, rangeMode = CT.saved.rangeMode,
+        armorEnding = armor.active and armor.active.ending,
+        armorCreated = armor.created, armorConsumed = armor.consumed, armorExpired = armor.expired,
+        promiseCreated = promise.created, promiseConsumed = promise.consumed, promiseExpired = promise.expired,
+        promiseMarks = promise:Snapshot(Now()),
+        rangeMode = CT.saved.rangeMode,
+        sourceSelection = CT.CopySourceSelection(),
         debugMode = CT.saved.debugMode, displayMode = CT.saved.displayMode, countMode = CT.saved.countMode })
     CT.DiscoverAbilities()
     CT.UpdateAbilityEventFilters()
@@ -826,15 +1451,26 @@ function CT.SetCountMode(mode)
     CT.ApplySettings()
 end
 
+function CT.StopTestRecording(reason)
+    FlushConsumers(true)
+    CT.Research:Stop(reason or "manual", true)
+    CT.saved.capture = false
+    UpdateDeathEventFilters()
+    unitStates = {}
+    Refresh()
+end
+
 function CT.SetCapture(enabled)
-    if enabled and not CT.saved.capture then
-        CT.StartDiagnostics("capture_enabled", true)
-    elseif not enabled then
-        CT.saved.capture = false
-        UpdateDeathEventFilters()
-        unitStates = {}
+    if not enabled then CT.StopTestRecording("manual"); return true end
+    if CT.saved.capture and CT.Research.active then return true end
+    -- Starting a session clears diagnostics only; current corpses and settings stay.
+    CT.StartDiagnostics("new_test")
+    if not CT.Research:Start(false) then
+        CT.StopTestRecording("limit")
+        return false
     end
     Refresh()
+    return true
 end
 
 local function Command(text)
@@ -850,12 +1486,19 @@ local function Command(text)
     elseif cmd == "view" then CT.SetDisplayMode(args[2])
     elseif cmd == "mode" then CT.SetCountMode(args[2])
     elseif cmd == "test" then
-        CT.StartDiagnostics("new_test")
-        CT.ApplySettings()
+        if args[2] and args[2] ~= "on" and args[2] ~= "off" then
+            Say("/crpst test [on||off]"); return
+        end
+        local enabled = args[2] == "on" or (not args[2] and not (CT.saved.capture or CT.Research.active))
+        CT.SetCapture(enabled)
+        Say(CT.T("CHAT_CAPTURE", CT.T(CT.saved.capture and "ENABLED" or "DISABLED")))
+    elseif cmd == "mark" then
+        CT.Research:Mark(table.concat(args, " ", 2))
+    elseif cmd == "research" then CT.Research:Status()
     elseif cmd == "capture" then
         CT.SetCapture(args[2] == "on")
         Say(CT.T("CHAT_CAPTURE", CT.T(CT.saved.capture and "ENABLED" or "DISABLED")))
-    elseif cmd == "clearlog" then CT.saved.log = {}; Say(CT.T("CHAT_CLEARED"))
+    elseif cmd == "clearlog" then CT.ClearLogs(); Say(CT.T("CHAT_CLEARED"))
     elseif cmd == "reset" then Reset(); Say(CT.T("CHAT_RESET"))
     elseif cmd == "lock" or cmd == "unlock" then
         CT.saved.locked = cmd == "lock"
@@ -863,16 +1506,12 @@ local function Command(text)
     elseif cmd == "radius" and tonumber(args[2]) and tonumber(args[2]) > 0 then
         CT.saved.radius = math.min(100, tonumber(args[2])); Say(CT.T("CHAT_RADIUS", CT.saved.radius))
     elseif cmd == "sources" then
-        if args[2] and args[2] ~= "primary" and args[2] ~= "all" then
-            Say("/crpst sources primary||all; /crpst sources"); return
-        end
-        CT.saved.sourceMode = args[2] or (CT.saved.sourceMode == "primary" and "all" or "primary")
-        Record("source_mode", { mode = CT.saved.sourceMode })
-        Say(CT.T("CHAT_SOURCES", CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL")))
-        Refresh()
-    elseif cmd == "ttl" and (args[2] == "bb" or args[2] == "archer" or args[2] == "banner" or args[2] == "skull") and
+        if LAM and CT.settingsPanel then LAM:OpenToPanel(CT.settingsPanel)
+        else Say(CT.T("CHAT_DEPENDENCY")) end
+    elseif cmd == "ttl" and (args[2] == "bb" or args[2] == "archer" or args[2] == "spirit" or args[2] == "guardian" or args[2] == "mender" or args[2] == "banner" or args[2] == "skull") and
             tonumber(args[3]) and tonumber(args[3]) > 0 then
-        CT.saved[args[2] .. "TTL"] = math.min(60, tonumber(args[3]))
+        local source = (args[2] == "guardian" or args[2] == "mender") and "spirit" or args[2]
+        CT.saved[source .. "TTL"] = math.min(60, tonumber(args[3]))
         Say(CT.T("CHAT_TTL"))
     elseif cmd == "physical" then
         CT.saved.physicalOnly = args[2] == "on"
@@ -906,7 +1545,7 @@ local function Command(text)
     elseif cmd == "status" then
         local c = CurrentCount()
         Say("v" .. CT.version .. " || " .. CT.T("CHAT_STATUS1",
-            CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL"), c.total, c.minimum, c.maximum,
+            CT.SourceLabel(), c.total, c.minimum, c.maximum,
             c.breakdown.bb, c.breakdown.skull, c.breakdown.other))
         Say(CT.T("CHAT_STATUS2",
             CT.ledger.created, CT.ledger.consumed, CT.ledger.untrackedConsumed,
@@ -915,8 +1554,8 @@ local function Command(text)
         Say(CT.T("CHAT_STATUS3", yardCasts, yardConsumed, yardUnconfirmed))
     else
         Say(CT.T("COMMANDS"))
-        Say("/crpst settings; view compact||detailed; mode light||extended; debug on||off; test; capture on||off; probe; slots; variants; reset; status; clearlog; lock||unlock")
-        Say("/crpst sources primary||all; radius N; ttl bb||archer||banner||skull N; physical on||off")
+        Say("/crpst settings; view compact||detailed; mode light||extended; debug on||off; test [on||off]; mark LABEL; research; probe; slots; variants; reset; status; clearlog; lock||unlock")
+        Say("/crpst sources; radius N; ttl bb||archer||spirit||banner||skull N; physical on||off")
         Say("/crpst rule create||consume ID gained||updated||faded TTL_OR_AMOUNT; unrule ID")
     end
 end
@@ -934,7 +1573,7 @@ local function Initialize(_, addonName)
         end
         CT.saved.ttlRevision = 1
     end
-    if CT.saved.sourceMode ~= "all" then CT.saved.sourceMode = "primary" end
+    CT.NormalizeSourceSettings(CT.saved)
     CT.saved.bannerUnits = false -- Name-based experimental adapter retired.
     -- Old compact profiles never supported explicit recording. Migrate them
     -- once, then preserve recordings independently of the display mode.
@@ -955,13 +1594,14 @@ local function Initialize(_, addonName)
             rowSerial = math.max(rowSerial, math.floor(sequence))
         end
     end
-    local resumeCapture = CT.saved.capture
     CT.saved.capture = false
     UpdateDeathEventFilters()
     CT.SelectLanguage(CT.saved.language)
+    CT.Research:Initialize(CT.saved)
     CT.saved.addonVersion = CT.version
     CT.ledger = CT.NewLedger(CT.saved.countMode)
     SeedWaste()
+    SeedArmor()
     inCombat = IsUnitInCombat("player")
     frame = WM:CreateControl("CorpseTrackerWindow", root, CT_TOPLEVELCONTROL)
     frame:SetHidden(true)
@@ -983,9 +1623,20 @@ local function Initialize(_, addonName)
     frame:SetHandler("OnMouseEnter", function(self)
         if not tooltip or not InitializeTooltip then return end
         InitializeTooltip(tooltip, self, RIGHT, 8, 0)
-        tooltip:AddLine("Corpse Tracker — " .. CT.T(CT.saved.countMode == "light" and "LIGHT" or "EXTENDED"))
-        tooltip:AddLine(CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL"))
-        tooltip:AddLine(CT.T("TOOLTIP_HINT"))
+        local function AddLines(text, font, r, g, b)
+            for line in text:gmatch("[^\n]+") do
+                tooltip:AddLine(line, font, r, g, b, RIGHT,
+                    MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_RIGHT, true)
+            end
+        end
+        AddLines("Corpse Tracker", "ZoFontWinH4", 1, 1, 1)
+        AddLines(CT.T("COUNT_MODE") .. ": " ..
+            CT.T(CT.saved.countMode == "light" and "LIGHT" or "EXTENDED"), "ZoFontGame", 0.8, 1, 0.9)
+        tooltip:AddVerticalPadding(6)
+        AddLines(CT.T("SOURCES"), "ZoFontGameBold", 1, 1, 1)
+        AddLines((CT.SourceLabel():gsub(", ", "\n")), "ZoFontGame", 0.8, 1, 0.9)
+        tooltip:AddVerticalPadding(6)
+        AddLines(CT.T("TOOLTIP_HINT"), "ZoFontGame", 0.8, 0.8, 0.8)
     end)
     frame:SetHandler("OnMouseExit", function()
         if tooltip and ClearTooltip then ClearTooltip(tooltip) end
@@ -1044,21 +1695,50 @@ local function Initialize(_, addonName)
         CT.UpdateAbilityEventFilters()
     end)
     RegisterEvent(EVENT_UNIT_CREATED, function(_, tag)
+        guardians:Forget(tag)
+        menders:Forget(tag)
         knownUnits[tag] = true; unitStates[tag] = nil; unitBindings[tag] = nil; InspectUnit(tag)
     end)
+    EM:AddFilterForEvent(CT.name, EVENT_UNIT_CREATED, REGISTER_FILTER_UNIT_TAG_PREFIX, "playerpet")
     RegisterEvent(EVENT_UNIT_DESTROYED, function(_, tag)
         Record("unit_destroyed", { tag = tag })
+        guardians:Forget(tag)
+        menders:Forget(tag)
         knownUnits[tag], unitStates[tag], unitBindings[tag] = nil, nil, nil
     end)
-    RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, function(_, tag)
+    EM:AddFilterForEvent(CT.name, EVENT_UNIT_DESTROYED, REGISTER_FILTER_UNIT_TAG_PREFIX, "playerpet")
+    RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, function(_, tag, dead)
+        local summon = dead and guardians:Death(tag, Now())
+        if summon then
+            local ttl = CT.saved.spiritTTL
+            if CT.ledger:Add("guardian", Now(), ttl, Position(tag),
+                    "guardian:" .. tostring(summon.unitId), ttl, summon.unitId) then
+                Record("guardian_created", { unit = summon.unitId, tag = tag,
+                    expires = Now() + ttl })
+            end
+        end
+        local mender = dead and menders:Death(tag, Now())
+        -- The latest trace shows no persistent corpse when Mender ends after
+        -- combat: death and destruction arrive together. Do not infer one.
+        if mender and inCombat then
+            local ttl = CT.saved.spiritTTL
+            if CT.ledger:Add("mender", Now(), ttl, Position(tag),
+                    "mender:" .. tostring(mender.unitId), ttl, mender.unitId) then
+                Record("mender_created", { unit = mender.unitId, tag = tag,
+                    expires = Now() + ttl })
+            end
+        end
         knownUnits[tag] = true; InspectUnit(tag)
     end)
+    EM:AddFilterForEvent(CT.name, EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "playerpet")
     RegisterEvent(EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
+        lastAction = { at = Now(), promiseCutoff = promise.serial }
         local id = GetSlotBoundId(slot)
         Record("skill_used", { slot = slot, ability = id })
         if id == 117850 or CT.AbilityFamily(id) == "yard" then ArmYard() end
     end)
     EM:RegisterForUpdate(CT.name, 200, function()
+        CT.Research:Tick()
         if CT.saved.countMode == "extended" and CT.saved.rangeMode ~= "none" then
             for tag, unitId in pairs(unitBindings) do
                 if DoesUnitExist(tag) then UpdateBodyPosition(tag, unitId)
@@ -1074,7 +1754,6 @@ local function Initialize(_, addonName)
     slashCommands["/crpst"] = Command
     CT.ApplySettings()
     CT.RegisterSettings()
-    if resumeCapture then CT.StartDiagnostics("reload", true); Refresh() end
 end
 
 RegisterEvent(EVENT_ADD_ON_LOADED, Initialize)

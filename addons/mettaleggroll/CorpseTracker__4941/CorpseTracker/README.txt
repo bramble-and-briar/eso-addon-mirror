@@ -1,54 +1,62 @@
 AI disclosure: Developed by @mettaleggroll with assistance from
-ChatGPT (Codex), including AI-generated Lua code and translations.
+ChatGPT (Codex), including AI-generated code and translations.
 The counter artwork was created using AI image generation.
 
-Corpse Tracker 0.3.6
+Corpse Tracker 0.4.3
 
-Public beta for ESO PC/Mac. Shows an estimated count of your Necromancer
-corpses from selected tracked sources.
+Beta for ESO PC/Mac. Estimates selected Necromancer corpse resources
+and time until the next expiry.
 
 Install or update
 
 1. Install and enable LibAddonMenu-2.0 (AddOnVersion 43 or newer) separately.
 2. Extract CorpseTracker into Documents/Elder Scrolls Online/live/AddOns/.
    The correct path is AddOns/CorpseTracker/CorpseTracker.txt.
-3. On update, replace the files in the existing folder. Keep only one copy
-   of the addon; do not copy addon files into SavedVariables.
-4. Enable Corpse Tracker. After installation or a manifest/dependency update,
-   restart ESO, or log out to character selection and log in again.
+3. Replace the old addon folder with this one; keep your SavedVariables.
+   Keep only one installed copy. Do not put addon files in SavedVariables.
+4. Restart ESO or return to character selection and log in after installation
+   or a manifest/dependency update.
 
 Use
 
-Open settings with /crpst settings or Esc > Settings > Addons > Corpse Tracker.
-New installations use Light mode and Your BB + Skull sources.
+Open /crpst settings. New installations use Light.
 
-- Large number: estimated corpses from the selected sources.
-- ~4.2 or ~4,2: seconds until the nearest estimated corpse expiry.
+- Large number: estimated resources from the selected sources.
+- ~4.2 or ~4,2: estimated seconds until the next selected resource expires.
 - White ?: the displayed remainder may already be empty.
 
-Drag the square to move it; right-click to switch sources.
-Lock Position prevents dragging. The square hides in menus while counting
-continues. Updates keep your settings; /crpst mode light selects Light mode.
-Language follows the client or can be chosen manually in settings.
-Run /reloadui after changing the language.
+Right-click for source settings. Size and position lock are
+configurable. Source switches apply immediately to whole skills and their
+morphs. Hidden sources stay tracked for consumption.
+Language changes require
+/reloadui. Updates keep settings and recordings.
 
-Sources and limitations
+Sources and limits
 
-Your BB + Skull counts BB explosions and corpse-creating enhanced skulls.
-All tracked also includes recognized skeletal summons and diagnostic rules.
-Enemy deaths, allies and Banner creations are not counted.
+Seven source switches: BB, Flame Skull, Skeletal Mage, Spirit Mender,
+Bone Armor, Malevolent Promise and Banner (Necromancer Class Flourish).
+Spirit Guardian and Intensive Mender share one switch and a default 10-second
+corpse lifetime after natural death. Armor/Promise are separate virtual resources.
 
-Light mode does not check distance, obstacles, Yard placement or actual
-skill availability. Counts and lifetimes are estimates; a positive count
-does not guarantee a corpse can be used.
+Only recognized events are counted; a whole-skill switch does not add support
+for unverified morphs. Base Spirit Mender, other Bone Armor morphs and early pet
+recasts are not fully covered. Killed NPCs/allies and unlisted sources are not
+tracked. See the website for supported consumers and other limits.
+
+Counts/lifetimes are estimates. Light checks neither distance, line of sight,
+Graveyard placement nor skill availability. A positive count does not guarantee
+a usable target; zero covers selected sources only. Extended is experimental.
 
 Report a counting problem
 
-1. Run /crpst test to start a new recording. This clears previous diagnostics
-   and keeps active corpses. Enabling debugging is optional.
-2. Reproduce the problem, run /crpst capture off, then /reloadui to save.
-3. Provide Documents/Elder Scrolls Online/live/SavedVariables/CorpseTracker.lua.
-   A short video and Encounter.log can help if available.
+1. /crpst test starts a fresh recording, clearing old logs but keeping corpses.
+2. Reproduce the issue; /crpst mark LABEL adds an optional observation.
+3. /crpst test stops and preserves the log. /reloadui saves it; provide
+   SavedVariables/CorpseTracker.lua with the version and symptoms.
+
+Recording is optional and off after UI load. It stops at 15 minutes or 30000
+extended events; regular logs keep up to 6000 rows. The next start clears the
+session. Records can contain names/game IDs; review before sharing. No uploads.
 
 Release changes: CHANGELOG.txt.
 

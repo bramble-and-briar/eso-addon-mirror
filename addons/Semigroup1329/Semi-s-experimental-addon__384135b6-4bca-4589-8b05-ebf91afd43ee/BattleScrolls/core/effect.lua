@@ -125,7 +125,7 @@ end
 ---@param err any
 function Fiber:_Fail(err)
     if self._status ~= "running" then return end
-    self._status = "failed"
+    self._status = type(err) == "table" and err.isCancelled == true and "cancelled" or "failed"
     self._error = err
     self:_NotifyCallbacks()
 end
@@ -236,12 +236,12 @@ end
 
 ---@generic T
 ---@class Effect<T>
----@field _tag "succeed"|"fail"|"sync"|"async"|"fromCallback"|"sleep"|"yield"|"yieldGC"|"map"|"flatMap"|"tapError"|"mapError"|"recover"|"recoverWith"|"ensure"|"fork"|"all"|"race"|"allSettled"
+---@field _tag "succeed"|"fail"|"sync"|"defer"|"async"|"fromCallback"|"sleep"|"yield"|"yieldGC"|"map"|"flatMap"|"tapError"|"mapError"|"recover"|"recoverWith"|"ensure"|"fork"|"all"|"race"|"allSettled"
 ---@field _isEffect boolean
 ---@diagnostic disable-next-line: undefined-doc-name -- LuaLS limitation with generic type parameters
 ---@field _value T|nil For succeed
 ---@field _error any For fail
----@field _fn function|nil For sync/async/fromCallback/map/flatMap/tapError/mapError/recover/recoverWith/ensure
+---@field _fn function|nil For sync/defer/async/fromCallback/map/flatMap/tapError/mapError/recover/recoverWith/ensure
 ---@field _ms number|nil For sleep
 ---@field _source Effect<any>|nil For map/flatMap/tapError/mapError/recover/recoverWith/ensure/fork
 ---@field _effects Effect<any>[]|nil For all/race/allSettled
@@ -272,6 +272,22 @@ function Effect.IsCancelledError(err)
     return type(err) == "table" and err.isCancelled == true
 end
 
+---@class EffectTimeoutError
+---@field deadline number Frame time in milliseconds
+---@field isTimeout boolean
+local TimeoutError = {}
+TimeoutError.__index = TimeoutError
+
+function TimeoutError:__tostring()
+    return "Effect deadline exceeded (" .. tostring(self.deadline) .. " ms)"
+end
+
+---@param err any
+---@return boolean
+function Effect.IsTimeoutError(err)
+    return getmetatable(err) == TimeoutError
+end
+
 -----------------------------------------------------------
 -- Effect Constructors
 -----------------------------------------------------------
@@ -297,6 +313,15 @@ end
 ---@return Effect<T>
 function Effect.Sync(fn)
     return setmetatable({ _tag = "sync", _isEffect = true, _fn = fn }, Effect)
+end
+
+---Construct and run a fresh effect on each execution. Factory exceptions become
+---failures, and cancellation belongs to the effect returned by the factory.
+---@generic T
+---@param factory fun(): Effect<T>
+---@return Effect<T>
+function Effect.Defer(factory)
+    return setmetatable({ _tag = "defer", _isEffect = true, _fn = factory }, Effect)
 end
 
 ---Create an Effect from an async coroutine function
@@ -333,6 +358,63 @@ end
 ---@return Effect<nil>
 function Effect.Sleep(ms)
     return setmetatable({ _tag = "sleep", _isEffect = true, _ms = ms }, Effect)
+end
+
+---Sleep until an absolute frame-time deadline. Remaining time is read on execution.
+---@param deadline number GetFrameTimeMilliseconds() timestamp
+---@return Effect<nil>
+function Effect.SleepUntil(deadline)
+    return Effect.Defer(function()
+        local remaining = deadline - GetFrameTimeMilliseconds()
+        return remaining > 0 and Effect.Sleep(remaining) or Effect.Succeed(nil)
+    end)
+end
+
+---@class EffectEventScope
+---@field _name string
+---@field _events table<Event, boolean>
+---@field _closed boolean
+---@field _reject fun(err: any)|nil
+local EventScope = {}
+EventScope.__index = EventScope
+local nextEventScopeId = 0
+
+---Register one handler per event in this scope. Handlers run in the ESO event
+---callback; an Async awaiter resumes through the LibAsync scheduler.
+---@param eventId Event
+---@param handler fun(eventCode: integer, ...: any)
+function EventScope:On(eventId, handler)
+    if self._closed then return end
+    self._events[eventId] = true
+    EVENT_MANAGER:RegisterForEvent(self._name, eventId, function(...)
+        if self._closed then return end
+        local ok, err = pcall(handler, ...)
+        if not ok and self._reject then self._reject(err) end
+    end)
+end
+
+function EventScope:_Close()
+    self._closed = true
+    for eventId in pairs(self._events) do EVENT_MANAGER:UnregisterForEvent(self._name, eventId) end
+    self._events, self._reject = {}, nil
+end
+
+---Subscribe before sending a request. Each execution owns its listeners;
+---success, failure and cancellation unregister them, including handler errors.
+---Resolve/reject accept one value, matching FromCallback. The optional return
+---value cancels the underlying request if the computation is cancelled.
+---@generic T
+---@param register fun(events: EffectEventScope, resolve: fun(value: T|nil), reject: fun(err: any)): (fun()|nil)
+---@return Effect<T>
+function Effect.Events(register)
+    return Effect.Defer(function()
+        nextEventScopeId = nextEventScopeId + 1
+        local scope = setmetatable({ _name = "LibEffectEvents" .. nextEventScopeId, _events = {}, _closed = false }, EventScope)
+        return Effect.FromCallback(function(resolve, reject)
+            scope._reject = reject
+            return register(scope, resolve, reject)
+        end):Ensure(function() scope:_Close() end)
+    end)
 end
 
 -- Immutable metatable for singleton effects (prevents modification, inherits methods)
@@ -436,6 +518,29 @@ function Effect:Ensure(fn)
     return setmetatable({ _tag = "ensure", _isEffect = true, _source = self, _fn = fn }, Effect)
 end
 
+---Bound the whole computation by an absolute frame-time deadline. Expiration
+---cancels its work and completes cleanup before reporting EffectTimeoutError.
+---@generic T
+---@param deadline number GetFrameTimeMilliseconds() timestamp
+---@return Effect<T>
+function Effect:Deadline(deadline)
+    return Effect.Defer(function()
+        local timeout = setmetatable({ deadline = deadline, isTimeout = true }, TimeoutError)
+        if GetFrameTimeMilliseconds() >= deadline then return Effect.Fail(timeout) end
+        return Effect.Race({ self, Effect.SleepUntil(deadline):FlatMap(function() return Effect.Fail(timeout) end) })
+    end)
+end
+
+---Start a fresh time budget whenever this effect runs.
+---@generic T
+---@param milliseconds number
+---@return Effect<T>
+function Effect:Timeout(milliseconds)
+    return Effect.Defer(function()
+        return self:Deadline(GetFrameTimeMilliseconds() + milliseconds)
+    end)
+end
+
 ---Fork this effect to run concurrently, returns Effect<Fiber<T>>
 ---@generic T
 ---@return Effect<Fiber<T>>
@@ -455,7 +560,7 @@ function Effect.All(effects)
     return setmetatable({ _tag = "all", _isEffect = true, _effects = effects }, Effect)
 end
 
----Race effects, first to complete wins (others keep running)
+---Race effects; the first completion cancels and cleans up all other branches.
 ---@generic T
 ---@param effects Effect<T>[]
 ---@return Effect<T>
@@ -693,6 +798,16 @@ runEffect = function(effect, fiber, onDone)
         local ok, result = pcall(effect._fn)
         onDone(ok, result)
 
+    elseif tag == "defer" then
+        local ok, nextEffect = pcall(effect._fn)
+        if not ok then
+            onDone(false, nextEffect)
+        elseif not Effect.IsEffect(nextEffect) then
+            onDone(false, "Defer: factory must return an Effect, got " .. type(nextEffect))
+        else
+            runEffect(nextEffect, fiber, onDone)
+        end
+
     elseif tag == "async" then
         runAsync(effect, fiber, onDone)
 
@@ -880,6 +995,7 @@ runEffect = function(effect, fiber, onDone)
         end
 
         for i, eff in ipairs(effects) do
+            if failed then break end
             local childFiber = Fiber.New()
             childFibers[i] = childFiber
 
@@ -929,6 +1045,7 @@ runEffect = function(effect, fiber, onDone)
         end
 
         for i, eff in ipairs(effects) do
+            if settled then break end
             local childFiber = Fiber.New()
             childFibers[i] = childFiber
 

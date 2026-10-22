@@ -57,6 +57,17 @@ local FAST_ALPHA = 0.3                  -- smoothing for the displayed/compared 
 local MAX_PLAUSIBLE_DELTA_MS = 1000     -- ignore samples spanning a hitch/loading pause
 local CALIBRATION_DURATION_MS = 8000    -- how long /speedcal watches before locking in a ceiling
 
+-- Sprint margin (2026-10-21). The stored ceiling is the PEAK smoothed speed
+-- seen while riding normally, so normal riding afterwards sits right at it
+-- and ordinary jitter pushed readings over the line: false "sprinting"
+-- flickers in play. A reading now has to beat the ceiling by this much
+-- before it counts. Applied at detection time, not baked into the stored
+-- ceiling, so every calibration already saved gets it and raising it later
+-- needs no recalibration. Speeds are kept in u/ms internally (world units
+-- are centimetres, so 5 u/s is 5 cm/s, about half a percent of a gallop).
+local SPRINT_MARGIN_UPS = 5                      -- u/s above the ceiling
+local SPRINT_MARGIN     = SPRINT_MARGIN_UPS / 1000   -- the same, in u/ms
+
 -- ---------------------------------------------------------------------------
 -- Display settings
 -- ---------------------------------------------------------------------------
@@ -374,8 +385,8 @@ local function FinishCalibration(zoneId)
 
     savedVars.thresholds[zoneId] = calibrationPeakSpeed
     local zoneName = GetPlayerActiveZoneName()
-    d(string.format("DoesThisThingGoAnyFaster: calibration complete for %s. Non-sprint ceiling: %du/s -- anything faster than that now counts as sprinting here. Run /speedcal to calibrate again.",
-        zoneName, math.floor(calibrationPeakSpeed * 1000 + 0.5)))
+    d(string.format("DoesThisThingGoAnyFaster: calibration complete for %s. Non-sprint ceiling: %du/s -- anything over %du/s now counts as sprinting here. Run /speedcal to calibrate again.",
+        zoneName, math.floor(calibrationPeakSpeed * 1000 + 0.5), math.floor((calibrationPeakSpeed + SPRINT_MARGIN) * 1000 + 0.5)))
 end
 
 -- ---------------------------------------------------------------------------
@@ -409,7 +420,7 @@ local function OnPositionPoll()
             end
 
             local ceiling = savedVars.thresholds[zoneId]
-            sprintActive = ceiling ~= nil and fastSpeed > ceiling
+            sprintActive = ceiling ~= nil and fastSpeed > ceiling + SPRINT_MARGIN
 
             UpdateMountStaminaIndicator()
         end

@@ -183,9 +183,10 @@ Module.DATA = {
 			[218492] = true, -- Bystanders
 		},
 	},
-	links = {
+	conveyance = {
 		[223028] = 1,
 		[223029] = 2,
+		cast = 223024,
 	},
 	barrage = {
 		cast = 223198,
@@ -279,7 +280,7 @@ function Module:Initialize( )
 			overloaded = { },
 		},
 		barrage = { },
-		link1 = "",
+		conveyance = { },
 		platformHealth = nil,
 		radianceNext = 0,
 		radianceActive = 0,
@@ -563,6 +564,13 @@ function Module:Initialize( )
 		end
 	end
 
+	self.BannerPoll_Conveyance = function( )
+		if (Vars.conveyance.stop < GetGameTimeMilliseconds()) then
+			CA1.DisableBanner(Vars.conveyance.bannerId)
+			Vars.conveyance.bannerId = nil
+		end
+	end
+
 	self.BannerPoll_Barrage = function( )
 		local remaining = Vars.barrage.castEnd - GetGameTimeMilliseconds()
 		local extraText
@@ -613,7 +621,7 @@ function Module:Initialize( )
 		-- * Xoryn teleport, as a fail-safe if the others are missed for any reason
 		CA2.StatusEnable({
 			ownerId = "u42b2",
-			rowLabels = { LCA.GetAbilityName(112951), LCA.GetAbilityName(DATA.jump.id) },
+			rowLabels = { GetString(SI_LCA_BOSS), LCA.GetAbilityName(DATA.jump.id) },
 			pollingFunction = self.StatusPoll_B2,
 			initFunction = self.StatusInit_B2,
 		})
@@ -910,13 +918,17 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
 			passage.selfId = targetUnitId
 		end
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and DATA.links[abilityId]) then
+	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.conveyance.cast) then
+		Vars.conveyance.stop = GetGameTimeMilliseconds() + hitValue + 500
+		Vars.conveyance.bannerId = CA1.AlertBannerEx(GetString(SI_LCA_INCOMING), LCA.GetAbilityName(abilityId), 0xCC3399FF, nil, true, SOUNDS.CHAMPION_POINTS_COMMITTED, self.BannerPoll_Conveyance)
+		Vars.conveyance.name1 = ""
+	elseif (result == ACTION_RESULT_EFFECT_GAINED and DATA.conveyance[abilityId]) then
 		local _, name = LCA.IdentifyGroupUnitIdWithRole(targetUnitId, true)
-		if (DATA.links[abilityId] == 1) then
-			Vars.link1 = name
-		else
-			CA1.Alert(LCA.GetAbilityName(abilityId), string.format("%s / %s", Vars.link1, name), 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 3500)
-			Vars.link1 = ""
+		if (DATA.conveyance[abilityId] == 1) then
+			Vars.conveyance.name1 = name
+		elseif (Vars.conveyance.bannerId) then
+			Vars.conveyance.stop = GetGameTimeMilliseconds() + 3500
+			CA1.ModifyBanner(Vars.conveyance.bannerId, LCA.GetAbilityName(abilityId), string.format("%s / %s", Vars.conveyance.name1, name), 0xCC3399FF)
 		end
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.barrage.cast) then
 		Vars.barrage.castEnd = GetGameTimeMilliseconds() + hitValue

@@ -2,7 +2,7 @@
  <Layer name="PBsFMEGAInput" allowFallthrough="false">
   <Category name="PBsFMEGA">
    <!-- Held buttons are reported as a press and a release of the client's own UI shortcut, which is
-        what PBsTetris does for the directions. Cancel (UI_SHORTCUT_TERTIARY) is left to the keybind strip. -->
+        what PBsTetris does for the directions. Cancel (UI_SHORTCUT_TERTIARY, the triangle) is left to the keybind strip; the circle (UI_SHORTCUT_NEGATIVE) boosts. -->
    <Action name="PBSFMEGA_LEFT" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT" hideAction="true" rebindable="false"><Down>PBF.App:Input("left",true)</Down><Up>PBF.App:Input("left",false)</Up></Action>
    <Action name="PBSFMEGA_RIGHT" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT" hideAction="true" rebindable="false"><Down>PBF.App:Input("right",true)</Down><Up>PBF.App:Input("right",false)</Up></Action>
    <Action name="PBSFMEGA_UP" inheritsBindFrom="UI_SHORTCUT_INPUT_UP" hideAction="true" rebindable="false"><Down>PBF.App:Input("up",true)</Down><Up>PBF.App:Input("up",false)</Up></Action>

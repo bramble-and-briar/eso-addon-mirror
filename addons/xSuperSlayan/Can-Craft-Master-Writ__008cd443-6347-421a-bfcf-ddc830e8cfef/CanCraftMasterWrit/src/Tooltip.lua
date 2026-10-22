@@ -31,6 +31,8 @@ local CATEGORY_ICON = {
     [Result.CATEGORY_RUNES] = "EsoUI/Art/Inventory/inventory_tabIcon_Craftbag_enchanting_up.dds",
     [Result.CATEGORY_REAGENTS] = "EsoUI/Art/Inventory/inventory_tabIcon_Craftbag_alchemy_up.dds",
     [Result.CATEGORY_RECIPE] = "EsoUI/Art/Inventory/inventory_tabIcon_recipe_up.dds",
+    -- ZO_GAMEPAD_SUBMIT_ENTRY_ICON; Dolgubon's Lazy Writ Crafter also uses it for writs ready to hand in.
+    [Result.CATEGORY_ITEM] = "EsoUI/Art/Miscellaneous/Gamepad/gp_submit.dds",
     [Result.CATEGORY_SKILLS] = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_skills.dds",
     [Result.CATEGORY_MATERIALS] = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds",
 }
@@ -108,19 +110,21 @@ local STATE_COLOR = {
 -- like any missing item.
 local REAGENT_COLOR = ZO_ColorDef:New("FFDD44")
 
--- Lines are grouped, with a gap between groups: what you know (motif, or runes, reagents or recipe), then trait and
--- set, then skills, then materials. Lines in the same group sit together. Requirements already met (green) come
--- last, together, with no gaps between them, so what is missing is read first.
+-- Lines are grouped, with a gap between groups: the final item to hand in (provisioning and holiday writs), then
+-- what you know (motif, or runes, reagents or recipe), then trait and set, then skills, then materials. Lines in the
+-- same group sit together. Requirements already met (green) come last, together, with no gaps between them, so what
+-- is missing is read first.
 local CATEGORY_GROUP = {
     [Result.CATEGORY_GENERAL] = 0,
-    [Result.CATEGORY_MOTIF] = 1,
-    [Result.CATEGORY_RUNES] = 1,
-    [Result.CATEGORY_REAGENTS] = 1,
-    [Result.CATEGORY_RECIPE] = 1,
-    [Result.CATEGORY_TRAIT] = 2,
-    [Result.CATEGORY_SET] = 2,
-    [Result.CATEGORY_SKILLS] = 3,
-    [Result.CATEGORY_MATERIALS] = 4,
+    [Result.CATEGORY_ITEM] = 1,
+    [Result.CATEGORY_MOTIF] = 2,
+    [Result.CATEGORY_RUNES] = 2,
+    [Result.CATEGORY_REAGENTS] = 2,
+    [Result.CATEGORY_RECIPE] = 2,
+    [Result.CATEGORY_TRAIT] = 3,
+    [Result.CATEGORY_SET] = 3,
+    [Result.CATEGORY_SKILLS] = 4,
+    [Result.CATEGORY_MATERIALS] = 5,
 }
 
 -- Lines whose value goes on its own line under the label, because it is long (a motif's full name).

@@ -1,6 +1,6 @@
 ## Title: SimpleGroupDPS
 ## APIVersion: 101051
-## Version: 1.0.1
+## Version: 1.4.5
 ## Author: FiNk3F13
 ## Description: Eigene und Gruppen-DPS mit Battle-Scrolls-Austausch und eigenem Move-UI-Menue.
 ## DependsOn: LibHarvensAddonSettings LibGroupBroadcast

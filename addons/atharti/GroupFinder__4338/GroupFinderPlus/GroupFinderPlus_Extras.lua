@@ -74,16 +74,27 @@ function GF.RegisterBlacklistDialog()
 	}
 end
 
-function GF.IsLastBossListing(title, desc, short)
-	local function stripColors(text)
-		if not text then return "" end
-		text = text:gsub("|c%x%x%x%x%x%x", "")
-		text = text:gsub("|r", "")
-		return text
-	end
+local LAST_BOSS_DESC_PATTERNS = {
+	"last",
+	"final",
+	"last[%s%-]*boss",
+	"final[%s%-]*boss",
+	"boss[%s%-]*last",
+	"boss[%s%-]*final",
+	"end[%s%-]*boss",
+	"boss[%s%-]*end",
+}
 
-	local t = stripColors(title or ""):lower()
-	local d = stripColors(desc or ""):lower()
+function GF.stripColors(text)
+	if not text then return "" end
+	text = text:gsub("|c%x%x%x%x%x%x", "")
+	text = text:gsub("|r", "")
+	return text
+end
+
+function GF.IsLastBossListing(title, desc, short)
+	local t = GF.stripColors(title or ""):lower()
+	local d = GF.stripColors(desc or ""):lower()
 	local s = (short or ""):lower():gsub("[%[%]]", "")
 
 	-- =========================
@@ -119,20 +130,9 @@ function GF.IsLastBossListing(title, desc, short)
 	-- DESCRIPTION strict
 	-- =========================
 	if d ~= "" then
-		local trimmed = stripColors(d):gsub("%s+", " "):match("^%s*(.-)%s*$")
+		local trimmed = GF.stripColors(d):gsub("%s+", " "):match("^%s*(.-)%s*$")
 
-		local allowedPatterns = {
-			"last",
-			"final",
-			"last[%s%-]*boss",
-			"final[%s%-]*boss",
-			"boss[%s%-]*last",
-			"boss[%s%-]*final",
-			"end[%s%-]*boss",
-			"boss[%s%-]*end"
-		}
-
-		for _, pat in ipairs(allowedPatterns) do
+		for _, pat in ipairs(LAST_BOSS_DESC_PATTERNS) do
 			if trimmed:match("^" .. pat .. "$") then
 				return true
 			end

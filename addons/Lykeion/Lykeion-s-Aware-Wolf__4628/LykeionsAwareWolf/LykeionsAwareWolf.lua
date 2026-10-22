@@ -27,7 +27,9 @@ local RAMPAGE_ABILITY_ID = 267416
 local ROAR_ABILITY_ID = 32633
 local FEEDING_FRENZY_ABILITY_ID = 131353
 local MAJOR_COURAGE_ABILITY_ID = 109966
+local RENDING_CLAWS_ABILITY_ID = 58855
 local CLAW_FURY_ABILITY_ID = 58864
+local BLOODCLAWS_ABILITY_ID = 58879
 local INSATIABLE_HUNGER_ABILITY_ID = 33208
 local FEEDING_FREEZY_ABILITY_ID = 58775
 
@@ -86,8 +88,31 @@ local function CombatIdleCheck()
     end
 end
 
+local combatTrackingEnabled
+local function SetIdleTrackingEnabled(enabled)
+    if combatTrackingEnabled == enabled then
+        return
+    end
+    combatTrackingEnabled = enabled
+    if enabled then
+        EVENT_MANAGER:RegisterForEvent(addonName, EVENT_COMBAT_EVENT, OnCombatEvent)
+        EVENT_MANAGER:AddFilterForEvent(addonName, EVENT_COMBAT_EVENT,
+            REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER,
+            REGISTER_FILTER_IS_ERROR, false)
+        EVENT_MANAGER:RegisterForEvent(addonName, EVENT_START_SOUL_GEM_RESURRECTION,
+            OnSoulGemResurrectionStart)
+        EVENT_MANAGER:RegisterForEvent(addonName, EVENT_END_SOUL_GEM_RESURRECTION,
+            OnSoulGemResurrectionEnd)
+    else
+        EVENT_MANAGER:UnregisterForEvent(addonName, EVENT_COMBAT_EVENT)
+        EVENT_MANAGER:UnregisterForEvent(addonName, EVENT_START_SOUL_GEM_RESURRECTION)
+        EVENT_MANAGER:UnregisterForEvent(addonName, EVENT_END_SOUL_GEM_RESURRECTION)
+    end
+end
+
 local function SetIHTimeout(timeout)
     db.timeout = timeout
+    SetIdleTrackingEnabled(timeout > 0)
     EVENT_MANAGER:UnregisterForUpdate(addonName)
     if timeout > 0 then
         EVENT_MANAGER:RegisterForUpdate(addonName, timeout / 2, CombatIdleCheck)
@@ -514,7 +539,9 @@ end
 local CLAW_EDGE_TEXTURE = "esoui/art/miscellaneous/listitem_divider.dds"
 local CLAW_EDGE_HEIGHT = 0.15
 local CLAW_FADE_IN_MS = 180
-local CLAW_FADE_OUT_MS = 260
+local CLAW_FADE_OUT_MS = 180
+local CLAW_FURY_MAX_DURATION_MS = 4666
+local CLAW_MORPH_DURATION_MS = 1500
 local clawSector = { edges = {}, active = false, startedAt = 0, expiresAt = 0 }
 
 local function GetClampValue(value)
@@ -575,7 +602,7 @@ local function UpdateClawSector()
     -- GetPlayerCameraHeading points at the camera, so the front is half a turn away
     local heading = GetPlayerCameraHeading() + math.pi
     local halfAngle = math.rad(90) / 2
-    local length = 7 * 2
+    local length = 10
     local distance = length / 2
 
     for edge = 1, 2 do
@@ -597,20 +624,26 @@ local function UpdateClawSector()
     end
 end
 
-local function StartClawSector()
+local function StartClawSector(durationMs)
     if not db.clawFuryRange then
         return
     end
-    clawSector.active = true
-    clawSector.startedAt = GetGameTimeMilliseconds()
-    clawSector.expiresAt = clawSector.startedAt + 4666 -- claw fury duration
+    local now = GetGameTimeMilliseconds()
+    if not clawSector.active then
+        clawSector.active = true
+        clawSector.startedAt = now
+    end
+    clawSector.expiresAt = now + durationMs
     EVENT_MANAGER:RegisterForUpdate(addonName .. "_ClawSector", 12, UpdateClawSector)
     UpdateClawSector()
 end
 
 local function OnSlotAbilityUsed(_, slotIndex)
-    if GetSlotBoundId(slotIndex) == CLAW_FURY_ABILITY_ID then
-        StartClawSector()
+    local abilityId = GetSlotBoundId(slotIndex)
+    if abilityId == CLAW_FURY_ABILITY_ID then
+        StartClawSector(CLAW_FURY_MAX_DURATION_MS)
+    elseif abilityId == RENDING_CLAWS_ABILITY_ID or abilityId == BLOODCLAWS_ABILITY_ID then
+        StartClawSector(CLAW_MORPH_DURATION_MS)
     end
 end
 
@@ -628,11 +661,27 @@ local function OnClawFuryEffect(_, changeType, _, _, unitTag, beginTime, endTime
         return
     end
     if not clawSector.active then
-        StartClawSector()
+        StartClawSector(CLAW_FURY_MAX_DURATION_MS)
     end
     if clawSector.active then
         clawSector.startedAt = math.min(clawSector.startedAt, beginTime * 1000)
         clawSector.expiresAt = endTime * 1000
+    end
+end
+
+local clawRangeTrackingEnabled
+local function SetClawRangeTrackingEnabled(enabled)
+    if clawRangeTrackingEnabled == enabled then
+        return
+    end
+    clawRangeTrackingEnabled = enabled
+    if enabled then
+        EVENT_MANAGER:RegisterForEvent(addonName, EVENT_ACTION_SLOT_ABILITY_USED, OnSlotAbilityUsed)
+        EVENT_MANAGER:RegisterForEvent(addonName, EVENT_EFFECT_CHANGED, OnClawFuryEffect)
+        EVENT_MANAGER:AddFilterForEvent(addonName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, CLAW_FURY_ABILITY_ID)
+    else
+        EVENT_MANAGER:UnregisterForEvent(addonName, EVENT_ACTION_SLOT_ABILITY_USED)
+        EVENT_MANAGER:UnregisterForEvent(addonName, EVENT_EFFECT_CHANGED)
     end
 end
 
@@ -643,14 +692,7 @@ local function OnPlayerInit()
         SetSynergyPriorityOverride(FEEDING_FREEZY_ABILITY_ID, 4)
     end
     EVENT_MANAGER:RegisterForEvent(addonName, EVENT_PLAYER_COMBAT_STATE, OnCombatStateChange)
-    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_COMBAT_EVENT, OnCombatEvent)
-    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_START_SOUL_GEM_RESURRECTION,
-        OnSoulGemResurrectionStart)
-    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_END_SOUL_GEM_RESURRECTION,
-        OnSoulGemResurrectionEnd)
-    EVENT_MANAGER:AddFilterForEvent(addonName, EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER,
-        REGISTER_FILTER_IS_ERROR, false)
+    SetIdleTrackingEnabled(db.timeout > 0)
 
     ZO_PreHook(SYNERGY, "OnSynergyAbilityChanged", function()
         if ShouldHideIHSynergy() and isCombatActive then
@@ -663,9 +705,7 @@ local function OnPlayerInit()
     CreateRoarPanel()
     CreateClawSector()
 
-    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_ACTION_SLOT_ABILITY_USED, OnSlotAbilityUsed)
-    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_EFFECT_CHANGED, OnClawFuryEffect)
-    EVENT_MANAGER:AddFilterForEvent(addonName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, CLAW_FURY_ABILITY_ID)
+    SetClawRangeTrackingEnabled(db.clawFuryRange)
 
     ZO_PreHook("ZO_ActionBar_OnActionButtonDown", function(slotNum)
         slotPressTime[slotNum] = GetGameTimeMilliseconds()
@@ -685,6 +725,7 @@ local function OnPlayerInit()
 
     -- this part is based on the best practices used in NoAccidentalStealing
     ZO_PreHook("ZO_ActionBar_CanUseActionSlots", function()
+        if (not db.pounceConfirm and not db.ultimateConfirm) then return end
         local trace = debug.traceback()
         local slotNum = tonumber(trace:match("ACTION_BUTTON_(%d)"))
         if not slotNum then return end
@@ -727,7 +768,7 @@ local function CreateMenu()
         name = "Lykeion's Aware Wolf",
         displayName = "|c2e5c8cL|r|c365f87y|r|c3f6282k|r|c47657de|r|c4f6778i|r|c586a74o|r|c606d6fn|r|c68706a'|r|c717365s|r|c797660 |r|c81785bA|r|c897b56w|r|c927e51a|r|c9a814cr|r|ca28447e|r|cab8743 |r|cb3893eW|r|cbb8c39o|r|cc48f34l|r|ccc922ff|r",
         author = "|c215895Lykeion|r",
-        version = "|ccc922f2.1|r",
+        version = "|ccc922f2.2|r",
         slashCommand = "/law",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -811,14 +852,15 @@ local function CreateMenu()
         },
         {
             type = "checkbox",
-            name = LocalizeAbilityString(LAW_CLAW_FURY_RANGE, GetAbilityName(CLAW_FURY_ABILITY_ID)),
-            tooltip = LocalizeAbilityString(LAW_CLAW_FURY_RANGE_TOOLTIP, GetAbilityName(CLAW_FURY_ABILITY_ID)),
+            name = LocalizeAbilityString(LAW_CLAW_FURY_RANGE, GetAbilityName(RENDING_CLAWS_ABILITY_ID)),
+            tooltip = LocalizeAbilityString(LAW_CLAW_FURY_RANGE_TOOLTIP, GetAbilityName(RENDING_CLAWS_ABILITY_ID)),
             default = defaults.clawFuryRange,
             getFunc = function()
                 return db.clawFuryRange
             end,
             setFunc = function(value)
                 db.clawFuryRange = value
+                SetClawRangeTrackingEnabled(value)
                 if not value then
                     StopClawSector()
                 end

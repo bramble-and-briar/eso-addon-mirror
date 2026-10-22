@@ -23,7 +23,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lazy Enchanting Restock Queue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Lazy-Enchanting-Restock-Queue__4392) | TwinLamps | PC / Mac | 1.2 |
 | [Lazy Horse Trainer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Horse-Trainer__dd337340-e6c9-4835-8e50-ba68c7e949e4) | Dolgubon | Console | — |
 | [Lazy Horse Trainer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Horse-Trainer__2495) | Dolgubon | PC / Mac | 1.0.5 |
-| [Lazy Learner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Learner__2586) | Dolgubon | PC / Mac | 1.1.4 |
+| [Lazy Learner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Learner__2586) | Dolgubon | PC / Mac | 1.1.5 |
 | [Lazy Learner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Lazy-Learner__e17d8325-5ee4-4349-bae0-f777d0d9633b) | msetten | Console | — |
 | [Lazy Mail Reply](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Mail-Reply__3778) | Dolgubon | PC / Mac | 1.1 |
 | [LazyThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sulexa/LazyThief__1738) | sulexa | PC / Mac | 0.3.1 |
@@ -368,7 +368,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.5 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.6 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.3.1 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |
@@ -387,9 +387,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LWT Price Info (formerly Tamriel Trash Centre)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drLemis/LWT-Price-Info-formerly-Tamriel-Trash-Centre__3724) | drLemis | PC / Mac | 2.1.0 |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__529cf85a-e597-4945-86c4-654d2a32a7bc) | Masteroshi430 | Console | — |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
-| [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.9 |
+| [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.10 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
-| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.1 |
+| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.2 |
 | [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d) | Lykeion+ | Console | — |
 | [Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |
 | [Lykeion's Home Sweet Home - Dedicated keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-keybinding-jumping-to-Sugar-Bowl-Suite__3517) | Lykeion | PC / Mac | 1.0.2 |

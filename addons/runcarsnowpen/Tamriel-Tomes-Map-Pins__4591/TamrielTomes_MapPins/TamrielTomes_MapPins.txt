@@ -2,8 +2,8 @@
 ## Author: runcarsnowpen
 ## Description: Map Pins for Tamriel Tomes Challenges
 ## APIVersion: 101050 101051
-## Version: 1.2.2
-## AddOnVersion: 62
+## Version: 1.2.3
+## AddOnVersion: 64
 ## DependsOn: LibMapPins-1.0>=10047
 ## OptionalDependsOn: CustomCompassPins>=138
 ## SavedVariables: TamrielTomesMapPins_SV

@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Gamepad Toggle">
+            <Action name="GAMEPADTOGGLE_TOGGLE">
+                <Down>GamepadToggle.Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

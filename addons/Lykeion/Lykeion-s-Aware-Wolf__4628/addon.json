@@ -18,7 +18,7 @@
     "LykeionsAwareWolf"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4628/",
-  "fingerprint": "c2bcbe7620b8fbec33ed24edf051c8318e3bd9d5fef2f775bb41e4339b5faaae",
+  "fingerprint": "81085bfd2a4c8fe749eb510f1884c34fccd35cfff4ef23a437e01030b456eb5b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17992.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17993.png",
@@ -30,11 +30,11 @@
   "source_id": "4628",
   "source_url": "https://www.esoui.com/downloads/info4628-LykeionsAwareWolf.html",
   "stats": {
-    "downloads": 1102,
+    "downloads": 1146,
     "favorites": 2,
-    "monthly_downloads": 275
+    "monthly_downloads": 319
   },
   "title": "Lykeion's Aware Wolf",
-  "updated_at": 1792603582000,
-  "version": "2.2"
+  "updated_at": 1792700887000,
+  "version": "2.3"
 }

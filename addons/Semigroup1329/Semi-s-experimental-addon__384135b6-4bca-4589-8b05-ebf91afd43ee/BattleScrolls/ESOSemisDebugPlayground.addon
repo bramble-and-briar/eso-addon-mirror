@@ -1,8 +1,8 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 563
-## Version: 0.0.563
+## AddOnVersion: 564
+## Version: 0.0.564
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings WizardsWardrobe LibCharacterKnowledge TSCPriceFetcher2
@@ -152,6 +152,7 @@ ui/inventory_poc_inspect.lua
 ui/inventory_poc_use.lua
 ui/inventory_poc_hud.lua
 ui/inventory_poc_work.xml
+ui/inventory_poc_trading_house.lua
 ui/inventory_poc_work.lua
 ; ESO selects the keybinding parser by the filename Bindings.xml
 ui/Bindings.xml

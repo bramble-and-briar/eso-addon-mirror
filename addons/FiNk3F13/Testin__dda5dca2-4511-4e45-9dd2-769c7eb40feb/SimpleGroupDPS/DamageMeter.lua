@@ -1,8 +1,8 @@
 -- One encounter clock for all-target, boss and non-boss DPS.
 -- Battle Scrolls clock: combat-entry time to last observed damage event.
--- Before a later damage timestamp exists, use current time (first-hit fallback).
+-- A hit at combat entry uses a fixed one-second estimate until a later damage timestamp exists.
 -- Dummies, adds and bosses use the same DPS clock; no dummy/chat correction.
--- HUD timer, DPS and chat all use the same measured damage duration.
+-- HUD timer, DPS and saved result use the same measured damage duration.
 -- Damage uses effective hitValue; overkill is not added to the total.
 local meter = {}
 SimpleGroupDPS_DamageMeter = meter
@@ -20,6 +20,12 @@ for _, name in ipairs({ "ACTION_RESULT_DAMAGE", "ACTION_RESULT_CRITICAL_DAMAGE",
     "ACTION_RESULT_PRECISE_DAMAGE", "ACTION_RESULT_WRECKING_DAMAGE" }) do
     if _G[name] ~= nil then results[_G[name]] = true end
 end
+local healingResults = {}
+for _, name in ipairs({"ACTION_RESULT_HEAL", "ACTION_RESULT_CRITICAL_HEAL", "ACTION_RESULT_HOT_TICK",
+    "ACTION_RESULT_HOT_TICK_CRITICAL", "ACTION_RESULT_HEAL_ABSORBED"}) do
+    if _G[name] ~= nil then healingResults[_G[name]] = true end
+end
+local rememberUnit
 
 local function isType(value, name)
     return _G[name] ~= nil and value == _G[name]
@@ -64,6 +70,7 @@ end
 function meter:CorrelateBoss(tag, id, name)
     if not state or type(tag) ~= "string" or not tag:match("^boss%d+$") or not id or id == 0 then return end
     state.bossIds[id] = true
+    rememberUnit(id, false)
     name = normalizeName(name)
     if name and name ~= "" then
         state.bossNames[name] = true
@@ -73,7 +80,19 @@ end
 
 local function accumulate(event)
     local key = event.id and event.id ~= 0 and event.id or ("name:" .. (event.name or ""))
-    if not event.outgoing then return end
+    if not event.outgoing then
+        if not event.catchAll or not event.id or event.id == 0 then return end
+        local friendly = state.friendly[event.id]
+        if friendly == true then return end
+        if friendly == nil then
+            local unknown = state.unassigned[event.id] or {value = 0, name = event.name}
+            unknown.value = unknown.value + event.value
+            if event.name then unknown.name = event.name end
+            state.unassigned[event.id] = unknown
+            return
+        end
+    end
+    if event.id and state.friendly[event.id] == true then return end
     state.observedTargets[key] = { id = event.id, name = event.name }
     local target = state.targets[key]
     if not target then
@@ -88,15 +107,36 @@ local function accumulate(event)
     end
 end
 
+rememberUnit = function(id, friendly)
+    if not id or id == 0 or state.friendly[id] ~= nil then return end
+    state.friendly[id] = friendly
+    local unknown = state.unassigned[id]
+    state.unassigned[id] = nil
+    if unknown and not friendly then
+        accumulate({id = id, name = unknown.name, value = unknown.value, outgoing = true})
+    end
+end
+
+local function rememberEventUnits(event)
+    if isFriendly(event.sourceType) then rememberUnit(event.sourceId, true) end
+    if isFriendly(event.targetType) then rememberUnit(event.id, true) end
+    -- Untyped third-party hits alone cannot establish whether their target is hostile.
+    if event.outgoing or isPersonal(event.sourceType) or isPersonal(event.targetType) then
+        rememberUnit(event.sourceId, isFriendly(event.sourceType))
+        rememberUnit(event.id, isFriendly(event.targetType))
+    end
+end
+
 function meter:Start(timeMS)
     EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
     if state then return end
     state = { startMS = timeMS, endMS = timeMS, total = 0, groupTotal = 0, targets = {},
+        friendly = {}, unassigned = {},
         observedTargets = {}, bossIds = {}, bossNames = {}, confirmedNames = {}, zoneId = currentZone(),
         damageEvents = 0, personalEvents = 0, otherEvents = 0 }
     self:RefreshBosses()
     for _, event in ipairs(pending) do
-        if event.time >= timeMS - 1000 then accumulate(event) end
+        if event.time >= timeMS - 1000 then rememberEventUnits(event); accumulate(event) end
     end
     pending = {}
     -- Peers can be in a different encounter and may not send another result yet.
@@ -175,7 +215,13 @@ end
 function meter:GetStats()
     if not state then return last end
     local endMS = state.endMS
-    if endMS <= state.startMS then endMS = GetGameTimeMilliseconds() end
+    if endMS <= state.startMS then
+        if state.damageEvents > 0 or state.groupTotal > 0 then
+            endMS = state.startMS + 1000
+        else
+            endMS = GetGameTimeMilliseconds()
+        end
+    end
     local durationMS = math.max(0, endMS - state.startMS)
     local bossTotal, groupBossTotal
     local hasBoss = false
@@ -212,12 +258,14 @@ function meter:Finish()
     if self.onFinished then self.onFinished(last) end
 end
 
-function meter:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId)
+function meter:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId, sourceId)
     hitValue = tonumber(hitValue)
-    if isError or not results[result] or not hitValue or hitValue < 0
+    if isError or (not results[result] and not healingResults[result]) or not hitValue or hitValue < 0
         or hitValue ~= hitValue or hitValue == math.huge then return end
     local timeMS = GetGameTimeMilliseconds()
     local event = { time = timeMS, name = normalizeName(targetName), id = targetId, value = hitValue,
+        sourceType = sourceType, targetType = targetType, sourceId = sourceId,
+        catchAll = not isFriendly(sourceType) and not isFriendly(targetType),
         outgoing = isFriendly(sourceType) and not isFriendly(targetType),
         personal = isPersonal(sourceType) and not isFriendly(targetType) }
     if not state then
@@ -226,11 +274,15 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         for _, previous in ipairs(pending) do
             if previous.time >= timeMS - 1000 then recent[#recent + 1] = previous end
         end
-        if hitValue > 0 and event.outgoing then recent[#recent + 1] = event end
+        if results[result] and hitValue > 0 and (event.outgoing or event.catchAll or isPersonal(targetType)) then
+            recent[#recent + 1] = event
+        end
         if #recent > 200 then table.remove(recent, 1) end
         pending = recent
         return
     end
+    rememberEventUnits(event)
+    if not results[result] then return end
     state.endMS = math.max(state.endMS, timeMS)
     state.damageAtMS = timeMS
     state.damageEvents = state.damageEvents + 1
@@ -248,8 +300,8 @@ function meter:Initialize(saved)
             groupBossTotal = tonumber(saved.groupBossDamageTotal), groupBossDPS = tonumber(saved.groupBossDPS) }
     end
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamage", EVENT_COMBAT_EVENT,
-        function(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, _, targetId)
-            self:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId)
+        function(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId)
+            self:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId, sourceId)
         end)
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageState", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
         if inCombat then self:Start(GetGameTimeMilliseconds()) else self:ScheduleFinish() end

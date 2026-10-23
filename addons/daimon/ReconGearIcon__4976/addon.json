@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/daimon/ReconGearIcon__4976",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "daimon",
+  "canonical_id": "esoui:4976",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4976",
+  "deleted": false,
+  "directories": [
+    "ReconGearIcon"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4976/",
+  "fingerprint": "91c2e881dafe4462bbfaace0d095b1cf993a0630b85f134ab9a9c5ee30ebc3fb",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18098.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18096.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18099.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4976",
+  "source_url": "https://www.esoui.com/downloads/info4976-ReconGearIcon.html",
+  "stats": {
+    "downloads": 11,
+    "favorites": 0,
+    "monthly_downloads": 7
+  },
+  "title": "ReconGearIcon",
+  "updated_at": 1792673500000,
+  "version": "1.0"
+}

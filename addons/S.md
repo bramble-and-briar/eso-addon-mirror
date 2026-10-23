@@ -132,6 +132,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.1.3 |
 | [Simple fix for Grim Focus Counter v1.6](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vays/Simple-fix-for-Grim-Focus-Counter-v1.6__4136) | vays | PC / Mac | 1.6.07 |
 | [Simple FPS & Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claise/Simple-FPS-Ping__ce31d856-17b4-4951-9802-820df96527e2) | Claise | Console | — |
+| [Simple Goliath Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Goliath-Weave__4975) | Kaewro | PC / Mac | 1.0.0 |
 | [Simple Group Leave - /gl Sash command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Group-Leave---gl-Sash-command__654) | Baertram | PC / Mac | 0.6 100034 |
 | [Simple Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Keybind__2556) | ShadowMau | PC / Mac | 0.1.0 |
 | [Simple Llothis Interrupt Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Simple-Llothis-Interrupt-Helper__2626) | ownedbynico | PC / Mac | beta |

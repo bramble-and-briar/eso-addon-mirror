@@ -8,6 +8,8 @@ function IsUnitGrouped() return grouped end
 
 local protocols, handlers = {}, 0
 local sent = {}
+LFG_ROLE_DPS, LFG_ROLE_TANK, LFG_ROLE_HEAL = 1, 2, 4
+function GetGroupMemberSelectedRole(tag) return tag == "group1" and LFG_ROLE_HEAL or LFG_ROLE_TANK end
 local sendEnabled, sendSucceeds = true, true
 LibGroupBroadcast = {
     CreateNumericField = function(name, options) return { name = name, bits = options.numBits } end,
@@ -60,10 +62,15 @@ receive("group1", { encodedAllDPS = 256 })
 assert(bridge:GetRows()[2].dps == 256, "logarithmic boundary decoded")
 receive("group1", { encodedAllDPS = 2047 })
 assert(bridge:GetRows()[1].dps == math.huge, "overflow sentinel retained")
-protocols[431].receive("group1", {})
-assert(#bridge:GetRows() == 1, "HPS replaces old DPS without being shown as DPS")
+protocols[431].receive("group1", {encodedRawHPS = 400, encodedEffectiveHPS = 200})
+assert(#bridge:GetRows() == 2, "Healer must remain visible when receiving HPS")
+local healer = bridge:GetRows()[2]
+assert(healer.messageType == "healing" and healer.rawHPS == 400 and healer.effectiveHPS == 200 and healer.dps == nil)
+assert(healer.role == LFG_ROLE_HEAL and bridge:GetRows()[1].role == LFG_ROLE_TANK, "Role must not filter either participant")
+protocols[431].receive("group1", {encodedRawHPS = -1, encodedEffectiveHPS = 200})
+assert(#bridge:GetRows() == 2 and bridge:GetRows()[2].rawHPS == 400, "Invalid healing packet cannot erase valid cached values")
 identities.group2 = "@Replacement"
-assert(#bridge:GetRows() == 0, "group slot reuse removes former member")
+assert(#bridge:GetRows() == 1 and bridge:GetRows()[1].messageType == "healing", "Group slot reuse removes only the former member")
 receive("group1", { encodedAllDPS = 500 })
 clock = 15001
 assert(#bridge:GetRows() == 1 and bridge:GetRows()[1].stale,

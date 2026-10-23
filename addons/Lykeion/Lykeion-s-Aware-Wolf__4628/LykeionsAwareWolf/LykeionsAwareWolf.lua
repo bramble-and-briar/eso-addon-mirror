@@ -17,6 +17,7 @@ local defaults = {
     holdIndicator = true,
     clawFuryRange = true,
     roarPanel = true,
+    prowlPanel = false,
     feedingpriority = true,
 }
 
@@ -32,6 +33,7 @@ local CLAW_FURY_ABILITY_ID = 58864
 local BLOODCLAWS_ABILITY_ID = 58879
 local INSATIABLE_HUNGER_ABILITY_ID = 33208
 local FEEDING_FREEZY_ABILITY_ID = 58775
+local PROWL_ABILITY_ID = 252086
 
 local function LocalizeAbilityString(stringId, ...)
     return zo_strformat(GetString(stringId), ...)
@@ -412,128 +414,140 @@ local function FlashHoldIndicator()
 end
 
 local ROAR_BUFF_IDS = { 131353, 109966 }
-local ROAR_ICON_SIZE = 48
-local ROAR_ICON_PADDING = 4
-local roarPanel = { buffs = {}, controls = {}, unlocked = false }
+local PROWL_BUFF_IDS = { PROWL_ABILITY_ID }
+local PANEL_ICON_SIZE = 48
+local PANEL_ICON_PADDING = 4
+local PANEL_DECIMAL_SECONDS = 2.5
+local roarPanel, prowlPanel
 
-local function IsRoarPanelVisible()
-    return roarPanel.unlocked or (db.roarPanel and IsPlayerInWerewolfForm())
-end
+local function CreateBuffPanel(options)
+    local panel = { buffs = {}, controls = {}, unlocked = false }
 
-local RefreshRoarPanel
-
-local function UpdateRoarPanel()
-    if not IsRoarPanelVisible() then
-        RefreshRoarPanel()
-        return
+    local function IsVisible()
+        return panel.unlocked or (db[options.dbKey] and (not options.condition or options.condition()))
     end
-    local now = GetGameTimeSeconds()
-    for index, buff in ipairs(roarPanel.buffs) do
-        local control = roarPanel.controls[index]
-        local remain = buff.endTime - now
-        if remain > 0 then
-            control.timer:SetText(zo_ceil(remain))
-            control.icon:SetAlpha(1)
-            control.sweep:StartCooldown(math.floor(remain * 1000), math.floor(buff.duration * 1000),
-                CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
-        else
-            control.timer:SetText("")
-            control.icon:SetAlpha(0.5)
-            control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
-        end
-    end
-end
 
-RefreshRoarPanel = function()
-    roarPanel.fragment:Refresh()
-    EVENT_MANAGER:UnregisterForUpdate(addonName .. "_RoarPanel")
-    if IsRoarPanelVisible() then
-        UpdateRoarPanel()
-        EVENT_MANAGER:RegisterForUpdate(addonName .. "_RoarPanel", 100, UpdateRoarPanel)
-    end
-end
-
-local function OnRoarBuffChanged(_, changeType, _, _, unitTag, beginTime, endTime, _, _, _, _, _, _, _, _, abilityId)
-    if unitTag ~= "player" then
-        return
-    end
-    for _, buff in ipairs(roarPanel.buffs) do
-        if buff.abilityId == abilityId then
-            if changeType == EFFECT_RESULT_FADED then
-                buff.endTime = 0
+    local function UpdatePanelNumber()
+        local now = GetGameTimeSeconds()
+        for index, buff in ipairs(panel.buffs) do
+            local control = panel.controls[index]
+            local remain = buff.endTime - now
+            if remain > 0 then
+                if remain < PANEL_DECIMAL_SECONDS then
+                    control.timer:SetText(string.format("%.1f", remain))
+                else
+                    control.timer:SetText(zo_ceil(remain))
+                end
+                control.icon:SetAlpha(1)
+                control.sweep:StartCooldown(math.floor(remain * 1000), math.floor(buff.duration * 1000),
+                    CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
+            elseif buff.active and buff.duration <= 0 then
+                control.timer:SetText("")
+                control.icon:SetAlpha(1)
+                control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
             else
-                buff.endTime = endTime
-                buff.duration = endTime - beginTime
+                control.timer:SetText("")
+                control.icon:SetAlpha(0.5)
+                control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
             end
         end
     end
-end
 
-local function SetRoarPanelUnlocked(unlocked)
-    roarPanel.unlocked = unlocked
-    if roarPanel.moveHandler then
-        roarPanel.moveHandler:ToggleGamepadMove(unlocked and ZO_IsConsoleOrGameCoreUI())
+    local function Refresh()
+        panel.fragment:Refresh()
+        EVENT_MANAGER:UnregisterForUpdate(options.updateName)
+        if IsVisible() then
+            UpdatePanelNumber()
+            EVENT_MANAGER:RegisterForUpdate(options.updateName, 100, UpdatePanelNumber)
+        end
     end
-    RefreshRoarPanel()
-end
 
-local function CreateRoarPanel()
-    local panel = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. "RoarPanel")
-    panel:SetDimensions(ROAR_ICON_SIZE + ROAR_ICON_PADDING * 2,
-        (ROAR_ICON_SIZE + ROAR_ICON_PADDING) * 2)
-    panel:SetClampedToScreen(true)
-    panel:SetMovable(true)
-    panel:SetMouseEnabled(true)
-    panel:SetAnchor(CENTER, GuiRoot, CENTER)
-    panel:SetHidden(true)
-    roarPanel.control = panel
+    local function OnBuffChanged(_, changeType, _, _, unitTag, beginTime, endTime, _, _, _, _, _, _, _, _, abilityId)
+        if unitTag ~= "player" then
+            return
+        end
+        for _, buff in ipairs(panel.buffs) do
+            if buff.abilityId == abilityId then
+                if changeType == EFFECT_RESULT_FADED then
+                    buff.endTime = 0
+                    buff.active = false
+                else
+                    buff.endTime = endTime
+                    buff.duration = endTime - beginTime
+                    buff.active = true
+                end
+            end
+        end
+    end
 
-    roarPanel.fragment = ZO_SimpleSceneFragment:New(panel)
-    roarPanel.fragment:SetConditional(IsRoarPanelVisible)
-    HUD_SCENE:AddFragment(roarPanel.fragment)
-    HUD_UI_SCENE:AddFragment(roarPanel.fragment)
+    local control = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. options.controlName)
+    control:SetDimensions(PANEL_ICON_SIZE + PANEL_ICON_PADDING * 2,
+        #options.buffIds * (PANEL_ICON_SIZE + PANEL_ICON_PADDING))
+    control:SetClampedToScreen(true)
+    control:SetMovable(true)
+    control:SetMouseEnabled(true)
+    control:SetAnchor(CENTER, GuiRoot, CENTER)
+    control:SetHidden(true)
+    panel.control = control
 
-    for index, abilityId in ipairs(ROAR_BUFF_IDS) do
-        local icon = WINDOW_MANAGER:CreateControl(addonName .. "RoarIcon" .. index, panel, CT_TEXTURE)
-        icon:SetDimensions(ROAR_ICON_SIZE, ROAR_ICON_SIZE)
-        icon:SetAnchor(TOPLEFT, panel, TOPLEFT, ROAR_ICON_PADDING,
-            ROAR_ICON_PADDING + (index - 1) * (ROAR_ICON_SIZE + ROAR_ICON_PADDING))
+    panel.fragment = ZO_SimpleSceneFragment:New(control)
+    panel.fragment:SetConditional(IsVisible)
+    HUD_SCENE:AddFragment(panel.fragment)
+    HUD_UI_SCENE:AddFragment(panel.fragment)
+
+    local panelName = addonName .. options.controlName
+    for index, abilityId in ipairs(options.buffIds) do
+        local icon = WINDOW_MANAGER:CreateControl(panelName .. "Icon" .. index, control, CT_TEXTURE)
+        icon:SetDimensions(PANEL_ICON_SIZE, PANEL_ICON_SIZE)
+        icon:SetAnchor(TOPLEFT, control, TOPLEFT, PANEL_ICON_PADDING,
+            PANEL_ICON_PADDING + (index - 1) * (PANEL_ICON_SIZE + PANEL_ICON_PADDING))
         icon:SetTexture(GetAbilityIcon(abilityId))
 
-        local sweep = WINDOW_MANAGER:CreateControl(addonName .. "RoarSweep" .. index, panel, CT_COOLDOWN)
+        local sweep = WINDOW_MANAGER:CreateControl(panelName .. "Sweep" .. index, control, CT_COOLDOWN)
         sweep:SetAnchorFill(icon)
         sweep:SetFillColor(0, 0, 0, 0.6)
 
-        local timer = WINDOW_MANAGER:CreateControl(addonName .. "RoarTimer" .. index, panel, CT_LABEL)
+        local timer = WINDOW_MANAGER:CreateControl(panelName .. "Timer" .. index, control, CT_LABEL)
         timer:SetFont("$(BOLD_FONT)|" .. 20 .. "|thick-outline")
-        timer:SetDimensions(ROAR_ICON_SIZE, ROAR_ICON_SIZE)
+        timer:SetDimensions(PANEL_ICON_SIZE, PANEL_ICON_SIZE)
         timer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         timer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         timer:SetAnchor(CENTER, icon, CENTER, 0, 6)
 
-        roarPanel.controls[index] = { icon = icon, sweep = sweep, timer = timer }
-        table.insert(roarPanel.buffs, { abilityId = abilityId, endTime = 0, duration = 0 })
+        panel.controls[index] = { icon = icon, sweep = sweep, timer = timer }
+        table.insert(panel.buffs, { abilityId = abilityId, endTime = 0, duration = 0, active = false })
 
-        local eventName = addonName .. "_RoarBuff" .. abilityId
-        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, OnRoarBuffChanged)
+        local eventName = panelName .. "Buff" .. abilityId
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, OnBuffChanged)
         EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
     end
 
     if LibCombatAlerts and LibCombatAlerts.MoveableControl then
-        local handler = LibCombatAlerts.MoveableControl:New(panel)
-        roarPanel.moveHandler = handler
-        if db.roarPanelPosition then
-            handler:UpdatePosition(db.roarPanelPosition)
+        local handler = LibCombatAlerts.MoveableControl:New(control)
+        panel.moveHandler = handler
+        if db[options.positionKey .. "Position"] then
+            handler:UpdatePosition(db[options.positionKey .. "Position"])
         end
         handler:SetSnap(20)
         handler:RegisterCallback(addonName, LibCombatAlerts.EVENT_CONTROL_MOVE_STOP, function(position)
-            db.roarPanelPosition = position
+            db[options.positionKey .. "Position"] = position
         end)
     else
-        panel:SetHandler("OnMoveStop", function(self)
-            db.roarPanelLeft, db.roarPanelTop = self:GetLeft(), self:GetTop()
+        control:SetHandler("OnMoveStop", function(self)
+            db[options.positionKey .. "Left"], db[options.positionKey .. "Top"] = self:GetLeft(), self:GetTop()
         end)
     end
+
+    panel.refresh = Refresh
+    panel.setUnlocked = function(unlocked)
+        panel.unlocked = unlocked
+        if panel.moveHandler then
+            panel.moveHandler:ToggleGamepadMove(unlocked and ZO_IsConsoleOrGameCoreUI())
+        end
+        Refresh()
+    end
+
+    return panel
 end
 
 local CLAW_EDGE_TEXTURE = "esoui/art/miscellaneous/listitem_divider.dds"
@@ -599,7 +613,6 @@ local function UpdateClawSector()
     local fadeIn = GetClampValue((now - clawSector.startedAt) / CLAW_FADE_IN_MS)
     local fadeOut = GetClampValue((CLAW_FADE_OUT_MS - remaining) / CLAW_FADE_OUT_MS)
     local alpha = fadeIn * (1 - fadeOut)
-    -- GetPlayerCameraHeading points at the camera, so the front is half a turn away
     local heading = GetPlayerCameraHeading() + math.pi
     local halfAngle = math.rad(90) / 2
     local length = 10
@@ -702,11 +715,27 @@ local function OnPlayerInit()
     end)
 
     CreateHoldIndicator()
-    CreateRoarPanel()
+    roarPanel = CreateBuffPanel({
+        controlName = "RoarPanel",
+        dbKey = "roarPanel",
+        updateName = addonName .. "_RoarPanel",
+        positionKey = "roarPanel",
+        buffIds = ROAR_BUFF_IDS,
+        condition = IsPlayerInWerewolfForm,
+    })
+    prowlPanel = CreateBuffPanel({
+        controlName = "ProwlPanel",
+        dbKey = "prowlPanel",
+        updateName = addonName .. "_ProwlPanel",
+        positionKey = "prowlPanel",
+        buffIds = PROWL_BUFF_IDS,
+        condition = IsPlayerInWerewolfForm,
+    })
     CreateClawSector()
 
     SetClawRangeTrackingEnabled(db.clawFuryRange)
 
+    -- this part of implement is based on the best practices used in NoAccidentalStealing by Shinni
     ZO_PreHook("ZO_ActionBar_OnActionButtonDown", function(slotNum)
         slotPressTime[slotNum] = GetGameTimeMilliseconds()
         local confirmTimeout = GetConfirmTimeout(slotNum)
@@ -723,7 +752,6 @@ local function OnPlayerInit()
         end
     end)
 
-    -- this part is based on the best practices used in NoAccidentalStealing
     ZO_PreHook("ZO_ActionBar_CanUseActionSlots", function()
         if (not db.pounceConfirm and not db.ultimateConfirm) then return end
         local trace = debug.traceback()
@@ -752,10 +780,13 @@ local function OnPlayerInit()
         return true
     end)
 
-    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_WEREWOLF_STATE_CHANGED,
-        function() RefreshRoarPanel() end)
+    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_WEREWOLF_STATE_CHANGED, function()
+        roarPanel.refresh()
+        prowlPanel.refresh()
+    end)
 
-    RefreshRoarPanel()
+    roarPanel.refresh()
+    prowlPanel.refresh()
 end
 
 local function GetPlatformText(pcText, gamepadText)
@@ -768,7 +799,7 @@ local function CreateMenu()
         name = "Lykeion's Aware Wolf",
         displayName = "|c2e5c8cL|r|c365f87y|r|c3f6282k|r|c47657de|r|c4f6778i|r|c586a74o|r|c606d6fn|r|c68706a'|r|c717365s|r|c797660 |r|c81785bA|r|c897b56w|r|c927e51a|r|c9a814cr|r|ca28447e|r|cab8743 |r|cb3893eW|r|cbb8c39o|r|cc48f34l|r|ccc922ff|r",
         author = "|c215895Lykeion|r",
-        version = "|ccc922f2.2|r",
+        version = "|ccc922f2.3|r",
         slashCommand = "/law",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -847,7 +878,7 @@ local function CreateMenu()
             end,
             setFunc = function(value)
                 db.roarPanel = value
-                RefreshRoarPanel()
+                roarPanel.refresh()
             end,
         },
         {
@@ -898,6 +929,21 @@ local function CreateMenu()
                 end
             end,
         },
+                {
+            type = "checkbox",
+            name = LocalizeAbilityString(LAW_PROWL_PANEL, GetAbilityName(PROWL_ABILITY_ID)),
+            tooltip = GetPlatformText(
+                LocalizeAbilityString(LAW_PROWL_PANEL_TOOLTIP, GetAbilityName(PROWL_ABILITY_ID)),
+                LocalizeAbilityString(LAW_PROWL_PANEL_TOOLTIP_GAMEPAD, GetAbilityName(PROWL_ABILITY_ID))),
+            default = defaults.prowlPanel,
+            getFunc = function()
+                return db.prowlPanel
+            end,
+            setFunc = function(value)
+                db.prowlPanel = value
+                prowlPanel.refresh()
+            end,
+        },
     }
 
     local panelControl = LibAddonMenu2:RegisterAddonPanel(addonName .. "Options", panelData)
@@ -905,7 +951,8 @@ local function CreateMenu()
 
     CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
         if panel == panelControl then
-            SetRoarPanelUnlocked(false)
+            roarPanel.setUnlocked(false)
+            prowlPanel.setUnlocked(false)
         end
     end)
 end
@@ -920,11 +967,15 @@ local function OnLoaded(_, name)
     CreateMenu()
 
     if ZO_IsConsoleOrGameCoreUI() then
-        SLASH_COMMANDS["/awroar"] = function()
-            SetRoarPanelUnlocked(not roarPanel.unlocked)
-            CHAT_ROUTER:AddSystemMessage(string.format(GetString(LAW_ROAR_MOVE_MSG),
-                GetString(roarPanel.unlocked and LAW_ENABLED or LAW_DISABLED)))
+        local function AddPanelMoveCommand(slash, panel)
+            SLASH_COMMANDS[slash] = function()
+                panel.setUnlocked(not panel.unlocked)
+                CHAT_ROUTER:AddSystemMessage(string.format(GetString(LAW_PANEL_MOVE_MSG),
+                    GetString(panel.unlocked and LAW_ENABLED or LAW_DISABLED)))
+            end
         end
+        AddPanelMoveCommand("/awroar", roarPanel)
+        AddPanelMoveCommand("/awprowl", prowlPanel)
     end
 end
 

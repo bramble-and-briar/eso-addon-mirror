@@ -47,6 +47,27 @@
 --   * A marker someone else put on the unit is left alone.
 --
 -- ---------------------------------------------------------------------------------------
+-- NOT MARKING THE WRONG PERSON
+-- ---------------------------------------------------------------------------------------
+--
+-- AssignTargetMarkerToReticleTarget names no player: the marker goes to whoever is under the
+-- reticle when the game acts on it, not to whoever was when the add-on asked. In a crowd those can
+-- differ, and a death makes them differ: the registered player falls with the reticle on them, the
+-- marker leaves them, the add-on (seeing a registered player with no marker) asks for it again, and
+-- by the time the game acts the player has respawned elsewhere and the reticle is on a bystander.
+-- Three things follow.
+--
+--   * Nothing is set on a dead target, nor on a player who died in the last few seconds (the kill
+--     feed and the target's own death event both say so).
+--   * The marker is not set the moment the reticle lands: the target has to still be the same
+--     registered player a quarter of a second later, or the request is dropped.
+--   * Whatever goes wrong anyway is undone. A marker of the kind the add-on set, found on a player
+--     who is not registered and not in the group, is cleared -- right after the add-on set one, and
+--     again whenever the reticle meets such a player. Clearing is AssignTargetMarkerToReticleTarget
+--     with TARGET_MARKER_TYPE_NONE, which has NOT been measured on a console; if the marker is
+--     still there a second later the add-on gives up clearing for the session and says so.
+--
+-- ---------------------------------------------------------------------------------------
 -- WHEN THEY ARE NOT UNDER THE RETICLE: AN ALERT
 -- ---------------------------------------------------------------------------------------
 --
@@ -134,6 +155,12 @@ local SHORT_SLASH = "/pbtp"
 local MAX_PLAYERS = 20
 local MAX_ID_CHARS = 40
 local MARK_RETRY_MS = 3000
+local MARK_DWELL_MS = 250 -- the target must still be the same player this long after the reticle landed
+local MARK_AFTER_DEATH_MS = 10000 -- nothing is set on a registered player who died this recently
+local STRAY_CHECK_WINDOW_MS = 3000 -- after setting a marker, marker updates are checked for a mismark
+local STRAY_RETRY_MS = 5000 -- the same stray player is not cleared more often than this
+local STRAY_RECENT_MS = 600000 -- a marker is only "ours" if the add-on set one this recently
+local CLEAR_VERIFY_MS = 1000
 local ALERT_SHOW_MS = 6000
 local ALERT_COOLDOWN_MS = { combat = 20000, kill = 4000, cyro = 30000, near = 20000 }
 local LOCATE_TTL_MS = 10000 -- a roster scan is not repeated inside this
@@ -203,6 +230,8 @@ local DEFAULTS = {
 	sound = true,
 	-- A message and a sound when a registered friend or guild member enters Cyrodiil.
 	cyrodiil = true,
+	-- Take the add-on's marker off a bystander it ended up on.
+	cleanup = true,
 	banner = true,
 	players = {},
 }
@@ -345,6 +374,12 @@ local trackActive = false -- the master switch and at least one name: sightings 
 local sightings = {} -- slot -> the last time the add-on came across that player (see Sighted)
 local locateCache, locateAt = nil, 0 -- the last roster scan
 local presence = {} -- slot -> true while a registered player is known to be in Cyrodiil
+local diedAt = {} -- slot -> when that registered player was last known to die
+local pendingMark = nil -- the player the reticle landed on, waiting out MARK_DWELL_MS
+local lastAssignAt = -1000000 -- when the add-on last asked for a marker
+local strayTried = {} -- player name -> when a stray marker on them was last cleared
+local clearCheck = nil -- the clear being checked
+local cleanupBroken = false -- clearing did not work: stop trying
 local lastAlert = {} -- kind .. slot -> when it last fired
 
 -- What the add-on did, for /pbtarget status. `last` is a plain identifier, not a sentence: it
@@ -353,6 +388,7 @@ local diag = {
 	assigned = 0, last = "no contact yet", combat = 0, kills = 0, matched = 0, shown = 0, lastAlert = "none",
 	rosterSeen = 0, rosterMatched = 0, scans = 0,
 	chat = 0, sightings = 0,
+	aborted = 0, deadSkips = 0, deaths = 0, stray = 0, cleared = 0, clearFailed = false,
 }
 addon.diag = diag
 
@@ -399,9 +435,28 @@ local function EngineMarkUsable()
 end
 
 -- The reticle is on a registered player. Returns nothing; says what it did in diag.last.
+local function ReticleIsDead()
+	if IsUnitDeadOrReincarnating then
+		return IsUnitDeadOrReincarnating("reticleover") and true or false
+	end
+	return IsUnitDead and IsUnitDead("reticleover") and true or false
+end
+
 local function MarkInWorld(slot)
 	if not EngineMarkUsable() then
 		diag.last = "not allowed: " .. engine.why
+		return
+	end
+	-- A dead player has lost the marker, and asking for it again is how it ends up on whoever is
+	-- standing where they fell once they have respawned. See "Not marking the wrong person".
+	if ReticleIsDead() then
+		diag.deadSkips = diag.deadSkips + 1
+		diag.last = "the target is dead"
+		return
+	end
+	if diedAt[slot] and GetGameTimeMilliseconds() - diedAt[slot] < MARK_AFTER_DEATH_MS then
+		diag.deadSkips = diag.deadSkips + 1
+		diag.last = "died a moment ago"
 		return
 	end
 	local wanted = _G[MARK_TYPE_NAMES[sv.mark]]
@@ -429,6 +484,7 @@ local function MarkInWorld(slot)
 		return
 	end
 	lastMarkTry[slot] = now
+	lastAssignAt = now
 	weSet[wanted] = true
 	AssignTargetMarkerToReticleTarget(wanted)
 	diag.assigned = diag.assigned + 1
@@ -632,6 +688,8 @@ local function OnKillFeed(_, killLocation, killerDisplayName, killerCharacterNam
 	end
 	if victim then
 		diag.matched = diag.matched + 1
+		diedAt[victim] = GetGameTimeMilliseconds()
+		diag.deaths = diag.deaths + 1
 		addon:Learn(victim, victimCharacterName)
 		Sighted(victim, "death", place)
 		if sv.alert then
@@ -1021,14 +1079,145 @@ local function OnChatMessage(_, channelType, fromName, text, isCustomerService, 
 	end
 end
 
-local function OnReticleTargetChanged()
-	if not sv or not sv.enabled or not hasKeys then
+-- ---------------------------------------------------------------------------------------
+-- Settling, and undoing a mismark
+-- ---------------------------------------------------------------------------------------
+
+local function CancelPending()
+	if pendingMark then
+		pendingMark = nil
+		em:UnregisterForUpdate(addon.name .. "Settle")
+	end
+end
+
+-- The reticle has rested on the same registered player for MARK_DWELL_MS: now, and only now, ask.
+local function FinishPending()
+	local pending = pendingMark
+	CancelPending()
+	if not pending or not sv.enabled then
 		return
 	end
 	local slot = Identify("reticleover")
+	if slot ~= pending.slot or GetUnitDisplayName("reticleover") ~= pending.display or GetUnitName("reticleover") ~= pending.character then
+		diag.aborted = diag.aborted + 1
+		diag.last = "the reticle moved on before the marker was set"
+		return
+	end
+	MarkInWorld(slot)
+end
+
+local function SettleThenMark(slot)
+	CancelPending()
+	pendingMark = {
+		slot = slot,
+		display = GetUnitDisplayName("reticleover"),
+		character = GetUnitName("reticleover"),
+	}
+	em:RegisterForUpdate(addon.name .. "Settle", MARK_DWELL_MS, FinishPending)
+end
+
+local function MarkTypeIndex(marker)
+	for index, name in ipairs(MARK_TYPE_NAMES) do
+		if _G[name] == marker then
+			return index
+		end
+	end
+	return nil
+end
+
+-- A second after a clear: is the marker gone? If it is not, clearing does not work this way and
+-- asking again would only add noise (or, if the game treats it as a toggle, undo itself).
+local function VerifyClear()
+	em:UnregisterForUpdate(addon.name .. "ClearCheck")
+	local check = clearCheck
+	clearCheck = nil
+	if not check then
+		return
+	end
+	if DoesUnitExist("reticleover") and GetUnitName("reticleover") == check.name then
+		local marker = GetUnitTargetMarkerType("reticleover")
+		if marker ~= TARGET_MARKER_TYPE_NONE and weSet[marker] then
+			cleanupBroken = true
+			diag.clearFailed = true
+			diag.last = "clearing a marker did not work: stray clean-up is off for this session"
+			return
+		end
+	end
+	diag.last = "stray marker cleared"
+end
+
+-- The reticle is on someone. If they are not ours to mark -- not registered, not in the group --
+-- and carry the kind of marker this add-on sets, the add-on put it there by mistake: take it off.
+local function CheckStray(reason)
+	if not sv.cleanup or cleanupBroken then
+		return
+	end
+	if not DoesUnitExist("reticleover") or not IsUnitPlayer("reticleover") then
+		return
+	end
+	-- Cheapest first: almost every player the reticle meets carries no marker at all.
+	local marker = GetUnitTargetMarkerType("reticleover")
+	if marker == TARGET_MARKER_TYPE_NONE or not weSet[marker] then
+		return
+	end
+	if Identify("reticleover") or IsUnitGrouped("reticleover") or AreUnitsEqual("reticleover", "player") then
+		return
+	end
+	local now = GetGameTimeMilliseconds()
+	if now - lastAssignAt > STRAY_RECENT_MS then
+		return
+	end
+	-- Asked of the game only now that there is something to clear.
+	if not EngineMarkUsable() then
+		return
+	end
+	local name = GetUnitName("reticleover")
+	if strayTried[name] and now - strayTried[name] < STRAY_RETRY_MS then
+		return
+	end
+	strayTried[name] = now
+	diag.stray = diag.stray + 1
+	diag.cleared = diag.cleared + 1
+	diag.last = "stray marker on a bystander (" .. reason .. "): clearing it"
+	AssignTargetMarkerToReticleTarget(TARGET_MARKER_TYPE_NONE)
+	clearCheck = { name = name }
+	em:UnregisterForUpdate(addon.name .. "ClearCheck")
+	em:RegisterForUpdate(addon.name .. "ClearCheck", CLEAR_VERIFY_MS, VerifyClear)
+end
+
+-- The game says a marker changed. Soon after the add-on set one, that is when to look at whom
+-- the reticle is on.
+local function OnTargetMarkerUpdate()
+	if sv and sv.enabled and GetGameTimeMilliseconds() - lastAssignAt < STRAY_CHECK_WINDOW_MS then
+		CheckStray("just after setting a marker")
+	end
+end
+
+-- The reticle target died: remember it, so that nothing is set on them until they are well and truly
+-- somewhere else.
+local function OnUnitDeathState(_, unitTag, isDead)
+	if not sv or not sv.enabled or not hasKeys or not isDead then
+		return
+	end
+	local slot = Identify(unitTag)
+	if slot then
+		diedAt[slot] = GetGameTimeMilliseconds()
+		diag.deaths = diag.deaths + 1
+		CancelPending()
+	end
+end
+
+local function OnReticleTargetChanged()
+	if not sv or not sv.enabled then
+		return
+	end
+	local slot = hasKeys and Identify("reticleover") or nil
 	if slot then
 		Sighted(slot, "reticle", HereName())
-		MarkInWorld(slot)
+		SettleThenMark(slot)
+	else
+		CancelPending()
+		CheckStray("reticle")
 	end
 end
 
@@ -1077,6 +1266,7 @@ end
 -- one's arrival, and the old cooldown would swallow their first alert.
 local function ForgetSlotState(slot)
 	presence[slot] = nil
+	diedAt[slot] = nil
 	sightings[slot] = nil
 	lastMarkTry[slot] = nil
 	for kind in pairs(ALERT_COOLDOWN_MS) do
@@ -1312,6 +1502,7 @@ local function PrintHelp()
 		SI_PBTP_HELP_REMOVE,
 		SI_PBTP_HELP_MARK,
 		SI_PBTP_HELP_WHERE,
+		SI_PBTP_HELP_UNMARK,
 		SI_PBTP_HELP_TEST,
 		SI_PBTP_HELP_SWITCH,
 		SI_PBTP_HELP_STATUS,
@@ -1340,6 +1531,18 @@ local function PrintStatus()
 	)
 
 	Say(string.format(GetString(SI_PBTP_STATUS_SIGHT), diag.chat, diag.sightings))
+	Say(
+		string.format(
+			GetString(SI_PBTP_STATUS_STRAY),
+			OnOff(sv.cleanup and not cleanupBroken),
+			diag.stray,
+			diag.cleared,
+			tostring(diag.clearFailed),
+			diag.deaths,
+			diag.deadSkips,
+			diag.aborted
+		)
+	)
 
 	local learned = 0
 	for slot = 1, MAX_PLAYERS do
@@ -1429,8 +1632,41 @@ local function DoMark(rest)
 	addon:RefreshPanel()
 end
 
+local function MarkTypeName(marker)
+	local index = MarkTypeIndex(marker)
+	return index and MarkName(index) or GetString(SI_PBTP_MARK_NONE_WORD)
+end
+
+-- Takes the marker off whoever is under the reticle, whoever put it there. Also the way to learn, on
+-- a console, whether TARGET_MARKER_TYPE_NONE clears a marker at all: it says what was there before
+-- and what is there a second later.
+local function DoUnmark()
+	if not DoesUnitExist("reticleover") then
+		Print(GetString(SI_PBTP_STATUS_NO_UNITS))
+		return
+	end
+	if not EngineMarkUsable() then
+		return
+	end
+	local before = GetUnitTargetMarkerType("reticleover")
+	local name = GetUnitName("reticleover")
+	AssignTargetMarkerToReticleTarget(TARGET_MARKER_TYPE_NONE)
+	em:UnregisterForUpdate(addon.name .. "Unmark")
+	em:RegisterForUpdate(addon.name .. "Unmark", CLEAR_VERIFY_MS, function()
+		em:UnregisterForUpdate(addon.name .. "Unmark")
+		local same = DoesUnitExist("reticleover") and GetUnitName("reticleover") == name
+		Print(
+			GetString(SI_PBTP_UNMARK_RESULT),
+			CleanName(name),
+			MarkTypeName(before),
+			same and MarkTypeName(GetUnitTargetMarkerType("reticleover")) or GetString(SI_PBTP_UNMARK_MOVED)
+		)
+	end)
+end
+
 local SWITCHES = {
 	on = { "enabled", SI_PBTP_SWITCH_ENABLED },
+	cleanup = { "cleanup", SI_PBTP_SWITCH_CLEANUP },
 	alert = { "alert", SI_PBTP_SWITCH_ALERT },
 	cyrodiil = { "cyrodiil", SI_PBTP_SWITCH_CYRODIIL },
 	sound = { "sound", SI_PBTP_SWITCH_SOUND },
@@ -1480,6 +1716,8 @@ function addon:InitSlashCommand()
 			DoMark(rest)
 		elseif cmd == "test" then
 			DoTest()
+		elseif cmd == "unmark" then
+			DoUnmark()
 		elseif cmd == "where" or cmd == "locate" then
 			PrintWhere()
 		elseif cmd == "on" or cmd == "off" then
@@ -1562,6 +1800,11 @@ local function OnAddOnLoaded(_, name)
 	end
 
 	em:RegisterForEvent(addon.name, EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)
+	em:RegisterForEvent(addon.name .. "Marker", EVENT_TARGET_MARKER_UPDATE, OnTargetMarkerUpdate)
+	em:RegisterForEvent(addon.name .. "Death", EVENT_UNIT_DEATH_STATE_CHANGED, OnUnitDeathState)
+	if REGISTER_FILTER_UNIT_TAG then
+		em:AddFilterForEvent(addon.name .. "Death", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG, "reticleover")
+	end
 	em:RegisterForEvent(addon.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 
 	-- Two registrations for combat events, because the engine's filters are ANDed: one narrows

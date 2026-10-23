@@ -1,5 +1,5 @@
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "1.4.5"
+local ADDON_VERSION = "1.5.0"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel
@@ -123,6 +123,7 @@ updateUI = function(sceneVisible, snapshot)
         rows[#rows + 1] = {
             name = GetUnitDisplayName("player"), dps = stats.dps,
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, isPlayer = true,
+            role = GetSelectedLFGRole and GetSelectedLFGRole(),
         }
     end
     -- Shared DPS packets do not identify the sender's encounter.
@@ -135,6 +136,8 @@ end
 tick = function()
     lastTickAt = GetGameTimeMilliseconds()
     tickCount = tickCount + 1
+    -- Receiving must also connect while idle, without waiting for our first attack.
+    bridge:Connect()
     -- One snapshot for display and sending, as in Battle Scrolls' CombatTicker.
     local stats = meter:GetStats()
     if settings.shareDPS and meter:IsActive() then bridge:SendDPS(stats.dps, false, stats.bossDPS) end
@@ -271,6 +274,7 @@ local function onAddonLoaded(_, name)
     bridge.onChanged = function()
         updateUI()
     end
+    bridge:Connect()
     if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
         SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, state)
             if not scene or not scene.GetName then return end
@@ -285,6 +289,7 @@ local function onAddonLoaded(_, name)
     updateUI()
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME.."Connect", EVENT_PLAYER_ACTIVATED, function() bridge:Connect() end)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME.."Group", EVENT_GROUP_UPDATE, function()
+        bridge:Connect()
         bridge:GetRows()
         updateUI()
     end)
@@ -324,7 +329,7 @@ local function onAddonLoaded(_, name)
             end
             if status.error then d("[SimpleGroupDPS] " .. status.error) end
             if status.receivedCount then
-                d(string.format("[SimpleGroupDPS] DPS-Pakete empfangen: %d | An Sendewarteschlange uebergeben: %d",
+                d(string.format("[SimpleGroupDPS] DPS-/HPS-Pakete empfangen: %d | An Sendewarteschlange uebergeben: %d",
                     status.receivedCount, status.queuedCount))
             end
         end

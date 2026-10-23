@@ -1,6 +1,7 @@
 aTim99_Tbar = aTim99_Tbar or {}
 local ttb = aTim99_Tbar
 local toolbarHiddenByScene = false
+local undauntedCrestsCurrency = CURT_UNDAUNTED_CRESTS
 
 ttb.name          = "aTim99_Tbar"
 ttb.author        = "tim99"
@@ -54,7 +55,7 @@ ttb.svDefAcc={
 	showIC        = true,
 	showDebug     = false,
 	showXPperc    = false,
-	showEndeaProg = true,
+
 }
 ttb.svDefAcc.charList[ttb.charName]={
 	name          = ttb.charName,
@@ -238,7 +239,8 @@ end
 ----------------------------------------------------------------------------------------------------
 local function GetMyCurr(i_ctrl,currencyType,i_X,i_Y)
 	local location=(currencyType==CURT_CHAOTIC_CREATIA or currencyType==CURT_UNDAUNTED_KEYS or 
-					currencyType==CURT_TRADE_BARS or currencyType==CURT_ENDEAVOR_SEALS or currencyType==CURT_ENDLESS_DUNGEON) and 
+					currencyType==CURT_TRADE_BARS or currencyType==CURT_ENDEAVOR_SEALS or currencyType==CURT_ENDLESS_DUNGEON or
+					(undauntedCrestsCurrency and currencyType==undauntedCrestsCurrency)) and 
 					CURRENCY_LOCATION_ACCOUNT or CURRENCY_LOCATION_CHARACTER
 	local currBag=GetCurrencyAmount(currencyType,location)
 	local xmuteWarn,xmuteMax=1450,1500
@@ -267,21 +269,6 @@ local function GetMyCurr(i_ctrl,currencyType,i_X,i_Y)
 		i_ctrl:SetColor(1,1,.76,1)
 	end
 	i_ctrl:SetText(string.format('%s%s|u1:0::%s|u%s',ico,hlpTxt2,zo_strformat(SI_NUMBER_FORMAT,currBag),hlpTxt))
-end
-----------------------------------------------------------------------------------------------------
-local function GetEndeas(i_ctrl)
-	local bestrebDaily,bestrebWeekly=0,0
-	for i=1, GetNumTimedActivities() do
-		if GetTimedActivityType(i)==TIMED_ACTIVITY_TYPE_DAILY then
-			if GetTimedActivityProgress(i)==GetTimedActivityMaxProgress(i) then bestrebDaily=bestrebDaily+1 end
-		elseif GetTimedActivityType(i)==TIMED_ACTIVITY_TYPE_WEEKLY then
-			if GetTimedActivityProgress(i)==GetTimedActivityMaxProgress(i) then bestrebWeekly=bestrebWeekly+1 end
-		end
-	end
-	local c1=(bestrebDaily==3) and '00FF00' or 'FF0000' --//grün or rot
-	local c2=(bestrebWeekly==1) and '00FF00' or 'FF0000' --//grün or rot
-	i_ctrl:SetColor(.75,.75,.75,1) --//grau
-	i_ctrl:SetText(string.format(" (|c%s%s/3|r)|u1:1::|u[|c%s%s/1|r]",c1,bestrebDaily,c2,bestrebWeekly))
 end
 ----------------------------------------------------------------------------------------------------
 local function GetKrusch(i_ctrl,i_id,i_X,i_Y)
@@ -592,6 +579,7 @@ function ttb.Toolbar_Update()
 	GetMyCurr(TimTbarWindowUndauntedKeys, CURT_UNDAUNTED_KEYS, 21,21)
 	GetMyCurr(TimTbarWindowEndeavorSeals, CURT_ENDEAVOR_SEALS, 21,19)
 	GetMyCurr(TimTbarWindowEndlessDungeon, CURT_ENDLESS_DUNGEON, 19,19)
+	if undauntedCrestsCurrency then GetMyCurr(TimTbarWindowUndauntedCrests, undauntedCrestsCurrency, 21,21) end
 	--- Inventar ---------------------------------------------
 	GetKrusch(TimTbarWindowLockpicks, 30357, 20,20)	--Lockpick
 	GetKrusch(TimTbarWindowSoulGems, 33271, 20,19)	--Soulgem
@@ -628,22 +616,23 @@ function ttb.Toolbar_Update()
 		[13] = TimTbarWindowUndauntedKeys,
 		[14] = TimTbarWindowEndeavorSeals,
 		[15] = TimTbarWindowEndlessDungeon,
-		[16] = TimTbarWindowLockpicks,
-		[17] = TimTbarWindowSoulGems,
-		[18] = TimTbarWindowRepairKits,
-		[19] = TimTbarWindowSkull,
-		[20] = TimTbarWindowGearRepair,
-		--[22] = TimTbarWindowDailyLogin,
-		[21] = TimTbarWindowWrits,
-		[22] = TimTbarWindowRemainsSilent,
-		[23] = TimTbarWindowMountTraining,
-		[24] = TimTbarWindowDragonguard,
-		[25] = TimTbarWindowImperialMerits,
-		[26] = TimTbarWindowStolenItems,
-		[27] = TimTbarWindowResearchSmithing,
-		[28] = TimTbarWindowResearchWoodworking,
-		[29] = TimTbarWindowResearchClothier,
-		[30] = TimTbarWindowResearchJewelry,
+		[16] = TimTbarWindowUndauntedCrests,
+		[17] = TimTbarWindowLockpicks,
+		[18] = TimTbarWindowSoulGems,
+		[19] = TimTbarWindowRepairKits,
+		[20] = TimTbarWindowSkull,
+		[21] = TimTbarWindowGearRepair,
+		--[23] = TimTbarWindowDailyLogin,
+		[22] = TimTbarWindowWrits,
+		[23] = TimTbarWindowRemainsSilent,
+		[24] = TimTbarWindowMountTraining,
+		[25] = TimTbarWindowDragonguard,
+		[26] = TimTbarWindowImperialMerits,
+		[27] = TimTbarWindowStolenItems,
+		[28] = TimTbarWindowResearchSmithing,
+		[29] = TimTbarWindowResearchWoodworking,
+		[30] = TimTbarWindowResearchClothier,
+		[31] = TimTbarWindowResearchJewelry,
 	}
 	for i,ctrl in ipairs(myControls) do
 		local _, _, _, _, x, _, _=ctrl:GetAnchor(0)	
@@ -869,11 +858,12 @@ local function OnCurrencyUpdate(event,currencyType,currencyLocation,newAmount,ol
 		GetMyCurr(TimTbarWindowTradeBars, currencyType, 21,21)
 	elseif currencyType==CURT_ENDEAVOR_SEALS then
 		GetMyCurr(TimTbarWindowEndeavorSeals, currencyType, 21,19)
-		--GetEndeas(TimTbarWindowEndeavorProgress)
 	elseif currencyType==CURT_TELVAR_STONES then
 		GetMyCurr(TimTbarWindowTelVar, currencyType, 21,21)
 	elseif currencyType==CURT_ENDLESS_DUNGEON then
 		GetMyCurr(TimTbarWindowEndlessDungeon, currencyType, 19,19)
+	elseif undauntedCrestsCurrency and currencyType==undauntedCrestsCurrency then
+		GetMyCurr(TimTbarWindowUndauntedCrests, currencyType, 21,21)
 	end
 end
 ----------------------------------------------------------------------------------------------------
@@ -1006,7 +996,7 @@ function ttb.playerActivated()
 			ttb.Toolbar_Update()
 			EVENT_MANAGER:RegisterForUpdate("Toolbar_Update", refreshSeconds, ttb.Toolbar_Update)
 
-		end, 1000)
+		end, 1500)
 	end
 
 	--immer (login/reload/zonenwechsel etc)

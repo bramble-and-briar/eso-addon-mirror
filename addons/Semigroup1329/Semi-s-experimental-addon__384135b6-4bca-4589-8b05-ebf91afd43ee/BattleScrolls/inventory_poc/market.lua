@@ -642,8 +642,15 @@ function market.initialize()
         if poc.enabled and market.search and not market.ownRequest then market.stop() end
     end)
     ZO_PreHook('SelectTradingHouseGuildId', function(guildId)
-        if poc.enabled and market.touched and not market.ownRequest
-            and guildId ~= GetSelectedTradingHouseGuildId() then market.stop() end
+        if not poc.enabled or market.ownRequest then return end
+        if guildId == GetSelectedTradingHouseGuildId() then
+            -- SCENE_SHOWING reselects this guild. The native busy check runs
+            -- before its equality check and rejects this repeated selection.
+            if market.fiber or (market.requestFiber and market.requestFiber:IsRunning()) then
+                trace('guild-already-selected')
+                return true
+            end
+        elseif market.touched then market.stop() end
     end)
     ZO_PreHook('RequestPostItemOnTradingHouse', function()
         if poc.enabled and not market.ownRequest then

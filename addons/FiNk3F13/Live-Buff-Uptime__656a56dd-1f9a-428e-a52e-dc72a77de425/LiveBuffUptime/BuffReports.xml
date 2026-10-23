@@ -1,0 +1,5 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="LiveBuffUptimeReportScreenTemplate" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+    </Controls>
+</GuiXml>

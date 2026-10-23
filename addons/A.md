@@ -18,7 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ability Icons Framework (AIF)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Ability-Icons-Framework-AIF__4061) | wicked_prophet | PC / Mac | 2.0.1 |
 | [ABnC Gold Manager - revisited](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dbojan/ABnC-Gold-Manager---revisited__2890) | dbojan | PC / Mac | 1.3.100009a rv3 |
 | [Above Me Icon Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Above-Me-Icon-Browser__c1746be9-5c6a-4516-aa21-e54bd8e5a25e) | BMGxSancho | Console | — |
-| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 22/10/2026 |
+| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 23/10/2026 |
 | [Accept or Decline Group Invites](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Accept-or-Decline-Group-Invites__4371) | TwinLamps | PC / Mac | 1.1 |
 | [Accessorize](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deadohiosky48/Accessorize__2541) | deadohiosky48 | PC / Mac | 24 |
 | [Account Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/QuantumPie/Account-Achievements__2905) | QuantumPie | PC / Mac | 2.0.2 |
@@ -243,7 +243,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.7 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
-| [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.0.0 |
+| [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.1.0 |
 | [ARC_CustomFonts - High-Quality Open-Source Fonts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_CustomFonts---High-Quality-Open-Source-Fonts__4971) | arcsinan | PC / Mac | 1.0.0 |
 | [ARC_NetGraphr - Real-Time Network Telemetry & FPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_NetGraphr---Real-Time-Network-Telemetry-FPS__4973) | arcsinan | PC / Mac | 1.0.0 |
 | [ARC_SetGlowGuard - Set Glow & Equipment Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_SetGlowGuard---Set-Glow-Equipment-Tracker__4970) | arcsinan | PC / Mac | 1.0.2 |

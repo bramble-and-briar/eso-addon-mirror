@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/MajesticMinxi/Guild-Market-Scanner-DEV__f419b0e2-e53c-4875-bcf2-5bf0e372218b",
+  "archive_path": "addons/MajesticMinxi/Tamriel-Collections-Guild-Market-Scanner__f419b0e2-e53c-4875-bcf2-5bf0e372218b",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "MajesticMinxi",
   "canonical_id": "bethesda:f419b0e2-e53c-4875-bcf2-5bf0e372218b",
   "content_id": "f419b0e2-e53c-4875-bcf2-5bf0e372218b",
   "deleted": false,
-  "fingerprint": "9bc6c4979ed7b70e3e98cd2e37dbf782b1f9c8c99abad28c591824fae31b9426",
+  "fingerprint": "bf8373c2eb075bd6677f1887d8136291f425c208bd76c05300cc98d0b29cf512",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "f419b0e2-e53c-4875-bcf2-5bf0e372218b",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/f419b0e2-e53c-4875-bcf2-5bf0e372218b",
-  "title": "Guild Market Scanner DEV"
+  "title": "Tamriel Collections \u2013 Guild Market Scanner"
 }

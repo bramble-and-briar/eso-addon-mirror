@@ -1,6 +1,6 @@
 ## Title: GoA_ESO_UA
 ## Author: GoA
-## APIVersion: 101049 101050
+## APIVersion: 101049 101050 101051 101052
 ## Version: 1.07
 ## AddOnVersion: 107
 ## Description: Укр локалізація «TESO»

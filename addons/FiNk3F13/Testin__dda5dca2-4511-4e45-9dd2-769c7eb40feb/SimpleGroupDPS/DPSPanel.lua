@@ -1,4 +1,4 @@
--- Compact damage-only group meter. Healing metrics are deliberately absent.
+-- Damage and received healing are separate sections; only damage enters the DPS sum.
 local panel = {}
 SimpleGroupDPS_DPSPanel = panel
 local function getLayout(options)
@@ -46,6 +46,7 @@ end
 local function formatValue(value)
     if value == nil then return "" end
     if value == math.huge then return ">1,048 Mio." end
+    if value < 1000 then return tostring(math.floor(math.max(0, value) + 0.5)) end
     if ZO_AbbreviateAndLocalizeNumber then
         return ZO_AbbreviateAndLocalizeNumber(value, 1, false)
     end
@@ -55,9 +56,18 @@ local function formatValue(value)
 end
 
 local function formatMetrics(member, bossFight)
+    if member.messageType == "healing" then return formatValue(member.effectiveHPS) .. " (" .. formatValue(member.rawHPS) .. ")" end
     if bossFight and member.bossDPS == nil then return "(" .. formatValue(member.dps) .. ")" end
     if bossFight then return formatValue(member.bossDPS) .. " (" .. formatValue(member.dps) .. ")" end
     return formatValue(member.dps)
+end
+
+local function roleIcon(member)
+    if LFG_ROLE_TANK and member.role == LFG_ROLE_TANK then return "EsoUI/Art/LFG/Gamepad/lfg_roleicon_tank.dds" end
+    if (LFG_ROLE_HEAL and member.role == LFG_ROLE_HEAL) or member.messageType == "healing" then
+        return "EsoUI/Art/LFG/Gamepad/lfg_roleicon_healer.dds"
+    end
+    return "EsoUI/Art/LFG/LFG_icon_dps.dds"
 end
 
 local function createRow(parent, header)
@@ -108,10 +118,12 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     end
     members = values
     table.sort(members, function(a, b)
-        local aValue, bValue = a.dps, b.dps
-        if bossFight then aValue, bValue = a.bossDPS or -1, b.bossDPS or -1 end
+        local aHealing, bHealing = a.messageType == "healing", b.messageType == "healing"
+        if aHealing ~= bHealing then return not aHealing end
+        local aValue, bValue = aHealing and a.rawHPS or a.dps, bHealing and b.rawHPS or b.dps
+        if bossFight and not aHealing then aValue, bValue = a.bossDPS or -1, b.bossDPS or -1 end
         if aValue ~= bValue then return aValue > bValue end
-        if a.dps ~= b.dps then return a.dps > b.dps end
+        if not aHealing and a.dps ~= b.dps then return a.dps > b.dps end
         return a.name < b.name
     end)
 
@@ -123,7 +135,12 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         rows.backdrop:SetDrawLayer(DL_BACKGROUND)
         rows.backdrop:SetDrawLevel(0)
     end
-    local height = (#members + 2) * rowHeight + 8
+    local damageCount, healingCount = 0, 0
+    for _, member in ipairs(members) do
+        if member.messageType == "healing" then healingCount = healingCount + 1 else damageCount = damageCount + 1 end
+    end
+    local damageRows = damageCount > 0 and damageCount + 2 or 0
+    local height = (damageRows + (healingCount > 0 and healingCount + 1 or 0)) * rowHeight + 8
     rows.backdrop:SetDimensions(width, height)
     rows.backdrop:SetHidden(false)
 
@@ -139,22 +156,40 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     local durationText = string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
     setValue(header.swtDPSValue, durationText)
     header.swtDPSValue:SetColor(0.9, 0.96, 1, 1)
-    header:SetHidden(false)
+    header:SetHidden(damageCount == 0)
 
-    local maximum, sum, bossSum, unknownBoss = 0, 0, 0, false
+    if healingCount > 0 then
+        local healingHeader = rows.healingHeader or createRow(parent, true)
+        rows.healingHeader = healingHeader
+        layoutRow(healingHeader, true, width, font, rowHeight)
+        healingHeader:ClearAnchors()
+        healingHeader:SetAnchor(TOPLEFT, parent, TOPLEFT, 12, 4 + damageRows * rowHeight)
+        healingHeader:SetText("Heilung (HPS)")
+        setValue(healingHeader.swtDPSValue, "")
+        healingHeader:SetColor(0.55, 0.95, 0.7, 1)
+        healingHeader:SetHidden(false)
+    end
+
+    local maximum, healingMaximum, sum, bossSum, unknownBoss = 0, 0, 0, 0, false
     for _, member in ipairs(members) do
-        local metric = member.dps
-        if bossFight then metric = member.bossDPS end
-        maximum = math.max(maximum, math.min(metric or 0, 1048576))
-        sum = sum + member.dps
-        if member.bossDPS ~= nil then bossSum = bossSum + member.bossDPS else unknownBoss = true end
+        if member.messageType == "healing" then
+            healingMaximum = math.max(healingMaximum, math.min(member.rawHPS, 1048576))
+        else
+            local metric = member.dps
+            if bossFight then metric = member.bossDPS end
+            maximum = math.max(maximum, math.min(metric or 0, 1048576))
+            sum = sum + member.dps
+            if member.bossDPS ~= nil then bossSum = bossSum + member.bossDPS else unknownBoss = true end
+        end
     end
     for i, member in ipairs(members) do
         local row = rows[i] or createRow(parent, false)
         rows[i] = row
         layoutRow(row, false, width, font, rowHeight, valueFont)
         row:ClearAnchors()
-        row:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + i * rowHeight)
+        local healing = member.messageType == "healing"
+        local line = healing and (damageRows + i - damageCount) or i
+        row:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + line * rowHeight)
         row:SetText((member.name:gsub("^@", "")))
         setValue(row.swtDPSValue, formatMetrics(member, bossFight))
         if member.isPlayer then
@@ -164,9 +199,11 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         end
         row.swtDPSValue:SetColor(0.88, 0.97, 1, member.stale and 0.55 or 1)
         row.swtIcon:SetHidden(false)
-        local metric = member.dps
-        if bossFight then metric = member.bossDPS end
-        row.swtBar:SetValue(maximum > 0 and math.min(metric or 0, 1048576) / maximum or 0)
+        row.swtIcon:SetTexture(roleIcon(member))
+        local metric = healing and member.rawHPS or member.dps
+        if bossFight and not healing then metric = member.bossDPS end
+        local barMaximum = healing and healingMaximum or maximum
+        row.swtBar:SetValue(barMaximum > 0 and math.min(metric or 0, 1048576) / barMaximum or 0)
         row.swtBar:SetColor(member.isPlayer and 0.1 or 0.25, member.isPlayer and 0.85 or 0.4, 0.35, member.isPlayer and 0.6 or 0.14)
         row:SetHidden(false)
     end
@@ -181,7 +218,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     rows.summary = summary
     layoutRow(summary, false, width, font, rowHeight, valueFont)
     summary:ClearAnchors()
-    summary:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + (#members + 1) * rowHeight)
+    summary:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + (damageCount + 1) * rowHeight)
     summary:SetText("Summe")
     setValue(summary.swtDPSValue, formatMetrics({ dps = sum, bossDPS = not unknownBoss and bossSum or nil }, bossFight))
     summary:SetColor(0.9, 0.96, 1, 1)
@@ -189,7 +226,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     summary.swtIcon:SetHidden(true)
     summary.swtBar:SetValue(1)
     summary.swtBar:SetColor(0.35, 0.35, 0.35, 0.25)
-    summary:SetHidden(false)
+    summary:SetHidden(damageCount == 0)
     return height
 end
 

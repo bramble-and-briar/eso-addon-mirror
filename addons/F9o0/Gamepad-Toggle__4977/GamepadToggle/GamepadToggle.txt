@@ -1,0 +1,9 @@
+## Title: Gamepad Toggle
+## Description: Keybind to switch Gamepad Mode between Automatic and On (Always Gamepad).
+## Author: F9o0
+## Version: 1.0
+## APIVersion: 101048 101049
+## SavedVariables: 
+
+GamepadToggle.lua
+Bindings.xml

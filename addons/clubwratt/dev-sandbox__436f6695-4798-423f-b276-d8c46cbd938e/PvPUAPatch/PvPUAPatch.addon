@@ -1,14 +1,23 @@
 ## Title: |c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r (Patch)
 ## Author: user|c4F81BD5|r|cC2AA496|r|cDE5B4E2|r
-## Version: 5.3.0
-## Description: Tells you when something is under attack in Cyrodiil & IC & more. Slight fork of PvP UA! by user562x: kill markers at a keep/outpost/town/resource put it on the list, 1-minute linger timer, per-location kill tally. All credit to user562x.
+## Version: 5.5.3
+## Description: Tells you when something is under attack in Cyrodiil & IC & more. Slight fork of PvP UA! by user562x: kill markers and PvP Kill Feed chat kills at a keep/outpost/town/resource put it on the list, per-location kill tally, no extra library needed. All credit to user562x.
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: PvPUA_SavedVars PvPUA_CharVars
-## DependsOn: LibConsoleMenu AAAConsoleUIShim
 ## OptionalDependsOn: LibGroupBroadcast
-## DevId: 436f6695-4798-423f-b276-d8c46cbd938e
+## DevId: 5079d9ce-7098-43fd-8b50-42b172512fd7
 
+Lib/LibUser562.lua
+Lib/Window.xml
+Lib/Window.lua
+Lib/MainMenu.lua
 PvPUA.xml
 PvPUA.lua
-PvPUA_MainMenu.lua
+PvPUA_Appearance.lua
+PvPUA_Alerts.lua
+PvPUA_APChat.lua
+PvPUA_AutoInvite.lua
+PvPUA_Ranks.lua
+PvPUA_Icon.lua
+PvPUA_Settings.lua
 bindings.xml

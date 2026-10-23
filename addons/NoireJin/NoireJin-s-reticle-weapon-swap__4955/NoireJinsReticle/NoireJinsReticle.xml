@@ -1,0 +1,34 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="NoireJinsReticleWindow" hidden="true" mouseEnabled="false">
+            <Dimensions x="32" y="32" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0" />
+            <Controls>
+                <Texture name="NoireJinsReticleGlow" textureFile="NoireJinsReticle/glow.dds" alpha="0" mouseEnabled="false">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="CENTER" relativeTo="NoireJinsReticleWindow" relativePoint="CENTER" />
+                </Texture>
+                <Texture name="NoireJinsReticleWeaponGlow" textureFile="NoireJinsReticle/dualwield_glow.dds" hidden="true" mouseEnabled="false">
+                    <Dimensions x="56" y="56" />
+                    <Anchor point="CENTER" relativeTo="NoireJinsReticleWindow" relativePoint="CENTER" offsetX="0" offsetY="40" />
+                </Texture>
+                <Texture name="NoireJinsReticleWeaponIcon" textureFile="NoireJinsReticle/dualwield.dds" hidden="true" mouseEnabled="false">
+                    <Dimensions x="56" y="56" />
+                    <Anchor point="CENTER" relativeTo="NoireJinsReticleWindow" relativePoint="CENTER" offsetX="0" offsetY="40" />
+                </Texture>
+                <Texture name="NoireJinsReticleBadgeShadow" textureFile="NoireJinsReticle/badge_fire_glow.dds" hidden="true" mouseEnabled="false">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="CENTER" relativeTo="NoireJinsReticleWindow" relativePoint="CENTER" offsetX="19" offsetY="-40" />
+                </Texture>
+                <Texture name="NoireJinsReticleBadge" textureFile="NoireJinsReticle/badge_fire.dds" hidden="true" mouseEnabled="false">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="CENTER" relativeTo="NoireJinsReticleWindow" relativePoint="CENTER" offsetX="19" offsetY="-40" />
+                </Texture>
+                <Texture name="NoireJinsReticleDot" textureFile="NoireJinsReticle/dot.dds" mouseEnabled="false">
+                    <Dimensions x="4" y="4" />
+                    <Anchor point="CENTER" relativeTo="NoireJinsReticleWindow" relativePoint="CENTER" />
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

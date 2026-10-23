@@ -14,6 +14,7 @@ BattleScrolls.inventoryPocUI = ui
 -- Refresh only presentation: leave native callbacks and dialogs untouched.
 function ui.refreshTradingHouse()
     if GetInteractionType() ~= INTERACTION_TRADINGHOUSE then return end
+    if BattleScrolls.inventoryPocTradingHouseUI.isDeferred() then return end
     if IsInGamepadPreferredMode() then
         if GAMEPAD_TRADING_HOUSE_SELL then GAMEPAD_TRADING_HOUSE_SELL:UpdateKeybind() end
     elseif TRADING_HOUSE then
@@ -297,7 +298,7 @@ function ui.setEnabled(enabled)
             return poc.saved and poc.saved.unread == true
         end
         local title = GetString(BATTLESCROLLS_IPOC_TITLE)
-        local icon = 'BattleScrolls/art/your_pack_menu.dds'
+        local icon = 'BattleScrolls/art/your_pack_menu_bgra.dds'
         menuEntry = ZO_GamepadEntryData:New(title, icon, nil, nil, isNew)
         menuEntry:SetIconTintOnSelection(true)
         menuEntry:SetIconDisabledTintOnSelection(true)

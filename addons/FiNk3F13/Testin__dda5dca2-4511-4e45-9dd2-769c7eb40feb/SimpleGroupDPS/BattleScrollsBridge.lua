@@ -36,22 +36,26 @@ local function onData(unitTag, data)
     if type(unitTag) ~= "string" or not unitTag:match("^group%d+$") then return end
     if not DoesUnitExist(unitTag) or AreUnitsEqual(unitTag, "player") then return end
     if type(data) ~= "table" then return end
-    if data.messageType ~= "damage" then
-        local hadMember = members[unitTag] ~= nil
-        members[unitTag] = nil
-        if hadMember and bridge.onChanged then bridge.onChanged() end
-        return
-    end
-    local dps = tonumber(data.allTargetsDPS)
-    if not dps or dps ~= dps or dps < 0 then return end
+    local healing = data.messageType == "healing"
+    if not healing and data.messageType ~= "damage" then return end
+    local dps = not healing and tonumber(data.allTargetsDPS) or nil
+    local rawHPS = healing and tonumber(data.rawHPS) or nil
+    local effectiveHPS = healing and tonumber(data.effectiveHPS) or nil
+    if healing then
+        if not rawHPS or rawHPS ~= rawHPS or rawHPS < 0
+            or not effectiveHPS or effectiveHPS ~= effectiveHPS or effectiveHPS < 0 then return end
+    elseif not dps or dps ~= dps or dps < 0 then return end
     local identity = GetUnitDisplayName(unitTag)
     if not identity or identity == "" then return end
-    local bossDPS = tonumber(data.bossDPS)
+    local bossDPS = not healing and tonumber(data.bossDPS) or nil
     if bossDPS and (bossDPS ~= bossDPS or bossDPS < 0) then bossDPS = nil end
     members[unitTag] = {
         identity = identity,
         name = identity,
+        messageType = data.messageType,
+        role = GetGroupMemberSelectedRole and GetGroupMemberSelectedRole(unitTag) or data.role,
         dps = dps,
+        rawHPS = rawHPS, effectiveHPS = effectiveHPS,
         bossDPS = bossDPS,
         addsDPS = bossDPS and bossDPS < math.huge and dps < math.huge and math.max(0, dps - bossDPS) or nil,
         receivedAt = GetGameTimeMilliseconds(),
@@ -94,7 +98,10 @@ function bridge:Connect()
         if healingOK and healing then
             healing:AddField(lgb.CreateNumericField("encodedRawHPS", { minValue = 0, numBits = 12 }))
             healing:AddField(lgb.CreateNumericField("encodedEffectiveHPS", { minValue = 0, numBits = 12 }))
-            healing:OnData(function(unitTag) onData(unitTag, { messageType = "healing" }) end)
+            healing:OnData(function(unitTag, data)
+                onData(unitTag, {messageType = "healing", rawHPS = decodeDPS(data.encodedRawHPS, 12, 511),
+                    effectiveHPS = decodeDPS(data.encodedEffectiveHPS, 12, 511)})
+            end)
             healing:Finalize({ isRelevantInCombat = true })
         end
         receiverReady = true
@@ -170,12 +177,16 @@ function bridge:GetRows()
             members[tag] = nil
         else
             member.stale = now - member.receivedAt > STALE_MS
+            if GetGroupMemberSelectedRole then member.role = GetGroupMemberSelectedRole(tag) end
             rows[#rows + 1] = member
         end
     end
     table.sort(rows, function(a, b)
-        if a.dps == b.dps then return a.name < b.name end
-        return a.dps > b.dps
+        local aHealing, bHealing = a.messageType == "healing", b.messageType == "healing"
+        if aHealing ~= bHealing then return not aHealing end
+        local aValue, bValue = aHealing and a.rawHPS or a.dps, bHealing and b.rawHPS or b.dps
+        if aValue == bValue then return a.name < b.name end
+        return aValue > bValue
     end)
     return rows
 end

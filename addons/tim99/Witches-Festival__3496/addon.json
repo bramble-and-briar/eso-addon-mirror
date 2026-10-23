@@ -1,11 +1,40 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/tim99/Witches-Festival__3496",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "tim99",
   "canonical_id": "esoui:3496",
   "category_id": "27",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
     {
       "name": "Update 44",
       "version": "10.2.0"
@@ -45,7 +74,7 @@
     "WitchesFestival"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3496/",
-  "fingerprint": "297a85d6aaf3d14cc5f40b8aad41bf004ea7c9c0744bde00d3b891181c650d54",
+  "fingerprint": "df4f659deb8e73059e79d3a11fc8176973ea2956f72bf740182bc20c4ce250ab",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13489.png",
     "https://cdn-eso.mmoui.com/preview/pvw11899.png"
@@ -56,11 +85,11 @@
   "source_id": "3496",
   "source_url": "https://www.esoui.com/downloads/info3496-WitchesFestival.html",
   "stats": {
-    "downloads": 11046,
-    "favorites": 18,
-    "monthly_downloads": 70
+    "downloads": 11553,
+    "favorites": 19,
+    "monthly_downloads": 364
   },
   "title": "Witches Festival",
-  "updated_at": 1730304687000,
-  "version": "4.6"
+  "updated_at": 1792677105000,
+  "version": "4.7"
 }

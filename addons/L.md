@@ -315,6 +315,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LinkMyAchievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/LinkMyAchievements__4291) | Konten | PC / Mac | 1.2.0 |
 | [Links to Ru Fonts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Verling/Links-to-Ru-Fonts__3830) | Verling | PC / Mac | 1.0.6 |
 | [Lionas's Food & Drink Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lionas/Lionas-s-Food-Drink-Reminder__1453) | Lionas | PC / Mac | 1.0.0 |
+| [Live Buff Uptime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Live-Buff-Uptime__656a56dd-1f9a-428e-a52e-dc72a77de425) | FiNk3F13 | Console | — |
 | [LiveAchiever](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/LiveAchiever__25add1be-e5d5-4983-be9d-98b3739bd22c) | tomkolp | Console | — |
 | [LiveAchiever](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/LiveAchiever__4339) | tomkolp | PC / Mac | 1.0.4 |
 | [Livgardet](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zand3rs/Livgardet__3031) | Zand3rs | PC / Mac | 2.3 |
@@ -368,7 +369,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.6 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.7 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.3.1 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |
@@ -389,7 +390,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.10 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
-| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.2 |
+| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.3 |
 | [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d) | Lykeion+ | Console | — |
 | [Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |
 | [Lykeion's Home Sweet Home - Dedicated keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-keybinding-jumping-to-Sugar-Bowl-Suite__3517) | Lykeion | PC / Mac | 1.0.2 |

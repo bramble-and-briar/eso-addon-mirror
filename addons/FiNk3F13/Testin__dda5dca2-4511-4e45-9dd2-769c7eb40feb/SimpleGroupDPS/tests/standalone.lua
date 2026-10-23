@@ -14,6 +14,7 @@ local function control()
         if name == "GetHeight" then return function(self) return (self.height or 0) * (self.scale or 1) end end
         return function(self, value, ...)
             if name == "SetText" then self.text = value end
+            if name == "SetTexture" then self.texture = value end
             if name == "SetHidden" then self.hidden = value end
             if name == "SetDimensions" then self.width = value; self.height = ... end
             if name == "SetScale" then self.scale = value end
@@ -247,7 +248,8 @@ function DoesUnitExist(tag) return tag == "group1" end
 function AreUnitsEqual(a, b) return a == b end
 function GetUnitDisplayName(tag) return tag == "group1" and "@Peer" or "@Me" end
 function IsUnitGrouped() return true end
-events["SimpleGroupDPSConnect:activate"]()
+events["SimpleGroupDPSGroup:group"]()
+assert(receive, "Joining a group connects reception while idle without another activation or own attack")
 receive("group1", { messageType = "damage", allTargetsDPS = 20000 })
 assert(window.swtGroupDPSLabels[1].text == "Peer", "received group values render without waiting for a UI tick")
 receive("group1", { messageType = "damage", allTargetsDPS = 20000, bossDPS = 15000 })
@@ -259,8 +261,10 @@ assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "20,0 Tsd.",
     "After result reset only newly received group values contribute to the fallback")
 updates.SimpleGroupDPSUI()
 assert(window.swtGroupDPSLabels[0].text == "Gesamtschaden", "Local mode survives UI ticks")
-receive("group1", { messageType = "healing" })
-assert(window.hidden, "Replacing the last damage metric must not revive a cleared own result")
+receive("group1", {messageType = "healing", rawHPS = 18000, effectiveHPS = 5000})
+assert(not window.hidden and window.swtGroupDPSLabels.healingHeader.text == "Heilung (HPS)", "Healing metrics must remain visible in their own section")
+assert(window.swtGroupDPSLabels[2].swtDPSValue.text == "5,0 Tsd. (18,0 Tsd.)")
+assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "0", "Healing must never be added to damage")
 showScene("inventory")
 receive("group1", { messageType = "damage", allTargetsDPS = 20000 })
 assert(window.hidden, "network update cannot reopen display while in menu")
@@ -279,7 +283,7 @@ assert(type(SLASH_COMMANDS["/sgdmove"]) == "function")
 assert(type(SLASH_COMMANDS["/sgdstatus"]) == "function")
 SLASH_COMMANDS["/sgdstatus"]()
 local diagnosticText = table.concat(logs, "\n")
-assert(diagnosticText:find("SimpleGroupDPS 1.4.5", 1, true)
+assert(diagnosticText:find("SimpleGroupDPS 1.5.0", 1, true)
     and diagnosticText:find("Takt: 300 ms", 1, true)
     and diagnosticText:find("Letzter Schaden:", 1, true)
     and diagnosticText:find("Schadensereignisse:", 1, true),
@@ -295,22 +299,26 @@ assert(#SimpleGroupDPS_BattleScrolls:GetRows() == 1, "Unchanged group update mus
 function DoesUnitExist(tag) return tag == "group1" or tag == "boss1" end
 function GetRawUnitName(tag) return tag == "boss1" and "Local Boss" or "" end
 events["SimpleGroupDPSDamageBosses:boss"]()
+clock = 20500
+events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 0, "Local Boss", 2, 6000, nil, nil, nil, 0, 42)
+assert(SimpleGroupDPS_DamageMeter:GetStats().groupTotal == 0, "Anonymous hit waits for a confirmed target")
 clock = 21000
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 4, "Local Boss", 2, 10000, nil, nil, nil, 100, 42)
 updates.SimpleGroupDPSUI()
 assert(window.swtGroupDPSLabels[0].text == "Boss-Schaden (Gesamtschaden)")
-assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "10,0 Tsd. (10,0 Tsd.)")
+assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "16,0 Tsd. (16,0 Tsd.)", "Boss total includes locally observed anonymous damage without adding remote packets")
 assert(SimpleGroupDPS_DamageMeter:GetStats().bossDPS == 0)
 clock = 22000
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Local Boss", 2, 4000, nil, nil, nil, 99, 42)
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "7,0 Tsd. (7,0 Tsd.)", "Shared local fight combines group and own damage once")
+assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "10,0 Tsd. (10,0 Tsd.)", "One-boss fight combines anonymous, group and own damage once")
+assert(SimpleGroupDPS_DamageMeter:GetStats().dps == 2000, "Anonymous group damage must not increase own DPS")
 clock, inCombat = 23000, false
 events["SimpleGroupDPSDamageState:combat"](nil, false)
 updates.SimpleGroupDPSDamageReset()
-assert(saved.lastSummary.groupDamageTotal == 14000 and saved.lastSummary.groupDPS == 7000)
+assert(saved.lastSummary.groupDamageTotal == 20000 and saved.lastSummary.groupDPS == 10000)
 receive("group1", {messageType = "damage", allTargetsDPS = 40000, bossDPS = 30000})
-assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "7,0 Tsd. (7,0 Tsd.)")
+assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "10,0 Tsd. (10,0 Tsd.)")
 clock = 42000
 updates.SimpleGroupDPSUI()
 assert(SimpleGroupDPS_BattleScrolls:GetRows()[1].stale, "Old peer values remain visible but stale")
@@ -320,7 +328,7 @@ assert(#SimpleGroupDPS_BattleScrolls:GetRows() == 0, "Replacement must not inher
 clock, inCombat = 50000, true
 events["SimpleGroupDPSDamageState:combat"](nil, true)
 clock = 51000
-events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Enemy", 2, 2000, nil, nil, nil, 99, 99)
+events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Enemy", 2, 2000, nil, nil, nil, 99, 1000)
 clock = 300000
 updates.SimpleGroupDPSUI()
 assert(SimpleGroupDPS_DamageMeter:GetStats().total == 2000, "Two-minute cleanup must never reset a running encounter")
@@ -351,3 +359,4 @@ clock = 720000
 updates.SimpleGroupDPSUI()
 assert(window.hidden and #SimpleGroupDPS_BattleScrolls:GetRows() == 0, "Five-minute selection expires at 300 seconds")
 print("PASS: full addon, 1-5 minute retention, legacy migration, local group totals, peer reception and active-fight protection")
+return {receive = receive, window = window, tick = function() updates.SimpleGroupDPSUI() end}

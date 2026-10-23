@@ -5,11 +5,7 @@ tny.name          = "WitchesFestival"
 tny.author        = "|c595959tim99|r"
 tny.firstCall     = true
 tny.srv           = string.sub(GetWorldName(),1,2)
-tny.svChr         = {}
 tny.svAcc         = {}
-tny.svDefChr      = {
-	tmrQuest        = 0,
-}
 tny.svDefAcc      = {
 	anchor          = {TOPLEFT, TOPLEFT, 100, 100},
 	tmrDelve        = 0,
@@ -292,8 +288,6 @@ function tny.initUI()
 	GetCrow(TimWitchesUIInfo08)
 	GetJack(TimWitchesUIInfo09)
 	GetArchiv(TimWitchesUIInfo10)
-	--
-	--GetQuest(TimWitchesUIInfo09)
 end
 ----------------------------------------------------------------------------------------------------
 function tny.onSceneChangeAll(oldState, newState)
@@ -365,16 +359,47 @@ end
 --	end
 --end
 ----------------------------------------------------------------------------------------------------
+-- Right-click to manually toggle skulls for the current daily reset.
+local function ToggleSkull(key)
+    local now = GetTimeStamp()
+    local resetBase = (tny.srv == "EU") and 1641006000 or 1641031200
+    local todayReset = resetBase + zo_floor(GetDiffBetweenTimeStamps(now, resetBase) / ZO_ONE_DAY_IN_SECONDS) * ZO_ONE_DAY_IN_SECONDS
+    local sv = tny.svAcc
+    if (sv[key] or 0) >= todayReset then
+        sv[key] = 0
+    else
+        sv[key] = now
+    end
+    tny.initUI()
+end
+----------------------------------------------------------------------------------------------------
 function tny.onPlayerActivated()
 	--just once at beginning
 	if tny.firstCall==true then
 		tny.firstCall=false
 		SCENE_MANAGER:RegisterCallback("SceneStateChanged", tny.onSceneChangeAll)
-		--EVENT_MANAGER:RegisterForEvent(tny.name, EVENT_QUEST_COMPLETE, tny.onQuestComplete)
 		EVENT_MANAGER:RegisterForEvent(tny.name, EVENT_LOOT_RECEIVED, tny.onLootReceived)
 			EVENT_MANAGER:AddFilterForEvent(tny.name, EVENT_LOOT_RECEIVED, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
 			EVENT_MANAGER:AddFilterForEvent(tny.name, EVENT_LOOT_RECEIVED, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 			EVENT_MANAGER:AddFilterForEvent(tny.name, EVENT_LOOT_RECEIVED, REGISTER_FILTER_IS_NEW_ITEM, true)
+        local skullControls = {
+            [TimWitchesUIInfo01] = "tmrDelve",
+            [TimWitchesUIInfo02] = "tmrAnker",
+            [TimWitchesUIInfo03] = "tmrWorld",
+            [TimWitchesUIInfo04] = "tmrPublic",
+            [TimWitchesUIInfo05] = "tmrGroup",
+            [TimWitchesUIInfo06] = "tmrArena",
+            [TimWitchesUIInfo07] = "tmrTrial",
+            [TimWitchesUIInfo08] = "tmrCrow",
+            [TimWitchesUIInfo09] = "tmrJack",
+            [TimWitchesUIInfo10] = "tmrArchiv",
+        }
+        for control, key in pairs(skullControls) do
+            local skullKey = key
+            control:SetHandler("OnMouseUp", function(_, button, upInside)
+                if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then ToggleSkull(skullKey) end
+            end)
+        end
 		tny.initUI()
 		EVENT_MANAGER:RegisterForUpdate("TimWitchesUI_Update", 60000, tny.initUI)
 	end
@@ -386,7 +411,6 @@ function tny.addonLoaded(event, addonName)
 	EVENT_MANAGER:UnregisterForEvent(tny.name, EVENT_ADD_ON_LOADED)
 	EVENT_MANAGER:RegisterForEvent(tny.name, EVENT_PLAYER_ACTIVATED, tny.onPlayerActivated)
 
-	tny.svChr=ZO_SavedVars:NewCharacterNameSettings("WitchesSettings", 1, nil, tny.svDefChr, GetWorldName())
 	tny.svAcc=ZO_SavedVars:NewAccountWide("WitchesSettings", 1, nil, tny.svDefAcc, GetWorldName())
 
 	TimWitchesUI:ClearAnchors();

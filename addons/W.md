@@ -31,7 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Weaving Metronome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Weaving-Metronome__c1b4f7e7-7899-4d68-ab6a-6ce46c563cc5) | FiNk3F13 | Console | — |
 | [Wegesruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Wegesruhe__4849) | Torfason | PC / Mac | 2.0.1 |
 | [Well Eater](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/esorochinskiy/Well-Eater__3378) | esorochinskiy | PC / Mac | 1.2.0 |
-| [Werewolf Rave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Erickson9610/Werewolf-Rave__4739) | Erickson9610 | PC / Mac | 1.3.7 |
+| [Werewolf Rave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Erickson9610/Werewolf-Rave__4739) | Erickson9610 | PC / Mac | 1.3.8 |
 | [Werewolf Timer Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maximoz/Werewolf-Timer-Bar__2911) | maximoz | PC / Mac | 2.6 |
 | [Werewolf Timer Bar Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PhnxZ/Werewolf-Timer-Bar-Updated__3814) | PhnxZ | PC / Mac | 3.07 |
 | [Werewolf Timer Icon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maximoz/Werewolf-Timer-Icon__2912) | maximoz | PC / Mac | 2.6 |
@@ -68,7 +68,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Wings of Wind Guildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MysteryDragon/Wings-of-Wind-Guildhall__4020) | MysteryDragon | PC / Mac | 2.0.2 |
 | [WinterQueen's Survey Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/WinterQueen-s-Survey-Banker__3256) | Irniben | PC / Mac | 0.2.0 |
 | [WishList (Set item search&tracker/wanted Gear list)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Meai/WishList-Set-item-search-tracker-wanted-Gear-list__1641) | Meai | PC / Mac | 3.21 |
-| [Witches Festival](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Witches-Festival__3496) | tim99 | PC / Mac | 4.6 |
+| [Witches Festival](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Witches-Festival__3496) | tim99 | PC / Mac | 4.7 |
 | [Wizard's Wardrobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Wizard-s-Wardrobe__3170) | ownedbynico | PC / Mac | 1.23.2 |
 | [Wizard's Wardrobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Wizard-s-Wardrobe__645213de-645d-4170-a4d0-0ee977090114) | STUDLETON | Console | — |
 | [Wizard's Wardrobe Console Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RagePhoenix96/Wizard-s-Wardrobe-Console-Companion__f6c4019b-59cf-4a0b-8550-0e83c807df18) | RagePhoenix96 | Console | — |

@@ -5,6 +5,7 @@ if not SemisPlaygroundCheckAccess() then return end
 local ui = {}
 BattleScrolls.inventoryPocWorkUI = ui
 local poc = BattleScrolls.inventoryPoc
+local tradingHouse = BattleScrolls.inventoryPocTradingHouseUI
 local UPDATE_NAME = 'BattleScrollsInventoryPocWork'
 local ACTION_LAYER = 'BattleScrollsInventoryWork'
 local SHOW_DELAY_MS = 150
@@ -154,6 +155,7 @@ local function show()
 end
 
 local function onUpdate()
+    tradingHouse.update()
     ui.refresh()
     if not action then hide(); return end
     if not showing and showAt and GetFrameTimeMilliseconds() >= showAt then show() end
@@ -166,9 +168,12 @@ function ui.refresh()
     local ownArmoryNotice = releaseArmoryNotice()
     local nextAction, nextItem, nextGuild
     if enabled then nextAction, nextItem, nextGuild = poc.activity() end
+    if tradingHouse.isDeferred() and not nextAction then
+        nextAction, nextGuild = 'listings', GetSelectedTradingHouseGuildId()
+    end
     if ownArmoryNotice and not nextAction then nextAction = 'armory' end
     if nextAction and not canCoverScene(nextAction) then nextAction = nil end
-    if nextAction and not ownArmoryNotice and ZO_Dialogs_IsShowingDialog() then
+    if nextAction and enabled and not poc.cancelled and not ownArmoryNotice and ZO_Dialogs_IsShowingDialog() then
         poc.cancelWork()
         return
     end
@@ -199,6 +204,7 @@ end
 ---@param value boolean
 function ui.setEnabled(value)
     enabled = value
+    tradingHouse.setEnabled(value)
     if value and not registered then
         registered = true
         SCENE_MANAGER:RegisterCallback('SceneStateChanged', function(scene, _, newState)

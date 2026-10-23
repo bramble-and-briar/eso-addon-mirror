@@ -100,4 +100,24 @@ panel:Render(narrowParent, {{name = "@Known", dps = 200, bossDPS = 100}}, true, 
 assert(narrowRows[1].swtDPSValue.font:find("|32|", 1, true), "Widening must restore the requested number size")
 assert(narrowRows.backdrop.width == 400 and panel:GetWidth(narrowOptions) == 400, "Maximum width must stay compact")
 assert(panel:GetWidth({dpsWidth = 10}) == 280, "Width must clamp to the new compact minimum")
-print("PASS: standalone DPS layout, local group totals, compact width steps, long names and adaptive number fitting")
+local nativeCalls = 0
+ZO_AbbreviateAndLocalizeNumber = function(value)
+    assert(value >= 1000, "Small fractional values must not reach ESO's abbreviation formatter")
+    nativeCalls = nativeCalls + 1
+    return "NativeAbbreviation"
+end
+local function integer(value) return tostring(math.floor(value + 0.5)) end
+for _, value in ipairs({0, 0.123456789, 1.23456789, 42.857142857, 999.49, 999.99}) do
+    local sample = {{name = "@Player", dps = value, bossDPS = value / 2},
+        {name = "@Healer", messageType = "healing", rawHPS = value, effectiveHPS = value / 3}}
+    panel:Render(parent, sample, true, 6000, options, {groupDPS = value, groupBossDPS = value / 2})
+    assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == integer(value / 2) .. " (" .. integer(value) .. ")")
+    assert(parent.swtGroupDPSLabels[2].swtDPSValue.text == integer(value / 3) .. " (" .. integer(value) .. ")")
+    assert(parent.swtGroupDPSLabels.summary.swtDPSValue.text == integer(value / 2) .. " (" .. integer(value) .. ")")
+    assert(sample[1].dps == value, "Display rounding must not alter the actual measured DPS")
+end
+assert(nativeCalls == 0)
+panel:Render(parent, {{name = "@Player", dps = 1000}}, false, 6000, options)
+assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == "NativeAbbreviation" and nativeCalls > 0,
+    "Values from 1k must retain the game's localized abbreviation")
+print("PASS: DPS layout, compact width, adaptive fitting and integer DPS/HPS/boss/group values below 1k")

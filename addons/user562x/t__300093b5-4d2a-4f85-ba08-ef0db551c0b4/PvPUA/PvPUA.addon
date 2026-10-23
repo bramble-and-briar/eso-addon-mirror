@@ -1,0 +1,19 @@
+## Title: |c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r
+## Author: user|c4F81BD5|r|cC2AA496|r|cDE5B4E2|r
+## Version: 5.3
+## Description: Tells you when something is under attack in Cyrodiil & IC & more.
+## APIVersion: 101048 101049 101050 101051
+## SavedVariables: PvPUA_SavedVars PvPUA_CharVars
+## DependsOn: LibUser562
+## OptionalDependsOn: LibGroupBroadcast
+
+PvPUA.xml
+PvPUA.lua
+PvPUA_List.lua
+PvPUA_Alerts.lua
+PvPUA_APChat.lua
+PvPUA_AutoInvite.lua
+PvPUA_Ranks.lua
+PvPUA_Icon.lua
+PvPUA_Settings.lua
+bindings.xml

@@ -70,6 +70,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rebar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Rebar__1e6ecfd4-9947-49dc-9392-c5fab2256ab2) | Vixen_Hunny | Console | — |
 | [Recall Rotator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ookimus/Recall-Rotator__4765) | Ookimus | PC / Mac | 1.0 |
 | [Recipe and Motif Price For Writ Worthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/Recipe-and-Motif-Price-For-Writ-Worthy__3625) | alezhu | PC / Mac | 1.1.1 |
+| [ReconGearIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/daimon/ReconGearIcon__4976) | daimon | PC / Mac | 1.0 |
 | [Recount (Renovated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lwndow/Recount-Renovated__2739) | lwndow | PC / Mac | 0.7.6 |
 | [Recount (Update)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ferather/Recount-Update__2754) | Ferather | PC / Mac | 0.6.5 |
 | [Recount (Wolfhunter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadow-Fighter/Recount-Wolfhunter__875) | Shadow-Fighter | PC / Mac | 0.6.3 |

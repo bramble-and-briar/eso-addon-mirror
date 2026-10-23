@@ -20,6 +20,35 @@ local AAB_COLORS = {
     trace    = "9a7fd6",  -- violett für /aab track
 }
 
+local ADDON_VERSION = "2.1.0"
+
+-- werte dürfen auch negativ sein, die engine mag das aber nicht überall.
+-- deshalb erst beim benutzen abfangen
+local function Clamp(v, lo, hi)
+    v = tonumber(v) or lo
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+local function SafeMS(v, fallback)
+    v = math.abs(tonumber(v) or fallback or 1)
+    if v < 1 then v = 1 end
+    return math.floor(v)
+end
+
+local function SafeInterval(v, fallback)
+    return math.max(16, SafeMS(v, fallback))
+end
+
+local function Alpha01(v)
+    return Clamp(v, 0, 1)
+end
+
+local function SafeScale(v)
+    return Clamp(v, 0.05, 5)
+end
+
 local ULT_SLOT_INDEX  = 8
 local QUICKSLOT_INDEX = 9
 
@@ -108,6 +137,252 @@ local function ApplyThinFrameTemplate()
     SuppressVanillaUltGlow()
 
     thinFrameApplied = true
+end
+
+-- controller-modus wie am pc. werte aus KEYBOARD_CONSTANTS (actionbar.lua)
+local KbLook = {}
+KbLook.LAYOUT = {
+    abilitySlotOffsetX                    = 2,
+    ultimateSlotOffsetX                   = 62,
+    quickslotOffsetXFromCompanionUltimate = 18,
+    quickslotOffsetXFromFirstSlot         = 5,
+    backRowSlotOffsetY                    = -17,
+    backRowUltimateSlotOffsetY            = -20,
+    width                                 = 483,
+    weaponSwapOffsetX                     = 59,
+    weaponSwapOffsetY                     = -4,
+    borderUp                              = "EsoUI/Art/ActionBar/abilityFrame64_up.dds",
+    borderDown                            = "EsoUI/Art/ActionBar/abilityFrame64_down.dds",
+    timerFrame                            = "EsoUI/Art/ActionBar/backrow_abilityFrame.dds",
+}
+
+function KbLook.Active()
+    return sv and sv.gamepadKeyboardLayout and IsInGamepadPreferredMode()
+end
+
+-- FAB+ baut die leiste selbst, dem melden wir nur tastatur-modus
+function KbLook.FabLoaded()
+    return type(FancyActionBar) == "table" and type(FancyActionBar.GetUIMode) == "function"
+end
+
+function KbLook.ToKeyboardTemplate(template)
+    if type(template) ~= "string" then return template end
+    return (template:gsub("_Gamepad_Template$", "_Keyboard_Template"))
+end
+
+function KbLook.HideUltFrames(slot)
+    for _, name in ipairs(ULT_FRAME_CHILDREN) do
+        local c = slot:GetNamedChild(name)
+        if c then
+            c:SetAlpha(0)
+            if c.SetHidden then c:SetHidden(true) end
+        end
+    end
+end
+
+-- vor dem thin-frame-hook installieren, ALT soll zuletzt drauf
+KbLook.hooked = false
+function KbLook.InstallHooks()
+    if KbLook.hooked then return end
+    KbLook.hooked = true
+
+    SecurePostHook(ActionButton, "ApplyStyle", function(self, template)
+        if not KbLook.Active() or not self.slot then return end
+        local kb = KbLook.ToKeyboardTemplate(template)
+        if kb ~= template then
+            ApplyTemplateToControl(self.slot, kb)
+            -- FAB+ template nochmal drüber, sonst stimmt die reihenfolge nicht
+            if KbLook.FabLoaded() and FancyActionBar.GetConstants then
+                local style = FancyActionBar.GetConstants()
+                local fabTpl = style and (self.ultimateReadyBurstTimeline and style.ultButtonTemplate or style.buttonTemplate)
+                if fabTpl then ApplyTemplateToControl(self.slot, fabTpl) end
+            end
+        end
+        -- rest von ApplyStyle der am gamepad hängt
+        if self.button then
+            self.button:SetNormalTexture(KbLook.LAYOUT.borderUp)
+            self.button:SetPressedTexture(KbLook.LAYOUT.borderDown)
+        end
+        if self.countText then self.countText:SetFont("ZoFontGameShadow") end
+        local deco = self.slot:GetNamedChild("Decoration")
+        if deco then deco:SetHidden(false) end
+        if self.cooldown and self.showingCooldown then self.cooldown:SetHidden(false) end
+        if self.cooldownEdge then self.cooldownEdge:SetHidden(true) end
+        if self.ApplySwapAnimationStyle then self:ApplySwapAnimationStyle() end
+    end)
+
+    -- runder cooldown statt füllkante
+    SecurePostHook(ActionButton, "UpdateCooldown", function(self)
+        if not KbLook.Active() then return end
+        if self.cooldown and self.showingCooldown then self.cooldown:SetHidden(false) end
+        if self.cooldownEdge then self.cooldownEdge:SetHidden(true) end
+    end)
+    SecurePostHook(ActionButton, "SetCooldownEdgeState", function(self)
+        if KbLook.Active() and self.cooldownEdge then self.cooldownEdge:SetHidden(true) end
+    end)
+
+    -- ulti: pc-balken, keine LB/RB
+    SecurePostHook(ActionButton, "SetUltimateMeter", function(self, ultimateCount)
+        if not KbLook.Active() or not self.slot or KbLook.FabLoaded() then return end
+        local bar  = self.slot:GetNamedChild("UltimateBar")
+        local edge = self.slot:GetNamedChild("LeadingEdge")
+        if bar and edge then
+            local used = IsSlotUsed(ULT_SLOT_INDEX, self:GetHotbarCategory())
+            local max  = self.currentUltimateMax or 0
+            local full = max > 0 and (ultimateCount or 0) >= max
+            bar:SetHidden(not used or full)
+            edge:SetHidden(not used or full)
+        end
+        KbLook.HideUltFrames(self.slot)
+        if self.HideKeys then self:HideKeys(true) end
+    end)
+
+    -- backbar-timer
+    if ZO_ActionBarTimer and ZO_ActionBarTimer.ApplyStyle then
+        SecurePostHook(ZO_ActionBarTimer, "ApplyStyle", function(self, template)
+            if not KbLook.Active() or not self.slot then return end
+            local kb = KbLook.ToKeyboardTemplate(template)
+            if kb ~= template then ApplyTemplateToControl(self.slot, kb) end
+            if self.frame then self.frame:SetTexture(KbLook.LAYOUT.timerFrame) end
+        end)
+    end
+end
+
+-- leiste wie am pc verankern
+function KbLook.ApplyBarLayout()
+    if not KbLook.Active() or not ZO_ActionBar1 or KbLook.FabLoaded() then return end
+    local L = KbLook.LAYOUT
+
+    ZO_ActionBar1:ClearAnchors()
+    ZO_ActionBar1:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, 0)
+    ZO_ActionBar1:SetWidth(L.width)
+
+    local swap = ZO_ActionBar1:GetNamedChild("WeaponSwap")
+    if not swap then return end
+    swap:ClearAnchors()
+    swap:SetAnchor(TOPLEFT, nil, TOPLEFT, L.weaponSwapOffsetX, L.weaponSwapOffsetY)
+    if ZO_WeaponSwap_SetPermanentlyHidden then ZO_WeaponSwap_SetPermanentlyHidden(swap, false) end
+    local keybindBG = ZO_ActionBar1:GetNamedChild("KeybindBG")
+    if keybindBG then keybindBG:SetHidden(false) end
+
+    local active = GetActiveHotbarCategory()
+    local back   = (active == HOTBAR_CATEGORY_PRIMARY) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
+    local first  = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1
+
+    local prev, firstBtn = swap, nil
+    for slotNum = first, ULT_SLOT_INDEX - 1 do
+        local btn = ZO_ActionBar_GetButton(slotNum, active)
+        if btn and btn.slot then
+            btn.slot:ClearAnchors()
+            btn:ApplyAnchor(prev, L.abilitySlotOffsetX)
+            local bb = ZO_ActionBar_GetButton(slotNum, back)
+            if bb and bb.ApplyAnchor and bb ~= btn then bb:ApplyAnchor(btn.slot, L.backRowSlotOffsetY) end
+            prev = btn.slot
+            firstBtn = firstBtn or btn
+        end
+    end
+
+    local ult = ZO_ActionBar_GetButton(ULT_SLOT_INDEX, active)
+    if ult and ult.slot then
+        ult.slot:ClearAnchors()
+        ult:ApplyAnchor(prev, L.ultimateSlotOffsetX)
+        if ult.SetShowBindingText then ult:SetShowBindingText(true) end
+        local bb = ZO_ActionBar_GetButton(ULT_SLOT_INDEX, back)
+        if bb and bb.ApplyAnchor and bb ~= ult then bb:ApplyAnchor(ult.slot, L.backRowUltimateSlotOffsetY) end
+    end
+
+    local comp = HOTBAR_CATEGORY_COMPANION and ZO_ActionBar_GetButton(ULT_SLOT_INDEX, HOTBAR_CATEGORY_COMPANION)
+    if comp and comp.slot and firstBtn then
+        comp.slot:ClearAnchors()
+        comp:ApplyAnchor(firstBtn.slot, L.ultimateSlotOffsetX, true)
+        if comp.SetShowBindingText then comp:SetShowBindingText(true) end
+    end
+
+    local qs = ZO_ActionBar_GetButton(GetCurrentQuickslot and GetCurrentQuickslot() or QUICKSLOT_INDEX, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    if qs and qs.slot then
+        qs.slot:ClearAnchors()
+        local hasComp = comp and DoesUnitExist("companion") and HasActiveCompanion()
+        if hasComp then
+            qs:ApplyAnchor(comp.slot, L.quickslotOffsetXFromCompanionUltimate, true)
+        else
+            qs:ApplyAnchor(swap, L.quickslotOffsetXFromFirstSlot, true)
+        end
+    end
+
+    local ref = ZO_ActionBar1.hudElementRef
+    if ref and ZO_Anchor then
+        ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, -68, -20):Set(ref)
+        ZO_Anchor:New(BOTTOMRIGHT, nil, BOTTOMRIGHT, 2, 0):AddToControl(ref)
+    end
+end
+
+KbLook.fabPatched = false
+function KbLook.PatchFab()
+    if KbLook.fabPatched or not KbLook.FabLoaded() then return end
+    KbLook.fabPatched = true
+
+    local origMode = FancyActionBar.GetUIMode
+    FancyActionBar.GetUIMode = function(...)
+        local mode = origMode(...)
+        if mode == 2 and KbLook.Active() then return 1 end
+        return mode
+    end
+
+    -- presets setzen das flag sonst zurück
+    local origPreset = FancyActionBar.RefreshAfterPresetApply
+    if type(origPreset) == "function" then
+        FancyActionBar.RefreshAfterPresetApply = function(...)
+            origPreset(...)
+            if KbLook.Active() then
+                FancyActionBar.useGamepadActionBar = false
+                if FancyActionBar.UpdateBarSettings then FancyActionBar.UpdateBarSettings(nil, { skipSlots = true }) end
+            end
+        end
+    end
+end
+
+-- wie FAB+ OnUIModeChanged, nur ohne das flag zu überschreiben
+function KbLook.RefreshFab()
+    if not KbLook.FabLoaded() then return end
+    local F = FancyActionBar
+    F.useGamepadActionBar = IsInGamepadPreferredMode() and not KbLook.Active()
+    if F.UpdateBarSettings then F.UpdateBarSettings(nil, { skipSlots = true }) end
+    if F.RefreshActiveBarSlots then F.RefreshActiveBarSlots() end
+    if F.SlotEffects then F.SlotEffects() end
+    if F.SyncEffectState then F.SyncEffectState("slotted") end
+    if F.RefreshHotbarPresentation then F.RefreshHotbarPresentation(nil, false) end
+end
+
+-- alles neu stylen, die hooks machen den rest
+function KbLook.Refresh()
+    if KbLook.FabLoaded() then
+        KbLook.RefreshFab()
+        if not KbLook.Active() then return end
+    elseif not KbLook.Active() then
+        return
+    end
+    local active = GetActiveHotbarCategory()
+    local back   = (active == HOTBAR_CATEGORY_PRIMARY) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
+    for slotNum = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ULT_SLOT_INDEX do
+        local isUlt = slotNum == ULT_SLOT_INDEX
+        local btn = ZO_ActionBar_GetButton(slotNum, active)
+        if btn and btn.ApplyStyle then
+            btn:ApplyStyle(ZO_GetPlatformTemplate(isUlt and "ZO_UltimateActionButton" or "ZO_ActionButton"))
+            if isUlt and btn.UpdateUltimateMeter then btn:UpdateUltimateMeter() end
+        end
+        local bb = ZO_ActionBar_GetButton(slotNum, back)
+        if bb and bb.ApplyStyle then
+            bb:ApplyStyle(ZO_GetPlatformTemplate(isUlt and "ZO_ActionBarTimer_BackBarSlot_Ultimate" or "ZO_ActionBarTimer_BackBarSlot"))
+        end
+    end
+    local qs = ZO_ActionBar_GetButton(GetCurrentQuickslot and GetCurrentQuickslot() or QUICKSLOT_INDEX, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    if qs and qs.ApplyStyle then qs:ApplyStyle(ZO_GetPlatformTemplate("ZO_ActionButton")) end
+    if KbLook.FabLoaded() then KbLook.RefreshFab() else KbLook.ApplyBarLayout() end
+end
+
+function KbLook.Queue(delayMS)
+    if not KbLook.Active() or KbLook.FabLoaded() then return end
+    zo_callLater(KbLook.ApplyBarLayout, delayMS or 100)
 end
 
 SuppressVanillaUltGlow = function()
@@ -202,6 +477,14 @@ local defaults = {
     ultCtrlPulseMS       = 450,
     ultCtrlRainbow       = false,    -- regenbogen-farbverlauf für die border bei voller ulti
 
+    -- gamepad-ulti-rahmen
+    ultGpFrameEnabled     = false,
+    ultGpFrameColor       = { 1, 1, 1, 1 },   -- weiß = originalfarben der textur
+    ultGpFillColor        = { 1, 1, 1, 1 },
+    ultGpFullColorEnabled = false,
+    ultGpFullColor        = { 1.0, 0.8, 0.2, 1 },
+    ultGpRainbow          = false,
+
     -- press-glow speziell für den ulti-slot (unabhängig vom normalen glow)
     ultGlowEnabled       = true,
     ultGlowColor         = { 1.0, 0.55, 0.1, 1.0 },  -- warmes orange
@@ -232,6 +515,8 @@ local defaults = {
     vanillaProcGlow      = true,
 
     thinFrameEnabled     = true,
+    -- im controller-modus trotzdem pc-leiste
+    gamepadKeyboardLayout = true,
     frameAlpha           = 1.0,
     edgeStyle            = "classic",  -- "classic" = CustomEdge.dds, "v2" = CustomEdge2.dds
 
@@ -243,6 +528,10 @@ local defaults = {
     colorCycleSecondary  = { 1.0, 0.1, 0.1, 1.0 },
 
     stopGlowOnPress      = true,
+
+    -- quickslot (q)
+    quickslotBounceEnabled = true,
+    quickslotReadyEnabled  = true,
 
     -- performance-kram, alles standardmäßig aus. ändert nur wie effizient das
     -- intern läuft, nicht die optik. für große kämpfe (trials, cyro) gedacht
@@ -256,6 +545,13 @@ local defaults = {
     -- einmaliger hinweis-dialog nach der installation. bleibt true sobald der
     -- nutzer bestätigt hat, dann poppt er nie wieder von selbst auf
     infoDialogShown      = false,
+
+    -- studio
+    uiLastPage           = "bounce",
+    uiAutoDemo           = true,
+    uiProcSim            = true,
+    uiTheme              = "nebula",   -- "nebula" oder "lace"
+    uiBgMotion           = true,       -- hintergrund im studio bewegt sich
 }
 
 -- true = animationen erlaubt. nur bei perfCombatOnly außerhalb kampf false
@@ -272,10 +568,22 @@ end
 
 local function IsUltSlot(slotNum) return slotNum == ULT_SLOT_INDEX end
 
+-- ohne mechanik-flag kommt bei neueren clients 0 zurück
+local function GetUltCost()
+    local cost = 0
+    if COMBAT_MECHANIC_FLAGS_ULTIMATE then
+        cost = GetSlotAbilityCost(ULT_SLOT_INDEX, COMBAT_MECHANIC_FLAGS_ULTIMATE, GetActiveHotbarCategory()) or 0
+    end
+    if cost <= 0 then cost = GetSlotAbilityCost(ULT_SLOT_INDEX) or 0 end
+    return cost
+end
+
 local HideUltBorder
 local CheckUltimateReady
 local PauseUltBorderPulse
 local PlayQuickslotGlow
+local PlayQuickslotBounce
+local PlayPreviewAnim
 local PlaySlotAnimation
 local ResolveSlotButton
 local InvalidateAnimTimelines
@@ -354,7 +662,7 @@ local function InstallBounceHook()
         g:SetEasingFunction(ZO_EaseOutQuadratic)
 
         local r = tl:InsertAnimation(ANIMATION_SCALE, flip, 140)
-        r:SetScaleValues(p.grow, 1.0); r:SetDuration(sv.frameResetTimeMS)
+        r:SetScaleValues(p.grow, 1.0); r:SetDuration(SafeMS(sv.frameResetTimeMS, 167))
         r:SetEasingFunction(ZO_EaseInQuadratic)
 
         local backdrop = GetBackdrop(button)
@@ -370,7 +678,7 @@ local function InstallBounceHook()
             bg:SetEasingFunction(ZO_EaseOutQuadratic)
 
             local br = tl:InsertAnimation(ANIMATION_SCALE, backdrop, 140)
-            br:SetScaleValues(p.grow, 1.0); br:SetDuration(sv.frameResetTimeMS)
+            br:SetScaleValues(p.grow, 1.0); br:SetDuration(SafeMS(sv.frameResetTimeMS, 167))
             br:SetEasingFunction(ZO_EaseInQuadratic)
         end
     end
@@ -378,7 +686,7 @@ local function InstallBounceHook()
     local function BuildFlash(flip, tl, button, p)
 
         local target = GetIcon(button) or flip
-        local dur = math.max(60, math.floor((sv.frameResetTimeMS or 167) * 0.4))
+        local dur = math.max(60, math.floor(SafeMS(sv.frameResetTimeMS, 167) * 0.4))
         local up = tl:InsertAnimation(ANIMATION_ALPHA, target)
         up:SetAlphaValues(1.0, p.minAlpha); up:SetDuration(dur)
         up:SetEasingFunction(ZO_EaseOutQuadratic)
@@ -390,42 +698,29 @@ local function InstallBounceHook()
     local function BuildShake(flip, tl, button, p)
         local step = 40
         local off  = math.floor(8 * (p.grow - 1.0) * 10) + 4
+        -- nur die FlipCard bewegen, der rahmen hängt dran. den rahmen selbst
+        -- verschieben zerlegt seine zwei anker (kante oben/links weg)
+        local _, _, _, _, bx, by = flip:GetAnchor(0)
+        bx, by = bx or 0, by or 0
         local a1 = tl:InsertAnimation(ANIMATION_TRANSLATE, flip)
-        a1:SetTranslateOffsets(0, 0, -off, 0); a1:SetDuration(step)
+        a1:SetTranslateOffsets(bx, by, bx - off, by); a1:SetDuration(step)
         a1:SetEasingFunction(ZO_EaseOutQuadratic)
         local a2 = tl:InsertAnimation(ANIMATION_TRANSLATE, flip, step)
-        a2:SetTranslateOffsets(-off, 0, off, 0); a2:SetDuration(step * 2)
+        a2:SetTranslateOffsets(bx - off, by, bx + off, by); a2:SetDuration(step * 2)
         a2:SetEasingFunction(ZO_EaseInOutQuadratic)
         local a3 = tl:InsertAnimation(ANIMATION_TRANSLATE, flip, step * 3)
-        a3:SetTranslateOffsets(off, 0, -off, 0); a3:SetDuration(step * 2)
+        a3:SetTranslateOffsets(bx + off, by, bx - off, by); a3:SetDuration(step * 2)
         a3:SetEasingFunction(ZO_EaseInOutQuadratic)
         local a4 = tl:InsertAnimation(ANIMATION_TRANSLATE, flip, step * 5)
-        a4:SetTranslateOffsets(-off, 0, 0, 0); a4:SetDuration(step)
+        a4:SetTranslateOffsets(bx - off, by, bx, by); a4:SetDuration(step)
         a4:SetEasingFunction(ZO_EaseInQuadratic)
-
-        -- rahmen wackeln
-        local backdrop = GetBackdrop(button)
-        if backdrop then
-            local b1 = tl:InsertAnimation(ANIMATION_TRANSLATE, backdrop)
-            b1:SetTranslateOffsets(0, 0, -off, 0); b1:SetDuration(step)
-            b1:SetEasingFunction(ZO_EaseOutQuadratic)
-            local b2 = tl:InsertAnimation(ANIMATION_TRANSLATE, backdrop, step)
-            b2:SetTranslateOffsets(-off, 0, off, 0); b2:SetDuration(step * 2)
-            b2:SetEasingFunction(ZO_EaseInOutQuadratic)
-            local b3 = tl:InsertAnimation(ANIMATION_TRANSLATE, backdrop, step * 3)
-            b3:SetTranslateOffsets(off, 0, -off, 0); b3:SetDuration(step * 2)
-            b3:SetEasingFunction(ZO_EaseInOutQuadratic)
-            local b4 = tl:InsertAnimation(ANIMATION_TRANSLATE, backdrop, step * 5)
-            b4:SetTranslateOffsets(-off, 0, 0, 0); b4:SetDuration(step)
-            b4:SetEasingFunction(ZO_EaseInQuadratic)
-        end
     end
 
     local function BuildTilt(flip, tl, button, p)
 
         SetCenterOrigin(flip)
         local maxRad = 0.30 * (p.grow - 0.9) / 0.2
-        local totalMs = math.max(180, (sv.frameResetTimeMS or 167) + 100)
+        local totalMs = math.max(180, SafeMS(sv.frameResetTimeMS, 167) + 100)
         local backdrop = GetBackdrop(button)
         SetCenterOrigin(backdrop)
         local custom = tl:InsertAnimation(ANIMATION_CUSTOM, flip)
@@ -453,17 +748,17 @@ local function InstallBounceHook()
 
     -- eingestellten stärke, "press" nutzt die normalen slider-werte
     local function BuildParams(variant)
-        local grow   = sv.growScale or 1.1
-        local shrink = sv.shrinkScale or 0.9
+        local grow   = tonumber(sv.growScale) or 1.1
+        local shrink = tonumber(sv.shrinkScale) or 0.9
         if variant == "expire" then
-            local st = sv.expireStrength or 1.0
+            local st = tonumber(sv.expireStrength) or 1.0
             return {
-                grow     = 1 + (grow - 1) * st,
-                shrink   = math.max(0.3, 1 - (1 - shrink) * st),
-                minAlpha = math.max(0.05, math.min(0.9, 1 - 0.75 * st)),
+                grow     = SafeScale(1 + (grow - 1) * st),
+                shrink   = SafeScale(1 - (1 - shrink) * st),
+                minAlpha = Clamp(1 - 0.75 * math.abs(st), 0.05, 0.9),
             }
         end
-        return { grow = grow, shrink = shrink, minAlpha = 0.25 }
+        return { grow = SafeScale(grow), shrink = SafeScale(shrink), minAlpha = 0.25 }
     end
 
     -- scale streckt/staucht alle einzelanimationen der timeline im gleichen
@@ -474,6 +769,7 @@ local function InstallBounceHook()
         local builder = STYLE_BUILDERS[style] or BuildBounce
         local tl = ANIMATION_MANAGER:CreateTimeline()
         builder(flip, tl, button, BuildParams(variant))
+        if scale then scale = Clamp(scale, 0.05, 10) end
         if scale and scale ~= 1.0 then
             -- offset und dauer jeder animation skalieren, sonst verrutscht das timing
             local i = 1
@@ -535,7 +831,13 @@ local function InstallBounceHook()
         return tl
     end
 
+    local quickslotButtonObj = nil
+
     ActionButton.PlayAbilityUsedBounce = function(self)
+        -- q-slot objekt merken
+        if self and self.slot and self.slot == _G["QuickslotButton"] then
+            quickslotButtonObj = self
+        end
         if not AnimAllowed() then return end
         local slotNum = self and self.slot and self.slot.slotNum
         if not BounceEnabledFor(slotNum) then return end
@@ -576,6 +878,41 @@ local function InstallBounceHook()
         if not btn then return end
         local tl = GetOrBuildTimeline(btn, style, variant, scale)
         if tl then tl:PlayFromStart() end
+    end
+
+    -- quickslot, gleicher trick wie bei der backbar
+    local quickslotAdapter = nil
+
+    PlayQuickslotBounce = function()
+        if not AnimAllowed() then return end
+        if not sv.bounceEnabled or not sv.quickslotBounceEnabled then return end
+        local ctrl = _G["QuickslotButton"]
+        if not ctrl or not ctrl.GetNamedChild then return end
+
+        local btn = quickslotButtonObj
+        if not btn or btn.slot ~= ctrl then
+            if not quickslotAdapter or quickslotAdapter.slot ~= ctrl then
+                quickslotAdapter = {
+                    slot     = ctrl,
+                    FlipCard = _G["QuickslotButtonFlipCard"] or ctrl:GetNamedChild("FlipCard") or ctrl,
+                }
+            end
+            btn = quickslotAdapter
+        end
+
+        local tl = GetOrBuildTimeline(btn)
+        if not tl then return end
+        if tl.IsPlaying and tl:IsPlaying() then tl:Stop() end
+        tl:PlayFromStart()
+    end
+
+    -- vorschau im studio
+    PlayPreviewAnim = function(adapter, style, variant, scale)
+        if not adapter then return end
+        local tl = GetOrBuildTimeline(adapter, style, variant, scale)
+        if not tl then return end
+        if tl.IsPlaying and tl:IsPlaying() then tl:Stop() end
+        tl:PlayFromStart()
     end
 
     -- (scale, reset-zeit) sofort greifen statt erst nach reload
@@ -638,9 +975,9 @@ local function PlayGlow(slotNum)
     if not glow or not flipCard then return end
 
     local color    = GlowColorFor(slotNum)
-    local duration = GlowDurationFor(slotNum)
+    local duration = SafeMS(GlowDurationFor(slotNum), 600)
     local intensity = GlowIntensityFor(slotNum)
-    local maxA      = math.min(1.0, (color[4] or 1) * intensity)
+    local maxA      = Alpha01((color[4] or 1) * intensity)
 
     AnchorGlow(glow, flipCard, GlowPaddingFor(slotNum))
     glow:SetColor(color[1], color[2], color[3], maxA)
@@ -681,9 +1018,9 @@ PlayQuickslotGlow = function()
     end
 
     local color    = sv.glowColor
-    local duration = sv.glowDurationMS
+    local duration = SafeMS(sv.glowDurationMS, 600)
     local intensity = sv.glowIntensity or 1.0
-    local maxA      = math.min(1.0, (color[4] or 1) * intensity)
+    local maxA      = Alpha01((color[4] or 1) * intensity)
 
     AnchorGlow(quickslotGlow, qsFlip, sv.glowPadding)
     quickslotGlow:SetColor(color[1], color[2], color[3], maxA)
@@ -714,7 +1051,8 @@ local function StartPulse(slotNum)
 
     local color = GlowColorFor(slotNum)
     local intensity = sv.glowIntensity or 1.0
-    local maxA = math.min(1.0, (sv.pulseMaxAlpha or 1.0) * intensity)
+    local maxA = Alpha01((sv.pulseMaxAlpha or 1.0) * intensity)
+    local minA = Alpha01(sv.pulseMinAlpha)
     AnchorGlow(glow, flipCard, GlowPaddingFor(slotNum))
     glow:SetColor(color[1], color[2], color[3], maxA)
 
@@ -723,14 +1061,14 @@ local function StartPulse(slotNum)
     if mode == "smooth" then
         local tl = ANIMATION_MANAGER:CreateTimeline()
         local a  = tl:InsertAnimation(ANIMATION_ALPHA, glow)
-        a:SetAlphaValues(maxA, sv.pulseMinAlpha)
-        a:SetDuration(sv.pulseDurationMS)
+        a:SetAlphaValues(maxA, minA)
+        a:SetDuration(SafeMS(sv.pulseDurationMS, 800))
         a:SetEasingFunction(ZO_EaseOutQuadratic)
         tl:SetPlaybackType(ANIMATION_PLAYBACK_PING_PONG, LOOP_INDEFINITELY)
         tl:PlayFromStart()
         pulseTimelines[slotNum] = tl
     else
-        local interval  = (mode == "strobe") and sv.strobeIntervalMS or sv.blinkIntervalMS
+        local interval  = SafeInterval((mode == "strobe") and sv.strobeIntervalMS or sv.blinkIntervalMS, 250)
         local updateId  = "AABPlusPulse_" .. slotNum
         local state     = false
         local c1        = color
@@ -742,16 +1080,16 @@ local function StartPulse(slotNum)
             if state then
                 glow:SetAlpha(maxA)
                 if cycleColor then
-                    glow:SetColor(c2[1], c2[2], c2[3], math.min(1.0, (c2[4] or 1) * intensity))
+                    glow:SetColor(c2[1], c2[2], c2[3], Alpha01((c2[4] or 1) * intensity))
                 else
-                    glow:SetColor(c1[1], c1[2], c1[3], math.min(1.0, (c1[4] or 1) * intensity))
+                    glow:SetColor(c1[1], c1[2], c1[3], Alpha01((c1[4] or 1) * intensity))
                 end
             else
                 if cycleColor then
                     glow:SetAlpha(maxA)
-                    glow:SetColor(c1[1], c1[2], c1[3], math.min(1.0, (c1[4] or 1) * intensity))
+                    glow:SetColor(c1[1], c1[2], c1[3], Alpha01((c1[4] or 1) * intensity))
                 else
-                    glow:SetAlpha(sv.pulseMinAlpha)
+                    glow:SetAlpha(minA)
                 end
             end
         end)
@@ -940,19 +1278,92 @@ local function InstallActivationHighlightHook()
     end)
 end
 
-local function PlayQuickslotEffects()
+-- aktueller platz im rad
+local QS = {}
 
+function QS.GetSlot()
+    if GetCurrentQuickslot then
+        return GetCurrentQuickslot() or QUICKSLOT_INDEX
+    end
+    return QUICKSLOT_INDEX
+end
+
+-- alles unter 1.5s ist gcd
+QS.MIN_COOLDOWN_MS = 1500
+
+function QS.IsCooling(slot)
+    local remain, duration = GetSlotCooldownInfo(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    remain   = remain or 0
+    duration = duration or 0
+    return remain > 0 and duration >= QS.MIN_COOLDOWN_MS
+end
+
+function QS.HasItem(slot)
+    if IsSlotUsed then
+        return IsSlotUsed(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) and true or false
+    end
+    return true
+end
+
+function QS.PlayEffects()
+    PlayQuickslotBounce()
     PlayQuickslotGlow()
 end
 
-local lastQuickslotCooldownRemain = 0
+QS.UPDATE_NAME  = "AABPlus_QuickslotReady"
+QS.POLL_MS = 100
 
-local function OnActionUpdateCooldowns()
-    local remain = GetSlotCooldownInfo(QUICKSLOT_INDEX, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or 0
-    if remain > 0 and lastQuickslotCooldownRemain == 0 then
-        PlayQuickslotEffects()
+QS.slot          = nil
+QS.cooling       = false
+QS.watching = false
+
+function QS.StopWatch()
+    if QS.watching then
+        EM:UnregisterForUpdate(QS.UPDATE_NAME)
+        QS.watching = false
     end
-    lastQuickslotCooldownRemain = remain
+end
+
+
+function QS.StartWatch()
+    if QS.watching then return end
+    QS.watching = true
+    EM:RegisterForUpdate(QS.UPDATE_NAME, QS.POLL_MS, function() QS.Update() end)
+end
+
+QS.Update = function(silent)
+    local slot    = QS.GetSlot()
+    local cooling = QS.IsCooling(slot)
+
+    if slot ~= QS.slot or silent then
+        -- slotwechsel/login, nix abspielen
+        QS.slot    = slot
+        QS.cooling = cooling
+    elseif cooling and not QS.cooling then
+        QS.cooling = true
+        QS.PlayEffects()
+    elseif not cooling and QS.cooling then
+        QS.cooling = false
+        -- slot leer, kein ready
+        if sv.quickslotReadyEnabled and QS.HasItem(slot) then
+            QS.PlayEffects()
+        end
+    end
+
+    -- cooldown-ende kommt nicht als event, also pollen
+    if QS.cooling then
+        QS.StartWatch()
+    else
+        QS.StopWatch()
+    end
+end
+
+function QS.OnCooldowns()
+    QS.Update()
+end
+
+function QS.Sync()
+    QS.Update(true)
 end
 
 -- ultimate
@@ -987,27 +1398,33 @@ local ULT_GLOW_TEX = {
     ring  = "AnimatedActionBarPlus/UltGlowRing.dds",
 }
 
--- wandelt hsl in rgb um, brauchts für den rainbow modus
+-- wandelt hsl in rgb um, brauchts für den rainbow modus.
+-- hilfsfunktion außerhalb, sonst entsteht pro frame eine neue closure
+local function Hue2RGB(p, q, t)
+    if t < 0 then t = t + 1 end
+    if t > 1 then t = t - 1 end
+    if t < 1/6 then return p + (q - p) * 6 * t end
+    if t < 1/2 then return q end
+    if t < 2/3 then return p + (q - p) * (2/3 - t) * 6 end
+    return p
+end
+
 local function HSLToRGB(h, s, l)
-    local r, g, b
-    if s == 0 then
-        r, g, b = l, l, l
-    else
-        local function hue2rgb(p, q, t)
-            if t < 0 then t = t + 1 end
-            if t > 1 then t = t - 1 end
-            if t < 1/6 then return p + (q - p) * 6 * t end
-            if t < 1/2 then return q end
-            if t < 2/3 then return p + (q - p) * (2/3 - t) * 6 end
-            return p
-        end
-        local q = l < 0.5 and (l * (1 + s)) or (l + s - l * s)
-        local p = 2 * l - q
-        r = hue2rgb(p, q, h + 1/3)
-        g = hue2rgb(p, q, h)
-        b = hue2rgb(p, q, h - 1/3)
-    end
-    return r, g, b
+    if s == 0 then return l, l, l end
+    local q = l < 0.5 and (l * (1 + s)) or (l + s - l * s)
+    local p = 2 * l - q
+    return Hue2RGB(p, q, h + 1/3), Hue2RGB(p, q, h), Hue2RGB(p, q, h - 1/3)
+end
+
+-- regenbogen läuft über die zeit, nicht über die anzahl der aufrufe.
+-- so ist das tempo bei 30 wie bei 240 fps gleich und wir brauchen nicht
+-- jeden frame ein update (früher 5ms = jeder frame)
+local function RainbowHue()
+    return (GetFrameTimeMilliseconds() * 0.0004) % 1
+end
+
+local function RainbowInterval()
+    return sv.perfSlowRainbow and 33 or 16
 end
 
 local function CreateUltBorder()
@@ -1105,7 +1522,7 @@ end
 local function LayoutBracket(set, parent, pad, th, extra)
     extra = extra or 0
     local p = zo_round(pad + extra)
-    local t = zo_round(th + extra * 2)
+    local t = math.max(1, zo_round(math.abs(th) + extra * 2))
     local w = parent:GetWidth() + p * 2
     local cl = CornerLen(w)
 
@@ -1139,8 +1556,8 @@ end
 local function AnchorCtrlBorder()
     local parent = CtrlParent()
     if not parent or not ultCtrl then return end
-    local pad = sv.ultCtrlPadding or 3
-    local th  = sv.ultCtrlThickness or 3
+    local pad = tonumber(sv.ultCtrlPadding) or 3
+    local th  = math.max(1, math.abs(tonumber(sv.ultCtrlThickness) or 3))
 
     for _, seg in ipairs(ultCtrl.segs) do
         for _, setname in ipairs({ "track", "fill", "glow" }) do
@@ -1164,17 +1581,17 @@ local function SetCtrlBorderProgress(pct)
     local w = parent:GetWidth(); local h = parent:GetHeight()
     if w <= 0 or h <= 0 then return end
 
-    local pad = sv.ultCtrlPadding or 3
-    local th  = sv.ultCtrlThickness or 3
+    local pad = tonumber(sv.ultCtrlPadding) or 3
+    local th  = math.abs(tonumber(sv.ultCtrlThickness) or 3)
     local p   = zo_round(pad)
-    local t   = zo_round(th)
+    local t   = math.max(1, zo_round(th))
     local fullH = h + p * 2
     local cl  = CornerLen(w + p * 2)
 
     -- farbe (mit optionalem ladeverlauf)
     local c         = sv.ultReadyColor or { 1, 0.2, 0, 1 }
     local intensity = sv.ultReadyIntensity or 1.0
-    local a         = math.min(1.0, (c[4] or 1) * intensity)
+    local a         = Alpha01((c[4] or 1) * intensity)
     local r, g, b   = c[1], c[2], c[3]
     if sv.ultCtrlColorShift then
         local cl2 = sv.ultCtrlChargingColor or { 0.55, 0.55, 0.6, 1 }
@@ -1212,7 +1629,7 @@ local function SetCtrlBorderProgress(pct)
     local isFull = pct >= 1.0
     local showGlow = isFull and sv.ultCtrlGlowOnFull
     local gtex = ULT_GLOW_TEX[sv.ultCtrlGlowStyle or "soft"] or ULT_GLOW_TEX.soft
-    local gi   = math.min(1.0, sv.ultCtrlGlowIntensity or 0.8)
+    local gi   = Alpha01(sv.ultCtrlGlowIntensity or 0.8)
     for _, seg in ipairs(ultCtrl.segs) do
         local gc = ultCtrl.glow[seg]
         gc:SetTexture(gtex)
@@ -1226,7 +1643,7 @@ local function SetCtrlBorderProgress(pct)
                 local pa = ultCtrlGlowTL:InsertAnimation(ANIMATION_ALPHA, ultCtrl.glow[seg])
                 pa:SetEasingFunction(ZO_EaseOutQuadratic)
                 pa:SetAlphaValues(1.0, gi)
-                pa:SetDuration(sv.ultCtrlPulseMS or 450)
+                pa:SetDuration(SafeMS(sv.ultCtrlPulseMS, 450))
             end
         end
         ultCtrlGlowTL:PlayFromStart()
@@ -1237,15 +1654,11 @@ local function SetCtrlBorderProgress(pct)
     if isFull and sv.ultCtrlRainbow then
         if not ultCtrlRainbowId and ultCtrl then
             local id  = "AABPlusUltCtrlRainbow"
-            local hue = 0
-            local sat = sv.ultRainbowSaturation or 1.0
-            local lit = sv.ultRainbowLightness or 0.5
-            local intervalMS = sv.perfSlowRainbow and 33 or 5
-            local hueStep    = 0.002 * (intervalMS / 5)
-            EM:RegisterForUpdate(id, intervalMS, function()
+            local sat = Clamp(sv.ultRainbowSaturation or 1.0, 0, 1)
+            local lit = Clamp(sv.ultRainbowLightness or 0.5, 0, 1)
+            EM:RegisterForUpdate(id, RainbowInterval(), function()
                 if not ultCtrl then return end
-                hue = (hue + hueStep) % 1.0
-                local rr, gg, bb = HSLToRGB(hue, sat, lit)
+                local rr, gg, bb = HSLToRGB(RainbowHue(), sat, lit)
                 local ftex = EdgeTexFor(sv.ultCtrlStyle)
                 StyleEdges(ultCtrl.fill, ftex, rr, gg, bb, a)
                 if sv.ultCtrlGlowOnFull then
@@ -1266,9 +1679,150 @@ end
 
 
 local function GetUltPct()
-    local cost = GetSlotAbilityCost(ULT_SLOT_INDEX) or 0
+    local cost = GetUltCost()
     if cost <= 0 then return 0 end
     return GetUnitPower("player", POWERTYPE_ULTIMATE) / cost
+end
+
+-- gamepad-ulti-rahmen, eigene kopie damit er überall geht und färbbar ist
+local GpUlt = {
+    EDGE   = "EsoUI/Art/HUD/Gamepad/gp_UltimateFrame_edge.dds",
+    FILL   = "EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds",
+    FLIP   = 67,
+    COLS   = 8,
+    ROWS   = 4,
+    hue    = 0,
+}
+
+function GpUlt.Create()
+    if GpUlt.ctrl then return GpUlt.ctrl end
+    local btn = ZO_ActionBar_GetButton(ULT_SLOT_INDEX)
+    if not btn or not btn.slot then return nil end
+    local parent = btn.slot
+
+    local frame = WM:CreateControl("AABPlus_GpUltFrame", parent, CT_BACKDROP)
+    frame:SetCenterColor(0, 0, 0, 0)
+    frame:SetDrawLevel(1)
+    frame:SetHidden(true)
+
+    local left = WM:CreateControl("AABPlus_GpUltFillLeft", parent, CT_TEXTURE)
+    local right = WM:CreateControl("AABPlus_GpUltFillRight", parent, CT_TEXTURE)
+    for _, t in ipairs({ left, right }) do
+        t:SetTexture(GpUlt.FILL)
+        t:SetDrawLevel(3)
+        t:SetHidden(true)
+    end
+
+    GpUlt.ctrl = { frame = frame, left = left, right = right }
+    return GpUlt.ctrl
+end
+
+function GpUlt.Cell(tex, pct, mirror)
+    local cols, rows = GpUlt.COLS, GpUlt.ROWS
+    local i = zo_clamp(zo_floor(pct * (cols * rows - 1) + 0.5), 0, cols * rows - 1)
+    local col = i % cols
+    local row = zo_floor(i / cols)
+    local l, r = col / cols, (col + 1) / cols
+    if mirror then l, r = r, l end
+    tex:SetTextureCoords(l, r, row / rows, (row + 1) / rows)
+end
+
+function GpUlt.Layout()
+    local c = GpUlt.ctrl
+    if not c then return end
+    local btn = ZO_ActionBar_GetButton(ULT_SLOT_INDEX)
+    if not btn or not btn.slot then return end
+    local flip = GetFlipCard(btn) or btn.slot
+    local w = flip:GetWidth()
+    local k = (w and w > 0) and (w / GpUlt.FLIP) or (47 / GpUlt.FLIP)
+    local inset, offY, fillW = zo_floor(12 * k), zo_floor(36 * k), zo_floor(70 * k)
+    local edge = math.max(8, zo_round(16 * k))
+
+    if c.frame:GetParent() ~= btn.slot then c.frame:SetParent(btn.slot) end
+    c.frame:SetEdgeTexture(GpUlt.EDGE, 128, 16, edge, 0)
+    c.frame:SetInsets(edge, edge, -edge, -edge)
+    c.frame:ClearAnchors()
+    c.frame:SetAnchor(TOPLEFT, flip, TOPLEFT, -inset, -inset)
+    c.frame:SetAnchor(BOTTOMRIGHT, flip, BOTTOMRIGHT, inset, inset)
+
+    for _, entry in ipairs({ { c.left, zo_floor(-37 * k) }, { c.right, zo_floor(33 * k) } }) do
+        local fill, offX = entry[1], entry[2]
+        if fill:GetParent() ~= btn.slot then fill:SetParent(btn.slot) end
+        fill:ClearAnchors()
+        fill:SetWidth(fillW)
+        fill:SetAnchor(TOPLEFT, flip, TOPLEFT, offX, -offY)
+        fill:SetAnchor(BOTTOMLEFT, flip, BOTTOMLEFT, offX, offY)
+    end
+end
+
+function GpUlt.Hide()
+    GpUlt.SetFast(false)
+    local c = GpUlt.ctrl
+    if not c then return end
+    c.frame:SetHidden(true)
+    c.left:SetHidden(true)
+    c.right:SetHidden(true)
+end
+
+function GpUlt.Paint()
+    local c = GpUlt.ctrl
+    if not c then return end
+    local used = IsSlotUsed(ULT_SLOT_INDEX, GetActiveHotbarCategory())
+    if not sv.ultGpFrameEnabled or not used then GpUlt.Hide(); return end
+
+    local pct  = zo_clamp(GetUltPct(), 0, 1)
+    local full = pct >= 1
+    local fc, lc = sv.ultGpFrameColor, sv.ultGpFillColor
+    local fr, fg, fb = fc[1], fc[2], fc[3]
+    local lr, lg, lb = lc[1], lc[2], lc[3]
+    if full and sv.ultGpRainbow then
+        local r, g, b = HSLToRGB(RainbowHue(), Clamp(sv.ultRainbowSaturation or 1, 0, 1), Clamp(sv.ultRainbowLightness or 0.5, 0, 1))
+        fr, fg, fb, lr, lg, lb = r, g, b, r, g, b
+    elseif full and sv.ultGpFullColorEnabled then
+        local fu = sv.ultGpFullColor
+        fr, fg, fb, lr, lg, lb = fu[1], fu[2], fu[3], fu[1], fu[2], fu[3]
+    end
+
+    local fa, la = Alpha01(fc[4] or 1), Alpha01(lc[4] or 1)
+    c.frame:SetEdgeColor(fr, fg, fb, fa)
+    c.left:SetColor(lr, lg, lb, la)
+    c.right:SetColor(lr, lg, lb, la)
+    GpUlt.Cell(c.left, pct, false)
+    GpUlt.Cell(c.right, pct, true)
+
+    c.frame:SetHidden(false)
+    c.left:SetHidden(false)
+    c.right:SetHidden(false)
+    GpUlt.SetFast(full and sv.ultGpRainbow)
+end
+
+-- füllstand kommt über EVENT_POWER_UPDATE, eine schnelle schleife
+-- braucht es nur solange der regenbogen bei voller ulti läuft
+function GpUlt.SetFast(on)
+    on = on and true or false
+    if GpUlt.fast == on then return end
+    GpUlt.fast = on
+    if on then
+        EM:RegisterForUpdate("AABPlusGpUltRainbow", RainbowInterval(), GpUlt.Paint)
+    else
+        EM:UnregisterForUpdate("AABPlusGpUltRainbow")
+    end
+end
+
+function GpUlt.Refresh()
+    if GpUlt.update then
+        EM:UnregisterForUpdate(GpUlt.update)
+        GpUlt.update = nil
+    end
+    GpUlt.fast = nil
+    GpUlt.SetFast(false)
+    if not sv.ultGpFrameEnabled then GpUlt.Hide(); return end
+    if not GpUlt.Create() then return end
+    GpUlt.Layout()
+    GpUlt.Paint()
+    -- langsames sicherheitsnetz, falls sich die kosten ohne event ändern
+    GpUlt.update = "AABPlusGpUlt"
+    EM:RegisterForUpdate(GpUlt.update, 1000, GpUlt.Paint)
 end
 
 local function HideCtrlBorder()
@@ -1308,11 +1862,17 @@ local function ShowCtrlBorder()
 
     if not ultCtrlUpdate then
         ultCtrlUpdate = "AABPlusUltCtrlFill"
-        EM:RegisterForUpdate(ultCtrlUpdate, sv.ultCtrlPollMS or 120, function()
+        local lastPct = -1
+        EM:RegisterForUpdate(ultCtrlUpdate, SafeInterval(sv.ultCtrlPollMS, 120), function()
             if sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled then
                 HideCtrlBorder(); return
             end
-            SetCtrlBorderProgress(GetUltPct())
+            -- nur neu zeichnen wenn sich was getan hat, spart anker-arbeit
+            local pct = GetUltPct()
+            if pct ~= lastPct then
+                lastPct = pct
+                SetCtrlBorderProgress(pct)
+            end
         end)
     end
 end
@@ -1341,7 +1901,7 @@ local function ShowUltBorder()
 
     local c         = sv.ultReadyColor
     local intensity = sv.ultReadyIntensity or 1.0
-    local maxA      = math.min(1.0, (c[4] or 1) * intensity)
+    local maxA      = Alpha01((c[4] or 1) * intensity)
     glow:SetColor(c[1], c[2], c[3], maxA)
     glow:SetAlpha(maxA)
 
@@ -1350,12 +1910,12 @@ local function ShowUltBorder()
     if ultBorderRainbowId then EM:UnregisterForUpdate(ultBorderRainbowId); ultBorderRainbowId = nil end
 
     if sv.ultReadyPulse then
-        local minA = sv.ultReadyMinAlpha or 0.35
+        local minA = Alpha01(sv.ultReadyMinAlpha or 0.35)
         local mode = sv.ultReadyMode or "smooth"
 
         if mode == "blink" then
             -- hartes an/aus statt sanftem fade.
-            local interval = sv.ultReadyBlinkIntMS or 250
+            local interval = SafeInterval(sv.ultReadyBlinkIntMS, 250)
             local id       = "AABPlusUltBlink"
             local state    = true
             local c2       = sv.ultColorCycleSecondary
@@ -1370,7 +1930,7 @@ local function ShowUltBorder()
                     if state then
                         glow:SetColor(c[1], c[2], c[3], maxA)
                     else
-                        local a2 = math.min(1.0, (c2[4] or 1) * intensity)
+                        local a2 = Alpha01((c2[4] or 1) * intensity)
                         glow:SetColor(c2[1], c2[2], c2[3], a2)
                     end
                 else
@@ -1382,22 +1942,16 @@ local function ShowUltBorder()
         elseif mode == "smooth-rainbow" then
             -- sanfter farbverlauf der automatisch durch den regenbogen wandert
             local id = "AABPlusUltRainbow"
-            local hue = 0
-            local saturation = sv.ultRainbowSaturation or 1.0
-            local lightness = sv.ultRainbowLightness or 0.5
-            -- 5ms ist butterweich aber 200 updates/s. sparmodus 33ms sieht
-            -- gleich aus. hue-schritt anpassen damit tempo gleich bleibt
-            local intervalMS = sv.perfSlowRainbow and 33 or 5
-            local hueStep    = 0.002 * (intervalMS / 5)
+            local saturation = Clamp(sv.ultRainbowSaturation or 1.0, 0, 1)
+            local lightness = Clamp(sv.ultRainbowLightness or 0.5, 0, 1)
             glow:SetAlpha(maxA)
-            EM:RegisterForUpdate(id, intervalMS, function()
-                hue = (hue + hueStep) % 1.0
-                local r, g, b = HSLToRGB(hue, saturation, lightness)
+            EM:RegisterForUpdate(id, RainbowInterval(), function()
+                local r, g, b = HSLToRGB(RainbowHue(), saturation, lightness)
                 glow:SetColor(r, g, b, maxA)
             end)
             ultBorderRainbowId = id
         else
-            local dur  = sv.ultReadyPulseDurMS or 900
+            local dur  = SafeMS(sv.ultReadyPulseDurMS, 900)
             local tl = ANIMATION_MANAGER:CreateTimeline()
             local a  = tl:InsertAnimation(ANIMATION_ALPHA, glow)
             a:SetAlphaValues(maxA, minA)
@@ -1428,7 +1982,7 @@ PauseUltBorderPulse = function(durationMS)
 
     local c         = sv.ultReadyColor
     local intensity = sv.ultReadyIntensity or 1.0
-    local maxA      = math.min(1.0, (c[4] or 1) * intensity)
+    local maxA      = Alpha01((c[4] or 1) * intensity)
     ultBorderGlow:SetColor(c[1], c[2], c[3], maxA)
     ultBorderGlow:SetAlpha(maxA)
 
@@ -1450,7 +2004,7 @@ CheckUltimateReady = function()
     end
 
     local currentUlt = GetUnitPower("player", POWERTYPE_ULTIMATE)
-    local cost = GetSlotAbilityCost(ULT_SLOT_INDEX) or 0
+    local cost = GetUltCost()
 
     local ready = currentUlt >= cost and cost > 0
 
@@ -1465,6 +2019,7 @@ end
 local function OnPowerUpdate(_, unitTag, powerIndex, powerType)
     if unitTag ~= "player" or powerType ~= POWERTYPE_ULTIMATE then return end
     SuppressVanillaUltGlow()
+    if sv.ultGpFrameEnabled then GpUlt.Paint() end
     if sv.ultBorderStyle == "controller" then
         -- läuft die border schon, nur den fortschritt setzen (billig, kein re-setup).
         if ultCtrl and ultCtrlUpdate then
@@ -1480,6 +2035,10 @@ end
 local function OnSlotsUpdated()
     HideUltBorder()
     SuppressVanillaUltGlow()
+    if sv.ultGpFrameEnabled then
+        GpUlt.Layout()
+        GpUlt.Paint()
+    end
     if sv.ultBorderStyle == "controller" then
         -- border nicht verstecken/neu erstellen (das zuckt beim bounce/bar-wechsel).
         -- nur neu verankern + einmal den fortschritt setzen, der poll-timer läuft weiter.
@@ -1528,7 +2087,7 @@ local function ApplyEdgeTexture()
 end
 
 local function ApplyFrameAlpha()
-    local alpha = sv.frameAlpha or 1.0
+    local alpha = Alpha01(sv.frameAlpha or 1.0)
     for slotNum = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ULT_SLOT_INDEX do
         local btn = ZO_ActionBar_GetButton(slotNum)
         if btn and btn.slot then
@@ -1668,7 +2227,7 @@ local function PlayExpireGlow(slotNum, hotbar)
 
     AnchorGlow(glow, flip, sv.glowPadding or 12)
     local c    = sv.expireGlowColor
-    local maxA = c[4] or 1
+    local maxA = Alpha01(c[4] or 1)
     glow:SetColor(c[1], c[2], c[3], maxA)
     glow:SetAlpha(maxA)
 
@@ -1681,7 +2240,7 @@ local function PlayExpireGlow(slotNum, hotbar)
     local a = fade:GetAnimation(1)
     a:SetAnimatedControl(glow)
     a:SetAlphaValues(maxA, 0)
-    a:SetDuration(sv.glowDurationMS or 600)
+    a:SetDuration(SafeMS(sv.glowDurationMS, 600))
     a:SetEasingFunction(ZO_EaseInQuadratic)
     fade:PlayFromStart()
 end
@@ -1692,11 +2251,13 @@ local function ResolveExpireScale(abilityId, durMS)
     if not sv.expireScaleByDuration then return 1.0 end
     if not durMS or durMS <= 0 then return 1.0 end
 
-    local ref   = sv.expireScaleRefMS or 10000
+    local ref   = math.abs(tonumber(sv.expireScaleRefMS) or 10000)
+    if ref < 1 then ref = 1 end
     local scale = durMS / ref
-    local lo    = sv.expireScaleMin or 0.6
-    local hi    = sv.expireScaleMax or 1.8
-    return math.max(lo, math.min(hi, scale))
+    local lo    = tonumber(sv.expireScaleMin) or 0.6
+    local hi    = tonumber(sv.expireScaleMax) or 1.8
+    if lo > hi then lo, hi = hi, lo end
+    return Clamp(math.max(lo, math.min(hi, scale)), 0.05, 10)
 end
 
 local function FireExpireAnim(key, gen)
@@ -1906,7 +2467,11 @@ local function RegisterEvents()
     EM:RegisterForEvent(ADDON_NAME, EVENT_ABILITY_LIST_CHANGED,      RefreshAllProcs)
     EM:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED,          RefreshAllProcs)
 
-    EM:RegisterForEvent(ADDON_NAME, EVENT_ACTION_UPDATE_COOLDOWNS,   OnActionUpdateCooldowns)
+    EM:RegisterForEvent(ADDON_NAME, EVENT_ACTION_UPDATE_COOLDOWNS,   QS.OnCooldowns)
+    if EVENT_ACTIVE_QUICKSLOT_CHANGED then
+        EM:RegisterForEvent(ADDON_NAME .. "Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, QS.Sync)
+    end
+    EM:RegisterForEvent(ADDON_NAME .. "Quickslot", EVENT_PLAYER_ACTIVATED, QS.Sync)
 
     EM:RegisterForEvent(ADDON_NAME, EVENT_POWER_UPDATE,              OnPowerUpdate)
     EM:AddFilterForEvent(ADDON_NAME, EVENT_POWER_UPDATE,
@@ -1923,6 +2488,21 @@ local function RegisterEvents()
     end)
 
     EM:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_COMBAT_STATE,       OnCombatState)
+
+    -- pc-leiste im controller-modus
+    EM:RegisterForEvent(ADDON_NAME .. "KbLook", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+        zo_callLater(KbLook.Refresh, 150)
+        zo_callLater(GpUlt.Refresh, 300)
+    end)
+    EM:RegisterForEvent(ADDON_NAME .. "KbLook", EVENT_PLAYER_ACTIVATED, function()
+        zo_callLater(KbLook.Refresh, 200)
+        zo_callLater(GpUlt.Refresh, 350)
+    end)
+    EM:RegisterForEvent(ADDON_NAME .. "KbLook", EVENT_ACTIVE_HOTBAR_UPDATED, function() KbLook.Queue(650) end)
+    EM:RegisterForEvent(ADDON_NAME .. "KbLook", EVENT_ACTION_SLOTS_FULL_UPDATE, function() KbLook.Queue(100) end)
+    if EVENT_ACTIVE_COMPANION_STATE_CHANGED then
+        EM:RegisterForEvent(ADDON_NAME .. "KbLook", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function() KbLook.Queue(100) end)
+    end
 
     RefreshEffectRegistration()
     -- nach zonenwechsel alte einträge wegwerfen, sonst matcht irgendwann
@@ -2032,7 +2612,7 @@ local function BuildInfoDialog()
     local logo = WM:CreateControl(INFO_DIALOG_NAME .. "_Logo", win, CT_TEXTURE)
     logo:SetDimensions(56, 56)
     logo:SetAnchor(TOPRIGHT, win, TOPRIGHT, -18, 14)
-    logo:SetTexture("AnimatedActionBarPlus/AnimatedActionBarPlus_64.dds")
+    logo:SetTexture("AnimatedActionBarPlus/media/UI_Logo.dds")
 
     -- trennlinie unter titel/logo
     local sep = WM:CreateControl(INFO_DIALOG_NAME .. "_Sep", win, CT_TEXTURE)
@@ -2147,6 +2727,7 @@ local function PrintCommandHelp()
     d(h .. "=== AnimatedActionBar+ " .. GetString(SI_AAB_CMD_HEAD) .. " ===" .. e)
     d(k .. "/aab" .. e .. " - " .. GetString(SI_AAB_CMD_PANEL))
     d(k .. "/aab info" .. e .. " - " .. GetString(SI_AAB_CMD_INFO))
+    d(k .. "/aab ui" .. e .. " - " .. GetString(SI_AAB_CMD_UI))
     d(k .. "/aab id" .. e .. " |c8a7fa6(/aabids)|r - " .. GetString(SI_AAB_CMD_ID))
     d(k .. "/aab setend <id> <ms|auto>" .. e .. " - " .. GetString(SI_AAB_CMD_SETEND))
     d(k .. "/aab debug" .. e .. " - " .. GetString(SI_AAB_CMD_DEBUG))
@@ -2230,6 +2811,68 @@ local function PrintConflicts()
     d(head .. "=============================" .. e)
 end
 
+local function RestartActivePulses()
+    local active = {}
+    for s in pairs(activeProcs) do active[#active+1] = s end
+    for _, s in ipairs(active) do StopPulse(s); StartPulse(s) end
+end
+
+local function RefreshUltDisplay()
+    GpUlt.Refresh()
+    if not sv.ultReadyEnabled then
+        HideUltBorder(); HideCtrlBorder()
+        return
+    end
+    if sv.ultBorderStyle == "controller" then
+        HideUltBorder()
+        SuppressVanillaUltGlow()
+        ShowCtrlBorder()
+    else
+        HideCtrlBorder()
+        SuppressVanillaUltGlow()
+        if ultIsReady then ShowUltBorder() else CheckUltimateReady() end
+    end
+end
+
+-- presets setzen mehrere sichtbare effekt-schalter auf einmal. sie fassen
+-- nur an, was den look ausmacht - perf-toggles und farben bleiben unberührt.
+local function ApplyPreset(name)
+    if name == "minimal" then
+        sv.bounceEnabled     = true
+        sv.bounceOnProc      = false
+        sv.glowEnabled       = false
+        sv.pulseEnabled      = false
+        sv.expireAnimEnabled = false
+        sv.ultReadyPulse     = false
+        sv.colorCycleEnabled = false
+    elseif name == "standard" then
+        sv.bounceEnabled     = true
+        sv.bounceOnProc      = true
+        sv.glowEnabled       = true
+        sv.pulseEnabled      = true
+        sv.expireAnimEnabled = true
+        sv.ultReadyPulse     = true
+        sv.colorCycleEnabled = false
+    elseif name == "flashy" then
+        sv.bounceEnabled     = true
+        sv.bounceOnProc      = true
+        sv.glowEnabled       = true
+        sv.pulseEnabled      = true
+        sv.expireAnimEnabled = true
+        sv.ultReadyPulse     = true
+        sv.colorCycleEnabled = true
+    end
+    if not sv.pulseEnabled then StopAllPulses() end
+    if InvalidateAnimTimelines then InvalidateAnimTimelines() end
+    RestartActivePulses()
+    RefreshUltDisplay()
+end
+
+local function OpenStudio(page)
+    local studio = AnimatedActionBarPlus and AnimatedActionBarPlus.Studio
+    if studio and studio.Open then studio.Open(page) end
+end
+
 local function BuildMenu()
     local LAM = LibAddonMenu2
     if not LAM then return end
@@ -2239,58 +2882,42 @@ local function BuildMenu()
         name                = "AnimatedActionBar+",
         displayName         = C_TITLE .. "Animated" .. C_RESET .. "ActionBar" .. C_TITLE .. "+" .. C_RESET,
         author              = "haze068",
-        version             = "1.8.1",
+        version             = ADDON_VERSION,
         slashCommand        = "/aabplus",
         registerForRefresh  = true,
         registerForDefaults = true,
     })
 
-    local function RestartActivePulses()
-        local active = {}
-        for s in pairs(activeProcs) do active[#active+1] = s end
-        for _, s in ipairs(active) do StopPulse(s); StartPulse(s) end
-    end
-
-    -- presets setzen mehrere sichtbare effekt-schalter auf einmal. sie fassen
-    -- nur an, was den look ausmacht - perf-toggles und farben bleiben unberührt.
-    local function ApplyPreset(name)
-        if name == "minimal" then
-            sv.bounceEnabled     = true
-            sv.bounceOnProc      = false
-            sv.glowEnabled       = false
-            sv.pulseEnabled      = false
-            sv.expireAnimEnabled = false
-            sv.ultReadyPulse     = false
-            sv.colorCycleEnabled = false
-        elseif name == "standard" then
-            sv.bounceEnabled     = true
-            sv.bounceOnProc      = true
-            sv.glowEnabled       = true
-            sv.pulseEnabled      = true
-            sv.expireAnimEnabled = true
-            sv.ultReadyPulse     = true
-            sv.colorCycleEnabled = false
-        elseif name == "flashy" then
-            sv.bounceEnabled     = true
-            sv.bounceOnProc      = true
-            sv.glowEnabled       = true
-            sv.pulseEnabled      = true
-            sv.expireAnimEnabled = true
-            sv.ultReadyPulse     = true
-            sv.colorCycleEnabled = true
-        end
-        -- animationen neu aufbauen und menü-anzeige aktualisieren
-        if InvalidateAnimTimelines then InvalidateAnimTimelines() end
-        RestartActivePulses()
-        if LibAddonMenu2 and LibAddonMenu2.util
-           and LibAddonMenu2.util.RequestRefreshIfNeeded then
-            LibAddonMenu2.util.RequestRefreshIfNeeded(_G[ADDON_NAME .. "Panel"])
-        end
-    end
-
     LAM:RegisterOptionControls(ADDON_NAME .. "Panel", {
 
         { type = "description", text = GetString(SI_AAB_PANEL_DESCRIPTION) },
+        {
+            type    = "button",
+            name    = GetString(SI_AAB_UI_LAM_OPEN),
+            tooltip = GetString(SI_AAB_UI_LAM_DESC),
+            func    = function() OpenStudio() end,
+            width   = "full",
+        },
+        {
+            type    = "dropdown",
+            name    = GetString(SI_AAB_UI_THEME),
+            tooltip = GetString(SI_AAB_UI_THEME_TT),
+            choices = { GetString(SI_AAB_UI_THEME_NEBULA), GetString(SI_AAB_UI_THEME_LACE) },
+            choicesValues = { "nebula", "lace" },
+            getFunc = function() return sv.uiTheme end,
+            setFunc = function(v) sv.uiTheme = v end,
+            default = defaults.uiTheme,
+            width   = "half",
+        },
+        {
+            type    = "checkbox",
+            name    = GetString(SI_AAB_UI_BGMOTION),
+            tooltip = GetString(SI_AAB_UI_BGMOTION_TT),
+            getFunc = function() return sv.uiBgMotion end,
+            setFunc = function(v) sv.uiBgMotion = v end,
+            default = defaults.uiBgMotion,
+            width   = "half",
+        },
 
         {
             type     = "submenu",
@@ -2360,6 +2987,23 @@ local function BuildMenu()
                     setFunc = function(v) sv.bounceOnProc = v end,
                     default = defaults.bounceOnProc,
                     disabled = function() return not sv.bounceEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_QS_BOUNCE),
+                    tooltip = GetString(SI_AAB_QS_BOUNCE_TT),
+                    getFunc = function() return sv.quickslotBounceEnabled end,
+                    setFunc = function(v) sv.quickslotBounceEnabled = v end,
+                    default = defaults.quickslotBounceEnabled,
+                    disabled = function() return not sv.bounceEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_QS_READY),
+                    tooltip = GetString(SI_AAB_QS_READY_TT),
+                    getFunc = function() return sv.quickslotReadyEnabled end,
+                    setFunc = function(v) sv.quickslotReadyEnabled = v end,
+                    default = defaults.quickslotReadyEnabled,
                 },
                 {
                     type    = "slider",
@@ -2768,6 +3412,70 @@ local function BuildMenu()
                     disabled = function() return not sv.ultGlowEnabled end,
                 },
 
+                { type = "header", name = GetString(SI_AAB_UI_HDR_ULTGP) },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTGP_ENABLE),
+                    tooltip = GetString(SI_AAB_ULTGP_ENABLE_TT),
+                    getFunc = function() return sv.ultGpFrameEnabled end,
+                    setFunc = function(v) sv.ultGpFrameEnabled = v; GpUlt.Refresh() end,
+                    default = defaults.ultGpFrameEnabled,
+                },
+                {
+                    type    = "colorpicker",
+                    name    = GetString(SI_AAB_ULTGP_FRAMECOLOR),
+                    tooltip = GetString(SI_AAB_ULTGP_FRAMECOLOR_TT),
+                    getFunc = function() local c = sv.ultGpFrameColor; return c[1], c[2], c[3], c[4] end,
+                    setFunc = function(r, g, b, a) sv.ultGpFrameColor = { r, g, b, a or 1 }; GpUlt.Paint() end,
+                    default = {
+                        r = defaults.ultGpFrameColor[1], g = defaults.ultGpFrameColor[2],
+                        b = defaults.ultGpFrameColor[3], a = defaults.ultGpFrameColor[4],
+                    },
+                    disabled = function() return not sv.ultGpFrameEnabled end,
+                },
+                {
+                    type    = "colorpicker",
+                    name    = GetString(SI_AAB_ULTGP_FILLCOLOR),
+                    tooltip = GetString(SI_AAB_ULTGP_FILLCOLOR_TT),
+                    getFunc = function() local c = sv.ultGpFillColor; return c[1], c[2], c[3], c[4] end,
+                    setFunc = function(r, g, b, a) sv.ultGpFillColor = { r, g, b, a or 1 }; GpUlt.Paint() end,
+                    default = {
+                        r = defaults.ultGpFillColor[1], g = defaults.ultGpFillColor[2],
+                        b = defaults.ultGpFillColor[3], a = defaults.ultGpFillColor[4],
+                    },
+                    disabled = function() return not sv.ultGpFrameEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTGP_FULL_ENABLE),
+                    tooltip = GetString(SI_AAB_ULTGP_FULL_ENABLE_TT),
+                    getFunc = function() return sv.ultGpFullColorEnabled end,
+                    setFunc = function(v) sv.ultGpFullColorEnabled = v; GpUlt.Paint() end,
+                    default = defaults.ultGpFullColorEnabled,
+                    disabled = function() return not sv.ultGpFrameEnabled end,
+                },
+                {
+                    type    = "colorpicker",
+                    name    = GetString(SI_AAB_ULTGP_FULLCOLOR),
+                    tooltip = GetString(SI_AAB_ULTGP_FULLCOLOR_TT),
+                    getFunc = function() local c = sv.ultGpFullColor; return c[1], c[2], c[3], c[4] end,
+                    setFunc = function(r, g, b, a) sv.ultGpFullColor = { r, g, b, a or 1 }; GpUlt.Paint() end,
+                    default = {
+                        r = defaults.ultGpFullColor[1], g = defaults.ultGpFullColor[2],
+                        b = defaults.ultGpFullColor[3], a = defaults.ultGpFullColor[4],
+                    },
+                    disabled = function() return not sv.ultGpFrameEnabled or not sv.ultGpFullColorEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTGP_RAINBOW),
+                    tooltip = GetString(SI_AAB_ULTGP_RAINBOW_TT),
+                    getFunc = function() return sv.ultGpRainbow end,
+                    setFunc = function(v) sv.ultGpRainbow = v; GpUlt.Refresh() end,
+                    default = defaults.ultGpRainbow,
+                    disabled = function() return not sv.ultGpFrameEnabled end,
+                },
+
                 { type = "header", name = GetString(SI_AAB_ULT_HEADER_READY) },
                 {
                     type    = "checkbox",
@@ -2923,6 +3631,38 @@ local function BuildMenu()
                     setFunc = function(v) sv.ultCtrlGlowIntensity = v; ShowCtrlBorder() end,
                     default = defaults.ultCtrlGlowIntensity,
                     disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled or not sv.ultCtrlGlowOnFull end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_UI_ULTCTRL_SPREAD),
+                    tooltip = GetString(SI_AAB_UI_ULTCTRL_SPREAD_TT),
+                    min     = 0, max = 10, step = 1,
+                    getFunc = function() return sv.ultCtrlGlowSpread end,
+                    setFunc = function(v) sv.ultCtrlGlowSpread = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlGlowSpread,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled or not sv.ultCtrlGlowOnFull end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_UI_ULTCTRL_PULSEMS),
+                    tooltip = GetString(SI_AAB_UI_ULTCTRL_PULSEMS_TT),
+                    min     = 100, max = 2000, step = 10,
+                    getFunc = function() return sv.ultCtrlPulseMS end,
+                    setFunc = function(v) sv.ultCtrlPulseMS = v end,
+                    default = defaults.ultCtrlPulseMS,
+                    warning = GetString(SI_AAB_RELOAD_NOTE),
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled or not sv.ultCtrlGlowOnFull end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_UI_ULTCTRL_POLL),
+                    tooltip = GetString(SI_AAB_UI_ULTCTRL_POLL_TT),
+                    min     = 30, max = 1000, step = 10,
+                    getFunc = function() return sv.ultCtrlPollMS end,
+                    setFunc = function(v) sv.ultCtrlPollMS = v end,
+                    default = defaults.ultCtrlPollMS,
+                    warning = GetString(SI_AAB_RELOAD_NOTE),
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
                 },
                 {
                     type    = "checkbox",
@@ -3171,6 +3911,14 @@ local function BuildMenu()
                     disabled = function() return not sv.thinFrameEnabled end,
                 },
                 {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_UI_GP_KBLAYOUT),
+                    tooltip = GetString(SI_AAB_UI_GP_KBLAYOUT_TT),
+                    getFunc = function() return sv.gamepadKeyboardLayout end,
+                    setFunc = function(v) sv.gamepadKeyboardLayout = v; KbLook.Refresh() end,
+                    default = defaults.gamepadKeyboardLayout,
+                },
+                {
                     type    = "button",
                     name    = GetString(SI_AAB_RELOAD_UI),
                     tooltip = GetString(SI_AAB_RELOAD_UI_TT),
@@ -3283,6 +4031,51 @@ local function BuildMenu()
     })
 end
 
+-- intern fürs studio
+local function ExposeStudioApi()
+    AnimatedActionBarPlus = AnimatedActionBarPlus or {}
+    AnimatedActionBarPlus._studioApi = {
+        version         = ADDON_VERSION,
+        colors          = AAB_COLORS,
+        edgeTextures    = EDGE_TEXTURES,
+        ultEdgeTextures = ULT_EDGE_TEX,
+        ultGlowTextures = ULT_GLOW_TEX,
+
+        GetSV       = function() return sv end,
+        GetDefaults = function() return defaults end,
+
+        Clamp        = Clamp,
+        SafeMS       = SafeMS,
+        SafeInterval = SafeInterval,
+        Alpha01      = Alpha01,
+        SafeScale    = SafeScale,
+        HSLToRGB     = HSLToRGB,
+
+        PlayPreviewAnim     = function(...) if PlayPreviewAnim then PlayPreviewAnim(...) end end,
+        ResolveExpireStyle  = ResolveExpireStyle,
+        ResolveExpireScale  = ResolveExpireScale,
+
+        InvalidateAnimTimelines = function() if InvalidateAnimTimelines then InvalidateAnimTimelines() end end,
+        RestartActivePulses     = RestartActivePulses,
+        StopAllPulses           = StopAllPulses,
+        RefreshAllProcs         = RefreshAllProcs,
+        RefreshUltDisplay       = RefreshUltDisplay,
+        RestoreVanillaUltShimmer = RestoreVanillaUltShimmer,
+        SuppressVanillaUltGlow  = SuppressVanillaUltGlow,
+        RefreshProcGlowSuppression = RefreshProcGlowSuppression,
+        ApplyFrameAlpha         = ApplyFrameAlpha,
+        ApplyEdgeTexture        = ApplyEdgeTexture,
+        RefreshEffectRegistration = function() if RefreshEffectRegistration then RefreshEffectRegistration() end end,
+        RebuildSlotLookup       = function() if RebuildSlotLookup then RebuildSlotLookup() end end,
+        ApplyPreset             = ApplyPreset,
+        OpenDonationMail        = OpenDonationMail,
+        SyncQuickslotState      = QS.Sync,
+        RefreshKeyboardLook     = KbLook.Refresh,
+        RefreshGpUlt            = function() GpUlt.Refresh() end,
+        gpUltTextures           = { edge = GpUlt.EDGE, fill = GpUlt.FILL },
+    }
+end
+
 -- init
 
 local function OnAddOnLoaded(_, addonName)
@@ -3315,6 +4108,9 @@ local function OnAddOnLoaded(_, addonName)
             end
         end
     end
+
+    KbLook.InstallHooks()
+    KbLook.PatchFab()
 
     if sv.thinFrameEnabled then
         ApplyThinFrameTemplate()
@@ -3351,6 +4147,7 @@ local function OnAddOnLoaded(_, addonName)
 
     InstallBounceHook()
     InstallActivationHighlightHook()
+    ExposeStudioApi()
     BuildMenu()
     RegisterEvents()
 
@@ -3380,6 +4177,7 @@ local function OnAddOnLoaded(_, addonName)
         d(key .. GetString(SI_AAB_DBG_BOUNCE) .. e)
         d("  " .. lbl(SI_AAB_DBG_ACTIVE) .. yn(sv.bounceEnabled) .. "  " .. lbl(SI_AAB_DBG_STYLE) .. v(sv.animationStyle))
         d("  " .. lbl(SI_AAB_DBG_ONPROC) .. yn(sv.bounceOnProc) .. "  " .. lbl(SI_AAB_DBG_ULTI) .. yn(sv.ultBounceEnabled))
+        d("  " .. lbl(SI_AAB_DBG_QUICKSLOT) .. yn(sv.quickslotBounceEnabled) .. "  " .. lbl(SI_AAB_DBG_QS_READY) .. yn(sv.quickslotReadyEnabled))
         d("  " .. lbl(SI_AAB_DBG_EXPIRE) .. yn(sv.expireAnimEnabled) .. "  " .. lbl(SI_AAB_DBG_STYLE) .. v(ResolveExpireStyle()))
 
         d(key .. GetString(SI_AAB_DBG_GLOWPULSE) .. e)
@@ -3391,7 +4189,7 @@ local function OnAddOnLoaded(_, addonName)
         d("  " .. lbl(SI_AAB_DBG_STYLE) .. v(sv.ultBorderStyle))
         if sv.ultBorderStyle == "controller" then
             local pct = 0
-            local cost = GetSlotAbilityCost(ULT_SLOT_INDEX) or 0
+            local cost = GetUltCost()
             if cost > 0 then pct = (GetUnitPower("player", POWERTYPE_ULTIMATE) / cost) end
             local shown = (ultCtrl and ultCtrl.fill.BL and not ultCtrl.fill.BL:IsHidden()) and true or false
             d("  " .. lbl(SI_AAB_DBG_PROGRESS) .. v(string.format("%.0f%%", pct * 100))
@@ -3410,6 +4208,7 @@ local function OnAddOnLoaded(_, addonName)
             d("  " .. lbl(SI_AAB_DBG_RAINBOW_SAT) .. v(sv.ultRainbowSaturation) .. "  " .. lbl(SI_AAB_DBG_RAINBOW_LIGHT) .. v(sv.ultRainbowLightness))
         end
         d("  " .. lbl(SI_AAB_DBG_VANILLASHIMMER) .. yn(sv.vanillaUltShimmer))
+        d("  " .. lbl(SI_AAB_UI_HDR_ULTGP) .. yn(sv.ultGpFrameEnabled))
 
         d(lbl(SI_AAB_DBG_SERVER) .. v(GetWorldName()))
 
@@ -3426,6 +4225,8 @@ local function OnAddOnLoaded(_, addonName)
     local function OpenPanel()
         if LibAddonMenu2 and LibAddonMenu2.OpenToPanel then
             LibAddonMenu2:OpenToPanel(_G[ADDON_NAME .. "Panel"])
+        else
+            OpenStudio()
         end
     end
 
@@ -3453,6 +4254,8 @@ local function OnAddOnLoaded(_, addonName)
             OpenPanel()
         elseif cmd == "info" then
             OpenInfo()
+        elseif cmd == "ui" or cmd == "studio" then
+            OpenStudio(a1 ~= "" and a1 or nil)
         elseif cmd == "id" or cmd == "ids" then
             PrintSlottedIds()
         elseif cmd == "setend" then
@@ -3461,6 +4264,11 @@ local function OnAddOnLoaded(_, addonName)
             PrintDebugDump()
         elseif cmd == "track" or cmd == "trace" then
             ToggleExpireTrace()
+        elseif cmd == "conflicts" then
+            PrintConflicts()
+        elseif cmd == "xyz" then
+            local studio = AnimatedActionBarPlus and AnimatedActionBarPlus.Studio
+            if studio and studio.ToggleForcedGamepad then studio.ToggleForcedGamepad() end
         elseif cmd == "dialog" then
             -- versteckter test-befehl: hinweis-dialog erzwingen, auch wenn
             -- er schon bestätigt wurde. bewusst nicht in der hilfe gelistet
@@ -3480,12 +4288,13 @@ local function OnAddOnLoaded(_, addonName)
     AnimatedActionBarPlus = AnimatedActionBarPlus or {}
     AnimatedActionBarPlus.OpenPanel        = OpenPanel
     AnimatedActionBarPlus.OpenInfo         = OpenInfo
+    AnimatedActionBarPlus.OpenStudio       = OpenStudio
     AnimatedActionBarPlus.PrintSlottedIds  = PrintSlottedIds
     AnimatedActionBarPlus.SetExpireLength  = SetExpireOverride  -- (idStr, "ms"|"auto")
     AnimatedActionBarPlus.PrintDebug       = PrintDebugDump
     AnimatedActionBarPlus.PrintCommands    = PrintCommandHelp
     AnimatedActionBarPlus.RunCommand       = Dispatch           -- roher "id", "setend", ...
-    AnimatedActionBarPlus.version          = "1.8.2"
+    AnimatedActionBarPlus.version          = ADDON_VERSION
 
     -- kurze aliase fürs chat-tab-complete
     SLASH_COMMANDS["/aabids"]   = function() PrintSlottedIds() end
@@ -3501,10 +4310,10 @@ local function OnAddOnLoaded(_, addonName)
         if sv.ultBorderStyle == "controller" then
             ShowCtrlBorder()  -- beim login die eigene fortschritts-border aufsetzen
         end
+        GpUlt.Refresh()
         -- lookup-map einmal bauen falls schon beim laden aktiv
         if sv.perfSlotLookupMap and RebuildSlotLookup then RebuildSlotLookup() end
-        lastQuickslotCooldownRemain =
-            GetSlotCooldownInfo(QUICKSLOT_INDEX, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or 0
+        QS.Sync()
 
         -- einmaliger hinweis-dialog. etwas später, damit er nicht in den
         -- lade-screen platzt sondern erst wenn der spieler wirklich im spiel ist

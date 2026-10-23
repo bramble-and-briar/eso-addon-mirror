@@ -1,0 +1,10 @@
+## Title: NoireJin's Reticle
+## Description: Adds a simple, recolorable dot to the center of the screen as well as weapon swap indicator with weapon icons.
+## Author: NoireJin
+## Version: 1.7.1
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=40
+## SavedVariables: NoireJinsReticleSV
+
+NoireJinsReticle.xml
+NoireJinsReticle.lua

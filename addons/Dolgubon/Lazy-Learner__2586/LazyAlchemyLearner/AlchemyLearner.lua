@@ -138,7 +138,7 @@ function runAlchSearch(useDLC)
             for i = 1, 4 do
                 local effectName = AlchemyLearner.reagentTraits[itemId][i]
                 reagentsByEffect[effectName] = reagentsByEffect[effectName] or {}
-                reagentsByEffect[effectName][#reagentsByEffect[effectName]+1] = {itemId, GetItemLinkName(getItemLinkFromItemId(itemId)) , defaultPrices[itemId]}
+                reagentsByEffect[effectName][#reagentsByEffect[effectName]+1] = {itemId, GetItemLinkName(Utils.getItemLinkFromItemId(itemId)) , defaultPrices[itemId]}
             end
         end
     end

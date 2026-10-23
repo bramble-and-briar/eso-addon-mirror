@@ -2,7 +2,7 @@
 ## Author: |c215895L|c3E6284y|c5A6B73k|c777562e|c937F51i|cB08840o|cCC922Fn|r
 ## Description: An all-in-one werewolf quality-of-life addon
 ## APIVersion: 101051
-## Version: 2.1
+## Version: 2.3
 ## SavedVariables: InsatiableHungerBlocker_SV
 ## DependsOn: LibAddonMenu-2.0>=43
 ## ConsoleDependsOn: LibAddonMenu-2.0>=43 LibHarvensAddonSettings>=20108 LibCombatAlerts

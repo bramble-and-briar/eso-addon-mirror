@@ -164,39 +164,55 @@
 				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Backpack" relativePoint="BOTTOMRIGHT" offsetX="15"/>
 			</Label>
 			<!-- Währungen -->
-			<Label name="$(parent)Gold" verticalAlignment="CENTER" font="TimFontTbarM">
+			<Label name="$(parent)Gold" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
 				<Anchor point="TOPLEFT" relativeTo="$(parent)Bank" relativePoint="TOPRIGHT" offsetX="15"/>
 				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Bank" relativePoint="BOTTOMRIGHT" offsetX="15"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_MONEY)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
 			<Label name="$(parent)AlliancePoints" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true" clickSound="Click">
 				<Anchor point="TOPLEFT" relativeTo="$(parent)Gold" relativePoint="TOPRIGHT" offsetX="14"/>
 				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Gold" relativePoint="BOTTOMRIGHT" offsetX="14"/>
 				<OnMouseUp>
 					PlaySound(SOUNDS.DIALOG_ACCEPT) SCENE_MANAGER:Show("campaignOverview")</OnMouseUp>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_ALLIANCE_POINTS)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)TelVar" verticalAlignment="CENTER" font="TimFontTbarM">
+			<Label name="$(parent)TelVar" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
 				<Anchor point="TOPLEFT" relativeTo="$(parent)AlliancePoints" relativePoint="TOPRIGHT" offsetX="14"/>
 				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)AlliancePoints" relativePoint="BOTTOMRIGHT" offsetX="14"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_TELVAR_STONES)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)WritVouchers" verticalAlignment="CENTER" font="TimFontTbarM">
+			<Label name="$(parent)WritVouchers" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
 				<Anchor point="TOPLEFT" relativeTo="$(parent)TelVar" relativePoint="TOPRIGHT" offsetX="14"/>
 				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)TelVar" relativePoint="BOTTOMRIGHT" offsetX="14"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_WRIT_VOUCHERS)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)TradeBars" verticalAlignment="CENTER" font="TimFontTbarM">
+			<Label name="$(parent)TradeBars" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
 				<Anchor point="TOPLEFT" relativeTo="$(parent)WritVouchers" relativePoint="TOPRIGHT" offsetX="14"/>
 				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)WritVouchers" relativePoint="BOTTOMRIGHT" offsetX="14"/>
+			
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_TRADE_BARS)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)ChaosCreatia" verticalAlignment="CENTER" font="TimFontTbarM">
-				<Anchor point="TOPLEFT" relativeTo="$(parent)TradeBars" relativePoint="TOPRIGHT" offsetX="15"/>
-				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)TradeBars" relativePoint="BOTTOMRIGHT" offsetX="15"/>
+			<Label name="$(parent)ChaosCreatia" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
+				<Anchor point="TOPLEFT" relativeTo="$(parent)TradeBars" relativePoint="TOPRIGHT" offsetX="12"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)TradeBars" relativePoint="BOTTOMRIGHT" offsetX="12"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_CHAOTIC_CREATIA)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)UndauntedKeys" verticalAlignment="CENTER" font="TimFontTbarM">
-				<Anchor point="TOPLEFT" relativeTo="$(parent)ChaosCreatia" relativePoint="TOPRIGHT" offsetX="12"/>
-				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)ChaosCreatia" relativePoint="BOTTOMRIGHT" offsetX="12"/>
+			<Label name="$(parent)UndauntedKeys" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
+				<Anchor point="TOPLEFT" relativeTo="$(parent)ChaosCreatia" relativePoint="TOPRIGHT" offsetX="8"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)ChaosCreatia" relativePoint="BOTTOMRIGHT" offsetX="8"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_UNDAUNTED_KEYS)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
 			<Label name="$(parent)EndeavorSeals" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true" clickSound="Click">
-				<Anchor point="TOPLEFT" relativeTo="$(parent)UndauntedKeys" relativePoint="TOPRIGHT" offsetX="15"/>
-				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)UndauntedKeys" relativePoint="BOTTOMRIGHT" offsetX="15"/>
+				<Anchor point="TOPLEFT" relativeTo="$(parent)UndauntedKeys" relativePoint="TOPRIGHT" offsetX="11"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)UndauntedKeys" relativePoint="BOTTOMRIGHT" offsetX="11"/>
+				<!--  gibts nicht mehr
 				<OnMouseUp>
 					PlaySound(SOUNDS.DIALOG_ACCEPT)
 					if KEYBOARD_GROUP_MENU_SCENE:IsShowing() then
@@ -207,19 +223,26 @@
 						MAIN_MENU_KEYBOARD:ShowScene("groupMenuKeyboard")
 					end
 				</OnMouseUp>
+				-->
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_ENDEAVOR_SEALS)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)EndeavorProgress" verticalAlignment="CENTER" font="TimFontTbarM">
-				<Anchor point="TOPLEFT" relativeTo="$(parent)EndeavorSeals" relativePoint="TOPRIGHT" offsetX="3"/>
-				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)EndeavorSeals" relativePoint="BOTTOMRIGHT" offsetX="3"/>
+			<Label name="$(parent)EndlessDungeon" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
+				<Anchor point="TOPLEFT" relativeTo="$(parent)EndeavorSeals" relativePoint="TOPRIGHT" offsetX="10"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)EndeavorSeals" relativePoint="BOTTOMRIGHT" offsetX="10"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_ENDLESS_DUNGEON)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
-			<Label name="$(parent)EndlessDungeon" verticalAlignment="CENTER" font="TimFontTbarM">
-				<Anchor point="TOPLEFT" relativeTo="$(parent)EndeavorProgress" relativePoint="TOPRIGHT" offsetX="14"/>
-				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)EndeavorProgress" relativePoint="BOTTOMRIGHT" offsetX="14"/>
+			<Label name="$(parent)UndauntedCrests" verticalAlignment="CENTER" font="TimFontTbarM" mouseEnabled="true">
+				<Anchor point="TOPLEFT" relativeTo="$(parent)EndlessDungeon" relativePoint="TOPRIGHT" offsetX="9"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)EndlessDungeon" relativePoint="BOTTOMRIGHT" offsetX="9"/>
+				<OnMouseEnter>InitializeTooltip(InformationTooltip, self, RIGHT, 18, 20) SetTooltipText(InformationTooltip, zo_strformat("&lt;&lt;1&gt;&gt;", GetCurrencyName(CURT_UNDAUNTED_CRESTS)))</OnMouseEnter>
+				<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
 			</Label>
 			<!-- Inventar -->
 			<Label name="$(parent)Lockpicks" verticalAlignment="CENTER" font="TimFontTbarM">
-				<Anchor point="TOPLEFT" relativeTo="$(parent)EndlessDungeon" relativePoint="TOPRIGHT" offsetX="18"/>
-				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)EndlessDungeon" relativePoint="BOTTOMRIGHT" offsetX="18"/>
+				<Anchor point="TOPLEFT" relativeTo="$(parent)UndauntedCrests" relativePoint="TOPRIGHT" offsetX="18"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="$(parent)UndauntedCrests" relativePoint="BOTTOMRIGHT" offsetX="18"/>
 			</Label>
 			<Label name="$(parent)SoulGems" verticalAlignment="CENTER" font="TimFontTbarM">
 				<Anchor point="TOPLEFT" relativeTo="$(parent)Lockpicks" relativePoint="TOPRIGHT" offsetX="10"/>

@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/NoireJin/NoireJin-s-reticle-weapom-swap__4955",
+  "archive_path": "addons/NoireJin/NoireJin-s-reticle-weapon-swap__4955",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "NoireJin",
@@ -18,7 +18,7 @@
     "NoireJinsReticle"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4955/",
-  "fingerprint": "7cc3a65487fbe6bfd1b98e50d3ea0d39bef6edf9774dec0d7f7e9c3511562646",
+  "fingerprint": "ca947e578afe2914613ef6cb5b650ee5cf919230403b2b778b1d43f3f18d390e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17997.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17996.jpg",
@@ -30,13 +30,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4955",
-  "source_url": "https://www.esoui.com/downloads/info4955-NoireJinsreticleweapomswap.html",
+  "source_url": "https://www.esoui.com/downloads/info4955-NoireJinsreticleweaponswap.html",
   "stats": {
-    "downloads": 27,
+    "downloads": 54,
     "favorites": 0,
-    "monthly_downloads": 3
+    "monthly_downloads": 53
   },
-  "title": "NoireJin's reticle weapom swap",
-  "updated_at": 1792085900000,
-  "version": "1.7.1"
+  "title": "NoireJin's reticle weapon swap",
+  "updated_at": 1792685684000,
+  "version": "1.7.2"
 }

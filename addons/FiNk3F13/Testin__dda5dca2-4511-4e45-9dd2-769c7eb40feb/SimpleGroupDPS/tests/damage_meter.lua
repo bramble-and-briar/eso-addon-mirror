@@ -89,8 +89,8 @@ meter:Start(clock)
 damage(30000, 1, "New Add", 2, 100, 40)
 clock = 35000
 meter:Finish()
-assert(meter:GetStats().durationMS == 5000 and meter:GetStats().dps == 20,
-    "first-hit-only encounter uses Battle Scrolls current-time fallback")
+assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 100,
+    "first-hit-only encounter preserves its fixed estimate when finished after idle time")
 bosses = { boss1 = "Boss^Mx" }
 clock = 40000
 meter:Start(clock)
@@ -164,6 +164,6 @@ clock = 70000
 meter:Start(clock)
 damage(70000, 1, "Boss", 2, 1000, 10)
 clock = 70100
-assert(meter:GetStats().durationMS == 100 and meter:GetStats().dps == 10000,
-    "first-hit live fallback matches Battle Scrolls until a later damage timestamp exists")
+assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 1000,
+    "first-hit estimate does not depend on the next UI refresh")
 print("PASS: unified DPS clock, boss identification, pet/companion damage, shields, overkill and encounter lifecycle")

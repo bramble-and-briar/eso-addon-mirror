@@ -201,6 +201,21 @@ function addon:InitSettings()
 		}
 	)
 
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBTP_CLEANUP),
+			tooltip = GetString(SI_PBTP_CLEANUP_TOOLTIP),
+			default = self.DEFAULTS.cleanup,
+			getFunction = function()
+				return self:GetOption("cleanup")
+			end,
+			setFunction = function(value)
+				self:SetOption("cleanup", value)
+			end
+		}
+	)
+
 	-- No heading over the slots: each slot is itself a row that opens, so a heading would be a
 	-- section with nothing under it.
 	for slot = 1, self.MAX_PLAYERS do

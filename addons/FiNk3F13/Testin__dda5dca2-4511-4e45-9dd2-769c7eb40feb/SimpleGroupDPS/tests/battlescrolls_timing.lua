@@ -1,5 +1,5 @@
 -- Acceptance cases for the clock in BattleScrolls combat/arithmancer.lua
--- getDurationS(): combat entry -> last damage, current-time fallback at first hit.
+-- Combat entry -> last damage, with a stable estimate for a hit at combat entry.
 local clock, inCombat = 900, true
 local events = {}
 ACTION_RESULT_DAMAGE, ACTION_RESULT_DOT_TICK = 1, 2
@@ -19,11 +19,15 @@ meter:OnDamage(1, false, 1, "Dummy", 7, 500, 10)
 assert(not meter:IsActive(), "damage before combat-state event is buffered even if API already says in combat")
 clock = 1000
 events.SimpleGroupDPSDamageState(nil, true)
-assert(meter:GetStats().total == 500 and meter:GetStats().durationMS == 0,
-    "precombat hit contributes damage but never backdates combat entry")
+assert(meter:GetStats().total == 500 and meter:GetStats().durationMS == 1000,
+    "precombat hit contributes damage with a fixed estimate without backdating combat entry")
 clock = 1300
-assert(meter:GetStats().durationMS == 300 and math.abs(meter:GetStats().dps - 500 / 0.3) < 0.000001,
-    "first-hit-only sample uses Battle Scrolls current-time fallback")
+assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 500,
+    "first-hit-only sample does not decay while idle")
+clock = 12000
+assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 500,
+    "long idle time does not change the initial estimate")
+clock = 1300
 meter:OnDamage(1, false, 1, "Dummy", 7, 1000, 10)
 clock = 7000
 assert(meter:GetStats().durationMS == 300 and meter:GetStats().dps == 5000,
@@ -64,4 +68,4 @@ assert(meter:GetStats().durationMS == 677 and math.floor(meter:GetStats().dps + 
     "dummy DPS follows exact Battle Scrolls formula rather than native dummy chat")
 meter:Finish()
 assert(meter.OnDummyResult == nil, "dummy chat cannot override Battle Scrolls calculation")
-print("PASS: Battle Scrolls combat entry, buffer, first-hit fallback, shared damage clock and dummy parity")
+print("PASS: combat entry, buffer, stable first-hit estimate, shared damage clock and multi-hit dummy parity")

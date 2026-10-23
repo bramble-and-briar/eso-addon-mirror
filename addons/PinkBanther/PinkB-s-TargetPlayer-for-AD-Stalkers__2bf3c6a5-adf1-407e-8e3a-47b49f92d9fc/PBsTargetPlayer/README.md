@@ -4,7 +4,7 @@ Puts the game's own target marker on chosen players in The Elder Scrolls Online 
 they stand out above their nameplate.
 
 - **Author:** PinkBanther
-- **Version:** 1.6.0
+- **Version:** 1.6.1
 - **Requires:** nothing. `LibHarvensAddonSettings` >= 20106 is optional and gives you the settings
   panel; without it the chat commands do everything.
 
@@ -98,6 +98,26 @@ Limits that come from the game's marker:
   valid target for target markers", for targets it refuses. `/pbtarget status` shows what the
   add-on saw.
 
+### Not marking the wrong person
+
+The game's marker call names no player: the marker goes to whoever is under the reticle **when the game
+acts**, not when the add-on asked. In a crowd those can differ -- most clearly when a marked player dies and
+respawns elsewhere. The player falls with the reticle on them, the marker leaves them, and a naive add-on
+(seeing a registered player with no marker) asks again; by the time the game acts the player has respawned
+and the reticle is on a bystander who is then marked. So:
+
+- **Nothing is set on a dead target**, nor on a registered player who died in the last ten seconds (the
+  kill feed and the target's own death event both tell the add-on).
+- **The marker is not set the instant the reticle lands.** The target must still be the same registered
+  player a quarter of a second later, or the request is dropped.
+- **A stray is taken off.** A marker of the kind the add-on sets, found on a player who is not registered,
+  not in your group and not you, is cleared -- right after the add-on set one, and whenever the reticle meets
+  such a player. Clearing asks for "no marker" (`TARGET_MARKER_TYPE_NONE`), which **has not been tried on a
+  console**: if the marker is still there a second later, the add-on gives up clearing for the session and
+  says so (`/pbtarget status`). Switch: *Remove stray markers*, `/pbtarget cleanup on|off`.
+- `/pbtarget unmark` takes the marker off whoever is under the reticle, whoever put it there, and reports what
+  was there before and a second later.
+
 ### Never called blind
 
 Whether an add-on may set a marker at all is not something the documentation can settle, and
@@ -118,6 +138,7 @@ Under **PB's TargetPlayer for AD Stalkers** (LibHarvensAddonSettings).
 | Alert when a registered player turns up | The band and sound for kill-feed and combat events. |
 | Alert sound | The sound with it. |
 | Alert when a registered player enters Cyrodiil | Friends and guild members only. |
+| Remove stray markers | Take the add-on's marker off a bystander it landed on. |
 | 1. ... 20. | One row per slot. Open it to type the **Player ID**, see the **Location**, or **Delete** the entry. Leaving the ID box empty deletes it too. |
 | General | Say hello at login; delete every player (asks you to press twice). |
 
@@ -130,19 +151,20 @@ Under **PB's TargetPlayer for AD Stalkers** (LibHarvensAddonSettings).
 | `/pbtarget remove <ID or number>` | Delete an entry. |
 | `/pbtarget mark <1-8>` | The marker set on registered players. |
 | `/pbtarget list` | Show the registered players. |
-| `/pbtarget on` / `off` | Master switch. `alert`, `sound`, `cyrodiil` and `banner` take `on` / `off` the same way. |
+| `/pbtarget on` / `off` | Master switch. `alert`, `sound`, `cyrodiil`, `cleanup` and `banner` take `on` / `off` the same way. |
 | `/pbtarget where` | Where each registered player is now (friends and guild members). |
+| `/pbtarget unmark` | Take the marker off whoever is under the reticle; reports before and after. |
 | `/pbtarget test` | Show the alert once, with the sound. |
 | `/pbtarget status` | The game's answer about the marker call, how many times it was made, what happened at the last contact, and what is under the reticle right now. |
 | `/pbtarget clear` | Delete every player. |
 
 ## How it works
 
-One handler on `EVENT_RETICLE_TARGET_CHANGED`. When the reticle lands on a registered player it
-calls `AssignTargetMarkerToReticleTarget` -- once per contact, never from a timer, because
-setting the same marker on the same unit again may toggle it off and a timer could ask twice
-before the server has answered. A player who already carries the marker is skipped, and the same
-player is not marked again within three seconds.
+One handler on `EVENT_RETICLE_TARGET_CHANGED`. When the reticle lands on a registered player and rests
+there for a quarter of a second, it calls `AssignTargetMarkerToReticleTarget` -- once per contact, never
+from a repeating timer, because setting the same marker on the same unit again may toggle it off. A player
+who already carries the marker is skipped, a dead one is skipped, and the same player is not marked again
+within three seconds.
 
 The marker path writes to no control, hooks nothing and runs no timer. Hooking client code would make
 every closure the client builds underneath it untrusted on console. The alert band is the add-on's own
@@ -212,8 +234,8 @@ The displayed name is fixed in `Main.lua`; the version comes from the manifest. 
 version, edit these two adjacent lines in `PBsTargetPlayer.addon` and nothing else:
 
 ```
-## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.0
-## Version: 1.6.0
+## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.1
+## Version: 1.6.1
 ```
 
 ---

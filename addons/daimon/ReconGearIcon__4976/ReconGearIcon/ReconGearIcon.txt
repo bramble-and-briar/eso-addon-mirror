@@ -1,0 +1,10 @@
+## Title: ReconGearIcon
+## Author: daimon
+## Description: Shows the Reconstructed icon on reconstructed items in the character equipment panel and optionally in the inventory.
+## Version: 1.0
+## AddOnVersion: 10
+## APIVersion: 101050 101051
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: ReconGearIcon_SV
+
+ReconGearIcon.lua

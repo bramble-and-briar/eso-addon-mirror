@@ -1,6 +1,7 @@
 PvPUAPatch = PvPUAPatch or {} -- build.sh: private global, coexists with the unpatched PvPUA
 local PvPUA = PvPUAPatch
 PvPUA.name = "PvPUAPatch" -- build.sh: must match the addon folder (EVENT_ADD_ON_LOADED)
+PvPUA.version = "5.6.0" -- Patch: build.sh writes VERSION here; only used in the debug log
 
 --------------------------------------------------
 -- Config
@@ -135,7 +136,7 @@ PvPUA.constants.iconChoices = {
     { name = "EP Shield",  category = "alliances", texture = "PvPUAPatch/Textures/icon_ep_shield.dds" },
 }
 
-PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = false --[[ patch: upstream default is true ]], showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0, showKillTally = true }
+PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = false --[[ patch: upstream default is true ]], showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0, showKillTally = true, debugLog = false --[[ patch: LibConsoleLogger diagnostics ]] }
 
 PvPUA.capChoices = {
     { name = "All", value = 0  },
@@ -1345,6 +1346,84 @@ local function FireKeepUA(keepId, name, owningAlliance)
 end
 
 --------------------------------------------------
+-- Debug log (Patch) - optional LibConsoleLogger
+--------------------------------------------------
+-- Field diagnostics for the kill-marker / kill-feed listing. Everything goes to LibConsoleLogger's
+-- export buffer only (never chat) and only while Settings > "Debug Log" is on AND the library is
+-- installed and enabled in its own settings; without the library every call is a nil check.
+-- Lines are event-driven and change-only (no per-tick output), so a fight is a few hundred lines.
+-- Export: Settings > "Export Debug Log" (or the library's own Export). Cap the buffer in the
+-- library's "Buffer size" setting to keep an export to a few browser round trips.
+local DL = { last = {}, logger = nil }
+
+local function DLLib()
+    local lib = rawget(_G, "LibConsoleLogger")
+    if type(lib) ~= "table" or type(lib.For) ~= "function" then return nil end
+    return lib
+end
+
+function PvPUA:DebugLogAvailable()
+    return DLLib() ~= nil
+end
+
+function PvPUA:DebugLogEnabled()
+    local sv = self.savedVariables
+    return sv ~= nil and sv.debugLog == true and DLLib() ~= nil
+end
+
+local function DLAlliance(alliance)
+    if alliance == ALLIANCE_DAGGERFALL_COVENANT then return "DC" end
+    if alliance == ALLIANCE_ALDMERI_DOMINION then return "AD" end
+    if alliance == ALLIANCE_EBONHEART_PACT then return "EP" end
+    return tostring(alliance)
+end
+
+local function DLItemName(item)
+    if item == nil then return "none" end
+    return tostring(item.name or ("#" .. tostring(item.id)))
+end
+
+-- Buffer one formatted line, stamped with the game clock in seconds.
+local function DLog(fmt, ...)
+    if not PvPUA:DebugLogEnabled() then return end
+    local logger = DL.logger
+    if logger == nil then
+        local lib = DLLib()
+        local ok, scoped = pcall(lib.For, lib, PvPUA.name)
+        if not ok or scoped == nil then return end
+        logger = scoped
+        DL.logger = logger
+    end
+    local ok, msg = pcall(string.format, fmt, ...)
+    if not ok then msg = tostring(fmt) end
+    pcall(logger.Buffer, logger, string.format("%8.1f %s", GetGameTimeMilliseconds() / 1000, msg))
+end
+
+-- Same, but only when `value` differs from the last value logged under `key` (state lines).
+local function DLogChange(key, value, fmt, ...)
+    if DL.last[key] == value then return end
+    if not PvPUA:DebugLogEnabled() then return end -- not remembered either, so it is logged once enabled
+    DL.last[key] = value
+    DLog(fmt, ...)
+end
+
+function PvPUA:DebugLogClear()
+    local lib = DLLib()
+    if lib and lib.Clear then pcall(lib.Clear, lib) end
+    DL.last = {}
+end
+
+-- Returns ok, reason (reason is one of the library's: "disabled", "no-url", "empty", "busy", ...).
+function PvPUA:DebugLogExport()
+    local lib = DLLib()
+    if lib == nil then return false, "LibConsoleLogger not installed" end
+    DLog("export requested (v%s)", tostring(self.version or "?"))
+    local ok, result, reason = pcall(lib.Export, lib)
+    if not ok then return false, tostring(result) end
+    return result == true, reason
+end
+
+--------------------------------------------------
 -- Kill Tally
 --------------------------------------------------
 -- Accumulates the game's "Battle Victories" kill markers into the list items they sit on, for as
@@ -1402,7 +1481,6 @@ end
 -- (keyed by campaign). InitState restores it if it's the same campaign and fresh enough; the UA!
 -- timer (interestingSince) is restored alongside so the timer and the tally stay in step.
 local KT_RESTORE_MAX_AGE_S = 15 * 60
-local KT_SAVE_INTERVAL_MS = 5000
 
 local function KTItemById(self, keepId)
     local groups = { self.state.resources, self.state.keeps, self.state.outposts,
@@ -1704,7 +1782,13 @@ end
 
 function PvPUA:KillFeedOnDeath(killLocation, killerDisplayName, killerCharacterName, killerAlliance,
                                victimDisplayName, victimCharacterName)
-    if not self.initializedItems or self.killTally == nil then return end
+    -- Debug log: one line per event, "KF <where> <killer>(<alliance>) > <victim>: <outcome>".
+    local kfHead = string.format('KF "%s" %s(%s) > %s:', tostring(killLocation), tostring(killerDisplayName or killerCharacterName),
+                                 DLAlliance(killerAlliance), tostring(victimDisplayName or victimCharacterName))
+    if not self.initializedItems or self.killTally == nil then
+        DLog("%s ignored, items not initialized", kfHead)
+        return
+    end
     local chat = self.killTally.chat
     local gameTime = GetGameTimeMilliseconds()
 
@@ -1716,20 +1800,31 @@ function PvPUA:KillFeedOnDeath(killLocation, killerDisplayName, killerCharacterN
     for key, t in pairs(chat.seen) do
         if gameTime - t > dedupeMs then chat.seen[key] = nil end
     end
-    if chat.seen[pairKey] ~= nil then return end
+    if chat.seen[pairKey] ~= nil then
+        DLog("%s dup (%.1fs after first)", kfHead, (gameTime - chat.seen[pairKey]) / 1000)
+        return
+    end
     chat.seen[pairKey] = gameTime
 
+    local how = "name"
     local item = KTChatResolveByName(self, killLocation)
     if item == nil then
+        how = "player"
         item = KTChatResolveByPlayer(self)
         if item == nil then
             local u = chat.unresolved
             u[#u + 1] = killLocation or ""
             if #u > 20 then table.remove(u, 1) end
+            local okPos, px, py = pcall(GetMapPlayerPosition, "player")
+            DLog("%s unresolved (no name match; player %s,%s avaMap=%s)", kfHead,
+                 okPos and tostring(px) or "?", okPos and tostring(py) or "?", tostring(KTOnAvAZoneMap()))
             return
         end
     end
-    if not KTKillsMakeInteresting(self, item) then return end
+    if not KTKillsMakeInteresting(self, item) then
+        DLog("%s -> %s by %s, not an objective (bridge/milegate), ignored", kfHead, DLItemName(item), how)
+        return
+    end
 
     -- The place is interesting now; UpdateItem lists it for siegeTimeout.
     item.lastKillSeen = gameTime
@@ -1737,10 +1832,15 @@ function PvPUA:KillFeedOnDeath(killLocation, killerDisplayName, killerCharacterN
     -- Tally the kill for the killer's alliance unless a marker delta just carried it.
     local known = false
     for a = 1, #KT_ALLIANCES do if KT_ALLIANCES[a] == killerAlliance then known = true end end
-    if not known then return end
+    if not known then
+        DLog("%s -> %s by %s, listed, alliance %s unknown so not tallied", kfHead, DLItemName(item), how, tostring(killerAlliance))
+        return
+    end
     local recent = chat.recent[item.id] and chat.recent[item.id][killerAlliance]
     if recent and recent.n > 0 and gameTime - recent.t <= PvPUA.constants.chatKillMarkerLeadMs then
         recent.n = recent.n - 1
+        DLog("%s -> %s by %s, listed, already in a marker delta %.1fs ago (not tallied)", kfHead, DLItemName(item), how,
+             (gameTime - recent.t) / 1000)
         return
     end
     KTEnsureTally(self, item)
@@ -1751,6 +1851,9 @@ function PvPUA:KillFeedOnDeath(killLocation, killerDisplayName, killerCharacterN
     end
     local list = KTChatPendingList(chat, item.id, killerAlliance, true)
     list[#list + 1] = gameTime
+    DLog("%s -> %s by %s, listed, tally %s=%s (already on list: %s%s)", kfHead, DLItemName(item), how, DLAlliance(killerAlliance),
+         tally and tostring(tally.counts[killerAlliance]) or "?", item.interestingSince ~= nil and "yes" or "no",
+         tally and "" or "; NO TALLY TABLE")
 end
 
 -- Diff the live kill markers against the last snapshot and credit the deltas to flagged items.
@@ -1760,14 +1863,29 @@ end
 function PvPUA:KillTallyUpdate()
     -- Patch: always scan (the kill-activity list entries don't depend on the tally column);
     -- the Kill Tally toggle only hides the column (KillTallyText).
-    if not self.initializedItems then return end
-    if not KTOnAvAZoneMap() then return end
+    if not self.initializedItems then
+        DLogChange("ktSkip", "init", "KT skip: items not initialized")
+        return
+    end
+    if not KTOnAvAZoneMap() then
+        local okC, content = pcall(function() return GetMapContentType() end)
+        local okT, mapType = pcall(function() return GetMapType() end)
+        DLogChange("ktSkip", "map", "KT skip: current map is not the AvA zone map (content=%s type=%s); markers not read until it is",
+                   okC and tostring(content) or "?", okT and tostring(mapType) or "?")
+        return
+    end
+    DLogChange("ktSkip", false, "KT scanning (AvA zone map)")
     local kt = self.killTally
     local previous = kt.snapshot
     local markers = KTReadMarkers()
     local gameTime = GetGameTimeMilliseconds()
     -- Patch: markers already on the map at a fresh init are history, not activity.
     local countAsActivity = kt.baselined
+    if DL.last.ktMarkers ~= #markers then -- (pre-check keeps the per-tick cost at one comparison when unchanged)
+        DLogChange("ktMarkers", #markers, "KT markers: %d (api n=%s, events so far %d)%s", #markers,
+                   tostring(GetNumKillLocations and GetNumKillLocations() or "n/a"), kt.eventCount or 0,
+                   countAsActivity and "" or " - BASELINE, not activity")
+    end
     for i = 1, #markers do
         local m = markers[i]
         local prev = KTFindPrevious(previous, m)
@@ -1775,6 +1893,7 @@ function PvPUA:KillTallyUpdate()
         local item = m.item
         local tally = item and item.killTally
         local activity = prev == nil -- a brand-new marker is activity even at 0 kills
+        local deltaText = nil
         for a = 1, #KT_ALLIANCES do
             local alliance = KT_ALLIANCES[a]
             local now = m.counts[alliance]
@@ -1782,32 +1901,43 @@ function PvPUA:KillTallyUpdate()
             if delta < 0 then delta = now end
             if delta > 0 then
                 activity = true
+                local rawDelta = delta
                 -- Patch: chat kills already in the tally are not counted a second time.
                 if countAsActivity then delta = KTChatAbsorb(self, item, alliance, delta, gameTime) end
                 if delta > 0 and tally and item.interestingSince ~= nil then
                     tally.counts[alliance] = tally.counts[alliance] + delta
                     tally.dirty = true
                 end
+                deltaText = (deltaText and (deltaText .. " ") or "") .. string.format("%s+%d%s", DLAlliance(alliance), rawDelta,
+                            rawDelta ~= delta and string.format("(%d chat-absorbed)", rawDelta - delta) or "")
             end
+        end
+        if activity then
+            DLog("KT marker %d at %.3f,%.3f -> %s: %s%s%s", i, m.x, m.y, DLItemName(item),
+                 prev == nil and "NEW " or "", deltaText or "no count change",
+                 (not countAsActivity) and " [baseline]" or (item == nil and " [no objective within attach radius]"
+                 or (not KTKillsMakeInteresting(self, item)) and " [bridge/milegate, not listed]"
+                 or string.format(" [listed; tally %s]", tally and (item.interestingSince ~= nil) and "credited" or "none yet")))
         end
         if activity and countAsActivity and KTKillsMakeInteresting(self, item) then
             item.lastKillSeen = gameTime
         end
     end
+    for i = 1, #previous do
+        local p = previous[i]
+        if not p.consumed then DLog("KT marker gone at %.3f,%.3f (%s)", p.x, p.y, DLItemName(p.item)) end
+    end
     kt.snapshot = markers
     kt.baselined = true
     kt.lastUpdateMs = gameTime
     kt.pending = nil -- anything not reclaimed on the first tick is stale
-    -- Perf: the SavedVars copy only matters for a /reloadui; once every few seconds is plenty.
-    if (kt.lastSaveMs or 0) + KT_SAVE_INTERVAL_MS <= gameTime then
-        kt.lastSaveMs = gameTime
-        self:KillTallySave()
-    end
+    self:KillTallySave()
 end
 
 -- Event handler: coalesce bursts; the 1s tick is the backstop anyway.
 local KT_EVENT_MIN_INTERVAL_MS = 250
 function PvPUA:KillTallyOnEvent()
+    if self.killTally then self.killTally.eventCount = (self.killTally.eventCount or 0) + 1 end
     local last = self.killTally and self.killTally.lastUpdateMs or 0
     if GetGameTimeMilliseconds() - last < KT_EVENT_MIN_INTERVAL_MS then return end
     self:KillTallyUpdate()
@@ -1876,6 +2006,7 @@ function PvPUA:UpdateItem(items, gameTime)
     local itemsOfInterest = {}
     for key, item in pairs(items) do
         local itemOfInterest = false
+        local wasListed = item.interestingSince ~= nil -- Patch: for the debug log's join/leave lines
         local previousOwningAlliance = item.owningAlliance
         item.owningAlliance = GetKeepAlliance(key, BGQUERY_LOCAL)
         local previousAttackState = item.isUnderAttack
@@ -1968,6 +2099,25 @@ function PvPUA:UpdateItem(items, gameTime)
             item.interestingSince = nil
         end
         self:KillTallySync(item)
+        -- Debug log: list membership changes only (never per tick), with why it is / was on the list.
+        local isListed = item.interestingSince ~= nil
+        if isListed ~= wasListed then
+            if isListed then
+                local why = {}
+                if item.isUnderAttack then why[#why + 1] = "UA" end
+                if item.owningAlliance ~= previousOwningAlliance then why[#why + 1] = "flipped" end
+                if item.siegeWeapons and ((item.siegeWeapons.AD or 0) + (item.siegeWeapons.DC or 0) + (item.siegeWeapons.EP or 0)) > 0 then
+                    why[#why + 1] = "siege"
+                end
+                if item.lastKillSeen ~= nil then why[#why + 1] = "kills" end
+                local t = item.killTally
+                DLog("list + %s (%s) tally DC=%d AD=%d EP=%d", DLItemName(item), #why > 0 and table.concat(why, ",") or "?",
+                     t and t.counts[ALLIANCE_DAGGERFALL_COVENANT] or 0, t and t.counts[ALLIANCE_ALDMERI_DOMINION] or 0,
+                     t and t.counts[ALLIANCE_EBONHEART_PACT] or 0)
+            else
+                DLog("list - %s%s", DLItemName(item), itemOfInterest == true and " (hidden by Show List setting)" or "")
+            end
+        end
     end
     return itemsOfInterest
 end
@@ -3475,20 +3625,28 @@ function PvPUA:ZoneCheck()
                 function(...) PvPUA:OnArtifactScrollStateChanged(...) end)
             EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_ArtifactCtrl", EVENT_ARTIFACT_CONTROL_STATE,
                 function(...) PvPUA:OnArtifactControlState(...) end)
+            local regKT, regKF = "no event", "no event"
             if EVENT_KILL_LOCATIONS_UPDATED then
-                EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_KillTally", EVENT_KILL_LOCATIONS_UPDATED,
-                    function() pcall(function() PvPUA:KillTallyOnEvent() end) end)
+                regKT = tostring(EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_KillTally", EVENT_KILL_LOCATIONS_UPDATED,
+                    function() pcall(function() PvPUA:KillTallyOnEvent() end) end))
             end
+            -- Own namespace: upstream's KAD counter already holds PvPUA.name .. "_KillFeed" for this event
+            -- (registered at load), and a second RegisterForEvent with the same name+event is rejected.
             if EVENT_PVP_KILL_FEED_DEATH then
-                EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_KillFeed", EVENT_PVP_KILL_FEED_DEATH,
+                regKF = tostring(EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_KillTallyFeed", EVENT_PVP_KILL_FEED_DEATH,
                     function(_, killLocation, killerDisplayName, killerCharacterName, killerAlliance, _killerRank,
                              victimDisplayName, victimCharacterName)
-                        pcall(function()
+                        local ok, err = pcall(function()
                             PvPUA:KillFeedOnDeath(killLocation, killerDisplayName, killerCharacterName, killerAlliance,
                                                   victimDisplayName, victimCharacterName)
                         end)
-                    end)
+                        if not ok then DLog("KF handler error: %s", tostring(err)) end
+                    end))
             end
+            DL.last = {} -- fresh zone: state lines log again
+            DLog("v%s %s: registered EVENT_KILL_LOCATIONS_UPDATED=%s EVENT_PVP_KILL_FEED_DEATH=%s; api GetNumKillLocations=%s GetKillLocationPinInfo=%s GetNumKillLocationAllianceKills=%s",
+                 tostring(PvPUA.version), zoneKind, regKT, regKF, type(GetNumKillLocations), type(GetKillLocationPinInfo),
+                 type(GetNumKillLocationAllianceKills))
             if EVENT_REWARD_TRACK_PROGRESS_GAINED then
                 EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_VetTrack", EVENT_REWARD_TRACK_PROGRESS_GAINED,
                     function(_, trackType)
@@ -3517,13 +3675,14 @@ function PvPUA:ZoneCheck()
                 EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_KillTally", EVENT_KILL_LOCATIONS_UPDATED)
             end
             if EVENT_PVP_KILL_FEED_DEATH then
-                EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_KillFeed", EVENT_PVP_KILL_FEED_DEATH)
+                EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_KillTallyFeed", EVENT_PVP_KILL_FEED_DEATH)
             end
             if EVENT_REWARD_TRACK_PROGRESS_GAINED then
                 EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_VetTrack", EVENT_REWARD_TRACK_PROGRESS_GAINED)
             end
             EVENT_MANAGER:UnregisterForUpdate(PvPUA.name)
             self.registeredCyroEvents = false
+            DLog("left Cyrodiil/IC: kill events unregistered")
         end
         self.initializedItems = false
         self.volendrung = nil
@@ -3676,15 +3835,6 @@ local function RSSetupDeathButtons()
 end
 
 local rsButtonsShown = false
-local rsLastSetup = 0
-local RS_SETUP_INTERVAL_MS = 250 -- Patch: upstream re-scanned every keep + camp every frame while dead
-
-local function RSOnUpdate()
-    local now = GetGameTimeMilliseconds()
-    if now - rsLastSetup < RS_SETUP_INTERVAL_MS then return end
-    rsLastSetup = now
-    RSSetupDeathButtons()
-end
 
 local function RSShouldShow()
     if not IsInCyrodiil() then return false end
@@ -3702,8 +3852,7 @@ local function RSApplyVisibility()
         RSSetupDeathButtons()
         if not rsButtonsShown then
             rsButtonsShown = true
-            rsLastSetup = GetGameTimeMilliseconds()
-            control:SetHandler("OnUpdate", RSOnUpdate)
+            control:SetHandler("OnUpdate", function() RSSetupDeathButtons() end)
         end
     else
         control:SetHidden(true)
@@ -3802,7 +3951,7 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.5.3",
+        version         = "5.6.0",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,

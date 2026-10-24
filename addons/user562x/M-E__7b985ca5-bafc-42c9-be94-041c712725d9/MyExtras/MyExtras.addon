@@ -1,6 +1,6 @@
 ## Title: MyExtras
 ## Author: user562
-## Version: 1.1
+## Version: 1.2
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: MyExtras_SavedVars MyExtras_CharVars
 ## DependsOn: LibUser562
@@ -10,3 +10,4 @@ MyExtras.lua
 MyExtras_Trackers.lua
 MyExtras_GuildLoop.lua
 MyExtras_ChatTravel.lua
+MyExtras_Antiquity.lua

@@ -17,6 +17,9 @@ local SETTINGS_MODES={
     {name="CURRENT CHARACTER",data=false},
 }
 
+local selectedOutfitIndex=0
+local selectedOutfitLabel="Base appearance (no outfit)"
+
 local function FindName(items,value,fallback)
     for _,item in ipairs(items) do if item.data==value then return item.name end end
     return fallback
@@ -69,6 +72,64 @@ function Persona.Settings.Initialize()
             Persona.SetSettingsMode(item.data)
         end,
         default="ACCOUNT-WIDE",
+    })
+
+    selectedOutfitIndex=Persona.GetCurrentOutfitIndex()
+    selectedOutfitLabel=Persona.GetOutfitDisplayName(selectedOutfitIndex)
+
+    panel:AddSetting({type=L.ST_SECTION,label="Outfit Profiles"})
+
+    panel:AddSetting({
+        type=L.ST_LABEL,
+        label="Outfit profiles belong to the selected ACCOUNT-WIDE or CURRENT CHARACTER settings profile. A mapped outfit loads automatically; an unmapped outfit uses that profile's normal settings.",
+    })
+
+    panel:AddSetting({
+        type=L.ST_DROPDOWN,
+        label="Outfit Slot",
+        tooltip="Choose an outfit slot to save or remove. Base appearance always uses the selected profile's normal settings.",
+        items=Persona.GetOutfitItems(),
+        default=selectedOutfitLabel,
+        getFunction=function() return selectedOutfitLabel end,
+        setFunction=function(_,name,item)
+            selectedOutfitIndex=item.data
+            selectedOutfitLabel=name
+        end,
+    })
+
+    panel:AddSetting({
+        type=L.ST_BUTTON,
+        label="Save current Persona settings",
+        tooltip=function()
+            return "Copy the currently active Persona settings to "
+                .. Persona.GetOutfitDisplayName(selectedOutfitIndex)
+                .. " in the selected storage profile."
+        end,
+        buttonText="Save profile",
+        clickHandler=function() Persona.SaveSettingsToOutfit(selectedOutfitIndex) end,
+        disable=function() return selectedOutfitIndex==0 end,
+    })
+
+    panel:AddSetting({
+        type=L.ST_BUTTON,
+        label="Remove outfit profile",
+        tooltip=function()
+            return "Remove the saved Persona profile for "
+                .. Persona.GetOutfitDisplayName(selectedOutfitIndex)
+                .. ". The outfit will return to the selected profile's normal settings."
+        end,
+        buttonText="Remove",
+        clickHandler=function() Persona.RemoveSettingsFromOutfit(selectedOutfitIndex) end,
+        disable=function()
+            return not Persona.HasOutfitSettings(selectedOutfitIndex)
+        end,
+    })
+
+    panel:AddSetting({
+        type=L.ST_LABEL,
+        label=function()
+            return Persona.GetOutfitSettingsStatus(selectedOutfitIndex)
+        end,
     })
 
     panel:AddSetting({

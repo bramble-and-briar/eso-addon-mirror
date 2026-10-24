@@ -213,6 +213,27 @@ function LibConsoleLogger:SetChatEnabled(enabled)
     end
 end
 
+---How many lines the buffer keeps (oldest evicted first). Persisted; default 4000.
+---@return number
+function LibConsoleLogger:GetMaxLines()
+    local webExport = LibConsoleLogger.WebExport
+    if webExport and webExport.GetMaxLines then
+        return webExport.GetMaxLines()
+    end
+    return 4000
+end
+
+---Set the buffer line cap (clamped to the library's limits). Lowering it trims the buffer immediately.
+---@param n number
+---@return number applied
+function LibConsoleLogger:SetMaxLines(n)
+    local webExport = LibConsoleLogger.WebExport
+    if webExport and webExport.SetMaxLines then
+        return webExport.SetMaxLines(n)
+    end
+    return 4000
+end
+
 ---Log one or more values (strings, numbers, tables). Tables are expanded recursively.
 function LibConsoleLogger:Log(...)
     EmitLog(nil, ...)

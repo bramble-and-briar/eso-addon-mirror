@@ -9,6 +9,7 @@ State.defaults = State.defaults or {
     enabled = false,
     chatEnabled = true,
     url = "",
+    maxLines = 4000, -- buffer cap in lines; see LibConsoleLogger:SetMaxLines
 }
 
 State.runtimeEnabled = State.runtimeEnabled or false
@@ -18,6 +19,7 @@ State.savedVars = LibConsoleLogger.savedVars or State.savedVars or nil
 LibConsoleLogger._pendingUrl = LibConsoleLogger._pendingUrl or nil
 LibConsoleLogger._pendingEnabled = LibConsoleLogger._pendingEnabled or nil
 LibConsoleLogger._pendingChatEnabled = LibConsoleLogger._pendingChatEnabled or nil
+LibConsoleLogger._pendingMaxLines = LibConsoleLogger._pendingMaxLines or nil
 
 LibConsoleLogger.savedVars = State.savedVars
 
@@ -50,6 +52,10 @@ function LibConsoleLogger:_EnsureSavedVars()
     if LibConsoleLogger._pendingChatEnabled ~= nil then
         State.savedVars.chatEnabled = LibConsoleLogger._pendingChatEnabled
         LibConsoleLogger._pendingChatEnabled = nil
+    end
+    if LibConsoleLogger._pendingMaxLines ~= nil then
+        State.savedVars.maxLines = LibConsoleLogger._pendingMaxLines
+        LibConsoleLogger._pendingMaxLines = nil
     end
 
     return true

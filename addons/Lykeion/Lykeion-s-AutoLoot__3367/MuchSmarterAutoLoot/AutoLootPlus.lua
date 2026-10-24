@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.10"
-MSAL.addonVersion = 80310
+MSAL.version = "8.3.11"
+MSAL.addonVersion = 80311
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -12,6 +12,7 @@ local chatboxPrefix = ZO_IsConsoleOrGameCoreUI() and
     "|c345e88[|r|c44637fA|r|c81785bL|r|cbf8c37+|r|cce912e] " or
     "|c345e88[|r|c44637fA|r|c536876u|r|c626d6dt|r|c727264o|r|c81785bL|r|c917d52o|r|ca08249o|r|caf8740t|r|cbf8c37+|r|cce912e] "
 local chatboxLogColor = "|cce912e"
+local CHAT_MESSAGE_MAX = 500
 local WM = GetWindowManager()
 local LAM2 = LibAddonMenu2
 local LCK = LibCharacterKnowledge
@@ -32,6 +33,7 @@ local WLIST_JUNK_TOKEN = 2
 local isRepetitiveGear = false
 local isAllCurtLooted = true
 local isUnboxing = false
+local unboxingSourceLink = nil
 local isBagContainer = false
 local isJunkingBagContainerLeftovers = false
 -- local isHarvesting = false
@@ -59,7 +61,7 @@ local stationTradeSkill = nil
 local chatlogBuffer = {}
 local chatlogFlushEpoch = 0
 local nonLootDisposedBuffer = {}
-local nonLootReceivedBuffer = {}
+local nonLootReceivedBuffer = { items = {} }
 local nonLootFlushEpoch = 0
 local disposeLogFlushPending = false
 local isDisposedUpdateListening = false
@@ -152,27 +154,6 @@ local jewelryTraits = {
     [ITEM_TRAIT_TYPE_JEWELRY_ORNATE] = true
 }
 
-local curtType = {
-    CURT_ALLIANCE_POINTS,
-    CURT_ENDLESS_DUNGEON,
-    CURT_CROWNS,
-    CURT_MONEY,
-    CURT_CROWN_GEMS,
-    CURT_STYLE_STONES,
-    CURT_TELVAR_STONES,
-    CURT_UNDAUNTED_KEYS,
-    CURT_WRIT_VOUCHERS,
-    CURT_IMPERIAL_FRAGMENTS,
-    CURT_TRANSMUTE_CRYSTALS,
-    CURT_SEALS,
-    CURT_TOME_CHALLENGE_REROLLS,
-    CURT_TOME_POINTS,
-    CURT_TOME_POINT_CACHES,
-    CURT_TOME_TOKENS,
-    CURT_TRADE_BARS,
-    CURT_UNDAUNTED_CRESTS
-}
-
 local writRewardContainerSuffix = {
     "I",
     "II",
@@ -188,6 +169,7 @@ local writRewardContainerSuffix = {
 
 local iconReplacements = {
     [GetString(SI_ITEM_ACTION_LOOT_TAKE)] = "|t28:28:EsoUI/Art/help/help_tabicon_itemassistance_up.dds|t",
+    [GetString(MSAL_ITEM_ACTION_UNBOX)] = "|t28:28:EsoUI/Art/inventory/inventory_upgradebag_down.dds|t",
     [GetString(SI_ITEM_ACTION_MARK_AS_JUNK)] = "|t28:28:EsoUI/Art/inventory/inventory_tabicon_junk_up.dds|t",
     [GetString(MSAL_REGISTER_FOR_DECON_AND_JUNK)] = "|t30:30:EsoUI/Art/crafting/enchantment_tabicon_deconstruction_up.dds|t" ..
         "&" .. "|t28:28:EsoUI/Art/inventory/inventory_tabicon_junk_up.dds|t",
@@ -210,7 +192,7 @@ local function IsCp160Material(link)
     return cp160MaterialIds[GetItemLinkItemId(link)]
 end
 
-local function IsIntricateSkillMaxed(link, itemType)
+local function IsCraftingSkillMaxed(link, itemType)
     local trait = GetItemLinkTraitInfo(link)
     if jewelryTraits[trait] and itemType == ITEMTYPE_ARMOR then
         return (GetSkillLineDynamicInfo(SKILL_TYPE_TRADESKILL, 6)) == 50
@@ -249,6 +231,119 @@ local function ApplyIcons(str)
     return str
 end
 
+local function DedupeItems(items)
+    local quantity, result = {}, {}
+    for _, item in ipairs(items) do
+        quantity[item] = (quantity[item] or 0) + 1
+    end
+    for _, item in ipairs(items) do
+        local count = quantity[item]
+        if count then
+            result[#result + 1] = count > 1 and (item .. " * " .. count) or item
+            quantity[item] = nil
+        end
+    end
+    return result
+end
+
+local function GetLogItemLinks(text)
+    local links, pos = {}, 1
+    while pos <= #text do
+        local nextPos = #text + 1
+        local markup = string.sub(text, pos, pos + 1)
+        if markup == "|H" then
+            local linkEnd = string.find(text, "|h|h", pos, true)
+            if linkEnd then
+                nextPos = linkEnd + 4
+            end
+        elseif markup == "|t" then
+            local iconEnd = string.find(text, "|t", pos + 2, true)
+            if iconEnd then
+                nextPos = iconEnd + 2
+            end
+        else
+            local space = string.find(text, " ", pos, true)
+            local nextMarkup = string.find(text, "|", pos + 1, true)
+            if space and (not nextMarkup or space < nextMarkup) then
+                nextPos = space + 1
+            elseif nextMarkup then
+                nextPos = nextMarkup
+            end
+        end
+        if nextPos <= pos then
+            nextPos = pos + 1
+        end
+        table.insert(links, string.sub(text, pos, nextPos - 1))
+        pos = nextPos
+    end
+    return links
+end
+
+local function WrapLinks(text, maxLength)
+    local lines, current = {}, ""
+    for _, link in ipairs(GetLogItemLinks(text)) do
+        if current ~= "" and #current + #link > maxLength then
+            table.insert(lines, (string.gsub(current, " +$", "")))
+            current = ""
+        end
+        current = current .. link
+    end
+    if current ~= "" then
+        table.insert(lines, (string.gsub(current, " +$", "")))
+    end
+    return lines
+end
+
+local function PackItems(head, items, maxLength)
+    if #items == 0 then
+        return { head }
+    end
+    -- rather than splitting the first item, just drop the head if it doesn't fit
+    if #head + #items[1] > maxLength then
+        local firstLink = GetLogItemLinks(items[1])[1] or ""
+        if #head + #firstLink > maxLength then
+            head = ""
+        end
+    end
+    local separator = GetString(SI_LIST_COMMA_SEPARATOR)
+    local lines, current = {}, nil
+    for _, item in ipairs(items) do
+        if current and #current + #separator + #item <= maxLength then
+            current = current .. separator .. item
+        else
+            if current then
+                table.insert(lines, current)
+            end
+            current = head .. item
+            if #current > maxLength then
+                local wrapped = WrapLinks(item, maxLength - #head)
+                for i = 1, #wrapped - 1 do
+                    table.insert(lines, head .. wrapped[i])
+                end
+                current = head .. wrapped[#wrapped]
+            end
+        end
+    end
+    table.insert(lines, current)
+    return lines
+end
+
+local function RenderLogEntry(entry, maxLength)
+    local head = ""
+    if entry.action then
+        head = ApplyIcons(entry.action) .. GetString(MSAL_SPACE)
+    end
+    if entry.source then
+        head = ApplyIcons(GetString(MSAL_ITEM_ACTION_UNBOX)) .. GetString(MSAL_SPACE) .. entry.source ..
+                   " → " .. head
+    end
+    local items = {}
+    for i, item in ipairs(entry.items) do
+        items[i] = ApplyIcons(item)
+    end
+    return PackItems(head, items, maxLength)
+end
+
 local function SendChatboxMessage(highlight, ...)
     CHAT_ROUTER:AddSystemMessage(...)
     if highlight then
@@ -270,12 +365,32 @@ local function FlushChatlogBuffer()
     if #chatlogBuffer == 0 then
         return
     end
-    ChatboxPrint(chatboxPrefix .. ApplyIcons(table.concat(chatlogBuffer, GetString(SI_LIST_PERIOD_SEPARATOR))))
+    local maxLength = CHAT_MESSAGE_MAX - #chatboxPrefix
+    local periodSeparator = GetString(SI_LIST_PERIOD_SEPARATOR)
+    local lines, current = {}, ""
+    for _, entry in ipairs(chatlogBuffer) do
+        for _, line in ipairs(RenderLogEntry(entry, maxLength)) do
+            if current == "" then
+                current = line
+            elseif #current + #periodSeparator + #line <= maxLength then
+                current = current .. periodSeparator .. line
+            else
+                table.insert(lines, current)
+                current = line
+            end
+        end
+    end
     chatlogBuffer = {}
+    if current ~= "" then
+        table.insert(lines, current)
+    end
+    for _, line in ipairs(lines) do
+        ChatboxPrint(chatboxPrefix .. line)
+    end
 end
 
-local function ChatboxLog(str)
-    table.insert(chatlogBuffer, str)
+local function QueueLogEntry(entry)
+    table.insert(chatlogBuffer, entry)
     chatlogFlushEpoch = chatlogFlushEpoch + 1
     local epoch = chatlogFlushEpoch
     zo_callLater(function()
@@ -286,33 +401,47 @@ local function ChatboxLog(str)
     end, GetLatency())
 end
 
+local function ChatboxLog(text)
+    QueueLogEntry({ items = { text } })
+end
+
+local function ChatboxItemLog(action, items)
+    QueueLogEntry({
+        action = action,
+        source = unboxingSourceLink,
+        items = items
+    })
+end
+
+local function AddLogGroup(groups, action, source, item)
+    for _, group in ipairs(groups) do
+        if group.action == action and group.source == source then
+            table.insert(group.items, item)
+            return
+        end
+    end
+    table.insert(groups, {
+        action = action,
+        source = source,
+        items = { item }
+    })
+end
+
+local function FlushLogGroups(groups)
+    for _, group in ipairs(groups) do
+        QueueLogEntry({
+            action = group.action,
+            source = group.source,
+            items = DedupeItems(group.items)
+        })
+    end
+end
+
 local function FlushDisposeLogLines()
-    if next(disposeLogLines) == nil then
+    if #disposeLogLines == 0 then
         return
     end
-    local parts = {}
-    for action, lines in pairs(disposeLogLines) do
-        local logParts, quantity = {}, {}
-        for _, line in ipairs(lines) do
-            quantity[line] = (quantity[line] or 0) + 1
-        end
-        for _, line in ipairs(lines) do
-            if quantity[line] then
-                if quantity[line] > 1 then
-                    table.insert(logParts, line .. " * " .. quantity[line])
-                else
-                    table.insert(logParts, line)
-                end
-                quantity[line] = nil
-            end
-        end
-        if action ~= "" then
-            table.insert(parts, action .. GetString(MSAL_SPACE) .. table.concat(logParts, GetString(SI_LIST_COMMA_SEPARATOR)))
-        else
-            table.insert(parts, table.concat(logParts, GetString(SI_LIST_COMMA_SEPARATOR)))
-        end
-    end
-    ChatboxLog(table.concat(parts, GetString(SI_LIST_PERIOD_SEPARATOR)))
+    FlushLogGroups(disposeLogLines)
     disposeLogLines = {}
 end
 
@@ -328,54 +457,22 @@ local function scheduleDisposeLogFlush()
 end
 
 local function addDisposeLog(action, entry)
-    if not disposeLogLines[action] then
-        disposeLogLines[action] = {}
-    end
-    table.insert(disposeLogLines[action], entry)
+    AddLogGroup(disposeLogLines, action, unboxingSourceLink, entry)
     scheduleDisposeLogFlush()
 end
 
 local function FlushNonLootBuffer()
-    if #nonLootReceivedBuffer > 0 then
-        local deduped, quantity = {}, {}
-        for _, entry in ipairs(nonLootReceivedBuffer) do
-            quantity[entry] = (quantity[entry] or 0) + 1
-        end
-        for _, entry in ipairs(nonLootReceivedBuffer) do
-            if quantity[entry] then
-                if quantity[entry] > 1 then
-                    table.insert(deduped, entry .. " * " .. quantity[entry])
-                else
-                    table.insert(deduped, entry)
-                end
-                quantity[entry] = nil
-            end
-        end
-        ChatboxLog(GetString(SI_ITEM_ACTION_LOOT_TAKE) .. GetString(MSAL_SPACE) ..
-                       table.concat(deduped, GetString(SI_LIST_COMMA_SEPARATOR)))
+    if #nonLootReceivedBuffer.items > 0 then
+        QueueLogEntry({
+            action = GetString(SI_ITEM_ACTION_LOOT_TAKE),
+            source = nonLootReceivedBuffer.source,
+            items = DedupeItems(nonLootReceivedBuffer.items)
+        })
+        nonLootReceivedBuffer = { items = {} }
         FlushChatlogBuffer()
-        nonLootReceivedBuffer = {}
     end
-    if next(nonLootDisposedBuffer) ~= nil then
-        local parts = {}
-        for action, links in pairs(nonLootDisposedBuffer) do
-            local deduped, quantity = {}, {}
-            for _, lnk in ipairs(links) do
-                quantity[lnk] = (quantity[lnk] or 0) + 1
-            end
-            for _, lnk in ipairs(links) do
-                if quantity[lnk] then
-                    if quantity[lnk] > 1 then
-                        table.insert(deduped, lnk .. " * " .. quantity[lnk])
-                    else
-                        table.insert(deduped, lnk)
-                    end
-                    quantity[lnk] = nil
-                end
-            end
-            table.insert(parts, action .. GetString(MSAL_SPACE) .. table.concat(deduped, GetString(SI_LIST_COMMA_SEPARATOR)))
-        end
-        ChatboxLog(table.concat(parts, GetString(SI_LIST_PERIOD_SEPARATOR)))
+    if #nonLootDisposedBuffer > 0 then
+        FlushLogGroups(nonLootDisposedBuffer)
         nonLootDisposedBuffer = {}
     end
 end
@@ -392,15 +489,18 @@ local function scheduleNonLootFlush()
 end
 
 local function BufferItemDisposeLog(action, link)
-    if not nonLootDisposedBuffer[action] then
-        nonLootDisposedBuffer[action] = {}
-    end
-    table.insert(nonLootDisposedBuffer[action], link)
+    AddLogGroup(nonLootDisposedBuffer, action, unboxingSourceLink, link)
     scheduleNonLootFlush()
 end
 
 local function BufferItemReceivedLog(entry)
-    table.insert(nonLootReceivedBuffer, entry)
+    if #nonLootReceivedBuffer.items > 0 and nonLootReceivedBuffer.source ~= unboxingSourceLink then
+        FlushNonLootBuffer()
+    end
+    if #nonLootReceivedBuffer.items == 0 then
+        nonLootReceivedBuffer.source = unboxingSourceLink
+    end
+    table.insert(nonLootReceivedBuffer.items, entry)
     scheduleNonLootFlush()
 end
 
@@ -710,7 +810,7 @@ local function OnOpenStore()
                     table.insert(parts, link)
                 end
             end
-            ChatboxLog((db.useIconsInLog and "|t28:28:EsoUI/Art/vendor/vendor_tabicon_sell_up.dds|t" or GetString(SI_ITEM_ACTION_SELL)) .. GetString(MSAL_SPACE) .. table.concat(parts, GetString(SI_LIST_COMMA_SEPARATOR)))
+            ChatboxItemLog(db.useIconsInLog and "|t28:28:EsoUI/Art/vendor/vendor_tabicon_sell_up.dds|t" or GetString(SI_ITEM_ACTION_SELL), parts)
         end
         ChatboxLog(zo_strformat(GetString(MSAL_JUNK_SOLD_TOTAL), total, GetCurrencyName(CURT_MONEY, false, false)))
         if ZO_IsConsoleOrGameCoreUI() then
@@ -758,7 +858,7 @@ local function OnOpenFence()
                         table.insert(parts, link)
                     end
                 end
-                ChatboxLog((db.useIconsInLog and "|t28:28:EsoUI/Art/vendor/vendor_tabicon_sell_up.dds|t" or GetString(SI_ITEM_ACTION_SELL)) .. GetString(MSAL_SPACE) .. table.concat(parts, GetString(SI_LIST_COMMA_SEPARATOR)))
+                ChatboxItemLog(db.useIconsInLog and "|t28:28:EsoUI/Art/vendor/vendor_tabicon_sell_up.dds|t" or GetString(SI_ITEM_ACTION_SELL), parts)
             end
             ChatboxLog(zo_strformat(GetString(MSAL_JUNK_SOLD_TOTAL), total, GetCurrencyName(CURT_MONEY, false, false)))
             if ZO_IsConsoleOrGameCoreUI() then
@@ -807,8 +907,8 @@ local function OnInventoryUpdate(_, bagId, slotId, _, _, _, _)
     local quality = GetItemLinkDisplayQuality(link)
     local isCrafted = IsItemLinkCrafted(link)
     local isBound = IsItemLinkBound(link)
-    local isContainer = IsItemLinkContainer(link)
-    local itemLinkType = GetItemLinkItemType(link)
+    local itemLinkType, itemSpecializedType = GetItemLinkItemType(link)
+    local isContainer = IsItemLinkContainer(link) or itemSpecializedType == SPECIALIZED_ITEMTYPE_CONTAINER_EVENT
     local isUnopened = itemLinkType == ITEMTYPE_CONTAINER_STACKABLE
     local isScript = itemLinkType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT
     local isTrash = itemLinkType == ITEMTYPE_TRASH
@@ -1052,6 +1152,10 @@ local function OnInventoryUpdate(_, bagId, slotId, _, _, _, _)
             end
         end
     end
+    if isContainer and not isGeode then
+        DebugLog(string.format("container check: slot=%d type=%d/%d bound=%s mode=%s", slotId, itemLinkType,
+            itemSpecializedType, tostring(isBound), tostring(db.autoUnboxContainer)))
+    end
     if (isContainer and not isGeode and
         (db.autoUnboxContainer == "all" or (isBound and db.autoUnboxContainer == "bound")) and
         not isWritsRewardContainerLooting) or
@@ -1145,7 +1249,7 @@ local function OnDestroyUpdated(_, bagId, slotId, _, _, _, _)
     local quality = GetItemLinkFunctionalQuality(link)
     -- CHAT_ROUTER:AddSystemMessage("unwanted: "..tostring(unwanted))
     if quality >= db.printDisposeThreshold then
-        ChatboxLog(GetString(SI_ITEM_ACTION_DESTROY) .. GetString(MSAL_SPACE) .. link)
+        ChatboxItemLog(GetString(SI_ITEM_ACTION_DESTROY), { link })
     end
     DestroyItem(bagId, slotId)
 end
@@ -1160,12 +1264,12 @@ local function OnJunkingUpdated(_, bagId, slotId, _, _, _, _)
     if CanItemBeMarkedAsJunk(bagId, slotId) then
         if GetItemLinkSellInformation(link) == ITEM_SELL_INFORMATION_CANNOT_SELL then
             if quality >= db.printDisposeThreshold then
-                ChatboxLog(GetString(SI_ITEM_ACTION_LOOT_TAKE) .. GetString(MSAL_SPACE) .. link ..
-                    " (" .. GetString(SI_ITEMSELLINFORMATION4) .. ")")
+                ChatboxItemLog(GetString(SI_ITEM_ACTION_LOOT_TAKE),
+                    { link .. " (" .. GetString(SI_ITEMSELLINFORMATION4) .. ")" })
             end
         else
             if quality >= db.printDisposeThreshold then
-                ChatboxLog(GetString(SI_ITEM_ACTION_MARK_AS_JUNK) .. GetString(MSAL_SPACE) .. link)
+                ChatboxItemLog(GetString(SI_ITEM_ACTION_MARK_AS_JUNK), { link })
             end
             SetItemIsJunk(bagId, slotId, true)
         end
@@ -1820,33 +1924,86 @@ local function isPlayerIdle(slotIndex)
 end
 
 local function unboxQueuedContainer()
+    if isUnboxing then
+        return
+    end
     local cachedUnboxingQueue = unboxingQueue
     unboxingQueue = {}
     isUnboxing = true
-    zo_callLater(function()
+    local queueIndex = 0
+
+    local function waitForLootWindow(callback)
+        local minWait = GetLatency() + 500
+        local waited = 0
+        EVENT_MANAGER:UnregisterForUpdate("MSAL_UNBOXING_STEP")
+        EVENT_MANAGER:RegisterForUpdate("MSAL_UNBOXING_STEP", 100, function()
+            waited = waited + 100
+            if (waited >= minWait and not IsLooting()) or waited >= 8000 then
+                EVENT_MANAGER:UnregisterForUpdate("MSAL_UNBOXING_STEP")
+                callback()
+            end
+        end)
+    end
+
+    local function endBatch()
+        EVENT_MANAGER:UnregisterForUpdate("MSAL_UNBOXING_STEP")
         isUnboxing = false
+        if not isDisposedUpdateListening then
+            unboxingSourceLink = nil
+        end
+        DebugLog("unbox batch done: " .. tostring(#cachedUnboxingQueue))
         -- if new containers were obtained during unboxing
         if #unboxingQueue > 0 then
             unboxQueuedContainer()
         end
-    end, #cachedUnboxingQueue * (1000 + GetLatency()))
-    for i, slotIndex in ipairs(cachedUnboxingQueue) do
-        if GetItemName(BAG_BACKPACK, slotIndex) == "" then
-            ChatboxLog((GetString(MSAL_UNBOX_CONTAINER_MISSING)))
-        else
-            zo_callLater(function()
-                CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
-                -- if ZO_IsConsoleOrGameCoreUI() then
-                --     SCENE_MANAGER:Hide("lootGamepad")
-                --     SCENE_MANAGER:Show("hud")
-                -- else
-                --     SCENE_MANAGER:Hide("loot")
-                --     SCENE_MANAGER:Show("hudui")
-                -- end
-                -- SCENE_MANAGER:ShowBaseScene()
-            end, (i - 1) * (1000 + GetLatency()))
-        end
     end
+
+    local function useContainer(slotIndex, sourceLink, stackCount, attempt, nextStep)
+        DebugLog("unbox use: slot=" .. slotIndex .. " name=" .. GetItemName(BAG_BACKPACK, slotIndex))
+        CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
+        zo_callLater(function()
+            local used = GetItemLink(BAG_BACKPACK, slotIndex) ~= sourceLink or
+                             GetSlotStackSize(BAG_BACKPACK, slotIndex) < stackCount
+            if not used and attempt < 3 then
+                DebugLog("unbox retry: slot=" .. slotIndex)
+                waitForLootWindow(function()
+                    useContainer(slotIndex, sourceLink, stackCount, attempt + 1, nextStep)
+                end)
+            else
+                waitForLootWindow(nextStep)
+            end
+        end, GetLatency() + 700)
+    end
+
+    local function useNextContainer()
+        queueIndex = queueIndex + 1
+        local slotIndex = cachedUnboxingQueue[queueIndex]
+        while slotIndex and GetItemName(BAG_BACKPACK, slotIndex) == "" do
+            ChatboxLog((GetString(MSAL_UNBOX_CONTAINER_MISSING)))
+            queueIndex = queueIndex + 1
+            slotIndex = cachedUnboxingQueue[queueIndex]
+        end
+        if not slotIndex then
+            endBatch()
+            return
+        end
+        local sourceLink = GetItemLink(BAG_BACKPACK, slotIndex)
+        if sourceLink == "" then
+            ChatboxLog((GetString(MSAL_UNBOX_CONTAINER_MISSING)))
+            useNextContainer()
+            return
+        end
+        local stackCount = GetSlotStackSize(BAG_BACKPACK, slotIndex)
+        unboxingSourceLink = sourceLink
+        zo_callLater(function()
+            if unboxingSourceLink == sourceLink then
+                unboxingSourceLink = nil
+            end
+        end, GetLatency() + 5000)
+        useContainer(slotIndex, sourceLink, stackCount, 1, useNextContainer)
+    end
+
+    waitForLootWindow(useNextContainer)
 end
 
 -- monitor item interaction status
@@ -2463,7 +2620,7 @@ local function OnLootUpdated()
         if lootedAs then
             if quality >= db.printLootThreshold and not deferTreasureLog then
                 if lootedAs == "stackable junk" or lootedAs == "on whitelist junk" then
-                    local part = GetString(SI_ITEM_ACTION_MARK_AS_JUNK) .. GetString(MSAL_SPACE) .. link
+                    local part = link
                     if lootedAs == "stackable junk" then
                         part = part .. GetString(MSAL_SPACE) ..
                                    zo_strformat(GetString(SI_QUEST_TYPE_FORMAT),
@@ -2495,47 +2652,13 @@ local function OnLootUpdated()
     end
 
     if #stackableLootedParts > 0 then
-        local logPart, lootedQuantity = {}, {}
-        for _, part in ipairs(stackableLootedParts) do
-            lootedQuantity[part] = (lootedQuantity[part] or 0) + 1
-        end
-        for _, part in ipairs(stackableLootedParts) do
-            if lootedQuantity[part] then
-                if lootedQuantity[part] > 1 then
-                    table.insert(logPart, part .. " * " .. lootedQuantity[part])
-                else
-                    table.insert(logPart, part)
-                end
-                lootedQuantity[part] = nil
-            end
-        end
-        local msg = GetString(SI_ITEM_ACTION_LOOT_TAKE) .. GetString(MSAL_SPACE) .. logPart[1]
-        for i = 2, #logPart do
-            msg = msg .. GetString(SI_LIST_COMMA_SEPARATOR) .. logPart[i]
-        end
-        ChatboxLog(msg)
+        ChatboxItemLog(GetString(SI_ITEM_ACTION_LOOT_TAKE), DedupeItems(stackableLootedParts))
+        FlushChatlogBuffer()
     end
 
     if #stackableJunkParts > 0 then
-        local logPart, lootedQuantity = {}, {}
-        for _, part in ipairs(stackableJunkParts) do
-            lootedQuantity[part] = (lootedQuantity[part] or 0) + 1
-        end
-        for _, part in ipairs(stackableJunkParts) do
-            if lootedQuantity[part] then
-                if lootedQuantity[part] > 1 then
-                    table.insert(logPart, part .. " * " .. lootedQuantity[part])
-                else
-                    table.insert(logPart, part)
-                end
-                lootedQuantity[part] = nil
-            end
-        end
-        local msg = logPart[1]
-        for i = 2, #logPart do
-            msg = msg .. GetString(SI_LIST_COMMA_SEPARATOR) .. logPart[i]
-        end
-        ChatboxLog(msg)
+        ChatboxItemLog(GetString(SI_ITEM_ACTION_MARK_AS_JUNK), DedupeItems(stackableJunkParts))
+        FlushChatlogBuffer()
     end
 
     -- DebugLog("currentNotLootedNameList length: " .. tostring(#currentNotLootedNameList))
@@ -2580,6 +2703,9 @@ local function OnLootUpdated()
             EVENT_MANAGER:UnregisterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
             isDisposedUpdateListening = false
             lootHandledNameList = {}
+            if not isUnboxing then
+                unboxingSourceLink = nil
+            end
         end, GetLatency() + 200)
 
         EVENT_MANAGER:UnregisterForEvent("MSAL_LOOT_UPDATED", EVENT_LOOT_UPDATED)
@@ -2799,6 +2925,9 @@ local function OnLootClosed()
         LOOT_INVENTORY_WINDOW_GAMEPAD:HideTooltip()
     end
     isLALwaitingForUnboxingCraftReward = false
+    if not isDisposedUpdateListening then
+        unboxingSourceLink = nil
+    end
     if isWritsRewardContainerLooting then
         scheduleWritsRewardLootEnd(GetLatency() * 2 + 1000)
     end
@@ -2937,8 +3066,8 @@ local function ListAutoDeconItems()
                                 local isIntricate = trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE or trait ==
                                                         ITEM_TRAIT_TYPE_WEAPON_INTRICATE or trait ==
                                                         ITEM_TRAIT_TYPE_JEWELRY_INTRICATE
-                                DebugLog("isIntricate: " .. tostring(isIntricate) .. ", not maxed: " .. tostring(not IsIntricateSkillMaxed(link, itemType)))
-                                if isIntricate and not IsIntricateSkillMaxed(link, itemType) then
+                                DebugLog("isIntricate: " .. tostring(isIntricate) .. ", not maxed: " .. tostring(not IsCraftingSkillMaxed(link, itemType)))
+                                if isIntricate and not IsCraftingSkillMaxed(link, itemType) then
                                     if not isReconstructed then
                                         autoDeconStation:RemoveItemFromCraft(BAG_BACKPACK, bagSlot)
                                         autoDeconStation:AddItemToCraft(BAG_BACKPACK, bagSlot)
@@ -2962,25 +3091,7 @@ local function ListAutoDeconItems()
         end
     end
     if #deconLinks > 0 and db.deconLogEnabled then
-        local logParts, quantity = {}, {}
-        for _, lnk in ipairs(deconLinks) do
-            quantity[lnk] = (quantity[lnk] or 0) + 1
-        end
-        for _, link in ipairs(deconLinks) do
-            if quantity[link] then
-                if quantity[link] > 1 then
-                    table.insert(logParts, link .. "*" .. quantity[link])
-                else
-                    table.insert(logParts, link)
-                end
-                quantity[link] = nil
-            end
-        end
-        local msg = GetString(MSAL_REGISTER_FOR_DECON) .. GetString(MSAL_SPACE) .. logParts[1]
-        for i = 2, #logParts do
-            msg = msg .. GetString(SI_LIST_COMMA_SEPARATOR) .. logParts[i]
-        end
-        ChatboxLog(msg)
+        ChatboxItemLog(GetString(MSAL_REGISTER_FOR_DECON), DedupeItems(deconLinks))
     end
     autoDeconScanned = true
 end
@@ -4092,7 +4203,7 @@ end
 
 function MSAL.LootAllPlus(self)
     LootMoney()
-    for _, curt in ipairs(curtType) do
+    for curt in pairs(LOOT_SHARED:GetLootCurrencyInformation()) do
         LootCurrency(curt)
     end
 
@@ -4131,7 +4242,7 @@ function MSAL.Destroy(self)
     end, GetLatency() + 100)
 
     LootMoney()
-    for _, curt in ipairs(curtType) do
+    for curt in pairs(LOOT_SHARED:GetLootCurrencyInformation()) do
         LootCurrency(curt)
     end
     local bListedSetGearList = {}
@@ -4172,7 +4283,7 @@ function MSAL.Junking(self)
     end, GetLatency() + 100)
 
     LootMoney()
-    for _, curt in ipairs(curtType) do
+    for curt in pairs(LOOT_SHARED:GetLootCurrencyInformation()) do
         LootCurrency(curt)
     end
     local bListedSetGearList = {}
@@ -4203,8 +4314,9 @@ function MSAL.UnboxInventoryContainer()
     local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK)
     for _, data in pairs(filteredDataTable) do
         local itemLink = GetItemLink(BAG_BACKPACK, data.slotIndex)
-        local isContainer = IsItemLinkContainer(itemLink) and GetItemLinkItemType(itemLink) ~=
-                                ITEMTYPE_CONTAINER_CURRENCY
+        local itemType, specializedType = GetItemLinkItemType(itemLink)
+        local isContainer = (IsItemLinkContainer(itemLink) or specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_EVENT)
+                                and itemType ~= ITEMTYPE_CONTAINER_CURRENCY
         if isContainer then
             for i = 1, data.stackCount do
                 table.insert(unboxingQueue, data.slotIndex)

@@ -5,15 +5,18 @@
                 <Down>NAGA_UI.Minimap:PlaceWaypointAtCursor()</Down>
             </Action>
         </Category>
-        <Category name="AbyssQuest">
-            <Action name="QUICKTRAVELMENU_TOGGLE">
-                <Down>AbyssQuest.Toggle()</Down>
+        <Category name="AetherPath">
+            <Action name="AETHERPATH_TOGGLE">
+                <Down>if AetherPath and AetherPath.UI then AetherPath.UI:ToggleTracker() end</Down>
             </Action>
-            <Action name="QUICKTRAVELMENU_QUEST">
-                <Down>AbyssQuest.QuestTravel:TravelMain()</Down>
+            <Action name="AETHERPATH_TRAVEL">
+                <Down>if AetherPath and AetherPath.UI then AetherPath.UI:ToggleTravel() end</Down>
             </Action>
-            <Action name="QUICKTRAVELMENU_LOCK">
-                <Down>AbyssQuest.Buttons:SetLocked(not AbyssQuest.sv.buttonsLocked)</Down>
+            <Action name="AETHERPATH_CYCLE">
+                <Down>if AetherPath and AetherPath.Tracker then AetherPath.Tracker:CycleNext() end</Down>
+            </Action>
+            <Action name="AETHERPATH_LOCK">
+                <Down>if AetherPath and AetherPath.sv then AetherPath.sv.trackerLocked = not AetherPath.sv.trackerLocked; if AetherPath.UI then AetherPath.UI:ApplyLock() end end</Down>
             </Action>
         </Category>
     </Layer>

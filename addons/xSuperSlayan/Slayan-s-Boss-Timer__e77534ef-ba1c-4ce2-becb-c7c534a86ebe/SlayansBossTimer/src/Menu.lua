@@ -37,6 +37,7 @@ Menu.ICON = {
     position = "EsoUI/Art/Buttons/Gamepad/gp_trackingPin.dds", -- Gamepad timed activities.
     alert = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_notifications.dds",
     chat = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_textChat.dds",
+    sound = "EsoUI/Art/Options/Gamepad/gp_options_audio.dds", -- The gamepad settings' Audio page.
 }
 local ICON = Menu.ICON
 -- Icons drawn in their own colours. The others take the colour of the row's text, as the game's menus do.
@@ -57,6 +58,7 @@ Menu.SETTINGS = {
     { "showCountdown", SI_SBT_MENU_SHOW_COUNTDOWN, SI_SBT_MENU_SHOW_COUNTDOWN_ON, SI_SBT_MENU_SHOW_COUNTDOWN_OFF,
         ICON.countdown },
     { "showAlert", SI_SBT_MENU_SHOW_ALERT, SI_SBT_MENU_SHOW_ALERT_ON, SI_SBT_MENU_SHOW_ALERT_OFF, ICON.alert },
+    { "playSound", SI_SBT_MENU_PLAY_SOUND, SI_SBT_MENU_PLAY_SOUND_ON, SI_SBT_MENU_PLAY_SOUND_OFF, ICON.sound },
     { "showChat", SI_SBT_MENU_SHOW_CHAT, SI_SBT_MENU_SHOW_CHAT_ON, SI_SBT_MENU_SHOW_CHAT_OFF, ICON.chat },
 }
 

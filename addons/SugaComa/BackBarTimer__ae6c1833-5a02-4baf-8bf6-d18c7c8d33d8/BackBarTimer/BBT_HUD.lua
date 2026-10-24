@@ -201,15 +201,25 @@ function HUD:GetFrontWeaponTexture()
 end
 
 function HUD:ShowSkillPrompt(entry, record, remainMs)
-    if remainMs <= Addon.Config.hudWarningMs then
+    local finalWarning = remainMs <= Addon.Config.hudWarningMs
+    local showSkillIcon = finalWarning
+    if Addon.sv.skillIconFirst == true then
+        showSkillIcon = not finalWarning
+    end
+
+    if showSkillIcon then
         entry.icon:SetTexture(record.icon)
         entry.icon:SetHidden(false)
         entry.binding:SetHidden(true)
-        entry.timer:SetText(string.format("%.1f", math.max(0, remainMs) / 1000))
     else
         entry.binding:SetText(GetBindingMarkup(record.slot))
         entry.binding:SetHidden(false)
         entry.icon:SetHidden(true)
+    end
+
+    if finalWarning then
+        entry.timer:SetText(string.format("%.1f", math.max(0, remainMs) / 1000))
+    else
         entry.timer:SetText(tostring(math.ceil(remainMs / 1000)))
     end
     entry.timerBox:SetHidden(false)

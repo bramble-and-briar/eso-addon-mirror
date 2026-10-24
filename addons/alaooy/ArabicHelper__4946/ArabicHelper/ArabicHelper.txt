@@ -1,6 +1,11 @@
 ## Title: ArabicHelper
+## Description: Arabic guide for ESO: search gear sets (Dungeon, Trial, Arena, Craftable, PvP, Monster, Mythic) with Arabic set cards, buffs and debuffs, trial mechanics, and set terms explained in Arabic. Shows the Arabic set card next to item tooltips automatically.
+## Author: alaooy
+## Version: 1.1.0
+## AddOnVersion: 110
 ## APIVersion: 101051 101050
 ## SavedVariables: ArabicHelperSavedVariables
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
 
 Bindings.xml
 arabic.lua

@@ -12,7 +12,6 @@ local LEGACY_SAVED_VARS = {
     { "NAGA_Account", "NaguiUI_Account" },
     { "NAGA_Servers", "NaguiUI_Servers" },
     { "NAGA_Character", "NaguiUI_Character" },
-    { "NAGA_StatisticsReports", "NaguiUI_StatisticsReports" },
 }
 local legacyMigrated = false
 function NAGA_UI.MigrateLegacySV()
@@ -96,7 +95,6 @@ local MODULE_MENU_ICONS =
     ["Loot History"] = "EsoUI/Art/MainMenu/menuBar_inventory_up.dds",
     ["Info Panel"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_uigraphics.dds",
     ["NAGA"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_uigraphics.dds",
-    ["Estatística de Dano"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_combat.dds",
 }
 NAGA_UI.MODULE_MENU_ICONS = MODULE_MENU_ICONS
 
@@ -1823,18 +1821,20 @@ function Settings:GetAchievementAlert()
 end
 
 
--- Opções do AbyssQuest (modules/quest): substituem as do antigo Quest Tracker.
-function Settings:GetAbyssQuestOptions()
-    local ok, result = pcall(function()
-        return AbyssQuest.Settings:BuildOptions()
-    end)
-    if ok and type(result) == "table" then
-        return result
+-- AbyssQuest (modules/aetherpath) options for the AbyssUI settings submenu
+function Settings:GetAetherPathOptions()
+    if AetherPath and AetherPath.Settings and AetherPath.Settings.BuildOptions then
+        local ok, result = pcall(function()
+            return AetherPath.Settings:BuildOptions()
+        end)
+        if ok and type(result) == "table" then
+            return result
+        end
     end
     return {
         {
             type = "description",
-            text = T("AbyssQuest não foi carregado (modules/quest). ") .. tostring(result),
+            text = "AbyssQuest não foi carregado (modules/aetherpath).",
         },
     }
 end
@@ -3976,8 +3976,8 @@ function Settings:RegisterAddonMenu()
     {
         {
             type = "submenu",
-            name = T("AbyssQuest"),
-            controls = self:GetAbyssQuestOptions(),
+            name = "AbyssQuest",
+            controls = self:GetAetherPathOptions(),
             reference = "AbyssUI_AbyssQuestSubmenu",
         },
         {
@@ -5723,12 +5723,6 @@ function Settings:RegisterAddonMenu()
     }
     table.insert(options, 2, {
         type = "submenu",
-        name = T("Estatística de Dano"),
-        controls = (NAGA_UI.Statistics and NAGA_UI.Statistics.GetOptions and NAGA_UI.Statistics:GetOptions()) or {},
-    })
-
-    table.insert(options, 2, {
-        type = "submenu",
         name = T("|t32:32:/esoui/art/treeicons/store_indexicon_bundle_up.dds|t Automação"),
         controls = (NAGA_UI.Automation and NAGA_UI.Automation.GetOptions and NAGA_UI.Automation:GetOptions()) or {},
     })
@@ -5785,9 +5779,8 @@ function Settings:RegisterAddonMenu()
             end
         end
     end
-    if AbyssQuest and AbyssQuest.Settings then
-        AbyssQuest.Settings.panel = lamPanel
-    end
+    -- AetherPath uses its own LAM panel; nothing to attach here.
+
 
     for _, eventName in ipairs({ "LAM-PanelOpened", "LAM-PanelClosed" }) do
         local visible = eventName == "LAM-PanelOpened"

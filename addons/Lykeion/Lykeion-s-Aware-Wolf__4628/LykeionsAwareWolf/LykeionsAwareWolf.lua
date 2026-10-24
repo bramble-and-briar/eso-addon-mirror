@@ -18,6 +18,7 @@ local defaults = {
     clawFuryRange = true,
     roarPanel = true,
     prowlPanel = false,
+    panelDecimalSeconds = 0,
     feedingpriority = true,
 }
 
@@ -417,7 +418,6 @@ local ROAR_BUFF_IDS = { 131353, 109966 }
 local PROWL_BUFF_IDS = { PROWL_ABILITY_ID }
 local PANEL_ICON_SIZE = 48
 local PANEL_ICON_PADDING = 4
-local PANEL_DECIMAL_SECONDS = 2.5
 local roarPanel, prowlPanel
 
 local function CreateBuffPanel(options)
@@ -433,7 +433,7 @@ local function CreateBuffPanel(options)
             local control = panel.controls[index]
             local remain = buff.endTime - now
             if remain > 0 then
-                if remain < PANEL_DECIMAL_SECONDS then
+                if remain < db.panelDecimalSeconds then
                     control.timer:SetText(string.format("%.1f", remain))
                 else
                     control.timer:SetText(zo_ceil(remain))
@@ -733,6 +733,18 @@ local function OnPlayerInit()
     })
     CreateClawSector()
 
+    if ZO_IsConsoleOrGameCoreUI() then
+        local function AddPanelMoveCommand(slash, panel)
+            SLASH_COMMANDS[slash] = function()
+                panel.setUnlocked(not panel.unlocked)
+                CHAT_ROUTER:AddSystemMessage(string.format(GetString(LAW_PANEL_MOVE_MSG),
+                    GetString(panel.unlocked and LAW_ENABLED or LAW_DISABLED)))
+            end
+        end
+        AddPanelMoveCommand("/awroar", roarPanel)
+        AddPanelMoveCommand("/awprowl", prowlPanel)
+    end
+
     SetClawRangeTrackingEnabled(db.clawFuryRange)
 
     -- this part of implement is based on the best practices used in NoAccidentalStealing by Shinni
@@ -799,7 +811,7 @@ local function CreateMenu()
         name = "Lykeion's Aware Wolf",
         displayName = "|c2e5c8cL|r|c365f87y|r|c3f6282k|r|c47657de|r|c4f6778i|r|c586a74o|r|c606d6fn|r|c68706a'|r|c717365s|r|c797660 |r|c81785bA|r|c897b56w|r|c927e51a|r|c9a814cr|r|ca28447e|r|cab8743 |r|cb3893eW|r|cbb8c39o|r|cc48f34l|r|ccc922ff|r",
         author = "|c215895Lykeion|r",
-        version = "|ccc922f2.3|r",
+        version = "|ccc922f2.4|r",
         slashCommand = "/law",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -809,6 +821,10 @@ local function CreateMenu()
         {
             type = "description",
             text = "|c999999" .. GetString(LAW_MENU_DESCRIPTION) .. "|r",
+        },
+        {
+            type = "header",
+            name = "|c999999 / " .. GetString(LAW_CATEGORY_INTERCEPT) .. "|r",
         },
         {
             type = "checkbox",
@@ -867,6 +883,10 @@ local function CreateMenu()
             end,
         },
         {
+            type = "header",
+            name = "|c999999 / " .. GetString(LAW_CATEGORY_TRACKING) .. "|r",
+        },
+        {
             type = "checkbox",
             name = LocalizeAbilityString(LAW_ROAR_PANEL, GetAbilityName(ROAR_ABILITY_ID)),
             tooltip = GetPlatformText(
@@ -879,6 +899,36 @@ local function CreateMenu()
             setFunc = function(value)
                 db.roarPanel = value
                 roarPanel.refresh()
+            end,
+        },
+        {
+            type = "checkbox",
+            name = LocalizeAbilityString(LAW_PROWL_PANEL, GetAbilityName(PROWL_ABILITY_ID)),
+            tooltip = GetPlatformText(
+                LocalizeAbilityString(LAW_PROWL_PANEL_TOOLTIP, GetAbilityName(PROWL_ABILITY_ID)),
+                LocalizeAbilityString(LAW_PROWL_PANEL_TOOLTIP_GAMEPAD, GetAbilityName(PROWL_ABILITY_ID))),
+            default = defaults.prowlPanel,
+            getFunc = function()
+                return db.prowlPanel
+            end,
+            setFunc = function(value)
+                db.prowlPanel = value
+                prowlPanel.refresh()
+            end,
+        },
+        {
+            type = "slider",
+            name = GetString(LAW_PANEL_DECIMAL),
+            tooltip = GetString(LAW_PANEL_DECIMAL_TOOLTIP),
+            min = 0,
+            max = 5,
+            step = 0.5,
+            default = defaults.panelDecimalSeconds,
+            getFunc = function()
+                return db.panelDecimalSeconds
+            end,
+            setFunc = function(value)
+                db.panelDecimalSeconds = value
             end,
         },
         {
@@ -896,6 +946,10 @@ local function CreateMenu()
                     StopClawSector()
                 end
             end,
+        },
+        {
+            type = "header",
+            name = "|c999999 / " .. GetString(LAW_CATEGORY_SYNERGY) .. "|r",
         },
         {
             type = "slider",
@@ -929,21 +983,6 @@ local function CreateMenu()
                 end
             end,
         },
-                {
-            type = "checkbox",
-            name = LocalizeAbilityString(LAW_PROWL_PANEL, GetAbilityName(PROWL_ABILITY_ID)),
-            tooltip = GetPlatformText(
-                LocalizeAbilityString(LAW_PROWL_PANEL_TOOLTIP, GetAbilityName(PROWL_ABILITY_ID)),
-                LocalizeAbilityString(LAW_PROWL_PANEL_TOOLTIP_GAMEPAD, GetAbilityName(PROWL_ABILITY_ID))),
-            default = defaults.prowlPanel,
-            getFunc = function()
-                return db.prowlPanel
-            end,
-            setFunc = function(value)
-                db.prowlPanel = value
-                prowlPanel.refresh()
-            end,
-        },
     }
 
     local panelControl = LibAddonMenu2:RegisterAddonPanel(addonName .. "Options", panelData)
@@ -965,18 +1004,6 @@ local function OnLoaded(_, name)
     local worldName = GetWorldName()
     db = ZO_SavedVars:NewAccountWide(SV_NAME, 1, nil, defaults, worldName)
     CreateMenu()
-
-    if ZO_IsConsoleOrGameCoreUI() then
-        local function AddPanelMoveCommand(slash, panel)
-            SLASH_COMMANDS[slash] = function()
-                panel.setUnlocked(not panel.unlocked)
-                CHAT_ROUTER:AddSystemMessage(string.format(GetString(LAW_PANEL_MOVE_MSG),
-                    GetString(panel.unlocked and LAW_ENABLED or LAW_DISABLED)))
-            end
-        end
-        AddPanelMoveCommand("/awroar", roarPanel)
-        AddPanelMoveCommand("/awprowl", prowlPanel)
-    end
 end
 
 EVENT_MANAGER:RegisterForEvent(addonName, EVENT_ADD_ON_LOADED, OnLoaded)

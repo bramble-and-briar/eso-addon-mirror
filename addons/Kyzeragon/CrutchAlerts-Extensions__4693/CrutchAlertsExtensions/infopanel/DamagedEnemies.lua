@@ -161,7 +161,7 @@ local function OnDamaged(_, result, _, _, _, _, _, _, targetName, targetType, hi
     if (targetType == COMBAT_UNIT_TYPE_PLAYER) then return end -- Self damage like carrion
     if (ABILITY_BLACKLIST[abilityId]) then return end
 
-    Crutch.dbgSpam(string.format("[%s] %s (%d) -> %s (%d) for %d", RESULTS[result], GetAbilityName(abilityId), abilityId, targetName, targetUnitId, hitValue))
+    -- Crutch.dbgSpam(string.format("[%s] %s (%d) -> %s (%d) for %d", RESULTS[result], GetAbilityName(abilityId), abilityId, targetName, targetUnitId, hitValue))
 
     if (not recentDamage[targetUnitId]) then
         recentDamage[targetUnitId] = {

@@ -1,4 +1,5 @@
---To get world position "/script d(string.format("zoneId=%d,XYZ=%d,%d,%d", GetUnitWorldPosition("player")))"
+--To print world position "/script d(string.format("zoneId=%d,XYZ=%d,%d,%d", GetUnitWorldPosition("player")))"
+--To copy world position "/script StartChatInput(string.format("zoneId=%d,XYZ=%d,%d,%d", GetUnitWorldPosition("player")))"
 --To get camera angle "/script d(GetPlayerCameraHeading())"
 --GroundAngles for arrows
 --{ N = 0 NNW = 0.3925 NW = 0.785 WNW = 1.175 W = 1.57 WSW = 1.9625 SW = 2.355 SSW = 2.7475 S = 3.14 SSE = 3.5325 SE = 3.925 ESE = 4.3175 E = 4.71 ENE = 5.1025 NE = 5.495 NNE = 5.8875}
@@ -68,6 +69,9 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44936] = { -- Treasure Map CE
 			"5,260919,10675,208299",
+		},
+		[153642] = { -- Glenmoril Wyrd Treasure Map: Glenumbra
+			"5,225246,16464,110936",
 		},
 	},
 	[19] = { --Stormhaven
@@ -202,6 +206,9 @@ SurveyResetMarker.MARKER_DATA = {
 		[44942] = { -- Treasure Map CE
 			"5,327031,10222,103126",
 		},
+		[153646] = { -- Glenmoril Wyrd Treasure Map: Rivenspire
+			"5,310804,16259,265320",
+		},
 	},
 	[41] = { -- Stonefalls
 		[57746] = { -- Alchemy
@@ -266,6 +273,9 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44944] = { -- Treasure Map CE
 			"5,237848,11619,269627",
+		},
+		[153648] = { -- Glenmoril Wyrd Treasure Map: Stonefalls
+			"5,345289,14295,194156",
 		},
 	},
 	[57] = { -- Deshaan
@@ -398,6 +408,9 @@ SurveyResetMarker.MARKER_DATA = {
 		[44940] = { -- Treasure Map CE
 			"5,133006,10249,215158",
 		},
+		[153644] = { -- Glenmoril Wyrd Treasure Map: Malabal Tor
+			"5,359975,14021,189881",
+		},
 	},
 	[92] = { -- Bangkorai
 		[57781] = { -- Alchemy
@@ -464,6 +477,9 @@ SurveyResetMarker.MARKER_DATA = {
 		[44929] = { -- Treasure Map CE
 			"5,224650,7024,319815",
 		},
+		[153641] = { -- Glenmoril Wyrd Treasure Map: Bangkorai
+			"5,218528,14450,203366",
+		},
 	},
 	[101] = { -- Eastmarch
 		[57778] = { -- Alchemy (2.0.9)
@@ -528,6 +544,9 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44935] = { -- Treasure Map CE
 			"5,325559,14799,241323",
+		},
+		[153643] = { -- Glenmoril Wyrd Treasure Map: Eastmarch
+			"5,212517,14050,243142",
 		},
 	},
 	[103] = { -- The Rift
@@ -663,6 +682,9 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44926] = { -- Treasure Map CE
 			"5,240967,10092,99954",
+		},
+		[153639] = { -- Glenmoril Wyrd Treasure Map: Alik'r
+			"5,452771,14466,176043",
 		},
 	},
 	[108] = { -- Greenshade
@@ -801,6 +823,9 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44943] = { -- Treasure Map CE
 			"5,271476,11982,171181",
+		},
+		[153647] = { -- Glenmoril Wyrd Treasure Map: Shadowfen
+			"5,223866,12193,245142",
 		},
 	},
 	[181] = { -- Cyrodiil
@@ -1089,7 +1114,10 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44927] = { -- Treasure Map CE
 			"5,263738,10075,422623",
-		}
+		},
+		[153640] = { -- Glenmoril Wyrd Treasure Map: Auridon
+			"5,72144,14123,128243",
+		},
 	},
 	[382] = { -- Reaper's March
 		[57780] = { -- Alchemy
@@ -1156,6 +1184,9 @@ SurveyResetMarker.MARKER_DATA = {
 		},
 		[44941] = { -- Treasure Map CE
 			"5,112803,15086,190246",
+		},
+		[153645] = { -- Glenmoril Wyrd Treasure Map: Reaper's March
+			"5,76238,13195,61001",
 		},
 	},
 	[383] = { -- Grahtwood

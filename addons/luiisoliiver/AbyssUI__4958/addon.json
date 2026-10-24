@@ -20,14 +20,12 @@
     "modules"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4958/",
-  "fingerprint": "a1d5e6d458fc2bc3152b5383a52a5025526e7608b0835b7ac37a0013cb5fbf74",
+  "fingerprint": "814b55c596bfcf0fe9e66e90b4ae951d71e30adbaaf1dbac76952cbe6633c0ed",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18020.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18021.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18022.png",
     "https://cdn-eso.mmoui.com/preview/pvw18023.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18025.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18026.gif"
+    "https://cdn-eso.mmoui.com/preview/pvw18092.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18091.png"
   ],
   "platform": "pc",
   "published": true,
@@ -35,11 +33,11 @@
   "source_id": "4958",
   "source_url": "https://www.esoui.com/downloads/info4958-AbyssUI.html",
   "stats": {
-    "downloads": 51,
+    "downloads": 96,
     "favorites": 0,
-    "monthly_downloads": 48
+    "monthly_downloads": 90
   },
   "title": "AbyssUI",
-  "updated_at": 1792554246000,
-  "version": "21/10/2026"
+  "updated_at": 1792733099000,
+  "version": "23/10/2026"
 }

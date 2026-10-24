@@ -10,6 +10,7 @@ local function PrintUsage()
 |cAAAAAA/cae printsets - prints your currently equipped set IDs
 |cAAAAAA/cae freeze - temporarily freezes shapes in their current spots
 |cAAAAAA/cae unfreeze - restores shapes to follow your character
+|cAAAAAA/cae stalwart - toggles chat debug for vMoS Stalwart Sisterhood achievement
 |cAAAAAA/cae]])
 end
 
@@ -49,6 +50,9 @@ SLASH_COMMANDS["/cae"] = function(argString)
     elseif (args[1] == "unfreeze") then
         CAE.msg("Shapes unfrozen.")
         CAE.freeze = false
+
+    elseif (args[1] == "stalwart") then
+        CAE.AchievementDebug.StalwartSisterhood()
 
     else
         PrintUsage()

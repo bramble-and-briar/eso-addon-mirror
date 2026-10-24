@@ -1,0 +1,15 @@
+## Title: |cFF69B4PB's Weave & Block Trainer|r 1.4.0
+## Author: |cFF69B4PinkBanther|r
+## Description: A timing aid for weaving and block cancelling. A bar counts the 1-second skill cycle and lights up (with an optional tick) when it is time to light attack and then cast. Right after a skill it flashes the moment to block-cancel, and when light attack, skill and block all connect it says EXCELLENT! with the times. It only shows timing -- every attack, skill and block is still your own button press.
+## Version: 1.4.0
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsWeaveBlockTrainer_Data
+
+lang/strings.lua
+lang/$(language).lua
+
+Main.lua
+Settings.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

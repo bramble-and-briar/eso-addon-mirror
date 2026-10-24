@@ -21,14 +21,32 @@ local SAVED_ACCOUNT_TIP = "Account wide: the same on all your characters."
 
 local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
 
+local DEFAULT_FONT = "EsoUI/Common/Fonts/FTN57.otf"
+
+local FONT_CHOICES = {
+    { name = "Gamepad Medium",  value = "EsoUI/Common/Fonts/FTN57.otf" },
+    { name = "Gamepad Bold",    value = "EsoUI/Common/Fonts/FTN87.otf" },
+    { name = "Gamepad Light",   value = "EsoUI/Common/Fonts/FTN47.otf" },
+    { name = "Univers Regular", value = "EsoUI/Common/Fonts/Univers57.otf" },
+    { name = "Univers Light",   value = "EsoUI/Common/Fonts/univers55.otf" },
+    { name = "Univers Bold",    value = "EsoUI/Common/Fonts/univers67.otf" },
+    { name = "Prose Antique",   value = "EsoUI/Common/Fonts/ProseAntiquePSMT.otf" },
+    { name = "Trajan Pro",      value = "EsoUI/Common/Fonts/TrajanPro-Regular.otf" },
+    { name = "Handwritten",     value = "EsoUI/Common/Fonts/Handwritten_Bold.otf" },
+    { name = "Arial Narrow",    value = "EsoUI/Common/Fonts/arialn.ttf" },
+    { name = "Consolas",        value = "EsoUI/Common/Fonts/consola.ttf" },
+}
+
 local RAINBOW_PALETTE = { "FF2222", "FF9900", "FFEE00", "33DD33", "00CCCC", "3399FF", "BB44EE" }
 
 local WINDOW_DEFAULTS = {
     settingsFontSize       = 30,
+    settingsFont           = "EsoUI/Common/Fonts/FTN57.otf",
     settingsOpacity        = 100,
     settingsHighlight      = "Alliance",
     settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
     settingsRemember       = true,
+    showPrice              = "average",
 }
 
 local UPDATE_CHARACTERS = "Updates when you log in, log out, and any time your inventory changes."
@@ -972,6 +990,65 @@ local function CountTip(getTables, filter, note)
 end
 
 --------------------------------------------------
+-- Prices
+--------------------------------------------------
+local PRICE_ICON = "|t24:24:EsoUI/Art/currency/currency_gold.dds|t"
+
+local PRICE_CHOICES = {
+    { name = "Off",     value = "off" },
+    { name = "Min",     value = "min" },
+    { name = "Average", value = "average" },
+    { name = "Max",     value = "max" },
+}
+
+local PRICE_LABELS = {
+    min     = "Min Price",
+    average = "Average Price",
+    max     = "Max Price",
+}
+
+local function PriceMode()
+    local sv = SV()
+    local mode = sv and sv.showPrice
+    if mode == "off" or PRICE_LABELS[mode] then return mode end
+    return WINDOW_DEFAULTS.showPrice
+end
+
+local function FormatPrice(value)
+    if value >= 100 then return ZO_CommaDelimitNumber(zo_round(value)) end
+    local rounded = zo_round(value * 100) / 100
+    if rounded == math.floor(rounded) then return tostring(math.floor(rounded)) end
+    return string.format("%.2f", rounded)
+end
+
+local function PriceHeader(opt)
+    local mode = PriceMode()
+    if mode == "off" then return nil end
+
+    local item = opt and opt.item
+    local itemLink = item and item.itemLink
+    if type(itemLink) ~= "string" or itemLink == "" then return nil end
+
+    local api = rawget(_G, "TSCPriceDataAPI")
+    if type(api) ~= "table" or type(api.GetItemData) ~= "function" then return nil end
+
+    local ok, data = pcall(api.GetItemData, api, itemLink)
+    if not ok or type(data) ~= "table" or data == api.LOADING then return nil end
+
+    local value
+    if mode == "average" then
+        value = tonumber(data.avgPrice)
+    elseif mode == "min" then
+        value = tonumber(data.commonMin) or tonumber(data.legacyMin)
+    else
+        value = tonumber(data.commonMax) or tonumber(data.legacyMax)
+    end
+    if not value then return nil end
+
+    return PRICE_LABELS[mode] .. ": " .. FormatPrice(value) .. " " .. PRICE_ICON
+end
+
+--------------------------------------------------
 -- Item Rows
 --------------------------------------------------
 local function MarkPrefix(opt)
@@ -1027,6 +1104,7 @@ local function ItemRows(items, emptyText)
             name       = ItemLabel(item),
             namePrefix = MarkPrefix,
             itemLink   = item.itemLink,
+            itemHeader = PriceHeader,
             item       = item,
             tooltip    = (item.itemLink == nil or item.itemLink == "") and BuildItemFallbackTooltip(item) or nil,
             buttonText = mixed and "Next Category" or nil,
@@ -1512,6 +1590,7 @@ local function ResetSettings()
     sv.settingsLastPage = nil
 
     PanelCall("ApplyTextSize")
+    PanelCall("ApplyFont")
     PanelCall("ApplyOpacity")
     PanelCall("ApplyAccent")
 end
@@ -1567,6 +1646,16 @@ local function BuildSettingsSection()
                        .. "Furniture Vault - the same as storage chests.",
             },
             {
+                type    = "dropdown",
+                name    = "Show Price",
+                choices = PRICE_CHOICES,
+                default = WINDOW_DEFAULTS.showPrice,
+                tooltip = "Shows the selected price above the item in Details, for items that have price data. "
+                       .. "Needs TSCPriceFetcher2.\n\nDefault is Average.",
+                getFunc = function() return Setting("showPrice") end,
+                setFunc = function(val) SetSetting("showPrice", val) end,
+            },
+            {
                 type    = "slider",
                 name    = "Font Size",
                 min     = 18, max = 44, step = 1,
@@ -1576,6 +1665,18 @@ local function BuildSettingsSection()
                 setFunc = function(val)
                     SetSetting("settingsFontSize", val)
                     PanelCall("ApplyTextSize")
+                end,
+            },
+            {
+                type    = "dropdown",
+                name    = "Font",
+                choices = FONT_CHOICES,
+                default = DEFAULT_FONT,
+                tooltip = "Some fonts look bigger or smaller than others, so you may need to adjust Font Size.\n\nDefault is Gamepad Medium.",
+                getFunc = function() return Setting("settingsFont") end,
+                setFunc = function(val)
+                    SetSetting("settingsFont", val)
+                    PanelCall("ApplyFont")
                 end,
             },
             {
@@ -1740,6 +1841,11 @@ panel = LIB:RegisterSettings({
     keybinds        = { MarkKeybind(), LinkKeybind() },
     onHidden        = ClearMarks,
     textSize        = function() return Setting("settingsFontSize") end,
+    textFont        = function()
+        local font = Setting("settingsFont")
+        if type(font) ~= "string" or font == "" or font == DEFAULT_FONT then return nil end
+        return font
+    end,
     windowOpacity   = function() return Setting("settingsOpacity") end,
     rememberPage    = function() return Setting("settingsRemember") == true end,
     lastPage        = function()

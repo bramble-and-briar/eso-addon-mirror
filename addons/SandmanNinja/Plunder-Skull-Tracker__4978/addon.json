@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/SandmanNinja/Plunder-Skull-Tracker__4978",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "SandmanNinja",
+  "canonical_id": "esoui:4978",
+  "category_id": "109",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4978",
+  "deleted": false,
+  "directories": [
+    "GoldenSkullTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4978/",
+  "fingerprint": "f19fbbdbc77db5f5a2880f9688a3d0367691a53ab9190e88917d6b53e9c047e7",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18100.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18101.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4978",
+  "source_url": "https://www.esoui.com/downloads/info4978-PlunderSkullTracker.html",
+  "stats": {
+    "downloads": 29,
+    "favorites": 0,
+    "monthly_downloads": 19
+  },
+  "title": "Plunder Skull Tracker",
+  "updated_at": 1792758355000,
+  "version": "1.1.0"
+}

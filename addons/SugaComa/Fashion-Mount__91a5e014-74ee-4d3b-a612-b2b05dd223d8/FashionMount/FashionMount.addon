@@ -1,8 +1,8 @@
-## Title: FashionMount - Outfits to Mount/Pet/Personality
+## Title: FashionMount - Outfit Collectibles
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Version: 1.0.0
-## APIVersion: 101049 101050
-## Description: Links your active Outfit to a chosen Mount, Pet and Personality.
+## Version: 1.1.0-test1
+## APIVersion: 101049 101050 101051
+## Description: Links your active Outfit to chosen collectibles while leaving personalities to Persona.
 ## SavedVariables: FashionMount_SavedVars
 ## OptionalDependsOn: LibHarvensAddonSettings
 

@@ -70,14 +70,16 @@ local FRENZY_ID = 58775
 local CHARGED_LIGHTNING_ID = 48076
 
 local function OnPlayerActivated()
-    if (CAE.profiles[CAE.csvs.currentProfile].lowerHunger) then
+    local profile = CAE.profiles[CAE.csvs.currentProfile]
+    if (profile.lowerHunger) then
         Crutch.dbgSpam("setting priority 10 for insatiable hunger")
         SetSynergyPriorityOverride(HUNGER_ID, 10)
     end
 
-    if (CAE.profiles[CAE.csvs.currentProfile].higherFrenzyAndAtro) then
-        Crutch.dbgSpam("setting priority 7 for feeding frenzy and charged lightning")
-        SetSynergyPriorityOverride(FRENZY_ID, 7)
+    if (profile.higherFrenzyAndAtro) then
+        local frenzyPriority = profile.evenHigherFrenzy and 6 or 7
+        Crutch.dbgSpam(string.format("setting priority %d for feeding frenzy and 7 for charged lightning", frenzyPriority))
+        SetSynergyPriorityOverride(FRENZY_ID, frenzyPriority)
         SetSynergyPriorityOverride(CHARGED_LIGHTNING_ID, 7)
     end
 end
@@ -152,6 +154,24 @@ function CAE.GetSynergySettings()
                 end
             end,
             width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "    Even higher Feeding Frenzy priority",
+            tooltip = "Sets Feeding Frenzy synergy priority to 6, meaning it's even higher priority than the defaults for Healing Combustion, Purify, etc.",
+            default = false,
+            getFunc = function() return CAE.profiles[CAE.csvs.currentProfile].evenHigherFrenzy end,
+            setFunc = function(value)
+                CAE.profiles[CAE.csvs.currentProfile].evenHigherFrenzy = value
+                if (value) then
+                    OnPlayerActivated()
+                else
+                    ClearSynergyPriorityOverride(FRENZY_ID)
+                    ClearSynergyPriorityOverride(CHARGED_LIGHTNING_ID)
+                end
+            end,
+            width = "full",
+            disabled = function() return not CAE.profiles[CAE.csvs.currentProfile].higherFrenzyAndAtro end,
         },
     }
 end

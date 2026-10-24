@@ -1,0 +1,9 @@
+## Title: Backpack Decon Select All
+## Description: Explicitly select unlocked backpack equipment for deconstruction.
+## Author: Custom
+## Version: 0.3.0
+## APIVersion: 101050 101051
+
+BackpackDeconSelectAll.lua
+CheckboxAlignmentFix.lua
+ControllerSupport.lua

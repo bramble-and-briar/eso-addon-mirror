@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- FashionMount.lua — v2.0.0 (Generic Collectible Categories)
+-- FashionMount.lua — v1.1.0-test1 (Generic Collectible Categories)
 -- Link outfits to selected collectible categories (Console-safe)
 -- Author: SugaComa (Rik Sprint)
 --------------------------------------------------------------
@@ -24,7 +24,6 @@ local COLLECTIBLE_OPTIONS = {
     { key = "headMarking",     type = COLLECTIBLE_CATEGORY_TYPE_HEAD_MARKING,       label = "Head Marking" },
     { key = "mount",           type = COLLECTIBLE_CATEGORY_TYPE_MOUNT,              label = "Mount" },
     { key = "outfitStyle",     type = COLLECTIBLE_CATEGORY_TYPE_OUTFIT_STYLE,       label = "Outfit Style" },
-    { key = "personality",     type = COLLECTIBLE_CATEGORY_TYPE_PERSONALITY,        label = "Personality" },
     { key = "piercingJewelry", type = COLLECTIBLE_CATEGORY_TYPE_PIERCING_JEWELRY,   label = "Piercing / Jewelry" },
     { key = "polymorph",       type = COLLECTIBLE_CATEGORY_TYPE_POLYMORPH,          label = "Polymorph" },
     { key = "skin",            type = COLLECTIBLE_CATEGORY_TYPE_SKIN,               label = "Skin" },
@@ -48,7 +47,6 @@ local defaults = {
         [COLLECTIBLE_CATEGORY_TYPE_HEAD_MARKING]       = false,
         [COLLECTIBLE_CATEGORY_TYPE_MOUNT]              = true,
         [COLLECTIBLE_CATEGORY_TYPE_OUTFIT_STYLE]       = false,
-        [COLLECTIBLE_CATEGORY_TYPE_PERSONALITY]        = true,
         [COLLECTIBLE_CATEGORY_TYPE_PIERCING_JEWELRY]   = false,
         [COLLECTIBLE_CATEGORY_TYPE_POLYMORPH]          = false,
         [COLLECTIBLE_CATEGORY_TYPE_SKIN]               = false,
@@ -196,7 +194,6 @@ local function GetMappingCollectiblesFor(outfitIndex)
         data.collectibles = {
             [COLLECTIBLE_CATEGORY_TYPE_MOUNT]       = data.mountId or 0,
             [COLLECTIBLE_CATEGORY_TYPE_VANITY_PET]  = data.petId or 0,
-            [COLLECTIBLE_CATEGORY_TYPE_PERSONALITY] = data.personalityId or 0,
         }
         data.mountId = nil
         data.petId = nil
@@ -557,13 +554,18 @@ local function OnAddonLoaded(event, name)
             data.collectibles = {
                 [COLLECTIBLE_CATEGORY_TYPE_MOUNT]       = data.mountId or 0,
                 [COLLECTIBLE_CATEGORY_TYPE_VANITY_PET]  = data.petId or 0,
-                [COLLECTIBLE_CATEGORY_TYPE_PERSONALITY] = data.personalityId or 0,
             }
             data.mountId = nil
             data.petId = nil
+        end
+        if data then
             data.personalityId = nil
+            if data.collectibles then
+                data.collectibles[COLLECTIBLE_CATEGORY_TYPE_PERSONALITY] = nil
+            end
         end
     end
+    sv.enabledCategories[COLLECTIBLE_CATEGORY_TYPE_PERSONALITY] = nil
 
     lastOutfitIndex = GetCurrentOutfitIndex()
 

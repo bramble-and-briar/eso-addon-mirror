@@ -13,11 +13,7 @@ PI.toplevel = nil
 PI.markers  = {}
 PI.remote   = {}
 PI.running  = false
--- Patch: upstream polled every 10 ms and redid the whole roster (12× DoesUnitExist/IsUnitOnline/
--- GetUnitDisplayName/string.lower + style resolution) on every tick. Positions are now moved every
--- PI.updateInterval, the roster / styles are only rebuilt every PI.rosterInterval or on a group event.
-PI.updateInterval = 50
-PI.rosterInterval = 1000
+PI.updateInterval = 10
 
 PI.SIZE_MIN    = 50
 PI.SIZE_MAX    = 200
@@ -303,7 +299,6 @@ function PI.GetMyHeight()
 end
 
 function PI.OnMyStyleChanged(delay)
-    PI.MarkRosterDirty()
     PI.ScheduleGroupRefresh()
     PI.ScheduleBroadcast(delay or 500)
 end
@@ -364,11 +359,6 @@ end
 
 local PI_SEEN = {}
 
--- Patch: the roster is the list of { unit, nameLower, marker } to draw, rebuilt by PIRebuildRoster;
--- the fast tick (PIMoveMarkers) only moves what is in it.
-local PI_ROSTER = {}
-local PI_ROSTER_BUILT_AT = nil -- nil = dirty, rebuild on the next tick
-
 local function PIShowUnit(unit, nameLower)
     local iconIndex, sizePct, height, opacity = PIResolve(unit, nameLower)
     local texture, alpha = PIIconTexture(iconIndex, nameLower)
@@ -380,15 +370,17 @@ local function PIShowUnit(unit, nameLower)
         marker:enable()
         marker:show()
     end
+    local _, Xw, Yw, Zw = GetUnitRawWorldPosition(unit)
+    local X, Y, Z = WorldPositionToGuiRender3DPosition(Xw, Yw, Zw)
+    marker:setPos(X, Y, Z)
     PI_SEEN[nameLower] = true
-    PI_ROSTER[#PI_ROSTER + 1] = { unit = unit, marker = marker }
 end
 
-local function PIRebuildRoster()
+function PI.updateMarker()
     local sv = PvPUA.charVariables
-    for i = #PI_ROSTER, 1, -1 do PI_ROSTER[i] = nil end
-    for k in pairs(PI_SEEN) do PI_SEEN[k] = nil end
     if not sv or not PI.toplevel then return end
+
+    for k in pairs(PI_SEEN) do PI_SEEN[k] = nil end
 
     if sv.iconShowSelf then
         local selfName = GetDisplayName()
@@ -416,36 +408,6 @@ local function PIRebuildRoster()
     end
 end
 
-local function PIMoveMarkers()
-    local heading = GetPlayerCameraHeading()
-    if heading > math.pi then heading = heading - 2 * math.pi end
-    for i = 1, #PI_ROSTER do
-        local entry = PI_ROSTER[i]
-        local marker = entry.marker
-        if marker.enabled then
-            local _, Xw, Yw, Zw = GetUnitRawWorldPosition(entry.unit)
-            local X, Y, Z = WorldPositionToGuiRender3DPosition(Xw, Yw, Zw)
-            if marker.facePlayer then marker:Set3DRenderSpaceOrientation(0, heading, 0) end
-            marker:Set3DRenderSpaceOrigin(X + marker.offset.X, Y + marker.offset.Y + marker.userOffset, Z + marker.offset.Z)
-        end
-    end
-end
-
--- Force the next tick to rebuild the roster (group changed, style changed, zone changed).
-function PI.MarkRosterDirty()
-    PI_ROSTER_BUILT_AT = nil
-end
-
-function PI.updateMarker()
-    if not PI.toplevel then return end
-    local now = GetGameTimeMilliseconds()
-    if PI_ROSTER_BUILT_AT == nil or now - PI_ROSTER_BUILT_AT >= PI.rosterInterval then
-        PI_ROSTER_BUILT_AT = now
-        PIRebuildRoster()
-    end
-    if #PI_ROSTER > 0 then PIMoveMarkers() end
-end
-
 function PI.StartPolling()
     if PI.running then return end
     EVENT_MANAGER:RegisterForUpdate("PvPUA_PlayerIconUpdate", PI.updateInterval, function()
@@ -462,8 +424,6 @@ function PI.StopPolling()
     if not PI.running then return end
     EVENT_MANAGER:UnregisterForUpdate("PvPUA_PlayerIconUpdate")
     PI.running = false
-    PI.MarkRosterDirty()
-    for i = #PI_ROSTER, 1, -1 do PI_ROSTER[i] = nil end
     for _, marker in pairs(PI.markers) do
         marker:disable()
     end
@@ -561,13 +521,11 @@ local function PIOnIconData(unitTag, data)
         height = PIDecodeHeight(data.height),
         opacity = PIDecodeOpacity(data.opacity),
     }
-    PI.MarkRosterDirty()
     PI.ScheduleGroupRefresh()
 end
 
 local function PIOnGroupChanged()
     PI.PruneRemote()
-    PI.MarkRosterDirty()
     PI.ScheduleGroupRefresh()
     PI.ScheduleBroadcast(500)
 end
@@ -761,7 +719,6 @@ function PvPUA:IconMenu()
               PvPUA.charVariables.iconShowOthers = on.others == true
               PvPUA.charVariables.iconShowSmallGroupFrames = PI_GROUP_FRAMES_ENABLED and on.smallGroupFrames == true
               PvPUA.charVariables.iconShowLargeGroupFrames = PI_GROUP_FRAMES_ENABLED and on.largeGroupFrames == true
-              PI.MarkRosterDirty()
               PI.RefreshGroupFrameIcons()
           end },
           } }

@@ -551,7 +551,7 @@ function Trackers:GetOptions()
                     type    = "toggle",
                     name    = "Character Settings",
                     tooltip = "Off uses one layout for the whole account. On gives this character its own layout, "
-                           .. "copied from the account layout the first time you turn it on.\n\n" .. ME.SAVED_CHARACTER_TIP,
+                           .. "copied from the account layout the first time you turn it on.",
                     details = function()
                         if Trackers:UsesCharacterSettings() then
                             return "This character has its own layout."

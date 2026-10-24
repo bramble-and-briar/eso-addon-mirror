@@ -1,10 +1,11 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "1.1"
+MyExtras.version = "1.2"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
     settingsFontSize       = 30,
+    settingsFont           = "EsoUI/Common/Fonts/FTN57.otf",
     settingsOpacity        = 100,
     settingsHighlight      = "Alliance",
     settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
@@ -24,6 +25,22 @@ local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"
 
 local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
+
+local DEFAULT_FONT = "EsoUI/Common/Fonts/FTN57.otf"
+
+local FONT_CHOICES = {
+    { name = "Gamepad Medium",  value = "EsoUI/Common/Fonts/FTN57.otf" },
+    { name = "Gamepad Bold",    value = "EsoUI/Common/Fonts/FTN87.otf" },
+    { name = "Gamepad Light",   value = "EsoUI/Common/Fonts/FTN47.otf" },
+    { name = "Univers Regular", value = "EsoUI/Common/Fonts/Univers57.otf" },
+    { name = "Univers Light",   value = "EsoUI/Common/Fonts/univers55.otf" },
+    { name = "Univers Bold",    value = "EsoUI/Common/Fonts/univers67.otf" },
+    { name = "Prose Antique",   value = "EsoUI/Common/Fonts/ProseAntiquePSMT.otf" },
+    { name = "Trajan Pro",      value = "EsoUI/Common/Fonts/TrajanPro-Regular.otf" },
+    { name = "Handwritten",     value = "EsoUI/Common/Fonts/Handwritten_Bold.otf" },
+    { name = "Arial Narrow",    value = "EsoUI/Common/Fonts/arialn.ttf" },
+    { name = "Consolas",        value = "EsoUI/Common/Fonts/consola.ttf" },
+}
 
 local RAINBOW_PALETTE = { "FF2222", "FF9900", "FFEE00", "33DD33", "00CCCC", "3399FF", "BB44EE" }
 
@@ -105,6 +122,7 @@ function MyExtras:ResetSettings()
     CallFeatures("OnReset")
 
     PanelCall("ApplyTextSize")
+    PanelCall("ApplyFont")
     PanelCall("ApplyOpacity")
     PanelCall("ApplyAccent")
 end
@@ -130,6 +148,18 @@ function MyExtras:SettingsMenu()
                 setFunc = function(val)
                     self.savedVariables.settingsFontSize = val
                     PanelCall("ApplyTextSize")
+                end,
+            },
+            {
+                type    = "dropdown",
+                name    = "Font",
+                choices = FONT_CHOICES,
+                default = defaults.settingsFont,
+                tooltip = "Some fonts look bigger or smaller than others, so you may need to adjust Font Size.\n\nDefault is Gamepad Medium.",
+                getFunc = function() return self.savedVariables.settingsFont end,
+                setFunc = function(val)
+                    self.savedVariables.settingsFont = val
+                    PanelCall("ApplyFont")
                 end,
             },
             {
@@ -243,9 +273,15 @@ function MyExtras:CreateSettings()
         frameColor      = FRAME_GREY,
         previewControls = function() return MyExtras:SettingsPreviewControls() end,
         textSize        = function() return sv.settingsFontSize end,
+        textFont        = function()
+            local font = sv.settingsFont
+            if type(font) ~= "string" or font == "" or font == DEFAULT_FONT then return nil end
+            return font
+        end,
         windowOpacity   = function() return sv.settingsOpacity end,
-        rememberPage    = function() return sv.settingsRemember == true end,
+        rememberPage    = function() return MyExtras.forcedPage ~= nil or sv.settingsRemember == true end,
         lastPage        = function()
+            if MyExtras.forcedPage then return MyExtras.forcedPage end
             if type(sv.settingsLastPage) ~= "table" then sv.settingsLastPage = {} end
             return sv.settingsLastPage
         end,
@@ -257,7 +293,38 @@ function MyExtras:CreateSettings()
         end,
         options         = options,
     })
-    if not self.settingsPanel then self.settingsUnavailable = true end
+    if not self.settingsPanel then
+        self.settingsUnavailable = true
+        return
+    end
+
+    local scene = self.settingsPanel.scene
+    if scene then
+        scene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_SHOWN or newState == SCENE_HIDDEN then
+                MyExtras.forcedPage = nil
+            end
+            CallFeatures("OnSettingsState", newState)
+        end)
+    end
+end
+
+function MyExtras:OpenPage(option, row)
+    local panel = self.settingsPanel
+    if not (panel and panel.Open) then return false end
+    local categories = panel.categories
+    if type(categories) ~= "table" then return false end
+    local index
+    for i = 1, #categories do
+        if categories[i] == option then
+            index = i
+            break
+        end
+    end
+    if not index then return false end
+    self.forcedPage = { cat = index, pane = 2, rows = { row or 1 } }
+    panel:Open()
+    return true
 end
 
 --------------------------------------------------
@@ -289,7 +356,7 @@ local function OnAddonLoaded(event, addonName)
     end
 
     EVENT_MANAGER:RegisterForEvent(MyExtras.name, EVENT_PLAYER_ACTIVATED,
-        function() CallFeatures("OnPlayerActivated") end)
+        function(_, initial) CallFeatures("OnPlayerActivated", initial) end)
 
     EVENT_MANAGER:UnregisterForEvent(MyExtras.name, EVENT_ADD_ON_LOADED)
 end

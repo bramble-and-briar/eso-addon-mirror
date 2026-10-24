@@ -1,6 +1,6 @@
 ## Title: RagsToRiches
-## APIVersion: 101050
-## Version: 1.4.4-test
+## APIVersion: 101050 101051
+## Version: 1.5.0-test1
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
 ## OptionalDependsOn: LibHarvensAddonSettings
 ## SavedVariables: RagsToRiches_SV RagsToRiches_CharacterSV RagsToRiches_ScopeSV

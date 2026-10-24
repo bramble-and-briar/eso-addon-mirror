@@ -24,6 +24,7 @@ local ICON_BATTLEGROUND = "/esoui/art/battlegrounds/gamepad/gp_battlegrounds_tab
 local ICON_HOUSING = "/esoui/art/icons/mapkey/mapkey_housing.dds"
 local ICON_CRAFTING = "/esoui/art/journal/gamepad/gp_questtypeicon_crafting.dds"
 local ICON_TRIBUTE = "/esoui/art/tribute/gamepad/gp_tribute_tabicon_tribute.dds"
+local ICON_SOLO_DUNGEON = "/esoui/art/icons/mapkey/mapkey_solo_dungeon.dds"
 
 local REPEATABLE_COLOR = { r = 112/255, g = 180/255, b = 184/255, a = 1 }
 
@@ -128,8 +129,8 @@ function QTI.GetQuestIconTexture(questType, zoneDisplayType)
 		return ICON_ZONE_STORY
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_RAID then
 		return ICON_RAID
-	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_GROUP_DUNGEON then
-		return ICON_GROUP_DUNGEON
+	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_SOLO_DUNGEON then
+		return ICON_SOLO_DUNGEON
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_GROUP_DELVE then
 		return ICON_GROUP_DELVE
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_GROUP_AREA then

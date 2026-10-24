@@ -2,6 +2,7 @@ local PvPUA = PvPUA
 local U = PvPUA.util
 local RainbowText = U.RainbowText
 local SAVED_ACCOUNT_TIP = U.SAVED_ACCOUNT_TIP
+local EA_FONT_CHOICES = U.EA_FONT_CHOICES
 local PI = PvPUA.playerIcon
 
 local function PanelCall(method)
@@ -71,6 +72,7 @@ function PvPUA:ResetAllSettings()
     self:RefreshBackdropColors()
     self:RefreshRankLabel()
     self:ApplyCreditVisibility()
+    self:ApplyBarLayout(true)
     self:EndSettingsPreviews()
     if self.AIStop then pcall(self.AIStop, self) end
     if self.AIKickStop then pcall(self.AIKickStop, self) end
@@ -81,6 +83,7 @@ function PvPUA:ResetAllSettings()
         potion:RefreshDisplay()
     end
     PanelCall("ApplyTextSize")
+    PanelCall("ApplyFont")
     PanelCall("ApplyOpacity")
     PanelCall("ApplyAccent")
 end
@@ -101,6 +104,15 @@ function PvPUA:SettingsMenu()
           setFunc = function(v)
               self.savedVariables.settingsFontSize = v
               PanelCall("ApplyTextSize")
+          end },
+        { type = "dropdown", name = "Font",
+          choices = EA_FONT_CHOICES,
+          default = PvPUA.defaults.settingsFont,
+          tooltip = "Some fonts look bigger or smaller than others, so you may need to adjust Font Size.\n\nDefault is Gamepad Medium.",
+          getFunc = function() return self.savedVariables.settingsFont end,
+          setFunc = function(v)
+              self.savedVariables.settingsFont = v
+              PanelCall("ApplyFont")
           end },
         { type = "slider", name = "Opacity", min = 0, max = 100, step = 5,
           default = PvPUA.defaults.settingsOpacity,

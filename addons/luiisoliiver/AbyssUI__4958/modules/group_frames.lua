@@ -592,62 +592,197 @@ local function GetUnitDisplayName(unitTag)
 end
 
 local function TryGroupAction(action, unitTag)
-    if not unitTag or not DoesUnitExist or not DoesUnitExist(unitTag) then
-        return false
-    end
     local ok = false
-    if action == "promote" and GroupPromote then
+    if action == "promote" and unitTag and GroupPromote then
         ok = pcall(GroupPromote, unitTag)
-    elseif action == "kick" and GroupKick then
+    elseif action == "kick" and unitTag and GroupKick then
         ok = pcall(GroupKick, unitTag)
+    elseif action == "leave" and GroupLeave then
+        ok = pcall(GroupLeave)
+    elseif action == "disband" and GroupDisband then
+        ok = pcall(GroupDisband)
     end
     return ok
 end
 
+-- Fallback context menu (does not depend on ClearMenu/ShowMenu globals)
+local function EnsureFallbackMenu()
+    if GroupFrames._ctxMenu then
+        return GroupFrames._ctxMenu
+    end
+    local menu = WINDOW_MANAGER:CreateTopLevelWindow("NAGA_UI_GroupCtxMenu")
+    menu:SetDrawTier(DT_HIGH)
+    menu:SetDrawLayer(DL_OVERLAY)
+    menu:SetDrawLevel(1000)
+    menu:SetHidden(true)
+    menu:SetMouseEnabled(true)
+    menu:SetDimensions(220, 10)
+    local bg = WINDOW_MANAGER:CreateControl("$(parent)Bg", menu, CT_BACKDROP)
+    bg:SetAnchorFill(menu)
+    bg:SetCenterColor(0.05, 0.05, 0.07, 0.96)
+    bg:SetEdgeColor(0.35, 0.38, 0.45, 1)
+    bg:SetEdgeTexture("", 1, 1, 1)
+    menu.bg = bg
+    menu.buttons = {}
+    GroupFrames._ctxMenu = menu
+
+    -- click outside to close
+    local catcher = WINDOW_MANAGER:CreateTopLevelWindow("NAGA_UI_GroupCtxCatcher")
+    catcher:SetAnchorFill(GuiRoot)
+    catcher:SetDrawTier(DT_HIGH)
+    catcher:SetDrawLayer(DL_CONTROLS)
+    catcher:SetDrawLevel(999)
+    catcher:SetHidden(true)
+    catcher:SetMouseEnabled(true)
+    catcher:SetHandler("OnMouseUp", function()
+        menu:SetHidden(true)
+        catcher:SetHidden(true)
+    end)
+    GroupFrames._ctxCatcher = catcher
+    return menu
+end
+
+local function HideFallbackMenu()
+    if GroupFrames._ctxMenu then GroupFrames._ctxMenu:SetHidden(true) end
+    if GroupFrames._ctxCatcher then GroupFrames._ctxCatcher:SetHidden(true) end
+end
+
+local function ShowFallbackMenu(anchorControl, entries)
+    local menu = EnsureFallbackMenu()
+    HideFallbackMenu()
+
+    -- clear old buttons
+    for _, btn in ipairs(menu.buttons) do
+        btn:SetHidden(true)
+    end
+
+    local y = 4
+    local width = 220
+    local rowH = 22
+    for i, entry in ipairs(entries) do
+        local btn = menu.buttons[i]
+        if not btn then
+            btn = WINDOW_MANAGER:CreateControl(nil, menu, CT_LABEL)
+            btn:SetFont("ZoFontGameSmall")
+            btn:SetColor(0.90, 0.92, 0.95, 1)
+            btn:SetMouseEnabled(true)
+            btn:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+            menu.buttons[i] = btn
+        end
+        btn:SetHidden(false)
+        btn:SetText("  " .. tostring(entry.label or ""))
+        btn:ClearAnchors()
+        btn:SetAnchor(TOPLEFT, menu, TOPLEFT, 4, y)
+        btn:SetDimensions(width - 8, rowH)
+        local cb = entry.callback
+        btn:SetHandler("OnMouseUp", function(_, button, upInside)
+            if button == MOUSE_BUTTON_INDEX_LEFT then
+                HideFallbackMenu()
+                if cb then cb() end
+            end
+        end)
+        btn:SetHandler("OnMouseEnter", function() btn:SetColor(0.45, 0.70, 1.0, 1) end)
+        btn:SetHandler("OnMouseExit", function() btn:SetColor(0.90, 0.92, 0.95, 1) end)
+        y = y + rowH
+    end
+    menu:SetDimensions(width, y + 4)
+    menu:ClearAnchors()
+    if anchorControl then
+        menu:SetAnchor(TOPLEFT, anchorControl, TOPRIGHT, 8, 0)
+    else
+        menu:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
+    if GroupFrames._ctxCatcher then
+        GroupFrames._ctxCatcher:SetHidden(false)
+    end
+    menu:SetHidden(false)
+end
+
 local function BuildGroupMemberMenu(control, unitTag)
-    if IsEditHUDShowing() or not unitTag or unitTag == "" then
+    if IsEditHUDShowing() then
         return
     end
-    if not IsGrouped() then
+    if not unitTag or unitTag == "" then
         return
     end
-    if not ClearMenu or not AddCustomMenuItem or not ShowMenu then
+    local groupSize = GetGroupSize and GetGroupSize() or 0
+    if groupSize <= 0 and not (IsGrouped and IsGrouped()) then
         return
     end
 
-    ClearMenu()
     local displayName = GetUnitDisplayName(unitTag)
-    local isPlayer = unitTag == "player"
+    if not displayName or displayName == "" then
+        displayName = GetUnitName and GetUnitName(unitTag) or unitTag
+    end
+    local isPlayer = (unitTag == "player")
     local isLeader = IsUnitGroupLeader and IsUnitGroupLeader("player") == true
 
-    if isLeader and not isPlayer then
-        AddCustomMenuItem("Passar liderança para " .. displayName, function()
-            TryGroupAction("promote", unitTag)
-        end)
-        AddCustomMenuItem("Expulsar " .. displayName, function()
-            TryGroupAction("kick", unitTag)
-        end)
-    end
+    local entries = {}
 
-    AddCustomMenuItem("Sair do grupo", function()
-        if GroupLeave then
-            GroupLeave()
+    if not isPlayer then
+        entries[#entries + 1] = {
+            label = "Alvo: " .. displayName,
+            callback = function()
+                if SetTarget then pcall(SetTarget, unitTag) end
+            end,
+        }
+        if JumpToGroupMember then
+            entries[#entries + 1] = {
+                label = "Viajar até " .. displayName,
+                callback = function()
+                    pcall(JumpToGroupMember, displayName)
+                end,
+            }
         end
-    end)
-
-    if isLeader and GroupDisband then
-        AddCustomMenuItem("Dissolver grupo", function()
-            GroupDisband()
-        end)
+        if StartChatInput then
+            entries[#entries + 1] = {
+                label = "Sussurrar",
+                callback = function()
+                    local target = displayName
+                    pcall(StartChatInput, "/w " .. target .. " ")
+                end,
+            }
+        end
     end
 
-    ShowMenu(control)
+    if isLeader and not isPlayer then
+        entries[#entries + 1] = {
+            label = "Passar liderança → " .. displayName,
+            callback = function() TryGroupAction("promote", unitTag) end,
+        }
+        entries[#entries + 1] = {
+            label = "Expulsar " .. displayName,
+            callback = function() TryGroupAction("kick", unitTag) end,
+        }
+    end
+
+    entries[#entries + 1] = {
+        label = "Sair do grupo",
+        callback = function() TryGroupAction("leave", unitTag) end,
+    }
+
+    if isLeader then
+        entries[#entries + 1] = {
+            label = "Dissolver grupo",
+            callback = function() TryGroupAction("disband", unitTag) end,
+        }
+    end
+
+    -- Always use our menu (native ZO menu is unreliable from custom frames)
+    ShowFallbackMenu(control, entries)
 end
 
 local function UpdateRowContextMouse(row)
-    if not row or not row.player then return end
-    -- Nunca habilitar o mouse no editor: o elemento pertence exclusivamente ao Edit HUD.
-    row.player:SetMouseEnabled(not IsEditHUDShowing())
+    if not row then return end
+    local allow = not IsEditHUDShowing()
+    if row.hitbox then
+        row.hitbox:SetHidden(not allow)
+        row.hitbox:SetMouseEnabled(allow)
+    end
+    if row.player then
+        -- visuals do not need mouse
+        row.player:SetMouseEnabled(false)
+    end
 end
 
 local function CreateMemberRow(parent, index)
@@ -657,19 +792,40 @@ local function CreateMemberRow(parent, index)
 
     row.player = WINDOW_MANAGER:CreateControl(nil, row.control, CT_CONTROL)
     row.player:SetAnchor(TOPLEFT, row.control, TOPLEFT, 0, 0)
-    -- Group frames are not draggable/click targets. Positioning is done only by ESO Edit HUD.
-    row.player:SetMouseEnabled(not IsEditHUDShowing())
-    row.player:SetHandler("OnMouseUp", function(control, button, upInside)
-        if IsEditHUDShowing() or not upInside then
+    row.player:SetMouseEnabled(false)
+
+    -- Transparent hitbox ON TOP of all visuals — CT_BACKDROP receives mouse reliably
+    row.hitbox = WINDOW_MANAGER:CreateControl(nil, row.control, CT_BACKDROP)
+    row.hitbox:SetAnchor(TOPLEFT, row.player, TOPLEFT, 0, 0)
+    row.hitbox:SetAnchor(BOTTOMRIGHT, row.player, BOTTOMRIGHT, 0, 0)
+    row.hitbox:SetCenterColor(0, 0, 0, 0)
+    row.hitbox:SetEdgeColor(0, 0, 0, 0)
+    row.hitbox:SetEdgeTexture("", 1, 1, 1)
+    row.hitbox:SetDrawTier(DT_HIGH)
+    row.hitbox:SetDrawLayer(DL_OVERLAY)
+    row.hitbox:SetDrawLevel(500)
+    row.hitbox:SetMouseEnabled(not IsEditHUDShowing())
+    row.hitbox:SetHandler("OnMouseUp", function(control, button, upInside)
+        if IsEditHUDShowing() then
+            return
+        end
+        -- upInside can be false on some clients; still accept click if button matches
+        local unitTag = control.unitTag or (row.player and row.player.unitTag)
+        if not unitTag or unitTag == "" then
+            return
+        end
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            if unitTag ~= "player" and SetTarget then
+                pcall(SetTarget, unitTag)
+            end
             return
         end
         if button == MOUSE_BUTTON_INDEX_RIGHT then
-            BuildGroupMemberMenu(control, control.unitTag)
+            BuildGroupMemberMenu(control, unitTag)
         end
     end)
-    row.player:SetHandler("OnReceiveDrag", nil)
 
-    row.roleIcon = WINDOW_MANAGER:CreateControl(nil, row.player, CT_TEXTURE)
+row.roleIcon = WINDOW_MANAGER:CreateControl(nil, row.player, CT_TEXTURE)
     row.roleIcon:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
     row.classIcon = WINDOW_MANAGER:CreateControl(nil, row.player, CT_TEXTURE)
     row.classIcon:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
@@ -856,6 +1012,12 @@ local function ApplyRowLayout(row, data, width, identityHeight, healthHeight)
     if IsCompactTrial() then width, identityHeight, healthHeight = GetRowDimensions() end
     local mainHeight = identityHeight + healthHeight
     row.player:SetDimensions(width, mainHeight)
+    if row.hitbox then
+        row.hitbox:ClearAnchors()
+        row.hitbox:SetAnchor(TOPLEFT, row.player, TOPLEFT, 0, 0)
+        row.hitbox:SetDimensions(width, mainHeight)
+        row.hitbox:SetHidden(false)
+    end
     row.health:ClearAnchors()
     row.health:SetAnchor(TOPLEFT, row.player, TOPLEFT, 0, identityHeight)
     BarVisuals:ApplyStyle(row.health, BuildBarStyle(data, width, healthHeight, false))
@@ -949,7 +1111,7 @@ local function ConfigureRow(row, data, width, identityHeight, healthHeight)
     row.sameIdentity = previousIdentity == data.identity
     row.data = data
     row.player.unitTag = data.unitTag
-    UpdateRowContextMouse(row)
+    if row.hitbox then row.hitbox.unitTag = data.unitTag end
     row.nameLabel:SetText(GetDisplayText(data))
     row.nameLabel:SetFont(BuildFont(GetSetting("textFontKey"), IsCompactTrial() and 14 or GetSetting("nameTextSize"), GetSetting("textOutline")))
     row.nameLabel:SetColor(0.92, 0.93, 0.96, Clamp(GetSetting("textOpacity"), 10, 100) / 100)
@@ -960,6 +1122,7 @@ local function ConfigureRow(row, data, width, identityHeight, healthHeight)
 
     ApplyRowLayout(row, data, width, identityHeight, healthHeight)
     UpdateRowValues(row, data, false)
+    UpdateRowContextMouse(row)
     row.control:SetHidden(false)
 
     if previousIdentity == data.identity and previousDead ~= nil and previousDead ~= data.dead then
@@ -1106,6 +1269,7 @@ function GroupFrames:RefreshUnit(unitTag, smooth, pulseShield)
         self.roster[lookup.rosterIndex] = lookup.owner
         ApplyRowLayout(row, lookup.owner, Clamp(GetSetting("width"), 180, 420), Clamp(GetSetting("identityHeight"), 16, 32), Clamp(GetSetting("healthHeight"), 12, 42))
         UpdateRowValues(row, lookup.owner, smooth)
+        UpdateRowContextMouse(row)
         if smooth then
             PlayHealthDeltaFeedback(row.companionHealth, previousData, updated)
         end
@@ -1131,6 +1295,7 @@ function GroupFrames:RefreshUnit(unitTag, smooth, pulseShield)
         end
         ApplyRowLayout(row, updated, Clamp(GetSetting("width"), 180, 420), Clamp(GetSetting("identityHeight"), 16, 32), Clamp(GetSetting("healthHeight"), 12, 42))
         UpdateRowValues(row, updated, smooth)
+        UpdateRowContextMouse(row)
         if smooth then
             PlayHealthDeltaFeedback(row.health, previousData, updated)
         end

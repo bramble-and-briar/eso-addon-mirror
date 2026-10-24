@@ -24,8 +24,6 @@ local ELEMENTS = {
     { "NAGA_BuffsSynergyRoot",    "NAGA - Synergy CD",      CENTER, -300, 200 },
     { "NAGA_BuffsWidgetsRoot",    "NAGA - Widgets",         CENTER, 400, 350 },
     { "NAGA_InfoPanel",           "NAGA - Info Panel",      TOPRIGHT, -24, 20 },
-    { "NAGA_Statistics_Report",  "NAGA - Estatística de Dano", TOP, 0, 28 },
-    { "NAGA_Statistics_MiniMeter", "NAGA - Minimedidor DPS", TOPRIGHT, -400, 0 },
 }
 
 local function IsEditHUDShowing()

@@ -1,9 +1,10 @@
 ## Title: |cD65AD6Where Is It?|r
 ## Author: user|cD65AD6562|r
-## Version: 1.4
+## Version: 1.5
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: WhereIsIt_SavedVars
 ## DependsOn: LibUser562
+## OptionalDependsOn: TSCPriceFetcher2
 
 WhereIsIt.lua
 WhereIsIt_Menu.lua

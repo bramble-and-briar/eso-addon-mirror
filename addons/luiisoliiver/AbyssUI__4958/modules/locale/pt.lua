@@ -4,8 +4,8 @@ NAGA_UI.LocaleData = NAGA_UI.LocaleData or {}
 NAGA_UI.LocaleData["pt"] = {
     ["100 = opaco."] = "100 = opaco.",
     ["Abre o relatório de danos do Bandits."] = "Abre o relatório de danos do Bandits.",
-    ["AbyssQuest"] = "AbyssQuest",
-    ["AbyssQuest não foi carregado (modules/quest). "] = "AbyssQuest não foi carregado (modules/quest). ",
+    ["AetherPath"] = "AetherPath",
+    ["AetherPath"] = "AetherPath",
     ["AbyssUI"] = "AbyssUI",
     ["Accent Opacity"] = "Accent Opacity",
     ["Aceita automaticamente a confirmação de prontidão do Localizador de Atividades."] = "Aceita automaticamente a confirmação de prontidão do Localizador de Atividades.",

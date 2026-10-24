@@ -13,18 +13,23 @@ addon.Timers = Timers
 local UPDATE_NAME = "SlayansBossTimerUpdate"
 local UPDATE_INTERVAL_MS = 1000 -- One update a second is enough for a countdown.
 
--- World, delve and public dungeon bosses respawn about 5 minutes after they die, in whole minutes (the owner, 18
--- October 2026). The longer times here were measured in game by Kyzderp for the SpawnTimer module of Kyzderp's Derps
--- (github.com/Kyzderp/KyzderpsDerps), which found most bosses back 5:00 to 5:11 after they die.
-Timers.DEFAULT_RESPAWN_SECONDS = 300
+-- Most world, delve and public dungeon bosses respawn about 5:06 after they die. The respawn times here were measured
+-- in game by Kyzderp for the SpawnTimer module of Kyzderp's Derps (github.com/Kyzderp/KyzderpsDerps).
+Timers.DEFAULT_RESPAWN_SECONDS = 306
 
--- Bosses that take twice as long, by their English name, so these match only in the English game; elsewhere they get
--- the default.
+-- Bosses that take noticeably longer, by their English name, so these match only in the English game; elsewhere they
+-- get the default.
 Timers.RESPAWN_SECONDS_BY_NAME = {
     ["Troll Colossus"] = 600, -- Craglorn's Nirncrux mines.
     ["Ri'Atahrashi"] = 600, -- Southern Elsweyr.
     ["Iratan the Lightbringer"] = 600, -- Southern Elsweyr.
-    ["Shademother"] = 600, -- Western Skyrim.
+    ["Shademother"] = 606, -- Western Skyrim.
+    ["Dwarven Dynastor Supreme"] = 335, -- The Reach, Arkthzand Cavern.
+    ["Bhrum"] = 331, -- Blackwood.
+    ["Koska"] = 331, -- Blackwood.
+    ["Old Deathwart"] = 330, -- Blackwood.
+    ["Order Champion"] = 330, -- Gold Coast, Kvatch Arena.
+    ["Knight Commander Panthius"] = 330, -- Gold Coast, Kvatch Arena.
 }
 
 -- Places where every boss takes longer, by zone ID, which is the same in every language.
@@ -122,17 +127,18 @@ local function Print(text)
 end
 
 -- The boss's name in large text with "Has Respawned" under it, shown the way the game's own centre-screen
--- announcements are (ingame/centerscreenannounce), with a sound.
-local function ShowAlert(timer)
+-- announcements are (ingame/centerscreenannounce), with the respawn sound if it's on.
+local function ShowAlert(timer, sound)
     if not CENTER_SCREEN_ANNOUNCE then
         return
     end
-    local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT,
-        SOUNDS.BATTLEGROUND_NEARING_VICTORY)
+    local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, sound)
     params:SetText(timer.name, GetString(SI_SBT_ALERT_RESPAWNED))
     params:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
     CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
 end
+
+local RESPAWN_SOUND = SOUNDS.BATTLEGROUND_NEARING_VICTORY
 
 local function OnTimerStarted(timer)
     if Settings.Get("showChat") then
@@ -145,8 +151,12 @@ local function OnBossRespawned(timer)
     if Settings.Get("showChat") then
         Print(zo_strformat(SI_SBT_CHAT_BOSS_RESPAWNED, timer.name))
     end
+    -- The sound comes with the alert, or plays on its own when the alert is off.
+    local sound = Settings.Get("playSound") and RESPAWN_SOUND or nil
     if Settings.Get("showAlert") then
-        ShowAlert(timer)
+        ShowAlert(timer, sound)
+    elseif sound then
+        PlaySound(sound)
     end
 end
 

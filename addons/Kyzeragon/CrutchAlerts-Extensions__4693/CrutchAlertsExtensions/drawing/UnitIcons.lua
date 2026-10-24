@@ -41,7 +41,7 @@ local KNOWN_COLLECTIBLES = {
     [13517] = BANKER, -- Celia Tyde, Lost Fleet Bursar
 
     -- Decon
-    [10184] = DECON, -- Giladil the Ragpick8995er
+    [10184] = DECON, -- Giladil the Ragpicker
     [10617] = DECON, -- Aderene, Fargrave Dregs Dealer
     [11877] = DECON, -- Tzozabrar, Dwarven Deconstructor
     [13063] = DECON, -- Siluruz, Realm Craftsmaster
@@ -118,7 +118,6 @@ local UNIT_ICON_UNIQUE_NAME = "CrutchAlertsExtensionsUnitIcon"
 local createdTags = {} -- Keep track of all possible in case of unregistering
 
 local function OnUnitCreated(_, unitTag)
-    -- TODO: probably need to fix if character name is same
     Crutch.dbgSpam("created " .. unitTag .. " - " .. tostring(GetUnitName(unitTag)))
     local texture = GetIconTexture(unitTag)
     if (texture) then

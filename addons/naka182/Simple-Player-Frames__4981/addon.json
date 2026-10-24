@@ -1,0 +1,44 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/naka182/Simple-Player-Frames__4981",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "naka182",
+  "canonical_id": "esoui:4981",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4981",
+  "deleted": false,
+  "directories": [
+    "SimplePlayerFrames"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4981/",
+  "fingerprint": "6c7636fbc4161d93840ebd25416c8fe0c91aff523a8f16a061511527d04eca4a",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18111.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18110.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18115.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18114.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18113.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18112.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4981",
+  "source_url": "https://www.esoui.com/downloads/info4981-SimplePlayerFrames.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Simple Player Frames",
+  "updated_at": 1792821730000,
+  "version": "1.0"
+}

@@ -1,0 +1,47 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Muffins714/Muffin-s-Market-Manager__4980",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Muffins714",
+  "canonical_id": "esoui:4980",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4980",
+  "deleted": false,
+  "directories": [
+    "MuffinsMarketManager"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4980/",
+  "fingerprint": "dea600996a23038f84e2d1dd1641094aa5eeee0f57d2eb6b42d3cd6d45f5dde4",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18108.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18109.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18107.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18106.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18105.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4980",
+  "source_url": "https://www.esoui.com/downloads/info4980-MuffinsMarketManager.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Muffin's Market Manager",
+  "updated_at": 1792825681000,
+  "version": "1.0"
+}

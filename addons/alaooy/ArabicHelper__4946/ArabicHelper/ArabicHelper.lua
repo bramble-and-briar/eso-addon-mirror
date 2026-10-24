@@ -340,6 +340,8 @@ local setsDatabase = {
     {name = "Vykosa", icon = "ArabicHelper/images/mo65.dds", category = "Monster"},
     {name = "Zaan", icon = "ArabicHelper/images/mo66.dds", category = "Monster"},
       {name = "Zoal the Ever-Wakeful", icon = "ArabicHelper/images/mo67.dds", category = "Monster"},
+    {name = "Tarcyr", icon = "ArabicHelper/images/mo68.dds", category = "Monster"},
+    {name = "Mylenne Moon-Caller", icon = "ArabicHelper/images/mo69.dds", category = "Monster"},
 	  -- ===== قسم أطقم الكرافت (Craftable Sets) =====
     {name = "Adept Rider", icon = "ArabicHelper/images/cr1.dds", category = "craftable"},
     {name = "Aetherial Ascension", icon = "ArabicHelper/images/cr2.dds", category = "craftable"},
@@ -539,6 +541,58 @@ local setsDatabase = {
     {name = "Willpower", icon = "ArabicHelper/images/pvp87.dds", category = "PvP"},
     {name = "Wizard's Riposte", icon = "ArabicHelper/images/pvp88.dds", category = "PvP"},
     {name = "Wrath of the Imperium", icon = "ArabicHelper/images/pvp89.dds", category = "PvP"},
+    -- ===== قسم المثك (Mythic) =====
+    {name = "Belharza's Band", icon = "ArabicHelper/images/my1.dds", category = "Mythic"},
+    {name = "Bloodlord's Embrace", icon = "ArabicHelper/images/my2.dds", category = "Mythic"},
+    {name = "Cryptcanon Vestments", icon = "ArabicHelper/images/my3.dds", category = "Mythic"},
+    {name = "Death Dealer's Fete", icon = "ArabicHelper/images/my4.dds", category = "Mythic"},
+    {name = "Dov-Rha Sabatons", icon = "ArabicHelper/images/my5.dds", category = "Mythic"},
+    {name = "Esoteric Environment Greaves", icon = "ArabicHelper/images/my6.dds", category = "Mythic"},
+    {name = "Faun's Lark Cladding", icon = "ArabicHelper/images/my7.dds", category = "Mythic"},
+    {name = "Gaze of Sithis", icon = "ArabicHelper/images/my8.dds", category = "Mythic"},
+    {name = "Harpooner's Wading Kilt", icon = "ArabicHelper/images/my9.dds", category = "Mythic"},
+    {name = "Huntsman's Warmask", icon = "ArabicHelper/images/my10.dds", category = "Mythic"},
+    {name = "Lefthander's Aegis Belt", icon = "ArabicHelper/images/my11.dds", category = "Mythic"},
+    {name = "Mad God's Dancing Shoes", icon = "ArabicHelper/images/my12.dds", category = "Mythic"},
+    {name = "Malacath's Band of Brutality", icon = "ArabicHelper/images/my13.dds", category = "Mythic"},
+    {name = "Markyn Ring of Majesty", icon = "ArabicHelper/images/my14.dds", category = "Mythic"},
+    {name = "Monomyth Reforged", icon = "ArabicHelper/images/my15.dds", category = "Mythic"},
+    {name = "Mora's Whispers", icon = "ArabicHelper/images/my16.dds", category = "Mythic"},
+    {name = "Oakensoul Ring", icon = "ArabicHelper/images/my17.dds", category = "Mythic"},
+    {name = "Pearls of Ehlnofey", icon = "ArabicHelper/images/my18.dds", category = "Mythic"},
+    {name = "Prowler's Talisman", icon = "ArabicHelper/images/my19.dds", category = "Mythic"},
+    {name = "Rakkhat's Voidmantle", icon = "ArabicHelper/images/my20.dds", category = "Mythic"},
+    {name = "Ring of the Pale Order", icon = "ArabicHelper/images/my21.dds", category = "Mythic"},
+    {name = "Ring of the Wild Hunt", icon = "ArabicHelper/images/my22.dds", category = "Mythic"},
+    {name = "Rourken Steamguards", icon = "ArabicHelper/images/my23.dds", category = "Mythic"},
+    {name = "Sea-Serpent's Coil", icon = "ArabicHelper/images/my24.dds", category = "Mythic"},
+    {name = "Shapeshifter's Chain", icon = "ArabicHelper/images/my25.dds", category = "Mythic"},
+    {name = "Shattered Paths Signet", icon = "ArabicHelper/images/my26.dds", category = "Mythic"},
+    {name = "Snow Treaders", icon = "ArabicHelper/images/my27.dds", category = "Mythic"},
+    {name = "Spaulder of Ruin", icon = "ArabicHelper/images/my28.dds", category = "Mythic"},
+    {name = "Stormweaver's Cavort", icon = "ArabicHelper/images/my29.dds", category = "Mythic"},
+    {name = "Syrabane's Ward", icon = "ArabicHelper/images/my30.dds", category = "Mythic"},
+    {name = "The Saint and the Seducer", icon = "ArabicHelper/images/my31.dds", category = "Mythic"},
+    {name = "The Shadow Queen's Cowl", icon = "ArabicHelper/images/my32.dds", category = "Mythic"},
+    {name = "Thrassian Stranglers", icon = "ArabicHelper/images/my33.dds", category = "Mythic"},
+    {name = "Torc of Tonal Constancy", icon = "ArabicHelper/images/my34.dds", category = "Mythic"},
+    {name = "Torc of the Last Ayleid King", icon = "ArabicHelper/images/my35.dds", category = "Mythic"},
+    {name = "Velothi Ur-Mage's Amulet", icon = "ArabicHelper/images/my36.dds", category = "Mythic"},
+    -- ===== قسم الأرشيف (Infinite Archive Class Sets) =====
+    {name = "Aerie's Cry", icon = "ArabicHelper/images/ia1.dds", category = "Archive"},
+    {name = "Aetheric Lancer", icon = "ArabicHelper/images/ia2.dds", category = "Archive"},
+    {name = "Basalt-Blooded Warrior", icon = "ArabicHelper/images/ia3.dds", category = "Archive"},
+    {name = "Beacon of Oblivion", icon = "ArabicHelper/images/ia4.dds", category = "Archive"},
+    {name = "Corpseburster", icon = "ArabicHelper/images/ia5.dds", category = "Archive"},
+    {name = "Gardener of Seasons", icon = "ArabicHelper/images/ia6.dds", category = "Archive"},
+    {name = "Monolith of Storms", icon = "ArabicHelper/images/ia7.dds", category = "Archive"},
+    {name = "Nobility in Decay", icon = "ArabicHelper/images/ia8.dds", category = "Archive"},
+    {name = "Pyrebrand", icon = "ArabicHelper/images/ia9.dds", category = "Archive"},
+    {name = "Reawakened Hierophant", icon = "ArabicHelper/images/ia10.dds", category = "Archive"},
+    {name = "Soulcleaver", icon = "ArabicHelper/images/ia11.dds", category = "Archive"},
+    {name = "Spattering Disjunction", icon = "ArabicHelper/images/ia12.dds", category = "Archive"},
+    {name = "Umbral Edge", icon = "ArabicHelper/images/ia13.dds", category = "Archive"},
+    {name = "Wrathsun", icon = "ArabicHelper/images/ia14.dds", category = "Archive"},
 }
 
 
@@ -600,7 +654,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- 1. النافذة الرئيسية للأطقم
     ----------------------------------------------------
     myWindow = WINDOW_MANAGER:CreateTopLevelWindow("ArabicHelperWindow")
-    myWindow:SetDimensions(600, 860) 
+    myWindow:SetDimensions(660, 860) 
     myWindow:SetAnchor(CENTER, GuiRoot, CENTER, -200, 0) 
     myWindow:SetMouseEnabled(true)
     myWindow:SetMovable(true)
@@ -686,14 +740,14 @@ local function OnAddOnLoaded(eventCode, addOnName)
     end
 
     local divider = WINDOW_MANAGER:CreateControl("$(parent)Divider", myWindow, CT_BACKDROP)
-    divider:SetDimensions(550, 2) 
+    divider:SetDimensions(610, 2) 
     divider:SetAnchor(TOPLEFT, myWindow, TOPLEFT, 25, 55) 
     divider:SetCenterColor(0.77, 0.76, 0.62, 0.6) 
 
     ----------------------------------------------------
     -- تبويبات وصندوق البحث للأطقم
     ----------------------------------------------------
-    local categories = {"All", "Dungeon", "Trial", "Arena", "craftable", "PvP", "Monster"}
+    local categories = {"All", "Dungeon", "Trial", "Arena", "craftable", "PvP", "Monster", "Mythic", "Archive"}
     local searchBox 
     local tabButtons = {} -- جدول جديد لحفظ أزرار التبويبات
 
@@ -710,10 +764,10 @@ local function OnAddOnLoaded(eventCode, addOnName)
 
     for i, catName in ipairs(categories) do
         local tab = WINDOW_MANAGER:CreateControl("$(parent)Tab" .. catName, myWindow, CT_BUTTON)
-        tab:SetDimensions(72, 30)
-        tab:SetAnchor(TOPLEFT, myWindow, TOPLEFT, (i-1)*78 + 25, 65) 
+        tab:SetDimensions(68, 30)
+        tab:SetAnchor(TOPLEFT, myWindow, TOPLEFT, (i-1)*70 + 15, 65) 
         tab:SetText(catName)
-        tab:SetFont("ZoFontWinH4")
+        tab:SetFont("ZoFontWinH5")
         tab:SetNormalFontColor(0.77, 0.76, 0.62, 1)
         tab:SetMouseOverFontColor(1, 1, 1, 1) 
         

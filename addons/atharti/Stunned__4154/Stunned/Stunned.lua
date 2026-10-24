@@ -5,20 +5,28 @@ local EM = EVENT_MANAGER
 
 S.name = "Stunned"
 
-local stunnedMode = false
 local playerName = nil
 local StunAlert = nil
 local StunNotification = nil
 
 local activeStunID = nil
-local charmSuppressed = false
+local debugEnabled = false
 
-local CHARM_SUPPRESSED_ZONES = {
-	[1301] = true, -- Coral Aerie
-	[1344] = true, -- DSR
+local BLOCKED_ABILITIES = {
+	--[16565] = true, -- Break Free
+	--[14644] = true, -- Reviving - SELF
+	--[64687] = true, -- IC | Door Silence - SELF
+	[163818] = true, -- Teleport (Encounter In Progress) (should be handled here without player activated handler, but keep for now to see if any other TP abilities are in play)
+	[167948] = true, -- Coral Aerie | Maligalig Tornadoe Silence
+	[159551] = true, -- Coral Aerie | Maligalig Tornadoe Stuns
+	[166794] = true, -- DSR | Water Charms
+	[167949] = true, -- DSR | Water Silence
+	--[163550] = true, -- DSR | Water Jump Synergy - SELF
+	[126371] = true, -- DSR | Structural Entropy ??? Own ability, maybe implement auto block for all own abilities?
 }
 
 local combatResults = {
+	ACTION_RESULT_STUNNED,
 	ACTION_RESULT_FEARED,
 	ACTION_RESULT_CHARMED,
 	ACTION_RESULT_ROOTED,
@@ -142,51 +150,52 @@ function S.ShowNotification(msgText, soundName, color, duration)
 end
 
 function S.RemoveStunnedMode()
-	activeStunID = nil
-	if stunnedMode then
-		if S.SV.blurOnStun then
-			SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
-		end
-		if S.SV.hideGameUI then
-			ToggleShowIngameGui()
-		end
-		stunnedMode = false
+	if activeStunID ~= nil then
+		if S.SV.blurOnStun then SetFullscreenEffect(FULLSCREEN_EFFECT_NONE) end
+		if S.SV.hideGameUI then ToggleShowIngameGui() end
 	end
+	activeStunID = nil
 	StunAlert:SetHidden(true)
 end
 
-function S.SetStunState(_, stunned)
-	if stunned then
-		if S.SV.trackStun and not stunnedMode and IsUnitInCombat("player") then
-			stunnedMode = true
-			local sound = S.SV.stunSoundEnabled and S.SV.stunSound
-			S.ShowStunAlert("STUNNED!", sound, S.SV.stunColor, S.SV.textStun)
-		end
-	else
-		S.RemoveStunnedMode()
-	end
-end
+function S.CombatEventHandler(_, result, _, abilityName, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
+	-- if not IsUnitInCombat("player") then return end
 
-function S.CombatEventHandler(_, result, _, _, _, _, _, _, targetName, _, _, _, _, _, _, _, abilityId)
-	if not IsUnitInCombat("player") then return end
+	local normalizedSource = zo_strformat("<<1>>", sourceName)
+
+	if normalizedSource == playerName then return end
+
+	if BLOCKED_ABILITIES[abilityId] then return end
 
 	local normalizedTarget = zo_strformat("<<1>>", targetName)
 
 	if normalizedTarget == playerName then
-		if result == ACTION_RESULT_FEARED and S.SV.trackFear then
+
+		if result == ACTION_RESULT_STUNNED and S.SV.trackStun then
 			if activeStunID == nil then
+				if debugEnabled then d(string.format("STUNNED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(sourceName))) end
+
+				local sound = S.SV.stunSoundEnabled and S.SV.stunSound
+				S.ShowStunAlert("STUNNED!", sound, S.SV.stunColor, S.SV.textStun)
+				activeStunID = abilityId
+			end
+
+		elseif result == ACTION_RESULT_FEARED and S.SV.trackFear then
+			if activeStunID == nil then
+				if debugEnabled then d(string.format("FEARED: abilityId=%s name=%s", tostring(abilityId), tostring(abilityName))) end
+
 				local sound = S.SV.fearSoundEnabled and S.SV.fearSound
 				S.ShowStunAlert("FEARED!", sound, S.SV.fearColor, S.SV.textFear)
 				activeStunID = abilityId
-				stunnedMode = true
 			end
 
 		elseif result == ACTION_RESULT_CHARMED and S.SV.trackCharm then
-			if not charmSuppressed and activeStunID == nil then
+			if activeStunID == nil then
+				if debugEnabled then d(string.format("CHARMED: abilityId=%s name=%s", tostring(abilityId), tostring(abilityName))) end
+
 				local sound = S.SV.charmSoundEnabled and S.SV.charmSound
 				S.ShowStunAlert("CHARMED!", sound, S.SV.charmColor, S.SV.textCharm)
 				activeStunID = abilityId
-				stunnedMode = true
 			end
 
 		elseif result == ACTION_RESULT_EFFECT_FADED then
@@ -199,10 +208,14 @@ function S.CombatEventHandler(_, result, _, _, _, _, _, _, targetName, _, _, _, 
 			S.ShowNotification("ROOTED!", sound, S.SV.rootedColor, 1000)
 
 		elseif result == ACTION_RESULT_SILENCED and S.SV.trackSilenced then
+			if debugEnabled then d(string.format("SILENCED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(sourceName))) end
+
 			local sound = S.SV.silencedSoundEnabled and S.SV.silencedSound
 			S.ShowNotification("SILENCED!", sound, S.SV.silencedColor, 1000)
 
 		elseif result == ACTION_RESULT_PACIFIED and S.SV.trackPacified then
+			if debugEnabled then d(string.format("PACIFIED: abilityId=%s name=%s", tostring(abilityId), tostring(abilityName))) end
+
 			local sound = S.SV.pacifiedSoundEnabled and S.SV.pacifiedSound
 			S.ShowNotification("PACIFIED!", sound, S.SV.pacifiedColor, 1000)
 
@@ -219,16 +232,14 @@ end
 
 function S.NoStunAfterTP()
 	S.RemoveStunnedMode()
-	charmSuppressed = CHARM_SUPPRESSED_ZONES[GetZoneId(GetUnitZoneIndex("player"))]
 end
 
 function S.OnInitPlayerActivated()
 	playerName = GetUnitName("player")
-	charmSuppressed = CHARM_SUPPRESSED_ZONES[GetZoneId(GetUnitZoneIndex("player"))]
 	S.CreateUI()
 
 	EM:UnregisterForEvent(S.name, EVENT_PLAYER_ACTIVATED)
-	EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.NoStunAfterTP)
+	--EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.NoStunAfterTP)
 end
 
 function S.OnAddonLoaded(_, addonName)
@@ -238,13 +249,17 @@ function S.OnAddonLoaded(_, addonName)
 		S.SV = ZO_SavedVars:NewAccountWide("Stunned_SV", 1, nil, defaultSV)
 		S.RegisterLAMPanel()
 
-		EM:RegisterForEvent(S.name, EVENT_PLAYER_STUNNED_STATE_CHANGED, S.SetStunState)
 		EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.OnInitPlayerActivated)
 
 		for _, result in ipairs(combatResults) do
 			local ns = S.name .. "_" .. tostring(result)
 			EM:RegisterForEvent(ns, EVENT_COMBAT_EVENT, S.CombatEventHandler)
 			EM:AddFilterForEvent(ns, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, result)
+		end
+
+		SLASH_COMMANDS["/stundbg"] = function()
+			debugEnabled = not debugEnabled
+			d(string.format("Stunned debug: %s", debugEnabled and "|c00FF00ON|r" or "|cFF0000OFF|r"))
 		end
 	end
 end

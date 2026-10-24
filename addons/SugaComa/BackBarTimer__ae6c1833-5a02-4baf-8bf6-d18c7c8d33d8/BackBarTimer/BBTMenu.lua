@@ -127,6 +127,17 @@ function Menu:Initialize()
         unit = "s",
         format = "%d",
     })
+    settings:AddSetting({
+        type = lib.ST_CHECKBOX,
+        label = "Show skill icon first",
+        tooltip = "When enabled, show the skill icon before the final 2 seconds, then the controller button. When disabled, keep the original controller-button-then-skill-icon order.",
+        default = false,
+        getFunction = function() return Addon.sv.skillIconFirst == true end,
+        setFunction = function(value)
+            Addon.sv.skillIconFirst = value == true
+            Addon.HUD:Refresh()
+        end,
+    })
 
     if lib.ST_SECTION then
         settings:AddSetting({ type = lib.ST_SECTION, label = "Cadence Prompts" })

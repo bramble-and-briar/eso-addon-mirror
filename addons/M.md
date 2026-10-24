@@ -164,6 +164,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Mudballed - Memento Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Mudballed---Memento-Counter__3218) | Kyzeragon | PC / Mac | 1.0.2 |
 | [Mudcrab Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Mudcrab-Counter__4383) | TwinLamps | PC / Mac | 1.1 |
 | [Mudcrab Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/snay/Mudcrab-Tracker__4312) | snay | PC / Mac | 0.1.4 |
+| [Muffin's Market Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Market-Manager__4980) | Muffins714 | PC / Mac | 1.0 |
 | [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.2 |
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |

@@ -189,29 +189,33 @@
                                 </Backdrop>
                                 <Control name="$(parent)Bar" hidden="true">
                                     <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
-                                    <Dimensions x="337" y="40" />
+                                    <Dimensions x="380" y="40" />
                                     <Controls>
                                         <Texture name="$(parent)Icon">
                                             <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
                                             <Dimensions x="40" y="40" />
                                         </Texture>
                                         <Backdrop name="$(parent)Bg">
-                                            <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" offsetY="0" />
-                                            <Dimensions x="291" y="26" />
+                                            <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="0" offsetY="0" />
+                                            <Dimensions x="340" y="18" />
                                         </Backdrop>
                                         <StatusBar name="$(parent)Fill">
                                             <Anchor point="TOPLEFT" relativeTo="$(parent)Bg" relativePoint="TOPLEFT" offsetX="1" offsetY="1" />
-                                            <Dimensions x="289" y="24" />
+                                            <Dimensions x="338" y="16" />
                                         </StatusBar>
                                         <Label name="$(parent)Left" verticalAlignment="CENTER" horizontalAlignment="LEFT">
-                                            <Anchor point="LEFT" relativeTo="$(parent)Bg" relativePoint="LEFT" offsetX="6" offsetY="0" />
-                                            <Dimensions x="150" y="26" />
+                                            <Anchor point="LEFT" relativeTo="$(parent)Bg" relativePoint="LEFT" offsetX="3" offsetY="2" />
+                                            <Dimensions x="170" y="24" />
                                         </Label>
                                         <Label name="$(parent)Right" verticalAlignment="CENTER" horizontalAlignment="RIGHT">
-                                            <Anchor point="RIGHT" relativeTo="$(parent)Bg" relativePoint="RIGHT" offsetX="-6" offsetY="0" />
-                                            <Dimensions x="200" y="26" />
+                                            <Anchor point="RIGHT" relativeTo="$(parent)Bg" relativePoint="RIGHT" offsetX="-3" offsetY="2" />
+                                            <Dimensions x="337" y="24" />
                                         </Label>
                                     </Controls>
+                                </Control>
+                                <Control name="$(parent)BarHolder" hidden="true">
+                                    <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
+                                    <Dimensions x="40" y="380" />
                                 </Control>
                                 <Label name="$(parent)Sample" font="ZoFontGamepad34" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="TOP" horizontalAlignment="CENTER" hidden="true">
                                     <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />

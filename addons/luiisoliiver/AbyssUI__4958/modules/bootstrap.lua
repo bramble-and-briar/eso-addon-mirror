@@ -8,7 +8,7 @@ local NAGA_UI = NAGA_UI
 -- Sub-namespaces (single global table pattern)
 NAGA_UI.MapUI = NAGA_UI.MapUI or {}
 NAGA_UI.BUI = NAGA_UI.BUI or {}
-NAGA_UI.AbyssQuest = NAGA_UI.AbyssQuest or {}
+NAGA_UI.AetherPath = NAGA_UI.AetherPath or {}
 
 -- Backward-compatible aliases (other files / SavedVariables still use these names)
 NagaMapUI = NAGA_UI.MapUI

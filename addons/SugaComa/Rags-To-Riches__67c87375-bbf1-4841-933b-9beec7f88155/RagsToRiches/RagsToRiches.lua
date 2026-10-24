@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- RagsToRiches.lua — Stand-alone v1.4.4-test (PS5 + Safe Inventory Automation)
+-- RagsToRiches.lua — Stand-alone v1.5.0-test1 (PS5 + Safe Inventory Automation)
 -- Author: SugaComa
 --------------------------------------------------------------
 
@@ -618,6 +618,56 @@ local function GetIntricateAction()
     return NormalizeIntricateAction(cfg and cfg.intricateAction)
 end
 
+local CATEGORY_ACTIONS = {
+    [1] = "Keep",
+    [2] = "Deconstruct",
+    [3] = "Sell",
+}
+
+local function NormalizeCategoryAction(value, fallback)
+    if type(value) == "table" then
+        value = value.data or value.name or value.value or value.index
+    end
+    if type(value) == "number" then
+        value = CATEGORY_ACTIONS[value]
+    elseif type(value) == "string" then
+        local numeric = tonumber(value)
+        if numeric and CATEGORY_ACTIONS[numeric] then value = CATEGORY_ACTIONS[numeric] end
+    end
+    if value == "Keep" or value == "Deconstruct" or value == "Sell" then return value end
+    return fallback or "Keep"
+end
+
+local function GetEquipmentCategory(bagId, slotIndex, itemType)
+    itemType = itemType or GetItemType(bagId, slotIndex)
+    if itemType == ITEMTYPE_GLYPH_ARMOR
+        or itemType == ITEMTYPE_GLYPH_WEAPON
+        or itemType == ITEMTYPE_GLYPH_JEWELRY then
+        return "enchants", "enchantment"
+    end
+
+    local equipType = GetItemEquipType(bagId, slotIndex)
+    if equipType == EQUIP_TYPE_RING or equipType == EQUIP_TYPE_NECK then
+        return "jewelry", "jewellery"
+    end
+    if GetItemWeaponType(bagId, slotIndex) ~= WEAPONTYPE_NONE then
+        return "weapons", "weapon"
+    end
+    if itemType == ITEMTYPE_ARMOR then return "armor", "armour" end
+    return nil, nil
+end
+
+local function GetEquipmentCategoryAction(categoryKey)
+    local cfg = RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.deconstruct or {}
+    local actionKeys = {
+        weapons = "weaponAction",
+        armor = "armorAction",
+        enchants = "enchantAction",
+        jewelry = "jewelryAction",
+    }
+    return NormalizeCategoryAction(cfg[actionKeys[categoryKey]], "Keep")
+end
+
 local function IsLegendaryOrMythic(bagId, slotIndex)
     local displayQuality = GetItemDisplayQuality(bagId, slotIndex)
     local functionalQuality = tonumber(GetItemFunctionalQuality(bagId, slotIndex)) or 0
@@ -928,6 +978,21 @@ local function IsSafeMerchantItem(bagId, slotIndex)
         return false, intricateAction == "Deconstruct" and "intricate reserved for deconstruction" or "intricate kept"
     end
 
+    -- Economic traits override the general category action. Ornate always
+    -- benefits selling, while Intricate was resolved immediately above.
+    if cfg.ornate ~= false and ORNATE_TRAITS[trait] then return true, "ornate" end
+
+    local categoryKey, categoryLabel = GetEquipmentCategory(bagId, slotIndex, itemType)
+    if categoryKey then
+        local categoryAction = GetEquipmentCategoryAction(categoryKey)
+        if categoryAction == "Sell" then
+            return true, categoryLabel .. " category set to sell"
+        end
+        return false, categoryAction == "Deconstruct"
+            and categoryLabel .. " reserved for deconstruction"
+            or categoryLabel .. " category kept"
+    end
+
     -- ESO itself marks merchant-purpose items with the Priority Sell flag.
     -- This is the same underlying flag used for the tooltip text
     -- "Sell to a merchant for gold." Hard protections above still run first.
@@ -943,8 +1008,6 @@ local function IsSafeMerchantItem(bagId, slotIndex)
             return true, "low-quality non-set equipment"
         end
     end
-
-    if cfg.ornate ~= false and ORNATE_TRAITS[trait] then return true, "ornate" end
 
     -- Scribing scripts are an explicit opt-in category. Knowledge detection is
     -- intentionally not used: when enabled, every script is sold; when disabled,
@@ -1152,12 +1215,72 @@ local function GetFenceSelectionKey(bagId, slotIndex)
     return string.format("%s:%s:%s", tostring(bagId), tostring(slotIndex), GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT) or "")
 end
 
+local QUESTS_WITH_STOLEN_TURNINS = {
+    ["the covetous countess"] = true,
+    ["a matter of leisure"] = true,
+    ["a matter of respect"] = true,
+    ["a matter of tributes"] = true,
+    ["glitter and gleam"] = true,
+}
+
+local function IsKnownStolenTurninQuest(questName)
+    if type(questName) ~= "string" then return false end
+    local normalized = zo_strlower(questName:gsub("%^.*", ""))
+    return QUESTS_WITH_STOLEN_TURNINS[normalized] == true
+end
+
+local function IsNeededByJournalQuest(bagId, slotIndex)
+    if not RagsToRiches.SV.fence.launderQuestItems then return false, nil end
+    if not GetNumJournalQuests or not GetJournalQuestName
+        or not GetJournalQuestNumSteps or not GetJournalQuestNumConditions
+        or not GetJournalQuestConditionInfo
+        or not DoesItemFulfillJournalQuestCondition then
+        return false, nil
+    end
+
+    for questIndex = 1, GetNumJournalQuests() do
+        local questName = GetJournalQuestName(questIndex)
+        local knownQuest = IsKnownStolenTurninQuest(questName)
+        local stepCount = GetJournalQuestNumSteps(questIndex) or 0
+
+        for stepIndex = 1, stepCount do
+            local conditionCount = GetJournalQuestNumConditions(questIndex, stepIndex) or 0
+            for conditionIndex = 1, conditionCount do
+                local _, _, _, _, isComplete, _, _, conditionType =
+                    GetJournalQuestConditionInfo(questIndex, stepIndex, conditionIndex, false)
+                local launderCondition = QUEST_CONDITION_TYPE_SELL_LAUNDER_ITEM ~= nil
+                    and conditionType == QUEST_CONDITION_TYPE_SELL_LAUNDER_ITEM
+
+                if not isComplete and (knownQuest or launderCondition) then
+                    local ok, fulfils = pcall(
+                        DoesItemFulfillJournalQuestCondition,
+                        bagId,
+                        slotIndex,
+                        questIndex,
+                        stepIndex,
+                        conditionIndex
+                    )
+                    if ok and fulfils == true then return true, questName end
+                end
+            end
+        end
+    end
+    return false, nil
+end
+
 local function GetFenceRecommendedAction(bagId, slotIndex)
     local _, stack = GetItemInfo(bagId, slotIndex)
     if not stack or stack <= 0 then return nil, "empty" end
     if not IsItemStolen(bagId, slotIndex) then return nil, "not stolen" end
     if IsItemPlayerLocked(bagId, slotIndex) then return nil, "locked" end
     if IsStolenContainer(bagId, slotIndex) then return nil, "container" end
+
+    -- Quest demand wins over the ordinary tradeable/non-tradeable fence rules.
+    -- Every journal entry is scanned, not only the currently tracked quest.
+    local neededForQuest, questName = IsNeededByJournalQuest(bagId, slotIndex)
+    if neededForQuest then
+        return "launder", "needed by quest: " .. tostring(questName or "journal quest")
+    end
 
     -- Lockpicks have their own economy rule and must be decided before the
     -- generic tradeable-item laundering rule. Keep disables all handling; Sell
@@ -1517,18 +1640,21 @@ local function IsSafeDeconstructionItem(bagId, slotIndex, craftSkill)
     end
 
     local quality = tonumber(GetItemFunctionalQuality(bagId, slotIndex)) or 0
-    if not INTRICATE_TRAITS[trait] and (quality < 2 or quality > 4) then
-        return false, "quality outside green-purple"
+    if not INTRICATE_TRAITS[trait] and (quality < 1 or quality > 4) then
+        return false, "quality outside white-purple"
     end
 
     local itemType = GetItemType(bagId, slotIndex)
-    local isGlyph = MatchesDefinedConstant(itemType, ITEMTYPE_GLYPH_ARMOR, ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_JEWELRY)
-    if not isGlyph and (not trait or trait == ITEM_TRAIT_TYPE_NONE) then return false, "no trait" end
+    local categoryKey, categoryLabel = GetEquipmentCategory(bagId, slotIndex, itemType)
+    if not categoryKey then return false, "not a configured equipment category" end
 
-    local equipType = GetItemEquipType(bagId, slotIndex)
-    if equipType == EQUIP_TYPE_RING or equipType == EQUIP_TYPE_NECK then return cfg.jewelry, "jewellery" end
-    if GetItemWeaponType(bagId, slotIndex) ~= WEAPONTYPE_NONE then return cfg.weapons, "weapon" end
-    return cfg.armor, isGlyph and "glyph" or "armour"
+    local categoryAction = GetEquipmentCategoryAction(categoryKey)
+    if categoryAction ~= "Deconstruct" then
+        return false, categoryAction == "Sell"
+            and categoryLabel .. " set to sell"
+            or categoryLabel .. " category kept"
+    end
+    return true, categoryLabel .. " category set to deconstruct"
 end
 
 local function GetActiveDeconstructionPanel(source)
@@ -2023,6 +2149,7 @@ local function CreateSettings()
     settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Fence Preview Only", tooltip = "When enabled, RagsToRiches marks recommended items in the fence Sell and Launder tabs instead of processing them automatically. Deselect anything you want to keep, then use the bulk action on that tab. Stolen containers are not auto-opened in preview mode.", getFunction = function() return RagsToRiches.SV.fence.previewOnly == true end, setFunction = function(v) RagsToRiches.SV.fence.previewOnly = v == true end, default = false })
     settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Open Stolen Containers Before Fence Processing", tooltip = "Opens stolen reward/container boxes first, then processes the stolen contents for laundering or sale. Stops if the backpack is full. Disabled while Fence Preview Only is active.", getFunction = function() return RagsToRiches.SV.fence.openStolenContainers == true end, setFunction = function(v) RagsToRiches.SV.fence.openStolenContainers = v end, default = false })
     settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Prevent Accidental Theft Unless Hidden", tooltip = "Blocks interactions with owned objects while you are visible or detected. Owned interactions are allowed while Hidden or in a stealth state. Does not change ESO's protected game settings.", getFunction = function() return RagsToRiches.SV.fence.preventAccidentalTheftUnlessHidden == true end, setFunction = function(v) RagsToRiches.SV.fence.preventAccidentalTheftUnlessHidden = v == true end, default = false })
+    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Launder Items Needed by Journal Quests", tooltip = "When enabled, stolen items that ESO reports as fulfilling The Covetous Countess or a supported Blackfeather Court item quest are laundered before ordinary fence rules. Every quest in the journal is checked, not only the currently tracked quest.", getFunction = function() return RagsToRiches.SV.fence.launderQuestItems ~= false end, setFunction = function(v) RagsToRiches.SV.fence.launderQuestItems = v ~= false end, default = true })
     settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Launder Tradeable Stolen Items", getFunction = function() return RagsToRiches.SV.fence.launderTradeable end, setFunction = function(v) RagsToRiches.SV.fence.launderTradeable = v end, default = true })
     settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Non-Tradeable Stolen Items", getFunction = function() return RagsToRiches.SV.fence.sellNonTradeable end, setFunction = function(v) RagsToRiches.SV.fence.sellNonTradeable = v end, default = true })
 
@@ -2055,10 +2182,34 @@ local function CreateSettings()
         end,
         default = "Keep",
     })
+    local categoryActionItems = {
+        { name = "Keep", data = "Keep" },
+        { name = "Deconstruct", data = "Deconstruct" },
+        { name = "Sell", data = "Sell" },
+    }
+    local function AddCategoryActionSetting(label, actionKey)
+        settings:AddSetting({
+            type = LHAS.ST_DROPDOWN,
+            label = label,
+            tooltip = "Choose whether this category is kept, selected for deconstruction, or marked for merchant sale. Existing safety protections run first; among eligible items, Ornate and Intricate trait rules take priority over this category choice.",
+            items = categoryActionItems,
+            getFunction = function()
+                return NormalizeCategoryAction(RagsToRiches.SV.deconstruct[actionKey], "Keep")
+            end,
+            setFunction = function(controlOrValue, itemName, itemData)
+                RagsToRiches.SV.deconstruct[actionKey] = NormalizeCategoryAction(
+                    itemData or itemName or controlOrValue,
+                    "Keep"
+                )
+            end,
+            default = "Deconstruct",
+        })
+    end
+    AddCategoryActionSetting("Weapons", "weaponAction")
+    AddCategoryActionSetting("Armour", "armorAction")
+    AddCategoryActionSetting("Enchantments", "enchantAction")
+    AddCategoryActionSetting("Jewellery", "jewelryAction")
     settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Preview Only (pre-select for review)", tooltip = "Pre-selects RagsToRiches recommendations in ESO's native deconstruction list. Review or deselect items first, then use ESO's normal hold-Square confirmation.", getFunction = function() return RagsToRiches.SV.deconstruct.previewOnly end, setFunction = function(v) RagsToRiches.SV.deconstruct.previewOnly = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Include Armour", getFunction = function() return RagsToRiches.SV.deconstruct.armor end, setFunction = function(v) RagsToRiches.SV.deconstruct.armor = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Include Weapons", getFunction = function() return RagsToRiches.SV.deconstruct.weapons end, setFunction = function(v) RagsToRiches.SV.deconstruct.weapons = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Include Jewellery", getFunction = function() return RagsToRiches.SV.deconstruct.jewelry end, setFunction = function(v) RagsToRiches.SV.deconstruct.jewelry = v end, default = true })
 
     ----------------------------------------------------------
     -- SugaComa signature and contact
@@ -2097,8 +2248,19 @@ local function OnLoaded(_, name)
             lockpicks = { enabled = true, action = "Notify", low = 50, carryMax = 399, bankStacks = 20, stackSize = 200 },
             soulGems = { enabled = true, low = 50, characterStacks = 2, bankStacks = 5, stackSize = 200, sellExcess = true },
         },
-        fence = { enabled = true, previewOnly = false, openStolenContainers = false, preventAccidentalTheftUnlessHidden = false, launderTradeable = true, sellNonTradeable = true },
-        deconstruct = { enabled = true, previewOnly = false, armor = true, weapons = true, jewelry = true, intricateAction = "Keep" },
+        fence = { enabled = true, previewOnly = false, openStolenContainers = false, preventAccidentalTheftUnlessHidden = false, launderQuestItems = true, launderTradeable = true, sellNonTradeable = true },
+        deconstruct = {
+            enabled = true,
+            previewOnly = false,
+            armor = true,
+            weapons = true,
+            jewelry = true,
+            intricateAction = "Keep",
+            weaponAction = "Deconstruct",
+            armorAction = "Deconstruct",
+            enchantAction = "Deconstruct",
+            jewelryAction = "Deconstruct",
+        },
     }
 
     RagsToRiches = RagsToRiches or {}
@@ -2163,6 +2325,34 @@ local function OnLoaded(_, name)
             if lockRule.stackSize == nil then lockRule.stackSize = 200 end
             sv.schemaVersion = 140
         end
+
+        if not sv.schemaVersion or sv.schemaVersion < 141 then
+            sv.deconstruct = sv.deconstruct or defaults.deconstruct
+            local deconstruct = sv.deconstruct
+
+            if deconstruct.weaponAction == nil then
+                deconstruct.weaponAction = deconstruct.weapons == false and "Keep" or "Deconstruct"
+            end
+            if deconstruct.armorAction == nil then
+                deconstruct.armorAction = deconstruct.armor == false and "Keep" or "Deconstruct"
+            end
+            if deconstruct.enchantAction == nil then
+                -- Glyphs previously followed the armour include switch.
+                deconstruct.enchantAction = deconstruct.armor == false and "Keep" or "Deconstruct"
+            end
+            if deconstruct.jewelryAction == nil then
+                deconstruct.jewelryAction = deconstruct.jewelry == false and "Keep" or "Deconstruct"
+            end
+
+            deconstruct.weaponAction = NormalizeCategoryAction(deconstruct.weaponAction, "Keep")
+            deconstruct.armorAction = NormalizeCategoryAction(deconstruct.armorAction, "Keep")
+            deconstruct.enchantAction = NormalizeCategoryAction(deconstruct.enchantAction, "Keep")
+            deconstruct.jewelryAction = NormalizeCategoryAction(deconstruct.jewelryAction, "Keep")
+
+            sv.fence = sv.fence or defaults.fence
+            if sv.fence.launderQuestItems == nil then sv.fence.launderQuestItems = true end
+            sv.schemaVersion = 141
+        end
     end
 
     MigrateSettingsProfile(RagsToRiches.AccountSV)
@@ -2184,7 +2374,7 @@ local function OnLoaded(_, name)
     InstallAccidentalTheftProtection()
     zo_callLater(function() CheckBackpackSpace(false) end, 1000)
 
-    chat("RagsToRiches v1.4.4-test loaded.")
+    chat("RagsToRiches v1.5.0-test1 loaded.")
 end
 
 EM:RegisterForEvent("RTR_Loaded", EVENT_ADD_ON_LOADED, OnLoaded)

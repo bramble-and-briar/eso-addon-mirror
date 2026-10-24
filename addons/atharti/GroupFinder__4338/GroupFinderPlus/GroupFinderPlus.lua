@@ -1403,11 +1403,8 @@ function GF.RequestCurrentCategorySearch()
 end
 
 function GF.InstanceCheck()
-	if (not IsPlayerInRaid() and not IsUnitInDungeon("player")) or IsInAdventureZone() then
-	  GF.IsInstanced = false
-	else
-	  GF.IsInstanced = true
-	end
+    local mode = GetCurrentZoneDungeonDifficulty()
+    GF.IsInstanced = (mode == DUNGEON_DIFFICULTY_NORMAL or mode == DUNGEON_DIFFICULTY_VETERAN)
 end
 
 function GF.levelCheck()

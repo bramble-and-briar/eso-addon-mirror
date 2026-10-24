@@ -9,7 +9,11 @@ local Utils = LibConsoleLogger.Utils
 
 local MAX_URL_LEN = 8191
 local MAX_CAPTURE_BYTES = 1024 * 1024
+-- Hard ceiling on buffered lines. The effective cap is the user's "Buffer size" setting
+-- (LibConsoleLogger:GetMaxLines), clamped to [MIN_CAPTURE_LINES, MAX_CAPTURE_LINES]; a smaller cap keeps
+-- a busy addon's export down to a few browser round trips (one chunk is ~6 KB / ~80 short lines).
 local MAX_CAPTURE_LINES = 4000
+local MIN_CAPTURE_LINES = 50
 -- URL-safe base64 alphabet: '+' and '/' would be mangled by standard
 -- query-string parsers ('+' decodes to a space), so use '-' and '_' instead.
 local BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -150,6 +154,65 @@ local function ClearExportBuffer()
     exportHead, exportTail = 1, 0
 end
 
+---@return number
+function WebExport.GetMaxLinesCeiling()
+    return MAX_CAPTURE_LINES
+end
+
+---@return number
+function WebExport.GetMinLines()
+    return MIN_CAPTURE_LINES
+end
+
+---Effective line cap: the persisted setting (or the pending value before SavedVars load), clamped.
+---@return number
+function WebExport.GetMaxLines()
+    local n
+    if EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil then
+        n = LibConsoleLogger.savedVars.maxLines
+    end
+    if n == nil then
+        n = LibConsoleLogger._pendingMaxLines
+    end
+    n = tonumber(n) or MAX_CAPTURE_LINES
+    n = math.floor(n)
+    if n < MIN_CAPTURE_LINES then n = MIN_CAPTURE_LINES end
+    if n > MAX_CAPTURE_LINES then n = MAX_CAPTURE_LINES end
+    return n
+end
+
+-- Drop oldest lines until within both caps (O(1) each).
+---@param maxLines number
+local function TrimExportBuffer(maxLines)
+    while exportHead <= exportTail and (exportBufferBytes > MAX_CAPTURE_BYTES or (exportTail - exportHead + 1) > maxLines) do
+        local removed = exportBuffer[exportHead]
+        exportBuffer[exportHead] = nil
+        exportHead = exportHead + 1
+        exportBufferBytes = exportBufferBytes - (#removed + 1)
+    end
+    if exportHead > exportTail then
+        ClearExportBuffer()
+    end
+end
+
+---Set the line cap (persisted). Lowering it trims the buffer right away.
+---@param n number
+---@return number applied
+function WebExport.SetMaxLines(n)
+    n = math.floor(tonumber(n) or MAX_CAPTURE_LINES)
+    if n < MIN_CAPTURE_LINES then n = MIN_CAPTURE_LINES end
+    if n > MAX_CAPTURE_LINES then n = MAX_CAPTURE_LINES end
+    if EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil then
+        LibConsoleLogger.savedVars.maxLines = n
+    else
+        LibConsoleLogger._pendingMaxLines = n
+    end
+    if exportBuffer ~= nil then
+        TrimExportBuffer(n)
+    end
+    return n
+end
+
 ---@return boolean
 local function IsRuntimeEnabled()
     return LibConsoleLogger.IsEnabled and LibConsoleLogger:IsEnabled()
@@ -192,16 +255,8 @@ function WebExport.BufferD(line)
     exportBuffer[exportTail] = s
     exportBufferBytes = exportBufferBytes + #s + 1
 
-    -- Drop oldest lines until within both caps (O(1) each).
-    while exportHead <= exportTail and (exportBufferBytes > maxBytes or (exportTail - exportHead + 1) > MAX_CAPTURE_LINES) do
-        local removed = exportBuffer[exportHead]
-        exportBuffer[exportHead] = nil
-        exportHead = exportHead + 1
-        exportBufferBytes = exportBufferBytes - (#removed + 1)
-    end
-
-    if exportHead > exportTail then
-        ClearExportBuffer()
+    TrimExportBuffer(WebExport.GetMaxLines())
+    if exportBuffer == nil then
         return
     end
 

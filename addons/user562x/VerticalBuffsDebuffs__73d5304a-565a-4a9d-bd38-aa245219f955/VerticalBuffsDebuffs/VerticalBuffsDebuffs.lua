@@ -63,10 +63,27 @@ local PREVIEW_TIP         = "Shows it on screen so you can place it. Stays on un
 
 local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
 
+local DEFAULT_FONT = "EsoUI/Common/Fonts/FTN57.otf"
+
+local FONT_CHOICES = {
+    { name = "Gamepad Medium",  value = "EsoUI/Common/Fonts/FTN57.otf" },
+    { name = "Gamepad Bold",    value = "EsoUI/Common/Fonts/FTN87.otf" },
+    { name = "Gamepad Light",   value = "EsoUI/Common/Fonts/FTN47.otf" },
+    { name = "Univers Regular", value = "EsoUI/Common/Fonts/Univers57.otf" },
+    { name = "Univers Light",   value = "EsoUI/Common/Fonts/univers55.otf" },
+    { name = "Univers Bold",    value = "EsoUI/Common/Fonts/univers67.otf" },
+    { name = "Prose Antique",   value = "EsoUI/Common/Fonts/ProseAntiquePSMT.otf" },
+    { name = "Trajan Pro",      value = "EsoUI/Common/Fonts/TrajanPro-Regular.otf" },
+    { name = "Handwritten",     value = "EsoUI/Common/Fonts/Handwritten_Bold.otf" },
+    { name = "Arial Narrow",    value = "EsoUI/Common/Fonts/arialn.ttf" },
+    { name = "Consolas",        value = "EsoUI/Common/Fonts/consola.ttf" },
+}
+
 local RAINBOW_PALETTE = { "FF2222", "FF9900", "FFEE00", "33DD33", "00CCCC", "3399FF", "BB44EE" }
 
 local WINDOW_DEFAULTS = {
     settingsFontSize       = 30,
+    settingsFont           = "EsoUI/Common/Fonts/FTN57.otf",
     settingsOpacity        = 100,
     settingsHighlight      = "Alliance",
     settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
@@ -720,6 +737,7 @@ function VerticalBuffsDebuffs:ResetSettings()
     self:RefreshDisplay()
 
     PanelCall("ApplyTextSize")
+    PanelCall("ApplyFont")
     PanelCall("ApplyOpacity")
     PanelCall("ApplyAccent")
 end
@@ -852,7 +870,7 @@ function VerticalBuffsDebuffs:SettingsMenu()
             {
                 type    = "toggle",
                 name    = "Character Settings",
-                tooltip = "Off uses one layout for the whole account. On gives this character its own layout, copied from the account layout the first time you turn it on.\n\n" .. SAVED_CHARACTER_TIP,
+                tooltip = "Off uses one layout for the whole account. On gives this character its own layout, copied from the account layout the first time you turn it on.",
                 details = function()
                     if self:UsesCharacterSettings() then
                         return "This character has its own layout."
@@ -872,6 +890,18 @@ function VerticalBuffsDebuffs:SettingsMenu()
                 setFunc = function(val)
                     profile.settingsFontSize = val
                     PanelCall("ApplyTextSize")
+                end,
+            },
+            {
+                type    = "dropdown",
+                name    = "Font",
+                choices = FONT_CHOICES,
+                default = DEFAULT_FONT,
+                tooltip = "Some fonts look bigger or smaller than others, so you may need to adjust Font Size.\n\nDefault is Gamepad Medium.",
+                getFunc = function() return profile.settingsFont end,
+                setFunc = function(val)
+                    profile.settingsFont = val
+                    PanelCall("ApplyFont")
                 end,
             },
             {
@@ -972,6 +1002,11 @@ function VerticalBuffsDebuffs:CreateSettings()
             return controls
         end,
         textSize        = function() return profile.settingsFontSize end,
+        textFont        = function()
+            local font = profile.settingsFont
+            if type(font) ~= "string" or font == "" or font == DEFAULT_FONT then return nil end
+            return font
+        end,
         windowOpacity   = function() return profile.settingsOpacity end,
         rememberPage    = function() return profile.settingsRemember == true end,
         lastPage        = function()

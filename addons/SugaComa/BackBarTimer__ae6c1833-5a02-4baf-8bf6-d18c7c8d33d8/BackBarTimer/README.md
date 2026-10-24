@@ -1,6 +1,6 @@
-# BackBarTimer 1.0-rc2
+# BackBarTimer 2.0-rc3-test1
 
-BackBarTimer 1.0 is the standalone milestone release produced from the PS5-tested BackBarTimer + Cadence experiment in Suga's Test Zone.
+BackBarTimer 2.0 is the standalone milestone release produced from the PS5-tested BackBarTimer + Cadence experiment in Suga's Test Zone.
 
 It retains the original BackBarTimer modes and adds a lightweight Dual-Bar HUD designed for console. CadenceCoach remains a separate, unchanged add-on.
 
@@ -16,7 +16,7 @@ The ultimate slot is not tracked. Skills with a duration below four seconds are 
 
 The default is to show each qualifying skill for its full tracked duration. This can be changed to a custom start time from 3 to 60 seconds before expiry.
 
-Before the final two seconds, the prompt shows the mapped controller button and a whole-second countdown. At two seconds it changes to the skill image and a decimal countdown. Controller glyphs use the approved 100% size and are raised four UI pixels to keep the countdown clear.
+By default, before the final two seconds the prompt shows the mapped controller button, then at two seconds it changes to the skill image. The LHAS setting **Show skill icon first** reverses only those images: the skill image appears first and the mapped controller button appears for the final two seconds. The switch still occurs at two seconds in either order. The countdown remains whole-second before the switch and decimal during the final two seconds. Controller glyphs use the approved 100% size and are raised four UI pixels to keep the countdown clear.
 
 ## Cadence prompts
 
@@ -44,11 +44,12 @@ When the active ESO scene changes away from `hud` or `hudui`, BackBarTimer treat
 
 Expired timers also force their prompt to hide before the update scheduler stops.
 
-## Version 1.0 defaults
+## Version 2.0 defaults
 
 - Mode: Dual-Bar HUD
 - Front and back skill tracking: all enabled
 - Show full skill countdown: enabled
+- Show skill icon first: disabled (controller button first)
 - Block cadence: disabled
 - Light-attack cadence: enabled
 - HUD scale: 100%
@@ -57,7 +58,7 @@ Expired timers also force their prompt to hide before the update scheduler stops
 - Right inset: 700 px
 - Right vertical offset: -50 px
 
-Version 1.0 uses saved-variable schema 2 so these milestone defaults are applied independently of settings saved by the older BackBarTimer build.
+Version 2.0 uses saved-variable schema 2. The icon-order preference is added to the existing account-wide saved settings without resetting other BackBarTimer values.
 
 ## Installation
 

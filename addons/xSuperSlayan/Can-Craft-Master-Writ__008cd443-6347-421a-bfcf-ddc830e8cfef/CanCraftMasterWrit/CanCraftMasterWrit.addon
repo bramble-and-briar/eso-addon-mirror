@@ -6,8 +6,8 @@
 
 ## Title: CanCraftMasterWrit
 ## APIVersion: 101051
-## Version: 1.2.0
-## AddOnVersion: 10200
+## Version: 1.2.1
+## AddOnVersion: 10201
 ## Author: xSuperSlayan
 ## Description: Know which Master Writ you can craft without having to dig through your journal.
 ## DependsOn: LibCharacterKnowledge>=301020 LibLazyCrafting>=4041 LibQRCode

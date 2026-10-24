@@ -4,7 +4,7 @@
 
 SlayansBossTimer = {
     name = "SlayansBossTimer",
-    version = "1.0.0", -- Keep in step with ## Version in SlayansBossTimer.addon.
+    version = "1.0.1", -- Keep in step with ## Version in SlayansBossTimer.addon.
     author = "xSuperSlayan",
     debug = false,
 }

@@ -400,7 +400,7 @@ function PvPUA:AppearanceMenu()
           getFunc = function() return self.savedVariables.listCap end,
           setFunc = function(val) self.savedVariables.listCap = val end },
         { type = "toggle", name = "Kill Tally",
-          tooltip = "Shows DC / AD / EP battle victories at each flagged location since it went on the list.",
+          tooltip = "Shows DC / AD / EP kills at each flagged location since it went on the list (battle markers plus the PvP Kill Feed chat lines).",
           default = PvPUA.defaults.showKillTally,
           getFunc = function() return self.savedVariables.showKillTally ~= false end,
           setFunc = function(v) self.savedVariables.showKillTally = v == true end },

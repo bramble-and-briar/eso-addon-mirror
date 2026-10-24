@@ -122,7 +122,7 @@ PvPUA.constants.iconChoices = {
     { name = "EP Shield",  category = "alliances", texture = "PvPUA/Textures/icon_ep_shield.dds" },
 }
 
-PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0 }
+PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsFont = "EsoUI/Common/Fonts/FTN57.otf", settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListInCombat = true, listLayout = "Full List", barOrientation = "Horizontal", showListDeadRepair = false, listCap = 0 }
 
 PvPUA.capChoices = {
     { name = "All", value = 0  },
@@ -1768,6 +1768,17 @@ function PvPUA:CreateUI()
     self.controls.infoKD:SetDrawLayer(2)
     self.controls.infoKD:SetHidden(true)
 
+    self.barGeom = {
+        infoH      = infoH,
+        barW       = barW,
+        barH       = barH,
+        barNudge   = barNudge,
+        barPad     = barPad,
+        barFontPx  = barFontPx,
+        rankBase   = rankBase,
+        rankIconSz = rankIconSz,
+    }
+
     local scoreFont = "EsoUI/Common/Fonts/FTN57.otf|20|outline"
     self.controls.scoreRow = wm:CreateControl(nil, self.controls.TLW, CT_CONTROL)
     self.controls.scoreRow:SetDimensions(self.config.width, self.config.entryHeight)
@@ -2152,6 +2163,7 @@ end
 function PvPUA:ApplyHeaderLayout()
     local c = self.controls
     if not (c.TLW and c.creditLabel and c.infoBg) then return end
+    if self:IsRankBarOnly() then return end
 
     local shift = ((self.initializedZone == "IC") and self.config.entryHeight or 0) + self:HeaderTop() - 20
     if self.headerShift == shift then return end
@@ -2549,6 +2561,8 @@ function PvPUA:OnUiUpdate(itemsOfInterest)
 
     rootControl:ClearAnchors()
     rootControl:SetAnchor(TOPLEFT, self.controls.TLW, TOPLEFT, 0, self:HeaderTop() + self.config.entryHeight * 2)
+    self:ApplyBarLayout()
+    local rankBarOnly = self:IsRankBarOnly()
 
     if itemsOfInterest ~= nil then
         self:UpdateEntries(itemsOfInterest)
@@ -2558,25 +2572,26 @@ function PvPUA:OnUiUpdate(itemsOfInterest)
         end
     end
 
-    if self:ShowCredit() then
+    if self:ShowCredit() and not rankBarOnly then
         self.controls.creditLabel:SetHidden(false)
         self.creditCycle = (self.creditCycle + 1) % totalSteps
         self.controls.creditLabel:SetText(CREDIT_STATES[self.creditCycle])
     else
         self.controls.creditLabel:SetHidden(true)
     end
-    self.controls.infoBg:SetHidden(false)
+    local vertical = self:IsVerticalBar()
+    self.controls.infoBg:SetHidden(rankBarOnly)
     self.controls.infoRankIcon:SetHidden(false)
     self.controls.infoEmpIcon:SetHidden(false)
     self.controls.infoBarBg:SetHidden(false)
     self.controls.infoBar:SetHidden(false)
-    self.controls.infoRankNum:SetHidden(false)
-    self.controls.infoAPText:SetHidden(false)
+    self.controls.infoRankNum:SetHidden(vertical)
+    self.controls.infoAPText:SetHidden(vertical)
     self.controls.infoKD:SetHidden(false)
 
     local inIC = self.initializedZone == "IC"
     self:ApplyHeaderLayout()
-    self.controls.scoreRow:SetHidden(inIC)
+    self.controls.scoreRow:SetHidden(inIC or rankBarOnly)
 
     local vetMode = self.savedVariables and self.savedVariables.barMode == "Veterancy"
     local vetIconShown = false
@@ -2593,9 +2608,11 @@ function PvPUA:OnUiUpdate(itemsOfInterest)
             if rankIconTex ~= "" then self.controls.infoRankIcon:SetTexture(rankIconTex) end
         end
 
+        self.barProgressCurrent, self.barProgressTotal = nil, nil
         if v.ok and v.total and v.total > 0 then
             local pct = (v.progress / v.total) * 100
             if pct < 0 then pct = 0 elseif pct > 100 then pct = 100 end
+            self.barProgressCurrent, self.barProgressTotal = v.progress, v.total
             self.controls.infoBar:SetValue(pct)
             self.controls.infoAPText:SetText(
                 ZO_CommaDelimitNumber(v.progress) .. " / " .. ZO_CommaDelimitNumber(v.total))
@@ -2612,7 +2629,9 @@ function PvPUA:OnUiUpdate(itemsOfInterest)
         end
         local apEarned   = currentXP - lastRankXP
         local apRequired = nextRankXP and (nextRankXP - lastRankXP) or 0
+        self.barProgressCurrent, self.barProgressTotal = nil, nil
         if nextRankXP and apRequired > 0 then
+            self.barProgressCurrent, self.barProgressTotal = apEarned, apRequired
             local barPct = (apEarned / apRequired * 100)
             self.controls.infoBar:SetValue(barPct)
             self.controls.infoAPText:SetText(
@@ -2632,6 +2651,7 @@ function PvPUA:OnUiUpdate(itemsOfInterest)
     end
 
     self:RefreshKDText()
+    self:RefreshVerticalText()
 
     if inIC then return end
 
@@ -3196,9 +3216,14 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.2",
+        version         = "5.3",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
+        textFont        = function()
+            local font = PvPUA.savedVariables.settingsFont
+            if type(font) ~= "string" or font == "" or font == "EsoUI/Common/Fonts/FTN57.otf" then return nil end
+            return font
+        end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,
         rememberPage    = function() return PvPUA.savedVariables.settingsRemember == true end,
         lastPage        = function()
@@ -3214,7 +3239,7 @@ function PvPUA:CreateSettings()
             return c.r or 1, c.g or 1, c.b or 1
         end,
         options         = {
-            self:AppearanceMenu(),
+            self:ListMenu(),
             self:AlertsMenu(),
             self:APChatMenu(),
             self:AutoInviteMenu(),
@@ -3313,18 +3338,6 @@ PvPUA.whatsNew = {
     version = "1.8",
     title = PVPUA_MENU_TITLE_COLORED,
     message = table.concat({
-        "Updated to version 5.",
-        "",
-        "- Icons are now available to everyone. There are just " .. WhatsNewPublicIconCount() .. " for now.",
-        "- You can change your icon's size and height.",
-        "- LibGroupBroadcast is only needed for you and your group to see each other's icons.",
-        "- Show now includes Small Group Frames and Large Group Frames.",
-        "- If you can't see your group members' icons, first make sure you have LibGroupBroadcast. If you do, try quitting and restarting your game.",
-        "- If your own icon isn't showing, try quitting and restarting your game as well.",
-        "",
-        "Any bugs, message me:",
-        "Xbox: user562",
-        "Discord: user562. (period included)",
     }, "\n"),
 }
 
@@ -3501,6 +3514,9 @@ local function OnAddonLoaded(event, addonName)
                 function() PvPUA:ApplyListVisibility() end)
         end
     end
+
+    EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_ListCombat", EVENT_PLAYER_COMBAT_STATE,
+        function() PvPUA:RefreshCombatHiddenReason() end)
 
     if not pvpIsCombatRegistered then
 

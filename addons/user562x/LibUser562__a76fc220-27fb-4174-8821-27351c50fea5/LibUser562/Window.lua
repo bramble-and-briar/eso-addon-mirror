@@ -89,11 +89,14 @@ local TEXT_SIZE_MAX     = 44
 local DETAILS_NAME_SIZE = 34
 local DETAILS_BODY_SIZE = 25
 
+local DEFAULT_FONT_FACE = "$(GAMEPAD_MEDIUM_FONT)"
+
 S.fontSize = DEFAULT_TEXT_SIZE
+S.fontFace = DEFAULT_FONT_FACE
 S.fonts    = {}
 
-local function GamepadFont(size)
-    return "$(GAMEPAD_MEDIUM_FONT)|" .. tostring(size) .. "|soft-shadow-thick"
+local function GamepadFont(size, face)
+    return (face or DEFAULT_FONT_FACE) .. "|" .. tostring(size) .. "|soft-shadow-thick"
 end
 
 local function RefreshAccent()
@@ -1022,18 +1025,50 @@ end
 --------------------------------------------------
 -- Visuals
 --------------------------------------------------
+local HEADER_FONTS
+
+local function ApplyHeaderFonts(face)
+    if not HEADER_FONTS then
+        HEADER_FONTS = {
+            { label = LibUser562_WindowRootFrameHeaderTitle,       size = 42, default = "ZoFontGamepad42" },
+            { label = LibUser562_WindowRootFrameHeaderVersion,     size = 22, default = "ZoFontGamepad22" },
+            { label = LibUser562_WindowRootFrameHeaderAuthorTitle, size = 22, default = "ZoFontGamepad22" },
+            { label = LibUser562_WindowRootFrameHeaderAuthor,      size = 27, default = "ZoFontGamepad27" },
+        }
+    end
+    for i = 1, #HEADER_FONTS do
+        local entry = HEADER_FONTS[i]
+        if entry.label then
+            if face == DEFAULT_FONT_FACE then
+                entry.label:SetFont(entry.default)
+            else
+                entry.label:SetFont(GamepadFont(entry.size, face))
+            end
+        end
+    end
+end
+
+local function ResolveFontFace()
+    local face = S.menu and Resolve(S.menu.textFont)
+    if type(face) ~= "string" or face == "" then return DEFAULT_FONT_FACE end
+    return face
+end
+
 function S.UpdateFonts()
     local size = tonumber(S.menu and Resolve(S.menu.textSize)) or DEFAULT_TEXT_SIZE
     size = math.floor(size + 0.5)
     if size < TEXT_SIZE_MIN then size = TEXT_SIZE_MIN end
     if size > TEXT_SIZE_MAX then size = TEXT_SIZE_MAX end
-    if size == S.fontSize and S.fonts.row then return false end
+    local face = ResolveFontFace()
+    if size == S.fontSize and face == S.fontFace and S.fonts.row then return false end
+    if face ~= S.fontFace or not S.fonts.row then ApplyHeaderFonts(face) end
     S.fontSize = size
+    S.fontFace = face
     local delta = size - DEFAULT_TEXT_SIZE
     local fonts = S.fonts
-    fonts.row = GamepadFont(size)
-    fonts.name = GamepadFont(DETAILS_NAME_SIZE + delta)
-    fonts.body = GamepadFont(DETAILS_BODY_SIZE + delta)
+    fonts.row = GamepadFont(size, face)
+    fonts.name = GamepadFont(DETAILS_NAME_SIZE + delta, face)
+    fonts.body = GamepadFont(DETAILS_BODY_SIZE + delta, face)
     LibUser562_WindowRootFrameCategoriesTitle:SetFont(fonts.row)
     LibUser562_WindowRootFrameSettingsTitle:SetFont(fonts.row)
     LibUser562_WindowRootFrameDetailsTitle:SetFont(fonts.row)
@@ -1069,7 +1104,9 @@ function S:ApplyTextSize()
     if not S.UpdateFonts() then return end
     if not S.IsShowing() then return end
     if S.categoryList then S.categoryList:RefreshVisible() end
+    if S.settingsList then S.settingsList:RefreshVisible() end
     S.detailsOption = nil
+    S.RefreshDetails()
 end
 
 local FRAME_COLOR = { 1, 1, 1 }
@@ -1169,25 +1206,34 @@ local function HideItemTip()
     local tip = S.itemTip
     if not tip then return end
     if not tip:IsHidden() then tip:SetHidden(true) end
-    if S.itemTipLink then
-        S.itemTipLink = nil
+    if S.itemTipKey then
+        S.itemTipKey = nil
         if tip.tooltip and tip.tooltip.ClearLines then pcall(tip.tooltip.ClearLines, tip.tooltip) end
     end
 end
 
-local function ShowItemTip(itemLink)
+local function AddItemTipHeader(tooltip, header)
+    local section = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+    section:AddLine(header, tooltip:GetStyle("bodyDescription"))
+    tooltip:AddSection(section)
+end
+
+local function ShowItemTip(itemLink, header)
     local tip = ItemTip()
     if not (tip and tip.tooltip) then return false end
-    if S.itemTipLink ~= itemLink then
+    if type(header) ~= "string" then header = "" end
+    local key = header == "" and itemLink or (itemLink .. "\n" .. header)
+    if S.itemTipKey ~= key then
         pcall(tip.tooltip.ClearLines, tip.tooltip)
+        if header ~= "" then pcall(AddItemTipHeader, tip.tooltip, header) end
         local ok = pcall(tip.tooltip.LayoutItem, tip.tooltip, itemLink, false)
         if not ok then
             pcall(tip.tooltip.ClearLines, tip.tooltip)
-            S.itemTipLink = nil
+            S.itemTipKey = nil
             tip:SetHidden(true)
             return false
         end
-        S.itemTipLink = itemLink
+        S.itemTipKey = key
     end
     tip:SetHidden(false)
     return true
@@ -1218,7 +1264,18 @@ local function ShowSampleIcon(preview, texture, size, alpha, r, g, b)
     return true
 end
 
-local BAR_FONT = "EsoUI/Common/Fonts/FTN57.otf|20|outline"
+local BAR_FONT  = "EsoUI/Common/Fonts/FTN57.otf|18|outline"
+local BAR_WIDTH = 380
+
+local VBAR_FONT     = "EsoUI/Common/Fonts/FTN57.otf|18|outline"
+local VBAR_ROTATION = -ZO_PI / 2
+local VBAR_ICON     = 40
+local VBAR_THICK    = 18
+local VBAR_LEN      = 340
+local VBAR_GAP      = 0
+local VBAR_STEP     = 17
+local VBAR_SPACE    = 8
+local VBAR_PAD      = 4
 
 local function BarParts()
     local parts = S.barParts
@@ -1240,21 +1297,117 @@ local function BarParts()
     parts.left:SetColor(1, 1, 1, 1)
     parts.right:SetColor(1, 1, 1, 1)
     SetReleasable(parts.icon)
+    if BAR_WIDTH > DETAILS_WIDTH then bar:SetScale(DETAILS_WIDTH / BAR_WIDTH) end
     S.barParts = parts
     return parts
 end
 
-local function ShowSampleBar(icon, ir, ig, ib, pct, leftText, rightText, br, bg, bb)
+local function VerticalBarParts()
+    local parts = S.vbarParts
+    if parts then return parts end
+    local holder = LibUser562_WindowRootFrameDetailsBarHolder
+    local wm = WINDOW_MANAGER
+    parts = { holder = holder, top = {}, bottom = {} }
+
+    parts.icon = wm:CreateControl(nil, holder, CT_TEXTURE)
+    parts.icon:SetDimensions(VBAR_ICON, VBAR_ICON)
+    parts.icon:SetAnchor(TOP, holder, TOP, 0, 0)
+    SetReleasable(parts.icon)
+
+    parts.bg = wm:CreateControl(nil, holder, CT_BACKDROP)
+    parts.bg:SetDimensions(VBAR_THICK, VBAR_LEN)
+    parts.bg:SetAnchor(TOP, holder, TOP, 0, VBAR_ICON + VBAR_GAP)
+    parts.bg:SetCenterColor(0.1, 0.1, 0.1, 0.9)
+    parts.bg:SetEdgeColor(0, 0, 0, 1)
+    parts.bg:SetDrawLevel(1)
+
+    parts.fill = wm:CreateControl(nil, holder, CT_STATUSBAR)
+    parts.fill:SetDimensions(VBAR_LEN - 2, VBAR_THICK - 2)
+    parts.fill:SetAnchor(CENTER, parts.bg, CENTER, 0, 0)
+    parts.fill:SetMinMax(0, 100)
+    parts.fill:SetTransformNormalizedOriginPoint(0.5, 0.5)
+    parts.fill:SetTransformRotationZ(VBAR_ROTATION)
+    parts.fill:SetDrawLevel(2)
+
+    S.vbarParts = parts
+    return parts
+end
+
+local function StackChars(parts, pool, text, fromBottom)
+    local chars, offsets, height = {}, {}, 0
+    for ch in tostring(text or ""):gmatch(".") do
+        chars[#chars + 1] = ch
+        if ch == " " then
+            height = height + VBAR_SPACE
+        else
+            offsets[#chars] = height
+            height = height + VBAR_STEP
+        end
+    end
+    local used = 0
+    for i = 1, #chars do
+        local top = offsets[i]
+        if top then
+            used = used + 1
+            local label = pool[used]
+            if not label then
+                label = WINDOW_MANAGER:CreateControl(nil, parts.holder, CT_LABEL)
+                label:SetFont(VBAR_FONT)
+                label:SetColor(1, 1, 1, 1)
+                label:SetDimensions(VBAR_THICK + 8, VBAR_STEP + 4)
+                label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+                label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+                label:SetDrawLevel(3)
+                pool[used] = label
+            end
+            label:SetText(chars[i])
+            label:ClearAnchors()
+            local centerY = top + math.floor(VBAR_STEP / 2)
+            if fromBottom then
+                label:SetAnchor(CENTER, parts.bg, BOTTOM, 0, centerY - VBAR_PAD - height)
+            else
+                label:SetAnchor(CENTER, parts.bg, TOP, 0, centerY + VBAR_PAD)
+            end
+            label:SetHidden(false)
+        end
+    end
+    for i = used + 1, #pool do
+        pool[i]:SetHidden(true)
+    end
+end
+
+local function ShowSampleBar(vertical, icon, ir, ig, ib, pct, leftText, rightText, br, bg, bb)
+    pct = tonumber(pct) or 0
+    if pct < 0 then pct = 0 elseif pct > 100 then pct = 100 end
+    local hasIcon = type(icon) == "string" and icon ~= ""
+
+    if vertical then
+        if S.barParts then S.barParts.bar:SetHidden(true) end
+        local parts = VerticalBarParts()
+        if hasIcon then
+            parts.icon:SetTexture(icon)
+            parts.icon:SetColor(ir or 1, ig or 1, ib or 1, 1)
+            parts.icon:SetHidden(false)
+        else
+            parts.icon:SetHidden(true)
+        end
+        parts.fill:SetValue(pct)
+        parts.fill:SetColor(br or 1, bg or 1, bb or 1, 1)
+        StackChars(parts, parts.top, leftText, false)
+        StackChars(parts, parts.bottom, rightText, true)
+        parts.holder:SetHidden(false)
+        return parts.holder
+    end
+
+    if S.vbarParts then S.vbarParts.holder:SetHidden(true) end
     local parts = BarParts()
-    if type(icon) == "string" and icon ~= "" then
+    if hasIcon then
         parts.icon:SetTexture(icon)
         parts.icon:SetColor(ir or 1, ig or 1, ib or 1, 1)
         parts.icon:SetHidden(false)
     else
         parts.icon:SetHidden(true)
     end
-    pct = tonumber(pct) or 0
-    if pct < 0 then pct = 0 elseif pct > 100 then pct = 100 end
     parts.fill:SetValue(pct)
     parts.fill:SetColor(br or 1, bg or 1, bb or 1, 1)
     parts.left:SetText(leftText or "")
@@ -1265,6 +1418,7 @@ end
 
 local function HideSampleBar()
     if S.barParts then S.barParts.bar:SetHidden(true) end
+    if S.vbarParts then S.vbarParts.holder:SetHidden(true) end
 end
 
 local function ShowSample(label, anchorTo, text, font, r, g, b)
@@ -1316,7 +1470,8 @@ function S.RefreshDetails()
     if S.pane == PANE_SETTINGS then
         RowCache(data)
         local itemLink = Resolve(opt.itemLink, opt)
-        if type(itemLink) == "string" and itemLink ~= "" and ShowItemTip(itemLink) then
+        if type(itemLink) == "string" and itemLink ~= ""
+            and ShowItemTip(itemLink, ResolveText(Resolve(opt.itemHeader, opt))) then
             nameLabel:SetText("")
             body:SetText("")
             LibUser562_WindowRootFrameDetailsNumber:SetHidden(true)
@@ -1362,7 +1517,7 @@ function S.RefreshDetails()
         end
 
         if type(opt.sampleBar) == "function" and anchorTo == nameLabel then
-            anchorTo = ShowSampleBar(opt.sampleBar())
+            anchorTo = ShowSampleBar(Resolve(opt.sampleVertical) == true, opt.sampleBar())
         end
 
         if type(opt.sampleIcon) == "function" and anchorTo == nameLabel then
@@ -2432,6 +2587,11 @@ function Panel:SelectRow(index)
 end
 
 function Panel:ApplyTextSize()
+    if S.panel ~= self then return end
+    S:ApplyTextSize()
+end
+
+function Panel:ApplyFont()
     if S.panel ~= self then return end
     S:ApplyTextSize()
 end

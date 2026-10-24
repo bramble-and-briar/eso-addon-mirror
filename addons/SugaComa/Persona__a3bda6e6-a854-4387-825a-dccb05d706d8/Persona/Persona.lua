@@ -3,7 +3,7 @@ Persona = Persona or {}
 local ADDON_NAME = "Persona"
 local EM = EVENT_MANAGER
 
-Persona.version = "1.1.0-test1"
+Persona.version = "1.2.0-test1"
 Persona.savedVersion = 1
 
 Persona.IDLE_DISABLED = 0
@@ -12,6 +12,7 @@ Persona.IDLE_CUSTOM_ACT = 2
 
 Persona.defaults = {
     _personaStorageInitialized = false,
+    _personaOutfits = {},
 
     enabled = true,
     debug = false,
@@ -81,6 +82,14 @@ local function CopySettings(source, target)
     target._personaStorageInitialized = true
 end
 
+local function CopyRuntimeSettings(source, target)
+    for key in pairs(Persona.defaults) do
+        if key ~= "_personaStorageInitialized" and key ~= "_personaOutfits" then
+            target[key] = DeepCopy(source[key])
+        end
+    end
+end
+
 function Persona.UsesAccountWideSettings()
     return not storageSettings or storageSettings.useAccountWide ~= false
 end
@@ -88,6 +97,140 @@ end
 function Persona.GetSettingsModeName()
     if Persona.UsesAccountWideSettings() then return "ACCOUNT-WIDE" end
     return "CURRENT CHARACTER"
+end
+
+local function GetBaseSettings()
+    return Persona.UsesAccountWideSettings() and accountSettings or characterSettings
+end
+
+local function SafeGetEquippedOutfitIndex()
+    if not GetEquippedOutfitIndex then return 0 end
+
+    if GAMEPLAY_ACTOR_CATEGORY_PLAYER then
+        local ok, index = pcall(GetEquippedOutfitIndex, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        if ok and index ~= nil then return index end
+    end
+
+    local ok, index = pcall(GetEquippedOutfitIndex)
+    if ok and index ~= nil then return index end
+    return 0
+end
+
+local function SafeGetNumOutfits()
+    if not GetNumUnlockedOutfits then return 0 end
+
+    if GAMEPLAY_ACTOR_CATEGORY_PLAYER then
+        local ok, count = pcall(GetNumUnlockedOutfits, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        if ok and count then return count end
+    end
+
+    local ok, count = pcall(GetNumUnlockedOutfits)
+    if ok and count then return count end
+    return 0
+end
+
+local function CleanName(value)
+    if not value or value == "" then return "" end
+    return value:gsub("%^.*", "")
+end
+
+local function SafeGetOutfitName(index)
+    if not GetOutfitName then return nil end
+
+    if GAMEPLAY_ACTOR_CATEGORY_PLAYER then
+        local ok, name = pcall(GetOutfitName, GAMEPLAY_ACTOR_CATEGORY_PLAYER, index)
+        if ok and name and name ~= "" then return CleanName(name) end
+    end
+
+    local ok, name = pcall(GetOutfitName, index)
+    if ok and name and name ~= "" then return CleanName(name) end
+    return nil
+end
+
+function Persona.GetOutfitDisplayName(index)
+    index = tonumber(index) or 0
+    if index == 0 then return "Base appearance (no outfit)" end
+    local name = SafeGetOutfitName(index)
+    if name then return string.format("Outfit %d - %s", index, name) end
+    return string.format("Outfit %d", index)
+end
+
+function Persona.GetCurrentOutfitIndex()
+    return SafeGetEquippedOutfitIndex()
+end
+
+function Persona.GetOutfitItems()
+    local items = {
+        { name = Persona.GetOutfitDisplayName(0), data = 0 },
+    }
+    for index = 1, SafeGetNumOutfits() do
+        table.insert(items, {
+            name = Persona.GetOutfitDisplayName(index),
+            data = index,
+        })
+    end
+    return items
+end
+
+local function GetOutfitProfiles(baseSettings)
+    if not baseSettings then return nil end
+    baseSettings._personaOutfits = baseSettings._personaOutfits or {}
+    return baseSettings._personaOutfits
+end
+
+local function SelectActiveSettings()
+    local baseSettings = GetBaseSettings()
+    local outfitIndex = Persona.GetCurrentOutfitIndex()
+    local outfitProfiles = GetOutfitProfiles(baseSettings)
+    local outfitSettings = outfitIndex > 0 and outfitProfiles[outfitIndex] or nil
+    PersonaDB = type(outfitSettings) == "table" and outfitSettings or baseSettings
+end
+
+function Persona.HasOutfitSettings(outfitIndex)
+    local profiles = GetOutfitProfiles(GetBaseSettings())
+    return profiles and type(profiles[tonumber(outfitIndex) or 0]) == "table" or false
+end
+
+function Persona.GetOutfitSettingsStatus(outfitIndex)
+    outfitIndex = tonumber(outfitIndex) or 0
+    if outfitIndex == 0 then
+        return "Base appearance uses the selected profile's normal settings."
+    end
+    if Persona.HasOutfitSettings(outfitIndex) then
+        return "A Persona profile is saved for " .. Persona.GetOutfitDisplayName(outfitIndex) .. "."
+    end
+    return "No Persona profile is saved for " .. Persona.GetOutfitDisplayName(outfitIndex)
+        .. "; it uses the selected profile's normal settings."
+end
+
+function Persona.SaveSettingsToOutfit(outfitIndex)
+    outfitIndex = tonumber(outfitIndex) or 0
+    if outfitIndex == 0 then
+        Persona.Chat("Base appearance cannot have a separate outfit profile.")
+        return
+    end
+
+    local profiles = GetOutfitProfiles(GetBaseSettings())
+    local savedSettings = {}
+    CopyRuntimeSettings(PersonaDB, savedSettings)
+    profiles[outfitIndex] = savedSettings
+
+    if Persona.GetCurrentOutfitIndex() == outfitIndex then
+        PersonaDB = savedSettings
+    end
+    Persona.Chat("Saved Persona settings for " .. Persona.GetOutfitDisplayName(outfitIndex) .. ".")
+end
+
+function Persona.RemoveSettingsFromOutfit(outfitIndex)
+    outfitIndex = tonumber(outfitIndex) or 0
+    local profiles = GetOutfitProfiles(GetBaseSettings())
+    if outfitIndex == 0 or not profiles[outfitIndex] then return end
+
+    profiles[outfitIndex] = nil
+    if Persona.GetCurrentOutfitIndex() == outfitIndex then
+        SelectActiveSettings()
+    end
+    Persona.Chat("Removed Persona settings for " .. Persona.GetOutfitDisplayName(outfitIndex) .. ".")
 end
 
 function Persona.SetSettingsMode(useAccountWide)
@@ -100,7 +243,7 @@ function Persona.SetSettingsMode(useAccountWide)
     end
 
     storageSettings.useAccountWide = useAccountWide
-    PersonaDB = useAccountWide and accountSettings or characterSettings
+    SelectActiveSettings()
     Persona.Chat(
         useAccountWide
         and "Using account-wide settings. Refresh or reopen settings to update the panel."
@@ -369,6 +512,15 @@ local function ResetIdle()
     runtime.idleFired=false
 end
 
+local function OnOutfitChanged(_, actorCategory)
+    if actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_PLAYER then return end
+    RestoreNormalPersonality()
+    SelectActiveSettings()
+    ResetIdle()
+    Persona.Debug("Persona profile refreshed for "
+        .. Persona.GetOutfitDisplayName(Persona.GetCurrentOutfitIndex()) .. ".")
+end
+
 local function FinishQueue()
     runtime.queueRunning=false
 end
@@ -630,9 +782,7 @@ local function Initialize()
         CopySettings(accountSettings,characterSettings)
     end
 
-    PersonaDB=Persona.UsesAccountWideSettings()
-        and accountSettings
-        or characterSettings
+    SelectActiveSettings()
 
     BuildEmotes()
     BuildPersonalities()
@@ -649,6 +799,11 @@ local function Initialize()
 
     EM:RegisterForEvent("PersonaCombat",EVENT_PLAYER_COMBAT_STATE,OnCombatState)
     EM:RegisterForEvent("PersonaMount",EVENT_MOUNTED_STATE_CHANGED,OnMountedStateChanged)
+    EM:RegisterForEvent(
+        "PersonaOutfit",
+        EVENT_OUTFIT_EQUIPMENT_CHANGED,
+        OnOutfitChanged
+    )
     EM:RegisterForEvent(
         "PersonaLoot",
         EVENT_INVENTORY_SINGLE_SLOT_UPDATE,

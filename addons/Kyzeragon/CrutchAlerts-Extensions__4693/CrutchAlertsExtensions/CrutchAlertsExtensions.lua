@@ -4,10 +4,11 @@
 -----------------------------------------------------------
 CrutchAlertsExtensions = {
     name = "CrutchAlertsExtensions",
-    version = "0.3.0",
+    version = "0.4.0",
 
     CIRCLE = "Circle",
     RECTANGLE = "Rectangle",
+    CONE = "Cone",
 
     Utils = {},
 }
@@ -23,11 +24,13 @@ local defaultGlobalOptions = {
             hungerRequireModifier = false,
             lowerHunger = false,
             higherFrenzyAndAtro = false,
+            evenHigherFrenzy = false,
             iconsForKnownPets = false, -- hardcoded ones
             iconsForPets = false, -- fallback poop
             iconsForCompanions = false,
             damagedEnemies = false,
             shadowImageWireframe = false,
+            hideBossBarScavengingMaw = false,
         },
     },
 }
@@ -100,9 +103,35 @@ local function FillMissingDefaults()
             if (shapeData.activeBarOnly == nil) then
                 shapeData.activeBarOnly = false
             end
+
+            -- convert to tables for multi id
+            if (type(shapeData.conditionalAbilityId) ~= "table") then
+                shapeData.conditionalAbilityId = {shapeData.conditionalAbilityId}
+            end
+            if (type(shapeData.conditionalSetId) ~= "table") then
+                shapeData.conditionalSetId = {shapeData.conditionalSetId}
+            end
+            if (type(shapeData.conditionalEffectId) ~= "table") then
+                shapeData.conditionalEffectId = {shapeData.conditionalEffectId}
+            end
+
+            -- orientation
+            if (shapeData.pitch == nil) then
+                shapeData.pitch = 0
+            end
+
+            -- default will be true, but migrate the old ones to keep the same behavior
+            if (shapeData.useCameraHeading == nil) then
+                shapeData.useCameraHeading = false
+            end
+
+            if (shapeData.type == CAE.CONE and shapeData.coneStyle == nil) then
+                shapeData.coneStyle = 3 -- 1 = lines only, 2 = arc only, 3 = lines+arc
+            end
         end
     end
 end
+CAE.FillMissingDefaults = FillMissingDefaults
 
 local function Initialize()
     CrutchAlertsExtensionsSavedProfiles = CrutchAlertsExtensionsSavedProfiles or {}
@@ -119,6 +148,7 @@ local function Initialize()
     CAE.InitializeUnitIcons()
     CAE.InitializeUnitDrawing()
     CAE.InitializeDamagedEnemies()
+    CAE.InitializeBossTriggers()
 
     EVENT_MANAGER:RegisterForEvent(CAE.name .. "ActivatedFirstTime", EVENT_PLAYER_ACTIVATED, OnPlayerActivatedFirstTime)
 

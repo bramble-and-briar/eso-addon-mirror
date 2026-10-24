@@ -140,6 +140,28 @@ function PvPUA:SettingsMenu()
           tooltip = "Reopens the last page where you left off.",
           getFunc = function() return self.savedVariables.settingsRemember end,
           setFunc = function(v) self.savedVariables.settingsRemember = v end },
+        -- Patch: kill-marker / kill-feed diagnostics through the optional LibConsoleLogger (buffer only, no chat).
+        { type = "toggle", name = "Debug Log", preset = "YES_NO",
+          default = PvPUA.defaults.debugLog,
+          tooltip = function()
+              if not self:DebugLogAvailable() then
+                  return "Needs the LibConsoleLogger add-on (not installed). Records why places are or aren't listed from battle markers and kill-feed chat lines, for bug reports."
+              end
+              return "Records why places are or aren't listed from battle markers and kill-feed chat lines into LibConsoleLogger's buffer (never chat). Also enable logging in LibConsoleLogger's own settings, and cap its Buffer size (300 is plenty) so an export is only a few browser round trips."
+          end,
+          getFunc = function() return self.savedVariables.debugLog == true end,
+          setFunc = function(v)
+              self.savedVariables.debugLog = v == true
+          end },
+        { type = "button", name = "Export Debug Log",
+          buttonText = "Export",
+          tooltip = "Sends LibConsoleLogger's buffer to the Export URL set in its settings (opens the in-game browser once per chunk). Same as that add-on's own Export button.",
+          func = function()
+              local ok, reason = self:DebugLogExport()
+              local text = ok and "Debug log export started." or ("Debug log export failed: " .. tostring(reason or "?"))
+              if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then pcall(CHAT_ROUTER.AddSystemMessage, CHAT_ROUTER, text)
+              elseif d then d(text) end
+          end },
         { type = "button", name = "|cFF3333Reset All|r",
           buttonText = "Reset All",
           tooltip = function() return "Puts every " .. PVPUA_MENU_TITLE_COLORED .. " setting back to its default. Auto Invite and Icon are only reset on this character." end,

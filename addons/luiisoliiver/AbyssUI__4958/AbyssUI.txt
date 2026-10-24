@@ -1,10 +1,10 @@
 ## Title: |cFF0000Abyss|rUI
 ## APIVersion: 101050 101051
-## Version: 1.9.32
+## Version: 1.9.35
 ## Author: |cFF0000N A G A|r
-## Description: ABYSSUI — módulos NAGA + Minimap DS_3 + AbyssQuest (modules/quest).
+## Description: ABYSSUI — módulos NAGA + Minimap DS_3 + AetherPath (modules/aetherpath).
 ## DependsOn: LibAddonMenu-2.0>=43
-## SavedVariables: NAGA_Account NAGA_Servers NAGA_Character NAGA_StatisticsReports NagaMapUI_SavedVariables NaguiUI_Account NaguiUI_Servers NaguiUI_Character NaguiUI_StatisticsReports AlabuzyaUISavedVariables AbyssQuest_SavedVariables
+## SavedVariables: NAGA_Account NAGA_Servers NAGA_Character NagaMapUI_SavedVariables NaguiUI_Account NaguiUI_Servers NaguiUI_Character AlabuzyaUISavedVariables AetherPath_SavedVars
 
 Bindings.xml
 modules/loot_history.xml
@@ -28,11 +28,6 @@ modules/locale/pl.lua
 modules/settings.lua
 modules/automations.lua
 modules/master_mover.lua
-modules/statistics_core.lua
-modules/statistics_settings.lua
-modules/statistics_controls.lua
-modules/statistics.lua
-modules/statistics_combat.lua
 modules/no_mouse_wheel_slider.lua
 modules/achievement_alert.lua
 modules/adventure_camera.lua
@@ -65,37 +60,16 @@ modules/DS3Theme.lua
 modules/Minimap.lua
 modules/bridge.lua
 
-# AbyssQuest (embedded with AbyssUI — see modules/quest/AbyssQuest.txt for module identity)
-modules/quest/Strings.lua
-modules/quest/lang/de.lua
-modules/quest/lang/fr.lua
-modules/quest/lang/es.lua
-modules/quest/lang/pt.lua
-modules/quest/lang/pl.lua
-modules/quest/lang/zh.lua
-modules/quest/lang/jp.lua
-modules/quest/AbyssQuest.lua
-modules/quest/Data.lua
-modules/quest/Presence.lua
-modules/quest/Route.lua
-modules/quest/Style.lua
-modules/quest/Icons.lua
-modules/quest/Menu.lua
-modules/quest/Buttons.lua
-modules/quest/Wheel.lua
-modules/quest/Pickers.lua
-modules/quest/SlotEditor.lua
-modules/quest/WheelEditor.lua
-modules/quest/Settings.lua
-modules/quest/MapIntegration.lua
-modules/quest/MapPanel.lua
-modules/quest/Quests.lua
-modules/quest/QuestDrag.lua
-modules/quest/QuestTravel.lua
-modules/quest/ZoomBar.lua
-modules/quest/InfoPanel.lua
-modules/quest/QuestTracker.lua
-modules/quest/Guild.lua
-modules/quest/Preview.lua
-modules/quest/SocialIntegration.lua
-modules/quest/AbyssQuest.xml
+# AetherPath — original minimalist quest tracker + travel (replaces AbyssQuest)
+modules/aetherpath/lang/en.lua
+modules/aetherpath/lang/pt.lua
+modules/aetherpath/lang/de.lua
+modules/aetherpath/Core.lua
+modules/aetherpath/Tracker.lua
+modules/aetherpath/Tomes.lua
+modules/aetherpath/Travel.lua
+modules/aetherpath/MapPins.lua
+modules/aetherpath/Settings.lua
+modules/aetherpath/UI.lua
+modules/aetherpath/AetherPath.lua
+modules/aetherpath/AetherPath.xml

@@ -1,0 +1,50 @@
+--[[
+    AetherPath - Deutsch
+]]
+
+AetherPath = AetherPath or {}
+AetherPath.Strings = AetherPath.Strings or {}
+
+AetherPath.Strings["de"] = {
+    TOMES_TITLE             = "Folianten",
+    TOMES_NO_API            = "Folianten-API nicht erkannt. Tippe /aether tomesdump",
+    SETTINGS_SHOW_TOMES     = "Tamriel-Folianten unter Quests anzeigen",
+    EVENTS_TITLE            = "Ereignisse",
+    EVENTS_WORLD            = "Weltereignis",
+    EVENTS_DYNAMIC          = "Dynamisches Ereignis",
+    EVENTS_KIND_WORLD       = "Welt",
+    EVENTS_KIND_DYNAMIC     = "Dynamisch",
+    EVENTS_ACTIVE           = "Aktiv",
+    SETTINGS_SHOW_EVENTS    = "Ereignis anzeigen, an dem du teilnimmst (mit % Fortschritt)",
+    FREE                    = "Kostenlos",
+    NODE_UNKNOWN            = "Unbekannter Wegschrein",
+    CONFIRM_TRAVEL_TITLE    = "Reise bestätigen",
+    CONFIRM_TRAVEL_BODY     = "Nach <<1>> reisen für <<2>>?",
+    BTN_TRAVEL              = "Reisen",
+    TRAVEL_TITLE            = "Wegschreine",
+    SETTINGS_GENERAL        = "Allgemein",
+    SETTINGS_LANGUAGE       = "Sprache",
+    SETTINGS_LANGUAGE_TIP   = "auto = Spielsprache folgen",
+    SETTINGS_SHOW_TRACKER   = "Quest-Tracker anzeigen",
+    SETTINGS_LOCK_TRACKER   = "Tracker-Position sperren",
+    SETTINGS_SCALE          = "Tracker-Skalierung (%)",
+    SETTINGS_ALPHA          = "Hintergrund-Transparenz (%)",
+    SETTINGS_MAX_QUESTS     = "Max. sichtbare Quests",
+    SETTINGS_SHOW_OBJECTIVES = "Ziele anzeigen",
+    SETTINGS_GROUP_BY_ZONE  = "Nach Zone gruppieren",
+    SETTINGS_TRAVEL         = "Reisen",
+    SETTINGS_CONFIRM_TRAVEL = "Bezahlte Reise bestätigen",
+    SETTINGS_SHOW_UNAVAILABLE = "Nicht verfügbare Knoten anzeigen",
+    SETTINGS_RESET_POS      = "Tracker-Position zurücksetzen",
+    NO_QUEST                = "Keine aktive Quest",
+    BTN_MAP                 = "Karte",
+    BTN_ABANDON             = "Aufgeben",
+    SETTINGS_SHOW_DESCRIPTION= "Quest-Beschreibung anzeigen",
+    SETTINGS_CONTRAST       = "Kontrast",
+    SETTINGS_CONTRAST_TIP   = "Höher = hellerer Text auf dunklem Hintergrund",
+    SETTINGS_STYLE          = "Titel & Beschreibung",
+    SETTINGS_TITLE_FONT     = "Titelschrift",
+    SETTINGS_TITLE_COLOR    = "Titelfarbe",
+    SETTINGS_STEP_FONT      = "Beschreibungsschrift",
+    SETTINGS_STEP_COLOR     = "Beschreibungsfarbe",
+}

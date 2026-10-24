@@ -684,7 +684,7 @@ function P:OnPotionUsed(_, sound)
     potionIsReady = false
     self:RefreshDisplay()
 
-    EVENT_MANAGER:RegisterForUpdate(PvPUA.name .. "_PotionDrink", 50, function()
+    EVENT_MANAGER:RegisterForUpdate(PvPUA.name .. "_PotionDrink", 10, function()
         local slotIndex = GetCurrentQuickslot()
         local remain, duration, global = GetSlotCooldownInfo(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
 
@@ -693,22 +693,8 @@ function P:OnPotionUsed(_, sound)
 
             remain = remain or 0
             potionCooldownEnds = GetGameTimeMilliseconds() + remain
-            -- Patch: the display tick no longer runs while hidden, so wake up when the potion is back.
-            zo_callLater(function() P:RefreshDisplay() end, remain + 50)
         end
     end)
-end
-
--- Patch: the 100 ms pulse tick is started/stopped on demand instead of running from login.
-local potionTicking = false
-function P:SetTicking(on)
-    if on == potionTicking then return end
-    potionTicking = on
-    if on then
-        EVENT_MANAGER:RegisterForUpdate(PvPUA.name .. "_PotionTick", 100, function() P:RefreshDisplay() end)
-    else
-        EVENT_MANAGER:UnregisterForUpdate(PvPUA.name .. "_PotionTick")
-    end
 end
 
 function P:IsPotionReady()
@@ -828,16 +814,12 @@ function P:RefreshDisplay()
             potionVisible = false
         end
         self.panel:SetHidden(true)
-        self:SetTicking(false)
         return
     end
 
     if not potionVisible then
         potionVisible = true
     end
-    -- Patch: the 100 ms tick only runs while the panel is actually showing (combat + ready),
-    -- instead of permanently from login. It only has work to do when pulsating anyway.
-    self:SetTicking(sv.potionPulsate == true or self.previewMode == true)
 
     self.label:SetText(sv.potionText)
 
@@ -1175,7 +1157,11 @@ function P:Initialize()
         )
     end
 
-    -- Patch: no permanent _PotionTick; P:RefreshDisplay starts/stops it via SetTicking.
+    EVENT_MANAGER:RegisterForUpdate(
+        PvPUA.name .. "_PotionTick",
+        100,
+        function() P:RefreshDisplay() end
+    )
 
     EVENT_MANAGER:RegisterForEvent(
         PvPUA.name .. "_PotionActivated",

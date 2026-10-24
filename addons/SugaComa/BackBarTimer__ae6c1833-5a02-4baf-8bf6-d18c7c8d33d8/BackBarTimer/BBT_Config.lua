@@ -4,7 +4,7 @@ local Addon = BackBarTimer
 Addon.Config = {
     addonName = "BackBarTimer",
     displayName = "BackBarTimer",
-    version = "2.0-rc2",
+    version = "2.0-rc3-test1",
     savedVariablesName = "BackBarTimer_Saved",
     savedVariablesVersion = 2,
 
@@ -33,6 +33,7 @@ Addon.Defaults = {
 
     hudFullCountdown = true,
     hudCountdownSeconds = 10,
+    skillIconFirst = false,
 
     hudScale = 1.0,
     leftInset = 500,

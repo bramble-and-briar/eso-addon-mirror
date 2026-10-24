@@ -55,6 +55,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SecondChatWindow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ericstoesser/SecondChatWindow__4412) | ericstoesser | PC / Mac | 1.4.0 |
 | [Seducer Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DarkSoules/Seducer-Tracker__4002) | DarkSoules | PC / Mac | 1.0 |
 | [Seething Fury Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Seething-Fury-Counter__2397) | g4rr3t | PC / Mac | 1.0.0 |
+| [Select All Items From Your Bags When Deconstructing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SandmanNinja/Select-All-Items-From-Your-Bags-When-Deconstructing__4979) | SandmanNinja | PC / Mac | 1.3.0 |
 | [Semi's experimental addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Semigroup1329/Semi-s-experimental-addon__384135b6-4bca-4589-8b05-ebf91afd43ee) | Semigroup1329 | Console | — |
 | [SencheGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Somatariel/SencheGuild__3710) | Somatariel | PC / Mac | 1.0 |
 | [Separate Guild Trader Name Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maximoz/Separate-Guild-Trader-Name-Display__2944) | maximoz | PC / Mac | 1.3 |
@@ -139,6 +140,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Long Buffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Simple-Long-Buffs__3054) | buldezir | PC / Mac | 1.0.5 |
 | [Simple Long Buffs Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Simple-Long-Buffs-Console__4d619dbf-92df-4bda-aac1-b5dbec806fca) | j.hhh | Console | — |
 | [Simple Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Simple-Off-Balance-Tracker__a2157cd5-8974-464f-b688-df9b184b6350) | Shienar | Console | — |
+| [Simple Player Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/naka182/Simple-Player-Frames__4981) | naka182 | PC / Mac | 1.0 |
 | [Simple Skyshards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/Simple-Skyshards__3501) | Alianym | PC / Mac | 1.06 |
 | [Simple Slash Command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Slash-Command__2554) | ShadowMau | PC / Mac | 0.1.2 |
 | [Simple Text Box](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Text-Box__2564) | ShadowMau | PC / Mac | 1.0 |
@@ -324,7 +326,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.3 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.4 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |

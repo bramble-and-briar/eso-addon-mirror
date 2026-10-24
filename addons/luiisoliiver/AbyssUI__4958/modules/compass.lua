@@ -213,9 +213,13 @@ local DYNAMIC_EVENT_ICON = AddonTex("assets/MiniMap/EventDynamic.dds")
 local function IsDynamicEventTexture(texture)
     local tex = (texture or ""):lower()
     if tex == "" then return false end
+    -- U50+: u50_poi_dynamic_world_event.dds (poi/ or servicemappins/)
+    if tex:find("u50_poi_dynamic", 1, true) then return true end
     if tex:find("dynamic_world_event", 1, true) then return true end
+    if tex:find("poi_dynamic_world", 1, true) then return true end
     if tex:find("mapkey_dynamic", 1, true) then return true end
     if tex:find("dynamicworldevent", 1, true) then return true end
+    if tex:find("dynamic_encounter", 1, true) then return true end
     if tex:find("/dynamic_", 1, true) and tex:find("event", 1, true) then return true end
     return false
 end
@@ -276,6 +280,7 @@ local function CollectActiveWorldEvents()
             end
         elseif context == WORLD_EVENT_LOCATION_CONTEXT_POINT_OF_INTEREST then
             local zoneIndex, poiIndex = GetWorldEventPOIInfo(id)
+            -- (1,1) = Dynamic Encounter (map location, not a real POI) — filled below
             if not (zoneIndex == 1 and poiIndex == 1) and poiIndex then
                 local nX, nY, _, _, isOnMap = GetPOIMapInfo(GetCurrentMapZoneIndex(), poiIndex)
                 if isOnMap and nX and nY then
@@ -285,10 +290,10 @@ local function CollectActiveWorldEvents()
         end
         id = GetNextWorldEventInstanceId(id)
     end
-    -- Eventos dinâmicos (ícone padrão do jogo)
-    if GetNumMapLocations then
+    -- Dynamic Encounters (U50): EventDynamic.dds — always from visible map locations
+    if GetNumMapLocations and GetMapLocationIcon then
         for i = 1, GetNumMapLocations() do
-            if IsMapLocationVisible and IsMapLocationVisible(i) then
+            if not IsMapLocationVisible or IsMapLocationVisible(i) then
                 local texture, x, y = GetMapLocationIcon(i)
                 if IsDynamicEventTexture(texture) and x and y and x >= 0 and x <= 1 and y >= 0 and y <= 1 then
                     found[#found + 1] = {

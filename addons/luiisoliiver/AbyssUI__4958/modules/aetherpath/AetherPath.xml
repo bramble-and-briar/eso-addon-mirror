@@ -1,0 +1,10 @@
+<!--
+    AetherPath - Minimal XML
+    All controls are created in Lua for a pure code-driven minimalist UI.
+    No custom textures / .dds files are used.
+-->
+<GuiXml>
+    <Controls>
+        <!-- Intentionally empty - UI built entirely in modules/UI.lua -->
+    </Controls>
+</GuiXml>

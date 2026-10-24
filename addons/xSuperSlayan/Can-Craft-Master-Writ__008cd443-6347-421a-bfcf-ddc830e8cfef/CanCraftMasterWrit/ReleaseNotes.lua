@@ -16,6 +16,17 @@
 CanCraftMasterWrit.releaseNotes = {
     ----
     {
+        version = "1.2.1",
+        highlights = {
+            "Added a 'Final Item' line to provisioning & holiday writs showing what to hand in & how many you have.",
+            "Fixed holiday writs showing only 'Final Item in Stock' when the recipe or materials were still missing.",
+            "Fixed holiday furnishing writs asking for too few materials when the plan isn't known yet.",
+            "Fixed furnishing plans not listing the other skills they need, such as Woodworking.",
+            "Various UI tweaks and fixes.",
+        },
+    },
+    ----
+    {
         version = "1.2.0",
         highlights = {
             "Added a 'Final Item' line to provisioning & holiday writs showing what to hand in & how many you have.",

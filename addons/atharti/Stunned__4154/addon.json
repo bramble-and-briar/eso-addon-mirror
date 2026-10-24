@@ -18,7 +18,7 @@
     "Stunned"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4154/",
-  "fingerprint": "ae2c465d34b3d04e2be27287576a0b5be99e8af9c452f30963543a37b46a13a5",
+  "fingerprint": "74beda85c9f829c03b3e641ee91ad316ccb548de01965100bf16ed787fdc4686",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17240.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18040.jpg",
@@ -30,11 +30,11 @@
   "source_id": "4154",
   "source_url": "https://www.esoui.com/downloads/info4154-Stunned.html",
   "stats": {
-    "downloads": 4535,
+    "downloads": 4754,
     "favorites": 6,
-    "monthly_downloads": 537
+    "monthly_downloads": 634
   },
   "title": "Stunned",
-  "updated_at": 1792261199000,
-  "version": "2.3"
+  "updated_at": 1792768456000,
+  "version": "2.4"
 }

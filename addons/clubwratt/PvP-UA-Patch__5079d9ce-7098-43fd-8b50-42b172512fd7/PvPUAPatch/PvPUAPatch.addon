@@ -1,10 +1,10 @@
 ## Title: |c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r (Patch)
 ## Author: user|c4F81BD5|r|cC2AA496|r|cDE5B4E2|r
-## Version: 5.4.1
-## Description: Tells you when something is under attack in Cyrodiil & IC & more. Slight fork of PvP UA! by user562x: kill markers at a keep/outpost/town/resource put it on the list, per-location kill tally, no extra library needed. All credit to user562x.
+## Version: 5.6.1
+## Description: Tells you when something is under attack in Cyrodiil & IC & more. Slight fork of PvP UA! by user562x: kill markers and PvP Kill Feed chat kills at a keep/outpost/town/resource put it on the list, per-location kill tally, no extra library needed. All credit to user562x.
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: PvPUA_SavedVars PvPUA_CharVars
-## OptionalDependsOn: LibGroupBroadcast
+## OptionalDependsOn: LibGroupBroadcast LibConsoleLogger
 ## DevId: 5079d9ce-7098-43fd-8b50-42b172512fd7
 
 Lib/LibUser562.lua

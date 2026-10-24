@@ -10,11 +10,15 @@ local currentHeight = 8
 local currentEdgeSize = 8
 local currentYOffset = 5
 local currentForwardOffset = 5
-local currentConditionalAbility
-local currentConditionalSetId
-local currentConditionalEffectId
+local currentPitch = 0
+local currentConditionalAbility = {}
+local currentConditionalSetId = {}
+local currentConditionalEffectId = {}
 local currentActiveBarOnly = false
 local currentDepthBuffers = false
+local currentSolid = false
+local currentUseCameraHeading = true
+local currentConeStyle = 3
 
 local currentShape, currentLine
 
@@ -38,25 +42,43 @@ local function ColorToHexString(color)
         math.floor(color[3] * 255))
 end
 
-local function ColorCircleText(rgb, color, radius)
+local function ColorShapeName(name, rgb, color)
     if (rgb) then
-        return CAE.Utils.Rainbowify("Circle") .. "|r: " .. radius
+        return CAE.Utils.Rainbowify(name)
     else
-        return zo_strformat("|c<<1>>Circle|r: <<2>>", ColorToHexString(color), radius)
+        return "|c" .. ColorToHexString(color) .. name
+    end
+end
+
+local function GetAnyConditionalName(shapeData)
+    if (shapeData.conditionalAbilityId and #(shapeData.conditionalAbilityId) > 0) then
+        return GetAbilityName(shapeData.conditionalAbilityId[1])
+    elseif (shapeData.conditionalSetId and #(shapeData.conditionalSetId) > 0) then
+        local _, setName = GetItemSetInfo(shapeData.conditionalSetId[1])
+        return setName
+    elseif (shapeData.conditionalEffectId and #(shapeData.conditionalEffectId) > 0) then
+        return GetAbilityName(shapeData.conditionalEffectId[1])
     end
 end
 
 local function ColorShapeText(shapeData)
+    local text = ""
     if (shapeData.type == CAE.CIRCLE) then
-        return ColorCircleText(shapeData.rgb, shapeData.color, shapeData.radius)
+        text = zo_strformat("<<1>>|r <<2>>m", ColorShapeName("Circle", shapeData.rgb, shapeData.color), shapeData.radius)
+    elseif (shapeData.type == CAE.RECTANGLE) then
+        text = zo_strformat("<<1>>|r: <<2>>m × <<3>>m", ColorShapeName("Rectangle", shapeData.rgb, shapeData.color), shapeData.radius, shapeData.height)
+    elseif (shapeData.type == CAE.CONE) then
+        text = zo_strformat("<<1>>|r: <<2>>m × <<3>>°", ColorShapeName("Cone", shapeData.rgb, shapeData.color), shapeData.radius, zo_round(shapeData.pitch / math.pi * 180))
     end
 
-    if (shapeData.rgb) then
-        return zo_strformat("<<1>>|r: <<2>> × <<3>>", CAE.Utils.Rainbowify("Rectangle"), shapeData.radius, shapeData.height)
-    else
-        return zo_strformat("|c<<1>>Rectangle|r: <<2>> × <<3>>", ColorToHexString(shapeData.color), shapeData.height, shapeData.radius)
+    local conditionalName = GetAnyConditionalName(shapeData)
+    if (conditionalName) then
+        text = string.format("%s |c888888- %s|r", text, conditionalName)
     end
+
+    return text
 end
+CAE.ColorShapeText = ColorShapeText
 
 local shapeNames = {}
 local shapeIds = {}
@@ -105,11 +127,15 @@ local function LoadShapeValues()
     currentEdgeSize = profile.circles[currentShape].edgeSize
     currentYOffset = profile.circles[currentShape].yOffset
     currentForwardOffset = profile.circles[currentShape].forwardOffset
-    currentConditionalAbility = profile.circles[currentShape].conditionalAbilityId
-    currentConditionalSetId = profile.circles[currentShape].conditionalSetId
-    currentConditionalEffectId = profile.circles[currentShape].conditionalEffectId
+    currentPitch = profile.circles[currentShape].pitch
+    currentConditionalAbility = ZO_DeepTableCopy(profile.circles[currentShape].conditionalAbilityId)
+    currentConditionalSetId = ZO_DeepTableCopy(profile.circles[currentShape].conditionalSetId)
+    currentConditionalEffectId = ZO_DeepTableCopy(profile.circles[currentShape].conditionalEffectId)
     currentActiveBarOnly = profile.circles[currentShape].activeBarOnly
     currentDepthBuffers = profile.circles[currentShape].depthBuffers
+    currentSolid = profile.circles[currentShape].solid
+    currentUseCameraHeading = profile.circles[currentShape].useCameraHeading
+    currentConeStyle = profile.circles[currentShape].coneStyle
 end
 
 local function ResetCurrentValues()
@@ -121,11 +147,15 @@ local function ResetCurrentValues()
     currentEdgeSize = 8
     currentYOffset = 5
     currentForwardOffset = 0
-    currentConditionalAbility = nil
-    currentConditionalSetId = nil
-    currentConditionalEffectId = nil
+    currentPitch = 0
+    ZO_ClearTable(currentConditionalAbility)
+    ZO_ClearTable(currentConditionalSetId)
+    ZO_ClearTable(currentConditionalEffectId)
     currentActiveBarOnly = false
     currentDepthBuffers = false
+    currentSolid = false
+    currentUseCameraHeading = true
+    currentConeStyle = 3
 end
 
 local function ResetCurrentLineValues()
@@ -151,6 +181,7 @@ local function BuildPresetShapes()
     for name, _ in pairs(CAE.PresetShapes) do
         table.insert(tab, name)
     end
+    table.sort(tab)
     return tab
 end
 
@@ -260,6 +291,7 @@ function CAE.CreateSettingsMenu()
     ConcatTables(optionsData, CAE.GetSynergySettings())
     ConcatTables(optionsData, CAE.GetUnitIconsSettings())
     ConcatTables(optionsData, CAE.GetDamagedEnemiesSettings())
+    ConcatTables(optionsData, CAE.GetBossTriggersSettings())
 ---------------------------------------------------------------------
     ConcatTables(optionsData, {
         {
@@ -293,7 +325,7 @@ function CAE.CreateSettingsMenu()
             name = "Remove shape",
             tooltip = "Remove the currently selected shape",
             func = function()
-                CAE.RemoveCircleFromProfile(currentShape)
+                CAE.RemoveShapeFromProfile(currentShape)
                 currentShape = nil
                 CAE.LoadCurrentProfile()
                 RefreshShapes()
@@ -301,7 +333,7 @@ function CAE.CreateSettingsMenu()
             end,
             warning = "Remove the selected shape from the profile?",
             isDangerous = true,
-            width = "full",
+            width = "half",
             disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil end, -- Don't allow editing default
         },
         {
@@ -310,12 +342,12 @@ function CAE.CreateSettingsMenu()
             tooltip = "Add a new circle to the current profile. The properties can be edited later",
             func = function()
                 ResetCurrentValues()
-                local id = CAE.AddCircleToProfile(currentRgb, currentColor, currentSize, currentYOffset, currentForwardOffset, currentConditionalAbility, currentConditionalSetId, currentConditionalEffectId, currentActiveBarOnly, currentDepthBuffers)
+                local id = CAE.AddCircleToProfile(currentRgb, currentColor, currentSize, currentYOffset, currentForwardOffset, currentConditionalAbility, currentConditionalSetId, currentConditionalEffectId, currentActiveBarOnly, currentDepthBuffers, currentPitch, currentSolid, currentUseCameraHeading)
                 CAE.LoadCurrentProfile()
                 currentShape = id
                 RefreshShapes()
             end,
-            width = "full",
+            width = "half",
             disabled = function() return CAE.csvs.currentProfile == -1 end, -- Don't allow editing default
         },
         {
@@ -324,18 +356,33 @@ function CAE.CreateSettingsMenu()
             tooltip = "Add a new rectangle to the current profile. The properties can be edited later",
             func = function()
                 ResetCurrentValues()
-                local id = CAE.AddRectangleToProfile(currentRgb, currentColor, currentFillColor, currentSize, currentHeight, currentEdgeSize, currentYOffset, currentForwardOffset, currentConditionalAbility, currentConditionalSetId, currentConditionalEffectId, currentActiveBarOnly)
+                local id = CAE.AddRectangleToProfile(currentRgb, currentColor, currentFillColor, currentSize, currentHeight, currentEdgeSize, currentYOffset, currentForwardOffset, currentConditionalAbility, currentConditionalSetId, currentConditionalEffectId, currentActiveBarOnly, currentDepthBuffers, currentPitch, currentSolid, currentUseCameraHeading)
                 CAE.LoadCurrentProfile()
                 currentShape = id
                 RefreshShapes()
             end,
-            width = "full",
+            width = "half",
+            disabled = function() return CAE.csvs.currentProfile == -1 end, -- Don't allow editing default
+        },
+        {
+            type = "button",
+            name = "Add cone",
+            tooltip = "Add a new cone to the current profile. The properties can be edited later",
+            func = function()
+                ResetCurrentValues()
+                currentPitch = math.pi / 2
+                local id = CAE.AddConeToProfile(currentRgb, currentColor, currentFillColor, currentSize, currentHeight, currentYOffset, currentForwardOffset, currentConditionalAbility, currentConditionalSetId, currentConditionalEffectId, currentActiveBarOnly, currentDepthBuffers, currentPitch, currentSolid, currentUseCameraHeading, currentConeStyle)
+                CAE.LoadCurrentProfile()
+                currentShape = id
+                RefreshShapes()
+            end,
+            width = "half",
             disabled = function() return CAE.csvs.currentProfile == -1 end, -- Don't allow editing default
         },
         {
             type = "slider",
             name = "Size (cm)",
-            tooltip = "The size in centimeters of the shape. For circles, this is the radius. For rectangles, this is the width",
+            tooltip = "The size in centimeters of the shape. For circles and cones, this is the radius. For rectangles, this is the width",
             min = 0,
             max = 4800,
             step = 50,
@@ -352,8 +399,8 @@ function CAE.CreateSettingsMenu()
         },
         {
             type = "slider",
-            name = "Length (cm)",
-            tooltip = "The size in centimeters of the shape. For rectangles, this is the length",
+            name = "Length (cm) / Thickness",
+            tooltip = "The size in centimeters of the shape. For rectangles, this is the length. For cones, this is the thickness of the side lines",
             min = 0,
             max = 4800,
             step = 50,
@@ -369,8 +416,54 @@ function CAE.CreateSettingsMenu()
             disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type == CAE.CIRCLE end, -- Don't allow editing default, not valid for circles
         },
         {
+            type = "checkbox",
+            name = "Solid color",
+            tooltip = "Whether to use a solid circle or rectangle instead of an outline or rectangle with border. Non-solid rectangles do not support hiding behind objects. Does not apply to cones",
+            default = false,
+            getFunc = function() return currentSolid end,
+            setFunc = function(value)
+                currentSolid = value
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].solid = currentSolid
+                CAE.LoadCurrentProfile()
+                RefreshShapes()
+            end,
+            width = "half",
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type == CAE.CONE end, -- Don't allow editing default, not valid for cones
+        },
+        {
+            type = "dropdown",
+            name = "Cone style",
+            tooltip = "Style for cones only",
+            choices = {"Arc + lines", "Curved arc only", "Straight lines only"},
+            choicesValues = {3, 2, 1},
+            getFunc = function() return currentConeStyle end,
+            setFunc = function(value)
+                currentConeStyle = value
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].coneStyle = currentConeStyle
+                CAE.LoadCurrentProfile()
+                RefreshShapes()
+            end,
+            width = "half",
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type ~= CAE.CONE end, -- only valid for cones
+        },
+        {
+            type = "checkbox",
+            name = "Use RGB",
+            tooltip = "Whether to cycle through all hues instead of being a static color. The alpha (opacity) of the \"Outline color\" below will be inherited",
+            default = false,
+            getFunc = function() return currentRgb end,
+            setFunc = function(value)
+                currentRgb = value
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].rgb = currentRgb
+                CAE.LoadCurrentProfile()
+                RefreshShapes()
+            end,
+            width = "half",
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil end, -- Don't allow editing default
+        },
+        {
             type = "colorpicker",
-            name = "Outline color",
+            name = "Outline / main color",
             tooltip = "The color of the shape. Note that this color includes opacity, so it may appear darker in the settings menu than it actually is",
             default = ZO_ColorDef:New(1, 1, 1, 1),
             getFunc = function() return unpack(currentColor) end,
@@ -386,7 +479,7 @@ function CAE.CreateSettingsMenu()
         {
             type = "colorpicker",
             name = "Fill color",
-            tooltip = "The center fill color of the rectangle (does not work for circle). Note that this color includes opacity, so it may appear darker in the settings menu than it actually is",
+            tooltip = "The center fill color of the rectangle (does not work for circles or cones). Note that this color includes opacity, so it may appear darker in the settings menu than it actually is",
             default = ZO_ColorDef:New(1, 1, 1, 0),
             getFunc = function() return unpack(currentFillColor) end,
             setFunc = function(r, g, b, a)
@@ -396,27 +489,12 @@ function CAE.CreateSettingsMenu()
                 RefreshShapes()
             end,
             width = "half",
-            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type == CAE.CIRCLE end, -- Don't allow editing default, not valid for circles
-        },
-        {
-            type = "checkbox",
-            name = "Use RGB",
-            tooltip = "Whether to cycle through all colors instead of being a static color. The alpha (opacity) of the \"Outline color\" above will be inherited",
-            default = false,
-            getFunc = function() return currentRgb end,
-            setFunc = function(value)
-                currentRgb = value
-                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].rgb = currentRgb
-                CAE.LoadCurrentProfile()
-                RefreshShapes()
-            end,
-            width = "half",
-            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil end, -- Don't allow editing default
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type ~= CAE.RECTANGLE or currentSolid end, -- Don't allow editing default, only valid for Space rectangles
         },
         {
             type = "checkbox",
             name = "Hide behind objects",
-            tooltip = "Whether to use depth buffers to have icons be hidden by objects. For example, if this is ON, parts of the circle can be covered by hills. In order for this setting to work while ON, you must have \"SubSampling Quality\" set to \"High\" in your Video settings",
+            tooltip = "Whether to use depth buffers to have shapes be hidden by objects. For example, if this is ON, parts of the shape can be covered by hills. This does not work for rectangles with outlines or the arc portion of cones. In order for this setting to work while ON, you must have \"SubSampling Quality\" set to \"High\" in your Video settings",
             default = false,
             getFunc = function() return currentDepthBuffers end,
             setFunc = function(value)
@@ -427,7 +505,7 @@ function CAE.CreateSettingsMenu()
             end,
             width = "half",
             disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or 
-                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type == CAE.RECTANGLE end, -- Don't allow editing default
+                (CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].type == CAE.RECTANGLE and not currentSolid) end, -- Rectangle outline is Space
         },
         {
             type = "slider",
@@ -450,7 +528,7 @@ function CAE.CreateSettingsMenu()
         {
             type = "slider",
             name = "Forward offset (cm)",
-            tooltip = "The offset of the center of the shape from your feet, for where your character (not your camera!) is facing",
+            tooltip = "The offset of the center of the shape from your feet, for where your character or camera is facing",
             min = -3500,
             max = 3500,
             step = 50,
@@ -466,20 +544,66 @@ function CAE.CreateSettingsMenu()
             disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil end, -- Don't allow editing default
         },
         {
+            type = "slider",
+            name = "Pitch / Angle",
+            tooltip = "For circles or rectangles, the forward rotation of the shape, in degrees. For cones, the angle of the cone",
+            min = 0,
+            max = 360,
+            step = 5,
+            default = 0,
+            width = "half",
+            getFunc = function() return zo_round(currentPitch / math.pi * 180) end,
+            setFunc = function(value)
+                currentPitch = value / 180 * math.pi
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].pitch = currentPitch
+                CAE.LoadCurrentProfile()
+                RefreshShapes()
+            end,
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil end, -- Don't allow editing default
+        },
+        {
+            type = "checkbox",
+            name = "Use camera heading",
+            tooltip = "Whether to follow the direction your camera is pointing, or the direction your character is pointing",
+            default = true,
+            getFunc = function() return currentUseCameraHeading end,
+            setFunc = function(value)
+                currentUseCameraHeading = value
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].useCameraHeading = currentUseCameraHeading
+                CAE.LoadCurrentProfile()
+                RefreshShapes()
+            end,
+            width = "half",
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil  end,
+        },
+        {
             type = "description",
             text = function()
-                local suffix = ""
-                if (currentConditionalAbility) then
-                    suffix = zo_strformat("\nCurrent: shown when you slot <<1>> (<<2>>) <<3>>", GetAbilityName(currentConditionalAbility), currentConditionalAbility,
+                if (#currentConditionalAbility > 0) then
+                    local abilities = ""
+                    for _, id in ipairs(currentConditionalAbility) do
+                        abilities = zo_strformat("<<1>> <<2>> (<<3>>),", abilities, GetAbilityName(id), id)
+                    end
+                    return zo_strformat("\nCurrent: shown when you slot <<1>> <<2>>", abilities,
                         currentActiveBarOnly and "on the active bar" or "on either bar")
-                elseif (currentConditionalSetId) then
-                    local _, setName = GetItemSetInfo(currentConditionalSetId)
-                    suffix = zo_strformat("\nCurrent: shown when you equip <<1>> (<<2>>) <<3>>", setName, currentConditionalSetId,
+
+                elseif (#currentConditionalSetId > 0) then
+                    local sets = ""
+                    for _, id in ipairs(currentConditionalSetId) do
+                        local _, setName = GetItemSetInfo(id)
+                        sets = zo_strformat("<<1>> <<2>> (<<3>>),", sets, setName, id)
+                    end
+                    return  zo_strformat("\nCurrent: shown when you equip <<1>> <<2>>", sets,
                         currentActiveBarOnly and "on the active bar" or "on either bar")
-                elseif (currentConditionalEffectId) then
-                    suffix = zo_strformat("\nCurrent: shown when you have <<1>> (<<2>>) on you", GetAbilityName(currentConditionalEffectId), currentConditionalEffectId)
+
+                elseif (#currentConditionalEffectId > 0) then
+                    local abilities = ""
+                    for _, id in ipairs(currentConditionalEffectId) do
+                        abilities = zo_strformat("<<1>> <<2>> (<<3>>),", abilities, GetAbilityName(id), id)
+                    end
+                    return zo_strformat("\nCurrent: shown when you have <<1>> on you", abilities)
                 end
-                return "Only one ID applies; create more of the same shape if you want more." .. suffix
+                return ""
             end,
             width = "full",
         },
@@ -496,55 +620,82 @@ function CAE.CreateSettingsMenu()
                 RefreshShapes()
             end,
             width = "full",
-            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or (currentConditionalAbility == nil and currentConditionalSetId == nil) end, -- Don't allow editing default
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or (#currentConditionalAbility == 0 and #currentConditionalSetId == 0) end, -- Don't allow editing default
         },
         {
             type = "editbox",
             name = "Conditional skill ID",
-            tooltip = "If specified, this shape will only show when this ability is slotted. Use |c99FF99/cae printskills|r to see currently slotted IDs",
-            getFunc = function() return currentConditionalAbility end,
+            tooltip = "If specified, this shape will only show when these abilities are slotted. Separate multiple IDs using commas (,)\nUse |c99FF99/cae printskills|r to see currently slotted IDs",
+            getFunc = function()
+                return table.concat(currentConditionalAbility, ",")
+            end,
             setFunc = function(value)
-                currentConditionalAbility = tonumber(value)
-                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].conditionalAbilityId = currentConditionalAbility
+                ZO_ClearTable(currentConditionalAbility)
+                for _, id in ipairs({zo_strsplit(",", value)}) do
+                    id = tonumber(id)
+                    if (id) then
+                        table.insert(currentConditionalAbility, id)
+                    end
+                end
+
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].conditionalAbilityId = ZO_DeepTableCopy(currentConditionalAbility)
                 CAE.LoadCurrentProfile()
                 RefreshShapes()
             end,
             isMultiline = false,
             isExtraWide = false,
             width = "full",
-            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or currentConditionalSetId ~= nil or currentConditionalEffectId ~= nil end, -- Exclude when others are set
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or #currentConditionalSetId ~= 0 or #currentConditionalEffectId ~= 0 end, -- Exclude when others are set
         },
         {
             type = "editbox",
             name = "Conditional set ID",
-            tooltip = "If specified, this shape will only show when this set is equipped with the max bonus. Use |c99FF99/cae printsets|r to see currently equipped set IDs",
-            getFunc = function() return currentConditionalSetId end,
+            tooltip = "If specified, this shape will only show when these sets are equipped with the max bonus. Separate multiple IDs using commas (,)\nUse |c99FF99/cae printsets|r to see currently equipped set IDs",
+            getFunc = function()
+                return table.concat(currentConditionalSetId, ",")
+            end,
             setFunc = function(value)
-                currentConditionalSetId = tonumber(value)
-                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].conditionalSetId = currentConditionalSetId
+                ZO_ClearTable(currentConditionalSetId)
+                for _, id in ipairs({zo_strsplit(",", value)}) do
+                    id = tonumber(id)
+                    if (id) then
+                        table.insert(currentConditionalSetId, id)
+                    end
+                end
+
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].conditionalSetId = ZO_DeepTableCopy(currentConditionalSetId)
                 CAE.LoadCurrentProfile()
                 RefreshShapes()
             end,
             isMultiline = false,
             isExtraWide = false,
             width = "full",
-            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or currentConditionalAbility ~= nil or currentConditionalEffectId ~= nil end, -- Exclude when others are set
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or #currentConditionalAbility ~= 0 or #currentConditionalEffectId ~= 0 end, -- Exclude when others are set
         },
         {
             type = "editbox",
             name = "Conditional effect ID",
-            tooltip = "If specified, this shape will only show when this buff / debuff effect is on you. Use |c99FF99/cae printeffects|r to see current effect IDs",
-            getFunc = function() return currentConditionalEffectId end,
+            tooltip = "If specified, this shape will only show when these buff / debuff effects are on you. Separate multiple IDs using commas (,)\nUse |c99FF99/cae printeffects|r to see current effect IDs",
+            getFunc = function()
+                return table.concat(currentConditionalEffectId, ",")
+            end,
             setFunc = function(value)
-                currentConditionalEffectId = tonumber(value)
-                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].conditionalEffectId = currentConditionalEffectId
+                ZO_ClearTable(currentConditionalEffectId)
+                for _, id in ipairs({zo_strsplit(",", value)}) do
+                    id = tonumber(id)
+                    if (id) then
+                        table.insert(currentConditionalEffectId, id)
+                    end
+                end
+
+                CAE.profiles[CAE.csvs.currentProfile].circles[currentShape].conditionalEffectId = ZO_DeepTableCopy(currentConditionalEffectId)
                 CAE.LoadCurrentProfile(true)
                 RefreshShapes()
             end,
             isMultiline = false,
             isExtraWide = false,
             width = "full",
-            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or currentConditionalSetId ~= nil or currentConditionalAbility ~= nil end, -- Exclude when others are set
+            disabled = function() return CAE.csvs.currentProfile == -1 or currentShape == nil or #currentConditionalSetId ~= 0 or #currentConditionalAbility ~= 0 end, -- Exclude when others are set
         },
         {
             type = "submenu",
@@ -552,7 +703,7 @@ function CAE.CreateSettingsMenu()
             controls = {
                 {
                     type = "description",
-                    text = "Select from example presets here to add shapes that are already set up for use. Yell at Kyzer if any of these seem wrong. Note: some skills may actually be pill-shaped or rounded, but the display for that is not supported.",
+                    text = "Select from example presets here to add shapes that are already set up for use. There may be slight inaccuracies because these were the results of testing; yell at Kyzer if any seem wrong. Note: some skills may actually be pill-shaped or rounded, but the display for that is not supported.",
                     width = "full",
                 },
                 {

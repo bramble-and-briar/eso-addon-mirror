@@ -15,11 +15,36 @@ local DYNAMIC_EVENT_ICON = AddonTex('assets/MiniMap/EventDynamic.dds')
 local function IsDynamicEventTexture(texture)
     local tex = (texture or ''):lower()
     if tex == '' then return false end
+    -- U50+ official: esoui/art/icons/poi/u50_poi_dynamic_world_event.dds
+    -- also servicemappins/u50_poi_dynamic_world_event.dds
+    if tex:find('u50_poi_dynamic', 1, true) then return true end
     if tex:find('dynamic_world_event', 1, true) then return true end
+    if tex:find('poi_dynamic_world', 1, true) then return true end
     if tex:find('mapkey_dynamic', 1, true) then return true end
     if tex:find('dynamicworldevent', 1, true) then return true end
+    if tex:find('dynamic_encounter', 1, true) then return true end
     if tex:find('/dynamic_', 1, true) and tex:find('event', 1, true) then return true end
     return false
+end
+
+-- Scan map locations for active dynamic-encounter icons (coords + name).
+local function CollectDynamicEventLocations()
+    local out = {}
+    if not GetNumMapLocations or not GetMapLocationIcon then return out end
+    for i = 1, GetNumMapLocations() do
+        -- Only visible steps (U50: all steps exist; IsMapLocationVisible filters the active one)
+        if not IsMapLocationVisible or IsMapLocationVisible(i) then
+            local texture, x, y = GetMapLocationIcon(i)
+            if IsDynamicEventTexture(texture) and x and y and x >= 0 and x <= 1 and y >= 0 and y <= 1 then
+                local name = nil
+                if GetMapLocationTooltipHeader then
+                    name = GetMapLocationTooltipHeader(i)
+                end
+                out[#out + 1] = { x = x, y = y, name = name, texture = texture }
+            end
+        end
+    end
+    return out
 end
 
 NagaMapUI.Minimap = {}
@@ -291,19 +316,29 @@ local function AddDirectPoints(list)
                 end
             elseif context==WORLD_EVENT_LOCATION_CONTEXT_POINT_OF_INTEREST then
                 local zoneIndex,poiIndex=GetWorldEventPOIInfo(id)
-                if not (zoneIndex==1 and poiIndex==1) and poiIndex then
+                -- U50 Dynamic Encounters report zoneIndex=1, poiIndex=1 (they are map locations, not real POIs).
+                if zoneIndex==1 and poiIndex==1 then
+                    -- handled below via CollectDynamicEventLocations
+                elseif poiIndex then
                     local nX,nY,_,_,isOnMap=GetPOIMapInfo(GetCurrentMapZoneIndex(),poiIndex)
                     if isOnMap and nX and nY then
                         local name=GetPOIInfo and GetPOIInfo(GetCurrentMapZoneIndex(),poiIndex)
-                        found[#found+1]={nX,nY,WORLD_EVENT_ICON,name}
+                        found[#found+1]={nX,nY,WORLD_EVENT_ICON,name,'worldevent'}
                     end
                 end
             end
             id=GetNextWorldEventInstanceId(id)
         end
+        -- Dynamic encounters (EventDynamic.dds) from map locations
+        local dyn=CollectDynamicEventLocations()
+        for _,d in ipairs(dyn) do
+            found[#found+1]={d.x,d.y,DYNAMIC_EVENT_ICON,d.name,'dynamicevent'}
+        end
         Strip('worldevent')
+        Strip('dynamicevent')
         for _,f in ipairs(found) do
-            Add(f[1],f[2],f[3],f[4],'worldevent',{alwaysBorder=true})
+            local cat=f[5] or 'worldevent'
+            Add(f[1],f[2],f[3],f[4],cat,{alwaysBorder=true})
         end
     end)
 end

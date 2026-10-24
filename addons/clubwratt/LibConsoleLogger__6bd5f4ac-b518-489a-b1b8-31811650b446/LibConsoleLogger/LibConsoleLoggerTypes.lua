@@ -28,13 +28,15 @@
 ---@field Disable fun(self: LibConsoleLogger)
 ---@field IsChatEnabled fun(self: LibConsoleLogger): boolean
 ---@field SetChatEnabled fun(self: LibConsoleLogger, enabled: boolean)
+---@field GetMaxLines fun(self: LibConsoleLogger): number
+---@field SetMaxLines fun(self: LibConsoleLogger, n: number): number
 ---@field For fun(self: LibConsoleLogger, source: string): LibConsoleLoggerScoped
 ---@field LogDialog table|nil
 
 LibConsoleLogger = LibConsoleLogger or {}
 LibConsoleLogger.name = "LibConsoleLogger"
 -- Keep in sync with ## Version in LibConsoleLogger.addon
-LibConsoleLogger.version = "0.3.0"
+LibConsoleLogger.version = "0.4.0"
 
 LibConsoleLogger.savedVarsName = "LibConsoleLoggerSavedVars"
 LibConsoleLogger.savedVarsVersion = 1

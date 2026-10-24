@@ -18,6 +18,7 @@ Settings.DEFAULTS = {
     -- Timer Settings.
     showCountdown = true,
     showAlert = true,
+    playSound = true,
     showChat = true,
     -- The countdown's text size: "small", "medium", "large" or "xLarge" (see src/Countdown.lua).
     fontSize = "medium",

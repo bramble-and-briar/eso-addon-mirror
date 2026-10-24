@@ -1,6 +1,6 @@
 -- Provisioning master writs (8 dishes) and holiday event writs, which ask for food, drink or furnishings (amounts
--- depend on the event). Finds the recipe from the item (LibCharacterKnowledge) and counts the finished items already
--- in stock; for the rest, checks the recipe is known, the skill ranks it needs, and the materials for every craft.
+-- depend on the event). Finds the recipe from the item (LibCharacterKnowledge), shows how many finished items are
+-- already in stock, and checks the recipe is known, the skill ranks it needs, and the materials for every craft.
 -- Furnishings are made with the same recipe functions as food, as in Dolgubon's Lazy Writ Crafter.
 
 local addon = CanCraftMasterWrit
@@ -45,7 +45,7 @@ local function GetItemsRequired(writ, itemLink, recipeListIndex, recipeIndex)
     return Data.GetProvisioningItemsRequired(writ.event, writ.resultItemId, displayQuality, isFurnishing)
 end
 
--- Finished items in the bags count towards the writ when it is accepted. Returns how many the character has.
+-- Shows how many of the finished items the character already has. It never changes the overall status.
 local function CheckFinalItem(result, itemLink, itemsRequired)
     local owned = Util.CountOwned(itemLink)
     if owned >= itemsRequired then
@@ -54,7 +54,6 @@ local function CheckFinalItem(result, itemLink, itemsRequired)
         result:Info(Result.CATEGORY_ITEM, GetString(SI_CCMW_FINAL_ITEM), nil,
             { Result.Detail(Util.ItemName(itemLink), Result.Count(owned, itemsRequired)) })
     end
-    return owned
 end
 
 local function CheckRecipeKnown(result, recipeLink, recipeListIndex, recipeIndex, itemLink)
@@ -192,14 +191,11 @@ function Provisioning.Evaluate(writ, result)
     end
     local itemsRequired = GetItemsRequired(writ, itemLink, knownListIndex, knownRecipeIndex)
 
-    -- With every finished item in stock the writ can be handed in as it is, so nothing else needs checking. Only an
+    -- Items already made don't lower the other checks: like every other writ, it reads Craftable only if the
+    -- character can make all of it (1.2.0 skipped them, and showed Craftable without the recipe or materials). Only an
     -- item a recipe makes is counted: a writ number that matches no recipe may not be an item at all.
-    local owned = 0
     if itemsRequired and (recipeLink or recipeListIndex) then
-        owned = CheckFinalItem(result, itemLink, itemsRequired)
-        if owned >= itemsRequired then
-            return
-        end
+        CheckFinalItem(result, itemLink, itemsRequired)
     end
 
     CheckRecipeKnown(result, recipeLink, recipeListIndex, recipeIndex, itemLink)
@@ -209,6 +205,6 @@ function Provisioning.Evaluate(writ, result)
         return
     end
     local yield = GetYieldPerCraft(knownListIndex, knownRecipeIndex, GetItemLinkItemType(itemLink))
-    local crafts = zo_ceil((itemsRequired - owned) / yield)
+    local crafts = zo_ceil(itemsRequired / yield)
     CheckIngredients(result, crafts, recipeLink, knownListIndex, knownRecipeIndex, itemLink)
 end

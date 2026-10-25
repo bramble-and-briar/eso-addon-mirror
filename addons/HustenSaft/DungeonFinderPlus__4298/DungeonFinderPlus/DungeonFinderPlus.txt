@@ -1,9 +1,9 @@
 ## Title: DungeonFinderPlus
-## APIVersion: 101048
-## Version: 1.4.2
+## APIVersion: 101051
+## Version: 1.4.3
 ## Author: HustenSaft @LugenKrebs
 ## SavedVariables: DungeonFinderPlus_SV
-## DependsOn: LibAddonMenu-2.0>=41
+## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: LibSets>=000804
 ## Description: Adds a fast, searchable dungeon list with auto-localization and pledge highlighting. Open with |cA5FF7C /dfp |r
 

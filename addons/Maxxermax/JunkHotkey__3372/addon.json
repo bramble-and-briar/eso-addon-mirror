@@ -1,11 +1,32 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Maxxermax/JunkHotkey__3372",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Maxxermax",
   "canonical_id": "esoui:3372",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
     {
       "name": " Seasons of the Worm Cult Pt1",
       "version": "11.0.0"
@@ -53,7 +74,7 @@
     "JunkHotkey"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3372/",
-  "fingerprint": "9b588c7b8296c94186edb5b28cb8df4d5830182c708cc86fc9c72e1bafce6675",
+  "fingerprint": "a0a7960a82d7fbe682fe8b3e8b7f1578c19c9abb96c7f095ee247db77a01ec05",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11501.png",
     "https://cdn-eso.mmoui.com/preview/pvw11502.png"
@@ -64,11 +85,11 @@
   "source_id": "3372",
   "source_url": "https://www.esoui.com/downloads/info3372-JunkHotkey.html",
   "stats": {
-    "downloads": 8254,
-    "favorites": 12,
-    "monthly_downloads": 92
+    "downloads": 8489,
+    "favorites": 13,
+    "monthly_downloads": 72
   },
   "title": "JunkHotkey",
-  "updated_at": 1724329682000,
-  "version": "1.9"
+  "updated_at": 1792892518000,
+  "version": "1.92"
 }

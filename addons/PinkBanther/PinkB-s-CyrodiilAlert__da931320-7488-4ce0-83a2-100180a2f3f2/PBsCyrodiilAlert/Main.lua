@@ -598,6 +598,8 @@ addon.board = {
 
 -- Filled in by Map.lua.
 addon.map = {
+	-- Without Map.lua there is no gate to open, so nothing about the current map is ever read.
+	MapReadsAllowed = function() return false end,
 	Refresh = function() end,
 	RefreshKeeps = function() end,
 	Available = function() return false end,
@@ -1127,10 +1129,25 @@ function addon:OnArtifactSpawned(artifactId)
 	self:StartArtifactClock("seeking", artifactId)
 end
 
-function addon:OnArtifactStateChanged(bgContext, controlState, artifactId, lastControlState)
+-- Who holds each artifact objective, as the state-changed event reports it. This is where the
+-- summary learns the holder's alliance; see Artifacts() for why it no longer asks the map.
+addon.artifactHolders = {}
+
+local function ObjectiveKey(keepId, objectiveId, bgContext)
+	return tostring(keepId) .. ":" .. tostring(objectiveId) .. ":" .. tostring(bgContext)
+end
+
+function addon:OnArtifactStateChanged(keepId, objectiveId, bgContext, controlState, holderAlliance, artifactId, lastControlState)
 	if not IsThisCampaign(bgContext) or not OBJECTIVE_CONTROL_STATE_UNKNOWN then
 		return
 	end
+	local key = ObjectiveKey(keepId, objectiveId, bgContext)
+	if controlState == OBJECTIVE_CONTROL_STATE_UNKNOWN then
+		self.artifactHolders[key] = nil
+	else
+		self.artifactHolders[key] = holderAlliance or ALLIANCE_NONE
+	end
+	self.board:Refresh()
 	if lastControlState == OBJECTIVE_CONTROL_STATE_UNKNOWN and controlState ~= OBJECTIVE_CONTROL_STATE_UNKNOWN then
 		self:StartArtifactClock("revealed", artifactId)
 	elseif lastControlState ~= OBJECTIVE_CONTROL_STATE_UNKNOWN and controlState == OBJECTIVE_CONTROL_STATE_UNKNOWN then
@@ -1220,7 +1237,7 @@ addon.IsObjectiveObjectShown = IsObjectiveObjectShown
 -- worth a line on a summary.
 function addon:Artifacts()
 	if not (OBJECTIVE_DAEDRIC_WEAPON and GetNumObjectives and GetObjectiveIdsForIndex
-		and GetObjectiveType and GetObjectiveInfo and GetObjectivePinInfo) then
+		and GetObjectiveType and GetObjectiveInfo) then
 		return nil
 	end
 
@@ -1232,11 +1249,31 @@ function addon:Artifacts()
 			and IsObjectiveInPlay(keepId, objectiveId, bgContext) then
 			local name, _, state = GetObjectiveInfo(keepId, objectiveId, bgContext)
 			if state ~= OBJECTIVE_CONTROL_STATE_UNKNOWN then
-				local pinType = GetObjectivePinInfo(keepId, objectiveId, bgContext)
+				-- The holder's alliance. This used to come from GetObjectivePinInfo -- which
+				-- answers in terms of the world map's CURRENT map. The summary refreshes on the
+				-- watch's five-second pass and on events, with no regard for what the world map
+				-- is showing, so with Volendrung out and the standard map pulled back to all of
+				-- Tamriel it was asking the client about Tamriel from inside an add-on frame:
+				-- the one thing that fills the console's shared add-on pool. The overview map was
+				-- gated against exactly that in 2.6.1; this call, in a different file, was not.
+				-- It only happened while the artifact was out, which is why it was rare.
+				--
+				-- The state-changed event carries the holder's alliance itself, so that is the
+				-- source now. The pin is read only behind the overview map's own gate (HUD up and
+				-- settled, current map inside Cyrodiil), for an artifact that was already out
+				-- before any event arrived; otherwise the holder is reported as not yet known.
+				local key = ObjectiveKey(keepId, objectiveId, bgContext)
+				local alliance = self.artifactHolders[key]
+				if alliance == nil and GetObjectivePinInfo and self.map.MapReadsAllowed
+					and self.map:MapReadsAllowed() then
+					local pinType = GetObjectivePinInfo(keepId, objectiveId, bgContext)
+					alliance = ARTIFACT_PIN_ALLIANCE[pinType]
+					self.artifactHolders[key] = alliance
+				end
 				rows = rows or {}
 				rows[#rows + 1] = {
 					name = (name and name ~= "") and name or GetString(SI_PBSCA_KIND_SCROLL),
-					alliance = ARTIFACT_PIN_ALLIANCE[pinType],
+					alliance = alliance,
 					mine = IsCarryableObjectiveCarriedByLocalPlayer
 						and IsCarryableObjectiveCarriedByLocalPlayer(keepId, objectiveId, bgContext) or false,
 				}
@@ -1288,7 +1325,11 @@ function addon:SituationLines()
 		local text
 		if artifact.mine then
 			text = Format(SI_PBSCA_BOARD_ARTIFACT_YOURS, artifact.name) .. ArtifactEnergyText()
-		elseif artifact.alliance and artifact.alliance ~= ALLIANCE_NONE then
+		elseif artifact.alliance == nil then
+			-- Out before we heard anything about it, and the map not safe to ask: say so,
+			-- rather than calling it unclaimed.
+			text = Format(SI_PBSCA_BOARD_ARTIFACT_UNKNOWN, artifact.name)
+		elseif artifact.alliance ~= ALLIANCE_NONE then
 			text = Format(SI_PBSCA_BOARD_ARTIFACT, artifact.name, AllianceName(artifact.alliance))
 		else
 			text = Format(SI_PBSCA_BOARD_ARTIFACT_LOOSE, artifact.name)
@@ -2656,7 +2697,8 @@ local function OnAddOnLoaded(_, name)
 		em:RegisterForEvent(addon.name, EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_STATE_CHANGED,
 			function(_, keepId, objectiveId, bgContext, controlEvent, controlState, holderAlliance,
 				lastHolderAlliance, pinType, artifactId, lastControlState)
-				addon:OnArtifactStateChanged(bgContext, controlState, artifactId, lastControlState)
+				addon:OnArtifactStateChanged(keepId, objectiveId, bgContext, controlState, holderAlliance,
+					artifactId, lastControlState)
 			end)
 	end
 

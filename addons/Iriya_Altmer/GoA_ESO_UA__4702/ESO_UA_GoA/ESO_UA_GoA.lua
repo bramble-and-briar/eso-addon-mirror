@@ -66,9 +66,17 @@ function ESO_UA_GoA:RefreshUI()
 end
 
 function ESO_UA_GoA_Selected()
-	local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY = ESO_UA_GoAUI:GetSelected()
-	if isValidAnchor then
-		ESO_UA_GoA.settings.anchor = { point, relativePoint, offsetX, offsetY }
+	if ESO_UA_GoAUI == nil then return end
+	if ESO_UA_GoAUI.GetSelected then
+		local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY = ESO_UA_GoAUI:GetSelected()
+		if isValidAnchor then
+			ESO_UA_GoA.settings.anchor = { point, relativePoint, offsetX, offsetY }
+		end
+	elseif ESO_UA_GoAUI.GetAnchor then
+		local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY = ESO_UA_GoAUI:GetAnchor(0)
+		if isValidAnchor then
+			ESO_UA_GoA.settings.anchor = { point, relativePoint, offsetX, offsetY }
+		end
 	end
 end
 

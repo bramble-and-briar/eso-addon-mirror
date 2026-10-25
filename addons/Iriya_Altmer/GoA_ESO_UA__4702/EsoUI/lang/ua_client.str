@@ -11738,7 +11738,7 @@
 [SI_TAMRIEL_TOMES_UPGRADE_DISABLED_NO_SKU_DATA] = "Не вдалося отримати останні поліпшення тому Тамріелю. Спробуйте пізніше."
 [SI_TAMRIEL_TOMES_UPGRADE_TOME_HEADER] = "Поліпшення тому Тамріелю"
 [SI_TAMRIEL_TOMES_UPGRADE_TOME_LABEL] = "Поліпшити том"
-[SI_TAMRIEL_TOMES_VIEW_CHALLENGES_LABEL] = "Усі завдання"
+[SI_TAMRIEL_TOMES_VIEW_CHALLENGES_LABEL] = "Завдання"
 [SI_TIMEDACTIVITYTYPE_RESETHEADER0] = "Нові завдання через"
 [SI_TIMEDACTIVITYTYPE_RESETHEADER1] = "Нові завдання через"
 [SI_TIMEDACTIVITYTYPE_RESETHEADER2] = "До завершення сезону"

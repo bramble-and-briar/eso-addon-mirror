@@ -1,0 +1,11 @@
+## Title: Gamepad Instant Destroy
+## Description: Removes the wait timer on the Destroy Item confirmation button in gamepad mode.
+## Author: F9o0
+## Version: 1.2
+## AddOnVersion: 3
+## APIVersion: 101050 101051
+
+GamepadInstantDestroy.lua
+
+; This Add-on is not created by, affiliated with, or sponsored by, ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

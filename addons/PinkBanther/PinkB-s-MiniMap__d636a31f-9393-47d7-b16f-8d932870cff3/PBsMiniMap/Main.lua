@@ -509,6 +509,7 @@ function addon:CaptureLitePlayerPinDiagnostic()
 		background and string.format("texture hidden=%s alpha=%.2f layer=%d level=%d texture=%s",
 			tostring(background:IsHidden()), background:GetAlpha(), background:GetDrawLayer(),
 			background:GetDrawLevel(), tostring(background:GetTextureFileName())) or "texture missing",
+		self.CompassTextureStatus and self:CompassTextureStatus() or "compass not loaded",
 	}
 end
 
@@ -1025,6 +1026,7 @@ function addon:Initialize()
 		hideMapLabels = true,
 		liteDrawOrder = "default",
 		showBorder = true,
+		mapStyle = "square",
 		showZoneTitle = true,
 		zoneTitleSize = 24,
 		-- Scale relative to the map's native resolution, same meaning as the original's zoom
@@ -1309,6 +1311,12 @@ function addon:Initialize()
 		ZO_WorldMap_UpdateMap = orgZO_WorldMap_UpdateMap
 		RestoreModeData(savedModeData)
 		self:EndOwnAnchor()
+
+		-- The circular style is cut from the viewport just sized above, so it is re-cut here
+		-- rather than from a handler on the client's own control (see Compass.lua).
+		if self.ApplyLiteMapStyle then
+			self:ApplyLiteMapStyle()
+		end
 	end
 
 	-- Opacity.
@@ -1501,6 +1509,7 @@ function addon:Initialize()
 	-- Shared with the standard map, so the frame is put back the moment that comes forward --
 	-- the same arrangement as size, position, opacity and pan-past-edge.
 	function addon:ApplyLiteBorder()
+		if self.ApplyLiteMapStyle then self:ApplyLiteMapStyle() end
 		if not ZO_WorldMapMapFrame then
 			return
 		end
@@ -1511,7 +1520,7 @@ function addon:Initialize()
 
 		local wantHidden = false
 		if not self.dormant and (self.initLevel or 0) < 3 and account.enableMap then
-			wantHidden = not account.showBorder
+			wantHidden = not account.showBorder or account.mapStyle == "compass"
 		end
 
 		if ZO_WorldMapMapFrame:IsHidden() ~= wantHidden then
@@ -2732,6 +2741,7 @@ function addon:Initialize()
 	end
 	if initLevel == 2 then
 		self:InitLiteHooks()
+		if self.ApplyLiteMapStyle then self:ApplyLiteMapStyle() end
 		self:StartLiteMinimapLayoutWatch()
 		self:StartLiteFollowWatch()
 		self:StartLiteZoneWatch()
@@ -2989,6 +2999,9 @@ local function InitMemoryWatchdog()
 		end
 
 		addon:UpdatePendingCentre()
+		if addon.PollCompassTexture then
+			addon:PollCompassTexture()
+		end
 
 		-- Checked here rather than on the 100ms follow tick: this is the fastest thing running,
 		-- and the whole point is to show the map the moment it is right.

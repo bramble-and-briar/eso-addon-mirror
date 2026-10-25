@@ -178,7 +178,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Dungeon-Tracker__75746296-2f24-4d95-8fb5-1954d00fc1d6) | Eldibabalo | Console | — |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Dungeon-Tracker__1552) | Phinix | PC / Mac | 1.48 |
 | [Dungeon Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/secretrob/Dungeon-Travel__3139) | secretrob | PC / Mac | 2.3.6 |
-| [DungeonFinderPlus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HustenSaft/DungeonFinderPlus__4298) | HustenSaft | PC / Mac | 1.4.2 |
+| [DungeonFinderPlus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HustenSaft/DungeonFinderPlus__4298) | HustenSaft | PC / Mac | 1.4.3 |
 | [DungeonGear](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sirtith/DungeonGear__4514) | Sirtith | PC / Mac | 0.16.1 |
 | [DungeonHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oInsideOut/DungeonHistory__3872) | oInsideOut | PC / Mac | 1.1.2 |
 | [DungeonOrder - Alphabetical order for Dungeons!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KrykiZZ/DungeonOrder---Alphabetical-order-for-Dungeons__3701) | KrykiZZ | PC / Mac | 1.2.0 |

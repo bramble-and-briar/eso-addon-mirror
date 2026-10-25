@@ -1,9 +1,16 @@
+-- Main.lua – DungeonFinderPlus
 DungeonFinderPlus = DungeonFinderPlus or {}
 local DFP = DungeonFinderPlus
 
 local ADDON_NAME   = "DungeonFinderPlus"
 local SV_NAMESPACE = "DungeonFinderPlus_SV"
 local SV_VERSION   = 1
+
+-- ──────────────────────────────────────────────────────────────
+-- Keybinding-Strings
+-- ──────────────────────────────────────────────────────────────
+ZO_CreateStringId("SI_KEYBINDINGS_CATEGORY_DUNGEONFINDERPLUS", "DungeonFinderPlus")
+ZO_CreateStringId("SI_BINDING_NAME_DFP_TOGGLE", "open / close")
 
 local SV_DEFAULTS = {
     queueVeteran = false,
@@ -82,6 +89,9 @@ function DFP.Toggle()
     end
 end
 
+-- Globaler Wrapper für bindings.xml
+DungeonFinderPlus.Toggle = DFP.Toggle
+
 -- UI-Handler
 function DFP.OnToolbarClose() DFP.HideWindow() end
 function DFP.OnSelectAll() if DFP.Finder and DFP.Finder.BtnSelectAll then DFP.Finder:BtnSelectAll() end end
@@ -99,7 +109,7 @@ function DFP.OnSearchTextChanged()
 end
 
 -- Slash-Commands
-SLASH_COMMANDS["/dfp"]        = function() DFP.Toggle() end
+SLASH_COMMANDS["/dfp"] = function() DFP.Toggle() end
 
 -- Lifecycle
 local function OnPlayerActivated()

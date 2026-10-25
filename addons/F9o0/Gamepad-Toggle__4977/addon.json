@@ -18,7 +18,7 @@
     "GamepadToggle"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4977/",
-  "fingerprint": "987d2918da0997506ccdced4ce52971a63bfa85e463cd19ed8e40317f5a43884",
+  "fingerprint": "969d2b99587f2ebbe2315ea6f531c2667ed55a45380db108c7622c6929c48d17",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4977",
   "source_url": "https://www.esoui.com/downloads/info4977-GamepadToggle.html",
   "stats": {
-    "downloads": 12,
+    "downloads": 29,
     "favorites": 0,
-    "monthly_downloads": 2
+    "monthly_downloads": 28
   },
   "title": "Gamepad Toggle",
-  "updated_at": 1792707990000,
-  "version": "1"
+  "updated_at": 1792847779000,
+  "version": "1.1"
 }

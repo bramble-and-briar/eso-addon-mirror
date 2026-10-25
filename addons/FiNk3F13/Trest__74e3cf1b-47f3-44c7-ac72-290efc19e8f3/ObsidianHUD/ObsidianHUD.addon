@@ -1,0 +1,18 @@
+## Title: Obsidian HUD
+## Author: FiNk3F13
+## Version: 0.4.0
+## AddOnVersion: 400
+## APIVersion: 101051
+## Description: Dark resource HUD and framed native skill buttons with an inactive-bar preview. Controller settings included.
+## SavedVariables: ObsidianHUDSavedVariables
+## DependsOn: LibHarvensAddonSettings>=20200
+
+Core.lua
+Assets.xml
+ClassIcons.lua
+UI.lua
+Move.lua
+NativeMove.lua
+Native.lua
+Settings.lua
+ObsidianHUD.lua

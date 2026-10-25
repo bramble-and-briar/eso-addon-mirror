@@ -1,17 +1,16 @@
-; This Add-on is not created by, affiliated with or sponsored by ZeniMax
-; Media Inc. or its affiliates. The Elder Scrolls� and related logos are
+﻿; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
 ; registered trademarks or trademarks of ZeniMax Media Inc. in the United
 ; States and/or other countries. All rights reserved.
-; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+; You can read the full terms at https://elderscrollsonline.com
 
-## Title: |cEFEBBEJunkHotkey v1.9|r
-## Version: 1.9
-## AddOnVersion: 19
+## Title: |cEFEBBEJunkHotkey v1.92|r
+## Version: 1.92
+## AddOnVersion: 192
 ## Author: Maxxermax
-## Description: This addon allows you to define an hotkey to junk your items.
-## APIVersion: 101043 101044
+## Description: This addon allows you to define a hotkey to junk your items.
+## APIVersion: 101051
 ## OptionalDependsOn: FCOCompanion>=001050
 
 JunkHotkey.lua
-
 bindings.xml

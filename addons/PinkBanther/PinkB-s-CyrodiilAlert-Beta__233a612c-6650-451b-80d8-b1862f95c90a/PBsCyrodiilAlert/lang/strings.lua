@@ -128,6 +128,7 @@ local strings = {
 	-- The Daedric artifact line on the campaign summary. No name is available for this one --
 	-- the client is never told who carries it -- so it says the alliance and nothing more.
 	SI_PBSCA_BOARD_ARTIFACT = "%s: %s",
+	SI_PBSCA_BOARD_ARTIFACT_UNKNOWN = "%s: holder not known yet",
 	SI_PBSCA_BOARD_ARTIFACT_LOOSE = "%s: unclaimed",
 	SI_PBSCA_BOARD_ARTIFACT_YOURS = "%s: you are carrying it",
 	-- The artifact's clock. Nothing in the API says when it will come or go, so these are the

@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/HustenSaft/DungeonFinderPlus__4298",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "HustenSaft",
   "canonical_id": "esoui:4298",
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4298",
@@ -17,7 +18,7 @@
     "DungeonFinderPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4298/",
-  "fingerprint": "a52f7486357d3cd0f843d913fb7841decdebb6f9fcaceecd12afeb4e9d813df1",
+  "fingerprint": "71e3b5f24d1c5e54781d6fa523ce875263f70324ffca89bbbe279110ea52d5b6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14775.png",
     "https://cdn-eso.mmoui.com/preview/pvw14790.png"
@@ -28,11 +29,11 @@
   "source_id": "4298",
   "source_url": "https://www.esoui.com/downloads/info4298-DungeonFinderPlus.html",
   "stats": {
-    "downloads": 756,
+    "downloads": 834,
     "favorites": 2,
     "monthly_downloads": 32
   },
   "title": "DungeonFinderPlus",
-  "updated_at": 1769336172000,
-  "version": "1.4.2"
+  "updated_at": 1792882952000,
+  "version": "1.4.3"
 }

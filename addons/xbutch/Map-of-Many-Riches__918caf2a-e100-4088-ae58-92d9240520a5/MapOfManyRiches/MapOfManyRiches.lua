@@ -22,14 +22,15 @@ local PIN_ICONS = {
 
 local WAYPOINT_TEXT = "Set Waypoint"
 local buttonGroup
-local currentKeybindBag, currentKeybindSlot
+local keybindGeneration = 0
 
 local function RemoveWaypointKeybind()
+	-- Also invalidate additions that are still waiting for the next frame.
+	keybindGeneration = keybindGeneration + 1
 	if buttonGroup then
 		KEYBIND_STRIP:RemoveKeybindButtonGroup(buttonGroup)
 		buttonGroup = nil
 	end
-	currentKeybindBag, currentKeybindSlot = nil, nil
 end
 
 -- keep track of the last zone we reported counts for
@@ -282,36 +283,28 @@ local function ShouldHandleItem(bagId, slotIndex)
 	end
 	local ok = (data.pinType == MOMR_PIN_TYPE_TREASURE or data.pinType == MOMR_PIN_TYPE_SURVEYS)
 	-- dbg(string.format("ShouldHandleItem: itemId=%s pinType=%s ok=%s", tostring(itemId), tostring(data.pinType), tostring(ok)))
-	return ok
+	return ok, itemId
 end
 
-local function shouldKeyBeVisible()
-	-- Gamepad / console only: inventory root scene
+local function IsCurrentWaypointItem(bagId, slotIndex, itemId, requireActiveList)
 	if not (IsInGamepadPreferredMode() or IsConsoleUI()) then return false end
 	if not SCENE_MANAGER or not SCENE_MANAGER:IsShowing("gamepad_inventory_root") then return false end
-
-	local backpackInventory = PLAYER_INVENTORY and PLAYER_INVENTORY.inventories and PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK]
-	if not backpackInventory then return false end
-	local listView = backpackInventory.listView or (PLAYER_INVENTORY.GetActiveList and PLAYER_INVENTORY.GetActiveList(PLAYER_INVENTORY))
-	if not listView or not listView.GetTargetData then return false end
-	local data = listView:GetTargetData()
-	if not data or not data.bagId or not data.slotIndex then return false end
-	if data.bagId ~= BAG_BACKPACK then return false end
-	local _, specializedItemType = GetItemType(data.bagId, data.slotIndex)
-	-- Only surveys & treasure maps
-	return specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT or specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP
+	local list = GAMEPAD_INVENTORY and GAMEPAD_INVENTORY:GetCurrentList()
+	if not list or (requireActiveList and not list:IsActive()) then return false end
+	local data = list:GetTargetData()
+	local source = data and (data.dataSource or data.itemData or data)
+	return source and bagId == BAG_BACKPACK and source.bagId == bagId and source.slotIndex == slotIndex
+		and GetItemLinkItemId(GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)) == itemId or false
 end
 
 local function InventorySlotActionHook(inventoryInfo, slotActions)
+	RemoveWaypointKeybind()
 	if not (IsInGamepadPreferredMode() or IsConsoleUI()) then return end
-	-- Remove keybind immediately if the inventory scene is not showing (e.g. bank, trading house, or any other scene)
 	if not SCENE_MANAGER or not SCENE_MANAGER:IsShowing("gamepad_inventory_root") then
-		RemoveWaypointKeybind()
 		return
 	end
 	if not inventoryInfo then
 		dbg("InventoryHook: nil inventoryInfo")
-		RemoveWaypointKeybind()
 		return
 	end
 	-- Keyboard inventory stores data under .dataSource; gamepad list entries use .itemData.
@@ -320,37 +313,34 @@ local function InventorySlotActionHook(inventoryInfo, slotActions)
 	local slot = source.slotIndex
 	if not bag or not slot then
 		dbg("InventoryHook: missing bag/slot")
-		RemoveWaypointKeybind()
 		return
 	end
 	if bag ~= BAG_BACKPACK then
 		dbg("InventoryHook: not backpack")
-		RemoveWaypointKeybind();
 		return
 	end
 
-	if not ShouldHandleItem(bag, slot) then
+	local shouldHandle, itemId = ShouldHandleItem(bag, slot)
+	if not shouldHandle then
 		dbg("InventoryHook: ShouldHandleItem false")
-		RemoveWaypointKeybind();
 		return
 	end
 
-	if slotActions and slotActions.AddSlotAction then slotActions:AddSlotAction(WAYPOINT_TEXT, function() SetItemWaypoint(bag, slot) end, "keybind3") end
-
-	if currentKeybindBag == bag and currentKeybindSlot == slot and buttonGroup then return end
-
-	-- Remove existing keybind
-	RemoveWaypointKeybind()
+	local generation = keybindGeneration
+	local function IsSelected(requireActiveList)
+		return generation == keybindGeneration and IsCurrentWaypointItem(bag, slot, itemId, requireActiveList)
+	end
+	if slotActions and slotActions.AddSlotAction then
+		-- The native action dialog temporarily deactivates the inventory list.
+		slotActions:AddSlotAction(WAYPOINT_TEXT, function()
+			if IsSelected(false) then SetItemWaypoint(bag, slot) end
+		end, "keybind3", function() return IsSelected(false) end)
+	end
 
 	-- Wait for the next frame to add the keybind
 	zo_callLater(function()
-		-- Scene check only: don't add keybind if user navigated away during the 10ms delay.
-		-- We use the closed-over bag/slot (not listView:GetTargetData) because the list view
-		-- state may not yet reflect the focused item when this callback fires.
-		if not SCENE_MANAGER or not SCENE_MANAGER:IsShowing("gamepad_inventory_root") then return end
-		if not (IsInGamepadPreferredMode() or IsConsoleUI()) then return end
-		if bag ~= BAG_BACKPACK then return end
-		if not ShouldHandleItem(bag, slot) then return end
+		-- Only the latest request may publish a group for the current selection.
+		if not IsSelected(true) then return end
 		buttonGroup = {
 			{
 				name = WAYPOINT_TEXT,
@@ -358,12 +348,14 @@ local function InventorySlotActionHook(inventoryInfo, slotActions)
 				keybind = "UI_SHORTCUT_QUATERNARY",
 				ethHold = true,
 				holdDuration = 1000,
-				callback = function() SetItemWaypoint(bag, slot) end
+				visible = function() return IsSelected(true) end,
+				enabled = function() return IsSelected(true) end,
+				callback = function()
+					if IsSelected(true) then SetItemWaypoint(bag, slot) end
+				end
 			}
 		}
-		currentKeybindBag, currentKeybindSlot = bag, slot
 		KEYBIND_STRIP:AddKeybindButtonGroup(buttonGroup)
-		-- dbg(string.format("Waypoint keybind added (bag=%d slot=%d)", bag, slot))
 	end, 10)
 end
 
@@ -372,13 +364,21 @@ local function OnPlayerActivated()
 
 	dbg("OnPlayerActivated: Hooking gamepad inventory slot action discovery")
 	SecurePostHook(_G, "ZO_InventorySlot_DiscoverSlotActionsFromActionList", InventorySlotActionHook)
+	SecurePostHook(ZO_ItemSlotActionsController, "SetInventorySlot", function(controller, inventoryInfo)
+		-- Clearing native selection skips slot action discovery, so cancel here too.
+		if GAMEPAD_INVENTORY and controller == GAMEPAD_INVENTORY.itemActions and not inventoryInfo then
+			RemoveWaypointKeybind()
+		end
+	end)
 
 	-- Register scene state change callbacks once to ensure keybind is removed when inventory closes
 	local function RegisterSceneHideRemoval(sceneName)
 		if not SCENE_MANAGER then return end
 		local scene = SCENE_MANAGER:GetScene(sceneName)
 		if scene and not scene.momrWaypointHooked then
-			scene:RegisterCallback("StateChange", function(_, newState) if newState == SCENE_HIDDEN then RemoveWaypointKeybind() end end)
+			scene:RegisterCallback("StateChange", function(_, newState)
+				if newState == SCENE_HIDING or newState == SCENE_HIDDEN then RemoveWaypointKeybind() end
+			end)
 			scene.momrWaypointHooked = true
 		end
 	end

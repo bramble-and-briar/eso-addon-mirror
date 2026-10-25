@@ -457,7 +457,7 @@ SPT.ptsData = {
 		MHK = 0, MOS = 0, DoM = 0, FV  = 0, LM  = 0, MF  = 0, IR = 0, UG = 0,
 		SG  = 0, CT  = 0, BDV = 0, TC  = 0, RPB = 0, TDC = 0, CA = 0, SR = 0,
 		ERE = 0, GD  = 0, BS  = 0, SH  = 0, OP  = 0, BV  = 0, ER = 0, LS = 0,
-		NC  = 0, BGF = 0,
+		NC  = 0, BGF = 0, MHK_Solo = 0, MOS_Solo = 0,
 	},
 	PD = {
 		AD1 = 0, AD2 = 0, AD3 = 0, AD4 = 0, AD5 = 0, DC1 = 0, DC2 = 0, DC3 = 0,
@@ -632,6 +632,8 @@ SPT.data = {
 		{ key = "LS",  id = 1497, zone = "HB",   quest = 7237  },
 		{ key = "NC",  id = 1551, zone = "SO",   quest = 7320  },
 		{ key = "BGF", id = 1552, zone = "SO",   quest = 7323  },
+		{ key = "MHK_Solo", id = 1052, zone = "AD5", quest = 7514, solo = true },
+		{ key = "MOS_Solo", id = 1055, zone = "AD3", quest = 7509, solo = true },
 	},
 	MQ = { 4296, 4831, 4474, 4552, 4607, 4764, 4836, 4837, 4867, 4832, 4847 },
 	EA = { 7061 },
@@ -905,10 +907,12 @@ local function SPT_UpdateGUITable(pd, tooltips)
 		else
 			text = (tooltips.GDQ and tooltips.GDQ[d.key]) or ""
 		end
+		local dungeonName = zf("<<C:1>>", GZNBId(d.id))
+		if d.solo then dungeonName = strF(GS(SPT_GUI_DUNGEON_SOLO), dungeonName) end
 		table.insert(SPT.GUI.GDQ, {
 			i,
 			zf("<<C:1>>", GZNBId(SPT.data.ZId.ZN[d.zone])),
-			zf("<<C:1>>", GZNBId(d.id)),
+			dungeonName,
 			GetSV(pd.GD[d.key]),
 			text,
 		})
@@ -1549,7 +1553,7 @@ local function ProcessScanSlice(generation)
 		scan.phase = 3; scan.index = 0
 	end
 
-	-- Phase 3: Group dungeons
+	-- Phase 3: Dungeon quests
 	if scan.phase == 3 then
 		local gd = SPT.data.GD
 		while scan.index < #gd do
@@ -1707,6 +1711,15 @@ local function SPT_IsSkillsMenuEntry(data)
 	return data and data.isWhatsMissingSkillPointTracker == true
 end
 
+local function SPT_CanShowSkillsMenuTooltip(gamepadSkills)
+	-- Native hotbar refreshes also run while Skills is hidden. Respect its
+	-- scene, dialog, and action-bar guards before touching the shared tooltip.
+	if not SCENE_MANAGER:IsShowing("gamepad_skills_root") or gamepadSkills.showAttributeDialog
+		or gamepadSkills.mode ~= ZO_GAMEPAD_SKILLS_SKILL_LIST_BROWSE_MODE then return false end
+	return not (gamepadSkills.quickMenu and gamepadSkills.quickMenu:IsShowing())
+		and not (gamepadSkills.assignableActionBar and gamepadSkills.assignableActionBar:IsActive())
+end
+
 local function SPT_CleanupGamepadSkillsMenu()
 	if GAMEPAD_TOOLTIPS then
 		GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
@@ -1805,6 +1818,7 @@ function SPT:AddToGamepadSkillsMenu()
 	end)
 
 	ZO_PreHook(ZO_GamepadSkills, "RefreshTooltip", function(gamepadSkills)
+		if not SPT_CanShowSkillsMenuTooltip(gamepadSkills) then return false end
 		local categoryList = gamepadSkills and gamepadSkills.categoryList
 		if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
 			GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, entryName, entryDescription)
@@ -1814,6 +1828,7 @@ function SPT:AddToGamepadSkillsMenu()
 	end)
 
 	ZO_PreHook(ZO_GamepadSkills, "RefreshSelectedTooltip", function(gamepadSkills)
+		if not SPT_CanShowSkillsMenuTooltip(gamepadSkills) then return false end
 		local categoryList = gamepadSkills and gamepadSkills.categoryList
 		if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
 			GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
@@ -1825,10 +1840,6 @@ function SPT:AddToGamepadSkillsMenu()
 			end
 			GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, entryName, entryDescription)
 			return true
-		else
-			if GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT then
-				SCENE_MANAGER:RemoveFragment(GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT)
-			end
 		end
 		return false
 	end)

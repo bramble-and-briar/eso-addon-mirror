@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/F9o0/Gamepad-Instant-Destroy__4982",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "F9o0",
+  "canonical_id": "esoui:4982",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4982",
+  "deleted": false,
+  "directories": [
+    "GamepadInstantDestroy"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4982/",
+  "fingerprint": "627d219150a4b4e5a78079c50d10112dfb56e139f77f437ca01e9224fb8472b0",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18117.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4982",
+  "source_url": "https://www.esoui.com/downloads/info4982-GamepadInstantDestroy.html",
+  "stats": {
+    "downloads": 19,
+    "favorites": 0,
+    "monthly_downloads": 15
+  },
+  "title": "Gamepad Instant Destroy",
+  "updated_at": 1792856529000,
+  "version": "1.2"
+}

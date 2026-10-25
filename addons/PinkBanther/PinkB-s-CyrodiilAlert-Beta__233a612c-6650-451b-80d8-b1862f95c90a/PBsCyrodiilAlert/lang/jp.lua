@@ -127,6 +127,7 @@ local strings = {
 	-- 戦況表示のデイドラの遺物（ヴォレルドルング）の行。所持プレイヤー名はクライアントに
 	-- 届かないため、陣営までしか出せない。
 	SI_PBSCA_BOARD_ARTIFACT = "%s: %s",
+	SI_PBSCA_BOARD_ARTIFACT_UNKNOWN = "%s: 所持陣営はまだ不明",
 	SI_PBSCA_BOARD_ARTIFACT_LOOSE = "%s: 未所持",
 	SI_PBSCA_BOARD_ARTIFACT_YOURS = "%s: 自分が所持中",
 	-- 遺物の時計。出現・消滅の時刻を返すAPIは無いので、3つのアナウンスを受けた時刻による

@@ -16,6 +16,17 @@
 CanCraftMasterWrit.releaseNotes = {
     ----
     {
+        version = "1.3.0",
+        highlights = {
+            "Added a 'Status Display' setting to show the writ status as an icon, text or both.",
+            "Added Status Display customization via addon settings.",
+            "Tweaked the Supporters page to best allow future entries.",
+            "Thank you to our first supporters, Knight-Arcadia & xHazelSquash!",
+            "Various UI tweaks and fixes.",
+        },
+    },
+    ----
+    {
         version = "1.2.1",
         highlights = {
             "Added a 'Final Item' line to provisioning & holiday writs showing what to hand in & how many you have.",

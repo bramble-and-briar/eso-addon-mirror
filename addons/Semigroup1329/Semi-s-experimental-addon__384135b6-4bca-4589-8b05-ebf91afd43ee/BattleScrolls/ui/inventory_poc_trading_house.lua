@@ -43,6 +43,7 @@ end
 
 local function handOff()
     -- The player owns the store for the remainder of this visit.
+    poc.finishVisit()
     market.stop()
     deferred, handingOff = false, true
     TRADING_HOUSE_SEARCH:ResetAllSearchData()

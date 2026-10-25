@@ -2,7 +2,7 @@
 -- Local-only; L3 scans additional trader pages and caches collection matches.
 GuildMarketScannerDev = GuildMarketScannerDev or {}
 local GMS = GuildMarketScannerDev
-GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.5c'
+GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.5u'
 GMS.enabled, GMS.traderOpen, GMS.keybindAttached = false, false, false
 -- Diagnostics are disabled in normal gameplay. /gmsdebug toggles them for testing.
 GMS.debug = false
@@ -712,6 +712,462 @@ function GMS:ProbePriceSources()
     end
     emit('end')
 end
+-- v1.0.5g: Read the selected native gamepad quality without changing server filters.
+-- Unknown feature shapes deliberately leave the cached list unfiltered.
+local function GMSQualityNumber(value)
+    if type(value)=='number' then return value end
+    if type(value)=='table' then
+        return GMSQualityNumber(value.quality or value.itemQuality or value.value)
+    end
+    return nil
+end
+function GMS:ReadCachedQuality()
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE
+        or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local features=browse and browse.features
+    if type(features)~='table' then return nil end
+    for _,key in ipairs({'qualityFeature','qualitySearchFeature','qualityFilterFeature','itemQualityFeature'}) do
+        local feature=features[key]
+        if type(feature)=='table' then
+            -- Native gamepad dropdown is one-based: Any=1, Normal=2, Fine=3,
+            -- Superior=4, Epic=5, Legendary=6. Item quality constants are
+            -- Normal=1 through Legendary=5. Confirmed Epic index=5 on PS5.
+            local choice=tonumber(feature.selectedChoiceIndex)
+            if choice then
+                choice=math.floor(choice)
+                if choice==1 then return nil end
+                if choice>=2 and choice<=6 then return choice-1 end
+                -- Unknown choice: leave results unfiltered, never guess.
+                return nil
+            end
+            local value=GMSQualityNumber(feature.selectedQuality or feature.quality
+                or feature.selectedValue or feature.currentValue or feature.value)
+            if value and value>=1 and value<=5 then return value end
+        end
+    end
+    return nil
+end
+-- v1.0.5h: protected, bounded quality probe. Does not modify scan/filter state.
+local function GMSQualityProbeOutput(msg)
+    local line='[GMS QUALITY] '..tostring(msg)
+    -- d() is the same native chat output used by ESO diagnostic messages.
+    if type(d)=='function' then
+        local ok=pcall(d,line)
+        if ok then return end
+    end
+    if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
+        pcall(CHAT_ROUTER.AddSystemMessage,CHAT_ROUTER,line)
+    end
+end
+function GMS:ProbeQualitySources()
+    GMSQualityProbeOutput('v1.0.5i probe running')
+    local ok,err=pcall(function()
+        GMSQualityProbeOutput('mapped quality='..tostring(self:ReadCachedQuality()))
+        local browse=GAMEPAD_TRADING_HOUSE_BROWSE
+            or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+        if not browse then GMSQualityProbeOutput('browse unavailable'); return end
+        local roots={{'features',browse.features},{'browse',browse},{'panel',self:GetPanel()}}
+        local count=0
+        for _,root in ipairs(roots) do
+            local prefix,obj=root[1],root[2]
+            if type(obj)=='table' then
+                for key,value in pairs(obj) do
+                    if type(key)=='string' and (key:lower():find('quality',1,true) or key:lower():find('filter',1,true)) then
+                        GMSQualityProbeOutput(prefix..'.'..key..' ['..type(value)..']')
+                        count=count+1
+                        if type(value)=='table' then
+                            local fields=0
+                            for field,inner in pairs(value) do
+                                if type(field)=='string' and (field:lower():find('quality',1,true)
+                                    or field:lower():find('select',1,true)
+                                    or field:lower():find('value',1,true)
+                                    or field:lower():find('index',1,true)
+                                    or field:lower():find('current',1,true)) then
+                                    GMSQualityProbeOutput('  '..field..'='..tostring(inner))
+                                    fields=fields+1
+                                    if fields>=6 then break end
+                                end
+                            end
+                        end
+                        if count>=12 then GMSQualityProbeOutput('limit reached'); return end
+                    end
+                end
+            end
+        end
+        GMSQualityProbeOutput('end; matches='..count)
+    end)
+    if not ok then GMSQualityProbeOutput('probe error: '..tostring(err)) end
+end
+
+-- v1.0.5l: compact selected-category diagnostic; does not change working filters.
+local function GMSCategoryLine(message)
+    local line='[GMS CATEGORY] '..tostring(message)
+    if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
+        local ok=pcall(CHAT_ROUTER.AddSystemMessage,CHAT_ROUTER,line)
+        if ok then return end
+    end
+    if type(d)=='function' then pcall(d,line) end
+end
+function GMS:ProbeCategorySources()
+    GMSCategoryLine('v1.0.5n category hierarchy probe')
+    local ok,err=pcall(function()
+        local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+        local feature=browse and browse.features and browse.features.searchCategoryFeature
+        if type(feature)~='table' then GMSCategoryLine('category feature unavailable'); return end
+        GMSCategoryLine('header='..tostring(feature.selectedHeader)..' subkey='..tostring(feature.selectedSubcategoryKey))
+        for _,field in ipairs({'selectedCategoryKey','selectedSubcategoryKey','selectedHeader','selectedCategory','selectedCategoryData','selectedSubcategory','categoryEntryData','subcategoryEntryData','selectedCategoryEntry','selectedSubcategoryEntry'}) do
+            local value=feature[field]
+            if type(value)=='table' then
+                local parts={}
+                for _,subfield in ipairs({'key','header','name','category','categoryKey','subcategoryKey','itemType','specializedItemType','isAllItemsCategory'}) do
+                    local v=value[subfield]
+                    if type(v)=='string' or type(v)=='number' or type(v)=='boolean' then parts[#parts+1]=subfield..'='..tostring(v) end
+                end
+                GMSCategoryLine(field..'={'..table.concat(parts,',')..'}')
+            elseif value~=nil then
+                GMSCategoryLine(field..'='..tostring(value))
+            end
+        end
+        for key,value in pairs(feature) do
+            if type(key)=='string' and (string.find(string.lower(key),'selected',1,true) or string.find(string.lower(key),'categorykey',1,true)) then
+                if type(value)=='string' or type(value)=='number' or type(value)=='boolean' then
+                    GMSCategoryLine('feature.'..key..'='..tostring(value))
+                end
+            end
+        end
+        local entry=feature.categoryEntryData
+        if type(entry)=='table' then
+            for _,key in ipairs({'key','header','category','categoryKey','subcategoryKey','specializedItemType','itemType','filterType'}) do
+                local v=entry[key]
+                if type(v)=='string' or type(v)=='number' or type(v)=='boolean' then
+                    GMSCategoryLine('entry.'..key..'='..tostring(v))
+                end
+            end
+        end
+        local count=0
+        for _,record in ipairs(self.collected or {}) do
+            local data=record and record.data
+            if type(data)=='table' then
+                local link=data.itemLink or data.gmsItemLink or data.link
+                if type(link)=='string' and link~='' then
+                    local function read(fn)
+                        if type(fn)~='function' then return 'API unavailable' end
+                        local success,x,y=pcall(fn,link)
+                        if not success then return 'error' end
+                        return tostring(x)..(y~=nil and (','..tostring(y)) or '')
+                    end
+                    GMSCategoryLine('item '..tostring(data.name or data.itemName or '?'):sub(1,24)
+                        ..' type='..read(GetItemLinkItemType)
+                        ..' specialized='..read(GetItemLinkSpecializedItemType))
+                    count=count+1
+                    if count>=5 then break end
+                end
+            end
+        end
+        GMSCategoryLine('end; samples='..count)
+    end)
+    if not ok then GMSCategoryLine('error: '..tostring(err)) end
+end
+
+-- v1.0.5o: preserve header selection when last dropdown is AllSubcategories.
+-- v1.0.5p: guarded read of the second-level native category selection.
+-- Do not treat an empty final-level AllSubcategories key as "all consumables".
+local function GMSNativeCategorySelection(feature)
+    local function keyOf(value)
+        if type(value)=='string' then return value end
+        if type(value)=='table' then
+            return value.key or value.categoryKey or value.selectedCategoryKey
+                or (type(value.data)=='table' and value.data.key)
+        end
+        return nil
+    end
+    -- PS5 confirmed: selectedCategoryParams.key = Consumable8 for Motif.
+    local params=feature.selectedCategoryParams
+    local nativeKey=keyOf(params)
+    if type(nativeKey)=='string' and nativeKey~='' then return nativeKey end
+    for _,field in ipairs({'selectedCategoryKey','selectedCategory','selectedCategoryData',
+        'selectedCategoryEntry','categoryEntryData'}) do
+        local key=keyOf(feature[field])
+        if type(key)=='string' and key~='' then return key end
+    end
+    for _,field in ipairs({'categoryDropdown','categoryDropDown','categoryComboBox',
+        'categorySelector','categoryList'}) do
+        local control=feature[field]
+        if type(control)=='table' then
+            for _,method in ipairs({'GetSelectedItemData','GetSelectedItem','GetSelectedData'}) do
+                if type(control[method])=='function' then
+                    local ok,value=pcall(control[method],control)
+                    local key=ok and keyOf(value) or nil
+                    if type(key)=='string' and key~='' then return key end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Focused second-level selection probe. Reports values only; never changes filters.
+function GMS:ProbeParentDropdown()
+    GMSCategoryLine('v1.0.5r SECOND LEVEL SELECTION')
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.searchCategoryFeature
+    if type(feature)~='table' then GMSCategoryLine('feature missing'); return end
+    local function show(prefix,obj,depth)
+        if type(obj)~='table' then return end
+        local n=0
+        for k,v in pairs(obj) do
+            if type(k)=='string' and (string.find(string.lower(k),'categor',1,true)
+                or string.find(string.lower(k),'select',1,true)
+                or string.find(string.lower(k),'dropdown',1,true)
+                or string.find(string.lower(k),'combo',1,true)
+                or string.find(string.lower(k),'entry',1,true)) then
+                n=n+1
+                if n>35 then break end
+                if type(v)=='string' or type(v)=='number' or type(v)=='boolean' then
+                    GMSCategoryLine(prefix..k..'='..tostring(v):sub(1,65))
+                elseif type(v)=='table' then
+                    GMSCategoryLine(prefix..k..'={table}')
+                    if depth>0 then
+                        for _,f in ipairs({'key','name','text','label','categoryKey','selectedKey','selectedIndex','selectedItem','selectedData','data'}) do
+                            local x=v[f]
+                            if type(x)=='string' or type(x)=='number' then GMSCategoryLine('  '..f..'='..tostring(x):sub(1,65)) end
+                        end
+                        for _,method in ipairs({'GetSelectedItemData','GetSelectedItem','GetSelectedData','GetSelectedItemText'}) do
+                            if type(v[method])=='function' then
+                                local ok,x=pcall(v[method],v)
+                                if ok then
+                                    if type(x)=='table' then GMSCategoryLine('  '..method..'={key='..tostring(x.key)..',text='..tostring(x.text)..',name='..tostring(x.name)..'}')
+                                    else GMSCategoryLine('  '..method..'='..tostring(x):sub(1,65)) end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    show('feature.',feature,1)
+    show('browse.',browse,0)
+    GMSCategoryLine('END SECOND LEVEL')
+end
+
+-- v1.0.5t: infer the first-level family from ESO's own header category
+-- descriptors, rather than assuming the numeric header order is universal.
+local function GMSCategoryFamily(feature,header)
+    if header==nil then return nil end
+    local map=feature.headerToCategoriesMap
+    local choices=type(map)=='table' and map[header] or nil
+    if type(choices)=='table' then
+        for _,choice in ipairs(choices) do
+            if type(choice)=='table' then
+                local key=choice.key
+                if type(key)=='string' then
+                    local lower=string.lower(key)
+                    if string.sub(lower,1,3)=='all' then lower=string.sub(lower,4) end
+                    for _,family in ipairs({'weapons','apparel','jewelry','jewellery','consumables',
+                        'materials','glyphs','furnishings','companionequipment','miscellaneous'}) do
+                        if string.find(lower,family,1,true)==1 then return family end
+                    end
+                end
+            end
+        end
+    end
+    -- Header values 1/2/3 were directly observed in the PS5 diagnostics.
+    if header==1 then return 'weapons' end
+    if header==2 then return 'apparel' end
+    if header==3 then return 'consumables' end
+    return nil
+end
+
+local function GMSIsItemType(itemType,...)
+    for i=1,select('#',...) do
+        local candidate=select(i,...)
+        if candidate~=nil and itemType==candidate then return true end
+    end
+    return false
+end
+
+function GMS:ReadCachedCategory()
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.searchCategoryFeature
+    if type(feature)~='table' then return nil,nil,nil,nil,nil end
+    local header=feature.selectedHeader
+    local key=feature.selectedSubcategoryKey
+    local parentKey=GMSNativeCategorySelection(feature)
+    local specialized=type(key)=='string' and tonumber(string.match(key,'^SpecializedItemType(%d+)$')) or nil
+    local family=GMSCategoryFamily(feature,header)
+    return tostring(header)..':'..tostring(parentKey)..':'..tostring(key),specialized,header,parentKey,family
+end
+-- v1.0.5u: second-level matching based on ESO's selectedCategoryParams.
+-- Unrecognized native keys intentionally fall back to the verified first-level
+-- matcher, rather than excluding items on an invented mapping.
+local function GMSMatchSecondLevel(link,itemType,parent,family)
+    if type(parent)~='string' or parent=='' or string.sub(parent,1,3)=='All' then return nil end
+    local p=string.lower(parent)
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.searchCategoryFeature
+    local params=feature and feature.selectedCategoryParams
+    if type(params)=='table' and type(params.name)=='string' then
+        p=p..' '..string.lower(params.name)
+    end
+    local function one(...) return GMSIsItemType(itemType,...) end
+    local function equip()
+        if type(GetItemLinkEquipType)~='function' then return nil end
+        local ok,v=pcall(GetItemLinkEquipType,link)
+        return ok and v or nil
+    end
+    local function itemField(api)
+        if type(api)~='function' then return nil end
+        local ok,v=pcall(api,link)
+        return ok and v or nil
+    end
+    -- Miscellaneous is unusual: ESO immediately selects a child (Soul Gem).
+    -- Its native category does not provide an 'all' selection.
+    if family=='miscellaneous' then
+        if string.find(p,'soul',1,true) then return one(ITEMTYPE_SOUL_GEM) end
+        if string.find(p,'lure',1,true) then return one(ITEMTYPE_LURE) end
+        if string.find(p,'tool',1,true) then return one(ITEMTYPE_TOOL) end
+        if string.find(p,'siege',1,true) then return one(ITEMTYPE_SIEGE) end
+        if string.find(p,'tabard',1,true) then return equip()==EQUIP_TYPE_COSTUME or one(ITEMTYPE_TABARD) end
+        if string.find(p,'trophy',1,true) then
+            return one(ITEMTYPE_TROPHY,ITEMTYPE_TREASURE_MAP,ITEMTYPE_COLLECTIBLE,
+                ITEMTYPE_RECIPE_FRAGMENT,ITEMTYPE_CONTAINER,ITEMTYPE_RUNBOX)
+        end
+        return nil
+    end
+    if family=='weapons' then
+        local number=tonumber(string.match(parent,'^Weapons?(%d+)$'))
+        if number then
+            local actual=itemField(GetItemLinkWeaponType)
+            if actual~=nil then return actual==number end
+        end
+    elseif family=='apparel' then
+        local number=tonumber(string.match(parent,'^Armor(%d+)$'))
+        if number then
+            local actual=itemField(GetItemLinkArmorType)
+            if actual~=nil then return actual==number end
+        end
+        if string.find(p,'shield',1,true) then return equip()==EQUIP_TYPE_OFF_HAND end
+    elseif family=='jewelry' or family=='jewellery' then
+        if string.find(p,'ring',1,true) then return equip()==EQUIP_TYPE_RING end
+        if string.find(p,'neck',1,true) then return equip()==EQUIP_TYPE_NECK end
+    elseif family=='consumables' then
+        if parent=='Consumable8' or string.find(p,'motif',1,true) or string.find(p,'racialstyle',1,true) then
+            return one(ITEMTYPE_RACIAL_STYLE_MOTIF)
+        end
+        if string.find(p,'recipe',1,true) then return one(ITEMTYPE_RECIPE) end
+        if string.find(p,'potion',1,true) then return one(ITEMTYPE_POTION) end
+        if string.find(p,'poison',1,true) then return one(ITEMTYPE_POISON) end
+        if string.find(p,'food',1,true) then return one(ITEMTYPE_FOOD) end
+        if string.find(p,'drink',1,true) then return one(ITEMTYPE_DRINK) end
+        if string.find(p,'writ',1,true) then return one(ITEMTYPE_MASTER_WRIT) end
+    elseif family=='glyphs' then
+        if string.find(p,'weapon',1,true) then return one(ITEMTYPE_GLYPH_WEAPON) end
+        if string.find(p,'armor',1,true) then return one(ITEMTYPE_GLYPH_ARMOR) end
+        if string.find(p,'jewel',1,true) then return one(ITEMTYPE_GLYPH_JEWELRY) end
+    elseif family=='companionequipment' then
+        if string.find(p,'weapon',1,true) then return one(ITEMTYPE_COMPANION_WEAPON) end
+        if string.find(p,'armor',1,true) then return one(ITEMTYPE_COMPANION_ARMOR) end
+        if string.find(p,'jewel',1,true) then return one(ITEMTYPE_COMPANION_JEWELRY) end
+    elseif family=='furnishings' then
+        if string.find(p,'material',1,true) then return one(ITEMTYPE_FURNISHING_MATERIAL) end
+        if string.find(p,'furnish',1,true) then return one(ITEMTYPE_FURNISHING) end
+    elseif family=='materials' then
+        if string.find(p,'alchemy',1,true) then return one(ITEMTYPE_ALCHEMY_BASE,ITEMTYPE_ALCHEMY_REAGENT) end
+        if string.find(p,'enchant',1,true) or string.find(p,'rune',1,true) then
+            return one(ITEMTYPE_ENCHANTING_RUNE_ASPECT,ITEMTYPE_ENCHANTING_RUNE_ESSENCE,ITEMTYPE_ENCHANTING_RUNE_POTENCY)
+        end
+        if string.find(p,'ingredient',1,true) or string.find(p,'provision',1,true) then return one(ITEMTYPE_INGREDIENT) end
+        if string.find(p,'style',1,true) then return one(ITEMTYPE_STYLE_MATERIAL) end
+        if string.find(p,'trait',1,true) then return one(ITEMTYPE_ARMOR_TRAIT,ITEMTYPE_WEAPON_TRAIT,ITEMTYPE_JEWELRY_TRAIT) end
+        if string.find(p,'furnish',1,true) then return one(ITEMTYPE_FURNISHING_MATERIAL) end
+    end
+    return nil
+end
+
+function GMS:CachedCategoryMatches(entry)
+    local data=entry and entry.data
+    local link=type(data)=='table' and (data.itemLink or data.gmsItemLink or data.link)
+    local family=self.gmsCategoryFamily
+    if type(link)~='string' or type(GetItemLinkItemType)~='function' then
+        return self.gmsCategorySpecialized==nil and family==nil
+    end
+    local ok,itemType,specialized=pcall(GetItemLinkItemType,link)
+    if not ok then return self.gmsCategorySpecialized==nil and family==nil end
+    if self.gmsCategorySpecialized~=nil then return specialized==self.gmsCategorySpecialized end
+    local parent=self.gmsCategoryParentKey
+    local secondMatch=GMSMatchSecondLevel(link,itemType,parent,family)
+    if secondMatch~=nil then return secondMatch end
+    if family=='consumables' and type(parent)=='string'
+        and (parent=='Consumable8' or string.find(string.lower(parent),'motif',1,true)~=nil
+            or string.find(string.lower(parent),'racialstyle',1,true)~=nil) then
+        return itemType==ITEMTYPE_RACIAL_STYLE_MOTIF
+    end
+    if family=='weapons' then
+        return GMSIsItemType(itemType,ITEMTYPE_WEAPON)
+    elseif family=='apparel' then
+        if not GMSIsItemType(itemType,ITEMTYPE_ARMOR,ITEMTYPE_COSTUME) then return false end
+        if type(GetItemLinkEquipType)=='function' then
+            local equipOk,equip=pcall(GetItemLinkEquipType,link)
+            if equipOk and (equip==EQUIP_TYPE_RING or equip==EQUIP_TYPE_NECK) then return false end
+        end
+        return true
+    elseif family=='jewelry' or family=='jewellery' then
+        if type(GetItemLinkEquipType)=='function' then
+            local equipOk,equip=pcall(GetItemLinkEquipType,link)
+            if equipOk then return equip==EQUIP_TYPE_RING or equip==EQUIP_TYPE_NECK end
+        end
+        return false
+    elseif family=='consumables' then
+        return GMSIsItemType(itemType,ITEMTYPE_RECIPE,ITEMTYPE_RACIAL_STYLE_MOTIF,
+            ITEMTYPE_POTION,ITEMTYPE_POISON,ITEMTYPE_FOOD,ITEMTYPE_DRINK,
+            ITEMTYPE_CONTAINER,ITEMTYPE_SOUL_GEM,ITEMTYPE_LURE,ITEMTYPE_TOOL,
+            ITEMTYPE_CROWN_ITEM,ITEMTYPE_MASTER_WRIT,ITEMTYPE_AVA_REPAIR)
+    elseif family=='materials' then
+        return GMSIsItemType(itemType,ITEMTYPE_BLACKSMITHING_MATERIAL,ITEMTYPE_CLOTHIER_MATERIAL,
+            ITEMTYPE_WOODWORKING_MATERIAL,ITEMTYPE_JEWELRYCRAFTING_MATERIAL,
+            ITEMTYPE_ALCHEMY_BASE,ITEMTYPE_ALCHEMY_REAGENT,ITEMTYPE_ENCHANTING_RUNE_ASPECT,
+            ITEMTYPE_ENCHANTING_RUNE_ESSENCE,ITEMTYPE_ENCHANTING_RUNE_POTENCY,
+            ITEMTYPE_INGREDIENT,ITEMTYPE_RAW_MATERIAL,ITEMTYPE_STYLE_MATERIAL,
+            ITEMTYPE_ARMOR_TRAIT,ITEMTYPE_WEAPON_TRAIT,ITEMTYPE_JEWELRY_TRAIT,
+            ITEMTYPE_FURNISHING_MATERIAL,ITEMTYPE_TEMPERS,ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL,
+            ITEMTYPE_JEWELRYCRAFTING_BOOSTER,ITEMTYPE_CLOTHIER_RAW_MATERIAL,
+            ITEMTYPE_BLACKSMITHING_RAW_MATERIAL,ITEMTYPE_WOODWORKING_RAW_MATERIAL)
+    elseif family=='glyphs' then
+        return GMSIsItemType(itemType,ITEMTYPE_GLYPH_ARMOR,ITEMTYPE_GLYPH_WEAPON,ITEMTYPE_GLYPH_JEWELRY)
+    elseif family=='furnishings' then
+        return GMSIsItemType(itemType,ITEMTYPE_FURNISHING,ITEMTYPE_FURNISHING_MATERIAL)
+    elseif family=='companionequipment' then
+        return GMSIsItemType(itemType,ITEMTYPE_COMPANION_ARMOR,ITEMTYPE_COMPANION_WEAPON,
+            ITEMTYPE_COMPANION_JEWELRY)
+    elseif family=='miscellaneous' then
+        -- ESO's Miscellaneous group is heterogeneous. Exclude recognized
+        -- other first-level families, without assuming every leftover item
+        -- is necessarily classified Miscellaneous by ESO.
+        if GMSIsItemType(itemType,ITEMTYPE_WEAPON,ITEMTYPE_ARMOR,ITEMTYPE_COSTUME,
+            ITEMTYPE_RECIPE,ITEMTYPE_RACIAL_STYLE_MOTIF,ITEMTYPE_POTION,
+            ITEMTYPE_POISON,ITEMTYPE_FOOD,ITEMTYPE_DRINK,ITEMTYPE_CONTAINER,
+            ITEMTYPE_SOUL_GEM,ITEMTYPE_LURE,ITEMTYPE_TOOL,ITEMTYPE_CROWN_ITEM,
+            ITEMTYPE_MASTER_WRIT,ITEMTYPE_AVA_REPAIR,
+            ITEMTYPE_BLACKSMITHING_MATERIAL,ITEMTYPE_CLOTHIER_MATERIAL,
+            ITEMTYPE_WOODWORKING_MATERIAL,ITEMTYPE_JEWELRYCRAFTING_MATERIAL,
+            ITEMTYPE_ALCHEMY_BASE,ITEMTYPE_ALCHEMY_REAGENT,
+            ITEMTYPE_ENCHANTING_RUNE_ASPECT,ITEMTYPE_ENCHANTING_RUNE_ESSENCE,
+            ITEMTYPE_ENCHANTING_RUNE_POTENCY,ITEMTYPE_INGREDIENT,
+            ITEMTYPE_RAW_MATERIAL,ITEMTYPE_STYLE_MATERIAL,ITEMTYPE_ARMOR_TRAIT,
+            ITEMTYPE_WEAPON_TRAIT,ITEMTYPE_JEWELRY_TRAIT,
+            ITEMTYPE_FURNISHING_MATERIAL,ITEMTYPE_TEMPERS,
+            ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL,ITEMTYPE_JEWELRYCRAFTING_BOOSTER,
+            ITEMTYPE_CLOTHIER_RAW_MATERIAL,ITEMTYPE_BLACKSMITHING_RAW_MATERIAL,
+            ITEMTYPE_WOODWORKING_RAW_MATERIAL,ITEMTYPE_GLYPH_ARMOR,
+            ITEMTYPE_GLYPH_WEAPON,ITEMTYPE_GLYPH_JEWELRY,ITEMTYPE_FURNISHING,
+            ITEMTYPE_COMPANION_ARMOR,ITEMTYPE_COMPANION_WEAPON,
+            ITEMTYPE_COMPANION_JEWELRY) then return false end
+        return true
+    end
+    return true
+end
+
 function GMS:RefreshCachedNameFilter()
     if not (self.traderOpen and self.enabled and self.combinedVisible) then return end
     local query=self:ReadCachedNameQuery()
@@ -724,7 +1180,10 @@ function GMS:RefreshCachedNameFilter()
     end
     query=string.lower((query:gsub('^%s+',''):gsub('%s+$','')))
     local minPrice,maxPrice=self:ReadCachedPriceBounds()
-    if query==self.gmsNameQuery and minPrice==self.gmsMinPrice and maxPrice==self.gmsMaxPrice then
+    local quality=self:ReadCachedQuality()
+    local categoryKey,categorySpecialized,categoryHeader,categoryParentKey,categoryFamily=self:ReadCachedCategory()
+    if query==self.gmsNameQuery and minPrice==self.gmsMinPrice and maxPrice==self.gmsMaxPrice
+        and quality==self.gmsQuality and categoryKey==self.gmsCategoryKey then
         local panel=self:GetPanel()
         local label=panel and panel.footer and panel.footer.pageNumberLabel
         if label and type(label.IsHidden)=='function' and label:IsHidden() then
@@ -734,13 +1193,15 @@ function GMS:RefreshCachedNameFilter()
     end
     self.gmsNameQuery=query
     self.gmsMinPrice,self.gmsMaxPrice=minPrice,maxPrice
+    self.gmsQuality=quality
+    self.gmsCategoryKey,self.gmsCategorySpecialized,self.gmsCategoryHeader,self.gmsCategoryParentKey,self.gmsCategoryFamily=categoryKey,categorySpecialized,categoryHeader,categoryParentKey,categoryFamily
     self.combinedPage=1
     self:ShowCombinedPage()
 end
 function GMS:GetDisplayedCollected()
     if not self.combinedVisible then return self.collected or {} end
     local query=self.gmsNameQuery or ''
-    if query=='' and self.gmsMinPrice==nil and self.gmsMaxPrice==nil then return self.collected or {} end
+    if query=='' and self.gmsMinPrice==nil and self.gmsMaxPrice==nil and self.gmsQuality==nil and self.gmsCategorySpecialized==nil and self.gmsCategoryFamily==nil then return self.collected or {} end
     local matches={}
     for _,entry in ipairs(self.collected or {}) do
         local data=entry.data
@@ -757,7 +1218,19 @@ function GMS:GetDisplayedCollected()
             if self.gmsMinPrice and price<self.gmsMinPrice then priceOk=false end
             if self.gmsMaxPrice and price>self.gmsMaxPrice then priceOk=false end
         end
-        if nameOk and priceOk then matches[#matches+1]=entry end
+        local qualityOk=true
+        if self.gmsQuality~=nil then
+            local itemQuality=type(data)=='table' and GMSQualityNumber(data.displayQuality or data.quality or data.itemQuality) or nil
+            if itemQuality==nil and type(data)=='table' and type(GetItemLinkDisplayQuality)=='function' then
+                local link=data.itemLink or data.gmsItemLink
+                if type(link)=='string' then
+                    local ok,value=pcall(GetItemLinkDisplayQuality,link)
+                    if ok then itemQuality=GMSQualityNumber(value) end
+                end
+            end
+            qualityOk=(itemQuality==self.gmsQuality)
+        end
+        if nameOk and priceOk and qualityOk and self:CachedCategoryMatches(entry) then matches[#matches+1]=entry end
     end
     return matches
 end
@@ -913,6 +1386,8 @@ function GMS:ShowCombined()
     self.combinedVisible=true
     self.gmsNameQuery=string.lower((self:ReadCachedNameQuery() or ''):gsub('^%s+',''):gsub('%s+$',''))
     self.gmsMinPrice,self.gmsMaxPrice=self:ReadCachedPriceBounds()
+    self.gmsQuality=self:ReadCachedQuality()
+    self.gmsCategoryKey,self.gmsCategorySpecialized,self.gmsCategoryHeader,self.gmsCategoryParentKey,self.gmsCategoryFamily=self:ReadCachedCategory()
     self.combinedPage=1
     self:UpdateEmptyPageNavigation(false)
     self:InstallFilteredNavigation()
@@ -1184,6 +1659,8 @@ function GMS:Toggle()
     self.collecting, self.combinedVisible, self.replayingPage = false, false, false
     self.collected, self.collectedPages = {}, {}
     self.gmsNameQuery=nil
+    self.gmsQuality=nil
+    self.gmsCategoryKey,self.gmsCategorySpecialized,self.gmsCategoryHeader,self.gmsCategoryParentKey,self.gmsCategoryFamily=nil,nil,nil,nil,nil
     self.gmsNameSourceNotice=false
     if self.enabled then
         self.scanDiagnostic={start=DiagnosticTime(),pages=0,transitions=0,waiting=0,complete=0,requests=0}
@@ -1612,6 +2089,8 @@ function GMS:EndTradingSession()
     -- A deferred native rebuild on reopening replaces any cached GMS entries.
     self.collected, self.collectedPages, self.originalScrollEntries = {}, {}, nil
     self.gmsNameQuery=nil
+    self.gmsQuality=nil
+    self.gmsCategoryKey,self.gmsCategorySpecialized,self.gmsCategoryHeader,self.gmsCategoryParentKey,self.gmsCategoryFamily=nil,nil,nil,nil,nil
     self.emptyFilteredPage = false
     self.gmsRestoreNativeOnOpen = true
 end
@@ -1695,6 +2174,9 @@ function GMS:Initialize()
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdebug']=function() GMS.debug=not GMS.debug; local msg='[GMS] Debug messages '..(GMS.debug and 'ON' or 'OFF'); if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(msg) elseif type(d)=='function' then d(msg) end end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsnameprobe']=function() GMS:ProbeNameSources() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmspriceprobe']=function() GMS:ProbePriceSources() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsparentprobe']=function() GMS:ProbeParentDropdown() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscategoryprobe']=function() GMSCategoryLine('command received'); GMS:ProbeCategorySources() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsqualityprobe']=function() GMSQualityProbeOutput('command received'); GMS:ProbeQualitySources() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmscollect']=function() GMS:CollectBackgroundTest() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsprobe']=function() GMS:ProbeBackgroundRequest() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdiag']=function() GMS:DiagnosticSummary() end end
@@ -1725,7 +2207,7 @@ function GMS:Initialize()
             GMS:RefreshCachedNameFilter()
         end
     end)
-    Say('v1.0.5f cached price filtering test loaded.')
+    Say('v1.0.5t first-level category expansion loaded.')
 end
 EVENT_MANAGER:RegisterForEvent(GMS.name, EVENT_ADD_ON_LOADED, function(_, addonName)
     if addonName ~= GMS.name then return end

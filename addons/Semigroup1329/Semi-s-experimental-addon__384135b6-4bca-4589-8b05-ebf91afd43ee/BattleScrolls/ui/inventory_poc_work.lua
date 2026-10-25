@@ -116,7 +116,7 @@ end
 ---Release the native notices belonging to our restore through their normal
 ---lifecycle. Their existing callbacks finish the native Armory UI updates.
 local function releaseArmoryNotice()
-    if not enabled or poc.cancelled then armoryRequest, armoryDialogName = nil, nil; return end
+    if not enabled or poc.cancelled or poc.visitFinished then armoryRequest, armoryDialogName = nil, nil; return end
     local request = BattleScrolls.inventoryPocBuilds.request
     if request and request.kind == 'armory' then armoryRequest = request end
     if armoryDialogName and not ZO_Dialogs_IsShowing(armoryDialogName) then armoryDialogName = nil end

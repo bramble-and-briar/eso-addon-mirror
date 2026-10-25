@@ -4,7 +4,8 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocSearch
 ---@field item InventoryPocItem
 ---@field stage 'name'|'search'|'page'|'ready'
----@field hash number|nil
+---@field hashes number[]|nil
+---@field nameMatches number|nil
 ---@field page number
 ---@field lowest number|nil
 ---@field seconds number|nil
@@ -24,12 +25,15 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocMarketIssue
 ---@field diagnostics string
 ---@field result number|nil
+---@field skipped boolean|nil
 
 ---@class InventoryPocMarket
 ---@field search InventoryPocSearch|nil
 ---@field fiber Fiber<boolean>|nil
 ---@field requestFiber Fiber<any>|nil Sent server work retains its response subscription until settlement
 ---@field tried table<string, boolean>
+---@field skipped table<string, boolean>
+---@field prepared table<string, InventoryPocSearch> Completed searches awaiting a listing slot
 ---@field registered boolean
 ---@field ownRequest boolean
 ---@field stopped boolean
@@ -43,7 +47,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field phaseSince number|nil
 ---@field trace string[]
 ---@field failureRecorded boolean
-local market = { tried = {}, registered = false, ownRequest = false, stopped = false, touched = false,
+local market = { tried = {}, skipped = {}, prepared = {}, registered = false, ownRequest = false, stopped = false, touched = false,
     listings = {}, refreshUI = false, revision = 0, trace = {}, failureRecorded = false }
 BattleScrolls.inventoryPocMarket = market
 local poc = BattleScrolls.inventoryPoc
@@ -52,6 +56,7 @@ local policy = BattleScrolls.inventoryPocPolicy
 local Effect = LibEffect
 local EVENT_NAME = 'BattleScrollsInventoryPocMarket'
 local REQUEST_TIMEOUT_MS = 15000
+local JEWELRY_EQUIP_TYPES = { EQUIP_TYPE_RING, EQUIP_TYPE_NECK }
 
 ---@param event string
 ---@param response number|nil
@@ -87,13 +92,29 @@ local function recordFailure(reason, result)
         marketIssue = { diagnostics = diagnostics, result = result } })
 end
 
+---@param item InventoryPocItem
+---@param stage string
+---@param reason string
+---@param details string|nil
+local function recordSkip(item, stage, reason, details)
+    if not poc.saved then return end
+    local key = item.uniqueId .. ':' .. tostring(item.slot) .. ':' .. tostring(item.stack) .. ':' .. reason
+    if market.skipped[key] then return end
+    market.skipped[key] = true
+    local diagnostics = string.format('stage=%s reason=%s\nbag=%d slot=%d item=%d count=%d\nsearchName=%q\n%s',
+        stage, reason, item.bag, item.slot, item.itemId, item.stack, item.searchName, details or '')
+    poc.appendLog({ timestamp = GetTimeStamp(), character = GetUnitName('player'), action = 'list', result = 'deferred',
+        itemLink = item.link, itemId = item.itemId, quantity = item.stack, fromBag = item.bag,
+        guildId = market.activityGuildId, marketIssue = { skipped = true, diagnostics = diagnostics } })
+end
+
 ---@param reason string
 local function fail(reason)
     error({ marketError = true, reason = reason }, 0)
 end
 
 local function checkVisit()
-    if market.stopped or not poc.enabled or poc.cancelled or GetInteractionType() ~= INTERACTION_TRADINGHOUSE
+    if market.stopped or not poc.enabled or poc.cancelled or poc.visitFinished or GetInteractionType() ~= INTERACTION_TRADINGHOUSE
         or IsUnitInCombat('player') or IsUnitDead('player') then fail('visit-ended') end
 end
 
@@ -141,9 +162,12 @@ function market.stop(reason, result)
     end
     market.stopped = true
     local fiber = market.fiber
+    local hadWork = fiber ~= nil or market.search ~= nil or next(market.prepared) ~= nil or next(market.tried) ~= nil
     market.fiber = nil
     if fiber then fiber:Cancel() end
-    market.search, market.activityGuildId = nil, nil
+    market.search, market.activityGuildId, market.prepared = nil, nil, {}
+    market.tried, market.skipped = {}, {}
+    if hadWork then BattleScrolls.gc:RequestGC(2) end
 end
 
 ---Each pricing pass needs access to every configured trading guild.
@@ -343,33 +367,56 @@ local function companionFilters(item)
         return SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_WEAPON, unpack(policy.companionWeaponTypes(item.weaponType)))
     end
     if item.equipType == EQUIP_TYPE_RING or item.equipType == EQUIP_TYPE_NECK then
-        return SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_EQUIP, item.equipType)
+        return SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_EQUIP, unpack(JEWELRY_EQUIP_TYPES))
     end
     return SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_ARMOR, item.armorType)
 end
 
 ---@param item InventoryPocItem
----@return Effect<number|nil>
-local function matchName(item)
+---@return boolean
+local function gearFilters(item)
+    if not SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_QUALITY, GetItemLinkDisplayQuality(item.link))
+        or not SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_TRAIT, item.trait) then return false end
+    local levelType = item.championPoints > 0 and TRADING_HOUSE_FILTER_TYPE_CHAMPION_POINTS or TRADING_HOUSE_FILTER_TYPE_LEVEL
+    local level = item.championPoints > 0 and item.championPoints or item.level
+    return SetTradingHouseFilterRange(levelType, level, level)
+end
+
+---@param search InventoryPocSearch
+---@return Effect<number[]|nil>
+local function matchName(search)
     return Effect.Defer(function()
         local taskId
         return Effect.Events(function(events, resolve)
             events:On(EVENT_MATCH_TRADING_HOUSE_ITEM_NAMES_COMPLETE, function(_, id, count)
                 if id ~= taskId then return end
                 taskId = nil
-                for index = 1, count do
-                    local name, hash = GetMatchTradingHouseItemNamesResult(id, index)
-                    if zo_strformat(SI_TOOLTIP_ITEM_NAME, name) == item.searchName then resolve(hash); return end
+                search.nameMatches = count
+                local hashes = {}
+                local limit = GetMaxTradingHouseFilterExactTerms(TRADING_HOUSE_FILTER_TYPE_NAME_HASH)
+                if count > limit then
+                    recordSkip(search.item, 'name', 'name-match-limit', string.format('matches=%d limit=%d', count, limit))
+                    resolve(nil); return
                 end
-                resolve(nil)
+                for index = 1, count do
+                    local _, hash = GetMatchTradingHouseItemNamesResult(id, index)
+                    hashes[#hashes + 1] = hash
+                end
+                resolve(hashes)
             end)
-            taskId = MatchTradingHouseItemNames(item.searchName)
-            if not taskId then resolve(nil) end
+            taskId = MatchTradingHouseItemNames(ZO_TradingHouseNameSearchFeature_Shared.MakeExactSearchText(search.item.searchName))
+            if not taskId then
+                recordSkip(search.item, 'name', 'name-match-unavailable')
+                resolve(nil)
+            end
         end):Timeout(REQUEST_TIMEOUT_MS):Ensure(function()
             if taskId then CancelMatchTradingHouseItemNames(taskId) end
         end):Recover(function(err)
             -- Local name matching can be cancelled and skipped safely.
-            if Effect.IsTimeoutError(err) then return nil end
+            if Effect.IsTimeoutError(err) then
+                recordSkip(search.item, 'name', 'name-match-timeout')
+                return nil
+            end
             error(err, 0)
         end)
     end)
@@ -404,8 +451,10 @@ end
 ---@return boolean complete
 local function searchGuilds(search)
     if search.item.kind ~= 'companion' then
-        search.hash = matchName(search.item):Await()
-        if not search.hash then return false end
+        search.hashes = matchName(search):Await()
+        if not search.hashes then return false end
+        -- An exact name with no catalogue matches has no live listings.
+        if #search.hashes == 0 then search.stage = 'ready'; return true end
     end
     for index, guildId in ipairs(search.guildIds) do
         search.guildIndex, search.page, search.stage = index, 0, 'page'
@@ -419,8 +468,15 @@ local function searchGuilds(search)
                 ClearAllTradingHouseSearchTerms()
                 local filtered
                 if search.item.kind == 'companion' then filtered = companionFilters(search.item)
-                else filtered = SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_NAME_HASH, search.hash) end
-                if not filtered then return false end
+                else
+                    filtered = SetTradingHouseFilter(TRADING_HOUSE_FILTER_TYPE_NAME_HASH, unpack(search.hashes))
+                    if filtered and search.item.kind == 'gear' then filtered = gearFilters(search.item) end
+                end
+                if not filtered then
+                    recordSkip(search.item, 'filters', 'filter-rejected',
+                        string.format('kind=%s matches=%s guild=%d', search.item.kind, tostring(search.nameMatches), guildId))
+                    return false
+                end
             end
             local page = request(TRADING_HOUSE_RESULT_SEARCH_PENDING, guildId, function()
                 search.stage = 'search'
@@ -442,8 +498,17 @@ local function searchGuilds(search)
                 end
                 if rowIndex % 10 == 0 then Effect.Yield():Await() end
             end
-            if found or not page.more then break end
-            if search.page >= 20 then return false end
+            local more = page.more
+            page = nil
+            -- Release each response page before the next search allocates its
+            -- results. The collector yields within its bounded work budget.
+            BattleScrolls.gc:CollectFullAsync():Await()
+            checkVisit()
+            if found or not more then break end
+            if search.page >= 20 then
+                recordSkip(search.item, 'search', 'page-limit', string.format('guild=%d page=%d', guildId, search.page))
+                return false
+            end
             search.page = search.page + 1
         end
     end
@@ -451,44 +516,133 @@ local function searchGuilds(search)
     return true
 end
 
+---@param item InventoryPocItem
+---@return string
+local function searchKey(item)
+    return item.uniqueId .. ':' .. tostring(item.slot) .. ':' .. facts.variantKey(item)
+end
+
+---Rank known sale values first. Unpriced stock follows those listings.
+---Fragments use the remaining stack as their upper bound because discounts
+---can increase the number of pieces needed to reach the listing minimum.
+---@param item InventoryPocItem
+---@return number
+local function maximumListingValue(item)
+    local reference = facts.referencePrice(item.link)
+    if not policy.validPrice(reference) then return 0 end
+    local quantity = item.kind == 'fragment' and item.stack or 1
+    local expired = BattleScrolls.inventoryPocReturns.isDiscounted(item)
+    local quote = policy.quote(reference, nil, nil, quantity, expired)
+    return quote and quote.totalPrice or 0
+end
+
 ---@param items InventoryPocItem[]
----@return InventoryPocSearch|nil
-local function nextSearch(items)
-    for _, item in ipairs(items) do
-        local decision = policy.decide(item)
-        local key = item.uniqueId .. ':' .. tostring(item.slot) .. ':' .. facts.variantKey(item) .. ':' .. tostring(item.stack)
-        if not item.priceLoading and not market.tried[key] and (decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price'))
-            and IsItemSellableOnTradingHouse(item.bag, item.slot) then
-            market.tried[key], market.touched = true, true
-            return { item = item, stage = 'name', page = 0, guildIds = market.guildIds, guildIndex = 1 }
+---@param reserved table<string, boolean>
+---@return InventoryPocItem|nil
+---@return number
+local function nextSearch(items, reserved)
+    local best, highest = nil, 0
+    for index, before in ipairs(items) do
+        -- The opening scan already classified the pack. Refresh eligible
+        -- candidates; inventory changes start a fresh pass through the queue.
+        local decision = policy.decide(before)
+        if decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
+            local key = searchKey(before)
+            if not market.prepared[key] and not market.tried[key .. ':' .. tostring(before.stack)] then
+                local item = facts.item(before.bag, before.slot, reserved)
+                if not item or item.uniqueId ~= before.uniqueId or item.link ~= before.link then
+                    recordSkip(before, 'candidate', 'item-changed')
+                elseif before.priceLoading or item.priceLoading then
+                    recordSkip(item, 'candidate', 'price-loading')
+                else
+                    decision = policy.decide(item)
+                    local needsPrice = decision.action == 'defer' and decision.reason == 'price'
+                    if decision.action ~= 'list' and not needsPrice then
+                        recordSkip(item, 'candidate', 'policy-changed', 'action=' .. decision.action .. ' rule=' .. decision.reason)
+                    elseif not IsItemSellableOnTradingHouse(item.bag, item.slot) then
+                        recordSkip(item, 'candidate', 'game-ineligible')
+                    else
+                        local maximum = maximumListingValue(item)
+                        if not best or maximum > highest then best, highest = item, maximum end
+                    end
+                end
+            end
         end
+        if index % 5 == 0 then Effect.Yield():Await() end
     end
+    return best, highest
 end
 
 ---@param search InventoryPocSearch
----@param guildId number
+---@param reference number|nil
+---@param expired boolean
+---@return string
+local function quoteDiagnostics(search, reference, expired)
+    return string.format('matches=%s reference=%s live=%s seconds=%s expired=%s',
+        tostring(search.nameMatches), tostring(reference), tostring(search.lowest), tostring(search.seconds), tostring(expired))
+end
+
+---@param search InventoryPocSearch
 ---@param reserved table<string, boolean>
----@return boolean splitStock
-local function post(search, guildId, reserved)
+---@return InventoryPocItem|nil
+---@return InventoryPocQuote|nil
+local function quoteSearch(search, reserved)
     local current = facts.item(search.item.bag, search.item.slot, reserved)
-    if not current or current.uniqueId ~= search.item.uniqueId or current.link ~= search.item.link then return false end
+    if not current or current.uniqueId ~= search.item.uniqueId or current.link ~= search.item.link then
+        recordSkip(search.item, 'quote', 'item-changed')
+        return nil
+    end
     search.item = current
-    local tsc = facts.price(current.link)
-    if not policy.validPrice(tsc) and not policy.validPrice(search.lowest) then tsc = policy.fallbackPrice(current) end
+    if not IsItemSellableOnTradingHouse(current.bag, current.slot) then
+        recordSkip(current, 'quote', 'game-ineligible')
+        return nil
+    end
+    local reference, loading = facts.referencePrice(current.link)
+    if loading then
+        recordSkip(current, 'quote', 'price-loading')
+        return nil
+    end
     local expired = BattleScrolls.inventoryPocReturns.isDiscounted(current)
-    local normal = policy.quote(tsc, search.lowest, search.seconds, current.stack, false)
-    local returned = policy.quote(tsc, search.lowest, search.seconds, current.stack, true)
+    local normal = policy.quote(reference, search.lowest, search.seconds, current.stack, false)
+    local returned = policy.quote(reference, search.lowest, search.seconds, current.stack, true)
     local priced = expired and returned or normal
-    if not priced then return false end
+    if not priced then
+        recordSkip(current, 'quote', 'price-unavailable', quoteDiagnostics(search, reference, expired))
+        return nil
+    end
     facts.rememberQuote(current, normal and normal.unitPrice or priced.unitPrice, returned and returned.unitPrice)
     current.marketUnit = priced.unitPrice
     local quantity = policy.listingQuantity(current)
-    local quote = policy.quote(tsc, search.lowest, search.seconds, quantity, expired)
-    if not quote or quote.totalPrice < policy.MIN_LISTING or policy.decide(current).action ~= 'list' then return false end
-    local posted = request(TRADING_HOUSE_RESULT_POST_PENDING, guildId, function()
-        return poc.post(current, quote, guildId, reserved)
-    end, function() return true end):Await()
-    return posted == true and quantity < current.stack
+    local quote = policy.quote(reference, search.lowest, search.seconds, quantity, expired)
+    local decision = policy.decide(current)
+    if not quote or quote.totalPrice < policy.MIN_LISTING or decision.action ~= 'list' then
+        local minimum = policy.MIN_LISTING
+        if current.kind == 'gear' then minimum = policy.gearSaleMinimum(current) end
+        local details = quoteDiagnostics(search, reference, expired) .. string.format('\nunit=%s quantity=%d total=%s minimum=%s action=%s rule=%s',
+            tostring(priced.unitPrice), quantity, tostring(quote and quote.totalPrice), tostring(minimum), decision.action, decision.reason)
+        recordSkip(current, 'quote', (not quote or quote.totalPrice < policy.MIN_LISTING) and 'below-listing-minimum' or 'policy-changed', details)
+        return nil
+    end
+    return current, quote
+end
+
+---@param reserved table<string, boolean>
+---@return InventoryPocSearch|nil
+---@return InventoryPocQuote|nil
+local function bestPrepared(reserved)
+    local best, bestQuote
+    local count = 0
+    for key, search in pairs(market.prepared) do
+        local current, quote = quoteSearch(search, reserved)
+        if not current then market.prepared[key] = nil
+        elseif not bestQuote or quote.totalPrice > bestQuote.totalPrice
+            or (quote.totalPrice == bestQuote.totalPrice and current.slot < best.item.slot) then
+            best, bestQuote = search, quote
+        end
+        count = count + 1
+        if count % 5 == 0 then Effect.Yield():Await() end
+    end
+    return best, bestQuote
 end
 
 ---One cancellable program owns a transaction. Runtime inventory events can
@@ -497,7 +651,7 @@ end
 ---@param reserved table<string, boolean>
 ---@return boolean
 function market.step(items, reserved)
-    if market.stopped or not poc.enabled or poc.cancelled then return false end
+    if market.stopped or not poc.enabled or poc.cancelled or poc.visitFinished then return false end
     if market.refreshUI then
         market.refreshUI = false
         BattleScrolls.inventoryPocUI.refreshTradingHouse()
@@ -509,26 +663,36 @@ function market.step(items, reserved)
     local operation = Effect.Async(function()
         local guildId = listingGuild(market.guildIds)
         if not guildId then market.search = nil; return false end
-        if not market.search then
-            market.search = nextSearch(items)
-            if not market.search then return false end
-            if not searchGuilds(market.search) then market.search = nil; return true end
-        end
-        selectGuild(guildId):Await()
-        -- Rebuild reservations after a manual inventory or Wardrobe edit.
-        -- Keep rechecking across yields until the snapshot stays current.
-        local checked = revision
         while true do
-            if checked ~= market.revision then
-                checked = market.revision
-                local _, refreshed = facts.wardrobe(true)
-                reserved = refreshed
+            if revision ~= market.revision then return true end
+            local best, quote = bestPrepared(reserved)
+            local candidate, maximum = nextSearch(items, reserved)
+            if best and (not candidate or quote.totalPrice >= maximum) then
+                market.search = best
+                selectGuild(guildId):Await()
+                ready():Await()
+                -- A changed reservation or stack is reconsidered on the next pass.
+                if revision ~= market.revision then return true end
+                local current, freshQuote = quoteSearch(best, reserved)
+                if current and (not candidate or freshQuote.totalPrice >= maximum) then
+                    local posted = request(TRADING_HOUSE_RESULT_POST_PENDING, guildId, function()
+                        local sent, reason = poc.post(current, freshQuote, guildId, reserved)
+                        if not sent then fail('post-' .. tostring(reason)) end
+                        return true
+                    end, function() return true end):Await()
+                    if not posted or freshQuote.quantity >= current.stack then market.prepared[searchKey(current)] = nil end
+                elseif not current then market.prepared[searchKey(best.item)] = nil end
+                return true
             end
-            ready():Await()
-            if checked == market.revision then break end
+            if not candidate then market.search = nil; return false end
+            local key = searchKey(candidate)
+            market.tried[key .. ':' .. tostring(candidate.stack)], market.touched = true, true
+            local search = { item = candidate, stage = 'name', page = 0, guildIds = market.guildIds, guildIndex = 1 }
+            market.search = search
+            if searchGuilds(search) then market.prepared[key] = search end
+            market.search = nil
+            Effect.Yield():Await()
         end
-        if not post(market.search, guildId, reserved) then market.search = nil end
-        return true
     end):Ensure(function() BattleScrolls.gc:RequestGC(2) end)
     local fiber = operation:Run()
     market.fiber = fiber
@@ -547,7 +711,9 @@ function market.step(items, reserved)
             BattleScrolls.inventoryPocUI.refreshTradingHouse()
         end
         poc.resume()
-        if completed:IsSucceeded() and not completed._value and revision == market.revision then poc.dirty = false end
+        if market.stopped or (completed:IsSucceeded() and not completed._value and revision == market.revision) then
+            poc.finishVisit()
+        end
         BattleScrolls.inventoryPocWorkUI.refresh()
     end)
     return true
@@ -582,7 +748,7 @@ function market.initialize()
     end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CLOSE_TRADING_HOUSE, function()
         market.stop()
-        poc.wake()
+        poc.endVisit()
     end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_TRADING_HOUSE_STATUS_RECEIVED, function()
         if not poc.enabled then return end

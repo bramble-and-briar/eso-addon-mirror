@@ -7,7 +7,9 @@
 local M = {}
 M.version = "1.0.2"
 M.lastReason = ""
-ArabicHelper_Arabic = M -- own name, so it never clashes with ArabChat
+-- arabic.lua loads first, so it creates the addon's ONE global table
+ArabicHelper = ArabicHelper or {}
+ArabicHelper.Arabic = M
 
 local char, byte, floor, find, sub = string.char, string.byte, math.floor, string.find, string.sub
 local concat = table.concat

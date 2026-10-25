@@ -121,6 +121,7 @@ BattleScrolls.inventoryPocFacts = facts
 ---@field armorType number
 ---@field weaponType number
 ---@field equipType number
+---@field setId number|nil
 
 ---@param link string
 ---@return InventoryPocVariant
@@ -129,7 +130,8 @@ function facts.variant(link)
         trait = GetItemLinkTraitType(link), style = GetItemLinkItemStyle(link),
         level = GetItemLinkRequiredLevel(link), championPoints = GetItemLinkRequiredChampionPoints(link),
         actorCategory = GetItemLinkActorCategory(link), armorType = GetItemLinkArmorType(link),
-        weaponType = GetItemLinkWeaponType(link), equipType = GetItemLinkEquipType(link) }
+        weaponType = GetItemLinkWeaponType(link), equipType = GetItemLinkEquipType(link),
+        setId = select(6, GetItemLinkSetInfo(link, false)) }
 end
 
 local policy = BattleScrolls.inventoryPocPolicy
@@ -148,7 +150,23 @@ end
 ---@param price number
 ---@param expiredPrice number|nil
 function facts.rememberQuote(item, price, expiredPrice)
-    facts.quotes[facts.variantKey(item)] = { price = price, expiredPrice = expiredPrice, untilMs = GetFrameTimeMilliseconds() + 15 * 60000 }
+    facts.quotes[facts.variantKey(item)] = { price = price, expiredPrice = expiredPrice, untilMs = GetFrameTimeMilliseconds() + 60 * 60000 }
+end
+
+---@param link string
+---@return number|nil
+---@return boolean|nil loading
+function facts.referencePrice(link)
+    local companionPrices = BattleScrolls.inventoryPocCompanionPrices
+    if companionPrices and GetItemLinkActorCategory(link) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        return companionPrices.referencePrice(link)
+    end
+    local itemType = GetItemLinkItemType(link)
+    if (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON)
+        and GetItemLinkActorCategory(link) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        return BattleScrolls.inventoryPocGearPrices.referencePrice(link)
+    end
+    return facts.price(link)
 end
 
 ---@param link string
@@ -158,12 +176,9 @@ end
 function facts.marketPrice(link, expired)
     local quote = facts.quotes[facts.variantKey(facts.variant(link))]
     if quote and GetFrameTimeMilliseconds() < quote.untilMs then return expired and quote.expiredPrice or quote.price end
-    local price, loading = facts.price(link)
+    local price, loading = facts.referencePrice(link)
     return price and (expired and price * 0.5 or price) or nil, loading
 end
--- Alliance Health/Spell/Battle Draught; item links recorded by LibPotionBuff's
--- author/tester, linked in proof-of-concept.md. AP vendor scans add other IDs.
-local ALLIANCE_POTIONS = { [71071] = true, [71072] = true, [71073] = true }
 local CRAFTER_NAME = 'Isomorphism'
 -- Confirmed in game; native fragment APIs do not expose pieces consumed per use.
 local FRAGMENT_USE_QUANTITIES = {
@@ -172,14 +187,6 @@ local FRAGMENT_USE_QUANTITIES = {
 }
 ---@type table<number, string>|nil
 local traitMaterials
-local JUNK_COMPANION_TRAITS = {
-    [ITEM_TRAIT_TYPE_ARMOR_AGGRESSIVE] = true, [ITEM_TRAIT_TYPE_ARMOR_SHATTERING] = true,
-    [ITEM_TRAIT_TYPE_ARMOR_FOCUSED] = true, [ITEM_TRAIT_TYPE_ARMOR_PROLIFIC] = true,
-    [ITEM_TRAIT_TYPE_WEAPON_AGGRESSIVE] = true, [ITEM_TRAIT_TYPE_WEAPON_SHATTERING] = true,
-    [ITEM_TRAIT_TYPE_WEAPON_FOCUSED] = true, [ITEM_TRAIT_TYPE_WEAPON_PROLIFIC] = true,
-    [ITEM_TRAIT_TYPE_JEWELRY_AGGRESSIVE] = true, [ITEM_TRAIT_TYPE_JEWELRY_SHATTERING] = true,
-    [ITEM_TRAIT_TYPE_JEWELRY_FOCUSED] = true, [ITEM_TRAIT_TYPE_JEWELRY_PROLIFIC] = true,
-}
 
 ---@return string|nil
 function facts.crafterId()
@@ -222,7 +229,13 @@ local function tscEntryPrice(entry, quality, allowLegacy)
         values[#values + 1] = value
     end
     if #values ~= 18 or quality < 1 or quality > 5 then return false, nil end
-    local price = tonumber(values[(quality - 1) * 3 + 1])
+    local offset = (quality - 1) * 3 + 1
+    -- TSC expands legacy aliases into quality columns and discards the alias
+    -- flag. An identical triple has ambiguous provenance; equipment waits
+    -- for another quote. Materials can use the legacy pool.
+    if not allowLegacy and values[offset] == values[16] and values[offset + 1] == values[17]
+        and values[offset + 2] == values[18] then return true, nil end
+    local price = tonumber(values[offset])
     if policy.validPrice(price) then return true, price end
     local legacy = allowLegacy and tonumber(values[16]) or nil
     return true, policy.validPrice(legacy) and legacy or nil
@@ -237,14 +250,16 @@ function facts.price(link)
     if GetWorldName() ~= 'XB1live-eu' or link == '' then return nil end
     local api = rawget(_G, 'TSCPriceDataAPI') ---@type InventoryPocTsc|nil
     if not api then return nil end
-    local companion = GetItemLinkActorCategory(link) == GAMEPLAY_ACTOR_CATEGORY_COMPANION
+    local itemType = GetItemLinkItemType(link)
+    local equipment = GetItemLinkActorCategory(link) == GAMEPLAY_ACTOR_CATEGORY_COMPANION
+        or itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON
     local entry = api.priceData and api.priceData[GetItemLinkItemId(link)]
     if api.LOADING ~= nil and entry == api.LOADING then
         facts.waitingPriceLink = link
         return nil, true
     end
     if type(entry) == 'string' then
-        local recognized, price = tscEntryPrice(entry, GetItemLinkFunctionalQuality(link), not companion)
+        local recognized, price = tscEntryPrice(entry, GetItemLinkFunctionalQuality(link), not equipment)
         if recognized then return price end
     end
     if type(api.GetItemData) ~= 'function' then return nil end
@@ -254,9 +269,9 @@ function facts.price(link)
         return nil, true
     end
     if type(data) ~= 'table' then return nil end
-    -- Legacy companion prices blend qualities; white and purple cannot share
-    -- an asking price. A missing exact quote uses live listings, then our fallback.
-    if companion and data.fromLegacy ~= false then return nil end
+    -- Equipment needs a quote with an identified quality. The legacy pool
+    -- blends qualities and can include several traits for the same name.
+    if equipment and data.fromLegacy ~= false then return nil end
     return policy.validPrice(data.avgPrice) and data.avgPrice or nil
 end
 
@@ -387,16 +402,22 @@ local function kind(link, itemType, specializedType)
     return 'other'
 end
 
----Some skill-style fragments expose only an on-use ability, with a live
----progress counter as its final description line. Match the numeric fraction,
----not a translated "Progress" label or numbers elsewhere in the description.
+---Read a dedicated progress line in the live ability description.
+---Localized descriptions use several newline and spacing conventions.
 ---@param description string
 ---@return number|nil
 ---@return number|nil
 local function fragmentProgress(description)
-    local text = '\n' .. description:gsub('|c%x%x%x%x%x%x', ''):gsub('|r', '')
-    local progressText, requiredText = text:match('\n[^%d\n\r]*([0-9]+)[ \t]*/[ \t]*([0-9]+)%s*$')
-    local progress, required = tonumber(progressText), tonumber(requiredText)
+    local text = description:gsub('|[cC]%x%x%x%x%x%x', ''):gsub('|[rR]', '')
+        :gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\194\160', ' '):gsub('\226\128\175', ' '):gsub('：', ':')
+    local progress, required
+    for line in text:gmatch('[^\n]+') do
+        local currentText, totalText = line:match('^[^%d:]*:[ \t]*([0-9]+)[ \t]*/[ \t]*([0-9]+)[ \t]*%.?[ \t]*$')
+        if currentText then
+            if progress then return nil, nil end
+            progress, required = tonumber(currentText), tonumber(totalText)
+        end
+    end
     if progress and required and required > 0 and progress <= required then return progress, required end
     return nil, nil
 end
@@ -423,11 +444,13 @@ function facts.collectibleKnowledge(link)
     end
     local _, specializedType = GetItemLinkItemType(link)
     if specializedType == SPECIALIZED_ITEMTYPE_TROPHY_COLLECTIBLE_FRAGMENT then
-        local hasAbility, _, description = GetItemLinkOnUseAbilityInfo(link)
-        if hasAbility then
-            local progress, required = fragmentProgress(description)
-            if progress and required then return progress == required, progress, required end
+        local _, _, description = GetItemLinkOnUseAbilityInfo(link)
+        local progress, required = fragmentProgress(description)
+        if not progress then
+            local abilityId = GetItemLinkOnUseAbilityId(link)
+            if abilityId > 0 then progress, required = fragmentProgress(GetAbilityDescription(abilityId, nil, 'player')) end
         end
+        if progress and required then return progress == required, progress, required end
     end
     return nil
 end
@@ -465,6 +488,7 @@ function facts.item(bag, slot, reserved)
     local stack, maxStack = GetSlotStackSize(bag, slot)
     local itemType, specializedType = GetItemLinkItemType(link)
     local itemKind = kind(link, itemType, specializedType)
+    local quality = GetItemLinkFunctionalQuality(link)
     local style = GetItemLinkItemStyle(link)
     local trait = GetItemLinkTraitType(link)
     local material, traitLink, traitResolved = '', '', true
@@ -494,43 +518,74 @@ function facts.item(bag, slot, reserved)
             and GetItemLinkItemUseType(link) == ITEM_USE_TYPE_COLLECTIBLE_GRANT) then learnQuantity = 1
         else learnQuantity = nil end
     end
-    local saved = BattleScrolls.inventoryPoc and BattleScrolls.inventoryPoc.saved
     local companions = BattleScrolls.inventoryPocCompanions
-    local companionNeeded
-    if companions and companions.complete then companionNeeded = companions.kept[uniqueId] == true end
-    local alliancePotion = ALLIANCE_POTIONS[itemId] or (saved and saved.apPotions[itemId])
+    local crafted, hasOnUseAbility, alchemyTraitCount
+    local tradeable, hasSet, setCollected, collectionKey, improvementMaterial
+    if itemKind == 'gear' then
+        crafted = IsItemLinkCrafted(link)
+        tradeable = IsItemSellableOnTradingHouse(bag, slot)
+        local _, _, _, _, _, setId = GetItemLinkSetInfo(link, false)
+        hasSet = setId > 0
+        if hasSet and IsItemLinkSetCollectionPiece(link) then
+            local collectionSlot = GetItemLinkItemSetCollectionSlot(link)
+            setCollected = IsItemSetCollectionSlotUnlocked(setId, collectionSlot)
+            if not setCollected then collectionKey = tostring(setId) .. ':' .. Id64ToString(collectionSlot) end
+        end
+        if tradeable and quality >= 5 then
+            local craft = GetItemLinkCraftingSkillType(link)
+            if craft ~= CRAFTING_TYPE_INVALID then
+                improvementMaterial = GetSmithingImprovementItemLink(craft, quality - 1, LINK_STYLE_DEFAULT)
+            end
+        end
+    end
+    if itemKind == 'potion' or itemKind == 'poison' then
+        crafted = IsItemLinkCrafted(link)
+        hasOnUseAbility = GetItemLinkOnUseAbilityInfo(link)
+        if not hasOnUseAbility then
+            alchemyTraitCount = 0
+            for index = 1, GetMaxTraits() do
+                if GetItemLinkTraitOnUseAbilityInfo(link, index) then alchemyTraitCount = alchemyTraitCount + 1 end
+            end
+        end
+    end
     local marketUnit, marketLoading = facts.marketPrice(link)
-    local styleMaterialUnit, styleLoading, traitMaterialUnit, traitLoading
+    local styleMaterialUnit, styleLoading, traitMaterialUnit, traitLoading, improvementUnit, improvementLoading
     if material ~= '' then styleMaterialUnit, styleLoading = facts.price(material) end
     if traitLink ~= '' then traitMaterialUnit, traitLoading = facts.price(traitLink) end
+    if improvementMaterial and improvementMaterial ~= '' then improvementUnit, improvementLoading = facts.price(improvementMaterial) end
     local item = {
         bag = bag, slot = slot, uniqueId = uniqueId, itemId = itemId, link = link,
         name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(link)), stack = stack, maxStack = maxStack,
         searchName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkTradingHouseItemSearchName(link)),
-        kind = itemKind, quality = GetItemLinkFunctionalQuality(link), trait = trait, style = style,
+        kind = itemKind, quality = quality, trait = trait, style = style,
         equipType = GetItemLinkEquipType(link), armorType = armorType, weaponType = GetItemLinkWeaponType(link),
         actorCategory = GetItemLinkActorCategory(link),
         level = GetItemLinkRequiredLevel(link), championPoints = GetItemLinkRequiredChampionPoints(link),
         reserved = equipped or IsItemPlayerLocked(bag, slot) or IsItemInArmory(bag, slot) or (reserved and reserved[uniqueId]) == true,
         stolen = IsItemStolen(bag, slot), crown = IsItemLinkFromCrownStore(link) or IsItemLinkFromCrownCrate(link),
         vendorUnit = GetItemSellValueWithBonuses(bag, slot), marketUnit = marketUnit,
+        prioritySell = GetItemSellInformation(bag, slot) == ITEM_SELL_INFORMATION_PRIORITY_SELL,
         styleMaterialLink = material, styleMaterialUnit = styleMaterialUnit,
         traitMaterialLink = traitLink, traitMaterialUnit = traitMaterialUnit, traitMaterialResolved = traitResolved,
-        priceLoading = marketLoading or styleLoading or traitLoading or false,
+        tradeable = tradeable, hasSet = hasSet, setId = select(6, GetItemLinkSetInfo(link, false)),
+        setCollected = setCollected, collectionKey = collectionKey,
+        improvementMaterialLink = improvementMaterial, improvementMaterialUnit = improvementUnit,
+        priceLoading = marketLoading or styleLoading or traitLoading or improvementLoading or false,
         known = known, crafterKnown = crafterKnown,
         isCrafter = crafterId == GetCurrentCharacterId(),
-        companionJunk = armorType == ARMORTYPE_MEDIUM or JUNK_COMPANION_TRAITS[trait] == true,
-        companionNeeded = companionNeeded,
         -- Batch fragments consume their required pieces together. Progress-based
         -- shards and direct collectible grants consume one; unknown recipes wait.
         learnQuantity = learnQuantity,
         learnProgress = learnProgress, learnRequired = learnRequired,
         usable = usable, filledSoulGem = itemKind == 'soulGem' and IsItemSoulGem(SOUL_GEM_TYPE_FILLED, bag, slot),
-        lootPotion = itemKind == 'potion' and GetItemLinkFunctionalQuality(link) == ITEM_FUNCTIONAL_QUALITY_NORMAL
-            and not IsItemLinkCrafted(link) and GetItemCreatorName(bag, slot) == '' and not alliancePotion,
+        crafted = crafted, hasOnUseAbility = hasOnUseAbility, alchemyTraitCount = alchemyTraitCount,
     }
+    if itemKind == 'companion' and companions then item.companionNeeded = companions.isNeeded(item) end
     local returns = BattleScrolls.inventoryPocReturns
-    if returns and returns.isDiscounted(item) then item.marketUnit = facts.marketPrice(link, true) end
+    if returns and returns.isDiscounted(item) then
+        item.marketUnit, marketLoading = facts.marketPrice(link, true)
+        item.priceLoading = item.priceLoading or marketLoading
+    end
     return item
 end
 

@@ -47,4 +47,4 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [JunkBuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ADH/JunkBuster__266) | ADH | PC / Mac | 1.92 |
 | [Junkee 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Junkee-2018__1947) | Phuein | PC / Mac | 1.84 |
 | [Junkee Returns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Denidil/Junkee-Returns__1256) | Denidil | PC / Mac | 1.1b |
-| [JunkHotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maxxermax/JunkHotkey__3372) | Maxxermax | PC / Mac | 1.9 |
+| [JunkHotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maxxermax/JunkHotkey__3372) | Maxxermax | PC / Mac | 1.92 |

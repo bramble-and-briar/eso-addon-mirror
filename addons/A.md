@@ -243,7 +243,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.7 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
-| [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.1.0 |
+| [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.2.0 |
 | [ARC_CustomFonts - High-Quality Open-Source Fonts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_CustomFonts---High-Quality-Open-Source-Fonts__4971) | arcsinan | PC / Mac | 1.0.0 |
 | [ARC_NetGraphr - Real-Time Network Telemetry & FPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_NetGraphr---Real-Time-Network-Telemetry-FPS__4973) | arcsinan | PC / Mac | 1.0.0 |
 | [ARC_SetGlowGuard - Set Glow & Equipment Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_SetGlowGuard---Set-Glow-Equipment-Tracker__4970) | arcsinan | PC / Mac | 1.0.2 |
@@ -347,6 +347,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Loot Crafting Materials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/estera/Auto-Loot-Crafting-Materials__1430) | estera | PC / Mac | 1.0 |
 | [AUTO LUA MEMORY CLEANER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/AUTO-LUA-MEMORY-CLEANER__9926b8d4-d4ca-4215-8790-013c0b1630c0) | APH0NlC | Console | — |
 | [Auto Lua Memory Cleaner (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Auto-Lua-Memory-Cleaner-PC-Console__4388) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [Auto Master Writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Auto-Master-Writs__8ac74138-bfc3-481a-9baf-7e2cdbca36a0) | xbutch | Console | — |
 | [Auto Message](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Message__2859) | peniku8 | PC / Mac | 1.4.12 |
 | [Auto Offline - Sets Your Status To Offline On Logout](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Auto-Offline---Sets-Your-Status-To-Offline-On-Logout__4634) | Duesentrieb | PC / Mac | 20260624-0001 |
 | [Auto Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Auto-Opener__79b6b597-9e33-4cd7-b076-44e9a153a44c) | Copper0 | Console | — |

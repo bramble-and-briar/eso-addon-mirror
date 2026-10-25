@@ -18,7 +18,7 @@
     "HarvensExtraIcons"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4939/",
-  "fingerprint": "17f46dc5905cb01ebaf4cbc1d78f914d298adf37154543f93d7e8f760f03529c",
+  "fingerprint": "3f325fe24208021875fb3a8b73afb02c4c8d9785b45e0785d35cbea90ba8a2cc",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4939",
   "source_url": "https://www.esoui.com/downloads/info4939-HarvensExtraIcons.html",
   "stats": {
-    "downloads": 44,
+    "downloads": 95,
     "favorites": 0,
-    "monthly_downloads": 36
+    "monthly_downloads": 92
   },
   "title": "Harven's Extra Icons",
-  "updated_at": 1791727053000,
-  "version": "1.0.0"
+  "updated_at": 1792876520000,
+  "version": "1.0.1"
 }

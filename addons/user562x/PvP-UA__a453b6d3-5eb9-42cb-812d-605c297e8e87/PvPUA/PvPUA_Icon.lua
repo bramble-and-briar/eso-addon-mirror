@@ -660,7 +660,8 @@ function PvPUA:IconMenu()
     local myPickerDefault = PI.indexToPicker[myIconDefault] or 1
     return { type = "submenu",
           name = "|c" .. DC_HEX .. "Icon|r",
-          tooltip = SAVED_CHARACTER_TIP,
+          tooltip = "Sharing icons with group members needs LibGroupBroadcast. Without it, only you see your icon.\n\n"
+                 .. SAVED_CHARACTER_TIP,
           icon = "EsoUI/Art/Options/Gamepad/gp_options_nameplates.dds",
           options = {
         { type = "selector",

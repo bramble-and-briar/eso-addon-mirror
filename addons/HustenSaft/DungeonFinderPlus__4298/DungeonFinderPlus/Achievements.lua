@@ -1,21 +1,6 @@
+-- Achievements.lua – DungeonFinderPlus
 DungeonFinderPlus = DungeonFinderPlus or {}
 local DFP = DungeonFinderPlus
-
-local function canon(s)
-    if not s then return "" end
-    s = s:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-    s = s:gsub("Ä","Ae"):gsub("Ö","Oe"):gsub("Ü","Ue")
-         :gsub("ä","ae"):gsub("ö","oe"):gsub("ü","ue"):gsub("ß","ss")
-    s = s
-        :gsub("[ÁÀÂÃÅĀĂĄ]","A"):gsub("[áàâãåāăą]","a")
-        :gsub("[ÉÈÊËĒĔĖĘĚ]","E"):gsub("[éèêëēĕėęě]","e")
-        :gsub("[ÍÌÎÏĪĬĮİ]","I"):gsub("[íìîïīĭįı]","i")
-        :gsub("[ÓÒÔÕØŌŎŐ]","O"):gsub("[óòôõøōŏő]","o")
-        :gsub("[ÚÙÛÜŪŬŮŰŲ]","U"):gsub("[úùûüūŭůűų]","u")
-    s = s:gsub("[%[%]()%-%–—:,%.\"']", " ")
-    s = s:gsub("%s+", " ")
-    return zo_strlower(zo_strtrim(s))
-end
 
 ----------------------------------------------------------------
 -- Rohdaten
@@ -82,8 +67,8 @@ local NORMAL = {
     [640] ={id=3851, isDLC=true, itemSetIDs = {735, 736, 737}, motif=3922},   --Bedlam Veil
     [855] ={id=4109, isDLC=true, itemSetIDs = {794, 795, 796}, motif=4159},   --Exiled Redoubt
     [857] ={id=4128, isDLC=true, itemSetIDs = {798, 799, 800}, motif=4160},   --Lep Seclusa
-    [1037]={id=4311, isDLC=true, itemSetIDs = {825,826,827},   motif=nil},    --Naj-Caldeesh
-    [1039]={id=4334, isDLC=true, itemSetIDs = {822,823,824},   motif=nil},    --Black Gem Foundry
+    [1037]={id=4311, isDLC=true, itemSetIDs = {825, 826, 827}, motif=nil},    --Naj-Caldeesh
+    [1039]={id=4334, isDLC=true, itemSetIDs = {822, 823, 824}, motif=nil},    --Black Gem Foundry
 }
 
 -- Veteran-Clear- und Meta-Achievements
@@ -144,8 +129,8 @@ local VETERAN = {
     [641] ={id=3852, hm=3853, tt=3854, nd=3855, tri=3857, isDLC=true, itemSetIDs = {735, 736, 737, 738}, motif=3922},  --Bedlam Veil
     [856] ={id=4110, hm=4111, tt=4112, nd=4113, tri=4115, isDLC=true, itemSetIDs = {794, 795, 796, 797}, motif=4159},  --Exiled Redoubt
     [858] ={id=4129, hm=4130, tt=4131, nd=4132, tri=4134, isDLC=true, itemSetIDs = {798, 799, 800, 801}, motif=4160},  --Lep Seclusa
-    [1038]={id=4312, hm=4313, tt=4314, nd=4315, tri=4317, isDLC=true, itemSetIDs = {825,826,827,829}, motif=nil}, --Naj-Caldeesh
-    [1040]={id=4335, hm=4336, tt=4337, nd=4338, tri=4340, isDLC=true, itemSetIDs = {822,823,824,828}, motif=nil}, --Black Gem Foundry
+    [1038]={id=4312, hm=4313, tt=4314, nd=4315, tri=4317, isDLC=true, itemSetIDs = {825, 826, 827, 829}, motif=nil}, --Naj-Caldeesh
+    [1040]={id=4335, hm=4336, tt=4337, nd=4338, tri=4340, isDLC=true, itemSetIDs = {822, 823, 824, 828}, motif=nil}, --Black Gem Foundry
 }
 
 ----------------------------------------------------------------
@@ -158,7 +143,7 @@ local function buildRecords()
     if #records > 0 then return end
 
     local vetList = {}
-    for k, v in pairs(VETERAN) do
+    for _, v in pairs(VETERAN) do
         vetList[#vetList+1] = v
     end
 
@@ -186,35 +171,18 @@ local function buildRecords()
             end
         end
 
-        if matchedVet then
-            records[#records+1] = {
-                normal = n.id,
-                vet    = matchedVet.id,
-                hm     = matchedVet.hm,
-                tt     = matchedVet.tt,
-                nd     = matchedVet.nd,
-                tri    = matchedVet.tri,
-                motif  = matchedVet.motif or n.motif,
-                isDLC  = matchedVet.isDLC or n.isDLC,
-            }
-        else
-            records[#records+1] = {
-                normal = n.id,
-                vet    = nil,
-                hm     = nil,
-                tt     = nil,
-                nd     = nil,
-                tri    = nil,
-                motif  = n.motif,
-                isDLC  = n.isDLC,
-            }
-        end
+        records[#records+1] = {
+            normal = n.id,
+            vet    = matchedVet and matchedVet.id or nil,
+            hm     = matchedVet and matchedVet.hm or nil,
+            tt     = matchedVet and matchedVet.tt or nil,
+            nd     = matchedVet and matchedVet.nd or nil,
+            tri    = matchedVet and matchedVet.tri or nil,
+            motif  = (matchedVet and matchedVet.motif) or n.motif,
+            isDLC  = (matchedVet and matchedVet.isDLC ~= nil) and matchedVet.isDLC or n.isDLC,
+        }
     end
 end
-
----------------
--- Lookup
----------------
 
 local function ensureRecords()
     if #records == 0 then
@@ -222,8 +190,11 @@ local function ensureRecords()
     end
 end
 
+----------------------------------------------------------------
+-- Lookup API
+----------------------------------------------------------------
 
--- Lookup per Activity-ID
+-- Lookup per einzelner Activity-ID 
 function DFP.GetDungeonAchievementsByActivityId(activityId)
     ensureRecords()
     if not activityId then return nil end
@@ -234,18 +205,18 @@ function DFP.GetDungeonAchievementsByActivityId(activityId)
     if not (n or v) then return nil end
     
     return {
-        normal = n and n.id or (v and v.id),          
+        normal = n and n.id or nil,          
         vet    = v and v.id or nil,                  
         hm     = v and v.hm or nil,                   
         tt     = v and v.tt or nil,
         nd     = v and v.nd or nil,
         tri    = v and v.tri or nil,
         motif  = (v and v.motif) or (n and n.motif),
-        isDLC  = (v and v.isDLC) or (n and n.isDLC),
+        isDLC  = (v and v.isDLC ~= nil) and v.isDLC or (n and n.isDLC),
     }
 end
 
--- Wrapper für beide Activity-IDs (Normal + Vet)
+-- Wrapper für beide Activity-IDs (Normal + Veteran zusammengeführt)
 function DFP.GetDungeonAchievementsForActivity(normalActId, vetActId)
     local out = {}
 
@@ -268,8 +239,8 @@ function DFP.GetDungeonAchievementsForActivity(normalActId, vetActId)
             out.tt    = v.tt
             out.nd    = v.nd
             out.tri   = v.tri
-            out.motif = v.motif or out.motif
-            out.isDLC = v.isDLC or out.isDLC
+            if v.motif ~= nil then out.motif = v.motif end
+            if v.isDLC ~= nil then out.isDLC = v.isDLC end
         end
     end
 

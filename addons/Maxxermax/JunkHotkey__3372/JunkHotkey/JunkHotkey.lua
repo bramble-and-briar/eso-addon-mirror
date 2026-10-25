@@ -1,6 +1,6 @@
 --[[
 -------------------------------------------------------------------------------
--- JunkHotkey, by Maxxermax, code snippets lent from Dustman https://www.esoui.com/downloads/info97-Dustman.html#info
+-- JunkHotkey, by Maxxermax, code snippets lent from Dustman https://esoui.com
 -------------------------------------------------------------------------------
 This software is under : CreativeCommons CC BY-NC-SA 4.0
 Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
@@ -17,24 +17,17 @@ Under the following terms:
     Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
     NonCommercial — You may not use the material for commercial purposes.
     ShareAlike — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
-    No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+    No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from anything the license permits.
 
 
 Please read full licence at : 
-http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+http://creativecommons.org
 ]]
 
 -- Leaked for menu & data
 JunkHotkey = {}
 
 local ADDON_NAME = "JunkHotkey"
-
--- Libraries ------------------------------------------------------------------
--- local LR = LibStub("libResearch-2")
-
---FCOCompanion should not be necessary anymore
--- local isCompanionJunkEnabled = false
--- local companionJunkedItemsOfChar = nil
 
 -- Local variables ------------------------------------------------------------
 local hoveredBagId
@@ -43,31 +36,43 @@ local junkHotkeyJunkKeybind
 local hoveredItemCanBeJunked
 local isItemJunk
 local descriptorName = GetString(SI_ITEM_ACTION_MARK_AS_JUNK)
-local junkableBags = {
-		[BAG_BACKPACK] = true,
-		[BAG_BANK] = true,
-		[BAG_HOUSE_BANK_ONE] = true,
-		[BAG_HOUSE_BANK_TWO] = true,
-		[BAG_HOUSE_BANK_THREE] = true,
-		[BAG_HOUSE_BANK_FOUR] = true,
-		[BAG_HOUSE_BANK_FIVE] = true,
-		[BAG_HOUSE_BANK_SIX] = true,
-		[BAG_HOUSE_BANK_SEVEN] = true,
-		[BAG_HOUSE_BANK_EIGHT] = true,
-		[BAG_HOUSE_BANK_NINE] = true,
-		[BAG_HOUSE_BANK_TEN] = true,
-	}
 
 local function OnSlotMouseEnter(inventorySlot)
 	
-	if inventorySlot and inventorySlot.dataEntry then
-		hoveredBagId = inventorySlot.dataEntry.data.bagId
-		hoveredSlotId = inventorySlot.dataEntry.data.slotIndex
-		if hoveredBagId and hoveredSlotId and junkableBags[hoveredBagId] and CanItemBeMarkedAsJunk(hoveredBagId, hoveredSlotId) then
-			hoveredItemCanBeJunked = true
-			isItemJunk = IsItemJunk(hoveredBagId, hoveredSlotId)
-			KEYBIND_STRIP:UpdateKeybindButtonGroup(junkHotkeyJunkKeybind)
+	if not inventorySlot then return end
+
+	-- 1. Standard-Erkennung
+	if inventorySlot.dataEntry and inventorySlot.dataEntry.data then
+		local data = inventorySlot.dataEntry.data
+		hoveredBagId = data.bagId
+		hoveredSlotId = data.slotIndex
+
+		-- ESO-Fallback für verschachtelte Daten (dataSource)
+		if not hoveredBagId and data.dataSource then
+			hoveredBagId = data.dataSource.bagId
+			hoveredSlotId = data.dataSource.slotIndex
 		end
+	end
+
+	-- 2. Fallback, falls die IDs direkt am Slot hängen
+	if not hoveredBagId then
+		hoveredBagId = inventorySlot.bagId
+		hoveredSlotId = inventorySlot.slotIndex
+	end
+
+	-- 3. Sicherster ESO-API-Sicherheitsnetz-Fallback
+	if not hoveredBagId and type(inventorySlot.GetBagAndSlot) == "function" then
+		hoveredBagId, hoveredSlotId = inventorySlot:GetBagAndSlot()
+	end
+
+	-- 4. Überarbeitete Junk-Prüfung
+	if hoveredBagId and hoveredSlotId and CanItemBeMarkedAsJunk(hoveredBagId, hoveredSlotId) then
+		hoveredItemCanBeJunked = true
+		isItemJunk = IsItemJunk(hoveredBagId, hoveredSlotId)
+		
+		-- FIX: Nicht mehr AddKeybind aufrufen, sondern nur das Update triggern.
+		-- Das überlässt ESO die richtige, dynamische Reihenfolge in der Leiste.
+		KEYBIND_STRIP:UpdateKeybindButtonGroup(junkHotkeyJunkKeybind)
 	end
 
 end
@@ -97,6 +102,9 @@ local function JunkHoveredItem()
 		if isCompanionItem == false then
 			PlaySound(isItemJunk and SOUNDS.INVENTORY_ITEM_UNJUNKED or SOUNDS.INVENTORY_ITEM_JUNKED)
 		end
+		
+		isItemJunk = IsItemJunk(hoveredBagId, hoveredSlotId)
+		KEYBIND_STRIP:UpdateKeybindButtonGroup(junkHotkeyJunkKeybind)
 	end
 end
 
@@ -121,18 +129,15 @@ local function InitializeInventoryKeybind()
 	
 	junkHotkeyJunkKeybind =
 	{
-		alignment = KEYBIND_STRIP_ALIGN_CENTER,
+		-- Wieder zurück auf CENTER gestellt, damit es sich natürlich einreiht
+		alignment = KEYBIND_STRIP_ALIGN_CENTER, 
 		{
 			name = function() return descriptorName end,
-			keybind = "JUNKHOTKEY_JUNK", -- UI_SHORTCUT_NEGATIVE cannot be used
+			keybind = "JUNKHOTKEY_JUNK", 
 			callback = JunkHoveredItem,
 			visible = UpdateAndDisplayKeybind,
 		},
 	}
-	--FCOCompanion should not be necessary anymore
-	-- if FCOCO ~= nil and FCOCO.IsCompanionJunkEnabled ~= nil then
-		-- isCompanionJunkEnabled, companionJunkedItemsOfChar = FCOCO.IsCompanionJunkEnabled()
-	-- end
 	
 	local function OnStateChanged(oldState, newState)
 		if newState == SCENE_SHOWING then
@@ -145,6 +150,14 @@ local function InitializeInventoryKeybind()
 	INVENTORY_FRAGMENT:RegisterCallback("StateChange", OnStateChanged)
 	BANK_FRAGMENT:RegisterCallback("StateChange", OnStateChanged)
 	HOUSE_BANK_FRAGMENT:RegisterCallback("StateChange", OnStateChanged)
+
+	-- Der sauberste ESO-Weg: Wir hängen uns in das Refresh-System der Item-Keybinds ein.
+	-- Immer wenn das Spiel die Hotkeys für einen Slot neu aufbaut, aktualisieren wir unseren Zustand mit.
+	ZO_PostHook("ZO_InventorySlot_ShowKeybinds", function(slot)
+		if KEYBIND_STRIP and junkHotkeyJunkKeybind then
+			KEYBIND_STRIP:UpdateKeybindButtonGroup(junkHotkeyJunkKeybind)
+		end
+	end)
 
 end
 

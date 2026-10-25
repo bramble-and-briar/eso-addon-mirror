@@ -1,4 +1,8 @@
 local strings = {
+	SI_PBSMINIMAP_STYLE = "Map style",
+	SI_PBSMINIMAP_STYLE_SQUARE = "Rectangular",
+	SI_PBSMINIMAP_STYLE_COMPASS = "Circular compass",
+	SI_PBSMINIMAP_STYLE_TOOLTIP = "Choose a rectangular map or a circular map with an engraved metal compass frame. North stays at the top. The circle fits the smaller of width and height. Show border toggles the metal frame. Applies immediately; the full map is unchanged.",
 	SI_PBSMINIMAP_PIN_DIAGNOSTIC = "Report player marker",
 	SI_PBSMINIMAP_PIN_DIAGNOSTIC_TOOLTIP = "Print the last minimap player-marker state to chat. After the marker disappears, open Settings directly without opening the full map, then press this button.",
 	SI_PBSMINIMAP_PIN_DIAGNOSTIC_EMPTY = "No minimap sample yet. Return to the HUD for a few seconds, then open Settings again.",

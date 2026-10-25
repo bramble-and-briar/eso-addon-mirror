@@ -1,0 +1,16 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Auto Master Writs">
+            <Action name="AMW_DELIVERY">
+                <Down>AutoMasterWrits:StartDelivery()</Down>
+            </Action>
+            <Action name="AMW_REVIEW">
+                <Down>AutoMasterWrits:OpenReview()</Down>
+            </Action>
+            <Action name="AMW_QUEUE">
+                <Down>AutoMasterWrits:QueueEligible()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>
+

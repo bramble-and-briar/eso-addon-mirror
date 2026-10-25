@@ -7,7 +7,8 @@
 -- Lines are written as a label and a value, shown "Label: value" with the value in white. Labels use title case.
 
 local strings = {
-    -- Overall status, shown at the right of the tooltip's top row, as text only. The tooltip draws it in capitals.
+    -- Overall status, shown at the right of the tooltip's top row, with or instead of its icon (the Status Display
+    -- setting). The tooltip draws it in capitals.
     SI_CCMW_STATUS_CRAFTABLE = "Craftable",
     SI_CCMW_STATUS_NOT_CRAFTABLE = "Uncraftable",
     SI_CCMW_STATUS_UNKNOWN = "Status Unknown",
@@ -71,11 +72,10 @@ local strings = {
     SI_CCMW_POPUP_VERSION = "Version <<1>>",
     SI_CCMW_POPUP_WHATS_NEW = "What's New?",
     SI_CCMW_POPUP_SUPPORT_TITLE = "Support Can Craft Master Writ",
-    SI_CCMW_POPUP_SUPPORT_SCAN = "Scan With Your Phone to Donate",
+    SI_CCMW_POPUP_SUPPORT_SCAN = "Scan QR",
     SI_CCMW_POPUP_FEEDBACK_TITLE = "Report a Bug or Ask a Question",
     SI_CCMW_POPUP_FEEDBACK_SCAN = "Scan With Your Phone to Open the Form",
     SI_CCMW_THANK_YOU = "Thank you for your support!",
-    SI_CCMW_GAMERTAG = "GT: <<1>>", -- One supporter in the settings menu.
 
     -- Settings menu.
     SI_CCMW_MENU_NAME = "Can Craft Master Writ",
@@ -100,6 +100,11 @@ local strings = {
     SI_CCMW_MENU_SHOW_KNOWN = "Display Known Items",
     SI_CCMW_MENU_SHOW_KNOWN_ON = "On: Shows the requirements you already meet, and the runes or reagents to use.",
     SI_CCMW_MENU_SHOW_KNOWN_OFF = "Off: Hides the requirements you already meet, and the runes or reagents to use. They still decide whether the writ is Craftable.",
+    SI_CCMW_MENU_STATUS_DISPLAY = "Status Display",
+    SI_CCMW_MENU_STATUS_DISPLAY_TOOLTIP = "How the tooltip shows whether the writ is Craftable: a check or an X, the word, or both. Status Unknown is always written out.",
+    SI_CCMW_MENU_STATUS_ICON = "Icon Only",
+    SI_CCMW_MENU_STATUS_ICON_AND_TEXT = "Icon + Text",
+    SI_CCMW_MENU_STATUS_TEXT = "Text Only",
     SI_CCMW_MENU_RELEASE_NOTES = "Release Notes",
     SI_CCMW_MENU_RELEASE_NOTES_TOOLTIP = "Select to view the latest changes.",
     SI_CCMW_MENU_FEEDBACK = "Feedback",

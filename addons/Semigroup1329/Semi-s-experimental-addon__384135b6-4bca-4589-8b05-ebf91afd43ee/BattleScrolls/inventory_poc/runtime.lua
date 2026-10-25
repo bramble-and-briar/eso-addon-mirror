@@ -1,5 +1,19 @@
 if not SemisPlaygroundCheckAccess() then return end
 
+---@class InventoryPocLootEntry
+---@field name string
+---@field quantity number
+---@field icon string
+---@field link string|nil
+---@field quality number|nil
+---@field lootType number|nil
+---@field stolen boolean|nil
+---@field currencyType number|nil
+---@field questItemId number|nil
+---@field antiquityId number|nil
+---@field tributePatronId number|nil
+---@field tributeCardIndex number|nil
+
 ---@class InventoryPocLogDetails
 ---@field slot number
 ---@field uniqueId string
@@ -10,6 +24,9 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field styleMaterialUnit number|nil
 ---@field traitMaterialLink string
 ---@field traitMaterialUnit number|nil
+---@field improvementMaterialLink string|nil
+---@field improvementMaterialUnit number|nil
+---@field gearSaleMinimum number|nil
 
 ---@class InventoryPocLogEntry
 ---@field timestamp number
@@ -20,7 +37,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field itemId number
 ---@field quantity number
 ---@field gold number|nil
----@field reason InventoryPocReason|nil
+---@field reason InventoryPocReason|'priceCheck'|nil Includes saved green-price checks from earlier versions
 ---@field fromBag number
 ---@field toBag number|nil
 ---@field guildId number|nil
@@ -32,6 +49,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field details InventoryPocLogDetails|nil Absent on older entries
 ---@field discount number|nil Listing multiplier at the time of posting
 ---@field marketIssue InventoryPocMarketIssue|nil
+---@field contents InventoryPocLootEntry[]|nil
 ---@class InventoryPocPending
 ---@field item InventoryPocItem
 ---@field action InventoryPocAction
@@ -54,6 +72,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field finished boolean|nil Batch entries remain until the whole batch is reconciled
 ---@field useAttempts number|nil
 ---@field retryAt number|nil
+---@field contents InventoryPocLootEntry[]|nil
 ---@class InventoryPocBatch
 ---@field action 'sell'|'deconstruct'
 ---@field entries InventoryPocPending[]
@@ -68,7 +87,6 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field log InventoryPocLogEntry[]
 ---@field reports InventoryPocSnapshot[]
 ---@field companions table<number, InventoryPocItem[]>
----@field apPotions table<number, boolean>
 ---@field builds table<string, InventoryPocBuildState>
 ---@field returns InventoryPocReturnsSaved
 ---@field unread boolean|nil
@@ -94,9 +112,10 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field nextUseAt number|nil
 ---@field useRetryAt number|nil
 ---@field cancelled boolean
+---@field visitFinished boolean Automation has handed this service visit back to the player
 local poc = {
     enabled = false, registered = false, dirty = false, craftOpen = false,
-    blocked = {}, notices = {}, revision = 0, cancelled = false,
+    blocked = {}, notices = {}, revision = 0, cancelled = false, visitFinished = false,
 }
 BattleScrolls.inventoryPoc = poc
 
@@ -127,6 +146,8 @@ local useRetryFiber
 local followupRequested = false
 ---@type table<string, boolean> Items handled manually during this bank visit, including split/merged stacks
 local manualBankItems = {}
+---@type table<string, boolean> One binding attempt per missing collection slot during a visit
+local collectionAttempts = {}
 
 ---@param interval number
 local function setUpdateInterval(interval)
@@ -140,6 +161,8 @@ end
 -- watcher is only a timeout/state fallback, never a delay between operations.
 local function resumeWork()
     if not poc.enabled then return end
+    if (poc.cancelled or poc.visitFinished) and not (poc.saved.pending or poc.saved.batch
+        or next(BattleScrolls.inventoryPocReturns.claims)) then return end
     followupRequested = true
     setUpdateInterval(0)
 end
@@ -196,7 +219,9 @@ local function logDetails(item)
     return { slot = item.slot, uniqueId = item.uniqueId, stack = item.stack,
         vendorUnit = item.vendorUnit, marketUnit = item.marketUnit,
         styleMaterialLink = item.styleMaterialLink, styleMaterialUnit = item.styleMaterialUnit,
-        traitMaterialLink = item.traitMaterialLink, traitMaterialUnit = item.traitMaterialUnit }
+        traitMaterialLink = item.traitMaterialLink, traitMaterialUnit = item.traitMaterialUnit,
+        improvementMaterialLink = item.improvementMaterialLink, improvementMaterialUnit = item.improvementMaterialUnit,
+        gearSaleMinimum = item.kind == 'gear' and item.tradeable and policy.gearSaleMinimum(item) or nil }
 end
 
 ---@param item InventoryPocItem
@@ -229,7 +254,7 @@ local function finish(pending, result)
         result = result, itemLink = pending.item.link, itemId = pending.item.itemId, quantity = pending.quantity, gold = pending.gold,
         fromBag = pending.item.bag, toBag = pending.toBag, guildId = pending.guildId,
         askingPrice = pending.askingPrice, fee = pending.fee, reason = pending.reason,
-        details = logDetails(pending.item), discount = pending.discount })
+        details = logDetails(pending.item), discount = pending.discount, contents = pending.contents })
     if result == 'uncertain' then poc.blocked[itemKey(pending.item)] = true end
     if poc.saved.pending == pending then
         poc.saved.pending = nil
@@ -255,6 +280,23 @@ end
 ---@return boolean
 local function accountBankOpen()
     return IsBankOpen() and (GetBankingBag() == BAG_BANK or GetBankingBag() == BAG_SUBSCRIBER_BANK)
+end
+
+---@return InventoryPocActivity|nil
+local function serviceActivity()
+    local interaction = GetInteractionType()
+    if IsBankOpen() then return 'bank' end
+    if poc.craftOpen then return 'deconstruct' end
+    if interaction == INTERACTION_VENDOR then return 'sell' end
+    if interaction == INTERACTION_TRADINGHOUSE then return 'listings' end
+    if interaction == INTERACTION_ARMORY then return 'armory' end
+end
+
+---Keep the remaining visit under player control. Sent requests still reconcile.
+function poc.finishVisit()
+    poc.visitFinished = true
+    poc.dirty = false
+    workPass = nil
 end
 
 ---@param bag number
@@ -321,6 +363,17 @@ local function reconcileBatch(batch)
     end
 end
 
+---@param candidate InventoryPocItem
+---@param previous InventoryPocItem
+---@return boolean
+local function preferCollectionCopy(candidate, previous)
+    if candidate.tradeable ~= previous.tradeable then return candidate.tradeable ~= true end
+    if candidate.quality ~= previous.quality then return candidate.quality < previous.quality end
+    if policy.validPrice(candidate.marketUnit) and policy.validPrice(previous.marketUnit)
+        and candidate.marketUnit ~= previous.marketUnit then return candidate.marketUnit < previous.marketUnit end
+    return candidate.vendorUnit < previous.vendorUnit
+end
+
 ---@param action 'sell'|'deconstruct'
 ---@param items InventoryPocItem[]
 ---@param reserved table<string, boolean>
@@ -337,7 +390,7 @@ local function startBatch(action, items, reserved, building)
         batch.totals[key] = (batch.totals[key] or 0) + item.stack
     end
     for index, item in ipairs(items) do
-        if not poc.enabled or poc.cancelled or IsUnitInCombat('player') or IsUnitDead('player')
+        if not poc.enabled or poc.cancelled or poc.visitFinished or IsUnitInCombat('player') or IsUnitDead('player')
             or (action == 'sell' and GetInteractionType() ~= INTERACTION_VENDOR)
             or (action == 'deconstruct' and not poc.craftOpen) then return poc.saved.batch ~= nil end
         if not poc.blocked[itemKey(item)] and not (building and item.kind == 'food') then
@@ -451,6 +504,17 @@ end
 ---@param pending InventoryPocPending
 local function reconcile(pending)
     if pending.conflicted then finish(pending, 'uncertain'); return end
+    if pending.action == 'bind' then
+        local item = pending.item
+        local current = facts.item(item.bag, item.slot)
+        -- Binding can update the link's bound flag. The instance, stack and
+        -- native collection state identify the completed operation.
+        if current and current.uniqueId == item.uniqueId and current.itemId == item.itemId
+            and current.stack == item.stack and current.setCollected == true and IsItemBound(item.bag, item.slot) then
+            finish(pending, 'done')
+        elseif GetFrameTimeMilliseconds() - pending.started > 5000 then finish(pending, 'uncertain') end
+        return
+    end
     -- A bank closing does not turn its unloaded slots into proof of a transfer.
     if pending.toBag and not accountBankOpen() then
         if GetFrameTimeMilliseconds() - pending.started > 5000 then finish(pending, 'uncertain') end
@@ -490,7 +554,8 @@ local function reconcile(pending)
         local item = pending.item
         local unchanged = count == item.stack and countBag(item.bag, item.link) == pending.sourceTotal
             and Id64ToString(GetItemUniqueId(item.bag, item.slot)) == item.uniqueId
-        if unchanged and not poc.cancelled and not IsItemPlayerLocked(item.bag, item.slot) and (pending.useAttempts or 1) < 3 then
+        if unchanged and not poc.cancelled and not poc.visitFinished
+            and not IsItemPlayerLocked(item.bag, item.slot) and (pending.useAttempts or 1) < 3 then
             pending.retryAt = now + 1000 + GetLatency()
             openRetries[itemKey(item)] = pending
             scheduleUseRetry(pending.retryAt)
@@ -507,21 +572,25 @@ end
 ---@param guildId number
 ---@param reserved table<string, boolean>
 ---@return boolean
+---@return string|nil reason
 function poc.post(item, quote, guildId, reserved)
-    if not poc.enabled or poc.cancelled or not poc.saved or poc.saved.pending or poc.saved.batch or poc.blocked[itemKey(item)] then return false end
-    if GetInteractionType() ~= INTERACTION_TRADINGHOUSE or GetSelectedTradingHouseGuildId() ~= guildId then return false end
-    if not BattleScrolls.inventoryPocMarket.canRequest() then return false end
+    if not poc.enabled or poc.cancelled or poc.visitFinished or not poc.saved
+        or poc.saved.pending or poc.saved.batch or poc.blocked[itemKey(item)] then return false, 'work-unavailable' end
+    if GetInteractionType() ~= INTERACTION_TRADINGHOUSE or GetSelectedTradingHouseGuildId() ~= guildId then return false, 'interaction-changed' end
+    -- The market owns the request subscription before calling this send.
+    if not BattleScrolls.inventoryPocMarket.ownRequest or not TRADING_HOUSE_SEARCH:CanDoCommonOperation() then return false, 'request-busy' end
     local current = facts.item(item.bag, item.slot, reserved)
-    if not policy.sameItem(item, current) or current.reserved or not IsItemSellableOnTradingHouse(item.bag, item.slot) then return false end
+    if not policy.sameItem(item, current) or current.reserved or not IsItemSellableOnTradingHouse(item.bag, item.slot) then return false, 'item-changed' end
     current.marketUnit = quote.unitPrice
     local decision = policy.decide(current)
-    if decision.action ~= 'list' then return false end
+    if decision.action ~= 'list' then return false, 'decision-' .. decision.action .. '-' .. decision.reason end
     local quantity = policy.listingQuantity(current)
-    if quantity == 0 or quote.quantity ~= quantity or quote.totalPrice ~= math.floor(quote.unitPrice * quantity) then return false end
+    if quantity == 0 or quote.quantity ~= quantity or quote.totalPrice ~= math.floor(quote.unitPrice * quantity) then return false, 'quote-changed' end
     local used, capacity = BattleScrolls.inventoryPocMarket.listingCounts()
     local fee = GetTradingHousePostPriceInfo(quote.totalPrice)
-    if used >= capacity or quote.totalPrice < policy.MIN_LISTING or quote.totalPrice > 2147483647
-        or fee > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) then return false end
+    if used >= capacity then return false, 'slots-full' end
+    if quote.totalPrice < policy.MIN_LISTING or quote.totalPrice > 2147483647 then return false, 'price-out-of-range' end
+    if fee > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) then return false, 'fee-unaffordable' end
     poc.saved.pending = { item = current, action = 'list', quantity = quantity, started = GetFrameTimeMilliseconds(),
         character = GetUnitName('player'), sourceTotal = countBag(item.bag, item.link), guildId = guildId,
         askingPrice = quote.totalPrice, fee = fee, reason = decision.reason, discount = quote.discount }
@@ -556,14 +625,16 @@ end
 ---@param toBackpack boolean|nil
 ---@return boolean
 local function start(item, action, reserved, quantity, toBackpack)
-    if poc.cancelled or not poc.saved or poc.saved.pending or poc.saved.batch or poc.blocked[itemKey(item)] then return false end
-    if action == 'bank' and manualBankItems[item.link] then return false end
+    if poc.cancelled or poc.visitFinished or not poc.saved or poc.saved.pending or poc.saved.batch
+        or poc.blocked[itemKey(item)] then return false end
+    if (action == 'bank' or action == 'bind') and manualBankItems[item.link] then return false end
     local current = facts.item(item.bag, item.slot, reserved)
     if not policy.sameItem(item, current) or current.reserved then return false end
     local decision = policy.decide(current)
     if action ~= 'bank' and decision.action ~= action then return false end
     if action == 'bank' and not current.filledSoulGem then
         local withdraw = decision.action == 'learn' or decision.action == 'list' or decision.action == 'sell' or decision.action == 'destroy'
+            or policy.needsMarketPrice(current)
         if toBackpack and current.kind == 'fragment' and current.known == false then
             if not workPass or not workPass.bank then return false end
             local carried = availableCount(current, workPass.backpack, reserved)
@@ -583,6 +654,14 @@ local function start(item, action, reserved, quantity, toBackpack)
         pending.toBag, pending.toSlot, pending.toCount = bag, slot, count
         pending.destinationTotal = countBag(bag, item.link)
         pending.quantity = math.min(pending.quantity, room)
+    elseif action == 'bind' then
+        local service = serviceActivity()
+        if not canUseFromPack() and service ~= 'bank' and service ~= 'sell'
+            and service ~= 'deconstruct' and service ~= 'listings' then return false end
+        if IsUnitInCombat('player') or IsUnitDead('player') or IsLooting()
+            or not current.collectionKey or collectionAttempts[current.collectionKey]
+            or not ZO_InventorySlot_WillItemBecomeBoundOnEquip(item.bag, item.slot) then return false end
+        pending.quantity = 1
     elseif action == 'learn' or action == 'open' then
         if not canUseFromPack() or not current.usable then return false end
         if action == 'open' and GetNumBagFreeSlots(BAG_BACKPACK) == 0 then return false end
@@ -607,6 +686,9 @@ local function start(item, action, reserved, quantity, toBackpack)
     poc.saved.pending = pending
     if action == 'bank' then
         CallSecureProtected('RequestMoveItem', item.bag, item.slot, pending.toBag, pending.toSlot, pending.quantity)
+    elseif action == 'bind' then
+        collectionAttempts[current.collectionKey] = true
+        BindItem(item.bag, item.slot)
     elseif action == 'learn' or action == 'open' then
         openRetries[itemKey(item)] = nil
         useItem(pending)
@@ -622,7 +704,7 @@ end
 ---@param toBackpack boolean
 ---@return boolean
 function poc.moveBuildItem(item, toBackpack)
-    if not poc.enabled or poc.cancelled or not poc.saved or poc.saved.pending or poc.saved.batch or not accountBankOpen()
+    if not poc.enabled or poc.cancelled or poc.visitFinished or not poc.saved or poc.saved.pending or poc.saved.batch or not accountBankOpen()
         or poc.blocked[itemKey(item)] or manualBankItems[item.link] or IsUnitInCombat('player') then return false end
     if not BattleScrolls.inventoryPocBuilds.canMove(item, toBackpack) then return false end
     local current = facts.item(item.bag, item.slot)
@@ -637,16 +719,42 @@ function poc.moveBuildItem(item, toBackpack)
 end
 
 ---@param pass InventoryPocPass
----@return boolean
-local function bankWork(pass)
-    local backpack, reserved = pass.backpack, pass.reserved
+---@return InventoryPocItem[]
+local function scanBank(pass)
     if not pass.bank then
         pass.bank = {}
         for _, bag in ipairs(bankBags()) do
-            for _, item in ipairs(facts.bag(bag, reserved)) do pass.bank[#pass.bank + 1] = item end
+            for _, item in ipairs(facts.bag(bag, pass.reserved)) do pass.bank[#pass.bank + 1] = item end
         end
     end
-    local bank = pass.bank
+    return pass.bank
+end
+
+---@param pass InventoryPocPass
+---@return boolean
+local function collectWork(pass)
+    local best, checked = nil, 0
+    for _, items in ipairs({ pass.backpack, pass.bank }) do
+        for _, item in ipairs(items) do
+            if item.collectionKey and (not best or item.collectionKey == best.collectionKey)
+                and not collectionAttempts[item.collectionKey]
+                and not poc.blocked[itemKey(item)] and not manualBankItems[item.link]
+                and policy.decide(item).action == 'bind' then
+                if ZO_InventorySlot_WillItemBecomeBoundOnEquip(item.bag, item.slot)
+                    and (not best or preferCollectionCopy(item, best)) then best = item end
+                checked = checked + 1
+                if checked % 5 == 0 then LibEffect.Yield():Await() end
+            end
+        end
+    end
+    return best ~= nil and start(best, 'bind', pass.reserved)
+end
+
+---@param pass InventoryPocPass
+---@return boolean
+local function bankWork(pass)
+    local backpack, reserved = pass.backpack, pass.reserved
+    local bank = scanBank(pass)
     local packGems, bankGems = 0, 0
     for _, item in ipairs(backpack) do
         if item.filledSoulGem and not item.crown and not item.reserved then packGems = packGems + item.stack end
@@ -690,7 +798,7 @@ local function step()
     if poc.saved.batch then reconcileBatch(poc.saved.batch); if poc.saved.batch then return end end
     if poc.saved.pending then reconcile(poc.saved.pending); if poc.saved.pending then return end end
     if next(BattleScrolls.inventoryPocReturns.claims) then BattleScrolls.inventoryPocReturns.sync(); return end
-    if poc.cancelled then poc.dirty = false; return end
+    if poc.cancelled or poc.visitFinished then poc.dirty = false; return end
     local builds = BattleScrolls.inventoryPocBuilds
     local building = builds.request and builds.step({})
     -- WW can still be waiting on a skill, CP or food while a merchant is open.
@@ -715,20 +823,24 @@ local function step()
     end
     local backpack, reserved = workPass.backpack, workPass.reserved
     if not building and builds.step(reserved, workPass) then return end
+    if not building then
+        if accountBankOpen() or poc.craftOpen then scanBank(workPass) end
+        if collectWork(workPass) then return end
+    end
     if GetInteractionType() == INTERACTION_TRADINGHOUSE then
         poc.dirty = BattleScrolls.inventoryPocMarket.step(backpack, reserved)
-        if not poc.dirty then workPass = nil end
+        if not poc.dirty then poc.finishVisit() end
         return
     end
     if not building and accountBankOpen() and bankWork(workPass) then return end
     if GetInteractionType() == INTERACTION_VENDOR then
+        if poc.externalSaleUntil and GetFrameTimeMilliseconds() < poc.externalSaleUntil then return end
         if startBatch('sell', backpack, reserved, building) then return end
     elseif poc.craftOpen and not building then
+        if IsAwaitingCraftingProcessResponse() then return end
         local items = {}
         for _, item in ipairs(backpack) do items[#items + 1] = item end
-        for _, bag in ipairs(bankBags()) do
-            for _, item in ipairs(facts.bag(bag, reserved)) do items[#items + 1] = item end
-        end
+        for _, item in ipairs(workPass.bank or {}) do items[#items + 1] = item end
         if startBatch('deconstruct', items, reserved) then return end
     end
     for _, item in ipairs(backpack) do
@@ -741,10 +853,12 @@ local function step()
     end
     poc.dirty = false
     workPass = nil
+    if serviceActivity() and not builds.request then poc.finishVisit() end
 end
 
 function poc.wake()
     if not poc.enabled then return end
+    if poc.cancelled or poc.visitFinished then resumeWork(); return end
     BattleScrolls.inventoryPocMarket.invalidate()
     if workFiber then workFiber:Cancel(); workFiber = nil end
     workPass = nil
@@ -752,10 +866,10 @@ function poc.wake()
     resumeWork()
 end
 
----A response changes queue progress, not the contents of the inventory scan.
+---Resume queue progress using the existing inventory scan.
 function poc.resume()
     if not poc.enabled then return end
-    poc.dirty = true
+    if not poc.cancelled and not poc.visitFinished then poc.dirty = true end
     resumeWork()
 end
 
@@ -763,6 +877,7 @@ end
 function poc.cancelWork()
     if not poc.enabled then return end
     poc.cancelled = true
+    if serviceActivity() then poc.finishVisit() end
     poc.lastInteraction = GetInteractionType()
     if workFiber then workFiber:Cancel(); workFiber = nil end
     workPass, openRetries = nil, {}
@@ -780,12 +895,17 @@ end
 ---@return string|nil itemLink
 ---@return number|nil guildId
 function poc.activity()
-    if not poc.enabled or poc.cancelled or not poc.saved or IsUnitInCombat('player') or IsUnitDead('player') or IsLooting() then return end
+    if not poc.enabled or poc.cancelled or poc.visitFinished or not poc.saved
+        or IsUnitInCombat('player') or IsUnitDead('player') or IsLooting() then return end
+    local service = serviceActivity()
     local pending, batch = poc.saved.pending, poc.saved.batch
-    if pending then return pending.action, pending.item.link, pending.guildId end
-    if batch then return batch.action end
+    if pending and pending.action == 'bind' then return service or 'checking', pending.item.link end
+    if pending and (not service or service == pending.action or (service == 'listings' and pending.action == 'list')) then
+        return pending.action, pending.item.link, pending.guildId
+    end
+    if batch and (not service or service == batch.action) then return batch.action end
     local builds, market = BattleScrolls.inventoryPocBuilds, BattleScrolls.inventoryPocMarket
-    if builds.request then return builds.request.kind end
+    if builds.request and (not service or service == 'bank' or service == 'armory') then return builds.request.kind end
     if GetInteractionType() == INTERACTION_TRADINGHOUSE then
         if market.stopped or not poc.dirty then return end
         local search = market.search
@@ -795,10 +915,8 @@ function poc.activity()
         end
         return 'listings', nil, market.activityGuildId or GetSelectedTradingHouseGuildId()
     end
-    if workFiber or poc.dirty then
-        if accountBankOpen() then return 'bank' end
-        if GetInteractionType() == INTERACTION_VENDOR then return 'sell' end
-        if poc.craftOpen then return 'deconstruct' end
+    if workFiber or poc.dirty or pending or batch or builds.request then
+        if service then return service end
         if workFiber then return 'checking' end
     end
 end
@@ -807,7 +925,7 @@ end
 local function needsWork()
     if not poc.enabled or not poc.saved then return false end
     if poc.saved.pending or poc.saved.batch or next(BattleScrolls.inventoryPocReturns.claims) then return true end
-    if poc.cancelled then return false end
+    if poc.cancelled or poc.visitFinished then return false end
     if IsUnitInCombat('player') or IsUnitDead('player') or IsLooting() then return false end
     local buildRequest = BattleScrolls.inventoryPocBuilds.request
     if buildRequest then return buildRequest.kind ~= 'armory' end
@@ -832,7 +950,12 @@ update = function()
     -- interaction changes have no single event covering all supported windows.
     local interaction, moving = GetInteractionType(), IsPlayerMoving()
     local changed = interaction ~= poc.lastInteraction or moving ~= poc.lastMoving
-    if interaction ~= poc.lastInteraction and interaction ~= INTERACTION_NONE and not IsLooting() then poc.cancelled = false end
+    if interaction ~= poc.lastInteraction then
+        poc.visitFinished = false
+        if interaction ~= INTERACTION_NONE and not IsLooting() then poc.beginVisit() end
+    elseif poc.visitFinished and not serviceActivity() then
+        poc.visitFinished, changed = false, true
+    end
     poc.lastInteraction, poc.lastMoving = interaction, moving
     local now = GetFrameTimeMilliseconds()
     if poc.externalSaleUntil and now >= poc.externalSaleUntil then poc.externalSaleUntil, changed = nil, true end
@@ -846,10 +969,24 @@ update = function()
 end
 
 function poc.beginVisit()
+    if not poc.enabled then return end
     poc.cancelled = false
+    poc.visitFinished = false
+    -- Opening events establish the visit before the periodic interaction check.
+    poc.lastInteraction = GetInteractionType()
     poc.blocked, poc.notices = {}, {}
     manualBankItems = {}
+    collectionAttempts = {}
     poc.wake()
+end
+
+function poc.endVisit()
+    if not poc.enabled then return end
+    poc.finishVisit()
+    if workFiber then workFiber:Cancel(); workFiber = nil end
+    cancelUseRetry()
+    resumeWork()
+    BattleScrolls.inventoryPocWorkUI.refresh()
 end
 
 ---@param pending InventoryPocPending
@@ -858,6 +995,7 @@ end
 ---@return boolean
 local function expectedUpdate(pending, bag, slot)
     if bag == pending.item.bag and slot == pending.item.slot then
+        if pending.action == 'bind' then return Id64ToString(GetItemUniqueId(bag, slot)) == pending.item.uniqueId end
         local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
         return (link == '' or link == pending.item.link)
             and countAt(bag, slot, pending.item.link) == pending.item.stack - pending.quantity
@@ -979,6 +1117,11 @@ function poc.inspectItem(bag, slot)
                 tostring(item.styleMaterialUnit), traitMaterial, tostring(item.traitMaterialUnit), tostring(item.traitMaterialResolved)),
         }
         local flavor = GetItemLinkFlavorText(item.link)
+        if item.kind == 'gear' then
+            lines[#lines + 1] = string.format('IPOC tradeable=%s crafted=%s collected=%s upgradeMat=%s price=%s saleMin=%s',
+                tostring(item.tradeable), tostring(item.crafted), tostring(item.setCollected),
+                tostring(item.improvementMaterialLink), tostring(item.improvementMaterialUnit), tostring(policy.gearSaleMinimum(item)))
+        end
         if flavor ~= '' then lines[#lines + 1] = 'IPOC flavor=' .. flavor end
         printProbe(lines)
     end):Ensure(function() probeFiber = nil; BattleScrolls.gc:RequestGC(2) end):Run()
@@ -1018,7 +1161,7 @@ function poc.enable()
         poc.registered = true
         local function otherSale()
             if not poc.enabled or poc.ownVendorSale then return end
-            poc.externalSaleUntil = GetFrameTimeMilliseconds() + 5000
+            if not poc.visitFinished then poc.externalSaleUntil = GetFrameTimeMilliseconds() + 5000 end
             local batch = poc.saved.batch
             if batch and batch.action == 'sell' then
                 for _, entry in ipairs(batch.entries) do entry.conflicted = true end
@@ -1050,12 +1193,19 @@ function poc.enable()
             poc.wake()
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_INVENTORY_FULL_UPDATE, poc.wake)
+        local function collectionUpdated()
+            if not poc.enabled then return end
+            if poc.saved.pending and poc.saved.pending.action == 'bind' then resumeWork()
+            else poc.wake() end
+        end
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_ITEM_SET_COLLECTION_UPDATED, collectionUpdated)
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_ITEM_SET_COLLECTIONS_UPDATED, collectionUpdated)
         -- Native bank actions (including gamepad and partial-stack transfers)
         -- pick up the source before placing it. Observe that event rather than
         -- wrapping protected functions or changing native dialog callbacks.
         -- Our RequestMoveItem calls do not use the cursor.
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CURSOR_PICKUP, function(_, cursorType, bag, slot)
-            if not poc.enabled or cursorType ~= MOUSE_CONTENT_INVENTORY_ITEM or not accountBankOpen() then return end
+            if not poc.enabled or poc.visitFinished or cursorType ~= MOUSE_CONTENT_INVENTORY_ITEM or not accountBankOpen() then return end
             if bag ~= BAG_BACKPACK and bag ~= BAG_BANK and bag ~= BAG_SUBSCRIBER_BANK then return end
             local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
             if link == '' then return end
@@ -1064,32 +1214,25 @@ function poc.enable()
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_ACTIVATED, poc.beginVisit)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_OPEN_BANK, poc.beginVisit)
-        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_OPEN_STORE, function()
-            if not poc.enabled then return end
-            for index = 1, GetNumStoreItems() do
-                local _, _, _, _, _, _, _, _, _, currency1, _, currency2 = GetStoreEntryInfo(index)
-                local link = GetStoreItemLink(index, LINK_STYLE_DEFAULT)
-                if (currency1 == CURT_ALLIANCE_POINTS or currency2 == CURT_ALLIANCE_POINTS) and GetItemLinkItemType(link) == ITEMTYPE_POTION then
-                    poc.saved.apPotions[GetItemLinkItemId(link)] = true
-                end
-            end
-            poc.beginVisit()
-        end)
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_OPEN_ARMORY_MENU, poc.beginVisit)
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_OPEN_STORE, poc.beginVisit)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CLOSE_BANK, function()
             manualBankItems = {}
-            poc.wake()
+            poc.endVisit()
         end)
-        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CLOSE_STORE, poc.wake)
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CLOSE_STORE, poc.endVisit)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_COMBAT_STATE, poc.wake)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_ALIVE, poc.wake)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_DEAD, poc.wake)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_REINCARNATED, poc.wake)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_LOOT_CLOSED, poc.wake)
-        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CRAFTING_STATION_INTERACT, function()
-            poc.craftOpen = true; poc.beginVisit()
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CRAFTING_STATION_INTERACT, function(_, _, sameStation)
+            local wasOpen = poc.craftOpen
+            poc.craftOpen = true
+            if not wasOpen or not sameStation then poc.beginVisit() end
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_END_CRAFTING_STATION_INTERACT, function()
-            poc.craftOpen = false; poc.wake()
+            poc.craftOpen = false; poc.endVisit()
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CRAFT_COMPLETED, function()
             local batch = poc.saved and poc.saved.batch
@@ -1133,7 +1276,10 @@ end
 ---@param entry InventoryPocLogEntry
 ---@return string
 function poc.formatLog(entry)
-    if entry.marketIssue then return GetString(BATTLESCROLLS_IPOC_MARKET_STOPPED) end
+    if entry.marketIssue then
+        if entry.marketIssue.skipped then return zo_strformat(GetString(BATTLESCROLLS_IPOC_LISTING_SKIPPED), entry.itemLink) end
+        return GetString(BATTLESCROLLS_IPOC_MARKET_STOPPED)
+    end
     if entry.buildName then
         local id = entry.result == 'uncertain' and BATTLESCROLLS_IPOC_BUILD_INTERRUPTED
             or (entry.setupName and BATTLESCROLLS_IPOC_BUILD_READY or BATTLESCROLLS_IPOC_ARMORY_RESTORED)
@@ -1143,7 +1289,8 @@ function poc.formatLog(entry)
         return zo_strformat(GetString(BATTLESCROLLS_IPOC_UNCERTAIN), entry.quantity, entry.itemLink)
     end
     if entry.result == 'deferred' then
-        local ids = { price = BATTLESCROLLS_IPOC_WAIT_PRICE, knowledge = BATTLESCROLLS_IPOC_WAIT_KNOWLEDGE,
+        local ids = { price = BATTLESCROLLS_IPOC_WAIT_PRICE, priceCheck = BATTLESCROLLS_IPOC_WAIT_PRICE_CHECK,
+            knowledge = BATTLESCROLLS_IPOC_WAIT_KNOWLEDGE,
             companion = BATTLESCROLLS_IPOC_WAIT_COMPANION }
         return zo_strformat(GetString(ids[entry.reason]), entry.itemLink)
     end
@@ -1152,6 +1299,7 @@ function poc.formatLog(entry)
         return zo_strformat(GetString(BATTLESCROLLS_IPOC_MOVED), entry.quantity, entry.itemLink, GetString('SI_BAG', bag))
     end
     if entry.action == 'learn' then return zo_strformat(GetString(BATTLESCROLLS_IPOC_LEARNED), entry.itemLink) end
+    if entry.action == 'bind' then return zo_strformat(GetString(BATTLESCROLLS_IPOC_COLLECTED), entry.itemLink) end
     if entry.action == 'open' then return zo_strformat(GetString(BATTLESCROLLS_IPOC_OPENED), entry.itemLink, entry.itemId) end
     if entry.action == 'list' then
         return zo_strformat(GetString(BATTLESCROLLS_IPOC_LISTED), entry.quantity, entry.itemLink,
@@ -1161,12 +1309,21 @@ function poc.formatLog(entry)
     return zo_strformat(GetString(ids[entry.action]), entry.quantity, entry.itemLink, entry.gold or 0)
 end
 
+---@param entry InventoryPocLootEntry
+---@return string
+function poc.formatLoot(entry)
+    local name = entry.currencyType and GetCurrencyName(entry.currencyType, IsCountSingularForm(entry.quantity), false)
+        or (entry.link and entry.link ~= '' and entry.link or entry.name)
+    return zo_strformat(GetString(BATTLESCROLLS_IPOC_CONTENTS_ITEM), entry.quantity, name)
+end
+
 ---@param count number|nil
 function poc.log(count)
     if not poc.saved then return end
     local log = poc.saved.log
     for index = math.max(1, #log - (count or 10) + 1), #log do
         d(poc.formatLog(log[index]))
+        for _, item in ipairs(log[index].contents or {}) do d(poc.formatLoot(item)) end
         if log[index].marketIssue then d(log[index].marketIssue.diagnostics) end
     end
 end
@@ -1192,7 +1349,7 @@ local function initialize()
     root.accounts[account] = root.accounts[account] or {}
     local worlds = root.accounts[account]
     local world = GetWorldName()
-    worlds[world] = worlds[world] or { enabled = false, log = {}, reports = {}, companions = {}, apPotions = {}, builds = {},
+    worlds[world] = worlds[world] or { enabled = false, log = {}, reports = {}, companions = {}, builds = {},
         returns = { stock = {}, discounted = {} } }
     poc.saved = worlds[world]
     poc.saved.builds = poc.saved.builds or {}

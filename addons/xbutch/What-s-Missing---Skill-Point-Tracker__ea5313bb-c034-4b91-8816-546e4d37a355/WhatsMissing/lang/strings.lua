@@ -13,7 +13,7 @@ local strings = {
 
 	SPT_GUI_GSP		= "General Skill Points",
 	SPT_GUI_SQS		= "Storyline Quests & Skyshards",
-	SPT_GUI_GDQ		= "Group Dungeon Quests",
+	SPT_GUI_GDQ		= "Dungeon Quests",
 	SPT_GUI_PDB		= "Public Dungeon Group Boss Events",
 	SPT_GUI_SOURCE		= "Source",
 	SPT_GUI_PROGRESS	= "Progress",
@@ -21,7 +21,8 @@ local strings = {
 	SPT_GUI_STORYLINE	= "Storyline",
 	SPT_GUI_SKYSHARDS	= "Skyshards",
 	SPT_GUI_NOWHERE_VAULT = "Nowhere Vault",
-	SPT_GUI_GROUP_DUNGEON = "Group Dungeon",
+	SPT_GUI_GROUP_DUNGEON = "Dungeon",
+	SPT_GUI_DUNGEON_SOLO = "%s (Solo)",
 	SPT_GUI_PUBLIC_DUNGEON = "Public Dungeon",
 	SPT_GUI_DUNGEON_NAME = "Dungeon Name",
 

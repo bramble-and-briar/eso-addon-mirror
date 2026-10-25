@@ -132,6 +132,11 @@ function Util.FallGradient(text)
     return table.concat(parts)
 end
 
+-- The faint line that sets parts of the add-on's text apart, in the writ tooltip and on the settings' Supporters page:
+-- a thin white line, mostly see-through. A texture with no picture draws as a rectangle of its colour.
+Util.LINE_HEIGHT = 2
+Util.LINE_ALPHA = 0.2
+
 -- Prints a debug message to chat when debug output is switched on.
 function Util.Debug(message, ...)
     if addon.debug then

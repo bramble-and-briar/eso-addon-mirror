@@ -36,9 +36,10 @@ local TITLE_FONT = "$(GAMEPAD_BOLD_FONT)|$(GP_42)|soft-shadow-thick"
 local HEADING_FONT = "$(GAMEPAD_BOLD_FONT)|$(GP_34)|soft-shadow-thick"
 local BODY_FONT = "$(GAMEPAD_MEDIUM_FONT)|$(GP_27)|soft-shadow-thin"
 local BULLET_ICON = "EsoUI/Art/Miscellaneous/Gamepad/gp_bullet.dds"
--- The thank-you ends with the gold favourite star of the game's gamepad lists (common/gamepad), in its own colour.
+-- The thank-you has a gold star at each end: the favourite star of the game's gamepad lists (common/gamepad), in its
+-- own colour.
 local THANKS_ICON = "EsoUI/Art/Collections/Favorite_StarOnly.dds"
-local THANKS_ICON_SIZE = 28
+local THANKS_ICON_SIZE = 35
 
 local GREY = ZO_ColorDef:New("C5C5C5")
 
@@ -61,10 +62,10 @@ function Popup.GetLatestReleaseNotes()
     return Popup.GetReleaseNotes(addon.version) or (addon.releaseNotes and addon.releaseNotes[1])
 end
 
--- Returns "Thank you for your support!" followed by a gold star.
+-- Returns "Thank you for your support!" between two gold stars.
 function Popup.FormatThanks()
-    return string.format("%s %s", GetString(SI_CCMW_THANK_YOU), zo_iconFormat(THANKS_ICON, THANKS_ICON_SIZE,
-        THANKS_ICON_SIZE))
+    local star = zo_iconFormat(THANKS_ICON, THANKS_ICON_SIZE, THANKS_ICON_SIZE)
+    return string.format("%s %s %s", star, GetString(SI_CCMW_THANK_YOU), star)
 end
 
 -- Returns a web address from Support.lua, or nil if it is empty.

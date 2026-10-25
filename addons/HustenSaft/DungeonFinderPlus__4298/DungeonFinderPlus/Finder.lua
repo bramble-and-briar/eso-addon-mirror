@@ -110,13 +110,32 @@ local function isVisibleDungeon(entry)
     return IsFourPlayerActivity(entry.actN) or IsFourPlayerActivity(entry.actV)
 end
 
-local function isActivePledgeByName(name)
-    local map = (DFP.Pledges and DFP.Pledges.active) or {}
-    return map[norm(name or "")] == true
+-- Flamechasers-Pledge-Check (bevorzugt Activity-ID-Treffer)
+local function isRowPledge(row)
+    if not row then return false end
+    local pledges = DFP.Pledges
+    if not pledges then return false end
+
+    -- 1. Sicherster Check über die LFG Activity-IDs (Normal oder Vet)
+    local actMap = pledges.activeActivities
+    if actMap then
+        if row.actN and actMap[row.actN] then return true end
+        if row.actV and actMap[row.actV] then return true end
+    end
+
+    -- 2. Fallback über den Flamechasers-Key (Name ohne Satz-/Leerzeichen)
+    local keyMap = pledges.active
+    if keyMap and row.name then
+        local k = zo_strformat("<<C:1>>", row.name):lower():gsub("[%p%s%c]+", "")
+        if keyMap[k] then return true end
+    end
+
+    return false
 end
 
--- achivements
-
+-- ──────────────────────────────────────────────────────────────
+-- Achievements
+-- ──────────────────────────────────────────────────────────────
 local function formatAchievementDate(ts)
     if not ts then return nil end
     if GetDateStringFromTimestamp then
@@ -169,10 +188,9 @@ local function getAchievementStatsForRow(row)
     }
 end
 
-
-
-
--- Sets über LibSets (Monster-Sets lila)
+-- ──────────────────────────────────────────────────────────────
+-- Sets über LibSets 
+-- ──────────────────────────────────────────────────────────────
 local function getSetsForActivity(activityId)
     local LS = GetLibSets()
     if not (LS and activityId and GetActivityZoneId) then
@@ -208,7 +226,6 @@ local function getSetsForActivity(activityId)
     table.sort(out)
     return out
 end
-
 
 local function rowMatchesSearch(row, q)
     if q == "" then
@@ -246,7 +263,9 @@ local function rowMatchesSearch(row, q)
     return false
 end
 
--- Tooltip-Text für eine Zeile
+-- ──────────────────────────────────────────────────────────────
+-- Tooltips
+-- ──────────────────────────────────────────────────────────────
 local function buildTooltipText(row)
     if not row then return "" end
     local lines = {}
@@ -255,7 +274,7 @@ local function buildTooltipText(row)
     lines[#lines+1] = "|cFFD700" .. (row.name or "?") .. "|r"
 
     ----------------------------------------------------------------
-    -- PLEDGE HEUTE? 
+    -- PLEDGE HEUTE?
     ----------------------------------------------------------------
     if row.isPledge then
         lines[#lines+1] = "|cFFFF00" .. L("tt_pledge_today") .. "|r"
@@ -297,7 +316,7 @@ local function buildTooltipText(row)
     end
 
     ----------------------------------------------------------------
-    -- Sets (Monster-Sets lila)
+    -- Sets
     ----------------------------------------------------------------
     local LS = GetLibSets()
     if LS then
@@ -335,9 +354,6 @@ local function buildTooltipText(row)
     return table.concat(lines, "\n")
 end
 
-
-
-
 function DFP.Finder:OnRowMouseEnter(control)
     if not control or not InformationTooltip then return end
     local row = control.data
@@ -374,8 +390,10 @@ function DFP.Finder:RebuildData()
                 actN     = e.normalId,
                 actV     = e.vetId,
                 isDLC    = e.isDLC and true or false,
-                isPledge = isActivePledgeByName(name),
+                isPledge = false,
             }
+            entry.isPledge = isRowPledge(entry)
+
             if isVisibleDungeon(entry) then
                 DATA[#DATA+1] = entry
             end
@@ -394,10 +412,9 @@ end
 
 function DFP.Finder:QuickPledgeUpdate()
     if not DATA or #DATA == 0 then return end
-    local map = (DFP.Pledges and DFP.Pledges.active) or {}
 
     for _, row in ipairs(DATA) do
-        row.isPledge = map[norm(row.name or "")] == true
+        row.isPledge = isRowPledge(row)
     end
 
     table.sort(DATA, function(a, b)
@@ -534,7 +551,7 @@ function DFP.Finder:EnsureInit()
         -- Typ (DLC/Base)
         typeL:SetText(d.isDLC and L("label_type_dlc") or L("label_type_base"))
 
-        -- Vet/Normal Buttons (Segment)
+        -- Vet/Normal Buttons 
         local mode = ROW_MODE[d.key]
         if type(mode) ~= "table" then
             local wantVet

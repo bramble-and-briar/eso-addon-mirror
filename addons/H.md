@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Harven's Dwemer Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Dwemer-Clock__642) | Harven | PC / Mac | 1.3 |
 | [Harven's Experience Notify](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Experience-Notify__338) | Harven | PC / Mac | 3.7 |
 | [Harven's Extended Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Extended-Stats__372) | Harven | PC / Mac | 1.2 |
-| [Harven's Extra Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Harven-s-Extra-Icons__4939) | sshogrin | PC / Mac | 1.0.0 |
+| [Harven's Extra Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Harven-s-Extra-Icons__4939) | sshogrin | PC / Mac | 1.0.1 |
 | [Harven's FPP Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-FPP-Zoom__620) | Harven | PC / Mac | 1.2a |
 | [Harven's Horse Feed Confirmation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Horse-Feed-Confirmation__644) | Harven | PC / Mac | 1.2 |
 | [Harven's House Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-House-Hunter__621) | Harven | PC / Mac | 1.12.0 |

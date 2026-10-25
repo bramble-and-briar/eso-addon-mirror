@@ -9,11 +9,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Gabriel's Inventory Fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gabriel_H/Gabriel-s-Inventory-Fix__2916) | Gabriel_H | PC / Mac | 2.0.1 |
 | [Game Information (bag issue hotfix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w33zl/Game-Information-bag-issue-hotfix__775) | w33zl | PC / Mac | 3.3 hotfix |
 | [Game Information (fix for patch 1.3.3)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w33zl/Game-Information-fix-for-patch-1.3.3__679) | w33zl | PC / Mac | 2.6b |
+| [Gamepad Instant Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/F9o0/Gamepad-Instant-Destroy__4982) | F9o0 | PC / Mac | 1.2 |
 | [Gamepad Inventory Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/Gamepad-Inventory-Tweaks__1a29fcf8-992f-4334-bf0a-088cc4ac73a7) | YeOldeDragon | Console | — |
 | [Gamepad Inventory Tweaks (PC/XBOX/Playstation)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/Gamepad-Inventory-Tweaks-PC-XBOX-Playstation__4453) | YeOldeDragon | PC / Mac | 0.4.0 |
 | [Gamepad Mini Chat Tabs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/Gamepad-Mini-Chat-Tabs__754151c2-90b5-4c5f-ba25-ab2b38c18284) | Dack.Janiels | Console | — |
 | [Gamepad Stay Mounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirNightstorm/Gamepad-Stay-Mounted__3951) | SirNightstorm | PC / Mac | 1.1.0 |
-| [Gamepad Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/F9o0/Gamepad-Toggle__4977) | F9o0 | PC / Mac | 1 |
+| [Gamepad Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/F9o0/Gamepad-Toggle__4977) | F9o0 | PC / Mac | 1.1 |
 | [Gamepad UI Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/Gamepad-UI-Tweaks__3a49967e-c0fb-4b54-b2f0-f681b2a23b7d) | YeOldeDragon | Console | — |
 | [Gamepad UI Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/Gamepad-UI-Tweaks__4442) | YeOldeDragon | PC / Mac | 1.0.6 |
 | [GamePadHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Delte/GamePadHelper__71f99aa0-341b-44fb-8b98-0dbda2a5b136) | Delte | Console | — |
@@ -57,7 +58,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Go Fast Don't Die](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drezzek/Go-Fast-Don-t-Die__3332) | Drezzek | PC / Mac | 1.4 |
 | [Go Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Go-Home__1604) | static_recharge | PC / Mac | 8.0.0 |
 | [GoA_DolgubonsLazyWritCreatorUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_DolgubonsLazyWritCreatorUAPatch__4703) | Iriya_Altmer | PC / Mac | 1.7 |
-| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 46.99.93 |
+| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 46.99.94 |
 | [GoA_FCOLockpickerUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_FCOLockpickerUAPatch__4733) | Iriya_Altmer | PC / Mac | 1.0 |
 | [GoA_HarvestMapUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_HarvestMapUAPatch__4707) | Iriya_Altmer | PC / Mac | 1.1 |
 | [GoA_TamrielTradeCentreUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_TamrielTradeCentreUAPatch__4705) | Iriya_Altmer | PC / Mac | 1.2 |
@@ -87,7 +88,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Greymind Quick Slot Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bsrealm/Greymind-Quick-Slot-Bar__258) | bsrealm | PC / Mac | v2.7.2.25 |
 | [GREYMOOR - Enhanced Lockpicking - A Lockpicking Interface Retexture](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luxape/GREYMOOR---Enhanced-Lockpicking---A-Lockpicking-Interface-Retexture__2420) | luxape | PC / Mac | 1.4 |
 | [Greyskull : Weapon / Spell Damage Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Greyskull-Weapon-Spell-Damage-Meter__1924) | ghostbane | PC / Mac | 1.1.1 |
-| [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.04 |
+| [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.45 |
 | [GridList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList__2341) | KLISK | PC / Mac | 1.3.2 |
 | [GridList Clean Skin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tonyleila/GridList-Clean-Skin__2299) | Tonyleila | PC / Mac | 02 |
 | [GridList Skins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList-Skins__2304) | KLISK | PC / Mac | 0.2 |

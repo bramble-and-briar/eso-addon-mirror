@@ -424,8 +424,17 @@ BossData.DelveChampionTableStore = {
 		{ 0.1350, 0.5860, "Den Mother Toamna" },
 		{ 0.4370, 0.6150, "Seldine Second-Skin" },
 	},
+	["argentmine2_base_0"] = {
+		{ 0.7160, 0.2530, "Magnar Child-Eater" },
+	},
+	["arpenial_base_0"] = {
+		{ 0.1630, 0.3800, "Shadow Knight Nassuphae" },
+	},
 	["ashalmawia02_base_0"] = {
 		{ 0.3650, 0.3050, "Phobbiicus" },
+	},
+	["ashalmawia_base_0"] = {
+		{ 0.4820, 0.2840, "Zylara" },
 	},
 	["atanazruins_base_0"] = {
 		{ 0.5530, 0.4490, "Stormscale" },
@@ -474,6 +483,9 @@ BossData.DelveChampionTableStore = {
 	},
 	["caveoftrophies_base_0"] = {
 		{ 0.5610, 0.3700, "Gnilokelo" },
+	},
+	["caveoftrophiesupper_base_0"] = {
+		{ 0.3030, 0.6040, "Gnilokelo" },
 	},
 	["chidmoskaruins_base_0"] = {
 		{ 0.6820, 0.3820, "Lirlane" },
@@ -535,6 +547,12 @@ BossData.DelveChampionTableStore = {
 		{ 0.7830, 0.2420, "Fire Mage Linia" },
 		{ 0.8300, 0.2230, "Frost Mage Porcia" },
 	},
+	["balamathlibrary_base_0"] = {
+		{ 0.7320, 0.5100, "Nomeg Zozumiralpachar" },
+	},
+	["balamathairmonarchcham_base_0"] = {
+		{ 0.4520, 0.5910, "Parel Nirus" },
+	},
 	["thaliasretreat_base_0"] = {
 		{ 0.2680, 0.1450, "Zalgaz" },
 		{ 0.2700, 0.1710, "Zalgaz's Handmaiden" },
@@ -560,14 +578,22 @@ BossData.DelveChampionTableStore = {
 		{ 0.5090, 0.2270, "Taurieae" },
 	},
 	["ilthagsundertower_base_0"] = {
+		{ 0.1600, 0.4640, "Ilthag Ironblood" },
 		{ 0.1580, 0.4840, "Rahk" },
 		{ 0.1560, 0.4410, "Vosh" },
+	},
+	["ilthagsundertower02_base_0"] = {
+		{ 0.5030, 0.2930, "Uzka Trollfeeder" },
+		{ 0.5510, 0.2250, "Killraken" },
+		{ 0.6800, 0.3870, "Vrauloch" },
+		{ 0.4790, 0.9010, "Zizzikkiz'Tk" },
+		{ 0.4120, 0.5850, "Stormbringer" },
 	},
 	["lothna_base_0"] = {
 		{ 0.6000, 0.2750, "Visskar" },
 	},
 	["fearfang_base_0"] = {
-		{ 0.1900, 0.5900, "Fearfang Cavern" },
+		{ 0.1820, 0.6000, "Lakorrah the Matron" },
 		{ 0.5720, 0.4730, "Sepilisk" },
 	},
 	["exarchsstronghold_base_0"] = {
@@ -654,10 +680,13 @@ BossData.DelveChampionTableStore = {
 		{ 0.5100, 0.1030, "Captain Jena Apinia" },
 		{ 0.6110, 0.4270, "Ironfang" },
 	},
+	["gloomreach_base_0"] = {
+		{ 0.2870, 0.5130, "Pythis the Betrayer" },
+	},
 	["gurzagsmine_base_0"] = {
 		{ 0.7460, 0.4690, "Retribution" },
 	},
-	["hallsofregulation_base_0"] = {
+	["hallsofregulation_2_base_0"] = {
 		{ 0.7320, 0.4000, "The Steadfast Regulator" },
 	},
 	["harridanslair_base_0"] = {
@@ -679,10 +708,19 @@ BossData.DelveChampionTableStore = {
 	["houseofembersoutside_base_0"] = {
 		{ 0.4850, 0.2720, "Commandant Weston" },
 	},
+	["howlingsepulcherscave_base_0"] = {
+		{ 0.5000, 0.4340, "Rosathild" },
+	},
+	["howlingsepulchersoverland_base_0"] = {
+		{ 0.8780, 0.4640, "Akiirdal" },
+	},
 	["hrotacave_base_0"] = {
 		{ 0.2520, 0.1460, "Lecalus" },
 		{ 0.3180, 0.8020, "Malinanta" },
 		{ 0.8520, 0.7770, "Exulus" },
+	},
+	["hrotacave02_base_0"] = {
+		{ 0.5490, 0.2600, "Zalar-do" },
 	},
 	["icehammersvault_base_0"] = {
 		{ 0.4770, 0.4790, "Thane Icehammer" },
@@ -761,6 +799,9 @@ BossData.DelveChampionTableStore = {
 	["narilnagaia_base_0"] = {
 		{ 0.7470, 0.6120, "Archmage Camaano" },
 	},
+	["nchuleftdepths_base_0"] = {
+		{ 0.4900, 0.4170, "Nchuthand Far-Hurler" },
+	},
 	["nesalas_base_0"] = {
 		{ 0.6600, 0.7210, "Lieutenant Khari" },
 	},
@@ -774,6 +815,11 @@ BossData.DelveChampionTableStore = {
 	},
 	["norvulkruins_base_0"] = {
 		{ 0.5840, 0.6780, "Nariam" },
+	},
+	["oldsordscave_base_0"] = {
+		{ 0.8540, 0.1470, "Eorim the Hammer" },
+		{ 0.8750, 0.1590, "Braxek" },
+		{ 0.8320, 0.1590, "Gadof" },
 	},
 	["ondil_base_0"] = {
 		{ 0.4960, 0.2680, "Aluvus" },
@@ -814,6 +860,9 @@ BossData.DelveChampionTableStore = {
 	["redrubycave_base_0"] = {
 		{ 0.3850, 0.2150, "Endare" },
 		{ 0.7730, 0.2630, "Zandur" },
+	},
+	["rkhardahrk_0"] = {
+		{ 0.1280, 0.4970, "The Last Sentinel" },
 	},
 	["rootsofsilvenar_base_0"] = {
 		{ 0.8550, 0.5650, "Adavos Dren" },
@@ -910,6 +959,9 @@ BossData.DelveChampionTableStore = {
 		{ 0.2850, 0.4500, "Justiciar Avanaire" },
 		{ 0.6360, 0.2330, "The Kurgando" },
 	},
+	["tsofeercavern01_0"] = {
+		{ 0.7680, 0.3600, "Wuju-Ka Guardian" },
+	},
 	["traitorsvault01_base_0"] = {
 		{ 0.1330, 0.7420, "Vessel of Worms" },
 		{ 0.7170, 0.7700, "The First Flesh Colossus" },
@@ -948,6 +1000,11 @@ BossData.DelveChampionTableStore = {
 	["wansalen_base_0"] = {
 		{ 0.3670, 0.8650, "Nolonir" },
 	},
+	["wastencoraldale_base_0"] = {
+		{ 0.6130, 0.3500, "Stormsinger Farya" },
+		{ 0.7010, 0.4820, "Maeobet" },
+		{ 0.6990, 0.2850, "Commander Morteth" },
+	},
 	["watchershold_base_0"] = {
 		{ 0.6330, 0.2380, "Sir Marq Tailas" },
 	},
@@ -982,6 +1039,9 @@ BossData.DelveChampionTableStore = {
 	["shadowgreen_lower_base_0"] = {
 		{ 0.3590, 0.4840, "Ya'intha" },
 	},
+	["shadowgreen_upper_base_0"] = {
+		{ 0.3040, 0.4720, "Ya'intha" },
+	},
 	["thescraps_base_0"] = {
 		{ 0.2840, 0.5990, "Dwarven Spider" },
 	},
@@ -1009,6 +1069,9 @@ BossData.DelveChampionTableStore = {
 	["u32_dreaded_refuge_ext_base_0"] = {
 		{ 0.2900, 0.1490, "Infernium" },
 	},
+	["u32_dreaded_refuge_int_base2_0"] = {
+		{ 0.5000, 0.4310, "Kynreeve Brosuroth" },
+	},
 	["u34_firepotcave_base_0"] = {
 		{ 0.6520, 0.4780, "Esh'curnu the Behemoth" },
 	},
@@ -1026,7 +1089,7 @@ BossData.DelveChampionTableStore = {
 		{ 0.3860, 0.2840, "Jailer Mannick" },
 		{ 0.5080, 0.5000, "Hunter Lucia" },
 		{ 0.5250, 0.6180, "Hunter Cam" },
-		{ 0.0562, 0.0519, "Hunter Guildner" },
+		{ 0.5620, 0.5190, "Hunter Guildner" },
 		{ 0.5970, 0.4370, "Hunter Dee" },
 		{ 0.6470, 0.5780, "Hunter Marcus" },
 	},
@@ -1058,9 +1121,24 @@ BossData.DelveChampionTableStore = {
 	["u38_corpusclebight_01_base_0"] = {
 		{ 0.5000, 0.1250, "The Lightkeeper" },
 	},
+	["u42_fyrelightcave_base_0"] = {
+		{ 0.7740, 0.7070, "Scourgetail" },
+	},
+	["u42_base_haldain_0"] = {
+		{ 0.7220, 0.3700, "Aggression of Root" },
+	},
+	["u42_base_nonungalo_0"] = {
+		{ 0.7340, 0.4570, "Shattered Shard" },
+	},
+	["u42_base_towerbelli_0"] = {
+		{ 0.2640, 0.6580, "Deserter Marius Gallo" },
+	},
+	["ui_maps_u42_varenswall_ext_0"] = {
+		{ 0.6150, 0.3070, "Commander Hanhael" },
+		{ 0.6080, 0.2940, "Vralkuun" },
+	},
 	["u42_windcave_base_0"] = {
 		{ 0.3700, 0.4980, "Gilroy Vassinus" },
-		{ 0.6343, 0.3038, "Commander Hanhael" },
 	},
 	["u48_delve_sithis_crest_01_base_0"] = {
 		{ 0.0810, 0.3090, "Whisper of the Sacred Stones" },
@@ -1071,10 +1149,7 @@ BossData.DelveChampionTableStore = {
 	["u46_base_sanguinehdlv_base_0"] = { { 0.567, 0.638, "The Wine Sommelier" } },
 	["u46_base_lostvillage_base_0"] = { { 0.869, 0.313, "Nardirin Death-Hand" } },
 	["u46_carapacecaverns_base_0"] = { { 0.345, 0.528, "Headcracker" } },
-	["u46_base_lotwc_room_base_0"] = {    { 0.546, 0.554, "Riuzzan The Ravenous" },},
-	["u46_base_lotwc_0"] = { { 0.546, 0.554, "Riuzzan The Ravenous" },},
-	["u48_delve_sithis_crest_01_base_0"] = {    { 0.061, 0.232, "Whisper of the Sacred Stones" },},
-	["u48_ssl_delve_base_1_base_0"] = {    { 0.387, 0.350, "Lector Fenworine" },},
+	["u46_base_lotwc_0"] = { { 0.492, 0.609, "Riuzzan The Ravenous" },},
 }
 
 BossData.GroupChampionTableStore = {
@@ -1717,6 +1792,14 @@ BossData.DelveChampionTableStore["hallsofregulation_base_0"] = BossData.DelveCha
 -- alias for pulkupper_base_0
 BossData.DelveChampionTableStore["pulkupper_base_0"] = BossData.DelveChampionTableStore["pulklower_base_0"]
 
+-- Alternate floor textures with the same boss layout (MapPins).
+BossData.DelveChampionTableStore["desertwind_base_0"] = BossData.DelveChampionTableStore["desertwind2a_base_0"]
+BossData.DelveChampionTableStore["moonlitcove02_base_0"] = BossData.DelveChampionTableStore["moonlitcove01_base_0"]
+BossData.DelveChampionTableStore["moonlitcove05_base_0"] = BossData.DelveChampionTableStore["moonlitcove01_base_0"]
+BossData.DelveChampionTableStore["sharktoothgrotto1_base_0"] = BossData.DelveChampionTableStore["sharktoothgrotto2_base_0"]
+BossData.DelveChampionTableStore["torhamekhard_02_base_0"] = BossData.DelveChampionTableStore["torhamekhard_01_base_0"]
+BossData.DelveChampionTableStore["u38_corpusclebight_02_base_0"] = BossData.DelveChampionTableStore["u38_corpusclebight_01_base_0"]
+
 -- alias for Gloomreach
 BossData.DelveChampionTableStore["gloomreach2_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
 BossData.DelveChampionTableStore["gloomreach2b_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
@@ -1815,7 +1898,7 @@ function BossData.GetChampionEntriesForMap(mapTexture, category)
 		add(key:gsub("^ui_map_", ""))
 
 		-- With/without _base_ before trailing numeric level (handles e.g. rpb_map_ext001_0 vs rpb_map_ext001_base_0)
-		if key:match("_(%d+)$") and not key:find("_base_") then
+		if key:match("_(%d+)$") and not key:match("_base_%d+$") then
 			add((key:gsub("_(%d+)$", "_base_%1")))
 		end
 		if key:find("_base_%d+$") then
@@ -1825,7 +1908,7 @@ function BossData.GetChampionEntriesForMap(mapTexture, category)
 		-- Also produce the above for the ui_map_-stripped variant
 		local noUi = key:gsub("^ui_map_", "")
 		if noUi ~= key then
-			if noUi:match("_(%d+)$") and not noUi:find("_base_") then
+			if noUi:match("_(%d+)$") and not noUi:match("_base_%d+$") then
 				add((noUi:gsub("_(%d+)$", "_base_%1")))
 			end
 			if noUi:find("_base_%d+$") then

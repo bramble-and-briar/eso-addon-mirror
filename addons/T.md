@@ -25,7 +25,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Collections – Guild Market Scanner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections-Guild-Market-Scanner__f419b0e2-e53c-4875-bcf2-5bf0e372218b) | MajesticMinxi | Console | — |
 | [Tamriel Master Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger__1e746db5-8418-4a6f-9f17-4449e0d7e3f0) | xPricee | Console | — |
 | [Tamriel Master Ledger - DEV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger---DEV__89ecfc27-e76b-48ae-8d40-e76bbf0c5c13) | xPricee | Console | — |
-| [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.7.5 |
+| [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.8.0 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
 | [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.3 |
@@ -195,6 +195,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Travel Music](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Travel-Music__1320) | CaptainBlagbird | PC / Mac | 1.0.10 |
 | [Traveller - Fast Travel Redesigned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/patrick_smyth/Traveller---Fast-Travel-Redesigned__1744) | patrick_smyth | PC / Mac | 0.1.0 |
 | [Treasure Map Listings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusionLord/Treasure-Map-Listings__3570) | FusionLord | PC / Mac | v4 |
+| [Trest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Trest__74e3cf1b-47f3-44c7-ac72-290efc19e8f3) | FiNk3F13 | Console | — |
 | [Trial Completion Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Trial-Completion-Counter__3186) | MrPikPik | PC / Mac | 1.5 |
 | [Trial Recorder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Trial-Recorder__62be4a00-fcc8-465b-a269-616f2b5c1134) | BMGxSancho | Console | — |
 | [Trials & Arenas Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Trials-Arenas-Tracker__49b41fa8-a5b3-4249-ae8d-44d7381651f4) | Eldibabalo | Console | — |

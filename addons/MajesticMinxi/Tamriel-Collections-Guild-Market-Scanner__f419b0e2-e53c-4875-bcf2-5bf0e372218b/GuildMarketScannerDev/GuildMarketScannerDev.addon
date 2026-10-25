@@ -1,8 +1,8 @@
 ## Title: |cD9AD51Tamriel|r |cB58AE8Collections|r - |c63BBD4Guild Market Scanner|r
-## Description: Experimental cached min/max price filtering; preserves name search and collection detection
+## Description: Second-level native category filtering test; preserves verified first-level filters
 ## Author: |cD9AD51Majestic Minxi|r
-## Version: 1.0.5f
-## AddOnVersion: 175
+## Version: 1.0.5u
+## AddOnVersion: 189
 ## APIVersion: 101051
 
 GuildMarketScannerDev.lua

@@ -1,0 +1,5 @@
+1.4.3
+
+- Bug fix for Pledge Detection -> Thanks rowley for reporting !
+- Better Performance and other bug fixes
+- Upgraded to new API version

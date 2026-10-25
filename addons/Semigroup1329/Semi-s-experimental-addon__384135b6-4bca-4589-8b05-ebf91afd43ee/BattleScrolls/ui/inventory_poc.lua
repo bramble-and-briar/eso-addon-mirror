@@ -26,6 +26,11 @@ local screen, menuEntry, menuParent
 ---@class InventoryPocLogScreen: ZO_Object
 ---@field logRevision number
 ---@field buildKey string
+---@field contentsPanel InventoryPocContentsPanel
+---@field contentsFocused boolean|nil
+---@field showingDetails boolean|nil
+---@field selectedLogEntry InventoryPocLogEntry|nil
+---@field updatingLog boolean|nil
 local LogScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
 
 local REASONS = {
@@ -34,15 +39,24 @@ local REASONS = {
     glyph = BATTLESCROLLS_IPOC_REASON_GLYPH, material = BATTLESCROLLS_IPOC_REASON_MATERIAL,
     gear = BATTLESCROLLS_IPOC_REASON_GEAR, knowledge = BATTLESCROLLS_IPOC_REASON_KNOWLEDGE,
     price = BATTLESCROLLS_IPOC_REASON_PRICE, companion = BATTLESCROLLS_IPOC_REASON_COMPANION,
+    priceCheck = BATTLESCROLLS_IPOC_REASON_PRICE_CHECK,
     container = BATTLESCROLLS_IPOC_REASON_CONTAINER, supplies = BATTLESCROLLS_IPOC_REASON_SUPPLIES,
     unassigned = BATTLESCROLLS_IPOC_REASON_UNASSIGNED, learn = BATTLESCROLLS_IPOC_REASON_LEARN,
     valuablePlan = BATTLESCROLLS_IPOC_REASON_VALUABLE_PLAN, duplicate = BATTLESCROLLS_IPOC_REASON_DUPLICATE,
     sale = BATTLESCROLLS_IPOC_REASON_SALE,
+    collection = BATTLESCROLLS_IPOC_REASON_COLLECTION,
 }
 
 local function resetTooltips()
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_QUAD3_TOOLTIP)
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+end
+
+---@param entry InventoryPocLogEntry|nil
+---@return boolean
+local function hasContents(entry)
+    return entry ~= nil and entry.contents ~= nil and #entry.contents > 0
 end
 
 ---@param bag number
@@ -131,11 +145,15 @@ local function showLogTooltip(entry)
                 for _, material in ipairs({
                     { link = details.styleMaterialLink, price = details.styleMaterialUnit },
                     { link = details.traitMaterialLink, price = details.traitMaterialUnit },
+                    { link = details.improvementMaterialLink, price = details.improvementMaterialUnit },
                 }) do
-                    if material.link ~= '' then
+                    if material.link and material.link ~= '' then
                         if material.price then add(BATTLESCROLLS_IPOC_DETAIL_MATERIAL, material.link, material.price)
                         else add(BATTLESCROLLS_IPOC_DETAIL_UNPRICED, material.link) end
                     end
+                end
+                if details.gearSaleMinimum then
+                    add(BATTLESCROLLS_IPOC_DETAIL_SALE_MINIMUM, math.ceil(details.gearSaleMinimum))
                 end
             end
         end
@@ -161,25 +179,65 @@ function LogScreen.new(control, scene)
     local object = ZO_Object.New(LogScreen)
     ZO_Gamepad_ParametricList_Screen.Initialize(object, control, ZO_GAMEPAD_HEADER_TABBAR_DONT_CREATE, true, scene)
     object:SetListsUseTriggerKeybinds(true)
+    object.contentsPanel = BattleScrolls.inventoryPocContents.new(control:GetNamedChild('Contents'))
     return object
+end
+
+---@param focused boolean
+function LogScreen:setContentsFocused(focused)
+    if focused == (self.contentsFocused == true) then return end
+    self.contentsFocused = focused
+    if focused then
+        self.showingDetails = false
+        self:DeactivateCurrentList()
+        self:OnTargetChanged(self:GetMainList(), self:GetMainList():GetTargetData())
+        self.contentsPanel:setActive(true)
+    else
+        self.contentsPanel:setActive(false)
+        self:ActivateCurrentList()
+    end
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
 end
 
 function LogScreen:InitializeKeybindStripDescriptors()
     self.keybindStripDescriptor = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            name = GetString(SI_GAMEPAD_SELECT_OPTION), keybind = 'UI_SHORTCUT_PRIMARY',
-            visible = function() local data = self:GetMainList():GetTargetData(); return data and data.buildChoice ~= nil end,
+            name = function()
+                local data = self:GetMainList():GetTargetData()
+                return GetString(data and hasContents(data.logEntry) and BATTLESCROLLS_IPOC_VIEW_CONTENTS or SI_GAMEPAD_SELECT_OPTION)
+            end,
+            keybind = 'UI_SHORTCUT_PRIMARY',
+            visible = function()
+                local data = self:GetMainList():GetTargetData()
+                return not self.contentsFocused and data and (data.buildChoice ~= nil or hasContents(data.logEntry))
+            end,
             callback = function()
                 local data = self:GetMainList():GetTargetData()
                 if data and data.buildChoice then
                     BattleScrolls.inventoryPocBuilds.choose(data.buildChoice)
                     self:Update()
+                elseif data and hasContents(data.logEntry) then
+                    self:setContentsFocused(true)
                 end
             end,
         },
+        {
+            name = function() return GetString(self.showingDetails and BATTLESCROLLS_IPOC_VIEW_CONTENTS or BATTLESCROLLS_IPOC_VIEW_DETAILS) end,
+            keybind = 'UI_SHORTCUT_SECONDARY',
+            visible = function() local data = self:GetMainList():GetTargetData(); return data and hasContents(data.logEntry) end,
+            callback = function()
+                self:setContentsFocused(false)
+                self.showingDetails = not self.showingDetails
+                self:OnTargetChanged(self:GetMainList(), self:GetMainList():GetTargetData())
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+            end,
+        },
     }
-    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.keybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
+    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.keybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON, function()
+        if self.contentsFocused then self:setContentsFocused(false)
+        else SCENE_MANAGER:HideCurrentScene() end
+    end)
 end
 
 function LogScreen:OnSelectionChanged()
@@ -187,7 +245,18 @@ function LogScreen:OnSelectionChanged()
 end
 
 function LogScreen:OnTargetChanged(_list, selectedData)
+    if self.updatingLog then return end
     resetTooltips()
+    local entry = selectedData and selectedData.logEntry
+    if entry ~= self.selectedLogEntry then
+        self.selectedLogEntry, self.showingDetails = entry, false
+        self:setContentsFocused(false)
+    end
+    if hasContents(entry) and not self.showingDetails then
+        self.contentsPanel:show(entry)
+        return
+    end
+    self.contentsPanel:hide()
     if not selectedData then return end
     if selectedData.logEntry then showLogTooltip(selectedData.logEntry)
     elseif selectedData.buildChoice then
@@ -201,6 +270,7 @@ function LogScreen:OnTargetChanged(_list, selectedData)
 end
 
 function LogScreen:PerformUpdate()
+    self.updatingLog = true
     local list = self:GetMainList()
     local selected, selectedIndex = list:GetTargetData(), nil
     local row = 0
@@ -244,6 +314,7 @@ function LogScreen:PerformUpdate()
         end
     end
     if selectedIndex then list:SetSelectedIndexWithoutAnimation(selectedIndex) end
+    self.updatingLog = false
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
     self:OnTargetChanged(list, list:GetTargetData())
     self.logRevision, self.buildKey = poc.revision, buildKey()
@@ -262,6 +333,8 @@ end
 
 function LogScreen:OnHiding()
     EVENT_MANAGER:UnregisterForUpdate(SCENE_NAME)
+    self.contentsFocused, self.showingDetails, self.selectedLogEntry = false, false, nil
+    self.contentsPanel:hide()
     resetTooltips()
     ZO_Gamepad_ParametricList_Screen.OnHiding(self)
 end

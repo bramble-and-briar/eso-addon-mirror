@@ -1,4 +1,4 @@
-local C = EOTU_Config or { ADDON_NAME = "EyesOfTheUndaunted", NAME_SHORT = "EOTU", VERSION = "1.51.01" }
+local C = EOTU_Config or { ADDON_NAME = "EyesOfTheUndaunted", NAME_SHORT = "EOTU", VERSION = "1.51.02" }
 local previous = _G[C.NAME_SHORT] or EOTU
 local EyesOfTheUndaunted = ZO_InitializingObject:Subclass()
 
@@ -17,7 +17,7 @@ local function GetAddOnInfos()
     end
 end
 EyesOfTheUndaunted.author, EyesOfTheUndaunted.addOnVersion = GetAddOnInfos()
-EyesOfTheUndaunted.version = C.VERSION or "1.51.01"
+EyesOfTheUndaunted.version = C.VERSION or "1.51.02"
 
 if type(previous) == "table" then
     setmetatable(EyesOfTheUndaunted, { __index = previous })

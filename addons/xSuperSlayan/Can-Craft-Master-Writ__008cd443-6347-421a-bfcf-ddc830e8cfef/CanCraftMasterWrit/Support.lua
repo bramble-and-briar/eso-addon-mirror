@@ -15,7 +15,7 @@ CanCraftMasterWrit.support = {
     -- The web address the Feedback QR code opens: the form for bug reports and questions.
     feedbackLink = "https://docs.google.com/forms/d/e/1FAIpQLSf-YqKkQZ5Y6mRg5Re34EmSlVW40H-HcMUY5dJSgJq-shkUUA/viewform",
 
-    -- SUPPORTERS: the gamertag of every player who has donated. Each shows in the settings menu as "GT: <gamertag>".
+    -- SUPPORTERS: the gamertag of every player who has donated. Each shows in the settings menu exactly as written here.
     -- Add one line per player between the two curly brackets below, without dashes in front, like this:
     --
     --     supporters = {
@@ -25,5 +25,7 @@ CanCraftMasterWrit.support = {
     --
     -- While the list is empty, the menu shows "Be the first!".
     supporters = {
+        "Knight-Arcadia",
+        "xHazelSquash",
     },
 }

@@ -251,7 +251,10 @@ minimap has zoomed to — and the two maps' places in the shared space convert o
 other. A keep's position, once known, is kept; one that cannot be converted leaves the last good
 position standing rather than inventing one, and the arrow is hidden rather than guessed.
 
-**It never reads Tamriel.** Those pin functions answer in terms of the current map, and on a
+**It never reads Tamriel** — and neither does anything else in the add-on. (2.6.1 gated the map but
+missed one read in the summary's Volendrung line; 2.7.2 takes the holder from the artifact's own
+event instead, and a test now audits every client call the add-on makes during a minute on
+Tamriel with everything switched on.) Those pin functions answer in terms of the current map, and on a
 console whatever the client allocates while an add-on's function is on the stack is billed to the
 shared add-on pool — with the world map pulled back to all of Tamriel, one frame of that is
 enough to fill it. So they are called only while the HUD is up and has settled, and only while
@@ -514,4 +517,4 @@ cannot be arranged on demand in a real campaign (a siege lasting past the repeat
 that flips while it is being hit) are played out in milliseconds. It also stubs the window
 manager, so what reaches the screen — which lines, in what colours, in what font, anchored
 where, and when they expire — and the campaign APIs, so the summary's numbers, ordering,
-colours and every way it degrades are checked too. 481 checks.
+colours and every way it degrades are checked too. 490 checks.

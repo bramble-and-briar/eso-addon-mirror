@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "GridPadInventory"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4686/",
-  "fingerprint": "ffacc005dde78a40818804a3ae87aa7d327c08fdfce6d64906c586fdd9c9a58c",
+  "fingerprint": "0cb94fa4fbdaa20fb6a4377112a7c72ed34a7454add9d2e7d2f2a34e4be7aee2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16574.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw16575.jpg",
@@ -34,11 +38,11 @@
   "source_id": "4686",
   "source_url": "https://www.esoui.com/downloads/info4686-GridPadarealgridinventoryforgamepadplayers.html",
   "stats": {
-    "downloads": 233,
-    "favorites": 2,
-    "monthly_downloads": 232
+    "downloads": 782,
+    "favorites": 3,
+    "monthly_downloads": 158
   },
   "title": "Grid Pad \u2014 a real grid inventory for gamepad players",
-  "updated_at": 1785726708000,
-  "version": "1.04"
+  "updated_at": 1792891902000,
+  "version": "1.45"
 }

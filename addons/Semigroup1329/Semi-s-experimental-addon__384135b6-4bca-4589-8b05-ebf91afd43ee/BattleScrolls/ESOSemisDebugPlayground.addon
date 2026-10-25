@@ -1,8 +1,8 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 564
-## Version: 0.0.564
+## AddOnVersion: 568
+## Version: 0.0.568
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings WizardsWardrobe LibCharacterKnowledge TSCPriceFetcher2
@@ -142,6 +142,8 @@ ui/character/character_stats.lua
 ; Personal inventory proof of concept (hidden SavedVariables opt-in)
 inventory_poc/policy.lua
 inventory_poc/facts.lua
+inventory_poc/companion_prices.lua
+inventory_poc/gear_prices.lua
 inventory_poc/runtime.lua
 inventory_poc/companions.lua
 inventory_poc/builds.lua
@@ -157,6 +159,7 @@ ui/inventory_poc_work.lua
 ; ESO selects the keybinding parser by the filename Bindings.xml
 ui/Bindings.xml
 ui/inventory_poc.xml
+ui/inventory_poc_contents.lua
 ui/inventory_poc.lua
 
 ; Personal antiquity reminders (requires inventory automation)

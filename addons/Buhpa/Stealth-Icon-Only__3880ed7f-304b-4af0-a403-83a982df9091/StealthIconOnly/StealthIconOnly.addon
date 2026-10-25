@@ -1,0 +1,6 @@
+## Title: Stealth Icon Only
+## Author: Buhpa
+## Version: 1.2.0
+## APIVersion: 101051
+## Description: Hides all stealth eye status labels while retaining the native eye and animations.
+StealthIconOnly.lua

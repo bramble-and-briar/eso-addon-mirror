@@ -166,7 +166,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PledgeRunner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/flipswitchingmonkey/PledgeRunner__2295) | flipswitchingmonkey | PC / Mac | 1.0.9 |
 | [Plunder Skull Timer (2022 Witches Festival)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Plunder-Skull-Timer-2022-Witches-Festival__1501) | code65536 | PC / Mac | 1.7.0 |
 | [Plunder Skull Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Plunder-Skull-Tracker__3216) | kawamonkey | PC / Mac | 1.2 |
-| [Plunder Skull Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SandmanNinja/Plunder-Skull-Tracker__4978) | SandmanNinja | PC / Mac | 1.1.0 |
+| [Plunder Skull Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SandmanNinja/Plunder-Skull-Tracker__4978) | SandmanNinja | PC / Mac | 1.1.2 |
 | [Pocket Adeptus (Red Trial CP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Pocket-Adeptus-Red-Trial-CP__2057) | init3 | PC / Mac | 2.4 |
 | [Pocket Adeptus Red Trial CP - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EternalSessions6/Pocket-Adeptus-Red-Trial-CP---Updated__2782) | EternalSessions6 | PC / Mac | 1.0 |
 | [Pocket Money](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Pocket-Money__b2d38492-3b20-43e0-9262-af382d04fb04) | msetten | Console | — |

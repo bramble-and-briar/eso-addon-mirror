@@ -19,7 +19,8 @@ local ESO = {
     dimR = 0.55, dimG = 0.57, dimB = 0.60,                    -- muted/secondary
 }
 
-GPI.version = "1.34"
+GPI.version = "1.45.0"
+GPI.addOnVersion = 164 -- keep in step with ## AddOnVersion in GridPadInventory.txt
 GPI.zoning = false -- true between PLAYER_DEACTIVATED and PLAYER_ACTIVATED (load screen)
 GPI.cols = 10
 GPI.rows = 6
@@ -160,6 +161,7 @@ end
 -- slots grouped under visual categories. GridPad keeps All/Junk/Worn as convenience filters too.
 local FILTER_DEFS = {
     { key = "all", label = "All", mode = "all" },
+    { key = "new", label = "New", mode = "new" },
     { key = "supplies", label = "Supplies", mode = "supplies", stringId = "SI_INVENTORY_SUPPLIES" },
     { key = "materials", label = "Materials", mode = "itemFilterType", itemFilterTypeVar = "ITEMFILTERTYPE_CRAFTING" },
     { key = "consumables", label = "Consumables", mode = "itemFilterType", itemFilterTypeVar = "ITEMFILTERTYPE_QUICKSLOT" },
@@ -198,6 +200,8 @@ local FILTER_DEFS = {
 -- verified gamepad icons (which render correctly, with slightly different shading).
 local FILTER_ICON_BAR = {
     { key = "all",         icon = "EsoUI/Art/Inventory/inventory_tabIcon_all_up.dds" },
+    -- Same "!" star the grid draws on new items (already proven by the cell badge).
+    { key = "new",         icon = "EsoUI/Art/Inventory/newItem_icon.dds" },
     { key = "weapons",     icon = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_up.dds" },
     { key = "apparel",     icon = "EsoUI/Art/Inventory/inventory_tabIcon_armor_up.dds" },
     { key = "accessories", icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds" },
@@ -471,41 +475,65 @@ local function GetFilterLabel(def)
     return def.label or def.key or "Filter"
 end
 
+-- Where an item can LEGALLY sit. This table is authoritative for every slot it lists.
+--
+-- v1.45: ZO_Character_DoesEquipSlotUseEquipType is NOT a legality check. It answers
+-- "which worn slots does equipping this displace?", so it says a TWO-HANDED weapon
+-- "uses" the OFF-HAND slot (equipping a staff empties your off-hand). Trusting it made
+-- GridPad treat the off-hand as an empty slot a staff fits -- whenever a two-hander was
+-- already equipped the off-hand reads empty, so it was even the PREFERRED target. The
+-- staff was then fed into CompareBagItemToCurrentlyEquipped / RequestEquipItem against
+-- EQUIP_SLOT_OFF_HAND, which leaves the client showing a two-hander in the off-hand
+-- ("IF EQUIPPED: Off Hand", a staff in the off-hand doll slot) and crashes the client
+-- the next time the character model is rebuilt -- e.g. summoning a companion.
+-- The ZO helper is now only consulted for slots this table does not cover.
+local LEGAL_SLOT_EQUIP_TYPES = {
+    { slot = "EQUIP_SLOT_HEAD", equipTypes = { "EQUIP_TYPE_HEAD" } },
+    { slot = "EQUIP_SLOT_SHOULDERS", equipTypes = { "EQUIP_TYPE_SHOULDERS", "EQUIP_TYPE_SHOULDER" } },
+    { slot = "EQUIP_SLOT_CHEST", equipTypes = { "EQUIP_TYPE_CHEST" } },
+    { slot = "EQUIP_SLOT_HAND", equipTypes = { "EQUIP_TYPE_HAND" } },
+    { slot = "EQUIP_SLOT_WAIST", equipTypes = { "EQUIP_TYPE_WAIST" } },
+    { slot = "EQUIP_SLOT_LEGS", equipTypes = { "EQUIP_TYPE_LEGS" } },
+    { slot = "EQUIP_SLOT_FEET", equipTypes = { "EQUIP_TYPE_FEET" } },
+    { slot = "EQUIP_SLOT_NECK", equipTypes = { "EQUIP_TYPE_NECK" } },
+    { slot = "EQUIP_SLOT_RING1", equipTypes = { "EQUIP_TYPE_RING" } },
+    { slot = "EQUIP_SLOT_RING2", equipTypes = { "EQUIP_TYPE_RING" } },
+    { slot = "EQUIP_SLOT_COSTUME", equipTypes = { "EQUIP_TYPE_COSTUME" } },
+    { slot = "EQUIP_SLOT_MAIN_HAND", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_TWO_HAND", "EQUIP_TYPE_MAIN_HAND" } },
+    { slot = "EQUIP_SLOT_BACKUP_MAIN", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_TWO_HAND", "EQUIP_TYPE_MAIN_HAND" } },
+    -- No TWO_HAND here, ever: a two-hander lives in the main-hand slot only.
+    { slot = "EQUIP_SLOT_OFF_HAND", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_OFF_HAND", "EQUIP_TYPE_SHIELD" } },
+    { slot = "EQUIP_SLOT_BACKUP_OFF", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_OFF_HAND", "EQUIP_TYPE_SHIELD" } },
+    { slot = "EQUIP_SLOT_POISON", equipTypes = { "EQUIP_TYPE_POISON" } },
+    { slot = "EQUIP_SLOT_BACKUP_POISON", equipTypes = { "EQUIP_TYPE_POISON" } },
+}
+
 local function DoesEquipSlotUseItem(equipSlot, item)
-    if not equipSlot or not item then return false end
+    if equipSlot == nil or not item then return false end
+    if type(equipSlot) == "number" and equipSlot < 0 then return false end
 
     if item.bagId == BAG_WORN and item.slotIndex == equipSlot then
         return true
     end
 
-    if ZO_Character_DoesEquipSlotUseEquipType and item.equipType ~= nil then
-        local matches = SafeCall(ZO_Character_DoesEquipSlotUseEquipType, equipSlot, item.equipType)
-        if matches ~= nil then return matches == true end
+    -- Belt and braces for the crash above: a two-hander is never legal outside the
+    -- two main-hand slots, whatever any table or helper claims.
+    if ValueMatchesAnyConstant(item.equipType, { "EQUIP_TYPE_TWO_HAND" })
+        and not ValueMatchesAnyConstant(equipSlot, { "EQUIP_SLOT_MAIN_HAND", "EQUIP_SLOT_BACKUP_MAIN" }) then
+        return false
     end
 
-    -- Fallback mappings for older/newer UI states where the ZO helper is unavailable.
-    local slotMatches = {
-        { slot = "EQUIP_SLOT_HEAD", equipTypes = { "EQUIP_TYPE_HEAD" } },
-        { slot = "EQUIP_SLOT_SHOULDERS", equipTypes = { "EQUIP_TYPE_SHOULDERS", "EQUIP_TYPE_SHOULDER" } },
-        { slot = "EQUIP_SLOT_CHEST", equipTypes = { "EQUIP_TYPE_CHEST" } },
-        { slot = "EQUIP_SLOT_HAND", equipTypes = { "EQUIP_TYPE_HAND" } },
-        { slot = "EQUIP_SLOT_WAIST", equipTypes = { "EQUIP_TYPE_WAIST" } },
-        { slot = "EQUIP_SLOT_LEGS", equipTypes = { "EQUIP_TYPE_LEGS" } },
-        { slot = "EQUIP_SLOT_FEET", equipTypes = { "EQUIP_TYPE_FEET" } },
-        { slot = "EQUIP_SLOT_NECK", equipTypes = { "EQUIP_TYPE_NECK" } },
-        { slot = "EQUIP_SLOT_RING1", equipTypes = { "EQUIP_TYPE_RING" } },
-        { slot = "EQUIP_SLOT_RING2", equipTypes = { "EQUIP_TYPE_RING" } },
-        { slot = "EQUIP_SLOT_MAIN_HAND", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_TWO_HAND", "EQUIP_TYPE_MAIN_HAND" } },
-        { slot = "EQUIP_SLOT_BACKUP_MAIN", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_TWO_HAND", "EQUIP_TYPE_MAIN_HAND" } },
-        { slot = "EQUIP_SLOT_OFF_HAND", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_OFF_HAND", "EQUIP_TYPE_SHIELD" } },
-        { slot = "EQUIP_SLOT_BACKUP_OFF", equipTypes = { "EQUIP_TYPE_ONE_HAND", "EQUIP_TYPE_OFF_HAND", "EQUIP_TYPE_SHIELD" } },
-    }
-
-    for i = 1, #slotMatches do
-        local rule = slotMatches[i]
+    for i = 1, #LEGAL_SLOT_EQUIP_TYPES do
+        local rule = LEGAL_SLOT_EQUIP_TYPES[i]
         if ConstantValue(rule.slot) == equipSlot then
             return ValueMatchesAnyConstant(item.equipType, rule.equipTypes)
         end
+    end
+
+    -- Slot not in the table (a future slot type): fall back to the ZO helper.
+    if ZO_Character_DoesEquipSlotUseEquipType and item.equipType ~= nil then
+        local matches = SafeCall(ZO_Character_DoesEquipSlotUseEquipType, equipSlot, item.equipType)
+        if matches ~= nil then return matches == true end
     end
 
     return false
@@ -621,6 +649,11 @@ local function ItemMatchesFilter(item, filterKey)
     if item.isEquipped and def.mode ~= "worn" and not GPI.showEquippedInGrid then return false end
 
     if def.mode == "all" then return true end
+    if def.mode == "new" then
+        -- Items you have just looked at stay on the tab until you leave it, so the
+        -- grid doesn't reshuffle under the cursor while you dismiss them one by one.
+        return item.isNew == true or (GPI.newSeenKeys ~= nil and GPI.newSeenKeys[GPI:GetNewKey(item)] == true)
+    end
     if def.mode == "junk" then return item.isJunk == true end
     if def.mode == "worn" then return item.isEquipped == true end
     if def.mode == "supplies" then return IsSuppliesItem(item) end
@@ -1788,6 +1821,51 @@ end
 
 function GPI:SetActiveFilterIndex(index)
     if self:IsCraftBagMode() then self.craftFilterIndex = index else self.filterIndex = index end
+    -- Leaving the New tab is what finally drops the items you already looked at.
+    local def = self:GetCurrentFilter()
+    if not def or def.key ~= "new" then self.newSeenKeys = nil end
+end
+
+-- Identity for the New tab's "seen this visit" list (bag slot + the item's unique id,
+-- so a different item landing in the same slot is never mistaken for a seen one).
+function GPI:GetNewKey(item)
+    if not item then return "" end
+    return tostring(item.bagId or "") .. ":" .. tostring(item.slotIndex or "") .. ":" .. tostring(item.uniqueId or item.instanceId or "")
+end
+
+function GPI:CountNewItems()
+    local n = 0
+    for i = 1, #(self.allItems or {}) do
+        if self.allItems[i].isNew then n = n + 1 end
+    end
+    return n
+end
+
+-- Clear the "!" from every new backpack item at once.
+function GPI:DismissAllNew()
+    if not (SHARED_INVENTORY and SHARED_INVENTORY.ClearNewStatus) then
+        self:Verdict(true, "This client can't clear new-item markers.")
+        return
+    end
+    local cleared = 0
+    for i = 1, #(self.allItems or {}) do
+        local it = self.allItems[i]
+        if it.isNew then
+            pcall(function() SHARED_INVENTORY:ClearNewStatus(it.bagId, it.slotIndex) end)
+            it.isNew = false
+            cleared = cleared + 1
+        end
+    end
+    self.newSeenKeys = nil -- "dismiss all" empties the New tab immediately
+    if cleared == 0 then
+        self:Verdict(false, "No new items to dismiss.")
+    else
+        self:Verdict(false, string.format("Marked %d new item%s as seen.", cleared, cleared == 1 and "" or "s"))
+    end
+    if self:IsShowing() then
+        self:ApplyCurrentFilter(nil)
+        self:Render()
+    end
 end
 
 function GPI:GetCurrentFilter()
@@ -3547,11 +3625,21 @@ function GPI:ShowCompare(silent)
         slot1 = SafeCall(self.GetTargetEquipSlotForItem, self, item)
         if slot1 ~= nil and slot1 < 0 then slot1 = nil end
     end
+    -- v1.45: for a two-hander the game also returns the OFF hand, because equipping
+    -- it bumps whatever is there. That card is only useful when something actually
+    -- sits in the off hand; an empty one read as "the staff goes in your off hand".
+    local function keepCard(es)
+        if es == nil then return false end
+        if DoesEquipSlotUseItem(es, item) then return true end
+        return self:DoesWornSlotHaveItem(es)
+    end
+    if not keepCard(slot1) then slot1 = nil end
+    if not keepCard(slot2) then slot2 = nil end
     if slot1 == nil and slot2 ~= nil then slot1, slot2 = slot2, nil end
 
     local cards = {}
-    if slot1 ~= nil then table.insert(cards, { kind = "worn", equipSlot = slot1 }) end
-    if slot2 ~= nil and slot2 ~= slot1 then table.insert(cards, { kind = "worn", equipSlot = slot2 }) end
+    if slot1 ~= nil then table.insert(cards, { kind = "worn", equipSlot = slot1, displaced = not DoesEquipSlotUseItem(slot1, item) }) end
+    if slot2 ~= nil and slot2 ~= slot1 then table.insert(cards, { kind = "worn", equipSlot = slot2, displaced = not DoesEquipSlotUseItem(slot2, item) }) end
     table.insert(cards, { kind = "selected" })
 
     -- ONE pipeline, two skins. "ESO Style" hides the big frame + title and spreads the
@@ -3718,7 +3806,7 @@ function GPI:ShowCompare(silent)
                 end
             else
                 local slotName = self:GetEquipSlotName(card.equipSlot) or "slot"
-                head:SetText("EQUIPPED: " .. slotName)
+                head:SetText((card.displaced and "ALSO REPLACES: " or "EQUIPPED: ") .. slotName)
                 head:SetColor(1.00, 0.86, 0.45, 1)
                 if self:DoesWornSlotHaveItem(card.equipSlot) and self:PopulateCompareTip(ctip, BAG_WORN, card.equipSlot, x, tipBandY, tipBandH, boxW, true) then
                     ctip:SetHidden(false)
@@ -3864,11 +3952,20 @@ function GPI:GetEquipStatDeltas(item)
     -- Put the slot GridPad targets first so it wins ties.
     local target = SafeCall(self.GetTargetEquipSlotForItem, self, item)
     if target ~= nil and target < 0 then target = nil end
+    -- v1.45: GetItemComparisonEquipSlots lists DISPLACED slots, not legal ones (a
+    -- two-hander returns main hand AND off hand). CompareBagItemToCurrentlyEquipped
+    -- simulates the item sitting in the slot it is given, and simulating a staff in
+    -- the off hand corrupts the client's worn-gear state (crash on companion summon).
+    -- Only ever simulate slots the item can legally occupy.
     local order = {}
-    if target ~= nil then table.insert(order, target) end
-    for _, es in ipairs({ slot1, slot2 }) do
-        if es ~= nil and es ~= target then table.insert(order, es) end
+    local function addSlot(es)
+        if es == nil or es < 0 then return end
+        for i = 1, #order do if order[i] == es then return end end
+        if DoesEquipSlotUseItem(es, item) then table.insert(order, es) end
     end
+    addSlot(target)
+    addSlot(slot1)
+    addSlot(slot2)
     if #order == 0 then return nil end
 
     local best, bestSlot, bestCount = nil, nil, 0
@@ -4242,9 +4339,13 @@ function GPI:Render()
             if not self.pendingNewClear[key] then
                 self.pendingNewClear[key] = true
                 local bagId, slotIndex = selItem.bagId, selItem.slotIndex
+                local newKey = self:GetNewKey(selItem)
                 zo_callLater(function()
                     self.pendingNewClear[key] = nil
                     if self.zoning then return end -- ZOS-side state mutation is unsafe mid-load
+                    -- Keep it visible on the New tab until the player leaves the tab.
+                    self.newSeenKeys = self.newSeenKeys or {}
+                    self.newSeenKeys[newKey] = true
                     pcall(function() SHARED_INVENTORY:ClearNewStatus(bagId, slotIndex) end)
                     for i = 1, #(self.allItems or {}) do
                         local it = self.allItems[i]
@@ -4521,6 +4622,7 @@ function GPI:Show(openedFromInventoryScene)
         self.currentPage = 0
         self.selectedIndex = 1
         self.bankPage, self.bankIndex = 0, 1
+        self.newSeenKeys = nil
     end
     self.suppressFilterReset = nil
     self.openedFromInventoryScene = openedFromInventoryScene == true
@@ -4580,6 +4682,7 @@ function GPI:Hide(fromScene)
     self:HideInfoPopup()
     self:HideDiffPick()
     self:HideBagConfirm()
+    if self.HideCurrencyPanel then self:HideCurrencyPanel() end
     if self.dollCurrenciesCleared or self.currenciesCleared then
         self.dollCurrenciesCleared = nil
         self.currenciesCleared = nil
@@ -4921,6 +5024,11 @@ function GPI:RequestEquipSelectedItem(item, source)
             self:LogEquip("(slot resolution errored: " .. tostring(slotOrErr) .. "; using game default)")
         end
     end
+    -- Final gate: never hand the game a slot this item can't legally occupy.
+    if resolvedSlot ~= nil and not DoesEquipSlotUseItem(resolvedSlot, item) then
+        self:LogEquip("Ignoring illegal target slot " .. tostring(self:GetEquipSlotName(resolvedSlot)) .. "; letting the game pick.")
+        resolvedSlot = nil
+    end
 
     ClearCursor()
 
@@ -4980,17 +5088,10 @@ function GPI:RequestEquipSelectedItem(item, source)
             end,
         })
     end
-    if CallSecureProtected and resolvedSlot ~= nil then
-        table.insert(strategies, {
-            label = "RequestMoveItem -> worn slot (legacy)",
-            call = function()
-                local ok, cspOk, cspErr = pcall(CallSecureProtected, "RequestMoveItem", item.bagId, item.slotIndex, wornBag, resolvedSlot, 1)
-                if not ok then return false, cspOk end
-                if cspOk == false then return false, tostring(cspErr) end
-                return true
-            end,
-        })
-    end
+    -- v1.45: the old last-resort "RequestMoveItem straight into a worn slot" strategy
+    -- is gone. It bypassed every equip rule the game enforces in RequestEquipItem, so
+    -- a wrong target slot (see DoesEquipSlotUseItem) could physically drop a weapon
+    -- into a slot it does not belong in.
 
     if #strategies == 0 then
         self:LogEquip("No equip API exists in this client at all; cannot equip.")
@@ -5937,6 +6038,17 @@ function GPI:OpenItemActionsMenu()
         })
     end
 
+    -- On the New tab, Y also offers a one-press "dismiss every !" option.
+    if gridItem and not self:IsCraftBagMode() then
+        local f = self:GetCurrentFilter()
+        if f and f.key == "new" and self:CountNewItems() > 0 then
+            table.insert(opts, {
+                name = "Mark All New Items as Seen",
+                run = function() self:DismissAllNew() end,
+            })
+        end
+    end
+
     self:SuppressDetailsForMenu()
     self.diffPickKind = "itemactions"
     self:OpenPickList(opts, self:GetItemMenuTitle(bagId, slotIndex, link))
@@ -5998,6 +6110,338 @@ function GPI:RefreshBankItems()
         end
     end
     self:ApplyBankFilter()
+end
+
+-- ================== Bank currency deposit / withdraw (v1.44) ==================
+-- Native gamepad banking exposes Deposit/Withdraw Currency as list entries;
+-- GridPad's equivalent is a currency strip across the top of the bank pane.
+-- UP from the bank grid's top row focuses it, LEFT/RIGHT picks a currency, and
+-- A opens a transfer panel: X flips Deposit <-> Withdraw, d-pad LEFT/RIGHT picks
+-- a digit, UP/DOWN adjusts it, Y fills in the maximum, A confirms, B cancels.
+-- The move runs through TransferCurrency() (plain call first, then the
+-- CallSecureProtected retry, same as every other guarded API here), and success
+-- is only announced once the destination balance is OBSERVED to grow.
+
+-- Candidate list; GetBankableCurrencies filters it live against the client's own
+-- CanCurrencyBeStoredInLocation so future bankable currencies appear on their own.
+GPI.bankCurrencyDefs = {
+    { var = "CURT_MONEY",           label = "Gold" },
+    { var = "CURT_TELVAR_STONES",   label = "Tel Var" },
+    { var = "CURT_ALLIANCE_POINTS", label = "Alliance Points" },
+    { var = "CURT_WRIT_VOUCHERS",   label = "Writ Vouchers" },
+}
+
+function GPI:GetBankableCurrencies()
+    local out = {}
+    local bankLoc = ConstantValue("CURRENCY_LOCATION_BANK")
+    for i = 1, #self.bankCurrencyDefs do
+        local def = self.bankCurrencyDefs[i]
+        local curt = ConstantValue(def.var)
+        if curt ~= nil then
+            local ok = true
+            if CanCurrencyBeStoredInLocation and bankLoc ~= nil then
+                ok = SafeCall(CanCurrencyBeStoredInLocation, curt, bankLoc) == true
+            end
+            if ok then table.insert(out, { curt = curt, label = def.label }) end
+        end
+    end
+    return out
+end
+
+-- Largest amount that can move in the given direction: limited by what the source
+-- holds AND by any cap on the destination (bank cap on deposit, wallet cap on
+-- withdraw), so the panel's Max is always an amount the server will accept.
+function GPI:CurrencyTransferMax(curt, dir)
+    local charLoc = ConstantValue("CURRENCY_LOCATION_CHARACTER")
+    local bankLoc = ConstantValue("CURRENCY_LOCATION_BANK")
+    local carried = (charLoc ~= nil and SafeCall(GetCurrencyAmount, curt, charLoc)) or 0
+    local banked  = (bankLoc ~= nil and SafeCall(GetCurrencyAmount, curt, bankLoc)) or 0
+    local maxMove
+    if dir == "deposit" then
+        maxMove = carried
+        if GetMaxPossibleCurrency and bankLoc ~= nil then
+            local cap = SafeCall(GetMaxPossibleCurrency, curt, bankLoc)
+            if type(cap) == "number" then maxMove = math.min(maxMove, math.max(0, cap - banked)) end
+        end
+    else
+        maxMove = banked
+        if GetMaxPossibleCurrency and charLoc ~= nil then
+            local cap = SafeCall(GetMaxPossibleCurrency, curt, charLoc)
+            if type(cap) == "number" then maxMove = math.min(maxMove, math.max(0, cap - carried)) end
+        end
+    end
+    return maxMove, carried, banked
+end
+
+local function PrettyAmount(n)
+    if ZO_CommaDelimitNumber then
+        local ok, s = pcall(ZO_CommaDelimitNumber, n)
+        if ok and s then return s end
+    end
+    return tostring(n)
+end
+
+-- ---- The strip: one chip per bankable currency, across the top of the pane ----
+function GPI:EnsureBankCurrencyStrip()
+    if self.bankCurChips or not self.bankFrame then return end
+    self.bankCurChips = {}
+    for i = 1, 4 do
+        local chip = self:CreateBackdrop(nil, self.bankFrame, 0.04, 0.05, 0.07, 0.95, 0.30, 0.33, 0.40, 1)
+        chip:SetHeight(34)
+        chip:SetMouseEnabled(true)
+        chip.text = self:CreateLabel(nil, chip, "ZoFontGamepad22", 0.9, 0.9, 0.9, 1)
+        chip.text:SetAnchorFill(chip)
+        chip.text:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        chip.text:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        chip:SetHandler("OnMouseUp", function(_, mb)
+            if mb == MOUSE_BUTTON_INDEX_LEFT and self.bankMode then
+                local list = self:GetBankableCurrencies()
+                if list[i] then
+                    self.selZone = "bankcurrency"
+                    self.bankCurIndex = i
+                    self:ShowCurrencyPanel(list[i])
+                    self:Render()
+                end
+            end
+        end)
+        chip:SetHidden(true)
+        self.bankCurChips[i] = chip
+    end
+end
+
+function GPI:RenderBankCurrencyStrip(paneWidth)
+    self:EnsureBankCurrencyStrip()
+    if not self.bankCurChips then return end
+    local list = self:GetBankableCurrencies()
+    local n = #list
+    if (self.bankCurIndex or 1) > math.max(1, n) then self.bankCurIndex = math.max(1, n) end
+    local GAP = 8
+    local chipW = n > 0 and math.floor((paneWidth - 28 - (n - 1) * GAP) / n) or 0
+    for i = 1, #self.bankCurChips do
+        local chip = self.bankCurChips[i]
+        local def = list[i]
+        if def and chipW > 0 then
+            chip:ClearAnchors()
+            chip:SetAnchor(TOPLEFT, self.bankFrame, TOPLEFT, 14 + (i - 1) * (chipW + GAP), 44)
+            chip:SetWidth(chipW)
+            local _, carried, banked = self:CurrencyTransferMax(def.curt, "deposit")
+            chip.text:SetText(string.format("|cAEB4BE%s:|r |c4FE07A%s|r |cAEB4BE/ bank|r |c4FE07A%s|r",
+                def.label, AbbrevNumber(carried), AbbrevNumber(banked)))
+            if self.selZone == "bankcurrency" and i == (self.bankCurIndex or 1) then
+                chip:SetCenterColor(0.10, 0.42, 0.55, 1)
+                chip:SetEdgeColor(0.45, 0.95, 1.00, 1)
+            else
+                chip:SetCenterColor(0.04, 0.05, 0.07, 0.95)
+                chip:SetEdgeColor(0.30, 0.33, 0.40, 1)
+            end
+            chip:SetHidden(false)
+        else
+            chip:SetHidden(true)
+        end
+    end
+end
+
+-- ---- The transfer panel: modal amount entry, same family as the confirms ----
+local CUR_PANEL_DIGITS = 9 -- up to 999,999,999 per transfer; clamped to Max anyway
+
+function GPI:EnsureCurrencyPanel()
+    if self.curPanel then return end
+    self.curPanel = self:CreateFramedBackdrop(nil, self.window, "panel")
+    self.curPanel:SetDimensions(640, 300)
+    self.curPanel:SetAnchor(CENTER, GuiRoot, CENTER, 0, -60)
+    -- The bank pane is window-tier: like the compare frame and the pick list,
+    -- this popup must be promoted to DT_HIGH or the pane's cell icons and stack
+    -- labels draw straight through it. Fully opaque surface for the same reason.
+    if self.curPanel.SetDrawTier and DT_HIGH then self.curPanel:SetDrawTier(DT_HIGH) end
+    if self.curPanel.SetDrawLevel then self.curPanel:SetDrawLevel(90) end
+    self.curPanel:SetCenterColor(0.05, 0.06, 0.08, 1)
+    self.curPanel:SetHidden(true)
+
+    -- Children carry their own draw order in ESO: without an explicit level the
+    -- panel's text loses to the bank cells' stack labels (level 3) and selection
+    -- overlays (level 4). Everything on the panel rides at 95, above the surface.
+    local function Lift(c)
+        if c and c.SetDrawTier and DT_HIGH then c:SetDrawTier(DT_HIGH) end
+        if c and c.SetDrawLevel then c:SetDrawLevel(95) end
+        return c
+    end
+
+    self.curPanelTitle = Lift(self:CreateLabel(nil, self.curPanel, "ZoFontGamepadBold34", ESO.goldR, ESO.goldG, ESO.goldB, 1))
+    self.curPanelTitle:SetAnchor(TOP, self.curPanel, TOP, 0, 18)
+
+    self.curPanelBalances = Lift(self:CreateLabel(nil, self.curPanel, "ZoFontGamepad22", 0.75, 0.78, 0.83, 1))
+    self.curPanelBalances:SetAnchor(TOP, self.curPanel, TOP, 0, 62)
+    self.curPanelBalances:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    self.curPanelAmount = Lift(self:CreateLabel(nil, self.curPanel, "ZoFontGamepadBold48", 0.9, 0.9, 0.9, 1))
+    self.curPanelAmount:SetAnchor(TOP, self.curPanel, TOP, 0, 108)
+    self.curPanelAmount:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    self.curPanelMaxLine = Lift(self:CreateLabel(nil, self.curPanel, "ZoFontGamepad22", 0.75, 0.78, 0.83, 1))
+    self.curPanelMaxLine:SetAnchor(TOP, self.curPanel, TOP, 0, 176)
+    self.curPanelMaxLine:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    self.curPanelHint = Lift(self:CreateLabel(nil, self.curPanel, "ZoFontGamepad22", ESO.dimR, ESO.dimG, ESO.dimB, 1))
+    self.curPanelHint:SetAnchor(BOTTOM, self.curPanel, BOTTOM, 0, -16)
+    self.curPanelHint:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    self.curPanelHint:SetText("D-Pad: set amount    X: direction    Y: max    A: confirm    B: cancel")
+end
+
+function GPI:ShowCurrencyPanel(def)
+    if not (def and def.curt ~= nil) then return end
+    self:EnsureCurrencyPanel()
+    self:HideInfoPopup()
+    self:HideCompare()
+    self:HideHoverTooltip()
+    local _, carried, banked = self:CurrencyTransferMax(def.curt, "deposit")
+    self.curPanelState = {
+        curt = def.curt,
+        label = def.label,
+        dir = (carried > 0 or banked == 0) and "deposit" or "withdraw",
+        amount = 0,
+        digit = CUR_PANEL_DIGITS, -- start on the ones place
+    }
+    self.curPanelOpen = true
+    self:RenderCurrencyPanel()
+    self.curPanel:SetHidden(false)
+end
+
+function GPI:HideCurrencyPanel()
+    local wasOpen = self.curPanelOpen
+    self.curPanelOpen = false
+    self.curPanelState = nil
+    if self.curPanel then self.curPanel:SetHidden(true) end
+    if wasOpen and self:IsShowing() then self:Render() end
+end
+
+function GPI:RenderCurrencyPanel()
+    local st = self.curPanelState
+    if not (st and self.curPanel) then return end
+    local maxMove, carried, banked = self:CurrencyTransferMax(st.curt, st.dir)
+    if (st.amount or 0) > maxMove then st.amount = maxMove end
+
+    self.curPanelTitle:SetText(string.format("%s %s",
+        st.dir == "deposit" and "DEPOSIT" or "WITHDRAW", string.upper(st.label)))
+    self.curPanelBalances:SetText(string.format("Carried: %s        Banked: %s",
+        PrettyAmount(carried), PrettyAmount(banked)))
+
+    -- Fixed-width digit readout: leading zeros dim, the active digit gold, commas
+    -- between groups. UP/DOWN adjusts the highlighted place value directly.
+    local raw = string.format("%0" .. CUR_PANEL_DIGITS .. "d", st.amount or 0)
+    local firstSig = CUR_PANEL_DIGITS - math.max(1, tostring(st.amount or 0):len()) + 1
+    local parts = {}
+    for i = 1, CUR_PANEL_DIGITS do
+        local ch = raw:sub(i, i)
+        local color
+        if i == st.digit then color = "FFD700"
+        elseif i < firstSig then color = "4A4F58"
+        else color = "E6E6E6" end
+        table.insert(parts, "|c" .. color .. ch .. "|r")
+        if i < CUR_PANEL_DIGITS and (CUR_PANEL_DIGITS - i) % 3 == 0 then
+            table.insert(parts, "|c4A4F58,|r")
+        end
+    end
+    self.curPanelAmount:SetText(table.concat(parts))
+
+    if maxMove <= 0 then
+        self.curPanelMaxLine:SetColor(0.95, 0.35, 0.30, 1)
+        self.curPanelMaxLine:SetText(st.dir == "deposit"
+            and "Nothing to deposit (or the bank is at its cap)."
+            or "Nothing to withdraw (or your wallet is at its cap).")
+    else
+        self.curPanelMaxLine:SetColor(0.75, 0.78, 0.83, 1)
+        self.curPanelMaxLine:SetText(string.format("Max: %s", PrettyAmount(maxMove)))
+    end
+end
+
+function GPI:AdjustCurrencyPanel(action)
+    local st = self.curPanelState
+    if not st then return end
+    if action == "LEFT" then
+        st.digit = math.max(1, (st.digit or CUR_PANEL_DIGITS) - 1)
+    elseif action == "RIGHT" then
+        st.digit = math.min(CUR_PANEL_DIGITS, (st.digit or CUR_PANEL_DIGITS) + 1)
+    elseif action == "UP" or action == "DOWN" then
+        local place = 10 ^ (CUR_PANEL_DIGITS - (st.digit or CUR_PANEL_DIGITS))
+        local maxMove = self:CurrencyTransferMax(st.curt, st.dir)
+        local newAmount = (st.amount or 0) + (action == "UP" and place or -place)
+        if newAmount < 0 then newAmount = 0 end
+        if newAmount > maxMove then newAmount = maxMove end
+        st.amount = newAmount
+    elseif action == "SECONDARY" then
+        st.dir = st.dir == "deposit" and "withdraw" or "deposit"
+        st.amount = math.min(st.amount or 0, self:CurrencyTransferMax(st.curt, st.dir))
+    elseif action == "TERTIARY" then
+        st.amount = self:CurrencyTransferMax(st.curt, st.dir)
+    end
+    self:RenderCurrencyPanel()
+end
+
+function GPI:ConfirmCurrencyTransfer()
+    local st = self.curPanelState
+    if not st then self:HideCurrencyPanel() return end
+    local maxMove = self:CurrencyTransferMax(st.curt, st.dir)
+    local amount = math.min(st.amount or 0, maxMove)
+    if amount <= 0 then
+        self:Verdict(true, "Enter an amount above zero first (Y fills in the maximum).")
+        return
+    end
+    if not TransferCurrency and not DepositCurrencyIntoBank and not WithdrawCurrencyFromBank then
+        self:Verdict(true, "This client can't transfer currency (no currency transfer API).")
+        self:HideCurrencyPanel()
+        return
+    end
+    local charLoc = ConstantValue("CURRENCY_LOCATION_CHARACTER")
+    local bankLoc = ConstantValue("CURRENCY_LOCATION_BANK")
+    if charLoc == nil or bankLoc == nil then
+        self:Verdict(true, "Currency locations unavailable on this client.")
+        self:HideCurrencyPanel()
+        return
+    end
+    local fromLoc = st.dir == "deposit" and charLoc or bankLoc
+    local toLoc   = st.dir == "deposit" and bankLoc or charLoc
+    local curt, label, dir = st.curt, st.label, st.dir
+    local before = SafeCall(GetCurrencyAmount, curt, toLoc) or 0
+    self:HideCurrencyPanel()
+
+    -- Plain call first; if the client flags it protected the pcall fails
+    -- instantly and we retry through CallSecureProtected (RequestMoveItem pattern).
+    -- v1.45: if TransferCurrency is missing or refused, fall back to the dedicated
+    -- bank calls the native banking UI has always used.
+    local sent = false
+    if TransferCurrency then
+        sent = pcall(TransferCurrency, curt, amount, fromLoc, toLoc)
+        if not sent and CallSecureProtected then
+            sent = pcall(function() CallSecureProtected("TransferCurrency", curt, amount, fromLoc, toLoc) end)
+        end
+    end
+    if not sent then
+        local fnName = (dir == "deposit") and "DepositCurrencyIntoBank" or "WithdrawCurrencyFromBank"
+        local fn = _G[fnName]
+        if type(fn) == "function" then
+            sent = pcall(fn, curt, amount)
+            if not sent and CallSecureProtected then
+                pcall(function() CallSecureProtected(fnName, curt, amount) end)
+            end
+        end
+    end
+
+    -- Only report success once the destination balance is OBSERVED to grow.
+    local attempts = 0
+    local function check()
+        attempts = attempts + 1
+        local now = SafeCall(GetCurrencyAmount, curt, toLoc) or 0
+        if now > before then
+            self:Verdict(false, string.format("%s %s %s.",
+                dir == "deposit" and "Deposited" or "Withdrew", PrettyAmount(now - before), label))
+            if self:IsShowing() then self:Render() end
+        elseif attempts < 5 and zo_callLater then
+            zo_callLater(check, 350)
+        else
+            self:Verdict(true, "The transfer didn't go through -- the game refused it.")
+        end
+    end
+    if zo_callLater then zo_callLater(check, 300) end
 end
 
 -- The bank pane: a second grid spanning the two native bar areas on the left
@@ -6107,10 +6551,14 @@ function GPI:RenderBankGrid()
     self.bankFrame:SetDimensions(w, h)
     self.bankFrame:SetHidden(false)
 
+    -- Currency strip across the top of the pane (deposit/withdraw entry point).
+    self:RenderBankCurrencyStrip(w)
+
     local CELL, GAP = self.cellSize or 52, self.cellGap or 6
     local stride = CELL + GAP
     local cols = math.max(1, math.floor((w - 28) / stride))
-    local rows = math.max(1, math.floor((h - 56 - 36) / stride))
+    -- 100 top: title (44) + currency strip (34) + gap; 36 bottom: footer.
+    local rows = math.max(1, math.floor((h - 100 - 36) / stride))
     self.bankCols, self.bankRows = cols, rows
     self.bankPageSize = cols * rows
 
@@ -6127,7 +6575,7 @@ function GPI:RenderBankGrid()
         local cell = self:EnsureBankCell(i)
         local r, c = math.floor((i - 1) / cols), (i - 1) % cols
         cell:ClearAnchors()
-        cell:SetAnchor(TOPLEFT, self.bankFrame, TOPLEFT, x0 + c * stride, 50 + r * stride)
+        cell:SetAnchor(TOPLEFT, self.bankFrame, TOPLEFT, x0 + c * stride, 94 + r * stride)
         local item = self.bankItems and self.bankItems[base + i]
         if item then
             cell:SetHidden(false)
@@ -6157,7 +6605,7 @@ function GPI:RenderBankGrid()
     local used = #(self.bankItems or {})
     local size = self:BankTotalSlots()
     local pageNote = maxPage > 0 and string.format("  \226\128\162  page %d/%d", (self.bankPage or 0) + 1, maxPage + 1) or ""
-    self.bankFooter:SetText(string.format("Bank: %d / %d%s", used, size, pageNote))
+    self.bankFooter:SetText(string.format("Bank: %d / %d%s  \226\128\162  Gold & currencies: UP from the bank's top row, then A", used, size, pageNote))
 
     -- The native scene's fragments re-show its chrome after one-shot hides (the
     -- item-dependent card behind the pane). Re-suppress every render, plus one
@@ -6596,6 +7044,21 @@ function GPI:RunInputAction(action, source)
         return true
     end
 
+    -- The currency transfer panel is modal while open: d-pad edits the amount,
+    -- X flips direction, Y maxes, A confirms, B cancels. Everything else is
+    -- swallowed so a stray press can't act on the grids underneath.
+    if self.curPanelOpen then
+        if action == "LEFT" or action == "RIGHT" or action == "UP" or action == "DOWN"
+            or action == "SECONDARY" or action == "TERTIARY" then
+            self:AdjustCurrencyPanel(action)
+        elseif action == "PRIMARY" then
+            self:ConfirmCurrencyTransfer()
+        elseif action == "NEGATIVE" then
+            self:HideCurrencyPanel()
+        end
+        return true
+    end
+
     -- B closes the compare popup first; a second press closes the window.
     if action == "NEGATIVE" and self.infoPopupOpen and not self.simpleView then
         self:HideInfoPopup()
@@ -6694,6 +7157,41 @@ function GPI:RunInputAction(action, source)
         return true
     end
 
+    -- Currency strip focus (top of the bank pane): LEFT/RIGHT picks a currency,
+    -- A opens the transfer panel, DOWN or B drops back into the bank grid, X hops
+    -- to the backpack grid. Item actions are swallowed -- chips aren't items.
+    if self.bankMode and self.selZone == "bankcurrency" then
+        local list = self:GetBankableCurrencies()
+        local n = #list
+        local idx = self.bankCurIndex or 1
+        if action == "LEFT" then
+            if idx > 1 then self.bankCurIndex = idx - 1 self:Render() end
+            return true
+        elseif action == "RIGHT" then
+            if idx < n then self.bankCurIndex = idx + 1 self:Render() end
+            return true
+        elseif action == "DOWN" or action == "NEGATIVE" then
+            self.selZone = "bankgrid"
+            self:Render()
+            return true
+        elseif action == "PRIMARY" then
+            if list[idx] then self:ShowCurrencyPanel(list[idx]) end
+            return true
+        elseif action == "SECONDARY" then
+            self.selZone = "grid"
+            self:Render()
+            return true
+        elseif action == "FILTER_PREV" then
+            self:CycleFilter(-1)
+            return true
+        elseif action == "FILTER_NEXT" then
+            self:CycleFilter(1)
+            return true
+        else
+            return true
+        end
+    end
+
     -- Bank pane focus: full grid navigation, LB/RB pages, A withdraws, X hops back.
     if self.bankMode and self.selZone == "bankgrid" then
         local cols = self.bankCols or 1
@@ -6721,6 +7219,11 @@ function GPI:RunInputAction(action, source)
                 -- Top row: page back, landing at the same column's bottom row.
                 self.bankPage = self.bankPage - 1
                 self.bankIndex = ((self.bankRows or 1) - 1) * cols + ((idx - 1) % cols) + 1
+                self:Render()
+            else
+                -- Top row of page 1: climb onto the currency strip.
+                self.selZone = "bankcurrency"
+                self.bankCurIndex = self.bankCurIndex or 1
                 self:Render()
             end
             return true
@@ -7031,7 +7534,7 @@ end
 
 function GPI:RunDiagnostic(lower)
     -- Print the running build first: several reports so far have come from a stale copy.
-    AddChatMessage("[GridPad] build AddOnVersion 143")
+    AddChatMessage("[GridPad] build v" .. tostring(GPI.version) .. " (AddOnVersion " .. tostring(GPI.addOnVersion) .. ")")
     -- /gpi quickslot -- dump what this client actually exposes, so the quickslot
     -- wiring can be based on real constant names instead of guessed ones.
     if lower:match("^%s*quickslots?%s*$") then
@@ -7970,6 +8473,13 @@ function GPI:Initialize()
         elseif command == "filter" then
             self:SetFilter(rest)
             return
+        elseif command == "seen" or command == "dismissnew" then
+            if self:IsShowing() then
+                self:DismissAllNew()
+            else
+                AddChatMessage("Open Grid Pad first, then type /gpi seen to clear every new-item marker.")
+            end
+            return
         elseif command == "filters" then
             AddChatMessage("filters: " .. self:GetFilterListText())
             return
@@ -8055,6 +8565,16 @@ function GPI:Initialize()
                 -- Only the player bank (house storage keeps the native UI for now).
                 if BAG_BANK ~= nil and bankBag ~= BAG_BANK then return end
                 GPI.bankMode = true
+                -- One-time-per-session pointer to the currency strip, which is easy
+                -- to miss: it sits above the bank grid and is reached with UP.
+                if not GPI.bankCurrencyHintShown then
+                    GPI.bankCurrencyHintShown = true
+                    zo_callLater(function()
+                        if GPI.bankMode and GPI:IsShowing() then
+                            GPI:Alert(false, "Deposit/withdraw gold: LEFT into the bank, UP past its top row, A on a currency.")
+                        end
+                    end, 600)
+                end
                 GPI.bankIndex = 1
                 GPI.bankPage = 0
                 GPI:HideInfoPopup()
@@ -8078,6 +8598,15 @@ function GPI:Initialize()
                 GPI:Refresh()
             end)
         end
+        if EVENT_CURRENCY_UPDATE then
+            -- Keeps the strip's carried/banked readouts and the open transfer
+            -- panel live while banking, whatever moved the currency.
+            EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "CurrencyUpdate", EVENT_CURRENCY_UPDATE, function()
+                if not (GPI.bankMode and GPI:IsShowing()) then return end
+                if GPI.curPanelOpen then GPI:RenderCurrencyPanel() end
+                GPI:Render()
+            end)
+        end
         do
             EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "CloseBank", EVENT_CLOSE_BANK, function()
                 GPI.bankMode = nil
@@ -8085,7 +8614,8 @@ function GPI:Initialize()
                 GPI:StopBankChromeBeat()
                 GPI:RemoveBankKeybinds()
                 GPI:HideBankConfirm()
-                if GPI.selZone == "bankgrid" then GPI.selZone = "grid" end
+                GPI:HideCurrencyPanel()
+                if GPI.selZone == "bankgrid" or GPI.selZone == "bankcurrency" then GPI.selZone = "grid" end
                 if GPI.bankFrame then GPI.bankFrame:SetHidden(true) end
                 GPI:RestoreBankChrome()
                 if GPI:IsShowing() then GPI:Hide(true) end

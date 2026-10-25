@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/naka182/Simple-Player-Frames__4981",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "naka182",
   "canonical_id": "esoui:4981",
   "category_id": "17",
@@ -19,7 +18,7 @@
     "SimplePlayerFrames"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4981/",
-  "fingerprint": "6c7636fbc4161d93840ebd25416c8fe0c91aff523a8f16a061511527d04eca4a",
+  "fingerprint": "86b339cf35e755d66120b8b28afc902b81dc79dbcc34365d54112de3bda19034",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18111.png",
     "https://cdn-eso.mmoui.com/preview/pvw18110.png",
@@ -34,11 +33,11 @@
   "source_id": "4981",
   "source_url": "https://www.esoui.com/downloads/info4981-SimplePlayerFrames.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 19,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 15
   },
   "title": "Simple Player Frames",
-  "updated_at": 1792821730000,
-  "version": "1.0"
+  "updated_at": 1792877297000,
+  "version": "1.0.1"
 }

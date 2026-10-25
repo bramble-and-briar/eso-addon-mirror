@@ -110,6 +110,24 @@ function addon:InitSettings()
 			end
 		end
 		local uiWidth, uiHeight = GuiRoot:GetDimensions()
+		local styleItems = {
+			{name = GetString(SI_PBSMINIMAP_STYLE_SQUARE), data = {value = "square"}},
+			{name = GetString(SI_PBSMINIMAP_STYLE_COMPASS), data = {value = "compass"}},
+		}
+		settings:AddSetting({
+			type = LibHarvensAddonSettings.ST_DROPDOWN,
+			label = GetString(SI_PBSMINIMAP_STYLE),
+			tooltip = GetString(SI_PBSMINIMAP_STYLE_TOOLTIP),
+			items = styleItems,
+			default = styleItems[1].name,
+			getFunction = function()
+				return styleItems[self.account.mapStyle == "compass" and 2 or 1].name
+			end,
+			setFunction = function(_, _, item)
+				self.account.mapStyle = item.data.value
+				self:ApplyLiteBorder()
+			end,
+		})
 
 		settings:AddSetting(
 			{

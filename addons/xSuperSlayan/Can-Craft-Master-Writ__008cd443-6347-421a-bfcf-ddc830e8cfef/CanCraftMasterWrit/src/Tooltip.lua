@@ -16,6 +16,7 @@ local addon = CanCraftMasterWrit
 local Result = addon.Result
 local Evaluator = addon.Evaluator
 local Settings = addon.Settings
+local Util = addon.Util
 
 local Tooltip = {}
 addon.Tooltip = Tooltip
@@ -44,6 +45,18 @@ local STATUS_TEXT = {
     [Result.STATUS_UNKNOWN] = SI_CCMW_STATUS_UNKNOWN,
 }
 
+-- The icons shown with or instead of the status (the "Status Display" setting): the radial menu's accept and cancel,
+-- which the game's shared UI code uses, so they exist on console. They take the status's colour. Status Unknown has
+-- no icon and is always written out.
+local STATUS_ICON = {
+    [Result.STATUS_CRAFTABLE] = "EsoUI/Art/HUD/Gamepad/gp_radialIcon_accept_down.dds",
+    [Result.STATUS_NOT_CRAFTABLE] = "EsoUI/Art/HUD/Gamepad/gp_radialIcon_cancel_down.dds",
+}
+Tooltip.STATUS_ICON = STATUS_ICON
+-- A share of the text's height. The text's height includes room above and below the capitals, so this lines the
+-- icon up with the tops and bottoms of the capitals.
+local STATUS_ICON_SIZE = "88%"
+
 -- The status is drawn in capitals (CRAFTABLE), like the rest of the top section. The game does the capitals, so the
 -- text stays in normal case for chat and screen narration, and works in every language.
 local STATUS_STYLE = {
@@ -67,24 +80,22 @@ local STATUS_ROW_STYLE = {
 local LINE_SPACING = 4   -- Between lines in a group (the section's childSpacing).
 local GROUP_SPACING = 30 -- Above the first line of a new group.
 
--- About two blank lines separate the game's own text (the writ's description) from ours, with a divider line in the
--- middle: the game's own divider (as between the sets of a set box in itemtooltips.lua), at half its usual opacity.
-local DIVIDER_GAP = 35
+-- About two blank lines separate the game's own text (the writ's description) from ours, with the same faint line as
+-- on the settings' Supporters page in the middle.
+local DIVIDER_GAP = 38
 
 local DIVIDER_SECTION_STYLE = {
     customSpacing = DIVIDER_GAP,
     widthPercent = 100,
 }
 
+-- No picture: the game's map tooltips add a texture without one too (maptooltips.lua), and it draws as a rectangle of
+-- its colour.
+local DIVIDER_TEXTURE = nil
 local DIVIDER_STYLE = {
-    -- The game's "dividerLine" style (tooltipstyles.lua).
-    textureCoordinateLeft = 0.25,
-    textureCoordinateRight = 0.75,
-    textureCoordinateTop = 0.25,
-    textureCoordinateBottom = 0.75,
     widthPercent = 100,
-    height = 8,
-    color = ZO_ColorDef:New(1, 1, 1, 0.5), -- The picture's own colour, half transparent.
+    height = Util.LINE_HEIGHT,
+    color = ZO_ColorDef:New(1, 1, 1, Util.LINE_ALPHA),
 }
 
 local DETAILS_SECTION_STYLE = {
@@ -170,6 +181,19 @@ function Tooltip.GetStatusText(result)
     return GetString(STATUS_TEXT[result.status])
 end
 
+-- Returns the status as the tooltip shows it: its icon, its text or both, as the Status Display setting says.
+function Tooltip.FormatStatus(result)
+    local text = Tooltip.GetStatusText(result)
+    local icon = STATUS_ICON[result.status]
+    local display = Settings.Get("statusDisplay")
+    if not icon or display == "text" then
+        return text
+    elseif display == "icon" then
+        return zo_iconFormatInheritColor(icon, STATUS_ICON_SIZE, STATUS_ICON_SIZE)
+    end
+    return zo_iconTextFormat(icon, STATUS_ICON_SIZE, STATUS_ICON_SIZE, text, true)
+end
+
 -- Returns "Label: value" with the value in white, so the label's colour says pass or fail and the value stands out.
 function Tooltip.FormatLabelValue(label, value)
     if value == nil or value == "" then
@@ -221,7 +245,8 @@ local function AddStatusLine(row, result)
         style.width = width
         style.horizontalAlignment = TEXT_ALIGN_RIGHT
     end
-    row:AddLine(Tooltip.GetStatusText(result), style)
+    -- The plain text is given as narration, so screen narration reads the status even when only the icon shows.
+    row:AddLineWithCustomNarration(Tooltip.FormatStatus(result), Tooltip.GetStatusText(result), style)
 end
 
 local function AddCheckLine(section, check, startsGroup)
@@ -252,7 +277,7 @@ local function AddDetailsSection(tooltip, result)
         return
     end
     local divider = tooltip:AcquireSection(DIVIDER_SECTION_STYLE)
-    divider:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, DIVIDER_STYLE)
+    divider:AddTexture(DIVIDER_TEXTURE, DIVIDER_STYLE)
     tooltip:AddSection(divider)
 
     local section = tooltip:AcquireSection(DETAILS_SECTION_STYLE)

@@ -18,6 +18,8 @@ Settings.DEFAULTS = {
     -- Which lines the tooltip shows. Neither changes the overall status.
     showMissing = true, -- Failed and unknown lines.
     showKnown = true,   -- Passed lines and information such as the runes or reagents to use.
+    -- How the overall status is shown: "icon", "iconAndText" or "text".
+    statusDisplay = "iconAndText",
     -- The version whose "What's New" pop-up was last shown, so it appears once per update.
     lastSeenVersion = nil,
 }

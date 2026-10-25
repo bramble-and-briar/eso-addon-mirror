@@ -1,0 +1,29 @@
+## Title: Auto Master Writs
+## Description: Filter, bank, craft and deliver master writs with a 150% XP guard.
+## APIVersion: 101051
+## Version: 1.51.01
+## AddOnVersion: 15101
+## Author: xbutch
+## DependsOn: DolgubonsLazyWritCreator LibLazyCrafting
+## ConsoleDependsOn: LibHarvensAddonSettings LibConsoleDialogs
+## OptionalDependsOn: LibRadialMenu LibHarvensAddonSettings LibConsoleDialogs
+## SavedVariables: AutoMasterWritsSavedVariables
+
+Core.lua
+Scheduler.lua
+Filters.lua
+LazyWritAdapter.lua
+Materials.lua
+Experience.lua
+Banking.lua
+Extraction.lua
+Delivery.lua
+UI.lua
+Main.lua
+bindings.xml
+
+; This Add-On is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+

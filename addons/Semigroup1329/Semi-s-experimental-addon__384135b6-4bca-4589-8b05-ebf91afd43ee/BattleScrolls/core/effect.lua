@@ -157,6 +157,7 @@ end
 
 ---Internal: Notify all completion callbacks
 function Fiber:_NotifyCallbacks()
+    self._cancelFn = nil
     local dispatcher = getCallbackDispatcher()
     for _, cb in ipairs(self._callbacks) do
         local fiber = self
@@ -674,7 +675,10 @@ end
 ---@param fiber Fiber<any>
 ---@param onDone fun(success: boolean, value: any)
 local function runAsync(effect, fiber, onDone)
+    ---@type thread|nil
     local co = coroutine.create(effect._fn)
+    ---@type (fun(success: boolean, value: any))|nil
+    local continuation = onDone
     local cancelled = false
     local done = false
     local nextSuccess, nextValue  -- arguments for next resume
@@ -686,7 +690,12 @@ local function runAsync(effect, fiber, onDone)
     local function finish(success, value)
         if done then return end
         done = true
-        onDone(success, value)
+        -- An external fiber may still hold our completion callback. Release
+        -- the coroutine stack and finalizer chain as soon as this work ends.
+        co, nextSuccess, nextValue = nil, nil, nil
+        local complete = continuation
+        continuation = nil
+        if complete then complete(success, value) end
     end
 
     -- Cancellation drives the unwind itself instead of relying on a scheduled
@@ -705,13 +714,15 @@ local function runAsync(effect, fiber, onDone)
             return
         end
 
-        if coroutine.status(co) == "dead" then
+        local thread = co
+        if not thread then return end
+        if coroutine.status(thread) == "dead" then
             finish(false, "coroutine died unexpectedly (engine frame budget exceeded?)")
             return
         end
 
         -- Resume with success/value arguments
-        local ok, yielded = coroutine.resume(co, nextSuccess, nextValue)
+        local ok, yielded = coroutine.resume(thread, nextSuccess, nextValue)
         -- The coroutine has consumed these values. Keeping the previous
         -- result here would pin it throughout the next awaited operation,
         -- including GC intended to reclaim a discarded decoded encounter.
@@ -726,7 +737,7 @@ local function runAsync(effect, fiber, onDone)
             return
         end
 
-        if coroutine.status(co) == "dead" then
+        if coroutine.status(thread) == "dead" then
             finish(true, yielded)
             return
         end

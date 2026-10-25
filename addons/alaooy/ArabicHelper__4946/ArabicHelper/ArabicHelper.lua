@@ -1,3 +1,7 @@
+-- كل الأدون يستخدم جدول عام واحد بس: ArabicHelper (ينعمل في arabic.lua)
+ArabicHelper = ArabicHelper or {}
+local AH = ArabicHelper
+
 -- تعريف اسم الزر الذي سيظهر في إعدادات اللعبة
 ZO_CreateStringId("SI_BINDING_NAME_TOGGLE_ARABIC_HELPER", "Open/Close Arabic Helper")
 
@@ -9,6 +13,27 @@ local currentCategory = ""
 local favoritesMode = false
 local selectedSetInfo = nil
 local savedVars
+
+-- ثوابت عامة
+local str_format = string.format
+local IMAGE_PATH = "ArabicHelper/images/%s.dds"
+local function Img(fileName) return str_format(IMAGE_PATH, fileName) end
+
+local CATEGORY = {
+    DUNGEON   = "Dungeon",
+    TRIAL     = "Trial",
+    ARENA     = "Arena",
+    CRAFTABLE = "craftable",
+    PVP       = "PvP",
+    MONSTER   = "Monster",
+    MYTHIC    = "Mythic",
+    ARCHIVE   = "Archive",
+}
+local CATEGORY_ORDER = {
+    CATEGORY.DUNGEON, CATEGORY.TRIAL, CATEGORY.ARENA, CATEGORY.CRAFTABLE,
+    CATEGORY.PVP, CATEGORY.MONSTER, CATEGORY.MYTHIC, CATEGORY.ARCHIVE,
+}
+AH.CATEGORY = CATEGORY -- لو احتجناها في ملف ثاني
 
 -- أيقونات الشريط العلوي (من اللعبة نفسها)
 -- up = عادي ، over = لما تأشر بالماوس ، down = مضغوط
@@ -61,585 +86,663 @@ local savedVarsDefaults = {
     showCard = true, -- بطاقة الست جنب وصف القطعة
 }
 
--- تعريف قاعدة بيانات الستات
-local setsDatabase = {
-    {name = "Abyssal Brace", icon = "ArabicHelper/images/set1.dds", category = "Dungeon"},
-    {name = "Aegis Caller", icon = "ArabicHelper/images/set2.dds", category = "Dungeon"},
-    {name = "Amber Plasm", icon = "ArabicHelper/images/set3.dds", category = "Dungeon"},
-    {name = "Apocryphal Inspiration", icon = "ArabicHelper/images/set4.dds", category = "Dungeon"},
-    {name = "Arkasis's Genius", icon = "ArabicHelper/images/set5.dds", category = "Dungeon"},
-    {name = "Armor of Truth", icon = "ArabicHelper/images/set6.dds", category = "Dungeon"},
-    {name = "Aspect of Mazzatun", icon = "ArabicHelper/images/set7.dds", category = "Dungeon"},
-    {name = "Auroran's Thunder", icon = "ArabicHelper/images/set8.dds", category = "Dungeon"},
-    {name = "Azureblight Reaper", icon = "ArabicHelper/images/set9.dds", category = "Dungeon"},
-    {name = "Bani's Torment", icon = "ArabicHelper/images/set10.dds", category = "Dungeon"},
-    {name = "Barkskin", icon = "ArabicHelper/images/set11.dds", category = "Dungeon"},
-    {name = "Black Foundry Steel", icon = "ArabicHelper/images/set12.dds", category = "Dungeon"},
-    {name = "Black-Glove Grounding", icon = "ArabicHelper/images/set13.dds", category = "Dungeon"},
-    {name = "Blind Path Induction", icon = "ArabicHelper/images/set14.dds", category = "Dungeon"},
-    {name = "Blood Moon", icon = "ArabicHelper/images/set15.dds", category = "Dungeon"},
-    {name = "Blooddrinker", icon = "ArabicHelper/images/set16.dds", category = "Dungeon"},
-    {name = "Bone Pirate's Tatters", icon = "ArabicHelper/images/set17.dds", category = "Dungeon"},
-    {name = "Brands of Imperium", icon = "ArabicHelper/images/set18.dds", category = "Dungeon"},
-    {name = "Burning Spellweave", icon = "ArabicHelper/images/set19.dds", category = "Dungeon"},
-    {name = "Caluurion's Legacy", icon = "ArabicHelper/images/set20.dds", category = "Dungeon"},
-    {name = "Cinders of Anthelmir", icon = "ArabicHelper/images/set21.dds", category = "Dungeon"},
-    {name = "Combat Physician", icon = "ArabicHelper/images/set22.dds", category = "Dungeon"},
-    {name = "Crimson Oath's Rive", icon = "ArabicHelper/images/set23.dds", category = "Dungeon"},
-    {name = "Crimson Twilight", icon = "ArabicHelper/images/set24.dds", category = "Dungeon"},
-    {name = "Crusader", icon = "ArabicHelper/images/set25.dds", category = "Dungeon"},
-    {name = "Curse of Doylemish", icon = "ArabicHelper/images/set26.dds", category = "Dungeon"},
-    {name = "Dagon's Dominion", icon = "ArabicHelper/images/set27.dds", category = "Dungeon"},
-    {name = "Deeproot Zeal", icon = "ArabicHelper/images/set28.dds", category = "Dungeon"},
-    {name = "Dragon's Defilement", icon = "ArabicHelper/images/set29.dds", category = "Dungeon"},
-    {name = "Drake's Rush", icon = "ArabicHelper/images/set30.dds", category = "Dungeon"},
-    {name = "Draugr Hulk", icon = "ArabicHelper/images/set31.dds", category = "Dungeon"},
-    {name = "Draugr's Rest", icon = "ArabicHelper/images/set32.dds", category = "Dungeon"},
-    {name = "Draugrkin's Grip", icon = "ArabicHelper/images/set33.dds", category = "Dungeon"},
-    {name = "Dreugh King Slayer", icon = "ArabicHelper/images/set34.dds", category = "Dungeon"},
-    {name = "Dro'Zakar's Claws", icon = "ArabicHelper/images/set35.dds", category = "Dungeon"},
-    {name = "Duneripper's Scales", icon = "ArabicHelper/images/set36.dds", category = "Dungeon"},
-    {name = "Durok's Bane", icon = "ArabicHelper/images/set37.dds", category = "Dungeon"},
-    {name = "Ebon Armory", icon = "ArabicHelper/images/set38.dds", category = "Dungeon"},
-    {name = "Elemental Catalyst", icon = "ArabicHelper/images/set39.dds", category = "Dungeon"},
-    {name = "Embershield", icon = "ArabicHelper/images/set40.dds", category = "Dungeon"},
-    {name = "Essence Thief", icon = "ArabicHelper/images/set41.dds", category = "Dungeon"},
-    {name = "Flame Blossom", icon = "ArabicHelper/images/set42.dds", category = "Dungeon"},
-    {name = "Fledgling's Nest", icon = "ArabicHelper/images/set43.dds", category = "Dungeon"},
-    {name = "Foolkiller's Ward", icon = "ArabicHelper/images/set44.dds", category = "Dungeon"},
-    {name = "Frozen Watcher", icon = "ArabicHelper/images/set45.dds", category = "Dungeon"},
-    {name = "Glacial Guardian", icon = "ArabicHelper/images/set46.dds", category = "Dungeon"},
-    {name = "Gossamer", icon = "ArabicHelper/images/set47.dds", category = "Dungeon"},
-    {name = "Grave Guardian", icon = "ArabicHelper/images/set48.dds", category = "Dungeon"},
-    {name = "Grave Inevitability", icon = "ArabicHelper/images/set49.dds", category = "Dungeon"},
-    {name = "Grisly Gourmet", icon = "ArabicHelper/images/set50.dds", category = "Dungeon"},
-    {name = "Gryphon's Reprisal", icon = "ArabicHelper/images/set51.dds", category = "Dungeon"},
-    {name = "Hagraven's Garden", icon = "ArabicHelper/images/set52.dds", category = "Dungeon"},
-    {name = "Hand of Mephala", icon = "ArabicHelper/images/set53.dds", category = "Dungeon"},
-    {name = "Hanu's Compassion", icon = "ArabicHelper/images/set54.dds", category = "Dungeon"},
-    {name = "Haven of Ursus", icon = "ArabicHelper/images/set55.dds", category = "Dungeon"},
-    {name = "Heem-Jas' Retribution", icon = "ArabicHelper/images/set56.dds", category = "Dungeon"},
-    {name = "Heroic Unity", icon = "ArabicHelper/images/set57.dds", category = "Dungeon"},
-    {name = "Hircine's Veneer", icon = "ArabicHelper/images/set58.dds", category = "Dungeon"},
-    {name = "Hiti's Hearth", icon = "ArabicHelper/images/set59.dds", category = "Dungeon"},
-    {name = "Hollowfang Thirst", icon = "ArabicHelper/images/set60.dds", category = "Dungeon"},
-    {name = "Icy Conjurer", icon = "ArabicHelper/images/set61.dds", category = "Dungeon"},
-    {name = "Ironblood", icon = "ArabicHelper/images/set62.dds", category = "Dungeon"},
-    {name = "Jailbreaker", icon = "ArabicHelper/images/set63.dds", category = "Dungeon"},
-    {name = "Jailer's Tenacity", icon = "ArabicHelper/images/set64.dds", category = "Dungeon"},
-    {name = "Jerensi's Bladestorm", icon = "ArabicHelper/images/set65.dds", category = "Dungeon"},
-    {name = "Jolting Arms", icon = "ArabicHelper/images/set66.dds", category = "Dungeon"},
-    {name = "Jorvuld's Guidance", icon = "ArabicHelper/images/set67.dds", category = "Dungeon"},
-    {name = "Kinras's Wrath", icon = "ArabicHelper/images/set68.dds", category = "Dungeon"},
-    {name = "Knight-Errant's Mail", icon = "ArabicHelper/images/set69.dds", category = "Dungeon"},
-    {name = "Knightmare", icon = "ArabicHelper/images/set70.dds", category = "Dungeon"},
-    {name = "Kraglen's Howl", icon = "ArabicHelper/images/set71.dds", category = "Dungeon"},
-    {name = "Lamia's Song", icon = "ArabicHelper/images/set72.dds", category = "Dungeon"},
-    {name = "Leeching Plate", icon = "ArabicHelper/images/set73.dds", category = "Dungeon"},
-    {name = "Leviathan", icon = "ArabicHelper/images/set74.dds", category = "Dungeon"},
-    {name = "Light Speaker", icon = "ArabicHelper/images/set75.dds", category = "Dungeon"},
-    {name = "Lucilla's Windshield", icon = "ArabicHelper/images/set76.dds", category = "Dungeon"},
-    {name = "Lustrous Soulwell", icon = "ArabicHelper/images/set77.dds", category = "Dungeon"},
-    {name = "Magicka Furnace", icon = "ArabicHelper/images/set78.dds", category = "Dungeon"},
-    {name = "Maligalig's Maelstrom", icon = "ArabicHelper/images/set79.dds", category = "Dungeon"},
-    {name = "Medusa", icon = "ArabicHelper/images/set80.dds", category = "Dungeon"},
-    {name = "Mighty Glacier", icon = "ArabicHelper/images/set81.dds", category = "Dungeon"},
-    {name = "Moon Hunter", icon = "ArabicHelper/images/set82.dds", category = "Dungeon"},
-    {name = "Netch's Touch", icon = "ArabicHelper/images/set83.dds", category = "Dungeon"},
-    {name = "Nikulas' Heavy Armor", icon = "ArabicHelper/images/set84.dds", category = "Dungeon"},
-    {name = "Nix-Hound's Howl", icon = "ArabicHelper/images/set85.dds", category = "Dungeon"},
-    {name = "Noble Duelist's Silks", icon = "ArabicHelper/images/set86.dds", category = "Dungeon"},
-    {name = "Noxious Boulder", icon = "ArabicHelper/images/set87.dds", category = "Dungeon"},
-    {name = "Oblivion's Edge", icon = "ArabicHelper/images/set88.dds", category = "Dungeon"},
-    {name = "Overwhelming Surge", icon = "ArabicHelper/images/set89.dds", category = "Dungeon"},
-    {name = "Pangrit Denmother", icon = "ArabicHelper/images/set90.dds", category = "Dungeon"},
-    {name = "Phylactery's Grasp", icon = "ArabicHelper/images/set91.dds", category = "Dungeon"},
-    {name = "Pillar of Nirn", icon = "ArabicHelper/images/set92.dds", category = "Dungeon"},
-    {name = "Plague Slinger", icon = "ArabicHelper/images/set93.dds", category = "Dungeon"},
-    {name = "Prayer Shawl", icon = "ArabicHelper/images/set94.dds", category = "Dungeon"},
-    {name = "Rage of the Ursauk", icon = "ArabicHelper/images/set95.dds", category = "Dungeon"},
-    {name = "Rattlecage", icon = "ArabicHelper/images/set96.dds", category = "Dungeon"},
-    {name = "Reflected Fury", icon = "ArabicHelper/images/set97.dds", category = "Dungeon"},
-    {name = "Renald's Resolve", icon = "ArabicHelper/images/set98.dds", category = "Dungeon"},
-    {name = "Ritemaster's Bond", icon = "ArabicHelper/images/set99.dds", category = "Dungeon"},
-    {name = "Runecarver's Blaze", icon = "ArabicHelper/images/set100.dds", category = "Dungeon"},
-    {name = "Rush of Agony", icon = "ArabicHelper/images/set101.dds", category = "Dungeon"},
-    {name = "Sanctuary", icon = "ArabicHelper/images/set102.dds", category = "Dungeon"},
-    {name = "Savage Werewolf", icon = "ArabicHelper/images/set103.dds", category = "Dungeon"},
-    {name = "Scathing Mage", icon = "ArabicHelper/images/set104.dds", category = "Dungeon"},
-    {name = "Scavenging Demise", icon = "ArabicHelper/images/set105.dds", category = "Dungeon"},
-    {name = "Scorion's Feast", icon = "ArabicHelper/images/set106.dds", category = "Dungeon"},
-    {name = "Sergeant's Mail", icon = "ArabicHelper/images/set107.dds", category = "Dungeon"},
-    {name = "Sheer Venom", icon = "ArabicHelper/images/set108.dds", category = "Dungeon"},
-    {name = "Shroud of the Lich", icon = "ArabicHelper/images/set109.dds", category = "Dungeon"},
-    {name = "Silver Rose Vigil", icon = "ArabicHelper/images/set110.dds", category = "Dungeon"},
-    {name = "Sluthrug's Hunger", icon = "ArabicHelper/images/set111.dds", category = "Dungeon"},
-    {name = "Spell Power Cure", icon = "ArabicHelper/images/set112.dds", category = "Dungeon"},
-    {name = "Spelunker", icon = "ArabicHelper/images/set113.dds", category = "Dungeon"},
-    {name = "Spider Cultist Cowl", icon = "ArabicHelper/images/set114.dds", category = "Dungeon"},
-    {name = "Spriggan's Vigor", icon = "ArabicHelper/images/set115.dds", category = "Dungeon"},
-    {name = "Stone's Accord", icon = "ArabicHelper/images/set116.dds", category = "Dungeon"},
-    {name = "Stonehulk Domination", icon = "ArabicHelper/images/set117.dds", category = "Dungeon"},
-    {name = "Storm Master", icon = "ArabicHelper/images/set118.dds", category = "Dungeon"},
-    {name = "Storm-Cursed's Revenge", icon = "ArabicHelper/images/set119.dds", category = "Dungeon"},
-    {name = "Strength of the Automaton", icon = "ArabicHelper/images/set120.dds", category = "Dungeon"},
-    {name = "Sunderflame", icon = "ArabicHelper/images/set121.dds", category = "Dungeon"},
-    {name = "Sword Dancer", icon = "ArabicHelper/images/set122.dds", category = "Dungeon"},
-    {name = "Talfyg's Treachery", icon = "ArabicHelper/images/set123.dds", category = "Dungeon"},
-    {name = "Tarnished Nightmare", icon = "ArabicHelper/images/set124.dds", category = "Dungeon"},
-    {name = "Telvanni Enforcer", icon = "ArabicHelper/images/set125.dds", category = "Dungeon"},
-    {name = "The Ice Furnace", icon = "ArabicHelper/images/set126.dds", category = "Dungeon"},
-    {name = "The Worm's Raiment", icon = "ArabicHelper/images/set127.dds", category = "Dungeon"},
-    {name = "Thunder Caller", icon = "ArabicHelper/images/set128.dds", category = "Dungeon"},
-    {name = "Titanborn Strength", icon = "ArabicHelper/images/set129.dds", category = "Dungeon"},
-    {name = "Tools of the Trapmaster", icon = "ArabicHelper/images/set130.dds", category = "Dungeon"},
-    {name = "Toothrow", icon = "ArabicHelper/images/set131.dds", category = "Dungeon"},
-    {name = "Tormentor", icon = "ArabicHelper/images/set132.dds", category = "Dungeon"},
-    {name = "Trappings of Invigoration", icon = "ArabicHelper/images/set133.dds", category = "Dungeon"},
-    {name = "Treasure Hunter", icon = "ArabicHelper/images/set134.dds", category = "Dungeon"},
-    {name = "True-Sworn Fury", icon = "ArabicHelper/images/set135.dds", category = "Dungeon"},
-    {name = "Turning Tide", icon = "ArabicHelper/images/set136.dds", category = "Dungeon"},
-    {name = "Tzogvin's Warband", icon = "ArabicHelper/images/set137.dds", category = "Dungeon"},
-    {name = "Ulfnor's Favor", icon = "ArabicHelper/images/set138.dds", category = "Dungeon"},
-    {name = "Undaunted Bastion", icon = "ArabicHelper/images/set139.dds", category = "Dungeon"},
-    {name = "Undaunted Infiltrator", icon = "ArabicHelper/images/set140.dds", category = "Dungeon"},
-    {name = "Undaunted Unweaver", icon = "ArabicHelper/images/set141.dds", category = "Dungeon"},
-    {name = "Unleashed Ritualist", icon = "ArabicHelper/images/set142.dds", category = "Dungeon"},
-    {name = "Unleashed Terror", icon = "ArabicHelper/images/set143.dds", category = "Dungeon"},
-    {name = "Vandorallen's Resonance", icon = "ArabicHelper/images/set144.dds", category = "Dungeon"},
-    {name = "Vestments of the Warlock", icon = "ArabicHelper/images/set145.dds", category = "Dungeon"},
-    {name = "Viper's Sting", icon = "ArabicHelper/images/set146.dds", category = "Dungeon"},
-    {name = "Vykand's Soulfury", icon = "ArabicHelper/images/set147.dds", category = "Dungeon"},
-    {name = "Widowmaker", icon = "ArabicHelper/images/set148.dds", category = "Dungeon"},
-    {name = "Xanmeer Spellweaver", icon = "ArabicHelper/images/set149.dds", category = "Dungeon"},
-    {name = "Z'en's Redress", icon = "ArabicHelper/images/set150.dds", category = "Dungeon"},
-    -- ===== قسم الترايلات (Trials) =====
-    {name = "Perfected Aegis of Galenwe", icon = "ArabicHelper/images/tril1.dds", category = "Trial"},
-    {name = "Perfected Ansuul's Torment", icon = "ArabicHelper/images/tril2.dds", category = "Trial"},
-    {name = "Perfected Arms of Relequen", icon = "ArabicHelper/images/tril3.dds", category = "Trial"},
-    {name = "Perfected Bahsei's Mania", icon = "ArabicHelper/images/tril4.dds", category = "Trial"},
-    {name = "Perfected Chaotic Whirlwind", icon = "ArabicHelper/images/tril5.dds", category = "Trial"},
-    {name = "Perfected Claw of Yolnahkriin", icon = "ArabicHelper/images/tril6.dds", category = "Trial"},
-    {name = "Perfected Concentrated Force", icon = "ArabicHelper/images/tril7.dds", category = "Trial"},
-    {name = "Perfected Coral Riptide", icon = "ArabicHelper/images/tril8.dds", category = "Trial"},
-    {name = "Perfected Defensive Position", icon = "ArabicHelper/images/tril9.dds", category = "Trial"},
-    {name = "Perfected Disciplined Slash", icon = "ArabicHelper/images/tril10.dds", category = "Trial"},
-    {name = "Perfected Dolorous Arena", icon = "ArabicHelper/images/tril11.dds", category = "Trial"},
-    {name = "Perfected Eye of Nahviintaas", icon = "ArabicHelper/images/tril12.dds", category = "Trial"},
-    {name = "Perfected False God's Devotion", icon = "ArabicHelper/images/tril13.dds", category = "Trial"},
-    {name = "Perfected Harmony in Chaos", icon = "ArabicHelper/images/tril14.dds", category = "Trial"},
-    {name = "Perfected Kazpian's Cruel Signet", icon = "ArabicHelper/images/tril15.dds", category = "Trial"},
-    {name = "Perfected Kyne's Wind", icon = "ArabicHelper/images/tril16.dds", category = "Trial"},
-    {name = "Perfected Lucent Echoes", icon = "ArabicHelper/images/tril17.dds", category = "Trial"},
-    {name = "Perfected Mantle of Siroria", icon = "ArabicHelper/images/tril18.dds", category = "Trial"},
-    {name = "Perfected Mora Scribe's Thesis", icon = "ArabicHelper/images/tril19.dds", category = "Trial"},
-    {name = "Perfected Peace and Serenity", icon = "ArabicHelper/images/tril20.dds", category = "Trial"},
-    {name = "Perfected Pearlescent Ward", icon = "ArabicHelper/images/tril21.dds", category = "Trial"},
-    {name = "Perfected Piercing Spray", icon = "ArabicHelper/images/tril22.dds", category = "Trial"},
-    {name = "Perfected Pillager's Profit", icon = "ArabicHelper/images/tril23.dds", category = "Trial"},
-    {name = "Perfected Recovery Convergence", icon = "ArabicHelper/images/tril24.dds", category = "Trial"},
-    {name = "Perfected Roaring Opportunist", icon = "ArabicHelper/images/tril25.dds", category = "Trial"},
-    {name = "Perfected Saxhleel Champion", icon = "ArabicHelper/images/tril26.dds", category = "Trial"},
-    {name = "Perfected Slivers of the Null Arca", icon = "ArabicHelper/images/tril27.dds", category = "Trial"},
-    {name = "Perfected Stone-Talker's Oath", icon = "ArabicHelper/images/tril28.dds", category = "Trial"},
-    {name = "Perfected Sul-Xan's Torment", icon = "ArabicHelper/images/tril29.dds", category = "Trial"},
-    {name = "Perfected Test of Resolve", icon = "ArabicHelper/images/tril30.dds", category = "Trial"},
-    {name = "Perfected Timeless Blessing", icon = "ArabicHelper/images/tril31.dds", category = "Trial"},
-    {name = "Perfected Tooth of Lokkestiiz", icon = "ArabicHelper/images/tril32.dds", category = "Trial"},
-    {name = "Perfected Transformative Hope", icon = "ArabicHelper/images/tril33.dds", category = "Trial"},
-    {name = "Perfected Vestment of Olorime", icon = "ArabicHelper/images/tril34.dds", category = "Trial"},
-    {name = "Perfected Vrol's Command", icon = "ArabicHelper/images/tril35.dds", category = "Trial"},
-    {name = "Perfected Whorl of the Depths", icon = "ArabicHelper/images/tril36.dds", category = "Trial"},
-    {name = "Perfected Xoryn's Masterpiece", icon = "ArabicHelper/images/tril37.dds", category = "Trial"},
-    {name = "Perfected Yandir's Might", icon = "ArabicHelper/images/tril38.dds", category = "Trial"},
-    {name = "Defending Warrior", icon = "ArabicHelper/images/tril39.dds", category = "Trial"},
-    {name = "Healing Mage", icon = "ArabicHelper/images/tril40.dds", category = "Trial"},
-    {name = "Quick Serpent", icon = "ArabicHelper/images/tril41.dds", category = "Trial"},
-    {name = "Berserking Warrior", icon = "ArabicHelper/images/tril42.dds", category = "Trial"},
-    {name = "Destructive Mage", icon = "ArabicHelper/images/tril43.dds", category = "Trial"},
-    {name = "Poisonous Serpent", icon = "ArabicHelper/images/tril44.dds", category = "Trial"},
-    {name = "Immortal Warrior", icon = "ArabicHelper/images/tril45.dds", category = "Trial"},
-    {name = "Twice-Fanged Serpent", icon = "ArabicHelper/images/tril46.dds", category = "Trial"},
-    {name = "Wise Mage", icon = "ArabicHelper/images/tril47.dds", category = "Trial"},
-    {name = "Lunar Bastion", icon = "ArabicHelper/images/tril48.dds", category = "Trial"},
-    {name = "Moondancer", icon = "ArabicHelper/images/tril49.dds", category = "Trial"},
-    {name = "Roar of Alkosh", icon = "ArabicHelper/images/tril50.dds", category = "Trial"},
-    {name = "Twilight Remedy", icon = "ArabicHelper/images/tril51.dds", category = "Trial"},
-    {name = "Automated Defense", icon = "ArabicHelper/images/tril52.dds", category = "Trial"},
-    {name = "Inventor's Guard", icon = "ArabicHelper/images/tril53.dds", category = "Trial"},
-    {name = "Master Architect", icon = "ArabicHelper/images/tril54.dds", category = "Trial"},
-    {name = "War Machine", icon = "ArabicHelper/images/tril55.dds", category = "Trial"},
-    {name = "Eternal Warrior", icon = "ArabicHelper/images/tril56.dds", category = "Trial"},
-    {name = "Infallible Mage", icon = "ArabicHelper/images/tril57.dds", category = "Trial"},
-    {name = "Vicious Serpent", icon = "ArabicHelper/images/tril58.dds", category = "Trial"},
-    -- ===== قسم أطقم الوحوش (Monster Sets) =====
-  {name = "Anthelmir's Construct", icon = "ArabicHelper/images/mo1.dds", category = "Monster"},
-    {name = "Archdruid Devyric", icon = "ArabicHelper/images/mo2.dds", category = "Monster"},
-    {name = "Balorgh", icon = "ArabicHelper/images/mo3.dds", category = "Monster"},
-    {name = "Bar-Sakka", icon = "ArabicHelper/images/mo4.dds", category = "Monster"},
-    {name = "Baron Thirsk", icon = "ArabicHelper/images/mo5.dds", category = "Monster"},
-    {name = "Baron Zaudrus", icon = "ArabicHelper/images/mo6.dds", category = "Monster"},
-    {name = "Black Gem Monstrosity", icon = "ArabicHelper/images/mo7.dds", category = "Monster"},
-    {name = "Bloodspawn", icon = "ArabicHelper/images/mo8.dds", category = "Monster"},
-    {name = "Chokethorn", icon = "ArabicHelper/images/mo9.dds", category = "Monster"},
-    {name = "Domihaus", icon = "ArabicHelper/images/mo10.dds", category = "Monster"},
-    {name = "Earthgore", icon = "ArabicHelper/images/mo11.dds", category = "Monster"},
-    {name = "Encratis's Behemoth", icon = "ArabicHelper/images/mo12.dds", category = "Monster"},
-    {name = "Engine Guardian", icon = "ArabicHelper/images/mo13.dds", category = "Monster"},
-    {name = "Euphotic Gatekeeper", icon = "ArabicHelper/images/mo14.dds", category = "Monster"},
-    {name = "Glittering Goad", icon = "ArabicHelper/images/mo15.dds", category = "Monster"},
-    {name = "Glorgoloch the Destroyer", icon = "ArabicHelper/images/mo16.dds", category = "Monster"},
-    {name = "Grothdarr", icon = "ArabicHelper/images/mo17.dds", category = "Monster"},
-    {name = "Grundwulf", icon = "ArabicHelper/images/mo18.dds", category = "Monster"},
-    {name = "Iceheart", icon = "ArabicHelper/images/mo19.dds", category = "Monster"},
-    {name = "Ilambris", icon = "ArabicHelper/images/mo20.dds", category = "Monster"},
-    {name = "Immolator Charr", icon = "ArabicHelper/images/mo21.dds", category = "Monster"},
-    {name = "Infernal Guardian", icon = "ArabicHelper/images/mo22.dds", category = "Monster"},
-    {name = "Kargaeda", icon = "ArabicHelper/images/mo23.dds", category = "Monster"},
-    {name = "Kjalnar's Nightmare", icon = "ArabicHelper/images/mo24.dds", category = "Monster"},
-    {name = "Kra'gh", icon = "ArabicHelper/images/mo25.dds", category = "Monster"},
-    {name = "Lady Malygda", icon = "ArabicHelper/images/mo26.dds", category = "Monster"},
-    {name = "Lady Thorn", icon = "ArabicHelper/images/mo27.dds", category = "Monster"},
-    {name = "Lord Warden", icon = "ArabicHelper/images/mo28.dds", category = "Monster"},
-    {name = "Maarselok", icon = "ArabicHelper/images/mo29.dds", category = "Monster"},
-    {name = "Magma Incarnate", icon = "ArabicHelper/images/mo30.dds", category = "Monster"},
-    {name = "Maw of the Infernal", icon = "ArabicHelper/images/mo31.dds", category = "Monster"},
-    {name = "Mighty Chudan", icon = "ArabicHelper/images/mo32.dds", category = "Monster"},
-    {name = "Molag Kena", icon = "ArabicHelper/images/mo33.dds", category = "Monster"},
-    {name = "Mother Ciannait", icon = "ArabicHelper/images/mo34.dds", category = "Monster"},
-    {name = "Nazaray", icon = "ArabicHelper/images/mo35.dds", category = "Monster"},
-    {name = "Nerien'eth", icon = "ArabicHelper/images/mo36.dds", category = "Monster"},
-    {name = "Nightflame", icon = "ArabicHelper/images/mo37.dds", category = "Monster"},
-    {name = "Nunatak", icon = "ArabicHelper/images/mo38.dds", category = "Monster"},
-    {name = "Orpheon the Tactician", icon = "ArabicHelper/images/mo39.dds", category = "Monster"},
-    {name = "Ozezan the Inferno", icon = "ArabicHelper/images/mo40.dds", category = "Monster"},
-    {name = "Pirate Skeleton", icon = "ArabicHelper/images/mo41.dds", category = "Monster"},
-    {name = "Prior Thierric", icon = "ArabicHelper/images/mo42.dds", category = "Monster"},
-    {name = "Roksa the Warped", icon = "ArabicHelper/images/mo43.dds", category = "Monster"},
-    {name = "Scourge Harvester", icon = "ArabicHelper/images/mo44.dds", category = "Monster"},
-    {name = "Selene", icon = "ArabicHelper/images/mo45.dds", category = "Monster"},
-    {name = "Sellistrix", icon = "ArabicHelper/images/mo46.dds", category = "Monster"},
-    {name = "Sentinel of Rkugamz", icon = "ArabicHelper/images/mo47.dds", category = "Monster"},
-    {name = "Shadowrend", icon = "ArabicHelper/images/mo48.dds", category = "Monster"},
-    {name = "Slimecraw", icon = "ArabicHelper/images/mo49.dds", category = "Monster"},
-    {name = "Spawn of Mephala", icon = "ArabicHelper/images/mo50.dds", category = "Monster"},
-    {name = "Squall of Retribution", icon = "ArabicHelper/images/mo51.dds", category = "Monster"},
-    {name = "Stone Husk", icon = "ArabicHelper/images/mo52.dds", category = "Monster"},
-    {name = "Stonekeeper", icon = "ArabicHelper/images/mo53.dds", category = "Monster"},
-    {name = "Stormfist", icon = "ArabicHelper/images/mo54.dds", category = "Monster"},
-    {name = "Swarm Mother", icon = "ArabicHelper/images/mo55.dds", category = "Monster"},
-    {name = "Symphony of Blades", icon = "ArabicHelper/images/mo56.dds", category = "Monster"},
-    {name = "The Blind", icon = "ArabicHelper/images/mo57.dds", category = "Monster"},
-    {name = "The Ruckus", icon = "ArabicHelper/images/mo58.dds", category = "Monster"},
-    {name = "The Troll King", icon = "ArabicHelper/images/mo59.dds", category = "Monster"},
-    {name = "Thousand Eyes", icon = "ArabicHelper/images/mo60.dds", category = "Monster"},
-    {name = "Thurvokun", icon = "ArabicHelper/images/mo61.dds", category = "Monster"},
-    {name = "Tremorscale", icon = "ArabicHelper/images/mo62.dds", category = "Monster"},
-    {name = "Valkyn Skoria", icon = "ArabicHelper/images/mo63.dds", category = "Monster"},
-    {name = "Velidreth", icon = "ArabicHelper/images/mo64.dds", category = "Monster"},
-    {name = "Vykosa", icon = "ArabicHelper/images/mo65.dds", category = "Monster"},
-    {name = "Zaan", icon = "ArabicHelper/images/mo66.dds", category = "Monster"},
-      {name = "Zoal the Ever-Wakeful", icon = "ArabicHelper/images/mo67.dds", category = "Monster"},
-    {name = "Tarcyr", icon = "ArabicHelper/images/mo68.dds", category = "Monster"},
-    {name = "Mylenne Moon-Caller", icon = "ArabicHelper/images/mo69.dds", category = "Monster"},
-	  -- ===== قسم أطقم الكرافت (Craftable Sets) =====
-    {name = "Adept Rider", icon = "ArabicHelper/images/cr1.dds", category = "craftable"},
-    {name = "Aetherial Ascension", icon = "ArabicHelper/images/cr2.dds", category = "craftable"},
-    {name = "Alessia's Bulwark", icon = "ArabicHelper/images/cr3.dds", category = "craftable"},
-    {name = "Ancient Dragonguard", icon = "ArabicHelper/images/cr4.dds", category = "craftable"},
-    {name = "Armor Master", icon = "ArabicHelper/images/cr5.dds", category = "craftable"},
-    {name = "Armor of the Seducer", icon = "ArabicHelper/images/cr6.dds", category = "craftable"},
-    {name = "Ashen Grip", icon = "ArabicHelper/images/cr7.dds", category = "craftable"},
-    {name = "Assassin's Guile", icon = "ArabicHelper/images/cr8.dds", category = "craftable"},
-    {name = "Chimera's Rebuke", icon = "ArabicHelper/images/cr9.dds", category = "craftable"},
-    {name = "Claw of the Forest Wraith", icon = "ArabicHelper/images/cr10.dds", category = "craftable"},
-    {name = "Clever Alchemist", icon = "ArabicHelper/images/cr11.dds", category = "craftable"},
-    {name = "Coldharbour's Favorite", icon = "ArabicHelper/images/cr12.dds", category = "craftable"},
-    {name = "Critical Riposte", icon = "ArabicHelper/images/cr13.dds", category = "craftable"},
-    {name = "Daedric Trickery", icon = "ArabicHelper/images/cr14.dds", category = "craftable"},
-    {name = "Daring Corsair", icon = "ArabicHelper/images/cr15.dds", category = "craftable"},
-    {name = "Dauntless Combatant", icon = "ArabicHelper/images/cr16.dds", category = "craftable"},
-    {name = "Deadlands Demolisher", icon = "ArabicHelper/images/cr17.dds", category = "craftable"},
-    {name = "Death's Wind", icon = "ArabicHelper/images/cr18.dds", category = "craftable"},
-    {name = "Diamond's Victory", icon = "ArabicHelper/images/cr19.dds", category = "craftable"},
-    {name = "Dragon's Appetite", icon = "ArabicHelper/images/cr20.dds", category = "craftable"},
-    {name = "Druid's Braid", icon = "ArabicHelper/images/cr21.dds", category = "craftable"},
-    {name = "Eternal Hunt", icon = "ArabicHelper/images/cr22.dds", category = "craftable"},
-    {name = "Eyes of Mara", icon = "ArabicHelper/images/cr23.dds", category = "craftable"},
-    {name = "Fellowship's Fortitude", icon = "ArabicHelper/images/cr24.dds", category = "craftable"},
-    {name = "Fortified Brass", icon = "ArabicHelper/images/cr25.dds", category = "craftable"},
-    {name = "Grave-Stake Collector", icon = "ArabicHelper/images/cr26.dds", category = "craftable"},
-    {name = "Heartland Conqueror", icon = "ArabicHelper/images/cr27.dds", category = "craftable"},
-    {name = "Highland Sentinel", icon = "ArabicHelper/images/cr28.dds", category = "craftable"},
-    {name = "Hist Bark", icon = "ArabicHelper/images/cr29.dds", category = "craftable"},
-    {name = "Hist Whisperer", icon = "ArabicHelper/images/cr30.dds", category = "craftable"},
-    {name = "Hunding's Rage", icon = "ArabicHelper/images/cr31.dds", category = "craftable"},
-    {name = "Innate Axiom", icon = "ArabicHelper/images/cr32.dds", category = "craftable"},
-    {name = "Iron Flask", icon = "ArabicHelper/images/cr33.dds", category = "craftable"},
-    {name = "Kagrenac's Hope", icon = "ArabicHelper/images/cr34.dds", category = "craftable"},
-    {name = "Kvatch Gladiator", icon = "ArabicHelper/images/cr35.dds", category = "craftable"},
-    {name = "Law of Julianos", icon = "ArabicHelper/images/cr36.dds", category = "craftable"},
-    {name = "Legacy of Karth", icon = "ArabicHelper/images/cr37.dds", category = "craftable"},
-    {name = "Magnus' Gift", icon = "ArabicHelper/images/cr38.dds", category = "craftable"},
-    {name = "Mechanical Acuity", icon = "ArabicHelper/images/cr39.dds", category = "craftable"},
-    {name = "Might of the Lost Legion", icon = "ArabicHelper/images/cr40.dds", category = "craftable"},
-    {name = "Morkuldin", icon = "ArabicHelper/images/cr41.dds", category = "craftable"},
-    {name = "Naga Shaman", icon = "ArabicHelper/images/cr42.dds", category = "craftable"},
-    {name = "New Moon Acolyte", icon = "ArabicHelper/images/cr43.dds", category = "craftable"},
-    {name = "Night Mother's Gaze", icon = "ArabicHelper/images/cr44.dds", category = "craftable"},
-    {name = "Night's Silence", icon = "ArabicHelper/images/cr45.dds", category = "craftable"},
-    {name = "Noble's Conquest", icon = "ArabicHelper/images/cr46.dds", category = "craftable"},
-    {name = "Nocturnal's Favor", icon = "ArabicHelper/images/cr47.dds", category = "craftable"},
-    {name = "Oblivion's Foe", icon = "ArabicHelper/images/cr48.dds", category = "craftable"},
-    {name = "Old Growth Brewer", icon = "ArabicHelper/images/cr49.dds", category = "craftable"},
-    {name = "Order's Wrath", icon = "ArabicHelper/images/cr50.dds", category = "craftable"},
-    {name = "Orgnum's Scales", icon = "ArabicHelper/images/cr51.dds", category = "craftable"},
-    {name = "Pelinal's Wrath", icon = "ArabicHelper/images/cr52.dds", category = "craftable"},
-    {name = "Red Eagle's Fury", icon = "ArabicHelper/images/cr53.dds", category = "craftable"},
-    {name = "Redistributor", icon = "ArabicHelper/images/cr54.dds", category = "craftable"},
-    {name = "Seeker Synthesis", icon = "ArabicHelper/images/cr55.dds", category = "craftable"},
-    {name = "Senche-Raht's Grit", icon = "ArabicHelper/images/cr56.dds", category = "craftable"},
-    {name = "Serpent's Disdain", icon = "ArabicHelper/images/cr57.dds", category = "craftable"},
-    {name = "Shacklebreaker", icon = "ArabicHelper/images/cr58.dds", category = "craftable"},
-    {name = "Shalidor's Curse", icon = "ArabicHelper/images/cr59.dds", category = "craftable"},
-    {name = "Shared Burden", icon = "ArabicHelper/images/cr60.dds", category = "craftable"},
-    {name = "Shattered Fate", icon = "ArabicHelper/images/cr61.dds", category = "craftable"},
-    {name = "Sload's Semblance", icon = "ArabicHelper/images/cr62.dds", category = "craftable"},
-    {name = "Song of Lamae", icon = "ArabicHelper/images/cr63.dds", category = "craftable"},
-    {name = "Spectre's Eye", icon = "ArabicHelper/images/cr64.dds", category = "craftable"},
-    {name = "Spell Parasite", icon = "ArabicHelper/images/cr65.dds", category = "craftable"},
-    {name = "Stuhn's Favor", icon = "ArabicHelper/images/cr66.dds", category = "craftable"},
-    {name = "Tava's Favor", icon = "ArabicHelper/images/cr67.dds", category = "craftable"},
-    {name = "Telvanni Efficiency", icon = "ArabicHelper/images/cr68.dds", category = "craftable"},
-    {name = "Tharriker's Strike", icon = "ArabicHelper/images/cr69.dds", category = "craftable"},
-    {name = "Threads of War", icon = "ArabicHelper/images/cr70.dds", category = "craftable"},
-    {name = "Tide-Born Wildstalker", icon = "ArabicHelper/images/cr71.dds", category = "craftable"},
-    {name = "Torug's Pact", icon = "ArabicHelper/images/cr72.dds", category = "craftable"},
-    {name = "Trial by Fire", icon = "ArabicHelper/images/cr73.dds", category = "craftable"},
-    {name = "Twice-Born Star", icon = "ArabicHelper/images/cr74.dds", category = "craftable"},
-    {name = "Twilight's Embrace", icon = "ArabicHelper/images/cr75.dds", category = "craftable"},
-    {name = "Unchained Aggressor", icon = "ArabicHelper/images/cr76.dds", category = "craftable"},
-    {name = "Vampire's Kiss", icon = "ArabicHelper/images/cr77.dds", category = "craftable"},
-    {name = "Varen's Legacy", icon = "ArabicHelper/images/cr78.dds", category = "craftable"},
-    {name = "Vastarie's Tutelage", icon = "ArabicHelper/images/cr79.dds", category = "craftable"},
-    {name = "Way of the Arena", icon = "ArabicHelper/images/cr80.dds", category = "craftable"},
-    {name = "Whitestrake's Retribution", icon = "ArabicHelper/images/cr81.dds", category = "craftable"},
-    {name = "Willow's Path", icon = "ArabicHelper/images/cr82.dds", category = "craftable"},
-    {name = "Wretched Vitality", icon = "ArabicHelper/images/cr83.dds", category = "craftable"},
-    -- ===== قسم الأرينا (Arena) =====
-    {name = "Perfected Caustic Arrow", icon = "ArabicHelper/images/ar1.dds", category = "Arena"},
-    {name = "Perfected Cruel Flurry", icon = "ArabicHelper/images/ar2.dds", category = "Arena"},
-    {name = "Perfected Crushing Wall", icon = "ArabicHelper/images/ar3.dds", category = "Arena"},
-    {name = "Perfected Destructive Impact", icon = "ArabicHelper/images/ar4.dds", category = "Arena"},
-    {name = "Perfected Executioner's Blade", icon = "ArabicHelper/images/ar5.dds", category = "Arena"},
-    {name = "Perfected Force Overflow", icon = "ArabicHelper/images/ar6.dds", category = "Arena"},
-    {name = "Perfected Frenzied Momentum", icon = "ArabicHelper/images/ar7.dds", category = "Arena"},
-    {name = "Perfected Gallant Charge", icon = "ArabicHelper/images/ar8.dds", category = "Arena"},
-    {name = "Perfected Grand Rejuvenation", icon = "ArabicHelper/images/ar9.dds", category = "Arena"},
-    {name = "Perfected Mender's Ward", icon = "ArabicHelper/images/ar10.dds", category = "Arena"},
-    {name = "Perfected Merciless Charge", icon = "ArabicHelper/images/ar11.dds", category = "Arena"},
-    {name = "Perfected Point-Blank Snipe", icon = "ArabicHelper/images/ar12.dds", category = "Arena"},
-    {name = "Perfected Precise Regeneration", icon = "ArabicHelper/images/ar13.dds", category = "Arena"},
-    {name = "Perfected Puncturing Remedy", icon = "ArabicHelper/images/ar14.dds", category = "Arena"},
-    {name = "Perfected Radial Uppercut", icon = "ArabicHelper/images/ar15.dds", category = "Arena"},
-    {name = "Perfected Rampaging Slash", icon = "ArabicHelper/images/ar16.dds", category = "Arena"},
-    {name = "Perfected Spectral Cloak", icon = "ArabicHelper/images/ar17.dds", category = "Arena"},
-    {name = "Perfected Stinging Slashes", icon = "ArabicHelper/images/ar18.dds", category = "Arena"},
-    {name = "Perfected Thunderous Volley", icon = "ArabicHelper/images/ar19.dds", category = "Arena"},
-    {name = "Perfected Titanic Cleave", icon = "ArabicHelper/images/ar20.dds", category = "Arena"},
-    {name = "Perfected Virulent Shot", icon = "ArabicHelper/images/ar21.dds", category = "Arena"},
-    {name = "Perfected Void Bash", icon = "ArabicHelper/images/ar22.dds", category = "Arena"},
-    {name = "Perfected Wild Impulse", icon = "ArabicHelper/images/ar23.dds", category = "Arena"},
-    {name = "Perfected Wrath of Elements", icon = "ArabicHelper/images/ar24.dds", category = "Arena"},
-    -- ===== قسم الـ PvP (Cyrodiil / Battlegrounds / Imperial City) =====
-    {name = "Affliction", icon = "ArabicHelper/images/pvp1.dds", category = "PvP"},
-    {name = "Agility", icon = "ArabicHelper/images/pvp2.dds", category = "PvP"},
-    {name = "Alessian Order", icon = "ArabicHelper/images/pvp3.dds", category = "PvP"},
-    {name = "Almalexia's Mercy", icon = "ArabicHelper/images/pvp4.dds", category = "PvP"},
-    {name = "Arkay's Charity", icon = "ArabicHelper/images/pvp5.dds", category = "PvP"},
-    {name = "Baan Dar's Blessing", icon = "ArabicHelper/images/pvp6.dds", category = "PvP"},
-    {name = "Bastion of the Heartland", icon = "ArabicHelper/images/pvp7.dds", category = "PvP"},
-    {name = "Battalion Defender", icon = "ArabicHelper/images/pvp8.dds", category = "PvP"},
-    {name = "Battlefield Acrobat", icon = "ArabicHelper/images/pvp9.dds", category = "PvP"},
-    {name = "Beckoning Steel", icon = "ArabicHelper/images/pvp10.dds", category = "PvP"},
-    {name = "Black Rose", icon = "ArabicHelper/images/pvp11.dds", category = "PvP"},
-    {name = "Blackfeather Flight", icon = "ArabicHelper/images/pvp12.dds", category = "PvP"},
-    {name = "Blessing of the Potentates", icon = "ArabicHelper/images/pvp13.dds", category = "PvP"},
-    {name = "Blunted Blades", icon = "ArabicHelper/images/pvp14.dds", category = "PvP"},
-    {name = "Buffer of the Swift", icon = "ArabicHelper/images/pvp15.dds", category = "PvP"},
-    {name = "Bulwark Ruination", icon = "ArabicHelper/images/pvp16.dds", category = "PvP"},
-    {name = "Colovian Highlands General", icon = "ArabicHelper/images/pvp17.dds", category = "PvP"},
-    {name = "Coup De Grâce", icon = "ArabicHelper/images/pvp18.dds", category = "PvP"},
-    {name = "Coward's Gear", icon = "ArabicHelper/images/pvp19.dds", category = "PvP"},
-    {name = "Crest of Cyrodiil", icon = "ArabicHelper/images/pvp20.dds", category = "PvP"},
-    {name = "Curse Eater", icon = "ArabicHelper/images/pvp21.dds", category = "PvP"},
-    {name = "Dark Convergence", icon = "ArabicHelper/images/pvp22.dds", category = "PvP"},
-    {name = "Deadly Strike", icon = "ArabicHelper/images/pvp23.dds", category = "PvP"},
-    {name = "Desert Rose", icon = "ArabicHelper/images/pvp24.dds", category = "PvP"},
-    {name = "Eagle Eye", icon = "ArabicHelper/images/pvp25.dds", category = "PvP"},
-    {name = "Elf Bane", icon = "ArabicHelper/images/pvp26.dds", category = "PvP"},
-    {name = "Endurance", icon = "ArabicHelper/images/pvp27.dds", category = "PvP"},
-    {name = "Enervating Aura", icon = "ArabicHelper/images/pvp28.dds", category = "PvP"},
-    {name = "Farstrider", icon = "ArabicHelper/images/pvp29.dds", category = "PvP"},
-    {name = "Fasalla's Guile", icon = "ArabicHelper/images/pvp30.dds", category = "PvP"},
-    {name = "Galerion's Revenge", icon = "ArabicHelper/images/pvp31.dds", category = "PvP"},
-    {name = "Gorethief", icon = "ArabicHelper/images/pvp32.dds", category = "PvP"},
-    {name = "Grace of the Ancients", icon = "ArabicHelper/images/pvp33.dds", category = "PvP"},
-    {name = "Hawk's Eye", icon = "ArabicHelper/images/pvp34.dds", category = "PvP"},
-    {name = "Hew and Sunder", icon = "ArabicHelper/images/pvp35.dds", category = "PvP"},
-    {name = "Hrothgar's Chill", icon = "ArabicHelper/images/pvp36.dds", category = "PvP"},
-    {name = "Imperial Physique", icon = "ArabicHelper/images/pvp37.dds", category = "PvP"},
-    {name = "Impregnable Armor", icon = "ArabicHelper/images/pvp38.dds", category = "PvP"},
-    {name = "Indomitable Fury", icon = "ArabicHelper/images/pvp39.dds", category = "PvP"},
-    {name = "Jerall Mountains Warchief", icon = "ArabicHelper/images/pvp40.dds", category = "PvP"},
-    {name = "Judgment of Akatosh", icon = "ArabicHelper/images/pvp41.dds", category = "PvP"},
-    {name = "Knight Slayer", icon = "ArabicHelper/images/pvp42.dds", category = "PvP"},
-    {name = "Kyne's Kiss", icon = "ArabicHelper/images/pvp43.dds", category = "PvP"},
-    {name = "Lamp Knight's Art", icon = "ArabicHelper/images/pvp44.dds", category = "PvP"},
-    {name = "Languor of Peryite", icon = "ArabicHelper/images/pvp45.dds", category = "PvP"},
-    {name = "Leki's Focus", icon = "ArabicHelper/images/pvp46.dds", category = "PvP"},
-    {name = "Light of Cyrodiil", icon = "ArabicHelper/images/pvp47.dds", category = "PvP"},
-    {name = "Mara's Balm", icon = "ArabicHelper/images/pvp48.dds", category = "PvP"},
-    {name = "Marksman's Crest", icon = "ArabicHelper/images/pvp49.dds", category = "PvP"},
-    {name = "Meritorious Service", icon = "ArabicHelper/images/pvp50.dds", category = "PvP"},
-    {name = "Netch Oil", icon = "ArabicHelper/images/pvp51.dds", category = "PvP"},
-    {name = "Nibenay Bay Battlereeve", icon = "ArabicHelper/images/pvp52.dds", category = "PvP"},
-    {name = "Nocturnal's Ploy", icon = "ArabicHelper/images/pvp53.dds", category = "PvP"},
-    {name = "Oakfather's Retribution", icon = "ArabicHelper/images/pvp54.dds", category = "PvP"},
-    {name = "Phoenix", icon = "ArabicHelper/images/pvp55.dds", category = "PvP"},
-    {name = "Plaguebreak", icon = "ArabicHelper/images/pvp56.dds", category = "PvP"},
-    {name = "Powerful Assault", icon = "ArabicHelper/images/pvp57.dds", category = "PvP"},
-    {name = "Rallying Cry", icon = "ArabicHelper/images/pvp58.dds", category = "PvP"},
-    {name = "Ravager", icon = "ArabicHelper/images/pvp59.dds", category = "PvP"},
-    {name = "Reactive Armor", icon = "ArabicHelper/images/pvp60.dds", category = "PvP"},
-    {name = "Robes of Alteration Mastery", icon = "ArabicHelper/images/pvp61.dds", category = "PvP"},
-    {name = "Robes of Transmutation", icon = "ArabicHelper/images/pvp62.dds", category = "PvP"},
-    {name = "Sentry", icon = "ArabicHelper/images/pvp63.dds", category = "PvP"},
-    {name = "Shadow Walker", icon = "ArabicHelper/images/pvp64.dds", category = "PvP"},
-    {name = "Shared Pain", icon = "ArabicHelper/images/pvp65.dds", category = "PvP"},
-    {name = "Shell Splitter", icon = "ArabicHelper/images/pvp66.dds", category = "PvP"},
-    {name = "Shield Breaker", icon = "ArabicHelper/images/pvp67.dds", category = "PvP"},
-    {name = "Shield of the Valiant", icon = "ArabicHelper/images/pvp68.dds", category = "PvP"},
-    {name = "Siegemaster's Focus", icon = "ArabicHelper/images/pvp69.dds", category = "PvP"},
-    {name = "Snake in the Stars", icon = "ArabicHelper/images/pvp70.dds", category = "PvP"},
-    {name = "Soldier of Anguish", icon = "ArabicHelper/images/pvp71.dds", category = "PvP"},
-    {name = "Spell Strategist", icon = "ArabicHelper/images/pvp72.dds", category = "PvP"},
-    {name = "Spellshredder", icon = "ArabicHelper/images/pvp73.dds", category = "PvP"},
-    {name = "Steadfast Hero", icon = "ArabicHelper/images/pvp74.dds", category = "PvP"},
-    {name = "The Arch-Mage", icon = "ArabicHelper/images/pvp75.dds", category = "PvP"},
-    {name = "The Juggernaut", icon = "ArabicHelper/images/pvp76.dds", category = "PvP"},
-    {name = "The Morag Tong", icon = "ArabicHelper/images/pvp77.dds", category = "PvP"},
-    {name = "Thews of the Harbinger", icon = "ArabicHelper/images/pvp78.dds", category = "PvP"},
-    {name = "Tracker's Lash", icon = "ArabicHelper/images/pvp79.dds", category = "PvP"},
-    {name = "Unflinching Ultimate", icon = "ArabicHelper/images/pvp80.dds", category = "PvP"},
-    {name = "Vanguard's Challenge", icon = "ArabicHelper/images/pvp81.dds", category = "PvP"},
-    {name = "Vengeance Leech", icon = "ArabicHelper/images/pvp82.dds", category = "PvP"},
-    {name = "Vicecanon of Venom", icon = "ArabicHelper/images/pvp83.dds", category = "PvP"},
-    {name = "Vicious Death", icon = "ArabicHelper/images/pvp84.dds", category = "PvP"},
-    {name = "Ward of Cyrodiil", icon = "ArabicHelper/images/pvp85.dds", category = "PvP"},
-    {name = "Warrior's Fury", icon = "ArabicHelper/images/pvp86.dds", category = "PvP"},
-    {name = "Willpower", icon = "ArabicHelper/images/pvp87.dds", category = "PvP"},
-    {name = "Wizard's Riposte", icon = "ArabicHelper/images/pvp88.dds", category = "PvP"},
-    {name = "Wrath of the Imperium", icon = "ArabicHelper/images/pvp89.dds", category = "PvP"},
-    -- ===== قسم المثك (Mythic) =====
-    {name = "Belharza's Band", icon = "ArabicHelper/images/my1.dds", category = "Mythic"},
-    {name = "Bloodlord's Embrace", icon = "ArabicHelper/images/my2.dds", category = "Mythic"},
-    {name = "Cryptcanon Vestments", icon = "ArabicHelper/images/my3.dds", category = "Mythic"},
-    {name = "Death Dealer's Fete", icon = "ArabicHelper/images/my4.dds", category = "Mythic"},
-    {name = "Dov-Rha Sabatons", icon = "ArabicHelper/images/my5.dds", category = "Mythic"},
-    {name = "Esoteric Environment Greaves", icon = "ArabicHelper/images/my6.dds", category = "Mythic"},
-    {name = "Faun's Lark Cladding", icon = "ArabicHelper/images/my7.dds", category = "Mythic"},
-    {name = "Gaze of Sithis", icon = "ArabicHelper/images/my8.dds", category = "Mythic"},
-    {name = "Harpooner's Wading Kilt", icon = "ArabicHelper/images/my9.dds", category = "Mythic"},
-    {name = "Huntsman's Warmask", icon = "ArabicHelper/images/my10.dds", category = "Mythic"},
-    {name = "Lefthander's Aegis Belt", icon = "ArabicHelper/images/my11.dds", category = "Mythic"},
-    {name = "Mad God's Dancing Shoes", icon = "ArabicHelper/images/my12.dds", category = "Mythic"},
-    {name = "Malacath's Band of Brutality", icon = "ArabicHelper/images/my13.dds", category = "Mythic"},
-    {name = "Markyn Ring of Majesty", icon = "ArabicHelper/images/my14.dds", category = "Mythic"},
-    {name = "Monomyth Reforged", icon = "ArabicHelper/images/my15.dds", category = "Mythic"},
-    {name = "Mora's Whispers", icon = "ArabicHelper/images/my16.dds", category = "Mythic"},
-    {name = "Oakensoul Ring", icon = "ArabicHelper/images/my17.dds", category = "Mythic"},
-    {name = "Pearls of Ehlnofey", icon = "ArabicHelper/images/my18.dds", category = "Mythic"},
-    {name = "Prowler's Talisman", icon = "ArabicHelper/images/my19.dds", category = "Mythic"},
-    {name = "Rakkhat's Voidmantle", icon = "ArabicHelper/images/my20.dds", category = "Mythic"},
-    {name = "Ring of the Pale Order", icon = "ArabicHelper/images/my21.dds", category = "Mythic"},
-    {name = "Ring of the Wild Hunt", icon = "ArabicHelper/images/my22.dds", category = "Mythic"},
-    {name = "Rourken Steamguards", icon = "ArabicHelper/images/my23.dds", category = "Mythic"},
-    {name = "Sea-Serpent's Coil", icon = "ArabicHelper/images/my24.dds", category = "Mythic"},
-    {name = "Shapeshifter's Chain", icon = "ArabicHelper/images/my25.dds", category = "Mythic"},
-    {name = "Shattered Paths Signet", icon = "ArabicHelper/images/my26.dds", category = "Mythic"},
-    {name = "Snow Treaders", icon = "ArabicHelper/images/my27.dds", category = "Mythic"},
-    {name = "Spaulder of Ruin", icon = "ArabicHelper/images/my28.dds", category = "Mythic"},
-    {name = "Stormweaver's Cavort", icon = "ArabicHelper/images/my29.dds", category = "Mythic"},
-    {name = "Syrabane's Ward", icon = "ArabicHelper/images/my30.dds", category = "Mythic"},
-    {name = "The Saint and the Seducer", icon = "ArabicHelper/images/my31.dds", category = "Mythic"},
-    {name = "The Shadow Queen's Cowl", icon = "ArabicHelper/images/my32.dds", category = "Mythic"},
-    {name = "Thrassian Stranglers", icon = "ArabicHelper/images/my33.dds", category = "Mythic"},
-    {name = "Torc of Tonal Constancy", icon = "ArabicHelper/images/my34.dds", category = "Mythic"},
-    {name = "Torc of the Last Ayleid King", icon = "ArabicHelper/images/my35.dds", category = "Mythic"},
-    {name = "Velothi Ur-Mage's Amulet", icon = "ArabicHelper/images/my36.dds", category = "Mythic"},
-    -- ===== قسم الأرشيف (Infinite Archive Class Sets) =====
-    {name = "Aerie's Cry", icon = "ArabicHelper/images/ia1.dds", category = "Archive"},
-    {name = "Aetheric Lancer", icon = "ArabicHelper/images/ia2.dds", category = "Archive"},
-    {name = "Basalt-Blooded Warrior", icon = "ArabicHelper/images/ia3.dds", category = "Archive"},
-    {name = "Beacon of Oblivion", icon = "ArabicHelper/images/ia4.dds", category = "Archive"},
-    {name = "Corpseburster", icon = "ArabicHelper/images/ia5.dds", category = "Archive"},
-    {name = "Gardener of Seasons", icon = "ArabicHelper/images/ia6.dds", category = "Archive"},
-    {name = "Monolith of Storms", icon = "ArabicHelper/images/ia7.dds", category = "Archive"},
-    {name = "Nobility in Decay", icon = "ArabicHelper/images/ia8.dds", category = "Archive"},
-    {name = "Pyrebrand", icon = "ArabicHelper/images/ia9.dds", category = "Archive"},
-    {name = "Reawakened Hierophant", icon = "ArabicHelper/images/ia10.dds", category = "Archive"},
-    {name = "Soulcleaver", icon = "ArabicHelper/images/ia11.dds", category = "Archive"},
-    {name = "Spattering Disjunction", icon = "ArabicHelper/images/ia12.dds", category = "Archive"},
-    {name = "Umbral Edge", icon = "ArabicHelper/images/ia13.dds", category = "Archive"},
-    {name = "Wrathsun", icon = "ArabicHelper/images/ia14.dds", category = "Archive"},
+-- قاعدة بيانات الستات
+-- نستخدم رقم الست (setId) بدل اسمه، لأن الرقم ثابت بكل لغات اللعبة.
+-- اسم الست نجيبه من اللعبة نفسها: GetItemSetName(setId)
+-- كل سطر: { setId, "اسم ملف الصورة" }   (الصورة في ArabicHelper/images/)
+local SETS_BY_CATEGORY = {
+    [CATEGORY.DUNGEON] = {
+        { 686, "set1" }, -- Abyssal Brace
+        { 475, "set2" }, -- Aegis Caller
+        { 258, "set3" }, -- Amber Plasm
+        { 685, "set4" }, -- Apocryphal Inspiration
+        { 518, "set5" }, -- Arkasis's Genius
+        { 96, "set6" }, -- Armor of Truth
+        { 260, "set7" }, -- Aspect of Mazzatun
+        { 435, "set8" }, -- Auroran's Thunder
+        { 456, "set9" }, -- Azureblight Reaper
+        { 473, "set10" }, -- Bani's Torment
+        { 28, "set11" }, -- Barkskin
+        { 824, "set12" }, -- Black Foundry Steel
+        { 732, "set13" }, -- Black-Glove Grounding
+        { 735, "set14" }, -- Blind Path Induction
+        { 400, "set15" }, -- Blood Moon
+        { 339, "set16" }, -- Blooddrinker
+        { 308, "set17" }, -- Bone Pirate's Tatters
+        { 184, "set18" }, -- Brands of Imperium
+        { 160, "set19" }, -- Burning Spellweave
+        { 343, "set20" }, -- Caluurion's Legacy
+        { 730, "set21" }, -- Cinders of Anthelmir
+        { 194, "set22" }, -- Combat Physician
+        { 602, "set23" }, -- Crimson Oath's Rive
+        { 515, "set24" }, -- Crimson Twilight
+        { 77, "set25" }, -- Crusader
+        { 348, "set26" }, -- Curse of Doylemish
+        { 573, "set27" }, -- Dagon's Dominion
+        { 660, "set28" }, -- Deeproot Zeal
+        { 457, "set29" }, -- Dragon's Defilement
+        { 571, "set30" }, -- Drake's Rush
+        { 307, "set31" }, -- Draugr Hulk
+        { 335, "set32" }, -- Draugr's Rest
+        { 474, "set33" }, -- Draugrkin's Grip
+        { 61, "set34" }, -- Dreugh King Slayer
+        { 453, "set35" }, -- Dro'Zakar's Claws
+        { 102, "set36" }, -- Duneripper's Scales
+        { 71, "set37" }, -- Durok's Bane
+        { 122, "set38" }, -- Ebon Armory
+        { 516, "set39" }, -- Elemental Catalyst
+        { 158, "set40" }, -- Embershield
+        { 198, "set41" }, -- Essence Thief
+        { 338, "set42" }, -- Flame Blossom
+        { 799, "set43" }, -- Fledgling's Nest
+        { 574, "set44" }, -- Foolkiller's Ward
+        { 433, "set45" }, -- Frozen Watcher
+        { 621, "set46" }, -- Glacial Guardian
+        { 261, "set47" }, -- Gossamer
+        { 476, "set48" }, -- Grave Guardian
+        { 664, "set49" }, -- Grave Inevitability
+        { 607, "set50" }, -- Grisly Gourmet
+        { 620, "set51" }, -- Gryphon's Reprisal
+        { 340, "set52" }, -- Hagraven's Garden
+        { 263, "set53" }, -- Hand of Mephala
+        { 399, "set54" }, -- Hanu's Compassion
+        { 401, "set55" }, -- Haven of Ursus
+        { 259, "set56" }, -- Heem-Jas' Retribution
+        { 798, "set57" }, -- Heroic Unity
+        { 123, "set58" }, -- Hircine's Veneer
+        { 471, "set59" }, -- Hiti's Hearth
+        { 452, "set60" }, -- Hollowfang Thirst
+        { 431, "set61" }, -- Icy Conjurer
+        { 337, "set62" }, -- Ironblood
+        { 295, "set63" }, -- Jailbreaker
+        { 404, "set64" }, -- Jailer's Tenacity
+        { 795, "set65" }, -- Jerensi's Bladestorm
+        { 186, "set66" }, -- Jolting Arms
+        { 346, "set67" }, -- Jorvuld's Guidance
+        { 570, "set68" }, -- Kinras's Wrath
+        { 309, "set69" }, -- Knight-Errant's Mail
+        { 35, "set70" }, -- Knightmare
+        { 517, "set71" }, -- Kraglen's Howl
+        { 303, "set72" }, -- Lamia's Song
+        { 196, "set73" }, -- Leeching Plate
+        { 302, "set74" }, -- Leviathan
+        { 298, "set75" }, -- Light Speaker
+        { 796, "set76" }, -- Lucilla's Windshield
+        { 822, "set77" }, -- Lustrous Soulwell
+        { 103, "set78" }, -- Magicka Furnace
+        { 619, "set79" }, -- Maligalig's Maelstrom
+        { 304, "set80" }, -- Medusa
+        { 429, "set81" }, -- Mighty Glacier
+        { 402, "set82" }, -- Moon Hunter
+        { 300, "set83" }, -- Netch's Touch
+        { 72, "set84" }, -- Nikulas' Heavy Armor
+        { 681, "set85" }, -- Nix-Hound's Howl
+        { 46, "set86" }, -- Noble Duelist's Silks
+        { 800, "set87" }, -- Noxious Boulder
+        { 91, "set88" }, -- Oblivion's Edge
+        { 193, "set89" }, -- Overwhelming Surge
+        { 663, "set90" }, -- Pangrit Denmother
+        { 665, "set91" }, -- Phylactery's Grasp
+        { 336, "set92" }, -- Pillar of Nirn
+        { 347, "set93" }, -- Plague Slinger
+        { 55, "set94" }, -- Prayer Shawl
+        { 662, "set95" }, -- Rage of the Ursauk
+        { 311, "set96" }, -- Rattlecage
+        { 737, "set97" }, -- Reflected Fury
+        { 454, "set98" }, -- Renald's Resolve
+        { 680, "set99" }, -- Ritemaster's Bond
+        { 684, "set100" }, -- Runecarver's Blaze
+        { 604, "set101" }, -- Rush of Agony
+        { 110, "set102" }, -- Sanctuary
+        { 403, "set103" }, -- Savage Werewolf
+        { 190, "set104" }, -- Scathing Mage
+        { 434, "set105" }, -- Scavenging Demise
+        { 603, "set106" }, -- Scorion's Feast
+        { 29, "set107" }, -- Sergeant's Mail
+        { 195, "set108" }, -- Sheer Venom
+        { 134, "set109" }, -- Shroud of the Lich
+        { 605, "set110" }, -- Silver Rose Vigil
+        { 731, "set111" }, -- Sluthrug's Hunger
+        { 185, "set112" }, -- Spell Power Cure
+        { 296, "set113" }, -- Spelunker
+        { 297, "set114" }, -- Spider Cultist Cowl
+        { 624, "set115" }, -- Spriggan's Vigor
+        { 661, "set116" }, -- Stone's Accord
+        { 827, "set117" }, -- Stonehulk Domination
+        { 188, "set118" }, -- Storm Master
+        { 623, "set119" }, -- Storm-Cursed's Revenge
+        { 301, "set120" }, -- Strength of the Automaton
+        { 159, "set121" }, -- Sunderflame
+        { 310, "set122" }, -- Sword Dancer
+        { 513, "set123" }, -- Talfyg's Treachery
+        { 736, "set124" }, -- Tarnished Nightmare
+        { 682, "set125" }, -- Telvanni Enforcer
+        { 53, "set126" }, -- The Ice Furnace
+        { 124, "set127" }, -- The Worm's Raiment
+        { 606, "set128" }, -- Thunder Caller
+        { 472, "set129" }, -- Titanborn Strength
+        { 826, "set130" }, -- Tools of the Trapmaster
+        { 299, "set131" }, -- Toothrow
+        { 197, "set132" }, -- Tormentor
+        { 344, "set133" }, -- Trappings of Invigoration
+        { 305, "set134" }, -- Treasure Hunter
+        { 569, "set135" }, -- True-Sworn Fury
+        { 622, "set136" }, -- Turning Tide
+        { 430, "set137" }, -- Tzogvin's Warband
+        { 345, "set138" }, -- Ulfnor's Favor
+        { 155, "set139" }, -- Undaunted Bastion
+        { 156, "set140" }, -- Undaunted Infiltrator
+        { 157, "set141" }, -- Undaunted Unweaver
+        { 572, "set142" }, -- Unleashed Ritualist
+        { 514, "set143" }, -- Unleashed Terror
+        { 794, "set144" }, -- Vandorallen's Resonance
+        { 19, "set145" }, -- Vestments of the Warlock
+        { 33, "set146" }, -- Viper's Sting
+        { 823, "set147" }, -- Vykand's Soulfury
+        { 262, "set148" }, -- Widowmaker
+        { 825, "set149" }, -- Xanmeer Spellweaver
+        { 455, "set150" }, -- Z'en's Redress
+    },
+    [CATEGORY.TRIAL] = {
+        { 392, "tril1" }, -- Perfected Aegis of Galenwe
+        { 707, "tril2" }, -- Perfected Ansuul's Torment
+        { 393, "tril3" }, -- Perfected Arms of Relequen
+        { 591, "tril4" }, -- Perfected Bahsei's Mania
+        { 359, "tril5" }, -- Perfected Chaotic Whirlwind
+        { 451, "tril6" }, -- Perfected Claw of Yolnahkriin
+        { 361, "tril7" }, -- Perfected Concentrated Force
+        { 652, "tril8" }, -- Perfected Coral Riptide
+        { 358, "tril9" }, -- Perfected Defensive Position
+        { 357, "tril10" }, -- Perfected Disciplined Slash
+        { 819, "tril11" }, -- Perfected Dolorous Arena
+        { 448, "tril12" }, -- Perfected Eye of Nahviintaas
+        { 449, "tril13" }, -- Perfected False God's Devotion
+        { 821, "tril14" }, -- Perfected Harmony in Chaos
+        { 820, "tril15" }, -- Perfected Kazpian's Cruel Signet
+        { 493, "tril16" }, -- Perfected Kyne's Wind
+        { 771, "tril17" }, -- Perfected Lucent Echoes
+        { 394, "tril18" }, -- Perfected Mantle of Siroria
+        { 773, "tril19" }, -- Perfected Mora Scribe's Thesis
+        { 708, "tril20" }, -- Perfected Peace and Serenity
+        { 651, "tril21" }, -- Perfected Pearlescent Ward
+        { 360, "tril22" }, -- Perfected Piercing Spray
+        { 650, "tril23" }, -- Perfected Pillager's Profit
+        { 818, "tril24" }, -- Perfected Recovery Convergence
+        { 497, "tril25" }, -- Perfected Roaring Opportunist
+        { 589, "tril26" }, -- Perfected Saxhleel Champion
+        { 772, "tril27" }, -- Perfected Slivers of the Null Arca
+        { 592, "tril28" }, -- Perfected Stone-Talker's Oath
+        { 590, "tril29" }, -- Perfected Sul-Xan's Torment
+        { 706, "tril30" }, -- Perfected Test of Resolve
+        { 362, "tril31" }, -- Perfected Timeless Blessing
+        { 450, "tril32" }, -- Perfected Tooth of Lokkestiiz
+        { 705, "tril33" }, -- Perfected Transformative Hope
+        { 395, "tril34" }, -- Perfected Vestment of Olorime
+        { 495, "tril35" }, -- Perfected Vrol's Command
+        { 653, "tril36" }, -- Perfected Whorl of the Depths
+        { 770, "tril37" }, -- Perfected Xoryn's Masterpiece
+        { 499, "tril38" }, -- Perfected Yandir's Might
+        { 138, "tril39" }, -- Defending Warrior
+        { 141, "tril40" }, -- Healing Mage
+        { 142, "tril41" }, -- Quick Serpent
+        { 137, "tril42" }, -- Berserking Warrior
+        { 140, "tril43" }, -- Destructive Mage
+        { 143, "tril44" }, -- Poisonous Serpent
+        { 136, "tril45" }, -- Immortal Warrior
+        { 144, "tril46" }, -- Twice-Fanged Serpent
+        { 139, "tril47" }, -- Wise Mage
+        { 231, "tril48" }, -- Lunar Bastion
+        { 230, "tril49" }, -- Moondancer
+        { 232, "tril50" }, -- Roar of Alkosh
+        { 229, "tril51" }, -- Twilight Remedy
+        { 330, "tril52" }, -- Automated Defense
+        { 333, "tril53" }, -- Inventor's Guard
+        { 332, "tril54" }, -- Master Architect
+        { 331, "tril55" }, -- War Machine
+        { 171, "tril56" }, -- Eternal Warrior
+        { 172, "tril57" }, -- Infallible Mage
+        { 173, "tril58" }, -- Vicious Serpent
+    },
+    [CATEGORY.ARENA] = {
+        { 531, "ar1" }, -- Perfected Caustic Arrow
+        { 524, "ar2" }, -- Perfected Cruel Flurry
+        { 526, "ar3" }, -- Perfected Crushing Wall
+        { 532, "ar4" }, -- Perfected Destructive Impact
+        { 563, "ar5" }, -- Perfected Executioner's Blade
+        { 568, "ar6" }, -- Perfected Force Overflow
+        { 565, "ar7" }, -- Perfected Frenzied Momentum
+        { 423, "ar8" }, -- Perfected Gallant Charge
+        { 533, "ar9" }, -- Perfected Grand Rejuvenation
+        { 428, "ar10" }, -- Perfected Mender's Ward
+        { 522, "ar11" }, -- Perfected Merciless Charge
+        { 566, "ar12" }, -- Perfected Point-Blank Snipe
+        { 527, "ar13" }, -- Perfected Precise Regeneration
+        { 529, "ar14" }, -- Perfected Puncturing Remedy
+        { 424, "ar15" }, -- Perfected Radial Uppercut
+        { 523, "ar16" }, -- Perfected Rampaging Slash
+        { 425, "ar17" }, -- Perfected Spectral Cloak
+        { 530, "ar18" }, -- Perfected Stinging Slashes
+        { 525, "ar19" }, -- Perfected Thunderous Volley
+        { 528, "ar20" }, -- Perfected Titanic Cleave
+        { 426, "ar21" }, -- Perfected Virulent Shot
+        { 564, "ar22" }, -- Perfected Void Bash
+        { 427, "ar23" }, -- Perfected Wild Impulse
+        { 567, "ar24" }, -- Perfected Wrath of Elements
+    },
+    [CATEGORY.CRAFTABLE] = {
+        { 385, "cr1" }, -- Adept Rider
+        { 541, "cr2" }, -- Aetherial Ascension
+        { 82, "cr3" }, -- Alessia's Bulwark
+        { 469, "cr4" }, -- Ancient Dragonguard
+        { 178, "cr5" }, -- Armor Master
+        { 43, "cr6" }, -- Armor of the Seducer
+        { 54, "cr7" }, -- Ashen Grip
+        { 323, "cr8" }, -- Assassin's Guile
+        { 677, "cr9" }, -- Chimera's Rebuke
+        { 679, "cr10" }, -- Claw of the Forest Wraith
+        { 225, "cr11" }, -- Clever Alchemist
+        { 437, "cr12" }, -- Coldharbour's Favorite
+        { 480, "cr13" }, -- Critical Riposte
+        { 324, "cr14" }, -- Daedric Trickery
+        { 468, "cr15" }, -- Daring Corsair
+        { 482, "cr16" }, -- Dauntless Combatant
+        { 611, "cr17" }, -- Deadlands Demolisher
+        { 37, "cr18" }, -- Death's Wind
+        { 584, "cr19" }, -- Diamond's Victory
+        { 491, "cr20" }, -- Dragon's Appetite
+        { 642, "cr21" }, -- Druid's Braid
+        { 226, "cr22" }, -- Eternal Hunt
+        { 87, "cr23" }, -- Eyes of Mara
+        { 810, "cr24" }, -- Fellowship's Fortitude
+        { 352, "cr25" }, -- Fortified Brass
+        { 408, "cr26" }, -- Grave-Stake Collector
+        { 583, "cr27" }, -- Heartland Conqueror
+        { 764, "cr28" }, -- Highland Sentinel
+        { 78, "cr29" }, -- Hist Bark
+        { 582, "cr30" }, -- Hist Whisperer
+        { 80, "cr31" }, -- Hunding's Rage
+        { 351, "cr32" }, -- Innate Axiom
+        { 612, "cr33" }, -- Iron Flask
+        { 92, "cr34" }, -- Kagrenac's Hope
+        { 240, "cr35" }, -- Kvatch Gladiator
+        { 207, "cr36" }, -- Law of Julianos
+        { 540, "cr37" }, -- Legacy of Karth
+        { 48, "cr38" }, -- Magnus' Gift
+        { 353, "cr39" }, -- Mechanical Acuity
+        { 410, "cr40" }, -- Might of the Lost Legion
+        { 219, "cr41" }, -- Morkuldin
+        { 409, "cr42" }, -- Naga Shaman
+        { 470, "cr43" }, -- New Moon Acolyte
+        { 51, "cr44" }, -- Night Mother's Gaze
+        { 40, "cr45" }, -- Night's Silence
+        { 176, "cr46" }, -- Noble's Conquest
+        { 387, "cr47" }, -- Nocturnal's Favor
+        { 73, "cr48" }, -- Oblivion's Foe
+        { 678, "cr49" }, -- Old Growth Brewer
+        { 640, "cr50" }, -- Order's Wrath
+        { 84, "cr51" }, -- Orgnum's Scales
+        { 242, "cr52" }, -- Pelinal's Wrath
+        { 539, "cr53" }, -- Red Eagle's Fury
+        { 177, "cr54" }, -- Redistributor
+        { 697, "cr55" }, -- Seeker Synthesis
+        { 438, "cr56" }, -- Senche-Raht's Grit
+        { 641, "cr57" }, -- Serpent's Disdain
+        { 325, "cr58" }, -- Shacklebreaker
+        { 95, "cr59" }, -- Shalidor's Curse
+        { 808, "cr60" }, -- Shared Burden
+        { 695, "cr61" }, -- Shattered Fate
+        { 386, "cr62" }, -- Sload's Semblance
+        { 81, "cr63" }, -- Song of Lamae
+        { 74, "cr64" }, -- Spectre's Eye
+        { 506, "cr65" }, -- Spell Parasite
+        { 490, "cr66" }, -- Stuhn's Favor
+        { 224, "cr67" }, -- Tava's Favor
+        { 696, "cr68" }, -- Telvanni Efficiency
+        { 763, "cr69" }, -- Tharriker's Strike
+        { 765, "cr70" }, -- Threads of War
+        { 809, "cr71" }, -- Tide-Born Wildstalker
+        { 75, "cr72" }, -- Torug's Pact
+        { 208, "cr73" }, -- Trial by Fire
+        { 161, "cr74" }, -- Twice-Born Star
+        { 38, "cr75" }, -- Twilight's Embrace
+        { 481, "cr76" }, -- Unchained Aggressor
+        { 44, "cr77" }, -- Vampire's Kiss
+        { 241, "cr78" }, -- Varen's Legacy
+        { 439, "cr79" }, -- Vastarie's Tutelage
+        { 148, "cr80" }, -- Way of the Arena
+        { 41, "cr81" }, -- Whitestrake's Retribution
+        { 79, "cr82" }, -- Willow's Path
+        { 610, "cr83" }, -- Wretched Vitality
+    },
+    [CATEGORY.PVP] = {
+        { 101, "pvp1" }, -- Affliction
+        { 206, "pvp2" }, -- Agility
+        { 39, "pvp3" }, -- Alessian Order
+        { 85, "pvp4" }, -- Almalexia's Mercy
+        { 802, "pvp5" }, -- Arkay's Charity
+        { 756, "pvp6" }, -- Baan Dar's Blessing
+        { 131, "pvp7" }, -- Bastion of the Heartland
+        { 422, "pvp8" }, -- Battalion Defender
+        { 419, "pvp9" }, -- Battlefield Acrobat
+        { 52, "pvp10" }, -- Beckoning Steel
+        { 179, "pvp11" }, -- Black Rose
+        { 804, "pvp12" }, -- Blackfeather Flight
+        { 128, "pvp13" }, -- Blessing of the Potentates
+        { 755, "pvp14" }, -- Blunted Blades
+        { 133, "pvp15" }, -- Buffer of the Swift
+        { 791, "pvp16" }, -- Bulwark Ruination
+        { 711, "pvp17" }, -- Colovian Highlands General
+        { 831, "pvp18" }, -- Coup De Grâce
+        { 327, "pvp19" }, -- Coward's Gear
+        { 113, "pvp20" }, -- Crest of Cyrodiil
+        { 104, "pvp21" }, -- Curse Eater
+        { 616, "pvp22" }, -- Dark Convergence
+        { 127, "pvp23" }, -- Deadly Strike
+        { 25, "pvp24" }, -- Desert Rose
+        { 130, "pvp25" }, -- Eagle Eye
+        { 83, "pvp26" }, -- Elf Bane
+        { 204, "pvp27" }, -- Endurance
+        { 631, "pvp28" }, -- Enervating Aura
+        { 792, "pvp29" }, -- Farstrider
+        { 238, "pvp30" }, -- Fasalla's Guile
+        { 246, "pvp31" }, -- Galerion's Revenge
+        { 855, "pvp32" }, -- Gorethief
+        { 126, "pvp33" }, -- Grace of the Ancients
+        { 100, "pvp34" }, -- Hawk's Eye
+        { 630, "pvp35" }, -- Hew and Sunder
+        { 618, "pvp36" }, -- Hrothgar's Chill
+        { 253, "pvp37" }, -- Imperial Physique
+        { 334, "pvp38" }, -- Impregnable Armor
+        { 417, "pvp39" }, -- Indomitable Fury
+        { 712, "pvp40" }, -- Jerall Mountains Warchief
+        { 690, "pvp41" }, -- Judgment of Akatosh
+        { 328, "pvp42" }, -- Knight Slayer
+        { 59, "pvp43" }, -- Kyne's Kiss
+        { 803, "pvp44" }, -- Lamp Knight's Art
+        { 668, "pvp45" }, -- Languor of Peryite
+        { 237, "pvp46" }, -- Leki's Focus
+        { 109, "pvp47" }, -- Light of Cyrodiil
+        { 670, "pvp48" }, -- Mara's Balm
+        { 234, "pvp49" }, -- Marksman's Crest
+        { 181, "pvp50" }, -- Meritorious Service
+        { 793, "pvp51" }, -- Netch Oil
+        { 713, "pvp52" }, -- Nibenay Bay Battlereeve
+        { 669, "pvp53" }, -- Nocturnal's Ploy
+        { 754, "pvp54" }, -- Oakfather's Retribution
+        { 200, "pvp55" }, -- Phoenix
+        { 617, "pvp56" }, -- Plaguebreak
+        { 180, "pvp57" }, -- Powerful Assault
+        { 629, "pvp58" }, -- Rallying Cry
+        { 108, "pvp59" }, -- Ravager
+        { 201, "pvp60" }, -- Reactive Armor
+        { 76, "pvp61" }, -- Robes of Alteration Mastery
+        { 235, "pvp62" }, -- Robes of Transmutation
+        { 89, "pvp63" }, -- Sentry
+        { 67, "pvp64" }, -- Shadow Walker
+        { 783, "pvp65" }, -- Shared Pain
+        { 689, "pvp66" }, -- Shell Splitter
+        { 199, "pvp67" }, -- Shield Breaker
+        { 132, "pvp68" }, -- Shield of the Valiant
+        { 784, "pvp69" }, -- Siegemaster's Focus
+        { 688, "pvp70" }, -- Snake in the Stars
+        { 420, "pvp71" }, -- Soldier of Anguish
+        { 418, "pvp72" }, -- Spell Strategist
+        { 830, "pvp73" }, -- Spellshredder
+        { 421, "pvp74" }, -- Steadfast Hero
+        { 97, "pvp75" }, -- The Arch-Mage
+        { 63, "pvp76" }, -- The Juggernaut
+        { 50, "pvp77" }, -- The Morag Tong
+        { 248, "pvp78" }, -- Thews of the Harbinger
+        { 782, "pvp79" }, -- Tracker's Lash
+        { 832, "pvp80" }, -- Unflinching Ultimate
+        { 326, "pvp81" }, -- Vanguard's Challenge
+        { 129, "pvp82" }, -- Vengeance Leech
+        { 247, "pvp83" }, -- Vicecanon of Venom
+        { 236, "pvp84" }, -- Vicious Death
+        { 111, "pvp85" }, -- Ward of Cyrodiil
+        { 239, "pvp86" }, -- Warrior's Fury
+        { 205, "pvp87" }, -- Willpower
+        { 329, "pvp88" }, -- Wizard's Riposte
+        { 125, "pvp89" }, -- Wrath of the Imperium
+    },
+    [CATEGORY.MONSTER] = {
+        { 734, "mo1" }, -- Anthelmir's Construct
+        { 666, "mo2" }, -- Archdruid Devyric
+        { 397, "mo3" }, -- Balorgh
+        { 829, "mo4" }, -- Bar-Sakka
+        { 636, "mo5" }, -- Baron Thirsk
+        { 578, "mo6" }, -- Baron Zaudrus
+        { 828, "mo7" }, -- Black Gem Monstrosity
+        { 163, "mo8" }, -- Bloodspawn
+        { 269, "mo9" }, -- Chokethorn
+        { 342, "mo10" }, -- Domihaus
+        { 341, "mo11" }, -- Earthgore
+        { 577, "mo12" }, -- Encratis's Behemoth
+        { 166, "mo13" }, -- Engine Guardian
+        { 667, "mo14" }, -- Euphotic Gatekeeper
+        { 849, "mo15" }, -- Glittering Goad
+        { 600, "mo16" }, -- Glorgoloch the Destroyer
+        { 280, "mo17" }, -- Grothdarr
+        { 458, "mo18" }, -- Grundwulf
+        { 274, "mo19" }, -- Iceheart
+        { 273, "mo20" }, -- Ilambris
+        { 599, "mo21" }, -- Immolator Charr
+        { 272, "mo22" }, -- Infernal Guardian
+        { 632, "mo23" }, -- Kargaeda
+        { 479, "mo24" }, -- Kjalnar's Nightmare
+        { 266, "mo25" }, -- Kra'gh
+        { 635, "mo26" }, -- Lady Malygda
+        { 535, "mo27" }, -- Lady Thorn
+        { 164, "mo28" }, -- Lord Warden
+        { 459, "mo29" }, -- Maarselok
+        { 609, "mo30" }, -- Magma Incarnate
+        { 170, "mo31" }, -- Maw of the Infernal
+        { 256, "mo32" }, -- Mighty Chudan
+        { 183, "mo33" }, -- Molag Kena
+        { 478, "mo34" }, -- Mother Ciannait
+        { 633, "mo35" }, -- Nazaray
+        { 168, "mo36" }, -- Nerien'eth
+        { 167, "mo37" }, -- Nightflame
+        { 634, "mo38" }, -- Nunatak
+        { 801, "mo39" }, -- Orpheon the Tactician
+        { 687, "mo40" }, -- Ozezan the Inferno
+        { 277, "mo41" }, -- Pirate Skeleton
+        { 608, "mo42" }, -- Prior Thierric
+        { 683, "mo43" }, -- Roksa the Warped
+        { 165, "mo44" }, -- Scourge Harvester
+        { 279, "mo45" }, -- Selene
+        { 271, "mo46" }, -- Sellistrix
+        { 268, "mo47" }, -- Sentinel of Rkugamz
+        { 265, "mo48" }, -- Shadowrend
+        { 270, "mo49" }, -- Slimecraw
+        { 162, "mo50" }, -- Spawn of Mephala
+        { 797, "mo51" }, -- Squall of Retribution
+        { 534, "mo52" }, -- Stone Husk
+        { 432, "mo53" }, -- Stonekeeper
+        { 275, "mo54" }, -- Stormfist
+        { 267, "mo55" }, -- Swarm Mother
+        { 436, "mo56" }, -- Symphony of Blades
+        { 738, "mo57" }, -- The Blind
+        { 851, "mo58" }, -- The Ruckus
+        { 278, "mo59" }, -- The Troll King
+        { 850, "mo60" }, -- Thousand Eyes
+        { 349, "mo61" }, -- Thurvokun
+        { 276, "mo62" }, -- Tremorscale
+        { 169, "mo63" }, -- Valkyn Skoria
+        { 257, "mo64" }, -- Velidreth
+        { 398, "mo65" }, -- Vykosa
+        { 350, "mo66" }, -- Zaan
+        { 598, "mo67" }, -- Zoal the Ever-Wakeful
+        { 876, "mo68" }, -- Tarcyr
+        { 877, "mo69" }, -- Mylenne Moon-Caller
+    },
+    [CATEGORY.MYTHIC] = {
+        { 626, "my1" }, -- Belharza's Band
+        { 521, "my2" }, -- Bloodlord's Embrace
+        { 691, "my3" }, -- Cryptcanon Vestments
+        { 596, "my4" }, -- Death Dealer's Fete
+        { 655, "my5" }, -- Dov-Rha Sabatons
+        { 692, "my6" }, -- Esoteric Environment Greaves
+        { 674, "my7" }, -- Faun's Lark Cladding
+        { 593, "my8" }, -- Gaze of Sithis
+        { 594, "my9" }, -- Harpooner's Wading Kilt
+        { 845, "my10" }, -- Huntsman's Warmask
+        { 656, "my11" }, -- Lefthander's Aegis Belt
+        { 811, "my12" }, -- Mad God's Dancing Shoes
+        { 520, "my13" }, -- Malacath's Band of Brutality
+        { 625, "my14" }, -- Markyn Ring of Majesty
+        { 813, "my15" }, -- Monomyth Reforged
+        { 654, "my16" }, -- Mora's Whispers
+        { 658, "my17" }, -- Oakensoul Ring
+        { 576, "my18" }, -- Pearls of Ehlnofey
+        { 854, "my19" }, -- Prowler's Talisman
+        { 812, "my20" }, -- Rakkhat's Voidmantle
+        { 575, "my21" }, -- Ring of the Pale Order
+        { 503, "my22" }, -- Ring of the Wild Hunt
+        { 760, "my23" }, -- Rourken Steamguards
+        { 657, "my24" }, -- Sea-Serpent's Coil
+        { 597, "my25" }, -- Shapeshifter's Chain
+        { 848, "my26" }, -- Shattered Paths Signet
+        { 519, "my27" }, -- Snow Treaders
+        { 627, "my28" }, -- Spaulder of Ruin
+        { 675, "my29" }, -- Stormweaver's Cavort
+        { 676, "my30" }, -- Syrabane's Ward
+        { 762, "my31" }, -- The Saint and the Seducer
+        { 761, "my32" }, -- The Shadow Queen's Cowl
+        { 501, "my33" }, -- Thrassian Stranglers
+        { 505, "my34" }, -- Torc of Tonal Constancy
+        { 693, "my35" }, -- Torc of the Last Ayleid King
+        { 694, "my36" }, -- Velothi Ur-Mage's Amulet
+    },
+    [CATEGORY.ARCHIVE] = {
+        { 781, "ia1" }, -- Aerie's Cry
+        { 780, "ia2" }, -- Aetheric Lancer
+        { 723, "ia3" }, -- Basalt-Blooded Warrior
+        { 779, "ia4" }, -- Beacon of Oblivion
+        { 777, "ia5" }, -- Corpseburster
+        { 729, "ia6" }, -- Gardener of Seasons
+        { 727, "ia7" }, -- Monolith of Storms
+        { 724, "ia8" }, -- Nobility in Decay
+        { 776, "ia9" }, -- Pyrebrand
+        { 722, "ia10" }, -- Reawakened Hierophant
+        { 726, "ia11" }, -- Soulcleaver
+        { 775, "ia12" }, -- Spattering Disjunction
+        { 778, "ia13" }, -- Umbral Edge
+        { 728, "ia14" }, -- Wrathsun
+    },
 }
 
+-- ستات جديدة رقمها لسا ما انضاف (نلقاها بالاسم الإنجليزي لين نضيف الرقم)
+local SETS_PENDING = {
+}
 
+local setsDatabase = {} -- يتعبّى في BuildSetsDatabase()
+
+-- اسم الست بلغة اللاعب (من اللعبة)
+local function SetDisplayName(setId)
+    local name = GetItemSetName(setId)
+    if not name or name == "" then return nil end
+    return zo_strformat("<<1>>", name)
+end
+
+-- نلقى رقم الست الجديد من اسمه الإنجليزي (يشتغل بس لو اللعبة إنجليزي)
+local function FindSetIdByEnglishName(englishName)
+    local wanted = string.lower(englishName)
+    for setId = 1, 1500 do
+        local name = GetItemSetName(setId)
+        if name and name ~= "" and string.lower(zo_strformat("<<1>>", name)) == wanted then
+            return setId
+        end
+    end
+    return nil
+end
+
+local function BuildSetsDatabase()
+    local byCategory = {}
+    for _, category in ipairs(CATEGORY_ORDER) do
+        local list = {}
+        for _, entry in ipairs(SETS_BY_CATEGORY[category] or {}) do
+            local setId, image = entry[1], entry[2]
+            local name = SetDisplayName(setId)
+            if name then
+                list[#list + 1] = { setId = setId, name = name, icon = Img(image), category = category }
+            end
+        end
+        byCategory[category] = list
+    end
+    for _, pending in ipairs(SETS_PENDING) do
+        local setId = FindSetIdByEnglishName(pending.name)
+        local list = byCategory[pending.category]
+        if setId and list then
+            list[#list + 1] = { setId = setId, name = SetDisplayName(setId), icon = Img(pending.image), category = pending.category }
+        end
+    end
+    for _, category in ipairs(CATEGORY_ORDER) do
+        local list = byCategory[category]
+        table.sort(list, function(a, b) return string.lower(a.name) < string.lower(b.name) end)
+        for _, info in ipairs(list) do
+            setsDatabase[#setsDatabase + 1] = info
+        end
+    end
+end
+
+-- المفضلة القديمة كانت محفوظة بالاسم، الحين بالرقم
+local function MigrateFavorites(favorites)
+    if type(favorites) ~= "table" then return end
+    local byName = {}
+    for _, info in ipairs(setsDatabase) do byName[string.lower(info.name)] = info.setId end
+    for key, value in pairs(favorites) do
+        if type(key) == "string" then
+            favorites[key] = nil
+            local setId = byName[string.lower(key)]
+            if setId and value then favorites[setId] = true end
+        end
+    end
+end
 
 -- قاعدة بيانات البفات والديبفات 
 local buffsDatabase = {
     -- ===== قسم البفات (Buffs) =====
-    { nameEn = "Aegis", icon = "ArabicHelper/images/buff1.dds", type = "Buff" },
-    { nameEn = "Berserk", icon = "ArabicHelper/images/buff2.dds", type = "Buff" },
-    { nameEn = "Brutality", icon = "ArabicHelper/images/buff3.dds", type = "Buff" },
-    { nameEn = "Courage", icon = "ArabicHelper/images/buff4.dds", type = "Buff" },
-    { nameEn = "Empower", icon = "ArabicHelper/images/buff5.dds", type = "Buff" },
-    { nameEn = "Endurance", icon = "ArabicHelper/images/buff6.dds", type = "Buff" },
-    { nameEn = "Evasion", icon = "ArabicHelper/images/buff7.dds", type = "Buff" },
-    { nameEn = "Expedition", icon = "ArabicHelper/images/buff8.dds", type = "Buff" },
-    { nameEn = "Force", icon = "ArabicHelper/images/buff9.dds", type = "Buff" },
-    { nameEn = "Fortitude", icon = "ArabicHelper/images/buff10.dds", type = "Buff" },
-    { nameEn = "Gallop", icon = "ArabicHelper/images/buff11.dds", type = "Buff" },
-    { nameEn = "Heroism", icon = "ArabicHelper/images/buff12.dds", type = "Buff" },
-    { nameEn = "Intellect", icon = "ArabicHelper/images/buff13.dds", type = "Buff" },
-    { nameEn = "Mending", icon = "ArabicHelper/images/buff14.dds", type = "Buff" },
-    { nameEn = "Resolve", icon = "ArabicHelper/images/buff15.dds", type = "Buff" },
-    { nameEn = "Prophecy", icon = "ArabicHelper/images/buff16.dds", type = "Buff" },
-    { nameEn = "Protection", icon = "ArabicHelper/images/buff17.dds", type = "Buff" },
-    { nameEn = "Resolve", icon = "ArabicHelper/images/buff18.dds", type = "Buff" },
-    { nameEn = "Savagery", icon = "ArabicHelper/images/buff19.dds", type = "Buff" },
-    { nameEn = "Slayer", icon = "ArabicHelper/images/buff20.dds", type = "Buff" },
-    { nameEn = "Sorcery", icon = "ArabicHelper/images/buff21.dds", type = "Buff" },
-    { nameEn = "Spell Resistance", icon = "ArabicHelper/images/buff22.dds", type = "Buff" },
-    { nameEn = "Spell Resistance Potion", icon = "ArabicHelper/images/buff23.dds", type = "Buff" },
-    { nameEn = "Toughness", icon = "ArabicHelper/images/buff24.dds", type = "Buff" },
-    { nameEn = "Vitality", icon = "ArabicHelper/images/buff25.dds", type = "Buff" },
+    { nameEn = "Aegis", icon = Img("buff1"), type = "Buff" },
+    { nameEn = "Berserk", icon = Img("buff2"), type = "Buff" },
+    { nameEn = "Brutality", icon = Img("buff3"), type = "Buff" },
+    { nameEn = "Courage", icon = Img("buff4"), type = "Buff" },
+    { nameEn = "Empower", icon = Img("buff5"), type = "Buff" },
+    { nameEn = "Endurance", icon = Img("buff6"), type = "Buff" },
+    { nameEn = "Evasion", icon = Img("buff7"), type = "Buff" },
+    { nameEn = "Expedition", icon = Img("buff8"), type = "Buff" },
+    { nameEn = "Force", icon = Img("buff9"), type = "Buff" },
+    { nameEn = "Fortitude", icon = Img("buff10"), type = "Buff" },
+    { nameEn = "Gallop", icon = Img("buff11"), type = "Buff" },
+    { nameEn = "Heroism", icon = Img("buff12"), type = "Buff" },
+    { nameEn = "Intellect", icon = Img("buff13"), type = "Buff" },
+    { nameEn = "Mending", icon = Img("buff14"), type = "Buff" },
+    { nameEn = "Resolve", icon = Img("buff15"), type = "Buff" },
+    { nameEn = "Prophecy", icon = Img("buff16"), type = "Buff" },
+    { nameEn = "Protection", icon = Img("buff17"), type = "Buff" },
+    { nameEn = "Resolve", icon = Img("buff18"), type = "Buff" },
+    { nameEn = "Savagery", icon = Img("buff19"), type = "Buff" },
+    { nameEn = "Slayer", icon = Img("buff20"), type = "Buff" },
+    { nameEn = "Sorcery", icon = Img("buff21"), type = "Buff" },
+    { nameEn = "Spell Resistance", icon = Img("buff22"), type = "Buff" },
+    { nameEn = "Spell Resistance Potion", icon = Img("buff23"), type = "Buff" },
+    { nameEn = "Toughness", icon = Img("buff24"), type = "Buff" },
+    { nameEn = "Vitality", icon = Img("buff25"), type = "Buff" },
 
     -- ===== قسم الديبفات (Debuffs) =====
-    { nameEn = "Breach", icon = "ArabicHelper/images/debuff1.dds", type = "Debuff" },
-    { nameEn = "Brittle", icon = "ArabicHelper/images/debuff2.dds", type = "Debuff" },
-    { nameEn = "Cowardice", icon = "ArabicHelper/images/debuff3.dds", type = "Debuff" },
-    { nameEn = "Defile", icon = "ArabicHelper/images/debuff4.dds", type = "Debuff" },
-    { nameEn = "Enervation", icon = "ArabicHelper/images/debuff5.dds", type = "Debuff" },
-    { nameEn = "Hindrance", icon = "ArabicHelper/images/debuff6.dds", type = "Debuff" },
-    { nameEn = "Lifesteal", icon = "ArabicHelper/images/debuff7.dds", type = "Debuff" },
-    { nameEn = "Magickasteal", icon = "ArabicHelper/images/debuff8.dds", type = "Debuff" },
-    { nameEn = "Maim", icon = "ArabicHelper/images/debuff9.dds", type = "Debuff" },
-    { nameEn = "Mangle", icon = "ArabicHelper/images/debuff10.dds", type = "Debuff" },
-    { nameEn = "Timidity", icon = "ArabicHelper/images/debuff11.dds", type = "Debuff" },
-    { nameEn = "Uncertainty", icon = "ArabicHelper/images/debuff12.dds", type = "Debuff" },
-    { nameEn = "Vulnerability", icon = "ArabicHelper/images/debuff13.dds", type = "Debuff" }
+    { nameEn = "Breach", icon = Img("debuff1"), type = "Debuff" },
+    { nameEn = "Brittle", icon = Img("debuff2"), type = "Debuff" },
+    { nameEn = "Cowardice", icon = Img("debuff3"), type = "Debuff" },
+    { nameEn = "Defile", icon = Img("debuff4"), type = "Debuff" },
+    { nameEn = "Enervation", icon = Img("debuff5"), type = "Debuff" },
+    { nameEn = "Hindrance", icon = Img("debuff6"), type = "Debuff" },
+    { nameEn = "Lifesteal", icon = Img("debuff7"), type = "Debuff" },
+    { nameEn = "Magickasteal", icon = Img("debuff8"), type = "Debuff" },
+    { nameEn = "Maim", icon = Img("debuff9"), type = "Debuff" },
+    { nameEn = "Mangle", icon = Img("debuff10"), type = "Debuff" },
+    { nameEn = "Timidity", icon = Img("debuff11"), type = "Debuff" },
+    { nameEn = "Uncertainty", icon = Img("debuff12"), type = "Debuff" },
+    { nameEn = "Vulnerability", icon = Img("debuff13"), type = "Debuff" }
 }
 
 local function OnAddOnLoaded(eventCode, addOnName)
@@ -648,7 +751,20 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- تحميل المفضلة المحفوظة.
     -- ملاحظة: يجب أن يحتوي ملف Manifest (.txt) على:
     -- ## SavedVariables: ArabicHelperSavedVariables
-    savedVars = ZO_SavedVars:NewAccountWide("ArabicHelperSavedVariables", 1, nil, savedVarsDefaults)
+    BuildSetsDatabase()
+
+    -- الإعدادات لكل سيرفر (EU / NA / PTS) بشكل منفصل
+    savedVars = ZO_SavedVars:NewAccountWide("ArabicHelperSavedVariables", 1, nil, savedVarsDefaults, GetWorldName())
+    if not savedVars.migratedFromDefault then
+        -- ننقل المفضلة من النسخة القديمة (قبل ما تصير لكل سيرفر)
+        local old = ZO_SavedVars:NewAccountWide("ArabicHelperSavedVariables", 1, nil, savedVarsDefaults)
+        if old and old.favorites and next(old.favorites) and not next(savedVars.favorites) then
+            for k, v in pairs(old.favorites) do savedVars.favorites[k] = v end
+            savedVars.showCard = old.showCard
+        end
+        savedVars.migratedFromDefault = true
+    end
+    MigrateFavorites(savedVars.favorites)
     
     ----------------------------------------------------
     -- 1. النافذة الرئيسية للأطقم
@@ -842,8 +958,8 @@ local function OnAddOnLoaded(eventCode, addOnName)
     favoritesEmptyLabel:SetText("No favorites yet")
     favoritesEmptyLabel:SetHidden(true)
 
-    local function IsFavorite(setName)
-        return savedVars and savedVars.favorites and savedVars.favorites[setName] == true
+    local function IsFavorite(setId)
+        return savedVars and savedVars.favorites and savedVars.favorites[setId] == true
     end
 
     local function UpdateFavoriteStar()
@@ -853,7 +969,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
             return
         end
 
-        if IsFavorite(selectedSetInfo.name) then
+        if IsFavorite(selectedSetInfo.setId) then
             favoriteStarBtn:SetAlpha(1) -- في المفضلة = النجمة واضحة
             favoriteLabel:SetText("Favorited")
         else
@@ -876,11 +992,11 @@ local function OnAddOnLoaded(eventCode, addOnName)
         if not selectedSetInfo or not savedVars then return end
 
         savedVars.favorites = savedVars.favorites or {}
-        local setName = selectedSetInfo.name
-        if savedVars.favorites[setName] then
-            savedVars.favorites[setName] = nil
+        local setId = selectedSetInfo.setId
+        if savedVars.favorites[setId] then
+            savedVars.favorites[setId] = nil
         else
-            savedVars.favorites[setName] = true
+            savedVars.favorites[setId] = true
         end
 
         UpdateFavoriteStar()
@@ -917,7 +1033,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
         for i, setInfo in ipairs(setsDatabase) do
             local matchesCat = (currentCategory == "" or setInfo.category == currentCategory)
             local matchesSearch = (searchText == "" or string.find(string.lower(setInfo.name), searchText, 1, true) ~= nil)
-            local matchesFavorite = (not favoritesMode or IsFavorite(setInfo.name))
+            local matchesFavorite = (not favoritesMode or IsFavorite(setInfo.setId))
             
             if matchesCat and matchesSearch and matchesFavorite then
                 local selectedSet = setInfo
@@ -932,8 +1048,12 @@ local function OnAddOnLoaded(eventCode, addOnName)
                 btn:SetDimensions(170, 30)
                 btn:ClearAnchors()
                 btn:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, xPosition, yPosition)
-                -- نشيل كلمة "Perfected" من العرض بس (البحث يبقى بالاسم الكامل)
-                local shownName = string.gsub(selectedSet.name, "^Perfected ", "P. ")
+                -- الست المطوّر (Perfected) نكتبه مختصر: "P. " + اسم الست العادي (بأي لغة)
+                local shownName = selectedSet.name
+                local unperfectedId = GetItemSetUnperfectedSetId(selectedSet.setId)
+                if unperfectedId and unperfectedId ~= 0 and unperfectedId ~= selectedSet.setId then
+                    shownName = "P. " .. (SetDisplayName(unperfectedId) or selectedSet.name)
+                end
                 -- لو الاسم طويل نصغّر الخط عشان ما ينقص
                 if string.len(shownName) > 18 then
                     btn:SetFont("ZoFontWinH5")
@@ -1130,132 +1250,132 @@ local function OnAddOnLoaded(eventCode, addOnName)
         AA = {
             title = "Aetherian Archive (AA)",
             bosses = {
-                { name = "1. Lightning Storm Atronach", card = "ArabicHelper/images/trial_aa_lightning.dds" },
-                { name = "2. Foundation Stone Atronach", card = "ArabicHelper/images/trial_aa_stone.dds" },
-                { name = "3. Varlariel", card = "ArabicHelper/images/trial_aa_varlariel.dds" },
-                { name = "4. The Celestial Mage", card = "ArabicHelper/images/trial_aa_mage.dds" },
+                { name = "1. Lightning Storm Atronach", card = Img("trial_aa_lightning") },
+                { name = "2. Foundation Stone Atronach", card = Img("trial_aa_stone") },
+                { name = "3. Varlariel", card = Img("trial_aa_varlariel") },
+                { name = "4. The Celestial Mage", card = Img("trial_aa_mage") },
             }
         },
 
         HRC = {
             title = "Hel Ra Citadel (HRC)",
             bosses = {
-                { name = "1. Ra Kotu", card = "ArabicHelper/images/trial_hrc_rakotu.dds" },
-                { name = "2. Yokeda Rok'dun", card = "ArabicHelper/images/trial_hrc_rokdun.dds" },
-                { name = "3. Yokeda Kai", card = "ArabicHelper/images/trial_hrc_kai.dds" },
-                { name = "4. The Warrior", card = "ArabicHelper/images/trial_hrc_warrior.dds" },
+                { name = "1. Ra Kotu", card = Img("trial_hrc_rakotu") },
+                { name = "2. Yokeda Rok'dun", card = Img("trial_hrc_rokdun") },
+                { name = "3. Yokeda Kai", card = Img("trial_hrc_kai") },
+                { name = "4. The Warrior", card = Img("trial_hrc_warrior") },
             }
         },
 
         SO = {
             title = "Sanctum Ophidia (SO)",
             bosses = {
-                { name = "1. Possessed Mantikora", card = "ArabicHelper/images/trial_so_mantikora.dds" },
-                { name = "2. Stonebreaker", card = "ArabicHelper/images/trial_so_stonebreaker.dds" },
-                { name = "3. Ozara", card = "ArabicHelper/images/trial_so_ozara.dds" },
-                { name = "4. The Serpent", card = "ArabicHelper/images/trial_so_serpent.dds" },
+                { name = "1. Possessed Mantikora", card = Img("trial_so_mantikora") },
+                { name = "2. Stonebreaker", card = Img("trial_so_stonebreaker") },
+                { name = "3. Ozara", card = Img("trial_so_ozara") },
+                { name = "4. The Serpent", card = Img("trial_so_serpent") },
             }
         },
 
         MOL = {
             title = "Maw of Lorkhaj (MoL)",
             bosses = {
-                { name = "1. Zhaj'hassa the Forgotten", card = "ArabicHelper/images/trial_mol_zhajhassa.dds" },
-                { name = "2. Vashai & S'kinrai", card = "ArabicHelper/images/trial_mol_twins.dds" },
-                { name = "3. Rakkhat", card = "ArabicHelper/images/trial_mol_rakkhat.dds" },
+                { name = "1. Zhaj'hassa the Forgotten", card = Img("trial_mol_zhajhassa") },
+                { name = "2. Vashai & S'kinrai", card = Img("trial_mol_twins") },
+                { name = "3. Rakkhat", card = Img("trial_mol_rakkhat") },
             }
         },
 
         HOF = {
             title = "Halls of Fabrication (HoF)",
             bosses = {
-                { name = "1. Hunter-Killer Negatrix & Positrox", card = "ArabicHelper/images/trial_hof_hunterkillers.dds" },
-                { name = "2. Pinnacle Factotum", card = "ArabicHelper/images/trial_hof_pinnacle.dds" },
-                { name = "3. Archcustodian", card = "ArabicHelper/images/trial_hof_archcustodian.dds" },
-                { name = "4. Refabrication Committee", card = "ArabicHelper/images/trial_hof_committee.dds" },
-                { name = "5. Assembly General", card = "ArabicHelper/images/trial_hof_assembly.dds" },
+                { name = "1. Hunter-Killer Negatrix & Positrox", card = Img("trial_hof_hunterkillers") },
+                { name = "2. Pinnacle Factotum", card = Img("trial_hof_pinnacle") },
+                { name = "3. Archcustodian", card = Img("trial_hof_archcustodian") },
+                { name = "4. Refabrication Committee", card = Img("trial_hof_committee") },
+                { name = "5. Assembly General", card = Img("trial_hof_assembly") },
             }
         },
 
         AS = {
             title = "Asylum Sanctorium (AS)",
             bosses = {
-                { name = "1. Saint Felms the Bold", card = "ArabicHelper/images/trial_as_felms.dds" },
-                { name = "2. Saint Llothis the Pious", card = "ArabicHelper/images/trial_as_llothis.dds" },
-                { name = "3. Saint Olms the Just", card = "ArabicHelper/images/trial_as_olms.dds" },
+                { name = "1. Saint Felms the Bold", card = Img("trial_as_felms") },
+                { name = "2. Saint Llothis the Pious", card = Img("trial_as_llothis") },
+                { name = "3. Saint Olms the Just", card = Img("trial_as_olms") },
             }
         },
 
         CR = {
             title = "Cloudrest (CR)",
             bosses = {
-                { name = "1. Shade of Galenwe", card = "ArabicHelper/images/trial_cr_galenwe.dds" },
-                { name = "2. Shade of Relequen", card = "ArabicHelper/images/trial_cr_relequen.dds" },
-                { name = "3. Shade of Siroria", card = "ArabicHelper/images/trial_cr_siroria.dds" },
-                { name = "4. Z'Maja", card = "ArabicHelper/images/trial_cr_zmaja.dds" },
+                { name = "1. Shade of Galenwe", card = Img("trial_cr_galenwe") },
+                { name = "2. Shade of Relequen", card = Img("trial_cr_relequen") },
+                { name = "3. Shade of Siroria", card = Img("trial_cr_siroria") },
+                { name = "4. Z'Maja", card = Img("trial_cr_zmaja") },
             }
         },
 
         SS = {
             title = "Sunspire (SS)",
             bosses = {
-                { name = "1. Lokkestiiz", card = "ArabicHelper/images/trial_ss_lokkestiiz.dds" },
-                { name = "2. Yolnahkriin", card = "ArabicHelper/images/trial_ss_yolnahkriin.dds" },
-                { name = "3. Nahviintaas", card = "ArabicHelper/images/trial_ss_nahviintaas.dds" },
+                { name = "1. Lokkestiiz", card = Img("trial_ss_lokkestiiz") },
+                { name = "2. Yolnahkriin", card = Img("trial_ss_yolnahkriin") },
+                { name = "3. Nahviintaas", card = Img("trial_ss_nahviintaas") },
             }
         },
 
         KA = {
             title = "Kyne's Aegis (KA)",
             bosses = {
-                { name = "1. Yandir the Butcher", card = "ArabicHelper/images/trial_ka_yandir.dds" },
-                { name = "2. Captain Vrol", card = "ArabicHelper/images/trial_ka_vrol.dds" },
-                { name = "3. Lord Falgravn", card = "ArabicHelper/images/trial_ka_falgravn.dds" },
+                { name = "1. Yandir the Butcher", card = Img("trial_ka_yandir") },
+                { name = "2. Captain Vrol", card = Img("trial_ka_vrol") },
+                { name = "3. Lord Falgravn", card = Img("trial_ka_falgravn") },
             }
         },
 
         RG = {
             title = "Rockgrove (RG)",
             bosses = {
-                { name = "1. Oaxiltso", card = "ArabicHelper/images/trial_rg_oaxiltso.dds" },
-                { name = "2. Flame-Herald Bahsei", card = "ArabicHelper/images/trial_rg_bahsei.dds" },
-                { name = "3. Xalvakka", card = "ArabicHelper/images/trial_rg_xalvakka.dds" },
+                { name = "1. Oaxiltso", card = Img("trial_rg_oaxiltso") },
+                { name = "2. Flame-Herald Bahsei", card = Img("trial_rg_bahsei") },
+                { name = "3. Xalvakka", card = Img("trial_rg_xalvakka") },
             }
         },
 
         DSR = {
             title = "Dreadsail Reef (DSR)",
             bosses = {
-                { name = "1. Lylanar & Turlassil", card = "ArabicHelper/images/trial_dsr_lylanar_turlassil.dds" },
-                { name = "2. Reef Guardian", card = "ArabicHelper/images/trial_dsr_reef_guardian.dds" },
-                { name = "3. Tideborn Taleria", card = "ArabicHelper/images/trial_dsr_taleria.dds" },
+                { name = "1. Lylanar & Turlassil", card = Img("trial_dsr_lylanar_turlassil") },
+                { name = "2. Reef Guardian", card = Img("trial_dsr_reef_guardian") },
+                { name = "3. Tideborn Taleria", card = Img("trial_dsr_taleria") },
             }
         },
 
         SE = {
             title = "Sanity's Edge (SE)",
             bosses = {
-                { name = "1. Exarchanic Yaseyla", card = "ArabicHelper/images/trial_se_yaseyla.dds" },
-                { name = "2. Archwizard Twelvane & Chimera", card = "ArabicHelper/images/trial_se_twelvane.dds" },
-                { name = "3. Ansuul the Tormentor", card = "ArabicHelper/images/trial_se_ansuul.dds" },
+                { name = "1. Exarchanic Yaseyla", card = Img("trial_se_yaseyla") },
+                { name = "2. Archwizard Twelvane & Chimera", card = Img("trial_se_twelvane") },
+                { name = "3. Ansuul the Tormentor", card = Img("trial_se_ansuul") },
             }
         },
 
         LC = {
             title = "Lucent Citadel (LC)",
             bosses = {
-                { name = "1. Count Ryelaz & Zilyesset", card = "ArabicHelper/images/trial_lc_ryelaz_zilyesset.dds" },
-                { name = "2. Orphic Shattered Shard", card = "ArabicHelper/images/trial_lc_orphic.dds" },
-                { name = "3. Xoryn", card = "ArabicHelper/images/trial_lc_xoryn.dds" },
+                { name = "1. Count Ryelaz & Zilyesset", card = Img("trial_lc_ryelaz_zilyesset") },
+                { name = "2. Orphic Shattered Shard", card = Img("trial_lc_orphic") },
+                { name = "3. Xoryn", card = Img("trial_lc_xoryn") },
             }
         },
 
         OC = {
             title = "Ossein Cage (OC)",
             bosses = {
-                { name = "1. Shapers of Flesh", card = "ArabicHelper/images/trial_oc_shapers.dds" },
-                { name = "2. Jynorah & Skorkhif", card = "ArabicHelper/images/trial_oc_jynorah_skorkhif.dds" },
-                { name = "3. Overfiend Kazpian", card = "ArabicHelper/images/trial_oc_kazpian.dds" },
+                { name = "1. Shapers of Flesh", card = Img("trial_oc_shapers") },
+                { name = "2. Jynorah & Skorkhif", card = Img("trial_oc_jynorah_skorkhif") },
+                { name = "3. Overfiend Kazpian", card = Img("trial_oc_kazpian") },
             }
         },
     }
@@ -1599,7 +1719,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
 
     -- يحوّل النص العربي عشان يطلع متصل ومن اليمين لليسار
     local function ArabicText(text)
-        local AR = ArabicHelper_Arabic
+        local AR = AH.Arabic
         if not AR or not AR.process then return text end
         local ok, res = pcall(AR.process, text, { mode = "visual", width = AR_LINE_WIDTH })
         if ok and type(res) == "string" then return res end
@@ -1830,21 +1950,17 @@ local function OnAddOnLoaded(eventCode, addOnName)
     ----------------------------------------------------
     -- 5. بطاقة الست تطلع تلقائي جنب وصف القطعة (Tooltip)
     ----------------------------------------------------
-    -- جدول سريع: اسم الست (حروف صغيرة) -> صورته
-    local setIconByName = {}
+    -- جدول سريع: رقم الست -> صورته
+    local setIconById = {}
     for _, info in ipairs(setsDatabase) do
-        setIconByName[string.lower(info.name)] = info.icon
+        setIconById[info.setId] = info.icon
     end
-
-    local function FindSetIcon(setName)
-        if not setName or setName == "" then return nil end
-        local key = string.lower(zo_strformat("<<1>>", setName))
-        if setIconByName[key] then return setIconByName[key] end
-        -- لو الاسم فيه Perfected أو العكس، نجرب بدونه
-        local noPerfected = string.gsub(key, "^perfected ", "")
-        if setIconByName[noPerfected] then return setIconByName[noPerfected] end
-        if setIconByName["perfected " .. key] then return setIconByName["perfected " .. key] end
-        return nil
+    -- لو عندنا بطاقة للنسخة المطوّرة بس، نستخدمها للنسخة العادية بعد (والعكس)
+    for _, info in ipairs(setsDatabase) do
+        local unperfectedId = GetItemSetUnperfectedSetId(info.setId)
+        if unperfectedId and unperfectedId ~= 0 and not setIconById[unperfectedId] then
+            setIconById[unperfectedId] = info.icon
+        end
     end
 
     -- نافذة البطاقة
@@ -1886,14 +2002,13 @@ local function OnAddOnLoaded(eventCode, addOnName)
         if not savedVars or savedVars.showCard == false then return HideCard() end
         if not itemLink or itemLink == "" then return HideCard() end
 
-        local hasSet, setName = GetItemLinkSetInfo(itemLink, false)
+        local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(itemLink, false)
+        local icon = hasSet and setId and setIconById[setId] or nil
         if cardDebug then
-            d("ArabicHelper card: set=" .. tostring(setName) .. " hasSet=" .. tostring(hasSet)
-              .. " image=" .. tostring(FindSetIcon(setName)))
+            d("ArabicHelper card: set=" .. tostring(setName) .. " id=" .. tostring(setId) .. " image=" .. tostring(icon))
         end
         if not hasSet then return HideCard() end
 
-        local icon = FindSetIcon(setName)
         if not icon then return HideCard() end
 
         cardImage:SetTexture(icon)
@@ -1997,8 +2112,14 @@ local function OnAddOnLoaded(eventCode, addOnName)
         "LayoutStoreItem", "LayoutLootItem",
     }
 
+    -- مهم: ما نلمس GAMEPAD_TOOLTIPS:LayoutXxx نفسها. هذي ما هي دوال حقيقية،
+    -- اللعبة تحدد اسم الدالة لحظة القراءة، ولو ركّبنا عليها تختلط الأسماء
+    -- (مثل خطأ LayoutCurrency لما تفتح صندوق بالكنترول).
+    -- بدلها نركّب على كائن الوصف الحقيقي لكل جهة (يمين/يسار/المتحرك).
+    local GAMEPAD_TOOLTIP_TYPES = { "GAMEPAD_LEFT_TOOLTIP", "GAMEPAD_RIGHT_TOOLTIP", "GAMEPAD_MOVABLE_TOOLTIP" }
+
     local function HookGamepadBag()
-        if not GAMEPAD_TOOLTIPS then
+        if not (GAMEPAD_TOOLTIPS and ZO_GamepadTooltip) then
             hookReport[#hookReport + 1] = "Gamepad=missing"
             return
         end
@@ -2006,29 +2127,35 @@ local function OnAddOnLoaded(eventCode, addOnName)
             hookReport[#hookReport + 1] = "Gamepad=noSecureHook"
             return
         end
-        local hooked = {}
-        for _, methodName in ipairs(GAMEPAD_LAYOUT_METHODS) do
-            if type(GAMEPAD_TOOLTIPS[methodName]) == "function" then
-                local ok = pcall(SecurePostHook, GAMEPAD_TOOLTIPS, methodName, function(self, tooltipType, ...)
-                    if not IsInGamepadPreferredMode() then return end
-                    local link = LinkFromArgs(...)
-                    if cardDebug then d("ArabicHelper gamepad: " .. methodName .. " link=" .. tostring(link ~= nil)) end
-                    if not link then return end
-                    gamepadShownType = tooltipType
-                    local okShow, err = pcall(ShowCardFor, GamepadAnchor(self, tooltipType), link)
-                    if not okShow and cardDebug then d("ArabicHelper gamepad card error: " .. tostring(err)) end
-                end)
-                if ok then hooked[#hooked + 1] = methodName end
+        local hooked = 0
+        for _, typeName in ipairs(GAMEPAD_TOOLTIP_TYPES) do
+            local tooltipType = _G[typeName]
+            local okTip, tip = pcall(GAMEPAD_TOOLTIPS.GetTooltip, GAMEPAD_TOOLTIPS, tooltipType)
+            if tooltipType and okTip and tip then
+                for _, methodName in ipairs(GAMEPAD_LAYOUT_METHODS) do
+                    local okGet, fn = pcall(function() return tip[methodName] end)
+                    if okGet and type(fn) == "function" then
+                        local ok = pcall(SecurePostHook, tip, methodName, function(_, ...)
+                            if not IsInGamepadPreferredMode() then return end
+                            local link = LinkFromArgs(...)
+                            if not link then return end
+                            gamepadShownType = tooltipType
+                            local okShow, err = pcall(ShowCardFor, GamepadAnchor(GAMEPAD_TOOLTIPS, tooltipType), link)
+                            if not okShow and cardDebug then d("ArabicHelper gamepad card error: " .. tostring(err)) end
+                        end)
+                        if ok then hooked = hooked + 1 end
+                    end
+                end
             end
         end
-        -- نخفي البطاقة بس لما ينمسح نفس الوصف اللي هي جنبه (مو الوصف الثاني)
-        local okClear = pcall(SecurePostHook, GAMEPAD_TOOLTIPS, "ClearTooltip", function(self, tooltipType)
+        -- نركّب على دالة الكلاس (مو الكائن) عشان ما نخرّب ركّبات الأدونات الثانية
+        local okClear = pcall(SecurePostHook, ZO_GamepadTooltip, "ClearTooltip", function(_, tooltipType)
             if IsInGamepadPreferredMode() and tooltipType == gamepadShownType then
                 gamepadShownType = nil
                 HideCard()
             end
         end)
-        hookReport[#hookReport + 1] = "Gamepad=" .. table.concat(hooked, "/") .. " clear=" .. tostring(okClear)
+        hookReport[#hookReport + 1] = "Gamepad=" .. hooked .. " clear=" .. tostring(okClear)
     end
 
     local cardHooked = false
@@ -2114,7 +2241,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
         end
     end
 
-    _G.ArabicHelper_ToggleWindow = function()
+    AH.ToggleWindow = function()
         local isHidden = not myWindow:IsHidden()
         myWindow:SetHidden(isHidden)
         -- لما تنفتح بزر الاختصار نطلّع الماوس عشان تقدر تتحكم بالنافذة

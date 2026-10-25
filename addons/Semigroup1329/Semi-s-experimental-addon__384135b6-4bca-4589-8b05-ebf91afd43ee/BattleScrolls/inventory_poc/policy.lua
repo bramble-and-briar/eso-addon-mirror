@@ -3,8 +3,8 @@ if not SemisPlaygroundCheckAccess() then return end
 BattleScrolls = BattleScrolls or {}
 
 ---@alias InventoryPocKind 'other'|'gear'|'companion'|'glyph'|'treasure'|'junk'|'food'|'poison'|'potion'|'script'|'motif'|'recipe'|'plan'|'collectible'|'fragment'|'container'|'soulGem'|'map'|'survey'|'writ'|'sealedContainer'
----@alias InventoryPocAction 'keep'|'defer'|'sell'|'deconstruct'|'bank'|'learn'|'list'|'destroy'|'open'
----@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'
+---@alias InventoryPocAction 'keep'|'defer'|'sell'|'deconstruct'|'bank'|'learn'|'list'|'destroy'|'open'|'bind'
+---@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'|'collection'
 
 ---@class InventoryPocItem: InventoryPocVariant
 ---@field bag number
@@ -29,6 +29,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field stolen boolean
 ---@field crown boolean
 ---@field vendorUnit number
+---@field prioritySell boolean|nil Native merchant recommendation
 ---@field marketUnit number|nil
 ---@field priceLoading boolean|nil TSC has not finished loading; distinct from a missing quote
 ---@field styleMaterialLink string
@@ -36,17 +37,24 @@ BattleScrolls = BattleScrolls or {}
 ---@field traitMaterialLink string
 ---@field traitMaterialUnit number|nil
 ---@field traitMaterialResolved boolean
+---@field tradeable boolean|nil Native guild-store eligibility for player gear
+---@field hasSet boolean|nil
+---@field setCollected boolean|nil Nil when the gear has no sticker-book entry
+---@field collectionKey string|nil Set ID and slot for a missing collection entry
+---@field improvementMaterialLink string|nil Gold gear's upgrade material
+---@field improvementMaterialUnit number|nil
 ---@field known boolean|nil Knowledge of the current character/account, as applicable
 ---@field crafterKnown boolean|nil Knowledge of the account's arcanist
 ---@field isCrafter boolean
----@field companionJunk boolean
 ---@field companionNeeded boolean|nil Nil until the companion kits have been captured
 ---@field usable boolean
 ---@field learnQuantity number|nil Required pieces per use; unknown fragment requirements stay unset
 ---@field learnProgress number|nil Pieces already used toward a skill-style collectible
 ---@field learnRequired number|nil Total pieces to finish that progress
 ---@field filledSoulGem boolean
----@field lootPotion boolean
+---@field crafted boolean|nil Set for player gear, potions and poisons
+---@field hasOnUseAbility boolean|nil Set for potions and poisons
+---@field alchemyTraitCount number|nil Counted for potions and poisons with no special on-use ability
 
 ---@class InventoryPocDecision
 ---@field action InventoryPocAction
@@ -103,6 +111,20 @@ local function expectedMaterialValue(item)
         value = value + TRAIT_MATERIAL_CHANCE * item.traitMaterialUnit / pieces
     end
     return value
+end
+
+---@param item InventoryPocItem
+---@return number|nil floor A missing recovery quote leaves the sale floor unresolved
+function policy.gearSaleMinimum(item)
+    local materialValue = expectedMaterialValue(item)
+    if materialValue == nil then return nil end
+    if item.quality >= 5 then
+        if not policy.validPrice(item.improvementMaterialUnit) then return nil end
+        -- Reserve one full upgrade material's value for gold gear. This sale
+        -- floor covers its possible return without assuming an extraction rate.
+        materialValue = materialValue + item.improvementMaterialUnit
+    end
+    return math.max(policy.MIN_LISTING, item.vendorUnit, materialValue)
 end
 
 ---@param item InventoryPocItem
@@ -171,6 +193,8 @@ function policy.decide(item)
         if item.kind == 'container' then return decision('open', 'container') end
         return decision('keep', 'crown')
     end
+    if item.kind == 'gear' and item.setCollected == false then return decision('bind', 'collection') end
+    if item.prioritySell then return decision('sell', 'junk') end
     -- The native "Scroll" subtype also contains supplies worth keeping.
     -- This personal sale choice is for the unbound Scrying/Excavation treatise.
     if item.itemId == 227303 then
@@ -180,7 +204,11 @@ function policy.decide(item)
     if item.kind == 'treasure' or item.kind == 'junk' then return decision('sell', 'junk') end
     if item.kind == 'glyph' then return decision('deconstruct', 'glyph') end
     if item.kind == 'food' and item.quality == 1 then return decision('sell', 'junk') end
-    if item.kind == 'potion' and item.lootPotion then return decision('sell', 'junk') end
+    if (item.kind == 'potion' or item.kind == 'poison') and item.quality == 1
+        and item.crafted == false and item.hasOnUseAbility == false
+        and (item.alchemyTraitCount == 1 or item.alchemyTraitCount == 2) then
+        return decision('sell', 'junk')
+    end
     if item.kind == 'script' then
         if item.known == true then return decision('sell', 'junk') end
         return decision('keep', 'knowledge')
@@ -211,12 +239,20 @@ function policy.decide(item)
     if item.kind == 'companion' then
         if item.quality >= 5 then return decision('keep', 'companion') end
         if item.companionNeeded == true then return decision('keep', 'companion') end
-        if item.companionJunk then return decision('sell', 'junk') end
         if item.companionNeeded == nil then return decision('defer', 'companion') end
-        if item.quality <= 2 then return decision('sell', 'junk') end
+        if item.quality <= 1 then return decision('sell', 'junk') end
+        if item.priceLoading then return decision('defer', 'price') end
         return sellDuplicate(item, 'sell')
     end
     if item.kind == 'gear' then
+        if item.tradeable then
+            if item.priceLoading then return decision('defer', 'price') end
+            if policy.validPrice(item.marketUnit) then
+                local minimum = policy.gearSaleMinimum(item)
+                if minimum and math.floor(item.marketUnit) >= minimum then return decision('list', 'sale') end
+                if not minimum and item.marketUnit >= policy.MIN_LISTING then return decision('defer', 'price') end
+            end
+        end
         if item.quality >= 5 then return decision('deconstruct', 'gear') end
         if item.priceLoading then return decision('defer', 'price') end
         local materialValue = expectedMaterialValue(item)
@@ -249,7 +285,16 @@ function policy.withdrawQuantity(item, carried, banked)
         return math.min(item.stack, math.max(0, wanted - carried))
     end
     if action == 'list' or action == 'sell' or action == 'destroy' then return item.stack end
+    if policy.needsMarketPrice(item) then return item.stack end
     return 0
+end
+
+---@param item InventoryPocItem
+---@return boolean
+function policy.needsMarketPrice(item)
+    if item.kind ~= 'companion' and not (item.kind == 'gear' and item.tradeable) then return false end
+    local choice = policy.decide(item)
+    return choice.action == 'defer' and choice.reason == 'price'
 end
 
 ---Positive means deposit, negative means withdraw. Never sells overflow.
@@ -284,13 +329,22 @@ function policy.sameVariant(a, b)
         and a.style == b.style
 end
 
----Use only after a completed trader search found no usable price in either source.
----@param item InventoryPocItem
----@return number|nil
-function policy.fallbackPrice(item)
-    if item.kind ~= 'companion' then return nil end
-    if item.quality == 3 then return 10000 end
-    if item.quality == 4 then return 20000 end
+---Same-set substitutes retain quality, trait, level and equipment family.
+---@param a InventoryPocVariant
+---@param b InventoryPocVariant
+---@return boolean
+function policy.sameSetGearClass(a, b)
+    if not a.setId or a.setId == 0 or a.setId ~= b.setId
+        or a.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION or b.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION
+        or a.quality ~= b.quality or a.trait ~= b.trait or a.level ~= b.level or a.championPoints ~= b.championPoints then
+        return false
+    end
+    if a.weaponType ~= WEAPONTYPE_NONE then return a.weaponType == b.weaponType end
+    if b.weaponType ~= WEAPONTYPE_NONE then return false end
+    if a.equipType == EQUIP_TYPE_RING or a.equipType == EQUIP_TYPE_NECK then
+        return b.equipType == EQUIP_TYPE_RING or b.equipType == EQUIP_TYPE_NECK
+    end
+    return a.armorType ~= ARMORTYPE_NONE and a.armorType == b.armorType
 end
 
 ---@param weaponType number
@@ -318,6 +372,8 @@ function policy.sameCompanionClass(a, b)
         return false
     end
     if b.weaponType ~= WEAPONTYPE_NONE then return false end
-    if a.equipType == EQUIP_TYPE_RING or a.equipType == EQUIP_TYPE_NECK then return a.equipType == b.equipType end
+    if a.equipType == EQUIP_TYPE_RING or a.equipType == EQUIP_TYPE_NECK then
+        return b.equipType == EQUIP_TYPE_RING or b.equipType == EQUIP_TYPE_NECK
+    end
     return a.armorType ~= ARMORTYPE_NONE and a.armorType == b.armorType
 end

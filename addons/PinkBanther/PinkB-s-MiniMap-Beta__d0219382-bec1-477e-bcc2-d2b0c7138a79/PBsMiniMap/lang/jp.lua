@@ -1,5 +1,9 @@
 -- Translation by @snorunt361(ESOUI),@Warashi-JP(github)
 local strings = {
+	SI_PBSMINIMAP_STYLE = "マップの表示スタイル",
+	SI_PBSMINIMAP_STYLE_SQUARE = "四角形",
+	SI_PBSMINIMAP_STYLE_COMPASS = "円形コンパス",
+	SI_PBSMINIMAP_STYLE_TOOLTIP = "四角形、または方角を刻んだ金属フレーム付きの円形マップを選びます。北が上で固定されます。円の直径は幅と高さの小さい方に合わせます。「枠線を表示」で金属フレームを切り替えられます。即時反映され、通常の全画面マップには影響しません。",
 	SI_PBSMINIMAP_PIN_DIAGNOSTIC = "現在位置カーソルの診断",
 	SI_PBSMINIMAP_PIN_DIAGNOSTIC_TOOLTIP = "直前のミニマップのカーソル状態をチャットに出力します。カーソルが消えたら、全画面マップを開かずに設定へ進み、このボタンを押してください。",
 	SI_PBSMINIMAP_PIN_DIAGNOSTIC_EMPTY = "まだミニマップの記録がありません。ゲーム画面に数秒戻ってから、設定を開き直してください。",

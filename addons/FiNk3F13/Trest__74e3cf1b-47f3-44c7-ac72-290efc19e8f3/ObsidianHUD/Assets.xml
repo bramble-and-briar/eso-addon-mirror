@@ -1,0 +1,22 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="ObsidianHUDAssets" hidden="true">
+            <Controls>
+                <Texture name="$(parent)Classes" textureFile="ObsidianHUD/art/class_emblems.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)FantasyFrame" textureFile="ObsidianHUD/art/fantasy_frame.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)FantasyFill" textureFile="ObsidianHUD/art/fantasy_fill.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)FantasyDiamond" textureFile="ObsidianHUD/art/fantasy_diamond.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)FantasyRound" textureFile="ObsidianHUD/art/fantasy_round.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)FantasySlot" textureFile="ObsidianHUD/art/fantasy_slot.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)CurveFrame" textureFile="ObsidianHUD/art/fantasy_curve_frame.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)CurveFill" textureFile="ObsidianHUD/art/fantasy_curve_fill.dds"><Dimensions x="1" y="1" /></Texture>
+                <Texture name="$(parent)Solid" textureFile="ObsidianHUD/art/obsidian_solid.dds">
+                    <Dimensions x="1" y="1" />
+                </Texture>
+                <Texture name="$(parent)Fallback" textureFile="esoui/art/miscellaneous/progressbar_genericfill.dds">
+                    <Dimensions x="1" y="1" />
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

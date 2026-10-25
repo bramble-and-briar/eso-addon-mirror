@@ -103,6 +103,14 @@ function companions.reset()
     companions.kept, companions.complete, companions.bank = {}, false, {}
 end
 
+---@param item InventoryPocItem
+---@return boolean|nil
+function companions.isNeeded(item)
+    if not key(item) then return false end
+    if not companions.complete then return nil end
+    return companions.kept[item.uniqueId] == true
+end
+
 ---@param backpack InventoryPocItem[]
 function companions.refresh(backpack)
     if not poc.saved then return end
@@ -120,8 +128,7 @@ function companions.refresh(backpack)
     companions.kept, companions.complete = companions.allocate(poc.saved.companions, loose)
     for _, item in ipairs(backpack) do
         if item.kind == 'companion' then
-            item.companionNeeded = companions.complete and companions.kept[item.uniqueId] == true
-            if not companions.complete then item.companionNeeded = nil end
+            item.companionNeeded = companions.isNeeded(item)
         end
     end
 end

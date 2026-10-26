@@ -1,0 +1,27 @@
+FurnishThemAllData_FPacks_ShadowAndStone = {
+    name = "Shadow and Stone",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Murkmire Brazier, Bowl" },
+            { name = "Murkmire Candle, Bone Squat" },
+            { name = "Murkmire Candle, Standing Shell" },
+            { name = "Murkmire Candlepost, Driftwood" },
+            { name = "Murkmire Candlepost, Timber" },
+            { name = "Murkmire Dais, Engraved" },
+            { name = "Murkmire Throne, Engraved" },
+            { name = "Murkmire Totem, Beacon" },
+            { name = "Plant, Dendritic Hist Bulb" },
+            { name = "Plant, Hist Bulb" },
+            { name = "Plant, Marsh Aloe" },
+            { name = "Plant, Marsh Aloe Pod" },
+            { name = "Shrine, Sithis Figure Anointed" },
+            { name = "Shrine, Sithis Looming Anointed" },
+            { name = "Sithis, the Hungering Dark" },
+            { name = "Stele, Hist Cultivation" },
+            { name = "Stele, Hist Guardians" },
+            { name = "Target Voriplasm" },
+            { name = "The Way of Shadow" },
+        },
+    },
+}

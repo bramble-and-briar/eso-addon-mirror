@@ -1,0 +1,22 @@
+Bind and Invite
+Author: @TheGreyWolf98
+Version: 1.0.2
+
+Collect missing set pieces and manage keyword whisper invites from one controller menu.
+
+• Preview backpack gear, skip pieces and confirm before binding.
+• Optional automatic binding for newly received uncollected set pieces.
+• Optional whisper invites with a custom keyword and 4- or 12-player limit.
+• Larger Atlas-style menu, session log and socials page with Ko-fi QR.
+
+/bi — menu
+/bind — binding preview
+/invite — invite settings
+/invite @name — normal group invitation
+/bi keyword yourword — custom whisper keyword
+
+Both automatic features start OFF. Binding ends item trading. Xbox messages do not trigger invites; use ESO whispers.
+
+Support: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

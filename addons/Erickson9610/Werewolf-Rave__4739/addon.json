@@ -15,10 +15,10 @@
   "content_id": "esoui:4739",
   "deleted": false,
   "directories": [
-    "WerewolfRave-1.3.8"
+    "WerewolfRave"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4739/",
-  "fingerprint": "7b61eeba9213538e6ea039d6b908a6eca93575fe234e66d797d4ab59a13b9cb7",
+  "fingerprint": "bd6d636c87f20cd9e8a67878dc0c866ed5484b00ee8dfc41ddfd9a3b2bc6874b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16863.png",
     "https://cdn-eso.mmoui.com/preview/pvw16862.png",
@@ -31,11 +31,11 @@
   "source_id": "4739",
   "source_url": "https://www.esoui.com/downloads/info4739-WerewolfRave.html",
   "stats": {
-    "downloads": 174,
+    "downloads": 188,
     "favorites": 0,
-    "monthly_downloads": 70
+    "monthly_downloads": 81
   },
   "title": "Werewolf Rave",
-  "updated_at": 1792723748000,
-  "version": "1.3.8"
+  "updated_at": 1792916018000,
+  "version": "1.3.9"
 }

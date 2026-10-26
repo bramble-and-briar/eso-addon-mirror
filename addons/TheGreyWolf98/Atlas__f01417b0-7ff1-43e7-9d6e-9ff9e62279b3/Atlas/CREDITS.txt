@@ -46,3 +46,13 @@ This historical snapshot is separate from the current maintainer's database.
 0.1.5 recent-zone supplement: 30 treasure digs, 18 survey sites and 51 interior boss coordinate facts cross-checked against MapPins (Hoft, art1ink and community contributors), covering Galen, Necrom, Gold Road and Solstice where recorded. No MapPins runtime code or custom assets are included. Names are resolved from ESO item/achievement IDs.
 
 Recent-zone Shalidor supplement: 76 coordinate facts on 22 map tiles, cross-checked against MapPins (art1ink and contributors); adapted to Atlas coordinate/book ID records.
+
+1.0.7 chest and Thieves Guild trove coordinate facts cross-checked against
+MapPins, Hoft, art1ink and community contributors:
+https://github.com/art1ink/MapPins/blob/main/MapPins.lua
+Retrieved 25 October 2026. Only numeric map-tile coordinate facts are retained;
+no MapPins executable code, localization files or artwork is bundled. Near
+repeated coordinates consolidated; records split into chest and trove layers.
+Chest and trove glyphs are original geometric Atlas artwork.
+Worker scheduling, shared POI cache and personal discovery recording are
+implemented independently for Atlas. Prior third-party notices remain intact.

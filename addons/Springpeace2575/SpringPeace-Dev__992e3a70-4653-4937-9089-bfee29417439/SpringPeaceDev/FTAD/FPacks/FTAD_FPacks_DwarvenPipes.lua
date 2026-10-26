@@ -1,0 +1,26 @@
+FurnishThemAllData_FPacks_DwarvenPipes = {
+    name = "Dwarven Pipes",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "A Guide to Dwemer Mega-Structures" },
+            { name = "Dwarven Boiler, Central" },
+            { name = "Dwarven Gear Assembly, Grinding" },
+            { name = "Dwarven Lamppost, Powered" },
+            { name = "Dwarven Pipe Cap, Bolted" },
+            { name = "Dwarven Pipe, Corner" },
+            { name = "Dwarven Pipe, Elbow" },
+            { name = "Dwarven Pipe, Full Column" },
+            { name = "Dwarven Pipe, Half Column" },
+            { name = "Dwarven Pipe, Quarter Column" },
+            { name = "Dwarven Pipeline Cap, Sealed" },
+            { name = "Dwarven Pipeline, Column" },
+            { name = "Dwarven Pipeline, Elbow" },
+            { name = "Dwarven Pipeline, Fan" },
+            { name = "Dwarven Pipeline, Full Column" },
+            { name = "Dwarven Pipeline, Junction" },
+            { name = "Dwarven Piston Cylinder" },
+            { name = "Dwarven Sconce, Powered" },
+        },
+    },
+}

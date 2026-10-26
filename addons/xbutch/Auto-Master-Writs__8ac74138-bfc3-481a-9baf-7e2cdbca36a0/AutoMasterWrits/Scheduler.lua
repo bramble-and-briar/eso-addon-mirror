@@ -120,8 +120,11 @@ function AMW:StopAll(message)
     self.generation = (self.generation or 0) + 1
     self:StopScheduler()
     self.delivery, self.extracting, self.bankOperation = nil, nil, nil
+    self.extractionAcceptGuard=false
     self.bankArmed, self.sessionActive = false, false
     self:ReleaseDeliveryEvents()
+    EVENT_MANAGER:UnregisterForEvent(self.name.."ExtractionOffer",EVENT_QUEST_OFFERED)
+    EVENT_MANAGER:UnregisterForEvent(self.name.."ExtractionInventory",EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     self:ReleaseHooks()
     EVENT_MANAGER:UnregisterForEvent(self.name .. "Bank", EVENT_OPEN_BANK)
     EVENT_MANAGER:UnregisterForEvent(self.name .. "BankClose", EVENT_CLOSE_BANK)

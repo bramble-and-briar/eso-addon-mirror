@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/TheGreyWolf98/TGW-Bind-Invite__23c652bc-541e-443a-8f1f-e2f7c0bfef13",
+  "archive_path": "addons/TheGreyWolf98/Bind-Invite__23c652bc-541e-443a-8f1f-e2f7c0bfef13",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "TheGreyWolf98",
   "canonical_id": "bethesda:23c652bc-541e-443a-8f1f-e2f7c0bfef13",
   "content_id": "23c652bc-541e-443a-8f1f-e2f7c0bfef13",
   "deleted": false,
-  "fingerprint": "eac77d9894be801324289412bdc60d523fe7a6ac0bd6495e45b2f4b26b15dc1f",
+  "fingerprint": "37f007b993f4c287764942186e97d3ac7346b4ee8cc191893ae2e6a882366114",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "23c652bc-541e-443a-8f1f-e2f7c0bfef13",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/23c652bc-541e-443a-8f1f-e2f7c0bfef13",
-  "title": "TGW Bind & Invite"
+  "title": "Bind & Invite"
 }

@@ -1,7 +1,7 @@
 -- Combat Recap: bounded, API-independent encounter aggregation.
 CombatRecap = CombatRecap or {}
 local C = CombatRecap
-C.VERSION = "1.0.1"
+C.VERSION = "1.0.2"
 C.LIMITS = { history = 20, abilities = 256, targets = 64, effects = 128 }
 
 local function entry(map, key, name, count, limit, fight)

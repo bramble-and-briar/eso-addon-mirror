@@ -80,15 +80,18 @@ end
 
 -- Автоприем готовности при нахождении данжа (Activity Finder)
 function NC.OnActivityFinderStatusUpdate(eventCode, status)
-    if not NC.savedVars.autoAcceptDungeon then return end
-
     if status == ACTIVITY_FINDER_STATUS_READY_CHECK then
-        zo_callLater(function()
-            if GetActivityFinderStatus() == ACTIVITY_FINDER_STATUS_READY_CHECK then
-                AcceptLFGReadyCheckNotification()
-                --d(GetString(SI_NC_DUNGEON_FOUND))
-            end
-        end, 500)
+        NC.savedVars.isLfgJump = true
+        if NC.savedVars and NC.savedVars.autoAcceptDungeon then
+            zo_callLater(function()
+                if GetActivityFinderStatus() == ACTIVITY_FINDER_STATUS_READY_CHECK then
+                    AcceptLFGReadyCheckNotification()
+                    --d(GetString(SI_NC_DUNGEON_FOUND))
+                end
+            end, 500)
+        end
+    elseif status == ACTIVITY_FINDER_STATUS_NONE or status == ACTIVITY_FINDER_STATUS_QUEUED then
+        NC.savedVars.isLfgJump = false
     end
 end
 
@@ -3214,12 +3217,8 @@ end
 function NC.GetCurrentSpeedrunTarget()
     local zoneIndex = GetUnitZoneIndex("player")
     local zoneId = GetZoneId(zoneIndex)
-    if zoneId and NC.SpeedrunParTimes[zoneId] then
+    if zoneId and NC.SpeedrunParTimes and NC.SpeedrunParTimes[zoneId] then
         return NC.SpeedrunParTimes[zoneId]
-    end
-    -- Для обычных 4-man данжей стандартное время спидрана — 20 минут (1200 сек)
-    if IsUnitInDungeon("player") then
-        return 1200
     end
     return nil
 end
@@ -5211,9 +5210,10 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         local sv = NC.savedVars
         if sv then
             local currentZoneId = GetZoneId(GetUnitZoneIndex("player"))
-            if not IsUnitInDungeon("player") or (sv.dungeonStartZoneId and sv.dungeonStartZoneId > 0 and sv.dungeonStartZoneId ~= currentZoneId) then
-                sv.dungeonStartTimeStamp = 0
-                sv.dungeonStartZoneId = 0
+            if sv.isLfgJump or not IsUnitInDungeon("player") or (sv.dungeonStartZoneId and sv.dungeonStartZoneId > 0 and sv.dungeonStartZoneId ~= currentZoneId) then
+            sv.dungeonStartTimeStamp = 0
+            sv.dungeonStartZoneId = 0
+            sv.isLfgJump = false
             end
         end
         if NC.UpdateSpeedrunHud then NC.UpdateSpeedrunHud() end

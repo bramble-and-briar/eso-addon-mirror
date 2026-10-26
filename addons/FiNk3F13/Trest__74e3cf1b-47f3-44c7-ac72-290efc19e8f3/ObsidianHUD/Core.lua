@@ -1,11 +1,32 @@
-ObsidianHUD = {name="ObsidianHUD", version="0.4.0"}
+ObsidianHUD = {name="ObsidianHUD", version="0.7.2"}
 local O=ObsidianHUD
 O.defaults={enabled=true,hideOriginals=true,skillFrames=true,backBar=true,
-    width=480,scale=1,x=0,y=-215,opacity=0.94,numbers=true,roundBadge=false,customClassIcons=true,
+    width=480,scale=1,x=0,y=-215,opacity=0.94,numbers=true,roundBadge=true,customClassIcons=true,
     health={0.78,0.10,0.17},magicka={0.12,0.48,0.94},stamina={0.21,0.76,0.39},
     accent={1,1,1}}
 O.defaults.frontResourceOrder={}
 O.defaults.hudPositions={}
+O.defaults.quickslotFrame=true
+O.defaults.skillHudView="standard"
+O.skillHudViews={
+    {name="Standard",data="standard"},
+    {name="Nur laufende Skills",data="running"},
+    {name="Beide Reihen gleich gross",data="equal"},
+    {name="Frontbar oben, Backbar unten",data="fixed"},
+    {name="Doppel-Ultimate mit Aufladerahmen",data="fixed_dual"},
+}
+O.defaults.timerSize,O.defaults.stackSize=24,18
+O.defaults.timerFont,O.defaults.stackFont="bold","bold"
+O.defaults.timerStyle,O.defaults.stackStyle="soft-shadow-thick","soft-shadow-thick"
+O.defaults.timerColor,O.defaults.stackColor={1,1,1},{1,0.85,0.25}
+O.textRevision=0
+function O.ApplyFixedFeatures()
+    -- These are now permanent parts of the addon. Migrate older saved false
+    -- values as well, so removing a checkbox cannot leave its feature disabled.
+    for _,key in ipairs({"enabled","hideOriginals","skillFrames","quickslotFrame","roundBadge","customClassIcons"}) do
+        O.vars[key]=true
+    end
+end
 O.resources={
     {key="health",name="LEBEN",power=COMBAT_MECHANIC_FLAGS_HEALTH},
     {key="magicka",name="MAGICKA",power=COMBAT_MECHANIC_FLAGS_MAGICKA},

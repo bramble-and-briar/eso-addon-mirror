@@ -1,0 +1,11 @@
+## Title: Bind and Invite
+## Author: @TheGreyWolf98
+## Version: 1.0.2
+## AddOnVersion: 6
+## APIVersion: 101050 101051
+## SavedVariables: TGWBindAndInviteSavedVariables
+## Description: Collection binding and keyword whisper invites. /bi opens settings; /bind opens preview; /invite opens invite settings.
+Core.lua
+Support.lua
+UI.lua
+Main.lua

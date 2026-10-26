@@ -22,9 +22,7 @@
         </Control>
         <TopLevelControl name="BattleScrollsInventoryPocLog" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true">
             <Controls>
-                <Control name="$(parent)Contents" hidden="true">
-                    <Anchor point="TOPLEFT" relativeTo="GuiRoot" offsetX="ZO_GAMEPAD_QUADRANT_2_LEFT_OFFSET" offsetY="ZO_GAMEPAD_QUADRANT_TOP_OFFSET"/>
-                    <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" offsetX="ZO_GAMEPAD_QUADRANT_3_LEFT_OFFSET - ZO_GAMEPAD_ALLEY_WIDTH" offsetY="ZO_GAMEPAD_QUADRANT_BOTTOM_OFFSET"/>
+                <Control name="$(parent)Contents" inherits="ZO_GamepadGrid_NavQuadrant_2_Anchors" hidden="true">
                     <Controls>
                         <Control name="$(parent)Bg" inherits="ZO_SharedGamepadNavQuadrant_2_Background_Template"/>
                         <Control name="$(parent)Content" inherits="ZO_GamepadGrid_NavQuadrant_ContainerAnchors" tier="MEDIUM">

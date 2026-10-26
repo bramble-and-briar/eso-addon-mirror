@@ -1,5 +1,5 @@
 -- Loadout: reads your current build only. No equipment or settings are changed.
-Loadout = { name = "Loadout", version = "1.0.0" }
+Loadout = { name = "Loadout", version = "1.0.1" }
 local L = Loadout
 local function packed(...) return { n = select("#", ...), ... } end
 

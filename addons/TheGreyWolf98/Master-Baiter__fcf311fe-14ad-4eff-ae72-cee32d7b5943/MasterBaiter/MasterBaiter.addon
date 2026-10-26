@@ -1,11 +1,12 @@
 ## Title: MasterBaiter
-## Author: TheGreyWolf98
-## Version: 1.0.1
-## AddOnVersion: 13
+## Author: @TheGreyWolf98
+## Version: 1.0.2
+## AddOnVersion: 14
 ## APIVersion: 101050 101051
 ## SavedVariables: MasterBaiterSavedVariables
-## Description: Fishing bait, bite alerts, rare fish and map pins. Type /mb for settings.
+## Description: Choose suitable bait, get bite alerts and track rare fish with a HUD and fishing map pins. Open /mb.
 
+Socials.lua
 FishingData.lua
 Collection.lua
 MasterBaiter.lua

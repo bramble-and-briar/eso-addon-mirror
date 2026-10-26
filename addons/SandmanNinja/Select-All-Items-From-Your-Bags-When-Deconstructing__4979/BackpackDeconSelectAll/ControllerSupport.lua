@@ -1,11 +1,11 @@
 -- Native controller Options checkbox. Uses ESO's layout and input navigation.
-local NAME = "BackpackDeconSelectAllController"
+local A = BackpackDeconSelectAll
 local WARNING = "Select All?  WARNING! THIS WILL SELECT EVERYTHING THAT IS NOT LOCKED!"
 local panels = {}
 local changing = false
 local hooked = false
 
-local function Reset()
+function A.ResetController()
     for _, state in pairs(panels) do state.filter.checked = false end
 end
 
@@ -15,7 +15,7 @@ local function Attach(panel, universal, scene)
         universal = universal,
         scene = scene,
         filter = {
-            filterName = "Select All?",
+            filterName = "Select All?  (v" .. A.version .. ")",
             filterTooltip = WARNING .. "\n\nSelects eligible unlocked backpack items when you close Options. Untick to clear selections. Banked and equipped items are excluded. You still confirm deconstruction yourself.",
             checked = false,
         },
@@ -34,7 +34,7 @@ local function Attach(panel, universal, scene)
     end
 end
 
-local function Initialize()
+function A.InitializeController()
     Attach(SMITHING_GAMEPAD and SMITHING_GAMEPAD.deconstructionPanel, false, GAMEPAD_SMITHING_DECONSTRUCT_SCENE)
     Attach(UNIVERSAL_DECONSTRUCTION_GAMEPAD and UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel,
         true, UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE)
@@ -63,7 +63,7 @@ local function Initialize()
                     if requested ~= initiallyChecked then
                         changing = true
                         if requested then
-                            BackpackDeconSelectAll.Select(panel, state.universal, function(checked)
+                            A.Select(panel, state.universal, function(checked)
                                 state.filter.checked = checked
                             end)
                         else
@@ -71,6 +71,10 @@ local function Initialize()
                             state.filter.checked = false
                         end
                         changing = false
+                    else
+                        -- SaveFilters refreshes the panel even without a user change.
+                        -- Restore the tick only if every eligible item is still selected.
+                        state.filter.checked = requested and A.IsSelectionComplete(panel, state.universal)
                     end
                 end
                 break
@@ -81,14 +85,4 @@ local function Initialize()
     end)
 end
 
-EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addonName)
-    if addonName ~= "BackpackDeconSelectAll" then return end
-    EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
-    Initialize()
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, Initialize)
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_CRAFTING_STATION_INTERACT, function() Initialize() Reset() end)
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_END_CRAFTING_STATION_INTERACT, Reset)
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, Reset)
-    CALLBACK_MANAGER:RegisterCallback("BackpackDeconSelectAllReset", Reset)
-    CALLBACK_MANAGER:RegisterCallback("CraftingAnimationsStarted", Reset)
-end)
+-- All event registration lives in the main file's single startup handler.

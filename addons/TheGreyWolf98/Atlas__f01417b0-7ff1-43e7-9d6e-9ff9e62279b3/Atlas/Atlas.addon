@@ -1,14 +1,17 @@
 ## Title: Atlas
 ## Author: @TheGreyWolf98
-## Version: 1.0.2
-## AddOnVersion: 10002
+## Version: 1.0.7
+## AddOnVersion: 10007
 ## APIVersion: 101051
 ## SavedVariables: AtlasSaved
-## Description: Controller-friendly survey, treasure, lorebook, boss and discovery map layers. Open with /atlas.
+## Description: Faster map layers with treasure chests, Thieves Guild troves, digs, surveys, lorebooks and bosses. Open with /atlas.
 
 AtlasData.lua
 AtlasExpansion.lua
 AtlasCoverage.lua
+AtlasContainersData.lua
 Atlas.lua
+AtlasContainers.lua
 AtlasUI.lua
+AtlasSupport.lua
 Bindings.xml

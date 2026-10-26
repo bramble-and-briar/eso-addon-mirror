@@ -2,8 +2,8 @@ if not SemisPlaygroundCheckAccess() then return end
 
 BattleScrolls = BattleScrolls or {}
 
----@alias InventoryPocKind 'other'|'gear'|'companion'|'glyph'|'treasure'|'junk'|'food'|'poison'|'potion'|'script'|'motif'|'recipe'|'plan'|'collectible'|'fragment'|'container'|'soulGem'|'map'|'survey'|'writ'|'sealedContainer'
----@alias InventoryPocAction 'keep'|'defer'|'sell'|'deconstruct'|'bank'|'learn'|'list'|'destroy'|'open'|'bind'
+---@alias InventoryPocKind 'other'|'gear'|'companion'|'glyph'|'treasure'|'junk'|'food'|'poison'|'potion'|'script'|'motif'|'recipe'|'plan'|'collectible'|'fragment'|'container'|'soulGem'|'map'|'survey'|'writ'|'sealedContainer'|'sealedLead'
+---@alias InventoryPocAction 'keep'|'defer'|'sell'|'deconstruct'|'bank'|'learn'|'list'|'destroy'|'open'|'bind'|'equip'
 ---@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'|'collection'
 
 ---@class InventoryPocItem: InventoryPocVariant
@@ -15,6 +15,9 @@ BattleScrolls = BattleScrolls or {}
 ---@field name string
 ---@field searchName string
 ---@field stack number
+---@field keepQuantity number|nil Copies reserved for a missing antiquity fragment
+---@field antiquityId number|nil Sealed lead's target
+---@field openAfter number|nil Next daily reset for a gated reward coffer
 ---@field maxStack number
 ---@field kind InventoryPocKind
 ---@field quality number
@@ -26,6 +29,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field level number
 ---@field championPoints number
 ---@field reserved boolean
+---@field locked boolean|nil Player lock, including equipped companion slots
 ---@field stolen boolean
 ---@field crown boolean
 ---@field vendorUnit number
@@ -37,7 +41,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field traitMaterialLink string
 ---@field traitMaterialUnit number|nil
 ---@field traitMaterialResolved boolean
----@field tradeable boolean|nil Native guild-store eligibility for player gear
+---@field tradeable boolean|nil Native guild-store eligibility for player and companion gear
 ---@field hasSet boolean|nil
 ---@field setCollected boolean|nil Nil when the gear has no sticker-book entry
 ---@field collectionKey string|nil Set ID and slot for a missing collection entry
@@ -54,7 +58,8 @@ BattleScrolls = BattleScrolls or {}
 ---@field filledSoulGem boolean
 ---@field crafted boolean|nil Set for player gear, potions and poisons
 ---@field hasOnUseAbility boolean|nil Set for potions and poisons
----@field alchemyTraitCount number|nil Counted for potions and poisons with no special on-use ability
+---@field onUseAbilityId number|nil Native fixed ability for potions and poisons
+---@field alchemyTraitCount number|nil Counted across all native alchemy trait slots
 
 ---@class InventoryPocDecision
 ---@field action InventoryPocAction
@@ -131,7 +136,7 @@ end
 ---@return number quantity Zero when no suitable listing reaches the minimum
 function policy.listingQuantity(item)
     local unit = item.marketUnit
-    if not policy.validPrice(unit) or item.stack < 1 then return 0 end
+    if not policy.validPrice(unit) or policy.disposalQuantity(item) < 1 then return 0 end
     -- Identical pieces are useful in multiples only when we know the quantity
     -- that makes one collectible. Other learnables and equipment sell singly.
     local complete = item.kind == 'fragment' and (item.learnRequired or item.learnQuantity)
@@ -146,6 +151,12 @@ function policy.listingQuantity(item)
     if complete >= minimum and complete <= item.stack and canLeave(complete) then return complete end
     if canLeave(minimum) then return minimum end
     return item.stack
+end
+
+---@param item InventoryPocItem
+---@return number
+function policy.disposalQuantity(item)
+    return math.max(0, item.stack - (item.keepQuantity or 0))
 end
 
 ---Only a completed search may supply lowestUnit. Companion searches use the
@@ -185,6 +196,12 @@ end
 function policy.decide(item)
     if item.reserved then return decision('keep', 'reserved') end
     if item.stolen then return decision('keep', 'stolen') end
+    if item.kind == 'sealedLead' then
+        if policy.disposalQuantity(item) == 0 then return decision('bank', 'knowledge') end
+        if item.priceLoading then return decision('defer', 'price') end
+        return decision(policy.listingQuantity(item) > 0 and 'list' or 'sell', 'duplicate')
+    end
+    if item.kind == 'container' and item.openAfter then return decision('keep', 'container') end
     if item.kind == 'map' or item.kind == 'survey' or item.kind == 'writ' or item.kind == 'sealedContainer' then
         return decision('bank', 'supplies')
     end
@@ -204,11 +221,9 @@ function policy.decide(item)
     if item.kind == 'treasure' or item.kind == 'junk' then return decision('sell', 'junk') end
     if item.kind == 'glyph' then return decision('deconstruct', 'glyph') end
     if item.kind == 'food' and item.quality == 1 then return decision('sell', 'junk') end
-    if (item.kind == 'potion' or item.kind == 'poison') and item.quality == 1
-        and item.crafted == false and item.hasOnUseAbility == false
-        and (item.alchemyTraitCount == 1 or item.alchemyTraitCount == 2) then
-        return decision('sell', 'junk')
-    end
+    if item.kind == 'poison' and item.quality == 1 and item.crafted == false then return decision('sell', 'junk') end
+    if item.kind == 'potion' and item.quality == 1 and item.crafted == false and item.hasOnUseAbility == false
+        and (item.alchemyTraitCount == 1 or item.alchemyTraitCount == 2) then return decision('sell', 'junk') end
     if item.kind == 'script' then
         if item.known == true then return decision('sell', 'junk') end
         return decision('keep', 'knowledge')
@@ -241,6 +256,7 @@ function policy.decide(item)
         if item.companionNeeded == true then return decision('keep', 'companion') end
         if item.companionNeeded == nil then return decision('defer', 'companion') end
         if item.quality <= 1 then return decision('sell', 'junk') end
+        if item.tradeable == false then return decision('sell', 'duplicate') end
         if item.priceLoading then return decision('defer', 'price') end
         return sellDuplicate(item, 'sell')
     end
@@ -284,7 +300,7 @@ function policy.withdrawQuantity(item, carried, banked)
         local wanted = item.learnRequired and item.learnProgress and item.learnRequired - item.learnProgress or item.learnQuantity or 1
         return math.min(item.stack, math.max(0, wanted - carried))
     end
-    if action == 'list' or action == 'sell' or action == 'destroy' then return item.stack end
+    if action == 'list' or action == 'sell' or action == 'destroy' then return policy.disposalQuantity(item) end
     if policy.needsMarketPrice(item) then return item.stack end
     return 0
 end

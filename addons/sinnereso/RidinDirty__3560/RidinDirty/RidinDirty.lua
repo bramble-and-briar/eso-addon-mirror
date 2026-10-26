@@ -1,27 +1,26 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.10.10",
+	version = "2026.10.25",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
 	craftTable = {},
 }
-local RD = RidinDirty
-local rdLogo = "|c6666FF[RD]|r "
-local goldIcon = " |t18:18:/esoui/art/currency/currency_gold.dds|t"
-local apIcon = " |t18:18:/esoui/art/currency/alliancepoints.dds|t"
-local telvarIcon = " |t18:18:/esoui/art/currency/currency_telvar.dds|t"
-local voucherIcon = " |t18:18:/esoui/art/currency/currency_writvoucher.dds|t"
-local veterancyIcon = " |t18:18:/esoui/art/notifications/notificationicon_veterancyrankrewards.dds|t"
-local hasPassenger = false
-local passengerName = ""
+--local RD = RidinDirty
+local RD_LOGO = "|c6666FF[RD]|r "
+local GOLD_ICON = " |t18:18:/esoui/art/currency/currency_gold.dds|t"
+local AP_ICON = " |t18:18:/esoui/art/currency/alliancepoints.dds|t"
+local TELVAR_ICON = " |t18:18:/esoui/art/currency/currency_telvar.dds|t"
+local VOUCHER_ICON = " |t18:18:/esoui/art/currency/currency_writvoucher.dds|t"
+local VETERANCY_ICON = " |t18:18:/esoui/art/notifications/notificationicon_veterancyrankrewards.dds|t"
+local TP_PLAYER = nil
+local TP_HOUSE = nil
+local HAS_PASSENGER = false
+local PASSENGER_NAME = ""
 local chatMods = false
 local traderMods = false
 local searchDelay = 300
-local oldGuildLabel = ""
-local playerSearch = nil
-local houseSearch = nil
 local chatStamp = nil
 local avpData = {
 	allianceGained = 0,
@@ -107,7 +106,7 @@ local function GetPassengerName()
 		if mountedState == MOUNTED_STATE_MOUNT_PASSENGER and DistanceToUnit(playerID) < 0.1 then
 			if not ZO_ShouldPreferUserId() then displayNamePref = charName else displayNamePref = displayName end
 			displayNamePref = zo_strformat("<<1>>", displayNamePref)--<< Strip genders
-			passengerName = displayNamePref
+			PASSENGER_NAME = displayNamePref
 			return displayNamePref
 		end
 	end
@@ -117,12 +116,12 @@ end
 local function PassengerStateChange(eventCode, isMounted)
 	local mountedState, hasEnabledGroupMount, hasFreePassengerSlot = GetTargetMountedStateInfo(GetUnitDisplayName("player"))
 	if mountedState ~= MOUNTED_STATE_MOUNT_RIDER or not hasEnabledGroupMount then
-		hasPassenger = false
+		HAS_PASSENGER = false
 		return
-	elseif mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount and hasFreePassengerSlot and hasPassenger then
-		hasPassenger = false CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_SMALL_TEXT, "New_Mail", ("|cC99912" .. tostring(passengerName) .. " has dismounted|r"), nil, nil, nil, nil, nil, 5000, nil)
-	elseif mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount and not hasFreePassengerSlot and not hasPassenger then
-		hasPassenger = true CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_SMALL_TEXT, "New_Mail", ("|cC99912" .. tostring(GetPassengerName()) .. " is RidinDirty|r"), nil, nil, nil, nil, nil, 5000, nil)
+	elseif mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount and hasFreePassengerSlot and HAS_PASSENGER then
+		HAS_PASSENGER = false CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_SMALL_TEXT, "New_Mail", ("|cC99912" .. tostring(PASSENGER_NAME) .. " has dismounted|r"), nil, nil, nil, nil, nil, 5000, nil)
+	elseif mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount and not hasFreePassengerSlot and not HAS_PASSENGER then
+		HAS_PASSENGER = true CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_SMALL_TEXT, "New_Mail", ("|cC99912" .. tostring(GetPassengerName()) .. " is RidinDirty|r"), nil, nil, nil, nil, nil, 5000, nil)
 	end
 	if mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount then zo_callLater(function() PassengerStateChange() end, 1000) end
 end
@@ -480,9 +479,6 @@ local function pvpAddonFilter(addon)
 	"Zgoo",
 	"TextureIt",
 	"SoundBoard",
-	"HarvestMap",
-	"LibMainMenu-2.0",
-	"NodeDetection",
 	}
 	for _, name in ipairs(addons) do
 		if name == addon then return true end
@@ -497,11 +493,7 @@ local function PvPAddonSave()
 	RidinDirty.addonMemory["version"] = 1
 	for addonIndex = 1, numAddOns do
 		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-		if GetUnitDisplayName("player") == RidinDirty.author then
-			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
-		else
-			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) then RidinDirty.addonMemory[addonIndex] = addonName end
-		end
+		if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
 	end
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Performance mode addons saved."))
 end
@@ -991,7 +983,7 @@ local function RDInitializeControls()
     },
 	{
 		type = "description",
-		text = ("/tp home OR partialoverworldzonename\n/tp exact@name partialhousename\n/rdlink = group trade links for unneeded bop tradeable or set pieces\n/rdfc = time left to use forward camp in cyrodiil\n/rdpvp = pvp performance mode toggle for saved addons"),
+		text = ("/tp home OR partialzonename\n/tp home partialhousename\n/tp exact@name partialhousename\n/rdlink = group trade links for unneeded bop tradeable or set pieces\n/rdfc = time left to use forward camp in cyrodiil\n/rdpvp = pvp performance mode toggle for saved addons"),
 	},
 	{
 		type = "button",
@@ -1255,7 +1247,7 @@ end
 
 function RidinDirty.SavePlayer(displayName)
 	RidinDirty.savedVariables.savedPlayer = displayName
-	df(rdLogo .. "Saving: " .. displayName)
+	df(RD_LOGO .. "Saving: " .. displayName)
 	RidinDirty.UpdateSettingsSavedPlayer(displayName)
 end
 
@@ -1316,13 +1308,9 @@ function RidinDirty.TravelToHome()
 	else
 		if IsMounted() then CallSecureProtected("ToggleMount") end
 		if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-			df(rdLogo .. "|cFF3399Headin To The LOOOVE SHACK BAEEEBY!!!|r")
+			df(RD_LOGO .. "|cFF3399Headin To The LOOOVE SHACK BAEEEBY!!!|r")
 		else
-			if travelOutside then
-				df(rdLogo .. "Traveling to " .. tostring(GetCollectibleNickname(GetCollectibleIdForHouse(GetHousingPrimaryHouse()))) .. " (Outside)")
-			else
-				df(rdLogo .. "Traveling to " .. tostring(GetCollectibleNickname(GetCollectibleIdForHouse(GetHousingPrimaryHouse()))) .. " (Inside)")
-			end
+			df(RD_LOGO .. "Traveling to " .. tostring(GetCollectibleNickname(GetCollectibleIdForHouse(GetHousingPrimaryHouse()))))
 		end
 		RequestJumpToHouse(GetHousingPrimaryHouse(), travelOutside)
 		return
@@ -1334,7 +1322,7 @@ function RidinDirty.TeleportHomeQueueOn()
 	EVENT_MANAGER:RegisterForEvent("RDTeleportDeath", EVENT_UNIT_DEATH_STATE_CHANGED, RidinDirty.TeleportDeathState)
 	EVENT_MANAGER:AddFilterForEvent("RDTeleportDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "player")
 	PlaySound("GuildRoster_Added")
-	RidinDirty.HourGlass.label:SetText (rdLogo .. "Travel Home Combat Queued")
+	RidinDirty.HourGlass.label:SetText (RD_LOGO .. "Travel Home Combat Queued")
 	RidinDirty.HourGlass:SetAlpha(1)
 	RidinDirty.HourGlass.animation:PlayForward()
 	if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and GetUnitGender("player") == GENDER_MALE then
@@ -1399,7 +1387,7 @@ function RidinDirty.TravelToPlayer()
 				if IsMounted() then CallSecureProtected("ToggleMount") end
 				local targetLocation = "zone"
 				if spInGroup then targetLocation = zoneName end
-				df(rdLogo .. "Traveling to " .. displayNamePref .. " in " .. targetLocation)
+				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. targetLocation)
 				JumpToGroupMember(playerDisplayName)
 				return
 			end
@@ -1421,7 +1409,7 @@ function RidinDirty.TravelToPlayer()
 				end
 			else
 				if IsMounted() then CallSecureProtected("ToggleMount") end
-				df(rdLogo .. "Traveling to " .. displayNamePref .. " in zone")
+				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in zone")
 				JumpToFriend(friendName)
 				return
 			end
@@ -1447,7 +1435,7 @@ function RidinDirty.TravelToPlayer()
 					end
 				else
 					if IsMounted() then CallSecureProtected("ToggleMount") end
-					df(rdLogo .. "Traveling to " .. displayNamePref .. " in zone")
+					df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in zone")
 					JumpToGuildMember(memberName)
 					return
 				end
@@ -1462,7 +1450,7 @@ function RidinDirty.TeleportPlayerQueueOn(playerName)
 	EVENT_MANAGER:RegisterForEvent("RDTeleportDeath", EVENT_UNIT_DEATH_STATE_CHANGED, RidinDirty.TeleportDeathState)
 	EVENT_MANAGER:AddFilterForEvent("RDTeleportDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "player")
 	PlaySound("GuildRoster_Added")
-	RidinDirty.HourGlass.label:SetText (rdLogo .. "Travel To " .. playerName .. " Combat Queued")
+	RidinDirty.HourGlass.label:SetText (RD_LOGO .. "Travel To " .. playerName .. " Combat Queued")
 	RidinDirty.HourGlass:SetAlpha(1)
 	RidinDirty.HourGlass.animation:PlayForward()
 	if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and GetUnitGender("player") == GENDER_MALE then
@@ -1492,27 +1480,52 @@ end
 function RidinDirty.Teleport(value1, value2)
 	if IsPlayerInAvAWorld() or IsActiveWorldBattleground() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You cannot travel from this location.")) return end
 	if IsUnitDeadOrReincarnating("player") then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You are dead and cannot travel.")) return end
+	local travelOutside = RidinDirty.savedVariables.travelOutside
 	local displayNamePref = nil
-	if playerSearch ~= nil then
-		value1 = playerSearch
-		value2 = houseSearch
-		playerSearch = nil
-		houseSearch = nil
+	if TP_PLAYER ~= nil then
+		value1 = TP_PLAYER
+		value2 = TP_HOUSE
+		TP_PLAYER = nil
+		TP_HOUSE = nil
 	end
-	if value2 ~= nil and value2 ~= "" then
+	if value1 == "home" and value2 ~= nil then
 		if IsUnitInCombat("player") then
 			if RidinDirty.HourGlass:GetAlpha() == 1 then
 				RidinDirty.TeleportZoneQueueOff()
 				return
 			else
-				playerSearch = value1
-				houseSearch = value2
+				TP_PLAYER = value1
+				TP_HOUSE = value2
+				RidinDirty.TeleportZoneQueueOn(value1, value2)
+				return
+			end
+		else
+			if IsCollectibleUnlocked(GetCollectibleIdForHouse(GetHouseID(value2))) then
+				if IsMounted() then CallSecureProtected("ToggleMount") end
+				df(RD_LOGO .. "Traveling to your " .. GetHousingLink(GetHouseID(value2), ""))
+				RequestJumpToHouse(GetHouseID(value2), travelOutside)
+				return
+			else
+				if IsMounted() then CallSecureProtected("ToggleMount") end
+				df(RD_LOGO .. "Traveling to preview " .. GetHousingLink(GetHouseID(value2), ""))
+				RequestJumpToHouse(GetHouseID(value2), travelOutside)
+				return
+			end
+		end
+	elseif value2 ~= nil then
+		if IsUnitInCombat("player") then
+			if RidinDirty.HourGlass:GetAlpha() == 1 then
+				RidinDirty.TeleportZoneQueueOff()
+				return
+			else
+				TP_PLAYER = value1
+				TP_HOUSE = value2
 				RidinDirty.TeleportZoneQueueOn(value1, value2)
 				return
 			end
 		else
 			if IsMounted() then CallSecureProtected("ToggleMount") end
-			df(rdLogo .. "Traveling to " .. GetHousingLink(GetHouseID(value2), value1))
+			df(RD_LOGO .. "Traveling to " .. GetHousingLink(GetHouseID(value2), value1))
 			JumpToSpecificHouse(value1, GetHouseID(value2))
 			return
 		end
@@ -1532,13 +1545,13 @@ function RidinDirty.Teleport(value1, value2)
 					RidinDirty.TeleportZoneQueueOff()
 					return
 				else
-					playerSearch = value1
+					TP_PLAYER = value1
 					RidinDirty.TeleportZoneQueueOn(displayNamePref)
 					return
 				end
 			else
 				if IsMounted() then CallSecureProtected("ToggleMount") end
-				df(rdLogo .. "Traveling to " .. displayNamePref .. " in " .. memberZone)
+				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. memberZone)
 				JumpToGroupMember(memberName)
 				return
 			end
@@ -1555,13 +1568,13 @@ function RidinDirty.Teleport(value1, value2)
 					RidinDirty.TeleportZoneQueueOff()
 					return
 				else
-					playerSearch = value1
+					TP_PLAYER = value1
 					RidinDirty.TeleportZoneQueueOn(displayNamePref)
 					return
 				end
 			else
 				if IsMounted() then CallSecureProtected("ToggleMount") end
-				df(rdLogo .. "Traveling to " .. displayNamePref .. " in " .. friendZone)
+				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. friendZone)
 				JumpToFriend(friendName)
 				return
 			end
@@ -1582,13 +1595,13 @@ function RidinDirty.Teleport(value1, value2)
 						RidinDirty.TeleportZoneQueueOff()
 						return
 					else
-						playerSearch = value1
+						TP_PLAYER = value1
 						RidinDirty.TeleportZoneQueueOn(displayNamePref)
 						return
 					end
 				else
 					if IsMounted() then CallSecureProtected("ToggleMount") end
-					df(rdLogo .. "Traveling to " .. displayNamePref .. " in " .. memberZone)
+					df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. memberZone)
 					JumpToGuildMember(memberName)
 					return
 				end
@@ -1608,7 +1621,7 @@ function RidinDirty.TeleportZoneQueueOn(value1, value2)
 	PlaySound("GuildRoster_Added")
 	local teleportTarget = nil
 	if value2 == nil then teleportTarget = value1 else teleportTarget = GetHousingLink(GetHouseID(value2), value1) end
-	RidinDirty.HourGlass.label:SetText (rdLogo .. "Travel To " .. teleportTarget .. " Combat Queued")
+	RidinDirty.HourGlass.label:SetText (RD_LOGO .. "Travel To " .. teleportTarget .. " Combat Queued")
 	RidinDirty.HourGlass:SetAlpha(1)
 	RidinDirty.HourGlass.animation:PlayForward()
 	if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and GetUnitGender("player") == GENDER_MALE then
@@ -1619,8 +1632,8 @@ function RidinDirty.TeleportZoneQueueOn(value1, value2)
 end
 
 function RidinDirty.TeleportZoneQueue()
-	local value1 = playerSearch
-	local value2 = houseSearch
+	local value1 = TP_PLAYER
+	local value2 = TP_HOUSE
 	EVENT_MANAGER:UnregisterForEvent("RidinDirtyQueue", EVENT_PLAYER_COMBAT_STATE)
 	EVENT_MANAGER:UnregisterForEvent("RDTeleportDeath", EVENT_UNIT_DEATH_STATE_CHANGED)
 	RidinDirty.HourGlass:SetAlpha(0)
@@ -1650,7 +1663,7 @@ local function CheckBankMemory()
 				end
 			end
 			if not itemFound then
-				df(rdLogo .. "|cFFA2A2MISSING:|r --> " .. tostring(v))
+				df(RD_LOGO .. "|cFFA2A2MISSING:|r --> " .. tostring(v))
 			end
 		end
 		itemFound = false
@@ -1659,7 +1672,7 @@ end
 
 local function BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTelvar, carriedVoucher, moveGold, moveAP, moveTelvar, moveVoucher)
 	--if not RidinDirty.savedVariables.balanceDisplay then return end
-	local bankedCurrencies = (rdLogo .. "Balances:")
+	local bankedCurrencies = (RD_LOGO .. "Balances:")
 	local curbankGold = GetBankedCurrencyAmount(CURT_MONEY)
 	local curbankAP = GetBankedCurrencyAmount(CURT_ALLIANCE_POINTS)
 	local curbankTelvar = GetBankedCurrencyAmount(CURT_TELVAR_STONES)
@@ -1669,18 +1682,18 @@ local function BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTel
 	if moveTelvar then curbankTelvar = (carriedTelvar + GetBankedCurrencyAmount(CURT_TELVAR_STONES)) moveTelvar = false end
 	if moveVoucher then curbankVouchers = (carriedVoucher + GetBankedCurrencyAmount(CURT_WRIT_VOUCHERS)) moveVoucher = false end
 	if curbankGold > 0 then
-		bankedCurrencies = (bankedCurrencies .. goldIcon .. ZO_LocalizeDecimalNumber(curbankGold))
+		bankedCurrencies = (bankedCurrencies .. GOLD_ICON .. ZO_LocalizeDecimalNumber(curbankGold))
 	end
 	if curbankAP > 0 then
-		bankedCurrencies = (bankedCurrencies .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(curbankAP) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. AP_ICON .. "|c339933" .. ZO_LocalizeDecimalNumber(curbankAP) .. "|r")
 	end
 	if curbankTelvar > 0 then
-		bankedCurrencies = (bankedCurrencies .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(curbankTelvar) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. TELVAR_ICON .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(curbankTelvar) .. "|r")
 	end
 	if curbankVouchers > 0 then
-		bankedCurrencies = (bankedCurrencies .. voucherIcon .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(curbankVouchers) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. VOUCHER_ICON .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(curbankVouchers) .. "|r")
 	end
-	if bankedCurrencies ~= (rdLogo .. "Balances:") then df(bankedCurrencies) end
+	if bankedCurrencies ~= (RD_LOGO .. "Balances:") then df(bankedCurrencies) end
 end
 
 local function DepositCurrency(eventCode, bagId)
@@ -1704,12 +1717,12 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawGold = (goldReserve - carriedGold)
 			carriedGold = (withdrawGold - (withdrawGold*2))
 			WithdrawCurrencyFromBank(CURT_MONEY, withdrawGold)
-			df(rdLogo .. "Withdrew:" .. goldIcon .. ZO_LocalizeDecimalNumber(carriedGold))
+			df(RD_LOGO .. "Withdrew:" .. GOLD_ICON .. ZO_LocalizeDecimalNumber(carriedGold))
 		elseif (carriedGold > goldReserve) then
 			moveGold = true
 			carriedGold = (carriedGold - goldReserve)
 			DepositCurrencyIntoBank(CURT_MONEY, carriedGold)
-			df(rdLogo .. "Deposited:" .. goldIcon .. ZO_LocalizeDecimalNumber(carriedGold))
+			df(RD_LOGO .. "Deposited:" .. GOLD_ICON .. ZO_LocalizeDecimalNumber(carriedGold))
 		end
 	end
 	if RidinDirty.savedVariables.apDeposit then
@@ -1718,12 +1731,12 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawAP = (apReserve - carriedAP)
 			carriedAP = (withdrawAP - (withdrawAP*2))
 			WithdrawCurrencyFromBank(CURT_ALLIANCE_POINTS, withdrawAP)
-			df(rdLogo .. "Withdrew:" .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
+			df(RD_LOGO .. "Withdrew:" .. AP_ICON .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		elseif (carriedAP > apReserve) then
 			moveAP = true
 			carriedAP = (carriedAP - apReserve)
 			DepositCurrencyIntoBank(CURT_ALLIANCE_POINTS, carriedAP)
-			df(rdLogo .. "Deposited:" .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
+			df(RD_LOGO .. "Deposited:" .. AP_ICON .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.telvarDeposit then
@@ -1732,19 +1745,19 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawTelvar = (telvarReserve - carriedTelvar)
 			carriedTelvar = (withdrawTelvar - (withdrawTelvar*2))
 			WithdrawCurrencyFromBank(CURT_TELVAR_STONES, withdrawTelvar)
-			df(rdLogo .. "Withdrew:" .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
+			df(RD_LOGO .. "Withdrew:" .. TELVAR_ICON .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		elseif (carriedTelvar > telvarReserve) then
 			moveTelvar = true
 			carriedTelvar = (carriedTelvar - telvarReserve)
 			DepositCurrencyIntoBank(CURT_TELVAR_STONES, carriedTelvar)
-			df(rdLogo .. "Deposited:" .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
+			df(RD_LOGO .. "Deposited:" .. TELVAR_ICON .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.voucherDeposit then
 		if (carriedVoucher > 0) then
 			moveVoucher = true
 			DepositCurrencyIntoBank(CURT_WRIT_VOUCHERS, carriedVoucher)
-			df(rdLogo .. "Deposited:" .. voucherIcon .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
+			df(RD_LOGO .. "Deposited:" .. VOUCHER_ICON .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.balanceDisplay then
@@ -1786,7 +1799,7 @@ local function BankManager(eventCode, bagId)
 							else
 								RequestMoveItem(BAG_BACKPACK, bagSlot, bagId, bankSlot, quantity)
 							end
-							df(zo_strformat(rdLogo .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
+							df(zo_strformat(RD_LOGO .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
 							local bankStack = bankStack + quantity
 							if bankStack == bankMaxStack then
 								break
@@ -1818,7 +1831,7 @@ local function BankManager(eventCode, bagId)
 								else
 									RequestMoveItem(BAG_BACKPACK, bagSlot, BAG_SUBSCRIBER_BANK, bankSlot, quantity)
 								end
-								df(zo_strformat(rdLogo .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
+								df(zo_strformat(RD_LOGO .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
 								local bankStack = bankStack + quantity
 								if bankStack == bankMaxStack then
 									break
@@ -2015,7 +2028,7 @@ local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory
 			end
 		end
 		if stolenValue > 0 then
-			df(rdLogo .. "|cFFA2A2*PREMIUM EXPORTS*|r -->" .. goldIcon .. ZO_LocalizeDecimalNumber(stolenValue)
+			df(RD_LOGO .. "|cFFA2A2*PREMIUM EXPORTS*|r -->" .. GOLD_ICON .. ZO_LocalizeDecimalNumber(stolenValue)
 				.. " (+" .. (GetItemSellValueWithBonuses(bagId, slotIndex) * ((GetTotalFenceHagglingBonus() + 100) / 100)) .. ")")
 		end
 	end
@@ -2025,14 +2038,14 @@ local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory
 		if RidinDirty.savedVariables.destroyLQStolen and IsItemStolen(bagId, slotIndex) and GetItemLinkDisplayQuality(itemLink) <= 1 and
 			(GetItemSellValueWithBonuses(bagId, slotIndex) < 60 and not InLootWhitelist(itemId)) then
 				DestroyItem(bagId, slotIndex)
-				if not RidinDirty.savedVariables.junkSilentMode then df(rdLogo .. "|cFFA2A2Destroying|r " .. itemLink) end
+				if not RidinDirty.savedVariables.junkSilentMode then df(RD_LOGO .. "|cFFA2A2Destroying|r " .. itemLink) end
 		elseif RidinDirty.savedVariables.destroyUnsellable and RidinDirty.junkMemory[itemId] ~= nil and
 			GetItemSellInformation(bagId, slotIndex) == ITEM_SELL_INFORMATION_CANNOT_SELL then
 				DestroyItem(bagId, slotIndex)
-				if not RidinDirty.savedVariables.junkSilentMode then df(rdLogo .. "|cFFA2A2Destroying|r " .. itemLink) end
+				if not RidinDirty.savedVariables.junkSilentMode then df(RD_LOGO .. "|cFFA2A2Destroying|r " .. itemLink) end
 		else
 			SetItemIsJunk(bagId, slotIndex, true)
-			if not RidinDirty.savedVariables.junkSilentMode then df(rdLogo .. "Moved " .. itemLink .. " to junk!") end
+			if not RidinDirty.savedVariables.junkSilentMode then df(RD_LOGO .. "Moved " .. itemLink .. " to junk!") end
 		end
 	end
 end
@@ -2058,7 +2071,7 @@ local function MarkPermJunkMenu(inventorySlot, slotActions)
 								(RidinDirty.savedVariables.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemId, itemLink, itemType, specialType))))
 	if IsItemJunk(bagId, slotIndex) or IsItemPlayerLocked(bagId, slotIndex) or bagId ~= BAG_BACKPACK or not CanItemBeMarkedAsJunk(bagId, slotIndex) or RidinDirty.junkMemory[itemId] ~= nil or isCrafted or isTrash then return end
 	AddCustomMenuItem("Mark Perm Junk", function() RidinDirty.junkMemory[itemId] = itemLink
-		SetItemIsJunk(bagId, slotIndex, true) df(rdLogo .. "Added " .. itemLink .. " to junk memory!")
+		SetItemIsJunk(bagId, slotIndex, true) df(RD_LOGO .. "Added " .. itemLink .. " to junk memory!")
 			local junkMemory = RidinDirty.PopulateJunkMemory() RidinDirty.UpdateJunkMemoryList(RidinDirty.JunkMemoryList, junkMemory, 1) end)
 end
 
@@ -2083,7 +2096,7 @@ local function UnMarkPermJunkMenu(inventorySlot, slotActions)
 								(RidinDirty.savedVariables.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemId, itemLink, itemType, specialType))))
 	if not IsItemJunk(bagId, slotIndex) or bagId ~= BAG_BACKPACK or RidinDirty.junkMemory[itemId] == nil or isCrafted or isTrash then return end
 	AddCustomMenuItem("UnMark Perm Junk", function() RidinDirty.junkMemory[itemId] = nil
-		SetItemIsJunk(bagId, slotIndex, false) df(rdLogo .. "Removed " .. itemLink .. " from junk memory!")
+		SetItemIsJunk(bagId, slotIndex, false) df(RD_LOGO .. "Removed " .. itemLink .. " from junk memory!")
 			local junkMemory = RidinDirty.PopulateJunkMemory() RidinDirty.UpdateJunkMemoryList(RidinDirty.JunkMemoryList, junkMemory, 1) end)
 end
 
@@ -2163,7 +2176,7 @@ local function ChatLinkUnMarkMenu(itemLink, button, _, _, linkType, ...)--<< UNU
 					SetItemIsJunk(BAG_BACKPACK, slotIndex, false)
 				end
 			end
-			df(rdLogo .. "Removed " .. itemLink .. " from junk list!")
+			df(RD_LOGO .. "Removed " .. itemLink .. " from junk list!")
 			end, MENU_ADD_OPTION_LABEL)
 			ShowMenu()
 		end, hookDelay)
@@ -2179,14 +2192,14 @@ local function AutoSellRepair()
 			end
 		end
 		if junkValue > 0 then
-			df(rdLogo .. "All junk sold for" .. goldIcon .. ZO_LocalizeDecimalNumber(junkValue))
+			df(RD_LOGO .. "All junk sold for" .. GOLD_ICON .. ZO_LocalizeDecimalNumber(junkValue))
 		end
 		SellAllJunk()
 	end
 	local repairCost = GetRepairAllCost()
 	if not CanStoreRepair() then return end
 	if repairCost > 0 and repairCost < GetCurrentMoney() then
-		df(rdLogo .. "All items repaired for" .. goldIcon .. ZO_LocalizeDecimalNumber(repairCost))
+		df(RD_LOGO .. "All items repaired for" .. GOLD_ICON .. ZO_LocalizeDecimalNumber(repairCost))
 		RepairAll()
 	elseif repairCost > 0 and repairCost > GetCurrentMoney() then
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Insufficient gold for repairs.")
@@ -2228,7 +2241,7 @@ local function LootManager(eventCode, receivedBy, itemLink, quantity, _, lootTyp
 		if traitType ~= 0 then traitName = (" |cC0C0C0[" .. string.lower(GetString("SI_ITEMTRAITTYPE", traitType)) .. "]|r") end
 		if quantity > 1 then quantity = (" x" .. quantity) else quantity = "" end
 		if isSelf then receivedBy = "" else receivedBy = (" --> " .. ZO_LinkHandler_CreatePlayerLink(zo_strformat("<<1>>", receivedBy))) end
-		df(zo_strformat(rdLogo .. leadHeader .. needHeader .. itemLink .. traitName .. quantity .. receivedBy))
+		df(zo_strformat(RD_LOGO .. leadHeader .. needHeader .. itemLink .. traitName .. quantity .. receivedBy))
 	end
 end
 --local zone = GetAntiquityZoneId(antiquityId)
@@ -2302,20 +2315,20 @@ local function NeedsAndPrice(control, slot)
 	if itemData.purchasePrice and RidinDirty.savedVariables.traderEnhance then
 		if itemData.stackCount > 1 and TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
 			if itemData.purchasePrice > (TTCStackPrice * 1.2) then
-				SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. goldIcon .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
+				SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. GOLD_ICON .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
 			else
-				SellPriceControl:SetText(ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. goldIcon .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
+				SellPriceControl:SetText(ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. GOLD_ICON .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
 			end
 		elseif itemData.purchasePrice > (TTCStackPrice * 1.2) then
-			SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. goldIcon)
+			SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. GOLD_ICON)
 		elseif itemData.purchasePrice < (TTCStackPrice * 0.95) and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
-			SellPriceControl:SetText("|c7BF1A8" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. goldIcon)
+			SellPriceControl:SetText("|c7BF1A8" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. GOLD_ICON)
 		end
 	elseif TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_BROWSE and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
 		if itemData.stackCount > 1 then
-			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. goldIcon .. "\n@ " .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCPrice, 1))))
+			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. GOLD_ICON .. "\n@ " .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCPrice, 1))))
 		else
-			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. "|r" .. goldIcon)
+			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. "|r" .. GOLD_ICON)
 		end
 	end
 end
@@ -2458,7 +2471,7 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 			if mode == ZO_TRADING_HOUSE_MODE_LISTINGS then
 				zo_callLater(function()
 					if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
 						RidinDirty.TraderSalesTotal:SetAlpha(1)
 					end
 				end, searchDelay)
@@ -2470,7 +2483,7 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 			local count, countmax = GetTradingHouseListingCounts()
 			RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 			if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
 				RidinDirty.TraderSalesTotal:SetAlpha(1)
 			else
 				RidinDirty.TraderSalesTotal:SetAlpha(0)
@@ -2481,7 +2494,7 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 				local count, countmax = GetTradingHouseListingCounts()
 				RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 				if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
 					RidinDirty.TraderSalesTotal:SetAlpha(1)
 				else
 					RidinDirty.TraderSalesTotal:SetAlpha(0)
@@ -2517,20 +2530,20 @@ local function OutputAVPData()
 			tickReason = (GetKeepName(REASON_INFO) .. " Repair: ")
 		end
 		tickReason = tickReason:gsub("Castle ", ""):gsub("Fort ", ""):gsub(" Keep", ""):gsub(" Outpost", ""):gsub(" District", "")
-		formattedText = tostring(rdLogo .. tickReason .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(avpData.allianceGained) .. "|r")
+		formattedText = tostring(RD_LOGO .. tickReason .. AP_ICON .. "|c339933" .. ZO_LocalizeDecimalNumber(avpData.allianceGained) .. "|r")
 	end
 	if dataReady and avpData.telvarDifference ~= 0 then
 		if formattedText == "" then
 			if avpData.telvarDifference > 0 then
-				formattedText = tostring(rdLogo .. tickReason .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
+				formattedText = tostring(RD_LOGO .. tickReason .. TELVAR_ICON .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
 			else
-				formattedText = tostring(rdLogo .. tickReason .. telvarIcon .. "|ccc0000" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
+				formattedText = tostring(RD_LOGO .. tickReason .. TELVAR_ICON .. "|ccc0000" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
 			end
 		else
 			if avpData.telvarDifference > 0 then
-				formattedText = tostring(formattedText .. " " .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
+				formattedText = tostring(formattedText .. " " .. TELVAR_ICON .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
 			else
-				formattedText = tostring(formattedText .. " " .. telvarIcon .. "|ccc0000" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
+				formattedText = tostring(formattedText .. " " .. TELVAR_ICON .. "|ccc0000" .. ZO_LocalizeDecimalNumber(avpData.telvarDifference) .. " [" .. ZO_LocalizeDecimalNumber(GetCarriedCurrencyAmount(CURT_TELVAR_STONES)) .. "]|r")
 			end
 		end
 	end
@@ -2542,10 +2555,10 @@ local function OutputAVPData()
 		local percent = (currProgress / totalNeeded) * 100
 		if formattedText == "" then
 			if percent > 100 then percent = percent - (math.floor(percent / 100) * 100) end
-			formattedText = tostring(rdLogo .. tickReason .. veterancyIcon .. "|cC0C0C0" .. zo_roundToNearest(percent, 0.01) .. "%%|r")
+			formattedText = tostring(RD_LOGO .. tickReason .. VETERANCY_ICON .. "|cC0C0C0" .. zo_roundToNearest(percent, 0.01) .. "%%|r")
 		else
 			if percent > 100 then percent = percent - (math.floor(percent / 100) * 100) end
-			formattedText = tostring(formattedText .. " " .. veterancyIcon .. "|cC0C0C0" .. zo_roundToNearest(percent, 0.01) .. "%%|r")
+			formattedText = tostring(formattedText .. " " .. VETERANCY_ICON .. "|cC0C0C0" .. zo_roundToNearest(percent, 0.01) .. "%%|r")
 		end
 	end
 	if formattedText ~= "" then
@@ -2650,15 +2663,15 @@ local function PvpKillFeed(eventCode, killLocation, killerDisplayName, killerCha
 			victomCharacterName = zo_strformat("<<1>>", victomCharacterName)--<< Strip gemders
 			killerCharacterName = zo_strformat("<<1>>", killerCharacterName)--<< Strip gemders
 			if GetUnitDisplayName('player') == killerDisplayName then
-				df(rdLogo .. " |cCC6600You killed " .. tostring(victomCharacterName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. " / " .. tostring(zo_round((RidinDirty.savedVariables.pvpKills / math.max(1, RidinDirty.savedVariables.pvpDeaths)) * 100)) .. "%%]|r")
+				df(RD_LOGO .. " |cCC6600You killed " .. tostring(victomCharacterName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. " / " .. tostring(zo_round((RidinDirty.savedVariables.pvpKills / math.max(1, RidinDirty.savedVariables.pvpDeaths)) * 100)) .. "%%]|r")
 			else
-				df(rdLogo .. " |cCC6600" .. killerCharacterName .. " killed " .. tostring(victomCharacterName) .. "|r")
+				df(RD_LOGO .. " |cCC6600" .. killerCharacterName .. " killed " .. tostring(victomCharacterName) .. "|r")
 			end
 		else
 			if GetUnitDisplayName('player') == killerDisplayName then
-				df(rdLogo .. " |cCC6600You killed " .. tostring(victomDisplayName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. " / " .. tostring(zo_round((RidinDirty.savedVariables.pvpKills / math.max(1, RidinDirty.savedVariables.pvpDeaths)) * 100)) .. "%%]|r")
+				df(RD_LOGO .. " |cCC6600You killed " .. tostring(victomDisplayName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. " / " .. tostring(zo_round((RidinDirty.savedVariables.pvpKills / math.max(1, RidinDirty.savedVariables.pvpDeaths)) * 100)) .. "%%]|r")
 			else
-				df(rdLogo .. " |cCC6600" .. killerDisplayName .. " killed " .. tostring(victomDisplayName) .. "|r")
+				df(RD_LOGO .. " |cCC6600" .. killerDisplayName .. " killed " .. tostring(victomDisplayName) .. "|r")
 			end
 		end
 	elseif (GetUnitDisplayName('player') == victomDisplayName or IsPlayerInGroup(victomDisplayName)) and not isKillLocation then
@@ -2668,15 +2681,15 @@ local function PvpKillFeed(eventCode, killLocation, killerDisplayName, killerCha
 			killerCharacterName = zo_strformat("<<1>>", killerCharacterName)--<< Strip genders
 			victomCharacterName = zo_strformat("<<1>>", victomCharacterName)--<< Strip genders
 			if GetUnitDisplayName('player') == victomDisplayName then
-				df(rdLogo .. "|cCC6600Killed by " .. tostring(killerCharacterName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. "]|r")
+				df(RD_LOGO .. "|cCC6600Killed by " .. tostring(killerCharacterName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. "]|r")
 			else
-				df(rdLogo .. "|cCC6600" .. victomCharacterName .. " killed by " .. tostring(killerCharacterName) .. "|r")
+				df(RD_LOGO .. "|cCC6600" .. victomCharacterName .. " killed by " .. tostring(killerCharacterName) .. "|r")
 			end
 		else
 			if GetUnitDisplayName('player') == victomDisplayName then
-				df(rdLogo .. "|cCC6600Killed by " .. tostring(killerDisplayName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. "]|r")
+				df(RD_LOGO .. "|cCC6600Killed by " .. tostring(killerDisplayName) .. " [K-" .. tostring(RidinDirty.savedVariables.pvpKills) .. " / D-" .. tostring(RidinDirty.savedVariables.pvpDeaths) .. "]|r")
 			else
-				df(rdLogo .. "|cCC6600" .. victomDisplayName .. " killed by " .. tostring(killerDisplayName) .. "|r")
+				df(RD_LOGO .. "|cCC6600" .. victomDisplayName .. " killed by " .. tostring(killerDisplayName) .. "|r")
 			end
 		end
 	end
@@ -2701,7 +2714,7 @@ function RidinDirty.SetClearKillFeed(isSetting)
 		local whole_days = math.floor(diff_days)
 		local wholedays_secs = whole_days * ONE_DAY
 		RidinDirty.savedVariables.pvpKillsReset = RidinDirty.savedVariables.pvpKillsReset + wholedays_secs
-		zo_callLater(function() df(rdLogo .. "|cCC6600PvP Kill Feed *DAILY RESET*|r") end, 7000)
+		zo_callLater(function() df(RD_LOGO .. "|cCC6600PvP Kill Feed *DAILY RESET*|r") end, 7000)
 	end
 	RidinDirty.savedVariables.pvpKills = 0
 	RidinDirty.savedVariables.pvpDeaths = 0
@@ -2836,16 +2849,16 @@ function RidinDirty.GSC(eventCode, guildId, displayName, oldStatus, newStatus, c
 	chatStamp = GetTimeStamp()
 	if not IsFriend(displayName) and newStatus ~= PLAYER_STATUS_OFFLINE and oldStatus == PLAYER_STATUS_OFFLINE then
 		--PlaySound(RidinDirty.savedVariables.chatNotify)
-		df(rdLogo .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " logged on in " .. zoneName)
+		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " logged on in " .. zoneName)
 	elseif not IsFriend(displayName) and newStatus == PLAYER_STATUS_OFFLINE then
 		--PlaySound(RidinDirty.savedVariables.chatNotify)
-		df(rdLogo .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " logged off in " .. zoneName)
+		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " logged off in " .. zoneName)
 	elseif newStatus == PLAYER_STATUS_ONLINE and oldStatus == PLAYER_STATUS_AWAY then
 		--PlaySound(RidinDirty.savedVariables.chatNotify)
-		df(rdLogo .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " is BACK in " .. zoneName)
+		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " is BACK in " .. zoneName)
 	elseif newStatus == PLAYER_STATUS_AWAY and oldStatus == PLAYER_STATUS_ONLINE then
 		--PlaySound(RidinDirty.savedVariables.chatNotify)
-		df(rdLogo .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " is AWAY in " .. zoneName)
+		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " is AWAY in " .. zoneName)
 	end
 end
 
@@ -2868,7 +2881,7 @@ end
 ---------------------------------------------
 local function CompanionRapport(eventCode, companionId, prevRapport, currRapport, rapportChange)
 	local companionName = zo_strformat("<<1>>", GetCompanionName(companionId))--<< Strip Genders
-	df(rdLogo .. companionName .. " Rapport: " .. tostring(currRapport - prevRapport) .. " ( " .. currRapport .. " / " .. GetMaximumRapport() .. " )")
+	df(RD_LOGO .. companionName .. " Rapport: " .. tostring(currRapport - prevRapport) .. " ( " .. currRapport .. " / " .. GetMaximumRapport() .. " )")
 end
 
 local function GetUnlockedAssistant()
@@ -2894,13 +2907,13 @@ local function CompanionDeathState(eventCode, unitTag, isDead)
 	if IsUnitDead("companion") then
 		local companionName = zo_strformat("<<1>>", GetUnitName(unitTag))--<< Strip Genders
 		CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_LARGE_TEXT, "Console_Game_Enter", ("|ccc0000WARNING! " .. companionName .. " DIED...|r"), nil, nil, nil, nil, nil, 5000, nil)
-		if InAlphaList(GetUnitDisplayName("player")) and not IsUnitDeadOrReincarnating("player") then--and IsUnitInCombat("player")
-			local collectibleID = GetUnlockedAssistant()
-			if collectibleID then UseCollectible(collectibleID) end
-			EVENT_MANAGER:RegisterForUpdate("RDCompanion", 2200, CompanionReSummon)
-		end
-	else
-		EVENT_MANAGER:UnregisterForUpdate("RDCompanion")
+		--if InAlphaList(GetUnitDisplayName("player")) and not IsUnitDeadOrReincarnating("player") then--and IsUnitInCombat("player")
+			--local collectibleID = GetUnlockedAssistant()
+			--if collectibleID then UseCollectible(collectibleID) end
+			--EVENT_MANAGER:RegisterForUpdate("RDCompanion", 2200, CompanionReSummon)
+		--end
+	--else
+		--EVENT_MANAGER:UnregisterForUpdate("RDCompanion")
 	end
 end
 
@@ -2917,14 +2930,14 @@ function RidinDirty.CompanionRapportToggle(toggle)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE, CompanionRapport)
 		EVENT_MANAGER:RegisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, CompanionDeathState)
 		EVENT_MANAGER:AddFilterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "companion")
-		if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-			EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
-		end
+		--if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
+			--EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
+		--end
 	else
 		RidinDirty.savedVariables.companionRapport = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED)
-		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT)
+		--EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT)
 	end
 end
 ---------------------------------------------
@@ -2944,7 +2957,7 @@ end
 local function PvPAutoQueue(eventCode, id, isGroup, state)
 	if state == CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING then
 		PlaySound("GuildRoster_Added")
-		RidinDirty.HourGlass.label:SetText (rdLogo .. "|cCCCC00Entering (" .. GetCampaignName(id) .. ")|r")
+		RidinDirty.HourGlass.label:SetText (RD_LOGO .. "|cCCCC00Entering (" .. GetCampaignName(id) .. ")|r")
 		RidinDirty.HourGlass:SetAlpha(1)
 		RidinDirty.HourGlass.animation:PlayForward()
 		ConfirmCampaignEntry(id, isGroup, true)
@@ -3125,10 +3138,11 @@ if not Teleport and not EasyTravel then
 			RidinDirty.TravelToHome()
 		elseif word[1] ~= nil and not string.find(word[1], "^(@)") and word[2] == nil then
 			RidinDirty.Teleport(word[1])
-		elseif word[1] ~= nil and string.find(word[1], "^(@)") and word[1] ~= GetUnitDisplayName("player") and word[2] ~= nil and GetHouseID(word[2]) then
+		elseif word[1] ~= nil and ((string.find(word[1], "^(@)") and word[1] ~= GetUnitDisplayName("player")) or string.find(word[1], "home")) and word[2] ~= nil and GetHouseID(word[2]) then
 			RidinDirty.Teleport(word[1], word[2])
 		else
-			df(rdLogo .. " /tp partialzonename => overland zones") df(rdLogo .. " /tp exact@name partialhousename => player houses")
+			df(RD_LOGO .. " /tp partialzonename => overland zones") df(RD_LOGO .. " /tp home => your primary home")
+			df(RD_LOGO .. " /tp home partialhousename => owned or preview home") df(RD_LOGO .. " /tp exact@name partialhousename => player houses")
 		end
 	end
 end
@@ -3170,7 +3184,7 @@ function RidinDirty.RDBopTradeable()
 		end
 	end
 	if links == "" then
-		ZO_ClearTable(RidinDirty.tradeTable) df(rdLogo .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
+		ZO_ClearTable(RidinDirty.tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
 		RidinDirty.TradeLinkWait("bops")
@@ -3192,7 +3206,7 @@ function RidinDirty.RDUnboundSets()
 		end
 	end
 	if links == "" then
-		ZO_ClearTable(RidinDirty.tradeTable) df(rdLogo .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
+		ZO_ClearTable(RidinDirty.tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
 		RidinDirty.TradeLinkWait("sets")
@@ -3222,23 +3236,12 @@ SLASH_COMMANDS["/rdpvp"] = function (option)
 	local pvpMode = false
 	for addonIndex = 1, numAddOns do
 		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-		if not isEnabled then
-			if GetUnitDisplayName("player") == RidinDirty.author then
-				if not pvpAddonFilter(addonName) then pvpMode = true break end
-			else
-				pvpMode = true
-				break
-			end
-		end
+		if not isEnabled and not pvpAddonFilter(addonName) then pvpMode = true break end
 	end
 	if pvpMode then
 		for addonIndex = 1, numAddOns do
 			local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-			if GetUnitDisplayName("player") == RidinDirty.author then
-				if not pvpAddonFilter(addonName) then addOnManager:SetAddOnEnabled(addonIndex, true) end
-			else
-				addOnManager:SetAddOnEnabled(addonIndex, true)
-			end
+			if not pvpAddonFilter(addonName) then addOnManager:SetAddOnEnabled(addonIndex, true) end
 		end
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "PvP performance mode disabled.")
 	else
@@ -3260,9 +3263,9 @@ SLASH_COMMANDS["/rdfc"] = function (option)
 	local secondsLeft = ((GetNextForwardCampRespawnTime() - GetGameTimeMilliseconds()) / 1000)
 	if GetNextForwardCampRespawnTime() ~= 0 and secondsLeft > 0 then
 		local respawnTime = ZO_FormatTimeAsDecimalWhenBelowThreshold(secondsLeft)
-		df(rdLogo .. "Forward Camp Use Available In " .. tostring(respawnTime))
+		df(RD_LOGO .. "Forward Camp Use Available In " .. tostring(respawnTime))
 	else
-		df(rdLogo .. "Forward Camp Use Available")
+		df(RD_LOGO .. "Forward Camp Use Available")
 	end
 end
 
@@ -3335,9 +3338,9 @@ local function RDInitializeSettings()
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE, CompanionRapport)
 		EVENT_MANAGER:RegisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, CompanionDeathState)
 		EVENT_MANAGER:AddFilterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "companion")
-		if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-			EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
-		end
+		--if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
+			--EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
+		--end
 	end
 	if RidinDirty.savedVariables.autoQueue then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE, AutoQueue)
@@ -3475,7 +3478,7 @@ local function RDInitializeSettings()
 			if mode == ZO_TRADING_HOUSE_MODE_LISTINGS then
 				zo_callLater(function()
 					if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
 						RidinDirty.TraderSalesTotal:SetAlpha(1)
 					end
 				end, searchDelay)
@@ -3487,7 +3490,7 @@ local function RDInitializeSettings()
 			local count, countmax = GetTradingHouseListingCounts()
 			RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 			if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
 				RidinDirty.TraderSalesTotal:SetAlpha(1)
 			else
 				RidinDirty.TraderSalesTotal:SetAlpha(0)
@@ -3498,7 +3501,7 @@ local function RDInitializeSettings()
 				local count, countmax = GetTradingHouseListingCounts()
 				RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 				if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
 					RidinDirty.TraderSalesTotal:SetAlpha(1)
 				else
 					RidinDirty.TraderSalesTotal:SetAlpha(0)

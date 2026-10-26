@@ -1,3 +1,107 @@
+2.8.0 - 2026-10-24
+- New skin engine for the statistics journal: every design is a set of 12 color tokens
+  (window, panels, lines, headings, text, secondary text, accent, values, progress,
+  completed, bar track, selection). Recolors existing controls only; layout and input unchanged.
+- Five designs, renamed: Graphit (new default, flat graphite), Klassisch (refined gold journal
+  with ornaments), Mitternacht (translucent blue), Monochrom (black and white) and Eigenes.
+- "Eigenes" (Custom): every token is editable live with RGB + opacity sliders, starting from Graphit;
+  "Reset to Graphite" restores the template. Stored per account/server in SavedVariables.
+- Redesigned design panel (gear on Progress page 1): clear list with short hints.
+- Fixed old-style fragments: zone/economy dropdowns, selectors, hover states, alliance and
+  character panels, scroll thumbs and the journal tooltip now all follow the active design.
+- Dropdown selection mark "X" replaced by a dot; selected entries use the selection color.
+- Replaced glyphs missing from ESO fonts (dropdown arrows, check mark) with ESO textures.
+- Smaller zone-table headers so "Abgeschlossen"/"Completado" are no longer cut off.
+- PvE / PvP: dashboard moved up (duplicate page title removed), combat and activity logs
+  are taller, cards/logs/scroll bars follow the active design; semantic colors kept as stripes.
+- Progress categories: the row selected for the goal HUD is now clearly framed in the accent
+  color; rows get a hover tint.
+- Journal pages no longer draw a second frame inside the window (except Klassisch).
+- Skin pass hardened: one failing control can no longer stop the rest of a page from being styled.
+- Alliances (Progress page 2) rebuilt as "Alliance Atlas": the Tamriel map is the centre.
+  * Three alliance cards on top replace the duplicate own-alliance header; selecting one
+    flies the map to that alliance's territory.
+  * Map overlays: title, zoom control (- / 100% / +) and a legend that doubles as filter.
+  * Markers: dot fills from grey to the alliance color with completion, check mark at 100%,
+    other alliances dimmed; readable shadowed text.
+  * Right column: clickable "next 100% target" / "biggest gap" chips and the full zone list;
+    hovering a row highlights its marker and vice versa, clicking opens the zone.
+  * Bottom: category comparison of all three alliances with an info badge for the note.
+  * Readable type everywhere (11-30 px instead of 7-10 px); missing "■" glyph replaced.
+- Character (PvE/PvP page 2): modern cards (quiet label, strong value), selected range
+  highlighted, zebra-striped daily table with "Today" marked, larger table/insight text.
+- Numbers use ESO's antique serif only in Klassisch; other designs use the bold UI font.
+- Fixed: "Current session" / "Longest session" could show far more than the real playtime
+  (e.g. 319h with 119h played). Early checkpoints during loading kept a session from a crash
+  alive and counted the offline time. Sessions are now capped by real /played time, day-old
+  leftovers are closed on login, and corrupted stored values (> 20 h) are ignored.
+- Stability: the skin engine no longer replaces mouse handlers at runtime, uses no weak
+  tables keyed by controls, sets frame textures only when they change and skips identical
+  repaints (far fewer engine calls per pass; watchdog every 1 s).
+- Performance: history checkpoints are coalesced. XP gains write at most every 10 s, page
+  views every 15 s, gold/loot bursts once after 3 s, combat after 2.5 s (a trailing write
+  always stores the latest state). Previously every XP tick copied up to 1400 samples.
+- Performance: the full history clean-up (retention by days) runs at most every 10 minutes.
+- Performance: per-hit combat tracking reuses the last target entry and caches the PvP check.
+- Performance: the goal HUD only re-sets its text when the value actually changed.
+- Performance: XP gains with the PvE/PvP page open repaint it at most once per second;
+  CP/companion events no longer repaint the hidden journal.
+- Fixed: designs could skip controls - if one optional element did not exist yet (e.g. the
+  design panel was never opened), every element after it in the same list stayed in the old
+  style (economy dropdown, dividers, page frames).
+- Fixed: name matching for achievement categories and zone achievements broke Cyrillic and
+  other multi-byte letters (Russian names were compared with missing bytes).
+- Hardened history clean-up against damaged/old SavedVariables entries.
+- Language: the addon follows the ESO client language only. The language section in the
+  settings and the /tpm lang command were removed (English is used for other clients).
+- ESOUI/ZOS conformity: ZeniMax add-on disclaimer added to the manifest and README;
+  README contains only user information.
+- Fixed: with the journal opened by NumPad 5 / keybind, a click beside the window sent the
+  click into the game world - ESO left cursor mode while the journal stayed open. Clicks
+  beside the journal are now absorbed; the cursor stays until the journal is closed.
+- Economy page redesigned: Gold summary with total, cash and bank as clear values, received /
+  spent / balance with the tracking period; fence, stolen and bounty in one line. All other
+  currencies in an even 3x4 grid (amount, character/bank split, recorded +/-), empty
+  currencies dimmed, hover tooltip with details; the last tile explains the +/- values.
+  Zero values show "-" instead of "-0"; the duplicate dropdown arrow is gone.
+- Sharper icons: currencies use ESO's 64 px loot artwork instead of enlarged 32 px icons;
+  the Gold coin and the Tamriel wreath textures now have mipmaps (no grainy downscaling).
+- Removed an unused 3.5 MB map texture from the package.
+- Zone focus (Progress and Economy): one shared, modern selector (chevron turns when open)
+  and popup - "All Tamriel" and the current zone stay pinned on top, the zones scroll below
+  a divider with a slim scroll indicator; quiet rows with hover tint, the selected zone is
+  marked with an accent bar and a check mark, and the list opens at the selected zone.
+  Opening one closes the other. Follows every design.
+- PvE / PvP: new emblem icons drawn for TPM - horned monster skull (PvE kills), gravestone
+  (PvE deaths), crossed swords (PvP kills), broken shield (PvP deaths), crown (bosses) - with
+  a soft bevel and outline, mipmapped for any UI scale and tinted from the active design.
+  The "clear log" button shows a trash can instead of an X that looked like "close".
+- Info panels beside the journal (category, achievement, list and currency details) follow
+  the active design: design colors, accent line on top, left-aligned title and text.
+  Fixed: long texts (e.g. Crown Store quests) could be cut into one overflowing line - the
+  panel height now always fits the wrapped text. The list help showed an empty box instead
+  of the clear symbol; it now shows the trash icon.
+- World map: percentages are shown as badges in the active design - bold number with a
+  slim progress bar, colored by progress (red < 25%, orange < 50%, yellow < 75%, lime, green
+  at 100%); the large map percentage at the top uses the same style. New setting "Modern
+  percentage badges on the map" (on by default); off keeps the classic text with your own
+  font and color.
+  Zones sharing almost the same map center (Cyrodiil / Imperial City) are stacked with a
+  small gap instead of overlapping.
+- World map filter bar (All / Incomplete / <50% / 100% / Statistics) redesigned as a
+  segmented control in the active design; the active filter is underlined in the accent color.
+- Quest reward window on the map follows the active design (frame, accent line, title, divider).
+- /tpm aurbis lists every realm in the outer ring of the Aurbis map and why it has no badge
+  (quick filter, DLC not owned, no zone completion data).
+- Fixed: /tpm completed restores the previous 100% display (e.g. check mark) when completed
+  zones are shown again.
+- Performance: the alliance comparison is cached (10 s / until progress changes); color
+  sliders recolor live and rebuild the journal only once the slider rests.
+- Verified: no accidental global variables, all text keys exist in all five languages,
+  no format-placeholder mismatches that could raise Lua errors.
+- /tpm skin prints a short skin-engine diagnostic (design, pass time, errors).
+- Users still on the previous default (TPM Standard) are switched to Graphit once.
+
 2.7.5 - 2026-09-30
 - Replaced nonexistent Skyshard, Zone Story and Collections event names with documented events.
 - Fixed the economy tracking tooltip calling an undefined date-formatting function.

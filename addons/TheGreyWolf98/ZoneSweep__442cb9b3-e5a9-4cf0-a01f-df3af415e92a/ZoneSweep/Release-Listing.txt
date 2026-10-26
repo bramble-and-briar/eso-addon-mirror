@@ -1,0 +1,12 @@
+ZoneSweep
+By @TheGreyWolf98 | 0.5.2
+
+Track zone activities with character progress and account completion in one checklist.
+
+Browse categories for delves, bosses and other supported zone activities. Filter unfinished entries, review account totals and tick supported manual entries. Character progress and account achievements are displayed separately.
+
+Open /zs. Click the left stick for Socials / Support. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/GlandePas/Preview-Anywhere-see-your-furnishings-from-bank-house-storage-etc__4987",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "GlandePas",
+  "canonical_id": "esoui:4987",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4987",
+  "deleted": false,
+  "directories": [
+    "PreviewAnywhere"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4987/",
+  "fingerprint": "79d01d4c01b3f012cdf72eb92d6800323c3addbec58e4e4c6a73d6cfafd12bfb",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4987",
+  "source_url": "https://www.esoui.com/downloads/info4987-PreviewAnywhereseeyourfurnishingsfrombankhousestorageetc..html",
+  "stats": {
+    "downloads": 15,
+    "favorites": 2,
+    "monthly_downloads": 10
+  },
+  "title": "Preview Anywhere: see your furnishings from bank, house storage, etc.",
+  "updated_at": 1792948671000,
+  "version": "1"
+}

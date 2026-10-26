@@ -12,7 +12,7 @@ function AMW:FilterReason(record)
         end
     end
     if self.saved.filterEpicJewelry and craft == CRAFTING_TYPE_JEWELRYCRAFTING
-        and record.quality == ITEM_QUALITY_ARTIFACT
+        and record.quality == ITEM_FUNCTIONAL_QUALITY_ARTIFACT
         and (trait == ITEM_TRAIT_TYPE_JEWELRY_INFUSED or trait == ITEM_TRAIT_TYPE_JEWELRY_HARMONY) then
         return "Epic Infused or Harmony jewelry"
     end

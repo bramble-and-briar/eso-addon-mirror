@@ -1,0 +1,17 @@
+﻿## Title: Test suite
+## Author: Tek
+## Description: Build marketplace foundation: record, export, compare, and apply owned ESO character gear builds.
+## APIVersion: 101050
+## AddOnVersion: 1617
+## Version: 1.6.17
+## SavedVariables: BuildForge_Data
+## OptionalDependsOn: LibAddonMenu-2.0
+
+BuildForgeUI.xml
+Constants.lua
+BuildRecorder.lua
+BuildApplier.lua
+BuildAutomation.lua
+BuildExport.lua
+BuildForgeUI.lua
+BuildForge.lua

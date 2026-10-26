@@ -1,7 +1,7 @@
 local CM = CraftMaster
 local WM = WINDOW_MANAGER
-local FONT = "$(MEDIUM_FONT)|26|soft-shadow-thin"
-local TITLE_FONT = "$(BOLD_FONT)|34|soft-shadow-thick"
+local FONT = "$(GAMEPAD_MEDIUM_FONT)|26|soft-shadow-thin"
+local TITLE_FONT = "$(GAMEPAD_MEDIUM_FONT)|38|soft-shadow-thin"
 local ROW = 43
 local QUALITY = { [0] = "999999", [1] = "eeeeee", [2] = "70d85a", [3] = "66b7ff", [4] = "c38bff", [5] = "ffd45c" }
 local FILTERS = { "All", "Learned", "Missing", "Not checked" }
@@ -21,7 +21,7 @@ local function backdrop(parent, x, y, w, h, r, g, b, a)
     c:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     c:SetDimensions(w, h)
     c:SetCenterColor(r, g, b, a)
-    c:SetEdgeColor(.3, .4, .5, .7)
+    c:SetEdgeColor(.55, .36, .13, 1)
     return c
 end
 local function button(parent, text, x, y, w, callback)
@@ -509,7 +509,7 @@ function CM:CreateWindow()
     label(panel, "by @TheGreyWolf98", w - 370, 16, 345, 40)
     self.characterLabel = label(panel, "", 24, 63, w - 470, 36)
     self.characterLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    self.summary = label(panel, "", 24, 99, w - 48, 35, "$(MEDIUM_FONT)|23|soft-shadow-thin")
+    self.summary = label(panel, "", 24, 99, w - 48, 35, "$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
     self.summary:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     button(panel, "Character", w - 434, 62, 180, function() self:CycleCharacter() end)
     button(panel, "Set as main", w - 244, 62, 220, function() self:SetMain(self.viewCharacter) end)
@@ -547,8 +547,8 @@ function CM:CreateWindow()
     self.filterLabel = filterLabel
     local _, tabLabel = button(panel, "Housing", w - 165, 148, 141, function() self:CycleTab() end)
     self.tabLabel = tabLabel
-    self.focusLabel = label(panel, "", 24, 197, left, 30, "$(MEDIUM_FONT)|23|soft-shadow-thin")
-    self.pages = label(panel, "", listX, 197, w - listX - 24, 30, "$(MEDIUM_FONT)|23|soft-shadow-thin")
+    self.focusLabel = label(panel, "", 24, 197, left, 30, "$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+    self.pages = label(panel, "", listX, 197, w - listX - 24, 30, "$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
     self.categoryRows, self.resultRows = {}, {}
     for i = 1, self.rowCount do
         local y = listY + (i - 1) * ROW
@@ -578,16 +578,17 @@ function CM:CreateWindow()
         self.resultRows[i] = result
     end
     local detailY = listY + self.rowCount * ROW + 7
-    self.detail = label(panel, "", 24, detailY, w - 48, 112, "$(MEDIUM_FONT)|24|soft-shadow-thin")
+    self.detail = label(panel, "", 24, detailY, w - 48, 112, "$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
     self.detail:SetVerticalAlignment(TEXT_ALIGN_TOP)
-    label(panel, "Stick left/right: categories/results  |  A: select  |  LT: change section  |  LB/RB: pages", 24, h - 35, w - 48, 30, "$(MEDIUM_FONT)|21|soft-shadow-thin")
+    label(panel, "Stick left/right: categories/results  |  A: select  |  LT: change section  |  LB/RB: pages", 24, h - 35, w - 48, 30, "$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
     panel:SetHandler("OnMouseWheel", function(_, delta) self:MoveSelection(-delta) end)
     self.keybinds = {
         alignment = KEYBIND_STRIP_ALIGN_CENTER,
+ {name="Socials / Support",keybind="UI_SHORTCUT_LEFT_STICK",callback=function()self.returningFromSocials=true;TGWCraftMasterSocials.Show()end},
         { name = "Select", keybind = "UI_SHORTCUT_PRIMARY", callback = function() self:Select() end },
         { name = "Filter", keybind = "UI_SHORTCUT_SECONDARY", callback = function() self:CycleFilter() end },
         { name = "Character", keybind = "UI_SHORTCUT_TERTIARY", callback = function() self:CycleCharacter() end },
-        { name = "Search", keybind = "UI_SHORTCUT_QUATERNARY", callback = function() self:SearchFocus() end },
+        { name = "Search", keybind = "UI_SHORTCUT_RIGHT_STICK", callback = function() self:SearchFocus() end },
         { name = "Prev", keybind = "UI_SHORTCUT_LEFT_SHOULDER", callback = function() self:Page(-1) end },
         { name = "Next", keybind = "UI_SHORTCUT_RIGHT_SHOULDER", callback = function() self:Page(1) end },
         { name = "Housing / Recipes / Motifs", keybind = "UI_SHORTCUT_LEFT_TRIGGER", callback = function() self:CycleTab() end },
@@ -610,7 +611,8 @@ function CM:CreateWindow()
     if UI_SHORTCUTS_ACTION_LAYER_FRAGMENT then scene:AddFragment(UI_SHORTCUTS_ACTION_LAYER_FRAGMENT) end
     scene:RegisterCallback("StateChange", function(_, state)
         if state == SCENE_SHOWING then
-            if not self.returningFromPreview then self.viewCharacter = self.sv.main or self.viewCharacter end
+            if not self.returningFromPreview and not self.returningFromSocials then self.viewCharacter = self.sv.main or self.viewCharacter end
+            self.returningFromSocials=false
             self.returningFromPreview = false
             self:Refresh()
             KEYBIND_STRIP:AddKeybindButtonGroup(self.keybinds)

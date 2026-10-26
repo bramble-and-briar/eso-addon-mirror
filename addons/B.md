@@ -36,7 +36,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
 | [Banker Shutup Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/Banker-Shutup-Patch__839) | rkuhnjr | PC / Mac | 3.5b |
-| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.6 |
+| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.7.1 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
 | [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.14 |
@@ -85,6 +85,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BGHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/BGHelper__4527) | NPViral | PC / Mac | 3.0 |
 | [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.9.1 |
 | [Bigger Chat Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Bigger-Chat-Window__657) | Crabby654 | PC / Mac | 1.6.3 |
+| [Bind & Invite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Bind-Invite__23c652bc-541e-443a-8f1f-e2f7c0bfef13) | TheGreyWolf98 | Console | — |
 | [Bind As Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Bind-As-Junk__4608) | Fluffiels | PC / Mac | 1.03 |
 | [BindAll (Sticker Book Collector)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/BindAll-Sticker-Book-Collector__2825) | ownedbynico | PC / Mac | 1.5 |
 | [BindAll (Sticker Book Collector) - Update 45 Fallen Banners](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/masasumedx/BindAll-Sticker-Book-Collector---Update-45-Fallen-Banners__4063) | masasumedx | PC / Mac | 1.5.1 |

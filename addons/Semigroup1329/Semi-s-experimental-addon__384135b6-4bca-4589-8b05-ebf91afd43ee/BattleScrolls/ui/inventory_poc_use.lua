@@ -24,6 +24,7 @@ local containerUse
 ---@param pending InventoryPocPending
 function ui.beginUse(pending)
     if pending.action == 'open' then
+        BattleScrolls.inventoryPocCoffers.beginUse(pending.item.itemId)
         -- Inventory reconciliation can finish before the final loot updates arrive.
         pending.contents = {}
         containerUse = { name = pending.item.name, expiresAt = pending.started + USE_TIMEOUT_MS, taken = false, closed = false,
@@ -121,6 +122,7 @@ local function takeOwnContainer()
         return
     end
     use.taken = true
+    BattleScrolls.inventoryPocCoffers.capture(use.contents)
     LootAll(false)
     EndLooting()
     poc.resume()

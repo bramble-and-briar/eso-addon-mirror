@@ -1,0 +1,28 @@
+AI DISCLOSURE
+Code was generated and revised with OpenAI ChatGPT/Codex under the direction
+of the add-on author. Automated tests do not constitute an independent human
+review, proof of correct live reward detection, or approval by ESOUI/ZOS.
+
+AUTHOR AND REVIEW ACKNOWLEDGEMENTS
+J. Callahan / SandmanNinja: original author attribution and ESOUI publisher,
+feature requirements, and user testing feedback.
+Baertram: ESOUI moderator feedback on local scope, native event filters,
+native string formatting, login messages, language limits, and disclosure.
+Acknowledgement of feedback does not imply endorsement or approval.
+
+TECHNICAL SOURCES CONSULTED FOR THIS CLEANUP
+ZeniMax Online Studios: ESO APIs and string-formatting implementation:
+https://github.com/esoui/esoui/blob/live/ESOUIDocumentation.txt
+https://github.com/esoui/esoui/blob/live/esoui/libraries/globals/localization.lua
+ZO_SavedVars, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AddFilterForEvent,
+REGISTER_FILTER_BAG_ID, REGISTER_FILTER_INVENTORY_UPDATE_REASON,
+zo_strformat, zo_strlower, item/loot APIs, and UI control APIs.
+
+Existing behavior was preserved from the author's published version 1.1.0:
+https://www.esoui.com/downloads/info4978-PlunderSkullTracker.html
+No separate third-party add-on source was introduced by this cleanup.
+
+ESOUI community guidance:
+https://www.esoui.com/forums/showthread.php?t=10790
+https://www.esoui.com/forums/showthread.php?t=11
+https://www.esoui.com/forums/showthread.php?t=9865

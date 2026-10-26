@@ -4,7 +4,6 @@ local actionChoices = {
 	[1] = GetString(BANKIR_MENU_MODE_DO_NOTHING),
 	[2] = GetString(BANKIR_MENU_MODE_DEPOSIT),
 	[3] = GetString(BANKIR_MENU_MODE_WITHDRAW),
-	[4] = GetString(BANKIR_MENU_MODE_DEPOSIT_AND_WITHDRAW),
 }
 
 local qualityChoices = {
@@ -16,7 +15,7 @@ local qualityChoices = {
 }
 
 local function getSavedVarForIdType(idTypeStr)
-	local selectedBagRules = Bankir.savedVars.rules[Bankir.Menu.selectedBankId]
+	local selectedBagRules = Bankir.savedVarsProfile[Bankir.Menu.selectedBankId]
 	if idTypeStr == "itemType" then
 		return selectedBagRules.byItemType
 	elseif idTypeStr == "specializedItemType" then
@@ -50,9 +49,9 @@ end
 local function getStacks(id, idTypeStr)
 	local rule = getSavedVarForIdType(idTypeStr)[id]
 	if rule then
-		return rule.push, rule.pull
+		return rule.push, rule.pull, rule.pullInStacks
 	else
-		return 0, 0
+		return 0, 0, false
 	end
 end
 
@@ -77,15 +76,16 @@ local function setStacks(value, action, id, idTypeStr)
 				end
 			end
 		end
-		-- update tween itemIds
-		if idTypeStr == "itemId" and Bankir.Data.itemIdTweens[id] then
-			for i, childId in ipairs(Bankir.Data.itemIdTweens[id]) do
-				setStacks(value, action, childId, "itemId")
+		-- update tweens
+		if Bankir.Data.tweens[idTypeStr][id] then
+			for i, childId in ipairs(Bankir.Data.tweens[idTypeStr][id]) do
+				setStacks(value, action, childId, idTypeStr)
 			end
 		end
 	end
 	
-	local anotherAction = action == "push" and "pull" or "push"
+	local anotherAction
+	if action == "push" then anotherAction = "pull" else anotherAction = "push" end
 	if value == 0 and ruleList[id][anotherAction] == 0 then
 		ruleList[id] = nil
 	end
@@ -105,10 +105,10 @@ local function setQuality(value, id, idTypeStr)
 			end
 		end
 	end
-	-- update tween itemIds too
-	if idTypeStr == "itemId" and Bankir.Data.itemIdTweens[id] then
-		for i, childId in ipairs(Bankir.Data.itemIdTweens[id]) do
-			setQuality(value, childId, "itemId")
+	-- update tweens
+	if Bankir.Data.tweens[idTypeStr][id] then
+		for i, childId in ipairs(Bankir.Data.tweens[idTypeStr][id]) do
+			setQuality(value, childId, idTypeStr)
 		end
 	end
 end
@@ -178,17 +178,17 @@ local function makeCurrencyTab(currencyTypes)
 			tooltip = GetString(BANKIR_MENU_CURRENCY_DEPOSIT_DESC),
 			width = "full",
 			getFunc = function()
-				if Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency then
-					return Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].push
+				if Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
+					return Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].push
 				else
 					return false
 				end
 			end,
 			setFunc = function(value)
-				Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].push = value
+				Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].push = value
 			end,
 			disabled = function()
-				if not Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency then
+				if not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
 					return true
 				elseif Bankir.Menu.selectedBankId ~= BAG_BANK and currencyType ~= CURT_MONEY then
 					return true
@@ -202,17 +202,17 @@ local function makeCurrencyTab(currencyTypes)
 			tooltip = GetString(BANKIR_MENU_CURRENCY_WITHDRAW_DESC),
 			width = "full",
 			getFunc = function()
-				if Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency then
-					return Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].pull
+				if Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
+					return Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull
 				else
 					return false
 				end
 			end,
 			setFunc = function(value)
-				Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].pull = value
+				Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull = value
 			end,
 			disabled = function()
-				if not Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency then
+				if not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
 					return true
 				elseif Bankir.Menu.selectedBankId ~= BAG_BANK and currencyType ~= CURT_MONEY then
 					return true
@@ -224,26 +224,26 @@ local function makeCurrencyTab(currencyTypes)
 			name = GetString(BANKIR_MENU_CURRENCY_AMOUNT),
 			tooltip = GetString(BANKIR_MENU_CURRENCY_AMOUNT_DESC),
 			min = 0,
-			max = 100000,
+			max = Bankir.savedVarsCommon.currencySlidersMaxValue,
 			step = 500,
 			width = "full",
 			getFunc = function()
-				if Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency then
-					return Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].amount
+				if Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
+					return Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].amount
 				else
 					return 0
 				end
 			end,
 			setFunc = function(value)
-				Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].amount = value
+				Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].amount = value
 			end,
 			disabled = function()
-				if not Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency then
+				if not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
 					return true
 				elseif Bankir.Menu.selectedBankId ~= BAG_BANK and currencyType ~= CURT_MONEY then
 					return true
-				elseif not Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].push
-				and not Bankir.savedVars.rules[Bankir.Menu.selectedBankId].currency[currencyType].pull then
+				elseif not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].push
+				and not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull then
 					return true
 				end
 			end,
@@ -282,9 +282,19 @@ local function makeQualityDropdown(id, idTypeStr, modeDropdown)
 	}
 end
 
-local function makeProfilesSubmenu()
-	local controls = {
-		{
+local function makeSelectedProfileLabel()
+	return {
+		type = "description",
+		title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile,
+		tooltip = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME_DESC),
+		width = "full",
+		reference = "BankirMenuSelectedProfileLabel",
+	}
+end
+
+local function makeSettingsMenu()
+	local controls = {}
+	table.insert(controls, {
 			type = "dropdown",
 			name = GetString(BANKIR_MENU_PROFILE_SELECT),
 			tooltip = GetString(BANKIR_MENU_PROFILE_SELECT_DESC),
@@ -294,9 +304,11 @@ local function makeProfilesSubmenu()
 			getFunc = function() return Bankir.savedVarsCharacter.profile end,
 			setFunc = function(selectedChoice)
 				Bankir.Profiles.setCurrentProfile(selectedChoice)
+				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
+				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
 			end,
-		},
-		{
+		})
+	table.insert(controls, {
 			type = "editbox",
 			name = GetString(BANKIR_MENU_PROFILE_EDIT_NAME),
 			width = "full",
@@ -304,51 +316,106 @@ local function makeProfilesSubmenu()
 			setFunc = function(text)
 				Bankir.Profiles.updateCurrentProfileName(Bankir.savedVarsCharacter.profile, text)
 				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
+				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
 			end,
 			isMultiline = false,
-		},
-		{
+		})
+	table.insert(controls, {
 			type = "button",
 			name = GetString(BANKIR_MENU_PROFILE_NEW),
 			func = function()
 				Bankir.Profiles.createNewProfile("New profile")
 				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
+				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
 			end,
 			width = "full",
-		},
-		{
+		})
+	table.insert(controls, {
 			type = "button",
 			name = GetString(BANKIR_MENU_PROFILE_COPY),
 			tooltip = GetString(BANKIR_MENU_PROFILE_COPY_DESC),
 			func = function()
 				Bankir.Profiles.copyCurrentProfile()
 				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
+				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
 			end,
 			width = "full",
-		},
-		{
+		})
+	table.insert(controls, {
 			type = "button",
 			name = GetString(BANKIR_MENU_PROFILE_DELETE),
 			func = function()
 				Bankir.Profiles.deleteCurrentProfile()
 				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
+				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
 			end,
 			width = "full",
 			isDangerous = true,
 			warning = GetString(BANKIR_MENU_PROFILE_DELETE_WARNING),
 			disabled = function() return #Bankir.Profiles.getProfilesNames() == 1 end,
-		},
-	}
-	return {
-		type = "submenu",
-		name = GetString(BANKIR_MENU_PROFILES),
-		controls = controls,
-	}
+		})
+	table.insert(controls, divider)
+	table.insert(controls, {
+			type = "checkbox",
+			name = GetString(BANKIR_MENU_MOVE_LOCKED_ITEMS),
+			tooltip = GetString(BANKIR_MENU_MOVE_LOCKED_ITEMS_DESC),
+			getFunc = function()
+				return Bankir.savedVarsCommon.moveLockedItems
+			end,
+			setFunc = function(value)
+				Bankir.savedVarsCommon.moveLockedItems = value
+			end,
+		})
+	table.insert(controls, {
+			type = "checkbox",
+			name = GetString(BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE),
+			tooltip = GetString(BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE_DESC),
+			getFunc = function()
+				return Bankir.savedVarsCommon.showOperationFailMessages
+			end,
+			setFunc = function(value)
+				Bankir.savedVarsCommon.showOperationFailMessages = value
+			end,
+		})
+	table.insert(controls, {
+			type = "editbox",
+			name = GetString(BANKIR_MENU_BANK_SLIDERS_MAX_VALUE),
+			tooltip = zo_strformat(GetString(BANKIR_MENU_BANK_SLIDERS_MAX_VALUE_DESC), GetString(SI_ITEM_ACTION_BANK_DEPOSIT), GetString(SI_ITEM_ACTION_BANK_WITHDRAW)),
+			width = "full",
+			isMultiline = false,
+			textType = TEXT_TYPE_NUMERIC,
+			default = Bankir.savedVarsCommon.bankSlidersMaxValue,
+			requiresReload = true,
+			getFunc = function() return Bankir.savedVarsCommon.bankSlidersMaxValue end,
+			setFunc = function(text)
+				Bankir.savedVarsCommon.bankSlidersMaxValue = tonumber(text)
+			end,
+		})
+	table.insert(controls, {
+			type = "editbox",
+			name = GetString(BANKIR_MENU_CURRENCY_SLIDERS_MAX_VALUE),
+			tooltip = zo_strformat(GetString(BANKIR_MENU_CURRENCY_SLIDERS_MAX_VALUE_DESC), GetString(SI_ITEM_ACTION_BANK_DEPOSIT), GetString(SI_ITEM_ACTION_BANK_WITHDRAW)),
+			width = "full",
+			isMultiline = false,
+			textType = TEXT_TYPE_NUMERIC,
+			default = Bankir.savedVarsCommon.currencySlidersMaxValue,
+			requiresReload = true,
+			getFunc = function() return Bankir.savedVarsCommon.currencySlidersMaxValue end,
+			setFunc = function(text)
+				Bankir.savedVarsCommon.currencySlidersMaxValue = tonumber(text)
+			end,
+		})
+	
+	return controls
 end
 
-local function makeDropdownAndSlider(id, idTypeStr)
+local function makeIdTypeSliders(id, idTypeStr)
 	-- pre-declare so the functions of these two know about each other
-	local dropdown, label, sliderPush, sliderPull
+	local header, label, sliderPush, sliderPull, pullCheckbox
 	
 	-- prepare name for dropdown
 	local name = Bankir.Functions.getNameOfType(id, idTypeStr)
@@ -357,34 +424,20 @@ local function makeDropdownAndSlider(id, idTypeStr)
 		name = name .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
 	end
 	
+	header = {
+		type = "header",
+		name = name,
+	}
 	label = {
 		type = "description",
 		title = name,
-		width = "full",
-	}
-	dropdown = {
-		type = "dropdown",
-		name = name,
-		tooltip = name,
-		width = "full",
-		choices = actionChoices,
-		getFunc = function()
-			local ruleList = getSavedVarForIdType(idTypeStr)
-			if ruleList[id] then
-				return actionChoices[2]
-			else return actionChoices[1] end
-		end,
-		setFunc = function(selectedChoice)
-			local stacksPush, stacksPull = getStacks(id, idTypeStr, selectedChoice)
-			setStacks(stacksPush, "push", id, idTypeStr, selectedChoice)
-		end,
 	}
 	sliderPush = {
 		type = "slider",
-		name = GetString(BANKIR_MENU_MAX_STACKS_TO_PUSH),
-		tooltip = GetString(BANKIR_MENU_MAX_STACKS_DESC),
+		name = GetString(SI_ITEM_ACTION_BANK_DEPOSIT),
+		tooltip = GetString(BANKIR_MENU_PUSH_DESC),
 		min = 0,
-		max = 50,
+		max = Bankir.savedVarsCommon.bankSlidersMaxValue,
 		step = 1,
 		width = "full",
 		getFunc = function()
@@ -396,10 +449,10 @@ local function makeDropdownAndSlider(id, idTypeStr)
 	}
 	sliderPull = {
 		type = "slider",
-		name = GetString(BANKIR_MENU_MIN_ITEMS_TO_PULL),
-		tooltip = GetString(BANKIR_MENU_MIN_ITEMS_DESC),
+		name = GetString(SI_ITEM_ACTION_BANK_WITHDRAW),
+		tooltip = GetString(BANKIR_MENU_PULL_DESC),
 		min = 0,
-		max = 50,
+		max = Bankir.savedVarsCommon.bankSlidersMaxValue,
 		step = 1,
 		width = "full",
 		getFunc = function()
@@ -409,38 +462,49 @@ local function makeDropdownAndSlider(id, idTypeStr)
 			setStacks(value, "pull", id, idTypeStr)
 		end,
 	}
-	return dropdown, label, sliderPush, sliderPull
+	pullCheckbox = {
+		type = "checkbox",
+		name = zo_strformat(GetString(BANKIR_MENU_PULL_IN_STACKS), GetString(SI_ITEM_ACTION_BANK_WITHDRAW)),
+		tooltip = zo_strformat(GetString(BANKIR_MENU_PULL_IN_STACKS_DESC), GetString(SI_ITEM_ACTION_BANK_WITHDRAW)),
+		width = "full",
+		getFunc = function()
+			return select(3, getStacks(id, idTypeStr))
+		end,
+		setFunc = function(value)
+			setStacks(value, "pullInStacks", id, idTypeStr)
+		end,
+	}
+	return header, label, sliderPush, sliderPull, pullCheckbox
 end
 
-local function makeWidgetsForTypes(idTypeStr, ids)
+local function makeWidgetsForTypes(typesData)
 	local controls = {}
-	for i, id in ipairs(ids) do
-		local dropdown, label, sliderPush, sliderPull = makeDropdownAndSlider(id, idTypeStr)
-		--table.insert(controls, dropdown)
-		table.insert(controls, label)
+	for i, typeData in ipairs(typesData) do
+		local id = typeData.id
+		local idTypeStr = typeData.idTypeStr
+		local header, _, sliderPush, sliderPull, pullCheckbox = makeIdTypeSliders(id, idTypeStr)
+		table.insert(controls, header)
 		table.insert(controls, sliderPush)
 		table.insert(controls, sliderPull)
+		table.insert(controls, pullCheckbox)
 		local isQualityRuled = false
-		if idTypeStr == "itemType" then
-			for i = 1, #Bankir.Data.qualityRuledItemTypes do
-				if Bankir.Data.qualityRuledItemTypes[i] == id then
-					isQualityRuled = true
-					local qualityDropdown = makeQualityDropdown(id, idTypeStr, dropdown)
-					table.insert(controls, qualityDropdown)
-				end
+		for i = 1, #Bankir.Data.qualityRuledItemTypes[idTypeStr] do
+			if Bankir.Data.qualityRuledItemTypes[idTypeStr][i] == id then
+				isQualityRuled = true
+				local qualityDropdown = makeQualityDropdown(id, idTypeStr, dropdown)
+				table.insert(controls, qualityDropdown)
 			end
 		end
 		local childrenLists = getTypeChildrenLists(id, idTypeStr)
 		if childrenLists then
 			for _, list in ipairs(childrenLists) do
-				table.insert(controls, dividerInvisible)
 				for i, childId in ipairs(list.list) do
-					local dropdown, label, sliderPush, sliderPull = makeDropdownAndSlider(childId, list.idTypeStr)
+					local _, label, sliderPush, sliderPull, pullCheckbox = makeIdTypeSliders(childId, list.idTypeStr)
 					table.insert(controls, dividerSmall)
-					--table.insert(controls, dropdown)
 					table.insert(controls, label)
 					table.insert(controls, sliderPush)
 					table.insert(controls, sliderPull)
+					table.insert(controls, pullCheckbox)
 					if isQualityRuled then
 						local qualityDropdown = makeQualityDropdown(childId, list.idTypeStr, dropdown)
 						table.insert(controls, qualityDropdown)
@@ -449,16 +513,57 @@ local function makeWidgetsForTypes(idTypeStr, ids)
 			end
 		end
 		table.insert(controls, dividerInvisible)
-		table.insert(controls, divider)
+	end
+	return controls
+end
+
+local function makeLCKSettings()
+	local LCK = LibCharacterKnowledge
+	
+	local controls = {
+		{
+			type = "header",
+			name = "LibCharacterKnowledge",
+		},
+		{
+			type = "description",
+			title = GetString(BANKIR_MENU_INTEGRATIONS_LCK_DESC),
+			disabled = LCK == nil,
+		},
+		divider,
+	}
+	
+	local currentId = GetCurrentCharacterId()
+	for _, charData in pairs(Bankir.Data.charactersList) do
+		if charData.id ~= currentId then
+			table.insert(controls, {
+				type = "checkbox",
+				name = charData.name,
+				width = "full",
+				getFunc = function()
+					return Bankir.savedVarsServer.Integrations.LCK.CharactersList[charData.id] ~= nil
+				end,
+				setFunc = function(value)
+					Bankir.savedVarsServer.Integrations.LCK.CharactersList[charData.id] = value and true or nil
+				end,
+				disabled = function()
+					return LCK == nil
+				end,
+			})
+		end
 	end
 	return controls
 end
 
 Bankir.MenuBuildFunctions = {
 	divider = divider,
+	dividerSmall = dividerSmall,
 	makeHeader = makeHeader,
-	makeProfilesSubmenu = makeProfilesSubmenu,
 	makeBankSelector = makeBankSelector,
 	makeCurrencyTab = makeCurrencyTab,
+	makeProfileSelector = makeProfileSelector,
+	makeSelectedProfileLabel = makeSelectedProfileLabel,
+	makeSettingsMenu = makeSettingsMenu,
 	makeWidgetsForTypes = makeWidgetsForTypes,
+	makeLCKSettings = makeLCKSettings,
 }

@@ -1,0 +1,11 @@
+## Title: Runtime Watch
+## Author: @TheGreyWolf98
+## Description: Short script CPU captures, startup clues and baseline comparison. Open /runtime or /diag.
+## Version: 0.1.0
+## AddOnVersion: 1
+## APIVersion: 101050 101051
+## SavedVariables: TGWRuntimeWatchSaved
+
+Socials.lua
+Core.lua
+UI.lua

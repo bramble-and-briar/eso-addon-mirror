@@ -141,6 +141,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AI Research Grid - Unofficial update by Kationa](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kationa/AI-Research-Grid---Unofficial-update-by-Kationa__3241) | Kationa | PC / Mac | 11.5.2 |
 | [AI Vampire Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stormknight/AI-Vampire-Status__340) | Stormknight | PC / Mac | 2.4.3 |
 | [AiM's Synergy Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AiMPlAyEr/AiM-s-Synergy-Tracker__2084) | AiMPlAyEr | PC / Mac | 4.5 |
+| [AIRG-Unof.patch-DynStyleFixes51](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maxxermax/AIRG-Unof.patch-DynStyleFixes51__4996) | Maxxermax | PC / Mac | 11.5.05 |
 | [AIRG-Unof.patch-Fixes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pesakm/AIRG-Unof.patch-Fixes__3381) | pesakm | PC / Mac | 11.5.04 |
 | [AIRG-Unof.patch-Fixes35-2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pesakm/AIRG-Unof.patch-Fixes35-2__3466) | pesakm | PC / Mac | 11.5.04 |
 | [AIRG-Unof.patch-Fixes36](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pesakm/AIRG-Unof.patch-Fixes36__3515) | pesakm | PC / Mac | 11.5.04 |
@@ -198,6 +199,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.5.39 |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Alternative-Group-Frames__21f64968-c492-4b43-82ff-b7b1f25c7500) | Copper0 | Console | — |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Group-Frames__a020fed1-e58d-4c59-8ec5-6fb71e8ee9cc) | j.hhh | Console | — |
+| [ALTHI – &#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081; &#1103;&#1079;&#1099;&#1082;&#1086;&#1074;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Русский-языков__4991) | Namorstradam | PC / Mac | 0.9.4 |
+| [ALTHI – &#26085;&#26412;&#35486;&#35328;&#35486;&#12497;&#12483;&#12463;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-日本語言語パック__4993) | Namorstradam | PC / Mac | 0.9.4 |
+| [ALTHI – &#31616;&#20307;&#20013;&#25991;&#35821;&#35328;&#21253;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-简体中文语言包__4992) | Namorstradam | PC / Mac | 0.9.4 |
+| [ALTHI – Advanced Logging & Tracking of Harvested Items](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Advanced-Logging-Tracking-of-Harvested-Items__4984) | Namorstradam | PC / Mac | 0.9.4 |
+| [ALTHI – Pack de langue française](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Pack-de-langue-française__4989) | Namorstradam | PC / Mac | 0.9.4 |
+| [ALTHI – Paquete de idioma español](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Paquete-de-idioma-español__4990) | Namorstradam | PC / Mac | 0.9.4 |
 | [Always Logging](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eurymachos/Always-Logging__4081) | Eurymachos | PC / Mac | v3.1.12.1.0 |
 | [AlwaysCompass: Never Get Lost Again](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/AlwaysCompass-Never-Get-Lost-Again__4107) | Mouton | PC / Mac | 0.0.2 |
 | [AlwaysExpandedAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/AlwaysExpandedAttributeBars__2979) | partdark | PC / Mac | 4.0 |
@@ -358,7 +365,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Read](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Momotaur/Auto-Read__2548) | Momotaur | PC / Mac | 1.0.3 |
 | [Auto Read - Expanded](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gooseman/Auto-Read---Expanded__3707) | Gooseman | PC / Mac | 4 |
 | [Auto Recharge (and repair)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XanDDemoX/Auto-Recharge-and-repair__1091) | XanDDemoX | PC / Mac | 2.79 |
-| [Auto Recruit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Recruit__2571) | peniku8 | PC / Mac | 3.3.2 |
+| [Auto Recruit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Recruit__2571) | peniku8 | PC / Mac | 3.4.0 |
 | [Auto Remove Waypoint (Set Destination)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SSM24/Auto-Remove-Waypoint-Set-Destination__3544) | SSM24 | PC / Mac | 1.1.0 |
 | [Auto Repair and Recharge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Auto-Repair-and-Recharge__560a465f-d7b4-49ae-af7a-0558e1683ada) | Shienar | Console | — |
 | [Auto Research](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Research__6694e6d4-7ae0-4eb8-9a61-e1c53ac5c187) | Dolgubon | Console | — |

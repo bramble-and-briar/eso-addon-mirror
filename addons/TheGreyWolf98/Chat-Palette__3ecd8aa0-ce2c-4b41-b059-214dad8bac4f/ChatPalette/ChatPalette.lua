@@ -40,21 +40,22 @@ function M.Build()
  local wm=WINDOW_MANAGER;local w=wm:CreateTopLevelWindow("TGWChatPaletteWindow");M.window=w
  w:SetDimensions(1060,800);w:SetAnchor(CENTER,GuiRoot,CENTER,0,0);w:SetHidden(true)
  local sw,sh=GuiRoot:GetDimensions();w:SetScale(math.min(1,sw/1120,sh/860))
- local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.045,.036,.03,1);bg:SetEdgeColor(.5,.38,.2,1)
+ local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.025,.035,.05,1);bg:SetEdgeColor(.55,.36,.13,1)
  local function Label(x,y,width,height,font)
   local c=wm:CreateControl(nil,w,CT_LABEL);c:SetAnchor(TOPLEFT,w,TOPLEFT,x,y);c:SetDimensions(width,height);c:SetFont(font);c:SetColor(.9,.85,.75,1);return c
  end
- Label(35,25,1000,45,"ZoFontGamepad34"):SetText("Chat Palette  |  Your colours, every character")
+ Label(35,25,1000,45,"$(GAMEPAD_MEDIUM_FONT)|34|soft-shadow-thin"):SetText("CHAT PALETTE")
  local rule=wm:CreateControl(nil,w,CT_BACKDROP);rule:SetAnchor(TOPLEFT,w,TOPLEFT,35,88);rule:SetDimensions(990,2);rule:SetCenterColor(.5,.38,.2,1);rule:SetEdgeColor(0,0,0,0)
  M.highlights={}
  M.labels={};for i=1,12 do
   local shade=wm:CreateControl(nil,w,CT_BACKDROP);shade:SetAnchor(TOPLEFT,w,TOPLEFT,30,103+(i-1)*45);shade:SetDimensions(525,42);shade:SetCenterColor(.2,.15,.08,.9);shade:SetEdgeColor(.4,.3,.15,1);shade:SetHidden(true);M.highlights[i]=shade
- M.labels[i]=Label(35,105+(i-1)*45,515,42,"ZoFontGamepad22")end
- M.preview=Label(595,130,420,180,"ZoFontGamepad27")
- M.help=Label(595,345,420,320,"ZoFontGamepad22")
- Label(35,720,990,60,"ZoFontGamepad18"):SetText("A: hex editor  |  X: apply preset  |  LB/RB: choose preset  |  Y: reset selected channel\nLT/RT: page  |  @TheGreyWolf98  |  1.0.0  |  /chatcolours")
+ M.labels[i]=Label(35,105+(i-1)*45,515,42,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")end
+ M.preview=Label(595,115,420,210,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin")
+ M.help=Label(595,340,420,350,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ Label(35,720,990,60,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin"):SetText("A: hex  |  X: preset  |  Y: reset  |  LB/RB: presets  |  LT/RT: page\n@TheGreyWolf98  |  1.0.1  |  /chatcolours")
  local function Move(n)M.index=math.max(1,math.min(#M.rows,M.index+n));M.Render()end
  local keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
+ TGWChatPaletteSocials.Keybind(),
  {name="Hex colour",keybind="UI_SHORTCUT_PRIMARY",callback=M.Edit},
  {name="Apply preset",keybind="UI_SHORTCUT_SECONDARY",callback=function()M.Set(M.rows[M.index].id,presets[M.preset][2])end},
  {name="Reset channel",keybind="UI_SHORTCUT_TERTIARY",callback=M.Reset},
@@ -72,7 +73,7 @@ function M.Build()
   end
   local row=M.rows[M.index];local hex=M.Hex(row.id);local preset=presets[M.preset]
   M.preview:SetText(row.name.."\n\n|c"..hex.."Example chat message\n#"..hex.."|r")
-  M.help:SetText("Preset: |c"..preset[2]..preset[1].."  #"..preset[2].."|r\n\nSaved colours reapply when you log into another character on this server.\n\nOnly channels you change are shared. Reset returns a channel to ESO's default.\n\nCheck new chat messages after applying a colour.")
+  M.help:SetText("Preset: |c"..preset[2]..preset[1].."  #"..preset[2].."|r\n\nSaved colours follow your characters on this server.\n\nReset restores ESO's default for this channel.\n\nCheck new messages after a change.")
   if SCENE_MANAGER:IsShowing("tgwchatpalette")then KEYBIND_STRIP:UpdateKeybindButtonGroup(keys)end
  end
  local scene=ZO_Scene:New("tgwchatpalette",SCENE_MANAGER);scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW);scene:AddFragment(ZO_FadeSceneFragment:New(w))

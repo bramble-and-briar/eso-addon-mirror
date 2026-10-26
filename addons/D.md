@@ -63,6 +63,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Default Language Ninja - Language Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Default-Language-Ninja---Language-Selector__2692) | Shinntarou | PC / Mac | 1.0.3 |
 | [DELET NEED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SiameseCat/DELET-NEED__2926) | SiameseCat | PC / Mac | 0.0.1 |
 | [DeltaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/DeltaScry__4679) | sshogrin | PC / Mac | 1.0.0 |
+| [DelugeBlame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aeric_ESO/DelugeBlame__4988) | Aeric_ESO | PC / Mac | 1.0.0 |
 | [Deome's Settings Profiles Updated by BSKCorp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Deome-s-Settings-Profiles-Updated-by-BSKCorp__1942) | BSKCorp | PC / Mac | 1.11 |
 | [deprecated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EHansonn/deprecated__3638) | EHansonn | PC / Mac | 1.01 |
 | [DEPRECATED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/DEPRECATED__3465) | Masteroshi430 | PC / Mac | DEPRECATED |
@@ -178,7 +179,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Dungeon-Tracker__75746296-2f24-4d95-8fb5-1954d00fc1d6) | Eldibabalo | Console | — |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Dungeon-Tracker__1552) | Phinix | PC / Mac | 1.48 |
 | [Dungeon Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/secretrob/Dungeon-Travel__3139) | secretrob | PC / Mac | 2.3.6 |
-| [DungeonFinderPlus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HustenSaft/DungeonFinderPlus__4298) | HustenSaft | PC / Mac | 1.4.3 |
+| [DungeonFinderPlus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HustenSaft/DungeonFinderPlus__4298) | HustenSaft | PC / Mac | 1.4.4 |
 | [DungeonGear](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sirtith/DungeonGear__4514) | Sirtith | PC / Mac | 0.16.1 |
 | [DungeonHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oInsideOut/DungeonHistory__3872) | oInsideOut | PC / Mac | 1.1.2 |
 | [DungeonOrder - Alphabetical order for Dungeons!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KrykiZZ/DungeonOrder---Alphabetical-order-for-Dungeons__3701) | KrykiZZ | PC / Mac | 1.2.0 |

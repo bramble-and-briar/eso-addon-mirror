@@ -1,12 +1,12 @@
 ## Title: Auto Master Writs
 ## Description: Filter, bank, craft and deliver master writs with a 150% XP guard.
 ## APIVersion: 101051
-## Version: 1.51.01
-## AddOnVersion: 15101
+## Version: 1.51.02
+## AddOnVersion: 15102
 ## Author: xbutch
 ## DependsOn: DolgubonsLazyWritCreator LibLazyCrafting
-## ConsoleDependsOn: LibHarvensAddonSettings LibConsoleDialogs
-## OptionalDependsOn: LibRadialMenu LibHarvensAddonSettings LibConsoleDialogs
+## ConsoleDependsOn: LibHarvensAddonSettings
+## OptionalDependsOn: LibRadialMenu LibHarvensAddonSettings
 ## SavedVariables: AutoMasterWritsSavedVariables
 
 Core.lua
@@ -17,6 +17,7 @@ Materials.lua
 Experience.lua
 Banking.lua
 Extraction.lua
+DeliveryItems.lua
 Delivery.lua
 UI.lua
 Main.lua

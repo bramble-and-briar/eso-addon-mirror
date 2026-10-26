@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Namorstradam/ALTHI-Advanced-Logging-Tracking-of-Harvested-Items__4984",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Namorstradam",
+  "canonical_id": "esoui:4984",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4984",
+  "deleted": false,
+  "directories": [
+    "ALTHI"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4984/",
+  "fingerprint": "d0e9595db40ca4467403918bb7c42087f2853c5852e5db4faf7e984359f871d9",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18130.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18131.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18142.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18133.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18134.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18135.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18136.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18137.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18138.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4984",
+  "source_url": "https://www.esoui.com/downloads/info4984-ALTHIAdvancedLoggingTrackingofHarvestedItems.html",
+  "stats": {
+    "downloads": 13,
+    "favorites": 0,
+    "monthly_downloads": 11
+  },
+  "title": "ALTHI \u2013 Advanced Logging & Tracking of Harvested Items",
+  "updated_at": 1792953593000,
+  "version": "0.9.4"
+}

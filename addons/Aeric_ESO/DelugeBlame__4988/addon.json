@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Aeric_ESO/DelugeBlame__4988",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Aeric_ESO",
+  "canonical_id": "esoui:4988",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4988",
+  "deleted": false,
+  "directories": [
+    "DelugeBlame"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4988/",
+  "fingerprint": "ec9344b161360c814c580eeb414e2782733fd5199ee8772d8765cc6900d0da8b",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4988",
+  "source_url": "https://www.esoui.com/downloads/info4988-DelugeBlame.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "DelugeBlame",
+  "updated_at": 1792952223000,
+  "version": "1.0.0"
+}

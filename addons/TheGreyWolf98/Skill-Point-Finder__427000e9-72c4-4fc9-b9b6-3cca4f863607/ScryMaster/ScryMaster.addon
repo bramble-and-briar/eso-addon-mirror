@@ -1,0 +1,10 @@
+## Title: Scry Master
+## Description: Browse zone antiquities, expandable mythic fragments, excavation history and codex progress. Open /sm.
+## Author: @TheGreyWolf98
+## Version: 1.0.2
+## APIVersion: 101051
+
+Socials.lua
+ScryMaster.lua
+ScryMasterUI.lua
+Bindings.xml

@@ -2,6 +2,7 @@ local O=ObsidianHUD
 local originals={}
 local move
 local currentProfile
+local currentFixed
 local titles={skills="Skillleiste und Backbar",ultimate="Ultimate und Backbar",quickslot="Traenke / Schnellzugriff",buffs="Eigene Buffanzeige"}
 local function mode() return IsInGamepadPreferredMode and IsInGamepadPreferredMode() and "controller" or "keyboard" end
 local function positions(profile)
@@ -15,6 +16,44 @@ local function target(key)
     local slot=key=="skills" and 3 or (key=="ultimate" and 8 or 1)
     local button=ZO_ActionBar_GetButton(slot,key=="quickslot" and HOTBAR_CATEGORY_QUICKSLOT_WHEEL or nil)
     return button and button.slot
+end
+function O.IsFixedSkillView()
+    return O.vars.skillHudView=="fixed" or O.vars.skillHudView=="fixed_dual"
+end
+function O.DualUltimateView()
+    return O.vars.skillHudView=="fixed_dual" and O.vars.backBar
+end
+function O.FixedSkillRows()
+    if not O.IsFixedSkillView() or not O.vars.backBar then return false end
+    local active=GetActiveHotbarCategory()
+    return active==HOTBAR_CATEGORY_PRIMARY or active==HOTBAR_CATEGORY_BACKUP
+end
+function O.SkillRowGap(control)
+    -- The slot artwork extends nine units beyond the stable native slot;
+    -- its outer bevel occupies 60 of the 64 texture pixels.
+    return (control:GetHeight()+9)*60/64
+end
+function O.UltimateRowSeparation()
+    local skills,ultimate=target("skills"),target("ultimate")
+    if not skills or not ultimate then return 80 end
+    return math.max(O.SkillRowGap(skills),O.SkillRowGap(ultimate))+16
+end
+function O.SkillRowOffset(key)
+    if not O.FixedSkillRows() then return 0 end
+    if key=="ultimate" then
+        local first=target("skills")
+        local center=first and -O.SkillRowGap(first)/2 or 0
+        if O.DualUltimateView() then
+            return center+(GetActiveHotbarCategory()==HOTBAR_CATEGORY_PRIMARY and -1 or 1)*O.UltimateRowSeparation()/2
+        end
+        return center
+    end
+    if key~="skills" or GetActiveHotbarCategory()~=HOTBAR_CATEGORY_PRIMARY then return 0 end
+    local control=target(key)
+    return control and -O.SkillRowGap(control) or 0
+end
+function O.NativeHudOffset(key)
+    return O.SkillRowOffset(key)-(O.FixedSkillRows() and titles[key] and 32 or 0)
 end
 local function capture(control)
     if originals[control] then return end
@@ -51,13 +90,47 @@ end
 function O.UpdateNativePositions()
     if not O.vars.enabled then O.ReleaseNativePositions(); return end
     local profile=mode()
-    if currentProfile~=profile then O.ReleaseNativePositions(); currentProfile=profile end
-    for key,pos in pairs(positions()) do
+    local fixed=O.FixedSkillRows()
+    if currentProfile~=profile or currentFixed~=fixed then
+        O.ReleaseNativePositions(); currentProfile=profile; currentFixed=fixed
+    end
+    local planned={}
+    for key,pos in pairs(positions()) do planned[key]=pos end
+    if fixed then
+        -- Capture all baselines before moving the skill group: ESO normally
+        -- anchors the ultimate to the fifth skill, so it would move twice.
+        for _,key in ipairs({"skills","ultimate","quickslot","buffs"}) do
+            local control=target(key)
+            if control then
+                capture(control)
+                local old=originals[control]
+                if not old.fixedBase then old.fixedBase={
+                    x=(control:GetLeft()+control:GetWidth()/2)/GuiRoot:GetWidth(),
+                    y=(control:GetTop()+control:GetHeight()/2)/GuiRoot:GetHeight()} end
+                planned[key]=planned[key] or old.fixedBase
+            end
+        end
+        if planned.skills and planned.ultimate then
+            planned.ultimate={x=planned.ultimate.x,y=planned.skills.y}
+        end
+    end
+    for key,pos in pairs(planned) do
         local control=titles[key] and target(key)
         if control then
             local w,h=control:GetWidth(),control:GetHeight()
             local x=math.max(w/2,math.min(GuiRoot:GetWidth()-w/2,pos.x*GuiRoot:GetWidth()))
-            local y=math.max(h/2,math.min(GuiRoot:GetHeight()-h/2,pos.y*GuiRoot:GetHeight()))
+            local bottom=GuiRoot:GetHeight()-h/2
+            if fixed and key~="buffs" then
+                -- Reserve the lower row's native binding glyphs and a margin,
+                -- even while the active button itself is on the upper row.
+                bottom=bottom-38+O.SkillRowOffset(key)
+                if key=="ultimate" and O.DualUltimateView() then
+                    local first=target("skills")
+                    local lower=first and -O.SkillRowGap(first)/2+O.UltimateRowSeparation()/2 or 0
+                    bottom=bottom-math.max(0,lower)
+                end
+            end
+            local y=math.max(h/2,math.min(bottom,pos.y*GuiRoot:GetHeight()+O.NativeHudOffset(key)))
             anchor(control,x,y)
         end
     end
@@ -66,14 +139,22 @@ local function saveMove()
     local handle=O.nativeMoveHandle
     if move.keepUltimate then
         local other=move.keepUltimate
-        positions(move.profile).ultimate={x=other.x/GuiRoot:GetWidth(),y=other.y/GuiRoot:GetHeight()}
+        positions(move.profile).ultimate={x=other.x/GuiRoot:GetWidth(),y=(other.y-O.NativeHudOffset("ultimate"))/GuiRoot:GetHeight()}
         anchor(other.control,other.x,other.y)
         move.keepUltimate=nil
     end
     local x=handle:GetLeft()+move.dx
     local y=handle:GetTop()+move.dy
-    positions(move.profile)[move.key]={x=x/GuiRoot:GetWidth(),y=y/GuiRoot:GetHeight()}
+    positions(move.profile)[move.key]={x=x/GuiRoot:GetWidth(),y=(y-O.NativeHudOffset(move.key))/GuiRoot:GetHeight()}
+    if O.FixedSkillRows() and (move.key=="skills" or move.key=="ultimate") then
+        local p=positions(move.profile)
+        if move.key=="ultimate" then
+            local skills=target("skills")
+            if skills then p.skills={x=p.skills and p.skills.x or (skills:GetLeft()+skills:GetWidth()/2)/GuiRoot:GetWidth(),y=p.ultimate.y} end
+        elseif p.ultimate then p.ultimate.y=p.skills.y end
+    end
     anchor(move.control,x,y)
+    if O.FixedSkillRows() then O.UpdateNativePositions() end
     move.changed=true
 end
 function O.StopNativeMove()
@@ -124,7 +205,13 @@ local function bounds(key,control)
             end
         end
     end
-    if key=="skills" or key=="ultimate" then top=top-65 end
+    if key=="skills" or key=="ultimate" then
+        if O.FixedSkillRows() then
+            local gap=O.SkillRowGap(control)
+            if key=="ultimate" and O.DualUltimateView() then gap=O.UltimateRowSeparation() end
+            if GetActiveHotbarCategory()==HOTBAR_CATEGORY_PRIMARY then bottom=bottom+gap else top=top-gap end
+        else top=top-65 end
+    end
     return left-8,top-8,math.max(70,right-left+16),math.max(70,bottom-top+36),cx,cy
 end
 function O.StartNativeMove(key)

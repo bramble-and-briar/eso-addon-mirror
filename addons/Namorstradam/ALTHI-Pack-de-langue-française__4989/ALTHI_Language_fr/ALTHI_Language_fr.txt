@@ -1,0 +1,9 @@
+## Title: ALTHI - Optional language: fr
+## Description: Additional ALTHI interface language (fr); optional when different from your ESO language.
+## Author: Althi & Roman (@namorstradam & @bakaroobanzai)
+## Version: 0.9.4
+## AddOnVersion: 1
+## APIVersion: 101051
+## IsLibrary: true
+
+strings.lua

@@ -1,65 +1,14 @@
-ATLAS 1.0.2
-by @TheGreyWolf98
+ATLAS
+By @TheGreyWolf98
 
-OVERVIEW
-Your map. Your layers. Atlas brings skyshards, lorebooks, treasure-map digs,
-crafting surveys, bosses and discovery locations together in one compact,
-controller-friendly panel, with account-wide settings and optional filtering
-for the maps and surveys in your backpack.
+Switchable map pins for skyshards, Shalidor lorebooks, treasure-map digs, surveys, bosses, delves, events, wayshrines, landmarks, Mundus stones and crafting stations. Now includes separate treasure chest and Thieves Guild trove layers.
 
-DESCRIPTION
-Explore Tamriel with the map information you want, all controlled from one
-screen. Atlas combines thirteen individually switchable map layers:
+Faster progressive loading shares map scans and keeps work within per-tick limits. Optional neon colours, larger symbols, hide-collected and backpack-only map/survey filters.
 
-- Skyshards and recorded Shalidor lorebooks
-- Treasure-map dig sites and crafting surveys
-- Recorded delve and public-dungeon interior bosses
-- Delve and public-dungeon entrances
-- World bosses and dolmens/world events
-- Wayshrines and striking locales
-- Mundus stones and set crafting stations
+Chest and trove pins show recorded spawn sites, not live availability. Atlas can remember new sites when you interact with them. Coverage varies; troves require the relevant in-game access.
 
-Open /atlas and use the D-pad to select a feature, A to toggle, Y to refresh
-and B to close. PlayStation uses ESO's corresponding button prompts.
-All fifteen feature/filter switches fit on one panel; settings are shared
-across your characters. PC users can also click the feature rows.
+Open /atlas. D-pad selects, A toggles, Y refreshes, X opens Socials / Support and B closes. Existing settings carry over. No external libraries required.
 
-Hide collected removes acquired skyshards and known lorebooks for the current
-character. Carried maps / surveys only shows recorded sites for maps and
-reports in that character's backpack, helping you focus on what you can use.
-The relevant map or report is still required to dig or harvest.
-
-IMPORTANT: Remove or disable other add-ons that provide the same skyshard,
-lorebook, treasure-map, survey or boss pins before using Atlas, to avoid
-duplicate markers and competing pin layers. If keeping an overlapping addon
-for features Atlas does not cover, disable its matching pin layers or Atlas's
-matching layer. A map display such as Votan's minimap can remain enabled;
-Atlas's pins use ESO's normal map-pin system.
-
-Coverage varies by zone and map floor. Group-dungeon interior boss coverage
-is incomplete; Atlas does not promise every boss in every dungeon. Lorebooks
-are recorded Shalidor locations, not a complete Eidetic Memory database.
-Event markers show locations, not live spawn alerts. Wayshrine markers do
-not unlock travel. Side-quest start markers are not included.
-
-No external addon libraries are required.
-
-PERFORMANCE UPDATE 1.0.2
-Atlas builds location lists and creates pins progressively with one shared
-worker: at most 12 operations or about 2ms per 50ms tick. Each native layer
-refresh/removal gets its own tick. Individual native calls cannot be interrupted.
-Queued work pauses during combat, stops when idle and cancels on map changes.
-Pins may fill in over a few seconds on maps with large location lists.
-
-The viewed map is cached in memory only; saved settings remain unchanged.
-Counts reuse cached lists instead of rescanning all enabled layers. The minimap
-can read completed lists without triggering synchronous scans. Survey and
-treasure layers share one backpack pass. Collection/discovery events refresh
-only affected layers, with bursts merged into one pending refresh. Opening the
-settings panel no longer forces another pin rebuild.
-
-No external libraries added. Creator remains @TheGreyWolf98.
-Validation: mocked operation/time budgets, complete pin sets, cache reads,
-combat pause, targeted refresh, shared backpack pass, map-change cancellation,
-toggle cleanup and idle worker removal passed. Live Xbox CPU-budget behaviour
-still needs a test alongside the other enabled addons.
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

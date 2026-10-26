@@ -39,6 +39,8 @@ end
 function AMW:OpenMaterials(page)
     if not self:ActivateSession() then return end
     if self:IsBusy() then return self:Alert("Finish or stop the current operation before reviewing materials.") end
+    if not self:IsSettingsShowing() then self:OpenActions() end
+    local generation=self.settingsGeneration
     self:StartJob("materials",function()
         local summary=self:GetQueuedMaterialsWorker()
         if summary.error then return self:Alert(summary.error) end
@@ -51,19 +53,17 @@ function AMW:OpenMaterials(page)
         rows=self:SortWorker(rows,function(a,b) return a.name<b.name end)
         local pages=math.max(1,math.ceil(#rows/10))
         page=math.max(1,math.min(page or 1,pages))
-        if not self.materialDialog then self.materialDialog=LibConsoleDialogs:Create("Queued material requirements") end
-        local dialog,LHA=self.materialDialog,LibHarvensAddonSettings
-        dialog:RemoveAllSettings()
-        local function add(entry) dialog:AddSetting(entry); self:Yield() end
+        local entries,LHA={},LibHarvensAddonSettings
+        local function add(entry) entries[#entries+1]=entry; self:Yield() end
         add({type=LHA.ST_LABEL,label=string.format("%d requests; %d calculations incomplete. Page %d/%d.",summary.requests,summary.unavailable,page,pages)})
-        add({type=LHA.ST_LABEL,label="Partial quantities from LibLazyCrafting, not prices. Queue eligible writs before reviewing."})
+        add({type=LHA.ST_LABEL,label="Partial quantities from LibLazyCrafting, not prices. Queue writs with Lazy Writ Crafter before reviewing."})
         for index=(page-1)*10+1,math.min(page*10,#rows) do
             local row=rows[index]
             add({type=LHA.ST_LABEL,label=row.amount.." x "..row.name,tooltip=row.link})
         end
         if page>1 then add({type=LHA.ST_BUTTON,label="Previous page",buttonText="Previous",clickHandler=function() self:OpenMaterials(page-1) end}) end
         if page<pages then add({type=LHA.ST_BUTTON,label="Next page",buttonText="Next",clickHandler=function() self:OpenMaterials(page+1) end}) end
-        dialog:Show()
+        self:PresentSettingsPage("Queued material requirements",entries,"materials",generation)
     end)
 end
 

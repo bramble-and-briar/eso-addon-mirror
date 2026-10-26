@@ -1,0 +1,10 @@
+## Title: MyTankBars
+## Author: Unfounded Puppy3
+## Version: 1.0
+## AddOnVersion: 2
+## APIVersion: 101048 101049
+## DependsOn: LibGroupBroadcast
+## SavedVariables: MyTankBarsSaved
+## Description: 他タンクのスタミナ/マジカを表示 | ロール変更・離脱・更新停止で自動非表示 | /mtbpos X Y：UI位置変更（X=横方向, Y=縦方向）| /mtbinfo：設定表示
+
+MyTankBars.lua

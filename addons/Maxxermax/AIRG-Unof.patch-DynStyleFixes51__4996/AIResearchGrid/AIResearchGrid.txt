@@ -1,0 +1,22 @@
+﻿; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+## Title: |c8080ffAI|r RESEARCH GRID
+## Description: Allows you to quickly and easily see which traits your characters have researched for Blacksmithing, Clothing, Woodworking & Jewelry, wherever you are in the world.
+## Version: 11.5.05
+## APIVersion: 101051
+## AddOnVersion: 110505
+## Author: Assembler Maniac & others
+## SavedVariables: AIRG_SavedVariables
+## DependsOn: LibCharacterKnowledge
+
+
+Language/en.lua
+Language/$(language).lua
+
+AIResearchGrid.lua
+AIResearchGrid.xml
+Bindings.xml

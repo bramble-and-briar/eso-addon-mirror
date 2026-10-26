@@ -1,0 +1,27 @@
+FurnishThemAllData_FPacks_MoonBishopsSanctuary = {
+    name = "Moon-Bishop's Sanctuary",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Elsweyr Bench, Wooden" },
+            { name = "Elsweyr Bookcase, Elegant Wooden Full" },
+            { name = "Elsweyr Brazier, Ribbed" },
+            { name = "Elsweyr Brazier, Tall" },
+            { name = "Elsweyr Carpet, Sandflowers" },
+            { name = "Elsweyr Ceremonial Lantern, Jode" },
+            { name = "Elsweyr Ceremonial Lantern, Jone" },
+            { name = "Elsweyr Divider, Elegant Wooden" },
+            { name = "Elsweyr Rug, Sandflowers" },
+            { name = "Elsweyr Sugar Pipe, Ceremonial" },
+            { name = "Elsweyr Winerack, Cane Mead" },
+            { name = "Elsweyr Writing Desk, Elegant Wooden" },
+            { name = "Lunar Tapestry, The Dance" },
+            { name = "Lunar Tapestry, The Demon" },
+            { name = "Lunar Tapestry, The Gate" },
+            { name = "Lunar Tapestry, The Gathering" },
+            { name = "Lunar Tapestry, The Open Path" },
+            { name = "Robust Target Dro-m'Athra" },
+            { name = "Suthay Statue, Nimble Bishop" },
+        },
+    },
+}

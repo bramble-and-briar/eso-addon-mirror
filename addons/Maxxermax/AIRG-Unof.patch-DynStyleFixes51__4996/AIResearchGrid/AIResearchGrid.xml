@@ -1,0 +1,68 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="AIResearchGrid" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+			<Dimensions x="750" y="680" />
+			<Anchor point="CENTER" />
+			<Controls>
+
+				<Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" />
+
+				<Label name="$(parent)WindowTitle" font="ZoFontAnnounceMedium" text="|c8080ffAI|r RESEARCH GRID">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+				</Label>
+				<Label name="$(parent)WindowSubTitle" font="ZoFontAnnounceMedium" color="00FF00">
+					<Anchor point="LEFT" relativeTo="$(parent)WindowTitle" relativePoint="RIGHT" offsetX="10" />
+				</Label>
+
+				<Texture name="$(parent)TopDivider" textureFile="/esoui/art/miscellaneous/horizontaldivider.dds" tier="HIGH">
+					<Dimensions x="800" y="4"/>
+					<Anchor point="TOP" relativeTo="$(parent)" offsetY="38" />
+				</Texture>
+
+				<Button name="$(parent)ButtonCloseAddon" inherits="ZO_ButtonBehaviorClickSound">
+					<Dimensions x="40" y="40" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="15" />
+					<Textures normal="EsoUI/Art/Buttons/closebutton_up.dds"
+						pressed="EsoUI/Art/Buttons/closebutton_down.dds"
+						mouseOver="EsoUI/Art/Buttons/closebutton_mouseover.dds"
+						disabled="EsoUI/Art/Buttons/closebutton_disabled.dds"/>
+					<OnClicked>
+						AIRG_ToggleMainWindow()
+					</OnClicked>
+				</Button>
+			</Controls>
+		</TopLevelControl>
+
+		<Control name="AIRG_SearchBox" mouseEnabled="true" virtual="true" resizeToFitDescendents="false">
+			<Dimensions x="300" y="30" />
+			<Controls>
+            <Backdrop name="$(parent)Backdrop" inherits="ZO_SingleLineEditBackdrop_Keyboard" maxHeight="30">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="5"/>
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="0" offsetY="5"/>
+					<OnInitialized>self:SetHeight(30)</OnInitialized>
+             	 <Controls>
+             		  <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop ZO_EditDefaultText">
+								<OnTextChanged>AIRG_onSearchBoxText(self)</OnTextChanged>
+             		      <OnInitialized>
+             		          ZO_EditDefaultText_Initialize(self, "Filter by text search")
+             		      </OnInitialized>
+             		  </EditBox>
+             	 </Controls>
+            </Backdrop>
+
+				<Button name="$(parent)_Clear" tier="HIGH">
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-1" offsetY="10"/>
+					<OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, TOP, "Clear Search Text")</OnMouseEnter>
+					<OnMouseExit>ZO_Tooltips_HideTextTooltip(self)</OnMouseExit>
+					<OnMouseUp>AIRG_onSearchBoxClear()</OnMouseUp>
+					<Dimensions x="23" y="23" />
+					<Textures normal="EsoUI/art/buttons/decline_up.dds"
+								pressed="EsoUI/art/buttons/decline_down.dds"
+							 mouseOver="EsoUI/art/buttons/decline_over.dds"
+					/>
+				</Button>
+			</Controls>
+		</Control>
+
+	</Controls>
+</GuiXml>

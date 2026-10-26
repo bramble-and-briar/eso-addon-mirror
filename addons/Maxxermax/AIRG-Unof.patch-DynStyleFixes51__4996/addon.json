@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Maxxermax/AIRG-Unof.patch-DynStyleFixes51__4996",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Maxxermax",
+  "canonical_id": "esoui:4996",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4996",
+  "deleted": false,
+  "directories": [
+    "AIResearchGrid"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4996/",
+  "fingerprint": "9317ab5d273f17c8fb695d86cbd8d6b1c0d02406fdc43400bc97bb752ec8214e",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4996",
+  "source_url": "https://www.esoui.com/downloads/info4996-AIRG-Unof.patch-DynStyleFixes51.html",
+  "stats": {
+    "downloads": 10,
+    "favorites": 1,
+    "monthly_downloads": 2
+  },
+  "title": "AIRG-Unof.patch-DynStyleFixes51",
+  "updated_at": 1792970672000,
+  "version": "11.5.05"
+}

@@ -21,7 +21,7 @@ local R = DM2Stats
 
 R.name        = "DM2_ParseFightStats"
 R.displayName = "DM2 Parse & Fight Stats"
-R.version     = "3.18.3"
+R.version     = "3.18.4"
 
 -- Keep the original SV name so existing parse history is preserved for all users.
 -- v3.17.4: auto-compact history after load (strip bulk combat tables, keep outcomes/coach).
@@ -435,8 +435,12 @@ R._announcements = {
     title = "CLEANUP: old overlay removed",
     body = "The legacy multi-page overlay window is gone.\n\n• Stats always open in the gamepad menu\n• Overlay settings and /dm2stats legacy are gone\n• Capture, history, raid strip, and Insights unchanged\n\nO/back still closes. Smaller addon memory footprint.",
   },
+  ["3.18.4"] = {
+    title = "Pace bar and sheet crit",
+    body = "Rotation top bar: how late the next skill was. Tick is the light attack.\nCRIT under PEN matches your sheet.",
+  },
 }
-R._latestAnnouncementVersion = "3.18.3"
+R._latestAnnouncementVersion = "3.18.4"
 
 R._lastBarSwapMs = 0          -- debounce EVENT_ACTIVE_WEAPON_PAIR_CHANGED (fires up to 3x per swap)
 R._activeBar = nil             -- HOTBAR_CATEGORY_PRIMARY / HOTBAR_CATEGORY_BACKUP (set on init + swap)

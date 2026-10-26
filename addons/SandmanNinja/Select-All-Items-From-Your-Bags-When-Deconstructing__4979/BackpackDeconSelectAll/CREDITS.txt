@@ -1,0 +1,36 @@
+AI DISCLOSURE
+Code was generated and revised with OpenAI ChatGPT/Codex under the direction
+of SandmanNinja. This is an AI-assisted add-on; automated testing does not
+constitute an independent human code review or in-game certification.
+
+AUTHOR AND REVIEW ACKNOWLEDGEMENTS
+SandmanNinja: feature requirements, publishing, and reported in-game tests.
+Baertram: ESOUI moderator feedback on initialization and coding practices.
+Acknowledgement of feedback does not imply endorsement or approval.
+
+TECHNICAL SOURCES CONSULTED
+ZeniMax Online Studios: ESO UI source and documented APIs, including
+smithing extraction, universal deconstruction, controller Options checkboxes,
+and keyboard checkbox templates:
+https://github.com/esoui/esoui
+esoui/ingame/crafting/smithingextraction_shared.lua
+esoui/ingame/crafting/keyboard/smithingextraction_keyboard.lua
+esoui/ingame/crafting/keyboard/smithingextraction_keyboard.xml
+esoui/ingame/crafting/universaldeconstructionpanel_shared.lua
+esoui/ingame/crafting/keyboard/universaldeconstructionpanel_keyboard.lua
+esoui/ingame/crafting/gamepad/smithingextraction_gamepad.lua
+esoui/ingame/crafting/gamepad/universaldeconstructionpanel_gamepad.lua
+esoui/ingame/crafting/gamepad/zo_craftingoptionsdialog_gamepad.lua
+
+FCO ItemSaver / Baertram: documented optional FCOIS.IsDeconstructionLocked
+integration and item-protection guidance. No FCO ItemSaver source is bundled.
+https://www.esoui.com/downloads/info630.html
+
+ESOUI community guidance:
+https://www.esoui.com/forums/showthread.php?t=10790
+https://www.esoui.com/forums/showthread.php?t=11
+https://www.esoui.com/forums/showthread.php?t=9865
+
+Other add-ons were encountered during discovery, but are not bundled or
+represented as the source of this implementation. This release continues
+the published BackpackDeconSelectAll code rather than copying another add-on.

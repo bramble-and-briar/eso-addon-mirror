@@ -128,7 +128,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.10 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.25 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
@@ -179,6 +179,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rulebased Inventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TaxTalis/Rulebased-Inventory__2136) | TaxTalis | PC / Mac | 2.32 |
 | [Runenwerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Runenwerk__4910) | Torfason | PC / Mac | 1.0.0 |
 | [RunesVoice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/RunesVoice__2173) | Nols1000 | PC / Mac | 0.1.0 |
+| [Runtime Watch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Runtime-Watch__4fda2eee-1b8d-4a0b-94c2-e748543364b9) | TheGreyWolf98 | Console | — |
 | [Rush of Agony Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rush-of-Agony-Tracker__03e3b721-0ccb-4e27-9f1c-ae0e6bf96be5) | codeWarrior82 | Console | — |
 | [RyticCombat&RaidTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticCombat-RaidTools__4854) | Rytic | PC / Mac | 3.0.2 |
 | [RyticRaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticRaidManager__4858) | Rytic | PC / Mac | 3.1 |

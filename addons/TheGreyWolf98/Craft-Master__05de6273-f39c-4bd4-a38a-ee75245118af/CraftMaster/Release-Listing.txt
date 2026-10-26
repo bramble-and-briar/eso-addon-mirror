@@ -1,0 +1,12 @@
+Craft Master
+By @TheGreyWolf98 | 1.0.12
+
+Browse crafting knowledge and housing items, search your catalogue and track your main crafter.
+
+Includes recipes, motifs and a furnishing catalogue, character selection and main-crafter tooltips. Saved knowledge reflects each character’s latest scan.
+
+Open /cm. Click the left stick for Socials / Support. Search uses right-stick click. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

@@ -1,0 +1,129 @@
+<GuiXml>
+    <Controls>
+        <Control name="MuffinsMarketManagerGuildSalesRow" virtual="true">
+            <Controls>
+                <Label name="$(parent)GuildName" font="ZoFontGamepad27" wrapMode="ELLIPSIS"
+                    maxLineCount="1">
+                    <Anchor point="TOPLEFT" />
+                </Label>
+                <Label name="$(parent)KioskName" font="ZoFontGamepad22" color="999999">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)GuildName"
+                        relativePoint="BOTTOMLEFT" />
+                </Label>
+                <Label name="$(parent)Items" font="ZoFontGamepad27">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)GuildName" relativePoint="TOPRIGHT" />
+                </Label>
+                <Label name="$(parent)NumListed" font="ZoFontGamepad27">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Items" relativePoint="TOPRIGHT" />
+                </Label>
+                <Label name="$(parent)Profit" font="ZoFontGamepad27">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)NumListed" relativePoint="TOPRIGHT" />
+                </Label>
+                <Label name="$(parent)Taxes" font="ZoFontGamepad27">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Profit" relativePoint="TOPRIGHT" />
+                </Label>
+                <Label name="$(parent)Goal" font="ZoFontGamepad27">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Taxes" relativePoint="TOPRIGHT" />
+                </Label>
+                <Label name="$(parent)GoalMath" font="ZoFontGamepad22" color="999999">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Goal" relativePoint="BOTTOMLEFT" />
+                </Label>
+            </Controls>
+        </Control>
+        <!-- Column header sizes come from the Lua -->
+        <Label name="MuffinsMarketManagerGuildSalesHeader" font="ZoFontGamepad25"
+            color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
+            modifyTextType="UPPERCASE" virtual="true" />
+        <!-- The window -->
+        <TopLevelControl name="MuffinsMarketManagerGuildSalesWindow_Gamepad" hidden="true"
+            movable="true"
+            mouseEnabled="true" clampedToScreen="true">
+            <!-- Starting size only Lua sets the real size on every refresh -->
+            <Dimensions x="780" y="480" />
+            <!-- default position before the player moves it -->
+            <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetX="280"
+                offsetY="-350" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop_Gamepad" alpha="0.85">
+                    <AnchorFill />
+                </Backdrop>
+                <!-- anchored to both sides so it stretches with the window -->
+                <Label name="$(parent)Title" font="ZoFontGamepadBold42"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
+                    modifyTextType="UPPERCASE" horizontalAlignment="CENTER">
+                    <Dimensions y="40" />
+                    <Anchor point="TOPLEFT" offsetY="20" />
+                    <Anchor point="TOPRIGHT" offsetY="20" />
+                </Label>
+                <Control name="$(parent)HeaderContainer">
+                    <Dimensions y="25" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT"
+                        offsetY="20" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT"
+                        offsetY="20" />
+                    <Controls>
+                        <Label name="$(parent)ColGuild"
+                            inherits="MuffinsMarketManagerGuildSalesHeader">
+                            <Anchor point="TOPLEFT" />
+                        </Label>
+                        <Label name="$(parent)ColItemsSold"
+                            inherits="MuffinsMarketManagerGuildSalesHeader">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ColGuild"
+                                relativePoint="TOPRIGHT" />
+                        </Label>
+                        <Label name="$(parent)ColItemsListed"
+                            inherits="MuffinsMarketManagerGuildSalesHeader">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ColItemsSold"
+                                relativePoint="TOPRIGHT" />
+                        </Label>
+                        <Label name="$(parent)ColProfit"
+                            inherits="MuffinsMarketManagerGuildSalesHeader">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ColItemsListed"
+                                relativePoint="TOPRIGHT" />
+                        </Label>
+                        <Label name="$(parent)ColTax"
+                            inherits="MuffinsMarketManagerGuildSalesHeader">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ColProfit"
+                                relativePoint="TOPRIGHT" />
+                        </Label>
+                        <Label name="$(parent)ColGoal"
+                            inherits="MuffinsMarketManagerGuildSalesHeader">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ColTax"
+                                relativePoint="TOPRIGHT" />
+                        </Label>
+                    </Controls>
+                </Control>
+                <!-- each row is a copy of MuffinsMarketManagerGuildSalesRow -->
+                <Control name="$(parent)Row1" inherits="MuffinsMarketManagerGuildSalesRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderContainer"
+                        relativePoint="BOTTOMLEFT" offsetY="10" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)HeaderContainer"
+                        relativePoint="BOTTOMRIGHT" offsetY="10" />
+                </Control>
+                <Control name="$(parent)Row2" inherits="MuffinsMarketManagerGuildSalesRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Row1" relativePoint="BOTTOMRIGHT" />
+                </Control>
+                <Control name="$(parent)Row3" inherits="MuffinsMarketManagerGuildSalesRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Row2" relativePoint="BOTTOMRIGHT" />
+                </Control>
+                <Control name="$(parent)Row4" inherits="MuffinsMarketManagerGuildSalesRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Row3" relativePoint="BOTTOMRIGHT" />
+                </Control>
+                <Control name="$(parent)Row5" inherits="MuffinsMarketManagerGuildSalesRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Row4" relativePoint="BOTTOMRIGHT" />
+                </Control>
+                <!-- Pages is hidden until V2 -->
+                <Control name="$(parent)Footer" inherits="ZO_PagedListFooterBar" hidden="true">
+                    <Anchor point="BOTTOM" offsetY="-10" />
+                </Control>
+            </Controls>
+            <OnInitialized>
+                MuffinsMarketManager.GuildSalesWindowGamepadOnInitialized(self)
+            </OnInitialized>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

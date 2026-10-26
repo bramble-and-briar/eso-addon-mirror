@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Namorstradam/ALTHI-Paquete-de-idioma-espa\u00f1ol__4990",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Namorstradam",
+  "canonical_id": "esoui:4990",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4990",
+  "deleted": false,
+  "directories": [
+    "ALTHI_Language_es"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4990/",
+  "fingerprint": "aa07731d4816011f0cb2a5e0cd7ecd6523762dbf687bb3f80ec68975996d10d0",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4990",
+  "source_url": "https://www.esoui.com/downloads/info4990-ALTHIPaquetedeidiomaespaol.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "ALTHI \u2013 Paquete de idioma espa\u00f1ol",
+  "updated_at": 1792954031000,
+  "version": "0.9.4"
+}

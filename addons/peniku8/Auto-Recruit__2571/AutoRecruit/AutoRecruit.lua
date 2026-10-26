@@ -38,8 +38,11 @@ AR.defaults = {
     keepPorting = false,
     portingTime = 15,
     skipZoneOnCD = true,
+		logSkippedZones = true,
     includedZones = "Major",
-    saveLastPosted = false,
+		prioritisePortToHouse = false,
+    saveLastPosted = true,
+		showZonesGrid = "Hidden",
 
     guild1 = false,
     ad = {"", "", "", "", ""},
@@ -584,61 +587,83 @@ function AR.start()
 
  	if AR.lastPosted[nextZoneName] and AR.settings.skipZoneOnCD then
  		local cooldown = AR.settings.adCooldown[guild]*60-(GetTimeStamp()-AR.lastPosted[nextZoneName])
- 		
- 		if cooldown>10 then
- 			d(zo_strformat("|c6C00FFAuto Port - |cFFFFFF<<1>> is still on cooldown. Skipping this zone...", nextZoneName))
-  		AR.nextZone = AR.nextZone + 1
-  		AR.start()
- 		  return
- 		end
+
+		if cooldown>10 then
+			if AR.settings.logSkippedZones then
+				d(zo_strformat("|c6C00FFAuto Port - |cFFFFFF<<1>> is still on cooldown. Skipping this zone...", nextZoneName))
+			end
+			AR.nextZone = AR.nextZone + 1
+			AR.start()
+			return
+		end
  	end
 
+	local portStarted
 
-  for i=1, #AR.onlinePlayers do
-  	local userID = AR.onlinePlayers[i][1]
-  	local userZone = AR.onlinePlayers[i][2]
+	-- Try to port to a house first if either the player chose it in Settings, or porting to a player has failed
+	if AR.settings.prioritisePortToHouse or AR.failed > 0 then
+		portStarted = AR.TryToPortToHouse(nextZoneName) or
+				          AR.TryToPortToPlayer(ownZone)
+	else
+		portStarted = AR.TryToPortToPlayer(ownZone) or
+				          AR.TryToPortToHouse(nextZoneName)
+	end
 
-  	if userZone == AR.zones[AR.nextZone] and ownZone ~= userZone then
-  		d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFJumping to <<1>> in <<2>>", userID, GetZoneNameById(userZone)))
-  		AR.nextZone = AR.nextZone + 1
+	AR.RefreshWindow()
+
+	if not portStarted then
+		if AR.settings.logSkippedZones then
+			d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFCould not port to <<1>>. Skipping this zone...", nextZoneName))
+		end
+		AR.nextZone = AR.nextZone + 1
+		AR.start()
+	end
+end
+
+function AR.TryToPortToPlayer(ownZone)
+	for i=1, #AR.onlinePlayers do
+		local userID = AR.onlinePlayers[i][1]
+		local userZone = AR.onlinePlayers[i][2]
+
+		if userZone == AR.zones[AR.nextZone] and ownZone ~= userZone then
+			d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFJumping to <<1>> in <<2>>", userID, GetZoneNameById(userZone)))
+			AR.nextZone = AR.nextZone + 1
 			AR.portingTo = GetZoneNameById(userZone)
-  		zo_callLater(function() JumpToGuildMember(userID) end, 100)
-    	em:RegisterForEvent("AutoPortArrived", EVENT_PLAYER_ACTIVATED, function() AR.afterPort(userZone) end)
-    	zo_callLater(function()
-    		if ownZone==GetUnitWorldPosition("player") and userZone == AR.zones[AR.nextZone-1] then
-    			if AR.failed<3 then
-    		    AR.failed = AR.failed + 1
-    		    AR.portFailed(userZone)
-    		   else
-    		   	d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFPorting to <<1>> failed. Try again later.", GetZoneNameById(userZone)))
-    		   	AR.stop()
-    		  end
-    		end
-    	end, 10000)
-		  AR.RefreshWindow()
-  		return
-  	end
-  end
+			zo_callLater(function() JumpToGuildMember(userID) end, 100)
+			em:RegisterForEvent("AutoPortArrived", EVENT_PLAYER_ACTIVATED, function() AR.afterPort(userZone) end)
+			zo_callLater(function()
+				if ownZone==GetUnitWorldPosition("player") and userZone == AR.zones[AR.nextZone-1] then
+					if AR.failed<3 then
+						AR.failed = AR.failed + 1
+						AR.portFailed(userZone)
+					else
+						d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFPorting to <<1>> failed. Try again later.", GetZoneNameById(userZone)))
+						AR.stop()
+					end
+				end
+			end, 10000)
+			return true
+		end
+	end
 
-  local houseId = AR.zoneHouses[AR.zones[AR.nextZone]] --AR.HM:GetHouseIDFromZoneID(AR.zones[AR.nextZone])
+	return false
+end
+
+function AR.TryToPortToHouse(nextZoneName)
+	local houseId = AR.zoneHouses[AR.zones[AR.nextZone]] --AR.HM:GetHouseIDFromZoneID(AR.zones[AR.nextZone])
 	if houseId and CanJumpToHouseFromCurrentLocation() then
 		local houseZone = AR.zones[AR.nextZone]
-    local houseID, houseName = unpack(AR.zoneHouses[houseZone])
+		local houseID, houseName = unpack(AR.zoneHouses[houseZone])
 		d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFJumping to <<1>> in <<2>>", houseName, nextZoneName))
 		AR.nextZone = AR.nextZone + 1
 		AR.portingTo = nextZoneName
 		zo_callLater(function() RequestJumpToHouse(houseID, true) end, 100)
 		em:RegisterForEvent("AutoPortArrived", EVENT_PLAYER_ACTIVATED, function() AR.afterPort(houseZone) end)
-		AR.RefreshWindow()
-		return
+		return true
 	end
 
-	d(zo_strformat("|c6C00FFAuto Port - |cFFFFFFCould not port to <<1>>. Skipping this zone...", nextZoneName))
-  AR.nextZone = AR.nextZone + 1
-  AR.start()
+	return false
 end
-
-
 
 function AR.stop()
 	CancelCast()

@@ -10,6 +10,8 @@ local WM = WINDOW_MANAGER
 
 local UPDATE_MS = 400
 local PEN_CAP = 18200
+-- CP160 sheet: 219 crit rating = 1% chance. 100% is the real ceiling.
+local CRIT_PER_PCT = 219
 local MAJOR_BREACH = 5948
 local MINOR_BREACH = 2974
 local CRUSHER = 2108
@@ -64,7 +66,7 @@ local function ensure()
   if R.ui.raidStrip then return R.ui.raidStrip end
   local win = WM:CreateTopLevelWindow("DM2StatsRaidStrip")
   -- Name column fits BERSERK/COURAGE/HEROISM; status is right-justified so ON/MIN/CAP never collide.
-  win:SetDimensions(128, 292)
+  win:SetDimensions(128, 308)
   win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 18, 160)
   win:SetHidden(true)
   win:SetDrawLayer(DL_OVERLAY)
@@ -94,6 +96,7 @@ local function ensure()
     { label = "BRITTLE", kind = "target", major = "major brittle",       minor = "minor brittle" },
     { label = "VULN",    kind = "target", major = "major vulnerability", minor = "minor vulnerability" },
     { label = "PEN",     kind = "pen" },
+    { label = "CRIT",    kind = "crit" },
   }
   local rows = {}
   for i = 1, #defs do
@@ -158,6 +161,21 @@ local function readPersonalPen()
   return math.max(read(_G.STAT_PHYSICAL_PENETRATION), read(_G.STAT_SPELL_PENETRATION))
 end
 
+local function readCritChancePct()
+  local function read(const)
+    if type(const) ~= "number" or type(GetPlayerStat) ~= "function" then return 0 end
+    local ok, v = pcall(GetPlayerStat, const)
+    return (ok and tonumber(v)) or 0
+  end
+  local rating = math.max(read(_G.STAT_CRITICAL_STRIKE), read(_G.STAT_SPELL_CRITICAL))
+  if rating <= 0 then return 0 end
+  -- Same conversion as the stats page (rating / 219). No added 10%, and no
+  -- Major Prophecy on top — a live GetPlayerStat already includes those.
+  local pct = math.floor(rating / CRIT_PER_PCT + 0.5)
+  if pct > 100 then pct = 100 end
+  return pct
+end
+
 local function paint(row, mode, text)
   local pr, pg, pb = 0.55, 0.55, 0.55
   if mode == "cap" or mode == "on" then pr, pg, pb = 0.40, 0.90, 0.48
@@ -197,6 +215,7 @@ local function tick()
   local minB = hasName(tgt, "minor breach")
   local crush = hasName(tgt, "crusher")
   local alk = hasName(tgt, "alkosh")
+  local critPct = readCritChancePct()
   local penPct = math.floor(math.min(1,
     (readPersonalPen()
       + (majB and MAJOR_BREACH or 0)
@@ -212,6 +231,11 @@ local function tick()
         if penPct >= 100 then paint(row, "cap", "CAP")
         elseif penPct >= 80 then paint(row, "low", tostring(penPct) .. "%")
         else paint(row, "off", tostring(penPct) .. "%") end
+      elseif def.kind == "crit" then
+        local mode = "off"
+        if critPct >= 50 then mode = "on"
+        elseif critPct >= 35 then mode = "low" end
+        paint(row, mode, tostring(critPct) .. "%")
       else
         local bag = (def.kind == "target") and tgt or mine
         if def.major and hasName(bag, def.major) then paint(row, "on", "ON")

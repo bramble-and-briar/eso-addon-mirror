@@ -1,0 +1,13 @@
+## Title: Vault Categories
+## Author: clubwratt
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101050 101051
+## Description: Groups the ESO Plus Furnishing Vault (and furnishings being deposited into it) by furniture category and subcategory instead of one giant "Furnishing" list. Gamepad UI. /vcat for commands.
+## SavedVariables: VaultCategoriesSavedVars
+## OptionalDependsOn: LibConsoleLogger
+## DevId: bc6b3b76-f701-4533-9492-c50acb1783bc
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+VaultCategories.lua

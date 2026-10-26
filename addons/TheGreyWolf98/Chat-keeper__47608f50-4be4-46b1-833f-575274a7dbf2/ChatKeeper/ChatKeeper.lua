@@ -1,4 +1,4 @@
-ChatKeeper={VERSION='1.0.1',MAX_MESSAGES=100,MAX_BYTES=262144,OFFLINE_TIMEOUT=1800}
+ChatKeeper={VERSION='1.0.2',MAX_MESSAGES=100,MAX_BYTES=262144,OFFLINE_TIMEOUT=1800}
 local K=ChatKeeper
 local defaults={history={},timestamps=true,hour24=true,offsetY=-40,offsetX=0,restore=true,restoreCount=100}
 local unpackArgs=unpack or table.unpack
@@ -165,13 +165,14 @@ function K:Offset()
  self.lastAnchors=desired;self.offsetStatus='HUD offset active'
 end
 local function label(parent,x,y,w,h)
- local l=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL);l:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);l:SetDimensions(w,h);l:SetFont('ZoFontGamepad18');l:SetColor(.9,.9,.9,1);return l
+ local l=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL);l:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);l:SetDimensions(w,h);l:SetFont("$(GAMEPAD_MEDIUM_FONT)|26|soft-shadow-thin");l:SetColor(.9,.9,.9,1);return l
 end
 local options={{key='offsetY',name='Chat vertical offset',step=5,min=-400,max=200},{key='offsetX',name='Chat horizontal offset',step=5,min=-400,max=400},{key='timestamps',name='Timestamps'},{key='hour24',name='24-hour format'},{key='restore',name='Restore recent chat'},{key='restoreCount',name='Messages restored',step=25,min=25,max=100}}
 function K:Refresh()
- if self.window and GuiRoot.GetWidth then self.window:SetScale(math.min(1,GuiRoot:GetWidth()/1100,GuiRoot:GetHeight()/820)) end
+ if self.window and GuiRoot.GetWidth then self.window:SetScale(math.min(1,GuiRoot:GetWidth()*.94/1240,GuiRoot:GetHeight()*.88/820)) end
  self.heading:SetText(self.view=='history' and ('CHAT KEEPER | '..#self.saved.history..' saved messages') or ('CHAT KEEPER | '..self.VERSION))
- for _,l in ipairs(self.labels) do l:SetText('') end
+ for _,l in ipairs(self.labels) do l:SetText('');l:SetHidden(self.view~='history') end
+ for _,c in ipairs(self.settingCards)do c.bg:SetHidden(self.view=='history')end
  if self.view=='history' then
   local count=#self.saved.history;self.pages=math.max(1,math.ceil(count/10));self.page=clamp(self.page,1,self.pages)
   local first=math.max(1,count-self.page*10+1);local last=count-(self.page-1)*10
@@ -181,7 +182,7 @@ function K:Refresh()
  else
   for i,o in ipairs(options) do
    local v=self.saved[o.key];if type(v)=='boolean' then v=v and 'On' or 'Off' end
-   self.labels[i]:SetText((i==self.selected and '> ' or '   ')..o.name..'  '..tostring(v))
+   local c=self.settingCards[i];c.title:SetText(o.name);c.value:SetText(tostring(v));c.bg:SetCenterColor(i==self.selected and .15 or .045,i==self.selected and .18 or .055,i==self.selected and .23 or .07,1);c.bg:SetEdgeColor(i==self.selected and .85 or .24,i==self.selected and .65 or .27,i==self.selected and .28 or .32,1)
   end
   self.footer:SetText('Stick / D-pad: select | X/Y: adjust | A: history\nNegative vertical offset moves chat up. '..(self.offsetStatus or ''))
  end
@@ -190,16 +191,24 @@ function K:Open(view)
  self:Trim()
  if IsUnitInCombat('player') then d('Chat Keeper: open after combat.');return end
  if not self.window then
-  local w=WINDOW_MANAGER:CreateTopLevelWindow('TGWChatKeeperWindow');self.window=w;w:SetAnchor(CENTER,GuiRoot,CENTER,0,0);w:SetDimensions(1060,780);w:SetHidden(true)
-  local bg=WINDOW_MANAGER:CreateControl(nil,w,CT_TEXTURE);bg:SetAnchorFill(w);bg:SetColor(.02,.025,.035,1)
-  self.heading=label(w,24,20,1012,35);self.labels={}
-  for i=1,10 do self.labels[i]=label(w,24,80+(i-1)*60,1012,56);self.labels[i]:SetMaxLineCount(2) end
-  self.footer=label(w,24,700,1012,60);self.selected=1;self.page=1
+  local w=WINDOW_MANAGER:CreateTopLevelWindow('TGWChatKeeperWindow');self.window=w;w:SetAnchor(CENTER,GuiRoot,CENTER,0,0);w:SetDimensions(1240,820);w:SetHidden(true)
+  local bg=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill(w);bg:SetCenterColor(.025,.035,.05,1);bg:SetEdgeColor(.55,.36,.13,1);bg:SetEdgeTexture(nil,1,1,2)
+  self.heading=label(w,36,20,1168,48);self.heading:SetFont(TGWChatKeeperSocials.Font(36));self.heading:SetColor(.95,.73,.35,1);self.labels={}
+  self.settingCards={}
+  for i=1,#options do
+   local x=36+math.floor((i-1)/3)*592;local y=145+((i-1)%3)*140
+   local bg=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchor(TOPLEFT,w,TOPLEFT,x,y);bg:SetDimensions(576,120);bg:SetEdgeTexture(nil,1,1,2)
+   local title=label(bg,16,12,544,40);title:SetFont(TGWChatKeeperSocials.Font(30))
+   local value=label(bg,16,65,544,36)
+   self.settingCards[i]={bg=bg,title=title,value=value}
+  end
+  for i=1,10 do self.labels[i]=label(w,36,105+(i-1)*60,1168,58);self.labels[i]:SetMaxLineCount(2) end
+  self.footer=label(w,36,730,1168,80);self.selected=1;self.page=1
   local function stop() EVENT_MANAGER:UnregisterForUpdate('TGWChatKeeper_Repeat');self.held=nil end;self.stop=stop
   local function move(n,up)
    if up then if self.held==n then stop() end;return end
    stop();self.held=n
-   local function step() if self.view=='settings' then self.selected=clamp(self.selected+n,1,#options) else self.page=clamp(self.page+n,1,self.pages or 1) end;self:Refresh() end
+   local function step() if self.view=='settings' then local col=math.floor((self.selected-1)/3);self.selected=col*3+(self.selected-1+n)%3+1 else self.page=clamp(self.page+n,1,self.pages or 1) end;self:Refresh() end
    step();local ticks=0;EVENT_MANAGER:RegisterForUpdate('TGWChatKeeper_Repeat',120,function() ticks=ticks+1;if ticks>=3 then step() end end)
   end
   local function change(n)
@@ -207,7 +216,11 @@ function K:Open(view)
    local o=options[self.selected];if o.step then self.saved[o.key]=clamp(self.saved[o.key]+o.step*n,o.min,o.max) else self.saved[o.key]=not self.saved[o.key] end
    self:Offset();self:Refresh()
   end
+  local function column()stop();if self.view=='settings'then self.selected=(self.selected-1+3)%6+1;self:Refresh()end end
   self.keys={alignment=KEYBIND_STRIP_ALIGN_LEFT,
+ TGWChatKeeperSocials.Keybind(),
+   {keybind='UI_SHORTCUT_INPUT_LEFT',ethereal=true,callback=column},
+   {keybind='UI_SHORTCUT_INPUT_RIGHT',ethereal=true,callback=column},
    {name='History / settings',keybind='UI_SHORTCUT_PRIMARY',callback=function() stop();self.view=self.view=='history' and 'settings' or 'history';self.page=1;self:Refresh();KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keys) end},
    {name=function() return self.view=='history' and 'Older' or 'Decrease / toggle' end,keybind='UI_SHORTCUT_SECONDARY',callback=function() change(-1) end},
    {name=function() return self.view=='history' and 'Newer' or 'Increase / toggle' end,keybind='UI_SHORTCUT_TERTIARY',callback=function() change(1) end},

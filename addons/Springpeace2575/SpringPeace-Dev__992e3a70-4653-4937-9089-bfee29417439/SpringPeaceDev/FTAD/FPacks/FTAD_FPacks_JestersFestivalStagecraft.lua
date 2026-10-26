@@ -1,0 +1,25 @@
+FurnishThemAllData_FPacks_JestersFestivalStagecraft = {
+    name = "Jester's Festival Stagecraft",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Alinor Bathing Robes, Decorative" },
+            { name = "Alinor Candles, Stand" },
+            { name = "Alinor Candles, Tall Stand" },
+            { name = "Banner, Jester's Festival" },
+            { name = "Box of Tomatoes" },
+            { name = "Breton Cup, Empty" },
+            { name = "Candle, Group" },
+            { name = "Chamber Pot Throne" },
+            { name = "Dazzler Dispenser" },
+            { name = "Fish, Silver Trout" },
+            { name = "Jester's Festival Stage" },
+            { name = "Leyawiin Divider, Sturdy" },
+            { name = "Leyawiin Windowbox, Irises" },
+            { name = "Rough Bench" },
+            { name = "Rough Chair" },
+            { name = "Rough Dresser" },
+            { name = "Target King Boar, Robust" },
+        },
+    },
+}

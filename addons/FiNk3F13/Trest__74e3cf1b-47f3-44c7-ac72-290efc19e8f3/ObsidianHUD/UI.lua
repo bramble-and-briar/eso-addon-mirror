@@ -12,9 +12,9 @@ local function assetReady(asset,width,height)
 end
 
 function O.FantasyReady()
-    return assetReady(ObsidianHUDAssetsFantasyFrame,512,64) and
-        assetReady(ObsidianHUDAssetsFantasyFill,512,64) and
-        (not O.vars.roundBadge or (assetReady(ObsidianHUDAssetsCurveFrame,512,64) and assetReady(ObsidianHUDAssetsCurveFill,512,64))) and
+    return assetReady(ObsidianHUDAssetsFantasyFrame,1024,128) and
+        assetReady(ObsidianHUDAssetsFantasyFill,1024,128) and
+        (not O.vars.roundBadge or (assetReady(ObsidianHUDAssetsCurveFrame,1024,128) and assetReady(ObsidianHUDAssetsCurveFill,1024,128))) and
         assetReady(O.vars.roundBadge and ObsidianHUDAssetsFantasyRound or ObsidianHUDAssetsFantasyDiamond,128,128)
 end
 
@@ -169,6 +169,14 @@ function O.UpdateCurvedFill(bar,ratio)
     bar.curve.bodyFill:SetWidth(bodyFilled)
     bar.curve.bodyFill:SetTextureCoords(CURVE_U,CURVE_U+(1-CURVE_U)*bodyFilled/(width-cap),0,1)
     bar.curve.bodyFill:SetHidden(bodyFilled<=0)
+    if filled>0 then
+        local c=O.vars[bar.resourceKey]
+        local seam=0.45+0.55*capFilled/filled
+        bar.curve.capFill:SetGradientColors(ORIENTATION_HORIZONTAL,
+            c[1]*0.45,c[2]*0.45,c[3]*0.45,1,c[1]*seam,c[2]*seam,c[3]*seam,1)
+        bar.curve.bodyFill:SetGradientColors(ORIENTATION_HORIZONTAL,
+            c[1]*seam,c[2]*seam,c[3]*seam,1,c[1],c[2],c[3],1)
+    end
 end
 
 function O.CreateUI()
@@ -226,6 +234,7 @@ function O.ArrangeResourceBars(force)
     O.displayedPrimary=primary
     for i,spec in ipairs(order) do
         local bar=O.bars[spec.key]
+        bar.resourceKey=spec.key
         local curved=i==3 and O.vars.roundBadge
         bar.curved=curved
         local inset=56+(i-1)*6
@@ -254,7 +263,9 @@ function O.ArrangeResourceBars(force)
         bar.name:SetAnchor(LEFT,bar.frame,LEFT,99-(inset-overlap),0)
         bar.name:SetFont("$(BOLD_FONT)|"..(i==1 and 12 or 11).."|soft-shadow-thick")
         bar.value:ClearAnchors()
-        bar.value:SetAnchor(RIGHT,bar.frame,RIGHT,-27,0)
+        -- Keep the entire value text on the straight section at every width.
+        local tipWidth=curved and (width-CURVE_WIDTH)*33/416 or width*33/512
+        bar.value:SetAnchor(RIGHT,bar.frame,RIGHT,-math.max(40,tipWidth+12),0)
         bar.value:SetFont("$(BOLD_FONT)|"..(i==1 and 14 or 12).."|soft-shadow-thick")
     end
 end
@@ -319,7 +330,7 @@ function O.UpdateResources()
     end
 end
 
-function O.CreateSkillSkin(button)
+function O.CreateSlotSkin(button)
     local skin={button=button}
     local icon=button.icon
     local frame=O.Frame(icon)
@@ -334,19 +345,90 @@ function O.CreateSkillSkin(button)
     skin.art:SetAnchor(BOTTOMRIGHT,icon,BOTTOMRIGHT,6,6)
     skin.art:SetDrawLevel(21)
     skin.frame=frame
+    return skin
+end
+
+function O.SkillIconRestSize(button)
+    -- Native keyboard/gamepad templates leave three units between slot and
+    -- resting icon size. The slot stays fixed while Icon/FlipCard bounce.
+    return math.max(1,button.slot:GetWidth()-3),math.max(1,button.slot:GetHeight()-3)
+end
+
+function O.UpdateBarIndicator(button,active,visible)
+    if not button or not visible then
+        if O.barIndicator then O.barIndicator:SetHidden(true) end
+        return
+    end
+    if O.barIndicatorSlot~=button.slot then
+        if O.barIndicator then O.barIndicator:SetHidden(true) end
+        O.barIndicator=create(button.slot,CT_TEXTURE)
+        O.barIndicator:SetTexture("esoui/art/buttons/large_rightarrow_up.dds")
+        O.barIndicator:SetDimensions(64,64)
+        O.barIndicator:SetMouseEnabled(false)
+        O.barIndicator:SetAnchor(RIGHT,button.slot,LEFT,5,0)
+        O.barIndicator:SetDrawTier(DT_HIGH)
+        O.barIndicator:SetDrawLayer(DL_OVERLAY)
+        O.barIndicator:SetDrawLevel(40)
+        O.barIndicator:SetColor(0.2,1,0.3,0.65)
+        O.barIndicatorSlot=button.slot
+    end
+    O.barIndicator:SetHidden(false)
+end
+
+function O.LayoutSkillPreview(skin)
+    local equal=O.vars.skillHudView=="equal" or O.IsFixedSkillView()
+    local iconWidth,iconHeight=O.SkillIconRestSize(skin.button)
+    local width=equal and iconWidth+12 or 43
+    local height=equal and iconHeight+12 or 43
+    local placement=O.IsFixedSkillView() and GetActiveHotbarCategory() or "above"
+    local gap=O.SkillRowGap(skin.button.slot)
+    if skin.activeTextSlot==8 and O.DualUltimateView() then gap=O.UltimateRowSeparation() end
+    if skin.previewPlacement~=placement or skin.previewGap~=gap then
+        skin.previewPlacement=placement
+        skin.previewGap=gap
+        skin.back:ClearAnchors()
+        if placement=="above" then
+            skin.back:SetAnchor(BOTTOM,skin.button.slot,TOP,0,-15.5)
+        else
+            skin.back:SetAnchor(CENTER,skin.button.slot,CENTER,0,placement==HOTBAR_CATEGORY_PRIMARY and gap or -gap)
+        end
+    end
+    if skin.previewWidth==width and skin.previewHeight==height then return end
+    skin.previewWidth,skin.previewHeight=width,height
+    skin.back:SetDimensions(width,height)
+    local inset=equal and 6 or 3
+    skin.backIcon:ClearAnchors()
+    skin.backIcon:SetAnchor(TOPLEFT,skin.back,TOPLEFT,inset,inset)
+    skin.backIcon:SetAnchor(BOTTOMRIGHT,skin.back,BOTTOMRIGHT,-inset,-inset)
+end
+
+function O.CreateSkillSkin(button)
+    local skin=O.CreateSlotSkin(button)
+    local icon=button.icon
     local back=O.Frame(button.slot)
-    back:SetAnchor(BOTTOM,icon,TOP,0,-17)
+    -- Match the active frame: an opaque rectangular backing otherwise shows
+    -- through the transparent, bevelled corners of the shared artwork.
+    back.background:SetHidden(true)
+    back:SetDrawLayer(DL_OVERLAY)
+    back:SetDrawLevel(20)
+    -- Anchor to the stable slot, never the icon animated by skill activation.
+    back:SetAnchor(BOTTOM,button.slot,TOP,0,-15.5)
     back:SetDimensions(43,43)
     local backIcon=O.Rect(back,1,1,1,1)
     backIcon.obsidianSurface=false -- Slot icons must never be replaced by the shared surface loader.
     backIcon:SetDrawLayer(DL_CONTROLS)
+    -- Only the inactive icon is muted. Timers and stack text stay legible.
+    backIcon:SetDesaturation(0.75)
+    backIcon:SetColor(0.7,0.7,0.7,1)
     backIcon:SetAnchor(TOPLEFT,back,TOPLEFT,3,3)
     backIcon:SetAnchor(BOTTOMRIGHT,back,BOTTOMRIGHT,-3,-3)
     local backMetal=artwork(back,"fantasy_slot.dds")
     backMetal:SetAnchorFill(back)
-    backMetal:SetDrawLevel(4)
+    backMetal:SetDrawLevel(21)
     local timer=O.Label(back,16)
     timer:SetAnchor(CENTER,back,CENTER,0,0)
     skin.back,skin.backIcon,skin.timer,skin.backMetal=back,backIcon,timer,backMetal
+    O.CreateSkillText(skin)
+    back:SetHandler("OnUpdate",function() O.UpdatePreviewSwap(skin); O.UpdateBackBarTimer(skin) end)
     return skin
 end

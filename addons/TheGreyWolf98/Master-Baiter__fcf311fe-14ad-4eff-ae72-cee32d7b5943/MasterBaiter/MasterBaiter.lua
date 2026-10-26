@@ -1,4 +1,4 @@
--- MasterBaiter 1.0.1: Xbox fishing suite.
+-- MasterBaiter 1.0.2: Xbox fishing suite.
 local NAME="MasterBaiter"
 local collection=MasterBaiterCollection
 local db,ui,hud,ready=false,nil,nil,false
@@ -177,30 +177,37 @@ local function BuildWindow()
  local w=wm:CreateTopLevelWindow("MasterBaiterWindow")
  w:SetDimensions(1120,820);w:SetAnchor(CENTER,GuiRoot,CENTER,0,0);w:SetHidden(true);w:SetMouseEnabled(true)
  local sw,sh=GuiRoot:GetDimensions();w:SetScale(math.min(1,sw/1180,sh/900))
- local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.012,.012,.018,1);bg:SetEdgeColor(.38,.07,.065,1)
+ local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.025,.035,.05,1);bg:SetEdgeColor(.55,.36,.13,1)
  local function Label(x,y,width,height,font)
   local c=wm:CreateControl(nil,w,CT_LABEL);c:SetAnchor(TOPLEFT,w,TOPLEFT,x,y);c:SetDimensions(width,height);c:SetFont(font);c:SetColor(.85,.85,.88,1);return c
  end
- local title=Label(35,20,1050,45,"ZoFontGamepad34");title:SetText("MasterBaiter  |  Right bait. Right time. Reel it in.")
- local summary=Label(35,80,1050,70,"ZoFontGamepad22")
- local heading=Label(35,165,1050,38,"ZoFontGamepad27");heading:SetColor(.85,.3,.28,1)
- local lines={};for i=1,16 do lines[i]=Label(35,210+(i-1)*28,1050,28,"ZoFontGamepad22");lines[i]:SetMaxLineCount(1)end
- local footer=Label(35,710,1050,50,"ZoFontGamepad22")
- local credit=Label(35,770,1050,30,"ZoFontGamepad22");credit:SetText("by @TheGreyWolf98  |  MasterBaiter 1.0.1");credit:SetColor(.57,.24,.23,1)
+ local title=Label(35,20,1050,45,"$(GAMEPAD_MEDIUM_FONT)|34|soft-shadow-thin");title:SetText("MASTERBAITER")
+ local summary=Label(35,80,1050,70,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ local heading=Label(35,165,1050,38,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin");heading:SetColor(.95,.73,.35,1)
+ local lines={};for i=1,8 do lines[i]=Label(35,210+(i-1)*60,1050,58,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");lines[i]:SetMaxLineCount(2)end
+ local footer=Label(35,710,1050,50,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ local credit=Label(35,770,1050,30,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");credit:SetText("by @TheGreyWolf98  |  MasterBaiter 1.0.2");credit:SetColor(.68,.76,.87,1)
  ui={tab=1,selected=1,page=1}
  local settings={
- {name="Automatic bait selection",key="autoBait"},
+ {name="Automatic bait",key="autoBait"},
  {name="Reel-in sound",key="audio"},
  {name="Reel-in visual alert",key="visual"},
  {name="Alert sound",key="sound"},
- {name="Use Simple Bait if suitable bait runs out",key="simpleFallback"},
+ {name="Simple Bait fallback",key="simpleFallback"},
  {name="Rare-fish HUD",key="fishHUD",values={"Off","Fishing only","Always"}},
- {name="Show zone arrival reminder for 10 seconds",key="zoneReminder"},
- {name="Show caught fish on the HUD",key="showCaught"},
+ {name="10-second zone reminder",key="zoneReminder"},
+ {name="Show caught fish",key="showCaught"},
  {name="Fishing map pins",key="mapPins"},
- {name="Show spots for completed water types",key="allSpots"},
+ {name="Completed water spots",key="allSpots"},
  {name="Map pin size",key="pinSize"},
  }
+ local cards={}
+ for i=1,#settings do
+  local x=35+math.floor((i-1)/6)*535;local y=210+((i-1)%6)*78
+  local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchor(TOPLEFT,w,TOPLEFT,x,y);bg:SetDimensions(520,72);bg:SetEdgeTexture(nil,1,1,2)
+  local function text(y,size)local c=wm:CreateControl(nil,bg,CT_LABEL);c:SetAnchor(TOPLEFT,bg,TOPLEFT,12,y);c:SetDimensions(496,34);c:SetFont(TGWMasterBaiterSocials.Font(size));c:SetColor(.94,.96,1,1);c:SetMaxLineCount(1);return c end
+  cards[i]={bg=bg,title=text(5,26),value=text(37,24)}
+ end
  local keys
  local function Render()
   summary:SetText(Clean(GetUnitName("player")).."  |  Fishing companion\n"..status)
@@ -213,7 +220,8 @@ local function BuildWindow()
     elseif setting.values then value=setting.values[db[setting.key]]
     elseif setting.key=="pinSize"then value=tostring(db.pinSize)
     else value=db[setting.key]and"On"or"Off"end
-    rows[#rows+1]=(ui.selected==i and "> "or"  ")..setting.name..": "..value
+    local c=cards[i];c.title:SetText(setting.name);c.value:SetText(value)
+    c.bg:SetCenterColor(ui.selected==i and .15 or .045,ui.selected==i and .18 or .055,ui.selected==i and .23 or .07,1);c.bg:SetEdgeColor(ui.selected==i and .85 or .24,ui.selected==i and .65 or .27,ui.selected==i and .28 or .32,1)
    end
    rows[#rows+1]="";rows[#rows+1]="X previews the selected sound and reel-in alert."
    rows[#rows+1]="Disable other automatic-bait and bite alerts to avoid conflicts."
@@ -228,7 +236,7 @@ local function BuildWindow()
     "Look at a fishing hole until its interaction prompt appears.",
     "Recognized water names select suitable bait from your available stock.",
     "An already suitable bait is kept. Unknown water types keep your current bait.",
-    "Automatic bait selection supports English water and bait names.",
+    "Automatic bait supports English water and bait names.",
     "Ocean / Saltwater: Worms or Chub. Lake: Guts or Minnows.",
     "River: Insect Parts or Shad. Foul: Crawlers or Fish Roe.",
     "Cast normally. At a bite, your enabled sound and large fish icon alert you to reel in.",
@@ -250,14 +258,19 @@ local function BuildWindow()
    rows[#rows+1]="Capture: "..(diagnostics and "On"or"Off")..". Aim at a hole, cast, wait for a bite, then reopen /mb debug."
    for _,line in ipairs(log)do rows[#rows+1]=line end
   end
-  ui.pages=math.max(1,math.ceil(#rows/16));ui.page=math.max(1,math.min(ui.page,ui.pages))
-  for i,label in ipairs(lines)do label:SetText(rows[(ui.page-1)*16+i]or"")end
+  ui.pages=math.max(1,math.ceil(#rows/8));ui.page=math.max(1,math.min(ui.page,ui.pages))
+  for _,c in ipairs(cards)do c.bg:SetHidden(ui.tab~=1)end
+  for i,label in ipairs(lines)do label:SetHidden(ui.tab==1);label:SetText(rows[(ui.page-1)*8+i]or"")end
   footer:SetText("LB/RB: tabs  |  LT/RT: pages  |  Page "..ui.page.." / "..ui.pages.."\nD-pad: select  |  A: change  |  X: preview  |  Y: refresh  |  B: close")
   if keys and KEYBIND_STRIP.UpdateKeybindButtonGroup and SCENE_MANAGER:IsShowing("masterbaiter")then KEYBIND_STRIP:UpdateKeybindButtonGroup(keys)end
  end
  ui.render=Render
  local function Tab(delta)ui.tab=(ui.tab-1+delta)%5+1;ui.page=1;Render()end
- local function Move(delta)ui.selected=(ui.selected-1+delta)%#settings+1;Render()end
+ local function Move(delta)
+  local col=math.floor((ui.selected-1)/6);local count=col==0 and 6 or 5
+  ui.selected=col*6+(ui.selected-1-col*6+delta)%count+1;Render()
+ end
+ local function Column()if ui.tab==1 then ui.selected=ui.selected<=6 and math.min(11,ui.selected+6)or ui.selected-6;Render()end end
  local function Change()
   local setting=settings[ui.selected]
   if setting.key=="sound"then db.sound=db.sound%math.max(1,#soundChoices)+1
@@ -268,6 +281,9 @@ local function BuildWindow()
   Render()
  end
  keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
+ TGWMasterBaiterSocials.Keybind(),
+  {keybind="UI_SHORTCUT_INPUT_LEFT",ethereal=true,callback=Column},
+  {keybind="UI_SHORTCUT_INPUT_RIGHT",ethereal=true,callback=Column},
   {name="Previous tab",keybind="UI_SHORTCUT_LEFT_SHOULDER",callback=function()Tab(-1)end},
   {name="Next tab",keybind="UI_SHORTCUT_RIGHT_SHOULDER",callback=function()Tab(1)end},
   {name="Preview alert",keybind="UI_SHORTCUT_SECONDARY",callback=function()Bite(true)end},

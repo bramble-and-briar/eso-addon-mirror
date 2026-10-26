@@ -14,7 +14,7 @@ BattleScrolls.inventoryPocUI = ui
 -- Refresh only presentation: leave native callbacks and dialogs untouched.
 function ui.refreshTradingHouse()
     if GetInteractionType() ~= INTERACTION_TRADINGHOUSE then return end
-    if BattleScrolls.inventoryPocTradingHouseUI.isDeferred() then return end
+    if BattleScrolls.inventoryPocTradingHouseUI.isSuspended() then return end
     if IsInGamepadPreferredMode() then
         if GAMEPAD_TRADING_HOUSE_SELL then GAMEPAD_TRADING_HOUSE_SELL:UpdateKeybind() end
     elseif TRADING_HOUSE then
@@ -28,7 +28,6 @@ local screen, menuEntry, menuParent
 ---@field buildKey string
 ---@field contentsPanel InventoryPocContentsPanel
 ---@field contentsFocused boolean|nil
----@field showingDetails boolean|nil
 ---@field selectedLogEntry InventoryPocLogEntry|nil
 ---@field updatingLog boolean|nil
 local LogScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
@@ -188,13 +187,13 @@ function LogScreen:setContentsFocused(focused)
     if focused == (self.contentsFocused == true) then return end
     self.contentsFocused = focused
     if focused then
-        self.showingDetails = false
         self:DeactivateCurrentList()
         self:OnTargetChanged(self:GetMainList(), self:GetMainList():GetTargetData())
         self.contentsPanel:setActive(true)
     else
         self.contentsPanel:setActive(false)
         self:ActivateCurrentList()
+        self:OnTargetChanged(self:GetMainList(), self:GetMainList():GetTargetData())
     end
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
 end
@@ -222,17 +221,6 @@ function LogScreen:InitializeKeybindStripDescriptors()
                 end
             end,
         },
-        {
-            name = function() return GetString(self.showingDetails and BATTLESCROLLS_IPOC_VIEW_CONTENTS or BATTLESCROLLS_IPOC_VIEW_DETAILS) end,
-            keybind = 'UI_SHORTCUT_SECONDARY',
-            visible = function() local data = self:GetMainList():GetTargetData(); return data and hasContents(data.logEntry) end,
-            callback = function()
-                self:setContentsFocused(false)
-                self.showingDetails = not self.showingDetails
-                self:OnTargetChanged(self:GetMainList(), self:GetMainList():GetTargetData())
-                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
-            end,
-        },
     }
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.keybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON, function()
         if self.contentsFocused then self:setContentsFocused(false)
@@ -249,10 +237,10 @@ function LogScreen:OnTargetChanged(_list, selectedData)
     resetTooltips()
     local entry = selectedData and selectedData.logEntry
     if entry ~= self.selectedLogEntry then
-        self.selectedLogEntry, self.showingDetails = entry, false
+        self.selectedLogEntry = entry
         self:setContentsFocused(false)
     end
-    if hasContents(entry) and not self.showingDetails then
+    if hasContents(entry) and self.contentsFocused then
         self.contentsPanel:show(entry)
         return
     end
@@ -333,7 +321,7 @@ end
 
 function LogScreen:OnHiding()
     EVENT_MANAGER:UnregisterForUpdate(SCENE_NAME)
-    self.contentsFocused, self.showingDetails, self.selectedLogEntry = false, false, nil
+    self.contentsFocused, self.selectedLogEntry = false, nil
     self.contentsPanel:hide()
     resetTooltips()
     ZO_Gamepad_ParametricList_Screen.OnHiding(self)

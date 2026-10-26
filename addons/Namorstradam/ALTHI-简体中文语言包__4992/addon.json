@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Namorstradam/ALTHI-\u7b80\u4f53\u4e2d\u6587\u8bed\u8a00\u5305__4992",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Namorstradam",
+  "canonical_id": "esoui:4992",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4992",
+  "deleted": false,
+  "directories": [
+    "ALTHI_Language_zh"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4992/",
+  "fingerprint": "3f0f93c1f92957b6a5c393c2d03997aae3fa5df63163f1e2ea63dee32f8ce0bf",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4992",
+  "source_url": "https://www.esoui.com/downloads/info4992-ALTHI31616203072001325991358213532821253.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "ALTHI \u2013 &#31616;&#20307;&#20013;&#25991;&#35821;&#35328;&#21253;",
+  "updated_at": 1792954153000,
+  "version": "0.9.4"
+}

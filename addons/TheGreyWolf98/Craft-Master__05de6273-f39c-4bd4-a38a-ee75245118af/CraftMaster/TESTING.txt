@@ -1,4 +1,4 @@
-CRAFT MASTER 1.0.11 - CONSOLE TEST
+CRAFT MASTER 1.0.12 - CONSOLE TEST
 by @TheGreyWolf98
 
 No external add-on dependencies. Does not use LibCharacterKnowledge or LibAsync.
@@ -204,7 +204,7 @@ Check on Xbox: compare the plan's displayed link name in chat and confirm it
 opens the correct tooltip; preview a rug and large furnishing, then B back.
 No automatic sending. Live Xbox display is not confirmed by mocked checks.
 
-1.0.11 QUIET LOGIN SCANS
+1.0.12 QUIET LOGIN SCANS
 - Full automatic scan once per character in each Lua login/UI-reload session.
 - Completed scan survives player deactivation/activation during travel.
 - An unfinished initial scan restarts after loading so knowledge is complete.

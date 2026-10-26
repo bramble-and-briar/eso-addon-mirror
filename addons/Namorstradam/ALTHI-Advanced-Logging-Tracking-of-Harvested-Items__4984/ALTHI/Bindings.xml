@@ -1,0 +1,12 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+    <Category name="ALTHI">
+      <Action name="ALTHI_TOGGLE"><Down>ALTHarvestItems:ToggleWindow()</Down></Action>
+      <Action name="ALTHI_SETTINGS"><Down>ALTHarvestItems:OpenSettings()</Down></Action>
+      <Action name="ALTHI_RUN"><Down>ALTHarvestItems:Play()</Down></Action>
+      <Action name="ALTHI_PAUSE"><Down>ALTHarvestItems:Pause()</Down></Action>
+      <Action name="ALTHI_STOP"><Down>ALTHarvestItems:Stop()</Down></Action>
+      <Action name="ALTHI_RESET"><Down>ZO_Dialogs_ShowDialog("ALTHI_RESET")</Down></Action>
+    </Category>
+  </Layer>
+</Bindings>

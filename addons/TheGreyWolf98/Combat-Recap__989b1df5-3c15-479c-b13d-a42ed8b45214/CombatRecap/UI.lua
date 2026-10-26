@@ -1,57 +1,59 @@
 local C = CombatRecap
 local U = {tab=1,page=1,selected=1}
+local SCALE=1.25
 C.UI=U
 local function n(v) return string.format('%.0f',v or 0) end
 local function short(v) v=v or 0; return v>=1000000 and string.format('%.2fm',v/1000000) or v>=1000 and string.format('%.1fk',v/1000) or n(v) end
 local function pct(v,total) return string.format('%.1f%%',total>0 and v/total*100 or 0) end
 local function label(parent,x,y,w,h,font)
- local l=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL);l:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);l:SetDimensions(w,h);l:SetFont(font or 'ZoFontGamepad18');l:SetColor(.9,.91,.94,1);return l
+ local l=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL);l:SetAnchor(TOPLEFT,parent,TOPLEFT,x*SCALE,y*SCALE);l:SetDimensions(w*SCALE,math.max(h*SCALE,28));l:SetFont(font or "$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");l:SetColor(.9,.91,.94,1);return l
 end
 local function panel(parent,x,y,w,h)
- local b=WINDOW_MANAGER:CreateControl(nil,parent,CT_TEXTURE);b:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);b:SetDimensions(w,h);b:SetColor(.035,.04,.055,1);return b
+ local b=WINDOW_MANAGER:CreateControl(nil,parent,CT_TEXTURE);b:SetAnchor(TOPLEFT,parent,TOPLEFT,x*SCALE,y*SCALE);b:SetDimensions(w*SCALE,h*SCALE);b:SetColor(.035,.04,.055,1);return b
 end
 function U:Initialize()
  if self.window then return end
- local w=WINDOW_MANAGER:CreateTopLevelWindow('CombatRecapWindow');self.window=w;w:SetHidden(true);w:SetAnchor(CENTER,GuiRoot,CENTER,0,-15);w:SetDimensions(1200,740)
+ local w=WINDOW_MANAGER:CreateTopLevelWindow('CombatRecapWindow');self.window=w;w:SetHidden(true);w:SetAnchor(CENTER,GuiRoot,CENTER,0,-15);w:SetDimensions(1500,1040)
  -- Untextured texture controls render a solid colour; no external asset required.
- self.bg=panel(w,0,0,1200,740);self.bg:SetColor(.012,.015,.022,1)
- panel(w,18,142,1164,40);panel(w,18,190,778,482);panel(w,806,190,376,482)
- self.title=label(w,26,16,1100,38,'ZoFontGamepad27');self.title:SetText('COMBAT RECAP');self.title:SetColor(.95,.38,.35,1)
- self.meta=label(w,26,58,770,26);self.summary=label(w,26,92,770,35,'ZoFontGamepad22')
- self.tabs=label(w,26,150,1148,28,'ZoFontGamepad22');self.heading=label(w,28,200,758,25)
+ self.bg=panel(w,0,0,1200,832);self.bg:SetColor(.025,.035,.05,1)
+ local border=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP);border:SetAnchorFill(w);border:SetCenterColor(0,0,0,0);border:SetEdgeColor(.55,.36,.13,1);border:SetEdgeTexture(nil,1,1,2)
+ panel(w,18,142,1164,40);panel(w,18,190,778,608);panel(w,806,190,376,608)
+ self.title=label(w,26,16,1100,38,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin");self.title:SetText('COMBAT RECAP');self.title:SetFont(TGWCombatRecapSocials.Font(36));self.title:SetColor(.95,.73,.35,1)
+ self.meta=label(w,26,58,770,26);self.summary=label(w,26,92,770,35,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ self.tabs=label(w,26,150,1148,28,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");self.heading=label(w,28,200,758,25)
  self.cells={};self.headers={}
  for col=1,6 do self.headers[col]=label(w,0,200,100,24);self.headers[col]:SetColor(.9,.57,.4,1) end
  for row=1,14 do
-  panel(w,24,232+(row-1)*30,766,28):SetColor(.12,.14,.18,row%2==0 and 1 or .45)
-  self.cells[row]={};for col=1,6 do self.cells[row][col]=label(w,0,232+(row-1)*30,100,28) end
+  panel(w,24,232+(row-1)*39,766,36):SetColor(.12,.14,.18,row%2==0 and 1 or .45)
+  self.cells[row]={};for col=1,6 do self.cells[row][col]=label(w,0,232+(row-1)*39,100,36) end
  end
- self.sideTitle=label(w,822,202,342,28,'ZoFontGamepad22');self.sideText=label(w,822,238,342,425)
+ self.sideTitle=label(w,822,202,342,28,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");self.sideText=label(w,822,238,342,425)
  self.effectLabels={}
- for col=1,2 do for row=1,18 do
-  local l=label(w,822+(col-1)*176,238+(row-1)*23,170,23)
+ for col=1,2 do for row=1,14 do
+  local l=label(w,822+(col-1)*176,238+(row-1)*39,170,35)
   l:SetMaxLineCount(1)
   self.effectLabels[#self.effectLabels+1]=l
  end end
- self.weaveBox=panel(w,806,16,376,112)
- self.weaveText=label(w,820,23,350,100)
- self.gameVersion=label(w,1080,704,100,25);self.gameVersion:SetText('ESO U51')
+ self.weaveBox=panel(w,806,16,376,124)
+ self.weaveText=label(w,820,17,350,120)
+ self.gameVersion=label(w,690,22,100,25);self.gameVersion:SetText('ESO U51')
  self.buildGroup=WINDOW_MANAGER:CreateControl(nil,w,CT_CONTROL);self.buildGroup:SetAnchorFill(w)
- panel(self.buildGroup,18,142,1164,530)
+ panel(self.buildGroup,18,142,1164,648)
  self.buildGear={}
  for i=1,14 do
-  local y=188+(i-1)*33
-  local icon=WINDOW_MANAGER:CreateControl(nil,self.buildGroup,CT_TEXTURE);icon:SetAnchor(TOPLEFT,self.buildGroup,TOPLEFT,128,y);icon:SetDimensions(27,27)
-  self.buildGear[i]={slot=label(self.buildGroup,28,y,98,26),icon=icon,name=label(self.buildGroup,162,y,510,21),detail=label(self.buildGroup,162,y+19,510,18,'ZoFontGamepad18')}
+  local y=188+(i-1)*44
+  local icon=WINDOW_MANAGER:CreateControl(nil,self.buildGroup,CT_TEXTURE);icon:SetAnchor(TOPLEFT,self.buildGroup,TOPLEFT,128*SCALE,y*SCALE);icon:SetDimensions(32,32)
+  self.buildGear[i]={slot=label(self.buildGroup,28,y,98,26),icon=icon,name=label(self.buildGroup,162,y,510,21),detail=label(self.buildGroup,162,y+25,510,22,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")}
  end
- self.buildHead=label(self.buildGroup,28,149,1135,32,'ZoFontGamepad22')
+ self.buildHead=label(self.buildGroup,28,149,1135,32,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
  self.buildBars={}
  for bar=1,2 do
   local x=bar==1 and 694 or 938
-  label(self.buildGroup,x,188,230,25,'ZoFontGamepad22'):SetText(bar==1 and 'FRONT BAR' or 'BACK BAR')
+  label(self.buildGroup,x,188,230,25,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin"):SetText(bar==1 and 'FRONT BAR' or 'BACK BAR')
   self.buildBars[bar]={}
   for i=1,6 do
    local y=220+(i-1)*30
-   local icon=WINDOW_MANAGER:CreateControl(nil,self.buildGroup,CT_TEXTURE);icon:SetAnchor(TOPLEFT,self.buildGroup,TOPLEFT,x,y);icon:SetDimensions(24,24)
+   local icon=WINDOW_MANAGER:CreateControl(nil,self.buildGroup,CT_TEXTURE);icon:SetAnchor(TOPLEFT,self.buildGroup,TOPLEFT,x*SCALE,y*SCALE);icon:SetDimensions(30,30)
    self.buildBars[bar][i]={icon=icon,text=label(self.buildGroup,x+30,y,204,28)}
   end
  end
@@ -60,15 +62,16 @@ function U:Initialize()
  for group=1,3 do
   self.buildCP[group]={}
   for row=1,5 do
-   local l=label(self.buildGroup,694+(group-1)*163,404+(row-1)*31,153,30)
+   local l=label(self.buildGroup,694+(group-1)*163,404+(row-1)*42,153,42)
    l:SetColor((unpack or table.unpack)(colours[group]));l:SetMaxLineCount(2)
    self.buildCP[group][row]=l
   end
  end
- self.buildMastery=label(self.buildGroup,694,565,478,67)
- self.buildNote=label(self.buildGroup,694,636,478,28)
- self.footer=label(w,26,687,1148,44)
+ self.buildMastery=label(self.buildGroup,694,650,478,67)
+ self.buildNote=label(self.buildGroup,694,742,478,28)
+ self.footer=label(w,26,790,1148,42)
  self.keybinds={alignment=KEYBIND_STRIP_ALIGN_LEFT,
+ TGWCombatRecapSocials.Keybind(),
  {name=function() return self.tab==1 and 'View build' or 'Combat report' end,keybind='UI_SHORTCUT_PRIMARY',callback=function() self.tab=3-self.tab;self.page=1;self:Refresh() end},
  {name='More abilities / effects',keybind='UI_SHORTCUT_SECONDARY',callback=function() self.page=self.page%(self.pages or 1)+1;self:Refresh() end,visible=function() return self.tab==1 and (self.pages or 1)>1 end},
  {name='Next fight',keybind='UI_SHORTCUT_TERTIARY',callback=function() if #C.saved.history>0 then self.selected=self.selected%#C.saved.history+1 end;self.page=1;self:Refresh() end},
@@ -82,7 +85,7 @@ function U:Open(index)
  self:Initialize();self.selected=math.max(1,math.min(index or 1,#C.saved.history));self.tab=1;self.page=1;SCENE_MANAGER:Show('combatRecap')
 end
 function U:Refresh()
- local scale=math.min(1,GuiRoot:GetWidth()*.94/1200,GuiRoot:GetHeight()*.86/740);self.window:SetScale(scale)
+ local scale=math.min(1,GuiRoot:GetWidth()*.94/1500,GuiRoot:GetHeight()*.86/1040);self.window:SetScale(scale)
  self.buildGroup:SetHidden(self.tab~=2)
  self.weaveBox:SetHidden(self.tab==2);self.weaveText:SetHidden(self.tab==2)
  for _,l in ipairs(self.effectLabels) do l:SetHidden(self.tab==2);l:SetText('') end
@@ -102,13 +105,13 @@ function U:Refresh()
  if self.tab==1 then
   headers={'ABILITY','DAMAGE','SHARE','HITS','CRIT','MAX'};x={28,360,455,545,620,706};widths={325,90,85,70,80,78}
   for _,e in ipairs(abilities) do rows[#rows+1]={e.name,short(e.damage),pct(e.damage,f.damage),n(e.hits),pct(e.crits,e.hits),short(e.max)} end
-  self.pages=math.max(1,math.ceil(#rows/14),math.ceil(#effects/36));self.page=math.min(self.page,self.pages)
+  self.pages=math.max(1,math.ceil(#rows/14),math.ceil(#effects/28));self.page=math.min(self.page,self.pages)
   -- Effect paging is independent of ability paging when all effects fit.
-  local effectPage=math.min(self.page,math.max(1,math.ceil(#effects/36)))
+  local effectPage=math.min(self.page,math.max(1,math.ceil(#effects/28)))
   self.sideTitle:SetText('PLAYER EFFECTS ('..#effects..')')
   self.sideText:SetText('')
   for i,l in ipairs(self.effectLabels) do
-   local e=effects[(effectPage-1)*36+i]
+   local e=effects[(effectPage-1)*28+i]
    l:SetText(e and (pct(e.uptimeMs,f.duration*1000)..' '..e.name) or '')
   end
   self.weaveText:SetText('WEAVING\nLA inputs / damage events: '..n(f.weave.laInputs)..' / '..n(f.laHits)..'\nOne LA input / interval: '..pct(f.weave.single,f.weave.intervals)..'\nInputs are not confirmed landed hits.')
@@ -120,8 +123,8 @@ function U:Refresh()
   local v=f.weave;local mean=v.delayCount>0 and v.delaySum/v.delayCount or 0
   self.sideText:SetText(string.format('LA input events: %s\nClassified LA damage events: %s\nLA damage: %s\nHeavy input events: %s\n\nSkill events: %s\nUltimate events: %s\nEligible intervals: %s\nOne LA input: %s\nZero / multiple: %s / %s\nMean interval: %sms\nExcluded intervals: %s\n\nInputs do not prove landed hits.\nNo missed-weave score.\n\nGear saved at fight start.',n(v.laInputs),n(f.laHits),short(f.laDamage),n(v.heavyInputs),n(v.skills),n(v.ultimates),n(v.intervals),pct(v.single,v.intervals),n(v.zero),n(v.multiple),n(mean),n(v.excluded)))
  end
- for col=1,6 do local l=self.headers[col];l:ClearAnchors();l:SetAnchor(TOPLEFT,self.window,TOPLEFT,x[col],200);l:SetDimensions(widths[col],24);l:SetText(headers[col] or '') end
- for row=1,14 do local values=rows[(self.page-1)*14+row];for col=1,6 do local l=self.cells[row][col];l:ClearAnchors();l:SetAnchor(TOPLEFT,self.window,TOPLEFT,x[col],232+(row-1)*30);l:SetDimensions(widths[col],28);l:SetText(values and values[col] or '') end end
+ for col=1,6 do local l=self.headers[col];l:ClearAnchors();l:SetAnchor(TOPLEFT,self.window,TOPLEFT,x[col]*SCALE,200*SCALE);l:SetDimensions(widths[col]*SCALE,32);l:SetText(headers[col] or '') end
+ for row=1,14 do local values=rows[(self.page-1)*14+row];for col=1,6 do local l=self.cells[row][col];l:ClearAnchors();l:SetAnchor(TOPLEFT,self.window,TOPLEFT,x[col]*SCALE,(232+(row-1)*39)*SCALE);l:SetDimensions(widths[col]*SCALE,42);l:SetText(values and values[col] or '') end end
  self.footer:SetText(string.format('DPS: first to last damage | Personal + pets | Detail page %d/%d\nCombat Recap %s | @TheGreyWolf98',self.page,self.pages,C.VERSION))
 end
 

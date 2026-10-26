@@ -1,0 +1,26 @@
+FurnishThemAllData_FPacks_Ayleid = {
+    name = "Ayleid",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Ayleid Apparatus, Welkynd" },
+            { name = "Ayleid Bench, Carved" },
+            { name = "Ayleid Bookcase, Short Bare" },
+            { name = "Ayleid Bookcase, Short Cluttered" },
+            { name = "Ayleid Bookcase, Tall Cluttered" },
+            { name = "Ayleid Bookcase, Tall Filled" },
+            { name = "Ayleid Brazier, Fiery" },
+            { name = "Ayleid Brazier, Welkynd Holder" },
+            { name = "Ayleid Cage, Hanging" },
+            { name = "Ayleid Grate, Small" },
+            { name = "Ayleid Grate, Tall" },
+            { name = "Ayleid Plinth, Engraved" },
+            { name = "Ayleid Statue, Pious Priest" },
+            { name = "Ayleid Table, Carved" },
+            { name = "Books, Ordered Row" },
+            { name = "Books, Scattered Row" },
+            { name = "Daedra Worship: The Ayleids" },
+            { name = "Welkynd Stones, Glowing" },
+        },
+    },
+}

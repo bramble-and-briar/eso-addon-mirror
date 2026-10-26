@@ -1,6 +1,6 @@
--- ZoneSweep 0.5.1: large-text checklist and clearer status colours.
+-- ZoneSweep 0.5.2: large-text checklist and clearer status colours.
 local NAME="ZoneSweep"
-local VERSION="0.5.1"
+local VERSION="0.5.2"
 local PAGE_ROWS=13
 local PANEL_WIDTH,PANEL_HEIGHT=1800,1000
 local ui, snapshot, db
@@ -84,27 +84,27 @@ local function CreateWindow()
   local w,h=GuiRoot:GetDimensions();window:SetScale(math.min(1,w*.94/PANEL_WIDTH,h*.88/PANEL_HEIGHT))
  end
  Resize();window:RegisterForEvent(EVENT_SCREEN_RESIZED,Resize)
- local bg=wm:CreateControl(nil,window,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.018,.023,.035,1);bg:SetEdgeColor(.85,.19,.22,1);bg:SetEdgeTexture(nil,1,1,3)
+ local bg=wm:CreateControl(nil,window,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.025,.035,.05,1);bg:SetEdgeColor(.55,.36,.13,1);bg:SetEdgeTexture(nil,1,1,3)
  local function Label(x,y,width,height,font)
   local label=wm:CreateControl(nil,window,CT_LABEL);label:SetAnchor(TOPLEFT,window,TOPLEFT,x,y);label:SetDimensions(width,height);label:SetFont(font);label:SetColor(.85,.85,.88,1);return label
  end
- local title=Label(30,14,1740,72,"$(BOLD_FONT)|56|soft-shadow-thin");title:SetColor(1,.3,.34,1);title:SetMaxLineCount(1);title:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
- local summary=Label(30,86,1740,52,"$(BOLD_FONT)|36|soft-shadow-thin");summary:SetMaxLineCount(1);summary:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
- local heading=Label(30,142,880,52,"$(BOLD_FONT)|40|soft-shadow-thin");heading:SetColor(1,.78,.3,1);heading:SetMaxLineCount(1);heading:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
- local characterHeader=Label(940,142,430,52,"$(BOLD_FONT)|36|soft-shadow-thin");characterHeader:SetColor(1,.78,.3,1)
- local accountHeader=Label(1420,142,340,52,"$(BOLD_FONT)|36|soft-shadow-thin");accountHeader:SetColor(.45,.8,1,1)
+ local title=Label(30,14,1740,72,"$(GAMEPAD_MEDIUM_FONT)|56|soft-shadow-thin");title:SetColor(.95,.73,.35,1);title:SetMaxLineCount(1);title:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ local summary=Label(30,86,1740,52,"$(GAMEPAD_MEDIUM_FONT)|36|soft-shadow-thin");summary:SetMaxLineCount(1);summary:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ local heading=Label(30,142,880,52,"$(GAMEPAD_MEDIUM_FONT)|40|soft-shadow-thin");heading:SetColor(1,.78,.3,1);heading:SetMaxLineCount(1);heading:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ local characterHeader=Label(940,142,430,52,"$(GAMEPAD_MEDIUM_FONT)|36|soft-shadow-thin");characterHeader:SetColor(1,.78,.3,1)
+ local accountHeader=Label(1420,142,340,52,"$(GAMEPAD_MEDIUM_FONT)|36|soft-shadow-thin");accountHeader:SetColor(.45,.8,1,1)
  local lines,rowPanels,characterCounts,accountCounts={},{},{},{}
  for i=1,PAGE_ROWS do
   local y=200+(i-1)*54
   local panel=wm:CreateControl(nil,window,CT_BACKDROP);panel:SetAnchor(TOPLEFT,window,TOPLEFT,22,y);panel:SetDimensions(1756,53)
   panel:SetCenterColor(.04,.05,.075,1);panel:SetEdgeColor(.18,.22,.29,1);panel:SetEdgeTexture(nil,1,1,1);panel:SetMouseEnabled(false)
   rowPanels[i]=panel
-  lines[i]=Label(38,y,890,53,"$(BOLD_FONT)|44|soft-shadow-thin");lines[i]:SetMaxLineCount(1);lines[i]:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-  characterCounts[i]=Label(940,y,430,53,"$(BOLD_FONT)|44|soft-shadow-thin");characterCounts[i]:SetMaxLineCount(1)
-  accountCounts[i]=Label(1420,y,340,53,"$(BOLD_FONT)|44|soft-shadow-thin");accountCounts[i]:SetMaxLineCount(1);accountCounts[i]:SetColor(.45,.8,1,1)
+  lines[i]=Label(38,y,890,53,"$(GAMEPAD_MEDIUM_FONT)|44|soft-shadow-thin");lines[i]:SetMaxLineCount(1);lines[i]:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+  characterCounts[i]=Label(940,y,430,53,"$(GAMEPAD_MEDIUM_FONT)|44|soft-shadow-thin");characterCounts[i]:SetMaxLineCount(1)
+  accountCounts[i]=Label(1420,y,340,53,"$(GAMEPAD_MEDIUM_FONT)|44|soft-shadow-thin");accountCounts[i]:SetMaxLineCount(1);accountCounts[i]:SetColor(.45,.8,1,1)
  end
- local footer=Label(30,912,1740,44,"$(BOLD_FONT)|32|soft-shadow-thin");footer:SetMaxLineCount(1)
- local credit=Label(30,960,1740,38,"$(BOLD_FONT)|28|soft-shadow-thin");credit:SetText("by @TheGreyWolf98  |  ZoneSweep "..VERSION);credit:SetColor(.68,.76,.87,1)
+ local footer=Label(30,912,1740,44,"$(GAMEPAD_MEDIUM_FONT)|32|soft-shadow-thin");footer:SetMaxLineCount(1)
+ local credit=Label(30,960,1740,38,"$(GAMEPAD_MEDIUM_FONT)|28|soft-shadow-thin");credit:SetText("by @TheGreyWolf98  |  ZoneSweep "..VERSION);credit:SetColor(.68,.76,.87,1)
  ui={window=window,category=0,page=1,onlyMissing=true,selected=1}
  local keys
  local function Render()
@@ -172,7 +172,7 @@ local function CreateWindow()
    end
    rowPanels[i]:SetHidden(rows[index]==nil)
    local selected=selectable and index==ui.selected
-   rowPanels[i]:SetCenterColor(selected and .18 or .04,selected and .09 or .05,selected and .12 or .075,1)
+   rowPanels[i]:SetCenterColor(selected and .15 or .04,selected and .18 or .05,selected and .23 or .075,1)
    rowPanels[i]:SetEdgeColor(selected and 1 or .18,selected and .65 or .22,selected and .28 or .29,1)
   end
   footer:SetText(overview and "Recorded = this character's saved history  |  No record = unknown  |  /zs help" or "Page "..ui.page.." / "..pages.."  |  /zs help")
@@ -204,6 +204,7 @@ local function CreateWindow()
   return (ui.category==0 and #snapshot.categories>0) or (entry~=nil and entry.accountDone~=nil and #ui.visibleActivities>0)
  end
  keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
+ TGWZoneSweepSocials.Keybind(),
   {name="Previous category",keybind="UI_SHORTCUT_LEFT_SHOULDER",callback=function()Cycle(-1)end},
   {name="Next category",keybind="UI_SHORTCUT_RIGHT_SHOULDER",callback=function()Cycle(1)end},
   {name=function()return ui.onlyMissing and "Show all" or "Unfinished only"end,visible=function()return not ui.help and not ui.debug and ui.category>0 end,keybind="UI_SHORTCUT_SECONDARY",callback=function()if ui.debug or ui.help or ui.category==0 then return end;ui.onlyMissing=not ui.onlyMissing;ui.page=1;ui.selected=1;Render()end},

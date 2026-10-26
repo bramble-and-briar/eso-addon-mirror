@@ -1,0 +1,300 @@
+﻿itemId;Pruefung;Herkunftsarten;Belegkennungen
+521;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+533;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+793;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+794;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+800;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+802;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+803;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+808;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+811;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+812;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+818;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+883;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+1187;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+4439;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+4447;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+4448;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+4463;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+4464;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+4478;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+4482;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+4487;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+4570;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+4995;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+5413;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+5820;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+6000;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+6001;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+6020;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+23095;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+23097;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+23099;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23100;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23101;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23103;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+23104;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+23105;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+23107;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23117;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+23118;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+23119;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+23121;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23122;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23123;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23125;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23126;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23127;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+23129;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+23130;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+23131;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+23133;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+23134;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+23135;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+23137;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+23138;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+23142;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+23143;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+23265;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+23266;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+23267;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+23268;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+26802;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+26954;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27035;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27043;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27048;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27049;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27052;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27057;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27058;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27059;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27063;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27064;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+27100;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28603;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28604;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28609;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28610;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28636;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28639;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+28666;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+29030;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+30148;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30149;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30151;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30152;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30153;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30154;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30155;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30156;Konkrete ID-Zuordnung;mushroom;HarvestMap-ID
+30157;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30158;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30159;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30160;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30161;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30162;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30163;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30164;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+30165;Konkrete ID-Zuordnung;waterplant;HarvestMap-ID
+30166;Konkrete ID-Zuordnung;waterplant;HarvestMap-ID
+33217;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+33218;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+33219;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+33220;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+33752;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33753;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33754;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33755;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33756;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33758;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33768;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33771;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33772;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33773;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+33774;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34305;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34307;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34308;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34309;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34311;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34321;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34323;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34324;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34329;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34330;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34333;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34334;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34335;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34345;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34346;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34347;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34348;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+34349;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+42869;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+42871;"Versorger-/Fisch-/Koeder-Kandidat aus Eingangsdaten; nur bei unterstuetztem Clienttyp aufnehmen";;
+45806;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45807;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45808;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45809;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45810;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45811;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45812;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45813;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45814;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45815;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45816;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45817;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45818;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45819;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45820;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45821;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45822;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45823;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45824;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45825;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45826;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45827;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45828;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45829;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45830;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45831;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45832;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45833;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45834;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45835;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45836;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45837;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45838;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45839;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45840;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45841;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45842;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45843;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45844;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45845;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45846;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45847;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45848;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45849;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45850;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45851;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45852;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45853;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45854;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45855;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45856;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+45857;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+46127;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46128;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46129;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46130;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46131;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46132;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46133;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46134;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46135;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46136;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46137;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46138;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46139;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46140;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46141;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+46142;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+54248;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54253;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54289;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54294;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54297;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54299;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54306;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54330;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54331;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54342;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54373;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54374;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54375;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54481;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+54482;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+56862;Konkrete ID-Zuordnung;deconstruction,nirn;Gear-Extraction,Nirn-Forum-2017
+56863;Konkrete ID-Zuordnung;deconstruction,nirn;Gear-Extraction,Nirn-Forum-2017
+64489;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+64500;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+64501;Konkrete ID-Zuordnung;water,waterskin;HarvestMap-ID,Prima-Alchemy
+64502;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+64504;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+64506;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+64508;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+64509;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+68340;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+68341;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+68342;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+71198;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+71199;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+71200;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+71239;Konkrete ID-Zuordnung;creature;Leder-Materialklassen
+75357;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75358;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75359;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75360;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75361;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75362;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75363;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75364;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75365;Konkrete ID-Zuordnung;oil;Prima-Alchemy
+75370;Konkrete ID-Zuordnung;refining,trove;Thieves-Materials
+77581;Konkrete ID-Zuordnung;torchbug;Alchemy-091
+77583;Konkrete ID-Zuordnung;beetle;Alchemy-091
+77584;Konkrete ID-Zuordnung;spider;Alchemy-091
+77585;Konkrete ID-Zuordnung;butterfly;Alchemy-091
+77587;Konkrete ID-Zuordnung;fleshfly;Alchemy-091
+77589;Konkrete ID-Zuordnung;scrib;Alchemy-091
+77590;Konkrete ID-Zuordnung;plant;HarvestMap-ID
+77591;Konkrete ID-Zuordnung;mudcrab;Roman-Ingame-2026-10-24
+81997;"Client-Typregel oder offen; Alt-/Versorger-Kandidaten nicht pauschal freigegeben";;
+114889;Konkrete ID-Zuordnung;ore;HarvestMap-ID
+114890;Konkrete ID-Zuordnung;fibre;HarvestMap-ID
+114891;Konkrete ID-Zuordnung;creature;Homestead-U13
+114892;Konkrete ID-Zuordnung;deconstruction,hireling,runestone;Enchanting-091,HarvestMap-ID
+114893;Konkrete ID-Zuordnung;mushroom,plant;Homestead-U13
+114894;Konkrete ID-Zuordnung;container;Homestead-U13
+114895;Konkrete ID-Zuordnung;wood;HarvestMap-ID
+115026;Konkrete ID-Zuordnung;dust;Staub-Forum-2020
+135137;Konkrete ID-Zuordnung;jewelry;HarvestMap-ID
+135138;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+135139;Konkrete ID-Zuordnung;jewelry;HarvestMap-ID
+135140;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+135141;Konkrete ID-Zuordnung;jewelry;HarvestMap-ID
+135142;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+135143;Konkrete ID-Zuordnung;jewelry;HarvestMap-ID
+135144;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+135145;Konkrete ID-Zuordnung;jewelry;HarvestMap-ID
+135146;"Typregel fuer veredelte Grundmaterialien; Typ im Client bestaetigen";;
+135151;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135152;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135153;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135154;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135155;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135156;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135157;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135158;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135159;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135160;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+135161;"Client-Typregel Schmuckeigenschaft/Haerter; keine alten Korn-Dropregeln uebernommen";;
+139019;Konkrete ID-Zuordnung;clam;Alchemy-091
+139020;Konkrete ID-Zuordnung;clam;Alchemy-091
+139411;Konkrete ID-Zuordnung;portal;Summerset-U18
+139413;Konkrete ID-Zuordnung;dungeon,refining;Schmuck-Guide,Summerset-U18
+139417;Konkrete ID-Zuordnung;portal;Summerset-U18
+139419;Konkrete ID-Zuordnung;deconstruction,dungeon;Schmuck-Guide
+150669;Konkrete ID-Zuordnung;chaurus;Alchemy-091
+150670;Konkrete ID-Zuordnung;harrowstorm;Alchemy-091
+150671;Konkrete ID-Zuordnung;dragon;Alchemy-091
+150672;Konkrete ID-Zuordnung;crimson;HarvestMap-ID
+150731;Konkrete ID-Zuordnung;dragon;Alchemy-091
+150789;Konkrete ID-Zuordnung;dragon;Alchemy-091
+166045;Konkrete ID-Zuordnung;antiquity;Greymoor-U26
+224357;Konkrete ID-Zuordnung;solo;U51-Reagents-Community
+224358;Konkrete ID-Zuordnung;sewers;U51-Reagents-Community
+224359;Konkrete ID-Zuordnung;treasuremap;U51-Reagents-Community
+224360;Konkrete ID-Zuordnung;coldwood;U51-Reagents-Community

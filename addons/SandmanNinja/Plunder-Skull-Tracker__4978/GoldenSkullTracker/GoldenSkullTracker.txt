@@ -1,9 +1,9 @@
 ## Title: Golden Skull Tracker
-## Description: Account-wide daily Witches Festival checklist. /skulls to toggle.
+## Description: English client required for automatic tracking. Account-wide daily Witches Festival checklist. /skulls to toggle.
 ## Author: J. Callahan / ChatGPT
-## Version: 1.1.0
-## AddOnVersion: 10100
-## APIVersion: 101050 101051
+## Version: 1.1.2
+## AddOnVersion: 10102
+## APIVersion: 101051
 ## SavedVariables: GoldenSkullTrackerSaved
 
 GoldenSkullTracker.lua

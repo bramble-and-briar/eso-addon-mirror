@@ -25,6 +25,10 @@ local WAIT_NAME  = ME.name .. "_AntiquityWait"
 local TICK_NAME  = ME.name .. "_AntiquityTick"
 local TICK_MS    = 100
 
+local JOURNAL_SCENE    = "gamepad_antiquity_journal"
+local TRAVEL_WINDOW_MS = 30000
+local JOURNAL_DELAY_MS = 1500
+
 local FRAME_GREY = { 0.55, 0.55, 0.55 }
 
 AR.defaults = {
@@ -62,6 +66,8 @@ AR.popupShowing = false
 AR.preview      = false
 AR.activated    = false
 AR.lastZoneId   = nil
+AR.travelLead   = nil
+AR.journalLead  = nil
 
 --------------------------------------------------
 -- Helpers
@@ -698,7 +704,7 @@ local function RecallCost(nodeIndex)
     return GetRecallCost(nodeIndex) or 0
 end
 
-local function TravelTo(nodes)
+local function TravelTo(nodes, antiquityId)
     if IsUnitDead("player") or IsInCampaign() or not CanLeaveCurrentLocationViaTeleport() then
         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "You can't travel from here right now.")
         return
@@ -713,8 +719,64 @@ local function TravelTo(nodes)
         return
     end
 
+    AR.travelLead = { id = antiquityId, startMs = GetFrameTimeMilliseconds(), loading = false }
     FastTravelToNode(nodeIndex)
     SCENE_MANAGER:ShowBaseScene()
+end
+
+--------------------------------------------------
+-- Journal
+--------------------------------------------------
+local function OnJournalShown()
+    local antiquityId = AR.journalLead
+    AR.journalLead = nil
+    if not antiquityId then return end
+
+    local journal = rawget(_G, "ANTIQUITY_JOURNAL_GAMEPAD")
+    local category = rawget(_G, "ZO_SCRYABLE_ANTIQUITY_CURRENT_ZONE_SUBCATEGORY_DATA")
+    if not (journal and category and journal.ViewCategory) then return end
+
+    local manager = rawget(_G, "ANTIQUITY_DATA_MANAGER")
+    local antiquityData = manager and manager.GetAntiquityData and manager:GetAntiquityData(antiquityId)
+    pcall(journal.ViewCategory, journal, category, true, antiquityData)
+end
+
+function AR:InstallJournalHook()
+    local scene = SCENE_MANAGER:GetScene(JOURNAL_SCENE)
+    if not scene then return end
+    scene:RegisterCallback("StateChange", function(oldState, newState)
+        if newState == SCENE_SHOWN then OnJournalShown() end
+    end)
+end
+
+function AR:OpenJournal(antiquityId)
+    if not SCENE_MANAGER:GetScene(JOURNAL_SCENE) then return end
+    if IsUnitDead("player") then return end
+    self.journalLead = antiquityId
+
+    local mainMenu = SYSTEMS and SYSTEMS.GetObject and SYSTEMS:GetObject("mainMenu")
+    if mainMenu and type(mainMenu.ShowAntiquityJournal) == "function" then
+        mainMenu:ShowAntiquityJournal()
+    else
+        SCENE_MANAGER:Push(JOURNAL_SCENE)
+    end
+end
+
+local function OnPlayerDeactivated()
+    local lead = AR.travelLead
+    if not lead then return end
+    if GetFrameTimeMilliseconds() - lead.startMs <= TRAVEL_WINDOW_MS then
+        lead.loading = true
+    else
+        AR.travelLead = nil
+    end
+end
+
+function AR:TakeTravelLead()
+    local lead = self.travelLead
+    self.travelLead = nil
+    if lead and lead.loading then return lead.id end
+    return nil
 end
 
 --------------------------------------------------
@@ -749,7 +811,7 @@ local function LeadOption(lead, zones)
             if cost > 0 then costText = "It costs " .. ZO_CommaDelimitNumber(cost) .. " gold to travel." end
             return tooltip .. "\n\nTravel takes you to a random wayshrine you've unlocked in this zone. " .. costText
         end
-        option.func = function() TravelTo(nodes) end
+        option.func = function() TravelTo(nodes, antiquityId) end
     elseif zoneName ~= "" then
         option.tooltip = tooltip .. "\n\nYou haven't unlocked a wayshrine you can travel to in this zone."
     end
@@ -827,6 +889,8 @@ function AR:Init()
     sv.antiquitySeen = nil
     sv.antiquityOnlyNew = nil
     self:InstallHooks()
+    self:InstallJournalHook()
+    EVENT_MANAGER:RegisterForEvent(ME.name .. "_AntiquityTravel", EVENT_PLAYER_DEACTIVATED, OnPlayerDeactivated)
     self:ApplyTimer()
 end
 
@@ -842,6 +906,12 @@ function AR:OnPlayerActivated(initial)
     local zoneId = CurrentZoneId()
     local changed = self.lastZoneId ~= nil and zoneId ~= self.lastZoneId
     self.lastZoneId = zoneId
+
+    local travelId = self:TakeTravelLead()
+    if travelId then
+        zo_callLater(function() AR:OpenJournal(travelId) end, JOURNAL_DELAY_MS)
+        return
+    end
 
     if not self.activated then
         self.activated = true

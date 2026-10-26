@@ -25,6 +25,7 @@ function AR.MakeMenu()
     return AR.getGuildIndex(AR.getIDfromName(AR.settings.recruitFor))
   end
 
+  -- LibAddonMenu2 wiki: https://github.com/sirinsidiator/ESO-LibAddonMenu/wiki/Controls
   local optionsTable = {
     {
       type = "header",
@@ -101,6 +102,22 @@ function AR.MakeMenu()
       default = AR.defaults.showPending,
     },
 
+    {
+      type = "dropdown",
+      name = "Zones Grid",
+      tooltip = "A grid of zones: green = posted & on cooldown, grey = inaccessible)",
+      choices = { "Hidden", "Automatic", "Always show" },
+      getFunc = function()
+        return AR.settings.showZonesGrid
+      end,
+      setFunc = function(value)
+        AR.settings.showZonesGrid = value
+        AR.RefreshWindow()
+      end,
+      width = "full",
+      default = AR.defaults.showZonesGrid,
+    },
+
 
     {
       type = "header",
@@ -151,7 +168,7 @@ function AR.MakeMenu()
     {
       type = "checkbox",
       name = "Skip zones on cooldown",
-      tooltip = "Don't port to zones, which you've recently posted an ad to",
+      tooltip = "Don't port to zones which you've recently posted an ad to",
       getFunc = function()
         return AR.settings.skipZoneOnCD
       end,
@@ -160,6 +177,22 @@ function AR.MakeMenu()
       end,
       width = "full",
       default = AR.defaults.skipZoneOnCD,
+    },
+    {
+      type = "dropdown",
+      name = "Destination Priority",
+      tooltip = "When there is both a player and a house in the target zone, which to pick first?",
+      choices = { "Players first", "Houses first" },
+      choicesValues = { false, true },
+      getFunc = function()
+        return AR.settings.prioritisePortToHouse
+      end,
+      setFunc = function(value)
+        AR.settings.prioritisePortToHouse = value
+        AR.RefreshWindow()
+      end,
+      width = "full",
+      default = AR.defaults.prioritisePortToHouse,
     },
     {
       type = "checkbox",
@@ -178,7 +211,7 @@ function AR.MakeMenu()
       type = "slider",
       name = "Multiple rounds cooldown",
       tooltip = "How long to wait after every round",
-      min = 5,
+      min = 1,
       max = 60,
       step = 1,
       getFunc = function()
@@ -189,6 +222,19 @@ function AR.MakeMenu()
       end,
       width = "full",
       default = AR.defaults.portingTime,
+    },
+    {
+      type = "checkbox",
+      name = "Write skipped zones to chat",
+      tooltip = "Write messages to the Chat window when skipping a zone",
+      getFunc = function()
+        return AR.settings.logSkippedZones
+      end,
+      setFunc = function(value)
+        AR.settings.logSkippedZones = value
+      end,
+      width = "full",
+      default = AR.defaults.logSkippedZones,
     },
 
     {

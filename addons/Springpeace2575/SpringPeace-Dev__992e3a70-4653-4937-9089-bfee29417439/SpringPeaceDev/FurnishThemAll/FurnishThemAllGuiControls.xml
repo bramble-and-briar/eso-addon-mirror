@@ -1,0 +1,210 @@
+<GuiXml>
+    <Controls>
+        <Control name="FTAFilterRowTemplate" virtual="true" inherits="ZO_GamepadMenuEntryControlSizedTemplate">
+            <Dimensions x="328" y="54" />
+            <Controls>
+                <Backdrop name="$(parent)Bg">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Label" font="ZoFontGamepad27" wrapMode="ELLIPSIS" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="0" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="0" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="FTAResultRowTemplate" virtual="true" inherits="ZO_GamepadMenuEntryControlSizedTemplate">
+            <Dimensions x="942" y="76" />
+            <Controls>
+                <Backdrop name="$(parent)Bg">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Texture name="$(parent)CollectibleIcon" textureFile="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_can_learn.dds" hidden="false">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="14" offsetY="24" />
+                    <Dimensions x="28" y="28" />
+                </Texture>
+
+                <Texture name="$(parent)ItemIcon" hidden="false">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="60" offsetY="14" />
+                    <Dimensions x="48" y="48" />
+                </Texture>
+
+                <Label name="$(parent)Label" font="ZoFontGamepad27" wrapMode="ELLIPSIS" verticalAlignment="TOP" horizontalAlignment="LEFT">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="126" offsetY="24" />
+                    <Dimensions x="440" y="28" />
+                </Label>
+
+                <Label name="$(parent)Name" inherits="ZO_GamepadInteractiveSortFilterListRowLabel" maxLineCount="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Label" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+                    <Dimensions x="440" y="20" />
+                </Label>
+
+                <Label name="$(parent)PriceLabel" font="ZoFontGamepad27" wrapMode="ELLIPSIS" verticalAlignment="TOP" horizontalAlignment="RIGHT">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="540" offsetY="24" />
+                    <Dimensions x="150" y="28" />
+                </Label>
+
+                <Label name="$(parent)ZoneLabel" font="ZoFontGamepad22" wrapMode="ELLIPSIS" verticalAlignment="TOP" horizontalAlignment="LEFT">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="710" offsetY="14" />
+                    <Dimensions x="220" y="22" />
+                </Label>
+
+                <Label name="$(parent)TraderGuildLabel" font="ZoFontGamepad22" wrapMode="ELLIPSIS" verticalAlignment="TOP" horizontalAlignment="LEFT">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ZoneLabel" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+                    <Dimensions x="220" y="22" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="FTAMenuRoot" hidden="true" mouseEnabled="false" clampedToScreen="true">
+            <AnchorFill />
+            <Controls>
+                <Backdrop name="$(parent)HeaderArea">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="64" offsetY="34" />
+                    <Dimensions x="1772" y="98" />
+                    <Controls>
+                        <Label name="$(parent)Title" font="ZoFontGamepad42" color="FFFFFF" text="Furnish Them All">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="14" />
+                        </Label>
+                        <Label name="$(parent)Subtitle" font="ZoFontGamepad22" color="BFC7D6" text="Furnishings">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+                        </Label>
+
+                        <Texture name="$(parent)DonateQr" textureFile="SpringPeaceDev/springpeacedev_paypal_qr.dds">
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-24" offsetY="12" />
+                            <Dimensions x="72" y="72" />
+                        </Texture>
+                        <Label name="$(parent)DonateTitle" font="ZoFontGamepad25" color="FFFFFF" text="Donate">
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)DonateQr" relativePoint="TOPLEFT" offsetX="-12" offsetY="0" />
+                        </Label>
+                        <Label name="$(parent)DonateValue" font="ZoFontGamepad25" color="BFC7D6" text="paypal.me/SpringPeace">
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)DonateTitle" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="12" />
+                        </Label>
+                    </Controls>
+                </Backdrop>
+
+                <Backdrop name="$(parent)LeftPaneBg">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="64" offsetY="150" />
+                    <Dimensions x="360" y="760" />
+                    <Controls>
+                        <Label name="$(parent)Header" font="ZoFontGamepad27" color="FFFFFF" text="Filters">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
+                        </Label>
+                        <Control name="$(parent)List" inherits="ZO_VerticalParametricScrollListTemplate">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="12" />
+                            <Dimensions x="328" y="680" />
+                        </Control>
+                    </Controls>
+                </Backdrop>
+
+                <Backdrop name="$(parent)CenterPaneBg">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)LeftPaneBg" relativePoint="TOPRIGHT" offsetX="26" offsetY="0" />
+                    <Dimensions x="990" y="760" />
+                    <Controls>
+                        <Label name="$(parent)Header" font="ZoFontGamepad27" color="FFFFFF" text="Results">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
+                        </Label>
+                        <Label name="$(parent)Count" font="ZoFontGamepad22" color="BFC7D6" text="0 / 0">
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-24" offsetY="20" />
+                        </Label>
+                        <Control name="$(parent)List" inherits="ZO_VerticalParametricScrollListTemplate">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="12" />
+                            <Dimensions x="942" y="680" />
+                        </Control>
+                    </Controls>
+                </Backdrop>
+
+                <Backdrop name="$(parent)RightPaneBg">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)CenterPaneBg" relativePoint="TOPRIGHT" offsetX="26" offsetY="0" />
+                    <Dimensions x="370" y="760" />
+                    <Controls>
+                        <Label name="$(parent)Header" font="ZoFontGamepad27" color="FFFFFF" text="Detail">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
+                        </Label>
+                        <Label name="$(parent)Detail1" font="ZoFontGamepad22" color="FFFFFF" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="16" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail2" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail1" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail3" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail2" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail4" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail3" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail5" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail4" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail6" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail5" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail7" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail6" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail8" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail7" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail9" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail8" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail10" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail9" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail11" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail10" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail12" font="ZoFontGamepad22" color="D9E0EB" text="-" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail11" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail13" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail12" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail14" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail13" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail15" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail14" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail16" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail15" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail17" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail16" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail18" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail17" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail19" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail18" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                        <Label name="$(parent)Detail20" font="ZoFontGamepad22" color="D9E0EB" text="" wrapMode="WORD" verticalAlignment="TOP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Detail19" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                            <Dimensions x="322" y="20" />
+                        </Label>
+                    </Controls>
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

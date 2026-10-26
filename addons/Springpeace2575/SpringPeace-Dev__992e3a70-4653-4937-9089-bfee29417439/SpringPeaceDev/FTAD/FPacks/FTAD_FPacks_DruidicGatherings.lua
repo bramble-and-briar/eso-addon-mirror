@@ -1,0 +1,28 @@
+FurnishThemAllData_FPacks_DruidicGatherings = {
+    name = "Druidic Gatherings",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Breton Statue, Chimera" },
+            { name = "Druid King's Sentinel" },
+            { name = "Druidic Bench, Ivy Curved Stone" },
+            { name = "Druidic Bowl, Clay" },
+            { name = "Druidic Gourd Candles, Stone" },
+            { name = "Druidic Hut, Conical Stone" },
+            { name = "Druidic Mug, Clay" },
+            { name = "Druidic Pot, Clay" },
+            { name = "Druidic Sculpture, Sphere" },
+            { name = "Druidic Statue, Ancient Augur" },
+            { name = "Druidic Statue, Planter" },
+            { name = "Druidic Table, Stone" },
+            { name = "Fern Plant, Low Lush" },
+            { name = "Flowers, Orange Daylily Cluster" },
+            { name = "Galen Dogwood, Medium Cluster" },
+            { name = "Galen Dogwood, Small" },
+            { name = "Galen Dogwood, Tall" },
+            { name = "Galen Dogwood, Twisted" },
+            { name = "Vines, Verdant Ivy Runner" },
+            { name = "Vines, Verdant Ivy Swath" },
+        },
+    },
+}

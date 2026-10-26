@@ -1,0 +1,10 @@
+<GuiXml>
+    <Controls>
+        <Backdrop name="FurnitureFilter_SearchTemplate" inherits="ZO_SingleLineEditBackdrop_Keyboard" virtual="true">
+            <Dimensions x="220"/>
+            <Controls>
+                <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" defaultText="SI_ITEM_FILTER_BY_TEXT"/>
+            </Controls>
+        </Backdrop>
+    </Controls>
+</GuiXml>

@@ -1,5 +1,5 @@
 -- Craft Master: no external libraries. All scans use the game's event manager.
-CraftMaster = { name = "CraftMaster", version = "1.0.11" }
+CraftMaster = { name = "CraftMaster", version = "1.0.12" }
 local CM = CraftMaster
 local EM = EVENT_MANAGER
 local GREEN, RED, GREY = "66ee88", "ff7777", "b7bec9"
@@ -358,7 +358,14 @@ function CM:Initialize()
     EM:RegisterForEvent(self.name, EVENT_PLAYER_ACTIVATED, function()
         self.activated = true
         local id = tostring(GetCurrentCharacterId())
-        if not (self.sessionScannedCharacters and self.sessionScannedCharacters[id]) then
+        local character = self.sv.characters[id]
+        -- Reuse a complete, same-API snapshot on login. Learning events update
+        -- recipes and motifs while enabled; /cm scan remains a full reconciliation.
+        -- Incomplete scans and API upgrades always trigger a new full scan.
+        local validCache = character and character.complete and character.lastScan
+            and character.api == GetAPIVersion()
+        if not (self.sessionScannedCharacters and self.sessionScannedCharacters[id])
+            and not validCache then
             self.motifRefreshNeeded = false
             self:StartScan()
         elseif self.motifRefreshNeeded then

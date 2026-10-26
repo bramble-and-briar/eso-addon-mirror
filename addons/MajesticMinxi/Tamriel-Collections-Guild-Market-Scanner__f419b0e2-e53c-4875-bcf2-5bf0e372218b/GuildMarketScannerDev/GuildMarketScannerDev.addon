@@ -1,8 +1,8 @@
 ## Title: |cD9AD51Tamriel|r |cB58AE8Collections|r - |c63BBD4Guild Market Scanner|r
-## Description: Second-level native category filtering test; preserves verified first-level filters
+## Description: Read-only compact crash snapshots; autocomplete and sorting preserved
 ## Author: |cD9AD51Majestic Minxi|r
-## Version: 1.0.5u
-## AddOnVersion: 189
+## Version: 1.0.6x
+## AddOnVersion: 212
 ## APIVersion: 101051
 
 GuildMarketScannerDev.lua

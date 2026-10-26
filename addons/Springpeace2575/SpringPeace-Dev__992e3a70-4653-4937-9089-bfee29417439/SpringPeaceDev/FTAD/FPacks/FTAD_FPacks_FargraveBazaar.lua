@@ -1,0 +1,27 @@
+FurnishThemAllData_FPacks_FargraveBazaar = {
+    name = "Fargrave Bazaar",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Book Wall, Levitating" },
+            { name = "Fargrave Book Stack, Levitating" },
+            { name = "Fargrave Box of Fruit" },
+            { name = "Fargrave Bread Loaves, Round" },
+            { name = "Fargrave Bread and Sweetrolls" },
+            { name = "Fargrave Bread, Baguettes" },
+            { name = "Fargrave Bread, Round Loaves" },
+            { name = "Fargrave Counter, Merchant" },
+            { name = "Fargrave Gems, Levitating" },
+            { name = "Fargrave Meats" },
+            { name = "Fargrave Stall, Large Merchant" },
+            { name = "Fargrave Terrarium, Claws" },
+            { name = "Fargrave Terrarium, Lantern Flower" },
+            { name = "Fargrave Terrarium, Massive Gas Blossom" },
+            { name = "Fargrave Terrarium, Snakevine" },
+            { name = "Fargrave Water Globules, Levitating" },
+            { name = "Mushrooms, Glowing Shelf" },
+            { name = "Redguard Lamppost, Stone" },
+            { name = "Redguard Lantern, Caged" },
+        },
+    },
+}

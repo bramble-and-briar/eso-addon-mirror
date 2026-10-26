@@ -1,0 +1,12 @@
+ItemHound
+By @TheGreyWolf98 | 0.8.1
+
+Find items across scanned characters and storage, then check your shared currency wallet.
+
+Search saved inventory and equipped gear, bank, craft bag and house storage. The wallet covers gold, Tel Var, Alliance Points and writ vouchers. Offline locations show their last recorded scan; shared balances are counted once.
+
+Open /ih. Click the left stick for Socials / Support. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

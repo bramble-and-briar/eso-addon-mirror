@@ -1,0 +1,14 @@
+RUNTIME WATCH
+By @TheGreyWolf98
+
+Investigate script-heavy add-ons with short startup or manual captures. View captured CPU by add-on, inspect function source files and line numbers, save a baseline and compare another run.
+
+Includes supporting load intervals, errors, FPS samples and timer gaps. Uses ESO's native profiler when available; otherwise clearly labels the report as limited. Load intervals are not per-add-on CPU timings.
+
+Open /runtime or /diag. The first enable captures startup once; X arms another login/reload. A captures five seconds now, Y saves the latest report as baseline, LB/RB changes tabs and B closes. Left-stick click opens Socials / Support.
+
+Profiling adds overhead and earlier-loaded scripts are outside capture coverage. Xbox test build. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

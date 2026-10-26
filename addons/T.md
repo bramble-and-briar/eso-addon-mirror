@@ -99,7 +99,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tetsu's Raid Lead Assistant development](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/Tetsu-s-Raid-Lead-Assistant-development__a9073aea-3308-48be-91d6-ecdc650b851e) | Tetsurion | Console | — |
 | [Text Trials Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/Text-Trials-Guide__2461) | Splat | PC / Mac | 1.2.8 |
 | [TG's Group Trackers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TaTerGoTcha/TG-s-Group-Trackers__cd045612-ec90-4885-be99-f35f328691f8) | TaTerGoTcha | Console | — |
-| [TGW Bind & Invite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/TGW-Bind-Invite__23c652bc-541e-443a-8f1f-e2f7c0bfef13) | TheGreyWolf98 | Console | — |
 | [Thank A Healer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tevnar/Thank-A-Healer__2958) | Tevnar | PC / Mac | 1.0.0 |
 | [Thank You <3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/im_rookie/Thank-You-3__3822) | im_rookie | PC / Mac | 1.1 |
 | [Thank You For Your Service](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/Thank-You-For-Your-Service__2886) | skineh | PC / Mac | 1.0.2 |

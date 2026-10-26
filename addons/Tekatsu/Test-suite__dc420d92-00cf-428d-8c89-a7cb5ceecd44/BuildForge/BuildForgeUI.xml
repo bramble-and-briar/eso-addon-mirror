@@ -1,0 +1,143 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="BF_HiddenList_Screen" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+
+        <TopLevelControl name="BF_Main_UI" hidden="true" mouseEnabled="true" movable="false">
+            <Dimensions x="1600" y="900"/>
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER"/>
+            <Controls>
+                <Backdrop name="$(parent)BG" alpha="0.98">
+                    <AnchorFill/>
+                    <Edge edgeSize="4" edgeFile="EsoUI/Art/Tooltips/UI-Border.dds" edgeColor="88CCFF"/>
+                    <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds" color="080808"/>
+                </Backdrop>
+
+                <Control name="$(parent)Header">
+                    <Dimensions x="1560" y="85"/>
+                    <Anchor point="TOP" offsetY="5"/>
+                    <Controls>
+                        <Backdrop name="$(parent)Plate" alpha="0.9">
+                            <AnchorFill/>
+                            <Edge edgeSize="2" edgeFile="EsoUI/Art/Tooltips/UI-Border.dds" edgeColor="88CCFF"/>
+                            <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds" color="111111"/>
+                        </Backdrop>
+                        <Label name="$(parent)Title" font="ZoFontGamepadBold48" horizontalAlignment="CENTER" text="|c88CCFFBUILDFORGE|r">
+                            <Anchor point="TOP" offsetY="5"/>
+                        </Label>
+                        <Label name="$(parent)Subtitle" font="ZoFontGamepad22" horizontalAlignment="CENTER" text="Record, export, compare, and apply owned character gear builds">
+                            <Anchor point="BOTTOM" offsetY="-8"/>
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)LeftCol">
+                    <Dimensions x="420" y="720"/>
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="100"/>
+                    <Controls>
+                        <Backdrop name="$(parent)BG" alpha="0.95">
+                            <AnchorFill/>
+                            <Edge edgeSize="2" edgeFile="EsoUI/Art/Tooltips/UI-Border.dds"/>
+                            <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds" color="0D0D0D"/>
+                        </Backdrop>
+                        <Label name="$(parent)Header" font="ZoFontGamepadBold27" horizontalAlignment="CENTER" text="|c88CCFFSAVED BUILDS|r">
+                            <Anchor point="TOP" offsetY="15"/>
+                        </Label>
+                        <Control name="$(parent)List">
+                            <Dimensions x="390" y="610"/>
+                            <Anchor point="TOP" offsetY="65"/>
+                            <Controls>
+                                <Backdrop name="$(parent)SelectionFrame" hidden="true" alpha="0.8">
+                                    <Dimensions x="380" y="52"/>
+                                    <Edge edgeSize="2" edgeFile="EsoUI/Art/Tooltips/UI-Border.dds" edgeColor="88CCFF"/>
+                                    <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds" color="88CCFF" alpha="0.15"/>
+                                </Backdrop>
+                                <Label name="$(parent)Build1" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="0"/></Label>
+                                <Label name="$(parent)Build2" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="55"/></Label>
+                                <Label name="$(parent)Build3" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="110"/></Label>
+                                <Label name="$(parent)Build4" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="165"/></Label>
+                                <Label name="$(parent)Build5" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="220"/></Label>
+                                <Label name="$(parent)Build6" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="275"/></Label>
+                                <Label name="$(parent)Build7" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="330"/></Label>
+                                <Label name="$(parent)Build8" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="385"/></Label>
+                                <Label name="$(parent)Build9" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="440"/></Label>
+                                <Label name="$(parent)Build10" font="ZoFontGamepad27" horizontalAlignment="LEFT"><Dimensions x="370" y="52"/><Anchor point="TOPLEFT" offsetX="10" offsetY="495"/></Label>
+                            </Controls>
+                        </Control>
+                        <Label name="$(parent)Footer" font="ZoFontGamepad22" horizontalAlignment="CENTER">
+                            <Anchor point="BOTTOM" offsetY="-18"/>
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)CenterCol">
+                    <Dimensions x="660" y="720"/>
+                    <Anchor point="TOP" offsetY="100"/>
+                    <Controls>
+                        <Backdrop name="$(parent)BG" alpha="0.95">
+                            <AnchorFill/>
+                            <Edge edgeSize="2" edgeFile="EsoUI/Art/Tooltips/UI-Border.dds"/>
+                            <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds" color="0D0D0D"/>
+                        </Backdrop>
+                        <Label name="$(parent)BuildName" font="ZoFontGamepadBold34" horizontalAlignment="CENTER">
+                            <Anchor point="TOP" offsetY="18"/>
+                        </Label>
+                        <Label name="$(parent)Character" font="ZoFontGamepad27" horizontalAlignment="CENTER">
+                            <Anchor point="TOP" offsetY="65"/>
+                        </Label>
+                        <Label name="$(parent)Stats" font="ZoFontGamepad22" horizontalAlignment="CENTER">
+                            <Anchor point="TOP" offsetY="105"/>
+                        </Label>
+                        <Label name="$(parent)Summary" font="ZoFontGamepad22" horizontalAlignment="LEFT">
+                            <Dimensions x="610" y="170"/>
+                            <Anchor point="TOPLEFT" offsetX="25" offsetY="155"/>
+                        </Label>
+                        <Label name="$(parent)Actions" font="ZoFontGamepad27" horizontalAlignment="LEFT">
+                            <Dimensions x="610" y="250"/>
+                            <Anchor point="TOPLEFT" offsetX="25" offsetY="350"/>
+                        </Label>
+                        <Label name="$(parent)Warning" font="ZoFontGamepad22" horizontalAlignment="CENTER" color="FFAA44">
+                            <Dimensions x="610" y="75"/>
+                            <Anchor point="BOTTOM" offsetY="-25"/>
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)RightCol">
+                    <Dimensions x="420" y="720"/>
+                    <Anchor point="TOPRIGHT" offsetX="-20" offsetY="100"/>
+                    <Controls>
+                        <Backdrop name="$(parent)BG" alpha="0.95">
+                            <AnchorFill/>
+                            <Edge edgeSize="2" edgeFile="EsoUI/Art/Tooltips/UI-Border.dds"/>
+                            <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds" color="0D0D0D"/>
+                        </Backdrop>
+                        <Label name="$(parent)Header" font="ZoFontGamepadBold27" horizontalAlignment="CENTER" text="|cFFAAAAMISSING / FAILED|r">
+                            <Anchor point="TOP" offsetY="15"/>
+                        </Label>
+                        <Control name="$(parent)MissingList">
+                            <Dimensions x="390" y="610"/>
+                            <Anchor point="TOP" offsetY="65"/>
+                            <Controls>
+                                <Label name="$(parent)Missing1" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="0"/></Label>
+                                <Label name="$(parent)Missing2" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="48"/></Label>
+                                <Label name="$(parent)Missing3" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="96"/></Label>
+                                <Label name="$(parent)Missing4" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="144"/></Label>
+                                <Label name="$(parent)Missing5" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="192"/></Label>
+                                <Label name="$(parent)Missing6" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="240"/></Label>
+                                <Label name="$(parent)Missing7" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="288"/></Label>
+                                <Label name="$(parent)Missing8" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="336"/></Label>
+                                <Label name="$(parent)Missing9" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="384"/></Label>
+                                <Label name="$(parent)Missing10" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="432"/></Label>
+                                <Label name="$(parent)Missing11" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="480"/></Label>
+                                <Label name="$(parent)Missing12" font="ZoFontGamepad22" horizontalAlignment="LEFT"><Dimensions x="370" y="45"/><Anchor point="TOPLEFT" offsetX="10" offsetY="528"/></Label>
+                            </Controls>
+                        </Control>
+                        <Label name="$(parent)Footer" font="ZoFontGamepad22" horizontalAlignment="CENTER">
+                            <Anchor point="BOTTOM" offsetY="-18"/>
+                        </Label>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

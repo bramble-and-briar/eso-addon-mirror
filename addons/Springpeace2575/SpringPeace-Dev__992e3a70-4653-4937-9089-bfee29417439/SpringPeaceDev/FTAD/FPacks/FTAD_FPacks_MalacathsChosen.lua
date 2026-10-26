@@ -1,0 +1,27 @@
+FurnishThemAllData_FPacks_MalacathsChosen = {
+    name = "Malacath's Chosen",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Cave Deposit, Large Double-Sided" },
+            { name = "Cave Deposit, Stalagmite Cluster" },
+            { name = "Cave Deposit, Tall Stalagmite" },
+            { name = "Malacath, God of Oaths and Curses" },
+            { name = "Nord Rug, Bearskin" },
+            { name = "Orcish Armchair, Peaked" },
+            { name = "Orcish Bas-Relief, Axe" },
+            { name = "Orcish Bas-Relief, Spear" },
+            { name = "Orcish Bas-Relief, Sword" },
+            { name = "Orcish Bed, Peaked" },
+            { name = "Orcish Brazier, Column" },
+            { name = "Orcish Chair, Padded Peaked" },
+            { name = "Orcish Dais, Raised" },
+            { name = "Orcish Drop Hammer, Repeating" },
+            { name = "Orcish Statue, Strength" },
+            { name = "Orcish Table, Grand Furs" },
+            { name = "Orcish Tapestry, Heroes" },
+            { name = "Orcish Throne, Ancient" },
+            { name = "Prayer to the Furious One" },
+        },
+    },
+}

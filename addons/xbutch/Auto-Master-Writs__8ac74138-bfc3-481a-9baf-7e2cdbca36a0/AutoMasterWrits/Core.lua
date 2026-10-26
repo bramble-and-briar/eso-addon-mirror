@@ -1,11 +1,13 @@
 AutoMasterWrits = {}
 local AMW = AutoMasterWrits
 AMW.name, AMW.title, AMW.author = "AutoMasterWrits", "Auto Master Writs", "xbutch"
-AMW.version = "1.51.01"
+AMW.version = "1.51.02"
+AMW.commandDelayMilliseconds = 800
+AMW.hudEnabled = false
 AMW.defaults = {
     filterNirnhoned = true, filterEpicJewelry = true, autoDeposit = true,
-    reserveSlots = 10, extractLimit = 50, showHUD = true,
-    overrides = {}, deferred = {}, withdraw = {}, manualDeferred = {},
+    reserveSlots = 10, extractLimit = 50, showHUD = false,
+    overrides = {}, deferred = {}, withdraw = {}, manualDeferred = {}, deliveryQuests = {},
 }
 AMW.status, AMW.inventory = "Ready", {}
 
@@ -30,6 +32,25 @@ function AMW:SecureCall(name, ...)
     return _G[name](...)
 end
 
+function AMW:WaitForGameCommand(minimumDelay)
+    local delay = math.max(self.commandDelayMilliseconds, minimumDelay or 0)
+    while true do
+        local remaining = self.lastCommandAt and self.lastCommandAt + delay - GetGameTimeMilliseconds() or 0
+        if remaining > 0 then self:Yield(math.ceil(remaining))
+        elseif not self:HasWorkBudget() then self:Yield(25)
+        else return end
+    end
+end
+
+function AMW:SendGameCommand(name, ...)
+    local now = GetGameTimeMilliseconds()
+    if self.lastCommandAt and now - self.lastCommandAt < self.commandDelayMilliseconds then
+        return false, "Command interval has not elapsed"
+    end
+    self.lastCommandAt = now
+    return pcall(self.SecureCall, self, name, ...)
+end
+
 function AMW:EnsureRuntime()
     if not self.saved then
         self.saved = ZO_SavedVars:NewCharacterIdSettings("AutoMasterWritsSavedVariables", 1, nil, self.defaults, GetWorldName())
@@ -46,7 +67,6 @@ function AMW:ActivateSession()
     if not self.sessionActive then
         self.sessionActive = true
         self:WatchDeactivation()
-        self:InstallLazyHooks()
         self:InstallInventoryActions()
     end
     return true
@@ -99,13 +119,13 @@ function AMW:Classify(record)
     record.deferred = record.reason ~= nil and not record.included and not record.crafted
 end
 
-function AMW:ScanWorker()
+function AMW:ScanWorker(deliveryProducts, resetDeferred)
     local items, deferred = {}, {}
     local bags = { BAG_BACKPACK }
     local bankVisible = IsBankOpen() and (GetBankingBag() == BAG_BANK or GetBankingBag() == BAG_SUBSCRIBER_BANK)
     if bankVisible then
         bags[#bags + 1], bags[#bags + 2] = BAG_BANK, BAG_SUBSCRIBER_BANK
-    else
+    elseif not resetDeferred then
         for uid, record in pairs(self.saved.deferred) do deferred[uid] = record; self:Yield() end
     end
     local counts = { eligible = 0, deferred = 0, crafted = 0 }
@@ -122,6 +142,9 @@ function AMW:ScanWorker()
                     elseif record.deferred then counts.deferred = counts.deferred + 1
                     else counts.eligible = counts.eligible + 1 end
                 end
+            elseif deliveryProducts and bag==BAG_BACKPACK then
+                local product=self:ReadDeliveryProduct(slot)
+                if product then deliveryProducts[#deliveryProducts+1]=product end
             end
             self:Yield()
         end
@@ -135,7 +158,7 @@ function AMW:Scan(announce)
     if not self:ActivateSession() then return end
     if self:IsBusy() then return self:Alert("Finish or stop the current operation first.") end
     self:StartJob("scan", function()
-        if not self:ScanWorker() then return end
+        if not self:ScanWorker(nil, true) then return end
         self:ArmBanking()
         if announce then
             local c = self.counts
@@ -143,6 +166,14 @@ function AMW:Scan(announce)
                 c.eligible, c.deferred, c.crafted), true)
         end
     end)
+end
+
+function AMW:ClearDeferred()
+    if not self:EnsureRuntime() then return end
+    if self:IsBusy() then return self:Alert("Finish or stop the current operation first.") end
+    self.saved.deferred = {}
+    if self.settingsPage == "review" and self:IsSettingsShowing() then self:OpenActions() end
+    self:SetStatus("Deferred list cleared. Scanning applies the filters again.", true)
 end
 
 function AMW:SetOverride(uid, included)
@@ -170,6 +201,7 @@ function AMW:DeferredRowsWorker()
 end
 
 function AMW:OwnHook(group, target, key, before, after)
+    -- Do not use Lua wrappers for native inventory action builders.
     self.ownedHooks = self.ownedHooks or {}
     local id = group .. ":" .. key
     if self.ownedHooks[id] then return end

@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/peniku8/Auto-Recruit__2571",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "peniku8",
   "canonical_id": "esoui:2571",
   "category_id": "95",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2571",
@@ -21,7 +18,7 @@
     "AutoRecruit"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2571/",
-  "fingerprint": "e5f827068daa7fbaf1399f8b1ec744637acd10674454b8309bb568f2263e5deb",
+  "fingerprint": "798ef0e71c292b8efd8a8d438fb8d5d09a371d10d193cd045ab0a9a63ff262e8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12406.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw8777.jpg",
@@ -33,11 +30,11 @@
   "source_id": "2571",
   "source_url": "https://www.esoui.com/downloads/info2571-AutoRecruit.html",
   "stats": {
-    "downloads": 27451,
-    "favorites": 21,
-    "monthly_downloads": 118
+    "downloads": 27866,
+    "favorites": 22,
+    "monthly_downloads": 178
   },
   "title": "Auto Recruit",
-  "updated_at": 1779729667000,
-  "version": "3.3.2"
+  "updated_at": 1792950913000,
+  "version": "3.4.0"
 }

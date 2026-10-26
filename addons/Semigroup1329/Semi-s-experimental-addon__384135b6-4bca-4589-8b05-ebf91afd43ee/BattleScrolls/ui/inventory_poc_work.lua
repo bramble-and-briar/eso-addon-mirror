@@ -5,7 +5,7 @@ if not SemisPlaygroundCheckAccess() then return end
 local ui = {}
 BattleScrolls.inventoryPocWorkUI = ui
 local poc = BattleScrolls.inventoryPoc
-local tradingHouse = BattleScrolls.inventoryPocTradingHouseUI
+local services = BattleScrolls.inventoryPocServiceUI
 local UPDATE_NAME = 'BattleScrollsInventoryPocWork'
 local ACTION_LAYER = 'BattleScrollsInventoryWork'
 local SHOW_DELAY_MS = 150
@@ -15,6 +15,7 @@ local LABELS = {
     search = BATTLESCROLLS_IPOC_WORK_SEARCH, listings = BATTLESCROLLS_IPOC_WORK_LISTINGS,
     list = BATTLESCROLLS_IPOC_WORK_LIST,
     armory = BATTLESCROLLS_IPOC_WORK_ARMORY, wardrobe = BATTLESCROLLS_IPOC_WORK_WARDROBE,
+    equip = BATTLESCROLLS_IPOC_WORK_EQUIP,
 }
 local control, taskLabel, itemLabel, maskedScene
 local enabled, registered, showing, updating = false, false, false, false
@@ -75,6 +76,7 @@ end
 ---@param nextAction InventoryPocActivity
 ---@return boolean
 local function canCoverScene(nextAction)
+    if not services.isShowing() then return false end
     local scene = SCENE_MANAGER:GetCurrentScene()
     if not scene or not scene:IsShowing() then return false end
     local interaction = GetInteractionType()
@@ -84,6 +86,7 @@ local function canCoverScene(nextAction)
     elseif nextAction == 'deconstruct' then expected = INTERACTION_CRAFT
     elseif nextAction == 'search' or nextAction == 'listings' or nextAction == 'list' then expected = INTERACTION_TRADINGHOUSE
     elseif nextAction == 'armory' then expected = INTERACTION_ARMORY
+    elseif nextAction == 'equip' then expected = INTERACTION_COMPANION_MENU
     elseif nextAction == 'wardrobe' and (interaction == INTERACTION_BANK or interaction == INTERACTION_ARMORY) then
         expected = interaction
     end
@@ -139,6 +142,7 @@ local function create()
     ZO_GamepadGenericHeader_Refresh(header, { titleText = GetString(BATTLESCROLLS_IPOC_TITLE) })
     taskLabel = control:GetNamedChild('PanelTask')
     itemLabel = control:GetNamedChild('PanelItem')
+    control:GetNamedChild('PanelHint'):SetText(GetString(BATTLESCROLLS_IPOC_WORK_REOPEN))
     local cancel = control:GetNamedChild('Cancel')
     cancel:SetKeybind('BATTLESCROLLS_IPOC_CANCEL_WORK', true)
     cancel:SetText(GetString(SI_DIALOG_CANCEL))
@@ -155,7 +159,7 @@ local function show()
 end
 
 local function onUpdate()
-    tradingHouse.update()
+    services.update()
     ui.refresh()
     if not action then hide(); return end
     if not showing and showAt and GetFrameTimeMilliseconds() >= showAt then show() end
@@ -168,8 +172,9 @@ function ui.refresh()
     local ownArmoryNotice = releaseArmoryNotice()
     local nextAction, nextItem, nextGuild
     if enabled then nextAction, nextItem, nextGuild = poc.activity() end
-    if tradingHouse.isDeferred() and not nextAction then
-        nextAction, nextGuild = 'listings', GetSelectedTradingHouseGuildId()
+    if enabled and not nextAction then
+        nextAction = services.activity()
+        if nextAction == 'listings' then nextGuild = GetSelectedTradingHouseGuildId() end
     end
     if ownArmoryNotice and not nextAction then nextAction = 'armory' end
     if nextAction and not canCoverScene(nextAction) then nextAction = nil end
@@ -204,7 +209,7 @@ end
 ---@param value boolean
 function ui.setEnabled(value)
     enabled = value
-    tradingHouse.setEnabled(value)
+    services.setEnabled(value)
     if value and not registered then
         registered = true
         SCENE_MANAGER:RegisterCallback('SceneStateChanged', function(scene, _, newState)

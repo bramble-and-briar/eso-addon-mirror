@@ -4166,35 +4166,35 @@ function FyrMM.HideCheck()
 	
 	if FyrMM.AreFyrmmSettingsShowing then -- show minimap when it's settings are showing
         if Fyr_MM:IsHidden() then
-		    if FyrMM.ActionMapMode then
-	            FyrMM.ActionMap.Hide()
-	        end
-			zo_callLater(function() -- zo_callLater ok 
-				FyrMM.UpdateMapTiles(true)
-				FyrMM.RegisterUpdates()
-			end, 5) -- was 100
+            if FyrMM.ActionMapMode then
+               FyrMM.ActionMap.Hide()
+            end
+            zo_callLater(function() -- zo_callLater ok 
+              FyrMM.UpdateMapTiles(true)
+              FyrMM.RegisterUpdates()
+            end, 5) -- was 100
 
-			Fyr_MM_Frame_Wheel:SetHidden(not FyrMM.SV.WheelMap)
-			if FyrMM.SV.WheelMap then
-				FyrMM.Show_WheelScrolls()
-			end
-			Fyr_MM_Frame_Control:SetHidden(not FyrMM.SV.WheelMap)
-			Fyr_MM:SetHidden(false)
-			Fyr_MM_Menu:SetHidden(FyrMM.SV.MenuDisabled)
-			Fyr_MM_Menu:SetMouseEnabled(not FyrMM.SV.MenuDisabled)
-			Fyr_MM_Zone_Background:SetHidden(not FyrMM.SV.ShowZoneBackground)
-			Fyr_MM_ZoneFrame:SetHidden(FyrMM.SV.HideZoneLabel)
-			if not FyrMM.SV.HideZoneLabel then
-				FyrMM.UpdateLabels()
-			end
-			Fyr_MM_Coordinates:SetHidden(not FyrMM.SV.ShowPosition)
-			Fyr_MM_Axis_Control:SetHidden(not (FyrMM.SV.RotateMap or FyrMM.SV.BorderPins))
-			Fyr_MM_Speed:SetHidden(not FyrMM.SV.ShowSpeed)
-			Fyr_MM_ZoneFrame:SetMouseEnabled(true)
-			Fyr_MM:SetMouseEnabled(true)
-			if FyrMM.SV.ShowBorder then
-			   Fyr_MM_Border:SetAlpha(100)
-			end
+            Fyr_MM_Frame_Wheel:SetHidden(not FyrMM.SV.WheelMap)
+            if FyrMM.SV.WheelMap then
+              FyrMM.Show_WheelScrolls()
+            end
+            Fyr_MM_Frame_Control:SetHidden(not FyrMM.SV.WheelMap)
+            Fyr_MM:SetHidden(false)
+            Fyr_MM_Menu:SetHidden(FyrMM.SV.MenuDisabled)
+            Fyr_MM_Menu:SetMouseEnabled(not FyrMM.SV.MenuDisabled)
+            Fyr_MM_Zone_Background:SetHidden(not FyrMM.SV.ShowZoneBackground)
+            Fyr_MM_ZoneFrame:SetHidden(FyrMM.SV.HideZoneLabel)
+            if not FyrMM.SV.HideZoneLabel then
+              FyrMM.UpdateLabels()
+            end
+            Fyr_MM_Coordinates:SetHidden(not FyrMM.SV.ShowPosition)
+            Fyr_MM_Axis_Control:SetHidden(not (FyrMM.SV.RotateMap or FyrMM.SV.BorderPins))
+            Fyr_MM_Speed:SetHidden(not FyrMM.SV.ShowSpeed)
+            Fyr_MM_ZoneFrame:SetMouseEnabled(true)
+            Fyr_MM:SetMouseEnabled(true)
+            if FyrMM.SV.ShowBorder then
+               Fyr_MM_Border:SetAlpha(100)
+            end
         end
 		return
 	end
@@ -4455,13 +4455,18 @@ function FyrMM.ActionMap.Show()
 	if not IsPlayerActivated() then return end
   
   local isValid, point, relativeTo, relativePoint, offsetX, offsetY = Fyr_MM:GetAnchor(0)
+
   if isValid then
-     FyrMM.lastTLCanchor = { point, GuiRoot, relativePoint, offsetX, offsetY }
+     FyrMM.lastTLCanchor = { }
+     FyrMM.lastTLCanchor.point = point
+     FyrMM.lastTLCanchor.relativePoint = relativePoint
+     FyrMM.lastTLCanchor.offsetX = offsetX
+     FyrMM.lastTLCanchor.offsetY = offsetY
   end
   
-    FyrMM.ActionMapMode = true
+  FyrMM.ActionMapMode = true
 	
-    Fyr_MM_Border:SetHidden(true)
+  Fyr_MM_Border:SetHidden(true)
    
     --Fyr_MM_Frame_Wheel:SetHidden(true)
 	Fyr_MM_Wheel_Background:SetHidden(true)
@@ -4472,11 +4477,11 @@ function FyrMM.ActionMap.Show()
 	Fyr_MM_Frame_Control:SetHidden(false)
 	
 
-    Fyr_MM_Menu:SetHidden(true)
-    Fyr_MM_Coordinates:SetHidden(true)
-    Fyr_MM_Zone_Background:SetHidden(true)
-    Fyr_MM_ZoneFrame:SetHidden(true)
-    Fyr_MM_Speed:SetHidden(true)
+  Fyr_MM_Menu:SetHidden(true)
+  Fyr_MM_Coordinates:SetHidden(true)
+  Fyr_MM_Zone_Background:SetHidden(true)
+  Fyr_MM_ZoneFrame:SetHidden(true)
+  Fyr_MM_Speed:SetHidden(true)
 	
 	
 	Fyr_MM_Bg:SetHidden(true) --SetColor(0, 0, 0, 0)
@@ -4491,9 +4496,10 @@ function FyrMM.ActionMap.Show()
 	--Fyr_MM_Scroll_WheelCenter:SetDesaturation(1)
 	
 	local screenCenterX, screenCenterY = GuiRoot:GetCenter()
-	local screenWidth, screenHeight = GuiRoot:GetDimensions()
+  local screenWidth, screenHeight = GuiRoot:GetDimensions()
 	local actionMapSize = math.min(screenWidth,screenHeight)/1.25 
 	
+  Fyr_MM:ClearAnchors()
 	Fyr_MM:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, screenCenterX/2, screenCenterY/8)
 	
 	
@@ -4550,12 +4556,11 @@ function FyrMM.ActionMap.Hide()
 		Fyr_MM_Scroll_Fill:SetHeight(FyrMM.SV.MapWidth)
 		FyrMM.MapHalfDiagonal()
 	end
-	MM_RearrangeMenu()
-
+	 MM_RearrangeMenu()
 
    MM_SetMapWidth(FyrMM.SV.MapWidth)
-   
-   Fyr_MM:SetAnchor(FyrMM.lastTLCanchor)
+   Fyr_MM:ClearAnchors()
+   Fyr_MM:SetAnchor(FyrMM.lastTLCanchor.point, GuiRoot, FyrMM.lastTLCanchor.relativePoint, FyrMM.lastTLCanchor.offsetX, FyrMM.lastTLCanchor.offsetY)
    
    FyrMM.Hide()
    FyrMM.Show()
@@ -4566,7 +4571,7 @@ end
 
 function FyrMM.ActionMap.Toggle()
    if FyrMM.ActionMapMode then
-       FyrMM.ActionMap.Hide()  
+       FyrMM.ActionMap.Hide()
    else
        FyrMM.ActionMap.Show()
    end
@@ -5253,7 +5258,7 @@ local function LogPosition() -- called every 30ms
 						      afkAnimation:SetTransformRotationZ(math.rad(0))
 						  else
 						      afkAnimation:SetTransformRotationZ(math.rad(180))
-                          end						  
+              end
 						  local randomSize = math.random(16, 32)
 						  
 						  afkAnimation:ClearAnchors()
@@ -6059,6 +6064,12 @@ function FyrMM.RemoveCustomPinDuplicates(pin)
 			   -- d("removed a custom pin duplicate "..pinTypeName) 
 			   
 			  FyrMM.RemoveCustomPin(pinFromList) 
+			  -- 25/10/2026 fix: the removed duplicate shares its key with the surviving pin, RemoveCustomPin flagged
+			  -- that entry as removed (Id = 0) and CheckForNewCustomPins() then re-inserted the duplicate
+			  local dupKey = string.format("%s:%s:%s", pin.nX, pin.nY, pin.radius)
+			  if FyrMM.CustomPinCheckList[pin.m_PinType] and FyrMM.CustomPinCheckList[pin.m_PinType][dupKey] and pin.Key then
+			     FyrMM.CustomPinCheckList[pin.m_PinType][dupKey].Id = pin.Key
+			  end
 			end
 		end
     end
@@ -6397,6 +6408,8 @@ function FyrMM.CustomPins()
         end
 
         CustomPinIndex[pinType][Index] = pin
+        -- 25/10/2026 fix: CustomPinKeyIndex is wiped by CleanUpMisc(), the table for this type could be nil here (error => loop aborted, pins lost track of)
+        CustomPinKeyIndex[pinType] = CustomPinKeyIndex[pinType] or {}
         CustomPinKeyIndex[pinType][Key] = Index
         FyrMM.CustomPinCount = FyrMM.CustomPinCount + 1
 
@@ -10341,7 +10354,9 @@ function FyrMM.LoadCustomPinGroup(Type)
         FyrMM.LoadingCustomPins[Type] = true 
         FyrMM.CustomPinList = FyrMM.CustomPinList or {}
         FyrMM.CustomPinList[Type] = {}
-        PRCustomPins[Type].layoutCallback(PinRef)
+        -- 25/10/2026 fix: protected call, an error in a third party layoutCallback used to leave
+        -- LoadingCustomPins[Type] = true, which blocks PinUpdate's custom pin reconciliation
+        pcall(PRCustomPins[Type].layoutCallback, PinRef)
         FyrMM.LoadingCustomPins[Type] = false
 
 	   
@@ -10387,6 +10402,7 @@ function FyrMM.UpdateCustomPinGroup(pinType)
             -- end
 
             
+            local removeOk, removeErr = pcall(function()
             for i, n in pairs(FyrMM.CustomPinList[pinType]) do
                 -- 14/10/2026 fix: only remove a control that still belongs to this pin type, so a stale
                 -- reference can never wipe a pin of another type that reused the same control
@@ -10407,7 +10423,17 @@ function FyrMM.UpdateCustomPinGroup(pinType)
                     end
                 end
             end
-			FyrMM.UpdatingCustomPins[pinType] = nil
+            end)
+            -- 25/10/2026 fix: an error in the removal loop left UpdatingCustomPins[pinType] = true forever,
+            -- so every later refresh of that pin type (e.g. lorebooks) was ignored and pins never got removed
+            FyrMM.UpdatingCustomPins[pinType] = nil
+            if not removeOk and FyrMM.DebugMode then
+                CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", "UpdateCustomPinGroup removal error: "..tostring(removeErr))
+            end
+            -- 25/10/2026 fix: forget the check-list of this type. RemoveCustomPin leaves entries with Id = 0
+            -- there and CheckForNewCustomPins() re-inserts every Id == 0 entry as soon as any new pin is
+            -- detected, which resurrected pins that were just removed (collected lorebooks, etc.)
+            FyrMM.CustomPinCheckList[pinType] = {}
 			FyrMM.CustomPinList[pinType] = {}
 			if PRCustomPins and PRCustomPins[pinType] and PRCustomPins[pinType].enabled then
 		       FyrMM.LoadCustomPinGroup(pinType)
@@ -10422,6 +10448,7 @@ function FyrMM.UpdateCustomPinGroup(pinType)
         else
             --[[ d("UpdateCustomPinGroup FyrMM.CustomPinList[pinType] is nil") --]]
 			FyrMM.UpdatingCustomPins[pinType] = nil
+            FyrMM.CustomPinCheckList[pinType] = {}
             FyrMM.CustomPinList[pinType] = {}
             if PRCustomPins and PRCustomPins[pinType] and PRCustomPins[pinType].enabled then
 		       FyrMM.LoadCustomPinGroup(pinType)

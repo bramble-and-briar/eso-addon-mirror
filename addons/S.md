@@ -306,6 +306,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [StealthTextMove](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/StealthTextMove__2734) | Baertram | PC / Mac | 1 |
 | [Steelsword Gold Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FAR747/Steelsword-Gold-Logger__2668) | FAR747 | PC / Mac | 1.2.3 |
 | [STFU Elemental Weapons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/STFU-Elemental-Weapons__2083) | Jodynn | PC / Mac | 1.7 |
+| [Stickerbook Drop Pools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Stickerbook-Drop-Pools__4985) | GlandePas | PC / Mac | 1 |
 | [Stickerbook+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/R0ctan/Stickerbook__4692) | R0ctan | PC / Mac | 1.0.1 |
 | [Sticky Weapons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noromdrol/Sticky-Weapons__3673) | Noromdrol | PC / Mac | 1.1.1 |
 | [StickyHoTs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kickimanjaro/StickyHoTs__4440) | Kickimanjaro | PC / Mac | 2.0.1 |
@@ -327,7 +328,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.6 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.7 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |

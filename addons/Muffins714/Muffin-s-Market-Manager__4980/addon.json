@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Muffins714/Muffin-s-Market-Manager__4980",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Muffins714",
   "canonical_id": "esoui:4980",
   "category_id": "94",
@@ -23,7 +22,7 @@
     "MuffinsMarketManager"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4980/",
-  "fingerprint": "dea600996a23038f84e2d1dd1641094aa5eeee0f57d2eb6b42d3cd6d45f5dde4",
+  "fingerprint": "d87022075056a04902c3330e28d00f9b7cdb1b2cf0d1d2db31dd9480b8b29f93",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18108.png",
     "https://cdn-eso.mmoui.com/preview/pvw18109.png",
@@ -37,11 +36,11 @@
   "source_id": "4980",
   "source_url": "https://www.esoui.com/downloads/info4980-MuffinsMarketManager.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 30,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 23
   },
   "title": "Muffin's Market Manager",
-  "updated_at": 1792825681000,
-  "version": "1.0"
+  "updated_at": 1792975941000,
+  "version": "1.1"
 }

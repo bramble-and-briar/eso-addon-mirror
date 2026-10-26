@@ -161,6 +161,11 @@ local STRAY_CHECK_WINDOW_MS = 3000 -- after setting a marker, marker updates are
 local STRAY_RETRY_MS = 5000 -- the same stray player is not cleared more often than this
 local STRAY_RECENT_MS = 600000 -- a marker is only "ours" if the add-on set one this recently
 local CLEAR_VERIFY_MS = 1000
+local MARK_DWELL_NEAR_MS = 600 -- the longer wait when a group member stands close to the target
+local GROUP_NEAR_CM = 400 -- "close": about four metres
+local MAX_GROUP_TAGS = 24
+local MAX_REPAIRS = 1 -- how often one request is set again after it landed on a group member
+local SUSPECT_GROUP_MS = 120000 -- a group member the add-on put a marker on by mistake stays suspect this long
 local ALERT_SHOW_MS = 6000
 local ALERT_COOLDOWN_MS = { combat = 20000, kill = 4000, cyro = 30000, near = 20000 }
 local LOCATE_TTL_MS = 10000 -- a roster scan is not repeated inside this
@@ -380,6 +385,9 @@ local lastAssignAt = -1000000 -- when the add-on last asked for a marker
 local strayTried = {} -- player name -> when a stray marker on them was last cleared
 local clearCheck = nil -- the clear being checked
 local cleanupBroken = false -- clearing did not work: stop trying
+local lastAssign = nil -- the last request: { slot, name, at, pos, near, repairs }
+local owedSlot = nil -- a slot whose marker went astray and is owed a new request the moment the reticle is back on them
+local suspectGroup = {} -- group member name -> when the add-on's marker was found on them by mistake
 local lastAlert = {} -- kind .. slot -> when it last fired
 
 -- What the add-on did, for /pbtarget status. `last` is a plain identifier, not a sentence: it
@@ -389,6 +397,7 @@ local diag = {
 	rosterSeen = 0, rosterMatched = 0, scans = 0,
 	chat = 0, sightings = 0,
 	aborted = 0, deadSkips = 0, deaths = 0, stray = 0, cleared = 0, clearFailed = false,
+	groupHits = 0, repairs = 0, lastGroupHit = "none",
 }
 addon.diag = diag
 
@@ -442,7 +451,39 @@ local function ReticleIsDead()
 	return IsUnitDead and IsUnitDead("reticleover") and true or false
 end
 
-local function MarkInWorld(slot)
+-- The group member standing nearest to the reticle target, and how far (centimetres). Group
+-- members have unit tags, so their positions can be read; nobody else's can. Nil when the player is
+-- not in a group or the positions cannot be read.
+local function NearestGroupmate()
+	if not GetUnitRawWorldPosition or not GetGroupSize then
+		return nil
+	end
+	local size = GetGroupSize()
+	if not size or size < 2 then
+		return nil
+	end
+	local zone, tx, ty, tz = GetUnitRawWorldPosition("reticleover")
+	if not tx then
+		return nil
+	end
+	local bestName, best
+	for i = 1, math.min(size, MAX_GROUP_TAGS) do
+		local tag = GetGroupUnitTagByIndex(i)
+		if tag and DoesUnitExist(tag) and not AreUnitsEqual(tag, "player") then
+			local z2, x, y, z = GetUnitRawWorldPosition(tag)
+			if x and z2 == zone then
+				local dx, dy, dz = x - tx, y - ty, z - tz
+				local d = math.sqrt(dx * dx + dy * dy + dz * dz)
+				if not best or d < best then
+					best, bestName = d, tag
+				end
+			end
+		end
+	end
+	return bestName and { tag = bestName, cm = best } or nil
+end
+
+local function MarkInWorld(slot, repairs)
 	if not EngineMarkUsable() then
 		diag.last = "not allowed: " .. engine.why
 		return
@@ -479,13 +520,27 @@ local function MarkInWorld(slot)
 	end
 
 	local now = GetGameTimeMilliseconds()
-	if lastMarkTry[slot] and now - lastMarkTry[slot] < MARK_RETRY_MS then
+	if lastMarkTry[slot] and now - lastMarkTry[slot] < MARK_RETRY_MS and owedSlot ~= slot then
 		diag.last = "waiting out the retry window"
 		return
 	end
 	lastMarkTry[slot] = now
 	lastAssignAt = now
 	weSet[wanted] = true
+	local zone, x, y, z = nil, nil, nil, nil
+	if GetUnitRawWorldPosition then
+		zone, x, y, z = GetUnitRawWorldPosition("reticleover")
+	end
+	local near = NearestGroupmate()
+	lastAssign = {
+		slot = slot,
+		name = CleanName(GetUnitName("reticleover")),
+		at = now,
+		pos = x and { zone, x, y, z } or nil,
+		near = near and near.cm or nil,
+		repairs = repairs or 0,
+	}
+	owedSlot = nil
 	AssignTargetMarkerToReticleTarget(wanted)
 	diag.assigned = diag.assigned + 1
 	diag.last = "marker set"
@@ -1113,7 +1168,11 @@ local function SettleThenMark(slot)
 		display = GetUnitDisplayName("reticleover"),
 		character = GetUnitName("reticleover"),
 	}
-	em:RegisterForUpdate(addon.name .. "Settle", MARK_DWELL_MS, FinishPending)
+	-- With a group member standing right next to the target, the reticle is more likely to slide onto
+	-- them before the game acts, so the wait before asking is longer.
+	local near = NearestGroupmate()
+	local wait = (near and near.cm < GROUP_NEAR_CM) and MARK_DWELL_NEAR_MS or MARK_DWELL_MS
+	em:RegisterForUpdate(addon.name .. "Settle", wait, FinishPending)
 end
 
 local function MarkTypeIndex(marker)
@@ -1160,10 +1219,18 @@ local function CheckStray(reason)
 	if marker == TARGET_MARKER_TYPE_NONE or not weSet[marker] then
 		return
 	end
-	if Identify("reticleover") or IsUnitGrouped("reticleover") or AreUnitsEqual("reticleover", "player") then
+	if Identify("reticleover") or AreUnitsEqual("reticleover", "player") then
 		return
 	end
 	local now = GetGameTimeMilliseconds()
+	-- A group member's marker is probably the leader's. It is only taken off when the add-on itself has
+	-- just found its own marker on them by mistake (see GroupStray).
+	if IsUnitGrouped("reticleover") then
+		local suspected = suspectGroup[CleanName(GetUnitName("reticleover"))]
+		if not suspected or now - suspected > SUSPECT_GROUP_MS then
+			return
+		end
+	end
 	if now - lastAssignAt > STRAY_RECENT_MS then
 		return
 	end
@@ -1185,11 +1252,82 @@ local function CheckStray(reason)
 	em:RegisterForUpdate(addon.name .. "ClearCheck", CLEAR_VERIFY_MS, VerifyClear)
 end
 
--- The game says a marker changed. Soon after the add-on set one, that is when to look at whom
--- the reticle is on.
+-- A group member who is not registered and carries the marker the add-on just set. Group members have
+-- unit tags, so this needs no reticle: the add-on can see where its marker went.
+local function GroupStray(wanted)
+	if not GetGroupSize then
+		return nil
+	end
+	for i = 1, math.min(GetGroupSize(), MAX_GROUP_TAGS) do
+		local tag = GetGroupUnitTagByIndex(i)
+		if tag and DoesUnitExist(tag) and not AreUnitsEqual(tag, "player") and GetUnitTargetMarkerType(tag) == wanted and not Identify(tag) then
+			return tag
+		end
+	end
+	return nil
+end
+
+local function MetresBetween(a, b)
+	if not a or not b or a[1] ~= b[1] then
+		return nil
+	end
+	local dx, dy, dz = a[2] - b[2], a[3] - b[3], a[4] - b[4]
+	return math.sqrt(dx * dx + dy * dy + dz * dz) / 100
+end
+
+-- The marker the add-on asked for is on a group member instead of the player it was asked for. Say
+-- so with the numbers that would show why, then put it right: if the reticle is still on the intended
+-- player, ask again (a marker sits on one unit at a time, so that takes it off the group member); if
+-- not, the next time the reticle is back on them it is asked for at once.
+local function HandleGroupHit(tag)
+	local now = GetGameTimeMilliseconds()
+	local request = lastAssign
+	local name = CleanName(GetUnitName(tag))
+	suspectGroup[name] = now
+	diag.groupHits = diag.groupHits + 1
+
+	local since = now - request.at
+	local z, x, y, h = nil, nil, nil, nil
+	if GetUnitRawWorldPosition then
+		z, x, y, h = GetUnitRawWorldPosition(tag)
+	end
+	local metres = x and MetresBetween(request.pos, { z, x, y, h }) or nil
+	local apart = metres and string.format("%.1f m", metres) or "?"
+	local onIntended = Identify("reticleover") == request.slot and not ReticleIsDead()
+
+	local outcome
+	if onIntended and request.repairs < MAX_REPAIRS then
+		outcome = GetString(SI_PBTP_GROUPHIT_AGAIN)
+	elseif onIntended then
+		outcome = GetString(SI_PBTP_GROUPHIT_GIVEUP)
+	else
+		outcome = string.format(GetString(SI_PBTP_GROUPHIT_LATER), request.name)
+		owedSlot = request.slot
+	end
+	diag.lastGroupHit = string.format("%s, %d ms after the request for %s, %s apart", name, since, request.name, apart)
+	Print(GetString(SI_PBTP_GROUPHIT), name, since, request.name, apart, outcome)
+
+	if onIntended and request.repairs < MAX_REPAIRS then
+		diag.repairs = diag.repairs + 1
+		lastMarkTry[request.slot] = nil
+		MarkInWorld(request.slot, request.repairs + 1)
+	end
+end
+
+-- The game says a marker changed. Soon after the add-on asked for one, that is when to look at where it
+-- went: on a bystander under the reticle (cleared), or on a group member (put right).
 local function OnTargetMarkerUpdate()
-	if sv and sv.enabled and GetGameTimeMilliseconds() - lastAssignAt < STRAY_CHECK_WINDOW_MS then
-		CheckStray("just after setting a marker")
+	if not sv or not sv.enabled or not lastAssign then
+		return
+	end
+	if GetGameTimeMilliseconds() - lastAssign.at >= STRAY_CHECK_WINDOW_MS then
+		return
+	end
+	CheckStray("just after setting a marker")
+	local wanted = _G[MARK_TYPE_NAMES[sv.mark]]
+	local tag = wanted and GroupStray(wanted) or nil
+	if tag then
+		HandleGroupHit(tag)
 	end
 end
 
@@ -1267,6 +1405,9 @@ end
 local function ForgetSlotState(slot)
 	presence[slot] = nil
 	diedAt[slot] = nil
+	if owedSlot == slot then
+		owedSlot = nil
+	end
 	sightings[slot] = nil
 	lastMarkTry[slot] = nil
 	for kind in pairs(ALERT_COOLDOWN_MS) do
@@ -1531,6 +1672,7 @@ local function PrintStatus()
 	)
 
 	Say(string.format(GetString(SI_PBTP_STATUS_SIGHT), diag.chat, diag.sightings))
+	Say(string.format(GetString(SI_PBTP_STATUS_GROUP), diag.groupHits, diag.repairs, diag.lastGroupHit))
 	Say(
 		string.format(
 			GetString(SI_PBTP_STATUS_STRAY),

@@ -18,7 +18,7 @@
     "DungeonFinderPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4298/",
-  "fingerprint": "71e3b5f24d1c5e54781d6fa523ce875263f70324ffca89bbbe279110ea52d5b6",
+  "fingerprint": "6789845c395d85fdcfe154fe006dc92b8a6b67282cb1b58c1ad1ac667345dabe",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14775.png",
     "https://cdn-eso.mmoui.com/preview/pvw14790.png"
@@ -29,11 +29,11 @@
   "source_id": "4298",
   "source_url": "https://www.esoui.com/downloads/info4298-DungeonFinderPlus.html",
   "stats": {
-    "downloads": 834,
+    "downloads": 863,
     "favorites": 2,
-    "monthly_downloads": 32
+    "monthly_downloads": 68
   },
   "title": "DungeonFinderPlus",
-  "updated_at": 1792882952000,
-  "version": "1.4.3"
+  "updated_at": 1792937163000,
+  "version": "1.4.4"
 }

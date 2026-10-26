@@ -1,4 +1,18 @@
-Chat Keeper 1.0.1
+Chat Keeper 1.0.2
+By @TheGreyWolf98
+
+UI UPDATE
+Atlas colours and borders, larger explicit gamepad fonts, and a Socials / Support page with Ko-fi QR. Click the left stick from the main menu to open Socials; B returns to the add-on. Other controls and saved-variable identities are retained.
+
+Open /chatkeeper. Upload ChatKeeper.addon through the Bethesda uploader.
+Ko-fi: https://ko-fi.com/thegreywolf98
+Instagram: https://www.instagram.com/thegreywolf_98/
+Discord: https://discord.gg/Fp9RSaeU8h
+
+Local checks cover packaging, Lua syntax and UI navigation in a mocked environment. Xbox testing is still required.
+
+EXISTING INSTRUCTIONS
+Chat Keeper 1.0.2
 By @TheGreyWolf98
 
 Persistent conversation history, timestamps and native HUD chat positioning.
@@ -59,7 +73,7 @@ Transparent HUD chat, bounded history and controller settings.
 Removed tester labels; view-switch button labels refresh correctly.
 History viewer trims expired messages when opened and shows an empty state.
 
-1.0.1 SESSION EXPIRY FIX
+1.0.2 SESSION EXPIRY FIX
 Saved chat is deleted after 30 minutes offline, rather than merely skipping
 replay once. Later reloads cannot bring that expired conversation back.
 Local checks cover 1799/1800-second boundaries, overnight returns, reloads,

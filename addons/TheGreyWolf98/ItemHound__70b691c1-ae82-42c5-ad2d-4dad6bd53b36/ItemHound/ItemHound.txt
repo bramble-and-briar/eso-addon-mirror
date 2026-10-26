@@ -3,7 +3,8 @@
 ## Version: 0.8.1
 ## AddOnVersion: 10
 ## APIVersion: 101050 101051
-## Description: Account item finder with equipped gear and a currency wallet.
+## Description: Find items across scanned characters and storage, then check your shared currency wallet. Open /ih.
 ## SavedVariables: ItemHoundSavedVariables
 
+Socials.lua
 ItemHound.lua

@@ -1,0 +1,9 @@
+## Title: Home Tour History
+## APIVersion: 101035
+## Author: JenovaSeph
+## Version: 1.0
+## Description: Automatically tracks houses visited via Home Tours and displays their House IDs.
+
+lang\en.lua
+HomeTourHistory.xml
+HomeTourHistory.lua

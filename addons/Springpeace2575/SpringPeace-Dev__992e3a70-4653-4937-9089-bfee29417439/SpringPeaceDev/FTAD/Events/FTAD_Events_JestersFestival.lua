@@ -1,0 +1,25 @@
+FurnishThemAllData_Events_JestersFestival = {
+    name = "Jester's Festival",
+    source = "Events",
+    collection = {
+        [1] = {
+            { name = "Banner, Jester's Standard" },
+            { name = "Jester's Coffer" },
+            { name = "Jester's Festival Flyer" },
+            { name = "Jester's Festival Garland, Long Flags" },
+            { name = "Jester's Festival Garland, Short Flags" },
+            { name = "Jester's Festival Plaque, King Boar" },
+            { name = "Jester's Festival Plaque, Queen Boar" },
+            { name = "Jester's Festival Rug, Star" },
+            { name = "Jester's Festival Rug, Swirls" },
+            { name = "Jester's Festival Sign" },
+            { name = "Jester's Festival Wreath" },
+            { name = "Jester's Garland, Long" },
+            { name = "Jester's Garland, Short" },
+            { name = "Jester's Mask, Happy" },
+            { name = "Jester's Mask, Sad" },
+            { name = "Tree, Jester's Large" },
+            { name = "Tree, Jester's Small" },
+        },
+    },
+}

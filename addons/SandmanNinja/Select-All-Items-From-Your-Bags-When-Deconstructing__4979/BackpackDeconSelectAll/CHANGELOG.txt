@@ -1,0 +1,20 @@
+1.3.3
+- Show a subdued version label below the keyboard checkbox and the version
+  beside Select All in the controller Options menu.
+
+1.3.2
+- Preserve a fully selected controller checkbox when Options closes without
+  a toggle, despite ESO's routine filter refresh. Recheck current eligibility
+  so a changed or partial selection is never reported as fully selected.
+
+1.3.1
+- Consolidate initialization and runtime event registration in one main file.
+- Call keyboard layout and controller setup through one shared namespace.
+- Apply checkbox alignment when controls are created, without extra events
+  or global control-name lookups.
+- Reset checkbox state on manual clear and interface changes.
+- Add numeric AddOnVersion and declare optional FCO ItemSaver load ordering.
+- Add AI disclosure, source acknowledgements, and updated documentation.
+
+1.3.0 (ESOUI listing; packaged manifest previously said 0.3.0)
+- Keyboard/mouse and controller deconstruction selection support.

@@ -1,0 +1,262 @@
+; Created by @SpringPeace2575
+
+## Title: SpringPeace (Dev)
+## Description: Serves only for my development, do not install!
+## Version: 1.8.6
+## Author: |cb7ff00SpringPeace2575|r
+## APIVersion: 101048 101049 101050
+## SavedVariables: SpringPeaceDevSavedVars
+## DependsOn: SPFLib LibCharacterKnowledge
+
+
+GuildStoreWatch/SPFLibMotif.lua
+
+; GuildStoreWatch
+GuildStoreWatch/GuildStoreWatchData.lua
+GuildStoreWatch/GuildStoreWatchTrader.lua
+GuildStoreWatch/GuildStoreWatchResults.lua
+
+GuildStoreWatch/GuildStoreWatchGuiControls.xml
+GuildStoreWatch/GuildStoreWatchGuiControls.lua
+GuildStoreWatch/GuildStoreWatchGui.lua
+
+GuildStoreWatch/GuildStoreWatch.lua
+
+ExtraRadialMenu/ExtraRadialMenuData.lua
+ExtraRadialMenu/ExtraRadialMenuWheels.lua
+ExtraRadialMenu/ExtraRadialMenu.lua
+ExtraRadialMenu/ExtraRadialMenuHook.lua
+
+
+
+
+
+; !!! There is a limitation of maximum path/filename length. It is 72 chars MAX !!!
+; ----------------------------------------------------------------------
+; FurnishThemAll - Data
+; Crafting
+FTAD/Crafting/FTAD_Crafting_Blueprints.lua
+FTAD/Crafting/FTAD_Crafting_Designs.lua
+FTAD/Crafting/FTAD_Crafting_Diagrams.lua
+FTAD/Crafting/FTAD_Crafting_Formulae.lua
+FTAD/Crafting/FTAD_Crafting_Patterns.lua
+FTAD/Crafting/FTAD_Crafting_Praxes.lua
+FTAD/Crafting/FTAD_Crafting_Sketches.lua
+FTAD/Crafting/FTAD_Crafting.lua
+; ----------------------------------------------------------------------
+; Crates
+FTAD/Crates/FTAD_Crates_2017_2_WildHuntCrate.lua
+FTAD/Crates/FTAD_Crates_2017_3_DwarvenCrate.lua
+FTAD/Crates/FTAD_Crates_2017_4_ReapersHarvestCrate.lua
+FTAD/Crates/FTAD_Crates_2017_5_FlameAtronachCrate.lua
+FTAD/Crates/FTAD_Crates_2018_1_ScalecallerCrate.lua
+FTAD/Crates/FTAD_Crates_2018_2_PsijicVaultCrate.lua
+FTAD/Crates/FTAD_Crates_2018_3_HollowjackCrate.lua
+FTAD/Crates/FTAD_Crates_2018_4_XanmeerCrate.lua
+FTAD/Crates/FTAD_Crates_2019_1_DragonscaleCrate.lua
+FTAD/Crates/FTAD_Crates_2019_2_BaandariPedlarCrate.lua
+FTAD/Crates/FTAD_Crates_2019_3_NewMoonCrate.lua
+FTAD/Crates/FTAD_Crates_2019_4_FrostAtronachCrate.lua
+FTAD/Crates/FTAD_Crates_2020_1_GloomsporeCrate.lua
+FTAD/Crates/FTAD_Crates_2020_2_NightfallCrate.lua
+FTAD/Crates/FTAD_Crates_2020_3_SovngardeCrate.lua
+FTAD/Crates/FTAD_Crates_2020_4_AkaviriPotentateCrate.lua
+FTAD/Crates/FTAD_Crates_2021_1_AyleidCrate.lua
+FTAD/Crates/FTAD_Crates_2021_2_IronAtronachCrate.lua
+FTAD/Crates/FTAD_Crates_2021_3_GrimHarlequinCrate.lua
+FTAD/Crates/FTAD_Crates_2021_4_CelestialCrate.lua
+FTAD/Crates/FTAD_Crates_2022_1_SunkenTroveCrate.lua
+FTAD/Crates/FTAD_Crates_2022_2_DarkChivalryCrate.lua
+FTAD/Crates/FTAD_Crates_2022_3_WraithtideCrate.lua
+FTAD/Crates/FTAD_Crates_2022_4_StoneloreCrate.lua
+FTAD/Crates/FTAD_Crates_2023_1_RageboundCrate.lua
+FTAD/Crates/FTAD_Crates_2023_2_UnfeatheredCrate.lua
+FTAD/Crates/FTAD_Crates_2023_3_BuoyantArmigerCrate.lua
+FTAD/Crates/FTAD_Crates_2023_4_AllMakerCrate.lua
+FTAD/Crates/FTAD_Crates_2024_1_OrderOfTheLampCrate.lua
+FTAD/Crates/FTAD_Crates_2024_2_DiamondAnniversaryCrate.lua
+FTAD/Crates/FTAD_Crates_2024_3_DarkBrotherhoodCrate.lua
+FTAD/Crates/FTAD_Crates_2024_4_MirrormoorCrate.lua
+FTAD/Crates/FTAD_Crates_2025_1_CarnavalCrate.lua
+FTAD/Crates/FTAD_Crates_2025_2_AkatoshVsAlduinCrate.lua
+FTAD/Crates/FTAD_Crates_2025_3_HiddenKindredCrate.lua
+FTAD/Crates/FTAD_Crates_2025_4_MoonsOverOrsiniumCrate.lua
+FTAD/Crates/FTAD_Crates_2026_1_WarriorWaveCrate.lua
+FTAD/Crates/FTAD_Crates_2026_2_AnuVsPadomayCrate.lua
+FTAD/Crates/FTAD_Crates.lua
+; ----------------------------------------------------------------------
+; Events
+FTAD/Events/FTAD_Events_AnniversaryJubilee.lua
+FTAD/Events/FTAD_Events_BattleForTheWrithingWall.lua
+FTAD/Events/FTAD_Events_GoldenPursuits.lua
+FTAD/Events/FTAD_Events_GoldenPursuitsPrevious.lua
+FTAD/Events/FTAD_Events_JestersFestival.lua
+FTAD/Events/FTAD_Events_NewLifeFestival.lua
+FTAD/Events/FTAD_Events_RetiredEvents.lua
+FTAD/Events/FTAD_Events_UndauntedCelebration.lua
+FTAD/Events/FTAD_Events_WhitestrakesMayhem.lua
+FTAD/Events/FTAD_Events_WitchesFestival.lua
+FTAD/Events/FTAD_Events.lua
+; ----------------------------------------------------------------------
+; FPacks
+FTAD/FPacks/FTAD_FPacks_ApocryphalCuriosities.lua
+FTAD/FPacks/FTAD_FPacks_AquaticSplendor.lua
+FTAD/FPacks/FTAD_FPacks_ArmorPrinciples.lua
+FTAD/FPacks/FTAD_FPacks_Ayleid.lua
+FTAD/FPacks/FTAD_FPacks_Azura.lua
+FTAD/FPacks/FTAD_FPacks_ColdharbourArcanaeum.lua
+FTAD/FPacks/FTAD_FPacks_CombatTraining.lua
+FTAD/FPacks/FTAD_FPacks_CommunityTheater.lua
+FTAD/FPacks/FTAD_FPacks_DaedricAmbitions.lua
+FTAD/FPacks/FTAD_FPacks_DariensDelights.lua
+FTAD/FPacks/FTAD_FPacks_DawnAndDusk.lua
+FTAD/FPacks/FTAD_FPacks_DeepmireExpedition.lua
+FTAD/FPacks/FTAD_FPacks_DibellasGarden.lua
+FTAD/FPacks/FTAD_FPacks_DruidicGatherings.lua
+FTAD/FPacks/FTAD_FPacks_DwarvenPipes.lua
+FTAD/FPacks/FTAD_FPacks_DwarvenTrainingDummies.lua
+FTAD/FPacks/FTAD_FPacks_EquipmentStations.lua
+FTAD/FPacks/FTAD_FPacks_FargraveBazaar.lua
+FTAD/FPacks/FTAD_FPacks_ForgeLordsGreatWorks.lua
+FTAD/FPacks/FTAD_FPacks_FormalGardenShrubbery.lua
+FTAD/FPacks/FTAD_FPacks_HauntedHousewares.lua
+FTAD/FPacks/FTAD_FPacks_HeartOfTheLoom.lua
+FTAD/FPacks/FTAD_FPacks_HeartsDayRetreat.lua
+FTAD/FPacks/FTAD_FPacks_HubalajadsFinalTreasure.lua
+FTAD/FPacks/FTAD_FPacks_ChapelOfZenithar.lua
+FTAD/FPacks/FTAD_FPacks_JestersFestivalStagecraft.lua
+FTAD/FPacks/FTAD_FPacks_KhajiitiLife.lua
+FTAD/FPacks/FTAD_FPacks_LibraryEssentials.lua
+FTAD/FPacks/FTAD_FPacks_LordVivec.lua
+FTAD/FPacks/FTAD_FPacks_MadAlchemist.lua
+FTAD/FPacks/FTAD_FPacks_MalacathsChosen.lua
+FTAD/FPacks/FTAD_FPacks_MaormerBoardingParty.lua
+FTAD/FPacks/FTAD_FPacks_MolagBal.lua
+FTAD/FPacks/FTAD_FPacks_MoonBishopsSanctuary.lua
+FTAD/FPacks/FTAD_FPacks_MoonlitPathways.lua
+FTAD/FPacks/FTAD_FPacks_MoonsBlessedOasis.lua
+FTAD/FPacks/FTAD_FPacks_NecromGarden.lua
+FTAD/FPacks/FTAD_FPacks_NewLifeFestival.lua
+FTAD/FPacks/FTAD_FPacks_SanguinesFestival.lua
+FTAD/FPacks/FTAD_FPacks_ShadAstulaScholars.lua
+FTAD/FPacks/FTAD_FPacks_ShadowAndStone.lua
+FTAD/FPacks/FTAD_FPacks_SinisterHollowjackItems.lua
+FTAD/FPacks/FTAD_FPacks_SteamBathSerenity.lua
+FTAD/FPacks/FTAD_FPacks_StudyOfWisdomAndLogic.lua
+FTAD/FPacks/FTAD_FPacks_TheClockworkGodsDomain.lua
+FTAD/FPacks/FTAD_FPacks_ToymakersTrove.lua
+FTAD/FPacks/FTAD_FPacks_TrappingsOfMephalaWorship.lua
+FTAD/FPacks/FTAD_FPacks_TyrantsOfTheMerethicEra.lua
+FTAD/FPacks/FTAD_FPacks_VampiricLibations.lua
+FTAD/FPacks/FTAD_FPacks_WaterDancerNereid.lua
+FTAD/FPacks/FTAD_FPacks_WindowsOfTheDivines.lua
+FTAD/FPacks/FTAD_FPacks_WintersFeast.lua
+FTAD/FPacks/FTAD_FPacks_WitchesCoven.lua
+FTAD/FPacks/FTAD_FPacks_WrithingFortress.lua
+FTAD/FPacks/FTAD_FPacks.lua
+; ----------------------------------------------------------------------
+; FSets
+FTAD/FSets/FTAD_FSets_CraglornMulticulturalBedroomPack.lua
+FTAD/FSets/FTAD_FSets_CraglornMulticulturalKitchenPack.lua
+FTAD/FSets/FTAD_FSets_CraglornMulticulturalKnickKnacksPack.lua
+FTAD/FSets/FTAD_FSets_CraglornMulticulturalParlorPack.lua
+FTAD/FSets/FTAD_FSets_CyrodilicParlorPack.lua
+FTAD/FSets/FTAD_FSets_HomeInNibenayBedroomPack.lua
+FTAD/FSets/FTAD_FSets_IslandAssortmentHouseholdPack.lua
+FTAD/FSets/FTAD_FSets_IslandCuisineKitchenPack.lua
+FTAD/FSets/FTAD_FSets_IslandHideawayParlorPack.lua
+FTAD/FSets/FTAD_FSets_IslandNightsBedroomPack.lua
+FTAD/FSets/FTAD_FSets_NibenValleyKitchenPack.lua
+FTAD/FSets/FTAD_FSets_SummersetNoblesBathingPack.lua
+FTAD/FSets/FTAD_FSets_SummersetNoblesBedroomPack.lua
+FTAD/FSets/FTAD_FSets_SummersetNoblesKitchenPack.lua
+FTAD/FSets/FTAD_FSets_SummersetNoblesParlorPack.lua
+FTAD/FSets/FTAD_FSets_TamrielicHouseholdNecessitiesPack.lua
+FTAD/FSets/FTAD_FSets_TreesOfTamrielGardenPack.lua
+FTAD/FSets/FTAD_FSets.lua
+; ----------------------------------------------------------------------
+; Game
+FTAD/Game/FTAD_Game_Antiquities.lua
+FTAD/Game/FTAD_Game_GameRewards.lua
+FTAD/Game/FTAD_Game.lua
+; ----------------------------------------------------------------------
+; GoldCoastBazaar
+FTAD/GoldCoastBazaar/FTAD_GoldCoastBazaar_GoldCoastWares.lua
+FTAD/GoldCoastBazaar/FTAD_GoldCoastBazaar.lua
+; ----------------------------------------------------------------------
+; Houses
+FTAD/Houses/FTAD_Houses_DefaultFurnishings.lua
+FTAD/Houses/FTAD_Houses.lua
+; ----------------------------------------------------------------------
+; Others
+FTAD/Others/FTAD_Others_AttunableCraftingStations.lua
+FTAD/Others/FTAD_Others_Crime.lua
+FTAD/Others/FTAD_Others_Fishing.lua
+FTAD/Others/FTAD_Others_Harvesting.lua
+FTAD/Others/FTAD_Others_Looting.lua
+FTAD/Others/FTAD_Others_Special.lua
+FTAD/Others/FTAD_Others_Unobtainable.lua
+FTAD/Others/FTAD_Others.lua
+; ----------------------------------------------------------------------
+; Store
+FTAD/Store/FTAD_Store_HousingEditor.lua
+FTAD/Store/FTAD_Store_LimitedBundles.lua
+FTAD/Store/FTAD_Store_LimitedFurnishingPacks.lua
+FTAD/Store/FTAD_Store_LimitedOffers.lua
+FTAD/Store/FTAD_Store_PermanentFurnishingPacks.lua
+FTAD/Store/FTAD_Store_PermanentOffers.lua
+FTAD/Store/FTAD_Store.lua
+; ----------------------------------------------------------------------
+; TamrielTomes
+FTAD/TamrielTomes/FTAD_TamrielTomes_SeasonOne.lua
+FTAD/TamrielTomes/FTAD_TamrielTomes_SeasonZero.lua
+FTAD/TamrielTomes/FTAD_TamrielTomes.lua
+; ----------------------------------------------------------------------
+; Vendors
+FTAD/Vendors/FTAD_Vendors_AchievementFurnishers.lua
+FTAD/Vendors/FTAD_Vendors_Alchemists.lua
+FTAD/Vendors/FTAD_Vendors_BattlegroundsFurnishers.lua
+FTAD/Vendors/FTAD_Vendors_Blacksmiths.lua
+FTAD/Vendors/FTAD_Vendors_BuoyantArmiger.lua
+FTAD/Vendors/FTAD_Vendors_Carpenters.lua
+FTAD/Vendors/FTAD_Vendors_Clothiers.lua
+FTAD/Vendors/FTAD_Vendors_Enchanters.lua
+FTAD/Vendors/FTAD_Vendors_FaustinaCurio.lua
+FTAD/Vendors/FTAD_Vendors_FilerTezurs.lua
+FTAD/Vendors/FTAD_Vendors_GoldCoastBazaar.lua
+FTAD/Vendors/FTAD_Vendors_HallStewards.lua
+FTAD/Vendors/FTAD_Vendors_HomeGoodsFurnishers.lua
+FTAD/Vendors/FTAD_Vendors_Chefs.lua
+FTAD/Vendors/FTAD_Vendors_LuxuryFurnisher.lua
+FTAD/Vendors/FTAD_Vendors_Mystics.lua
+FTAD/Vendors/FTAD_Vendors_NightMarketMerchants.lua
+FTAD/Vendors/FTAD_Vendors_OutlawsRefugeMerchants.lua
+FTAD/Vendors/FTAD_Vendors_RolisHlaalu.lua
+FTAD/Vendors/FTAD_Vendors_TelVarCollectiblesMerchants.lua
+FTAD/Vendors/FTAD_Vendors_TheImpresario.lua
+FTAD/Vendors/FTAD_Vendors_UndauntedQuartermasters.lua
+FTAD/Vendors/FTAD_Vendors_WarResearchers.lua
+FTAD/Vendors/FTAD_Vendors.lua
+; ----------------------------------------------------------------------
+
+
+
+
+FurnishThemAll/FurnishThemAllData.lua
+FurnishThemAll/FurnishThemAllResults.lua
+FurnishThemAll/FurnishThemAllGuiControls.xml
+FurnishThemAll/FurnishThemAllGuiControls.lua
+FurnishThemAll/FurnishThemAllGui.lua
+FurnishThemAll/FurnishThemAll.lua
+
+; Main file
+SpringPeaceDev.lua
+
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms

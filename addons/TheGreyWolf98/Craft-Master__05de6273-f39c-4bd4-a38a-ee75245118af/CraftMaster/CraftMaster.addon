@@ -1,10 +1,11 @@
 ## Title: Craft Master
-## Description: Standalone crafting knowledge, housing catalogue and main-crafter tooltips.
+## Description: Browse crafting knowledge and housing items, search your catalogue and track your main crafter. Open /cm.
 ## Author: @TheGreyWolf98
-## Version: 1.0.11
+## Version: 1.0.12
 ## APIVersion: 101051
 ## SavedVariables: CraftMasterSavedVariables
 
+Socials.lua
 CraftMasterCatalog.lua
 CraftMaster.lua
 CraftMasterUI.lua

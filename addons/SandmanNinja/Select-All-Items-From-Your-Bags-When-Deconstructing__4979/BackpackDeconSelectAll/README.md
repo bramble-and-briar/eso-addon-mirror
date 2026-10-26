@@ -1,4 +1,8 @@
-# Backpack Decon Select All 0.3.0
+# Backpack Decon Select All 1.3.3
+
+AI disclosure: Code was generated and revised with ChatGPT/Codex. Automated checks do not replace in-game testing. See CREDITS.txt for sources and acknowledgements.
+
+Dependencies: none required. Optional FCO ItemSaver integration respects its deconstruction locks when installed.
 
 Supports ESO's keyboard/mouse and controller interfaces at equipment deconstruction stations and universal deconstruction assistants. Standalone enchanting extraction and refinement are not supported.
 
@@ -31,7 +35,7 @@ Replace the installed files and run `/reloadui`.
 
 ## Verification
 
-Lua 5.1 mock tests cover the controller Options entry, interface-mode checks, selection after closing Options, unticking, native item locks, FCO protection, selection limits, busy crafting, scene resets, normal stations, universal deconstruction, and the shared keyboard selection path. Actual controller navigation, tooltip wrapping, and placement at different resolutions still require in-game verification. Test first with disposable items and one locked item.
+Lua 5.1 mock tests cover the controller Options entry, interface-mode checks, selection after closing Options, unticking, native item locks, FCO protection, selection limits, busy crafting, scene resets, normal stations, universal deconstruction, the shared keyboard selection path, and single/idempotent startup. Actual controller navigation, tooltip wrapping, and placement at different resolutions still require in-game verification. Test first with disposable items and one locked item.
 
 ESO UI sources used:
 

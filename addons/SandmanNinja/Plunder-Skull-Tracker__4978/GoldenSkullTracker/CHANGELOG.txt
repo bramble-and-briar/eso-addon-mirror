@@ -1,0 +1,17 @@
+1.1.2
+- Show a small, subdued version label beside the window title.
+
+1.1.1
+- Make the implementation table local; retain the existing saved-data name,
+  schema version, per-account/server profile, and window name.
+- Remove the unsolicited ready/login announcement.
+- Filter backpack and inventory-update reason natively before Lua handlers.
+- Use ESO's string formatter for grammatical suffixes and native lowercase.
+- Prominently document the English-client requirement. Automatic detection
+  is disabled on other languages; the manual checklist remains available.
+- Reuse category aliases and remove unused category data.
+- Keep the reset check while hidden, but avoid rewriting UI every second.
+- Add AI disclosure, source acknowledgements, and release documentation.
+
+1.1.0
+- Existing boss-loot, quest-turn-in, and backpack-based skull tracking.

@@ -9,8 +9,8 @@
 ## Title: |c6666FFRidinDirty|r
 ## Description: Mount multi-rider mounts, teleporting, auto banking, junk, loot & trader management, pve/pvp tools plus MUCH more!
 ## Author: @sinnereso
-## Version: 2026.10.10
-## APIVersion: 101051
+## Version: 2026.10.25
+## APIVersion: 101051 101052
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
 ## OptionalDependsOn: LibCharacterKnowledge>=300070 TamrielTradeCentre
 ## SavedVariables: RidinDirtyVars

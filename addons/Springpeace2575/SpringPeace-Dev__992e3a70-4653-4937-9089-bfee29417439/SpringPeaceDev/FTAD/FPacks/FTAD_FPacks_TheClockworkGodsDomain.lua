@@ -1,0 +1,25 @@
+FurnishThemAllData_FPacks_TheClockworkGodsDomain = {
+    name = "The Clockwork God's Domain",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Clockwork Chair, Reinforced" },
+            { name = "Clockwork Illuminator, Compact" },
+            { name = "Clockwork Illuminator, Compact Stand" },
+            { name = "Clockwork Illuminator, Powered Capsule" },
+            { name = "Clockwork Mortar and Pestle, Sintered" },
+            { name = "Clockwork Pump, Horizontal" },
+            { name = "Clockwork Scales, Precision Calibrated" },
+            { name = "Clockwork Sequence Spool, Triple" },
+            { name = "Clockwork Wall Machinery, Arched" },
+            { name = "Clockwork Wall Machinery, Ovoid" },
+            { name = "Clockwork Wall Machinery, Rectangular" },
+            { name = "Clockwork Workbench, Spacious" },
+            { name = "Fabrication Sphere, Inactive" },
+            { name = "Grand Mnemograph" },
+            { name = "Sotha Sil, The Clockwork God" },
+            { name = "Soul Gem Module, Experimental" },
+            { name = "The Law of Gears" },
+        },
+    },
+}

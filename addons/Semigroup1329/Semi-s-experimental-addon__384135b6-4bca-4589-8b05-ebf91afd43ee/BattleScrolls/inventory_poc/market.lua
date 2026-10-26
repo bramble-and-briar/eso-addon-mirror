@@ -11,6 +11,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field seconds number|nil
 ---@field guildIds number[]
 ---@field guildIndex number
+---@field listingStack boolean|nil Split and verified for the next post
 
 ---@class InventoryPocGuildListings
 ---@field used number
@@ -522,6 +523,64 @@ local function searchKey(item)
     return item.uniqueId .. ':' .. tostring(item.slot) .. ':' .. facts.variantKey(item)
 end
 
+---Prepare a separate listing slot and wait for both inventory updates.
+---Completed price searches follow both resulting stacks through the next pass.
+---@param search InventoryPocSearch
+---@param quantity number
+---@param reserved table<string, boolean>
+---@return Effect<nil>
+local function splitListing(search, quantity, reserved)
+    return Effect.Events(function(events, resolve, reject)
+        checkVisit()
+        local item = search.item
+        local current = facts.item(item.bag, item.slot, reserved)
+        local targetSlot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+        if not policy.sameItem(item, current) or current.reserved then fail('split-item-changed') end
+        if targetSlot == nil or targetSlot < 0 then fail('split-no-space') end
+        if quantity < 1 or quantity >= item.stack then fail('split-quantity') end
+        setPhase('split')
+        local function changed()
+            local source = facts.item(item.bag, item.slot, reserved)
+            local target = facts.item(BAG_BACKPACK, targetSlot, reserved)
+            if not source or source.link ~= item.link or source.uniqueId ~= item.uniqueId or source.reserved
+                or (source.stack ~= item.stack and source.stack ~= item.stack - quantity)
+                or (target and (target.link ~= item.link or target.stack ~= quantity or target.reserved)) then
+                reject({ marketError = true, reason = 'split-item-changed' })
+                return
+            end
+            if source.stack == item.stack - quantity and target then
+                market.prepared[searchKey(item)] = nil
+                search.item, search.listingStack = source, nil
+                market.prepared[searchKey(source)] = search
+                market.prepared[searchKey(target)] = { item = target, stage = 'ready', page = search.page, listingStack = true,
+                    guildIds = search.guildIds, guildIndex = search.guildIndex, nameMatches = search.nameMatches,
+                    lowest = search.lowest, seconds = search.seconds }
+                poc.wake()
+                resolve(nil)
+            end
+        end
+        events:On(EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bag, slot)
+            if bag == item.bag and (slot == item.slot or slot == targetSlot) then changed() end
+        end)
+        events:On(EVENT_INVENTORY_FULL_UPDATE, changed)
+        CallSecureProtected('RequestMoveItem', item.bag, item.slot, BAG_BACKPACK, targetSlot, quantity)
+    end):Timeout(5000)
+end
+
+---A new visit rechecks previously quoted stock, including discounted leftovers.
+---@param item InventoryPocItem
+---@return InventoryPocDecision
+local function searchDecision(item)
+    local price, loading = item.marketUnit, item.priceLoading
+    if facts.quotes[facts.variantKey(item)] then
+        item.marketUnit = nil
+        if (item.kind == 'gear' and item.tradeable) or item.kind == 'sealedLead' then item.priceLoading = true end
+    end
+    local decision = policy.decide(item)
+    item.marketUnit, item.priceLoading = price, loading
+    return decision
+end
+
 ---Rank known sale values first. Unpriced stock follows those listings.
 ---Fragments use the remaining stack as their upper bound because discounts
 ---can increase the number of pieces needed to reach the listing minimum.
@@ -545,7 +604,7 @@ local function nextSearch(items, reserved)
     for index, before in ipairs(items) do
         -- The opening scan already classified the pack. Refresh eligible
         -- candidates; inventory changes start a fresh pass through the queue.
-        local decision = policy.decide(before)
+        local decision = searchDecision(before)
         if decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
             local key = searchKey(before)
             if not market.prepared[key] and not market.tried[key .. ':' .. tostring(before.stack)] then
@@ -555,7 +614,7 @@ local function nextSearch(items, reserved)
                 elseif before.priceLoading or item.priceLoading then
                     recordSkip(item, 'candidate', 'price-loading')
                 else
-                    decision = policy.decide(item)
+                    decision = searchDecision(item)
                     local needsPrice = decision.action == 'defer' and decision.reason == 'price'
                     if decision.action ~= 'list' and not needsPrice then
                         recordSkip(item, 'candidate', 'policy-changed', 'action=' .. decision.action .. ' rule=' .. decision.reason)
@@ -635,9 +694,18 @@ local function bestPrepared(reserved)
     for key, search in pairs(market.prepared) do
         local current, quote = quoteSearch(search, reserved)
         if not current then market.prepared[key] = nil
-        elseif not bestQuote or quote.totalPrice > bestQuote.totalPrice
-            or (quote.totalPrice == bestQuote.totalPrice and current.slot < best.item.slot) then
-            best, bestQuote = search, quote
+        else
+            local readyStack = current.stack == quote.quantity
+            local empty = FindFirstEmptySlotInBag(BAG_BACKPACK)
+            if not readyStack and (empty == nil or empty < 0) then
+                recordSkip(current, 'split', 'no-backpack-space')
+            elseif not bestQuote or (search.listingStack and not best.listingStack)
+                or (search.listingStack == best.listingStack and (quote.totalPrice > bestQuote.totalPrice
+                or (quote.totalPrice == bestQuote.totalPrice and
+                    ((readyStack and best.item.stack ~= bestQuote.quantity)
+                    or (readyStack == (best.item.stack == bestQuote.quantity) and current.slot < best.item.slot))))) then
+                best, bestQuote = search, quote
+            end
         end
         count = count + 1
         if count % 5 == 0 then Effect.Yield():Await() end
@@ -667,20 +735,24 @@ function market.step(items, reserved)
             if revision ~= market.revision then return true end
             local best, quote = bestPrepared(reserved)
             local candidate, maximum = nextSearch(items, reserved)
-            if best and (not candidate or quote.totalPrice >= maximum) then
+            if best and (best.listingStack or not candidate or quote.totalPrice >= maximum) then
                 market.search = best
                 selectGuild(guildId):Await()
                 ready():Await()
                 -- A changed reservation or stack is reconsidered on the next pass.
                 if revision ~= market.revision then return true end
                 local current, freshQuote = quoteSearch(best, reserved)
-                if current and (not candidate or freshQuote.totalPrice >= maximum) then
-                    local posted = request(TRADING_HOUSE_RESULT_POST_PENDING, guildId, function()
+                if current and (best.listingStack or not candidate or freshQuote.totalPrice >= maximum) then
+                    if current.stack > freshQuote.quantity then
+                        splitListing(best, freshQuote.quantity, reserved):Await()
+                        return true
+                    end
+                    request(TRADING_HOUSE_RESULT_POST_PENDING, guildId, function()
                         local sent, reason = poc.post(current, freshQuote, guildId, reserved)
                         if not sent then fail('post-' .. tostring(reason)) end
                         return true
                     end, function() return true end):Await()
-                    if not posted or freshQuote.quantity >= current.stack then market.prepared[searchKey(current)] = nil end
+                    market.prepared[searchKey(current)] = nil
                 elseif not current then market.prepared[searchKey(best.item)] = nil end
                 return true
             end
@@ -772,6 +844,13 @@ function market.initialize()
                 if counts then counts.used, counts.fresh = counts.used + 1, true end
                 market.refreshUI = true
             else market.stop('request-rejected', result) end
+        elseif result == TRADING_HOUSE_RESULT_SUCCESS and not (pending and pending.action == 'list')
+            and (response == TRADING_HOUSE_RESULT_POST_PENDING or response == TRADING_HOUSE_RESULT_CANCEL_SALE_PENDING) then
+            local counts = market.listings[GetSelectedTradingHouseGuildId()]
+            if counts and counts.fresh then
+                counts.used = math.max(0, counts.used + (response == TRADING_HOUSE_RESULT_POST_PENDING and 1 or -1))
+                market.refreshUI = true
+            end
         end
         poc.resume()
     end)

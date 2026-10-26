@@ -1,5 +1,5 @@
 ## Title: Bankir
-## Version: 2.6
+## Version: 2.7.1
 ## APIVersion: 101051
 ## Author: vexaiv
 ## Description: Helps with inventory management routine. Spiritual successor of the legendary Bank Manager (Revived).

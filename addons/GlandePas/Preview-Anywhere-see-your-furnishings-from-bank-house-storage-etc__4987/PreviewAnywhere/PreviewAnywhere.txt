@@ -1,0 +1,14 @@
+## Title: Preview Anywhere
+## Author: Glande-Pas
+## Description: Preview furniture and other items where the game offers no preview: banks, house storage, guild banks, the open world.
+## APIVersion: 101051
+## AddOnVersion: 1
+## Version: 0.1.0
+## DependsOn: LibCustomMenu>=730
+## OptionalDependsOn: IIfA
+
+; This Add-on is not created by, affiliated with, or sponsored by, ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States
+; and/or other countries. All rights reserved.
+
+PreviewAnywhere.lua

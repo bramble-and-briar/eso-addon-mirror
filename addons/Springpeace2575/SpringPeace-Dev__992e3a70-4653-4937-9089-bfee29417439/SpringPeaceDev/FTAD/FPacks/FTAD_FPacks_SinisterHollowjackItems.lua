@@ -1,0 +1,25 @@
+FurnishThemAllData_FPacks_SinisterHollowjackItems = {
+    name = "Sinister Hollowjack Items",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Cart, Sided" },
+            { name = "Grave, Grasping" },
+            { name = "Gravestone, Clover Engraving" },
+            { name = "Gravestone, Cracked" },
+            { name = "Gravestone, Imp Engraving" },
+            { name = "Hollowjack Lantern, Ouroboros" },
+            { name = "Hollowjack Lantern, Soaring Dragon" },
+            { name = "Hollowjack Lantern, Toothy Grin" },
+            { name = "Pumpkin Patch, Display" },
+            { name = "Raven-Perch Cemetery Wreath" },
+            { name = "Specimen Jar, Eyes" },
+            { name = "Specimen Jar, Monstrous Remains" },
+            { name = "Specimen Jar, Spare Brain" },
+            { name = "Target Wraith-of-Crows" },
+            { name = "Webs, Cone" },
+            { name = "Webs, Thick Sheet" },
+            { name = "Witches Festival Scarecrow" },
+        },
+    },
+}

@@ -90,7 +90,7 @@ local function WalletResults(query)
         end
     end
     for _,c in pairs(db.characters)do
-        if not c.wallet and(query=="" or string.find(string.lower(c.name),query,1,true))then rows[#rows+1]={title=c.name .. " | Wallet not scanned",detail="Log into this character once with 0.8.0 installed."}end
+        if not c.wallet and(query=="" or string.find(string.lower(c.name),query,1,true))then rows[#rows+1]={title=c.name .. " | Wallet not scanned",detail="Log into this character once with 0.8.1 installed."}end
     end
     return rows,"Wallet: " .. scanned .. "/" .. known .. " recorded characters scanned. Filter by currency or character.\nLast-known balances; visit every toon once. Largest holders first; zero balances hidden.",panels
 end
@@ -120,7 +120,7 @@ local function Scan()
         character.updatedAt = character.scannedAt
         scanning = nil
         local used, quantity = Counts(slots)
-        Say("0.8.0 scanned " .. character.name .. ": " .. used .. " backpack slots, " .. quantity .. " items. Type /ih find sandcastle")
+        Say("0.8.1 scanned " .. character.name .. ": " .. used .. " backpack slots, " .. quantity .. " items. Type /ih find sandcastle")
     end
     Step()
 end
@@ -395,12 +395,12 @@ local function CreateWindow()
     window:SetAnchor(CENTER,GuiRoot,CENTER,0,0);window:SetHidden(true)
     window:SetMouseEnabled(true)
     local background=wm:CreateControl(nil,window,CT_BACKDROP)
-    background:SetAnchorFill();background:SetCenterColor(0.012,0.012,0.018,1);background:SetEdgeColor(0.38,0.07,0.065,1)
+    background:SetAnchorFill();background:SetCenterColor(.025,.035,.05,1);background:SetEdgeColor(.55,.36,.13,1)
     local function Label(y,height,font)
         local c=wm:CreateControl(nil,window,CT_LABEL)
         c:SetAnchor(TOPLEFT,window,TOPLEFT,35,y);c:SetDimensions(1050,height);c:SetFont(font);return c
     end
-    local heading=Label(20,45,"ZoFontGamepad34");heading:SetText("ItemHound");heading:SetColor(0.88,0.88,0.9,1)
+    local heading=Label(20,45,"$(GAMEPAD_MEDIUM_FONT)|34|soft-shadow-thin");heading:SetText("ItemHound");heading:SetColor(0.88,0.88,0.9,1)
     local editBackground=wm:CreateControl(nil,window,CT_BACKDROP)
     editBackground:SetAnchor(TOPLEFT,window,TOPLEFT,35,80);editBackground:SetDimensions(1050,48)
     editBackground:SetCenterColor(0.055,0.055,0.065,1);editBackground:SetEdgeColor(0.22,0.22,0.25,1)
@@ -408,7 +408,7 @@ local function CreateWindow()
     local edit=wm:CreateControlFromVirtual("ItemHoundSearch",editBackground,template)
     edit:ClearAnchors()
     edit:SetAnchor(TOPLEFT,editBackground,TOPLEFT,12,5);edit:SetDimensions(1025,38);edit:SetMaxInputChars(100)
-    local summary=Label(142,55,"ZoFontGamepad22")
+    local summary=Label(142,55,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
     local controls={}
     for i=1,4 do
         local y=205+(i-1)*120
@@ -417,9 +417,9 @@ local function CreateWindow()
         card:SetCenterColor(0.033,0.033,0.042,1);card:SetEdgeColor(0.07,0.07,0.085,1)
         local icon=wm:CreateControl(nil,window,CT_TEXTURE)
         icon:SetAnchor(TOPLEFT,window,TOPLEFT,38,y+6);icon:SetDimensions(36,36)
-        local title=Label(y,32,"ZoFontGamepad27");title:ClearAnchors();title:SetAnchor(TOPLEFT,window,TOPLEFT,85,y);title:SetDimensions(1000,32)
-        local meta=Label(y+31,25,"ZoFontGamepad22");meta:SetColor(0.58,0.58,0.63,1)
-        local detail=Label(y+57,54,"ZoFontGamepad22");detail:SetColor(0.78,0.78,0.81,1)
+        local title=Label(y,32,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin");title:ClearAnchors();title:SetAnchor(TOPLEFT,window,TOPLEFT,85,y);title:SetDimensions(1000,32)
+        local meta=Label(y+34,29,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");meta:SetColor(.72,.76,.82,1)
+        local detail=Label(y+64,48,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");detail:SetColor(0.78,0.78,0.81,1)
         controls[i]={title=title,detail=detail,meta=meta,icon=icon,card=card}
     end
     local walletControls={}
@@ -431,22 +431,23 @@ local function CreateWindow()
         card:SetAnchor(TOPLEFT,window,TOPLEFT,x,y);card:SetDimensions(525,235)
         card:SetCenterColor(0.033,0.033,0.042,1);card:SetEdgeColor(0.16,0.06,0.065,1)
         local title=wm:CreateControl(nil,card,CT_LABEL)
-        title:SetAnchor(TOPLEFT,card,TOPLEFT,12,7);title:SetDimensions(501,30);title:SetFont("ZoFontGamepad25");title:SetColor(0.85,0.3,0.28,1)
+        title:SetAnchor(TOPLEFT,card,TOPLEFT,12,7);title:SetDimensions(501,30);title:SetFont("$(GAMEPAD_MEDIUM_FONT)|25|soft-shadow-thin");title:SetColor(.95,.73,.35,1)
         local lines={}
         for j=1,24 do
             local label=wm:CreateControl(nil,card,CT_LABEL)
-            label:SetFont("ZoFontGamepad18");label:SetMaxLineCount(1);label:SetColor(0.78,0.78,0.81,1)
+            label:SetFont("$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");label:SetMaxLineCount(1);label:SetColor(0.78,0.78,0.81,1)
             lines[j]=label
         end
         walletControls[i]={card=card,title=title,lines=lines,currency=currency}
     end
-    local footer=Label(701,32,"ZoFontGamepad22");footer:SetColor(0.6,0.6,0.65,1)
-    local credit=Label(750,32,"ZoFontGamepad22");credit:SetText("by @TheGreyWolf98");credit:SetColor(0.57,0.24,0.23,1)
+    local footer=Label(701,32,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");footer:SetColor(0.6,0.6,0.65,1)
+    local credit=Label(750,32,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");credit:SetText("by @TheGreyWolf98");credit:SetColor(.68,.76,.87,1)
     ui={tab="items",window=window,edit=edit,summary=summary,controls=controls,footer=footer,page=1,rows={},epoch=0}
     local function Render()
         local wallet=ui.tab=="wallet"
-        if ui.pageButtons then for _,button in ipairs(ui.pageButtons)do button:SetHidden(wallet)end end
-        local pages=wallet and 1 or math.max(1,math.ceil(#ui.rows/4))
+        if ui.pageButtons then for _,button in ipairs(ui.pageButtons)do button:SetHidden(false)end end
+        local pages=math.max(1,math.ceil(#ui.rows/4))
+        if wallet then pages=1;for _,panel in pairs(ui.panels or {})do pages=math.max(pages,math.ceil(#(panel.locations or {})/12))end end
         if ui.tabButtons then ui.tabButtons.items:SetText(ui.tab=="items" and "[Items]" or "Items");ui.tabButtons.wallet:SetText(ui.tab=="wallet" and "[Wallet]" or "Wallet");ui.tabButtons.items:SetNormalFontColor(ui.tab=="items" and 0.85 or 0.55,ui.tab=="items" and 0.3 or 0.55,ui.tab=="items" and 0.28 or 0.58,1);ui.tabButtons.wallet:SetNormalFontColor(ui.tab=="wallet" and 0.85 or 0.55,ui.tab=="wallet" and 0.3 or 0.55,ui.tab=="wallet" and 0.28 or 0.58,1) end
         ui.page=math.max(1,math.min(ui.page,pages))
         for i,c in ipairs(controls) do
@@ -466,52 +467,37 @@ local function CreateWindow()
             c.title:SetText(wallet and panel and panel.title or "")
             local locations=panel and panel.locations or {}
             local count=#locations
-            local perColumn=math.max(1,math.ceil(count/2))
-            local spacing=math.min(22,190/perColumn)
+            local perColumn=6
+            local spacing=30
             for j,label in ipairs(c.lines) do
-                local loc=wallet and locations[j]
+                local loc=wallet and j<=12 and locations[(ui.page-1)*12+j]
                 label:ClearAnchors()
                 label:SetAnchor(TOPLEFT,c.card,TOPLEFT,12+math.floor((j-1)/perColumn)*253,42+((j-1)%perColumn)*spacing)
-                label:SetDimensions(247,22)
+                label:SetDimensions(247,30);label:SetHidden(j>12)
                 label:SetText(loc and (loc.name .. ": " .. FormatAmount(loc.amount)) or (wallet and j==1 and count==0 and "No matching balances." or ""))
             end
         end
-        footer:SetText(wallet and "LB/RB: Items / Wallet    |    Search: currency or character    |    Shared balances counted once" or "Page " .. ui.page .. " / " .. pages .. "    |    Stick: pages    |    LB/RB: Items / Wallet")
+        footer:SetText(wallet and ("Page "..ui.page.." / "..pages).."   LT/RT: pages   LB/RB: Items / Wallet    |    Search: currency or character    |    Shared balances counted once" or "Page " .. ui.page .. " / " .. pages .. "    |    LB/RB: Items / Wallet    |    Empty item search: scan dashboard")
     end
     ui.render=Render
-    function ui:UpdateDirectionalInput()
-        if not self.inputActive or self.tab=="wallet" or edit:HasFocus() then return end
-        -- This device reads the stick without ESO's private keyboard fallback.
-        local x,y=DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK_NO_KEYBOARD)
-        if math.abs(x)<.55 and math.abs(y)<.55 then
-            self.nextStick=0;self.stickHeld=false;return
-        end
-        DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK)
-        local now=GetFrameTimeMilliseconds()
-        if now<(self.nextStick or 0) then return end
-        local delta=math.abs(y)>=math.abs(x) and (y>0 and -1 or 1) or (x>0 and 1 or -1)
-        local pages=math.max(1,math.ceil(#self.rows/4))
-        local nextPage=math.max(1,math.min(self.page+delta,pages))
-        self.nextStick=now+(self.stickHeld and 200 or 350);self.stickHeld=true
-        if nextPage~=self.page then self.page=nextPage;Render() end
-    end
     ui.refresh=function()
         if ui.tab=="wallet" then ui.rows,ui.description,ui.panels=WalletResults(edit:GetText()) else ui.rows,ui.description=Results(edit:GetText()) end
         summary:SetText(ui.description);Render()
     end
     ui.setTab=function(tab)
-        ui.tab=tab;ui.page=1;ui.nextStick=0;ui.stickHeld=false;edit:SetText("");ui.refresh()
+        ui.tab=tab;ui.page=1;edit:SetText("");ui.refresh()
     end
     local tabButtons={}
     local function TabButton(name,x,tab)
         local button=wm:CreateControl(nil,window,CT_BUTTON)
-        button:SetAnchor(TOPLEFT,window,TOPLEFT,x,24);button:SetDimensions(130,38);button:SetFont("ZoFontGamepad22")
+        button:SetAnchor(TOPLEFT,window,TOPLEFT,x,24);button:SetDimensions(130,38);button:SetFont("$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
         button:SetText(name);button:SetMouseEnabled(true);button:SetHandler("OnClicked",function()ui.setTab(tab)end)
         tabButtons[tab]=button
     end
     TabButton("Items",370,"items");TabButton("Wallet",505,"wallet")
     ui.tabButtons=tabButtons
     local keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
+ TGWItemHoundSocials.Keybind(),
         {name="Search",keybind="UI_SHORTCUT_SECONDARY",callback=function() edit:TakeFocus() end},
         {name="Refresh",keybind="UI_SHORTCUT_TERTIARY",callback=function() ui.refresh() end},
         {name="Previous",keybind="UI_SHORTCUT_LEFT_TRIGGER",callback=function() ui.page=ui.page-1;Render() end},
@@ -523,17 +509,9 @@ local function CreateWindow()
     local scene=ZO_Scene:New("itemhound",SCENE_MANAGER)
     scene:AddFragment(ZO_FadeSceneFragment:New(window))
     scene:AddFragmentGroup(IsInGamepadPreferredMode() and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW or FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
-    if UI_SHORTCUTS_ACTION_LAYER_FRAGMENT then scene:AddFragment(UI_SHORTCUTS_ACTION_LAYER_FRAGMENT) end
     scene:RegisterCallback("StateChange",function(_,state)
-        if state==SCENE_SHOWN then
-            KEYBIND_STRIP:AddKeybindButtonGroup(keys)
-            ui.nextStick=0;ui.stickHeld=false;ui.inputActive=true
-            if IsInGamepadPreferredMode() then DIRECTIONAL_INPUT:Activate(ui,window) end
-        elseif state==SCENE_HIDING or state==SCENE_HIDDEN then
-            ui.inputActive=false
-            DIRECTIONAL_INPUT:Deactivate(ui)
-            edit:LoseFocus();KEYBIND_STRIP:RemoveKeybindButtonGroup(keys)
-        end
+        if state==SCENE_SHOWN then KEYBIND_STRIP:AddKeybindButtonGroup(keys)
+        elseif state==SCENE_HIDING then edit:LoseFocus();KEYBIND_STRIP:RemoveKeybindButtonGroup(keys) end
     end)
     edit:SetHandler("OnTextChanged",function()
         ui.epoch=ui.epoch+1;local epoch=ui.epoch
@@ -546,7 +524,7 @@ local function CreateWindow()
         local button=wm:CreateControl(nil,window,CT_BUTTON)
         button:SetAnchor(TOPLEFT,window,TOPLEFT,690+(i-1)*125,22);button:SetDimensions(120,38)
         if i<3 then ui.pageButtons[#ui.pageButtons+1]=button end
-        button:SetFont("ZoFontGamepad22");button:SetText(entry[1]);button:SetMouseEnabled(true);button:SetHandler("OnClicked",entry[2])
+        button:SetFont("$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");button:SetText(entry[1]);button:SetMouseEnabled(true);button:SetHandler("OnClicked",entry[2])
     end
 end
 ShowWindow=function(query,tab)

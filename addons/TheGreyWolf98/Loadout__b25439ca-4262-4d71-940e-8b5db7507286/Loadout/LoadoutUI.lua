@@ -1,12 +1,12 @@
 local L = Loadout
-local W, H = 1740, 950
+local W, H = 1740, 1050
 local gold, muted, white = { 0.95, 0.73, 0.35 }, { 0.65, 0.69, 0.76 }, { 0.94, 0.95, 0.98 }
 
 local function label(parent, x, y, width, height, font, color)
     local c = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
     c:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
-    c:SetDimensions(width, height)
-    c:SetFont("$(BOLD_FONT)|" .. font .. "|soft-shadow-thin")
+    c:SetDimensions(width, math.max(height,math.max(20,font)+4))
+    c:SetFont("$(GAMEPAD_MEDIUM_FONT)|" .. math.max(20,font) .. "|soft-shadow-thin")
     c:SetColor(unpack(color or white))
     c:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     return c
@@ -45,9 +45,9 @@ function L.CreateUI()
     L.identity = label(root, 30, 64, 1680, 32, 25)
     L.lines = label(root, 30, 101, 1030, 28, 20, muted)
     L.mundus = label(root, 1080, 101, 630, 28, 20, gold)
-    local version = label(root, 1520, 24, 190, 25, 18, muted)
+    local version = label(root, 1510, 24, 200, 28, 20, muted)
     version:SetText("Loadout " .. L.version)
-    local author = label(root, 1230, 26, 270, 24, 18, muted)
+    local author = label(root, 1210, 26, 290, 28, 20, muted)
     author:SetText("by @TheGreyWolf98")
 
     L.pages = {}
@@ -67,12 +67,12 @@ function L.CreateUI()
     section(main, "EQUIPPED GEAR", 30, 225, 840)
     L.gearLabels = {}
     for i = 1, 14 do
-        local y = 260 + (i - 1) * 43
+        local y = 260 + (i - 1) * 46
         L.gearLabels[i] = {
             slot = label(main, 30, y + 1, 120, 28, 19, muted),
             icon = icon(main, 154, y + 3, 32),
-            name = label(main, 199, y, 666, 24, 20),
-            detail = label(main, 199, y + 23, 666, 20, 16, muted),
+            name = label(main, 199, y, 666, 28, 24),
+            detail = label(main, 199, y + 25, 666, 23, 20, muted),
         }
     end
     L.barHeadings = {
@@ -83,35 +83,35 @@ function L.CreateUI()
     for bar = 1, 2 do
         local x = bar == 1 and 900 or 1310
         for i = 1, 6 do
-            local y = 264 + (i - 1) * 42
+            local y = 264 + (i - 1) * 54
             L.barLabels[bar][i] = {
                 icon = icon(main, x, y + 1, 34),
                 name = label(main, x + 43, y, 347, 26, 20),
-                scripts = label(main, x + 43, y + 24, 347, 18, 15, muted),
+                scripts = label(main, x + 43, y + 28, 347, 24, 20, muted),
             }
         end
     end
-    section(main, "SLOTTED CHAMPION POINTS", 900, 520, 800)
+    section(main, "SLOTTED CHAMPION POINTS", 900, 600, 800)
     L.cpLabels = {}
     local trees = { { "Warfare", CHAMPION_DISCIPLINE_TYPE_COMBAT, {0.35, 0.7, 1} },
         { "Fitness", CHAMPION_DISCIPLINE_TYPE_CONDITIONING, {1, 0.45, 0.45} },
         { "Craft", CHAMPION_DISCIPLINE_TYPE_WORLD, {0.4, 0.85, 0.5} } }
     for treeIndex, tree in ipairs(trees) do
         local x = 900 + (treeIndex - 1) * 274
-        section(main, tree[1], x, 555, 260):SetColor(unpack(tree[3]))
+        section(main, tree[1], x, 635, 260):SetColor(unpack(tree[3]))
         L.cpLabels[tree[2]] = {}
         for i = 1, 4 do
-            L.cpLabels[tree[2]][i] = label(main, x, 590 + (i - 1) * 44, 260, 42, 18, tree[3])
+            L.cpLabels[tree[2]][i] = label(main, x, 670 + (i - 1) * 44, 260, 42, 18, tree[3])
         end
     end
-    section(main, "CLASS MASTERY", 900, 780, 800)
+    section(main, "CLASS MASTERY", 900, 870, 800)
     L.masteryLabels = {}
     for i = 1, 2 do
         local x = i == 1 and 900 or 1310
         L.masteryLabels[i] = {
-            icon = icon(main, x, 818, 34),
-            name = label(main, x + 43, 815, 347, 28, 20, gold),
-            rank = label(main, x + 43, 843, 347, 22, 16, muted),
+            icon = icon(main, x, 908, 34),
+            name = label(main, x + 43, 905, 347, 28, 20, gold),
+            rank = label(main, x + 43, 935, 347, 22, 16, muted),
         }
     end
 
@@ -122,8 +122,8 @@ function L.CreateUI()
         local y = 194 + (i - 1) * 93
         L.detailLabels[i] = {
             name = label(L.pages[2], 30, y, 1680, 27, 23, gold),
-            detail = label(L.pages[2], 30, y + 29, 1680, 25, 20),
-            enchant = label(L.pages[2], 30, y + 55, 1680, 35, 18, muted),
+            detail = label(L.pages[2], 30, y + 32, 1680, 28, 20),
+            enchant = label(L.pages[2], 30, y + 62, 1680, 30, 18, muted),
         }
     end
     L.buffHeading = section(L.pages[3], "ACTIVE EFFECTS", 30, 145, 1680)
@@ -131,8 +131,8 @@ function L.CreateUI()
     for i = 1, 18 do
         L.buffLabels[i] = label(L.pages[3], 30, 191 + (i - 1) * 36, 1680, 32, 22)
     end
-    L.poisons = label(main, 30, 856, 835, 24, 18, muted)
-    L.note = label(root, 30, 883, 1680, 25, 18, muted)
+    L.poisons = label(main, 30, 930, 835, 24, 18, muted)
+    L.note = label(root, 30, 995, 1680, 25, 18, muted)
 
     L.scene = ZO_Scene:New("loadout", SCENE_MANAGER)
     L.scene:AddFragment(ZO_SimpleSceneFragment:New(root))
@@ -140,18 +140,20 @@ function L.CreateUI()
     L.scene:AddFragmentGroup(IsInGamepadPreferredMode() and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW or FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
     L.keys = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
+ TGWLoadoutSocials.Keybind(),
         { name = "Close", keybind = "UI_SHORTCUT_NEGATIVE", callback = function() SCENE_MANAGER:Hide("loadout") end },
         { name = "Next view", keybind = "UI_SHORTCUT_SECONDARY", callback = function() L.NextView() end },
         { name = "Refresh", keybind = "UI_SHORTCUT_TERTIARY", callback = function() L.Refresh() end },
     }
+    local keysActive=false
     L.scene:RegisterCallback("StateChange", function(_, state)
         if state == SCENE_SHOWING then
-            L.view = 1
+            L.view = L.view or 1
             L.Resize()
             L.Refresh()
-            KEYBIND_STRIP:AddKeybindButtonGroup(L.keys)
-        elseif state == SCENE_HIDDEN then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(L.keys)
+            if not keysActive then KEYBIND_STRIP:AddKeybindButtonGroup(L.keys);keysActive=true end
+        elseif state == SCENE_HIDING or state == SCENE_HIDDEN then
+            if keysActive then KEYBIND_STRIP:RemoveKeybindButtonGroup(L.keys);keysActive=false end
         end
     end)
     root:RegisterForEvent(EVENT_SCREEN_RESIZED, L.Resize)

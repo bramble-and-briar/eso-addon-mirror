@@ -1,8 +1,10 @@
 AtlasMiniMap = {}
 local M=AtlasMiniMap
+M.version="1.0.6"
+M.author="@TheGreyWolf98"
 local PIN_SIZE,PLAYER_SIZE,WAYPOINT_SIZE=26,28,32
 local HEADER_HEIGHT,MAP_TOP,WINDOW_EXTRA=42,46,104
-local defaults={enabled=true,size=300,zoom=3,x=0.79,y=0.08,clock=true,hour24=true,fps=true,latency=true,atlas=true}
+local defaults={enabled=true,size=300,zoom=3,x=0.79,y=0.08,clock=true,hour24=true,fps=true,latency=true,atlas=true,fishing=true}
 local function read(fn,...)
  if type(fn)~='function' then return nil end
  local ok,a,b,c,d=pcall(fn,...);if ok then return a,b,c,d end
@@ -126,6 +128,21 @@ function M:RefreshPoints()
   for i=1,read(GetNumPOIs,zone) or 0 do
    local ok,x,y,_,icon,onMap=pcall(GetPOIMapInfo,zone,i)
    if ok and onMap then add(x,y,icon) end
+  end
+ end
+ -- Fishing is independent of Atlas and MasterBaiter being enabled.
+ if self.saved.fishing then
+  local path=GetMapTileTexture(1)or ''
+  local key=path:lower():match('([^/\\]+)_%d+%.dds$')or ''
+  local styles={
+   [1]={texture='EsoUI/Art/Icons/crafting_slaughterfish.dds',color={.85,.4,1}},
+   [2]={texture='EsoUI/Art/Icons/crafting_fishing_river_betty.dds',color={.35,.65,1}},
+   [3]={texture='EsoUI/Art/Icons/crafting_fishing_merringar.dds',color={.35,.9,1}},
+   [4]={texture='EsoUI/Art/Icons/crafting_fishing_perch.dds',color={.35,1,.5}},
+  }
+  for _,p in ipairs(AtlasMiniMapFishingData[key]or {})do
+   local style=styles[p[3]]
+   if style then add(p[1],p[2],style.texture,style.color)end
   end
  end
  local A=Atlas
@@ -293,55 +310,118 @@ function M:Tick()
  if type(x)~='number' or type(y)~='number' or x<0 or x>1 or y<0 or y>1 or (x==0 and y==0) then self.window:SetHidden(true);return end
  self:Draw(x,y,heading)
 end
-local options={{'enabled','Minimap',kind='toggle'},{'size','Map size',min=220,max=440,step=20},{'zoom','Zoom',min=1,max=8,step=.5},{'x','Horizontal position',min=0,max=1,step=.02},{'y','Vertical position',min=0,max=1,step=.02},{'clock','Digital clock',kind='toggle'},{'hour24','24-hour clock',kind='toggle'},{'fps','FPS',kind='toggle'},{'latency','Latency',kind='toggle'},{'atlas','Atlas layers',kind='toggle'}}
+local options={
+ {key='enabled',title='Minimap',detail='Show the minimap on the HUD.',kind='toggle'},
+ {key='size',title='Map size',detail='Width and height of the map in screen units.',min=220,max=440,step=20},
+ {key='zoom',title='Zoom',detail='Choose how much of the surrounding map is visible.',min=1,max=8,step=.5},
+ {key='x',title='Horizontal position',detail='Move the minimap left or right.',min=0,max=1,step=.02},
+ {key='y',title='Vertical position',detail='Move the minimap up or down.',min=0,max=1,step=.02},
+ {key='clock',title='Digital clock',detail='Show the time supplied by ESO.',kind='toggle'},
+ {key='hour24',title='24-hour clock',detail='Switch between 24-hour and 12-hour time.',kind='toggle'},
+ {key='fps',title='FPS',detail='Show frame rate below the map.',kind='toggle'},
+ {key='latency',title='Latency',detail='Show connection latency below the map.',kind='toggle'},
+ {key='fishing',title='Fishing spots',detail='Recorded fishing holes: ocean, lake, river and foul water.',kind='toggle'},
+ {key='atlas',title='Atlas layers',detail='Include enabled Atlas layers when Atlas is installed.',kind='toggle'},
+}
+M.options=options
+local SETTINGS_W,SETTINGS_H,ROWS=1120,840,6
+local gold,muted,white={.95,.73,.35},{.65,.72,.8},{.94,.96,1}
+local function menuLabel(parent,x,y,w,h,size,color)
+ local c=control(parent,CT_LABEL,x,y,w,h)
+ c:SetFont('$(GAMEPAD_MEDIUM_FONT)|'..size..'|soft-shadow-thin')
+ c:SetColor(unpack(color or white));c:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ return c
+end
+function M:ResizeSettings()
+ self.settingsWindow:ClearAnchors();self.settingsWindow:SetAnchor(CENTER,GuiRoot,CENTER,-GuiRoot:GetWidth()*.10,0)
+ self.settingsWindow:SetScale(math.min(GuiRoot:GetWidth()*.70/SETTINGS_W,GuiRoot:GetHeight()*.88/SETTINGS_H))
+end
+function M:ChangeSetting(direction)
+ local o=options[self.selected or 1];local k=o.key
+ if o.kind=='toggle' then self.saved[k]=not self.saved[k]
+ else self.saved[k]=clamp(self.saved[k]+o.step*direction,o.min,o.max) end
+ self.dirty=true;self:Layout();self:Header();self:SettingsText()
+end
+function M:MoveSetting(direction)
+ local index=self.selected or 1
+ local column=math.floor((index-1)/ROWS);local row=(index-1)%ROWS
+ local length=math.min(ROWS,#options-column*ROWS)
+ if direction=='up' then row=(row-1)%length
+ elseif direction=='down' then row=(row+1)%length
+ elseif direction=='left' then column=0
+ elseif direction=='right' then column=1 end
+ self.selected=math.min(column*ROWS+row+1,#options);self:SettingsText()
+end
+function M:ResetSettings()
+ for k,v in pairs(defaults) do self.saved[k]=v end
+ self.dirty=true;self:Layout();self:Header();self:SettingsText()
+end
 function M:Settings()
- if IsUnitInCombat('player') then d('Atlas Mini Map: open settings after combat.');return end
+ if IsUnitInCombat('player') then d('Atlas Mini Map: open settings after combat.');return false end
  if not self.settingsWindow then
-  local w=WINDOW_MANAGER:CreateTopLevelWindow('TGWAtlasMiniMapSettings');self.settingsWindow=w;w:SetDimensions(620,640);w:SetAnchor(CENTER,GuiRoot,CENTER,-180,0);w:SetHidden(true)
-  solid(w,0,0,620,640,.025,.027,.035)
-  label(w,26,20,568,32):SetText('ATLAS MINI MAP | 1.0.3')
-  label(w,26,58,568,45):SetText('Stick / D-pad: select   X: decrease   Y: increase')
-  self.settingLabels={};for i=1,#options do self.settingLabels[i]=label(w,26,115+(i-1)*40,568,35) end
-  label(w,26,545,568,65):SetText('RB: reset defaults\nClock uses the time supplied by ESO.')
+  local w=WINDOW_MANAGER:CreateTopLevelWindow('TGWAtlasMiniMapSettings');self.settingsWindow=w
+  w:SetDimensions(SETTINGS_W,SETTINGS_H);w:SetAnchor(CENTER,GuiRoot,CENTER,-180,0);w:SetHidden(true)
+  local bg=control(w,CT_BACKDROP,0,0,SETTINGS_W,SETTINGS_H)
+  bg:SetAnchorFill(w);bg:SetCenterColor(.025,.035,.05,1);bg:SetEdgeColor(.55,.36,.13,1);bg:SetEdgeTexture(nil,1,1,2)
+  menuLabel(w,30,20,1020,50,36,gold):SetText('ATLAS MINI MAP')
+  menuLabel(w,30,76,1020,32,22,muted):SetText(self.version..' | '..self.author)
+  menuLabel(w,30,116,1020,36,24):SetText('Your map. Your view. Settings shared across your characters.')
+  self.settingRows={}
+  for i,o in ipairs(options) do
+   local button=control(w,CT_BUTTON,24+math.floor((i-1)/ROWS)*548,170+((i-1)%ROWS)*76,524,70)
+   button:SetMouseEnabled(true)
+   local index=i
+   button:SetHandler('OnClicked',function() self.selected=index;self:ChangeSetting(1) end)
+   local highlight=control(button,CT_BACKDROP,0,0,524,70);highlight:SetAnchorFill(button)
+   highlight:SetCenterColor(.15,.18,.23,1);highlight:SetEdgeColor(.8,.6,.25,1);highlight:SetEdgeTexture(nil,1,1,1);highlight:SetMouseEnabled(false)
+   local title=menuLabel(button,14,4,350,34,26);title:SetText(o.title)
+   local state=menuLabel(button,376,4,130,34,24)
+   local detail=menuLabel(button,14,40,492,26,18,muted);detail:SetText(o.detail)
+   self.settingRows[i]={button=button,highlight=highlight,title=title,state=state}
+  end
+  self.settingDetail=menuLabel(w,30,650,1060,72,26,gold)
+  menuLabel(w,30,744,1060,66,22,muted):SetText('D-pad: select | A: toggle / increase | LT / RT: adjust\nX: Socials / Support | Y: refresh preview | RB: reset | B: close')
   self.selected=1
-  local function change(direction)
-   local o=options[self.selected];local k=o[1]
-   if o.kind=='toggle' then self.saved[k]=not self.saved[k] else self.saved[k]=clamp(self.saved[k]+o.step*direction,o.min,o.max) end
-   self.dirty=true;self:Layout();self:Header();self:SettingsText()
-  end
-  local function move(direction)
-   self.selected=clamp(self.selected+direction,1,#options);self:SettingsText()
-  end
-  local function stop()
-   EVENT_MANAGER:UnregisterForUpdate('TGWAtlasMiniMap_SettingsRepeat');self.held=nil
-  end
-  self.stopInput=stop
-  local function held(direction,up)
-   if up then if self.held==direction then stop() end;return end
-   stop();self.held=direction;move(direction);local ticks=0
-   EVENT_MANAGER:RegisterForUpdate('TGWAtlasMiniMap_SettingsRepeat',120,function()
-    ticks=ticks+1;if ticks>=3 then move(direction) end
-   end)
-  end
   self.keys={alignment=KEYBIND_STRIP_ALIGN_LEFT,
-   {keybind='UI_SHORTCUT_INPUT_UP',handlesKeyUp=true,callback=function(up) held(-1,up) end},
-   {keybind='UI_SHORTCUT_INPUT_DOWN',handlesKeyUp=true,callback=function(up) held(1,up) end},
-   {name='Decrease / toggle',keybind='UI_SHORTCUT_SECONDARY',callback=function() change(-1) end},
-   {name='Increase / toggle',keybind='UI_SHORTCUT_TERTIARY',callback=function() change(1) end},
-   {name='Reset defaults',keybind='UI_SHORTCUT_RIGHT_SHOULDER',callback=function() for k,v in pairs(defaults) do self.saved[k]=v end;self.dirty=true;self:Layout();self:Header();self:SettingsText() end},
-   {name='Back',keybind='UI_SHORTCUT_NEGATIVE',callback=function() SCENE_MANAGER:Hide('tgwMiniMapSettings') end}}
-  local scene=ZO_Scene:New('tgwMiniMapSettings',SCENE_MANAGER);scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW);scene:AddFragment(ZO_SimpleSceneFragment:New(w))
-  scene:RegisterCallback('StateChange',function(_,state) if state==SCENE_SHOWING then self:SettingsText();KEYBIND_STRIP:AddKeybindButtonGroup(self.keys) elseif state==SCENE_HIDING then self.stopInput();KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keys) end end)
+   {name='Toggle / increase',keybind='UI_SHORTCUT_PRIMARY',callback=function() self:ChangeSetting(1) end},
+   {ethereal=true,keybind='UI_SHORTCUT_LEFT_TRIGGER',callback=function() self:ChangeSetting(-1) end},
+   {ethereal=true,keybind='UI_SHORTCUT_RIGHT_TRIGGER',callback=function() self:ChangeSetting(1) end},
+   {name='Socials / Support',keybind='UI_SHORTCUT_SECONDARY',callback=function() SCENE_MANAGER:Show('tgwMiniMapSupport') end},
+   {name='Refresh preview',keybind='UI_SHORTCUT_TERTIARY',callback=function() self.dirty=true;self.digDirty=true;self:Layout();self:Header() end},
+   {name='Reset',keybind='UI_SHORTCUT_RIGHT_SHOULDER',callback=function() self:ResetSettings() end},
+   {name='Close',keybind='UI_SHORTCUT_NEGATIVE',callback=function() SCENE_MANAGER:Hide('tgwMiniMapSettings') end}}
+  for _,entry in ipairs({{'UI_SHORTCUT_INPUT_UP','up'},{'UI_SHORTCUT_INPUT_DOWN','down'},{'UI_SHORTCUT_INPUT_LEFT','left'},{'UI_SHORTCUT_INPUT_RIGHT','right'}}) do
+   local direction=entry[2]
+   self.keys[#self.keys+1]={keybind=entry[1],ethereal=true,callback=function() self:MoveSetting(direction) end}
+  end
+  self.settingsScene=ZO_Scene:New('tgwMiniMapSettings',SCENE_MANAGER)
+  self.settingsScene:AddFragmentGroup(IsInGamepadPreferredMode() and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW or FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
+  self.settingsScene:AddFragment(ZO_SimpleSceneFragment:New(w))
+  self.settingsScene:RegisterCallback('StateChange',function(_,state)
+   if state==SCENE_SHOWING then
+    self:ResizeSettings();self:SettingsText()
+    if not self.settingsKeysActive then KEYBIND_STRIP:AddKeybindButtonGroup(self.keys);self.settingsKeysActive=true end
+   elseif state==SCENE_HIDING or state==SCENE_HIDDEN then
+    if self.settingsKeysActive then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keys);self.settingsKeysActive=false end
+   end
+  end)
+  w:RegisterForEvent(EVENT_SCREEN_RESIZED,function() self:ResizeSettings() end)
+  self:CreateSupportUI()
  end
- self:SettingsText();SCENE_MANAGER:Show('tgwMiniMapSettings')
+ self:SettingsText();SCENE_MANAGER:Show('tgwMiniMapSettings');return true
 end
 function M:SettingsText()
+ if not self.settingRows then return end
  for i,o in ipairs(options) do
-  local v=self.saved[o[1]];local text
-  if type(v)=='boolean' then text=v and 'On' or 'Off' elseif o[1]=='x' or o[1]=='y' then text=string.format('%.0f%%',v*100) else text=tostring(v) end
-  self.settingLabels[i]:SetText((i==self.selected and '> ' or '   ')..o[2]..'   '..text)
-  self.settingLabels[i]:SetColor(i==self.selected and 1 or .85,i==self.selected and .55 or .85,i==self.selected and .4 or .85,1)
+  local v=self.saved[o.key];local text
+  if type(v)=='boolean' then text=v and 'ON' or 'OFF'
+  elseif o.key=='x' or o.key=='y' then text=string.format('%.0f%%',v*100)
+  else text=tostring(v) end
+  local row=self.settingRows[i]
+  row.highlight:SetHidden(i~=self.selected);row.state:SetText(text)
+  row.state:SetColor(unpack(type(v)=='boolean' and (v and {.4,.9,.6} or muted) or gold))
  end
+ local o=options[self.selected or 1];self.settingDetail:SetText(o.title..'\n'..o.detail)
 end
 EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Load',EVENT_ADD_ON_LOADED,function(_,name)
  if name~='AtlasMiniMap' then return end
@@ -353,9 +433,11 @@ EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Load',EVENT_ADD_ON_LOADED,functi
  M:Initialize()
  SLASH_COMMANDS['/minimap']=function(arg)
   arg=(arg or ''):lower()
-  if arg=='toggle' then M.saved.enabled=not M.saved.enabled
+  if arg=='support' or arg=='socials' then
+   if M:Settings() then SCENE_MANAGER:Show('tgwMiniMapSupport') end
+  elseif arg=='toggle' then M.saved.enabled=not M.saved.enabled
   elseif arg=='reset' then for k,v in pairs(defaults) do M.saved[k]=v end;M.dirty=true;M:Layout();M:Header()
   else M:Settings() end
  end
- d('Atlas Mini Map 1.0.3 loaded. /minimap for settings.')
+ d('Atlas Mini Map 1.0.6 loaded. /minimap for settings.')
 end)

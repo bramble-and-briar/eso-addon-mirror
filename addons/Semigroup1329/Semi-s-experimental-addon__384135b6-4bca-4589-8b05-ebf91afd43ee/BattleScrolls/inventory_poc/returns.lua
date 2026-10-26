@@ -12,6 +12,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocReturns
 ---@field registered boolean
 ---@field claims table<string, InventoryPocReturnClaim>
+---@field syncFiber Fiber<nil>|nil
 local returns = { registered = false, claims = {} }
 BattleScrolls.inventoryPocReturns = returns
 local poc = BattleScrolls.inventoryPoc
@@ -21,7 +22,10 @@ local EVENT_NAME = 'BattleScrollsInventoryPocReturns'
 ---@param bag number
 ---@return string
 local function location(bag)
-    return bag == BAG_BACKPACK and ('character:' .. GetCurrentCharacterId()) or ('bag:' .. tostring(bag))
+    if bag == BAG_BACKPACK then return 'character:' .. GetCurrentCharacterId() end
+    if bag == BAG_WORN then return 'character:' .. GetCurrentCharacterId() .. ':worn' end
+    if bag == BAG_COMPANION_WORN then return 'companion:' .. tostring(GetActiveCompanionDefId()) end
+    return 'bag:' .. tostring(bag)
 end
 
 ---@param bag number
@@ -51,18 +55,20 @@ function returns.sync()
     if not poc.enabled or not poc.saved then return end
     local state = poc.saved.returns
     state.stock[location(BAG_BACKPACK)] = counts(BAG_BACKPACK)
+    state.stock[location(BAG_WORN)] = counts(BAG_WORN)
+    if GetActiveCompanionDefId() > 0 then state.stock[location(BAG_COMPANION_WORN)] = counts(BAG_COMPANION_WORN) end
     if IsBankOpen() and (GetBankingBag() == BAG_BANK or GetBankingBag() == BAG_SUBSCRIBER_BANK) then
         state.stock[location(BAG_BANK)] = counts(BAG_BANK)
         if IsESOPlusSubscriber() then state.stock[location(BAG_SUBSCRIBER_BANK)] = counts(BAG_SUBSCRIBER_BANK) end
     end
-    for key in pairs(state.discounted) do
-        local pending = poc.saved.pending
-        local owned = pending and facts.variantKey(pending.item) == key or false
-        for _, quantities in pairs(state.stock) do
-            if (quantities[key] or 0) > 0 then owned = true; break end
-        end
-        if not owned then state.discounted[key] = nil end
+    local owned = {}
+    for _, quantities in pairs(state.stock) do
+        for key, quantity in pairs(quantities) do if quantity > 0 then owned[key] = true end end
     end
+    local pending = poc.saved.pending
+    if pending then owned[facts.variantKey(pending.item)] = true end
+    for key in pairs(state.discounted) do if not owned[key] then state.discounted[key] = nil end end
+    for key in pairs(facts.quotes) do if not owned[key] then facts.quotes[key] = nil end end
     local pack = state.stock[location(BAG_BACKPACK)]
     for id, claim in pairs(returns.claims) do
         local received = claim.success
@@ -75,6 +81,15 @@ function returns.sync()
             poc.dirty = true
         elseif GetFrameTimeMilliseconds() - claim.started > 10000 then returns.claims[id] = nil end
     end
+end
+
+---Coalesce bag events, including manual changes after the service handoff.
+function returns.requestSync()
+    if not poc.enabled or not poc.saved or returns.syncFiber then return end
+    returns.syncFiber = LibEffect.Async(function()
+        LibEffect.Sleep(100):Await()
+        returns.sync()
+    end):Ensure(function() returns.syncFiber = nil end):Run()
 end
 
 ---@param mailId id64
@@ -127,5 +142,6 @@ function returns.initialize()
 end
 
 function returns.reset()
+    if returns.syncFiber then returns.syncFiber:Cancel(); returns.syncFiber = nil end
     returns.claims = {}
 end

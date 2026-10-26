@@ -18,17 +18,17 @@
     "TamrielProgressMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4799/",
-  "fingerprint": "8500fccb1f5552ed4d49e843929b8c5cbee3a7384e72646cd5e083e8edc755b2",
+  "fingerprint": "bf518256cab98281f9313722e811b61c050e7917834d1e68653467ea5137b10f",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17290.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17291.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17292.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17293.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17294.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17287.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17288.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17295.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17289.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18125.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18124.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18123.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18122.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18121.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18120.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18128.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18126.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18127.png"
   ],
   "platform": "pc",
   "published": true,
@@ -36,11 +36,11 @@
   "source_id": "4799",
   "source_url": "https://www.esoui.com/downloads/info4799-TamrielProgressMap.html",
   "stats": {
-    "downloads": 807,
+    "downloads": 1105,
     "favorites": 7,
-    "monthly_downloads": 605
+    "monthly_downloads": 411
   },
   "title": "Tamriel Progress Map",
-  "updated_at": 1790773739000,
-  "version": "2.7.5"
+  "updated_at": 1792914351000,
+  "version": "2.8.0"
 }

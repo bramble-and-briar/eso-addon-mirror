@@ -1,0 +1,15 @@
+﻿ESO-Itemtyp;Herkunftsarten;Belegkennungen
+ARMOR_TRAIT;refining,deconstruction;Gear-Extraction
+BLACKSMITHING_BOOSTER;refining,deconstruction,hireling,writ;Gear-Extraction
+BLACKSMITHING_MATERIAL;refining,deconstruction;Gear-Extraction
+CLOTHIER_BOOSTER;refining,deconstruction,hireling,writ;Gear-Extraction
+CLOTHIER_MATERIAL;refining,deconstruction;Gear-Extraction
+JEWELRYCRAFTING_BOOSTER;refining,deconstruction,writ;Jewelry-U40
+JEWELRYCRAFTING_MATERIAL;refining,deconstruction;Jewelry-U40
+JEWELRY_RAW_TRAIT;deconstruction;Jewelry-U40
+JEWELRY_TRAIT;refining;Jewelry-U40
+POISON_BASE;oil;Gear-Extraction
+STYLE_MATERIAL;deconstruction;Gear-Extraction
+WEAPON_TRAIT;refining,deconstruction;Gear-Extraction
+WOODWORKING_BOOSTER;refining,deconstruction,hireling,writ;Gear-Extraction
+WOODWORKING_MATERIAL;refining,deconstruction;Gear-Extraction

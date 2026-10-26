@@ -1,39 +1,33 @@
-ATLAS MINI MAP 1.0.3
+ATLAS MINI MAP 1.0.6
 by @TheGreyWolf98
 
-INSTALL
-Replace the existing AtlasMiniMap folder with the folder in this archive.
-Reload UI. Saved settings are retained. /minimap opens controller settings.
-/minimap toggle toggles visibility; /minimap reset restores defaults.
-No external libraries required; optional Atlas layers remain supported.
+UPLOAD
+Use AtlasMiniMap.addon with the Bethesda ESO add-on uploader.
+Version 1.0.6 / AddOnVersion 9 / API 101050 101051.
+Existing TGWAtlasMiniMapSaved settings are retained. Fishing spots default ON.
 
-CHANGES
-- Large clock in a compact 42px header directly against the map.
-- FPS and latency moved below the map, beneath the zone name.
-- Native service/trader icons and journal quest/breadcrumb icons added.
-- Native POIs and services stay visible when Atlas layers are enabled.
-- Duplicate icons at the same position are removed.
-- Dig areas use ESO's main-map colours, 39% shading and textured 3px border.
-- Larger pins and waypoint/edge arrows retained from 1.0.2.
-- Author consistently @TheGreyWolf98.
+FISHING SPOTS
+4,357 recorded fishing-hole coordinates across 106 map tiles are bundled, using the same coordinate facts as MasterBaiter. MasterBaiter and Atlas do not need to be installed or enabled for fishing spots to appear.
+Each water type uses a different fish icon and tint: ocean/saltwater is cyan, lake is green, river is blue and foul water is purple. Coverage varies by zone and map floor. These are possible spawn locations, not a live indicator of active fishing holes. Completed fishing achievements do not hide spots from the minimap.
+Open /minimap and toggle Fishing spots to show or hide them independently of Atlas layers. Points use the existing five-second location refresh, viewport clipping and reusable pin controls. No extra update worker is added; the existing combined 512-point limit is retained.
 
-Scrying overlays use only revealed search-area borders on the current map;
-they do not reveal the exact excavation spot. Quest icons use ESO's journal
-quest location cache and update when quest positions change. Group markers
-and arbitrary third-party custom pins are not included. Atlas's extra ring
-styling is not copied. The full map remains independent and north-up.
+CONTROLS
+/minimap opens settings. D-pad selects in two columns; A toggles or increases, LT decreases and RT increases. X opens Socials / Support; Y refreshes the preview; RB resets defaults. B closes, or returns from Socials to settings.
+/minimap toggle, /minimap reset, /minimap socials and /minimap support remain available. Settings cannot open during combat. Mouse users can click settings rows.
 
-CHECK IN GAME
-1. Check 12/24-hour clock at the smallest and largest map sizes.
-2. Visit Vivec City: check trader, bank and other visible service icons.
-3. Track a quest: check objective and doorway markers on the current map.
-4. Toggle Atlas layers: native services and quests should stay present.
-5. Scry an antiquity: compare area shading and outline with the main map.
-6. Place/clear a waypoint; check nearby marker and distant edge arrow.
-7. Open/close the full map; finish a dig; check refresh and isolation.
+FEATURES
+North-up map, digital clock, FPS, latency, native services/traders and quest icons, optional Atlas layers, fishing spots, waypoint direction and antiquity dig areas. Dig areas use ESO's exposed current-map data. Arbitrary third-party custom pins and group markers are not included. No external libraries required.
+
+CREDITS
+Fishing coordinate facts reused from MasterBaiter/FishingData.lua, researched from Map Pins by Hoft, art1ink, Gamer_sa22 and community contributors.
+Source: https://github.com/art1ink/MapPins
+No Map Pins executable code or artwork is bundled. Fish icons reference ESO's built-in assets.
+
+SOCIALS
+Ko-fi: https://ko-fi.com/thegreywolf98
+Instagram: https://www.instagram.com/thegreywolf_98/
+Discord: https://discord.gg/Fp9RSaeU8h
+Support is optional; the add-on remains free.
 
 VALIDATION
-Mocked UI/API tests passed for compact layout and screen bounds, combined
-service/quest/POI/Atlas sources, deduplication, quest refresh, native dig styles,
-clipping, excavation cleanup, waypoint changes and full-map isolation.
-Xbox visual and live API behaviour still require in-game testing.
+Local checks cover eleven settings, navigation across uneven columns, saved preferences, reset, social/back/close cleanup, standalone fishing without other add-ons, water styles, duplicate and invalid coordinates, crop visibility, control reuse and map changes. Map tile drawing and existing movement timing are retained. Live Xbox appearance and behaviour still need testing.

@@ -1,5 +1,5 @@
-2026.10.10
-- Fixed /tp home function. Forgot to add it when I rewrote it recently.
+2026.10.25
+- Added the ability for "/tp home" to also be used as "/tp home partialhousename" to teleport you to a specific owned or previewable home.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

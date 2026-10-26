@@ -1,92 +1,39 @@
-ATLAS 1.0.2
+ATLAS 1.0.7
 by @TheGreyWolf98
 
-INSTALL / UPGRADE
-Use ESO's console add-on upload/install workflow with Atlas-1.0.2.zip.
-Select only this ZIP in the release form: previous file selections may
-accumulate. The archive contains one Atlas/Atlas.addon manifest.
-If upgrading from 0.1.5, reload UI after installing to clear its old input
-registration. Existing account-wide Atlas settings are preserved.
-
-REMOVE OVERLAPPING PINS
-Remove or disable other add-ons providing the same skyshard, lorebook,
-treasure-map, survey or boss pins to avoid duplicates. When retaining an
-addon for uncovered features, disable its overlapping layers or the matching
-Atlas layer. Votan's minimap may stay enabled. Native ESO map filters and
-other add-ons' non-overlapping pins remain independent.
+UPLOAD
+Use Atlas/Atlas.addon in the Bethesda ESO add-on uploader.
+Version 1.0.7, AddOnVersion 10007, API 101051. Existing AtlasSaved settings are retained. The two new layers default ON. No external libraries required.
 
 CONTROLS
-/atlas opens or closes the panel. Optional Open Atlas keybinding available.
-D-pad selects a switch: up/down wraps within a column; left/right changes
-columns. A toggles; Y refreshes; B closes. Follow the corresponding ESO
-prompts on PlayStation. PC users can click rows.
-Analog left-stick navigation inside Atlas is not implemented.
-/atlas refresh, /atlas all on, /atlas all off are also available.
-All on/off affects thirteen layers; filtering preferences are preserved.
+/atlas opens or closes settings. D-pad selects, A toggles, Y refreshes and B closes. X opens Socials / Support; B returns to Atlas.
+/atlas socials and /atlas support open the social page.
+/atlas refresh rebuilds pins. /atlas all on and /atlas all off affect all fifteen pin layers, preserving filter/style switches.
 
-LAYERS / FILTERS
-Thirteen layers: skyshards, Shalidor lorebooks, treasure-map digs, interior
-bosses, delves, world bosses, public-dungeon entrances, dolmens/world events,
-wayshrines, striking locales, Mundus stones, set crafting stations, surveys.
-All fifteen switches fit on one panel. Counts apply to the viewed map.
-Hide collected follows the current character's skyshards and known books.
-Boss pins stay visible; account achievements are not character clear records.
-Carried maps / surveys only checks this character's backpack, excluding
-banks, housing and other characters. Maps/reports are still required to use
-these sites. Settings are saved account-wide.
+LAYERS
+Skyshards, Shalidor lorebooks, treasure-map digs, surveys, interior bosses, delves, world bosses, public dungeons, events, wayshrines, landmarks, Mundus stones, set crafting stations, ordinary treasure chests and Thieves Guild troves.
 
-COVERAGE
-Native skyshard and discovery data applies to the viewed map, including
-undiscovered POIs where ESO supplies them. Wayshrine pins do not unlock
-travel. Events are locations, not spawn tracking. Crafting means set sites,
-not every city service station.
+CHESTS AND TROVES
+These two layers are separate from treasure-map digs. Bundled coordinate facts contain 11,947 chest locations on 575 map tiles and 1,467 trove locations on 93 map tiles, derived from MapPins community records. Coverage varies by zone and floor; it is not a complete catalogue.
+Pins mark possible spawn sites, not live containers. A site can be empty, looted or awaiting respawn. The trove layer does not check Thieves Guild membership or Finders Keepers access.
+Atlas also remembers new chest/trove sites when a successful interaction reports a recognized container name. Recording uses the player's position near the container, so learned points are approximate. English, German, French, Spanish, Russian and Japanese names are recognized. The viewed map must match the player's location; Atlas never changes your viewed map to record a point. Other viewed maps, failed interactions and invalid coordinates are ignored. Nearby recorded sites are deduplicated. Additional saved discoveries are capped at 2,000 total and 500 per map/layer.
+Hide-collected affects books and skyshards. Backpack-only affects maps and surveys. Neither hides chest/trove spawn sites.
 
-Recorded treasure/survey data includes a reusable snapshot and supplements
-for High Isle, Blackwood, Galen, Necrom, Gold Road and Solstice. Shalidor
-books use a historical snapshot plus recent-zone supplements. Coverage
-varies by zone and map floor; no all-game completeness is claimed.
-Eidetic Memory and side-quest starts are not included.
-
-Interior bosses cover recorded delve/public-dungeon locations, including
-recent-zone supplements. Group-dungeon boss interiors, including Graven
-Deep and Earthen Root Enclave, remain incomplete. An achievement-derived
-label may name the location rather than the individual boss. Source data
-may contain gaps or inaccuracies. Report the zone, map floor and item/boss
-name for missing or misplaced pins.
+FASTER LOADING
+The worker now runs every 10ms rather than 50ms, batches up to 16 candidate checks between cooperative yields, and skips renderer jobs while their coordinates are still building. All eight native discovery layers share one POI scan per map/cache refresh. Native refreshes no longer reserve an otherwise empty tick.
+Each tick stops after approximately 2ms, 96 resumes or 32 created pins, whichever limit is reached first. Individual engine calls cannot be interrupted. Symbols and neon rings share the same cap. Combat pauses work; map changes discard stale jobs and caches. Only the viewed map is cached. The survey/map backpack scan remains shared.
+These limits are a starting point for Xbox testing, not a guarantee of console frame time.
 
 VALIDATION
-Based on the console-tested 0.1.6 build: Galen carried-map filtering and
-Gorne public-dungeon boss pins were confirmed in-game by the tester.
-Lua syntax, manifest paths, XML bindings and simulated ESO integration pass,
-including D-pad selection, scene-hide callback cleanup, saved settings,
-backpack/collection filters, coordinate bounds and map changes. Both actual
-ESO tooltip sorters and the native keybind dispatcher were exercised.
-Atlas does not poll private directional input functions.
+Local mocked checks cover pin/time budgets, shared scans and caches, filters, combat pause, map changes, discovery refresh, all nineteen switches, social/back/close cleanup, error recovery, chest/trove separation and discovery deduplication.
+A synthetic case with 1,200 skyshard candidates and 320 POIs produced the same 768 pins. 1.0.6 used 1,035 scheduler ticks (51.75 seconds of configured delay); 1.0.7 used 31 ticks (0.31 seconds). POI reads fell from 2,560 to 320. This isolates scheduling overhead with a mocked zero-cost game clock; real Xbox APIs and rendering will take longer.
+Lua syntax, package paths, coordinate bounds and assets are checked. Live Xbox speed, appearance and controller behaviour still need testing.
 
-Source attribution and license notices are bundled. Release-Listing.txt
-contains the overview and description for the addon listing.
+OTHER LIMITS
+Lorebooks cover Shalidor records rather than all Eidetic Memory. Group-dungeon interior coverage is incomplete. Event pins show sites, not live events. Wayshrines do not unlock travel. Carried-only checks the current backpack; maps and survey reports are still required. Disable overlapping pin layers in other add-ons if desired.
 
-1.0.2 VISIBILITY UPDATE
-All Atlas pins increased from 24 to 28. Survey sites use a parchment scroll
-with a red ring; treasure-map digs use a gold chest. Filters and locations
-are unchanged. Check icon visibility on Xbox before publishing the update.
-
-PERFORMANCE UPDATE 1.0.2
-Atlas builds location lists and creates pins progressively with one shared
-worker: at most 12 operations or about 2ms per 50ms tick. Each native layer
-refresh/removal gets its own tick. Individual native calls cannot be interrupted.
-Queued work pauses during combat, stops when idle and cancels on map changes.
-Pins may fill in over a few seconds on maps with large location lists.
-
-The viewed map is cached in memory only; saved settings remain unchanged.
-Counts reuse cached lists instead of rescanning all enabled layers. The minimap
-can read completed lists without triggering synchronous scans. Survey and
-treasure layers share one backpack pass. Collection/discovery events refresh
-only affected layers, with bursts merged into one pending refresh. Opening the
-settings panel no longer forces another pin rebuild.
-
-No external libraries added. Creator remains @TheGreyWolf98.
-Validation: mocked operation/time budgets, complete pin sets, cache reads,
-combat pause, targeted refresh, shared backpack pass, map-change cancellation,
-toggle cleanup and idle worker removal passed. Live Xbox CPU-budget behaviour
-still needs a test alongside the other enabled addons.
+SOCIALS
+Ko-fi: https://ko-fi.com/thegreywolf98
+Instagram: https://www.instagram.com/thegreywolf_98/
+Discord: https://discord.gg/Fp9RSaeU8h
+The social-page QR opens Ko-fi. Support is optional; Atlas remains free.

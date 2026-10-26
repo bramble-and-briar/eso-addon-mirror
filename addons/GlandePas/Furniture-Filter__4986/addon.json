@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/GlandePas/Furniture-Filter__4986",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "GlandePas",
+  "canonical_id": "esoui:4986",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4986",
+  "deleted": false,
+  "directories": [
+    "FurnitureFilter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4986/",
+  "fingerprint": "5f6094d6659ce0006b5435a21d8a812f8204b9c0fa51b7377beb16f7547bd45d",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18141.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18140.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4986",
+  "source_url": "https://www.esoui.com/downloads/info4986-FurnitureFilter.html",
+  "stats": {
+    "downloads": 11,
+    "favorites": 1,
+    "monthly_downloads": 8
+  },
+  "title": "Furniture Filter",
+  "updated_at": 1792946781000,
+  "version": "1"
+}

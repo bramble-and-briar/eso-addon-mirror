@@ -1,0 +1,25 @@
+FurnishThemAllData_Vendors_FaustinaCurio = {
+    name = "Faustina Curio",
+    source = "Vendors",
+    collection = {
+        [1] = {
+            { name = "Fruit Arrangement, Tide-Born" },
+            { name = "Grand Master Blacksmithing Station" },
+            { name = "Grand Master Clothing Station" },
+            { name = "Grand Master Jewelry Crafting Station" },
+            { name = "Grand Master Woodworking Station" },
+            { name = "High Elf Castle Painting, In Progress" },
+            { name = "Jewelry Crafting Station" },
+            { name = "Master Crafter's Banner, Hanging" },
+            { name = "Meridian Bell, Temple" },
+            { name = "Naj-Caldeesh Impaler, Deactivated" },
+            { name = "Outfit Station" },
+            { name = "Provisioning Station, Elsweyr Grill" },
+            { name = "Provisioning Station, Solitude Grill" },
+            { name = "Scribing Altar" },
+            { name = "Stone-Nest Fountain, Triple Spout" },
+            { name = "Tide-Born Hut, Elevated" },
+            { name = "Vossa-Satl, Display" },
+        },
+    },
+}

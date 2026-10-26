@@ -1,4 +1,5 @@
 Bankir = Bankir or {}
+LCK = LibCharacterKnowledge
 
 -- a list of main itemType and it's sub-itemIds that are a part of the itemType. Like ITEMTYPE_BLACKSMITHING_RAW_MATERIAL
 -- is a list of specific itemIds of blacksmithing raw materials. So, if the id is this kind of itemtype then
@@ -40,12 +41,17 @@ local itemTypeChildrenSpecializedTypes = {
 	[ITEMTYPE_POTION] = { "CapCP" .. ITEMTYPE_POTION, "Scalable" .. ITEMTYPE_POTION },
 	[ITEMTYPE_POISON] = { "CapCP" .. ITEMTYPE_POISON, "Scalable" .. ITEMTYPE_POISON },
 	[ITEMTYPE_CRAFTED_ABILITY_SCRIPT] = { SPECIALIZED_ITEMTYPE_CRAFTED_ABILITY_SCRIPT_PRIMARY, SPECIALIZED_ITEMTYPE_CRAFTED_ABILITY_SCRIPT_SECONDARY, SPECIALIZED_ITEMTYPE_CRAFTED_ABILITY_SCRIPT_TERTIARY },
+	["EquipmentAll"] = { "IntricateAll", "ResearchAll", "CompanionAll" },
 }
+
+if LCK then
+	table.insert(itemTypeChildrenSpecializedTypes["EquipmentAll"], 3, "ResearchOthersAll")
+end
 
 for i = 1, EQUIPMENT_FILTER_TYPE_MAX_VALUE do
 	-- Equipment (armor and weapon) custom types
 	itemTypeChildrenSpecializedTypes["Equipment" .. i] = { "Intricate" .. i, "Research" .. i, "Companion" .. i }
-	if LibCharacterKnowledge then
+	if LCK then
 		table.insert(itemTypeChildrenSpecializedTypes["Equipment" .. i], 3, "ResearchOthers" .. i)
 	end
 end
@@ -71,46 +77,84 @@ local specializedItemTypeChildrenItemIds = {
 	[SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE] = { "RecipeUnknown" .. SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE },
 }
 
-local itemIdTweens = {
-	-- Master writs are a problem. What looks like a purple alchemy master writ may have a bunch
-	-- of different itemIds, so here we define a reference itemId of such master writ and a list
-	-- of other itemIds which should be treated as the same item. Also, handle blue and gold master
-	-- writs same way as purple ones.
-	--blacksmithing
-	[119563] = { 119680, --purple
-		121527, 121529 }, --gold
-	--clothing
-	[119694] = { 119695, --purple
-		121532, 121533 }, --gold
-	--woodworking
-	[119681] = { 119682, --purple
-		121530, 121531 }, --gold
-	--enchanting
-	[119564] = { --purple
-		121528 }, --gold
-	--provisioning
-	[119693] = {}, --purple
-	--alchemy
-	[119696] = { 119698, 119699, 119701, 119704, 119818, 119819, 119820 }, --purple
-	--jewelry
-	[153739] = { --blue
-		153737, --purple
-		153738 },--gold
+local tweens = {
+	["itemType"] ={
+		["EquipmentAll"] = {},
+	},
+	["specializedItemType"] = {
+		["IntricateAll"] = {},
+		["ResearchAll"] = {},
+		["CompanionAll"] = {},
+	},
+	["itemId"] = {
+		-- Master writs are a problem. What looks like a purple alchemy master writ may have a bunch
+		-- of different itemIds, so here we define a reference itemId of such master writ and a list
+		-- of other itemIds which should be treated as the same item. Also, handle blue and gold master
+		-- writs same way as purple ones.
+		--blacksmithing
+		[119563] = { 119680, --purple
+			121527, 121529 }, --gold
+		--clothing
+		[119694] = { 119695, --purple
+			121532, 121533 }, --gold
+		--woodworking
+		[119681] = { 119682, --purple
+			121530, 121531 }, --gold
+		--enchanting
+		[119564] = { --purple
+			121528 }, --gold
+		--provisioning
+		[119693] = {}, --purple
+		--alchemy
+		[119696] = { 119698, 119699, 119701, 119704, 119818, 119819, 119820 }, --purple
+		--jewelry
+		[153739] = { --blue
+			153737, --purple
+			153738 },--gold
+		["StyleMaterialRacial"] = { 33150, 33194, 33251, 33252, 33253, 33254, 33255, 33256, 33257, 33258 },
+	},
 }
 
+if LCK then
+	tweens["specializedItemType"]["ResearchOthersAll"] = {}
+end
+
+for i = 1, EQUIPMENT_FILTER_TYPE_MAX_VALUE do
+	table.insert(tweens["itemType"]["EquipmentAll"], "Equipment" .. i)
+	table.insert(tweens["specializedItemType"]["IntricateAll"], "Intricate" .. i)
+	table.insert(tweens["specializedItemType"]["ResearchAll"], "Research" .. i)
+	table.insert(tweens["specializedItemType"]["CompanionAll"], "Companion" .. i)
+	if LCK then
+		table.insert(tweens["specializedItemType"]["ResearchAll"], "ResearchBoth" .. i)
+		table.insert(tweens["specializedItemType"]["ResearchOthersAll"], "ResearchOthers" .. i)
+		table.insert(tweens["specializedItemType"]["ResearchOthersAll"], "ResearchBoth" .. i)
+		tweens["specializedItemType"]["Research" .. i] = { "ResearchBoth" .. i }
+		tweens["specializedItemType"]["ResearchOthers" .. i] = { "ResearchBoth" .. i }
+	end
+end
+
 local qualityRuledItemTypes = {
-	ITEMTYPE_GLYPH_ARMOR,
-	ITEMTYPE_GLYPH_WEAPON,
-	ITEMTYPE_GLYPH_JEWELRY,
-	ITEMTYPE_FOOD,
-	ITEMTYPE_DRINK,
-	ITEMTYPE_POTION,
-	ITEMTYPE_POISON,
+	["itemType"] = {
+		ITEMTYPE_GLYPH_ARMOR,
+		ITEMTYPE_GLYPH_WEAPON,
+		ITEMTYPE_GLYPH_JEWELRY,
+		ITEMTYPE_FOOD,
+		ITEMTYPE_DRINK,
+		ITEMTYPE_POTION,
+		ITEMTYPE_POISON,
+		"EquipmentAll",
+	},
+	["specializedItemType"] = {
+		"IntricateAll",
+		"ResearchAll",
+		"CompanionAll",
+	},
+	["itemId"] = {}
 }
 
 -- quality ruled Equipment (armor and weapon) custom types
 for i = 1, EQUIPMENT_FILTER_TYPE_MAX_VALUE do
-	table.insert(qualityRuledItemTypes, "Equipment" .. i)
+	table.insert(qualityRuledItemTypes["itemType"], "Equipment" .. i)
 end
 
 local function isChildOf(id1, id1TypeStr, id2, id2TypeStr)
@@ -131,10 +175,21 @@ local function isChildOf(id1, id1TypeStr, id2, id2TypeStr)
 	return false
 end
 
+local function isTweenOf(typeStr, id1, id2)
+	local list = tweens[typeStr][id2]
+	
+	if list then
+		for i = 1, #list do
+			if list[i] == id1 then return true end
+		end
+	end
+	return false
+end
+
 local bankBagNames
 local bankBagIds
 
-local function updateBankBags()
+local function getBankBags()
 	bankBagNames = {}
 	bankBagIds = {}
 	table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_BANK))
@@ -183,22 +238,28 @@ local function updateBankBags()
 	Bankir.Data.bankBagIds = bankBagIds
 end
 
-local function getDefaultSettings()
-	local defaults = {
-		moveLockedItems = true,
-		countAnyIdOfSameType = true,
-		showDepositNotAllowedMessage = false,
-		rules = {},
-	}
+local function getCharactersList()
+	local charsList = {}
+	for i = 1, GetNumCharacters() do
+		local name, _, _, _, _, _, id = GetCharacterInfo(i)
+		name = zo_strformat(SI_UNIT_NAME, name)
+		table.insert(charsList, { id = id, name = name })
+	end
+	
+	Bankir.Data.charactersList = charsList
+end
+
+local function getDefaultProfileSettings()
+	local defaults = {}
 	
 	for i = 1, #bankBagIds do
-		defaults.rules[bankBagIds[i]] = {
+		defaults[bankBagIds[i]] = {
 			byItemType = {},
 			bySpecializedItemType = {},
 			byItemId = {}
 		}
 		if bankBagIds[i] == BAG_BANK or string.find(bankBagIds[i], "Guild") then
-			defaults.rules[bankBagIds[i]].currency = {
+			defaults[bankBagIds[i]].currency = {
 				[CURT_MONEY] = {
 					push = false,
 					pull = false,
@@ -226,13 +287,59 @@ local function getDefaultSettings()
 	return defaults
 end
 
+local function getDefaultCommonSettings()
+	local defaults = {
+		moveLockedItems = false,
+		showOperationFailMessages = false,
+		bankSlidersMaxValue = 10,
+		currencySlidersMaxValue = 100000,
+	}
+
+	return defaults
+end
+
+local function getDefaultServerSettings()
+	local defaults = {
+		["Integrations"] = {
+			-- LibCharacterKnowledge
+			["LCK"] = {
+				["CharactersList"] = {}
+			}
+		}
+	}
+	
+	return defaults
+end
+
+-- update LCK saved vars list of characters to remove non-existing (deleted) characters
+local function cleanUpLCKList()
+	local LCKList = Bankir.savedVarsServer.Integrations.LCK.CharactersList
+	for id in pairs(LCKList) do
+		local isCharExists = false
+		for i = 1, #Bankir.Data.charactersList do
+			if Bankir.Data.charactersList[i].id == id then
+				isCharExists = true
+				break
+			end
+		end
+		if not isCharExists then
+			Bankir.savedVarsServer.Integrations.LCK.CharactersList[id] = nil
+		end
+	end
+end
+
 Bankir.Data = {
 	itemTypeChildrenItemIds = itemTypeChildrenItemIds,
 	itemTypeChildrenSpecializedTypes = itemTypeChildrenSpecializedTypes,
 	specializedItemTypeChildrenItemIds = specializedItemTypeChildrenItemIds,
-	itemIdTweens = itemIdTweens,
+	tweens = tweens,
 	qualityRuledItemTypes = qualityRuledItemTypes,
 	isChildOf = isChildOf,
-	getDefaultSettings = getDefaultSettings,
-	updateBankBags = updateBankBags,
+	isTweenOf = isTweenOf,
+	getBankBags = getBankBags,
+	getCharactersList = getCharactersList,
+	getDefaultProfileSettings = getDefaultProfileSettings,
+	getDefaultCommonSettings = getDefaultCommonSettings,
+	getDefaultServerSettings = getDefaultServerSettings,
+	cleanUpLCKList = cleanUpLCKList,
 }

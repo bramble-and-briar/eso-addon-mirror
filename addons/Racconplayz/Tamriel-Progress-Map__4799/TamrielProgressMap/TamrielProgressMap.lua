@@ -1,6 +1,6 @@
 local ADDON_NAME = "TamrielProgressMap"
 local DISPLAY_NAME = "Tamriel Progress Map"
-local VERSION = "2.7.5"
+local VERSION = "2.8.0"
 local AUTHOR = "Raccoonplayz"
 local PIN_TYPE_STRING = "TamrielProgressMap_ZoneProgressPin"
 local SUPPORTED_LANGUAGES = { de = true, en = true, ru = true, fr = true, es = true }
@@ -37,6 +37,7 @@ local DEFAULTS =
     percentColorModeMigrated = false,
     customPercentColor = { r = 0.79, g = 0.64, b = 0.29 },
     mapPercentScale = 100,
+    mapPercentStyle = "badge", -- 2.8.0: "badge" (design badges) or "text" (classic)
     headerPercentScale = 100,
     hundredDisplayMode = "percent",
     hundredDisplayMigrated = false,
@@ -73,7 +74,9 @@ local DEFAULTS =
     alliancePlannerMapCenterY = 0.5,
     alliancePlannerTerritoryColors = true,
     -- 2.7.0: Statistics journal customization. Defaults reproduce the 2.6.84 look.
-    statisticsThemeDesign = "tpm", -- tpm | vanilla
+    statisticsThemeDesign = "modern", -- 2.8.0: modern=Graphit | tpm=Klassisch | vanilla=Mitternacht | dark=Monochrom | custom=Eigenes
+    statisticsModern280Migrated = false, -- 2.8.0: one-time switch from the old TPM Standard default
+    statisticsCustomPalette = false, -- 2.8.0: "Eigenes" design tokens {token={r,g,b,a}}, created from Graphit
     statisticsThemeBackground = { r = 0.035, g = 0.031, b = 0.024, a = 1.00 },
     statisticsThemeHeading = { r = 0.95, g = 0.82, b = 0.36 },
     statisticsThemeAccent = { r = 0.95, g = 0.82, b = 0.36 },
@@ -456,7 +459,10 @@ local function GetPercentColor(percent)
 end
 
 function TPM:IsStatisticsDarkDesign()
-    return self and self.saved and self.saved.statisticsThemeDesign == "dark"
+    -- 2.8.0: Monochrom is a palette of the skin engine now. Legacy paint code
+    -- always paints its classic colors and the engine maps them, so this
+    -- compatibility check intentionally reports false.
+    return false
 end
 
 function TPM:GetDisplayPercentColor(percent)
@@ -478,28 +484,21 @@ function TPM:GetDisplayPercentColor(percent)
 end
 
 function TPM:GetStatisticsPercentTextColor(percent)
-    if self:IsStatisticsDarkDesign() then
-        return "FFFFFF"
-    end
     percent = Clamp(tonumber(percent) or 0, 0, 100)
+    if self.GetSkinColorHex then
+        return self:GetSkinColorHex(percent >= 100 and "success" or "value")
+    end
     if percent >= 100 then return ESO_GOLD_HEX end
     return STATISTICS_PERCENT_GRAY_HEX
 end
 
 function TPM:GetStatisticsProgressColor(percent)
-    if self:IsStatisticsDarkDesign() then
-        return 1, 1, 1
+    -- 2.8.0: progress token of the active design, success token at 100%.
+    if self.GetSkinColor then
+        local r, g, b = self:GetSkinColor((tonumber(percent) or 0) >= 100 and "success" or "progress")
+        return r, g, b
     end
-    -- Deliberately darker than the map-marker palette. The journal uses one
-    -- continuous red -> ESO-gold ramp so the bars remain readable on the dark
-    -- background without becoming neon.
-    local t = Clamp(tonumber(percent) or 0, 0, 100) / 100
-    local startR, startG, startB = 0.46, 0.095, 0.065
-    local endR, endG, endB = HexToRGB(ESO_GOLD_HEX)
-    local r = startR + ((endR - startR) * t)
-    local g = startG + ((endG - startG) * t)
-    local b = startB + ((endB - startB) * t)
-    return r, g, b
+    return HexToRGB(ESO_GOLD_HEX)
 end
 
 local function FormatNumber(value)
@@ -688,7 +687,7 @@ function TPM:QueueCombatHistoryCheckpoint()
             and TPM:GetStatisticsHistorySubPage() == 1 then
             TPM:RefreshHistoryStatisticsPage()
         end
-    end, 350)
+    end, 2500)
 end
 
 -- 2.7.8: Preserve daily PvE kill/boss totals on the Character page.
@@ -2230,8 +2229,20 @@ function TPM:IsKnownBossName(name)
 end
 
 function TPM:RememberPlayerPveCombatTarget(targetName, targetUnitId, targetType)
-    local cleanName, normalizedName = self:NormalizeCombatUnitName(targetName)
     local numericTargetId = tonumber(targetUnitId) or 0
+    -- 2.8.0 performance: consecutive hits/DoT ticks on the same unit only refresh
+    -- the timestamp of the newest cache entry (no string formatting, no list work).
+    if numericTargetId > 0 and self.recentPlayerPveCombatTargets then
+        local newest = self.recentPlayerPveCombatTargets[1]
+        if type(newest) == "table" and tonumber(newest.targetUnitId) == numericTargetId and newest.name ~= "" then
+            local nowMs = TPM_KillLogNowMs()
+            if (nowMs - (tonumber(newest.atMs) or 0)) < 1000 then
+                newest.atMs = nowMs
+                return
+            end
+        end
+    end
+    local cleanName, normalizedName = self:NormalizeCombatUnitName(targetName)
     if cleanName == "" and numericTargetId <= 0 then return end
     if _G.COMBAT_UNIT_TYPE_NONE ~= nil and targetType ~= nil and targetType ~= _G.COMBAT_UNIT_TYPE_NONE then return end
 
@@ -3169,18 +3180,28 @@ function TPM:CaptureHistorySnapshot(forceStatistics)
     return snapshot
 end
 
-function TPM:PruneHistory(store, now)
+function TPM:PruneHistory(store, now, force)
     if not store then return end
     now = tonumber(now) or TPM_Now()
+    -- 2.8.0 performance: the full prune walks every daily entry and rebuilds the
+    -- sample list. Retention is measured in days, so every 10 minutes is plenty.
+    self.historyPruneAt = self.historyPruneAt or {}
+    local lastPrune = self.historyPruneAt[store]
+    if not force and lastPrune and (now - lastPrune) >= 0 and (now - lastPrune) < 600 then
+        local sessions = store.sessions or {}
+        while #sessions > HISTORY_MAX_SESSIONS do table.remove(sessions, 1) end
+        return
+    end
+    self.historyPruneAt[store] = now
     local retention = Clamp(Round(tonumber(self.saved and self.saved.historyRetentionDays) or HISTORY_RETENTION_DAYS), 30, 1460)
     local cutoffDay = TPM_DayKey(now) - retention
     for key, snapshot in pairs(store.daily or {}) do
-        local day = tonumber(key) or tonumber(snapshot and snapshot.dayKey) or 0
-        if day < cutoffDay then store.daily[key] = nil end
+        local day = tonumber(key) or tonumber(type(snapshot) == "table" and snapshot.dayKey or nil) or 0
+        if day < cutoffDay or type(snapshot) ~= "table" then store.daily[key] = nil end
     end
     for key, extrema in pairs(store.dailyExtrema or {}) do
-        local day = tonumber(key) or tonumber(extrema and extrema.dayKey) or 0
-        if day < cutoffDay then store.dailyExtrema[key] = nil end
+        local day = tonumber(key) or tonumber(type(extrema) == "table" and extrema.dayKey or nil) or 0
+        if day < cutoffDay or type(extrema) ~= "table" then store.dailyExtrema[key] = nil end
     end
 
     -- Keep recent intraday points for stock-like graphs. Older history remains
@@ -3199,8 +3220,8 @@ function TPM:PruneHistory(store, now)
     -- the most recent 365 days, independently of the longer generic history.
     local characterCutoffDay = TPM_CharacterDayKey(now) - CHARACTER_PLAYTIME_RETENTION_DAYS + 1
     for key, entry in pairs(store.characterPlaytime365 or {}) do
-        local day = tonumber(key) or tonumber(entry and entry.dayKey) or 0
-        if day < characterCutoffDay then store.characterPlaytime365[key] = nil end
+        local day = tonumber(key) or tonumber(type(entry) == "table" and entry.dayKey or nil) or 0
+        if day < characterCutoffDay or type(entry) ~= "table" then store.characterPlaytime365[key] = nil end
     end
 
     local sessions = store.sessions or {}
@@ -3249,6 +3270,17 @@ function TPM:GetHistoryActiveElapsed(active, endAt)
     if segmentStartedAt and segmentStartedAt > 0 then
         local finish = tonumber(endAt) or TPM_Now()
         if finish >= segmentStartedAt then elapsed = elapsed + (finish - segmentStartedAt) end
+    end
+    -- 2.8.0: a session can never be longer than the /played time that passed
+    -- during it (fixes sessions that had swallowed offline days).
+    local startPlayed = active.startSnapshot and tonumber(active.startSnapshot.esoPlayedSeconds)
+    if startPlayed and startPlayed > 0 then
+        local endPlayed = active.lastSnapshot and tonumber(active.lastSnapshot.esoPlayedSeconds) or startPlayed
+        local currentStore = self.GetHistoryStore and self:GetHistoryStore() or nil
+        if currentStore and currentStore.activeSession == active and type(GetSecondsPlayed) == "function" then
+            endPlayed = math.max(endPlayed, tonumber(GetSecondsPlayed()) or 0)
+        end
+        if endPlayed >= startPlayed then elapsed = math.min(elapsed, (endPlayed - startPlayed) + 60) end
     end
     return math.max(0, Round(elapsed))
 end
@@ -3377,6 +3409,13 @@ function TPM:StartOrResumeHistorySession()
     self:MigrateCharacterPlaytime365OffsetsAndZones(store)
     self:ResetCharacterPlaytimeObservation(store, snapshot)
     local active = store.activeSession
+    -- 2.8.0: no real play session lasts longer than a day of wall time. Such a
+    -- session is a leftover of the old crash bug: close it (its duration is
+    -- clamped to real /played time) and start a clean one.
+    if type(active) == "table" and (now - (tonumber(active.startedAt) or now)) > 86400 then
+        self:FinalizeHistorySession(currentKey, store, tonumber(active.lastSeenAt) or now)
+        active = store.activeSession
+    end
     if type(active) ~= "table" then
         active = {
             startedAt = now,
@@ -3390,11 +3429,25 @@ function TPM:StartOrResumeHistorySession()
         store.activeSession = active
     else
         active.accumulatedSeconds = math.max(0, tonumber(active.accumulatedSeconds) or 0)
-        if not active.segmentStartedAt then active.segmentStartedAt = now end
+        -- 2.8.0: a segment still open from an unclean exit (crash) is closed at
+        -- its last confirmed checkpoint; the offline gap is never counted.
+        if active.segmentStartedAt then
+            local segmentStartedAt = tonumber(active.segmentStartedAt) or now
+            local confirmedEnd = math.min(now, tonumber(active.lastSeenAt) or segmentStartedAt)
+            if confirmedEnd > segmentStartedAt then
+                active.accumulatedSeconds = active.accumulatedSeconds + (confirmedEnd - segmentStartedAt)
+            end
+        end
+        active.segmentStartedAt = now
+        active.segmentPlayedAt = tonumber(snapshot and snapshot.esoPlayedSeconds) or nil
         active.deactivatedAt = nil
         active.lastSeenAt = now
         active.lastSnapshot = snapshot
     end
+    if type(active) == "table" and active.segmentPlayedAt == nil then
+        active.segmentPlayedAt = tonumber(snapshot and snapshot.esoPlayedSeconds) or nil
+    end
+    self.historySessionStartedThisLogin = true
     self.historySessionCharacterKey = currentKey
     self:UpsertDailyHistorySnapshot(snapshot)
     self:InitializeMilestoneBaseline(snapshot)
@@ -3808,7 +3861,7 @@ function TPM:MigrateCharacterDailyCombat365(store)
     local daily = store.daily or {}
     local keys = {}
     for rawKey, snapshot in pairs(daily) do
-        local day = tonumber(rawKey) or tonumber(snapshot and snapshot.dayKey)
+        local day = tonumber(rawKey) or tonumber(type(snapshot) == "table" and snapshot.dayKey or nil)
         if day then keys[#keys+1] = day end
     end
     table.sort(keys)
@@ -3886,11 +3939,39 @@ function TPM:UpsertDailyHistorySnapshot(snapshot, forceSample)
     self:UpdateHistoryExtremaForSnapshot(store, snapshot)
     store.daily[tostring(dayKey)] = snapshot
     self:RecordHistorySample(store, snapshot, forceSample == true)
-    if type(store.activeSession) == "table" then
+    -- 2.8.0: only the session started in this login may be extended. Early
+    -- checkpoints (currency/progress events during loading) used to refresh a
+    -- stale session from a crash, which then counted the offline time.
+    if type(store.activeSession) == "table" and self.historySessionStartedThisLogin then
         store.activeSession.lastSeenAt = snapshot.timestamp
         store.activeSession.lastSnapshot = snapshot
     end
     self:PruneHistory(store, snapshot.timestamp)
+end
+
+-- 2.8.0 performance: view refreshes and XP ticks only need a recent history
+-- point, not one per event. Coalesce them; a trailing checkpoint guarantees the
+-- latest state is still written shortly after a burst (e.g. AoE grinding).
+function TPM:CheckpointHistoryThrottled(reason, minIntervalMs)
+    minIntervalMs = tonumber(minIntervalMs) or 15000
+    local now = GetFrameTimeMilliseconds and tonumber(GetFrameTimeMilliseconds()) or 0
+    self.historyThrottleAt = self.historyThrottleAt or {}
+    local last = self.historyThrottleAt[reason]
+    if not last or now <= 0 or (now - last) >= minIntervalMs then
+        self.historyThrottleAt[reason] = now
+        self:CheckpointHistory(reason, false)
+        return true
+    end
+    if not (self.historyThrottlePending and self.historyThrottlePending[reason]) then
+        self.historyThrottlePending = self.historyThrottlePending or {}
+        self.historyThrottlePending[reason] = true
+        zo_callLater(function()
+            TPM.historyThrottlePending[reason] = nil
+            TPM.historyThrottleAt[reason] = GetFrameTimeMilliseconds and tonumber(GetFrameTimeMilliseconds()) or 0
+            TPM:CheckpointHistory(reason, false)
+        end, math.max(250, minIntervalMs - (now - last)))
+    end
+    return false
 end
 
 function TPM:CheckpointHistory(reason, forceStatistics, suppliedSnapshot)
@@ -3914,12 +3995,8 @@ function TPM:QueueEconomyHistoryCheckpoint()
         if not TPM.saved or TPM.saved.historyEnabled == false then return end
         local snapshot = TPM:CaptureHistorySnapshot(false)
         TPM:CheckpointHistory("currency", false, snapshot)
-        if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden()
-            and TPM.saved.statisticsPage == "history"
-            and TPM:GetStatisticsHistorySubPage() == 1 then
-            TPM:RefreshHistoryStatisticsPage()
-        end
-    end, 250)
+        -- (2.8.0: the PvE/PvP dashboard shows no currencies; no repaint needed.)
+    end, 3000) -- 2.8.0: coalesce loot/vendor bursts; the ledger itself updates instantly
 end
 
 function TPM:CheckpointHistoryOnDeactivated()
@@ -4516,6 +4593,18 @@ function TPM:IsCurrentBattlegroundActive()
     return false
 end
 
+-- 2.8.0 performance: the per-hit combat cache only needs to know the PvP state
+-- roughly; it changes on zone/campaign transitions, not between two hits.
+function TPM:IsInPvPEnvironmentCached()
+    local now = GetFrameTimeMilliseconds and tonumber(GetFrameTimeMilliseconds()) or 0
+    if self.pvpEnvironmentCacheAt and now > 0 and (now - self.pvpEnvironmentCacheAt) >= 0 and (now - self.pvpEnvironmentCacheAt) < 2000 then
+        return self.pvpEnvironmentCache == true
+    end
+    self.pvpEnvironmentCache = self:IsInPvPEnvironment()
+    self.pvpEnvironmentCacheAt = now
+    return self.pvpEnvironmentCache
+end
+
 function TPM:IsInPvPEnvironment()
     if self:IsCurrentBattlegroundActive() then return true end
     if type(IsPlayerInAvAWorld) == "function" and IsPlayerInAvAWorld() then return true end
@@ -5028,7 +5117,9 @@ function TPM:RefreshStandaloneStatisticsSceneVisibility()
         return
     end
     -- When ESC exits camera UI mode directly (HUD-UI -> HUD), close TPM as well.
-    if self.statisticsOwnsUIMode then
+    -- 2.8.0: also when the cursor was already active before opening, so the
+    -- journal can never stay on screen without a mouse.
+    if self.statisticsOwnsUIMode or self.statisticsUIModeActiveForStandalone then
         local active = IsGameCameraUIModeActive()
         local now = GetFrameTimeMilliseconds() or 0
         local openedAt = tonumber(self.statisticsUIModeOpenedAt) or 0
@@ -5067,6 +5158,7 @@ function TPM:RefreshStandaloneStatisticsSceneVisibility()
         end
         window:SetHidden(true)
     end
+    self:UpdateStatisticsClickCatcher()
 end
 
 function TPM:IsSkyshardGoalHudSceneVisible()
@@ -5834,6 +5926,15 @@ function TPM:GetCurrentSkyshardGoalData()
     return nil
 end
 
+local function TPM_SetTextIfChanged(label, text)
+    if not label then return end
+    text = tostring(text or "")
+    if label.TPMLastText ~= text then
+        label.TPMLastText = text
+        label:SetText(text)
+    end
+end
+
 function TPM:RefreshSkyshardGoalWidget()
     if not self.skyshardGoalWidget then self:CreateSkyshardGoalWidget() end
     local widget = self.skyshardGoalWidget
@@ -5863,12 +5964,17 @@ function TPM:RefreshSkyshardGoalWidget()
     -- any Zone Stories/API failure. An enabled goal must always be visible.
     if widget.SetAlpha then widget:SetAlpha(1) end
     local activeType = self:GetActiveProgressGoalCategoryType() or _G.ZONE_COMPLETION_TYPE_SKYSHARDS
-    self.skyshardGoalZoneLabel:SetText(self:GetProgressGoalHudTitle(activeType))
+    TPM_SetTextIfChanged(self.skyshardGoalZoneLabel, self:GetProgressGoalHudTitle(activeType))
 
     local _, _, fallbackZoneName = self:GetCurrentPlayerZoneIdentity()
     fallbackZoneName = tostring(fallbackZoneName or "")
     if fallbackZoneName == "" then fallbackZoneName = "—" end
-    self.skyshardGoalProgressLabel:SetText(fallbackZoneName .. "  —/—")
+    -- 2.8.0 performance: show the placeholder only until real data arrived
+    -- once; afterwards the label is updated a single time per tick and only
+    -- when its text actually changed (no re-layout every 1.5 s).
+    if not self.skyshardGoalLastData then
+        TPM_SetTextIfChanged(self.skyshardGoalProgressLabel, fallbackZoneName .. "  —/—")
+    end
     if not editingPosition then
         self:UpdateSkyshardGoalAnchor(false)
     end
@@ -5879,16 +5985,18 @@ function TPM:RefreshSkyshardGoalWidget()
     if type(data) == "table" then
         local zoneName = tostring(data.name or fallbackZoneName or "—")
         if data.informational and data.countText and data.countText ~= "" then
-            self.skyshardGoalProgressLabel:SetText(string.format("%s  %s", zoneName, tostring(data.countText)))
+            TPM_SetTextIfChanged(self.skyshardGoalProgressLabel, string.format("%s  %s", zoneName, tostring(data.countText)))
             self.skyshardGoalLastData = data
         elseif (tonumber(data.total) or 0) > 0 then
-            self.skyshardGoalProgressLabel:SetText(self:L("SKYSHARD_GOAL_PROGRESS", zoneName, tonumber(data.completed) or 0, tonumber(data.total) or 0))
+            TPM_SetTextIfChanged(self.skyshardGoalProgressLabel, self:L("SKYSHARD_GOAL_PROGRESS", zoneName, tonumber(data.completed) or 0, tonumber(data.total) or 0))
             self.skyshardGoalLastData = data
         else
             self.skyshardGoalLastData = nil
+            TPM_SetTextIfChanged(self.skyshardGoalProgressLabel, fallbackZoneName .. "  —/—")
         end
     else
         self.skyshardGoalLastData = nil
+        TPM_SetTextIfChanged(self.skyshardGoalProgressLabel, fallbackZoneName .. "  —/—")
     end
 
     -- A few UI systems can modify anchors during scene transitions. Re-assert
@@ -6089,6 +6197,7 @@ function TPM:InvalidateStatisticsData(rebuildZoneList)
     self.statisticsFocusCacheZoneId = nil
     self.statisticsData = nil
     self.zoneAchievementSummaryCache = nil
+    self.allianceCategoryCache = nil
     if rebuildZoneList then
         -- Zone availability can change after activation, so rebuild only the
         -- dynamic progress-zone set. Quest master metadata (quest -> zone,
@@ -6425,6 +6534,7 @@ end
 function TPM:ReleaseOverlayLabels()
     for _, label in ipairs(self.overlayLabels) do
         self:HideAllianceTerritoryBackdrop(label)
+        self:HideMapPercentBadge(label)
         label:SetHidden(true)
         label:ClearAnchors()
         label.zoneId = nil
@@ -6434,6 +6544,7 @@ function TPM:ReleaseOverlayLabels()
         label.completedTotal = nil
         label.availableTotal = nil
         label.percent = nil
+        label.tpmPinControl, label.tpmPos = nil, nil
         self.labelPool[#self.labelPool + 1] = label
     end
     ZO_ClearNumericallyIndexedTable(self.overlayLabels)
@@ -6585,13 +6696,18 @@ function TPM:CreateZoneNativePin(pinManager, zoneId)
     if not x then return end
     if not self:ShouldDisplayOverviewZone(zoneId, x, y, isSymbolicPosition) then return end
 
+    -- 2.8.0: /tpm aurbis explains why a realm on the Aurbis map has no badge.
+    local debugLog = (GetMapType() == MAPTYPE_COSMIC) and self.aurbisPinDebug or nil
+    local function Note(status) if debugLog then debugLog[#debugLog + 1] = { zoneId = zoneId, status = status } end end
+
     local breakdown, completedTotal, availableTotal, percent, progressZoneId = self:GetResolvedCompletion(zoneId)
-    if availableTotal <= 0 then return end
-    if not self:IsProgressZoneAvailable(progressZoneId) then return end
-    if not self:MatchesQuickFilter(percent) then return end
+    if availableTotal <= 0 then Note("no zone completion data"); return end
+    if not self:IsProgressZoneAvailable(progressZoneId) then Note("locked (DLC/chapter not owned)"); return end
+    if not self:MatchesQuickFilter(percent) then Note(string.format("hidden by quick filter (%d%%)", percent)); return end
 
     local displayText = self:GetOverviewPercentText(percent)
-    if not displayText then return end
+    if not displayText then Note("hidden: 100% display mode"); return end
+    Note(string.format("shown %d%%", percent))
 
     local pinType = _G[PIN_TYPE_STRING]
     if not pinType then return end
@@ -6612,6 +6728,7 @@ function TPM:CreateZoneNativePin(pinManager, zoneId)
     local label = self:AcquireOverlayLabel()
     label:ClearAnchors()
     label:SetAnchor(CENTER, pinControl, CENTER, 0, 0)
+    label.tpmPinControl, label.tpmPos = pinControl, { x, y }
 
     -- World-map percentage labels deliberately use the same rendering path as
     -- v1.6.0. Font, size and color are fully controlled by the user's map
@@ -6619,10 +6736,31 @@ function TPM:CreateZoneNativePin(pinManager, zoneId)
     -- treatment is reserved for the statistics journal only.
     local color = self:GetDisplayPercentColor(percent)
     local fontSize = self:GetProgressFontSize("overlay")
-    if self.saved.showZoneNames then
+    if self:IsMapBadgeStyle() then
+        -- 2.8.0: badge in the active design; color + bar show the progress.
+        local badgeSize = math.floor(16 * (tonumber(self.saved.mapPercentScale) or 100) / 100 + 0.5)
+        label:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin", badgeSize))
+        local tone = self:GetMapProgressColor(percent)
+        local toneHex = RGBToHex(tone[1], tone[2], tone[3])
+        local valueText, valueChars = string.format("%d%%", percent), #tostring(percent) + 1
+        if percent >= 100 and self.saved.hundredDisplayMode == "check" and type(zo_iconFormatInheritColor) == "function" then
+            valueText, valueChars = zo_iconFormatInheritColor("EsoUI/Art/Buttons/accept_up.dds", badgeSize + 4, badgeSize + 4), 2
+        end
+        local text, chars = string.format("|c%s%s|r", toneHex, valueText), valueChars
+        if self.saved.showZoneNames then
+            local name = tostring(SafeZoneName(zoneId) or "")
+            local _, nameChars = name:gsub("[^\128-\191]", "")
+            text = string.format("|c%s%s|r  %s", self:GetSkinColorHex("text"), name, text)
+            chars = nameChars + 2 + valueChars
+        end
+        label:SetText(text)
+        self:ApplyMapPercentBadge(label, percent, chars, badgeSize, false)
+    elseif self.saved.showZoneNames then
+        self:HideMapPercentBadge(label)
         label:SetDimensions(math.max(280, fontSize * 11), math.max(34, fontSize + 10))
         label:SetText(string.format("|cD8C58C%s|r  |c%s%s|r", SafeZoneName(zoneId), color, displayText))
     else
+        self:HideMapPercentBadge(label)
         -- Keep the mouse hitbox close to the actual percentage text so map
         -- dragging/clicking is not blocked by large invisible label areas.
         label:SetDimensions(math.max(84, fontSize * 3), math.max(32, fontSize + 10))
@@ -6646,6 +6784,7 @@ function TPM:BuildNativePins(pinManager)
     if not self.saved or not self.saved.enabled or not self:IsOverviewMap() then return end
 
     ZO_ClearTable(self.displayedZoneIds)
+    if GetMapType() == MAPTYPE_COSMIC then self.aurbisPinDebug = {} end
 
     local function TryAdd(zoneId)
         if not zoneId or zoneId <= 0 or TPM.displayedZoneIds[zoneId] then return end
@@ -6677,6 +6816,54 @@ function TPM:BuildNativePins(pinManager)
             local _, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
             if mapType == MAPTYPE_ZONE and zoneIndex and zoneIndex > 0 then
                 TryAdd(GetZoneId(zoneIndex))
+            end
+        end
+    end
+    self:SeparateStackedOverlayLabels()
+end
+
+-- 2.8.0: zones that share (almost) the same map center - e.g. Cyrodiil and the
+-- Imperial City - are stacked vertically with a small gap instead of drawing
+-- one badge on top of the other.
+function TPM:SeparateStackedOverlayLabels()
+    local labels = self.overlayLabels or {}
+    local used = {}
+    for i, a in ipairs(labels) do
+        if not used[i] and a.tpmPos then
+            local cluster = { a }
+            for j = i + 1, #labels do
+                local b = labels[j]
+                if not used[j] and b.tpmPos then
+                    local dx, dy = a.tpmPos[1] - b.tpmPos[1], a.tpmPos[2] - b.tpmPos[2]
+                    if (dx * dx + dy * dy) < 0.0004 then
+                        cluster[#cluster + 1] = b
+                        used[j] = true
+                    end
+                end
+            end
+            if #cluster > 1 then
+                -- Larger zones first (Cyrodiil above Imperial City).
+                table.sort(cluster, function(x, y) return (x.availableTotal or 0) > (y.availableTotal or 0) end)
+                local gap = 6
+                local heights, total = {}, 0
+                for k, label in ipairs(cluster) do
+                    local h = tonumber(label:GetHeight()) or 24
+                    if label.tpmBadge and not label.tpmBadge.back:IsHidden() then
+                        h = tonumber(label.tpmBadge.back:GetHeight()) or h
+                    end
+                    heights[k] = h
+                    total = total + h
+                end
+                total = total + gap * (#cluster - 1)
+                -- All members use the same reference pin: their own pins are a
+                -- few pixels apart, which would eat into the gap.
+                local reference = cluster[1].tpmPinControl
+                local y = -total / 2
+                for k, label in ipairs(cluster) do
+                    label:ClearAnchors()
+                    label:SetAnchor(TOP, reference, CENTER, 0, math.floor(y + 0.5))
+                    y = y + heights[k] + gap
+                end
             end
         end
     end
@@ -7352,6 +7539,7 @@ function TPM:CreateQuestRewardControl()
     self:UpdateQuestRewardLockState()
     self:ApplyQuestRewardFonts()
     self:UpdateQuestRewardLayout()
+    self:PaintQuestRewardWindow()
 end
 
 function TPM:HideQuestRewards()
@@ -7451,8 +7639,9 @@ function TPM:RefreshQuestRewards(forceRender)
         self.questRewardInfoButton:SetHidden(#rewardDetails == 0)
     end
 
-    self.questRewardTitle:SetText(string.format("|cE6C45C%s|r", zo_strformat(SI_TOOLTIP_ITEM_NAME, questName)))
-    self.questRewardLines:SetText(string.format("|cFFFFFF%s|r\n%s", self:L("QUEST_REWARDS"), rewardText))
+    self:PaintQuestRewardWindow()
+    self.questRewardTitle:SetText(string.format("|c%s%s|r", self:GetSkinColorHex("heading"), zo_strformat(SI_TOOLTIP_ITEM_NAME, questName)))
+    self.questRewardLines:SetText(string.format("|c%s%s|r\n%s", self:GetSkinColorHex("muted"), self:L("QUEST_REWARDS"), rewardText))
 
     local titleTextHeight = self.questRewardTitle:GetTextHeight() or 0
     self.questRewardTitle:SetHeight(Clamp(math.max(30, titleTextHeight + 4), 30, 64))
@@ -7759,125 +7948,280 @@ function TPM:GetStatisticsFocusZoneChoices()
     return rows
 end
 
-function TPM:HideStatisticsFocusDropdown()
-    if self.statisticsFocusDropdown then self.statisticsFocusDropdown:SetHidden(true) end
+-- 2.8.0 Shared zone-focus selector + popup (Progress and Economy) ----------------
+-- One look for both pages: a quiet field with a chevron, a popup with pinned
+-- entries ("All Tamriel", current zone), a divider and a scrolling zone list.
+-- Colors come from the active design (TPM:PaintFocusUI).
+local TPM_FOCUS_ROW_H = 26
+
+function TPM:CreateFocusUI(spec)
+    local ctx = { visibleRows = spec.listed or 8, offset = 1, pinnedChoices = {}, listedChoices = {}, selectedId = 0 }
+    local selector = spec.selector
+    selector.TPMSkinSkipTree = true
+    ctx.selector = selector
+
+    local bg = WINDOW_MANAGER:CreateControl(nil, selector, CT_BACKDROP)
+    bg:SetAnchorFill(selector)
+    bg:SetEdgeTexture(nil, 1, 1, 1)
+    bg:SetMouseEnabled(false)
+    ctx.selectorBg = bg
+
+    local width = select(1, selector:GetDimensions()) or 240
+    local label = WINDOW_MANAGER:CreateControl(nil, selector, CT_LABEL)
+    label:SetDimensions(width - 40, 24)
+    label:SetAnchor(LEFT, selector, LEFT, 10, 0)
+    label:SetFont(spec.font or "$(MEDIUM_FONT)|14")
+    label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    if label.SetWrapMode and TEXT_WRAP_MODE_ELLIPSIS then label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+    label:SetMouseEnabled(false)
+    ctx.label = label
+
+    local arrow = WINDOW_MANAGER:CreateControl(nil, selector, CT_TEXTURE)
+    arrow:SetDimensions(16, 16)
+    arrow:SetAnchor(RIGHT, selector, RIGHT, -9, 0)
+    arrow:SetTexture("EsoUI/Art/Buttons/dropbox_arrow_normal.dds")
+    arrow:SetMouseEnabled(false)
+    ctx.arrow = arrow
+
+    selector:SetHandler("OnMouseEnter", function() ctx.hover = true; TPM:PaintFocusUI(ctx) end)
+    selector:SetHandler("OnMouseExit", function() ctx.hover = false; TPM:PaintFocusUI(ctx) end)
+    selector:SetHandler("OnMouseUp", function(_, button, upInside)
+        if upInside and button == MOUSE_BUTTON_INDEX_LEFT and spec.onToggle then spec.onToggle() end
+    end)
+    selector:SetHandler("OnMouseWheel", function(_, delta)
+        if TPM:IsFocusUIOpen(ctx) then TPM:ScrollFocusUI(ctx, delta) end
+    end)
+
+    -- Popup ---------------------------------------------------------------------------
+    local pinned, listed, dropW = spec.pinned or 2, ctx.visibleRows, spec.width or 290
+    local listTop = 6 + pinned * TPM_FOCUS_ROW_H + 9
+    local dropH = listTop + listed * TPM_FOCUS_ROW_H + 6
+    local dropdown
+    if spec.parent then
+        dropdown = WINDOW_MANAGER:CreateControl(spec.name, spec.parent, CT_CONTROL)
+    else
+        dropdown = WINDOW_MANAGER:CreateTopLevelWindow(spec.name)
+        dropdown:SetClampedToScreen(true)
+    end
+    dropdown:SetDimensions(dropW, dropH)
+    dropdown:SetAnchor(TOPRIGHT, selector, BOTTOMRIGHT, 0, 4)
+    dropdown:SetMouseEnabled(true)
+    dropdown:SetHidden(true)
+    if dropdown.SetDrawTier then dropdown:SetDrawTier(DT_HIGH) end
+    if dropdown.SetDrawLayer then dropdown:SetDrawLayer(DL_OVERLAY) end
+    if dropdown.SetDrawLevel then dropdown:SetDrawLevel(spec.drawLevel or 20000) end
+    dropdown:SetHandler("OnMouseWheel", function(_, delta) TPM:ScrollFocusUI(ctx, delta) end)
+    dropdown.TPMSkinSkipTree = true
+    ctx.dropdown = dropdown
+
+    local shell = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_BACKDROP)
+    shell:SetAnchorFill(dropdown)
+    shell:SetEdgeTexture(nil, 1, 1, 1)
+    shell:SetMouseEnabled(false)
+    ctx.shell = shell
+
+    local divider = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_BACKDROP)
+    divider:SetDimensions(dropW - 24, 1)
+    divider:SetAnchor(TOPLEFT, dropdown, TOPLEFT, 12, 6 + pinned * TPM_FOCUS_ROW_H + 4)
+    divider:SetEdgeColor(0, 0, 0, 0)
+    divider:SetMouseEnabled(false)
+    ctx.divider = divider
+
+    local rowLevel = (spec.drawLevel or 20000) + 10
+    local function CreateRow(suffix, y, rowW)
+        local row = WINDOW_MANAGER:CreateControl(spec.name .. "Row" .. suffix, dropdown, CT_BUTTON)
+        row:SetDimensions(rowW, TPM_FOCUS_ROW_H)
+        row:SetAnchor(TOPLEFT, dropdown, TOPLEFT, 6, y)
+        row:SetMouseEnabled(true)
+        if row.SetDrawLayer then row:SetDrawLayer(DL_OVERLAY) end
+        if row.SetDrawLevel then row:SetDrawLevel(rowLevel) end
+        if row.SetClickSound and SOUNDS then row:SetClickSound(SOUNDS.DEFAULT_CLICK) end
+
+        local back = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
+        back:SetAnchorFill(row)
+        back:SetEdgeTexture(nil, 1, 1, 1)
+        back:SetMouseEnabled(false)
+        local mark = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
+        mark:SetDimensions(3, TPM_FOCUS_ROW_H - 8)
+        mark:SetAnchor(LEFT, row, LEFT, 0, 0)
+        mark:SetEdgeColor(0, 0, 0, 0)
+        mark:SetMouseEnabled(false)
+        local text = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
+        text:SetDimensions(rowW - 40, TPM_FOCUS_ROW_H)
+        text:SetAnchor(LEFT, row, LEFT, 12, 0)
+        text:SetFont("$(MEDIUM_FONT)|14")
+        text:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        text:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        if text.SetWrapMode and TEXT_WRAP_MODE_ELLIPSIS then text:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        text:SetMouseEnabled(false)
+        local check = WINDOW_MANAGER:CreateControl(nil, row, CT_TEXTURE)
+        check:SetDimensions(16, 16)
+        check:SetAnchor(RIGHT, row, RIGHT, -8, 0)
+        check:SetTexture("EsoUI/Art/Buttons/accept_up.dds")
+        check:SetMouseEnabled(false)
+
+        row.rowBack, row.rowMark, row.rowText, row.rowCheck = back, mark, text, check
+        row:SetHandler("OnMouseEnter", function(btn) btn.hover = true; TPM:PaintFocusRow(btn) end)
+        row:SetHandler("OnMouseExit", function(btn) btn.hover = false; TPM:PaintFocusRow(btn) end)
+        row:SetHandler("OnMouseWheel", function(_, delta) TPM:ScrollFocusUI(ctx, delta) end)
+        row:SetHandler("OnClicked", function(btn, button)
+            if button and button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+            if btn.zoneId ~= nil and spec.onPick then spec.onPick(btn.zoneId) end
+        end)
+        return row
+    end
+
+    ctx.pinnedRows, ctx.rows = {}, {}
+    for index = 1, pinned do
+        ctx.pinnedRows[index] = CreateRow("P" .. index, 6 + (index - 1) * TPM_FOCUS_ROW_H, dropW - 12)
+    end
+    for index = 1, listed do
+        ctx.rows[index] = CreateRow(tostring(index), listTop + (index - 1) * TPM_FOCUS_ROW_H, dropW - 24)
+    end
+
+    local rail = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_BACKDROP)
+    rail:SetDimensions(4, listed * TPM_FOCUS_ROW_H - 4)
+    rail:SetAnchor(TOPRIGHT, dropdown, TOPRIGHT, -7, listTop + 2)
+    rail:SetEdgeColor(0, 0, 0, 0)
+    rail:SetMouseEnabled(false)
+    local thumb = WINDOW_MANAGER:CreateControl(nil, rail, CT_BACKDROP)
+    thumb:SetDimensions(4, 40)
+    thumb:SetAnchor(TOP, rail, TOP, 0, 0)
+    thumb:SetEdgeColor(0, 0, 0, 0)
+    thumb:SetMouseEnabled(false)
+    ctx.rail, ctx.thumb, ctx.railHeight = rail, thumb, listed * TPM_FOCUS_ROW_H - 4
+    return ctx
 end
 
-function TPM:RefreshStatisticsFocusDropdownRows()
-    local dropdown = self.statisticsFocusDropdown
-    local rows = self.statisticsFocusDropdownRows
-    local choices = self.statisticsFocusChoices or {}
-    if not dropdown or not rows then return end
+function TPM:IsFocusUIOpen(ctx)
+    return ctx ~= nil and ctx.dropdown ~= nil and not ctx.dropdown:IsHidden()
+end
 
-    local visibleRows = #rows
-    local maxOffset = math.max(0, #choices - visibleRows)
-    self.statisticsFocusDropdownOffset = Clamp(Round(tonumber(self.statisticsFocusDropdownOffset) or 0), 0, maxOffset)
-    local offset = self.statisticsFocusDropdownOffset
-    local selectedZoneId = self:GetStatisticsFocusZoneId()
-
-    for rowIndex, row in ipairs(rows) do
-        local choice = choices[offset + rowIndex]
+-- pinned / listed: arrays of { zoneId, name }. Keeps ctx.offset in range.
+function TPM:FillFocusUI(ctx, pinned, listed, selectedId)
+    if not ctx then return end
+    ctx.pinnedChoices, ctx.listedChoices = pinned or ctx.pinnedChoices, listed or ctx.listedChoices
+    if selectedId ~= nil then ctx.selectedId = tonumber(selectedId) or 0 end
+    local maxOffset = math.max(1, #ctx.listedChoices - ctx.visibleRows + 1)
+    ctx.offset = Clamp(tonumber(ctx.offset) or 1, 1, maxOffset)
+    local function Fill(row, choice)
         if choice then
-            row.TPMZoneId = choice.zoneId
+            row.zoneId = choice.zoneId
+            row.selected = tonumber(choice.zoneId) == ctx.selectedId
+            TPM_SetTextIfChanged(row.rowText, tostring(choice.name or ""))
             row:SetHidden(false)
-            row.label:SetText(choice.name or "")
-            row.selected = tonumber(choice.zoneId) == tonumber(selectedZoneId)
-            if self:IsStatisticsDarkDesign() then
-                row.bg:SetCenterColor(0,0,0,row.selected and .44 or .24)
-                row.bg:SetEdgeColor(1,1,1,row.selected and .40 or .18)
-                row.label:SetColor(1,1,1,1)
-                if row.selectedMark then row.selectedMark:SetText(row.selected and "X" or ""); row.selectedMark:SetColor(1,1,1,1) end
-            elseif row.selected then
-                row.bg:SetCenterColor(0.16, 0.125, 0.040, 0.98)
-                row.label:SetColor(1.00, 0.84, 0.26, 1)
-                if row.selectedMark then row.selectedMark:SetText("X") end
-            else
-                row.bg:SetCenterColor(0.025, 0.022, 0.017, 0.98)
-                row.label:SetColor(0.91, 0.88, 0.78, 1)
-                if row.selectedMark then row.selectedMark:SetText("") end
-            end
         else
-            row.TPMZoneId = nil
-            row.selected = false
-            if row.selectedMark then row.selectedMark:SetText("") end
+            row.zoneId, row.selected, row.hover = nil, false, false
+            TPM_SetTextIfChanged(row.rowText, "")
             row:SetHidden(true)
         end
     end
+    for index, row in ipairs(ctx.pinnedRows) do Fill(row, ctx.pinnedChoices[index]) end
+    for index, row in ipairs(ctx.rows) do Fill(row, ctx.listedChoices[ctx.offset + index - 1]) end
 
-    if self.statisticsFocusScrollBar then
-        self.statisticsFocusScrollBarRefreshing = true
-        self.statisticsFocusScrollBar:SetMinMax(0, maxOffset)
-        self.statisticsFocusScrollBar:SetValueStep(1)
-        self.statisticsFocusScrollBar:SetValue(offset)
-        self.statisticsFocusScrollBar:SetHidden(maxOffset <= 0)
-        self.statisticsFocusScrollBarRefreshing = false
-    end
+    local fraction = math.min(1, ctx.visibleRows / math.max(ctx.visibleRows, #ctx.listedChoices))
+    local thumbH = math.max(24, math.floor(ctx.railHeight * fraction))
+    ctx.thumb:SetHeight(thumbH)
+    local ratio = (maxOffset <= 1) and 0 or ((ctx.offset - 1) / (maxOffset - 1))
+    ctx.thumb:ClearAnchors()
+    ctx.thumb:SetAnchor(TOP, ctx.rail, TOP, 0, math.floor(math.max(0, ctx.railHeight - thumbH) * ratio))
+    ctx.rail:SetHidden(#ctx.listedChoices <= ctx.visibleRows)
+    self:PaintFocusUI(ctx)
 end
 
-function TPM:ScrollStatisticsFocusDropdown(delta)
-    if not self.statisticsFocusDropdown or self.statisticsFocusDropdown:IsHidden() then return end
-    delta = Round(tonumber(delta) or 0)
-    if delta == 0 then return end
-    local choices = self.statisticsFocusChoices or {}
-    local visibleRows = self.statisticsFocusDropdownRows and #self.statisticsFocusDropdownRows or 9
-    local maxOffset = math.max(0, #choices - visibleRows)
-    self.statisticsFocusDropdownOffset = Clamp((tonumber(self.statisticsFocusDropdownOffset) or 0) - delta, 0, maxOffset)
-    if self.statisticsFocusScrollBar then
-        self.statisticsFocusScrollBar:SetValue(self.statisticsFocusDropdownOffset)
-    else
-        self:RefreshStatisticsFocusDropdownRows()
-    end
+function TPM:ScrollFocusUI(ctx, delta)
+    if not self:IsFocusUIOpen(ctx) then return end
+    local step = (tonumber(delta) or 0) > 0 and -1 or 1
+    ctx.offset = (tonumber(ctx.offset) or 1) + step
+    self:FillFocusUI(ctx)
 end
 
-function TPM:ToggleStatisticsFocusDropdown()
-    local dropdown = self.statisticsFocusDropdown
-    if not dropdown then return end
-    if not dropdown:IsHidden() then
-        self:HideStatisticsFocusDropdown()
-        return
-    end
-
-    self.statisticsFocusChoices = { { zoneId = 0, name = self:L("STAT_FOCUS_TAMRIEL") } }
-    for _, zone in ipairs(self:GetStatisticsFocusZoneChoices()) do
-        self.statisticsFocusChoices[#self.statisticsFocusChoices + 1] = zone
-    end
-
-    local selectedZoneId = self:GetStatisticsFocusZoneId()
-    local selectedIndex = 1
-    for index, choice in ipairs(self.statisticsFocusChoices) do
-        if tonumber(choice.zoneId) == tonumber(selectedZoneId) then
-            selectedIndex = index
+-- Opens the popup scrolled so that the selected zone is visible.
+function TPM:OpenFocusUI(ctx, pinned, listed, selectedId)
+    if not ctx then return end
+    ctx.offset = 1
+    for index, choice in ipairs(listed or {}) do
+        if tonumber(choice.zoneId) == (tonumber(selectedId) or 0) then
+            ctx.offset = math.max(1, index - 2)
             break
         end
     end
-    local visibleRows = self.statisticsFocusDropdownRows and #self.statisticsFocusDropdownRows or 9
-    local maxOffset = math.max(0, #self.statisticsFocusChoices - visibleRows)
-    self.statisticsFocusDropdownOffset = Clamp(selectedIndex - math.ceil(visibleRows / 2), 0, maxOffset)
-    self:RefreshStatisticsFocusDropdownRows()
+    local dropdown = ctx.dropdown
+    if dropdown.BringWindowToTop then dropdown:BringWindowToTop() end
     dropdown:SetHidden(false)
-    self:EnforceStatisticsDarkModeAfterRefresh()
+    self:FillFocusUI(ctx, pinned, listed, selectedId)
+end
+
+function TPM:CloseFocusUI(ctx)
+    if not ctx or not ctx.dropdown then return end
+    ctx.dropdown:SetHidden(true)
+    self:PaintFocusUI(ctx)
+end
+
+function TPM:HideStatisticsFocusDropdown()
+    self:CloseFocusUI(self.statisticsFocusUI)
+end
+
+-- "All Tamriel" and (when it has progress) the zone the player is in are
+-- pinned on top; every progress zone is listed alphabetically below.
+function TPM:GetStatisticsFocusSplitChoices()
+    local pinned = { { zoneId = 0, name = self:L("STAT_FOCUS_TAMRIEL") } }
+    local available = self:GetAllProgressZoneIds() or {}
+    local currentId = self:GetEconomyTrackingZoneId() or 0
+    if currentId > 0 and not available[currentId] and type(GetZoneStoryZoneIdForZoneId) == "function" then
+        currentId = tonumber(GetZoneStoryZoneIdForZoneId(currentId)) or 0
+    end
+    if currentId > 0 and available[currentId] then
+        pinned[2] = { zoneId = currentId, name = self:L("ECON_DETAIL_CURRENT_ZONE", tostring(SafeZoneName(currentId) or currentId)) }
+    else
+        currentId = 0
+    end
+    local listed = {}
+    for _, zone in ipairs(self:GetStatisticsFocusZoneChoices()) do
+        if zone.zoneId ~= currentId then listed[#listed + 1] = zone end
+    end
+    return pinned, listed
+end
+
+function TPM:RefreshStatisticsFocusDropdownRows()
+    local ctx = self.statisticsFocusUI
+    if not ctx then return end
+    local pinned, listed = self:GetStatisticsFocusSplitChoices()
+    self:FillFocusUI(ctx, pinned, listed, self:GetStatisticsFocusZoneId())
+end
+
+function TPM:ScrollStatisticsFocusDropdown(delta)
+    self:ScrollFocusUI(self.statisticsFocusUI, delta)
+end
+
+function TPM:ToggleStatisticsFocusDropdown()
+    local ctx = self.statisticsFocusUI
+    if not ctx then return end
+    if self:IsFocusUIOpen(ctx) then
+        self:HideStatisticsFocusDropdown()
+        return
+    end
+    self:HideEconomyFocusDropdown()
+    local pinned, listed = self:GetStatisticsFocusSplitChoices()
+    self:OpenFocusUI(ctx, pinned, listed, self:GetStatisticsFocusZoneId())
+end
+
+function TPM:PickStatisticsFocusZone(zoneId)
+    zoneId = tonumber(zoneId) or 0
+    if self:SetStatisticsFocusZone(zoneId) and self.statisticsFocusSelectedLabel then
+        self.statisticsFocusSelectedLabel:SetText(zoneId > 0 and SafeZoneName(zoneId) or self:L("STAT_FOCUS_TAMRIEL"))
+    end
+    self:HideStatisticsFocusDropdown()
 end
 
 function TPM:RefreshStatisticsFocusSelector()
     local selectedLabel = self.statisticsFocusSelectedLabel
     if not selectedLabel then return end
-
     local selectedZoneId = self:GetStatisticsFocusZoneId()
-    if selectedZoneId > 0 then
-        selectedLabel:SetText(SafeZoneName(selectedZoneId))
-    else
-        selectedLabel:SetText(self:L("STAT_FOCUS_TAMRIEL"))
-    end
-
-    -- Rebuild names whenever the Statistics window refreshes so client-language
-    -- localization changes are reflected immediately without reopening TPM.
-    self.statisticsFocusChoices = { { zoneId = 0, name = self:L("STAT_FOCUS_TAMRIEL") } }
-    for _, zone in ipairs(self:GetStatisticsFocusZoneChoices()) do
-        self.statisticsFocusChoices[#self.statisticsFocusChoices + 1] = zone
-    end
-    if self.statisticsFocusDropdown and not self.statisticsFocusDropdown:IsHidden() then
-        self:RefreshStatisticsFocusDropdownRows()
-    end
+    TPM_SetTextIfChanged(selectedLabel, selectedZoneId > 0 and SafeZoneName(selectedZoneId) or self:L("STAT_FOCUS_TAMRIEL"))
+    if self:IsFocusUIOpen(self.statisticsFocusUI) then self:RefreshStatisticsFocusDropdownRows() end
+    self:PaintFocusUI(self.statisticsFocusUI)
 end
 
 function TPM:GetStatisticsData(forceRefresh, focusZoneId)
@@ -8079,6 +8423,7 @@ function TPM:SetStatisticsBarPercent(fill, width, percent)
     width = math.max(1, tonumber(width) or 1)
     percent = Clamp(tonumber(percent) or 0, 0, 100)
     fill:SetWidth(math.max(1, width * (percent / 100)))
+    fill.TPMSkinRole = "fill"
     local r, g, b = self:GetStatisticsProgressColor(percent)
     fill:SetCenterColor(r, g, b, 0.82)
 end
@@ -8162,6 +8507,7 @@ function TPM:CreateProgressPlaytimeCard(parent, name, x, width)
     value:SetDimensions(width - 44, 25)
     value:SetAnchor(TOPLEFT, card, TOPLEFT, 40, 24)
     value:SetFont("$(ANTIQUE_FONT)|19")
+    self:RegisterSkinValueFont(value, 19)
     value:SetColor(0.68, 0.94, 0.28, 1)
     value:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     value:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -8353,8 +8699,11 @@ end
 local function TPM_NormalizeAchievementCategoryName(name)
     local value = zo_strlower(tostring(name or ""))
     value = value:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-    value = value:gsub("[’'`´]", "")
-    value = value:gsub("[%s%-%–%—_/%.,:&]+", "")
+    -- 2.8.0 bugfix: multi-byte characters inside a [...] class are matched
+    -- byte by byte and corrupted Cyrillic/CJK text. Strip them as sequences.
+    value = value:gsub("’", ""):gsub("´", ""):gsub("–", ""):gsub("—", "")
+    value = value:gsub("['`]", "")
+    value = value:gsub("[%s%-_/%.,:&]+", "")
     return value
 end
 
@@ -8425,8 +8774,11 @@ end
 local function TPM_NormalizeZoneAchievementText(value)
     local text = zo_strlower(tostring(value or ""))
     text = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-    text = text:gsub("[’'`´]", "")
-    text = text:gsub("[%s%-%–%—_/%.,:&]+", "")
+    -- 2.8.0 bugfix: multi-byte characters inside a [...] class are matched
+    -- byte by byte and corrupted Cyrillic/CJK text. Strip them as sequences.
+    text = text:gsub("’", ""):gsub("´", ""):gsub("–", ""):gsub("—", "")
+    text = text:gsub("['`]", "")
+    text = text:gsub("[%s%-_/%.,:&]+", "")
     return text
 end
 
@@ -8712,6 +9064,7 @@ function TPM:RefreshStatisticsCategorySortControls()
             end
         end
     end
+    if self.ApplySkinCategorySortChips then self:ApplySkinCategorySortChips() end
 end
 
 -- 2.6.1: All hover panels that belong to the Tamriel Statistics journal use
@@ -8795,6 +9148,51 @@ local function TPM_ArmStatisticsHoverTooltip(tip, sourceControl)
     end)
 end
 
+-- 2.8.0: one layout for every info panel beside the journal. Labels get an
+-- explicit width and a height that is the larger of ESO's measurement and an
+-- estimate - a hidden label can report 0, which used to cut long texts into
+-- a single overflowing line.
+local function TPM_EstimateTextHeight(text, width, fontSize)
+    text = tostring(text or ""):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|t[^|]*|t", "WW")
+    local perLine = math.max(8, math.floor(width / (fontSize * 0.50)))
+    local lines = 0
+    for paragraph in (text .. "\n"):gmatch("(.-)\n") do
+        local _, chars = paragraph:gsub("[^\128-\191]", "")
+        lines = lines + math.max(1, math.ceil(chars / perLine))
+    end
+    return math.ceil(lines * fontSize * 1.32)
+end
+
+function TPM:LayoutInfoTooltip(tip, width, parts)
+    if not tip then return end
+    tip:SetWidth(width)
+    local inner, y = width - 30, 15
+    for _, part in ipairs(parts) do
+        local label = part.label
+        if label then
+            local text = tostring(part.text or "")
+            if text == "" then
+                label:SetHidden(true)
+            else
+                label:SetHidden(false)
+                label:ClearAnchors()
+                label:SetAnchor(TOPLEFT, tip, TOPLEFT, 15, y)
+                label:SetWidth(inner)
+                label:SetFont(part.font)
+                label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+                label:SetVerticalAlignment(TEXT_ALIGN_TOP)
+                label:SetText(text)
+                local measured = label.GetTextHeight and tonumber(label:GetTextHeight()) or 0
+                local height = math.max(measured or 0, TPM_EstimateTextHeight(text, inner, part.size or 14))
+                label:SetHeight(height)
+                y = y + height + (part.gap or 6)
+            end
+        end
+    end
+    tip:SetHeight(y + 8)
+    self:PaintInfoTooltip(tip)
+end
+
 local function TPM_EnsureStatisticsHoverTooltip()
     if TPM.statisticsHoverTooltip then return TPM.statisticsHoverTooltip end
     if not WINDOW_MANAGER or not GuiRoot then return nil end
@@ -8814,6 +9212,8 @@ local function TPM_EnsureStatisticsHoverTooltip()
     bg:SetCenterColor(0.035, 0.031, 0.026, 0.985)
     bg:SetEdgeColor(0.92, 0.76, 0.14, 0.96)
     bg:SetEdgeTexture(nil, 1, 1, 1)
+    tip.TPMBg = bg
+    tip.TPMSkinSkipTree = true
 
     local title = WINDOW_MANAGER:CreateControl(nil, tip, CT_LABEL)
     title:SetAnchor(TOPLEFT, tip, TOPLEFT, 14, 12)
@@ -8843,42 +9243,16 @@ function TPM:ShowStatisticsHoverTooltip(titleText, bodyText, sourceControl)
     local tip = TPM_EnsureStatisticsHoverTooltip()
     if not tip then return end
     self:HideStatisticsHoverTooltips()
-
     titleText = tostring(titleText or "")
     bodyText = tostring(bodyText or "")
-
-    -- 2.6.24: Longer help text (especially the Skyshard positioning guide)
-    -- gets a wider panel instead of being squeezed into the old 360 px box.
-    -- Height is still calculated from the rendered text below, so translated
-    -- DE/EN/RU/FR/ES instructions can grow naturally without clipping.
+    -- Longer help texts get a wider panel; height always follows the text.
     local lineBreaks = 0
     for _ in string.gmatch(bodyText, "\n") do lineBreaks = lineBreaks + 1 end
-    local longHelp = #bodyText >= 170 or lineBreaks >= 3
-    local tooltipWidth = longHelp and 440 or 360
-    if tip.SetWidth then tip:SetWidth(tooltipWidth) end
-    if tip.TPMBody.SetHorizontalAlignment then
-        tip.TPMBody:SetHorizontalAlignment(longHelp and TEXT_ALIGN_LEFT or TEXT_ALIGN_CENTER)
-    end
-
-    tip.TPMTitle:SetText(titleText)
-    tip.TPMBody:SetText(bodyText)
-    tip.TPMBody:SetHidden(bodyText == "")
-
-    local titleHeight = 28
-    local bodyHeight = 0
-    if tip.TPMTitle.GetTextHeight then
-        titleHeight = math.max(28, math.ceil(tonumber(tip.TPMTitle:GetTextHeight()) or 28))
-    end
-    if bodyText ~= "" then
-        bodyHeight = 34
-        if tip.TPMBody.GetTextHeight then
-            bodyHeight = math.max(34, math.ceil(tonumber(tip.TPMBody:GetTextHeight()) or 34))
-        end
-    end
-    tip.TPMTitle:SetHeight(titleHeight)
-    tip.TPMBody:SetHeight(math.max(1, bodyHeight))
-    tip:SetHeight(12 + titleHeight + (bodyHeight > 0 and (8 + bodyHeight) or 0) + 12)
-
+    local width = (#bodyText >= 170 or lineBreaks >= 3) and 430 or 350
+    self:LayoutInfoTooltip(tip, width, {
+        { label = tip.TPMTitle, text = titleText, font = "$(BOLD_FONT)|17", size = 17, gap = 7 },
+        { label = tip.TPMBody, text = bodyText, font = "$(MEDIUM_FONT)|14", size = 14 },
+    })
     TPM_ArmStatisticsHoverTooltip(tip, sourceControl)
     self:AnchorStatisticsHoverTooltip(tip, 58)
 end
@@ -8903,6 +9277,8 @@ local function TPM_EnsureAchievementTooltip()
     bg:SetCenterColor(0.035, 0.031, 0.026, 0.985)
     bg:SetEdgeColor(0.92, 0.76, 0.14, 0.96)
     bg:SetEdgeTexture(nil, 1, 1, 1)
+    tip.TPMBg = bg
+    tip.TPMSkinSkipTree = true
 
     local title = WINDOW_MANAGER:CreateControl(nil, tip, CT_LABEL)
     title:SetAnchor(TOPLEFT, tip, TOPLEFT, 14, 12)
@@ -8943,29 +9319,11 @@ local function TPM_ShowAchievementTooltip(data, sourceControl)
     local tip = TPM_EnsureAchievementTooltip()
     if not tip then return end
     TPM:HideStatisticsHoverTooltips()
-
-    tip.TPMTitle:SetText(data.name or "")
-    tip.TPMPoints:SetText(TPM:L("STAT_ACHIEVEMENT_POINTS_TT", data.earned or 0, data.total or 0))
-    tip.TPMNote:SetText(TPM:L("STAT_ACHIEVEMENT_LANGUAGE_NOTE"))
-
-    -- Let long translated category names and notes grow instead of clipping.
-    local titleHeight = 28
-    local pointsHeight = 24
-    local noteHeight = 38
-    if tip.TPMTitle.GetTextHeight then
-        titleHeight = math.max(28, math.ceil(tonumber(tip.TPMTitle:GetTextHeight()) or 28))
-    end
-    if tip.TPMPoints.GetTextHeight then
-        pointsHeight = math.max(24, math.ceil(tonumber(tip.TPMPoints:GetTextHeight()) or 24))
-    end
-    if tip.TPMNote.GetTextHeight then
-        noteHeight = math.max(34, math.ceil(tonumber(tip.TPMNote:GetTextHeight()) or 38))
-    end
-    tip.TPMTitle:SetHeight(titleHeight)
-    tip.TPMPoints:SetHeight(pointsHeight)
-    tip.TPMNote:SetHeight(noteHeight)
-    tip:SetHeight(12 + titleHeight + 8 + pointsHeight + 8 + noteHeight + 12)
-
+    TPM:LayoutInfoTooltip(tip, 340, {
+        { label = tip.TPMTitle, text = data.name or "", font = "$(BOLD_FONT)|17", size = 17, gap = 6 },
+        { label = tip.TPMPoints, text = TPM:L("STAT_ACHIEVEMENT_POINTS_TT", data.earned or 0, data.total or 0), font = "$(BOLD_FONT)|15", size = 15, gap = 8 },
+        { label = tip.TPMNote, text = TPM:L("STAT_ACHIEVEMENT_LANGUAGE_NOTE"), font = "$(MEDIUM_FONT)|12", size = 12 },
+    })
     -- Always place achievement details beside the journal, aligned near its
     -- upper-right corner rather than attaching them to an individual row.
     TPM_ArmStatisticsHoverTooltip(tip, sourceControl)
@@ -9217,12 +9575,14 @@ function TPM:CreateStatisticsZoneRow(parent, index)
             if TPM:IsStatisticsDarkDesign() then control.bg:SetCenterColor(0,0,0,0.44)
             else control.bg:SetCenterColor(0.16, 0.125, 0.050, 0.86) end
         end
+        TPM:SkinHover(control, true)
     end)
     row:SetHandler("OnMouseExit", function(control)
         if control.bg then
             if TPM:IsStatisticsDarkDesign() then control.bg:SetCenterColor(0,0,0,0.18)
             else control.bg:SetCenterColor(control.baseR or 0.035, control.baseG or 0.031, control.baseB or 0.024, control.baseAlpha or 0.34) end
         end
+        TPM:SkinHover(control, false)
     end)
     row:SetHandler("OnMouseWheel", function(_, delta)
         TPM:ScrollStatistics(delta)
@@ -9353,6 +9713,10 @@ function TPM:ApplyThemedValueCard(card, options)
         control.TPMMonogram:SetHidden(false)
     end
 
+    -- 2.8.0 skin roles: titles follow the text token, values the value token.
+    if card.title then card.title.TPMSkinRole = "text" end
+    if card.value then card.value.TPMSkinRole = "value" end
+    if card.detail then card.detail.TPMSkinRole = "muted" end
     if card.title then
         card.title:ClearAnchors()
         card.title:SetDimensions(titleWidth, 20)
@@ -9575,6 +9939,10 @@ function TPM:CreatePlayerStatisticsPage(control)
     }
     for _, card in pairs(self.statisticsCharacterCards) do
         self:ApplyThemedValueCard(card, { accentColor={.90,.68,.18}, hideIcon=true, leftTextX=14 })
+        -- 2.8.0: quiet label, strong value; value font follows the design.
+        card.title:SetFont("$(MEDIUM_FONT)|15")
+        card.title.TPMSkinRole = "muted"
+        self:RegisterSkinValueFont(card.value, 29)
     end
     if self.statisticsCharacterCards.location then self.statisticsCharacterCards.location.value:SetFont("$(BOLD_FONT)|18") end
 
@@ -9622,8 +9990,9 @@ function TPM:CreatePlayerStatisticsPage(control)
     local function CreateDailyHeader(width, x, align)
         local label = WINDOW_MANAGER:CreateControl(nil, header, CT_LABEL)
         label:SetDimensions(width, 22); label:SetAnchor(TOPLEFT, header, TOPLEFT, x, 0)
-        label:SetFont("$(BOLD_FONT)|13"); label:SetColor(.72,.68,.59,1)
+        label:SetFont("$(BOLD_FONT)|14"); label:SetColor(.72,.68,.59,1)
         label:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT); label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        label.TPMSkinRole = "muted"
         return label
     end
     self.statisticsCharacterDailyHeaders = {
@@ -9637,11 +10006,15 @@ function TPM:CreatePlayerStatisticsPage(control)
     for i=1,7 do
         local row = WINDOW_MANAGER:CreateControl(nil, dailyBox, CT_CONTROL)
         row:SetDimensions(900,22); row:SetAnchor(TOPLEFT,dailyBox,TOPLEFT,16,28+(i-1)*22)
+        -- 2.8.0: zebra stripe for readability (recolored by the active design).
+        local stripe=WINDOW_MANAGER:CreateControl(nil,row,CT_BACKDROP)
+        stripe:SetAnchor(TOPLEFT,row,TOPLEFT,-8,0); stripe:SetAnchor(BOTTOMRIGHT,row,BOTTOMRIGHT,8,0)
+        stripe:SetCenterColor(.035,.031,.024,(i%2==0) and .55 or 0); stripe:SetEdgeColor(0,0,0,0); stripe:SetEdgeTexture(nil,1,1,1)
         local date=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL); date:SetDimensions(250,22); date:SetAnchor(TOPLEFT,row,TOPLEFT,0,0); date:SetFont("$(BOLD_FONT)|15"); date:SetColor(.82,.78,.68,1); date:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         local playtime=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL); playtime:SetDimensions(250,22); playtime:SetAnchor(TOPLEFT,row,TOPLEFT,254,0); playtime:SetFont("$(MEDIUM_FONT)|15"); playtime:SetColor(.93,.86,.70,1); playtime:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         local kills=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL); kills:SetDimensions(170,22); kills:SetAnchor(TOPLEFT,row,TOPLEFT,508,0); kills:SetFont("$(MEDIUM_FONT)|15"); kills:SetColor(.93,.86,.70,1); kills:SetHorizontalAlignment(TEXT_ALIGN_CENTER); kills:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         local bosses=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL); bosses:SetDimensions(170,22); bosses:SetAnchor(TOPLEFT,row,TOPLEFT,682,0); bosses:SetFont("$(MEDIUM_FONT)|15"); bosses:SetColor(.93,.86,.70,1); bosses:SetHorizontalAlignment(TEXT_ALIGN_CENTER); bosses:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-        self.statisticsCharacterDailyRows[i]={control=row,date=date,playtime=playtime,kills=kills,bosses=bosses}
+        self.statisticsCharacterDailyRows[i]={control=row,date=date,playtime=playtime,kills=kills,bosses=bosses,stripe=stripe}
     end
 
     local insightBox=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
@@ -9650,7 +10023,7 @@ function TPM:CreatePlayerStatisticsPage(control)
     local keys={"bestDay","longest","streak","comparison","favoriteZone"}
     local widths={178,178,154,190,204}; local x=8
     for i,key in ipairs(keys) do
-        local label=WINDOW_MANAGER:CreateControl(nil,insightBox,CT_LABEL); label:SetDimensions(widths[i],46); label:SetAnchor(TOPLEFT,insightBox,TOPLEFT,x,3); label:SetFont("$(MEDIUM_FONT)|13"); label:SetColor(.86,.81,.70,1); label:SetVerticalAlignment(TEXT_ALIGN_CENTER); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        local label=WINDOW_MANAGER:CreateControl(nil,insightBox,CT_LABEL); label:SetDimensions(widths[i],46); label:SetAnchor(TOPLEFT,insightBox,TOPLEFT,x,3); label:SetFont("$(MEDIUM_FONT)|14"); label:SetColor(.86,.81,.70,1); label:SetVerticalAlignment(TEXT_ALIGN_CENTER); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         self.statisticsCharacterInsights[key]=label; x=x+widths[i]+4
     end
 end
@@ -9703,7 +10076,8 @@ end
 function TPM:GetCharacterLongestSessionSince(cutoffTimestamp)
     local store=self:GetHistoryStore(); local best=0
     for _,session in ipairs(store and store.sessions or {}) do
-        if type(session)=="table" and (tonumber(session.endedAt) or 0)>=(tonumber(cutoffTimestamp) or 0) then best=math.max(best,tonumber(session.duration) or 0) end
+        local duration=type(session)=="table" and tonumber(session.duration) or 0
+        if type(session)=="table" and (tonumber(session.endedAt) or 0)>=(tonumber(cutoffTimestamp) or 0) and duration<=72000 then best=math.max(best,duration) end
     end
     local active=store and store.activeSession
     if type(active)=="table" then local endAt=active.segmentStartedAt and TPM_Now() or active.lastSeenAt; best=math.max(best,self:GetHistoryActiveElapsed(active,endAt)) end
@@ -9737,7 +10111,7 @@ end
 
 function TPM:RefreshPlayerStatisticsPage()
     if not self.statisticsPlayerPage or self.statisticsPlayerPage:IsHidden() then return end
-    self:CheckpointHistory("character_view", false)
+    self:CheckpointHistoryThrottled("character_view", 15000)
     self:RefreshCombatProgressionBars()
 
     local progress=self:GetPlayerProgressData(); local characterName=type(GetUnitName)=="function" and (GetUnitName("player") or "") or ""
@@ -9771,7 +10145,8 @@ function TPM:RefreshPlayerStatisticsPage()
     for _,row in ipairs(rangeRows) do
         rangeTotal=rangeTotal+(row.seconds or 0); if (row.seconds or 0)>0 then activeDays=activeDays+1 end
         if (row.seconds or 0)>maxDay then maxDay=row.seconds or 0; bestRow=row end
-        dailyLongest=math.max(dailyLongest,tonumber(row.longestSessionSeconds) or 0)
+        local rowLongest=tonumber(row.longestSessionSeconds) or 0
+        if rowLongest<=72000 then dailyLongest=math.max(dailyLongest,rowLongest) end
         for _,z in pairs(row.zones or {}) do if type(z)=="table" then local key=tostring(z.zoneId or z.zoneName or ""); local dst=zones[key] or {seconds=0,name=tostring(z.zoneName or "")}; dst.seconds=dst.seconds+math.max(0,tonumber(z.seconds) or 0); if tostring(z.zoneName or "")~="" then dst.name=tostring(z.zoneName) end; zones[key]=dst end end
     end
     local avg=activeDays>0 and rangeTotal/activeDays or 0; local zone=""; if type(GetUnitZone)=="function" then zone=GetUnitZone("player") or "" end
@@ -9810,6 +10185,7 @@ function TPM:RefreshPlayerStatisticsPage()
             rowControl.control:SetHidden(false)
             local dateText=data.today and self:L("STAT_CHARACTER_TODAY_LABEL") or TPM_GetLocalizedCharacterDateText(data.timestamp,self.langCode,data.utcOffset)
             rowControl.date:SetText(dateText)
+            rowControl.isToday=data.today==true
             if not data.hasData then
                 rowControl.playtime:SetText(self:L("STAT_CHARACTER_NO_HISTORY_SHORT"))
                 rowControl.kills:SetText("—")
@@ -9840,186 +10216,277 @@ function TPM:RefreshPlayerStatisticsPage()
     self:EnforceStatisticsDarkModeAfterRefresh()
 end
 
-function TPM:CreateEconomyCurrencyCard(parent, name, x, y, width)
-    local card = WINDOW_MANAGER:CreateControl(name, parent, CT_BACKDROP)
-    card:SetDimensions(width, 60)
-    card:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
-    card:SetCenterColor(0.022, 0.021, 0.019, 0.99)
-    card:SetEdgeColor(0.20, 0.18, 0.14, 0.72)
-    card:SetEdgeTexture(nil, 1, 1, 1)
-    card:SetMouseEnabled(false)
+-- 2.8.0 Economy dashboard -------------------------------------------------------
+-- Gold summary on top, every other currency in an even 3x4 grid (the 12th tile
+-- explains the +/- values). Everything inside is painted explicitly from the
+-- active design (TPM:ApplySkinEconomyPage), so the generic skin walk skips it.
+local TPM_ECON_GRID_ORDER =
+{
+    "alliancePoints", "telVar", "writVouchers",
+    "transmute", "undauntedKeys", "seals",
+    "archivalFortunes", "tomePoints", "tradeBars",
+    "crowns", "crownGems",
+}
+local TPM_ECON_GOLD_COLOR = { 0.95, 0.78, 0.16 }
 
-    local accent = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
-    accent:SetDimensions(3, 58)
-    accent:SetAnchor(LEFT, card, LEFT, 0, 0)
-    accent:SetCenterColor(0.86, 0.66, 0.18, 0.90)
-    accent:SetEdgeColor(0, 0, 0, 0)
-
-    local iconBack = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
-    iconBack:SetDimensions(50, 50)
-    iconBack:SetAnchor(LEFT, card, LEFT, 9, 0)
-    iconBack:SetCenterColor(0.035, 0.032, 0.026, 0.98)
-    iconBack:SetEdgeColor(0.50, 0.40, 0.18, 0.72)
-    iconBack:SetEdgeTexture(nil, 1, 1, 1)
-
-    local icon = WINDOW_MANAGER:CreateControl(nil, iconBack, CT_TEXTURE)
-    icon:SetDimensions(44, 44)
-    icon:SetAnchor(CENTER, iconBack, CENTER, 0, 0)
-
-    local title = WINDOW_MANAGER:CreateControl(name .. "Title", card, CT_LABEL)
-    title:SetDimensions(width - 82, 20)
-    title:SetAnchor(TOPLEFT, card, TOPLEFT, 70, 5)
-    title:SetFont("$(BOLD_FONT)|16")
-    title:SetColor(0.90, 0.77, 0.34, 1)
-    title:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    title:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-    local line = WINDOW_MANAGER:CreateControl(name .. "Line", card, CT_LABEL)
-    line:SetDimensions(width - 82, 18)
-    line:SetAnchor(TOPLEFT, card, TOPLEFT, 70, 24)
-    line:SetFont("$(MEDIUM_FONT)|14")
-    line:SetColor(0.80, 0.77, 0.70, 1)
-    line:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    line:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-    local detail = WINDOW_MANAGER:CreateControl(name .. "Detail", card, CT_LABEL)
-    detail:SetDimensions(width - 82, 15)
-    detail:SetAnchor(TOPLEFT, card, TOPLEFT, 70, 42)
-    detail:SetFont("$(MEDIUM_FONT)|12")
-    detail:SetColor(0.70, 0.68, 0.62, 1)
-    detail:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    detail:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-    return {
-        control = card,
-        accent = accent,
-        iconBack = iconBack,
-        icon = icon,
-        title = title,
-        line = line,
-        detail = detail,
-        isGoldCard = false,
-    }
+local function TPM_EconLabel(parent, x, y, w, h, font, align)
+    local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+    label:SetDimensions(w, h)
+    label:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
+    label:SetFont(font)
+    label:SetColor(1, 1, 1, 1)
+    label:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    if label.SetWrapMode and TEXT_WRAP_MODE_ELLIPSIS then label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+    label:SetMouseEnabled(false)
+    return label
 end
 
-function TPM:CreateEconomyGoldCard(parent, name, x, y, width)
-    local card = WINDOW_MANAGER:CreateControl(name, parent, CT_BACKDROP)
-    card:SetDimensions(width, 132)
-    card:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
-    card:SetCenterColor(0.060, 0.046, 0.018, 0.995)
-    card:SetEdgeColor(0.82, 0.62, 0.14, 0.92)
-    card:SetEdgeTexture(nil, 1, 1, 1)
+local function TPM_EconBox(parent, x, y, w, h)
+    local box = WINDOW_MANAGER:CreateControl(nil, parent, CT_BACKDROP)
+    box:SetDimensions(w, h)
+    box:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
+    box:SetEdgeTexture(nil, 1, 1, 1)
+    box:SetCenterColor(0, 0, 0, 0)
+    box:SetEdgeColor(0, 0, 0, 0)
+    box:SetMouseEnabled(false)
+    return box
+end
+
+local function TPM_EconSigned(value, sign)
+    value = math.max(0, Round(tonumber(value) or 0))
+    if value <= 0 then return "—" end
+    return sign .. FormatNumber(value)
+end
+
+-- ESO's loot icons are the 64 px versions of the currency artwork; the
+-- regular inline icons are 32 px and turn soft when they are enlarged.
+local function TPM_EconSharpIcon(currencyType)
+    if type(currencyType) ~= "number" then return nil end
+    for _, getter in ipairs({ _G.GetCurrencyLootKeyboardIcon, _G.GetCurrencyLootGamepadIcon, _G.GetCurrencyGamepadIcon }) do
+        if type(getter) == "function" then
+            local ok, path = pcall(getter, currencyType)
+            if ok and type(path) == "string" and path ~= "" and path ~= _G.ZO_NO_TEXTURE_FILE then return path end
+        end
+    end
+    return nil
+end
+
+function TPM:CreateEconomyCurrencyTile(parent, x, y, w, h)
+    local card = TPM_EconBox(parent, x, y, w, h)
     card:SetMouseEnabled(true)
+    local tile = { control = card }
+    tile.stripe = TPM_EconBox(card, 0, 0, 3, h)
+    tile.icon = WINDOW_MANAGER:CreateControl(nil, card, CT_TEXTURE)
+    tile.icon:SetDimensions(48, 48)
+    tile.icon:SetAnchor(TOPLEFT, card, TOPLEFT, 14, math.floor((h - 48) / 2))
+    tile.name = TPM_EconLabel(card, 74, 9, w - 86, 20, "$(BOLD_FONT)|15")
+    tile.value = TPM_EconLabel(card, 74, 30, w - 190, 30, "$(BOLD_FONT)|23")
+    self:RegisterSkinValueFont(tile.value, 26)
+    tile.sub = TPM_EconLabel(card, 74, 61, w - 86, 16, "$(MEDIUM_FONT)|12")
+    tile.received = TPM_EconLabel(card, w - 114, 32, 102, 16, "$(BOLD_FONT)|13", TEXT_ALIGN_RIGHT)
+    tile.spent = TPM_EconLabel(card, w - 114, 48, 102, 15, "$(BOLD_FONT)|13", TEXT_ALIGN_RIGHT)
 
-    local topBand = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
-    topBand:SetDimensions(width - 2, 2)
-    topBand:SetAnchor(TOPLEFT, card, TOPLEFT, 1, 1)
-    topBand:SetCenterColor(0.95, 0.76, 0.16, 0.82)
-    topBand:SetEdgeColor(0, 0, 0, 0)
+    card:SetHandler("OnMouseEnter", function(control)
+        tile.hover = true
+        TPM:PaintEconomyTile(tile)
+        if tile.tooltipTitle then TPM:ShowStatisticsHoverTooltip(tile.tooltipTitle, tile.tooltipBody or "", control) end
+    end)
+    card:SetHandler("OnMouseExit", function()
+        tile.hover = false
+        TPM:PaintEconomyTile(tile)
+        TPM:HideStatisticsHoverTooltips()
+    end)
+    return tile
+end
 
-    local iconBack = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
-    iconBack:SetDimensions(78, 78)
-    iconBack:SetAnchor(LEFT, card, LEFT, 28, 0)
-    iconBack:SetCenterColor(0.095, 0.068, 0.018, 0.99)
-    iconBack:SetEdgeColor(0.92, 0.72, 0.18, 0.88)
-    iconBack:SetEdgeTexture(nil, 1, 1, 1)
+function TPM:CreateEconomyLegendTile(parent, x, y, w, h)
+    local card = TPM_EconBox(parent, x, y, w, h)
+    local tile = { control = card, isLegend = true }
+    tile.stripe = TPM_EconBox(card, 0, 0, 3, h)
+    tile.badge = TPM_EconBox(card, 22, math.floor((h - 32) / 2), 32, 32)
+    tile.badgeText = TPM_EconLabel(tile.badge, 0, 0, 32, 32, "$(BOLD_FONT)|18", TEXT_ALIGN_CENTER)
+    tile.badgeText:SetText("i")
+    tile.name = TPM_EconLabel(card, 74, 9, w - 86, 20, "$(BOLD_FONT)|15")
+    tile.line1 = TPM_EconLabel(card, 74, 34, w - 86, 18, "$(BOLD_FONT)|14")
+    tile.line2 = TPM_EconLabel(card, 74, 56, w - 86, 18, "$(MEDIUM_FONT)|12")
+    return tile
+end
 
-    local icon = WINDOW_MANAGER:CreateControl(nil, iconBack, CT_TEXTURE)
-    icon:SetDimensions(70, 70)
-    icon:SetAnchor(CENTER, iconBack, CENTER, 0, 0)
+function TPM:CreateEconomyDashboard(page)
+    local root = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "EconomyDashboard", page, CT_CONTROL)
+    root:SetAnchor(TOPLEFT, page, TOPLEFT, 0, 0)
+    root:SetAnchor(BOTTOMRIGHT, page, BOTTOMRIGHT, 0, 0)
+    root:SetMouseEnabled(false)
+    root.TPMSkinSkipTree = true
+    self.statisticsEconomyDashboard = root
 
-    local title = WINDOW_MANAGER:CreateControl(name .. "Title", card, CT_LABEL)
-    title:SetDimensions(740, 28)
-    title:SetAnchor(TOPLEFT, card, TOPLEFT, 142, 8)
-    title:SetFont("$(BOLD_FONT)|23")
-    title:SetColor(1.00, 0.88, 0.28, 1)
-    title:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    title:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    -- Gold summary -----------------------------------------------------------------
+    local hero = {}
+    hero.control = TPM_EconBox(root, 20, 48, 914, 176)
+    local h = hero.control
+    hero.stripe = TPM_EconBox(h, 0, 0, 3, 176)
+    hero.icon = WINDOW_MANAGER:CreateControl(nil, h, CT_TEXTURE)
+    hero.icon:SetDimensions(64, 64)
+    hero.icon:SetAnchor(TOPLEFT, h, TOPLEFT, 22, 24)
+    hero.title = TPM_EconLabel(h, 104, 14, 340, 22, "$(BOLD_FONT)|18")
+    hero.total = TPM_EconLabel(h, 104, 36, 350, 46, "$(BOLD_FONT)|35")
+    self:RegisterSkinValueFont(hero.total, 40)
+    hero.cashLabel = TPM_EconLabel(h, 104, 90, 150, 18, "$(MEDIUM_FONT)|13")
+    hero.cashValue = TPM_EconLabel(h, 104, 108, 150, 24, "$(BOLD_FONT)|18")
+    hero.bankLabel = TPM_EconLabel(h, 270, 90, 180, 18, "$(MEDIUM_FONT)|13")
+    hero.bankValue = TPM_EconLabel(h, 270, 108, 180, 24, "$(BOLD_FONT)|18")
+    hero.divider = TPM_EconBox(h, 470, 16, 1, 112)
 
-    local function CreateTopMetric(key, xPos)
-        local label = WINDOW_MANAGER:CreateControl(nil, card, CT_LABEL)
-        label:SetDimensions(190, 18)
-        label:SetAnchor(TOPLEFT, card, TOPLEFT, xPos, 39)
-        label:SetFont("$(MEDIUM_FONT)|13")
-        label:SetColor(0.78, 0.72, 0.58, 1)
-        label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-        local value = WINDOW_MANAGER:CreateControl(nil, card, CT_LABEL)
-        value:SetDimensions(190, 26)
-        value:SetAnchor(TOPLEFT, card, TOPLEFT, xPos, 55)
-        value:SetFont("$(ANTIQUE_FONT)|24")
-        value:SetColor(0.96, 0.84, 0.38, 1)
-        value:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        value:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-        return { label = label, value = value }
+    hero.flows = {}
+    for index = 1, 3 do
+        local x = 490 + (index - 1) * 140
+        hero.flows[index] = {
+            label = TPM_EconLabel(h, x, 16, 134, 18, "$(MEDIUM_FONT)|13"),
+            value = TPM_EconLabel(h, x, 36, 134, 34, index == 3 and "$(BOLD_FONT)|26" or "$(BOLD_FONT)|21"),
+        }
     end
+    self:RegisterSkinValueFont(hero.flows[3].value, 30)
+    hero.period = TPM_EconLabel(h, 490, 82, 410, 18, "$(MEDIUM_FONT)|12")
 
-    local cash = CreateTopMetric("cash", 142)
-    local bank = CreateTopMetric("bank", 390)
-    local total = CreateTopMetric("total", 638)
-
-    for _, xPos in ipairs({ 370, 618 }) do
-        local divider = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
-        divider:SetDimensions(1, 42)
-        divider:SetAnchor(TOPLEFT, card, TOPLEFT, xPos, 38)
-        divider:SetCenterColor(0.44, 0.32, 0.10, 0.68)
-        divider:SetEdgeColor(0, 0, 0, 0)
+    hero.rule = TPM_EconBox(h, 16, 138, 882, 1)
+    hero.extras = {}
+    for index = 1, 3 do
+        local x = 24 + (index - 1) * 296
+        hero.extras[index] = {
+            label = TPM_EconLabel(h, x, 146, 170, 22, "$(MEDIUM_FONT)|14"),
+            value = TPM_EconLabel(h, x + 150, 146, 126, 22, "$(BOLD_FONT)|15", TEXT_ALIGN_RIGHT),
+        }
     end
+    self.statisticsEconomyHero = hero
 
-    local midDivider = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
-    midDivider:SetDimensions(width - 158, 1)
-    midDivider:SetAnchor(TOPLEFT, card, TOPLEFT, 142, 84)
-    midDivider:SetCenterColor(0.62, 0.46, 0.12, 0.72)
-    midDivider:SetEdgeColor(0, 0, 0, 0)
-    midDivider:SetHidden(false)
-
-    local function CreateBottomMetric(xPos, valueColor)
-        local label = WINDOW_MANAGER:CreateControl(nil, card, CT_LABEL)
-        label:SetDimensions(142, 16)
-        label:SetAnchor(TOPLEFT, card, TOPLEFT, xPos, 91)
-        label:SetFont("$(MEDIUM_FONT)|12")
-        label:SetColor(0.76, 0.71, 0.61, 1)
-        label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-        local value = WINDOW_MANAGER:CreateControl(nil, card, CT_LABEL)
-        value:SetDimensions(142, 20)
-        value:SetAnchor(TOPLEFT, card, TOPLEFT, xPos, 106)
-        value:SetFont("$(BOLD_FONT)|14")
-        value:SetColor(valueColor[1], valueColor[2], valueColor[3], 1)
-        value:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        value:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-        return { label = label, value = value }
+    -- Currency grid: 3 columns x 4 rows; tile 12 explains the values. ----------------
+    self.statisticsEconomyTiles = {}
+    local tileW, tileH, gapX, gapY = 296, 84, 13, 10
+    for index = 1, 12 do
+        local column = (index - 1) % 3
+        local row = math.floor((index - 1) / 3)
+        local x, y = 20 + column * (tileW + gapX), 238 + row * (tileH + gapY)
+        local tile
+        if index == 12 then
+            tile = self:CreateEconomyLegendTile(root, x, y, tileW, tileH)
+        else
+            tile = self:CreateEconomyCurrencyTile(root, x, y, tileW, tileH)
+            tile.key = TPM_ECON_GRID_ORDER[index]
+        end
+        self.statisticsEconomyTiles[index] = tile
     end
+end
 
-    -- Five compact ledger subtotals fit across the promoted Gold card.
-    -- Bounty paid is a Justice subset of Spent, not additional spending.
-    local received = CreateBottomMetric(142, { 0.48, 0.92, 0.40 })
-    local spent = CreateBottomMetric(292, { 0.94, 0.52, 0.32 })
-    local fence = CreateBottomMetric(442, { 0.86, 0.70, 0.30 })
-    local stolen = CreateBottomMetric(592, { 0.96, 0.60, 0.32 })
-    local bounty = CreateBottomMetric(742, { 0.94, 0.72, 0.28 })
-    for _, metric in ipairs({ received, spent, fence, stolen, bounty }) do
-        metric.label:SetHidden(false)
-        metric.value:SetHidden(false)
+function TPM:RefreshEconomyDashboard(stats, definitions, focusZoneId, zoneAggregate)
+    local hero = self.statisticsEconomyHero
+    if not hero then return end
+    local byKey = {}
+    for _, definition in ipairs(definitions or {}) do byKey[definition.key] = definition end
+
+    -- Gold ----------------------------------------------------------------------------
+    local goldDef = byKey.gold
+    local goldAmounts = self:GetEconomyCurrentAmounts(goldDef)
+    local goldEntry = (stats.currencies and goldDef and stats.currencies[goldDef.key]) or {}
+    local function goldField(field)
+        if focusZoneId == 0 then return tonumber(goldEntry[field]) or 0 end
+        return tonumber(zoneAggregate and zoneAggregate[field]) or 0
     end
+    local goldIcon = goldDef and TPM_EconSharpIcon(goldDef.currencyType) or nil
+    if not goldIcon then goldIcon = self:GetEconomyCardVisual(goldDef).texture end
+    if goldIcon and hero.iconPath ~= goldIcon then hero.icon:SetTexture(goldIcon); hero.iconPath = goldIcon end
+    TPM_SetTextIfChanged(hero.title, goldDef and self:GetEconomyCurrencyName(goldDef) or "Gold")
+    TPM_SetTextIfChanged(hero.total, FormatNumber(goldAmounts.total))
+    TPM_SetTextIfChanged(hero.cashLabel, self:L("STAT_ECONOMY_LABEL_CASH"))
+    TPM_SetTextIfChanged(hero.cashValue, FormatNumber(goldAmounts.character))
+    TPM_SetTextIfChanged(hero.bankLabel, self:L("STAT_ECONOMY_LABEL_BANK"))
+    TPM_SetTextIfChanged(hero.bankValue, FormatNumber(goldAmounts.bank))
 
-    return {
-        control = card,
-        iconBack = iconBack,
-        icon = icon,
-        title = title,
-        cash = cash,
-        bank = bank,
-        total = total,
-        received = received,
-        spent = spent,
-        fence = fence,
-        stolen = stolen,
-        bounty = bounty,
-        isGoldCard = true,
+    local received, spent = goldField("received"), goldField("spent")
+    local net = received - spent
+    local flows = {
+        { "STAT_ECONOMY_LABEL_RECEIVED", TPM_EconSigned(received, "+"), received > 0 and "success" or "muted" },
+        { "STAT_ECONOMY_LABEL_SPENT", TPM_EconSigned(spent, "-"), spent > 0 and "spent" or "muted" },
+        { "STAT_ECON_NET", net == 0 and "0" or ((net > 0 and "+" or "-") .. FormatNumber(math.abs(net))), net > 0 and "success" or (net < 0 and "spent" or "muted") },
     }
+    for index, flow in ipairs(flows) do
+        local slot = hero.flows[index]
+        TPM_SetTextIfChanged(slot.label, self:L(flow[1]))
+        TPM_SetTextIfChanged(slot.value, flow[2])
+        slot.tone = flow[3]
+    end
+    local period = self:L("STAT_ECON_PERIOD")
+    if focusZoneId ~= 0 then period = period .. "  •  " .. self:GetEconomyZoneName(focusZoneId) end
+    TPM_SetTextIfChanged(hero.period, period)
+
+    local extras = {
+        { "STAT_ECONOMY_FENCE_SHORT", goldField("fenceSales"), "+" },
+        { "STAT_ECONOMY_STOLEN_SHORT", goldField("stolenGold"), "+" },
+        { "STAT_ECONOMY_BOUNTY_PAID_SHORT", goldField("bountyPaid"), "-" },
+    }
+    for index, item in ipairs(extras) do
+        local slot = hero.extras[index]
+        TPM_SetTextIfChanged(slot.label, self:L(item[1]))
+        TPM_SetTextIfChanged(slot.value, TPM_EconSigned(item[2], item[3]))
+        slot.amount, slot.sign = math.max(0, Round(item[2])), item[3]
+    end
+
+    -- Currency tiles ------------------------------------------------------------------
+    for _, tile in ipairs(self.statisticsEconomyTiles or {}) do
+        if tile.isLegend then
+            TPM_SetTextIfChanged(tile.name, self:L("STAT_ECON_LEGEND"))
+            TPM_SetTextIfChanged(tile.line2, self:L("STAT_ECON_PERIOD"))
+        else
+            local definition = tile.key and byKey[tile.key] or nil
+            tile.control:SetHidden(definition == nil)
+            if definition then
+                local entry = (stats.currencies and stats.currencies[definition.key]) or {}
+                local amounts = self:GetEconomyCurrentAmounts(definition)
+                local visual = self:GetEconomyCardVisual(definition)
+                local name = self:GetEconomyCurrencyName(definition)
+                tile.accentColor = visual.accent or TPM_ECON_GOLD_COLOR
+                tile.zero = (tonumber(amounts.current) or 0) <= 0
+                local iconPath = TPM_EconSharpIcon(definition.currencyType) or visual.texture
+                if iconPath and iconPath ~= "" then
+                    if tile.iconPath ~= iconPath then tile.icon:SetTexture(iconPath); tile.iconPath = iconPath end
+                    tile.icon:SetHidden(false)
+                else
+                    tile.icon:SetHidden(true)
+                end
+                TPM_SetTextIfChanged(tile.name, name)
+                TPM_SetTextIfChanged(tile.value, FormatNumber(amounts.current))
+                local sub, body
+                if self:IsEconomyCurrencyBankable(definition) then
+                    sub = string.format("%s %s  •  %s %s", self:L("STAT_ECONOMY_LABEL_CHARACTER"), FormatNumber(amounts.character),
+                        self:L("STAT_ECONOMY_LABEL_BANK"), FormatNumber(amounts.bank))
+                    body = string.format("%s: %s\n%s: %s\n%s: %s", self:L("STAT_ECONOMY_LABEL_CHARACTER"), FormatNumber(amounts.character),
+                        self:L("STAT_ECONOMY_LABEL_BANK"), FormatNumber(amounts.bank), self:L("STAT_ECONOMY_LABEL_TOTAL"), FormatNumber(amounts.total))
+                else
+                    local label = self:L("STAT_ECONOMY_LABEL_CURRENT")
+                    if type(_G.CURRENCY_LOCATION_ACCOUNT) == "number" and self:GetEconomyPrimaryLocation(definition) == _G.CURRENCY_LOCATION_ACCOUNT then
+                        label = self:L("STAT_ECONOMY_LABEL_ACCOUNT")
+                    end
+                    sub = label
+                    body = string.format("%s: %s", label, FormatNumber(amounts.current))
+                end
+                local gained, used = math.max(0, Round(tonumber(entry.received) or 0)), math.max(0, Round(tonumber(entry.spent) or 0))
+                body = body .. string.format("\n\n%s\n%s: +%s\n%s: -%s", self:L("STAT_ECON_PERIOD"), self:L("STAT_ECONOMY_LABEL_RECEIVED"), FormatNumber(gained),
+                    self:L("STAT_ECONOMY_LABEL_SPENT"), FormatNumber(used))
+                TPM_SetTextIfChanged(tile.sub, sub)
+                tile.receivedAmount, tile.spentAmount = gained, used
+                if gained == 0 and used == 0 then
+                    TPM_SetTextIfChanged(tile.received, "—")
+                    TPM_SetTextIfChanged(tile.spent, "")
+                else
+                    -- Only the side that actually moved is shown.
+                    TPM_SetTextIfChanged(tile.received, gained > 0 and ("+" .. FormatNumber(gained)) or "")
+                    TPM_SetTextIfChanged(tile.spent, used > 0 and ("-" .. FormatNumber(used)) or "")
+                end
+                tile.tooltipTitle, tile.tooltipBody = name, body
+            end
+        end
+    end
+    self:ApplySkinEconomyPage(self.statisticsActiveSkin or self:GetActiveSkin())
 end
 
 
@@ -10166,95 +10633,44 @@ function TPM:GetEconomyFocusDropdownChoices()
     return result
 end
 
-function TPM:RefreshEconomyFocusDropdown()
-    local dropdown=self.economyFocusDropdown
-    if not dropdown then return end
-    local choices=self:GetEconomyFocusDropdownChoices()
-    self.economyFocusDropdownChoices=choices
-
-    local visibleRows=9
-    local maxOffset=math.max(1,#choices-visibleRows+1)
-    self.economyFocusDropdownOffset=Clamp(tonumber(self.economyFocusDropdownOffset) or 1,1,maxOffset)
-    local selectedId=tonumber(self.saved and self.saved.economyDetailFocusZoneId) or 0
-
-    for i,row in ipairs(self.economyFocusDropdownRows or {}) do
-        local choice=choices[self.economyFocusDropdownOffset+i-1]
-        if choice then
-            row.zoneId=choice.zoneId
-            if row.rowText then row.rowText:SetText(tostring(choice.name or "")) end
-            row:SetHidden(false)
-            if row.rowBack then row.rowBack:SetHidden(false) end
-
-            local selected=tonumber(choice.zoneId) == selectedId
-            if self:IsStatisticsDarkDesign() then
-                if row.rowBack then row.rowBack:SetCenterColor(0,0,0,selected and .44 or .24); row.rowBack:SetEdgeColor(1,1,1,selected and .40 or .18) end
-                if row.rowText then row.rowText:SetColor(1,1,1,1) end
-            else
-                if row.rowBack then
-                    if selected then
-                        row.rowBack:SetCenterColor(0.080,0.060,0.020,0.98)
-                        row.rowBack:SetEdgeColor(0.92,0.72,0.20,0.95)
-                    else
-                        row.rowBack:SetCenterColor(0.018,0.016,0.012,0.94)
-                        row.rowBack:SetEdgeColor(0.18,0.15,0.09,0.75)
-                    end
-                end
-                if row.rowText then row.rowText:SetColor(selected and 1.00 or 0.86, selected and 0.84 or 0.82, selected and 0.30 or 0.72, 1) end
-            end
+function TPM:GetEconomyFocusSplitChoices()
+    local pinned, listed = {}, {}
+    local currentId = self:GetEconomyTrackingZoneId() or 0
+    for index, choice in ipairs(self:GetEconomyFocusDropdownChoices()) do
+        if index == 1 or (index == 2 and currentId > 0 and choice.zoneId == currentId) then
+            pinned[#pinned + 1] = choice
         else
-            row.zoneId=nil
-            if row.rowText then row.rowText:SetText("") end
-            row:SetHidden(true)
-            if row.rowBack then row.rowBack:SetHidden(true) end
+            listed[#listed + 1] = choice
         end
     end
+    return pinned, listed
+end
 
-    -- Thumb size and position reflect the visible fraction/list offset.
-    if self.economyFocusScrollThumb and self.economyFocusScrollRail then
-        local railH=236
-        local fraction=math.min(1, visibleRows / math.max(visibleRows,#choices))
-        local thumbH=math.max(32, math.floor(railH*fraction))
-        self.economyFocusScrollThumb:SetHeight(thumbH)
-        local travel=math.max(0,railH-thumbH)
-        local ratio=(maxOffset<=1) and 0 or ((self.economyFocusDropdownOffset-1)/(maxOffset-1))
-        self.economyFocusScrollThumb:ClearAnchors()
-        self.economyFocusScrollThumb:SetAnchor(TOP, self.economyFocusScrollRail, TOP, 0, 1 + math.floor(travel*ratio))
-        self.economyFocusScrollRail:SetHidden(#choices<=visibleRows)
-        self.economyFocusScrollThumb:SetHidden(#choices<=visibleRows)
-    end
+function TPM:RefreshEconomyFocusDropdown()
+    local ctx = self.economyFocusUI
+    if not ctx then return end
+    local pinned, listed = self:GetEconomyFocusSplitChoices()
+    self:FillFocusUI(ctx, pinned, listed, tonumber(self.saved and self.saved.economyDetailFocusZoneId) or 0)
 end
 
 function TPM:HideEconomyFocusDropdown()
-    if self.economyFocusDropdown then self.economyFocusDropdown:SetHidden(true) end
-    if self.statisticsEconomyFocusArrow then self.statisticsEconomyFocusArrow:SetText("⌄") end
+    self:CloseFocusUI(self.economyFocusUI)
 end
 
 function TPM:ToggleEconomyFocusDropdown()
-    local dropdown=self.economyFocusDropdown
-    if not dropdown then return end
-    if dropdown:IsHidden() then
-        self.economyFocusDropdownOffset=1
-        self:RefreshEconomyFocusDropdown()
-        dropdown:SetDrawTier(DT_HIGH)
-        dropdown:SetDrawLayer(DL_OVERLAY)
-        if dropdown.SetDrawLevel then dropdown:SetDrawLevel(20000) end
-        if dropdown.BringWindowToTop then dropdown:BringWindowToTop() end
-        dropdown:SetHidden(false)
-        if self.statisticsEconomyFocusArrow then self.statisticsEconomyFocusArrow:SetText("⌃") end
-        self:EnforceStatisticsDarkModeAfterRefresh()
-    else
+    local ctx = self.economyFocusUI
+    if not ctx then return end
+    if self:IsFocusUIOpen(ctx) then
         self:HideEconomyFocusDropdown()
+        return
     end
+    self:HideStatisticsFocusDropdown()
+    local pinned, listed = self:GetEconomyFocusSplitChoices()
+    self:OpenFocusUI(ctx, pinned, listed, tonumber(self.saved and self.saved.economyDetailFocusZoneId) or 0)
 end
 
 function TPM:ScrollEconomyFocusDropdown(delta)
-    if not self.economyFocusDropdown or self.economyFocusDropdown:IsHidden() then return end
-    local choices=self.economyFocusDropdownChoices or self:GetEconomyFocusDropdownChoices()
-    local visibleRows=9
-    local maxOffset=math.max(1,#choices-visibleRows+1)
-    local step=(tonumber(delta) or 0)>0 and -1 or 1
-    self.economyFocusDropdownOffset=Clamp((tonumber(self.economyFocusDropdownOffset) or 1)+step,1,maxOffset)
-    self:RefreshEconomyFocusDropdown()
+    self:ScrollFocusUI(self.economyFocusUI, delta)
 end
 
 function TPM:ShowEconomyDetailZoneMenu(anchor)
@@ -10328,9 +10744,9 @@ function TPM:RefreshEconomyDetailWindow()
     local zoneId=tonumber(self.saved.economyDetailFocusZoneId) or 0
     local view=self.saved.economyDetailView or "overview"
     self.economyDetailTitle:SetText(self:L("ECON_DETAIL_TITLE"))
-    self.economyDetailZoneButton:SetText(self:GetEconomyZoneName(zoneId).."  ▼")
+    self.economyDetailZoneButton:SetText(self:GetEconomyZoneName(zoneId).."  |t14:14:EsoUI/Art/Buttons/dropbox_arrow_normal.dds:inheritColor|t")
     local viewKeys={overview="ECON_DETAIL_OVERVIEW",records="ECON_DETAIL_RECORDS",crime="ECON_DETAIL_CRIME",bank="ECON_DETAIL_BANK"}
-    self.economyDetailViewButton:SetText(self:L(viewKeys[view] or "ECON_DETAIL_OVERVIEW").."  ▼")
+    self.economyDetailViewButton:SetText(self:L(viewKeys[view] or "ECON_DETAIL_OVERVIEW").."  |t14:14:EsoUI/Art/Buttons/dropbox_arrow_normal.dds:inheritColor|t")
     local a=self:GetEconomyDetailAggregate(zoneId)
     local body={}
     if view=="overview" then
@@ -10441,274 +10857,18 @@ function TPM:CreateEconomyStatisticsPage(control)
     selector:SetAnchor(RIGHT, focusGroup, RIGHT, 0, 0)
     selector:SetMouseEnabled(true)
 
-    local selectorBg = WINDOW_MANAGER:CreateControl(nil, selector, CT_BACKDROP)
-    selectorBg:SetAnchorFill(selector)
-    selectorBg:SetCenterColor(0.026,0.023,0.017,0.98)
-    selectorBg:SetEdgeColor(0.62,0.49,0.17,0.90)
-    selectorBg:SetEdgeTexture(nil,1,1,1)
-    selectorBg:SetMouseEnabled(false)
-
-    local selected = WINDOW_MANAGER:CreateControl(nil, selector, CT_LABEL)
-    selected:SetDimensions(204,24)
-    selected:SetAnchor(LEFT, selector, LEFT, 10, 0)
-    selected:SetFont("$(MEDIUM_FONT)|13")
-    selected:SetColor(0.92,0.87,0.73,1)
-    selected:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    selected:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-    local arrowBack = WINDOW_MANAGER:CreateControl(nil, selector, CT_BACKDROP)
-    arrowBack:SetDimensions(24,22)
-    arrowBack:SetAnchor(RIGHT, selector, RIGHT, -3, 0)
-    arrowBack:SetCenterColor(0.045,0.036,0.018,0.96)
-    arrowBack:SetEdgeColor(0.50,0.38,0.12,0.80)
-    arrowBack:SetEdgeTexture(nil,1,1,1)
-    arrowBack:SetMouseEnabled(false)
-
-    local arrow = WINDOW_MANAGER:CreateControl(nil, arrowBack, CT_LABEL)
-    arrow:SetDimensions(20,20)
-    arrow:SetAnchor(CENTER, arrowBack, CENTER, 0, 0)
-    arrow:SetFont("$(BOLD_FONT)|14")
-    arrow:SetColor(0.96,0.79,0.24,1)
-    arrow:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    arrow:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    arrow:SetText("⌄")
-    selector:SetHandler("OnMouseEnter", function()
-        if TPM:IsStatisticsDarkDesign() then
-            selectorBg:SetCenterColor(0,0,0,0.44); selectorBg:SetEdgeColor(1,1,1,0.46)
-        else
-            selectorBg:SetCenterColor(0.070,0.054,0.022,0.98); selectorBg:SetEdgeColor(0.92,0.72,0.20,1)
-        end
-    end)
-    selector:SetHandler("OnMouseExit", function()
-        if TPM:IsStatisticsDarkDesign() then
-            selectorBg:SetCenterColor(0,0,0,0.30); selectorBg:SetEdgeColor(1,1,1,0.28)
-        else
-            selectorBg:SetCenterColor(0.026,0.023,0.017,0.98); selectorBg:SetEdgeColor(0.62,0.49,0.17,0.90)
-        end
-    end)
-    selector:SetHandler("OnMouseUp", function(_, button, upInside)
-        if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
-            TPM:ToggleEconomyFocusDropdown()
-        end
-    end)
-    selector:SetHandler("OnMouseWheel", function(_, delta)
-        if TPM.economyFocusDropdown and not TPM.economyFocusDropdown:IsHidden() then
-            TPM:ScrollEconomyFocusDropdown(delta)
-        end
-    end)
-
+    -- 2.8.0: shared zone-focus selector/popup (same look as the Progress page).
+    self.economyFocusUI = self:CreateFocusUI({
+        name = ADDON_NAME .. "EconomyFocusDropdown", selector = selector, width = 290, pinned = 2, listed = 8,
+        onToggle = function() TPM:ToggleEconomyFocusDropdown() end,
+        onPick = function(zoneId) TPM:SetEconomyDetailZone(zoneId) end,
+    })
     self.statisticsEconomyFocusSelector = selector
-    self.statisticsEconomyFocusButton = selected
-    self.statisticsEconomyFocusArrow = arrow
-
-    -- Real top-level popup: this fixes ESO hit-testing where a visible child
-    -- control can still sit behind the Statistics journal for mouse input.
-    local dropdown = WINDOW_MANAGER:CreateTopLevelWindow(ADDON_NAME.."EconomyFocusDropdown")
-    dropdown:SetDimensions(260, 260)
-    dropdown:SetAnchor(TOPRIGHT, selector, BOTTOMRIGHT, 0, 3)
-    dropdown:SetMouseEnabled(true)
-    dropdown:SetClampedToScreen(true)
-    dropdown:SetHidden(true)
-    dropdown:SetDrawTier(DT_HIGH)
-    dropdown:SetDrawLayer(DL_OVERLAY)
-    if dropdown.SetDrawLevel then dropdown:SetDrawLevel(20000) end
-    dropdown:SetHandler("OnMouseWheel", function(_, delta) TPM:ScrollEconomyFocusDropdown(delta) end)
-
-    local dropBg = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_BACKDROP)
-    dropBg:SetAnchorFill(dropdown)
-    dropBg:SetCenterColor(0.010,0.009,0.007,0.998)
-    dropBg:SetEdgeColor(0.88,0.69,0.19,1)
-    dropBg:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
-    dropBg:SetInsets(2,2,-2,-2)
-    dropBg:SetMouseEnabled(false)
-
-    self.economyFocusDropdownRows = {}
-    for rowIndex=1,9 do
-        local row = WINDOW_MANAGER:CreateControl(ADDON_NAME.."EconomyFocusRow"..tostring(rowIndex), dropdown, CT_BUTTON)
-        row:SetDimensions(224,25)
-        row:SetAnchor(TOPLEFT, dropdown, TOPLEFT, 7, 6 + ((rowIndex-1)*27))
-        row:SetMouseEnabled(true)
-        row:SetClickSound(SOUNDS.DEFAULT_CLICK)
-
-        local rowBack = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
-        rowBack:SetAnchorFill(row)
-        rowBack:SetCenterColor(0.018,0.016,0.012,0.94)
-        rowBack:SetEdgeColor(0.18,0.15,0.09,0.75)
-        rowBack:SetEdgeTexture(nil,1,1,1)
-        rowBack:SetMouseEnabled(false)
-
-        local rowText = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
-        rowText:SetDimensions(204,25)
-        rowText:SetAnchor(LEFT, row, LEFT, 8, 0)
-        rowText:SetFont("$(MEDIUM_FONT)|13")
-        rowText:SetColor(0.86,0.82,0.72,1)
-        rowText:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        rowText:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-        rowText:SetMouseEnabled(false)
-
-        row.rowBack = rowBack
-        row.rowText = rowText
-
-        row:SetHandler("OnMouseEnter", function(btn)
-            if TPM:IsStatisticsDarkDesign() then
-                if btn.rowBack then btn.rowBack:SetCenterColor(0,0,0,.48); btn.rowBack:SetEdgeColor(1,1,1,.42) end
-                if btn.rowText then btn.rowText:SetColor(1,1,1,1) end
-            else
-                if btn.rowBack then btn.rowBack:SetCenterColor(0.095,0.070,0.022,0.98); btn.rowBack:SetEdgeColor(0.88,0.67,0.18,0.95) end
-                if btn.rowText then btn.rowText:SetColor(1,0.88,0.38,1) end
-            end
-        end)
-        row:SetHandler("OnMouseExit", function(btn)
-            local selectedId = tonumber(TPM.saved and TPM.saved.economyDetailFocusZoneId) or 0
-            local selected = btn.zoneId ~= nil and tonumber(btn.zoneId) == selectedId
-            if TPM:IsStatisticsDarkDesign() then
-                if btn.rowBack then btn.rowBack:SetCenterColor(0,0,0,selected and .44 or .24); btn.rowBack:SetEdgeColor(1,1,1,selected and .40 or .18) end
-                if btn.rowText then btn.rowText:SetColor(1,1,1,1) end
-            else
-                if btn.rowBack then
-                    if selected then
-                        btn.rowBack:SetCenterColor(0.080,0.060,0.020,0.98)
-                        btn.rowBack:SetEdgeColor(0.92,0.72,0.20,0.95)
-                    else
-                        btn.rowBack:SetCenterColor(0.018,0.016,0.012,0.94)
-                        btn.rowBack:SetEdgeColor(0.18,0.15,0.09,0.75)
-                    end
-                end
-                if btn.rowText then btn.rowText:SetColor(selected and 1.00 or 0.86, selected and 0.84 or 0.82, selected and 0.30 or 0.72, 1) end
-            end
-        end)
-        row:SetHandler("OnMouseUp", function(btn, button, upInside)
-            if upInside and button == MOUSE_BUTTON_INDEX_LEFT and btn.zoneId ~= nil then
-                TPM:SetEconomyDetailZone(btn.zoneId)
-            end
-        end)
-        row:SetHandler("OnClicked", function(btn)
-            if btn.zoneId ~= nil then
-                TPM:SetEconomyDetailZone(btn.zoneId)
-            end
-        end)
-
-        self.economyFocusDropdownRows[rowIndex] = row
-    end
-
-    -- Visible scroll rail + thumb.
-    local scrollRail = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_BACKDROP)
-    scrollRail:SetDimensions(10, 238)
-    scrollRail:SetAnchor(TOPRIGHT, dropdown, TOPRIGHT, -8, 8)
-    scrollRail:SetCenterColor(0.035,0.030,0.020,0.95)
-    scrollRail:SetEdgeColor(0.30,0.24,0.10,0.85)
-    scrollRail:SetEdgeTexture(nil,1,1,1)
-    scrollRail:SetMouseEnabled(false)
-
-    local scrollThumb = WINDOW_MANAGER:CreateControl(nil, scrollRail, CT_BACKDROP)
-    scrollThumb:SetDimensions(8, 48)
-    scrollThumb:SetAnchor(TOP, scrollRail, TOP, 0, 1)
-    scrollThumb:SetCenterColor(0.72,0.56,0.17,0.95)
-    scrollThumb:SetEdgeColor(0.95,0.77,0.25,1)
-    scrollThumb:SetEdgeTexture(nil,1,1,1)
-    scrollThumb:SetMouseEnabled(false)
-
-    local up = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_LABEL)
-    up:SetDimensions(16,16)
-    up:SetAnchor(TOPRIGHT, dropdown, TOPRIGHT, -5, -1)
-    up:SetFont("$(BOLD_FONT)|12")
-    up:SetText("▲")
-    up:SetColor(0.82,0.67,0.22,1)
-    up:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    up:SetMouseEnabled(true)
-    up:SetHandler("OnMouseUp", function(_,button,inside)
-        if inside and button==MOUSE_BUTTON_INDEX_LEFT then TPM:ScrollEconomyFocusDropdown(1) end
-    end)
-
-    local down = WINDOW_MANAGER:CreateControl(nil, dropdown, CT_LABEL)
-    down:SetDimensions(16,16)
-    down:SetAnchor(BOTTOMRIGHT, dropdown, BOTTOMRIGHT, -5, 1)
-    down:SetFont("$(BOLD_FONT)|12")
-    down:SetText("▼")
-    down:SetColor(0.82,0.67,0.22,1)
-    down:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    down:SetMouseEnabled(true)
-    down:SetHandler("OnMouseUp", function(_,button,inside)
-        if inside and button==MOUSE_BUTTON_INDEX_LEFT then TPM:ScrollEconomyFocusDropdown(-1) end
-    end)
-
-    self.economyFocusDropdown = dropdown
-    self.economyFocusDropdownOffset = 1
-    self.economyFocusScrollRail = scrollRail
-    self.economyFocusScrollThumb = scrollThumb
+    self.statisticsEconomyFocusButton = self.economyFocusUI.label
+    self.economyFocusDropdown = self.economyFocusUI.dropdown
 
 
-    self.statisticsEconomyCards = {}
-    self.statisticsEconomyCards[1] = self:CreateEconomyGoldCard(page, ADDON_NAME .. "EconomyCardGold", 20, 48, 914)
-
-    -- Layout mirrors the clean journal mock-up: six compact cards on the left,
-    -- five on the right, with Gold promoted to a full-width summary card.
-    local layout = {
-        [2]  = { 0, 1 }, -- Crowns
-        [3]  = { 0, 0 }, -- Crown Gems
-        [4]  = { 0, 2 }, -- Trade Bars
-        [5]  = { 0, 5 }, -- Seals
-        [6]  = { 1, 0 }, -- Alliance Points
-        [7]  = { 0, 3 }, -- Tel Var
-        [8]  = { 1, 1 }, -- Writ Vouchers
-        [9]  = { 0, 4 }, -- Transmute Crystals
-        [10] = { 1, 2 }, -- Undaunted Keys
-        [11] = { 1, 3 }, -- Archival Fortunes
-        [12] = { 1, 4 }, -- Tome Points
-    }
-    local cardWidth = 448
-    local startY = 190
-    local rowHeight = 64
-    for index = 2, 12 do
-        local placement = layout[index]
-        local column = placement[1]
-        local row = placement[2]
-        local x = 20 + column * 466
-        local y = startY + row * rowHeight
-        self.statisticsEconomyCards[index] = self:CreateEconomyCurrencyCard(page, ADDON_NAME .. "EconomyCard" .. tostring(index), x, y, cardWidth)
-    end
-
-    local note = WINDOW_MANAGER:CreateControl(nil, page, CT_BACKDROP)
-    note:SetDimensions(856, 52)
-    note:SetAnchor(TOP, page, TOP, 0, 582)
-    note:SetCenterColor(0.026, 0.024, 0.021, 0.97)
-    note:SetEdgeColor(0.30, 0.25, 0.15, 0.62)
-    note:SetEdgeTexture(nil, 1, 1, 1)
-    note:SetMouseEnabled(false)
-
-    local infoBack = WINDOW_MANAGER:CreateControl(nil, note, CT_BACKDROP)
-    infoBack:SetDimensions(34, 34)
-    infoBack:SetAnchor(LEFT, note, LEFT, 12, 0)
-    infoBack:SetCenterColor(0.055, 0.047, 0.032, 1)
-    infoBack:SetEdgeColor(0.66, 0.52, 0.22, 0.82)
-    infoBack:SetEdgeTexture(nil, 1, 1, 1)
-
-    local info = WINDOW_MANAGER:CreateControl(nil, infoBack, CT_LABEL)
-    info:SetDimensions(32, 32)
-    info:SetAnchor(CENTER, infoBack, CENTER, 0, 0)
-    info:SetFont("$(BOLD_FONT)|20")
-    info:SetColor(0.86, 0.72, 0.38, 1)
-    info:SetText("i")
-    info:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    info:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-
-    local noteTitle = WINDOW_MANAGER:CreateControl(nil, note, CT_LABEL)
-    noteTitle:SetDimensions(790, 20)
-    noteTitle:SetAnchor(TOPLEFT, note, TOPLEFT, 58, 4)
-    noteTitle:SetFont("$(BOLD_FONT)|17")
-    noteTitle:SetColor(0.90, 0.77, 0.34, 1)
-    noteTitle:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    noteTitle:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    self.statisticsEconomyTrackingTitle = noteTitle
-
-    local noteText = WINDOW_MANAGER:CreateControl(nil, note, CT_LABEL)
-    noteText:SetDimensions(790, 27)
-    noteText:SetAnchor(TOPLEFT, note, TOPLEFT, 58, 23)
-    noteText:SetFont("$(MEDIUM_FONT)|13")
-    noteText:SetColor(0.70, 0.68, 0.62, 1)
-    noteText:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    noteText:SetVerticalAlignment(TEXT_ALIGN_TOP)
-    self.statisticsEconomyTrackingText = noteText
+    self:CreateEconomyDashboard(page)
 end
 
 function TPM:RefreshEconomyStatisticsPage()
@@ -10719,111 +10879,15 @@ function TPM:RefreshEconomyStatisticsPage()
 
     self.statisticsEconomyPageTitle:SetText(self:L("STAT_ECONOMY_PAGE_TITLE"))
     self.statisticsEconomyPageSubtitle:SetText(self:L("STAT_ECONOMY_PAGE_SUBTITLE_CHARACTER", stats.characterName or self:L("STAT_PLAYER_UNKNOWN")))
-    self.statisticsEconomyTrackingTitle:SetText(self:L("STAT_ECONOMY_TRACKING"))
-    self.statisticsEconomyTrackingText:SetText(self:L("STAT_ECONOMY_TRACKING_NOTE", stats.trackingVersion or "2.0.15"))
 
     local focusZoneId = tonumber(self.saved and self.saved.economyDetailFocusZoneId) or 0
     local zoneAggregate = self:GetEconomyDetailAggregate(focusZoneId)
     if self.statisticsEconomyFocusButton then
-        self.statisticsEconomyFocusButton:SetText(self:GetEconomyZoneName(focusZoneId) .. "  ▼")
+        self.statisticsEconomyFocusButton:SetText(self:GetEconomyZoneName(focusZoneId))
     end
 
 
-    for index, card in ipairs(self.statisticsEconomyCards or {}) do
-        local definition = definitions[index]
-        card.control:SetHidden(definition == nil)
-        if definition then
-            local entry = stats.currencies[definition.key] or { received = 0, spent = 0 }
-            local amounts = self:GetEconomyCurrentAmounts(definition)
-            local visual = self:GetEconomyCardVisual(definition)
-
-            if card.isGoldCard then
-                card.title:SetText(self:GetEconomyCurrencyName(definition))
-                if visual.texture and visual.texture ~= "" then
-                    card.icon:SetTexture(visual.texture)
-                    card.icon:SetColor(1, 1, 1, 1)
-                end
-
-                card.cash.label:SetText(self:L("STAT_ECONOMY_LABEL_CASH"))
-                card.bank.label:SetText(self:L("STAT_ECONOMY_LABEL_BANK"))
-                card.total.label:SetText(self:L("STAT_ECONOMY_LABEL_TOTAL"))
-                card.cash.value:SetText(FormatNumber(amounts.character))
-                card.bank.value:SetText(FormatNumber(amounts.bank))
-                card.total.value:SetText(FormatNumber(amounts.total))
-
-                card.received.label:SetText(self:L("STAT_ECONOMY_LABEL_RECEIVED"))
-                card.spent.label:SetText(self:L("STAT_ECONOMY_LABEL_SPENT"))
-                card.fence.label:SetText(self:L("STAT_ECONOMY_FENCE_SHORT"))
-                card.stolen.label:SetText(self:L("STAT_ECONOMY_STOLEN_SHORT"))
-                if card.bounty then card.bounty.label:SetText(self:L("STAT_ECONOMY_BOUNTY_PAID_SHORT")) end
-                card.received.value:SetText("+" .. FormatNumber((focusZoneId == 0 and entry.received or zoneAggregate.received) or 0))
-                card.spent.value:SetText("-" .. FormatNumber((focusZoneId == 0 and entry.spent or zoneAggregate.spent) or 0))
-                card.fence.value:SetText("+" .. FormatNumber((focusZoneId == 0 and entry.fenceSales or zoneAggregate.fenceSales) or 0))
-                card.stolen.value:SetText("+" .. FormatNumber((focusZoneId == 0 and entry.stolenGold or zoneAggregate.stolenGold) or 0))
-                if card.bounty then card.bounty.value:SetText("-" .. FormatNumber((focusZoneId == 0 and entry.bountyPaid or zoneAggregate.bountyPaid) or 0)) end
-            else
-                local accent = visual.accent or { 0.86, 0.66, 0.18 }
-                local accentHex = RGBToHex(accent[1], accent[2], accent[3])
-                local bulletHex = "786846"
-
-                card.control:SetCenterColor(
-                    0.020 + accent[1] * 0.014,
-                    0.020 + accent[2] * 0.012,
-                    0.018 + accent[3] * 0.010,
-                    0.992
-                )
-                card.control:SetEdgeColor(accent[1], accent[2], accent[3], 0.48)
-                card.accent:SetCenterColor(accent[1], accent[2], accent[3], 0.92)
-                card.iconBack:SetCenterColor(
-                    0.025 + accent[1] * 0.10,
-                    0.024 + accent[2] * 0.09,
-                    0.022 + accent[3] * 0.08,
-                    0.98
-                )
-                card.iconBack:SetEdgeColor(accent[1], accent[2], accent[3], 0.70)
-
-                if visual.texture and visual.texture ~= "" then
-                    card.icon:SetTexture(visual.texture)
-                    card.icon:SetColor(1, 1, 1, 1)
-                    card.icon:SetHidden(false)
-                else
-                    card.icon:SetHidden(true)
-                end
-
-                card.title:SetText(self:GetEconomyCurrencyName(definition))
-                card.title:SetColor(
-                    math.min(1, 0.52 + accent[1] * 0.52),
-                    math.min(1, 0.48 + accent[2] * 0.52),
-                    math.min(1, 0.44 + accent[3] * 0.50),
-                    1
-                )
-
-                if self:IsEconomyCurrencyBankable(definition) then
-                    local primaryLabel = self:L("STAT_ECONOMY_LABEL_CHARACTER")
-                    card.line:SetText(string.format("|c%s%s: %s|r   |c%s•|r   |c%s%s: %s|r   |c%s•|r   |c%s%s: %s|r",
-                        accentHex, primaryLabel, FormatNumber(amounts.character),
-                        bulletHex,
-                        accentHex, self:L("STAT_ECONOMY_LABEL_BANK"), FormatNumber(amounts.bank),
-                        bulletHex,
-                        accentHex, self:L("STAT_ECONOMY_LABEL_TOTAL"), FormatNumber(amounts.total)))
-                else
-                    local primaryLocation = self:GetEconomyPrimaryLocation(definition)
-                    local primaryLabel = self:L("STAT_ECONOMY_LABEL_CURRENT")
-                    if type(_G.CURRENCY_LOCATION_ACCOUNT) == "number" and primaryLocation == _G.CURRENCY_LOCATION_ACCOUNT then
-                        primaryLabel = self:L("STAT_ECONOMY_LABEL_ACCOUNT")
-                    end
-                    card.line:SetText(string.format("|c%s%s: %s|r", accentHex, primaryLabel, FormatNumber(amounts.current)))
-                end
-
-                card.detail:SetText(string.format("|c8FD0A5%s: +%s|r   |c%s•|r   |cD9B48A%s: -%s|r",
-                    self:L("STAT_ECONOMY_LABEL_RECEIVED"),
-                    FormatNumber(entry.received or 0),
-                    bulletHex,
-                    self:L("STAT_ECONOMY_LABEL_SPENT"),
-                    FormatNumber(entry.spent or 0)))
-            end
-        end
-    end
+    self:RefreshEconomyDashboard(stats, definitions, focusZoneId, zoneAggregate)
     self:EnforceStatisticsDarkModeAfterRefresh()
 end
 
@@ -11233,13 +11297,14 @@ function TPM:EnsureAlliancePlannerZoneMarkers()
             end)
             label:SetHandler("OnMouseEnter", function(control)
                 if not control.zoneId then return end
+                TPM:SetAllianceAtlasHighlight(control.zoneId)
                 InitializeTooltip(InformationTooltip, control, BOTTOM, 0, -4, TOP)
                 InformationTooltip:AddLine(SafeZoneName(control.zoneId), "ZoFontGameBold")
                 if control.percent then
                     InformationTooltip:AddLine(string.format("%d%%", control.percent), "ZoFontGame")
                 end
             end)
-            label:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+            label:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip); TPM:SetAllianceAtlasHighlight(nil) end)
             if label.SetDrawLevel then label:SetDrawLevel(30) end
             label.zoneId = zoneId
             self.statisticsAllianceMapMarkers[zoneId] = label
@@ -11269,15 +11334,31 @@ function TPM:RefreshAlliancePlannerZoneMarkers(viewLeft, viewTop, span, reuseVal
             label.percent = percent
         end
 
+        local r,g,b,groupKey = self:GetAlliancePlannerMarkerColor(zoneId)
+        local filter = self.GetAllianceMapFilter and self:GetAllianceMapFilter() or {}
         if x and y and available > 0 and x >= viewLeft and x <= viewLeft + span
-            and y >= viewTop and y <= viewTop + span then
+            and y >= viewTop and y <= viewTop + span and filter[groupKey] ~= false then
             local screenX = ((x - viewLeft) / span) * frameW
             local screenY = ((y - viewTop) / span) * frameH
-            local r,g,b = self:GetAlliancePlannerMarkerColor(zoneId)
+            -- 2.8.0 Atlas markers: the dot fills from grey to the alliance color
+            -- with completion; 100% shows a check mark instead of a number.
+            local t = 0.30 + 0.70 * (Clamp(percent, 0, 100) / 100)
             local hex = string.format("%02X%02X%02X",
-                math.floor(r*255+0.5), math.floor(g*255+0.5), math.floor(b*255+0.5))
-
-            label:SetText(string.format("|cFFF2C9%d%%|r\n|c%s●|r", percent, hex))
+                math.floor(Clamp(0.55 + (r - 0.55) * t, 0, 1)*255+0.5), math.floor(Clamp(0.55 + (g - 0.55) * t, 0, 1)*255+0.5), math.floor(Clamp(0.55 + (b - 0.55) * t, 0, 1)*255+0.5))
+            if percent >= 100 then
+                label:SetText("|t20:20:EsoUI/Art/Buttons/accept_up.dds|t")
+            else
+                label:SetText(string.format("|cFFF6DE%d%%|r\n|c%s●|r", percent, hex))
+            end
+            if not label.TPMAtlasFont then
+                label:SetFont("$(BOLD_FONT)|13|soft-shadow-thick")
+                label.TPMAtlasFont = true
+            end
+            local selected = self.statisticsAllianceSelectedGroup
+            label.TPMBaseAlpha = (selected == nil or groupKey == selected) and 1 or 0.55
+            local highlighted = self.allianceAtlasHighlightZoneId ~= nil and self.allianceAtlasHighlightZoneId == zoneId
+            label:SetAlpha(highlighted and 1 or label.TPMBaseAlpha)
+            if label.SetScale then label:SetScale(highlighted and 1.45 or 1.0) end
             label:ClearAnchors()
             label:SetAnchor(CENTER, frame, TOPLEFT, screenX, screenY)
             label:SetHidden(false)
@@ -11321,7 +11402,8 @@ function TPM:RefreshAlliancePlannerMapView(reuseMarkerValues)
     self:RefreshAlliancePlannerZoneMarkers(viewLeft, viewTop, span, reuseMarkerValues == true)
 
     if self.statisticsAllianceMapZoomLabel then
-        self.statisticsAllianceMapZoomLabel:SetText(string.format("%d%%", math.floor((zoom - 1) * 100 + 0.5)))
+        -- 2.8.0: show the real zoom factor (100% = fitted map) instead of "+0%".
+        self.statisticsAllianceMapZoomLabel:SetText(string.format("%d%%", math.floor(zoom * 100 + 0.5)))
     end
     if self.statisticsAllianceMapDragHint then
         self.statisticsAllianceMapDragHint:SetHidden(zoom <= 1.001)
@@ -11467,720 +11549,604 @@ function TPM:ToggleAlliancePlannerTerritoryColors()
     self:RefreshAllianceStatisticsPage()
 end
 
+-- 2.8.0 "Allianz-Atlas" --------------------------------------------------------
+-- Progress page 2. The Tamriel map is the centre of the page and everything
+-- else is linked to it:
+--   * three alliance switch cards on top (own alliance marked) - choosing one
+--     flies the map to that alliance's territory,
+--   * map overlays: title pill, zoom control, legend that doubles as filter,
+--   * markers show completion as a colored dot (grey -> alliance color) and a
+--     check mark at 100%; markers of other alliances are dimmed,
+--   * right column: "next target" / "biggest gap" action chips and the full zone
+--     list; hovering a row highlights its marker and vice versa, clicking opens
+--     the zone on the Progress page,
+--   * bottom: category comparison of all three alliances with an info badge.
+local TPM_ATLAS_GROUPS = { "DC", "AD", "EP" }
+local TPM_ATLAS_COLORS = { DC = { 0.20, 0.48, 1.00 }, AD = { 1.00, 0.76, 0.12 }, EP = { 1.00, 0.20, 0.20 } }
+local TPM_ATLAS_ZONES = {
+    DC = { 534, 535, 3, 19, 20, 104, 92 },
+    AD = { 537, 381, 383, 108, 58, 382 },
+    EP = { 280, 281, 41, 57, 117, 101, 103 },
+}
+local TPM_ATLAS_FILTERS = {
+    { key = "DC", color = { 0.31, 0.61, 1.00 }, label = "STAT_ALLIANCE_DC_SHORT" },
+    { key = "AD", color = { 1.00, 0.82, 0.24 }, label = "STAT_ALLIANCE_AD_SHORT" },
+    { key = "EP", color = { 1.00, 0.35, 0.29 }, label = "STAT_ALLIANCE_EP_SHORT" },
+    { key = "NEUTRAL", color = { 0.94, 0.93, 0.88 }, label = "STAT_ALLIANCE_NEUTRAL_SHORT" },
+    { key = "CYRODIIL", color = { 0.30, 0.78, 0.26 }, label = "STAT_ALLIANCE_CYRODIIL_SHORT" },
+}
+local TPM_ATLAS_MAP_W, TPM_ATLAS_MAP_H = 548, 396
+
+local function TPM_AtlasHex(r, g, b)
+    return string.format("%02X%02X%02X", math.floor(Clamp(r, 0, 1) * 255 + 0.5), math.floor(Clamp(g, 0, 1) * 255 + 0.5), math.floor(Clamp(b, 0, 1) * 255 + 0.5))
+end
+
+function TPM:GetAllianceMapFilter()
+    if not self.saved then return {} end
+    if type(self.saved.allianceMapFilter) ~= "table" then
+        self.saved.allianceMapFilter = { DC = true, AD = true, EP = true, NEUTRAL = true, CYRODIIL = true }
+    end
+    return self.saved.allianceMapFilter
+end
+
+function TPM:ToggleAllianceMapFilter(key)
+    local filter = self:GetAllianceMapFilter()
+    filter[key] = filter[key] == false
+    self:RefreshAllianceAtlasLegend()
+    self:RefreshAlliancePlannerMapView(true)
+end
+
+-- Fly the map to the territory of one alliance (bounding box of its zones).
+function TPM:FocusAllianceOnMap(group)
+    if not self.saved then return end
+    local minX, minY, maxX, maxY
+    for _, zoneId in ipairs(TPM_ATLAS_ZONES[group] or {}) do
+        local x, y = self:GetAlliancePlannerZoneNormalizedPosition(zoneId)
+        if x and y then
+            minX, maxX = math.min(minX or x, x), math.max(maxX or x, x)
+            minY, maxY = math.min(minY or y, y), math.max(maxY or y, y)
+        end
+    end
+    if not minX then self:SetAlliancePlannerMapZoom(1.0); return end
+    local span = Clamp(math.max(maxX - minX, maxY - minY) * 1.45 + 0.10, 0.30, 1.0)
+    local zoom = Clamp(1 / span, 1.0, 3.0)
+    local half = (1 / zoom) * 0.5
+    self.saved.alliancePlannerMapZoom = zoom
+    self.saved.alliancePlannerMapCenterX = Clamp((minX + maxX) * 0.5, half, 1 - half)
+    self.saved.alliancePlannerMapCenterY = Clamp((minY + maxY) * 0.5, half, 1 - half)
+    self:RefreshAlliancePlannerMapView()
+end
+
+-- Linked highlight between zone list / action chips and map markers.
+function TPM:SetAllianceAtlasHighlight(zoneId)
+    zoneId = tonumber(zoneId)
+    self.allianceAtlasHighlightZoneId = zoneId
+    for markerZoneId, label in pairs(self.statisticsAllianceMapMarkers or {}) do
+        local active = zoneId ~= nil and markerZoneId == zoneId
+        if label.SetScale then label:SetScale(active and 1.45 or 1.0) end
+        if label.SetDrawLevel then label:SetDrawLevel(active and 38 or 30) end
+        if label.TPMBaseAlpha then label:SetAlpha(active and 1 or label.TPMBaseAlpha) end
+    end
+    for _, row in ipairs(self.statisticsAllianceZoneRows or {}) do
+        local control = row.control
+        local active = zoneId ~= nil and tonumber(control.zoneId) == zoneId
+        if control.TPMAtlasLinked ~= active then
+            control.TPMAtlasLinked = active
+            control.TPMSkinHover = active
+            self:SkinNow(control)
+        end
+    end
+end
+
+function TPM:RefreshAllianceAtlasLegend()
+    local filter = self:GetAllianceMapFilter()
+    for _, item in ipairs(self.statisticsAllianceLegendItems or {}) do
+        local on = filter[item.key] ~= false
+        item.label:SetText(string.format("|c%s●|r  %s", TPM_AtlasHex(item.color[1], item.color[2], item.color[3]), self:L(item.labelKey)))
+        item.button:SetAlpha(on and 1 or 0.38)
+    end
+end
+
 function TPM:CreateAllianceStatisticsPage(control)
     if self.statisticsAlliancePage then return end
+    local function Label(parent, w, h, font, r, g, b, align)
+        local l = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+        l:SetDimensions(w, h); l:SetFont(font); l:SetColor(r, g, b, 1)
+        l:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT); l:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        return l
+    end
+    local function Panel(parent, w, h)
+        local p = WINDOW_MANAGER:CreateControl(nil, parent, CT_BACKDROP)
+        p:SetDimensions(w, h)
+        p:SetCenterColor(0.020, 0.019, 0.016, 0.99)
+        p:SetEdgeColor(0.42, 0.34, 0.15, 0.90)
+        p:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 128, 16, 2)
+        return p
+    end
+    local function Bar(parent, w, h)
+        local back = WINDOW_MANAGER:CreateControl(nil, parent, CT_BACKDROP)
+        back:SetDimensions(w, h)
+        back:SetCenterColor(0.060, 0.055, 0.045, 1); back:SetEdgeColor(0.25, 0.22, 0.16, 0.9); back:SetEdgeTexture(nil, 1, 1, 1)
+        back:SetMouseEnabled(false)
+        local fill = WINDOW_MANAGER:CreateControl(nil, back, CT_BACKDROP)
+        fill:SetDimensions(1, math.max(1, h - 2)); fill:SetAnchor(LEFT, back, LEFT, 1, 0); fill:SetEdgeColor(0, 0, 0, 0)
+        fill.TPMSkinRole = "keep"
+        return back, fill
+    end
+    local function Overlay(parent, w, h)
+        local o = WINDOW_MANAGER:CreateControl(nil, parent, CT_BACKDROP)
+        o:SetDimensions(w, h)
+        o:SetCenterColor(0.010, 0.010, 0.009, 0.82); o:SetEdgeColor(0.30, 0.26, 0.18, 0.75); o:SetEdgeTexture(nil, 1, 1, 1)
+        if o.SetDrawLevel then o:SetDrawLevel(45) end
+        o.TPMAtlasOverlay = true
+        return o
+    end
+    self.statisticsAlliancePanels = {}
+    self.statisticsAllianceOverlays = {}
 
-    local page=WINDOW_MANAGER:CreateControl(ADDON_NAME.."StatisticsAlliancePage",control,CT_BACKDROP)
-    page:SetAnchor(TOPLEFT,control,TOPLEFT,14,60)
-    page:SetAnchor(BOTTOMRIGHT,control,BOTTOMRIGHT,-14,-55)
-    page:SetCenterColor(0.025,0.023,0.019,1.00)
-    page:SetEdgeColor(0.52,0.40,0.12,0.92)
-    page:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
+    local page = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsAlliancePage", control, CT_BACKDROP)
+    page:SetAnchor(TOPLEFT, control, TOPLEFT, 14, 60)
+    page:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -14, -55)
+    page:SetCenterColor(0.025, 0.023, 0.019, 1.00)
+    page:SetEdgeColor(0.52, 0.40, 0.12, 0.92)
+    page:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 128, 16, 2)
     page:SetHidden(true)
-    self.statisticsAlliancePage=page
+    self.statisticsAlliancePage = page
 
-    -- Own alliance ------------------------------------------------------------
-    local own=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-    own:SetDimensions(914,76)
-    own:SetAnchor(TOPLEFT,page,TOPLEFT,20,12)
-    own:SetCenterColor(0.045,0.040,0.028,0.99)
-    own:SetEdgeColor(0.70,0.55,0.18,0.90)
-    own:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
-
-    local ownTitle=WINDOW_MANAGER:CreateControl(nil,own,CT_LABEL)
-    ownTitle:SetDimensions(220,18)
-    ownTitle:SetAnchor(TOPLEFT,own,TOPLEFT,16,7)
-    ownTitle:SetFont("$(BOLD_FONT)|15")
-    ownTitle:SetColor(0.95,0.78,0.26,1)
-
-    local ownName=WINDOW_MANAGER:CreateControl(nil,own,CT_LABEL)
-    ownName:SetDimensions(560,24)
-    ownName:SetAnchor(TOPLEFT,own,TOPLEFT,16,25)
-    ownName:SetFont("$(BOLD_FONT)|20")
-    ownName:SetColor(0.96,0.91,0.78,1)
-
-    local ownPercent=WINDOW_MANAGER:CreateControl(nil,own,CT_LABEL)
-    ownPercent:SetDimensions(130,34)
-    ownPercent:SetAnchor(TOPRIGHT,own,TOPRIGHT,-16,13)
-    ownPercent:SetFont("$(ANTIQUE_FONT)|31")
-    ownPercent:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    ownPercent:SetColor(0.95,0.82,0.32,1)
-
-    local ownBarBack=WINDOW_MANAGER:CreateControl(nil,own,CT_BACKDROP)
-    ownBarBack:SetDimensions(880,8)
-    ownBarBack:SetAnchor(BOTTOMLEFT,own,BOTTOMLEFT,16,-9)
-    ownBarBack:SetCenterColor(0.08,0.07,0.05,1)
-    ownBarBack:SetEdgeColor(0.40,0.33,0.18,0.9)
-    ownBarBack:SetEdgeTexture(nil,1,1,1)
-
-    local ownBar=WINDOW_MANAGER:CreateControl(nil,ownBarBack,CT_BACKDROP)
-    ownBar:SetDimensions(1,6)
-    ownBar:SetAnchor(LEFT,ownBarBack,LEFT,1,0)
-    ownBar:SetEdgeColor(0,0,0,0)
-
-    self.statisticsAllianceOwnTitle=ownTitle
-    self.statisticsAllianceOwnName=ownName
-    self.statisticsAllianceOwnPercent=ownPercent
-    self.statisticsAllianceOwnBarBack=ownBarBack
-    self.statisticsAllianceOwnBar=ownBar
-
-    -- Alliance selector -------------------------------------------------------
-    local defs={
-        {key="DC",label="STAT_ALLIANCE_DC",color={0.20,0.48,1.00}},
-        {key="AD",label="STAT_ALLIANCE_AD",color={1.00,0.76,0.12}},
-        {key="EP",label="STAT_ALLIANCE_EP",color={1.00,0.20,0.20}},
-    }
-    self.statisticsAllianceCards={}
-    for i,def in ipairs(defs) do
-        local card=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-        card:SetDimensions(220,88)
-        card:SetAnchor(TOPLEFT,page,TOPLEFT,20,100+((i-1)*96))
-        card:SetCenterColor(0.018,0.018,0.017,0.99)
-        card:SetEdgeColor(def.color[1],def.color[2],def.color[3],0.82)
-        card:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
+    -- 1) Alliance switch cards ---------------------------------------------------------
+    self.statisticsAllianceCards = {}
+    for i, group in ipairs(TPM_ATLAS_GROUPS) do
+        local color = TPM_ATLAS_COLORS[group]
+        local card = Panel(page, 302, 78)
+        card:SetAnchor(TOPLEFT, page, TOPLEFT, 20 + ((i - 1) * 315), 10)
         card:SetMouseEnabled(true)
-        card.allianceGroup=def.key
-        card:SetHandler("OnMouseUp",function(c,button,inside)
-            if inside and button==MOUSE_BUTTON_INDEX_LEFT then
-                TPM.statisticsAllianceSelectedGroup=c.allianceGroup
+        card.allianceGroup = group
+        card:SetHandler("OnMouseUp", function(c, button, inside)
+            if inside and button == MOUSE_BUTTON_INDEX_LEFT then
+                TPM.statisticsAllianceSelectedGroup = c.allianceGroup
                 TPM:RefreshAllianceStatisticsPage()
+                TPM:FocusAllianceOnMap(c.allianceGroup)
             end
         end)
+        card:SetHandler("OnMouseEnter", function(c)
+            c.TPMSkinHover = true; TPM:SkinNow(c)
+            TPM:ShowStatisticsHoverTooltip(TPM:L("STAT_ALLIANCE_" .. c.allianceGroup), TPM:L("STAT_ALLIANCE_FOCUS_HINT"), c)
+        end)
+        card:SetHandler("OnMouseExit", function(c) c.TPMSkinHover = false; TPM:SkinNow(c); TPM:HideStatisticsHoverTooltips() end)
 
-        local accent=WINDOW_MANAGER:CreateControl(nil,card,CT_BACKDROP)
-        accent:SetDimensions(216,4)
-        accent:SetAnchor(TOP,card,TOP,0,2)
-        accent:SetCenterColor(def.color[1],def.color[2],def.color[3],0.96)
-        accent:SetEdgeColor(0,0,0,0)
-
-        local title=WINDOW_MANAGER:CreateControl(nil,card,CT_LABEL)
-        title:SetDimensions(150,20)
-        title:SetAnchor(TOPLEFT,card,TOPLEFT,12,9)
-        title:SetFont("$(BOLD_FONT)|15")
-        title:SetColor(def.color[1],def.color[2],def.color[3],1)
-
-        local badge=WINDOW_MANAGER:CreateControl(nil,card,CT_LABEL)
-        badge:SetDimensions(115,15)
-        badge:SetAnchor(TOPLEFT,card,TOPLEFT,12,29)
-        badge:SetFont("$(BOLD_FONT)|10")
-        badge:SetColor(0.95,0.82,0.32,1)
-
-        local percent=WINDOW_MANAGER:CreateControl(nil,card,CT_LABEL)
-        percent:SetDimensions(62,28)
-        percent:SetAnchor(TOPRIGHT,card,TOPRIGHT,-10,10)
-        percent:SetFont("$(ANTIQUE_FONT)|26")
-        percent:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        percent:SetColor(0.95,0.84,0.38,1)
-
-        local barBack=WINDOW_MANAGER:CreateControl(nil,card,CT_BACKDROP)
-        barBack:SetDimensions(194,7)
-        barBack:SetAnchor(TOPLEFT,card,TOPLEFT,12,47)
-        barBack:SetCenterColor(0.07,0.065,0.055,1)
-        barBack:SetEdgeColor(0.32,0.29,0.22,0.9)
-        barBack:SetEdgeTexture(nil,1,1,1)
-
-        local bar=WINDOW_MANAGER:CreateControl(nil,barBack,CT_BACKDROP)
-        bar:SetDimensions(1,5)
-        bar:SetAnchor(LEFT,barBack,LEFT,1,0)
-        bar:SetCenterColor(def.color[1],def.color[2],def.color[3],0.95)
-        bar:SetEdgeColor(0,0,0,0)
-
-        local zones=WINDOW_MANAGER:CreateControl(nil,card,CT_LABEL)
-        zones:SetDimensions(94,16)
-        zones:SetAnchor(TOPLEFT,card,TOPLEFT,12,61)
-        zones:SetFont("$(MEDIUM_FONT)|11")
-        zones:SetColor(0.83,0.79,0.69,1)
-
-        local objectives=WINDOW_MANAGER:CreateControl(nil,card,CT_LABEL)
-        objectives:SetDimensions(94,16)
-        objectives:SetAnchor(TOPRIGHT,card,TOPRIGHT,-12,61)
-        objectives:SetFont("$(MEDIUM_FONT)|11")
-        objectives:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        objectives:SetColor(0.70,0.68,0.62,1)
-
-        self.statisticsAllianceCards[def.key]={
-            control=card,title=title,badge=badge,percent=percent,zones=zones,objectives=objectives,
-            barBack=barBack,bar=bar,label=def.label,color=def.color,
+        local accent = WINDOW_MANAGER:CreateControl(nil, card, CT_BACKDROP)
+        accent:SetDimensions(4, 70); accent:SetAnchor(LEFT, card, LEFT, 2, 0)
+        accent:SetCenterColor(color[1], color[2], color[3], 0.96); accent:SetEdgeColor(0, 0, 0, 0)
+        accent.TPMSkinRole = "keep"
+        local title = Label(card, 196, 22, "$(BOLD_FONT)|16", color[1], color[2], color[3])
+        title:SetAnchor(TOPLEFT, card, TOPLEFT, 16, 8)
+        title.TPMSkinRole = "keep"
+        if title.SetWrapMode then title:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        local badge = Label(card, 196, 15, "$(BOLD_FONT)|11", 0.95, 0.82, 0.32)
+        badge:SetAnchor(TOPLEFT, card, TOPLEFT, 16, 30)
+        local percent = Label(card, 90, 36, "$(ANTIQUE_FONT)|30", 0.95, 0.84, 0.38, TEXT_ALIGN_RIGHT)
+        percent:SetAnchor(TOPRIGHT, card, TOPRIGHT, -14, 6)
+        self:RegisterSkinValueFont(percent, 30)
+        local barBack, bar = Bar(card, 272, 6)
+        barBack:SetAnchor(TOPLEFT, card, TOPLEFT, 16, 48)
+        local zones = Label(card, 272, 18, "$(MEDIUM_FONT)|12", 0.83, 0.79, 0.69)
+        zones:SetAnchor(TOPLEFT, card, TOPLEFT, 16, 56)
+        self.statisticsAllianceCards[group] = {
+            control = card, title = title, badge = badge, percent = percent, zones = zones,
+            barBack = barBack, bar = bar, accent = accent, label = "STAT_ALLIANCE_" .. group, color = color,
         }
     end
 
-    -- Selected alliance quick summary -----------------------------------------
-    local quick=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-    quick:SetDimensions(220,112)
-    quick:SetAnchor(TOPLEFT,page,TOPLEFT,20,394)
-    quick:SetCenterColor(0.020,0.019,0.016,0.99)
-    quick:SetEdgeColor(0.42,0.34,0.15,0.90)
-    quick:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
+    -- 2) Atlas map with overlays -------------------------------------------------------
+    local planner = Panel(page, 560, 402)
+    planner:SetAnchor(TOPLEFT, page, TOPLEFT, 20, 98)
+    self.statisticsAllianceMapPanel = planner
+    self.statisticsAlliancePanels[#self.statisticsAlliancePanels + 1] = planner
 
-    local quickTitle=WINDOW_MANAGER:CreateControl(nil,quick,CT_LABEL)
-    quickTitle:SetDimensions(194,18)
-    quickTitle:SetAnchor(TOPLEFT,quick,TOPLEFT,12,7)
-    quickTitle:SetFont("$(BOLD_FONT)|13")
-    quickTitle:SetColor(0.91,0.75,0.30,1)
-    quickTitle:SetText(self:L("STAT_ALLIANCE_OVERVIEW"))
-    self.statisticsAllianceQuickTitle=quickTitle
-
-    local quickDone=WINDOW_MANAGER:CreateControl(nil,quick,CT_LABEL)
-    quickDone:SetDimensions(194,18)
-    quickDone:SetAnchor(TOPLEFT,quick,TOPLEFT,12,31)
-    quickDone:SetFont("$(MEDIUM_FONT)|11")
-    quickDone:SetColor(0.86,0.83,0.74,1)
-    self.statisticsAllianceQuickDone=quickDone
-
-    local quickOpen=WINDOW_MANAGER:CreateControl(nil,quick,CT_LABEL)
-    quickOpen:SetDimensions(194,18)
-    quickOpen:SetAnchor(TOPLEFT,quick,TOPLEFT,12,52)
-    quickOpen:SetFont("$(MEDIUM_FONT)|11")
-    quickOpen:SetColor(0.86,0.83,0.74,1)
-    self.statisticsAllianceQuickOpen=quickOpen
-
-    local quickNext=WINDOW_MANAGER:CreateControl(nil,quick,CT_LABEL)
-    quickNext:SetDimensions(194,28)
-    quickNext:SetAnchor(TOPLEFT,quick,TOPLEFT,12,73)
-    quickNext:SetFont("$(BOLD_FONT)|10")
-    quickNext:SetColor(0.95,0.82,0.32,1)
-    quickNext:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    self.statisticsAllianceQuickNext=quickNext
-
-    -- Large map ---------------------------------------------------------------
-    local planner=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-    planner:SetDimensions(486,412)
-    planner:SetAnchor(TOPLEFT,page,TOPLEFT,252,100)
-    planner:SetCenterColor(0.012,0.012,0.011,0.99)
-    planner:SetEdgeColor(0.25,0.22,0.16,0.90)
-    planner:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
-    self.statisticsAllianceMapPanel=planner
-
-    local mapTitle=WINDOW_MANAGER:CreateControl(nil,planner,CT_LABEL)
-    mapTitle:SetDimensions(448,22)
-    mapTitle:SetAnchor(TOPLEFT,planner,TOPLEFT,14,7)
-    mapTitle:SetFont("$(BOLD_FONT)|15")
-    mapTitle:SetColor(0.91,0.75,0.30,1)
-    self.statisticsAllianceMapTitle=mapTitle
-
-    -- Source map aspect is 916:663 (~1.3816). 468x339 preserves it.
-    local mapFrame=WINDOW_MANAGER:CreateControl(nil,planner,CT_BACKDROP)
-    mapFrame:SetDimensions(460,334)
-    mapFrame:SetAnchor(TOPLEFT,planner,TOPLEFT,13,31)
-    mapFrame:SetCenterColor(0.005,0.005,0.004,0.08)
-    mapFrame:SetEdgeColor(0.50,0.40,0.18,0.92)
-    mapFrame:SetEdgeTexture(nil,1,1,1)
+    local mapFrame = WINDOW_MANAGER:CreateControl(nil, planner, CT_BACKDROP)
+    mapFrame:SetDimensions(TPM_ATLAS_MAP_W, TPM_ATLAS_MAP_H)
+    mapFrame:SetAnchor(TOPLEFT, planner, TOPLEFT, 6, 3)
+    mapFrame:SetCenterColor(0.005, 0.005, 0.004, 0.08)
+    mapFrame:SetEdgeColor(0.50, 0.40, 0.18, 0.92)
+    mapFrame:SetEdgeTexture(nil, 1, 1, 1)
     mapFrame:SetMouseEnabled(false)
     if mapFrame.SetDrawLevel then mapFrame:SetDrawLevel(2) end
-    self.statisticsAllianceMapFrame=mapFrame
+    mapFrame.TPMSkinSkipTree = true
+    self.statisticsAllianceMapFrame = mapFrame
 
-    -- Invisible interaction surface. The visible map itself is assembled at
-    -- runtime from ESO's original Tamriel map tiles.
-    local mapTexture=WINDOW_MANAGER:CreateControl(nil,mapFrame,CT_TEXTURE)
-    mapTexture:SetDimensions(454,328)
-    mapTexture:SetAnchor(CENTER,mapFrame,CENTER,0,0)
+    local mapTexture = WINDOW_MANAGER:CreateControl(nil, mapFrame, CT_TEXTURE)
+    mapTexture:SetDimensions(TPM_ATLAS_MAP_W - 6, TPM_ATLAS_MAP_H - 6)
+    mapTexture:SetAnchor(CENTER, mapFrame, CENTER, 0, 0)
     mapTexture:SetTexture(nil)
     mapTexture:SetAlpha(0)
-    mapTexture:SetMouseEnabled(true)
-    if mapTexture.SetDrawLevel then mapTexture:SetDrawLevel(20) end
-    -- mapTexture remains the geometry reference used for zoom/pan calculations.
-    -- Mouse input is handled by a dedicated transparent layer above the map
-    -- tiles. This avoids child/background controls swallowing left-clicks.
     mapTexture:SetMouseEnabled(false)
-    self.statisticsAllianceMapTexture=mapTexture
+    self.statisticsAllianceMapTexture = mapTexture
 
-    local inputLayer=WINDOW_MANAGER:CreateControl(nil,mapFrame,CT_CONTROL)
+    local inputLayer = WINDOW_MANAGER:CreateControl(nil, mapFrame, CT_CONTROL)
     inputLayer:SetAnchorFill(mapFrame)
     inputLayer:SetMouseEnabled(true)
     if inputLayer.SetDrawLevel then inputLayer:SetDrawLevel(20) end
-    inputLayer:SetHandler("OnMouseDown",function(_,button)
-        if button==MOUSE_BUTTON_INDEX_LEFT then
-            TPM:BeginAlliancePlannerMapPan()
-        end
+    inputLayer:SetHandler("OnMouseDown", function(_, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then TPM:BeginAlliancePlannerMapPan() end
     end)
-    inputLayer:SetHandler("OnMouseUp",function(_,button)
-        if button==MOUSE_BUTTON_INDEX_LEFT then
-            TPM:EndAlliancePlannerMapPan()
-        end
+    inputLayer:SetHandler("OnMouseUp", function(_, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then TPM:EndAlliancePlannerMapPan() end
     end)
-    inputLayer:SetHandler("OnMouseWheel",function(_,delta)
-        TPM:ZoomAlliancePlannerMapAtMouse((tonumber(delta) or 0)>0 and 0.25 or -0.25)
+    inputLayer:SetHandler("OnMouseWheel", function(_, delta)
+        TPM:ZoomAlliancePlannerMapAtMouse((tonumber(delta) or 0) > 0 and 0.25 or -0.25)
     end)
-    inputLayer:SetHandler("OnHide",function()
-        TPM:EndAlliancePlannerMapPan()
-    end)
-    self.statisticsAllianceMapInputLayer=inputLayer
+    inputLayer:SetHandler("OnHide", function() TPM:EndAlliancePlannerMapPan() end)
+    self.statisticsAllianceMapInputLayer = inputLayer
 
-    -- Fallback is only shown if the ESO client cannot resolve the original
-    -- Tamriel tile source. This prevents a completely blank Alliance map.
-    local mapFallback=WINDOW_MANAGER:CreateControl(nil,mapFrame,CT_TEXTURE)
+    local mapFallback = WINDOW_MANAGER:CreateControl(nil, mapFrame, CT_TEXTURE)
     mapFallback:SetAnchorFill(mapFrame)
     mapFallback:SetTexture("TamrielProgressMap/art/alliance_community_map.dds")
     mapFallback:SetAlpha(0.90)
     mapFallback:SetMouseEnabled(false)
     if mapFallback.SetDrawLevel then mapFallback:SetDrawLevel(4) end
     mapFallback:SetHidden(true)
-    self.statisticsAllianceMapFallback=mapFallback
+    self.statisticsAllianceMapFallback = mapFallback
 
-    -- Recommendations below map, inside planner.
-    local nextBox=WINDOW_MANAGER:CreateControl(nil,planner,CT_BACKDROP)
-    nextBox:SetDimensions(216,32)
-    nextBox:SetAnchor(BOTTOMLEFT,planner,BOTTOMLEFT,13,-5)
-    nextBox:SetCenterColor(0.035,0.032,0.025,0.96)
-    nextBox:SetEdgeColor(0.35,0.29,0.14,0.85)
-    nextBox:SetEdgeTexture(nil,1,1,1)
+    -- Title pill (top left)
+    local titlePill = Overlay(planner, 330, 28)
+    titlePill:SetAnchor(TOPLEFT, mapFrame, TOPLEFT, 8, 8)
+    self.statisticsAllianceOverlays[#self.statisticsAllianceOverlays + 1] = titlePill
+    local mapTitle = Label(titlePill, 314, 28, "$(BOLD_FONT)|14", 0.91, 0.75, 0.30)
+    mapTitle:SetAnchor(LEFT, titlePill, LEFT, 10, 0)
+    if mapTitle.SetDrawLevel then mapTitle:SetDrawLevel(46) end
+    if mapTitle.SetWrapMode then mapTitle:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+    self.statisticsAllianceMapTitle = mapTitle
 
-    local nextTitle=WINDOW_MANAGER:CreateControl(nil,nextBox,CT_LABEL)
-    nextTitle:SetDimensions(208,12)
-    nextTitle:SetAnchor(TOPLEFT,nextBox,TOPLEFT,7,2)
-    nextTitle:SetFont("$(BOLD_FONT)|9")
-    nextTitle:SetColor(0.87,0.72,0.26,1)
-    self.statisticsAllianceNextTitle=nextTitle
+    -- Zoom control (top right): [-] [zoom %] [+]  -  clicking the % fits Tamriel
+    local zoomPill = Overlay(planner, 132, 28)
+    zoomPill:SetAnchor(TOPRIGHT, mapFrame, TOPRIGHT, -8, 8)
+    self.statisticsAllianceOverlays[#self.statisticsAllianceOverlays + 1] = zoomPill
+    local function ZoomButton(w, text, font, onClick, tooltipKey)
+        local b = WINDOW_MANAGER:CreateControl(nil, zoomPill, CT_BUTTON)
+        b:SetDimensions(w, 28); b:SetFont(font)
+        b:SetNormalFontColor(0.95, 0.85, 0.55, 1); b:SetMouseOverFontColor(1, 1, 0.80, 1)
+        b:SetText(text); b:SetHandler("OnClicked", onClick)
+        if b.SetDrawLevel then b:SetDrawLevel(47) end
+        if tooltipKey then
+            b:SetHandler("OnMouseEnter", function(c) TPM:ShowStatisticsHoverTooltip(TPM:L(tooltipKey), "", c) end)
+            b:SetHandler("OnMouseExit", function() TPM:HideStatisticsHoverTooltips() end)
+        end
+        return b
+    end
+    local zoomMinus = ZoomButton(32, "−", "$(BOLD_FONT)|20", function() TPM:ZoomAlliancePlannerMapAtMouse(-0.25) end)
+    zoomMinus:SetAnchor(LEFT, zoomPill, LEFT, 2, 0)
+    local zoomFit = ZoomButton(64, "100%", "$(BOLD_FONT)|14", function() TPM:SetAlliancePlannerMapZoom(1.0) end, "STAT_ALLIANCE_FIT")
+    zoomFit:SetAnchor(CENTER, zoomPill, CENTER, 0, 0)
+    local zoomPlus = ZoomButton(32, "+", "$(BOLD_FONT)|20", function() TPM:ZoomAlliancePlannerMapAtMouse(0.25) end)
+    zoomPlus:SetAnchor(RIGHT, zoomPill, RIGHT, -2, 0)
+    self.statisticsAllianceZoomButtons = { zoomMinus, zoomFit, zoomPlus }
+    self.statisticsAllianceMapZoomLabel = zoomFit
 
-    local nextValue=WINDOW_MANAGER:CreateControl(nil,nextBox,CT_LABEL)
-    nextValue:SetDimensions(208,13)
-    nextValue:SetAnchor(TOPLEFT,nextBox,TOPLEFT,7,14)
-    nextValue:SetFont("$(MEDIUM_FONT)|10")
-    nextValue:SetColor(0.90,0.86,0.75,1)
-    self.statisticsAllianceNextValue=nextValue
+    -- Legend that doubles as filter (bottom left)
+    local legendPill = Overlay(planner, TPM_ATLAS_MAP_W - 16, 28)
+    legendPill:SetAnchor(BOTTOMLEFT, mapFrame, BOTTOMLEFT, 8, -8)
+    self.statisticsAllianceOverlays[#self.statisticsAllianceOverlays + 1] = legendPill
+    self.statisticsAllianceLegendItems = {}
+    local itemWidth = math.floor((TPM_ATLAS_MAP_W - 24) / #TPM_ATLAS_FILTERS)
+    for index, def in ipairs(TPM_ATLAS_FILTERS) do
+        local button = WINDOW_MANAGER:CreateControl(nil, legendPill, CT_BUTTON)
+        button:SetDimensions(itemWidth, 28)
+        button:SetAnchor(LEFT, legendPill, LEFT, 4 + ((index - 1) * itemWidth), 0)
+        if button.SetDrawLevel then button:SetDrawLevel(47) end
+        button:SetMouseEnabled(true)
+        local label = Label(button, itemWidth - 6, 28, "$(MEDIUM_FONT)|12", 0.88, 0.85, 0.78)
+        label:SetAnchor(LEFT, button, LEFT, 4, 0)
+        if label.SetDrawLevel then label:SetDrawLevel(48) end
+        if label.SetWrapMode then label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        button:SetHandler("OnClicked", function() TPM:ToggleAllianceMapFilter(def.key) end)
+        button:SetHandler("OnMouseEnter", function(c) TPM:ShowStatisticsHoverTooltip(TPM:L(def.label), TPM:L("STAT_ALLIANCE_FILTER_HINT"), c) end)
+        button:SetHandler("OnMouseExit", function() TPM:HideStatisticsHoverTooltips() end)
+        self.statisticsAllianceLegendItems[index] = { key = def.key, color = def.color, labelKey = def.label, button = button, label = label }
+    end
+    self.statisticsAllianceLegend = legendPill
 
-    local gapBox=WINDOW_MANAGER:CreateControl(nil,planner,CT_BACKDROP)
-    gapBox:SetDimensions(216,32)
-    gapBox:SetAnchor(BOTTOMRIGHT,planner,BOTTOMRIGHT,-13,-5)
-    gapBox:SetCenterColor(0.035,0.032,0.025,0.96)
-    gapBox:SetEdgeColor(0.35,0.29,0.14,0.85)
-    gapBox:SetEdgeTexture(nil,1,1,1)
+    -- 3) Right column: action chips + zone list -----------------------------------------
+    local function Chip(x, titleKey)
+        local chip = Panel(page, 174, 54)
+        chip:SetAnchor(TOPLEFT, page, TOPLEFT, x, 98)
+        chip:SetMouseEnabled(true)
+        local title = Label(chip, 156, 14, "$(BOLD_FONT)|11", 0.87, 0.72, 0.26)
+        title:SetAnchor(TOPLEFT, chip, TOPLEFT, 10, 5)
+        title:SetText(self:L(titleKey))
+        title.TPMSkinRole = "muted"
+        local name = Label(chip, 156, 18, "$(BOLD_FONT)|14", 0.96, 0.91, 0.78)
+        name:SetAnchor(TOPLEFT, chip, TOPLEFT, 10, 19)
+        if name.SetWrapMode then name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        local sub = Label(chip, 156, 14, "$(MEDIUM_FONT)|12", 0.80, 0.77, 0.69)
+        sub:SetAnchor(TOPLEFT, chip, TOPLEFT, 10, 37)
+        chip:SetHandler("OnMouseEnter", function(c)
+            c.TPMSkinHover = true; TPM:SkinNow(c)
+            if c.zoneId then TPM:SetAllianceAtlasHighlight(c.zoneId) end
+            TPM:ShowStatisticsHoverTooltip(TPM:L(titleKey), TPM:L("STAT_ALLIANCE_CLICK_OPEN"), c)
+        end)
+        chip:SetHandler("OnMouseExit", function(c)
+            c.TPMSkinHover = false; TPM:SkinNow(c)
+            TPM:SetAllianceAtlasHighlight(nil)
+            TPM:HideStatisticsHoverTooltips()
+        end)
+        chip:SetHandler("OnMouseUp", function(c, button, inside)
+            if inside and button == MOUSE_BUTTON_INDEX_LEFT and c.zoneId then TPM:OpenAllianceZoneInProgress(c.zoneId) end
+        end)
+        self.statisticsAlliancePanels[#self.statisticsAlliancePanels + 1] = chip
+        return { control = chip, title = title, name = name, sub = sub }
+    end
+    self.statisticsAllianceNextChip = Chip(592, "STAT_ALLIANCE_NEXT_TARGET")
+    self.statisticsAllianceGapChip = Chip(778, "STAT_ALLIANCE_BIGGEST_GAP")
+    self.statisticsAllianceNextTitle = self.statisticsAllianceNextChip.title
+    self.statisticsAllianceGapTitle = self.statisticsAllianceGapChip.title
 
-    local gapTitle=WINDOW_MANAGER:CreateControl(nil,gapBox,CT_LABEL)
-    gapTitle:SetDimensions(208,12)
-    gapTitle:SetAnchor(TOPLEFT,gapBox,TOPLEFT,7,2)
-    gapTitle:SetFont("$(BOLD_FONT)|9")
-    gapTitle:SetColor(0.87,0.72,0.26,1)
-    self.statisticsAllianceGapTitle=gapTitle
+    local zonePanel = Panel(page, 360, 338)
+    zonePanel:SetAnchor(TOPLEFT, page, TOPLEFT, 592, 162)
+    self.statisticsAlliancePanels[#self.statisticsAlliancePanels + 1] = zonePanel
+    local zoneTitle = Label(zonePanel, 240, 22, "$(BOLD_FONT)|15", 0.91, 0.75, 0.30)
+    zoneTitle:SetAnchor(TOPLEFT, zonePanel, TOPLEFT, 12, 8)
+    if zoneTitle.SetWrapMode then zoneTitle:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+    self.statisticsAllianceZoneTitle = zoneTitle
+    local zoneCount = Label(zonePanel, 96, 22, "$(BOLD_FONT)|13", 0.80, 0.77, 0.69, TEXT_ALIGN_RIGHT)
+    zoneCount:SetAnchor(TOPRIGHT, zonePanel, TOPRIGHT, -12, 8)
+    self.statisticsAllianceZoneCount = zoneCount
+    local zoneHint = Label(zonePanel, 336, 14, "$(MEDIUM_FONT)|11", 0.62, 0.59, 0.52)
+    zoneHint:SetAnchor(TOPLEFT, zonePanel, TOPLEFT, 12, 30)
+    if zoneHint.SetWrapMode then zoneHint:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+    zoneHint.TPMSkinRole = "muted"
+    self.statisticsAllianceZoneHint = zoneHint
 
-    local gapValue=WINDOW_MANAGER:CreateControl(nil,gapBox,CT_LABEL)
-    gapValue:SetDimensions(208,13)
-    gapValue:SetAnchor(TOPLEFT,gapBox,TOPLEFT,7,14)
-    gapValue:SetFont("$(MEDIUM_FONT)|10")
-    gapValue:SetColor(0.90,0.86,0.75,1)
-    self.statisticsAllianceGapValue=gapValue
-
-    -- Right: legend + zoom ----------------------------------------------------
-    local tools=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-    tools:SetDimensions(190,180)
-    tools:SetAnchor(TOPLEFT,page,TOPLEFT,748,100)
-    tools:SetCenterColor(0.020,0.019,0.016,0.99)
-    tools:SetEdgeColor(0.42,0.34,0.15,0.90)
-    tools:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
-
-    local toolsTitle=WINDOW_MANAGER:CreateControl(nil,tools,CT_LABEL)
-    toolsTitle:SetDimensions(164,20)
-    toolsTitle:SetAnchor(TOPLEFT,tools,TOPLEFT,12,7)
-    toolsTitle:SetFont("$(BOLD_FONT)|14")
-    toolsTitle:SetColor(0.91,0.75,0.30,1)
-    toolsTitle:SetText(self:L("STAT_ALLIANCE_TOOLS_TITLE"))
-    self.statisticsAllianceToolsTitle=toolsTitle
-
-    local legend=WINDOW_MANAGER:CreateControl(nil,tools,CT_LABEL)
-    legend:SetDimensions(166,90)
-    legend:SetAnchor(TOPLEFT,tools,TOPLEFT,12,27)
-    legend:SetFont("$(MEDIUM_FONT)|11")
-    legend:SetColor(0.88,0.85,0.78,1)
-    legend:SetText("|c4E9BFF■|r  "..self:L("STAT_ALLIANCE_DC")..
-        "\n|cFFD13C■|r  "..self:L("STAT_ALLIANCE_AD")..
-        "\n|cFF594A■|r  "..self:L("STAT_ALLIANCE_EP")..
-        "\n|cF0EEE8■|r  "..self:L("STAT_ALLIANCE_NEUTRAL")..
-        "\n|c4CC744■|r  Cyrodiil (PvP)")
-    self.statisticsAllianceLegend=legend
-
-    local zoomTitle=WINDOW_MANAGER:CreateControl(nil,tools,CT_LABEL)
-    zoomTitle:SetDimensions(60,18)
-    zoomTitle:SetAnchor(TOPLEFT,tools,TOPLEFT,12,108)
-    zoomTitle:SetFont("$(BOLD_FONT)|12")
-    zoomTitle:SetColor(0.88,0.82,0.68,1)
-    zoomTitle:SetText(self:L("STAT_ALLIANCE_ZOOM"))
-    self.statisticsAllianceZoomTitle=zoomTitle
-
-    local zoomLabel=WINDOW_MANAGER:CreateControl(nil,tools,CT_LABEL)
-    zoomLabel:SetDimensions(70,18)
-    zoomLabel:SetAnchor(TOPRIGHT,tools,TOPRIGHT,-12,107)
-    zoomLabel:SetFont("$(ANTIQUE_FONT)|20")
-    zoomLabel:SetColor(0.95,0.82,0.32,1)
-    zoomLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    zoomLabel:SetText("100%")
-    self.statisticsAllianceMapZoomLabel=zoomLabel
-
-    local zoomRange=WINDOW_MANAGER:CreateControl(nil,tools,CT_LABEL)
-    zoomRange:SetDimensions(166,14)
-    zoomRange:SetAnchor(TOPLEFT,tools,TOPLEFT,12,130)
-    zoomRange:SetFont("$(MEDIUM_FONT)|9")
-    zoomRange:SetColor(0.60,0.57,0.50,1)
-    zoomRange:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    zoomRange:SetText("0%  —  350%")
-
-    local zoomMinus=WINDOW_MANAGER:CreateControl(nil,tools,CT_BUTTON)
-    zoomMinus:SetDimensions(32,22)
-    zoomMinus:SetAnchor(BOTTOMLEFT,tools,BOTTOMLEFT,12,-8)
-    zoomMinus:SetFont("$(BOLD_FONT)|15")
-    zoomMinus:SetNormalFontColor(0.95,0.85,0.55,1)
-    zoomMinus:SetMouseOverFontColor(1,1,0.80,1)
-    zoomMinus:SetText("−")
-    zoomMinus:SetHandler("OnClicked",function() TPM:ZoomAlliancePlannerMapAtMouse(-0.25) end)
-
-    local resetZoom=WINDOW_MANAGER:CreateControl(nil,tools,CT_BUTTON)
-    resetZoom:SetDimensions(64,22)
-    resetZoom:SetAnchor(BOTTOM,tools,BOTTOM,0,-8)
-    resetZoom:SetFont("$(BOLD_FONT)|10")
-    resetZoom:SetNormalFontColor(0.90,0.84,0.70,1)
-    resetZoom:SetMouseOverFontColor(1,0.88,0.36,1)
-    resetZoom:SetText("0%")
-    resetZoom:SetHandler("OnClicked",function() TPM:SetAlliancePlannerMapZoom(1.0) end)
-
-    local zoomPlus=WINDOW_MANAGER:CreateControl(nil,tools,CT_BUTTON)
-    zoomPlus:SetDimensions(32,22)
-    zoomPlus:SetAnchor(BOTTOMRIGHT,tools,BOTTOMRIGHT,-12,-8)
-    zoomPlus:SetFont("$(BOLD_FONT)|15")
-    zoomPlus:SetNormalFontColor(0.95,0.85,0.55,1)
-    zoomPlus:SetMouseOverFontColor(1,1,0.80,1)
-    zoomPlus:SetText("+")
-    zoomPlus:SetHandler("OnClicked",function() TPM:ZoomAlliancePlannerMapAtMouse(0.25) end)
-
-    -- Right: zone progress -----------------------------------------------------
-    local zonePanel=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-    zonePanel:SetDimensions(190,232)
-    zonePanel:SetAnchor(TOPLEFT,page,TOPLEFT,748,288)
-    zonePanel:SetCenterColor(0.020,0.019,0.016,0.99)
-    zonePanel:SetEdgeColor(0.42,0.34,0.15,0.90)
-    zonePanel:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
-
-    local zoneTitle=WINDOW_MANAGER:CreateControl(nil,zonePanel,CT_LABEL)
-    zoneTitle:SetDimensions(164,20)
-    zoneTitle:SetAnchor(TOPLEFT,zonePanel,TOPLEFT,12,7)
-    zoneTitle:SetFont("$(BOLD_FONT)|14")
-    zoneTitle:SetColor(0.91,0.75,0.30,1)
-    self.statisticsAllianceZoneTitle=zoneTitle
-
-    local zoneHint=WINDOW_MANAGER:CreateControl(nil,zonePanel,CT_LABEL)
-    zoneHint:SetDimensions(164,28)
-    zoneHint:SetAnchor(TOPLEFT,zonePanel,TOPLEFT,12,25)
-    zoneHint:SetFont("$(MEDIUM_FONT)|9")
-    zoneHint:SetColor(0.62,0.59,0.52,1)
-    zoneHint:SetVerticalAlignment(TEXT_ALIGN_TOP)
-    self.statisticsAllianceZoneHint=zoneHint
-
-    self.statisticsAllianceZoneRows={}
-    for i=1,7 do
-        local row=WINDOW_MANAGER:CreateControl(nil,zonePanel,CT_BUTTON)
-        row:SetDimensions(164,25)
-        row:SetAnchor(TOPLEFT,zonePanel,TOPLEFT,12,52+((i-1)*25))
+    self.statisticsAllianceZoneRows = {}
+    for i = 1, 7 do
+        local row = WINDOW_MANAGER:CreateControl(nil, zonePanel, CT_BUTTON)
+        row:SetDimensions(336, 38)
+        row:SetAnchor(TOPLEFT, zonePanel, TOPLEFT, 12, 50 + ((i - 1) * 40))
         row:SetMouseEnabled(true)
-
-        local hover=WINDOW_MANAGER:CreateControl(nil,row,CT_BACKDROP)
-        hover:SetAnchorFill(row)
-        hover:SetCenterColor(0.018,0.016,0.012,0)
-        hover:SetEdgeColor(0.22,0.18,0.10,0)
-        hover:SetEdgeTexture(nil,1,1,1)
+        local hover = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
+        hover:SetAnchor(TOPLEFT, row, TOPLEFT, -6, 0)
+        hover:SetAnchor(BOTTOMRIGHT, row, BOTTOMRIGHT, 6, 0)
+        hover:SetCenterColor(0.018, 0.016, 0.012, 0); hover:SetEdgeColor(0.22, 0.18, 0.10, 0); hover:SetEdgeTexture(nil, 1, 1, 1)
         hover:SetMouseEnabled(false)
-
-        local name=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL)
-        name:SetDimensions(118,13)
-        name:SetAnchor(TOPLEFT,row,TOPLEFT,0,0)
-        name:SetFont("$(MEDIUM_FONT)|10")
-        name:SetColor(0.87,0.83,0.74,1)
-        name:SetMouseEnabled(false)
-
-        local pct=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL)
-        pct:SetDimensions(44,13)
-        pct:SetAnchor(TOPRIGHT,row,TOPRIGHT,0,0)
-        pct:SetFont("$(BOLD_FONT)|10")
-        pct:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        pct:SetMouseEnabled(false)
-
-        local barBack=WINDOW_MANAGER:CreateControl(nil,row,CT_BACKDROP)
-        barBack:SetDimensions(164,6)
-        barBack:SetAnchor(TOPLEFT,row,TOPLEFT,0,15)
-        barBack:SetCenterColor(0.060,0.055,0.045,1)
-        barBack:SetEdgeColor(0.25,0.22,0.16,0.9)
-        barBack:SetEdgeTexture(nil,1,1,1)
-        barBack:SetMouseEnabled(false)
-
-        local fill=WINDOW_MANAGER:CreateControl(nil,barBack,CT_BACKDROP)
-        fill:SetDimensions(1,4)
-        fill:SetAnchor(LEFT,barBack,LEFT,1,0)
-        fill:SetEdgeColor(0,0,0,0)
-
-        local count=WINDOW_MANAGER:CreateControl(nil,row,CT_LABEL)
-        count:SetDimensions(164,9)
-        count:SetAnchor(TOPLEFT,row,TOPLEFT,0,20)
-        count:SetFont("$(MEDIUM_FONT)|8")
-        count:SetColor(0.57,0.55,0.50,1)
-        count:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        count:SetMouseEnabled(false)
-
-        row.hover=hover
-        row:SetHandler("OnMouseEnter",function(btn)
-            if TPM:IsStatisticsDarkDesign() then btn.hover:SetCenterColor(0,0,0,.36); btn.hover:SetEdgeColor(1,1,1,.30)
-            else btn.hover:SetCenterColor(0.075,0.057,0.020,0.70); btn.hover:SetEdgeColor(0.70,0.54,0.16,0.75) end
+        local name = Label(row, 230, 18, "$(MEDIUM_FONT)|14", 0.90, 0.86, 0.76)
+        name:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 3); name:SetMouseEnabled(false)
+        if name.SetWrapMode then name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        local pct = Label(row, 60, 18, "$(BOLD_FONT)|14", 0.95, 0.82, 0.30, TEXT_ALIGN_RIGHT)
+        pct:SetAnchor(TOPRIGHT, row, TOPRIGHT, 0, 3); pct:SetMouseEnabled(false)
+        pct.TPMSkinRole = "keep"
+        local barBack, fill = Bar(row, 214, 5)
+        barBack:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 26)
+        local count = Label(row, 116, 14, "$(MEDIUM_FONT)|12", 0.62, 0.59, 0.52, TEXT_ALIGN_RIGHT)
+        count:SetAnchor(TOPRIGHT, row, TOPRIGHT, 0, 21); count:SetMouseEnabled(false)
+        count.TPMSkinRole = "muted"
+        row.hover = hover
+        row:SetHandler("OnMouseEnter", function(btn)
+            btn.hover:SetCenterColor(0.075, 0.057, 0.020, 0.70)
+            if btn.zoneId then TPM:SetAllianceAtlasHighlight(btn.zoneId) end
+            TPM:SkinHover(btn, true)
         end)
-        row:SetHandler("OnMouseExit",function(btn)
-            if TPM:IsStatisticsDarkDesign() then btn.hover:SetCenterColor(0,0,0,0); btn.hover:SetEdgeColor(1,1,1,0)
-            else btn.hover:SetCenterColor(0.018,0.016,0.012,0); btn.hover:SetEdgeColor(0.22,0.18,0.10,0) end
+        row:SetHandler("OnMouseExit", function(btn)
+            btn.hover:SetCenterColor(0.018, 0.016, 0.012, 0)
+            TPM:SetAllianceAtlasHighlight(nil)
+            TPM:SkinHover(btn, false)
         end)
-        row:SetHandler("OnClicked",function(btn)
+        row:SetHandler("OnClicked", function(btn)
             if btn.zoneId then TPM:OpenAllianceZoneInProgress(btn.zoneId) end
         end)
-
-        self.statisticsAllianceZoneRows[i]={control=row,name=name,pct=pct,bar=fill,count=count}
+        row.TPMSkinPolish = function(btn, skin)
+            local P = skin.colors
+            if btn.TPMSkinHover then
+                TPM:SkinPaint(btn.hover, "center", { P.text[1], P.text[2], P.text[3], 0.08 })
+                TPM:SkinPaint(btn.hover, "edge", P.accent, 0.45)
+            elseif btn.TPMAtlasComplete then
+                TPM:SkinPaint(btn.hover, "center", P.success, 0.07)
+                TPM:SkinPaint(btn.hover, "edge", P.line, 0)
+            else
+                TPM:SkinPaint(btn.hover, "center", P.panel, 0)
+                TPM:SkinPaint(btn.hover, "edge", P.line, 0)
+            end
+        end
+        self.statisticsAllianceZoneRows[i] = { control = row, name = name, pct = pct, bar = fill, barBack = barBack, count = count }
     end
 
-    -- Bottom details: fully above tab bar -------------------------------------
-    local details=WINDOW_MANAGER:CreateControl(nil,page,CT_BACKDROP)
-    details:SetDimensions(914,88)
-    details:SetAnchor(TOPLEFT,page,TOPLEFT,20,532)
-    details:SetCenterColor(0.020,0.019,0.016,0.99)
-    details:SetEdgeColor(0.45,0.36,0.16,0.92)
-    details:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",128,16,2)
+    -- 4) Bottom: alliance comparison matrix ---------------------------------------------
+    local compare = Panel(page, 932, 120)
+    compare:SetAnchor(TOPLEFT, page, TOPLEFT, 20, 508)
+    self.statisticsAlliancePanels[#self.statisticsAlliancePanels + 1] = compare
+    local compareTitle = Label(compare, 260, 20, "$(BOLD_FONT)|14", 0.91, 0.75, 0.30)
+    compareTitle:SetAnchor(TOPLEFT, compare, TOPLEFT, 40, 6)
+    compareTitle:SetText(self:L("STAT_ALLIANCE_COMPARE"))
+    self.statisticsAllianceDetailsTitle = compareTitle
 
-    local detailsTitle=WINDOW_MANAGER:CreateControl(nil,details,CT_LABEL)
-    detailsTitle:SetDimensions(860,18)
-    detailsTitle:SetAnchor(TOPLEFT,details,TOPLEFT,14,5)
-    detailsTitle:SetFont("$(BOLD_FONT)|14")
-    detailsTitle:SetColor(0.91,0.75,0.30,1)
-    self.statisticsAllianceDetailsTitle=detailsTitle
+    -- 7) Info badge: the planner note is reachable instead of hidden in 7 px text.
+    local info = WINDOW_MANAGER:CreateControl(nil, compare, CT_BUTTON)
+    info:SetDimensions(18, 18)
+    info:SetAnchor(TOPLEFT, compare, TOPLEFT, 14, 7)
+    local infoBack = WINDOW_MANAGER:CreateControl(nil, info, CT_BACKDROP)
+    infoBack:SetAnchorFill(info)
+    infoBack:SetCenterColor(0.035, 0.031, 0.024, 0.9); infoBack:SetEdgeColor(0.62, 0.50, 0.20, 0.9); infoBack:SetEdgeTexture(nil, 1, 1, 1)
+    info:SetFont("$(BOLD_FONT)|13"); info:SetText("i")
+    info:SetNormalFontColor(0.95, 0.82, 0.36, 1); info:SetMouseOverFontColor(1, 1, 1, 1)
+    info:SetHandler("OnMouseEnter", function(c) TPM:ShowStatisticsHoverTooltip(TPM:L("STAT_ALLIANCE_COMPARE"), TPM:L("STAT_ALLIANCE_PLANNER_NOTE"), c) end)
+    info:SetHandler("OnMouseExit", function() TPM:HideStatisticsHoverTooltips() end)
+    self.statisticsAllianceInfoButton = info
+    self.statisticsAllianceInfoBack = infoBack
 
-    self.statisticsAllianceDetailRows={}
-    for i=1,8 do
-        local col=(i-1)%4
-        local rowIndex=math.floor((i-1)/4)
-        local cell=WINDOW_MANAGER:CreateControl(nil,details,CT_CONTROL)
-        cell:SetDimensions(215,30)
-        cell:SetAnchor(TOPLEFT,details,TOPLEFT,14+col*224,25+rowIndex*31)
-
-        local label=WINDOW_MANAGER:CreateControl(nil,cell,CT_LABEL)
-        label:SetDimensions(130,11)
-        label:SetAnchor(TOPLEFT,cell,TOPLEFT,0,0)
-        label:SetFont("$(MEDIUM_FONT)|8")
-        label:SetColor(0.80,0.77,0.69,1)
-
-        local value=WINDOW_MANAGER:CreateControl(nil,cell,CT_LABEL)
-        value:SetDimensions(78,11)
-        value:SetAnchor(TOPRIGHT,cell,TOPRIGHT,0,0)
-        value:SetFont("$(BOLD_FONT)|8")
-        value:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        value:SetColor(0.93,0.82,0.42,1)
-
-        local back=WINDOW_MANAGER:CreateControl(nil,cell,CT_BACKDROP)
-        back:SetDimensions(215,5)
-        back:SetAnchor(TOPLEFT,cell,TOPLEFT,0,13)
-        back:SetCenterColor(0.055,0.050,0.040,1)
-        back:SetEdgeColor(0.22,0.19,0.13,0.85)
-        back:SetEdgeTexture(nil,1,1,1)
-
-        local fill=WINDOW_MANAGER:CreateControl(nil,back,CT_BACKDROP)
-        fill:SetDimensions(1,4)
-        fill:SetAnchor(LEFT,back,LEFT,1,0)
-        fill:SetEdgeColor(0,0,0,0)
-
-        local remain=WINDOW_MANAGER:CreateControl(nil,cell,CT_LABEL)
-        remain:SetDimensions(215,9)
-        remain:SetAnchor(TOPLEFT,cell,TOPLEFT,0,19)
-        remain:SetFont("$(MEDIUM_FONT)|7")
-        remain:SetColor(0.57,0.55,0.50,1)
-        remain:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-
-        self.statisticsAllianceDetailRows[i]={label=label,value=value,bar=fill,remain=remain}
+    local nameColumn = 150
+    local columnWidth = math.floor((932 - 28 - nameColumn) / 8)
+    self.statisticsAllianceCompareHeaders = {}
+    for c = 1, 8 do
+        local header = Label(compare, columnWidth - 6, 16, "$(BOLD_FONT)|11", 0.72, 0.68, 0.59, TEXT_ALIGN_CENTER)
+        header:SetAnchor(TOPLEFT, compare, TOPLEFT, 14 + nameColumn + ((c - 1) * columnWidth), 30)
+        if header.SetWrapMode then header:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        header.TPMSkinRole = "muted"
+        self.statisticsAllianceCompareHeaders[c] = header
     end
+    self.statisticsAllianceCompareRows = {}
+    for r, group in ipairs(TPM_ATLAS_GROUPS) do
+        local color = TPM_ATLAS_COLORS[group]
+        local rowY = 48 + ((r - 1) * 23)
+        local rowBack = WINDOW_MANAGER:CreateControl(nil, compare, CT_BACKDROP)
+        rowBack:SetDimensions(932 - 16, 22)
+        rowBack:SetAnchor(TOPLEFT, compare, TOPLEFT, 8, rowY)
+        rowBack:SetCenterColor(0.035, 0.031, 0.024, 0); rowBack:SetEdgeColor(0, 0, 0, 0); rowBack:SetEdgeTexture(nil, 1, 1, 1)
+        local name = Label(compare, nameColumn - 8, 22, "$(BOLD_FONT)|13", color[1], color[2], color[3])
+        name:SetAnchor(TOPLEFT, compare, TOPLEFT, 14, rowY)
+        name.TPMSkinRole = "keep"
+        if name.SetWrapMode then name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+        local cells = {}
+        for c = 1, 8 do
+            local x = 14 + nameColumn + ((c - 1) * columnWidth)
+            local cell = WINDOW_MANAGER:CreateControl(nil, compare, CT_CONTROL)
+            cell:SetDimensions(columnWidth - 6, 22)
+            cell:SetAnchor(TOPLEFT, compare, TOPLEFT, x, rowY)
+            cell:SetMouseEnabled(true)
+            local back, fill = Bar(cell, columnWidth - 48, 5)
+            back:SetAnchor(LEFT, cell, LEFT, 2, 1)
+            fill:SetCenterColor(color[1], color[2], color[3], 0.95)
+            local value = Label(cell, 40, 22, "$(BOLD_FONT)|12", 0.92, 0.90, 0.84, TEXT_ALIGN_RIGHT)
+            value:SetAnchor(RIGHT, cell, RIGHT, 0, 0)
+            cell:SetHandler("OnMouseEnter", function(ctrl)
+                if ctrl.TPMTooltipTitle then TPM:ShowStatisticsHoverTooltip(ctrl.TPMTooltipTitle, ctrl.TPMTooltipBody or "", ctrl) end
+            end)
+            cell:SetHandler("OnMouseExit", function() TPM:HideStatisticsHoverTooltips() end)
+            cells[c] = { control = cell, fill = fill, back = back, value = value, width = columnWidth - 50 }
+        end
+        self.statisticsAllianceCompareRows[r] = { group = group, back = rowBack, name = name, cells = cells, color = color }
+    end
+    self.statisticsAllianceDetailRows = {}
 
-    self.statisticsAllianceNote=WINDOW_MANAGER:CreateControl(nil,page,CT_LABEL)
-    self.statisticsAllianceNote:SetDimensions(900,10)
-    self.statisticsAllianceNote:SetAnchor(BOTTOM,page,BOTTOM,0,1)
-    self.statisticsAllianceNote:SetFont("$(MEDIUM_FONT)|7")
-    self.statisticsAllianceNote:SetColor(0.48,0.46,0.42,1)
-    self.statisticsAllianceNote:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    -- Kept for older code paths (hidden).
+    self.statisticsAllianceNote = WINDOW_MANAGER:CreateControl(nil, page, CT_LABEL)
+    self.statisticsAllianceNote:SetDimensions(10, 10)
+    self.statisticsAllianceNote:SetAnchor(BOTTOM, page, BOTTOM, 0, 1)
+    self.statisticsAllianceNote:SetHidden(true)
+    self:RefreshAllianceAtlasLegend()
 end
 
 function TPM:RefreshAllianceStatisticsPage()
     if not self.statisticsAlliancePage or self.statisticsAlliancePage:IsHidden() then return end
-
-    local _,allianceName,ownGroup=self:GetPlayerAllianceDisplay()
-    local data=self:GetAllianceStatisticsData()
-    local ownRow=ownGroup and data[ownGroup] or nil
-
-    self.statisticsAllianceOwnTitle:SetText(self:L("STAT_ALLIANCE_YOURS"))
-    if self.statisticsAllianceQuickTitle then self.statisticsAllianceQuickTitle:SetText(self:L("STAT_ALLIANCE_OVERVIEW")) end
-    if self.statisticsAllianceToolsTitle then self.statisticsAllianceToolsTitle:SetText(self:L("STAT_ALLIANCE_TOOLS_TITLE")) end
-    if self.statisticsAllianceZoomTitle then self.statisticsAllianceZoomTitle:SetText(self:L("STAT_ALLIANCE_ZOOM")) end
-    if self.statisticsAllianceLegend then
-        self.statisticsAllianceLegend:SetText("|c4E9BFF■|r  "..self:L("STAT_ALLIANCE_DC")..
-            "\n|cFFD13C■|r  "..self:L("STAT_ALLIANCE_AD")..
-            "\n|cFF594A■|r  "..self:L("STAT_ALLIANCE_EP")..
-            "\n|cF0EEE8■|r  "..self:L("STAT_ALLIANCE_NEUTRAL")..
-            "\n|c4CC744■|r  Cyrodiil (PvP)")
-    end
-    self.statisticsAllianceOwnName:SetText(allianceName)
-    self.statisticsAllianceOwnPercent:SetText(string.format("%d%%",ownRow and ownRow.percent or 0))
-
-    local ownColor={0.78,0.62,0.22}
-    if ownGroup and self.statisticsAllianceCards and self.statisticsAllianceCards[ownGroup] then
-        ownColor=self.statisticsAllianceCards[ownGroup].color or ownColor
-    end
-    self.statisticsAllianceOwnBar:SetCenterColor(ownColor[1],ownColor[2],ownColor[3],0.95)
-    local ownPct=Clamp(tonumber(ownRow and ownRow.percent) or 0,0,100)
-    self.statisticsAllianceOwnBar:SetWidth(math.max(1,math.floor(878*ownPct/100)))
-
+    local _, _, ownGroup = self:GetPlayerAllianceDisplay()
+    local data = self:GetAllianceStatisticsData()
     if not self.statisticsAllianceSelectedGroup then
-        self.statisticsAllianceSelectedGroup=ownGroup or "DC"
+        self.statisticsAllianceSelectedGroup = ownGroup or "DC"
+    end
+    local selectedGroup = self.statisticsAllianceSelectedGroup
+    if selectedGroup ~= "DC" and selectedGroup ~= "AD" and selectedGroup ~= "EP" then
+        selectedGroup = ownGroup or "DC"
+        self.statisticsAllianceSelectedGroup = selectedGroup
     end
 
-    for group,card in pairs(self.statisticsAllianceCards or {}) do
-        local row=data[group] or {percent=0,zonesCompleted=0,zonesTotal=0,completed=0,total=0}
+    -- Cards
+    for group, card in pairs(self.statisticsAllianceCards or {}) do
+        local row = data[group] or { percent = 0, zonesCompleted = 0, zonesTotal = 0, completed = 0, total = 0 }
         card.title:SetText(self:L(card.label))
-        card.badge:SetText(ownGroup==group and self:L("STAT_ALLIANCE_YOURS_SHORT") or "")
-        card.percent:SetText(string.format("%d%%",row.percent or 0))
-        card.zones:SetText(string.format("%d/%d %s",row.zonesCompleted or 0,row.zonesTotal or 0,self:L("STAT_ALLIANCE_ZONES_SHORT")))
-        card.objectives:SetText(string.format("%d/%d",row.completed or 0,row.total or 0))
-        local pct=Clamp(tonumber(row.percent) or 0,0,100)
-        card.bar:SetWidth(math.max(1,math.floor(192*pct/100)))
-
-        local selected=self.statisticsAllianceSelectedGroup==group
-        if selected then
-            card.control:SetCenterColor(math.min(0.12,card.color[1]*0.10),math.min(0.12,card.color[2]*0.10),math.min(0.12,card.color[3]*0.10),1)
-            card.control:SetEdgeColor(card.color[1],card.color[2],card.color[3],1)
-        else
-            card.control:SetCenterColor(0.022,0.021,0.018,0.99)
-            card.control:SetEdgeColor(card.color[1],card.color[2],card.color[3],0.68)
-        end
+        card.badge:SetText(ownGroup == group and self:L("STAT_ALLIANCE_YOURS_SHORT") or "")
+        card.percent:SetText(string.format("%d%%", row.percent or 0))
+        card.zones:SetText(self:L("STAT_ALLIANCE_CARD_LINE", row.zonesCompleted or 0, row.zonesTotal or 0, row.completed or 0, row.total or 0))
+        card.bar:SetWidth(math.max(1, math.floor(270 * Clamp(tonumber(row.percent) or 0, 0, 100) / 100)))
+        card.bar:SetCenterColor(card.color[1], card.color[2], card.color[3], 0.95)
+        card.selected = selectedGroup == group
     end
 
-    local selectedGroup=self.statisticsAllianceSelectedGroup or ownGroup or "DC"
-    if selectedGroup~="DC" and selectedGroup~="AD" and selectedGroup~="EP" then
-        selectedGroup=ownGroup or "DC"
-        self.statisticsAllianceSelectedGroup=selectedGroup
-    end
-
-    local selectedCard=self.statisticsAllianceCards and self.statisticsAllianceCards[selectedGroup]
-    local selectedName=selectedCard and self:L(selectedCard.label) or selectedGroup
-    local selectedColor=selectedCard and selectedCard.color or {0.78,0.62,0.22}
-    local territoryColors = true
-
-    if self.statisticsAllianceMapFrame then
-        if territoryColors then
-            self.statisticsAllianceMapFrame:SetEdgeColor(selectedColor[1],selectedColor[2],selectedColor[3],1)
-        else
-            self.statisticsAllianceMapFrame:SetEdgeColor(0.72,0.56,0.18,0.95)
-        end
-    end
-    if self.statisticsAllianceLegend then
-        self.statisticsAllianceLegend:SetHidden(false)
-    end
-    if self.statisticsAllianceMapPanel then
-        self.statisticsAllianceMapPanel:SetEdgeColor(selectedColor[1],selectedColor[2],selectedColor[3],0.82)
-    end
-    if self.statisticsAllianceMapTexture then
-        self:RefreshAlliancePlannerMapView()
-    end
+    local selectedCard = self.statisticsAllianceCards and self.statisticsAllianceCards[selectedGroup]
+    local selectedName = selectedCard and self:L(selectedCard.label) or selectedGroup
+    local selectedColor = TPM_ATLAS_COLORS[selectedGroup] or { 0.78, 0.62, 0.22 }
     if self.statisticsAllianceMapTitle then
-        self.statisticsAllianceMapTitle:SetText(self:L("STAT_ALLIANCE_PLANNER_TITLE",selectedName))
-    end
-    local nextTarget,biggestGap,zoneRows=self:GetAlliancePlannerRecommendations(selectedGroup)
-
-    local selectedStats=data[selectedGroup] or {zonesCompleted=0,zonesTotal=0,completed=0,total=0}
-    local zoneOpen=math.max(0,(selectedStats.zonesTotal or 0)-(selectedStats.zonesCompleted or 0))
-    local objOpen=math.max(0,(selectedStats.total or 0)-(selectedStats.completed or 0))
-    if self.statisticsAllianceQuickDone then
-        self.statisticsAllianceQuickDone:SetText(self:L("STAT_ALLIANCE_QUICK_DONE",
-            selectedStats.zonesCompleted or 0, selectedStats.zonesTotal or 0))
-    end
-    if self.statisticsAllianceQuickOpen then
-        self.statisticsAllianceQuickOpen:SetText(self:L("STAT_ALLIANCE_QUICK_OPEN",
-            zoneOpen, objOpen))
-    end
-    if self.statisticsAllianceQuickNext then
-        if nextTarget then
-            self.statisticsAllianceQuickNext:SetText(self:L("STAT_ALLIANCE_QUICK_NEXT",
-                nextTarget.name, nextTarget.percent))
-        else
-            self.statisticsAllianceQuickNext:SetText(self:L("STAT_ALLIANCE_COMPLETE"))
-        end
-    end
-    if self.statisticsAllianceNextTitle then self.statisticsAllianceNextTitle:SetText(self:L("STAT_ALLIANCE_NEXT_TARGET")) end
-    if self.statisticsAllianceGapTitle then self.statisticsAllianceGapTitle:SetText(self:L("STAT_ALLIANCE_BIGGEST_GAP")) end
-    if self.statisticsAllianceNextValue then
-        if nextTarget then
-            self.statisticsAllianceNextValue:SetText(string.format("%s  %d%%  •  %d %s",
-                nextTarget.name,nextTarget.percent,nextTarget.remaining,self:L("STAT_ALLIANCE_REMAINING_SHORT")))
-        else
-            self.statisticsAllianceNextValue:SetText(self:L("STAT_ALLIANCE_COMPLETE"))
-        end
-    end
-    if self.statisticsAllianceGapValue then
-        if biggestGap then
-            self.statisticsAllianceGapValue:SetText(string.format("%s  %d%%  •  %d %s",
-                biggestGap.name,biggestGap.percent,biggestGap.remaining,self:L("STAT_ALLIANCE_REMAINING_SHORT")))
-        else
-            self.statisticsAllianceGapValue:SetText(self:L("STAT_ALLIANCE_COMPLETE"))
-        end
+        self.statisticsAllianceMapTitle:SetText(self:L("STAT_ALLIANCE_ATLAS_TITLE", selectedName))
     end
 
-    if self.statisticsAllianceZoneTitle then
-        self.statisticsAllianceZoneTitle:SetText(self:L("STAT_ALLIANCE_ZONE_PROGRESS"))
+    -- Chips
+    local nextTarget, biggestGap, zoneRows = self:GetAlliancePlannerRecommendations(selectedGroup)
+    local function FillChip(chip, zone)
+        if not chip then return end
+        chip.control.zoneId = zone and zone.zoneId or nil
+        chip.title:SetText(self:L(chip == self.statisticsAllianceNextChip and "STAT_ALLIANCE_NEXT_TARGET" or "STAT_ALLIANCE_BIGGEST_GAP"))
+        if zone then
+            chip.name:SetText(zone.name)
+            chip.sub:SetText(string.format("%d%%  •  %d %s", zone.percent, zone.remaining, self:L("STAT_ALLIANCE_REMAINING_SHORT")))
+        else
+            chip.name:SetText(self:L("STAT_ALLIANCE_COMPLETE"))
+            chip.sub:SetText("")
+        end
     end
-    if self.statisticsAllianceZoneHint then
-        self.statisticsAllianceZoneHint:SetText(self:L("STAT_ALLIANCE_ZONE_CLICK_HINT"))
-    end
+    FillChip(self.statisticsAllianceNextChip, nextTarget)
+    FillChip(self.statisticsAllianceGapChip, biggestGap)
 
-    for i,controls in ipairs(self.statisticsAllianceZoneRows or {}) do
-        local z=zoneRows[i]
+    -- Zone list
+    local done = 0
+    for _, z in ipairs(zoneRows or {}) do if z.complete then done = done + 1 end end
+    if self.statisticsAllianceZoneTitle then self.statisticsAllianceZoneTitle:SetText(self:L("STAT_ALLIANCE_ZONES_OF", selectedName)) end
+    if self.statisticsAllianceZoneCount then self.statisticsAllianceZoneCount:SetText(self:L("STAT_ALLIANCE_DONE_OF", done, #(zoneRows or {}))) end
+    if self.statisticsAllianceZoneHint then self.statisticsAllianceZoneHint:SetText(self:L("STAT_ALLIANCE_LIST_HINT")) end
+    local successR, successG, successB = self:GetSkinColor("success")
+    for i, controls in ipairs(self.statisticsAllianceZoneRows or {}) do
+        local z = zoneRows and zoneRows[i]
+        local row = controls.control
         if z then
-            controls.control:SetHidden(false)
-            controls.control.zoneId=z.zoneId
-            controls.name:SetText(z.name)
-            controls.pct:SetText(string.format("%d%%",z.percent))
-            controls.count:SetText(string.format("%d/%d  •  %d %s",z.completed,z.total,z.remaining,self:L("STAT_ALLIANCE_REMAINING_SHORT")))
-            controls.bar:SetWidth(math.max(1,math.floor(162*z.percent/100)))
+            row:SetHidden(false)
+            row.zoneId = z.zoneId
+            row.TPMAtlasComplete = z.complete == true
+            local checkIcon = z.complete and "|t16:16:EsoUI/Art/Buttons/accept_up.dds|t " or ""
+            controls.name:SetText(checkIcon .. z.name)
+            controls.pct:SetText(string.format("%d%%", z.percent))
+            controls.count:SetText(z.complete and string.format("%d/%d", z.completed, z.total)
+                or string.format("%d/%d • %d %s", z.completed, z.total, z.remaining, self:L("STAT_ALLIANCE_REMAINING_SHORT")))
+            controls.bar:SetWidth(math.max(1, math.floor(212 * z.percent / 100)))
             if z.complete then
-                controls.pct:SetColor(0.95,0.82,0.30,1)
-                controls.bar:SetCenterColor(0.90,0.72,0.20,0.98)
-            elseif z.percent>=75 then
-                controls.pct:SetColor(0.72,0.90,0.36,1)
-                controls.bar:SetCenterColor(0.58,0.80,0.24,0.95)
-            elseif z.percent>=40 then
-                controls.pct:SetColor(0.92,0.74,0.30,1)
-                if territoryColors then
-                    controls.bar:SetCenterColor(selectedColor[1],selectedColor[2],selectedColor[3],0.96)
+                controls.pct:SetColor(successR, successG, successB, 1)
+                controls.bar:SetCenterColor(successR, successG, successB, 0.98)
+            else
+                local warm = z.percent < 25
+                controls.pct:SetColor(warm and 0.96 or 0.92, warm and 0.52 or 0.90, warm and 0.36 or 0.84, 1)
+                controls.bar:SetCenterColor(selectedColor[1], selectedColor[2], selectedColor[3], 0.96)
+            end
+        else
+            row.zoneId = nil
+            row:SetHidden(true)
+        end
+    end
+
+    -- Comparison matrix
+    -- The comparison needs every zone's breakdown three times; keep it for 10 s
+    -- (and until the statistics cache is invalidated by real progress events).
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    local cache = self.allianceCategoryCache
+    if not cache or (now - (cache.at or 0)) > 10000 then
+        cache = { at = now, data = {} }
+        for _, group in ipairs(TPM_ATLAS_GROUPS) do cache.data[group] = self:GetAllianceCategoryStatisticsData(group) end
+        self.allianceCategoryCache = cache
+    end
+    local categoryData = cache.data
+    local headerRows = categoryData[selectedGroup] or categoryData.DC or {}
+    for c, header in ipairs(self.statisticsAllianceCompareHeaders or {}) do
+        header:SetText(headerRows[c] and headerRows[c].label or "")
+    end
+    for _, compareRow in ipairs(self.statisticsAllianceCompareRows or {}) do
+        local group = compareRow.group
+        compareRow.selected = group == selectedGroup
+        compareRow.name:SetText((group == ownGroup and "• " or "") .. self:L("STAT_ALLIANCE_" .. group .. "_SHORT"))
+        local rows = categoryData[group] or {}
+        for c, cell in ipairs(compareRow.cells) do
+            local data_ = rows[c]
+            cell.control:SetHidden(data_ == nil)
+            if data_ then
+                local percent = Clamp(tonumber(data_.percent) or 0, 0, 100)
+                cell.value:SetText(string.format("%d%%", percent))
+                cell.fill:SetWidth(math.max(1, math.floor(cell.width * percent / 100)))
+                if percent >= 100 then
+                    cell.fill:SetCenterColor(successR, successG, successB, 0.98)
                 else
-                    controls.bar:SetCenterColor(0.70,0.52,0.18,0.92)
+                    cell.fill:SetCenterColor(compareRow.color[1], compareRow.color[2], compareRow.color[3], 0.95)
                 end
-            else
-                controls.pct:SetColor(0.96,0.45,0.30,1)
-                controls.bar:SetCenterColor(0.82,0.28,0.16,0.92)
+                local remaining = math.max(0, (data_.total or 0) - (data_.completed or 0))
+                cell.control.TPMTooltipTitle = self:L("STAT_ALLIANCE_" .. group) .. "  •  " .. tostring(data_.label or "")
+                cell.control.TPMTooltipBody = string.format("%d / %d  •  %d%%  •  %d %s", data_.completed or 0, data_.total or 0, percent, remaining, self:L("STAT_ALLIANCE_REMAINING_SHORT"))
             end
-        else
-            controls.control.zoneId=nil
-            controls.control:SetHidden(true)
         end
     end
-
-    self.statisticsAllianceDetailsTitle:SetText(selectedName.."  •  "..self:L("STAT_ALLIANCE_PROGRESS_DETAILS"))
-    local detailRows=self:GetAllianceCategoryStatisticsData(selectedGroup)
-    for i,controls in ipairs(self.statisticsAllianceDetailRows or {}) do
-        local row=detailRows[i]
-        if row then
-            local remaining=math.max(0,(row.total or 0)-(row.completed or 0))
-            controls.label:SetText(row.label)
-            controls.value:SetText(string.format("%d/%d  %d%%",row.completed or 0,row.total or 0,row.percent or 0))
-            controls.remain:SetText(string.format("%d %s",remaining,self:L("STAT_ALLIANCE_REMAINING_SHORT")))
-            controls.bar:SetWidth(math.max(1,math.floor(213*(row.percent or 0)/100)))
-            if (row.percent or 0)>=100 then
-                controls.bar:SetCenterColor(0.90,0.72,0.20,0.98)
-            else
-                controls.bar:SetCenterColor(selectedColor[1],selectedColor[2],selectedColor[3],0.92)
-            end
-        else
-            controls.label:SetText("")
-            controls.value:SetText("")
-            controls.remain:SetText("")
-            controls.bar:SetWidth(1)
-        end
-    end
-
+    self:RefreshAllianceAtlasLegend()
     self:RefreshAlliancePlannerMapView()
-    self.statisticsAllianceNote:SetText(self:L("STAT_ALLIANCE_PLANNER_NOTE"))
+    self:EnforceStatisticsDarkModeAfterRefresh()
 end
 
 function TPM:IsValidStatisticsPage(page)
@@ -12276,6 +12242,7 @@ function TPM:RefreshStatisticsPageTabs()
             end
         end
     end
+    if self.ApplySkinPageTabs then self:ApplySkinPageTabs() end
 end
 
 function TPM:RefreshStatisticsSubPageNavigation()
@@ -12378,6 +12345,7 @@ function TPM:CreateGoalCard(parent, name, y)
 
     card:SetHandler("OnMouseEnter", function(c)
         if TPM:IsStatisticsDarkDesign() then c:SetCenterColor(0,0,0,.46) else c:SetCenterColor(0.11, 0.085, 0.040, 0.98) end
+        TPM:SkinHover(c, true)
         local data = c.goalData
         if data then
             local lines = { TPM:L("GOAL_TOOLTIP_HEADER", data.percent or 0, data.remaining or 0) }
@@ -12389,6 +12357,7 @@ function TPM:CreateGoalCard(parent, name, y)
     end)
     card:SetHandler("OnMouseExit", function(c)
         if TPM:IsStatisticsDarkDesign() then c:SetCenterColor(0,0,0,.34) else c:SetCenterColor(0.045, 0.037, 0.026, 0.96) end
+        TPM:SkinHover(c, false)
         TPM:HideStatisticsHoverTooltips()
     end)
     card:SetHandler("OnMouseUp", function(c, button, upInside)
@@ -12611,11 +12580,12 @@ function TPM:CreateHistoryStatisticsPage(control)
     bossBadge:SetMouseEnabled(false)
 
     local bossIcon = WINDOW_MANAGER:CreateControl(nil, bossBadge, CT_TEXTURE)
-    bossIcon:SetDimensions(24, 24)
-    bossIcon:SetAnchor(LEFT, bossBadge, LEFT, 5, 0)
-    bossIcon:SetTexture("EsoUI/Art/LFG/Gamepad/LFG_activityIcon_veteranDungeon.dds")
-    -- Preserve the original ESO artwork instead of recoloring the texture itself.
-    bossIcon:SetColor(1, 1, 1, 1)
+    bossIcon:SetDimensions(22, 22)
+    bossIcon:SetAnchor(LEFT, bossBadge, LEFT, 7, 0)
+    bossIcon:SetTexture("TamrielProgressMap/art/tpm_boss.dds")
+    bossIcon:SetColor(0.95, 0.78, 0.16, 1)
+    bossIcon.TPMSkinRole = "keep"
+    self.statisticsCombatBossIcon = bossIcon
 
     local bossText = WINDOW_MANAGER:CreateControl(nil, bossBadge, CT_LABEL)
     bossText:SetDimensions(136, 24)
@@ -12652,11 +12622,13 @@ function TPM:CreateHistoryStatisticsPage(control)
 
     -- 3.4.18: Prefer original ESO UI artwork for the combat dashboard.
     -- These textures ship with the game and therefore match the native UI.
+    -- 2.8.0: own flat icons (crossed swords, skull, shield + swords, broken
+    -- shield), white with mipmaps, tinted per card from the active design.
     local combatAssets = {
-        current = "EsoUI/Art/LFG/LFG_dps_down_no_glow_64.dds",
-        change = "EsoUI/Art/DeathRecap/deathRecap_killingBlow_icon.dds",
-        high = "EsoUI/Art/Battlegrounds/Gamepad/gp_battlegrounds_tabIcon_deathmatch.dds",
-        low = "EsoUI/Art/DeathRecap/deathRecap_killingBlow_icon.dds",
+        current = "TamrielProgressMap/art/tpm_pve_kills.dds",
+        change = "TamrielProgressMap/art/tpm_pve_deaths.dds",
+        high = "TamrielProgressMap/art/tpm_pvp_kills.dds",
+        low = "TamrielProgressMap/art/tpm_pvp_deaths.dds",
     }
     self.statisticsCombatCardExtras = {}
     local combatAccent = {
@@ -12676,18 +12648,19 @@ function TPM:CreateHistoryStatisticsPage(control)
         accent:SetHidden(true)
 
         local iconBack = WINDOW_MANAGER:CreateControl(nil, card.control, CT_BACKDROP)
-        iconBack:SetDimensions(72, 72)
-        iconBack:SetAnchor(LEFT, card.control, LEFT, 12, 0)
+        iconBack:SetDimensions(66, 66)
+        iconBack:SetAnchor(LEFT, card.control, LEFT, 16, 0)
         iconBack:SetCenterColor(accentColor[1] * 0.10, accentColor[2] * 0.10, accentColor[3] * 0.10, 0.98)
         iconBack:SetEdgeColor(accentColor[1], accentColor[2], accentColor[3], 0.72)
         iconBack:SetEdgeTexture(nil, 1, 1, 1)
         iconBack:SetHidden(true)
 
         local icon = WINDOW_MANAGER:CreateControl(nil, card.control, CT_TEXTURE)
-        icon:SetDimensions(66, 66)
+        icon:SetDimensions(48, 48)
         icon:SetAnchor(CENTER, iconBack, CENTER, 0, 0)
         icon:SetTexture(texturePath)
-        icon:SetColor(1, 1, 1, 1)
+        icon:SetColor(accentColor[1], accentColor[2], accentColor[3], 1)
+        icon.TPMSkinRole = "keep"
         icon:SetHidden(true)
 
         local delta = WINDOW_MANAGER:CreateControl(nil, card.control, CT_LABEL)
@@ -12696,7 +12669,7 @@ function TPM:CreateHistoryStatisticsPage(control)
         delta:SetFont("$(BOLD_FONT)|14")
         delta:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         delta:SetHidden(true)
-        self.statisticsCombatCardExtras[key] = { icon = icon, iconBack = iconBack, accent = accent, delta = delta }
+        self.statisticsCombatCardExtras[key] = { icon = icon, iconBack = iconBack, accent = accent, delta = delta, accentColor = accentColor }
     end
 
     local chart = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "HistoryChart", page, CT_BACKDROP)
@@ -13190,6 +13163,8 @@ local function TPM_EnsureLogHelpTooltip()
     bg:SetCenterColor(0.035, 0.031, 0.026, 0.98)
     bg:SetEdgeColor(0.92, 0.76, 0.14, 0.96)
     bg:SetEdgeTexture(nil, 1, 1, 1)
+    tip.TPMBg = bg
+    tip.TPMSkinSkipTree = true
 
     local titleLabel = WINDOW_MANAGER:CreateControl(nil, tip, CT_LABEL)
     titleLabel:SetAnchor(TOPLEFT, tip, TOPLEFT, 12, 10)
@@ -13216,24 +13191,10 @@ local function TPM_ShowLogHelpTooltip(control, title, text)
     local tip = TPM_EnsureLogHelpTooltip()
     if not tip then return end
     TPM:HideStatisticsHoverTooltips()
-
-    tip.TPMTitle:SetText(title or "")
-    tip.TPMBody:SetText(text)
-
-    -- Re-measure after assigning translated strings. Different UI scales and
-    -- languages wrap differently and must not overflow the frame.
-    local titleHeight = 24
-    local bodyHeight = 78
-    if tip.TPMTitle.GetTextHeight then
-        titleHeight = math.max(24, math.ceil(tonumber(tip.TPMTitle:GetTextHeight()) or 24))
-    end
-    if tip.TPMBody.GetTextHeight then
-        bodyHeight = math.max(54, math.ceil(tonumber(tip.TPMBody:GetTextHeight()) or 78))
-    end
-    tip.TPMTitle:SetHeight(titleHeight)
-    tip.TPMBody:SetHeight(bodyHeight)
-    tip:SetHeight(10 + titleHeight + 5 + bodyHeight + 12)
-
+    TPM:LayoutInfoTooltip(tip, 380, {
+        { label = tip.TPMTitle, text = title or "", font = "$(BOLD_FONT)|17", size = 17, gap = 7 },
+        { label = tip.TPMBody, text = text, font = "$(MEDIUM_FONT)|14", size = 14 },
+    })
     -- Keep every statistics-related hover panel in the same place: directly
     -- to the upper-right of the Tamriel Statistics journal.
     TPM_ArmStatisticsHoverTooltip(tip, control)
@@ -13251,16 +13212,14 @@ local function TPM_CreateHeaderIconButton(parent, width, height, iconKind)
     button:SetMouseEnabled(true)
 
     if iconKind == "clear" then
-        -- Use ESO's native close-button art instead of a text glyph in a box.
-        button:SetNormalTexture("EsoUI/Art/Buttons/closeButton_up.dds")
-        button:SetPressedTexture("EsoUI/Art/Buttons/closeButton_down.dds")
-        button:SetMouseOverTexture("EsoUI/Art/Buttons/closeButton_mouseOver.dds")
-        if button.SetDisabledTexture then
-            button:SetDisabledTexture("EsoUI/Art/Buttons/closeButton_disabled.dds")
-        end
-        if button.SetTextureCoords then
-            button:SetTextureCoords(0, 0.625, 0, 0.625)
-        end
+        -- 2.8.0: a trash can reads as "clear log"; the old X looked like "close".
+        local icon = WINDOW_MANAGER:CreateControl(nil, button, CT_TEXTURE)
+        icon:SetDimensions(math.max(16, width - 4), math.max(16, height - 4))
+        icon:SetAnchor(CENTER, button, CENTER, 0, 0)
+        icon:SetTexture("TamrielProgressMap/art/tpm_trash.dds")
+        icon:SetColor(0.88, 0.82, 0.64, 0.92)
+        icon:SetMouseEnabled(false)
+        button.TPMIcon = icon
     else
         -- LibAddonMenu and ESO themselves use this native help icon.
         local icon = WINDOW_MANAGER:CreateControl(nil, button, CT_TEXTURE)
@@ -13276,6 +13235,7 @@ local function TPM_CreateHeaderIconButton(parent, width, height, iconKind)
         if selfButton.TPMIcon then
             if TPM:IsStatisticsDarkDesign() then selfButton.TPMIcon:SetColor(1,1,1,1)
             else selfButton.TPMIcon:SetColor(1.00, 0.86, 0.30, 1) end
+            TPM:SkinHover(selfButton, true)
         end
         if selfButton.TPMHelpTitle and selfButton.TPMHelpText then
             TPM_ShowLogHelpTooltip(selfButton, selfButton.TPMHelpTitle, selfButton.TPMHelpText)
@@ -13285,6 +13245,7 @@ local function TPM_CreateHeaderIconButton(parent, width, height, iconKind)
         if selfButton.TPMIcon then
             if TPM:IsStatisticsDarkDesign() then selfButton.TPMIcon:SetColor(.92,.92,.92,.92)
             else selfButton.TPMIcon:SetColor(0.88, 0.82, 0.64, 0.92) end
+            TPM:SkinHover(selfButton, false)
         end
         TPM:HideStatisticsHoverTooltips()
     end)
@@ -13334,7 +13295,7 @@ function TPM:EnsureCombatActivityLogControls()
     local divider = self.statisticsCombatActivityDivider
     if divider then
         divider:ClearAnchors()
-        divider:SetDimensions(1, 326)
+        divider:SetDimensions(1, 412)
         divider:SetAnchor(TOP, session, TOP, 0, 38)
         divider:SetCenterColor(0.34, 0.52, 0.72, 0.74)
         divider:SetHidden(false)
@@ -13374,7 +13335,7 @@ function TPM:EnsureCombatActivityLogControls()
     local function CreateLogScroll(name, x, width, isCombat)
         local scrollContainer = WINDOW_MANAGER:CreateControlFromVirtual(name, session, "ZO_ScrollContainer_Shared")
         scrollContainer:SetAnchor(TOPLEFT, session, TOPLEFT, x, 36)
-        scrollContainer:SetDimensions(width, 330)
+        scrollContainer:SetDimensions(width, 416)
         local scroll = scrollContainer:GetNamedChild("Scroll")
         local child = scroll and scroll:GetNamedChild("Child") or nil
         local rows = {}
@@ -13424,6 +13385,7 @@ function TPM:EnsureCombatActivityLogControls()
             row.TPMDetail = detail
             rows[i] = row
         end
+        scrollContainer.TPMSkinLogRows = rows
         return scrollContainer, child, rows, rowWidth
     end
 
@@ -13886,7 +13848,7 @@ function TPM:LayoutHistorySummaryCards(layoutKind)
         if hidden then return end
         card.control:ClearAnchors()
         card.control:SetDimensions(width, combat and 98 or 72)
-        card.control:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, x, combat and 124 or 82)
+        card.control:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, x, combat and 46 or 82)
         card.control:SetCenterColor(0.022, 0.021, 0.018, 0.995)
         card.control:SetEdgeColor(0.44, 0.34, 0.10, 0.95)
         if card.title then
@@ -13901,7 +13863,7 @@ function TPM:LayoutHistorySummaryCards(layoutKind)
             card.value:ClearAnchors()
             card.value:SetDimensions(combat and 126 or (width - 16), combat and 40 or 34)
             card.value:SetAnchor(TOPRIGHT, card.control, TOPRIGHT, -8, combat and 35 or 30)
-            card.value:SetFont(combat and "$(ANTIQUE_FONT)|31" or (compact and "$(ANTIQUE_FONT)|23" or "$(ANTIQUE_FONT)|25"))
+            card.value:SetFont(self:SkinValueFont(combat and 31 or (compact and 23 or 25)))
             card.value:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         end
     end
@@ -13968,8 +13930,8 @@ function TPM:LayoutHistorySummaryCards(layoutKind)
     if box then
         box:ClearAnchors()
         if combat then
-            box:SetDimensions(932, 378)
-            box:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 232)
+            box:SetDimensions(932, 463)
+            box:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 158)
         elseif layoutKind == "currency" or layoutKind == "playtime" then
             box:SetDimensions(932, 220)
             box:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 230)
@@ -14071,27 +14033,30 @@ function TPM:RefreshHistoryStatisticsPage()
 
     -- PvE / PvP is now a lifetime dashboard. Keep history only for the recent
     -- activity panel; do not calculate hidden chart/range data in the background.
-    self:CheckpointHistory("combat_view", false)
+    self:CheckpointHistoryThrottled("combat_view", 15000)
     self.saved.historyMetric = "npcKills"
     self.statisticsHistoryTitle:SetText(self:L("HISTORY_PAGE_TITLE"))
     self.statisticsHistoryMetricLabel:SetText(self:L("HISTORY_COMBAT"))
+    -- 2.8.0: the window title already says "PvE / PvP"; the duplicate page title
+    -- is hidden and the whole dashboard moves up into the freed space.
+    self.statisticsHistoryMetricLabel:SetHidden(true)
 
     -- Character/companion Level and XP bars moved to Character (page 2).
     -- PvE/PvP now refreshes only combat-specific labels and counters.
     if self.statisticsCombatPveHeading then
         self.statisticsCombatPveHeading:ClearAnchors()
-        self.statisticsCombatPveHeading:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 94)
+        self.statisticsCombatPveHeading:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 14)
         self.statisticsCombatPveHeading:SetText(self:L("HISTORY_PVE_HEADING"))
         self.statisticsCombatPveHeading:SetFont(self.langCode == "ru" and "$(BOLD_FONT)|15" or "$(BOLD_FONT)|18")
         self.statisticsCombatPveHeading:SetDimensions(self.langCode == "ru" and 260 or 250, 28)
     end
     if self.statisticsCombatBossBadge then
         self.statisticsCombatBossBadge:ClearAnchors()
-        self.statisticsCombatBossBadge:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 286, 94)
+        self.statisticsCombatBossBadge:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 286, 14)
     end
     if self.statisticsCombatPvpHeading then
         self.statisticsCombatPvpHeading:ClearAnchors()
-        self.statisticsCombatPvpHeading:SetAnchor(TOPRIGHT, self.statisticsHistoryPage, TOPRIGHT, -20, 94)
+        self.statisticsCombatPvpHeading:SetAnchor(TOPRIGHT, self.statisticsHistoryPage, TOPRIGHT, -20, 14)
         self.statisticsCombatPvpHeading:SetText(self:L("HISTORY_PVP_HEADING"))
     end
     if self.statisticsCombatLegendLeft then
@@ -14143,8 +14108,8 @@ function TPM:RefreshHistoryStatisticsPage()
     -- leaving the old chart-sized hole in the middle of the page.
     if self.statisticsHistorySessionBox then
         self.statisticsHistorySessionBox:ClearAnchors()
-        self.statisticsHistorySessionBox:SetDimensions(932, 378)
-        self.statisticsHistorySessionBox:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 232)
+        self.statisticsHistorySessionBox:SetDimensions(932, 463)
+        self.statisticsHistorySessionBox:SetAnchor(TOPLEFT, self.statisticsHistoryPage, TOPLEFT, 20, 158)
     end
     self:RefreshCombatActivityPanel()
     self:EnforceStatisticsDarkModeAfterRefresh()
@@ -14154,11 +14119,26 @@ end
 -- 2.7.0 ---------------------------------------------------------------------
 -- Statistics journal customization
 local TPM_THEME_TEXT = {
-    de={title="Anpassung",design="Design",designTpm="TPM Standard",designVanilla="Transparent TPM",dark="Clear Mode",colors="Farben",background="Hintergrund",heading="Überschriften",accent="Akzente & Rahmen",progress="Fortschritt & Werte",text="Normaler Text",effects="Effekte",rgb="Smooth RGB – Fortschritt & Werte",speed="RGB-Geschwindigkeit",brightness="RGB-Helligkeit",reset="Standard wiederherstellen",close="Schließen"},
-    en={title="Customization",design="Design",designTpm="TPM Standard",designVanilla="Transparent TPM",dark="Clear Mode",colors="Colors",background="Background",heading="Headings",accent="Accents & Borders",progress="Progress & Values",text="Normal Text",effects="Effects",rgb="Smooth RGB – Progress & Values",speed="RGB Speed",brightness="RGB Brightness",reset="Restore Defaults",close="Close"},
-    fr={title="Personnalisation",design="Design",designTpm="TPM Standard",designVanilla="Transparent TPM",dark="Clear Mode",colors="Couleurs",background="Arrière-plan",heading="Titres",accent="Accents & bordures",progress="Progression & valeurs",text="Texte normal",effects="Effets",rgb="RGB fluide – progression & valeurs",speed="Vitesse RGB",brightness="Luminosité RGB",reset="Valeurs par défaut",close="Fermer"},
-    es={title="Personalización",design="Diseño",designTpm="TPM Standard",designVanilla="Transparent TPM",dark="Clear Mode",colors="Colores",background="Fondo",heading="Títulos",accent="Acentos y bordes",progress="Progreso y valores",text="Texto normal",effects="Efectos",rgb="RGB suave – progreso y valores",speed="Velocidad RGB",brightness="Brillo RGB",reset="Restaurar valores",close="Cerrar"},
-    ru={title="Настройка",design="Дизайн",designTpm="TPM Standard",designVanilla="Transparent TPM",dark="Clear Mode",colors="Цвета",background="Фон",heading="Заголовки",accent="Акценты и рамки",progress="Прогресс и значения",text="Обычный текст",effects="Эффекты",rgb="Плавный RGB – прогресс и значения",speed="Скорость RGB",brightness="Яркость RGB",reset="По умолчанию",close="Закрыть"},
+    de={title="Design",chooseDesign="Design wählen",design="Design",designModern="Graphit",designTpm="Klassisch",designVanilla="Mitternacht",dark="Monochrom",designCustom="Eigenes",
+        hintModern="dunkel · flach",hintTpm="Gold · Journal",hintVanilla="blau · transparent",hintDark="schwarz-weiß",hintCustom="frei anpassbar",
+        customColors="Farben anpassen",red="Rot",green="Grün",blue="Blau",alpha="Deckkraft",resetCustom="Auf Graphit zurücksetzen",reset="Standard wiederherstellen",close="Schließen",
+        tok_window="Fenster",tok_panel="Flächen",tok_line="Linien",tok_heading="Überschriften",tok_text="Text",tok_muted="Nebentext",tok_accent="Akzent",tok_value="Werte",tok_progress="Fortschritt",tok_success="Abgeschlossen",tok_track="Balkenspur",tok_selection="Auswahl"},
+    en={title="Design",chooseDesign="Choose design",design="Design",designModern="Graphite",designTpm="Classic",designVanilla="Midnight",dark="Monochrome",designCustom="Custom",
+        hintModern="dark · flat",hintTpm="gold · journal",hintVanilla="blue · translucent",hintDark="black & white",hintCustom="fully adjustable",
+        customColors="Adjust colors",red="Red",green="Green",blue="Blue",alpha="Opacity",resetCustom="Reset to Graphite",reset="Restore Defaults",close="Close",
+        tok_window="Window",tok_panel="Panels",tok_line="Lines",tok_heading="Headings",tok_text="Text",tok_muted="Secondary text",tok_accent="Accent",tok_value="Values",tok_progress="Progress",tok_success="Completed",tok_track="Bar track",tok_selection="Selection"},
+    fr={title="Design",chooseDesign="Choisir le design",design="Design",designModern="Graphite",designTpm="Classique",designVanilla="Minuit",dark="Monochrome",designCustom="Personnalisé",
+        hintModern="sombre · épuré",hintTpm="or · journal",hintVanilla="bleu · translucide",hintDark="noir et blanc",hintCustom="entièrement réglable",
+        customColors="Ajuster les couleurs",red="Rouge",green="Vert",blue="Bleu",alpha="Opacité",resetCustom="Revenir à Graphite",reset="Valeurs par défaut",close="Fermer",
+        tok_window="Fenêtre",tok_panel="Panneaux",tok_line="Lignes",tok_heading="Titres",tok_text="Texte",tok_muted="Texte secondaire",tok_accent="Accent",tok_value="Valeurs",tok_progress="Progression",tok_success="Terminé",tok_track="Fond de barre",tok_selection="Sélection"},
+    es={title="Diseño",chooseDesign="Elegir diseño",design="Diseño",designModern="Grafito",designTpm="Clásico",designVanilla="Medianoche",dark="Monocromo",designCustom="Personalizado",
+        hintModern="oscuro · plano",hintTpm="oro · diario",hintVanilla="azul · translúcido",hintDark="blanco y negro",hintCustom="totalmente ajustable",
+        customColors="Ajustar colores",red="Rojo",green="Verde",blue="Azul",alpha="Opacidad",resetCustom="Volver a Grafito",reset="Restaurar valores",close="Cerrar",
+        tok_window="Ventana",tok_panel="Paneles",tok_line="Líneas",tok_heading="Títulos",tok_text="Texto",tok_muted="Texto secundario",tok_accent="Acento",tok_value="Valores",tok_progress="Progreso",tok_success="Completado",tok_track="Fondo de barra",tok_selection="Selección"},
+    ru={title="Дизайн",chooseDesign="Выбор дизайна",design="Дизайн",designModern="Графит",designTpm="Классика",designVanilla="Полночь",dark="Монохром",designCustom="Свой",
+        hintModern="тёмный · плоский",hintTpm="золото · журнал",hintVanilla="синий · прозрачный",hintDark="чёрно-белый",hintCustom="полная настройка",
+        customColors="Настроить цвета",red="Красный",green="Зелёный",blue="Синий",alpha="Непрозрачность",resetCustom="Сбросить на Графит",reset="По умолчанию",close="Закрыть",
+        tok_window="Окно",tok_panel="Панели",tok_line="Линии",tok_heading="Заголовки",tok_text="Текст",tok_muted="Доп. текст",tok_accent="Акцент",tok_value="Значения",tok_progress="Прогресс",tok_success="Завершено",tok_track="Фон полосы",tok_selection="Выделение"},
 }
 
 function TPM:GetStatisticsThemeText(key)
@@ -14167,27 +14147,19 @@ function TPM:GetStatisticsThemeText(key)
 end
 
 function TPM:GetStatisticsThemeHeadingColor()
-    local design=(self.saved and self.saved.statisticsThemeDesign) or "vanilla"
-    if design=="dark" then return 1,1,1,1 end
-    return .95,.82,.36,1
+    return self:GetSkinColor("heading")
 end
 
 function TPM:GetStatisticsThemeAccentColor()
-    local design=(self.saved and self.saved.statisticsThemeDesign) or "vanilla"
-    if design=="dark" then return 1,1,1,1 end
-    return .95,.82,.36,1
+    return self:GetSkinColor("accent")
 end
 
 function TPM:GetStatisticsThemeTextColor()
-    local design=(self.saved and self.saved.statisticsThemeDesign) or "vanilla"
-    if design=="dark" then return .94,.94,.94,1 end
-    return .88,.84,.74,1
+    return self:GetSkinColor("muted")
 end
 
 function TPM:GetStatisticsThemeProgressColor()
-    local design=(self.saved and self.saved.statisticsThemeDesign) or "vanilla"
-    if design=="dark" then return 1,1,1,1 end
-    return .95,.82,.12,1
+    return self:GetSkinColor("progress")
 end
 
 -- 2.7.0: Comprehensive accent recoloring for TPM Standard.
@@ -14467,6 +14439,20 @@ function TPM:CacheStatisticsDarkVisualState()
     self.statisticsDarkVisualCache = setmetatable({}, { __mode = "k" })
 end
 
+-- 2.8.0 bugfix: ipairs() stops at the first nil, so a list of optional
+-- controls (lazily created windows, pages not opened yet) silently skipped
+-- every control after a missing one. Iterate the present values instead.
+local function TPM_EachPresent(...)
+    local list, count, index = { ... }, select("#", ...), 0
+    return function()
+        while index < count do
+            index = index + 1
+            local value = list[index]
+            if value ~= nil then return index, value end
+        end
+    end
+end
+
 function TPM:ApplyStatisticsDarkMonochrome()
     if not self.statisticsWindow then return end
     self:CacheStatisticsDarkVisualState()
@@ -14694,7 +14680,7 @@ function TPM:ApplyStatisticsDarkMonochrome()
     end
 
     if self.statisticsThemeGear and self.statisticsThemeGear.TPMIcon then monoText(self.statisticsThemeGear.TPMIcon, 1, 1, 1, 1) end
-    for _, btn in ipairs({ self.statisticsSubPagePrev, self.statisticsSubPageNext, self.statisticsCategoryPrev, self.statisticsCategoryNext }) do
+    for _, btn in TPM_EachPresent(self.statisticsSubPagePrev, self.statisticsSubPageNext, self.statisticsCategoryPrev, self.statisticsCategoryNext) do
         if btn and btn.SetNormalFontColor then
             btn:SetNormalFontColor(1,1,1,1)
             if btn.SetMouseOverFontColor then btn:SetMouseOverFontColor(1,1,1,1) end
@@ -14744,14 +14730,1413 @@ function TPM:RestoreStatisticsDarkVisualState()
     self.statisticsDarkVisualCache=nil
 end
 
+-- 2.8.0 ---------------------------------------------------------------------
+-- Statistics journal skin engine.
+-- Every design (Graphit, Klassisch, Mitternacht, Monochrom, Eigenes) is a set
+-- of twelve color tokens plus a few structural flags. The engine recolors the
+-- existing controls from their original creation colors; it never changes
+-- layout, anchors or input. Original colors are remembered per control, so a
+-- design switch restores them first and then applies the new palette.
+-- Passes are idempotent: a control that already shows the value this engine
+-- applied is skipped, so the repeated passes after data refreshes never drift.
+local TPM_SKIN_TOKENS =
+{
+    "window", "panel", "line", "heading", "text", "muted",
+    "accent", "value", "progress", "success", "track", "selection",
+}
+
+local TPM_SKIN_ORDER = { "modern", "tpm", "vanilla", "dark", "custom" }
+
+local TPM_SKIN_PALETTES =
+{
+    -- Graphit: flat graphite surfaces, hairlines, gold only as accent.
+    modern =
+    {
+        nameKey = "designModern", hintKey = "hintModern",
+        ornaments = false, journalBorder = false, glows = false, monochrome = false,
+        colors =
+        {
+            window = { 0.043, 0.051, 0.063, 0.965 }, panel = { 0.071, 0.082, 0.100, 0.94 },
+            line = { 1, 1, 1, 0.10 }, heading = { 0.925, 0.935, 0.950, 1 },
+            text = { 0.925, 0.935, 0.950, 1 }, muted = { 0.600, 0.635, 0.690, 1 },
+            accent = { 0.902, 0.769, 0.361, 1 }, value = { 0.925, 0.935, 0.950, 1 },
+            progress = { 0.902, 0.769, 0.361, 1 }, success = { 0.345, 0.800, 0.560, 1 },
+            track = { 1, 1, 1, 0.075 }, selection = { 0.902, 0.769, 0.361, 0.16 },
+        },
+    },
+    -- Klassisch: the warm ESO journal, refined (ornaments, journal frame, gold).
+    tpm =
+    {
+        nameKey = "designTpm", hintKey = "hintTpm",
+        ornaments = true, journalBorder = true, glows = true, monochrome = false,
+        colors =
+        {
+            window = { 0.020, 0.018, 0.014, 0.985 }, panel = { 0.040, 0.035, 0.026, 0.96 },
+            line = { 0.640, 0.510, 0.220, 0.55 }, heading = { 0.950, 0.820, 0.360, 1 },
+            text = { 0.900, 0.860, 0.760, 1 }, muted = { 0.660, 0.620, 0.540, 1 },
+            accent = { 0.950, 0.790, 0.320, 1 }, value = { 0.980, 0.840, 0.360, 1 },
+            progress = { 0.860, 0.660, 0.200, 1 }, success = { 0.640, 0.840, 0.300, 1 },
+            track = { 0, 0, 0, 0.55 }, selection = { 0.950, 0.760, 0.250, 0.16 },
+        },
+    },
+    -- Mitternacht: translucent midnight-blue glass with soft gold headings.
+    vanilla =
+    {
+        nameKey = "designVanilla", hintKey = "hintVanilla",
+        ornaments = false, journalBorder = false, glows = false, monochrome = false,
+        colors =
+        {
+            window = { 0.012, 0.030, 0.052, 0.82 }, panel = { 0.024, 0.058, 0.098, 0.66 },
+            line = { 0.560, 0.700, 0.900, 0.18 }, heading = { 0.960, 0.840, 0.480, 1 },
+            text = { 0.880, 0.920, 0.970, 1 }, muted = { 0.560, 0.640, 0.740, 1 },
+            accent = { 0.940, 0.790, 0.420, 1 }, value = { 0.960, 0.970, 1.000, 1 },
+            progress = { 0.420, 0.660, 0.960, 1 }, success = { 0.380, 0.840, 0.700, 1 },
+            track = { 0.560, 0.700, 0.900, 0.10 }, selection = { 0.420, 0.660, 0.960, 0.20 },
+        },
+    },
+    -- Monochrom: translucent black and white, every hue removed.
+    dark =
+    {
+        nameKey = "dark", hintKey = "hintDark",
+        ornaments = false, journalBorder = false, glows = false, monochrome = true,
+        colors =
+        {
+            window = { 0, 0, 0, 0.72 }, panel = { 0.085, 0.085, 0.085, 0.60 },
+            line = { 1, 1, 1, 0.22 }, heading = { 1, 1, 1, 1 },
+            text = { 0.960, 0.960, 0.960, 1 }, muted = { 0.660, 0.660, 0.660, 1 },
+            accent = { 1, 1, 1, 1 }, value = { 1, 1, 1, 1 },
+            progress = { 0.920, 0.920, 0.920, 1 }, success = { 1, 1, 1, 1 },
+            track = { 1, 1, 1, 0.12 }, selection = { 1, 1, 1, 0.12 },
+        },
+    },
+}
+
+function TPM:GetStatisticsDesign()
+    local design = self.saved and self.saved.statisticsThemeDesign or "modern"
+    if design ~= "custom" and not TPM_SKIN_PALETTES[design] then design = "modern" end
+    return design
+end
+
+-- Custom palette lives in SavedVariables as {token = {r,g,b,a}} and starts as
+-- a copy of Graphit. Missing or broken tokens fall back to Graphit.
+function TPM:GetCustomSkinColors()
+    local base = TPM_SKIN_PALETTES.modern.colors
+    local saved = self.saved and self.saved.statisticsCustomPalette
+    if type(saved) ~= "table" then
+        saved = {}
+        for _, token in ipairs(TPM_SKIN_TOKENS) do
+            local c = base[token]
+            saved[token] = { r = c[1], g = c[2], b = c[3], a = c[4] }
+        end
+        if self.saved then self.saved.statisticsCustomPalette = saved end
+    end
+    local colors = {}
+    for _, token in ipairs(TPM_SKIN_TOKENS) do
+        local c, fallback = saved[token], base[token]
+        if type(c) ~= "table" then
+            c = { r = fallback[1], g = fallback[2], b = fallback[3], a = fallback[4] }
+            saved[token] = c
+        end
+        colors[token] = {
+            Clamp(tonumber(c.r) or fallback[1], 0, 1), Clamp(tonumber(c.g) or fallback[2], 0, 1),
+            Clamp(tonumber(c.b) or fallback[3], 0, 1), Clamp(tonumber(c.a) or fallback[4], 0, 1),
+        }
+    end
+    return colors
+end
+
+function TPM:ResetCustomSkinColors()
+    if not self.saved then return end
+    self.saved.statisticsCustomPalette = nil
+    self:GetCustomSkinColors()
+    self.skinCustomRevision = (self.skinCustomRevision or 0) + 1
+end
+
+function TPM:SetCustomSkinColor(token, r, g, b, a)
+    if not self.saved then return end
+    self:GetCustomSkinColors()
+    self.saved.statisticsCustomPalette[token] = { r = Clamp(r, 0, 1), g = Clamp(g, 0, 1), b = Clamp(b, 0, 1), a = Clamp(a, 0, 1) }
+    self.skinCustomRevision = (self.skinCustomRevision or 0) + 1
+end
+
+function TPM:GetActiveSkin()
+    local design = self:GetStatisticsDesign()
+    if design == "custom" then
+        return {
+            key = "custom", nameKey = "designCustom", hintKey = "hintCustom",
+            ornaments = false, journalBorder = false, glows = false, monochrome = false,
+            colors = self:GetCustomSkinColors(), revision = self.skinCustomRevision or 0,
+        }
+    end
+    local palette = TPM_SKIN_PALETTES[design]
+    return {
+        key = design, nameKey = palette.nameKey, hintKey = palette.hintKey,
+        ornaments = palette.ornaments, journalBorder = palette.journalBorder,
+        glows = palette.glows, monochrome = palette.monochrome,
+        colors = palette.colors, revision = 0,
+    }
+end
+
+function TPM:GetSkinPreviewColors(design)
+    if design == "custom" then return self:GetCustomSkinColors() end
+    return (TPM_SKIN_PALETTES[design] or TPM_SKIN_PALETTES.modern).colors
+end
+
+function TPM:GetSkinColor(token)
+    local skin = self.statisticsActiveSkin or self:GetActiveSkin()
+    local c = skin.colors[token] or { 1, 1, 1, 1 }
+    return c[1], c[2], c[3], c[4]
+end
+
+function TPM:GetSkinColorHex(token)
+    local r, g, b = self:GetSkinColor(token)
+    return string.format("%02X%02X%02X", math.floor(Clamp(r, 0, 1) * 255 + 0.5), math.floor(Clamp(g, 0, 1) * 255 + 0.5), math.floor(Clamp(b, 0, 1) * 255 + 0.5))
+end
+
+-- Compatibility for older callers.
+function TPM:IsStatisticsModernDesign()
+    return self:GetStatisticsDesign() == "modern"
+end
+
+-- Color classification ---------------------------------------------------------
+local function TPM_SkinLum(r, g, b)
+    return (r * 0.299) + (g * 0.587) + (b * 0.114)
+end
+
+local function TPM_SkinSpread(r, g, b)
+    local mx, mn = math.max(r, g, b), math.min(r, g, b)
+    return mx - mn, mx, mn
+end
+
+local function TPM_SkinIsWarm(r, g, b)
+    -- Brown/bronze/gold chrome: green sits well above blue. Saturated reds and
+    -- oranges (deaths, Ebonheart Pact, warnings) are semantic and stay.
+    return r >= (g - 0.02) and g >= (b - 0.02) and (r - b) >= 0.04 and (g - b) >= 0.35 * (r - b)
+end
+
+local function TPM_SkinIsGold(r, g, b)
+    return r >= 0.55 and g >= 0.40 and b <= 0.55 and r >= (g * 0.98) and (r - b) >= 0.22
+end
+
+local function TPM_SkinMono(skin, r, g, b, a)
+    if skin.monochrome then
+        local y = TPM_SkinLum(r, g, b)
+        return y, y, y, a
+    end
+    return r, g, b, a
+end
+
+-- Dark chrome surfaces -> panel token (deeper originals stay a bit darker);
+-- bright gold decoration -> accent token; everything semantic stays.
+local function TPM_SkinMapCenter(skin, role, r, g, b, a)
+    if a <= 0.001 then return r, g, b, a end
+    local P = skin.colors
+    local y = TPM_SkinLum(r, g, b)
+    local spread = TPM_SkinSpread(r, g, b)
+    if y < 0.22 and (spread < 0.10 or TPM_SkinIsWarm(r, g, b)) then
+        local p = P.panel
+        local lift = 0.075 * Clamp(y / 0.20, 0, 1)
+        return Clamp(p[1] + lift, 0, 1), Clamp(p[2] + lift, 0, 1), Clamp(p[3] + lift, 0, 1), Clamp(a * p[4], 0, 1)
+    end
+    if TPM_SkinIsGold(r, g, b) then
+        local c = P.accent
+        return TPM_SkinMono(skin, c[1], c[2], c[3], a)
+    end
+    return TPM_SkinMono(skin, r, g, b, a)
+end
+
+-- Gold, bronze and grey outlines all become the line token. Selection and
+-- focus outlines are painted explicitly, so no outline keeps the old gold.
+local function TPM_SkinMapEdge(skin, role, r, g, b, a)
+    if a <= 0.001 then return r, g, b, a end
+    local spread = TPM_SkinSpread(r, g, b)
+    if spread < 0.10 or TPM_SkinIsWarm(r, g, b) then
+        local l = skin.colors.line
+        return l[1], l[2], l[3], Clamp(l[4] * Clamp(a, 0.25, 1), 0, 1)
+    end
+    return TPM_SkinMono(skin, r, g, b, a)
+end
+
+-- Labels and texture tints: gold -> accent, warm/neutral text -> muted..text
+-- scale, white artwork and semantic colors stay (Monochrom removes hues).
+local function TPM_SkinMapColor(skin, role, r, g, b, a)
+    local P = skin.colors
+    local spread, mx, mn = TPM_SkinSpread(r, g, b)
+    if mn >= 0.97 then return r, g, b, a end
+    if TPM_SkinIsGold(r, g, b) then
+        local c = P.accent
+        return TPM_SkinMono(skin, c[1], c[2], c[3], a)
+    end
+    if mx >= 0.40 and spread <= 0.26 and (spread < 0.05 or TPM_SkinIsWarm(r, g, b)) then
+        local t = Clamp((TPM_SkinLum(r, g, b) - 0.55) / 0.30, 0, 1)
+        local lo, hi = P.muted, P.text
+        return lo[1] + ((hi[1] - lo[1]) * t), lo[2] + ((hi[2] - lo[2]) * t), lo[3] + ((hi[3] - lo[3]) * t), a
+    end
+    return TPM_SkinMono(skin, r, g, b, a)
+end
+
+-- Role tags set by the creating code override the generic classification.
+local function TPM_SkinMapRoleColor(skin, role, r, g, b, a)
+    local P = skin.colors
+    if role == "heading" then local c = P.heading; return c[1], c[2], c[3], a end
+    if role == "text" then local c = P.text; return c[1], c[2], c[3], a end
+    if role == "muted" then local c = P.muted; return c[1], c[2], c[3], a end
+    if role == "value" then
+        local spread = TPM_SkinSpread(r, g, b)
+        if TPM_SkinIsGold(r, g, b) or spread < 0.30 then local c = P.value; return c[1], c[2], c[3], a end
+        return TPM_SkinMono(skin, r, g, b, a)
+    end
+    return TPM_SkinMapColor(skin, role, r, g, b, a)
+end
+
+-- Per-control state -------------------------------------------------------------
+local TPM_SKIN_CHANNELS =
+{
+    color  = { "GetColor", "SetColor" },
+    center = { "GetCenterColor", "SetCenterColor" },
+    edge   = { "GetEdgeColor", "SetEdgeColor" },
+}
+
+local function TPM_SkinRead(control, channel)
+    local names = TPM_SKIN_CHANNELS[channel]
+    local getter = control[names[1]]
+    if not getter or not control[names[2]] then return nil end
+    local ok, r, g, b, a = pcall(getter, control)
+    if not ok or r == nil then return nil end
+    return tonumber(r) or 0, tonumber(g) or 0, tonumber(b) or 0, tonumber(a) or 1
+end
+
+local function TPM_SkinSame(applied, r, g, b, a)
+    return applied ~= nil
+        and math.abs(applied[1] - r) <= 0.012 and math.abs(applied[2] - g) <= 0.012
+        and math.abs(applied[3] - b) <= 0.012 and math.abs(applied[4] - a) <= 0.012
+end
+
+function TPM:GetSkinCache()
+    if not self.statisticsSkinCache then
+        -- 2.8.0 stability: plain table. ESO never destroys controls, so weak
+        -- userdata keys bring no benefit and are avoided on purpose.
+        self.statisticsSkinCache = {}
+    end
+    return self.statisticsSkinCache
+end
+
+-- Applies one channel: with mapper the current (fresh) value is converted,
+-- otherwise r,g,b,a is painted. The latest non-skin value is the original.
+function TPM:SkinTouch(control, channel, mapper, r, g, b, a, skin, role)
+    local cr, cg, cb, ca = TPM_SkinRead(control, channel)
+    if cr == nil then return end
+    local cache = self:GetSkinCache()
+    local state = cache[control]
+    if not state then
+        state = { original = {}, applied = {} }
+        cache[control] = state
+    end
+    local fresh = not TPM_SkinSame(state.applied[channel], cr, cg, cb, ca)
+    if fresh then state.original[channel] = { cr, cg, cb, ca } end
+    local tr, tg, tb, ta
+    if mapper then
+        if not fresh then return end
+        tr, tg, tb, ta = mapper(skin, role, cr, cg, cb, ca)
+    else
+        tr, tg, tb, ta = r, g, b, (a == nil) and ca or a
+        if not fresh and TPM_SkinSame(state.applied[channel], tr, tg, tb, ta) then return end
+    end
+    state.applied[channel] = { tr, tg, tb, ta }
+    if TPM_SkinSame(state.applied[channel], cr, cg, cb, ca) then return end
+    control[TPM_SKIN_CHANNELS[channel][2]](control, tr, tg, tb, ta)
+end
+
+function TPM:SkinPaint(control, channel, color, alpha)
+    if not control or not color then return end
+    self:SkinTouch(control, channel, nil, color[1], color[2], color[3], alpha or color[4])
+end
+
+function TPM:SkinSetDesaturation(control, amount)
+    if not control or not control.SetDesaturation then return end
+    local state = self:GetSkinCache()[control]
+    if not state then
+        state = { original = {}, applied = {} }
+        self:GetSkinCache()[control] = state
+    end
+    if state.desaturation == nil then
+        local ok, current = pcall(control.GetDesaturation, control)
+        state.desaturation = ok and tonumber(current) or 0
+    end
+    control:SetDesaturation(amount)
+end
+
+-- Hover handlers are wrapped once so a hovered control is re-skinned right
+-- after its original handler painted classic colors. The known journal hover
+-- sites additionally call SkinNow directly, so hover never depends on this.
+-- 2.8.0 stability: hover handlers are NOT replaced at runtime anymore. All
+-- journal hover sites call TPM:SkinHover directly; anything else converges
+-- through the regular passes and the watchdog.
+function TPM:SkinWrapHoverHandlers(control)
+end
+
+function TPM:SkinProcessControl(control, skin, wrapHandlers)
+    local role = control.TPMSkinRole
+    if role ~= "keep" and role ~= "fill" then
+        self:SkinTouch(control, "color", TPM_SkinMapRoleColor, nil, nil, nil, nil, skin, role)
+        self:SkinTouch(control, "center", TPM_SkinMapCenter, nil, nil, nil, nil, skin, role)
+        self:SkinTouch(control, "edge", TPM_SkinMapEdge, nil, nil, nil, nil, skin, role)
+        if skin.monochrome and control.SetDesaturation and control.GetTextureFileName then
+            self:SkinSetDesaturation(control, 1)
+        end
+    end
+    if wrapHandlers then self:SkinWrapHoverHandlers(control) end
+    if type(control.TPMSkinPolish) == "function" then control.TPMSkinPolish(control, skin) end
+end
+
+local function TPM_SkinSafeHidden(control)
+    if not control.IsHidden then return false end
+    local ok, hidden = pcall(control.IsHidden, control)
+    return ok and hidden == true
+end
+
+-- Defensive walk: no single control (including ESO virtual templates such as
+-- scroll containers) can abort the pass for its siblings.
+function TPM:SkinTree(control, skin, depth, maxDepth, wrapHandlers)
+    if not control or depth > maxDepth then return end
+    -- Hidden pages/rows are skinned once they become visible (every page switch,
+    -- refresh and the watchdog run another pass). Keeps passes cheap.
+    if depth > 0 and TPM_SkinSafeHidden(control) then return end
+    if control.TPMSkinSkipTree then return end
+    local ok, err = pcall(self.SkinProcessControl, self, control, skin, wrapHandlers)
+    if not ok then
+        self.statisticsSkinErrors = (self.statisticsSkinErrors or 0) + 1
+        self.statisticsSkinLastError = tostring(err)
+    end
+    self.statisticsSkinVisited = (self.statisticsSkinVisited or 0) + 1
+    if not control.GetNumChildren or not control.GetChild then return end
+    local okCount, count = pcall(control.GetNumChildren, control)
+    count = okCount and tonumber(count) or 0
+    for index = 1, count do
+        local okChild, child = pcall(control.GetChild, control, index)
+        if okChild and child then
+            local okWalk, walkErr = pcall(self.SkinTree, self, child, skin, depth + 1, maxDepth, wrapHandlers)
+            if not okWalk then
+                self.statisticsSkinErrors = (self.statisticsSkinErrors or 0) + 1
+                self.statisticsSkinLastError = tostring(walkErr)
+            end
+        end
+    end
+end
+
+-- Hover sites call this right after painting their classic hover colors.
+function TPM:SkinHover(control, hovered)
+    if not control then return end
+    control.TPMSkinHover = hovered == true
+    self:SkinNow(control)
+end
+
+-- Synchronous re-skin of one control subtree (hover / selection repaint).
+function TPM:SkinNow(control)
+    if not control or not self.saved then return end
+    local skin = self.statisticsActiveSkin or self:GetActiveSkin()
+    self:SkinTree(control, skin, 0, 8, false)
+end
+
+-- Structural helpers --------------------------------------------------------------
+local function TPM_SkinSetFrame(backdrop, journal)
+    if not backdrop then return end
+    journal = journal == true
+    if backdrop.TPMSkinFrameJournal == journal then return end
+    backdrop.TPMSkinFrameJournal = journal
+    if journal then
+        if backdrop.SetEdgeTexture then backdrop:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 128, 16, 2) end
+        if backdrop.SetInsets then backdrop:SetInsets(8, 8, -8, -8) end
+    else
+        if backdrop.SetEdgeTexture then backdrop:SetEdgeTexture(nil, 1, 1, 1) end
+        if backdrop.SetInsets then backdrop:SetInsets(0, 0, 0, 0) end
+    end
+end
+
+local function TPM_SkinFontColors(button, normal, over)
+    if not button then return end
+    if button.SetNormalFontColor and normal then button:SetNormalFontColor(normal[1], normal[2], normal[3], 1) end
+    if button.SetMouseOverFontColor and over then button:SetMouseOverFontColor(over[1], over[2], over[3], 1) end
+    if button.SetPressedFontColor and over then button:SetPressedFontColor(over[1], over[2], over[3], 1) end
+end
+
+local function TPM_SkinTint(skin, color, alpha)
+    return { color[1], color[2], color[3], alpha }
+end
+
+function TPM:SkinScrollBar(slider, skin)
+    if not slider or not slider.GetThumbTextureControl then return end
+    local ok, thumb = pcall(slider.GetThumbTextureControl, slider)
+    if ok and thumb then
+        self:SkinPaint(thumb, "color", skin.colors.muted, 0.85)
+        self:SkinSetDesaturation(thumb, 1)
+    end
+end
+
+function TPM:ApplySkinPageTabs()
+    local skin = self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    local page = self.saved and self.saved.statisticsPage or "progress"
+    if page == "player" then page = "history" end
+    if page == "alliance" then page = "progress" end
+    for _, button in ipairs(self.statisticsThemeTabs or {}) do
+        local selected = button.TPMPageName == page
+        if button.TPMBackdrop then
+            self:SkinPaint(button.TPMBackdrop, "center", selected and P.selection or TPM_SkinTint(skin, P.text, 0.018))
+            self:SkinPaint(button.TPMBackdrop, "edge", selected and P.accent or P.line, selected and 0.45 or nil)
+        end
+        if button.TPMAccent then self:SkinPaint(button.TPMAccent, "center", P.accent, 0.95) end
+        TPM_SkinFontColors(button, P.muted, P.text)
+        -- The refresh writes the selected tab with inline ESO gold; use accent.
+        if selected and button.GetText and button.SetText then
+            local text = button:GetText()
+            if type(text) == "string" then
+                local recolored = text:gsub("|c%x%x%x%x%x%x", "|c" .. self:GetSkinColorHex("accent"))
+                if recolored ~= text then button:SetText(recolored) end
+            end
+        end
+    end
+end
+-- 2.8.0 names used by earlier code paths.
+TPM.ApplyModernPageTabs = TPM.ApplySkinPageTabs
+
+function TPM:ApplySkinCategorySortChips()
+    local skin = self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    local mode = self:GetStatisticsCategorySortMode()
+    if self.statisticsCategorySortBox then
+        self:SkinPaint(self.statisticsCategorySortBox, "center", TPM_SkinTint(skin, P.text, 0.025))
+        self:SkinPaint(self.statisticsCategorySortBox, "edge", P.line)
+    end
+    for key, button in pairs(self.statisticsCategorySortButtons or {}) do
+        local selected = key == mode
+        if button.TPMBackdrop then
+            self:SkinPaint(button.TPMBackdrop, "center", selected and P.selection or TPM_SkinTint(skin, P.text, 0))
+            self:SkinPaint(button.TPMBackdrop, "edge", selected and P.accent or TPM_SkinTint(skin, P.text, 0), selected and 0.50 or 0)
+        end
+        TPM_SkinFontColors(button, selected and P.accent or P.muted, P.text)
+    end
+end
+TPM.ApplyModernCategorySortChips = TPM.ApplySkinCategorySortChips
+
+-- 2.8.0: PvE / PvP dashboard and journal page frames. Pages sit inside the
+-- window, so their own frame is dropped (one clean surface) except in Klassisch.
+function TPM:ApplySkinPageFrames(skin)
+    local P = skin.colors
+    for _, page in TPM_EachPresent(self.statisticsEconomyPage, self.statisticsHistoryPage, self.statisticsPlayerPage, self.statisticsAlliancePage) do
+        if page and page.SetCenterColor then
+            self:SkinPaint(page, "center", P.window, 0)
+            self:SkinPaint(page, "edge", P.line, skin.journalBorder and P.line[4] * 0.7 or 0)
+        end
+    end
+end
+
+local function TPM_SkinSemantic(skin, color, alpha)
+    if skin.monochrome then
+        local y = TPM_SkinLum(color[1], color[2], color[3])
+        return { y, y, y, alpha }
+    end
+    return { color[1], color[2], color[3], alpha }
+end
+
+function TPM:SkinScrollContainer(container, skin)
+    if not container or not container.GetNamedChild then return end
+    local okBar, bar = pcall(container.GetNamedChild, container, "ScrollBar")
+    if not okBar or not bar then return end
+    self:SkinScrollBar(bar, skin)
+    for _, arrowName in ipairs({ "Up", "Down" }) do
+        local okArrow, arrow = pcall(bar.GetNamedChild, bar, arrowName)
+        if okArrow and arrow and arrow.SetHidden then
+            -- The gold ESO arrow buttons only fit the Klassisch journal; wheel and
+            -- thumb dragging keep scrolling available everywhere.
+            arrow:SetHidden(not skin.journalBorder)
+            if arrow.SetMouseEnabled then arrow:SetMouseEnabled(skin.journalBorder == true) end
+        end
+    end
+end
+
+local function TPM_SkinMix(a, b, t, alpha)
+    return { a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, alpha }
+end
+
+function TPM:ApplySkinCombatPage(skin)
+    local page = self.statisticsHistoryPage
+    if not page or page:IsHidden() then return end
+    local P = skin.colors
+    for _, card in pairs(self.statisticsHistorySummaryCards or {}) do
+        if card.control and not card.control:IsHidden() then
+            self:SkinPaint(card.control, "center", P.panel)
+            self:SkinPaint(card.control, "edge", P.line)
+            self:SkinPaint(card.title, "color", P.text)
+        end
+    end
+    for _, extra in pairs(self.statisticsCombatCardExtras or {}) do
+        local c = extra.accentColor
+        if c then
+            if extra.accent then self:SkinPaint(extra.accent, "center", TPM_SkinSemantic(skin, c, 0.95)) end
+            if extra.iconBack then
+                self:SkinPaint(extra.iconBack, "center", TPM_SkinMix(P.panel, TPM_SkinSemantic(skin, c, 1), 0.14, 0.98))
+                self:SkinPaint(extra.iconBack, "edge", TPM_SkinSemantic(skin, c, 0.35))
+            end
+            if extra.icon then self:SkinPaint(extra.icon, "color", TPM_SkinSemantic(skin, c, 1)) end
+        end
+    end
+    if self.statisticsCombatBossBadge then
+        self:SkinPaint(self.statisticsCombatBossBadge, "center", P.panel)
+        self:SkinPaint(self.statisticsCombatBossBadge, "edge", P.line)
+    end
+    self:SkinPaint(self.statisticsCombatBossText, "color", P.text)
+    if self.statisticsCombatBossIcon then self:SkinPaint(self.statisticsCombatBossIcon, "color", TPM_SkinSemantic(skin, { 0.95, 0.78, 0.16 }, 1)) end
+    local session = self.statisticsHistorySessionBox
+    if session then
+        self:SkinPaint(session, "center", P.panel, P.panel[4] * 0.85)
+        self:SkinPaint(session, "edge", P.line)
+    end
+    self:SkinPaint(self.statisticsCombatActivityDivider, "center", P.line)
+    self:SkinPaint(self.statisticsHistorySessionTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsCombatActivityRightTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsCombatKillLogCount, "color", P.muted)
+    self:SkinPaint(self.statisticsCombatActivityLogCount, "color", P.muted)
+    for _, container in TPM_EachPresent(self.statisticsCombatKillLogScroll, self.statisticsCombatActivityLogScroll) do
+        if container then
+            self:SkinScrollContainer(container, skin)
+            for index, row in ipairs(container.TPMSkinLogRows or {}) do
+                if not row:IsHidden() then
+                    self:SkinPaint(row, "center", TPM_SkinTint(skin, P.text, (index % 2 == 0) and 0.045 or 0.025))
+                    self:SkinPaint(row, "edge", P.line, 0)
+                    if row.TPMTitle then self:SkinPaint(row.TPMTitle, "color", P.text) end
+                    if row.TPMTimestamp then self:SkinPaint(row.TPMTimestamp, "color", P.muted) end
+                    if row.TPMDetail then self:SkinPaint(row.TPMDetail, "color", P.muted) end
+                end
+            end
+        end
+    end
+end
+
+-- Category rows (progress grid): the row chosen for the goal HUD gets a clear
+-- accent frame; hover gets a soft tint.
+local function TPM_SkinPolishCategoryRow(row, skin)
+    if not row or not row.bg then return end
+    local P = skin.colors
+    if row.hudActive then
+        TPM:SkinPaint(row.bg, "center", P.selection, math.max(0.14, P.selection[4]))
+        TPM:SkinPaint(row.bg, "edge", P.accent, 0.95)
+        if row.label then TPM:SkinPaint(row.label, "color", P.accent) end
+    elseif row.control and row.control.TPMSkinHover then
+        TPM:SkinPaint(row.bg, "center", TPM_SkinTint(skin, P.text, 0.07))
+        TPM:SkinPaint(row.bg, "edge", P.line)
+        if row.label then TPM:SkinPaint(row.label, "color", P.text) end
+    else
+        TPM:SkinPaint(row.bg, "center", TPM_SkinTint(skin, P.text, 0.022))
+        TPM:SkinPaint(row.bg, "edge", P.line, 0)
+        if row.label then TPM:SkinPaint(row.label, "color", P.text) end
+    end
+end
+
+-- 2.8.0: numeric values use ESO's antique serif only in Klassisch; the other
+-- designs use the bold UI font at an optically matching size.
+function TPM:SkinValueFont(size)
+    size = tonumber(size) or 24
+    local skin = self.statisticsActiveSkin or self:GetActiveSkin()
+    if skin.journalBorder then return "$(ANTIQUE_FONT)|" .. tostring(size) end
+    return "$(BOLD_FONT)|" .. tostring(math.floor(size * 0.88 + 0.5))
+end
+
+function TPM:RegisterSkinValueFont(control, size)
+    if not control then return end
+    control.TPMSkinValueSize = size
+    self.statisticsSkinFontControls = self.statisticsSkinFontControls or {}
+    self.statisticsSkinFontControls[#self.statisticsSkinFontControls + 1] = control
+    control.TPMSkinFontApplied = nil
+end
+
+function TPM:ApplySkinValueFonts()
+    for _, control in ipairs(self.statisticsSkinFontControls or {}) do
+        local font = self:SkinValueFont(control.TPMSkinValueSize)
+        if control.TPMSkinFontApplied ~= font and control.SetFont then
+            control:SetFont(font)
+            control.TPMSkinFontApplied = font
+        end
+    end
+end
+
+
+function TPM:ApplySkinAlliancePage(skin)
+    local page = self.statisticsAlliancePage
+    if not page or page:IsHidden() then return end
+    local P = skin.colors
+    TPM_SkinSetFrame(page, skin.journalBorder)
+    for _, panel in ipairs(self.statisticsAlliancePanels or {}) do
+        TPM_SkinSetFrame(panel, skin.journalBorder)
+        local hovered = panel.TPMSkinHover == true
+        self:SkinPaint(panel, "center", hovered and TPM_SkinMix(P.panel, P.text, 0.06, P.panel[4]) or P.panel)
+        if hovered then
+            self:SkinPaint(panel, "edge", P.accent, 0.55)
+        else
+            self:SkinPaint(panel, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.80 or nil)
+        end
+    end
+    for _, overlay in ipairs(self.statisticsAllianceOverlays or {}) do
+        self:SkinPaint(overlay, "center", P.window, 0.84)
+        self:SkinPaint(overlay, "edge", P.line, math.max(0.12, P.line[4]))
+    end
+    for _, card in pairs(self.statisticsAllianceCards or {}) do
+        local c = TPM_SkinSemantic(skin, card.color, 1)
+        local selected = card.selected == true
+        local hovered = card.control.TPMSkinHover == true
+        TPM_SkinSetFrame(card.control, skin.journalBorder)
+        self:SkinPaint(card.control, "center", TPM_SkinMix(P.panel, c, selected and 0.16 or (hovered and 0.07 or 0), P.panel[4]))
+        self:SkinPaint(card.control, "edge", selected and c or P.line, selected and 0.95 or nil)
+        if card.accent then self:SkinPaint(card.accent, "center", c, 0.96) end
+        if card.bar then self:SkinPaint(card.bar, "center", c, 0.95) end
+        if card.title then self:SkinPaint(card.title, "color", c) end
+        if card.badge then self:SkinPaint(card.badge, "color", P.accent) end
+        if card.percent then self:SkinPaint(card.percent, "color", P.value) end
+        if card.zones then self:SkinPaint(card.zones, "color", P.muted) end
+        if card.barBack then self:SkinPaint(card.barBack, "center", P.track); self:SkinPaint(card.barBack, "edge", P.line, 0) end
+    end
+    local selectedCard = self.statisticsAllianceCards and self.statisticsAllianceCards[self.statisticsAllianceSelectedGroup or ""]
+    if self.statisticsAllianceMapFrame and selectedCard then
+        self:SkinPaint(self.statisticsAllianceMapFrame, "edge", TPM_SkinSemantic(skin, selectedCard.color, 0.85))
+    end
+    self:SkinPaint(self.statisticsAllianceMapTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsAllianceZoneTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsAllianceDetailsTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsAllianceZoneCount, "color", P.muted)
+    for _, button in ipairs(self.statisticsAllianceZoomButtons or {}) do TPM_SkinFontColors(button, P.text, P.accent) end
+    for _, item in ipairs(self.statisticsAllianceLegendItems or {}) do self:SkinPaint(item.label, "color", P.text) end
+    for _, chip in TPM_EachPresent(self.statisticsAllianceNextChip, self.statisticsAllianceGapChip) do
+        if chip then
+            self:SkinPaint(chip.title, "color", P.muted)
+            self:SkinPaint(chip.name, "color", P.text)
+            self:SkinPaint(chip.sub, "color", P.accent)
+        end
+    end
+    for _, row in ipairs(self.statisticsAllianceZoneRows or {}) do
+        if row.name then self:SkinPaint(row.name, "color", P.text) end
+        if row.count then self:SkinPaint(row.count, "color", P.muted) end
+        if row.barBack then self:SkinPaint(row.barBack, "center", P.track); self:SkinPaint(row.barBack, "edge", P.line, 0) end
+    end
+    if self.statisticsAllianceInfoBack then
+        self:SkinPaint(self.statisticsAllianceInfoBack, "center", P.selection)
+        self:SkinPaint(self.statisticsAllianceInfoBack, "edge", P.accent, 0.70)
+        TPM_SkinFontColors(self.statisticsAllianceInfoButton, P.accent, P.text)
+    end
+    for _, header in ipairs(self.statisticsAllianceCompareHeaders or {}) do self:SkinPaint(header, "color", P.muted) end
+    for _, row in ipairs(self.statisticsAllianceCompareRows or {}) do
+        self:SkinPaint(row.back, "center", row.selected and P.selection or P.panel, row.selected and math.max(0.12, P.selection[4]) or 0)
+        self:SkinPaint(row.name, "color", TPM_SkinSemantic(skin, row.color, 1))
+        for _, cell in ipairs(row.cells or {}) do
+            self:SkinPaint(cell.back, "center", P.track)
+            self:SkinPaint(cell.back, "edge", P.line, 0)
+            self:SkinPaint(cell.value, "color", row.selected and P.value or P.muted)
+        end
+    end
+end
+
+-- 2.8.0 Economy dashboard painter (all colors from the active design).
+local TPM_ECON_SPENT_RGB = { 0.95, 0.56, 0.30 }
+
+function TPM:PaintEconomyTile(tile, skin)
+    if not tile or not tile.control then return end
+    skin = skin or self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    local spentColor = TPM_SkinSemantic(skin, TPM_ECON_SPENT_RGB, 1)
+    TPM_SkinSetFrame(tile.control, skin.journalBorder)
+    if tile.isLegend then
+        self:SkinPaint(tile.control, "center", TPM_SkinMix(P.panel, P.accent, 0.03, math.max(0.55, P.panel[4])))
+        self:SkinPaint(tile.control, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.55 or nil)
+        self:SkinPaint(tile.stripe, "center", P.accent, 0.60)
+        self:SkinPaint(tile.badge, "center", P.selection, math.max(0.18, P.selection[4]))
+        self:SkinPaint(tile.badge, "edge", P.accent, 0.70)
+        self:SkinPaint(tile.badgeText, "color", P.accent)
+        self:SkinPaint(tile.name, "color", P.text)
+        self:SkinPaint(tile.line2, "color", P.muted)
+        local successHex = TPM_AtlasHex(P.success[1], P.success[2], P.success[3])
+        local spentHex = TPM_AtlasHex(spentColor[1], spentColor[2], spentColor[3])
+        local mutedHex = TPM_AtlasHex(P.muted[1], P.muted[2], P.muted[3])
+        tile.line1:SetColor(1, 1, 1, 1)
+        TPM_SetTextIfChanged(tile.line1, string.format("|c%s%s|r   |c%s•|r   |c%s%s|r", successHex, self:L("STAT_ECON_LEGEND_RECEIVED"),
+            mutedHex, spentHex, self:L("STAT_ECON_LEGEND_SPENT")))
+        return
+    end
+    local accent = TPM_SkinSemantic(skin, tile.accentColor or { 0.95, 0.78, 0.16 }, 1)
+    local zero = tile.zero == true
+    local hovered = tile.hover == true
+    self:SkinPaint(tile.control, "center", TPM_SkinMix(P.panel, accent, hovered and 0.10 or 0.025, math.max(0.55, P.panel[4])))
+    if hovered then
+        self:SkinPaint(tile.control, "edge", accent, 0.85)
+    else
+        self:SkinPaint(tile.control, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.55 or nil)
+    end
+    self:SkinPaint(tile.stripe, "center", accent, zero and 0.30 or 0.95)
+    if tile.icon then
+        tile.icon:SetAlpha(zero and 0.45 or 1)
+        if tile.icon.SetDesaturation then tile.icon:SetDesaturation((zero or skin.monochrome) and 0.85 or 0) end
+    end
+    self:SkinPaint(tile.name, "color", zero and P.muted or P.text)
+    self:SkinPaint(tile.value, "color", zero and P.muted or P.value)
+    self:SkinPaint(tile.sub, "color", P.muted)
+    self:SkinPaint(tile.received, "color", (tile.receivedAmount or 0) > 0 and P.success or P.muted)
+    self:SkinPaint(tile.spent, "color", (tile.spentAmount or 0) > 0 and spentColor or P.muted)
+end
+
+function TPM:ApplySkinEconomyPage(skin)
+    local root = self.statisticsEconomyDashboard
+    if not root or root:IsHidden() or (self.statisticsEconomyPage and self.statisticsEconomyPage:IsHidden()) then return end
+    skin = skin or self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    local gold = TPM_SkinSemantic(skin, { 0.95, 0.78, 0.16 }, 1)
+    local spentColor = TPM_SkinSemantic(skin, TPM_ECON_SPENT_RGB, 1)
+    local tones = { success = P.success, spent = spentColor, muted = P.muted }
+    local hero = self.statisticsEconomyHero
+    if hero then
+        TPM_SkinSetFrame(hero.control, skin.journalBorder)
+        self:SkinPaint(hero.control, "center", TPM_SkinMix(P.panel, gold, 0.045, math.max(0.6, P.panel[4])))
+        self:SkinPaint(hero.control, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.80 or nil)
+        self:SkinPaint(hero.stripe, "center", gold, 0.95)
+        if hero.icon.SetDesaturation then hero.icon:SetDesaturation(skin.monochrome and 1 or 0) end
+        self:SkinPaint(hero.title, "color", P.heading)
+        self:SkinPaint(hero.total, "color", P.value)
+        self:SkinPaint(hero.cashLabel, "color", P.muted)
+        self:SkinPaint(hero.bankLabel, "color", P.muted)
+        self:SkinPaint(hero.cashValue, "color", P.text)
+        self:SkinPaint(hero.bankValue, "color", P.text)
+        self:SkinPaint(hero.divider, "center", P.line, math.max(0.25, P.line[4]))
+        self:SkinPaint(hero.rule, "center", P.line, math.max(0.20, P.line[4]))
+        for _, slot in ipairs(hero.flows or {}) do
+            self:SkinPaint(slot.label, "color", P.muted)
+            self:SkinPaint(slot.value, "color", tones[slot.tone or "muted"] or P.muted)
+        end
+        self:SkinPaint(hero.period, "color", P.muted)
+        for _, slot in ipairs(hero.extras or {}) do
+            self:SkinPaint(slot.label, "color", P.muted)
+            local active = (slot.amount or 0) > 0
+            self:SkinPaint(slot.value, "color", not active and P.muted or (slot.sign == "-" and spentColor or P.text))
+        end
+    end
+    for _, tile in ipairs(self.statisticsEconomyTiles or {}) do self:PaintEconomyTile(tile, skin) end
+end
+
+-- 2.8.0 Zone-focus selector and popup painter (explicit design colors).
+function TPM:PaintFocusRow(row, skin)
+    if not row or not row.rowBack then return end
+    skin = skin or self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    local selected, hovered = row.selected == true, row.hover == true
+    local fill
+    if selected then
+        fill = TPM_SkinMix(P.panel, P.accent, hovered and 0.24 or 0.16, 0.98)
+    elseif hovered then
+        fill = TPM_SkinMix(P.panel, P.text, 0.08, 0.98)
+    else
+        fill = { P.panel[1], P.panel[2], P.panel[3], 0 }
+    end
+    self:SkinPaint(row.rowBack, "center", fill)
+    self:SkinPaint(row.rowBack, "edge", P.line, 0)
+    self:SkinPaint(row.rowMark, "center", P.accent, selected and 1 or 0)
+    self:SkinPaint(row.rowText, "color", selected and P.accent or (hovered and P.text or TPM_SkinMix(P.text, P.muted, 0.35, 1)))
+    if row.rowCheck then
+        row.rowCheck:SetHidden(not selected)
+        self:SkinPaint(row.rowCheck, "color", P.accent)
+    end
+end
+
+function TPM:PaintFocusUI(ctx, skin)
+    if not ctx then return end
+    skin = skin or self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    local open = self:IsFocusUIOpen(ctx)
+    local hovered = ctx.hover == true
+    local bg = ctx.selectorBg
+    if bg then
+        TPM_SkinSetFrame(bg, skin.journalBorder)
+        self:SkinPaint(bg, "center", TPM_SkinMix(P.panel, P.text, (hovered or open) and 0.06 or 0, math.max(0.85, P.panel[4])))
+        if open or hovered then
+            self:SkinPaint(bg, "edge", P.accent, open and 0.95 or 0.70)
+        else
+            self:SkinPaint(bg, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.70 or math.max(0.18, P.line[4] * 1.4))
+        end
+    end
+    self:SkinPaint(ctx.label, "color", P.text)
+    if ctx.arrow then
+        self:SkinPaint(ctx.arrow, "color", (open or hovered) and P.accent or P.muted)
+        if ctx.arrow.SetTextureRotation then ctx.arrow:SetTextureRotation(open and math.pi or 0) end
+    end
+    if not open then return end
+    TPM_SkinSetFrame(ctx.shell, skin.journalBorder)
+    self:SkinPaint(ctx.shell, "center", P.window, math.max(0.97, P.window[4]))
+    self:SkinPaint(ctx.shell, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.90 or Clamp(P.line[4] * 1.8, 0.20, 1))
+    self:SkinPaint(ctx.divider, "center", P.line, math.max(0.22, P.line[4]))
+    self:SkinPaint(ctx.rail, "center", P.track, math.max(0.30, P.track[4]))
+    self:SkinPaint(ctx.thumb, "center", P.accent, 0.85)
+    for _, row in ipairs(ctx.pinnedRows or {}) do self:PaintFocusRow(row, skin) end
+    for _, row in ipairs(ctx.rows or {}) do self:PaintFocusRow(row, skin) end
+end
+
+function TPM:PaintEconomyFocusDropdown(skin)
+    self:PaintFocusUI(self.economyFocusUI, skin)
+end
+
+-- 2.8.0 Info panels beside the journal follow the active design.
+function TPM:PaintInfoTooltip(tip, skin)
+    if not tip then return end
+    skin = skin or self.statisticsActiveSkin or self:GetActiveSkin()
+    local P = skin.colors
+    tip.TPMSkinSkipTree = true
+    if tip.TPMBg then
+        TPM_SkinSetFrame(tip.TPMBg, skin.journalBorder)
+        self:SkinPaint(tip.TPMBg, "center", P.window, math.max(0.97, P.window[4]))
+        self:SkinPaint(tip.TPMBg, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.85 or Clamp(P.line[4] * 1.8, 0.22, 1))
+    end
+    if not tip.TPMAccentBar then
+        local bar = WINDOW_MANAGER:CreateControl(nil, tip, CT_BACKDROP)
+        bar:SetAnchor(TOPLEFT, tip, TOPLEFT, 1, 1)
+        bar:SetAnchor(TOPRIGHT, tip, TOPRIGHT, -1, 1)
+        bar:SetHeight(2)
+        bar:SetEdgeColor(0, 0, 0, 0)
+        bar:SetMouseEnabled(false)
+        tip.TPMAccentBar = bar
+    end
+    self:SkinPaint(tip.TPMAccentBar, "center", P.accent, 0.95)
+    self:SkinPaint(tip.TPMTitle, "color", P.heading)
+    self:SkinPaint(tip.TPMBody, "color", P.text)
+    self:SkinPaint(tip.TPMPoints, "color", P.value)
+    self:SkinPaint(tip.TPMNote, "color", P.muted)
+end
+
+-- 2.8.0 World-map elements in the active design -------------------------------
+-- Progress ramp for map badges: red -> orange -> yellow -> lime, 100% = success.
+function TPM:GetMapProgressColor(percent, skin)
+    skin = skin or self:GetActiveSkin()
+    percent = tonumber(percent) or 0
+    if percent >= 100 then return skin.colors.success end
+    local c
+    if percent < 25 then c = { 0.92, 0.38, 0.32 }
+    elseif percent < 50 then c = { 0.96, 0.62, 0.28 }
+    elseif percent < 75 then c = { 0.96, 0.84, 0.36 }
+    else c = { 0.64, 0.86, 0.36 } end
+    return TPM_SkinSemantic(skin, c, 1)
+end
+
+function TPM:IsMapBadgeStyle()
+    return not self.saved or self.saved.mapPercentStyle ~= "text"
+end
+
+local function TPM_MapBadgeParts(owner, parent, level)
+    if owner.tpmBadge then return owner.tpmBadge end
+    local badge = WINDOW_MANAGER:CreateControl(nil, parent, CT_BACKDROP)
+    badge:SetEdgeTexture(nil, 1, 1, 1)
+    badge:SetMouseEnabled(false)
+    badge:SetDrawTier(DT_HIGH)
+    badge:SetDrawLayer(DL_OVERLAY)
+    if badge.SetDrawLevel then badge:SetDrawLevel(level) end
+    local track = WINDOW_MANAGER:CreateControl(nil, badge, CT_BACKDROP)
+    track:SetEdgeColor(0, 0, 0, 0)
+    track:SetMouseEnabled(false)
+    if track.SetDrawLevel then track:SetDrawLevel(level + 1) end
+    local fill = WINDOW_MANAGER:CreateControl(nil, track, CT_BACKDROP)
+    fill:SetEdgeColor(0, 0, 0, 0)
+    fill:SetMouseEnabled(false)
+    if fill.SetDrawLevel then fill:SetDrawLevel(level + 2) end
+    owner.tpmBadge = { back = badge, track = track, fill = fill }
+    return owner.tpmBadge
+end
+
+-- Shapes a percentage label into a design-colored badge with a slim progress
+-- bar. textWidth is an estimate because labels are measured lazily by ESO.
+function TPM:ApplyMapPercentBadge(label, percent, textChars, fontSize, isHeader)
+    if not label then return end
+    if not self:IsMapBadgeStyle() then
+        if label.tpmBadge then label.tpmBadge.back:SetHidden(true) end
+        return
+    end
+    local skin = self:GetActiveSkin()
+    local P = skin.colors
+    local parent = isHeader and ZO_WorldMap or ZO_WorldMapContainer
+    local parts = TPM_MapBadgeParts(label, parent, isHeader and 2 or 3)
+    if label.SetDrawLevel then label:SetDrawLevel(isHeader and 8 or 10) end
+
+    local measured = label.GetTextWidth and tonumber(label:GetTextWidth()) or 0
+    local estimate = math.ceil((tonumber(textChars) or 4) * fontSize * 0.56)
+    local textW = math.max(measured or 0, estimate)
+    local padX, barH = isHeader and 18 or 9, isHeader and 4 or 3
+    local w = textW + padX * 2
+    local h = fontSize + (isHeader and 18 or 11)
+    label:SetDimensions(w, h - barH)
+
+    local back = parts.back
+    back:ClearAnchors()
+    back:SetAnchor(TOP, label, TOP, 0, 0)
+    back:SetDimensions(w, h)
+    local tone = self:GetMapProgressColor(percent, skin)
+    back:SetCenterColor(P.window[1], P.window[2], P.window[3], 0.84)
+    back:SetEdgeColor(tone[1], tone[2], tone[3], 0.80)
+    back:SetHidden(false)
+
+    local trackW = w - padX * 2
+    parts.track:ClearAnchors()
+    parts.track:SetAnchor(BOTTOM, back, BOTTOM, 0, -(isHeader and 6 or 4))
+    parts.track:SetDimensions(trackW, barH)
+    parts.track:SetCenterColor(P.track[1], P.track[2], P.track[3], math.max(0.55, P.track[4]))
+    local fillW = math.floor(trackW * Clamp((tonumber(percent) or 0) / 100, 0, 1) + 0.5)
+    parts.fill:ClearAnchors()
+    parts.fill:SetAnchor(LEFT, parts.track, LEFT, 0, 0)
+    parts.fill:SetDimensions(math.max(1, fillW), barH)
+    parts.fill:SetCenterColor(tone[1], tone[2], tone[3], 1)
+    parts.fill:SetHidden(fillW <= 0)
+end
+
+function TPM:HideMapPercentBadge(label)
+    if label and label.tpmBadge then label.tpmBadge.back:SetHidden(true) end
+end
+
+function TPM:PaintQuickFilterBar()
+    local bar = self.quickFilterBar
+    if not bar or not bar.segments then return end
+    local skin = self:GetActiveSkin()
+    local P = skin.colors
+    local function paintShell(shell, accentEdge)
+        TPM_SkinSetFrame(shell, skin.journalBorder)
+        shell:SetCenterColor(P.window[1], P.window[2], P.window[3], 0.88)
+        local e = accentEdge and P.accent or P.line
+        shell:SetEdgeColor(e[1], e[2], e[3], accentEdge and 0.75 or math.max(0.25, P.line[4] * 1.6))
+    end
+    paintShell(bar.shell, false)
+    for _, seg in ipairs(bar.segments) do
+        local selected, hovered = seg.selected == true, seg.hover == true
+        local fill = selected and TPM_SkinMix(P.panel, P.accent, 0.20, 0.95)
+            or (hovered and TPM_SkinMix(P.panel, P.text, 0.08, 0.90) or { 0, 0, 0, 0 })
+        seg.back:SetCenterColor(fill[1], fill[2], fill[3], fill[4])
+        seg.mark:SetCenterColor(P.accent[1], P.accent[2], P.accent[3], selected and 1 or 0)
+        local tc = selected and P.accent or (hovered and P.text or TPM_SkinMix(P.text, P.muted, 0.35, 1))
+        seg.label:SetColor(tc[1], tc[2], tc[3], 1)
+    end
+    for _, divider in ipairs(bar.dividers or {}) do
+        divider:SetCenterColor(P.line[1], P.line[2], P.line[3], math.max(0.25, P.line[4] * 1.4))
+    end
+    local stats = bar.statsSegment
+    if stats then
+        paintShell(stats.shell, true)
+        local open = self.statisticsWindow and not self.statisticsWindow:IsHidden()
+        local fill = (open or stats.hover) and TPM_SkinMix(P.panel, P.accent, open and 0.24 or 0.12, 0.95) or { 0, 0, 0, 0 }
+        stats.back:SetCenterColor(fill[1], fill[2], fill[3], fill[4])
+        local tc = (open or stats.hover) and P.accent or P.text
+        stats.label:SetColor(tc[1], tc[2], tc[3], 1)
+    end
+end
+
+function TPM:PaintQuestRewardWindow()
+    if not self.questRewardControl then return end
+    local skin = self:GetActiveSkin()
+    local P = skin.colors
+    local back = self.questRewardBackdrop
+    if back then
+        TPM_SkinSetFrame(back, skin.journalBorder)
+        back:SetCenterColor(P.window[1], P.window[2], P.window[3], math.max(0.90, P.window[4]))
+        local e = skin.journalBorder and P.accent or P.line
+        back:SetEdgeColor(e[1], e[2], e[3], skin.journalBorder and 0.85 or Clamp(P.line[4] * 1.8, 0.22, 1))
+    end
+    if self.questRewardInnerBackdrop then self.questRewardInnerBackdrop:SetCenterColor(0, 0, 0, 0) end
+    if not self.questRewardAccentBar then
+        local bar = WINDOW_MANAGER:CreateControl(nil, self.questRewardControl, CT_BACKDROP)
+        bar:SetAnchor(TOPLEFT, self.questRewardControl, TOPLEFT, 1, 1)
+        bar:SetAnchor(TOPRIGHT, self.questRewardControl, TOPRIGHT, -1, 1)
+        bar:SetHeight(2)
+        bar:SetEdgeColor(0, 0, 0, 0)
+        bar:SetMouseEnabled(false)
+        bar:SetDrawLayer(DL_OVERLAY)
+        bar:SetDrawTier(DT_HIGH)
+        self.questRewardAccentBar = bar
+    end
+    self.questRewardAccentBar:SetCenterColor(P.accent[1], P.accent[2], P.accent[3], 0.95)
+    if self.questRewardDivider then self.questRewardDivider:SetCenterColor(P.line[1], P.line[2], P.line[3], math.max(0.30, P.line[4] * 1.6)) end
+    if self.questRewardInfoButton then
+        self.questRewardInfoButton:SetText("i")
+        self.questRewardInfoButton:SetColor(P.accent[1], P.accent[2], P.accent[3], 1)
+    end
+    if self.questRewardResizeHandle then
+        self.questRewardResizeHandle:SetText("///")
+        self.questRewardResizeHandle:SetColor(P.muted[1], P.muted[2], P.muted[3], 0.85)
+    end
+end
+
+function TPM:ApplySkinCharacterPage(skin)
+    local page = self.statisticsPlayerPage
+    if not page or page:IsHidden() then return end
+    local P = skin.colors
+    for _, box in TPM_EachPresent(self.statisticsPlayerProfileBox, self.statisticsCharacterDailyBox, self.statisticsCharacterInsightBox) do
+        self:SkinPaint(box, "center", P.panel, P.panel[4] * 0.85)
+        self:SkinPaint(box, "edge", P.line)
+    end
+    self:SkinPaint(self.statisticsPlayerMountIconFrame, "edge", P.line)
+    self:SkinPaint(self.statisticsPlayerProfileDivider, "color", P.line)
+    self:SkinPaint(self.statisticsPlayerPageSubtitle, "color", P.muted)
+    self:SkinPaint(self.statisticsPlayerProfileText, "color", P.text)
+    self:SkinPaint(self.statisticsPlayerMountText, "color", P.text)
+    self:SkinPaint(self.statisticsCharacterDailyHint, "color", P.muted)
+    for _, card in pairs(self.statisticsCharacterCards or {}) do
+        local control = card.control
+        if control then
+            self:SkinPaint(control, "center", P.panel)
+            self:SkinPaint(control, "edge", P.line)
+            -- Decorative layers of the classic value card only in Klassisch.
+            if control.TPMTopBand then control.TPMTopBand:SetHidden(not skin.glows) end
+            if control.TPMInnerTint then control.TPMInnerTint:SetHidden(not skin.glows) end
+            if control.TPMAccent then self:SkinPaint(control.TPMAccent, "center", P.accent, 0.90) end
+        end
+        if card.title then self:SkinPaint(card.title, "color", P.muted) end
+        if card.value then self:SkinPaint(card.value, "color", P.value) end
+    end
+    local selectedRange = tonumber(self.saved and self.saved.statisticsCharacterRangeDays) or 7
+    for _, button in ipairs(self.statisticsCharacterRangeButtons or {}) do
+        local selected = tonumber(button.rangeDays) == selectedRange
+        if button.TPMBackdrop then
+            self:SkinPaint(button.TPMBackdrop, "center", selected and P.selection or { P.text[1], P.text[2], P.text[3], 0.03 })
+            self:SkinPaint(button.TPMBackdrop, "edge", selected and P.accent or P.line, selected and 0.60 or nil)
+        end
+        TPM_SkinFontColors(button, selected and P.accent or P.muted, P.text)
+    end
+    for _, button in TPM_EachPresent(self.statisticsCharacterOlderButton, self.statisticsCharacterNewerButton) do
+        TPM_SkinFontColors(button, P.muted, P.accent)
+    end
+    for index, row in ipairs(self.statisticsCharacterDailyRows or {}) do
+        if row.stripe then
+            self:SkinPaint(row.stripe, "center", row.isToday and P.selection or { P.text[1], P.text[2], P.text[3], (index % 2 == 0) and 0.035 or 0 })
+        end
+        if row.date then self:SkinPaint(row.date, "color", row.isToday and P.accent or P.text) end
+        for _, key in ipairs({ "playtime", "kills", "bosses" }) do
+            if row[key] then self:SkinPaint(row[key], "color", P.text) end
+        end
+    end
+    for _, label in pairs(self.statisticsCharacterInsights or {}) do self:SkinPaint(label, "color", P.muted) end
+end
+
+-- Polish hooks (run after the generic mapping of that control) ---------------------
+local function TPM_SkinPolishZoneRow(row, skin)
+    if not row or (row.IsHidden and row:IsHidden()) then return end
+    local P = skin.colors
+    local complete = row.completeIcon and not row.completeIcon:IsHidden()
+    if row.bg then
+        if complete and not row.TPMSkinHover then TPM:SkinPaint(row.bg, "center", P.success, 0.075) end
+        TPM:SkinPaint(row.bg, "edge", complete and P.success or P.line, complete and 0.26 or 0)
+    end
+    if row.progressBg then
+        TPM:SkinPaint(row.progressBg, "center", P.track)
+        TPM:SkinPaint(row.progressBg, "edge", P.line, 0)
+    end
+    if row.completeIcon then TPM:SkinPaint(row.completeIcon, "color", P.success) end
+    if row.nameLabel then TPM:SkinPaint(row.nameLabel, "color", P.text) end
+    if row.doneLabel then TPM:SkinPaint(row.doneLabel, "color", P.muted) end
+    if row.openLabel then TPM:SkinPaint(row.openLabel, "color", complete and P.success or P.accent) end
+end
+
+-- Dropdown rows (zone focus + economy focus): selected = selection tint with
+-- accent outline, hover = lifted panel, normal = quiet panel.
+local function TPM_SkinPolishDropdownRow(row, skin)
+    if not row or (row.IsHidden and row:IsHidden()) then return end
+    local P = skin.colors
+    local back = row.bg or row.rowBack
+    local text = row.label or row.rowText
+    local selected = row.selected == true
+    if row.TPMSkinSelectedFn then selected = row.TPMSkinSelectedFn(row) == true end
+    if back then
+        if selected then
+            TPM:SkinPaint(back, "center", P.selection)
+            TPM:SkinPaint(back, "edge", P.accent, 0.50)
+        elseif row.TPMSkinHover then
+            TPM:SkinPaint(back, "center", TPM_SkinTint(skin, P.text, 0.07))
+            TPM:SkinPaint(back, "edge", P.line)
+        else
+            TPM:SkinPaint(back, "center", TPM_SkinTint(skin, P.text, 0.02))
+            TPM:SkinPaint(back, "edge", P.line, 0)
+        end
+    end
+    if text then TPM:SkinPaint(text, "color", selected and P.accent or (row.TPMSkinHover and P.text or P.text)) end
+    if row.selectedMark then TPM:SkinPaint(row.selectedMark, "color", P.accent) end
+end
+TPM.SkinPolishDropdownRow = TPM_SkinPolishDropdownRow
+
+local function TPM_SkinPolishSelector(selector, skin)
+    local back = selector and selector.TPMSkinBack
+    if not back then return end
+    local P = skin.colors
+    TPM:SkinPaint(back, "center", selector.TPMSkinHover and TPM_SkinTint(skin, P.text, 0.08) or P.panel)
+    TPM:SkinPaint(back, "edge", selector.TPMSkinHover and P.accent or P.line, selector.TPMSkinHover and 0.55 or nil)
+end
+TPM.SkinPolishSelector = TPM_SkinPolishSelector
+
+-- Full pass ---------------------------------------------------------------------------
+function TPM:SkinPass(skin, wrapHandlers)
+    local P = skin.colors
+    self.statisticsSkinVisited = 0
+    -- Structural visibility first, so the generic pass already sees it.
+    for _, ornament in ipairs(self.statisticsCornerOrnaments or {}) do ornament:SetHidden(not skin.ornaments) end
+    for _, band in ipairs(self.statisticsVanillaThemeBands or {}) do band:SetHidden(true) end
+    if self.statisticsOverallFillShine then self.statisticsOverallFillShine:SetHidden(not skin.glows) end
+    for _, card in ipairs(self.statisticsCards or {}) do if card.topGlow then card.topGlow:SetHidden(not skin.glows) end end
+    if self.statisticsPlaytimeCard and self.statisticsPlaytimeCard.topGlow then self.statisticsPlaytimeCard.topGlow:SetHidden(not skin.glows) end
+    for _, ornament in ipairs(self.statisticsThemeWindowOrnaments or {}) do ornament:SetHidden(true) end
+    self:SkinTree(self.statisticsWindow, skin, 0, 22, wrapHandlers)
+    for _, extra in TPM_EachPresent(self.statisticsThemeWindow, self.economyFocusDropdown, self.economyDetailWindow) do
+        if extra and not extra:IsHidden() then self:SkinTree(extra, skin, 0, 22, wrapHandlers) end
+    end
+    for _, tip in TPM_EachPresent(self.statisticsHoverTooltip, self.statisticsAchievementTooltip, self.statisticsLogHelpTooltip) do
+        if not tip:IsHidden() then self:PaintInfoTooltip(tip, skin) end
+    end
+
+    -- Window chrome.
+    if self.statisticsOuterBackdrop then
+        TPM_SkinSetFrame(self.statisticsOuterBackdrop, skin.journalBorder)
+        self:SkinPaint(self.statisticsOuterBackdrop, "center", P.window)
+        if skin.journalBorder then
+            self:SkinPaint(self.statisticsOuterBackdrop, "edge", P.accent, 0.95)
+        else
+            self:SkinPaint(self.statisticsOuterBackdrop, "edge", P.line, Clamp(P.line[4] * 1.4, 0, 1))
+        end
+    end
+    if self.statisticsInnerBackdrop then
+        self:SkinPaint(self.statisticsInnerBackdrop, "center", P.window, 0)
+        self:SkinPaint(self.statisticsInnerBackdrop, "edge", P.line, skin.journalBorder and P.line[4] * 0.6 or 0)
+    end
+    for _, ornament in ipairs(self.statisticsCornerOrnaments or {}) do
+        ornament:SetHidden(not skin.ornaments)
+        if skin.ornaments then self:SkinPaint(ornament, "color", P.accent, 0.88) end
+    end
+    for _, band in ipairs(self.statisticsVanillaThemeBands or {}) do band:SetHidden(true) end
+    for _, divider in TPM_EachPresent(self.statisticsTopDivider, self.statisticsFooterDivider, self.statisticsCategoryDivider, self.statisticsTamrielDivider) do
+        self:SkinPaint(divider, "center", P.line)
+    end
+    self:SkinPaint(self.statisticsTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsMode, "color", P.muted)
+    self:SkinPaint(self.statisticsSubPageCounter, "color", P.muted)
+    self:SkinPaint(self.statisticsCloseLabel, "color", P.muted)
+    if self.statisticsThemeGear and self.statisticsThemeGear.TPMIcon then
+        self:SkinPaint(self.statisticsThemeGear.TPMIcon, "color", P.muted)
+    end
+    for _, button in TPM_EachPresent(self.statisticsSubPagePrev, self.statisticsSubPageNext, self.statisticsCategoryPrev, self.statisticsCategoryNext) do
+        TPM_SkinFontColors(button, P.muted, P.accent)
+    end
+    for _, button in TPM_EachPresent(self.statisticsSortProgress, self.statisticsSortName) do
+        TPM_SkinFontColors(button, P.muted, P.text)
+    end
+
+    -- Section headings.
+    local headingNames =
+    {
+        "statisticsCategoryTitle", "statisticsGoalsTitle", "statisticsZoneTitle",
+        "statisticsEconomyPageTitle", "statisticsEconomyTrackingTitle",
+        "statisticsHistoryTitle", "statisticsHistorySessionTitle", "statisticsCombatChartTitle",
+        "statisticsCombatActivityRightTitle", "statisticsCombatExamplesTitle",
+        "statisticsAllianceDetailsTitle", "statisticsAllianceMapTitle",
+        "statisticsAllianceZoneTitle",
+        "statisticsPlayerProfileTitle", "statisticsPlayerMountTitle", "statisticsCharacterDailyTitle",
+    }
+    for _, name in ipairs(headingNames) do self:SkinPaint(self[name], "color", P.heading) end
+    self:SkinPaint(self.statisticsTamrielLabel, "color", P.heading)
+    self:SkinPaint(self.statisticsSubtitle, "color", P.muted)
+    self:SkinPaint(self.statisticsFocusLabel, "color", P.muted)
+
+    -- Overall progress.
+    if self.statisticsOverallBar then
+        self:SkinPaint(self.statisticsOverallBar, "center", P.track)
+        self:SkinPaint(self.statisticsOverallBar, "edge", P.line, skin.journalBorder and nil or 0)
+    end
+    if self.statisticsOverallFillShine then self.statisticsOverallFillShine:SetHidden(not skin.glows) end
+    self:SkinPaint(self.statisticsOverallBarPercent, "color", P.value)
+
+    -- Summary cards.
+    for _, card in ipairs(self.statisticsCards or {}) do
+        self:SkinPaint(card.control, "center", P.panel)
+        self:SkinPaint(card.control, "edge", P.line)
+        if card.topGlow then
+            card.topGlow:SetHidden(not skin.glows)
+            if skin.glows then self:SkinPaint(card.topGlow, "center", P.accent, 0.50) end
+        end
+        self:SkinPaint(card.icon, "color", P.accent)
+        self:SkinPaint(card.title, "color", P.muted)
+        self:SkinPaint(card.value, "color", P.value)
+    end
+    local playtime = self.statisticsPlaytimeCard
+    if playtime then
+        self:SkinPaint(playtime.control, "center", P.panel)
+        self:SkinPaint(playtime.control, "edge", P.success, 0.34)
+        if playtime.topGlow then
+            playtime.topGlow:SetHidden(not skin.glows)
+            if skin.glows then self:SkinPaint(playtime.topGlow, "center", P.success, 0.50) end
+        end
+        self:SkinPaint(playtime.icon, "color", P.success)
+        self:SkinPaint(playtime.title, "color", P.muted)
+        self:SkinPaint(playtime.value, "color", P.success)
+        self:SkinPaint(playtime.detail, "color", P.muted)
+    end
+
+    -- Category grid.
+    for _, panel in TPM_EachPresent(self.statisticsCategoryPanelLeft, self.statisticsCategoryPanelRight) do
+        self:SkinPaint(panel, "center", P.panel, P.panel[4] * 0.85)
+        self:SkinPaint(panel, "edge", P.line)
+    end
+    for _, rows in ipairs({ self.statisticsCategoryRows or {}, self.statisticsCollectionRows or {}, self.statisticsAchievementRows or {} }) do
+        for _, row in ipairs(rows) do
+            if row.control and not row.control.TPMSkinPolish then
+                row.control.TPMSkinPolish = function(_, activeSkin) TPM_SkinPolishCategoryRow(row, activeSkin) end
+            end
+            if row.bar then
+                self:SkinPaint(row.bar, "center", P.track)
+                self:SkinPaint(row.bar, "edge", P.line, 0)
+            end
+            self:SkinPaint(row.icon, "color", P.accent, 0.90)
+            self:SkinPaint(row.count, "color", P.muted)
+            TPM_SkinPolishCategoryRow(row, skin)
+        end
+    end
+    self:ApplySkinCategorySortChips()
+
+    -- Zone table.
+    if self.statisticsZonePanel then
+        self:SkinPaint(self.statisticsZonePanel, "center", P.panel, P.panel[4] * 0.75)
+        self:SkinPaint(self.statisticsZonePanel, "edge", P.line)
+    end
+    if self.statisticsHeaderBackdrop then
+        self:SkinPaint(self.statisticsHeaderBackdrop, "center", TPM_SkinTint(skin, P.text, 0.045))
+        self:SkinPaint(self.statisticsHeaderBackdrop, "edge", P.line, 0)
+    end
+    for _, label in TPM_EachPresent(self.statisticsHeaderZone, self.statisticsHeaderProgress, self.statisticsHeaderDone, self.statisticsHeaderOpen) do
+        self:SkinPaint(label, "color", P.muted)
+    end
+    for _, row in ipairs(self.statisticsZoneRows or {}) do
+        row.TPMSkinPolish = TPM_SkinPolishZoneRow
+        TPM_SkinPolishZoneRow(row, skin)
+    end
+
+    -- Selectors, dropdown shells and scroll bars.
+    self:PaintFocusUI(self.statisticsFocusUI, skin)
+    self:PaintFocusUI(self.economyFocusUI, skin)
+    if self.statisticsScrollBar then self:SkinScrollBar(self.statisticsScrollBar, skin) end
+
+    -- Pages and the PvE / PvP dashboard.
+    self:ApplySkinValueFonts()
+    self:ApplySkinPageFrames(skin)
+    for _, fn in TPM_EachPresent(self.ApplySkinAlliancePage, self.ApplySkinCharacterPage, self.ApplySkinEconomyPage) do
+        local okPage, pageErr = pcall(fn, self, skin)
+        if not okPage then
+            self.statisticsSkinErrors = (self.statisticsSkinErrors or 0) + 1
+            self.statisticsSkinLastError = tostring(pageErr)
+        end
+    end
+    local okCombat, combatErr = pcall(self.ApplySkinCombatPage, self, skin)
+    if not okCombat then
+        self.statisticsSkinErrors = (self.statisticsSkinErrors or 0) + 1
+        self.statisticsSkinLastError = tostring(combatErr)
+    end
+
+    -- Tabs and the design panel.
+    self:ApplySkinPageTabs()
+    if self.statisticsThemeWindowShell then
+        TPM_SkinSetFrame(self.statisticsThemeWindowShell, skin.journalBorder)
+        self:SkinPaint(self.statisticsThemeWindowShell, "center", P.window, math.max(0.94, P.window[4]))
+        self:SkinPaint(self.statisticsThemeWindowShell, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.95 or Clamp(P.line[4] * 1.4, 0, 1))
+    end
+    for _, ornament in ipairs(self.statisticsThemeWindowOrnaments or {}) do ornament:SetHidden(true) end
+    self:SkinPaint(self.statisticsThemeWindowTitle, "color", P.heading)
+    self:SkinPaint(self.statisticsThemeWindowHeaderLine, "center", P.line)
+    if self.statisticsThemeWindow and not self.statisticsThemeWindow:IsHidden() then self:RefreshStatisticsThemeWindowStates() end
+end
+
+function TPM:RestoreStatisticsSkinVisualState()
+    local cache = self.statisticsSkinCache
+    self.statisticsSkinCache = nil
+    if cache then
+        for control, state in pairs(cache) do
+            for channel, value in pairs(state.original or {}) do
+                local setter = control[TPM_SKIN_CHANNELS[channel][2]]
+                if setter then pcall(setter, control, value[1], value[2], value[3], value[4]) end
+            end
+            if state.desaturation ~= nil and control.SetDesaturation then pcall(control.SetDesaturation, control, state.desaturation) end
+            control.TPMSkinHover = nil
+        end
+    end
+end
+
+-- Entry point used by ApplyStatisticsTheme, refreshes and the watchdog.
+function TPM:ApplyStatisticsSkin(forceRebuild, wrapHandlers)
+    if not self.statisticsWindow or not self.saved then return end
+    local skin = self:GetActiveSkin()
+    local signature = skin.key .. ":" .. tostring(skin.revision or 0)
+    if forceRebuild or self.statisticsSkinSignature ~= signature then
+        self:RestoreStatisticsSkinVisualState()
+        self.statisticsSkinSignature = signature
+    end
+    self.statisticsActiveSkin = skin
+    local started = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    self:SkinPass(skin, wrapHandlers ~= false)
+    if GetGameTimeMilliseconds then self.statisticsSkinLastPassMs = GetGameTimeMilliseconds() - started end
+    self:EnsureStatisticsSkinWatchdog()
+end
+
+-- Watchdog: while the journal is visible a light pass runs periodically, so
+-- any repaint path that does not end in a refresh still converges to the skin.
+-- The interval backs off automatically if a pass ever becomes expensive.
+function TPM:EnsureStatisticsSkinWatchdog()
+    if not EVENT_MANAGER or self.statisticsSkinWatchdogActive then return end
+    self.statisticsSkinWatchdogActive = true
+    local interval = 1000
+    if (self.statisticsSkinLastPassMs or 0) > 8 then interval = 2000 end
+    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "SkinWatchdog", interval, function()
+        local window = TPM.statisticsWindow
+        if not window or window:IsHidden() or not TPM.saved then
+            EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "SkinWatchdog")
+            TPM.statisticsSkinWatchdogActive = false
+            return
+        end
+        if TPM.statisticsWindowMoving then return end
+        -- Back off if a pass ever gets expensive (large logs, slow machines).
+        if (TPM.statisticsSkinWatchdogSkip or 0) > 0 then
+            TPM.statisticsSkinWatchdogSkip = TPM.statisticsSkinWatchdogSkip - 1
+            return
+        end
+        TPM:ApplyStatisticsSkin(false, false)
+        local cost = tonumber(TPM.statisticsSkinLastPassMs) or 0
+        if cost > 6 then TPM.statisticsSkinWatchdogSkip = math.min(8, math.floor(cost / 3)) end
+    end)
+end
+
+function TPM:BuildSkinDebugReport()
+    local skin = self.statisticsActiveSkin or self:GetActiveSkin()
+    local function probe(control)
+        if not control then return "n/a" end
+        local okC, r, g, b, a = pcall(control.GetCenterColor, control)
+        local cached = self.statisticsSkinCache and self.statisticsSkinCache[control] ~= nil
+        return string.format("%s c=%.2f,%.2f,%.2f,%.2f skinned=%s", control:IsHidden() and "hidden" or "shown",
+            okC and tonumber(r) or -1, okC and tonumber(g) or -1, okC and tonumber(b) or -1, okC and tonumber(a) or -1, tostring(cached))
+    end
+    return string.format("[TPM] Design=%s visited=%d lastPass=%sms errors=%d last=%s | log=%s",
+        tostring(skin.key), tonumber(self.statisticsSkinVisited) or 0, tostring(self.statisticsSkinLastPassMs or "?"),
+        tonumber(self.statisticsSkinErrors) or 0, tostring(self.statisticsSkinLastError or "-"), probe(self.statisticsHistorySessionBox))
+end
+
+function TPM:GetSkinTokens()
+    return TPM_SKIN_TOKENS
+end
+
+function TPM:GetSkinDesignOrder()
+    return TPM_SKIN_ORDER
+end
+
+function TPM:GetSkinPalette(design)
+    if design == "custom" then return { nameKey = "designCustom", hintKey = "hintCustom" } end
+    return TPM_SKIN_PALETTES[design]
+end
+
 -- 2.7.25: Page refresh functions in TPM still contain their original semantic
 -- colors (gold, alliance colors, combat colors, currency colors). Dark Mode is
 -- therefore re-enforced AFTER data refreshes, otherwise those refreshes paint
 -- the old colors back over the monochrome skin.
 function TPM:EnforceStatisticsDarkModeAfterRefresh()
-    if not self.saved or self.saved.statisticsThemeDesign ~= "dark" then return end
-    if not self.statisticsWindow or self.statisticsWindow:IsHidden() then return end
-    self:ApplyStatisticsDarkMonochrome()
+    -- 2.8.0: every design is a skin-engine palette; refresh routines repaint
+    -- classic colors, so the (idempotent) skin pass runs after each refresh.
+    if not self.saved or not self.statisticsWindow or self.statisticsWindow:IsHidden() then return end
+    self:ApplyStatisticsSkin(false)
 end
 
 -- 2.7.23: Fixed TPM Standard skin restored as a third stable theme.
@@ -14788,294 +16173,14 @@ end
 
 function TPM:ApplyStatisticsTheme()
     if not self.saved then return end
-    local design=self.saved.statisticsThemeDesign or "vanilla"
-    if design ~= "dark" and self.statisticsDarkVisualCache then self:RestoreStatisticsDarkVisualState() end
-    if design~="tpm" and design~="vanilla" and design~="dark" then design="tpm" end
-    self.saved.statisticsThemeDesign=design
-    self.saved.statisticsThemeRGB=false
-    local bg=self.saved.statisticsThemeBackground
-    if type(bg) ~= "table" then
-        bg = TPM_DeepCopyPlain(DEFAULTS.statisticsThemeBackground)
-        self.saved.statisticsThemeBackground = bg
+    local design = self.saved.statisticsThemeDesign
+    if design ~= "custom" and design ~= "modern" and design ~= "tpm" and design ~= "vanilla" and design ~= "dark" then
+        self.saved.statisticsThemeDesign = "modern"
     end
-    local br,bgG,bb,ba=Clamp(tonumber(bg.r) or .035,0,1),Clamp(tonumber(bg.g) or .031,0,1),Clamp(tonumber(bg.b) or .024,0,1),Clamp(tonumber(bg.a) or 1,0.20,1)
-    if design == "vanilla" then
-        -- 2.7.14: Restore the original Transparent TPM midnight-blue journal skin.
-        -- User-selectable heading/accent/progress/text colors remain independent.
-        br,bgG,bb,ba = 0.002,0.012,0.022,0.76
-    end
-    local r,g,b,a=self:GetStatisticsThemeAccentColor()
-    local hr,hg,hb,ha=self:GetStatisticsThemeHeadingColor()
-    local tr,tg,tb,ta=self:GetStatisticsThemeTextColor()
-    local pr,pg,pb,pa=self:GetStatisticsThemeProgressColor()
-    if self.statisticsOuterBackdrop then
-        if design == "vanilla" then
-            self.statisticsOuterBackdrop:SetCenterColor(.002,.008,.014,.80)
-            self.statisticsOuterBackdrop:SetEdgeColor(r,g,b,.96)
-        else
-            self.statisticsOuterBackdrop:SetCenterColor(0,0,0,.66)
-            self.statisticsOuterBackdrop:SetEdgeColor(.62,.62,.62,.78)
-        end
-    end
-    if self.statisticsInnerBackdrop then
-        if design == "vanilla" then
-            self.statisticsInnerBackdrop:SetCenterColor(.004,.016,.028,.68)
-            self.statisticsInnerBackdrop:SetEdgeColor(r*.45,g*.45,b*.45,.64)
-        else
-            self.statisticsInnerBackdrop:SetCenterColor(0,0,0,.42)
-            self.statisticsInnerBackdrop:SetEdgeColor(.35,.35,.35,.58)
-        end
-    end
-    if self.statisticsVanillaThemeBands then
-        for _,band in ipairs(self.statisticsVanillaThemeBands) do band:SetHidden(design ~= "vanilla") end
-        if design == "vanilla" then
-            -- Three very soft translucent bands approximate ESO's blue-black menu vignette
-            -- without replacing any TPM panels or changing input behavior.
-            local b1,b2,b3=self.statisticsVanillaThemeBands[1],self.statisticsVanillaThemeBands[2],self.statisticsVanillaThemeBands[3]
-            if b1 then b1:SetCenterColor(.012,.035,.058,.13) end
-            if b2 then b2:SetCenterColor(.004,.018,.034,.09) end
-            if b3 then b3:SetCenterColor(.001,.009,.019,.15) end
-        end
-    end
-    -- Page-level Transparent TPM transparency. Progress already uses the shared journal
-    -- backdrop, while Economy and PvE/PvP have their own opaque page backdrops.
-    -- Theme those page surfaces explicitly so all Statistics tabs have the same
-    -- translucent blue-black Transparent TPM appearance.
-    if self.statisticsEconomyPage then
-        if design == "vanilla" then
-            self.statisticsEconomyPage:SetCenterColor(.004,.016,.028,.30)
-            self.statisticsEconomyPage:SetEdgeColor(r,g,b,.62)
-        else
-            self.statisticsEconomyPage:SetCenterColor(0,0,0,.26)
-            self.statisticsEconomyPage:SetEdgeColor(.38,.38,.38,.46)
-        end
-    end
-    for _,card in ipairs(self.statisticsEconomyCards or {}) do
-        if card and card.control and card.control.SetCenterColor then
-            if design == "vanilla" then
-                if card.isGoldCard then
-                    card.control:SetCenterColor(.018,.022,.024,.52)
-                    card.control:SetEdgeColor(r,g,b,.72)
-                else
-                    card.control:SetCenterColor(.006,.018,.030,.46)
-                    card.control:SetEdgeColor(.40,.34,.24,.54)
-                end
-            else
-                if card.isGoldCard then
-                    card.control:SetCenterColor(0,0,0,.38)
-                    card.control:SetEdgeColor(.46,.46,.46,.52)
-                else
-                    card.control:SetCenterColor(0,0,0,.32)
-                    card.control:SetEdgeColor(.36,.36,.36,.46)
-                end
-            end
-        end
-    end
-    if self.statisticsHistoryPage then
-        if design == "vanilla" then
-            self.statisticsHistoryPage:SetCenterColor(.004,.016,.028,.30)
-            self.statisticsHistoryPage:SetEdgeColor(r,g,b,.62)
-        else
-            self.statisticsHistoryPage:SetCenterColor(0,0,0,.26)
-            self.statisticsHistoryPage:SetEdgeColor(.38,.38,.38,.46)
-        end
-    end
-    if self.statisticsHistoryChart then
-        if design == "vanilla" then
-            self.statisticsHistoryChart:SetCenterColor(.003,.012,.022,.48)
-            self.statisticsHistoryChart:SetEdgeColor(.42,.35,.23,.48)
-        else
-            self.statisticsHistoryChart:SetCenterColor(0,0,0,.34)
-            self.statisticsHistoryChart:SetEdgeColor(.15,.15,.15,.60)
-        end
-    end
-    if self.statisticsHistorySessionBox then
-        if design == "vanilla" then
-            self.statisticsHistorySessionBox:SetCenterColor(.006,.017,.028,.46)
-            self.statisticsHistorySessionBox:SetEdgeColor(.42,.35,.23,.50)
-        else
-            self.statisticsHistorySessionBox:SetCenterColor(0,0,0,.34)
-            self.statisticsHistorySessionBox:SetEdgeColor(.16,.16,.16,.60)
-        end
-    end
-    for _,rangeBg in ipairs(self.statisticsHistoryRangeBackdrops or {}) do
-        if rangeBg and rangeBg.SetCenterColor then
-            if design == "vanilla" then
-                rangeBg:SetCenterColor(.006,.018,.030,.42)
-                rangeBg:SetEdgeColor(.42,.35,.23,.48)
-            else
-                rangeBg:SetCenterColor(0,0,0,.30)
-                rangeBg:SetEdgeColor(.16,.17,.18,.60)
-            end
-        end
-    end
-    if self.statisticsCombatBossBadge then
-        if design == "vanilla" then
-            self.statisticsCombatBossBadge:SetCenterColor(.010,.020,.030,.48)
-            self.statisticsCombatBossBadge:SetEdgeColor(r,g,b,.62)
-        else
-            self.statisticsCombatBossBadge:SetCenterColor(0,0,0,.32)
-            self.statisticsCombatBossBadge:SetEdgeColor(.22,.22,.20,.68)
-        end
-    end
-
-    if self.statisticsPlayerPage then
-        if design == "vanilla" then
-            self.statisticsPlayerPage:SetCenterColor(.004,.016,.028,.30)
-            self.statisticsPlayerPage:SetEdgeColor(r,g,b,.62)
-        else
-            self.statisticsPlayerPage:SetCenterColor(0,0,0,.26)
-            self.statisticsPlayerPage:SetEdgeColor(.38,.38,.38,.46)
-        end
-    end
-    if self.statisticsPlayerProfileBox then
-        if design == "vanilla" then
-            self.statisticsPlayerProfileBox:SetCenterColor(.006,.018,.030,.48)
-            self.statisticsPlayerProfileBox:SetEdgeColor(r,g,b,.58)
-        else
-            self.statisticsPlayerProfileBox:SetCenterColor(0,0,0,.34)
-            self.statisticsPlayerProfileBox:SetEdgeColor(.16,.17,.18,.66)
-        end
-    end
-    if self.statisticsPlayerMountIconFrame then
-        if design == "vanilla" then
-            self.statisticsPlayerMountIconFrame:SetCenterColor(.004,.015,.027,.52)
-            self.statisticsPlayerMountIconFrame:SetEdgeColor(.42,.35,.23,.56)
-        else
-            self.statisticsPlayerMountIconFrame:SetCenterColor(0,0,0,.34)
-            self.statisticsPlayerMountIconFrame:SetEdgeColor(.18,.18,.17,.64)
-        end
-    end
-    if self.statisticsPlayerProfileDivider then
-        if design == "vanilla" then self.statisticsPlayerProfileDivider:SetColor(.42,.35,.23,.52)
-        else self.statisticsPlayerProfileDivider:SetColor(.18,.18,.18,.58) end
-    end
-    if self.statisticsCharacterInsightBox then
-        if design == "vanilla" then
-            self.statisticsCharacterInsightBox:SetCenterColor(.004,.015,.027,.44)
-            self.statisticsCharacterInsightBox:SetEdgeColor(.42,.35,.23,.50)
-        else
-            self.statisticsCharacterInsightBox:SetCenterColor(0,0,0,.30)
-            self.statisticsCharacterInsightBox:SetEdgeColor(.15,.16,.17,.62)
-        end
-    end
-    for _,rangeBg in ipairs(self.statisticsCharacterRangeBackdrops or {}) do
-        if design == "vanilla" then rangeBg:SetCenterColor(.006,.018,.030,.42); rangeBg:SetEdgeColor(.42,.35,.23,.48)
-        else rangeBg:SetCenterColor(0,0,0,.28); rangeBg:SetEdgeColor(.16,.17,.18,.60) end
-    end
-    if self.statisticsCharacterDailyBox then
-        if design == "vanilla" then
-            self.statisticsCharacterDailyBox:SetCenterColor(.004,.015,.027,.44)
-            self.statisticsCharacterDailyBox:SetEdgeColor(.42,.35,.23,.50)
-        else
-            self.statisticsCharacterDailyBox:SetCenterColor(0,0,0,.30)
-            self.statisticsCharacterDailyBox:SetEdgeColor(.15,.16,.17,.62)
-        end
-    end
-    for _,card in pairs(self.statisticsCharacterCards or {}) do
-        if card and card.control then
-            if design == "vanilla" then
-                card.control:SetCenterColor(.006,.018,.030,.48)
-                card.control:SetEdgeColor(r,g,b,.58)
-            else
-                card.control:SetCenterColor(0,0,0,.32)
-                card.control:SetEdgeColor(.16,.17,.18,.66)
-            end
-        end
-    end
-
-    if self.statisticsTitle then self.statisticsTitle:SetColor(hr,hg,hb,ha) end
-    -- Theme journal section headings independently from decorative accents. Data,
-    -- status and Alliance marker colors stay untouched so they keep meaning.
-    local headingNames={
-        "statisticsCategoryTitle","statisticsGoalsTitle","statisticsZoneTitle",
-        "statisticsEconomyPageTitle","statisticsEconomyTrackingTitle",
-        "statisticsHistoryTitle","statisticsHistorySessionTitle","statisticsCombatChartTitle",
-        "statisticsCombatActivityRightTitle","statisticsCombatExamplesTitle",
-        "statisticsAllianceDetailsTitle","statisticsAllianceGapTitle","statisticsAllianceMapTitle",
-        "statisticsAllianceNextTitle","statisticsAllianceOwnTitle","statisticsAllianceQuickTitle",
-        "statisticsAllianceToolsTitle","statisticsAllianceZoneTitle","statisticsAllianceZoomTitle",
-        "statisticsPlayerProfileTitle","statisticsPlayerMountTitle","statisticsCharacterDailyTitle"
-    }
-    for _,name in ipairs(headingNames) do local h=self[name]; if h and h.SetColor then h:SetColor(hr,hg,hb,1) end end
-    if self.statisticsThemeGear and self.statisticsThemeGear.TPMIcon then self.statisticsThemeGear.TPMIcon:SetColor(r,g,b,1) end
-    if self.statisticsTopDivider then self.statisticsTopDivider:SetCenterColor(r,g,b,design=="dark" and .45 or .68) end
-    if self.statisticsFooterDivider then self.statisticsFooterDivider:SetCenterColor(r,g,b,design=="dark" and .42 or .62) end
-    for _,o in ipairs(self.statisticsCornerOrnaments or {}) do o:SetColor(r,g,b,design=="dark" and .58 or .88) end
-    local selectedRange=tonumber(self.saved.statisticsCharacterRangeDays) or 7
-    for _,btn in ipairs(self.statisticsCharacterRangeButtons or {}) do
-        if tonumber(btn.rangeDays)==selectedRange then btn:SetNormalFontColor(pr,pg,pb,1) end
-    end
-    for _,btn in ipairs(self.statisticsThemeTabs or {}) do
-        if btn.TPMBackdrop then
-            if design == "vanilla" then btn.TPMBackdrop:SetCenterColor(.004,.016,.027,.90) else btn.TPMBackdrop:SetCenterColor(.006,.007,.008,.98) end
-            if design == "vanilla" then
-                btn.TPMBackdrop:SetEdgeColor(r,g,b,.76)
-            else
-                btn.TPMBackdrop:SetEdgeColor(.16,.17,.18,.70)
-            end
-        end
-        if btn.TPMAccent then btn.TPMAccent:SetCenterColor(r,g,b,.88) end
-        if btn.SetNormalFontColor then
-            btn:SetNormalFontColor(tr,tg,tb,1)
-        end
-        if btn.SetMouseOverFontColor then btn:SetMouseOverFontColor(r,g,b,1); btn:SetPressedFontColor(r*.95,g*.95,b*.95,1) end
-    end
-    if self.statisticsThemeHeadingSwatch then self.statisticsThemeHeadingSwatch:SetCenterColor(hr,hg,hb,1); self.statisticsThemeHeadingSwatch:SetEdgeColor(hr*.75,hg*.75,hb*.75,1) end
-    if self.statisticsThemeAccentSwatch then self.statisticsThemeAccentSwatch:SetCenterColor(r,g,b,1); self.statisticsThemeAccentSwatch:SetEdgeColor(r*.75,g*.75,b*.75,1) end
-    if self.statisticsThemeTextSwatch then self.statisticsThemeTextSwatch:SetCenterColor(tr,tg,tb,1); self.statisticsThemeTextSwatch:SetEdgeColor(tr*.75,tg*.75,tb*.75,1) end
-    if self.statisticsThemeProgressSwatch then self.statisticsThemeProgressSwatch:SetCenterColor(pr,pg,pb,1); self.statisticsThemeProgressSwatch:SetEdgeColor(pr*.75,pg*.75,pb*.75,1) end
-    if self.statisticsThemeBackgroundSwatch then self.statisticsThemeBackgroundSwatch:SetCenterColor(br,bgG,bb,ba); self.statisticsThemeBackgroundSwatch:SetEdgeColor(r*.75,g*.75,b*.75,1) end
-    if self.statisticsThemeWindowShell then
-        if design=="vanilla" then
-            self.statisticsThemeWindowShell:SetCenterColor(.002,.009,.016,.82)
-            self.statisticsThemeWindowShell:SetEdgeColor(r,g,b,.96)
-        else
-            self.statisticsThemeWindowShell:SetCenterColor(0,0,0,.68)
-            self.statisticsThemeWindowShell:SetEdgeColor(.60,.60,.60,.72)
-        end
-    end
-    if self.statisticsThemeWindowInner then
-        if design=="vanilla" then
-            self.statisticsThemeWindowInner:SetCenterColor(.005,.018,.031,.70)
-            self.statisticsThemeWindowInner:SetEdgeColor(r*.48,g*.48,b*.48,.72)
-        else
-            self.statisticsThemeWindowInner:SetCenterColor(0,0,0,.42)
-            self.statisticsThemeWindowInner:SetEdgeColor(.36,.36,.36,.56)
-        end
-    end
-    if self.statisticsThemeWindowTitle then self.statisticsThemeWindowTitle:SetColor(hr,hg,hb,1) end
-    if self.statisticsThemeWindowHeaderLine then self.statisticsThemeWindowHeaderLine:SetCenterColor(r,g,b,.72) end
-    if self.statisticsThemeResetFrame then self.statisticsThemeResetFrame:SetEdgeColor(r*.48,g*.48,b*.48,.9) end
-    for _,o in ipairs(self.statisticsThemeWindowOrnaments or {}) do o:SetColor(r,g,b,.88) end
-    if self.statisticsThemeColorShell then
-        if design=="vanilla" then
-            self.statisticsThemeColorShell:SetCenterColor(.002,.009,.016,.82)
-            self.statisticsThemeColorShell:SetEdgeColor(r,g,b,.96)
-        else
-            self.statisticsThemeColorShell:SetCenterColor(.012,.011,.009,1)
-            self.statisticsThemeColorShell:SetEdgeColor(r,g,b,1)
-        end
-    end
-    if self.statisticsThemeColorInnerShell then
-        if design=="vanilla" then
-            self.statisticsThemeColorInnerShell:SetCenterColor(.005,.018,.031,.70)
-            self.statisticsThemeColorInnerShell:SetEdgeColor(r*.48,g*.48,b*.48,.66)
-        else
-            self.statisticsThemeColorInnerShell:SetCenterColor(.035,.031,.024,1)
-            self.statisticsThemeColorInnerShell:SetEdgeColor(r*.48,g*.48,b*.48,.78)
-        end
-    end
-    if self.statisticsThemeColorTitle then self.statisticsThemeColorTitle:SetColor(hr,hg,hb,1) end
-    if self.statisticsThemeColorHeaderLine then self.statisticsThemeColorHeaderLine:SetCenterColor(r,g,b,.78) end
-    if self.statisticsThemeColorCloseFrame then self.statisticsThemeColorCloseFrame:SetEdgeColor(r*.48,g*.48,b*.48,.9) end
-    for _,o in ipairs(self.statisticsThemeColorOrnaments or {}) do o:SetColor(r,g,b,.88) end
-
-    -- Recolor legacy hard-coded gold/yellow accents across the complete Statistics
-    -- window so the chosen Accent/RGB color is applied consistently.
-    self:ApplyStatisticsThemeToLegacyAccents(r,g,b,pr,pg,pb,hr,hg,hb,tr,tg,tb)
-    if design == "tpm" then self:ApplyStatisticsTpmStandardFixed() end
-    if design == "dark" then self:ApplyStatisticsDarkMonochrome() end
+    self.saved.statisticsThemeRGB = false
+    -- Pre-2.8 Clear Mode cache (only present if an old session left one).
+    if self.statisticsDarkVisualCache then self:RestoreStatisticsDarkVisualState() end
+    self:ApplyStatisticsSkin(false)
 end
 
 function TPM:ApplyStatisticsThemeProgressFast()
@@ -15308,88 +16413,296 @@ end
 
 function TPM:ResetStatisticsTheme()
     if not self.saved then return end
-    self.saved.statisticsThemeDesign="tpm"
+    self.saved.statisticsThemeDesign="modern"
     self.saved.statisticsThemeRGB=false
     self:StartStatisticsThemeRGBUpdate()
     self:RefreshStatisticsThemeWindow()
     self:ApplyStatisticsTheme()
 end
 
-function TPM:RefreshStatisticsThemeWindow()
-    if not self.statisticsThemeWindow or not self.saved then return end
-    local design=self.saved.statisticsThemeDesign or "vanilla"
-    if design~="tpm" and design~="vanilla" and design~="dark" then design="tpm"; self.saved.statisticsThemeDesign=design end
-    self.saved.statisticsThemeRGB=false
-    if self.statisticsThemeWindowTitle then self.statisticsThemeWindowTitle:SetText(self:GetStatisticsThemeText("title")) end
-    if self.statisticsThemeDesignLabel then self.statisticsThemeDesignLabel:SetText(self:GetStatisticsThemeText("design")) end
-    if self.statisticsThemeDesignTpmButton then
-        self.statisticsThemeDesignTpmButton:SetText(self:GetStatisticsThemeText("designTpm"))
-        self.statisticsThemeDesignTpmButton:SetNormalFontColor(design=="tpm" and 1 or .86,design=="tpm" and 1 or .86,design=="tpm" and 1 or .86,1)
-        if self.statisticsThemeDesignTpmFrame then
-            if design=="tpm" then self.statisticsThemeDesignTpmFrame:SetCenterColor(.12,.085,.025,.98); self.statisticsThemeDesignTpmFrame:SetEdgeColor(.78,.66,.26,.96)
-            else self.statisticsThemeDesignTpmFrame:SetCenterColor(.020,.020,.020,.86); self.statisticsThemeDesignTpmFrame:SetEdgeColor(1,1,1,.28) end
-        end
-    end
-    if self.statisticsThemeDesignVanillaButton then
-        self.statisticsThemeDesignVanillaButton:SetText(self:GetStatisticsThemeText("designVanilla"))
-        self.statisticsThemeDesignVanillaButton:SetNormalFontColor(design=="vanilla" and 1 or .86,design=="vanilla" and 1 or .86,design=="vanilla" and 1 or .86,1)
-        if self.statisticsThemeDesignVanillaFrame then
-            if design=="vanilla" then self.statisticsThemeDesignVanillaFrame:SetCenterColor(.06,.085,.105,.96); self.statisticsThemeDesignVanillaFrame:SetEdgeColor(.78,.66,.26,.92)
-            else self.statisticsThemeDesignVanillaFrame:SetCenterColor(.020,.020,.020,.86); self.statisticsThemeDesignVanillaFrame:SetEdgeColor(1,1,1,.28) end
-        end
-    end
-    if self.statisticsThemeDesignDarkButton then
-        self.statisticsThemeDesignDarkButton:SetText(self:GetStatisticsThemeText("dark"))
-        self.statisticsThemeDesignDarkButton:SetNormalFontColor(1,1,1,1)
-        if self.statisticsThemeDesignDarkFrame then
-            if design=="dark" then self.statisticsThemeDesignDarkFrame:SetCenterColor(.008,.008,.008,.94); self.statisticsThemeDesignDarkFrame:SetEdgeColor(1,1,1,.62)
-            else self.statisticsThemeDesignDarkFrame:SetCenterColor(.020,.020,.020,.86); self.statisticsThemeDesignDarkFrame:SetEdgeColor(1,1,1,.28) end
-        end
-    end
-    self:ApplyStatisticsTheme()
+-- 2.8.0: design panel (gear on Progress page 1) ------------------------------------
+-- Five designs in a list with a three-color preview each. "Eigenes" opens an
+-- editor below the list where every skin token can be changed (RGB + opacity),
+-- starting from Graphit. Changes apply live to the journal.
+local TPM_THEME_PANEL_WIDTH = 384
+local TPM_THEME_DESIGN_ROW_HEIGHT = 34
+local TPM_THEME_EDITOR_HEIGHT = 414
+
+function TPM:GetThemePanelHeight()
+    local base = 76 + (#self:GetSkinDesignOrder() * TPM_THEME_DESIGN_ROW_HEIGHT) + 10
+    if self:GetStatisticsDesign() == "custom" then return base + TPM_THEME_EDITOR_HEIGHT end
+    return base
 end
 
--- 2.7.20: Custom color/RGB editor removed. The panel now intentionally offers
--- three stable fixed skins: TPM Standard, Transparent TPM and Dark Mode.
+local function TPM_ThemeHex(c)
+    return string.format("#%02X%02X%02X", math.floor(Clamp(c[1], 0, 1) * 255 + 0.5), math.floor(Clamp(c[2], 0, 1) * 255 + 0.5), math.floor(Clamp(c[3], 0, 1) * 255 + 0.5))
+end
+
+function TPM:SelectStatisticsDesign(design)
+    if not self.saved then return end
+    self.saved.statisticsThemeDesign = design
+    self.saved.statisticsThemeRGB = false
+    if design == "custom" then
+        self:GetCustomSkinColors()
+        self.statisticsThemeEditToken = self.statisticsThemeEditToken or "accent"
+    end
+    self:ApplyStatisticsTheme()
+    if self.statisticsWindow and not self.statisticsWindow:IsHidden() then self:RefreshStatisticsWindow() end
+    self:RefreshStatisticsThemeWindow()
+end
+
+-- Live editing: slider changes update SavedVariables immediately, the journal
+-- re-skin is coalesced so dragging a slider stays smooth.
+function TPM:QueueCustomSkinApply()
+    if not EVENT_MANAGER then self:ApplyStatisticsTheme(); return end
+    -- Live recolor while dragging (cheap skin pass, coalesced to ~12/s) ...
+    EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "CustomSkinApply")
+    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "CustomSkinApply", 80, function()
+        EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "CustomSkinApply")
+        TPM:ApplyStatisticsTheme()
+    end)
+    -- ... and one full refresh (inline value colors) once the slider rests.
+    EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "CustomSkinRefresh")
+    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "CustomSkinRefresh", 450, function()
+        EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "CustomSkinRefresh")
+        if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden() then TPM:RefreshStatisticsWindow() end
+    end)
+end
+
+function TPM:RefreshStatisticsThemeEditor()
+    local editor = self.statisticsThemeEditor
+    if not editor then return end
+    local token = self.statisticsThemeEditToken or "accent"
+    local colors = self:GetCustomSkinColors()
+    local c = colors[token] or { 1, 1, 1, 1 }
+    for _, item in ipairs(self.statisticsThemeTokenButtons or {}) do
+        local tc = colors[item.token]
+        item.swatch:SetCenterColor(tc[1], tc[2], tc[3], math.max(0.15, tc[4]))
+        item.label:SetText(self:GetStatisticsThemeText("tok_" .. item.token))
+        local P = (self.statisticsActiveSkin or self:GetActiveSkin()).colors
+        local selected = item.token == token
+        item.frame:SetCenterColor(selected and P.selection[1] or P.text[1], selected and P.selection[2] or P.text[2], selected and P.selection[3] or P.text[3], selected and P.selection[4] or 0.03)
+        item.frame:SetEdgeColor(P.accent[1], P.accent[2], P.accent[3], selected and 0.6 or 0)
+        item.label:SetColor(selected and P.accent[1] or P.text[1], selected and P.accent[2] or P.text[2], selected and P.accent[3] or P.text[3], 1)
+    end
+    if self.statisticsThemeEditTitle then
+        self.statisticsThemeEditTitle:SetText(string.format("%s  |c%s%s · %d%%|r", self:GetStatisticsThemeText("tok_" .. token), self:GetSkinColorHex("muted"), TPM_ThemeHex(c), math.floor(c[4] * 100 + 0.5)))
+    end
+    if self.statisticsThemeEditPreview then self.statisticsThemeEditPreview:SetCenterColor(c[1], c[2], c[3], c[4]) end
+    self.statisticsThemeEditorUpdating = true
+    for index, slider in ipairs(self.statisticsThemeEditSliders or {}) do
+        slider:SetValue(math.floor(Clamp(c[index], 0, 1) * 255 + 0.5))
+        local keys = { "red", "green", "blue", "alpha" }
+        if slider.TPMLabel then slider.TPMLabel:SetText(self:GetStatisticsThemeText(keys[index])) end
+        if slider.TPMValue then
+            slider.TPMValue:SetText(index == 4 and (tostring(math.floor(c[4] * 100 + 0.5)) .. "%") or tostring(math.floor(c[index] * 255 + 0.5)))
+        end
+    end
+    self.statisticsThemeEditorUpdating = false
+    if self.statisticsThemeResetCustomButton then self.statisticsThemeResetCustomButton:SetText(self:GetStatisticsThemeText("resetCustom")) end
+    if self.statisticsThemeEditorLabel then self.statisticsThemeEditorLabel:SetText(self:GetStatisticsThemeText("customColors")) end
+end
+
+-- Repaints selection states of the design list (also called by every skin pass).
+function TPM:RefreshStatisticsThemeWindowStates()
+    if not self.statisticsThemeDesignRows then return end
+    local design = self:GetStatisticsDesign()
+    local P = (self.statisticsActiveSkin or self:GetActiveSkin()).colors
+    for _, row in ipairs(self.statisticsThemeDesignRows) do
+        local selected = row.design == design
+        local palette = self:GetSkinPalette(row.design)
+        row.name:SetText(self:GetStatisticsThemeText(palette.nameKey))
+        row.hint:SetText(self:GetStatisticsThemeText(palette.hintKey))
+        row.back:SetCenterColor(selected and P.selection[1] or P.text[1], selected and P.selection[2] or P.text[2], selected and P.selection[3] or P.text[3], selected and math.max(0.10, P.selection[4]) or (row.hover and 0.06 or 0.025))
+        row.back:SetEdgeColor(selected and P.accent[1] or P.line[1], selected and P.accent[2] or P.line[2], selected and P.accent[3] or P.line[3], selected and 0.65 or P.line[4])
+        row.name:SetColor(selected and P.accent[1] or P.text[1], selected and P.accent[2] or P.text[2], selected and P.accent[3] or P.text[3], 1)
+        row.hint:SetColor(P.muted[1], P.muted[2], P.muted[3], 1)
+    end
+    if self.statisticsThemeEditor then
+        local custom = design == "custom"
+        self.statisticsThemeEditor:SetHidden(not custom)
+        if custom then self:RefreshStatisticsThemeEditor() end
+    end
+    if self.statisticsThemeWindow then
+        self.statisticsThemeWindow:SetDimensions(TPM_THEME_PANEL_WIDTH, self:GetThemePanelHeight())
+    end
+    if self.statisticsThemeDesignLabel then
+        self.statisticsThemeDesignLabel:SetText(self:GetStatisticsThemeText("chooseDesign"))
+        self.statisticsThemeDesignLabel:SetColor(P.muted[1], P.muted[2], P.muted[3], 1)
+    end
+end
+
+function TPM:RefreshStatisticsThemeWindow()
+    if not self.statisticsThemeWindow or not self.saved then return end
+    self.saved.statisticsThemeRGB = false
+    if self.statisticsThemeWindowTitle then self.statisticsThemeWindowTitle:SetText(self:GetStatisticsThemeText("title")) end
+    self:ApplyStatisticsTheme()
+    self:RefreshStatisticsThemeWindowStates()
+end
+
 function TPM:CreateStatisticsThemeWindow()
     if self.statisticsThemeWindow or not self.statisticsWindow then return end
-    local parent=self.statisticsWindow
-    local w=WINDOW_MANAGER:CreateTopLevelWindow(ADDON_NAME.."StatisticsThemeWindow")
-    w:SetDimensions(360,210); w:SetAnchor(TOPLEFT,parent,TOPRIGHT,8,0)
+    local w = WINDOW_MANAGER:CreateTopLevelWindow(ADDON_NAME .. "StatisticsThemeWindow")
+    w:SetDimensions(TPM_THEME_PANEL_WIDTH, self:GetThemePanelHeight())
+    w:SetAnchor(TOPLEFT, self.statisticsWindow, TOPRIGHT, 8, 0)
     w:SetDrawLayer(DL_OVERLAY); w:SetDrawTier(DT_HIGH); if w.SetDrawLevel then w:SetDrawLevel(12000) end
-    w:SetMouseEnabled(true); w:SetMovable(false); w:SetClampedToScreen(false); w:SetHidden(true)
-    self.statisticsThemeWindow=w
+    w:SetMouseEnabled(true); w:SetMovable(false); w:SetClampedToScreen(true); w:SetHidden(true)
+    self.statisticsThemeWindow = w
 
-    local shell=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP)
-    shell:SetAnchorFill(w); shell:SetCenterColor(.006,.010,.014,.94); shell:SetEdgeColor(.58,.50,.22,.95)
-    shell:SetEdgeTexture('EsoUI/Art/Tooltips/UI-Border.dds',128,16,2); shell:SetInsets(8,8,-8,-8); shell:SetMouseEnabled(true)
-    self.statisticsThemeWindowShell=shell
+    local shell = WINDOW_MANAGER:CreateControl(nil, w, CT_BACKDROP)
+    shell:SetAnchorFill(w); shell:SetCenterColor(0.012, 0.011, 0.009, 1); shell:SetEdgeColor(0.78, 0.62, 0.24, 1)
+    shell:SetEdgeTexture(nil, 1, 1, 1); shell:SetMouseEnabled(true)
+    self.statisticsThemeWindowShell = shell
+    self.statisticsThemeWindowOrnaments = {}
+    self.statisticsThemeWindowInner = nil
 
-    self.statisticsThemeWindowOrnaments={}
-    local defs={{TOPLEFT,TOPLEFT,7,7,"TamrielProgressMap/art/journal_corner_tl.dds"},{TOPRIGHT,TOPRIGHT,-7,7,"TamrielProgressMap/art/journal_corner_tr.dds"},{BOTTOMLEFT,BOTTOMLEFT,7,-7,"TamrielProgressMap/art/journal_corner_bl.dds"},{BOTTOMRIGHT,BOTTOMRIGHT,-7,-7,"TamrielProgressMap/art/journal_corner_br.dds"}}
-    for _,d in ipairs(defs) do local o=WINDOW_MANAGER:CreateControl(nil,w,CT_TEXTURE); o:SetDimensions(24,24); o:SetAnchor(d[1],w,d[2],d[3],d[4]); o:SetTexture(d[5]); o:SetColor(.78,.68,.30,.88); self.statisticsThemeWindowOrnaments[#self.statisticsThemeWindowOrnaments+1]=o end
+    local title = WINDOW_MANAGER:CreateControl(nil, w, CT_LABEL)
+    title:SetDimensions(280, 36); title:SetAnchor(TOPLEFT, w, TOPLEFT, 18, 10)
+    title:SetFont("ZoFontWinH3"); title:SetHorizontalAlignment(TEXT_ALIGN_LEFT); title:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    title:SetColor(0.95, 0.82, 0.36, 1)
+    self.statisticsThemeWindowTitle = title
 
-    local inner=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP)
-    inner:SetAnchor(TOPLEFT,w,TOPLEFT,12,56); inner:SetAnchor(BOTTOMRIGHT,w,BOTTOMRIGHT,-12,-12)
-    inner:SetCenterColor(.012,.018,.024,.92); inner:SetEdgeColor(.28,.30,.32,.82); inner:SetEdgeTexture(nil,1,1,1); inner:SetMouseEnabled(true)
-    self.statisticsThemeWindowInner=inner
+    local x = WINDOW_MANAGER:CreateControl(nil, w, CT_LABEL)
+    x:SetDimensions(32, 32); x:SetAnchor(TOPRIGHT, w, TOPRIGHT, -10, 12); x:SetFont("ZoFontWinH4"); x:SetText("X")
+    x:SetColor(0.78, 0.72, 0.58, 1); x:SetHorizontalAlignment(TEXT_ALIGN_CENTER); x:SetVerticalAlignment(TEXT_ALIGN_CENTER); x:SetMouseEnabled(true)
+    x:SetHandler("OnMouseEnter", function(btn) btn:SetColor(1, 0.84, 0.38, 1); TPM:SkinHover(btn, true) end)
+    x:SetHandler("OnMouseExit", function(btn) btn:SetColor(0.78, 0.72, 0.58, 1); TPM:SkinHover(btn, false) end)
+    x:SetHandler("OnMouseUp", function(_, button, upInside) if upInside and button == MOUSE_BUTTON_INDEX_LEFT then TPM:SetStatisticsThemeWindowVisible(false) end end)
 
-    local title=WINDOW_MANAGER:CreateControl(nil,w,CT_LABEL); title:SetDimensions(270,38); title:SetAnchor(TOPLEFT,w,TOPLEFT,20,13); title:SetFont('ZoFontWinH2'); title:SetHorizontalAlignment(TEXT_ALIGN_LEFT); title:SetVerticalAlignment(TEXT_ALIGN_CENTER); self.statisticsThemeWindowTitle=title
-    local x=WINDOW_MANAGER:CreateControl(nil,w,CT_LABEL); x:SetDimensions(34,34); x:SetAnchor(TOPRIGHT,w,TOPRIGHT,-12,12); x:SetFont('ZoFontWinH3'); x:SetText('X'); x:SetColor(.82,.82,.80,1); x:SetHorizontalAlignment(TEXT_ALIGN_CENTER); x:SetVerticalAlignment(TEXT_ALIGN_CENTER); x:SetMouseEnabled(true)
-    x:SetHandler('OnMouseEnter',function(btn) btn:SetColor(1,1,1,1) end); x:SetHandler('OnMouseExit',function(btn) btn:SetColor(.82,.82,.80,1) end); x:SetHandler('OnMouseUp',function(_,button,upInside) if upInside and button==MOUSE_BUTTON_INDEX_LEFT then TPM:SetStatisticsThemeWindowVisible(false) end end)
-    local divider=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP); divider:SetDimensions(320,2); divider:SetAnchor(TOP,w,TOP,0,56); divider:SetCenterColor(.42,.42,.38,.65); divider:SetEdgeColor(0,0,0,0); self.statisticsThemeWindowHeaderLine=divider
+    local divider = WINDOW_MANAGER:CreateControl(nil, w, CT_BACKDROP)
+    divider:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, 1); divider:SetAnchor(TOPLEFT, w, TOPLEFT, 16, 50)
+    divider:SetCenterColor(0.46, 0.35, 0.14, 0.62); divider:SetEdgeColor(0, 0, 0, 0)
+    self.statisticsThemeWindowHeaderLine = divider
 
-    local designLabel=WINDOW_MANAGER:CreateControl(nil,inner,CT_LABEL); designLabel:SetDimensions(308,24); designLabel:SetAnchor(TOPLEFT,inner,TOPLEFT,16,12); designLabel:SetFont('$(BOLD_FONT)|16'); designLabel:SetColor(.90,.90,.88,1); self.statisticsThemeDesignLabel=designLabel
+    local designLabel = WINDOW_MANAGER:CreateControl(nil, w, CT_LABEL)
+    designLabel:SetDimensions(300, 20); designLabel:SetAnchor(TOPLEFT, w, TOPLEFT, 16, 54)
+    designLabel:SetFont("$(MEDIUM_FONT)|13"); designLabel:SetColor(0.66, 0.62, 0.54, 1)
+    designLabel.TPMSkinRole = "keep"
+    self.statisticsThemeDesignLabel = designLabel
 
-    local function designButton(xp,value)
-        local frame=WINDOW_MANAGER:CreateControl(nil,inner,CT_BACKDROP); frame:SetDimensions(98,42); frame:SetAnchor(TOPLEFT,inner,TOPLEFT,xp,48); frame:SetCenterColor(.025,.027,.029,.96); frame:SetEdgeColor(.28,.30,.32,.85); frame:SetEdgeTexture(nil,1,1,1)
-        local b=WINDOW_MANAGER:CreateControl(nil,frame,CT_BUTTON); b:SetAnchorFill(frame); b:SetFont('$(BOLD_FONT)|15'); b:SetHorizontalAlignment(TEXT_ALIGN_CENTER); b:SetVerticalAlignment(TEXT_ALIGN_CENTER); b:SetNormalFontColor(.80,.80,.80,1); b:SetMouseOverFontColor(1,1,1,1)
-        b:SetHandler('OnClicked',function() TPM.saved.statisticsThemeDesign=value; TPM.saved.statisticsThemeRGB=false; TPM:StartStatisticsThemeRGBUpdate(); TPM:RefreshStatisticsThemeWindow() end)
-        if value=='tpm' then self.statisticsThemeDesignTpmButton=b; self.statisticsThemeDesignTpmFrame=frame
-        elseif value=='vanilla' then self.statisticsThemeDesignVanillaButton=b; self.statisticsThemeDesignVanillaFrame=frame
-        else self.statisticsThemeDesignDarkButton=b; self.statisticsThemeDesignDarkFrame=frame end
+    -- Design list. Row colors are painted by RefreshStatisticsThemeWindowStates
+    -- from the active skin, so rows opt out of the generic mapping.
+    self.statisticsThemeDesignRows = {}
+    for index, design in ipairs(self:GetSkinDesignOrder()) do
+        local y = 76 + ((index - 1) * TPM_THEME_DESIGN_ROW_HEIGHT)
+        local row = WINDOW_MANAGER:CreateControl(nil, w, CT_BUTTON)
+        row:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, TPM_THEME_DESIGN_ROW_HEIGHT - 4)
+        row:SetAnchor(TOPLEFT, w, TOPLEFT, 16, y)
+        row:SetMouseEnabled(true)
+        local back = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
+        back:SetAnchorFill(row); back:SetEdgeTexture(nil, 1, 1, 1); back:SetMouseEnabled(false); back.TPMSkinRole = "keep"
+        local name = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
+        name:SetDimensions(170, 26); name:SetAnchor(LEFT, row, LEFT, 12, 0)
+        name:SetFont("$(BOLD_FONT)|16"); name:SetVerticalAlignment(TEXT_ALIGN_CENTER); name.TPMSkinRole = "keep"
+        local hint = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
+        hint:SetDimensions(150, 26); hint:SetAnchor(RIGHT, row, RIGHT, -10, 0)
+        hint:SetFont("$(MEDIUM_FONT)|12"); hint:SetHorizontalAlignment(TEXT_ALIGN_RIGHT); hint:SetVerticalAlignment(TEXT_ALIGN_CENTER); hint.TPMSkinRole = "keep"
+        local entry = { design = design, button = row, back = back, name = name, hint = hint }
+        row:SetHandler("OnMouseEnter", function() entry.hover = true; TPM:RefreshStatisticsThemeWindowStates() end)
+        row:SetHandler("OnMouseExit", function() entry.hover = false; TPM:RefreshStatisticsThemeWindowStates() end)
+        row:SetHandler("OnClicked", function() TPM:SelectStatisticsDesign(design) end)
+        self.statisticsThemeDesignRows[#self.statisticsThemeDesignRows + 1] = entry
     end
-    designButton(12,'tpm'); designButton(112,'vanilla'); designButton(212,'dark')
+
+    -- Custom color editor.
+    local editorTop = 76 + (#self:GetSkinDesignOrder() * TPM_THEME_DESIGN_ROW_HEIGHT) + 6
+    local editor = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsThemeEditor", w, CT_CONTROL)
+    editor:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, TPM_THEME_EDITOR_HEIGHT - 10)
+    editor:SetAnchor(TOPLEFT, w, TOPLEFT, 16, editorTop)
+    editor:SetHidden(true)
+    self.statisticsThemeEditor = editor
+
+    local editorLine = WINDOW_MANAGER:CreateControl(nil, editor, CT_BACKDROP)
+    editorLine:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, 1); editorLine:SetAnchor(TOPLEFT, editor, TOPLEFT, 0, 0)
+    editorLine:SetCenterColor(0.46, 0.35, 0.14, 0.62); editorLine:SetEdgeColor(0, 0, 0, 0)
+
+    local editorLabel = WINDOW_MANAGER:CreateControl(nil, editor, CT_LABEL)
+    editorLabel:SetDimensions(300, 22); editorLabel:SetAnchor(TOPLEFT, editor, TOPLEFT, 0, 6)
+    editorLabel:SetFont("$(BOLD_FONT)|15"); editorLabel:SetColor(0.95, 0.82, 0.36, 1); editorLabel.TPMSkinRole = "heading"
+    self.statisticsThemeEditorLabel = editorLabel
+
+    self.statisticsThemeTokenButtons = {}
+    local columnWidth = math.floor((TPM_THEME_PANEL_WIDTH - 32 - 8) / 2)
+    for index, token in ipairs(self:GetSkinTokens()) do
+        local column = (index - 1) % 2
+        local rowIndex = math.floor((index - 1) / 2)
+        local button = WINDOW_MANAGER:CreateControl(nil, editor, CT_BUTTON)
+        button:SetDimensions(columnWidth, 26)
+        button:SetAnchor(TOPLEFT, editor, TOPLEFT, column * (columnWidth + 8), 32 + (rowIndex * 29))
+        button:SetMouseEnabled(true)
+        local frame = WINDOW_MANAGER:CreateControl(nil, button, CT_BACKDROP)
+        frame:SetAnchorFill(button); frame:SetEdgeTexture(nil, 1, 1, 1); frame:SetMouseEnabled(false); frame.TPMSkinRole = "keep"
+        local swatch = WINDOW_MANAGER:CreateControl(nil, button, CT_BACKDROP)
+        swatch:SetDimensions(16, 16); swatch:SetAnchor(LEFT, button, LEFT, 6, 0)
+        swatch:SetEdgeTexture(nil, 1, 1, 1); swatch:SetEdgeColor(1, 1, 1, 0.30); swatch:SetMouseEnabled(false); swatch.TPMSkinRole = "keep"
+        local label = WINDOW_MANAGER:CreateControl(nil, button, CT_LABEL)
+        label:SetDimensions(columnWidth - 32, 24); label:SetAnchor(LEFT, button, LEFT, 28, 0)
+        label:SetFont("$(MEDIUM_FONT)|14"); label:SetVerticalAlignment(TEXT_ALIGN_CENTER); label.TPMSkinRole = "keep"
+        button:SetHandler("OnClicked", function()
+            TPM.statisticsThemeEditToken = token
+            TPM:RefreshStatisticsThemeEditor()
+        end)
+        self.statisticsThemeTokenButtons[#self.statisticsThemeTokenButtons + 1] = { token = token, button = button, frame = frame, swatch = swatch, label = label }
+    end
+
+    local sliderTop = 32 + (math.ceil(#self:GetSkinTokens() / 2) * 29) + 8
+    local preview = WINDOW_MANAGER:CreateControl(nil, editor, CT_BACKDROP)
+    preview:SetDimensions(24, 24); preview:SetAnchor(TOPLEFT, editor, TOPLEFT, 0, sliderTop)
+    preview:SetEdgeTexture(nil, 1, 1, 1); preview:SetEdgeColor(1, 1, 1, 0.35); preview.TPMSkinRole = "keep"
+    self.statisticsThemeEditPreview = preview
+    local editTitle = WINDOW_MANAGER:CreateControl(nil, editor, CT_LABEL)
+    editTitle:SetDimensions(300, 24); editTitle:SetAnchor(TOPLEFT, editor, TOPLEFT, 32, sliderTop)
+    editTitle:SetFont("$(BOLD_FONT)|15"); editTitle:SetVerticalAlignment(TEXT_ALIGN_CENTER); editTitle.TPMSkinRole = "text"
+    self.statisticsThemeEditTitle = editTitle
+
+    self.statisticsThemeEditSliders = {}
+    local elevator = "/esoui/art/miscellaneous/scrollbox_elevator.dds"
+    for channel = 1, 4 do
+        local y = sliderTop + 32 + ((channel - 1) * 30)
+        local label = WINDOW_MANAGER:CreateControl(nil, editor, CT_LABEL)
+        label:SetDimensions(84, 22); label:SetAnchor(TOPLEFT, editor, TOPLEFT, 0, y)
+        label:SetFont("$(MEDIUM_FONT)|14"); label:SetVerticalAlignment(TEXT_ALIGN_CENTER); label.TPMSkinRole = "muted"
+        local track = WINDOW_MANAGER:CreateControl(nil, editor, CT_BACKDROP)
+        track:SetDimensions(210, 4); track:SetAnchor(TOPLEFT, editor, TOPLEFT, 88, y + 9)
+        track:SetCenterColor(0.018, 0.016, 0.013, 0.92); track:SetEdgeColor(0, 0, 0, 0)
+        local slider = WINDOW_MANAGER:CreateControl(nil, editor, CT_SLIDER)
+        slider:SetDimensions(210, 22); slider:SetAnchor(TOPLEFT, editor, TOPLEFT, 88, y)
+        slider:SetOrientation(ORIENTATION_HORIZONTAL); slider:SetMouseEnabled(true)
+        slider:SetThumbTexture(elevator, elevator, elevator, 10, 20, 0, 0, 1, 1)
+        slider:SetMinMax(0, 255); slider:SetValueStep(1); slider:SetValue(0)
+        local value = WINDOW_MANAGER:CreateControl(nil, editor, CT_LABEL)
+        value:SetDimensions(48, 22); value:SetAnchor(TOPLEFT, editor, TOPLEFT, 302, y)
+        value:SetFont("$(BOLD_FONT)|14"); value:SetHorizontalAlignment(TEXT_ALIGN_RIGHT); value:SetVerticalAlignment(TEXT_ALIGN_CENTER); value.TPMSkinRole = "text"
+        slider.TPMLabel, slider.TPMValue = label, value
+        slider:SetHandler("OnValueChanged", function(_, v)
+            if TPM.statisticsThemeEditorUpdating then return end
+            local token = TPM.statisticsThemeEditToken or "accent"
+            local c = TPM:GetCustomSkinColors()[token]
+            local n = { c[1], c[2], c[3], c[4] }
+            n[channel] = Clamp((tonumber(v) or 0) / 255, 0, 1)
+            TPM:SetCustomSkinColor(token, n[1], n[2], n[3], n[4])
+            TPM:RefreshStatisticsThemeEditor()
+            TPM:QueueCustomSkinApply()
+        end)
+        self.statisticsThemeEditSliders[channel] = slider
+    end
+
+    local resetY = sliderTop + 32 + (4 * 30) + 8
+    local resetFrame = WINDOW_MANAGER:CreateControl(nil, editor, CT_BACKDROP)
+    resetFrame:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, 30); resetFrame:SetAnchor(TOPLEFT, editor, TOPLEFT, 0, resetY)
+    resetFrame:SetCenterColor(0.035, 0.031, 0.024, 0.9); resetFrame:SetEdgeColor(0.46, 0.36, 0.16, 0.9); resetFrame:SetEdgeTexture(nil, 1, 1, 1)
+    self.statisticsThemeResetFrame = resetFrame
+    local reset = WINDOW_MANAGER:CreateControl(nil, editor, CT_BUTTON)
+    reset:SetAnchorFill(resetFrame); reset:SetFont("$(BOLD_FONT)|15")
+    reset:SetHorizontalAlignment(TEXT_ALIGN_CENTER); reset:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    reset:SetNormalFontColor(0.90, 0.84, 0.67, 1); reset:SetMouseOverFontColor(1, 0.88, 0.38, 1)
+    reset:SetHandler("OnClicked", function()
+        TPM:ResetCustomSkinColors()
+        TPM:RefreshStatisticsThemeEditor()
+        TPM:QueueCustomSkinApply()
+    end)
+    self.statisticsThemeResetCustomButton = reset
+
     self:RefreshStatisticsThemeWindow()
 end
 
@@ -15410,7 +16723,7 @@ function TPM:SetStatisticsThemeWindowVisible(show)
             local right=self.statisticsWindow:GetRight()
             local rootW=select(1,GuiRoot:GetDimensions()) or 0
             local scale=self.statisticsWindow:GetScale() or 1
-            local panelW=360*scale
+            local panelW=384*scale
             local desiredRight=(right or 0)+8+panelW
             if rootW>0 and desiredRight>rootW-8 and left and top then
                 local shift=desiredRight-(rootW-8)
@@ -15628,6 +16941,7 @@ function TPM:CreateStatisticsWindow()
     close:SetHandler("OnMouseUp", function(_, button, upInside)
         if upInside and button == MOUSE_BUTTON_INDEX_LEFT then TPM:HideStatisticsWindow() end
     end)
+    self.statisticsCloseLabel = close
 
     -- Theme gear in the Statistics header. The addon follows ESO's client
     -- language automatically, so no separate language indicator is needed.
@@ -15721,6 +17035,7 @@ function TPM:CreateStatisticsWindow()
     overallFillShine:SetHeight(3)
     overallFillShine:SetCenterColor(1.00, 0.90, 0.48, 0.34)
     overallFillShine:SetEdgeColor(0, 0, 0, 0)
+    self.statisticsOverallFillShine = overallFillShine
 
     local overallBarPercent = WINDOW_MANAGER:CreateControl(nil, progressPage, CT_LABEL)
     overallBarPercent:SetDimensions(62, 26)
@@ -15761,164 +17076,16 @@ function TPM:CreateStatisticsWindow()
     focusSelector:SetDimensions(286, 26)
     focusSelector:SetAnchor(TOPLEFT, control, TOPLEFT, 678, 91)
     focusSelector:SetMouseEnabled(true)
-    local focusSelectorBg = WINDOW_MANAGER:CreateControl(nil, focusSelector, CT_BACKDROP)
-    focusSelectorBg:SetAnchorFill(focusSelector)
-    focusSelectorBg:SetCenterColor(0.022, 0.020, 0.016, 0.98)
-    focusSelectorBg:SetEdgeColor(0.72, 0.58, 0.17, 0.95)
-    focusSelectorBg:SetEdgeTexture(nil, 1, 1, 1)
-    focusSelectorBg:SetMouseEnabled(false)
-    local focusSelected = WINDOW_MANAGER:CreateControl(nil, focusSelector, CT_LABEL)
-    focusSelected:SetDimensions(250, 24)
-    focusSelected:SetAnchor(LEFT, focusSelector, LEFT, 8, 0)
-    focusSelected:SetFont("$(MEDIUM_FONT)|16")
-    focusSelected:SetColor(0.94, 0.91, 0.82, 1)
-    focusSelected:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    focusSelected:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    local focusArrow = WINDOW_MANAGER:CreateControl(nil, focusSelector, CT_LABEL)
-    focusArrow:SetDimensions(22, 24)
-    focusArrow:SetAnchor(RIGHT, focusSelector, RIGHT, -4, 0)
-    focusArrow:SetFont("$(BOLD_FONT)|15")
-    focusArrow:SetColor(0.95, 0.78, 0.20, 1)
-    focusArrow:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    focusArrow:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    focusArrow:SetText("▼")
-    focusSelector:SetHandler("OnMouseEnter", function()
-        if TPM:IsStatisticsDarkDesign() then
-            focusSelectorBg:SetCenterColor(0,0,0,.44); focusSelectorBg:SetEdgeColor(1,1,1,.46)
-        else
-            focusSelectorBg:SetCenterColor(0.085, 0.066, 0.025, 0.98); focusSelectorBg:SetEdgeColor(0.95, 0.76, 0.20, 1)
-        end
-    end)
-    focusSelector:SetHandler("OnMouseExit", function()
-        if TPM:IsStatisticsDarkDesign() then
-            focusSelectorBg:SetCenterColor(0,0,0,.30); focusSelectorBg:SetEdgeColor(1,1,1,.28)
-        else
-            focusSelectorBg:SetCenterColor(0.022, 0.020, 0.016, 0.98); focusSelectorBg:SetEdgeColor(0.72, 0.58, 0.17, 0.95)
-        end
-    end)
-    focusSelector:SetHandler("OnMouseUp", function(_, button, upInside)
-        if upInside and button == MOUSE_BUTTON_INDEX_LEFT then TPM:ToggleStatisticsFocusDropdown() end
-    end)
-    focusSelector:SetHandler("OnMouseWheel", function(_, delta)
-        if TPM.statisticsFocusDropdown and not TPM.statisticsFocusDropdown:IsHidden() then
-            TPM:ScrollStatisticsFocusDropdown(delta)
-        end
-    end)
+    -- 2.8.0: shared zone-focus selector/popup (same look as the Economy page).
+    self.statisticsFocusUI = self:CreateFocusUI({
+        name = ADDON_NAME .. "StatisticsFocusDropdown", selector = focusSelector, parent = control,
+        width = 286, pinned = 2, listed = 8, drawLevel = 7600, font = "$(MEDIUM_FONT)|15",
+        onToggle = function() TPM:ToggleStatisticsFocusDropdown() end,
+        onPick = function(zoneId) TPM:PickStatisticsFocusZone(zoneId) end,
+    })
     self.statisticsFocusSelector = focusSelector
-    self.statisticsFocusSelectedLabel = focusSelected
-    self.statisticsFocusArrow = focusArrow
-
-    local focusDropdown = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsFocusDropdown", control, CT_CONTROL)
-    focusDropdown:SetDimensions(286, 242)
-    focusDropdown:SetAnchor(TOPLEFT, control, TOPLEFT, 678, 120)
-    focusDropdown:SetMouseEnabled(true)
-    focusDropdown:SetHidden(true)
-    if focusDropdown.SetDrawTier then focusDropdown:SetDrawTier(DT_HIGH) end
-    if focusDropdown.SetDrawLayer then focusDropdown:SetDrawLayer(DL_OVERLAY) end
-    if focusDropdown.SetDrawLevel then focusDropdown:SetDrawLevel(7600) end
-    focusDropdown:SetHandler("OnMouseWheel", function(_, delta) TPM:ScrollStatisticsFocusDropdown(delta) end)
-    local focusDropdownBg = WINDOW_MANAGER:CreateControl(nil, focusDropdown, CT_BACKDROP)
-    focusDropdownBg:SetAnchorFill(focusDropdown)
-    focusDropdownBg:SetCenterColor(0.010, 0.009, 0.007, 0.995)
-    focusDropdownBg:SetEdgeColor(0.88, 0.70, 0.18, 1)
-    focusDropdownBg:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 128, 16, 2)
-    focusDropdownBg:SetInsets(2, 2, -2, -2)
-    focusDropdownBg:SetMouseEnabled(false)
-
-    self.statisticsFocusDropdownRows = {}
-    for rowIndex = 1, 9 do
-        local row = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsFocusRow" .. tostring(rowIndex), focusDropdown, CT_BUTTON)
-        row:SetDimensions(258, 25)
-        row:SetAnchor(TOPLEFT, focusDropdown, TOPLEFT, 4, 4 + ((rowIndex - 1) * 26))
-        row:SetMouseEnabled(true)
-        if row.SetDrawLayer then row:SetDrawLayer(DL_OVERLAY) end
-        if row.SetDrawLevel then row:SetDrawLevel(7610 + rowIndex) end
-        local rowBg = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
-        rowBg:SetAnchorFill(row)
-        rowBg:SetCenterColor(0.025, 0.022, 0.017, 0.98)
-        rowBg:SetEdgeColor(0.23, 0.19, 0.10, 0.85)
-        rowBg:SetEdgeTexture(nil, 1, 1, 1)
-        rowBg:SetMouseEnabled(false)
-        local rowLabel = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
-        rowLabel:SetDimensions(220, 23)
-        rowLabel:SetAnchor(LEFT, row, LEFT, 8, 0)
-        rowLabel:SetFont("$(MEDIUM_FONT)|15")
-        rowLabel:SetColor(0.91, 0.88, 0.78, 1)
-        rowLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        rowLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-        local selectedMark = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
-        selectedMark:SetDimensions(24, 23)
-        selectedMark:SetAnchor(RIGHT, row, RIGHT, -6, 0)
-        selectedMark:SetFont("$(BOLD_FONT)|16")
-        selectedMark:SetColor(1.00, 0.84, 0.26, 1)
-        selectedMark:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-        selectedMark:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-        selectedMark:SetText("")
-        row.bg, row.label, row.selectedMark = rowBg, rowLabel, selectedMark
-        row:SetHandler("OnMouseEnter", function(r)
-            if TPM:IsStatisticsDarkDesign() then
-                r.bg:SetCenterColor(0,0,0,.48); r.bg:SetEdgeColor(1,1,1,.42); r.label:SetColor(1,1,1,1)
-            else
-                r.bg:SetCenterColor(0.13, 0.10, 0.035, 0.99); r.label:SetColor(1.00, 0.84, 0.26, 1)
-            end
-        end)
-        row:SetHandler("OnMouseExit", function(r)
-            if TPM:IsStatisticsDarkDesign() then
-                r.bg:SetCenterColor(0,0,0,r.selected and .44 or .24); r.bg:SetEdgeColor(1,1,1,r.selected and .40 or .18); r.label:SetColor(1,1,1,1)
-            elseif r.selected then
-                r.bg:SetCenterColor(0.16, 0.125, 0.040, 0.98); r.label:SetColor(1.00, 0.84, 0.26, 1)
-            else
-                r.bg:SetCenterColor(0.025, 0.022, 0.017, 0.98); r.label:SetColor(0.91, 0.88, 0.78, 1)
-            end
-        end)
-        row:SetHandler("OnMouseWheel", function(_, delta) TPM:ScrollStatisticsFocusDropdown(delta) end)
-        -- 2.6.19: use the native button click event. OnMouseUp/upInside on a
-        -- custom CT_CONTROL was unreliable while the popup overlapped the main
-        -- progress controls, which made every zone look unselectable.
-        row:SetHandler("OnClicked", function(r, button)
-            if button and button ~= MOUSE_BUTTON_INDEX_LEFT then return end
-            if r.TPMZoneId == nil then return end
-            local zoneId = tonumber(r.TPMZoneId) or 0
-
-            -- Apply and paint the choice before closing the popup. In 2.6.19
-            -- the popup was hidden first, so the old OnMouseExit state could
-            -- briefly erase the highlight and make selection feel unreliable.
-            if TPM:SetStatisticsFocusZone(zoneId) then
-                if TPM.statisticsFocusSelectedLabel then
-                    TPM.statisticsFocusSelectedLabel:SetText(zoneId > 0 and SafeZoneName(zoneId) or TPM:L("STAT_FOCUS_TAMRIEL"))
-                end
-                TPM:RefreshStatisticsFocusDropdownRows()
-            end
-            TPM:HideStatisticsFocusDropdown()
-        end)
-        self.statisticsFocusDropdownRows[rowIndex] = row
-    end
-
-    -- 2.6.18: one real vertical scroll rail instead of tiny up/down buttons.
-    -- It can be dragged just like the main zone-list scrollbar and mouse-wheel
-    -- scrolling remains available anywhere inside the popup.
-    local focusScrollBar = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsFocusScrollBar", focusDropdown, CT_SLIDER)
-    focusScrollBar:SetDimensions(14, 226)
-    focusScrollBar:SetAnchor(TOPRIGHT, focusDropdown, TOPRIGHT, -5, 8)
-    focusScrollBar:SetOrientation(ORIENTATION_VERTICAL)
-    focusScrollBar:SetMouseEnabled(true)
-    local focusElevator = "/esoui/art/miscellaneous/scrollbox_elevator.dds"
-    focusScrollBar:SetThumbTexture(focusElevator, focusElevator, focusElevator, 18, 44, 0, 0, 1, 1)
-    if focusScrollBar.SetBackgroundMiddleTexture then
-        focusScrollBar:SetBackgroundMiddleTexture("/esoui/art/chatwindow/chat_scrollbar_track.dds", 0, 0, 1, 1)
-    end
-    focusScrollBar:SetValueStep(1)
-    focusScrollBar:SetMinMax(0, 0)
-    focusScrollBar:SetValue(0)
-    focusScrollBar:SetHandler("OnValueChanged", function(_, value)
-        if TPM.statisticsFocusScrollBarRefreshing then return end
-        TPM.statisticsFocusDropdownOffset = Round(tonumber(value) or 0)
-        TPM:RefreshStatisticsFocusDropdownRows()
-    end)
-    self.statisticsFocusDropdown = focusDropdown
-    self.statisticsFocusScrollBar = focusScrollBar
-    self.statisticsFocusScrollUp = nil
-    self.statisticsFocusScrollDown = nil
+    self.statisticsFocusSelectedLabel = self.statisticsFocusUI.label
+    self.statisticsFocusDropdown = self.statisticsFocusUI.dropdown
 
     self.statisticsCards =
     {
@@ -16148,7 +17315,8 @@ function TPM:CreateStatisticsWindow()
         local label = WINDOW_MANAGER:CreateControl(nil, header, CT_LABEL)
         label:SetDimensions(width, 28)
         label:SetAnchor(LEFT, header, LEFT, x, 0)
-        label:SetFont("$(BOLD_FONT)|19")
+        -- 2.8.0: 16 instead of 19 so "Abgeschlossen"/"Completado" fit the column.
+        label:SetFont("$(BOLD_FONT)|16")
         label:SetColor(0.78, 0.72, 0.58, 1)
         label:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT)
         label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -16469,7 +17637,8 @@ function TPM:RefreshStatisticsWindow()
     local stats = self:GetStatisticsData(false, focusZoneId)
     self.statisticsData = stats
 
-    self.statisticsTitle:SetText(string.format("%s-v%s", self:L("STATISTICS_TITLE"), (VERSION:gsub("_", "-"))))
+    -- 2.8.0: clean title with a quiet version tag in the muted token color.
+    self.statisticsTitle:SetText(string.format("%s  |c%sv%s|r", self:L("STATISTICS_TITLE"), self:GetSkinColorHex("muted"), (VERSION:gsub("_", "-"))))
     self.statisticsMode:SetText(self:L("STAT_MODE", self.saved.calculationMode == "categories" and self:L("MODE_CATEGORIES") or self:L("MODE_OBJECTIVES")))
     if self.statisticsFocusLabel then self.statisticsFocusLabel:SetText(self:L("STAT_FOCUS_LABEL")) end
     self:RefreshStatisticsFocusSelector()
@@ -16508,7 +17677,7 @@ function TPM:RefreshStatisticsWindow()
     end
     if self.statisticsPlaytimeCard then
         -- Keep this live without bringing the old Development playtime page back.
-        self:CheckpointHistory("progress_view", false)
+        self:CheckpointHistoryThrottled("progress_view", 15000)
         local totalPlayed = self:SyncCurrentEsoPlayedTime()
         local todayPlayed = self:GetTodayPlaySeconds()
         self.statisticsPlaytimeCard.title:SetText(self:L("STAT_CHARACTER_PLAY_TIME"))
@@ -16550,6 +17719,7 @@ function TPM:RefreshStatisticsWindow()
                 categoryControl.gearButton:SetHandler("OnClicked", nil)
                 categoryControl.gearButton:SetHandler("OnMouseUp", nil)
             end
+            categoryControl.hudActive = hudRowActive == true
             categoryControl.label:SetColor(hudRowActive and 1.00 or 0.92, hudRowActive and 1.00 or 0.89, hudRowActive and 1.00 or 0.81, 1)
             categoryControl.bg:SetEdgeColor(hudRowActive and 0.82 or 0.28, hudRowActive and 0.74 or 0.23, hudRowActive and 0.48 or 0.12, hudRowActive and 0.70 or 0.20)
 
@@ -16558,8 +17728,12 @@ function TPM:RefreshStatisticsWindow()
             categoryControl.control:SetMouseEnabled(true)
             categoryControl.control:SetHandler("OnMouseEnter", function()
                 TPM:ShowStatisticsHoverTooltip(tooltipName, tooltipText, categoryControl.control)
+                TPM:SkinHover(categoryControl.control, true)
             end)
-            categoryControl.control:SetHandler("OnMouseExit", function() TPM:HideStatisticsHoverTooltips() end)
+            categoryControl.control:SetHandler("OnMouseExit", function()
+                TPM:HideStatisticsHoverTooltips()
+                TPM:SkinHover(categoryControl.control, false)
+            end)
             categoryControl.control:SetHandler("OnMouseUp", function(_, button, upInside)
                 if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
                     TPM:HideStatisticsHoverTooltips()
@@ -16671,6 +17845,48 @@ function TPM:OpenWorldMapFromStatistics(mapId)
     return false
 end
 
+-- 2.8.0: while the standalone journal is open (NumPad 5 / keybind), clicks
+-- beside the window used to land in the 3D world, which makes ESO leave cursor
+-- mode while the journal stayed open without a mouse. An invisible full-screen
+-- layer underneath every other UI element now absorbs those clicks, so the
+-- cursor stays until the journal is closed (key, X, ESC or Alt).
+function TPM:EnsureStatisticsClickCatcher()
+    if self.statisticsClickCatcher or not WINDOW_MANAGER or not GuiRoot then return self.statisticsClickCatcher end
+    local catcher = WINDOW_MANAGER:CreateTopLevelWindow(ADDON_NAME .. "StatisticsClickCatcher")
+    catcher:SetAnchorFill(GuiRoot)
+    catcher:SetMouseEnabled(true)
+    catcher:SetHidden(true)
+    if catcher.SetDrawTier and DT_LOW then catcher:SetDrawTier(DT_LOW) end
+    if catcher.SetDrawLayer and DL_BACKGROUND then catcher:SetDrawLayer(DL_BACKGROUND) end
+    if catcher.SetDrawLevel then catcher:SetDrawLevel(0) end
+    -- A click beside the journal only closes its open popups.
+    catcher:SetHandler("OnMouseDown", function()
+        TPM:HideEconomyFocusDropdown()
+        TPM:HideStatisticsFocusDropdown()
+    end)
+    catcher:SetHandler("OnMouseUp", function() end)
+    catcher:SetHandler("OnMouseWheel", function() end)
+    self.statisticsClickCatcher = catcher
+    return catcher
+end
+
+function TPM:UpdateStatisticsClickCatcher()
+    local window = self.statisticsWindow
+    local currentScene = SCENE_MANAGER and SCENE_MANAGER:GetCurrentScene()
+    local hudScene = not currentScene or currentScene == _G.HUD_SCENE or currentScene == _G.HUD_UI_SCENE
+    local show = self.statisticsOpenedStandalone == true
+        and window ~= nil and not window:IsHidden()
+        and self.statisticsTemporarilyHiddenForScene ~= true
+        and self.statisticsCloseAnimationPending ~= true
+        and hudScene
+    if not show then
+        if self.statisticsClickCatcher then self.statisticsClickCatcher:SetHidden(true) end
+        return
+    end
+    local catcher = self:EnsureStatisticsClickCatcher()
+    if catcher then catcher:SetHidden(false) end
+end
+
 -- 2.6.34: Standalone Statistics owns UI mouse mode only while opened by TPM.
 function TPM:SetStandaloneStatisticsUIMode(enabled)
     enabled = enabled == true
@@ -16762,6 +17978,7 @@ function TPM:FinalizeStatisticsWindowHide(closeToken)
     self:SetStandaloneStatisticsUIMode(false)
     self.statisticsOpenedStandalone = false
     self.statisticsTemporarilyHiddenForScene = false
+    self:UpdateStatisticsClickCatcher()
     self:RefreshQuickFilterBar()
     if type(zo_callLater) == "function" then
         zo_callLater(function() TPM:RefreshSkyshardGoalWidget() end, 30)
@@ -16798,6 +18015,7 @@ function TPM:PlayStatisticsCloseAnimation()
     local timeline = self.statisticsCloseTimeline
     timeline:Stop()
     timeline:PlayFromStart()
+    self:UpdateStatisticsClickCatcher()
 
     zo_callLater(function()
         TPM:FinalizeStatisticsWindowHide(closeToken)
@@ -16830,6 +18048,7 @@ function TPM:ShowStatisticsWindow(openStandalone)
     if self.statisticsOpenedStandalone then
         self:RefreshStandaloneStatisticsSceneVisibility()
     end
+    self:UpdateStatisticsClickCatcher()
     return true
 end
 
@@ -17016,9 +18235,12 @@ function TPM:CreateQuickFilterBar()
     if self.quickFilterBar then return end
     if not ZO_WorldMap or not ZO_WorldMapScroll then return end
 
+    -- 2.8.0: segmented control in the active design instead of ESO's ornate
+    -- default buttons; "Statistics" sits in its own accent pill on the right.
+    local SEG_W, H, STATS_W, GAP = 88, 30, 112, 8
     local bar = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "QuickFilterBar", ZO_WorldMap, CT_CONTROL)
-    bar:SetDimensions(506, 38)
-    bar:SetAnchor(TOPLEFT, ZO_WorldMapScroll, TOPLEFT, 10, 10)
+    bar:SetDimensions(SEG_W * 4 + GAP + STATS_W, H)
+    bar:SetAnchor(TOPLEFT, ZO_WorldMapScroll, TOPLEFT, 12, 12)
     bar:SetDrawLayer(DL_OVERLAY)
     bar:SetDrawTier(DT_HIGH)
     if bar.SetDrawLevel then bar:SetDrawLevel(4500) end
@@ -17026,13 +18248,45 @@ function TPM:CreateQuickFilterBar()
     bar:SetHidden(true)
     self.quickFilterBar = bar
 
-    local bg = WINDOW_MANAGER:CreateControl(nil, bar, CT_BACKDROP)
-    bg:SetAnchorFill(bar)
-    bg:SetCenterColor(0.03, 0.025, 0.02, 0.72)
-    bg:SetEdgeColor(0.55, 0.46, 0.28, 0.75)
-    bg:SetEdgeTexture(nil, 1, 1, 1)
-    bg:SetMouseEnabled(false)
+    local function Shell(x, w)
+        local shell = WINDOW_MANAGER:CreateControl(nil, bar, CT_BACKDROP)
+        shell:SetDimensions(w, H)
+        shell:SetAnchor(TOPLEFT, bar, TOPLEFT, x, 0)
+        shell:SetEdgeTexture(nil, 1, 1, 1)
+        shell:SetMouseEnabled(false)
+        return shell
+    end
 
+    local function Segment(x, w, onClick)
+        local button = WINDOW_MANAGER:CreateControl(nil, bar, CT_BUTTON)
+        button:SetDimensions(w, H)
+        button:SetAnchor(TOPLEFT, bar, TOPLEFT, x, 0)
+        button:SetMouseEnabled(true)
+        if button.SetClickSound and SOUNDS then button:SetClickSound(SOUNDS.DEFAULT_CLICK) end
+        local seg = { button = button }
+        seg.back = WINDOW_MANAGER:CreateControl(nil, button, CT_BACKDROP)
+        seg.back:SetAnchor(TOPLEFT, button, TOPLEFT, 2, 2)
+        seg.back:SetAnchor(BOTTOMRIGHT, button, BOTTOMRIGHT, -2, -2)
+        seg.back:SetEdgeColor(0, 0, 0, 0)
+        seg.back:SetMouseEnabled(false)
+        seg.mark = WINDOW_MANAGER:CreateControl(nil, button, CT_BACKDROP)
+        seg.mark:SetDimensions(w - 24, 2)
+        seg.mark:SetAnchor(BOTTOM, button, BOTTOM, 0, -3)
+        seg.mark:SetEdgeColor(0, 0, 0, 0)
+        seg.mark:SetMouseEnabled(false)
+        seg.label = WINDOW_MANAGER:CreateControl(nil, button, CT_LABEL)
+        seg.label:SetAnchorFill(button)
+        seg.label:SetFont("$(BOLD_FONT)|15")
+        seg.label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        seg.label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        seg.label:SetMouseEnabled(false)
+        button:SetHandler("OnMouseEnter", function() seg.hover = true; TPM:PaintQuickFilterBar() end)
+        button:SetHandler("OnMouseExit", function() seg.hover = false; TPM:PaintQuickFilterBar() end)
+        button:SetHandler("OnClicked", onClick)
+        return seg
+    end
+
+    bar.shell = Shell(0, SEG_W * 4)
     local definitions =
     {
         { key = "all", labelKey = "FILTER_ALL" },
@@ -17040,27 +18294,28 @@ function TPM:CreateQuickFilterBar()
         { key = "under50", labelKey = "FILTER_UNDER_50" },
         { key = "complete", labelKey = "FILTER_COMPLETE" },
     }
-
-    bar.buttons = {}
+    bar.segments, bar.dividers = {}, {}
     for index, data in ipairs(definitions) do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual(nil, bar, "ZO_DefaultButton")
-        button:SetDimensions(92, 28)
-        button:SetAnchor(LEFT, bar, LEFT, 5 + ((index - 1) * 96), 0)
-        button.filterKey = data.key
-        button.filterLabelKey = data.labelKey
-        button:SetHandler("OnClicked", function(btn)
-            TPM:SetQuickFilter(btn.filterKey)
-        end)
-        bar.buttons[#bar.buttons + 1] = button
+        local key = data.key
+        local seg = Segment((index - 1) * SEG_W, SEG_W, function() TPM:SetQuickFilter(key) end)
+        seg.filterKey, seg.filterLabelKey = key, data.labelKey
+        bar.segments[index] = seg
+        if index > 1 then
+            local divider = WINDOW_MANAGER:CreateControl(nil, bar, CT_BACKDROP)
+            divider:SetDimensions(1, 14)
+            divider:SetAnchor(LEFT, bar, LEFT, (index - 1) * SEG_W, 0)
+            divider:SetEdgeColor(0, 0, 0, 0)
+            divider:SetMouseEnabled(false)
+            bar.dividers[#bar.dividers + 1] = divider
+        end
     end
 
-    local statsButton = WINDOW_MANAGER:CreateControlFromVirtual(nil, bar, "ZO_DefaultButton")
-    statsButton:SetDimensions(112, 28)
-    statsButton:SetAnchor(LEFT, bar, LEFT, 389, 0)
-    statsButton:SetHandler("OnClicked", function()
-        TPM:ToggleStatisticsWindow()
-    end)
-    bar.statisticsButton = statsButton
+    local statsX = SEG_W * 4 + GAP
+    local statsShell = Shell(statsX, STATS_W)
+    local stats = Segment(statsX, STATS_W, function() TPM:ToggleStatisticsWindow() end)
+    stats.shell = statsShell
+    stats.mark:SetHidden(true)
+    bar.statsSegment = stats
 end
 
 function TPM:RefreshQuickFilterBar()
@@ -17076,21 +18331,14 @@ function TPM:RefreshQuickFilterBar()
     if not visible then return end
 
     local current = self.saved.quickFilter or "all"
-    for _, button in ipairs(bar.buttons or {}) do
-        local text = self:L(button.filterLabelKey)
-        if button.filterKey == current then
-            text = "|cE6C45C" .. text .. "|r"
-        end
-        button:SetText(text)
+    for _, seg in ipairs(bar.segments or {}) do
+        TPM_SetTextIfChanged(seg.label, self:L(seg.filterLabelKey))
+        seg.selected = seg.filterKey == current
     end
-
-    if bar.statisticsButton then
-        local text = self:L("STATISTICS_BUTTON")
-        if self.statisticsWindow and not self.statisticsWindow:IsHidden() then
-            text = "|cE6C45C" .. text .. "|r"
-        end
-        bar.statisticsButton:SetText(text)
+    if bar.statsSegment then
+        TPM_SetTextIfChanged(bar.statsSegment.label, self:L("STATISTICS_BUTTON"))
     end
+    self:PaintQuickFilterBar()
 end
 
 function TPM:CreateHeaderProgressLabel()
@@ -17148,7 +18396,22 @@ function TPM:ApplyHeaderProgressAnchor()
     end
 end
 
+function TPM:ApplyHeaderPercentStyle(percent)
+    local label = self.headerLabel
+    if not label then return end
+    if not self:IsMapBadgeStyle() then
+        self:HideMapPercentBadge(label)
+        return
+    end
+    local size = math.floor(30 * (tonumber(self.saved and self.saved.headerPercentScale) or 100) / 100 + 0.5)
+    label:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thick", size))
+    local tone = self:GetMapProgressColor(percent)
+    label:SetText(string.format("|c%s%d%%|r", RGBToHex(tone[1], tone[2], tone[3]), tonumber(percent) or 0))
+    self:ApplyMapPercentBadge(label, percent, #tostring(tonumber(percent) or 0) + 1, size, true)
+end
+
 function TPM:HideHeaderProgress()
+    self:HideMapPercentBadge(self.headerLabel)
     if self.headerLabel then
         self.headerLabel:SetHidden(true)
         self.headerLabel.zoneId = nil
@@ -17192,6 +18455,7 @@ function TPM:RefreshHeaderProgress()
         self.headerLabel.availableTotal = availableTotal
         self.headerLabel.percent = percent
         self.headerLabel:SetHidden(false)
+        self:ApplyHeaderPercentStyle(percent)
         if self.headerCategoryLabel then
             self.headerCategoryLabel:SetHidden(true)
             self.headerCategoryLabel:SetText("")
@@ -17230,6 +18494,7 @@ function TPM:RefreshHeaderProgress()
     self.headerLabel.availableTotal = availableTotal
     self.headerLabel.percent = percent
     self.headerLabel:SetHidden(false)
+    self:ApplyHeaderPercentStyle(percent)
 
     if self.headerCategoryLabel then
         self.headerCategoryLabel:SetHidden(true)
@@ -17291,7 +18556,6 @@ function TPM:PrintHelp()
     d(self:L("HELP_TOGGLE"))
     d(self:L("HELP_NAMES"))
     d(self:L("HELP_REFRESH"))
-    d(self:L("HELP_LANG"))
     d(self:L("HELP_MODE"))
     d(self:L("HELP_COMPLETED"))
     d(self:L("HELP_FONT"))
@@ -17309,17 +18573,6 @@ function TPM:RefreshBindingStrings()
     end
 end
 
-function TPM:SetLanguage(value, silent)
-    -- Compatibility shim: TPM follows the ESO client language automatically.
-    if value ~= nil and value ~= "auto" then return false end
-    if self.saved then self.saved.language = "auto" end
-    self:ResolveLanguage()
-    self:RefreshBindingStrings()
-    self:RefreshCustomSettingsControls()
-    self:RefreshStatisticsWindow()
-    if not silent then d(self:L("LANGUAGE_SET", self:L("LANGUAGE_NAME") or self.langCode)) end
-    return true
-end
 
 function TPM:HandleSlashCommand(text)
     text = zo_strlower(zo_strtrim(text or ""))
@@ -17335,8 +18588,11 @@ function TPM:HandleSlashCommand(text)
         d(string.format("%s %s: %s", DISPLAY_NAME, self:L("ZONE_NAMES"), self.saved.showZoneNames and self:L("ON") or self:L("OFF")))
         self:QueueRefresh(10)
     elseif text == "completed" then
-        local hide = (self.saved.hundredDisplayMode or "percent") ~= "hidden"
-        self:SetHundredDisplayMode(hide and "hidden" or "percent")
+        local current = self.saved.hundredDisplayMode or "percent"
+        local hide = current ~= "hidden"
+        -- 2.8.0: showing them again restores the previous style (e.g. check mark).
+        if hide then self.saved.hundredDisplayModeBeforeHide = current end
+        self:SetHundredDisplayMode(hide and "hidden" or (self.saved.hundredDisplayModeBeforeHide or "percent"))
         d(string.format("%s: %s", self:L("HIDE_COMPLETED"), hide and self:L("ON") or self:L("OFF")))
     elseif text == "rewards" then
         self.saved.showQuestRewards = not self.saved.showQuestRewards
@@ -17359,6 +18615,18 @@ function TPM:HandleSlashCommand(text)
         self:ToggleStatisticsFromKeybind()
     elseif text == "debugreport" then
         d(self:BuildDebugReport())
+    elseif text == "skin" then
+        d(self:BuildSkinDebugReport())
+    elseif text == "aurbis" then
+        local log = self.aurbisPinDebug
+        if type(log) ~= "table" or #log == 0 then
+            d("TPM aurbis: open the Aurbis map (zoom out fully) once, then run /tpm aurbis again.")
+        else
+            d(string.format("TPM aurbis: %d realms in the outer ring", #log))
+            for _, entry in ipairs(log) do
+                d(string.format("  %s (%d): %s", tostring(SafeZoneName(entry.zoneId)), entry.zoneId, entry.status))
+            end
+        end
     elseif text == "checkpoint" then
         self:CheckpointHistory("manual", true)
         d(self:L("HISTORY_CHECKPOINT_SAVED"))
@@ -17383,11 +18651,6 @@ function TPM:HandleSlashCommand(text)
         local questFontStyle = string.match(text, "^questfont%s+(%S+)$")
         if questFontStyle and self:SetQuestFontStyle(questFontStyle) then
             d(self:L("QUEST_FONT_STYLE_SET", self:GetFontStyleName(questFontStyle)))
-            return
-        end
-        local lang = string.match(text, "^lang%s*(%S*)$")
-        if lang ~= nil and (lang == "" or lang == "auto") then
-            self:SetLanguage("auto")
             return
         end
         self:PrintHelp()
@@ -17445,9 +18708,6 @@ function TPM:RefreshLAMSettingsLocalization()
 end
 
 function TPM:RefreshCustomSettingsControls()
-    if self.settingsControls.language then
-        self:UpdateLanguageCustomControl(self.settingsControls.language)
-    end
     if self.settingsControls.calculation then
         self:UpdateCalculationCustomControl(self.settingsControls.calculation)
     end
@@ -17469,41 +18729,7 @@ function TPM:RefreshCustomSettingsControls()
     self:RefreshLAMSettingsLocalization()
 end
 
-function TPM:SetupLanguageCustomControl(control)
-    if not control then return end
-    control:SetHeight(58)
-    self.settingsControls.language = control
-    if not control.TPMLanguageTitle then
-        local title = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
-        title:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 0)
-        title:SetFont("ZoFontWinH4")
-        title:SetColor(1,1,1,1)
-        control.TPMLanguageTitle = title
-        local tip = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
-        tip:SetAnchor(TOPLEFT, title, BOTTOMLEFT, 0, 2)
-        tip:SetFont("ZoFontGameSmall")
-        tip:SetColor(.75,.75,.75,1)
-        control.TPMLanguageTooltip = tip
-        local current = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
-        current:SetDimensions(220,26)
-        current:SetAnchor(TOPRIGHT, control, TOPRIGHT, 0, 4)
-        current:SetFont("$(BOLD_FONT)|15")
-        current:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        current:SetColor(.90,.77,.36,1)
-        control.TPMLanguageCurrent = current
-    end
-    self:UpdateLanguageCustomControl(control)
-end
 
-function TPM:UpdateLanguageCustomControl(control)
-    if not control then return end
-    if control.TPMLanguageTitle then control.TPMLanguageTitle:SetText(self:L("SETTINGS_LANGUAGE")) end
-    if control.TPMLanguageTooltip then control.TPMLanguageTooltip:SetText(self:L("SETTINGS_LANGUAGE_TT")) end
-    if control.TPMLanguageCurrent then
-        local name = self:L("LANGUAGE_NAME") or string.upper(self.langCode or "en")
-        control.TPMLanguageCurrent:SetText(name .. " (ESO)")
-    end
-end
 
 function TPM:SetCalculationMode(value)
     if value ~= "objectives" and value ~= "categories" then return false end
@@ -18013,14 +19239,6 @@ function TPM:RegisterSettings()
 
     local optionData =
     {
-        { type = "header", name = function() return TPM:L("SETTINGS_SECTION_LANGUAGE") end, width = "full" },
-        {
-            type = "custom",
-            refreshFunc = function(control) TPM.settingsControls.language=control; TPM:SetupLanguageCustomControl(control) end,
-            width = "full",
-        },
-        { type = "description", text = function() return TPM:L("SETTINGS_RELOAD_NOTE") end, width = "full" },
-
         { type = "header", name = function() return TPM:L("SETTINGS_SECTION_MAP") end, width = "full" },
         {
             type = "checkbox",
@@ -18095,6 +19313,18 @@ function TPM:RegisterSettings()
         },
 
         { type = "header", name = function() return TPM:L("SETTINGS_SECTION_DISPLAY") end, width = "full" },
+        {
+            type = "checkbox",
+            name = function() return TPM:L("SETTINGS_MAP_BADGES") end,
+            tooltip = function() return TPM:L("SETTINGS_MAP_BADGES_TT") end,
+            getFunc = function() return TPM.saved.mapPercentStyle ~= "text" end,
+            setFunc = function(value)
+                TPM.saved.mapPercentStyle = value and "badge" or "text"
+                TPM:ApplyProgressFonts()
+                TPM:QueueRefresh(10)
+            end,
+            width = "full",
+        },
         {
             type = "custom",
             refreshFunc = function(control) TPM.settingsControls.fontStyle=control; TPM:SetupFontStyleCustomControl(control) end,
@@ -18286,9 +19516,6 @@ function TPM:RegisterSettings()
             if panel ~= TPM.settingsPanel then return end
 
             -- Build the direct ESO button controls on first panel creation.
-            if self.settingsControls.language then
-                TPM:SetupLanguageCustomControl(TPM.settingsControls.language)
-            end
             if self.settingsControls.calculation then
                 TPM:SetupCalculationCustomControl(TPM.settingsControls.calculation)
             end
@@ -18456,8 +19683,15 @@ function TPM:Initialize()
 
     self.saved.language = "auto"
     self:RunSavedVariableMigrations()
-    if self.saved.statisticsThemeDesign ~= "tpm" and self.saved.statisticsThemeDesign ~= "vanilla" and self.saved.statisticsThemeDesign ~= "dark" then
+    if self.saved.statisticsThemeDesign ~= "tpm" and self.saved.statisticsThemeDesign ~= "vanilla" and self.saved.statisticsThemeDesign ~= "dark" and self.saved.statisticsThemeDesign ~= "modern" and self.saved.statisticsThemeDesign ~= "custom" then
         self.saved.statisticsThemeDesign = DEFAULTS.statisticsThemeDesign
+    end
+    -- 2.8.0: move users who were still on the previous default (TPM Standard)
+    -- to Modern exactly once. Transparent TPM / Clear Mode choices are kept and
+    -- TPM Standard can be selected again in the customization panel.
+    if not self.saved.statisticsModern280Migrated then
+        if self.saved.statisticsThemeDesign == "tpm" then self.saved.statisticsThemeDesign = "modern" end
+        self.saved.statisticsModern280Migrated = true
     end
     if type(self.saved.statisticsThemeProgress) ~= "table" then
         self.saved.statisticsThemeProgress = { r = DEFAULTS.statisticsThemeProgress.r, g = DEFAULTS.statisticsThemeProgress.g, b = DEFAULTS.statisticsThemeProgress.b }
@@ -18812,6 +20046,14 @@ function TPM:Initialize()
         TPM:QueueRefresh(100)
     end)
 
+    if _G.EVENT_GAME_CAMERA_UI_MODE_CHANGED then
+        EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "StatisticsCursorMode", _G.EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
+            if TPM.statisticsOpenedStandalone then
+                zo_callLater(function() TPM:RefreshStandaloneStatisticsSceneVisibility() end, 0)
+            end
+        end)
+    end
+
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "HistoryPlayerDeactivated", EVENT_PLAYER_DEACTIVATED, function()
         TPM:CheckpointHistoryOnDeactivated()
     end)
@@ -18930,7 +20172,13 @@ function TPM:Initialize()
         local namespace = ADDON_NAME .. "PlayerProgress" .. suffix
         EVENT_MANAGER:RegisterForEvent(namespace, eventCode, function()
             if TPM.saved and TPM.saved.historyEnabled ~= false then
-                TPM:CheckpointHistory("player_progress", false)
+                -- XP fires on nearly every kill; Level/CP changes are rare and
+                -- are written immediately.
+                if suffix == "XP" then
+                    TPM:CheckpointHistoryThrottled("player_progress", 10000)
+                else
+                    TPM:CheckpointHistory("player_progress", false)
+                end
             end
             if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden() then
                 if TPM.saved and TPM.saved.statisticsPage == "history" then
@@ -18941,6 +20189,19 @@ function TPM:Initialize()
                             TPM:RefreshPlayerStatisticsPage()
                         else
                             TPM:RefreshCombatProgressionBars()
+                        end
+                    elseif suffix == "XP" then
+                        -- 2.8.0 performance: one full PvE/PvP repaint per second at
+                        -- most while grinding with the journal open.
+                        if not TPM.historyPageXpRefreshQueued then
+                            TPM.historyPageXpRefreshQueued = true
+                            zo_callLater(function()
+                                TPM.historyPageXpRefreshQueued = false
+                                if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden()
+                                    and TPM.saved and TPM.saved.statisticsPage == "history" then
+                                    TPM:RefreshHistoryStatisticsPage()
+                                end
+                            end, 1000)
                         end
                     else
                         TPM:RefreshHistoryStatisticsPage()
@@ -19077,7 +20338,7 @@ function TPM:Initialize()
         local function OnPlayerPveCombatTarget(_, result, isError, abilityName, abilityId, abilityActionSlotType,
             sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log,
             sourceUnitId, targetUnitId)
-            if TPM:IsInPvPEnvironment() then return end
+            if TPM:IsInPvPEnvironmentCached() then return end
             if not targetName or targetName == "" then return end
             TPM:RememberPlayerPveCombatTarget(targetName, targetUnitId, targetType)
         end
@@ -19202,20 +20463,20 @@ function TPM:Initialize()
 
     local combatProgressCpNamespace = ADDON_NAME .. "CombatProgressCP"
     EVENT_MANAGER:RegisterForEvent(combatProgressCpNamespace, EVENT_CHAMPION_POINT_UPDATE, function()
-        if TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then
+        if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden() and TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then
             TPM:RefreshCombatProgressionBars()
         end
     end)
     EVENT_MANAGER:AddFilterForEvent(combatProgressCpNamespace, EVENT_CHAMPION_POINT_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "CombatProgressCompanionXP", EVENT_COMPANION_EXPERIENCE_GAIN, function()
-        if TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then TPM:RefreshCombatProgressionBars() end
+        if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden() and TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then TPM:RefreshCombatProgressionBars() end
     end)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "CombatProgressCompanionOn", EVENT_COMPANION_ACTIVATED, function()
-        if TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then TPM:RefreshCombatProgressionBars() end
+        if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden() and TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then TPM:RefreshCombatProgressionBars() end
     end)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "CombatProgressCompanionOff", EVENT_COMPANION_DEACTIVATED, function()
-        if TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then TPM:RefreshCombatProgressionBars() end
+        if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden() and TPM.saved and TPM.saved.statisticsPage == "history" and TPM:GetStatisticsHistorySubPage() == 2 then TPM:RefreshCombatProgressionBars() end
     end)
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "ScreenResized", EVENT_SCREEN_RESIZED, function()

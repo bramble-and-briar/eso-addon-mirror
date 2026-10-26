@@ -141,12 +141,8 @@ NC.DungeonQuestIds = {
 function NC.GetCurrentSpeedrunTarget()
     local zoneIndex = GetUnitZoneIndex("player")
     local zoneId = GetZoneId(zoneIndex)
-    if zoneId and NC.SpeedrunParTimes[zoneId] then
+    if zoneId and NC.SpeedrunParTimes and NC.SpeedrunParTimes[zoneId] then
         return NC.SpeedrunParTimes[zoneId]
-    end
-    -- Базовый дефолт для неизвестных 4-man данжей — 20 минут
-    if IsUnitInDungeon("player") then
-        return 1200
     end
     return nil
 end

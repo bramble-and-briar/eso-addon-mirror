@@ -62,7 +62,7 @@
     "HodorReflexes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2311/",
-  "fingerprint": "3d06d41e867c3ad5bccb20e1e6555301a64ea7be5fd141f2bff92583f21e248e",
+  "fingerprint": "249b6538c5f0ceedf4fcb803b702dab71bfcbb1a37f0dfcb2d3b4a18aaeebcd9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14723.png",
     "https://cdn-eso.mmoui.com/preview/pvw14899.png",
@@ -74,11 +74,11 @@
   "source_id": "2311",
   "source_url": "https://www.esoui.com/downloads/info2311-HodorReflexes-DPSULTtracker.html",
   "stats": {
-    "downloads": 3473711,
+    "downloads": 3483554,
     "favorites": 421,
-    "monthly_downloads": 7111
+    "monthly_downloads": 16089
   },
   "title": "HodorReflexes - DPS & ULT tracker",
-  "updated_at": 1792320043000,
-  "version": "2026-10-18"
+  "updated_at": 1792935403000,
+  "version": "2026-10-25"
 }

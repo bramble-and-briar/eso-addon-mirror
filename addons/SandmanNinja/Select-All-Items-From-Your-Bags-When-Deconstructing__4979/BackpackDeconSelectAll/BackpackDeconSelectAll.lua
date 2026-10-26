@@ -1,14 +1,17 @@
+-- AI-assisted code (ChatGPT/Codex); see CREDITS.txt for sources and review credits.
+BackpackDeconSelectAll = BackpackDeconSelectAll or {}
+local A = BackpackDeconSelectAll
+A.version = "1.3.3"
 local NAME = "BackpackDeconSelectAll"
 local WARNING = "Select All?  WARNING! THIS WILL SELECT EVERYTHING THAT IS NOT LOCKED!"
 local checkboxes = {}
 local changing = false
-BackpackDeconSelectAll = {}
 
 local function Reset()
     for _, checkbox in pairs(checkboxes) do
         ZO_CheckButton_SetCheckState(checkbox, false)
     end
-    CALLBACK_MANAGER:FireCallbacks(NAME .. "Reset")
+    A.ResetController()
 end
 
 local function IsProtected(bag, slot)
@@ -17,6 +20,35 @@ local function IsProtected(bag, slot)
         return FCOIS.IsDeconstructionLocked(bag, slot)
     end
     return false
+end
+
+local function IsEligible(panel, universal, slot)
+    local canDeconstruct
+    if universal then
+        local craftingTypes
+        if panel.GetSavedCraftingTypeFilters then
+            craftingTypes = panel:GetSavedCraftingTypeFilters()
+        else
+            craftingTypes = panel:GetSelectedCraftingTypeFilters()
+        end
+        canDeconstruct = ZO_UniversalDeconstructionPanel_Shared.IsDeconstructableBagItem(
+            BAG_BACKPACK, slot, craftingTypes)
+            and ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter(BAG_BACKPACK, slot, nil)
+    else
+        canDeconstruct = CanItemBeDeconstructed(BAG_BACKPACK, slot, GetCraftingInteractionType())
+    end
+    return canDeconstruct and not IsProtected(BAG_BACKPACK, slot)
+end
+
+function A.IsSelectionComplete(panel, universal)
+    local hasEligibleItems = false
+    for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        if IsEligible(panel, universal, slot) then
+            hasEligibleItems = true
+            if not panel:IsSlotted(BAG_BACKPACK, slot) then return false end
+        end
+    end
+    return hasEligibleItems
 end
 
 local function SelectBackpack(panel, setChecked, universal)
@@ -29,21 +61,7 @@ local function SelectBackpack(panel, setChecked, universal)
     panel:ClearSelections()
     local eligible, selected = 0, 0
     for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
-        local canDeconstruct
-        if universal then
-            local craftingTypes
-            if panel.GetSavedCraftingTypeFilters then
-                craftingTypes = panel:GetSavedCraftingTypeFilters()
-            else
-                craftingTypes = panel:GetSelectedCraftingTypeFilters()
-            end
-            canDeconstruct = ZO_UniversalDeconstructionPanel_Shared.IsDeconstructableBagItem(
-                BAG_BACKPACK, slot, craftingTypes)
-                and ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter(BAG_BACKPACK, slot, nil)
-        else
-            canDeconstruct = CanItemBeDeconstructed(BAG_BACKPACK, slot, GetCraftingInteractionType())
-        end
-        if canDeconstruct and not IsProtected(BAG_BACKPACK, slot) then
+        if IsEligible(panel, universal, slot) then
             eligible = eligible + 1
             local extraction = panel.extractionSlot
             local quantity = math.max(1, panel.inventory:GetStackCount(BAG_BACKPACK, slot))
@@ -67,7 +85,7 @@ local function SelectBackpack(panel, setChecked, universal)
     end
 end
 
-BackpackDeconSelectAll.Select = function(panel, universal, setChecked)
+function A.Select(panel, universal, setChecked)
     SelectBackpack(panel, setChecked, universal)
 end
 
@@ -84,6 +102,7 @@ local function Attach(panel, suffix, universal)
     label:SetWidth(480)
     label:SetHeight(48)
     label:SetColor(1, 0.65, 0.2, 1)
+    A.FixCheckbox(checkbox)
     if divider then
         divider:ClearAnchors()
         divider:SetAnchor(TOPLEFT, checkbox, BOTTOMLEFT, -30, 40)
@@ -101,6 +120,9 @@ local function Attach(panel, suffix, universal)
     ZO_PostHook(panel, "OnSlotChanged", function()
         if not changing then Reset() end
     end)
+    ZO_PostHook(panel, "ClearSelections", function()
+        if not changing then Reset() end
+    end)
     if panel.SetHidden then ZO_PostHook(panel, "SetHidden", Reset) end
     if panel.OnShown then ZO_PostHook(panel, "OnShown", Reset) end
     ZO_PostHook(panel.inventory, "ChangeFilter", Reset)
@@ -110,6 +132,7 @@ end
 local function Initialize()
     Attach(SMITHING and SMITHING.deconstructionPanel, "Smithing", false)
     Attach(UNIVERSAL_DECONSTRUCTION and UNIVERSAL_DECONSTRUCTION.deconstructionPanel, "Universal", true)
+    A.InitializeController()
 end
 
 local function RegisterEvents()
@@ -118,6 +141,10 @@ local function RegisterEvents()
         Reset()
     end)
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_END_CRAFTING_STATION_INTERACT, Reset)
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+        Reset()
+        Initialize()
+    end)
     CALLBACK_MANAGER:RegisterCallback("CraftingAnimationsStarted", Reset)
     Reset()
 end
@@ -127,5 +154,4 @@ EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addonName)
     EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
     Initialize()
     RegisterEvents()
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, Initialize)
 end)

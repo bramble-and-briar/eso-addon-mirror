@@ -1,0 +1,12 @@
+Loadout
+By @TheGreyWolf98 | 1.0.1
+
+Review your equipped build in a controller-friendly overview.
+
+Shows gear, both skill bars, champion points, class masteries, Mundus and active effects. Detail views provide longer gear and enchantment descriptions. Refresh after changing your build.
+
+Open /loadout. Click the left stick for Socials / Support. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

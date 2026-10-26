@@ -134,12 +134,3 @@ function AMW:QueueEligible()
         self:SetStatus(string.format("%d requests added to Lazy Writ Crafter; %d skipped.",queued,skipped),true)
     end)
 end
-
-function AMW:InstallLazyHooks()
-    self:OwnHook("session",WritCreater,"queueAllSealedWrits",function(bag)
-        if not self.sessionActive or bag~=BAG_BACKPACK then return false end
-        self:QueueEligible()
-        return true
-    end)
-end
-

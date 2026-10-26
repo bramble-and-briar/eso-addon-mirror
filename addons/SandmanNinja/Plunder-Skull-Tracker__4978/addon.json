@@ -18,7 +18,7 @@
     "GoldenSkullTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4978/",
-  "fingerprint": "f19fbbdbc77db5f5a2880f9688a3d0367691a53ab9190e88917d6b53e9c047e7",
+  "fingerprint": "d839d4b93eadde3e9a0399da1dacc74f61ee8bac38d45c63c0c8efa566ae59dd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18100.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18101.jpg"
@@ -29,11 +29,11 @@
   "source_id": "4978",
   "source_url": "https://www.esoui.com/downloads/info4978-PlunderSkullTracker.html",
   "stats": {
-    "downloads": 29,
-    "favorites": 0,
-    "monthly_downloads": 19
+    "downloads": 72,
+    "favorites": 1,
+    "monthly_downloads": 64
   },
   "title": "Plunder Skull Tracker",
-  "updated_at": 1792758355000,
-  "version": "1.1.0"
+  "updated_at": 1792912047000,
+  "version": "1.1.2"
 }

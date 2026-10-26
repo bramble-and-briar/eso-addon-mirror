@@ -6,6 +6,20 @@ local L   = (DFP.i18n and DFP.i18n.L) or function(k) return k end
 DFP.Finder = DFP.Finder or {}
 
 -- ──────────────────────────────────────────────────────────────
+-- Farbcodes für den Pledge-Status
+-- ──────────────────────────────────────────────────────────────
+local COLOR_PLEDGE_AVAILABLE = "|c3399FF" -- Blau: Heutiges Pledge (LibUndauntedPledges), noch nicht angenommen
+local COLOR_PLEDGE_ACCEPTED  = "|cFFFF00" -- Gelb: Im Tagebuch angenommen, Dungeon noch offen
+local COLOR_PLEDGE_COMPLETED = "|c33FF33" -- Grün: Dungeon erledigt, bereit zum Abgeben
+
+local function GetRowPledgeState(row)
+    if not row or not DFP.Pledges or not DFP.Pledges.GetState then
+        return DFP.PLEDGE_STATE_NONE or 0
+    end
+    return DFP.Pledges:GetState(row.key, row.name, row.actN, row.actV)
+end
+
+-- ──────────────────────────────────────────────────────────────
 -- State / SavedVariables
 -- ──────────────────────────────────────────────────────────────
 local LIST
@@ -22,7 +36,6 @@ local function SV()
     return DFP.sv
 end
 
--- LibSets holen
 local function GetLibSets()
     return rawget(_G, "LibSets")
 end
@@ -77,7 +90,7 @@ local function latinFold(s)
          :gsub("ä","ae"):gsub("ö","oe"):gsub("ü","ue"):gsub("ß","ss")
     s = s
         :gsub("[ÁÀÂÃÅĀĂĄ]","A"):gsub("[áàâãåāăą]","a")
-        :gsub("[ÉÈÊËĒĔĖĘĚ]","E"):gsub("[éèêëēĕėęě]","e")
+        :gsub("[ÉÈÊËĒĔĖĘĚ]","E"):gsub("[éèêēĕėęě]","e")
         :gsub("[ÍÌÎÏĪĬĮİ]","I"):gsub("[íìîïīĭįı]","i")
         :gsub("[ÓÒÔÕØŌŎŐ]","O"):gsub("[óòôõøōŏő]","o")
         :gsub("[ÚÙÛÜŪŬŮŰŲ]","U"):gsub("[úùûüūŭůűų]","u")
@@ -108,29 +121,6 @@ end
 
 local function isVisibleDungeon(entry)
     return IsFourPlayerActivity(entry.actN) or IsFourPlayerActivity(entry.actV)
-end
-
--- Flamechasers-Pledge-Check (bevorzugt Activity-ID-Treffer)
-local function isRowPledge(row)
-    if not row then return false end
-    local pledges = DFP.Pledges
-    if not pledges then return false end
-
-    -- 1. Sicherster Check über die LFG Activity-IDs (Normal oder Vet)
-    local actMap = pledges.activeActivities
-    if actMap then
-        if row.actN and actMap[row.actN] then return true end
-        if row.actV and actMap[row.actV] then return true end
-    end
-
-    -- 2. Fallback über den Flamechasers-Key (Name ohne Satz-/Leerzeichen)
-    local keyMap = pledges.active
-    if keyMap and row.name then
-        local k = zo_strformat("<<C:1>>", row.name):lower():gsub("[%p%s%c]+", "")
-        if keyMap[k] then return true end
-    end
-
-    return false
 end
 
 -- ──────────────────────────────────────────────────────────────
@@ -232,12 +222,10 @@ local function rowMatchesSearch(row, q)
         return true
     end
 
-    -- 1) Dungeon-Name
     if row.name and norm(row.name):find(q, 1, true) then
         return true
     end
 
-    -- 2) Sets über LibSets
     local LS = GetLibSets()
     if not LS then
         return false
@@ -270,14 +258,18 @@ local function buildTooltipText(row)
     if not row then return "" end
     local lines = {}
 
-    -- Titel
     lines[#lines+1] = "|cFFD700" .. (row.name or "?") .. "|r"
 
     ----------------------------------------------------------------
-    -- PLEDGE HEUTE?
+    -- Pledge Status
     ----------------------------------------------------------------
-    if row.isPledge then
-        lines[#lines+1] = "|cFFFF00" .. L("tt_pledge_today") .. "|r"
+    local state = row.pledgeState or DFP.PLEDGE_STATE_NONE
+    if state == DFP.PLEDGE_STATE_COMPLETED then
+        lines[#lines+1] = COLOR_PLEDGE_COMPLETED .. L("tt_pledge_completed") .. "|r"
+    elseif state == DFP.PLEDGE_STATE_ACCEPTED then
+        lines[#lines+1] = COLOR_PLEDGE_ACCEPTED .. L("tt_pledge_accepted") .. "|r"
+    elseif state == DFP.PLEDGE_STATE_AVAILABLE then
+        lines[#lines+1] = COLOR_PLEDGE_AVAILABLE .. L("tt_pledge_available") .. "|r"
     end
 
     ----------------------------------------------------------------
@@ -373,6 +365,19 @@ end
 -- ──────────────────────────────────────────────────────────────
 -- Datenaufbau
 -- ──────────────────────────────────────────────────────────────
+local function SortDungeonData(list)
+    table.sort(list, function(a, b)
+        local sa = a.pledgeState or 0
+        local sb = b.pledgeState or 0
+
+        -- Pledges nach oben sortieren (Gelb/Blau zuerst)
+        if sa ~= sb then
+            return sa > sb
+        end
+        return (a.name or a.key) < (b.name or b.key)
+    end)
+end
+
 function DFP.Finder:RebuildData()
     DATA, SELECTION = {}, SELECTION or {}
 
@@ -385,14 +390,17 @@ function DFP.Finder:RebuildData()
         if key and e and (e.normalId or e.vetId) then
             local name = e.pretty or key
             local entry = {
-                key      = key,
-                name     = name,
-                actN     = e.normalId,
-                actV     = e.vetId,
-                isDLC    = e.isDLC and true or false,
-                isPledge = false,
+                key         = key,
+                name        = name,
+                actN        = e.normalId,
+                actV        = e.vetId,
+                isDLC       = e.isDLC and true or false,
+                pledgeState = DFP.PLEDGE_STATE_NONE,
+                isPledge    = false,
             }
-            entry.isPledge = isRowPledge(entry)
+
+            entry.pledgeState = GetRowPledgeState(entry)
+            entry.isPledge    = (entry.pledgeState > DFP.PLEDGE_STATE_NONE)
 
             if isVisibleDungeon(entry) then
                 DATA[#DATA+1] = entry
@@ -400,13 +408,7 @@ function DFP.Finder:RebuildData()
         end
     end
 
-    table.sort(DATA, function(a, b)
-        if a.isPledge ~= b.isPledge then
-            return a.isPledge
-        end
-        return (a.name or a.key) < (b.name or b.key)
-    end)
-
+    SortDungeonData(DATA)
     SetFooterStatus("status_ready")
 end
 
@@ -414,15 +416,11 @@ function DFP.Finder:QuickPledgeUpdate()
     if not DATA or #DATA == 0 then return end
 
     for _, row in ipairs(DATA) do
-        row.isPledge = isRowPledge(row)
+        row.pledgeState = GetRowPledgeState(row)
+        row.isPledge    = (row.pledgeState > DFP.PLEDGE_STATE_NONE)
     end
 
-    table.sort(DATA, function(a, b)
-        if a.isPledge ~= b.isPledge then
-            return a.isPledge
-        end
-        return (a.name or a.key) < (b.name or b.key)
-    end)
+    SortDungeonData(DATA)
 
     local t, q = {}, SEARCH_TEXT
     for _, row in ipairs(DATA) do
@@ -476,7 +474,6 @@ function DFP.Finder:OnSearchChanged()
     refreshList()
 end
 
--- Hook für XML
 function DungeonFinderPlus.OnSearchTextChanged()
     if DFP and DFP.Finder and DFP.Finder.OnSearchChanged then
         DFP.Finder:OnSearchChanged()
@@ -530,7 +527,6 @@ function DFP.Finder:EnsureInit()
 
     ZO_ScrollList_Clear(LIST)
     ZO_ScrollList_AddDataType(LIST, 1, "DungeonFinderPlus_Row", 32, function(row, d)
-        -- Für Tooltip
         row.data = d
 
         local check = row:GetNamedChild("Check")
@@ -539,19 +535,28 @@ function DFP.Finder:EnsureInit()
         local btnN  = row:GetNamedChild("ModeNormal")
         local btnV  = row:GetNamedChild("ModeVet")
 
-        -- Auswahl-Checkbox
+        -- Checkbox
         ZO_CheckButton_SetCheckState(check, SELECTION[d.key] or false)
         ZO_CheckButton_SetToggleFunction(check, function(_, state)
             SELECTION[d.key] = state and true or false
         end)
 
-        -- Name (Pledges gelb)
-        nameL:SetText(d.isPledge and ("|cFFFF00" .. d.name .. "|r") or d.name)
+        -- 3-Farben Anzeige: Grün (Fertig), Gelb (Angenommen), Blau (Heute verfügbar)
+        local state = d.pledgeState or DFP.PLEDGE_STATE_NONE
+        if state == DFP.PLEDGE_STATE_COMPLETED then
+            nameL:SetText(COLOR_PLEDGE_COMPLETED .. d.name .. "|r")
+        elseif state == DFP.PLEDGE_STATE_ACCEPTED then
+            nameL:SetText(COLOR_PLEDGE_ACCEPTED .. d.name .. "|r")
+        elseif state == DFP.PLEDGE_STATE_AVAILABLE then
+            nameL:SetText(COLOR_PLEDGE_AVAILABLE .. d.name .. "|r")
+        else
+            nameL:SetText(d.name)
+        end
 
-        -- Typ (DLC/Base)
+        -- Typ
         typeL:SetText(d.isDLC and L("label_type_dlc") or L("label_type_base"))
 
-        -- Vet/Normal Buttons 
+        -- Buttons
         local mode = ROW_MODE[d.key]
         if type(mode) ~= "table" then
             local wantVet
@@ -602,7 +607,6 @@ function DFP.Finder:EnsureInit()
 
     ZO_ScrollList_EnableHighlight(LIST, "ZO_ThinListHighlight")
 
-    -- Labels / Buttons lokalisieren
     if DFP_WindowToolbarTitle                 then DFP_WindowToolbarTitle:SetText(L("title")) end
     if DFP_WindowToolbarClose                 then DFP_WindowToolbarClose:SetText(L("btn_close")) end
     if DFP_WindowSearchRowButtonsBtnSelectAll then DFP_WindowSearchRowButtonsBtnSelectAll:SetText(L("btn_select_all")) end
@@ -610,6 +614,8 @@ function DFP.Finder:EnsureInit()
     if DFP_WindowSearchRowButtonsBtnAllNormal then DFP_WindowSearchRowButtonsBtnAllNormal:SetText(L("btn_all_normal")) end
     if DFP_WindowSearchRowButtonsBtnAllVet    then DFP_WindowSearchRowButtonsBtnAllVet:SetText(L("btn_all_vet")) end
     if DFP_WindowFooterQueueBtn               then DFP_WindowFooterQueueBtn:SetText(L("btn_queue_selection")) end
+    if DFP_WindowFooterPledgesNormalBtn       then DFP_WindowFooterPledgesNormalBtn:SetText(L("btn_pledges_normal")) end
+    if DFP_WindowFooterPledgesVetBtn          then DFP_WindowFooterPledgesVetBtn:SetText(L("btn_pledges_vet")) end
     if DFP_WindowFooterStatus                 then DFP_WindowFooterStatus:SetText(L("status_ready")) end
     if DFP_WindowToolbarAuthor                then DFP_WindowToolbarAuthor:SetText(L("label_author", "@LugenKrebs")) end
 
@@ -617,7 +623,7 @@ function DFP.Finder:EnsureInit()
 end
 
 -- ──────────────────────────────────────────────────────────────
--- Buttons / Aktionen
+-- Buttons
 -- ──────────────────────────────────────────────────────────────
 function DFP.Finder:SelectAll(v)
     for _, row in ipairs(DATA) do
@@ -663,12 +669,30 @@ end
 -- ──────────────────────────────────────────────────────────────
 -- Queue
 -- ──────────────────────────────────────────────────────────────
+local function isSearchActive()
+    if type(IsCurrentlySearchingForGroup) == "function" and IsCurrentlySearchingForGroup() then
+        return true
+    end
+    if type(GetActivityFinderStatus) == "function" then
+        return GetActivityFinderStatus() ~= ACTIVITY_FINDER_STATUS_NONE
+    end
+    return false
+end
+
 local function queueActivities(ids, wantVetPreference)
-    if type(ClearGroupFinderSearch) ~= "function"
-        or type(AddActivityFinderSpecificSearchEntry) ~= "function"
-        or type(StartGroupFinderSearch) ~= "function" then
-        d("[DFP] Queue API missing: require ClearGroupFinderSearch, AddActivityFinderSpecificSearchEntry, StartGroupFinderSearch.")
-        return
+    if IsUnitInCombat("player") then
+        SetFooterStatus("status_in_combat")
+        return false
+    end
+
+    if IsUnitGrouped("player") and not IsUnitGroupLeader("player") then
+        SetFooterStatus("status_leader_only")
+        return false
+    end
+
+    if isSearchActive() then
+        SetFooterStatus("status_already_queued")
+        return false
     end
 
     if wantVetPreference ~= nil and type(SetVeteranDifficulty) == "function" then
@@ -679,7 +703,14 @@ local function queueActivities(ids, wantVetPreference)
     for _, id in ipairs(ids) do
         AddActivityFinderSpecificSearchEntry(id)
     end
-    StartGroupFinderSearch()
+
+    local ok = StartGroupFinderSearch()
+    if ok then
+        SetFooterStatus("status_queue_started")
+    else
+        SetFooterStatus("status_queue_failed")
+    end
+    return ok
 end
 
 function DFP.Finder:QueueSelection()
@@ -698,13 +729,11 @@ function DFP.Finder:QueueSelection()
 
             local addedForRow = false
 
-            -- Normal
             if mode.n ~= false and row.actN then
                 ids[#ids+1] = row.actN
                 addedForRow = true
             end
 
-            -- Vet
             if mode.v and row.actV then
                 ids[#ids+1] = row.actV
                 addedForRow = true
@@ -726,7 +755,30 @@ function DFP.Finder:QueueSelection()
     end
 
     queueActivities(ids, nil)
-    SetFooterStatus("status_queue_started")
+end
+
+function DFP.Finder:QueueAcceptedPledges(isVet)
+    if type(self.QuickPledgeUpdate) == "function" then
+        self:QuickPledgeUpdate()
+    end
+
+    local ids = {}
+
+    for _, row in ipairs(DATA) do
+        if row.pledgeState == DFP.PLEDGE_STATE_ACCEPTED then
+            local actId = isVet and row.actV or row.actN
+            if actId then
+                ids[#ids+1] = actId
+            end
+        end
+    end
+
+    if #ids == 0 then
+        SetFooterStatus("status_no_pledges_accepted")
+        return
+    end
+
+    queueActivities(ids, isVet)
 end
 
 function DFP.Finder:Open()

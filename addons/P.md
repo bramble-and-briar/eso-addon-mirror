@@ -110,6 +110,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's FurnitureEditor(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor-Beta__c2c3621e-0b20-4fae-9195-05862d266eef) | PinkBanther | Console | — |
 | [PinkB's GammaAdjuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster__612f9579-3c45-4ab4-84e0-6989fb59bd19) | PinkBanther | Console | — |
 | [PinkB's GammaAdjuster(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster-Beta__07ad2fa8-6b34-4021-bcb1-886119449ac1) | PinkBanther | Console | — |
+| [PinkB's HpsChecker for AD Stalkers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HpsChecker-for-AD-Stalkers__8012442a-7f50-4f29-b7aa-04dad2dc9e8b) | PinkBanther | Console | — |
 | [PinkB's HudManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager__9f445510-52db-43d8-bb0a-c6e497fce454) | PinkBanther | Console | — |
 | [PinkB's HudManager(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager-Beta__d761d228-adae-40b7-8320-6e4504e2d2ec) | PinkBanther | Console | — |
 | [PinkB's KillLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-KillLog__ff4bafd1-1006-4f21-8d38-7a45f4527518) | PinkBanther | Console | — |
@@ -200,6 +201,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Predefine Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Predefine-Chat-Messages__47bd1882-3ae4-414d-929c-aad937946be0) | msetten | Console | — |
 | [Prevent Attacking Guards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Prevent-Attacking-Guards__3762) | kawamonkey | PC / Mac | 1.0.1 |
 | [PreventActionCrimes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FloIstImGame/PreventActionCrimes__4663) | FloIstImGame | PC / Mac | 1.1 |
+| [Preview Anywhere](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Preview-Anywhere__b5cc1fef-6afb-46ca-a772-f1b71c39530c) | clubwratt | Console | — |
+| [Preview Anywhere: see your furnishings from bank, house storage, etc.](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Preview-Anywhere-see-your-furnishings-from-bank-house-storage-etc__4987) | GlandePas | PC / Mac | 1 |
 | [PreviousQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PreviousQuest__3801) | Masteroshi430 | PC / Mac | 2026.07.09 |
 | [Price Tooltip (+Gamepad)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mladen90/Price-Tooltip-Gamepad__2221) | Mladen90 | PC / Mac | 1.7.2 |
 | [Price Tooltip Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Price-Tooltip-Gamepad__4439) | Muffins714 | PC / Mac | 1.4 |

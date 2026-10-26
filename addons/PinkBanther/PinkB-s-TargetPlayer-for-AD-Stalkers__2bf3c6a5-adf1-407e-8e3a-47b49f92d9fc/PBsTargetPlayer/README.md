@@ -4,7 +4,7 @@ Puts the game's own target marker on chosen players in The Elder Scrolls Online 
 they stand out above their nameplate.
 
 - **Author:** PinkBanther
-- **Version:** 1.6.1
+- **Version:** 1.6.2
 - **Requires:** nothing. `LibHarvensAddonSettings` >= 20106 is optional and gives you the settings
   panel; without it the chat commands do everything.
 
@@ -115,8 +115,23 @@ and the reticle is on a bystander who is then marked. So:
   such a player. Clearing asks for "no marker" (`TARGET_MARKER_TYPE_NONE`), which **has not been tried on a
   console**: if the marker is still there a second later, the add-on gives up clearing for the session and
   says so (`/pbtarget status`). Switch: *Remove stray markers*, `/pbtarget cleanup on|off`.
+- **Markers that land on a group member are put right.** Group members have unit tags, so the add-on can see
+  where its marker went without aiming at anyone. Within three seconds of asking for a marker it looks at the
+  group: if one who is not registered carries it, it says so in chat -- who, how many milliseconds after the
+  request, which player it was meant for, how far apart they stand -- and puts it right. If the reticle is still
+  on the intended player it asks again, which moves the marker off the group member (a marker sits on one unit
+  at a time); if the reticle has moved away it asks the moment you look at that player again, ignoring the
+  three-second wait. One repair per request, then it gives up. A group member the add-on has just caught
+  carrying its marker by mistake is also cleared if the reticle meets them, which an ordinary group member's
+  marker never is (that is probably the leader's).
+- **A longer wait when a group member stands close.** With a group member within about four metres of the
+  target the add-on waits 0.6 s instead of 0.25 s before asking, since the reticle is more likely to slide
+  onto them before the game acts.
 - `/pbtarget unmark` takes the marker off whoever is under the reticle, whoever put it there, and reports what
   was there before and a second later.
+
+If two people use this add-on in one group, give them **different marks**: whether markers are shared across a
+group is not known here, and if they are, two people asking for the same marker move it between them.
 
 ### Never called blind
 
@@ -234,8 +249,8 @@ The displayed name is fixed in `Main.lua`; the version comes from the manifest. 
 version, edit these two adjacent lines in `PBsTargetPlayer.addon` and nothing else:
 
 ```
-## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.1
-## Version: 1.6.1
+## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.2
+## Version: 1.6.2
 ```
 
 ---

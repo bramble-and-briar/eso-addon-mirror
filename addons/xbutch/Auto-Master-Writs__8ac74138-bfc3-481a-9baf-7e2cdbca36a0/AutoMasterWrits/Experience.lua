@@ -35,7 +35,7 @@ end
 
 function AMW:RequireXP()
     if self:GetXPStatus().ready then return true end
-    return false, "Delivery paused: a recognized 150% XP consumable with at least 3 seconds remaining is required."
+    return false, "Delivery paused: 150% XP consumable missing or expiring."
 end
 
 function AMW:ShowXPStatus()

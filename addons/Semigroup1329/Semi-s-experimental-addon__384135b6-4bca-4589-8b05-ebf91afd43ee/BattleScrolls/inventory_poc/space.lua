@@ -49,7 +49,7 @@ function space.summarize(items, listingSlots, buildDeposits)
         local action = policy.decide(item).action
         if item.bag == BAG_BACKPACK then
             if buildDeposits[item.uniqueId] then counts.bank = counts.bank + 1
-            elseif action == 'sell' and item.vendorUnit > 0 then counts.sell = counts.sell + 1
+            elseif action == 'sell' and item.vendorUnit > 0 and policy.disposalQuantity(item) == item.stack then counts.sell = counts.sell + 1
             elseif action == 'deconstruct' and CanItemBeDeconstructed(item.bag, item.slot) then counts.deconstruct = counts.deconstruct + 1
             elseif action == 'bank' then counts.bank = counts.bank + 1
             elseif action == 'list' and IsItemSellableOnTradingHouse(item.bag, item.slot) then

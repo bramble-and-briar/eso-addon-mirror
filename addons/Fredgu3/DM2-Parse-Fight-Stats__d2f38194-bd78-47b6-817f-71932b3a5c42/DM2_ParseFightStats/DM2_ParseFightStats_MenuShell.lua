@@ -11,7 +11,7 @@ DM2StatsMenuShell = DM2StatsMenuShell or {}
 local M = DM2StatsMenuShell
 
 M.name    = "DM2StatsMenuShell"
-M.version = "3.18.3"
+M.version = "3.18.4"
 
 local WM = WINDOW_MANAGER
 local SCENE_NAME = "dm2StatsMenuShellGamepad"
@@ -3124,6 +3124,71 @@ local function weaveSummaryLocal(session)
   }
 end
 
+-- Skill press → next skill press, minus the 1s cooldown.
+-- Under 900ms is an early press (the button beat the cast). Over 1800ms is a stall.
+-- Neither goes into the median. Returns band, r, g, b.
+-- Fields on M, not new chunk locals (MenuShell is already past the 200-local cap).
+function M.CastPaceBand(gap)
+  gap = tonumber(gap)
+  if not gap or gap <= 0 then return nil end
+  if gap < 900 then return "early", 0.40, 0.65, 0.95 end
+  if gap > 1800 then return "stall", 0.95, 0.35, 0.30 end
+  local lost = gap - 1000
+  if lost < 0 then lost = 0 end
+  if lost < 40 then return "tight", 0.35, 0.92, 0.45 end
+  if lost < 80 then return "ok", 0.95, 0.78, 0.30 end
+  return "late", 0.95, 0.35, 0.30
+end
+
+function M.SkillCastPace(session)
+  local lost, early, stalls = {}, 0, 0
+  local tl = session and session.weave and session.weave.timeline
+  if type(tl) ~= "table" then
+    return { medianLostMs = 0, totalLostMs = 0, samples = 0, early = 0, stalls = 0 }
+  end
+  local prev = nil
+  for i = 1, #tl do
+    local item = tl[i]
+    if type(item) == "table" and item.kind ~= "la" and item.kind ~= "light"
+        and item.kind ~= "swap" and item.kind ~= "barswap" and item.kind ~= "postchannel" then
+      local t = tonumber(item.tMs)
+      local isChannel = item.kind == "channel"
+          or string.lower(tostring(item.result or "")) == "channel"
+      if prev and prev.t and t and not prev.channel then
+        local gap = t - prev.t
+        local band = M.CastPaceBand(gap)
+        if band == "early" then
+          early = early + 1
+        elseif band == "stall" then
+          stalls = stalls + 1
+        elseif band then
+          local waste = gap - 1000
+          if waste < 0 then waste = 0 end
+          lost[#lost + 1] = waste
+        end
+      end
+      if t then prev = { t = t, channel = isChannel } else prev = nil end
+    end
+  end
+  local n = #lost
+  local total = 0
+  for i = 1, n do total = total + lost[i] end
+  local median = 0
+  if n > 0 then
+    table.sort(lost)
+    local mid = math.floor(n / 2)
+    if n % 2 == 1 then median = lost[mid + 1]
+    else median = (lost[mid] + lost[mid + 1]) / 2 end
+  end
+  return {
+    medianLostMs = median,
+    totalLostMs = total,
+    samples = n,
+    early = early,
+    stalls = stalls,
+  }
+end
+
 -- Simple burst/drop windows from buckets (menu-local; ignore windows approx).
 local function analyzeBucketsLocal(session)
   local peaks, dips, candidates = {}, {}, {}
@@ -3570,6 +3635,7 @@ local function collectSkillTimelineEvents(session)
         isUltimate = isUlt,
         abilityId = abilityId,
         tMs = tonumber(item.tMs) or nil,
+        gapMs = tonumber(item.gapMs),
       }
     end
   end
@@ -4461,6 +4527,27 @@ local function buildDpsOpportunities(session)
         estDps = est,
         evidence = string.format("%d late weaves — LA lands but skill cadence slips", late),
         drill = "Press LA sooner after cast end; late LAs still waste global time.",
+      }
+    end
+  end
+
+  -- Cast pace: seconds past the cooldown, valued at this fight's average DPS.
+  -- Ceiling, not a promise — damage already ticking in the gap is still in the average.
+  local pace = M.SkillCastPace(session)
+  if pace.samples >= 8 and pace.medianLostMs >= 50 then
+    local avgDps = sessionAvgDps(session)
+    local lostSec = (tonumber(pace.totalLostMs) or 0) / 1000
+    local gain = (durSec > 0) and ((lostSec * avgDps) / durSec) or 0
+    if gain >= 200 then
+      opps[#opps + 1] = {
+        key = "cast_pace",
+        title = "Tighter cast timing",
+        estDps = gain,
+        evidence = string.format(
+          "%0.1fs recapturable · %0.3f s/cast · %s at fight DPS",
+          lostSec, pace.medianLostMs / 1000, fmtDpsDelta(gain)
+        ),
+        drill = "Queue the next skill as the cooldown ends. It will not fire any earlier.",
       }
     end
   end
@@ -9962,12 +10049,17 @@ end
 -- Rotation: summary + fine pulse + skill icons + pattern tips
 ---------------------------------------------------------------------
 local function createRotationUI(screen)
-  if screen.rotationUI and not screen.rotationUI._v31716 then screen.rotationUI = nil end
+  if screen.rotationUI and not screen.rotationUI._v31804 then
+    if screen.rotationUI.root and type(screen.rotationUI.root.SetHidden) == "function" then
+      screen.rotationUI.root:SetHidden(true)
+    end
+    screen.rotationUI = nil
+  end
   if screen.rotationUI then return screen.rotationUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.rotation
   if not panel then return nil end
-  local ui = { panel = panel, pulse = {}, icons = {}, patterns = {}, _v31716 = true }
+  local ui = { panel = panel, pulse = {}, icons = {}, patterns = {}, _v31804 = true }
 
   ui.root = WM:CreateControl("DM2StatsMenuRotRootV8", panel, CT_CONTROL)
   ui.root:SetAnchor(TOPLEFT, panel, TOPLEFT, 4, 2)
@@ -9977,7 +10069,7 @@ local function createRotationUI(screen)
   ui.title:SetText("ROTATION DIAGNOSTICS")
   ui.meta = makeDashLabel(ui.root, "DM2StatsMenuRotMetaV8", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.meta:SetAnchor(TOPLEFT, ui.title, BOTTOMLEFT, 0, 2)
-  ui.meta:SetText("|c66FF66border = good|r  |cFFCC66late|r  |cFF6666missed|r  |c66AAFFtoo fast|r  ·  |c88DDAAS|r swap / |cFFAA66U|r ult under icons")
+  ui.meta:SetText("|c66FF66border = good|r  |cFFCC66late|r  |cFF6666missed|r  |c66AAFFtoo fast|r  ·  top bar = cast pace  ·  |c88DDAAS|r swap / |cFFAA66U|r ult under icons")
 
   ui.sumPanel = WM:CreateControl("DM2StatsMenuRotSumV8", ui.root, CT_CONTROL)
   local sbg = makeSectionFrame(ui.sumPanel, "DM2StatsMenuRotSumBGV8", true)
@@ -10045,13 +10137,27 @@ local function createRotationUI(screen)
       fall:SetAnchor(CENTER, slot, CENTER, 0, 0)
       fall:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
       fall:SetHidden(true)
+      local cap = WM:CreateControl("DM2StatsMenuRotIconCapV11_" .. i, halo, CT_BACKDROP)
+      cap:SetDimensions(36, 3)
+      cap:SetAnchor(TOPLEFT, halo, TOPLEFT, 0, 0)
+      cap:SetCenterColor(0.35, 0.92, 0.45, 1)
+      cap:SetEdgeColor(0, 0, 0, 0)
+      cap:SetHidden(true)
+      stampForeground(cap, 80)
+      local tick = WM:CreateControl("DM2StatsMenuRotIconTickV11_" .. i, cap, CT_BACKDROP)
+      tick:SetDimensions(2, 3)
+      tick:SetAnchor(TOPLEFT, cap, TOPLEFT, 0, 0)
+      tick:SetCenterColor(0.05, 0.05, 0.06, 1)
+      tick:SetEdgeColor(0, 0, 0, 0)
+      tick:SetHidden(true)
+      stampForeground(tick, 90)
       local barTag = makeDashLabel(halo, "DM2StatsMenuRotIconBarV10_" .. i, 10, 1, 1, 1, 1)
       barTag:SetAnchor(TOPLEFT, halo, TOPLEFT, 1, -1)
       barTag:SetHidden(true)
       local markTag = makeDashLabel(wrap, "DM2StatsMenuRotIconMkV10_" .. i, 11, 0.55, 0.92, 0.75, 1)
       markTag:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
       markTag:SetHidden(true)
-      ui.icons[i] = { halo = halo, slot = slot, tex = tex, fall = fall, barTag = barTag, markTag = markTag }
+      ui.icons[i] = { halo = halo, slot = slot, tex = tex, fall = fall, cap = cap, tick = tick, barTag = barTag, markTag = markTag }
     end
     return #ui.icons
   end
@@ -10156,6 +10262,8 @@ local function refreshRotationUI(screen, session)
       elseif ic.slot then ic.slot:SetHidden(true) end
       if ic.markTag then ic.markTag:SetHidden(true) end
       if ic.barTag then ic.barTag:SetHidden(true) end
+      if ic.cap then ic.cap:SetHidden(true) end
+      if ic.tick then ic.tick:SetHidden(true) end
     end
     for i, line in ipairs(ui.patterns) do line:SetText(i == 1 and "Parse a fight to unlock patterns." or "") end
     return
@@ -10164,7 +10272,7 @@ local function refreshRotationUI(screen, session)
   local w = type(session.weave) == "table" and session.weave or {}
   ensurePhase3Summary(session)
   ui.meta:SetText(string.format(
-    "%s  ·  %s  ·  |c66FF66good|r  |cFFCC66late|r  |cFF6666miss|r  |c66AAFFfast|r · border = weave",
+    "%s  ·  %s  ·  |c66FF66good|r  |cFFCC66late|r  |cFF6666miss|r  |c66AAFFfast|r · border = weave · bar = pace",
     truncateText(session.lastTargetName or "fight", 28), fmtDur(session.durationMs)
   ))
   ui.sumLine1:SetText(string.format(
@@ -10173,11 +10281,19 @@ local function refreshRotationUI(screen, session)
     tonumber(w.onTimeCount) or 0, tonumber(w.lateCount) or 0,
     tonumber(w.missedCount) or 0, tonumber(w.tooFastCount) or 0
   ))
+  local pace = M.SkillCastPace(session)
+  local paceTxt = ""
+  if pace.samples >= 8 then
+    paceTxt = string.format("    Lost %0.3f s/cast", pace.medianLostMs / 1000)
+  elseif pace.early >= 8 then
+    paceTxt = "    Presses early"
+  end
   ui.sumLine2:SetText(string.format(
-    "LA hits %s    Skill presses %s    Bar swaps %s",
+    "LA hits %s    Skill presses %s    Bar swaps %s%s",
     tostring(sessionLaHits(session)),
     tostring(tonumber(w.inputSkillPresses) or tonumber(w.skillEventCount) or 0),
-    tostring(tonumber(w.barSwapCount) or 0)
+    tostring(tonumber(w.barSwapCount) or 0),
+    paceTxt
   ))
   if ui.markerLine then
     ui.markerLine:SetText("")
@@ -10244,6 +10360,21 @@ local function refreshRotationUI(screen, session)
     return best
   end
   local allEvents = collectSkillTimelineEvents(session)
+  for i = 1, #allEvents do
+    local ev = allEvents[i]
+    local nxt = allEvents[i + 1]
+    ev.toNextMs = nil
+    ev.paceBand = nil
+    if ev.result == "channel" then
+      ev.paceBand = "channel"
+    elseif nxt and ev.tMs and nxt.tMs then
+      local span = nxt.tMs - ev.tMs
+      if span > 0 then
+        ev.toNextMs = span
+        ev.paceBand = M.CastPaceBand(span)
+      end
+    end
+  end
   local totalSkills = #allEvents
   local gridAll = pickCell(math.min(totalSkills, ROT_TIMELINE_ICONS))
   local pageCap = math.min(gridAll.maxFit, ROT_TIMELINE_ICONS)
@@ -10344,6 +10475,37 @@ local function refreshRotationUI(screen, session)
           ic.barTag:SetHidden(true)
         end
       end
+      if ic.cap then
+        local band, pr, pg, pb = nil, nil, nil, nil
+        if ev.paceBand and ev.paceBand ~= "channel" then
+          band, pr, pg, pb = M.CastPaceBand(ev.toNextMs)
+        end
+        if band and pr then
+          ic.cap:ClearAnchors()
+          ic.cap:SetAnchor(TOPLEFT, host, TOPLEFT, 0, 0)
+          ic.cap:SetDimensions(cellSize, 3)
+          ic.cap:SetCenterColor(pr, pg, pb, 1)
+          ic.cap:SetEdgeColor(0, 0, 0, 0)
+          ic.cap:SetHidden(false)
+          local laGap = tonumber(ev.gapMs) or 0
+          local span = tonumber(ev.toNextMs) or 0
+          if ic.tick and laGap > 0 and span > 0 and band ~= "stall" then
+            local u = laGap / span
+            if u < 0 then u = 0 end
+            if u > 1 then u = 1 end
+            ic.tick:ClearAnchors()
+            ic.tick:SetAnchor(TOPLEFT, ic.cap, TOPLEFT, math.floor((cellSize - 2) * u), 0)
+            ic.tick:SetDimensions(2, 3)
+            ic.tick:SetCenterColor(0.05, 0.05, 0.06, 1)
+            ic.tick:SetHidden(false)
+          elseif ic.tick then
+            ic.tick:SetHidden(true)
+          end
+        else
+          ic.cap:SetHidden(true)
+          if ic.tick then ic.tick:SetHidden(true) end
+        end
+      end
       -- Per-icon S/U under the box (when swap/ult happened near this skill)
       if ic.markTag then
         local mk = markTags[i]
@@ -10374,6 +10536,8 @@ local function refreshRotationUI(screen, session)
       host:SetHidden(true)
       if ic.barTag then ic.barTag:SetHidden(true) end
       if ic.markTag then ic.markTag:SetHidden(true) end
+      if ic.cap then ic.cap:SetHidden(true) end
+      if ic.tick then ic.tick:SetHidden(true) end
     end
   end
   if ui.iconMarkerLine then
@@ -11449,7 +11613,20 @@ local function refreshInsightsUI(screen, session, mode)
   ensurePhase3Summary(session)
   local ex = session.execSummary
   if ui.execSummary then
-    ui.execSummary:SetText("4  ·  exception-driven (detail on Rotation)")
+    local pace = M.SkillCastPace(session)
+    local durSec = (tonumber(session.durationMs) or 0) / 1000
+    local lostSec = (tonumber(pace.totalLostMs) or 0) / 1000
+    local gain = (durSec > 0) and ((lostSec * sessionAvgDps(session)) / durSec) or 0
+    if pace.samples >= 8 then
+      ui.execSummary:SetText(string.format(
+        "Pace %0.3f s/cast · %0.1fs to recapture · %s DPS at fight average",
+        pace.medianLostMs / 1000, lostSec, fmtDpsDelta(gain)
+      ))
+    elseif pace.early >= 8 then
+      ui.execSummary:SetText("Presses landed early, so cast pace is not comparable on this pull.")
+    else
+      ui.execSummary:SetText("4  ·  exception-driven (detail on Rotation)")
+    end
   end
   local shown = 0
   if type(ex) == "table" and type(ex.lines) == "table" then

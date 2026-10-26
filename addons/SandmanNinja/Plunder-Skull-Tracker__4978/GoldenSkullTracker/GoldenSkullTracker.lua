@@ -1,26 +1,34 @@
 -- English-client reward detection; no external libraries required.
-GoldenSkullTracker = {}
-local A = GoldenSkullTracker
+-- AI-assisted code (ChatGPT/Codex); see CREDITS.txt for sources and review credits.
+local A = {}
+local VERSION = "1.1.2"
 A.name = "GoldenSkullTracker"
 local DAY = 86400
 local CATEGORIES = {
-    {key="delve", label="Delve", suffix="delve", tip="Any delve boss."},
-    {key="public", label="Public dungeon / IC Sweeper", suffix="public", tip="Any public dungeon boss OR Imperial City Sweeper. Shared category."},
-    {key="world", label="World boss", suffix="world", tip="Any overland world boss."},
-    {key="dungeon", label="Group dungeon", suffix="dungeon", tip="The FINAL boss of a group dungeon."},
-    {key="incursion", label="Incursion / world event", suffix="insurgent", tip="Dolmen, Geyser, Harrowstorm, Dragon, Volcanic Vent, Mosaic or Siege Camp. Shared category."},
-    {key="archive", label="Infinite Archive", suffix="infinite archive", tip="Tho'at Replicanum."},
-    {key="crow", label="Crowborne Horror", suffix="crowborne horror", tip="Defeat the Crowborne Horror, then TURN IN Plucking the Crow."},
-    {key="hollowjack", label="Lord Hollowjack", suffix="lord hollowjack", tip="Defeat Lord Hollowjack, then TURN IN The Lord of Fear."},
-    {key="trial", label="Trial", suffix="trial", tip="The FINAL boss of a trial."},
-    {key="arena", label="Arena", suffix="arena", tip="The FINAL boss of Maelstrom, Vateshran, Dragonstar or Blackrose Prison."},
+    {key="delve", label="Delve", tip="Any delve boss."},
+    {key="public", label="Public dungeon / IC Sweeper", tip="Any public dungeon boss OR Imperial City Sweeper. Shared category."},
+    {key="world", label="World boss", tip="Any overland world boss."},
+    {key="dungeon", label="Group dungeon", tip="The FINAL boss of a group dungeon."},
+    {key="incursion", label="Incursion / world event", tip="Dolmen, Geyser, Harrowstorm, Dragon, Volcanic Vent, Mosaic or Siege Camp. Shared category."},
+    {key="archive", label="Infinite Archive", tip="Tho'at Replicanum."},
+    {key="crow", label="Crowborne Horror", tip="Defeat the Crowborne Horror, then TURN IN Plucking the Crow."},
+    {key="hollowjack", label="Lord Hollowjack", tip="Defeat Lord Hollowjack, then TURN IN The Lord of Fear."},
+    {key="trial", label="Trial", tip="The FINAL boss of a trial."},
+    {key="arena", label="Arena", tip="The FINAL boss of Maelstrom, Vateshran, Dragonstar or Blackrose Prison."},
 }
-A.categories = CATEGORIES
+local SKULL_ALIASES = {
+    {"crowborne", "crow"}, {"crownborne", "crow"},
+    {"hollowjack", "hollowjack"}, {"public", "public"},
+    {"sweeper", "public"}, {"infinite", "archive"},
+    {"endless", "archive"}, {"insurgent", "incursion"},
+    {"incursion", "incursion"}, {"delve", "delve"},
+    {"dungeon", "dungeon"}, {"world", "world"},
+    {"trial", "trial"}, {"arena", "arena"},
+}
 
-local function Clean(text)
-    text = tostring(text or ""):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-    text = text:gsub("%^[%a]+", "")
-    return text:lower():gsub("%s+", " "):match("^%s*(.-)%s*$")
+local function Normalize(text)
+    -- Let ESO handle grammatical suffixes rather than parsing them ourselves.
+    return zo_strlower(zo_strformat("<<1>>", text or ""))
 end
 
 local function Chat(message)
@@ -65,21 +73,12 @@ function A:Record(key, source)
 end
 
 function A:CategoryForName(name)
-    name = Clean(name)
+    name = Normalize(name)
     -- Require the golden container's name, not a motif or an ordinary skull.
     if not name:find("dremora plunder skull", 1, true) then return nil end
     -- The skull name may have punctuation, suffixes or wording variants.
     -- Check specific categories before the generic word 'dungeon'.
-    local aliases = {
-        {"crowborne", "crow"}, {"crownborne", "crow"},
-        {"hollowjack", "hollowjack"}, {"public", "public"},
-        {"sweeper", "public"}, {"infinite", "archive"},
-        {"endless", "archive"}, {"insurgent", "incursion"},
-        {"incursion", "incursion"}, {"delve", "delve"},
-        {"dungeon", "dungeon"}, {"world", "world"},
-        {"trial", "trial"}, {"arena", "arena"},
-    }
-    for _, alias in ipairs(aliases) do
+    for _, alias in ipairs(SKULL_ALIASES) do
         if name:find(alias[1], 1, true) then return alias[2] end
     end
 end
@@ -96,12 +95,12 @@ end
 
 function A:Observe(value, source)
     local name = self:NameFromLinkOrText(value)
-    if not Clean(name):find("plunder skull", 1, true) then return end
+    if not Normalize(name):find("plunder skull", 1, true) then return end
     self.lastReward = name .. " [" .. source .. "]"
     local key = self:CategoryForName(name)
     if key then
         self:Record(key, source)
-    elseif Clean(name):find("dremora", 1, true) and self.lastUnknown ~= name then
+    elseif Normalize(name):find("dremora", 1, true) and self.lastUnknown ~= name then
         self.lastUnknown = name
         Chat("Unrecognised golden skull: " .. name .. ". /skulls debug shows detection details.")
     end
@@ -124,9 +123,9 @@ function A:BackpackSkullCounts()
     for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
         local link = GetItemLink(BAG_BACKPACK, slot, LINK_STYLE_DEFAULT)
         local name = self:NameFromLinkOrText(link)
-        if Clean(name):find("dremora plunder skull", 1, true) then
+        if Normalize(name):find("dremora plunder skull", 1, true) then
             local stack = GetSlotStackSize(BAG_BACKPACK, slot)
-            local key = Clean(name)
+            local key = Normalize(name)
             totals[key] = (totals[key] or 0) + stack
             slots[slot] = key
         end
@@ -134,11 +133,11 @@ function A:BackpackSkullCounts()
     return totals, slots
 end
 
-function A:OnInventoryUpdate(bag, slot, reason, change)
-    if bag ~= BAG_BACKPACK or reason ~= INVENTORY_UPDATE_REASON_DEFAULT then return end
+function A:OnInventoryUpdate(bag, slot, change)
+    -- Bag and reason are already restricted by native event filters.
     local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
     local name = self:NameFromLinkOrText(link)
-    local key = Clean(name)
+    local key = Normalize(name)
     if not key:find("dremora plunder skull", 1, true) and not (self.bagSlots and self.bagSlots[slot]) then return end
     -- Net backpack quantities distinguish newly awarded skulls from simply
     -- rearranging a bag. A bank withdrawal must never tick an old skull.
@@ -153,7 +152,8 @@ function A:OnInventoryUpdate(bag, slot, reason, change)
 end
 
 function A:Debug()
-    Chat("v1.1.0. Last skull: " .. (self.lastReward or "none observed this session"))
+    Chat("v" .. VERSION .. ". Last skull: " .. (self.lastReward or "none observed this session"))
+    if not self.englishClient then Chat("Automatic tracking requires the English client; manual checklist only.") end
     Chat("Reset: " .. (self.resetOffset == 36000 and "8:00 pm Brisbane (NA)." or "03:00 UTC (EU)."))
     for _, category in ipairs(CATEGORIES) do
         local entry = self.saved.completed[category.key]
@@ -168,7 +168,7 @@ end
 
 function A:OnQuestComplete(questName)
     -- Quest rewards are not guaranteed to raise EVENT_LOOT_RECEIVED.
-    local name = Clean(questName)
+    local name = Normalize(questName)
     if name == "plucking the crow" then self:Record("crow", "quest") end
     if name == "the lord of fear" then self:Record("hollowjack", "quest") end
 end
@@ -214,8 +214,11 @@ function A:CreateWindow()
         self.saved.x, self.saved.y = control:GetLeft(), control:GetTop()
     end)
     Backdrop(window, 0, 0, 690, 510, 0.065, 0.065, 0.075)
-    Label(window, "Golden Plunder Skulls", 18, 12, 610, "ZoFontWinH2")
-    Label(window, "TODAY - shared by all characters on this account and server", 18, 48, 650)
+    Label(window, "Golden Plunder Skulls", 18, 12, 530, "ZoFontWinH2")
+    local versionLabel = Label(window, "v" .. VERSION, 568, 18, 68, "ZoFontGameSmall")
+    versionLabel:SetColor(0.65, 0.65, 0.65, 1)
+    Label(window, self.englishClient and "TODAY - shared by all characters on this account and server"
+        or "English client required for automatic tracking - manual checklist only", 18, 48, 650)
     local close = WINDOW_MANAGER:CreateControlFromVirtual(nil, window, "ZO_DefaultButton")
     close:SetAnchor(TOPRIGHT, window, TOPRIGHT, -12, 10)
     close:SetDimensions(38, 30)
@@ -259,6 +262,7 @@ end
 function A:Refresh()
     self:EnsureDay()
     if not self.rows then return end
+    self.lastDisplayMinute = math.floor(GetTimeStamp() / 60)
     local count = 0
     for _, category in ipairs(CATEGORIES) do
         local completed = self.saved.completed[category.key]
@@ -274,38 +278,55 @@ function A:Refresh()
         self.resetOffset == 36000 and "8 pm Brisbane (NA)" or "03:00 UTC (EU)"))
 end
 
+function A:OnTimer()
+    local changedDay = self:EnsureDay()
+    if changedDay or (not self.window:IsHidden()
+        and self.lastDisplayMinute ~= math.floor(GetTimeStamp() / 60)) then
+        self:Refresh()
+    end
+end
+
 function A:Initialize()
     self.saved = ZO_SavedVars:NewAccountWide("GoldenSkullTrackerSaved", 1, nil,
         {day=-1, completed={}, visible=true}, GetWorldName())
     self.resetOffset = self:GetResetOffset()
+    self.englishClient = GetCVar("language.2") == "en"
     self:EnsureDay()
     self:CreateWindow()
     self:Refresh()
     SLASH_COMMANDS["/skulls"] = function(args)
-        if Clean(args) == "debug" then self:Debug() else self:SetVisible(self.window:IsHidden()) end
+        if Normalize(args) == "debug" then self:Debug() else self:SetVisible(self.window:IsHidden()) end
     end
     SLASH_COMMANDS["/goldenskulls"] = SLASH_COMMANDS["/skulls"]
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_LOOT_RECEIVED,
-        function(_, _, itemLink, quantity, _, _, isSelf) self:OnLoot(itemLink, quantity, isSelf) end)
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_QUEST_COMPLETE,
-        function(_, questName) self:OnQuestComplete(questName) end)
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_LOOT_UPDATED, function() self:OnLootUpdated() end)
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-        function(_, bag, slot, _, _, reason, change) self:OnInventoryUpdate(bag, slot, reason, change) end)
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_OPEN_BANK, function() self.bankOpen = true end)
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CLOSE_BANK, function()
-        self.bankOpen = false
-        self.bagCounts, self.bagSlots = self:BackpackSkullCounts()
-    end)
+    -- English text matching is deliberately disabled on other client languages.
+    if self.englishClient then
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_LOOT_RECEIVED,
+            function(_, _, itemLink, quantity, _, _, isSelf) self:OnLoot(itemLink, quantity, isSelf) end)
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_QUEST_COMPLETE,
+            function(_, questName) self:OnQuestComplete(questName) end)
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_LOOT_UPDATED, function() self:OnLootUpdated() end)
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            function(_, bag, slot, _, _, _, change) self:OnInventoryUpdate(bag, slot, change) end)
+        EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+        EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_OPEN_BANK, function() self.bankOpen = true end)
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CLOSE_BANK, function()
+            self.bankOpen = false
+            self.bagCounts, self.bagSlots = self:BackpackSkullCounts()
+        end)
+    end
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_PLAYER_ACTIVATED, function()
         self.resetOffset = self:GetResetOffset()
         self.bankOpen = false
-        self.bagCounts, self.bagSlots = self:BackpackSkullCounts()
+        if self.englishClient then
+            self.bagCounts, self.bagSlots = self:BackpackSkullCounts()
+        end
         self:Refresh()
     end)
     -- A light timer: also resets correctly while the window is closed.
-    EVENT_MANAGER:RegisterForUpdate(self.name, 1000, function() self:Refresh() end)
-    Chat("v1.1.0 ready. /skulls to toggle. Automatic boss-loot and inventory tracking enabled.")
+    EVENT_MANAGER:RegisterForUpdate(self.name, 1000, function() self:OnTimer() end)
 end
 
 EVENT_MANAGER:RegisterForEvent(A.name, EVENT_ADD_ON_LOADED, function(_, addonName)

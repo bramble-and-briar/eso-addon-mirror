@@ -1,8 +1,9 @@
 ## Title: House Directory
-## Author: TheGreyWolf98
-## Version: 1.0.0
-## AddOnVersion: 4
+## Author: @TheGreyWolf98
+## Version: 1.0.1
+## AddOnVersion: 5
 ## APIVersion: 101050 101051
 ## SavedVariables: TGWHouseDirectorySaved
-## Description: Owned houses, previews, furnishing snapshots and house links. /houses
+## Description: Browse owned and unowned homes, add notes, check furnishing space and travel or preview. Open /houses.
+Socials.lua
 HouseDirectory.lua

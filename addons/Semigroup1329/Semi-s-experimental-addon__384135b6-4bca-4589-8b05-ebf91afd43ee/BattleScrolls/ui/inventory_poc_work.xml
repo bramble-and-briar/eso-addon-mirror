@@ -21,6 +21,10 @@
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Task" relativePoint="BOTTOMLEFT" offsetY="18"/>
                             <Dimensions x="ZO_GAMEPAD_CONTENT_WIDTH"/>
                         </Label>
+                        <Label name="$(parent)Hint" font="ZoFontGamepadCondensed27" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Item" relativePoint="BOTTOMLEFT" offsetY="36"/>
+                            <Dimensions x="ZO_GAMEPAD_CONTENT_WIDTH"/>
+                        </Label>
                     </Controls>
                 </Control>
                 <Texture name="$(parent)HintBar" textureFile="EsoUI/Art/Windows/Gamepad/gp_hintbar.dds">

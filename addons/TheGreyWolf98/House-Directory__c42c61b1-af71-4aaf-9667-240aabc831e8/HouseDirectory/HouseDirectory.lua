@@ -81,31 +81,32 @@ function M.Build()
  local wm=WINDOW_MANAGER;local w=wm:CreateTopLevelWindow("TGWHouseDirectoryWindow");M.window=w
  w:SetDimensions(1180,840);w:SetAnchor(CENTER,GuiRoot,CENTER,0,0);w:SetHidden(true)
  local sw,sh=GuiRoot:GetDimensions();w:SetScale(math.min(1,sw/1240,sh/900))
- local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.055,.043,.033,1);bg:SetEdgeColor(.52,.39,.21,1)
+ local bg=wm:CreateControl(nil,w,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.025,.035,.05,1);bg:SetEdgeColor(.55,.36,.13,1)
  local function Label(x,y,width,height,font)
   local c=wm:CreateControl(nil,w,CT_LABEL);c:SetAnchor(TOPLEFT,w,TOPLEFT,x,y);c:SetDimensions(width,height);c:SetFont(font);c:SetColor(.9,.85,.75,1);return c
  end
- local title=Label(35,22,1100,45,"ZoFontGamepad34");title:SetText("House Directory");title:SetColor(.92,.75,.44,1)
+ local title=Label(35,22,1100,45,"$(GAMEPAD_MEDIUM_FONT)|34|soft-shadow-thin");title:SetText("House Directory");title:SetColor(.92,.75,.44,1)
  local rule=wm:CreateControl(nil,w,CT_BACKDROP);rule:SetAnchor(TOPLEFT,w,TOPLEFT,35,122);rule:SetDimensions(1110,2);rule:SetCenterColor(.5,.37,.2,.8);rule:SetEdgeColor(0,0,0,0)
- M.heading=Label(35,82,1100,35,"ZoFontGamepad27")
+ M.heading=Label(35,82,1100,35,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin")
  local panel=wm:CreateControl(nil,w,CT_BACKDROP);panel:SetAnchor(TOPLEFT,w,TOPLEFT,610,135);panel:SetDimensions(535,600);panel:SetCenterColor(.075,.061,.046,1);panel:SetEdgeColor(.38,.29,.17,1)
  local frame=wm:CreateControl(nil,w,CT_BACKDROP);frame:SetAnchor(TOPLEFT,w,TOPLEFT,626,151);frame:SetDimensions(503,228);frame:SetCenterColor(.025,.02,.015,1);frame:SetEdgeColor(.6,.46,.26,1)
  M.image=wm:CreateControl(nil,w,CT_TEXTURE);M.image:SetAnchor(TOPLEFT,w,TOPLEFT,630,155);M.image:SetDimensions(495,220)
  M.image:SetTextureCoords(0,1,0,1)
- M.imageFallback=Label(650,240,455,60,"ZoFontGamepad27")
- M.houseTitle=Label(630,395,495,60,"ZoFontGamepad27")
- M.houseNote=Label(630,460,495,65,"ZoFontGamepad22")
- M.detail=Label(630,595,495,130,"ZoFontGamepad20")
+ M.imageFallback=Label(650,240,455,60,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin")
+ M.houseTitle=Label(630,395,495,64,"$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thin")
+ M.houseNote=Label(630,460,495,70,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ M.detail=Label(630,590,495,144,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ M.houseNote:SetMaxLineCount(2)
  M.houseTitle:SetColor(.94,.78,.48,1);M.houseNote:SetColor(.78,.71,.6,1)
  M.barTrack=wm:CreateControl(nil,w,CT_BACKDROP);M.barTrack:SetAnchor(TOPLEFT,w,TOPLEFT,630,535);M.barTrack:SetDimensions(495,10);M.barTrack:SetCenterColor(.025,.022,.017,1);M.barTrack:SetEdgeColor(.35,.28,.18,1)
  M.barFill=wm:CreateControl(nil,w,CT_BACKDROP);M.barFill:SetAnchor(TOPLEFT,M.barTrack,TOPLEFT,1,1);M.barFill:SetDimensions(1,8);M.barFill:SetCenterColor(.68,.5,.25,1);M.barFill:SetEdgeColor(0,0,0,0)
- M.capacityLabel=Label(630,555,495,35,"ZoFontGamepad20")
+ M.capacityLabel=Label(630,555,495,35,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
  M.highlights={}
  M.labels={};for i=1,10 do
-  local shade=wm:CreateControl(nil,w,CT_BACKDROP);shade:SetAnchor(TOPLEFT,w,TOPLEFT,30,138+(i-1)*57);shade:SetDimensions(560,55);shade:SetCenterColor(.22,.17,.095,.85);shade:SetEdgeColor(.42,.32,.17,.7);shade:SetHidden(true);M.highlights[i]=shade
- M.labels[i]=Label(35,140+(i-1)*57,550,55,"ZoFontGamepad22");M.labels[i]:SetMaxLineCount(2)end
- M.listFooter=Label(35,725,550,30,"ZoFontGamepad18")
- Label(35,775,1100,45,"ZoFontGamepad18"):SetText("A: expand / collapse category  |  Hold D-pad: move  |  LT/RT: page  |  RS: edit house note\n@TheGreyWolf98  |  1.0.0  |  /houses")
+  local shade=wm:CreateControl(nil,w,CT_BACKDROP);shade:SetAnchor(TOPLEFT,w,TOPLEFT,30,138+(i-1)*57);shade:SetDimensions(560,55);shade:SetCenterColor(.15,.18,.23,1);shade:SetEdgeColor(.85,.65,.28,1);shade:SetHidden(true);M.highlights[i]=shade
+ M.labels[i]=Label(35,140+(i-1)*57,550,55,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin");M.labels[i]:SetMaxLineCount(2)end
+ M.listFooter=Label(35,725,550,30,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin")
+ Label(35,770,1100,65,"$(GAMEPAD_MEDIUM_FONT)|24|soft-shadow-thin"):SetText("A: expand category  |  D-pad: move  |  LT/RT: page  |  RS: note\n@TheGreyWolf98  |  1.0.1  |  /houses")
  function M.StopRepeat()EVENT_MANAGER:UnregisterForUpdate(M.name.."Repeat");M.held=nil end
  function M.Selected()
   local entry=M.Entries()[M.cursor];return entry and entry.house
@@ -122,6 +123,7 @@ function M.Build()
   if entry and entry.group then M.expanded[entry.group]=not M.expanded[entry.group];M.Render()end
  end
  local keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
+ TGWHouseDirectorySocials.Keybind(),
  {name="Owned / Unowned",keybind="UI_SHORTCUT_LEFT_SHOULDER",callback=Tab},
  {name="Owned / Unowned",keybind="UI_SHORTCUT_RIGHT_SHOULDER",callback=Tab},
  {name="Expand / collapse",keybind="UI_SHORTCUT_PRIMARY",visible=function()return M.Selected()==nil end,callback=Toggle},

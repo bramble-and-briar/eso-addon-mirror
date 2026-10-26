@@ -1,0 +1,5 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="HTH_Root" hidden="true" />
+    </Controls>
+</GuiXml>

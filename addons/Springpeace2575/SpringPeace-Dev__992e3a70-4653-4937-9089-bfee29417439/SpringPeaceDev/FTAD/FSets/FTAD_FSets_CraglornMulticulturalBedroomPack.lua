@@ -1,0 +1,28 @@
+FurnishThemAllData_FSets_CraglornMulticulturalBedroomPack = {
+    name = "Craglorn Multicultural Bedroom Pack",
+    source = "Furnishing Sets",
+    collection = {
+        [1] = {
+            { name = "Ram Horns, Mounted" },
+            { name = "Redguard Armchair, Slatted" },
+            { name = "Redguard Bed, Full Arched" },
+            { name = "Redguard Candelabra, Twisted" },
+            { name = "Redguard Chair, Lattice" },
+            { name = "Redguard Chandelier, Polished Grated" },
+            { name = "Redguard Divider, Gilded" },
+            { name = "Redguard Divider, Lattice" },
+            { name = "Redguard Footlocker, Bolted" },
+            { name = "Redguard Pillow Roll, Sands" },
+            { name = "Redguard Pillow, Florid Sands" },
+            { name = "Redguard Pillow, Oasis" },
+            { name = "Redguard Pillow, Sunset" },
+            { name = "Redguard Table, Game" },
+            { name = "Redguard Table, Oasis" },
+            { name = "Redguard Tapestry, Lattice" },
+            { name = "Redguard Throw Pillow, Oasis" },
+            { name = "Redguard Trunk, Garish" },
+            { name = "Redguard Vanity, Bolted" },
+            { name = "Redguard Wardrobe, Braced" },
+        },
+    },
+}

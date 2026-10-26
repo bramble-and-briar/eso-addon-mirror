@@ -1,0 +1,7 @@
+## Title: DelugeBlame
+## Author: Æric
+## Description: Prints the @accountID of players who were not swimming when the Rapid Deluge debuff ends.
+## Version: 1.0.0
+## APIVersion: 101051
+
+DelugeBlame.lua

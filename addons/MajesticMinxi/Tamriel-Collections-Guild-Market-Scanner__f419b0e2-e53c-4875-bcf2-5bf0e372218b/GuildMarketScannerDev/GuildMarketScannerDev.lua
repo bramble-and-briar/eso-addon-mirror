@@ -2,7 +2,7 @@
 -- Local-only; L3 scans additional trader pages and caches collection matches.
 GuildMarketScannerDev = GuildMarketScannerDev or {}
 local GMS = GuildMarketScannerDev
-GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.5u'
+GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.6k'
 GMS.enabled, GMS.traderOpen, GMS.keybindAttached = false, false, false
 -- Diagnostics are disabled in normal gameplay. /gmsdebug toggles them for testing.
 GMS.debug = false
@@ -907,6 +907,78 @@ local function GMSNativeCategorySelection(feature)
 end
 
 -- Focused second-level selection probe. Reports values only; never changes filters.
+
+-- v1.0.5z: Jewelry-specific read-only selection diagnostic.
+function GMS:ProbeJewelrySelection()
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.searchCategoryFeature
+    GMSCategoryLine('JEWELRY PROBE v1.0.6a')
+    if type(feature)~='table' then GMSCategoryLine('No category feature'); return end
+    local params=feature.selectedCategoryParams
+    GMSCategoryLine('header='..tostring(feature.selectedHeader)..' parent='..tostring(GMSNativeCategorySelection(feature))..' third='..tostring(feature.selectedSubcategoryKey))
+    if type(params)=='table' then
+        for _,k in ipairs({'key','name','text','label','equipType','equipmentType','categoryKey','itemType','index','categoryIndex'}) do
+            GMSCategoryLine('params.'..k..'='..tostring(params[k]))
+        end
+    end
+    local map=feature.headerToCategoriesMap
+    local choices=type(map)=='table' and map[feature.selectedHeader]
+    if type(choices)=='table' then
+        for i,v in ipairs(choices) do
+            if i>8 then break end
+            if type(v)=='table' then
+                GMSCategoryLine('option['..i..'] key='..tostring(v.key)..' name='..tostring(v.name)..' text='..tostring(v.text)..' equip='..tostring(v.equipType))
+            end
+        end
+    end
+    local sample=0
+    for _,entry in ipairs(self.collected or {}) do
+        local d=entry.data
+        local link=type(d)=='table' and (d.itemLink or d.gmsItemLink or d.link)
+        if type(link)=='string' and type(GetItemLinkEquipType)=='function' then
+            local ok,equip=pcall(GetItemLinkEquipType,link)
+            if ok and (equip==EQUIP_TYPE_NECK or equip==EQUIP_TYPE_RING) then
+                GMSCategoryLine('sample equip='..tostring(equip)..' neck='..tostring(EQUIP_TYPE_NECK)..' ring='..tostring(EQUIP_TYPE_RING)..' name='..tostring(d.name or d.itemName):sub(1,28))
+                sample=sample+1
+                if sample>=2 then break end
+            end
+        end
+    end
+    GMSCategoryLine('END JEWELRY PROBE')
+end
+
+
+-- v1.0.6d: Read-only native category-depth probe. Do not alter matching.
+function GMS:ProbeFilterDepth()
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE
+        or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.searchCategoryFeature
+    GMSCategoryLine('DEPTH PROBE v1.0.6f')
+    if type(feature)~='table' then
+        GMSCategoryLine('Category feature unavailable')
+        return
+    end
+    GMSCategoryLine('header='..tostring(feature.selectedHeader))
+    GMSCategoryLine('parent='..tostring(GMSNativeCategorySelection(feature)))
+    GMSCategoryLine('subcategory='..tostring(feature.selectedSubcategoryKey))
+    local params=feature.selectedCategoryParams
+    if type(params)=='table' then
+        for _,k in ipairs({'key','name','text','label','itemType','equipType','weaponType','armorType','specializedItemType'}) do
+            local v=params[k]
+            if type(v)=='string' or type(v)=='number' then
+                GMSCategoryLine('params.'..k..'='..tostring(v))
+            end
+        end
+    end
+    for _,k in ipairs({'selectedCategoryKey','selectedSubcategoryKey','selectedLevelType','selectedLevelRange','selectedLevel','selectedChampionPoints'}) do
+        local v=feature[k]
+        if type(v)=='string' or type(v)=='number' or type(v)=='boolean' then
+            GMSCategoryLine('feature.'..k..'='..tostring(v))
+        end
+    end
+    GMSCategoryLine('END DEPTH PROBE')
+end
+
 function GMS:ProbeParentDropdown()
     GMSCategoryLine('v1.0.5r SECOND LEVEL SELECTION')
     local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
@@ -965,8 +1037,8 @@ local function GMSCategoryFamily(feature,header)
                     local lower=string.lower(key)
                     if string.sub(lower,1,3)=='all' then lower=string.sub(lower,4) end
                     for _,family in ipairs({'weapons','apparel','jewelry','jewellery','consumables',
-                        'materials','glyphs','furnishings','companionequipment','miscellaneous'}) do
-                        if string.find(lower,family,1,true)==1 then return family end
+                        'materials','glyphs','furnishings','companionequipment','miscellaneous','misc'}) do
+                        if string.find(lower,family,1,true)==1 then return family=='misc' and 'miscellaneous' or family end
                     end
                 end
             end
@@ -996,91 +1068,193 @@ function GMS:ReadCachedCategory()
     local parentKey=GMSNativeCategorySelection(feature)
     local specialized=type(key)=='string' and tonumber(string.match(key,'^SpecializedItemType(%d+)$')) or nil
     local family=GMSCategoryFamily(feature,header)
+    if family==nil and type(parentKey)=='string' then
+        local lower=string.lower(parentKey)
+        if string.find(lower,'misc',1,true)==1 then family='miscellaneous' end
+    end
     return tostring(header)..':'..tostring(parentKey)..':'..tostring(key),specialized,header,parentKey,family
 end
--- v1.0.5u: second-level matching based on ESO's selectedCategoryParams.
--- Unrecognized native keys intentionally fall back to the verified first-level
--- matcher, rather than excluding items on an invented mapping.
+-- v1.0.5v: Native category labels and ESO item attributes must be matched
+-- independently. Native dropdown keys (Weapons6, Consumable3, etc.) are
+-- category IDs, NOT GetItemLinkWeaponType / GetItemLinkArmorType enum values.
+-- Read the food/drink type of the item produced by a provisioning recipe.
+-- Not all ESO builds expose these functions; unavailable data stays unknown.
+local function GMSRecipeResultType(recipeLink)
+    local fn=GetItemLinkRecipeResultItemLink
+    if type(fn)=='function' then
+        local ok,result=pcall(fn,recipeLink)
+        if ok and type(result)=='string' and result~='' and type(GetItemLinkItemType)=='function' then
+            local resultOk,itemType=pcall(GetItemLinkItemType,result)
+            if resultOk then return itemType end
+        end
+    end
+    return nil
+end
+
 local function GMSMatchSecondLevel(link,itemType,parent,family)
     if type(parent)~='string' or parent=='' or string.sub(parent,1,3)=='All' then return nil end
-    local p=string.lower(parent)
     local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
     local feature=browse and browse.features and browse.features.searchCategoryFeature
     local params=feature and feature.selectedCategoryParams
-    if type(params)=='table' and type(params.name)=='string' then
-        p=p..' '..string.lower(params.name)
-    end
-    local function one(...) return GMSIsItemType(itemType,...) end
-    local function equip()
-        if type(GetItemLinkEquipType)~='function' then return nil end
-        local ok,v=pcall(GetItemLinkEquipType,link)
-        return ok and v or nil
-    end
-    local function itemField(api)
-        if type(api)~='function' then return nil end
-        local ok,v=pcall(api,link)
-        return ok and v or nil
-    end
-    -- Miscellaneous is unusual: ESO immediately selects a child (Soul Gem).
-    -- Its native category does not provide an 'all' selection.
-    if family=='miscellaneous' then
-        if string.find(p,'soul',1,true) then return one(ITEMTYPE_SOUL_GEM) end
-        if string.find(p,'lure',1,true) then return one(ITEMTYPE_LURE) end
-        if string.find(p,'tool',1,true) then return one(ITEMTYPE_TOOL) end
-        if string.find(p,'siege',1,true) then return one(ITEMTYPE_SIEGE) end
-        if string.find(p,'tabard',1,true) then return equip()==EQUIP_TYPE_COSTUME or one(ITEMTYPE_TABARD) end
-        if string.find(p,'trophy',1,true) then
-            return one(ITEMTYPE_TROPHY,ITEMTYPE_TREASURE_MAP,ITEMTYPE_COLLECTIBLE,
-                ITEMTYPE_RECIPE_FRAGMENT,ITEMTYPE_CONTAINER,ITEMTYPE_RUNBOX)
+    local label=type(params)=='table' and (params.name or params.text or params.label) or nil
+    -- v1.0.5x: Some native selectedCategoryParams entries omit their display
+    -- name. Resolve it through ESO's own category table by the selected key.
+    if (type(label)~='string' or label=='') and feature then
+        local map=feature.headerToCategoriesMap
+        local selectedHeader=feature.selectedHeader
+        local entries=type(map)=='table' and map[selectedHeader]
+        if type(entries)=='table' then
+            for _,candidate in pairs(entries) do
+                if type(candidate)=='table' and candidate.key==parent then
+                    label=candidate.name or candidate.text or candidate.label
+                    if type(label)=='string' then break end
+                end
+            end
         end
-        return nil
+    end
+    local p=type(label)=='string' and string.lower(label) or ''
+    local key=string.lower(parent)
+    local function has(word) return string.find(p,word,1,true)~=nil end
+    local function one(...) return GMSIsItemType(itemType,...) end
+    local function field(fn)
+        if type(fn)~='function' then return nil end
+        local ok,value=pcall(fn,link)
+        return ok and value or nil
+    end
+    local equip=field(GetItemLinkEquipType)
+    local selectedEquip=type(params)=='table' and (params.equipType or params.equipmentType) or nil
+    -- The native listing may carry an equip slot even when the link API
+    -- cannot resolve it. Do not discard all jewelry on a missing slot.
+    if equip==nil then
+        local panelData=GMS._categoryMatchEntryData
+        if type(panelData)=='table' then equip=panelData.equipType end
     end
     if family=='weapons' then
-        local number=tonumber(string.match(parent,'^Weapons?(%d+)$'))
-        if number then
-            local actual=itemField(GetItemLinkWeaponType)
-            if actual~=nil then return actual==number end
-        end
+        local weapon=field(GetItemLinkWeaponType)
+        if weapon==nil then return false end
+        if has('one') or has('1h') then
+            return weapon==WEAPONTYPE_AXE or weapon==WEAPONTYPE_HAMMER
+                or weapon==WEAPONTYPE_SWORD or weapon==WEAPONTYPE_DAGGER
+        elseif has('two') or has('2h') then
+            return weapon==WEAPONTYPE_TWO_HANDED_AXE or weapon==WEAPONTYPE_TWO_HANDED_HAMMER
+                or weapon==WEAPONTYPE_TWO_HANDED_SWORD
+        elseif has('bow') then return weapon==WEAPONTYPE_BOW
+        elseif has('destruction') then
+            return weapon==WEAPONTYPE_FIRE_STAFF or weapon==WEAPONTYPE_FROST_STAFF
+                or weapon==WEAPONTYPE_LIGHTNING_STAFF
+        elseif has('restoration') then return weapon==WEAPONTYPE_HEALING_STAFF
+        elseif has('shield') then return equip==EQUIP_TYPE_OFF_HAND end
+        return false -- Never interpret WeaponsN as a weapon-type enum.
     elseif family=='apparel' then
+        -- Keep the previously verified apparel logic, including ArmorN matching.
         local number=tonumber(string.match(parent,'^Armor(%d+)$'))
         if number then
-            local actual=itemField(GetItemLinkArmorType)
+            local actual=field(GetItemLinkArmorType)
             if actual~=nil then return actual==number end
         end
-        if string.find(p,'shield',1,true) then return equip()==EQUIP_TYPE_OFF_HAND end
+        if has('shield') then return equip==EQUIP_TYPE_OFF_HAND end
+        return nil
     elseif family=='jewelry' or family=='jewellery' then
-        if string.find(p,'ring',1,true) then return equip()==EQUIP_TYPE_RING end
-        if string.find(p,'neck',1,true) then return equip()==EQUIP_TYPE_NECK end
-    elseif family=='consumables' then
-        if parent=='Consumable8' or string.find(p,'motif',1,true) or string.find(p,'racialstyle',1,true) then
-            return one(ITEMTYPE_RACIAL_STYLE_MOTIF)
+        -- Jewelry's native keys can be opaque and its display names can be
+        -- absent on gamepad. ESO's ordered category list has All Pieces,
+        -- Neck, Ring; use that selection order when no readable label exists.
+        local selectedKind=nil
+        if has('neck') or key:find('neck',1,true) or selectedEquip==EQUIP_TYPE_NECK then
+            selectedKind='neck'
+        elseif has('ring') or key:find('ring',1,true) or selectedEquip==EQUIP_TYPE_RING then
+            selectedKind='ring'
+        else
+            local map=feature and feature.headerToCategoriesMap
+            local entries=type(map)=='table' and map[feature.selectedHeader]
+            if type(entries)=='table' then
+                local chosenIndex=nil
+                for i,choice in ipairs(entries) do
+                    if type(choice)=='table' and choice.key==parent then
+                        chosenIndex=i
+                        break
+                    end
+                end
+                if chosenIndex==2 then selectedKind='neck'
+                elseif chosenIndex==3 then selectedKind='ring' end
+            end
         end
-        if string.find(p,'recipe',1,true) then return one(ITEMTYPE_RECIPE) end
-        if string.find(p,'potion',1,true) then return one(ITEMTYPE_POTION) end
-        if string.find(p,'poison',1,true) then return one(ITEMTYPE_POISON) end
-        if string.find(p,'food',1,true) then return one(ITEMTYPE_FOOD) end
-        if string.find(p,'drink',1,true) then return one(ITEMTYPE_DRINK) end
-        if string.find(p,'writ',1,true) then return one(ITEMTYPE_MASTER_WRIT) end
+        if selectedKind=='neck' then
+            return equip~=nil and equip==EQUIP_TYPE_NECK or false
+        elseif selectedKind=='ring' then
+            return equip~=nil and equip==EQUIP_TYPE_RING or false
+        end
+        -- All Pieces retains first-level Jewelry filtering.
+        return nil
+    elseif family=='consumables' then
+        if parent=='Consumable8' or has('motif') then return one(ITEMTYPE_RACIAL_STYLE_MOTIF) end
+        if has('furnish') and (has('plan') or has('blueprint')) then
+            if not one(ITEMTYPE_RECIPE) then return false end
+            -- ESO furnishing plans are recipes, but the specialized subtype
+            -- link API may be unavailable on gamepad. Plan-name prefixes
+            -- distinguish them from food and drink recipes.
+            local itemName=field(GetItemLinkName)
+            local n=type(itemName)=='string' and string.lower(itemName) or ''
+            return n:find('^blueprint:')~=nil or n:find('^pattern:')~=nil
+                or n:find('^design:')~=nil or n:find('^diagram:')~=nil
+                or n:find('^praxis:')~=nil or n:find('^formula:')~=nil
+                or n:find('^sketch:')~=nil
+        end
+        if has('recipe') then
+            if not one(ITEMTYPE_RECIPE) then return false end
+            local itemName=field(GetItemLinkName)
+            local n=type(itemName)=='string' and string.lower(itemName) or ''
+            if n:find('^recipe:')==nil then return false end
+            local resultType=GMSRecipeResultType(link)
+            if has('food') then
+                if resultType~=nil then return resultType==ITEMTYPE_FOOD end
+                -- Never classify every unknown provisioning recipe as food.
+                return false
+            end
+            if has('drink') then
+                if resultType~=nil then return resultType==ITEMTYPE_DRINK end
+                return false
+            end
+            return true
+        end
+        if has('container') then return one(ITEMTYPE_CONTAINER) end
+        if has('repair') then return one(ITEMTYPE_AVA_REPAIR) end
+        if has('scroll') then return one(ITEMTYPE_CROWN_ITEM,ITEMTYPE_TOOL) end
+        if has('potion') then return one(ITEMTYPE_POTION) end
+        if has('poison') then return one(ITEMTYPE_POISON) end
+        if has('food') then return one(ITEMTYPE_FOOD) end
+        if has('drink') then return one(ITEMTYPE_DRINK) end
+        return false
+    elseif family=='miscellaneous' then
+        if has('soul') then return one(ITEMTYPE_SOUL_GEM) end
+        if has('lure') then return one(ITEMTYPE_LURE) end
+        if has('tool') then return one(ITEMTYPE_TOOL) end
+        if has('siege') then return one(ITEMTYPE_SIEGE) end
+        if has('tabard') then return one(ITEMTYPE_TABARD) end
+        if has('trophy') then
+            return one(ITEMTYPE_TROPHY,ITEMTYPE_TREASURE_MAP,ITEMTYPE_COLLECTIBLE,
+                ITEMTYPE_RECIPE_FRAGMENT,ITEMTYPE_RUNBOX)
+        end
+        return false
     elseif family=='glyphs' then
-        if string.find(p,'weapon',1,true) then return one(ITEMTYPE_GLYPH_WEAPON) end
-        if string.find(p,'armor',1,true) then return one(ITEMTYPE_GLYPH_ARMOR) end
-        if string.find(p,'jewel',1,true) then return one(ITEMTYPE_GLYPH_JEWELRY) end
+        if has('weapon') then return one(ITEMTYPE_GLYPH_WEAPON) end
+        if has('armor') then return one(ITEMTYPE_GLYPH_ARMOR) end
+        if has('jewel') then return one(ITEMTYPE_GLYPH_JEWELRY) end
     elseif family=='companionequipment' then
-        if string.find(p,'weapon',1,true) then return one(ITEMTYPE_COMPANION_WEAPON) end
-        if string.find(p,'armor',1,true) then return one(ITEMTYPE_COMPANION_ARMOR) end
-        if string.find(p,'jewel',1,true) then return one(ITEMTYPE_COMPANION_JEWELRY) end
+        if has('weapon') then return one(ITEMTYPE_COMPANION_WEAPON) end
+        if has('armor') then return one(ITEMTYPE_COMPANION_ARMOR) end
+        if has('jewel') then return one(ITEMTYPE_COMPANION_JEWELRY) end
     elseif family=='furnishings' then
-        if string.find(p,'material',1,true) then return one(ITEMTYPE_FURNISHING_MATERIAL) end
-        if string.find(p,'furnish',1,true) then return one(ITEMTYPE_FURNISHING) end
+        if has('material') then return one(ITEMTYPE_FURNISHING_MATERIAL) end
+        if has('furnish') then return one(ITEMTYPE_FURNISHING) end
     elseif family=='materials' then
-        if string.find(p,'alchemy',1,true) then return one(ITEMTYPE_ALCHEMY_BASE,ITEMTYPE_ALCHEMY_REAGENT) end
-        if string.find(p,'enchant',1,true) or string.find(p,'rune',1,true) then
+        if has('alchemy') then return one(ITEMTYPE_ALCHEMY_BASE,ITEMTYPE_ALCHEMY_REAGENT) end
+        if has('enchant') or has('rune') then
             return one(ITEMTYPE_ENCHANTING_RUNE_ASPECT,ITEMTYPE_ENCHANTING_RUNE_ESSENCE,ITEMTYPE_ENCHANTING_RUNE_POTENCY)
         end
-        if string.find(p,'ingredient',1,true) or string.find(p,'provision',1,true) then return one(ITEMTYPE_INGREDIENT) end
-        if string.find(p,'style',1,true) then return one(ITEMTYPE_STYLE_MATERIAL) end
-        if string.find(p,'trait',1,true) then return one(ITEMTYPE_ARMOR_TRAIT,ITEMTYPE_WEAPON_TRAIT,ITEMTYPE_JEWELRY_TRAIT) end
-        if string.find(p,'furnish',1,true) then return one(ITEMTYPE_FURNISHING_MATERIAL) end
+        if has('ingredient') or has('provision') then return one(ITEMTYPE_INGREDIENT) end
+        if has('style') then return one(ITEMTYPE_STYLE_MATERIAL) end
+        if has('trait') then return one(ITEMTYPE_ARMOR_TRAIT,ITEMTYPE_WEAPON_TRAIT,ITEMTYPE_JEWELRY_TRAIT) end
+        if has('furnish') then return one(ITEMTYPE_FURNISHING_MATERIAL) end
     end
     return nil
 end
@@ -1094,9 +1268,83 @@ function GMS:CachedCategoryMatches(entry)
     end
     local ok,itemType,specialized=pcall(GetItemLinkItemType,link)
     if not ok then return self.gmsCategorySpecialized==nil and family==nil end
+    -- v1.0.6a: Jewelry's visible Neck/Ring choices are stored by ESO in
+    -- selectedSubcategoryKey (EquipType2 / EquipType12), NOT the parent key.
+    -- Use the verified native equip-type values and the actual item link.
+    if family=='jewelry' or family=='jewellery' then
+        local browse=GAMEPAD_TRADING_HOUSE_BROWSE
+            or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+        local feature=browse and browse.features and browse.features.searchCategoryFeature
+        local subkey=feature and feature.selectedSubcategoryKey
+        local selectedEquip=type(subkey)=='string'
+            and tonumber(string.match(subkey,'^EquipType(%d+)$')) or nil
+        if selectedEquip~=nil then
+            if type(GetItemLinkEquipType)~='function' then return false end
+            local equipOk,equip=pcall(GetItemLinkEquipType,link)
+            return equipOk and equip==selectedEquip
+        end
+    end
+    -- v1.0.6b: Third-level native subtype keys are independent of the
+    -- selected parent. Apply known ESO item-link enums before parent matching.
+    -- AllSubcategories deliberately leaves the parent filter active.
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE
+        or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.searchCategoryFeature
+    local subkey=feature and feature.selectedSubcategoryKey
+    if type(subkey)=='string' and subkey~='AllSubcategories' then
+        local subtype,number=string.match(subkey,'^(%a+)(%d+)$')
+        number=tonumber(number)
+        local getter=nil
+        if subtype=='EquipType' then getter=GetItemLinkEquipType
+        elseif subtype=='ArmorType' then getter=GetItemLinkArmorType
+        elseif subtype=='WeaponType' then getter=GetItemLinkWeaponType
+        elseif subtype=='ItemType' then
+            return itemType==number
+        end
+        if getter~=nil and type(getter)=='function' then
+            local valid,actual=pcall(getter,link)
+            if not valid or actual~=number then return false end
+            -- The parent still needs to match; do not return true here.
+        end
+    end
+    -- v1.0.6f: Miscellaneous Trophy has its own native subcategory-key
+    -- namespace. Preserve the working weapon/apparel/jewelry paths above.
+    -- Parent Trophy matching remains handled by GMSMatchSecondLevel below.
+    if family=='miscellaneous' and type(subkey)=='string' then
+        local trophyIndex=tonumber(string.match(subkey,'^TrophySubcategory(%d+)$'))
+        if trophyIndex~=nil then
+            local function equalsType(...)
+                for i=1,select('#',...) do
+                    local t=select(i,...)
+                    if t~=nil and itemType==t then return true end
+                end
+                return false
+            end
+            -- The ESO menu orders these as Treasure Map, Recipe Fragment,
+            -- Scroll, Runebox Fragment, Other Trophies.
+            if trophyIndex==1 then return equalsType(ITEMTYPE_TREASURE_MAP) end
+            if trophyIndex==2 then return equalsType(ITEMTYPE_RECIPE_FRAGMENT) end
+            if trophyIndex==3 then
+                -- Scroll is represented by different item classifications
+                -- across ESO releases; do not claim a verified match here.
+                return equalsType(ITEMTYPE_TROPHY) and
+                    type(GetItemLinkName)=='function' and
+                    string.find(string.lower(GetItemLinkName(link) or ''),'scroll',1,true)~=nil
+            end
+            if trophyIndex==4 then return equalsType(ITEMTYPE_RUNBOX) end
+            if trophyIndex==5 then
+                return equalsType(ITEMTYPE_TROPHY,ITEMTYPE_COLLECTIBLE)
+                    and not (type(GetItemLinkName)=='function'
+                        and string.find(string.lower(GetItemLinkName(link) or ''),'scroll',1,true))
+            end
+            return false
+        end
+    end
     if self.gmsCategorySpecialized~=nil then return specialized==self.gmsCategorySpecialized end
     local parent=self.gmsCategoryParentKey
+    GMS._categoryMatchEntryData=data
     local secondMatch=GMSMatchSecondLevel(link,itemType,parent,family)
+    GMS._categoryMatchEntryData=nil
     if secondMatch~=nil then return secondMatch end
     if family=='consumables' and type(parent)=='string'
         and (parent=='Consumable8' or string.find(string.lower(parent),'motif',1,true)~=nil
@@ -1168,8 +1416,70 @@ function GMS:CachedCategoryMatches(entry)
     return true
 end
 
+-- v1.0.6i: read-only autocomplete state diagnostic. No search requests or UI mutations.
+function GMS:ProbeNameAutocomplete()
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE
+        or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.nameSearchFeature
+    local function emit(message)
+        local line='[GMS NAME] '..tostring(message)
+        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+            CHAT_ROUTER:AddSystemMessage(line)
+        elseif type(d)=='function' then d(line) end
+    end
+    local function brief(value)
+        if type(value)=='string' then return string.sub(value,1,90) end
+        if type(value)=='number' or type(value)=='boolean' then return tostring(value) end
+        if type(value)=='table' then
+            local parts={}
+            for _,key in ipairs({'name','text','itemName','itemId','itemIdString','itemLink','label','value','id','key'}) do
+                local v=value[key]
+                if type(v)=='string' or type(v)=='number' then
+                    parts[#parts+1]=key..'='..string.sub(tostring(v),1,55)
+                end
+            end
+            return 'table{'..table.concat(parts,',')..'}'
+        end
+        return type(value)
+    end
+    emit('cachedQuery='..brief(self.gmsNameQuery)..' readQuery='..brief(self:ReadCachedNameQuery()))
+    if type(feature)~='table' then emit('nameSearchFeature unavailable'); return end
+    for _,key in ipairs({'searchText','selectedItem','selectedData','selectedItemData',
+        'selectedName','selectedItemName','selectedSearchText','selectedSuggestion',
+        'selectedResult','searchTerm','searchString','name','text','itemId',
+        'selectedItemId','selectedItemLink','itemLink','searchResult','searchResults',
+        'suggestions','autoComplete','autocomplete','autocompleteSelection'}) do
+        local value=feature[key]
+        if value~=nil then emit(key..'='..brief(value)) end
+    end
+    for _,method in ipairs({'GetSelectedItem','GetSelectedItemData','GetSelectedData',
+        'GetSelectedItemText','GetSearchText','GetSearchTerm','GetSelectedItemName'}) do
+        local fn=feature[method]
+        if type(fn)=='function' then
+            local ok,value=pcall(fn,feature)
+            emit(method..'='..(ok and brief(value) or 'error'))
+        end
+    end
+end
+-- Normalize ESO's quoted autocomplete selections for cached item-name matching.
+-- Only paired surrounding quotation marks are removed; internal quotes remain intact.
+local function GMSNormalizeCachedNameQuery(value)
+    if type(value)~='string' then return '' end
+    value=value:gsub('^%s+',''):gsub('%s+$','')
+    local pairsOfQuotes={{'"','"'},{'“','”'},{'„','“'},{"'","'"}}
+    for _,pair in ipairs(pairsOfQuotes) do
+        local first,last=pair[1],pair[2]
+        if #value>=#first+#last and value:sub(1,#first)==first and value:sub(-#last)==last then
+            value=value:sub(#first+1,#value-#last)
+            value=value:gsub('^%s+',''):gsub('%s+$','')
+            break
+        end
+    end
+    return string.lower(value)
+end
 function GMS:RefreshCachedNameFilter()
     if not (self.traderOpen and self.enabled and self.combinedVisible) then return end
+
     local query=self:ReadCachedNameQuery()
     if query==nil then
         if not self.gmsNameSourceNotice then
@@ -1178,7 +1488,7 @@ function GMS:RefreshCachedNameFilter()
         end
         return
     end
-    query=string.lower((query:gsub('^%s+',''):gsub('%s+$','')))
+    query=GMSNormalizeCachedNameQuery(query)
     local minPrice,maxPrice=self:ReadCachedPriceBounds()
     local quality=self:ReadCachedQuality()
     local categoryKey,categorySpecialized,categoryHeader,categoryParentKey,categoryFamily=self:ReadCachedCategory()
@@ -1234,13 +1544,228 @@ function GMS:GetDisplayedCollected()
     end
     return matches
 end
+-- v1.0.6g: sort the COMPLETE filtered cache, before pagination.
+-- Diagnostic/manual control while we verify native PS5 header selection signals.
+local function GMSSortNumber(data, names)
+    if type(data)~='table' then return nil end
+    for _,name in ipairs(names) do
+        if type(data[name])=='number' then return data[name] end
+    end
+    return nil
+end
+function GMS:SortDisplayedCache(matches)
+    if not self.gmsSortField or #matches<2 then return matches end
+    local source=matches
+    matches={}
+    for i=1,#source do matches[i]=source[i] end
+    local field=self.gmsSortField
+    local descending=self.gmsSortDescending
+    local decorated={}
+    for i,entry in ipairs(matches) do
+        local data=entry and entry.data
+        local total=GMSSortNumber(data,{'purchasePrice','totalPrice','price'})
+        local stack=GMSSortNumber(data,{'stackCount','quantity','itemCount'}) or 1
+        if stack<1 then stack=1 end
+        local value
+        if field=='total' then value=total
+        elseif field=='unit' and total then value=total/stack
+        elseif field=='time' then value=GMSSortNumber(data,{'timeRemaining','timeRemainingSeconds','timeLeft','timeLeftSeconds','timeRemainingInSeconds'}) end
+        decorated[i]={entry=entry,value=value,original=i}
+    end
+    table.sort(decorated,function(a,b)
+        if a.value==nil and b.value~=nil then return false end
+        if b.value==nil and a.value~=nil then return true end
+        if a.value~=nil and b.value~=nil and a.value~=b.value then
+            return descending and a.value>b.value or (not descending and a.value<b.value)
+        end
+        return a.original<b.original
+    end)
+    for i,record in ipairs(decorated) do matches[i]=record.entry end
+    return matches
+end
+function GMS:ProbeNativeSort()
+    local panel=self:GetPanel()
+    local function emit(line)
+        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage('[GMS sort] '..line) end
+    end
+    if not panel then emit('No browse-results panel'); return end
+    local function inspect(label,obj)
+        if type(obj)~='table' then emit(label..'= '..type(obj)); return end
+        local pieces={}
+        for k,v in pairs(obj) do
+            if type(k)=='string' and (string.find(string.lower(k),'sort',1,true) or string.find(string.lower(k),'header',1,true)) then
+                if type(v)=='string' or type(v)=='number' or type(v)=='boolean' then
+                    pieces[#pieces+1]=k..'='..tostring(v)
+                else pieces[#pieces+1]=k..'('..type(v)..')' end
+            end
+        end
+        table.sort(pieces)
+        emit(label..': '..(#pieces>0 and table.concat(pieces,', '):sub(1,400) or 'no sort fields'))
+    end
+    inspect('panel',panel)
+    inspect('sortHeaderGroup',panel.sortHeaderGroup)
+    inspect('sortHeader',panel.sortHeader)
+    inspect('search',TRADING_HOUSE_SEARCH)
+    local sample=self.collected and self.collected[1]
+    if sample and type(sample.data)=='table' then
+        local fields={}
+        for k,v in pairs(sample.data) do
+            if type(k)=='string' and (string.find(string.lower(k),'price',1,true) or string.find(string.lower(k),'time',1,true) or string.find(string.lower(k),'stack',1,true) or string.find(string.lower(k),'quantity',1,true)) then
+                if type(v)=='string' or type(v)=='number' then fields[#fields+1]=k..'='..tostring(v) end
+            end
+        end
+        table.sort(fields)
+        emit('cached item fields: '..table.concat(fields,', '):sub(1,500))
+    end
+end
+-- v1.0.6h: Read ESO's native sort state without issuing a trader search.
+-- Observed PS5 keys: Time=1, Unit=2, Total=3. Direction is read
+-- directly; reverse orientation can be checked in the next PS5 test.
+function GMS:SyncNativeCachedSort()
+    if not (self.traderOpen and self.combinedVisible and self.enabled) then return false end
+    local panel=self:GetPanel()
+    if not panel then return false end
+    local key=panel.currentSortKey
+    local order=panel.currentSortOrder
+    if type(key)~='number' or type(order)~='boolean' then return false end
+    local field=({[1]='time',[2]='unit',[3]='total'})[key]
+    if not field then return false end
+    -- ESO sorts ascending when the boolean is true for numeric columns.
+    -- For Time, remaining time increases for newer listings.
+    local descending=not order
+    if field=='time' then descending=order end
+    if self.gmsNativeSortKey==key and self.gmsNativeSortOrder==order then return false end
+    self.gmsNativeSortKey,self.gmsNativeSortOrder=key,order
+    self.gmsSortField,self.gmsSortDescending=field,descending
+    self.combinedPage=1
+    return true
+end
+-- The native browse panel can repaint its footer after a cached page commit.
+-- Keep GMS's page label in sync, including on the first page.
+function GMS:RefreshCachedDisplayChrome()
+    if not (self.traderOpen and self.combinedVisible) then return end
+    self:RefreshFilteredFooter()
+    local panel=self:GetPanel()
+    if not panel then return end
+    -- Only hide a control if its actual text is the stale waiting message.
+    -- Do not alter ESO's search state, result list, or purchase controls.
+    local names={'waitingForResultsLabel','waitingLabel','loadingLabel','statusLabel','searchStatusLabel','noResultsLabel','emptyText','emptyLabel'}
+    for _,name in ipairs(names) do
+        local control=panel[name]
+        if control and type(control.GetText)=='function' and type(control.SetHidden)=='function' then
+            local ok,value=pcall(control.GetText,control)
+            if ok and type(value)=='string' and string.find(string.lower(value),'waiting for results',1,true) then
+                pcall(control.SetHidden,control,true)
+            end
+        end
+    end
+end
+
+-- v1.0.6s: intercept the *native results preview keybind* before scene push.
+-- Never send a stale cached slot index to ESO's live trading-house preview.
+
+-- v1.0.6w: use ESO's existing trading-house preview SCENE, but invoke the
+-- client item-link preview primitive instead of the stale server result index.
+function GMS:InstallItemLinkPreviewBridge()
+    if self.gmsItemLinkPreviewBridge then return true end
+    local helper=ITEM_PREVIEW_LIST_HELPER_GAMEPAD
+    if type(helper)~='table' or type(helper.PreviewList)~='function' then return false end
+    local original=helper.PreviewList
+    helper.PreviewList=function(obj,previewType,entries,startIndex,dontWrap)
+        if GMS.gmsPendingItemLinkPreview and
+           previewType==ZO_ITEM_PREVIEW_TRADING_HOUSE_SEARCH_RESULT then
+            local link=GMS.gmsPendingItemLinkPreview
+            GMS.gmsPendingItemLinkPreview=nil
+            local ok,result=pcall(function()
+                if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.ClearPreviewCollection then
+                    ITEM_PREVIEW_GAMEPAD:ClearPreviewCollection()
+                end
+                return PreviewItemLink(link)
+            end)
+            if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+                CHAT_ROUTER:AddSystemMessage('[GMS] PreviewItemLink called: ok='..tostring(ok)..' result='..tostring(result)..' linkType='..tostring(GetItemLinkItemType(link)))
+            end
+            if not ok or result==false then
+                if SCENE_MANAGER then SCENE_MANAGER:Hide('tradingHousePreview_Gamepad') end
+            end
+            return
+        end
+        return original(obj,previewType,entries,startIndex,dontWrap)
+    end
+    self.gmsItemLinkPreviewBridge=true
+    return true
+end
+function GMS:OpenNativeItemLinkPreview(panel,data)
+    if type(data)~='table' or type(data.itemLink)~='string' then return false end
+    if type(PreviewItemLink)~='function' then return false end
+    if not self:InstallItemLinkPreviewBridge() then return false end
+    local link=data.itemLink
+    -- v1.0.6x: pass the ORIGINAL furnishing-plan item link to ESO.
+    -- The previous build passed the crafted result link and displayed the character.
+    -- Do not rewrite the link or create a custom preview scene.
+    if type(CanItemLinkBePreviewed)=='function' and not CanItemLinkBePreviewed(link) then return false end
+    if not (SCENE_MANAGER and SCENE_MANAGER:GetScene('tradingHousePreview_Gamepad')) then return false end
+    self.gmsPendingItemLinkPreview=link
+    -- The existing ESO scene expects a non-nil selected item and a preview
+    -- index, but its PreviewList call is intercepted before index resolution.
+    panel.previewItemData=data
+    panel.previewListEntries={data.slotIndex or 1}
+    SCENE_MANAGER:Show('tradingHousePreview_Gamepad')
+    return true
+end
+
+function GMS:InstallPreviewSceneGuard()
+    local panel=self:GetPanel()
+    if not panel or type(panel.keybindStripDescriptor)~='table' then return end
+    for _,descriptor in ipairs(panel.keybindStripDescriptor) do
+        if type(descriptor)=='table' and descriptor.keybind=='UI_SHORTCUT_SECONDARY'
+            and type(descriptor.callback)=='function' and not descriptor.gmsPreviewGuard then
+            local original=descriptor.callback
+            descriptor.callback=function(...)
+                if not (GMS.enabled and GMS.combinedVisible and GMS.traderOpen) then
+                    return original(...)
+                end
+                local selected=type(panel.GetSelectedData)=='function' and panel:GetSelectedData() or nil
+                local data=type(selected)=='table' and (selected.data or selected) or nil
+                if not data then return end
+                local ok,opened=pcall(GMS.OpenNativeItemLinkPreview,GMS,panel,data)
+                if ok and opened then return end
+                if not ok and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+                    CHAT_ROUTER:AddSystemMessage('[GMS] Preview setup error: '..tostring(opened))
+                end
+                -- Live listing verification is the same identity check used for X.
+                if GMS:IsSelectedLiveListing(panel) and
+                    type(panel.CanPreviewTradingHouseItem)=='function' and
+                    panel:CanPreviewTradingHouseItem(data) then
+                    -- ESO's preview callback relies on previewListEntries as well.
+                    local slot=data.slotIndex
+                    if type(slot)=='number' and type(panel.previewListEntries)=='table' then
+                        local found=false
+                        for _,index in ipairs(panel.previewListEntries) do
+                            if index==slot then found=true; break end
+                        end
+                        if not found then table.insert(panel.previewListEntries,slot) end
+                        return original(...)
+                    end
+                end
+                -- No scene transition: preserve selection/focus and avoid crash.
+                if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+                    CHAT_ROUTER:AddSystemMessage('[GMS] Furnishing preview requires the live trader result; staying in results.')
+                end
+            end
+            descriptor.gmsPreviewGuard=true
+            break
+        end
+    end
+end
 function GMS:ShowCombinedPage()
     if not self.combinedVisible then return end
     local panel=self:GetPanel()
     if not panel or not panel.list or type(ZO_ScrollList_GetDataList)~='function' then return end
     local ok,entries=pcall(ZO_ScrollList_GetDataList,panel.list)
     if not ok or type(entries)~='table' then return end
-    local displayed=self:GetDisplayedCollected()
+    self:InstallPreviewSceneGuard()
+    local displayed=self:SortDisplayedCache(self:GetDisplayedCollected())
     local count=#displayed
     local pages=math.max(1,math.ceil(count/self.combinedPageSize))
     self.combinedPage=math.max(1,math.min(self.combinedPage or 1,pages))
@@ -1384,11 +1909,13 @@ function GMS:ShowCombined()
     end
     self.collecting=false
     self.combinedVisible=true
-    self.gmsNameQuery=string.lower((self:ReadCachedNameQuery() or ''):gsub('^%s+',''):gsub('%s+$',''))
+    self.gmsNameQuery=GMSNormalizeCachedNameQuery(self:ReadCachedNameQuery() or '')
     self.gmsMinPrice,self.gmsMaxPrice=self:ReadCachedPriceBounds()
     self.gmsQuality=self:ReadCachedQuality()
     self.gmsCategoryKey,self.gmsCategorySpecialized,self.gmsCategoryHeader,self.gmsCategoryParentKey,self.gmsCategoryFamily=self:ReadCachedCategory()
     self.combinedPage=1
+    self.gmsNativeSortKey,self.gmsNativeSortOrder=nil,nil
+    self:SyncNativeCachedSort()
     self:UpdateEmptyPageNavigation(false)
     self:InstallFilteredNavigation()
     self:DetachResultsKeybinds()
@@ -1579,6 +2106,7 @@ function GMS:InstallNativePurchaseKeybind()
     if type(original)~='function' then return false end
     descriptor.callback=function(...)
         if GMS.enabled and GMS.combinedVisible then
+            GMS:CrashSnapshot('native-X')
             local ok,err=pcall(GMS.SelectCachedPurchase,GMS,panel)
             if not ok then GMSPurchaseNotice('Handler error: '..tostring(err):gsub('[\r\n].*',''):sub(1,110)) end
             return
@@ -1620,6 +2148,7 @@ function GMS:InstallSelectionGuard()
         if type(original)=='function' then
             panel[name]=function(instance,...)
                 if GMS.enabled and GMS.combinedVisible then
+                    GMS:CrashSnapshot('selection:'..name)
                     return GMS:SelectCachedPurchase(instance)
                 end
                 return original(instance,...)
@@ -2170,13 +2699,117 @@ function GMS:ProbeNameSources()
     emit('end; inspected '..nodes..' objects')
 end
 
+
+-- v1.0.6l: read-only state comparison. NEVER activates an item or changes scenes.
+function GMS:ProbeRecentSearchState()
+    local function emit(msg)
+        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+            CHAT_ROUTER:AddSystemMessage('[GMS RECENT] '..tostring(msg))
+        elseif type(d)=='function' then d('[GMS RECENT] '..tostring(msg)) end
+    end
+    local panel=self:GetPanel()
+    local browse=GAMEPAD_TRADING_HOUSE_BROWSE or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
+    local feature=browse and browse.features and browse.features.nameSearchFeature
+    emit('combined='..tostring(self.combinedVisible)..' collecting='..tostring(self.collecting)..' trader='..tostring(self.traderOpen)..' page='..tostring(self.combinedPage))
+    emit('query='..tostring(self.gmsNameQuery)..' raw='..tostring(self:ReadCachedNameQuery()))
+    emit('nameFeature searchText='..tostring(feature and feature.searchText)..' selectedItem='..type(feature and feature.selectedItem)..' selectedData='..type(feature and feature.selectedData))
+    if not panel then emit('panel=nil'); return end
+    emit('panel='..tostring(panel)..' list='..type(panel.list)..' focused='..tostring(type(panel.IsPanelFocused)=='function' and panel:IsPanelFocused() or '?'))
+    local list=panel.list
+    if list and type(ZO_ScrollList_GetDataList)=='function' then
+        local ok,entries=pcall(ZO_ScrollList_GetDataList,list)
+        if ok and type(entries)=='table' then
+            local first=entries[1]
+            local data=first and first.data
+            emit('listCount='..tostring(#entries)..' first='..type(first)..' data='..type(data)..' id='..tostring(data and (data.id or data.uniqueId or data.itemUniqueId))..' name='..tostring(data and data.name))
+        else emit('list entries unavailable') end
+    end
+    local search=TRADING_HOUSE_SEARCH
+    emit('native searchText='..tostring(search and search.searchText)..' sortKey='..tostring(panel.currentSortKey))
+end
+
+-- v1.0.6p: bounded, read-only crash-state snapshots. No scene/list mutation.
+-- Captures before native activation and on the existing periodic refresh.
+function GMS:CrashSnapshot(tag)
+    local function safe(fn,default)
+        local ok,val=pcall(fn)
+        if ok then return val end
+        return default
+    end
+    local panel=safe(function() return self:GetPanel() end,nil)
+    local list=panel and panel.list
+    local entries=(list and type(ZO_ScrollList_GetDataList)=='function') and
+        safe(function() return ZO_ScrollList_GetDataList(list) end,nil) or nil
+    local count=type(entries)=='table' and #entries or -1
+    local selected=(list and type(ZO_ScrollList_GetSelectedData)=='function') and
+        safe(function() return ZO_ScrollList_GetSelectedData(list) end,nil) or nil
+    local first=type(entries)=='table' and entries[1] or nil
+    local data=selected or (first and first.data)
+    local feature=GAMEPAD_TRADING_HOUSE_BROWSE and GAMEPAD_TRADING_HOUSE_BROWSE.features and
+        GAMEPAD_TRADING_HOUSE_BROWSE.features.nameSearchFeature
+    local nativeCount,nativePage=safe(function() return GetTradingHouseSearchResultsInfo() end,nil),nil
+    local scene=safe(function()
+        local s=(panel and panel.scene) or GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS_SCENE
+        return s and type(s.GetState)=='function' and s:GetState() or nil
+    end,nil)
+    local snap={
+        'event='..tostring(tag)..' ms='..tostring(safe(function() return GetFrameTimeMilliseconds() end,'?')),
+        'open='..tostring(self.traderOpen)..' on='..tostring(self.enabled)..' cached='..tostring(self.combinedVisible)..' scanning='..tostring(self.collecting),
+        'scene='..tostring(scene)..' panel='..tostring(panel~=nil)..' list='..tostring(list~=nil)..' entries='..tostring(count),
+        'page='..tostring(self.combinedPage)..' total='..tostring(#(self.collected or {}))..' nativeCount='..tostring(nativeCount),
+        'query='..tostring(self.gmsNameQuery)..' raw='..tostring(safe(function() return self:ReadCachedNameQuery() end,nil)),
+        'selected='..tostring(selected~=nil)..' name='..tostring(data and data.name)..' id='..tostring(data and (data.gmsPurchaseId or data.id)),
+        'itemLink='..tostring(data and type(data.gmsItemLink))..' seller='..tostring(data and type(data.gmsSeller))..' price='..tostring(data and data.gmsPurchasePrice),
+        'featureText='..tostring(feature and feature.searchText)..' featureSelected='..type(feature and feature.selectedData),
+        'suspended='..tostring(self.gmsCachedListSuspended)..' replay='..tostring(self.replayingPage)..' filterGen='..tostring(self.filterGeneration),
+    }
+    self.gmsCrashHistory=self.gmsCrashHistory or {}
+    table.insert(self.gmsCrashHistory,snap)
+    if #self.gmsCrashHistory>5 then table.remove(self.gmsCrashHistory,1) end
+end
+function GMS:PrintCrashSnapshot(index)
+    local function emit(msg)
+        local line='[GMS CRASH] '..tostring(msg)
+        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line)
+        elseif type(d)=='function' then d(line) end
+    end
+    local history=self.gmsCrashHistory or {}
+    local snap=history[#history]
+    if not snap then emit('No snapshot yet. Use /gmscrashnow before Square.'); return end
+    local n=tonumber(index) or 1
+    if n<1 or n>9 then emit('Use /gmscrash 1 through 9'); return end
+    emit('Snapshot '..tostring(#history)..'/'..tostring(#history)..' line '..n..'/9')
+    emit(snap[n])
+end
+
 function GMS:Initialize()
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdebug']=function() GMS.debug=not GMS.debug; local msg='[GMS] Debug messages '..(GMS.debug and 'ON' or 'OFF'); if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(msg) elseif type(d)=='function' then d(msg) end end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsnameprobe']=function() GMS:ProbeNameSources() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmspriceprobe']=function() GMS:ProbePriceSources() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsjewelryprobe']=function() GMS:ProbeJewelrySelection() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmssortprobe']=function() GMS:ProbeNativeSort() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmssort']=function(args)
+        local field,dir=string.match(string.lower(args or ''),'^(%a+)%s+(%a+)$')
+        if field~='time' and field~='unit' and field~='total' then
+            if CHAT_ROUTER then CHAT_ROUTER:AddSystemMessage('[GMS] /gmssort time|unit|total asc|desc') end
+            return
+        end
+        GMS.gmsNativeSortKey=GMS:GetPanel() and GMS:GetPanel().currentSortKey or nil
+        GMS.gmsNativeSortOrder=GMS:GetPanel() and GMS:GetPanel().currentSortOrder or nil
+        GMS.gmsSortField=field
+        GMS.gmsSortDescending=(dir=='desc')
+        GMS.combinedPage=1
+        GMS:ShowCombinedPage()
+        if CHAT_ROUTER then CHAT_ROUTER:AddSystemMessage('[GMS] Cached sort '..field..' '..(GMS.gmsSortDescending and 'descending' or 'ascending')) end
+    end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdepthprobe']=function() GMS:ProbeFilterDepth() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsparentprobe']=function() GMS:ProbeParentDropdown() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmscategoryprobe']=function() GMSCategoryLine('command received'); GMS:ProbeCategorySources() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsqualityprobe']=function() GMSQualityProbeOutput('command received'); GMS:ProbeQualitySources() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsnameprobe']=function() GMS:ProbeNameAutocomplete() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsrecentprobe']=function() GMS:ProbeRecentSearchState() end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscrash']=function(arg) GMS:PrintCrashSnapshot(arg) end end
+    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscrashnow']=function() GMS:CrashSnapshot('manual'); GMS:PrintCrashSnapshot(1) end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmscollect']=function() GMS:CollectBackgroundTest() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsprobe']=function() GMS:ProbeBackgroundRequest() end end
     if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdiag']=function() GMS:DiagnosticSummary() end end
@@ -2205,6 +2838,11 @@ function GMS:Initialize()
         if GMS.traderOpen then
             GMS:EnsureKeybind()
             GMS:RefreshCachedNameFilter()
+            if GMS.combinedVisible then
+                GMS:CrashSnapshot('tick')
+                if GMS:SyncNativeCachedSort() then GMS:ShowCombinedPage() end
+                GMS:RefreshCachedDisplayChrome()
+            end
         end
     end)
     Say('v1.0.5t first-level category expansion loaded.')

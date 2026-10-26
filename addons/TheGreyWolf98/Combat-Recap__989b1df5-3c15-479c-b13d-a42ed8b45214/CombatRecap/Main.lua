@@ -2,7 +2,7 @@ local C = CombatRecap
 local function command(args)
     args = (args or ""):lower():match("^%s*(.-)%s*$")
     if args == "help" then
-        d("Combat Recap 1.0.1: /recap opens latest fight; /recap N opens history N (1 = latest).")
+        d("Combat Recap 1.0.2: /recap opens latest fight; /recap N opens history N (1 = latest).")
         d("/recap chat on|off controls qualifying fight announcements.")
         d("/recap stop saves the current fight; /recap clear confirm deletes this character's history.")
         d("A: view build / combat report. X: next rows. Y: next fight. B: back. Personal damage + pets; no companions/group.")
@@ -31,6 +31,6 @@ local function loaded(_, name)
     while #C.saved.history > C.LIMITS.history do table.remove(C.saved.history) end
     C.Tracker:Initialize()
     SLASH_COMMANDS["/recap"] = command
-    d("|cD85757Combat Recap 1.0.1|r loaded. /recap help")
+    d("|cD85757Combat Recap 1.0.2|r loaded. /recap help")
 end
 EVENT_MANAGER:RegisterForEvent("CombatRecap_Load", EVENT_ADD_ON_LOADED, loaded)

@@ -138,7 +138,6 @@ local policy = BattleScrolls.inventoryPocPolicy
 ---@class InventoryPocCachedQuote
 ---@field price number
 ---@field expiredPrice number|nil
----@field untilMs number
 
 ---@param item InventoryPocVariant
 ---@return string
@@ -150,7 +149,7 @@ end
 ---@param price number
 ---@param expiredPrice number|nil
 function facts.rememberQuote(item, price, expiredPrice)
-    facts.quotes[facts.variantKey(item)] = { price = price, expiredPrice = expiredPrice, untilMs = GetFrameTimeMilliseconds() + 60 * 60000 }
+    facts.quotes[facts.variantKey(item)] = { price = price, expiredPrice = expiredPrice }
 end
 
 ---@param link string
@@ -175,7 +174,7 @@ end
 ---@return boolean|nil loading
 function facts.marketPrice(link, expired)
     local quote = facts.quotes[facts.variantKey(facts.variant(link))]
-    if quote and GetFrameTimeMilliseconds() < quote.untilMs then return expired and quote.expiredPrice or quote.price end
+    if quote then return expired and quote.expiredPrice or quote.price end
     local price, loading = facts.referencePrice(link)
     return price and (expired and price * 0.5 or price) or nil, loading
 end
@@ -412,7 +411,8 @@ local function fragmentProgress(description)
         :gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\194\160', ' '):gsub('\226\128\175', ' '):gsub('：', ':')
     local progress, required
     for line in text:gmatch('[^\n]+') do
-        local currentText, totalText = line:match('^[^%d:]*:[ \t]*([0-9]+)[ \t]*/[ \t]*([0-9]+)[ \t]*%.?[ \t]*$')
+        -- Havok's %d includes B2/B3/B9, which occur inside UTF-8 labels such as "Прогресс".
+        local currentText, totalText = line:match('^[^0-9:]*:[ \t]*([0-9]+)[ \t]*/[ \t]*([0-9]+)[ \t]*%.?[ \t]*$')
         if currentText then
             if progress then return nil, nil end
             progress, required = tonumber(currentText), tonumber(totalText)
@@ -508,6 +508,7 @@ function facts.item(bag, slot, reserved)
         if crafterId then crafterKnown = knowledge(link, itemKind, crafterId) end
     end
     local usable = IsItemUsable(bag, slot)
+    local locked = IsItemPlayerLocked(bag, slot)
     local equipped = bag == BAG_WORN or bag == BAG_COMPANION_WORN
     local armorType = GetItemLinkArmorType(link)
     local itemId = GetItemLinkItemId(link)
@@ -519,11 +520,11 @@ function facts.item(bag, slot, reserved)
         else learnQuantity = nil end
     end
     local companions = BattleScrolls.inventoryPocCompanions
-    local crafted, hasOnUseAbility, alchemyTraitCount
+    local crafted, hasOnUseAbility, onUseAbilityId, alchemyTraitCount
     local tradeable, hasSet, setCollected, collectionKey, improvementMaterial
+    if itemKind == 'gear' or itemKind == 'companion' then tradeable = IsItemSellableOnTradingHouse(bag, slot) end
     if itemKind == 'gear' then
         crafted = IsItemLinkCrafted(link)
-        tradeable = IsItemSellableOnTradingHouse(bag, slot)
         local _, _, _, _, _, setId = GetItemLinkSetInfo(link, false)
         hasSet = setId > 0
         if hasSet and IsItemLinkSetCollectionPiece(link) then
@@ -541,11 +542,10 @@ function facts.item(bag, slot, reserved)
     if itemKind == 'potion' or itemKind == 'poison' then
         crafted = IsItemLinkCrafted(link)
         hasOnUseAbility = GetItemLinkOnUseAbilityInfo(link)
-        if not hasOnUseAbility then
-            alchemyTraitCount = 0
-            for index = 1, GetMaxTraits() do
-                if GetItemLinkTraitOnUseAbilityInfo(link, index) then alchemyTraitCount = alchemyTraitCount + 1 end
-            end
+        onUseAbilityId = GetItemLinkOnUseAbilityId(link)
+        alchemyTraitCount = 0
+        for index = 1, GetMaxTraits() do
+            if GetItemLinkTraitOnUseAbilityInfo(link, index) then alchemyTraitCount = alchemyTraitCount + 1 end
         end
     end
     local marketUnit, marketLoading = facts.marketPrice(link)
@@ -561,7 +561,8 @@ function facts.item(bag, slot, reserved)
         equipType = GetItemLinkEquipType(link), armorType = armorType, weaponType = GetItemLinkWeaponType(link),
         actorCategory = GetItemLinkActorCategory(link),
         level = GetItemLinkRequiredLevel(link), championPoints = GetItemLinkRequiredChampionPoints(link),
-        reserved = equipped or IsItemPlayerLocked(bag, slot) or IsItemInArmory(bag, slot) or (reserved and reserved[uniqueId]) == true,
+        locked = locked,
+        reserved = equipped or locked or IsItemInArmory(bag, slot) or (reserved and reserved[uniqueId]) == true,
         stolen = IsItemStolen(bag, slot), crown = IsItemLinkFromCrownStore(link) or IsItemLinkFromCrownCrate(link),
         vendorUnit = GetItemSellValueWithBonuses(bag, slot), marketUnit = marketUnit,
         prioritySell = GetItemSellInformation(bag, slot) == ITEM_SELL_INFORMATION_PRIORITY_SELL,
@@ -578,9 +579,11 @@ function facts.item(bag, slot, reserved)
         learnQuantity = learnQuantity,
         learnProgress = learnProgress, learnRequired = learnRequired,
         usable = usable, filledSoulGem = itemKind == 'soulGem' and IsItemSoulGem(SOUL_GEM_TYPE_FILLED, bag, slot),
-        crafted = crafted, hasOnUseAbility = hasOnUseAbility, alchemyTraitCount = alchemyTraitCount,
+        crafted = crafted, hasOnUseAbility = hasOnUseAbility, onUseAbilityId = onUseAbilityId, alchemyTraitCount = alchemyTraitCount,
     }
     if itemKind == 'companion' and companions then item.companionNeeded = companions.isNeeded(item) end
+    BattleScrolls.inventoryPocSealedLeads.apply(item)
+    if itemKind == 'container' then item.openAfter = BattleScrolls.inventoryPocCoffers.openAfter(itemId) end
     local returns = BattleScrolls.inventoryPocReturns
     if returns and returns.isDiscounted(item) then
         item.marketUnit, marketLoading = facts.marketPrice(link, true)

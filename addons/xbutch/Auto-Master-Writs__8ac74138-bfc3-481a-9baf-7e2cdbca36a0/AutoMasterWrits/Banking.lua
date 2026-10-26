@@ -35,6 +35,7 @@ function AMW:StartBanking(manual)
             self:Yield()
         end
         for _,entry in ipairs(plan) do
+            self:WaitForGameCommand()
             if self.bankOperation~=operation then return end
             if not IsBankOpen() or (GetBankingBag()~=BAG_BANK and GetBankingBag()~=BAG_SUBSCRIBER_BANK)
                 or IsUnitInCombat("player") then return self:StopBanking("Transfers stopped. Personal bank must remain open.") end
@@ -55,15 +56,24 @@ function AMW:StartBanking(manual)
                     target=FindFirstEmptySlotInBag(destination)
                 end
                 if target==nil then return self:StopBanking("Destination full. Pending selections have been kept.") end
-                self:SecureCall("RequestMoveItem",bag,slot,destination,target,GetSlotStackSize(bag,slot))
+                local sent,err=self:SendGameCommand("RequestMoveItem",bag,slot,destination,target,GetSlotStackSize(bag,slot))
+                if not sent then return self:StopBanking("Transfer stopped: "..tostring(err)) end
                 local deadline=GetFrameTimeSeconds()+5
                 repeat
                     self:Yield(100)
                     if not IsBankOpen() then return self:StopBanking("Bank closed. Pending selections have been kept.") end
-                    if self:UniqueId(destination,target)==record.uid then break end
+                    if self:UniqueId(destination,target)==record.uid and self:UniqueId(bag,slot)~=record.uid then break end
                     if GetFrameTimeSeconds()>deadline then return self:StopBanking("Transfer not confirmed. No retry was sent.") end
                 until false
                 record.bag,record.slot=destination,target
+                if self.counts then
+                    local category=record.crafted and "crafted" or record.deferred and "deferred" or "eligible"
+                    if bag==BAG_BACKPACK and destination~=BAG_BACKPACK then
+                        self.counts[category]=math.max(0,(self.counts[category] or 0)-1)
+                    elseif bag~=BAG_BACKPACK and destination==BAG_BACKPACK then
+                        self.counts[category]=(self.counts[category] or 0)+1
+                    end
+                end
                 if destination==BAG_BACKPACK then self.saved.withdraw[record.uid]=nil end
                 operation.moved=operation.moved+1
                 self:SetStatus("Bank transfers: "..operation.moved.." confirmed.")

@@ -1,4 +1,4 @@
-Tamriel Progress Map 2.7.5
+Tamriel Progress Map 2.8.0
 Developed with AI assistance. The author is responsible for design, maintenance and final in-game validation.
 Required dependency: LibAddonMenu-2.0 r43 or newer (install separately).
 https://www.esoui.com/downloads/info7-LibAddonMenu.html
@@ -6,7 +6,7 @@ https://www.esoui.com/downloads/info7-LibAddonMenu.html
 Author: Raccoonplayz
 PC addon for The Elder Scrolls Online; manifest API versions: 101050 and 101051.
 Supported translations: English, German, French, Spanish and Russian.
-The active translation follows the ESO client language. English is the fallback.
+The language follows the ESO client automatically. English is the fallback.
 
 INSTALLATION / UPDATE
 1. Exit ESO or log out before replacing addon files.
@@ -32,26 +32,19 @@ WHAT IT TRACKS
 ESO cannot reconstruct unrecorded historical transactions or combat events.
 Kills without a usable name/ID may be displayed as Unknown Enemy.
 
-VALIDATION FOR THIS BUILD
-Lua 5.1 syntax and 46 automated regression tests passed in an offline test harness.
-Event identifiers were checked against documented APIs 101050 and 101051.
-Actual ESO UI rendering, live event timing and addon combinations require an in-game test.
-Do not describe this build as independently tested in-game until that test has been completed.
+LANGUAGE
+The addon always follows the language of your ESO client; there is no language option.
+Translations: English, German, French, Spanish and Russian. Other clients use English.
 
-CREDITS / ASSETS
-- Original addon and maintenance: Raccoonplayz.
-- LibAddonMenu-2.0: sirinsidiator and Seerah. This dependency is not bundled.
-- ESO API documentation and UI references: ZeniMax Online Studios; reference mirror:
-  https://github.com/esoui/esoui
-- Included DDS artwork is unchanged from the author-supplied 2.7.4_Hotfix package.
-  The archive did not supply asset provenance or third-party licensing information.
-  The author must add any required artwork credits/permissions to the ESOUI description.
-This is an unofficial community addon. ESO names and referenced game artwork belong
- to their respective owners. No license change to the original package is asserted.
+SLASH COMMANDS
+/tpm shows all commands. /tpm stats opens the statistics journal.
 
-ESOUI UPLOAD
-Use an English description beginning with the AI-assistance disclosure and dependency.
-Put update notes in the Changelog tab and supply actual in-game screenshots when required.
-Review the current ESOUI rules before publishing:
-https://www.esoui.com/forums/showthread.php?t=10790
-https://www.esoui.com/forums/showthread.php?t=9
+CREDITS
+- Addon and maintenance: Raccoonplayz.
+- LibAddonMenu-2.0: sirinsidiator, Seerah and contributors (separate download, not bundled).
+
+DISCLAIMER
+This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its
+affiliates. The Elder Scrolls(R) and related logos are registered trademarks or trademarks
+of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+Full terms: https://account.elderscrollsonline.com/add-on-terms

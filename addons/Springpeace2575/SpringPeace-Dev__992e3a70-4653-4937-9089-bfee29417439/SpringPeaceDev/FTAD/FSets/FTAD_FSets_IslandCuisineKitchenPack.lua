@@ -1,0 +1,26 @@
+FurnishThemAllData_FSets_IslandCuisineKitchenPack = {
+    name = "Island Cuisine Kitchen Pack",
+    source = "Furnishing Sets",
+    collection = {
+        [1] = {
+            { name = "Argonian Bar, Woven Corner" },
+            { name = "Argonian Basket, Serving" },
+            { name = "Argonian Baskets, Double" },
+            { name = "Argonian Bin, Woven" },
+            { name = "Argonian Bowl, Bordered" },
+            { name = "Argonian Chair, Rough" },
+            { name = "Argonian Chair, Woven" },
+            { name = "Argonian Counter, Long" },
+            { name = "Argonian Curtain of the Nest" },
+            { name = "Argonian Curtain, Woven" },
+            { name = "Argonian Lanterns, String" },
+            { name = "Argonian Medallion, Stone" },
+            { name = "Argonian Ramekin, Bordered" },
+            { name = "Argonian Shelves, Full" },
+            { name = "Argonian Shelves, Half" },
+            { name = "Argonian Stool, Roped" },
+            { name = "Argonian Table, Formal" },
+            { name = "Argonian Table, Rough" },
+        },
+    },
+}

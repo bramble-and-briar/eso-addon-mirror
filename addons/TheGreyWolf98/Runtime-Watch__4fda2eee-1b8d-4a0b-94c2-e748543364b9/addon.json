@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/TheGreyWolf98/Runtime-Watch__4fda2eee-1b8d-4a0b-94c2-e748543364b9",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "TheGreyWolf98",
+  "canonical_id": "bethesda:4fda2eee-1b8d-4a0b-94c2-e748543364b9",
+  "content_id": "4fda2eee-1b8d-4a0b-94c2-e748543364b9",
+  "deleted": false,
+  "fingerprint": "c6e972a3562371cf257f763eac51d1abdc6b7d3cecf0bcaa69779eb1fd0e18e7",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "4fda2eee-1b8d-4a0b-94c2-e748543364b9",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/4fda2eee-1b8d-4a0b-94c2-e748543364b9",
+  "title": "Runtime Watch"
+}

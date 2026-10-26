@@ -1,0 +1,27 @@
+FurnishThemAllData_FPacks_AquaticSplendor = {
+    name = "Aquatic Splendor",
+    source = "Furnishing Packs",
+    collection = {
+        [1] = {
+            { name = "Bubbles of Aeration" },
+            { name = "Coral Formation, Tree Shelf" },
+            { name = "Giant Clam, Ancient" },
+            { name = "Green Algae Coral Formation, Tree Capped" },
+            { name = "Jellyfish Bloom, Heliotrope" },
+            { name = "Kelp Grouping, Robust" },
+            { name = "Kelp Grouping, Thin" },
+            { name = "Kelp Stalk, Plain" },
+            { name = "Kelp Stalk, Tall" },
+            { name = "Lilac Anemone, Sprout" },
+            { name = "Lilac Coral, Strong" },
+            { name = "Minnow School" },
+            { name = "Nedic Chest, Bubbling" },
+            { name = "Pearl, Large" },
+            { name = "Red Algae Coral Formation, Tree Antler" },
+            { name = "Red Algae Coral Formation, Waving Hands" },
+            { name = "Sand Drift, Oceanic" },
+            { name = "Target Mudcrab, Robust Coral" },
+            { name = "Verdant Anemone, Strong" },
+        },
+    },
+}

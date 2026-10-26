@@ -1,0 +1,14 @@
+FurnishThemAllData_Groups = {}
+
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Events)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_TamrielTomes)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_GoldCoastBazaar)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Vendors)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Crates)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Store)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Game)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_FPacks)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_FSets)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Houses)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Crafting)
+SPFLibUtils.Spread(FurnishThemAllData_Groups, FurnishThemAllData_Others)

@@ -18,7 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Near's Script Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Near-s-Script-Tooltips__3895) | notnear | PC / Mac | 1.0.1 |
 | [Neat Experience Info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qhil/Neat-Experience-Info__1581) | qhil | PC / Mac | 1.15.1 |
 | [Necro Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Necro-Tracker__4cd1ecbb-8d25-48e5-a67e-28b408761f77) | codeWarrior82 | Console | — |
-| [NecroCat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/NecroCat__4174) | Soul_Hagans | PC / Mac | 3.0.2 |
+| [NecroCat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/NecroCat__4174) | Soul_Hagans | PC / Mac | 3.0.3 |
 | [NecroCatIcons  (OdySupportIcons)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/NecroCatIcons-OdySupportIcons__4835) | Soul_Hagans | PC / Mac | 1.5.3 |
 | [NecromancerTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PersistentMemory/NecromancerTracker__2795) | PersistentMemory | PC / Mac | 1.3.3.1 |
 | [Ned's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ned919x/Ned-s-Group-Manager__4f86b7c8-8fb6-432c-a1b9-2004263244ab) | Ned919x | Console | — |

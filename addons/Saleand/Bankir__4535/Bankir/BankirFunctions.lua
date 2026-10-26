@@ -103,6 +103,72 @@ local function getEquipFilterType(itemLink)
 	end
 end
 
+local function redefineItemTypes(itemLink)
+	local itemType, specializedItemType = GetItemLinkItemType(itemLink)
+	local itemId = GetItemLinkItemId(itemLink)
+	
+	-- redefine the item types for armor/weapon
+	if itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON then
+		local equipFilterType = Bankir.Functions.getEquipFilterType(itemLink)
+		if equipFilterType then
+			itemType = "Equipment" .. equipFilterType
+			
+			local traitInfo = GetItemLinkTraitInfo(itemLink)
+			if traitInfo == ITEM_TRAIT_TYPE_ARMOR_INTRICATE
+			or traitInfo == ITEM_TRAIT_TYPE_WEAPON_INTRICATE
+			or traitInfo == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE
+			then
+				specializedItemType = "Intricate" .. equipFilterType
+			elseif GetItemLinkActorCategory(itemLink) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+				specializedItemType = "Companion" .. equipFilterType
+			else
+				if CanItemLinkBeTraitResearched(itemLink) then
+					specializedItemType = "Research" .. equipFilterType
+				end
+				if LCK then
+					for charId in pairs(Bankir.savedVarsServer.Integrations.LCK.CharactersList) do
+						if LCK.CanItemLinkBeTraitResearchedByCharacter(itemLink, nil, charId) then
+							if specializedItemType == "Research" .. equipFilterType then
+								specializedItemType = "ResearchBoth" .. equipFilterType
+							else
+								specializedItemType = "ResearchOthers" .. equipFilterType
+							end
+							break
+						end
+					end
+				end
+			end
+		end
+	-- redefine the item id for unknown recipes/motifs
+	elseif itemType == ITEMTYPE_RECIPE
+	or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_BOOK
+	or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER
+	or specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE
+	then
+		if CanItemLinkBeUsedToLearn(itemLink) then
+			itemId = "RecipeUnknown" .. specializedItemType
+		end
+	-- redefine the item type for 150-160CP consumables
+	elseif itemType == ITEMTYPE_FOOD or itemType == ITEMTYPE_DRINK
+	or itemType == ITEMTYPE_POTION or itemType == ITEMTYPE_POISON then
+		local requiredLevel = GetItemLinkRequiredLevel(itemLink)
+		local requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemLink)
+		if requiredLevel == 50 and requiredChampionPoints == 150 then
+			specializedItemType = "CapCP" .. itemType
+		elseif requiredLevel == 1 then
+			specializedItemType = "Scalable" .. itemType
+		end
+	elseif itemType == ITEMTYPE_STYLE_MATERIAL then
+		if Bankir.Data.isTweenOf("itemId", itemId, "StyleMaterialRacial") then
+			itemType = "StyleMaterialRacial"
+		else
+			itemType = "StyleMaterialOther"
+		end
+	end
+	
+	return itemType, specializedItemType, itemId
+end
+
 local function getNameOfType(itemType, idTypeStr)
 	local s = ""
 	if type(itemType) == "string" then -- Bankir custom string types
@@ -120,14 +186,27 @@ local function getNameOfType(itemType, idTypeStr)
 			elseif name == "Companion" then
 				s = GetString(SI_ITEM_FORMAT_STR_COMPANION) -- "Companion Item"
 			elseif name == "RecipeUnknown" or name == "Unopened" then
-				s = zo_strformat(GetString(SI_ALCHEMY_UNKNOWN_RESULT), GetString("SI_SPECIALIZEDITEMTYPE", id)) -- "Food recipe (unknown)"
+				s = zo_strformat(GetString(SI_ALCHEMY_UNKNOWN_RESULT), GetString("SI_SPECIALIZEDITEMTYPE", id)) -- e.g., "Food recipe (unknown)"
 			elseif name == "CapCP" then
 				s = string.format("%s (%s %s)", GetString("SI_ITEMTYPE", id), zo_iconTextFormatNoSpace(ZO_GetGamepadChampionPointsIcon(), 18, 18, GetString(SI_ITEM_FORMAT_STR_CHAMPION)), "150-160") -- "Food (CP150-160)"
 			elseif name == "Scalable" then
 				s = string.format("%s (%s)", GetString("SI_ITEMTYPE", id), GetString(SI_STATS_SCALED_LEVEL)) -- "Food (Scaled level)"
-			elseif name == "RepairKit" then -- return "Equipment repair kit" instead of "Tool"
-				local itemLink = buildItemLink(id)
-				s = GetItemLinkName(itemLink)
+			end
+		else
+			if itemType == "EquipmentAll" then
+				s = GetString(SI_ARMORY_EQUIPMENT_LABEL)
+			elseif itemType == "IntricateAll" then
+				s = GetString(SI_ITEMTRAITTYPE20) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
+			elseif itemType == "ResearchAll" then
+				s = GetString(SI_ITEMSELLINFORMATION3) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
+			elseif itemType == "ResearchOthersAll" then
+				s = GetString(SI_ITEMSELLINFORMATION3) .. GetString(BANKIR_MENU_OTHER_CHARACTERS) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
+			elseif itemType == "CompanionAll" then
+				s = GetString(SI_ITEM_FORMAT_STR_COMPANION) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
+			elseif itemType == "StyleMaterialRacial" then
+				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - " .. GetString(SI_SKILLTYPE7) -- "Style material - Race"
+			elseif itemType == "StyleMaterialOther" then
+				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - Not " .. GetString(SI_SKILLTYPE7) -- "Style material - Race"
 			end
 		end
 	elseif idTypeStr == "itemId" then
@@ -209,15 +288,29 @@ local function checkItemForQuests(bagId, slotId)
 	return result
 end
 
+local function getFullCopy(originalTable)
+	local newTable = {}
+	for k, v in pairs(originalTable) do
+		if type(v) == "table" then
+			newTable[k] = getFullCopy(v)
+		else
+			newTable[k] = v
+		end
+	end
+	return newTable
+end
+
 Bankir.Functions = {
 	buildItemLink = buildItemLink,
 	normalizeItemLink = normalizeItemLink,
 	isEqualItemLink = isEqualItemLink,
 	getEquipFilterType = getEquipFilterType,
+	redefineItemTypes = redefineItemTypes,
 	getNameOfType = getNameOfType,
 	getHouseBankName = getHouseBankName,
 	getGuildNameFromString = getGuildNameFromString,
 	getGuildIndexFromId = getGuildIndexFromId,
 	getBagName = getBagName,
 	checkItemForQuests = checkItemForQuests,
+	getFullCopy = getFullCopy,
 }

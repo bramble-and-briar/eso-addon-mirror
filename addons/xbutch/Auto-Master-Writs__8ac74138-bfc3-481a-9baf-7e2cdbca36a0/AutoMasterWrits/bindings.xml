@@ -7,9 +7,11 @@
             <Action name="AMW_REVIEW">
                 <Down>AutoMasterWrits:OpenReview()</Down>
             </Action>
+            <!-- Temporarily disabled; retain the binding for a future trial.
             <Action name="AMW_QUEUE">
                 <Down>AutoMasterWrits:QueueEligible()</Down>
             </Action>
+            -->
         </Category>
     </Layer>
 </Bindings>

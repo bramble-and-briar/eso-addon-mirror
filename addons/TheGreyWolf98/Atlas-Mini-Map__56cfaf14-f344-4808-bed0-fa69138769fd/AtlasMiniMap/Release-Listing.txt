@@ -1,15 +1,12 @@
-Atlas Mini Map 1.0.3
-by @TheGreyWolf98
+ATLAS MINI MAP
+By @TheGreyWolf98
 
-Readable north-up minimap with large clock, FPS, latency, native services,
-journal quest icons, optional Atlas pins, waypoints and antiquity search areas.
-Adjust size, position and zoom through /minimap. No external libraries.
+A north-up minimap with clock, FPS, latency, quest and service icons, waypoint direction and antiquity dig areas. Optional Atlas layers add your enabled map pins.
 
-UPDATE 1.0.3
-Compact clock header directly above the map; FPS and latency moved to footer.
-Added native service/trader and journal quest/breadcrumb icons. Native icons
-now remain enabled alongside Atlas layers, with duplicate icons removed.
-Dig areas match the main map's colours, shading and textured border.
+Now includes 4,357 recorded fishing spots across 106 map tiles, with different fish icons and colours for ocean, lake, river and foul water. Fishing works independently of Atlas and MasterBaiter. Pins mark possible spawn sites, not currently active fishing holes.
 
-Scrying overlays show only search areas exposed by ESO on the current map.
-Group markers and arbitrary third-party custom pins are not included.
+Open /minimap to adjust size, zoom, position and display switches. Toggle Fishing spots independently. X opens Socials / Support; B returns or closes. Existing settings carry over. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

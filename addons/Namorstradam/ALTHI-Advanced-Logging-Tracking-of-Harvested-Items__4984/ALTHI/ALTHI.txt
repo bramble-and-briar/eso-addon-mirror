@@ -1,0 +1,29 @@
+## Title: ALTHI – Advanced Logging & Tracking of Harvested Items
+## Description: Advanced Logging & Tracking of Harvested Items
+## Author: Althi & Roman (@namorstradam & @bakaroobanzai)
+## Version: 0.9.4
+## AddOnVersion: 904
+## APIVersion: 101051
+## SavedVariables: ALTHISavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0 AwesomeGuildStore TamrielTradeCentre ArkadiusTradeTools MasterMerchant ALTHI_Language_de>=1 ALTHI_Language_fr>=1 ALTHI_Language_es>=1 ALTHI_Language_ru>=1 ALTHI_Language_zh>=1 ALTHI_Language_jp>=1
+
+Catalog.lua
+ALTHI.lua
+lang/en.lua
+lang/$(language).lua
+Language.lua
+Resources.lua
+Selection.lua
+SourceData.lua
+Sources.lua
+Prices.lua
+Session.lua
+Harvest.lua
+Layout.lua
+UI.lua
+Windows.lua
+Notifications.lua
+Settings.lua
+PriceEditor.lua
+MainSettings.lua
+Bindings.xml

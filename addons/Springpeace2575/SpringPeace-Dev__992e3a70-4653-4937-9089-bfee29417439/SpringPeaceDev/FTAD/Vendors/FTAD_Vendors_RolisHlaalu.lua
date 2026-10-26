@@ -1,0 +1,27 @@
+FurnishThemAllData_Vendors_RolisHlaalu = {
+    name = "Rolis Hlaalu",
+    source = "Vendors",
+    collection = {
+        [1] = {
+            { name = "Alchemy Station" },
+            { name = "Blacksmithing Station" },
+            { name = "Clothing Station" },
+            { name = "Coldharbour Focusing Lens" },
+            { name = "Dye Station" },
+            { name = "Enchanting Station" },
+            { name = "Golden Skull, Argonian" },
+            { name = "Provisioning Station" },
+            { name = "Shell-Tide Hatchery Altar, Replica" },
+            { name = "Stone-Nest Fountain, Four Headed" },
+            { name = "Target Centurion, Dwarf-Brass" },
+            { name = "Target Centurion, Robust Refabricated" },
+            { name = "Target Skeleton, Humanoid" },
+            { name = "Target Skeleton, Robust Humanoid" },
+            { name = "Transmute Station" },
+            { name = "Woodworking Station" },
+            { name = "Worm Cult Forge, Mining" },
+            { name = "Worm Cult Tent, Large" },
+            { name = "Worm Cult Torture Rack" },
+        },
+    },
+}

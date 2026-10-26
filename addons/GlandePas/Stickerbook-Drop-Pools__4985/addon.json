@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/GlandePas/Stickerbook-Drop-Pools__4985",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "GlandePas",
+  "canonical_id": "esoui:4985",
+  "category_id": "26",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4985",
+  "deleted": false,
+  "directories": [
+    "StickerbookDropPools"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4985/",
+  "fingerprint": "2cc3c2d09ed8004e199458c4ffc5f87495416d161fbb738e8d90fde7e8dfcbf2",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18139.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4985",
+  "source_url": "https://www.esoui.com/downloads/info4985-StickerbookDropPools.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 1,
+    "monthly_downloads": 5
+  },
+  "title": "Stickerbook Drop Pools",
+  "updated_at": 1792946489000,
+  "version": "1"
+}

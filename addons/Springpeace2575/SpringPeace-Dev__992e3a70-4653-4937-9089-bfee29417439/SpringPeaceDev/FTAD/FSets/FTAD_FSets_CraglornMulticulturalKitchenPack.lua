@@ -1,0 +1,25 @@
+FurnishThemAllData_FSets_CraglornMulticulturalKitchenPack = {
+    name = "Craglorn Multicultural Kitchen Pack",
+    source = "Furnishing Sets",
+    collection = {
+        [1] = {
+            { name = "Bread, Hearty Loaves" },
+            { name = "Redguard Armchair, Lattice" },
+            { name = "Redguard Armchair, Starry" },
+            { name = "Redguard Bar, Long Cabinet" },
+            { name = "Redguard Cannister, Gilded" },
+            { name = "Redguard Carpet, Dunes" },
+            { name = "Redguard Chair, Backless" },
+            { name = "Redguard Counter, Cabinet" },
+            { name = "Redguard Counter, Corner" },
+            { name = "Redguard Curtain, Smoky" },
+            { name = "Redguard Mat, Sun" },
+            { name = "Redguard Round Table" },
+            { name = "Redguard Shelf, Sturdy" },
+            { name = "Redguard Table, Formal" },
+            { name = "Redguard Table, Grand Oasis" },
+            { name = "Redguard Trunk, Bolted" },
+            { name = "Redguard Wine Rack, Bolted" },
+        },
+    },
+}

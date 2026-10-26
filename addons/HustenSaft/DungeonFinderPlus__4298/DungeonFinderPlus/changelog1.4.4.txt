@@ -1,0 +1,13 @@
+1.4.4
+
+[New Features]
+- Quick-Queue Buttons: Added fast-queue buttons directly to pledge entries.
+- Color-Coded Pledge Status:
+  * Blue: Today's pledge available (not yet accepted)
+  * Yellow: Active pledge in progress
+  * Green: Completed objective (ready to turn in)
+  * White: Finished / turned in for today
+
+[Fixes & Improvements]
+- Fixed Auto-Pledge turn-in and conversation flow.
+- Improved pledge detection and daily completion tracking.

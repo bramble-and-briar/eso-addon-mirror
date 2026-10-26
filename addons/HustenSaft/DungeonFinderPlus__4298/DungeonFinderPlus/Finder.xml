@@ -28,7 +28,7 @@
         </Label>
 
         <!-- Typ (DLC/Base) -->
-        <Label name ="$(parent)Type"
+        <Label name="$(parent)Type"
                font="ZoFontGame"
                horizontalAlignment="LEFT"
                verticalAlignment="CENTER"
@@ -42,7 +42,7 @@
           <Anchor point="RIGHT" offsetX="-8"/>
           <Dimensions x="190" y="24"/>
           <Controls>
-            <Backdrop name ="$(parent)BG" inherits="ZO_EditBackdrop">
+            <Backdrop name="$(parent)BG" inherits="ZO_EditBackdrop">
               <AnchorFill/>
             </Backdrop>
 
@@ -140,19 +140,19 @@
                 </Button>
 
                 <Button name="$(parent)BtnClearSel" inherits="ZO_DefaultButton" text="Auswahl leeren">
-                  <Anchor point="LEFT" relativeTo ="$(parent)BtnSelectAll" relativePoint="RIGHT" offsetX="6"/>
+                  <Anchor point="LEFT" relativeTo="$(parent)BtnSelectAll" relativePoint="RIGHT" offsetX="6"/>
                   <Dimensions x="120" y="32"/>
                   <OnClicked>DungeonFinderPlus.Finder:SelectAll(false)</OnClicked>
                 </Button>
 
-                <Button name ="$(parent)BtnAllNormal" inherits="ZO_DefaultButton" text="Alle Normal">
-                  <Anchor point="LEFT" relativeTo ="$(parent)BtnClearSel" relativePoint="RIGHT" offsetX="6"/>
+                <Button name="$(parent)BtnAllNormal" inherits="ZO_DefaultButton" text="Alle Normal">
+                  <Anchor point="LEFT" relativeTo="$(parent)BtnClearSel" relativePoint="RIGHT" offsetX="6"/>
                   <Dimensions x="110" y="32"/>
                   <OnClicked>DungeonFinderPlus.Finder:SetAllModes(false)</OnClicked>
                 </Button>
 
-                <Button name ="$(parent)BtnAllVet" inherits="ZO_DefaultButton" text="Alle Vet">
-                  <Anchor point="LEFT" relativeTo ="$(parent)BtnAllNormal" relativePoint="RIGHT" offsetX="6"/>
+                <Button name="$(parent)BtnAllVet" inherits="ZO_DefaultButton" text="Alle Vet">
+                  <Anchor point="LEFT" relativeTo="$(parent)BtnAllNormal" relativePoint="RIGHT" offsetX="6"/>
                   <Dimensions x="90" y="32"/>
                   <OnClicked>DungeonFinderPlus.Finder:SetAllModes(true)</OnClicked>
                 </Button>
@@ -208,13 +208,31 @@
               <AnchorFill/>
             </Backdrop>
 
-            <!-- Queue Button -->
+            <!-- 1. Haupt-Queue Button -->
             <Button name="$(parent)QueueBtn"
                     inherits="ZO_DefaultButton"
                     text="Suche starten">
               <Anchor point="RIGHT"/>
-              <Dimensions x="240" y="28"/>
+              <Dimensions x="200" y="28"/>
               <OnClicked>DungeonFinderPlus.Finder:QueueSelection()</OnClicked>
+            </Button>
+
+            <!-- 2. Gelöbnisse (Vet) Button -->
+            <Button name="$(parent)PledgesVetBtn"
+                    inherits="ZO_DefaultButton"
+                    text="Gelöbnisse (Vet)">
+              <Anchor point="RIGHT" relativeTo="$(parent)QueueBtn" relativePoint="LEFT" offsetX="-8"/>
+              <Dimensions x="160" y="28"/>
+              <OnClicked>DungeonFinderPlus.Finder:QueueAcceptedPledges(true)</OnClicked>
+            </Button>
+
+            <!-- 3. Gelöbnisse (Normal) Button -->
+            <Button name="$(parent)PledgesNormalBtn"
+                    inherits="ZO_DefaultButton"
+                    text="Gelöbnisse (Normal)">
+              <Anchor point="RIGHT" relativeTo="$(parent)PledgesVetBtn" relativePoint="LEFT" offsetX="-8"/>
+              <Dimensions x="175" y="28"/>
+              <OnClicked>DungeonFinderPlus.Finder:QueueAcceptedPledges(false)</OnClicked>
             </Button>
 
             <!-- Status Label -->
@@ -226,7 +244,7 @@
                    horizontalAlignment="LEFT"
                    text="Bereit.">
               <Anchor point="LEFT" offsetX="8"/>
-              <Anchor point="RIGHT" relativeTo="$(parent)QueueBtn" relativePoint="LEFT" offsetX="-12"/>
+              <Anchor point="RIGHT" relativeTo="$(parent)PledgesNormalBtn" relativePoint="LEFT" offsetX="-12"/>
               <Dimensions y="28"/>
             </Label>
 

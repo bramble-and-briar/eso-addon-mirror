@@ -1,0 +1,39 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Lykeion/Lazy-Overland-Challenger__4983",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Lykeion",
+  "canonical_id": "esoui:4983",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4983",
+  "deleted": false,
+  "directories": [
+    "LazyOverlandChallenger"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4983/",
+  "fingerprint": "28205377412c61e68339d343bf1cd9bbc3e8e0bd436eeb09bb0810af2afbfede",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18129.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4983",
+  "source_url": "https://www.esoui.com/downloads/info4983-LazyOverlandChallenger.html",
+  "stats": {
+    "downloads": 12,
+    "favorites": 2,
+    "monthly_downloads": 7
+  },
+  "title": "Lazy Overland Challenger",
+  "updated_at": 1792998764000,
+  "version": "1.1"
+}

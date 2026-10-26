@@ -3,10 +3,10 @@
 
 ## Title: LibCustomIcons
 ## Description: a library for custom player icons
-## Version: 2026-10-19
+## Version: 2026-10-26
 ## Author: |c76c3f4@m00nyONE|r, |cef7682@seadotarley|r
 ## APIVersion: 101049 101050
-## AddOnVersion: 20261019
+## AddOnVersion: 20261026
 ## SavedVariables: LibCustomIconsSV
 ## IsLibrary: true
 ## DependsOn: LibAddonMenu-2.0>=40

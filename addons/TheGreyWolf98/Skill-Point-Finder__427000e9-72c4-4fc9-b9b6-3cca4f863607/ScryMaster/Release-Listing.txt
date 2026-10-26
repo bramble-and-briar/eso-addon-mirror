@@ -1,0 +1,12 @@
+Scry Master
+By @TheGreyWolf98 | 1.0.2
+
+Browse zone antiquities, expandable mythic fragments, excavation history and codex progress.
+
+Search by antiquity, reward or zone, then filter for leads, digs and codex completion. Expand multi-part rewards to review their fragments. Lead availability does not guarantee zone access or sufficient scrying skill.
+
+Open /sm. Click the left stick for Socials / Support. Search uses right-stick click. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

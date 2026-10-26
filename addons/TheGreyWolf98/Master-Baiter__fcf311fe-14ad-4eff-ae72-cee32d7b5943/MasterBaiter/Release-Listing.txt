@@ -1,0 +1,12 @@
+MasterBaiter
+By @TheGreyWolf98 | 1.0.2
+
+Choose suitable bait, get bite alerts and track rare fish with a HUD and fishing map pins.
+
+Includes optional automatic bait selection, sound and visual bite alerts, a rare-fish checklist and a short zone reminder. Bait matching uses English names. Cast and reel in manually; map pins are known locations, not live hole availability.
+
+Open /mb. Click the left stick for Socials / Support. No external libraries required.
+
+Ko-fi: ko-fi.com/thegreywolf98
+Instagram: instagram.com/thegreywolf_98
+Discord: discord.gg/Fp9RSaeU8h

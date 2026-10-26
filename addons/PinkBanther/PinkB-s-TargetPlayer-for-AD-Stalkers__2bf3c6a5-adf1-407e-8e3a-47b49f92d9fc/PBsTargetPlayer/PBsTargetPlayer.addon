@@ -2,10 +2,10 @@
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
 ## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
-## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.1
+## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.2
 ## Author: |cFF69B4PinkBanther|r
 ## Description: For two named players only. Puts the game's own target marker on chosen players, so they stand out above their nameplate: look at a registered player and the marker is set on them. Register up to twenty players by @account name, console ID or character name, and pick which of the eight markers to use. /pbtarget where says where they are: the zone for friends and guild members, and for anybody else where and when they were last seen (kill feed, fights, chat). A message and a sound say when a registered player turns up nearby or, for friends and guild members, enters Cyrodiil. The game only lets an add-on mark the player under the reticle, so each player has to be looked at once.
-## Version: 1.6.1
+## Version: 1.6.2
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsTargetPlayer_Data

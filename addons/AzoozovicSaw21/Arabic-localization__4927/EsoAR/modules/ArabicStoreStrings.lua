@@ -562,3 +562,18 @@ SafeAddString(SI_ANTIQUITY_LEAD_NAME_FORMATTER, "<<1>> :ﻞﻴﻟﺩ", 70)
 SafeAddString(SI_MARKET_PRODUCT_TOOLTIP_BUNDLE, "ﺔﻣﺰﺣ", 70)
 SafeAddString(SI_TOOLTIP_COLLECTIBLE_OUTFIT_STYLE_APPLICATION_COST_GAMEPAD, "ﻖﻴﺒﻄﺘﻟﺍ ﺔﻔﻠﻜﺗ", 70)
 end
+
+-- 2.4.0: supported client antiquity terminology.
+if GetCVar("language.2") == "ar" then
+    SafeAddString(SI_ANTIQUITY_DIGGING_REWARDS_NEW_LEAD_FOUND, "ﺪﻳﺪﺟ ﻱﺮﺛﺃ ﻞﻴﻟﺩ ﻰﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺗ", 100)
+    SafeAddString(SI_ANTIQUITY_LEAD_NAME_FORMATTER, "<<1>> :ﻱﺮﺛﺃ ﻞﻴﻟﺩ", 100)
+    SafeAddString(SI_ANTIQUITY_LEAD_ACQUIRED_TITLE, "!ﻱﺮﺛﺃ ﻞﻴﻟﺩ ﻰﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺗ", 100)
+    SafeAddString(SI_ANTIQUITY_LEAD_ACQUIRED_TEXT, "<<1>>. ﺭﺎﺼﺒﺘﺳﺍ ﻥﺍ ﻚﻨﻜﻤﻳ", 100)
+    SafeAddString(SI_ANTIQUITY_LEAD_TOOLTIP_TAG, "ﻱﺮﺛﺃ ﻞﻴﻟﺩ", 100)
+    SafeAddString(SI_ANTIQUITY_LEAD_TOOLTIP_DESCRIPTION, "<<1>>. ﺔﻳﺮﺛﺍ ﺔﻌﻄﻘﻟﺍ ﺭﺎﺼﺒﺘﺳﺍ ﻚﻟ ﺢﻴﺘﻳ", 100)
+    SafeAddString(SI_ANTIQUITY_REQUIRES_LEAD, "ﺔﻳﺮﺛﺍ ﺔﻌﻄﻘﻟﺍ ﻩﺬﻫ ﺭﺎﺼﺒﺘﺳ ﺪﻳﺪﺟ ﻱﺮﺛﺃ ﻞﻴﻟﺩ ﻰﻠﻋ ﺮﺜﻋﺍ", 100)
+    SafeAddString(SI_ANTIQUITY_SCRYABLE_ALL_LEADS_SUBCATEGORY, "ﺔﻄﺸﻨﻟﺍ ﺔﻳﺮﺛﺍ ﻞﺋﺪﻟﺍ ﻊﻴﻤﺟ", 100)
+    SafeAddString(SI_ANTIQUITY_SUBHEADING_ACTIVE_LEADS, "ﺔﻄﺸﻨﻟﺍ ﺔﻳﺮﺛﺍ ﻞﺋﺪﻟﺍ", 100)
+    SafeAddString(SI_ANTIQUITY_SUBHEADING_REQUIRES_LEAD, "ﺎﻳًﺮﺛﺃ ًﻴﻟﺩ ﺐﻠﻄﺘﻳ", 100)
+    SafeAddString(SI_ANTIQUITY_TOOLTIP_LEAD_EXPIRATION, "<<X:1>> :ﻝﺧ ﻱﺮﺛﺍ ﻞﻴﻟﺪﻟﺍ ﺔﻴﺣﺻ ﻲﻬﺘﻨﺗ", 100)
+end

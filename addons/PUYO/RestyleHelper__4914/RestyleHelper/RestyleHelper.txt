@@ -7,9 +7,10 @@
 ## Title: Restyle Helper
 ## Description: Outfit station helper - randomize with slot locks, apply one style to all slots, share outfit presets.
 ## Author: PUYO
-## Version: 1.2
-## AddOnVersion: 12000
+## Version: 1.5
+## AddOnVersion: 15000
 ## APIVersion: 101050 101051
+## OptionalDependsOn: LibChatMessage>=118
 ## SavedVariables: RestyleHelperSV
 
 Strings.lua
@@ -18,6 +19,7 @@ Randomizer.lua
 StyleMenu.lua
 Share.lua
 Favorites.lua
+Portable.lua
 ChannelLock.lua
 UI.lua
 Bindings.xml

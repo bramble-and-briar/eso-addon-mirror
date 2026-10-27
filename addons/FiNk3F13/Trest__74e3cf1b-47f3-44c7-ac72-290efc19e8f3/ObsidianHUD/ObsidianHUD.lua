@@ -22,10 +22,13 @@ function O.Tick()
     if not O.root then return end
     if O.nativeMoving and not O.vars.enabled then O.StopNativeMove(); return end
     if O.moving and not O.vars.enabled then O.StopMove(); return end
+    O.UpdateSkillScale()
     O.UpdateMaterials()
     O.UpdateClassIcon()
     local hud=playerActive and (HUD_SCENE:IsShowing() or HUD_UI_SCENE:IsShowing())
     local visible=O.vars.enabled and hud
+    if O.resourcesVisible~=visible then O.ResetResourceAnimations() end
+    O.resourcesVisible=visible
     O.root:SetHidden(not (visible or O.moving) or not O.materialReady)
     O.SyncNativeResources()
     if visible then O.UpdateResources() end
@@ -57,11 +60,13 @@ local function initialize(_,name)
     O.CreateMoveUI()
     O.CreateNativeMoveUI()
     O.CreateSettings()
-    EVENT_MANAGER:RegisterForEvent(O.name,EVENT_PLAYER_ACTIVATED,function() O.ResetStackEffects(); playerActive=true; O.Refresh() end)
+    EVENT_MANAGER:RegisterForEvent(O.name,EVENT_PLAYER_ACTIVATED,function() O.ResetStackEffects(); O.ResetSkillTimers(); playerActive=true; O.Refresh() end)
     EVENT_MANAGER:RegisterForEvent(O.name,EVENT_PLAYER_DEACTIVATED,function()
         EVENT_MANAGER:UnregisterForUpdate(swapUpdate)
         O.ResetStackEffects()
+        O.ResetSkillTimers()
         playerActive=false; O.StopMove(); O.StopNativeMove(); O.root:SetHidden(true); O.ReleaseSkills()
+        O.resourcesVisible=false; O.ResetResourceAnimations()
         O.UpdateQuickslot(false)
     end)
     EVENT_MANAGER:RegisterForEvent(O.name,EVENT_POWER_UPDATE,function(_,unit)
@@ -72,6 +77,21 @@ local function initialize(_,name)
     EVENT_MANAGER:RegisterForEvent(O.name,EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED,hotbarUpdated)
     EVENT_MANAGER:RegisterForEvent(O.name.."Stacks",EVENT_EFFECT_CHANGED,O.OnSkillStackEffectChanged)
     EVENT_MANAGER:AddFilterForEvent(O.name.."Stacks",EVENT_EFFECT_CHANGED,REGISTER_FILTER_UNIT_TAG,"player")
+    if EVENT_ACTION_SLOT_ABILITY_USED then
+        EVENT_MANAGER:RegisterForEvent(O.name.."TimerCasts",EVENT_ACTION_SLOT_ABILITY_USED,O.OnTimerAbilityUsed)
+    end
+    if EVENT_ACTION_SLOT_EFFECT_UPDATE then
+        EVENT_MANAGER:RegisterForEvent(O.name.."TimerSlots",EVENT_ACTION_SLOT_EFFECT_UPDATE,O.OnTimerSlotEffectUpdated)
+    end
+    EVENT_MANAGER:RegisterForEvent(O.name.."TimerEffects",EVENT_EFFECT_CHANGED,O.OnTimerEffectChanged)
+    EVENT_MANAGER:AddFilterForEvent(O.name.."TimerEffects",EVENT_EFFECT_CHANGED,REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
+    if EVENT_COMBAT_EVENT then
+        for abilityId in pairs(O.timerExplosions) do
+            local key=O.name.."TimerImpact"..abilityId
+            EVENT_MANAGER:RegisterForEvent(key,EVENT_COMBAT_EVENT,O.OnTimerCombatEvent)
+            EVENT_MANAGER:AddFilterForEvent(key,EVENT_COMBAT_EVENT,REGISTER_FILTER_ABILITY_ID,abilityId)
+        end
+    end
     EVENT_MANAGER:RegisterForUpdate(O.name.."Refresh",250,O.Tick)
     SLASH_COMMANDS["/obsidian"]=function(input)
         input=string.lower(zo_strtrim(input or ""))

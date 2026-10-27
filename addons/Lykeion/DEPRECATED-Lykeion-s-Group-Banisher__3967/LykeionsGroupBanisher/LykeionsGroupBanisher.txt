@@ -1,0 +1,8 @@
+## Title: |c215895Lykeion's |cCC922FGroup Banisher|r
+## Description: A simple addon to remove ghost group in group finder
+## Author: |c215895L|c3E6284y|c5A6B73k|c777562e|c937F51i|cB08840o|cCC922Fn|r
+## Version: 1.3
+## APIVersion: 101043
+## SavedVariables: LGB_VARS
+
+LykeionsGroupBanisher.lua

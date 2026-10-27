@@ -133,7 +133,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.1.3 |
 | [Simple fix for Grim Focus Counter v1.6](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vays/Simple-fix-for-Grim-Focus-Counter-v1.6__4136) | vays | PC / Mac | 1.6.07 |
 | [Simple FPS & Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claise/Simple-FPS-Ping__ce31d856-17b4-4951-9802-820df96527e2) | Claise | Console | — |
-| [Simple Goliath Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Goliath-Weave__4975) | Kaewro | PC / Mac | 1.0.0 |
+| [Simple Goliath Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Goliath-Weave__4975) | Kaewro | PC / Mac | 1.0.1 |
 | [Simple Group Leave - /gl Sash command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Group-Leave---gl-Sash-command__654) | Baertram | PC / Mac | 0.6 100034 |
 | [Simple Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Keybind__2556) | ShadowMau | PC / Mac | 0.1.0 |
 | [Simple Llothis Interrupt Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Simple-Llothis-Interrupt-Helper__2626) | ownedbynico | PC / Mac | beta |
@@ -339,10 +339,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__aa271fb4-3ce5-4584-ac5c-338617e92f62) | Lykeion+ | Console | — |
 | [SuMech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/burito/SuMech__3467) | burito | PC / Mac | cdaefe9dfe5ba5531fb6b0a6eb0c1757b7b246a1 |
 | [SummonAlly - manage companions and assistants](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheMikrobe/SummonAlly---manage-companions-and-assistants__3610) | TheMikrobe | PC / Mac | 2.0.0 |
-| [SuperStar - Seasonal Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/SuperStar---Seasonal-Update__3648) | Lykeion | PC / Mac | 8.0.0 |
+| [SuperStar - Seasonal Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/SuperStar---Seasonal-Update__3648) | Lykeion | PC / Mac | 8.0.1 |
 | [Surging Waters Synergy Warning (Dreadsail Reef)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AlekWithK/Surging-Waters-Synergy-Warning-Dreadsail-Reef__3519) | AlekWithK | PC / Mac | 1.0.0 |
 | [Survey And Writ Count Warnings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mccalli/Survey-And-Writ-Count-Warnings__3835) | mccalli | PC / Mac | 1.0.2 |
 | [Survey Map Teleport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pyrowin/Survey-Map-Teleport__4593) | Pyrowin | PC / Mac | 1.2.0 |
+| [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__be74c988-2267-4f01-a4e5-c54cbf6aba19) | Lykeion+ | Console | — |
 | [Survey Sentinel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Survey-Sentinel__d9ba289c-0a0a-4233-80ab-25f3be9c35eb) | ReliktKoala | Console | — |
 | [Survey The World](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Survey-The-World__1817) | manavortex | PC / Mac | 1.5a |
 | [Survey Zone List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bulton-fr/Survey-Zone-List__2797) | bulton-fr | PC / Mac | 2.0.1 |

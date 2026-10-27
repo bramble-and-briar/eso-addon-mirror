@@ -1,0 +1,182 @@
+<GuiXml>
+    <Controls>
+        <!-- Group List Row Template -->
+        <Control name="InventoryCompanion_GroupRow_Template" virtual="true" mouseEnabled="true">
+            <Dimensions x="260" y="32" />
+            <Controls>
+                <Texture name="$(parent)BG" textureFile="EsoUI/Art/Miscellaneous/listItemBackground.dds" alpha="0.3">
+                    <AnchorFill />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGame" color="FFFFFF" verticalAlignment="CENTER" wrapMode="ELLIPSE">
+                    <Dimensions x="240" y="32" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="10" offsetY="0" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Pattern Edit Row Template (EditBox + Delete Button) -->
+        <Control name="InventoryCompanion_PatternEditRow_Template" virtual="true">
+            <Dimensions x="490" y="32" />
+            <Controls>
+                <EditBox name="$(parent)Edit" font="AS_FontEditbox" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
+                    <Dimensions x="430" y="26"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="5" offsetY="0" />
+                    <Controls>
+                        <Backdrop name="$(parent)Bg" inherits="ZO_EditBackdrop" alpha="1">
+                            <AnchorFill />
+                        </Backdrop>
+                    </Controls>
+                </EditBox>
+                <Button name="$(parent)BtnDelete" inherits="ZO_CloseButton">
+                    <Anchor point="LEFT" relativeTo="$(parent)Edit" relativePoint="RIGHT" offsetX="6" offsetY="0" />
+                </Button>
+            </Controls>
+        </Control>
+
+        <!-- Main Groups Management Window -->
+        <TopLevelControl name="InventoryCompanion_GroupsWindow" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+            <Dimensions x="860" y="800" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" />
+                
+                <!-- Window Title -->
+                <Label name="$(parent)Title" font="ZoFontHeader3" color="FFFFFF" text="Manage Tracked Groups">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="20" offsetY="15" />
+                </Label>
+                
+                <!-- Edit Items Switch Button -->
+                <Button name="$(parent)BtnEditItems" inherits="ZO_DefaultButton" text="Edit Items">
+                    <Dimensions x="100" y="26" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Close" relativePoint="TOPRIGHT" offsetX="-50" offsetY="18" />
+                </Button>
+                
+                <!-- Close Button -->
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-10" offsetY="10" />
+                    <OnClicked>
+                        SCENE_MANAGER:Hide("InventoryCompanion_GroupsScene")
+                    </OnClicked>
+                </Button>
+                
+                <Texture name="$(parent)Divider" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
+                    <Dimensions x="860" y="4" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="-5" offsetY="10" />
+                </Texture>
+
+                <!-- Top Filter & Action Bar -->
+                <Control name="$(parent)TopActionBar">
+                    <Dimensions x="830" y="32" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="15" offsetY="8" />
+                    <Controls>
+                        <Texture name="$(parent)SearchIcon" textureFile="ESOUI/art/miscellaneous/search_icon.dds">
+                            <Dimensions x="28" y="28" />
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                        </Texture>
+                        <EditBox name="$(parent)FindBox" font="AS_FontEditbox" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
+                            <Dimensions x="180" y="25"/>
+                            <Anchor point="LEFT" relativeTo="$(parent)SearchIcon" relativePoint="RIGHT" offsetX="6" offsetY="0" />
+                            <Controls>
+                                <Backdrop name="$(parent)Bg" inherits="ZO_EditBackdrop" alpha="1">
+                                    <AnchorFill />
+                                </Backdrop>
+                            </Controls>
+                        </EditBox>
+
+                        <Button name="$(parent)BtnNewGroup" inherits="ZO_DefaultButton" text="+ New Group">
+                            <Dimensions x="110" y="26" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="0" offsetY="0" />
+                        </Button>
+                    </Controls>
+                </Control>
+
+                <!-- Left Pane: Group List Scroll Container -->
+                <Control name="$(parent)LeftPane" inherits="ZO_ScrollContainer">
+                    <Dimensions x="260" y="680" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)TopActionBar" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="12" />
+                </Control>
+
+                <!-- Right Pane: Inspector Panel -->
+                <Control name="$(parent)RightPane">
+                    <Dimensions x="540" y="680" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)LeftPane" relativePoint="TOPRIGHT" offsetX="20" offsetY="0" />
+                    <Controls>
+                        <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" alpha="0.4" />
+
+                        <!-- Group Header & Explicit Items Count -->
+                        <Label name="$(parent)GroupTitleLabel" font="ZoFontHeader" color="FFFFFF" text="Group Name: Select a Group (0 explicit items)">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="15" offsetY="15" />
+                        </Label>
+
+                        <!-- Pencil Edit Toggle Button -->
+                        <Button name="$(parent)BtnEditGroupName" mouseEnabled="true" hidden="false">
+                            <Dimensions x="20" y="20"/>
+                            <Anchor point="LEFT" relativeTo="$(parent)GroupTitleLabel" relativePoint="RIGHT" offsetX="8" offsetY="0"/>
+                            <Textures 
+                                normal="EsoUI/Art/Buttons/edit_up.dds" 
+                                pressed="EsoUI/Art/Buttons/edit_down.dds" 
+                                mouseOver="EsoUI/Art/Buttons/edit_over.dds" 
+                            />
+                        </Button>
+
+                        <!-- Hidden Inline Edit Box (Swaps with GroupTitleLabel when active) -->
+                        <EditBox name="$(parent)GroupEditBox" font="ZoFontHeader" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" hidden="true">
+                            <Dimensions x="350" y="28"/>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)GroupTitleLabel" relativePoint="TOPLEFT" offsetX="-4" offsetY="-4"/>
+                            <Controls>
+                                <Backdrop name="$(parent)Bg" inherits="ZO_EditBackdrop" alpha="1">
+                                    <AnchorFill />
+                                </Backdrop>
+                            </Controls>
+                        </EditBox>
+
+                        <!-- Instructions / Subtitle -->
+                        <Label name="$(parent)InstructionsLabel" font="ZoFontGameSmall" color="AAAAAA" text="Enter wildcard rules to select items">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)GroupTitleLabel" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
+                        </Label>
+
+                        <!-- Scrollable Pattern Container -->
+                        <Control name="$(parent)PatternScrollContainer" inherits="ZO_ScrollContainer">
+                            <Dimensions x="510" y="480" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)InstructionsLabel" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="12" />
+                        </Control>
+
+                        <!-- Add Rule / Pattern Button -->
+                        <Button name="$(parent)BtnAddRule" inherits="ZO_DefaultButton" text="+ Add Pattern">
+                            <Dimensions x="120" y="26" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)PatternScrollContainer" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="10" />
+                        </Button>
+
+                        <!-- Special Group Description Label -->
+                        <Label name="$(parent)DescriptionLabel" font="ZoFontGame" color="CCCCCC" text="" hidden="true" wrapMode="TEXT_WRAP_MODE_WORD">
+                            <Dimensions x="510" y="200" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)InstructionsLabel" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="12" />
+                        </Label>
+
+                        <!-- Bottom-Anchored Action Buttons Bar -->
+                        <Control name="$(parent)ActionBar">
+                            <Dimensions x="510" y="30" />
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="15" offsetY="-15" />
+                            <Controls>
+                                <Button name="$(parent)BtnReset" inherits="ZO_DefaultButton" text="Reset to Default">
+                                    <Dimensions x="130" y="26" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                                </Button>
+                                <Button name="$(parent)BtnHide" inherits="ZO_DefaultButton" text="Hide Group">
+                                    <Dimensions x="110" y="26" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)BtnReset" relativePoint="RIGHT" offsetX="10" offsetY="0" />
+                                </Button>
+                                <Button name="$(parent)BtnDelete" inherits="ZO_DefaultButton" text="Delete Group" hidden="true">
+                                    <Dimensions x="110" y="26" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                                </Button>
+                            </Controls>
+                        </Control>
+
+                    </Controls>
+                </Control>
+
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

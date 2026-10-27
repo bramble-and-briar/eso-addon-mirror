@@ -98,9 +98,11 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocFacts
 ---@field gearSlots number[]
 ---@field quotes table<string, InventoryPocCachedQuote>
+---@field quoteRevision number Changes to quotes while ownership cleanup yields
 ---@field waitingPriceLink string|nil One probe suffices: TSC publishes its table after all chunks load
 local facts = {
     quotes = {},
+    quoteRevision = 0,
     gearSlots = {
         EQUIP_SLOT_HEAD, EQUIP_SLOT_CHEST, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_HAND,
         EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET, EQUIP_SLOT_NECK,
@@ -150,6 +152,7 @@ end
 ---@param expiredPrice number|nil
 function facts.rememberQuote(item, price, expiredPrice)
     facts.quotes[facts.variantKey(item)] = { price = price, expiredPrice = expiredPrice }
+    facts.quoteRevision = facts.quoteRevision + 1
 end
 
 ---@param link string
@@ -581,7 +584,7 @@ function facts.item(bag, slot, reserved)
         usable = usable, filledSoulGem = itemKind == 'soulGem' and IsItemSoulGem(SOUL_GEM_TYPE_FILLED, bag, slot),
         crafted = crafted, hasOnUseAbility = hasOnUseAbility, onUseAbilityId = onUseAbilityId, alchemyTraitCount = alchemyTraitCount,
     }
-    if itemKind == 'companion' and companions then item.companionNeeded = companions.isNeeded(item) end
+    if itemKind == 'companion' and companions then companions.apply(item) end
     BattleScrolls.inventoryPocSealedLeads.apply(item)
     if itemKind == 'container' then item.openAfter = BattleScrolls.inventoryPocCoffers.openAfter(itemId) end
     local returns = BattleScrolls.inventoryPocReturns

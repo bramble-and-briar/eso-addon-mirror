@@ -3513,6 +3513,7 @@ local BITS_DAMAGE_TYPE = 4  -- DamageType enum (16 values max)
 local function readAbilityInfo(decoder, version)
     local result = {}
     local count = decoder:readUInt(BITS.MAP_COUNT)
+    local progress = { count = 0 }
 
     for _ = 1, count do
         local abilityId = decoder:readUInt(BITS.ABILITY_ID)
@@ -3541,6 +3542,7 @@ local function readAbilityInfo(decoder, version)
             deliveryType = deliveryType,
             damageTypes = damageTypes,
         }
+        countAndMaybeYield(progress)
     end
 
     return result
@@ -3633,15 +3635,18 @@ function binaryStorage.decodeInstanceFieldsAsync(instance)
         -- v17: encounter registries follow the ability info
         local abilityIds = {}
         local names = {}
+        local progress = { count = 0 }
         if version >= 17 then
             decoder:alignToByte()
             local abilityCount = decoder:readVarUInt()
             for i = 1, abilityCount do
                 abilityIds[i] = decoder:readVarUInt()
+                countAndMaybeYield(progress)
             end
             local nameCount = decoder:readVarUInt()
             for i = 1, nameCount do
                 names[i] = decoder:readString()
+                countAndMaybeYield(progress)
             end
         end
 

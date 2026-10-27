@@ -4,7 +4,8 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field kept table<string, boolean>
 ---@field complete boolean
 ---@field bank InventoryPocItem[]
-local companions = { kept = {}, complete = false, bank = {} }
+---@field assigned table<string, number> Companion receiving each selected item instance
+local companions = { kept = {}, complete = false, bank = {}, assigned = {} }
 BattleScrolls.inventoryPocCompanions = companions
 local poc = BattleScrolls.inventoryPoc
 local facts = BattleScrolls.inventoryPocFacts
@@ -26,11 +27,29 @@ for _, slot in ipairs(JEWELRY_SLOTS) do EQUIPMENT_SLOTS[#EQUIPMENT_SLOTS + 1] = 
 ---@type table<number, InventoryPocCompanionUpgrade>
 local upgrades = {}
 local reportPending = false
-local TRAIT_PRIORITY = {
-    [ITEM_TRAIT_TYPE_ARMOR_QUICKENED] = 2, [ITEM_TRAIT_TYPE_ARMOR_AUGMENTED] = 1,
-    [ITEM_TRAIT_TYPE_WEAPON_QUICKENED] = 2, [ITEM_TRAIT_TYPE_WEAPON_AUGMENTED] = 1,
-    [ITEM_TRAIT_TYPE_JEWELRY_QUICKENED] = 2, [ITEM_TRAIT_TYPE_JEWELRY_AUGMENTED] = 1,
+local QUICKENED = {
+    [ITEM_TRAIT_TYPE_ARMOR_QUICKENED] = true,
+    [ITEM_TRAIT_TYPE_WEAPON_QUICKENED] = true,
+    [ITEM_TRAIT_TYPE_JEWELRY_QUICKENED] = true,
 }
+---@type table<number, table<string, number>>
+local REQUIREMENTS = {}
+for _, id in ipairs(TARGETS) do
+    local demand = {}
+    for _, equipType in ipairs(ARMOR_TYPES) do demand['armor:' .. tostring(equipType)] = 1 end
+    demand['jewelry:' .. tostring(EQUIP_TYPE_NECK)] = 1
+    demand['jewelry:' .. tostring(EQUIP_TYPE_RING)] = 2
+    demand[id == SHARP and 'twoHand' or (id == EMBER and 'resto' or 'oneHand')] = id == ZERITH and 2 or 1
+    REQUIREMENTS[id] = demand
+end
+
+---@param id number
+---@return boolean
+local function isUnlockedHere(id)
+    local collectibleId = GetCompanionCollectibleId(id)
+    return collectibleId > 0 and IsCollectibleUnlocked(collectibleId)
+        and GetCollectibleAssociatedQuestState(collectibleId) == COLLECTIBLE_ASSOCIATED_QUEST_STATE_COMPLETED
+end
 
 ---@param item InventoryPocItem
 ---@return string|nil
@@ -49,15 +68,14 @@ end
 ---@return string|nil
 local function key(item)
     local category = piece(item)
-    return TRAIT_PRIORITY[item.trait] and category ~= 'twoHand' and category or nil
+    return QUICKENED[item.trait] and category ~= 'shield' and category or nil
 end
 
 ---@param a InventoryPocItem
 ---@param b InventoryPocItem
 ---@return boolean
 local function stronger(a, b)
-    if a.quality ~= b.quality then return a.quality > b.quality end
-    return (TRAIT_PRIORITY[a.trait] or 0) > (TRAIT_PRIORITY[b.trait] or 0)
+    return a.quality > b.quality
 end
 
 ---@class InventoryPocCompanionEquip
@@ -71,14 +89,15 @@ end
 ---@param locked table<number, boolean> Locked equipment slots
 ---@return InventoryPocCompanionEquip[]
 function companions.nextEquipment(id, backpack, worn, locked)
-    if not TARGET_IDS[id] then return {} end
+    if not TARGET_IDS[id] or not isUnlockedHere(id) then return {} end
     local equipped = {} ---@type table<number, InventoryPocItem>
     for _, item in ipairs(worn) do equipped[item.slot] = item end
     local candidates = {} ---@type table<string, InventoryPocItem[]>
     for _, item in ipairs(backpack) do
         local category = key(item)
         if item.kind == 'companion' and item.bag == BAG_BACKPACK and category
-            and not item.reserved and not item.stolen and not item.crown then
+            and companions.assigned[item.uniqueId] == id
+            and not item.reserved and not item.locked and not item.stolen and not item.crown then
             candidates[category] = candidates[category] or {}
             table.insert(candidates[category], item)
         end
@@ -99,7 +118,7 @@ function companions.nextEquipment(id, backpack, worn, locked)
             local item = equipped[slot]
             if not item or piece(item) ~= category then return -2 end
             if key(item) ~= category then return -1 end
-            return item.quality * 10 + TRAIT_PRIORITY[item.trait]
+            return item.quality
         end
         table.sort(slots, function(a, b)
             if rank(a) ~= rank(b) then return rank(a) < rank(b) end
@@ -124,18 +143,13 @@ function companions.nextEquipment(id, backpack, worn, locked)
     moves = choose('jewelry:' .. tostring(EQUIP_TYPE_RING), { EQUIP_SLOT_RING1, EQUIP_SLOT_RING2 })
     if #moves > 0 then return moves end
     if id == EMBER then return choose('resto', { EQUIP_SLOT_MAIN_HAND }) end
-    if id == SHARP then
-        moves = choose('oneHand', { EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND })
-    else
-        moves = choose('oneHand', { EQUIP_SLOT_MAIN_HAND })
-        local shield = choose('shield', { EQUIP_SLOT_OFF_HAND })
-        if shield[1] then moves[#moves + 1] = shield[1] end
-    end
+    if id == SHARP then return choose('twoHand', { EQUIP_SLOT_MAIN_HAND }) end
+    moves = choose('oneHand', { EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND })
     local final = { [EQUIP_SLOT_MAIN_HAND] = equipped[EQUIP_SLOT_MAIN_HAND],
         [EQUIP_SLOT_OFF_HAND] = equipped[EQUIP_SLOT_OFF_HAND] }
     for _, move in ipairs(moves) do final[move.slot] = move.item end
     if not final[EQUIP_SLOT_MAIN_HAND] or piece(final[EQUIP_SLOT_MAIN_HAND]) ~= 'oneHand'
-        or not final[EQUIP_SLOT_OFF_HAND] or piece(final[EQUIP_SLOT_OFF_HAND]) ~= (id == SHARP and 'oneHand' or 'shield') then
+        or not final[EQUIP_SLOT_OFF_HAND] or piece(final[EQUIP_SLOT_OFF_HAND]) ~= 'oneHand' then
         return {}
     end
     -- Establish the main hand before filling the off hand during a conversion.
@@ -143,70 +157,76 @@ function companions.nextEquipment(id, backpack, worn, locked)
     return moves
 end
 
----Quality wins, then Quickened over Augmented, then equipped copies and stable ID.
----Each equipped or loose instance participates only once, even after a swap.
+---Allocate Quickened pieces in companion priority order, highest quality first.
+---Equipped pieces stay with their wearer until a confirmed swap frees them.
+---The next pass can assign each freed piece to the next companion needing it.
 ---@param kits table<number, InventoryPocItem[]>
 ---@param loose InventoryPocItem[]
----@return table<string, boolean>, boolean
+---@return table<string, boolean> kept
+---@return boolean complete
+---@return table<string, number> assigned
 function companions.allocate(kits, loose)
-    local demand, candidates = {}, {}
-    local function need(category, quantity)
-        demand[category] = (demand[category] or 0) + quantity
-    end
+    local candidates, owners = {}, {}
+    local complete = true
     for _, id in ipairs(TARGETS) do
         local kit = kits[id]
-        if not kit then return {}, false end
-        for _, item in ipairs(kit) do
+        if not kit then complete = false end
+        for _, item in ipairs(kit or {}) do
             candidates[item.uniqueId] = item
-        end
-        for _, equipType in ipairs(ARMOR_TYPES) do
-            need('armor:' .. tostring(equipType), 1)
-        end
-        for _, slot in ipairs(JEWELRY_SLOTS) do
-            local equipType = slot == EQUIP_SLOT_NECK and EQUIP_TYPE_NECK or EQUIP_TYPE_RING
-            need('jewelry:' .. tostring(equipType), 1)
-        end
-        if id == SHARP then
-            need('oneHand', 2)
-        elseif id == EMBER then
-            need('resto', 1)
-        else
-            need('oneHand', 1); need('shield', 1)
+            owners[item.uniqueId] = id
         end
     end
     -- Live bags take precedence over a former equipped location in a snapshot.
-    for _, item in ipairs(loose) do if item.kind == 'companion' then candidates[item.uniqueId] = item end end
+    for _, item in ipairs(loose) do
+        if item.kind == 'companion' then
+            candidates[item.uniqueId], owners[item.uniqueId] = item, nil
+        end
+    end
     local groups = {}
     for _, item in pairs(candidates) do
         local k = key(item)
-        if k and demand[k] then
+        if k and (owners[item.uniqueId] or (not item.reserved and not item.locked and not item.stolen and not item.crown)) then
             groups[k] = groups[k] or {}; table.insert(groups[k], item)
         end
     end
-    local kept = {}
-    for k, items in pairs(groups) do
-        table.sort(items, function(a, b)
-            if stronger(a, b) then return true end
-            if stronger(b, a) then return false end
-            if (a.bag == BAG_COMPANION_WORN) ~= (b.bag == BAG_COMPANION_WORN) then return a.bag == BAG_COMPANION_WORN end
-            return a.uniqueId < b.uniqueId
-        end)
-        for index = 1, math.min(demand[k], #items) do kept[items[index].uniqueId] = true end
+    local kept, assigned = {}, {}
+    for _, id in ipairs(TARGETS) do
+        for category, quantity in pairs(REQUIREMENTS[id]) do
+            local items = groups[category] or {}
+            table.sort(items, function(a, b)
+                local ownA, ownB = owners[a.uniqueId] == id, owners[b.uniqueId] == id
+                local lockedA, lockedB = ownA and a.locked == true, ownB and b.locked == true
+                if lockedA ~= lockedB then return lockedA end
+                if stronger(a, b) then return true end
+                if stronger(b, a) then return false end
+                if ownA ~= ownB then return ownA end
+                return a.uniqueId < b.uniqueId
+            end)
+            for _, item in ipairs(items) do
+                local owner = owners[item.uniqueId]
+                if not assigned[item.uniqueId] and (not owner or owner == id) then
+                    kept[item.uniqueId], assigned[item.uniqueId] = true, id
+                    quantity = quantity - 1
+                    if quantity == 0 then break end
+                end
+            end
+        end
     end
-    return kept, true
+    return kept, complete, assigned
 end
 
-function companions.capture()
+---@param worn InventoryPocItem[]|nil Fresh equipment already read for this companion
+function companions.capture(worn)
     if not poc.enabled or not poc.saved then return end
     local id = GetActiveCompanionDefId()
     if TARGET_IDS[id] then
-        local worn = facts.bag(BAG_COMPANION_WORN)
+        worn = worn or facts.bag(BAG_COMPANION_WORN)
         if GetActiveCompanionDefId() == id then poc.saved.companions[id] = worn end
     end
 end
 
 function companions.reset()
-    companions.kept, companions.complete, companions.bank = {}, false, {}
+    companions.kept, companions.complete, companions.bank, companions.assigned = {}, false, {}, {}
     upgrades, reportPending = {}, false
 end
 
@@ -219,7 +239,7 @@ end
 ---@return boolean
 local function upgradeAvailable(id)
     local upgrade = upgrades[id]
-    if not upgrade then return false end
+    if not upgrade or not isUnlockedHere(id) then return false end
     local active = id == GetActiveCompanionDefId()
     for _, move in ipairs(upgrade.moves) do
         local item = move.item
@@ -256,10 +276,18 @@ function companions.isNeeded(item)
     return companions.kept[item.uniqueId] == true
 end
 
+---@param item InventoryPocItem
+function companions.apply(item)
+    item.companionNeeded = companions.isNeeded(item)
+    local id = companions.assigned[item.uniqueId]
+    item.companionAvailable = id and isUnlockedHere(id)
+end
+
 ---@param backpack InventoryPocItem[]
-function companions.refresh(backpack)
+---@param worn InventoryPocItem[]|nil
+function companions.refresh(backpack, worn)
     if not poc.saved then return end
-    companions.capture()
+    companions.capture(worn)
     if IsBankOpen() and (GetBankingBag() == BAG_BANK or GetBankingBag() == BAG_SUBSCRIBER_BANK) then
         companions.bank = {}
         local bags = IsESOPlusSubscriber() and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { BAG_BANK }
@@ -270,19 +298,17 @@ function companions.refresh(backpack)
     local loose = {}
     for _, item in ipairs(companions.bank) do loose[#loose + 1] = item end
     for _, item in ipairs(backpack) do loose[#loose + 1] = item end
-    companions.kept, companions.complete = companions.allocate(poc.saved.companions, loose)
+    companions.kept, companions.complete, companions.assigned = companions.allocate(poc.saved.companions, loose)
     for _, item in ipairs(backpack) do
-        if item.kind == 'companion' then
-            item.companionNeeded = companions.isNeeded(item)
-        end
+        if item.kind == 'companion' then companions.apply(item) end
     end
     upgrades = {}
     for _, id in ipairs(TARGETS) do
         local kit = poc.saved.companions[id]
         if kit then
-            local locked, worn = {}, {}
+            local locked, wornIds = {}, {}
             for _, item in ipairs(kit) do
-                locked[item.slot], worn[item.slot] = item.locked == true, item.uniqueId
+                locked[item.slot], wornIds[item.slot] = item.locked == true, item.uniqueId
             end
             local available = backpack
             if id == GetActiveCompanionDefId() then
@@ -292,7 +318,7 @@ function companions.refresh(backpack)
                 end
             end
             local moves = companions.nextEquipment(id, available, kit, locked)
-            if #moves > 0 then upgrades[id] = { moves = moves, worn = worn } end
+            if #moves > 0 then upgrades[id] = { moves = moves, worn = wornIds } end
         end
     end
     if reportPending and poc.enabled then

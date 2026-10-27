@@ -1,8 +1,8 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 571
-## Version: 0.0.571
+## AddOnVersion: 573
+## Version: 0.0.573
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings WizardsWardrobe LibCharacterKnowledge TSCPriceFetcher2

@@ -31,10 +31,12 @@ local PLATFORMS = {
     [PLATFORM_SERVICE_TYPE_ZOS] = "PC",
     [PLATFORM_SERVICE_TYPE_PSN] = "Playstation",
     [PLATFORM_SERVICE_TYPE_XBL] = "Xbox",
-    [PLATFORM_SERVICE_TYPE_DMM] = "PC - DMM",
     [PLATFORM_SERVICE_TYPE_STEAM] = "PC - Steam",
     [PLATFORM_SERVICE_TYPE_EPIC] = "PC - Epic",
 }
+if GetAPIVersion() < 101052 then
+    PLATFORMS[PLATFORM_SERVICE_TYPE_DMM] = "PC - DMM"
+end
 
 local FULLSCREEN_MODE = {
     [tostring(FULLSCREEN_MODE_FULLSCREEN_EXCLUSIVE)] = "fullscreen",
@@ -50,12 +52,8 @@ local GAMEPAD_TYPE = {
     [GAMEPAD_TYPE_STADIA] = "stadia gamepad",
     [GAMEPAD_TYPE_PS5] = "ps5 gamepad",
     [GAMEPAD_TYPE_XBSX] = "xbox series-x gamepad",
+    [GAMEPAD_TYPE_DEPRECATED] = "deprecated"
 }
-if GetAPIVersion() < 101049 then
-    GAMEPAD_TYPE[GAMEPAD_TYPE_PS4_NO_TOUCHPAD] = "ps4 gamepad (no touchpad)"
-else
-    GAMEPAD_TYPE[GAMEPAD_TYPE_DEPRECATED] = "deprecated"
-end
 -- player info logging
 
 local AddOnManager = GetAddOnManager()

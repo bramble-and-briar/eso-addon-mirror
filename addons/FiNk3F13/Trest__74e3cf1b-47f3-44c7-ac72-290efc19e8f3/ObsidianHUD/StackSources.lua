@@ -33,3 +33,9 @@ for _,group in ipairs(groups) do
     O.stackCounterIds[group[1]]=true
     for _,skill in ipairs(group) do O.stackSources[skill]=group[1] end
 end
+-- Counter thresholds indicate the next empowered cast, not a duration timer.
+O.procStackThresholds={[117638]=2,[117625]=2,[122585]=5,[122586]=5,[122587]=5}
+O.procReadyAbilities={
+    [123719]=true,[123704]=true, -- third Ricochet/Venom Skull cast
+    [61907]=true,[61930]=true,[61932]=true, -- spectral bow overrides
+}

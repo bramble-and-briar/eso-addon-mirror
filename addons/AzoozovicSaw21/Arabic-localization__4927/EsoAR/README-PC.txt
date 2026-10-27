@@ -1,7 +1,42 @@
-ESO Arabic 2.3.6 — PC publishing revision, 2026-10-15
+ESO Arabic 2.4.0 By AzoozovicSaw21
 
-AI assistance disclosure and project information: see ESOUI-DESCRIPTION.txt.
-Installation: extract EsoAR, EsoUI and gamedata directly into your active live/AddOns directory. Back up existing addon files first.
-For an existing installation using EsoAR/EsoAR.addon, move that one old manifest outside AddOns before loading this revision. The replacement is EsoAR/EsoAR.txt; do not keep both active manifests.
-Preserve SavedVariables and unrelated addons. Never delete shared EsoUI/gamedata directories. Enable EsoAR and use /ar for Arabic or /en for English. Restart the game after installing language resources.
-This archive retains the previous translation and font bytes. It does not resolve the outstanding native antiquities UI translations.
+Extract the complete ZIP: EsoAR, EsoUI and gamedata go directly into live/AddOns.
+Back up the previous installation first. Preserve SavedVariables and unrelated addons.
+If upgrading from an .addon manifest, move only EsoAR/EsoAR.addon outside AddOns;
+this PC release uses EsoAR/EsoAR.txt. Do not leave both manifests active.
+Do not delete shared EsoUI or gamedata directories.
+Restart ESO after replacing language resources. /ar selects Arabic; /en selects English.
+Switch to English before uninstalling.
+
+This version updates localization data. Static validation is not an in-game test.
+Native/internal antiquities text may still remain English. A narrow bank currency-list compatibility fix is included; in-game confirmation remains pending.
+Future events require translation data and rebuilding with the shared event formatter.
+AI disclosure, credits and font licensing: ESOUI-DESCRIPTION.txt and CREDITS.txt.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
+
+2.4.0 journal and travel corrections
+Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
+Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.

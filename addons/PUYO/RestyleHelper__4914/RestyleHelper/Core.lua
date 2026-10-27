@@ -3,7 +3,7 @@ local RH = RestyleHelper
 local L = RH.L
 
 RH.name        = "RestyleHelper"
-RH.version     = "1.2"
+RH.version     = "1.5"
 RH.LINK_TYPE   = "rsh"
 RH.SHARE_TAG   = "RSH1"
 RH.MAX_UNDO    = 10
@@ -33,6 +33,7 @@ local defaults = {
     previewUnownedDyes   = false,
     keepDyes       = true,
     preferRobe     = false,
+    portable       = true,
     channelLocks   = {},
     favPos         = nil,
 }
@@ -298,8 +299,13 @@ function RH.SetSlotDyes(sm, p, s, a)
             if RH.IsChannelLocked(rsd.restyleMode, rsd.restyleSlotType, i) then desired[i] = pend[i] end
         end
     end
-    local ok = pcall(SetPendingSlotDyes, rsd.restyleMode, rsd.restyleSetIndex, rsd.restyleSlotType,
-                     desired[1], desired[2], desired[3])
+    local ok = true
+    if rsd.virtual then
+        rsd.dyes = { desired[1], desired[2], desired[3] }
+    else
+        ok = pcall(SetPendingSlotDyes, rsd.restyleMode, rsd.restyleSetIndex, rsd.restyleSlotType,
+                   desired[1], desired[2], desired[3])
+    end
     -- 染色できない枠に指定された色も「意図した色」として記憶する(後で染色できるスタイルに変えたとき使う)
     if RH.NoteSlot then RH.NoteSlot(sm, false, intent) end
     ScheduleCommit(sm.owner)
@@ -1300,8 +1306,8 @@ local function OnAddOnLoaded(_, addonName)
 
     math.randomseed(GetTimeStamp() + GetGameTimeMilliseconds())
 
-    RH.InitShare()
     RH.InitUI()
+    RH.InitShare()
 
     EVENT_MANAGER:RegisterForEvent(RH.name, EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(RH.name, EVENT_PLAYER_ACTIVATED)
@@ -1404,6 +1410,12 @@ local function OnAddOnLoaded(_, addonName)
             RH.Msg("trace %s (guard installed=%s hook events=%s keepDyes=%s)", RH.trace and "ON" or "OFF",
                 tostring(RH.dyeGuardInstalled), tostring(RH.hookCount or 0), tostring(RH.sv.keepDyes ~= false))
             RH.forceMsg = false
+        elseif arg == "preview" then
+            RH.RefreshPreview(RH.RequireManipulator())
+        elseif arg == "ptest" then
+            RH.PreviewTest()
+        elseif arg == "reset" then
+            RH.ResetVirtual()
         elseif arg == "slots" then
             RH.forceMsg = true; RH.DiagSlots(); RH.forceMsg = false
         elseif arg == "fav" then

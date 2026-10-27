@@ -9,9 +9,9 @@
 ## Contributors: Armodeniz, SigoDest, senorblackbean, Ego_666, Lykeion
 ## Description: Search for a Superstar help you to be the SuperStar you ever wanted to be!
 
-## APIVersion: 101050
-## Version: 8.0.0
-## AddOnVersion: 80000
+## APIVersion: 101051 101052
+## Version: 8.0.1
+## AddOnVersion: 80001
 
 ## DependsOn: LibSkillsFactory>=26 LibMainMenu-2.0>=40400 LibChatMessage>=113
 

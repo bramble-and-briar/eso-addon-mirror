@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Artioner/OmniAura__4998",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Artioner",
+  "canonical_id": "esoui:4998",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4998",
+  "deleted": false,
+  "directories": [
+    "OmniAura"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4998/",
+  "fingerprint": "b2f6bbdf8aca6b47b61c26d0260abad0101703c7e7a3af7b056fc88e4e11fc54",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18176.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18175.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18173.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18172.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18171.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18170.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18169.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18174.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18177.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4998",
+  "source_url": "https://www.esoui.com/downloads/info4998-OmniAura.html",
+  "stats": {
+    "downloads": 13,
+    "favorites": 0,
+    "monthly_downloads": 8
+  },
+  "title": "OmniAura",
+  "updated_at": 1793046214000,
+  "version": "1.0.0"
+}

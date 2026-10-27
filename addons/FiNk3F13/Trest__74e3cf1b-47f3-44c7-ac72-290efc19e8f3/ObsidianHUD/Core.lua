@@ -1,4 +1,4 @@
-ObsidianHUD = {name="ObsidianHUD", version="0.7.2"}
+ObsidianHUD = {name="ObsidianHUD", version="0.7.19"}
 local O=ObsidianHUD
 O.defaults={enabled=true,hideOriginals=true,skillFrames=true,backBar=true,
     width=480,scale=1,x=0,y=-215,opacity=0.94,numbers=true,roundBadge=true,customClassIcons=true,
@@ -7,13 +7,13 @@ O.defaults={enabled=true,hideOriginals=true,skillFrames=true,backBar=true,
 O.defaults.frontResourceOrder={}
 O.defaults.hudPositions={}
 O.defaults.quickslotFrame=true
-O.defaults.skillHudView="standard"
+O.defaults.skillHudView="fixed"
+O.defaults.skillHudScale=1
 O.skillHudViews={
-    {name="Standard",data="standard"},
-    {name="Nur laufende Skills",data="running"},
-    {name="Beide Reihen gleich gross",data="equal"},
     {name="Frontbar oben, Backbar unten",data="fixed"},
     {name="Doppel-Ultimate mit Aufladerahmen",data="fixed_dual"},
+    {name="Frontbar oben, Backbar unten - ohne Animation",data="fixed_static"},
+    {name="Doppel-Ultimate mit Aufladerahmen - ohne Animation",data="fixed_dual_static"},
 }
 O.defaults.timerSize,O.defaults.stackSize=24,18
 O.defaults.timerFont,O.defaults.stackFont="bold","bold"
@@ -21,6 +21,15 @@ O.defaults.timerStyle,O.defaults.stackStyle="soft-shadow-thick","soft-shadow-thi
 O.defaults.timerColor,O.defaults.stackColor={1,1,1},{1,0.85,0.25}
 O.textRevision=0
 function O.ApplyFixedFeatures()
+    local validView=false
+    for _,view in ipairs(O.skillHudViews) do
+        if view.data==O.vars.skillHudView then validView=true; break end
+    end
+    if not validView then O.vars.skillHudView=O.defaults.skillHudView end
+    if O.vars.skillHudSize then
+        O.vars.skillHudScale=math.max(1,math.min(1.5,O.vars.skillHudSize/100))
+        O.vars.skillHudSize=nil
+    end
     -- These are now permanent parts of the addon. Migrate older saved false
     -- values as well, so removing a checkbox cannot leave its feature disabled.
     for _,key in ipairs({"enabled","hideOriginals","skillFrames","quickslotFrame","roundBadge","customClassIcons"}) do
@@ -67,7 +76,16 @@ function O.Number(value)
 end
 function O.ValueText(current,maximum)
     if not maximum or maximum<=0 then return "--" end
-    return O.Number(current).." / "..O.Number(maximum).."  "..math.floor(O.Ratio(current,maximum)*100+0.5).."%"
+    local ratio=O.Ratio(current,maximum)
+    local percent=ratio>=1 and 100 or math.min(99,math.floor(ratio*100+0.5))
+    return O.Number(current).." / "..O.Number(maximum).."  "..percent.."%"
+end
+function O.HealthValueText(current,maximum,shield)
+    local text=O.ValueText(current,maximum)
+    if shield and shield>0 and maximum and maximum>0 then
+        text=text.."  |c9ADDFF("..O.Number(math.max(0,current or 0)+shield).." Ges.)|r"
+    end
+    return text
 end
 function O.OtherBar(category)
     if category==HOTBAR_CATEGORY_PRIMARY then return HOTBAR_CATEGORY_BACKUP end

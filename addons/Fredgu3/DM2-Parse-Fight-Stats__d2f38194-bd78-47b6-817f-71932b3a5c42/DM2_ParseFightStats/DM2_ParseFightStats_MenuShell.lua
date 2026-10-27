@@ -11,7 +11,7 @@ DM2StatsMenuShell = DM2StatsMenuShell or {}
 local M = DM2StatsMenuShell
 
 M.name    = "DM2StatsMenuShell"
-M.version = "3.18.4"
+M.version = "3.18.5"
 
 local WM = WINDOW_MANAGER
 local SCENE_NAME = "dm2StatsMenuShellGamepad"
@@ -10049,7 +10049,7 @@ end
 -- Rotation: summary + fine pulse + skill icons + pattern tips
 ---------------------------------------------------------------------
 local function createRotationUI(screen)
-  if screen.rotationUI and not screen.rotationUI._v31804 then
+  if screen.rotationUI and not screen.rotationUI._v31805 then
     if screen.rotationUI.root and type(screen.rotationUI.root.SetHidden) == "function" then
       screen.rotationUI.root:SetHidden(true)
     end
@@ -10059,7 +10059,7 @@ local function createRotationUI(screen)
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.rotation
   if not panel then return nil end
-  local ui = { panel = panel, pulse = {}, icons = {}, patterns = {}, _v31804 = true }
+  local ui = { panel = panel, pulse = {}, icons = {}, patterns = {}, _v31805 = true }
 
   ui.root = WM:CreateControl("DM2StatsMenuRotRootV8", panel, CT_CONTROL)
   ui.root:SetAnchor(TOPLEFT, panel, TOPLEFT, 4, 2)
@@ -10108,6 +10108,9 @@ local function createRotationUI(screen)
   -- Legend line only (per-icon S/U tags are under each halo)
   ui.iconMarkerLine = makeDashLabel(ui.iconPanel, "DM2StatsMenuRotIconMarkV8", 11, 0.55, 0.75, 0.70, 1)
   ui.iconMarkerLine:SetMaxLineCount(1)
+  -- Pace key sits one line above the visible-icons footer.
+  ui.iconPaceLine = makeDashLabel(ui.iconPanel, "DM2StatsMenuRotIconPaceV11", 11, 0.72, 0.90, 0.78, 1)
+  ui.iconPaceLine:SetMaxLineCount(1)
   -- Nested: avoid extra main-chunk locals (ESO 200-local cap).
   ui.ensurePool = function(needed)
     local wrap = ui.iconWrap
@@ -10220,8 +10223,13 @@ local function layoutRotationUI(ui, hostW, hostH)
   ui.iconTitle:SetWidth(W - 16)
   ui.iconWrap:ClearAnchors()
   ui.iconWrap:SetAnchor(TOPLEFT, ui.iconPanel, TOPLEFT, 8, 22)
-  -- Leave room under last icon row for per-icon S/U tags (~14px)
-  ui.iconWrap:SetDimensions(W - 16, math.max(40, iconH - 40))
+  -- Room for S/U tags, then the pace key, then the visible-icons line.
+  ui.iconWrap:SetDimensions(W - 16, math.max(40, iconH - 58))
+  if ui.iconPaceLine then
+    ui.iconPaceLine:ClearAnchors()
+    ui.iconPaceLine:SetAnchor(BOTTOMLEFT, ui.iconPanel, BOTTOMLEFT, 12, -20)
+    ui.iconPaceLine:SetWidth(W - 24)
+  end
   if ui.iconMarkerLine then
     ui.iconMarkerLine:ClearAnchors()
     ui.iconMarkerLine:SetAnchor(BOTTOMLEFT, ui.iconPanel, BOTTOMLEFT, 12, -4)
@@ -10255,6 +10263,7 @@ local function refreshRotationUI(screen, session)
     ui.sumLine2:SetText("")
     if ui.markerLine then ui.markerLine:SetText(""); ui.markerLine:SetHidden(true) end
     if ui.iconMarkerLine then ui.iconMarkerLine:SetText(""); ui.iconMarkerLine:SetHidden(true) end
+    if ui.iconPaceLine then ui.iconPaceLine:SetText(""); ui.iconPaceLine:SetHidden(true) end
     if ui.execLine then ui.execLine:SetText("") end
     for _, b in ipairs(ui.pulse) do b:SetHidden(true) end
     for _, ic in ipairs(ui.icons) do
@@ -10540,6 +10549,7 @@ local function refreshRotationUI(screen, session)
       if ic.tick then ic.tick:SetHidden(true) end
     end
   end
+  local showPaceLegend = false
   if ui.iconMarkerLine then
     ui.iconMarkerLine:SetHidden(false)
     if totalSkills > 0 then
@@ -10554,11 +10564,22 @@ local function refreshRotationUI(screen, session)
         math.min(#events, maxFit), swapPlaced or 0, ultPlaced or 0, totalSwaps,
         pressCount, totalSkills, note
       ))
+      showPaceLegend = true
     elseif session.isDummy then
       ui.iconMarkerLine:SetText("|c888888No skill presses captured this parse|r")
+      showPaceLegend = true
     else
       ui.iconMarkerLine:SetText("")
       ui.iconMarkerLine:SetHidden(true)
+    end
+  end
+  if ui.iconPaceLine then
+    if showPaceLegend then
+      ui.iconPaceLine:SetHidden(false)
+      ui.iconPaceLine:SetText("Top bar = cast pace. Tick = LA before the next skill. Further right = tighter gap.")
+    else
+      ui.iconPaceLine:SetText("")
+      ui.iconPaceLine:SetHidden(true)
     end
   end
 

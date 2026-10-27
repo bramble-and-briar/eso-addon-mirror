@@ -73,6 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DEPRECATED: Halls of Fabrication (Veteran) Status Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/DEPRECATED-Halls-of-Fabrication-Veteran-Status-Panel__1751) | code65536 | PC / Mac | 1.4.3 |
 | [DEPRECATED: Lykeion's Endeavor Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/DEPRECATED-Lykeion-s-Endeavor-Reminder__3514) | Lykeion | PC / Mac | 1.0.7 |
 | [DEPRECATED: Lykeion's Fabled Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/DEPRECATED-Lykeion-s-Fabled-Marker__3766) | Lykeion | PC / Mac | 1.1.0 |
+| [DEPRECATED: Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/DEPRECATED-Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |
 | [DEPRECATED: Lykeion's Pillar of Nirn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/DEPRECATED-Lykeion-s-Pillar-of-Nirn__3453) | Lykeion | PC / Mac | 1.1.0 |
 | [DEPRECATED: Lykeion's Siphoning Strikes Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/DEPRECATED-Lykeion-s-Siphoning-Strikes-Blocker__3374) | Lykeion | PC / Mac | 2.0 |
 | [Depth of Field On Dialogues Only](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Highlor3/Depth-of-Field-On-Dialogues-Only__4094) | Highlor3 | PC / Mac | 1.1.46c |

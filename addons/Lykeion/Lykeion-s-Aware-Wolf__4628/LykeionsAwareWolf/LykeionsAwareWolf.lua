@@ -7,6 +7,7 @@ local reviveUntil = 0
 local wasPositivelyActive = false
 local slotPressTime = {}
 local slotConfirmTime = {}
+local slotConfirmArmed = {}
 local db
 local SV_NAME = "InsatiableHungerBlocker_SV"
 local defaults = {
@@ -149,12 +150,27 @@ end
 local POUNCE_ABILITY_IDS = { [32632] = true, [39104] = true, [39105] = true }
 local TRANSFORM_ABILITY_IDS = { [32455] = true, [39075] = true, [39076] = true }
 
+local function IsSlotCastable(slotNum)
+    local hotbarCategory = GetActiveHotbarCategory()
+    if ActionSlotHasNonCostStateFailure(slotNum, hotbarCategory)
+        or ActionSlotHasTargetFailure(slotNum, hotbarCategory)
+        or ActionSlotHasRangeFailure(slotNum, hotbarCategory)
+        or ActionSlotHasLeapKeepTargetFailure(slotNum, hotbarCategory)
+        or ActionSlotHasCostFailure(slotNum, hotbarCategory) then
+        return false
+    end
+    return true
+end
+
 local function GetConfirmTimeout(slotNum)
-    if db.confirmTimeout <= 0 then
+    if db.confirmTimeout == 0 then
         return nil
     end
     local abilityId = GetSlotBoundId(slotNum)
     if POUNCE_ABILITY_IDS[abilityId] and db.pounceConfirm then
+        if not IsSlotCastable(slotNum) then
+            return nil
+        end
         return db.confirmTimeout
     end
     if TRANSFORM_ABILITY_IDS[abilityId] and db.ultimateConfirm and IsPlayerInWerewolfForm() then
@@ -418,10 +434,14 @@ local ROAR_BUFF_IDS = { 131353, 109966 }
 local PROWL_BUFF_IDS = { PROWL_ABILITY_ID }
 local PANEL_ICON_SIZE = 48
 local PANEL_ICON_PADDING = 4
+local PANEL_FLASH_PADDING = 6
+local PANEL_FLASH_MS = 300
+local FEEDING_REMINDER_MS = 20000
 local roarPanel, prowlPanel
 
 local function CreateBuffPanel(options)
     local panel = { buffs = {}, controls = {}, unlocked = false }
+    local armReminder
 
     local function IsVisible()
         return panel.unlocked or (db[options.dbKey] and (not options.condition or options.condition()))
@@ -478,6 +498,9 @@ local function CreateBuffPanel(options)
                 end
             end
         end
+        if armReminder and abilityId == options.reminder.abilityId and changeType ~= EFFECT_RESULT_FADED then
+            armReminder()
+        end
     end
 
     local control = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. options.controlName)
@@ -496,12 +519,60 @@ local function CreateBuffPanel(options)
     HUD_UI_SCENE:AddFragment(panel.fragment)
 
     local panelName = addonName .. options.controlName
+
+    local bloom, reminderIndex
+    if options.reminder then
+        for index, abilityId in ipairs(options.buffIds) do
+            if abilityId == options.reminder.abilityId then
+                reminderIndex = index
+            end
+        end
+
+        local flashName = options.updateName .. "Flash"
+        bloom = WINDOW_MANAGER:CreateControl(panelName .. "Flash", control, CT_TEXTURE)
+        bloom:SetTexture("LykeionsAwareWolf/assets/blank.dds")
+        bloom:SetHidden(true)
+
+        local flash = { generation = 0, startedAt = 0 }
+
+        local function UpdateFlash()
+            local progress = (GetGameTimeMilliseconds() - flash.startedAt) / PANEL_FLASH_MS
+            if progress >= 1 then
+                bloom:SetHidden(true)
+                EVENT_MANAGER:UnregisterForUpdate(flashName)
+                return
+            end
+            local grow = PANEL_FLASH_PADDING * progress
+            bloom:SetDimensions(PANEL_ICON_SIZE + grow * 2, PANEL_ICON_SIZE + grow * 2)
+            bloom:SetColor(1 + (HOLD_FLASH_GOLD[1] - 1) * progress,
+                1 + (HOLD_FLASH_GOLD[2] - 1) * progress,
+                1 + (HOLD_FLASH_GOLD[3] - 1) * progress, 1 - progress)
+            bloom:SetHidden(false)
+        end
+
+        armReminder = function()
+            local generation = flash.generation + 1
+            flash.generation = generation
+            zo_callLater(function()
+                if flash.generation ~= generation or not IsVisible() then
+                    return
+                end
+                flash.startedAt = GetGameTimeMilliseconds()
+                EVENT_MANAGER:RegisterForUpdate(flashName, 16, UpdateFlash)
+                UpdateFlash()
+            end, options.reminder.delayMs)
+        end
+    end
+
     for index, abilityId in ipairs(options.buffIds) do
         local icon = WINDOW_MANAGER:CreateControl(panelName .. "Icon" .. index, control, CT_TEXTURE)
         icon:SetDimensions(PANEL_ICON_SIZE, PANEL_ICON_SIZE)
         icon:SetAnchor(TOPLEFT, control, TOPLEFT, PANEL_ICON_PADDING,
             PANEL_ICON_PADDING + (index - 1) * (PANEL_ICON_SIZE + PANEL_ICON_PADDING))
         icon:SetTexture(GetAbilityIcon(abilityId))
+        if index == reminderIndex then
+            bloom:SetAnchor(CENTER, icon, CENTER)
+        end
 
         local sweep = WINDOW_MANAGER:CreateControl(panelName .. "Sweep" .. index, control, CT_COOLDOWN)
         sweep:SetAnchorFill(icon)
@@ -722,6 +793,7 @@ local function OnPlayerInit()
         positionKey = "roarPanel",
         buffIds = ROAR_BUFF_IDS,
         condition = IsPlayerInWerewolfForm,
+        reminder = { abilityId = FEEDING_FRENZY_ABILITY_ID, delayMs = FEEDING_REMINDER_MS },
     })
     prowlPanel = CreateBuffPanel({
         controlName = "ProwlPanel",
@@ -745,12 +817,14 @@ local function OnPlayerInit()
         AddPanelMoveCommand("/awprowl", prowlPanel)
     end
 
+
     SetClawRangeTrackingEnabled(db.clawFuryRange)
 
-    -- this part of implement is based on the best practices used in NoAccidentalStealing by Shinni
+    -- this part of soft blocker implement is based on the best practices used in NoAccidentalStealing by Shinni
     ZO_PreHook("ZO_ActionBar_OnActionButtonDown", function(slotNum)
         slotPressTime[slotNum] = GetGameTimeMilliseconds()
         local confirmTimeout = GetConfirmTimeout(slotNum)
+        slotConfirmArmed[slotNum] = confirmTimeout
         if confirmTimeout then
             StartHoldIndicator(GetAbilityIcon(GetSlotBoundId(slotNum)), confirmTimeout)
         end
@@ -758,6 +832,7 @@ local function OnPlayerInit()
 
     ZO_PreHook("ZO_ActionBar_OnActionButtonUp", function(slotNum)
         slotPressTime[slotNum] = nil
+        slotConfirmArmed[slotNum] = nil
         if holdIndicator.startedAt and
             GetGameTimeMilliseconds() - holdIndicator.startedAt < holdIndicator.duration then
             RetractHoldIndicator()
@@ -769,11 +844,11 @@ local function OnPlayerInit()
         local trace = debug.traceback()
         local slotNum = tonumber(trace:match("ACTION_BUTTON_(%d)"))
         if not slotNum then return end
-        local confirmTimeout = GetConfirmTimeout(slotNum)
-        if not confirmTimeout then return end
         local now = GetGameTimeMilliseconds()
 
         if trace:find("GAMEPAD_ACTION_BUTTON_") then
+            local confirmTimeout = GetConfirmTimeout(slotNum)
+            if not confirmTimeout then return end
             local lastPress = slotConfirmTime[slotNum]
             if lastPress and now - lastPress <= confirmTimeout then
                 slotConfirmTime[slotNum] = nil
@@ -785,8 +860,9 @@ local function OnPlayerInit()
             return true
         end
 
+        local confirmTimeout = slotConfirmArmed[slotNum]
         local pressTime = slotPressTime[slotNum]
-        if not pressTime or now - pressTime > confirmTimeout then return end
+        if not confirmTimeout or not pressTime or now - pressTime > confirmTimeout then return end
         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_RESPECRESULT10)
         ZO_ActionBar_OnActionButtonUp(slotNum)
         return true
@@ -802,7 +878,7 @@ local function OnPlayerInit()
 end
 
 local function GetPlatformText(pcText, gamepadText)
-    return IsInGamepadPreferredMode() and gamepadText or pcText
+    return ZO_IsConsoleOrGameCoreUI() and gamepadText or pcText
 end
 
 local function CreateMenu()

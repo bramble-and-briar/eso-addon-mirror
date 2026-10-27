@@ -1,0 +1,143 @@
+-- Deutsch
+local L = NirnhonedMetrics.L
+
+-- Tastenbelegung
+L.BINDING_TOGGLE = "Messer ein-/ausblenden"
+L.BINDING_METRIC = "Schaden / Heilung wechseln"
+L.BINDING_MODE = "Gruppe / meine Fähigkeiten wechseln"
+L.BINDING_RESET = "Kämpfe zurücksetzen"
+
+-- Fenster
+L.TITLE_DAMAGE = "Schaden"
+L.TITLE_HEALING = "Heilung"
+L.TITLE_ABILITIES = "Meine Fähigkeiten"
+L.FIGHT_CURRENT = "Aktueller Kampf"
+L.FIGHT_LAST = "Letzter Kampf"
+L.FIGHT_N = "Kampf %d"
+L.EMPTY = "Noch keine Daten.\nSie erscheinen hier, sobald der nächste Kampf beginnt."
+L.HIDE_WINDOW = "Ausblenden (/nm zeigt es wieder an)"
+L.SETTINGS = "Einstellungen"
+L.LOCK = "Fenster sperren"
+L.UNLOCK = "Fenster entsperren"
+
+-- Tooltips
+L.TOTAL = "Schaden"
+L.DPS = "DPS"
+L.HPS = "HPS"
+L.SHARE = "Anteil"
+L.HITS = "Treffer"
+L.HEALS = "Heilungen"
+L.CRIT_RATE = "Kritisch"
+L.AVG_HIT = "Durchschnittlicher Treffer"
+L.AVG_HEAL = "Durchschnittliche Heilung"
+L.MAX_HIT = "Höchster Treffer"
+L.MAX_HEAL = "Höchste Heilung"
+L.OVERHEAL = "Überheilung"
+L.OVERHEAL_PS = "Überheilung pro Sekunde"
+L.PET_DAMAGE = "Begleiterschaden"
+L.PET_HEALING = "Begleiterheilung"
+L.REST_OF_GROUP = "Restliche Gruppe"
+L.APPROX_NOTE = "Ungefähr: vom Add-on des Spielers selbst\nüber LibGroupCombatStats geteilt."
+L.REST_NOTE = "Schätzung: verlorenes Leben der Bosse minus der Schaden\nder Spieler, die ihren teilen. Umfasst alle ohne das\nAdd-on, ohne Aufschlüsselung nach Spieler."
+
+-- Menü
+L.MENU_VIEW = "Ansicht"
+L.MENU_METRIC = "Messen"
+L.METRIC_DAMAGE = "Schaden"
+L.METRIC_HEALING = "Heilung"
+L.MODE_GROUP = "Gruppe"
+L.MODE_ABILITIES = "Meine Fähigkeiten"
+L.MENU_FIGHTS = "Kämpfe"
+L.MENU_ACTIONS = "Aktionen"
+L.MENU_RESET = "Kämpfe zurücksetzen"
+L.NO_FIGHTS = "Noch keine Kämpfe"
+
+-- Chatbefehle
+L.HELP_HEADER = "Befehle (v%s):"
+L.HELP = {
+    "|cFFFF00/nm|r - Messer ein-/ausblenden",
+    "|cFFFF00/nm mode [group/abilities]|r - zwischen Gruppenschaden und deinen Fähigkeiten wechseln",
+    "|cFFFF00/nm damage / healing|r - Schaden oder Heilung messen",
+    "|cFFFF00/nm reset|r - alle Kämpfe löschen",
+    "|cFFFF00/nm lock / unlock|r - Fenster sperren oder entsperren",
+    "|cFFFF00/nm resetpos|r - Fenster an die Startposition zurücksetzen",
+    "|cFFFF00/nm settings|r - Einstellungen öffnen",
+}
+L.LOCKED = "Fenster gesperrt."
+L.UNLOCKED = "Fenster entsperrt: Ziehe es an einer beliebigen Stelle, um es zu verschieben, und die untere rechte Ecke, um die Größe zu ändern."
+L.RESET_DONE = "Kämpfe gelöscht."
+L.MODE_SET = "Ansicht: %s"
+L.METRIC_SET = "Messung: %s"
+L.POSITION_RESET = "Fenster an die Startposition zurückgesetzt."
+
+-- Einstellungen
+L.SETTINGS_DESC = "Nirnhoned Metrics zeigt einen Schadens- und Heilungsmesser mit farbigen Balken: Gesamt, DPS/HPS und deinen Anteil an der Gruppe in jedem Kampf, dazu eine Aufschlüsselung deiner Fähigkeiten."
+L.HEADER_WINDOW = "Fenster"
+L.OPT_SHOWN = "Messer anzeigen"
+L.OPT_LOCKED = "Fenster sperren"
+L.OPT_LOCKED_TT = "Entsperrt lässt sich das Fenster an jeder beliebigen Stelle verschieben und an der unteren rechten Ecke in der Größe ändern."
+L.OPT_HIDE_OOC = "Nur im Kampf anzeigen"
+L.OPT_HIDE_OOC_TT = "Der Messer erscheint, wenn ein Kampf beginnt, und verschwindet einige Sekunden nach dessen Ende."
+L.OPT_HIDE_PVP = "In PvP ausblenden"
+L.OPT_HIDE_PVP_TT = "Blendet den Messer in Cyrodiil, der Kaiserstadt und auf Schlachtfeldern aus."
+L.OPT_WIDTH = "Breite"
+L.OPT_HEIGHT = "Höhe"
+L.OPT_ROW_HEIGHT = "Balkenhöhe"
+L.OPT_ROW_HEIGHT_TT = "Mindesthöhe: Die Balken wachsen von selbst, wenn der Text nicht passt."
+L.OPT_ROW_SPACING = "Abstand zwischen Balken"
+L.OPT_FONT_SIZE = "Textgröße der Balken"
+L.OPT_TITLE_FONT_SIZE = "Textgröße des Titels"
+L.OPT_BG_ALPHA = "Deckkraft des Hintergrunds"
+L.OPT_BAR_ALPHA = "Deckkraft der Balken"
+L.OPT_RESET_POSITION = "Position zurücksetzen"
+L.HEADER_BARS = "Balken"
+L.OPT_BAR_STYLE = "Balkenstil"
+L.STYLE_PROGRESS = "Fortschrittsbalken"
+L.STYLE_FLAT = "Flach"
+L.OPT_COLOR_MODE = "Farbe der Gruppenbalken"
+L.COLOR_CLASS = "Nach Klasse"
+L.COLOR_SINGLE = "Einheitliche Farbe"
+L.COLOR_DAMAGE_TYPE = "Nach Schadensart"
+L.OPT_BAR_COLOR = "Einheitliche Farbe"
+L.OPT_CLASS_COLORS = "Klassenfarben"
+L.OPT_ABILITY_COLOR = "Farbe der Fähigkeitsbalken"
+L.OPT_HIGHLIGHT_SELF = "Meinen Namen hervorheben"
+L.HEADER_TEXT = "Text"
+L.OPT_SHOW_RANK = "Platzierung anzeigen (1. 2. 3...)"
+L.OPT_SHOW_ICON = "Klassen-/Fähigkeitssymbol anzeigen"
+L.OPT_SHOW_TOTAL = "Gesamtschaden anzeigen"
+L.OPT_SHOW_DPS = "DPS / HPS anzeigen"
+L.OPT_SHOW_PERCENT = "Prozent anzeigen"
+L.OPT_NAME_FORMAT = "Namen"
+L.NAME_CHARACTER = "Charaktername"
+L.NAME_ACCOUNT = "@Account"
+L.HEADER_DATA = "Daten"
+L.OPT_MODE = "Ansicht"
+L.OPT_METRIC = "Messen"
+L.OPT_PETS = "Begleiterschaden mitzählen"
+L.OPT_PETS_TT = "Addiert den Schaden deiner Begleiter (Kobolde, Bären, Skelette...) zu deinem."
+L.OPT_END_DELAY = "Sekunden bis ein Kampf endet"
+L.OPT_END_DELAY_TT = "Zeit außerhalb des Kampfes, bis der Kampf als beendet gilt. Kehrst du vorher in den Kampf zurück, geht derselbe Kampf weiter."
+L.OPT_HISTORY = "Gespeicherte Kämpfe"
+L.OPT_SHARE = "Meine DPS und HPS mit der Gruppe teilen"
+L.OPT_SHARE_TT = "Sendet deine DPS und HPS über LibGroupCombatStats, damit deine Gruppe sie sieht (Benutzeroberfläche muss neu geladen werden)."
+L.OPT_SHOW_REST = "\"Restliche Gruppe\" in Bosskämpfen anzeigen"
+L.OPT_SHOW_REST_TT = "Schätzt den Schaden der Gruppenmitglieder, die ihren nicht teilen, anhand des Lebens, das die Bosse verlieren."
+
+-- Hilfe
+L.HELP_USAGE_HEADER = "So funktioniert es"
+L.HELP_USAGE = "1. Gib |cFFFF00/nm|r ein oder belege eine Taste (Steuerung → Nirnhoned Metrics), um den Messer ein- oder auszublenden.\n2. Kämpfe: Die Balken füllen sich mit Schaden, DPS und Gruppenanteil jedes Spielers.\n3. Die Symbole in der Titelleiste wechseln zwischen Schaden und Heilung, zwischen Gruppe und deinen Fähigkeiten, öffnen frühere Kämpfe, setzen zurück, sperren das Fenster und öffnen die Einstellungen.\n4. Entsperre das Fenster (Schloss), um es an einer beliebigen Stelle zu verschieben und an den Rändern oder der unteren rechten Ecke die Größe zu ändern."
+L.HELP_TIPS_HEADER = "Tipps"
+L.HELP_TIPS = "- ESO teilt jedem Spieler nur seinen eigenen Schaden mit, daher braucht jedes Gruppenmitglied ein Add-on, das ihn über LibGroupCombatStats teilt (Nirnhoned Metrics tut das); ihre Werte sind ungefähr.\n- In Bosskämpfen erscheint der Schaden derer, die ihn nicht teilen, zusammen als \"Restliche Gruppe\".\n- Fahre mit der Maus über einen Balken, um Details zu sehen: Treffer, kritische Rate, durchschnittlicher und höchster Treffer.\n- Mit dem Mausrad scrollst du, wenn mehr Balken vorhanden sind, als hineinpassen.\n- Rechtsklick irgendwo auf den Messer öffnet das vollständige Menü."
+L.HELP_COMMANDS_HEADER = "Chatbefehle"
+L.DONATE_HEADER = "Den Autor unterstützen"
+L.DONATE_DESC = "Wenn dir Nirnhoned Metrics gefällt, kannst du %s etwas Gold schicken. Die Post öffnet sich vorausgefüllt, damit du den Betrag vor dem Senden prüfen kannst."
+L.DONATE_BUTTON = "Gold spenden"
+L.DONATE_SUBJECT = "Nirnhoned Metrics v%s - Spende"
+L.DONATE_COMBAT = "Im Kampf kannst du die Post nicht öffnen."
+
+-- Willkommen / Neuigkeiten
+L.WELCOME_TITLE = "Willkommen bei Nirnhoned Metrics"
+L.WELCOME_TEXT = "Danke für die Installation von Nirnhoned Metrics.\n\nEin Schadens- und Heilungsmesser mit farbigen Balken: Gesamt, DPS/HPS und dein Anteil an der Gruppe in jedem Kampf.\n\n- Blende ihn mit /nm oder einer Taste in der Steuerung ein oder aus.\n- Nutze die Symbole in seiner Titelleiste, um die Ansicht zu wechseln oder frühere Kämpfe zu sehen. Die Fußzeile zeigt, wie lange der Kampf dauerte.\n- Damit du den Schaden deiner Gruppe siehst, brauchen auch deine Gruppenmitglieder Nirnhoned Metrics."
+L.UPDATE_TITLE = "Nirnhoned Metrics auf v%s aktualisiert"
+L.CHANGELOG = "Erste öffentliche Version:\n\n- Schadensmesser mit Fortschrittsbalken in Klassenfarben: Gesamt, DPS und Prozent.\n- Heilungsmesser: Wechsel zwischen Schaden und Heilung, mit HPS und Überheilung.\n- Gruppenschaden über LibGroupCombatStats und geschätzte \"Restliche Gruppe\" in Bosskämpfen.\n- Aufschlüsselung deiner Fähigkeiten, gefärbt nach Schadensart.\n- Verlauf der letzten Kämpfe und Kampfdauer in der Fußzeile.\n- Verschieben, Größe ändern und alles unter Einstellungen → Add-Ons anpassen.\n- Verfügbar auf Deutsch, Englisch, Spanisch und Französisch."

@@ -1,0 +1,143 @@
+-- Español
+local L = NirnhonedMetrics.L
+
+-- Teclas
+L.BINDING_TOGGLE = "Mostrar/ocultar el medidor"
+L.BINDING_METRIC = "Cambiar daño / sanación"
+L.BINDING_MODE = "Cambiar grupo / mis habilidades"
+L.BINDING_RESET = "Reiniciar combates"
+
+-- Ventana
+L.TITLE_DAMAGE = "Daño"
+L.TITLE_HEALING = "Sanación"
+L.TITLE_ABILITIES = "Mis habilidades"
+L.FIGHT_CURRENT = "Combate actual"
+L.FIGHT_LAST = "Último combate"
+L.FIGHT_N = "Combate %d"
+L.EMPTY = "Todavía no hay datos.\nAparecerán aquí al empezar el próximo combate."
+L.HIDE_WINDOW = "Ocultar (/nm para volver a verlo)"
+L.SETTINGS = "Ajustes"
+L.LOCK = "Bloquear ventana"
+L.UNLOCK = "Desbloquear ventana"
+
+-- Descripciones emergentes
+L.TOTAL = "Daño"
+L.DPS = "DPS"
+L.HPS = "HPS"
+L.SHARE = "Porcentaje"
+L.HITS = "Golpes"
+L.HEALS = "Curaciones"
+L.CRIT_RATE = "Críticos"
+L.AVG_HIT = "Golpe medio"
+L.AVG_HEAL = "Curación media"
+L.MAX_HIT = "Golpe máximo"
+L.MAX_HEAL = "Curación máxima"
+L.OVERHEAL = "Sobrecuración"
+L.OVERHEAL_PS = "Sobrecuración por segundo"
+L.PET_DAMAGE = "Daño de mascota"
+L.PET_HEALING = "Sanación de mascota"
+L.REST_OF_GROUP = "Resto del grupo"
+L.APPROX_NOTE = "Aproximado: lo comparte el addon del propio jugador\nmediante LibGroupCombatStats."
+L.REST_NOTE = "Estimación: vida perdida por los jefes menos el daño\nde los jugadores que comparten el suyo. Incluye a todos\nlos que no tienen el addon, sin desglose por jugador."
+
+-- Menú
+L.MENU_VIEW = "Vista"
+L.MENU_METRIC = "Medir"
+L.METRIC_DAMAGE = "Daño"
+L.METRIC_HEALING = "Sanación"
+L.MODE_GROUP = "Grupo"
+L.MODE_ABILITIES = "Mis habilidades"
+L.MENU_FIGHTS = "Combates"
+L.MENU_ACTIONS = "Acciones"
+L.MENU_RESET = "Reiniciar combates"
+L.NO_FIGHTS = "Todavía no hay combates"
+
+-- Comandos de chat
+L.HELP_HEADER = "Comandos (v%s):"
+L.HELP = {
+    "|cFFFF00/nm|r - muestra/oculta el medidor",
+    "|cFFFF00/nm mode [group/abilities]|r - cambia entre el daño del grupo y tus habilidades",
+    "|cFFFF00/nm damage / healing|r - mide el daño o la sanación",
+    "|cFFFF00/nm reset|r - borra todos los combates",
+    "|cFFFF00/nm lock / unlock|r - bloquea o desbloquea la ventana",
+    "|cFFFF00/nm resetpos|r - devuelve la ventana a su posición inicial",
+    "|cFFFF00/nm settings|r - abre los ajustes",
+}
+L.LOCKED = "Ventana bloqueada."
+L.UNLOCKED = "Ventana desbloqueada: arrástrala desde cualquier parte para moverla y la esquina inferior derecha para cambiar su tamaño."
+L.RESET_DONE = "Combates borrados."
+L.MODE_SET = "Vista: %s"
+L.METRIC_SET = "Midiendo: %s"
+L.POSITION_RESET = "La ventana ha vuelto a su posición inicial."
+
+-- Panel de ajustes
+L.SETTINGS_DESC = "Nirnhoned Metrics muestra un medidor de daño y sanación con barras de colores: total, DPS/HPS y tu porcentaje del grupo en cada combate, además del desglose de tus habilidades."
+L.HEADER_WINDOW = "Ventana"
+L.OPT_SHOWN = "Mostrar el medidor"
+L.OPT_LOCKED = "Bloquear ventana"
+L.OPT_LOCKED_TT = "Desbloqueada, se mueve arrastrándola desde cualquier parte y se cambia el tamaño con la esquina inferior derecha."
+L.OPT_HIDE_OOC = "Mostrar solo en combate"
+L.OPT_HIDE_OOC_TT = "El medidor aparece al empezar un combate y se oculta unos segundos después de terminar."
+L.OPT_HIDE_PVP = "Ocultar en PvP"
+L.OPT_HIDE_PVP_TT = "Oculta el medidor en Cyrodiil, la Ciudad Imperial y los campos de batalla."
+L.OPT_WIDTH = "Ancho"
+L.OPT_HEIGHT = "Alto"
+L.OPT_ROW_HEIGHT = "Alto de las barras"
+L.OPT_ROW_HEIGHT_TT = "Alto mínimo: las barras crecen solas si el texto no cabe."
+L.OPT_ROW_SPACING = "Espacio entre barras"
+L.OPT_FONT_SIZE = "Tamaño del texto de las barras"
+L.OPT_TITLE_FONT_SIZE = "Tamaño del texto del título"
+L.OPT_BG_ALPHA = "Opacidad del fondo"
+L.OPT_BAR_ALPHA = "Opacidad de las barras"
+L.OPT_RESET_POSITION = "Restablecer posición"
+L.HEADER_BARS = "Barras"
+L.OPT_BAR_STYLE = "Estilo de las barras"
+L.STYLE_PROGRESS = "Barra de progreso"
+L.STYLE_FLAT = "Plano"
+L.OPT_COLOR_MODE = "Color de las barras del grupo"
+L.COLOR_CLASS = "Por clase"
+L.COLOR_SINGLE = "Un solo color"
+L.COLOR_DAMAGE_TYPE = "Por tipo de daño"
+L.OPT_BAR_COLOR = "Color único"
+L.OPT_CLASS_COLORS = "Colores de las clases"
+L.OPT_ABILITY_COLOR = "Color de las barras de habilidades"
+L.OPT_HIGHLIGHT_SELF = "Resaltar mi nombre"
+L.HEADER_TEXT = "Texto"
+L.OPT_SHOW_RANK = "Mostrar posición (1. 2. 3...)"
+L.OPT_SHOW_ICON = "Mostrar icono de clase / habilidad"
+L.OPT_SHOW_TOTAL = "Mostrar daño total"
+L.OPT_SHOW_DPS = "Mostrar DPS / HPS"
+L.OPT_SHOW_PERCENT = "Mostrar porcentaje"
+L.OPT_NAME_FORMAT = "Nombres"
+L.NAME_CHARACTER = "Nombre del personaje"
+L.NAME_ACCOUNT = "@Cuenta"
+L.HEADER_DATA = "Datos"
+L.OPT_MODE = "Vista"
+L.OPT_METRIC = "Medir"
+L.OPT_PETS = "Contar el daño de mascotas"
+L.OPT_PETS_TT = "Suma a tu daño el de tus mascotas (diablillos, osos, esqueletos...)."
+L.OPT_END_DELAY = "Segundos antes de cerrar un combate"
+L.OPT_END_DELAY_TT = "Tiempo fuera de combate para dar el combate por terminado. Si vuelves a combate antes, continúa el mismo."
+L.OPT_HISTORY = "Combates que se recuerdan"
+L.OPT_SHARE = "Compartir mi DPS y HPS con el grupo"
+L.OPT_SHARE_TT = "Envía tu DPS y tu HPS mediante LibGroupCombatStats para que tu grupo los vea (hay que recargar la interfaz)."
+L.OPT_SHOW_REST = "Mostrar \"Resto del grupo\" en combates de jefe"
+L.OPT_SHOW_REST_TT = "Estima el daño de los miembros del grupo que no comparten el suyo a partir de la vida que pierden los jefes."
+
+-- Ayuda
+L.HELP_USAGE_HEADER = "Cómo se usa"
+L.HELP_USAGE = "1. Escribe |cFFFF00/nm|r o asigna una tecla (Controles → Nirnhoned Metrics) para mostrar u ocultar el medidor.\n2. Combate: las barras se llenan con el daño, el DPS y el porcentaje del grupo de cada jugador.\n3. Los iconos de la barra de título cambian entre daño y sanación, entre el grupo y tus habilidades, abren los combates anteriores, reinician, bloquean la ventana y abren los ajustes.\n4. Desbloquea la ventana (candado) para arrastrarla desde cualquier parte y cambiar su tamaño desde los bordes o la esquina inferior derecha."
+L.HELP_TIPS_HEADER = "Consejos"
+L.HELP_TIPS = "- ESO solo informa a cada jugador de su propio daño, así que cada miembro del grupo necesita un addon que lo comparta mediante LibGroupCombatStats (Nirnhoned Metrics lo hace); sus cifras son aproximadas.\n- En combates de jefe, el daño de quienes no lo comparten aparece junto como \"Resto del grupo\".\n- Pasa el ratón por una barra para ver el detalle: golpes, críticos, golpe medio y máximo.\n- Usa la rueda del ratón si hay más barras de las que caben.\n- Clic derecho en cualquier parte del medidor abre el menú completo."
+L.HELP_COMMANDS_HEADER = "Comandos de chat"
+L.DONATE_HEADER = "Apoya al autor"
+L.DONATE_DESC = "Si te gusta Nirnhoned Metrics puedes enviar algo de oro a %s. El correo se abre ya rellenado para que revises la cantidad antes de enviarlo."
+L.DONATE_BUTTON = "Donar oro"
+L.DONATE_SUBJECT = "Nirnhoned Metrics v%s - Donación"
+L.DONATE_COMBAT = "No puedes abrir el correo durante el combate."
+
+-- Bienvenida / novedades
+L.WELCOME_TITLE = "Bienvenido a Nirnhoned Metrics"
+L.WELCOME_TEXT = "Gracias por instalar Nirnhoned Metrics.\n\nUn medidor de daño y sanación con barras de colores: total, DPS/HPS y tu porcentaje del grupo en cada combate.\n\n- Muéstralo u ocúltalo con /nm o con una tecla en Controles.\n- Usa los iconos de su barra de título para cambiar de vista o ver combates anteriores. El pie muestra cuánto duró el combate.\n- Para ver el daño de tu grupo, sus miembros también necesitan Nirnhoned Metrics."
+L.UPDATE_TITLE = "Nirnhoned Metrics actualizado a v%s"
+L.CHANGELOG = "Primera versión pública:\n\n- Medidor de daño con barras de progreso del color de cada clase: total, DPS y porcentaje.\n- Medidor de sanación: cambia entre daño y sanación, con HPS y sobrecuración.\n- Daño del grupo compartido mediante LibGroupCombatStats y \"Resto del grupo\" estimado en combates de jefe.\n- Desglose de tus habilidades, con colores por tipo de daño.\n- Historial de combates recientes y duración del combate en el pie de la ventana.\n- Mover, redimensionar y configurarlo todo en Ajustes → Add-Ons.\n- Disponible en español, inglés, alemán y francés."

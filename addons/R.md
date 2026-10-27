@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ResourceTickIndicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bluebuiy/ResourceTickIndicator__2827) | bluebuiy | PC / Mac | 4 |
 | [Restock Bank Materials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SSM24/Restock-Bank-Materials__3545) | SSM24 | PC / Mac | 1.0.1 |
 | [Restock Style Materials and Auto Repair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TeilzeitLegende/Restock-Style-Materials-and-Auto-Repair__3073) | TeilzeitLegende | PC / Mac | 0.8.6 |
-| [RestyleHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/RestyleHelper__4914) | PUYO | PC / Mac | 1.2 |
+| [RestyleHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/RestyleHelper__4914) | PUYO | PC / Mac | 1.5 |
 | [Resurrection Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Resurrection-Notifier__3552) | M0R | PC / Mac | 1.0 |
 | [Reticle only first person](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/Reticle-only-first-person__2982) | awfuldead | PC / Mac | 1.2 |
 | [Reticle Rainbow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Reticle-Rainbow__30b30033-06cc-48b7-a0c6-7be8d27487cf) | FiNk3F13 | Console | — |

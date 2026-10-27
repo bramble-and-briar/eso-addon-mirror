@@ -64,7 +64,21 @@ function O.AnimatePreviewSwap(previous)
     for _,skin in pairs(skins) do O.StartPreviewSwap(skin,now) end
 end
 
+function O.FinishNativeSkillAnimations(button)
+    if not button then return end
+    for _,key in ipairs({"hotbarSwapAnimation","timerSwapAnimation","stackCountSwapAnimation","bounceAnimation","iconBounceAnimation"}) do
+        local timeline=button[key]
+        if timeline and timeline:IsPlaying() then timeline:PlayInstantlyToEnd(false) end
+    end
+    suppressArt(button.glow)
+    suppressArt(button.activationHighlight)
+end
+
 function O.FinishFixedUltimateSwap()
+    if O.NoSkillAnimationsView() and O.vars.enabled and O.OtherBar(GetActiveHotbarCategory()) and ZO_ActionBar_GetButton then
+        for slot=3,8 do O.FinishNativeSkillAnimations(ZO_ActionBar_GetButton(slot)) end
+        return
+    end
     if not O.IsFixedSkillView() or not O.vars.backBar or not O.vars.enabled
         or not O.OtherBar(GetActiveHotbarCategory()) or not ZO_ActionBar_GetButton then return end
     local button=ZO_ActionBar_GetButton(8)
@@ -78,16 +92,73 @@ function O.FinishFixedUltimateSwap()
 end
 
 function O.BackBarTimerText(slot,bar)
-    local effect=GetActionSlotEffectTimeRemaining and GetActionSlotEffectTimeRemaining(slot,bar) or 0
+    local effect=O.GetSkillTimerRemaining(slot,bar)
     local remaining=effect or 0
-    if remaining<=0 then
-        local cooldown,_,global=GetSlotCooldownInfo(slot,bar)
-        remaining=not global and (cooldown or 0) or 0
-    end
+    -- Recast cooldown and effect duration are different clocks. Never start
+    -- a second countdown when an effect ends. Pots retain native cooldowns.
     if remaining<=0 then return "" end
     -- Match ActionButton:UpdateTimer instead of rounding up by a whole second.
     return ZO_FormatTimeShowUnitOverThresholdShowDecimalUnderThreshold(remaining/1000,
         ZO_ONE_MINUTE_IN_SECONDS,ZO_EFFECT_EXPIRATION_IMMINENCE_THRESHOLD_S,TIME_FORMAT_STYLE_SHOW_LARGEST_UNIT)
+end
+
+function O.IsSkillProcReady(slot,bar)
+    local id=GetSlotBoundId(slot,bar)
+    if not id or id<=0 then return false end
+    if ActionSlotHasActivationHighlight and ActionSlotHasActivationHighlight(slot,bar)==true then return true end
+    if O.procReadyAbilities and O.procReadyAbilities[id] then return true end
+    local source=O.stackSources and O.stackSources[id]
+    local threshold=O.procStackThresholds and O.procStackThresholds[source or id]
+    return threshold~=nil and O.GetSkillStackCount(slot,bar)>=threshold or false
+end
+function O.IsStackProcSkill(slot,bar)
+    local id=GetSlotBoundId(slot,bar)
+    local source=O.stackSources and O.stackSources[id]
+    return (O.procReadyAbilities and O.procReadyAbilities[id]) or
+        (O.procStackThresholds and O.procStackThresholds[source or id]~=nil) or false
+end
+function O.StopSkillProcHighlight(control)
+    if not control then return end
+    control:SetHidden(true)
+    if control.procGlow then control.procGlow:SetHidden(true) end
+    if control.procAnimation then control.procAnimation:GetTimeline():Stop() end
+    control.procReady=false
+end
+function O.UpdateSkillProcHighlight(skin,back,slot,bar,visible)
+    local control=back and skin.procBack or skin.procFront
+    if not control then return false end
+    local usable=(not IsSlotUsable or IsSlotUsable(slot,bar)~=false)
+        and (not ActionSlotHasNonCostStateFailure or ActionSlotHasNonCostStateFailure(slot,bar)~=true)
+    local ready=visible and not back and bar==GetActiveHotbarCategory()
+        and usable and O.IsSkillProcReady(slot,bar) or false
+    if not ready then
+        if control.procReady then O.StopSkillProcHighlight(control) else control:SetHidden(true) end
+        return false
+    end
+    local _,_,texture=GetSlotTexture(slot,bar)
+    if type(texture)~="string" or texture=="" then texture="esoui/art/actionbar/abilityhighlightanimation.dds" end
+    if not control.procReady or control.procTexture~=texture then
+        control.procTexture=texture
+        control:SetTexture(texture)
+        if CreateSimpleAnimation then
+            if not control.procAnimation then control.procAnimation=CreateSimpleAnimation(ANIMATION_TEXTURE,control) end
+            -- Same 64-frame layout and playback as ESO's ActivationHighlight.
+            control.procAnimation:SetImageData(64,1)
+            control.procAnimation:SetFramerate(30)
+            local timeline=control.procAnimation:GetTimeline()
+            timeline:SetPlaybackType(ANIMATION_PLAYBACK_LOOP,LOOP_INDEFINITELY)
+            timeline:PlayFromStart()
+        else
+            -- A static native glow is still valid if animation is unavailable;
+            -- never show the whole animation atlas as one distorted image.
+            control:SetTexture("esoui/art/hud/gamepad/gp_skillglow.dds")
+            control:SetTextureCoords(0.1875,0.8125,0.1875,0.8125)
+        end
+        control.procReady=true
+    end
+    if control.procGlow then control.procGlow:SetHidden(false) end
+    control:SetHidden(false)
+    return ready
 end
 
 function O.UpdateBackBarTimer(skin)
@@ -97,8 +168,10 @@ function O.UpdateBackBarTimer(skin)
     local text=O.BackBarTimerText(skin.timerSlot,other)
     skin.timer:SetText(text)
     O.UpdateStackText(skin.backStacks,skin.timerSlot,other)
-    local running=text~="" or O.GetSkillStackCount(skin.timerSlot,other)>0
-        or (IsSlotToggled and IsSlotToggled(skin.timerSlot,other)) or false
+    O.UpdateSkillProcHighlight(skin,true,skin.timerSlot,other,true)
+    local procSkill=O.IsStackProcSkill(skin.timerSlot,other) or O.IsSkillProcReady(skin.timerSlot,other)
+    local running=not procSkill and (text~="" or O.GetSkillStackCount(skin.timerSlot,other)>0
+        or (IsSlotToggled and IsSlotToggled(skin.timerSlot,other))) or false
     if skin.previewRunning~=running or skin.previewTintRevision~=O.textRevision then
         skin.previewRunning=running; skin.previewTintRevision=O.textRevision
         local c=running and (O.vars.skillFrameColor or O.vars.accent) or {0.55,0.55,0.55}
@@ -112,7 +185,7 @@ function O.UpdateBackBarTimer(skin)
 end
 
 local function hasRunningSkill(slot,bar)
-    return O.BackBarTimerText(slot,bar)~="" or O.GetSkillStackCount(slot,bar)>0
+    return O.IsSkillProcReady(slot,bar) or O.BackBarTimerText(slot,bar)~="" or O.GetSkillStackCount(slot,bar)>0
         or (IsSlotToggled and IsSlotToggled(slot,bar)) or false
 end
 
@@ -182,7 +255,8 @@ function O.UpdateSkills(visible)
                 if skin then O.HideUltimateCharge(skin); O.StopPreviewSwap(skin); skin.frame:SetHidden(true); skin.back:SetHidden(true); skin.timerVisible=false; O.HideSkillText(skin) end
                 skin=O.CreateSkillSkin(button); skins[slot]=skin
             end
-            if slot==8 then O.FinishFixedUltimateSwap() end
+            if O.NoSkillAnimationsView() then O.FinishNativeSkillAnimations(button)
+            elseif slot==8 then O.FinishFixedUltimateSwap() end
             styleSlot(skin,visible)
             if O.IsFixedSkillView() then O.StopPreviewSwap(skin) end
             skin.activeTextSlot=slot
@@ -199,7 +273,10 @@ function O.UpdateSkills(visible)
                 and (O.vars.skillHudView~="running" or hasRunningSkill(slot,other))
             skin.back:SetHidden(not showPreview)
             skin.timerVisible=showPreview
-            if not showPreview then O.StopPreviewSwap(skin) end
+            if not showPreview then
+                O.StopPreviewSwap(skin)
+                O.StopSkillProcHighlight(skin.procBack)
+            end
             if slot==8 then skin.timer:SetText(""); skin.backStacks:SetText("") end
             if hasSkill then
                 O.SetPreviewTexture(skin,texture)
@@ -212,7 +289,7 @@ function O.UpdateSkills(visible)
             -- Keep native skill controls and keybinds; only replace decorative art.
             suppressArt(button.slot:GetNamedChild("Backdrop"))
             if slot==8 then suppressArt(button.slot:GetNamedChild("Decoration")) end
-            if slot==8 and O.DualUltimateView() then
+            if slot==8 then
                 for _,name in ipairs({"Frame","FillAnimationLeft","FillAnimationRight","ReadyBurst","ReadyLoop"}) do suppressArt(button.slot:GetNamedChild(name)) end
             end
             if O.vars.backBar or slot==8 then

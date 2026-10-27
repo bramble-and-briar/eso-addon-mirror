@@ -3318,6 +3318,64 @@ function SuperStar_ExitRowOfSlot(control)
     ClearTooltip(SuperStarAbilityTooltip)
 end
 
+-- Called by XML
+function SuperStar_HoverSkillLine(control)
+    if type(control.masterySkillId) == "number" then
+        InitializeTooltip(SuperStarAbilityTooltip, control, TOPLEFT, 5, 5, BOTTOMRIGHT)
+        SuperStarAbilityTooltip:SetAbilityId(control.masterySkillId)
+    elseif type(control.skillLineId) == "number" then
+        InitializeTooltip(SkillTooltip, control, TOPLEFT, 5, 5, BOTTOMRIGHT)
+        if control.isSubclassing then
+            SkillTooltip:SetSubclassingSkillLineById(control.skillLineId)
+        else
+            SkillTooltip:SetSkillLineById(control.skillLineId)
+        end
+    end
+end
+
+-- Called by XML
+function SuperStar_ExitSkillLine(control)
+    ClearTooltip(SkillTooltip)
+    ClearTooltip(SuperStarAbilityTooltip)
+end
+
+local SKILL_LINE_ROW_CHILDREN = {
+    ClassIcon = false,
+    SkillLineIcon = false,
+    ClassName = false,
+    SkillLineName = true,
+    ClassMasteryIcon = true,
+}
+
+local function SetSkillLineRowHover(SSkillFrame, masteryOnly)
+    for childName, masteryChild in pairs(SKILL_LINE_ROW_CHILDREN) do
+        SSkillFrame:GetNamedChild(childName):SetMouseEnabled(masteryChild or not masteryOnly)
+    end
+end
+
+local MASTERY_RING_SIZE = 38
+local MASTERY_RING_OFFSET_X = 0
+local MASTERY_RING_OFFSET_Y = -1
+local MASTERY_RING_ALPHA = 1
+
+local function ShowMasteryIcon(SSkillFrame, masterySkillId, skillLineIcon)
+    local cmIcon = SSkillFrame:GetNamedChild("ClassMasteryIcon")
+    local cmRing = SSkillFrame:GetNamedChild("ClassMasteryRing")
+    cmIcon:SetTexture(GetAbilityIcon(masterySkillId))
+    cmIcon:SetHidden(false)
+    cmRing:SetTexture(skillLineIcon)
+    cmRing:SetAlpha(MASTERY_RING_ALPHA)
+    cmRing:SetDimensions(MASTERY_RING_SIZE, MASTERY_RING_SIZE)
+    cmRing:ClearAnchors()
+    cmRing:SetAnchor(CENTER, cmIcon, CENTER, MASTERY_RING_OFFSET_X, MASTERY_RING_OFFSET_Y)
+    cmRing:SetHidden(false)
+end
+
+local function HideMasteryIcon(SSkillFrame)
+    SSkillFrame:GetNamedChild("ClassMasteryIcon"):SetHidden(true)
+    SSkillFrame:GetNamedChild("ClassMasteryRing"):SetHidden(true)
+end
+
 -- Lykeion@6.0.0
 -- Called by XML
 function SuperStar_HoverGrimoire(control)
@@ -4262,9 +4320,9 @@ local MAIN_STUFF_ROW_ORDER = {
     EQUIP_SLOT_WAIST,
     EQUIP_SLOT_LEGS,
     EQUIP_SLOT_FEET,
+    EQUIP_SLOT_NECK,
     EQUIP_SLOT_RING1,
     EQUIP_SLOT_RING2,
-    EQUIP_SLOT_NECK,
     EQUIP_SLOT_MAIN_HAND,
     EQUIP_SLOT_OFF_HAND,
     EQUIP_SLOT_BACKUP_MAIN,
@@ -4279,9 +4337,9 @@ local COMPANION_STUFF_ROW_ORDER = {
     EQUIP_SLOT_WAIST,
     EQUIP_SLOT_LEGS,
     EQUIP_SLOT_FEET,
+    EQUIP_SLOT_NECK,
     EQUIP_SLOT_RING1,
     EQUIP_SLOT_RING2,
-    EQUIP_SLOT_NECK,
     EQUIP_SLOT_MAIN_HAND,
     EQUIP_SLOT_OFF_HAND
 }
@@ -5087,19 +5145,22 @@ local function BuildMainSceneShare(dataString, text)
             skillLineNameLabel:SetAnchor(TOPLEFT, SSkillFrame:GetNamedChild("Divider"), BOTTOMLEFT, 35, 8)
             skillLineNameLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
-            local cmIcon = SSkillFrame:GetNamedChild("ClassMasteryIcon")
+            SSkillFrame.skillLineId = nil
+            SSkillFrame.masterySkillId = nil
+            SSkillFrame.isSubclassing = nil
+            SetSkillLineRowHover(SSkillFrame, true)
             if passiveIdx > 0 and skillLineCount < 3 then
                 local skillId = LSF:GetClassMasterySkillId(classId, passiveIdx)
                 if skillId then
-                    cmIcon:SetTexture(GetAbilityIcon(skillId))
-                    cmIcon:SetHidden(false)
+                    ShowMasteryIcon(SSkillFrame, skillId, nativeSkillLineIcon)
                     skillLineNameLabel:SetText(GetAbilityName(skillId))
+                    SSkillFrame.masterySkillId = skillId
                 else
-                    cmIcon:SetHidden(true)
+                    HideMasteryIcon(SSkillFrame)
                     skillLineNameLabel:SetText("")
                 end
             else
-                cmIcon:SetHidden(true)
+                HideMasteryIcon(SSkillFrame)
                 skillLineNameLabel:SetText("")
             end
 
@@ -5127,8 +5188,11 @@ local function BuildMainSceneShare(dataString, text)
             SSkillFrame:GetNamedChild("SkillLineIcon"):SetTexture(skillLineIcon)
             SSkillFrame:GetNamedChild("ClassName"):SetText(className)
             SSkillFrame:GetNamedChild("SkillLineName"):SetText(skillLineName)
-            -- Hide ClassMasteryIcon for subclassing
-            SSkillFrame:GetNamedChild("ClassMasteryIcon"):SetHidden(true)
+            HideMasteryIcon(SSkillFrame)
+            SSkillFrame.skillLineId = skillLineId
+            SSkillFrame.masterySkillId = nil
+            SSkillFrame.isSubclassing = true
+            SetSkillLineRowHover(SSkillFrame, false)
 
             local skillLineNameLabel = SSkillFrame:GetNamedChild("SkillLineName")
             skillLineNameLabel:SetAnchor(TOPLEFT, SSkillFrame:GetNamedChild("Divider"), BOTTOMLEFT, 40, 0)
@@ -5907,19 +5971,22 @@ local function BuildMainSceneLocal(control)
             skillLineNameLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
             local passiveIdx = masteryPassives[skillLineCount]
-            local cmIcon = SSkillFrame:GetNamedChild("ClassMasteryIcon")
+            SSkillFrame.skillLineId = nil
+            SSkillFrame.masterySkillId = nil
+            SSkillFrame.isSubclassing = nil
+            SetSkillLineRowHover(SSkillFrame, true)
             if passiveIdx and skillLineCount < 3 then
                 local skillId = LSF:GetClassMasterySkillId(classId, passiveIdx)
                 if skillId then
-                    cmIcon:SetTexture(GetAbilityIcon(skillId))
-                    cmIcon:SetHidden(false)
+                    ShowMasteryIcon(SSkillFrame, skillId, nativeSkillLineIcon)
                     skillLineNameLabel:SetText(GetAbilityName(skillId))
+                    SSkillFrame.masterySkillId = skillId
                 else
-                    cmIcon:SetHidden(true)
+                    HideMasteryIcon(SSkillFrame)
                     skillLineNameLabel:SetText("")
                 end
             else
-                cmIcon:SetHidden(true)
+                HideMasteryIcon(SSkillFrame)
                 skillLineNameLabel:SetText("")
             end
 
@@ -5947,7 +6014,11 @@ local function BuildMainSceneLocal(control)
                 SSkillFrame:GetNamedChild("SkillLineIcon"):SetTexture(skillLineIcon)
                 SSkillFrame:GetNamedChild("ClassName"):SetText(className)
                 SSkillFrame:GetNamedChild("SkillLineName"):SetText(skillLineName)
-                SSkillFrame:GetNamedChild("ClassMasteryIcon"):SetHidden(true)
+                HideMasteryIcon(SSkillFrame)
+                SSkillFrame.skillLineId = skillLineId
+                SSkillFrame.masterySkillId = nil
+                SSkillFrame.isSubclassing = true
+                SetSkillLineRowHover(SSkillFrame, false)
 
                 local skillLineNameLabel = SSkillFrame:GetNamedChild("SkillLineName")
                 skillLineNameLabel:SetAnchor(TOPLEFT, SSkillFrame:GetNamedChild("Divider"), BOTTOMLEFT, 40, 0)

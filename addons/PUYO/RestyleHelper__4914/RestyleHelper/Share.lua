@@ -1,7 +1,9 @@
 local RH = RestyleHelper
 local L = RH.L
 
-local CHAT_MAX_BYTES = 350
+-- 実機で、投稿時259文字のリンクは正常、272文字のリンクは表示が崩れた。
+-- 崩れを避けるため、これを超えるリンクは投稿しない
+local CHAT_MAX_BYTES = 260
 local NAME_MAX_CHARS = 20
 
 ---------------------------------------------------------------------------
@@ -63,10 +65,15 @@ end
 -- body = "slot.id.mat.p.s.a-slot.id.mat.p.s.a-..."（各値36進数）
 -- 区切りに "." を使うのは Discord 等で "_" が斜体化されて消えるのを防ぐため（旧形式 "_" も読み込み可）
 ---------------------------------------------------------------------------
-function RH.EncodeEntries(entries)
+function RH.EncodeEntries(entries, compact)
     local parts = {}
     for _, e in ipairs(entries) do
-        parts[#parts + 1] = table.concat({ To36(e.slot), To36(e.id), To36(e.mat), To36(e.p), To36(e.s), To36(e.a) }, ".")
+        if compact and (e.p or 0) == 0 and (e.s or 0) == 0 and (e.a or 0) == 0 then
+            -- 染料なしは省略形(スロット.ID.素材)。チャットリンクを短くするため
+            parts[#parts + 1] = table.concat({ To36(e.slot), To36(e.id), To36(e.mat) }, ".")
+        else
+            parts[#parts + 1] = table.concat({ To36(e.slot), To36(e.id), To36(e.mat), To36(e.p), To36(e.s), To36(e.a) }, ".")
+        end
     end
     return table.concat(parts, "-")
 end
@@ -78,6 +85,7 @@ function RH.DecodeBody(body)
     for chunk in body:gmatch("[^%-]+") do
         local f = {}
         for v in chunk:gmatch("[^_%.]+") do f[#f + 1] = From36(v) end
+        if #f == 3 then f[4], f[5], f[6] = 0, 0, 0 end   -- 省略形(染料なし)
         if #f ~= 6 then return nil end
         for i = 1, 6 do if not f[i] then return nil end end
         entries[#entries + 1] = { slot = f[1], id = f[2], mat = f[3], p = f[4], s = f[5], a = f[6] }
@@ -110,7 +118,11 @@ function RH.FormatForExternal(name, body, entries)
 end
 
 function RH.MakeChatLink(name, body)
-    return string.format("|H1:%s:%s|h[%s]|h", RH.LINK_TYPE, body, RH.SanitizeName(name))
+    local text = RH.SanitizeName(name)
+    if ZO_LinkHandler_CreateLink then
+        return ZO_LinkHandler_CreateLink(text, nil, RH.LINK_TYPE, body)
+    end
+    return string.format("|H1:%s:%s|h[%s]|h", RH.LINK_TYPE, body, text)
 end
 
 -- 文字列 / チャットリンク / 本体のみ のいずれも受け付ける
@@ -210,16 +222,9 @@ function RH.ApplyEntries(entries, name)
     RH.forceMsg = false
 end
 
+-- 内容確認: リンクをクリックしたときと同じパネルを表示する
 function RH.InspectEntries(entries, name)
-    RH.forceMsg = RH.sv.shareMessages ~= false
-    RH.Msg(L.MSG_INSPECT_HEADER, (name and name ~= "") and name or "?")
-    for _, e in ipairs(entries) do
-        local owned = (e.id == 0 or RH.IsUnlocked(e.id)) and "" or " |cFF6666" .. L.OWNED_NO .. "|r"
-        RH.Msg("%s: %s%s / %s, %s, %s",
-            RH.GetSlotName(e.slot), RH.GetCollectibleDisplayName(e.id), owned,
-            RH.GetDyeName(e.p), RH.GetDyeName(e.s), RH.GetDyeName(e.a))
-    end
-    RH.forceMsg = false
+    RH.ShowLinkView(RH.SanitizeName(name), RH.EncodeEntries(entries), entries)
 end
 
 ---------------------------------------------------------------------------
@@ -271,38 +276,76 @@ end
 -- チャット共有
 ---------------------------------------------------------------------------
 function RH.PostToChat(name, body)
-    local link = RH.MakeChatLink(name, body)
-    if #link > CHAT_MAX_BYTES then
-        RH.Msg(L.MSG_LINK_TOO_LONG)
+    if not RH.linkRegistered then
+        RH.forceMsg = true
+        RH.Msg(L.MSG_LINK_NEEDS_LIB)
+        RH.forceMsg = false
         return false
     end
-    if StartChatInput then
+    local allEntries = RH.DecodeBody(body) or {}
+    -- 染料なしの部位を省略形にして短くする
+    local link = RH.MakeChatLink(name, RH.EncodeEntries(allEntries, true))
+    if #link > CHAT_MAX_BYTES then
+        -- それでも長ければ、武器の部位を除く
+        local armorOnly = {}
+        for _, e in ipairs(allEntries) do
+            if RH.isArmor[e.slot] then armorOnly[#armorOnly + 1] = e end
+        end
+        if #armorOnly > 0 and #armorOnly < #allEntries then
+            local short = RH.MakeChatLink(name, RH.EncodeEntries(armorOnly, true))
+            if #short <= CHAT_MAX_BYTES then
+                link = short
+                RH.forceMsg = true
+                RH.Msg(L.MSG_LINK_WEAPONS_DROPPED)
+                RH.forceMsg = false
+            end
+        end
+    end
+    if #link > CHAT_MAX_BYTES then
+        RH.forceMsg = true
+        RH.Msg(L.MSG_LINK_TOO_LONG)
+        RH.forceMsg = false
+        return false
+    end
+    if CHAT_SYSTEM and CHAT_SYSTEM.textEntry and CHAT_SYSTEM.textEntry.InsertLink then
+        CHAT_SYSTEM.textEntry:InsertLink(link)
+    elseif StartChatInput then
         StartChatInput(link)
-    elseif CHAT_SYSTEM and CHAT_SYSTEM.StartTextEntry then
-        CHAT_SYSTEM:StartTextEntry(link)
     end
     return true
 end
 
-local lastLinkMs = 0
-
-local function OnLinkEvent(link, button, text, color, linkType, body)
+-- クリックされたリンク: 左クリックで内容を表示するパネルを開く
+local function OnLinkClicked(rawLink, button, linkText, linkStyle, linkType, dataString)
     if linkType ~= RH.LINK_TYPE then return end
-    local name = RH.SanitizeName((text or ""):gsub("^%[", ""):gsub("%]$", ""))
-    local now = GetFrameTimeMilliseconds()
-    if now - lastLinkMs < 300 then return true end  -- CLICKED と MOUSE_UP の二重発火防止
-    if button == MOUSE_BUTTON_INDEX_LEFT and RH.DecodeBody(body) then
-        lastLinkMs = now
-        RH.ShowShareWindow(true)
-        RH.SetImportText(RH.MakeShareString(name, body), name)
-        RH.Msg(L.MSG_LINK_RECEIVED, name)
+    if button == MOUSE_BUTTON_INDEX_LEFT then
+        local entries = RH.DecodeBody(dataString)
+        if not entries then
+            RH.forceMsg = true; RH.Msg(L.MSG_LINK_BAD); RH.forceMsg = false
+            return true
+        end
+        local name = tostring(linkText or "")
+        if string.sub(name, 1, 1) == "[" then name = string.sub(name, 2) end
+        if string.sub(name, -1) == "]" then name = string.sub(name, 1, -2) end
+        RH.ShowLinkView(RH.SanitizeName(name), dataString, entries)
+    elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+        ClearMenu()
+        AddMenuItem(GetString(SI_ITEM_ACTION_LINK_TO_CHAT), function()
+            if CHAT_SYSTEM and CHAT_SYSTEM.textEntry then CHAT_SYSTEM.textEntry:InsertLink(rawLink) end
+        end, MENU_ADD_OPTION_LABEL)
+        ShowMenu(nil, 2, MENU_TYPE_COMBO_BOX)
     end
     return true
 end
 
+-- チャットリンクの種類を登録(LibChatMessage が必要。受信側でもリンクとして扱われる)
 function RH.InitShare()
-    if LINK_HANDLER then
-        LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_CLICKED_EVENT, OnLinkEvent)
-        LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, OnLinkEvent)
-    end
+    RH.linkRegistered = false
+    if not (LibChatMessage and LibChatMessage.RegisterCustomChatLink and LINK_HANDLER) then return end
+    LibChatMessage:RegisterCustomChatLink(RH.LINK_TYPE, function(linkStyle, linkType, data, displayText)
+        return ZO_LinkHandler_CreateLinkWithoutBrackets(displayText, nil, RH.LINK_TYPE, data)
+    end)
+    LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, OnLinkClicked)
+    LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_CLICKED_EVENT, OnLinkClicked)
+    RH.linkRegistered = true
 end

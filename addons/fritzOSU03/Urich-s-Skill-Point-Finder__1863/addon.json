@@ -18,7 +18,7 @@
     "USPF"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1863/",
-  "fingerprint": "7f789540d81a47eb486380651c2dd77a01784cdbd8a3df3a653a360f3245fd2e",
+  "fingerprint": "7eb938cc1550904cbd350eba1377def17bb2fbf79d105814a6e9ee82b42e268b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10859.png",
     "https://cdn-eso.mmoui.com/preview/pvw10860.png",
@@ -31,11 +31,11 @@
   "source_id": "1863",
   "source_url": "https://www.esoui.com/downloads/info1863-UrichsSkillPointFinder.html",
   "stats": {
-    "downloads": 1853525,
-    "favorites": 1024,
-    "monthly_downloads": 5925
+    "downloads": 1864176,
+    "favorites": 1025,
+    "monthly_downloads": 15364
   },
   "title": "Urich's Skill Point Finder",
-  "updated_at": 1792428048000,
-  "version": "7.5.1"
+  "updated_at": 1793067654000,
+  "version": "7.5.2"
 }

@@ -625,7 +625,8 @@ end
 -- The periods that can be chosen, in the order a list shows them.
 local MAX_LISTED_DAYS = 30
 
-function records:ScopeList()
+function records:ScopeList(maxDays)
+    maxDays = maxDays or MAX_LISTED_DAYS
     local list = { "today", "thismonth", "all" }
     local todayKey = self:DayKey()
     local thisMonth = self:MonthKey(todayKey)
@@ -640,7 +641,7 @@ function records:ScopeList()
     end
     local listed = 0
     for _, key in ipairs(keys) do
-        if key ~= todayKey and listed < MAX_LISTED_DAYS then
+        if key ~= todayKey and listed < maxDays then
             listed = listed + 1
             list[#list + 1] = key
         end
@@ -665,7 +666,7 @@ end
 -- Statistics
 ---------------------------------------------------------------------------------------------------
 
--- Scratch tables for Top, reused so that the statistics window, which asks every few seconds, does
+-- Scratch tables for Top, reused so that the statistics screen, which asks every few seconds, does
 -- not leave a table per player behind each time.
 local scratchAmount, scratchCount, scratchGroup, scratchRecv = {}, {}, {}, {}
 
@@ -707,8 +708,9 @@ local function Collect(kind, days)
     return dropped
 end
 
--- Adds up the days of a period.
-function records:Summary(scope)
+-- Adds up the days of a period: the amounts, the time, the shares. Cheap, and what a list of periods
+-- is made of. Returns the totals and the days they were made from.
+function records:Totals(scope)
     local total = {}
     for _, field in ipairs(NUMBER_FIELDS) do
         total[field] = 0
@@ -731,9 +733,20 @@ function records:Summary(scope)
         total.otherShare = total.other / total.heal
         total.selfShare = total.self / total.heal
     end
-    -- How many different players the amount went to, inside the party and outside it. Only the players
-    -- still on a day's list are known, so `outsideCut` says that the number outside the party is a
-    -- floor (the party is at most a couple of dozen and always among the biggest, so never cut).
+    -- The player's share of everything party members received.
+    total.partyShare = records.PartyShare(total.group, total.recvOthers)
+    -- Overheal as a share of everything the heals would have done.
+    local potential = total.heal + total.over
+    total.overShare = potential > 0 and total.over / potential or nil
+    total.critShare = total.hits > 0 and total.crits / total.hits or nil
+    return total, days
+end
+
+-- The totals, and how many different players the amount went to, inside the party and outside it.
+function records:Summary(scope)
+    local total, days = self:Totals(scope)
+    -- Only the players still on a day's list are known, so `outsideCut` says that the number outside the
+    -- party is a floor (the party is at most a couple of dozen and always among the biggest, so never cut).
     Collect("targets", days)
     total.groupPeople, total.otherPeople = 0, 0
     for key in pairs(scratchAmount) do
@@ -744,12 +757,6 @@ function records:Summary(scope)
         end
     end
     total.outsideCut = total.dropped > 0
-    -- The player's share of everything party members received.
-    total.partyShare = records.PartyShare(total.group, total.recvOthers)
-    -- Overheal as a share of everything the heals would have done.
-    local potential = total.heal + total.over
-    total.overShare = potential > 0 and total.over / potential or nil
-    total.critShare = total.hits > 0 and total.crits / total.hits or nil
     return total
 end
 
@@ -845,8 +852,50 @@ function records:TopLines(kind, scope, limit)
     return lines
 end
 
+-- One row of the list of periods: the period, the amount, HPS, fights, time healing, how much of it
+-- went to the party, and the player's share of what party members received (a dash where there is
+-- nothing to share).
+function records:PeriodColumns(scope)
+    local total = self:Totals(scope)
+    local healed = total.heal > 0
+    return {
+        self:ScopeText(scope),
+        Commas(total.heal),
+        Commas(total.hps),
+        Commas(total.fights),
+        Duration(total.secs),
+        healed and Percent(total.groupShare, 1) or "-",
+        total.partyShare and Percent(total.partyShare, 1) or "-",
+    }
+end
+
+function records:FightCount()
+    return #sv.fights
+end
+
+-- One row of the list of fights, 1 being the newest: when, how long, HPS, the amount, how many players,
+-- how much of it went to the party, and the player healed most. nil past the end.
+function records:FightColumns(index)
+    local fight = sv.fights[#sv.fights - index + 1]
+    if not fight then
+        return nil
+    end
+    local _, month, day = self:CivilFromDays(fight.day or 0)
+    local clock = fight.clock or 0
+    local heal = fight.heal or 0
+    return {
+        string.format("%02d/%02d %02d:%02d", month, day, math.floor(clock / 3600), math.floor((clock % 3600) / 60)),
+        Duration(fight.secs),
+        Commas(fight.hps),
+        Commas(heal),
+        tostring(fight.people or 0),
+        heal > 0 and Percent((fight.group or 0) / heal, 1) or "-",
+        fight.top and records.DisplayName(fight.top) or "-",
+    }
+end
+
 -- The longest each kind of row can get -- the biggest numbers, a long name, the longest wording --
--- for the window to measure against its column. A font is only used if all of these fit.
+-- for the statistics screen to measure against its column. A font is only used if all of these fit.
 function records:WorstCaseLines()
     local share = string.format(L(SI_PBSHPS_TAG_PARTY_SHARE), "100%")
     return {

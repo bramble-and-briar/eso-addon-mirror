@@ -78,12 +78,19 @@ It only reads game events; it never presses anything for you.
 　戦闘が終わると「戦闘終了」に変わり、少し（初期値10秒）残ってから消えます。設定画面を開いている間は、
 　位置を決められるようにサンプルの数字で表示します。
 
-■ 統計ウィンドウ
+■ 統計画面（メインメニュー）
 
-　統計は、設定画面ではなく、別の統計ウィンドウに表示します。設定画面のボタン、期間の選択、または
-　/hps stats で、画面の右側にウィンドウを出します。「概要」「回復した相手（上位10人）」「回復に使った
-　スキル（上位10件）」「直近の戦闘」の4つのブロックが並びます。期間は設定画面で、今日・今月・全期間・
-　過去の月・過去の日から選びます。設定画面を開いている間は、画面の上に重ねて出ます。
+　メインメニューに「ヒール統計」の項目が入ります（「ステータス超詳細」があればその次、なければキャラクター
+　の次）。選ぶと、画面の中央に、背景の透けない統計画面が開きます。設定画面のボタンや /hps stats からも
+　開けます。3ページあり、LB / RB で切り替えます。
+
+　　統計　　　　　1つの期間の統計（概要・回復した相手の上位10人・スキルの上位10件・直近10戦）。← → で
+　　　　　　　　　前後の期間に切り替えます
+　　期間の一覧　　過去の履歴の目次。今日・今月・全期間・過去の月・過去の日（保存されている60日ぶん）を
+　　　　　　　　　1行ずつ並べ、回復量・HPS・戦闘回数・比率を出します。選んでAで、その期間の統計を開きます
+　　戦闘の履歴　　最新40戦。日時・時間・HPS・回復量・人数・パーティーへの比率・いちばん回復した相手
+
+　Xで今日に戻り、Bで戻ります。
 
 ■ HPSの数え方
 
@@ -100,7 +107,7 @@ It only reads game events; it never presses anything for you.
 ■ コマンド
 
 　　/hps today | month | all　　統計をチャットに出す
-　　/hps stats [today | month | all]　統計ウィンドウの表示・非表示
+　　/hps stats [today | month | all]　統計画面を開く
 　　/hps hud　　HPSメーターの表示・非表示
 　　/hps on | off　　記録の開始・停止
 　　/hps status　　数えた回復の数と、相手の種類ごとの内訳
@@ -111,7 +118,7 @@ It only reads game events; it never presses anything for you.
 
 　設定パネルには LibHarvensAddonSettings が必要です。
 
-　　統計ウィンドウ（ボタン）／期間
+　　統計画面（ボタン）
 　　HPSメーター：表示（初期値：オン）／文字の大きさ（1〜7、初期値：4）／枠の大きさをpxで指定（初期値：オフ、
 　　幅・高さは600 / 220）／戦闘後に残す時間（10秒）／横位置・縦位置（60 / 560）
 　　回復量を記録する（初期値：オン）
@@ -185,13 +192,20 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 　When the fight ends it reads "Fight over" and stays a little while (10 seconds by default). While
 　the settings panel is open it is shown with sample numbers so that you can place it.
 
-■ Statistics window
+■ Statistics screen (main menu)
 
-　The statistics are shown in a window of their own, not in the settings panel. The panel button,
-　choosing a period, or /hps stats shows it on the right of the screen with four blocks: Summary,
-　Players you healed (top 10), Skills you healed with (top 10) and Latest fights. Choose the period in
-　the settings panel: today, this month, everything saved, a past month or a past day. While the
-　panel is open the window is drawn over it.
+　The main menu gets a "Healing Stats" entry (right after "ステータス超詳細" / PB's Ultra Detailed Stats if it
+　is there, else after Character). It opens a statistics screen in the middle of the screen on an opaque
+　background; the panel button and /hps stats open it too. Three pages, turned with LB / RB:
+
+　　Statistics  one period's statistics (summary, top 10 players healed, top 10 skills, latest 10 fights);
+　　              left / right go to the previous / next period
+　　Periods      the history, indexed: today, this month, all, past months and past days (every one of the
+　　              60 days that are kept), one row each with amount, HPS, fights and shares; A opens the
+　　              chosen period's statistics
+　　Fights       the latest 40 fights: when, length, HPS, amount, players, share to the party, healed most
+
+　X goes back to today, B goes back.
 
 ■ How HPS is worked out
 
@@ -208,7 +222,7 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 ■ Commands
 
 　　/hps today | month | all　　print the statistics to chat
-　　/hps stats [today | month | all]　show or hide the statistics window
+　　/hps stats [today | month | all]　open the statistics screen
 　　/hps hud　　show or hide the HPS meter
 　　/hps on | off　　start or stop recording
 　　/hps status　　how many heals were counted, by target type
@@ -219,7 +233,7 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 
 　The settings panel needs LibHarvensAddonSettings.
 
-　　Statistics window (button) / period
+　　Statistics screen (button)
 　　HPS meter: show (default: on) / text size (1-7, default 4) / set the box size in pixels (default: off; width and
 　　height 600 / 220) / keep it up after a fight (10 s) / position (60 / 560)
 　　Record healing (default: on)

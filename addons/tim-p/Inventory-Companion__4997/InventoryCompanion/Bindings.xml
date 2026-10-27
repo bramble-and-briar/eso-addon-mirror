@@ -1,0 +1,31 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Inventory Companion">
+
+            <Action name="InventoryCompanion_Deposit_Crafted_Items">
+                <Down>
+                    InventoryCompanion.Deposit()
+                </Down>
+            </Action>
+
+            <Action name="InventoryCompanion_Withdraw_Crafted_Items">
+                <Down>
+                    InventoryCompanion.Withdraw()
+                </Down>
+            </Action>
+			
+			 <Action name="InventoryCompanion_Toggle_EditPanel">
+                <Down>
+                    InventoryCompanion.ToggleEditPanel()
+                </Down>
+            </Action>
+
+            <Action name="InventoryCompanion_Debug_Key">
+                <Down>
+                    InventoryCompanion.Debug()
+                </Down>
+            </Action>
+
+        </Category>
+    </Layer>
+</Bindings>

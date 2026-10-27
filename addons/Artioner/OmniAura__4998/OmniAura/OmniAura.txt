@@ -1,0 +1,23 @@
+## Title: |c00C8FFOmni|rAura
+## Author: @Artioner
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101051 101052
+## Description: Your own on-screen alerts for buffs, debuffs, resources and procs, built with a simple visual editor. Type /omni to start.
+## SavedVariables: OmniAura_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+
+OmniAura.lua
+lang/en.lua
+lang/$(language).lua
+Core/Utils.lua
+Core/Triggers.lua
+Core/Recent.lua
+Core/AbilityIndex.lua
+Display/Displays.lua
+Core/Engine.lua
+Core/Commands.lua
+Editor/Editor.lua
+Editor/Catalog.lua
+Editor/Settings.lua
+Bindings.xml

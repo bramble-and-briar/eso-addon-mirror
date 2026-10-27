@@ -1,0 +1,47 @@
+## APIVersion: 101051
+## Title: InventoryCompanion - Auto Bank, Item Tracker & Set Manager
+## Description: All-in-one inventory automation, item tracking, stack restocking, and gear set management.
+## Author: @Tim-P
+## Version: 1.01
+## SavedVariables: InventoryCompanion_SavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: None
+
+Core/LoadCheck.lua
+Bindings.xml
+
+-- 1. Core Framework, Utilities & Settings
+Core/Init.lua
+Core/Utils.lua
+
+Core/Constants.lua
+Core/ContextMenus.lua
+Core/Settings.lua
+Core/Scanning.lua
+
+-- 2. Banking & Inventory Progress Modules
+Banking/CurrencyHelper.lua
+Banking/ProgressBarResources.lua
+Banking/CraftedItems.lua
+Banking/BankDatabase.lua
+Banking/BankTransfers.lua
+Banking/ResourceProgressBars.xml
+Banking/ResourceProgressBars.lua
+
+-- 3. Item & Currency Tracking Module
+Tracking/EditPanelItemsTab.xml
+Tracking/EditPanelGroupsTab.xml
+Tracking/CurrencyPanel.xml
+
+Tracking/ItemDatabase.lua
+Tracking/EditPanelTabManager.lua
+Tracking/EditPanelItemsTab.lua
+Tracking/EditPanelGroupsTab.lua
+
+Tracking/CurrencyPanel.lua
+Tracking/ItemTrackerPanel.xml
+Tracking/ItemTrackerPanel.lua
+
+-- 4. Event handler
+Core/Events.lua
+Core/Tests.lua

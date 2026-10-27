@@ -722,6 +722,17 @@ local function trackBannerBearer(result, abilityID)
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
 end
 -----------------------------------------------------------------------------------------------------end banner bearer
+
+
+
+
+
+
+
+
+
+
+
 ---------------------------------end scribing skills
 
 --handle effect events
@@ -812,7 +823,7 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
         trackBannerBearer(result, abilityID)
     else
         --for scribing skills
-        --printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " result: " .. tostring(result))
+        printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " result: " .. tostring(result))
     end
 end
 
@@ -970,7 +981,7 @@ local function libLoaded(event, name)
 
     --EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
     --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 227112)
-    --EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
+    EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
     --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 116445)
 
 end

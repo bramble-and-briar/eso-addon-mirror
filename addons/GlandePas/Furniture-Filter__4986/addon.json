@@ -18,7 +18,7 @@
     "FurnitureFilter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4986/",
-  "fingerprint": "5f6094d6659ce0006b5435a21d8a812f8204b9c0fa51b7377beb16f7547bd45d",
+  "fingerprint": "c4b53e790cce1f8d6fb42ef167b11379c210c220a6046c89a8fec239d292b12f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18141.png",
     "https://cdn-eso.mmoui.com/preview/pvw18140.png"
@@ -29,11 +29,11 @@
   "source_id": "4986",
   "source_url": "https://www.esoui.com/downloads/info4986-FurnitureFilter.html",
   "stats": {
-    "downloads": 11,
+    "downloads": 23,
     "favorites": 1,
-    "monthly_downloads": 8
+    "monthly_downloads": 17
   },
   "title": "Furniture Filter",
-  "updated_at": 1792946781000,
-  "version": "1"
+  "updated_at": 1793034953000,
+  "version": "1.0.1"
 }

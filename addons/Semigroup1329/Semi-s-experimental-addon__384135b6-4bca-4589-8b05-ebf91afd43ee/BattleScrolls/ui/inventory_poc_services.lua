@@ -136,7 +136,8 @@ local function arm(service)
     -- their original function identities throughout the visit.
     for name, scene in pairs(SCENE_MANAGER.scenes) do
         local info = scene.GetInteractionInfo and scene:GetInteractionInfo()
-        if scene ~= service.scene and info then
+        -- Every alchemy/provisioning subscene shares its station descriptor.
+        if scene ~= service.scene and info and info.type ~= 'Alchemy Station' and info.type ~= 'Provisioner Station' then
             for _, interaction in ipairs(info.interactTypes) do
                 -- Merchants and stables share an interaction descriptor.
                 local merchant = service.interaction ~= INTERACTION_VENDOR or name == 'store' or name == 'gamepad_store'
@@ -158,7 +159,12 @@ end
 
 ---@return boolean
 function ui.canAutomate()
-    local service = services[GetInteractionType()]
+    local interaction = GetInteractionType()
+    if interaction == INTERACTION_CRAFT then
+        local craftingType = GetCraftingInteractionType()
+        if craftingType == CRAFTING_TYPE_ALCHEMY or craftingType == CRAFTING_TYPE_PROVISIONING then return false end
+    end
+    local service = services[interaction]
     return not service or service.armed
 end
 

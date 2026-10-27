@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="AureoleRange">
+            <Action name="AUREOLERANGE_TOGGLE_VISIBILITY">
+                <Down>AureoleRange.ToggleVisibility()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

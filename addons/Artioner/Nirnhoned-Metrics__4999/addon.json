@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Artioner/Nirnhoned-Metrics__4999",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Artioner",
+  "canonical_id": "esoui:4999",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4999",
+  "deleted": false,
+  "directories": [
+    "NirnhonedMetrics"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4999/",
+  "fingerprint": "2c8b5749c58c166f4b6c4c0735db295e901736bc7d246dbd37acd8fed4cdbc2b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18178.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18179.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18180.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18181.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18182.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18183.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18184.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18185.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18186.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4999",
+  "source_url": "https://www.esoui.com/downloads/info4999-NirnhonedMetrics.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 1,
+    "monthly_downloads": 0
+  },
+  "title": "Nirnhoned Metrics",
+  "updated_at": 1793055817000,
+  "version": "1.0.0"
+}

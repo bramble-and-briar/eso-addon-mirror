@@ -1,9 +1,9 @@
 ## Title: DeadMarker Holodeck
 ## APIVersion: 101048 101047
-## AddOnVersion: 58
+## AddOnVersion: 59
 ## Author: Skye-Forge
 ## Description: House trainer for trial rooms. Plant, load a fight, play. /hd
-## Version: 0.0.58
+## Version: 0.0.59
 ## OptionalDependsOn: LibAddonMenu-2.0 LibAddonMenu2 LibStub
 ## SavedVariables: HolodeckVars
 Holodeck.lua
@@ -21,3 +21,10 @@ fights/vLC-CountZilyesset.lua
 fights/vSS-Nahviintaas.lua
 fights/vSS-Yolnahkriin.lua
 fights/vSS-Lokkestiiz.lua
+fights/vLC-Orphic.lua
+fights/vLC-CavotAgnan.lua
+fights/vLC-Xoryn.lua
+fights/vLC-XorynPlayers.lua
+fights/vOC-FleshcraftPlayers.lua
+fights/vOC-Kazpian.lua
+fights/vOC-Jynorah.lua

@@ -1,7 +1,8 @@
 {
-  "archive_path": "addons/Lykeion/Lykeion-s-Group-Banisher__3967",
+  "archive_format": "zip",
+  "archive_path": "addons/Lykeion/DEPRECATED-Lykeion-s-Group-Banisher__3967",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Lykeion",
   "canonical_id": "esoui:3967",
   "category_id": "159",
@@ -17,7 +18,7 @@
     "LykeionsGroupBanisher"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3967/",
-  "fingerprint": "cb9d480cb51f6647940e34644c8eb3663c4d875a855ce1b43595ae11437cd90b",
+  "fingerprint": "55540c0d701b7b577d012bd791d9793b68a9b6cdcccf9c47d3bb19bdf53e55bc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13446.png"
   ],
@@ -25,13 +26,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "3967",
-  "source_url": "https://www.esoui.com/downloads/info3967-LykeionsGroupBanisher.html",
+  "source_url": "https://www.esoui.com/downloads/info3967-DEPRECATEDLykeionsGroupBanisher.html",
   "stats": {
-    "downloads": 1346,
+    "downloads": 1365,
     "favorites": 1,
     "monthly_downloads": 6
   },
-  "title": "Lykeion's Group Banisher",
+  "title": "DEPRECATED: Lykeion's Group Banisher",
   "updated_at": 1729027541000,
   "version": "1.3"
 }

@@ -1,0 +1,143 @@
+-- English (base). Other language files only override the keys they translate.
+local L = NirnhonedMetrics.L
+
+-- Keybindings
+L.BINDING_TOGGLE = "Show/hide the meter"
+L.BINDING_METRIC = "Switch damage / healing"
+L.BINDING_MODE = "Switch group / my abilities"
+L.BINDING_RESET = "Reset fights"
+
+-- Window
+L.TITLE_DAMAGE = "Damage"
+L.TITLE_HEALING = "Healing"
+L.TITLE_ABILITIES = "My abilities"
+L.FIGHT_CURRENT = "Current fight"
+L.FIGHT_LAST = "Last fight"
+L.FIGHT_N = "Fight %d"
+L.EMPTY = "No data yet.\nIt will appear here when the next fight starts."
+L.HIDE_WINDOW = "Hide (/nm to show it again)"
+L.SETTINGS = "Settings"
+L.LOCK = "Lock window"
+L.UNLOCK = "Unlock window"
+
+-- Tooltips
+L.TOTAL = "Damage"
+L.DPS = "DPS"
+L.HPS = "HPS"
+L.SHARE = "Share"
+L.HITS = "Hits"
+L.HEALS = "Heals"
+L.CRIT_RATE = "Critical"
+L.AVG_HIT = "Average hit"
+L.AVG_HEAL = "Average heal"
+L.MAX_HIT = "Highest hit"
+L.MAX_HEAL = "Highest heal"
+L.OVERHEAL = "Overhealing"
+L.OVERHEAL_PS = "Overhealing per second"
+L.PET_DAMAGE = "Pet damage"
+L.PET_HEALING = "Pet healing"
+L.REST_OF_GROUP = "Rest of group"
+L.APPROX_NOTE = "Approximate: shared by the player's own add-on\nthrough LibGroupCombatStats."
+L.REST_NOTE = "Estimate: health lost by the bosses minus the damage\nof the players who share theirs. Includes everyone\nwithout the add-on, without a per-player breakdown."
+
+-- Menu
+L.MENU_VIEW = "View"
+L.MENU_METRIC = "Measure"
+L.METRIC_DAMAGE = "Damage"
+L.METRIC_HEALING = "Healing"
+L.MODE_GROUP = "Group"
+L.MODE_ABILITIES = "My abilities"
+L.MENU_FIGHTS = "Fights"
+L.MENU_ACTIONS = "Actions"
+L.MENU_RESET = "Reset fights"
+L.NO_FIGHTS = "No fights yet"
+
+-- Chat commands
+L.HELP_HEADER = "Commands (v%s):"
+L.HELP = {
+    "|cFFFF00/nm|r - show/hide the meter",
+    "|cFFFF00/nm mode [group/abilities]|r - switch between group damage and your abilities",
+    "|cFFFF00/nm damage / healing|r - measure damage or healing",
+    "|cFFFF00/nm reset|r - clear all fights",
+    "|cFFFF00/nm lock / unlock|r - lock or unlock the window",
+    "|cFFFF00/nm resetpos|r - move the window back to its starting position",
+    "|cFFFF00/nm settings|r - open the settings",
+}
+L.LOCKED = "Window locked."
+L.UNLOCKED = "Window unlocked: drag it from anywhere to move it and the bottom-right corner to resize it."
+L.RESET_DONE = "Fights cleared."
+L.MODE_SET = "View: %s"
+L.METRIC_SET = "Measuring: %s"
+L.POSITION_RESET = "Window moved back to its starting position."
+
+-- Settings panel
+L.SETTINGS_DESC = "Nirnhoned Metrics shows a damage and healing meter with colored bars: total, DPS/HPS and your share of the group for every fight, plus a breakdown of your own abilities."
+L.HEADER_WINDOW = "Window"
+L.OPT_SHOWN = "Show the meter"
+L.OPT_LOCKED = "Lock window"
+L.OPT_LOCKED_TT = "When unlocked, drag the window from anywhere to move it and the bottom-right corner to resize it."
+L.OPT_HIDE_OOC = "Only show in combat"
+L.OPT_HIDE_OOC_TT = "The meter appears when a fight starts and hides a few seconds after it ends."
+L.OPT_HIDE_PVP = "Hide in PvP"
+L.OPT_HIDE_PVP_TT = "Hides the meter in Cyrodiil, the Imperial City and battlegrounds."
+L.OPT_WIDTH = "Width"
+L.OPT_HEIGHT = "Height"
+L.OPT_ROW_HEIGHT = "Bar height"
+L.OPT_ROW_HEIGHT_TT = "Minimum height: bars grow by themselves if the text does not fit."
+L.OPT_ROW_SPACING = "Space between bars"
+L.OPT_FONT_SIZE = "Bar text size"
+L.OPT_TITLE_FONT_SIZE = "Title text size"
+L.OPT_BG_ALPHA = "Background opacity"
+L.OPT_BAR_ALPHA = "Bar opacity"
+L.OPT_RESET_POSITION = "Reset position"
+L.HEADER_BARS = "Bars"
+L.OPT_BAR_STYLE = "Bar style"
+L.STYLE_PROGRESS = "Progress bar"
+L.STYLE_FLAT = "Flat"
+L.OPT_COLOR_MODE = "Group bar color"
+L.COLOR_CLASS = "By class"
+L.COLOR_SINGLE = "Single color"
+L.COLOR_DAMAGE_TYPE = "By damage type"
+L.OPT_BAR_COLOR = "Single color"
+L.OPT_CLASS_COLORS = "Class colors"
+L.OPT_ABILITY_COLOR = "Ability bar color"
+L.OPT_HIGHLIGHT_SELF = "Highlight my name"
+L.HEADER_TEXT = "Text"
+L.OPT_SHOW_RANK = "Show position (1. 2. 3...)"
+L.OPT_SHOW_ICON = "Show class / ability icon"
+L.OPT_SHOW_TOTAL = "Show total damage"
+L.OPT_SHOW_DPS = "Show DPS / HPS"
+L.OPT_SHOW_PERCENT = "Show percentage"
+L.OPT_NAME_FORMAT = "Names"
+L.NAME_CHARACTER = "Character name"
+L.NAME_ACCOUNT = "@Account"
+L.HEADER_DATA = "Data"
+L.OPT_MODE = "View"
+L.OPT_METRIC = "Measure"
+L.OPT_PETS = "Count pet damage"
+L.OPT_PETS_TT = "Adds the damage of your pets (scamps, bears, skeletons...) to yours."
+L.OPT_END_DELAY = "Seconds before closing a fight"
+L.OPT_END_DELAY_TT = "Time out of combat before the fight is considered over. Coming back to combat before that continues the same fight."
+L.OPT_HISTORY = "Fights to remember"
+L.OPT_SHARE = "Share my DPS and HPS with the group"
+L.OPT_SHARE_TT = "Sends your DPS and HPS through LibGroupCombatStats so your group can see them (requires reloading the interface)."
+L.OPT_SHOW_REST = "Show \"Rest of group\" in boss fights"
+L.OPT_SHOW_REST_TT = "Estimates the damage of the group members who do not share theirs, from the health the bosses lose."
+
+-- Help
+L.HELP_USAGE_HEADER = "How to use it"
+L.HELP_USAGE = "1. Type |cFFFF00/nm|r or bind a key (Controls → Nirnhoned Metrics) to show or hide the meter.\n2. Fight: the bars fill up with each player's damage, DPS and share of the group.\n3. The icons in the title bar switch between damage and healing, between the group and your abilities, open previous fights, reset, lock the window and open the settings.\n4. Unlock the window (padlock) to drag it from anywhere and resize it from its edges or the bottom-right corner."
+L.HELP_TIPS_HEADER = "Tips"
+L.HELP_TIPS = "- ESO only tells each player about their own damage, so every group member needs an add-on that shares it through LibGroupCombatStats (Nirnhoned Metrics does); their numbers are approximate.\n- In boss fights, the damage of those who do not share it appears together as \"Rest of group\".\n- Hover over a bar to see the details: hits, critical rate, average and highest hit.\n- Use the mouse wheel to scroll when there are more bars than fit.\n- Right-click anywhere on the meter to open the full menu."
+L.HELP_COMMANDS_HEADER = "Chat commands"
+L.DONATE_HEADER = "Support the author"
+L.DONATE_DESC = "If you enjoy Nirnhoned Metrics you can send some gold to %s. The mail opens pre-filled so you can review the amount before sending it."
+L.DONATE_BUTTON = "Donate gold"
+L.DONATE_SUBJECT = "Nirnhoned Metrics v%s - Donation"
+L.DONATE_COMBAT = "You cannot open the mail during combat."
+
+-- Welcome / what's new
+L.WELCOME_TITLE = "Welcome to Nirnhoned Metrics"
+L.WELCOME_TEXT = "Thanks for installing Nirnhoned Metrics.\n\nA damage and healing meter with colored bars: total, DPS/HPS and your share of the group for every fight.\n\n- Show or hide it with /nm or a key in Controls.\n- Use the icons in its title bar to switch views or open previous fights. The footer shows how long the fight lasted.\n- Your group members need Nirnhoned Metrics too so you can see their damage."
+L.UPDATE_TITLE = "Nirnhoned Metrics updated to v%s"
+L.CHANGELOG = "First public release:\n\n- Damage meter with class-colored progress bars: total, DPS and percentage.\n- Healing meter: switch between damage and healing, with HPS and overhealing.\n- Group damage shared through LibGroupCombatStats, plus an estimated \"Rest of group\" in boss fights.\n- Breakdown of your abilities, colored by damage type.\n- History of recent fights and fight duration in the footer.\n- Move, resize and configure everything in Settings → Add-Ons.\n- Available in English, Spanish, German and French."

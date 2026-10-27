@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__fc98f3c0-0b5a-4797-aaa4-379955c3310c) | sirinsidiator | Console | — |
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__2277) | sirinsidiator | PC / Mac | 1.2.0 |
 | [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__031ddfc1-c44d-4452-ab48-42b7c429bc81) | sirinsidiator | Console | — |
-| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.6.2 |
+| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.6.3 |
 | [LibDelayedHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibDelayedHandler__2807) | zelenin | PC / Mac | 0.0.2 |
 | [LibDialog - Custom confirmation dialog with 2 buttons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibDialog---Custom-confirmation-dialog-with-2-buttons__1931) | Baertram | PC / Mac | 1.27 |
 | [LibDungeonFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jindra/LibDungeonFinder__4600) | Jindra | PC / Mac | 1.2.0 |
@@ -392,9 +392,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.11 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
-| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.4 |
+| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.5 |
 | [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d) | Lykeion+ | Console | — |
-| [Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |
 | [Lykeion's Home Sweet Home - Dedicated keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-keybinding-jumping-to-Sugar-Bowl-Suite__3517) | Lykeion | PC / Mac | 1.0.2 |
 | [Lykeion's Home Sweet Home - Dedicated Slash Command & Keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-Slash-Command-Keybinding-jumping-to-Sugar__339e95fd-5cd9-46ec-b4b1-3512364698e0) | Lykeion+ | Console | — |
 | [Lykeion's Spirited Away](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Spirited-Away__3859) | Lykeion | PC / Mac | 1.2.5 |

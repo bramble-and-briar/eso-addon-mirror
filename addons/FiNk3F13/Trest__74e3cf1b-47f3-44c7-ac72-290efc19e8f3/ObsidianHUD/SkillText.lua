@@ -23,7 +23,7 @@ end
 
 function O.StyleSkillText(skin)
     local frontWidth=O.SkillIconRestSize(skin.button)
-    local backWidth=skin.back:GetWidth()
+    local backWidth=O.skillScaleDimensions and skin.previewWidth or skin.back:GetWidth()
     local backScale=frontWidth>0 and backWidth>0 and backWidth/frontWidth or 43/64
     if O.vars.skillHudView=="equal" or O.IsFixedSkillView() then backScale=1 end
     if skin.textRevision==O.textRevision and skin.textBackScale==backScale then return end
@@ -48,19 +48,24 @@ function O.UpdateActiveSkillText(skin)
     if not skin.activeTextVisible then return end
     local bar=GetActiveHotbarCategory()
     if bar~=skin.activeTextBar or GetSlotBoundId(skin.activeTextSlot,bar)==0 then
+        O.UpdateSkillProcHighlight(skin,false,skin.activeTextSlot,bar,false)
         skin.activeTimer:SetText(""); skin.activeStacks:SetText(""); return
     end
-    if skin.activeTextSlot==8 then O.FinishFixedUltimateSwap() end
+    if O.NoSkillAnimationsView() then O.FinishNativeSkillAnimations(skin.button)
+    elseif skin.activeTextSlot==8 then O.FinishFixedUltimateSwap() end
     O.UpdateFixedSkillBindings(skin)
     O.SuppressNativeSkillText(skin.button)
     skin.activeTimer:SetText(O.BackBarTimerText(skin.activeTextSlot,bar))
     O.UpdateStackText(skin.activeStacks,skin.activeTextSlot,bar)
+    O.UpdateSkillProcHighlight(skin,false,skin.activeTextSlot,bar,true)
     if skin.activeTextSlot==8 then O.UpdateUltimateCharge(skin) end
 end
 
 function O.HideSkillText(skin)
     skin.activeTextVisible=false
     skin.textRoot:SetHidden(true)
+    O.StopSkillProcHighlight(skin.procFront)
+    O.StopSkillProcHighlight(skin.procBack)
 end
 
 function O.CreateSkillText(skin)

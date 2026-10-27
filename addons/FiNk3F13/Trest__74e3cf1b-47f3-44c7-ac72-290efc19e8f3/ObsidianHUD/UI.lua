@@ -125,14 +125,12 @@ local function resource(parent,spec)
     local track=artwork(frame,"fantasy_fill.dds",DL_BACKGROUND)
     track:SetAnchorFill(frame)
     track:SetColor(0.12,0.10,0.13,1)
-    local fill=create(frame,CT_STATUSBAR)
-    fill:SetAnchorFill(frame)
+    local fill=create(frame,CT_TEXTURE)
+    fill:SetAnchor(TOPLEFT,frame,TOPLEFT,0,0)
     fill:SetTexture(ART.."fantasy_fill.dds")
     fill:SetDrawLayer(DL_CONTROLS)
     fill:SetDrawLevel(1)
     fill:SetColor(1,1,1,1)
-    fill:SetMinMax(0,1)
-    fill:SetValue(1)
     local border=artwork(frame,"fantasy_frame.dds")
     border:SetAnchorFill(frame)
     border:SetDrawLevel(3)
@@ -156,11 +154,25 @@ end
 
 local CURVE_U=96/512
 local CURVE_WIDTH=394*CURVE_U
+function O.ResourceFillExtent(bar,ratio)
+    local width=bar.curveWidth
+    if ratio<=0 then return 0 end
+    if ratio>=1 then return width end
+    -- Actual visible interior at the DDS midline, excluding transparent
+    -- padding and the bevel. Texture-space 100% is not visible-fill 100%.
+    local left,right=width*25/1024,width*985/1024
+    if bar.curved then
+        local cap=math.min(CURVE_WIDTH,width)
+        left=cap*(93/1024)/CURVE_U
+        right=cap+(width-cap)*(985/1024-CURVE_U)/(1-CURVE_U)
+    end
+    return math.max(0,math.min(left+(right-left)*ratio,right-2))
+end
 function O.UpdateCurvedFill(bar,ratio)
     if not bar.curved then return end
     local width=bar.curveWidth
     local cap=math.min(CURVE_WIDTH,width)
-    local filled=width*ratio
+    local filled=O.ResourceFillExtent(bar,ratio)
     local capFilled=math.min(cap,filled)
     local bodyFilled=math.max(0,filled-cap)
     bar.curve.capFill:SetWidth(capFilled)
@@ -178,6 +190,63 @@ function O.UpdateCurvedFill(bar,ratio)
             c[1]*seam,c[2]*seam,c[3]*seam,1,c[1],c[2],c[3],1)
     end
 end
+function O.UpdateResourceFill(bar,ratio)
+    local filled=O.ResourceFillExtent(bar,ratio)
+    bar.fill:SetWidth(filled)
+    bar.fill:SetHeight(bar.fillHeight)
+    bar.fill:SetTextureCoords(0,filled/bar.curveWidth,0,1)
+    bar.fill:SetHidden(bar.curved or filled<=0)
+    O.UpdateCurvedFill(bar,ratio)
+end
+
+local RESOURCE_TRANSITION=0.12
+local function resourceRatio(bar,now)
+    if not bar.resourceTransition then return bar.displayedRatio end
+    local t=math.max(0,math.min(1,(now-bar.resourceStarted)/RESOURCE_TRANSITION))
+    -- A short ease-out follows repeated resource ticks without visible jumps.
+    return bar.resourceFrom+(bar.targetRatio-bar.resourceFrom)*(1-(1-t)*(1-t))
+end
+local function drawResource(bar,ratio)
+    bar.displayedRatio=ratio
+    O.UpdateResourceFill(bar,ratio)
+end
+function O.SetResourceRatio(bar,ratio,maximum)
+    local now=GetFrameTimeSeconds()
+    if not O.resourcesVisible or bar.displayedRatio==nil or bar.resourceMaximum~=maximum
+        or ratio==0 or ratio>=1 or ratio<bar.displayedRatio then
+        bar.resourceTransition=false
+        bar.targetRatio=ratio
+        drawResource(bar,ratio)
+    elseif bar.targetRatio~=ratio then
+        bar.resourceFrom=resourceRatio(bar,now)
+        bar.resourceStarted=now
+        bar.targetRatio=ratio
+        bar.resourceTransition=true
+        drawResource(bar,bar.resourceFrom)
+    else
+        -- Layout/colour changes must also redraw the curved lower bar.
+        drawResource(bar,resourceRatio(bar,now))
+    end
+    bar.resourceMaximum=maximum
+end
+function O.AnimateResources()
+    if not O.resourcesVisible then return end
+    local now=GetFrameTimeSeconds()
+    for _,spec in ipairs(O.resources) do
+        local bar=O.bars[spec.key]
+        if bar.resourceTransition then
+            drawResource(bar,resourceRatio(bar,now))
+            if now-bar.resourceStarted>=RESOURCE_TRANSITION then bar.resourceTransition=false end
+        end
+    end
+end
+function O.ResetResourceAnimations()
+    if not O.bars then return end
+    for _,bar in pairs(O.bars) do
+        bar.resourceTransition=false
+        bar.displayedRatio=nil
+    end
+end
 
 function O.CreateUI()
     local root=WINDOW_MANAGER:CreateTopLevelWindow("ObsidianHUDResources")
@@ -186,6 +255,7 @@ function O.CreateUI()
     root:SetMouseEnabled(false)
     root:SetHidden(true)
     O.root=root
+    root:SetHandler("OnUpdate",O.AnimateResources)
     O.panel=O.Frame(root)
     O.panel:SetAnchorFill(root)
     O.panel:SetHidden(true)
@@ -200,12 +270,11 @@ function O.CreateUI()
     O.bars={}
     for _,spec in ipairs(O.resources) do O.bars[spec.key]=resource(root,spec) end
     O.shield=WINDOW_MANAGER:CreateControl(nil,O.bars.health.frame,CT_STATUSBAR)
-    O.shield:SetAnchor(TOPLEFT,O.bars.health.frame,TOPLEFT,3,3)
-    O.shield:SetAnchor(TOPRIGHT,O.bars.health.frame,TOPRIGHT,-3,3)
-    O.shield:SetHeight(3)
-    surface(O.shield)
-    O.shield:SetDrawLayer(DL_OVERLAY)
-    O.shield:SetColor(0.54,0.86,1,0.95)
+    O.shield:SetAnchorFill(O.bars.health.frame)
+    O.shield:SetTexture(ART.."fantasy_fill.dds")
+    O.shield:SetDrawLayer(DL_CONTROLS)
+    O.shield:SetDrawLevel(2)
+    O.shield:SetColor(0.54,0.86,1,0.9)
     O.shield:SetMinMax(0,1)
     O.shield:SetHidden(true)
     O.badge=artwork(root,"fantasy_diamond.dds")
@@ -248,6 +317,7 @@ function O.ArrangeResourceBars(force)
         local width=O.vars.width-62-(i-1)*28+overlap
         bar.curveWidth=width
         local height=43-(i-1)*4
+        bar.fillHeight=height
         for part,control in pairs(bar.curve) do
             local cap=part:find("cap")==1
             control:ClearAnchors()
@@ -267,6 +337,7 @@ function O.ArrangeResourceBars(force)
         local tipWidth=curved and (width-CURVE_WIDTH)*33/416 or width*33/512
         bar.value:SetAnchor(RIGHT,bar.frame,RIGHT,-math.max(40,tipWidth+12),0)
         bar.value:SetFont("$(BOLD_FONT)|"..(i==1 and 14 or 12).."|soft-shadow-thick")
+        O.UpdateResourceFill(bar,bar.displayedRatio or 0)
     end
 end
 
@@ -292,7 +363,7 @@ function O.Layout()
     for _,spec in ipairs(O.resources) do
         local c=v[spec.key]
         O.bars[spec.key].border:SetColor(unpack(v.accent))
-        O.bars[spec.key].fill:SetGradientColors(c[1]*0.45,c[2]*0.45,c[3]*0.45,1,c[1],c[2],c[3],1)
+        O.bars[spec.key].fill:SetGradientColors(ORIENTATION_HORIZONTAL,c[1]*0.45,c[2]*0.45,c[3]*0.45,1,c[1],c[2],c[3],1)
         O.bars[spec.key].value:SetHidden(not v.numbers)
     end
 end
@@ -312,21 +383,23 @@ end
 
 function O.UpdateResources()
     O.ArrangeResourceBars(false)
+    local shield=0
+    if GetUnitAttributeVisualizerEffectInfo then
+        local shieldValue=GetUnitAttributeVisualizerEffectInfo("player",ATTRIBUTE_VISUAL_POWER_SHIELDING,
+            STAT_MITIGATION,ATTRIBUTE_HEALTH,COMBAT_MECHANIC_FLAGS_HEALTH)
+        shield=math.max(0,tonumber(shieldValue) or 0)
+    end
     for _,spec in ipairs(O.resources) do
         local current,maximum,effective=GetUnitPower("player",spec.power)
         maximum=effective and effective>0 and effective or maximum
         local bar=O.bars[spec.key]
         local ratio=O.Ratio(current,maximum)
-        bar.fill:SetValue(ratio)
-        O.UpdateCurvedFill(bar,ratio)
-        bar.value:SetText(O.ValueText(current,maximum))
-    end
-    if GetUnitAttributeVisualizerEffectInfo then
-        local shield=GetUnitAttributeVisualizerEffectInfo("player",ATTRIBUTE_VISUAL_POWER_SHIELDING,
-            STAT_MITIGATION,ATTRIBUTE_HEALTH,COMBAT_MECHANIC_FLAGS_HEALTH)
-        local _,maximum,effective=GetUnitPower("player",COMBAT_MECHANIC_FLAGS_HEALTH)
-        O.shield:SetValue(O.Ratio(shield,effective or maximum))
-        O.shield:SetHidden(not shield or shield<=0)
+        O.SetResourceRatio(bar,ratio,maximum)
+        if spec.key=="health" then
+            bar.value:SetText(O.HealthValueText(current,maximum,shield))
+            O.shield:SetValue(O.Ratio(shield,maximum))
+            O.shield:SetHidden(shield<=0 or not maximum or maximum<=0)
+        else bar.value:SetText(O.ValueText(current,maximum)) end
     end
 end
 
@@ -351,7 +424,8 @@ end
 function O.SkillIconRestSize(button)
     -- Native keyboard/gamepad templates leave three units between slot and
     -- resting icon size. The slot stays fixed while Icon/FlipCard bounce.
-    return math.max(1,button.slot:GetWidth()-3),math.max(1,button.slot:GetHeight()-3)
+    local width,height=O.SkillSlotSize(button.slot)
+    return math.max(1,width-3),math.max(1,height-3)
 end
 
 function O.UpdateBarIndicator(button,active,visible)
@@ -369,7 +443,21 @@ function O.UpdateBarIndicator(button,active,visible)
         O.barIndicator:SetDrawTier(DT_HIGH)
         O.barIndicator:SetDrawLayer(DL_OVERLAY)
         O.barIndicator:SetDrawLevel(40)
-        O.barIndicator:SetColor(0.2,1,0.3,0.65)
+        O.barIndicator:SetColor(0.08,1,0.12,1)
+        -- Keep the arrow's dark outline; additive green layers provide the
+        -- luminous centre and a small halo without turning it yellow/white.
+        for _,style in ipairs({{72,39,0.28},{64,41,0.55}}) do
+            local glow=create(O.barIndicator,CT_TEXTURE)
+            glow:SetTexture("esoui/art/buttons/large_rightarrow_up.dds")
+            glow:SetDimensions(style[1],style[1])
+            glow:SetAnchor(CENTER,O.barIndicator,CENTER,0,0)
+            glow:SetDrawTier(DT_HIGH)
+            glow:SetDrawLayer(DL_OVERLAY)
+            glow:SetDrawLevel(style[2])
+            glow:SetColor(0.02,1,0.06,style[3])
+            if TEX_BLEND_MODE_ADD then glow:SetBlendMode(TEX_BLEND_MODE_ADD) end
+            glow:SetMouseEnabled(false)
+        end
         O.barIndicatorSlot=button.slot
     end
     O.barIndicator:SetHidden(false)
@@ -428,6 +516,33 @@ function O.CreateSkillSkin(button)
     local timer=O.Label(back,16)
     timer:SetAnchor(CENTER,back,CENTER,0,0)
     skin.back,skin.backIcon,skin.timer,skin.backMetal=back,backIcon,timer,backMetal
+    -- Persistent proc readiness is separate from native activation/bounce
+    -- animations, so it also works in the no-animation HUD views.
+    skin.procFront=create(button.slot,CT_TEXTURE)
+    skin.procFront:SetAnchorFill(button.icon)
+    skin.procBack=create(back,CT_TEXTURE)
+    skin.procBack:SetAnchorFill(backIcon)
+    for _,entry in ipairs({{skin.procFront,button.icon},{skin.procBack,backIcon}}) do
+        local highlight,icon=entry[1],entry[2]
+        highlight.procAnimation=false
+        highlight.procReady=false
+        highlight.procTexture=false
+        highlight.procGlow=create(highlight,CT_TEXTURE)
+        local glow=highlight.procGlow
+        glow:SetTexture("esoui/art/hud/gamepad/gp_skillglow.dds")
+        glow:SetTextureCoords(0.1875,0.8125,0.1875,0.8125)
+        glow:SetAnchor(TOPLEFT,icon,TOPLEFT,-12,-12)
+        glow:SetAnchor(BOTTOMRIGHT,icon,BOTTOMRIGHT,12,12)
+        glow:SetDrawTier(DT_HIGH); glow:SetDrawLayer(DL_OVERLAY); glow:SetDrawLevel(22)
+        glow:SetColor(1,1,1,0.75); glow:SetHidden(true); glow:SetMouseEnabled(false)
+        highlight:SetDrawTier(DT_HIGH)
+        highlight:SetDrawLayer(DL_OVERLAY)
+        highlight:SetDrawLevel(23)
+        highlight:SetColor(1,1,1,1)
+        if TEX_BLEND_MODE_ADD then highlight:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetBlendMode(TEX_BLEND_MODE_ADD) end
+        highlight:SetMouseEnabled(false)
+        highlight:SetHidden(true)
+    end
     O.CreateSkillText(skin)
     back:SetHandler("OnUpdate",function() O.UpdatePreviewSwap(skin); O.UpdateBackBarTimer(skin) end)
     return skin

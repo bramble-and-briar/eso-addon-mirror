@@ -1,0 +1,20 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="InventoryCompanion_CurrencyFloat" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="false">
+            <Dimensions x="612" y="56"/>
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="50" offsetY="150"/>
+            <Controls>
+                <Control name="$(parent)Container" mouseEnabled="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="8"/>
+                </Control>
+
+                <Backdrop name="$(parent)BG" inset1="1" inset2="1" inset3="-1" inset4="-1" mouseEnabled="false">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Container" relativePoint="TOPLEFT" offsetX="-10" offsetY="-8"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Container" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="8"/>
+                    <Edge file="EsoUI/Art/ChatWindow/chat_BG_edge.dds" edgeFileWidth="256" edgeFileHeight="256" edgeSize="1"/>
+                    <Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds"/>
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

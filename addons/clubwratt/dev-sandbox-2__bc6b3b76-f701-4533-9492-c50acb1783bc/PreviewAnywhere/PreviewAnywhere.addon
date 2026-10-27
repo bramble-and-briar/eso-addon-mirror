@@ -1,23 +1,22 @@
 ## Title: Preview Anywhere
 ## Author: clubwratt
-## Version: 0.1.1
-## APIVersion: 101050
-## Description: Adds item previews to gamepad UIs that lack them: bank and Furnishing Vault withdraw lists, plus linked items in chat, mail, and guild descriptions.
+## Version: 1.3.0
+## AddOnVersion: 10300
+## APIVersion: 101050 101051
+## Description: 3D item preview where the gamepad UI lacks it: R3 in the bank, house bank, Furnishing Vault, guild bank and vendor Sell/Buyback/Repair tabs; hold Square on item links in chat, mail and guild text; D-pad Left on any other item tooltip (trade, mail attachments, guild store, crafting). Also frames the inventory's own hold-Square preview beside the tooltip instead of behind it, and groups the Furnishing Vault by furniture category and subcategory instead of one Furnishing list. Furnishings, plans, gear. /pva for commands.
 ## SavedVariables: PreviewAnywhereSavedVars
 ## OptionalDependsOn: LibConsoleLogger
 ## DevId: bc6b3b76-f701-4533-9492-c50acb1783bc
+## ProdId: b5cc1fef-6afb-46ca-a772-f1b71c39530c
 
 ## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 
 PreviewAnywhere.lua
-PreviewAnywhereTypes.lua
-PreviewAnywhereState.lua
-PreviewAnywherePreviewUtils.lua
-PreviewAnywherePreviewActions.lua
-PreviewAnywhereBankUtils.lua
-PreviewAnywhereBankActions.lua
-PreviewAnywhereLinkUtils.lua
-PreviewAnywhereLinkActions.lua
-SlashCommandUtils.lua
-SlashCommandActions.lua
+PreviewAnywhereProbeUtils.lua
+PreviewAnywhereLinkPreviewActions.lua
+PreviewAnywhereSlotPreviewActions.lua
+PreviewAnywhereHoverActions.lua
+PreviewAnywhereInventoryFraming.lua
+PreviewAnywhereVaultCategories.lua
+PreviewAnywhereProbeActions.lua
 Main.lua

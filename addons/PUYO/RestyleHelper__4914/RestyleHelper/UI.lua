@@ -215,6 +215,8 @@ local function BuildPanel()
     local W = 360
     local win = CreateWindow("RestyleHelperPanel", W, 100, L.TITLE, "panelPos", 60, 140)
     RH.ui.panel = win
+    RH.ui.modeLabel = Label(win, "ModeLbl", L.MODE_PORTABLE, 12, 26, "ZoFontGameSmall", ZO_ERROR_COLOR or ZO_NORMAL_TEXT)
+    RH.ui.modeLabel:SetHidden(true)
     local pad, half = 12, (W - 12 * 2 - 8) / 2
     local y = 40
 
@@ -230,6 +232,8 @@ local function BuildPanel()
     Button(win, "Undo",      L.BTN_UNDO,         pad,            y, W - pad * 2, function() RH.Undo() end)
     y = y + 32
     Button(win, "Colors",    L.BTN_COLORS,       pad,            y, W - pad * 2, function() RH.ShowColorsWindow(not RH.ui.colors or RH.ui.colors:IsHidden()) end)
+    y = y + 32
+    Button(win, "Preview", L.BTN_PREVIEW, pad, y, W - pad * 2, function() RH.RefreshPreview(RH.GetCurrentOutfitManipulator()) end)
     y = y + 40
 
     -- スタイル適用状況(部位ごとの ○ / × 表示)
@@ -291,6 +295,7 @@ local function BuildPanel()
         { "lockDyes",       L.OPT_LOCK_DYES },
         { "keepDyes",       L.OPT_KEEP_DYES },
         { "preferRobe",     L.OPT_PREFER_ROBE },
+        { "portable",       L.OPT_PORTABLE },
         { "orderPerSlot",   L.OPT_ORDER_PER_SLOT },
         { "favoritesOnly",  L.OPT_FAVORITES_ONLY },
         { "hideMissing",    L.OPT_HIDE_MISSING },
@@ -301,7 +306,7 @@ local function BuildPanel()
     for _, o in ipairs(opts) do
         local key = o[1]
         Check(win, "Opt" .. key, o[2], pad, y,
-            function() if key == "shareMessages" or key == "keepDyes" then return RH.sv[key] ~= false end return RH.sv[key] == true end,
+            function() if key == "shareMessages" or key == "keepDyes" or key == "portable" then return RH.sv[key] ~= false end return RH.sv[key] == true end,
             function(v)
                 RH.sv[key] = v
                 if key == "previewUnownedStyles" then RH.styleIndex = nil end
@@ -400,8 +405,11 @@ end
 
 function RH.ShowPanel(show)
     if not RH.ui.panel then return end
-    if show then RefreshChecks() end
     RH.ui.panel:SetHidden(not show)
+    if show then
+        if RH.ui.modeLabel then RH.ui.modeLabel:SetHidden(RH.stationOpen and true or false) end
+        RefreshChecks()
+    end
 end
 
 function RH.TogglePanel()
@@ -549,30 +557,24 @@ local function BuildShareWindow()
     y = y + 148
 
     local bottomBtns = {}
-    bottomBtns[#bottomBtns + 1] = { Button(win, "Export", L.BTN_EXPORT, pad, y, bw, function()
-        local str = RH.ExportCurrent(RH.ui.nameEdit:GetText())
-        if str then
-            ShowString(str)
-            RH.Msg(L.MSG_EXPORTED)
-        end
-    end), pad, y }
-    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpApply", L.BTN_IMPORT_APPLY, pad + bw + 8, y, bw, function()
+    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpApply", L.BTN_IMPORT_APPLY, pad, y, bw, function()
         local name, _, entries = ParseFromEdit()
         if entries then RH.ApplyEntries(entries, name) end
-    end), pad + bw + 8, y }
-    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpSave", L.BTN_IMPORT_SAVE, pad + (bw + 8) * 2, y, bw, function()
+    end), pad, y }
+    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpSave", L.BTN_IMPORT_SAVE, pad + bw + 8, y, bw, function()
         local name, body, entries = ParseFromEdit()
         if entries then
+            -- テキスト内のタイトルを優先。無ければ名前欄の入力を使う
             local typed = RH.ui.nameEdit:GetText()
-            RH.SavePreset((typed ~= "" and typed) or name, body)
+            local useName = (name and name ~= "") and name or typed
+            RH.SavePreset(useName, body)
             RefreshPresetCombo()
         end
-    end), pad + (bw + 8) * 2, y }
-    y = y + 32
-    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpInspect", L.BTN_INSPECT, pad, y, bw, function()
+    end), pad + bw + 8, y }
+    bottomBtns[#bottomBtns + 1] = { Button(win, "ImpInspect", L.BTN_INSPECT_TEXT, pad + (bw + 8) * 2, y, bw, function()
         local name, _, entries = ParseFromEdit()
         if entries then RH.InspectEntries(entries, name) end
-    end), pad, y }
+    end), pad + (bw + 8) * 2, y }
     for _, b in ipairs(bottomBtns) do Track(win, b[1], b[2], b[3], bw, 28, 0, 1, 0, 0) end
     y = y + 40
 
@@ -868,4 +870,127 @@ function RH.InitUI()
     BuildShareWindow()
     BuildFavoritesWindow()
     BuildColorsWindow()
+end
+
+---------------------------------------------------------------------------
+-- チャットリンクの表示パネル(部位ごとのスタイル名と染料の色)
+---------------------------------------------------------------------------
+local LINKVIEW_W = 560
+local LINKVIEW_ROW_H = 26
+
+local function BuildLinkView()
+    local win = CreateWindow("RestyleHelperLinkView", LINKVIEW_W, 100, L.LINKVIEW_TITLE, "linkViewPos", 500, 160)
+    RH.ui.linkView = win
+    local pad = 12
+    win.nameLbl = Label(win, "Name", "", pad, 38, "ZoFontGameBold", ZO_SELECTED_TEXT)
+    win.rows = {}
+    for i, slot in ipairs(RH.allSlots) do
+        local y = 66 + (i - 1) * LINKVIEW_ROW_H
+        local row = {}
+        row.slot = Label(win, "Slot" .. i, "", pad, y + 3, "ZoFontGameSmall", ZO_NORMAL_TEXT)
+        row.slot:SetWidth(78)
+        row.slot:SetMaxLineCount(1)
+        row.style = Label(win, "Style" .. i, "", pad + 82, y + 3, "ZoFontGameSmall", ZO_SELECTED_TEXT)
+        row.style:SetWidth(240)
+        row.style:SetMaxLineCount(1)
+        row.sw = {}
+        for c = 1, 3 do
+            local hit = WM:CreateControl(win:GetName() .. "Sw" .. i .. "_" .. c, win, CT_CONTROL)
+            hit:SetDimensions(20, 20)
+            hit:SetAnchor(TOPLEFT, win, TOPLEFT, pad + 330 + (c - 1) * 24, y)
+            hit:SetMouseEnabled(true)
+            local frame = WM:CreateControl(hit:GetName() .. "F", hit, CT_TEXTURE)
+            frame:SetAnchorFill(hit)
+            frame:SetColor(0.6, 0.6, 0.6, 1)
+            local inner = WM:CreateControl(hit:GetName() .. "C", hit, CT_TEXTURE)
+            inner:SetAnchor(TOPLEFT, hit, TOPLEFT, 2, 2)
+            inner:SetAnchor(BOTTOMRIGHT, hit, BOTTOMRIGHT, -2, -2)
+            inner:SetColor(0, 0, 0, 1)
+            hit.inner = inner
+            hit:SetHandler("OnMouseEnter", function(self)
+                if self.tipText then InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, self.tipText) end
+            end)
+            hit:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+            row.sw[c] = hit
+        end
+        row.dyes = Label(win, "Dyes" .. i, "", pad + 408, y + 3, "ZoFontGameSmall", ZO_NORMAL_TEXT)
+        row.dyes:SetWidth(LINKVIEW_W - pad * 2 - 408)
+        row.dyes:SetMaxLineCount(1)
+        win.rows[i] = row
+    end
+    local by = 66 + #RH.allSlots * LINKVIEW_ROW_H + 8
+    win.importBtn = Button(win, "Import", L.BTN_LINK_IMPORT, pad, by, 220, function()
+        if not win.body then return end
+        RH.ShowShareWindow(true)
+        RH.SetImportText(RH.MakeShareString(win.name or "", win.body), win.name)
+    end)
+    win.applyBtn = Button(win, "Apply", L.BTN_LINK_APPLY, pad + 228, by, 140, function()
+        if win.entries then RH.ApplyEntries(win.entries, win.name) end
+    end)
+    TintButton(win.applyBtn, 0.45, 0.9, 0.45)
+    FinishWindow(win, "linkViewPos", by + 40)
+end
+
+-- メニュー(シーン)が切り替わったら、リンクから開いたパネルを閉じる(HUD と HUD+UI は同じ扱い)
+local function SceneGroup(name)
+    if name == "hud" or name == "hudui" then return "hud" end
+    return name
+end
+
+local function CurrentSceneGroup()
+    local scene = SCENE_MANAGER and SCENE_MANAGER:GetCurrentScene()
+    return scene and SceneGroup(scene:GetName()) or nil
+end
+
+local linkViewHooked = false
+local function HookLinkViewScene()
+    if linkViewHooked or not SCENE_MANAGER or not SCENE_MANAGER.RegisterCallback then return end
+    linkViewHooked = true
+    SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState)
+        local win = RH.ui.linkView
+        if not win or win:IsHidden() or newState ~= SCENE_SHOWN then return end
+        if SceneGroup(scene:GetName()) ~= win.openScene then win:SetHidden(true) end
+    end)
+end
+
+function RH.ShowLinkView(name, body, entries)
+    if not RH.ui.linkView then BuildLinkView() end
+    HookLinkViewScene()
+    local win = RH.ui.linkView
+    win.openScene = CurrentSceneGroup()
+    win.name, win.body, win.entries = name, body, entries
+    win.nameLbl:SetText(string.format(L.LINKVIEW_NAME, name ~= "" and name or L.EXT_NONAME))
+    local bySlot = {}
+    for _, e in ipairs(entries) do bySlot[e.slot] = e end
+    for i, slot in ipairs(RH.allSlots) do
+        local row, e = win.rows[i], bySlot[slot]
+        row.slot:SetText(RH.GetSlotName(slot))
+        if e and e.id and e.id ~= 0 then
+            local nm = RH.GetCollectibleDisplayName(e.id)
+            if not RH.IsUnlocked(e.id) then nm = "|cFF6666" .. nm .. "|r" end
+            row.style:SetText(nm)
+            local names = {}
+            for c, dyeId in ipairs({ e.p, e.s, e.a }) do
+                local sw = row.sw[c]
+                local r, g, b = 0, 0, 0
+                if dyeId and dyeId ~= 0 and GetDyeInfoById then
+                    local dn, _, _, _, _, rr, gg, bb = GetDyeInfoById(dyeId)
+                    if rr then r, g, b = rr, gg, bb end
+                    sw.tipText = RH.GetDyeName(dyeId)
+                    sw.inner:SetColor(r, g, b, 1)
+                else
+                    sw.tipText = nil
+                    sw.inner:SetColor(0.12, 0.12, 0.12, 1)
+                end
+                sw:SetHidden(false)
+                names[#names + 1] = RH.GetDyeName(dyeId)
+            end
+            row.dyes:SetText(table.concat(names, " / "))
+        else
+            row.style:SetText("-")
+            for c = 1, 3 do row.sw[c]:SetHidden(true) end
+            row.dyes:SetText("")
+        end
+    end
+    win:SetHidden(false)
 end

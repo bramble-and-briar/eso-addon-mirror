@@ -1,13 +1,12 @@
 ## Title: AureoleRange
 ## APIVersion: 101049 101050
-## Version: 6.5.2
+## Version: 6.5.3
 ## Author: Valeryi_Igorevich (@Valeryi_Igorevich EU | PC)
 ## SavedVariables: AureoleRange_SV
 ## Description: 3D ground range rings around your character.
-
 ## DependsOn: LibAddonMenu-2.0>=26
-
 AureoleRange.xml
+Bindings.xml
 i18n/strings.lua
 AureoleRange.lua
 AureoleRange_Settings.lua

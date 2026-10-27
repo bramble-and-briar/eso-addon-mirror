@@ -21,7 +21,7 @@ local R = DM2Stats
 
 R.name        = "DM2_ParseFightStats"
 R.displayName = "DM2 Parse & Fight Stats"
-R.version     = "3.18.4"
+R.version     = "3.18.5"
 
 -- Keep the original SV name so existing parse history is preserved for all users.
 -- v3.17.4: auto-compact history after load (strip bulk combat tables, keep outcomes/coach).

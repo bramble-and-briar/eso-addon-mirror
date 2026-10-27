@@ -10,6 +10,7 @@
 -- New trial recipes belong in a sibling manifest .lua (new 200), not more
 -- `local function` here. Fold tunables into CFG / TEX, not new locals.
 --
+-- 0.0.59: Library playback is baked meters (no second fit). Scale readout matches the legend. Cyan ring is the boss walk.
 -- 0.0.58: vSS Yol (STACK/RIM/BURN IRON) + Lok (TOMB/BLOCK/KILL STORM); HP freeze on fly
 -- 0.0.57: Nav QA — park landed boss, LAND!, portal after hide, plant facing, no BASH upstairs
 -- 0.0.56: Recipes.lua parse fix (while/then) — 0.0.55 did not load
@@ -58,7 +59,7 @@
 local Holodeck = Holodeck or {}
 Holodeck.name        = "DeadMarker_Holodeck"
 Holodeck.displayName = "Holodeck"
-Holodeck.version     = "0.0.58"
+Holodeck.version     = "0.0.59"
 
 Holodeck.Fights = Holodeck.Fights or {}
 function Holodeck.RegisterFight(fight)
@@ -182,6 +183,11 @@ local KIND = {
         texture = TEX.PORTAL, fallback = TEX.PORTAL_ESO,
         sizeM = 1.25, color = { 0.70, 0.50, 1.00 }, yOffM = 1.55,
     },
+    mirror = {
+        label = "Mirror", group = "spot",
+        texture = TEX.STACK, fallback = TEX.STACK_ESO,
+        sizeM = 1.15, color = { 0.78, 0.90, 1.00 }, yOffM = 1.50,
+    },
     -- System
     origin = {
         label = "Origin (plant)", group = "system",
@@ -283,8 +289,8 @@ local function ShouldNameplate(act)
     if act.name == "_you" then return act.tagged == true end
     if mode == "off" then return false end
     if act.guide then
-        -- Pad numbers during portal; statue S1–S4 stay quiet (glow is the tell).
-        return act.kind == "portal"
+        -- Pad numbers during portal; compass mirror pins; statue S1–S4 stay quiet.
+        return act.kind == "portal" or act.kind == "mirror"
     end
     local k = act.kind
     if mode == "all" then
@@ -304,13 +310,14 @@ local NAME_TYPE = {
     dps = "dps", dd = "dps", dps1 = "dps",
     stack = "stack", stack_main = "stack", main_stack = "stack",
     soak = "soak", safe = "safe", out = "safe", portal = "portal", door = "portal",
+    mirror = "mirror",
     origin = "origin",
 }
 
 local KIND_ORDER = {
     "boss", "mini", "trash",
     "tank", "healer", "dps",
-    "stack", "soak", "safe", "portal",
+    "stack", "soak", "safe", "portal", "mirror",
     "origin",
 }
 
@@ -746,9 +753,13 @@ local function PlayScale()
     if pct < 25 then pct = 25 end
     if pct > 400 then pct = 400 end
     local fit = 1
-    local fr = Holodeck.fight and Holodeck.fight._frame
-    if type(fr) == "table" and type(fr.fitScale) == "number" and fr.fitScale > 0.2 then
-        fit = fr.fitScale
+    -- Library packs are already baked into meters. fitScale would resize them again.
+    -- Hand-recorded takes still use it.
+    if Holodeck.fightSource ~= "library" then
+        local fr = Holodeck.fight and Holodeck.fight._frame
+        if type(fr) == "table" and type(fr.fitScale) == "number" and fr.fitScale > 0.2 then
+            fit = fr.fitScale
+        end
     end
     return (pct / 100) * fit
 end
@@ -1183,15 +1194,26 @@ local function FrameOn()
     return true
 end
 
+-- Log compass is +x east, +z north. room.door = "south" puts the plant
+-- side (higher z on Orphic) at South, with East on the right looking in.
+function Holodeck.CompassAxes(fight)
+    local door = type(fight) == "table" and type(fight.room) == "table" and fight.room.door
+    if door == "south" then
+        return 0, -1, -1, 0
+    end
+    return 0, 1, 1, 0
+end
+
 local function PlaceFrameCardinals(fr)
     if not fr or not Holodeck.origin then return end
     local r = fr.r or 8
     local cx, cz = fr.cx or 0, fr.cz or 0
+    local nx, nz, ex, ez = Holodeck.CompassAxes(Holodeck.fight)
     local marks = {
-        { id = "_frame_N", lab = "N", x = cx, z = cz + r },
-        { id = "_frame_E", lab = "E", x = cx + r, z = cz },
-        { id = "_frame_S", lab = "S", x = cx, z = cz - r },
-        { id = "_frame_W", lab = "W", x = cx - r, z = cz },
+        { id = "_frame_N", lab = "N", x = cx + nx * r, z = cz + nz * r },
+        { id = "_frame_E", lab = "E", x = cx + ex * r, z = cz + ez * r },
+        { id = "_frame_S", lab = "S", x = cx - nx * r, z = cz - nz * r },
+        { id = "_frame_W", lab = "W", x = cx - ex * r, z = cz - ez * r },
     }
     local i = 1
     while i <= #marks do
@@ -1701,7 +1723,12 @@ local function UpdateSwapBanner(tSec)
     EnsureSwapBanner()
     if not Holodeck.swapTLW or not Holodeck.swapLabel then return end
     local text = cue.text or "Portal!"
-    local line = string.format("|cFFEE55%s|r\n|cFFFFFF%.0f|r", text, remain or 0)
+    local line
+    if cue.kind == "mirrorswap" then
+        line = string.format("|cFFEE55%s|r", text)
+    else
+        line = string.format("|cFFEE55%s|r\n|cFFFFFF%.0f|r", text, remain or 0)
+    end
     if Holodeck._swapText ~= line then
         Holodeck.swapLabel:SetText(line)
         Holodeck._swapText = line
@@ -1739,6 +1766,12 @@ local function EnsurePads()
                 act.label = p.label or tostring(p.slot or i)
                 act.x, act.z = p.x or 0, p.z or 0
                 act.visible = true
+                if p.showAt ~= nil and (Holodeck.playT or 0) < p.showAt then
+                    act.visible = false
+                end
+                if p.hideAt ~= nil and (Holodeck.playT or 0) >= p.hideAt then
+                    act.visible = false
+                end
                 act.padSlot = p.slot
                 act.dead = false
                 act.aspect = nil
@@ -1913,7 +1946,7 @@ local function HudFont(size)
     return "EsoUI/Common/Fonts/univers57.otf|" .. tostring(n) .. "|soft-shadow-thick"
 end
 
--- Time-based boss HP (remaining % = 1 - t/dur). Real log HP later if packs stay small.
+-- Boss HP is the log percent (e.hp) when the pack has hpEnc. Else remaining % = 1 - t/dur.
 -- Not a local function — keeps the 200-local chunk budget.
 Holodeck.HpTriggers = {
     count = { { pct = 90, label = "Adds" } },
@@ -2067,18 +2100,23 @@ function Holodeck.UpdateBossHpBars(tSec)
             Holodeck.hpCols[b] = col
         end
         local e = bosses[b]
+        local bossRemain = remain
+        if type(e.hp) == "table" and Holodeck.SampleHp then
+            local sampled = Holodeck.SampleHp(e.hp, tSec)
+            if type(sampled) == "number" then bossRemain = sampled end
+        end
         local nm = e.label or e.id or "Boss"
         if col.name and col._nm ~= nm then
             col.name:SetText(nm)
             col._nm = nm
         end
-        local pctTxt = string.format("%d%%", math.floor(remain + 0.5))
+        local pctTxt = string.format("%d%%", math.floor(bossRemain + 0.5))
         if col.pct and col._pct ~= pctTxt then
             col.pct:SetText(pctTxt)
             col._pct = pctTxt
         end
         if col.fill then
-            local h = math.floor(156 * (remain / 100) + 0.5)
+            local h = math.floor(156 * (bossRemain / 100) + 0.5)
             if h < 2 then h = 2 end
             col.fill:SetDimensions(18, h)
             local tint = ResolveEntityColor(e)
@@ -2087,11 +2125,23 @@ function Holodeck.UpdateBossHpBars(tSec)
             end
         end
         local mark = ""
-        if type(trig) == "table" then
+        if type(e.hp) == "table" and type(fight.colorChange) == "table" then
+            local bars = fight.colorChange
+            local ti = 1
+            while ti <= #bars do
+                local tr = bars[ti]
+                if type(tr) == "table" and tr.bar and tr.pct
+                    and bossRemain <= (tr.pct or 0) + 0.51
+                    and bossRemain > (tr.pct or 0) - 8 then
+                    mark = tostring(tr.pct) .. "% " .. tostring(tr.bar)
+                end
+                ti = ti + 1
+            end
+        elseif type(trig) == "table" then
             local ti = 1
             while ti <= #trig do
                 local tr = trig[ti]
-                if tr and remain <= (tr.pct or 0) + 0.51 and remain > (tr.pct or 0) - 8 then
+                if tr and bossRemain <= (tr.pct or 0) + 0.51 and bossRemain > (tr.pct or 0) - 8 then
                     mark = tostring(tr.pct) .. "% " .. tostring(tr.label or "")
                 end
                 ti = ti + 1
@@ -2143,30 +2193,39 @@ local function LegendText()
 
     local hpBit = ""
     if fight and dur >= 1 then
-        local remain = 100 * (1 - (t / dur))
-        if Holodeck.RemainHp then
-            local g = Holodeck.RemainHp(fight, t)
-            if type(g) == "number" then remain = g end
+        local remain = nil
+        local ents = fight.entities
+        if type(ents) == "table" and Holodeck.SampleHp then
+            local ei = 1
+            while ei <= #ents and remain == nil do
+                local ent = ents[ei]
+                if type(ent) == "table" and type(ent.hp) == "table"
+                    and NormalizeKind(ent.kind) == "boss" then
+                    remain = Holodeck.SampleHp(ent.hp, t)
+                end
+                ei = ei + 1
+            end
+        end
+        if type(remain) ~= "number" then
+            remain = 100 * (1 - (t / dur))
+            if Holodeck.RemainHp then
+                local g = Holodeck.RemainHp(fight, t)
+                if type(g) == "number" then remain = g end
+            end
         end
         if remain < 0 then remain = 0 end
         if remain > 100 then remain = 100 end
         hpBit = string.format("  ·  HP %d%%", math.floor(remain + 0.5))
     end
 
-    local userPct = 100
-    if Holodeck.savedVars and Holodeck.savedVars.playScalePct then
-        userPct = tonumber(Holodeck.savedVars.playScalePct) or 100
-    end
-    local fit = 1
-    local fr = fight and fight._frame
-    if type(fr) == "table" and type(fr.fitScale) == "number" and fr.fitScale > 0.2 then
-        fit = fr.fitScale
-    end
-    local scaleBit
-    if math.abs(fit - 1) > 0.02 then
-        scaleBit = string.format("scale %d%%×%.2f", userPct, fit)
-    else
-        scaleBit = string.format("scale %d%%", userPct)
+    local scaleBit = "scale 100%"
+    if Holodeck.ScaleReadout then
+        local pct, span, house = Holodeck.ScaleReadout()
+        if span > 0 then
+            scaleBit = string.format("scale %d%%  ·  house ~%.0fm", pct, house)
+        else
+            scaleBit = string.format("scale %d%%", pct)
+        end
     end
 
     local rotBit = "rot —"
@@ -2511,6 +2570,9 @@ local function CompactFight(fight)
             e.trackEnc = EncodeTrack(e.track)
             e.track = nil
         end
+        if type(e) == "table" and type(e.hpEnc) == "string" then
+            e.hp = nil
+        end
     end
     fight._frame = nil
 end
@@ -2520,8 +2582,13 @@ local function ExpandFight(fight)
     if type(ents) ~= "table" then return end
     for i = 1, #ents do
         local e = ents[i]
-        if type(e) == "table" and type(e.track) ~= "table" and type(e.trackEnc) == "string" then
-            e.track = DecodeTrack(e.trackEnc)
+        if type(e) == "table" then
+            if type(e.track) ~= "table" and type(e.trackEnc) == "string" then
+                e.track = DecodeTrack(e.trackEnc)
+            end
+            if type(e.hpEnc) == "string" and Holodeck.DecodeHp then
+                e.hp = Holodeck.DecodeHp(e.hpEnc)
+            end
         end
     end
     fight._frame = ComputeFightFrame(fight)
@@ -2859,6 +2926,8 @@ local function LoadFightTable(fight, source, resetTime)
     BuildPortalLayout(fight)
     BuildTagAssign(fight)
     if Holodeck.ApplyRecipe then Holodeck.ApplyRecipe(fight) end
+    if Holodeck.ApplyColorChange then Holodeck.ApplyColorChange(fight) end
+    if Holodeck.ApplyFleshPortals then Holodeck.ApplyFleshPortals(fight) end
     DestroyAllActors()
     Holodeck.fight = fight
     Holodeck.fightSource = source
@@ -3433,7 +3502,7 @@ local function CmdFrame(arg)
         s.frameOn = not FrameOn()
     end
     RebuildPathGfx()
-    dhd("Fight frame: |cC0E0FF" .. (FrameOn() and "ON" or "OFF") .. "|r  ·  ring / N-E-S-W / split / 30s boss path")
+    dhd("Fight frame: |cC0E0FF" .. (FrameOn() and "ON" or "OFF") .. "|r  ·  boss-walk ring / N-E-S-W / split / 30s boss path")
 end
 
 local function CmdAlerts(arg)
@@ -3552,6 +3621,15 @@ local function PackSpanMeters(fight)
     return math.sqrt(dx * dx + dz * dz)
 end
 
+-- Same numbers for the legend and /hd scale. Percent is the effective
+-- horizontal scale. House span is the baked diagonal times that scale.
+function Holodeck.ScaleReadout()
+    local eff = PlayScale()
+    local pct = math.floor(eff * 100 + 0.5)
+    local span = PackSpanMeters(Holodeck.fight)
+    return pct, span, span * eff
+end
+
 local function RefreshPlaybackPlacement()
     if Holodeck.origin and Holodeck.fight then
         ApplyTimeline(Holodeck.playT or 0, false)
@@ -3577,13 +3655,12 @@ end
 local function CmdScale(arg)
     arg = (arg or ""):match("^%s*(.-)%s*$") or ""
     if arg == "" or arg == "?" then
-        local pct = math.floor(PlayScale() * 100 + 0.5)
-        local span = PackSpanMeters(Holodeck.fight)
+        local pct, span, house = Holodeck.ScaleReadout()
         if span > 0 then
             dhd(string.format("Scale %d%%  ·  pack ~%.0fm  ·  in house ~%.0fm  ·  /hd scale 150",
-                pct, span, span * (pct / 100)))
+                pct, span, house))
         else
-            dhd(string.format("Scale %d%% of pack size. /hd scale 150   (100 = baked, 25–400)", pct))
+            dhd(string.format("Scale %d%% of baked meters. /hd scale 150   (100 = 1 file unit per meter, 25–400)", pct))
         end
         return
     end
@@ -3592,10 +3669,10 @@ local function CmdScale(arg)
         dhd("Usage: /hd scale 150   (percent of baked pack, 100 = default)")
         return
     end
-    local pct = ApplyPlayScale(n)
-    local span = PackSpanMeters(Holodeck.fight)
+    ApplyPlayScale(n)
+    local pct, span, house = Holodeck.ScaleReadout()
     if span > 0 then
-        dhd(string.format("Scale %d%%  ·  house span ~%.0fm (pack ~%.0fm)", pct, span * (pct / 100), span))
+        dhd(string.format("Scale %d%%  ·  pack ~%.0fm  ·  in house ~%.0fm", pct, span, house))
     else
         dhd(string.format("Scale %d%%", pct))
     end

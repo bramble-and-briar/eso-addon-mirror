@@ -761,3 +761,418 @@ function Holodeck.LookupActorLook(label, id, kind)
     end
     return nil
 end
+
+-- Boss hpEnc is "t_cs pct;..." (integer percent). Step-hold on playback.
+function Holodeck.DecodeHp(enc)
+    if type(enc) ~= "string" or enc == "" then return nil end
+    local curve = {}
+    for seg in string.gmatch(enc, "[^;]+") do
+        local tcs, pct = string.match(seg, "^(-?%d+)%s+(-?%d+)$")
+        tcs = tonumber(tcs)
+        pct = tonumber(pct)
+        if tcs and pct then
+            curve[#curve + 1] = { t = tcs / 100, pct = pct }
+        end
+    end
+    if #curve < 1 then return nil end
+    return curve
+end
+
+function Holodeck.SampleHp(curve, tSec)
+    if type(curve) ~= "table" or #curve < 1 then return nil end
+    tSec = tonumber(tSec) or 0
+    local pct = curve[1].pct
+    local i = 1
+    while i <= #curve do
+        local s = curve[i]
+        if s and (s.t or 0) <= tSec then
+            pct = s.pct
+        else
+            break
+        end
+        i = i + 1
+    end
+    return pct
+end
+
+-- Time of the first sample that is at or under the threshold after one above it.
+function Holodeck.HpCrossTime(curve, threshold)
+    if type(curve) ~= "table" or #curve < 2 then return nil end
+    threshold = tonumber(threshold)
+    if not threshold then return nil end
+    local i = 2
+    while i <= #curve do
+        local a, b = curve[i - 1], curve[i]
+        local ap = a and tonumber(a.pct)
+        local bp = b and tonumber(b.pct)
+        if ap and bp and ap > threshold and bp <= threshold then
+            return b.t or 0
+        end
+        i = i + 1
+    end
+    return nil
+end
+
+-- colorChange rules become banner cues. Needs the decoded boss curve for pct rules.
+-- Runs after BuildPortalLayout, which clears _cues when a pack has no teleports.
+function Holodeck.ApplyColorChange(fight)
+    if type(fight) ~= "table" then return end
+    local rules = fight.colorChange
+    if type(rules) ~= "table" or #rules < 1 then return end
+    local cues = fight._cues
+    if type(cues) ~= "table" then
+        cues = {}
+    else
+        local kept = {}
+        local i = 1
+        while i <= #cues do
+            local c = cues[i]
+            local k = c and c.kind
+            if k ~= "mirror" and k ~= "mirrorswap" and k ~= "room" then
+                kept[#kept + 1] = c
+            end
+            i = i + 1
+        end
+        cues = kept
+    end
+    fight._cues = cues
+    local curve = nil
+    local bossTrack = nil
+    local ents = fight.entities
+    if type(ents) == "table" then
+        local i = 1
+        while i <= #ents and (curve == nil or bossTrack == nil) do
+            local e = ents[i]
+            if type(e) == "table" and e.kind == "boss" then
+                if bossTrack == nil and type(e.track) == "table" then bossTrack = e.track end
+                if curve == nil and type(e.hp) == "table" and #e.hp > 0 then curve = e.hp end
+            end
+            i = i + 1
+        end
+    end
+    local r = 1
+    while r <= #rules do
+        local rule = rules[r]
+        if type(rule) == "table" then
+            local t0 = tonumber(rule.t)
+            if t0 == nil and curve and rule.pct ~= nil then
+                t0 = Holodeck.HpCrossTime(curve, rule.pct)
+            end
+            if t0 ~= nil then
+                local hold = tonumber(rule.hold) or 5
+                if hold < 0.5 then hold = 0.5 end
+                cues[#cues + 1] = {
+                    t = t0,
+                    dur = hold,
+                    kind = "mirror",
+                    text = rule.text or "MIRROR SWAP IN",
+                }
+                if not rule.quiet then
+                    cues[#cues + 1] = {
+                        t = t0 + hold,
+                        dur = 2,
+                        kind = "mirrorswap",
+                        text = "SWAP!",
+                    }
+                end
+            end
+        end
+        r = r + 1
+    end
+
+    -- Compass pins on the boss path. Default is log +x east, +z north.
+    -- room.door = "south" shares Holodeck.CompassAxes with the yellow frame.
+    -- Corners are the opening four. E/W appear at 90%, N/S at 60%.
+    local cx, cz, n = 0, 0, 0
+    if type(bossTrack) == "table" then
+        local i = 1
+        while i <= #bossTrack do
+            local kf = bossTrack[i]
+            if kf and kf.x ~= nil then
+                cx = cx + (kf.x or 0)
+                cz = cz + (kf.z or 0)
+                n = n + 1
+            end
+            i = i + 1
+        end
+    end
+    if n > 0 then
+        cx, cz = cx / n, cz / n
+        local far = 0
+        local i = 1
+        while i <= #bossTrack do
+            local kf = bossTrack[i]
+            if kf and kf.x ~= nil then
+                local dx = (kf.x or 0) - cx
+                local dz = (kf.z or 0) - cz
+                local d = math.sqrt(dx * dx + dz * dz)
+                if d > far then far = d end
+            end
+            i = i + 1
+        end
+        local radius = far * 0.88
+        if radius < 8 then radius = 8 end
+        local padsOk = true
+        local oldPads = fight._pads
+        if type(oldPads) == "table" then
+            local p = 1
+            while p <= #oldPads do
+                if oldPads[p] and oldPads[p].kind ~= "mirror" then padsOk = false end
+                p = p + 1
+            end
+        end
+        if padsOk then
+            local t90 = curve and Holodeck.HpCrossTime(curve, 90)
+            local t60 = curve and Holodeck.HpCrossTime(curve, 60)
+            local nx, nz, ex, ez = Holodeck.CompassAxes(fight)
+            -- sn/se are steps along North and East. Diagonals are normalized below.
+            local spots = {
+                { lab = "NE", sn = 1, se = 1, at = 0 },
+                { lab = "NW", sn = 1, se = -1, at = 0 },
+                { lab = "SE", sn = -1, se = 1, at = 0 },
+                { lab = "SW", sn = -1, se = -1, at = 0 },
+                { lab = "E", sn = 0, se = 1, at = t90 },
+                { lab = "W", sn = 0, se = -1, at = t90 },
+                { lab = "N", sn = 1, se = 0, at = t60 },
+                { lab = "S", sn = -1, se = 0, at = t60 },
+            }
+            local pads = {}
+            local s = 1
+            while s <= #spots do
+                local sp = spots[s]
+                if sp.at ~= nil then
+                    local ux = sp.sn * nx + sp.se * ex
+                    local uz = sp.sn * nz + sp.se * ez
+                    local ulen = math.sqrt(ux * ux + uz * uz)
+                    if ulen > 0.001 then
+                        ux, uz = ux / ulen, uz / ulen
+                    end
+                    pads[#pads + 1] = {
+                        id = "_mirror_" .. sp.lab,
+                        kind = "mirror",
+                        label = sp.lab,
+                        x = cx + ux * radius,
+                        z = cz + uz * radius,
+                        showAt = sp.at,
+                    }
+                end
+                s = s + 1
+            end
+            fight._pads = pads
+        end
+    end
+
+    -- Light adds die in the dark. Dark adds (ruinachs first) die in the light.
+    local room = fight.room
+    if type(room) == "table" and type(ents) == "table" then
+        local hits = {}
+        local i = 1
+        while i <= #ents do
+            local e = ents[i]
+            local lab = string.lower(tostring((e and e.label) or ""))
+            local tr = e and e.track
+            local tSpawn = (type(tr) == "table" and tr[1] and tonumber(tr[1].t)) or nil
+            if tSpawn and lab ~= "" then
+                local dark, light = false, false
+                local needles = room.vulnerableInDark
+                if type(needles) == "table" then
+                    local k = 1
+                    while k <= #needles do
+                        local needle = string.lower(tostring(needles[k] or ""))
+                        if needle ~= "" and lab:find(needle, 1, true) then dark = true end
+                        k = k + 1
+                    end
+                end
+                needles = room.vulnerableInLight
+                if type(needles) == "table" then
+                    local k = 1
+                    while k <= #needles do
+                        local needle = string.lower(tostring(needles[k] or ""))
+                        if needle ~= "" and lab:find(needle, 1, true) then light = true end
+                        k = k + 1
+                    end
+                end
+                if dark or light then
+                    hits[#hits + 1] = {
+                        t = tSpawn,
+                        dark = dark,
+                        light = light,
+                        ruin = lab:find("ruinach", 1, true) and true or false,
+                    }
+                end
+            end
+            i = i + 1
+        end
+        table.sort(hits, function(a, b) return (a.t or 0) < (b.t or 0) end)
+        local groups = {}
+        i = 1
+        while i <= #hits do
+            local h = hits[i]
+            local g = groups[#groups]
+            if not g or (h.t or 0) > (g.t1 or 0) + 12 then
+                g = { t0 = h.t or 0, t1 = h.t or 0, dark = false, light = false, ruin = false }
+                groups[#groups + 1] = g
+            else
+                if (h.t or 0) > (g.t1 or 0) then g.t1 = h.t or 0 end
+            end
+            if h.dark then g.dark = true end
+            if h.light then g.light = true end
+            if h.ruin then g.ruin = true end
+            i = i + 1
+        end
+        i = 1
+        while i <= #groups do
+            local g = groups[i]
+            local text = nil
+            if g.ruin then
+                text = "RUINACHS  ·  FLIP LIGHT"
+            elseif g.light then
+                text = "FLIP LIGHT"
+            elseif g.dark then
+                text = "FLIP DARK"
+            end
+            if text and (g.t0 or 0) >= 1 then
+                local hold = (g.t1 or g.t0) - (g.t0 or 0) + 4
+                if hold < 5 then hold = 5 end
+                if hold > 10 then hold = 10 end
+                cues[#cues + 1] = { t = g.t0, dur = hold, kind = "room", text = text }
+            end
+            i = i + 1
+        end
+    end
+
+    table.sort(cues, function(a, b) return (tonumber(a.t) or 0) < (tonumber(b.t) or 0) end)
+end
+
+-- Hall of Fleshcraft. Portal jumps are ~11m, under the Count 14m test, and
+-- the pads there are Count-only. A landing past the Shaper ring is a go.
+-- Banner counts down to the jump. The pad stays until the team ports back.
+function Holodeck.ApplyFleshPortals(fight)
+    if type(fight) ~= "table" then return end
+    local blob = string.lower(tostring(fight.id or "") .. " " .. tostring(fight.boss or "")
+        .. " " .. tostring(fight.name or ""))
+    if not blob:find("fleshcraft", 1, true) then return end
+    local ents = fight.entities
+    if type(ents) ~= "table" then return end
+
+    local cx, cz, nb = 0, 0, 0
+    local hops = {}
+    local i = 1
+    while i <= #ents do
+        local e = ents[i]
+        local kind = e and e.kind
+        local tr = e and e.track
+        if kind == "boss" and type(tr) == "table" and tr[1] and tr[1].x ~= nil then
+            cx = cx + (tr[1].x or 0)
+            cz = cz + (tr[1].z or 0)
+            nb = nb + 1
+        elseif (kind == "tank" or kind == "healer" or kind == "dps") and type(tr) == "table" then
+            local prev = nil
+            local j = 1
+            while j <= #tr do
+                local kf = tr[j]
+                if kf and kf.x ~= nil then
+                    if prev then
+                        local dx = (kf.x or 0) - (prev.x or 0)
+                        local dz = (kf.z or 0) - (prev.z or 0)
+                        local dist = math.sqrt(dx * dx + dz * dz)
+                        local dt = (kf.t or 0) - (prev.t or 0)
+                        if dist >= 8 and dt >= 0 and dt <= 3.5 then
+                            hops[#hops + 1] = { t = kf.t or 0, x = kf.x or 0, z = kf.z or 0 }
+                        end
+                    end
+                    prev = kf
+                end
+                j = j + 1
+            end
+        end
+        i = i + 1
+    end
+    if nb > 0 then
+        cx, cz = cx / nb, cz / nb
+    end
+    if #hops < 1 then return end
+    table.sort(hops, function(a, b) return (a.t or 0) < (b.t or 0) end)
+
+    local clusters = {}
+    i = 1
+    while i <= #hops do
+        local hp = hops[i]
+        local cl = clusters[#clusters]
+        if not cl or (hp.t - cl[1].t) >= 8 then
+            clusters[#clusters + 1] = { hp }
+        else
+            cl[#cl + 1] = hp
+        end
+        i = i + 1
+    end
+
+    local trips, backs = {}, {}
+    i = 1
+    while i <= #clusters do
+        local cl = clusters[i]
+        local sx, sz, n = 0, 0, #cl
+        local k = 1
+        while k <= n do
+            sx = sx + (cl[k].x or 0)
+            sz = sz + (cl[k].z or 0)
+            k = k + 1
+        end
+        sx, sz = sx / n, sz / n
+        local away = math.sqrt((sx - cx) * (sx - cx) + (sz - cz) * (sz - cz))
+        local row = { t = cl[1].t or 0, x = sx, z = sz }
+        if away >= 12 then
+            trips[#trips + 1] = row
+        else
+            backs[#backs + 1] = row
+        end
+        i = i + 1
+    end
+    if #trips < 1 then return end
+
+    local cues = fight._cues
+    if type(cues) ~= "table" then cues = {} end
+    local kept = {}
+    i = 1
+    while i <= #cues do
+        local c = cues[i]
+        if not (type(c) == "table" and c.text == "PORTAL TEAM, GO") then
+            kept[#kept + 1] = c
+        end
+        i = i + 1
+    end
+
+    local pads = {}
+    i = 1
+    while i <= #trips do
+        local trip = trips[i]
+        local tHop = trip.t or 0
+        local t0 = tHop - 6
+        if t0 < 1 then t0 = 1 end
+        local nextGo = 1e9
+        if trips[i + 1] then nextGo = trips[i + 1].t or nextGo end
+        local hide = tHop + 25
+        local r = 1
+        while r <= #backs do
+            local rt = backs[r].t or 0
+            if rt > tHop and rt < nextGo then hide = rt end
+            r = r + 1
+        end
+        kept[#kept + 1] = {
+            t = t0, dur = tHop - t0, kind = "portal", text = "PORTAL TEAM, GO", slot = i,
+        }
+        pads[#pads + 1] = {
+            id = "_fleshpad_" .. tostring(i),
+            kind = "portal",
+            label = "Portal",
+            x = trip.x, z = trip.z,
+            slot = i,
+            showAt = t0,
+            hideAt = hide,
+        }
+        i = i + 1
+    end
+    table.sort(kept, function(a, b) return (tonumber(a.t) or 0) < (tonumber(b.t) or 0) end)
+    fight._cues = kept
+    fight._pads = pads
+end

@@ -1,0 +1,24 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="InventoryCompanion_ProgressBar_Template" virtual="true" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+            <Dimensions x="228" y="22"/>
+            <Controls>
+                <Texture name="$(parent)Icon" parentKey="icon" mouseEnabled="false">
+                    <Dimensions x="22" y="22"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+                </Texture>
+                <Texture name="$(parent)TrackBG" parentKey="trackBG" mouseEnabled="false">
+                    <Dimensions x="206" y="22"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" offsetX="6" offsetY="0"/>
+                </Texture>
+                <StatusBar name="$(parent)Bar" parentKey="bar">
+                    <Dimensions x="200" y="22"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)TrackBG" relativePoint="TOPLEFT" offsetX="3" offsetY="0"/>
+                </StatusBar>
+                <Label name="$(parent)Label" parentKey="label" font="ZoFontGameSmall" color="FFFFFF" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Anchor point="CENTER" relativeTo="$(parent)TrackBG" relativePoint="CENTER" offsetX="0" offsetY="0"/>
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

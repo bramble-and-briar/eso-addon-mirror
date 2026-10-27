@@ -1,0 +1,9 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+    <Category name="|c215895Survey |cCC922FResetter|r">
+      <Action name="SURVEYRESETTER_RUN">
+        <Down>RunSurveyResetter()</Down>
+      </Action>
+    </Category>
+  </Layer>
+</Bindings>

@@ -30,6 +30,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Olorime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/Olorime__2abdc7a0-d15d-42ae-aad7-bccf995da180) | tmbrinks | Console | — |
 | [Olorime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Olorime__2006) | Wheels | PC / Mac | 2.3.0 |
 | [Omni Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Omni-Stats__863) | RunningDuck | PC / Mac | 4.0.0 |
+| [OmniAura](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/OmniAura__4998) | Artioner | PC / Mac | 1.0.0 |
 | [OmNomNom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/OmNomNom__1037) | Werewolf Finds Dragon | PC / Mac | 002-100022 |
 | [One APH a Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/One-APH-a-Time__4923) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [One APH a Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/One-APH-a-Time__53c80097-33fd-4ef3-83f4-e78d6d9482ee) | APH0NlC | Console | — |

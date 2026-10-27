@@ -42,7 +42,7 @@ ADDON.version = ""
 
 ADDON.ZONES = { "cyrodiil", "pvp", "all" }
 
--- How many places the rankings (players healed, skills) show, in the statistics window and in chat.
+-- How many places the rankings (players healed, skills) show, on the statistics screen and in chat.
 ADDON.RANKING_ROWS = 10
 
 ADDON.defaults = {
@@ -319,7 +319,7 @@ end
 -- Slash commands
 ---------------------------------------------------------------------------------------------------
 
--- The summary and the two rankings, ten places each: the same lines the statistics window shows.
+-- The summary and the two rankings, ten places each: the same lines the statistics screen shows.
 local function PrintScope(scope)
     Print(string.format(GetString(SI_PBSHPS_CMD_SCOPE_HEADING), records:ScopeText(scope)))
     for _, line in ipairs(records:SummaryLines(scope)) do
@@ -378,12 +378,9 @@ local function OnSlashCommand(argument)
         ADDON.hud:Refresh()
         Print(GetString(sv.hud and SI_PBSHPS_CMD_HUD_ON or SI_PBSHPS_CMD_HUD_OFF))
     elseif command == "stats" then
-        local window = ADDON.window
-        local scope = SCOPE_WORDS[words[2] or ""]
-        if scope then
-            window:SetScope(scope)
-        end
-        window:Toggle()
+        -- The statistics screen (the main menu's entry), on the period asked for, if one was.
+        ADDON.screen:SetScope(SCOPE_WORDS[words[2] or ""])
+        ADDON.menu:Open()
     elseif SCOPE_WORDS[command or ""] then
         PrintScope(SCOPE_WORDS[command])
     elseif command == "probe" then
@@ -409,7 +406,7 @@ end
 -- Two PSN IDs only: PinkBanther and Yukiblack1123. The check reads the console ID of the logged-in
 -- player (GetPlatformDisplayName, the PSN online ID on a PS5) at load. The @account name is
 -- deliberately not consulted: the IDs were given as PSN IDs. Everyone else gets no events, no
--- saved variables, no panel and no window, and one line in chat after login. It is a soft gate (plain
+-- saved variables, no panel, no screen and no menu entry, and one line in chat after login. It is a soft gate (plain
 -- Lua anyone can read), the same as PB's TargetPlayer and Compass use.
 ---------------------------------------------------------------------------------------------------
 
@@ -524,6 +521,7 @@ local function OnAddOnLoaded(_, addonName)
     ADDON.psn:Initialize(sv)
 
     ADDON.hud:Initialize()
+    ADDON.menu:Initialize()
 
     RegisterHealEvents()
     ADDON.SetCountOthers(sv.countOthers)

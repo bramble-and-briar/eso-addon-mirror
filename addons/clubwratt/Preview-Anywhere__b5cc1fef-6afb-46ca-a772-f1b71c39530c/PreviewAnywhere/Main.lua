@@ -38,6 +38,8 @@ local function HandleCommand(args)
         PA.state.savedVars.enabled = command == "on"
         PA.Chat(PA.Fmt("preview actions %s", command == "on" and "enabled" or "disabled"))
         PA.SafeCall("InventoryFraming.Apply", PA.InventoryFraming.Apply)
+    elseif command == "vault" then
+        PA.VaultCategories.Command(rest)
     elseif command == "invframe" then
         PA.state.savedVars.inventoryFraming = PA.state.savedVars.inventoryFraming == false
         PA.Chat(PA.Fmt("inventory preview framing: %s", PA.state.savedVars.inventoryFraming and "vendor style (beside the tooltip)" or "game default"))
@@ -50,6 +52,8 @@ end
 
 SLASH_COMMANDS["/pva"] = HandleCommand
 SLASH_COMMANDS["/previewanywhere"] = HandleCommand
+-- Kept from the standalone Vault Categories addon: /vcat <args> = /pva vault <args>.
+SLASH_COMMANDS["/vcat"] = function(args) PA.VaultCategories.Command(args) end
 
 local function Initialize()
     local d = PA.diagnostics
@@ -82,8 +86,10 @@ local function Initialize()
     local slotOk = Init("SlotPreview", PA.SlotPreview.Initialize)
     local hoverOk = Init("Hover", PA.Hover.Initialize)
     local framingOk = Init("InventoryFraming", PA.InventoryFraming.Initialize)
+    local vaultOk = Init("VaultCategories", PA.VaultCategories.Initialize)
 
-    PA.Log("loaded v%s (links=%s, hosts=%s, hover=%s, framing=%s, %d init errors)", PA.version, tostring(linkOk), tostring(slotOk), tostring(hoverOk), tostring(framingOk), #d.initErrors)
+    PA.Log("loaded v%s (links=%s, hosts=%s, hover=%s, framing=%s, vault=%s, %d init errors)", PA.version, tostring(linkOk), tostring(slotOk), tostring(hoverOk), tostring(framingOk),
+        tostring(vaultOk), #d.initErrors)
     for _, err in ipairs(d.initErrors) do
         PA.Log("  initError: %s", err)
     end

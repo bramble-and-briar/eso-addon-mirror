@@ -23,7 +23,7 @@ ZO_CreateStringId("LAW_CLAW_FURY_RANGE_TOOLTIP", "使用<<1>>时显示其技能�
 ZO_CreateStringId("LAW_TIMEOUT", "<<1>>闲置门槛 (ms)")
 ZO_CreateStringId("LAW_TIMEOUT_TOOLTIP", "当本滑动条被设为大于0时，插件会在战斗中屏蔽<<1>>\n\n当玩家在门槛时间内都没有造成直接伤害时，<<1>>才会在战斗中显示")
 ZO_CreateStringId("LAW_FEEDING_PRIORITY", "优先显示<<1>>")
-ZO_CreateStringId("LAW_FEEDING_PRIORITY_TOOLTIP", "启用时，插件会将<<1>>的协同优先度提高为最高")
+ZO_CreateStringId("LAW_FEEDING_PRIORITY_TOOLTIP", "启用时，插件会将<<1>>的协同优先度提高为最高\n\n注意，将技能优先级提至最高并不总是能保证其在可用时会被显示。在实战中存在很多因素会干扰协同技显示的行为")
 ZO_CreateStringId("LAW_PANEL_MOVE_MSG", "LAW：面板移动 %s")
 ZO_CreateStringId("LAW_ENABLED", "|cCC922F已启用|r")
 ZO_CreateStringId("LAW_DISABLED", "|c215895已禁用|r")

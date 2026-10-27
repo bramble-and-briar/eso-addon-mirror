@@ -1,0 +1,60 @@
+<GuiXml>
+    <Controls>
+		<Control name="InventoryCompanion_ItemTrackerRow_Multi_Template" virtual="true" mouseEnabled="true">           
+            <Dimensions x="320" y="22" />
+            <Controls>
+                <!-- Visual Expand Indicator (not clickable on its own) -->
+                <Texture name="$(parent)ExpandIcon" mouseEnabled="false">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="2" offsetY="2" />
+                </Texture>
+
+                <!-- Item Icon -->
+                <Texture name="$(parent)Icon" mouseEnabled="false">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="22" offsetY="2" />
+                </Texture>
+
+                <!-- Item Name Label -->
+                <Label name="$(parent)Name" font="ZoFontGameMedium" color="FFFFFF" verticalAlignment="TOP" horizontalAlignment="LEFT" wrapMode="ELLIPSE" mouseEnabled="false">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="44" offsetY="0" />
+                </Label>
+
+                <!-- Count (Far Right) -->
+                <Label name="$(parent)Count" parentKey="sigmaCount" font="ZoFontGameMedium" color="FFFFCC" text="0" horizontalAlignment="RIGHT" mouseEnabled="false">
+                    <Dimensions x="0" y="22" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-4" offsetY="2" />
+                </Label>
+            </Controls>        
+        </Control>	        
+        <TopLevelControl name="InventoryCompanion_ItemTrackerFloat" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="false" resizeToFitDescendents="true">
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="50" offsetY="50"/>
+            <Controls>
+                <Control name="$(parent)Container" resizeToFitDescendents="true" mouseEnabled="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="4"/>
+                    <Controls>
+                        <Label name="InventoryCompanion_ItemTrackerFloatTitle" font="ZoFontGameSmall" color="AAAAAA" verticalAlignment="TOP" horizontalAlignment="LEFT" text="Tracked Items">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+                        </Label>
+                        <Button name="InventoryCompanion_ItemTrackerFloatEditIcon" mouseEnabled="true">
+                            <Dimensions x="18" y="18"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="0" offsetY="-2"/>
+                            <Textures 
+                                normal="EsoUI/Art/Buttons/edit_up.dds" 
+                                pressed="EsoUI/Art/Buttons/edit_down.dds" 
+                                mouseOver="EsoUI/Art/Buttons/edit_over.dds" 
+                            />
+                        </Button>
+                    </Controls>
+                </Control>
+
+                <Backdrop name="$(parent)BG" inset1="1" inset2="1" inset3="-1" inset4="-1" mouseEnabled="false">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Container" relativePoint="TOPLEFT" offsetX="-10" offsetY="-4"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Container" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="4"/>
+                    <Edge file="EsoUI/Art/ChatWindow/chat_BG_edge.dds" edgeFileWidth="256" edgeFileHeight="256" edgeSize="1"/>
+                    <Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds"/>
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

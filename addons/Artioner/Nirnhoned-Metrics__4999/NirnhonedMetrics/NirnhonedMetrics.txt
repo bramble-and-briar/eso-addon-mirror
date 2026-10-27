@@ -1,0 +1,19 @@
+## Title: |cD42F2FNirnhoned|r Metrics
+## Author: @Artioner
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101051 101052
+## Description: Damage meter with colored bars: total damage, DPS and share of your group for every fight. Type /nm to show or hide it.
+## SavedVariables: NirnhonedMetrics_SV
+## DependsOn: LibAddonMenu-2.0>=38 LibGroupCombatStats>=20260726
+
+NirnhonedMetrics.lua
+lang/en.lua
+lang/$(language).lua
+Core/Utils.lua
+Core/Fight.lua
+Core/Group.lua
+UI/Meter.lua
+UI/Settings.lua
+Core/Commands.lua
+Bindings.xml

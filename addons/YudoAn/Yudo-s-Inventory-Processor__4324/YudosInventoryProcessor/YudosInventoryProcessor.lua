@@ -32,6 +32,7 @@ local IsItemInArmory                     = IsItemInArmory
 local IsItemLinkRecipeKnown              = IsItemLinkRecipeKnown
 local IsItemStolen                       = IsItemStolen
 local CanItemBeSmithingExtractedOrRefined = CanItemBeSmithingExtractedOrRefined
+local IsItemLinkFromCrownStore           = IsItemLinkFromCrownStore
 
 -- String optimization
 local stringFind                 = string.find
@@ -71,9 +72,33 @@ end
 
 YIP.Whitelists = {
     Traits = {
-        "Nirncrux", "Aurbic Amber", "Slaughterstone",
-        "Gilding Wax", "Dawn-Prism", "Dibellium", "Titanium"
+        [56863] = true,  -- Potent Nirncrux
+        [56862] = true,  -- Fortified Nirncrux
+        [139411] = true, -- Aurbic Amber
+        [139417] = true, -- Pulverized Aurbic Amber
+        [139414] = true, -- Slaughterstone
+        [139420] = true, -- Pulverized Slaughterstone
+        [139412] = true, -- Gilding Wax
+        [139418] = true, -- Pulverized Gilding Wax
+        [139409] = true, -- Dawn-Prism
+        [139415] = true, -- Pulverized Dawn-Prism
+        [139413] = true, -- Dibellium
+        [139419] = true, -- Pulverized Dibellium
+        [139410] = true, -- Titanium
+        [139416] = true, -- Pulverized Titanium
     }
+}
+
+local PULVERIZED_TRAIT_IDS = {
+    [135158] = true, -- Pulverized Cobalt
+    [135159] = true, -- Pulverized Antimony
+    [135160] = true, -- Pulverized Zinc
+    [139415] = true, -- Pulverized Dawn-Prism
+    [139416] = true, -- Pulverized Titanium
+    [139417] = true, -- Pulverized Aurbic Amber
+    [139418] = true, -- Pulverized Gilding Wax
+    [139419] = true, -- Pulverized Dibellium
+    [139420] = true, -- Pulverized Slaughterstone
 }
 
 local DELAY_TICK = 10  -- ms between actions (Reduced from 20 to 10)
@@ -149,15 +174,7 @@ function YIP.Initialize()
     YIP.savedVars.global = YIP.savedVars.global or defaults.global
     if YIP.savedVars.global.respectLWC == nil then YIP.savedVars.global.respectLWC = true end
     
-    -- SILENT DATA MIGRATION: Convert old strings to numbers once
-    local oldVal = YIP.savedVars.decon.qualityThreshold
-    if type(oldVal) == "string" then
-        if stringFind(oldVal, "Epic") then YIP.savedVars.decon.qualityThreshold = 4
-        elseif stringFind(oldVal, "Superior") then YIP.savedVars.decon.qualityThreshold = 3
-        else YIP.savedVars.decon.qualityThreshold = 2 end
-    end
-    
-    -- Ensure everything is a number for the logic
+    -- Ensure quality threshold is a valid number
     YIP.savedVars.decon.qualityThreshold = tonumber(YIP.savedVars.decon.qualityThreshold) or 2
     
     YIP.savedVars.global = YIP.savedVars.global or defaults.global
@@ -210,12 +227,6 @@ function YIP.Initialize()
         YIP.isDeconstructing = 0
     end)
 
-    -- Pre-process Whitelist for faster lookups
-    for category, list in pairs(YIP.Whitelists) do
-        for i, val in ipairs(list) do
-            list[i] = stringLower(val)
-        end
-    end
 end
 
 function YIP.IsFCOISLocked(bagId, slotIndex, lockType)
@@ -232,13 +243,12 @@ function YIP.IsFCOISLocked(bagId, slotIndex, lockType)
     return false
 end
 
-function YIP.IsWhitelisted(name)
-    name = stringLower(name)
+function YIP.IsWhitelisted(item)
+    if not item then return false end
+    local id = (type(item) == "number") and item or GetItemLinkItemId(item)
+    if not id or id <= 0 then return false end
     for _, list in pairs(YIP.Whitelists) do
-        for _, target in ipairs(list) do
-            -- Use plain string search (4th arg = true) to handle hyphens correctly
-            if stringFind(name, target, 1, true) then return true end
-        end
+        if list[id] then return true end
     end
     return false
 end
@@ -272,7 +282,6 @@ function YIP.ShouldBeJunk(bagId, slotIndex)
 
     local _, _, _, _, _, _, _, quality = GetItemInfo(bagId, slotIndex)
     local id = GetItemLinkItemId(link)
-    local name = GetItemName(bagId, slotIndex)
     local rules = YIP.savedVars.merchant.junkRules
 
     -- 0. FCOIS Check
@@ -286,12 +295,12 @@ function YIP.ShouldBeJunk(bagId, slotIndex)
     -- 2. Crafted Item Protection - Never junk crafted items unless manually marked
     if IsItemLinkCrafted(link) then return false end
 
-    -- 3. Whitelist (Name Check) - Always-respected
-    if YIP.IsWhitelisted(name) then return false end
+    -- 3. Whitelist (Trait / Protected Item IDs) - Always-respected
+    if YIP.IsWhitelisted(id) then return false end
 
     -- 4. Crown Store Protection - Global
     -- Protects Mimic Stones, Repair Kits, Potions, Meals, Poisons, etc.
-    if stringFind(name, "Crown", 1, true) then return false end
+    if IsItemLinkFromCrownStore(link) then return false end
 
     -- 5. Safe Items (Boosters / Furnishing Mats)
     -- Style mats are intentionally NOT here so they fall through to logic below unless whitelisted
@@ -316,7 +325,7 @@ function YIP.ShouldBeJunk(bagId, slotIndex)
            itemType == ITEMTYPE_ARMOR_TRAIT or 
            itemType == ITEMTYPE_JEWELRY_TRAIT or 
            itemType == ITEMTYPE_JEWELRYCRAFTING_RAW_TRAIT or
-           stringFind(name, "Pulverized", 1, true) then
+           PULVERIZED_TRAIT_IDS[id] then
            return true 
         end
     end
@@ -607,9 +616,9 @@ function YIP.IsItemMaterial(bagId, slotIndex)
     local link = GetItemLink(bagId, slotIndex)
     local itemType, specializedType = GetItemLinkItemType(link)
     
-    -- Explicitly check whitelisted names to ensure Pulverized items are caught even if ItemType is weird
-    local name = GetItemName(bagId, slotIndex)
-    if YIP.IsWhitelisted(name) then return true end
+    -- Explicitly check whitelisted IDs to ensure rare traits / Pulverized items are caught even if ItemType is weird
+    local id = GetItemLinkItemId(link)
+    if YIP.IsWhitelisted(id) then return true end
     
     if itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL or itemType == ITEMTYPE_BLACKSMITHING_MATERIAL or
        itemType == ITEMTYPE_CLOTHIER_RAW_MATERIAL or itemType == ITEMTYPE_CLOTHIER_MATERIAL or
@@ -750,6 +759,7 @@ function YIP.OnCraftingStationInteract()
                         local itemType = GetItemLinkItemType(link)
                         local skillType = GetItemLinkCraftingSkillType(link)
                         local isLocked = IsItemPlayerLocked(bag, slot)
+                        local itemId = GetItemId(bag, slot)
                         
                         -- 1. REFINING: Always runs for both bags if the main Refine toggle is ON
                         local isValidMaterial = false
@@ -764,18 +774,17 @@ function YIP.OnCraftingStationInteract()
                             elseif stationType == CRAFTING_TYPE_WOODWORKING then
                                 isValidMaterial = (itemType == ITEMTYPE_WOODWORKING_RAW_MATERIAL or isRawFallback)
                             elseif stationType == CRAFTING_TYPE_JEWELRYCRAFTING then
-                                -- Platinum Dust Fix + Pulverized name check reinforcement
+                                -- Platinum Dust Fix + Pulverized trait item IDs
                                 isValidMaterial = (itemType == ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL or 
                                                    itemType == ITEMTYPE_JEWELRYCRAFTING_RAW_BOOSTER or 
                                                    itemType == ITEMTYPE_JEWELRYCRAFTING_RAW_TRAIT or
                                                    isRawFallback or
-                                                   stringFind(stringLower(GetItemName(bag, slot)), "pulverized", 1, true))
+                                                   PULVERIZED_TRAIT_IDS[itemId])
                             end
                         end
 
                         if isValidMaterial and not isLocked then
                             if not YIP.IsFCOISLocked(bag, slot, "refine") then
-                                local itemId = GetItemId(bag, slot)
                                 local _, stackSize = GetItemInfo(bag, slot)
                                 if not totals[itemId] then totals[itemId] = { total = 0, slots = {} } end
                                 totals[itemId].total = totals[itemId].total + stackSize
@@ -978,7 +987,7 @@ function YIP.InitializeSettings()
         name = "Yudo's Inventory Processor",
         displayName = "Yudo's Inventory Processor",
         author = "YudoAn",
-        version = "1.12.1",
+        version = "1.13.1",
         website = "https://www.esoui.com/downloads/info4324-YudosInventoryProcessor.html",
         registerForRefresh = true,
     }

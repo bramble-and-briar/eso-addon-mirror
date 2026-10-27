@@ -18,7 +18,7 @@
     "RestyleHelper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4914/",
-  "fingerprint": "c622019c881c189148206ec3c88ab65d882e36bef51d5f27462baa6878110ea3",
+  "fingerprint": "00e3ed0a8087cb3c8eaf4071be736378b4db44ed4d0bd5315de231f88b03317d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17752.png",
     "https://cdn-eso.mmoui.com/preview/pvw17724.png",
@@ -36,11 +36,11 @@
   "source_id": "4914",
   "source_url": "https://www.esoui.com/downloads/info4914-RestyleHelper.html",
   "stats": {
-    "downloads": 51,
-    "favorites": 1,
-    "monthly_downloads": 51
+    "downloads": 73,
+    "favorites": 2,
+    "monthly_downloads": 71
   },
   "title": "RestyleHelper",
-  "updated_at": 1792511719000,
-  "version": "1.2"
+  "updated_at": 1793035380000,
+  "version": "1.5"
 }

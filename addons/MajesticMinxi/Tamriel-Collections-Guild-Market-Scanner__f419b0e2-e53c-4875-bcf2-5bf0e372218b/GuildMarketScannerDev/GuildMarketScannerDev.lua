@@ -2,14 +2,15 @@
 -- Local-only; L3 scans additional trader pages and caches collection matches.
 GuildMarketScannerDev = GuildMarketScannerDev or {}
 local GMS = GuildMarketScannerDev
-GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.6k'
+GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.7b'
 GMS.enabled, GMS.traderOpen, GMS.keybindAttached = false, false, false
 -- Diagnostics are disabled in normal gameplay. /gmsdebug toggles them for testing.
 GMS.debug = false
 local function Say(msg)
     if not GMS.debug then return end
     local line = '|cD9AD51[Tamriel|r |cB58AE8Collections]|r ' .. tostring(msg)
-    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line) else d(line) end
+    if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line) else -- release: silent
+    end
 end
 local function TryBoolean(fn, ...)
     if type(fn) ~= 'function' then return nil end
@@ -574,7 +575,7 @@ end
 local function DiagnosticPrint(message)
     local line='[GMS DIAG] '..tostring(message)
     if not GMS.debug then return end
-    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line) elseif type(d)=='function' then d(line) end
+    if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line) elseif false and type(d)=='function' then d(line) end
 end
 function GMS:DiagnosticSummary()
     local diag=self.scanDiagnostic
@@ -686,8 +687,8 @@ end
 function GMS:ProbePriceSources()
     local function emit(msg)
         local line='[GMS PRICE PROBE] '..msg
-        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line)
-        elseif type(d)=='function' then d(line) end
+        if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line)
+        elseif false and type(d)=='function' then d(line) end
     end
     local browse=GAMEPAD_TRADING_HOUSE_BROWSE
         or (TRADING_HOUSE_GAMEPAD and TRADING_HOUSE_GAMEPAD.browse)
@@ -755,7 +756,7 @@ local function GMSQualityProbeOutput(msg)
         local ok=pcall(d,line)
         if ok then return end
     end
-    if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
+    if false and CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
         pcall(CHAT_ROUTER.AddSystemMessage,CHAT_ROUTER,line)
     end
 end
@@ -802,7 +803,7 @@ end
 -- v1.0.5l: compact selected-category diagnostic; does not change working filters.
 local function GMSCategoryLine(message)
     local line='[GMS CATEGORY] '..tostring(message)
-    if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
+    if false and CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
         local ok=pcall(CHAT_ROUTER.AddSystemMessage,CHAT_ROUTER,line)
         if ok then return end
     end
@@ -1423,9 +1424,9 @@ function GMS:ProbeNameAutocomplete()
     local feature=browse and browse.features and browse.features.nameSearchFeature
     local function emit(message)
         local line='[GMS NAME] '..tostring(message)
-        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+        if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
             CHAT_ROUTER:AddSystemMessage(line)
-        elseif type(d)=='function' then d(line) end
+        elseif false and type(d)=='function' then d(line) end
     end
     local function brief(value)
         if type(value)=='string' then return string.sub(value,1,90) end
@@ -1586,7 +1587,7 @@ end
 function GMS:ProbeNativeSort()
     local panel=self:GetPanel()
     local function emit(line)
-        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage('[GMS sort] '..line) end
+        if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage('[GMS sort] '..line) end
     end
     if not panel then emit('No browse-results panel'); return end
     local function inspect(label,obj)
@@ -1680,9 +1681,16 @@ function GMS:InstallItemLinkPreviewBridge()
                 if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.ClearPreviewCollection then
                     ITEM_PREVIEW_GAMEPAD:ClearPreviewCollection()
                 end
-                return PreviewItemLink(link)
+                PreviewItemLink(link)
+                -- ESO's shared item preview manager applies its collection after
+                -- invoking the low-level preview function. Our bridge previously
+                -- omitted that essential commit step.
+                if type(ApplyChangesToPreviewCollectionShown)=='function' then
+                    ApplyChangesToPreviewCollectionShown()
+                end
+                return true
             end)
-            if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+            if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
                 CHAT_ROUTER:AddSystemMessage('[GMS] PreviewItemLink called: ok='..tostring(ok)..' result='..tostring(result)..' linkType='..tostring(GetItemLinkItemType(link)))
             end
             if not ok or result==false then
@@ -1730,7 +1738,7 @@ function GMS:InstallPreviewSceneGuard()
                 if not data then return end
                 local ok,opened=pcall(GMS.OpenNativeItemLinkPreview,GMS,panel,data)
                 if ok and opened then return end
-                if not ok and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+                if false and not ok and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
                     CHAT_ROUTER:AddSystemMessage('[GMS] Preview setup error: '..tostring(opened))
                 end
                 -- Live listing verification is the same identity check used for X.
@@ -1749,7 +1757,7 @@ function GMS:InstallPreviewSceneGuard()
                     end
                 end
                 -- No scene transition: preserve selection/focus and avoid crash.
-                if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+                if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
                     CHAT_ROUTER:AddSystemMessage('[GMS] Furnishing preview requires the live trader result; staying in results.')
                 end
             end
@@ -1779,7 +1787,7 @@ function GMS:ShowCombinedPage()
         pcall(ZO_ScrollList_TrySelectFirstData,panel.list)
     end
     if type(ZO_ScrollList_ResetToTop)=='function' then pcall(ZO_ScrollList_ResetToTop,panel.list) end
-    if GMS.debug and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+    if false and GMS.debug and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
         CHAT_ROUTER:AddSystemMessage('[GMS] Filtered page '..self.combinedPage..'/'..pages..' ('..count..' listings)')
     end
     -- ESO's gamepad footer has its own page label and trigger-button states.
@@ -1812,7 +1820,12 @@ function GMS:RefreshFilteredFooter()
         end
         if footer.pageNumberLabel then
             footer.pageNumberLabel:SetHidden(false)
-            footer.pageNumberLabel:SetText('Filtered Page '..tostring(page)..' / '..tostring(pages))
+            -- Keep ESO's original L2/R2 controls and the full page count.
+            -- Only make the label compact and consistent with gamepad UI text.
+            if type(footer.pageNumberLabel.SetFont)=='function' then
+                footer.pageNumberLabel:SetFont('ZoFontGamepad22')
+            end
+            footer.pageNumberLabel:SetText('Page '..tostring(page)..' / '..tostring(pages))
         end
     end
 end
@@ -1920,11 +1933,10 @@ function GMS:ShowCombined()
     self:InstallFilteredNavigation()
     self:DetachResultsKeybinds()
     self:ShowCombinedPage()
-    self:DiagnosticSummary()
-    if GMS.debug and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+    if false and GMS.debug and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
         CHAT_ROUTER:AddSystemMessage('[GMS] Listing identity check: '..tostring(self.verifiedPurchaseIds or 0)..' verified; '..tostring(self.unverifiedPurchaseIds or 0)..' ambiguous/unverified.')
     end
-    if GMS.debug and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+    if false and GMS.debug and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
         CHAT_ROUTER:AddSystemMessage('[GMS] '..tostring(#self.collected)..' uncollected listings on filtered pages of 25. X uses unique-ID purchase selection when verified.')
     end
 end
@@ -2017,7 +2029,7 @@ end
 -- v1.0.2: use the EXISTING ESO browse-results X descriptor. Do not
 -- register a competing keybind and never submit a purchase from X itself.
 local function GMSPurchaseNotice(message)
-    if CHAT_ROUTER then CHAT_ROUTER:AddSystemMessage('[GMS X] '..tostring(message):sub(1,150)) end
+    if false and CHAT_ROUTER then CHAT_ROUTER:AddSystemMessage('[GMS X] '..tostring(message):sub(1,150)) end
 end
 function GMS:SelectCachedPurchase(panel)
     if not self.enabled or not self.combinedVisible or not panel then return true end
@@ -2106,7 +2118,6 @@ function GMS:InstallNativePurchaseKeybind()
     if type(original)~='function' then return false end
     descriptor.callback=function(...)
         if GMS.enabled and GMS.combinedVisible then
-            GMS:CrashSnapshot('native-X')
             local ok,err=pcall(GMS.SelectCachedPurchase,GMS,panel)
             if not ok then GMSPurchaseNotice('Handler error: '..tostring(err):gsub('[\r\n].*',''):sub(1,110)) end
             return
@@ -2148,7 +2159,6 @@ function GMS:InstallSelectionGuard()
         if type(original)=='function' then
             panel[name]=function(instance,...)
                 if GMS.enabled and GMS.combinedVisible then
-                    GMS:CrashSnapshot('selection:'..name)
                     return GMS:SelectCachedPurchase(instance)
                 end
                 return original(instance,...)
@@ -2191,12 +2201,6 @@ function GMS:Toggle()
     self.gmsQuality=nil
     self.gmsCategoryKey,self.gmsCategorySpecialized,self.gmsCategoryHeader,self.gmsCategoryParentKey,self.gmsCategoryFamily=nil,nil,nil,nil,nil
     self.gmsNameSourceNotice=false
-    if self.enabled then
-        self.scanDiagnostic={start=DiagnosticTime(),pages=0,transitions=0,waiting=0,complete=0,requests=0}
-        DiagnosticPrint('START integrated L3 collection across guild trader pages')
-    else
-        self:DiagnosticSummary()
-    end
     self:InstallPagingCallback()
     self:InstallPurchaseGuard()
     self:InstallSelectionGuard()
@@ -2263,7 +2267,7 @@ function GMS:EnsureKeybind()
     if not self.keybindGroup then
         self.keybindGroup = {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            { name = function() return GMS.enabled and 'Not Collected: ON' or 'Not Collected: OFF' end,
+            { name = function() return GMS.enabled and 'GMS: Return to Store' or 'GMS: Scan Store' end,
               keybind = 'UI_SHORTCUT_LEFT_STICK',
               callback = function() GMS:Toggle() end,
               visible = function() return GMS.traderOpen end },
@@ -2281,9 +2285,9 @@ end
 -- No automatic scanning, purchasing, or manipulation of the visible list.
 local function ProbeMessage(message)
     local line = '[GMS 0.9.33 PROBE] ' .. tostring(message)
-    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+    if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
         CHAT_ROUTER:AddSystemMessage(line)
-    elseif type(d)=='function' then d(line) end
+    elseif false and type(d)=='function' then d(line) end
 end
 local function ProbeSnapshot()
     local count, page = GetTradingHouseSearchResultsInfo()
@@ -2386,9 +2390,9 @@ end
 -- requesting the next one. This test deliberately does not enable purchases.
 local function CollectMessage(message)
     local line='[GMS 0.9.37 COLLECT] '..tostring(message)
-    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+    if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
         CHAT_ROUTER:AddSystemMessage(line)
-    elseif type(d)=='function' then d(line) end
+    elseif false and type(d)=='function' then d(line) end
 end
 local function CollectPage(page)
     local count=select(1,GetTradingHouseSearchResultsInfo())
@@ -2656,9 +2660,9 @@ function GMS:ProbeNameSources()
         if count>=24 then return end
         count=count+1
         local line='[GMS NAME PROBE] '..tostring(message)
-        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+        if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
             CHAT_ROUTER:AddSystemMessage(line)
-        elseif type(d)=='function' then d(line) end
+        elseif false and type(d)=='function' then d(line) end
     end
     emit('v1.0.5d name='..tostring(self:ReadCachedNameQuery()))
     local nodes=0
@@ -2703,7 +2707,7 @@ end
 -- v1.0.6l: read-only state comparison. NEVER activates an item or changes scenes.
 function GMS:ProbeRecentSearchState()
     local function emit(msg)
-        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+        if false and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
             CHAT_ROUTER:AddSystemMessage('[GMS RECENT] '..tostring(msg))
         elseif type(d)=='function' then d('[GMS RECENT] '..tostring(msg)) end
     end
@@ -2728,91 +2732,10 @@ function GMS:ProbeRecentSearchState()
     emit('native searchText='..tostring(search and search.searchText)..' sortKey='..tostring(panel.currentSortKey))
 end
 
--- v1.0.6p: bounded, read-only crash-state snapshots. No scene/list mutation.
--- Captures before native activation and on the existing periodic refresh.
-function GMS:CrashSnapshot(tag)
-    local function safe(fn,default)
-        local ok,val=pcall(fn)
-        if ok then return val end
-        return default
-    end
-    local panel=safe(function() return self:GetPanel() end,nil)
-    local list=panel and panel.list
-    local entries=(list and type(ZO_ScrollList_GetDataList)=='function') and
-        safe(function() return ZO_ScrollList_GetDataList(list) end,nil) or nil
-    local count=type(entries)=='table' and #entries or -1
-    local selected=(list and type(ZO_ScrollList_GetSelectedData)=='function') and
-        safe(function() return ZO_ScrollList_GetSelectedData(list) end,nil) or nil
-    local first=type(entries)=='table' and entries[1] or nil
-    local data=selected or (first and first.data)
-    local feature=GAMEPAD_TRADING_HOUSE_BROWSE and GAMEPAD_TRADING_HOUSE_BROWSE.features and
-        GAMEPAD_TRADING_HOUSE_BROWSE.features.nameSearchFeature
-    local nativeCount,nativePage=safe(function() return GetTradingHouseSearchResultsInfo() end,nil),nil
-    local scene=safe(function()
-        local s=(panel and panel.scene) or GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS_SCENE
-        return s and type(s.GetState)=='function' and s:GetState() or nil
-    end,nil)
-    local snap={
-        'event='..tostring(tag)..' ms='..tostring(safe(function() return GetFrameTimeMilliseconds() end,'?')),
-        'open='..tostring(self.traderOpen)..' on='..tostring(self.enabled)..' cached='..tostring(self.combinedVisible)..' scanning='..tostring(self.collecting),
-        'scene='..tostring(scene)..' panel='..tostring(panel~=nil)..' list='..tostring(list~=nil)..' entries='..tostring(count),
-        'page='..tostring(self.combinedPage)..' total='..tostring(#(self.collected or {}))..' nativeCount='..tostring(nativeCount),
-        'query='..tostring(self.gmsNameQuery)..' raw='..tostring(safe(function() return self:ReadCachedNameQuery() end,nil)),
-        'selected='..tostring(selected~=nil)..' name='..tostring(data and data.name)..' id='..tostring(data and (data.gmsPurchaseId or data.id)),
-        'itemLink='..tostring(data and type(data.gmsItemLink))..' seller='..tostring(data and type(data.gmsSeller))..' price='..tostring(data and data.gmsPurchasePrice),
-        'featureText='..tostring(feature and feature.searchText)..' featureSelected='..type(feature and feature.selectedData),
-        'suspended='..tostring(self.gmsCachedListSuspended)..' replay='..tostring(self.replayingPage)..' filterGen='..tostring(self.filterGeneration),
-    }
-    self.gmsCrashHistory=self.gmsCrashHistory or {}
-    table.insert(self.gmsCrashHistory,snap)
-    if #self.gmsCrashHistory>5 then table.remove(self.gmsCrashHistory,1) end
-end
-function GMS:PrintCrashSnapshot(index)
-    local function emit(msg)
-        local line='[GMS CRASH] '..tostring(msg)
-        if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(line)
-        elseif type(d)=='function' then d(line) end
-    end
-    local history=self.gmsCrashHistory or {}
-    local snap=history[#history]
-    if not snap then emit('No snapshot yet. Use /gmscrashnow before Square.'); return end
-    local n=tonumber(index) or 1
-    if n<1 or n>9 then emit('Use /gmscrash 1 through 9'); return end
-    emit('Snapshot '..tostring(#history)..'/'..tostring(#history)..' line '..n..'/9')
-    emit(snap[n])
-end
+-- Legacy crash snapshot calls are intentionally inert in release builds.
+function GMS:CrashSnapshot() end
 
 function GMS:Initialize()
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdebug']=function() GMS.debug=not GMS.debug; local msg='[GMS] Debug messages '..(GMS.debug and 'ON' or 'OFF'); if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then CHAT_ROUTER:AddSystemMessage(msg) elseif type(d)=='function' then d(msg) end end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsnameprobe']=function() GMS:ProbeNameSources() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmspriceprobe']=function() GMS:ProbePriceSources() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsjewelryprobe']=function() GMS:ProbeJewelrySelection() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmssortprobe']=function() GMS:ProbeNativeSort() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmssort']=function(args)
-        local field,dir=string.match(string.lower(args or ''),'^(%a+)%s+(%a+)$')
-        if field~='time' and field~='unit' and field~='total' then
-            if CHAT_ROUTER then CHAT_ROUTER:AddSystemMessage('[GMS] /gmssort time|unit|total asc|desc') end
-            return
-        end
-        GMS.gmsNativeSortKey=GMS:GetPanel() and GMS:GetPanel().currentSortKey or nil
-        GMS.gmsNativeSortOrder=GMS:GetPanel() and GMS:GetPanel().currentSortOrder or nil
-        GMS.gmsSortField=field
-        GMS.gmsSortDescending=(dir=='desc')
-        GMS.combinedPage=1
-        GMS:ShowCombinedPage()
-        if CHAT_ROUTER then CHAT_ROUTER:AddSystemMessage('[GMS] Cached sort '..field..' '..(GMS.gmsSortDescending and 'descending' or 'ascending')) end
-    end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdepthprobe']=function() GMS:ProbeFilterDepth() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsparentprobe']=function() GMS:ProbeParentDropdown() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscategoryprobe']=function() GMSCategoryLine('command received'); GMS:ProbeCategorySources() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsqualityprobe']=function() GMSQualityProbeOutput('command received'); GMS:ProbeQualitySources() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsnameprobe']=function() GMS:ProbeNameAutocomplete() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsrecentprobe']=function() GMS:ProbeRecentSearchState() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscrash']=function(arg) GMS:PrintCrashSnapshot(arg) end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscrashnow']=function() GMS:CrashSnapshot('manual'); GMS:PrintCrashSnapshot(1) end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmscollect']=function() GMS:CollectBackgroundTest() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsprobe']=function() GMS:ProbeBackgroundRequest() end end
-    if SLASH_COMMANDS then SLASH_COMMANDS['/gmsdiag']=function() GMS:DiagnosticSummary() end end
     if type(EVENT_TRADING_HOUSE_RESPONSE_RECEIVED)=='number' then
         EVENT_MANAGER:RegisterForEvent(self.name .. '_purchase_response',
             EVENT_TRADING_HOUSE_RESPONSE_RECEIVED,
@@ -2839,13 +2762,30 @@ function GMS:Initialize()
             GMS:EnsureKeybind()
             GMS:RefreshCachedNameFilter()
             if GMS.combinedVisible then
-                GMS:CrashSnapshot('tick')
                 if GMS:SyncNativeCachedSort() then GMS:ShowCombinedPage() end
                 GMS:RefreshCachedDisplayChrome()
             end
         end
     end)
-    Say('v1.0.5t first-level category expansion loaded.')
+    -- Wait until the player is in-world, then allow the HUD chat to initialize.
+    -- Print only once per login, not on every zone transition.
+    local startupEvent = self.name .. '_startup_message'
+    EVENT_MANAGER:RegisterForEvent(startupEvent, EVENT_PLAYER_ACTIVATED, function()
+        EVENT_MANAGER:UnregisterForEvent(startupEvent, EVENT_PLAYER_ACTIVATED)
+        local function announce()
+            local line = '|cFFD15AGMS|r |c44D5C7- Guild Market Scanner|r |c50BFFFv'..GMS.version..'|r |c73E58Cloaded!|r'
+            if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
+                CHAT_ROUTER:AddSystemMessage(line)
+            elseif type(d)=='function' then
+                d(line)
+            end
+        end
+        if type(zo_callLater)=='function' then
+            zo_callLater(announce, 1800)
+        else
+            announce()
+        end
+    end)
 end
 EVENT_MANAGER:RegisterForEvent(GMS.name, EVENT_ADD_ON_LOADED, function(_, addonName)
     if addonName ~= GMS.name then return end

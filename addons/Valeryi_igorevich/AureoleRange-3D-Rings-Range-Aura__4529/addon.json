@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Valeryi_igorevich/AureoleRange-3D-Rings-Range-Aura__4529",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Valeryi_igorevich",
   "canonical_id": "esoui:4529",
   "category_id": "96",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -17,7 +26,7 @@
     "AureoleRange"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4529/",
-  "fingerprint": "16e5bfc02583caf4b03cb8ff596d9fa5694d9dc0ede8e8abeabbb6204a218324",
+  "fingerprint": "578282e849bbf9eca1921baaca9104d2df15efbe626142e8b03a4f3598f73a3b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15801.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw15802.jpg"
@@ -28,11 +37,11 @@
   "source_id": "4529",
   "source_url": "https://www.esoui.com/downloads/info4529-AureoleRange3DRingsRangeAura.html",
   "stats": {
-    "downloads": 226,
-    "favorites": 4,
-    "monthly_downloads": 27
+    "downloads": 311,
+    "favorites": 3,
+    "monthly_downloads": 29
   },
   "title": "AureoleRange (3D Rings / Range Aura)",
-  "updated_at": 1777320973000,
-  "version": "6.5.2"
+  "updated_at": 1793038837000,
+  "version": "6.5.3"
 }

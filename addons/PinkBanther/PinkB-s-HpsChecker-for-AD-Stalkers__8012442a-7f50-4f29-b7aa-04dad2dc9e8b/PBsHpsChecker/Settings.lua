@@ -4,12 +4,11 @@ local ADDON = PBsHpsChecker
 ---------------------------------------------------------------------------------------------------
 -- The settings panel (LibHarvensAddonSettings, optional)
 --
--- Settings only. The statistics are in the statistics window (Stats.lua), a window of their own, and
--- the panel opens and closes it and chooses the period it shows; it lists none of them itself. The
--- period list is built again each time the panel is picked, because the days that have records change.
+-- Settings only. The statistics are on the statistics screen (Screen.lua), which has its own entry in
+-- the main menu; the panel has a button that opens it and lists none of the numbers itself.
 --
--- The window is drawn over the panel while the panel is open (the panel is not a HUD scene). So is
--- the HUD meter, with sample numbers, to place and size it.
+-- The HUD meter is drawn over the panel while the panel is open (the panel is not a HUD scene), with
+-- sample numbers, to place and size it.
 ---------------------------------------------------------------------------------------------------
 
 -- Position moves in fives: a d-pad press that moves the meter one unit at a time would take a minute
@@ -30,10 +29,10 @@ end
 --
 -- So AddonSelected arrives while the add-on list is still the current scene, and Select() returns
 -- early for the add-on already selected, so a second visit to the same panel fires nothing at all.
--- The panel scene itself is the reliable signal: shown with our panel selected means the window and
--- the meter are wanted, hiding means they are not. It only exists once the library has initialised,
--- which it does the first time the main menu opens, so it is looked up when a panel is picked. The
--- same as PB's KillLog, measured on PS5.
+-- The panel scene itself is the reliable signal: shown with our panel selected means the HUD meter's
+-- preview is wanted, hiding means it is not. It only exists once the library has initialised, which it
+-- does the first time the main menu opens, so it is looked up when a panel is picked. The same as PB's
+-- KillLog, measured on PS5.
 ---------------------------------------------------------------------------------------------------
 
 local PANEL_SCENE_NAME = "LibHarvensAddonSettingsScene"
@@ -52,7 +51,6 @@ end
 
 local function SetPanelOpen(open)
     ADDON.panelOpen = open and true or false
-    ADDON.window:OnPanelOpen(ADDON.panelOpen)
     ADDON.hud:OnPanelOpen(ADDON.panelOpen)
 end
 
@@ -114,7 +112,6 @@ function ADDON.InitializeSettings()
     local sv = ADDON.sv
     local defaults = ADDON.defaults
     local records = ADDON.records
-    local window = ADDON.window
     local hud = ADDON.hud
 
     -- The sliders' ranges are the screen. GuiRoot is the space the anchor offsets are measured in.
@@ -170,69 +167,16 @@ function ADDON.InitializeSettings()
     settings:AddSetting({ type = Library.ST_LABEL, label = L(SI_PBSHPS_EXPLANATION) })
 
     -- ---- Statistics ----------------------------------------------------------------------
-    -- The statistics are in their own window. This is the way to it: a button that shows or hides it,
-    -- and the period it covers. The number of periods is not fixed, so these rows are built again
-    -- every time the panel is picked and after the records are cleared. They sit in one run of the
-    -- list, so the run can be taken out and a new one put in its place.
-    local dynamicStart = #settings.settings + 1
-    local dynamicCount = 0
-
-    local function BuildRows()
-        local rows = {}
-        rows[#rows + 1] = { type = Library.ST_SECTION or Library.ST_LABEL, label = L(SI_PBSHPS_SECTION_STATS) }
-        rows[#rows + 1] = {
-            type = Library.ST_BUTTON,
-            label = L(SI_PBSHPS_STATS_BUTTON),
-            tooltip = L(SI_PBSHPS_STATS_BUTTON_TIP),
-            buttonText = L(SI_PBSHPS_STATS_BUTTON_TEXT),
-            clickHandler = function() window:Toggle() end,
-        }
-
-        local periodItems = {}
-        for _, token in ipairs(records:ScopeList()) do
-            periodItems[#periodItems + 1] = { name = records:ScopeText(token), data = token }
-        end
-        rows[#rows + 1] = {
-            type = Library.ST_DROPDOWN,
-            label = L(SI_PBSHPS_PERIOD),
-            tooltip = L(SI_PBSHPS_PERIOD_TIP),
-            items = periodItems,
-            default = periodItems[1].name,
-            -- "Reset to defaults" must not change the period being looked at, or pop the window up.
-            ignoreDefault = true,
-            getFunction = function()
-                for _, item in ipairs(periodItems) do
-                    if item.data == window.scope then
-                        return item.name
-                    end
-                end
-                return periodItems[1].name
-            end,
-            setFunction = function(combobox, name, item)
-                window:SetScope(item.data)
-                -- Choosing a period is asking to see it, and the window is where it is seen.
-                if not window.wanted then
-                    window:SetWanted(true)
-                end
-            end,
-        }
-        return rows
-    end
-
-    function ADDON.RebuildRows()
-        settings:RemoveSettings(dynamicStart, dynamicCount)
-        local rows = BuildRows()
-        settings:AddSettings(rows, dynamicStart)
-        dynamicCount = #rows
-    end
-
-    do
-        local rows = BuildRows()
-        settings:AddSettings(rows)
-        dynamicCount = #rows
-    end
-
-    AddCheckbox(SI_PBSHPS_SHOW_PSN, SI_PBSHPS_SHOW_PSN_TIP, "showPsn", function() window:Refresh() end)
+    -- The statistics are on their own screen, in the main menu. This is a way to it from here.
+    AddSection(SI_PBSHPS_SECTION_STATS)
+    settings:AddSetting({
+        type = Library.ST_BUTTON,
+        label = L(SI_PBSHPS_STATS_BUTTON),
+        tooltip = L(SI_PBSHPS_STATS_BUTTON_TIP),
+        buttonText = L(SI_PBSHPS_STATS_BUTTON_TEXT),
+        clickHandler = function() ADDON.menu:Open() end,
+    })
+    AddCheckbox(SI_PBSHPS_SHOW_PSN, SI_PBSHPS_SHOW_PSN_TIP, "showPsn", nil)
 
     -- ---- HUD meter -----------------------------------------------------------------------
     AddSection(SI_PBSHPS_SECTION_HUD)
@@ -292,20 +236,15 @@ function ADDON.InitializeSettings()
         clickHandler = function()
             -- Deleting records is asked about first, and does nothing if it cannot be asked.
             if not records:ConfirmClear(function()
-                ADDON.RebuildRows()
-                window:Refresh()
+                -- Nothing on the panel shows the records; the screen is drawn afresh when it is opened.
             end) then
                 ADDON.Print(L(SI_PBSHPS_ERR_NO_DIALOG))
             end
         end,
     })
 
-    -- Registered on the client's callback manager, beside everyone else's. It runs before the
-    -- library draws the panel, so the rows are current when it appears.
+    -- Registered on the client's callback manager, beside everyone else's.
     CALLBACK_MANAGER:RegisterCallback("LibHarvensAddonSettings_AddonSelected", function(_, addonSettings)
-        if addonSettings == settings then
-            ADDON.RebuildRows()
-        end
         OnAddonSelected(addonSettings)
     end)
 end

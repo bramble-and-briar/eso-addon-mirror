@@ -1,6 +1,9 @@
-2026-10-15 — 2.3.6 PC publishing revision
-- Changed PC manifest extension from .addon to .txt, preserving load order and metadata.
-- Removed 546 redundant SI existence guards before SafeAddString. Preserved every string value, ID, version, and Arabic-language condition.
-- Added prominent AI disclosure, English description, installation/upgrade instructions, font attribution and credits.
-- Retained language data, fonts, layout hooks and SavedVariables behavior unchanged.
-- Lua 5.1 syntax, manifest references, ZIP integrity, byte-preservation checks and 12 string-behavior equivalence scenarios passed. Live game validation remains pending.
+2.4.0
+Food, drink, poison, potion, furniture and associated recipe/plan name corrections.
+Crafting terminology corrections: Heartwood, ash wood, jewelry trait materials,
+style ingredients, crafting tools and ranked reward containers. Corrected selected
+profession labels. Full cumulative package; previous rune and name fixes included.
+Map names and all 112 rune records unchanged. Roman ranks and grammar tags preserved.
+Static validation only; not tested in-game. Native internal Lead prefix limitation remains.
+
+- Includes the previous 2.4.0 motif, glyph, equipment, rune, NPC, lead, event and bank compatibility corrections.

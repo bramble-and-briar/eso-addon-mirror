@@ -19,7 +19,7 @@ BetterCharacterOverview = {}
 local BCO = BetterCharacterOverview
 
 BCO.name = "BetterCharacterOverview"
-BCO.version = "1.10.0"
+BCO.version = "1.11.0"
 BCO.savedVarVersion = 2
 
 BCO.CATEGORY_DESCRIPTOR = "bcoCategoryList"
@@ -40,6 +40,9 @@ BCO.defaults = {
     },
     settings = {
         categoryIndex = 1,
+        -- Furnishing section headers: "Category - Subcategory" (true) or
+        -- the top-level furniture category only (false). /bcosub toggles.
+        furnishingSubcategories = true,
     },
 }
 
@@ -3088,50 +3091,83 @@ local function GetFurnishingSectionName(item)
         return nil
     end
 
-    local categoryId = nil
+    -- Both calls return categoryId, subcategoryId as their first two values.
+    local categoryId, subcategoryId = nil, nil
+    local infoFunction = type(GetFurnitureDataCategoryInfo) == "function"
+        and GetFurnitureDataCategoryInfo
+        or GetFurnitureDataInfo
 
-    if type(GetFurnitureDataCategoryInfo)
-        == "function"
-    then
-        local okCategory, id = pcall(
-            GetFurnitureDataCategoryInfo,
+    if type(infoFunction) == "function" then
+        local okCategory, id, subId = pcall(
+            infoFunction,
             furnitureDataId
         )
 
         if okCategory then
-            categoryId = id
-        end
-    elseif type(GetFurnitureDataInfo) == "function" then
-        local okCategory, id = pcall(
-            GetFurnitureDataInfo,
-            furnitureDataId
-        )
-
-        if okCategory then
-            categoryId = id
+            categoryId, subcategoryId = id, subId
         end
     end
 
-    if not categoryId or categoryId == 0 then
+    local function CategoryName(id)
+        if not id or id == 0 then
+            return nil
+        end
+
+        local okName, name = pcall(GetFurnitureCategoryInfo, id)
+
+        if okName and type(name) == "string" and name ~= "" then
+            return name
+        end
+
         return nil
     end
 
-    local okName, categoryName = pcall(
-        GetFurnitureCategoryInfo,
-        categoryId
-    )
+    local categoryName = CategoryName(categoryId)
+    local subcategoryName = nil
+    local settings = BCO.savedVars and BCO.savedVars.settings
 
-    if okName
-        and type(categoryName) == "string"
-        and categoryName ~= ""
+    if not settings or settings.furnishingSubcategories ~= false then
+        subcategoryName = CategoryName(subcategoryId)
+    end
+
+    -- Same header shape as the Furnishing Vault (Vault Categories addon):
+    -- "Lighting - Candles"; category-only when the two coincide or one is missing.
+    local sectionName = nil
+
+    if categoryName and subcategoryName
+        and subcategoryName ~= categoryName
     then
+        sectionName = categoryName .. " - " .. subcategoryName
+    else
+        sectionName = categoryName or subcategoryName
+    end
+
+    if sectionName then
         item.bcoFurnishingSection =
-            FormatSectionHeader(categoryName)
+            FormatSectionHeader(sectionName)
 
         return item.bcoFurnishingSection
     end
 
     return nil
+end
+
+-- Drop the cached furnishing section (and the dependent section caches) on
+-- every aggregate item so a header-shape change shows on the next refresh.
+function BCO:InvalidateFurnishingSections()
+    local aggregate = self.aggregatedItems
+
+    if type(aggregate) ~= "table" then
+        return
+    end
+
+    for _, item in pairs(aggregate) do
+        if type(item) == "table" and rawget(item, "bcoFurnishingSection") ~= nil then
+            item.bcoFurnishingSection = nil
+            item.bcoSection = nil
+            item.bcoSectionApparel = nil
+        end
+    end
 end
 
 local function ComputeItemSectionInfo(item, categoryKey)
@@ -7448,6 +7484,23 @@ local function RegisterCommands()
         }
         BCO:ReleaseIndex()
         Msg("Saved inventory snapshots cleared.")
+    end
+
+    -- Furnishing headers: "Category - Subcategory" (default) or category only.
+    SLASH_COMMANDS["/bcosub"] = function()
+        local settings = BCO.savedVars.settings
+        settings.furnishingSubcategories =
+            settings.furnishingSubcategories == false
+        BCO:InvalidateFurnishingSections()
+        Msg(
+            "Furnishing subcategory headers "
+                .. (settings.furnishingSubcategories and "on" or "off")
+                .. "."
+        )
+
+        if BCO.installed and BCO.itemList then
+            pcall(function() BCO:RefreshItemList(false) end)
+        end
     end
 
 

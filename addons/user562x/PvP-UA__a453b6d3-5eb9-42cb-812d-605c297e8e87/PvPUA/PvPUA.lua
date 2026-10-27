@@ -92,6 +92,7 @@ PvPUA.constants.userIcons = {
     ["@sgt bear78fh"]    = { texture = "PvPUA/Textures/icon_bear.dds", heightOffset = 1.0 },
     ["@rolo tsg"]        = { texture = "PvPUA/Textures/icon_wizard.dds" },
     ["@bella nekro"]     = { texture = "PvPUA/Textures/icon_bellamask.dds" },
+    ["@o1knuckles1o"]    = { texture = "PvPUA/Textures/icon_knuckles.dds" },
 }
 
 PvPUA.constants.ICON_NONE    = 1

@@ -41,7 +41,7 @@ local WHITE = { 1, 1, 1 }
 
 -- The sizes, smallest to largest: a pair of named gamepad fonts each, for the big HPS line and for the
 -- rows under it. Only fonts the console UI is known to have loaded are used (they are the ones PB's
--- KillLog and this add-on's statistics window use; a face nothing else draws with has to be built
+-- KillLog and this add-on's statistics screen use; a face nothing else draws with has to be built
 -- on use, and that has crashed a PS5 before), so the size goes in steps and stops at 34, not in a
 -- smooth scale. 4 is what the box has always been.
 local SIZES = {

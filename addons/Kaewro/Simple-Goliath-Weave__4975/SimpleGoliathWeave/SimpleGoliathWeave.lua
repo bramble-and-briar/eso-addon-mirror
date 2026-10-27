@@ -16,16 +16,15 @@
 
 local ADDON = "SimpleGoliathWeave"
 
-SimpleGoliathWeave = {}
-local SGW = SimpleGoliathWeave
+local SGW = {}
 SGW.name = ADDON
-SGW.version = "1.0.0"
+SGW.version = "1.0.1"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
 
--- Ability IDs for the three Goliath ultimates. Detection also matches any
--- ultimate whose (English) name contains "goliath".
+-- Ability IDs for the three Goliath ultimates. Detection uses these IDs only,
+-- so it works on every client language.
 local KNOWN_IDS = {
     [115001] = true, -- Bone Goliath Transformation
     [118664] = true, -- Pummeling Goliath (confirmed in game)
@@ -94,38 +93,31 @@ end
 --------------------------------------------------------------------------------
 -- Detection
 --------------------------------------------------------------------------------
-function SGW:IsGoliath(abilityId)
-    if KNOWN_IDS[abilityId] then
-        return true
-    end
-    local name = GetAbilityName(abilityId)
-    if name and name ~= "" then
-        return zo_strlower(name):find("goliath", 1, true) ~= nil
-    end
-    return false
-end
-
 local function OnSlotUsed(_, slotNum)
-    if not SGW.sv.enabled or slotNum ~= ULT_SLOT then return end
+    if slotNum ~= ULT_SLOT then return end
     local id = GetSlotBoundId(slotNum, GetActiveHotbarCategory())
-    if not id or id == 0 then return end
-    if SGW:IsGoliath(id) then
+    if KNOWN_IDS[id] then
         SGW:Start(GetAbilityIcon(id))
     end
 end
 
 -- Re-sync the start with the game's global cooldown, the same way GCD trackers
--- do: start = now + remaining - duration.
+-- do: start = now + remaining - duration. The cooldown event is only registered
+-- for the short moment right after a Goliath cast.
+local function StopSync()
+    SGW.syncPending = false
+    EM:UnregisterForEvent(ADDON .. "Cooldowns", EVENT_ACTION_UPDATE_COOLDOWNS)
+end
+
 local function OnCooldownsUpdated()
-    if not SGW.syncPending then return end
     local now = Now()
     if now - SGW.pressTime > SYNC_WINDOW_MS then
-        SGW.syncPending = false
+        StopSync()
         return
     end
     local remaining, duration = GetGCD()
     if remaining <= 0 then return end
-    SGW.syncPending = false
+    StopSync()
 
     local gcdStart = now + remaining - duration
     if math.abs(gcdStart - SGW.pressTime) <= SYNC_MAX_SHIFT_MS then
@@ -133,8 +125,32 @@ local function OnCooldownsUpdated()
     end
 end
 
+local function StartSync()
+    SGW.syncPending = true
+    EM:RegisterForEvent(ADDON .. "Cooldowns", EVENT_ACTION_UPDATE_COOLDOWNS, OnCooldownsUpdated)
+end
+
 local function OnPlayerDead()
     SGW:Hide()
+end
+
+-- Only keep events registered while the addon is enabled.
+local function CheckEventsNeeded()
+    EM:UnregisterForEvent(ADDON .. "SlotUsed", EVENT_ACTION_SLOT_ABILITY_USED)
+    EM:UnregisterForEvent(ADDON .. "Dead", EVENT_PLAYER_DEAD)
+    StopSync()
+
+    if SGW.sv.enabled then
+        EM:RegisterForEvent(ADDON .. "SlotUsed", EVENT_ACTION_SLOT_ABILITY_USED, OnSlotUsed)
+        EM:RegisterForEvent(ADDON .. "Dead", EVENT_PLAYER_DEAD, OnPlayerDead)
+    else
+        SGW:Hide()
+    end
+end
+
+function SGW:SetEnabled(enabled)
+    self.sv.enabled = enabled
+    CheckEventsNeeded()
 end
 
 --------------------------------------------------------------------------------
@@ -222,7 +238,7 @@ function SGW:Start(iconPath)
     local now = Now()
     self.pressTime = now
     self.start = now
-    self.syncPending = true
+    StartSync()
     self.state = "wait"
     self.readySoundPlayed = false
 
@@ -247,7 +263,7 @@ end
 
 function SGW:Hide()
     self.state = "idle"
-    self.syncPending = false
+    StopSync()
     self.top:SetHandler("OnUpdate", nil)
     if self.sv.locked then
         self.top:SetHidden(true)
@@ -317,7 +333,7 @@ end
 
 function SGW:Preview()
     self:Start(GetAbilityIcon(115001))
-    self.syncPending = false
+    StopSync()
 end
 
 --------------------------------------------------------------------------------
@@ -354,10 +370,7 @@ function SGW:BuildSettings()
             type = "checkbox",
             name = "Enabled",
             getFunc = function() return sv.enabled end,
-            setFunc = function(v)
-                sv.enabled = v
-                if not v then self:Hide() end
-            end,
+            setFunc = function(v) self:SetEnabled(v) end,
             default = defaults.enabled,
         },
         { type = "header", name = "Timing" },
@@ -460,11 +473,10 @@ local function OnSlash(text)
     local cmd = zo_strlower((text or ""):match("^%s*(%S*)") or "")
 
     if cmd == "on" then
-        SGW.sv.enabled = true
+        SGW:SetEnabled(true)
         Say("Enabled.")
     elseif cmd == "off" then
-        SGW.sv.enabled = false
-        SGW:Hide()
+        SGW:SetEnabled(false)
         Say("Disabled.")
     elseif cmd == "unlock" then
         SGW:SetLocked(false)
@@ -484,15 +496,14 @@ local function OnAddOnLoaded(_, addonName)
     if addonName ~= ADDON then return end
     EM:UnregisterForEvent(ADDON, EVENT_ADD_ON_LOADED)
 
-    SGW.sv = ZO_SavedVars:NewAccountWide("SimpleGoliathWeaveSV", 1, nil, defaults)
+    -- account-wide, but separate per server (EU / NA / PTS)
+    SGW.sv = ZO_SavedVars:NewAccountWide("SimpleGoliathWeaveSV", 1, nil, defaults, GetWorldName())
     SGW.sv.locked = true -- always start locked
 
     SGW:CreateUI()
     SGW:BuildSettings()
 
-    EM:RegisterForEvent(ADDON, EVENT_ACTION_SLOT_ABILITY_USED, OnSlotUsed)
-    EM:RegisterForEvent(ADDON .. "Cooldowns", EVENT_ACTION_UPDATE_COOLDOWNS, OnCooldownsUpdated)
-    EM:RegisterForEvent(ADDON .. "Dead", EVENT_PLAYER_DEAD, OnPlayerDead)
+    CheckEventsNeeded()
 
     SLASH_COMMANDS["/sgw"] = OnSlash
 end

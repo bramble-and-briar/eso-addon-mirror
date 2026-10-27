@@ -13,16 +13,14 @@ local activeStunID = nil
 local debugEnabled = false
 
 local BLOCKED_ABILITIES = {
-	--[16565] = true, -- Break Free
-	--[14644] = true, -- Reviving - SELF
-	--[64687] = true, -- IC | Door Silence - SELF
-	[163818] = true, -- Teleport (Encounter In Progress) (should be handled here without player activated handler, but keep for now to see if any other TP abilities are in play)
+	[163818] = true, -- Teleport (Encounter In Progress)
+	[163850] = true, -- Teleport (Encounter In Progress) -- DSR
 	[167948] = true, -- Coral Aerie | Maligalig Tornadoe Silence
 	[159551] = true, -- Coral Aerie | Maligalig Tornadoe Stuns
 	[166794] = true, -- DSR | Water Charms
 	[167949] = true, -- DSR | Water Silence
-	--[163550] = true, -- DSR | Water Jump Synergy - SELF
-	[126371] = true, -- DSR | Structural Entropy ??? Own ability, maybe implement auto block for all own abilities?
+	[263940] = true, -- MoS | Tarcyr Teleport
+	[264680] = true, -- MoS | Tarcyr Ghostly Indriks
 }
 
 local combatResults = {
@@ -158,22 +156,24 @@ function S.RemoveStunnedMode()
 	StunAlert:SetHidden(true)
 end
 
-function S.CombatEventHandler(_, result, _, abilityName, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
+function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
 	-- if not IsUnitInCombat("player") then return end
+	if isError then
+		if result == ACTION_RESULT_STUNNED or result == ACTION_RESULT_FEARED or result == ACTION_RESULT_CHARMED then
+			if debugEnabled then d(string.format("|cFF0000ERROR|r %s abilityId=%s name=%s", tostring(result), tostring(abilityId), tostring(abilityName))) end
+			return
+		end
+	end
 
 	local normalizedSource = zo_strformat("<<1>>", sourceName)
-
 	if normalizedSource == playerName then return end
-
 	if BLOCKED_ABILITIES[abilityId] then return end
-
 	local normalizedTarget = zo_strformat("<<1>>", targetName)
-
+	
 	if normalizedTarget == playerName then
-
 		if result == ACTION_RESULT_STUNNED and S.SV.trackStun then
 			if activeStunID == nil then
-				if debugEnabled then d(string.format("STUNNED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(sourceName))) end
+				if debugEnabled then d(string.format("STUNNED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(normalizedSource))) end
 
 				local sound = S.SV.stunSoundEnabled and S.SV.stunSound
 				S.ShowStunAlert("STUNNED!", sound, S.SV.stunColor, S.SV.textStun)
@@ -208,7 +208,7 @@ function S.CombatEventHandler(_, result, _, abilityName, _, _, sourceName, _, ta
 			S.ShowNotification("ROOTED!", sound, S.SV.rootedColor, 1000)
 
 		elseif result == ACTION_RESULT_SILENCED and S.SV.trackSilenced then
-			if debugEnabled then d(string.format("SILENCED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(sourceName))) end
+			if debugEnabled then d(string.format("SILENCED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(normalizedSource))) end
 
 			local sound = S.SV.silencedSoundEnabled and S.SV.silencedSound
 			S.ShowNotification("SILENCED!", sound, S.SV.silencedColor, 1000)

@@ -11,7 +11,10 @@ function O.CreateSettings()
     local function slider(label,key,low,high,step)
         return {type=L.ST_SLIDER,label=label,min=low,max=high,step=step,
             getFunction=function() return O.vars[key] end,
-            setFunction=function(value) O.vars[key]=value; O.Refresh() end}
+            setFunction=function(value)
+                if key=="skillHudScale" then O.StopNativeMove() end
+                O.vars[key]=value; O.Refresh()
+            end}
     end
     local function dropdown(label,key,items)
         return {type=L.ST_DROPDOWN,label=label,items=items,
@@ -30,6 +33,7 @@ function O.CreateSettings()
         {type=L.ST_LABEL,label=O.MaterialStatus},
         {type=L.ST_LABEL,label="Fantasy-Metallrahmen, abgeschraegte Balken und ein Klassenemblem. Aktive Skills bleiben echte ESO-Buttons; die zweite Reihe zeigt die andere Waffenleiste."},
         {type=L.ST_SECTION,label="Skill-Leiste"},
+        slider("Gesamtes Skill-HUD: Groesse","skillHudScale",1,1.5,0.05),
         checkbox("Andere Waffenleiste als zweite Reihe","backBar","Nur Vorschau: ESO erlaubt weiterhin fuenf Skills und eine Ultimate pro Waffenleiste."),
         dropdown("Skill-HUD-Ansicht","skillHudView",O.skillHudViews),
         color("Skill HUD","skillFrameColor"),

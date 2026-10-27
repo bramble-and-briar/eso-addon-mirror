@@ -36,7 +36,11 @@ function O.UpdateFixedSkillBindings(skin)
             down=GetActiveHotbarCategory()==HOTBAR_CATEGORY_PRIMARY and O.UltimateRowSeparation() or 0
         else
             local first=ZO_ActionBar_GetButton(3)
-            if first then down=O.SkillRowGap(first.slot)/2+(first.slot:GetHeight()-button.slot:GetHeight())/2 end
+            if first then
+                local _,firstHeight=O.SkillSlotSize(first.slot)
+                local _,height=O.SkillSlotSize(button.slot)
+                down=O.SkillRowGap(first.slot)/2+(firstHeight-height)/2
+            end
         end
     end
     -- Keep native labels, glyphs, visibility and actual keybindings. Only their

@@ -23,7 +23,7 @@ ZO_CreateStringId("LAW_CLAW_FURY_RANGE_TOOLTIP", "Shows the ability's range whil
 ZO_CreateStringId("LAW_TIMEOUT", "<<1>> Idle Threshold (ms)")
 ZO_CreateStringId("LAW_TIMEOUT_TOOLTIP", "When this slider is above 0, the addon blocks <<1>> in combat\n\n<<1>> only comes back in combat once you have spent this long without dealing direct damage")
 ZO_CreateStringId("LAW_FEEDING_PRIORITY", "Prioritize <<1>>")
-ZO_CreateStringId("LAW_FEEDING_PRIORITY_TOOLTIP", "While enabled, the addon raises <<1>>'s synergy priority to the highest")
+ZO_CreateStringId("LAW_FEEDING_PRIORITY_TOOLTIP", "While enabled, the addon raises <<1>>'s synergy priority to the highest\n\nNote that raising a synergy's priority to the highest does not always guarantee it will be shown when it is available; in content many factors can interfere with how synergies are displayed")
 ZO_CreateStringId("LAW_PANEL_MOVE_MSG", "LAW: Panel move %s")
 ZO_CreateStringId("LAW_ENABLED", "|cCC922FENABLED|r")
 ZO_CreateStringId("LAW_DISABLED", "|c215895DISABLED|r")

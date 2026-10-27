@@ -1,0 +1,143 @@
+-- Français
+local L = NirnhonedMetrics.L
+
+-- Raccourcis
+L.BINDING_TOGGLE = "Afficher/masquer le compteur"
+L.BINDING_METRIC = "Basculer dégâts / soins"
+L.BINDING_MODE = "Basculer groupe / mes compétences"
+L.BINDING_RESET = "Réinitialiser les combats"
+
+-- Fenêtre
+L.TITLE_DAMAGE = "Dégâts"
+L.TITLE_HEALING = "Soins"
+L.TITLE_ABILITIES = "Mes compétences"
+L.FIGHT_CURRENT = "Combat actuel"
+L.FIGHT_LAST = "Dernier combat"
+L.FIGHT_N = "Combat %d"
+L.EMPTY = "Pas encore de données.\nElles apparaîtront ici au début du prochain combat."
+L.HIDE_WINDOW = "Masquer (/nm pour le réafficher)"
+L.SETTINGS = "Paramètres"
+L.LOCK = "Verrouiller la fenêtre"
+L.UNLOCK = "Déverrouiller la fenêtre"
+
+-- Infobulles
+L.TOTAL = "Dégâts"
+L.DPS = "DPS"
+L.HPS = "HPS"
+L.SHARE = "Part"
+L.HITS = "Coups"
+L.HEALS = "Soins"
+L.CRIT_RATE = "Critiques"
+L.AVG_HIT = "Coup moyen"
+L.AVG_HEAL = "Soin moyen"
+L.MAX_HIT = "Coup le plus fort"
+L.MAX_HEAL = "Soin le plus fort"
+L.OVERHEAL = "Soins en excès"
+L.OVERHEAL_PS = "Soins en excès par seconde"
+L.PET_DAMAGE = "Dégâts de familier"
+L.PET_HEALING = "Soins de familier"
+L.REST_OF_GROUP = "Reste du groupe"
+L.APPROX_NOTE = "Approximatif : partagé par l'add-on du joueur\nvia LibGroupCombatStats."
+L.REST_NOTE = "Estimation : vie perdue par les boss moins les dégâts\ndes joueurs qui partagent les leurs. Inclut tous ceux\nqui n'ont pas l'add-on, sans détail par joueur."
+
+-- Menu
+L.MENU_VIEW = "Vue"
+L.MENU_METRIC = "Mesurer"
+L.METRIC_DAMAGE = "Dégâts"
+L.METRIC_HEALING = "Soins"
+L.MODE_GROUP = "Groupe"
+L.MODE_ABILITIES = "Mes compétences"
+L.MENU_FIGHTS = "Combats"
+L.MENU_ACTIONS = "Actions"
+L.MENU_RESET = "Réinitialiser les combats"
+L.NO_FIGHTS = "Aucun combat pour l'instant"
+
+-- Commandes de chat
+L.HELP_HEADER = "Commandes (v%s) :"
+L.HELP = {
+    "|cFFFF00/nm|r - afficher/masquer le compteur",
+    "|cFFFF00/nm mode [group/abilities]|r - basculer entre les dégâts du groupe et vos compétences",
+    "|cFFFF00/nm damage / healing|r - mesurer les dégâts ou les soins",
+    "|cFFFF00/nm reset|r - effacer tous les combats",
+    "|cFFFF00/nm lock / unlock|r - verrouiller ou déverrouiller la fenêtre",
+    "|cFFFF00/nm resetpos|r - remettre la fenêtre à sa position de départ",
+    "|cFFFF00/nm settings|r - ouvrir les paramètres",
+}
+L.LOCKED = "Fenêtre verrouillée."
+L.UNLOCKED = "Fenêtre déverrouillée : faites-la glisser depuis n'importe où pour la déplacer et le coin inférieur droit pour la redimensionner."
+L.RESET_DONE = "Combats effacés."
+L.MODE_SET = "Vue : %s"
+L.METRIC_SET = "Mesure : %s"
+L.POSITION_RESET = "Fenêtre remise à sa position de départ."
+
+-- Paramètres
+L.SETTINGS_DESC = "Nirnhoned Metrics affiche un compteur de dégâts et de soins avec des barres colorées : total, DPS/HPS et votre part du groupe pour chaque combat, ainsi que le détail de vos compétences."
+L.HEADER_WINDOW = "Fenêtre"
+L.OPT_SHOWN = "Afficher le compteur"
+L.OPT_LOCKED = "Verrouiller la fenêtre"
+L.OPT_LOCKED_TT = "Déverrouillée, la fenêtre se déplace en la faisant glisser depuis n'importe où et se redimensionne par le coin inférieur droit."
+L.OPT_HIDE_OOC = "Afficher seulement en combat"
+L.OPT_HIDE_OOC_TT = "Le compteur apparaît au début d'un combat et se masque quelques secondes après la fin."
+L.OPT_HIDE_PVP = "Masquer en JcJ"
+L.OPT_HIDE_PVP_TT = "Masque le compteur en Cyrodiil, dans la Cité impériale et sur les champs de bataille."
+L.OPT_WIDTH = "Largeur"
+L.OPT_HEIGHT = "Hauteur"
+L.OPT_ROW_HEIGHT = "Hauteur des barres"
+L.OPT_ROW_HEIGHT_TT = "Hauteur minimale : les barres s'agrandissent seules si le texte ne tient pas."
+L.OPT_ROW_SPACING = "Espace entre les barres"
+L.OPT_FONT_SIZE = "Taille du texte des barres"
+L.OPT_TITLE_FONT_SIZE = "Taille du texte du titre"
+L.OPT_BG_ALPHA = "Opacité du fond"
+L.OPT_BAR_ALPHA = "Opacité des barres"
+L.OPT_RESET_POSITION = "Réinitialiser la position"
+L.HEADER_BARS = "Barres"
+L.OPT_BAR_STYLE = "Style des barres"
+L.STYLE_PROGRESS = "Barre de progression"
+L.STYLE_FLAT = "Plat"
+L.OPT_COLOR_MODE = "Couleur des barres du groupe"
+L.COLOR_CLASS = "Par classe"
+L.COLOR_SINGLE = "Couleur unique"
+L.COLOR_DAMAGE_TYPE = "Par type de dégâts"
+L.OPT_BAR_COLOR = "Couleur unique"
+L.OPT_CLASS_COLORS = "Couleurs des classes"
+L.OPT_ABILITY_COLOR = "Couleur des barres de compétences"
+L.OPT_HIGHLIGHT_SELF = "Mettre mon nom en évidence"
+L.HEADER_TEXT = "Texte"
+L.OPT_SHOW_RANK = "Afficher le rang (1. 2. 3...)"
+L.OPT_SHOW_ICON = "Afficher l'icône de classe / compétence"
+L.OPT_SHOW_TOTAL = "Afficher les dégâts totaux"
+L.OPT_SHOW_DPS = "Afficher DPS / HPS"
+L.OPT_SHOW_PERCENT = "Afficher le pourcentage"
+L.OPT_NAME_FORMAT = "Noms"
+L.NAME_CHARACTER = "Nom du personnage"
+L.NAME_ACCOUNT = "@Compte"
+L.HEADER_DATA = "Données"
+L.OPT_MODE = "Vue"
+L.OPT_METRIC = "Mesurer"
+L.OPT_PETS = "Compter les dégâts des familiers"
+L.OPT_PETS_TT = "Ajoute à vos dégâts ceux de vos familiers (scamps, ours, squelettes...)."
+L.OPT_END_DELAY = "Secondes avant de clore un combat"
+L.OPT_END_DELAY_TT = "Temps hors combat avant que le combat soit considéré comme terminé. Revenir en combat avant poursuit le même combat."
+L.OPT_HISTORY = "Combats mémorisés"
+L.OPT_SHARE = "Partager mon DPS et mon HPS avec le groupe"
+L.OPT_SHARE_TT = "Envoie votre DPS et votre HPS via LibGroupCombatStats pour que votre groupe les voie (nécessite de recharger l'interface)."
+L.OPT_SHOW_REST = "Afficher \"Reste du groupe\" contre les boss"
+L.OPT_SHOW_REST_TT = "Estime les dégâts des membres du groupe qui ne partagent pas les leurs à partir de la vie perdue par les boss."
+
+-- Aide
+L.HELP_USAGE_HEADER = "Utilisation"
+L.HELP_USAGE = "1. Tapez |cFFFF00/nm|r ou assignez une touche (Commandes → Nirnhoned Metrics) pour afficher ou masquer le compteur.\n2. Combattez : les barres se remplissent avec les dégâts, le DPS et la part du groupe de chaque joueur.\n3. Les icônes de la barre de titre basculent entre dégâts et soins, entre le groupe et vos compétences, ouvrent les combats précédents, réinitialisent, verrouillent la fenêtre et ouvrent les paramètres.\n4. Déverrouillez la fenêtre (cadenas) pour la faire glisser depuis n'importe où et la redimensionner par ses bords ou le coin inférieur droit."
+L.HELP_TIPS_HEADER = "Astuces"
+L.HELP_TIPS = "- ESO n'informe chaque joueur que de ses propres dégâts, donc chaque membre du groupe a besoin d'un add-on qui les partage via LibGroupCombatStats (Nirnhoned Metrics le fait) ; leurs chiffres sont approximatifs.\n- Contre les boss, les dégâts de ceux qui ne les partagent pas apparaissent ensemble comme \"Reste du groupe\".\n- Survolez une barre pour voir le détail : coups, taux de critique, coup moyen et coup le plus fort.\n- Utilisez la molette de la souris quand il y a plus de barres que de place.\n- Un clic droit n'importe où sur le compteur ouvre le menu complet."
+L.HELP_COMMANDS_HEADER = "Commandes de chat"
+L.DONATE_HEADER = "Soutenir l'auteur"
+L.DONATE_DESC = "Si vous aimez Nirnhoned Metrics, vous pouvez envoyer de l'or à %s. Le courrier s'ouvre prérempli pour que vous vérifiiez le montant avant l'envoi."
+L.DONATE_BUTTON = "Faire un don d'or"
+L.DONATE_SUBJECT = "Nirnhoned Metrics v%s - Don"
+L.DONATE_COMBAT = "Vous ne pouvez pas ouvrir le courrier en combat."
+
+-- Bienvenue / nouveautés
+L.WELCOME_TITLE = "Bienvenue dans Nirnhoned Metrics"
+L.WELCOME_TEXT = "Merci d'avoir installé Nirnhoned Metrics.\n\nUn compteur de dégâts et de soins avec des barres colorées : total, DPS/HPS et votre part du groupe pour chaque combat.\n\n- Affichez-le ou masquez-le avec /nm ou une touche dans Commandes.\n- Utilisez les icônes de sa barre de titre pour changer de vue ou voir les combats précédents. Le pied de la fenêtre indique la durée du combat.\n- Pour voir les dégâts de votre groupe, ses membres ont aussi besoin de Nirnhoned Metrics."
+L.UPDATE_TITLE = "Nirnhoned Metrics mis à jour en v%s"
+L.CHANGELOG = "Première version publique :\n\n- Compteur de dégâts avec barres de progression aux couleurs des classes : total, DPS et pourcentage.\n- Compteur de soins : basculez entre dégâts et soins, avec HPS et soins en excès.\n- Dégâts du groupe partagés via LibGroupCombatStats et \"Reste du groupe\" estimé contre les boss.\n- Détail de vos compétences, colorées par type de dégâts.\n- Historique des derniers combats et durée du combat en bas de la fenêtre.\n- Déplacer, redimensionner et tout configurer dans Paramètres → Extensions.\n- Disponible en français, anglais, allemand et espagnol."

@@ -2,10 +2,10 @@
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
 ## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
-## Title: |cFF69B4PB's HPS Checker|r 0.4.0
+## Title: |cFF69B4PB's HPS Checker|r 0.6.0
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Shows how much you heal in PvP. Counts the healing you do in Cyrodiil per day -- the amount, your HPS, the players you healed, the skills you healed with -- and shows how much of it went to your party, to everybody else, and to yourself. A small meter shows the fight you are in. It only reads game events.
-## Version: 0.4.0
+## Version: 0.6.0
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsHpsChecker_Data
@@ -19,5 +19,6 @@ Names.lua
 Main.lua
 Probe.lua
 Hud.lua
-Stats.lua
+Screen.lua
+Menu.lua
 Settings.lua

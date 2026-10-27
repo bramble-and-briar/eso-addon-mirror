@@ -1,4 +1,4 @@
--- TargetInfo.lua (Boss Bar + Reticle Boss Fallback + PvP Player Callouts w/ Sticky)
+-- TargetInfo.lua v1.2.1 (Boss/Player Callouts + Overland Encounter Difficulty)
 -- FIXES:
 -- 1) Reticle boss fallback is DISABLED while compass boss bar is active (no double reporting).
 -- 2) Blue header colour restored for boss-bar flow.
@@ -10,17 +10,19 @@
 
 local ADDON_NAME = "TargetInfo"
 local EM = EVENT_MANAGER
+local MAX_BOSSES = 8
 
 --------------------------------------------------------------
 -- Output helpers (Chat / Alert / Center)
 --------------------------------------------------------------
 local function ChatMsg(text)
     if not text or text == "" then return end
+    local message = "[Target Info] " .. tostring(text)
     zo_callLater(function()
         if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
-            CHAT_ROUTER:AddSystemMessage(tostring(text))
+            CHAT_ROUTER:AddSystemMessage(message)
         else
-            d(tostring(text))
+            d(message)
         end
     end, 0)
 end
@@ -38,7 +40,7 @@ local function CenterMsg(text, sound, colorCode)
             if ZO_Alert and UI_ALERT_CATEGORY_ALERT and SOUNDS then
                 ZO_Alert(UI_ALERT_CATEGORY_ALERT, sound or SOUNDS.POSITIVE_CLICK, tostring(text))
             else
-                d(tostring(text))
+                ChatMsg(text)
             end
         end
     end, 0)
@@ -268,6 +270,15 @@ local defaults =
 {
     enabled = true,
 
+    -- Encounter-based Challenge Difficulty (uses the current character).
+    challengeDifficultyEnabled = false,
+    challengeDifficultyNotify = true,
+    challengeDifficultyOrdinary = -1,
+    challengeDifficultyElite = -1,
+    challengeDifficultyBoss = -1,
+    challengeDifficultyWorldEvent = -1,
+    challengeDifficultyIdle = -1,
+
     ----------------------------------------------------------
     -- Boss Bar (Compass) Mode
     ----------------------------------------------------------
@@ -363,6 +374,12 @@ local function InitSavedVars()
     end
 
     RepairBool("enabled")
+    RepairBool("challengeDifficultyEnabled")
+    RepairBool("challengeDifficultyNotify")
+    for _, key in ipairs({ "challengeDifficultyOrdinary", "challengeDifficultyElite", "challengeDifficultyBoss", "challengeDifficultyWorldEvent", "challengeDifficultyIdle" }) do
+        local value = sv[key]
+        if type(value) ~= "number" or value < -1 or value > 3 or value ~= math.floor(value) then sv[key] = -1 end
+    end
     RepairNumber("bossStepPercent")
     RepairNumber("executePercent")
     RepairNumber("bossSyncTolerancePercent")
@@ -509,6 +526,161 @@ local function BossBar_IsActive()
 end
 
 --------------------------------------------------------------
+-- Encounter-based Challenge Difficulty
+-- Public request API only. Never use private RequestOverlandDifficultyChange.
+--------------------------------------------------------------
+local CHALLENGE_UNCHANGED = -1
+local CHALLENGE_REQUEST_INTERVAL_MS = 10000
+local CHALLENGE_STABLE_MS = 800
+local CHALLENGE_MAX_ATTEMPTS = 3
+local challengeState = { lastRequestMs = -CHALLENGE_REQUEST_INTERVAL_MS }
+local CHALLENGE_SETTINGS = {
+    ordinary = "challengeDifficultyOrdinary",
+    elite = "challengeDifficultyElite",
+    boss = "challengeDifficultyBoss",
+    worldEvent = "challengeDifficultyWorldEvent",
+    idle = "challengeDifficultyIdle",
+}
+local CHALLENGE_LABELS = {
+    ordinary = "Ordinary enemies",
+    elite = "Tough / elite enemies",
+    boss = "Bosses",
+    worldEvent = "World events",
+    idle = "Between encounters",
+}
+
+local function ChallengeDifficultyChoice(value)
+    if type(value) == "table" then value = value.data or value.value or value.name end
+    if value == "Leave unchanged" then return CHALLENGE_UNCHANGED end
+    if type(value) == "string" and GetString then
+        for difficulty = 0, 3 do
+            if value == GetString("SI_OVERLANDDIFFICULTYTYPE", difficulty) then return difficulty end
+        end
+    end
+    value = tonumber(value)
+    if value and value >= -1 and value <= 3 and value == math.floor(value) then return value end
+    return CHALLENGE_UNCHANGED
+end
+
+local function ChallengeDifficultyName(value)
+    if value == CHALLENGE_UNCHANGED then return "Leave unchanged" end
+    if GetString then
+        local name = GetString("SI_OVERLANDDIFFICULTYTYPE", value)
+        if name and name ~= "" then return name end
+    end
+    return tostring(value)
+end
+
+local function ChallengeDifficultyNotice(text)
+    if TargetInfoSV.challengeDifficultyNotify ~= false then ChatMsg(text) end
+end
+
+local function ChallengeDifficultyResetCandidate()
+    challengeState.key = nil
+    challengeState.sinceMs = nil
+    challengeState.attempts = 0
+    challengeState.failureNotified = false
+    challengeState.pendingValue = nil
+    challengeState.pendingLabel = nil
+end
+
+local function ChallengeDifficultyIsAllowed()
+    -- ESO's own restriction query excludes PvP and bespoke-difficulty instances,
+    -- including group/solo dungeons, trials, arenas and Infinite Archive.
+    if IsInPvP() then return false end
+    if type(GetOverlandDifficultyDisabledReason) ~= "function" then return false end
+    local ok, reason = pcall(GetOverlandDifficultyDisabledReason)
+    if not ok or OVERLAND_DIFFICULTY_DISABLED_REASON_NONE == nil
+        or reason ~= OVERLAND_DIFFICULTY_DISABLED_REASON_NONE then return false end
+    if GetCurrentZoneHouseId and GetCurrentZoneHouseId() ~= 0 then return false end
+    return true
+end
+
+local function ChallengeDifficultyEncounter()
+    -- Participation is authoritative; an event merely active elsewhere is ignored.
+    if GetParticipatingWorldEventStep then
+        local ok, instanceId = pcall(GetParticipatingWorldEventStep)
+        if ok and type(instanceId) == "number" and instanceId > 0 then return "worldEvent" end
+    end
+    local tag = "reticleover"
+    if not IsHostileAttackable(tag) or IsUnitPlayer(tag) then return "idle" end
+    if type(GetUnitDifficulty) ~= "function" then return nil end
+    local ok, difficulty = pcall(GetUnitDifficulty, tag)
+    if not ok or type(difficulty) ~= "number" then return nil end
+    if MONSTER_DIFFICULTY_DEADLY and difficulty >= MONSTER_DIFFICULTY_DEADLY then return "boss" end
+    if MONSTER_DIFFICULTY_HARD and difficulty >= MONSTER_DIFFICULTY_HARD then return "elite" end
+    if difficulty == MONSTER_DIFFICULTY_EASY or difficulty == MONSTER_DIFFICULTY_NORMAL then return "ordinary" end
+    return nil -- Unknown classification must not change the game setting.
+end
+
+local function ChallengeDifficultyConfirm()
+    if challengeState.pendingValue == nil or type(GetOverlandDifficulty) ~= "function" then return end
+    local ok, current = pcall(GetOverlandDifficulty)
+    if ok and current == challengeState.pendingValue then
+        ChallengeDifficultyNotice(string.format("%s: Challenge Difficulty changed to %s.",
+            challengeState.pendingLabel or "Encounter", ChallengeDifficultyName(current)))
+        challengeState.pendingValue = nil
+        challengeState.pendingLabel = nil
+    end
+end
+
+local function ChallengeDifficultyTick()
+    if TargetInfoSV.enabled ~= true or TargetInfoSV.challengeDifficultyEnabled ~= true then
+        ChallengeDifficultyResetCandidate()
+        challengeState.unsupportedNotified = false
+        return
+    end
+    if type(RequestChangePlayerOverlandDifficulty) ~= "function" or type(GetOverlandDifficulty) ~= "function"
+        or type(GetOverlandDifficultyDisabledReason) ~= "function" then
+        if not challengeState.unsupportedNotified then
+            ChallengeDifficultyNotice("Automatic Challenge Difficulty is unavailable on this game version.")
+            challengeState.unsupportedNotified = true
+        end
+        ChallengeDifficultyResetCandidate()
+        return
+    end
+    if not ChallengeDifficultyIsAllowed() then ChallengeDifficultyResetCandidate() return end
+    -- Combat and death invalidate the candidate. Re-detect after combat rather
+    -- than applying a stale request from a dead or no-longer-targeted enemy.
+    if type(IsUnitInCombat) ~= "function" or IsUnitInCombat("player")
+        or (IsUnitDead and IsUnitDead("player")) then ChallengeDifficultyResetCandidate() return end
+    local kind = ChallengeDifficultyEncounter()
+    if not kind then ChallengeDifficultyResetCandidate() return end
+    local desired = ChallengeDifficultyChoice(TargetInfoSV[CHALLENGE_SETTINGS[kind]])
+    if desired == CHALLENGE_UNCHANGED then ChallengeDifficultyResetCandidate() return end
+    local now = NowMs()
+    local zone = GetUnitZoneIndex and GetUnitZoneIndex("player") or 0
+    local key = tostring(zone) .. ":" .. kind .. ":" .. tostring(desired)
+    if challengeState.key ~= key then
+        ChallengeDifficultyResetCandidate()
+        challengeState.key = key
+        challengeState.sinceMs = now
+    end
+    local ok, current = pcall(GetOverlandDifficulty)
+    if not ok or type(current) ~= "number" then return end
+    if current == desired then ChallengeDifficultyConfirm() return end
+    local stableMs = kind == "idle" and 4000 or CHALLENGE_STABLE_MS
+    if now - challengeState.sinceMs < stableMs then return end
+    if now - challengeState.lastRequestMs < CHALLENGE_REQUEST_INTERVAL_MS then return end
+    if challengeState.attempts >= CHALLENGE_MAX_ATTEMPTS then
+        if not challengeState.failureNotified then
+            ChallengeDifficultyNotice("Challenge Difficulty could not be changed. Check the game's cooldown or change it manually.")
+            challengeState.failureNotified = true
+        end
+        return
+    end
+    challengeState.attempts = challengeState.attempts + 1
+    challengeState.lastRequestMs = now
+    challengeState.pendingValue = desired
+    challengeState.pendingLabel = CHALLENGE_LABELS[kind]
+    local requested = pcall(RequestChangePlayerOverlandDifficulty, desired)
+    if not requested then
+        challengeState.pendingValue = nil
+        challengeState.pendingLabel = nil
+    end
+end
+
+--------------------------------------------------------------
 -- PvP Player Styling (restored)
 --------------------------------------------------------------
 local function AllianceColorCode(alliance)
@@ -613,7 +785,6 @@ end
 --------------------------------------------------------------
 -- Boss Bar Mode (multi-boss pacing, blue header)
 --------------------------------------------------------------
-local MAX_BOSSES = 8
 local wasBossBarActive = false
 local totalLastBucket = nil
 local bossExecFired = {}
@@ -886,6 +1057,7 @@ end
 -- Tick
 --------------------------------------------------------------
 local function Tick()
+    ChallengeDifficultyTick()
     if not TargetInfoSV.enabled then return end
     RefreshMessageWindow("boss")
     RefreshMessageWindow("pvp")
@@ -911,6 +1083,47 @@ local function CreateSettings()
         setFunction = function(v) TargetInfoSV.enabled = v end,
         default = true,
     })
+
+    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Overland Encounter Difficulty" })
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
+        label = "Automatic Encounter Difficulty",
+        tooltip = "Changes the current character's actual Challenge Difficulty before combat. Applies only where ESO enables overland difficulty: quest zones/story instances, delves and public dungeons. Excluded content and PvP are untouched. Combat and game cooldowns can prevent changes; wait for confirmation before engaging.",
+        getFunction = function() return TargetInfoSV.challengeDifficultyEnabled == true end,
+        setFunction = function(value) TargetInfoSV.challengeDifficultyEnabled = value == true; ChallengeDifficultyResetCandidate() end,
+        default = false,
+    })
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
+        label = "Announce Difficulty Changes",
+        tooltip = "Chat confirms successful changes with the [Target Info] tag and reports unsupported APIs or exhausted retries.",
+        getFunction = function() return TargetInfoSV.challengeDifficultyNotify ~= false end,
+        setFunction = function(value) TargetInfoSV.challengeDifficultyNotify = value == true end,
+        default = true,
+    })
+    local difficultyItems = { { name = "Leave unchanged", data = CHALLENGE_UNCHANGED } }
+    for difficulty = 0, 3 do
+        table.insert(difficultyItems, { name = ChallengeDifficultyName(difficulty), data = difficulty })
+    end
+    local function AddEncounterDifficultySetting(label, key, tooltip)
+        settings:AddSetting({
+            type = LHAS.ST_DROPDOWN,
+            label = label,
+            tooltip = tooltip .. " Leave unchanged preserves the last game difficulty; it does not restore a previous value. Turning automation off also leaves the current game difficulty in place.",
+            items = difficultyItems,
+            getFunction = function() return ChallengeDifficultyName(ChallengeDifficultyChoice(TargetInfoSV[key])) end,
+            setFunction = function(controlOrValue, itemName, itemData)
+                TargetInfoSV[key] = ChallengeDifficultyChoice(itemData or itemName or controlOrValue)
+                ChallengeDifficultyResetCandidate()
+            end,
+            default = "Leave unchanged",
+        })
+    end
+    AddEncounterDifficultySetting("Ordinary Enemies", "challengeDifficultyOrdinary", "Living hostile targets rated Easy or Normal by ESO. Aim at the target before entering combat.")
+    AddEncounterDifficultySetting("Tough / Elite Enemies", "challengeDifficultyElite", "Living hostile targets rated Hard by ESO. World-event participation takes priority; the compass boss bar does not.")
+    AddEncounterDifficultySetting("Bosses", "challengeDifficultyBoss", "Living hostile targets rated Deadly by ESO. The compass boss bar does not override the target rating. Lower-rated bosses follow Ordinary or Tough / Elite Enemies.")
+    AddEncounterDifficultySetting("World Events", "challengeDifficultyWorldEvent", "Uses ESO's reported world-event participation, taking priority over target difficulty ratings. Events active elsewhere do not trigger it; changes still require being out of combat.")
+    AddEncounterDifficultySetting("Between Encounters", "challengeDifficultyIdle", "Optional fallback after four seconds without a living hostile target or participating world event. The compass boss bar does not prevent this fallback. Use this to return to a preferred roaming difficulty.")
 
     settings:AddSetting({ type = LHAS.ST_SECTION, label = "Boss Bar (Compass)" })
 
@@ -1151,8 +1364,6 @@ local function CreateSettings()
         default = "CHAT",
     })
 
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Custom Message Windows" })
-
     settings:AddSetting({ type = LHAS.ST_SECTION, label = "Boss/Reticle Window" })
 
     settings:AddSetting({
@@ -1321,6 +1532,9 @@ local function Initialize()
     INITIALIZED = true
 
     InitSavedVars()
+    if EVENT_OVERLAND_DIFFICULTY_CHANGED then
+        EM:RegisterForEvent(ADDON_NAME .. "_ChallengeDifficulty", EVENT_OVERLAND_DIFFICULTY_CHANGED, ChallengeDifficultyConfirm)
+    end
     CreateSettings()
     EnsureMessageWindow("boss")
     EnsureMessageWindow("pvp")
@@ -1328,7 +1542,7 @@ local function Initialize()
     EM:UnregisterForUpdate(ADDON_NAME .. "_Tick")
     EM:RegisterForUpdate(ADDON_NAME .. "_Tick", 200, Tick)
 
-    ChatMsg(BLUE .. "TargetInfo loaded.|r")
+    ChatMsg(BLUE .. "TargetInfo v1.2.1 loaded.|r")
 end
 
 local function OnAddonLoaded(event, addonName)

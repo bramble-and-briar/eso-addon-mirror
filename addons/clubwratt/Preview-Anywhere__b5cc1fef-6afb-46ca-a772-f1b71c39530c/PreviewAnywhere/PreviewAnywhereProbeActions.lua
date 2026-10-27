@@ -184,11 +184,12 @@ function Probe.Status()
         tostring(d.initialized), #d.errors + #d.initErrors, #parts > 0 and table.concat(parts, " ") or "no counters yet")
     for _, err in ipairs(d.initErrors) do Say("  initError: %s", err) end
     for _, err in ipairs(d.errors) do Say("  error: %s", err) end
+    if PA.VaultCategories then Say("%s", PA.VaultCategories.StatusLine()) end
     Say("%s", PA.LoggerStateLine())
 end
 
 function Probe.Help()
-    Say("/pva on | off (toggle the addon) | invframe (inventory hold-Square preview beside the tooltip, or game default) | status | debug (toggle diagnostics; /pva export ships them when LibConsoleLogger is installed)")
+    Say("/pva on | off (toggle the addon) | invframe (inventory hold-Square preview beside the tooltip, or game default) | vault on|off|sub|everywhere (Furnishing Vault category headers) | status | debug (toggle diagnostics; /pva export ships them when LibConsoleLogger is installed)")
     if not PA.IsDebug() then
         return
     end

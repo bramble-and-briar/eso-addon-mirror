@@ -51,6 +51,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field crafterKnown boolean|nil Knowledge of the account's arcanist
 ---@field isCrafter boolean
 ---@field companionNeeded boolean|nil Nil until the companion kits have been captured
+---@field companionAvailable boolean|nil Assigned companion unlocked on this character; nil for unassigned gear
 ---@field usable boolean
 ---@field learnQuantity number|nil Required pieces per use; unknown fragment requirements stay unset
 ---@field learnProgress number|nil Pieces already used toward a skill-style collectible
@@ -252,6 +253,9 @@ function policy.decide(item)
         return sellDuplicate(item, 'sell')
     end
     if item.kind == 'companion' then
+        if item.companionAvailable ~= nil then
+            return decision(item.companionAvailable and 'keep' or 'bank', 'companion')
+        end
         if item.quality >= 5 then return decision('keep', 'companion') end
         if item.companionNeeded == true then return decision('keep', 'companion') end
         if item.companionNeeded == nil then return decision('defer', 'companion') end
@@ -291,7 +295,10 @@ end
 ---@param banked number Unreserved, matching items in the account bank
 ---@return number
 function policy.withdrawQuantity(item, carried, banked)
-    local action = policy.decide(item).action
+    local choice = policy.decide(item)
+    local action = choice.action
+    if item.kind == 'companion' and item.companionAvailable == true
+        and action == 'keep' and choice.reason == 'companion' then return item.stack end
     if item.kind == 'fragment' and item.known == false and not item.learnProgress and (action == 'bank' or action == 'learn') then
         if not item.learnQuantity or carried + banked < item.learnQuantity then return 0 end
         return math.min(item.stack, math.max(0, item.learnQuantity - carried))

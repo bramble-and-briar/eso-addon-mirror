@@ -1,8 +1,8 @@
 ## Title: SimpleGoliathWeave
 ## Description: Shows when you can light attack again after casting Goliath (Bone Goliath Transformation and its morphs), since the animation is longer than the global cooldown.
 ## Author: Kaewro
-## Version: 1.0.0
-## AddOnVersion: 100
+## Version: 1.0.1
+## AddOnVersion: 101
 ## APIVersion: 101051 101052
 ## SavedVariables: SimpleGoliathWeaveSV
 ## DependsOn: LibAddonMenu-2.0>=43

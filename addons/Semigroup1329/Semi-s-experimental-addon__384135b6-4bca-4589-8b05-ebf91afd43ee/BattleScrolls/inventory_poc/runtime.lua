@@ -668,8 +668,7 @@ local function start(item, action, reserved, quantity, toBackpack)
     local decision = policy.decide(current)
     if action ~= 'bank' and decision.action ~= action then return false end
     if action == 'bank' and not current.filledSoulGem then
-        local withdraw = decision.action == 'learn' or decision.action == 'list' or decision.action == 'sell' or decision.action == 'destroy'
-            or policy.needsMarketPrice(current)
+        local withdraw = policy.withdrawQuantity(current, 0, current.stack) > 0
         if toBackpack and current.kind == 'fragment' and current.known == false then
             if not workPass or not workPass.bank then return false end
             local carried = availableCount(current, workPass.backpack, reserved)
@@ -852,6 +851,8 @@ local function companionWork()
         local _, reserved = facts.wardrobe(true)
         local backpack = facts.bag(BAG_BACKPACK, reserved)
         local worn = facts.bag(BAG_COMPANION_WORN)
+        if not active() then return end
+        companions.refresh(backpack, worn)
         if not active() then return end
         workPass = { reserved = reserved, backpack = backpack, companionWorn = worn }
     end
@@ -1393,6 +1394,8 @@ function poc.enable()
             resumeWork()
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_COMPANION_ACTIVATED, poc.wake)
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_QUEST_COMPLETE, poc.wake)
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_COLLECTIBLES_UNLOCK_STATE_CHANGED, poc.wake)
     end
     BattleScrolls.inventoryPocReturns.initialize()
     BattleScrolls.inventoryPocMarket.initialize()

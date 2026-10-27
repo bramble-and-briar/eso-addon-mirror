@@ -3,15 +3,21 @@
 PreviewAnywhere = {
     name = "PreviewAnywhere",
     displayName = "Preview Anywhere",
-    version = "1.1.0",
+    version = "1.3.0",
     savedVarsName = "PreviewAnywhereSavedVars",
     savedVarsVersion = 3,
     state = {
         savedVars = {
             enabled = true,
-            -- Frame the inventory's own hold-Square preview like the vendor Buy tab (right of the
-            -- item tooltip) instead of centred behind it. /pva invframe toggles.
+            -- Give the inventory (and Better Character Overview's page in it) the vendor Buy tab's
+            -- preview layout: piece right of the item tooltip, not behind it. /pva invframe toggles.
             inventoryFraming = true,
+            -- Furnishing Vault lists grouped by furniture category (/pva vault on|off), with
+            -- "Category - Subcategory" headers (/pva vault sub), optionally also in the regular bank
+            -- and house banks (/pva vault everywhere).
+            vaultCategories = true,
+            vaultSubcategories = true,
+            vaultEverywhere = false,
             -- Debug mode (/pva debug): diagnostic lines go to the LibConsoleLogger buffer (when the
             -- optional library is installed) and Lua errors are echoed to chat. Off by default:
             -- release builds stay silent apart from direct command replies.

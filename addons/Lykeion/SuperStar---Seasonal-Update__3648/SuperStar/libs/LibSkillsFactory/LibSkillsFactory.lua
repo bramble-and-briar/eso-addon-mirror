@@ -3,7 +3,7 @@ Original Author: Ayantir
 Reworked by Armodeniz
 Updated by Lykeion
 Filename: LibSkillFactory.lua
-Version: 25
+Version: 26
 ]]--
 
 --sigo@v4.2.1 new global library variable

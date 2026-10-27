@@ -18,7 +18,7 @@
     "SimpleGoliathWeave"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4975/",
-  "fingerprint": "ddee28d00733808a7a9df817089f6767c27e83e4a9a2adbfc46dfaadacc36afd",
+  "fingerprint": "18ac22596bcfce18ec677457287a1b86fabf07bc0a267082b43ecfab6ef0d39d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18093.png",
     "https://cdn-eso.mmoui.com/preview/pvw18094.png"
@@ -29,11 +29,11 @@
   "source_id": "4975",
   "source_url": "https://www.esoui.com/downloads/info4975-SimpleGoliathWeave.html",
   "stats": {
-    "downloads": 13,
+    "downloads": 34,
     "favorites": 0,
-    "monthly_downloads": 7
+    "monthly_downloads": 32
   },
   "title": "Simple Goliath Weave",
-  "updated_at": 1792662184000,
-  "version": "1.0.0"
+  "updated_at": 1793011452000,
+  "version": "1.0.1"
 }

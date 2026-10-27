@@ -31,9 +31,20 @@ local function OnRefreshRecipeList()
     end
 end
 
--- Returning true skips ZOS's check, which makes DoesRecipePassFilter return nil and hides the recipe
-local function OnDoesRecipePassFilter(_, specialIngredientType, _, _, _, _, _, _, _, _, resultItemId)
-    return searchText ~= "" and specialIngredientType == FURNISHING and not MatchesSearch(resultItemId)
+-- Wraps ZOS's filter: our search only narrows down recipes that already pass ZOS's own filters.
+-- Wrapped by hand because ZO_PreHook/ZO_PostHook can't use or change the original's return value.
+local function WrapRecipeFilter()
+    local originalDoesRecipePassFilter = PROVISIONER.DoesRecipePassFilter
+    function PROVISIONER:DoesRecipePassFilter(specialIngredientType, ...)
+        if not originalDoesRecipePassFilter(self, specialIngredientType, ...) then
+            return false
+        end
+        if searchText == "" or specialIngredientType ~= FURNISHING then
+            return true
+        end
+        -- resultItemId is the last of the 10 arguments
+        return MatchesSearch(select(9, ...))
+    end
 end
 
 local function Initialize()
@@ -79,7 +90,7 @@ local function Initialize()
     SecurePostHook(PROVISIONER, "ConfigureFromSettings", UpdateLayout)
     SecurePostHook(PROVISIONER, "OnTabFilterChanged", UpdateLayout)
     ZO_PreHook(PROVISIONER, "RefreshRecipeList", OnRefreshRecipeList)
-    ZO_PreHook(PROVISIONER, "DoesRecipePassFilter", OnDoesRecipePassFilter)
+    WrapRecipeFilter()
     UpdateLayout()
 end
 

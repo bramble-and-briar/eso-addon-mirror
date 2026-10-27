@@ -1,8 +1,8 @@
-## Title: |cD9AD51Tamriel|r |cB58AE8Collections|r - |c63BBD4Guild Market Scanner|r
-## Description: Read-only compact crash snapshots; autocomplete and sorting preserved
-## Author: |cD9AD51Majestic Minxi|r
-## Version: 1.0.6x
-## AddOnVersion: 212
+## Title: |cFFD15AGMS|r |c44D5C7- Guild Market Scanner|r
+## Description: Native gamepad Guild Trader scanner with collection filtering, cached listings, and native previews.
+## Author: |c73E58CMajestic Minxi|r
+## Version: 1.0.7b
+## AddOnVersion: 215
 ## APIVersion: 101051
 
 GuildMarketScannerDev.lua

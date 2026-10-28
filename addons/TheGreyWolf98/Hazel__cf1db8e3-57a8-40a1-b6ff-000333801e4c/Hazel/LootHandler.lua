@@ -1,0 +1,1196 @@
+-----------------------------------------------------------------------------------
+-- Addon Name: Dolgubon's Lazy Writ Crafter
+-- Creator: Dolgubon (Joseph Heinzle)
+-- Addon Ideal: Simplifies Crafting Writs as much as possible
+-- Addon Creation Date: March 14, 2016
+--
+-- File Name: LootHandler.lua
+-- File Description: This file handles the loot received from Writs. It opens containers, and logs the rewards
+-- Load Order Requirements: None
+-- 
+-----------------------------------------------------------------------------------
+
+WritCreater = WritCreater or {}
+
+local lootedItemLinks = {}
+-- {itemLink, bag, slot}
+local pendingItemActions = {}
+local containerHasTransmute = {}
+local flavourTexts = {}
+local lastLootedBoxSlot = nil
+WritCreater.pendingItemActions = pendingItemActions
+-- if GetDisplayName() == "@Dolgubon" then
+-- 	lootedItemLinks["|H0:item:57781:4:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = true
+-- end
+
+--Saves what the user got from the writ rewards
+
+local function round(f)
+    if not f then return f end
+    return math.floor(0.5+f)
+end
+-- Convert a Master Writ item_link into the integer number of
+-- writ vouchers it returns.
+local function toVoucherCount(item_link)
+	local x = { ZO_LinkHandler_ParseLink(item_link) }
+	local writ_reward      = tonumber(x[24])
+    local vc          = round(writ_reward/ 10000)
+    return vc
+end
+
+WritCreater.toVoucherCount = toVoucherCount
+
+local function updateSavedVars(vars, location, quantity)
+	-- d("Saving "..location.." #"..quantity)
+	if vars and vars[location]  then
+		vars[location] = vars[location] + quantity
+	elseif vars then
+		vars[location] = quantity
+	end
+end
+
+local function lootOutput(itemLink, itemType, quantity, isAnniversary, isZenithar)
+
+	if WritCreater:GetSettings().lootOutput then
+		local amountBag, amountBank, amountCraft = GetItemLinkStacks( itemLink)
+		local amount = amountCraft + amountBank + amountBag
+		local text
+		if itemType then 
+			text = zo_strformat( "1 "..WritCreater.strings.lootReceivedM.." ("..tostring(toVoucherCount(itemLink)).." v)", itemLink)
+		else
+			text = zo_strformat( WritCreater.strings.lootReceived, itemLink, amount, quantity)
+		end
+		if isAnniversary then
+			text = text.. " (Event Box)"
+		elseif isZenithar then
+			text = text.. " (Zenithar Box)"
+		else
+			
+		end
+		CHAT_ROUTER:AddSystemMessage(text)
+	end
+end
+
+--begin the save stat process. Also decides if a mail with current stats should be sent.
+local function LootAllHook(boxType, itemLink, quantity) -- technically not a hook.
+
+	local vars = WritCreater.savedVarsAccountWide["rewards"][boxType]
+	if vars==nil then return end
+	local loot = {}
+	-- for i = 1, GetNumLootItems() do
+		if vars.unknownMaster then
+			updateSavedVars(vars,"master",vars.unknownMaster)
+			vars.unknownMaster = nil
+		end
+		if vars.unknownSurvey then
+			updateSavedVars(vars,"survey",vars.unknownSurvey)
+			vars.unknownSurvey = nil
+		end
+		-- local lootId, name, _, quantity = GetLootItemInfo(i)
+		local name = GetItemLinkName(itemLink)
+		-- local itemLink = GetLootItemLink(lootId, 0)
+		--d(itemLink)
+		local itemType, specializedType = GetItemLinkItemType(itemLink) 
+		-- if it's gear
+		if name=="" then
+		elseif itemType==ITEMTYPE_ARMOR or itemType==ITEMTYPE_WEAPON then
+			local ornateTraits = 
+			{
+				[ITEM_TRAIT_TYPE_ARMOR_ORNATE] = true,
+				[ITEM_TRAIT_TYPE_JEWELRY_ORNATE] = true,
+				[ITEM_TRAIT_TYPE_WEAPON_ORNATE] = true,
+			}
+			-- d("Tracked a gear "..itemLink.. " for "..  boxType)
+			if ornateTraits[GetItemLinkTraitInfo(itemLink)] then
+				updateSavedVars(vars, "ornate", quantity)
+			else
+				updateSavedVars(vars, "intricate", quantity)
+			end
+		elseif CanItemLinkBeVirtual(itemLink) then 
+			updateSavedVars(vars, GetItemLinkItemId(itemLink), quantity)
+			if GetItemLinkFunctionalQuality(itemLink) == ITEM_FUNCTIONAL_QUALITY_LEGENDARY then
+				lootOutput(itemLink, nil, quantity)
+			end
+		elseif itemType==ITEMTYPE_RECIPE then 
+			local quality = GetItemLinkFunctionalQuality(itemLink)
+			if quality==ITEM_FUNCTIONAL_QUALITY_MAGIC then
+				updateSavedVars(vars["recipe"], "green", quantity)
+			elseif quality == ITEM_FUNCTIONAL_QUALITY_ARCANE then
+				updateSavedVars(vars["recipe"], "blue", quantity)
+			elseif quality == ITEM_FUNCTIONAL_QUALITY_ARTIFACT then
+				updateSavedVars(vars["recipe"], "purple", quantity)
+			elseif quality == ITEM_FUNCTIONAL_QUALITY_NORMAL then
+				updateSavedVars(vars["recipe"], "white", quantity)
+			elseif quality == ITEM_FUNCTIONAL_QUALITY_LEGENDARY then
+				updateSavedVars(vars["recipe"], "gold", quantity)
+			else
+				updateSavedVars(vars["recipe"], "unkownQuality", quantity)
+			end
+		elseif specializedType==SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT then
+			lootOutput(itemLink, nil , quantity)
+			updateSavedVars(vars, "survey", quantity)
+		elseif specializedType ==SPECIALIZED_ITEMTYPE_TROPHY_RECIPE_FRAGMENT then
+			updateSavedVars(vars, "fragment", quantity)
+		elseif itemType ==ITEMTYPE_CONTAINER then
+			WritCreater.addShipmentToContainerCooldown()
+			updateSavedVars(vars, "material", quantity)
+		elseif itemType ==ITEMTYPE_TOOL then
+			updateSavedVars(vars, "repair", quantity)
+		elseif itemType ==ITEMTYPE_GLYPH_JEWELRY or itemType ==ITEMTYPE_GLYPH_ARMOR or itemType ==ITEMTYPE_GLYPH_WEAPON then
+			updateSavedVars(vars, "glyph", quantity)
+		elseif itemType == ITEMTYPE_SOUL_GEM then 
+			updateSavedVars(vars, "soulGem", quantity)
+		elseif itemType == ITEMTYPE_MASTER_WRIT then
+			lootOutput(itemLink, ITEMTYPE_MASTER_WRIT, quantity)
+			updateSavedVars(vars, "master", quantity)
+			updateSavedVars(vars, "voucher", toVoucherCount(itemLink))
+		elseif itemType == ITEMTYPE_CONTAINER_STACKABLE then
+			lootOutput(itemLink, nil, quantity)
+			local location = GetItemLinkFunctionalQuality(itemLink) == ITEM_FUNCTIONAL_QUALITY_ARTIFACT and "master" or "survey"
+			updateSavedVars(vars, location, 1)
+
+		elseif specializedType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER then
+			lootOutput(itemLink, nil, quantity)
+		elseif specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE then
+			lootOutput(itemLink, nil, quantity)
+		elseif specializedType == SPECIALIZED_ITEMTYPE_NONE then -- assume it's a lead I guess
+			lootOutput(itemLink, nil, 1)
+			vars["lead"] = vars["lead"] or 0
+			updateSavedVars(vars, "lead", quantity)
+		else
+			if vars["other"]==nil then vars["other"] = 0 end
+			updateSavedVars(vars, "other", quantity)
+		end
+	-- end
+	WritCreater.updateList()
+	--saveStats(loot,boxType,boxRank)
+end
+
+local function lootHookNoSave(boxType, itemLink, quantity)
+		--d(itemLink)
+	local itemId = GetItemLinkItemId(itemLink)
+	local quality = GetItemLinkFunctionalQuality(itemLink)
+	local itemType, specializedType = GetItemLinkItemType(itemLink)
+	local isSpecialBox = boxType == 0
+	if specializedType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER then
+		lootOutput(itemLink, nil, quantity, isSpecialBox)
+	elseif specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE then
+		lootOutput(itemLink, nil, quantity, isSpecialBox)
+	elseif itemId == 115028 then
+		d(WritCreater.strings['aethericCipherCongrats'])
+	elseif quality>=ITEM_FUNCTIONAL_QUALITY_ARCANE then
+		lootOutput(itemLink, nil, quantity, isSpecialBox)
+	elseif itemId == 56863 or itemId == 56862 then
+		lootOutput(itemLink, nil, quantity, isSpecialBox)
+	end
+end
+
+local rewardActionHandle
+
+
+--if the stats should be saved, saves them
+
+local function shouldSaveStats(boxType)
+	-- if GetNumLootItems() < 2 then return false end
+	if boxType == 0 then return false end -- then it's an anniversary box or zenithar box
+
+	return true
+end
+
+local function shouldAutoLootContainerFromSettings()
+	-- if Unboxer and Unboxer.version ~= "2026.01.12" then return false end
+	local autoLoot
+	if WritCreater:GetSettings().ignoreAuto then
+		autoLoot = WritCreater:GetSettings().autoLoot
+	else
+		autoLoot = GetSetting(SETTING_TYPE_LOOT,LOOT_SETTING_AUTO_LOOT) == "1"
+	end
+	return autoLoot
+end
+
+local function isContainerOpenable(bag, slot) -- by writ crafter loot handler
+	if containerHasTransmute[slot] then return false end
+
+	local uniqueId = Id64ToString(GetItemUniqueId(bag, slot))
+	if WritCreater:GetSettings().transmuteBlock[uniqueId] then
+		local maxTransmutes = GetMaxPossibleCurrency( 5 , CURRENCY_LOCATION_ACCOUNT)
+		local currentTransmutes = GetCurrencyAmount(CURT_CHAOTIC_CREATIA,CURRENCY_LOCATION_ACCOUNT)
+		local transmuteSpace = maxTransmutes - currentTransmutes
+		if WritCreater:GetSettings().transmuteBlock[uniqueId] > transmuteSpace then
+			return false 
+		end
+	end
+
+	local itemType, specialItemType = GetItemType(bag, slot)
+	if itemType ~=ITEMTYPE_CONTAINER or specialItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE then return false end
+
+	local flavour = GetItemLinkFlavorText(GetItemLink(bag, slot))
+	return flavourTexts[flavour]
+end
+
+local fatiguedLoot = 
+{
+
+}
+
+local lookForLoot = 
+{
+
+}
+
+local function lootListener(boxCraft, boxSlot, lookForLoot, event, bag, slot, isNew, _,reason, countChange)
+	if not isNew then -- yes, we could use a filter, but this will only be active for a super short time
+		return
+	end
+	-- d("new "..GetItemLink(bag, slot))
+	-- d(boxCraft)
+	-- d(lookForLoot)
+	if NonContiguousCount(lookForLoot) == 0 then
+		return
+	end
+	local itemId = GetItemId(bag, slot)
+	boxCraft = lookForLoot[itemId] -- We can't trust the boxCraft parameter. But hassle to change
+	if lookForLoot[itemId] then
+		local itemLink = GetItemLink(bag, slot)
+		lootedItemLinks[GetItemLinkItemId(itemLink)] = true
+		lookForLoot[itemId] = nil
+		if shouldSaveStats(boxCraft) then
+			LootAllHook(boxCraft, itemLink, countChange)
+			rewardActionHandle(itemLink, bag, slot, countChange)
+		else
+			lootHookNoSave(boxCraft, itemLink, countChange)
+		end
+		
+		
+	end
+	-- Did we get a new container? Did we exhaust one? Is inventory full?
+	if isContainerOpenable(bag, slot) or not isContainerOpenable(BAG_BACKPACK, boxSlot) or GetNumBagFreeSlots(1)==0 then
+		WritCreater.updateContainerCooldown()
+	end
+end
+
+local completeTimes = 0
+local cooldown = 0
+local function clearLootFatigue()
+	fatiguedLoot = {}
+	EVENT_MANAGER:UnregisterForUpdate(WritCreater.name.."LootSavingFatigue")
+end
+local callFromSlotUpdated = false
+--If the box/loot item that is open is a writ container, loot it and open the inventory again
+local calledFromQuest = false
+local lastInteractedSlot = nil
+local function OnLootUpdated(event)
+	local ignoreAuto = WritCreater:GetSettings().ignoreAuto
+	local autoLoot  = shouldAutoLootContainerFromSettings()
+
+	local lootInfo = {GetLootTargetInfo()}
+	local writRewardNames = WritCreater.boxNames
+	local writRewardIds = WritCreater.rewardBoxes
+	if lootInfo[1] == "" and ((GetGameTimeMilliseconds() - cooldown) < 1000 )then
+		-- zo_callLater(EndLooting, 100)
+		return true
+	end
+	local boxInfo = writRewardNames[lootInfo[1]]
+	if boxInfo then
+		local boxRank = boxInfo[1]
+		local boxCraft = boxInfo[2]
+		if boxCraft == 0 and boxRank == 0 then
+			if not WritCreater:GetSettings().lootJubileeBoxes then 
+				return false
+			end
+		end
+		--LOOT_SHARED:LootAllItems()
+		local n = SCENE_MANAGER:GetCurrentScene().name
+		
+		local numTransmute = GetCurrencyAmount(CURT_CHAOTIC_CREATIA,CURRENCY_LOCATION_ACCOUNT)
+		local numLootTransmute = GetLootCurrency(CURT_CHAOTIC_CREATIA)
+
+		EVENT_MANAGER:UnregisterForUpdate(WritCreater.name.."LootSavingFatigue")
+		EVENT_MANAGER:RegisterForUpdate(WritCreater.name.."LootSavingFatigue", 10000, clearLootFatigue)
+
+
+		
+
+		for j = 1, GetNumLootItems() do
+
+			local lootId, name, _, quantity = GetLootItemInfo(j)
+			local itemLink = GetLootItemLink(lootId, 0)
+			local itemId = GetItemLinkItemId(itemLink)
+			lookForLoot[itemId] = boxCraft
+
+		end
+		-- end
+		fatiguedLoot[boxCraft] = true
+		EVENT_MANAGER:RegisterForEvent(WritCreater.name.."LootListener", EVENT_INVENTORY_SINGLE_SLOT_UPDATE , function(...)lootListener(boxCraft, lastLootedBoxSlot,lookForLoot, ...) end)
+		EVENT_MANAGER:RegisterForEvent(WritCreater.name.."LootListener", EVENT_LOOT_CLOSED , function() zo_callLater(function() EVENT_MANAGER:UnregisterForEvent(WritCreater.name.."LootListener",EVENT_INVENTORY_SINGLE_SLOT_UPDATE) lookForLoot = {} end , GetLatency()+100) end)
+		
+		if autoLoot then
+			if numLootTransmute==0 or numTransmute + numLootTransmute <=GetMaxPossibleCurrency( 5 , CURRENCY_LOCATION_ACCOUNT) then
+				if numLootTransmute > 0 then
+
+					d(zo_strformat(WritCreater.strings['transmuteLooted'] , numLootTransmute , (numTransmute + numLootTransmute)))
+					if GetMaxPossibleCurrency( 5 , CURRENCY_LOCATION_ACCOUNT) - 100 < numTransmute + numLootTransmute then
+						d(WritCreater.strings['transmuteLimitApproach'])
+					end
+				end
+				LootAll()
+				EndLooting() -- In case looting failed for whatever reason
+			else
+				-- GetLootItemInfo(number lootIndex)
+				-- do not loot the transmute if it would go over max
+				for i = 1, GetNumLootItems() do
+					local lootId, name,_,_,_,_,_,_,lootType = GetLootItemInfo(i)
+					LootItemById(lootId)
+				end
+				-- Then add the container to a 'blacklist' so we don't try to open it in a loop
+				if lastInteractedSlot then
+					containerHasTransmute[lastInteractedSlot] = true
+					WritCreater:GetSettings().transmuteBlock[Id64ToString(GetItemUniqueId(1, lastInteractedSlot))] = numLootTransmute
+				end
+				d(zo_strformat(WritCreater.strings['transmuteLimitHit'],numLootTransmute))
+				EndLooting()
+			end
+		else
+			return false
+		end
+		return true
+	end
+	calledFromQuest = false
+	return false
+end
+
+
+local flavours = {
+	[GetItemLinkFlavorText("|H1:item:121302:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Normal reward
+	[GetItemLinkFlavorText("|H1:item:138816:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Jewelry shipment reward
+	[GetItemLinkFlavorText("|H1:item:147603:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Jewelry shipment reward type 2 (for German only)
+	[GetItemLinkFlavorText("|H1:item:142175:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Shipment reward
+	[GetItemLinkFlavorText("|H1:item:58519:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- french boxes
+	[GetItemLinkFlavorText("|H1:item:59714:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- french boxes
+	[GetItemLinkFlavorText("|H1:item:58528:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- french boxes
+	[GetItemLinkFlavorText("|H1:item:57851:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- french boxes
+	[GetItemLinkFlavorText("|H1:item:58510:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- french boxes
+	
+}
+local eventBoxes = {
+	[GetItemLinkFlavorText("|H1:item:194428:124:1:0:0:0:2023:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- anniversary box
+	[GetItemLinkFlavorText("|H1:item:204459:124:1:0:0:0:2026:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Gold anniversary box
+	
+	-- [GetItemLinkFlavorText("|H1:item:153502:123:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- witches box
+	[GetItemLinkFlavorText("|H1:item:187701:5:1:0:0:0:2025:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- zenithar box
+	[GetItemLinkFlavorText("|H1:item:187746:6:1:0:0:0:2025:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- glorious zenithar box
+}
+local anniversaryBoxie = GetItemLinkFlavorText("|H1:item:194428:124:1:0:0:0:2023:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")
+local plunderSkulls = GetItemLinkFlavorText("|H1:item:153502:123:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")
+
+setmetatable(flavourTexts, {__index = function(t, i)
+	if flavours[i] then return true end
+	if eventBoxes[i]then
+		return WritCreater:GetSettings().lootJubileeBoxes
+	end
+	if i==plunderSkulls and GetDisplayName()=="@Dolgubon" then
+		return true
+	end
+end
+})
+-- local flavourTexts = {
+-- 	[GetItemLinkFlavorText("|H1:item:121302:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Normal reward
+-- 	[GetItemLinkFlavorText("|H1:item:138816:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Jewelry shipment reward
+-- 	[GetItemLinkFlavorText("|H1:item:147603:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Jewelry shipment reward type 2 (for German only)
+-- 	[GetItemLinkFlavorText("|H1:item:142175:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = true, -- Shipment reward
+-- 	[GetItemLinkFlavorText("|H1:item:147430:124:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")] = 1, -- anniversary
+-- }
+local scanBagForUnopenedContainers
+
+local lootClosedTime
+local slotUpdateHandler
+-- _G[savedVariablesName][GetWorldName()][GetDisplayName()][characterName]
+SLASH_COMMANDS['/transmuteboxtotal'] = function() -- I dunno if people use this? probably no need to bother translate unless you want to
+	local sum = 0
+	for toon, v in pairs(_G["DolgubonsWritCrafterSavedVars"]["Default"][GetDisplayName()]) do
+		local toonSum = 0
+		if v.transmuteBlock then
+			for boxId, numTransmutes in pairs(v.transmuteBlock) do
+				sum = sum + numTransmutes
+				toonSum = toonSum + numTransmutes
+			end
+			d("Total transmutes for "..tostring(v["$LastCharacterName"]).." : "..toonSum)
+		end
+	end
+	d("Total transmutes for account : "..sum)
+end
+
+
+
+local function shouldOpenContainer(bag, slot)
+	-- if Unboxer and Unboxer.version ~= "2026.01.12" then return false end -- Unboxer is active, so leave the unboxing to them
+	if not WritCreater:GetSettings().lootContainerOnReceipt then return false end
+
+	if not shouldAutoLootContainerFromSettings() then return false end
+
+	if FindFirstEmptySlotInBag(BAG_BACKPACK) == nil then return false end
+
+	if containerHasTransmute[slot] then return false end
+
+	local uniqueId = Id64ToString(GetItemUniqueId(bag, slot))
+	if WritCreater:GetSettings().transmuteBlock[uniqueId] then
+		local maxTransmutes = GetMaxPossibleCurrency( 5 , CURRENCY_LOCATION_ACCOUNT)
+		local currentTransmutes = GetCurrencyAmount(CURT_CHAOTIC_CREATIA,CURRENCY_LOCATION_ACCOUNT)
+		local transmuteSpace = maxTransmutes - currentTransmutes
+		if WritCreater:GetSettings().transmuteBlock[uniqueId] > transmuteSpace then
+			return false 
+		end
+	end
+
+	local itemType, specialItemType = GetItemType(bag, slot)
+	if itemType ~=ITEMTYPE_CONTAINER or specialItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE then return false end
+
+	local flavour = GetItemLinkFlavorText(GetItemLink(bag, slot))
+	return flavourTexts[flavour]
+end
+
+function WritCreater.countContainers()
+	local count = 0
+	for i = 1, GetBagSize(BAG_BACKPACK) do
+		if isContainerOpenable(BAG_BACKPACK, i) then
+			if WritCreater.boxNames[GetItemName(BAG_BACKPACK, i)][2]>0 or WritCreater:GetSettings().lootJubileeBoxes then
+				count = count + 1
+			end
+		end
+	end
+	return count
+end
+
+local function openContainer(bag, slot)
+	if not shouldOpenContainer(bag, slot) then return end
+	lastInteractedSlot = slot
+	cooldown = GetGameTimeMilliseconds()
+	if IsProtectedFunction("UseItem") then
+		CallSecureProtected("UseItem", bag, slot)
+	else
+		UseItem(bag, slot)
+	end 
+	calledFromQuest = true
+	EVENT_MANAGER:RegisterForUpdate(WritCreater.name.."LootRescan", 100, scanBagForUnopenedContainers)
+	completeTimes = GetGameTimeMilliseconds()
+end
+
+local cooldownTimer = 300
+
+local function prepareToInteract()
+	if IsUnitSwimming("player") then return true end
+	if IsUnitInCombat("player") then return true end
+	if not TRIBUTE.gameFlowState == TRIBUTE_GAME_FLOW_STATE_INACTIVE then return true end
+	if IsLooting() then return true end
+	if GetGameTimeMilliseconds() - cooldown < cooldownTimer then return true end
+	local _, interact = GetGameCameraInteractableActionInfo()
+	-- Comfort code, so localization is ok here
+	if interact and WritCreater.langWritNames() then
+		local names =WritCreater.langWritNames()
+		for i = 1, #WritCreater.langWritNames() do
+			if string.find(interact, names[i]) then
+				return true
+			end
+		end
+	end
+	if GetGameTimeMilliseconds() <completeTimes + WritCreater:GetSettings().containerDelay + 1000 + GetLatency() then
+		--d("Delay, complete time "..completeTimes)
+		return true
+	end
+	return false
+end
+
+local function attemptOpenContainer(bag, slot)
+	
+	if GetSlotCooldownInfo( 1 )>0 or IsInteractionUsingInteractCamera() or SCENE_MANAGER:GetCurrentScene().name=='interact' or prepareToInteract() then
+		zo_callLater(function()attemptOpenContainer(bag, slot) end , math.max(GetSlotCooldownInfo( 1 ) + cooldownTimer,300))
+	else
+		openContainer(bag, slot)
+	end
+end
+-- bag, slot, itemId, action
+WritCreater.rewardList = {
+}
+
+
+local function distinguishStackableContainers(link)
+	if GetItemLinkFunctionalQuality(link) == ITEM_FUNCTIONAL_QUALITY_ARCANE then
+		return "survey"
+	elseif GetItemLinkFunctionalQuality(link) == ITEM_FUNCTIONAL_QUALITY_ARTIFACT then
+		return "master"
+	end
+end
+
+local function checkMatQuality(link)
+	local quality = GetItemLinkFunctionalQuality(link)
+	-- If ESO+ they have craftbag so there's really nothing to do, it just goes there
+	if quality == ITEM_FUNCTIONAL_QUALITY_LEGENDARY and not  IsESOPlusSubscriber() then
+		return "goldMat"
+	else
+		return nil
+	end
+end
+
+local psijicFragmentFlavor = GetItemLinkFlavorText("|H1:item:64704:5:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+local function isPsijicFragment(link)
+	if GetItemLinkFunctionalQuality(link) == ITEM_FUNCTIONAL_QUALITY_ARTIFACT and GetItemLinkFlavorText(link)==psijicFragmentFlavor then
+		return "fragment"
+	else
+		return nil
+	end
+
+end
+
+local handledItemTypes = 
+{
+	[ITEMTYPE_MASTER_WRIT] = "master",
+	[ITEMTYPE_CONTAINER_STACKABLE] = distinguishStackableContainers,
+	[SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT] = "survey",
+	[44879] = "repair",
+	-- Subtracting 100 so that an item with an item type matching the item trait does not return intricate
+	[ITEM_TRAIT_TYPE_ARMOR_INTRICATE-100] = "intricate",
+	[ITEM_TRAIT_TYPE_JEWELRY_INTRICATE-100] = "intricate",
+	[ITEM_TRAIT_TYPE_WEAPON_INTRICATE-100] = "intricate",
+	[ITEM_TRAIT_TYPE_ARMOR_ORNATE-100] = "ornate",
+	[ITEM_TRAIT_TYPE_JEWELRY_ORNATE-100] = "ornate",
+	[ITEM_TRAIT_TYPE_WEAPON_ORNATE-100] = "ornate",
+	[ITEMTYPE_GLYPH_ARMOR] = "glyph",
+	[ITEMTYPE_GLYPH_JEWELRY] = "glyph",
+	[ITEMTYPE_GLYPH_WEAPON] = "glyph",
+	[ITEMTYPE_SOUL_GEM] = "soulGem",
+	[SPECIALIZED_ITEMTYPE_TROPHY_RECIPE_FRAGMENT] = "fragment",
+	-- Quality can be checked later
+	[ITEMTYPE_BLACKSMITHING_BOOSTER] = checkMatQuality,
+	[ITEMTYPE_CLOTHIER_BOOSTER] = checkMatQuality,
+	[ITEMTYPE_JEWELRYCRAFTING_BOOSTER] = checkMatQuality,
+	[ITEMTYPE_WOODWORKING_BOOSTER] = checkMatQuality,
+	[ITEMTYPE_ENCHANTING_RUNE_ASPECT] = checkMatQuality,
+}
+local stackableSurveyWritCraftTypes = {
+	-- surveys
+	[219853] = CRAFTING_TYPE_ALCHEMY,
+	[219849] = CRAFTING_TYPE_BLACKSMITHING,
+	[219850] = CRAFTING_TYPE_CLOTHIER,
+	[219852] = CRAFTING_TYPE_ENCHANTING,
+	[219854] = CRAFTING_TYPE_JEWELRYCRAFTING,
+	[219851] = CRAFTING_TYPE_WOODWORKING,
+	-- Master writs
+	[217922] = CRAFTING_TYPE_ALCHEMY,
+	[217917] = CRAFTING_TYPE_BLACKSMITHING,
+	[217918] = CRAFTING_TYPE_CLOTHIER,
+	[217920] = CRAFTING_TYPE_ENCHANTING,
+	[217923] = CRAFTING_TYPE_JEWELRYCRAFTING,
+	[217921] = CRAFTING_TYPE_PROVISIONING,
+	[217919] = CRAFTING_TYPE_WOODWORKING,
+}
+
+
+local function getItemLinkCraftType(link)
+	local craftType = stackableSurveyWritCraftTypes[GetItemLinkItemId(link)] or WritCreater.getWritAndSurveyType(link)
+	if craftType then
+		return craftType
+	end
+	local itemType, specializedType = GetItemLinkItemType(link)
+	local armourType = GetItemLinkArmorType(link)
+	local weaponType = GetItemLinkWeaponType(link)
+	if armourType == ARMORTYPE_HEAVY then
+		return CRAFTING_TYPE_BLACKSMITHING
+	elseif armourType == ARMORTYPE_MEDIUM or armourType == ARMORTYPE_LIGHT then
+		return CRAFTING_TYPE_CLOTHIER
+	elseif weaponType == WEAPONTYPE_FIRE_STAFF or 
+		   weaponType == WEAPONTYPE_FROST_STAFF or 
+		   weaponType == WEAPONTYPE_HEALING_STAFF or 
+		   weaponType == WEAPONTYPE_LIGHTNING_STAFF or
+		   weaponType == WEAPONTYPE_BOW or
+		   weaponType == WEAPONTYPE_SHIELD then
+		return CRAFTING_TYPE_WOODWORKING
+	elseif itemType == ITEMTYPE_WEAPON then
+		return CRAFTING_TYPE_BLACKSMITHING
+	elseif specializedType == 0 then -- probably jewelry
+		return CRAFTING_TYPE_JEWELRYCRAFTING
+	end
+	return nil
+end
+
+function rewardActionHandle(link, bag, slot, changeAmount)
+	local itemId = GetItemLinkItemId(link)
+	if lootedItemLinks[itemId] then
+		-- d("Looted ".. link)
+		lootedItemLinks[itemId] = false
+		local itemType, specializedType = GetItemLinkItemType(link)
+		local itemName = GetItemLinkName(link)
+		local itemTrait = GetItemLinkTraitInfo(link)
+		local actionSourceName = handledItemTypes[itemType] or handledItemTypes[specializedType] or handledItemTypes[itemId] or handledItemTypes[itemTrait-100]
+		if type(actionSourceName) == "function" then
+			actionSourceName = actionSourceName(link)
+		end
+		if actionSourceName then
+			-- d("Passed first check")
+			local craftType = getItemLinkCraftType(link)
+			
+			local actionSource = WritCreater:GetSettings().rewardHandling[actionSourceName]
+			local action
+
+			if actionSource.sameForAllCrafts then
+				action = actionSource.all
+			else
+				action = actionSource[craftType]
+			end
+			if action == 1 then
+				-- do nothing
+
+				-- d("Do nothing")
+			elseif action == 2 then
+				d(zo_strformat(WritCreater.strings['lootingDeposit'], link))
+				table.insert(pendingItemActions, {link, 2, bag, slot, changeAmount})
+				local id64 = GetItemUniqueId(bag, slot)
+				local id64String = Id64ToString(id64)
+				WritCreater.savedVars.depositList[id64String] = 
+				{ 	
+					link,
+					2,
+					bag,
+					slot,
+					changeAmount,
+					["uniqueId"] = id64String , 
+					["bag"] = bag, 
+					["slot"] = slot,
+					["timestamp"] = GetTimeStamp(),
+					["changeAmount"] = changeAmount,
+				}
+			elseif action == 3 then
+				SetItemIsJunk(bag, slot, true)
+				WritCreater.savedVarsAccountWide.junkedItems[Id64ToString(GetItemUniqueId(bag, slot))] = true
+				d(zo_strformat(WritCreater.strings['lootingMarkJunk'], link))
+				WritCreater.savedVars.hasJunk = true
+			elseif action == 4 then
+				 DestroyItem(bag , slot)
+				 d(zo_strformat(WritCreater.strings['lootingDestroyItem'], link))
+			elseif action == 5 then
+				local id64 = GetItemUniqueId(bag, slot)
+				local id64String = Id64ToString(id64)
+				WritCreater.savedVars.deconstructList[id64String] = 
+				{ 	
+					["uniqueId"] = id64String , 
+					["bag"] = bag, 
+					["slot"] = slot,
+					["timestamp"] = GetTimeStamp()
+				}
+				d(zo_strformat(WritCreater.strings['lootingDeconItem'], link))
+				WritCreater.LLCInteractionDeconstruct:DeconstructSmithingItem(bag, slot, true, id64String)
+			end
+			-- 1 nothing
+			-- 2 deposit
+			-- 3 Destroy
+			-- 4 junk
+			
+		end
+		-- determine type of item to find what we can do with it
+		-- Can we do action right now?
+			-- yes - do it
+			-- No - queue it
+	end
+
+end
+
+-- EVENT_MANAGER:RegisterForUpdate(WritCreater.name.."OpenAllContainers", 1000, scanBagForUnopenedContainers)
+local function slotUpdateHandler(event, bag, slot, isNew,_,reason,changeAmount,...)
+
+	if WritCreater.checkIfMasterWritWasStarted then WritCreater.checkIfMasterWritWasStarted(event, bag, slot, isNew,...) end
+	local autoLoot
+	if WritCreater:GetSettings().ignoreAuto then
+		autoLoot = WritCreater:GetSettings().autoLoot
+	else
+		autoLoot = GetSetting(SETTING_TYPE_LOOT,LOOT_SETTING_AUTO_LOOT) == "1"
+	end
+	local link = GetItemLink(bag, slot)
+	if isNew then
+		if not bag or not slot then return end
+
+		if WritCreater:GetSettings().lootContainerOnReceipt and shouldOpenContainer(bag, slot) then
+			attemptOpenContainer(bag, slot)
+			-- if not autoLoot then return end
+		end
+	end
+	--|H1:item:194428:123:1:0:0:0:2024:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h
+	------
+	-- REWARD HANDLING
+	if isNew then --or GetDisplayName() == "@Dolgubon" then
+		-- d(link.." "..tostring(isNew).." "..tostring(lootedItemLinks[link]))
+		local itemId = GetItemLinkItemId(link)
+		if lootedItemLinks[itemId] then
+			-- d("Looted ".. link)
+			if lootedItemLinks[itemId] == nil then
+				-- d("Wasn't logged yet! "..link)
+			else
+				-- d("Was logged "..link)
+			end
+			lootedItemLinks[itemId] = false
+			local itemType, specializedType = GetItemLinkItemType(link)
+			local itemName = GetItemLinkName(link)
+			local itemTrait = GetItemLinkTraitInfo(link)
+			local actionSourceName = handledItemTypes[itemType] or handledItemTypes[specializedType] or handledItemTypes[itemId] or handledItemTypes[itemTrait-100]
+			if type(actionSourceName) == "function" then
+				actionSourceName = actionSourceName(link)
+			end
+			if actionSourceName then
+				-- d("Passed first check")
+				local craftType
+				craftType = getItemLinkCraftType(link)
+				local actionSource = WritCreater:GetSettings().rewardHandling[actionSourceName]
+				local action
+
+				if actionSource.sameForAllCrafts then
+					action = actionSource.all
+				else
+					action = actionSource[craftType]
+				end
+				if action == 1 then
+					-- do nothing
+
+					-- d("Do nothing")
+				elseif action == 2 then
+					d(zo_strformat(WritCreater.strings['lootingDeposit'], link))
+					table.insert(pendingItemActions, {link, 2, bag, slot, changeAmount})
+					local id64 = GetItemUniqueId(bag, slot)
+					local id64String = Id64ToString(id64)
+					WritCreater.savedVars.depositList[id64String] = 
+					{ 	
+						link,
+						2,
+						bag,
+						slot,
+						changeAmount,
+						["uniqueId"] = id64String , 
+						["bag"] = bag, 
+						["slot"] = slot,
+						["timestamp"] = GetTimeStamp(),
+						["changeAmount"] = changeAmount,
+					}
+				elseif action == 3 then
+					SetItemIsJunk(bag, slot, true)
+					WritCreater.savedVarsAccountWide.junkedItems[Id64ToString(GetItemUniqueId(bag, slot))] = true
+					d(zo_strformat(WritCreater.strings['lootingMarkJunk'], link))
+					WritCreater.savedVars.hasJunk = true
+				elseif action == 4 then
+					 DestroyItem(bag , slot)
+					 d(zo_strformat(WritCreater.strings['lootingDestroyItem'], link))
+				elseif action == 5 then
+					local id64 = GetItemUniqueId(bag, slot)
+					local id64String = Id64ToString(id64)
+					WritCreater.savedVars.deconstructList[id64String] = 
+					{ 	
+						["uniqueId"] = id64String , 
+						["bag"] = bag, 
+						["slot"] = slot,
+						["timestamp"] = GetTimeStamp()
+					}
+					d(zo_strformat(WritCreater.strings['lootingDeconItem'], link))
+					WritCreater.LLCInteractionDeconstruct:DeconstructSmithingItem(bag, slot, true, id64String)
+				end
+				-- 1 nothing
+				-- 2 deposit
+				-- 3 Destroy
+				-- 4 junk
+				
+			end
+			-- determine type of item to find what we can do with it
+			-- Can we do action right now?
+				-- yes - do it
+				-- No - queue it
+		end
+	end
+end
+
+function scanBagForUnopenedContainers( ... )
+	if not FindFirstEmptySlotInBag(BAG_BACKPACK) then return end
+	for i = 0, GetBagSize(BAG_BACKPACK) do 
+		if shouldOpenContainer(BAG_BACKPACK, i) then
+			slotUpdateHandler(1, BAG_BACKPACK, i, true)
+		end
+	end
+	EVENT_MANAGER:UnregisterForUpdate(WritCreater.name.."LootRescan")
+end
+WritCreater.scanForUnopenedContainers = scanBagForUnopenedContainers
+
+
+
+WritCreater.OnLootUpdated = OnLootUpdated
+
+function WritCreater.LootHandlerInitialize()
+	
+
+	EVENT_MANAGER:RegisterForEvent(WritCreater.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, slotUpdateHandler)
+	local oldfunc = ZO_SharedInventoryManager.ClearNewStatus
+	ZO_SharedInventoryManager.ClearNewStatus = function(self, bag, slot) 
+
+		if WritCreater:GetSettings().keepNewContainer and flavourTexts[ GetItemLinkFlavorText(GetItemLink(bag,slot))]then
+
+		else
+			oldfunc(self, bag, slot) 
+		end 
+	end
+	EVENT_MANAGER:RegisterForEvent(WritCreater.name.."AddNewStatusContainers", EVENT_PLAYER_ACTIVATED, 
+		function(e, first) 
+			for k, v in pairs(PLAYER_INVENTORY.inventories[1].slots[1] ) do 
+				if flavourTexts[ GetItemLinkFlavorText(GetItemLink(BAG_BACKPACK, v.searchData.slotIndex))] then
+					v.brandNew = true
+					v.age = 1
+					v.statusSortOrder = 1
+				end
+
+				if GetDisplayName() =="@Dolgubon" and string.sub(GetItemLinkName(GetItemLink(BAG_BACKPACK, v.searchData.slotIndex)),16) == string.sub(GetItemLinkFlavorText("|H1:item:151602:4:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"),16) then
+					-- DestroyItem(BAG_BACKPACK, v.searchData.slotIndex)
+				end
+			end
+			-- PLAYER_INVENTORY.inventories[1].slots[1][149].brandNew = true 
+			EVENT_MANAGER:UnregisterForEvent(WritCreater.name.."AddNewStatusContainers", EVENT_PLAYER_ACTIVATED)
+			end )	
+
+	-- If this was initialized with keyboard but user switches to gamepad, or vice versa, we also need to hook the new mode
+	ZO_PreHook(SYSTEMS:GetObject("loot"), "UpdateLootWindow", OnLootUpdated)
+	local lootGamepadHooked = IsInGamepadPreferredMode()
+	local lootKeyboardHooked = not IsInGamepadPreferredMode()
+	EVENT_MANAGER:RegisterForEvent(WritCreater.name .. "GamepadChanged", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
+		function(_, gamepadPreferred)
+			if (gamepadPreferred and not lootGamepadHooked) then
+				ZO_PreHook(SYSTEMS:GetObject("loot"), "UpdateLootWindow", OnLootUpdated)
+				lootGamepadHooked = true
+			elseif (not gamepadPreferred and not lootKeyboardHooked) then
+				ZO_PreHook(SYSTEMS:GetObject("loot"), "UpdateLootWindow", OnLootUpdated)
+				lootKeyboardHooked = true
+			end
+		end)
+	
+	EVENT_MANAGER:RegisterForEvent(WritCreater.name.."Deconstruct", EVENT_PLAYER_ACTIVATED,function() 
+
+		for k, v in pairs(WritCreater.savedVars.deconstructList) do
+			if v.timestamp and GetTimeStamp() - 60*60*24*60 > v.timestamp then
+				WritCreater.savedVars.deconstructList[k] = nil
+			elseif Id64ToString(GetItemUniqueId(v.bag, v.slot)) == v.uniqueId then
+				local link = GetItemLink(v.bag, v.slot)
+				d(zo_strformat(WritCreater.strings['lootingDeconItem'], link))
+				WritCreater.LLCInteractionDeconstruct:DeconstructSmithingItem(v.bag, v.slot, true, k)
+			end
+		end
+		local numDeposits = 0
+		for k, v in pairs(WritCreater.savedVars.depositList) do
+			local bag = v.bag
+			local index = v.slot
+			local doesItemExistInSlot = Id64ToString(GetItemUniqueId(bag, index)) == v.uniqueId
+			if doesItemExistInSlot then
+				numDeposits = numDeposits + 1
+			else
+				WritCreater.savedVars.depositList[k] = nil
+			end
+		end
+		if numDeposits > 0 then
+			d(zo_strformat(WritCreater.strings['lootingDeposit'], numDeposits))
+			
+		end
+		EVENT_MANAGER:UnregisterForEvent(WritCreater.name.."Deconstruct", EVENT_PLAYER_ACTIVATED)
+	end )
+end
+
+local function sellJunk()
+	if WritCreater.savedVars.hasJunk then
+		SellAllJunk()
+		CHAT_ROUTER:AddSystemMessage(WritCreater.strings['junkSold'])
+		WritCreater.savedVars.hasJunk = false
+		WritCreater.savedVarsAccountWide.junkedItems = {}
+	end
+end
+
+if ZO_IsConsoleOrGameCoreUI() then
+	EVENT_MANAGER:RegisterForEvent(WritCreater.name,EVENT_OPEN_STORE, sellJunk) -- this could maybe go badly? Hopefully not!
+end
+
+--/script for k, v in pairs(SCENE_MANAGER:GetCurrentScene().callbackRegistry) do d(k) end
+--SCENE_MANAGER:GetCurrentScene().callbackRegistry.tester = function() d("hudui") end
+
+local originalLoot = LootItemById
+function LootItemById(id)
+	--d(id)
+	originalLoot(id)
+end
+local originalLootAll = LootAll
+function LootAll(id)
+	--d("loot all")
+	originalLootAll()
+end
+--[[
+local f=true
+local o=ZO_ActionBar_OnActionButtonDown 
+ZO_ActionBar_OnActionButtonDown=function(s)if GetSlotName(s)=="Flames of Oblivion" then f=false else o(s)end end
+z="ZO_ActionBar_OnActionButtonUp"
+local p=_G[z]
+_G[z]=function(s)f=true p(s)end
+y="ZO_ActionBar_CanUseActionSlots"
+local l=_G[y]
+_G[y]=function(s)return f and l(s)end
+]]
+--[[
+  local function UpdateLootWindow()
+
+        local name, targetType, actionName, isOwned = GetLootTargetInfo()
+        if name ~= "" then
+            if targetType == INTERACT_TARGET_TYPE_ITEM then
+                name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
+            elseif targetType == INTERACT_TARGET_TYPE_OBJECT then
+                name = zo_strformat(SI_LOOT_OBJECT_NAME, name)
+            elseif targetType == INTERACT_TARGET_TYPE_FIXTURE then
+                name = zo_strformat(SI_TOOLTIP_FIXTURE_INSTANCE, name)
+            end
+        end
+
+        SYSTEMS:GetObject("loot"):UpdateLootWindow(name, actionName, isOwned)
+    end
+]]
+
+--[[
+function CA.PrintBufferedXP()
+    if g_xpCombatBufferValue > 0 and g_xpCombatBufferValue > CA.SV.XP.ExperienceFilter then
+        local change = g_xpCombatBufferValue
+        CA.PrintExperienceGain(change)
+    end
+    EVENT_MANAGER:UnregisterForUpdate(moduleName .. "BufferedXP")
+    g_xpCombatBufferValue = 0
+end
+]]
+
+
+WritCreater.rewardBoxData = { --To get exact name strings of boxes
+	[57851] =  {1, CRAFTING_TYPE_BLACKSMITHING} , -- Blacksmithing
+	[58131] =  {2, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58503] =  {3, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58504] =  {4, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58505] =  {5, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58506] =  {6, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58507] =  {7, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58508] =  {8, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58509] =  {9, CRAFTING_TYPE_BLACKSMITHING} ,
+	[71234] =  {10, CRAFTING_TYPE_BLACKSMITHING} ,
+	[121298] = {10, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142134] = {0, CRAFTING_TYPE_BLACKSMITHING} , -- shipments
+	[142135] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142136] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142137] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142138] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142139] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142140] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142141] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142142] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[142174] = {0, CRAFTING_TYPE_BLACKSMITHING} ,
+	[58519] =  {1, CRAFTING_TYPE_CLOTHIER} , -- clothier, cloth
+	[58520] =  {2, CRAFTING_TYPE_CLOTHIER} ,
+	[58521] =  {3, CRAFTING_TYPE_CLOTHIER} ,
+	[58522] =  {4, CRAFTING_TYPE_CLOTHIER} ,
+	[58523] =  {5, CRAFTING_TYPE_CLOTHIER} ,
+	[58524] =  {6, CRAFTING_TYPE_CLOTHIER} ,
+	[58525] =  {7, CRAFTING_TYPE_CLOTHIER} ,
+	[58526] =  {8, CRAFTING_TYPE_CLOTHIER} ,
+	[58527] =  {9, CRAFTING_TYPE_CLOTHIER} ,
+	[71233] =  {10, CRAFTING_TYPE_CLOTHIER} ,
+	[121297] = {10, CRAFTING_TYPE_CLOTHIER} ,
+	[142143] = {0, CRAFTING_TYPE_CLOTHIER } , -- shipments
+	[142144] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142145] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142146] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142147] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142148] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142149] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142150] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142151] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142176] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[147607] = {1, CRAFTING_TYPE_CLOTHIER } , -- leather
+	[147608] = {2, CRAFTING_TYPE_CLOTHIER } ,
+	[147609] = {3, CRAFTING_TYPE_CLOTHIER } ,
+	[147610] = {4, CRAFTING_TYPE_CLOTHIER } ,
+	[147611] = {5, CRAFTING_TYPE_CLOTHIER } ,
+	[147612] = {6, CRAFTING_TYPE_CLOTHIER } ,
+	[147613] = {7, CRAFTING_TYPE_CLOTHIER } ,
+	[147614] = {8, CRAFTING_TYPE_CLOTHIER } ,
+	[147615] = {9, CRAFTING_TYPE_CLOTHIER } ,
+	[147616] = {10, CRAFTING_TYPE_CLOTHIER } ,
+	[142152] = {0, CRAFTING_TYPE_CLOTHIER } , -- shipments
+	[142153] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142154] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142155] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142156] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142157] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142158] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142159] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142160] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[142177] = {0, CRAFTING_TYPE_CLOTHIER } ,
+	[58528] = {1, CRAFTING_TYPE_ENCHANTING }, -- enchanting
+	[58529] = {2, CRAFTING_TYPE_ENCHANTING },
+	[58530] = {3, CRAFTING_TYPE_ENCHANTING },
+	[58531] = {4, CRAFTING_TYPE_ENCHANTING },
+	[58532] = {5, CRAFTING_TYPE_ENCHANTING },
+	[58533] = {6, CRAFTING_TYPE_ENCHANTING },
+	[58534] = {7, CRAFTING_TYPE_ENCHANTING },
+	[59735] = {8, CRAFTING_TYPE_ENCHANTING },
+	[59736] = {9, CRAFTING_TYPE_ENCHANTING },
+	[71236] = {10, CRAFTING_TYPE_ENCHANTING },
+	[121300] = {10, CRAFTING_TYPE_ENCHANTING },
+	[59705] = {1, CRAFTING_TYPE_ALCHEMY } , -- alchemy
+	[59706] = {2, CRAFTING_TYPE_ALCHEMY } ,
+	[59707] = {3, CRAFTING_TYPE_ALCHEMY } ,
+	[59708] = {4, CRAFTING_TYPE_ALCHEMY } ,
+	[59709] = {5, CRAFTING_TYPE_ALCHEMY } ,
+	[59710] = {6, CRAFTING_TYPE_ALCHEMY } ,
+	[71238] = {7, CRAFTING_TYPE_ALCHEMY } ,
+	[121302] ={7, CRAFTING_TYPE_ALCHEMY } ,
+	[59714] =  {1, CRAFTING_TYPE_PROVISIONING} , -- provisioning
+	[59715] =  {1, CRAFTING_TYPE_PROVISIONING} ,
+	[59716] =  {1, CRAFTING_TYPE_PROVISIONING} ,
+	[59717] =  {2, CRAFTING_TYPE_PROVISIONING} ,
+	[59718] =  {2, CRAFTING_TYPE_PROVISIONING} ,
+	[59719] =  {2, CRAFTING_TYPE_PROVISIONING} ,
+	[59720] =  {3, CRAFTING_TYPE_PROVISIONING} ,
+	[59721] =  {3, CRAFTING_TYPE_PROVISIONING} ,
+	[59723] =  {4, CRAFTING_TYPE_PROVISIONING} ,
+	[59724] =  {5, CRAFTING_TYPE_PROVISIONING} ,
+	[59725] =  {6, CRAFTING_TYPE_PROVISIONING} ,
+	[71237] =  {7, CRAFTING_TYPE_PROVISIONING} ,
+	[121301] = {7, CRAFTING_TYPE_PROVISIONING} ,
+	[58510] =  {1, CRAFTING_TYPE_WOODWORKING} , -- woodworking
+	[58511] =  {2, CRAFTING_TYPE_WOODWORKING} ,
+	[58512] =  {3, CRAFTING_TYPE_WOODWORKING} ,
+	[58513] =  {4, CRAFTING_TYPE_WOODWORKING} ,
+	[58514] =  {5, CRAFTING_TYPE_WOODWORKING} ,
+	[58515] =  {6, CRAFTING_TYPE_WOODWORKING} ,
+	[58516] =  {7, CRAFTING_TYPE_WOODWORKING} ,
+	[58517] =  {8, CRAFTING_TYPE_WOODWORKING} ,
+	[58518] =  {9, CRAFTING_TYPE_WOODWORKING} ,
+	[71235] =  {10, CRAFTING_TYPE_WOODWORKING} ,
+	[121299] = {10, CRAFTING_TYPE_WOODWORKING} ,
+	[142161] = { 0, CRAFTING_TYPE_WOODWORKING} , -- shipments
+	[142162] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142163] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142164] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142165] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142166] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142167] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142168] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142169] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[142175] = { 0, CRAFTING_TYPE_WOODWORKING} ,
+	[138801] = {1, CRAFTING_TYPE_JEWELRYCRAFTING} ,-- jewelry
+	[138802] = {2, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[138803] = {3, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[138804] = {4, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[138805] = {5, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[142170] = {0, CRAFTING_TYPE_JEWELRYCRAFTING} , -- shipments
+	[142171] = {0, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[142172] = {0, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[142173] = {0, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[147603] = {0, CRAFTING_TYPE_JEWELRYCRAFTING} ,
+	[204459] = {0,0} , -- glorious jubilee box|H1:item:121300:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h
+	[194428] = {0,0} , -- Gold jubilee box|H1:item:121300:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h
+	
+
+	["|H1:item:147616:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {10, CRAFTING_TYPE_CLOTHIER },
+	["|H1:item:58510:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_WOODWORKING},
+	["|H1:item:59705:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_ALCHEMY},
+	["|H1:item:58131:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {2, CRAFTING_TYPE_BLACKSMITHING},
+	["|H1:item:59717:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {2, CRAFTING_TYPE_PROVISIONING},
+	["|H1:item:57851:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_BLACKSMITHING},
+	["|H1:item:58528:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_ENCHANTING},
+	["|H1:item:57851:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_BLACKSMITHING},
+	["|H1:item:58510:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_WOODWORKING},
+	["|H1:item:58528:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_ENCHANTING},
+	["|H1:item:59714:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_PROVISIONING},
+	["|H1:item:58519:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {1, CRAFTING_TYPE_CLOTHIER},
+	["|H1:item:147616:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h"] = {10, CRAFTING_TYPE_CLOTHIER},
+}
+
+WritCreater.boxNames = {}
+for boxId, boxRank in pairs (WritCreater.rewardBoxData) do 
+	if type(boxId) == "number" then
+		local name = GetItemLinkName(getItemLinkFromItemId(boxId))
+		WritCreater.boxNames[name] = boxRank
+	elseif type(boxId) == "string" then
+		local boxName = GetItemLinkName(boxId)
+		WritCreater.boxNames[GetItemLinkName(boxId)] = boxRank
+		boxName = string.gsub(boxName, "%(","%%%(")
+		boxName = string.gsub(boxName, "%)","%%%)")
+		WritCreater.boxNames[boxName] = boxRank
+	end
+end
+local specialBoxes =
+{
+	"|H1:item:183890:124:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h",
+	"|H1:item:194428:123:1:0:0:0:2026:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h",
+	"|H1:item:204459:124:1:0:0:0:2026:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h",
+}
+for i = 1, #specialBoxes do
+	anniversaryBox = GetItemLinkName(specialBoxes[i]) -- anniversary box/jubilee
+	anniversaryBox = string.gsub(anniversaryBox, "%(","%%%(")
+	anniversaryBox = string.gsub(anniversaryBox, "%)","%%%)")
+	WritCreater.boxNames[anniversaryBox] = {0, 0}
+end
+
+local zenitharBox = GetItemLinkName("|H1:item:187701:5:1:0:0:0:2025:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")
+local gloriousZenitharBox = GetItemLinkName("|H1:item:187746:6:1:0:0:0:2025:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h")
+WritCreater.boxNames[zenitharBox] = {0, 0}
+WritCreater.boxNames[gloriousZenitharBox] = {0, 0}
+-- |H1:item:204459:124:1:0:0:0:2025:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h - Glorious Anniversary Jubilee Gift Box
+-- |H1:item:194428:123:1:0:0:0:2025:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h - Anniversary Jubilee Gift Box
+
+
+-- if GetDisplayName() == "@Dolgubon" then
+	local function registerHooks()
+
+		-- SecurePostHook( "ZO_InventorySlot_DiscoverSlotActionsFromActionList", function(slot, slotaction)
+		-- 	if slotaction and slotaction.m_slotActions and slotaction.m_slotActions[1] then
+		-- 		d(slotaction.m_slotActions[1][1])
+		-- 	else
+		-- 		odsafoijasdfoas = slotaction
+		-- 	end
+		-- 	if slotaction and slotaction.m_slotActions and slotaction.m_slotActions[1] and slotaction.m_slotActions[1][1] == "Use" then
+		-- 		-- SecurePostHook(slotaction.m_slotActions[1],"2", function() d("Using "..slot.slotIndex) end )
+		-- 	end
+		-- end )
+		-- ZO_PreHook( "ZO_InventorySlot_DiscoverSlotActionsFromActionList",d)
+		-- zo_callLater(function() SecurePostHook( "ZO_InventorySlot_DiscoverSlotActionsFromActionList",function() end) end , 2000)
+		-- ZO_PreHook( "ZO_InventorySlot_DiscoverSlotActionsFromActionList",d)
+		SecurePostHook(ZO_InventorySlotActions,"DoPrimaryAction", function(slotAction)
+			if not slotAction then return end
+			local inventorySlot =  slotAction.m_inventorySlot
+			if not inventorySlot then return end
+			local bag = inventorySlot.bagId
+			local slot = inventorySlot.slotIndex
+			local itemId = GetItemId(bag, slot)
+			if WritCreater.rewardBoxData[itemId] then
+				lastLootedBoxSlot = slot
+				if WritCreater:GetSettings().lootContainerOnReceipt then
+					WritCreater.scanForUnopenedContainers()
+				end
+				-- d("OPENING SLOT "..slot)
+			end
+		end)
+		-- local cachedSlot
+		-- SecurePostHook("ZO_InventorySlot_OnMouseEnter",
+		-- 	function(inventorySlot)
+		-- 		if not inventorySlot then return end
+		-- 		local bag = inventorySlot.bagId
+		-- 		local slot = inventorySlot.slotIndex
+		-- 		local itemId = GetItemId(bag, slot)
+		-- 		if WritCreater.rewardBoxData[itemId] then
+		-- 			cachedSlot = inventorySlot
+		-- 			-- d("OPENING SLOT "..slot)
+		-- 		end
+		-- 	end
+		-- 	)
+		-- SecurePostHook("ZO_InventorySlot_OnMouseExit", function () cachedSlot = nil end)
+		-- ZO_InventorySlot_OnMouseEnter(inventorySlot)
+		-- ZO_InventorySlot_OnMouseExit(inventorySlot) -> invalidate your cache
+	end
+
+	local function delayHooks() 
+		-- If we do a SecurePostHook, and then another addon does a ZO_PreHook, then it will cause insecure errors.
+		-- But if we register secure hooks after, it's ok. So, delay registering for a bit
+		zo_callLater(registerHooks, 500)
+	end
+	EVENT_MANAGER:RegisterForEvent("WritCreaterLootUpdated",EVENT_PLAYER_ACTIVATED, delayHooks) -- 
+-- end

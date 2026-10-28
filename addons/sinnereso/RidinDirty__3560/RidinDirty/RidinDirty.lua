@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.10.25",
+	version = "2026.10.27",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -124,6 +124,13 @@ local function PassengerStateChange(eventCode, isMounted)
 		HAS_PASSENGER = true CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_SMALL_TEXT, "New_Mail", ("|cC99912" .. tostring(GetPassengerName()) .. " is RidinDirty|r"), nil, nil, nil, nil, nil, 5000, nil)
 	end
 	if mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount then zo_callLater(function() PassengerStateChange() end, 1000) end
+end
+
+local function HasWritQuest()
+	for quest = 1, MAX_JOURNAL_QUESTS do
+		if GetJournalQuestType(quest) == QUEST_TYPE_CRAFTING then return true end
+	end
+	return false
 end
 --if RidinDirty.savedVariables.autoRecharge then zo_callLater(function() BrokenGearCheck() end, 2000) end--<< RUN AUTO RECHARGE IF ENABLED
 local function BrokenGearCheck()
@@ -957,6 +964,13 @@ local function RDInitializeControls()
 	},
 	{
 		type = "checkbox",
+		name = "Skip Many Dialogs",
+		tooltip = "Skips many NPC dialogs including assistants, merchants and traders if no writ quest active for compatability",
+		getFunc = function() return RidinDirty.savedVariables.skipDialogs end,
+		setFunc = function(value) RidinDirty.SkipDialogsToggle(value) end,
+	},
+	{
+		type = "checkbox",
 		name = "Auto Accept Queues",
 		tooltip = "Auto accept queues for dungeons, battlegrounds, cyrodiil and imperial city",
 		getFunc = function() return RidinDirty.savedVariables.autoQueue end,
@@ -1768,13 +1782,6 @@ local function DepositCurrency(eventCode, bagId)
 	end
 end
 
-local function HasWritQuest()
-	for quest = 1, MAX_JOURNAL_QUESTS do
-		if GetJournalQuestType(quest) == QUEST_TYPE_CRAFTING then return true end
-	end
-	return false
-end
-
 local function BankManager(eventCode, bagId)
 	if bagId ~= BAG_BANK and not RidinDirty.savedVariables.storageManager then return end
 	if HasWritQuest() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Auto deposit disabled while writ quests active.") return end--<< CRAFTING WRIT COMPATIBILITY
@@ -2408,17 +2415,6 @@ end
 ---------------------------------------------
 --ZO_MenuBar_SelectDescriptor(TRADING_HOUSE.menuBar, ZO_TRADING_HOUSE_MODE_BROWSE, true, true)
 --CanSellOnTradingHouse(guildId)--HasTradingHouseListings()--ZO_TRADING_HOUSE_MODE_BROWSE--ZO_TRADING_HOUSE_MODE_SELL--ZO_TRADING_HOUSE_MODE_LISTINGS
---GetChatterOptionCount() do
---RidinDirty.TraderSalesTotal
-local function TraderChatter(eventCode, optionCount, debugSource)
-	for i = 1, optionCount do
-		local _, choice = GetChatterOption(i)
-		if i == 1 and choice == CHATTER_START_TRADINGHOUSE then
-			SelectChatterOption(i)
-		end
-	end
-end
-
 local function GetTotalListingsValue()
 	local total = 0
 	for i = 1, GetTradingHouseListingCounts() do
@@ -2452,7 +2448,6 @@ end
 function RidinDirty.TraderEnhanceToggle(toggle)
 	if toggle then
 		RidinDirty.savedVariables.traderEnhance = toggle
-		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, TraderChatter)
 		ZO_TradingHouseTitleLabel:SetMouseEnabled(true)
 		ZO_TradingHouseTitleLabel:SetHandler("OnMouseUp", function(self, mouseButton, upInside)
 			if upInside then
@@ -2483,8 +2478,12 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 			local count, countmax = GetTradingHouseListingCounts()
 			RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 			if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
-				RidinDirty.TraderSalesTotal:SetAlpha(1)
+				zo_callLater(function()
+					if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
+						RidinDirty.TraderSalesTotal:SetAlpha(1)
+					end
+				end, searchDelay)
 			else
 				RidinDirty.TraderSalesTotal:SetAlpha(0)
 			end
@@ -2494,8 +2493,12 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 				local count, countmax = GetTradingHouseListingCounts()
 				RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 				if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
-					RidinDirty.TraderSalesTotal:SetAlpha(1)
+					zo_callLater(function()
+						if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+							RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
+							RidinDirty.TraderSalesTotal:SetAlpha(1)
+						end
+					end, searchDelay)
 				else
 					RidinDirty.TraderSalesTotal:SetAlpha(0)
 				end
@@ -2508,7 +2511,6 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 		end
 	else
 		RidinDirty.savedVariables.traderEnhance = toggle
-		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN)
 		ReloadUI()
 	end
 end
@@ -2941,6 +2943,56 @@ function RidinDirty.CompanionRapportToggle(toggle)
 	end
 end
 ---------------------------------------------
+---------- SKIP MANY DIALOGS --
+---------------------------------------------
+--GetChatterOptionCount() do
+--isQuestGiver = (i == 1 and choice == CHATTER_START_NEW_QUEST_BESTOWAL)
+--isQuestAdvance = (i == 1 and choice == CHATTER_START_ADVANCE_COMPLETABLE_QUEST_CONDITIONS)
+--isQuestCompletion = (i == 1 and choice == CHATTER_START_COMPLETE_QUEST)
+--isBankerNPC = (i == 3 and choice == CHATTER_START_TRADINGHOUSE)
+--if not isBankerNPC and not isQuestGiver and not isQuestAdvance and not isQuestCompletion then SelectChatterOption(1) end-->> TESTING
+local function ChatterWhiteList(choice)
+	local options = {
+	"Guild Store",
+	"Bank",
+	"Deconstruct",
+	"Store",
+	"Armory",
+	}
+	for _, option in ipairs(options) do
+		if string.find(choice, option) then return true end
+	end
+	return false
+end
+
+local function ChatterMonitor(eventCode, optionCount, debugSource)
+	local choiceNames = {}
+	local choiceNumbers = {}
+	for i = 1, optionCount do
+		local choiceName, choiceNumber = GetChatterOption(i)
+		choiceNames[i] = choiceName
+		choiceNumbers[i] = choiceNumber
+		--df(tostring(i) .. " - " .. tostring(choiceNumbers[i]) .. " - " .. tostring(choiceNames[i]))
+	end
+	if (choiceNames[2] == nil or choiceNumbers[2] == 3800) and ChatterWhiteList(GetChatterOption(1)) then
+		if HasWritQuest() then
+			ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Skip many dialogs disabled while writ quests active.")
+		else
+			SelectChatterOption(1)
+		end
+	end
+end
+
+function RidinDirty.SkipDialogsToggle(toggle)
+	if toggle then
+		RidinDirty.savedVariables.skipDialogs = toggle
+		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, ChatterMonitor)
+	else
+		RidinDirty.savedVariables.skipDialogs = toggle
+		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN)
+	end
+end
+---------------------------------------------
 ------ AUTO ACCEPT QUEUES --
 ---------------------------------------------
 local function AutoQueue(eventCode, queueStatus)
@@ -3138,7 +3190,7 @@ if not Teleport and not EasyTravel then
 			RidinDirty.TravelToHome()
 		elseif word[1] ~= nil and not string.find(word[1], "^(@)") and word[2] == nil then
 			RidinDirty.Teleport(word[1])
-		elseif word[1] ~= nil and ((string.find(word[1], "^(@)") and word[1] ~= GetUnitDisplayName("player")) or string.find(word[1], "home")) and word[2] ~= nil and GetHouseID(word[2]) then
+		elseif word[1] ~= nil and ((string.find(word[1], "^(@)") and word[1] ~= GetUnitDisplayName("player")) or string.find(string.lower(word[1]), "home")) and word[2] ~= nil and GetHouseID(word[2]) then
 			RidinDirty.Teleport(word[1], word[2])
 		else
 			df(RD_LOGO .. " /tp partialzonename => overland zones") df(RD_LOGO .. " /tp home => your primary home")
@@ -3342,6 +3394,9 @@ local function RDInitializeSettings()
 			--EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
 		--end
 	end
+	if RidinDirty.savedVariables.skipDialogs then
+		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, ChatterMonitor)
+	end
 	if RidinDirty.savedVariables.autoQueue then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE, AutoQueue)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED, PvPAutoQueue)
@@ -3459,7 +3514,6 @@ local function RDInitializeSettings()
 		end)
 	end
 	if RidinDirty.savedVariables.traderEnhance then
-		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, TraderChatter)
 		ZO_TradingHouseTitleLabel:SetMouseEnabled(true)
 		ZO_TradingHouseTitleLabel:SetHandler("OnMouseUp", function(self, mouseButton, upInside)
 			if upInside then
@@ -3490,8 +3544,12 @@ local function RDInitializeSettings()
 			local count, countmax = GetTradingHouseListingCounts()
 			RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 			if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
-				RidinDirty.TraderSalesTotal:SetAlpha(1)
+				zo_callLater(function()
+					if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
+						RidinDirty.TraderSalesTotal:SetAlpha(1)
+					end
+				end, searchDelay)
 			else
 				RidinDirty.TraderSalesTotal:SetAlpha(0)
 			end
@@ -3501,8 +3559,12 @@ local function RDInitializeSettings()
 				local count, countmax = GetTradingHouseListingCounts()
 				RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
 				if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
-					RidinDirty.TraderSalesTotal:SetAlpha(1)
+					zo_callLater(function()
+						if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+							RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. GOLD_ICON .. " TOTAL")
+							RidinDirty.TraderSalesTotal:SetAlpha(1)
+						end
+					end, searchDelay)
 				else
 					RidinDirty.TraderSalesTotal:SetAlpha(0)
 				end
@@ -3572,6 +3634,7 @@ local function AddOnLoaded(eventCode, addOnName)
 		lockArmory = false,
 		stackAttributes = false,
 		companionRapport = false,
+		skipDialogs = false,
 		autoQueue = false,
 		combatReticle = false,
 		craftingSearch = false,

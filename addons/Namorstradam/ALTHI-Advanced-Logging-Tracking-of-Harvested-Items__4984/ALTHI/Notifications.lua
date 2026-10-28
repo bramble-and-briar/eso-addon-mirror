@@ -21,10 +21,10 @@ function A:CreateNoticeWindow()
     content:SetDimensions(width,128); content:SetAnchor(TOPLEFT,window,TOPLEFT,0,0); content:SetScale(scale)
     content:SetMouseEnabled(false); window.content=content
     window.icon=WINDOW_MANAGER:CreateControl(nil,content,CT_TEXTURE)
-    window.icon:SetDimensions(72,72); window.icon:SetAnchor(TOPLEFT,content,TOPLEFT,(width-72)/2,0)
+    window.icon:SetDimensions(56,56); window.icon:SetAnchor(TOPLEFT,content,TOPLEFT,(width-56)/2,0)
     window.icon:SetMouseEnabled(false)
     window.text=self:Label(content,"ZoFontWinH2")
-    window.text:SetAnchor(TOPLEFT,content,TOPLEFT,0,76); window.text:SetDimensions(width,52)
+    window.text:SetAnchor(TOPLEFT,content,TOPLEFT,0,60); window.text:SetDimensions(width,52)
     window.text:SetHorizontalAlignment(TEXT_ALIGN_CENTER); window.text:SetMaxLineCount(2)
     window.text:SetMouseEnabled(false)
     window:SetHidden(true); self.noticeWindow=window
@@ -73,8 +73,8 @@ function A:NotifyRare(link,count,preview)
             local current=self.activeNotice
             if not current then return end
             local elapsed=self.Now()-current.started
-            if elapsed>=3.6 then self:NextNotice(); return end
-            self.noticeWindow:SetAlpha(math.max(0,math.min(1,elapsed/0.2,(3.6-elapsed)/0.6)))
+            if elapsed>=3.0 then self:NextNotice(); return end
+            self.noticeWindow:SetAlpha(math.max(0,math.min(1,elapsed/0.2,(3.0-elapsed)/0.5)))
         end)
     end
     return true

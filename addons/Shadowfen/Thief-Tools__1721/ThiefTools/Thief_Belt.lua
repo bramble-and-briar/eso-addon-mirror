@@ -71,7 +71,7 @@ local controls = {
         name = "Value",
         offset = 10,
         labelOffset = 8,
-        text = "00000",
+        text = "0000000",
         showText = true,
         texture = "/esoui/art/tutorial/guildstore_sell_tabicon_up.dds",
         color = rgb.gold,
@@ -101,7 +101,7 @@ local controls = {
         name = "FenceTimer",
         offset = 10,
         labelOffset = 4,
-        text = "00:00",
+        text = "00:00:00",
         showText = true,
         texture = "/esoui/art/miscellaneous/gamepad/gp_icon_timer32.dds",
         color = rgb.bronze,
@@ -111,7 +111,7 @@ local controls = {
         name = "BountyTimer",
         offset = 10,
         labelOffset = 4,
-        text = "00:00",
+        text = "00:00:00",
         showText = true,
         texture = "/esoui/art/miscellaneous/gamepad/gp_icon_timer32.dds",
         color = rgb.red,
@@ -121,7 +121,7 @@ local controls = {
         name = "Bounty",
         offset = 10,
         labelOffset = 8,
-        text = "000",
+        text = "0000000",
         showText = true,
         texture = "/esoui/art/currency/currency_gold.dds",
         color = rgb.red,
@@ -131,7 +131,7 @@ local controls = {
         name = "ClemencyTimer",
         offset = 10,
         labelOffset = 4,
-        text = "00:00",
+        text = "00:00:00",
         showText = true,
         texture = "/esoui/art/miscellaneous/gamepad/gp_icon_timer32.dds",
         color = rgb.fine,
@@ -141,7 +141,7 @@ local controls = {
         name = "Average",
         offset = 10,
         labelOffset = 6,
-        text = "000.00",
+        text = "0000.00",
         showText = true,
         texture = "/esoui/art/crafting/smithing_tabicon_improve_up.dds",
         color = rgb.superior,
@@ -151,7 +151,7 @@ local controls = {
         name = "Estimate",
         offset = 10,
         labelOffset = 6,
-        text = "00000",
+        text = "0000000",
         showText = true,
         texture = "/esoui/art/vendor/vendor_tabicon_sell_down.dds",
         color = rgb.legendary,
@@ -296,6 +296,8 @@ local function make_control(control, rel)
     local scale = display.scale
     local name = control.name
     local bg = w.bg
+    local pixel2UI = GetUIGlobalScale()
+
 
     logDebug("making control for ", name)
 
@@ -330,6 +332,15 @@ local function make_control(control, rel)
     label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
+    -- Measure the configured placeholder text without the previous
+    -- width constraining the measurement.
+    label:SetWidth(0)
+    label:SetText(control.showText and control.text or " ")
+
+    local labelWidth = (label:GetStringWidth(control.showText and control.text or " ")/pixel2UI) * math.min(1.0, scale)
+
+    label:SetWidth(labelWidth)
+    label:SetText(text)
 
     -- Store controls using the names expected by UpdateControls().
     local lowerName = string.lower(name)

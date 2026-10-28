@@ -7,7 +7,7 @@
 QMN = {}
 
 QMN.name = "|cf49b42QuickMapNav|r"
-QMN.version = "2026.07.08"
+QMN.version = "2026.10.27"
 QMN.throttle = {}
 QMN.activeControls = {} -- controls currently shown by UpdateMapID, so we only have to hide these next update
 QMN.defaults = {
@@ -1024,13 +1024,28 @@ function QuickMapNav:Initialize(parent)
 	self.cyrArc:SetAnchor(TOP, ZO_WorldMapContainer, TOP,math.floor(multiX*1),math.floor(multiY*20), 0, 0) 
 	self.cyrArc:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
 	self.cyrArc:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
-    self.cyrArc:SetAlpha(alpha-0.13)
-    self.cyrArc:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  self.cyrArc:SetAlpha(alpha-0.13)
+  self.cyrArc:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 	self.cyrArc:SetText(QuickMapNav:ColorMapTextById(590))
 	self.cyrArc:SetMouseEnabled(true)
-    self.cyrArc:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+  self.cyrArc:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
         if upInside then
 		       WORLD_MAP_MANAGER:SetMapById(590)
+        end
+    end)
+    
+	-- Cyrodiil to Jerall Pass
+	self.cyrJerp = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
+	self.cyrJerp:SetAnchor(TOP, ZO_WorldMapContainer, TOP,math.floor(multiX*-100),math.floor(multiY*20), 0, 0) 
+	self.cyrJerp:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
+	self.cyrJerp:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
+  self.cyrJerp:SetAlpha(alpha-0.13)
+  self.cyrJerp:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	self.cyrJerp:SetText(QuickMapNav:ColorMapTextById(2847))
+	self.cyrJerp:SetMouseEnabled(true)
+  self.cyrJerp:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+        if upInside then
+		       WORLD_MAP_MANAGER:SetMapById(2847)
         end
     end)
 	
@@ -3796,14 +3811,30 @@ function QuickMapNav:Initialize(parent)
 	self.riftArc:SetAnchor(LEFT, ZO_WorldMapContainer, LEFT,math.floor(multiX*70),math.floor(multiY*20), 0, 0) 
 	self.riftArc:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
 	self.riftArc:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
-    self.riftArc:SetAlpha(alpha-0.13)
-    self.riftArc:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  self.riftArc:SetAlpha(alpha-0.13)
+  self.riftArc:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 	self.riftArc:SetTransformRotationZ(math.rad(-30))
 	self.riftArc:SetText(QuickMapNav:ColorMapTextById(590))
 	self.riftArc:SetMouseEnabled(true)
-    self.riftArc:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+  self.riftArc:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
         if upInside then
 		       WORLD_MAP_MANAGER:SetMapById(590)
+        end
+    end)
+    
+	-- The Rift to Jerall Pass
+	self.riftJerp = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
+	self.riftJerp:SetAnchor(LEFT, ZO_WorldMapContainer, LEFT,math.floor(multiX*5),math.floor(multiY*25), 0, 0) 
+	self.riftJerp:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
+	self.riftJerp:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
+  self.riftJerp:SetAlpha(alpha-0.13)
+  self.riftJerp:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  self.riftJerp:SetTransformRotationZ(math.rad(90))
+	self.riftJerp:SetText(QuickMapNav:ColorMapTextById(2847))
+	self.riftJerp:SetMouseEnabled(true)
+  self.riftJerp:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+        if upInside then
+		       WORLD_MAP_MANAGER:SetMapById(2847)
         end
     end)
 	
@@ -5449,17 +5480,33 @@ function QuickMapNav:Initialize(parent)
 			  WORLD_MAP_MANAGER:SetMapById(125)
         end
     end)
+    
+	-- Arcwind Point to Jerall Pass
+	self.arcJerp = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
+	self.arcJerp:SetAnchor(LEFT, ZO_WorldMapContainer, LEFT,math.floor(multiX*5),math.floor(multiY*1), 0, 0) 
+	self.arcJerp:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
+	self.arcJerp:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
+  self.arcJerp:SetAlpha(alpha-0.13)
+  self.arcJerp:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  self.arcJerp:SetTransformRotationZ(math.rad(90))
+	self.arcJerp:SetText(QuickMapNav:ColorMapTextById(2847))
+	self.arcJerp:SetMouseEnabled(true)
+  self.arcJerp:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+        if upInside then
+		       WORLD_MAP_MANAGER:SetMapById(2847)
+        end
+    end)
 
 	-- Imperial City to Imperial Sewers 
 	self.icIs = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
 	self.icIs:SetAnchor(BOTTOM, ZO_WorldMapContainer, BOTTOM,math.floor(multiX*1),math.floor(multiY*-10), 0, 0)  
 	self.icIs:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
 	self.icIs:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
-    self.icIs:SetAlpha(alpha-0.13)
-    self.icIs:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  self.icIs:SetAlpha(alpha-0.13)
+  self.icIs:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 	self.icIs:SetText(QuickMapNav:ColorMapTextById(657))
 	self.icIs:SetMouseEnabled(true)
-    self.icIs:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+  self.icIs:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
         if upInside then
 		        WORLD_MAP_MANAGER:SetMapById(657)
         end
@@ -5718,15 +5765,61 @@ function QuickMapNav:Initialize(parent)
 	self.solMurk:SetAnchor(TOP, ZO_WorldMapContainer, TOPRIGHT, math.floor(multiX*-100),math.floor(multiY*10), 0, 0) 
 	self.solMurk:SetFont(path .. "|" .. size+2 .. "|" ..  outline)
 	self.solMurk:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
-    self.solMurk:SetAlpha(alpha-0.13)
-    self.solMurk:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  self.solMurk:SetAlpha(alpha-0.13)
+  self.solMurk:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 	self.solMurk:SetText(QuickMapNav:ColorMapTextById(1484))
 	self.solMurk:SetMouseEnabled(true)
-    self.solMurk:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+  self.solMurk:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
         if upInside then
 			  WORLD_MAP_MANAGER:SetMapById(1484)
         end
     end)
+    
+	-- Jerall Pass to Cyrodiil
+	self.jerpCyr = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
+	self.jerpCyr:SetAnchor(BOTTOM, ZO_WorldMapContainer, BOTTOM,math.floor(multiX*1),math.floor(multiY*-10), 0, 0) 
+	self.jerpCyr:SetFont(path .. "|" .. size .. "|" ..  outline)
+	self.jerpCyr:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
+  self.jerpCyr:SetAlpha(alpha)
+  self.jerpCyr:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	self.jerpCyr:SetText(QuickMapNav:ColorMapTextById(16)) 
+	self.jerpCyr:SetMouseEnabled(true)
+  self.jerpCyr:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+        if upInside then
+			  WORLD_MAP_MANAGER:SetMapById(16)
+        end
+  end)
+  
+	-- Jerall Pass to Arcwind point
+	self.jerpArc = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
+	self.jerpArc:SetAnchor(RIGHT, ZO_WorldMapContainer, RIGHT ,math.floor(multiX*-10),math.floor(multiY*1), 0, 0) 
+	self.jerpArc:SetFont(path .. "|" .. size-5 .. "|" ..  outline)
+	self.jerpArc:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
+  self.jerpArc:SetAlpha(alpha-0.13)
+  self.jerpArc:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	self.jerpArc:SetTransformRotationZ(math.rad(-90))
+	self.jerpArc:SetText(QuickMapNav:ColorMapTextById(590))
+	self.jerpArc:SetMouseEnabled(true)
+  self.jerpArc:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+        if upInside then
+		       WORLD_MAP_MANAGER:SetMapById(590)
+        end
+    end)
+    
+  -- Jerall Pass to The Rift
+	self.jerpRift = WINDOW_MANAGER:CreateControl(nil, self.control, CT_LABEL)
+	self.jerpRift:SetAnchor(TOPRIGHT, ZO_WorldMapContainer, TOPRIGHT, math.floor(multiX*-50),math.floor(multiY*60), 0, 0) 
+	self.jerpRift:SetFont(path .. "|" .. size .. "|" ..  outline)
+	self.jerpRift:SetColor(ZO_CONTRAST_TEXT:UnpackRGBA())
+  self.jerpRift:SetAlpha(alpha)
+  self.jerpRift:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	self.jerpRift:SetText(QuickMapNav:ColorMapTextById(125)) 
+	self.jerpRift:SetMouseEnabled(true)
+  self.jerpRift:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+        if upInside then
+			  WORLD_MAP_MANAGER:SetMapById(125)
+        end
+  end)
 	
 	
 	-- Abbreviated keep names
@@ -6009,7 +6102,7 @@ function QuickMapNav:Initialize(parent)
 		self.banCrag, self.banCragPass, self.banVal, self.banRea, self.banWroth, self.banWrothPass, self.banSto, self.banStoPass,
 		self.banAlik, self.banAliPass, self.banEarth, self.betGle, self.betAlik, self.betHigh, self.bleaVvar, self.bleaEast,
 		self.coldDesh, self.cragCyr, self.cragWW, self.cragWWPass, self.cragRea, self.cragBan, self.cragBanPass, self.cragVal,
-		self.cyrRift, self.cyrJer, self.cyrArc, self.cyrFort, self.cyrSto, self.cyrCrag, self.cyrReap, self.cyrNorth,
+		self.cyrRift, self.cyrJer, self.cyrArc, self.cyrJerp, self.cyrFort, self.cyrSto, self.cyrCrag, self.cyrReap, self.cyrNorth,
 		self.cyrWW, self.deshSto, self.deshStoPass, self.deshSha, self.deshShaPass, self.deshClock, self.deshClockPass, self.deshCold,
 		self.deshBal, self.deshTel, self.deshTelPass, self.eastBlea, self.eastFul, self.eastVvar, self.eastRift, self.eastRiftPass,
 		self.eastMzark, self.eastMzarkLift, self.gleRiv, self.gleSto, self.gleStoPass, self.gleAlik, self.gleBeth, self.gleBal,
@@ -6029,7 +6122,7 @@ function QuickMapNav:Initialize(parent)
 		self.strosHew, self.strosGold, self.strosMal, self.strosGreen, self.strosAur, self.strosSum, self.strosHigh, self.strosEye,
 		self.strosStirk, self.sumAur, self.sumStros, self.sumArt, self.sumGre, self.sumHigh, self.sumEye, self.sumWast,
 		self.sumSap, self.reachWest, self.reachWestPass, self.reachCrag, self.reachBang, self.reaWroth, self.reaEarth, self.riftEast,
-		self.riftEastPass, self.riftStone, self.riftStonePass, self.riftCyr, self.riftGer, self.riftArc, self.riftVvar, self.vvarBleak,
+		self.riftEastPass, self.riftStone, self.riftStonePass, self.riftCyr, self.riftGer, self.riftArc, self.riftJerp, self.riftVvar, self.vvarBleak,
 		self.vvarEast, self.vvarStone, self.vvarFir, self.vvarBal, self.vvarRift, self.vvarTel, self.skyReach, self.skyReachPass,
 		self.westWroth, self.westGrey, self.westRed, self.wrothBang, self.wrothBangPass, self.wrothStorm, self.wrothStormPass, self.wrothRiv,
 		self.wrothGray, self.wrothReach, self.wrothWest, self.grayRiven, self.grayWroth, self.eyeSum, self.eyeAur, self.eyeStros,
@@ -6041,9 +6134,9 @@ function QuickMapNav:Initialize(parent)
 		self.blackNorth, self.blackNorthPass, self.balGle, self.balStorm, self.balAlik, self.jerRift, self.jerCyr, self.valCrag,
 		self.valBang, self.borBlack, self.jodNorth, self.jodeSouth, self.jodGrath, self.farSham, self.farGreen, self.shamFar,
 		self.earthBan, self.earthRea, self.earthWay, self.fortCyr, self.galHigh, self.telBal, self.telDesh, self.telVvar,
-		self.telDeshPass, self.telBalPass, self.arcCyr, self.arcRift, self.icIs, self.isIc, self.vahlGrah, self.vahlNorth,
+		self.telDeshPass, self.telBalPass, self.arcCyr, self.arcRift, self.arcJerp, self.icIs, self.isIc, self.vahlGrah, self.vahlNorth,
 		self.WWReap, self.WWReapPass, self.WWCyr, self.WWCrag, self.WWCragPass, self.WWGold, self.WWGoldPassOne, self.WWGoldPassTwo,
-		self.WWMal, self.solKhen, self.solSouth, self.solMurk, self.ward, self.ray, self.glade, self.ash,
+		self.WWMal, self.solKhen, self.solSouth, self.solMurk, self.jerpCyr, self.jerpArc, self.jerpRift, self.ward, self.ray, self.glade, self.ash,
 		self.bri, self.car, self.roe, self.vla, self.nik, self.well, self.blea, self.drag,
 		self.bru, self.chal, self.win, self.kings, self.arr, self.farr, self.brk, self.harl,
 		self.sia, self.dlk, self.crop, self.fg, self.bb, self.bm, self.sej, self.mapTitle,
@@ -6235,7 +6328,10 @@ function QuickMapNav:UpdateMapID()
         QuickMapNav:ShowAndSetAlpha(self.cyrNorth)
 		QuickMapNav:ShowAndSetAlpha(self.cyrWW)
 		QuickMapNav:ShowAndSetAlpha(self.cyrJer)
-		if mouseoverName == "" then QuickMapNav:ShowAndSetAlpha(self.cyrArc) end
+		if mouseoverName == "" then 
+       QuickMapNav:ShowAndSetAlpha(self.cyrArc)
+       QuickMapNav:ShowAndSetAlpha(self.cyrJerp)
+    end
 		QuickMapNav:ShowAndSetAlpha(self.cyrFort)
 		
 			if IsInCyrodiil() and QMN.vars.abbreviatedKeeps then
@@ -6477,6 +6573,7 @@ function QuickMapNav:UpdateMapID()
         QuickMapNav:ShowAndSetAlpha(self.riftVvar)
 		QuickMapNav:ShowAndSetAlpha(self.portEye)
 		QuickMapNav:ShowAndSetAlpha(self.riftArc)
+    QuickMapNav:ShowAndSetAlpha(self.riftJerp)
 
         elseif  m == 1060 then -- Vvardenfell    
         QuickMapNav:ShowAndSetAlpha(self.vvarBleak)
@@ -6612,6 +6709,7 @@ function QuickMapNav:UpdateMapID()
 		elseif m == 590 then -- Arcwind point
 		QuickMapNav:ShowAndSetAlpha(self.arcCyr)
 		QuickMapNav:ShowAndSetAlpha(self.arcRift)
+    QuickMapNav:ShowAndSetAlpha(self.arcJerp)
 		
 		elseif m == 2066 then -- Fort Grief
 		QuickMapNav:ShowAndSetAlpha(self.fortCyr)
@@ -6665,6 +6763,11 @@ function QuickMapNav:UpdateMapID()
 		QuickMapNav:ShowAndSetAlpha(self.solKhen)
 		QuickMapNav:ShowAndSetAlpha(self.solSouth)
 		QuickMapNav:ShowAndSetAlpha(self.solMurk)
+    
+		elseif m == 2847 then -- Jerall Pass
+		QuickMapNav:ShowAndSetAlpha(self.jerpCyr)
+		QuickMapNav:ShowAndSetAlpha(self.jerpArc)
+    QuickMapNav:ShowAndSetAlpha(self.jerpRift)
 		
 		end
 	end

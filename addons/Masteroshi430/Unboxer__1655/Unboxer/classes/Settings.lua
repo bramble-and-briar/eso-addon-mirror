@@ -20,7 +20,7 @@ function addon:SetupSavedVars()
         chatContainerOpen = true,
         chatContainerIcons = true,
         coloredPrefix = false,
-		noAutoLootStolen = false,
+		    noAutoLootStolen = false,
         chatContentsSummary = {
             enabled = true,
             minQuality = ITEM_FUNCTIONAL_QUALITY_MIN_VALUE,

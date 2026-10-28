@@ -2,7 +2,7 @@ local SF = LibSFUtils
  
 ThiefTools = {
     name = "ThiefTools",
-    version = "3.5",
+    version = "3.5.4",
 	author = "Shadowfen",
     displayName = "Thief Tools",
 }

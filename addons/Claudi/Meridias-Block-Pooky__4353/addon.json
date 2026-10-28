@@ -26,7 +26,7 @@
     "BlockPooky"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4353/",
-  "fingerprint": "02120dd484dac1ba7501cf7e2c5e2664dc7846d52f0bd5c59e4799d626f883bb",
+  "fingerprint": "99eefa0c9b0ab77c759e3aae4a4a9564a03e168c1b9e03a9b03d5eb4eb5690e6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15056.png",
     "https://cdn-eso.mmoui.com/preview/pvw15057.png",
@@ -40,11 +40,11 @@
   "source_id": "4353",
   "source_url": "https://www.esoui.com/downloads/info4353-MeridiasBlockPooky.html",
   "stats": {
-    "downloads": 1598,
-    "favorites": 5,
-    "monthly_downloads": 474
+    "downloads": 2049,
+    "favorites": 6,
+    "monthly_downloads": 152
   },
   "title": "Meridias Block Pooky",
-  "updated_at": 1786987195000,
-  "version": "2.21"
+  "updated_at": 1793126497000,
+  "version": "2.23"
 }

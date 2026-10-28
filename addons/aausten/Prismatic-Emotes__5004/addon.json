@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/aausten/Prismatic-Emotes__5004",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "aausten",
+  "canonical_id": "esoui:5004",
+  "category_id": "55",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5004",
+  "deleted": false,
+  "directories": [
+    "PrismaticEmotes"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5004/",
+  "fingerprint": "dc98e7d22465b276d82d47852a349031df97e88388ef9c6411a01e28804f2cc8",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5004",
+  "source_url": "https://www.esoui.com/downloads/info5004-PrismaticEmotes.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Prismatic Emotes",
+  "updated_at": 1793146746000,
+  "version": "1.0.0"
+}

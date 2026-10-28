@@ -32,7 +32,9 @@ end
 function A:Button(parent, text, width, callback)
     local button = WINDOW_MANAGER:CreateControl(nil, parent, CT_BUTTON)
     button:SetDimensions(width, 30)
-    button:SetFont("ZoFontGame")
+    button:SetFont("ZoFontGameBold")
+    button:SetHorizontalAlignment(TEXT_ALIGN_CENTER); button:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    button:SetNormalOffset(0,0); button:SetPressedOffset(0,0)
     button:SetText(text)
     button:SetMouseEnabled(true)
     button:SetHandler("OnClicked", callback)
@@ -80,8 +82,8 @@ function A:Scroll(delta)
 end
 function A:CreateRow(index)
     local row = WINDOW_MANAGER:CreateControl(nil, self.window, CT_CONTROL)
-    row:SetAnchor(TOPLEFT, self.window, TOPLEFT, 18, 150 + (index - 1) * 28)
-    row:SetAnchor(TOPRIGHT, self.window, TOPRIGHT, -42, 150 + (index - 1) * 28)
+    row:SetAnchor(TOPLEFT, self.window, TOPLEFT, 18, (self:TableTop()) + (index - 1) * 28)
+    row:SetAnchor(TOPRIGHT, self.window, TOPRIGHT, -42, (self:TableTop()) + (index - 1) * 28)
     row:SetHeight(28)
     row:SetMouseEnabled(true)
     row:SetHandler("OnMouseWheel", function(_, delta) self:Scroll(-delta * 3) end)
@@ -124,9 +126,10 @@ function A:Refresh()
     self:AccrueTime()
     local rows, totals = self:RowsAndTotals()
     local session = self.db.session
-    local states = { stopped = L("STOPPED_READY"), paused = L("PAUSE"), running = L("HARVESTING") }
+    local states = { stopped = L("SESSION_READY"), paused = L("PAUSE"), running = L("HARVESTING") }
     self.status:SetText(string.format(L("S_S_ACTIVE_S_ITEMS_S"), states[session.state],
-        self.Time(session.elapsed), self.Integer(totals.sessionCount), " · " .. (self.db.options.guildTrader and "|c44CC66"..L("GUILD_TRADER_ON") or "|cDD5555"..L("GUILD_TRADER_OFF")) .. "|r" .. (self.catalogLoading and L("LOADING_CATALOGUE") or "")))
+        self.Time(session.elapsed), self.Integer(totals.sessionCount), self.catalogLoading and L("LOADING_CATALOGUE") or ""))
+    self:RefreshStatusSwitches()
     local function Sum(value, missing)
         return (missing > 0 and L("PARTIAL") or "") .. self.Gold(value)
             .. (missing > 0 and " (" .. missing .. L("WITHOUT_PRICE") or "")
@@ -135,7 +138,7 @@ function A:Refresh()
     self.bagTotal:SetText(L("CRAFT_BAG_8C418C") .. (self.stockReady and Sum(totals.stockGold, totals.missingStock) or L("READING")))
     self.rate:SetText(totals.perHour and (totals.missingSession > 0 and L("PARTIAL") or "")
         .. self.Gold(totals.perHour) .. "/h" or self.coin .. "/h: —")
-    local visible = self.db.ui.minimized and 0 or math.max(1, math.floor((self.window:GetHeight() - 210) / 28))
+    local visible = self.db.ui.minimized and 0 or math.max(1, math.floor((self.window:GetHeight() - self:TableTop() - self:TableBottomSpace()) / 28))
     self.maxOffset = math.max(0, #rows - visible)
     self.offset = math.max(0, math.min(self.offset, self.maxOffset))
     self.slider:SetMinMax(0, math.max(1, self.maxOffset))
@@ -197,20 +200,28 @@ function A:CreateWindow()
     subtitle:SetText("Advanced Logging & Tracking of Harvested Items")
     local selection = self:MenuButton(window, L("FILTER_LIST"), 130, function() self:OpenSettings() end)
     selection:SetAnchor(TOPRIGHT, window, TOPRIGHT, -55, 12)
+    self.filterButton=selection
+    selection.althiTitleFont='ZoFontWinT2'; selection.althiKeyFont='ZoFontGameSmall'
+    selection:SetFont('ZoFontWinT2')
     local view = self:MenuButton(window, L("SETTINGS"), 130, function() self:OpenMainSettings() end)
     view:SetAnchor(TOPRIGHT, window, TOPRIGHT, -195, 12)
+    self.mainSettingsButton=view
+    view:SetFont('ZoFontWinT2')
     self.status = self:Label(window, "ZoFontGameSmall")
     self.status:SetAnchor(TOPLEFT, window, TOPLEFT, 18, 60)
     self.status:SetAnchor(TOPRIGHT, window, TOPRIGHT, -18, 60)
     self.status:SetHeight(20)
-    self.rate = self:Label(window, "ZoFontGameSmall")
+    self.guildStatus=self:Button(window,'',140,function() self:SetGuildTrader(not self.db.options.guildTrader) end)
+    self.resumeStatus=self:Button(window,'',170,function() self:SetAutomatic(not self.db.options.autoResume) end)
+    self.guildStatus:SetFont('ZoFontGameSmall'); self.resumeStatus:SetFont('ZoFontGameSmall')
+    self.rate = self:Label(window, "ZoFontWinT2")
     self.rate:SetAnchor(TOPRIGHT, window, TOPRIGHT, -18, 60)
     self.rate:SetDimensions(190, 20)
     self.rate:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    self.sessionTotal = self:Label(window, "ZoFontGameSmall")
+    self.sessionTotal = self:Label(window, "ZoFontWinT2")
     self.sessionTotal:SetAnchor(TOPLEFT, window, TOPLEFT, 18, 84)
     self.sessionTotal:SetWidth(470)
-    self.bagTotal = self:Label(window, "ZoFontGameSmall")
+    self.bagTotal = self:Label(window, "ZoFontWinT2")
     self.bagTotal:SetAnchor(TOPRIGHT, window, TOPRIGHT, -18, 84)
     self.bagTotal:SetWidth(490)
     self.bagTotal:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -242,9 +253,7 @@ function A:CreateWindow()
     self.stockGroup:SetText(L("CRAFT_BAG_A81872")); self.stockGroup:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     self.measure = self:Label(window, "ZoFontGameSmall"); self.measure:SetHidden(true)
     local buttons = {
-        { L("RUN"), 60, function() self:Play() end },
-        { L("PAUSE"), 55, function() self:Pause() end },
-        { L("STOP"), 50, function() self:Stop() end },
+        { L("PAUSE"), 70, function() self:TogglePause() end },
         { L("RESET"), 55, function() ZO_Dialogs_ShowDialog("ALTHI_RESET") end },
     }
     self.runButtons={}
@@ -277,6 +286,21 @@ function A:CreateWindow()
         window:SetHeight(112); self.minimizeButton:SetText("v")
     end
     self:UpdateWindowVisibility(); self:Refresh()
+end
+function A:RefreshStatusSwitches()
+    if not self.guildStatus then return end
+    local trader=L(self.db.options.guildTrader and 'GUILD_TRADER_ON' or 'GUILD_TRADER_OFF')
+    local resume=L(self.db.options.autoResume and 'AUTO_RESUME_STATUS_ON' or 'AUTO_RESUME_STATUS_OFF')
+    self.guildStatus:SetText((self.db.options.guildTrader and '|c44CC66' or '|cDD5555')..trader..'|r')
+    self.resumeStatus:SetText((self.db.options.autoResume and '|c44CC66' or '|cDD5555')..resume..'|r')
+    local available=self.window:GetWidth()-36
+    self.measure:SetFont('ZoFontGameSmall')
+    local tw=math.min(available*0.3,self.measure:GetStringWidth(trader)+10)
+    local rw=math.min(available*0.38,self.measure:GetStringWidth(resume)+10)
+    local sw=math.max(1,available-tw-rw-12)
+    self.status:ClearAnchors(); self.status:SetAnchor(TOPLEFT,self.window,TOPLEFT,18,60); self.status:SetDimensions(sw,20)
+    self.guildStatus:ClearAnchors(); self.guildStatus:SetAnchor(TOPLEFT,self.window,TOPLEFT,18+sw+6,60); self.guildStatus:SetDimensions(tw,20)
+    self.resumeStatus:ClearAnchors(); self.resumeStatus:SetAnchor(TOPLEFT,self.window,TOPLEFT,18+sw+tw+12,60); self.resumeStatus:SetDimensions(rw,20)
 end
 function A:ToggleWindow(show)
     if show == nil then show = self.db.hidden end

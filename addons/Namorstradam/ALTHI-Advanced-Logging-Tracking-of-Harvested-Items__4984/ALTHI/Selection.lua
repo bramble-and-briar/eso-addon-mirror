@@ -26,6 +26,7 @@ A.filterCategories = {
  {key="runes",name="ENCHANTING"},{key="housing",name="HOUSING_MATERIALS"},
  {key="powder",name="PULVERISED_MATERIALS"},{key="style",name="STYLE_MATERIALS"},
  {key="traits",name="TRAIT_MATERIALS",tabs={"WEAPONS","ARMOR","JEWELRY"}},{key="rare",name="RARE_HARVESTS"},
+ {key="provisioning",name="PROVISIONING"},
 }
 local animals={ [77583]=true,[77585]=true,[150669]=true,[139020]=true,[150789]=true,
  [150731]=true,[150671]=true,[77587]=true,[77591]=true,[139019]=true,[77589]=true,

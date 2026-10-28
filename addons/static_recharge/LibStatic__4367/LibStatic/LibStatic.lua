@@ -44,6 +44,14 @@ LIBSTATIC_LIST_SORT_MAX = 2
 LIBSTATIC_LIST_SORT_ASCENDING = 1
 LIBSTATIC_LIST_SORT_DESCENDING = 2
 
+-- sort functions
+local Sorts = {
+  function(a, b) return a < b end,
+  function(a, b) return a > b end,
+  function(a, b) return a < b end,
+  function(a, b) return a > b end,
+}
+
 
 --[[------------------------------------------------------------------------------------------------
 LibStatic Class Initialization
@@ -67,17 +75,10 @@ function LibStatic:Initialize()
   self.chatPrefixColor = "FFFFFF"
 	self.chatTextColor = "FFFFFF"
 
-  -- sort functions
-  self.Sorts = {
-    function(a, b) return a < b end,
-    function(a, b) return a > b end,
-    function(a, b) return a < b end,
-    function(a, b) return a > b end,
-  }
-
   -- Module Initialization
   local Options = {
 		addonIdentifier = "LibStatic",
+    addonShortName = "LS",
 		prefixColor = "FFFFFF",
 		textColor = "FFFFFF",
 		chatEnabled = true,
@@ -108,20 +109,38 @@ LibStatic:ReverseTableLookup(data, search, subKey)
 Inputs:				data                                - the table to search
               search                              - the value to search for
               subKey                              - (optional) if provided, will be used as the subKey to search
+              min                                 - (optional) index to start at
+              max                                 - (optional) index to end at
 Outputs:			key                                 - the key for the found value (nillable)
 Description:	Returns the key or nil of the found value.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:ReverseTableLookup(data, search, subKey)
+function LibStatic:ReverseTableLookup(data, search, subKey, min, max)
   if subKey then
-    for key, value in pairs(data) do
-      if value[subKey] == search then
-        return key
+    if min and max then
+      for i = min, max do
+        if data[i][subKey] == search then
+          return key
+        end
+      end
+    else
+      for key, value in ipairs(data) do
+        if value[subKey] == search then
+          return key
+        end
       end
     end
   else
-    for key, value in pairs(data) do
-      if value == search then
-        return key
+    if min and max then
+      for i = min, max do
+        if data[i] == search then
+          return key
+        end
+      end
+    else
+      for key, value in ipairs(data) do
+        if value == search then
+          return key
+        end
       end
     end
   end
@@ -190,10 +209,10 @@ function LibStatic:Sort(list, sortType, sortKey)
   -- sort the list
   if sortKey then
     table.sort(list, function(a, b)
-      return self.Sorts[sortType](a[sortKey], b[sortKey])
+      return Sorts[sortType](a[sortKey], b[sortKey])
     end)
   else
-    table.sort(list, self.Sorts[sortType])
+    table.sort(list, Sorts[sortType])
   end
 end
 
@@ -251,7 +270,32 @@ Outputs:			...                                 - Various test outputs
 Description:	For internal add-on testing only.
 ------------------------------------------------------------------------------------------------]]--
 function LibStatic:Test(...)
-  
+  self.Chat:Msg(
+    "Test Cases:",
+    "Empty String:",
+    "",
+    "Bool(T):",
+    true,
+    "Bool(F):",
+    false,
+    "Number:",
+    5,
+    "String:",
+    "test string",
+    {
+      "Table Test:",
+      "Empty String:",
+      "",
+      "Bool(T):",
+      true,
+      "Bool(F):",
+      false,
+      "Number:",
+      5,
+      "String:",
+      "test string",
+    }
+  )
 end
 
 

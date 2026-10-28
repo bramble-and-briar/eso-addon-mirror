@@ -11,8 +11,10 @@
     - Customizable trigger abilities and notification settings
 
     Event Flow:
-    1. Monitors EVENT_COMBAT_EVENT for ACTION_RESULT_EFFECT_GAINED
-    2. Checks if ability matches configured triggers
+    1. Monitors EVENT_COMBAT_EVENT for ACTION_RESULT_EFFECT_GAINED (pull effects such as
+       Dark Convergence / Rush of Agony) and for damage dealt to the player by a configured
+       trigger (gap closers such as Critical Rush only ever deal damage)
+    2. Checks if the ability ID or name matches configured triggers
     3. Validates source is not player/companion/group member
     4. Applies cooldown to prevent spam
     5. Triggers multi-channel warning system
@@ -21,7 +23,7 @@
 --[[ basic initialization -------------------------------------------------------------------------------------------]]
 BlockPooky = BlockPooky or {}
 -- Addon version information
-BlockPooky.version = 2.21
+BlockPooky.version = 2.23
 BlockPooky.svVersion = 1.8 -- SavedVariables version for config migration
 BlockPooky.name = "BlockPooky"
 BlockPooky.msgText = "BLOCK Pooky!"
@@ -74,6 +76,12 @@ BlockPooky.predefinedPullAbilities = {
     159279, -- Agonie
     159385, -- Konvergenz
 }
+
+---Runtime lookup tables rebuilt from config by BlockPooky.RebuildTriggerAbilities()
+---CustomTriggerAbilities: cleaned ability name -> true (effect-based matching)
+---TriggerAbilityIds: ability ID -> true (ID matching for effect and damage events)
+BlockPooky.CustomTriggerAbilities = {}
+BlockPooky.TriggerAbilityIds = {}
 
 local BlockPooky_lastPookyWarning = 0
 local BlockPooky_lastGroupMessage = 0
@@ -400,11 +408,32 @@ function BlockPooky.LoadGroupMembers()
     BlockPooky.UpdateMountPollRegistration()
 end
 
-function BlockPooky.AddCustomAbilities()
+---Rebuilds the trigger lookups from config. Called on load and on every menu change so
+---edits apply immediately (no /reloadui needed).
+---Names stay the key for effect-based detection, but ability IDs are matched as well:
+---morph/rank differences or a localized effect name that differs from GetAbilityName()
+---can otherwise never match. The ID set also drives damage-based detection.
+function BlockPooky.RebuildTriggerAbilities()
+    local customIds = BlockPooky.config.customAbilityIds or {}
+    local enabledTriggers = BlockPooky.config.triggerAbilities or {}
+
     BlockPooky.CustomTriggerAbilities = {}
-    for idx = #BlockPooky.config.customAbilityIds, 1, -1 do
-        --d("custom: " .. BlockPooky.CleanAbilityName(BlockPooky.config.customAbilityIds[idx]))
-        BlockPooky.CustomTriggerAbilities[BlockPooky.CleanAbilityName(BlockPooky.config.customAbilityIds[idx])] = true
+    for idx = #customIds, 1, -1 do
+        local customName = BlockPooky.CleanAbilityName(customIds[idx])
+        if customName ~= "" then
+            BlockPooky.CustomTriggerAbilities[customName] = true
+        end
+    end
+
+    BlockPooky.TriggerAbilityIds = {}
+    for idx = #BlockPooky.predefinedTriggerAbilities, 1, -1 do
+        local id = BlockPooky.predefinedTriggerAbilities[idx]
+        if BlockPooky_IsIn(enabledTriggers, BlockPooky.CleanAbilityName(id)) then
+            BlockPooky.TriggerAbilityIds[id] = true
+        end
+    end
+    for idx = #customIds, 1, -1 do
+        BlockPooky.TriggerAbilityIds[customIds[idx]] = true
     end
 end
 
@@ -467,6 +496,32 @@ function BlockPooky.StopGroupMessaging()
     BlockPooky_grpMsgActive = false
 end
 
+---EVENT_COMBAT_EVENT adapter for the damage-based trigger registrations
+---@param eventCode number
+---@param result number
+---@param isError boolean
+---@param abilityName string
+---@param abilityGraphic number
+---@param abilityActionSlotType number
+---@param sourceName string
+---@param sourceType number
+---@param targetName string
+---@param targetType number
+---@param hitValue number
+---@param powerType number
+---@param damageType number
+---@param combatLog boolean
+---@param sourceUnitId number
+---@param targetUnitId number
+---@param abilityId number
+local function BlockPooky_OnTriggerDamageEvent(
+    eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType,
+    sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType,
+    combatLog, sourceUnitId, targetUnitId, abilityId
+)
+    BlockPooky.OnTriggerDamage(abilityName, sourceName, abilityId)
+end
+
 --- main addon initialization
 function BlockPooky.Initialize()
     BlockPooky.player = BlockPooky.CleanupName(GetUnitName("player")):lower()
@@ -476,7 +531,7 @@ function BlockPooky.Initialize()
     BlockPooky.LoadGroupMembers()
     BlockPooky.InitUI()
     BlockPooky.InitAddonMenu()
-    BlockPooky.AddCustomAbilities()
+    BlockPooky.RebuildTriggerAbilities()
     if BlockPooky.config.groupMessaging then
         BlockPooky.InitGroupMessaging()
     end
@@ -505,6 +560,27 @@ function BlockPooky.Initialize()
     EVENT_MANAGER:AddFilterForEvent(BlockPooky.name, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT,
         ACTION_RESULT_EFFECT_GAINED)
     EVENT_MANAGER:AddFilterForEvent(BlockPooky.name, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false)
+
+    -- [[register damage-based trigger detection]]
+    -- Damage results are separate registrations because ESO ANDs multiple result filters.
+    -- The player-target filter keeps this free outside of hits that actually land on us.
+    EVENT_MANAGER:RegisterForEvent(BlockPooky.name .. "TriggerDamage", EVENT_COMBAT_EVENT,
+        BlockPooky_OnTriggerDamageEvent)
+    EVENT_MANAGER:AddFilterForEvent(BlockPooky.name .. "TriggerDamage", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    EVENT_MANAGER:AddFilterForEvent(BlockPooky.name .. "TriggerDamage", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE)
+    EVENT_MANAGER:AddFilterForEvent(BlockPooky.name .. "TriggerDamage", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_IS_ERROR, false)
+
+    EVENT_MANAGER:RegisterForEvent(BlockPooky.name .. "TriggerDamageCrit", EVENT_COMBAT_EVENT,
+        BlockPooky_OnTriggerDamageEvent)
+    EVENT_MANAGER:AddFilterForEvent(BlockPooky.name .. "TriggerDamageCrit", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    EVENT_MANAGER:AddFilterForEvent(BlockPooky.name .. "TriggerDamageCrit", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_CRITICAL_DAMAGE)
+    EVENT_MANAGER:AddFilterForEvent(BlockPooky.name .. "TriggerDamageCrit", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_IS_ERROR, false)
 
     EVENT_MANAGER:RegisterForEvent(BlockPooky.name .. "GroupUpdate", EVENT_GROUP_UPDATE,
         function(...) BlockPooky.OnGroupUpdate(...) end)
@@ -649,6 +725,7 @@ function BlockPooky.OnAddOnLoaded(event, addonName)
             cooldownbar = {},
             investigate = false,
             investigateEffects = false,
+            investigateDamage = false,
             negate = {
                 show = false,
                 left = 0,
@@ -664,7 +741,9 @@ function BlockPooky.OnAddOnLoaded(event, addonName)
                 duration = 8000,
                 cooldown = 5000,
                 abilities = { 159385, 159279 }, -- Dark Convergence, Rush of Agony (user can remove these)
-                customAbilities = {}
+                customAbilities = {},
+                showLabel = true,               -- show ability name / custom text on the overlay
+                labels = {}                     -- per-ability custom text: labels[abilityId] = "custom text"
             },
             staminalow = {
                 show = false,
@@ -777,8 +856,11 @@ function BlockPooky.OnCombat(
     if BlockPooky.config.investigate and cleanSourceName ~= '' then
         d(string.format("Ability? Name: %s | ID: %d | Source: %s", cleanAbilityName, abilityId, cleanSourceName))
     end
-    -- (1)
-    if BlockPooky_IsIn(BlockPooky.config.triggerAbilities, cleanAbilityName) or BlockPooky_IsIn(BlockPooky.CustomTriggerAbilities, cleanAbilityName) then
+    -- (1) name match for effect names, ID match for morph/rank and localized-name differences
+    local isTriggerAbility = BlockPooky_IsIn(BlockPooky.config.triggerAbilities, cleanAbilityName)
+        or BlockPooky_IsIn(BlockPooky.CustomTriggerAbilities, cleanAbilityName)
+        or BlockPooky_IsIn(BlockPooky.TriggerAbilityIds, abilityId)
+    if isTriggerAbility then
         -- (2)
         if (cleanSourceName ~= "" and cleanSourceName ~= BlockPooky.player and cleanSourceName ~= BlockPooky.companionName) then
             -- (3)
@@ -805,6 +887,36 @@ function BlockPooky.OnCombat(
             end
         end
     end
+end
+
+---Warns when a configured trigger deals damage to the player.
+---Gap closers (Critical Rush, Critical Charge, Stampede, ...) never raise
+---ACTION_RESULT_EFFECT_GAINED, so OnCombat can never see them. This handler is registered
+---twice with C-level filters for player-target damage; ESO has no "enemy cast started"
+---event for other players, so the warning fires when the hit lands, not before it.
+---@param abilityName string
+---@param sourceName string
+---@param abilityId number
+function BlockPooky.OnTriggerDamage(abilityName, sourceName, abilityId)
+    local cleanAbilityName = BlockPooky.CleanupName(abilityName)
+    local cleanSourceName = BlockPooky.CleanupName(sourceName):lower()
+    if BlockPooky.config.investigateDamage then
+        d(string.format("Damage? Name: %s | ID: %d | Source: %s", cleanAbilityName, abilityId, cleanSourceName))
+    end
+    if not BlockPooky_IsIn(BlockPooky.TriggerAbilityIds, abilityId) then
+        return
+    end
+    if cleanSourceName == "" or cleanSourceName == BlockPooky.player or cleanSourceName == BlockPooky.companionName then
+        return
+    end
+    if BlockPooky.grouped and BlockPooky.group[cleanSourceName] == true then
+        return
+    end
+    if GetGameTimeMilliseconds() - BlockPooky_lastPookyWarning <= BlockPooky.config.cooldown then
+        return
+    end
+    BlockPooky_lastPookyWarning = GetGameTimeMilliseconds()
+    BlockPooky.WarnThePooky(cleanAbilityName, cleanSourceName)
 end
 
 ---reload group members when group is updated

@@ -1,9 +1,11 @@
 --[[
 Furniture Locator - Main
 
-For now, this just wires up a debug command so we can verify the data
-layer (FurnitureLocator_Data.lua) is correct before building the
-gamepad-navigable list UI on top of it. No UI yet.
+Registers /flist, a quiet troubleshooting command that pages the
+owned-furniture list to chat, and /flocator, which opens Furniture Locator
+(PC / keyboard). On console it opens from the Quickslot Wheel or keybind.
+
+v13: every screen is a LibConsoleDialogs dialog (FurnitureLocatorViews.lua).
 ]]
 
 local ADDON_PACKAGE_NAME = "FurnitureLocator"
@@ -61,8 +63,8 @@ local function OnAddOnLoaded(_, addOnName)
   EVENT_MANAGER:UnregisterForEvent("FurnitureLocatorMain", EVENT_ADD_ON_LOADED)
 
   SLASH_COMMANDS["/flist"] = DebugCommand
+  SLASH_COMMANDS["/flocator"] = function() FurnitureLocatorDialogs.ShowHome() end
 
-  d("Furniture Locator loaded. Type /flist to dump your full owned furniture list to chat.")
 end
 
 EVENT_MANAGER:RegisterForEvent("FurnitureLocatorMain", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

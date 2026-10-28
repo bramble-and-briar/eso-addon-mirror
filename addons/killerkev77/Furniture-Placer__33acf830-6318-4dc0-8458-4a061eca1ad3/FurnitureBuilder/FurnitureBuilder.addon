@@ -1,9 +1,9 @@
 ## Title: Furniture Placer
 ## Author: @Atomic Khaos
-## Version: 0.1.0
-## AddOnVersion: 1
-## APIVersion: 101050
-## Description: Visual grid overlay for straight-line furniture placement in Housing Editor. UI-only, console-safe.
+## Version: 0.5.5
+## AddOnVersion: 12
+## APIVersion: 101051
+## Description: Precision placement tools for the Housing Editor: align items to each other, space them evenly in a row and snap them to a grid. In the Housing Editor, hold X for Placer mode: pick an action, aim at an item and press A. The editor stays open the whole time.
 ## SavedVariables: FurnitureBuilder_SavedVars
 ## IsLibrary: false
 

@@ -1,0 +1,301 @@
+<!--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	Addon Name: Dolgubon's Lazy Writ Crafter
+	Creator: Dolgubon (Joseph Heinzle)
+	Addon Ideal: Simplifies Crafting Writs as much as possible
+	Addon Creation Date: March 14, 2016
+	File Name: WritCreater.xml
+	File Description: Contains all the XML GUI information for the addon
+	Load Order Requirements: Before WritCreater.lua
+	
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="DolgubonsLazyWritQRCode" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+			<Dimensions x="300" y="300" />
+			<Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="250" />
+			<Controls>
+				<Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000" inherits="ZO_InsetBackdrop">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+					<Dimensions x="300" y="300" />
+					<Edge edgeSize="1" />
+					<Controls>
+						<Label name="$(parent)Title" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Dolgubon's Lazy Writ Creator">
+							<Anchor point="TOP" relativePoint="TOP" relativeTo="$(parent)" offsetY="15" offsetX="0" />
+						</Label>
+						<Texture name="$(parent)Output" font="ZoFontGamepad27" color="FFFFFF" horizontalAlignment="LEFT"
+							verticalAlignment="TOP" text="The daily reset for writs will be in 1 hour" mouseEnabled="true">
+							<Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetX="0" offsetY="5" />
+							<Dimensions x="240" y="240" />
+						</Texture>
+					</Controls>
+				</Backdrop>
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="DolgubonsLazyWritChangelog" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+			<Dimensions x="800" y="700" />
+			<Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="200" />
+			<Controls>
+				<Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000" inherits="ZO_InsetBackdrop">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+					<Dimensions x="800" y="700" />
+					<Edge edgeSize="1" />
+					<Controls>
+						<Label name="$(parent)Title" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Dolgubon's Lazy Writ Creator">
+							<Anchor point="TOP" relativePoint="TOP" relativeTo="$(parent)" offsetY="15" offsetX="-5" />
+						</Label>
+						<Label name="$(parent)Output" font="ZoFontGamepad27" color="FFFFFF" horizontalAlignment="LEFT"
+							verticalAlignment="TOP" text="The daily reset for writs will be in 1 hour" mouseEnabled="true">
+							<Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetX="0" offsetY="-5" />
+							<Dimensions x="740" y="630" />
+						</Label>
+					</Controls>
+				</Backdrop>
+			</Controls>
+		</TopLevelControl>
+		<Control name="WritCrafterConsoleHideControl" virtual="true">
+			<!-- Use sparingly! Only use for controls which are commonly referenced in .lua code -->
+			<!-- Will force hide inheriting controls-->
+			<OnInitialized>
+				self:SetHidden(true)
+				self.SetHidden = function() end
+			</OnInitialized>
+		</Control>
+		<Control name="WritCrafterScrollTemplate" alpha="1" mouseEnabled="false" inheritAlpha="false" virtual="true">
+			<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="175" />
+			<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="3" offsetY="-50" />
+			<Controls>
+				<Control name="$(parent)List" inherits="ZO_ScrollList" mouseEnabled="true">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetY="0" offsetX="6" relativePoint="TOPLEFT" />
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" offsetY="0" offsetX="-7" relativePoint="BOTTOMRIGHT" />
+
+				</Control>
+			</Controls>
+		</Control>
+
+		<Control name="SingleCraftRewardTemplate" virtual="true">
+			<Dimensions x="216" y="30" />
+			<Controls>
+				<Backdrop name="$(parent)BG" mouseEnabled="false" inherits="ZO_InsetBackdrop" />
+				<Label name="$(parent)Name" color="76BCC3" mouseEnabled="false" font="ZoFontGamepad27" wrapMode="TEXT_WRAP_MODE_TRUNCATE" horizontalAlignment="LEFT">
+					<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" />
+					<Anchor point="RIGHT" relativeTo="$(parent)Amount" relativePoint="LEFT" offsetX="0" />
+				</Label>
+				<Label name="$(parent)Amount" color="76BCC3" font="ZoFontGamepad27" horizontalAlignment="RIGHT" mouseEnabled="false">
+					<Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-5" />
+				</Label>
+			</Controls>
+		</Control>
+		<Button name="WritCrafterRewardTemplate" virtual="true" mouseEnabled="true">
+
+			<OnMouseEnter>
+				if not self.data or self.data.header then
+					return
+				end
+				WritCreater.rewardsScroll:Row_OnMouseEnter(self)
+				<!-- ItemTooltip:SetLink(self.data.Name) -->
+					d(self.data)
+			</OnMouseEnter>
+			<OnMouseExit>
+				if not self.data or self.data.header then
+					return
+				end
+				local name = GetControl(self, "Name")
+				WritCreater.rewardsScroll:Row_OnMouseExit(self)
+				ClearTooltip(ItemTooltip)
+			</OnMouseExit>
+			<Dimensions x="1540" y="30" />
+			<Controls>
+				<Control name="$(parent)Craft1" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)" offsetX="10" />
+				</Control>
+				<Control name="$(parent)Craft2" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Craft1" offsetX="0" />
+				</Control>
+				<Control name="$(parent)Craft3" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Craft2" offsetX="0" />
+				</Control>
+				<Control name="$(parent)Craft4" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Craft3" offsetX="0" />
+				</Control>
+				<Control name="$(parent)Craft5" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Craft4" offsetX="0" />
+				</Control>
+				<Control name="$(parent)Craft6" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Craft5" offsetX="0" />
+				</Control>
+				<Control name="$(parent)Craft7" inherits="SingleCraftRewardTemplate">
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Craft6" offsetX="0" />
+				</Control>
+			</Controls>
+		</Button>
+		<TopLevelControl name="DolgubonsLazyWritStatsWindow" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+			<Dimensions x="1550" y="700" />
+			<Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="250" />
+			<Controls>
+				<Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000" inherits="ZO_InsetBackdrop">
+					<AnchorFill />
+					<Edge edgeSize="1" />
+					<Controls>
+						<Label name="$(parent)Title" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Dolgubons Lazy Writ Creator">
+							<Anchor point="TOP" relativePoint="TOP" relativeTo="$(parent)" offsetY="15" offsetX="0" />
+						</Label>
+						<Label name="$(parent)SubTitle" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Writ Reward Stats">
+							<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$(parent)Title" offsetY="0" offsetX="0" />
+						</Label>
+						<Label name="$(parent)WritCounter" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Writs Done: ">
+							<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$(parent)SubTitle" offsetY="0" offsetX="0" />
+						</Label>
+						<Button name="$(parent)CraftHeader" inherits="WritCrafterRewardTemplate">
+							<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$(parent)WritCounter" offsetY="0" offsetX="0" />
+						</Button>
+						<Label name="$(parent)QuestGold" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Quest Gold:">
+							<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Title" offsetY="0" offsetX="70" />
+						</Label>
+						<Label name="$(parent)ItemGold" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Total Item Value: ">
+							<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$(parent)QuestGold" offsetY="0" offsetX="0" />
+						</Label>
+						<Label name="$(parent)TotalGold" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Total Value: ">
+							<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)QuestGold" offsetY="0" offsetX="70" />
+						</Label>
+						<Label name="$(parent)EstimateWarning" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Note: Values are estimates only!">
+							<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$(parent)TotalGold" offsetY="10" offsetX="0" />
+						</Label>
+						<Control name="$(grandparent)RewardScroll" inherits="WritCrafterScrollTemplate" alpha="1" mouseEnabled="false" inheritAlpha="false">
+						</Control>
+
+					</Controls>
+				</Backdrop>
+			</Controls>
+		</TopLevelControl>
+		<!-- 		<Button name="WritCrafterRewardHeaderTemplate" virtual="true" mouseEnabled="true">
+			<Dimensions x="280" y="30" />
+			<Controls>
+				<Backdrop name="$(parent)BG" mouseEnabled="false"/>
+				<Label name="$(parent)Name" inherits="QueueRowLabelTemplate" color="76BCC3" mouseEnabled="false" wrapMode="TEXT_WRAP_MODE_TRUNCATE">
+					<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" color="000000" />
+					<Anchor point="RIGHT" relativeTo="$(parent)Amount" relativePoint="LEFT" offsetX="0" color="000000" />
+				</Label>
+			</Controls>
+		</Button> -->
+		<Label name="DolgubonsSynasthesiaLabel" font="ZoFontGamepad61" color="FFFFFF" horizontalAlignment="CENTER" text="CLING" virtual="true" hidden="true">
+			<OnInitialized>
+				local parent = self:GetParent()
+				parent.labels = parent.labels or {}
+				parent.labels[#parent.labels+1] = self
+				parent.activeLabels = parent.activeLabels or {}
+				parent.activeLabels[#parent.activeLabels+1] = self
+				parent.inactiveLabels = parent.inactiveLabels or {}
+				parent.inactiveLabels[#parent.inactiveLabels+1] = self
+			</OnInitialized>
+		</Label>
+		<TopLevelControl name="DolgubonsFabulousSynasthesia" clampedToScreen="true" mouseEnabled="false" movable="false" hidden="false">
+			<Dimensions x="470" y="200" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="50" />
+			<Controls>
+				<Label name="$(parent)Label1" text="CLING" inherits="DolgubonsSynasthesiaLabel">
+					<Anchor relativePoint="CENTER" relativeTo="GuiRoot" offsetY="100" offsetX="100" />
+				</Label>
+				<Label name="$(parent)Label2" text="CLANG" inherits="DolgubonsSynasthesiaLabel">
+					<Anchor relativePoint="CENTER" relativeTo="GuiRoot" offsetY="300" offsetX="50" />
+				</Label>
+				<Label name="$(parent)Label3" text="CLINK" inherits="DolgubonsSynasthesiaLabel">
+					<Anchor relativePoint="CENTER" relativeTo="GuiRoot" offsetY="-320" offsetX="-240" />
+				</Label>
+				<Label name="$(parent)Label4" text="CLING" inherits="DolgubonsSynasthesiaLabel">
+					<Anchor relativePoint="CENTER" relativeTo="GuiRoot" offsetY="140" offsetX="-300" />
+				</Label>
+				<Label name="$(parent)Label5" text="CLING" inherits="DolgubonsSynasthesiaLabel">
+					<Anchor relativePoint="CENTER" relativeTo="GuiRoot" offsetY="260" offsetX="-200" />
+				</Label>
+				<Label name="$(parent)Label6" text="CLING" inherits="DolgubonsSynasthesiaLabel">
+					<Anchor relativePoint="CENTER" relativeTo="GuiRoot" offsetY="-50" offsetX="20" />
+				</Label>
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="DolgubonsWrits" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="false">
+			<Dimensions x="470" y="200" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="50" />
+			<Controls>
+				<Backdrop name="$(parent)FabulousDrop" centerColor="FFFFFF" edgeColor="FFFFFF">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="10" offsetY="10" />
+					 <Edge file="esoui/art/miscellaneous/interactkeyframe_edge.dds" edgeFileWidth="128" edgeFileHeight="8"/>
+					<Dimensions x="420" y="175" />
+					<!-- <Center file="esoui/art/miscellaneous/interactkeyframe_center.dds"/> -->
+                    <Insets left="4" top="4" right="-4" bottom="-4"/>
+				</Backdrop>
+				<Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="80" />
+					<Dimensions x="500" y="400" />
+					<Edge edgeSize="1" />
+					<Center file="/esoui/art/icons/heraldrycrests_misc_blank_01.dds" />
+					<Controls>
+						<Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000">
+							<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+							<Dimensions x="500" y="400" />
+							<Edge edgeSize="1" />
+							<Center file="Hazel/LWCbackground.dds" />
+						</Backdrop>
+						<Label name="$(parent)Head" font="ZoFontGamepad27" color="FFAA33" horizontalAlignment="CENTER" text="Dolgubons Lazy Writ Creator">
+							<Anchor relativePoint="TOP" relativeTo="$(parent)" offsetY="55" offsetX="-85" />
+						</Label>
+						<Label name="$(parent)Output" font="ZoFontGamepad27" color="FFFFFF" wrapMode="TRUNCATE" horizontalAlignment="CENTER" verticalAlignment="TOP" text="" mouseEnabled="false">
+							<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetY="80" offsetX="10" />
+							<Dimensions x="430" />
+						</Label>
+						<Label name="$(parent)QuestOutput" font="ZoFontGamepad27" text="" color="FFFFFF" wrapMode="TRUNCATE" horizontalAlignment="CENTER" verticalAlignment="TOP">
+							<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetY="130" offsetX="10" />
+							<Dimensions x="430" />
+						</Label>
+						<Button name="$(parent)Craft" alpha="1" inherits="WritCrafterConsoleHideControl" text="Craft" clickSound="Book_Acquired" hidden="true">
+							<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="-205" />
+							<FontColors normalColor="FFFFFF" mouseOverColor="d9d9d9" pressedColor="b3b3b3" />
+							<Dimensions x="130" />
+						</Button>
+
+					</Controls>
+				</Backdrop>
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="DolgubonsLazyWritStatus" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+			<Dimensions x="120" y="37" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="TOP" offsetX="0" offsetY="850" />
+			<OnMoveStop>
+				WritCreater:GetSettings().statusBarY = self:GetTop()
+				WritCreater:GetSettings().statusBarX = self:GetRight() 
+			</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000" inherits="ZO_InsetBackdrop" mouseEnabled="false">
+					<AnchorFill />
+					<Edge edgeSize="1" />
+					<Controls>
+
+						<Label name="$(parent)Output" font="ZoFontGamepad27" color="FFFF33" wrapMode="TRUNCATE" horizontalAlignment="CENTER"
+							verticalAlignment="CENTER" text="BCWJ  AEP" mouseEnabled="false">
+							<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+
+						</Label>
+					</Controls>
+				</Backdrop>
+				<Backdrop name="$(parent)Container" centerColor="111111" edgeColor="00000000" inherits="ZO_InsetBackdrop" mouseEnabled="false" hidden="true">
+					<Dimensions x="280" y="34" />
+					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="10" />
+					<Edge edgeSize="1" />
+					<Controls>
+
+						<Label name="$(parent)Remaining" font="ZoFontGamepad27" color="FFFF33" wrapMode="TRUNCATE" horizontalAlignment="CENTER"
+							verticalAlignment="CENTER" mouseEnabled="false" text="1/12 boxes (placeholder text)">
+							<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="-2" />
+
+						</Label>
+						<Backdrop name="$(parent)Cooldown" centerColor="ff6c6c" edgeColor="00000000" mouseEnabled="false">
+							<Dimensions x="80" y="30" />
+							<Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="0" offsetY="0" />
+							<Edge edgeSize="1" />
+						</Backdrop>
+					</Controls>
+				</Backdrop>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

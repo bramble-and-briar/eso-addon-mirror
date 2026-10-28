@@ -24,34 +24,34 @@ local ADDON_VERSION = "1.12.0"   -- keep in step with ## Version in the manifest
 -- the zone) before concluding a universal ratio can't work for "any player
 -- on any character," which is what this addon is meant to support.
 --
--- Current approach: explicit per-zone calibration, auto-triggered rather
--- than requiring the player to type /speedcal. The moment the player
--- mounts in a zone with no stored ceiling yet, calibration ARMS (chat
--- message shown) but doesn't start ticking yet -- it stays paused until
--- the player actually starts moving, so the full window is spent riding
--- rather than partly wasted while stationary. Once moving, the highest
--- smoothed speed seen over CALIBRATION_DURATION_MS is stored (in
--- SavedVariables, per character) as "the ceiling of normal riding" for
--- that zone. From then on in that zone, any reading above the stored
--- ceiling is treated as sprinting. This is simpler and more robust than
--- the old adaptive-ratio approach: it needs no convergence period (the
--- measurement is complete and exact the moment calibration ends), and it's
--- automatically correct for this specific character's speed bonuses, since
--- they were live when the measurement was taken. /speedcal is still
--- available too, as a manual override to force a fresh recalibration of the
--- current zone (e.g. after a build change shifts the character's own speed
--- bonuses enough that the old ceiling stops being accurate) -- it arms the
--- same way, still paused until movement starts, rather than starting the
--- clock immediately.
+-- Current approach: one calibrated ceiling per character, auto-triggered
+-- rather than requiring the player to type /speedcal. The moment a character
+-- with no stored ceiling mounts, calibration ARMS (chat message shown) but
+-- doesn't start ticking yet -- it stays paused until the player actually
+-- starts moving, so the full window is spent riding rather than partly
+-- wasted while stationary. Once moving, the highest smoothed speed seen over
+-- CALIBRATION_DURATION_MS is stored (in SavedVariables, per character) as
+-- "the ceiling of normal riding". From then on, in every zone, a reading more
+-- than SPRINT_MARGIN above it is treated as sprinting. It needs no
+-- convergence period (the measurement is complete the moment calibration
+-- ends), and it's automatically correct for this character's speed bonuses,
+-- since they were live when the measurement was taken. /speedcal is still
+-- available as a manual override, e.g. after a build change shifts the
+-- character's speed bonuses enough that the old ceiling stops being accurate.
 --
--- A note on units (2026-10-06): world positions are in CENTIMETRES in every
--- zone (ZOS's housing code and LibGPS both convert them to metres with a
--- constant /100), so the per-zone key above is not actually needed for unit
--- reasons -- see Docs/DoesThisThingGoAnyFaster.md, "Units and the per-zone
--- key". It is kept for now; collapsing to one ceiling per character is a
--- planned change. The same-zone check in OnPositionPoll IS still needed,
--- because GetUnitWorldPosition is zone-local and a delta across a zone
--- change is a position jump, not a speed.
+-- Until 1.12.0 the ceiling was stored PER ZONE. That rested on a belief that
+-- world units differ in size between zones, which turned out to be a
+-- misreading of LibGPS: world positions are in CENTIMETRES in every zone
+-- (ZOS's housing code and LibGPS both convert them to metres with a constant
+-- /100). See Docs/DoesThisThingGoAnyFaster.md, "Units and the per-zone key".
+-- The old per-zone table is discarded on load. The same-zone check in
+-- OnPositionPoll IS still needed, because GetUnitWorldPosition is zone-local
+-- and a delta across a zone change is a position jump, not a speed.
+--
+-- Experimental (2026-10-27): with "Auto Calibration (Experimental)" on, the addon
+-- also watches steady riding and looks for TWO distinct speeds in it, normal
+-- and sprinting, then puts the line halfway between them. See the learner
+-- section below for how and why it does not assume a fixed ratio.
 local POLL_MS = 200                    -- how often to sample position
 local FAST_ALPHA = 0.3                  -- smoothing for the displayed/compared speed
 local MAX_PLAUSIBLE_DELTA_MS = 1000     -- ignore samples spanning a hitch/loading pause
@@ -67,6 +67,50 @@ local CALIBRATION_DURATION_MS = 8000    -- how long /speedcal watches before loc
 -- are centimetres, so 5 u/s is 5 cm/s, about half a percent of a gallop).
 local SPRINT_MARGIN_UPS = 5                      -- u/s above the ceiling
 local SPRINT_MARGIN     = SPRINT_MARGIN_UPS / 1000   -- the same, in u/ms
+
+-- ---------------------------------------------------------------------------
+-- Auto Calibration (experimental)
+-- ---------------------------------------------------------------------------
+-- There is no API for mounted sprint speed: GetRidingStats reports only the
+-- riding-training percentage, and ADVANCED_STAT_DISPLAY_TYPE_SPRINT_SPEED is
+-- an on-foot stat (ESOUIDocumentation.txt, 101051). And the sprint/normal
+-- ratio is NOT a constant -- it differs per character with their speed
+-- bonuses, which is what killed the adaptive-ratio approach before 1.11.0.
+-- So the learner does not look for "normal x some ratio". It looks for two
+-- separate clusters of STEADY speeds in recent riding and only accepts them
+-- if they look like two genuinely different speeds:
+--
+--   * steady = the raw reading is within LEARN_STEADY_TOLERANCE of the
+--     smoothed one, which drops acceleration ramps, turns and bumps;
+--   * the best two-way split of the steady speeds (Otsu's method: the split
+--     that pulls the two groups' averages furthest apart) is accepted only if
+--     each side has LEARN_MIN_CLASS samples, the faster average is between
+--     LEARN_MIN_RATIO and LEARN_MAX_RATIO times the slower, and the two
+--     averages sit at least LEARN_SEPARATION spreads apart. That last test
+--     is what rejects one wide cluster (rough terrain at one speed) split in
+--     half, which would otherwise pass the ratio test: split down the middle,
+--     a bell curve gives about 2.7 spreads, an even spread about 3.5, and a
+--     slow smooth swell between two speeds about 4.1. Real cruise and sprint
+--     clusters 13% apart pass at 5 as long as each is steadier than about
+--     2.3%, which the steady filter is there to ensure.
+--
+-- The ratio band is a sanity gate, not a prediction. 1.08 sits under the
+-- smallest ratio ever tuned in this addon's history (about 1.13) and 1.6 is
+-- comfortably above any plausible sprint bonus; both are guesses to revisit
+-- from what Auto Calibration reports in chat.
+--
+-- The detection line is the midpoint of the two averages. Learned values are
+-- per character, kept across sessions, and keep updating as you ride.
+local LEARN_BUFFER_SIZE      = 600     -- steady samples kept: 2 min of steady riding at 200 ms
+local LEARN_ANALYSE_EVERY    = 25      -- re-analyse after this many new steady samples (5 s)
+local LEARN_MIN_SAMPLES      = 100     -- no analysis before 20 s of steady riding
+local LEARN_MIN_CLASS        = 25      -- each speed needs 5 s of steady riding in the buffer
+local LEARN_STEADY_TOLERANCE = 0.03    -- raw within 3% of smoothed counts as steady
+local LEARN_MIN_SPEED        = 0.1     -- u/ms (100 u/s); slower is standing or creeping
+local LEARN_MIN_RATIO        = 1.08
+local LEARN_MAX_RATIO        = 1.6
+local LEARN_SEPARATION       = 5       -- averages must be this many spreads apart
+local LEARN_REPORT_CHANGE    = 0.03    -- announce a re-learn only when the line moves 3%
 
 -- ---------------------------------------------------------------------------
 -- Display settings
@@ -138,14 +182,16 @@ local ENTHUSIASM_COLORS = {
 }
 
 -- Must match ## SavedVariables in the manifest exactly. One table, two
--- stores: calibration ceilings are per character (they depend on the
--- character's own speed bonuses); how the indicator looks is a taste, so it
--- is account-wide under its own namespace.
+-- stores: calibration is per character (it depends on the character's own
+-- speed bonuses) and holds `ceiling` plus, with Auto Calibration on, `learnedCruise`
+-- and `learnedSprint`, all in u/ms and all optional; preferences are a taste,
+-- so they are account-wide under their own namespace (named "Display" for
+-- historical reasons; autoLearn lives there too).
 local SAVED_VARS_NAME    = "DoesThisThingGoAnyFasterSaved"
 local SAVED_VARS_VERSION = 1
-local CALIBRATION_DEFAULTS = { thresholds = {} }
+local CALIBRATION_DEFAULTS = {}
 local DISPLAY_NAMESPACE    = "Display"
-local DISPLAY_DEFAULTS     = { labelText = TEXT_WEEEE, goldBar = true, enthusiasmMode = false }
+local DISPLAY_DEFAULTS     = { labelText = TEXT_WEEEE, goldBar = true, enthusiasmMode = false, autoLearn = false }
 
 -- ---------------------------------------------------------------------------
 -- State
@@ -156,8 +202,12 @@ local mountStaminaIndicator
 local mountStaminaLabel
 local mountStaminaBar
 local mountStaminaOriginalGradient  -- snapshotted once at load; nil if that wasn't possible (see SnapshotMountStaminaGradient)
-local savedVars                     -- per-character: calibration ceilings
-local displayVars                   -- account-wide: labelText, goldBar, enthusiasmMode
+local savedVars                     -- per-character: ceiling, learnedCruise, learnedSprint
+local displayVars                   -- account-wide: labelText, goldBar, enthusiasmMode, autoLearn
+
+local learnSamples = {}             -- ring of steady smoothed speeds (u/ms); not saved
+local learnHead, learnCount = 0, 0
+local learnSinceAnalysis = 0
 
 local enthusiasmRoot                -- full-screen parent for the splashes; nil if it could not be created
 local splashes = {}                 -- pool of { label=, bornMs=, lifeMs=, x=, y= }; bornMs == nil means free
@@ -338,12 +388,24 @@ local function ResetTracking()
     lastZoneId, lastX, lastY, lastZ, lastTimeMs = nil, nil, nil, nil, nil
     fastSpeed = nil
     sprintActive = false
-    -- Clears a pending arm-but-never-moved attempt on every mount/dismount
-    -- so it can't dangle across an unrelated later mount in a different
-    -- zone and wrongly suppress that zone's own arm check. Deliberately
-    -- doesn't touch `calibrating` -- an already-*running* window keeps
-    -- running through a dismount, same as before this change.
+    -- Clears a pending arm-but-never-moved attempt on every mount/dismount.
     calibrationArmed = false
+    -- A RUNNING window is cancelled too. Until 1.12.0 it was left running
+    -- through a dismount, and because polling stops while dismounted, the
+    -- first poll after the next mount found the window long expired and
+    -- stored whatever partial peak it had (under the wrong zone, back when
+    -- ceilings were per zone). Cancelling keeps any previous ceiling; with
+    -- none, the next mount arms again.
+    if calibrating then
+        calibrating = false
+        if savedVars.ceiling then
+            d("DoesThisThingGoAnyFaster: calibration interrupted, so your previous calibration is still in use. Run /speedcal to try again.")
+        elseif displayVars.autoLearn then
+            d("DoesThisThingGoAnyFaster: calibration interrupted. Run /speedcal to try again, or keep riding and let Auto Calibration learn your speeds.")
+        else
+            d("DoesThisThingGoAnyFaster: calibration interrupted. It will start again the next time you ride.")
+        end
+    end
 end
 
 -- Arms calibration -- fires automatically on mount (see OnMountedStateChanged)
@@ -354,18 +416,19 @@ end
 -- the player is explicitly asked not to sprint, so there's nothing to
 -- measure on the sprint side here; detection afterward is purely "did the
 -- reading exceed the measured ceiling."
+-- Returns true if it armed, so /speedcal knows whether to reset the learner.
 local function ArmCalibration(isAutomatic)
     if not IsMounted() then
         d("DoesThisThingGoAnyFaster: mount up first, then run /speedcal again.")
-        return
+        return false
     end
 
     if calibrating or calibrationArmed then
-        return
+        return false
     end
 
     if isAutomatic then
-        d("DoesThisThingGoAnyFaster: no calibration data for this zone -- ride without sprinting for at least " ..
+        d("DoesThisThingGoAnyFaster: not calibrated yet -- ride without sprinting for at least " ..
             (CALIBRATION_DURATION_MS / 1000) .. " seconds to calibrate. Calibration begins automatically as soon as you start moving.")
     else
         d("DoesThisThingGoAnyFaster: ride without sprinting for at least " .. (CALIBRATION_DURATION_MS / 1000) ..
@@ -373,9 +436,10 @@ local function ArmCalibration(isAutomatic)
     end
 
     calibrationArmed = true
+    return true
 end
 
-local function FinishCalibration(zoneId)
+local function FinishCalibration()
     calibrating = false
 
     if calibrationPeakSpeed <= 0 then
@@ -383,10 +447,117 @@ local function FinishCalibration(zoneId)
         return
     end
 
-    savedVars.thresholds[zoneId] = calibrationPeakSpeed
-    local zoneName = GetPlayerActiveZoneName()
-    d(string.format("DoesThisThingGoAnyFaster: calibration complete for %s. Non-sprint ceiling: %du/s -- anything over %du/s now counts as sprinting here. Run /speedcal to calibrate again.",
-        zoneName, math.floor(calibrationPeakSpeed * 1000 + 0.5), math.floor((calibrationPeakSpeed + SPRINT_MARGIN) * 1000 + 0.5)))
+    savedVars.ceiling = calibrationPeakSpeed
+    d(string.format("DoesThisThingGoAnyFaster: calibration complete. Normal riding tops out at %.0fu/s, so anything over %.0fu/s now counts as sprinting, in every zone. Run /speedcal to calibrate again.",
+        calibrationPeakSpeed * 1000, (calibrationPeakSpeed + SPRINT_MARGIN) * 1000))
+end
+
+-- ---------------------------------------------------------------------------
+-- Auto Calibration (experimental)
+-- ---------------------------------------------------------------------------
+local function LearnedThreshold()
+    local cruise, sprint = savedVars.learnedCruise, savedVars.learnedSprint
+    if cruise and sprint then
+        return (cruise + sprint) / 2
+    end
+    return nil
+end
+
+-- The line detection uses. Learned speeds win while Auto Calibration is on; the
+-- /speedcal ceiling is the fallback until they exist, and the only source
+-- with Auto Calibration off.
+local function SprintThreshold()
+    if displayVars.autoLearn then
+        local learned = LearnedThreshold()
+        if learned then return learned end
+    end
+    if savedVars.ceiling then
+        return savedVars.ceiling + SPRINT_MARGIN
+    end
+    return nil
+end
+
+local function ClearLearnBuffer()
+    learnSamples = {}
+    learnHead, learnCount, learnSinceAnalysis = 0, 0, 0
+end
+
+local function ResetLearning()
+    ClearLearnBuffer()
+    savedVars.learnedCruise, savedVars.learnedSprint = nil, nil
+end
+
+-- Mean and standard deviation of sorted[first..last].
+local function MeanAndSpread(sorted, first, last)
+    local n, sum = last - first + 1, 0
+    for i = first, last do sum = sum + sorted[i] end
+    local mean = sum / n
+    local sq = 0
+    for i = first, last do
+        local dv = sorted[i] - mean
+        sq = sq + dv * dv
+    end
+    return mean, math.sqrt(sq / n)
+end
+
+-- Looks for two distinct speeds in values[1..n]. Returns cruise, sprint (u/ms)
+-- if the riding shows two convincing clusters, or nil if it does not (yet).
+local function FindTwoSpeeds(values, n)
+    local sorted = {}
+    for i = 1, n do sorted[i] = values[i] end
+    table.sort(sorted)
+
+    local total = 0
+    for i = 1, n do total = total + sorted[i] end
+
+    -- Otsu's split: maximise (size low * size high * gap between means^2),
+    -- only over splits that leave both sides big enough to count.
+    local bestScore, bestK, sumLow = -1, nil, 0
+    for k = 1, n - 1 do
+        sumLow = sumLow + sorted[k]
+        if k >= LEARN_MIN_CLASS and n - k >= LEARN_MIN_CLASS then
+            local gap = (total - sumLow) / (n - k) - sumLow / k
+            local score = k * (n - k) * gap * gap
+            if score > bestScore then bestScore, bestK = score, k end
+        end
+    end
+    if not bestK then return nil end
+
+    local cruise, cruiseSpread = MeanAndSpread(sorted, 1, bestK)
+    local sprint, sprintSpread = MeanAndSpread(sorted, bestK + 1, n)
+    if cruise <= 0 then return nil end
+
+    local ratio = sprint / cruise
+    if ratio < LEARN_MIN_RATIO or ratio > LEARN_MAX_RATIO then return nil end
+    if sprint - cruise < LEARN_SEPARATION * math.max(cruiseSpread, sprintSpread) then return nil end
+
+    return cruise, sprint
+end
+
+local function AnalyseLearnBuffer()
+    local cruise, sprint = FindTwoSpeeds(learnSamples, learnCount)
+    if not cruise then return end
+
+    local previous = LearnedThreshold()
+    savedVars.learnedCruise, savedVars.learnedSprint = cruise, sprint
+    local threshold = LearnedThreshold()
+
+    if not previous or math.abs(threshold - previous) > LEARN_REPORT_CHANGE * previous then
+        d(string.format("DoesThisThingGoAnyFaster (experimental): Auto Calibration learned your mount speeds -- normal %.0fu/s, sprinting %.0fu/s. Sprinting now means over %.0fu/s.",
+            cruise * 1000, sprint * 1000, threshold * 1000))
+    end
+end
+
+local function LearnFromSample(speed)
+    learnHead = (learnHead % LEARN_BUFFER_SIZE) + 1
+    learnSamples[learnHead] = speed
+    if learnCount < LEARN_BUFFER_SIZE then learnCount = learnCount + 1 end
+
+    learnSinceAnalysis = learnSinceAnalysis + 1
+    if learnCount >= LEARN_MIN_SAMPLES and learnSinceAnalysis >= LEARN_ANALYSE_EVERY then
+        learnSinceAnalysis = 0
+        AnalyseLearnBuffer()
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -407,7 +578,7 @@ local function OnPositionPoll()
             if calibrating then
                 calibrationPeakSpeed = math.max(calibrationPeakSpeed, fastSpeed)
                 if nowMs >= calibrationEndMs then
-                    FinishCalibration(zoneId)
+                    FinishCalibration()
                 end
             elseif calibrationArmed and fastSpeed > 0 then
                 -- Movement just started -- actually begin the window now,
@@ -419,8 +590,13 @@ local function OnPositionPoll()
                 calibrationEndMs = nowMs + CALIBRATION_DURATION_MS
             end
 
-            local ceiling = savedVars.thresholds[zoneId]
-            sprintActive = ceiling ~= nil and fastSpeed > ceiling + SPRINT_MARGIN
+            if displayVars.autoLearn and fastSpeed >= LEARN_MIN_SPEED
+               and math.abs(instSpeed - fastSpeed) <= LEARN_STEADY_TOLERANCE * fastSpeed then
+                LearnFromSample(fastSpeed)
+            end
+
+            local threshold = SprintThreshold()
+            sprintActive = threshold ~= nil and fastSpeed > threshold
 
             UpdateMountStaminaIndicator()
         end
@@ -439,16 +615,11 @@ local function OnMountedStateChanged(_, mounted)
         EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "Poll")
     end
 
-    -- Auto-calibration trigger: arm it right at the mount moment if the
-    -- zone the player is standing in has no ceiling yet. Reads position
-    -- directly rather than waiting on OnPositionPoll, since this should
-    -- fire as soon as the player mounts, not after the next poll happens
-    -- to land.
-    if mounted then
-        local zoneId = GetUnitWorldPosition("player")
-        if savedVars.thresholds[zoneId] == nil then
-            ArmCalibration(true)
-        end
+    -- Auto-calibration trigger: arm it right at the mount moment if this
+    -- character has no ceiling yet. Skipped while Auto Calibration is on,
+    -- because the point of the learner is not to ask.
+    if mounted and savedVars.ceiling == nil and not displayVars.autoLearn then
+        ArmCalibration(true)
     end
 
     UpdateMountStaminaIndicator()
@@ -563,7 +734,7 @@ local function CreateSettingsMenu()
         {
             type  = LHAS.ST_LABEL,
             label = "The indicator sits on your mount stamina bar and only appears while your mount is sprinting. "
-                 .. "Type /speedcal in chat to recalibrate the current zone.",
+                 .. "Type /speedcal in chat to recalibrate. One calibration covers every zone.",
         },
         {
             type    = LHAS.ST_DROPDOWN,
@@ -592,6 +763,28 @@ local function CreateSettingsMenu()
                 UpdateMountStaminaIndicator()
             end,
         },
+        {
+            type    = LHAS.ST_CHECKBOX,
+            label   = "Auto Calibration (Experimental)",
+            tooltip = "Instead of asking you to ride without sprinting, the add-on watches your riding and learns "
+                   .. "your normal and sprinting speeds by itself. It needs to see both: a couple of minutes of riding "
+                   .. "that includes a few seconds of steady sprinting. Until then it uses your /speedcal calibration, "
+                   .. "if you have one. It says in chat what it learned. Experimental: a speed buff such as Major Gallop can "
+                   .. "confuse it. Default: off.",
+            default = DISPLAY_DEFAULTS.autoLearn,
+            getFunction = function() return displayVars.autoLearn end,
+            setFunction = function(value)
+                displayVars.autoLearn = value and true or false
+                if displayVars.autoLearn then
+                    calibrationArmed = false   -- a pending "ride without sprinting" prompt is moot now
+                else
+                    ClearLearnBuffer()         -- learned speeds are kept for next time; samples are not
+                    if isMounted and savedVars.ceiling == nil then
+                        ArmCalibration(true)
+                    end
+                end
+            end,
+        },
     })
 end
 
@@ -615,6 +808,20 @@ local function OnAddOnLoaded(_, addOnName)
     if type(displayVars.enthusiasmMode) ~= "boolean" then
         displayVars.enthusiasmMode = DISPLAY_DEFAULTS.enthusiasmMode
     end
+    if type(displayVars.autoLearn) ~= "boolean" then
+        displayVars.autoLearn = DISPLAY_DEFAULTS.autoLearn
+    end
+
+    -- Per-zone ceilings (1.11.0 and the first 1.12.0 builds) are discarded:
+    -- one ceiling per character replaces them, and the next mount arms a fresh
+    -- calibration. Anything else malformed is dropped rather than trusted.
+    savedVars.thresholds = nil
+    local function positive(v) return type(v) == "number" and v > 0 end
+    if not positive(savedVars.ceiling) then savedVars.ceiling = nil end
+    if not (positive(savedVars.learnedCruise) and positive(savedVars.learnedSprint)
+            and savedVars.learnedSprint > savedVars.learnedCruise) then
+        savedVars.learnedCruise, savedVars.learnedSprint = nil, nil
+    end
 
     mountStaminaIndicator, mountStaminaLabel = CreateMountStaminaIndicator()
 
@@ -636,7 +843,14 @@ local function OnAddOnLoaded(_, addOnName)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_MOUNTED_STATE_CHANGED, OnMountedStateChanged)
 
-    SLASH_COMMANDS["/speedcal"] = function() ArmCalibration(false) end
+    -- With Auto Calibration on, /speedcal also throws away what was learned, so a
+    -- bad learned line can always be reset from chat.
+    SLASH_COMMANDS["/speedcal"] = function()
+        if ArmCalibration(false) and displayVars.autoLearn then
+            ResetLearning()
+            d("DoesThisThingGoAnyFaster (experimental): Auto Calibration's learned speeds cleared too; they will be learned again as you ride.")
+        end
+    end
     SLASH_COMMANDS[ENTHUSIASM_COMMAND] = function()
         displayVars.enthusiasmMode = not displayVars.enthusiasmMode
         if displayVars.enthusiasmMode then

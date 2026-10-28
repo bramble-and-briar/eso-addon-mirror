@@ -1,0 +1,22 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its
+; affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of
+; ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+;
+; DLC Roulette. Copyright (c) 2026 -chin. All rights reserved.
+; Install and use it through the game's add-on browser. No copying, sharing, changes or reuse of
+; any part without -chin's written permission.
+
+## Title: DLC Roulette - Random DLC Dungeon Queue
+## Author: -chin
+## Description: Random DLC dungeon queue in one press, Veteran or Normal. Pick your dungeons; new DLC dungeons are added automatically. Dungeon finder, LFG, PS5, Xbox, PC.
+## Version: 1.0.0
+## AddOnVersion: 1
+## APIVersion: 101051
+## SavedVariables: DLCRoulette_SavedVariables
+## DependsOn: LibHarvensAddonSettings
+
+lang/en.lua
+Core.lua
+Dungeons.lua
+Buttons.lua
+Settings.lua

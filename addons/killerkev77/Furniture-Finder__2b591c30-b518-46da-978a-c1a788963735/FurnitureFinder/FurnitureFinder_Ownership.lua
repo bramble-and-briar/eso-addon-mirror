@@ -125,7 +125,10 @@ end
 function this.GetOwnershipInfo(itemLink, itemId)
   local results = {}
 
-  local inventoryCount, bankCount = GetItemLinkStacks(itemLink)
+  -- API 101051: GetItemLinkStacks returns backpack, bank, craft bag,
+  -- house storage, furnishing vault, Vengeance bag. The vault and house
+  -- storage counts are live, so prefer them over our cached snapshots.
+  local inventoryCount, bankCount, _, houseBankCount, liveVaultCount = GetItemLinkStacks(itemLink)
 
   if inventoryCount ~= nil and inventoryCount > 0 then
     table.insert(results, { location = "Bags", count = inventoryCount })
@@ -135,7 +138,16 @@ function this.GetOwnershipInfo(itemLink, itemId)
     table.insert(results, { location = "Bank", count = bankCount })
   end
 
-  local vaultCount = this.settings.vault[itemId]
+  if houseBankCount ~= nil and houseBankCount > 0 then
+    table.insert(results, { location = "House Storage", count = houseBankCount })
+  end
+
+  -- Fall back to the cached vault scan only if the live count isn't
+  -- available (older client), so items are never counted twice.
+  local vaultCount = liveVaultCount
+  if vaultCount == nil then
+    vaultCount = this.settings.vault[itemId]
+  end
   if vaultCount ~= nil and vaultCount > 0 then
     table.insert(results, { location = "Furnishing Vault", count = vaultCount })
   end

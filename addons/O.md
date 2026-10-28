@@ -28,7 +28,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Okies Custom Icons for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OkieRazorback/Okies-Custom-Icons-for-OdySupportIcons__4688) | OkieRazorback | PC / Mac | 1.0.3 |
 | [OlhasWrathAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Invs/OlhasWrathAssistant__4812) | Invs | PC / Mac | 0.1.3 |
 | [Olorime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/Olorime__2abdc7a0-d15d-42ae-aad7-bccf995da180) | tmbrinks | Console | — |
-| [Olorime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Olorime__2006) | Wheels | PC / Mac | 2.3.0 |
+| [Olorime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Olorime__2006) | Wheels | PC / Mac | 2.3.1 |
 | [Omni Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Omni-Stats__863) | RunningDuck | PC / Mac | 4.0.0 |
 | [OmniAura](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/OmniAura__4998) | Artioner | PC / Mac | 1.0.0 |
 | [OmNomNom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/OmNomNom__1037) | Werewolf Finds Dragon | PC / Mac | 002-100022 |

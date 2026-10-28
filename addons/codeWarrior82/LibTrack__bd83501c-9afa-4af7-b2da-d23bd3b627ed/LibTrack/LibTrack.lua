@@ -17,6 +17,7 @@ local function cleanName(str)
     return str:sub(1, -4)
 end
 
+
 ---------------------------------start corpse creation
 -----------------------------------------------------------------------------------------------------start bone armor
 local boneArmorAbilityIds = {
@@ -37,7 +38,7 @@ local lastBoneArmorCorpseTime = nil
 local function addBoneArmorCorpse()
     corpsesAvailable = corpsesAvailable + 1
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    --printMessage("addBoneArmorCorpse +1")  
+    printMessage("addBoneArmorCorpse +1")  
 end
 
 local function trackBoneArmor(changeType, abilityId)
@@ -88,7 +89,7 @@ local spiritMenderSummons = {}
 local function addSpiritMenderCorpse()
     corpsesAvailable = corpsesAvailable + 1
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    --printMessage("addSpiritMenderCorpse +1")
+    printMessage("addSpiritMenderCorpse +1")
 end
 
 local function trackSpiritMender(changeType, effectSlot, abilityId)
@@ -325,7 +326,7 @@ local function trackGhostlyEmbrace()
     corpsesAvailable = corpsesAvailable + 1
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
     zo_callLater(function () trackingEmbrace = false end, 1000)--todo: change the time of delay
-    --printMessage("trackGhostlyEmbrace +1")
+    printMessage("trackGhostlyEmbrace +1")
 end
 -----------------------------------------------------------------------------------------------------end ghostly embrace
 
@@ -335,10 +336,59 @@ local function trackVeilsForfeit(changeType, unitTag)
     if changeType == 1 then
         corpsesAvailable = corpsesAvailable + 1
         libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-        --printMessage("trackVeilsForfeit +1")
+        printMessage("trackVeilsForfeit +1")
     end
 end
 -----------------------------------------------------------------------------------------------------end veil's forfeit
+
+
+-----------------------------------------------------------------------------------------------------start scribing skills
+local function trackBannerBearer(result, abilityID)
+    if result ~= 2240 then return end
+
+    local timestamp = GetGameTimeMilliseconds()
+
+    if abilityID == 227114 then
+        corpsesAvailable = corpsesAvailable + 1
+        printMessage("banner add | time: " .. timestamp .. " | abilityID: " .. abilityID .. " | corpses: " .. corpsesAvailable)
+    else
+        return
+    end
+
+    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+end
+
+local scribingCorpseCreationAbilityIds = {
+    221150, -- mender's bond
+    220847, -- shield throw
+    220133, -- vault
+    220622, -- soul burst
+    221301, -- elemental explosion
+    221649, -- smash
+    220511, -- wield soul
+    217505, -- travelling knife
+    221578, -- torchbearer
+    221180, -- ulfsield's contingency
+    221385, -- trample
+}
+
+local scribingCorpseCreationAbilities = {}
+
+for _, abilityId in ipairs(scribingCorpseCreationAbilityIds) do
+    scribingCorpseCreationAbilities[abilityId] = true
+end
+
+local function trackScribingCorpse(result, abilityID)
+    if result ~= 2240 then return end
+    if not scribingCorpseCreationAbilities[abilityID] then return end
+
+    corpsesAvailable = corpsesAvailable + 1
+
+    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+
+    printMessage("trackScribingCorpse +1" .. " | time: " .. GetGameTimeMilliseconds() .. " | abilityID: " .. tostring(abilityID) .. " | corpses: " .. corpsesAvailable)
+end
+-----------------------------------------------------------------------------------------------------end scribing skills
 ---------------------------------end corpse creation
 
 
@@ -455,7 +505,7 @@ local checkingTether = false
 local function removeRestoringTether()
     corpsesAvailable = math.max(0, corpsesAvailable - 1)
         libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-        --printMessage("removeRestoringTether -1")
+        printMessage("removeRestoringTether -1")
 end
 
 local function trackRestoringTether(result, abilityId)
@@ -526,13 +576,13 @@ end
 local function removeMalevolentPromise()
     corpsesAvailable = math.max(0, corpsesAvailable - 1)
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    --printMessage("malevolent removed, corpses: " .. tostring(corpsesAvailable))
+    printMessage("malevolent removed, corpses: " .. tostring(corpsesAvailable))
 end
 
 local function addMalevolentPromise()
     corpsesAvailable = corpsesAvailable + 1
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    --printMessage("malevolent created, corpses: " .. tostring(corpsesAvailable))
+    printMessage("malevolent created, corpses: " .. tostring(corpsesAvailable))
 end
 
 local function trackMalevolentPromise(abilityId, result)
@@ -564,7 +614,7 @@ local corpsesConsumed = 1
 local function removeLifeAmidDeath(amount)
     corpsesAvailable = amount
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    --printMessage("enduring undeath, corpses used: " .. tostring(corpsesConsumed))
+    printMessage("enduring undeath, corpses used: " .. tostring(corpsesConsumed))
 end
 
 local function trackLifeAmidDeath(changeType, abilityID, beginTime, endTime)
@@ -620,7 +670,7 @@ local function trackAnimateBlastbones()
         local corpseConsumed = math.floor(howManyBB / 2)
         corpsesAvailable = math.max(0, corpsesAvailable - corpseConsumed)
         libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-        --printMessage("trackAnimateBlastbones | events: " .. tostring(howManyBB) .. " | corpses consumed: " .. tostring(corpseConsumed))
+        printMessage("trackAnimateBlastbones | events: " .. tostring(howManyBB) .. " | corpses consumed: " .. tostring(corpseConsumed))
     end, 300)
 end
 -----------------------------------------------------------------------------------------------------end animate blastbones 
@@ -641,7 +691,7 @@ local function removeBitterHarvest(totalCorpsesConsumed, skillName)
     local corpsesRemoved = math.min(math.max(0, corpsesAvailable), totalCorpsesConsumed)
     corpsesAvailable = math.max(0, corpsesAvailable - corpsesRemoved)
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    --printMessage(skillName .. " | corpses detected: " .. tostring(totalCorpsesConsumed) .. " | corpses removed: " .. tostring(corpsesRemoved))
+    printMessage(skillName .. " | corpses detected: " .. tostring(totalCorpsesConsumed) .. " | corpses removed: " .. tostring(corpsesRemoved))
 end
 
 local function trackBitterHarvest(changeType, abilityID, beginTime, endTime)
@@ -703,38 +753,6 @@ end
 ---------------------------------end corpse consumption
 
 
-
-
----------------------------------start scribing skills
------------------------------------------------------------------------------------------------------start banner bearer
-local function trackBannerBearer(result, abilityID)
-    if result ~= 2240 then return end
-
-    local timestamp = GetGameTimeMilliseconds()
-
-    if abilityID == 227114 then
-        corpsesAvailable = corpsesAvailable + 1
-        printMessage("banner add | time: " .. timestamp .. " | abilityID: " .. abilityID .. " | corpses: " .. corpsesAvailable)
-    else
-        return
-    end
-
-    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-end
------------------------------------------------------------------------------------------------------end banner bearer
-
-
-
-
-
-
-
-
-
-
-
----------------------------------end scribing skills
-
 --handle effect events
 local function effectReport(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType,
     effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
@@ -772,6 +790,9 @@ local function effectReport(eventCode, changeType, effectSlot, effectName, unitT
     --bitter harvest and morphs
     elseif abilityID == 115240 or abilityID == 124193 or abilityID == 124165 then
         trackBitterHarvest(changeType, abilityID, beginTime, endTime)
+    --else
+        --for scribing skills
+        --printMessage("effectReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " changeType: " .. tostring(changeType))
     end
 end
 
@@ -821,9 +842,11 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     --track banner bearer corpse creation and consumption
     elseif abilityID == 227114 then
         trackBannerBearer(result, abilityID)
-    else
-        --for scribing skills
-        printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " result: " .. tostring(result))
+    --track scribing corpse creation
+    elseif scribingCorpseCreationAbilities[abilityID] then
+        trackScribingCorpse(result, abilityID)
+    --else
+        --printMessage("combatReport- abilityID: " .. tostring(abilityID) .. " abilityName: " .. tostring(abilityName) .. " result: " .. tostring(result))
     end
 end
 
@@ -955,6 +978,13 @@ local function libLoaded(event, name)
         EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
     end
 
+    --register for scribing corpse creation events
+    for _, abilityId in ipairs(scribingCorpseCreationAbilityIds) do
+        local eventName = "NecroTrackerScribingCorpse" .. abilityId
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, combatReport)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, abilityId)
+    end
+
     --register for banner bearer notifications 
     EVENT_MANAGER:RegisterForEvent("NecroTrackerBannerBearer227114", EVENT_COMBAT_EVENT, combatReport)
     EVENT_MANAGER:AddFilterForEvent("NecroTrackerBannerBearer227114", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 227114)--banner bearer corpse creation event, abilityId
@@ -978,10 +1008,9 @@ local function libLoaded(event, name)
     EVENT_MANAGER:RegisterForEvent("NecroTrackerResetOnActivation", EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 
 
-
     --EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
     --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 227112)
-    EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
+    --EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
     --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 116445)
 
 end

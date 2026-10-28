@@ -1,4 +1,7 @@
 Update Log
+Version 1.1.1 - 2026.10.27
+API bump for U51
+Fix for timer position resetting under certain circumstances
 
 Version 1.1.0 - 09/11/2025
 API bump for U48

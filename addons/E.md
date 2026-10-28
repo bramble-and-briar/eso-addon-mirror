@@ -127,6 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExoYs Achievement Anonymizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Achievement-Anonymizer__3328) | ExoY | PC / Mac | 2.1 |
 | [ExoYs Auto Sheathe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Auto-Sheathe__2546) | ExoY | PC / Mac | 4.0 |
 | [ExoYs Crux Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Crux-Tracker__3619) | ExoY | PC / Mac | 2.1.0 |
+| [ExoYs Juggernautificator (Offensive Tank Boni Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Juggernautificator-Offensive-Tank-Boni-Tracker__5003) | ExoY | PC / Mac | 0.0.1 |
 | [ExoYs Mundus Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Mundus-Reminder__2728) | ExoY | PC / Mac | 1.3 |
 | [ExoYs ProcSet Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-ProcSet-Timer__2783) | ExoY | PC / Mac | 2.14.0 |
 | [ExoYs Quickslot Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Quickslot-Assistant__2545) | ExoY | PC / Mac | 1.7 |

@@ -4,7 +4,7 @@ local EM = GetEventManager()
 local LCA = LibCombatAlerts
 
 RO.name = "RoaringOpportunist"
-RO.version = "2.5.0"
+RO.version = "2.5.1"
 
 local colors = {
 	["UP"] = {
@@ -36,10 +36,6 @@ local types = {
 }
 
 local defaults = {
-	pos = {
-	left = 200,
-	top = 200,
-	},
 	["passiveHide"] = false,
 	["colors"] = colors,
 	["showProcTime"] = true,
@@ -175,10 +171,10 @@ local function startCountdown(frame, time)
 end
 
 local function cooldownHandler(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-	if cooldown1 == 0 then
+	if cooldown1 <= 0.1 then
 		EM:UnregisterForUpdate(RO.name.."StartCountdown")
 		EM:RegisterForUpdate(RO.name.."StartCountdown", 5, function() startCountdown(1, hitValue) end)
-	elseif cooldown2 == 0 then
+	elseif cooldown2 <= 0.1 then
 		EM:UnregisterForUpdate(RO.name.."StartCountdown")
 		EM:RegisterForUpdate(RO.name.."StartCountdown", 5, function() startCountdown(2, hitValue) end)
 	end
@@ -227,13 +223,19 @@ local function init(e, addon)
 
 	RO.savedVars = ZO_SavedVars:NewAccountWide("RoaringOpportunistSavedVars", 2, nil, defaults, nil, "$InstallationWide")
 	local sv = RoaringOpportunist.savedVars
-		if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
+	if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
         sv.pos = {
             left = sv.offsetX,
             top = sv.offsetY,
         }
         sv.offsetX = nil
         sv.offsetY = nil
+	end
+	if (not sv.pos) then
+		sv.pos = {
+			left = 500,
+			top	= 500,
+		}
 	end
 	RO.setupUI()
 

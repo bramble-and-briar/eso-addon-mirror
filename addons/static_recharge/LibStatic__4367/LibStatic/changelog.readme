@@ -1,3 +1,8 @@
+2.1.0
+  - Added translations table to paired lists
+  - Added LibChatMessage as a dependancy
+  - Added min/max index parameters to reverse table lookup
+
 2.0.0
   - Added reverse table lookup function
   - Added generic sort function

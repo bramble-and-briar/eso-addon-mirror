@@ -74,7 +74,7 @@
     "ThiefTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1721/",
-  "fingerprint": "b3255eca20537a96ce4d10fded1c045fc964296e2e46d1746945cf673856d403",
+  "fingerprint": "935f9b656acaf9c8d12f049e90e79ca5d7d043f7aa96da5c4f93673845bec33a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5683.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5684.jpg",
@@ -89,11 +89,11 @@
   "source_id": "1721",
   "source_url": "https://www.esoui.com/downloads/info1721-ThiefTools.html",
   "stats": {
-    "downloads": 121382,
+    "downloads": 122244,
     "favorites": 210,
-    "monthly_downloads": 880
+    "monthly_downloads": 1581
   },
   "title": "Thief Tools",
-  "updated_at": 1791956160000,
-  "version": "3.5"
+  "updated_at": 1793152328000,
+  "version": "3.5.4"
 }

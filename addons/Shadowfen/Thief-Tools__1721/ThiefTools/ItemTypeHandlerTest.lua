@@ -17,7 +17,7 @@ end ZOS functions
 test utility functions
 ]]
 local function bool2str(bool)
-  if( bool ) then
+  if bool then
     return "true"
   end
   return "false"

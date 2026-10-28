@@ -155,7 +155,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.9 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.10 |
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/ALC-Benchmark__4960) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/ALC-Benchmark__e96f0d83-b3f0-47a8-a59a-2d6020816550) | APH0NlC | Console | — |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
@@ -202,7 +202,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ALTHI – &#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081; &#1103;&#1079;&#1099;&#1082;&#1086;&#1074;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Русский-языков__4991) | Namorstradam | PC / Mac | 0.9.4 |
 | [ALTHI – &#26085;&#26412;&#35486;&#35328;&#35486;&#12497;&#12483;&#12463;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-日本語言語パック__4993) | Namorstradam | PC / Mac | 0.9.4 |
 | [ALTHI – &#31616;&#20307;&#20013;&#25991;&#35821;&#35328;&#21253;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-简体中文语言包__4992) | Namorstradam | PC / Mac | 0.9.4 |
-| [ALTHI – Advanced Logging & Tracking of Harvested Items](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Advanced-Logging-Tracking-of-Harvested-Items__4984) | Namorstradam | PC / Mac | 0.9.4 |
+| [ALTHI – Advanced Logging & Tracking of Harvested Items](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Advanced-Logging-Tracking-of-Harvested-Items__4984) | Namorstradam | PC / Mac | 1.0.0 |
 | [ALTHI – Pack de langue française](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Pack-de-langue-française__4989) | Namorstradam | PC / Mac | 0.9.4 |
 | [ALTHI – Paquete de idioma español](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Paquete-de-idioma-español__4990) | Namorstradam | PC / Mac | 0.9.4 |
 | [Always Logging](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eurymachos/Always-Logging__4081) | Eurymachos | PC / Mac | v3.1.12.1.0 |
@@ -266,7 +266,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Archaeology](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Archaeology__30667c51-455c-4759-a4eb-84cb77525452) | ReliktKoala | Console | — |
 | [Archdruid Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Archdruid-Tracker__5c997615-ee42-43dd-a5d0-5337fb785714) | codeWarrior82 | Console | — |
 | [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__7b383e7f-a85f-491d-b950-dffc87bcec10) | tmbrinks | Console | — |
-| [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.0 |
+| [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.1 |
 | [Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Archive-Helper__3772) | FlatBadger | PC / Mac | 1.4.2 |
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |

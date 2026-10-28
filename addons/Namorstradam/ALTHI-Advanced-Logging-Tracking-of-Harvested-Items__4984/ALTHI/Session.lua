@@ -10,26 +10,22 @@ end
 function A:Play()
     self:AccrueTime()
     local session = self.db.session
-    if session.state == "stopped" then
-        if next(session.counts) then self.db.lastSession = self.Copy(session) end
-        session.counts, session.elapsed = {}, 0
-    end
     session.state = "running"
     self.runningAt = self.Now()
     self:QueueRefresh()
 end
 function A:Pause()
     self:AccrueTime()
-    if self.db.session.state == "running" then self.db.session.state = "paused" end
+    self.db.session.state = "paused"
     self.runningAt = nil
     self:QueueRefresh()
 end
 function A:Stop()
-    self:AccrueTime()
-    self.db.session.state = "stopped"
-    self.runningAt = nil
-    self:ClearHarvest()
-    self:QueueRefresh()
+    -- Compatibility for existing Stop bindings: pause the same session.
+    self:Pause()
+end
+function A:TogglePause()
+    if self.db.session.state == 'paused' then self:Play() else self:Pause() end
 end
 function A:ResetSession()
     self:AccrueTime()
@@ -55,6 +51,15 @@ function A:AcceptedHarvest(id, count)
     self:QueueRefresh()
     return true
 end
+-- An item type joins stock valuation only after this session acquired it.
+-- Derive legacy sessions from their existing evidence; never import bag totals.
+function A:SessionItemSeen(id)
+    local session=self.db.session
+    if (session.counts[id] or 0)>0 then return true end
+    local fish=session.fishing
+    return fish and ((fish.catches[id] or 0)>0 or (fish.outputs[id] or 0)>0
+        or id==33753 and fish.filleted>0 or id==64222 and fish.roe>0) or false
+end
 function A:RowsAndTotals()
     local rows = {}
     local totals = { sessionCount = 0, stockCount = 0, sessionGold = 0, stockGold = 0,
@@ -62,7 +67,7 @@ function A:RowsAndTotals()
     for id, item in pairs(self.db.catalog) do
         if self:IsEnabled(id) then
             local count = self.db.session.counts[id] or 0
-            local stock = self.stock[id] or 0
+            local stock = self:SessionItemSeen(id) and (self.stock[id] or 0) or 0
             local price, source
             if count > 0 or stock > 0 then price, source = self:Price(id) end
             totals.sessionCount = totals.sessionCount + count

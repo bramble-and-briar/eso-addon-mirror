@@ -1,9 +1,9 @@
 ## Title: |cFFD700Olorime|r
 ## Description: Tracks your Olorime uptime and downtime
 ## Author: tmbrinks, Wheels
-## Version: 2.3.0
-## AddOnVersion: 020300
-## APIVersion: 101047 101048
+## Version: 2.3.1
+## AddOnVersion: 020301
+## APIVersion: 101051
 ## SavedVariables: OlorimeSavedVars
 ## DependsOn: LibAddonMenu-2.0>=41 LibCombatAlerts>=7010
 

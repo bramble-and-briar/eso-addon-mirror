@@ -1,0 +1,53 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+## Title: Hazel - Lazy Writ Xbox Stability Test
+## Description: Experimental Xbox compatibility test of Dolgubon's Lazy Writ Creator
+## APIVersion: 101051
+## Author: Dolgubon
+## Version: 4.0.5.7.9-hazel-test2
+## AddOnVersion: 4057
+## DependsOn: LibLazyCrafting>=4035
+## PCDependsOn: LibAddonMenu-2.0>=41
+## ConsoleDependsOn:  LibPrice LibHarvensAddonSettings LibQRCode
+; ## ConsoleDependsOn: LibHarvensAddonSettings LibPrice LibQRCode
+## OptionalDependsOn: pChat LibStub LibFeedback LibCustomMenu  LibHistoire ArkadiusTradeToolsSales  LibRadialMenu
+## SavedVariables: DolgubonsWritCrafterSavedVars
+
+Libs\LibFeedback\feedback.lua
+
+Languages/default.lua
+Languages/$(officialLanguage).lua
+Languages/$(language).lua
+
+HelperFunctions.lua
+LootHandler.lua
+QuestHandler.lua
+
+
+Keyboard/WritCreater.xml
+Console/ConsoleWritCreater.xml
+WritCreater.lua
+MasterWrits.lua
+BankWithdraw.lua
+
+
+
+SettingsMenu.lua
+Console/ConsoleSettingsMenu.lua
+
+SlashCommands.lua
+Tutorial.lua
+ReticleChanges.lua
+Crafter.lua
+CraftMultiplier.lua
+Alchemy.lua
+ResetWarning.lua
+StatsWindow.lua
+MailHandler.lua
+StatusBar.lua
+ChangeLog.lua
+bindings.xml

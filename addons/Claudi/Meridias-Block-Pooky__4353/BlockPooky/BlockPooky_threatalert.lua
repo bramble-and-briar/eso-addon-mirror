@@ -6,7 +6,30 @@ local BlockPooky_threatAlertActive = false
 local BlockPooky_threatAlertTimer = nil
 local BlockPooky_lastThreatAlert = 0
 
+-- Ordered list of configured threat ability IDs (mirrors config.threatalert.abilities)
+BlockPooky.THREAT_ABILITY_IDS = nil
+-- Maps cleaned ability name -> configured representative ability ID
 BlockPooky.THREAT_ABILITY_NAMES = nil
+
+---Resolves the text shown when a threat ability is detected:
+---the custom label assigned to that ability if one is set, otherwise the localized ability name
+---@param abilityId number the ability ID that triggered the alert
+---@return string text to display on the overlay
+function BlockPooky.GetThreatAlertText(abilityId)
+    local cleanName = BlockPooky.CleanAbilityName(abilityId)
+    if BlockPooky.config.threatalert.labels and BlockPooky.THREAT_ABILITY_NAMES then
+        -- Look the label up by the configured representative ID so custom text still
+        -- matches when an equivalent ability ID (e.g. a different rank) fires the alert.
+        local configuredId = BlockPooky.THREAT_ABILITY_NAMES[cleanName]
+        if configuredId then
+            local custom = BlockPooky.config.threatalert.labels[configuredId]
+            if custom and custom ~= "" then
+                return custom
+            end
+        end
+    end
+    return cleanName
+end
 
 ---Checks if an ability ID is one of the configured threat abilities
 ---@param id number the ability ID to check
@@ -33,17 +56,33 @@ function BlockPooky.SetThreatAlertTexture()
         -- Ensure overlay starts hidden
         BlockPookyThreatAlert:SetAlpha(0.0)
         BlockPookyThreatAlertTexture:SetAlpha(0.0)
+        if BlockPookyThreatAlertLabel then
+            BlockPookyThreatAlertLabel:SetHidden(true)
+            BlockPookyThreatAlertLabel:SetText("")
+        end
     else
         d("ERROR: BlockPookyThreatAlertTexture not found!")
     end
 end
 
-function BlockPooky.ShowThreatAlert(duration)
+function BlockPooky.ShowThreatAlert(duration, text)
     if BlockPookyThreatAlert then
         local alpha = BlockPooky.config.threatalert.alpha or 0.3
         BlockPookyThreatAlert:SetAlpha(alpha)
         BlockPookyThreatAlertTexture:SetAlpha(alpha)
         BlockPooky_threatAlertActive = true
+
+        -- Show the text label (custom text or the ability name) together with the overlay
+        if BlockPookyThreatAlertLabel then
+            -- showLabel defaults to ON; treat a missing key (~= false) as enabled
+            if BlockPooky.config.threatalert.showLabel ~= false and text and text ~= "" then
+                BlockPookyThreatAlertLabel:SetText(text)
+                BlockPookyThreatAlertLabel:SetAlpha(1.0)
+                BlockPookyThreatAlertLabel:SetHidden(false)
+            else
+                BlockPookyThreatAlertLabel:SetHidden(true)
+            end
+        end
 
         -- Clear any existing timer
         if BlockPooky_threatAlertTimer then
@@ -61,6 +100,12 @@ function BlockPooky.HideThreatAlert()
         BlockPookyThreatAlert:SetAlpha(0.0)
         BlockPookyThreatAlertTexture:SetAlpha(0.0)
         BlockPooky_threatAlertActive = false
+
+        -- Hide and clear the text label
+        if BlockPookyThreatAlertLabel then
+            BlockPookyThreatAlertLabel:SetHidden(true)
+            BlockPookyThreatAlertLabel:SetText("")
+        end
 
         -- Clear timer if active
         if BlockPooky_threatAlertTimer then
@@ -98,11 +143,22 @@ function BlockPooky.RebuildThreatAbilityList()
         BlockPooky.config.threatalert.abilities = {}
     end
 
-    -- Rebuild the name map
+    -- Rebuild the name map and the ordered ID list (deduplicated)
     BlockPooky.THREAT_ABILITY_NAMES = {}
+    BlockPooky.THREAT_ABILITY_IDS = {}
     for _, id in ipairs(BlockPooky.config.threatalert.abilities) do
         local cleanName = BlockPooky.CleanAbilityName(id)
         BlockPooky.THREAT_ABILITY_NAMES[cleanName] = id
+        local alreadyListed = false
+        for _, listedId in ipairs(BlockPooky.THREAT_ABILITY_IDS) do
+            if listedId == id then
+                alreadyListed = true
+                break
+            end
+        end
+        if not alreadyListed then
+            table.insert(BlockPooky.THREAT_ABILITY_IDS, id)
+        end
     end
 end
 
@@ -172,6 +228,6 @@ function BlockPooky.OnThreatAlert(timems, result, sourceUnitId, targetUnitId, ab
 
         -- Get duration from config or use default
         local duration = BlockPooky.config.threatalert.duration or 8000 -- 8 seconds default
-        BlockPooky.ShowThreatAlert(duration)
+        BlockPooky.ShowThreatAlert(duration, BlockPooky.GetThreatAlertText(abilityId))
     end
 end

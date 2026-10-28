@@ -6,7 +6,7 @@ local EM		= GetEventManager()
 local LCA = LibCombatAlerts
 
 TurningTide.name		= "TurningTide"
-TurningTide.version		= "1.1.0"
+TurningTide.version		= "1.1.1"
 TurningTide.varVersion 	= "1"
 
 TurningTide.IDs 		= {
@@ -34,10 +34,6 @@ TurningTide.TYPES = {
 }
 
 TurningTide.defaults	= {
-	pos	= {
-	left = 500,
-	top = 500,
-	},
 	["timerSize"]	= 48,
 	["passiveHide"]	= true,
 	["COLORS"]	= TurningTide.COLORS,
@@ -157,13 +153,19 @@ function TurningTide.Init(event, addon)
 
 	TurningTide.savedVars = ZO_SavedVars:NewAccountWide(TurningTide.name.."SavedVars", TurningTide.varVersion, nil, TurningTide.defaults, nil, "$InstallationWide")
 	local sv = TurningTide.savedVars
-		if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
+	if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
         sv.pos = {
             left = sv.offsetX,
             top = sv.offsetY,
         }
         sv.offsetX = nil
         sv.offsetY = nil
+	end
+	if (not sv.pos) then
+		sv.pos = {
+			left = 500,
+			top	= 500,
+		}
 	end
 	
 	TurningTide.setFontSize(TurningTide.savedVars.timerSize)

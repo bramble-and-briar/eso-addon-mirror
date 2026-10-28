@@ -1,5 +1,5 @@
 local A = Atlas
-A.version = "1.0.7"
+A.version = "1.0.8"
 A.author = "@TheGreyWolf98"
 ZO_CreateStringId("SI_BINDING_NAME_ATLAS_OPEN","Open Atlas")
 A.defaults = {skyshards=true, lorebooks=true, treasure=true, bosses=true, delves=true, worldBosses=true, publicDungeons=true, events=true, wayshrines=true, strikingLocales=true, mundus=true, craftingStations=true, surveys=true, hideCollected=true, carriedOnly=false, neonColours=true, largerPins=false,chests=true,troves=true}
@@ -22,8 +22,8 @@ A.options = {
     {key="troves", title="Thieves Guild troves", detail="Recorded trove spawn sites. Availability and Thieves Guild access are not checked.", color={0.55,0.65,1}, texture="Atlas/Textures/Trove.dds"},
     {key="hideCollected", title="Hide collected", detail="Hide acquired skyshards and known lorebooks on this character."},
     {key="carriedOnly", title="Carried maps / surveys only", detail="Only show digs and surveys whose map/report is in your backpack."},
-    {key="neonColours", title="Neon colours", detail="Bright coloured rings around Atlas symbols; turn off for the original palette."},
-    {key="largerPins", title="Larger pins", detail="Increase Atlas symbols from 28 to 42 and enlarge their neon rings."},
+    {key="neonColours", title="Neon colours", detail="Bright coloured rings around Atlas symbols (except solid-colour chest pins)."},
+    {key="largerPins", title="Larger pins", detail="Increase most Atlas symbols from 28 to 42; chest pins use 22 or 32."},
 }
 
 -- The ring is monochrome so tint colours stay bright even when an icon's own
@@ -45,8 +45,8 @@ function A.UpdatePinStyles()
     for i=1,A.layerCount do
         local o=A.options[i]
         local layout=A.layouts[o.key]
-        layout.size=A.saved.largerPins and 42 or 28
-        layout.tint:SetRGB(unpack(A.saved.neonColours and {1,1,1} or o.color))
+        layout.size=o.key=="chests" and (A.saved.largerPins and 32 or 22) or (A.saved.largerPins and 42 or 28)
+        layout.tint:SetRGB(unpack((o.key=="chests" or not A.saved.neonColours) and o.color or {1,1,1}))
         A.ringLayouts[o.key].size=A.saved.largerPins and 64 or 46
     end
 end
@@ -64,7 +64,7 @@ local function valid(x,y)
     return type(x)=="number" and type(y)=="number" and x==x and y==y and x>=0 and x<=1 and y>=0 and y<=1
 end
 
-A.workerLimits={interval=10,resumes=96,milliseconds=2,candidates=16,pins=32}
+A.workerLimits={interval=20,resumes=40,milliseconds=2,candidates=12,pins=20}
 local function checkpoint(pin)
     if not A.inWorker then return end
     A.sliceCandidates=(A.sliceCandidates or 0)+1
@@ -215,7 +215,7 @@ function A.ScheduleLayer(key,manager,isRing)
             while not A.cache[key] do checkpoint() end
             for _,point in ipairs(A.cache[key]) do
                 checkpoint(true)
-                if A.saved[key] and A.workMap==signature and (not isRing or A.saved.neonColours) then
+                if A.saved[key] and A.workMap==signature and (not isRing or (A.saved.neonColours and key~="chests")) then
                     A.tickPins=A.tickPins+1
                     manager:CreatePin(isRing and A.ringTypes[key] or A.pinTypes[key],point,point.x,point.y)
                 end
@@ -308,11 +308,11 @@ function A.RegisterPins()
         A.ringLayouts[key]=ringLayout
         -- Decorative rings intentionally have no tooltip creator.
         A.manager:AddCustomPin(ringName,function(manager)
-            if not A.saved[key] or not A.saved.neonColours then return end
+            if not A.saved[key] or not A.saved.neonColours or key=="chests" then return end
             A.ScheduleLayer(key,manager,true)
         end,nil,ringLayout)
         A.ringTypes[key]=_G[ringName]
-        A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours)
+        A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours and key~="chests")
         local layout={level=55,size=28,texture=function(pin)
             local _,p=pin:GetPinTypeAndTag()
             return p.texture and p.texture~="" and p.texture or o.texture
@@ -341,21 +341,21 @@ function A.Refresh(keys,stylesOnly)
     else for i=1,A.layerCount do affected[A.options[i].key]=true end end
     for i=1,A.layerCount do
         local o=A.options[i]
-        if affected[o.key] and o.completionTypes then
+        if affected[o.key] and o.completionTypes and not stylesOnly then
             A.nativeBuilding=false
-            if not stylesOnly then A.nativeCache=nil end
+            A.nativeCache=nil
             break
         end
     end
     for i=1,A.layerCount do
         local key=A.options[i].key
         if affected[key] then
-            if not stylesOnly then A.cache[key]=nil end
+            if not stylesOnly and (key=="skyshards" or key=="lorebooks" or key=="treasure" or key=="surveys") then A.cache[key]=nil end
             for _,kind in ipairs({"build","symbol","ring"}) do A.jobs[jobId(key,kind)]=nil end
             A.refreshLayers[jobId(key,"symbol")]={key=key,isRing=false}
-            A.refreshLayers[jobId(key,"ring")]={key=key,isRing=true}
+            if key~="chests" then A.refreshLayers[jobId(key,"ring")]={key=key,isRing=true} end
             A.manager:SetCustomPinEnabled(A.pinTypes[key],A.saved[key])
-            A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours)
+            A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours and key~="chests")
         end
     end
     if affected.treasure or affected.surveys then
@@ -419,7 +419,11 @@ local function loaded(_,name)
             A.Refresh()
         else A.Open() end
     end
-    EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_PLAYER_ACTIVATED,function() A.QueueRefresh() end)
+    EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_PLAYER_ACTIVATED,function()
+        local old=A.workMap
+        local current=A.CheckMap()
+        if old~=current then A.QueueRefresh() end
+    end)
     EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_SKYSHARDS_UPDATED,function() A.QueueRefresh({"skyshards"}) end)
     EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_LORE_BOOK_LEARNED,function() A.QueueRefresh({"lorebooks"}) end)
     local discoveryKeys={"delves","worldBosses","publicDungeons","events","wayshrines","strikingLocales","mundus","craftingStations"}

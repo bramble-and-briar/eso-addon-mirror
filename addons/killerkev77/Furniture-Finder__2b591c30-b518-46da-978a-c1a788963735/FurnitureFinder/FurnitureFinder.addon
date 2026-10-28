@@ -1,43 +1,60 @@
 ## Title: Furniture Finder
 ## Author: @Aldimar77
-## Version: 0.1.0
-## AddOnVersion: 1
-## APIVersion: 101050
+## Version: 0.3.0
+## AddOnVersion: 3
+## APIVersion: 101051 101052
+## DependsOn: LibFurnitureCatalogue
 ## OptionalDependsOn: LibCharacterKnowledge
-## Description: Adds source, item ID, quality, and collection info to furnishing tooltips (inventory, bank, and Housing Editor). UI-only, console-safe: no external network calls, no gameplay changes.
+## Description: Adds source, material, ownership, and recipe-knowledge info to furnishing tooltips (inventory, bank, and Housing Editor). UI-only, console-safe: no external network calls, no gameplay changes.
 ## SavedVariables: FurnitureFinder_SavedVars FurnitureFinderOwnershipData
 ## IsLibrary: false
 
-FurnitureFinder_ExportData.lua
-FurnitureFinder_ExportAPI.lua
 FurnitureFinder_Ownership.lua
 FurnitureFinder.lua
 
 ; -----------------------------------------------------------------------------
 ; NOTE:
 ;
-; 1) APIVersion above (101050) is CONFIRMED against the live client via
-;    GetAPIVersion(), checked in-game on 2026-08-25. (Wookiefriseur's PTS
-;    dump reported 101051, one ahead of live at the time -- expected,
-;    since PTS usually runs slightly ahead of live.)
+; 0) 2026-10-20 v0.3.0: removed the "hook installed" chat line printed on
+;    every login; ownership line now uses the live furnishing-vault and
+;    house-storage counts from GetItemLinkStacks (API 101051 returns six
+;    values) instead of a vault snapshot cached only on bank open.
 ;
-; 2) Console submission goes through the official Developer Uploader Tool
+; 1) 2026-10-01: MIGRATED off the one-off Wookiefriseur data dump onto
+;    LibFurnitureCatalogue (LFC) -- his new structured, web-edited,
+;    self-maintaining database library. FurnitureFinder_ExportData.lua and
+;    FurnitureFinder_ExportAPI.lua (the adapted copies of his hand-sent
+;    dump files) are REMOVED -- no longer in the file list above, no
+;    longer needed. We now read source/material data live via
+;    LibFurnitureCatalogue.API instead of a static snapshot that had to be
+;    manually regenerated every time his data changed. See
+;    FurnitureFinder.lua's top-of-file comment for the full rundown of
+;    what changed in the Lua.
+;
+;    This is now a hard `## DependsOn` (not Optional) -- unlike
+;    LibCharacterKnowledge (a bonus feature on top), source/material data
+;    is this addon's actual purpose, so there's no useful degraded mode
+;    without it.
+;
+;    2026-10-19: confirmed (Kevin checked the Developer Uploader Tool's
+;    "Find Required Add-ons" search himself) that LibFurnitureCatalogue is
+;    NOT yet published on console under anyone's account. So this is on
+;    us: publish our own copy as its own separate addon first (packaged
+;    separately, see LibFurnitureCatalogue.zip -- pulled fresh from
+;    Wookiefriseur's repo same day, now v1.2.0/AddOnVersion 1002000, up
+;    from the 1.1.0/1001000 build packaged on 2026-10-01), then come back
+;    and link FurnitureFinder to it as a required add-on the same way
+;    LibCharacterKnowledge was linked. Until that publish exists on
+;    console, FurnitureFinder will fail to find its dependency and won't
+;    load at all.
+;
+;    2) APIVersion 101051 101052. 2026-10-20: 101051 confirmed as the live
+;    API (Update 51, live 2026-09-28; Update 52 is not due until Jan 2027).
+;
+; 3) Console submission goes through the official Developer Uploader Tool
 ;    (help.elderscrollsonline.com -> "ESO Console Add-ons - Developer
 ;    Uploader Tool"). Console builds are UI-only and get reviewed before
-;    they appear in the in-game browse menu -- this file as written already
-;    respects that (no LibHttp-style network access exists in ESO's Lua
-;    sandbox on any platform, so there's nothing to strip out).
-;
-; 3) 2026-08-28: replaced FurnitureFinderData.lua (our own hand-converted,
-;    category-label-only data) with Wookiefriseur's real export + accessor
-;    files (FurnitureFinder_ExportData.lua / FurnitureFinder_ExportAPI.lua).
-;    These are their _rendered.lua and _api.lua verbatim, with one line
-;    each changed: the original top-level "return ..." was replaced with
-;    a global assignment, since ESO's addon loader discards top-level
-;    return values from manifest-declared files (there's no loadfile/
-;    require capturing it the way their standalone example.lua uses).
-;    Verified the adapted files behave identically to the original
-;    loadfile pattern via a real Lua interpreter before this went in-game.
-;    This gives real vendor/location/price/achievement detail instead of
-;    just a category label.
+;    they appear in the in-game browse menu -- this file as written
+;    already respects that (no network access exists in ESO's Lua sandbox
+;    on any platform, so there's nothing to strip out).
 ; -----------------------------------------------------------------------------

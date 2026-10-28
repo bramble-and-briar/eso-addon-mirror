@@ -17,7 +17,7 @@ local defaultTargetSV = {
     targetHeight         = 28,
     targetLeft           = 840,
     targetTop            = 650,
-    targetLocked         = false,
+    targetLocked         = true,
     fontSize             = 14,
     topFontSize          = 15,
     topOffsetY           = 2,
@@ -857,7 +857,7 @@ function Frames.CreateTargetFrame()
     targetFrame:SetMovable(isUnlocked)
     targetFrame:SetMouseEnabled(isUnlocked)
     targetFrame:SetClampedToScreen(true)
-    targetFrame:SetDrawTier(DT_HIGH)
+    targetFrame:SetDrawTier(DT_LOW)
     targetFrame:SetHidden(true)
 
     local targetBG = GetOrCreateChild(targetFrame, "BG", CT_BACKDROP)

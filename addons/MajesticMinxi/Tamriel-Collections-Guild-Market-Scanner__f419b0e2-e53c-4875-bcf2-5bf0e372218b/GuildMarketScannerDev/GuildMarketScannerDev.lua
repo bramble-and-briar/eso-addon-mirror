@@ -2,7 +2,7 @@
 -- Local-only; L3 scans additional trader pages and caches collection matches.
 GuildMarketScannerDev = GuildMarketScannerDev or {}
 local GMS = GuildMarketScannerDev
-GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.7b'
+GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.8p'
 GMS.enabled, GMS.traderOpen, GMS.keybindAttached = false, false, false
 -- Diagnostics are disabled in normal gameplay. /gmsdebug toggles them for testing.
 GMS.debug = false
@@ -260,14 +260,16 @@ function GMS:FilterVisibleEntries(panel)
     for i=1,originalCount do
         local entry = entries[i]
         local link = EntryLink(entry)
-        local missing = self:Missing(link)
+        local fragmentStatus = self:MissingFragment(link)
+        local missing = self:MissingWithFragments(link)
+        if fragmentStatus ~= nil then missing = fragmentStatus end
         local native, reason = NativeMissingStatus(entry)
         if native ~= true and panel and type(panel.searchResultItemDataList)=='table' then
             local nativeEntry=panel.searchResultItemDataList[i]
             local candidate=NativeMissingStatus(nativeEntry)
             if candidate==true then native=true end
         end
-        if native == true then missing = true end
+        if native == true and fragmentStatus == nil then missing = true end
         if native == true then self.nativeFlagHits = (self.nativeFlagHits or 0) + 1 end
         if missing == true then
             kept[#kept+1] = entry
@@ -1643,6 +1645,7 @@ function GMS:SyncNativeCachedSort()
 end
 -- The native browse panel can repaint its footer after a cached page commit.
 -- Keep GMS's page label in sync, including on the first page.
+local GMS_CHROME_CONTROL_NAMES = {'waitingForResultsLabel','waitingLabel','loadingLabel','statusLabel','searchStatusLabel','noResultsLabel','emptyText','emptyLabel'}
 function GMS:RefreshCachedDisplayChrome()
     if not (self.traderOpen and self.combinedVisible) then return end
     self:RefreshFilteredFooter()
@@ -1650,8 +1653,8 @@ function GMS:RefreshCachedDisplayChrome()
     if not panel then return end
     -- Only hide a control if its actual text is the stale waiting message.
     -- Do not alter ESO's search state, result list, or purchase controls.
-    local names={'waitingForResultsLabel','waitingLabel','loadingLabel','statusLabel','searchStatusLabel','noResultsLabel','emptyText','emptyLabel'}
-    for _,name in ipairs(names) do
+    -- Reuse the same control-name list rather than allocating it every check.
+    for _,name in ipairs(GMS_CHROME_CONTROL_NAMES) do
         local control=panel[name]
         if control and type(control.GetText)=='function' and type(control.SetHidden)=='function' then
             local ok,value=pcall(control.GetText,control)
@@ -1794,6 +1797,16 @@ function GMS:ShowCombinedPage()
     -- Refresh that real footer after our cached page changes, rather than
     -- adding a second navigation bar or leaving the original server page.
     self:RefreshFilteredFooter()
+    -- Update native chrome on cached-page commits, never on idle polling.
+    self:RefreshCachedDisplayChrome()
+    if type(zo_callLater)=='function' then
+        local generation=self.filterGeneration
+        zo_callLater(function()
+            if GMS.traderOpen and GMS.combinedVisible and GMS.filterGeneration==generation then
+                GMS:RefreshCachedDisplayChrome()
+            end
+        end, 150)
+    end
 end
 function GMS:RefreshFilteredFooter()
     if not (self.traderOpen and self.combinedVisible) then return end
@@ -1955,7 +1968,7 @@ function GMS:ContinueCollection()
             DiagnosticPrint('PAGE '..tostring(page)..' visited='..diag.pages..' matches='..tostring(#self.collected)..' elapsed='..math.floor((DiagnosticTime()-diag.start)/1000)..'s')
         end
     end
-    if self.autoPages>100 or not search:HasNextPage() then self:ShowCombined(); return end
+    if not search:HasNextPage() then self:ShowCombined(); return end
     if type(search.SearchNextPage)=='function' then
         local generation=self.filterGeneration
         local function request()
@@ -2426,7 +2439,7 @@ local function CollectPage(page)
                 byType[key]=bucket
             end
             bucket.total=bucket.total+1
-            local status=GMS:Missing(link)
+            local status=GMS:MissingWithFragments(link)
             if status==true then
                 matches=matches+1
                 bucket.missing=bucket.missing+1
@@ -2735,7 +2748,34 @@ end
 -- Legacy crash snapshot calls are intentionally inert in release builds.
 function GMS:CrashSnapshot() end
 
+-- Manual memory diagnostics: no background timers, snapshots, or forced GC.
+local gmsMemPreviousMB = nil
+local function GMSMemoryReading()
+    local mb = nil
+    if type(GetTotalMemoryUsageInMB) == 'function' then
+        local ok, result = pcall(GetTotalMemoryUsageInMB)
+        if ok and type(result) == 'number' then mb = result end
+    end
+    if mb == nil and type(collectgarbage) == 'function' then
+        local ok, kb = pcall(collectgarbage, 'count')
+        if ok and type(kb) == 'number' then mb = kb / 1024 end
+    end
+    if mb == nil then
+        if type(d) == 'function' then d('GMS memory: unavailable') end
+        return
+    end
+    local delta = gmsMemPreviousMB and string.format(' | since last %+.2f MB', mb - gmsMemPreviousMB) or ' | first reading'
+    local message = string.format('GMS memory: %.2f MB%s', mb, delta)
+    gmsMemPreviousMB = mb
+    if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage) == 'function' then
+        CHAT_ROUTER:AddSystemMessage(message)
+    elseif type(d) == 'function' then
+        d(message)
+    end
+end
+
 function GMS:Initialize()
+    if type(SLASH_COMMANDS) == 'table' then SLASH_COMMANDS['/gmsmem'] = GMSMemoryReading end
     if type(EVENT_TRADING_HOUSE_RESPONSE_RECEIVED)=='number' then
         EVENT_MANAGER:RegisterForEvent(self.name .. '_purchase_response',
             EVENT_TRADING_HOUSE_RESPONSE_RECEIVED,
@@ -2753,6 +2793,7 @@ function GMS:Initialize()
         -- v1.0.4b diagnostic: no delayed GMS-driven native browse refresh.
         -- ESO owns its normal result refresh on opening the trader.
         GMS.gmsRestoreNativeOnOpen=false
+        GMS.gmsChromeNextCheckMs=nil
     end)
     EVENT_MANAGER:RegisterForEvent(self.name .. '_close', EVENT_CLOSE_TRADING_HOUSE, function()
         GMS:EndTradingSession()
@@ -2763,7 +2804,7 @@ function GMS:Initialize()
             GMS:RefreshCachedNameFilter()
             if GMS.combinedVisible then
                 if GMS:SyncNativeCachedSort() then GMS:ShowCombinedPage() end
-                GMS:RefreshCachedDisplayChrome()
+                -- UI chrome is now refreshed on page commits only.
             end
         end
     end)

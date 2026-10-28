@@ -116,6 +116,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DK MASTERY TRACKER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/DK-MASTERY-TRACKER__4857) | its_wifey | PC / Mac | 1.0.4 |
 | [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.10 |
 | [DLC Notice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrilledSpamSteaks/DLC-Notice__3603) | GrilledSpamSteaks | PC / Mac | 1.6 |
+| [DLC Roulette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/DLC-Roulette__0f2a1db4-049e-454b-96b8-52c65ff6cb85) | -Chin | Console | — |
 | [DLC Yes No](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Takadol/DLC-Yes-No__4451) | Takadol | PC / Mac | 2.4 |
 | [DLJ's EXP Scroll Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/darkladyjupiter/DLJ-s-EXP-Scroll-Reminder__ee8ca2af-a359-45b8-98c7-8cb4edcd19d2) | darkladyjupiter | Console | — |
 | [DLQI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Draxinusom/DLQI__2122) | Draxinusom | PC / Mac | 1.2 |
@@ -176,6 +177,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dungeon Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/Dungeon-Helper__1956) | tomkolp | PC / Mac | 1.0.3 |
 | [Dungeon Quest Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Dungeon-Quest-Reminder__4346) | atharti | PC / Mac | 1.7 |
 | [Dungeon Queue 4 Stickerbook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Dungeon-Queue-4-Stickerbook__3254) | tim99 | PC / Mac | 1.2.8 |
+| [Dungeon Scores](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thepandalore/Dungeon-Scores__5005) | thepandalore | PC / Mac | 0.5.36 |
 | [Dungeon Set Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/Dungeon-Set-Tracker__4942) | DesertMorfen | PC / Mac | 1.1.0 |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Dungeon-Tracker__75746296-2f24-4d95-8fb5-1954d00fc1d6) | Eldibabalo | Console | — |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Dungeon-Tracker__1552) | Phinix | PC / Mac | 1.48 |

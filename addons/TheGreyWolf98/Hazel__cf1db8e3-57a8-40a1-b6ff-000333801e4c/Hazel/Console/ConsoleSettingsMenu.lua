@@ -1,0 +1,473 @@
+-----------------------------------------------------------------------------------
+-- Addon label: Dolgubon's Lazy Writ Crafter
+-- Creator: Dolgubon (Joseph Heinzle)
+-- Addon Ideal: Simplifies Crafting Writs as much as possible
+-- Addon Creation Date: March 14, 2016
+--
+-- File label: AlchGrab.lua
+-- File Description: This file removes items required for writs from the bank
+-- Load Order Requirements: None
+-- 
+-----------------------------------------------------------------------------------
+
+
+WritCreater = WritCreater or {}
+
+
+WritCreater.settings["panel"] =  
+{
+     type = "panel",
+     label = "Lazy Writ Crafter",
+     displaylabel = "|c8080FF Dolgubon's Lazy Writ Crafter|r",
+     author = "@Dolgubon",
+     registerForRefresh = true,
+     registerForDefaults = true,
+     resetFunction = WritCreater.resetSettings,
+     donation = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7CZ3LW6E66NAU"
+
+}
+
+function WritCreater.initializeSettingsMenu()
+    local LHA = LibHarvensAddonSettings
+    if not LHA then return end
+    WritCreater.generateHASConversions()
+    local options = {
+        -- allowDefaults = true, --will allow users to reset the settings to default values
+        allowRefresh = true, --if this is true, when one of settings is changed, all other settings will be checked for state change (disable/enable)
+        defaultsFunction = function() --this function is called when allowDefaults is true and user hit the reset button
+            d("Reset")
+        end,
+    }
+    local settingsMenuName = "|c8080FFDolgubon's Lazy Writ Crafter|r"
+    if GetDisplayName() == "@Dolgubon" then -- trebuchet it to the start of the list
+        settingsMenuName = "|c8080FFDolgubon's 1 Lazy Writ Crafter|r"
+    end
+    -- settings.version = panel.version
+    local settings = LHA:AddAddon(settingsMenuName, options)
+    if not settings then
+        return
+    end
+    settings.author = "Dolgubon"
+    WritCreater.consoleSettingsMenu = settings
+    local areSettingsDisabled = false
+ 
+    --[[
+        CHECKBOX
+    --]]
+    local checked = false
+    -- Long, so that hopefully the various hide callLaters won't overlap
+    local statusBarSampleTimeout = 20000
+
+    local options =  {
+        {
+            type = LHA.ST_BUTTON,
+            label = WritCreater.optionStrings['reportBug'],
+            tooltip = WritCreater.optionStrings['reportBugTooltip'],
+            buttonText = WritCreater.optionStrings['openUrlButtonText'],
+            clickHandler = function(control, button)
+                WritCreater.showQRCode("https://www.esoui.com/forums/showthread.php?t=11241")
+            end,
+            -- disable = function() return areSettingsDisabled end,
+        },
+        {
+            type = LHA.ST_BUTTON,
+            label = WritCreater.optionStrings['donate'],
+            tooltip = WritCreater.optionStrings['donateTooltip'],
+            buttonText = WritCreater.optionStrings['openUrlButtonText'],
+            clickHandler = function(control, button)
+                WritCreater.showQRCode("https://www.paypal.com/donate/?cmd=_s-xclick&hosted_button_id=7CZ3LW6E66NAU&ssrt=1747363295246")
+            end,
+            -- disable = function() return areSettingsDisabled end,
+        },
+        {
+            type = LHA.ST_BUTTON,
+            label = WritCreater.optionStrings['writStats'],
+            tooltip = WritCreater.optionStrings['writStatsTooltip'],
+            buttonText = WritCreater.optionStrings['writStatsButton'],
+            clickHandler = function(control, button)
+                WritCreater.ShowStatsWindow(false)
+            end,
+            -- disable = function() return areSettingsDisabled end,
+        },
+        {
+            type = LHA.ST_BUTTON,
+            label = WritCreater.optionStrings['queueWrits'],
+            tooltip = WritCreater.optionStrings['queueWritsTooltip'],
+            buttonText = WritCreater.optionStrings['queueWritsButton'],
+            clickHandler = function(control, button)
+                WritCreater.queueAllSealedWrits(BAG_BACKPACK)
+            end,
+            -- disable = function() return areSettingsDisabled end,
+        },
+        {
+            type = LHA.ST_BUTTON,
+            label = WritCreater.optionStrings.craftHousePort,
+            tooltip = WritCreater.optionStrings.craftHousePortTooltip,
+            buttonText = WritCreater.optionStrings['craftHousePortButton'],
+            clickHandler = function(control, button)
+                WritCreater.portToCraftingHouse()
+            end,
+            -- disable = function() return areSettingsDisabled end,
+        },
+        {
+            type = LHA.ST_LABEL,
+            label = function() 
+                local profile = WritCreater.optionStrings.accountWide
+                if WritCreater.savedVars.useCharacterSettings then
+                    profile = WritCreater.optionStrings.characterSpecific
+                end
+                return  string.format(WritCreater.optionStrings.nowEditing, profile)  
+            end, 
+        },
+        {
+            type = LHA.ST_CHECKBOX,
+            label = WritCreater.optionStrings.useCharacterSettings,
+            tooltip = WritCreater.optionStrings.useCharacterSettingsTooltip,
+            getFunction = function() return WritCreater.savedVars.useCharacterSettings end,
+            setFunction = function(value)
+                WritCreater.savedVars.useCharacterSettings = value
+                WritCreater.consoleSettingsMenu:UpdateControls()
+            end,
+        },
+        {
+
+            type = LHA.ST_SECTION,
+            label = WritCreater.optionStrings['mainSettings'], 
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["skin"]] or {},
+        WritCreater.lamConvertedOptions["Crafting Onomatopiea"] or {},
+        -- {
+        --     type = "divider",
+        --     height = 15,
+        --     alpha = 0.5,
+        --     width = "full",
+        -- },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.autocraft],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.stealingProtection],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["writ grabbing"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.suppressQuestAnnouncements],
+
+        {
+            type =  LibHarvensAddonSettings.ST_DROPDOWN,
+            label = WritCreater.optionStrings['dailyResetWarnType'],
+            tooltip = WritCreater.optionStrings['dailyResetWarnTypeTooltip'],
+            choices = WritCreater.optionStrings["dailyResetWarnTypeChoices"],
+            choicesValues = {"none","announcement","alert","chat","all"},
+            items = {
+                {
+                    name = WritCreater.optionStrings["dailyResetWarnTypeChoices"][1],
+                    data = "none",
+                },
+                {
+                    name = WritCreater.optionStrings["dailyResetWarnTypeChoices"][2],
+                    data = "announcement",
+                },
+                {
+                    name = WritCreater.optionStrings["dailyResetWarnTypeChoices"][3],
+                    data = "alert",
+                },
+                {
+                    name = WritCreater.optionStrings["dailyResetWarnTypeChoices"][4],
+                    data = "chat",
+                },
+            },
+            getFunction = function()
+                -- Do I like this? No. Is it a simple and fast way? Yes.
+                local labelMap = 
+                {
+                    ["none"] = WritCreater.optionStrings["dailyResetWarnTypeChoices"][1],
+                    ["announcement"] = WritCreater.optionStrings["dailyResetWarnTypeChoices"][2],
+                    ["alert"] = WritCreater.optionStrings["dailyResetWarnTypeChoices"][3],
+                    ["chat"] = WritCreater.optionStrings["dailyResetWarnTypeChoices"][4],
+                }
+
+                return labelMap[WritCreater:GetSettings().dailyResetWarnType] end,
+            setFunction = function(combobox, label, item)
+                WritCreater:GetSettings().dailyResetWarnType = item.data 
+                WritCreater.showDailyResetWarnings("Example") -- Show the example warnings
+            end
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.dailyResetWarnTime],
+        {
+            type = LHA.ST_CHECKBOX,
+            label = WritCreater.optionStrings["master"],
+            tooltip = WritCreater.optionStrings["master tooltip"],
+            getFunction = function() return WritCreater.savedVarsAccountWide.masterWrits end,
+            setFunction = function(value) 
+            WritCreater.savedVarsAccountWide.masterWrits = value
+            WritCreater.LLCInteraction:cancelItem()
+                if value  then
+                    for i = 1, 25 do WritCreater.MasterWritsQuestAdded(1, i,GetJournalQuestName(i)) end
+                else
+                    d(WritCreater.strings['masterWritQueueCleared'])
+                end
+            end,
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["mimicStoneUse"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["jubilee"]],
+        -- {
+        --     type = LHA.ST_CHECKBOX,
+        --     label = WritCreater.optionStrings["right click to craft"],
+        --     tooltip = WritCreater.optionStrings["right click to craft tooltip"],
+        --     getFunction = function() return WritCreater.savedVarsAccountWide.rightClick end,
+        --     disable = not LibCustomMenu or WritCreater.savedVarsAccountWide.rightClick,
+        --     warning = "This option requires LibCustomMenu",
+        --     setFunction = function(value) 
+        --     WritCreater.savedVarsAccountWide.masterWrits = not value
+        --     WritCreater.savedVarsAccountWide.rightClick = value
+        --     WritCreater.LLCInteraction:cancelItem()
+        --         if not value  then
+                    
+        --             for i = 1, 25 do WritCreater.MasterWritsQuestAdded(1, i,GetJournalQuestlabel(i)) end
+        --         end
+        --     end,
+        -- },
+        {
+            type = LHA.ST_SECTION,
+            label = WritCreater.optionStrings["timesavers submenu"],
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["automatic complete"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.autoCloseBank],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.despawnBanker],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.despawnBankerDeposit],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["exit when done"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["autoloot behaviour"]],
+
+        -- {
+        --     type = "dropdown",
+        --     label = WritCreater.optionStrings["autoloot behaviour"]  ,
+        --     tooltip = WritCreater.optionStrings["autoloot behaviour tooltip"],
+        --     choices = WritCreater.optionStrings["autoloot behaviour choices"],
+        --     choicesValues = {1,2,3},
+        --     getFunction = function() if not WritCreater:GetSettings().ignoreAuto then return 1 elseif WritCreater:GetSettings().autoLoot then return 2 else return 3 end end,
+        --     setFunction = function(value) 
+        --         if value == 1 then 
+        --             WritCreater:GetSettings().ignoreAuto = false
+        --         elseif value == 2 then  
+        --             WritCreater:GetSettings().autoLoot = true
+        --             WritCreater:GetSettings().ignoreAuto = true
+        --         elseif value == 3 then
+        --             WritCreater:GetSettings().ignoreAuto = true
+        --             WritCreater:GetSettings().autoLoot = false
+        --             WritCreater:GetSettings().lootContainerOnReceipt  = false
+        --         end
+        --     end,
+        -- },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["loot container"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["new container"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["master writ saver"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["loot output"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.reticleColour],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.questBuffer],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.craftMultiplier],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.smartMultiplier],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.craftMultiplierConsumables],
+
+
+        -- {
+        --     type = LHA.ST_CHECKBOX,
+        --     label = WritCreater.optionStrings['noDELETEConfirmJewelry'],
+        --     tooltip = WritCreater.optionStrings['noDELETEConfirmJewelryTooltip'],
+        --     getFunction = function() return  WritCreater:GetSettings().EZJewelryDestroy end,
+        --     setFunction = function(value) 
+        --         WritCreater:GetSettings().EZJewelryDestroy = value
+        --     end,
+        -- },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["hireling behaviour"]],
+        {
+            type = "dropdown",
+            label = WritCreater.optionStrings["hireling behaviour"]  ,
+            tooltip = WritCreater.optionStrings["hireling behaviour tooltip"],
+            choices = WritCreater.optionStrings["hireling behaviour choices"],
+            choicesValues = {1,2,3},
+            getFunction = function() if WritCreater:GetSettings().mail.delete then return 2 elseif WritCreater:GetSettings().mail.loot then return 3 else return 1 end end,
+            setFunction = function(value) 
+                if value == 1 then 
+                    WritCreater:GetSettings().mail.delete = false
+                    WritCreater:GetSettings().mail.loot = false
+                elseif value == 2 then  
+                    WritCreater:GetSettings().mail.delete = true
+                    WritCreater:GetSettings().mail.loot = true
+                elseif value == 3 then
+                    WritCreater:GetSettings().mail.delete = false
+                    WritCreater:GetSettings().mail.loot = true
+                end
+            end,
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["scan for unopened"]],
+        {
+            type = LHA.ST_SECTION,
+            label = WritCreater.optionStrings["status bar submenu"],
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.showStatusBar],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings['showBoxCountdown']],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.statusBarInventory],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.statusBarIcons],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.transparentStatusBar],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.incompleteColour],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings.completeColour],
+        {
+            type = LibHarvensAddonSettings.ST_SLIDER,
+            label = WritCreater.optionStrings['statusBarHorizontal'],
+            tooltip = WritCreater.optionStrings['statusBarHorizontalTooltip'],
+            setFunction = function(value)
+                WritCreater:GetSettings().statusBarX = value
+                WritCreater.updateQuestStatusAnchors()
+            end,
+            getFunction = function()
+                return WritCreater:GetSettings().statusBarX
+            end,
+            default = 5,
+            min = 0,
+            max = GuiRoot:GetWidth()-120,
+            step = 50,
+            -- unit = "", --optional unit
+            format = "%d", --value format
+            disable = function() return not WritCreater:GetSettings().showStatusBar end,
+        },
+        {
+            type = LibHarvensAddonSettings.ST_SLIDER,
+            label = WritCreater.optionStrings['statusBarVertical'],
+            tooltip = WritCreater.optionStrings['statusBarVerticalTooltip'],
+            setFunction = function(value)
+                WritCreater:GetSettings().statusBarY = value
+                WritCreater.updateQuestStatusAnchors()
+            end,
+            getFunction = function()
+                return WritCreater:GetSettings().statusBarY
+            end,
+            default = 5,
+            min = 0,
+            max = GuiRoot:GetHeight()-120,
+            step = 50,
+            -- unit = "", --optional unit
+            format = "%d", --value format
+            disable = function() return not WritCreater:GetSettings().showStatusBar end,
+        },
+        -- {
+        --     type = LHA.ST_SECTION,
+        --     label = WritCreater.optionStrings["writRewards submenu"],
+        -- },
+        {
+            type = LHA.ST_SECTION,
+            label = WritCreater.optionStrings["crafting submenu"],
+        },
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["blackmithing"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["clothing"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["woodworking"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["jewelry crafting"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["provisioning"]],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["enchanting"]],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:45850:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:45831:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[WritCreater.optionStrings["alchemy"]],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:30152:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:30165:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:77591:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        -- {
+        --     type = LHA.ST_SECTION,
+        --     label = WritCreater.optionStrings["style stone menu"],
+        -- },
+        {
+            type = LHA.ST_SECTION,
+            label = WritCreater.optionStrings["writRewards submenu"],
+        },
+        {
+            type = LHA.ST_LABEL,
+            label = WritCreater.optionStrings["masterReward"],
+        },
+        -- WritCreater.lamConvertedOptions["masterrewards1"],
+        WritCreater.lamConvertedOptions["masterrewards2"],
+        -- WritCreater.lamConvertedOptions["masterrewards3"],
+        -- WritCreater.lamConvertedOptions["masterrewards4"],
+        -- WritCreater.lamConvertedOptions["masterrewards5"],
+        -- WritCreater.lamConvertedOptions["masterrewards6"],
+        -- WritCreater.lamConvertedOptions["masterrewards7"],
+        -- WritCreater.lamConvertedOptions["masterrewards8"],
+        -- WritCreater.lamConvertedOptions["masterrewards9"],
+        -- WritCreater.lamConvertedOptions["masterrewards10"],
+        {
+            type = LHA.ST_LABEL,
+            label = WritCreater.optionStrings["intricateReward"],
+        },
+        -- WritCreater.lamConvertedOptions["intricaterewards1"],
+        WritCreater.lamConvertedOptions["intricaterewards2"],
+        -- WritCreater.lamConvertedOptions["intricaterewards3"],
+        -- WritCreater.lamConvertedOptions["intricaterewards4"],
+        -- WritCreater.lamConvertedOptions["intricaterewards5"],
+        -- WritCreater.lamConvertedOptions["intricaterewards6"],
+        -- WritCreater.lamConvertedOptions["intricaterewards7"],
+        {
+            type = LHA.ST_LABEL,
+            label = WritCreater.optionStrings["ornateReward"],
+        },
+        -- WritCreater.lamConvertedOptions["ornaterewards1"],
+        WritCreater.lamConvertedOptions["ornaterewards2"],
+        -- WritCreater.lamConvertedOptions["ornaterewards3"],
+        -- WritCreater.lamConvertedOptions["ornaterewards4"],
+        -- WritCreater.lamConvertedOptions["ornaterewards5"],
+        -- WritCreater.lamConvertedOptions["ornaterewards6"],
+        -- WritCreater.lamConvertedOptions["ornaterewards7"],
+        {
+            type = LHA.ST_LABEL,
+            label = WritCreater.optionStrings["surveyReward"],
+        },
+        -- WritCreater.lamConvertedOptions["surveyrewards1"],
+        WritCreater.lamConvertedOptions["surveyrewards2"],
+        -- WritCreater.lamConvertedOptions["surveyrewards3"],
+        -- WritCreater.lamConvertedOptions["surveyrewards4"],
+        -- WritCreater.lamConvertedOptions["surveyrewards5"],
+        -- WritCreater.lamConvertedOptions["surveyrewards6"],
+        -- WritCreater.lamConvertedOptions["surveyrewards7"],
+        -- WritCreater.lamConvertedOptions["surveyrewards8"],
+        -- WritCreater.lamConvertedOptions["surveyrewards9"],
+        {
+            type = LHA.ST_LABEL,
+            label = WritCreater.optionStrings["goldMatReward"],
+        },
+        WritCreater.lamConvertedOptions["goldMatrewards2"],
+        WritCreater.lamConvertedOptions["repairReward"],
+        WritCreater.lamConvertedOptions["fragmentReward"],
+        WritCreater.lamConvertedOptions["soulGemReward"],
+        WritCreater.lamConvertedOptions["glyphReward"],
+        WritCreater.lamConvertedOptions["currencyReward"],
+         {
+            type = LHA.ST_SECTION,
+            label = WritCreater.optionStrings["style stone menu"],
+        },
+        WritCreater.lamConvertedOptions["STYLE1"],
+        WritCreater.lamConvertedOptions["STYLE2"],
+        WritCreater.lamConvertedOptions["STYLE3"],
+        WritCreater.lamConvertedOptions["STYLE4"],
+        WritCreater.lamConvertedOptions["STYLE5"],
+        WritCreater.lamConvertedOptions["STYLE6"],
+        WritCreater.lamConvertedOptions["STYLE7"],
+        WritCreater.lamConvertedOptions["STYLE8"],
+        WritCreater.lamConvertedOptions["STYLE9"],
+        WritCreater.lamConvertedOptions["STYLE34"],
+        WritCreater.lamConvertedOptions["STYLE17"],
+        WritCreater.lamConvertedOptions["STYLE19"],
+        WritCreater.lamConvertedOptions["STYLE15"],
+        WritCreater.lamConvertedOptions["STYLE20"],
+
+
+    }
+    local addAbandon = {
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:45850:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:45831:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:30152:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:30165:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+        WritCreater.lamConvertedOptions[zo_strformat(WritCreater.optionStrings["abandon quest for item"], "|H1:item:77591:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")],
+    }
+    for k, v in pairs(addAbandon) do
+        v.label = zo_strformat(WritCreater.optionStrings['keepItemWritFormat'], v.label)
+    end
+    for i = 1, #options do
+        -- if options[i] then
+            settings:AddSetting(options[i])
+        -- else
+            
+        -- end
+    end
+
+end

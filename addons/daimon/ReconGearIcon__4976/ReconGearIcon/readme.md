@@ -1,8 +1,8 @@
 # ReconGearIcon
 
-**Requires:** LibAddonMenu-2.0
+> **AI disclosure:** This addon was made entirely with an AI assistant (Claude). The author has only tested that the addon works in game.
 
-> **AI disclosure:** The code of this addon was written with the help of an AI assistant (Claude) and reviewed and tested in game by the author.
+**Requires:** LibAddonMenu-2.0
 
 Shows the game's own **Reconstructed** icon on reconstructed items in the character window's equipment panel.
 The inventory already shows this icon in its trait column, but the equipment panel does not.
@@ -31,9 +31,20 @@ Open **Settings > Addons > ReconGearIcon**, or type `/recongearicon`.
 | Appearance | Icon opacity | 0–100 % | 60 % |
 
 Inventory size and position can only be changed when **Show icon in inventory** is on.
-Color and opacity are shared by both places. Changes are applied immediately. Settings are saved account-wide.
+Color and opacity are shared by both places. Changes are applied immediately. Settings are saved account-wide, separately for each server (EU, NA, PTS).
+
+## Credits
+
+- The idea of marking items on the equipment slots comes from the slot markers of **AlphaGear 2** by mesota and Kyzeragon.
+- The icon is the game's own Reconstructed icon texture.
 
 ## Version history
+
+### 1.1 (2026-10-26) – API 101051
+- The addon no longer creates a global variable.
+- Settings are saved separately for each server (EU, NA, PTS). Settings from version 1.0 are moved to the current server automatically on the first login.
+- Changing the inventory setting only refreshes the inventory lists that are shown; hidden lists (e.g. bank, house storage) are refreshed by the game when they are opened.
+- Small performance improvements: inventory rows are skipped right away when the inventory option is off, and the equipment slot controls are looked up only once.
 
 ### 1.0 (2026-10-22) – API 101051
 - First public release.

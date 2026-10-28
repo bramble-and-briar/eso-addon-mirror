@@ -22,7 +22,7 @@
     "AlabuzyaUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4881/",
-  "fingerprint": "64d1a777e1ed397557884efedf4aab3d5ffb7e19a0b36f36d5a9d2c57eca9b67",
+  "fingerprint": "4f377f5aba7f95681225a1b990d147a6807b5d65d4d34cc5831ff58e3e596f1b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17578.png",
     "https://cdn-eso.mmoui.com/preview/pvw17580.png",
@@ -36,11 +36,11 @@
   "source_id": "4881",
   "source_url": "https://www.esoui.com/downloads/info4881-AlabuzyaUI.html",
   "stats": {
-    "downloads": 236,
+    "downloads": 304,
     "favorites": 2,
-    "monthly_downloads": 231
+    "monthly_downloads": 290
   },
   "title": "Alabuzya UI",
-  "updated_at": 1792437529000,
-  "version": "1.0.9"
+  "updated_at": 1793132690000,
+  "version": "1.0.10"
 }

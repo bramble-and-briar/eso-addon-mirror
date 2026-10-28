@@ -70,7 +70,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rebar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Rebar__1e6ecfd4-9947-49dc-9392-c5fab2256ab2) | Vixen_Hunny | Console | — |
 | [Recall Rotator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ookimus/Recall-Rotator__4765) | Ookimus | PC / Mac | 1.0 |
 | [Recipe and Motif Price For Writ Worthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/Recipe-and-Motif-Price-For-Writ-Worthy__3625) | alezhu | PC / Mac | 1.1.1 |
-| [ReconGearIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/daimon/ReconGearIcon__4976) | daimon | PC / Mac | 1.0 |
+| [ReconGearIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/daimon/ReconGearIcon__4976) | daimon | PC / Mac | 1.1 |
 | [Recount (Renovated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lwndow/Recount-Renovated__2739) | lwndow | PC / Mac | 0.7.6 |
 | [Recount (Update)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ferather/Recount-Update__2754) | Ferather | PC / Mac | 0.6.5 |
 | [Recount (Wolfhunter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadow-Fighter/Recount-Wolfhunter__875) | Shadow-Fighter | PC / Mac | 0.6.3 |
@@ -114,6 +114,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Restock Style Materials and Auto Repair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TeilzeitLegende/Restock-Style-Materials-and-Auto-Repair__3073) | TeilzeitLegende | PC / Mac | 0.8.6 |
 | [RestyleHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/RestyleHelper__4914) | PUYO | PC / Mac | 1.5 |
 | [Resurrection Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Resurrection-Notifier__3552) | M0R | PC / Mac | 1.0 |
+| [Resurrection Parse Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thepandalore/Resurrection-Parse-Tracker__4826) | thepandalore | PC / Mac | 0.3.2 |
 | [Reticle only first person](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/Reticle-only-first-person__2982) | awfuldead | PC / Mac | 1.2 |
 | [Reticle Rainbow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Reticle-Rainbow__30b30033-06cc-48b7-a0c6-7be8d27487cf) | FiNk3F13 | Console | — |
 | [Reveries: Emotes and Mementos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/StorybookTerror/Reveries-Emotes-and-Mementos__2726) | StorybookTerror | PC / Mac | 0.9 |
@@ -128,7 +129,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.25 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.27 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
@@ -138,7 +139,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RO Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kalinfe/RO-Tracker__2845) | Kalinfe | PC / Mac | 1.2.3 |
 | [Roam Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mutiny/Roam-Home__1606) | mutiny | PC / Mac | 1.7.2 |
 | [RoaringOpportunist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/RoaringOpportunist__f8e59501-116b-422a-90e9-f57cf2dc7b9d) | tmbrinks | Console | — |
-| [RoaringOpportunist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/RoaringOpportunist__2599) | tmbrinks | PC / Mac | 2.5.0 |
+| [RoaringOpportunist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/RoaringOpportunist__2599) | tmbrinks | PC / Mac | 2.5.1 |
 | [RockGrove Alkosh Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/RockGrove-Alkosh-Timer__d8edb913-8af4-455a-939f-5bbd598eeff7) | Phamo1000 | Console | — |
 | [RodZilla's Trader Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TeamRodZillaLLC/RodZilla-s-Trader-Stats__910cac85-d8d4-4788-949b-2954e8ee9215) | TeamRodZillaLLC | Console | — |
 | [Role-Play Town Portals](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baene/Role-Play-Town-Portals__3471) | Baene | PC / Mac | 2.9 |
@@ -160,6 +161,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Root State](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/Root-State__2593) | Solaris Lorica | PC / Mac | 0.1 |
 | [RootBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/RootBreak__2595) | Solaris Lorica | PC / Mac | 1 |
 | [Rose Guilds - Guildhalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kay.Cee/Rose-Guilds---Guildhalls__3345) | Kay.Cee | PC / Mac | 09.19.26 |
+| [Roster Comparison](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Roster-Comparison__29a889a4-0634-42a0-94dc-c57f06a3e4aa) | Scribe_Rob | Console | — |
 | [Rotation Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RipleyZepher/Rotation-Helper__183094f4-334c-48ea-abb9-14add7fbbbd7) | RipleyZepher | Console | — |
 | [Rotation Trainer v1](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satuve/Rotation-Trainer-v1__dc853c4f-c4b9-4948-9774-c0093a25d836) | satuve | Console | — |
 | [Royal Guildhalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Klainor/Royal-Guildhalls__2494) | Klainor | PC / Mac | 1.1 |

@@ -1,0 +1,9 @@
+## Title: |c00FF00ExoY|rs Juggernautificator
+## Author: @|c00FF00ExoY|r94 (PC/EU)
+## APIVersion: 101051 101052
+## Version: 0.0.1
+## AddOnVersion: 1
+## Description: Display of the in U52 newly added offensive stats for tanks (Beta)
+## SavedVariables: ExoYsJuggernautificatorSavedVariables
+
+ExoYsJuggernautificator.lua

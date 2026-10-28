@@ -1,0 +1,8 @@
+## Title: Guild Compare
+## Author: Rob
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101050 101051
+## Description: Compare two joined guilds and display shared members with both guild ranks.
+
+GuildCompare.lua

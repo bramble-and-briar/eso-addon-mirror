@@ -33,11 +33,12 @@ local PairedList = ZO_InitializingObject:Subclass()
 PairedList:Initialize()
 Inputs:				Choices                             - Table of choices (enums)
               Values                              - (optional) Table of values
+              Translations                        - (optional) Table of translations for the Choices
 Outputs:			None
 Description:	Initializes the object. If Values table is missing the object will be treated as an enumerated list.
               Once created as an enum that shouldn't be changed. It's better to destroy the object and start over.
 ------------------------------------------------------------------------------------------------]]--
-function PairedList:Initialize(Choices, Values)
+function PairedList:Initialize(Choices, Values, Translations)
   self.Choices = Choices
   self.Values = Values
   self.isEnum = false
@@ -56,6 +57,13 @@ function PairedList:Initialize(Choices, Values)
     for index, choice in ipairs(self.Choices) do
       self[choice] = self.Values[index]
     end
+  end
+
+  -- Assign Translations or set to "Choices" for compatibility
+  if Translations and type(Translations == "table") then
+    self.Translations = Translations
+  else
+    self.Translations = Choices
   end
 
   self.initialized = true
@@ -107,6 +115,17 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
+PairedList:GetTranslations()
+Inputs:				None
+Outputs:			Tranlsations                        - Table of indexed Translations
+Description:	Returns the Translations table.
+------------------------------------------------------------------------------------------------]]--
+function PairedList:GetTranslations()
+  return self.Translations
+end
+
+
+--[[------------------------------------------------------------------------------------------------
 PairedList:GetChoiceByValue(value)
 Inputs:				value                               - Value to look up
 Outputs:			choice                              - Choice found by value
@@ -122,13 +141,14 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-PairedList:UpdateData(Choices, Values)
+PairedList:UpdateData(Choices, Values, Translations)
 Inputs:				Choices                             - Table of choices (enums)
               Values                              - (optional) Table of values
+              Translations                        - (optional) Table of translations
 Outputs:			None
-Description:	Updates the Choices and Values tables.
+Description:	Updates the Choices, Values and Translations tables.
 ------------------------------------------------------------------------------------------------]]--
-function PairedList:UpdateData(Choices, Values)
+function PairedList:UpdateData(Choices, Values, Translations)
   -- clear old info
   if Choices ~= nil then
     for index, choice in ipairs(self.Choices) do
@@ -150,6 +170,13 @@ function PairedList:UpdateData(Choices, Values)
     for index, choice in ipairs(self.Choices) do
       self[choice] = self.Values[index]
     end
+  end
+  
+  -- Assign Translations or set to "Choices" for compatibility
+  if Translations and type(Translations == "table") then
+    self.Translations = Translations
+  else
+    self.Translations = Choices
   end
 end
 
@@ -174,7 +201,7 @@ function PairedList:Sort(sortType, sortKey)
   -- merge the lists to sort easy
   local Merged = {}
   for index, choice in ipairs(self.Choices) do
-    table.insert(Merged, {choice = choice, value = self.Values[index]})
+    table.insert(Merged, {choice = choice, value = self.Values[index], translation = self.Translations[index]})
   end
 
   -- sort the merged list
@@ -183,11 +210,13 @@ function PairedList:Sort(sortType, sortKey)
   -- unmerge and update data
   local Choices = {}
   local Values = {}
+  local Translations = {}
   for index, data in ipairs(Merged) do
     table.insert(Choices, data.choice)
     table.insert(Values, data.value)
+    table.insert(Translations, data.translation)
   end
-  self:UpdateData(Choices, Values)
+  self:UpdateData(Choices, Values, Translations)
 end
 
 

@@ -1,9 +1,9 @@
 ## Title: |cFFD700Turning Tide|r
 ## Description: Tracks when you can proc Turning Tide and cooldown to next proc
 ## Author: tmbrinks
-## Version: 1.1.0
-## AddOnVersion: 010100
-## APIVersion: 101047 101048
+## Version: 1.1.1
+## AddOnVersion: 010101
+## APIVersion: 101051
 ## SavedVariables: TurningTideSavedVars
 ## DependsOn: LibAddonMenu-2.0>=34 LibCombatAlerts>=7010
 

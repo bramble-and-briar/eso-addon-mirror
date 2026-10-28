@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/tmbrinks/ArchdruidTracker__3473",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "tmbrinks",
   "canonical_id": "esoui:3473",
   "category_id": "112",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
-    },
-    {
-      "name": "Feast of Shadows",
-      "version": "11.1.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3473",
@@ -21,7 +18,7 @@
     "ArchdruidTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3473/",
-  "fingerprint": "6fb93835e90b5f722ca759523c694b3260b8dcb712222d4e3303072c6130ee1e",
+  "fingerprint": "177e303d8d847afaa6250b9d16b8d70f54ac1d49d05016e8f3bad235297c3d52",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11845.jpg"
   ],
@@ -31,11 +28,11 @@
   "source_id": "3473",
   "source_url": "https://www.esoui.com/downloads/info3473-ArchdruidTracker.html",
   "stats": {
-    "downloads": 6271,
+    "downloads": 6409,
     "favorites": 4,
-    "monthly_downloads": 57
+    "monthly_downloads": 39
   },
   "title": "ArchdruidTracker",
-  "updated_at": 1762720073000,
-  "version": "1.1.0"
+  "updated_at": 1793136294000,
+  "version": "1.1.1"
 }

@@ -26,16 +26,16 @@ local EM = EVENT_MANAGER
 Globals
 ------------------------------------------------------------------------------------------------]]--
 -- timer types
-LIBSTATIC_Timer_TYPE_MIN = 1
-LIBSTATIC_Timer_TYPE_MAX = 2
-LIBSTATIC_Timer_TYPE_COUNT_UP = 1
-LIBSTATIC_Timer_TYPE_COUNT_DOWN = 2
+LIBSTATIC_TIMER_TYPE_MIN = 1
+LIBSTATIC_TIMER_TYPE_MAX = 2
+LIBSTATIC_TIMER_TYPE_COUNT_UP = 1
+LIBSTATIC_TIMER_TYPE_COUNT_DOWN = 2
 
 -- timer update intervals (ms)
-LIBSTATIC_Timer_UPDATE_INTERVAL_100 = 100
-LIBSTATIC_Timer_UPDATE_INTERVAL_200 = 200
-LIBSTATIC_Timer_UPDATE_INTERVAL_500 = 500
-LIBSTATIC_Timer_UPDATE_INTERVAL_1000 = 1000
+LIBSTATIC_TIMER_UPDATE_INTERVAL_100 = 100
+LIBSTATIC_TIMER_UPDATE_INTERVAL_200 = 200
+LIBSTATIC_TIMER_UPDATE_INTERVAL_500 = 500
+LIBSTATIC_TIMER_UPDATE_INTERVAL_1000 = 1000
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -58,8 +58,8 @@ Description:	Initializes the object.
 ------------------------------------------------------------------------------------------------]]--
 function Timer:Initialize(Options)
   self.uniqueName = Options.uniqueName
-  self.timerType = Options.timerType or LIBSTATIC_Timer_TYPE_COUNT_UP
-  self.updateInterval = Options.updateInterval or LIBSTATIC_Timer_UPDATE_INTERVAL_200
+  self.timerType = Options.timerType or LIBSTATIC_TIMER_TYPE_COUNT_UP
+  self.updateInterval = Options.updateInterval or LIBSTATIC_TIMER_UPDATE_INTERVAL_200
   self.duration = Options.duration
   self.updateCallback = Options.updateCallback or function() end
   self.finishedCallback = Options.finishedCallback or function() end
@@ -154,7 +154,7 @@ function Timer:Start()
   self.endTime = self.startTime + self.duration
   self.running = true
 
-  if self.timerType == LIBSTATIC_Timer_TYPE_COUNT_UP then
+  if self.timerType == LIBSTATIC_TIMER_TYPE_COUNT_UP then
     self.accumulator = 0
   else
     self.accumulator = self.duration
@@ -179,7 +179,7 @@ function Timer:TimerUpdate()
     EM:UnregisterForUpdate(self.uniqueName)
     self.finishedCallback(self.uniqueName)
   else
-    if self.timerType == LIBSTATIC_Timer_TYPE_COUNT_UP then
+    if self.timerType == LIBSTATIC_TIMER_TYPE_COUNT_UP then
       self.accumulator = now - self.startTime
     else
       self.accumulator = self.endTime - now

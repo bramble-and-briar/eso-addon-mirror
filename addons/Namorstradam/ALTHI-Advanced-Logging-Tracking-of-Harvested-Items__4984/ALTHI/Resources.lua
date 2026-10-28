@@ -11,8 +11,10 @@ A.categories = {
     { key = "traits", name = "TRAIT_MATERIALS" },
     { key = "powder", name = "PULVERISED_MATERIALS" },
     { key = "rare", name = "RARE_HARVESTS" },
+    { key = "provisioning", name = "PROVISIONING" },
 }
 local groups = {
+    provisioning = { "INGREDIENT" },
     alchemy = { "REAGENT", "POTION_BASE", "POISON_BASE" },
     metal = { "BLACKSMITHING_RAW_MATERIAL", "BLACKSMITHING_MATERIAL", "BLACKSMITHING_BOOSTER" },
     wood = { "WOODWORKING_RAW_MATERIAL", "WOODWORKING_MATERIAL", "WOODWORKING_BOOSTER" },
@@ -35,7 +37,7 @@ function A:BuildMaterialTypes()
     end
 end
 function A:CategoryFor(id, itemType)
-    if id == 115026 then return "rare" end -- Aetherial Dust; source in catalog provenance.
+    if id == 115026 or id == 204881 then return "rare" end -- Dust and Luminous Ink: explicit identities, not generic consumables.
     return self.materialTypes[itemType]
 end
 function A:IsEnabled(id)
@@ -85,11 +87,15 @@ function A:LoadCatalog()
             self:Observe(GetSmithingTraitItemLink(index, LINK_STYLE_DEFAULT))
         end
     end
+    self:ActivateMaterialExpansion()
     if self.db.catalogVersion == self.version and self.db.catalogApi == GetAPIVersion() then
         self.catalogLoading = false; self:QueueRefresh(); return
     end
     self.catalogLoading = true
     local cursor = 1
+    local bookList, bookRecipe = 1, 1
+    local bookLists = GetNumRecipeLists and GetRecipeListInfo and GetRecipeInfo and GetRecipeIngredientItemLink
+        and GetNumRecipeLists() or 0
     EVENT_MANAGER:UnregisterForUpdate("ALTHICatalog")
     EVENT_MANAGER:RegisterForUpdate("ALTHICatalog", 50, function()
         for index = cursor, math.min(cursor + 19, #seed.recipes) do
@@ -99,7 +105,22 @@ function A:LoadCatalog()
             end
         end
         cursor = cursor + 20
-        if cursor > #seed.recipes then
+        -- Supplement the historical recipe seed with the current client's recipe book.
+        -- Do not require ownership/knowledge; unavailable ingredient links are ignored.
+        for _ = 1, 20 do
+            if bookList > bookLists then break end
+            local _, recipes = GetRecipeListInfo(bookList)
+            if bookRecipe > (recipes or 0) then
+                bookList, bookRecipe = bookList + 1, 1
+            else
+                local _, _, ingredients = GetRecipeInfo(bookList, bookRecipe)
+                for ingredient = 1, ingredients or 0 do
+                    self:Observe(GetRecipeIngredientItemLink(bookList, bookRecipe, ingredient, LINK_STYLE_DEFAULT))
+                end
+                bookRecipe = bookRecipe + 1
+            end
+        end
+        if cursor > #seed.recipes and bookList > bookLists then
             self.catalogLoading = false
             self.db.catalogVersion = self.version
             self.db.catalogApi = GetAPIVersion()
@@ -108,6 +129,16 @@ function A:LoadCatalog()
         end
         self:QueueRefresh()
     end)
+end
+function A:ActivateMaterialExpansion()
+    if self.db.materialExpansion0107 then return end
+    local ids = {}
+    for id, item in pairs(self.db.catalog) do
+        if item.category == "provisioning" or id == 204881 then ids[#ids + 1] = id end
+    end
+    -- Preserve effective choices outside the newly requested materials when lifting masks.
+    self:SetItemsEnabled(ids, true)
+    self.db.materialExpansion0107 = true
 end
 function A:SetCategory(key, enabled)
     self.db.categoryEnabled[key] = enabled

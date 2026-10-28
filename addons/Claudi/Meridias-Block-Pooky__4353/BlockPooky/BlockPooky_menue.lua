@@ -23,6 +23,10 @@ local BlockPooky_WM = GetWindowManager()
 local BlockPooky_selectedCooldownBar
 -- Array of available cooldown bar names for dropdown choices
 local BlockPooky_CooldownBars = {}
+-- Currently selected threat ability (its ID) in the ability text-label dropdown
+local BlockPooky_selectedThreatAbilityId
+-- Dropdown choices ("Name (id)") for threat abilities, kept in sync with THREAT_ABILITY_IDS
+local BlockPooky_ThreatAbilityChoices = {}
 
 --[[ ui menu - cooldown bar validation helpers ---------------------------------------------------------------------]]
 
@@ -79,6 +83,150 @@ function BlockPooky.UpdateCooldownBarDropdown(name)
     if cooldownBarDropdown ~= nil then
         cooldownBarDropdown:UpdateChoices(BlockPooky_CooldownBars)
     end
+end
+
+--[[ ui menu - threat alert ability label helpers ----------------------------------------------------------------]]
+
+---(Re)builds the "Name (id)" dropdown choices for threat abilities, in place.
+---Reads from config.threatalert.abilities (the same source RebuildThreatAbilityList
+---uses) so it is correct even when the menu is built before THREAT_ABILITY_IDS exists.
+---@return table the shared dropdown choices list
+function BlockPooky.GetThreatAbilityChoices()
+    ZO_ClearTable(BlockPooky_ThreatAbilityChoices)
+    local seen = {}
+    for _, id in ipairs(BlockPooky.config.threatalert.abilities or {}) do
+        if not seen[id] then
+            seen[id] = true
+            table.insert(BlockPooky_ThreatAbilityChoices, BlockPooky.CleanAbilityName(id) .. " (" .. id .. ")")
+        end
+    end
+    if #BlockPooky_ThreatAbilityChoices == 0 then
+        table.insert(BlockPooky_ThreatAbilityChoices, '<none>')
+    end
+    return BlockPooky_ThreatAbilityChoices
+end
+
+---Checks whether a valid threat ability is selected in the text-label dropdown
+---@return boolean true if an ability is selected
+function BlockPooky.ValidSelectedThreatAbility()
+    return BlockPooky_selectedThreatAbilityId ~= nil and BlockPooky_selectedThreatAbilityId ~= ""
+end
+
+---Gets the ID of the currently selected threat ability for label assignment
+---@return number|nil ability ID, nil when nothing is selected
+function BlockPooky.ValidThreatLabelAbilityId()
+    if BlockPooky.ValidSelectedThreatAbility() then
+        return BlockPooky_selectedThreatAbilityId
+    end
+    return nil
+end
+
+---Gets the dropdown choice string of the currently selected threat ability
+---@return string "Name (id)" or '<none>' when nothing is selected
+function BlockPooky.ValidThreatLabelAbilityChoice()
+    local id = BlockPooky.ValidThreatLabelAbilityId()
+    if id then
+        return BlockPooky.CleanAbilityName(id) .. " (" .. id .. ")"
+    end
+    return '<none>'
+end
+
+---Syncs the text-label dropdown after threat abilities are added or removed
+---Keeps the preferred selection when it is still present, otherwise selects the first ability.
+---@param preferredId number|nil ability ID to keep selected when still listed
+function BlockPooky.RefreshThreatAbilityDropdown(preferredId)
+    BlockPooky.GetThreatAbilityChoices()
+    local keep = preferredId
+    if keep == nil then keep = BlockPooky_selectedThreatAbilityId end
+    if keep == nil and BlockPooky.THREAT_ABILITY_IDS and #BlockPooky.THREAT_ABILITY_IDS > 0 then
+        keep = BlockPooky.THREAT_ABILITY_IDS[1]
+    end
+    local found = false
+    if keep ~= nil and BlockPooky.THREAT_ABILITY_IDS then
+        for _, id in ipairs(BlockPooky.THREAT_ABILITY_IDS) do
+            if id == keep then
+                found = true
+                break
+            end
+        end
+    end
+    BlockPooky_selectedThreatAbilityId = found and keep or nil
+    local dropdown = BlockPooky_WM:GetControlByName('ThreatAlertLabelAbilityDropdown')
+    if dropdown ~= nil then
+        dropdown:UpdateChoices(BlockPooky_ThreatAbilityChoices)
+    end
+end
+
+---Builds the "Ability Text Labels" submenu controls.
+---LibAddonMenu requires submenu `controls` to be a table (not a function), so this is
+---called once at panel build time; live dropdown changes go through RefreshThreatAbilityDropdown.
+---@return table LAM control list
+function BlockPooky.GetThreatAlertAbilityLabelControls()
+    return {
+        {
+            type = "description",
+            title = "Ability Text Labels",
+            text =
+            "Show a center label when a threat ability is detected. Each ability can have its own custom text; leave the text empty to show the ability's name instead.",
+        },
+        {
+            type = "checkbox",
+            name = "Show Text on Overlay",
+            tooltip =
+            "Show a center label (ability name or your custom text) together with the overlay. Disable to keep the texture-only overlay.",
+            default = true,
+            getFunc = function() return BlockPooky.config.threatalert.showLabel ~= false end,
+            setFunc = function(newValue) BlockPooky.config.threatalert.showLabel = newValue end,
+        },
+        {
+            type = "dropdown",
+            name = "Select Ability",
+            tooltip = "Choose the threat ability to assign custom text to.",
+            choices = BlockPooky.GetThreatAbilityChoices(),
+            getFunc = function() return BlockPooky.ValidThreatLabelAbilityChoice() end,
+            setFunc = function(value)
+                if value ~= '<none>' and BlockPooky.THREAT_ABILITY_IDS then
+                    for i, choice in ipairs(BlockPooky_ThreatAbilityChoices) do
+                        if choice == value then
+                            BlockPooky_selectedThreatAbilityId = BlockPooky.THREAT_ABILITY_IDS[i]
+                            break
+                        end
+                    end
+                else
+                    BlockPooky_selectedThreatAbilityId = nil
+                end
+            end,
+            reference = 'ThreatAlertLabelAbilityDropdown'
+        },
+        {
+            type = "editbox",
+            name = "Custom Text",
+            tooltip =
+            "Custom text shown in the center of the screen when this ability is detected. Leave empty to show the ability's name instead.",
+            getFunc = function()
+                local id = BlockPooky.ValidThreatLabelAbilityId()
+                if id and BlockPooky.config.threatalert.labels then
+                    return BlockPooky.config.threatalert.labels[id] or ""
+                end
+                return ""
+            end,
+            setFunc = function(value)
+                local id = BlockPooky.ValidThreatLabelAbilityId()
+                if id then
+                    if not BlockPooky.config.threatalert.labels then
+                        BlockPooky.config.threatalert.labels = {}
+                    end
+                    local text = (value or ""):gsub("^%s+", ""):gsub("%s+$", "")
+                    if text == "" then
+                        BlockPooky.config.threatalert.labels[id] = nil
+                    else
+                        BlockPooky.config.threatalert.labels[id] = text
+                    end
+                end
+            end,
+            isMultiline = false,
+        },
+    }
 end
 
 --[[ ui menu - element position helpers ---------------------------------------------------------------------------]]
@@ -355,7 +503,10 @@ function BlockPooky.GetTriggerAbilityControls()
             type = "checkbox",
             name = name,
             getFunc = function() return BlockPooky.config.triggerAbilities[name] end,
-            setFunc = function(value) BlockPooky.config.triggerAbilities[name] = value end,
+            setFunc = function(value)
+                BlockPooky.config.triggerAbilities[name] = value
+                BlockPooky.RebuildTriggerAbilities()
+            end,
             default = true
         }
         table.insert(controls, checkbox)
@@ -471,8 +622,8 @@ function BlockPooky.InitAddonMenu()
         local num = tonumber(value)
         if num then
             table.insert(BlockPooky.config.customAbilityIds, num)
-            -- d("Added: " .. num)
             table.sort(BlockPooky.config.customAbilityIds)
+            BlockPooky.RebuildTriggerAbilities()
         else
             d("Invalid input. Please enter a valid number.")
         end
@@ -615,18 +766,21 @@ function BlockPooky.InitAddonMenu()
         {
             type = "submenu",
             name = "Select Trigger Abilities",
-            tooltip = "Choose which abilities will trigger block warnings.",
+            tooltip =
+            "Choose which abilities will trigger block warnings. Pull effects (Dark Convergence, Rush of Agony) fire when the effect lands on you; gap closers (Critical Rush, Stampede, ...) fire when they hit you.",
             controls = BlockPooky.GetTriggerAbilityControls()
         },
         {
             type = "submenu",
             name = "Custom Trigger Abilities",
-            tooltip = "Add custom ability IDs (one per ability name).",
+            tooltip =
+            "Add custom ability IDs. Effects are matched by ID and name; damage abilities (charges) are matched by ID when they hit you. Changes apply immediately, no reload needed.",
             controls = {
                 {
                     type = "editbox",
                     name = "Add Custom Ability ID",
-                    tooltip = "Type an ability ID and press Enter to add.",
+                    tooltip =
+                    "Type an ability ID and press Enter to add. Damage abilities must be added with the ID of the hit that lands on you (use Incoming Damage Investigation to find it).",
                     getFunc = function() return "" end,
                     setFunc = function(value) AddToNumberList(value) end,
                     isMultiline = false,
@@ -644,6 +798,7 @@ function BlockPooky.InitAddonMenu()
                     tooltip = "Remove all ability IDs from the list.",
                     func = function()
                         BlockPooky.config.customAbilityIds = {}
+                        BlockPooky.RebuildTriggerAbilities()
                     end,
                     warning = "This action cannot be undone!",
                 }
@@ -876,6 +1031,7 @@ function BlockPooky.InitAddonMenu()
                         local id = tonumber(value)
                         if id and id > 0 then
                             BlockPooky.AddThreatAbility(id)
+                            BlockPooky.RefreshThreatAbilityDropdown(id)
                             d("Added ability ID: " .. id)
                         else
                             d("Invalid ability ID. Please enter a number.")
@@ -937,6 +1093,7 @@ function BlockPooky.InitAddonMenu()
                         if BlockPooky.config.threatalert.abilities and #BlockPooky.config.threatalert.abilities > 0 then
                             table.remove(BlockPooky.config.threatalert.abilities)
                             BlockPooky.RebuildThreatAbilityList()
+                            BlockPooky.RefreshThreatAbilityDropdown(nil)
                             d("Ability removed.")
                         else
                             d("No abilities to remove.")
@@ -950,11 +1107,18 @@ function BlockPooky.InitAddonMenu()
                     func = function()
                         BlockPooky.config.threatalert.abilities = {}
                         BlockPooky.RebuildThreatAbilityList()
+                        BlockPooky.RefreshThreatAbilityDropdown(nil)
                         d("All abilities cleared.")
                     end,
                     warning = "This will remove ALL abilities including Dark Convergence and Rush of Agony!",
                 }
             }
+        },
+        {
+            type = "submenu",
+            name = "Ability Text Labels",
+            tooltip = "Assign custom text to individual threat abilities, shown when they are detected.",
+            controls = BlockPooky.GetThreatAlertAbilityLabelControls(),
         },
         {
             type = "divider",
@@ -1620,6 +1784,15 @@ function BlockPooky.InitAddonMenu()
                     default = false,
                     getFunc = function() return BlockPooky.config.investigateEffects end,
                     setFunc = function(newValue) BlockPooky.config.investigateEffects = newValue end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = "Enable Incoming Damage Investigation",
+                    tooltip =
+                    "Logs every hit that lands on you as Name | ID | Source. Use it to find charge/gap-closer IDs, which never show up in ability investigation.",
+                    default = false,
+                    getFunc = function() return BlockPooky.config.investigateDamage end,
+                    setFunc = function(newValue) BlockPooky.config.investigateDamage = newValue end,
                 }
             }
         }

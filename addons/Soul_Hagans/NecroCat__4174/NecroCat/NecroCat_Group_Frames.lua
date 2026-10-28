@@ -14,7 +14,7 @@ local BASE_TEXT_OFFSET_Y = 4
 -- НАСТРОЙКИ ПО УМОЛЧАНИЮ
 local defaultGroupSV = {
     enabled            = false,
-    locked             = false,
+    locked             = true,
     hideDefaultGroupBars = true, -- Скрывать стандартные полосы группы ESO
     groupLeft          = 100,
     groupTop           = 250,
@@ -323,7 +323,7 @@ function GF.CreateFramePool()
     root:SetMovable(not sv.locked)
     root:SetMouseEnabled(not sv.locked)
     root:SetClampedToScreen(true)
-    root:SetDrawTier(DT_HIGH)
+    root:SetDrawTier(DT_LOW)
 
     root:SetHandler("OnMoveStop", function(self)
         self:ClearAnchors()
@@ -1315,6 +1315,8 @@ function GF.UpdateVisibility()
     local sv = (NecroCat.savedVars and NecroCat.savedVars.group) or defaultGroupSV
     local isEnabled = (sv.enabled ~= false)
     local isUnlocked = not sv.locked
+    local hasActiveRoster = (sv.testCount and sv.testCount > 0) or (GetGroupSize() > 0)
+    local shouldShowInMenu = isUnlocked and hasActiveRoster
     local gameMenuScene = SCENE_MANAGER:GetScene("gameMenuInGame")
 
     if isEnabled then
@@ -1325,7 +1327,7 @@ function GF.UpdateVisibility()
 
         -- В меню Esc принудительно управляем видимостью
         if gameMenuScene then
-            if isUnlocked then
+            if shouldShowInMenu then
                 if not gameMenuScene:HasFragment(GF.GroupFragment) then
                     gameMenuScene:AddFragment(GF.GroupFragment)
                 end

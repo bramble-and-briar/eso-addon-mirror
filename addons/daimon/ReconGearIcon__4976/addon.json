@@ -18,7 +18,7 @@
     "ReconGearIcon"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4976/",
-  "fingerprint": "91c2e881dafe4462bbfaace0d095b1cf993a0630b85f134ab9a9c5ee30ebc3fb",
+  "fingerprint": "0f7a2afddef28d0c7d17d401a79aff7fce671b04b17bf5ac5f4c5d399e8d88d1",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18098.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18096.jpg",
@@ -30,11 +30,11 @@
   "source_id": "4976",
   "source_url": "https://www.esoui.com/downloads/info4976-ReconGearIcon.html",
   "stats": {
-    "downloads": 11,
+    "downloads": 29,
     "favorites": 0,
-    "monthly_downloads": 7
+    "monthly_downloads": 27
   },
   "title": "ReconGearIcon",
-  "updated_at": 1792673500000,
-  "version": "1.0"
+  "updated_at": 1793103309000,
+  "version": "1.1"
 }

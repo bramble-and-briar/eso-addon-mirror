@@ -26,6 +26,7 @@ function A.LearnContainer(_,result,target)
  if (saved.learnedContainerCount or 0)>=2000 or #points>=500 then return end
  points[#points+1]={math.floor(x*10000+.5)/10000,math.floor(y*10000+.5)/10000}
  data[map]=points;saved.learnedContainerCount=(saved.learnedContainerCount or 0)+1
+ if A.cache then A.cache[kind]=nil end
  A.QueueRefresh({kind})
 end
 function A.RegisterContainerLearning()

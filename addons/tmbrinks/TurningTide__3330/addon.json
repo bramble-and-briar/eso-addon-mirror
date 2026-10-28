@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/tmbrinks/TurningTide__3330",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "tmbrinks",
   "canonical_id": "esoui:3330",
   "category_id": "112",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
-    },
-    {
-      "name": "Feast of Shadows",
-      "version": "11.1.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3330",
@@ -21,7 +18,7 @@
     "TurningTide"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3330/",
-  "fingerprint": "c4b3a6eeb3ce7699eb009ca69e20e2b8074b7d5c260cffd286111b10cf4accb9",
+  "fingerprint": "ea6c1b4d853a0351ee5e8f5ed5efc1a8469825d46d0646801a4cdb9f0289f820",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11298.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw11299.jpg"
@@ -32,11 +29,11 @@
   "source_id": "3330",
   "source_url": "https://www.esoui.com/downloads/info3330-TurningTide.html",
   "stats": {
-    "downloads": 19139,
-    "favorites": 12,
-    "monthly_downloads": 86
+    "downloads": 19528,
+    "favorites": 13,
+    "monthly_downloads": 137
   },
   "title": "TurningTide",
-  "updated_at": 1762720110000,
-  "version": "1.1.0"
+  "updated_at": 1793136257000,
+  "version": "1.1.1"
 }

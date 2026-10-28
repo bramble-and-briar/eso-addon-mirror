@@ -22,6 +22,25 @@ needed it since it only augments the game's own tooltip:
     crash on load.
 ]]
 
+--[[
+v12 (2026-10-20, API 101051):
+  - FIX: "Bags" used to be a single account-wide table holding only the
+    logged-in character's backpack, so every character you logged into
+    overwrote it. Backpacks are now stored per character (bagsByChar) and
+    shown as "Bags (Character Name)".
+  - FIX: the bank scan now includes the ESO Plus half of the bank
+    (BAG_SUBSCRIBER_BANK), not just BAG_BANK.
+  - NEW: house storage chests/coffers (BAG_HOUSE_BANK_ONE..TEN) are scanned
+    when you open one, named by the storage collectible's nickname/name.
+  - Bank, vault and house storage also refresh as items move in/out
+    (debounced), not only when the bank window opens/closes.
+  - The old "bags" table is left in SavedVars untouched but no longer read.
+v13 (2026-10-27): each location carries a stable key ("house:<id>", "vault",
+  "bank", "storage:<bagId>", "bags:<characterId>") so lists can be filtered by
+  location, GetLocationGroups() feeds "Browse by location", and lastList
+  remembers the last list for "Continue".
+]]
+
 FurnitureLocator = {}
 local this = FurnitureLocator
 this.name = "FurnitureLocator" -- unique key for EVENT_MANAGER registrations
@@ -49,14 +68,17 @@ end
 
 function this.Initialize()
   this.settings = ZO_SavedVars:NewAccountWide("FurnitureLocatorData", 3, nil, {
-    bags = {},     -- [itemId] = count (current character's backpack)
-    bank = {},     -- [itemId] = count (current character's bank)
+    bags = {},     -- LEGACY (pre-v12), no longer read
+    bagsByChar = {}, -- [characterId] = { name = "...", items = { [itemId] = count } }
+    houseBanks = {}, -- [bagId] = { name = "...", items = { [itemId] = count } }
+    bank = {},     -- [itemId] = count (shared account bank, incl. ESO Plus half)
     vault = {},    -- [itemId] = count (account-wide furnishing vault)
     houses = {},   -- [houseId] = { name = "...", items = { [itemId] = count }, lastScanned = timestamp }
     itemInfo = {}, -- [itemId] = { name = "...", icon = "..." }
+    lastList = nil, -- v13: the last list opened, for "Continue"
   })
 
-  EVENT_MANAGER:RegisterForEvent(this.name, EVENT_OPEN_BANK, this.ScanBankAndVault)
+  EVENT_MANAGER:RegisterForEvent(this.name, EVENT_OPEN_BANK, this.OnOpenBank)
   EVENT_MANAGER:RegisterForEvent(this.name, EVENT_CLOSE_BANK, this.ScanBankAndVault)
   EVENT_MANAGER:RegisterForEvent(this.name, EVENT_PLAYER_ACTIVATED, this.ScanCurrentHouseIfOwner)
   EVENT_MANAGER:RegisterForEvent(this.name, EVENT_HOUSING_FURNITURE_PLACED, this.ScanCurrentHouseIfOwner)
@@ -64,12 +86,40 @@ function this.Initialize()
   EVENT_MANAGER:RegisterForEvent(this.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, this.OnInventoryUpdate)
 
   -- catch items already in the backpack when the addon loads mid-session
-  this.ScanBag(BAG_BACKPACK, "bags")
+  this.ScanBackpack()
+end
+
+-- Many slot updates can fire at once (e.g. a big bank deposit), so each
+-- rescan is debounced: one scan per bag group, 300ms after the last change.
+local pendingScans = {}
+local function ScheduleScan(key, fn)
+  if pendingScans[key] then
+    return
+  end
+  pendingScans[key] = true
+  zo_callLater(function()
+    pendingScans[key] = nil
+    fn()
+  end, 300)
 end
 
 function this.OnInventoryUpdate(_, bagId)
   if bagId == BAG_BACKPACK then
-    this.ScanBag(BAG_BACKPACK, "bags")
+    ScheduleScan("backpack", this.ScanBackpack)
+  elseif bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK then
+    ScheduleScan("bank", this.ScanBank)
+  elseif bagId == BAG_FURNITURE_VAULT then
+    ScheduleScan("vault", this.ScanVault)
+  elseif IsHouseBankBag(bagId) then
+    ScheduleScan("houseBank" .. tostring(bagId), function() this.ScanHouseBank(bagId) end)
+  end
+end
+
+function this.OnOpenBank(_, bankBag)
+  if bankBag ~= nil and IsHouseBankBag(bankBag) then
+    this.ScanHouseBank(bankBag)
+  else
+    this.ScanBankAndVault()
   end
 end
 
@@ -134,16 +184,16 @@ function this.CacheItemInfo(itemId, link)
   this.settings.itemInfo[itemId] = { name = name, icon = icon, category = category, theme = theme }
 end
 
--- Generic bag scanner. destKey is "bags" or "bank" -- which table in
--- settings to write counts into. Confirmed pattern (IsItemPlaceableFurniture,
+-- Generic bag scanner: returns { [itemId] = count } for every placeable
+-- furnishing in the bag. Confirmed pattern (IsItemPlaceableFurniture,
 -- direct bag/slot iteration) reused from Furniture Finder's vault scan.
-function this.ScanBag(bagId, destKey)
+function this.ScanBag(bagId, counts)
+  counts = counts or {}
   local numSlots = GetBagSize(bagId)
-  if numSlots == nil then
-    return
+  if numSlots == nil or numSlots == 0 then
+    return counts
   end
 
-  local counts = {}
   for slotIndex = 0, numSlots - 1 do
     if IsItemPlaceableFurniture(bagId, slotIndex) then
       local itemId = GetItemId(bagId, slotIndex)
@@ -156,12 +206,58 @@ function this.ScanBag(bagId, destKey)
     end
   end
 
-  this.settings[destKey] = counts
+  return counts
+end
+
+function this.ScanBackpack()
+  local charId = GetCurrentCharacterId()
+  if charId == nil or charId == "" then
+    return
+  end
+  this.settings.bagsByChar[charId] = {
+    name = zo_strformat("<<1>>", GetUnitName("player")),
+    items = this.ScanBag(BAG_BACKPACK),
+  }
+end
+
+-- The bank is shared account-wide; ESO Plus members have a second half in
+-- BAG_SUBSCRIBER_BANK, which is merged in here.
+function this.ScanBank()
+  local counts = this.ScanBag(BAG_BANK)
+  this.ScanBag(BAG_SUBSCRIBER_BANK, counts)
+  this.settings.bank = counts
+end
+
+function this.ScanVault()
+  this.settings.vault = this.ScanBag(BAG_FURNITURE_VAULT)
 end
 
 function this.ScanBankAndVault()
-  this.ScanBag(BAG_BANK, "bank")
-  this.ScanBag(BAG_FURNITURE_VAULT, "vault")
+  this.ScanBank()
+  this.ScanVault()
+end
+
+-- House storage chests/coffers. Only readable while one is open, so this
+-- runs on EVENT_OPEN_BANK for a house bank bag and on slot updates to it.
+function this.ScanHouseBank(bagId)
+  local name = "House Storage"
+  local okCol, collectibleId = pcall(GetCollectibleForBag, bagId)
+  if okCol and collectibleId ~= nil and collectibleId ~= 0 then
+    local nickname = GetCollectibleNickname(collectibleId)
+    if nickname ~= nil and nickname ~= "" then
+      name = zo_strformat("<<1>>", nickname)
+    else
+      local collectibleName = GetCollectibleName(collectibleId)
+      if collectibleName ~= nil and collectibleName ~= "" then
+        name = zo_strformat("<<1>>", collectibleName)
+      end
+    end
+  end
+
+  this.settings.houseBanks[bagId] = {
+    name = name,
+    items = this.ScanBag(bagId),
+  }
 end
 
 -- Confirmed working pattern, ported directly from Furniture Finder's
@@ -214,14 +310,19 @@ function this.GetAllOwnedItems()
   local itemIds = {}
 
   local function collect(sourceTable)
-    for itemId, _ in pairs(sourceTable) do
+    for itemId, _ in pairs(sourceTable or {}) do
       itemIds[itemId] = true
     end
   end
 
-  collect(this.settings.bags)
+  for _, char in pairs(this.settings.bagsByChar) do
+    collect(char.items)
+  end
   collect(this.settings.bank)
   collect(this.settings.vault)
+  for _, storage in pairs(this.settings.houseBanks) do
+    collect(storage.items)
+  end
   for _, house in pairs(this.settings.houses) do
     collect(house.items)
   end
@@ -231,19 +332,28 @@ function this.GetAllOwnedItems()
     local info = this.settings.itemInfo[itemId] or {}
     local locations = {}
 
-    local bagCount = this.settings.bags[itemId]
-    if bagCount ~= nil and bagCount > 0 then
-      table.insert(locations, { type = "Bags", name = "Bags", count = bagCount })
+    for charId, char in pairs(this.settings.bagsByChar) do
+      local count = char.items and char.items[itemId]
+      if count ~= nil and count > 0 then
+        table.insert(locations, { type = "Bags", key = "bags:" .. tostring(charId), name = string.format("Bags (%s)", tostring(char.name)), count = count })
+      end
     end
 
     local bankCount = this.settings.bank[itemId]
     if bankCount ~= nil and bankCount > 0 then
-      table.insert(locations, { type = "Bank", name = "Bank", count = bankCount })
+      table.insert(locations, { type = "Bank", key = "bank", name = "Bank", count = bankCount })
     end
 
     local vaultCount = this.settings.vault[itemId]
     if vaultCount ~= nil and vaultCount > 0 then
-      table.insert(locations, { type = "Vault", name = "Furnishing Vault", count = vaultCount })
+      table.insert(locations, { type = "Vault", key = "vault", name = "Furnishing Vault", count = vaultCount })
+    end
+
+    for bagId, storage in pairs(this.settings.houseBanks) do
+      local count = storage.items and storage.items[itemId]
+      if count ~= nil and count > 0 then
+        table.insert(locations, { type = "HouseStorage", key = "storage:" .. tostring(bagId), name = tostring(storage.name), count = count, bagId = bagId })
+      end
     end
 
     for houseId, house in pairs(this.settings.houses) do
@@ -251,6 +361,7 @@ function this.GetAllOwnedItems()
       if count ~= nil and count > 0 then
         table.insert(locations, {
           type = "House",
+          key = "house:" .. tostring(houseId),
           name = house.name,
           count = count,
           houseId = houseId,
@@ -259,14 +370,16 @@ function this.GetAllOwnedItems()
       end
     end
 
-    table.insert(results, {
-      itemId = itemId,
-      name = info.name or ("Item " .. tostring(itemId)),
-      icon = info.icon,
-      category = info.category or "Uncategorized",
-      theme = info.theme or "Unstyled",
-      locations = locations,
-    })
+    if #locations > 0 then
+      table.insert(results, {
+        itemId = itemId,
+        name = info.name or ("Item " .. tostring(itemId)),
+        icon = info.icon,
+        category = info.category or "Uncategorized",
+        theme = info.theme or "Unstyled",
+        locations = locations,
+      })
+    end
   end
 
   -- alphabetical by name, so the list is stable and browsable
@@ -275,6 +388,52 @@ function this.GetAllOwnedItems()
   end)
 
   return results
+end
+
+-- v13: every place furniture can be, grouped for "Browse by location".
+-- Each entry: { key, name, count (distinct furnishings), lastScanned (houses) }
+function this.GetLocationGroups()
+  local function distinct(items)
+    local n = 0
+    for _, count in pairs(items or {}) do
+      if count > 0 then n = n + 1 end
+    end
+    return n
+  end
+  local byName = function(a, b) return tostring(a.name) < tostring(b.name) end
+
+  local houses = {}
+  for houseId, house in pairs(this.settings.houses) do
+    houses[#houses + 1] = { key = "house:" .. tostring(houseId), name = house.name, count = distinct(house.items), lastScanned = house.lastScanned }
+  end
+  table.sort(houses, byName)
+
+  local storage = {}
+  storage[#storage + 1] = { key = "vault", name = "Furnishing Vault", count = distinct(this.settings.vault) }
+  storage[#storage + 1] = { key = "bank", name = "Bank", count = distinct(this.settings.bank) }
+  local chests = {}
+  for bagId, chest in pairs(this.settings.houseBanks) do
+    chests[#chests + 1] = { key = "storage:" .. tostring(bagId), name = chest.name, count = distinct(chest.items) }
+  end
+  table.sort(chests, byName)
+  for _, chest in ipairs(chests) do storage[#storage + 1] = chest end
+
+  local bags = {}
+  for charId, char in pairs(this.settings.bagsByChar) do
+    bags[#bags + 1] = { key = "bags:" .. tostring(charId), name = tostring(char.name), count = distinct(char.items) }
+  end
+  table.sort(bags, byName)
+
+  local function nonEmpty(list)
+    local out = {}
+    for _, e in ipairs(list) do if e.count > 0 then out[#out + 1] = e end end
+    return out
+  end
+  return {
+    { name = "Houses", entries = nonEmpty(houses) },
+    { name = "Storage", entries = nonEmpty(storage) },
+    { name = "Characters' bags", entries = nonEmpty(bags) },
+  }
 end
 
 local function OnAddOnLoaded(_, addOnName)

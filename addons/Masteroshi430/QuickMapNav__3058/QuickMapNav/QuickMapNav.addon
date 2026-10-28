@@ -5,10 +5,10 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: |cf49b42QuickMapNav|r
-## Version: 2026.07.08
+## Version: 2026.10.27
 ## Author: |c3CB371@Masteroshi430|r
 ## Description: QuickMapNav adds neighbouring areas' names with clickable links in the blank spaces of each area Map.
-## APIVersion: 101050
+## APIVersion: 101052
 ## SavedVariables: QMNVars
 ## DependsOn: LibAddonMenu-2.0>=38 LibMapData
 ## OptionalDependsOn: PerfectPixel

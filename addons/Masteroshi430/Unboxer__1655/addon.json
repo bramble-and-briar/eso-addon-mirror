@@ -8,8 +8,8 @@
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1655",
@@ -18,7 +18,7 @@
     "Unboxer"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1655/",
-  "fingerprint": "0404a58259865a5212d82b8f3d8b8e9c27f1fb2bc4fe16970812c2ab08b0a714",
+  "fingerprint": "3de389b56b35f69b8149f5f59eae62cb87aa57bc0139361be69d0422f75f68df",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8199.png",
     "https://cdn-eso.mmoui.com/preview/pvw8200.png",
@@ -32,11 +32,11 @@
   "source_id": "1655",
   "source_url": "https://www.esoui.com/downloads/info1655-Unboxer.html",
   "stats": {
-    "downloads": 141485,
-    "favorites": 98,
-    "monthly_downloads": 645
+    "downloads": 143425,
+    "favorites": 99,
+    "monthly_downloads": 680
   },
   "title": "Unboxer",
-  "updated_at": 1785845432000,
-  "version": "2026.08.04"
+  "updated_at": 1793095700000,
+  "version": "2026.10.27"
 }

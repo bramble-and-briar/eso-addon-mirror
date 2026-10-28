@@ -18,6 +18,7 @@ Chat                                              - Object containing all functi
 Libraries and Aliases
 ------------------------------------------------------------------------------------------------]]--
 local CS = CHAT_SYSTEM
+local LCM = LibChatMessage
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -29,7 +30,8 @@ local Chat = ZO_InitializingObject:Subclass()
 --[[------------------------------------------------------------------------------------------------
 Chat:Initialize(Options)
 Inputs:				Options                             - Table containing parameters
-              ├─ .addonIdentifier                   - (optional) addonIdentifier
+              ├─ .addonIdentifier                   - (optional) Addon long name
+              ├─ .addonShortName                    - (optional) Addon short name
               ├─ .prefixColor                       - (optional) Prefix Hexcode color
               ├─ .textColor                         - (optional) Chat Hexcode color
               ├─ .chatEnabled                       - (optional) bool that enables chat
@@ -43,8 +45,11 @@ function Chat:Initialize(Options)
   self.prefixColor = Options.prefixColor or "FFFFFF"
   self.addonIdentifier = Options.addonIdentifier or "LibStatic"
   self.textColor = Options.textColor or "FFFFFF"
+  self.addonShortName = Options.addonShortName
   if Options.chatEnabled == nil then self.chatEnabled = true else self.chatEnabled = Options.chatEnabled end
   if Options.debugEnabled == nil then self.debugEnabled = true else self.debugEnabled = Options.debugEnabled end
+
+  self.Proxy = LCM.Create(self.addonIdentifier, self.addonShortName)
 
   self.initialized = true
 end
@@ -97,14 +102,18 @@ function Chat:Msg(...)
 
 	local Args = {...}
   local first = true
+  local currentTagMode = LCM:GetTagPrefixMode()
 
   -- check for first line and format output
   local function sendMsg(input)
     if first then
-      CS:AddMessage(zo_strformat("|c<<1>>[<<2>>]:|r |c<<3>><<4>>|r", self.prefixColor, self.addonIdentifier, self.textColor, input))
+      self.Proxy:SetTagColor(self.prefixColor):Print(zo_strformat("|c<<1>><<2>>|r", self.textColor, input))
       first = false
     else
-      CS:AddMessage(zo_strformat("|c<<2>><<3>>|r", self.textColor, input))
+      -- turn off tag for subsequent messages and then put it back to what it was.
+      LCM:SetTagPrefixMode(LCM.TAG_PREFIX_OFF)
+      self.Proxy:SetTagColor(self.prefixColor):Print(zo_strformat("|c<<1>><<2>>|r", self.textColor, input))
+      LCM:SetTagPrefixMode(currentTagMode)
     end
   end
 
@@ -112,7 +121,7 @@ function Chat:Msg(...)
   for i, v in ipairs(Args) do
     if type(v) == "table" then
       for j, k in ipairs(v) do
-        if type(v) ~= "table" then
+        if type(k) ~= "table" then
           sendMsg(LibStatic:StringConvert(k))
         end
       end

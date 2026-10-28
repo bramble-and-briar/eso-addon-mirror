@@ -13,17 +13,29 @@ function A:TopDialog()
     end
     return top
 end
+function A:HandleDialogEscape()
+    if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then return false end
+    local top=self:TopDialog()
+    if not top then return false end
+    if top==self.languageWindow and top.firstRun then return true end
+    self:CloseDialog(top)
+    return true
+end
+function A:RefreshDialogActionLayer()
+    local needed=self:TopDialog()~=nil
+    if needed and not self.dialogActionLayer and PushActionLayerByName then
+        PushActionLayerByName('ALTHarvestItemsDialogs'); self.dialogActionLayer=true
+    elseif not needed and self.dialogActionLayer and RemoveActionLayerByName then
+        RemoveActionLayerByName('ALTHarvestItemsDialogs'); self.dialogActionLayer=nil
+    end
+end
 function A:InstallDialogEscape()
     if self.dialogEscapeInstalled or not ZO_PreHook or not SCENE_MANAGER
         or type(SCENE_MANAGER.OnToggleGameMenuBinding)~="function" then return end
     -- Handle ESC only while an ALTHI dialog is visible. Native confirmation
     -- dialogs take priority; without our windows the original method runs.
     ZO_PreHook(SCENE_MANAGER,"OnToggleGameMenuBinding",function()
-        if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then return false end
-        local top=self:TopDialog()
-        if not top then return false end
-        if top==self.languageWindow and top.firstRun then return true end
-        self:CloseDialog(top); return true
+        return self:HandleDialogEscape()
     end)
     self.dialogEscapeInstalled=true
 end
@@ -41,6 +53,7 @@ function A:ShowDialog(window)
     self:InstallDialogEscape()
     if SCENE_MANAGER and SCENE_MANAGER.ShowTopLevel then SCENE_MANAGER:ShowTopLevel(window) end
     self:Front(window)
+    self:RefreshDialogActionLayer()
 end
 function A:CloseDialog(window)
     if not window or window:IsHidden() or window.althiClosing then return false end
@@ -53,6 +66,7 @@ function A:CloseDialog(window)
     else window:SetHidden(true) end
     window.althiParent=nil
     window.althiClosing=nil
+    self:RefreshDialogActionLayer()
     return true
 end
 function A:CloseAllDialogs()

@@ -1,9 +1,10 @@
 ## Title: LibStatic
 ## Author: |cFF0000Static_Recharge|r
-## Version: 2.0.0
-## AddOnVersion: 2
+## Version: 2.1.0
+## AddOnVersion: 210
 ## APIVersion: 101049
 ## IsLibrary: true
+## DependsOn: LibChatMessage>=118
 ## Description: Static_Recharge common utility functions.
 
 # This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 

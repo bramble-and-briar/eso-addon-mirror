@@ -1,0 +1,14 @@
+## Title: PrismaticEmotes
+## Description: Persistent, automatic colors for roleplaying emotes in chat.
+## Author: aausten
+## Version: 1.0.0
+## AddOnVersion: 2
+## APIVersion: 101051
+## SavedVariables: PrismaticEmotesSavedVariables
+## OptionalDependsOn: pChat
+
+Core.lua
+Palette.lua
+Markup.lua
+Chat.lua
+Commands.lua

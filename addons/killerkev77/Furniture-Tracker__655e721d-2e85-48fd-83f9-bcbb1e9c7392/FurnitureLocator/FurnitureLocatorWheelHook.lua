@@ -60,9 +60,7 @@ local function HookQuickslotWheel()
         end
     end)
 
-    if ok then
-        d("Furniture Locator: wheel entry installed on Quickslot Wheel, slot 4.")
-    else
+    if not ok then
         d("Furniture Locator: wheel hook ERROR: " .. tostring(err))
     end
 end

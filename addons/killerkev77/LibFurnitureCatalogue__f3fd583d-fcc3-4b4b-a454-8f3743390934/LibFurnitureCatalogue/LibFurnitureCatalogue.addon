@@ -1,0 +1,25 @@
+## Title: LibFurnitureCatalogue
+## Author: @Atomic Khaos (console), |c1122FFwookiefriseur|r & others (see description)
+## Description: Furniture Catalogue database (item sources, prices, data). Based on FurnitureCatalogue from manavortex, extended by many contributors from GitHub and esoui. \|t36:36:esoui/art/icons/heraldrycrests_race_argonian_01.dds|t/ |c2222FF Stay moist! |r Web editor: https://wookiefriseur.github.io/LFC/
+## IsLibrary: true
+## Version: 1.2.0-console2
+## AddOnVersion: 1002000
+## APIVersion: 101051 101052
+
+LibFurnitureCatalogue.lua
+
+locale\en.lua
+locale\$(language).lua
+
+data\GeneratedConstants.lua
+Constants.lua
+Format.lua
+
+data\GeneratedDatabase.lua
+Generated.lua
+
+Build.lua
+Query.lua
+Api.lua
+Chat.lua
+LibFurnitureCatalogue_Console.lua

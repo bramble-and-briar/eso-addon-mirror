@@ -140,7 +140,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Long Buffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Simple-Long-Buffs__3054) | buldezir | PC / Mac | 1.0.5 |
 | [Simple Long Buffs Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Simple-Long-Buffs-Console__4d619dbf-92df-4bda-aac1-b5dbec806fca) | j.hhh | Console | — |
 | [Simple Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Simple-Off-Balance-Tracker__a2157cd5-8974-464f-b688-df9b184b6350) | Shienar | Console | — |
-| [Simple Player Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/naka182/Simple-Player-Frames__4981) | naka182 | PC / Mac | 1.0.1 |
+| [Simple Player Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/naka182/Simple-Player-Frames__4981) | naka182 | PC / Mac | 1.0.3 |
 | [Simple Skyshards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/Simple-Skyshards__3501) | Alianym | PC / Mac | 1.06 |
 | [Simple Slash Command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Slash-Command__2554) | ShadowMau | PC / Mac | 0.1.2 |
 | [Simple Text Box](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Text-Box__2564) | ShadowMau | PC / Mac | 1.0 |
@@ -315,7 +315,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stonefist Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Stonefist-Tracker__2659) | Hyperioxes | PC / Mac | 1.0 |
 | [StonehulkDominationTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/StonehulkDominationTracker__230ed4c2-9e8f-43c0-a778-abad31557b72) | FiNk3F13 | Console | — |
 | [StoneTalker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/StoneTalker__b9e43d9e-2e7b-4530-941b-01e90bd15f5a) | tmbrinks | Console | — |
-| [StoneTalker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/StoneTalker__3127) | tmbrinks | PC / Mac | 1.1.0 |
+| [StoneTalker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/StoneTalker__3127) | tmbrinks | PC / Mac | 1.1.1 |
 | [StopIt!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bazgrim/StopIt__1580) | Bazgrim | PC / Mac | 0.56 |
 | [Stopwatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gordias/Stopwatch__2398) | Gordias | PC / Mac | 1.1 |
 | [Storage stacker (updated CDG Bank Stacker with supporting house storage)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ivang/Storage-stacker-updated-CDG-Bank-Stacker-with-supporting-house-storage__4085) | ivang | PC / Mac | 0.1.1 |
@@ -343,6 +343,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Surging Waters Synergy Warning (Dreadsail Reef)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AlekWithK/Surging-Waters-Synergy-Warning-Dreadsail-Reef__3519) | AlekWithK | PC / Mac | 1.0.0 |
 | [Survey And Writ Count Warnings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mccalli/Survey-And-Writ-Count-Warnings__3835) | mccalli | PC / Mac | 1.0.2 |
 | [Survey Map Teleport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pyrowin/Survey-Map-Teleport__4593) | Pyrowin | PC / Mac | 1.2.0 |
+| [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__5001) | Lykeion | PC / Mac | 1.0 |
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__be74c988-2267-4f01-a4e5-c54cbf6aba19) | Lykeion+ | Console | — |
 | [Survey Sentinel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Survey-Sentinel__d9ba289c-0a0a-4233-80ab-25f3be9c35eb) | ReliktKoala | Console | — |
 | [Survey The World](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Survey-The-World__1817) | manavortex | PC / Mac | 1.5a |

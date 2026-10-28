@@ -1,8 +1,8 @@
 # BlockPooky - ESO Addon
 
 
-[![ESO API Version](https://img.shields.io/badge/ESO%20API-101049-blue)](https://www.esoui.com/)
-[![Version](https://img.shields.io/badge/Version-2.18-green)](https://github.com/your-repo/BlockPooky)
+[![ESO API Version](https://img.shields.io/badge/ESO%20API-101050-blue)](https://www.esoui.com/)
+[![Version](https://img.shields.io/badge/Version-2.23-green)](https://github.com/your-repo/BlockPooky)
 
 > **Warns the Pooky if blocking is necessary** - A comprehensive PvP awareness addon for Elder Scrolls Online
 
@@ -20,9 +20,10 @@ BlockPooky is an Elder Scrolls Online addon that provides critical combat awaren
 - **Group Messaging**: Cross-addon pull warnings via LibGroupBroadcast
 
 ### 🎯 Smart Detection
-- **Ability Recognition**: Detects incoming pull abilities (Dark Convergence, Rush of Agony, chains, etc.)
+- **Ability Recognition**: Detects incoming pull abilities (Dark Convergence, Rush of Agony, chains, etc.) and gap closers (Critical Rush, Stampede, ...)
+- **Two Detection Paths**: Pull effects trigger when the effect lands on you; damage abilities trigger when they hit you (ESO exposes no enemy "cast started" event, so charges are detected on impact)
 - **Group Awareness**: Ignores abilities from group members and companions
-- **Custom Triggers**: Add your own ability IDs for personalized detection
+- **Custom Triggers**: Add your own ability IDs for personalized detection — matched by ID, so morph/rank and language differences cannot break them
 - **Language Support**: Works across different ESO client languages
 
 ### 📊 Combat Awareness
@@ -31,7 +32,7 @@ BlockPooky is an Elder Scrolls Online addon that provides critical combat awaren
 - **Active CC Bar**: Shows the highest-priority crowd control currently affecting you (Stun → Fear → Disorient → Silence → Stagger) with per-type text and colors
 - **Negate Warnings**: Alerts when standing in enemy Negate Magic fields
 - **Ready Hints**: Notifications when DC/ROA abilities are off cooldown
-- **Threat Alerts**: Full-screen overlay warnings for dangerous threat abilities with customizable textures, opacity, and timing
+- **Threat Alerts**: Full-screen overlay warnings for dangerous threat abilities with customizable textures, opacity, and timing — assign custom center-screen text per ability ID (falls back to the ability name)
 - **Stamina Low Warning**: ⚠️ **Critical** - Alerts when stamina drops below breakfree threshold (prevents getting CC-locked)
 - **HoT Counter**: Real-time tracker for Healing-over-Time effects on the player (Update 49 8-cap compliance)
 
@@ -86,19 +87,23 @@ BlockPooky is an Elder Scrolls Online addon that provides critical combat awaren
 
 
 ### Advanced Features
-- **Custom Triggers**: Add ability IDs for personalized detection
+- **Custom Triggers**: Add ability IDs for personalized detection (applied immediately, no reload)
 - **Customizable Messages**: Edit messages(block warnings, hints, labels)
 - **Cooldown Bars**: Create bars for any ability or effect
 - **Combat Visuals**: UI controls for AOE brightness, outline thickness, target outline intensity, and RGB AOE cycling
-- **Debug Tools**: Investigate ability/effect IDs in real-time
+- **Debug Tools**: Investigate ability/effect/damage IDs in real-time
 - **UI Positioning**: Lock/unlock mode for moving interface elements
 
 ## Usage Tips
 
+### How Triggers Are Detected
+- **Pull effects** (Dark Convergence, Rush of Agony, chains, ...) are detected as `ACTION_RESULT_EFFECT_GAINED` when the effect lands on you.
+- **Damage abilities** (Critical Rush, Critical Charge, Stampede, ...) never raise an effect-gained event. They are detected when their hit lands on you, so the warning arrives on impact rather than before it. Hits you fully block are ignored on purpose.
+
 ### Finding Ability IDs
-1. Enable "Investigate Abilities" or "Investigate Effects" in Debug Tools
+1. Enable the matching investigation toggle in Debug Tools: "Investigate Abilities" for effects, "Investigate Incoming Damage" for hits that land on you
 2. Trigger the ability/effect in-game
-3. Check chat for the ID (format: `Effect? Name: <name> | ID: <id>`)
+3. Check chat for the ID (format: `Effect? Name: <name> | ID: <id>` or `Damage? Name: <name> | ID: <id> | Source: <name>`)
 4. Disable investigation to prevent chat spam
 
 ### Optimal Vigor Usage
@@ -196,6 +201,20 @@ For issues, feature requests, or questions:
 This addon is released under standard ESO addon terms. See individual library licenses for dependencies.
 
 ## Changelog
+
+### Version 2.23 - Damage-based triggers (gap closers)
+- **Gap closers now trigger block warnings**: Critical Rush, Critical Charge, Stampede and other charge abilities were listed but could never fire, because the warning only listened for `ACTION_RESULT_EFFECT_GAINED` and charges only ever deal damage
+- **New damage path**: a dedicated `EVENT_COMBAT_EVENT` handler filtered (C level) to damage/critical damage with the player as target; group members, companions and your own hits are still ignored
+- **ID matching**: trigger abilities are matched by ability ID as well as by name, so morph/rank differences and localized effect names cannot prevent a match
+- **Live trigger list**: toggling abilities, adding custom IDs or clearing the list now applies immediately instead of requiring `/reloadui`
+- **New "Incoming Damage Investigation"** debug toggle: logs `Name | ID | Source` for every hit that lands on you, so charge IDs can actually be found
+- **Limitation**: ESO has no "enemy cast started" event for other players, so charge warnings are delivered when the hit lands, not before it. Fully blocked hits do not trigger the warning
+
+### Version 2.22 - Threat Alert custom ability labels
+- **Threat Alert custom text**: assign custom text to individual ability IDs; it is shown in the center of the overlay when that ability is detected (falls back to the ability's localized name when empty)
+- **Ability Text Labels submenu**: "Show Text on Overlay" toggle, ability dropdown, and per-ability custom text
+- **Bugfix**: opening the settings menu no longer throws a LibAddonMenu error (`operator # is not supported for function`)
+- **Bugfix**: the "Current Threat Abilities" list in the settings menu now shows the configured abilities
 
 ### Version 2.21
 - **refactor**: remove CC alert cooldown to simplify message handling; update related comments

@@ -1,5 +1,6 @@
-2026.10.25
-- Added the ability for "/tp home" to also be used as "/tp home partialhousename" to teleport you to a specific owned or previewable home.
+2026.10.27
+- Fix for /tp home case sensitivity and trader enhancements not showing listing totals until you've cycled through your guilds.
+- Added "Skip Many Dialogs" feature which skips assistants, merchants and trader dialogs while attempting to maintain crafting compatability.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

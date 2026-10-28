@@ -1,0 +1,43 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/nycthemere/MugShot__5000",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "nycthemere",
+  "canonical_id": "esoui:5000",
+  "category_id": "109",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5000",
+  "deleted": false,
+  "directories": [
+    "MugShot"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5000/",
+  "fingerprint": "6d9cc1dd8faf099cca47b34a658d8f6831c9d85f5eb261240a6c5d8c91190193",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18188.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18192.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18189.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18191.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18193.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5000",
+  "source_url": "https://www.esoui.com/downloads/info5000-MugShot.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "MugShot",
+  "updated_at": 1793168327000,
+  "version": "2026.10.28-101044"
+}

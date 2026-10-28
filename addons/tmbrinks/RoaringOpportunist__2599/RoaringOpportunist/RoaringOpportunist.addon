@@ -1,9 +1,9 @@
 ## Title: |cFFD700RoaringOpportunist|r
 ## Description: Tracks your RoaringOpportunist cooldown
 ## Author: tmbrinks, |cc2ff19Wheels|r
-## Version: 2.5.0
-## AddOnVersion: 020500
-## APIVersion: 101047 101048
+## Version: 2.5.1
+## AddOnVersion: 020501
+## APIVersion: 101051
 ## SavedVariables: RoaringOpportunistSavedVars
 ## DependsOn: LibAddonMenu-2.0>=41 LibCombatAlerts>=7010
 

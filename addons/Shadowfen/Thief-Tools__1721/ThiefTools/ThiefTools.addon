@@ -1,7 +1,7 @@
 ﻿## Title: ThiefTools
-## Version: 3.5
+## Version: 3.5.4
 ## APIVersion: 101052 101051
-## AddOnVersion: 58
+## AddOnVersion: 62
 ## IsLibrary: false
 ## DependsOn: LibAddonMenu-2.0>=43 LibSFUtils>=78 LibDebugLogger>=307
 ## SavedVariables: ThiefToolsVars

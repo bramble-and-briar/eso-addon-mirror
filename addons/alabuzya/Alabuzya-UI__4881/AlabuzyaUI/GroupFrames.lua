@@ -3,6 +3,25 @@ AlabuzyaUI.GroupFrames = {}
 -- Independent compact group frames, GPL-3.0-or-later.
 local root,settings,ru,fragment
 local rows={}
+local guildCache={}
+local nextGuildRefresh=0
+function AlabuzyaUI.GroupFrames.SharedGuilds(tag)
+    if not GetUnitDisplayName or not GetGuildMemberIndexFromDisplayName then return {} end
+    if AreUnitsEqual and AreUnitsEqual(tag,'player') then return {} end
+    local account=GetUnitDisplayName(tag)
+    if not account or account=='' then return {} end
+    local now=GetFrameTimeSeconds()
+    if now>=nextGuildRefresh then guildCache={} nextGuildRefresh=now+2 end
+    if guildCache[account] then return guildCache[account] end
+    local names={}
+    for i=1,GetNumGuilds() do
+        local id=GetGuildId(i)
+        local member=GetGuildMemberIndexFromDisplayName(id,account)
+        if member and member>0 then names[#names+1]=GetGuildName(id) end
+    end
+    guildCache[account]=names
+    return names
+end
 local function Classic() return AlabuzyaUI.Theme and AlabuzyaUI.Theme.classic==true end
 local function DS3() return AlabuzyaUI.Theme and AlabuzyaUI.Theme.ds3==true end
 local hoveredRow
@@ -29,6 +48,12 @@ local function ShowLocation(row)
     end
     local name=row.companion and GetUnitName(tag) or ZO_GetPrimaryPlayerNameFromUnitTag(tag)
     local text=zo_strformat(SI_UNIT_NAME,name).."\n"..zone
+    if not row.companion then
+        local guilds=AlabuzyaUI.GroupFrames.SharedGuilds(tag)
+        if #guilds>0 then
+            text=text..'\n\n'..(ru and 'Общие гильдии:' or 'Shared guilds:')..'\n'..table.concat(guilds,'\n')
+        end
+    end
     if not online then text=text.."\n"..(ru and "Не в сети" or "Offline") end
     InitializeTooltip(InformationTooltip,row.bg,TOPLEFT,8,0,TOPRIGHT)
     SetTooltipText(InformationTooltip,text)
@@ -272,6 +297,9 @@ local function Update()
         local level=not unit.companion and UnitLevel(tag) or nil
         row.name:SetText((not raid and level and ('['..level..'] ') or '')..zo_strformat(SI_UNIT_NAME,display))
         row.name:SetColor(online and 1 or 0.5,online and 0.95 or 0.5,online and 0.8 or 0.5,1)
+        if not unit.companion and #AlabuzyaUI.GroupFrames.SharedGuilds(tag)>0 then
+            row.name:SetColor(.35,.9,1,1)
+        end
         if not online then row.hp:SetText(ru and "Не в сети" or "Offline")
         elseif dead then row.hp:SetText(ru and "Мёртв" or "Dead")
         else

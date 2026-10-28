@@ -1,8 +1,9 @@
 ## Title: Simple Player Frames
 ## Author: nakamura182
-## Version: 1.1
-## APIVersion: 101044 101045
+## Version: 1.0.3
+## APIVersion: 101051
+## AddOnVersion: 3
 ## SavedVariables: SimplePlayerFramesVars
-## DependsOn: LibAddonMenu-2.0>=35 LibMediaProvider-1.0
+## DependsOn: LibAddonMenu-2.0>=43 LibMediaProvider>=34
 
 SimplePlayerFrames.lua

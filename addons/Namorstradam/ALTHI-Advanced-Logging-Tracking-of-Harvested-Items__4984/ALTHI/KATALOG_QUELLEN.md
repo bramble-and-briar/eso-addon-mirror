@@ -1,50 +1,19 @@
-# ALTHI 0.6.1 – Materialkatalog und Quellen
+# Material catalog and sources – ALTHI 1.0.0
 
-Stand: 24. Oktober 2026.
+The catalog starts with 300 material-ID candidates and 4,015 recipe lookup IDs. Candidates are accepted only if ESO resolves a valid name and a supported material type (with explicit identities for selected special materials). Recipes themselves are not tracked as gathered materials.
 
-## Grundbestand
+The client supplies names, icons, quality, valid style/trait material links, current recipe-book ingredient links and supported newly observed loot/stock materials. Lookup work is spread across small background batches and cached per addon/API version. Possession of seed items or lookup recipes is not required. Unavailable client data is ignored; this is not a complete database export or a claim that every historical candidate is still obtainable.
 
-Catalog.lua enthält 293 eindeutige Material-ID-Kandidaten und 4.015 Nachschlagerezept-IDs. Rezepte werden nicht als Sammelbeute aktiviert. Unpassende/obsolete Kandidaten werden vom aktuellen Client nach Namen und Itemtyp aussortiert; gewöhnliche Versorgerzutaten und Fische aus älteren Tabellen sind für diesen Auftrag nicht freigegeben.
+Supported material groups cover equipment crafting, alchemy, enchanting, furnishing, styles/traits, provisioning and fishing. Fish meat and Perfect Roe retain their fishing classification. Native recipe-book discovery supplements historical recipe IDs; unknown fishing catches can be added when caught. A known item/source is distinct from a session-acquisition event.
 
-Quellen wurden als Daten gelesen, nicht ausgeführt:
+## Data references
 
-- UESP-Reagenzien: https://github.com/uesp/uesp-esolog/blob/master/esoPotionData.php
-- CraftStore-Zutaten, Runen, Lösungsmittel und Rezept-IDs: https://github.com/Rhyono/CraftStore/blob/master/CraftStore_VarInit.lua
-- LibLazyCrafting, materialItemIDs: https://github.com/Dolgubon/LibLazyCrafting/blob/master/Smithing.lua
-- HarvestMap-Rohstoffzuordnungen einschließlich der Erz-, Holz-, Faser- und Schmuckstaubstufen: https://github.com/seisenreich/HarvestMap/blob/master/Modules/HarvestMap/Main/PinTypes.lua
-- Romans 40 beobachtete IDs aus dem ersten Spieltest: BEOBACHTETE_IDS.csv. Deren Mengen werden niemals als Startzähler geladen.
-- Zusätzliche Lederrohstoffe und seltene Materialien aus ESO-Hubs eigener Itemdatenbank, konkrete URLs und IDs im Projekt unter sources/extra-material-ids.json.
+- CraftStore (Rhyono), ingredients/runes/solvents and recipe IDs: https://github.com/Rhyono/CraftStore/blob/master/CraftStore_VarInit.lua
+- LibLazyCrafting (Dolgubon), material tiers: https://github.com/Dolgubon/LibLazyCrafting/blob/master/Smithing.lua
+- UESP, reagent/solvent identities: https://github.com/uesp/uesp-esolog/blob/master/esoPotionData.php
+- HarvestMap, published node-material identity mappings: https://github.com/seisenreich/HarvestMap/blob/master/Modules/HarvestMap/Main/PinTypes.lua . Historical jewelry grain/trait mappings are not treated as proof of current node drops.
+- Additional identity cross-checks: https://eso-hub.com/en/trading/115026 (Aetherial Dust), https://eso-hub.com/en/trading/56862 and https://eso-hub.com/en/trading/56863 (Nirncrux), https://eso-hub.com/en/trading/139411 and https://eso-hub.com/en/trading/139417 (Aurbic Amber), https://eso-hub.com/en/trading/139413 and https://eso-hub.com/en/trading/139419 (Dibellium), https://eso-hub.com/en/trading/204881 (Luminous Ink), https://eso-hub.com/en/trading/114891 (Clean Pelt).
+- U51 reagent IDs 224357–224360: LibAlchemy author changelog and documented community references listed in MATERIALQUELLEN.md.
+- Votan's Fisherman fishing/bait facts and Votan's Fish Fillet public workflow/API reference: acknowledged in AUTHORS.md; no third-party implementation or library is bundled.
 
-Belegte Lederrohstoffstufen: 793, 4448, 23095, 6020, 23097, 23142, 23143, 800, 4478, 71239.
-
-Zusätzliche geprüfte seltene IDs:
-
-- Aurbic Amber 139411: https://eso-hub.com/en/trading/139411
-- Pulverized Aurbic Amber 139417: https://eso-hub.com/en/trading/139417
-- Aetherial Dust 115026: https://eso-hub.com/en/trading/115026
-- Fortified Nirncrux 56862: https://eso-hub.com/en/trading/56862
-- Potent Nirncrux 56863: https://eso-hub.com/en/trading/56863
-
-Der reproduzierbare Generator liegt unter tools/build_catalog.py. Heruntergeladene Quelldateien und Prüfsummen liegen unter sources/ außerhalb der Addon-ZIP.
-
-## Ergänzung aus dem laufenden Client
-
-Die Item-ID liefert über ESO den tatsächlichen lokalisierten Namen, Icon, Qualität und Materialtyp. Namen werden mit großem Anfangsbuchstaben angezeigt. Die aktuellen gültigen Stilmaterialien und API-verfügbaren Eigenschaftsmaterialien werden ohne Besitz abgefragt. Rezept-IDs liefern ihre Materialzutaten in kleinen Hintergrundschritten. Auch diese Rezepte muss der Spieler weder besitzen noch kennen.
-
-Der vollständige Rezeptabgleich läuft einmal pro Addon-/API-Version. Danach wird er aus den gespeicherten Daten wiederverwendet; ein Patch mit neuer API löst den Abgleich erneut aus. Neue passende Ressourcen-IDs können beim Looten oder einer Handwerksbeuteländerung ergänzt werden. Eine abgeschaltete Gruppe schließt auch neue Einträge dieser Gruppe aus.
-
-Die Materialtypen unterstützen jede Stufe, ohne das Handwerkslevel des Charakters auszuwerten. Das ist von der Herkunftserkennung getrennt: Ein bekanntes Material wird nur als Sessionfund gezählt, wenn seine Quelle zusätzlich als Sammelvorgang zugelassen ist.
-
-## Grenzen
-
-Dies ist kein vollständiger aktueller UESP-Datenbankexport; dessen öffentlicher Abruf lieferte eine Browserprüfung. Die angegebenen veröffentlichten Tabellen und die Live-APIs decken den Grundbestand und weitere Materialien ab, belegen aber keine lückenlose Liste jedes seitdem eingeführten Sondermaterials. Auflösbarkeit im Client beweist außerdem nicht aktuelle Erhältlichkeit.
-
-Der Auftrag konzentriert sich auf Ressourcen und ihre Bestände. Eine Katalogzutat aus einem Einrichtungsrezept ist ein Materialeintrag; das bedeutet nicht, dass ALTHI bereits Möbel herstellt. Ebenso sind verarbeitete Materialien zur Bestandsbewertung vorhanden, ohne Veredelung als Sessionquelle zu aktivieren. Tier-/Bosskörperbeute, Angeln und Filetieren bleiben in dieser Version ausgeschlossen. Herkunftsgrenzen und Weltknotenprüfung sind in TECHNIK.md beschrieben.
-
-## Ergänzung 0.6.0
-
-Dibellium 139413 und pulverisiertes Dibellium 139419 als weitere ID-Kandidaten ergänzt (293 insgesamt). Quellen-/Belegkatalog getrennt von Itemidentität unter MATERIALQUELLEN.md und SourceData.lua. Für Rohleder und Materialtypen wird keine spezifische Tierart/Dropchance geraten. Historische Schmuckkorn-/Traitzuordnungen aus der alten HarvestMap-Tabelle werden nicht als sichere heutige Knotenquellen verwendet.
-
-## Abgleich 0.9.1
-
-Seed auf 298 IDs erweitert: Feine Kreide 75370 sowie U51-Reagenzien 224357–224360. Herkunft und ID-Belege in MATERIALQUELLEN.md, vollständige Kandidaten-/Typregelprüfung in HERKUNFT_KATALOGPRUEFUNG.csv und HERKUNFT_TYPREGELN.csv. 4.015 Rezept-IDs unverändert. Ohne gültigen unterstützten ESO-Itemtyp wird kein Kandidat als Sammelmaterial aktiviert.
+Source snapshots, build tools, tests and personal item observations remain in the development workspace and are excluded from the public release. Original addon code is not obtained by executing these source tables. See AUTHORS.md and LICENSE.txt for attribution and permissions.

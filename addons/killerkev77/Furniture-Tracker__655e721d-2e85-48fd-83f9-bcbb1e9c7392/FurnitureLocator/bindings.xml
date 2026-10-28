@@ -10,13 +10,25 @@ Attaching to the built-in "SI_KEYBINDINGS_LAYER_GENERAL" layer (the
 same layer other simple addon keybinds use) means this shows up under
 Controls > Keybindings and works any time, without needing any custom
 action-layer push/pop logic of our own.
+
+FIX: this used to call SCENE_MANAGER:Toggle("FurnitureLocatorSceneGamepad")
+directly, which shows the bare item-list screen with no category/style
+selected yet. Since every item resolves to a real category (falling back
+to "Uncategorized", never nil), a nil currentCategory filter matches
+zero items -- so the very first time this keybind was pressed in a
+session, it showed a blank list (just "< Back" rows), looking broken.
+Routing through FurnitureLocatorDialogs.ShowCategoryDialog() (v13: opens Home) -- the same
+entry point the Quickslot Wheel slot and /flocator2 already use -- keeps
+this keybind consistent with the rest of the addon's real flow.
 -->
 <Bindings>
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="Furniture Locator">
             <Action name="FURNITURE_LOCATOR_TOGGLE">
                 <Down>
-                    SCENE_MANAGER:Toggle("FurnitureLocatorSceneGamepad")
+                    if FurnitureLocatorDialogs then
+                        FurnitureLocatorDialogs.ShowCategoryDialog()
+                    end
                 </Down>
             </Action>
         </Category>

@@ -1,5 +1,6 @@
 <GuiXml>
   <Font name="BlockPookyFont" font="$(BOLD_FONT)|65|soft-shadow-thick" />
+  <Font name="BlockPookyThreatAlertFont" font="$(BOLD_FONT)|72|soft-shadow-thick" />
   <Controls>
     <TopLevelControl name="BlockPookyIndicator" mouseEnabled="true" movable="true" clampedToScreen="true">
       <Dimensions x="350" y="30" />
@@ -48,6 +49,11 @@
           <Dimensions x="0" y="0"/>
           <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
         </Texture>
+        <Label name="$(parent)Label" font="BlockPookyThreatAlertFont" color="FFFFFF" alpha="0.0"
+            wrapMode="ELLIPSIS" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="">
+          <Dimensions x="1400" y="160" />
+          <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" />
+        </Label>
       </Controls>
     </TopLevelControl>
     <TopLevelControl name="BlockPookyStaminaLowOverlay" alpha="0.0">

@@ -137,12 +137,12 @@ function A:LayoutTable(rows)
         header:SetHidden(self.db.ui.minimized or not width)
         self.dividers[index]:SetHidden(self.db.ui.minimized or not width or index == #self.widths)
         if width then
-            header:ClearAnchors(); header:SetAnchor(TOPLEFT, self.window, TOPLEFT, x + (index == 1 and 28 or 4), 130)
+            header:ClearAnchors(); header:SetAnchor(TOPLEFT, self.window, TOPLEFT, x + (index == 1 and 28 or 4), self:TableTop()-20)
             header:SetDimensions(width - (index == 1 and 36 or 12), 22)
             local marker = self.db.ui.sortKey == self.columnKeys[index] and (self.db.ui.sortDescending and " v" or " ^") or ""
             header:SetText(L(self.columnTitles[index]) .. marker)
             local divider = self.dividers[index]
-            divider:ClearAnchors(); divider:SetAnchor(TOPLEFT, self.window, TOPLEFT, x + width - 4, 130)
+            divider:ClearAnchors(); divider:SetAnchor(TOPLEFT, self.window, TOPLEFT, x + width - 4, self:TableTop()-20)
             divider:SetDimensions(8, 22)
             for _, control in ipairs(self.rowControls) do
                 local cell = control.cells[index]
@@ -158,12 +158,12 @@ function A:LayoutTable(rows)
     end
     local nameEnd = 18 + self.widths[1]
     local sessionWidth = self.widths[2] + self.widths[3]
-    self.sessionGroup:ClearAnchors(); self.sessionGroup:SetAnchor(TOPLEFT, self.window, TOPLEFT, nameEnd, 110)
+    self.sessionGroup:ClearAnchors(); self.sessionGroup:SetAnchor(TOPLEFT, self.window, TOPLEFT, nameEnd, self:TableTop()-40)
     self.sessionGroup:SetDimensions(sessionWidth - 10, 20)
     self.sessionGroup:SetHidden(self.db.ui.minimized == true)
     self.stockGroup:SetHidden(self.db.ui.minimized or not self.db.ui.showStock)
     if self.db.ui.showStock then
-        self.stockGroup:ClearAnchors(); self.stockGroup:SetAnchor(TOPLEFT, self.window, TOPLEFT, nameEnd + sessionWidth, 110)
+        self.stockGroup:ClearAnchors(); self.stockGroup:SetAnchor(TOPLEFT, self.window, TOPLEFT, nameEnd + sessionWidth, self:TableTop()-40)
         self.stockGroup:SetDimensions(self.widths[4] + self.widths[5] - 10, 20)
     end
     self.bagTotal:SetHidden(not self.db.ui.showStock)

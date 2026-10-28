@@ -4,9 +4,17 @@
       <Action name="ALTHI_TOGGLE"><Down>ALTHarvestItems:ToggleWindow()</Down></Action>
       <Action name="ALTHI_SETTINGS"><Down>ALTHarvestItems:OpenSettings()</Down></Action>
       <Action name="ALTHI_RUN"><Down>ALTHarvestItems:Play()</Down></Action>
-      <Action name="ALTHI_PAUSE"><Down>ALTHarvestItems:Pause()</Down></Action>
+      <Action name="ALTHI_PAUSE"><Down>ALTHarvestItems:TogglePause()</Down></Action>
       <Action name="ALTHI_STOP"><Down>ALTHarvestItems:Stop()</Down></Action>
       <Action name="ALTHI_RESET"><Down>ZO_Dialogs_ShowDialog("ALTHI_RESET")</Down></Action>
+      <Action name="ALTHI_FILLET"><Down>ALTHarvestItems:ToggleFilleting()</Down></Action>
+    </Category>
+  </Layer>
+  <Layer name="ALTHarvestItemsDialogs" allowFallthrough="true">
+    <Category>
+      <Action name="ALTHARVESTITEMS_DIALOG_BACK" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_NEGATIVE"><Down>return ALTHarvestItems:HandleDialogEscape()</Down></Action>
+      <Action name="ALTHARVESTITEMS_DIALOG_EXIT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_EXIT"><Down>return ALTHarvestItems:HandleDialogEscape()</Down></Action>
+      <Action name="ALTHARVESTITEMS_DIALOG_SYSTEM" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_SYSTEM"><Down>return ALTHarvestItems:HandleDialogEscape()</Down></Action>
     </Category>
   </Layer>
 </Bindings>

@@ -1,0 +1,44 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/thepandalore/Dungeon-Scores__5005",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "thepandalore",
+  "canonical_id": "esoui:5005",
+  "category_id": "155",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5005",
+  "deleted": false,
+  "directories": [
+    "DungeonScores",
+    "DungeonScoresRecords"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5005/",
+  "fingerprint": "b191c43a765b4885d0a05f15b5a3eed3d6dcb71b8e6b5acf00d4d3d2d62ad324",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18209.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18212.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18213.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18214.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18215.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5005",
+  "source_url": "https://www.esoui.com/downloads/info5005-DungeonScores.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Dungeon Scores",
+  "updated_at": 1793160768000,
+  "version": "0.5.36"
+}

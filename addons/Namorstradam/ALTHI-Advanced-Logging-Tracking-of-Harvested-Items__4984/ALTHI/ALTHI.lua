@@ -1,5 +1,5 @@
 ALTHarvestItems = ALTHarvestItems or {}
-ALTHarvestItems.name, ALTHarvestItems.version, ALTHarvestItems.offset = "ALTHI", "0.9.4", 0
+ALTHarvestItems.name, ALTHarvestItems.version, ALTHarvestItems.offset = "ALTHI", "1.0.0", 0
 local A = ALTHarvestItems
 A.title = "ALTHI – Advanced Logging & Tracking of Harvested Items"
 A.authors = "Althi & Roman (@namorstradam & @bakaroobanzai)"
@@ -10,6 +10,11 @@ function A.ValidId(value)
 end
 function A.Link(id)
     return "|H1:item:" .. id .. ":0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"
+end
+function A:LootItemLink(link,itemId)
+    if type(link)=='string' and self.ValidId(GetItemLinkItemId(link)) then return link end
+    local id=self.ValidId(itemId)
+    return id and self.Link(id) or (type(link)=='string' and link or '')
 end
 function A.Now() return GetGameTimeMilliseconds() / 1000 end
 function A.Copy(value)
@@ -52,6 +57,15 @@ function A:QueueRefresh()
     end)
 end
 function A:Migrate()
+    if not self.db.sessionControls0109 then
+        -- Initial/reset sessions start on the first find; only resuming a pause is optional.
+        self.db.options.autoStart=true
+        self.db.sessionControls0109=true
+        local session=self.db.session
+        local fish=session.fishing
+        if session.state=='stopped' and ((session.elapsed or 0)>0 or next(session.counts or {})
+            or fish and ((fish.caught or 0)>0 or (fish.filleted or 0)>0)) then session.state='paused' end
+    end
     if self.db.schema ~= 3 then
         if next(self.db.counts) and not self.db.legacyCounts then
             self.db.legacyCounts = self.Copy(self.db.counts)
@@ -139,7 +153,7 @@ function A:Initialize()
     end)
     Event(EVENT_PLAYER_DEACTIVATED, function()
         self:Pause(); self:ClearHarvest()
-        self:ClearNotices()
+        self:ClearNotices(); self.creatureAttempt=nil; self.interactionAttempt=nil
         EVENT_MANAGER:UnregisterForUpdate("ALTHIInteraction")
     end)
     for _, eventName in ipairs({ "EVENT_MAIL_OPEN_MAILBOX",
@@ -148,6 +162,14 @@ function A:Initialize()
         Event(_G[eventName], function() self:BlockTransfer() end)
     end
     Event(EVENT_CLOSE_TRADING_HOUSE, function() self:RefreshPrices() end)
+    -- Current ESO keyboard/gamepad interact bindings route through this manager,
+    -- even for ordinary objects when the fishing wheel declines the interaction.
+    if INTERACTIVE_WHEEL_MANAGER and type(INTERACTIVE_WHEEL_MANAGER.StartInteraction) == 'function' and ZO_PreHook then
+        ZO_PreHook(INTERACTIVE_WHEEL_MANAGER, 'StartInteraction', function(_, wheelType)
+            if wheelType == ZO_INTERACTIVE_WHEEL_TYPE_FISHING then self:MarkWorldNode() end
+            return false
+        end)
+    end
     if FISHING_MANAGER and type(FISHING_MANAGER.StartInteraction) == "function" and ZO_PreHook then
         ZO_PreHook(FISHING_MANAGER, "StartInteraction", function()
             self:MarkWorldNode()

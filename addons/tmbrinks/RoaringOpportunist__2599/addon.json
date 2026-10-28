@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/tmbrinks/RoaringOpportunist__2599",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "tmbrinks",
   "canonical_id": "esoui:2599",
   "category_id": "112",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
-    },
-    {
-      "name": "Feast of Shadows",
-      "version": "11.1.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2599",
@@ -21,7 +18,7 @@
     "RoaringOpportunist"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2599/",
-  "fingerprint": "e57a2482cc2cbed1626a893a8750605afcce5557c38dd19cadf526549e26c76f",
+  "fingerprint": "35fe84043f58ab6c422162f3cae65c1fc7e2c221936ecd170d218cd65cdaac3f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8853.jpg"
   ],
@@ -31,11 +28,11 @@
   "source_id": "2599",
   "source_url": "https://www.esoui.com/downloads/info2599-RoaringOpportunist.html",
   "stats": {
-    "downloads": 78000,
-    "favorites": 25,
-    "monthly_downloads": 300
+    "downloads": 78889,
+    "favorites": 26,
+    "monthly_downloads": 313
   },
   "title": "RoaringOpportunist",
-  "updated_at": 1762720003000,
-  "version": "2.5.0"
+  "updated_at": 1793136378000,
+  "version": "2.5.1"
 }

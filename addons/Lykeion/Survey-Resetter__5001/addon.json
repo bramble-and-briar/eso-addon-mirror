@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Lykeion/Survey-Resetter__5001",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Lykeion",
+  "canonical_id": "esoui:5001",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5001",
+  "deleted": false,
+  "directories": [
+    "SurveyResetter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5001/",
+  "fingerprint": "7cd94aece51fbb5de70071f29a9b37dad1cf114736c2d74cc17f920ca91a91a7",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18194.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5001",
+  "source_url": "https://www.esoui.com/downloads/info5001-SurveyResetter.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "Survey Resetter",
+  "updated_at": 1793087859000,
+  "version": "1.0"
+}

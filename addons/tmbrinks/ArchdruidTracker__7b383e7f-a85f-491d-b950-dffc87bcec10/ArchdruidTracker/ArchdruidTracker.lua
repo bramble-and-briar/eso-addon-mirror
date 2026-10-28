@@ -6,7 +6,7 @@ local EM		= GetEventManager()
 local LCA = LibCombatAlerts
 
 ArchdruidTracker.name		= "ArchdruidTracker"
-ArchdruidTracker.version		= "1.1.0"
+ArchdruidTracker.version		= "1.1.1"
 ArchdruidTracker.varVersion 	= "1"
 
 local ECE_NAME = ArchdruidTracker.name.."ECE"
@@ -43,10 +43,6 @@ ArchdruidTracker.TYPES = {
 }
 
 ArchdruidTracker.defaults	= {
-	pos = {
-	left = 500,
-	top	= 500,
-	},
 	["timerSize"]	= 48,
 	["passiveHide"]	= false,
 	["COLORS"]	= ArchdruidTracker.COLORS,
@@ -156,13 +152,19 @@ function ArchdruidTracker.Init(event, addon)
 
 	ArchdruidTracker.savedVars = ZO_SavedVars:NewAccountWide(ArchdruidTracker.name.."SavedVars", ArchdruidTracker.varVersion, nil, ArchdruidTracker.defaults, nil, "$InstallationWide")
 	local sv = ArchdruidTracker.savedVars
-		if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
+	if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
         sv.pos = {
             left = sv.offsetX,
             top = sv.offsetY,
         }
         sv.offsetX = nil
         sv.offsetY = nil
+	end
+	if (not sv.pos) then
+		sv.pos = {
+			left = 500,
+			top	= 500,
+		}
 	end
 	
 	ArchdruidTracker.setFontSize(ArchdruidTracker.savedVars.timerSize)

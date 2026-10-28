@@ -1,7 +1,6 @@
 local SimplePlayerFrames = {}
 SimplePlayerFrames.name = "SimplePlayerFrames"
 
--- Default Values
 local defaults = {
     accountWide = true, 
     lockUI = false,
@@ -20,19 +19,15 @@ local defaults = {
     showName = true,
     showCP = true,
     
-    -- Colors and Gradients
     healthColor = {0.75, 0.15, 0.15, 1},
     useHealthGradient = false,
     healthGradientColor = {0.40, 0.05, 0.05, 1},
-
     shieldColor = {0.80, 0.80, 1.00, 0.5},
     useShieldGradient = false,
     shieldGradientColor = {0.40, 0.40, 0.80, 0.5},
-
     magickaColor = {0.15, 0.30, 0.85, 1},
     useMagickaGradient = false,
     magickaGradientColor = {0.05, 0.15, 0.50, 1},
-
     staminaColor = {0.20, 0.70, 0.20, 1},
     useStaminaGradient = false,
     staminaGradientColor = {0.05, 0.40, 0.05, 1},
@@ -41,8 +36,28 @@ local defaults = {
     posY = 300, 
 }
 
+local function FormatPercent(current, max)
+    if not max or max <= 0 then return "0%" end
+    return math.floor((current / max) * 100) .. "%"
+end
+
+local function GetWidthPercent(current, max)
+    if not max or max <= 0 then return 0 end
+    local p = current / max
+    if p > 1 then return 1 end
+    if p < 0 then return 0 end
+    return p
+end
+
+local function FormatAbbrev(val)
+    if val >= 1000 then
+        local formatted = string.format("%.1fk", val / 1000)
+        return formatted:gsub("%.0k", "k")
+    end
+    return tostring(val)
+end
+
 function SimplePlayerFrames:Initialize()
-    -- Tweak: Added GetWorldName() to ensure account-wide SVs do not conflict across servers (NA/EU)
     self.accountVars = ZO_SavedVars:NewAccountWide("SimplePlayerFramesVars", 1, nil, defaults, GetWorldName())
     self.charVars = ZO_SavedVars:NewCharacterIdSettings("SimplePlayerFramesVars", 1, nil, defaults)
 
@@ -56,17 +71,24 @@ function SimplePlayerFrames:Initialize()
     self:BuildMenu()
     self:ApplySettings()
 
-    -- Tweak: Native ESO engine filter. Lua function no longer needs to test "if unitTag == player"
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_POWER_UPDATE, function() self:UpdateValues() end)
+    -- Otimização Avançada: Filtra pelo PowerType para atualizar apenas a barra necessária
+    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax, powerEffectiveMax)
+        if powerType == POWERTYPE_HEALTH then
+            self:UpdateHealth(powerValue, powerEffectiveMax)
+        elseif powerType == POWERTYPE_MAGICKA then
+            self:UpdateMagicka(powerValue, powerEffectiveMax)
+        elseif powerType == POWERTYPE_STAMINA then
+            self:UpdateStamina(powerValue, powerEffectiveMax)
+        end
+    end)
     EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
 
     local function OnVisualUpdated(_, _, visualType)
         if visualType == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-            self:UpdateValues()
+            self:UpdateShield()
         end
     end
 
-    -- Tweak: Added explicit "player" Unit Tag filters to all visual events
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualUpdated)
     EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, "player")
 
@@ -77,7 +99,7 @@ function SimplePlayerFrames:Initialize()
     EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, "player")
 
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_PLAYER_ACTIVATED, function()
-        self:UpdateValues()
+        self:UpdateAllPowers()
         self:UpdateNameAndIcons()
     end)
 end
@@ -88,7 +110,6 @@ function SimplePlayerFrames:CreateUI()
     self.control:SetMovable(not self.savedVars.lockUI)
     self.control:SetClampedToScreen(true)
     
-    -- Attaches the window to HUD scenes to hide during menus
     local fragment = ZO_HUDFadeSceneFragment:New(self.control)
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
@@ -169,9 +190,8 @@ function SimplePlayerFrames:ApplySettings()
     
     local fontPath = sv.fontChoice
     if fontPath ~= "FCUI" then
-        local LMP = LibMediaProvider or (LibStub and LibStub("LibMediaProvider-1.0", true))
-        if LMP and LMP:Fetch("font", sv.fontChoice) then
-            fontPath = LMP:Fetch("font", sv.fontChoice)
+        if LibMediaProvider:Fetch("font", sv.fontChoice) then
+            fontPath = LibMediaProvider:Fetch("font", sv.fontChoice)
         end
     end
 
@@ -209,7 +229,7 @@ function SimplePlayerFrames:ApplySettings()
     self.staminaContainer:ClearAnchors()
 
     local barInnerWidth = sv.frameWidth - (sv.borderLateral * 2)
-    self.control:SetDimensions(sv.frameWidth, 100)
+    self.control:SetDimensions(sv.frameWidth, 100) -- Initial size; recalculated after layout below.
     self.control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, self.savedVars.posX, self.savedVars.posY)
 
     if sv.layout == "Compact" then
@@ -306,6 +326,11 @@ function SimplePlayerFrames:ApplySettings()
         self.staminaContainer:SetAnchor(TOPLEFT, self.bg, TOPLEFT, sv.borderLateral, yStamina)
     end
 
+    -- The background begins 30 units below the top-level control.
+    -- Keep the movable/clamped control large enough to contain the full layout.
+    local totalControlHeight = 30 + self.bg:GetHeight()
+    self.control:SetDimensions(sv.frameWidth, totalControlHeight)
+
     self.nameLabel:ClearAnchors()
     self.cpLabel:ClearAnchors()
 
@@ -321,7 +346,7 @@ function SimplePlayerFrames:ApplySettings()
     self.magickaFill:SetDimensions(self.magickaWidth, sv.magickaHeight)
     self.staminaFill:SetDimensions(self.staminaWidth, sv.staminaHeight)
 
-    self:UpdateValues()
+    self:UpdateAllPowers()
 end
 
 function SimplePlayerFrames:UpdateNameAndIcons()
@@ -355,76 +380,99 @@ function SimplePlayerFrames:UpdateNameAndIcons()
     end
 end
 
-function SimplePlayerFrames:UpdateValues()
-    local sv = self.savedVars
+function SimplePlayerFrames:UpdateShield()
+    local currentHealth, maxHealth, effectiveMaxHealth =
+        GetUnitPower("player", POWERTYPE_HEALTH)
 
-    local function FormatPercent(current, max)
-        if not max or max <= 0 then return "0%" end
-        return math.floor((current / max) * 100) .. "%"
+    -- Clear stale shield visuals if health data is unavailable.
+    if not currentHealth or not maxHealth or maxHealth <= 0 then
+        self.shieldFill:SetHidden(true)
+        self.shieldFill:SetDimensions(0, self.savedVars.healthHeight)
+        self.healthValue:SetText("0")
+        return
     end
 
-    local function GetWidthPercent(current, max)
-        if not max or max <= 0 then return 0 end
-        local p = current / max
-        if p > 1 then return 1 end
-        if p < 0 then return 0 end
-        return p
+    -- A dead player should not retain a previously displayed shield overlay.
+    if currentHealth <= 0 then
+        self.shieldFill:SetHidden(true)
+        self.shieldFill:SetDimensions(0, self.savedVars.healthHeight)
+        self.healthValue:SetText(tostring(currentHealth))
+        return
     end
-    
-    local function FormatAbbrev(val)
-        if val >= 1000 then
-            local formatted = string.format("%.1fk", val / 1000)
-            return formatted:gsub("%.0k", "k")
+
+    local shieldVal = GetUnitAttributeVisualizerEffectInfo(
+        "player",
+        ATTRIBUTE_VISUAL_POWER_SHIELDING,
+        STAT_MITIGATION,
+        ATTRIBUTE_HEALTH,
+        POWERTYPE_HEALTH
+    ) or 0
+
+    -- Prefer effective maximum health when available, falling back to max health.
+    local shieldReference = effectiveMaxHealth
+    if not shieldReference or shieldReference <= 0 then
+        shieldReference = maxHealth
+    end
+
+    if shieldVal > 0 then
+        if self.shieldFill:IsHidden() then
+            self.shieldFill:SetHidden(false)
+            self.shieldAnimTimeline:PlayFromStart()
         end
-        return tostring(val)
-    end
 
-    local cHealth, mHealth = GetUnitPower("player", POWERTYPE_HEALTH)
-    if mHealth and mHealth > 0 then
-        self.healthValue:SetText(cHealth)
-        self.healthPct:SetText(FormatPercent(cHealth, mHealth))
-        self.healthFill:SetDimensions(self.healthWidth * GetWidthPercent(cHealth, mHealth), sv.healthHeight)
+        self.shieldFill:SetDimensions(
+            self.healthWidth * GetWidthPercent(shieldVal, shieldReference),
+            self.savedVars.healthHeight
+        )
 
-        local shieldVal = GetUnitAttributeVisualizerEffectInfo("player", ATTRIBUTE_VISUAL_POWER_SHIELDING, STAT_MITIGATION, ATTRIBUTE_HEALTH, POWERTYPE_HEALTH) or 0
-        if shieldVal > 0 then
-            if self.shieldFill:IsHidden() then
-                self.shieldFill:SetHidden(false)
-                self.shieldAnimTimeline:PlayFromStart()
-            end
-            
-            self.shieldFill:SetDimensions(self.healthWidth * GetWidthPercent(shieldVal, mHealth), sv.healthHeight)
-            
-            local shieldText = FormatAbbrev(shieldVal)
-            self.healthValue:SetText(tostring(cHealth) .. " [" .. shieldText .. "]")
-        else
-            self.shieldFill:SetHidden(true)
-        end
-    end
-
-    local cMag, mMag = GetUnitPower("player", POWERTYPE_MAGICKA)
-    if mMag and mMag > 0 then
-        self.magickaValue:SetText(cMag)
-        self.magickaPct:SetText(FormatPercent(cMag, mMag))
-        self.magickaFill:SetDimensions(self.magickaWidth * GetWidthPercent(cMag, mMag), sv.magickaHeight)
-    end
-
-    local cStam, mStam = GetUnitPower("player", POWERTYPE_STAMINA)
-    if mStam and mStam > 0 then
-        self.staminaValue:SetText(cStam)
-        self.staminaPct:SetText(FormatPercent(cStam, mStam))
-        self.staminaFill:SetDimensions(self.staminaWidth * GetWidthPercent(cStam, mStam), sv.staminaHeight)
+        local shieldText = FormatAbbrev(shieldVal)
+        self.healthValue:SetText(tostring(currentHealth) .. " [" .. shieldText .. "]")
+    else
+        self.shieldFill:SetHidden(true)
+        self.shieldFill:SetDimensions(0, self.savedVars.healthHeight)
+        self.healthValue:SetText(tostring(currentHealth))
     end
 end
 
-function SimplePlayerFrames:BuildMenu()
-    local LAM = LibAddonMenu2 -- Tweak: "if not LAM then return end" removed due to version check in .txt
+function SimplePlayerFrames:UpdateHealth(powerValue, powerMax)
+    if not powerMax or powerMax <= 0 then return end
+    self.healthPct:SetText(FormatPercent(powerValue, powerMax))
+    self.healthFill:SetDimensions(self.healthWidth * GetWidthPercent(powerValue, powerMax), self.savedVars.healthHeight)
+    self:UpdateShield()
+end
 
+function SimplePlayerFrames:UpdateMagicka(powerValue, powerMax)
+    if not powerMax or powerMax <= 0 then return end
+    self.magickaValue:SetText(powerValue)
+    self.magickaPct:SetText(FormatPercent(powerValue, powerMax))
+    self.magickaFill:SetDimensions(self.magickaWidth * GetWidthPercent(powerValue, powerMax), self.savedVars.magickaHeight)
+end
+
+function SimplePlayerFrames:UpdateStamina(powerValue, powerMax)
+    if not powerMax or powerMax <= 0 then return end
+    self.staminaValue:SetText(powerValue)
+    self.staminaPct:SetText(FormatPercent(powerValue, powerMax))
+    self.staminaFill:SetDimensions(self.staminaWidth * GetWidthPercent(powerValue, powerMax), self.savedVars.staminaHeight)
+end
+
+function SimplePlayerFrames:UpdateAllPowers()
+    local cHealth, mHealth, eHealth = GetUnitPower("player", POWERTYPE_HEALTH)
+    local healthMax = (eHealth and eHealth > 0) and eHealth or mHealth
+    if healthMax and healthMax > 0 then self:UpdateHealth(cHealth, healthMax) end
+
+    local cMag, mMag, eMag = GetUnitPower("player", POWERTYPE_MAGICKA)
+    local magickaMax = (eMag and eMag > 0) and eMag or mMag
+    if magickaMax and magickaMax > 0 then self:UpdateMagicka(cMag, magickaMax) end
+
+    local cStam, mStam, eStam = GetUnitPower("player", POWERTYPE_STAMINA)
+    local staminaMax = (eStam and eStam > 0) and eStam or mStam
+    if staminaMax and staminaMax > 0 then self:UpdateStamina(cStam, staminaMax) end
+end
+
+function SimplePlayerFrames:BuildMenu()
     local fontChoices = {"FCUI", "ZoFontGameBold", "ZoFontGame"}
-    local LMP = LibMediaProvider or (LibStub and LibStub("LibMediaProvider-1.0", true))
-    if LMP then
-        for _, font in ipairs(LMP:List("font")) do
-            if font ~= "FCUI" then table.insert(fontChoices, font) end
-        end
+    for _, font in ipairs(LibMediaProvider:List("font")) do
+        if font ~= "FCUI" then table.insert(fontChoices, font) end
     end
 
     local panelData = {
@@ -432,7 +480,7 @@ function SimplePlayerFrames:BuildMenu()
         name = "Simple Player Frames",
         displayName = "Simple Player Frames",
         author = "nakamura182",
-        version = "1.1",
+        version = "1.0.3",
         registerForRefresh = true,
         registerForDefaults = true,
     }
@@ -708,8 +756,8 @@ function SimplePlayerFrames:BuildMenu()
         },
     }
 
-    LAM:RegisterAddonPanel("SimplePlayerFramesOptions", panelData)
-    LAM:RegisterOptionControls("SimplePlayerFramesOptions", optionsData)
+    LibAddonMenu2:RegisterAddonPanel("SimplePlayerFramesOptions", panelData)
+    LibAddonMenu2:RegisterOptionControls("SimplePlayerFramesOptions", optionsData)
 end
 
 local function OnAddOnLoaded(eventCode, addonName)

@@ -45,7 +45,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [QuickCompass - Modified](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/QuickCompass---Modified__2471) | Phuein | PC / Mac | 1.0.1.18 |
 | [QuickEmotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/QuickEmotes__2348) | KLISK | PC / Mac | 1.0.4 |
 | [QuickEmotes Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sven_re/QuickEmotes-Updated__3456) | Sven_re | PC / Mac | 1.0.6 |
-| [QuickMapNav](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/QuickMapNav__3058) | Masteroshi430 | PC / Mac | 2026.07.08 |
+| [QuickMapNav](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/QuickMapNav__3058) | Masteroshi430 | PC / Mac | 2026.10.27 |
 | [QuickMarker - Survey Map Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Astaro/QuickMarker---Survey-Map-Helper__4502) | Astaro | PC / Mac | 1.7 |
 | [QuickMute](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/QuickMute__2557) | Tyx | PC / Mac | 1.0.1 |
 | [QuickSlash - Add Slash Commands to Quickslots Wheels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/QuickSlash---Add-Slash-Commands-to-Quickslots-Wheels__3955) | MelanAster | PC / Mac | 0.10 |

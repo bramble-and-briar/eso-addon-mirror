@@ -1,3 +1,23 @@
+[COLOR="DeepSkyBlue"]3.5.4 (62)[/COLOR]:
+[LIST]
+[*] Part 4 This time it works...
+[/LIST]
+
+[COLOR="DeepSkyBlue"]3.5.3 (61)[/COLOR]:
+[LIST]
+[*] Part 3 (Thanks again to code65536 for pointing out a stupid typo/brain fade) attempt to fix the overflow to multiple lines of labels in the Thief Belt/Bar.
+[/LIST]
+
+[COLOR="DeepSkyBlue"]3.5.2 (60)[/COLOR]:
+[LIST]
+[*] Part 2 (Thanks to code65536) attempt to fix the overflow to multiple lines of labels in the Thief Belt/Bar.
+[/LIST]
+
+[COLOR="DeepSkyBlue"]3.5.1 (59)[/COLOR]:
+[LIST]
+[*] Attempt to fix the overflow to multiple lines of labels in the Thief Belt/Bar.
+[/LIST]
+
 [COLOR="DeepSkyBlue"]3.5 (58)[/COLOR]:
 [LIST]
 [*] Added tooltips that appear when hovering over the icons/labels on the ThiefTools belt.

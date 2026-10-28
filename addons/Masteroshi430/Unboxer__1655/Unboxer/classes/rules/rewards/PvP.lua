@@ -146,4 +146,5 @@ knownIds = {
 [226960]=1, --Superior Ancestral Antiquities Coffer
 [226961]=1, --Epic Ancestral Antiquities Coffer
 [227312]=1, --Sack of Pirate Gold
+[227862]=1, --Veterancy Supplemental Rewards
 }

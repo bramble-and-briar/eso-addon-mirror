@@ -12,7 +12,7 @@ local BASE_TEXT_OFFSET_Y = 2
 -- 1. НАСТРОЙКИ ПО УМОЛЧАНИЮ
 local defaultCompanionSV = {
     enabled            = false,
-    locked             = false,
+    locked             = true,
     companionScope     = 1,     -- 1: Только мой, 2: Все в группе
     compLeft           = 300,
     compTop            = 700,
@@ -326,7 +326,7 @@ function CF.CreateFramePool()
     root:SetMovable(not sv.locked)
     root:SetMouseEnabled(not sv.locked)
     root:SetClampedToScreen(true)
-    root:SetDrawTier(DT_HIGH)
+    root:SetDrawTier(DT_LOW)
 
     root:SetHandler("OnMoveStop", function(self)
         self:ClearAnchors()
@@ -576,6 +576,11 @@ function CF.ApplySettings()
     for i = 1, 12 do
         local f = CF.framePool[i]
         if f then
+            f:SetMouseEnabled(isUnlocked)
+            f.portrait:SetMouseEnabled(isUnlocked)
+            f.body:SetMouseEnabled(isUnlocked)
+            f.barContainer:SetMouseEnabled(isUnlocked)
+
             f.barContainer:SetDimensions(fWidth, bHeight)
             f.body:SetDimensions(fWidth, totalH)
 

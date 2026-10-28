@@ -116,7 +116,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TheElderSporesOnline](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/reishi_spores/TheElderSporesOnline__4386) | reishi_spores | PC / Mac | 2.2.1 |
 | [ThemeUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KA3ZUS/ThemeUI__3734) | KA3ZUS | PC / Mac | 0.1.1 |
 | [TheShining - AoE & Target Glow Brightness](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/TheShining---AoE-Target-Glow-Brightness__3081) | Odylon | PC / Mac | 1.0.1 |
-| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5 |
+| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5.4 |
 | [Thief Tools - Filtered AutoSteal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools---Filtered-AutoSteal__3752) | Shadowfen | PC / Mac | 1.3.10 |
 | [Thief Tools Stolen Item Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/linuxhell/Thief-Tools-Stolen-Item-Counter__4813) | linuxhell | PC / Mac | 4.0.0 |
 | [ThiefHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/ThiefHelper__1473) | Upyachka | PC / Mac | 1.1_1 |
@@ -236,7 +236,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TurkishScrollsOnline (Türkçe)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/TurkishScrollsOnline-Türkçe__3689) | Sharlikran | PC / Mac | v1.23 |
 | [Turning Tide Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Turning-Tide-Tracker__54292201-deac-4b5d-a9ac-151313446029) | codeWarrior82 | Console | — |
 | [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__853b60aa-f47b-4f79-bd43-88c1f37e8a9a) | tmbrinks | Console | — |
-| [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__3330) | tmbrinks | PC / Mac | 1.1.0 |
+| [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__3330) | tmbrinks | PC / Mac | 1.1.1 |
 | [TxtOutput](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jellyalex978/TxtOutput__1686) | jellyalex978 | PC / Mac | 1.4.5 |
 | [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOS/Türkçe-çeviri---ESOTR__4417) | XANTOS | PC / Mac | 1.0.6a |
 | [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/Türkçe-çeviri---ESOTR__56b19964-a32d-4e97-b922-6d446ff6b6fc) | XANTOSTR | Console | — |

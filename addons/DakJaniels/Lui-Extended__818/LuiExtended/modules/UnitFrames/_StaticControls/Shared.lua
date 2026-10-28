@@ -151,8 +151,8 @@ function FrameObject.IsOverlandDifficultyEnabledOnFrame(self)
 end
 
 ---
----@param difficulty OverlandDifficultyType
----@return string iconPath
+--- @param difficulty OverlandDifficultyType
+--- @return string iconPath
 function FrameObject.GetOverlandChallengeDifficultyIconPath(difficulty)
     if difficulty ~= nil then
         local iconPath = ZO_CHALLENGE_DIFFICULTY_ICONS_GAMEPAD[difficulty]
@@ -276,17 +276,15 @@ end
 --- @param veterancyRank integer
 --- @return string|nil iconPath
 function FrameObject.GetVeterancyRankIconPath(veterancyRank)
-    if not GetVeterancyRankIcon or veterancyRank == nil then
+    if veterancyRank == nil then
         return nil
     end
     local rankForIcon = veterancyRank
-    if ZO_VETERANCY_MANAGER and ZO_VETERANCY_MANAGER.GetNumRanks then
-        local numRanks = ZO_VETERANCY_MANAGER:GetNumRanks()
-        if numRanks and numRanks > 0 and rankForIcon > numRanks then
-            rankForIcon = numRanks
-        end
+    local numRanks = ZO_VETERANCY_MANAGER:GetNumRanks()
+    if numRanks and numRanks > 0 and rankForIcon > numRanks then
+        rankForIcon = numRanks
     end
-    local seasonId = GetCurrentVeterancySeasonId and GetCurrentVeterancySeasonId() or nil
+    local seasonId = GetCurrentVeterancySeasonId()
     return GetVeterancyRankIcon(rankForIcon, seasonId)
 end
 
@@ -388,12 +386,17 @@ end
 
 --- Player name for a display-method index. 1 = @UserID, 2 = character name, 3 = both, 4 = platform name.
 --- Empty platform names fall back to the crossplay @UserID, matching ZO_TryGetPlatformDisplayNameForUnitTag.
+--- When CustomNames is on, a LibCustomNames colored name replaces the whole label.
 --- @param unitTag string
 --- @param displayOption integer
 --- @return string
 function UnitFrames.GetPlayerDisplayNameText(unitTag, displayOption)
     if not IsUnitPlayer(unitTag) then
         return GetUnitName(unitTag)
+    end
+    local customName = UnitFrames.GetCustomPlayerName(unitTag)
+    if customName ~= nil then
+        return customName
     end
     if displayOption == 3 then
         return GetUnitName(unitTag) .. " " .. GetUnitDisplayName(unitTag)
@@ -483,6 +486,7 @@ end
 
 function FrameObject:UpdateStaticControlClassIcon()
     if self.classIcon == nil then
+        UnitFrames.ApplyCustomPlayerIcon(self)
         return
     end
     local unitDifficulty = GetUnitDifficulty(self.unitTag)
@@ -508,6 +512,8 @@ function FrameObject:UpdateStaticControlClassIcon()
     else
         self.classIcon:SetHidden(not showClass)
     end
+    self.customPortraitHiddenClassIcon = nil
+    UnitFrames.ApplyCustomPlayerIcon(self)
 end
 
 function FrameObject:UpdateStaticControlClassName()
@@ -515,7 +521,7 @@ function FrameObject:UpdateStaticControlClassName()
         return
     end
     local classId = GetUnitClassId(self.unitTag)
-    local className = zo_strformat(GetString(SI_CLASS_NAME), GetClassName(GENDER_MALE, classId))
+    local className = ZO_CachedStrFormat(SI_CLASS_NAME, GetClassName(GENDER_MALE, classId))
     local showClass = self.isPlayer and className ~= nil and UnitFrames.SV.TargetEnableClass
     if showClass then
         local classNameText = StringOnlyGSUB(className, "%^%a+", "")
@@ -644,12 +650,8 @@ function FrameObject:UpdateStaticControlLevelRow()
         local levelText
         if shouldShowVeterancyInfo then
             local veterancyRank = GetUnitVeterancyRank(self.unitTag)
-            if GetVeterancyRankTitle and SI_VETERANCY_RANK_AND_TITLE_FORMATTER then
-                local seasonId = GetCurrentVeterancySeasonId and GetCurrentVeterancySeasonId() or nil
-                levelText = zo_strformat(SI_VETERANCY_RANK_AND_TITLE_FORMATTER, veterancyRank, GetVeterancyRankTitle(veterancyRank, seasonId))
-            else
-                levelText = tostring(veterancyRank)
-            end
+            local seasonId = GetCurrentVeterancySeasonId()
+            levelText = ZO_CachedStrFormat(SI_VETERANCY_RANK_AND_TITLE_FORMATTER, veterancyRank, GetVeterancyRankTitle(veterancyRank, seasonId))
             iconPath = FrameObject.GetVeterancyRankIconPath(veterancyRank)
         elseif self.isChampion then
             if IsInGamepadPreferredMode() then
@@ -712,7 +714,7 @@ function FrameObject:UpdateStaticControlTitleAndAva()
             -- NPC captions follow Display Title only; AVA Rank Name is player-only.
             if UnitFrames.SV.TargetEnableTitle then
                 local unitCaption = GetUnitCaption(self.unitTag)
-                title = unitCaption and zo_strformat(SI_TOOLTIP_UNIT_CAPTION, unitCaption) or ""
+                title = unitCaption and ZO_CachedStrFormat(SI_TOOLTIP_UNIT_CAPTION, unitCaption) or ""
             else
                 title = ""
             end
@@ -812,6 +814,11 @@ function FrameObject:UpdateStaticControlNameLabel(frameCategory)
         nameText = FrameObject.ApplyStaticControlOverlandToName(self, nameText, frameCategory)
     else
         nameText = FrameObject.ApplyStaticControlOverlandToName(self, nameText, frameCategory)
+    end
+    if UnitFrames.SV.CustomNameOutline and UnitFrames.GetCustomPlayerName(self.unitTag) then
+        self.name.customNameOutlineFontStyle = FONT_STYLE_OUTLINE_SHADOW
+    else
+        self.name.customNameOutlineFontStyle = nil
     end
     self.name:SetText(nameText)
     -- Compact names (raid / boss / pet / companion) refit their shrink-to-fit font to the new text.

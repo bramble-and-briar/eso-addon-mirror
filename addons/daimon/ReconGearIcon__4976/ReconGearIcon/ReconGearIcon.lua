@@ -3,11 +3,14 @@
 -- character window's equipment slots, and optionally on the item icons in the inventory.
 -- Size, position, color and opacity can be changed in Settings > Addons > ReconGearIcon.
 
-ReconGearIcon = {}
-local addon = ReconGearIcon
+-- Local only: the addon has one file, no keybindings and no API for other addons.
+local addon = {}
 addon.name = "ReconGearIcon"
 addon.displayName = "ReconGearIcon"
-addon.version = "1.0"
+addon.version = "1.1"
+
+local SV_NAME = "ReconGearIcon_SV"
+local SV_VERSION = 1
 
 -- The same texture the inventory uses for reconstructed items.
 local ICON_TEXTURE = "EsoUI/Art/Inventory/inventory_trait_reconstruct_icon.dds"
@@ -164,8 +167,16 @@ end
 -- Equipment panel
 -------------------------------------------------------------------------------
 
+-- Slot id -> slot control, looked up once.
+local slotControls = {}
+
 local function GetSlotControl(slotIndex)
-    return GetControl("ZO_CharacterEquipmentSlots" .. SLOT_CONTROLS[slotIndex])
+    local control = slotControls[slotIndex]
+    if not control then
+        control = GetControl("ZO_CharacterEquipmentSlots" .. SLOT_CONTROLS[slotIndex])
+        slotControls[slotIndex] = control
+    end
+    return control
 end
 
 local function RefreshEquipmentIcon(slotControl)
@@ -231,19 +242,22 @@ end
 -- The icon is a child of the row (not of the item icon), so mouse-over scaling of
 -- the item icon by grid view addons does not resize it.
 local function OnInventoryRowSetup(rowControl, slot)
-    local button = rowControl:GetNamedChild("Button")
-    if not button then return end
-
     local shown = false
     if addon.sv.showInInventory and slot and slot.bagId and slot.slotIndex then
         local traitInformation = slot.traitInformation or GetItemTraitInformation(slot.bagId, slot.slotIndex)
         shown = traitInformation == ITEM_TRAIT_INFORMATION_RECONSTRUCTED
     end
-    SetIconShown(rowControl, PLACE_INVENTORY, shown, shown and GetInventoryAnchorTarget(rowControl, button) or nil)
 
-    if shown then
-        HideDefaultIcon(rowControl)
+    if not shown then
+        -- Most rows: only hide the icon if this row has one (no work when the option is off).
+        SetIconShown(rowControl, PLACE_INVENTORY, false)
+        return
     end
+
+    local button = rowControl:GetNamedChild("Button")
+    if not button then return end
+    SetIconShown(rowControl, PLACE_INVENTORY, true, GetInventoryAnchorTarget(rowControl, button))
+    HideDefaultIcon(rowControl)
 end
 
 local function HookInventoryLists()
@@ -259,11 +273,19 @@ local function HookInventoryLists()
 end
 
 -- Re-runs the row setup for the visible inventory rows (e.g. after the option was turned on or off).
+-- Only lists that are currently shown are refreshed right away. Hidden lists (e.g. the
+-- house storage when not in a house, or the bank when not at a banker) are marked dirty
+-- instead; the game rebuilds a dirty list itself when it is shown the next time.
 local function RefreshInventoryLists()
     for _, inventoryType in ipairs(INVENTORY_TYPES) do
         local inventory = PLAYER_INVENTORY.inventories[inventoryType]
-        if inventory and inventory.listView then
-            ZO_ScrollList_RefreshVisible(inventory.listView)
+        local listView = inventory and inventory.listView
+        if listView then
+            if listView:IsHidden() then
+                PLAYER_INVENTORY.isListDirty[inventoryType] = true
+            else
+                ZO_ScrollList_RefreshVisible(listView)
+            end
         end
     end
 end
@@ -279,7 +301,7 @@ local function CreateSettingsMenu()
     local panelData = {
         type = "panel",
         name = addon.displayName,
-        author = "daimon",
+        author = "daimon (Claude AI)",
         version = addon.version,
         slashCommand = "/recongearicon",
         registerForRefresh = true,
@@ -433,12 +455,41 @@ end
 -- Initialization
 -------------------------------------------------------------------------------
 
+-- Account-wide settings, saved separately for each server (EU, NA, PTS): the server name
+-- is used as the ZO_SavedVars profile.
+-- Version 1.0 saved the settings without the server ("Default" profile). They are copied
+-- to the current server the first time, and the old entry is removed.
+local function LoadSettings()
+    local worldName = GetWorldName()
+    local displayName = GetDisplayName()
+    local raw = _G[SV_NAME]
+    local hasServerSettings = raw and raw[worldName] and raw[worldName][displayName] ~= nil
+    local oldProfile = raw and raw["Default"]
+    local oldSettings = oldProfile and oldProfile[displayName] and oldProfile[displayName]["$AccountWide"]
+
+    local sv = ZO_SavedVars:NewAccountWide(SV_NAME, SV_VERSION, nil, DEFAULTS, worldName)
+
+    if oldSettings then
+        if not hasServerSettings then
+            for key in pairs(DEFAULTS) do
+                if oldSettings[key] ~= nil then
+                    sv[key] = oldSettings[key]
+                end
+            end
+        end
+        oldProfile[displayName] = nil
+        if next(oldProfile) == nil then
+            raw["Default"] = nil
+        end
+    end
+    return sv
+end
+
 local function OnAddOnLoaded(eventCode, addOnName)
     if addOnName ~= addon.name then return end
     EVENT_MANAGER:UnregisterForEvent(addon.name, EVENT_ADD_ON_LOADED)
 
-    -- Account-wide settings: the same icon layout for all characters and servers.
-    addon.sv = ZO_SavedVars:NewAccountWide("ReconGearIcon_SV", 1, nil, DEFAULTS)
+    addon.sv = LoadSettings()
     ValidateSettings(addon.sv)
 
     CreateSettingsMenu()

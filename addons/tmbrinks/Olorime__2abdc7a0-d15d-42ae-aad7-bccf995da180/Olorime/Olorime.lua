@@ -5,7 +5,7 @@ local EM		= GetEventManager()
 local LCA = LibCombatAlerts
 
 Olorime.name		= "Olorime"
-Olorime.version		= "2.3.0"
+Olorime.version		= "2.3.1"
 Olorime.varVersion 	= "1"
 
 Olorime.IDs 		= {
@@ -31,10 +31,6 @@ Olorime.TYPES = {
 }
 
 Olorime.defaults	= {
-	pos = {
-	left = 500,
-	top	= 500,
-	},
 	["timerSize"]	= 48,
 	["passiveHide"]	= false,
 	["COLORS"]	= Olorime.COLORS,
@@ -131,13 +127,19 @@ function Olorime.Init(event, addon)
 
 	Olorime.savedVars = ZO_SavedVars:NewAccountWide(Olorime.name.."SavedVars", Olorime.varVersion, nil, Olorime.defaults, nil, "$InstallationWide")
 	local sv = Olorime.savedVars
-		if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
+	if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
         sv.pos = {
             left = sv.offsetX,
             top = sv.offsetY,
         }
         sv.offsetX = nil
         sv.offsetY = nil
+	end
+	if (not sv.pos) then
+		sv.pos = {
+			left = 500,
+			top	= 500,
+		}
 	end
 	
 	Olorime.setFontSize(Olorime.savedVars.timerSize)

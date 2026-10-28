@@ -49,6 +49,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HarvestPins - Hidden Stash Addon (Khajiit Paw)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Craziux/HarvestPins---Hidden-Stash-Addon-Khajiit-Paw__2803) | Craziux | PC / Mac | 1.0 |
 | [HarvestRoute for HarvestMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/generic/HarvestRoute-for-HarvestMap__3356) | generic | PC / Mac | 1.1.0 |
 | [Haze Charswap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/Haze-Charswap__4588) | haze068 | PC / Mac | 2.0 |
+| [Hazel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Hazel__cf1db8e3-57a8-40a1-b6ff-000333801e4c) | TheGreyWolf98 | Console | — |
 | [HCMP Night Market pin importer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DewiMorgan/HCMP-Night-Market-pin-importer__4577) | DewiMorgan | PC / Mac | 2026.05.11 |
 | [Heal Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Heal-Counter__1833) | aldericon | PC / Mac | 12.0 |
 | [Healer BFF](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JRCandeias/Healer-BFF__1840) | JRCandeias | PC / Mac | 1.0.9 |

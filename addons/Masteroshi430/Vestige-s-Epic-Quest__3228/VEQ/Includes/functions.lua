@@ -4407,27 +4407,38 @@ function VEQ.mapCompletion(zoneId, reset)
        local x, y, poiPinType, icon, isShownInCurrentMap, linkedCollectibleIsLocked, isDiscovered, isNearby = GetPOIMapInfo(zoneIndex, i)
        local name = GetPOIInfo(zoneIndex, i)
        
-       -- we exclude the 4 Cyrodiil undiscoverable wayshrines
+       -- we exclude the 4 Cyrodiil undiscoverable wayshrines and the 2 Jerall pass ones
        if alliance == ALLIANCE_ALDMERI_DOMINION then
               if zoneIndex == 38 then
-              if (i > 51 and i < 54) or (i > 55 and i < 58) then
-                skip = true
-            end
-          end
+                 if (i > 51 and i < 54) or (i > 55 and i < 58) then
+                    skip = true
+                 end
+              elseif zoneIndex == 8 then
+                 if i > 1 and i < 4 then
+                    skip = true
+                 end
+              end
        elseif alliance == ALLIANCE_DAGGERFALL_COVENANT then
               if zoneIndex == 38 then
-              if i > 53 and i < 58 then
-                skip = true
-            end
-          end
+                 if i > 53 and i < 58 then
+                    skip = true
+                 end
+              elseif zoneIndex == 8 then
+                 if i > 0 and i < 3 then
+                    skip = true
+                 end
+              end
        elseif alliance == ALLIANCE_EBONHEART_PACT then
               if zoneIndex == 38 then
-              if i > 51 and i < 56 then
-                skip = true
-            end
-          end
+                 if i > 51 and i < 56 then
+                    skip = true
+                 end
+              elseif zoneIndex == 8 then
+                 if (i > 0 and i < 2) or (i > 2 and i < 4) then
+                    skip = true
+                 end
+              end
        end
-
      
        if name and name ~= "" and not skip then
          if isDiscovered  then

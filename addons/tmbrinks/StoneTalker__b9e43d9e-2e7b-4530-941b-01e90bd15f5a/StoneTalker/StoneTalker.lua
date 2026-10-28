@@ -6,7 +6,7 @@ local EM		= GetEventManager()
 local LCA = LibCombatAlerts
 
 StoneTalker.name		= "StoneTalker"
-StoneTalker.version		= "1.1.0"
+StoneTalker.version		= "1.1.1"
 StoneTalker.varVersion 	= "1"
 
 StoneTalker.IDs 		= {
@@ -32,10 +32,6 @@ StoneTalker.TYPES = {
 }
 
 StoneTalker.defaults	= {
-	pos	= {
-	left = 500,
-	top = 500,
-	},
 	["timerSize"]	= 48,
 	["passiveHide"]	= false,
 	["COLORS"]	= StoneTalker.COLORS,
@@ -138,13 +134,19 @@ function StoneTalker.Init(event, addon)
 
 	StoneTalker.savedVars = ZO_SavedVars:NewAccountWide(StoneTalker.name.."SavedVars", StoneTalker.varVersion, nil, StoneTalker.defaults, nil, "$InstallationWide")
 	local sv = StoneTalker.savedVars
-		if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
+	if (type(sv.offsetX) == "number" and type(sv.offsetY) == "number") then
         sv.pos = {
             left = sv.offsetX,
             top = sv.offsetY,
         }
         sv.offsetX = nil
         sv.offsetY = nil
+	end
+	if (not sv.pos) then
+		sv.pos = {
+			left = 500,
+			top	= 500,
+		}
 	end
 	
 	StoneTalker.setFontSize(StoneTalker.savedVars.timerSize)

@@ -89,7 +89,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Mer Quickslot Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/merlight/Mer-Quickslot-Filters__707) | merlight | PC / Mac | 1.8 |
 | [Mer Quickslot Filters - Fixed Update43](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Quickslot-Filters---Fixed-Update43__953) | Baertram | PC / Mac | 3.0 |
 | [Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Torchbug---Fixed-and-Improved-Variable-inspector-Scripts-Events-and-more__2601) | Baertram | PC / Mac | 1.77 |
-| [Meridias Block Pooky](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claudi/Meridias-Block-Pooky__4353) | Claudi | PC / Mac | 2.21 |
+| [Meridias Block Pooky](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claudi/Meridias-Block-Pooky__4353) | Claudi | PC / Mac | 2.23 |
 | [Merlin the Enchanter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khrill/Merlin-the-Enchanter__659) | Khrill | PC / Mac | 1.8.2 |
 | [Merlin's Heal Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Just_Merlin/Merlin-s-Heal-Helper__1599) | Just_Merlin | PC / Mac | 1.2.0 |
 | [Merlin's Rez Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Just_Merlin/Merlin-s-Rez-Helper__1600) | Just_Merlin | PC / Mac | 2.1.0 |
@@ -167,6 +167,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin's Market Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Market-Manager__4980) | Muffins714 | PC / Mac | 1.1 |
 | [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.2 |
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
+| [MugShot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot__5000) | nycthemere | PC / Mac | 2026.10.28-101044 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
 | [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.1 |

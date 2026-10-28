@@ -1,3 +1,7 @@
+1.0.10 — Shared guilds in groups / Согильдийцы в группе
+EN: Group and trial members who share a guild with you now have cyan names; hovering their row lists all shared guilds. Membership is checked by account, including alternate characters, with cached lookups. Works in Diablo, WoW and DS_3.
+RU: Имена согильдийцев в группе и рейде выделяются бирюзовым; при наведении на строку перечисляются все общие гильдии. Проверка выполняется по аккаунту, включая других персонажей игрока, с кэшированием результатов. Работает в Diablo, WoW и DS_3.
+
 1.0.9 — Long buff layout / Расположение длительных бафов
 EN: Long player buffs now use up to three columns of ten icons each at the right edge in every custom style. Raised the entire block by one icon height (32 pixels) to leave room for bottom-screen notifications.
 RU: Длительные бафы игрока справа теперь располагаются максимум в три столбика по десять иконок во всех пользовательских стилях. Весь блок поднят на высоту одной иконки (32 пикселя), чтобы освободить место для сообщений внизу экрана.

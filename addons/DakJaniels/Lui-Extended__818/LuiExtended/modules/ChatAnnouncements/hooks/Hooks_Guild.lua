@@ -8,6 +8,35 @@ local LUIE = LUIE
 --- @class (partial) LUIE.ChatAnnouncements
 local ChatAnnouncements = LUIE.ChatAnnouncements
 
+local mailReadNoSubjectText = GetString(SI_MAIL_READ_NO_SUBJECT)
+local guildMailManagementRanksDropdownNoSelectionTextText = GetString(SI_GUILD_MAIL_MANAGEMENT_RANKS_DROPDOWN_NO_SELECTION_TEXT)
+local guildMailSentToFormat = GetString(LUIE_STRING_CA_GUILD_MAIL_SENT_TO)
+local guildMailSentActiveFormat = GetString(LUIE_STRING_CA_GUILD_MAIL_SENT_ACTIVE)
+local guildMailSenderFormatterFormat = GetString(SI_GUILD_MAIL_SENDER_FORMATTER)
+local guildMailReceivedFormat = GetString(LUIE_STRING_CA_GUILD_MAIL_RECEIVED)
+local currencyMessageHeraldryText = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_HERALDRY)
+local guildHeraldryUpdateFormat = GetString(LUIE_STRING_CA_GUILD_HERALDRY_UPDATE)
+local guildRanksUpdateFormat = GetString(LUIE_STRING_CA_GUILD_RANKS_UPDATE)
+local guildRankUpdateFormat = GetString(LUIE_STRING_CA_GUILD_RANK_UPDATE)
+local guildRankChangedFormat = GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED)
+local guildRankUpSelfFormat = GetString(LUIE_STRING_CA_GUILD_RANK_UP_SELF)
+local guildRankDownSelfFormat = GetString(LUIE_STRING_CA_GUILD_RANK_DOWN_SELF)
+local guildRankChangedPromoteFormat = GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED_PROMOTE)
+local guildRankChangedDemoteFormat = GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED_DEMOTE)
+local guildJoinSelfFormat = GetString(LUIE_STRING_CA_GUILD_JOIN_SELF)
+local guildIncomingGuildRequestFormat = GetString(LUIE_STRING_CA_GUILD_INCOMING_GUILD_REQUEST)
+local guildInviteMessageText = GetString(LUIE_STRING_CA_GUILD_INVITE_MESSAGE)
+local guildRosterAddedFormat = GetString(LUIE_STRING_CA_GUILD_ROSTER_ADDED)
+local guildRosterLeftFormat = GetString(LUIE_STRING_CA_GUILD_ROSTER_LEFT)
+local guildRosterInvitedMessageFormat = GetString(LUIE_STRING_CA_GUILD_ROSTER_INVITED_MESSAGE)
+local ignoreErrorGuildText = GetString(LUIE_STRING_IGNORE_ERROR_GUILD)
+local guildNumMembersOnlineFormatFormat = GetString(SI_GUILD_NUM_MEMBERS_ONLINE_FORMAT)
+local guildMailSentFormat = GetString(LUIE_STRING_CA_GUILD_MAIL_SENT)
+local guildMailDeletedFormat = GetString(LUIE_STRING_CA_GUILD_MAIL_DELETED)
+local guildMailManagementMailSentText = GetString(SI_GUILD_MAIL_MANAGEMENT_MAIL_SENT)
+local guildMailManagementMailDeletedText = GetString(SI_GUILD_MAIL_MANAGEMENT_MAIL_DELETED)
+
+
 local S = ChatAnnouncements.State
 local I = ChatAnnouncements.Internal
 local B = ChatAnnouncements.Brackets
@@ -26,13 +55,13 @@ local GUILD_MAIL_INCOMING_SUPPRESS_MS = 3000
 
 local function FormatGuildMailSubject(subject)
     if subject == "" then
-        return GetString(SI_MAIL_READ_NO_SUBJECT)
+        return mailReadNoSubjectText
     end
     return subject
 end
 
 local function IsGuildMailVisibleToPlayer(guildMailId)
-    if MAIL_MANAGER and MAIL_MANAGER.HasDeletedGuildMail and MAIL_MANAGER:HasDeletedGuildMail(guildMailId) then
+    if MAIL_MANAGER:HasDeletedGuildMail(guildMailId) then
         return false
     end
     return true
@@ -61,7 +90,7 @@ end
 
 local function FormatGuildMailTargetRanks(guildId, rankIds, forAlert)
     if not rankIds or #rankIds == 0 then
-        return GetString(SI_GUILD_MAIL_MANAGEMENT_RANKS_DROPDOWN_NO_SELECTION_TEXT)
+        return guildMailManagementRanksDropdownNoSelectionTextText
     end
 
     local guildAlliance = GetGuildAlliance(guildId)
@@ -77,20 +106,18 @@ local function FormatGuildMailTargetRanks(guildId, rankIds, forAlert)
     if #labels > 0 then
         return ZO_GenerateCommaSeparatedListWithoutAnd(labels)
     end
-    return GetString(SI_GUILD_MAIL_MANAGEMENT_RANKS_DROPDOWN_NO_SELECTION_TEXT)
+    return guildMailManagementRanksDropdownNoSelectionTextText
 end
 
 local function AppendGuildMailSentDetails(messageCA, messageAlert, guildId, rankIds)
     local ranksCA = FormatGuildMailTargetRanks(guildId, rankIds, false)
     local ranksAlert = FormatGuildMailTargetRanks(guildId, rankIds, true)
-    messageCA = messageCA .. " " .. zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_SENT_TO), ranksCA)
-    messageAlert = messageAlert .. "\n" .. zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_SENT_TO), ranksAlert)
-    if GetNumActiveGuildMailsForGuild and MAX_GUILD_MAIL_PER_GUILD then
-        local numActive = GetNumActiveGuildMailsForGuild(guildId)
-        local activeLine = zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_SENT_ACTIVE), numActive, MAX_GUILD_MAIL_PER_GUILD)
-        messageCA = messageCA .. " " .. activeLine
-        messageAlert = messageAlert .. "\n" .. activeLine
-    end
+    messageCA = messageCA .. " " .. zo_strformat(guildMailSentToFormat, ranksCA)
+    messageAlert = messageAlert .. "\n" .. zo_strformat(guildMailSentToFormat, ranksAlert)
+    local numActive = GetNumActiveGuildMailsForGuild(guildId)
+    local activeLine = zo_strformat(guildMailSentActiveFormat, numActive, MAX_GUILD_MAIL_PER_GUILD)
+    messageCA = messageCA .. " " .. activeLine
+    messageAlert = messageAlert .. "\n" .. activeLine
     return messageCA, messageAlert
 end
 
@@ -126,16 +153,10 @@ local function EmitGuildManageError(social, message)
 end
 
 local function GuildMailIdIterator(_, previousMailId)
-    if GetNextValidGuildMailId then
-        return GetNextValidGuildMailId(previousMailId)
-    end
+    return GetNextValidGuildMailId(previousMailId)
 end
 
 function ChatAnnouncements.OnGuildMailUpdate()
-    if not GetNextValidGuildMailId or not IsValidGuildMail then
-        return
-    end
-
     local newMailIds = {}
     for guildMailId in GuildMailIdIterator do
         if IsGuildMailVisibleToPlayer(guildMailId) and IsValidGuildMail(guildMailId) then
@@ -166,8 +187,8 @@ function ChatAnnouncements.OnGuildMailUpdate()
     for _, guildMailId in ipairs(newMailIds) do
         local guildId, subject = GetGuildMailItemInfo(guildMailId)
         subject = FormatGuildMailSubject(subject)
-        local guildLabel = zo_strformat(SI_GUILD_MAIL_SENDER_FORMATTER, GetGuildName(guildId))
-        local message = zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_RECEIVED), guildLabel, subject)
+        local guildLabel = zo_strformat(guildMailSenderFormatterFormat, GetGuildName(guildId))
+        local message = zo_strformat(guildMailReceivedFormat, guildLabel, subject)
         if notify.NotificationMailSendCA then
             QueueGuildMailReceivedNotification(message)
         end
@@ -187,9 +208,7 @@ function ChatAnnouncements.RegisterGuildEvents()
     guildEventManager:RegisterForEvent(guildModuleName, EVENT_GUILD_RANK_CHANGED, ChatAnnouncements.GuildRankSaved)
     guildEventManager:RegisterForEvent(guildModuleName, EVENT_GUILD_DESCRIPTION_CHANGED, ChatAnnouncements.GuildTextChanged)
     guildEventManager:RegisterForEvent(guildModuleName, EVENT_GUILD_MOTD_CHANGED, ChatAnnouncements.GuildTextChanged)
-    if EVENT_GUILD_MAIL_UPDATE then
-        guildEventManager:RegisterForEvent(guildModuleName, EVENT_GUILD_MAIL_UPDATE, ChatAnnouncements.OnGuildMailUpdate)
-    end
+    guildEventManager:RegisterForEvent(guildModuleName, EVENT_GUILD_MAIL_UPDATE, ChatAnnouncements.OnGuildMailUpdate)
 end
 
 function ChatAnnouncements.GuildHeraldrySaved()
@@ -204,7 +223,7 @@ function ChatAnnouncements.GuildHeraldrySaved()
         local currencyName = zo_strformat(ChatAnnouncements.GetCurrencyDisplayNameFormat("CurrencyGoldName"), value)
         local currencyTotal = nil
         local messageTotal = ""
-        local messageChange = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_HERALDRY)
+        local messageChange = currencyMessageHeraldryText
         ChatAnnouncements.CurrencyPrinter(nil, formattedValue, changeColor, changeType, currencyTypeColor, currencyIcon, currencyName, currencyTotal, messageChange, messageTotal, type)
     end
 
@@ -218,13 +237,13 @@ function ChatAnnouncements.GuildHeraldrySaved()
         local guildNameAllianceAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(ZO_GetAllianceSymbolIcon(guildAlliance), "100%", "100%", guildName) or guildName
 
         if ChatAnnouncements.SV.Social.GuildManageCA then
-            local finalMessage = zo_strformat(GetString(LUIE_STRING_CA_GUILD_HERALDRY_UPDATE), guildNameAlliance)
+            local finalMessage = zo_strformat(guildHeraldryUpdateFormat, guildNameAlliance)
             ChatAnnouncements.QueuedMessages[ChatAnnouncements.QueuedMessagesCounter] = { message = finalMessage, type = "NOTIFICATION", isSystem = true }
             ChatAnnouncements.QueuedMessagesCounter = ChatAnnouncements.QueuedMessagesCounter + 1
             guildEventManager:RegisterForUpdate(guildModuleName .. "Printer", 50, ChatAnnouncements.PrintQueuedMessages, true)
         end
         if ChatAnnouncements.SV.Social.GuildManageAlert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_HERALDRY_UPDATE), guildNameAllianceAlert))
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildHeraldryUpdateFormat, guildNameAllianceAlert))
         end
     end
     S.g_heraldrySaveGuildId = nil
@@ -240,13 +259,13 @@ function ChatAnnouncements.GuildRanksSaved(eventId, guildId)
     local guildNameAllianceAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(ZO_GetAllianceSymbolIcon(guildAlliance), "100%", "100%", guildName) or guildName
 
     if ChatAnnouncements.SV.Social.GuildManageCA then
-        local finalMessage = zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANKS_UPDATE), guildNameAlliance)
+        local finalMessage = zo_strformat(guildRanksUpdateFormat, guildNameAlliance)
         ChatAnnouncements.QueuedMessages[ChatAnnouncements.QueuedMessagesCounter] = { message = finalMessage, type = "NOTIFICATION", isSystem = true }
         ChatAnnouncements.QueuedMessagesCounter = ChatAnnouncements.QueuedMessagesCounter + 1
         guildEventManager:RegisterForUpdate(guildModuleName .. "Printer", 50, ChatAnnouncements.PrintQueuedMessages, true)
     end
     if ChatAnnouncements.SV.Social.GuildManageAlert then
-        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANKS_UPDATE), guildNameAllianceAlert))
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRanksUpdateFormat, guildNameAllianceAlert))
     end
 end
 
@@ -275,10 +294,10 @@ function ChatAnnouncements.GuildRankSaved(eventId, guildId, rankIndex)
     local rankSyntaxAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(icon1, "100%", "100%", rankName) or rankName
 
     if ChatAnnouncements.SV.Social.GuildManageCA then
-        ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_UPDATE), rankSyntax, guildNameAlliance), true)
+        ChatOutput:Print(zo_strformat(guildRankUpdateFormat, rankSyntax, guildNameAlliance), true)
     end
     if ChatAnnouncements.SV.Social.GuildManageAlert then
-        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_UPDATE), rankSyntaxAlert, guildNameAllianceAlert))
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRankUpdateFormat, rankSyntaxAlert, guildNameAllianceAlert))
     end
 end
 
@@ -348,10 +367,10 @@ function ChatAnnouncements.GuildRankChanged(eventId, guildId, displayName, newRa
 
             if guildName == name then
                 if ChatAnnouncements.SV.Social.GuildRankCA then
-                    ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED), displayNameLink, guildNameAlliance, rankSyntax), true)
+                    ChatOutput:Print(zo_strformat(guildRankChangedFormat, displayNameLink, guildNameAlliance, rankSyntax), true)
                 end
                 if ChatAnnouncements.SV.Social.GuildRankAlert then
-                    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED), displayName, guildNameAllianceAlert, rankSyntaxAlert))
+                    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRankChangedFormat, displayName, guildNameAllianceAlert, rankSyntaxAlert))
                 end
                 break
             end
@@ -378,17 +397,17 @@ function ChatAnnouncements.GuildPlayerRankChanged(eventId, guildId, rankIndex, g
     local syntax
     if guildRankChangeAction == GUILD_RANK_CHANGE_ACTION_PROMOTE then
         if ChatAnnouncements.SV.Social.GuildRankCA then
-            ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_UP_SELF), rankSyntax, guildNameAlliance), true)
+            ChatOutput:Print(zo_strformat(guildRankUpSelfFormat, rankSyntax, guildNameAlliance), true)
         end
         if ChatAnnouncements.SV.Social.GuildRankAlert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_UP_SELF), rankSyntaxAlert, guildNameAllianceAlert))
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRankUpSelfFormat, rankSyntaxAlert, guildNameAllianceAlert))
         end
     elseif guildRankChangeAction == GUILD_RANK_CHANGE_ACTION_DEMOTE then
         if ChatAnnouncements.SV.Social.GuildRankCA then
-            ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_DOWN_SELF), rankSyntax, guildNameAlliance), true)
+            ChatOutput:Print(zo_strformat(guildRankDownSelfFormat, rankSyntax, guildNameAlliance), true)
         end
         if ChatAnnouncements.SV.Social.GuildRankAlert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_DOWN_SELF), rankSyntaxAlert, guildNameAllianceAlert))
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRankDownSelfFormat, rankSyntaxAlert, guildNameAllianceAlert))
         end
     end
 end
@@ -412,10 +431,10 @@ function ChatAnnouncements.GuildMemberPromoteSuccessful(eventId, displayName, ne
         local rankSyntaxAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(icon, "100%", "100%", rankText) or rankText
 
         if ChatAnnouncements.SV.Social.GuildRankCA then
-            ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED_PROMOTE), displayNameLink, rankSyntax, guildNameAlliance), true)
+            ChatOutput:Print(zo_strformat(guildRankChangedPromoteFormat, displayNameLink, rankSyntax, guildNameAlliance), true)
         end
         if ChatAnnouncements.SV.Social.GuildRankAlert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED_PROMOTE), displayName, rankSyntaxAlert, guildNameAllianceAlert))
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRankChangedPromoteFormat, displayName, rankSyntaxAlert, guildNameAllianceAlert))
         end
     end
     S.g_disableRankMessage = true
@@ -440,10 +459,10 @@ function ChatAnnouncements.GuildMemberDemoteSuccessful(eventId, displayName, new
         local rankSyntaxAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(icon, "100%", "100%", rankText) or rankText
 
         if ChatAnnouncements.SV.Social.GuildRankCA then
-            ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED_DEMOTE), displayNameLink, rankSyntax, guildNameAlliance), true)
+            ChatOutput:Print(zo_strformat(guildRankChangedDemoteFormat, displayNameLink, rankSyntax, guildNameAlliance), true)
         end
         if ChatAnnouncements.SV.Social.GuildRankAlert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_RANK_CHANGED_DEMOTE), displayName, rankSyntaxAlert, guildNameAllianceAlert))
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRankChangedDemoteFormat, displayName, rankSyntaxAlert, guildNameAllianceAlert))
         end
     end
     S.g_disableRankMessage = true
@@ -466,10 +485,10 @@ function ChatAnnouncements.GuildAddedSelf(eventId, guildId, guildName)
 
         if guildName == name then
             if ChatAnnouncements.SV.Social.GuildCA then
-                ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_JOIN_SELF), guildNameAlliance), true)
+                ChatOutput:Print(zo_strformat(guildJoinSelfFormat, guildNameAlliance), true)
             end
             if ChatAnnouncements.SV.Social.GuildAlert then
-                ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_JOIN_SELF), guildNameAllianceAlert))
+                ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildJoinSelfFormat, guildNameAllianceAlert))
             end
             break
         end
@@ -488,10 +507,10 @@ function ChatAnnouncements.GuildInviteAdded(eventId, guildId, guildName, guildAl
     local guildNameAlliance = ChatAnnouncements.SV.Social.GuildIcon and guildColor:Colorize(zo_strformat("<<1>> <<2>>", zo_iconFormatInheritColor(ZO_GetAllianceSymbolIcon(guildAlliance), 16, 16), guildName)) or (guildColor:Colorize(guildName))
     local guildNameAllianceAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(ZO_GetAllianceSymbolIcon(guildAlliance), "100%", "100%", guildName) or guildName
     if ChatAnnouncements.SV.Social.GuildCA then
-        ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_INCOMING_GUILD_REQUEST), displayNameLink, guildNameAlliance), true)
+        ChatOutput:Print(zo_strformat(guildIncomingGuildRequestFormat, displayNameLink, guildNameAlliance), true)
     end
     if ChatAnnouncements.SV.Social.GuildAlert then
-        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_INCOMING_GUILD_REQUEST), inviterName, guildNameAllianceAlert))
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildIncomingGuildRequestFormat, inviterName, guildNameAllianceAlert))
     end
 end
 
@@ -504,8 +523,8 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
     local moduleName = ctx.moduleName
     local FindCsaCallbackHandler = ctx.FindCsaCallbackHandler
 
-    SafeAddString(SI_PLAYER_TO_PLAYER_INCOMING_GUILD_REQUEST, GetString(LUIE_STRING_CA_GUILD_INCOMING_GUILD_REQUEST), 1)
-    SafeAddString(SI_GUILD_INVITE_MESSAGE, GetString(LUIE_STRING_CA_GUILD_INVITE_MESSAGE), 3)
+    SafeAddString(SI_PLAYER_TO_PLAYER_INCOMING_GUILD_REQUEST, guildIncomingGuildRequestFormat, 1)
+    SafeAddString(SI_GUILD_INVITE_MESSAGE, guildInviteMessageText, 3)
 
     -- EVENT_GUILD_SELF_LEFT_GUILD (Alert Handler)
     local function GuildSelfLeftAlert(guildId, guildName)
@@ -564,10 +583,10 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
             local guildNameAllianceAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(ZO_GetAllianceSymbolIcon(guildAlliance), "100%", "100%", guildName) or guildName
 
             if ChatAnnouncements.SV.Social.GuildCA then
-                ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_ROSTER_ADDED), displayNameLink, guildNameAlliance), true)
+                ChatOutput:Print(zo_strformat(guildRosterAddedFormat, displayNameLink, guildNameAlliance), true)
             end
             if ChatAnnouncements.SV.Social.GuildAlert then
-                ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_ROSTER_ADDED), displayName, guildNameAllianceAlert))
+                ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRosterAddedFormat, displayName, guildNameAllianceAlert))
             end
             PlaySound(SOUNDS.GUILD_ROSTER_ADDED)
         end
@@ -584,10 +603,10 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
         local guildNameAllianceAlert = ChatAnnouncements.SV.Social.GuildIcon and zo_iconTextFormat(ZO_GetAllianceSymbolIcon(guildAlliance), "100%", "100%", guildName) or guildName
 
         if ChatAnnouncements.SV.Social.GuildCA then
-            ChatOutput:Print(zo_strformat(GetString(LUIE_STRING_CA_GUILD_ROSTER_LEFT), displayNameLink, guildNameAlliance), true)
+            ChatOutput:Print(zo_strformat(guildRosterLeftFormat, displayNameLink, guildNameAlliance), true)
         end
         if ChatAnnouncements.SV.Social.GuildAlert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(GetString(LUIE_STRING_CA_GUILD_ROSTER_LEFT), displayName, guildNameAllianceAlert))
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRosterLeftFormat, displayName, guildNameAllianceAlert))
         end
         PlaySound(SOUNDS.GUILD_ROSTER_REMOVED)
 
@@ -629,10 +648,10 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
                 if success then
                     GuildInvite(guildId, displayName)
                     if ChatAnnouncements.SV.Social.GuildCA then
-                        ChatOutput:Print(zo_strformat(LUIE_STRING_CA_GUILD_ROSTER_INVITED_MESSAGE, UndecorateDisplayName(displayName), guildNameAlliance), true)
+                        ChatOutput:Print(zo_strformat(guildRosterInvitedMessageFormat, UndecorateDisplayName(displayName), guildNameAlliance), true)
                     end
                     if ChatAnnouncements.SV.Social.GuildAlert then
-                        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(LUIE_STRING_CA_GUILD_ROSTER_INVITED_MESSAGE, UndecorateDisplayName(displayName), guildNameAllianceAlert))
+                        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRosterInvitedMessageFormat, UndecorateDisplayName(displayName), guildNameAllianceAlert))
                     end
                 end
             end
@@ -642,10 +661,10 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
             -- TODO: This needs fixed in the API so that character names are also factored in here. This check here is just about pointless as it stands.
             if IsIgnored(displayName) then
                 if ChatAnnouncements.SV.Social.GuildCA then
-                    ChatOutput:Print(GetString(LUIE_STRING_IGNORE_ERROR_GUILD), true)
+                    ChatOutput:Print(ignoreErrorGuildText, true)
                 end
                 if ChatAnnouncements.SV.Social.GuildAlert then
-                    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, GetString(LUIE_STRING_IGNORE_ERROR_GUILD))
+                    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, ignoreErrorGuildText)
                 end
                 PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
                 return
@@ -653,10 +672,10 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
 
             GuildInvite(guildId, displayName)
             if ChatAnnouncements.SV.Social.GuildCA then
-                ChatOutput:Print(zo_strformat(LUIE_STRING_CA_GUILD_ROSTER_INVITED_MESSAGE, displayName, guildNameAlliance), true)
+                ChatOutput:Print(zo_strformat(guildRosterInvitedMessageFormat, displayName, guildNameAlliance), true)
             end
             if ChatAnnouncements.SV.Social.GuildAlert then
-                ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(LUIE_STRING_CA_GUILD_ROSTER_INVITED_MESSAGE, displayName, guildNameAllianceAlert))
+                ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(guildRosterInvitedMessageFormat, displayName, guildNameAllianceAlert))
             end
         end
     end
@@ -675,7 +694,7 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
             local count = GetControl(self.control, "Count")
             local numGuildMembers, numOnline = GetGuildInfo(guildId)
             if count then
-                count:SetText(zo_strformat(SI_GUILD_NUM_MEMBERS_ONLINE_FORMAT, numOnline, numGuildMembers))
+                count:SetText(zo_strformat(guildNumMembersOnlineFormatFormat, numOnline, numGuildMembers))
             end
             self.canDepositToBank = DoesGuildHavePrivilege(guildId, GUILD_PRIVILEGE_BANK_DEPOSIT)
             if self.canDepositToBank then
@@ -739,105 +758,99 @@ function ChatAnnouncements.Hooks.RegisterGuild(ctx)
         end
     end
 
-    if RequestSendGuildMail then
-        local origRequestSendGuildMail = RequestSendGuildMail
-        local function CapturePendingGuildMailSend(guildId, subject, message, ...)
-            local rankIds = { ... }
-            S.pendingGuildMailSend = { guildId = guildId, subject = subject, rankIds = rankIds }
-            return origRequestSendGuildMail(guildId, subject, message, ...)
+    local origRequestSendGuildMail = RequestSendGuildMail
+    local function CapturePendingGuildMailSend(guildId, subject, message, ...)
+        local rankIds = { ... }
+        S.pendingGuildMailSend = { guildId = guildId, subject = subject, rankIds = rankIds }
+        return origRequestSendGuildMail(guildId, subject, message, ...)
+    end
+    --- @diagnostic disable-next-line: duplicate-set-field, missing-global-doc
+    RequestSendGuildMail = CapturePendingGuildMailSend
+
+    local origRequestDeleteGuildMail = RequestDeleteGuildMail
+    local function CapturePendingGuildMailDelete(guildMailId)
+        if IsValidGuildMail(guildMailId) then
+            local guildId, subject = GetGuildMailItemInfo(guildMailId)
+            S.pendingGuildMailDelete = { guildMailId = guildMailId, guildId = guildId, subject = subject }
+        else
+            S.pendingGuildMailDelete = { guildMailId = guildMailId }
         end
-        --- @diagnostic disable-next-line: duplicate-set-field, missing-global-doc
-        RequestSendGuildMail = CapturePendingGuildMailSend
+        return origRequestDeleteGuildMail(guildMailId)
+    end
+    --- @diagnostic disable-next-line: duplicate-set-field, missing-global-doc
+    RequestDeleteGuildMail = CapturePendingGuildMailDelete
+
+    local function BuildGuildMailSentMessages(guildId, subject, rankIds)
+        local guildNameAlliance, guildNameAllianceAlert = GetGuildFormattedNames(guildId)
+        subject = FormatGuildMailSubject(subject)
+        local messageCA = zo_strformat(guildMailSentFormat, guildNameAlliance, subject)
+        local messageAlert = zo_strformat(guildMailSentFormat, guildNameAllianceAlert, subject)
+        return AppendGuildMailSentDetails(messageCA, messageAlert, guildId, rankIds)
     end
 
-    if RequestDeleteGuildMail and GetGuildMailItemInfo then
-        local origRequestDeleteGuildMail = RequestDeleteGuildMail
-        local function CapturePendingGuildMailDelete(guildMailId)
-            if IsValidGuildMail and IsValidGuildMail(guildMailId) then
-                local guildId, subject = GetGuildMailItemInfo(guildMailId)
-                S.pendingGuildMailDelete = { guildMailId = guildMailId, guildId = guildId, subject = subject }
-            else
-                S.pendingGuildMailDelete = { guildMailId = guildMailId }
-            end
-            return origRequestDeleteGuildMail(guildMailId)
-        end
-        --- @diagnostic disable-next-line: duplicate-set-field, missing-global-doc
-        RequestDeleteGuildMail = CapturePendingGuildMailDelete
+    local function BuildGuildMailDeletedMessages(guildId, subject)
+        local guildNameAlliance, guildNameAllianceAlert = GetGuildFormattedNames(guildId)
+        subject = FormatGuildMailSubject(subject)
+        local messageCA = zo_strformat(guildMailDeletedFormat, guildNameAlliance, subject)
+        local messageAlert = zo_strformat(guildMailDeletedFormat, guildNameAllianceAlert, subject)
+        return messageCA, messageAlert
     end
 
-    if EVENT_CREATE_GUILD_MAIL_RESULT and GUILD_MAIL_RESULT_SUCCESS then
-        local function BuildGuildMailSentMessages(guildId, subject, rankIds)
-            local guildNameAlliance, guildNameAllianceAlert = GetGuildFormattedNames(guildId)
-            subject = FormatGuildMailSubject(subject)
-            local messageCA = zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_SENT), guildNameAlliance, subject)
-            local messageAlert = zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_SENT), guildNameAllianceAlert, subject)
-            return AppendGuildMailSentDetails(messageCA, messageAlert, guildId, rankIds)
-        end
+    local function HandleGuildMailerResultAlert(result, operation)
+        local social = ChatAnnouncements.SV.Social
+        local manageEnabled = ChatAnnouncements.Enabled and (social.GuildManageCA or social.GuildManageAlert)
 
-        local function BuildGuildMailDeletedMessages(guildId, subject)
-            local guildNameAlliance, guildNameAllianceAlert = GetGuildFormattedNames(guildId)
-            subject = FormatGuildMailSubject(subject)
-            local messageCA = zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_DELETED), guildNameAlliance, subject)
-            local messageAlert = zo_strformat(GetString(LUIE_STRING_CA_GUILD_MAIL_DELETED), guildNameAllianceAlert, subject)
-            return messageCA, messageAlert
-        end
-
-        local function HandleGuildMailerResultAlert(result, operation)
-            local social = ChatAnnouncements.SV.Social
-            local manageEnabled = ChatAnnouncements.Enabled and (social.GuildManageCA or social.GuildManageAlert)
-
-            if result == GUILD_MAIL_RESULT_SUCCESS then
-                if not manageEnabled then
-                    S.pendingGuildMailSend = nil
-                    S.pendingGuildMailDelete = nil
-                    return false
-                end
-                local messageCA
-                local messageAlert
-                local sound
-                if operation == "create" then
-                    local pending = S.pendingGuildMailSend
-                    if pending and pending.guildId then
-                        messageCA, messageAlert = BuildGuildMailSentMessages(pending.guildId, pending.subject, pending.rankIds)
-                    else
-                        messageCA = GetString(SI_GUILD_MAIL_MANAGEMENT_MAIL_SENT)
-                        messageAlert = messageCA
-                    end
-                    S.guildMailIncomingSuppressUntilMs = GetGameTimeMilliseconds() + GUILD_MAIL_INCOMING_SUPPRESS_MS
-                    sound = SOUNDS.MAIL_SENT
-                else
-                    local pending = S.pendingGuildMailDelete
-                    if pending and pending.guildId then
-                        messageCA, messageAlert = BuildGuildMailDeletedMessages(pending.guildId, pending.subject)
-                    else
-                        messageCA = GetString(SI_GUILD_MAIL_MANAGEMENT_MAIL_DELETED)
-                        messageAlert = messageCA
-                    end
-                    sound = SOUNDS.MAIL_ITEM_DELETED
-                end
-                S.pendingGuildMailSend = nil
-                S.pendingGuildMailDelete = nil
-                EmitGuildManageSuccess(social, messageCA, messageAlert, sound)
-                return true
-            end
-
+        if result == GUILD_MAIL_RESULT_SUCCESS then
             if not manageEnabled then
                 S.pendingGuildMailSend = nil
                 S.pendingGuildMailDelete = nil
                 return false
             end
-            local message = GetString("SI_GUILDMAILERRESULT", result)
+            local messageCA
+            local messageAlert
+            local sound
+            if operation == "create" then
+                local pending = S.pendingGuildMailSend
+                if pending and pending.guildId then
+                    messageCA, messageAlert = BuildGuildMailSentMessages(pending.guildId, pending.subject, pending.rankIds)
+                else
+                    messageCA = guildMailManagementMailSentText
+                    messageAlert = messageCA
+                end
+                S.guildMailIncomingSuppressUntilMs = GetGameTimeMilliseconds() + GUILD_MAIL_INCOMING_SUPPRESS_MS
+                sound = SOUNDS.MAIL_SENT
+            else
+                local pending = S.pendingGuildMailDelete
+                if pending and pending.guildId then
+                    messageCA, messageAlert = BuildGuildMailDeletedMessages(pending.guildId, pending.subject)
+                else
+                    messageCA = guildMailManagementMailDeletedText
+                    messageAlert = messageCA
+                end
+                sound = SOUNDS.MAIL_ITEM_DELETED
+            end
             S.pendingGuildMailSend = nil
             S.pendingGuildMailDelete = nil
-            EmitGuildManageError(social, message)
+            EmitGuildManageSuccess(social, messageCA, messageAlert, sound)
             return true
         end
 
-        ZO_PreHook(alertHandlers, EVENT_CREATE_GUILD_MAIL_RESULT, function (result)
-            return HandleGuildMailerResultAlert(result, "create")
-        end)
-        ZO_PreHook(alertHandlers, EVENT_DELETE_GUILD_MAIL_RESULT, function (result)
-            return HandleGuildMailerResultAlert(result, "delete")
-        end)
+        if not manageEnabled then
+            S.pendingGuildMailSend = nil
+            S.pendingGuildMailDelete = nil
+            return false
+        end
+        local message = GetString("SI_GUILDMAILERRESULT", result)
+        S.pendingGuildMailSend = nil
+        S.pendingGuildMailDelete = nil
+        EmitGuildManageError(social, message)
+        return true
     end
+
+    ZO_PreHook(alertHandlers, EVENT_CREATE_GUILD_MAIL_RESULT, function (result)
+        return HandleGuildMailerResultAlert(result, "create")
+    end)
+    ZO_PreHook(alertHandlers, EVENT_DELETE_GUILD_MAIL_RESULT, function (result)
+        return HandleGuildMailerResultAlert(result, "delete")
+    end)
 end

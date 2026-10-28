@@ -17,7 +17,7 @@ A.sourceLabels = {
     sewers="IMPERIAL_CITY_SEWERS",treasuremap="TREASURE_MAPS_IN_ORIGINAL_ALLIANCE_ZONES",
     coldwood="COLD_ZONES_WOOD_AND_UNDEAD",
     mastervendor="MASTER_WRIT_VENDOR",warvendor="WAR_RESEARCHER_IN_CYRODIIL",
-    weeklytrial="WEEKLY_TRIAL_REWARD",
+    weeklytrial="WEEKLY_TRIAL_REWARD",grocer="PROVISIONING_MERCHANTS",
 }
 function A:KnownSources(id)
     local known = A.SourceData and A.SourceData.items[id]
@@ -66,7 +66,7 @@ A.sourceGroups={
     portal="world",world="world",container="world",trove="world",clam="world",treasuremap="world",
     dungeon="mail",mail="mail",hireling="mail",writ="activity",harrowstorm="activity",solo="activity",
     sewers="activity",coldwood="activity",antiquity="activity",vendor="vendor",
-    mastervendor="vendor",warvendor="vendor",weeklytrial="activity",
+    mastervendor="vendor",warvendor="vendor",weeklytrial="activity",grocer="vendor",
     refining="processing",deconstruction="processing",ore="normal",fibre="normal",wood="normal",
     water="normal",runestone="normal",plant="normal",mushroom="normal",waterplant="normal",
     crimson="normal",jewelry="normal",dust="normal",nirn="normal",normal="normal",waterskin="world",
@@ -101,7 +101,7 @@ function A:SourceText(item, id)
 end
 function A:TrackingText(id)
     return (self:IsEnabled(id) and L("MATERIAL_ENABLED") or L("MATERIAL_DISABLED"))
-        .. " · " .. L("ONLY_CONFIRMED_RESOURCE_NODES_COUNT_NPC_ANIMAL_LOOT_AND_MAIL_DO_NOT")
+        .. " · " .. L("GATHERED_MATERIAL_SCOPE")
 end
 function A:SourceMatches(item, id)
     local filter = self.db.ui.sourceFilter

@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Effective Damage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/harog/Effective-Damage__3975) | harog | PC / Mac | 1.5 |
 | [Eidetic Memory Of Item](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Eidetic-Memory-Of-Item__1854) | 2ch | PC / Mac | 4.7 |
 | [EisherzGuildIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SamoAquila/EisherzGuildIcons__4495) | SamoAquila | PC / Mac | 1.0.2 |
-| [Elden Ring UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI__4623) | Geldis | PC / Mac | 2.0.0 |
+| [Elden Ring UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI__4623) | Geldis | PC / Mac | 2.0.1 |
 | [Elden Ring UI - Cmx Module](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI---Cmx-Module__4624) | Geldis | PC / Mac | 1.0.1 |
 | [ElderScrollsOfAlts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts__2070) | Echomap | PC / Mac | 2.00.10 |
 | [ElderScrollsOfAlts 1.00.53.beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts-1.00.53.beta__3969) | Echomap | PC / Mac | 1.00.53.beta |

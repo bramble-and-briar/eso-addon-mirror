@@ -1,6 +1,6 @@
-## Title: ESO Arabic 2.4.0 By AzoozovicSaw21
+## Title: ESO Arabic 2.4.1 By AzoozovicSaw21
 ## APIVersion: 101050 101051
-## Version: 2.4.0
+## Version: 2.4.1
 ## Author: AzoozovicSaw21
 ## Description: .ﺔﻳﺰﻴﻠﺠﻧﺍ ﻰﻟﺇ ﺔﻐﻠﻟﺍ ﺮﻴﻴﻐﺘﻟ /en .ﺔﻴﺑﺮﻌﻟﺍ ﻰﻟﺇ ﺔﻐﻠﻟﺍ ﺮﻴﻴﻐﺘﻟ /ar :ﺕﺎﻤﻴﻠﻌﺘﻟﺍ • ﻲﻧﺎﻄﺤﻘﻟﺍ ﺰﻳﺰﻌﻟﺍﺪﺒﻋ ﺔﻄﺳﺍﻮﺑ ﻲﻤﺳﺭ ﺮﻴﻐﻟﺍ ﺔﺒﻌﻟ ﺐﻳﺮﻌﺗ
 ## SavedVariables: ESOArabicSavedVariables

@@ -30,6 +30,7 @@ function AMW:PauseDelivery(message)
         local duplicate=delivery.paused and delivery.pauseMessage==message
         delivery.paused,delivery.pauseMessage=true,message
         delivery.allowAccept=nil
+        self:CancelJob("closeRolis")
         if duplicate then return end
     end
     self:Alert(message)
@@ -143,6 +144,10 @@ function AMW:ArmDelivery()
             if delivery.deadline and not delivery.paused and GetFrameTimeSeconds()>delivery.deadline then
                 self:PauseDelivery("No confirmation received. Check the current dialog before resuming.")
             end
+            if delivery.rolisOpen and delivery.closeDeadline and not delivery.paused
+                and GetFrameTimeSeconds()>delivery.closeDeadline then
+                self:PauseDelivery("Rolis did not close. Press B, then resume delivery.")
+            end
             if xp.remaining>60 then delivery.warned=false end
             if xp.ready and xp.remaining<=60 and not delivery.warned then
                 delivery.warned=true
@@ -188,7 +193,7 @@ function AMW:StartDelivery()
     self:ReleaseExtractionGuard()
     if self.delivery and not self.delivery.paused then return self:ResumeCurrentDelivery() end
     if self.delivery then
-        for _,key in ipairs({"next","offer","questCheck","afterRolis"}) do self:CancelJob(key) end
+        for _,key in ipairs({"next","offer","questCheck","afterRolis","closeRolis"}) do self:CancelJob(key) end
         self.delivery.needsScan=true
     end
     if not self.delivery then self:ArmDelivery() end
@@ -228,7 +233,7 @@ end
 function AMW:StopDelivery(quiet)
     local total=self.delivery and self.delivery.completed or 0
     self.delivery=nil
-    for _,key in ipairs({"watch","deliveryStart","next","offer","questCheck","afterRolis"}) do self:CancelJob(key) end
+    for _,key in ipairs({"watch","deliveryStart","next","offer","questCheck","afterRolis","closeRolis"}) do self:CancelJob(key) end
     self:ReleaseDeliveryEvents()
     self:ReleaseHooks("delivery")
     if not quiet then self:SetStatus("Delivery stopped: "..total.." completed. XP guard off.",true) end
@@ -358,6 +363,7 @@ end
 
 function AMW:OnQuestAdded(index)
     local delivery=self.delivery
+    if delivery then delivery.questRevision=(delivery.questRevision or 0)+1 end
     if not delivery or delivery.state~="awaitingQuest" or self.jobs and self.jobs.questCheck then return end
     local current=delivery.current
     self:StartJob("questCheck",function()
@@ -377,20 +383,51 @@ function AMW:OnRolisOpened()
     if not delivery or not self:IsRolis() then return end
     if not delivery.rolisOpen then
         delivery.lastProgressAt,delivery.waitReported=GetFrameTimeSeconds(),false
+        delivery.rolisVisit=(delivery.rolisVisit or 0)+1
+        delivery.rolisReceipt,delivery.closeRequested,delivery.closeDeadline=false,false,nil
     end
     delivery.rolisOpen,delivery.closeSeen=true,false
     self:CancelJob("afterRolis")
     self:CancelJob("next")
-    -- Lazy Writ owns the whole conversation. Only observe its lifecycle.
+    -- Lazy Writ selects and rewards. Close only after all managed receipts.
     if delivery.state~="offered" and delivery.state~="awaitingQuest" then
         delivery.current,delivery.deadline,delivery.state=nil,nil,"handoff"
     end
+    self:CloseFinishedRolis()
+end
+
+function AMW:CanCloseFinishedRolis(delivery,visit)
+    return self.delivery==delivery and delivery.rolisVisit==visit and delivery.rolisOpen and delivery.rolisReceipt
+        and not delivery.paused and not delivery.closeRequested and self:ActiveDeliveryCount()==0
+        and delivery.state=="handoff" and not delivery.current and self:IsRolis()
+end
+
+function AMW:CloseFinishedRolis()
+    local delivery=self.delivery
+    if not delivery or not self:CanCloseFinishedRolis(delivery,delivery.rolisVisit)
+        or self.jobs and self.jobs.closeRolis then return end
+    local visit=delivery.rolisVisit
+    self:StartJob("closeRolis",function()
+        -- Let Lazy Writ/ESO close first, outside the reward/removal callback.
+        self:Yield(100)
+        if not self:CanCloseFinishedRolis(delivery,visit) then return end
+        local revision=delivery.questRevision or 0
+        local quests=self:MasterQuestsWorker()
+        if #quests>0 or (delivery.questRevision or 0)~=revision
+            or not self:CanCloseFinishedRolis(delivery,visit) then return end
+        delivery.closeRequested,delivery.closeDeadline=true,GetFrameTimeSeconds()+3
+        local ok,err=pcall(self.SecureCall,self,"EndInteraction",INTERACTION_CONVERSATION)
+        if not ok then self:PauseDelivery("Could not close Rolis. Press B: "..tostring(err)) end
+        -- Only EVENT_CHATTER_END authorizes refilling; never synthesize it.
+    end)
 end
 
 function AMW:OnRolisClosed()
     local delivery=self.delivery
     -- Item offers and other NPC conversations must not trigger a refill.
     if not delivery or not delivery.rolisOpen then return end
+    self:CancelJob("closeRolis")
+    delivery.closeDeadline=nil
     delivery.rolisOpen,delivery.closeSeen=false,true
     self:RefillAfterRolis()
 end
@@ -414,6 +451,7 @@ end
 
 function AMW:OnQuestRemoved(completed,index,questId)
     local delivery=self.delivery
+    if delivery then delivery.questRevision=(delivery.questRevision or 0)+1 end
     local current=self:ManagedQuest(index,questId)
     if not delivery or not current then return end
     if not completed then return self:PauseDelivery("A managed contract was abandoned. Check the journal.") end
@@ -424,6 +462,10 @@ function AMW:OnQuestRemoved(completed,index,questId)
     self.saved.overrides[current.uid],self.saved.deferred[current.uid]=nil,nil
     self.saved.withdraw[current.uid],self.saved.manualDeferred[current.uid],self.saved.deliveryQuests[current.uid]=nil,nil,nil
     if delivery.current==current then delivery.current=nil end
+    if delivery.rolisOpen and self:IsRolis() then
+        delivery.rolisReceipt=true
+        self:CloseFinishedRolis()
+    end
     -- Receipts can precede or follow CHATTER_END. Never refill during the dialogue.
     if delivery.closeSeen and not delivery.rolisOpen then self:RefillAfterRolis() end
 end

@@ -1,0 +1,9 @@
+## Title: Auto Improve Gear
+## Author: CodeWarrior82
+## Description: Auto Improve gear you crafted to any level you choose.
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
+## SavedVariables: AutoImproveGearSavedVars
+
+AutoImproveGear.xml
+AutoImproveGear.lua

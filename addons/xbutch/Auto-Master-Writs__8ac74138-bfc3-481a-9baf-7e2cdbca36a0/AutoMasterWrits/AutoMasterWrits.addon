@@ -1,8 +1,8 @@
 ## Title: Auto Master Writs
 ## Description: Filter, bank, craft and deliver master writs with a 150% XP guard.
 ## APIVersion: 101051
-## Version: 1.51.02
-## AddOnVersion: 15102
+## Version: 1.51.03
+## AddOnVersion: 15103
 ## Author: xbutch
 ## DependsOn: DolgubonsLazyWritCreator LibLazyCrafting
 ## ConsoleDependsOn: LibHarvensAddonSettings

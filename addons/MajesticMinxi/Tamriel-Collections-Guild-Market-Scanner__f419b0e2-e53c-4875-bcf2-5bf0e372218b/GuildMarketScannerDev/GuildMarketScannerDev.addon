@@ -1,9 +1,8 @@
 ## Title: |cFFD15AGMS|r |c44D5C7- Guild Market Scanner|r
 ## Description: Native gamepad Guild Trader scanner with collection filtering, cached listings, and native previews.
 ## Author: |c73E58CMajestic Minxi|r
-## Version: 1.0.8p
-## AddOnVersion: 222
+## Version: 1.2.4
+## AddOnVersion: 230
 ## APIVersion: 101051
 
-GMSFragments.lua
 GuildMarketScannerDev.lua

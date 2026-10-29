@@ -2,7 +2,7 @@
 ## Author: BesideMyself, SavageTSC
 ## Description: A tool for fetching item prices based on guild trader sales
 ## APIVersion: 101051 101052
-## AddOnVersion: 123
+## AddOnVersion: 124
 ## SavedVariables: TSCPriceFetcherSavedData
 ## DependsOn: LibHarvensAddonSettings>=20000 LibAsync>=30002 LibNotification
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.

@@ -18,7 +18,7 @@
     "UniversalAssistant"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4856/",
-  "fingerprint": "58cfa35ea13ca1675154f593c3bf1b60ea1224a2db3e7aa719459a401845826f",
+  "fingerprint": "c3530a8b1319d47e57a84884a84f622d5abd1cfc6f5e719013056ceffc857453",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17453.png",
     "https://cdn-eso.mmoui.com/preview/pvw17454.png",
@@ -32,11 +32,11 @@
   "source_id": "4856",
   "source_url": "https://www.esoui.com/downloads/info4856-UniversalAssistant.html",
   "stats": {
-    "downloads": 73,
+    "downloads": 101,
     "favorites": 0,
-    "monthly_downloads": 73
+    "monthly_downloads": 57
   },
   "title": "UniversalAssistant",
-  "updated_at": 1792079617000,
-  "version": "1.0.2"
+  "updated_at": 1793213960000,
+  "version": "1.0.3"
 }

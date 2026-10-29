@@ -61,7 +61,7 @@ local strings = {
         FROM_BANK_TOOLTIP = "Allows deconstruct weapons from bank.",
 
         NIRNHONED = "Deconstruct Nirnhoned weapons",
-        NIRNHONED_TOOLTIP = "Allows  weapons with the Nirnhoned trait to be deconstructed.",
+        NIRNHONED_TOOLTIP = "Allows weapons with the Nirnhoned trait to be deconstructed. When disabled, research rules cannot deconstruct them.",
 
         RESEARCH_MODE = "Weapon research deconstruction mode",
         RESEARCH_MODE_TOOLTIP = "Controls how weapons with researchable traits are handled.",
@@ -101,7 +101,7 @@ local strings = {
         FROM_BANK_TOOLTIP = "Allows deconstruct clothing from the bank.",
 
         NIRNHONED = "Deconstruct Nirnhoned clothing",
-        NIRNHONED_TOOLTIP = "Allows clothing with the Nirnhoned trait to be deconstructed.",
+        NIRNHONED_TOOLTIP = "Allows clothing with the Nirnhoned trait to be deconstructed. When disabled, research rules cannot deconstruct it.",
 
         RESEARCH_MODE = "Clothing research deconstruction mode",
         RESEARCH_MODE_TOOLTIP = "Controls how clothing with researchable traits is handled.",

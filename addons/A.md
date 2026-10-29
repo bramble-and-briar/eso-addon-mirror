@@ -247,7 +247,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ar2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/Ar2__52bf209f-b1c3-4253-adfc-ba6e95b85072) | Lofand | Console | — |
 | [ArabChat - Arabic Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabChat---Arabic-Chat__4931) | alaooy | PC / Mac | 1.2.2 |
 | [arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic__c8823ab9-749b-4180-ad52-c15b1363d974) | Lofand | Console | — |
-| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.4.0 |
+| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.4.1 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
 | [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.2.0 |
@@ -257,6 +257,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ARC_ZoneExplorer - Zone Arrival & Exploration HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arcsinan/ARC_ZoneExplorer---Zone-Arrival-Exploration-HUD__4972) | arcsinan | PC / Mac | 1.0.0 |
 | [Arcanist Crux Job Gauge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ViciousTomato/Arcanist-Crux-Job-Gauge__3661) | ViciousTomato | PC / Mac | 1.1 |
 | [Arcanist Mastery Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Arcanist-Mastery-Tracker__4823) | its_wifey | PC / Mac | 1.6 |
+| [Arcanist Rob's Furnishing Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Arcanist-Rob-s-Furnishing-Finder__17df3bbc-aace-41f6-b29e-9dc87cb84fdf) | Scribe_Rob | Console | — |
 | [Arcanum Artis GuildHall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Arcanum-Artis-GuildHall__3013) | Niwasaka | PC / Mac | 1.22.0 |
 | [Arch's Enhanced Crafting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architecture/Arch-s-Enhanced-Crafting__1443) | Architecture | PC / Mac | 2.1.1 |
 | [Arch's Enhanced Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architecture/Arch-s-Enhanced-Gamepad__1645) | Architecture | PC / Mac | 1.0.8 |
@@ -271,10 +272,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
-| [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.1 |
+| [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.2 |
 | [Are We Mounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaWeedle/Are-We-Mounted__4134) | DaWeedle | PC / Mac | 1.0.0 |
 | [Are we there yet?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitaa/Are-we-there-yet__2682) | Mitaa | PC / Mac | 0.6.4 |
-| [AreYouSlow?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/AreYouSlow__11615176-cc74-452d-a5b3-cd3fe5272a2a) | Th3rtythr33 | Console | — |
+| [AreYouSlow? (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/AreYouSlow-Beta__11615176-cc74-452d-a5b3-cd3fe5272a2a) | Th3rtythr33 | Console | — |
 | [Aries Logs Encounter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aries13th/Aries-Logs-Encounter__4633) | Aries13th | PC / Mac | 1.0.1 |
 | [ArkaCruX - pour Arcaniste](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Takadol/ArkaCruX---pour-Arcaniste__4467) | Takadol | PC / Mac | 1.6 |
 | [Arkadium's Extended Guild Notes (EGN)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Carter_DC/Arkadium-s-Extended-Guild-Notes-EGN__1689) | Carter_DC | PC / Mac | 1.4 |
@@ -350,6 +351,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Guild Welcome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/Auto-Guild-Welcome__2387) | Phobus11 | PC / Mac | 0.2.0 |
 | [Auto Guild Welcome Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaffeinatedMayhem/Auto-Guild-Welcome-Revised__2b95c809-f14b-4c3c-9c0c-945a3e8547c4) | CaffeinatedMayhem | Console | — |
 | [Auto Handle Shared Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Auto-Handle-Shared-Quests__1217) | CaptainBlagbird | PC / Mac | 2.3 |
+| [Auto Improve Gear](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Auto-Improve-Gear__b6fb28ee-9e94-46d0-b44e-94ee0b5852a3) | codeWarrior82 | Console | — |
 | [Auto Kick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Kick__3613) | peniku8 | PC / Mac | 2.2.5 |
 | [Auto Loot Crafting Materials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/estera/Auto-Loot-Crafting-Materials__1430) | estera | PC / Mac | 1.0 |
 | [AUTO LUA MEMORY CLEANER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/AUTO-LUA-MEMORY-CLEANER__9926b8d4-d4ca-4215-8790-013c0b1630c0) | APH0NlC | Console | — |
@@ -389,7 +391,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AutoGuildWelcome Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaffeinatedMayhem/AutoGuildWelcome-Revised__3995) | CaffeinatedMayhem | PC / Mac | 1.21 |
 | [AutoInteract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Squid.Meat/AutoInteract__ddf1a1e2-b627-4cb5-a40a-a3ece40c609c) | Squid.Meat | Console | — |
 | [AutoInteract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquidMeat/AutoInteract__4093) | SquidMeat | PC / Mac | 1.8.6 |
-| [AutoInvite - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/amuridee/AutoInvite---Updated__2633) | amuridee | PC / Mac | 2026.08.15 |
+| [AutoInvite - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/amuridee/AutoInvite---Updated__2633) | amuridee | PC / Mac | 2026.10.29 |
 | [AutoInvite RU Patch (for v2.4.1)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/AutoInvite-RU-Patch-for-v2.4.1__1336) | ForgottenLight | PC / Mac | 2.4.1.1 |
 | [AutoInviteWholeWord](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/AutoInviteWholeWord__2251) | Coorbin | PC / Mac | 2.6.5 |
 | [AutoLootKey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Goemaat/AutoLootKey__1125) | Goemaat | PC / Mac | 0.1 |

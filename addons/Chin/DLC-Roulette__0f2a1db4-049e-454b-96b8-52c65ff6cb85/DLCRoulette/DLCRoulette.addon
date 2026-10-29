@@ -2,21 +2,23 @@
 ; affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of
 ; ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 ;
-; DLC Roulette. Copyright (c) 2026 -chin. All rights reserved.
+; DLC Roulette. Copyright (c) 2026 -Chin. All rights reserved.
 ; Install and use it through the game's add-on browser. No copying, sharing, changes or reuse of
-; any part without -chin's written permission.
+; any part without -Chin's written permission.
 
-## Title: DLC Roulette - Random DLC Dungeon Queue
-## Author: -chin
-## Description: Random DLC dungeon queue in one press, Veteran or Normal. Pick your dungeons; new DLC dungeons are added automatically. Dungeon finder, LFG, PS5, Xbox, PC.
-## Version: 1.0.0
-## AddOnVersion: 1
+## Title: DLC Roulette
+## Author: -Chin
+## Description: Random DLC dungeon queue in one press, Veteran or Normal. It skips the dungeons you have just run. Pick your dungeons; new DLC dungeons are added automatically. Dungeon finder, LFG, PS5, Xbox, PC.
+## Version: 1.1.3
+## AddOnVersion: 5
 ## APIVersion: 101051
 ## SavedVariables: DLCRoulette_SavedVariables
 ## DependsOn: LibHarvensAddonSettings
 
 lang/en.lua
 Core.lua
+Cooldown.lua
 Dungeons.lua
 Buttons.lua
 Settings.lua
+Bindings.xml

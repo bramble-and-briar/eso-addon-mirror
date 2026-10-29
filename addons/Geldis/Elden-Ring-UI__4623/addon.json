@@ -26,7 +26,7 @@
     "EldenRingUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4623/",
-  "fingerprint": "fd80c275c2995de65b0ea74927cffc55ad47cfa5a77f044fc4ef3d7a6802d293",
+  "fingerprint": "5d23e19ca84d05740a24121f8e6864fc93000541c3ca3d4f4592bc19fd669ce6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16280.png",
     "https://cdn-eso.mmoui.com/preview/pvw17477.png"
@@ -37,11 +37,11 @@
   "source_id": "4623",
   "source_url": "https://www.esoui.com/downloads/info4623-EldenRingUI.html",
   "stats": {
-    "downloads": 617,
+    "downloads": 813,
     "favorites": 6,
-    "monthly_downloads": 110
+    "monthly_downloads": 138
   },
   "title": "Elden Ring UI",
-  "updated_at": 1790084366000,
-  "version": "2.0.0"
+  "updated_at": 1793191949000,
+  "version": "2.0.1"
 }

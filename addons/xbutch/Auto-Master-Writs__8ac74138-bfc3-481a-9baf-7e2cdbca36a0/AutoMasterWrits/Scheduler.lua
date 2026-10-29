@@ -128,6 +128,7 @@ function AMW:StopAll(message)
     self:ReleaseHooks()
     EVENT_MANAGER:UnregisterForEvent(self.name .. "Bank", EVENT_OPEN_BANK)
     EVENT_MANAGER:UnregisterForEvent(self.name .. "BankClose", EVENT_CLOSE_BANK)
+    EVENT_MANAGER:UnregisterForEvent(self.name .. "BankInventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     EVENT_MANAGER:UnregisterForEvent(self.name .. "Deactivate", EVENT_PLAYER_DEACTIVATED)
     self.watchingDeactivation = false
     self.xpDirty = true

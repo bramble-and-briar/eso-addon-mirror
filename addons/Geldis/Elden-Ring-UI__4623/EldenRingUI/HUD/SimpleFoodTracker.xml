@@ -1,12 +1,16 @@
 <GuiXml>
     <Controls>
         <TopLevelControl name="SimpleFoodTrackerWindow" movable="false" mouseEnabled="false" clampedToScreen="true">
-            <Dimensions x="250" y="40" />
+            <Dimensions x="350" y="40" />
             
             <Anchor point="LEFT" relativeTo="GuiRoot" relativePoint="BOTTOMLEFT" offsetX="80" offsetY="-389" />
             
             <Controls>
-                <Label name="$(parent)Label" font="EldenRingUI/Fonts/EBGaramond-Medium.slug|22|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER" text="No Food Active">
+				<!-- <Label name="$(parent)Label" font="EldenRingUI/Fonts/EBGaramond-Medium.slug|20|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER" text="No Food Active"> -->
+                    <!-- <Anchor point="TOPLEFT" offsetX="10" offsetY="3"/> -->
+                    <!-- <Anchor point="BOTTOMRIGHT" offsetX="-10" /> -->
+                <!-- </Label> -->
+                <Label name="$(parent)Label" font="EldenRingUI/Fonts/Vollkorn-Regular_0.slug|22|soft-shadow-thick" color="FFFFFF" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER" text="No Food Active">
                     <Anchor point="TOPLEFT" offsetX="10" offsetY="3"/>
                     <Anchor point="BOTTOMRIGHT" offsetX="-10" />
                 </Label>

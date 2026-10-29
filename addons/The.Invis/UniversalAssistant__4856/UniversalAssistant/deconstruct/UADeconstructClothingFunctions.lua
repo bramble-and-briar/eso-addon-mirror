@@ -123,6 +123,12 @@ local function IsClothingAllowed(profile, bagId, slotIndex)
 
     local traitInformation = GetItemTraitInformationFromItemLink(itemLink)
 
+    local nirnhoned = IsNirnhonedClothing(itemLink)
+
+    if nirnhoned and not profile.nirnhoned then
+        return false
+    end
+
     local reconstructed = IsItemReconstructed(bagId, slotIndex)
 
     if reconstructed and not profile.reconstructed then
@@ -151,7 +157,7 @@ local function IsClothingAllowed(profile, bagId, slotIndex)
         matchesFilter = true
     end
 
-    if IsNirnhonedClothing(itemLink) and profile.nirnhoned then
+    if nirnhoned and profile.nirnhoned then
         matchesFilter = true
     end
 

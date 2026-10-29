@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/DakJaniels/DeBluedIcons__5006",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "DakJaniels",
+  "canonical_id": "esoui:5006",
+  "category_id": "147",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5006",
+  "deleted": false,
+  "directories": [
+    "DeBluedIcons"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5006/",
+  "fingerprint": "a6c7d5028c66a6aa4338e40c7f43d051a1ba9e9afac0e52ea51920b67cd7a2a9",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18216.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18217.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18218.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5006",
+  "source_url": "https://www.esoui.com/downloads/info5006-DeBluedIcons.html",
+  "stats": {
+    "downloads": 12,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "DeBluedIcons",
+  "updated_at": 1793214462000,
+  "version": "1"
+}

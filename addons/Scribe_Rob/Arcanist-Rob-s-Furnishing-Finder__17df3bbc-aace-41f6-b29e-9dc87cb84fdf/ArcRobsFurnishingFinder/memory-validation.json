@@ -1,0 +1,16 @@
+{
+  "environment": "Standalone Lua 5.1 with mocked ESO APIs; not actual ESO memory pool readings",
+  "synthetic_dataset": {
+    "houses": 100,
+    "furnishing_types": 5000,
+    "location_records": 70000
+  },
+  "estimated_lua_heap_mb": {
+    "old_stored": 30.852657318115234,
+    "new_stored": 6.468268394470215,
+    "old_table_open": 83.45022773742676,
+    "new_table_open": 14.627936363220215,
+    "after_five_rebuilds": 14.627936363220215
+  },
+  "checks": "All functional checks passed; records and totals preserved; migration repeated safely; result rebuilds did not retain additional allocations."
+}

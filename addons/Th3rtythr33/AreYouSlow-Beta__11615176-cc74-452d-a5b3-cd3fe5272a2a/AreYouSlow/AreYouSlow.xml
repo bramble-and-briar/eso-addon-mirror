@@ -1,0 +1,55 @@
+<GuiXml>
+    <Controls>
+
+        <!-- NOTE ON XML COMMENTS: a double hyphen is illegal inside an XML
+             comment, and the Lua in this workspace uses it as an em-dash
+             constantly. Console surfaces no Lua errors, so a malformed XML
+             file means controls that silently never exist. Check with:
+               python Tools/xmlcheck.py AreYouSlow
+             -->
+
+        <!-- Everything here is VIRTUAL and is instantiated from AreYouSlow.lua
+             with CreateControlFromVirtual, matching ZOS's own practice (the
+             shipped UI never passes a CT_ constant to CreateControl). There is
+             no OnInitialized handler anywhere in this file, so the manifest
+             order between it and the Lua is not load-bearing in either
+             direction: the Lua only looks these virtuals up at
+             EVENT_ADD_ON_LOADED, by which time every file has been read. -->
+
+        <!-- The 30 second speed graph. A Backdrop with a centerColor and NO
+             center texture file renders as a solid translucent panel (ZOS does
+             the same in zo_tooltip.xml), which keeps the bars legible over the
+             game world without shipping any art. -->
+        <Control name="AreYouSlow_Graph" virtual="true" mouseEnabled="false">
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="00000073" edgeColor="FFFFFF26">
+                    <AnchorFill />
+                    <Edge edgeSize="1" />
+                </Backdrop>
+
+                <!-- Bars are parented here so that a bar's BOTTOMLEFT anchor
+                     is measured from the plot's baseline. -->
+                <Control name="$(parent)Plot" mouseEnabled="false">
+                    <AnchorFill />
+                </Control>
+
+                <!-- A single reference line at half scale (1000 u/s). Declared
+                     AFTER the plot so it draws over the bars rather than being
+                     buried under them. Deliberately faint: a reading aid, not
+                     data. Its vertical position is set from Lua so it stays in
+                     step with GRAPH_HEIGHT and GRAPH_FULL_SPEED there. -->
+                <Texture name="$(parent)Mid" color="FFFFFF59">
+                    <Dimensions y="1" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- One bar, one position sample. No textureFile, so it draws as a
+             solid rectangle: the same trick as ZOS's login splash backdrop
+             (simplelogosplash.xml) and the Deathnote graph columns, and the
+             reason this addon still ships no .dds file. Colour and height are
+             set per sample from Lua. -->
+        <Texture name="AreYouSlow_Bar" virtual="true" color="00FF00FF" hidden="true" />
+
+    </Controls>
+</GuiXml>

@@ -56,30 +56,6 @@ Thanks to Baertram for ESOUI publishing and SafeAddString review feedback.
 
 Optional compatibility targets: AwesomeGuildStore, LootDrop and LibGetText; credit belongs to their respective authors. These projects are not bundled and are not required dependencies. Compatibility support does not imply their endorsement.
 
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
+2.4.1 journal and travel corrections
 Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
 Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.

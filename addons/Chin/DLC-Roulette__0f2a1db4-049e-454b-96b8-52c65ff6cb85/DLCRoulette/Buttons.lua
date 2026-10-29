@@ -1,4 +1,4 @@
--- DLC Roulette. Copyright (c) 2026 -chin. All rights reserved: no copying, sharing, changes or reuse.
+-- DLC Roulette. Copyright (c) 2026 -Chin. All rights reserved: no copying, sharing, changes or reuse.
 -- Buttons: two entries added to the gamepad Dungeon Finder's button strip, so they show on its first page and
 -- on the Random and Specific lists alike. Triangle (Y) queues Veteran, L3 Normal. The game uses Triangle there
 -- only in Battlegrounds and Tales of Tribute, and L3 not at all.
@@ -12,7 +12,7 @@ local function Button(name, keybind, activityType)
         name = name,
         keybind = keybind,
         callback = function() DR.Dungeons.Queue(activityType) end,
-        visible = DR.Dungeons.CanQueue,
+        visible = DR.Dungeons.CanShow,
     }
 end
 

@@ -17,7 +17,7 @@
 
 AutoInvite = AutoInvite or {}
 AutoInvite.AddonId = "AutoInvite"
-AutoInvite.Version = "2026.08.15"
+AutoInvite.Version = "2026.10.29"
 
 ------------------------------------------------
 --- Utility functions
@@ -219,6 +219,7 @@ AutoInvite.playerLeave = function(_, unitTag, connectStatus, isSelf)
 end
 
 AutoInvite.offlineEvent = function(_, unitTag, connectStatus)
+    if not IsUnitGroupLeader("player") then return end 
     local unitName = GetUnitDisplayName(unitTag):gsub("%^.+", "")
     if connectStatus then
         dbg(unitTag .. "/" .. unitName .. " has reconnected")

@@ -92,7 +92,16 @@ local function parse(s, out, inheritedColor, inheritedLink)
             local h1 = s:find("|h", i + 2, true)
             local h2 = h1 and s:find("|h", h1 + 2, true)
             if h2 then
-                parse(s:sub(h1 + 2, h2 - 1), out, color, s:sub(i, h1 + 1))
+                local caption = s:sub(h1 + 2, h2 - 1)
+                local fullLink = s:sub(i, h2 + 1)
+                if caption == "" and fullLink:find(":item:", 1, true) and type(GetItemLinkName) == "function" then
+                    caption = GetItemLinkName(fullLink) or ""
+                end
+                if caption == "" then
+                    insert(out, { text = fullLink, color = color, atom = true })
+                else
+                    parse(caption, out, color, s:sub(i, h1 + 1))
+                end
                 i = h2 + 2
             else
                 insert(out, { text = "|", cp = 124, color = color, link = link }); i = i + 1

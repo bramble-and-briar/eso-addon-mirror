@@ -7,27 +7,29 @@ local ICON_SCALE = 0.85
 local TEXT_OFFSET_Y = -15
 
 ZO_PreHook("TryAutoTrackNextPromotionalEventCampaign", function() return true end)
-ZO_ChatWindowMinBar:SetAlpha(0)
-ZO_UnitFramesGroups:SetHidden(true)
-ZO_AlertTextNotification:SetAlpha(0)
-ZO_HousingHUDFragmentTopLevelKeybindButton:SetHidden(true)
+if ZO_ChatWindowMinBar then ZO_ChatWindowMinBar:SetAlpha(0) end
+if ZO_UnitFramesGroups then ZO_UnitFramesGroups:SetHidden(true) end
+if ZO_AlertTextNotification then ZO_AlertTextNotification:SetAlpha(0) end
+if ZO_HousingHUDFragmentTopLevelKeybindButton then ZO_HousingHUDFragmentTopLevelKeybindButton:SetHidden(true) end
 
-ZO_PlayerProgress:SetAlpha(0)
-ZO_PlayerProgress:SetHidden(true)
-ZO_PlayerProgress.SetHidden = function() end
+if ZO_PlayerProgress then
+    ZO_PlayerProgress:SetAlpha(0)
+    ZO_PlayerProgress:SetHidden(true)
+    ZO_PlayerProgress.SetHidden = function() end
+end
 
-ZO_PlayerAttributeMountStamina:SetHidden(true)
-ZO_PlayerAttributeWerewolf:SetHidden(true)
-ZO_PlayerAttributeSiegeHealth:SetHidden(true)
+if ZO_PlayerAttributeMountStamina then ZO_PlayerAttributeMountStamina:SetHidden(true) end
+if ZO_PlayerAttributeWerewolf then ZO_PlayerAttributeWerewolf:SetHidden(true) end
+if ZO_PlayerAttributeSiegeHealth then ZO_PlayerAttributeSiegeHealth:SetHidden(true) end
 
-ZO_CompassAreaOverrideLabel:SetHidden(true)
-
-ZO_GetPrimaryPlayerNameWithSecondary = function(displayName, characterName) return displayName end
+if ZO_CompassAreaOverrideLabel then ZO_CompassAreaOverrideLabel:SetHidden(true) end
 
 local INVbackground = ZO_SharedWideLeftPanelBackgroundLeft
-INVbackground:ClearAnchors()
-INVbackground:SetAnchor(LEFT, GuiRoot, LEFT, -20, -50)
-INVbackground:SetDimensions(240, 650)
+if INVbackground then
+    INVbackground:ClearAnchors()
+    INVbackground:SetAnchor(LEFT, GuiRoot, LEFT, -20, -50)
+    INVbackground:SetDimensions(240, 650)
+end
 
 ZO_CharacterWindowStatsScrollScrollChildStatEntry4:SetHidden(true)
 ZO_CharacterWindowStatsScrollScrollChildStatEntry5:SetHidden(true)
@@ -46,7 +48,7 @@ ZO_CharacterWindowStatsScrollScrollChildStatEntry22:SetHidden(true)
 ZO_CharacterWindowStatsScrollScrollChildStatEntry24:SetHidden(true)
 ZO_CharacterWindowStatsScrollScrollChildZO_MundusStonesStatsEntry:SetHidden(true)
 ZO_CharacterWindowStatsScrollScrollChildZO_MundusStonesStatsEntryMundusIcon1:SetHidden(true)
-	
+
 RedirectTexture("esoui/art/actionbar/abilityframe64_up.dds", "EldenRingUI/Textures/abilityframe64_up.dds")
 RedirectTexture("esoui/art/actionbar/abilityframe64_down.dds", "EldenRingUI/Textures/abilityframe64_up.dds")
 RedirectTexture("esoui/art/miscellaneous/interactkeyframe_center.dds", "EldenRingUI/Textures/interactkeyframe_center.dds")
@@ -64,10 +66,47 @@ RedirectTexture("esoui/art/compass/compass.dds", "EldenRingUI/Textures/empty.dds
 RedirectTexture("esoui/art/compass/compass_frame.dds", "EldenRingUI/Textures/empty.dds")
 
 RedirectTexture("esoui/art/icons/consumable_potion_001_type_005.dds", "EldenRingUI/Textures/Icons/consumable_potion_001_type_005.dds")
-RedirectTexture("esoui/art/icons/consumable_potion_002_type_005.dds", "EldenRingUI/Textures/Icons/consumable_potion_002_type_005.dds")
+RedirectTexture("esoui/art/icons/consumable_potion_011_type_005.dds", "EldenRingUI/Textures/Icons/consumable_potion_011_type_005.dds")
+
+SecurePostHook(RETICLE, "UpdateInteractText", function()
+    local interactContainer = ZO_ReticleContainerInteract
+    local targetLabel = ZO_ReticleContainerInteractTargetName
+    local contextLabel = ZO_ReticleContainerInteractContext
+    local keybindButton = ZO_ReticleContainerInteractKeybindButton
+
+    if interactContainer then
+        interactContainer:ClearAnchors()
+        interactContainer:SetAnchor(LEFT, GuiRoot, CENTER, 20, 30)
+        interactContainer:SetAlpha(0.9)
+    end
+
+    if keybindButton and not keybindButton:IsHidden() then
+        keybindButton:ClearAnchors()
+        keybindButton:SetAnchor(LEFT, interactContainer, LEFT, 0, 0)
+    end
+
+    if contextLabel and not contextLabel:IsHidden() then
+        contextLabel:ClearAnchors()
+        contextLabel:SetAnchor(LEFT, keybindButton, RIGHT, 10, 0)
+        contextLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    end
+
+    if targetLabel and not targetLabel:IsHidden() then
+        targetLabel:ClearAnchors()
+        targetLabel:SetAnchor(LEFT, contextLabel, RIGHT, 10, 0)
+        targetLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    end
+end)
+
+local function CenterP2PPrompt()
+    local ctrl = WINDOW_MANAGER:GetControlByName("ZO_PlayerToPlayerAreaPromptContainer")
+    if ctrl and type(ctrl.ClearAnchors) == "function" and type(ctrl.SetAnchor) == "function" then
+        ctrl:ClearAnchors()
+        ctrl:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -350)
+    end
+end
 
 local function RunOneTimeSetup()
-
     SafeAddString(SI_COMPASS_PIN_DISTANCE_FORMATTER, "", 1)       
     SafeAddString(SI_COMPASS_PIN_LONG_DISTANCE_FORMATTER, "", 1)  
 
@@ -75,17 +114,16 @@ local function RunOneTimeSetup()
         local c = ZO_SynergyTopLevel:GetNamedChild('Container')
         if c then
             c:ClearAnchors()
-            c:SetAnchor(BOTTOM, GuiRoot, BOTTOM, -20, -300)
-			c:SetAlpha(0.85)
+            c:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -300)
+            c:SetAlpha(0.85)
 
             local a = c:GetNamedChild('Action')
             local x = c:GetNamedChild('Key')
             local i = c:GetNamedChild('Icon')
 
-            if x then x:SetHidden(true) end
             if a and i then
                 a:ClearAnchors()
-                a:SetAnchor(CENTER, c, CENTER, 27.5, 2)
+                a:SetAnchor(CENTER, c, CENTER, 27, 2)
             end
 
             if i then
@@ -95,13 +133,17 @@ local function RunOneTimeSetup()
                 i:ClearAnchors()
                 i:SetAnchor(RIGHT, a, LEFT, -10, -2)
                 
+                if x then
+                    x:ClearAnchors()
+                    x:SetAnchor(RIGHT, i, LEFT, 5, 0)
+                end
+                
                 local bg = c:GetNamedChild('CustomBackground')
                 if not bg then
                     bg = WINDOW_MANAGER:CreateControl('$(parent)CustomBackground', c, CT_TEXTURE)
-                    bg:SetDimensions(512, 64) 
                     bg:ClearAnchors()
-                    bg:SetAnchor(LEFT, i, LEFT, -85, 2)
-                    bg:SetTexture('EldenRingUI/Textures/SynergyBG.dds')
+                    bg:SetAnchor(CENTER, c, CENTER, 0, 2)
+                    bg:SetTexture('EldenRingUI/Textures/CustomBG.dds')
                     bg:SetDrawLayer(DL_BACKGROUND)
                     bg:SetDrawLevel(0) 
                 end
@@ -124,9 +166,38 @@ local function RunOneTimeSetup()
         COMPASS_FRAME.SetTargetTopOffsetY = function() end
         COMPASS_FRAME.ApplyStyle = function() end
     end
+
+    zo_callLater(function()
+        local ctrl = WINDOW_MANAGER:GetControlByName("ZO_PlayerToPlayerAreaPromptContainer")
+        if ctrl and type(ctrl.GetHandler) == "function" and type(ctrl.SetHandler) == "function" then
+            local origOnShow = ctrl:GetHandler("OnShow")
+            if not ctrl.ERUI_P2PHooked then
+                ctrl:SetHandler("OnShow", function(control, ...)
+                    if origOnShow then origOnShow(control, ...) end
+                    CenterP2PPrompt()
+                end)
+                ctrl.ERUI_P2PHooked = true
+            end
+        end
+        CenterP2PPrompt()
+    end, 500)
 end
 
-local frameFixer = WINDOW_MANAGER:CreateControl("ERUI_CustomCompassFixer", GuiRoot, CT_CONTROL)
+SecurePostHook(SYNERGY, "OnSynergyAbilityChanged", function()
+    if ZO_SynergyTopLevel and not ZO_SynergyTopLevel:IsHidden() then
+        local c = ZO_SynergyTopLevel:GetNamedChild("Container")
+        if c then
+            local a = c:GetNamedChild("Action")
+            local bg = c:GetNamedChild("CustomBackground")
+            if a and bg and not a:IsHidden() then
+                local actionWidth = a:GetWidth() or 0
+                bg:SetDimensions(actionWidth + 500, 64)
+            end
+        end
+    end
+end)
+
+local frameFixer = WINDOW_MANAGER:GetControlByName("ERUI_CustomCompassFixer") or WINDOW_MANAGER:CreateControl("ERUI_CustomCompassFixer", GuiRoot, CT_CONTROL)
 frameFixer:SetHandler("OnUpdate", function()
     if ZO_CompassFrame then
         local valid, _, _, _, _, y = ZO_CompassFrame:GetAnchor(0)
@@ -147,27 +218,18 @@ frameFixer:SetHandler("OnUpdate", function()
             ZO_Compass:SetDimensions(COMPASS_WIDTH / ICON_SCALE, COMPASS_HEIGHT / ICON_SCALE)
             ZO_Compass:ClearAnchors()
             ZO_Compass:SetAnchor(CENTER, ZO_CompassFrame, CENTER, 0, 0)
-			ZO_Compass:SetAlpha(0.95)
+            ZO_Compass:SetAlpha(0.95)
         end
-		
-        if ZO_CompassCenterOverPinLabel then
-            local validL, _, _, _, _, yL = ZO_CompassCenterOverPinLabel:GetAnchor(0)
-            if not validL or yL ~= TEXT_OFFSET_Y or ZO_CompassCenterOverPinLabel:GetScale() ~= TEXT_SCALE then
-                ZO_CompassCenterOverPinLabel:ClearAnchors()
-                ZO_CompassCenterOverPinLabel:SetAnchor(BOTTOM, ZO_CompassFrame, TOP, 0, TEXT_OFFSET_Y)
-                ZO_CompassCenterOverPinLabel:SetScale(TEXT_SCALE)
-            end
+        
+        if ZO_CompassCenterOverPinLabel and not ZO_CompassCenterOverPinLabel:IsHidden() then
+            ZO_CompassCenterOverPinLabel:SetHidden(true)
         end
     end
 end)
 
 local function HideQuickslotNumbers()
-    if QuickslotButtonCountText then
-        QuickslotButtonCountText:SetAlpha(0)
-    end
-    if QuickslotButtonStackCountText then
-        QuickslotButtonStackCountText:SetAlpha(0)
-    end
+    if QuickslotButtonCountText then QuickslotButtonCountText:SetAlpha(0) end
+    if QuickslotButtonStackCountText then QuickslotButtonStackCountText:SetAlpha(0) end
 end
 
 EVENT_MANAGER:RegisterForEvent("HideQuickslot_Event", EVENT_PLAYER_ACTIVATED, HideQuickslotNumbers)

@@ -154,7 +154,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Mousoboros](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Mousoboros__4742) | Masteroshi430 | PC / Mac | 2026.08.07 |
 | [Movable Addon Memory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Movable-Addon-Memory__acf1ef04-4ec0-400b-86c6-98b7dd9d2f72) | M0R | Console | — |
 | [Move Buff & Debuff Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/Move-Buff-Debuff-Bar__fb88de81-c67e-4170-b8d8-39ac322f0664) | Gamer_sa22 | Console | — |
-| [MrPancake's Bite Sites for Vampires of Cyrodiil](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/MrPancake-s-Bite-Sites-for-Vampires-of-Cyrodiil__3753) | tmp | PC / Mac | 1.1 |
+| [MrPancake's Bite Sites for Vampires of Cyrodiil](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/MrPancake-s-Bite-Sites-for-Vampires-of-Cyrodiil__3753) | tmp | PC / Mac | 1.2 |
 | [MrPikPik's Character Data Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/MrPikPik-s-Character-Data-Collector__2637) | MrPikPik | PC / Mac | 1.6 |
 | [MrPikPik's Group Loot Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/MrPikPik-s-Group-Loot-Display__3025) | MrPikPik | PC / Mac | 1.1 |
 | [MrPlow - Inventory Sorter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wobin/MrPlow---Inventory-Sorter__539) | Wobin | PC / Mac | 2.6b |
@@ -167,7 +167,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin's Market Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Market-Manager__4980) | Muffins714 | PC / Mac | 1.1 |
 | [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.2 |
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
-| [MugShot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot__5000) | nycthemere | PC / Mac | 2026.10.28-101044 |
+| [MugShot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot__5000) | nycthemere | PC / Mac | 2026.10.29-101045 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
 | [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.1 |

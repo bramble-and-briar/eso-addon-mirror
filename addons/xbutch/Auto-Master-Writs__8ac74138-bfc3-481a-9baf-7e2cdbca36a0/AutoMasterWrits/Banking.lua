@@ -14,7 +14,33 @@ end
 function AMW:StopBanking(message)
     self.bankOperation=nil
     self:CancelJob("bank")
+    EVENT_MANAGER:UnregisterForEvent(self.name.."BankInventory",EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     if message then self:SetStatus(message,true) end
+end
+
+function AMW:BankTransferDelay(deposit)
+    -- Match Lazy Writ's deposit and withdrawal queues, rounded by our scheduler.
+    if not deposit then return 10 end
+    return math.max(0,tonumber(GetLatency()) or 0)+20
+end
+
+function AMW:SendBankTransfer(operation,bag,slot,destination,target,count)
+    local pending={uid=self:UniqueId(bag,slot),sourceBag=bag,sourceSlot=slot,bag=destination,slot=target}
+    operation.pending=pending
+    self.lastCommandAt=GetGameTimeMilliseconds()
+    if destination==BAG_BACKPACK then
+        return pcall(self.SecureCall,self,"RequestMoveItem",bag,slot,destination,target,count)
+    end
+    if GetCursorContentType()~=MOUSE_CONTENT_EMPTY then return false,"Finish the current item drag first." end
+    -- Native bank placement chooses the actual personal/subscriber-bank slot.
+    -- Keep pickup and placement together; never yield with our item on the cursor.
+    local ok,err=pcall(function()
+        self:SecureCall("PickupInventoryItem",bag,slot,count)
+        if GetCursorBagId()~=bag or GetCursorSlotIndex()~=slot then error("The selected writ could not be picked up.") end
+        self:SecureCall("PlaceInTransfer")
+    end)
+    if GetCursorBagId()==bag and GetCursorSlotIndex()==slot then ClearCursor() end
+    return ok,err
 end
 
 function AMW:StartBanking(manual)
@@ -23,6 +49,13 @@ function AMW:StartBanking(manual)
     if self:IsBusy() then return self:Alert("Finish or stop the current operation first.") end
     self.bankOperation={moved=0}
     local operation=self.bankOperation
+    EVENT_MANAGER:RegisterForEvent(self.name.."BankInventory",EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(_,bag,slot)
+        local pending=operation.pending
+        if self.bankOperation~=operation or not pending or type(slot)~="number" or slot<0 then return end
+        local destination=pending.sourceBag==BAG_BACKPACK and (bag==BAG_BANK or bag==BAG_SUBSCRIBER_BANK)
+            or pending.sourceBag~=BAG_BACKPACK and bag==BAG_BACKPACK
+        if destination and self:UniqueId(bag,slot)==pending.uid then pending.bag,pending.slot=bag,slot end
+    end)
     self:StartJob("bank",function()
         if not self:ScanWorker() then return self:StopBanking("Bank closed.") end
         local plan={}
@@ -35,7 +68,10 @@ function AMW:StartBanking(manual)
             self:Yield()
         end
         for _,entry in ipairs(plan) do
-            self:WaitForGameCommand()
+            if entry.destination==BAG_BACKPACK and not operation.withdrawStarted then
+                operation.withdrawStarted=true
+                self:Yield(math.max(0,tonumber(GetLatency()) or 0)+50)
+            end
             if self.bankOperation~=operation then return end
             if not IsBankOpen() or (GetBankingBag()~=BAG_BANK and GetBankingBag()~=BAG_SUBSCRIBER_BANK)
                 or IsUnitInCombat("player") then return self:StopBanking("Transfers stopped. Personal bank must remain open.") end
@@ -56,15 +92,21 @@ function AMW:StartBanking(manual)
                     target=FindFirstEmptySlotInBag(destination)
                 end
                 if target==nil then return self:StopBanking("Destination full. Pending selections have been kept.") end
-                local sent,err=self:SendGameCommand("RequestMoveItem",bag,slot,destination,target,GetSlotStackSize(bag,slot))
+                local deposit=destination~=BAG_BACKPACK
+                local delay=self:BankTransferDelay(deposit)
+                local sent,err=self:SendBankTransfer(operation,bag,slot,destination,target,GetSlotStackSize(bag,slot))
                 if not sent then return self:StopBanking("Transfer stopped: "..tostring(err)) end
-                local deadline=GetFrameTimeSeconds()+5
+                local deadline=GetFrameTimeSeconds()+math.max(5,delay/1000+1)
+                self:Yield(delay)
                 repeat
-                    self:Yield(100)
                     if not IsBankOpen() then return self:StopBanking("Bank closed. Pending selections have been kept.") end
+                    local pending=operation.pending
+                    destination,target=pending.bag,pending.slot
                     if self:UniqueId(destination,target)==record.uid and self:UniqueId(bag,slot)~=record.uid then break end
                     if GetFrameTimeSeconds()>deadline then return self:StopBanking("Transfer not confirmed. No retry was sent.") end
+                    self:Yield(10)
                 until false
+                operation.pending=nil
                 record.bag,record.slot=destination,target
                 if self.counts then
                     local category=record.crafted and "crafted" or record.deferred and "deferred" or "eligible"
@@ -80,7 +122,7 @@ function AMW:StartBanking(manual)
             end
             self:Yield()
         end
-        self.bankOperation=nil
+        self:StopBanking()
         self:SetStatus("Bank transfers finished: "..operation.moved.." writs moved.",true)
     end)
 end

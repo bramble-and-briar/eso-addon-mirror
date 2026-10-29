@@ -1,0 +1,10 @@
+## Title: Arc Rob's Furnishing Finder
+## Description: Search furnishings in your houses, character inventories, bank, housing storage and Furniture Vault. Records locations as you visit them.
+## Author: Arc Rob
+## APIVersion: 101047 101048 101049 101050 101051
+## Version: 0.1.2
+## SavedVariables: ArcRobsFurnishingFinderSV
+
+Bindings.xml
+Finder.lua
+FinderUI.lua

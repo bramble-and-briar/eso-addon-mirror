@@ -1,8 +1,8 @@
 AutoMasterWrits = {}
 local AMW = AutoMasterWrits
 AMW.name, AMW.title, AMW.author = "AutoMasterWrits", "Auto Master Writs", "xbutch"
-AMW.version = "1.51.02"
-AMW.commandDelayMilliseconds = 800
+AMW.version = "1.51.03"
+AMW.commandDelayMilliseconds = 500
 AMW.hudEnabled = false
 AMW.defaults = {
     filterNirnhoned = true, filterEpicJewelry = true, autoDeposit = true,

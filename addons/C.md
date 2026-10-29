@@ -40,7 +40,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cashier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tarlac/Cashier__2040) | Tarlac | PC / Mac | 1.35 |
 | [Cast Skill IDs (CastIDs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wendiga/Cast-Skill-IDs-CastIDs__4183) | Wendiga | PC / Mac | 1.1 |
 | [CastHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/CastHelper__4928) | DesertMorfen | PC / Mac | 1.2.6 |
-| [CasualClean](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/CasualClean__c75df85c-f9c0-4e54-a0f3-d5173e44a850) | Th3rtythr33 | Console | — |
+| [CasualClean (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/CasualClean-Beta__c75df85c-f9c0-4e54-a0f3-d5173e44a850) | Th3rtythr33 | Console | — |
 | [Cat Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cpcharles/Cat-Icons__4228) | cpcharles | PC / Mac | 1.6 |
 | [CatSupportIcons - icon pack for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/def-venom/CatSupportIcons---icon-pack-for-OdySupportIcons__3396) | def venom | PC / Mac | 1.001 |
 | [CB's stamp of manufacture](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/CB-s-stamp-of-manufacture__4e562dc4-090e-42a9-9a27-6c9ef5e1daee) | dicen9 | Console | — |

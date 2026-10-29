@@ -117,6 +117,12 @@ local function IsWeaponAllowed(profile, bagId, slotIndex)
 
     local traitInformation = GetItemTraitInformationFromItemLink(itemLink)
 
+    local nirnhoned = IsNirnhonedWeapon(itemLink)
+
+    if nirnhoned and not profile.nirnhoned then
+        return false
+    end
+
     local reconstructed = IsItemReconstructed(bagId, slotIndex)
 
     if reconstructed and not profile.reconstructed then
@@ -145,7 +151,7 @@ local function IsWeaponAllowed(profile, bagId, slotIndex)
         matchesFilter = true
     end
 
-    if IsNirnhonedWeapon(itemLink) and profile.nirnhoned then
+    if nirnhoned and profile.nirnhoned then
         matchesFilter = true
     end
 

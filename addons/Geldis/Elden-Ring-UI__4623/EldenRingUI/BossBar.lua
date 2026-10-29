@@ -3,6 +3,9 @@ local ERUI = EldenRingUI
 ERUI.name = "EldenRingUI"
 ERUI.dummyMode = false
 ERUI.currentMutualMax = 0
+ERUI.cachedMutualName = nil
+
+local BOSS_TAGS = { "boss1", "boss2", "boss3", "boss4", "boss5", "boss6" }
 
 local function FormatHealth(value)
     if value >= 1000000 then
@@ -32,31 +35,25 @@ end
 local RefreshBars
 
 local function UpdateBarVisuals(index, powerValue, powerMax, isInvulnerable)
-    local bar = ERUI_Container:GetNamedChild("Bar" .. index)
-    if bar and powerMax > 0 then
+    local bar = ERUI_Container and ERUI_Container:GetNamedChild("Bar" .. index)
+    if not bar or powerMax <= 0 then return end
 
-        -- if bar:IsHidden() and powerValue > 1 then
-            -- RefreshBars()
-            -- return
-        -- end
-
-        ZO_StatusBar_SmoothTransition(bar, powerValue, powerMax)
-        
-        local percent = math.floor(powerValue * 100 / powerMax)
-        bar:GetNamedChild("Percent"):SetText(percent .. "%")
-		bar:GetNamedChild("Percent"):SetColor(0.9, 0.9, 0.9, 0.9)
-        bar:GetNamedChild("HealthValue"):SetText(FormatHealth(powerValue))
-		bar:GetNamedChild("HealthValue"):SetColor(0.9, 0.9, 0.9, 0.9)
-        
-        if isInvulnerable then
-            bar:SetTexture("EldenRingUI/Textures/ERShieldBarBoss.dds")
-        else
-            bar:SetTexture("EldenRingUI/Textures/ERHealthBarBoss.dds")
-        end
-        
-        if powerValue <= 0 then
-            RefreshBars()
-        end
+    ZO_StatusBar_SmoothTransition(bar, powerValue, powerMax)
+    
+    local percent = math.floor(powerValue * 100 / powerMax)
+    bar:GetNamedChild("Percent"):SetText(percent .. "%")
+    bar:GetNamedChild("Percent"):SetColor(0.9, 0.9, 0.9, 0.9)
+    bar:GetNamedChild("HealthValue"):SetText(FormatHealth(powerValue))
+    bar:GetNamedChild("HealthValue"):SetColor(0.9, 0.9, 0.9, 0.9)
+    
+    if isInvulnerable then
+        bar:SetTexture("EldenRingUI/Textures/ERShieldBarBoss.dds")
+    else
+        bar:SetTexture("EldenRingUI/Textures/ERHealthBarBoss.dds")
+    end
+    
+    if powerValue <= 0 then
+        RefreshBars()
     end
 end
 
@@ -67,15 +64,16 @@ local function GetMutualEncounterName()
     local isReefGuardianEncounter = false
 
     for i = 1, 6 do
-        if DoesUnitExist("boss" .. i) then
-            local name = GetUnitName("boss" .. i)
+        local unitTag = BOSS_TAGS[i]
+        if DoesUnitExist(unitTag) then
+            local name = GetUnitName(unitTag)
             
             if name and name ~= "" and name ~= "Defense Prism" and not seenNames[name] then
                 totalUnits = totalUnits + 1
                 table.insert(bossNames, name)
                 seenNames[name] = true
 
-                if name == "Reef Guardian" then
+                if name == "Reef Guardian" or name == "Lizabet Charnis" then
                     isReefGuardianEncounter = true
                 end
             end
@@ -90,8 +88,28 @@ local function GetMutualEncounterName()
 end
 
 local function OnPowerUpdate(_, unitTag, _, _, powerValue, powerMax)
-    if GetMutualEncounterName() then
-        RefreshBars()
+    if ERUI.cachedMutualName then
+        local totalCur, totalMax = 0, 0
+        local allInvulnerable = true
+        for i = 1, 6 do
+            local tag = BOSS_TAGS[i]
+            if DoesUnitExist(tag) and GetUnitName(tag) ~= "Defense Prism" then
+                local cur, max = GetUnitPower(tag, COMBAT_MECHANIC_FLAGS_HEALTH)
+                totalCur = totalCur + cur
+                totalMax = totalMax + max
+                if not IsBossInvulnerable(tag) then
+                    allInvulnerable = false
+                end
+            end
+        end
+        if totalMax > ERUI.currentMutualMax then
+            ERUI.currentMutualMax = totalMax
+        end
+        if totalCur > 0 then
+            UpdateBarVisuals(1, totalCur, ERUI.currentMutualMax, allInvulnerable)
+        else
+            RefreshBars()
+        end
         return
     end
 
@@ -99,7 +117,9 @@ local function OnPowerUpdate(_, unitTag, _, _, powerValue, powerMax)
         if GetUnitName(unitTag) == "Defense Prism" then return end
         
         local index = tonumber(unitTag:sub(5, 5))
-        UpdateBarVisuals(index, powerValue, powerMax, IsBossInvulnerable(unitTag))
+        if index then
+            UpdateBarVisuals(index, powerValue, powerMax, IsBossInvulnerable(unitTag))
+        end
     elseif ERUI.dummyMode and unitTag == "reticleover" then
         if powerMax >= 20000000 then
             UpdateBarVisuals(1, powerValue, powerMax, IsBossInvulnerable("reticleover"))
@@ -142,13 +162,16 @@ local function GetOrCreateBar(index)
 		
         local currentHPIcon = bar:GetNamedChild("CurrentHPIcon")
         if currentHPIcon then
+            local lastPercent = -1
             bar:SetHandler("OnUpdate", function(self)
                 local _, max = self:GetMinMax()
                 if max and max > 0 then
-                    local currentVisualValue = self:GetValue()
-                    local percent = currentVisualValue / max
-                    currentHPIcon:ClearAnchors()
-                    currentHPIcon:SetAnchor(CENTER, self, LEFT, barWidth * percent - 13, -2)
+                    local percent = self:GetValue() / max
+                    if percent ~= lastPercent then
+                        currentHPIcon:ClearAnchors()
+                        currentHPIcon:SetAnchor(CENTER, self, LEFT, barWidth * percent - 13, -2)
+                        lastPercent = percent
+                    end
                 end
             end)
         end
@@ -157,7 +180,8 @@ local function GetOrCreateBar(index)
 end
 
 RefreshBars = function()
-    local mutualName = GetMutualEncounterName()
+    ERUI.cachedMutualName = GetMutualEncounterName()
+    local mutualName = ERUI.cachedMutualName
     
     if mutualName then
         local totalCur = 0
@@ -166,13 +190,14 @@ RefreshBars = function()
         local hasActiveBoss = false
         
         for i = 1, 6 do
-            if DoesUnitExist("boss" .. i) and GetUnitName("boss" .. i) ~= "Defense Prism" then
-                local cur, max = GetUnitPower("boss" .. i, COMBAT_MECHANIC_FLAGS_HEALTH)
+            local unitTag = BOSS_TAGS[i]
+            if DoesUnitExist(unitTag) and GetUnitName(unitTag) ~= "Defense Prism" then
+                local cur, max = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
                 totalCur = totalCur + cur
                 totalMax = totalMax + max
                 hasActiveBoss = true
                 
-                if not IsBossInvulnerable("boss" .. i) then
+                if not IsBossInvulnerable(unitTag) then
                     allInvulnerable = false
                 end
             end
@@ -206,7 +231,7 @@ RefreshBars = function()
 	
         local visibleCount = 0
         for i = 1, 6 do
-            local unitTag = "boss" .. i
+            local unitTag = BOSS_TAGS[i]
             local bar = GetOrCreateBar(i)
             
             local isDummy = (i == 1 and ERUI.dummyMode and DoesUnitExist("reticleover"))

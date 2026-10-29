@@ -45,6 +45,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Death Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Death-Log__2112) | init3 | PC / Mac | 1.2 |
 | [Death Report](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cool7/Death-Report__2002) | Cool7 | PC / Mac | 2.1 |
 | [Death Tally](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dacu/Death-Tally__1858) | Dacu | PC / Mac | 1.3.2 |
+| [DeBluedIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/DeBluedIcons__5006) | DakJaniels | PC / Mac | 1 |
 | [DebuffMe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/DebuffMe__2260) | Floliroy | PC / Mac | 1.7 |
 | [DebuffMe - Stonethorn Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/DebuffMe---Stonethorn-Update__2777) | bitrock | PC / Mac | 1.7.1 |
 | [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 3.3a |
@@ -67,7 +68,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Deome's Settings Profiles Updated by BSKCorp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Deome-s-Settings-Profiles-Updated-by-BSKCorp__1942) | BSKCorp | PC / Mac | 1.11 |
 | [deprecated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EHansonn/deprecated__3638) | EHansonn | PC / Mac | 1.01 |
 | [DEPRECATED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/DEPRECATED__3465) | Masteroshi430 | PC / Mac | DEPRECATED |
-| [DEPRECATED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/DEPRECATED__4493) | Masteroshi430 | PC / Mac | 0 |
+| [DEPRECATED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/DEPRECATED__4493) | Masteroshi430 | PC / Mac | DEPRECATED |
 | [DEPRECATED Sauhaufen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/DEPRECATED-Sauhaufen__3142) | m00nyONE | PC / Mac | 2.0.0 |
 | [DEPRECATED: Block Useless Combat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/DEPRECATED-Block-Useless-Combat-Messages__3777) | code65536 | PC / Mac | 1.0.0 |
 | [DEPRECATED: Halls of Fabrication (Veteran) Status Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/DEPRECATED-Halls-of-Fabrication-Veteran-Status-Panel__1751) | code65536 | PC / Mac | 1.4.3 |
@@ -127,7 +128,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Do I need `Arkadius Guild Update Block` ?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Provision/Do-I-need-Arkadius-Guild-Update-Block__2213) | Provision | PC / Mac | 1.0.1 |
 | [Do Not Learn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Do-Not-Learn__ec4c8920-d10e-46dd-9a4c-fddf44cbb43e) | msetten | Console | — |
 | [DodgeTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Citats/DodgeTimer__3791) | Citats | PC / Mac | 1.2 |
-| [DoesThisThingGoAnyFaster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/DoesThisThingGoAnyFaster__838c4ba0-f7d2-4d29-ab28-7bd838a4973b) | Th3rtythr33 | Console | — |
+| [DoesThisThingGoAnyFaster (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/DoesThisThingGoAnyFaster-Beta__838c4ba0-f7d2-4d29-ab28-7bd838a4973b) | Th3rtythr33 | Console | — |
 | [DoItAll (Mass Extract/Deconstruct/Move/Mail attach/...)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thenedus/DoItAll-Mass-Extract-Deconstruct-Move-Mail-attach__690) | Thenedus | PC / Mac | 1.75 |
 | [Dolgubon's Guild Reorder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Guild-Reorder__2238) | Dolgubon | PC / Mac | 1.2.4 |
 | [Dolgubon's Lazy Farming](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Farming__1373) | Dolgubon | PC / Mac | 2.2.7 |

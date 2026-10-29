@@ -25,7 +25,7 @@ local OBM = ArdysOBTracker
 
 OBM.name    = "ArdysOBTracker"
 OBM.title   = "|c9B30FFArdy's OB Tracker|r"
-OBM.version = "1.6.1"
+OBM.version = "1.6.2"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -137,6 +137,19 @@ local function IsOffBalance(effectName, abilityType)
     return lower:find("off[%s%-]?balance") ~= nil
 end
 
+-- Jerall Pass (Update 52, API 101052) has its own zone check. The function
+-- doesn't exist on older clients, so it is only called when present.
+local function IsInJerallPassZone()
+    return type(IsInJerallPass) == "function" and IsInJerallPass() == true
+end
+
+-- Alliance-vs-alliance zones: Cyrodiil, Imperial City and Jerall Pass.
+-- Jerall Pass is checked explicitly so it never depends on whether the game
+-- also counts it as an "AvA zone".
+local function IsInAlliancePvPZone()
+    return IsInAvAZone() or IsInJerallPassZone()
+end
+
 -- Battle Spirit is on you in Cyrodiil, Imperial City and battlegrounds.
 local function HasBattleSpirit()
     for i = 1, GetNumBuffs("player") do
@@ -150,7 +163,7 @@ local function IsInPvP()
     local nowMs = GetGameTimeMilliseconds()
     if nowMs - lastPvPCheckMs >= PVP_CHECK_MS then
         lastPvPCheckMs = nowMs
-        inPvP = IsInAvAZone() or IsActiveWorldBattleground() or HasBattleSpirit()
+        inPvP = IsInAlliancePvPZone() or IsActiveWorldBattleground() or HasBattleSpirit()
     end
     return inPvP
 end
@@ -190,9 +203,9 @@ local function IsReticleFriendly()
     if AreUnitsEqual(RETICLE, "player") then return true end
     if FRIENDLY_REACTIONS[GetUnitReaction(RETICLE)] then return true end
     if IsReticleGroupMember() or IsUnitFriendlyFollower(RETICLE) then return true end
-    -- Cyrodiil / Imperial City: a player of your own alliance is friendly.
-    -- (Not used in battlegrounds, where teams ignore alliance.)
-    if IsUnitPlayer(RETICLE) and IsInAvAZone() and not IsActiveWorldBattleground()
+    -- Cyrodiil / Imperial City / Jerall Pass: a player of your own alliance is
+    -- friendly. (Not used in battlegrounds, where teams ignore alliance.)
+    if IsUnitPlayer(RETICLE) and IsInAlliancePvPZone() and not IsActiveWorldBattleground()
         and GetUnitAlliance(RETICLE) == GetUnitAlliance("player") then
         return true
     end
@@ -972,9 +985,9 @@ local function PrintStatus()
         if slot.onFriendly then Print("  marker %d is flagged as on a friendly", m) end
     end
     lastPvPCheckMs = -PVP_CHECK_MS
-    Print("pvpOnly=%s  inPvP=%s  (AvA=%s  BG=%s  BattleSpirit=%s)  active=%s", tostring(sv.pvpOnly),
-        tostring(IsInPvP()), tostring(IsInAvAZone()), tostring(IsActiveWorldBattleground()),
-        tostring(HasBattleSpirit()), tostring(IsActive()))
+    Print("pvpOnly=%s  inPvP=%s  (AvA=%s  JerallPass=%s  BG=%s  BattleSpirit=%s)  active=%s", tostring(sv.pvpOnly),
+        tostring(IsInPvP()), tostring(IsInAvAZone()), tostring(IsInJerallPassZone()),
+        tostring(IsActiveWorldBattleground()), tostring(HasBattleSpirit()), tostring(IsActive()))
     if DoesUnitExist(RETICLE) then
         local dist = GetReticleDistanceMeters()
         local ob = GetMyOffBalanceEndOnReticle(GetFrameTimeSeconds())
@@ -999,7 +1012,7 @@ end
 
 local function PrintHelp()
     Print("/obt on | off            - enable/disable everything")
-    Print("/obt pvp on | off        - only run in PvP (Battle Spirit)")
+    Print("/obt pvp on | off        - only run in PvP (Cyrodiil, IC, Jerall Pass, battlegrounds)")
     Print("/obt markers on | off    - crosshair auto-marker")
     Print("/obt tracker on | off    - timer window")
     Print("/obt lock | unlock       - lock/move the timer window")
@@ -1078,7 +1091,7 @@ local function BuildSettingsMenu()
         { type = "checkbox", name = "Dragonknight only",
           getFunc = function() return sv.dragonknightOnly end, setFunc = function(v) sv.dragonknightOnly = v end, default = defaults.dragonknightOnly },
         { type = "checkbox", name = "PvP only",
-          tooltip = "Only run in Cyrodiil, Imperial City and battlegrounds (anywhere you have Battle Spirit).",
+          tooltip = "Only run in PvP: Cyrodiil, Imperial City, Jerall Pass and battlegrounds (and anywhere you have Battle Spirit).",
           getFunc = function() return sv.pvpOnly end, setFunc = function(v) sv.pvpOnly = v; lastPvPCheckMs = -PVP_CHECK_MS end, default = defaults.pvpOnly },
         { type = "header", name = "Target markers" },
         { type = "checkbox", name = "Auto-mark Off Balance targets",

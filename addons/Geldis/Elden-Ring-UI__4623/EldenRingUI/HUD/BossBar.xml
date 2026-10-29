@@ -29,15 +29,15 @@
                     <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="14" offsetY="3"/>
                 </Texture>				
                 
-                <Label name="$(parent)BossName" color="FFFFFF" font="EldenRingUI/Fonts/EBGaramond-Medium.slug|22|soft-shadow-thick" verticalAlignment="BOTTOM" horizontalAlignment="LEFT">
+                <Label name="$(parent)BossName" color="FFFFFF" font="EldenRingUI/Fonts/Vollkorn-Regular_0.slug|22|soft-shadow-thick" verticalAlignment="BOTTOM" horizontalAlignment="LEFT">
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="3" offsetY="2"/>
                 </Label>
                 
-                <Label name="$(parent)Percent" color="FFFFFF" font="EldenRingUI/Fonts/EBGaramond-Medium.slug|20|soft-shadow-thick" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT">
+                <Label name="$(parent)Percent" color="FFFFFF" font="EldenRingUI/Fonts/Vollkorn-Regular_0.slug|20|soft-shadow-thick" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT">
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-2" offsetY="2"/>
                 </Label>
 				
-                <Label name="$(parent)HealthValue" color="FFFFFF" font="EldenRingUI/Fonts/EBGaramond-Medium.slug|20|soft-shadow-thick" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT">
+                <Label name="$(parent)HealthValue" color="FFFFFF" font="EldenRingUI/Fonts/Vollkorn-Regular_0.slug|20|soft-shadow-thick" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT">
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Percent" relativePoint="BOTTOMLEFT" offsetX="-5" offsetY="0"/>
                 </Label>
             </Controls>

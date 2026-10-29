@@ -1,0 +1,18 @@
+<!--
+  DLC Roulette. Copyright (c) 2026 -Chin. All rights reserved: no copying, sharing, changes or reuse.
+  Keyboard and mouse: two rebindable actions under Controls, Keybindings, General, DLC Roulette. The gamepad
+  Dungeon Finder's button strip doesn't exist in keyboard mode, so these are how a PC player presses the
+  roulette. Their names come from SI_BINDING_NAME_* in lang/en.lua; without those the game hides the action.
+-->
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="DLC Roulette">
+            <Action name="DLC_ROULETTE_VETERAN">
+                <Down>DLCRoulette.Dungeons.Queue(LFG_ACTIVITY_MASTER_DUNGEON)</Down>
+            </Action>
+            <Action name="DLC_ROULETTE_NORMAL">
+                <Down>DLCRoulette.Dungeons.Queue(LFG_ACTIVITY_DUNGEON)</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

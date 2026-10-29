@@ -1,4 +1,4 @@
--- DLC Roulette. Copyright (c) 2026 -chin. All rights reserved: no copying, sharing, changes or reuse.
+-- DLC Roulette. Copyright (c) 2026 -Chin. All rights reserved: no copying, sharing, changes or reuse.
 -- Dungeons: which dungeons are DLC, and the queue. Everything is read from the game's own Dungeon Finder data
 -- each time, so dungeons from new DLC show up without an update.
 local DR = DLCRoulette
@@ -30,14 +30,31 @@ function Dungeons.List()
     return list
 end
 
--- The same check the game's own Join Queue button makes.
-function Dungeons.CanQueue()
-    return not IsCurrentlySearchingForGroup() and not finder:IsLockedByNotLeader() and not ZO_GroupFinder_IsGroupFinderInUse()
+-- Whether the buttons show at all. Not being the group leader doesn't hide them: pressing one then says so,
+-- which is clearer than a button that quietly isn't there.
+function Dungeons.CanShow()
+    return not IsCurrentlySearchingForGroup() and not ZO_GroupFinder_IsGroupFinderInUse()
 end
 
--- Selects every ticked DLC dungeon of one difficulty (LFG_ACTIVITY_DUNGEON or LFG_ACTIVITY_MASTER_DUNGEON)
--- and joins the queue, exactly as ticking them by hand and pressing Join Queue would. Dungeons the player
--- can't enter (DLC not owned, level, cooldown) are locked by the game and left out.
+-- Ticks every DLC dungeon of one difficulty the player has left in and can enter, exactly as ticking them by
+-- hand would. Dungeons they can't enter (DLC not owned, level, the game's own lockout) are locked by the game
+-- and left out. Returns how many were ticked, and how many were skipped only for being on our cooldown.
+local function Select(activityType)
+    local count, onCooldown = 0, 0
+    for _, location in ipairs(finder:GetLocationsData(activityType) or {}) do
+        if IsDLC(location) and IsIncluded(location) and location:IsActive() and not location:IsLocked() then
+            if DR.Cooldown.IsOn(activityType, GetActivityZoneId(location:GetId())) then
+                onCooldown = onCooldown + 1
+            else
+                finder:SetLocationSelected(location, true)
+                count = count + 1
+            end
+        end
+    end
+    return count, onCooldown
+end
+
+-- Selects the dungeons and joins the queue, the same as pressing Join Queue would.
 function Dungeons.Queue(activityType)
     if IsCurrentlySearchingForGroup() then
         ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.NEGATIVE_CLICK, L.ALREADY_QUEUED)
@@ -47,13 +64,19 @@ function Dungeons.Queue(activityType)
         ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.NEGATIVE_CLICK, L.NOT_LEADER)
         return
     end
+    -- A keybind can be pressed at any time, unlike the buttons, so check this here too rather than clearing
+    -- the player's ticks and letting the game refuse the queue afterwards.
+    if ZO_GroupFinder_IsGroupFinderInUse() then
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.NEGATIVE_CLICK, L.IN_GROUP_FINDER)
+        return
+    end
     finder:ClearAndUpdate()
-    local count = 0
-    for _, location in ipairs(finder:GetLocationsData(activityType) or {}) do
-        if IsDLC(location) and IsIncluded(location) and location:IsActive() and not location:IsLocked() then
-            finder:SetLocationSelected(location, true)
-            count = count + 1
-        end
+    local count, onCooldown = Select(activityType)
+    -- Been in all of them: the hold has run its course, so it starts over rather than leaving nothing to queue.
+    if count == 0 and onCooldown > 0 then
+        DR.Cooldown.Clear(activityType)
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, L.COOLDOWNS_RESET)
+        count = Select(activityType)
     end
     if count == 0 then
         local none = activityType == LFG_ACTIVITY_MASTER_DUNGEON and L.NONE_VET or L.NONE_NORMAL
@@ -62,5 +85,6 @@ function Dungeons.Queue(activityType)
     end
     -- the game reports a refused queue itself
     finder:StartSearch()
+    DR.Cooldown.Listen(activityType)
     PlaySound(SOUNDS.DIALOG_ACCEPT)
 end

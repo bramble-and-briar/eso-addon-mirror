@@ -29,13 +29,13 @@ EldenRingUI.TRACKED_SETS = {
     ["War Machine"] =              { icon = "/esoui/art/icons/gear_clockwork_medium_head_a.dds",           pieces = 5, preferredSlot = 1 },
 	
     -- Front bar sets (handpicked icons)
-	["Aegis Caller"] =             { icon = "/esoui/art/icons/gear_pyrewatch_dagger_a.dds",                pieces = 5, preferredSlot = 2 },
-    ["Berserking Warrior"] =       { icon = "/esoui/art/icons/gear_celestial_dagger_a.dds",                pieces = 5, preferredSlot = 2 },
-    ["Elemental Catalyst"] =       { icon = "/esoui/art/icons/gear_northlandsalch_dagger_a.dds",           pieces = 5, preferredSlot = 2 },
-    ["Martial Knowledge"] =        { icon = "/esoui/art/icons/gear_yokudan_dagger_a.dds",                  pieces = 5, preferredSlot = 2 },
+	["Aegis Caller"] =             { icon = "/esoui/art/icons/gear_pyrewatchmed_head_a.dds",                pieces = 5, preferredSlot = 2 },
+    ["Berserking Warrior"] =       { icon = "/esoui/art/icons/gear_craglorn_heavy_head_a.dds",                pieces = 5, preferredSlot = 2 },
+    ["Elemental Catalyst"] =       { icon = "/esoui/art/icons/gear_northlandsalchlgt_head_a.dds",           pieces = 5, preferredSlot = 2 },
+    ["Martial Knowledge"] =        { icon = "/esoui/art/icons/gear_yokudan_light_head_a.dds",                  pieces = 5, preferredSlot = 2 },
     ["Mechanical Acuity"] =        { icon = "/esoui/art/icons/gear_apostle_heavy_head_a.dds",              pieces = 5, preferredSlot = 2 },
-    ["Sul-Xan's Torment"] =        { icon = "/esoui/art/icons/gear_rockgrove_dagger_a.dds",                pieces = 5, preferredSlot = 2 },
-    ["Z'en's Redress"] =           { icon = "/esoui/art/icons/gear_stagszen_dagger_a.dds",                 pieces = 5, preferredSlot = 2 },
+    ["Sul-Xan's Torment"] =        { icon = "/esoui/art/icons/gear_rockgrove_med_head_a.dds",                pieces = 5, preferredSlot = 2 },
+    ["Z'en's Redress"] =           { icon = "/esoui/art/icons/gear_stagzenlgt_helmet_a.dds",                 pieces = 5, preferredSlot = 2 },
 	
     -- Mythic Items
 	["Belharza's Band"] =     	   { icon = "/esoui/art/icons/mythic_ring_belharzas_band.dds",             pieces = 1, preferredSlot = 3 },

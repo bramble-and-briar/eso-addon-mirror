@@ -5,7 +5,7 @@
 			<Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="400" offsetY="600"/>
 			<Controls>
 				<Label name="$(parent)Blast" width="64" height="64 " font="" inheritAlpha="true" color="FFFFFF" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="0"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="-5"/>
 				</Label>
 			</Controls>
 			<Controls>
@@ -21,17 +21,17 @@
 
 			<Controls>
 				<Label name="$(parent)BlastNum" width="64" height="64 " font="" inheritAlpha="true" color="FFFFFF" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="214" offsetY="0"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="212" offsetY="-5"/>
 				</Label>
 			</Controls>
 			<Controls>
 				<Label name="$(parent)WasteNum" width="64" height="64 " font="" inheritAlpha="true" color="FFFFFF" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="303" offsetY="50"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="305" offsetY="50"/>
 				</Label>
 			</Controls>
 			<Controls>
 				<Label name="$(parent)CorpseNum" width="64" height="64 " font="" inheritAlpha="true" color="FFFFFF" wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="LEFT">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="160" offsetY="100"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOP" offsetX="162" offsetY="100"/>
 				</Label>
 			</Controls>
 		</TopLevelControl>

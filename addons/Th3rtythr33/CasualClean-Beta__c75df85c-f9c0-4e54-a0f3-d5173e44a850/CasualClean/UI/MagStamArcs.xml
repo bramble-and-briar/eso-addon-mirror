@@ -1,0 +1,31 @@
+<GuiXml>
+    <Animations>
+        <!--
+            Fade for the magicka/stamina reticle arcs.
+
+            Declared here rather than driven from Lua so the engine runs it:
+            no RegisterForUpdate and no per-frame Lua, which matters on
+            console where the 1s-per-frame execution budget is shared across
+            every installed addon. This is the same approach SilenceRing.xml
+            takes in UnderPressure, and the same one ZOS's own attribute bars
+            use (bar.timeline = CreateTimelineFromVirtual("PlayerAttributeBarAnimation",
+            control), driven with PlayForward / PlayBackward).
+
+            One timeline instance is created per arc, so magicka and stamina
+            fade independently: either can be full and hidden while the other
+            is partly spent and visible.
+
+            Applied to the arc CONTAINER, not to the border or fill textures,
+            because both must vanish together when the resource is full.
+
+            Note for future editors: XML comments cannot contain a double
+            hyphen, so the punctuation style here differs from the Lua files.
+            See the XML gotcha section in the workspace CLAUDE.md.
+        -->
+        <AnimationTimeline name="CasualCleanArcFade">
+            <Animations>
+                <AlphaAnimation duration="220" startAlpha="0" endAlpha="1"/>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+</GuiXml>

@@ -13,30 +13,6 @@ Native/internal antiquities text may still remain English. A narrow bank currenc
 Future events require translation data and rebuilding with the shared event formatter.
 AI disclosure, credits and font licensing: ESOUI-DESCRIPTION.txt and CREDITS.txt.
 
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.
-
-2.4.0 journal and travel corrections
+2.4.1 journal and travel corrections
 Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
 Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.

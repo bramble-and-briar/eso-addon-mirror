@@ -1,0 +1,7 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Arc Rob's Furnishing Finder">
+            <Action name="ARFF_TOGGLE"><Down>ARFF:Toggle()</Down></Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -1,0 +1,10 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl
+            name="AutoImproveGearGamepadControl"
+            inherits="ZO_Gamepad_ParametricList_Screen"
+            virtual="true"
+            hidden="true"
+        />
+    </Controls>
+</GuiXml>

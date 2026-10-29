@@ -1,0 +1,16 @@
+<!-- DeBluedIcons - Texture Redirects -->
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="DeBluedIcons_TextureRedirects"
+						 hidden="true">
+			<OnInitialized>
+                <![CDATA[
+                   local redirectTextures = DeBluedIcons_TexturePaths
+                    for _, v in ipairs(redirectTextures) do
+                        RedirectTexture(v[1], v[2])
+                    end
+				]]>
+			</OnInitialized>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

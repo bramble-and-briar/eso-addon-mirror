@@ -2,7 +2,7 @@
 -- Local-only; L3 scans additional trader pages and caches collection matches.
 GuildMarketScannerDev = GuildMarketScannerDev or {}
 local GMS = GuildMarketScannerDev
-GMS.name, GMS.version = 'GuildMarketScannerDev', '1.0.8p'
+GMS.name, GMS.version = 'GuildMarketScannerDev', '1.2.4'
 GMS.enabled, GMS.traderOpen, GMS.keybindAttached = false, false, false
 -- Diagnostics are disabled in normal gameplay. /gmsdebug toggles them for testing.
 GMS.debug = false
@@ -72,6 +72,121 @@ function GMS:Missing(link)
         if known ~= nil then return not known end
     end
     return nil
+end
+-- Achievement-backed quantity fragments. Separate from GMS:Missing.
+-- These IDs and criterion indices were confirmed by /gmsach in ESO.
+local GMS_QUANTITY_FRAGMENTS = {
+    [207814] = {4081, 1}, -- Remnant of Deception
+    [207815] = {4081, 2}, -- Remnant of Cruelty
+}
+-- Verified collectible-fragment achievement criteria from in-game diagnostics.
+-- Keep the two proven Remnant item IDs as the highest-priority exact matches.
+-- The remaining entries are matched by localized ESO criterion descriptions.
+local GMS_COLLECTION_CRITERIA = {
+    [2591] = {1},        -- Skeletal Marionette Parts
+    [3723] = {1,2},      -- Graht-Oak Acorns / Valenwood Seedlings
+    [3913] = {1,2,3,4,5,6,7}, -- Big-Eared Ginger Kitten
+    [3916] = {1},        -- Scaly Cloth Scraps
+    [3917] = {1},        -- Inscribed Shards
+    [3918] = {1,2},      -- Coral Haj Mota Lures / Decoys
+    [4081] = {1,2},      -- Remnants (exact IDs preferred)
+    [4226] = {1},        -- Horned Owl Feathers
+    [4294] = {1},        -- Harvested Soul Fragment
+    [4448] = {1},        -- Wormwrithe Haj Mota Scales
+    [4743] = {1},        -- Spectral Distillation Ampoules
+    [4744] = {1},        -- Chameleon Tincture Phials
+    [3911] = {1,2,3,4,5,6,7}, -- Dwarven Theodolite
+    [3912] = {1,2,3,4,5,6,7}, -- Sixth House Robe
+    [3914] = {1,2,3,4,5,6,7}, -- Psijic Glowglobe
+    [3915] = {1,2,3,4,5,6,7}, -- Master Field Cartographer
+    [3832] = {1},        -- Possessed Shreds
+    [4479] = {1},        -- Worm-Touched Soul Gems
+    [2519] = {1},        -- Mummified Alfiq Parts (Alfiq Mummy Master)
+    [2520] = {1},        -- Plague-Drenched Fabric (Peryite Plague-Clothes Patcher)
+    [4447] = {1},        -- Shards of Writhing Bone (Skill Stylist: Caltrops)
+    -- Swamp Jelly ACH 2378 tracks the final pet, not the seven parts.
+    -- Do not apply a guessed collectible ID or criterion mapping.
+}
+local function GMSNormalizeCollectionPart(value)
+    if type(value)~='string' then return '' end
+    value=value:lower():gsub('|c%x%x%x%x%x%x',''):gsub('|r','')
+        :gsub('[’]','\''):gsub('[^%w%s\'%-]',''):gsub('%s+',' ')
+        :gsub('^%s+',''):gsub('%s+$','')
+    -- ESO often uses plural achievement criteria for singular Guild Trader items.
+    -- Only remove a trailing plural s, never modify internal words.
+    if value:sub(-1)=='s' and value:sub(-2)~='ss' then value=value:sub(1,-2) end
+    return value
+end
+function GMS:MissingFragment(link)
+    if type(link)~='string' or link=='' or type(GetItemLinkItemId)~='function'
+        or type(GetAchievementCriterion)~='function' then return nil end
+    local okId,itemId=pcall(GetItemLinkItemId,link)
+    if not okId then return nil end
+    local record=GMS_QUANTITY_FRAGMENTS[itemId]
+    if record then
+        local ok,description,current,required=pcall(GetAchievementCriterion,record[1],record[2])
+        if ok and type(current)=='number' and type(required)=='number' and required>0 then
+            return current<required
+        end
+        return nil
+    end
+    if type(GetItemLinkName)~='function' then return nil end
+    local okName,itemName=pcall(GetItemLinkName,link)
+    if not okName then return nil end
+    -- v1.2.4: Exact reward ownership checks for fragment groups whose
+    -- individual progress is not exposed through achievement criteria.
+    -- Only classify the known fragment item names; do not apply these
+    -- collectible IDs to unrelated reward runeboxes or similarly named pets.
+    local lowerName = type(itemName)=='string' and itemName:lower() or ''
+    -- v1.2.4: Seven independently tracked Apple-Bobbing Cauldron fragments.
+    -- These collectible IDs and names were verified using /gmsparts in ESO.
+    -- Check the finished reward first, then the individual part's ownership.
+    -- Never match the reward container or unrelated items by a broad substring.
+    local applePartIds = {
+        ['apple-bobbing fresh gorapples']=6737,
+        ['apple-bobbing cold iron cauldron']=6738,
+        ['apple-bobbing aged fetid fish']=6739,
+        ['apple-bobbing stale creek water']=6740,
+        ['apple-bobbing poise guide']=6741,
+        ['apple-bobbing viscous slime']=6742,
+        ['apple-bobbing fenwood ladle']=6743,
+    }
+    local appleId = applePartIds[lowerName]
+    if appleId and type(IsCollectibleUnlocked)=='function' then
+        local okReward, rewardOwned = pcall(IsCollectibleUnlocked,5590)
+        if okReward and rewardOwned==true then return false end
+        local okPart, partOwned = pcall(IsCollectibleUnlocked,appleId)
+        if okPart and type(partOwned)=='boolean' then return not partOwned end
+    end
+    local rewardId = nil
+    if lowerName=='bonedust pigment' or lowerName=='bonedust pigments' then
+        rewardId=9389 -- Witch-Tamed Bear-Dog
+    elseif lowerName=='rune-carved bone fragment' or lowerName=='rune-carved bone fragments' then
+        rewardId=8079 -- Throwing Bones
+    elseif lowerName=='swamp jelly fragment' or lowerName=='swamp jelly fragments' then
+        rewardId=5656 -- base Swamp Jelly; do not confuse with named variants
+    end
+    if rewardId and type(IsCollectibleUnlocked)=='function' then
+        local good,unlocked=pcall(IsCollectibleUnlocked,rewardId)
+        if good and type(unlocked)=='boolean' then return not unlocked end
+    end
+    local normalized=GMSNormalizeCollectionPart(itemName)
+    if normalized=='' then return nil end
+    for achievementId,criteria in pairs(GMS_COLLECTION_CRITERIA) do
+        for _,criterion in ipairs(criteria) do
+            local ok,description,current,required=pcall(GetAchievementCriterion,achievementId,criterion)
+            if ok and type(description)=='string'
+                and GMSNormalizeCollectionPart(description)==normalized
+                and type(current)=='number' and type(required)=='number' and required>0 then
+                if achievementId==3913 and type(IsCollectibleUnlocked)=='function' then
+                    local unlockedOk,unlocked=pcall(IsCollectibleUnlocked,4996)
+                    if unlockedOk and unlocked==true then return false end
+                end
+                return current<required
+            end
+        end
+    end
+    return nil -- Unknown items continue through the original native filter.
 end
 -- Prefer ESO's own icon/status data. The guild-store entry may expose
 -- canBeUsedToLearn (learning icon) or isLockedSetPiece (sticker-book icon).
@@ -260,16 +375,16 @@ function GMS:FilterVisibleEntries(panel)
     for i=1,originalCount do
         local entry = entries[i]
         local link = EntryLink(entry)
-        local fragmentStatus = self:MissingFragment(link)
-        local missing = self:MissingWithFragments(link)
-        if fragmentStatus ~= nil then missing = fragmentStatus end
+        local missing = self:Missing(link)
+        local fragmentMissing = self:MissingFragment(link)
+        if fragmentMissing ~= nil then missing = fragmentMissing end
         local native, reason = NativeMissingStatus(entry)
         if native ~= true and panel and type(panel.searchResultItemDataList)=='table' then
             local nativeEntry=panel.searchResultItemDataList[i]
             local candidate=NativeMissingStatus(nativeEntry)
             if candidate==true then native=true end
         end
-        if native == true and fragmentStatus == nil then missing = true end
+        if native == true and fragmentMissing == nil then missing = true end
         if native == true then self.nativeFlagHits = (self.nativeFlagHits or 0) + 1 end
         if missing == true then
             kept[#kept+1] = entry
@@ -1721,7 +1836,18 @@ function GMS:OpenNativeItemLinkPreview(panel,data)
     -- index, but its PreviewList call is intercepted before index resolution.
     panel.previewItemData=data
     panel.previewListEntries={data.slotIndex or 1}
-    SCENE_MANAGER:Show('tradingHousePreview_Gamepad')
+    -- Push the preview onto the scene stack, so Circle returns to the
+    -- trading-house results instead of backing out of the trading house.
+    -- Do not fall back to Show(): Show() does not retain the return scene.
+    if type(SCENE_MANAGER.Push)~='function' then
+        self.gmsPendingItemLinkPreview=nil
+        return false
+    end
+    local ok=pcall(SCENE_MANAGER.Push,SCENE_MANAGER,'tradingHousePreview_Gamepad')
+    if not ok then
+        self.gmsPendingItemLinkPreview=nil
+        return false
+    end
     return true
 end
 
@@ -1833,12 +1959,9 @@ function GMS:RefreshFilteredFooter()
         end
         if footer.pageNumberLabel then
             footer.pageNumberLabel:SetHidden(false)
-            -- Keep ESO's original L2/R2 controls and the full page count.
-            -- Only make the label compact and consistent with gamepad UI text.
-            if type(footer.pageNumberLabel.SetFont)=='function' then
-                footer.pageNumberLabel:SetFont('ZoFontGamepad22')
-            end
-            footer.pageNumberLabel:SetText('Page '..tostring(page)..' / '..tostring(pages))
+            -- Use ESO's own label font/size; only replace its page number.
+            -- GMS must not permanently restyle this shared native control.
+            footer.pageNumberLabel:SetText(tostring(page)..'/'..tostring(pages))
         end
     end
 end
@@ -2439,7 +2562,7 @@ local function CollectPage(page)
                 byType[key]=bucket
             end
             bucket.total=bucket.total+1
-            local status=GMS:MissingWithFragments(link)
+            local status=GMS:Missing(link)
             if status==true then
                 matches=matches+1
                 bucket.missing=bucket.missing+1
@@ -2609,17 +2732,10 @@ function GMS:EndTradingSession()
     self.combinedVisible, self.replayingPage = false, false
     self:ClearClosedTraderTooltip()
     local closingPanel=self:GetPanel()
-    if closingPanel and closingPanel.footer then
-        local footer=closingPanel.footer
-        if footer.pageNumberLabel then
-            pcall(footer.pageNumberLabel.SetHidden, footer.pageNumberLabel, true)
-        end
-        if footer.previousButton then
-            pcall(footer.previousButton.SetHidden, footer.previousButton, true)
-        end
-        if footer.nextButton then
-            pcall(footer.nextButton.SetHidden, footer.nextButton, true)
-        end
+    -- Do not leave native footer controls hidden across trader sessions.
+    -- ESO owns their state after GMS exits filtered mode.
+    if closingPanel and type(closingPanel.RefreshPagingControls)=='function' then
+        pcall(closingPanel.RefreshPagingControls,closingPanel)
     end
     self.pendingKeybindSync = false
     self.gmsPendingPurchase = nil
@@ -2774,8 +2890,422 @@ local function GMSMemoryReading()
     end
 end
 
+-- v1.1.0: Read-only fragment API diagnostic. Does not alter scanning or filtering.
+local function FragmentDiagnosticMessage(message)
+    local line = '[GMS Fragment] ' .. tostring(message)
+    if CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then
+        CHAT_ROUTER:AddSystemMessage(line)
+    elseif type(d)=='function' then
+        d(line)
+    end
+end
+local function FragmentProbeCall(name, link)
+    local fn = _G and _G[name]
+    if type(fn)~='function' then return 'unavailable' end
+    local ok, result = pcall(fn, link)
+    if not ok then return 'error' end
+    if result==nil then return 'nil' end
+    return tostring(result)
+end
+local function FragmentDiagnostic(arg)
+    local requested = tonumber((arg or ''):match('^%s*(%d+)%s*$'))
+    if type(GetTradingHouseSearchResultsInfo)~='function'
+        or type(GetTradingHouseSearchResultItemLink)~='function' then
+        FragmentDiagnosticMessage('Trading House APIs unavailable.')
+        return
+    end
+    local okCount, count = pcall(GetTradingHouseSearchResultsInfo)
+    if not okCount or type(count)~='number' then
+        FragmentDiagnosticMessage('Open a Guild Trader search-results page first.')
+        return
+    end
+    local found, shown = 0, 0
+    for slot=1,math.min(count,200) do
+        local ok, link = pcall(GetTradingHouseSearchResultItemLink,slot,LINK_STYLE_DEFAULT)
+        if ok and type(link)=='string' and link~='' then
+            local okId, itemId = pcall(GetItemLinkItemId,link)
+            if okId and type(itemId)=='number' and (requested==nil or itemId==requested) then
+                found=found+1
+                -- Without an ID, report a small bounded sample, not the whole store.
+                if shown<3 then
+                    shown=shown+1
+                    local okName, itemName=pcall(GetItemLinkName,link)
+                    FragmentDiagnosticMessage('slot='..slot..' id='..itemId..' '..(okName and tostring(itemName) or '?'))
+                    FragmentDiagnosticMessage('container='..FragmentProbeCall('GetItemLinkContainerCollectibleId',link)
+                        ..' collectibleLink='..FragmentProbeCall('GetCollectibleIdFromLink',link)
+                        ..' book='..FragmentProbeCall('IsItemLinkBook',link))
+                    FragmentDiagnosticMessage('nativeMissing='..tostring(GMS:Missing(link))
+                        ..' type='..FragmentProbeCall('GetItemLinkItemType',link))
+                end
+            end
+        end
+    end
+    if found==0 then
+        FragmentDiagnosticMessage('No matching listing on the CURRENT results page. Search for the fragment, then run /gmsfrag <itemID>.')
+    else
+        FragmentDiagnosticMessage('Matches on current page: '..found..'. Diagnostic only; no filter changes.')
+    end
+end
+
+
+-- Diagnostic only: search native achievement records for the tooltip's reward name.
+-- Runs only when explicitly requested; small batches avoid freezing the gamepad UI.
+local gmsAchievementProbeRunning = false
+local function GMSAchievementProbe()
+    if gmsAchievementProbeRunning then
+        FragmentDiagnosticMessage('Achievement lookup already running.')
+        return
+    end
+    if type(GetAchievementInfo) ~= 'function' or type(GetAchievementCriterion) ~= 'function' then
+        FragmentDiagnosticMessage('Achievement API unavailable.')
+        return
+    end
+    gmsAchievementProbeRunning = true
+    local id, hits, limit = 1, 0, 15000
+    FragmentDiagnosticMessage('Searching achievement names for Echo of the Abolisher (diagnostic only).')
+    local function batch()
+        local stop = math.min(id + 99, limit)
+        while id <= stop do
+            local ok, name = pcall(GetAchievementInfo, id)
+            if ok and type(name) == 'string' and name:lower():find('echo of the abolisher', 1, true) then
+                hits = hits + 1
+                FragmentDiagnosticMessage('achievement=' .. id .. ' name=' .. name)
+                if type(GetAchievementNumCriteria) == 'function' then
+                    local okNum, num = pcall(GetAchievementNumCriteria, id)
+                    if okNum and type(num) == 'number' then
+                        for criterion = 1, math.min(num, 12) do
+                            local okCrit, description, count, required = pcall(GetAchievementCriterion, id, criterion)
+                            if okCrit then
+                                FragmentDiagnosticMessage('criterion=' .. criterion .. ' ' .. tostring(description)
+                                    .. ' progress=' .. tostring(count) .. '/' .. tostring(required))
+                            end
+                        end
+                    end
+                end
+            end
+            id = id + 1
+        end
+        if id <= limit and type(zo_callLater) == 'function' then
+            zo_callLater(batch, 25)
+        else
+            gmsAchievementProbeRunning = false
+            FragmentDiagnosticMessage('Achievement lookup finished; matches=' .. hits .. '. No filter changes.')
+        end
+    end
+    batch()
+end
+
+
+-- Diagnostic only. Read ESO's native collectible combination data for the kitten.
+-- No scanner/filter changes. Unknown data is reported, never interpreted as missing.
+local gmsKittenProbeRunning = false
+local function GMSKittenProbe()
+    if gmsKittenProbeRunning then FragmentDiagnosticMessage('Kitten lookup already running.'); return end
+    if type(GetCollectibleInfo) ~= 'function' then FragmentDiagnosticMessage('GetCollectibleInfo unavailable.'); return end
+    gmsKittenProbeRunning = true
+    local nextId, hits, limit = 1, 0, 30000
+    FragmentDiagnosticMessage('Searching native Collections for Big-Eared Ginger Kitten (diagnostic only).')
+    local function safe(fn, ...)
+        if type(fn) ~= 'function' then return nil end
+        local ok, a, b, c = pcall(fn, ...)
+        if ok then return a, b, c end
+        return nil
+    end
+    local function inspect(id, name)
+        hits = hits + 1
+        local unlocked = safe(IsCollectibleUnlocked, id)
+        local ref = safe(GetCollectibleReferenceId, id)
+        FragmentDiagnosticMessage('collectible=' .. id .. ' ' .. tostring(name) .. ' unlocked=' .. tostring(unlocked) .. ' reference=' .. tostring(ref))
+        local combination = (type(ref) == 'number' and ref > 0) and ref or nil
+        if combination then
+            local count = safe(GetCombinationNumCollectibleComponents, combination)
+            FragmentDiagnosticMessage('combination=' .. combination .. ' components=' .. tostring(count))
+            if type(count) == 'number' then
+                for i=1, math.min(count, 24) do
+                    local component = safe(GetCombinationCollectibleComponentId, combination, i)
+                    local cname = component and safe(GetCollectibleInfo, component) or nil
+                    local owned = component and safe(IsCollectibleUnlocked, component) or nil
+                    FragmentDiagnosticMessage('part=' .. i .. ' collectible=' .. tostring(component) .. ' owned=' .. tostring(owned) .. ' ' .. tostring(cname))
+                end
+            end
+        end
+    end
+    local function batch()
+        local stop = math.min(nextId + 149, limit)
+        while nextId <= stop do
+            local name = safe(GetCollectibleInfo, nextId)
+            if type(name) == 'string' and name:lower():find('big%-eared ginger kitten') then
+                inspect(nextId, name)
+            end
+            nextId = nextId + 1
+        end
+        if nextId <= limit and type(zo_callLater) == 'function' then
+            zo_callLater(batch, 20)
+        else
+            gmsKittenProbeRunning = false
+            FragmentDiagnosticMessage('Kitten lookup finished; matches=' .. hits .. '. No filter changes.')
+        end
+    end
+    batch()
+end
+
+
+-- v1.1.4 diagnostic only: kitten's seven parts are tracked as achievement criteria.
+-- Do not modify the working fragment filter or interpret unknown values as missing.
+local gmsKittenAchievementRunning = false
+local function GMSKittenAchievementProbe()
+    if gmsKittenAchievementRunning then FragmentDiagnosticMessage('Kitten achievement lookup already running.'); return end
+    if type(GetAchievementInfo) ~= 'function' or type(GetAchievementCriterion) ~= 'function' then
+        FragmentDiagnosticMessage('Achievement API unavailable.'); return
+    end
+    gmsKittenAchievementRunning = true
+    local id, hits, limit = 1, 0, 15000
+    FragmentDiagnosticMessage('Searching kitten achievement criteria (diagnostic only).')
+    local function batch()
+        local stop = math.min(id + 99, limit)
+        while id <= stop do
+            local ok, name = pcall(GetAchievementInfo, id)
+            if ok and type(name) == 'string' and name:lower():find('big-eared ginger kitten', 1, true) then
+                hits = hits + 1
+                FragmentDiagnosticMessage('achievement=' .. id .. ' name=' .. name)
+                local okNum, num = false, nil
+                if type(GetAchievementNumCriteria) == 'function' then
+                    okNum, num = pcall(GetAchievementNumCriteria, id)
+                end
+                if okNum and type(num) == 'number' then
+                    FragmentDiagnosticMessage('criteria=' .. tostring(num))
+                    for criterion = 1, math.min(num, 16) do
+                        local okCrit, description, count, required = pcall(GetAchievementCriterion, id, criterion)
+                        if okCrit then
+                            FragmentDiagnosticMessage('part=' .. criterion .. ' ' .. tostring(description)
+                                .. ' progress=' .. tostring(count) .. '/' .. tostring(required))
+                        end
+                    end
+                else
+                    FragmentDiagnosticMessage('Criteria count unavailable.')
+                end
+            end
+            id = id + 1
+        end
+        if id <= limit and type(zo_callLater) == 'function' then
+            zo_callLater(batch, 25)
+        else
+            gmsKittenAchievementRunning = false
+            FragmentDiagnosticMessage('Kitten achievement lookup finished; matches=' .. hits .. '. No filter changes.')
+        end
+    end
+    batch()
+end
+
+-- Read-only targeted discovery for tradeable collectible components.
+-- This is a candidate finder, NOT proof that a component is tradeable.
+-- The narrow phrases below avoid broad words like 'vault' and 'remnant'.
+local gmsCollectionDiscoveryRunning = false
+local function GMSCollectionDiscovery()
+    if gmsCollectionDiscoveryRunning then
+        FragmentDiagnosticMessage('Collection discovery is already running.'); return
+    end
+    if type(GetAchievementInfo)~='function' or type(GetAchievementCriterion)~='function'
+        or type(GetAchievementNumCriteria)~='function' then
+        FragmentDiagnosticMessage('Achievement criteria API unavailable.'); return
+    end
+    local targets = {
+        'big-eared ginger kitten', 'remnants of deception', 'remnants of cruelty',
+        'coral haj mota', 'graht-oak', 'valenwood seedling',
+        'inscribed shard', 'scaly cloth', 'thrafey', 'bonedust pigment',
+        'skeletal marionette', 'marionette parts', 'rune-carved bone',
+        'throwing bones', 'horned owl', 'writhing haj mota', 'wormwrithe',
+        'harvested soul fragment', 'sealed fabrication material',
+        'chameleon tincture', 'spectral distillation',
+        'nowhere vault fragment', 'nowhere vault collectible',
+        'kitten', 'haj mota decoy', 'haj mota lure',
+    }
+    local function relevant(value)
+        if type(value)~='string' then return false end
+        value=value:lower()
+        for _,phrase in ipairs(targets) do
+            if value:find(phrase,1,true) then return true end
+        end
+        return false
+    end
+    local id, total, shown, cap, limit = 1, 0, 0, 24, 15000
+    gmsCollectionDiscoveryRunning = true
+    FragmentDiagnosticMessage('Targeted collection discovery started. Up to 24 matches; no store changes.')
+    local function batch()
+        local stop=math.min(id+99,limit)
+        while id<=stop do
+            local ok,name=pcall(GetAchievementInfo,id)
+            if ok and type(name)=='string' and name~='' then
+                local nameMatch=relevant(name)
+                local okCount,count=pcall(GetAchievementNumCriteria,id)
+                if okCount and type(count)=='number' and count>0 then
+                    local matches={}
+                    for criterion=1,math.min(count,40) do
+                        local good,desc,current,required=pcall(GetAchievementCriterion,id,criterion)
+                        if good and type(desc)=='string' and relevant(desc) then
+                            matches[#matches+1]={criterion,desc,current,required}
+                        end
+                    end
+                    -- Only include achievements with targeted component criteria,
+                    -- or exact target names with a plausible small criteria set.
+                    if #matches>0 or (nameMatch and count<=12) then
+                        total=total+1
+                        if shown<cap then
+                            shown=shown+1
+                            FragmentDiagnosticMessage('COL '..id..' '..name..' ['..count..']')
+                            local printed=0
+                            for _,v in ipairs(matches) do
+                                if printed>=8 then break end
+                                FragmentDiagnosticMessage('  '..v[1]..' '..v[2]..' '..tostring(v[3])..'/'..tostring(v[4]))
+                                printed=printed+1
+                            end
+                            -- For named achievements with no criterion name match,
+                            -- print up to 7 criteria to identify the component system.
+                            if #matches==0 then
+                                for criterion=1,math.min(count,7) do
+                                    local good,desc,current,required=pcall(GetAchievementCriterion,id,criterion)
+                                    if good then FragmentDiagnosticMessage('  '..criterion..' '..tostring(desc)..' '..tostring(current)..'/'..tostring(required)) end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then
+            zo_callLater(batch,25)
+        else
+            gmsCollectionDiscoveryRunning=false
+            FragmentDiagnosticMessage('Collection discovery finished. '..total..' candidate achievements; '..shown..' shown (max '..cap..'). Tradeability not verified.')
+        end
+    end
+    batch()
+end
+
+
+-- v1.2.2: Read-only, narrowly targeted collectible reward ownership diagnostic.
+-- Uses safe API calls and prints only matches for five outstanding collections.
+local gmsRewardProbeRunning = false
+local function GMSRewardOwnershipProbe()
+    if gmsRewardProbeRunning then
+        FragmentDiagnosticMessage('Reward lookup already running.'); return
+    end
+    if type(GetCollectibleInfo) ~= 'function' then
+        FragmentDiagnosticMessage('GetCollectibleInfo unavailable. No changes.'); return
+    end
+    local targets = {
+        {label='Swamp Jelly', terms={'swamp jelly'}},
+        {label='Apple-Bobbing Cauldron', terms={'apple-bobbing','apple bobbing','bobbing cauldron'}},
+        {label='Bonedust Pigment', terms={'witch-tamed bear-dog','witch tamed bear dog','bonedust pigment'}},
+        {label='Rune-Carved Bone Fragment', terms={'throwing bones','rune-carved bone'}},
+        {label='Sealed Fabrication Materials', terms={'fabrication','fabricant','sealed fabrication'}},
+    }
+    local apis={'GetCollectibleInfo','IsCollectibleUnlocked','GetCollectibleIdFromLink',
+                'GetCollectibleFragmentInfo','GetNumCollectibleFragments',
+                'GetCollectibleFragmentId','GetAchievementInfo','GetAchievementCriterion'}
+    local function safe(fn, ...)
+        if type(fn)~='function' then return nil end
+        local ok,a,b,c,d=pcall(fn,...)
+        if ok then return a,b,c,d end
+        return nil
+    end
+    local function relevant(name, terms)
+        if type(name)~='string' then return false end
+        name=name:lower()
+        for _,term in ipairs(terms) do
+            if name:find(term,1,true) then return true end
+        end
+        return false
+    end
+    local id,limit,step=1,20000,150
+    local found={0,0,0,0,0}
+    gmsRewardProbeRunning=true
+    FragmentDiagnosticMessage('Reward ownership lookup: 5 targets, read-only. Scanning collectible names...')
+    local available={}
+    for _,name in ipairs(apis) do
+        if type(_G[name])=='function' then available[#available+1]=name end
+    end
+    FragmentDiagnosticMessage('Available APIs: '..table.concat(available, ', '))
+    local function batch()
+        local last=math.min(id+step-1,limit)
+        while id<=last do
+            local name=safe(GetCollectibleInfo,id)
+            if type(name)=='string' and name~='' then
+                for k,target in ipairs(targets) do
+                    if relevant(name,target.terms) then
+                        found[k]=found[k]+1
+                        if found[k]<=5 then
+                            local unlocked=safe(IsCollectibleUnlocked,id)
+                            FragmentDiagnosticMessage(target.label..': collectible '..id..' '..name..' unlocked='..tostring(unlocked))
+                        end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then
+            zo_callLater(batch,25)
+        else
+            gmsRewardProbeRunning=false
+            for k,target in ipairs(targets) do
+                FragmentDiagnosticMessage(target.label..': '..found[k]..' name match(es)'..(found[k]==0 and ' (try reward name/alternative API)' or ''))
+            end
+            FragmentDiagnosticMessage('Finished. No fragment filter, purchase, or scanner changes.')
+        end
+    end
+    batch()
+end
+
+-- v1.2.4: Compact read-only diagnostic for Apple-Bobbing component IDs
+-- and sealed fabrication reward ambiguity. Prints all matching names,
+-- including owned state, without modifying Guild Trader behavior.
+local gmsPartsProbeRunning=false
+local function GMSRemainingPartsProbe()
+    if gmsPartsProbeRunning then FragmentDiagnosticMessage('Parts lookup already running.'); return end
+    if type(GetCollectibleInfo)~='function' then FragmentDiagnosticMessage('Collectible API unavailable.'); return end
+    gmsPartsProbeRunning=true
+    FragmentDiagnosticMessage('Looking up Apple-Bobbing pieces and Fabricant rewards (read-only)...')
+    local id,limit,step=1,20000,180
+    local apple,fabricant=0,0
+    local function batch()
+        local stop=math.min(limit,id+step-1)
+        while id<=stop do
+            local ok,name=pcall(GetCollectibleInfo,id)
+            if ok and type(name)=='string' then
+                local low=name:lower()
+                local isApple=low:find('apple-bobbing',1,true)~=nil
+                local isFab=low:find('fabricant',1,true)~=nil or low:find('fabrication',1,true)~=nil
+                if isApple or isFab then
+                    local owned='unknown'
+                    if type(IsCollectibleUnlocked)=='function' then
+                        local good,value=pcall(IsCollectibleUnlocked,id)
+                        if good then owned=tostring(value) end
+                    end
+                    if isApple then
+                        apple=apple+1
+                        if apple<=20 then FragmentDiagnosticMessage('APPLE '..id..' '..name..' owned='..owned) end
+                    end
+                    if isFab then
+                        fabricant=fabricant+1
+                        if fabricant<=18 then FragmentDiagnosticMessage('FAB '..id..' '..name..' owned='..owned) end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then
+            zo_callLater(batch,25)
+        else
+            gmsPartsProbeRunning=false
+            FragmentDiagnosticMessage('Done: '..apple..' Apple names, '..fabricant..' Fabricant names. Item-to-reward association still requires verification.')
+        end
+    end
+    batch()
+end
+
 function GMS:Initialize()
-    if type(SLASH_COMMANDS) == 'table' then SLASH_COMMANDS['/gmsmem'] = GMSMemoryReading end
+    if type(SLASH_COMMANDS) == 'table' then SLASH_COMMANDS['/gmsmem'] = GMSMemoryReading; SLASH_COMMANDS['/gmsfrag'] = FragmentDiagnostic; SLASH_COMMANDS['/gmsach'] = GMSAchievementProbe; SLASH_COMMANDS['/gmskitten'] = GMSKittenProbe; SLASH_COMMANDS['/gmskitach'] = GMSKittenAchievementProbe; SLASH_COMMANDS['/gmscollections'] = GMSCollectionDiscovery; SLASH_COMMANDS['/gmsrewards'] = GMSRewardOwnershipProbe; SLASH_COMMANDS['/gmsparts'] = GMSRemainingPartsProbe end
     if type(EVENT_TRADING_HOUSE_RESPONSE_RECEIVED)=='number' then
         EVENT_MANAGER:RegisterForEvent(self.name .. '_purchase_response',
             EVENT_TRADING_HOUSE_RESPONSE_RECEIVED,
@@ -2794,6 +3324,7 @@ function GMS:Initialize()
         -- ESO owns its normal result refresh on opening the trader.
         GMS.gmsRestoreNativeOnOpen=false
         GMS.gmsChromeNextCheckMs=nil
+        -- Native paging remains owned by ESO until GMS enables filtering.
     end)
     EVENT_MANAGER:RegisterForEvent(self.name .. '_close', EVENT_CLOSE_TRADING_HOUSE, function()
         GMS:EndTradingSession()

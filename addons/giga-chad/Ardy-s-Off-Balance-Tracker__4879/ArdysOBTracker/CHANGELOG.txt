@@ -1,6 +1,11 @@
 Ardy's OB Tracker - Release Notes
 =================================
 
+v1.6.2  (2026-10-28)
+  - Updated for U52 (API 101052). Still works on the current live
+    server (API 101051).
+  - Jerall Pass support
+
 v1.6.1  (2026-10-15)
   - Settings are now saved per server (NA, EU, PTS) instead of one shared copy.
     Your existing settings are carried over automatically the first time you

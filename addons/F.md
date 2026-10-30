@@ -28,6 +28,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FavOptions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/FavOptions__d13d8dac-6694-4ebe-8685-ce038ec06a1e) | murphyx | Console | — |
 | [Favor Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xpherion/Favor-Tracker__4717) | xpherion | PC / Mac | 1.0.5 |
 | [Favorite Dungeon Rotation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Favorite-Dungeon-Rotation__2643) | ownedbynico | PC / Mac | 1.2.0 |
+| [Favorite Guild Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lucky38Tech/Favorite-Guild-Cycler__0a76b1e2-2754-4c05-8647-04f6f0216c0d) | Lucky38Tech | Console | — |
 | [Favorite Home Teleporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeman1734/Favorite-Home-Teleporter__fc9f4f62-3d31-41cd-b9ee-e1a0ea0f6ecb) | codeman1734 | Console | — |
 | [Favorite Mount](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Favorite-Mount__2915) | ShadowMau | PC / Mac | 2.06 |
 | [Favorite Pet](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Favorite-Pet__2917) | ShadowMau | PC / Mac | 2.02 |

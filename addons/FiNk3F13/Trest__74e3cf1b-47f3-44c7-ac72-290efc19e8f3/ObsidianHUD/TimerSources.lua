@@ -217,6 +217,7 @@ O.timerSources={
     [61489]=61498,
     [61503]=61504,
     [61505]=61506,
+    [61507]=61693, -- Resolving Vigor: track Minor Resolve, as requested
     [61511]=78338,
     [61519]=61522,
     [61524]=61526,

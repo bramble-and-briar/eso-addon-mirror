@@ -3,7 +3,7 @@ local originals={}
 local move
 local currentProfile
 local currentFixed
-local titles={skills="Skillleiste und Backbar",ultimate="Ultimate und Backbar",quickslot="Traenke / Schnellzugriff",buffs="Eigene Buffanzeige"}
+local titles={skillgroup="Skills, Traenke und Ultimate gemeinsam",skills="Skillleiste und Backbar",ultimate="Ultimate und Backbar",quickslot="Traenke / Schnellzugriff",buffs="Eigene Buffanzeige",synergy="Synergie-Hinweis"}
 local function mode() return IsInGamepadPreferredMode and IsInGamepadPreferredMode() and "controller" or "keyboard" end
 local function positions(profile)
     profile=profile or mode()
@@ -12,8 +12,10 @@ local function positions(profile)
 end
 local function target(key)
     if key=="buffs" then return ZO_BuffDebuffTopLevelSelfContainer end
+    -- The top-level control fills the screen; move only the actual prompt.
+    if key=="synergy" then return (SYNERGY and SYNERGY.container) or ZO_SynergyTopLevelContainer end
     if not ZO_ActionBar_GetButton then return nil end
-    local slot=key=="skills" and 3 or (key=="ultimate" and 8 or 1)
+    local slot=(key=="skills" or key=="skillgroup") and 3 or (key=="ultimate" and 8 or 1)
     local button=ZO_ActionBar_GetButton(slot,key=="quickslot" and HOTBAR_CATEGORY_QUICKSLOT_WHEEL or nil)
     return button and button.slot
 end
@@ -25,7 +27,7 @@ local function screenSize(control)
 end
 local function screenFactor(key)
     local control=target(key)
-    if not control or key=="buffs" then return 1 end
+    if not control or key=="buffs" or key=="synergy" then return 1 end
     local _,height=screenSize(control)
     local cached=O.skillScaleDimensions and O.skillScaleDimensions[control]
     local localHeight=cached and cached[2] or control:GetHeight()
@@ -44,6 +46,16 @@ function O.DualUltimateView()
 end
 function O.NoSkillAnimationsView()
     return O.vars.skillHudView=="fixed_static" or O.vars.skillHudView=="fixed_dual_static"
+end
+function O.SkillDisplayBar(button)
+    local active=GetActiveHotbarCategory()
+    if O.IsFixedSkillView() and not O.NoSkillAnimationsView() and button and button.slot then
+        -- ESO updates this category together with the icon at the flip's
+        -- midpoint. Keep the old row until that actual replacement happens.
+        local displayed=button.slot.hotbarCategory
+        if displayed==HOTBAR_CATEGORY_PRIMARY or displayed==HOTBAR_CATEGORY_BACKUP then return displayed end
+    end
+    return active
 end
 function O.FixedSkillRows()
     if not O.IsFixedSkillView() or not O.vars.backBar then return false end
@@ -86,15 +98,16 @@ function O.SkillRowOffset(key)
         local first=target("skills")
         local center=first and -O.SkillRowGap(first)/2 or 0
         if key=="ultimate" and O.DualUltimateView() then
-            return center+(GetActiveHotbarCategory()==HOTBAR_CATEGORY_PRIMARY and -1 or 1)*O.UltimateRowSeparation()/2
+            return center+(O.SkillDisplayBar(ZO_ActionBar_GetButton(8))==HOTBAR_CATEGORY_PRIMARY and -1 or 1)*O.UltimateRowSeparation()/2
         end
         return center
     end
-    if key~="skills" or GetActiveHotbarCategory()~=HOTBAR_CATEGORY_PRIMARY then return 0 end
+    if key~="skills" or O.SkillDisplayBar(ZO_ActionBar_GetButton(3))~=HOTBAR_CATEGORY_PRIMARY then return 0 end
     local control=target(key)
     return control and -O.SkillRowGap(control) or 0
 end
 function O.NativeHudOffset(key)
+    if key=="synergy" then return 0 end
     return (O.SkillRowOffset(key)-(O.FixedSkillRows() and titles[key] and 32 or 0))*screenFactor(key)
 end
 local function capture(control)
@@ -120,26 +133,31 @@ function O.CaptureSkillScalePositions()
     end
     return result
 end
-local function anchor(control,x,y)
+local function anchor(control,x,y,key)
     capture(control)
     local old=originals[control]
-    if O.skillScalePositions then
+    local skill=key=="skills" or key=="ultimate" or key=="quickslot"
+    if O.skillScalePositions or skill then
         -- Anchor offsets can use the inherited scale, while GetLeft/GetTop
         -- report screen coordinates. Measure this conversion once per layout
         -- instead of assuming they use the same units.
-        if not old.transform then
+        local factor=screenFactor(key)
+        local width,height=GuiRoot:GetWidth(),GuiRoot:GetHeight()
+        if not old.transform or math.abs((old.transformScale or factor)-factor)>0.0001
+            or old.transformWidth~=width or old.transformHeight~=height then
             control:ClearAnchors(); control:SetAnchor(CENTER,GuiRoot,TOPLEFT,0,0)
             local ox,oy=screenCenter(control)
             control:ClearAnchors(); control:SetAnchor(CENTER,GuiRoot,TOPLEFT,1,1)
             local ax,ay=screenCenter(control)
             old.transform={ox,oy,math.abs(ax-ox)>0.0001 and ax-ox or 1,
                 math.abs(ay-oy)>0.0001 and ay-oy or 1}
+            old.transformScale,old.transformWidth,old.transformHeight=factor,width,height
         end
         local t=old.transform
         x,y=(x-t[1])/t[3],(y-t[2])/t[4]
     end
     local valid,point,relativeTo,relativePoint,oldX,oldY=control:GetAnchor(0)
-    if valid and point==CENTER and relativeTo==GuiRoot and relativePoint==TOPLEFT
+    if valid and control:GetNumAnchors()==1 and point==CENTER and relativeTo==GuiRoot and relativePoint==TOPLEFT
         and math.abs(oldX-x)<0.1 and math.abs(oldY-y)<0.1 then
         originals[control].owned={x,y}; return
     end
@@ -159,7 +177,7 @@ function O.ReleaseNativePositions()
     end
     originals={}
 end
-function O.UpdateNativePositions()
+function O.UpdateNativePositions(skillsOnly)
     if not O.vars.enabled then O.ReleaseNativePositions(); return end
     local profile=mode()
     local fixed=O.FixedSkillRows()
@@ -170,10 +188,28 @@ function O.UpdateNativePositions()
     for key,pos in pairs(O.skillScalePositions or {}) do planned[key]=pos end
     for key,pos in pairs(positions()) do planned[key]=pos end
     if fixed then
+        -- Cache native horizontal spacing before detaching any linked slots.
+        -- All five active buttons must share a row after ESO reapplies templates.
+        local first=target("skills")
+        if first then
+            local firstX=screenCenter(first)
+            local factor=screenFactor("skills")
+            for slot=4,7 do
+                local button=ZO_ActionBar_GetButton(slot)
+                if button and button.slot then
+                    capture(button.slot)
+                    local old=originals[button.slot]
+                    if old.rowOffset==nil then
+                        local x=screenCenter(button.slot)
+                        old.rowOffset=(x-firstX)/factor
+                    end
+                end
+            end
+        end
         -- Capture all baselines before moving the skill group: ESO normally
         -- anchors the ultimate to the fifth skill, so it would move twice.
         for _,key in ipairs({"skills","ultimate","quickslot","buffs"}) do
-            local control=target(key)
+            local control=(not skillsOnly or key~="buffs") and target(key)
             if control then
                 capture(control)
                 local old=originals[control]
@@ -184,62 +220,31 @@ function O.UpdateNativePositions()
                 planned[key]=planned[key] or old.fixedBase
             end
         end
-        if planned.skills then
-            for _,key in ipairs({"ultimate","quickslot"}) do
-                if planned[key] then planned[key]={x=planned[key].x,y=planned.skills.y} end
-            end
-        end
     end
-    -- Scale the distance between independently movable groups as well as the
-    -- icons themselves. Keeping the old absolute ultimate/trank X would let
-    -- the growing five-skill row run into them.
+    -- Expand only automatic defaults when scaling. Manually placed groups
+    -- are screen positions, independent from the five-skill row's position.
     local groupFactor=O.skillHudFactor or 1
     if groupFactor~=1 and planned.skills then
         for _,key in ipairs({"ultimate","quickslot"}) do
             local pos=planned[key]
-            if pos then planned[key]={x=planned.skills.x+(pos.x-planned.skills.x)*groupFactor,y=pos.y} end
-        end
-        local first=target("skills")
-        local lastButton=ZO_ActionBar_GetButton(7)
-        if first and lastButton and lastButton.slot then
-            local firstX=screenCenter(first)
-            local firstWidth=screenSize(first)
-            local lastWidth=screenSize(lastButton.slot)
-            local pad=10*screenFactor("skills")
-            local desired=planned.skills.x*GuiRoot:GetWidth()
-            local left=desired-firstWidth/2-pad
-            local right=desired+lastButton.slot:GetLeft()+lastWidth-firstX+pad
-            for _,key in ipairs({"ultimate","quickslot"}) do
-                local c,pos=target(key),planned[key]
-                if c and pos then
-                    local width=screenSize(c)
-                    left=math.min(left,pos.x*GuiRoot:GetWidth()-width/2-pad)
-                    right=math.max(right,pos.x*GuiRoot:GetWidth()+width/2+pad)
-                end
-            end
-            -- Shift the complete group together at the screen edge; clamping
-            -- the ultimate alone would push it back into the fifth skill.
-            local shift=math.max(0,-left)+math.min(0,GuiRoot:GetWidth()-right)
-            if shift~=0 then
-                for _,key in ipairs({"skills","ultimate","quickslot"}) do
-                    local pos=planned[key]
-                    if pos then planned[key]={x=pos.x+shift/GuiRoot:GetWidth(),y=pos.y} end
-                end
+            if pos and not positions()[key] then
+                planned[key]={x=planned.skills.x+(pos.x-planned.skills.x)*groupFactor,y=pos.y}
             end
         end
     end
     for key,pos in pairs(planned) do
-        local control=titles[key] and target(key)
+        local skill=key=="skills" or key=="ultimate" or key=="quickslot"
+        local control=titles[key] and (not skillsOnly or skill) and target(key)
         if control then
             local w,h=screenSize(control)
             local x=math.max(w/2,math.min(GuiRoot:GetWidth()-w/2,pos.x*GuiRoot:GetWidth()))
             local bottom=GuiRoot:GetHeight()-h/2
-            if not fixed and key~="buffs" then
+            if not fixed and key~="buffs" and key~="synergy" then
                 -- Standard/running/equal and single-row layouts also need
                 -- space for the native key labels below the icons.
                 bottom=bottom-38*screenFactor(key)
             end
-            if fixed and key~="buffs" then
+            if fixed and key~="buffs" and key~="synergy" then
                 -- Reserve the lower row's native binding glyphs and a margin,
                 -- even while the active button itself is on the upper row.
                 local factor=screenFactor(key)
@@ -251,48 +256,45 @@ function O.UpdateNativePositions()
                 end
             end
             local y=math.max(h/2,math.min(bottom,pos.y*GuiRoot:GetHeight()+O.NativeHudOffset(key)))
-            anchor(control,x,y)
+            anchor(control,x,y,key)
+        end
+    end
+    if fixed then
+        local first=target("skills")
+        if first then
+            local x,y=screenCenter(first)
+            local factor=screenFactor("skills")
+            for slot=4,7 do
+                local button=ZO_ActionBar_GetButton(slot)
+                local old=button and button.slot and originals[button.slot]
+                if old and old.rowOffset then anchor(button.slot,x+old.rowOffset*factor,y,"skills") end
+            end
         end
     end
 end
 local function saveMove()
     local handle=O.nativeMoveHandle
-    if move.keepUltimate then
-        local other=move.keepUltimate
-        positions(move.profile).ultimate={x=other.x/GuiRoot:GetWidth(),y=(other.y-O.NativeHudOffset("ultimate"))/GuiRoot:GetHeight()}
-        anchor(other.control,other.x,other.y)
-        move.keepUltimate=nil
+    if move.members then
+        local dx=(handle:GetLeft()-move.originX)/GuiRoot:GetWidth()
+        local dy=(handle:GetTop()-move.originY)/GuiRoot:GetHeight()
+        for key,base in pairs(move.members) do
+            positions(move.profile)[key]={x=base.x+dx,y=base.y+dy}
+        end
+        O.UpdateNativePositions()
+        move.changed=true
+        return
     end
     local x=handle:GetLeft()+move.dx
     local y=handle:GetTop()+move.dy
     local savedX=x/GuiRoot:GetWidth()
-    local groupFactor=O.skillHudFactor or 1
-    if groupFactor~=1 and (move.key=="ultimate" or move.key=="quickslot") then
-        local p=positions(move.profile)
-        local first=p.skills or (O.skillScalePositions and O.skillScalePositions.skills)
-        if first then savedX=first.x+(savedX-first.x)/groupFactor end
-    end
     positions(move.profile)[move.key]={x=savedX,y=(y-O.NativeHudOffset(move.key))/GuiRoot:GetHeight()}
-    if O.FixedSkillRows() and (move.key=="skills" or move.key=="ultimate" or move.key=="quickslot") then
-        local p=positions(move.profile)
-        if move.key~="skills" then
-            local skills=target("skills")
-            if skills then
-                local cx=screenCenter(skills)
-                p.skills={x=p.skills and p.skills.x or cx/GuiRoot:GetWidth(),y=p[move.key].y}
-            end
-        end
-        if p.skills then
-            for _,key in ipairs({"ultimate","quickslot"}) do if p[key] then p[key].y=p.skills.y end end
-        end
-    end
-    anchor(move.control,x,y)
+    anchor(move.control,x,y,move.key)
     if O.FixedSkillRows() then O.UpdateNativePositions() end
     move.changed=true
 end
 function O.StopNativeMove()
     if not move then return end
-    if move.changed or move.dragging then saveMove() end
+    if move.changed then saveMove() end
     O.nativeMoveHandle:StopMovingOrResizing()
     O.nativeMoveHandle:SetHidden(true)
     O.nativeMoveHandle:SetMouseEnabled(false)
@@ -309,12 +311,12 @@ function O.NativeMoveUpdate()
     local handle=O.nativeMoveHandle
     local at=GetFrameTimeSeconds()
     local x,y=handle:GetLeft(),handle:GetTop()
-    if move.dragging or x~=move.x or y~=move.y then saveMove(); move.at=at end
+    if x~=move.x or y~=move.y then saveMove(); move.at=at end
     if SCENE_MANAGER and not SCENE_MANAGER:IsInUIMode() then SCENE_MANAGER:SetInUIMode(true) end
     if SetGameCameraUIMode and IsGameCameraUIModeActive and not IsGameCameraUIModeActive() then SetGameCameraUIMode(true) end
     local sx=GetGamepadRightStickX and GetGamepadRightStickX(GAMEPAD_INCLUDE_DEADZONE) or 0
     local sy=GetGamepadRightStickY and GetGamepadRightStickY(GAMEPAD_INCLUDE_DEADZONE) or 0
-    if not move.dragging and (math.abs(sx)>=0.05 or math.abs(sy)>=0.05) then
+    if math.abs(sx)>=0.05 or math.abs(sy)>=0.05 then
         x=math.max(0,math.min(math.max(0,GuiRoot:GetWidth()-handle:GetWidth()),x+sx*22))
         y=math.max(0,math.min(math.max(0,GuiRoot:GetHeight()-handle:GetHeight()),y-sy*22))
         handle:ClearAnchors(); handle:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,x,y)
@@ -326,6 +328,12 @@ end
 local function bounds(key,control)
     local cx,cy=screenCenter(control)
     if key=="buffs" then return cx-250,cy-40,500,80,cx,cy end
+    if key=="synergy" then
+        -- A labelled move handle remains usable even without a ready synergy.
+        local w,h=screenSize(control)
+        w,h=math.max(360,w+16),math.max(80,h+16)
+        return cx-w/2,cy-h/2,w,h,cx,cy
+    end
     local left,top=control:GetLeft(),control:GetTop()
     local w,h=screenSize(control)
     local right,bottom=left+w,top+h
@@ -360,28 +368,51 @@ function O.StartNativeMove(key)
         O.StopNativeMove()
         if same then return end
     end
+    if key=="skillgroup" or key=="skills" or key=="ultimate" or key=="quickslot" then
+        O.UpdateNativePositions()
+        -- Freeze all three groups at their current screen centers before
+        -- detaching linked native anchors or moving any one of them.
+        for _,other in ipairs({"skills","ultimate","quickslot"}) do
+            local control=target(other)
+            if control then
+                local cx,cy=screenCenter(control)
+                positions()[other]={x=cx/GuiRoot:GetWidth(),y=(cy-O.NativeHudOffset(other))/GuiRoot:GetHeight()}
+                anchor(control,cx,cy,other)
+            end
+        end
+    end
     local control=target(key)
     if not control then d("Obsidian HUD: "..titles[key].." ist noch nicht verfuegbar."); return end
     local x,y,w,h,cx,cy=bounds(key,control)
+    local members
+    if key=="skillgroup" then
+        local left,top,right,bottom
+        members={}
+        for _,other in ipairs({"skills","ultimate","quickslot"}) do
+            local part=target(other)
+            if part then
+                local px,py,pw,ph=bounds(other,part)
+                left=left and math.min(left,px) or px
+                top=top and math.min(top,py) or py
+                right=right and math.max(right,px+pw) or px+pw
+                bottom=bottom and math.max(bottom,py+ph) or py+ph
+                local base=positions()[other]
+                members[other]={x=base.x,y=base.y}
+            end
+        end
+        x,y,w,h=left,top,right-left,bottom-top
+    end
     x=math.max(0,math.min(math.max(0,GuiRoot:GetWidth()-w),x))
     y=math.max(0,math.min(math.max(0,GuiRoot:GetHeight()-h),y))
     local handle=O.nativeMoveHandle
     handle:ClearAnchors(); handle:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,x,y)
     handle:SetDimensions(w,h)
-    handle:SetMouseEnabled(true); handle:SetHidden(false)
+    handle:SetMouseEnabled(false); handle:SetHidden(false)
     O.nativeMoveLabel:SetText(titles[key])
-    O.moveHint:SetText("Move UI: "..titles[key].."\nMit Maus oder rechtem Stick verschieben. Speichert nach 3 Sekunden ohne Bewegung.")
+    O.moveHint:SetText("Move UI: "..titles[key].."\nMit dem rechten Stick verschieben. Speichert nach 3 Sekunden ohne Bewegung.")
     move={key=key,profile=mode(),control=control,dx=cx-x,dy=cy-y,x=x,y=y,at=GetFrameTimeSeconds(),
+        members=members,originX=x,originY=y,
         ui=SCENE_MANAGER and SCENE_MANAGER:IsInUIMode(),camera=IsGameCameraUIModeActive and IsGameCameraUIModeActive()}
-    -- ESO normally anchors the ultimate to the fifth skill. Freeze that
-    -- dependent control before moving the five-skill group independently.
-    if key=="skills" and not positions().ultimate then
-        local ultimate=target("ultimate")
-        if ultimate and ultimate~=control then
-            local ux,uy=screenCenter(ultimate)
-            move.keepUltimate={control=ultimate,x=ux,y=uy}
-        end
-    end
     O.nativeMoving=true
     if SCENE_MANAGER then SCENE_MANAGER:SetInUIMode(true) end
     if SetGameCameraUIMode then SetGameCameraUIMode(true) end
@@ -391,6 +422,18 @@ end
 function O.ResetNativePositions()
     O.StopNativeMove()
     O.vars.hudPositions={}
+    -- Scaling can retain a snapshot of the moved positions independently
+    -- from saved variables. Do not immediately reapply it after the reset.
+    O.skillScalePositions=nil
+    O.ReleaseNativePositions()
+    O.Tick()
+end
+function O.ResetSkillPositions()
+    O.StopNativeMove()
+    for _,profile in pairs(O.vars.hudPositions or {}) do
+        for _,key in ipairs({"skills","ultimate","quickslot"}) do profile[key]=nil end
+    end
+    O.skillScalePositions=nil
     O.ReleaseNativePositions()
     O.Tick()
 end
@@ -398,7 +441,7 @@ function O.CreateNativeMoveUI()
     local handle=WINDOW_MANAGER:CreateTopLevelWindow("ObsidianHUDNativeMoveHandle")
     O.nativeMoveHandle=handle
     handle:SetDrawTier(DT_HIGH); handle:SetDrawLayer(DL_OVERLAY); handle:SetDrawLevel(15)
-    handle:SetMovable(true); handle:SetClampedToScreen(true)
+    handle:SetMovable(false); handle:SetClampedToScreen(true)
     handle:SetMouseEnabled(false); handle:SetHidden(true)
     local border=WINDOW_MANAGER:CreateControl(nil,handle,CT_BACKDROP)
     border:SetAnchorFill(handle)
@@ -408,17 +451,4 @@ function O.CreateNativeMoveUI()
     border:SetMouseEnabled(false)
     O.nativeMoveLabel=O.Label(handle,15)
     O.nativeMoveLabel:SetAnchor(CENTER,handle,CENTER,0,0)
-    handle:SetHandler("OnMouseDown",function(c,button)
-        if move and button==MOUSE_BUTTON_INDEX_LEFT then move.dragging=true; move.at=GetFrameTimeSeconds(); c:StartMoving() end
-    end)
-    handle:SetHandler("OnMouseUp",function(c,button)
-        if move and move.dragging and button==MOUSE_BUTTON_INDEX_LEFT then
-            c:StopMovingOrResizing(); saveMove(); move.dragging=false; move.at=GetFrameTimeSeconds()
-        end
-    end)
-    handle:SetHandler("OnMoveStop",function()
-        if move and move.dragging then
-            saveMove(); move.dragging=false; move.at=GetFrameTimeSeconds()
-        end
-    end)
 end

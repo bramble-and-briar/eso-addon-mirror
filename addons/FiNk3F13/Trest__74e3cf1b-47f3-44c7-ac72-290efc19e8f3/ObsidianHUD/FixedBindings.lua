@@ -30,21 +30,19 @@ end
 function O.UpdateFixedSkillBindings(skin)
     if not O.FixedSkillRows() then O.ReleaseFixedBindings(); return end
     local button=skin.button
-    local down=GetActiveHotbarCategory()==HOTBAR_CATEGORY_PRIMARY and O.SkillRowGap(button.slot) or 0
+    local displayed=O.SkillDisplayBar(button)
+    local down=displayed==HOTBAR_CATEGORY_PRIMARY and O.SkillRowGap(button.slot) or 0
     if skin.activeTextSlot==8 then
         if O.DualUltimateView() then
-            down=GetActiveHotbarCategory()==HOTBAR_CATEGORY_PRIMARY and O.UltimateRowSeparation() or 0
+            down=displayed==HOTBAR_CATEGORY_PRIMARY and O.UltimateRowSeparation() or 0
         else
-            local first=ZO_ActionBar_GetButton(3)
-            if first then
-                local _,firstHeight=O.SkillSlotSize(first.slot)
-                local _,height=O.SkillSlotSize(button.slot)
-                down=O.SkillRowGap(first.slot)/2+(firstHeight-height)/2
-            end
+            -- A single ultimate is centred between rows. Its binding belongs
+            -- just below its own outer frame, not below the lower skill row.
+            down=8
         end
     end
     -- Keep native labels, glyphs, visibility and actual keybindings. Only their
-    -- anchors move to the bottom row, independent of the active weapon pair.
+    -- anchors follow the lower row or the single ultimate's own frame.
     position(button.buttonText,{TOP,button.slot,BOTTOM,0,down+2})
     position(button.leftKey,{TOPRIGHT,button.slot,BOTTOM,-2,down+2})
     position(button.rightKey,{TOPLEFT,button.slot,BOTTOM,2,down+2})

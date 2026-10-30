@@ -446,16 +446,6 @@ local function FramesFadeCheck(pct)
 	end
 end
 
-local function MyUICurvedExact(value)
-    return ZO_CommaDelimitNumber(zo_round(tonumber(value) or 0))
-end
-local function MyUICurvedHealth(current, shield, absorb)
-    local text = MyUICurvedExact(current)
-    if (tonumber(absorb) or 0) > 0 then return text .. " - " .. MyUICurvedExact(math.abs(absorb)) end
-    if (tonumber(shield) or 0) > 0 then return text .. " + " .. MyUICurvedExact(math.abs(shield)) end
-    return text
-end
-
 function BUI.Curved.Attribute(unitTag, attribute, powerValue, powerMax, pct, shieldValue, traumaValue)
 	local frame=Attributes[unitTag] and Attributes[unitTag][attribute] and Attributes[unitTag][attribute].frame
 	if not frame then return end
@@ -479,9 +469,12 @@ function BUI.Curved.Attribute(unitTag, attribute, powerValue, powerMax, pct, shi
 
 	ChangeAttribute(frame,pct)
 	if frame.cur then
-        local value = attribute == "health" and MyUICurvedHealth(powerValue, shieldValue, traumaValue) or MyUICurvedExact(powerValue)
-        frame.cur:SetText(value)
-    end
+		local preText=((shieldValue>0 or traumaValue>0) and " [" or "")
+		local postText=((shieldValue>0 or traumaValue>0) and "]" or "")
+		local shield=((attribute=="health" and shieldValue and shieldValue>0) and BUI.DisplayNumber(shieldValue/1000).."k" or "")
+		local trauma=((attribute=="health" and traumaValue and traumaValue>0) and "-"..BUI.DisplayNumber(traumaValue/1000).."k" or "")
+		frame.cur:SetText(BUI.DisplayNumber(powerValue/1000, 1).."k"..preText..shield..trauma..postText)
+	end
 	if frame.pct then frame.pct:SetText(pct*100 .."%") end
 end
 
@@ -489,8 +482,12 @@ function BUI.Curved.Shield(unitTag,value,pct,health,traumaValue)
 	local frame=Attributes[unitTag] and Attributes[unitTag].health and Attributes[unitTag].health.frame	
 	if frame then
 		if frame.cur then
-            frame.cur:SetText(MyUICurvedHealth(health, value, traumaValue))
-        end
+			local preText=((value>0 or traumaValue>0) and " [" or "")
+			local postText=((value>0 or traumaValue>0) and "]" or "")
+			local shield=(value>0 and BUI.DisplayNumber(value/1000).."k" or "")
+			local trauma=(traumaValue>0 and "-"..BUI.DisplayNumber(traumaValue/1000).."k" or "")
+			frame.cur:SetText(BUI.DisplayNumber(health/1000, 1).."k"..preText..shield..trauma..postText)
+		end
 		ChangeAttribute(frame,pct,3)
 	end
 end
@@ -499,8 +496,12 @@ function BUI.Curved.Trauma(unitTag,value,pct,health,shieldValue)
 	local frame=Attributes[unitTag] and Attributes[unitTag].health and Attributes[unitTag].health.frame
 	if frame then
 		if frame.cur then
-            frame.cur:SetText(MyUICurvedHealth(health, shieldValue, value))
-        end
+			local preText=((value>0 or shieldValue>0) and " [" or "")
+			local postText=((value>0 or shieldValue>0) and "]" or "")
+			local shield=(shieldValue>0 and BUI.DisplayNumber(shieldValue/1000).."k" or "")
+			local trauma=(value>0 and "-"..BUI.DisplayNumber(value/1000).."k" or "")
+			frame.cur:SetText(BUI.DisplayNumber(health/1000, 1).."k"..preText..shield..trauma..postText)
+		end
 		ChangeAttribute(frame,pct,4)
 	end
 end

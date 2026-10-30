@@ -76,7 +76,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Interrupt Narc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/Interrupt-Narc__fe232f99-8f31-4163-906d-48182e80a59d) | brossin13 | Console | — |
 | [Inventory Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zsban/Inventory-Assistant__2015) | zsban | PC / Mac | 1.21.261002-beta |
 | [Inventory Bank Sort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rlinosaur/Inventory-Bank-Sort__3344) | rlinosaur | PC / Mac | 1.2 |
-| [Inventory Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Inventory-Companion__4997) | tim-p | PC / Mac | 1.1.0 |
+| [Inventory Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Inventory-Companion__4997) | tim-p | PC / Mac | 1.4.1 |
 | [Inventory Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Panicida/Inventory-Extensions__2801) | Panicida | PC / Mac | 1.0.0 |
 | [Inventory Grid View](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DunkleMaterie/Inventory-Grid-View__2227) | DunkleMaterie | PC / Mac | 2.0.9.2c |
 | [Inventory Grid View Skin: Abyss](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vixion/Inventory-Grid-View-Skin-Abyss__900) | vixion | PC / Mac | 1 |

@@ -214,7 +214,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Priority Bunny](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jokergrrrrl/Priority-Bunny__fa4ee6fb-c601-4163-998f-801078e1eac0) | Jokergrrrrl | Console | — |
 | [Priority Mail](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectura/Priority-Mail__2516) | Architectura | PC / Mac | 6 |
 | [Priority Recast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Priority-Recast__4655) | Amerlite | PC / Mac | 1.4 |
-| [Prismatic Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Prismatic-Emotes__5004) | aausten | PC / Mac | 1.0.0 |
+| [Prismatic Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Prismatic-Emotes__5004) | aausten | PC / Mac | 1.0.2 |
 | [Prismatic Warning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pretz333/Prismatic-Warning__2985) | Pretz333 | PC / Mac | 4.5.4 |
 | [ProblemSolved](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aeric_ESO/ProblemSolved__4885) | Aeric_ESO | PC / Mac | 1.0.1 |
 | [Proc Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Proc-Reminder__541ab871-9386-4990-a3c7-32563ded9243) | Vixen_Hunny | Console | — |

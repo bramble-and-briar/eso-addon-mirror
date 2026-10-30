@@ -178,7 +178,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dungeon Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/Dungeon-Helper__1956) | tomkolp | PC / Mac | 1.0.3 |
 | [Dungeon Quest Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Dungeon-Quest-Reminder__4346) | atharti | PC / Mac | 1.7 |
 | [Dungeon Queue 4 Stickerbook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Dungeon-Queue-4-Stickerbook__3254) | tim99 | PC / Mac | 1.2.8 |
-| [Dungeon Scores](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thepandalore/Dungeon-Scores__5005) | thepandalore | PC / Mac | 0.5.36 |
+| [Dungeon Scores](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thepandalore/Dungeon-Scores__5005) | thepandalore | PC / Mac | 0.5.37 |
 | [Dungeon Set Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/Dungeon-Set-Tracker__4942) | DesertMorfen | PC / Mac | 1.1.0 |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Dungeon-Tracker__75746296-2f24-4d95-8fb5-1954d00fc1d6) | Eldibabalo | Console | — |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Dungeon-Tracker__1552) | Phinix | PC / Mac | 1.48 |

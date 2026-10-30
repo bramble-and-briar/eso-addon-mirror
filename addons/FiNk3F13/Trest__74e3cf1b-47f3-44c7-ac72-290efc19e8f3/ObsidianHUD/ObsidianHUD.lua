@@ -76,33 +76,31 @@ local function initialize(_,name)
     EVENT_MANAGER:RegisterForEvent(O.name,EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,function() O.ReleaseFixedBindings(); O.StopNativeMove(); O.Refresh() end)
     EVENT_MANAGER:RegisterForEvent(O.name,EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED,hotbarUpdated)
     EVENT_MANAGER:RegisterForEvent(O.name.."Stacks",EVENT_EFFECT_CHANGED,O.OnSkillStackEffectChanged)
-    EVENT_MANAGER:AddFilterForEvent(O.name.."Stacks",EVENT_EFFECT_CHANGED,REGISTER_FILTER_UNIT_TAG,"player")
     if EVENT_ACTION_SLOT_ABILITY_USED then
         EVENT_MANAGER:RegisterForEvent(O.name.."TimerCasts",EVENT_ACTION_SLOT_ABILITY_USED,O.OnTimerAbilityUsed)
     end
     if EVENT_ACTION_SLOT_EFFECT_UPDATE then
         EVENT_MANAGER:RegisterForEvent(O.name.."TimerSlots",EVENT_ACTION_SLOT_EFFECT_UPDATE,O.OnTimerSlotEffectUpdated)
+        EVENT_MANAGER:RegisterForEvent(O.name.."StackSlots",EVENT_ACTION_SLOT_EFFECT_UPDATE,O.OnSkillStackSlotUpdated)
     end
     EVENT_MANAGER:RegisterForEvent(O.name.."TimerEffects",EVENT_EFFECT_CHANGED,O.OnTimerEffectChanged)
     EVENT_MANAGER:AddFilterForEvent(O.name.."TimerEffects",EVENT_EFFECT_CHANGED,REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
+    if COMBAT_UNIT_TYPE_PLAYER_PET then
+        EVENT_MANAGER:RegisterForEvent(O.name.."TimerPetEffects",EVENT_EFFECT_CHANGED,O.OnTimerEffectChanged)
+        EVENT_MANAGER:AddFilterForEvent(O.name.."TimerPetEffects",EVENT_EFFECT_CHANGED,REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER_PET)
+    end
     if EVENT_COMBAT_EVENT then
-        for abilityId in pairs(O.timerExplosions) do
+        local ids={}
+        for id in pairs(O.timerExplosions) do ids[id]=true end
+        for id in pairs(O.timerCombatRules or {}) do ids[id]=true end
+        for _,id in ipairs(O.skillReflectIds or {}) do ids[id]=true end
+        for abilityId in pairs(ids) do
             local key=O.name.."TimerImpact"..abilityId
             EVENT_MANAGER:RegisterForEvent(key,EVENT_COMBAT_EVENT,O.OnTimerCombatEvent)
             EVENT_MANAGER:AddFilterForEvent(key,EVENT_COMBAT_EVENT,REGISTER_FILTER_ABILITY_ID,abilityId)
         end
     end
     EVENT_MANAGER:RegisterForUpdate(O.name.."Refresh",250,O.Tick)
-    SLASH_COMMANDS["/obsidian"]=function(input)
-        input=string.lower(zo_strtrim(input or ""))
-        if input=="status" then O.PrintMaterialStatus(); return
-        elseif input=="move" then O.StartMove(); return
-        elseif input=="move skills" then O.StartNativeMove("skills"); return
-        elseif input=="move ult" then O.StartNativeMove("ultimate"); return
-        elseif input=="move pots" then O.StartNativeMove("quickslot"); return
-        elseif input=="move buffs" then O.StartNativeMove("buffs"); return
-        end
-        d("Obsidian HUD: /obsidian status | /obsidian move | /obsidian move skills / ult / pots / buffs")
-    end
+
 end
 EVENT_MANAGER:RegisterForEvent(O.name,EVENT_ADD_ON_LOADED,initialize)

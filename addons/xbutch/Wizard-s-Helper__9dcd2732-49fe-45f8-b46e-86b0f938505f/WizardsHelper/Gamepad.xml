@@ -1,0 +1,45 @@
+<GuiXml>
+    <Controls>
+        <Control name="WizardsHelperGamepadRow" virtual="true">
+            <Dimensions x="920" y="58" />
+            <Controls>
+                <Backdrop name="$(parent)Highlight" inherits="ZO_DefaultBackdrop" alpha="0.5" hidden="true">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" font="ZoFontGamepad27" verticalAlignment="TEXT_ALIGN_CENTER">
+                    <Anchor point="TOPLEFT" offsetX="16" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" />
+                </Label>
+            </Controls>
+        </Control>
+        <TopLevelControl name="WizardsHelperGamepad" hidden="true">
+            <Dimensions x="1000" y="800" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" alpha="0.97">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontGamepadBold34" text="Wizard's Helper (Beta)">
+                    <Dimensions x="920" y="48" />
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="24" />
+                </Label>
+                <Label name="$(parent)Path" font="ZoFontGamepad27">
+                    <Dimensions x="920" y="42" />
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="82" />
+                </Label>
+                <Control name="$(parent)List" inherits="ZO_VerticalParametricScrollListTemplate">
+                    <Dimensions x="920" y="450" />
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="142" />
+                </Control>
+                <Label name="$(parent)Description" font="ZoFontGamepad27">
+                    <Dimensions x="920" y="76" />
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="604" />
+                </Label>
+                <Label name="$(parent)Status" font="ZoFontGamepad22">
+                    <Dimensions x="920" y="80" />
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="692" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

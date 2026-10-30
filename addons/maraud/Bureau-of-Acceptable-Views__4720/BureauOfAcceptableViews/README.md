@@ -62,6 +62,9 @@ health, sprint, update, or profile observers at all.
 - **Instant** suppresses native smoothing and lands every BAV change in one frame.
 - **Responsive** uses a short 90 ms fast-settling transition.
 - **Smooth** uses a longer 300 ms cinematic ease-in/out transition.
+- If ESO rejects restoration of native smoothing, BAV retries up to three times
+  at 100 ms intervals. The original value is retained for later recovery in the
+  current session if all retries fail.
 - Emergency reset, load-screen recovery, siege safety, and live offset nudging
   remain immediate regardless of the selected profile.
 

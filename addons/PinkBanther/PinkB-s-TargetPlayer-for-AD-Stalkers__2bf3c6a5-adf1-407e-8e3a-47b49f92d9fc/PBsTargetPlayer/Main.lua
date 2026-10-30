@@ -47,6 +47,18 @@
 --   * A marker someone else put on the unit is left alone.
 --
 -- ---------------------------------------------------------------------------------------
+-- ONLY IN CYRODIIL
+-- ---------------------------------------------------------------------------------------
+--
+-- Markers are set only while the player is in Cyrodiil (switchable). Elsewhere -- in a trial or a
+-- dungeon, say, where the group's leader has markers of his own -- the add-on sets nothing and clears
+-- nothing; everything that does not write a marker (sightings, the alert, /pbtarget where) goes on.
+-- "In Cyrodiil" is IsInCyrodiil(), which is false in the Imperial City (a zone of its own), and a
+-- Battleground is ruled out by its own test, IsActiveWorldBattleground(), because the documentation
+-- does not say what IsInCyrodiil returns in one. It is asked again at the moment of each request, not
+-- when the reticle lands: the player can zone out in the quarter second between the two.
+--
+-- ---------------------------------------------------------------------------------------
 -- NOT MARKING THE WRONG PERSON
 -- ---------------------------------------------------------------------------------------
 --
@@ -237,6 +249,8 @@ local DEFAULTS = {
 	cyrodiil = true,
 	-- Take the add-on's marker off a bystander it ended up on.
 	cleanup = true,
+	-- Set markers only in Cyrodiil. Off: anywhere.
+	cyrodiilOnly = true,
 	banner = true,
 	players = {},
 }
@@ -398,6 +412,7 @@ local diag = {
 	chat = 0, sightings = 0,
 	aborted = 0, deadSkips = 0, deaths = 0, stray = 0, cleared = 0, clearFailed = false,
 	groupHits = 0, repairs = 0, lastGroupHit = "none",
+	elsewhere = 0,
 }
 addon.diag = diag
 
@@ -451,6 +466,23 @@ local function ReticleIsDead()
 	return IsUnitDead and IsUnitDead("reticleover") and true or false
 end
 
+-- In Cyrodiil itself: not the Imperial City (IsInCyrodiil is false there), not a Battleground. Fails
+-- closed: if the client cannot say, the answer is no.
+local function InCyrodiil()
+	if not IsInCyrodiil then
+		return false
+	end
+	if IsActiveWorldBattleground and IsActiveWorldBattleground() then
+		return false
+	end
+	return IsInCyrodiil() and true or false
+end
+
+-- May the add-on write a marker here?
+local function MarkingAllowedHere()
+	return not sv.cyrodiilOnly or InCyrodiil()
+end
+
 -- The group member standing nearest to the reticle target, and how far (centimetres). Group
 -- members have unit tags, so their positions can be read; nobody else's can. Nil when the player is
 -- not in a group or the positions cannot be read.
@@ -484,6 +516,12 @@ local function NearestGroupmate()
 end
 
 local function MarkInWorld(slot, repairs)
+	-- First, before the game is asked anything: outside Cyrodiil nothing is set.
+	if not MarkingAllowedHere() then
+		diag.elsewhere = diag.elsewhere + 1
+		diag.last = "not in Cyrodiil"
+		return
+	end
 	if not EngineMarkUsable() then
 		diag.last = "not allowed: " .. engine.why
 		return
@@ -1208,7 +1246,7 @@ end
 -- The reticle is on someone. If they are not ours to mark -- not registered, not in the group --
 -- and carry the kind of marker this add-on sets, the add-on put it there by mistake: take it off.
 local function CheckStray(reason)
-	if not sv.cleanup or cleanupBroken then
+	if not sv.cleanup or cleanupBroken or not MarkingAllowedHere() then
 		return
 	end
 	if not DoesUnitExist("reticleover") or not IsUnitPlayer("reticleover") then
@@ -1320,7 +1358,7 @@ local function OnTargetMarkerUpdate()
 	if not sv or not sv.enabled or not lastAssign then
 		return
 	end
-	if GetGameTimeMilliseconds() - lastAssign.at >= STRAY_CHECK_WINDOW_MS then
+	if GetGameTimeMilliseconds() - lastAssign.at >= STRAY_CHECK_WINDOW_MS or not MarkingAllowedHere() then
 		return
 	end
 	CheckStray("just after setting a marker")
@@ -1352,7 +1390,12 @@ local function OnReticleTargetChanged()
 	local slot = hasKeys and Identify("reticleover") or nil
 	if slot then
 		Sighted(slot, "reticle", HereName())
-		SettleThenMark(slot)
+		if MarkingAllowedHere() then
+			SettleThenMark(slot)
+		else
+			diag.elsewhere = diag.elsewhere + 1
+			diag.last = "not in Cyrodiil"
+		end
 	else
 		CancelPending()
 		CheckStray("reticle")
@@ -1672,6 +1715,14 @@ local function PrintStatus()
 	)
 
 	Say(string.format(GetString(SI_PBTP_STATUS_SIGHT), diag.chat, diag.sightings))
+	Say(
+		string.format(
+			GetString(SI_PBTP_STATUS_ZONE),
+			OnOff(sv.cyrodiilOnly),
+			GetString(InCyrodiil() and SI_PBTP_STATUS_HERE_CYRO or SI_PBTP_STATUS_HERE_ELSE),
+			diag.elsewhere
+		)
+	)
 	Say(string.format(GetString(SI_PBTP_STATUS_GROUP), diag.groupHits, diag.repairs, diag.lastGroupHit))
 	Say(
 		string.format(
@@ -1809,6 +1860,7 @@ end
 local SWITCHES = {
 	on = { "enabled", SI_PBTP_SWITCH_ENABLED },
 	cleanup = { "cleanup", SI_PBTP_SWITCH_CLEANUP },
+	cyroonly = { "cyrodiilOnly", SI_PBTP_SWITCH_CYRO_ONLY },
 	alert = { "alert", SI_PBTP_SWITCH_ALERT },
 	cyrodiil = { "cyrodiil", SI_PBTP_SWITCH_CYRODIIL },
 	sound = { "sound", SI_PBTP_SWITCH_SOUND },

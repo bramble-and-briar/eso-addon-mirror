@@ -89,6 +89,20 @@
         定期直接スキャンのループの中から行う形に合わせた
         (収集ロジック自体・ログ内容は変更していない)。
 
+    v2.0.4で追加: 敵バフ/デバフ検知の個別ON/OFFと、消えた効果の「残像」表示。
+      ・(v2.0.7で個別検知ON/OFF=sv.enemyBuffDetect/enemyDebuffDetectは撤去。
+        代わりにパネル表示OFFの種類はスキャンしない: IsKindScanNeeded参照。)
+      ・「すぐ消える」原因は、①スキャンごとにtargetEffectsを全消去して作り直す、
+        ②endTime超過・API消失で即削除される、③保持中(holdDuration)のキャッシュが
+        残り時間マイナスのまま描画される、の3点だった。①②に対し、直前まで
+        有効だった効果がスキャンから消えた時に、sv.lingerDuration秒だけ
+        「残像(ghost)」として灰色・「終了」「消失」表記で残す。残像は残り時間を
+        表示せず、有効な効果より必ず下に並べるため、現在有効な効果とは
+        誤認されない。③は残り時間が尽きた古いキャッシュを残像扱いにして解消。
+      ・残像はターゲットが同一プレイヤーの間だけ作る(別ターゲットへ切替・
+        設定変更による再判定では作らない)。タイマーは追加せず、既存の250ms
+        再スキャンとターゲット変更時スキャンの中だけで処理する。
+
     ターゲット解除後は、直前の情報を sv.holdDuration 秒だけ保持してから
     非表示にする(PvPの激しい動きでカーソルが一瞬外れても消えないように)。
     新しい敵をターゲットしたら保持中でも即座に新しい情報へ切り替える。
@@ -357,8 +371,93 @@ end
 -- reticleoverのユニットとして存在しない(DoesUnitExistがfalse)か、
 -- 存在してもプレイヤーではないため、いずれにせよここで弾かれる。
 --------------------------------------------------------------------------
-local function IsValidEnemyTarget()
-    return DoesUnitExist("reticleover") and IsUnitPlayer("reticleover")
+--
+-- v2.0.6: 「敵プレイヤーのみ」をアドオン全体の固定仕様にした。判定はこの1か所
+-- (GetReticleVerdict)に集約し、UI①②(このファイル)と UI④(Pen.lua) の両方が
+-- PTI.Target.IsEnemyPlayerTarget() を使う。設定でOFFにすることはできない。
+--
+-- 判定手順(どれか1つでも確認できなければ「敵ではない」=表示しない側に倒す):
+--   1. reticleoverが存在し、IsUnitPlayer==true(NPC・モンスター・オブジェクトを除外)
+--   2. バトルグラウンド内(IsActiveWorldBattleground)
+--        → GetUnitBattlegroundAlliance を自分と相手で比較し、両方が有効値で
+--          かつ「異なる」ときだけ敵。BGではゲームがランダムに割り当てる専用
+--          チームが敵味方の実体で、GetUnitReaction/AreUnitsCurrentlyAllied が
+--          見る元のアライアンス(AD/EP/DC)とは別物のため(過去の実機ログで確認)。
+--   3. それ以外(シロディール・帝都・決闘など)
+--        → GetUnitReaction("reticleover") == UNIT_REACTION_HOSTILE のときだけ敵。
+--          PvEゾーンの他プレイヤーはPLAYER_ALLY(味方)になるので表示されない。
+-- 注意: 決闘相手がHOSTILEを返すかは未確認(返さなければ表示されない)。
+--------------------------------------------------------------------------
+-- v2.0.7(任意変更): 決闘中の相手。GetDuelInfo()はZOSのUpdate 12 APIパッチノート
+-- (API 100017)に「GetDuelInfo() - DUEL_STATE, partnerCharacterName,
+-- partnerDisplayName」と記載のある関数で、DUEL_STATE_DUELING定数も同ノートに
+-- 記載がある。決闘はPvEの屋外ゾーンのみで行われる(BG/Cyrodiilでは起きない)ため、
+-- BG判定の後ろ・非BG側でだけ使う。reticleoverの表示名(@名)と相手の表示名が
+-- 一致した時だけ「決闘相手=敵」とみなし、API無し・取得失敗・不一致はすべて
+-- 「敵ではない」(従来どおり非表示)側に倒す。PS5実機では未検証。
+local function IsDuelOpponentTarget()
+    if not GetDuelInfo or DUEL_STATE_DUELING == nil then return false end
+    local ok, state, _, partnerDisplayName = pcall(GetDuelInfo)
+    if not ok or state ~= DUEL_STATE_DUELING then return false end
+    if type(partnerDisplayName) ~= "string" or partnerDisplayName == "" then return false end
+    local name = GetUnitDisplayName("reticleover")
+    return type(name) == "string" and name ~= "" and name == partnerDisplayName
+end
+
+local function GetReticleVerdict()
+    if not DoesUnitExist("reticleover") then return false, "対象なし" end
+    if not IsUnitPlayer("reticleover") then return false, "プレイヤーではない(NPC等)" end
+
+    if IsActiveWorldBattleground and IsActiveWorldBattleground() then
+        if not GetUnitBattlegroundAlliance then return false, "BG判定APIなし" end
+        local mine = GetUnitBattlegroundAlliance("player")
+        local theirs = GetUnitBattlegroundAlliance("reticleover")
+        local none = BATTLEGROUND_ALLIANCE_NONE or 0
+        if type(mine) ~= "number" or type(theirs) ~= "number" or mine == none or theirs == none then
+            return false, "BG: チーム不明"
+        end
+        if mine ~= theirs then return true, "BG: 別チーム(敵)" end
+        return false, "BG: 同じチーム(味方)"
+    end
+
+    if not GetUnitReaction or UNIT_REACTION_HOSTILE == nil then return false, "反応判定APIなし" end
+    if GetUnitReaction("reticleover") == UNIT_REACTION_HOSTILE then return true, "敵対(HOSTILE)" end
+    if IsDuelOpponentTarget() then return true, "決闘相手" end
+    return false, "敵対ではない(味方/中立)"
+end
+
+function PTI.Target.IsEnemyPlayerTarget()
+    return (GetReticleVerdict())
+end
+
+local IsValidEnemyTarget = PTI.Target.IsEnemyPlayerTarget
+
+-- /pti enemy : 現在のターゲットについて、判定に使う各値と最終判定を表示する(診断用)。
+function PTI.Target.PrintEnemyDiagnostics()
+    local function say(fmt, ...) d("|c55CCFF[PvPTargetInfo]|r " .. string.format(fmt, ...)) end
+    local function safe(fn, ...)
+        if not fn then return "API無し" end
+        local ok, v = pcall(fn, ...)
+        return ok and tostring(v) or "エラー"
+    end
+    if not DoesUnitExist("reticleover") then
+        say("対象なし。プレイヤーにカーソルを合わせて実行してください。")
+        return
+    end
+    say("IsUnitPlayer=%s / GetUnitReaction=%s (HOSTILE=%s) / AreUnitsCurrentlyAllied=%s",
+        safe(IsUnitPlayer, "reticleover"), safe(GetUnitReaction, "reticleover"),
+        tostring(UNIT_REACTION_HOSTILE), safe(AreUnitsCurrentlyAllied, "player", "reticleover"))
+    say("BG内=%s / BGチーム 自分=%s 相手=%s / 元アライアンス 自分=%s 相手=%s",
+        safe(IsActiveWorldBattleground), safe(GetUnitBattlegroundAlliance, "player"),
+        safe(GetUnitBattlegroundAlliance, "reticleover"), safe(GetUnitAlliance, "player"),
+        safe(GetUnitAlliance, "reticleover"))
+    local duelOk, duelState, _, duelPartner = false, nil, nil, nil
+    if GetDuelInfo then duelOk, duelState, _, duelPartner = pcall(GetDuelInfo) end
+    say("決闘: 状態=%s (DUELING=%s) / 相手の表示名=%s / reticleoverの表示名=%s",
+        duelOk and tostring(duelState) or "API無し/エラー", tostring(DUEL_STATE_DUELING),
+        tostring(duelPartner), safe(GetUnitDisplayName, "reticleover"))
+    local verdict, reason = GetReticleVerdict()
+    say("最終判定: %s (%s)", verdict and "敵プレイヤー=表示する" or "表示しない", reason)
 end
 
 --------------------------------------------------------------------------
@@ -368,7 +467,38 @@ end
 -- 「現在ターゲット中のプレイヤーが持つ、重要と判定された効果」だけを
 -- 保持する。キーがAbilityIdなので同じ効果が重複して入ることはない。
 --------------------------------------------------------------------------
-local targetEffects = {}
+local effectsA, effectsB = {}, {}
+local targetEffects = effectsA -- スキャンごとにA/Bを交互に使い、直前の内容(prev)を残像判定に使う
+
+-- v2.0.4: 直前まで有効だったが消えた効果の「残像」。ghostEffects[abilityId] = 効果エントリ
+-- (ghostUntil=残像の表示期限ゲーム時刻, ghostLabel="終了"/"消失")。
+local ghostEffects = {}
+local lastScanTargetKey = nil
+local GHOST_NATURAL_END_MARGIN = 0.5 -- endTimeまでこの秒数以内に消えた場合は自然終了とみなす
+local DEFAULT_LINGER_SECONDS = 2.0
+
+-- v2.0.7: 個別の検知ON/OFFは撤去した。敵と確認できたら一律に検知する。
+-- ここで決めるのは「検知するか」ではなく「そのパネルが表示対象のとき、無駄な
+-- スキャンをしない」ための条件だけ:
+--   ・アドオン全体がOFF、またはその種類のパネル(UI①=buffUI / UI②=debuffUI)が
+--     OFFのとき → その種類のスキャンはしない
+--   ・敵バフ/デバフの学習モード(debugLearnModeTarget)中は、候補収集のため
+--     パネルがOFFでもスキャンする
+-- Condition(Procs.lua)・PEN(Pen.lua)の処理には関係しない。
+local function IsKindScanNeeded(kind)
+    local sv = PTI.sv
+    if not sv.enabled then return false end
+    local ui = (kind == "debuff") and sv.debuffUI or sv.buffUI
+    if ui and ui.enabled ~= false then return true end
+    return sv.procs ~= nil and sv.procs.debugLearnModeTarget == true
+end
+
+local function GetLingerSeconds()
+    local v = PTI.sv.lingerDuration
+    if type(v) ~= "number" then return DEFAULT_LINGER_SECONDS end
+    if v < 0 then return 0 end
+    return v
+end
 
 -- 効果1件について、現在の設定(自動検知/手動登録)で重要と判定されるかどうかを返す。
 -- 重要でなくなった場合(手動登録が削除された等)も呼び出し元でtargetEffectsから
@@ -563,9 +693,30 @@ end
 -- 値の取得順序・重要判定(UpsertTargetEffect/EvaluateEffect)は無変更。
 local lastScanDebugSignature = nil
 
-local function RescanCurrentTargetEffects()
-    ZO_ClearTable(targetEffects)
+local function RescanCurrentTargetEffects(suppressGhosts)
+    local prev = targetEffects
+    local nextEffects = (prev == effectsA) and effectsB or effectsA
+    ZO_ClearTable(nextEffects)
+    targetEffects = nextEffects
+
+    -- v2.0.7: 表示対象の種類が1つも無い(パネルが両方OFF等)ときは、敵判定も
+    -- GetNumBuffs/GetUnitBuffInfoも呼ばずに終了する。
+    local buffOn = IsKindScanNeeded("buff")
+    local debuffOn = IsKindScanNeeded("debuff")
+    if not buffOn and not debuffOn then
+        ZO_ClearTable(ghostEffects)
+        lastScanTargetKey = nil
+        lastScanDebugSignature = "none"
+        return
+    end
+
     if not IsValidEnemyTarget() then
+        -- v2.0.6: 味方・NPC等「敵ではないユニット」にカーソルが移ったときは、直前の
+        -- 敵の残像も即座に破棄する(カーソルが何も指していない場合は従来通り保持)。
+        if DoesUnitExist("reticleover") then
+            ZO_ClearTable(ghostEffects)
+            lastScanTargetKey = nil
+        end
         if lastScanDebugSignature ~= "none" then
             lastScanDebugSignature = "none"
             DebugTrace("①対象取得: reticleoverが無効(NPC/オブジェクト/対象なし) → スキャンしない")
@@ -573,34 +724,74 @@ local function RescanCurrentTargetEffects()
         return
     end
 
-    local targetLabel = GetUnitName("reticleover") or "?"
-    local numBuffs = GetNumBuffs("reticleover")
+    -- 同一プレイヤーを見続けている間だけ残像を作る(別ターゲットへ切り替わったら破棄)。
+    local targetKey = GetUnitDisplayName("reticleover")
+    if not targetKey or targetKey == "" then targetKey = GetUnitName("reticleover") or "?" end
+    local sameTarget = (targetKey == lastScanTargetKey)
+    if not sameTarget then
+        ZO_ClearTable(ghostEffects)
+        lastScanTargetKey = targetKey
+    end
 
-    for i = 1, numBuffs do
-        local buffName, startTime, endTime, buffSlot, stackCount, iconFile,
-              buffType, effectType, abilityType, statusEffectType, abilityId,
-              canClickOff = GetUnitBuffInfo("reticleover", i)
+    local numBuffs = 0
+    if buffOn or debuffOn then
+        numBuffs = GetNumBuffs("reticleover")
+        for i = 1, numBuffs do
+            local buffName, startTime, endTime, buffSlot, stackCount, iconFile,
+                  buffType, effectType, abilityType, statusEffectType, abilityId,
+                  canClickOff = GetUnitBuffInfo("reticleover", i)
 
-        if type(abilityId) == "number" and buffName and buffName ~= "" then
-            local kind = (effectType == BUFF_EFFECT_TYPE_DEBUFF) and "debuff" or "buff"
-            UpsertTargetEffect(kind, abilityId, buffName, statusEffectType, startTime, endTime, stackCount)
-            MaybeLearnFromEffect(kind, abilityId, buffName, statusEffectType, startTime, endTime)
+            if type(abilityId) == "number" and buffName and buffName ~= "" then
+                local kind = (effectType == BUFF_EFFECT_TYPE_DEBUFF) and "debuff" or "buff"
+                if (kind == "debuff" and debuffOn) or (kind == "buff" and buffOn) then
+                    UpsertTargetEffect(kind, abilityId, buffName, statusEffectType, startTime, endTime, stackCount)
+                    MaybeLearnFromEffect(kind, abilityId, buffName, statusEffectType, startTime, endTime)
+                end
+            end
         end
     end
 
+    -- 残像の更新。再び有効になった効果の残像は消し、直前まで有効だったのに
+    -- 今回のスキャンから消えた効果だけを新たに残像にする。
+    local now = GetGameTimeSeconds()
+    for abilityId in pairs(targetEffects) do
+        ghostEffects[abilityId] = nil
+    end
+    local linger = GetLingerSeconds()
+    if sameTarget and not suppressGhosts and linger > 0 then
+        for abilityId, e in pairs(prev) do
+            if targetEffects[abilityId] == nil and ghostEffects[abilityId] == nil
+                and ((e.kind == "debuff" and debuffOn) or (e.kind ~= "debuff" and buffOn)) then
+                e.ghostUntil = now + linger
+                -- 終了時刻の手前で消えた(解除・上書き・取得ずれ等)ものは「消失」、
+                -- 時間切れで消えたものは「終了」。
+                if e.endTime and (e.endTime - now) > GHOST_NATURAL_END_MARGIN then
+                    e.ghostLabel = "消失"
+                else
+                    e.ghostLabel = "終了"
+                end
+                ghostEffects[abilityId] = e
+            end
+        end
+    end
+    for abilityId, e in pairs(ghostEffects) do
+        if now > e.ghostUntil then ghostEffects[abilityId] = nil end
+    end
+
     -- 内容が変わった時だけログを出す(250msごとに毎回出すとチャットが埋まるため)。
-    local sig = string.format("%s|%d|%d", targetLabel, numBuffs, CountTable(targetEffects))
+    local sig = string.format("%s|%d|%d|%d", targetKey, numBuffs, CountTable(targetEffects), CountTable(ghostEffects))
     if sig ~= lastScanDebugSignature then
         lastScanDebugSignature = sig
-        DebugTrace("①対象取得: %s をプレイヤーとして確認 → スキャン完了(全%d件の効果中、重要%d件を表示データに反映)",
-            targetLabel, numBuffs, CountTable(targetEffects))
+        DebugTrace("①対象取得: %s をプレイヤーとして確認 → スキャン完了(全%d件の効果中、重要%d件を表示データに反映、残像%d件)",
+            targetKey, numBuffs, CountTable(targetEffects), CountTable(ghostEffects))
     end
 end
 
 -- targetEffectsから、UI描画用のbuff配列/debuff配列を組み立てる。
 local function BuildEntryArrays()
     local buffEntries, debuffEntries = {}, {}
-    for abilityId, e in pairs(targetEffects) do
+    local now = GetGameTimeSeconds()
+    local function AddEntry(abilityId, e)
         local entry = {
             abilityId = abilityId,
             name = e.name,
@@ -608,11 +799,21 @@ local function BuildEntryArrays()
             endTime = e.endTime,
             duration = e.duration,
             categoryRank = e.categoryRank,
+            ghostUntil = e.ghostUntil,
+            ghostLabel = e.ghostLabel,
         }
         if e.kind == "debuff" then
             table.insert(debuffEntries, entry)
         else
             table.insert(buffEntries, entry)
+        end
+    end
+    for abilityId, e in pairs(targetEffects) do
+        AddEntry(abilityId, e)
+    end
+    for abilityId, e in pairs(ghostEffects) do
+        if targetEffects[abilityId] == nil and now <= e.ghostUntil then
+            AddEntry(abilityId, e)
         end
     end
     return buffEntries, debuffEntries
@@ -627,6 +828,16 @@ end
 local function SortEntries(entries)
     local now = GetGameTimeSeconds()
     table.sort(entries, function(a, b)
+        -- v2.0.4: 残像(消えた効果)は、現在有効な効果より必ず下に並べる。
+        local ga, gb = (a.ghostUntil ~= nil), (b.ghostUntil ~= nil)
+        if ga ~= gb then
+            return gb
+        end
+        if ga then
+            local ka, kb = a.categoryRank or math.huge, b.categoryRank or math.huge
+            if ka ~= kb then return ka < kb end
+            return (a.abilityId or 0) < (b.abilityId or 0)
+        end
         local ra = a.endTime and (a.endTime - now) or math.huge
         local rb = b.endTime and (b.endTime - now) or math.huge
         local aUrgent = ra <= URGENT_REMAINING_THRESHOLD
@@ -662,47 +873,84 @@ local function RenderEntries(key, entries)
     local now = GetGameTimeSeconds()
     local index = 0
 
+    local linger = PTI.sv.lingerDuration
+    if type(linger) ~= "number" then linger = DEFAULT_LINGER_SECONDS end
+
     for _, entry in ipairs(entries) do
         if index >= maxRows then break end
-        index = index + 1
-        local row = PTI.UI.AcquireRow(key, index)
 
-        if entry.isHint then
-            row.nameLabel:SetFont(PTI.UI.RowFont(key))
-            row.nameLabel:SetColor(0.55, 0.57, 0.6, 1)
-            row.nameLabel:SetText(entry.name)
-            row.timeLabel:SetFont(PTI.UI.RowFont(key))
-            row.timeLabel:SetText("")
-            PTI.UI.SetRowBar(row, nil) -- 案内行には残り時間バーを出さない
-        else
-            local remaining = entry.endTime and (entry.endTime - now) or nil
-            local displaySeconds = remaining and zo_ceil(remaining) or nil
-            local tier = PTI.UI.GetImportantTier(key, displaySeconds)
-            local font = PTI.UI.BuildTierFont(key, tier.sizeDelta, tier.outline)
-
-            local displayName = tier.prefix .. entry.name
-            if type(entry.stackCount) == "number" and entry.stackCount > 1 then
-                displayName = string.format("%s x%d", displayName, entry.stackCount)
+        -- v2.0.4: 残像(消えた効果)の判定。
+        --   ・entry.ghostUntilあり: 表示期限内だけ残像として表示
+        --   ・ghostUntilなしでendTimeが過ぎている(ターゲット解除後の保持中キャッシュ、
+        --     または終了〜次回スキャンまでの間): 残り時間がマイナスの「有効な効果」
+        --     として出さず、残像と同じ扱い(linger=0なら出さない)
+        local isGhost, ghostLabel, skip = false, nil, false
+        if not entry.isHint then
+            if entry.ghostUntil then
+                if now > entry.ghostUntil then
+                    skip = true
+                else
+                    isGhost, ghostLabel = true, entry.ghostLabel or "終了"
+                end
+            elseif entry.endTime and (entry.endTime - now) <= 0 then
+                if linger > 0 then
+                    isGhost, ghostLabel = true, "終了"
+                else
+                    skip = true
+                end
             end
+        end
 
-            row.nameLabel:SetFont(font)
-            row.nameLabel:SetText(displayName)
-            row.nameLabel:SetColor(tier.color[1], tier.color[2], tier.color[3], tier.color[4])
+        if not skip then
+            index = index + 1
+            local row = PTI.UI.AcquireRow(key, index)
 
-            row.timeLabel:SetFont(font)
-            row.timeLabel:SetColor(tier.color[1], tier.color[2], tier.color[3], tier.color[4])
-            row.timeLabel:SetText(displaySeconds and (displaySeconds .. "s") or "")
+            if entry.isHint then
+                row.nameLabel:SetFont(PTI.UI.RowFont(key))
+                row.nameLabel:SetColor(0.55, 0.57, 0.6, 1)
+                row.nameLabel:SetText(entry.name)
+                row.timeLabel:SetFont(PTI.UI.RowFont(key))
+                row.timeLabel:SetText("")
+                PTI.UI.SetRowBar(row, nil) -- 案内行には残り時間バーを出さない
+            elseif isGhost then
+                -- 残像: 灰色・通常フォント・残り時間なし・バーなし。名前の後ろにも
+                -- 「(終了)」「(消失)」を付け、現在有効な効果と見分けられるようにする。
+                row.nameLabel:SetFont(PTI.UI.RowFont(key))
+                row.nameLabel:SetText(string.format("%s (%s)", entry.name, ghostLabel))
+                row.nameLabel:SetColor(0.5, 0.5, 0.52, 1)
+                row.timeLabel:SetFont(PTI.UI.RowFont(key))
+                row.timeLabel:SetColor(0.5, 0.5, 0.52, 1)
+                row.timeLabel:SetText(ghostLabel)
+                PTI.UI.SetRowBar(row, nil)
+            else
+                local remaining = entry.endTime and (entry.endTime - now) or nil
+                local displaySeconds = remaining and zo_ceil(remaining) or nil
+                local tier = PTI.UI.GetImportantTier(key, displaySeconds)
+                local font = PTI.UI.BuildTierFont(key, tier.sizeDelta, tier.outline)
 
-            -- v1.4.9で追加: 下部の残り時間バー。durationが分かる効果は
-            -- 「remaining / duration」の比率で減っていく。durationが
-            -- 不明(永続効果、または初回付与時にbeginTimeが取れなかった等)の
-            -- 場合は満タンのまま固定表示にする(数字が消える寸前まで見た目上
-            -- 減っていく効果は、正しい全長が分かる時だけ出す)。
-            local percent = 1
-            if remaining and entry.duration and entry.duration > 0 then
-                percent = remaining / entry.duration
+                local displayName = tier.prefix .. entry.name
+                if type(entry.stackCount) == "number" and entry.stackCount > 1 then
+                    displayName = string.format("%s x%d", displayName, entry.stackCount)
+                end
+
+                row.nameLabel:SetFont(font)
+                row.nameLabel:SetText(displayName)
+                row.nameLabel:SetColor(tier.color[1], tier.color[2], tier.color[3], tier.color[4])
+
+                row.timeLabel:SetFont(font)
+                row.timeLabel:SetColor(tier.color[1], tier.color[2], tier.color[3], tier.color[4])
+                row.timeLabel:SetText(displaySeconds and (displaySeconds .. "s") or "")
+
+                -- v1.4.9で追加: 下部の残り時間バー。durationが分かる効果は
+                -- 「remaining / duration」の比率で減っていく。durationが
+                -- 不明(永続効果、または初回付与時にbeginTimeが取れなかった等)の
+                -- 場合は満タンのまま固定表示にする。
+                local percent = 1
+                if remaining and entry.duration and entry.duration > 0 then
+                    percent = remaining / entry.duration
+                end
+                PTI.UI.SetRowBar(row, percent, tier.color)
             end
-            PTI.UI.SetRowBar(row, percent, tier.color)
         end
     end
 
@@ -768,6 +1016,16 @@ local function OnUpdate()
         return
     end
 
+    -- v2.0.7: 表示対象の種類が無い(パネルが両方OFF等)ときは、敵判定・描画データの
+    -- 組み立てをせず、表示状態の反映だけ行って終わる(スキャン側と同じ条件)。
+    if not IsKindScanNeeded("buff") and not IsKindScanNeeded("debuff") then
+        cachedBuffEntries, cachedDebuffEntries, cachedTargetName = {}, {}, "---"
+        lastTargetSeenTime = nil
+        PTI.UI.SetWindowVisible("buff")
+        PTI.UI.SetWindowVisible("debuff")
+        return
+    end
+
     local now = GetGameTimeSeconds()
     -- ①プレイヤー判定: NPC・モンスター・衛兵・オブジェクトはここで弾かれる
     local hasTarget = IsValidEnemyTarget()
@@ -790,6 +1048,11 @@ local function OnUpdate()
     end
 
     local holdSec = PTI.sv.holdDuration or 1.0
+    -- v2.0.6: 保持(holdDuration)は「カーソルが何も指していない」間だけ働く。味方・NPC等の
+    -- 敵ではないユニットにカーソルが移った場合は、直前の敵の情報を残さず即座に消す。
+    if (not hasTarget) and DoesUnitExist("reticleover") then
+        lastTargetSeenTime = nil
+    end
     local withinHold = (not hasTarget) and lastTargetSeenTime and ((now - lastTargetSeenTime) <= holdSec)
     local shouldKeepShowing = hasTarget or withinHold
 
@@ -804,12 +1067,12 @@ local function OnUpdate()
     debuffWin.titleLabel:SetText((cachedTargetName ~= "---") and ("DEBUFF: " .. cachedTargetName) or "DEBUFF")
 
     local buffCount = RenderEntries("buff", cachedBuffEntries)
-    if buffCount == 0 and PTI.sv.detectionMode ~= "all" and not PTI.sv.autoDetect.enabled and PTI.Target.IsWatchListEmpty("buff") then
+    if buffCount == 0 and IsKindScanNeeded("buff") and PTI.sv.detectionMode ~= "all" and not PTI.sv.autoDetect.enabled and PTI.Target.IsWatchListEmpty("buff") then
         RenderEntries("buff", { HintEntry("buff") })
     end
 
     local debuffCount = RenderEntries("debuff", cachedDebuffEntries)
-    if debuffCount == 0 and PTI.sv.detectionMode ~= "all" and not PTI.sv.autoDetect.enabled and PTI.Target.IsWatchListEmpty("debuff") then
+    if debuffCount == 0 and IsKindScanNeeded("debuff") and PTI.sv.detectionMode ~= "all" and not PTI.sv.autoDetect.enabled and PTI.Target.IsWatchListEmpty("debuff") then
         RenderEntries("debuff", { HintEntry("debuff") })
     end
 
@@ -835,7 +1098,10 @@ end
 -- 効果の重要度判定を変えうるため、表示更新の前に必ず初期スキャンを
 -- やり直して targetEffects を最新の判定基準で作り直す。
 function PTI.Target.ForceRefresh()
-    RescanCurrentTargetEffects()
+    -- v2.0.4: 設定変更で「重要でなくなった/検知OFFになった」効果を残像にしてしまわないよう、
+    -- 残像を全破棄し、この再スキャンでは残像を作らない。
+    ZO_ClearTable(ghostEffects)
+    RescanCurrentTargetEffects(true)
     OnUpdate()
 end
 
@@ -866,6 +1132,12 @@ local function OnReticleTargetChanged()
     RescanCurrentTargetEffects()
 end
 
+-- RegisterForUpdateのコールバック引数が残像抑止フラグと誤解釈されないよう、
+-- 引数を渡さないラッパーを介して呼ぶ。
+local function OnScanTick()
+    RescanCurrentTargetEffects()
+end
+
 function PTI.Target.Initialize()
     -- 状態異常(CC)の定数が実際にいくつ解決できたかを起動時に1回だけ報告する。
     -- ここが0件だと「Major/Minor」以外のCC系デバフの自動検知が丸ごと
@@ -881,7 +1153,7 @@ function PTI.Target.Initialize()
     EVENT_MANAGER:RegisterForUpdate(UPDATE_NAME, UPDATE_INTERVAL_MS, OnUpdate)
 
     -- 定期直接スキャン(既定250ms)。EVENT_EFFECT_CHANGEDは使用しない。
-    EVENT_MANAGER:RegisterForUpdate(SCAN_UPDATE_NAME, SCAN_INTERVAL_MS, RescanCurrentTargetEffects)
+    EVENT_MANAGER:RegisterForUpdate(SCAN_UPDATE_NAME, SCAN_INTERVAL_MS, OnScanTick)
 
     local targetChangedEventName = PTI.name .. "ReticleTargetChanged"
     EVENT_MANAGER:RegisterForEvent(targetChangedEventName, EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)

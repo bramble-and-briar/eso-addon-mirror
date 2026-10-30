@@ -605,6 +605,63 @@ local function RunCleanup()
     end
 end
 
+local function CollectTestDiscovery(lines)
+    local apiVersion = GetAPIVersion()
+    Check(type(apiVersion) == "number" and apiVersion > 0, "Running API version is unavailable")
+    table.insert(lines, string.format(
+        "INFO Environment: timestamp=%s (Unix UTC); game=%s; API=%d; server=%s; language=%s",
+        tostring(GetTimeStamp()), GetESOVersionString(), apiVersion, GetWorldName(), GetCVar("language.2")
+    ))
+    table.insert(lines, string.format(
+        "INFO Installation: %s; runtime version=%s; DEV=%s; ESO Plus=%s; bank=%s",
+        this.Name, this.Version, tostring(this.IsDevelopment == true),
+        tostring(IsESOPlusSubscriber()), IsBankOpen() and "open" or "closed"
+    ))
+
+    local manager = GetAddOnManager()
+    local foundInstallation = false
+    for index = 1, manager:GetNumAddOns() do
+        local name, _, _, _, enabled, state, isOutOfDate = manager:GetAddOnInfo(index)
+        if enabled then
+            local version = manager:GetAddOnVersion(index)
+            Check(type(version) == "number" and version >= 0 and version % 1 == 0,
+                "Integer AddOnVersion is unavailable for " .. tostring(name))
+            table.insert(lines, string.format(
+                "INFO Enabled add-on: %s; AddOnVersion=%s; state=%s; outOfDate=%s",
+                name, tostring(version), tostring(state), tostring(isOutOfDate)
+            ))
+            if name == this.Name then
+                foundInstallation = true
+            end
+        end
+    end
+    Check(foundInstallation, "Running installation was not found among enabled add-ons")
+
+    for _, entry in ipairs({
+        { name = "Alliance Points", id = CURT_ALLIANCE_POINTS },
+        { name = "Transmute Crystals", id = CURT_TRANSMUTE_CRYSTALS },
+        { name = "Trade Bars", id = CURT_TRADE_BARS },
+    }) do
+        local valid = entry.id ~= nil and IsCurrencyValid(entry.id)
+        table.insert(lines, string.format(
+            "INFO Conditional currency coverage: %s; ID=%s; available=%s",
+            entry.name, tostring(entry.id), tostring(valid)
+        ))
+        if not valid then
+            table.insert(lines, "WARN Currency message scenarios unavailable for " .. entry.name)
+        elseif entry.id == CURT_TRANSMUTE_CRYSTALS then
+            local location = GetCurrencyPlayerStoredLocation(entry.id)
+            local capped = IsCurrencyCapped(entry.id, location)
+            table.insert(lines, "INFO Transmute Crystals capped-colour assertions enabled=" .. tostring(capped))
+            if not capped then
+                table.insert(lines, "WARN Transmute Crystals capped-colour assertions are not exercised")
+            end
+        end
+    end
+    table.insert(lines, "INFO Human evidence still required: Live/PTS channel, candidate SHA256/installation verification, manifest API/minimum-version comparison, UI/event delivery, transfers, persistence and collision checks.")
+    table.insert(lines, "INFO Safety: live scans are read-only; synthetic tests temporarily replace runtime state and restore it; no inventory transfers or intentional saved-variable writes.")
+end
+
 local function RunTests(arguments)
     if not this.state or not this.state.isLoaded then
         d("[InventoryCompanion tests] Addon is not fully loaded.")
@@ -621,7 +678,7 @@ local function RunTests(arguments)
     end
 
     local liveScanIterations = 100
-    local liveScanLimitMs = 1000
+    local liveScanLimitMs = 500
     local liveScanMs
     local liveItemCount
     local bankOpenDuringLiveScan = IsBankOpen()
@@ -633,6 +690,14 @@ local function RunTests(arguments)
 
     local results = {}
     local passed = 0
+    local discovery = {}
+    local discoveryOk, discoveryError = pcall(CollectTestDiscovery, discovery)
+    if discoveryOk then
+        passed = passed + 1
+        table.insert(results, "PASS Runtime and dependency discovery")
+    else
+        table.insert(results, "FAIL Runtime and dependency discovery: " .. tostring(discoveryError))
+    end
 
     local liveBagIds = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
     if IsESOPlusSubscriber() then
@@ -719,9 +784,9 @@ local function RunTests(arguments)
     local performanceMs
     local slotMatchMs
     local slotUpdateMs
-    local performanceLimitMs = 2000
-    local slotMatchLimitMs = 1000
-    local slotUpdateLimitMs = 2000
+    local performanceLimitMs = 500
+    local slotMatchLimitMs = 100
+    local slotUpdateLimitMs = 200
     local environmentOk, environmentError = pcall(function()
         this.accountWide = { trackedRules = {} }
         this.character = { useCharacterItemList = false }
@@ -768,7 +833,7 @@ local function RunTests(arguments)
             hidden = {
                 displayName = "Hidden Group",
                 patterns = { "Hidden *" },
-                display = { show = true, isHidden = false },
+                display = { show = true, notify = false, bank = false, group = true, isExpanded = true, isHidden = false },
             },
         }
 
@@ -1281,7 +1346,7 @@ local function RunTests(arguments)
                         local copiedRules = this.accountWide.trackedRules
                         CheckEqual(CountEntries(copiedRules), 2, "Import should replace the destination rule list")
                         CheckEqual(copiedRules.baseline.displayName, "Renamed baseline", "Rule name override should be copied")
-                        CheckEqual(copiedRules.baseline.patterns[1], "Custom *", "Rule patterns should be copied")
+                        CheckEqual(copiedRules.baseline.addedPatterns[1], "Custom *", "Rule pattern deltas should be copied")
                         CheckEqual(copiedRules.baseline.display.isHidden, true, "Rule display overrides should be copied")
                         CheckEqual(copiedRules.custom.displayName, "Custom group", "Custom rule should be copied")
                         Check(not this.CopyProfile("missingCharacter"), "An unknown profile should not import")
@@ -1411,12 +1476,12 @@ local function RunTests(arguments)
                         },
                     }
 
-                    this.SetRuleFlag("default", "show", true)
+                    this.SetRuleFlag("default", "show", false)
                     local savedRule = this.accountWide.trackedRules.default
                     CheckEqual(savedRule.displayName, "Existing Name", "Flag update should preserve display name")
                     CheckEqual(savedRule.patterns[1], "Existing *", "Flag update should preserve patterns")
                     CheckEqual(savedRule.display.notify, false, "Flag update should preserve other flags")
-                    CheckEqual(savedRule.display.show, true, "Flag update should write selected flag")
+                    CheckEqual(savedRule.display.show, false, "Flag update should write selected flag")
                     CheckEqual(CountEntries(savedRule), 3, "Flag update should not add unrelated root properties")
                     CheckEqual(CountEntries(savedRule.display), 2, "Flag update should not add unrelated display flags")
                 end,
@@ -1424,9 +1489,9 @@ local function RunTests(arguments)
             {
                 name = "100-item backpack and craft-bag scan",
                 run = function()
-                    local rules = {
-                        synthetic = { patterns = { "Synthetic Item *" } },
-                    }
+                    this.accountWide.trackedRules = { synthetic = { addedPatterns = { "Synthetic Item *" } } }
+                    this.preLoadedRulesets = {}
+                    local rules = this.GetActiveTrackedRules()
                     local snapshot = this.GetMasterItemList({}, rules, { BAG_BACKPACK, BAG_VIRTUAL })
                     CheckEqual(CountEntries(snapshot.items), 100, "Every synthetic item should be included")
                     CheckEqual(#snapshot.ruleIndex.synthetic, 100, "Every synthetic item should be indexed under its rule")
@@ -1444,10 +1509,12 @@ local function RunTests(arguments)
             {
                 name = "Repeated 100-item inventory scan performance",
                 run = function()
-                    local rules = {}
+                    this.accountWide.trackedRules = {}
+                    this.preLoadedRulesets = {}
                     for index = 1, 20 do
-                        rules["synthetic-" .. index] = { patterns = { "Synthetic Item *" } }
+                        this.accountWide.trackedRules["synthetic-" .. index] = { addedPatterns = { "Synthetic Item *" } }
                     end
+                    local rules = this.GetActiveTrackedRules()
 
                     local startedAt = GetGameTimeMilliseconds()
                     for _ = 1, 20 do
@@ -1482,17 +1549,15 @@ local function RunTests(arguments)
                 name = "100 synthetic tracked-item slot updates",
                 run = function()
                     local warningCount = 0
-                    this.GetActiveTrackedItems = function()
-                        return {}
-                    end
-                    this.GetActiveTrackedRules = function()
-                        return {
-                            synthetic = {
-                                patterns = { "Synthetic Item *" },
-                                display = { notify = true },
-                            },
-                        }
-                    end
+                    this.accountWide.trackedItems = {}
+                    this.preLoadedRulesets = {
+                        synthetic = {
+                            displayName = "Synthetic",
+                            patterns = { "Synthetic Item *" },
+                            display = { show = true, notify = true, bank = false, group = true, isExpanded = true, isHidden = false },
+                        },
+                    }
+                    this.InvalidateRuleCache()
                     this.Utils.UserWarning = function()
                         warningCount = warningCount + 1
                     end
@@ -1576,7 +1641,9 @@ local function RunTests(arguments)
                         if eventId == this.Name .. "_Event_SlotUpdate_Backpack" then
                             slotUpdateHandler = handler
                         end
-                        return savedRegister(manager, eventId, eventCode, handler)
+                        local registered = savedRegister(manager, eventId, eventCode, handler)
+                        Check(registered == true, "Event registration failed for " .. eventId)
+                        return registered
                     end
                     managerProxy.UnregisterForEvent = function(_, eventId, eventCode)
                         table.insert(unregistrationCalls, { eventId = eventId, eventCode = eventCode })
@@ -1589,7 +1656,9 @@ local function RunTests(arguments)
                             filterType = filterType,
                             filterValue = filterValue,
                         })
-                        return savedAddFilter(manager, eventId, eventCode, filterType, filterValue)
+                        local applied = savedAddFilter(manager, eventId, eventCode, filterType, filterValue)
+                        Check(applied == true, "Event filter application failed for " .. eventId)
+                        return applied
                     end
                     EVENT_MANAGER = managerProxy
 
@@ -1649,9 +1718,15 @@ local function RunTests(arguments)
                             for suffix, bagId in pairs(filtersBySuffix) do
                                 local eventId = this.Name .. "_Event_SlotUpdate_" .. suffix
                                 Check(HasEventCall(registrationCalls, eventId), "Expected registration for " .. suffix .. " slot updates")
+                                for _, call in ipairs(registrationCalls) do
+                                    if call.eventId == eventId then
+                                        CheckEqual(call.eventCode, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, "Slot registration should use the inventory event")
+                                    end
+                                end
                                 local filterFound = false
                                 for _, filter in ipairs(filterCalls) do
                                     if filter.eventId == eventId then
+                                        CheckEqual(filter.eventCode, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, "Bag filter should use the registered inventory event")
                                         CheckEqual(filter.filterType, REGISTER_FILTER_BAG_ID, "Slot-update filter should match bag IDs")
                                         CheckEqual(filter.filterValue, bagId, "Slot-update filter should use the expected bag")
                                         filterFound = true
@@ -1685,7 +1760,19 @@ local function RunTests(arguments)
                         CheckSlotListenersRegistered()
 
                         ClearCalls()
+                        this.UpdateEventRegistry()
+                        CheckEqual(#registrationCalls, 0, "An unchanged registry should not register duplicate listeners")
+                        CheckEqual(#unregistrationCalls, 0, "An unchanged registry should not unregister listeners")
+                        CheckEqual(#filterCalls, 0, "An unchanged registry should not apply duplicate filters")
+
+                        listenerState.capacityNotifications = true
+                        this.UpdateEventRegistry()
                         eventTestAccountWide.showTrackedItemsPanel = false
+                        this.UpdateEventRegistry()
+                        CheckEqual(#unregistrationCalls, 0, "A shared slot listener should remain while capacity notifications need it")
+                        listenerState.capacityNotifications = false
+
+                        ClearCalls()
                         this.UpdateEventRegistry()
                         CheckEqual(#unregistrationCalls, 4, "Hiding the tracker should unregister its four slot-update listeners")
 
@@ -2009,6 +2096,10 @@ local function RunTests(arguments)
             end,
         })
 
+        for _, test in ipairs(this.GetRuleTests()) do
+            table.insert(tests, test)
+        end
+
         for _, test in ipairs(tests) do
             local ok, err = pcall(test.run)
             if ok then
@@ -2031,6 +2122,7 @@ local function RunTests(arguments)
     _G.GetItemLink = syntheticOriginal.getItemLink
     _G.IsESOPlusSubscriber = syntheticOriginal.isESOPlusSubscriber
     this.Utils.UserWarning = syntheticOriginal.userWarning
+    this.InvalidateRuleCache()
 
     if not environmentOk then
         table.insert(results, "FAIL test setup: " .. tostring(environmentError))
@@ -2068,6 +2160,9 @@ local function RunTests(arguments)
     end
 
     local reportLines = { summary }
+    for _, line in ipairs(discovery) do
+        table.insert(reportLines, "[InventoryCompanion tests] " .. line)
+    end
     for _, result in ipairs(results) do
         table.insert(reportLines, "[InventoryCompanion tests] " .. result)
     end
@@ -2081,6 +2176,9 @@ local function RunTests(arguments)
         end
     else
         d(summary)
+        for _, line in ipairs(discovery) do
+            d("[InventoryCompanion tests] " .. line)
+        end
         for _, result in ipairs(results) do
             if result:sub(1, 5) == "FAIL " or result:sub(1, 5) == "WARN " then
                 d("[InventoryCompanion tests] " .. result)

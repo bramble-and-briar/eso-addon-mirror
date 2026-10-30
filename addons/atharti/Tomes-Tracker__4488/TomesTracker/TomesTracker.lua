@@ -154,6 +154,9 @@ function TT.ClaimAllAvailableRewards()
 		TT.isClaimPending = true
 		ClaimAllTimedActivityRewards()
 		zo_callLater(function()
+			if HasAnyUnclaimedTimedActivityRewards() then
+				ClaimAllTimedActivityRewards()
+			end
 			TT.isClaimPending = false
 		end, 1000)
 	end

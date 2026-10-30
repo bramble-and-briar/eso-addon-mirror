@@ -141,7 +141,9 @@ It only reads game events; it never presses anything for you.
 　　（hit）と上限を超えた分（over）を出します。
 　・回復のイベントが知らせるのはキャラクター名だけなので、PSN IDは、パーティーメンバー、照準を合わせた
 　　プレイヤー、キルフィード（倒した人と倒された人の両方の名前が出ます）から覚えています。そのどれにも当て
-　　はまらない相手は、キャラクター名のままです。設定でキャラクター名の表示に切り替えられます。
+　　はまらない相手は、キャラクター名のままです。同じPSN IDでキャラクター名が違う相手（複数のキャラクターを
+　　持つ人）は、「PSN ID(キャラクター名)」の形で出して、見分けがつくようにします。設定でキャラクター名の
+　　表示に切り替えられます。
 
 必須ライブラリはありません。LibHarvensAddonSettings があれば設定パネルが追加されます。なくても記録と
 HPSメーターは動き、/hps コマンドで統計を見られます。
@@ -257,7 +259,9 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 　　prints the amount the game reported (hit) and the amount beyond full health (over).
 　- A heal event gives only the character name, so PSN IDs are learned from your party members, players you
 　　point the reticle at, and the kill feed (a line names both players). A player who has been none of those
-　　stays a character name. A setting switches back to character names.
+　　stays a character name. When one PSN ID is known with more than one character name (a player with several
+　　characters), it reads "PSN ID(character name)" so that they can be told apart. A setting switches back to
+　　character names.
 
 No required libraries. LibHarvensAddonSettings adds the settings panel if you have it; without it
 recording and the HPS meter still work, and /hps shows the statistics.

@@ -20,6 +20,10 @@ local WW = WizardsWardrobe
 local GOLD, ERR, WARN, DIM, DONE, IDLE = "C5C29E", "FF7070", "F8FF70", "9A9A9A", "A9A68C", "5C5C5C"
 local GREEN = "2DC50E" -- a placed skill's name
 local WARN_TEXTURE = "/esoui/art/miscellaneous/eso_icon_warning.dds"
+-- The BTV logo, rendered from src/assets/btv-logo.svg to a 256x256 DXT5 with every smaller
+-- level down to 4x4, each drawn fresh (owner, 2026-10-29). One 128 level shrank to jagged
+-- lines at the icon's 40 on screen; with the levels the game picks a size near 40 (owner hand test).
+local HUD_TEXTURE = "BTVToolsRosterImporter/textures/btv.dds"
 
 BTV.wizard = {}
 local Wizard = BTV.wizard
@@ -409,6 +413,9 @@ local function BuildWindow()
 	close:SetPressedTexture( "/esoui/art/buttons/decline_down.dds" )
 	close:SetMouseOverTexture( "/esoui/art/buttons/decline_over.dds" )
 	close:SetHandler( "OnClicked", function() Wizard.Close() end )
+	ui.cancel = Button( "BTVToolsWindowCancel", window, "Cancel import", function() Wizard.Cancel() end )
+	ui.cancel:SetDimensions( 150, 28 )
+	ui.cancel:SetAnchor( TOPRIGHT, window, TOPRIGHT, -44, 8 )
 
 	if BTV.canSupport then
 		local support = WINDOW_MANAGER:CreateControl( "BTVToolsWindowSupport", window, CT_BUTTON )
@@ -1506,6 +1513,7 @@ Render = function()
 	ui.placementPane:SetHidden( step ~= "placement" )
 	ui.listPane:SetHidden( step ~= "plan" and step ~= "history" )
 	ui.prompt:SetHidden( not Wizard.prompt )
+	ui.cancel:SetHidden( step == nil or step == "paste" or step == "history" or Wizard.placementOnly )
 	ui.back:SetHidden( step == nil or ( step == "paste" and #BTV.svAccount.history == 0 ) or ( step == "plan" and not CanEdit() )
 		or ( step == "placement" and Wizard.placementOnly ) )
 	ui.next:SetHidden( step == "history" )
@@ -1702,6 +1710,14 @@ function Wizard.Open()
 	if Wizard.busy then BTV.CancelSliced() Wizard.busy = nil end
 	ui.paste:SetText( "" )
 	Show()
+end
+
+-- Cancel import (owner, 2026-10-24): back to an empty Paste. Ends the record only when
+-- the click is on that record (the plan or its Edit picks); a fresh wizard has written
+-- nothing, so only the wizard is dropped.
+function Wizard.Cancel()
+	if Wizard.step == "plan" or Wizard.editing then BTV.CancelRecord() end
+	Wizard.Open()
 end
 
 -- The plan for the active record (#480), built fresh; `plan` is the one a live check
@@ -2113,9 +2129,63 @@ function BTV.OnContainerClosed()
 	if Wizard.autoOpened and ui and not ui.window:IsHidden() then Wizard.Close() end
 end
 
+-- The HUD icon (owner, 2026-10-24): while an import is in progress, a way back to the plan
+-- from the plain game screen, so an import is never forgotten at a banker. The fragment
+-- shows it on the HUD only, and only while the conditional holds. The "Show Icon" setting
+-- (owner, 2026-10-29) picks never, always, or only while an import is in progress.
+local hud
+local function BuildHud()
+	local icon = WINDOW_MANAGER:CreateTopLevelWindow( "BTVToolsHud" )
+	icon:SetDimensions( 40, 40 )
+	local pos = BTV.svAccount.hudPos
+	icon:SetAnchor( TOPLEFT, GuiRoot, TOPLEFT, pos and pos.x or 40, pos and pos.y or 200 )
+	icon:SetMouseEnabled( true )
+	icon:SetMovable( true )
+	icon:SetClampedToScreen( true )
+	local art = WINDOW_MANAGER:CreateControl( "BTVToolsHudArt", icon, CT_TEXTURE )
+	art:SetAnchorFill( icon )
+	art:SetTexture( HUD_TEXTURE )
+	-- A drag ends in a mouse-up too: only a click that did not move the icon opens the plan.
+	-- The spot at mouse-down tells the two apart whatever order the game fires OnMouseUp and
+	-- OnMoveStop in; a flag set in OnMoveStop ate the click after a drag (owner hand test
+	-- 2026-10-29: it took two clicks).
+	icon:SetHandler( "OnMouseDown", function( self ) self.downAt = { self:GetLeft(), self:GetTop() } end )
+	icon:SetHandler( "OnMoveStop", function( self )
+		BTV.svAccount.hudPos = { x = self:GetLeft(), y = self:GetTop() }
+	end )
+	icon:SetHandler( "OnMouseUp", function( self, button, upInside )
+		local at = self.downAt
+		local moved = at and math.abs( self:GetLeft() - at[ 1 ] ) + math.abs( self:GetTop() - at[ 2 ] ) > 2
+		if upInside and button == MOUSE_BUTTON_INDEX_LEFT and not moved then
+			BTV.CheckPlan()
+			BTV.OpenWindow( BTV.GetRecord() and "plan" or "paste" )
+		end
+	end )
+	icon:SetHandler( "OnMouseEnter", function( self )
+		local record = BTV.GetRecord()
+		ZO_Tooltips_ShowTextTooltip( self, RIGHT, string.format( "%s. Click to open, drag to move.\nYou can change when this icon shows in the settings (Show Icon).",
+			record and ( "BTV import in progress: " .. record.pageName ) or "BTV Tools" ) )
+	end )
+	icon:SetHandler( "OnMouseExit", function() ZO_Tooltips_HideTextTooltip() end )
+	local fragment = ZO_SimpleSceneFragment:New( icon )
+	fragment:SetConditional( function()
+		local show = BTV.Setting( "hudIcon" )
+		return show == "always" or ( show == "import" and BTV.GetRecord() ~= nil )
+	end )
+	HUD_SCENE:AddFragment( fragment )
+	HUD_UI_SCENE:AddFragment( fragment )
+	return fragment
+end
+
+function BTV.OnRecordChanged()
+	hud = hud or BuildHud()
+	hud:Refresh()
+end
+
 -- A setting flipped in the settings panel redraws a plan that is on screen, so its rows
 -- agree with the panel (owner, 2026-09-15).
 function BTV.OnSettingChanged()
+	if hud then hud:Refresh() end
 	if Wizard.step == "plan" and ui and not ui.window:IsHidden() then Render() end
 end
 

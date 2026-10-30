@@ -18,8 +18,8 @@
         <Control name="InventoryCompanion_PatternEditRow_Template" virtual="true">
             <Dimensions x="490" y="32" />
             <Controls>
-                <EditBox name="$(parent)Edit" font="AS_FontEditbox" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
-                    <Dimensions x="430" y="26"/>
+                <EditBox name="$(parent)Edit" font="ZoFontWinT1" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
+                    <Dimensions x="430" y="30"/>
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="5" offsetY="0" />
                     <Controls>
                         <Backdrop name="$(parent)Bg" inherits="ZO_EditBackdrop" alpha="1">
@@ -44,6 +44,13 @@
                 <Label name="$(parent)Title" font="ZoFontHeader3" color="FFFFFF" text="Manage Tracked Groups">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="20" offsetY="15" />
                 </Label>
+                <Button name="$(parent)BtnOtherSettings" inherits="ZO_DefaultButton" text="Other Settings">
+                    <Dimensions x="150" y="26" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Title" relativePoint="RIGHT" offsetX="20" offsetY="0" />
+                    <OnClicked>
+                        InventoryCompanion.OpenSettingsFromEditor()
+                    </OnClicked>
+                </Button>
                 
                 <!-- Edit Items Switch Button -->
                 <Button name="$(parent)BtnEditItems" inherits="ZO_DefaultButton" text="Edit Items">
@@ -73,8 +80,8 @@
                             <Dimensions x="28" y="28" />
                             <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
                         </Texture>
-                        <EditBox name="$(parent)FindBox" font="AS_FontEditbox" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
-                            <Dimensions x="180" y="25"/>
+                        <EditBox name="$(parent)FindBox" font="ZoFontWinT1" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
+                            <Dimensions x="180" y="30"/>
                             <Anchor point="LEFT" relativeTo="$(parent)SearchIcon" relativePoint="RIGHT" offsetX="6" offsetY="0" />
                             <Controls>
                                 <Backdrop name="$(parent)Bg" inherits="ZO_EditBackdrop" alpha="1">

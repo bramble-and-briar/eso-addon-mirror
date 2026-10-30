@@ -1,0 +1,11 @@
+## Title: Tamriel Collections - Motifs
+## Description: Quest Journal layout for Motif collections
+## Author: MajesticMinxi
+## Version: 0.2.45
+## APIVersion: 101051
+## AddOnVersion: 245
+
+Shared.lua
+CollectionsUI.xml
+CollectionsUI.lua
+MainMenu.lua

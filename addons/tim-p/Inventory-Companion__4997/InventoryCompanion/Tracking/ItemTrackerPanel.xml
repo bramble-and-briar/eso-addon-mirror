@@ -27,24 +27,48 @@
                 </Label>
             </Controls>        
         </Control>	        
-        <TopLevelControl name="InventoryCompanion_ItemTrackerFloat" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="false" resizeToFitDescendents="true">
+        <TopLevelControl name="InventoryCompanion_ItemTrackerFloat" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="false">
+            <Dimensions x="360" y="60" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="50" offsetY="50"/>
             <Controls>
-                <Control name="$(parent)Container" resizeToFitDescendents="true" mouseEnabled="true">
+                <Control name="$(parent)Container" mouseEnabled="true">
+                    <Dimensions x="340" y="52" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="4"/>
                     <Controls>
-                        <Label name="InventoryCompanion_ItemTrackerFloatTitle" font="ZoFontGameSmall" color="AAAAAA" verticalAlignment="TOP" horizontalAlignment="LEFT" text="Tracked Items">
+                        <Label name="InventoryCompanion_ItemTrackerFloatTitle" font="ZoFontGame" color="AAAAAA" verticalAlignment="TOP" horizontalAlignment="LEFT" text="Tracked Items">
                             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
                         </Label>
                         <Button name="InventoryCompanion_ItemTrackerFloatEditIcon" mouseEnabled="true">
-                            <Dimensions x="18" y="18"/>
-                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="0" offsetY="-2"/>
-                            <Textures 
-                                normal="EsoUI/Art/Buttons/edit_up.dds" 
-                                pressed="EsoUI/Art/Buttons/edit_down.dds" 
-                                mouseOver="EsoUI/Art/Buttons/edit_over.dds" 
+                            <Dimensions x="24" y="24"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
+                            <Textures
+                                normal="EsoUI/Art/Buttons/edit_up.dds"
+                                pressed="EsoUI/Art/Buttons/edit_down.dds"
+                                mouseOver="EsoUI/Art/Buttons/edit_over.dds"
                             />
                         </Button>
+                        <Button name="InventoryCompanion_ItemTrackerFloatSettingsIcon" mouseEnabled="true">
+                            <Dimensions x="24" y="24"/>
+                            <Anchor point="TOPRIGHT" relativeTo="InventoryCompanion_ItemTrackerFloatEditIcon" relativePoint="TOPLEFT" offsetX="-4" offsetY="0"/>
+                            <Textures
+                                normal="EsoUI/Art/ChatWindow/chat_options_up.dds"
+                                pressed="EsoUI/Art/ChatWindow/chat_options_down.dds"
+                                mouseOver="EsoUI/Art/ChatWindow/chat_options_over.dds"
+                            />
+                        </Button>
+                        <Control name="$(parent)Rows" inherits="ZO_ScrollContainer">
+                            <Dimensions x="340" y="24" />
+                            <Anchor point="TOPLEFT" relativeTo="InventoryCompanion_ItemTrackerFloatTitle" relativePoint="BOTTOMLEFT" offsetY="4" />
+                            <Controls>
+                                <Scroll name="$(parent)Scroll" override="true">
+                                    <Controls>
+                                        <Control name="$(parent)Child" override="true" resizeToFitDescendents="false">
+                                            <Dimensions x="320" y="22" />
+                                        </Control>
+                                    </Controls>
+                                </Scroll>
+                            </Controls>
+                        </Control>
                     </Controls>
                 </Control>
 

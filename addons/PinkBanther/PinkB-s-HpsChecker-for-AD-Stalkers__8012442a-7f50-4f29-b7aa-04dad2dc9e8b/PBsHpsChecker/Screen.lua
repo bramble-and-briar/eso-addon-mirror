@@ -114,7 +114,7 @@ screen.TABLES = {
             { head = SI_PBSHPS_COL_HEAL, right = true, samples = function() return { "99,999,999" } end },
             { head = SI_PBSHPS_COL_PEOPLE, right = true, samples = function() return { "999" } end },
             { head = SI_PBSHPS_COL_PARTY, right = true, samples = function() return { "100.0%" } end },
-            { head = SI_PBSHPS_COL_TOP, flex = true, samples = function() return { "Abcdefghijklmnopqr" } end },
+            { head = SI_PBSHPS_COL_TOP, flex = true, samples = function() return { "Abcdefghijklmnop(Abcdefghijklmnopqrst)" } end },
         },
     },
 }

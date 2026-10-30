@@ -1,11 +1,11 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.4.2
-## AddOnVersion: 16
+## Version: 0.5.5
+## AddOnVersion: 17
 ## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
-## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw. Each Indicator can be turned off in the settings if it's not wanted.
+## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges. No More Oopsies (experimental, off by default): the perspective button has to be pressed three times within three seconds before the camera toggles into or out of first person.
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are
@@ -17,7 +17,10 @@
 ; 0.2.7 = 8, 0.2.8 = 9, 0.2.9 = 10, 0.3.0 = 11, 0.3.2 = 12. 0.3.3 was built as
 ; 13 but NEVER uploaded (confirmed by the author 2026-10-06), so 0.4.0 took 14
 ; (published 2026-10-06) and 13 never existed on Bethesda.net. 0.4.1 = 15
-; (published 2026-10-07). 0.4.2 = 16.
+; (published 2026-10-07). 0.4.2 = 16. 0.5.5 = 17 (2026-10-29, the No More
+; Oopsies guard). Matt publishes after EVERY change to test, so everything
+; built here is live on Bethesda.net; 0.4.3 through 0.5.4 were his uploads
+; of the 0.4.2-labelled work and this file never carried those numbers.
 ; It was briefly set to 30 while a release
 ; was planned as 3.0; that build was never published either, so stepping back
 ; to 9 was safe and would NOT have been safe if 30 had shipped.
@@ -71,6 +74,8 @@ Engine/AbilityClassifier.lua
 Engine/AttackerTracker.lua
 Engine/SilenceTracker.lua
 Engine/PlagueTracker.lua
+Engine/PullTracker.lua
+Engine/FirstPersonGuard.lua
 Engine/PressureEngine.lua
 Engine/EventIngest.lua
 
@@ -81,6 +86,10 @@ UI/SilenceRing.xml
 UI/SilenceRing.lua
 UI/PlagueTint.xml
 UI/PlagueTint.lua
+UI/PlagueIcon.xml
+UI/PlagueIcon.lua
+UI/PullIndicator.xml
+UI/PullIndicator.lua
 UI/Debug.xml
 UI/Debug.lua
 

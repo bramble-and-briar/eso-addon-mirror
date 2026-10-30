@@ -127,22 +127,23 @@ end
 -- Where the log applies
 ---------------------------------------------------------------------------------------------------
 
--- Cyrodiil itself, and nothing else the kill feed also covers. The Imperial City is a zone of its own
--- (IsInCyrodiil is false there), its campaigns are fought on a different map entirely even though the
--- world is still Cyrodiil's (PB's CyrodiilAlert makes the same cut), and a Battleground is neither.
-function ADDON.IsInCyrodiil()
-    if not IsInCyrodiil() or IsInImperialCity() or IsActiveWorldBattleground() then
+-- Cyrodiil and the Imperial City, the two places the kill feed reports PvP kills that this log is for;
+-- the third, a Battleground, is left out. The Imperial City is a zone of its own (IsInCyrodiil is false
+-- there), and its campaigns are fought in it, so both are covered by asking about the city as well as
+-- about Cyrodiil. A Battleground is excluded by its own test rather than by IsInCyrodiil being false in
+-- it, because the documentation does not say what IsInCyrodiil is there.
+function ADDON.IsInPvpArea()
+    if IsActiveWorldBattleground() then
         return false
     end
-    local campaignId = GetCurrentCampaignId()
-    return campaignId == 0 or not IsImperialCityCampaign(campaignId)
+    return IsInCyrodiil() or IsInImperialCity()
 end
 
--- The log is drawn only in Cyrodiil. The window itself stays where it is (it is what the unlock frame
--- is drawn on); it is the text that is hidden elsewhere. Run at every loading screen, which is how a
--- player gets into or out of Cyrodiil.
+-- The log is drawn only in Cyrodiil and the Imperial City. The window itself stays where it is (it is
+-- what the unlock frame is drawn on); it is the text that is hidden elsewhere. Run at every loading
+-- screen, which is how a player gets into or out of those places.
 local function UpdateLogVisibility()
-    buffer:SetHidden(not ADDON.IsInCyrodiil())
+    buffer:SetHidden(not ADDON.IsInPvpArea())
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -201,8 +202,8 @@ end
 -- The "PvP Kill Feed" option in the social settings is deliberately NOT consulted: the built-in chat
 -- handler checks it, but the event itself is delivered to addons regardless.
 local function OnPvpKillFeedDeath(_, killLocation, killerDisplayName, killerCharacterName, killerAlliance, killerRank, victimDisplayName, victimCharacterName, victimAlliance, victimRank, isKillLocation)
-    -- The feed also reports the Imperial City and Battlegrounds; this log is for Cyrodiil only.
-    if not ADDON.IsInCyrodiil() then
+    -- The feed also reports Battlegrounds; this log is for Cyrodiil and the Imperial City only.
+    if not ADDON.IsInPvpArea() then
         return
     end
 
@@ -361,7 +362,7 @@ local function OnSlashCommand(argument)
         Print(L("CMD_LOCKED"))
     elseif command == "test" then
         ADDON.AddTestEntry()
-        if not ADDON.IsInCyrodiil() then
+        if not ADDON.IsInPvpArea() then
             -- The line is in the log but the log is not drawn here.
             Print(L("CMD_TEST_ELSEWHERE"))
         end

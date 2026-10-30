@@ -18,7 +18,7 @@
     "BureauOfAcceptableViews"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4720/",
-  "fingerprint": "67b03244b3036b485c11cf1a9115d0db42a324fb5d9f48a87a82f9491545a93f",
+  "fingerprint": "775c70488a9cbfd66a20b5b18cbe9cabaf600668aae2fcf20075d31dc85bcc99",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16907.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw16908.jpg",
@@ -33,11 +33,11 @@
   "source_id": "4720",
   "source_url": "https://www.esoui.com/downloads/info4720-BureauofAcceptableViews.html",
   "stats": {
-    "downloads": 361,
+    "downloads": 421,
     "favorites": 0,
-    "monthly_downloads": 97
+    "monthly_downloads": 132
   },
   "title": "Bureau of Acceptable Views",
-  "updated_at": 1792182518000,
-  "version": "3.12.232154"
+  "updated_at": 1793308394000,
+  "version": "3.13.232847"
 }

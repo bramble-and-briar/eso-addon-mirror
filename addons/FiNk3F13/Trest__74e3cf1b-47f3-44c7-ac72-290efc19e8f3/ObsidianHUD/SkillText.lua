@@ -1,4 +1,5 @@
 local O=ObsidianHUD
+local textSkins=setmetatable({},{__mode="k"})
 O.skillFonts={
     {name="Fett",data="bold",font="$(BOLD_FONT)"},
     {name="Normal",data="normal",font="$(MEDIUM_FONT)"},
@@ -39,22 +40,32 @@ function O.StyleSkillText(skin)
 end
 
 function O.UpdateStackText(label,slot,bar)
-    local preview=O.stackPreviewUntil and GetFrameTimeSeconds()<O.stackPreviewUntil
-    local count=preview and 3 or O.GetSkillStackCount(slot,bar)
+    local count=O.GetSkillStackCount(slot,bar)
     label:SetText(count and count>0 and tostring(count) or "")
 end
 
 function O.UpdateActiveSkillText(skin)
     if not skin.activeTextVisible then return end
     local bar=GetActiveHotbarCategory()
-    if bar~=skin.activeTextBar or GetSlotBoundId(skin.activeTextSlot,bar)==0 then
-        O.UpdateSkillProcHighlight(skin,false,skin.activeTextSlot,bar,false)
-        skin.activeTimer:SetText(""); skin.activeStacks:SetText(""); return
+    local logical=bar
+    if bar==skin.activeTextBar then
+        if O.NoSkillAnimationsView() then O.FinishNativeSkillAnimations(skin.button)
+        elseif skin.activeTextSlot==8 then O.FinishFixedUltimateSwap() end
+        if skin.activeTextSlot==3 and O.FixedSkillRows() then O.UpdateNativePositions(true) end
+        if O.UpdateSkillPreview then
+            O.UpdateSkillPreview(skin,skin.activeTextSlot,bar,skin.activeTextVisible)
+        end
+        -- Empty slots still need the correct fixed-row binding anchors.
+        O.UpdateFixedSkillBindings(skin)
+        O.SuppressNativeSkillText(skin.button)
     end
-    if O.NoSkillAnimationsView() then O.FinishNativeSkillAnimations(skin.button)
-    elseif skin.activeTextSlot==8 then O.FinishFixedUltimateSwap() end
-    O.UpdateFixedSkillBindings(skin)
-    O.SuppressNativeSkillText(skin.button)
+    if O.SkillDisplayBar then bar=O.SkillDisplayBar(skin.button) end
+    if logical~=skin.activeTextBar or bar~=logical or GetSlotBoundId(skin.activeTextSlot,bar)==0 then
+        O.UpdateSkillProcHighlight(skin,false,skin.activeTextSlot,bar,false)
+        skin.activeTimer:SetText(""); skin.activeStacks:SetText("")
+        if skin.activeTextSlot==8 then O.UpdateUltimateCharge(skin) end
+        return
+    end
     skin.activeTimer:SetText(O.BackBarTimerText(skin.activeTextSlot,bar))
     O.UpdateStackText(skin.activeStacks,skin.activeTextSlot,bar)
     O.UpdateSkillProcHighlight(skin,false,skin.activeTextSlot,bar,true)
@@ -70,7 +81,9 @@ end
 
 function O.CreateSkillText(skin)
     local root=WINDOW_MANAGER:CreateControl(nil,skin.button.slot,CT_CONTROL)
-    root:SetAnchorFill(skin.button.icon)
+    -- Slot geometry stays stable while the native icon collapses/bounces.
+    -- Text must not wait for that animated aperture to become visible again.
+    root:SetAnchorFill(skin.button.slot)
     root:SetMouseEnabled(false)
     root:SetDrawTier(DT_HIGH)
     root:SetDrawLayer(DL_TEXT)
@@ -78,9 +91,9 @@ function O.CreateSkillText(skin)
     root:SetHidden(true)
     skin.textRoot=root
     skin.activeTimer=O.Label(root,24)
-    skin.activeTimer:SetAnchor(CENTER,skin.button.icon,CENTER,0,0)
+    skin.activeTimer:SetAnchor(CENTER,skin.button.slot,CENTER,0,0)
     skin.activeStacks=O.Label(root,18)
-    skin.activeStacks:SetAnchor(TOPRIGHT,skin.button.icon,TOPRIGHT,-3,3)
+    skin.activeStacks:SetAnchor(TOPRIGHT,skin.button.slot,TOPRIGHT,-4.5,4.5)
     skin.activeStacks:SetDrawTier(DT_HIGH)
     skin.activeStacks:SetDrawLevel(40)
     skin.backStacks=O.Label(skin.back,18)
@@ -88,4 +101,11 @@ function O.CreateSkillText(skin)
     skin.backStacks:SetDrawTier(DT_HIGH)
     skin.backStacks:SetDrawLevel(40)
     root:SetHandler("OnUpdate",function() O.UpdateActiveSkillText(skin) end)
+    textSkins[skin]=true
+end
+
+function O.RefreshSkillTimerText()
+    for skin in pairs(textSkins) do
+        if skin.activeTextVisible then O.UpdateActiveSkillText(skin) end
+    end
 end

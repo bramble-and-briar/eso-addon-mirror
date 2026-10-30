@@ -1,0 +1,10 @@
+## Title: |cEECA2AFavorite Guild Cycler|r
+## Description: Rotates your represented guild through selected favorites, remembers favorite guild identities and settings, and keeps the native Guild menu keybinds untouched. Minimum 1-second cycle interval is enforced to respect ESO's represented-guild API rate limit; sub-second cycling is disabled to reduce Error 318/rate-limit risk.
+## Author: FavoriteGuildCyclerDev
+## Version: 1.3.1
+## AddOnVersion: 131
+## APIVersion: 101051 101050 101049 101048
+## IsConsoleOnly: false
+## SavedVariables: FavoriteGuildCycler_SavedVars
+## OptionalDependsOn: LibHarvensAddonSettings>=20000
+FavoriteGuildCycler.lua

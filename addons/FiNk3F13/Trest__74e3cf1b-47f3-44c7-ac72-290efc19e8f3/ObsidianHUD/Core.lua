@@ -1,4 +1,4 @@
-ObsidianHUD = {name="ObsidianHUD", version="0.7.19"}
+ObsidianHUD = {name="ObsidianHUD", version="0.7.53"}
 local O=ObsidianHUD
 O.defaults={enabled=true,hideOriginals=true,skillFrames=true,backBar=true,
     width=480,scale=1,x=0,y=-215,opacity=0.94,numbers=true,roundBadge=true,customClassIcons=true,
@@ -10,10 +10,10 @@ O.defaults.quickslotFrame=true
 O.defaults.skillHudView="fixed"
 O.defaults.skillHudScale=1
 O.skillHudViews={
-    {name="Frontbar oben, Backbar unten",data="fixed"},
-    {name="Doppel-Ultimate mit Aufladerahmen",data="fixed_dual"},
-    {name="Frontbar oben, Backbar unten - ohne Animation",data="fixed_static"},
-    {name="Doppel-Ultimate mit Aufladerahmen - ohne Animation",data="fixed_dual_static"},
+    {name="Animation - mit Doppel-Ultimate",data="fixed_dual"},
+    {name="Animation - ohne Doppel-Ultimate",data="fixed"},
+    {name="Ohne Animation - mit Doppel-Ultimate",data="fixed_dual_static"},
+    {name="Ohne Animation - ohne Doppel-Ultimate",data="fixed_static"},
 }
 O.defaults.timerSize,O.defaults.stackSize=24,18
 O.defaults.timerFont,O.defaults.stackFont="bold","bold"

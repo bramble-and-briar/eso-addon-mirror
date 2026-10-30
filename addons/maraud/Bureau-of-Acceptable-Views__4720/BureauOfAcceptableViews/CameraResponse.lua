@@ -154,8 +154,12 @@ local mode = MODE_RESPONSIVE
 local smoothingOwners = {}
 local previousEngineSmoothing = nil
 local restorePending = false
+local restoreRetries = 0
 local RESTORE_UPDATE_NAME = "BAV_CameraResponse_RestoreSmoothing"
+local RESTORE_RETRY_DELAY_MS = 100
+local RESTORE_MAX_RETRIES = 3
 local RestoreEngineSmoothing
+local ScheduleSmoothingRestore
 
 local function LogWarn(...)
     if private.LogWarn then private.LogWarn(...) end
@@ -180,6 +184,7 @@ function CameraResponse.Configure(options)
         for owner in pairs(smoothingOwners) do
             smoothingOwners[owner] = nil
         end
+        restoreRetries = 0
         RestoreEngineSmoothing()
     end
     LogDebug("CameraResponse.Configure: mode=%s", mode)
@@ -228,19 +233,25 @@ RestoreEngineSmoothing = function()
     end
 
     local previous = previousEngineSmoothing
-    previousEngineSmoothing = nil
     if previous ~= nil and previous ~= 0
         and not CameraSettings.Set("smoothing", previous) then
         LogWarn("CameraResponse: unable to restore engine smoothing")
+        if restoreRetries < RESTORE_MAX_RETRIES then
+            restoreRetries = restoreRetries + 1
+            ScheduleSmoothingRestore(RESTORE_RETRY_DELAY_MS)
+        end
+        return
     end
+    previousEngineSmoothing = nil
+    restoreRetries = 0
 end
 
-local function ScheduleSmoothingRestore()
+ScheduleSmoothingRestore = function(delayMs)
     if restorePending or previousEngineSmoothing == nil then
         return
     end
     restorePending = true
-    EVENT_MANAGER:RegisterForUpdate(RESTORE_UPDATE_NAME, 0, RestoreEngineSmoothing)
+    EVENT_MANAGER:RegisterForUpdate(RESTORE_UPDATE_NAME, delayMs or 0, RestoreEngineSmoothing)
 end
 
 -- Acquire a named lease on ESO's binary camera-smoothing setting. The first
@@ -256,19 +267,21 @@ function CameraResponse.AcquireSmoothing(owner, force)
     end
 
     if next(smoothingOwners) == nil then
-        if restorePending then
-            CancelSmoothingRestore()
-        else
-            local current, ok = CameraSettings.Get("smoothing")
-            if not ok then
-                return false
-            end
-            if current ~= 0 and not CameraSettings.Set("smoothing", 0) then
-                LogWarn("CameraResponse: unable to suspend engine smoothing")
-                return false
-            end
+        local current, ok = CameraSettings.Get("smoothing")
+        if not ok then
+            return false
+        end
+        if current ~= 0 and not CameraSettings.Set("smoothing", 0) then
+            LogWarn("CameraResponse: unable to suspend engine smoothing")
+            return false
+        end
+        CancelSmoothingRestore()
+        -- A rejected restore may outlive its retries; never snapshot the
+        -- temporary disabled value over the player's original setting.
+        if previousEngineSmoothing == nil then
             previousEngineSmoothing = current
         end
+        restoreRetries = 0
     end
 
     smoothingOwners[owner] = true
@@ -293,6 +306,7 @@ function CameraResponse.ForceReleaseSmoothing()
         smoothingOwners[owner] = nil
     end
 
+    restoreRetries = 0
     ScheduleSmoothingRestore()
     return true
 end
@@ -301,6 +315,7 @@ function CameraResponse.RestoreSmoothingNow()
     for owner in pairs(smoothingOwners) do
         smoothingOwners[owner] = nil
     end
+    restoreRetries = 0
     RestoreEngineSmoothing()
     return true
 end

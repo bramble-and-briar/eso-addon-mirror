@@ -85,7 +85,7 @@ local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, ite
 
     if this.accountWide.showTrackedItemsPanel ~= false then
         Enqueue("RefreshItemTracker", function()
-            this.RefreshItemTrackerPanel()
+            this.RefreshItemTrackerPanel("inventory")
         end, 500)
     end
 
@@ -231,7 +231,7 @@ function this.InitCutsceneTicker()
 
             if InventoryCompanion_ItemTrackerFloat then
                 local showTracked = (this.accountWide.showTrackedItemsPanel ~= false)
-                local shouldShowTracker = (showTracked and not inCutscene) or isEditorOpen or isInteractionOpen
+                local shouldShowTracker = showTracked and (not inCutscene or isEditorOpen or isInteractionOpen)
                 InventoryCompanion_ItemTrackerFloat:SetHidden(not shouldShowTracker)
 
                 if shouldShowTracker and isInteractionOpen and this.AdjustTrackerPositionForInteraction then

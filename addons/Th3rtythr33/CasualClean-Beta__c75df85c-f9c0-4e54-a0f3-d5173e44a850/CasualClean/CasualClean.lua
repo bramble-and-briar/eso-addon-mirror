@@ -545,6 +545,7 @@ local function OnAddOnLoaded(eventCode, addonName)
         -- a=artificial, s=last seen}). selfBuffsHidden from builds before
         -- 2026-10-28 is migrated into selfBuffsChoice by SelfBuffs.Init.
         selfBuffsFilter = CC.SelfBuffs.DEFAULT_ENABLED,
+        selfBuffsMergeRepeats = CC.SelfBuffs.DEFAULT_MERGE_REPEATS,
         selfBuffsChoice = {},
         selfBuffsShowUnsetBuffs = true,
         selfBuffsShowUnsetDebuffs = true,
@@ -871,6 +872,14 @@ SLASH_COMMANDS["/casualclean"] = function(args)
         -- Hook state, catalogue size against its cap, and every collected
         -- effect with whether it is currently shown or hidden.
         for _, line in ipairs(CC.SelfBuffs.GetReport()) do
+            d("  " .. line)
+        end
+        return
+    elseif cmd == "bar" then
+        -- Every effect currently on the player as the API reports it, with
+        -- ability id and buff slot, so ids of copies that should merge but
+        -- do not can be read off the chat window.
+        for _, line in ipairs(CC.SelfBuffs.GetBarReport()) do
             d("  " .. line)
         end
         return

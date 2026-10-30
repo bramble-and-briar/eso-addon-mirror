@@ -4,8 +4,8 @@ InventoryCompanion = {
     IsDevelopment = isDevelopment,
 	DisplayName = "Inventory Companion",
     Author = "@Tim-P",
-    Version = 1.01,
-    SettingsVersion = 1.0,
+    Version = "1.4.1",
+    SettingsVersion = 2,
     SettingsName = "InventoryCompanion_SavedVariables",
 }
 local this = InventoryCompanion
@@ -18,16 +18,37 @@ this.state = {
 ------------------------------------------------------------------
 -- Core Initialization
 ------------------------------------------------------------------
+function this.ValidateTrackerSettings()
+    local value = this.accountWide.trackerMaxRows
+    if value == nil then
+        value = this.defaultsAccount.trackerMaxRows
+    end
+    assert(type(value) == "number" and value == value and value >= 5 and value <= 50
+        and value == math.floor(value), "Saved trackerMaxRows must be an integer from 5 to 50")
+    this.accountWide.trackerMaxRows = value
+    local titleSize = this.accountWide.trackerTitleSize
+    if titleSize == nil then titleSize = this.defaultsAccount.trackerTitleSize end
+    assert(type(titleSize) == "number" and titleSize == titleSize and titleSize >= 16
+        and titleSize <= 28 and titleSize == math.floor(titleSize),
+        "Saved trackerTitleSize must be an integer from 16 to 28")
+    this.accountWide.trackerTitleSize = titleSize
+end
+
 local function Initialize()
+    this.PrepareSavedVariables()
+
     -- Register keybind display names in ESO controls menu
     ZO_CreateStringId("SI_BINDING_NAME_InventoryCompanion_Deposit_Crafted_Items", "Deposit Items to Bank")
     ZO_CreateStringId("SI_BINDING_NAME_InventoryCompanion_Withdraw_Crafted_Items", "Withdraw Items from Bank")
 	ZO_CreateStringId("SI_BINDING_NAME_InventoryCompanion_Toggle_EditPanel", "Show/Hide Tracking Settings")
     ZO_CreateStringId("SI_BINDING_NAME_InventoryCompanion_Debug_Key", "Debug Key")
+    ZO_CreateStringId("SI_BINDING_NAME_InventoryCompanion_Toggle_ItemTracker", "Show/Hide Item Tracking Panel")
 	
     -- Load Saved Variables
     this.accountWide = ZO_SavedVars:NewAccountWide(this.SettingsName, this.SettingsVersion, nil, this.defaultsAccount)
     this.character   = ZO_SavedVars:NewCharacterIdSettings(this.SettingsName, this.SettingsVersion, nil, this.defaultsCharacter)
+    this.ValidateTrackerSettings()
+    this.ValidateSavedRuleProfiles()
     this.state.isCurrencySettingsOpen = false
 
     -- Initialize modules
@@ -77,19 +98,19 @@ end
 ------------------------------------------------------------------
 SLASH_COMMANDS["/icclearoverrides"] = function()
     local modeText = ""
-    if this.character and this.character.useCharacterItemList then
+    if this.character.useCharacterItemList then
         this.character.trackedRules = {}
         modeText = "Character-specific"
     else
         this.accountWide.trackedRules = {}
         modeText = "Account-wide"
     end
+    this.InvalidateRuleCache()
     
     d(string.format("[InventoryCompanion] Cleared all rule overrides for current mode (%s). All rules restored to baseline defaults.", modeText))
     
-    -- Refresh UI panels if active
-    if this.RefreshGroupsEditor then this.RefreshGroupsEditor() end
-    if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
+    this.RefreshGroupsEditor()
+    this.RefreshItemTrackerPanel()
 end
 
 ------------------------------------------------------------------
@@ -97,5 +118,4 @@ end
 ------------------------------------------------------------------
 function this.Debug()
     this.RunTests("verbose copy")
-    -- this.SimulateCurrencyNotificationDemo()
 end

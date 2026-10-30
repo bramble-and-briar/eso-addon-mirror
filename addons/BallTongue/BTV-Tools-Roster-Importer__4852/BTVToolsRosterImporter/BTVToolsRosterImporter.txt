@@ -1,11 +1,11 @@
 ## Title: BTV Tools Roster Importer
 ## Author: BallTongue
-## Version: 0.3.0
-## AddOnVersion: 300
-## APIVersion: 101048
+## Version: 0.3.1
+## AddOnVersion: 301
+## APIVersion: 101051
 ## Description: Paste a roster export from BTVTools.com to get a full Wizard's Wardrobe setup ready to go. Automatically match items from your bags to the setup and get a list of items needed to be crafted, fetched, reconstructed or farmed, do them by hand or enable auto-craft to let the addon create the items needed for you.
-## DependsOn: WizardsWardrobe>=1232 IIfA LibAddonMenu-2.0 LibSets
-## OptionalDependsOn: LibLazyCrafting
+## DependsOn: WizardsWardrobe>=1232 IIfA>=30093 LibAddonMenu-2.0>=43 LibSets>=9040
+## OptionalDependsOn: LibLazyCrafting>=4042
 ## SavedVariables: BTVToolsVars
 
 ## Wizard's Wardrobe is where the setups live, IIfA is how "you own this, it is just on
@@ -24,6 +24,7 @@
 ## The WW floor is the version its internals were read against. DependsOn cannot express an
 ## upper bound, so a newer WW that moved them loads us happily; BTV.Import checks the paths
 ## it reaches for by hand and refuses by name instead of failing somewhere deep (#395).
+## Every other dependency has a floor too: the version installed when 0.3.1 was tested (#533).
 
 ## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
 ## The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.

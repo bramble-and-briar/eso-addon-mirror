@@ -18,7 +18,7 @@
     "TomesTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4488/",
-  "fingerprint": "09169731afb79beced759ba95f8448cb52a9caa3a221e572388a10e44e6c36a1",
+  "fingerprint": "a33cc51b39ed01c7106ff25eb7c7a9ccd077eb2b688a3179b467e629e2445ba2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16748.png",
     "https://cdn-eso.mmoui.com/preview/pvw16749.png",
@@ -32,11 +32,11 @@
   "source_id": "4488",
   "source_url": "https://www.esoui.com/downloads/info4488-TomesTracker.html",
   "stats": {
-    "downloads": 13108,
-    "favorites": 24,
-    "monthly_downloads": 688
+    "downloads": 13901,
+    "favorites": 25,
+    "monthly_downloads": 1180
   },
   "title": "Tomes Tracker",
-  "updated_at": 1792156777000,
-  "version": "3.1"
+  "updated_at": 1793304780000,
+  "version": "3.2"
 }

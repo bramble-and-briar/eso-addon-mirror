@@ -1,5 +1,5 @@
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "1.5.0"
+local ADDON_VERSION = "1.5.1"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel

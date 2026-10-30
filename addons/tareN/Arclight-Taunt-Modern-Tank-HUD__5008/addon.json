@@ -1,0 +1,44 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/tareN/Arclight-Taunt-Modern-Tank-HUD__5008",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "tareN",
+  "canonical_id": "esoui:5008",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5008",
+  "deleted": false,
+  "directories": [
+    "ArclightTaunt"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5008/",
+  "fingerprint": "93f15ab452455e242cc9ccf4d75e0bfa08ceddf9fa58126fb59465c3bab1e088",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18223.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18225.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18226.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18227.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18228.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18229.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5008",
+  "source_url": "https://www.esoui.com/downloads/info5008-ArclightTauntModernTankHUD.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Arclight Taunt \u2013 Modern Tank HUD",
+  "updated_at": 1793329360000,
+  "version": "1.0.1"
+}

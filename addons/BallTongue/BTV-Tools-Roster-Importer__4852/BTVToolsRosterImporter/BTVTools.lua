@@ -213,6 +213,7 @@ local DEFAULTS = {
 	historySize = 10,
 	debugTrace = false,     -- arms the match trace for one import (#483)
 	usePlacements = true,   -- put each skill in the player's saved slot at write (ADR 0020)
+	hudIcon = "import",     -- HUD icon: never / always / import, only while an import is in progress (owner, 2026-10-29)
 }
 
 function BTV.Setting( key )
@@ -239,6 +240,7 @@ end
 -- plan are recomputed from it on whichever character is logged in.
 function BTV.SaveRecord( record )
 	BTV.svAccount.record = record
+	if BTV.OnRecordChanged then BTV.OnRecordChanged() end
 end
 
 function BTV.GetRecord()
@@ -261,6 +263,7 @@ function BTV.FinishRecord()
 	record.doneAt = record.doneAt or GetTimeStamp()
 	PushHistory( record )
 	BTV.svAccount.record = nil
+	if BTV.OnRecordChanged then BTV.OnRecordChanged() end
 end
 
 -- Opening a past import makes it active again (#472); whatever was active takes its place
@@ -271,6 +274,7 @@ function BTV.Reactivate( index )
 	local active = BTV.svAccount.record
 	if active then PushHistory( active ) end
 	BTV.svAccount.record = record
+	if BTV.OnRecordChanged then BTV.OnRecordChanged() end
 	return record
 end
 
@@ -945,6 +949,35 @@ function BTV.Solve( demands, pool, req, trace )
 					break
 				end
 			end
+		end
+	end
+	-- rule 16: rule 11 promises the leader's layout wins, but the matching counts slots and
+	-- not the weight budget, so it can move a demand off its own slot to a re-slot the budget
+	-- then refuses (owner trace, 2026-10-28: one Trainee took the chest the sheet gave
+	-- Sergeant's Mail, Sergeant's heavy legs found no heavy left, and the plan then made a
+	-- second Trainee). So a demand that went without takes its own slot back from one that
+	-- only re-slotted there: one in, one out, and the one out is the plan's to create.
+	-- ponytail: one swap per demand, no chains; a budget-aware matching if a bag ever needs it.
+	local holder = {}
+	for dj, hit in pairs( placed ) do holder[ hit.slot ] = dj end
+	for di, demand in ipairs( demands ) do
+		local own = demand.slot
+		local dj = own and holder[ own ]
+		if dj and not placed[ di ] and not isSurplus[ di ] and demand.kind == "body" and not demand.alt
+			and demands[ dj ].slot ~= own and not demands[ dj ].alt then
+			local out = placed[ dj ].item
+			local refund = WeightCost( own, out, req )
+			if refund then budget[ refund ] = budget[ refund ] + 1 end
+			for _, item in ipairs( cand[ di ][ own ] ) do
+				local cost = WeightCost( own, item, req )
+				if not used[ item ] and ( not cost or ( budget[ cost ] or 0 ) > 0 ) then
+					if cost then budget[ cost ] = budget[ cost ] - 1 end
+					used[ out ], used[ item ] = nil, true
+					placed[ di ], placed[ dj ], holder[ own ] = { slot = own, item = item }, nil, di
+					break
+				end
+			end
+			if placed[ dj ] and refund then budget[ refund ] = budget[ refund ] - 1 end
 		end
 	end
 	-- rule 15: two sets trade slots for quality alone (owner, 2026-09-15). The sheet's
@@ -3730,6 +3763,8 @@ function BTV.MoveGear( moves )
 		end
 	end
 	local function Step()
+		-- A cancelled import (#535) stops the move at its next piece.
+		if not BTV.GetRecord() then Done() return end
 		index = index + 1
 		local item = moves.items[ index ]
 		if not item then
@@ -3775,15 +3810,11 @@ function BTV.CheckPlan()
 end
 
 -- Bag changes drive the ticks. Only set pieces landing in the backpack or on the body
--- matter, and looting fires in bursts, so the check is filtered and coalesced.
+-- matter, and looting fires in bursts, so the game filters the event per bag and the
+-- check is coalesced.
 local checkPending = false
-local function WatchedBag( bag )
-	return bag == BAG_BACKPACK or bag == BAG_WORN or bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK
-		or ( IsHouseBankBag and IsHouseBankBag( bag ) )
-end
 local function OnBagChanged( _, bag, slot )
 	if not BTV.GetRecord() or checkPending then return end
-	if not WatchedBag( bag ) then return end
 	-- An emptied slot is a piece gone (destroyed, deposited, sold), which can untick a
 	-- box; a filled one only matters when it holds a set piece.
 	local link = GetItemLink( bag, slot, LINK_STYLE_DEFAULT )
@@ -3822,7 +3853,9 @@ local function OnBankChanged( event )
 	end
 	local moves = BTV.Moves( plan )
 	if not moves or #moves.items == 0 then return end
-	if BTV.Setting( "autoOpen" ) and BTV.OpenWindow then BTV.OpenWindow( "plan", true ) end
+	-- Auto deposit/withdraw always shows the window (owner, 2026-10-24): gear never moves
+	-- with nothing on screen saying why.
+	if ( BTV.Setting( "autoOpen" ) or BTV.Setting( "autoDeposit" ) ) and BTV.OpenWindow then BTV.OpenWindow( "plan", true ) end
 	if BTV.Setting( "autoDeposit" ) then BTV.MoveGear( moves ) end
 end
 
@@ -3981,6 +4014,20 @@ local function OnStationClosed()
 	local run = BTV.crafting
 	if run and run.reference then BTV.llc:cancelItemByReference( run.reference ) end
 	BTV.crafting = nil
+end
+
+-- Cancel import (owner, 2026-10-24): the active import stops and goes to Past imports,
+-- not done, like a replaced one, so it can be picked up again. A bank move stops at
+-- its next piece; a queued craft is pulled from LibLazyCrafting.
+function BTV.CancelRecord()
+	local record = BTV.svAccount.record
+	if not record then return end
+	local run = BTV.crafting
+	if run and run.reference then BTV.llc:cancelItemByReference( run.reference ) end
+	BTV.crafting, BTV.reconstructing = nil, nil
+	PushHistory( record )
+	BTV.svAccount.record = nil
+	if BTV.OnRecordChanged then BTV.OnRecordChanged() end
 end
 
 -- Reconstruction runs itself at an open transmute station: one request at a time, the
@@ -4612,7 +4659,19 @@ local function SelfCheck()
 		assert( gap.cand.glyph == staffReq[ gap.slots[ 1 ] ].glyph, "35: each staff in the glyph its bar asked for" )
 	end
 
-	Say( "self check: 35 of 35 passed" )
+	-- 36. a demand that went without gets its own slot back from one that only re-slotted
+	-- there (owner trace, 2026-10-28): the sheet puts Sergeant's Mail on the chest and one
+	-- Trainee on the legs, the player owns a Sergeant chest and a Trainee chest but no Trainee
+	-- legs. Trainee took the chest, Sergeant's legs then broke the heavy budget, and the plan
+	-- made a second Trainee for the legs.
+	local trainee = { [ EQUIP_SLOT_CHEST ] = { trait = 18, weight = "heavy" }, [ EQUIP_SLOT_LEGS ] = { trait = 18, weight = "medium" } }
+	demands = { Body( EQUIP_SLOT_CHEST, 29 ), Body( EQUIP_SLOT_LEGS, 281 ) }
+	pool = { Item( 29, EQUIP_TYPE_CHEST, 18, HEAVY ), Item( 29, EQUIP_TYPE_LEGS, 18, HEAVY ), Item( 281, EQUIP_TYPE_CHEST, 18, HEAVY ) }
+	placed = BTV.Solve( demands, pool, trainee )
+	assert( placed[ 1 ] and placed[ 1 ].slot == EQUIP_SLOT_CHEST and placed[ 1 ].item.setId == 29, "36: Sergeant keeps the chest" )
+	assert( not placed[ 2 ], "36: Trainee goes without, so the plan makes its legs" )
+
+	Say( "self check: 36 of 36 passed" )
 end
 
 -- ---------------------------------------------------------------- settings UI
@@ -4624,11 +4683,10 @@ function BTV.Support()
 	MAIL_SEND:ComposeMailTo( "@balltongue_o" )
 end
 
--- LibAddonMenu is a hard dependency (#461, #463), so this only ever skips in the harness,
--- which stubs no LAM and asserts on the settings' behaviour rather than their pixels.
+-- LibAddonMenu is a hard dependency (#461, #463) with a >= floor in DependsOn (#533), so the
+-- game never loads the addon without it.
 local function RegisterSettingsPanel()
 	local LAM = LibAddonMenu2
-	if not LAM then return end
 	-- registerForRefresh: without it LibAddonMenu never re-reads the panel's controls
 	-- on "LAM-RefreshPanel", so a toggle flipped on the plan showed only after a reload
 	-- (owner hand test 2026-09-15).
@@ -4644,19 +4702,25 @@ local function RegisterSettingsPanel()
 		Toggle( "Account-wide settings", "accountWide",
 			"One set of settings for every character. Off keeps a separate set per character. The import record is always account-wide." ),
 		Toggle( "Auto-open at bankers and coffers", "autoOpen",
-			"While an import is in progress, opening a banker or a storage coffer opens the BTV window with what to move." ),
+			"While an import is in progress, opening a banker or a storage coffer opens the BTV window with what to move. Always on while Auto deposit/withdraw is on." ),
 		{ type = "dropdown", name = "Chat verbosity",
 			tooltip = "What an import says in chat. One line is the summary; Full is the whole report; Silent says nothing but errors.",
 			choices = { "Silent", "One line", "Full" }, choicesValues = { "silent", "line", "full" },
 			default = DEFAULTS.verbosity,
 			getFunc = function() return BTV.Setting( "verbosity" ) end,
 			setFunc = function( value ) BTV.SetSetting( "verbosity", value ) end },
+		{ type = "dropdown", name = "Show Icon",
+			tooltip = "When the BTV icon shows on your screen. Click it to open the BTV window, drag it to move it.",
+			choices = { "Never", "Always", "When import in progress" }, choicesValues = { "never", "always", "import" },
+			default = DEFAULTS.hudIcon,
+			getFunc = function() return BTV.Setting( "hudIcon" ) end,
+			setFunc = function( value ) BTV.SetSetting( "hudIcon", value ) end },
 		Toggle( "Exact traits only", "exactTraits",
 			"Never wear an off-trait piece. The import treats it as missing and plans a new one in the roster's trait." ),
 		Toggle( "Auto-overwrite our page", "autoOverwrite",
 			"Importing over an existing BTV page replaces it without asking. Pages you made yourself are never touched either way." ),
 		Toggle( "Auto deposit/withdraw", "autoDeposit",
-			"While an import is in progress, move its gear through the open bank or coffer without asking: deposit from a character holding it, withdraw on the importing character." ),
+			"While an import is in progress, move its gear through the open bank or coffer without asking: deposit from a character holding it, withdraw on the importing character. The BTV window opens too, so you see what moves." ),
 		Toggle( "Auto craft and reconstruct", "autoCraft",
 			"Run the plan's queued craft lines the moment a crafting station opens (needs LibLazyCrafting) and its queued reconstruct lines at a transmute station. Off leaves queued lines waiting." ),
 		{ type = "dropdown", name = "Import history size",
@@ -4689,8 +4753,23 @@ local function OnAddOnLoaded( _, addonName )
 	if addonName ~= BTV.name then return end
 	EVENT_MANAGER:UnregisterForEvent( BTV.name, EVENT_ADD_ON_LOADED )
 
+	-- The account table is kept per server (ESOUI moderator, 2026-10): an EU import record
+	-- means nothing on NA or the PTS. Up to 0.3.0 it lived in the "Default" profile, so the
+	-- first server played after the update takes it over, moved, not copied, so a second
+	-- server never gets a stale copy too. Done on the raw table before ZO_SavedVars wraps
+	-- it, so no metatable is copied; once Default has no "$AccountWide" it never runs again.
+	-- Per character data stays in Default: character ids are unique across servers.
+	-- ponytail: a player on two servers starts the second one fresh.
+	local world, account = GetWorldName(), GetDisplayName()
+	local old = BTVToolsVars and BTVToolsVars.Default and BTVToolsVars.Default[ account ]
+	if old and old[ "$AccountWide" ] and not ( BTVToolsVars[ world ] and BTVToolsVars[ world ][ account ] ) then
+		-- Only this account's entry: the file is shared by every account on this PC.
+		BTVToolsVars[ world ] = BTVToolsVars[ world ] or {}
+		BTVToolsVars[ world ][ account ] = { [ "$AccountWide" ] = old[ "$AccountWide" ] }
+		old[ "$AccountWide" ] = nil
+	end
 	BTV.svAccount = ZO_SavedVars:NewAccountWide( "BTVToolsVars", 1, nil,
-		{ settings = DEFAULTS, history = {}, tipsSeen = {}, placements = {} } )
+		{ settings = DEFAULTS, history = {}, tipsSeen = {}, placements = {} }, world )
 	BTV.svChar = ZO_SavedVars:NewCharacterIdSettings( "BTVToolsVars", 1, nil,
 		{ settings = DEFAULTS } )
 	-- Auto craft went from on to off by default (2026-10-14). ZO_SavedVars wrote the old
@@ -4708,9 +4787,16 @@ local function OnAddOnLoaded( _, addonName )
 
 	-- The plan's live triggers (#480): set pieces landing in a bag, and the bank opening or
 	-- closing, which changes what the match can see.
-	EVENT_MANAGER:RegisterForEvent( BTV.name .. "Bags", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBagChanged )
-	EVENT_MANAGER:AddFilterForEvent( BTV.name .. "Bags", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-		REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT )
+	-- One registration per watched bag, so the game drops every other bag's change
+	-- before any Lua runs (ESOUI moderator, 2026-10).
+	local watched = { BAG_BACKPACK, BAG_WORN, BAG_BANK, BAG_SUBSCRIBER_BANK }
+	for bag = BAG_HOUSE_BANK_ONE, BAG_HOUSE_BANK_TEN do table.insert( watched, bag ) end
+	for _, bag in ipairs( watched ) do
+		local name = BTV.name .. "Bags" .. bag
+		EVENT_MANAGER:RegisterForEvent( name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBagChanged )
+		EVENT_MANAGER:AddFilterForEvent( name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+			REGISTER_FILTER_BAG_ID, bag, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT )
+	end
 	EVENT_MANAGER:RegisterForEvent( BTV.name .. "Chatter", EVENT_CHATTER_BEGIN, OnChatterBegin )
 	EVENT_MANAGER:RegisterForEvent( BTV.name .. "BankOpen", EVENT_OPEN_BANK, OnBankChanged )
 	EVENT_MANAGER:RegisterForEvent( BTV.name .. "BankClose", EVENT_CLOSE_BANK, OnBankChanged )
@@ -4739,11 +4825,7 @@ local function OnAddOnLoaded( _, addonName )
 				Say( "No import in progress." )
 			end
 		elseif args == "settings" then
-			if BTV.settingsPanel then
-				LibAddonMenu2:OpenToPanel( BTV.settingsPanel )
-			else
-				Say( "settings need LibAddonMenu-2.0." )
-			end
+			LibAddonMenu2:OpenToPanel( BTV.settingsPanel )
 		elseif args == "placements" then
 			if BTV.OpenWindow then BTV.OpenWindow( "placements" ) end
 		elseif args == "remember" then
@@ -4783,6 +4865,8 @@ local function OnAddOnLoaded( _, addonName )
 	-- The fast path (#473): paste, one line, done. Today the two entries share one dialog;
 	-- they part ways when /btv grows the full window.
 	SLASH_COMMANDS[ "/btvpaste" ] = function() OpenDialog() end
+	-- Last session's import shows the HUD icon at login.
+	if BTV.OnRecordChanged then BTV.OnRecordChanged() end
 end
 
 EVENT_MANAGER:RegisterForEvent( BTV.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded )

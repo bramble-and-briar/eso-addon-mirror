@@ -71,17 +71,28 @@ function SimplePlayerFrames:Initialize()
     self:BuildMenu()
     self:ApplySettings()
 
-    -- Otimização Avançada: Filtra pelo PowerType para atualizar apenas a barra necessária
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax, powerEffectiveMax)
-        if powerType == POWERTYPE_HEALTH then
-            self:UpdateHealth(powerValue, powerEffectiveMax)
-        elseif powerType == POWERTYPE_MAGICKA then
-            self:UpdateMagicka(powerValue, powerEffectiveMax)
-        elseif powerType == POWERTYPE_STAMINA then
-            self:UpdateStamina(powerValue, powerEffectiveMax)
-        end
-    end)
-    EVENT_MANAGER:AddFilterForEvent(self.name, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+    -- Separate event registrations ensure that each filter applies to its callback.
+    local powerTypesWatched2EventCallbackFunction = {
+        [COMBAT_MECHANIC_FLAGS_HEALTH] = "UpdateHealth",
+        [COMBAT_MECHANIC_FLAGS_MAGICKA] = "UpdateMagicka",
+        [COMBAT_MECHANIC_FLAGS_STAMINA] = "UpdateStamina",
+    }
+    local playerStr = "player"
+
+    for powerType, callbackName in pairs(powerTypesWatched2EventCallbackFunction) do
+        local eventName = self.name .. "_Power_" .. tostring(powerType)
+        local updateFunction = self[callbackName]
+
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_POWER_UPDATE,
+            function(_, _, _, _, powerValue, powerMax, powerEffectiveMax)
+                local maximum = (powerEffectiveMax and powerEffectiveMax > 0)
+                    and powerEffectiveMax or powerMax
+                updateFunction(self, powerValue, maximum)
+            end)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_POWER_UPDATE,
+            REGISTER_FILTER_UNIT_TAG, playerStr,
+            REGISTER_FILTER_POWER_TYPE, powerType)
+    end
 
     local function OnVisualUpdated(_, _, visualType)
         if visualType == ATTRIBUTE_VISUAL_POWER_SHIELDING then
@@ -480,7 +491,7 @@ function SimplePlayerFrames:BuildMenu()
         name = "Simple Player Frames",
         displayName = "Simple Player Frames",
         author = "nakamura182",
-        version = "1.0.3",
+        version = "1.0.4",
         registerForRefresh = true,
         registerForDefaults = true,
     }

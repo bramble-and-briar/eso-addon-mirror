@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/thepandalore/Resurrection-Parse-Tracker__4826",
+  "archive_path": "addons/thepandalore/ResParse-Tracker__4826",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "thepandalore",
@@ -22,7 +22,7 @@
     "ResParse"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4826/",
-  "fingerprint": "f8b0f11a3844aeaa2b4c3b4a8551e67f08d4d36e27a9a8fe41ed646b106e11c5",
+  "fingerprint": "24a70b7dfdebd39eea9d76a69d94f5d526041312fa6ff9995bf2723158b1cee4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17339.png"
   ],
@@ -30,13 +30,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4826",
-  "source_url": "https://www.esoui.com/downloads/info4826-ResurrectionParseTracker.html",
+  "source_url": "https://www.esoui.com/downloads/info4826-ResParseTracker.html",
   "stats": {
-    "downloads": 81,
+    "downloads": 87,
     "favorites": 1,
-    "monthly_downloads": 40
+    "monthly_downloads": 39
   },
-  "title": "Resurrection Parse Tracker",
+  "title": "ResParse Tracker",
   "updated_at": 1789092917000,
   "version": "0.3.2"
 }

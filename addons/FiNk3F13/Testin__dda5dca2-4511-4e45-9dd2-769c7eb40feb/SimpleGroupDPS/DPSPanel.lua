@@ -1,6 +1,12 @@
 -- Damage and received healing are separate sections; only damage enters the DPS sum.
 local panel = {}
 SimpleGroupDPS_DPSPanel = panel
+local function isHealing(member)
+    if LFG_ROLE_HEAL ~= nil and member.role == LFG_ROLE_HEAL then return true end
+    if (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)
+        or (LFG_ROLE_TANK ~= nil and member.role == LFG_ROLE_TANK) then return false end
+    return (member.displayType or member.messageType) == "healing"
+end
 local function getLayout(options)
     options = type(options) == "table" and options or {}
     local width = math.max(280, math.min(400, tonumber(options.dpsWidth) or 400))
@@ -47,6 +53,8 @@ local function formatValue(value)
     if value == nil then return "" end
     if value == math.huge then return ">1,048 Mio." end
     if value < 1000 then return tostring(math.floor(math.max(0, value) + 0.5)) end
+    -- Keep the requested German unit even when ESO localizes thousands as "T.".
+    if value < 1000000 then return (string.format("%.1f Tsd.", value / 1000):gsub("%.", ",", 1)) end
     if ZO_AbbreviateAndLocalizeNumber then
         return ZO_AbbreviateAndLocalizeNumber(value, 1, false)
     end
@@ -56,7 +64,11 @@ local function formatValue(value)
 end
 
 local function formatMetrics(member, bossFight)
-    if member.messageType == "healing" then return formatValue(member.effectiveHPS) .. " (" .. formatValue(member.rawHPS) .. ")" end
+    if isHealing(member) then
+        if member.rawHPS == nil then return "" end
+        return formatValue(member.effectiveHPS) .. " (" .. formatValue(member.rawHPS) .. ")"
+    end
+    if member.dps == nil then return "" end
     if bossFight and member.bossDPS == nil then return "(" .. formatValue(member.dps) .. ")" end
     if bossFight then return formatValue(member.bossDPS) .. " (" .. formatValue(member.dps) .. ")" end
     return formatValue(member.dps)
@@ -64,7 +76,7 @@ end
 
 local function roleIcon(member)
     if LFG_ROLE_TANK and member.role == LFG_ROLE_TANK then return "EsoUI/Art/LFG/Gamepad/lfg_roleicon_tank.dds" end
-    if (LFG_ROLE_HEAL and member.role == LFG_ROLE_HEAL) or member.messageType == "healing" then
+    if isHealing(member) then
         return "EsoUI/Art/LFG/Gamepad/lfg_roleicon_healer.dds"
     end
     return "EsoUI/Art/LFG/LFG_icon_dps.dds"
@@ -118,12 +130,13 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     end
     members = values
     table.sort(members, function(a, b)
-        local aHealing, bHealing = a.messageType == "healing", b.messageType == "healing"
+        local aHealing, bHealing = isHealing(a), isHealing(b)
         if aHealing ~= bHealing then return not aHealing end
-        local aValue, bValue = aHealing and a.rawHPS or a.dps, bHealing and b.rawHPS or b.dps
+        local aValue, bValue = (aHealing and a.rawHPS or (not aHealing and a.dps)) or -1,
+            (bHealing and b.rawHPS or (not bHealing and b.dps)) or -1
         if bossFight and not aHealing then aValue, bValue = a.bossDPS or -1, b.bossDPS or -1 end
         if aValue ~= bValue then return aValue > bValue end
-        if not aHealing and a.dps ~= b.dps then return a.dps > b.dps end
+        if not aHealing and a.dps ~= b.dps then return (a.dps or -1) > (b.dps or -1) end
         return a.name < b.name
     end)
 
@@ -137,7 +150,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     end
     local damageCount, healingCount = 0, 0
     for _, member in ipairs(members) do
-        if member.messageType == "healing" then healingCount = healingCount + 1 else damageCount = damageCount + 1 end
+        if isHealing(member) then healingCount = healingCount + 1 else damageCount = damageCount + 1 end
     end
     local damageRows = damageCount > 0 and damageCount + 2 or 0
     local height = (damageRows + (healingCount > 0 and healingCount + 1 or 0)) * rowHeight + 8
@@ -172,13 +185,13 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
 
     local maximum, healingMaximum, sum, bossSum, unknownBoss = 0, 0, 0, 0, false
     for _, member in ipairs(members) do
-        if member.messageType == "healing" then
-            healingMaximum = math.max(healingMaximum, math.min(member.rawHPS, 1048576))
+        if isHealing(member) then
+            healingMaximum = math.max(healingMaximum, math.min(member.rawHPS or 0, 1048576))
         else
             local metric = member.dps
             if bossFight then metric = member.bossDPS end
             maximum = math.max(maximum, math.min(metric or 0, 1048576))
-            sum = sum + member.dps
+            sum = sum + (member.dps or 0)
             if member.bossDPS ~= nil then bossSum = bossSum + member.bossDPS else unknownBoss = true end
         end
     end
@@ -187,7 +200,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         rows[i] = row
         layoutRow(row, false, width, font, rowHeight, valueFont)
         row:ClearAnchors()
-        local healing = member.messageType == "healing"
+        local healing = isHealing(member)
         local line = healing and (damageRows + i - damageCount) or i
         row:SetAnchor(TOPLEFT, parent, TOPLEFT, 36, 4 + line * rowHeight)
         row:SetText((member.name:gsub("^@", "")))
@@ -200,7 +213,8 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         row.swtDPSValue:SetColor(0.88, 0.97, 1, member.stale and 0.55 or 1)
         row.swtIcon:SetHidden(false)
         row.swtIcon:SetTexture(roleIcon(member))
-        local metric = healing and member.rawHPS or member.dps
+        local metric
+        if healing then metric = member.rawHPS else metric = member.dps end
         if bossFight and not healing then metric = member.bossDPS end
         local barMaximum = healing and healingMaximum or maximum
         row.swtBar:SetValue(barMaximum > 0 and math.min(metric or 0, 1048576) / barMaximum or 0)

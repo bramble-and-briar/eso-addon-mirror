@@ -69,6 +69,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WinterQueen's Survey Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/WinterQueen-s-Survey-Banker__3256) | Irniben | PC / Mac | 0.2.0 |
 | [WishList (Set item search&tracker/wanted Gear list)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Meai/WishList-Set-item-search-tracker-wanted-Gear-list__1641) | Meai | PC / Mac | 3.21 |
 | [Witches Festival](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Witches-Festival__3496) | tim99 | PC / Mac | 4.7 |
+| [Wizard's Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Wizard-s-Helper__9dcd2732-49fe-45f8-b46e-86b0f938505f) | xbutch | Console | — |
 | [Wizard's Wardrobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Wizard-s-Wardrobe__3170) | ownedbynico | PC / Mac | 1.23.2 |
 | [Wizard's Wardrobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Wizard-s-Wardrobe__645213de-645d-4170-a4d0-0ee977090114) | STUDLETON | Console | — |
 | [Wizard's Wardrobe Console Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RagePhoenix96/Wizard-s-Wardrobe-Console-Companion__f6c4019b-59cf-4a0b-8550-0e83c807df18) | RagePhoenix96 | Console | — |

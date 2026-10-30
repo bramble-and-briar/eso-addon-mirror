@@ -9,7 +9,8 @@ function IsUnitGrouped() return grouped end
 local protocols, handlers = {}, 0
 local sent = {}
 LFG_ROLE_DPS, LFG_ROLE_TANK, LFG_ROLE_HEAL = 1, 2, 4
-function GetGroupMemberSelectedRole(tag) return tag == "group1" and LFG_ROLE_HEAL or LFG_ROLE_TANK end
+local roles = {group1 = LFG_ROLE_DPS, group2 = LFG_ROLE_TANK}
+function GetGroupMemberSelectedRole(tag) return roles[tag] end
 local sendEnabled, sendSucceeds = true, true
 LibGroupBroadcast = {
     CreateNumericField = function(name, options) return { name = name, bits = options.numBits } end,
@@ -62,10 +63,12 @@ receive("group1", { encodedAllDPS = 256 })
 assert(bridge:GetRows()[2].dps == 256, "logarithmic boundary decoded")
 receive("group1", { encodedAllDPS = 2047 })
 assert(bridge:GetRows()[1].dps == math.huge, "overflow sentinel retained")
+roles.group1 = LFG_ROLE_HEAL
 protocols[431].receive("group1", {encodedRawHPS = 400, encodedEffectiveHPS = 200})
 assert(#bridge:GetRows() == 2, "Healer must remain visible when receiving HPS")
 local healer = bridge:GetRows()[2]
-assert(healer.messageType == "healing" and healer.rawHPS == 400 and healer.effectiveHPS == 200 and healer.dps == nil)
+assert(healer.messageType == "healing" and healer.rawHPS == 400 and healer.effectiveHPS == 200 and healer.dps == math.huge,
+    "HPS updates retain the independent DPS sample")
 assert(healer.role == LFG_ROLE_HEAL and bridge:GetRows()[1].role == LFG_ROLE_TANK, "Role must not filter either participant")
 protocols[431].receive("group1", {encodedRawHPS = -1, encodedEffectiveHPS = 200})
 assert(#bridge:GetRows() == 2 and bridge:GetRows()[2].rawHPS == 400, "Invalid healing packet cannot erase valid cached values")
@@ -76,6 +79,14 @@ clock = 15001
 assert(#bridge:GetRows() == 1 and bridge:GetRows()[1].stale,
     "missing broadcasts retain the last known group row and mark it stale")
 receive("group1", { encodedAllDPS = 500 })
+assert(bridge:GetRows()[1].displayType == "healing" and bridge:GetRows()[1].stale,
+    "Fresh damage cannot refresh an old healer HPS sample or change their selected role")
+protocols[431].receive("group1", {encodedRawHPS = 400, encodedEffectiveHPS = 200})
+assert(not bridge:GetRows()[1].stale, "A fresh HPS sample refreshes the healer row")
+identities.group1 = "@NewHealer"
+receive("group1", {encodedAllDPS = 256})
+assert(bridge:GetRows()[1].rawHPS == nil and bridge:GetRows()[1].stale,
+    "An immediate packet from a replacement identity cannot inherit the previous player's HPS")
 grouped = false
 assert(#bridge:GetRows() == 0, "leaving group clears data")
 grouped = true

@@ -1,0 +1,137 @@
+Dungeon Scores publication and privacy summary
+==============================================
+Applies to DungeonScores 0.5.37 and the optional DungeonScoresRecords
+Companion 0.5.15. This notice describes the bundled client's behavior and the
+public-record data it exchanges; server-side retention and Discord delivery
+are controlled by the community service.
+
+LOCAL SCORING AND EXPLICIT PUBLICATION
+
+Dungeon Scores works locally without the optional records companion. Installing
+the companion does not automatically submit runs. A player must select a
+finalized run, assign an exact registered team roster, and press "Send selected
+score" to add a publication request to the SavedVariables queue. A completed
+run can be submitted to more than one publication destination. Guild records
+and guild events require their respective route selection. Race to the Bottom
+requires its separate opt-in selection; eligibility alone does not enter a run.
+An abandoned run can be queued only for Race to the Bottom, and only after the
+addon's minimum credible dungeon-progress check succeeds.
+
+The companion reads the local DungeonScores.lua SavedVariables file to locate
+publicationQueue requests. It submits only their payloads; it does not upload
+other run history, unselected personal bests, character names, chat, combat
+logs, Encounter.log, BETA diagnostics, or unrelated settings. It never edits
+DungeonScores.lua. A successful queue request does not guarantee placement in
+any leaderboard.
+
+INFORMATION SENT WITH AN EXPLICIT REQUEST
+
+The queued payload contains:
+- The public team name, the exact ESO @accountname roster, and the submitting
+  ESO @accountname.
+- PC megaserver, dungeon/zone ID and name, run ID, addon/schema versions,
+  run outcome (completed or abandoned), and completion/finalization timestamps.
+- Veteran and competitive-integrity indicators, credited boss count and any
+  minimum credible-progress threshold, elapsed time, final party size and
+  average party size, deaths, HM and trifecta results.
+- Score components and final signed standard score, including vitality,
+  tempo, and party-size adjustments. Only an explicit Race to the Bottom
+  request adds the low-score result and applicable abandonment, abandoned-HM,
+  NPC-companion, and pitstop deductions.
+- An explicit Race to the Bottom requested/not-requested flag and eligibility
+  flag. For a completed run, optional public guild/event identifiers, the
+  permanent-guild-record request flag, and route-specific ESO membership-check
+  booleans are included when applicable.
+
+The player's complete ESO guild list is not uploaded. Route membership flags
+are not a substitute for a teammate's consent to publication.
+
+PUBLIC RECORDS AND DISCORD
+
+The service processes and may retain accepted submissions and resulting
+competitive standings across PC NA and PC EU in the relevant dungeon and
+party-size divisions. This bundled client does not establish a
+server-side retention period for displaced or rejected submissions.
+Ordinary World Records rank higher scores by dungeon and party-size division
+(with overall record views also supported). Guild records are scoped to their
+configured guild, dungeon, and division. Race to the Bottom ranks lower scores
+across all eligible dungeons in independent solo, duo, trio, and quartet
+divisions; it can include completed runs and qualifying abandoned runs. Events
+use their configured eligibility and placement rules.
+
+Public record snapshots and Discord announcements may display team name and
+ESO @accountname roster, score and placement, dungeon, megaserver, party size,
+elapsed time, deaths, supported HM/trifecta results, addon version,
+submission timestamps, and (for Race to the Bottom) completion/abandonment
+status and applicable deductions. World Record and Race to the Bottom
+standings support ordinal top-ten placements. Guild publication depth is
+configured per guild (one through ten); event placements follow event rules.
+Standings changes may produce refreshed public Discord messages in the
+configured destination channels. The server, not the companion, decides
+eligibility, rankings, and announcement delivery.
+
+The companion also downloads public World Record, party-size, top-standing,
+Race to the Bottom, guild, event, and opt-in guild-directory information. It
+writes a sanitized data snapshot to DungeonScoresRecords/Records.lua for the
+in-game browser. This file can contain other players' public team names and
+ESO @accountnames, as well as configured guild recruitment/contact details.
+The companion does not receive Discord bot credentials or private channel
+configuration.
+
+TEAM CONSENT AND VERIFIABILITY
+
+Submit a team roster only after every listed teammate has agreed to public
+identification by ESO @accountname. Public submissions and Discord messages
+may remain visible even after a local score or installation is deleted.
+Community-submitted results are not cryptographic proof of an in-game clear.
+
+OPTIONAL BACKGROUND COMPANION AND LOCAL STORAGE
+
+The companion is a separately installed .NET program. Its installer copies a
+watcher into the current user's local application-data directory, starts it,
+and creates a per-user login/startup entry. The watcher detects ESO activity,
+checks the SavedVariables file for explicit requests, and refreshes public
+records when ESO starts, when addon data is saved, after ESO exits, and about
+every five minutes while ESO is running. An additional sync can occur if
+SavedVariables changes while ESO is closed; otherwise there is no periodic
+network activity while ESO is closed. Public-record refreshes can occur with
+no new score to upload. Uploads use HTTPS POST /v1/runs and public-record
+refreshes use HTTPS GET /v1/records at
+https://dungeon-scores-api.sagofett.workers.dev. As with other web services,
+the service can see connection metadata such as the requesting IP address
+and request time. Service logging/retention is not established by this ZIP.
+
+The optional control window opens in the player's default browser. While the
+window is open, the companion listens only on a temporary local 127.0.0.1
+address with an unguessable per-window path token. It does not expose the
+controls on the network. Opening the page can start an already-enabled
+watcher after an upgrade; that watcher follows its normal sync schedule.
+Start/Stop manage the watcher;
+the separate login switch manages the per-user startup entry. A manual Sync
+uses the same explicit publication queue and public-record refresh as the
+background watcher. Pressing Close controls closes the local listener; it
+also closes after two minutes without browser activity.
+
+Local application data includes the installed watcher/configuration, a
+submitted-request-key ledger (submitted.json), a bounded delivery-status
+ledger (delivery-status.json), watcher and latest-sync status, and a private
+installation credential (credential.json). The credential is generated at the
+first attempted queued upload unless the player supplied one explicitly; it
+authenticates uploads and is not embedded in Records.lua or Delivery.lua.
+The companion writes up to 100 recent local delivery outcomes to Delivery.lua
+for the in-game browser. The ledgers and Delivery.lua use queue keys that can
+contain team names and ESO @accountnames; keep them private. Delivery receipts
+report server acceptance or local retry state, not leaderboard placement or
+Discord delivery. Do not share the credential.
+The installed startup watcher can be stopped and its login entry removed with
+the matching Companion/Advanced/Disable-Startup launcher. Disabling or deleting
+local files does not automatically remove published records or Discord posts.
+
+CORRECTION OR DELETION REQUESTS
+
+For a request to correct or remove published information, contact the Dungeon
+Scores ESOUI support thread or the community support channel, identifying the
+relevant team/record. Published Discord announcements may require separate
+moderation or removal. This package does not specify a guaranteed server
+retention period or an automated erasure schedule; ask the service operator
+for current retention and deletion handling.

@@ -66,12 +66,12 @@ end
 
 function O.FinishNativeSkillAnimations(button)
     if not button then return end
-    for _,key in ipairs({"hotbarSwapAnimation","timerSwapAnimation","stackCountSwapAnimation","bounceAnimation","iconBounceAnimation"}) do
+    -- "Ohne Animation" refers only to the weapon-bar transition. A skill's
+    -- own pressed/bounce animation and glow remain active in every view.
+    for _,key in ipairs({"hotbarSwapAnimation","timerSwapAnimation","stackCountSwapAnimation"}) do
         local timeline=button[key]
         if timeline and timeline:IsPlaying() then timeline:PlayInstantlyToEnd(false) end
     end
-    suppressArt(button.glow)
-    suppressArt(button.activationHighlight)
 end
 
 function O.FinishFixedUltimateSwap()
@@ -79,12 +79,12 @@ function O.FinishFixedUltimateSwap()
         for slot=3,8 do O.FinishNativeSkillAnimations(ZO_ActionBar_GetButton(slot)) end
         return
     end
-    if not O.IsFixedSkillView() or not O.vars.backBar or not O.vars.enabled
+    if not O.vars.enabled or not O.IsFixedSkillView() or not O.vars.backBar
         or not O.OtherBar(GetActiveHotbarCategory()) or not ZO_ActionBar_GetButton then return end
     local button=ZO_ActionBar_GetButton(8)
     if not button then return end
-    -- Finish only the ultimate's weapon-swap timelines. Run ESO's callbacks
-    -- so the new ability, cost meter and noUpdates state are still refreshed.
+    -- Only the ultimate skips the weapon-swap flip. Normal skills keep their
+    -- native animation; activation/bounce timelines are left untouched here.
     for _,key in ipairs({"hotbarSwapAnimation","timerSwapAnimation","stackCountSwapAnimation"}) do
         local timeline=button[key]
         if timeline and timeline:IsPlaying() then timeline:PlayInstantlyToEnd(false) end
@@ -163,22 +163,21 @@ end
 
 function O.UpdateBackBarTimer(skin)
     if skin.timerBar==nil or not skin.timerVisible then return end
-    local other=O.OtherBar(GetActiveHotbarCategory())
+    local displayed=O.SkillDisplayBar and O.SkillDisplayBar(skin.button) or GetActiveHotbarCategory()
+    local other=O.OtherBar(displayed)
     if other~=skin.timerBar then return end
     local text=O.BackBarTimerText(skin.timerSlot,other)
     skin.timer:SetText(text)
     O.UpdateStackText(skin.backStacks,skin.timerSlot,other)
     O.UpdateSkillProcHighlight(skin,true,skin.timerSlot,other,true)
-    local procSkill=O.IsStackProcSkill(skin.timerSlot,other) or O.IsSkillProcReady(skin.timerSlot,other)
-    local running=not procSkill and (text~="" or O.GetSkillStackCount(skin.timerSlot,other)>0
-        or (IsSlotToggled and IsSlotToggled(skin.timerSlot,other))) or false
-    if skin.previewRunning~=running or skin.previewTintRevision~=O.textRevision then
-        skin.previewRunning=running; skin.previewTintRevision=O.textRevision
-        local c=running and (O.vars.skillFrameColor or O.vars.accent) or {0.55,0.55,0.55}
-        skin.backIcon:SetDesaturation(running and 0 or 0.75)
-        local brightness=running and 1 or 0.7
-        skin.backIcon:SetColor(brightness,brightness,brightness,1)
-        skin.backMetal:SetDesaturation(running and 0 or 1)
+    -- Bar identity, not a running effect, determines the inactive icon's tint.
+    -- Keep the parent and text untouched so timers and stacks remain legible.
+    if not skin.previewMuted or skin.previewTintRevision~=O.textRevision then
+        skin.previewMuted=true; skin.previewTintRevision=O.textRevision
+        local c={0.55,0.55,0.55}
+        skin.backIcon:SetDesaturation(1)
+        skin.backIcon:SetColor(0.7,0.7,0.7,1)
+        skin.backMetal:SetDesaturation(1)
         skin.backMetal:SetColor(c[1],c[2],c[3],1)
         for i,edge in ipairs(skin.back.edges) do edge:SetColor(c[1],c[2],c[3],i==1 and 1 or 0.65) end
     end
@@ -214,6 +213,45 @@ local function restoreQuickslotArt()
     quickslotArt={}
 end
 
+function O.SkillPreviewTexture(slot,bar)
+    local id=O.GetSkillAbilityId and O.GetSkillAbilityId(slot,bar) or GetSlotBoundId(slot,bar)
+    id=tonumber(id) or 0
+    if id<=0 then return nil end
+    local texture=GetSlotTexture(slot,bar)
+    -- Inactive slots can temporarily have no native slot texture during a
+    -- weapon swap. The slotted ability still supplies its own icon.
+    if type(texture)~="string" or texture=="" then
+        texture=GetAbilityIcon and GetAbilityIcon(id)
+    end
+    return type(texture)=="string" and texture~="" and texture or nil
+end
+
+function O.UpdateSkillPreview(skin,slot,active,visible)
+    if O.SkillDisplayBar then active=O.SkillDisplayBar(skin.button) end
+    local other=O.OtherBar(active)
+    local texture=other and O.SkillPreviewTexture(slot,other)
+    local show=(slot~=8 or O.DualUltimateView()) and visible and O.vars.backBar and texture~=nil
+        and (O.vars.skillHudView~="running" or hasRunningSkill(slot,other))
+    if O.IsFixedSkillView() then
+        O.StopPreviewSwap(skin)
+        skin.back:SetAlpha(1)
+    end
+    O.LayoutSkillPreview(skin)
+    skin.back:SetHidden(not show)
+    skin.timerVisible=show
+    if not show then
+        O.StopPreviewSwap(skin)
+        O.StopSkillProcHighlight(skin.procBack)
+    end
+    if texture then
+        O.SetPreviewTexture(skin,texture)
+        skin.timerSlot,skin.timerBar=slot,other
+        O.UpdateBackBarTimer(skin)
+    else
+        skin.timerBar=nil; skin.timer:SetText(""); skin.backStacks:SetText("")
+    end
+end
+
 function O.UpdateQuickslot(visible)
     restoreQuickslotArt()
     if not O.vars.enabled or not O.vars.quickslotFrame or not ZO_ActionBar_GetButton then
@@ -227,7 +265,7 @@ function O.UpdateQuickslot(visible)
     end
     if not quickslotSkin or quickslotSkin.button~=button then
         if quickslotSkin then quickslotSkin.frame:SetHidden(true) end
-        quickslotSkin=O.CreateSlotSkin(button)
+        quickslotSkin=O.CreateSlotSkin(button,true)
     end
     styleSlot(quickslotSkin,visible)
     -- Hide only the decorative backing; native item count, cooldown, keybinds
@@ -258,33 +296,15 @@ function O.UpdateSkills(visible)
             if O.NoSkillAnimationsView() then O.FinishNativeSkillAnimations(button)
             elseif slot==8 then O.FinishFixedUltimateSwap() end
             styleSlot(skin,visible)
-            if O.IsFixedSkillView() then O.StopPreviewSwap(skin) end
             skin.activeTextSlot=slot
-            O.LayoutSkillPreview(skin)
+            O.UpdateSkillPreview(skin,slot,active,visible)
             O.StyleSkillText(skin)
             skin.activeTextSlot,skin.activeTextBar,skin.activeTextVisible=slot,active,visible
             skin.textRoot:SetHidden(not visible)
             skin.activeTimer:ClearAnchors()
-            skin.activeTimer:SetAnchor(CENTER,button.icon,CENTER,0,slot==8 and -9 or 0)
+            skin.activeTimer:SetAnchor(CENTER,button.slot,CENTER,0,slot==8 and -9 or 0)
             O.UpdateActiveSkillText(skin)
-            local texture=GetSlotTexture(slot,other)
-            local hasSkill=texture and texture~="" and GetSlotBoundId(slot,other)~=0
-            local showPreview=(slot~=8 or O.DualUltimateView()) and visible and O.vars.backBar and hasSkill
-                and (O.vars.skillHudView~="running" or hasRunningSkill(slot,other))
-            skin.back:SetHidden(not showPreview)
-            skin.timerVisible=showPreview
-            if not showPreview then
-                O.StopPreviewSwap(skin)
-                O.StopSkillProcHighlight(skin.procBack)
-            end
             if slot==8 then skin.timer:SetText(""); skin.backStacks:SetText("") end
-            if hasSkill then
-                O.SetPreviewTexture(skin,texture)
-                skin.timerSlot,skin.timerBar=slot,other
-                O.UpdateBackBarTimer(skin)
-            else
-                skin.timerBar=nil; skin.timer:SetText(""); skin.backStacks:SetText("")
-            end
             if slot==8 then O.UpdateUltimateCharge(skin) end
             -- Keep native skill controls and keybinds; only replace decorative art.
             suppressArt(button.slot:GetNamedChild("Backdrop"))

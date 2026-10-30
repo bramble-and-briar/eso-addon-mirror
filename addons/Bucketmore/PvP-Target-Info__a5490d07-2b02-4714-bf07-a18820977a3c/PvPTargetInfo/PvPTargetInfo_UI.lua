@@ -41,6 +41,7 @@ local SV_KEY = {
     buff   = "buffUI",
     debuff = "debuffUI",
     proc   = "procUI",
+    pen    = "penUI", -- v2.0.5: UI④ 貫通・敵耐性低下パネル
 }
 
 -- v1.4.3で修正: 「重要バフ」「重要デバフ」の表記を廃止し、シンプルに
@@ -51,6 +52,7 @@ local WINDOW_TITLES = {
     buff   = "BUFF",
     debuff = "DEBUFF",
     proc   = "CONDITION",
+    pen    = "PEN",
 }
 
 -- v1.4.16で追加: ヘッダー背景バー方式(「デザイン版」設定)を廃止した代わりに、
@@ -59,6 +61,7 @@ local TITLE_COLORS = {
     buff   = { 0.55, 1.00, 0.55 }, -- 明るい緑(BUFF)
     debuff = { 1.00, 0.40, 0.40 }, -- 明るい赤(DEBUFF)
     proc   = { 0.45, 0.85, 1.00 }, -- 水色(Proc)
+    pen    = { 1.00, 0.75, 0.30 }, -- 橙(貫通)
 }
 
 PTI.UI.windows = PTI.UI.windows or {}
@@ -304,6 +307,7 @@ function PTI.UI.ApplyAllPositions()
     PTI.UI.ApplyPosition("buff")
     PTI.UI.ApplyPosition("debuff")
     PTI.UI.ApplyPosition("proc")
+    PTI.UI.ApplyPosition("pen")
 end
 
 function PTI.UI.ApplyFontSize(key)
@@ -348,13 +352,22 @@ function PTI.UI.SetWindowVisible(key)
         hiddenByCombat = PTI.UI.hiddenByCombat and not PTI.sv.previewMode
     end
 
+    -- v2.0.5: UI④(pen)は、パネルON(PTI.Pen.Sync)・プレイヤーをターゲット中
+    -- (PTI.UI.penHasContent、Pen.lua側が更新)の時だけ表示する。戦闘状態や
+    -- UI①②③の表示状態には一切依存しない。previewMode中は従来通り表示する。
+    local hiddenByEmptyPen = false
+    if key == "pen" then
+        if PTI.Pen and PTI.Pen.Sync then PTI.Pen.Sync() end
+        hiddenByEmptyPen = (not PTI.sv.previewMode) and not PTI.UI.penHasContent
+    end
+
     local hiddenByEmptyProc = false
     if key == "proc" then
         hiddenByEmptyProc = (not PTI.sv.previewMode) and not PTI.UI.procHasContent
     end
 
     local shouldShow = PTI.sv.enabled and not hiddenByScene and not hiddenByCombat
-        and not hiddenByEmptyProc and sv.enabled ~= false
+        and not hiddenByEmptyProc and not hiddenByEmptyPen and sv.enabled ~= false
     entry.window:SetHidden(not shouldShow)
 end
 
@@ -377,11 +390,13 @@ function PTI.UI.Initialize()
     PTI.UI.CreateWindow("buff")
     PTI.UI.CreateWindow("debuff")
     PTI.UI.CreateWindow("proc")
+    PTI.UI.CreateWindow("pen")
 
     PTI.UI.ApplyAllPositions()
     PTI.UI.RefreshRowLayout("buff")
     PTI.UI.RefreshRowLayout("debuff")
     PTI.UI.RefreshRowLayout("proc")
+    PTI.UI.RefreshRowLayout("pen")
 
     -- STEP5で追加: リロードUI等で既に戦闘中の場合に備え、IsUnitInCombatで
     -- 初期値を正しく設定してからRefreshVisibility()する(以後はイベント駆動)。
@@ -390,6 +405,7 @@ function PTI.UI.Initialize()
     -- STEP6で追加: procHasContentはProcs.lua側の最初のTickが来るまではfalse
     -- (=非表示)としておく(「発動していない時は勝手に表示しない」仕様のため)。
     PTI.UI.procHasContent = false
+    PTI.UI.penHasContent = false -- v2.0.5: Pen.luaの最初のスキャンまでは非表示
 
     PTI.UI.RefreshVisibility()
 

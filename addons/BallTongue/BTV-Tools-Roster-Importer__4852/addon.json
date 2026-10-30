@@ -8,6 +8,10 @@
   "category_id": "19",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "BTVToolsRosterImporter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4852/",
-  "fingerprint": "20219e91344d0fa644ca55fc757711b6734d5233301a881d5f486ebad925da44",
+  "fingerprint": "fafb5d2d8cbf2f4669bab1eafe69f6da5a0ae88e53acebd7d5cd1c075f162e17",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17434.png",
     "https://cdn-eso.mmoui.com/preview/pvw17435.png",
@@ -36,11 +40,11 @@
   "source_id": "4852",
   "source_url": "https://www.esoui.com/downloads/info4852-BTVToolsRosterImporter.html",
   "stats": {
-    "downloads": 95,
-    "favorites": 1,
-    "monthly_downloads": 93
+    "downloads": 163,
+    "favorites": 2,
+    "monthly_downloads": 108
   },
   "title": "BTV Tools Roster Importer",
-  "updated_at": 1792158982000,
-  "version": "0.3.0"
+  "updated_at": 1793285630000,
+  "version": "0.3.1"
 }

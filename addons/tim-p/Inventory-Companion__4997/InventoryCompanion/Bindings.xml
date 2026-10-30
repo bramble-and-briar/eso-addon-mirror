@@ -26,6 +26,12 @@
                 </Down>
             </Action>
 
+            <Action name="InventoryCompanion_Toggle_ItemTracker">
+                <Down>
+                    InventoryCompanion.ToggleItemTrackerPanel()
+                </Down>
+            </Action>
+
         </Category>
     </Layer>
 </Bindings>

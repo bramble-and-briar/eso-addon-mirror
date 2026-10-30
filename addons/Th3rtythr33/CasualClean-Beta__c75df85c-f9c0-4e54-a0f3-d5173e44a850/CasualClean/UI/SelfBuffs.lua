@@ -21,8 +21,10 @@
 -- lists are final, before any icon exists. In that window this module
 --
 --   1. RECORDS every entry for the player container (ability id, name, icon,
---      buff or debuff) into a capped catalogue in SavedVariables, and
---   2. REMOVES entries whose ability id the player has hidden.
+--      buff or debuff) into a capped catalogue in SavedVariables,
+--   2. REMOVES entries whose ability id the player has hidden, and
+--   3. MERGES repeated instances of one effect into a single entry whose
+--      stackCount is the number of copies (see MergeRepeats below).
 --
 -- ZOS then draws the bar exactly as it always does: same icons, timers,
 -- stacks, fading, HUD-editor position, and every style. Nothing is drawn
@@ -70,7 +72,7 @@ local hookInstalled = false
 local hookState = "not attempted"
 local panel = nil              -- the LHAS AddonSettings object, once attached
 local headIndex = nil          -- index of our ST_SECTION row on the panel
-local HEAD_ROWS = 4            -- section, master checkbox, reload button, forget button
+local HEAD_ROWS = 5            -- section, master checkbox, merge checkbox, reload button, forget button
 local tailRowCount = 0         -- rows after the head: two list sections plus their effect rows
 local FORGET_DIALOG = "CASUALCLEAN_FORGET_EFFECTS"
 local catalogueDirty = false   -- rows need rebuilding
@@ -87,6 +89,18 @@ function B.GetEnabled()
         return s.selfBuffsFilter
     end
     return B.DEFAULT_ENABLED
+end
+
+-- Repeated instances of one effect (same ability id, for example one named
+-- buff applied by two sources) collapse into one icon carrying the number
+-- of copies (Matt, 2026-10-29). On by default: 1.8.0 is unshipped.
+B.DEFAULT_MERGE_REPEATS = true
+function B.GetMergeRepeats()
+    local s = sv()
+    if s and s.selfBuffsMergeRepeats ~= nil then
+        return s.selfBuffsMergeRepeats
+    end
+    return B.DEFAULT_MERGE_REPEATS
 end
 
 -- Per-effect choice, three-way by decision (Matt, 2026-10-28): 1 = show,
@@ -205,6 +219,71 @@ local function FilterList(list, choice, filterOn, isDebuff)
     end
 end
 
+-- Collapse repeated instances of one effect into a single entry. ZOS's own
+-- SetupIcon (buffdebuffstyles.lua) writes data.stackCount into the icon's
+-- "Stacks" label whenever it is above zero, and buffdebuff.xml anchors that
+-- label BOTTOMRIGHT of the icon (ZoFontGamepadBold20 on gamepad), so the
+-- merged entry only needs the right number there and the game draws it.
+-- The surviving entry keeps the first copy's place in the sorted order and
+-- takes its timing from the copy that ends last (a permanent copy wins), so
+-- the timer does not run out while a copy remains. The count is the sum of
+-- each copy's own stacks, an unstacked copy counting as one; a lone copy is
+-- left exactly as ZOS built it. Runs after FilterList, so hidden copies are
+-- neither drawn nor counted.
+local function EndsLater(a, b)
+    if a.permanent then return not b.permanent end
+    if b.permanent then return false end
+    return (tonumber(a.timeEnding) or 0) > (tonumber(b.timeEnding) or 0)
+end
+
+local function OwnStacks(data)
+    local n = tonumber(data.stackCount) or 0
+    if n < 1 then n = 1 end
+    return n
+end
+
+-- Effects that should merge although their copies carry different ability
+-- ids (one heal-over-time cast by several people can arrive under several
+-- ids). Maps ability id -> group key; every id in a group merges into one
+-- icon, which keeps the name and art of the first copy in sorted order.
+-- Empty until Matt supplies the ids from `/casualclean bar` (2026-10-29).
+B.MERGE_GROUPS = {}
+
+local function MergeKeyOf(data)
+    local key = KeyOf(data)
+    if key == nil then return nil end
+    return B.MERGE_GROUPS[key] or key
+end
+
+local function MergeRepeats(list)
+    local kept, copies, stacks = {}, {}, {}
+    local i = 1
+    while i <= #list do
+        local data = list[i]
+        local key = MergeKeyOf(data)
+        local first = key ~= nil and kept[key] or nil
+        if key == nil then
+            i = i + 1
+        elseif not first then
+            kept[key], copies[key], stacks[key] = data, 1, OwnStacks(data)
+            i = i + 1
+        else
+            copies[key] = copies[key] + 1
+            stacks[key] = stacks[key] + OwnStacks(data)
+            if EndsLater(data, first) then
+                first.timeStarted, first.timeEnding = data.timeStarted, data.timeEnding
+                first.duration, first.permanent = data.duration, data.permanent
+            end
+            table.remove(list, i)
+        end
+    end
+    for key, data in pairs(kept) do
+        if copies[key] > 1 then
+            data.stackCount = stacks[key]
+        end
+    end
+end
+
 -- Runs after ZO_BuffDebuffStyleObject.UpdateContainer has filled and sorted
 -- the style's lists, before the concrete style turns them into icons.
 local function AfterUpdateContainer(style, containerObject)
@@ -215,12 +294,15 @@ local function AfterUpdateContainer(style, containerObject)
         return
     end
     local filterOn = B.GetEnabled()
+    local mergeOn = B.GetMergeRepeats()
     local choice = Choice()
     if type(style.sortedBuffs) == "table" then
         FilterList(style.sortedBuffs, choice, filterOn, false)
+        if mergeOn then MergeRepeats(style.sortedBuffs) end
     end
     if type(style.sortedDebuffs) == "table" then
         FilterList(style.sortedDebuffs, choice, filterOn, true)
+        if mergeOn then MergeRepeats(style.sortedDebuffs) end
     end
 end
 
@@ -452,6 +534,15 @@ local function HeadRows()
             default = B.DEFAULT_ENABLED,
         },
         {
+            type = LHAS.ST_CHECKBOX,
+            label = "Merge repeated effects into one icon",
+            tooltip = "When the same effect is on you more than once, show one icon with the number of copies in its bottom-right corner instead of one icon per copy. " ..
+                      "The timer follows the copy that lasts longest. Off draws every copy, as the game does.",
+            getFunction = function() return B.GetMergeRepeats() end,
+            setFunction = function(value) B.SetMergeRepeats(value) end,
+            default = B.DEFAULT_MERGE_REPEATS,
+        },
+        {
             -- Added 2026-10-28: on console the list did not pick up effects
             -- collected since the last reload, so the reload is offered here
             -- rather than left to a slash command. ReloadUI("ingame") is the
@@ -506,6 +597,14 @@ function B.SetEnabled(value)
     RefreshBar()
 end
 
+function B.SetMergeRepeats(value)
+    local s = sv()
+    if s then
+        s.selfBuffsMergeRepeats = value and true or false
+    end
+    RefreshBar()
+end
+
 function B.SetShowUnset(isDebuff, value)
     local s = sv()
     if s then
@@ -544,6 +643,35 @@ function B.Init()
     RegisterForgetDialog()
 end
 
+-- For `/casualclean bar`: the player's live effect list straight from the
+-- API, before any filtering or merging, one line per copy with its ability
+-- id, buff slot, stacks and time left. This is how to collect the ids of
+-- effects that should merge but do not, for MERGE_GROUPS above.
+function B.GetBarReport()
+    local out = {}
+    if type(GetNumBuffs) ~= "function" or type(GetUnitBuffInfo) ~= "function" then
+        out[1] = "GetNumBuffs / GetUnitBuffInfo missing"
+        return out
+    end
+    local n = GetNumBuffs("player") or 0
+    local nowS = type(GetFrameTimeSeconds) == "function" and GetFrameTimeSeconds() or 0
+    out[1] = string.format("%d effect(s) on the player, raw, before filtering or merging", n)
+    for i = 1, n do
+        local name, timeStarted, timeEnding, slot, stacks, _, _, effectType, _, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player", i)
+        local when
+        if (timeEnding or 0) == (timeStarted or 0) then
+            when = "permanent"
+        else
+            when = string.format("%.0fs left", (timeEnding or 0) - nowS)
+        end
+        out[#out + 1] = string.format("  %s id=%d slot=%d stacks=%d %s%s%s",
+            tostring(name), tonumber(abilityId) or 0, tonumber(slot) or 0, tonumber(stacks) or 0, when,
+            effectType == BUFF_EFFECT_TYPE_DEBUFF and " debuff" or "",
+            castByPlayer and " yours" or "")
+    end
+    return out
+end
+
 -- For `/casualclean buffs`.
 function B.GetReport()
     local shownCount, hiddenCount = 0, 0
@@ -555,8 +683,8 @@ function B.GetReport()
         end
     end
     local out = {}
-    out[#out + 1] = string.format("enabled=%s hook=%s seen=%d/%d show=%d hide=%d unsetBuffs=%s unsetDebuffs=%s panel=%s rows=%d dirty=%s",
-        tostring(B.GetEnabled()), hookState, seenCount, B.MAX_SEEN, shownCount, hiddenCount,
+    out[#out + 1] = string.format("enabled=%s merge=%s hook=%s seen=%d/%d show=%d hide=%d unsetBuffs=%s unsetDebuffs=%s panel=%s rows=%d dirty=%s",
+        tostring(B.GetEnabled()), tostring(B.GetMergeRepeats()), hookState, seenCount, B.MAX_SEEN, shownCount, hiddenCount,
         B.GetShowUnset(false) and "shown" or "hidden", B.GetShowUnset(true) and "shown" or "hidden",
         tostring(panel ~= nil), tailRowCount, tostring(catalogueDirty))
     for _, wantDebuffs in ipairs({ false, true }) do

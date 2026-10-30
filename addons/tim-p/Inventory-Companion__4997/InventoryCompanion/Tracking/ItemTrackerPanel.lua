@@ -3,6 +3,20 @@ local this = InventoryCompanion
 
 local trackerRows = {}
 local originalTrackerPos = nil
+local previousLayout = nil
+local ROW_HEIGHT = 22
+local ROW_WIDTH = 320
+local MAX_GROUP_ITEM_ROWS = 200
+local MIN_COUNT_WIDTH = 36
+local COUNT_WIDTH_PER_CHARACTER = 8
+
+local function GetRowsContainer()
+    return InventoryCompanion_ItemTrackerFloatContainerRows
+end
+
+local function GetRowsChild()
+    return GetControl(GetRowsContainer(), "ScrollChild")
+end
 
 local function OnTrackerMoveStop(control)
     this.accountWide.trackerOffsetX = control:GetLeft()
@@ -73,6 +87,14 @@ function this.InitItemTrackerPanel()
         end
     end)
 
+    local settingsIcon = InventoryCompanion_ItemTrackerFloatSettingsIcon
+    settingsIcon:SetAlpha(0.6)
+    settingsIcon:SetHandler("OnMouseEnter", function(control) control:SetAlpha(1.0) end)
+    settingsIcon:SetHandler("OnMouseExit", function(control) control:SetAlpha(0.6) end)
+    settingsIcon:SetHandler("OnClicked", function()
+        this.OpenSettingsPanel()
+    end)
+
     this.RefreshItemTrackerPanel()
 end
 
@@ -85,38 +107,21 @@ local function HideAllTrackerRows()
     end
 end
 
-local function RenderEmptyState()
-    local row = trackerRows[1]
-    if not row then
-        row = CreateControlFromVirtual("InventoryCompanion_ItemTrackerFloatRow_", InventoryCompanion_ItemTrackerFloatContainer, "InventoryCompanion_ItemTrackerRow_Multi_Template", 1)
-        table.insert(trackerRows, row)
-    end
-    row:ClearAnchors()
-    row:SetAnchor(TOPLEFT, InventoryCompanion_ItemTrackerFloatTitle, BOTTOMLEFT, 0, 4)
-    
-    local iconControl = GetControl(row, "Icon")
-    iconControl:SetTexture("EsoUI/Art/Buttons/edit_up.dds")
-
-    GetControl(row, "Name"):SetText("|c888888No tracked items in backpack|r")    
-    GetControl(row, "Count"):SetText("")
-    row:SetHidden(false)
-end
-
 local function GetOrCreateTrackerRow(rowIndex)
     local row = trackerRows[rowIndex]
     if not row then
-        row = CreateControlFromVirtual("InventoryCompanion_ItemTrackerFloatRow_", InventoryCompanion_ItemTrackerFloatContainer, "InventoryCompanion_ItemTrackerRow_Multi_Template", rowIndex)
+        row = CreateControlFromVirtual("InventoryCompanion_ItemTrackerFloatRow_", GetRowsChild(), "InventoryCompanion_ItemTrackerRow_Multi_Template", rowIndex)
         trackerRows[rowIndex] = row
     end
     return row
 end
 
-local function ApplyRowAnchors(row, rowIndex)
+local function ApplyRowAnchors(row, rowIndex, wrapped)
     row:ClearAnchors()
     if rowIndex == 1 then
-        row:SetAnchor(TOPLEFT, InventoryCompanion_ItemTrackerFloatTitle, BOTTOMLEFT, 0, 4)
+        row:SetAnchor(TOPLEFT, GetRowsChild(), TOPLEFT, 0, 0)
     else
-        row:SetAnchor(TOPLEFT, trackerRows[rowIndex - 1], BOTTOMLEFT, 0, (this.accountWide.wrapTrackedItemNames == true) and 4 or 2)
+        row:SetAnchor(TOPLEFT, trackerRows[rowIndex - 1], BOTTOMLEFT, 0, wrapped and 4 or 2)
     end
 end
 
@@ -140,9 +145,19 @@ local function GetAvailableNameWidth(row, nameControl)
     return math.max(50, availableWidth)
 end
 
-local function PopulateBaseRow(rowIndex, itemData)
+local function GetCountText(item)
+    if item.isEmpty then return "" end
+    local text = this.Utils.FormatBigNumber(item.count)
+    if item.showBank then
+        text = (item.bankCount and this.Utils.FormatBigNumber(item.bankCount) or "err") .. " \\ " .. text
+    end
+    return text
+end
+
+local function PopulateBaseRow(rowIndex, itemData, wrapped)
     local row = GetOrCreateTrackerRow(rowIndex)
-    ApplyRowAnchors(row, rowIndex)
+    ApplyRowAnchors(row, rowIndex, wrapped)
+    row:SetWidth(ROW_WIDTH)
     
     local nameControl = GetControl(row, "Name")
     local iconControl = GetControl(row, "Icon")
@@ -167,11 +182,9 @@ local function PopulateBaseRow(rowIndex, itemData)
             if button == MOUSE_BUTTON_INDEX_LEFT and itemData.ruleName then
                 local activeRules = this.GetActiveTrackedRules()
                 local ruleData = activeRules[itemData.ruleName]
-                if ruleData then
-                    local newState = not (ruleData.display.isExpanded == true)
-                    this.SetRuleFlag(itemData.ruleName, "isExpanded", newState)
-                    this.RefreshItemTrackerPanel()
-                end
+                local newState = not (ruleData.display.isExpanded == true)
+                this.SetRuleFlag(itemData.ruleName, "isExpanded", newState)
+                this.RefreshItemTrackerPanel(newState and "expand" or "collapse", itemData.ruleName)
             end
         end)
         row:SetHandler("OnMouseUp", function(control, button)
@@ -180,6 +193,9 @@ local function PopulateBaseRow(rowIndex, itemData)
             end
         end)
         row:SetMouseEnabled(true)
+        row:SetHandler("OnMouseWheel", function(_, delta)
+            ZO_Scroll_OnMouseWheel(GetRowsContainer(), delta)
+        end)
 
     elseif itemData.isGroupMember then
         expandIcon:SetHidden(true)
@@ -207,25 +223,34 @@ local function PopulateBaseRow(rowIndex, itemData)
     end
 
     iconControl:SetTexture(itemData.icon or "")
+    iconControl:SetHidden(itemData.overflowCount ~= nil)
     iconControl:SetDrawLayer(DL_CONTROLS)
     iconControl:SetDrawLevel(2)
     iconControl:SetAlpha(1.0)
+    if itemData.isOverflowGroup then
+        iconControl:SetColor(1, 0.75, 0, 1)
+    else
+        iconControl:SetColor(1, 1, 1, 1)
+    end
             
     nameControl:SetText(itemData.link)        
-
-    local countText = this.Utils.FormatBigNumber(itemData.count)
-    
-    if itemData.showBank then
-        if itemData.bankCount then        
-            countText = this.Utils.FormatBigNumber(itemData.bankCount) .. " \\ " .. countText
-        else
-            countText = "err \\ " .. countText
+    if itemData.isOverflowGroup then
+        nameControl:SetColor(1, 0.25, 0.25, 1)
+    elseif itemData.isEmpty then
+        nameControl:SetColor(1, 1, 1, 1)
+    else
+        local quality = itemData.quality or GetItemLinkQuality(itemData.link) or 0
+        local colorDef = GetItemQualityColor(math.max(0, quality))
+        if colorDef then
+            nameControl:SetColor(colorDef:UnpackRGBA())
         end
     end
+
+    local countText = GetCountText(itemData)
     countCtrl:SetText(countText)
 
     row:SetHidden(false)
-    return { row = row, nameControl = nameControl, countCtrl = countCtrl }
+    return { row = row, nameControl = nameControl, countCtrl = countCtrl, countText = countText }
 end
 
 local function CalculateMaxCountWidth(computedRows)
@@ -233,6 +258,9 @@ local function CalculateMaxCountWidth(computedRows)
     for _, entry in ipairs(computedRows) do
         entry.countCtrl:SetWidth(0)
         local width = entry.countCtrl:GetTextWidth()
+        if entry.countText ~= "" then
+            width = math.max(width, MIN_COUNT_WIDTH, #entry.countText * COUNT_WIDTH_PER_CHARACTER)
+        end
         if width > maxWidth then
             maxWidth = width
         end
@@ -252,33 +280,60 @@ local function CalculateMinAvailableNameWidth(computedRows, maxCountWidth)
     return minWidth
 end
 
-local function ApplyFinalRowLayout(computedRows, minAvailableWidth)
-    for _, entry in ipairs(computedRows) do
+local function ApplyFinalRowLayout(computedRows, minAvailableWidth, items, wrapped)
+    local height = 0
+    for index, entry in ipairs(computedRows) do
         local nameControl = entry.nameControl
         local row = entry.row
 
-        if this.accountWide.wrapTrackedItemNames == true then
+        nameControl:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+        if wrapped and not items[index].isGroup then
             nameControl:SetDimensionConstraints(minAvailableWidth, 0, minAvailableWidth, 0)
-            row:SetHeight(math.max(nameControl:GetTextHeight(), 22))
+            items[index].rowUnits = math.max(1, nameControl:GetNumLines())
         else
-            nameControl:SetDimensionConstraints(minAvailableWidth, 22, minAvailableWidth, 22)
-            row:SetHeight(22)
+            nameControl:SetDimensionConstraints(minAvailableWidth, ROW_HEIGHT, minAvailableWidth, ROW_HEIGHT)
+            items[index].rowUnits = 1
+        end
+        row:SetHeight(items[index].rowUnits * ROW_HEIGHT)
+        height = height + row:GetHeight() + (index > 1 and (wrapped and 4 or 2) or 0)
+    end
+    return height
+end
+
+local function MeasureWrappedRows(items)
+    local row = GetOrCreateTrackerRow(1)
+    local name, count = GetControl(row, "Name"), GetControl(row, "Count")
+    local maxCountWidth, maxIndent = 0, 22
+    count:SetWidth(0)
+    for _, item in ipairs(items) do
+        count:SetText(GetCountText(item))
+        maxCountWidth = math.max(maxCountWidth, count:GetTextWidth())
+        maxIndent = math.max(maxIndent, item.isGroup and 44 or (item.isGroupMember and 40 or 22))
+    end
+    local width = math.max(50, ROW_WIDTH - maxIndent - maxCountWidth - 12)
+    name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    name:SetDimensionConstraints(width, 0, width, 0)
+    for _, item in ipairs(items) do
+        if item.isGroup then
+            item.rowUnits = 1
+        else
+            name:SetText(item.link)
+            item.rowUnits = math.max(1, name:GetNumLines())
         end
     end
 end
 
-local function RenderPopulatedRows(itemsToDisplay)
+local function RenderPopulatedRows(itemsToDisplay, wrapped)
     HideAllTrackerRows()
-    
     local computedRows = {}
     for rowIndex, itemData in ipairs(itemsToDisplay) do
-        table.insert(computedRows, PopulateBaseRow(rowIndex, itemData))
+        table.insert(computedRows, PopulateBaseRow(rowIndex, itemData, wrapped))
     end
     
     local maxCountWidth = CalculateMaxCountWidth(computedRows)
     local minAvailableWidth = CalculateMinAvailableNameWidth(computedRows, maxCountWidth)
     
-    ApplyFinalRowLayout(computedRows, minAvailableWidth)
+    return ApplyFinalRowLayout(computedRows, minAvailableWidth, itemsToDisplay, wrapped)
 end
 
 ------------------------------------------------------------------
@@ -372,7 +427,7 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
             local displayName = colorDef and colorDef:Colorize(groupTitle) or groupTitle
 
             -- Insert Group Header
-            table.insert(itemsToDisplay, {
+            local groupHeader = {
                 link = displayName,
                 icon = bestIcon,
                 count = totalGroupCount,
@@ -382,11 +437,13 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
                 isGroup = true,
                 isExpanded = ruleData.display.isExpanded == true,
                 ruleName = ruleName,
-            })
+                quality = math.max(0, highestQuality),
+            }
+            table.insert(itemsToDisplay, groupHeader)
 
-            -- Insert Group Members if Expanded
-            if ruleData.display.isExpanded == true and itemIds then
+            if itemIds then
                 local groupMembers = {}
+                local memberCount = 0
                 for _, itemId in ipairs(itemIds) do
                     local itemData = snapshot.items[itemId]
                     if itemData then
@@ -397,23 +454,45 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
 
                         local memberRelCount = itemShowBank and ((itemData.bagCount + itemData.bankCount) > 0) or (itemData.bagCount > 0)
                         if memberRelCount or showEmpty then
-                            table.insert(groupMembers, {
-                                link = itemData.link,
-                                icon = itemData.icon,
-                                count = itemData.bagCount,
-                                showBank = itemShowBank,
-                                bankCount = itemData.bankCount,
-                                sortName = GetItemLinkName(itemData.link) or "",
-                                isGroupMember = true,
-                                parentGroup = ruleName,
-                            })
+                            memberCount = memberCount + 1
+                            if memberCount <= MAX_GROUP_ITEM_ROWS then
+                                table.insert(groupMembers, {
+                                    link = itemData.link,
+                                    icon = itemData.icon,
+                                    count = itemData.bagCount,
+                                    showBank = itemShowBank,
+                                    bankCount = itemData.bankCount,
+                                    sortName = GetItemLinkName(itemData.link) or "",
+                                    isGroupMember = true,
+                                    parentGroup = ruleName,
+                                    itemId = itemId,
+                                })
+                            end
                         end
                     end
                 end
 
-                table.sort(groupMembers, function(a, b) return a.sortName < b.sortName end)
-                for _, member in ipairs(groupMembers) do
-                    table.insert(itemsToDisplay, member)
+                if memberCount > MAX_GROUP_ITEM_ROWS then
+                    groupHeader.isOverflowGroup = true
+                    groupHeader.link = groupTitle
+                    groupHeader.icon = "/esoui/art/buttons/info_up.dds"
+                    table.insert(itemsToDisplay, {
+                        link = string.format("Your patterns matched %d items - too many to display here.",
+                            memberCount),
+                        isEmpty = true,
+                        isGroupMember = true,
+                        parentGroup = ruleName,
+                        itemId = "overflow",
+                        overflowCount = memberCount,
+                    })
+                else
+                    table.sort(groupMembers, function(a, b)
+                        if a.sortName == b.sortName then return a.itemId < b.itemId end
+                        return a.sortName < b.sortName
+                    end)
+                    for _, member in ipairs(groupMembers) do
+                        table.insert(itemsToDisplay, member)
+                    end
                 end
             end
         end
@@ -551,6 +630,192 @@ local function BuildDisplayList(snapshot, activeRules, trackedItems, showEmpty)
     ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, showEmpty, itemsToDisplay)
 
     return itemsToDisplay
+end
+
+local function RuleSignature(rule)
+    local parts = { tostring(rule.display.show), tostring(rule.display.bank),
+        tostring(rule.display.group), tostring(rule.display.isHidden) }
+    for _, pattern in ipairs(rule.patterns) do
+        parts[#parts + 1] = #pattern .. ":" .. pattern
+    end
+    return table.concat(parts, ";")
+end
+
+local function BuildLayoutModel(items, rules)
+    local model = { items = items, groups = {}, order = {}, baseRows = 0 }
+    for _, item in ipairs(items) do
+        if item.isGroup then
+            local group = {
+                expanded = item.isExpanded, members = {}, memberCount = 0,
+                ruleSignature = RuleSignature(rules[item.ruleName]), signatureParts = {},
+            }
+            model.groups[item.ruleName] = group
+            model.order[#model.order + 1] = item.ruleName
+        elseif item.isGroupMember then
+            local group = model.groups[item.parentGroup]
+            group.members[item.itemId] = true
+            group.memberCount = group.memberCount + 1
+            group.signatureParts[#group.signatureParts + 1] = tostring(item.itemId) .. ":" .. tostring(item.showBank)
+                .. ":" .. tostring(item.overflowCount)
+        end
+        if not item.isGroupMember then
+            model.baseRows = model.baseRows + 1
+        end
+    end
+    for _, name in ipairs(model.order) do
+        local group = model.groups[name]
+        group.signature = group.ruleSignature .. ";" .. table.concat(group.signatureParts, ";")
+        group.signatureParts = nil
+    end
+    return model
+end
+
+local function SelectRows(model, expanded)
+    local rows = {}
+    for _, item in ipairs(model.items) do
+        if not item.isGroupMember or expanded[item.parentGroup] then
+            rows[#rows + 1] = item
+        end
+    end
+    return rows
+end
+
+local function CountRows(model, expanded)
+    local count = model.baseRows
+    for _, name in ipairs(model.order) do
+        if expanded[name] then
+            local group = model.groups[name]
+            count = count + group.memberCount
+        end
+    end
+    return count
+end
+
+local function LayoutChanged(model, previous)
+    if not previous or #model.order ~= #previous.order then return true end
+    for _, name in ipairs(model.order) do
+        local group, old = model.groups[name], previous.groups[name]
+        if not old or group.signature ~= old.signature or group.memberCount ~= old.memberCount then return true end
+        for id in pairs(group.members) do
+            if not old.members[id] then return true end
+        end
+    end
+    return false
+end
+
+local function ChooseLayout(model, previous, reason, target, budget)
+    local expanded, allExpanded = {}, {}
+    for _, name in ipairs(model.order) do
+        expanded[name] = model.groups[name].expanded
+        allExpanded[name] = true
+    end
+
+    local function Fits(selection)
+        return CountRows(model, selection) <= budget
+    end
+
+    local changed = LayoutChanged(model, previous)
+    local function Reintroduced(name)
+        local group, old = model.groups[name], previous.groups[name]
+        if not old or old.signature ~= group.signature then
+            -- Membership changes during inventory bursts are growth, not configuration changes.
+            if old and reason == "inventory" and old.ruleSignature == group.ruleSignature then return false end
+            return true
+        end
+        return false
+    end
+    if reason ~= "expand" and reason ~= "collapse"
+        and (changed or reason == "settings")
+        and Fits(allExpanded) then
+        expanded = allExpanded
+    elseif reason ~= "expand" and reason ~= "collapse" and previous then
+        -- Reintroduced/edited categories may use spare space, but may not displace others.
+        for _, name in ipairs(model.order) do
+            if Reintroduced(name) then
+                expanded[name] = false
+            end
+        end
+        local used = CountRows(model, expanded)
+        for _, name in ipairs(model.order) do
+            if Reintroduced(name) then
+                local additional = model.groups[name].memberCount
+                if used + additional <= budget then
+                    expanded[name] = true
+                    used = used + additional
+                end
+            end
+        end
+    end
+
+    local collapsed = false
+    if not Fits(expanded) and (changed or not previous or reason == "expand"
+        or reason == "settings" or previous.budget ~= budget) then
+        local retain = nil
+        if reason == "expand" then
+            retain = target
+        elseif reason == "inventory" and previous then
+            local candidates = 0
+            for _, name in ipairs(model.order) do
+                local group, old = model.groups[name], previous.groups[name]
+                if old and old.expanded and expanded[name] and group.ruleSignature == old.ruleSignature
+                    and group.memberCount > old.memberCount then
+                    candidates = candidates + 1
+                    retain = name
+                end
+            end
+            if candidates ~= 1 then retain = nil end
+        end
+        for _, name in ipairs(model.order) do
+            expanded[name] = name == retain
+        end
+        collapsed = true
+    end
+    return expanded, collapsed
+end
+
+local function ApplyViewport(contentHeight, budget, wrapped, previousOffset, target)
+    local container = InventoryCompanion_ItemTrackerFloatContainer
+    local headerHeight = InventoryCompanion_ItemTrackerFloatTitle:GetHeight() + 4
+    local gap = wrapped and 4 or 2
+    local maxHeight = math.max(1, math.min(budget * (ROW_HEIGHT + gap) - gap,
+        GuiRoot:GetHeight() - headerHeight - 8))
+    local viewportHeight = math.min(contentHeight, maxHeight)
+    local scrollable = contentHeight > viewportHeight
+    local contentWidth = ROW_WIDTH - (scrollable and ZO_SCROLL_BAR_WIDTH or 0)
+    local rows = GetRowsContainer()
+    rows:SetWidth(ROW_WIDTH)
+    rows:SetHeight(viewportHeight)
+    rows.scroll:ClearAnchors()
+    rows.scroll:SetAnchor(TOPLEFT, rows, TOPLEFT, 0, 0)
+    rows.scroll:SetAnchor(BOTTOMRIGHT, rows, BOTTOMRIGHT,
+        scrollable and -ZO_SCROLL_BAR_WIDTH or 0, 0)
+    GetRowsChild():SetDimensions(contentWidth, contentHeight)
+    if scrollable then
+        for _, row in ipairs(trackerRows) do
+            if not row:IsHidden() then
+                row:SetWidth(contentWidth)
+                local name = GetControl(row, "Name")
+                local nameWidth = name:GetWidth() - ZO_SCROLL_BAR_WIDTH
+                name:SetDimensionConstraints(nameWidth, ROW_HEIGHT, nameWidth, ROW_HEIGHT)
+            end
+        end
+    end
+    container:SetWidth(ROW_WIDTH)
+    container:SetHeight(headerHeight + viewportHeight)
+    InventoryCompanion_ItemTrackerFloat:SetWidth(ROW_WIDTH + 20)
+    InventoryCompanion_ItemTrackerFloat:SetHeight(headerHeight + viewportHeight + 8)
+    ZO_Scroll_UpdateScrollBar(rows)
+    local offset = math.max(0, math.min(previousOffset, contentHeight - viewportHeight))
+    if target then
+        local top = target:GetTop() - GetRowsChild():GetTop()
+        if top < offset then offset = top end
+        if top + ROW_HEIGHT > offset + viewportHeight then offset = top + ROW_HEIGHT - viewportHeight end
+    end
+    if scrollable then
+        ZO_Scroll_ScrollAbsoluteInstantly(rows, offset)
+    else
+        ZO_Scroll_ResetToTop(rows)
+    end
 end
 
 ------------------------------------------------------------------
@@ -694,7 +959,7 @@ local function GetTrackerDisplayList()
     end
 
     local snapshot = this.GetMasterItemList(trackedItems, activeRules, bagIdList)
-    return BuildDisplayList(snapshot, activeRules, trackedItems, showEmpty)
+    return BuildDisplayList(snapshot, activeRules, trackedItems, showEmpty), activeRules
 end
 
 local function ApplyBoundedPosition(oldLeft, oldTop)
@@ -714,7 +979,23 @@ local function ApplyBoundedPosition(oldLeft, oldTop)
     InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, oldLeft, finalTop)
 end
 
-function this.RefreshItemTrackerPanel()
+function this.SetItemTrackerPanelVisible(visible)
+    assert(type(visible) == "boolean", "Tracker visibility must be a boolean")
+    this.accountWide.showTrackedItemsPanel = visible
+    this.UpdateEventRegistry()
+    this.RefreshItemTrackerPanel()
+end
+
+function this.ToggleItemTrackerPanel()
+    this.SetItemTrackerPanelVisible(this.accountWide.showTrackedItemsPanel == false)
+end
+
+function this.RefreshItemTrackerPanel(reason, targetGroup)
+    local titleSize = this.accountWide.trackerTitleSize
+    InventoryCompanion_ItemTrackerFloatTitle:SetFont(string.format("%s|%d|soft-shadow-thin",
+        ZoFontGame:GetFontInfo(), titleSize))
+    InventoryCompanion_ItemTrackerFloatEditIcon:SetDimensions(titleSize, titleSize)
+    InventoryCompanion_ItemTrackerFloatSettingsIcon:SetDimensions(titleSize, titleSize)
     if this.accountWide.showTrackedItemsPanel == false then
         InventoryCompanion_ItemTrackerFloat:SetHidden(true)
         return
@@ -723,13 +1004,48 @@ function this.RefreshItemTrackerPanel()
     local oldLeft, oldTop = GetTrackerCoordinates()
     HideAllTrackerRows()
 
-    local itemsToDisplay = GetTrackerDisplayList()
-
-    if #itemsToDisplay == 0 then
-        RenderEmptyState()
-    else
-        RenderPopulatedRows(itemsToDisplay)
+    local context, revision = this.GetTrackerContext()
+    local contextChanged = not previousLayout or previousLayout.context ~= context
+        or previousLayout.revision ~= revision
+    if contextChanged then previousLayout = nil end
+    local _, scrollOffset = GetRowsContainer().scroll:GetScrollOffsets()
+    if contextChanged then scrollOffset = 0 end
+    local items, rules = GetTrackerDisplayList()
+    if #items == 0 then
+        items = { { link = "|c888888No tracked items in backpack|r", count = 0,
+            icon = "EsoUI/Art/Buttons/edit_up.dds", isEmpty = true } }
     end
-    
+    local budget = math.min(this.accountWide.trackerMaxRows,
+        math.max(1, math.floor((GuiRoot:GetHeight() - InventoryCompanion_ItemTrackerFloatTitle:GetHeight() - 12) / 24)))
+    local model = BuildLayoutModel(items, rules)
+    -- Single-line row totals are a lower bound: an overflowing selection cannot fit wrapped.
+    local expanded, collapsed = ChooseLayout(model, previousLayout, reason, targetGroup, budget)
+    local selected = SelectRows(model, expanded)
+    local wrapped = false
+    if this.accountWide.wrapTrackedItemNames == true and not collapsed and #selected <= budget then
+        MeasureWrappedRows(selected)
+        local units = 0
+        for _, item in ipairs(selected) do units = units + item.rowUnits end
+        wrapped = units <= budget
+    end
+    for _, name in ipairs(model.order) do
+        local group = model.groups[name]
+        if expanded[name] ~= group.expanded then
+            this.SetRuleFlag(name, "isExpanded", expanded[name])
+        end
+        group.expanded = expanded[name]
+    end
+    local contentHeight = RenderPopulatedRows(selected, wrapped)
+    local target = nil
+    for index, item in ipairs(selected) do
+        if item.isGroup then
+            GetControl(trackerRows[index], "ExpandIcon"):SetTexture(expanded[item.ruleName]
+                and "EsoUI/Art/Buttons/minus_up.dds" or "EsoUI/Art/Buttons/plus_up.dds")
+            if reason == "expand" and item.ruleName == targetGroup then target = trackerRows[index] end
+        end
+    end
+    ApplyViewport(contentHeight, budget, wrapped, scrollOffset, target)
+    model.context, model.revision, model.budget = context, revision, budget
+    previousLayout = model
     ApplyBoundedPosition(oldLeft, oldTop)
 end

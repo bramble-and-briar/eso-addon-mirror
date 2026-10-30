@@ -270,6 +270,11 @@ function UP.Plague.HeldPlagueName()
 end
 
 local function publish()
+    -- Icons (0.4.2) and tint get the same answer: plagued now, or held through
+    -- death until respawn. Each decides for itself whether to draw.
+    if UP.PlagueIcon and UP.PlagueIcon.SetActive then
+        UP.PlagueIcon.SetActive(active ~= nil or heldThroughDeath)
+    end
     if UP.PlagueTint then
         if UP.PlagueTint.SetActive then
             UP.PlagueTint.SetActive(active ~= nil or heldThroughDeath)

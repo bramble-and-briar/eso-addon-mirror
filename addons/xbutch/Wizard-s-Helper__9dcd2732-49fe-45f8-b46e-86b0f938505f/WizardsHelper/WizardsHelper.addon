@@ -1,0 +1,18 @@
+## Title: Wizard's Helper (Beta)
+## Description: Copy Wizard's Wardrobe setups between characters and access WW commands through LibRadialMenu.
+## Author: xbutch
+## Version: 0.1.0-beta.1
+## AddOnVersion: 1
+## APIVersion: 101051
+## IsLibrary: false
+## DependsOn: WizardsWardrobe
+## OptionalDependsOn: LibRadialMenu
+## SavedVariables: WizardsHelperSV
+
+Bootstrap.lua
+Scheduler.lua
+Wardrobe.lua
+Gamepad.xml
+UI.lua
+Radial.lua
+Bindings.xml

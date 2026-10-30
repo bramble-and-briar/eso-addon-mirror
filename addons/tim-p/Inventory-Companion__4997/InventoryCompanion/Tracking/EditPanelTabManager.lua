@@ -24,9 +24,6 @@ function this.UpdateEditorLayout()
     local isItemOpen = itemWindow and not itemHidden
     local isGroupOpen = groupWindow and not groupHidden
 
-    -- Diagnostic print to verify execution and values
-    d(string.format("[IC Layout Debug] UpdateEditorLayout called -> ItemHidden: %s | GroupHidden: %s", tostring(itemHidden), tostring(groupHidden)))
-
     if isItemOpen and this.AdjustTrackerPositionForEditor then
         this.Utils.DebugMessage(" -> Adjusting for Items Window")
         this.AdjustTrackerPositionForEditor(itemWindow)
@@ -62,6 +59,12 @@ function this.OpenEditGroupsPanel()
     SCENE_MANAGER:Hide("InventoryCompanion_TrackedItemsScene")
     SCENE_MANAGER:Show("InventoryCompanion_GroupsScene")
     this.RefreshGroupsEditor()
+end
+
+function this.OpenSettingsFromEditor()
+    SCENE_MANAGER:Hide("InventoryCompanion_TrackedItemsScene")
+    SCENE_MANAGER:Hide("InventoryCompanion_GroupsScene")
+    this.OpenSettingsPanel()
 end
 
 function this.ToggleTrackedItemsEditor()

@@ -159,6 +159,30 @@ function UP.Debug.Refresh()
                     and "HELD (died plagued; clears on respawn)" or "no"),
             (UP.PlagueTint and UP.PlagueTint.IsPreviewActive and UP.PlagueTint.IsPreviewActive())
                 and "  +PREVIEW" or ""),
+        -- Pull detection (0.4.2): off / armed / a live warning with its set.
+        ("pull=%s%s"):format(
+            (UP.Pull and UP.Pull.Enabled and not UP.Pull.Enabled()) and "off"
+                or ((UP.Pull and UP.Pull.IsActive and UP.Pull.IsActive())
+                    and ("%s %.1fs left"):format(tostring(UP.Pull.ActiveSet()),
+                                                 (UP.Pull.RemainingMs() or 0) / 1000)
+                    or "armed"),
+            (UP.PullIndicator and UP.PullIndicator.IsPreviewActive and UP.PullIndicator.IsPreviewActive())
+                and "  +PREVIEW" or ""),
+        -- 0.5.5 field diagnostic: which icon/border controls are UNHIDDEN right
+        -- now, straight from the controls. If this says Y while nothing is on
+        -- screen, the logic ran and the fault is in drawing (texture, order);
+        -- if it says N during a preview, the fault is in the logic.
+        (function()
+            local function yn(v) return v and "Y" or "N" end
+            local pc, ps = false, false
+            if UP.PlagueIcon and UP.PlagueIcon.IsShowing then pc, ps = UP.PlagueIcon.IsShowing() end
+            local uc, us, ub = false, false, false
+            if UP.PullIndicator and UP.PullIndicator.IsShowing then uc, us, ub = UP.PullIndicator.IsShowing() end
+            return ("shown: plagueCorners=%s plagueCentre=%s pullCorners=%s pullCentre=%s pullBorders=%s"):format(
+                yn(pc), yn(ps), yn(uc), yn(us), yn(ub))
+        end)(),
+        -- No More Oopsies (0.5.5): the first-person guard's state.
+        (UP.FirstPersonGuard and UP.FirstPersonGuard.GetReport) and UP.FirstPersonGuard.GetReport() or "fpGuard=n/a",
         ("dmgEvts=%d  activeDebuffs=%d  cand=%s"):format(
             s.damageEventCount or 0, effectCount, tostring(s.candidateState)),
         "--- recent events ---",

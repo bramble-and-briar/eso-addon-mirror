@@ -3,6 +3,14 @@
 
 
 
+[color=#6FCB9F]Version: 3.13.232847[/color]
+
+Camera-smoothing restoration reliability fix.
+
+- Fixed the original camera-smoothing value being discarded before ESO confirmed its restoration.
+
+
+
 [color=#6FCB9F]Version: 3.12.232154[/color]
 
 Internal simplification with no intended changes to camera behavior.

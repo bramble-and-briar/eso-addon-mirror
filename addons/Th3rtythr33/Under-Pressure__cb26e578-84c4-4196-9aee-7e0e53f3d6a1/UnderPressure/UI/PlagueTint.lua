@@ -113,9 +113,14 @@ local function updateDeathNote()
     if not deathNote then return end
     local show = deathNoteText ~= nil
     if show then
-        -- Setting is the Plague Indicator's own switch; the note is part of it.
+        -- The note belongs to the Plague Indicator as a whole: it shows as
+        -- long as ANY of its visuals (corner icons, centre icon, tint) is on,
+        -- and only disappears when the player has turned the lot off.
         local sv = UP.sv or {}
-        if sv.plague_tint == false then show = false end
+        local anyOn = (sv.plague_tint == true)
+            or (sv.plague_icon_corners ~= false)
+            or (sv.plague_icon_center == true)
+        if not anyOn then show = false end
     end
     if show then deathNote:SetText(deathNoteText) end
     -- Our own hidden flag says "did we die plagued". The recap's fragment
@@ -182,9 +187,14 @@ end
 local function shouldShow()
     local forced = previewActive()
     if not (plagued or forced) then return false end
+    -- Off by default since 0.4.2 (the corner icons took over as the default
+    -- plague visual), so this is an opt-in: `== true`, never `~= false`. The
+    -- preview honours the switch too, so what you preview is what you get;
+    -- UI/PlagueIcon.lua makes sure the preview shows SOMETHING when every
+    -- plague visual is off.
+    local sv = UP.sv or {}
+    if sv.plague_tint ~= true then return false end
     if not forced then
-        local sv = UP.sv or {}
-        if sv.plague_tint == false then return false end
         -- Shares Indicator.lua's HUD-scene answer; fails open if unavailable.
         -- The preview bypasses it: the button is in the settings menu, so the
         -- HUD is hidden at the moment it is pressed. See SilenceRing.lua.
@@ -197,7 +207,13 @@ function UP.PlagueTint.UpdateVisibility()
     if not root then return end
     local show = shouldShow()
     root:SetHidden(not show)
-    updateDeathNote()   -- the plague_tint toggle also governs the note
+    updateDeathNote()   -- the plague switches also govern the note
+    -- The icons share this module's preview deadline, so every path that
+    -- re-evaluates the tint (preview start/end, setting changes) re-evaluates
+    -- them too.
+    if UP.PlagueIcon and UP.PlagueIcon.UpdateVisibility then
+        UP.PlagueIcon.UpdateVisibility()
+    end
     if hazeTimeline then
         if show then
             if not hazeTimeline:IsPlaying() then

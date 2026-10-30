@@ -1,0 +1,7 @@
+Tamriel Text Studio
+Developer: CRY
+Version: 2.3.4
+
+Compose formatted ESO messages with searchable artwork, color presets, image placement, separators, live preview, and generated inline markup. The output button now attempts ESO's console text-entry route with the generated text prefilled, plus a dialog edit-box fallback. Includes expanded inline image-size presets and custom 8–256 px sizing. Default image size remains 32 px.
+
+The addon does not automatically send chat, edit guild fields, or write directly to the PS5 clipboard. Use the console keyboard's selection/copy controls and cancel/back out without sending. Console text entry may require the normal HUD chat to be available.

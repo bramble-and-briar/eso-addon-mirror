@@ -17,9 +17,9 @@
 -- describing a manifest directive the manifest did not use.
 --
 -- CONSOLE LAYOUT. LHAS turns every ST_SECTION into a navigable sub-menu row, so
--- the top-level screen for this addon is SIX arrow rows (five through 0.3.3;
--- Plague Indicator joined in 0.4.0) and every actual control lives one level
--- down. Two consequences drove the copy below:
+-- the top-level screen for this addon is EIGHT arrow rows (five through 0.3.3;
+-- Plague Indicator joined in 0.4.0, Pull Indicator and No More Oopsies in
+-- 0.4.2) and every actual control lives one level down. Two consequences drove the copy below:
 --
 --   * The screen header keeps showing the ADDON name/version/author on those
 --     sub-pages -- the section name is NOT redisplayed anywhere. So each label
@@ -361,19 +361,24 @@ local function buildOptions()
         -- -------------------------------------------------------------------
         {
             type = LHAS.ST_SECTION, label = "Plague Indicator",
-            tooltip = "Screen tint and chat report for the Plaguebreak set's plague.",
+            tooltip = "Plague Carrier icons, screen edge glow and chat report for the Plaguebreak set's plague.",
         },
         {
             type = LHAS.ST_LABEL,
-            label = "While a Plaguebreak plague is on you, the screen takes a smoky green tint; if you die with it on you, the tint stays until you respawn and a note above the Death Recap says what you died with. If the plague is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw.",
+            label = "While a Plaguebreak plague is on you, a Plague Carrier icon flashes slowly in all four corners of the screen; you can also add a single icon below the reticle and a smoky green glow around the screen's edges. If you die with the plague on you, the indicators stay until you respawn and a note above the Death Recap says what you died with. If the plague is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw.",
         },
         {
-            -- Independent of the Threat Indicator master toggle, like the ring.
-            type = LHAS.ST_CHECKBOX, label = "Plague tint",
-            tooltip = "Set to Off to never tint the screen. The chat report below is separate.",
-            getFunction = function() return sv().plague_tint ~= false end,
+            -- The default plague visual (0.4.2). Independent of the Threat
+            -- Indicator master toggle, like the ring.
+            type = LHAS.ST_CHECKBOX, label = "Plague corner icons",
+            tooltip = "Shows the Plague Carrier icon in all four corners of the screen, slowly flashing, for as long as the plague is on you. Default: On.",
+            getFunction = function() return sv().plague_icon_corners ~= false end,
             setFunction = function(v)
-                sv().plague_tint = v
+                sv().plague_icon_corners = v
+                if UP.PlagueIcon and UP.PlagueIcon.UpdateVisibility then
+                    UP.PlagueIcon.UpdateVisibility()
+                end
+                -- The "You died with" note follows the set of enabled visuals.
                 if UP.PlagueTint and UP.PlagueTint.UpdateVisibility then
                     UP.PlagueTint.UpdateVisibility()
                 end
@@ -381,11 +386,40 @@ local function buildOptions()
             default = true,
         },
         {
-            type = LHAS.ST_SLIDER, label = "Tint strength",
+            type = LHAS.ST_CHECKBOX, label = "Plague centre icon",
+            tooltip = "Shows one Plague Carrier icon below the reticle, just under where the silence ring appears, with a slow pulse. Default: Off.",
+            getFunction = function() return sv().plague_icon_center == true end,
+            setFunction = function(v)
+                sv().plague_icon_center = v
+                if UP.PlagueIcon and UP.PlagueIcon.UpdateVisibility then
+                    UP.PlagueIcon.UpdateVisibility()
+                end
+                if UP.PlagueTint and UP.PlagueTint.UpdateVisibility then
+                    UP.PlagueTint.UpdateVisibility()
+                end
+            end,
+            default = false,
+        },
+        {
+            -- Was the only visual, and on by default, in 0.4.0 and 0.4.1;
+            -- opt-in since 0.4.2 (see migratePlagueDefaults in UnderPressure.lua).
+            type = LHAS.ST_CHECKBOX, label = "Plague edge glow (screen tint)",
+            tooltip = "Tints the edges of the screen smoky green for as long as the plague is on you. Default: Off. The chat report below is separate.",
+            getFunction = function() return sv().plague_tint == true end,
+            setFunction = function(v)
+                sv().plague_tint = v
+                if UP.PlagueTint and UP.PlagueTint.UpdateVisibility then
+                    UP.PlagueTint.UpdateVisibility()
+                end
+            end,
+            default = false,
+        },
+        {
+            type = LHAS.ST_SLIDER, label = "Plague edge glow strength",
             -- Range comes from UI/PlagueTint.lua so the slider can never ask
             -- for more than the tint will apply (it clamps too).
             min = UP.PlagueTint.MIN_STRENGTH, max = UP.PlagueTint.MAX_STRENGTH, step = 0.05, format = "%.2f",
-            tooltip = ("How dense the green tint is. Default: %.2f."):format(UP.PlagueTint.DEFAULT_STRENGTH),
+            tooltip = ("How dense the green edge glow is, when it is on. Default: %.2f."):format(UP.PlagueTint.DEFAULT_STRENGTH),
             getFunction = function() return sv().plague_tint_strength or UP.PlagueTint.DEFAULT_STRENGTH end,
             setFunction = function(v)
                 sv().plague_tint_strength = v
@@ -407,12 +441,110 @@ local function buildOptions()
         },
         {
             -- See the silence Preview button above for the mechanism.
-            type = LHAS.ST_BUTTON, label = "Preview the plague tint",
+            type = LHAS.ST_BUTTON, label = "Preview the plague indicators",
             buttonText = "Preview",
-            tooltip = "Tints the screen for 10 seconds so you can judge the colour and strength, without needing a Plaguebreak wearer to hit you. Works even while the tint is set to Off.",
+            tooltip = "Shows the plague visuals you have switched on above (corner icons, centre icon, edge glow) for 10 seconds, without needing a Plaguebreak wearer to hit you. If all three are off, it shows the corner icons.",
             clickHandler = function()
                 if UP.PlagueTint and UP.PlagueTint.RunPreview then UP.PlagueTint.RunPreview() end
             end,
+        },
+
+        -- -------------------------------------------------------------------
+        -- Pull Indicator (0.4.2). ONE detection switch for every pull the
+        -- tracker knows about, off by default; three display switches that
+        -- only shape the warning. See Engine/PullTracker.lua for what is
+        -- detected and Docs/PullDetection-*.md for the evidence.
+        {
+            type = LHAS.ST_SECTION, label = "Pull Indicator",
+            tooltip = "Warns you a moment before an enemy's Rush of Agony or Dark Convergence pulls you.",
+        },
+        {
+            type = LHAS.ST_LABEL,
+            label = "Warns you just before an enemy's pull lands, while there is still time to block or move: about 0.8 seconds before a Rush of Agony pull and about 1 second before a Dark Convergence pull. Off by default. Scribing pulls will join the same switch if they prove detectable. The warning can be shown as flashing icons in the four corners, one icon beside the reticle, and flashing bars down the left and right edges of the screen.",
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Pull detection",
+            tooltip = "Set to On to detect incoming Rush of Agony and Dark Convergence pulls and show the warning displays chosen below. One switch covers every pull this add-on can detect. Default: Off.",
+            getFunction = function() return sv().pull_detect == true end,
+            setFunction = function(v)
+                sv().pull_detect = v
+                -- Turning it off mid-warning clears the warning.
+                if not v and UP.Pull and UP.Pull.Clear then UP.Pull.Clear() end
+            end,
+            default = false,
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Pull corner icons",
+            tooltip = "Shows the pull warning icon in all four corners of the screen, flashing, while a pull is incoming. Default: On.",
+            getFunction = function() return sv().pull_icon_corners ~= false end,
+            setFunction = function(v)
+                sv().pull_icon_corners = v
+                if UP.PullIndicator and UP.PullIndicator.UpdateVisibility then UP.PullIndicator.UpdateVisibility() end
+            end,
+            default = true,
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Pull centre icon",
+            tooltip = "Shows one pull warning icon just to the right of the reticle, pulsing, while a pull is incoming. Default: Off.",
+            getFunction = function() return sv().pull_icon_center == true end,
+            setFunction = function(v)
+                sv().pull_icon_center = v
+                if UP.PullIndicator and UP.PullIndicator.UpdateVisibility then UP.PullIndicator.UpdateVisibility() end
+            end,
+            default = false,
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Pull side borders",
+            tooltip = "Flashes a sharp-edged orange bar down the full left and right edges of the screen while a pull is incoming. Default: Off.",
+            getFunction = function() return sv().pull_border == true end,
+            setFunction = function(v)
+                sv().pull_border = v
+                if UP.PullIndicator and UP.PullIndicator.UpdateVisibility then UP.PullIndicator.UpdateVisibility() end
+            end,
+            default = false,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "Preview the pull warning",
+            buttonText = "Preview",
+            tooltip = "Shows the pull warning displays you have switched on above for 10 seconds, without waiting to be pulled. Works even while Pull detection is Off, so you can see what you would get. If all three displays are off, it shows the corner icons.",
+            clickHandler = function()
+                if UP.PullIndicator and UP.PullIndicator.RunPreview then UP.PullIndicator.RunPreview() end
+            end,
+        },
+
+        -- -------------------------------------------------------------------
+        -- No More Oopsies (0.5.5, experimental): guards against accidental
+        -- button presses. One guard so far. The hook rests on a binding-chunk
+        -- fact verified in the ESOUI source, not yet in game, hence the label.
+        -- See Engine/FirstPersonGuard.lua.
+        {
+            type = LHAS.ST_SECTION, label = "No More Oopsies",
+            tooltip = "Experimental guards against accidental button presses.",
+        },
+        {
+            type = LHAS.ST_LABEL,
+            label = "Experimental. Stops a single accidental press of the perspective button from flipping the camera into first person: the button has to be pressed three times within three seconds before the toggle goes through. The same applies to leaving first person, because the game offers no way to tell which way the camera is about to go.",
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Block accidental first-person toggle (Experimental)",
+            -- A function, so the tooltip shows the button the action is bound
+            -- to RIGHT NOW (EasyMark's technique), with a plain-words fallback.
+            tooltip = function()
+                local Guard = UP.FirstPersonGuard
+                return ("Requires %s to be pressed %d times within %d seconds before the camera " ..
+                        "toggles between first and third person. Does not affect the hold-and-zoom " ..
+                        "camera on the right stick. Default: Off."):format(
+                            Guard.BindingText(), Guard.PRESSES_REQUIRED, Guard.WINDOW_MS / 1000)
+            end,
+            getFunction = function() return sv().first_person_guard == true end,
+            setFunction = function(v)
+                if UP.FirstPersonGuard and UP.FirstPersonGuard.SetEnabled then
+                    UP.FirstPersonGuard.SetEnabled(v)   -- stores the value, installs or removes the hook
+                else
+                    sv().first_person_guard = v
+                end
+            end,
+            default = false,
         },
 
         -- -------------------------------------------------------------------

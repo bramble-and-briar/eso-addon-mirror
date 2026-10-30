@@ -988,7 +988,8 @@ function BUI.Frames.StabilizePlayerPosition()
 end
 
 function BUI.Frames:Initialize()
-    -- Use ESO's original Targetframe label and sizing; ImprovedAttributeBars fills its text.
+    -- Native ESO Targetframe text is managed by ImprovedAttributeBars.
+    -- Do not hide it or replace it with the small Bandits label.
     if ZO_TargetUnitFramereticleoverResourceNumbers then
         ZO_TargetUnitFramereticleoverResourceNumbers:SetHidden(false)
     end
@@ -1382,26 +1383,6 @@ function BUI.Frames:GroupRange(unitTag, inRange)
 	end
 end
 
-
--- My UI: exact resource values; healing absorption overrides shielding.
-local function MyUIExactValue(value)
-    value = zo_round(tonumber(value) or 0)
-    return tostring(value)
-end
-local function MyUIHealthText(current, shield, absorption, maximum)
-    local text = MyUIExactValue(current)
-    if math.abs(tonumber(absorption) or 0) > 0 then
-        text = text .. " - " .. MyUIExactValue(math.abs(absorption))
-    elseif math.abs(tonumber(shield) or 0) > 0 then
-        text = text .. " + " .. MyUIExactValue(math.abs(shield))
-    end
-    local maxValue = tonumber(maximum) or 0
-    if maxValue > 0 then
-        text = text .. " (" .. tostring(math.max(0, math.min(100, zo_round((tonumber(current) or 0) * 100 / maxValue)))) .. "%)"
-    end
-    return text
-end
-
 function BUI.Frames.Attribute(unitTag, attribute, powerValue, powerMax, pct, shieldValue, traumaValue)
 	local frame,group,enabled=nil,false,false
 	local ShowMax=BUI.Vars.FrameShowMax
@@ -1444,8 +1425,8 @@ function BUI.Frames.Attribute(unitTag, attribute, powerValue, powerMax, pct, shi
 				if BUI.Vars.ExecuteSound then PlaySound(SOUNDS.LOCKPICKING_UNLOCKED) end
 			end
 			if BUI.Vars.DefaultTargetFrame and BUI.Vars.DefaultTargetFrameText and BUI_TargetResourceNumbers then
-				local label=MyUIHealthText(powerValue, shieldValue, traumaValue, powerMax)
-				BUI_TargetResourceNumbers:SetText(label..(execute and ' |t36:36:/esoui/art/icons/mapkey/mapkey_groupboss.dds|t' or ""))
+				local label=powerValue>BUI.Vars.ShortenThreshold and BUI.DisplayNumber(powerValue/1000).."k" or BUI.DisplayNumber(powerValue)
+				BUI_TargetResourceNumbers:SetText(label.." ("..pctLabel..")"..(execute and ' |t36:36:/esoui/art/icons/mapkey/mapkey_groupboss.dds|t' or ""))
 			end
 		end
 		--Execute icon
@@ -1484,7 +1465,7 @@ function BUI.Frames.Attribute(unitTag, attribute, powerValue, powerMax, pct, shi
 				end
 			else
 				local add_pct=unitTag=='reticleover' and not BUI.Vars.TargetFramePercents
-				label=MyUIHealthText(powerValue, shieldValue, traumaValue, powerMax)
+				label=(traumaValue>0 and "["..BUI.DisplayNumber(traumaValue/(short and 1000 or 1)).."]" or "")..label..(shieldValue>0 and "["..BUI.DisplayNumber(shieldValue/(short and 1000 or 1)).."]" or "")
 				if group then frame.dead:SetHidden(true) end
 			end
 		end
@@ -1501,12 +1482,14 @@ function BUI.Frames.Attribute(unitTag, attribute, powerValue, powerMax, pct, shi
 		end
 		control.bar:SetWidth(pct*w)
 		if unitTag=='reticleover' and attribute=='health' then
-			control.current:SetText(MyUIHealthText(math.max(powerValue,0), shieldValue, traumaValue, powerMax))
+			local hpText = BUI.DisplayNumber(math.max(powerValue,0))
+			if powerValue > 999999 then hpText = BUI.DisplayNumber(powerValue/1000,1).."k" end
+			control.current:SetText(hpText.." ("..pctLabel..")")
 			control.pct:SetText("")
 			control.pct:SetHidden(true)
 		else
-			control.current:SetText((not group and MyUIHealthText(powerValue, 0, 0, powerMax)) or label)
-			control.pct:SetText(group and pctLabel or "")
+			control.current:SetText(label..((short and not group) and "k" or ""))
+			control.pct:SetText(pctLabel)
 		end
 	end
 end
@@ -1534,7 +1517,13 @@ function BUI.Frames:Shield(unitTag, shieldValue, shieldPct, healthValue, healthM
 		frame.shield:SetWidth(width)
 		frame.shield:SetHidden(shieldValue<=0)
 			--Update bar labels
-		local label=MyUIHealthText(healthValue, shieldValue, traumaValue, healthMax)
+		local short=group or healthValue>BUI.Vars.ShortenThreshold
+		local label=(short and BUI.DisplayNumber(healthValue/1000,1) or BUI.DisplayNumber(healthValue))
+			..(BUI.Vars.FrameShowMax and "/"..(short and BUI.DisplayNumber(healthMax/1000,1).."K" or BUI.DisplayNumber(healthMax)) or "")
+			..((shieldValue>0 or traumaValue>0) and "[" or "")
+			..(shieldValue>0 and BUI.DisplayNumber(shieldValue/(short and 1000 or 1)) or "")
+			..(traumaValue>0 and "-"..BUI.DisplayNumber(traumaValue/(short and 1000 or 1)) or "")
+			..((shieldValue>0 or traumaValue>0) and "]" or "")
 		frame.health.current:SetText(label)
 	end
 end
@@ -1562,7 +1551,13 @@ function BUI.Frames:Trauma(unitTag, traumaValue, traumaPct, healthValue, healthM
 		frame.trauma:SetWidth(width)
 		frame.trauma:SetHidden(traumaValue<=0)	
 		--Update bar labels
-		local label=MyUIHealthText(healthValue, shieldValue, traumaValue, healthMax)
+		local short=group or healthValue>BUI.Vars.ShortenThreshold
+		local label=(short and BUI.DisplayNumber(healthValue/1000,1) or BUI.DisplayNumber(healthValue))
+		..(BUI.Vars.FrameShowMax and "/"..(short and BUI.DisplayNumber(healthMax/1000,1).."K" or BUI.DisplayNumber(healthMax)) or "")
+		..((shieldValue>0 or traumaValue>0) and "[" or "")
+			..(shieldValue>0 and BUI.DisplayNumber(shieldValue/(short and 1000 or 1)) or "")
+			..(traumaValue>0 and "-"..BUI.DisplayNumber(traumaValue/(short and 1000 or 1)) or "")
+			..((shieldValue>0 or traumaValue>0) and "]" or "")
 		frame.health.current:SetText(label)
 	end
 end

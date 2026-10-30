@@ -148,12 +148,16 @@ function BUI.Themes_Setup(change)
 		frame:SetTexture(texture) if color then frame:SetColor(unpack(color)) end
 	end
 	local frame=_G["ZO_PlayerAttributeWerewolfFrame"] if frame then
-        -- Hide the extra thin frame line; leave the native fill/status bar intact.
-        frame:SetHidden(true)
+        -- Keep the original ESO outline; do not apply the oversized theme frame.
+        frame:SetTexture("/esoui/art/unitattributevisualizer/attributebar_small_frame.dds")
+        frame:SetColor(1, 1, 1, 1)
+        frame:SetHidden(false)
     end
 	local frame=_G["ZO_PlayerAttributeMountStaminaFrame"] if frame then
-        -- Hide the extra thin frame line; leave the native fill/status bar intact.
-        frame:SetHidden(true)
+        -- Keep the original ESO outline; do not apply the oversized theme frame.
+        frame:SetTexture("/esoui/art/unitattributevisualizer/attributebar_small_frame.dds")
+        frame:SetColor(1, 1, 1, 1)
+        frame:SetHidden(false)
     end
 	--Target frame
 	Setup_TargetFrame()

@@ -92,6 +92,11 @@ local function BuildPanelControls(controls, key, svKey, defaultPos)
         getFunc = function() return PTI.sv[svKey].enabled end,
         setFunc = function(value)
             PTI.sv[svKey].enabled = value
+            -- v2.0.7: パネルOFF中は①②のスキャンを止めるため、ON/OFF直後に再評価して
+            -- 即座に再開/停止する(PEN・ConditionはUI側の既存処理で整合する)。
+            if (key == "buff" or key == "debuff") and PTI.Target and PTI.Target.ForceRefresh then
+                PTI.Target.ForceRefresh()
+            end
             PTI.UI.RefreshVisibility()
         end,
     })
@@ -231,57 +236,46 @@ function PTI.Settings.Initialize()
     }
     LAM:RegisterAddonPanel("PTI_LAM_Panel", panelData)
 
+    -- v2.0.7: 設定画面を「基本 → 検知 → 表示の残し方 → パネル①〜④ → 詳細設定」の順に整理。
+    -- 設定キー・保存値は従来のまま(並びと説明文だけ変更)。
     local optionsTable = {
-        { type = "header", name = "PvPTargetInfo" },
+        { type = "header", name = "基本設定" },
         {
             type = "description",
-            text = "①敵の重要バフ ②敵の重要デバフ ③自分のCondition(セットProc+自分へのデバフ自動検知)、の3つの独立したパネルを画面に表示します。下のサブメニューを開いて、それぞれのパネルの位置・大きさ・登録内容を設定してください。",
+            text = "①敵のバフ ②敵のデバフ ③自分のCondition ④貫通 の4つのパネルを表示します。",
         },
         {
             type = "checkbox",
             name = "アドオンを有効にする",
-            tooltip = "OFFにすると3つのパネルすべてが非表示になります。",
+            tooltip = "OFFにするとすべてのパネルが非表示になります。",
             getFunc = function() return PTI.sv.enabled end,
             setFunc = function(value)
                 PTI.sv.enabled = value
+                if PTI.Target and PTI.Target.ForceRefresh then PTI.Target.ForceRefresh() end
                 PTI.UI.RefreshVisibility()
             end,
         },
         {
             type = "checkbox",
             name = "プレビュー表示(サンプルデータで位置・大きさを確認)",
-            tooltip = "ONにすると、実際のターゲットが居なくても3つのパネルにサンプルデータが表示されます。位置・大きさ・文字サイズ・強調色を確認しながら調整したいときにONにし、終わったらOFFに戻してください。",
+            tooltip = "ONにすると、ターゲットが居なくてもパネルにサンプルデータが表示されます。位置・大きさの調整が終わったらOFFに戻してください。",
             getFunc = function() return PTI.sv.previewMode end,
             setFunc = function(value)
                 PTI.sv.previewMode = value
                 PTI.UI.RefreshVisibility()
             end,
         },
-        {
-            type = "slider",
-            name = "ターゲット解除後にパネルを保持する秒数 (0.1秒単位)",
-            tooltip = "敵からカーソルが外れた後も、指定した秒数だけ直前の情報を表示し続けます。動きの激しいPvPでパネルがチラつくのを防ぐための設定です。",
-            min = 0, max = 50, step = 1,
-            getFunc = function() return zo_round((PTI.sv.holdDuration or 1.0) * 10) end,
-            setFunc = function(value) PTI.sv.holdDuration = value / 10 end,
-            width = "full",
-        },
     }
 
     ----------------------------------------------------------------------
-    -- 検知方式(自動検知 / 全表示)
+    -- 検知設定
     ----------------------------------------------------------------------
-    table.insert(optionsTable, { type = "header", name = "バフ/デバフの検知方式" })
+    table.insert(optionsTable, { type = "header", name = "検知設定" })
     table.insert(optionsTable, {
         type = "description",
-        text = "◆自動検知(既定)\n"
-            .. "状態異常(CC)とMajor/Minor系の効果だけを判定して表示します。\n"
-            .. "  メリット: PvPで今すぐ反応すべき情報だけに絞られ、瞬時に判断しやすい。食事バフ等で画面が埋まらない。\n"
-            .. "  デメリット: CC・Major/Minorのどちらにも当てはまらない特殊な効果(セット効果由来のユニークバフ等)は、手動登録しない限り表示されない。\n\n"
-            .. "◆全表示\n"
-            .. "判定条件に関わらず、ターゲットの効果をほぼ全て表示します(食事バフ・マウント速度・ギルドバフのような、常時付いていて今更確認する必要のない背景バフだけは自動的に除外します)。\n"
-            .. "  メリット: 見落としが原理的に起こらない。CC・Major/Minorに当てはまらない特殊な効果も含め、相手の状態を漏れなく把握できる。\n"
-            .. "  デメリット: 表示件数が増え、パネルが縦に伸びやすい。重要な情報とそうでない情報が混在するため、見分けは自分の目で行う必要がある(ただし表示順は自動検知時と同じ優先順位ルールに従うため、重要なものは常に上位に来る)。",
+        text = "敵プレイヤーのみ検知します(固定)。味方・NPCは表示しません。\n"
+            .. "◆自動検知: 状態異常(CC)とMajor/Minor(強/弱)系の重要な効果だけ表示\n"
+            .. "◆全表示: 食事・マウント等の背景バフ以外をほぼ全て表示(件数が増えます)",
     })
     table.insert(optionsTable, {
         type = "dropdown",
@@ -295,9 +289,20 @@ function PTI.Settings.Initialize()
         end,
     })
     table.insert(optionsTable, {
+        type = "checkbox",
+        name = "自動検知を有効にする",
+        tooltip = "自動検知モードのときだけ有効です。OFFにすると、①②パネルで登録した効果だけを表示します。",
+        getFunc = function() return PTI.sv.autoDetect.enabled end,
+        setFunc = function(value)
+            PTI.sv.autoDetect.enabled = value
+            if PTI.Target and PTI.Target.ForceRefresh then PTI.Target.ForceRefresh() end
+        end,
+        disabled = function() return PTI.sv.detectionMode == "all" end,
+    })
+    table.insert(optionsTable, {
         type = "slider",
-        name = "全表示モード: これより長い(秒)バフ/デバフは背景バフとして除外",
-        tooltip = "食事バフ・マウント速度バフのような長時間・無期限バフを、全表示モードの時だけ自動的に除外するための閾値です。状態異常(CC)やMajor/Minor系の効果は、この設定に関わらず必ず表示されます(見逃し防止のため除外対象になりません)。",
+        name = "全表示モード: これより長い(秒)効果は背景バフとして除外",
+        tooltip = "全表示モードのときだけ使う、食事・マウント速度等の長時間バフを除外する秒数です。状態異常(CC)とMajor/Minor系は、この設定に関係なく必ず表示します。",
         min = 30, max = 600, step = 10,
         getFunc = function() return (PTI.sv.showAll and PTI.sv.showAll.hideLongerThan) or 120 end,
         setFunc = function(value)
@@ -309,22 +314,38 @@ function PTI.Settings.Initialize()
     })
 
     ----------------------------------------------------------------------
-    -- 自動検知(共通設定)
+    -- 表示の残し方
     ----------------------------------------------------------------------
-    table.insert(optionsTable, { type = "header", name = "重要バフ/デバフの自動検知" })
+    table.insert(optionsTable, { type = "header", name = "表示の残し方" })
     table.insert(optionsTable, {
-        type = "description",
-        text = "上の「検知方式」が自動検知の場合のみ有効な設定です。ON(既定)の場合、スタン・サイレンス・根絶やし・移動速度低下・よろめき等の「状態異常」と、「Major/Minor」(日本語版では「(強)」「(弱)」)を含む効果を、登録なしで自動的に重要バフ/デバフとして表示します。OFFにすると、下のUI①・UI②で個別に登録した効果だけを表示します。",
+        type = "slider",
+        name = "ターゲット解除後にパネルを保持する秒数 (0.1秒単位)",
+        tooltip = "敵からカーソルが外れた後も、指定した秒数だけ直前の情報を表示し続けます。PvPでパネルがチラつくのを防ぎます。",
+        min = 0, max = 50, step = 1,
+        getFunc = function() return zo_round((PTI.sv.holdDuration or 1.0) * 10) end,
+        setFunc = function(value) PTI.sv.holdDuration = value / 10 end,
+        width = "full",
     })
     table.insert(optionsTable, {
-        type = "checkbox",
-        name = "自動検知を有効にする",
-        getFunc = function() return PTI.sv.autoDetect.enabled end,
+        type = "slider",
+        name = "消えた効果を残す秒数 (0.1秒単位、0=残さない)",
+        tooltip = "効果が終了・解除された直後、その行を灰色の「(終了)」「(消失)」で指定秒数だけ残します。残り時間は表示せず、有効な効果より下に並びます。",
+        min = 0, max = 100, step = 5,
+        getFunc = function() return zo_round((PTI.sv.lingerDuration or 2.0) * 10) end,
         setFunc = function(value)
-            PTI.sv.autoDetect.enabled = value
+            PTI.sv.lingerDuration = value / 10
             if PTI.Target and PTI.Target.ForceRefresh then PTI.Target.ForceRefresh() end
         end,
-        disabled = function() return PTI.sv.detectionMode == "all" end,
+        width = "full",
+    })
+
+    ----------------------------------------------------------------------
+    -- パネル設定(サブメニュー①〜④。各パネルの表示ON/OFF・位置・大きさ)
+    ----------------------------------------------------------------------
+    table.insert(optionsTable, { type = "header", name = "パネル設定" })
+    table.insert(optionsTable, {
+        type = "description",
+        text = "各パネルの表示ON/OFF・位置・大きさを設定します。パネルをOFFにすると、その検知処理も止まります。",
     })
 
     ----------------------------------------------------------------------
@@ -449,15 +470,56 @@ function PTI.Settings.Initialize()
     })
 
     ----------------------------------------------------------------------
+    -- サブメニュー④: 貫通・敵耐性低下(v2.0.5)
+    ----------------------------------------------------------------------
+    local penControls = {}
+    table.insert(penControls, {
+        type = "description",
+        text = "自分の武器貫通・呪文貫通(ゲームから読み取った値)と、ターゲット中の敵プレイヤーに付いている耐性低下(Major/Minor Breach等)を自動で検知し、種類・低下量(固定値:5948/2974)・残り時間・合計を表示します。AbilityIdの登録は不要で、日本語表示でも動作します。敵の基礎耐性は取得できないため「残り耐性」は表示しません。パネルがOFFの間は何も処理しません。",
+    })
+    BuildPanelControls(penControls, "pen", "penUI", { x = 0, y = -450 })
+    table.insert(penControls, {
+        type = "checkbox",
+        name = "自分の貫通を表示",
+        getFunc = function() return PTI.sv.pen.showSelfPen ~= false end,
+        setFunc = function(value) PTI.sv.pen.showSelfPen = value end,
+    })
+    table.insert(optionsTable, {
+        type = "submenu",
+        name = "④ 貫通・敵耐性低下パネル",
+        controls = penControls,
+    })
+
+    ----------------------------------------------------------------------
+    -- 詳細設定(Breach ID・学習モード・デバッグ)。通常は触らなくてよい項目を
+    -- 1つのサブメニューにまとめた(v2.0.7)。
+    ----------------------------------------------------------------------
+    local detailControls = {}
+    table.insert(detailControls, { type = "header", name = "Breach判定(自動)" })
+    table.insert(detailControls, {
+        type = "description",
+        text = "Major/Minor Breach等は、言語に依存しないAbilityId表で自動判定します(手動登録は不要になりました)。下の補助判定は、表に無いデバフを説明文の数値(5948/2974)で推定するもので、該当した行には「(推定)」と表示されます。",
+    })
+    table.insert(detailControls, {
+        type = "checkbox",
+        name = "補助判定: 説明文の数値で推定する",
+        tooltip = "ID表にないデバフでも、説明文に 5948 / 2974 が含まれていればMajor/Minor Breachの推定として表示します。誤判定が出る場合はOFFにしてください。",
+        getFunc = function() return PTI.sv.pen.descFallback ~= false end,
+        setFunc = function(value)
+            PTI.sv.pen.descFallback = value
+            if PTI.Pen and PTI.Pen.OnSettingsChanged then PTI.Pen.OnSettingsChanged() end
+        end,
+    })
+    ----------------------------------------------------------------------
     -- 学習モード(敵バフ/デバフ側)は、UI①・UI②どちらの候補にも影響するため
     -- トップレベルに置いておく(サブメニューが違っても同じ1つのスイッチ)。
     ----------------------------------------------------------------------
-    table.insert(optionsTable, { type = "header", name = "AbilityId学習モード(上級者向け)" })
-    table.insert(optionsTable, {
+    table.insert(detailControls, { type = "header", name = "AbilityId学習モード(上級者向け)" })
+    table.insert(detailControls, {
         type = "description",
-        text = "表示させたい敵のバフ/デバフのAbilityIdを特定するためのモードです。ONにするとチャットに生データが表示されます。自動検知が既定でONのため、通常は使う必要はありません。",
+        text = "表示させたい敵のバフ/デバフのAbilityIdを特定するモードです。ONにするとチャットに生データが出ます。自動検知が既定でONなので、通常は不要です。",
     })
-    table.insert(optionsTable, {
+    table.insert(detailControls, {
         type = "checkbox",
         name = "敵のバフ/デバフを学習(任意登録の候補作成用)",
         getFunc = function() return PTI.sv.procs.debugLearnModeTarget end,
@@ -475,16 +537,22 @@ function PTI.Settings.Initialize()
     -- 「自動検知が実際にUIまで正しく届いているか」を1件ずつ確認するための
     -- 純粋なデバッグ表示。既定OFFで、通常プレイでは一切ログを出さない。
     ----------------------------------------------------------------------
-    table.insert(optionsTable, { type = "header", name = "検知パイプラインのデバッグログ(開発者向け)" })
-    table.insert(optionsTable, {
+    table.insert(detailControls, { type = "header", name = "検知パイプラインのデバッグログ(開発者向け)" })
+    table.insert(detailControls, {
         type = "description",
-        text = "ONにすると、敵の効果を検知するたびに「対象取得→重要判定→表示データ登録→UI描画」の各段階をチャットに1行ずつ出力します。自動検知が効いているのにUIに表示されない場合の原因切り分け専用です。既定はOFFで、実戦中は必ずOFFに戻してください。",
+        text = "ONにすると、検知の各段階(対象取得→重要判定→表示データ登録→UI描画)をチャットに出力します。表示されない原因の切り分け専用です。実戦中は必ずOFFにしてください。",
     })
-    table.insert(optionsTable, {
+    table.insert(detailControls, {
         type = "checkbox",
         name = "検知パイプラインのデバッグログを有効にする",
         getFunc = function() return PTI.sv.debug.pipelineTrace end,
         setFunc = function(value) PTI.sv.debug.pipelineTrace = value end,
+    })
+
+    table.insert(optionsTable, {
+        type = "submenu",
+        name = "詳細設定(Breach判定・学習・デバッグ)",
+        controls = detailControls,
     })
 
     LAM:RegisterOptionControls("PTI_LAM_Panel", optionsTable)

@@ -49,17 +49,20 @@ local function onData(unitTag, data)
     if not identity or identity == "" then return end
     local bossDPS = not healing and tonumber(data.bossDPS) or nil
     if bossDPS and (bossDPS ~= bossDPS or bossDPS < 0) then bossDPS = nil end
-    members[unitTag] = {
-        identity = identity,
-        name = identity,
-        messageType = data.messageType,
-        role = GetGroupMemberSelectedRole and GetGroupMemberSelectedRole(unitTag) or data.role,
-        dps = dps,
-        rawHPS = rawHPS, effectiveHPS = effectiveHPS,
-        bossDPS = bossDPS,
-        addsDPS = bossDPS and bossDPS < math.huge and dps < math.huge and math.max(0, dps - bossDPS) or nil,
-        receivedAt = GetGameTimeMilliseconds(),
-    }
+    -- DPS and HPS are independent samples, not changes to the sender's role.
+    local member = members[unitTag]
+    if not member or member.identity ~= identity then member = {identity = identity, name = identity} end
+    local now = GetGameTimeMilliseconds()
+    member.messageType = data.messageType
+    member.role = GetGroupMemberSelectedRole and GetGroupMemberSelectedRole(unitTag) or data.role
+    member.receivedAt = now
+    if healing then
+        member.rawHPS, member.effectiveHPS, member.healingAt = rawHPS, effectiveHPS, now
+    else
+        member.dps, member.bossDPS, member.damageAt = dps, bossDPS, now
+        member.addsDPS = bossDPS and bossDPS < math.huge and dps < math.huge and math.max(0, dps - bossDPS) or nil
+    end
+    members[unitTag] = member
     receivedCount = receivedCount + 1
     lastReceivedAt = GetGameTimeMilliseconds()
     if bridge.onChanged then bridge.onChanged() end
@@ -93,7 +96,7 @@ function bridge:Connect()
             return false
         end
         damageProtocol = damage
-        -- A healing update replaces the sender's previous damage metric.
+        -- Receive healing independently from the sender's damage sample.
         local healingOK, healing = pcall(handler.DeclareProtocol, handler, 431, "SimpleGroupDPS_BattleScrollsHealing")
         if healingOK and healing then
             healing:AddField(lgb.CreateNumericField("encodedRawHPS", { minValue = 0, numBits = 12 }))
@@ -176,15 +179,22 @@ function bridge:GetRows()
             or AreUnitsEqual(tag, "player") or GetUnitDisplayName(tag) ~= member.identity then
             members[tag] = nil
         else
-            member.stale = now - member.receivedAt > STALE_MS
             if GetGroupMemberSelectedRole then member.role = GetGroupMemberSelectedRole(tag) end
+            local healing = LFG_ROLE_HEAL ~= nil and member.role == LFG_ROLE_HEAL
+            local damage = (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)
+                or (LFG_ROLE_TANK ~= nil and member.role == LFG_ROLE_TANK)
+            member.displayType = (healing or (not damage and member.messageType == "healing")) and "healing" or "damage"
+            local metricAt
+            if member.displayType == "healing" then metricAt = member.healingAt else metricAt = member.damageAt end
+            member.stale = not metricAt or now - metricAt > STALE_MS
             rows[#rows + 1] = member
         end
     end
     table.sort(rows, function(a, b)
-        local aHealing, bHealing = a.messageType == "healing", b.messageType == "healing"
+        local aHealing, bHealing = a.displayType == "healing", b.displayType == "healing"
         if aHealing ~= bHealing then return not aHealing end
-        local aValue, bValue = aHealing and a.rawHPS or a.dps, bHealing and b.rawHPS or b.dps
+        local aValue, bValue = (aHealing and a.rawHPS or (not aHealing and a.dps)) or -1,
+            (bHealing and b.rawHPS or (not bHealing and b.dps)) or -1
         if aValue == bValue then return a.name < b.name end
         return aValue > bValue
     end)

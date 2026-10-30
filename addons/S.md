@@ -140,7 +140,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Long Buffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Simple-Long-Buffs__3054) | buldezir | PC / Mac | 1.0.5 |
 | [Simple Long Buffs Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Simple-Long-Buffs-Console__4d619dbf-92df-4bda-aac1-b5dbec806fca) | j.hhh | Console | — |
 | [Simple Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Simple-Off-Balance-Tracker__a2157cd5-8974-464f-b688-df9b184b6350) | Shienar | Console | — |
-| [Simple Player Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/naka182/Simple-Player-Frames__4981) | naka182 | PC / Mac | 1.0.3 |
+| [Simple Player Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/naka182/Simple-Player-Frames__4981) | naka182 | PC / Mac | 1.0.4 |
 | [Simple Skyshards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/Simple-Skyshards__3501) | Alianym | PC / Mac | 1.06 |
 | [Simple Slash Command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Slash-Command__2554) | ShadowMau | PC / Mac | 0.1.2 |
 | [Simple Text Box](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Text-Box__2564) | ShadowMau | PC / Mac | 1.0 |

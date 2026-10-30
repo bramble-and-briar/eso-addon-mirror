@@ -76,6 +76,13 @@ local function onCombatEvent(eventCode, result, isError, abilityName, abilityGra
                            abilityId, now())
     end
 
+    -- Pull detection (0.4.2): the pre-pull signals (Rush of Agony's marker,
+    -- Dark Convergence's snare) are not damage, so they too must be seen
+    -- BEFORE the hostile filter. Fast exit while Pull detection is off.
+    if UP.Pull then
+        UP.Pull.OnCombat(result, abilityId, sourceName, sourceType, targetType, hitValue, now())
+    end
+
     if not HOSTILE_RESULTS[result] then return end
     if not hitValue or hitValue <= 0 then return end
 
@@ -140,6 +147,12 @@ local function onEffectChanged(eventCode, changeType, effectSlot, effectName,
     -- other debuff (DISEASE status -> DOT risk); this call only tracks it.
     if UP.Plague then
         UP.Plague.OnEffect(changeType, abilityId, effectName, endTimeMs, now(), effectType, sourceType)
+    end
+    -- Pull detection (0.4.2): the documented route for a pull marker that
+    -- lands on us as an effect (console fallback when the effect-gained combat
+    -- results are absent). Fast exit while Pull detection is off.
+    if UP.Pull then
+        UP.Pull.OnEffect(changeType, abilityId, endTimeMs, now())
     end
 
     -- SILENCE, CHECKED FIRST -- ahead of both early returns below.
@@ -294,6 +307,8 @@ local function onPlayerDead(eventCode)
     -- hits follow, and drops the tint. A FADED arriving after this is read as
     -- the death, not as a cleanse.
     if UP.Plague and UP.Plague.OnDeath then UP.Plague.OnDeath(now()) end
+    -- A pull warning means nothing to a corpse.
+    if UP.Pull and UP.Pull.Clear then UP.Pull.Clear() end
     -- Stop the 10 Hz tick from doing any work while dead. Health reads 0 the
     -- whole time, so left running it would just recompute TTD=0 (RED_THREE)
     -- every 100ms for no one to see -- the indicator is already hidden by

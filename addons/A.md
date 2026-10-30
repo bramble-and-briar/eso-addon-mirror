@@ -32,7 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AchievementInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asto/AchievementInfo__350) | Asto | PC / Mac | 4.17 |
 | [Action Bar Labels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CMDRMitchcraft/Action-Bar-Labels__4348) | CMDRMitchcraft | PC / Mac | 1.0 |
 | [Action Bar Skill Styles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Action-Bar-Skill-Styles__3928) | Anthonysc | PC / Mac | 0.0.4 |
-| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.168 |
+| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.169 |
 | [Action Duration Reminder ES by Kroon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KKroon/Action-Duration-Reminder-ES-by-Kroon__3706) | KKroon | PC / Mac | 3.96 |
 | [Activity Finder Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Activity-Finder-Plus__4676) | FirewoodDoge | PC / Mac | 1.0.2 |
 | [Acuity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Acuity__1950) | Wheels | PC / Mac | 2.4 |
@@ -270,6 +270,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.1 |
 | [Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Archive-Helper__3772) | FlatBadger | PC / Mac | 1.4.2 |
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
+| [Arclight Taunt – Modern Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Modern-Tank-HUD__5008) | tareN | PC / Mac | 1.0.1 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
 | [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.2 |

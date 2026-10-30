@@ -910,7 +910,8 @@ function records:WorstCaseLines()
         Row(SI_PBSHPS_ROW_SELF, "100.0%", "999,999,999"),
         Row(SI_PBSHPS_ROW_PT_SHARE, "100.0%"),
         Row(SI_PBSHPS_ROW_PT_SHARE, L(SI_PBSHPS_PT_UNKNOWN)),
-        string.format("10. %s  %s  %s  %s", "Abcdefghijklmnopqr", "99,999,999", share, "100.0%"),
+        -- the longest a name gets: a 16-character PSN ID and a 20-character character name
+        string.format("10. %s  %s  %s  %s", "Abcdefghijklmnop(Abcdefghijklmnopqrst)", "99,999,999", share, "100.0%"),
         string.format("10. %s  %s  %s", "Radiating Regeneration", "999,999,999", "100.0%"),
         "11/03 12:00  9:59:59  99,999 HPS  99,999,999",
     }

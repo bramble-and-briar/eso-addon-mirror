@@ -15,7 +15,7 @@ function O.FantasyReady()
     return assetReady(ObsidianHUDAssetsFantasyFrame,1024,128) and
         assetReady(ObsidianHUDAssetsFantasyFill,1024,128) and
         (not O.vars.roundBadge or (assetReady(ObsidianHUDAssetsCurveFrame,1024,128) and assetReady(ObsidianHUDAssetsCurveFill,1024,128))) and
-        assetReady(O.vars.roundBadge and ObsidianHUDAssetsFantasyRound or ObsidianHUDAssetsFantasyDiamond,128,128)
+        assetReady(ObsidianHUDAssetsFantasyRound,128,128)
 end
 
 local function artwork(parent,file,layer)
@@ -53,33 +53,6 @@ function O.UpdateMaterials()
         O.currentSurface=texture
     end
     O.materialReady=ready and O.FantasyReady()
-end
-
-function O.MaterialStatus()
-    local texture,ready=O.SurfaceTexture()
-    ready=ready and O.FantasyReady()
-    return "Fantasy-Grafiken: "..(ready and "geladen" or "werden geladen - Originalbalken bleiben sichtbar")..
-        " | "..(texture==WHITE and "eigene DDS" or "ESO-Ausweichtextur")
-end
-
-function O.PrintMaterialStatus()
-    d("Obsidian HUD "..O.version..": "..O.MaterialStatus())
-    d("Obsidian HUD: aktiv="..tostring(O.vars.enabled).." | HUD="..tostring(HUD_SCENE:IsShowing() or HUD_UI_SCENE:IsShowing()))
-    for _,entry in ipairs({
-        {"Rahmen",ObsidianHUDAssetsFantasyFrame},
-        {"Balken",ObsidianHUDAssetsFantasyFill},
-        {"Kurvenrahmen",ObsidianHUDAssetsCurveFrame},
-        {"Kurvenfuellung",ObsidianHUDAssetsCurveFill},
-        {"Emblem",O.vars.roundBadge and ObsidianHUDAssetsFantasyRound or ObsidianHUDAssetsFantasyDiamond},
-        {"Klassensymbole",ObsidianHUDAssetsClasses},
-        {"Flaeche",ObsidianHUDAssetsSolid},
-        {"ESO-Ersatz",ObsidianHUDAssetsFallback},
-    }) do
-        local asset=entry[2]
-        local w,h=0,0
-        if asset then w,h=asset:GetTextureFileDimensions() end
-        d("Obsidian HUD: "..entry[1].." | geladen="..tostring(asset and asset:IsTextureLoaded() or false).." | "..tostring(w).."x"..tostring(h))
-    end
 end
 
 function O.Rect(parent,r,g,b,a)
@@ -277,18 +250,15 @@ function O.CreateUI()
     O.shield:SetColor(0.54,0.86,1,0.9)
     O.shield:SetMinMax(0,1)
     O.shield:SetHidden(true)
-    O.badge=artwork(root,"fantasy_diamond.dds")
+    O.badge=artwork(root,"fantasy_round.dds")
     O.badge:SetDrawLevel(10)
     O.badge:SetAnchor(TOPLEFT,root,TOPLEFT,0,17)
     O.badge:SetDimensions(86,86)
-    O.classIcon=artwork(root,"fantasy_diamond.dds")
+    O.classIcon=artwork(root,"fantasy_round.dds")
     O.classIcon:SetAnchor(CENTER,O.badge,CENTER,0,0)
     O.classIcon:SetDimensions(41,41)
     O.classIcon:SetDrawLevel(11)
     O.classIcon:SetHidden(true)
-    O.level=O.Label(root,13)
-    O.level:SetAnchor(TOP,O.badge,BOTTOM,0,3)
-    O.level:SetColor(1,1,1,1)
     local fragment=ZO_SimpleSceneFragment:New(root)
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
@@ -349,7 +319,7 @@ function O.Layout()
     O.root:SetScale(v.scale)
     O.root:SetAlpha(v.opacity)
     O.accent:SetColor(unpack(v.accent))
-    O.badge:SetTexture(ART..(v.roundBadge and "fantasy_round.dds" or "fantasy_diamond.dds"))
+    O.badge:SetTexture(ART.."fantasy_round.dds")
     O.badge:ClearAnchors()
     O.badge:SetAnchor(TOPLEFT,O.root,TOPLEFT,v.roundBadge and -7 or 0,v.roundBadge and 18 or 17)
     O.badge:SetDimensions(v.roundBadge and 100 or 86,v.roundBadge and 100 or 86)
@@ -357,7 +327,6 @@ function O.Layout()
     O.title:SetText(GetUnitName and zo_strformat("<<1>>",GetUnitName("player")) or "Obsidian")
     O.title:ClearAnchors()
     O.title:SetAnchor(TOPLEFT,O.root,TOPLEFT,90,6)
-    O.level:SetText(GetUnitLevel and tostring(GetUnitLevel("player")) or "")
     O.UpdateClassIcon()
     O.ArrangeResourceBars(true)
     for _,spec in ipairs(O.resources) do
@@ -403,19 +372,24 @@ function O.UpdateResources()
     end
 end
 
-function O.CreateSlotSkin(button)
+function O.CreateSlotSkin(button,stableSlot)
     local skin={button=button}
     local icon=button.icon
-    local frame=O.Frame(icon)
+    -- Empty quickslots hide their native icon. Keep their decoration attached
+    -- to the slot so the same frame remains visible with or without an item.
+    local target=stableSlot and button.slot or icon
+    local frame=O.Frame(target)
     frame:SetDrawLayer(DL_OVERLAY)
     frame:SetDrawLevel(20)
-    frame:SetAnchor(TOPLEFT,icon,TOPLEFT,-4,-4)
-    frame:SetAnchor(BOTTOMRIGHT,icon,BOTTOMRIGHT,4,4)
+    local framePad=stableSlot and 2.5 or 4
+    frame:SetAnchor(TOPLEFT,target,TOPLEFT,-framePad,-framePad)
+    frame:SetAnchor(BOTTOMRIGHT,target,BOTTOMRIGHT,framePad,framePad)
     -- The centre must remain transparent so the real ability icon stays visible.
     frame.background:SetHidden(true)
     skin.art=artwork(frame,"fantasy_slot.dds")
-    skin.art:SetAnchor(TOPLEFT,icon,TOPLEFT,-6,-6)
-    skin.art:SetAnchor(BOTTOMRIGHT,icon,BOTTOMRIGHT,6,6)
+    local artPad=stableSlot and 4.5 or 6
+    skin.art:SetAnchor(TOPLEFT,target,TOPLEFT,-artPad,-artPad)
+    skin.art:SetAnchor(BOTTOMRIGHT,target,BOTTOMRIGHT,artPad,artPad)
     skin.art:SetDrawLevel(21)
     skin.frame=frame
     return skin
@@ -435,7 +409,9 @@ function O.UpdateBarIndicator(button,active,visible)
     end
     if O.barIndicatorSlot~=button.slot then
         if O.barIndicator then O.barIndicator:SetHidden(true) end
-        O.barIndicator=create(button.slot,CT_TEXTURE)
+        -- Anchor beside the active slot, but do not inherit the slot's
+        -- visibility/alpha or clipping while ESO reapplies its templates.
+        O.barIndicator=create(ZO_ActionBar1 or button.slot:GetParent(),CT_TEXTURE)
         O.barIndicator:SetTexture("esoui/art/buttons/large_rightarrow_up.dds")
         O.barIndicator:SetDimensions(64,64)
         O.barIndicator:SetMouseEnabled(false)
@@ -460,6 +436,8 @@ function O.UpdateBarIndicator(button,active,visible)
         end
         O.barIndicatorSlot=button.slot
     end
+    if O.barIndicator.SetInheritAlpha then O.barIndicator:SetInheritAlpha(false) end
+    O.barIndicator:SetAlpha(1)
     O.barIndicator:SetHidden(false)
 end
 
@@ -468,14 +446,24 @@ function O.LayoutSkillPreview(skin)
     local iconWidth,iconHeight=O.SkillIconRestSize(skin.button)
     local width=equal and iconWidth+12 or 43
     local height=equal and iconHeight+12 or 43
-    local placement=O.IsFixedSkillView() and GetActiveHotbarCategory() or "above"
+    local displayed=O.SkillDisplayBar and O.SkillDisplayBar(skin.button) or GetActiveHotbarCategory()
+    local placement=O.IsFixedSkillView() and displayed or "above"
     local gap=O.SkillRowGap(skin.button.slot)
     if skin.activeTextSlot==8 and O.DualUltimateView() then gap=O.UltimateRowSeparation() end
-    if skin.previewPlacement~=placement or skin.previewGap~=gap then
+    local sizeTarget=equal and skin.button.slot or nil
+    if skin.previewPlacement~=placement or skin.previewGap~=gap or skin.previewSizeTarget~=sizeTarget then
         skin.previewPlacement=placement
         skin.previewGap=gap
+        skin.previewSizeTarget=sizeTarget
         skin.back:ClearAnchors()
-        if placement=="above" then
+        if sizeTarget and placement~="above" then
+            -- Match the active artwork's RESTING bounds, using the stable
+            -- slot. Following skin.art also copies the pressed icon's bounce
+            -- into the other weapon's preview, as if both skills were used.
+            local offset=placement==HOTBAR_CATEGORY_PRIMARY and gap or -gap
+            skin.back:SetAnchor(TOPLEFT,sizeTarget,TOPLEFT,-4.5,offset-4.5)
+            skin.back:SetAnchor(BOTTOMRIGHT,sizeTarget,BOTTOMRIGHT,4.5,offset+4.5)
+        elseif placement=="above" then
             skin.back:SetAnchor(BOTTOM,skin.button.slot,TOP,0,-15.5)
         else
             skin.back:SetAnchor(CENTER,skin.button.slot,CENTER,0,placement==HOTBAR_CATEGORY_PRIMARY and gap or -gap)
@@ -483,7 +471,7 @@ function O.LayoutSkillPreview(skin)
     end
     if skin.previewWidth==width and skin.previewHeight==height then return end
     skin.previewWidth,skin.previewHeight=width,height
-    skin.back:SetDimensions(width,height)
+    if not sizeTarget or placement=="above" then skin.back:SetDimensions(width,height) end
     local inset=equal and 6 or 3
     skin.backIcon:ClearAnchors()
     skin.backIcon:SetAnchor(TOPLEFT,skin.back,TOPLEFT,inset,inset)
@@ -506,7 +494,7 @@ function O.CreateSkillSkin(button)
     backIcon.obsidianSurface=false -- Slot icons must never be replaced by the shared surface loader.
     backIcon:SetDrawLayer(DL_CONTROLS)
     -- Only the inactive icon is muted. Timers and stack text stay legible.
-    backIcon:SetDesaturation(0.75)
+    backIcon:SetDesaturation(1)
     backIcon:SetColor(0.7,0.7,0.7,1)
     backIcon:SetAnchor(TOPLEFT,back,TOPLEFT,3,3)
     backIcon:SetAnchor(BOTTOMRIGHT,back,BOTTOMRIGHT,-3,-3)

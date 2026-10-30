@@ -2,7 +2,7 @@
 -- Local-only; L3 scans additional trader pages and caches collection matches.
 GuildMarketScannerDev = GuildMarketScannerDev or {}
 local GMS = GuildMarketScannerDev
-GMS.name, GMS.version = 'GuildMarketScannerDev', '1.2.4'
+GMS.name, GMS.version = 'GuildMarketScannerDev', '1.3.0'
 GMS.enabled, GMS.traderOpen, GMS.keybindAttached = false, false, false
 -- Diagnostics are disabled in normal gameplay. /gmsdebug toggles them for testing.
 GMS.debug = false
@@ -117,11 +117,71 @@ local function GMSNormalizeCollectionPart(value)
     if value:sub(-1)=='s' and value:sub(-2)~='ss' then value=value:sub(1,-2) end
     return value
 end
+-- v1.2.12: Check the finished provisioning recipe, not the fragment item.
+-- Verify result name before using the observed recipe index (indices can change).
+local function GMSRecipeStillMissing(expectedName, recipeIndex)
+    if type(GetRecipeInfo)~='function' or type(GetRecipeResultItemLink)~='function'
+        or type(GetItemLinkName)~='function' then return nil end
+    local ok, known=pcall(GetRecipeInfo,15,recipeIndex)
+    local okLink, resultLink=pcall(GetRecipeResultItemLink,15,recipeIndex)
+    if not ok or not okLink or type(known)~='boolean' or type(resultLink)~='string' then return nil end
+    local okName, name=pcall(GetItemLinkName,resultLink)
+    if not okName or type(name)~='string' or name:lower()~=expectedName then return nil end
+    return not known
+end
+
 function GMS:MissingFragment(link)
     if type(link)~='string' or link=='' or type(GetItemLinkItemId)~='function'
         or type(GetAchievementCriterion)~='function' then return nil end
     local okId,itemId=pcall(GetItemLinkItemId,link)
     if not okId then return nil end
+    -- v1.2.7: Exact Guild Trader item IDs confirmed by /gmsitem.
+    -- Reward IDs were checked against in-game collectible diagnostics.
+    -- Do not infer ownership from the fragment's own recipeKnown flag.
+    local GMS_REWARD_FRAGMENT_IDS = {
+        [171479] = 8186,  -- Sealed Fabrication Materials -> Microtized Verminous Fabricant
+        [147658] = 5885,  -- Festive Noise Maker Parts
+        [147659] = 5887,  -- Joke Popper Parts
+        [217925] = 13792, -- Phial of Tainted Blood -> Eviscerate, Violet Purple
+    }
+    -- v1.2.9: Werewolf forms found by /gmstotems.
+    -- Both totem shard IDs are associated with the Red form; test in trader.
+    GMS_REWARD_FRAGMENT_IDS[226958] = 14659 -- Wolf Totem Shard
+    GMS_REWARD_FRAGMENT_IDS[226959] = 14659 -- Hunter Totem Shard
+    GMS_REWARD_FRAGMENT_IDS[225219] = 14400 -- Shard of Parched Stone -> Blood Scion, Coldharbour
+    -- Bitten Chew Bone: keep it only until all three form rewards are unlocked.
+    if itemId==225220 and type(IsCollectibleUnlocked)=='function' then
+        local allOwned=true
+        for _,cid in ipairs({14773,14774,14775}) do
+            local ok,owned=pcall(IsCollectibleUnlocked,cid)
+            if not ok or type(owned)~='boolean' then return nil end
+            if not owned then allOwned=false end
+        end
+        return not allOwned
+    end
+    local rewardCollectibleId=GMS_REWARD_FRAGMENT_IDS[itemId]
+    if rewardCollectibleId and type(IsCollectibleUnlocked)=='function' then
+        local success, unlocked=pcall(IsCollectibleUnlocked,rewardCollectibleId)
+        if success and type(unlocked)=='boolean' then return not unlocked end
+    end
+    -- Recipe fragments: exact IDs where known; Psijic I-VII use an anchored
+    -- item-name match so no unrelated recipe or material is classified.
+    if itemId==115028 then
+        return GMSRecipeStillMissing('mythic aetherial ambrosia',11)
+    elseif itemId==224840 or itemId==224841 or itemId==224842 then
+        return GMSRecipeStillMissing('tonic of portent favor',18)
+    elseif itemId==64705 then
+        return GMSRecipeStillMissing('psijic ambrosia',1)
+    end
+    if type(GetItemLinkName)=='function' then
+        local okRecipeName, recipePartName=pcall(GetItemLinkName,link)
+        if okRecipeName and type(recipePartName)=='string' then
+            local low=recipePartName:lower()
+            if low:match('^recipe: psijic ambrosia, fragment [ivx]+$') then
+                return GMSRecipeStillMissing('psijic ambrosia',1)
+            end
+        end
+    end
     local record=GMS_QUANTITY_FRAGMENTS[itemId]
     if record then
         local ok,description,current,required=pcall(GetAchievementCriterion,record[1],record[2])
@@ -157,6 +217,37 @@ function GMS:MissingFragment(link)
         if okReward and rewardOwned==true then return false end
         local okPart, partOwned = pcall(IsCollectibleUnlocked,appleId)
         if okPart and type(partOwned)=='boolean' then return not partOwned end
+    end
+    -- v1.2.14: Mosaic Style Shreds, confirmed in-game as criterion 1
+    -- of Skill Stylist: Grand Healing (achievement 4055, 10 required).
+    -- Do NOT treat Dawnbreaker/Meteor customization fragments as this item.
+    -- When criterion information is unavailable, preserve native behavior.
+    if lowerName=='mosaic style shred' or lowerName=='mosaic style shreds'
+        or lowerName=='mosaic skill shred' or lowerName=='mosaic skill shreds' then
+        if type(GetAchievementCriterion)=='function' then
+            local okM,descM,currentM,requiredM=pcall(GetAchievementCriterion,4055,1)
+            if okM and type(descM)=='string'
+                and GMSNormalizeCollectionPart(descM)=='mosaic style shred'
+                and type(currentM)=='number' and type(requiredM)=='number' and requiredM>0 then
+                return currentM<requiredM
+            end
+        end
+        return nil
+    end
+    -- v1.2.13: Seven Guar Stomp component names; final emote collectible 6197.
+    -- Exact names prevent unrelated Guar items from being hidden.
+    local guarParts = {
+        ['guar stomp elucidating hand-sculpture']=true,
+        ['guar stomp history in street theatre']=true,
+        ['guar stomp illustrated reports']=true,
+        ['guar stomp noise reports']=true,
+        ['guar stomp rehearsal tuning fork']=true,
+        ['guar stomp skeletal reconstruction']=true,
+        ['guar stomp steps-practice rug']=true,
+    }
+    if guarParts[lowerName] and type(IsCollectibleUnlocked)=='function' then
+        local okGuar,owned=pcall(IsCollectibleUnlocked,6197)
+        if okGuar and type(owned)=='boolean' then return not owned end
     end
     local rewardId = nil
     if lowerName=='bonedust pigment' or lowerName=='bonedust pigments' then
@@ -323,48 +414,17 @@ end
 -- On an empty filtered server page ESO can hide its native trigger prompts.
 -- Provide fallback triggers ONLY while the filtered result list is empty.
 -- Never replace ESO's native page controls on nonempty pages.
+-- The old empty-result L2/R2 keybind strip was a legacy manual-page fallback.
+-- The native filtered-results footer provides the working L2/R2 controls.
+-- Keep this hook as a no-op so scan/pagination call sites remain unchanged.
 function GMS:UpdateEmptyPageNavigation(isEmpty)
-    self.emptyFilteredPage = self.enabled and self.traderOpen and isEmpty == true
-    if not KEYBIND_STRIP then return end
-    -- During an L3 toggle ESO may still be showing the search-form keybind bar.
-    -- Wait until the native panel has updated before adding our fallback group.
-    if self.pendingKeybindSync then return end
-    if not self.emptyPageKeybindGroup then
-        self.emptyPageKeybindGroup = {
-            alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            { name = 'Prev', keybind = 'UI_SHORTCUT_LEFT_TRIGGER',
-              visible = function()
-                  local search = TRADING_HOUSE_SEARCH
-                  return GMS.emptyFilteredPage and search and type(search.GetPage)=='function'
-                      and type(search.SearchPreviousPage)=='function' and (search:GetPage() or 0)>0
-              end,
-              callback = function()
-                  local search = TRADING_HOUSE_SEARCH
-                  if search and type(search.SearchPreviousPage)=='function' then search:SearchPreviousPage() end
-              end },
-            { name = 'Next', keybind = 'UI_SHORTCUT_RIGHT_TRIGGER',
-              visible = function()
-                  local search = TRADING_HOUSE_SEARCH
-                  return GMS.emptyFilteredPage and search and type(search.HasNextPage)=='function'
-                      and type(search.SearchNextPage)=='function' and search:HasNextPage()
-              end,
-              callback = function()
-                  local search = TRADING_HOUSE_SEARCH
-                  if search and type(search.SearchNextPage)=='function' then search:SearchNextPage() end
-              end },
-        }
-    end
-    if self.emptyFilteredPage and not self.emptyPageKeybindAttached then
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.emptyPageKeybindGroup)
-        self.emptyPageKeybindAttached = true
-    elseif not self.emptyFilteredPage and self.emptyPageKeybindAttached then
+    self.emptyFilteredPage = false
+    if self.emptyPageKeybindAttached and KEYBIND_STRIP and self.emptyPageKeybindGroup then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.emptyPageKeybindGroup)
         self.emptyPageKeybindAttached = false
     end
-    if self.emptyPageKeybindAttached then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.emptyPageKeybindGroup)
-    end
 end
+
 function GMS:FilterVisibleEntries(panel)
     local list = panel and panel.list
     if not list or type(ZO_ScrollList_GetDataList) ~= 'function' then return end
@@ -3304,8 +3364,380 @@ local function GMSRemainingPartsProbe()
     batch()
 end
 
+
+-- v1.2.5: Read-only discovery of candidate rewards for tradeable fragments.
+-- Name matches are clues only, not proof of an item-to-reward association.
+local gmsNextRewardsRunning=false
+local function GMSNextFragmentRewards()
+    if gmsNextRewardsRunning then FragmentDiagnosticMessage('Fragment reward lookup already running.'); return end
+    local names={
+        {'Revelry',{'revelry','reveler'}},
+        {'Mirth',{'playful prankster','mirth'}},
+        {'Noise Maker',{'festive noise maker','noise maker'}},
+        {'Joke Popper',{'joke popper'}},
+        {'Minstrel',{'daedroth suit','minstrel'}},
+        {'Guar Stomp',{'guar stomp'}},
+        {'Mosaic',{'mosaic','skill style'}},
+        {'Tainted Blood',{'eviscerate','tainted blood'}},
+        {'Fabrication',{'fabricant','fabrication'}},
+        {'Portent',{'portent favor','tonic of portent'}},
+    }
+    local apis={'GetCollectibleInfo','IsCollectibleUnlocked','GetRecipeInfo','GetRecipeListInfo',
+        'GetNumRecipeLists','GetNumRecipesInRecipeList','GetItemLinkItemId',
+        'GetItemLinkRecipeResultItemLink','GetItemLinkName','IsItemLinkRecipeKnown',
+        'GetItemLinkItemType','GetAchievementInfo','GetAchievementCriterion'}
+    local available={}
+    for _,name in ipairs(apis) do
+        if type(_G[name])=='function' then available[#available+1]=name end
+    end
+    FragmentDiagnosticMessage('v1.2.5 reward discovery: read-only, no filters changed.')
+    FragmentDiagnosticMessage('Available APIs: '..table.concat(available,', '))
+    if type(GetCollectibleInfo)~='function' then FragmentDiagnosticMessage('Collectible lookup unavailable.'); return end
+    local found={}
+    for i=1,#names do found[i]=0 end
+    local id,limit,step=1,20000,180
+    gmsNextRewardsRunning=true
+    local function batch()
+        local stop=math.min(limit,id+step-1)
+        while id<=stop do
+            local ok,name=pcall(GetCollectibleInfo,id)
+            if ok and type(name)=='string' and name~='' then
+                local low=name:lower()
+                for i,entry in ipairs(names) do
+                    local match=false
+                    for _,term in ipairs(entry[2]) do
+                        if low:find(term,1,true) then match=true; break end
+                    end
+                    if match then
+                        found[i]=found[i]+1
+                        if found[i]<=7 then
+                            local owned='unknown'
+                            if type(IsCollectibleUnlocked)=='function' then
+                                local good,value=pcall(IsCollectibleUnlocked,id)
+                                if good then owned=tostring(value) end
+                            end
+                            FragmentDiagnosticMessage(entry[1]..' '..id..' '..name..' owned='..owned)
+                        end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then
+            zo_callLater(batch,25)
+        else
+            gmsNextRewardsRunning=false
+            for i,entry in ipairs(names) do
+                FragmentDiagnosticMessage(entry[1]..': '..found[i]..' collectible name matches')
+            end
+            FragmentDiagnosticMessage('Done. Name matches require reward verification; no scan/filter changes.')
+        end
+    end
+    batch()
+end
+
+
+-- v1.2.6: read-only selected Guild Trader listing probe.
+-- Never changes scanning, result selection, or purchase state.
+local function GMSSelectedListingProbe()
+    local function say(msg)
+        if type(d)=='function' then d('[GMS Item] '..tostring(msg))
+        elseif CHAT_ROUTER and type(CHAT_ROUTER.AddSystemMessage)=='function' then CHAT_ROUTER:AddSystemMessage('[GMS Item] '..tostring(msg)) end
+    end
+    local panel=GMS:GetPanel()
+    if not panel or not panel.list or type(ZO_ScrollList_GetSelectedData)~='function' then
+        say('Open Guild Trader results and highlight the item first.'); return
+    end
+    local ok,selected=pcall(ZO_ScrollList_GetSelectedData,panel.list)
+    if not ok or type(selected)~='table' then say('No highlighted result found.'); return end
+    local entry=selected
+    if type(selected.dataEntry)=='table' and type(selected.dataEntry.data)=='table' then entry=selected.dataEntry.data end
+    local slot=selected.slotIndex or entry.slotIndex
+    local link=selected.gmsItemLink or entry.gmsItemLink or selected.itemLink or entry.itemLink
+    local name=selected.name or entry.name or selected.itemName or entry.itemName
+    if type(slot)=='number' and type(GetTradingHouseSearchResultItemLink)=='function' then
+        local success,live=pcall(GetTradingHouseSearchResultItemLink,slot,LINK_STYLE_DEFAULT)
+        if success and type(live)=='string' and live~='' then
+            if type(link)=='string' and link~=live then say('Note: cached and live listing links differ') end
+            link=live
+        end
+    end
+    say('Name='..tostring(name or '?'):sub(1,80)..' slot='..tostring(slot or '?'))
+    if type(link)~='string' or link=='' then say('No item link exposed by selected row'); return end
+    say('Link='..link)
+    for _,spec in ipairs({
+        {'itemId','GetItemLinkItemId'},
+        {'itemType','GetItemLinkItemType'},
+        {'containerCollectibleId','GetItemLinkContainerCollectibleId'},
+        {'collectibleId','GetCollectibleIdFromLink'},
+        {'isSetCollectionPiece','IsItemLinkSetCollectionPiece'},
+        {'recipeKnown','IsItemLinkRecipeKnown'},
+    }) do
+        local fn=_G[spec[2]]
+        if type(fn)=='function' then
+            local success,value=pcall(fn,link)
+            say(spec[1]..'='..(success and tostring(value) or 'API error'))
+        end
+    end
+    if type(GetItemLinkContainerCollectibleId)=='function' and type(IsCollectibleUnlocked)=='function' then
+        local success,id=pcall(GetItemLinkContainerCollectibleId,link)
+        if success and type(id)=='number' and id>0 then
+            local own,v=pcall(IsCollectibleUnlocked,id)
+            say('containerRewardUnlocked='..(own and tostring(v) or 'API error'))
+        end
+    end
+    say('Done. Read-only; no filter or purchase changes.')
+end
+
+
+-- v1.2.8: Read-only targeted collectible/achievement name discovery.
+-- These are candidate name matches, not verified item-to-reward associations.
+local gmsTotemProbeRunning=false
+local function GMSTotemRewardProbe()
+    if gmsTotemProbeRunning then FragmentDiagnosticMessage('Totem probe already running.'); return end
+    if type(GetCollectibleInfo)~='function' then FragmentDiagnosticMessage('GetCollectibleInfo unavailable.'); return end
+    local groups={
+        {'Werewolf',{'werewolf','wolf form','wolf totem','hunter totem'}},
+        {'Blood Scion',{'blood scion','coldharbour','parched stone'}},
+        {'Stone Husk',{'stone husk','target dummy','training dummy'}},
+        {'Chew Bone',{'chew bone','ashen','bitten'}},
+    }
+    local matches={}; for i=1,#groups do matches[i]=0 end
+    FragmentDiagnosticMessage('v1.2.8 totem/bone/stone reward search (read-only).')
+    local id,limit,step=1,24000,160
+    gmsTotemProbeRunning=true
+    local function batch()
+        local stop=math.min(limit,id+step-1)
+        while id<=stop do
+            local ok,name=pcall(GetCollectibleInfo,id)
+            if ok and type(name)=='string' and name~='' then
+                local low=name:lower()
+                for i,group in ipairs(groups) do
+                    local hit=false
+                    for _,term in ipairs(group[2]) do
+                        if low:find(term,1,true) then hit=true; break end
+                    end
+                    if hit then
+                        matches[i]=matches[i]+1
+                        if matches[i]<=18 then
+                            local owned='unknown'
+                            if type(IsCollectibleUnlocked)=='function' then
+                                local yes,value=pcall(IsCollectibleUnlocked,id)
+                                if yes then owned=tostring(value) end
+                            end
+                            FragmentDiagnosticMessage(group[1]..' ID='..id..' '..name:sub(1,48)..' owned='..owned)
+                        end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then zo_callLater(batch,30)
+        else
+            gmsTotemProbeRunning=false
+            for i,group in ipairs(groups) do FragmentDiagnosticMessage(group[1]..' matches='..matches[i]) end
+            FragmentDiagnosticMessage('Done. Name matches are candidates only; no filters changed.')
+        end
+    end
+    batch()
+end
+
+-- v1.2.9: Focused diagnostic for the two still-unmapped stone fragments.
+-- No broad Coldharbour/Ashen name search; no filter modifications.
+local function GMSStoneProbe()
+    local say=FragmentDiagnosticMessage
+    say('v1.2.9 stone reward diagnostic (read-only).')
+    local candidates={8461,8462,14659,14773,14774,14775}
+    for _,cid in ipairs(candidates) do
+        local name='unknown'; local owned='unknown'
+        if type(GetCollectibleInfo)=='function' then
+            local ok,n=pcall(GetCollectibleInfo,cid)
+            if ok and type(n)=='string' then name=n end
+        end
+        if type(IsCollectibleUnlocked)=='function' then
+            local ok,v=pcall(IsCollectibleUnlocked,cid)
+            if ok then owned=tostring(v) end
+        end
+        say('ID='..cid..' '..name:sub(1,46)..' owned='..owned)
+    end
+    -- Search exact phrases only to avoid unrelated Coldharbour results.
+    if type(GetCollectibleInfo)~='function' then say('No collectible API.'); return end
+    local terms={'stone husk','blood scion form','blood scion,','parched stone','stone husk target'}
+    local id,limit,step,matches=1,30000,250,0
+    local function batch()
+        local stop=math.min(limit,id+step-1)
+        while id<=stop do
+            local ok,name=pcall(GetCollectibleInfo,id)
+            if ok and type(name)=='string' and name~='' then
+                local low=name:lower()
+                for _,term in ipairs(terms) do
+                    if low:find(term,1,true) then
+                        matches=matches+1
+                        if matches<=24 then
+                            local owned='unknown'
+                            if type(IsCollectibleUnlocked)=='function' then
+                                local yes,v=pcall(IsCollectibleUnlocked,id)
+                                if yes then owned=tostring(v) end
+                            end
+                            say('Candidate ID='..id..' '..name:sub(1,44)..' owned='..owned)
+                        end
+                        break
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then zo_callLater(batch,30)
+        else say('Stone candidates='..matches..'. Done; no filter changes.') end
+    end
+    batch()
+end
+
+
+-- v1.2.10: Read-only recipe knowledge discovery for fragment-based recipes.
+-- GetRecipeInfo's first return is the known flag; the actual completed recipe
+-- must be inspected, never the ingredient fragment's recipeKnown property.
+local function GMSRecipeFragmentProbe()
+    local say=FragmentDiagnosticMessage
+    say('v1.2.11 recipe knowledge scan (read-only).')
+    if type(GetNumRecipeLists)~='function' or type(GetRecipeListInfo)~='function'
+        or type(GetRecipeInfo)~='function' or type(GetRecipeResultItemLink)~='function' then
+        say('Recipe list API incomplete. No filters changed.'); return
+    end
+    local okCount,listCount=pcall(GetNumRecipeLists)
+    if not okCount or type(listCount)~='number' then
+        say('Recipe list count unavailable.'); return
+    end
+    local terms={'psijic ambrosia','mythic aetherial ambrosia','tonic of portent favor'}
+    local listIndex,recipeIndex,recipeCount=1,1,0
+    local inspected,matches,failures=0,0,0
+    local function scanBatch()
+        local budget=200
+        while listIndex<=math.min(listCount,100) and budget>0 do
+            if recipeIndex==1 then
+                local ok,_,count=pcall(GetRecipeListInfo,listIndex)
+                if ok and type(count)=='number' then recipeCount=math.min(count,2000)
+                else recipeCount=0; failures=failures+1 end
+            end
+            if recipeIndex>recipeCount then
+                listIndex=listIndex+1; recipeIndex=1
+            else
+                local ri=recipeIndex
+                recipeIndex=recipeIndex+1
+                budget=budget-1
+                inspected=inspected+1
+                local okInfo,known,recipeName=pcall(GetRecipeInfo,listIndex,ri)
+                local okLink,link=pcall(GetRecipeResultItemLink,listIndex,ri)
+                local resultName=''
+                if okLink and type(link)=='string' and link~='' and type(GetItemLinkName)=='function' then
+                    local okName,name=pcall(GetItemLinkName,link)
+                    if okName and type(name)=='string' then resultName=name end
+                end
+                local combined=((type(recipeName)=='string' and recipeName or '')..' '..resultName):lower()
+                for _,term in ipairs(terms) do
+                    if combined:find(term,1,true) then
+                        matches=matches+1
+                        if matches<=20 then
+                            local display=resultName~='' and resultName or (type(recipeName)=='string' and recipeName or term)
+                            say(display:sub(1,48)..' known='..tostring(known)..' list='..listIndex..' recipe='..ri)
+                        end
+                        break
+                    end
+                end
+                if not okInfo or not okLink then failures=failures+1 end
+            end
+        end
+        if listIndex<=math.min(listCount,100) and type(zo_callLater)=='function' then
+            zo_callLater(scanBatch,30)
+        else
+            say('Done. lists='..listCount..' checked='..inspected..' matches='..matches..' errors='..failures)
+            say('No recipe fragment filters changed.')
+        end
+    end
+    scanBatch()
+end
+
+-- v1.2.12: Targeted read-only search for remaining fragment achievements.
+-- Collectible-name matches are NOT assumed to be fragment rewards.
+local function GMSRemainingFragmentProbe()
+    local say=FragmentDiagnosticMessage
+    say('v1.2.13 remaining fragment search (read-only).')
+    if type(GetAchievementInfo)~='function' or type(GetAchievementCriterion)~='function' then
+        say('Achievement API unavailable.'); return
+    end
+    local id, limit, matches=1,30000,0
+    local terms={'stone husk','guar stomp','mosaic skill','mosaic shreds','arkthzand'}
+    local function batch()
+        local stop=math.min(limit,id+250-1)
+        while id<=stop do
+            local ok,name=pcall(GetAchievementInfo,id)
+            if ok and type(name)=='string' and name~='' then
+                local lower=name:lower()
+                local hit=false
+                for _,term in ipairs(terms) do
+                    if lower:find(term,1,true) then hit=true; break end
+                end
+                if hit then
+                    matches=matches+1
+                    if matches<=15 then
+                        say('ACH '..id..' '..name:sub(1,48))
+                        for c=1,12 do
+                            local good,desc,current,required=pcall(GetAchievementCriterion,id,c)
+                            if good and type(desc)=='string' and desc~='' and type(required)=='number' and required>0 then
+                                say('  '..c..' '..desc:sub(1,33)..' '..tostring(current)..'/'..tostring(required))
+                            end
+                        end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then zo_callLater(batch,30)
+        else say('Done. achievement matches='..matches..'. No filter changes.') end
+    end
+    batch()
+end
+
+-- v1.2.13: Read-only, targeted Mosaic achievement discovery.
+-- We report candidates and criteria; no speculative ownership filter.
+local function GMSMosaicProbe()
+    local say=FragmentDiagnosticMessage
+    if type(GetAchievementInfo)~='function' or type(GetAchievementCriterion)~='function' then
+        say('Mosaic: achievement API unavailable.'); return
+    end
+    say('v1.2.13 Mosaic skill-style achievement search started.')
+    local id,limit,matches=1,30000,0
+    local function batch()
+        local stop=math.min(limit,id+249)
+        while id<=stop do
+            local ok,name=pcall(GetAchievementInfo,id)
+            if ok and type(name)=='string' and name~='' then
+                local lower=name:lower()
+                if lower:find('skill stylist',1,true) or lower:find('grand healing',1,true)
+                    or lower:find('dawnbreaker',1,true) or lower:find('meteor',1,true)
+                    or lower:find('mosaic',1,true) then
+                    matches=matches+1
+                    if matches<=35 then
+                        say('ACH '..id..' '..name:sub(1,48))
+                        for c=1,8 do
+                            local good,desc,current,required=pcall(GetAchievementCriterion,id,c)
+                            if good and type(desc)=='string' and desc~='' and type(required)=='number' and required>0 then
+                                say('  '..c..' '..desc:sub(1,35)..' '..tostring(current)..'/'..tostring(required))
+                            end
+                        end
+                    end
+                end
+            end
+            id=id+1
+        end
+        if id<=limit and type(zo_callLater)=='function' then zo_callLater(batch,30)
+        else say('Mosaic done. matches='..matches..'. No Mosaic filter changes.') end
+    end
+    batch()
+end
+
 function GMS:Initialize()
-    if type(SLASH_COMMANDS) == 'table' then SLASH_COMMANDS['/gmsmem'] = GMSMemoryReading; SLASH_COMMANDS['/gmsfrag'] = FragmentDiagnostic; SLASH_COMMANDS['/gmsach'] = GMSAchievementProbe; SLASH_COMMANDS['/gmskitten'] = GMSKittenProbe; SLASH_COMMANDS['/gmskitach'] = GMSKittenAchievementProbe; SLASH_COMMANDS['/gmscollections'] = GMSCollectionDiscovery; SLASH_COMMANDS['/gmsrewards'] = GMSRewardOwnershipProbe; SLASH_COMMANDS['/gmsparts'] = GMSRemainingPartsProbe end
+    -- Development-only slash diagnostics removed for the public release.
     if type(EVENT_TRADING_HOUSE_RESPONSE_RECEIVED)=='number' then
         EVENT_MANAGER:RegisterForEvent(self.name .. '_purchase_response',
             EVENT_TRADING_HOUSE_RESPONSE_RECEIVED,

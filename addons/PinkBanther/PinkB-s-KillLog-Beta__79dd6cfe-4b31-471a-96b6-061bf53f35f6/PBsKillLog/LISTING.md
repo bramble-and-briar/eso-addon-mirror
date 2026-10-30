@@ -12,7 +12,7 @@ PB's KillLog
 
 ## Overview (JP)
 
-シロディールのPvPでプレイヤー同士のキルが起きた時のキルログだけを、専用のウィンドウに表示します。
+シロディールと帝都のPvPでプレイヤー同士のキルが起きた時のキルログだけを、専用のウィンドウに表示します。
 ゲーム本体の「PvPキルフィード」（チャットへの出力）をオフにしていても表示されるので、
 チャットを汚さずに戦況を確認できます。ウィンドウの位置・大きさ・文字サイズ・前後関係を
 自由に変えられ、自分がキルした時にはテイルズ・オブ・トリビュートでカードを倒した時の
@@ -23,7 +23,7 @@ PB's KillLog
 
 ## Overview (EN)
 
-Shows only the PvP player kill feed in Cyrodiil, in a window of its own. It works even when the game's
+Shows only the PvP player kill feed in Cyrodiil and the Imperial City, in a window of its own. It works even when the game's
 "PvP Kill Feed" option (kills in the chat) is turned off, so you can follow the fight without
 filling the chat. Move and resize the window, change its text size and where it sits among the
 other UI, and have the Tales of Tribute "card knocked out" sound play when the kill is yours. It also
@@ -36,15 +36,15 @@ you, for a day, a month or all time.
 ## Description (JP)
 
 PvPで近くのプレイヤーが倒されると、ゲーム本体はそのキルフィードをチャットに流します。
-このアドオンは、シロディールでのそのキルログだけを専用のウィンドウに表示します。チャットとは別に
+このアドオンは、シロディールと帝都でのそのキルログだけを専用のウィンドウに表示します。チャットとは別に
 表示できるため、キルログをチャットに出さない設定のままでも、戦況を一目で確認できます。
 さらに、自分のキルと死亡を日毎に記録して、階級とランキングで振り返れます。
 
 ■ 表示
 
-・シロディールで、プレイヤー同士のキルを表示します。
-　帝都とバトルグラウンドのキルは表示しません（ゲーム本体のキルフィードはそこでも流れますが、
-　このアドオンは無視します）。シロディール以外では、ウィンドウの文字も隠れます。
+・シロディールと帝都（帝都キャンペーンを含む）で、プレイヤー同士のキルを表示します。
+　バトルグラウンドのキルは表示しません（ゲーム本体のキルフィードはそこでも流れますが、
+　このアドオンは無視します）。それ以外の場所では、ウィンドウの文字も隠れます。
 　文面・色・ランクアイコンはゲーム本体のキルフィードと同じで、言語設定に従います。
 ・ゲーム本体の「PvPキルフィード」の設定に関係なく動作します。
 　このアドオンは、その設定を読むことも変更することもありません。
@@ -55,7 +55,7 @@ PvPで近くのプレイヤーが倒されると、ゲーム本体はそのキ�
 
 ■ 日毎の記録
 
-・自分がキルした回数と、自分が倒された回数を、日毎に記録します（シロディールのみ）。
+・自分がキルした回数と、自分が倒された回数を、日毎に記録します（シロディールと帝都のみ）。
 　日付が変わる時刻は、お使いの機器の時計の0時です。
 ・設定画面で、記録のある日ごとのキル数・死亡数を新しい順に見られます。
 ・キルに使った攻撃と、死亡の原因になった攻撃を記録します。設定画面で、全期間または
@@ -106,7 +106,7 @@ PvPで近くのプレイヤーが倒されると、ゲーム本体はそのキ�
 ・自分がキルした時に効果音を鳴らす（初期値はオン）
 　キルフィードの撃破者が自分だった時に、テイルズ・オブ・トリビュートでカード
 　（エージェント）の体力が0になった時の効果音を鳴らします。
-　他のプレイヤーのキルや、自分が倒された時には鳴りません。シロディール以外でも鳴りません。
+　他のプレイヤーのキルや、自分が倒された時には鳴りません。シロディールと帝都以外でも鳴りません。
 　オンにした時に一度鳴らして、音を確認できます。
 
 ■ 特徴
@@ -135,16 +135,16 @@ PvPで近くのプレイヤーが倒されると、ゲーム本体はそのキ�
 ## Description (EN)
 
 When a nearby player is killed in PvP, the game puts the kill in the chat. This add-on shows
-only that kill feed from Cyrodiil, in a window of its own. Because it is separate from the chat, you can keep
+only that kill feed from Cyrodiil and the Imperial City, in a window of its own. Because it is separate from the chat, you can keep
 the kill feed out of the chat and still see how the fight is going at a glance. It also records your
 own kills and deaths day by day, and lets you look back on them as ranks and rankings.
 
 ■ Showing
 
-- Shows player kills in Cyrodiil. Kills in the Imperial City and in Battlegrounds are not shown
-  (the game's own kill feed reports them too, but this add-on ignores them), and outside Cyrodiil
-  the window's text is hidden. The wording, colours and rank icons are the game's own kill feed,
-  in your language.
+- Shows player kills in Cyrodiil and the Imperial City (Imperial City campaigns included). Kills in
+  Battlegrounds are not shown (the game's own kill feed reports them too, but this add-on ignores
+  them), and everywhere else the window's text is hidden. The wording, colours and rank icons are
+  the game's own kill feed, in your language.
 - It works whatever the game's "PvP Kill Feed" option is set to. The add-on neither reads nor
   changes that option.
 - A kill that is announced twice is shown once.
@@ -154,7 +154,7 @@ own kills and deaths day by day, and lets you look back on them as ranks and ran
 
 ■ Daily records
 
-- Counts the kills you get and the times you are killed, day by day (Cyrodiil only). A new day
+- Counts the kills you get and the times you are killed, day by day (Cyrodiil and the Imperial City only). A new day
   starts at midnight on your own device's clock.
 - The settings panel lists each recorded day's kills and deaths, newest first.
 - Records the skill you killed with and the skill that killed you. In the settings panel pick all
@@ -204,7 +204,7 @@ own kills and deaths day by day, and lets you look back on them as ranks and ran
 
 - Play a sound when you get the kill (on by default): when the killer in the kill feed is you,
   the Tales of Tribute sound for a card (agent) running out of health plays. It does not play
-  for other players' kills, when you are the one defeated, or outside Cyrodiil. Switching it on plays the sound once
+  for other players' kills, when you are the one defeated, or outside Cyrodiil and the Imperial City. Switching it on plays the sound once
   so you can hear it.
 
 ■ Also

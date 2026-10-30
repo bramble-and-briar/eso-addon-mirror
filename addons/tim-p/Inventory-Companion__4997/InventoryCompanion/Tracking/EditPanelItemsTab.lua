@@ -1,4 +1,3 @@
-InventoryCompanion = InventoryCompanion or {}
 local this = InventoryCompanion
 
 local editorRows = {}
@@ -23,7 +22,7 @@ local function GetCurrentCharacterProfileKey()
 end
 
 local function GetCurrentDestinationKey()
-    if this.character and this.character.useCharacterItemList == true then
+    if this.character.useCharacterItemList == true then
         return GetCurrentCharacterProfileKey()
     else
         return "$AccountWide"
@@ -31,7 +30,7 @@ local function GetCurrentDestinationKey()
 end
 
 local function GetCurrentDestinationDisplayName()
-    if this.character and this.character.useCharacterItemList == true then
+    if this.character.useCharacterItemList == true then
         return GetUnitName("player") .. " (Character List)"
     else
         return "[Account Wide]"
@@ -104,9 +103,7 @@ local function BuildImportPreviewText(sourceKey)
     local sourceCount = GetProfileDetailedCounts(sourceKey)
     local currentList = InventoryCompanion.GetActiveTrackedItems()
     local destCount = 0
-    if currentList then
-        for _ in pairs(currentList) do destCount = destCount + 1 end
-    end
+    for _ in pairs(currentList) do destCount = destCount + 1 end
     return string.format("Replace %d entries with %d", destCount, sourceCount)
 end
 
@@ -115,8 +112,8 @@ local function ExecuteCopy(sourceKey)
 
     if success then
         this.Utils.UserMessage("Profile and rule overrides imported successfully!", "Item Tracker Imported")
-        if this.RefreshTrackedItemsEditor then this.RefreshTrackedItemsEditor() end
-        if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
+        this.RefreshTrackedItemsEditor()
+        this.RefreshItemTrackerPanel()
     else
         this.Utils.UserError("Failed to access source or destination saved variables.", "Import Error")
     end
@@ -128,15 +125,13 @@ local function OnCopyButton(sourceKey, sourceDisplayName)
     
     if destTotal == 0 then
         local currentList = InventoryCompanion.GetActiveTrackedItems()
-        if currentList then
-            for _, data in pairs(currentList) do
-                destTotal = destTotal + 1
-                local display = data.display or {}
-                if display.show ~= false then destShow = destShow + 1 end
-                if display.notify then destNotify = destNotify + 1 end
-                if display.bank then destBank = destBank + 1 end
-                if display.group then destGroup = destGroup + 1 end
-            end
+        for _, data in pairs(currentList) do
+            destTotal = destTotal + 1
+            local display = data.display or {}
+            if display.show ~= false then destShow = destShow + 1 end
+            if display.notify then destNotify = destNotify + 1 end
+            if display.bank then destBank = destBank + 1 end
+            if display.group then destGroup = destGroup + 1 end
         end
     end
 
@@ -164,10 +159,11 @@ local function InitCopyDropdown(topBar)
     local btnExecuteCopy = GetControl(topBar, "BtnExecuteCopy")
     local lblImportPreview = GetControl(topBar, "LblImportPreview")
 
-    if not btnImportToggle or not copyDropdownControl or not btnExecuteCopy or not lblImportPreview then return end
+    assert(btnImportToggle and copyDropdownControl and btnExecuteCopy and lblImportPreview,
+        "Tracked-items editor is missing required import controls")
 
     local comboBox = ZO_ComboBox_ObjectFromContainer(copyDropdownControl)
-    if not comboBox then return end
+    assert(comboBox, "Tracked-items editor is missing its import combo box")
 
     comboBox:SetSortsItems(false)
 
@@ -238,19 +234,20 @@ local function InitCharacterToggle(topBar)
     ZO_CheckButton_SetCheckState(chkUseChar, this.character.useCharacterItemList == true)
 
     local function ApplyUseChar(checked)
-        this.character.useCharacterItemList = checked
+        this.SetUseCharacterItemList(checked)
         
         local copyDropdownControl = GetControl(topBar, "CopyDropdown")
         local btnExecuteCopy = GetControl(topBar, "BtnExecuteCopy")
         local lblImportPreview = GetControl(topBar, "LblImportPreview")
         local btnImportToggle = GetControl(topBar, "BtnImportToggle")
-        if copyDropdownControl then copyDropdownControl:SetHidden(true) end
-        if btnExecuteCopy then btnExecuteCopy:SetHidden(true) end
-        if lblImportPreview then lblImportPreview:SetHidden(true); lblImportPreview:SetText("") end
-        if btnImportToggle then btnImportToggle:SetText("Import from:") end
+        copyDropdownControl:SetHidden(true)
+        btnExecuteCopy:SetHidden(true)
+        lblImportPreview:SetHidden(true)
+        lblImportPreview:SetText("")
+        btnImportToggle:SetText("Import from:")
 
         this.RefreshTrackedItemsEditor()
-        if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
+        this.RefreshItemTrackerPanel()
     end
 
     ZO_CheckButton_SetToggleFunction(chkUseChar, function(control, checked)
@@ -259,7 +256,6 @@ local function InitCharacterToggle(topBar)
 
     lblUseChar:SetHandler("OnMouseDown", function()
         local newState = not (this.character.useCharacterItemList == true)
-        this.character.useCharacterItemList = newState
         ZO_CheckButton_SetCheckState(chkUseChar, newState)
         ApplyUseChar(newState)
     end)
@@ -400,13 +396,13 @@ end)
 -- ...so I put these in (trackeitemswindow is actually this tab...
 InventoryCompanion_TrackedItemsWindow:SetHandler("OnEffectivelyShown", function()
     SetGameCameraUIMode(true)
-    if this.RefreshTrackedItemsEditor then this.RefreshTrackedItemsEditor() end
-    if this.UpdateEditorLayout then this.UpdateEditorLayout() end
+    this.RefreshTrackedItemsEditor()
+    this.UpdateEditorLayout()
 end)
 
 InventoryCompanion_TrackedItemsWindow:SetHandler("OnEffectivelyHidden", function()
     SetGameCameraUIMode(false)
-    if this.UpdateEditorLayout then this.UpdateEditorLayout() end
+    this.UpdateEditorLayout()
 end)
 
 ------------------------------------------------------------------
@@ -419,7 +415,6 @@ local function HideAllRows(editorRows)
 end
 
 local function CollectTrackedItems(trackedList, seenItemIds, sortedEntries)
-    if not trackedList then return end
     for itemId, data in pairs(trackedList) do
         seenItemIds[itemId] = true
         table.insert(sortedEntries, {
@@ -434,11 +429,10 @@ end
 
 local function CollectWildcardRules(trackedRules, sortedEntries)
     local activeRules = this.GetActiveTrackedRules() -- NEW FOR KEY CHANGE
-    if not trackedRules then return end
     for ruleName, data in pairs(trackedRules) do
 		if ruleName ~= "miscellaneous" then -- NEW FOR KEY CHANGE
             local ruleData = activeRules[ruleName] -- NEW FOR KEY CHANGE
-            local displayName = (ruleData and ruleData.displayName) or ruleName -- NEW FOR KEY CHANGE
+            local displayName = ruleData.displayName
 			table.insert(sortedEntries, {
 				key = ruleName,
 				isRule = true,
@@ -464,8 +458,7 @@ local function CollectUntrackedItems(trackedRules, seenItemIds, sortedEntries)
         if seenItemIds[item.itemId] or untrackedSeen[item.itemId] then return false end
         
         for _, ruleData in pairs(trackedRules) do
-            local patterns = ruleData.patterns or { ruleData.pattern }
-            if this.ItemMatchesAnyRule and this.ItemMatchesAnyRule(item.link, patterns) then
+            if this.ItemMatchesRuntimeRule(item.link, ruleData) then
                 return false
             end
         end
@@ -580,7 +573,7 @@ local function ConfigureRowTextAndRemoval(row, entry, refreshCallback)
     if isRule then
         local activeRules = this.GetActiveTrackedRules() -- NEW FOR KEY CHANGE
         local ruleData = activeRules[key] -- NEW FOR KEY CHANGE
-        local displayName = (ruleData and ruleData.displayName) or key -- NEW FOR KEY CHANGE
+        local displayName = ruleData.displayName
         label:SetText(string.format("|c50c878[Group]|r %s", displayName)) -- NEW FOR KEY CHANGE
         btnRemove:SetHidden(true)
     elseif entry.isUntracked then
@@ -614,7 +607,7 @@ end
 
 function this.RefreshTrackedItemsEditor()
     local scrollChild = GetControl(InventoryCompanion_TrackedItemsWindow, "ScrollContainerScrollChild")
-    if not scrollChild then return end
+    assert(scrollChild, "Tracked-items editor is missing ScrollContainerScrollChild")
 
     InitToolbar()
     HideAllRows(editorRows)
@@ -649,11 +642,10 @@ function this.RefreshTrackedItemsEditor()
 
             UpdateRowVisualsAndHandlers(row, entry, function()
                 this.RefreshTrackedItemsEditor()
-                if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
+                this.RefreshItemTrackerPanel()
             end)
 
             rowIndex = rowIndex + 1
         end
     end
 end
-

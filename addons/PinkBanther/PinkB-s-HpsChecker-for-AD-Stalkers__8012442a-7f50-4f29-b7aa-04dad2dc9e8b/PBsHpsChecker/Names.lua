@@ -25,6 +25,10 @@ local ADDON = PBsHpsChecker
 -- it runs on a group, reticle or kill feed event, at a loading screen, and about every GROUP_SCAN_MS
 -- while a fight is on (a group changes without always saying so).
 --
+-- One player can have several characters under one PSN ID. The tallies are per character name, so each
+-- character is its own row, and once two character names are known under one PSN ID the rows read
+-- "PSN ID(character name)" so that they can be told apart.
+--
 -- The tallies stay keyed by character name; the PSN ID is only what is shown. A name learned late
 -- therefore turns the whole past of that player into their PSN ID at once, and never splits an entry
 -- in two. The price is that two players with the same character name are one entry.
@@ -41,6 +45,9 @@ psn.MAX_KNOWN = MAX_KNOWN
 
 local map = {}
 local size = 0
+-- How many character names each shown name has: a player with two characters has two names under one
+-- PSN ID, and the ranking cannot then tell the characters apart by the PSN ID alone.
+local characters = {}
 local lastScanMs
 
 -- "Name^Mx" (the raw form, with its gender mark) and "Name" are the same player.
@@ -68,6 +75,7 @@ function psn:Initialize(savedVars)
         savedVars.psn = {}
     end
     map = savedVars.psn
+    characters = {}
     for key, id in pairs(map) do
         if type(key) ~= "string" or type(id) ~= "string" or id == "" then
             map[key] = nil
@@ -80,8 +88,9 @@ function psn:Initialize(savedVars)
         end
     end
     size = 0
-    for _ in pairs(map) do
+    for _, id in pairs(map) do
         size = size + 1
+        characters[id] = (characters[id] or 0) + 1
     end
 
     -- What the rankings call a player, and what happens to the table when the records are cleared.
@@ -93,6 +102,9 @@ function psn:Initialize(savedVars)
             map[key] = nil
         end
         size = 0
+        for id in pairs(characters) do
+            characters[id] = nil
+        end
     end
 end
 
@@ -114,7 +126,14 @@ function psn:Learn(characterName, id, source)
             return false
         end
         size = size + 1
+    else
+        -- the name is shown under another id now: it is no longer one of the old id's characters
+        characters[known] = characters[known] - 1
+        if characters[known] <= 0 then
+            characters[known] = nil
+        end
     end
+    characters[id] = (characters[id] or 0) + 1
     map[key] = id
     self.learned[source] = (self.learned[source] or 0) + 1
     return true
@@ -166,13 +185,23 @@ function psn:Lookup(characterName)
 end
 
 -- What a ranking shows for a player: the PSN ID if it is known (and showing it is on), else the
--- character name as it was.
+-- character name as it was. When more than one character name is known under that PSN ID, the
+-- character is named as well, "PSN ID(character name)", so that the player's characters can be told
+-- apart; with one, the PSN ID alone.
 function psn:Display(characterName)
     local sv = ADDON.sv
     if sv and sv.showPsn == false then
         return characterName
     end
-    return map[Plain(characterName)] or characterName
+    local key = Plain(characterName)
+    local id = map[key]
+    if not id then
+        return characterName
+    end
+    if (characters[id] or 0) > 1 then
+        return string.format("%s(%s)", id, key)
+    end
+    return id
 end
 
 function psn:Count()

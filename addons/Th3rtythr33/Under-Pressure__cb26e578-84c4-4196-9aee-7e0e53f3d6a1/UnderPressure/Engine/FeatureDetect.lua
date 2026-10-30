@@ -255,6 +255,30 @@ function UP.RunApiAudit()
                or "-- undocumented results absent; allies' effects applied to you are invisible"))
     end
 
+    -- Pull detection (0.4.2). Six hard-coded ids (two Rush of Agony markers,
+    -- four Dark Convergence effects). REPORTING ONLY: a failure means an id
+    -- drifted and that pull may be missed; detection itself is unchanged.
+    if UP.Pull and UP.Pull.VerifyIds then
+        local ok, detail = UP.Pull.VerifyIds()
+        d(("  %s  %-16s %s"):format(
+            ok and "|c00FF00YES|r" or (ok == false and "|cFF4040NO |r" or "|cAAAAAA?? |r"),
+            "pullIds",
+            tostring(detail)))
+    end
+
+    -- No More Oopsies (0.5.5). Whether the native the first-person guard wraps
+    -- exists on this client as a plain function, and whether the wrapper is on.
+    -- REPORTING ONLY; the guard installs itself from its own Init.
+    if UP.FirstPersonGuard and UP.FirstPersonGuard.NativeAvailable then
+        local ok = UP.FirstPersonGuard.NativeAvailable()
+        d(("  %s  %-16s %s"):format(
+            ok and "|c00FF00YES|r" or "|cFF4040NO |r",
+            "firstPerson",
+            ok and ("(ToggleGameCameraFirstPerson is a function; guard %s)"):format(
+                       UP.FirstPersonGuard.IsInstalled() and "installed" or "not installed")
+               or "-- ToggleGameCameraFirstPerson missing; the first-person guard cannot work here"))
+    end
+
     -- A Tank-mode block used to follow, reporting whether the group-filtered
     -- second registration was active -- it depended on combatFilter AND
     -- COMBAT_UNIT_TYPE_OTHER_PLAYER at once, which the per-flag list above did

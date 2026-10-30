@@ -1,12 +1,7 @@
--- TargetInfo.lua v1.2.3 (Boss/Player Callouts + Overland Encounter Difficulty)
--- FIXES:
--- 1) Reticle boss fallback is DISABLED while compass boss bar is active (no double reporting).
--- 2) Blue header colour restored for boss-bar flow.
--- 3) PvP player callouts restored with optional STICKY + REACQUIRE to reduce reticle jitter losses.
--- NOTES:
--- - Boss Bar mode outputs bosses only (multi-boss pacing, sync colour).
--- - Reticle Boss mode is fallback for wandering bosses that do NOT trigger boss bar.
--- - PvP callouts: players only, alliance-coloured name, narration-safe formatting (no "/").
+-- TargetInfo.lua v1.2.5 (Boss/Player Callouts + Overland Encounter Difficulty)
+-- Enemy information: percentage-drop health reports and once-per-fight execute alerts.
+-- Overland difficulty uses the baseline with tougher-encounter overrides.
+-- Internal ESO unit-tag/API names remain unchanged; settings use player-facing terms.
 
 local ADDON_NAME = "TargetInfo"
 local EM = EVENT_MANAGER
@@ -15,9 +10,9 @@ local MAX_BOSSES = 8
 --------------------------------------------------------------
 -- Output helpers (Chat / Alert / Center)
 --------------------------------------------------------------
-local function ChatMsg(text, stillValid)
+local function ChatMsg(text, stillValid, tag)
     if not text or text == "" then return end
-    local message = "[Target Info] " .. tostring(text)
+    local message = "[" .. (tag or "Target Info") .. "] " .. tostring(text)
     zo_callLater(function()
         if stillValid and not stillValid() then return end
         if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
@@ -199,7 +194,7 @@ local function ShowWindowPreview(key)
     EnsureMessageWindow(key)
     local w = MessageWindows[key]
     if not w then return end
-    local label = (key == "pvp") and "PvP preview" or "Boss/Reticle preview"
+    local label = (key == "pvp") and "PvP preview" or "Enemy preview"
     w.previewText = string.format("|cFFFFFF%s|r", label)
     local holdMs = math.max(3000, w.fadeMs or 0)
     w.previewUntil = NowMs() + holdMs
@@ -223,11 +218,11 @@ local function AddMessageToWindow(key, text, colorCode, sound, stillValid)
     RefreshMessageWindow(key)
 end
 
-local function NotifyCustom(msg, mode, colorCode, sound, windowKey, stillValid)
+local function NotifyCustom(msg, mode, colorCode, sound, windowKey, stillValid, chatText)
     -- mode: "chat" | "screen" | "both"
     mode = mode or "chat"
     if mode == "chat" or mode == "both" then
-        ChatMsg(msg, stillValid)
+        ChatMsg(chatText or msg, stillValid)
     end
     if mode == "screen" or mode == "both" then
         if windowKey then
@@ -247,6 +242,8 @@ local GREY    = "|cAAAAAA"
 local RED     = "|cFF3333"
 local GREEN   = "|c00FF66"
 local SOFTRED = "|cFF6666"
+local NAME_COLOUR = "|c50D6C5"
+local HEALTH_COLOUR = "|c8DBFFF"
 
 local C_BLUE  = "|c66CCFF"
 local C_WHITE = "|cFFFFFF"
@@ -275,7 +272,6 @@ local defaults =
     -- Encounter-based Challenge Difficulty (uses the current character).
     challengeDifficultyEnabled = false,
     challengeDifficultyNotify = true,
-    challengeDifficultyOrdinary = -1,
     challengeDifficultyElite = -1,
     challengeDifficultyBoss = -1,
     challengeDifficultyWorldEvent = -1,
@@ -285,7 +281,7 @@ local defaults =
     -- Boss Bar (Compass) Mode
     ----------------------------------------------------------
     bossStepPercent = 20, -- prints at 80/60/40/20 by default
-    bossHealthReportIntervalSeconds = 8,
+    bossIdentification = "name",
     executePercent = 33,
 
     bossUpdateMode = "both", -- "off" | "execute" | "health" | "both"
@@ -401,13 +397,15 @@ local function InitSavedVars()
     RepairBool("enabled")
     RepairBool("challengeDifficultyEnabled")
     RepairBool("challengeDifficultyNotify")
-    for _, key in ipairs({ "challengeDifficultyOrdinary", "challengeDifficultyElite", "challengeDifficultyBoss", "challengeDifficultyWorldEvent", "challengeDifficultyIdle" }) do
+    for _, key in ipairs({ "challengeDifficultyElite", "challengeDifficultyBoss", "challengeDifficultyWorldEvent", "challengeDifficultyIdle" }) do
         local value = sv[key]
         if type(value) ~= "number" or value < -1 or value > 3 or value ~= math.floor(value) then sv[key] = -1 end
     end
     RepairNumber("bossStepPercent")
-    RepairNumber("bossHealthReportIntervalSeconds")
-    sv.bossHealthReportIntervalSeconds = math.max(3, math.min(30, sv.bossHealthReportIntervalSeconds))
+    sv.bossStepPercent = Clamp(sv.bossStepPercent, 10, 35)
+    if sv.bossIdentification ~= "name" and sv.bossIdentification ~= "difficulty" and sv.bossIdentification ~= "both" then
+        sv.bossIdentification = "name"
+    end
     RepairNumber("executePercent")
     sv.bossUpdateMode = NormalizeInformationMode(sv.bossUpdateMode)
     sv.bossBarNotifyMode = NormalizeInformationOutput(sv.bossBarNotifyMode, "chat")
@@ -559,18 +557,16 @@ local CHALLENGE_STABLE_MS = 800
 local CHALLENGE_MAX_ATTEMPTS = 3
 local challengeState = { lastRequestMs = -CHALLENGE_REQUEST_INTERVAL_MS }
 local CHALLENGE_SETTINGS = {
-    ordinary = "challengeDifficultyOrdinary",
     elite = "challengeDifficultyElite",
     boss = "challengeDifficultyBoss",
     worldEvent = "challengeDifficultyWorldEvent",
     idle = "challengeDifficultyIdle",
 }
 local CHALLENGE_LABELS = {
-    ordinary = "Ordinary enemies",
     elite = "Tough / elite enemies",
     boss = "Bosses",
     worldEvent = "World events",
-    idle = "Between encounters",
+    idle = "Overland difficulty",
 }
 
 local function ChallengeDifficultyChoice(value)
@@ -596,7 +592,7 @@ local function ChallengeDifficultyName(value)
 end
 
 local function ChallengeDifficultyNotice(text)
-    if TargetInfoSV.challengeDifficultyNotify ~= false then ChatMsg(text) end
+    if TargetInfoSV.challengeDifficultyNotify ~= false then ChatMsg(text, nil, "TI Mode") end
 end
 
 local function ChallengeDifficultyResetCandidate()
@@ -633,7 +629,7 @@ local function ChallengeDifficultyEncounter()
     if not ok or type(difficulty) ~= "number" then return nil end
     if MONSTER_DIFFICULTY_DEADLY and difficulty >= MONSTER_DIFFICULTY_DEADLY then return "boss" end
     if MONSTER_DIFFICULTY_HARD and difficulty >= MONSTER_DIFFICULTY_HARD then return "elite" end
-    if difficulty == MONSTER_DIFFICULTY_EASY or difficulty == MONSTER_DIFFICULTY_NORMAL then return "ordinary" end
+    if difficulty == MONSTER_DIFFICULTY_EASY or difficulty == MONSTER_DIFFICULTY_NORMAL then return "idle" end
     return nil -- Unknown classification must not change the game setting.
 end
 
@@ -809,14 +805,46 @@ end
 --------------------------------------------------------------
 -- Boss Bar Mode (multi-boss pacing, blue header)
 --------------------------------------------------------------
-local wasBossBarActive = false
-local totalLastBucket = nil
-local bossExecFired = {}
+-- Per-fight memory survives healing, target switches and tracking timeouts.
+local enemyFightRecords = {}
+local function ResetEnemyFight()
+    enemyFightRecords = {}
+end
 
-local HEALTH_REPORT_INTERVAL_MS = 8000
-local lastEnemyHealthMs = -math.huge
-local lastEnemyExecuteMs = -math.huge
-local bossHealthStartPending = false
+local function EnemyRecord(tag)
+    local _, maximum = GetHP(tag)
+    local key = tostring(SafeUniqueId(tag)) .. ":" .. tostring(maximum)
+    local slot = tag:match("^boss%d+$") and tag or nil
+    if not slot and BossBar_IsActive() and AreUnitsEqual then
+        for i = 1, MAX_BOSSES do
+            if DoesUnitExist("boss" .. i) and AreUnitsEqual(tag, "boss" .. i) then slot = "boss" .. i; break end
+        end
+    end
+    if slot then
+        local matches = 0
+        for i = 1, MAX_BOSSES do
+            local other = "boss" .. i
+            local _, otherMaximum = GetHP(other)
+            if DoesUnitExist(other) and SafeUniqueId(other) == SafeUniqueId(tag) and otherMaximum == maximum then
+                matches = matches + 1
+            end
+        end
+        -- Unique named bosses share memory across tracking methods. Only
+        -- ambiguous simultaneous roster bosses need the additional slot.
+        if matches > 1 then key = key .. ":" .. slot end
+    end
+    if not enemyFightRecords[key] then enemyFightRecords[key] = {} end
+    return enemyFightRecords[key]
+end
+
+local function InitialEnemyLabel(enemy)
+    local mode = TargetInfoSV.bossIdentification or "name"
+    local rank = GetUnitDifficulty and GetUnitDifficulty(enemy.tag) or 0
+    local label = ({ [1] = "Easy", [2] = "Normal", [3] = "Hard", [4] = "Deadly" })[rank] or "Boss"
+    if mode == "difficulty" then return label end
+    if mode == "both" then return enemy.name .. " (" .. label .. ")" end
+    return enemy.name
+end
 
 local function IsLiveInformationEnemy(tag, expectedId)
     if not DoesUnitExist(tag) or IsUnitDead(tag) or IsUnitPlayer(tag) then return false end
@@ -834,12 +862,13 @@ local function IsDeadlyHealthEnemy(tag, expectedId)
 end
 
 local function MakeEnemyInformationGuard(enemies, healthOnly)
+    local encounter = enemyFightRecords
     local identities = {}
     for _, enemy in ipairs(enemies) do
         identities[#identities + 1] = { tag = enemy.tag, uid = enemy.uid or SafeUniqueId(enemy.tag) }
     end
     return function()
-        if not TargetInfoSV.enabled or IsUnitDead("player") then return false end
+        if encounter ~= enemyFightRecords or not TargetInfoSV.enabled or IsUnitDead("player") then return false end
         if healthOnly and not EnemyHealthEnabled() then return false end
         if not healthOnly and not EnemyExecuteEnabled() then return false end
         for _, enemy in ipairs(identities) do
@@ -853,18 +882,35 @@ end
 
 local function NotifyEnemyHealth(enemies, sound)
     if not EnemyHealthEnabled() or #enemies == 0 then return false end
-    local now = NowMs()
-    local interval = math.max(3, math.min(30, tonumber(TargetInfoSV.bossHealthReportIntervalSeconds) or HEALTH_REPORT_INTERVAL_MS / 1000)) * 1000
-    if now - lastEnemyHealthMs < interval or now - lastEnemyExecuteMs < interval then return false end
-    local guard = MakeEnemyInformationGuard(enemies, true)
-    if not guard() then return false end
-    local parts = {}
+    local due, records, parts, chatParts = {}, {}, {}, {}
+    local step = Clamp(TargetInfoSV.bossStepPercent or 20, 10, 35)
     for _, enemy in ipairs(enemies) do
-        local cur = GetHP(enemy.tag)
-        parts[#parts + 1] = string.format("%s %s HP", enemy.name, FormatCompactNumber(cur))
+        if IsDeadlyHealthEnemy(enemy.tag, enemy.uid) then
+            local record = EnemyRecord(enemy.tag)
+            local cur, _, pct = GetHP(enemy.tag)
+            if record.lastHealthPercent == nil or record.lastHealthPercent - pct >= step - 0.0001 then
+                due[#due + 1] = enemy
+                records[#records + 1] = { record = record, pct = pct }
+                local health = FormatCompactNumber(cur) .. " HP"
+                local label = record.identified and enemy.name or InitialEnemyLabel(enemy)
+                parts[#parts + 1] = enemy.name .. " " .. health
+                chatParts[#chatParts + 1] = NAME_COLOUR .. label .. "|r " .. HEALTH_COLOUR .. health .. "|r"
+            end
+        end
     end
-    lastEnemyHealthMs = now
-    NotifyCustom(table.concat(parts, "; ") .. ".", TargetInfoSV.bossBarNotifyMode, BLUE, sound or SOUNDS.NONE, "boss", guard)
+    if #due == 0 then return false end
+    local guard = MakeEnemyInformationGuard(due, true)
+    if not guard() then return false end
+    local committed = false
+    local function OutputGuard()
+        if not guard() then return false end
+        if not committed then
+            for _, item in ipairs(records) do item.record.lastHealthPercent = item.pct; item.record.identified = true end
+            committed = true
+        end
+        return true
+    end
+    NotifyCustom(table.concat(parts, "; ") .. ".", TargetInfoSV.bossBarNotifyMode, BLUE, sound or SOUNDS.NONE, "boss", OutputGuard, table.concat(chatParts, "; ") .. ".")
     return true
 end
 
@@ -895,95 +941,35 @@ local function GetActiveBosses()
     return bosses
 end
 
-local function ComputeTotalHP(bosses)
-    local totalCur, totalMax = 0, 0
-    for _, b in ipairs(bosses) do
-        totalCur = totalCur + (b.cur or 0)
-        totalMax = totalMax + (b.maxV or 0)
-    end
-    return totalCur, totalMax
-end
-
-
-
-local function BossMode_OnStart(bosses)
-    bossExecFired = {}
-    local healthBosses = GetDeadlyHealthBosses(bosses)
-    local cur, maxV = ComputeTotalHP(healthBosses)
-    local step = Clamp(TargetInfoSV.bossStepPercent or 20, 5, 25)
-    totalLastBucket = maxV > 0 and math.floor((cur / maxV * 100) / step) * step or nil
-    bossHealthStartPending = #healthBosses > 0
-end
-
-local function BossMode_CheckExecute(bosses)
+local function NotifyEnemyExecute(enemy)
     if not EnemyExecuteEnabled() then return end
-    local exec = TargetInfoSV.executePercent or 33
-    local active = {}
-    for _, b in ipairs(bosses) do
-        active[b.tag] = true
-        if b.pct > 0 and b.pct <= exec and bossExecFired[b.tag] ~= b.name then
-            bossExecFired[b.tag] = b.name
-            lastEnemyExecuteMs = NowMs()
-            local msg = string.format("%s can be executed.", b.name)
-            NotifyCustom(msg, TargetInfoSV.executeNotifyMode, SOFTRED, SOUNDS.DUEL_START, nil, MakeEnemyInformationGuard({ b }, false))
-        elseif b.pct > exec and bossExecFired[b.tag] then
-            bossExecFired[b.tag] = nil
-        end
+    local record = EnemyRecord(enemy.tag)
+    local _, _, pct = GetHP(enemy.tag)
+    if pct <= 0 or pct > (TargetInfoSV.executePercent or 33) or record.executeFired then return end
+    local guard = MakeEnemyInformationGuard({ enemy }, false)
+    local label = record.identified and enemy.name or InitialEnemyLabel(enemy)
+    local function OutputGuard()
+        if not guard() then return false end
+        record.executeFired = true
+        record.identified = true
+        return true
     end
-    for tag in pairs(bossExecFired) do if not active[tag] then bossExecFired[tag] = nil end end
+    NotifyCustom(enemy.name .. " can be executed.", TargetInfoSV.executeNotifyMode, SOFTRED, SOUNDS.DUEL_START, nil, OutputGuard, RED .. label .. " can be executed.|r")
 end
 
 local function BossModeTick()
-    local active = BossBar_IsActive()
-    local bosses = active and GetActiveBosses() or {}
-    if active and not wasBossBarActive then
-        BossMode_OnStart(bosses)
-    elseif not active and wasBossBarActive then
-        totalLastBucket = nil
-        bossExecFired = {}
-        bossHealthStartPending = false
-    end
-    wasBossBarActive = active
-    if not active then return end
-    if #bosses == 0 then
-        totalLastBucket = nil
-        bossExecFired = {}
-        bossHealthStartPending = false
-        return
-    end
-    BossMode_CheckExecute(bosses)
-    if not EnemyHealthEnabled() then return end
-    local healthBosses = GetDeadlyHealthBosses(bosses)
-    if #healthBosses == 0 then totalLastBucket = nil; bossHealthStartPending = false; return end
-    local totalCur, totalMax = ComputeTotalHP(healthBosses)
-    if totalMax <= 0 then return end
-    local step = Clamp(TargetInfoSV.bossStepPercent or 20, 5, 25)
-    local bucket = math.floor((totalCur / totalMax * 100) / step) * step
-    if totalLastBucket == nil then totalLastBucket = bucket return end
-    -- Keep the previous bucket until a report is sent, so a rapid sequence is
-    -- coalesced into the latest living-enemy reading rather than queued speech.
-    if (bossHealthStartPending or bucket < totalLastBucket) and NotifyEnemyHealth(healthBosses) then
-        totalLastBucket = bucket
-        bossHealthStartPending = false
-    end
+    if not BossBar_IsActive() then return end
+    local bosses = GetActiveBosses()
+    for _, enemy in ipairs(bosses) do NotifyEnemyExecute(enemy) end
+    NotifyEnemyHealth(GetDeadlyHealthBosses(bosses))
 end
 
---------------------------------------------------------------
--- Reticle tracking (suppressed while the compass boss roster is active)
---------------------------------------------------------------
-local ReticleBoss = {
-    active = false, uid = nil, name = nil, lastSeenMs = 0,
-    lastBucket = nil, executeFired = false, healthPending = false,
-}
-
+local ReticleBoss = { active = false, uid = nil, name = nil, lastSeenMs = 0 }
 local function ReticleBoss_Reset()
     ReticleBoss.active = false
     ReticleBoss.uid = nil
     ReticleBoss.name = nil
     ReticleBoss.lastSeenMs = 0
-    ReticleBoss.lastBucket = nil
-    ReticleBoss.executeFired = false
-    ReticleBoss.healthPending = false
 end
 
 local function ReticleBoss_IsValidTarget()
@@ -1011,76 +997,21 @@ local function ReticleBoss_IsValidTarget()
     return true
 end
 
-local function ReticleBoss_PrintAcquire(name)
-    local tag = "reticleover"
-    if not IsDeadlyHealthEnemy(tag) then return false end
-    return NotifyEnemyHealth({ { tag = tag, uid = SafeUniqueId(tag), name = name } })
-end
-
 local function ReticleBossTick()
     if not TargetInfoSV.reticleBossEnabled or NormalizeInformationMode(TargetInfoSV.bossUpdateMode) == "off" then
         ReticleBoss_Reset()
         return
     end
-    -- If the compass boss bar is active, reticle-boss detection is NOT needed
-    -- and causes extra chatter. BossBar mode owns the fight.
-    if BossBar_IsActive() then
-        return
-    end
-
-    local now = NowMs()
-    local tag = "reticleover"
-
+    if BossBar_IsActive() then return end
+    local tag, now = "reticleover", NowMs()
     if ReticleBoss_IsValidTarget() then
-        local uid = SafeUniqueId(tag)
-        local name = SafeName(tag, "Target")
-        local cur, _, pct = GetHP(tag)
-
-        if not ReticleBoss.active or ReticleBoss.uid ~= uid then
-            ReticleBoss.active = true
-            ReticleBoss.uid = uid
-            ReticleBoss.name = name
-            ReticleBoss.lastBucket = nil
-            ReticleBoss.executeFired = false
-            ReticleBoss.healthPending = IsDeadlyHealthEnemy(tag)
-        end
-
+        local enemy = { tag = tag, uid = SafeUniqueId(tag), name = SafeName(tag, "Enemy") }
+        ReticleBoss.active, ReticleBoss.uid, ReticleBoss.name = true, enemy.uid, enemy.name
         ReticleBoss.lastSeenMs = now
-        local exec = TargetInfoSV.executePercent or 33
-        if pct > exec then
-            ReticleBoss.executeFired = false
-        elseif EnemyExecuteEnabled() and pct > 0 and not ReticleBoss.executeFired then
-            ReticleBoss.executeFired = true
-            lastEnemyExecuteMs = now
-            NotifyCustom(string.format("%s can be executed.", name), TargetInfoSV.executeNotifyMode, SOFTRED, SOUNDS.DUEL_START, nil, MakeEnemyInformationGuard({ { tag = tag, uid = uid } }, false))
-        end
-
-        local step = Clamp(TargetInfoSV.bossStepPercent or 20, 5, 25)
-        local bucket = math.floor(pct / step) * step
-
-        if ReticleBoss.lastBucket == nil then ReticleBoss.lastBucket = bucket end
-        if bucket < ReticleBoss.lastBucket or ReticleBoss.healthPending then
-            if ReticleBoss_PrintAcquire(name, cur) then
-                ReticleBoss.lastBucket = bucket
-                ReticleBoss.healthPending = false
-            end
-
-
-        end
-
-        return
-    end
-
-    if DoesUnitExist(tag) and IsUnitDead(tag) then
+        NotifyEnemyExecute(enemy)
+        NotifyEnemyHealth({ enemy })
+    elseif ReticleBoss.active and (now - ReticleBoss.lastSeenMs) > (TargetInfoSV.reticleBossStickyMs or 8000) * 3 then
         ReticleBoss_Reset()
-        return
-    end
-    if ReticleBoss.active then
-        local baseSticky = TargetInfoSV.reticleBossStickyMs or 8000
-        local sticky = baseSticky * 3 -- Stored legacy base; menu displays the effective duration.
-        if (now - (ReticleBoss.lastSeenMs or 0)) > sticky then
-            ReticleBoss_Reset()
-        end
     end
 end
 
@@ -1150,30 +1081,21 @@ local function CreateSettings()
             default = "Leave unchanged",
         })
     end
-    AddEncounterDifficultySetting("Ordinary Enemies", "challengeDifficultyOrdinary", "Living hostile targets rated Easy or Normal by ESO. Aim at the target before entering combat.")
-    AddEncounterDifficultySetting("Tough / Elite Enemies", "challengeDifficultyElite", "Living hostile targets rated Hard by ESO. World-event participation takes priority; the compass boss bar does not.")
-    AddEncounterDifficultySetting("Bosses", "challengeDifficultyBoss", "Living hostile targets rated Deadly by ESO. The compass boss bar does not override the target rating. Lower-rated bosses follow Ordinary or Tough / Elite Enemies.")
+    AddEncounterDifficultySetting("Tough / Elite Enemies", "challengeDifficultyElite", "Living hostile targets rated Hard by ESO. World-event participation takes priority.")
+    AddEncounterDifficultySetting("Bosses", "challengeDifficultyBoss", "Living hostile targets rated Deadly by ESO. Lower-rated enemies use Overland Difficulty or Tough / Elite Enemies.")
     AddEncounterDifficultySetting("World Events", "challengeDifficultyWorldEvent", "Uses ESO's reported world-event participation, taking priority over target difficulty ratings. Events active elsewhere do not trigger it; changes still require being out of combat.")
-    AddEncounterDifficultySetting("Between Encounters", "challengeDifficultyIdle", "Optional fallback after four seconds without a living hostile target or participating world event. The compass boss bar does not prevent this fallback. Use this to return to a preferred roaming difficulty.")
+    AddEncounterDifficultySetting("Overland Difficulty", "challengeDifficultyIdle", "Baseline for roaming and ordinary enemies. Restored after four seconds without a tougher encounter or participating world event, when ESO permits changing difficulty.")
 
     settings:AddSetting({ type = LHAS.ST_SECTION, label = "Enemy Information" })
 
     settings:AddSetting({
         type = LHAS.ST_SLIDER,
-        label = "Health Report Interval",
-        tooltip = "Minimum seconds between optional Deadly-enemy health reports. Longer intervals reduce narrator backlog. Changes within the interval are replaced by the latest reading; execute alerts are not delayed by this timer and postpone optional health reports.",
-        getFunction = function() return TargetInfoSV.bossHealthReportIntervalSeconds or 8 end,
-        setFunction = function(value) TargetInfoSV.bossHealthReportIntervalSeconds = math.max(3, math.min(30, value)) end,
-        default = 8, min = 3, max = 30, step = 1, unit = "s", format = "%d",
-    })
-    settings:AddSetting({
-        type = LHAS.ST_SLIDER,
-        label = "Health Update Step",
-        tooltip = "Percentage steps for living Deadly-ranked enemies only. Reports use the latest HP and are limited by the Health Report Interval to reduce narration backlog.",
+        label = "Health Drop Between Updates",
+        tooltip = "Report after health drops by this many percentage points since the last report (10% to 35%). Applies to living Deadly-ranked enemies. There is no timed repeat.",
         getFunction = function() return TargetInfoSV.bossStepPercent end,
-        setFunction = function(v) TargetInfoSV.bossStepPercent = v; totalLastBucket = nil end,
+        setFunction = function(v) TargetInfoSV.bossStepPercent = Clamp(v, 10, 35) end,
         default = 20,
-        min = 5, max = 25, step = 1,
+        min = 10, max = 35, step = 1,
         unit = "%",
         format = "%d",
     })
@@ -1182,7 +1104,7 @@ local function CreateSettings()
         type = LHAS.ST_SLIDER,
         label = "Execute Threshold",
         getFunction = function() return TargetInfoSV.executePercent end,
-        setFunction = function(v) TargetInfoSV.executePercent = v; bossExecFired = {}; ReticleBoss.executeFired = false end,
+        setFunction = function(v) TargetInfoSV.executePercent = v end,
         default = 33,
         min = 10, max = 50, step = 1,
         unit = "%",
@@ -1195,7 +1117,7 @@ local function CreateSettings()
     settings:AddSetting({
         type = LHAS.ST_DROPDOWN,
         label = "Enemy Announcements",
-        tooltip = "Shared by compass bosses and tracked reticle enemies. Health reports are restricted to living Deadly-ranked enemies and limited by the Health Report Interval. Execute only suppresses all health reports. PvP player callouts and difficulty-change notices have their own controls.",
+        tooltip = "Controls enemy health and execute announcements. Health reports require Deadly rank. Execute alerts occur once per enemy per fight. PvP callouts and difficulty notices have separate controls.",
         items = {
             { name = "OFF", data = "off" },
             { name = "EXECUTE ONLY", data = "execute" },
@@ -1208,8 +1130,6 @@ local function CreateSettings()
         end,
         setFunction = function(controlOrValue, itemName, itemData)
             TargetInfoSV.bossUpdateMode = NormalizeInformationMode(itemData or itemName or controlOrValue)
-            totalLastBucket = nil
-            ReticleBoss.lastBucket = nil
         end,
         default = "HEALTH AND EXECUTE",
     })
@@ -1254,12 +1174,27 @@ local function CreateSettings()
         default = "BOTH",
     })
 
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Reticle Enemy Tracking" })
+    settings:AddSetting({
+        type = LHAS.ST_DROPDOWN,
+        label = "Initial Boss Identification",
+        tooltip = "Choose the first chat identification: boss name, enemy difficulty rank, or both. Later health updates always use the boss name.",
+        items = { { name = "BOSS NAME", data = "name" }, { name = "BOSS DIFFICULTY LEVEL", data = "difficulty" }, { name = "BOTH", data = "both" } },
+        getFunction = function() return ({ name = "BOSS NAME", difficulty = "BOSS DIFFICULTY LEVEL", both = "BOTH" })[TargetInfoSV.bossIdentification] or "BOSS NAME" end,
+        setFunction = function(controlOrValue, itemName, itemData)
+            local value = itemData or itemName or controlOrValue
+            if type(value) == "table" then value = value.data or value.name end
+            value = ({ ["BOSS NAME"] = "name", ["BOSS DIFFICULTY LEVEL"] = "difficulty", BOTH = "both" })[value] or value
+            if value == "name" or value == "difficulty" or value == "both" then TargetInfoSV.bossIdentification = value end
+        end,
+        default = "BOSS NAME",
+    })
+
+    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Boss Level Tracking" })
 
     settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
-        label = "Track Enemies Outside Compass Boss Fights",
-        tooltip = "Tracks living hostile non-player targets using ESO difficulty rank when the compass boss roster is inactive. Uses the shared Enemy Announcements, Health Update Step and output settings.",
+        label = "Enable Boss Level Tracking",
+        tooltip = "Tracks living hostile non-player targets by ESO enemy rank. Uses the shared Enemy Announcements, Health Drop Between Updates and output settings.",
         getFunction = function() return TargetInfoSV.reticleBossEnabled end,
         setFunction = function(v) TargetInfoSV.reticleBossEnabled = v end,
         default = true,
@@ -1267,8 +1202,8 @@ local function CreateSettings()
 
     settings:AddSetting({
         type = LHAS.ST_DROPDOWN,
-        label = "Minimum Reticle Enemy Rank",
-        tooltip = "Filters reticle tracking and execute alerts by ESO health-bar rank. Health reports always require Deadly, regardless of this choice. This filter does not change game difficulty.",
+        label = "Minimum Enemy Rank",
+        tooltip = "Filters enemy tracking and execute alerts by ESO enemy rank. Health reports always require Deadly. This filter does not change game difficulty.",
         items = {
             { name = "EASY", data = 1 }, { name = "NORMAL", data = 2 },
             { name = "HARD", data = 3 }, { name = "DEADLY", data = 4 },
@@ -1292,7 +1227,7 @@ local function CreateSettings()
     settings:AddSetting({
         type = LHAS.ST_SLIDER,
         label = "Target Lost Timeout",
-        tooltip = "Actual seconds before an off-reticle target is forgotten. Death clears tracking immediately; no delayed target-lost announcement is emitted. Existing effective timeout is preserved.",
+        tooltip = "Seconds to retain the current target after you look away. Execute-alert memory lasts until the fight ends, even if target tracking expires.",
         getFunction = function() return (TargetInfoSV.reticleBossStickyMs or 8000) * 3 / 1000 end,
         setFunction = function(value) TargetInfoSV.reticleBossStickyMs = math.max(0, value) * 1000 / 3 end,
         default = 24, min = 0, max = 45, step = 1, unit = "s", format = "%d",
@@ -1335,7 +1270,7 @@ local function CreateSettings()
     settings:AddSetting({
         type = LHAS.ST_SLIDER,
         label = "Sticky Time",
-        tooltip = "Keeps the current player target briefly when reticle slips off.",
+        tooltip = "Keeps the current player target briefly when you look away.",
         getFunction = function() return TargetInfoSV.pvpStickyMs end,
         setFunction = function(v) TargetInfoSV.pvpStickyMs = v end,
         default = 1500,
@@ -1364,7 +1299,7 @@ local function CreateSettings()
         default = "CHAT",
     })
 
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Boss/Reticle Window" })
+    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Enemy Information Window" })
 
     settings:AddSetting({
         type = LHAS.ST_SLIDER,
@@ -1541,6 +1476,12 @@ local function Initialize()
     if EVENT_OVERLAND_DIFFICULTY_CHANGED then
         EM:RegisterForEvent(ADDON_NAME .. "_ChallengeDifficulty", EVENT_OVERLAND_DIFFICULTY_CHANGED, ChallengeDifficultyConfirm)
     end
+    EM:RegisterForEvent(ADDON_NAME .. "_Fight", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
+        if not inCombat then ResetEnemyFight(); ReticleBoss_Reset() end
+    end)
+    EM:RegisterForEvent(ADDON_NAME .. "_Zone", EVENT_PLAYER_ACTIVATED, function()
+        ResetEnemyFight(); ReticleBoss_Reset()
+    end)
     CreateSettings()
     EnsureMessageWindow("boss")
     EnsureMessageWindow("pvp")
@@ -1548,7 +1489,7 @@ local function Initialize()
     EM:UnregisterForUpdate(ADDON_NAME .. "_Tick")
     EM:RegisterForUpdate(ADDON_NAME .. "_Tick", 200, Tick)
 
-    ChatMsg(BLUE .. "TargetInfo v1.2.3 loaded.|r")
+    ChatMsg(BLUE .. "TargetInfo v1.2.5 loaded.|r")
 end
 
 local function OnAddonLoaded(event, addonName)
@@ -1558,3 +1499,4 @@ local function OnAddonLoaded(event, addonName)
 end
 
 EM:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+

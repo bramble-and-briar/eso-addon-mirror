@@ -4,7 +4,7 @@ Puts the game's own target marker on chosen players in The Elder Scrolls Online 
 they stand out above their nameplate.
 
 - **Author:** PinkBanther
-- **Version:** 1.6.2
+- **Version:** 1.7.0
 - **Requires:** nothing. `LibHarvensAddonSettings` >= 20106 is optional and gives you the settings
   panel; without it the chat commands do everything.
 
@@ -98,6 +98,20 @@ Limits that come from the game's marker:
   valid target for target markers", for targets it refuses. `/pbtarget status` shows what the
   add-on saw.
 
+### Only in Cyrodiil
+
+Markers are set **only while you are in Cyrodiil**. Anywhere else -- a trial, a dungeon, where the group
+leader has markers of his own -- the add-on sets none and clears none. It is asked again at the moment of
+each request, not when the reticle lands, because you can zone out in the quarter second between the two.
+
+- "In Cyrodiil" is `IsInCyrodiil()`. The **Imperial City does not count** (the game says no there), and a
+  **Battleground is excluded** by its own test, because the documentation does not say what `IsInCyrodiil`
+  returns inside one. If the client cannot answer, the answer is no.
+- Everything that does not write a marker carries on everywhere: sightings, the alert band and sound,
+  `/pbtarget where`, the Cyrodiil-entry notice. `/pbtarget unmark` is your own act and is not limited.
+- Switch: *Mark only in Cyrodiil* (on by default); `/pbtarget cyroonly on|off`. Off marks anywhere.
+  `/pbtarget status` shows the switch, where the add-on thinks you are, and how many marks it skipped.
+
 ### Not marking the wrong person
 
 The game's marker call names no player: the marker goes to whoever is under the reticle **when the game
@@ -154,6 +168,7 @@ Under **PB's TargetPlayer for AD Stalkers** (LibHarvensAddonSettings).
 | Alert sound | The sound with it. |
 | Alert when a registered player enters Cyrodiil | Friends and guild members only. |
 | Remove stray markers | Take the add-on's marker off a bystander it landed on. |
+| Mark only in Cyrodiil | Set markers only in Cyrodiil (not the Imperial City, not Battlegrounds). Off: anywhere. |
 | 1. ... 20. | One row per slot. Open it to type the **Player ID**, see the **Location**, or **Delete** the entry. Leaving the ID box empty deletes it too. |
 | General | Say hello at login; delete every player (asks you to press twice). |
 
@@ -166,7 +181,7 @@ Under **PB's TargetPlayer for AD Stalkers** (LibHarvensAddonSettings).
 | `/pbtarget remove <ID or number>` | Delete an entry. |
 | `/pbtarget mark <1-8>` | The marker set on registered players. |
 | `/pbtarget list` | Show the registered players. |
-| `/pbtarget on` / `off` | Master switch. `alert`, `sound`, `cyrodiil`, `cleanup` and `banner` take `on` / `off` the same way. |
+| `/pbtarget on` / `off` | Master switch. `alert`, `sound`, `cyrodiil`, `cleanup`, `cyroonly` and `banner` take `on` / `off` the same way. |
 | `/pbtarget where` | Where each registered player is now (friends and guild members). |
 | `/pbtarget unmark` | Take the marker off whoever is under the reticle; reports before and after. |
 | `/pbtarget test` | Show the alert once, with the sound. |
@@ -249,8 +264,8 @@ The displayed name is fixed in `Main.lua`; the version comes from the manifest. 
 version, edit these two adjacent lines in `PBsTargetPlayer.addon` and nothing else:
 
 ```
-## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.6.2
-## Version: 1.6.2
+## Title: |cFF69B4PB's TargetPlayer for AD Stalkers|r 1.7.0
+## Version: 1.7.0
 ```
 
 ---

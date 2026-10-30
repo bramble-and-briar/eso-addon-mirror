@@ -1,6 +1,22 @@
 local O=ObsidianHUD
-local dragging,lastInput,lastX,lastY,previousUI,previousCamera
+local lastInput,lastX,lastY,previousUI,previousCamera
 local function now() return GetFrameTimeSeconds() end
+
+function O.ResetResourceLayout()
+    -- Stop/save active controller movement before writing defaults, so its next update
+    -- cannot overwrite the reset with the position that was just moved.
+    O.StopMove()
+    for _,key in ipairs({"x","y","width","scale","opacity"}) do O.vars[key]=O.defaults[key] end
+    O.Refresh()
+end
+
+function O.ResetHudLayout()
+    O.StopMove()
+    O.StopNativeMove()
+    for _,key in ipairs({"x","y","width","scale","opacity","skillHudScale"}) do O.vars[key]=O.defaults[key] end
+    O.ResetNativePositions()
+    O.Refresh()
+end
 
 local function savePosition()
     local root=O.root
@@ -13,7 +29,7 @@ function O.StopMove()
     if not O.moving then return end
     O.root:StopMovingOrResizing()
     savePosition()
-    O.moving=false; dragging=false
+    O.moving=false
     EVENT_MANAGER:UnregisterForUpdate(O.name.."Move")
     O.root:SetMovable(false)
     O.root:SetMouseEnabled(false)
@@ -31,12 +47,12 @@ function O.MoveUpdate()
     local root=O.root
     local x,y=root:GetLeft(),root:GetTop()
     local at=now()
-    if dragging or x~=lastX or y~=lastY then savePosition(); lastInput=at end
+    if x~=lastX or y~=lastY then savePosition(); lastInput=at end
     if SCENE_MANAGER and not SCENE_MANAGER:IsInUIMode() then SCENE_MANAGER:SetInUIMode(true) end
     if SetGameCameraUIMode and IsGameCameraUIModeActive and not IsGameCameraUIModeActive() then SetGameCameraUIMode(true) end
     local sx=GetGamepadRightStickX and GetGamepadRightStickX(GAMEPAD_INCLUDE_DEADZONE) or 0
     local sy=GetGamepadRightStickY and GetGamepadRightStickY(GAMEPAD_INCLUDE_DEADZONE) or 0
-    if not dragging and (math.abs(sx)>=0.05 or math.abs(sy)>=0.05) then
+    if math.abs(sx)>=0.05 or math.abs(sy)>=0.05 then
         x=math.max(0,math.min(math.max(0,GuiRoot:GetWidth()-root:GetWidth()),x+sx*22))
         y=math.max(0,math.min(math.max(0,GuiRoot:GetHeight()-root:GetHeight()),y-sy*22))
         O.vars.x=x+root:GetWidth()/2-GuiRoot:GetWidth()/2
@@ -53,17 +69,17 @@ function O.StartMove()
     if O.nativeMoving then O.StopNativeMove() end
     if O.moving then O.StopMove(); return end
     if not O.vars.enabled then d("Obsidian HUD: Bitte zuerst das HUD aktivieren."); return end
-    O.moving=true; dragging=false
+    O.moving=true
     previousUI=SCENE_MANAGER and SCENE_MANAGER:IsInUIMode()
     if SCENE_MANAGER then SCENE_MANAGER:SetInUIMode(true) end
     previousCamera=IsGameCameraUIModeActive and IsGameCameraUIModeActive()
     if SetGameCameraUIMode then SetGameCameraUIMode(true) end
-    O.root:SetMovable(true)
-    O.root:SetMouseEnabled(true)
+    O.root:SetMovable(false)
+    O.root:SetMouseEnabled(false)
     O.root:SetDrawTier(DT_HIGH)
     O.root:SetDrawLevel(10)
     O.moveOverlay:SetHidden(false)
-    O.moveHint:SetText("Move UI: Ressourcen-HUD mit Maus oder rechtem Stick verschieben.\nSpeichert nach 3 Sekunden ohne Bewegung.")
+    O.moveHint:SetText("Move UI: Ressourcen-HUD mit dem rechten Stick verschieben.\nSpeichert nach 3 Sekunden ohne Bewegung.")
     lastInput=now(); lastX,lastY=O.root:GetLeft(),O.root:GetTop()
     EVENT_MANAGER:RegisterForUpdate(O.name.."Move",16,O.MoveUpdate)
     O.Tick()
@@ -73,17 +89,7 @@ function O.CreateMoveUI()
     local root=O.root
     root:SetMovable(false)
     root:SetClampedToScreen(true)
-    root:SetHandler("OnMouseDown",function(control,button)
-        if O.moving and button==MOUSE_BUTTON_INDEX_LEFT then
-            dragging=true; lastInput=now(); control:StartMoving()
-        end
-    end)
-    root:SetHandler("OnMouseUp",function(control,button)
-        if O.moving and dragging and button==MOUSE_BUTTON_INDEX_LEFT then
-            control:StopMovingOrResizing(); dragging=false; savePosition(); lastInput=now()
-        end
-    end)
-    root:SetHandler("OnMoveStop",function() if O.moving then savePosition() end end)
+    root:SetMouseEnabled(false)
     local overlay=WINDOW_MANAGER:CreateTopLevelWindow("ObsidianHUDMoveOverlay")
     O.moveOverlay=overlay
     overlay:SetAnchorFill(GuiRoot)
@@ -101,5 +107,5 @@ function O.CreateMoveUI()
     local hint=O.Label(overlay,20)
     O.moveHint=hint
     hint:SetAnchor(TOP,overlay,TOP,0,80)
-    hint:SetText("Move UI: Ressourcen-HUD mit Maus oder rechtem Stick verschieben.\nSpeichert nach 3 Sekunden ohne Bewegung.")
+    hint:SetText("Move UI: Ressourcen-HUD mit dem rechten Stick verschieben.\nSpeichert nach 3 Sekunden ohne Bewegung.")
 end

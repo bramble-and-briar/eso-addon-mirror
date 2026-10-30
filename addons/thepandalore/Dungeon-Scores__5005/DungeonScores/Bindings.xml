@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_DUNGEON_SCORES_KEYBIND_CATEGORY">
+            <Action name="DUNGEON_SCORES_TOGGLE_BROWSER">
+                <Down>DungeonScores:ToggleBrowserFromKeybind()</Down>
+            </Action>
+            <Action name="DUNGEON_SCORES_FREEZE_SCORE">
+                <Down>DungeonScores:FreezeScoreFromKeybind()</Down>
+            </Action>
+            <Action name="DUNGEON_SCORES_FINALIZE_SCORE">
+                <Down>DungeonScores:FinalizeScoreFromKeybind()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

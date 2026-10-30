@@ -18,7 +18,7 @@
     "SimplePlayerFrames"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4981/",
-  "fingerprint": "229fd810cb5551abbead818a79356031ec67f5a273c3ff7401196db49e4c1df0",
+  "fingerprint": "d4de7f71450b8216bd92e6250a8b842b65c816ecee41c31b6453f9e5e192aff8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18111.png",
     "https://cdn-eso.mmoui.com/preview/pvw18110.png",
@@ -33,11 +33,11 @@
   "source_id": "4981",
   "source_url": "https://www.esoui.com/downloads/info4981-SimplePlayerFrames.html",
   "stats": {
-    "downloads": 41,
+    "downloads": 52,
     "favorites": 0,
-    "monthly_downloads": 38
+    "monthly_downloads": 50
   },
   "title": "Simple Player Frames",
-  "updated_at": 1793148327000,
-  "version": "1.0.3"
+  "updated_at": 1793326530000,
+  "version": "1.0.4"
 }

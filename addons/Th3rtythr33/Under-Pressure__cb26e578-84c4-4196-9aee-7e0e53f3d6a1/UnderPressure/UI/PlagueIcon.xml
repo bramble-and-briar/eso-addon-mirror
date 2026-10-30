@@ -1,0 +1,102 @@
+<GuiXml>
+    <Animations>
+        <!--
+            Breathing pulse for the single (centre) Plague Carrier icon.
+
+            Same construction as UP_SilencePulse and UP_PlagueHazePulse:
+            declared here, run by the engine, no per-frame Lua. Applied to the
+            Pulse overlay only; the base Icon stays at constant alpha so the
+            state never reads as "off" mid-cycle. 2.6 s per cycle, the tint's
+            tempo, because a plague is a persistent condition rather than an
+            alarm.
+        -->
+        <AnimationTimeline name="UP_PlagueIconPulse" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <AlphaAnimation duration="1300" startAlpha="0" endAlpha="0.8"/>
+                <AlphaAnimation duration="1300" delay="1300" startAlpha="0.8" endAlpha="0"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <!--
+            Slow flash for the four corner icons (Matt's brief: "slowly
+            flashing"). Applied to the corners' top-level control, so one
+            timeline drives all four. Alpha animations only write while they
+            play, so the gaps between them are holds:
+
+                0.0 to 0.6 s   fade out to 0.15
+                0.6 to 1.0 s   hold dim
+                1.0 to 1.6 s   fade back in
+                1.6 to 2.2 s   hold bright (an explicit 1 to 1 animation, so
+                               the loop does not restart the fade-out the
+                               instant it reaches full)
+
+            2.2 s per cycle.
+        -->
+        <AnimationTimeline name="UP_PlagueCornerFlash" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <AlphaAnimation duration="600" startAlpha="1" endAlpha="0.15"/>
+                <AlphaAnimation duration="600" delay="1000" startAlpha="0.15" endAlpha="1"/>
+                <AlphaAnimation duration="600" delay="1600" startAlpha="1" endAlpha="1"/>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+
+    <Controls>
+        <!--
+            Centre Plague Carrier icon (off by default).
+
+            POSITION: GuiRoot CENTER with offsetY +244, which is directly
+            BELOW the silence ring's slot with a 16 px gap: the ring is centred
+            at +108 and is 120 tall (bottom edge +168), so this icon's top edge
+            is at +184 and its centre at +244. The two can be on screen
+            together (silenced while plagued), so they must not share a slot.
+            Same reasons as the ring for anchoring to GuiRoot rather than to
+            the reticle (see UI/SilenceRing.xml).
+
+            SIZE: 120x120, the ring's size.
+        -->
+        <TopLevelControl name="UP_PlagueIconRoot" mouseEnabled="false" movable="false" hidden="true">
+            <Dimensions x="120" y="120"/>
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="244"/>
+            <Controls>
+                <Texture name="$(parent)Icon" textureFile="UnderPressure/UI/Textures/plague_biohazard.dds">
+                    <AnchorFill/>
+                </Texture>
+                <Texture name="$(parent)Pulse" textureFile="UnderPressure/UI/Textures/plague_biohazard_pulse.dds" alpha="0">
+                    <AnchorFill/>
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+
+        <!--
+            Four corner Plague Carrier icons (on by default).
+
+            The root fills GuiRoot and carries the flash animation; the four
+            children sit 40 px in from each corner at 120x120. Children
+            inherit the root's alpha, so the flash is one timeline.
+            mouseEnabled=false: must never eat a click or a stick.
+        -->
+        <TopLevelControl name="UP_PlagueCornersRoot" mouseEnabled="false" movable="false" hidden="true">
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT"/>
+            <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT"/>
+            <Controls>
+                <Texture name="$(parent)TL" textureFile="UnderPressure/UI/Textures/plague_biohazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="40" offsetY="40"/>
+                </Texture>
+                <Texture name="$(parent)TR" textureFile="UnderPressure/UI/Textures/plague_biohazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-40" offsetY="40"/>
+                </Texture>
+                <Texture name="$(parent)BL" textureFile="UnderPressure/UI/Textures/plague_biohazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="40" offsetY="-40"/>
+                </Texture>
+                <Texture name="$(parent)BR" textureFile="UnderPressure/UI/Textures/plague_biohazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-40" offsetY="-40"/>
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

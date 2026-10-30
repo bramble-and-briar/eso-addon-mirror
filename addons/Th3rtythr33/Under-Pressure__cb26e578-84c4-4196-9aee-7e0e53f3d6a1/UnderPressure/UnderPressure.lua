@@ -44,7 +44,7 @@ UP.name    = "UnderPressure"
 -- version string lived in three places and disagreed four ways; as of 0.3.3
 -- there are two, because Settings.lua now READS UP.version for the settings
 -- panel header rather than carrying its own copy.
-UP.version = "0.4.2"
+UP.version = "0.5.5"
 -- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
 -- displays panel.author but never sets it). Matches ## Author in the manifest.
 UP.author  = "Th3rtythr33"
@@ -61,9 +61,26 @@ local DEFAULT_SAVED = {
     silence_ring  = true,
     -- Plaguebreak (0.4.0). Its own switches, independent of `hidden` like the
     -- silence ring. Strength is the tint root's alpha; see UI/PlagueTint.lua.
-    plague_tint          = true,
+    -- 0.4.2 (Matt): the four corner icons are the default visual; the tint
+    -- ("edge glow") and the centre icon are opt-in. plague_defaults_rev marks
+    -- files that already carry these defaults -- see migratePlagueDefaults.
+    plague_tint          = false,
     plague_tint_strength = 0.6,
     plague_report        = true,
+    plague_icon_corners  = true,
+    plague_icon_center   = false,
+    plague_defaults_rev  = 1,
+    -- Pull detection (0.4.2): ONE switch for every pull the tracker knows
+    -- (Rush of Agony, Dark Convergence; scribing pulls later), OFF by default
+    -- for everyone. The display switches below only shape the warning.
+    pull_detect          = false,
+    pull_icon_corners    = true,
+    pull_icon_center     = false,
+    pull_border          = false,
+    -- No More Oopsies (0.5.5, experimental): the perspective button must be
+    -- pressed three times within three seconds before the camera toggles.
+    -- OFF by default. See Engine/FirstPersonGuard.lua.
+    first_person_guard   = false,
     -- Debug overlay text size (0.4.0), formerly the /upfont tuner's argument,
     -- which was never persisted. Snapped to the gamepad font ladder on apply.
     debug_font_size      = 27,
@@ -140,6 +157,20 @@ local function pruneRemovedSettings()
     end
 end
 
+-- 0.4.2: the Plague Indicator's defaults changed (corner icons on, screen tint
+-- off). 0.4.0 and 0.4.1 wrote plague_tint = true into every file because it
+-- was the default then, not because anyone chose it, so the new default is
+-- applied once to files from those builds. New files get the defaults from
+-- DEFAULT_SAVED (including plague_defaults_rev = 1) and are left alone, and
+-- anyone who turns the tint back on afterwards keeps it.
+local function migratePlagueDefaults()
+    local sv = UP.sv
+    if sv and sv.plague_defaults_rev == nil then
+        sv.plague_tint = false
+        sv.plague_defaults_rev = 1
+    end
+end
+
 local function loadSavedVars()
     -- Detect the pre-0.2.8 layout before ZO_SavedVars restructures the global.
     -- A ZO_SavedVars-managed table has a "Default" key at the top; a legacy
@@ -181,6 +212,7 @@ local function loadSavedVars()
     end
 
     pruneRemovedSettings()
+    migratePlagueDefaults()
 end
 
 -- ---------------------------------------------------------------------------
@@ -223,6 +255,11 @@ local function onAddOnLoaded(eventCode, addonName)
     -- Plague tracker: resets state and checks the hard-coded ability ids still
     -- resolve to plague names (a failure becomes a startup note).
     UP.Plague.Init()
+    -- Pull tracker (0.4.2): resets state and checks its six ability ids.
+    UP.Pull.Init()
+    -- No More Oopsies (0.5.5): wraps the first-person toggle only if the
+    -- setting is on. Needs no UI, so it runs before the UI gate below.
+    UP.FirstPersonGuard.Init()
 
     -- UI
     if not UP.UI.Init() then return end
@@ -231,6 +268,10 @@ local function onAddOnLoaded(eventCode, addonName)
     UP.SilenceRing.Init()
     -- Same contract as the ring: disables itself if its control is missing.
     UP.PlagueTint.Init()
+    -- Corner / centre Plague Carrier icons (0.4.2); same contract again.
+    UP.PlagueIcon.Init()
+    -- Pull warning visuals (0.4.2); same contract.
+    UP.PullIndicator.Init()
     UP.Debug.Init()
     UP.Debug.SetVisible(UP.sv.debug or false)
 

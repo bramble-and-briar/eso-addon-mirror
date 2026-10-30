@@ -22,13 +22,16 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Ambulance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheInfiniti352/Tamriel-Ambulance__3124) | TheInfiniti352 | PC / Mac | 1.2.11 |
 | [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.0 |
 | [Tamriel Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gandalf/Tamriel-Chronos---Clock__3348) | Gandalf | PC / Mac | 20101 |
+| [Tamriel Collections - Motifs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Motifs__103c35ee-3bbb-4f5c-9fd4-3e0f20c3d626) | MajesticMinxi | Console | — |
 | [Tamriel Collections – Guild Market Scanner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections-Guild-Market-Scanner__f419b0e2-e53c-4875-bcf2-5bf0e372218b) | MajesticMinxi | Console | — |
 | [Tamriel Master Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger__1e746db5-8418-4a6f-9f17-4449e0d7e3f0) | xPricee | Console | — |
 | [Tamriel Master Ledger - DEV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger---DEV__89ecfc27-e76b-48ae-8d40-e76bbf0c5c13) | xPricee | Console | — |
 | [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.8.0 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
+| [Tamriel Text Studio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lucky38Tech/Tamriel-Text-Studio__a847021b-2ae6-4d43-81a4-9a8f3985f8b8) | Lucky38Tech | Console | — |
 | [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.3 |
+| [Tamriel Tourist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Tamriel-Tourist__5007) | aausten | PC / Mac | 1.0.1 |
 | [Tamriel Trade Center, HarvestMap & ESO-Hub Auto-Updater (Linux, macOS, SteamDeck, & Windows)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Tamriel-Trade-Center-HarvestMap-ESO-Hub-Auto-Updater-Linux-macOS-SteamDeck-Windo__3249) | APH0N1C | PC / Mac | 2026.10.04.19.22 |
 | [Tamriel Trade Centre](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cyxui/Tamriel-Trade-Centre__1245) | cyxui | PC / Mac | 4.27.281.39281 |
 | [Tamriel Trade Centre - Patch Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/Tamriel-Trade-Centre---Patch-Italiana__3033) | Dusty82 | PC / Mac | 4.10.146.18293 |
@@ -154,7 +157,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ToggleStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/ToggleStatus__2954) | Wheels | PC / Mac | 2.1 |
 | [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.3 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
-| [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.1 |
+| [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.2 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |
 | [Tooltipruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Tooltipruhe__4865) | Torfason | PC / Mac | 2.0.0 |
 | [ToonCurrencies](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/ToonCurrencies__1282) | Noobanidus | PC / Mac | 3.0.0 |

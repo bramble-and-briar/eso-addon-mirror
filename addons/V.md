@@ -66,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Votan's Group Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Group-Pins__1619) | votan | PC / Mac | 1.2.19 |
 | [Votan's Housing Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Housing-Filter__2884) | votan | PC / Mac | 1.0.3 |
 | [Votan's Improved House Tours](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-House-Tours__3950) | votan | PC / Mac | 1.0.2 |
-| [Votan's Improved Locations](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Locations__1096) | votan | PC / Mac | 1.23.6 |
+| [Votan's Improved Locations](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Locations__1096) | votan | PC / Mac | 1.23.7 |
 | [Votan's Improved Multicraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Multicraft__2445) | votan | PC / Mac | 1.0.0 |
 | [Votan's Improved Outfit Station](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Outfit-Station__1921) | votan | PC / Mac | 1.4.6 |
 | [Votan's Improved Provisioner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Provisioner__1917) | votan | PC / Mac | 1.2.10 |

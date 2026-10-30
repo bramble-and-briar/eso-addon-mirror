@@ -118,6 +118,13 @@ for _, value in ipairs({0, 0.123456789, 1.23456789, 42.857142857, 999.49, 999.99
 end
 assert(nativeCalls == 0)
 panel:Render(parent, {{name = "@Player", dps = 1000}}, false, 6000, options)
-assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == "NativeAbbreviation" and nativeCalls > 0,
-    "Values from 1k must retain the game's localized abbreviation")
+assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == "1,0 Tsd." and nativeCalls == 0,
+    "Thousands always use the requested Tsd. unit independently of the game formatter")
+ZO_AbbreviateAndLocalizeNumber = function() return "13,2 T." end
+panel:Render(parent, {{name = "@Player", dps = 13200, bossDPS = 1000},
+    {name = "@Healer", messageType = "healing", rawHPS = 20000, effectiveHPS = 5000}}, true, 6000, options)
+assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == "1,0 Tsd. (13,2 Tsd.)")
+assert(parent.swtGroupDPSLabels[2].swtDPSValue.text == "5,0 Tsd. (20,0 Tsd.)")
+assert(parent.swtGroupDPSLabels.summary.swtDPSValue.text == "1,0 Tsd. (13,2 Tsd.)",
+    "DPS, HPS and sum cannot change to ESO's T. abbreviation")
 print("PASS: DPS layout, compact width, adaptive fitting and integer DPS/HPS/boss/group values below 1k")

@@ -1,0 +1,15 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls® and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: Dungeon Scores Records
+## APIVersion: 101051
+## Version: 0.5.15-data
+## AddOnVersion: 515
+## Author: @thepandalore
+## Description: AI-assisted development reviewed and maintained by @thepandalore. Optional companion-managed PC NA and PC EU submitted-record, guild-record, and active guild-event snapshot for Dungeon Scores.
+
+Records.lua
+Delivery.lua

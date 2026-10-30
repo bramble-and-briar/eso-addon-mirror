@@ -1,0 +1,51 @@
+[SIZE="4"][B]Inventory Companion Changelog[/B][/SIZE]
+
+[SIZE="2"][B]1.4.1[/B][/SIZE]
+
+[LIST]
+[*]Removed an unwanted debug chat message when the tracking editors reposition the tracker panel.
+[/LIST]
+
+[SIZE="2"][B]1.4.0[/B][/SIZE]
+
+[LIST]
+[*]Groups with more than 200 eligible items now show an overflow message instead of constructing a large list of item rows. Narrow the group's patterns to display its items; summary counts still include all matching items.
+[*]Added an amber information icon to oversized groups. Groups with up to 200 eligible items retain their normal item rows and scrolling.
+[/LIST]
+
+[SIZE="2"][B]1.3.2[/B][/SIZE]
+
+[LIST]
+[*]Refined tracker scrolling so the panel keeps a fixed width, with item names narrowed and counts shifted left only while a scrollbar is visible.
+[*]Fixed empty group patterns so they no longer match every item.
+[*]Fixed tiny text in group pattern fields and editor search boxes when AddonSelector is not loaded. These fields now use a standard ESO font.
+[*]Added Maximum Visible Rows to the Item Tracker Panel settings. The tracker uses single-line names before collapsing categories, and scrolls when the remaining content cannot fit. The title and edit button stay visible.
+[*]Opening a category leaves other categories unchanged when they fit; otherwise, the other categories collapse. If all categories fit expanded, the tracker can open them automatically.
+[*]Inventory updates that overflow the panel keep the single growing category open if it was already expanded; otherwise, categories collapse. Expansion and collapse choices are remembered.
+[*]Added a Tracker Title Size setting with a regular-weight font and a matching edit icon. Item-row text and icons are unchanged.
+[*]Added an assignable Show/Hide Item Tracking Panel keybinding and an Open Item Tracking Editor button on the main Inventory Companion addon settings page.
+[*]Fixed item names overlapping their counts on the initial tracker render, and made single-line ellipses match item quality colors.
+[*]Added a settings button beside the tracker title's edit button to open Inventory Companion's Add-on Settings page directly.
+[*]The tracker visibility toggle now hides the panel in inventory, bank, and editor windows too, instead of leaving a visible panel with updates disabled.
+[*]Added an Other Settings button beside the title in both tracking editors to return directly to Inventory Companion's Add-on Settings page.
+[/LIST]
+
+[SIZE="2"][B]1.2.1[/B][/SIZE]
+
+[LIST]
+[*]Improved the built-in diagnostic report and performance checks.
+[/LIST]
+
+Bank transfers, item tracking, currency notifications, and settings work as before.
+
+[SIZE="2"][B]1.01[/B][/SIZE]
+
+[LIST]
+[*]Maintenance update with no changes to everyday features.
+[/LIST]
+
+[SIZE="2"][B]1.00[/B][/SIZE]
+
+[LIST]
+[*]Initial release with crafted-item bank transfers, house-chest stack merging, item and group tracking, and currency and inventory-capacity panels.
+[/LIST]

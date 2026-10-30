@@ -283,7 +283,7 @@ assert(type(SLASH_COMMANDS["/sgdmove"]) == "function")
 assert(type(SLASH_COMMANDS["/sgdstatus"]) == "function")
 SLASH_COMMANDS["/sgdstatus"]()
 local diagnosticText = table.concat(logs, "\n")
-assert(diagnosticText:find("SimpleGroupDPS 1.5.0", 1, true)
+assert(diagnosticText:find("SimpleGroupDPS 1.5.1", 1, true)
     and diagnosticText:find("Takt: 300 ms", 1, true)
     and diagnosticText:find("Letzter Schaden:", 1, true)
     and diagnosticText:find("Schadensereignisse:", 1, true),

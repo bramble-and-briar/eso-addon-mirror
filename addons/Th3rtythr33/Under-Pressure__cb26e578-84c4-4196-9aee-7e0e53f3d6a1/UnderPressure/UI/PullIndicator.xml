@@ -1,0 +1,113 @@
+<GuiXml>
+    <Animations>
+        <!--
+            Fast flash for the pull warning, shared by the corner icons and
+            the side borders (each gets its own instance from
+            CreateTimelineFromVirtual). This is an alarm with under a second
+            of lead, so unlike the plague's slow 2.2 s flash it runs at
+            0.64 s per cycle:
+
+                0.00 to 0.16 s  fade to 0.15
+                0.16 to 0.32 s  hold dim
+                0.32 to 0.48 s  fade back
+                0.48 to 0.64 s  hold bright (explicit 1 to 1 so the loop does
+                                not restart the fade the instant it is bright)
+
+            Alpha animations only write while they play; the gaps are holds.
+        -->
+        <AnimationTimeline name="UP_PullFlash" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <AlphaAnimation duration="160" startAlpha="1" endAlpha="0.15"/>
+                <AlphaAnimation duration="160" delay="320" startAlpha="0.15" endAlpha="1"/>
+                <AlphaAnimation duration="160" delay="480" startAlpha="1" endAlpha="1"/>
+            </Animations>
+        </AnimationTimeline>
+
+        <!-- Pulse overlay for the centre icon: the silence ring's tempo. -->
+        <AnimationTimeline name="UP_PullIconPulse" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <AlphaAnimation duration="350" startAlpha="0" endAlpha="0.9"/>
+                <AlphaAnimation duration="350" delay="350" startAlpha="0.9" endAlpha="0"/>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+
+    <Controls>
+        <!--
+            Centre pull icon (off by default): the hazard triangle with
+            converging arrows, 120x120, to the RIGHT of the reticle. GuiRoot
+            CENTER offsetX +140: the reticle is 64 wide, so this leaves a
+            48 px gap between its edge and the icon's. Nothing else in this
+            add-on uses that spot, so it cannot collide with the threat
+            indicator (above the reticle), the silence ring (below it) or the
+            plague centre icon (below the ring). Same reasons as the ring for
+            anchoring to GuiRoot rather than the reticle (UI/SilenceRing.xml).
+        -->
+        <TopLevelControl name="UP_PullIconRoot" mouseEnabled="false" movable="false" hidden="true">
+            <Dimensions x="120" y="120"/>
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" offsetY="0"/>
+            <Controls>
+                <Texture name="$(parent)Icon" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                    <AnchorFill/>
+                </Texture>
+                <Texture name="$(parent)Pulse" textureFile="UnderPressure/UI/Textures/pull_hazard_pulse.dds" alpha="0">
+                    <AnchorFill/>
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+
+        <!--
+            Four corner pull icons (on by default, within the Pull detection
+            switch). Same construction as UP_PlagueCornersRoot: the root fills
+            GuiRoot and carries the flash; children inherit its alpha.
+        -->
+        <TopLevelControl name="UP_PullCornersRoot" mouseEnabled="false" movable="false" hidden="true">
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT"/>
+            <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT"/>
+            <Controls>
+                <Texture name="$(parent)TL" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="40" offsetY="40"/>
+                </Texture>
+                <Texture name="$(parent)TR" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-40" offsetY="40"/>
+                </Texture>
+                <Texture name="$(parent)BL" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="40" offsetY="-40"/>
+                </Texture>
+                <Texture name="$(parent)BR" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                    <Dimensions x="120" y="120"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-40" offsetY="-40"/>
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+
+        <!--
+            Side borders (off by default): sharp-edged solid bars down the
+            full left and right edges of the screen, in the pull icon's
+            orange (FF9628), 28 px wide. No texture file: a Texture with a
+            colour and no file renders as a solid rectangle (see CLAUDE.md,
+            "Solid-colour rectangles need no texture file"), which is also
+            what makes the edge sharp rather than a vignette. The root fills
+            GuiRoot and carries the flash.
+        -->
+        <TopLevelControl name="UP_PullBordersRoot" mouseEnabled="false" movable="false" hidden="true">
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT"/>
+            <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT"/>
+            <Controls>
+                <Texture name="$(parent)Left" color="FF9628">
+                    <Dimensions x="28"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"/>
+                </Texture>
+                <Texture name="$(parent)Right" color="FF9628">
+                    <Dimensions x="28"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"/>
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

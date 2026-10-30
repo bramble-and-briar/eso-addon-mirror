@@ -281,12 +281,15 @@ local function refreshHudShown()
     end
     lastHudShown = shown
     UP.UI.UpdateVisibility()
-    -- One subscription, three consumers.
+    -- One subscription, four consumers.
     if UP.SilenceRing and UP.SilenceRing.UpdateVisibility then
         UP.SilenceRing.UpdateVisibility()
     end
     if UP.PlagueTint and UP.PlagueTint.UpdateVisibility then
         UP.PlagueTint.UpdateVisibility()
+    end
+    if UP.PlagueIcon and UP.PlagueIcon.UpdateVisibility then
+        UP.PlagueIcon.UpdateVisibility()
     end
 end
 

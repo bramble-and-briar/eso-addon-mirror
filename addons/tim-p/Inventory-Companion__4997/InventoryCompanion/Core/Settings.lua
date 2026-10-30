@@ -122,6 +122,9 @@ function this.CreateSettingsPanel()
     }
 
     local settingsPanel = LAM:RegisterAddonPanel("InventoryCompanionPanel", panelData)
+    this.OpenSettingsPanel = function()
+        LAM:OpenToPanel(settingsPanel)
+    end
     CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
         if panel == settingsPanel then
             this.state.isCurrencySettingsOpen = true
@@ -165,6 +168,15 @@ function this.CreateSettingsPanel()
             name = "On-Screen Indicators",
         },
         {
+            type = "button",
+            name = "Open Item Tracking Editor",
+            tooltip = "Choose which items and groups to track, show on the panel, or receive notifications for.",
+            func = function()
+                this.OpenEditItemsPanel()
+            end,
+            width = "full",
+        },
+        {
             type = "submenu",
             name = "Item Tracker Panel",
             tooltip = "Configure the movable tracked items HUD window.",
@@ -174,11 +186,7 @@ function this.CreateSettingsPanel()
                     name = "Show Tracked Items Panel",
                     tooltip = "Master switch to show or hide the Item Tracker window.",
                     getFunc = function() return this.accountWide.showTrackedItemsPanel ~= false end,
-                    setFunc = function(v) 
-                        this.accountWide.showTrackedItemsPanel = v 
-                        this.UpdateEventRegistry()
-                        if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
-                    end,
+                    setFunc = this.SetItemTrackerPanelVisible,
                     default = this.defaultsAccount.showTrackedItemsPanel,
                 },
                 {
@@ -194,6 +202,34 @@ function this.CreateSettingsPanel()
                         if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
                     end,
                     default = this.defaultsAccount.trackerGroupThreshold,
+                },
+                {
+                    type = "slider",
+                    name = "Tracker Title Size",
+                    tooltip = "Set the regular-weight tracker title font size. The edit icon scales to match; item rows are unchanged.",
+                    min = 16,
+                    max = 28,
+                    step = 1,
+                    getFunc = function() return this.accountWide.trackerTitleSize end,
+                    setFunc = function(value)
+                        this.accountWide.trackerTitleSize = value
+                        this.RefreshItemTrackerPanel()
+                    end,
+                    default = this.defaultsAccount.trackerTitleSize,
+                },
+                {
+                    type = "slider",
+                    name = "Maximum Visible Rows",
+                    tooltip = "Limit the tracker item area. Wrapped lines use additional rows. When needed, names become single-line, categories collapse, and remaining overflow scrolls. The title is not counted.",
+                    min = 5,
+                    max = 50,
+                    step = 1,
+                    getFunc = function() return this.accountWide.trackerMaxRows end,
+                    setFunc = function(value)
+                        this.accountWide.trackerMaxRows = value
+                        this.RefreshItemTrackerPanel("settings")
+                    end,
+                    default = this.defaultsAccount.trackerMaxRows,
                 },
 				{
                     type = "checkbox",
@@ -223,9 +259,9 @@ function this.CreateSettingsPanel()
                     tooltip = "If enabled, this character uses their own independent tracked items list instead of the shared account-wide list.",
                     getFunc = function() return this.character.useCharacterItemList == true end,
                     setFunc = function(v) 
-                        this.character.useCharacterItemList = v 
-                        if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
-                        if this.RefreshTrackedItemsEditor then this.RefreshTrackedItemsEditor() end
+                        this.SetUseCharacterItemList(v)
+                        this.RefreshItemTrackerPanel()
+                        this.RefreshTrackedItemsEditor()
                     end,
                     default = this.defaultsCharacter.useCharacterItemList,
                 },

@@ -1,0 +1,40 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/aausten/Tamriel-Tourist__5007",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "aausten",
+  "canonical_id": "esoui:5007",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5007",
+  "deleted": false,
+  "directories": [
+    "TamrielTourist"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5007/",
+  "fingerprint": "2b00153ad7a2dbdfdc132e2a011bb6b06bbd737e38a61f33c39ab92a421467bf",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18220.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18222.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5007",
+  "source_url": "https://www.esoui.com/downloads/info5007-TamrielTourist.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Tamriel Tourist",
+  "updated_at": 1793351107000,
+  "version": "1.0.1"
+}

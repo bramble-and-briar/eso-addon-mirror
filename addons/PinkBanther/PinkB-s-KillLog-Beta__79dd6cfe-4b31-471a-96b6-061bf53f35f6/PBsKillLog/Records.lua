@@ -5,9 +5,9 @@ local L = ADDON.L
 ---------------------------------------------------------------------------------------------------
 -- Daily records and ranks
 --
--- Every kill the player gets and every time the player is killed -- as the Cyrodiil kill feed
--- reports them, so duplicates are already gone and nothing from the Imperial City or a
--- Battleground is in it -- is counted under the day it happened, with the attack that did it when
+-- Every kill the player gets and every time the player is killed -- as the kill feed reports them in
+-- Cyrodiil and the Imperial City, so duplicates are already gone and nothing from a Battleground is
+-- in it -- is counted under the day it happened, with the attack that did it when
 -- the client says which one, and the player on the other side.
 --
 --   sv.records["<day>"] = {

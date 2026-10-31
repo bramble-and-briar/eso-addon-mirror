@@ -182,26 +182,31 @@ function CMA:StartBankingProcess()
     local totalSlots = GetBagSize(self.sourceBag)
     for slotIndex = 0, totalSlots do
         if HasItemInSlot(self.sourceBag, slotIndex) then
-            local action = self:DetermineItemAction(self.sourceBag, slotIndex)
             local itemLink = GetItemLink(self.sourceBag, slotIndex)
             local stackCount = GetSlotStackSize(self.sourceBag, slotIndex)
             local uniqueId = self:GetUniqueIdString(self.sourceBag, slotIndex)
-            if action == "bank" then
-                -- if it was marked junk previously, unmark it
-                if IsItemJunk(self.sourceBag, slotIndex) then
-                    SetItemIsJunk(self.sourceBag, slotIndex, false)
-                end
-                -- add item to be moved to the bank
-                table.insert(self.itemsToMove, uniqueId)
-            elseif action == "junk" then
-                if self.db.markAsTrashIfNotBanked then
-                    if not IsItemJunk(self.sourceBag, slotIndex) then
-                        SetItemIsJunk(self.sourceBag, slotIndex, true)
-                        table.insert(self.junkedItems, itemLink .. " (" .. stackCount .. ")")
-                        table.insert(self.junkedIds, uniqueId)
+            local isLocked = IsItemPlayerLocked(self.sourceBag, slotIndex)
+            -- only bank / move / sell items if its not locked
+            if not isLocked then
+                local action = self:DetermineItemAction(self.sourceBag, slotIndex)
+
+                if action == "bank" then
+                    -- if it was marked junk previously, unmark it
+                    if IsItemJunk(self.sourceBag, slotIndex) then
+                        SetItemIsJunk(self.sourceBag, slotIndex, false)
                     end
-                else
-                    table.insert(self.ignoredItems, itemLink .. " (" .. stackCount .. ")")
+                    -- add item to be moved to the bank
+                    table.insert(self.itemsToMove, uniqueId)
+                elseif action == "junk" then
+                    if self.db.markAsTrashIfNotBanked then
+                        if not IsItemJunk(self.sourceBag, slotIndex) then
+                            SetItemIsJunk(self.sourceBag, slotIndex, true)
+                            table.insert(self.junkedItems, itemLink .. " (" .. stackCount .. ")")
+                            table.insert(self.junkedIds, uniqueId)
+                        end
+                    else
+                        table.insert(self.ignoredItems, itemLink .. " (" .. stackCount .. ")")
+                    end
                 end
             end
         end

@@ -1,0 +1,7 @@
+<GuiXml>
+  <Controls>
+    <TopLevelControl name="TCMQuestJournalTL" inherits="ZO_QuestJournal_QuestsPanel_Gamepad" hidden="true">
+      <AnchorFill />
+    </TopLevelControl>
+  </Controls>
+</GuiXml>

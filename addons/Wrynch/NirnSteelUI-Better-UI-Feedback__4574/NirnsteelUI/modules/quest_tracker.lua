@@ -168,7 +168,15 @@ function Tracker:StyleLabel(control,kind)
             art.thread:SetDrawLayer(DL_BACKGROUND)
         end
     end
-    for _,part in pairs(control.nirnsteelQuestArt or {}) do part:SetHidden(not enabled) end
+    local themes = Nirnsteel_UI.Themes
+    for name,part in pairs(control.nirnsteelQuestArt or {}) do
+        part:SetHidden(not enabled or (themes and not themes:HasDecorations()))
+        if themes then
+            local r,g,b = themes:Color("highlight", 0.66, 0.73, 0.78, 1)
+            if name == "marker" or name == "seal" then part:SetCenterColor(r,g,b,0.9)
+            else part:SetColor(r,g,b,name == "tail" and 0.3 or name == "thread" and 0.28 or 0.85) end
+        end
+    end
     local color = {control:GetColor()}
     local previous = control.nirnsteelQuestColor
     if not previous or color[1] ~= previous[1] or color[2] ~= previous[2] or color[3] ~= previous[3] then
@@ -181,6 +189,9 @@ function Tracker:StyleLabel(control,kind)
     end
     local palette = kind == "header" and {0.86,0.90,0.93,1}
         or kind == "progress" and {0.64,0.73,0.79,1} or {0.88,0.85,0.77,1}
+    if themes then
+        palette = {themes:Color(kind == "header" and "text" or kind == "progress" and "highlight" or "body", unpack(palette))}
+    end
     control.nirnsteelQuestColor = palette
     control:SetColor(unpack(palette))
     local size = kind == "header" and Settings().titleSize or Settings().textSize
@@ -235,6 +246,10 @@ function Tracker:StyleNativeProgress(bar)
         local minimum,maximum = bar:GetMinMax()
         local fraction = maximum > minimum and (bar:GetValue() - minimum) / (maximum - minimum) or 0
         skin.fill:SetWidth(bar:GetWidth() * math.min(1,math.max(0,fraction)))
+        if Nirnsteel_UI.Themes then
+            skin.track:SetColor(Nirnsteel_UI.Themes:Color("rim",0.52,0.61,0.68,0.25))
+            skin.fill:SetColor(Nirnsteel_UI.Themes:Color("highlight",0.57,0.69,0.76,0.95))
+        end
         local label = bar.progressBarLabel
         if label then
             label:ClearAnchors()

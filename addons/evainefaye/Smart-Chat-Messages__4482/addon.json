@@ -26,7 +26,7 @@
     "SmartChatMsg"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4482/",
-  "fingerprint": "5e736d91dd68735c3af48d8abbab329257985b09e6dc2e8727ec4ef51a5c0ecd",
+  "fingerprint": "a9418fd20ac59d367b8419f9922b6c2532a98e70a5b11a86ec3dd7e012efff99",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17857.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17854.jpg",
@@ -41,11 +41,11 @@
   "source_id": "4482",
   "source_url": "https://www.esoui.com/downloads/info4482-SmartChatMessages.html",
   "stats": {
-    "downloads": 225,
+    "downloads": 262,
     "favorites": 0,
-    "monthly_downloads": 22
+    "monthly_downloads": 46
   },
   "title": "Smart Chat Messages",
-  "updated_at": 1791584603000,
-  "version": "2.0.3"
+  "updated_at": 1793405792000,
+  "version": "3.0.2"
 }

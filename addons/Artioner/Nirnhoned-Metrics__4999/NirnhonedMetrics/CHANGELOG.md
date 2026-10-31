@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+### Novedades
+- Título de la ventana configurable en *Ajustes → Ventana*: el del addon o uno propio, con un color o con códigos de color de ESO (`|cRRGGBB...|r`).
+- La ventana se pliega (solo queda la cabecera) y se despliega con la flecha de la cabecera, el menú del clic derecho o los ajustes.
+- Los iconos de la cabecera van en tres grupos separados por una línea: daño y sanación · grupo y mis habilidades · el resto.
+
+### Cambios
+- Librerías necesarias: LibAddonMenu-2.0 r43 o posterior y LibGroupCombatStats 2026-10-04 o posterior.
+- Las teclas llaman a funciones de la tabla `NirnhonedMetrics` en vez de crear funciones globales.
+- Los eventos de combate ya filtrados por el juego no se vuelven a comprobar en Lua.
+
 ## 1.0.0 — primera versión pública
 
 ### Medidor

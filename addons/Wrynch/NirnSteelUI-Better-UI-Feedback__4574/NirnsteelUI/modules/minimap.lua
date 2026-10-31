@@ -41,6 +41,13 @@ local function ValidPoint(x, y)
     return Finite(x) and Finite(y) and x >= 0 and x <= 1 and y >= 0 and y <= 1
 end
 local function Color(c, a) return c.r, c.g, c.b, a or 1 end
+local function FrameColor(key, alpha)
+    local c = Settings()[key]
+    if Nirnsteel_UI.Themes then
+        return Nirnsteel_UI.Themes:Color(key == "accentColor" and "highlight" or "rim", c.r, c.g, c.b, alpha or 1)
+    end
+    return Color(c, alpha)
+end
 local function WaypointColor()
     -- Use the world map's blue, including the user's accessibility override.
     local layout = ZO_MapPin and ZO_MapPin.PIN_DATA and ZO_MapPin.PIN_DATA[MAP_PIN_TYPE_PLAYER_WAYPOINT]
@@ -231,6 +238,7 @@ function Minimap:CreateView()
             end
         end)
         self.buttons[index] = button
+        button.nirnsteelBackground = background
     end
     self.input = Control(self.viewport, CT_CONTROL, 60)
     self.input:SetAnchorFill(self.viewport)
@@ -345,18 +353,63 @@ function Minimap:ApplyQuestTrackerOffset()
     if offset == 0 then self.questTrackerBase, self.questTrackerApplied = nil, nil end
 end
 
+function Minimap:ApplyThemeArtwork()
+    local bronze = Nirnsteel_UI.Themes and Nirnsteel_UI.Themes:GetId() == "bronze"
+    if not bronze and not self.themeArtwork then return end
+    if not self.themeArtwork then
+        self.themeArtwork = {}
+        for _, key in ipairs({ "ring", "top", "bottom", "left", "right", "tl", "tr", "bl", "br" }) do
+            local c = Control(self.frame, CT_TEXTURE, 32)
+            c:SetDrawLayer(DL_OVERLAY)
+            self.themeArtwork[key] = c
+        end
+    end
+    local w, h = self.width, self.height
+    local circle = Settings().shape == "circle"
+    local art = Nirnsteel_UI:GetAssetPath("ui/themes/bronze/")
+    for key, c in pairs(self.themeArtwork) do
+        c:SetHidden(not bronze or (key == "ring") ~= circle)
+    end
+    if not bronze then return end
+    local ring = self.themeArtwork.ring
+    ring:SetTexture(art .. "minimap_ring_dxt5.dds")
+    Place(ring, self.viewport, w + 10, h + 10)
+    for _, key in ipairs({ "top", "bottom", "left", "right" }) do
+        local c = self.themeArtwork[key]
+        local horizontal = key == "top" or key == "bottom"
+        c:SetTexture(art .. (horizontal and "bar_rail_dxt5.dds" or "map_vertical_dxt5.dds"))
+        Place(c, self.viewport, horizontal and w - 20 or 5, horizontal and 5 or h - 20,
+            key == "left" and -w/2 - 2 or key == "right" and w/2 + 2 or 0,
+            key == "top" and -h/2 - 2 or key == "bottom" and h/2 + 2 or 0)
+        c:SetTextureCoords(key == "right" and 1 or 0, key == "right" and 0 or 1,
+            key == "bottom" and 1 or 0, key == "bottom" and 0 or 1)
+    end
+    for _, key in ipairs({ "tl", "tr", "bl", "br" }) do
+        local c = self.themeArtwork[key]
+        local right, bottom = key == "tr" or key == "br", key == "bl" or key == "br"
+        c:SetTexture(art .. "map_corner_dxt5.dds")
+        Place(c, self.viewport, 18, 18, right and w/2 - 4 or -w/2 + 4, bottom and h/2 - 4 or -h/2 + 4)
+        c:SetTextureCoords(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
+    end
+end
+
 function Minimap:Layout()
     local s = Settings()
+    local minimal = Nirnsteel_UI.Themes and Nirnsteel_UI.Themes:IsMinimal()
     self.width = s.shape == "circle" and s.diameter or s.width
     self.height = s.shape == "circle" and s.diameter or s.height
     local w, h = self.width, self.height
+    local frameExtent = minimal and s.borderThickness or FRAME_EXTENT
+    local clampSide = INSET - frameExtent
+    local clampTop, clampBottom = HEADER + clampSide, FOOTER + clampSide
     self.root:SetDimensions(w + INSET * 2, h + INSET * 2 + HEADER + FOOTER)
+    self.root:SetClampedToScreenInsets(clampSide, clampTop, -clampSide, -clampBottom)
     self.root:ClearAnchors()
     local p = Nirnsteel_UI.Settings:GetMinimapPosition()
     local maxX = math.max(0, GuiRoot:GetWidth() - self.root:GetWidth())
     local maxY = math.max(0, GuiRoot:GetHeight() - self.root:GetHeight())
-    p.x = Clamp(p.x, -maxX - CLAMP_SIDE, CLAMP_SIDE, -32)
-    p.y = Clamp(p.y, -maxY - CLAMP_TOP, CLAMP_BOTTOM, -48)
+    p.x = Clamp(p.x, -maxX - clampSide, clampSide, -32)
+    p.y = Clamp(p.y, -maxY - clampTop, clampBottom, -48)
     self.root:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, p.x, p.y)
     self.viewport:ClearAnchors()
     self.viewport:SetDimensions(w, h)
@@ -366,6 +419,8 @@ function Minimap:Layout()
     self.frame:SetAnchorFill(self.viewport)
     self.terrain:SetAlpha(s.mapOpacity / 100)
     self.frame:SetAlpha(s.frameOpacity / 100)
+    local themed = Nirnsteel_UI.Themes and Nirnsteel_UI.Themes:GetId() ~= "nirnsteel"
+    local bordered = not Nirnsteel_UI.Themes or Nirnsteel_UI.Themes:HasBorders()
     for shape, f in pairs(self.frames) do
         for _, c in pairs(f) do c:SetHidden(shape ~= s.shape) end
         Place(f.shadow, self.viewport, w + 19, h + 19, 0, 3)
@@ -373,7 +428,7 @@ function Minimap:Layout()
         f.shadow:SetCenterColor(0, 0, 0, 0)
         f.shadow:SetBorderColor(0, 0, 0, 0.34)
         f.shadow:SetBorderThickness(9.5, 9.5, 1)
-        f.shadow:SetHidden(shape ~= s.shape or not s.shadow)
+        f.shadow:SetHidden(shape ~= s.shape or not s.shadow or not bordered or minimal)
         Place(f.backing, self.viewport, w, h)
         f.backing:SetCenterColor(0.025, 0.037, 0.046, 0.80 * s.mapOpacity / 100)
         for _, entry in ipairs({ { f.outer, 10, 4 }, { f.bevel, 5, s.borderThickness }, { f.inner, 1, 1 } }) do
@@ -381,9 +436,17 @@ function Minimap:Layout()
             entry[1]:SetBorderThickness(entry[3], entry[3], 1)
         end
         f.outer:SetBorderColor(0.045, 0.067, 0.079, 1)
-        f.bevel:SetBorderColor(Color(s.borderColor))
+        f.bevel:SetBorderColor(FrameColor("borderColor"))
         f.inner:SetBorderColor(0.13, 0.19, 0.22, 1)
+        for _, c in ipairs({ f.outer, f.bevel, f.inner }) do c:SetHidden(shape ~= s.shape or themed) end
+        if minimal then
+            Place(f.bevel, self.viewport, w + s.borderThickness * 2, h + s.borderThickness * 2)
+            f.bevel:SetBorderThickness(s.borderThickness, s.borderThickness, 1)
+            f.bevel:SetBorderColor(0, 0, 0, 1)
+            f.bevel:SetHidden(shape ~= s.shape)
+        end
     end
+    self:ApplyThemeArtwork()
     local titleY = s.locationNamePosition == "bottom" and h / 2 + 22 or -h / 2 - 22
     Place(self.title, self.viewport, w + 16, 24, 0, titleY)
     self.title:SetFont("$(BOLD_FONT)|" .. s.zoneTextSize .. "|soft-shadow-thick")
@@ -393,7 +456,18 @@ function Minimap:Layout()
     self.title:SetHidden(not s.showLocation and not self.preview and not s.unlocked)
     self.coordinates:SetHidden(not s.showCoordinates)
     Place(self.player, self.viewport, 16 * s.playerScale / 100, 16 * s.playerScale / 100)
-    self.north:SetCenterColor(Color(s.accentColor))
+    self.north:SetCenterColor(FrameColor("accentColor"))
+    if Nirnsteel_UI.Themes then
+        self.title:SetColor(Nirnsteel_UI.Themes:Color("text", 0.85, 0.89, 0.91, 1))
+        for _, button in ipairs(self.buttons) do
+            local themes = Nirnsteel_UI.Themes
+            local background = button.nirnsteelBackground
+            background:SetCenterColor(themes:Color("recess", 0.025, 0.04, 0.05, 0.94))
+            background:SetBorderColor(themes:Color("rim", 0.40, 0.49, 0.54, bordered and 0.8 or 0))
+            if minimal then background:SetBorderColor(0, 0, 0, 1) end
+            button:SetColor(themes:Color("text", 0.85, 0.89, 0.91, 1))
+        end
+    end
     self.waypointInset:SetCenterColor(WaypointColor())
     self:RefreshClip()
 end
@@ -432,14 +506,14 @@ function Minimap:LayoutCompass()
         if s.shape == "rectangle" then tickAngle = math.abs(x) > self.width / 2 and PI / 2 or 0 end
         PlaceRotatedPolygon(tick, self.viewport, RECT, i % 6 == 1 and 2 or 1,
             i % 6 == 1 and 6 or 3, x, y, tickAngle)
-        tick:SetCenterColor(Color(s.borderColor, 0.65))
+        tick:SetCenterColor(FrameColor("borderColor", 0.65))
         tick:SetHidden(not s.showCardinals)
     end
     for i, label in ipairs(self.cardinals) do
         local a = (i - 1) * PI / 2 + self.angle
         local x, y = self:EdgePoint(math.sin(a), -math.cos(a), 13)
         Place(label, self.viewport, 20, 18, x, y)
-        label:SetColor(Color(i == 1 and s.accentColor or s.borderColor))
+        label:SetColor(FrameColor(i == 1 and "accentColor" or "borderColor"))
         label:SetHidden(not s.showCardinals)
     end
     local nx, ny = self:EdgePoint(self.sinAngle, -self.cosAngle, -5)

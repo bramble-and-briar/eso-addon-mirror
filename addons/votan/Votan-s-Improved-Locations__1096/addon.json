@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/votan/Votan-s-Improved-Locations__1096",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "votan",
   "canonical_id": "esoui:1096",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1096",
@@ -17,7 +18,7 @@
     "VotansImprovedLocations"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1096/",
-  "fingerprint": "e140690166cdee081a695b79283ccb923680e9deb1bf956796bee85c5cd8bcff",
+  "fingerprint": "9cc1fe1f7da5232faaa156faa79d90482a5a7d6d868133f501f9dabf5384e522",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw3430.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw3913.jpg"
@@ -28,11 +29,11 @@
   "source_id": "1096",
   "source_url": "https://www.esoui.com/downloads/info1096-VotansImprovedLocations.html",
   "stats": {
-    "downloads": 726609,
-    "favorites": 696,
-    "monthly_downloads": 2885
+    "downloads": 733402,
+    "favorites": 700,
+    "monthly_downloads": 3009
   },
   "title": "Votan's Improved Locations",
-  "updated_at": 1781613214000,
-  "version": "1.23.6"
+  "updated_at": 1793353908000,
+  "version": "1.23.7"
 }

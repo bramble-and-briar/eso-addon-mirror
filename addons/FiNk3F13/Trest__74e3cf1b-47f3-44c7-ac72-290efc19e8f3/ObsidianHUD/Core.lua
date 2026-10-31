@@ -1,4 +1,4 @@
-ObsidianHUD = {name="ObsidianHUD", version="0.7.53"}
+ObsidianHUD = {name="ObsidianHUD", version="0.8.2"}
 local O=ObsidianHUD
 O.defaults={enabled=true,hideOriginals=true,skillFrames=true,backBar=true,
     width=480,scale=1,x=0,y=-215,opacity=0.94,numbers=true,roundBadge=true,customClassIcons=true,

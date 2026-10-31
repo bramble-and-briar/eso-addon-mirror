@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="AutoImproveGearHoldLayer" allowFallthrough="true">
+        <Category name="Auto Improve Gear">
+            <Action name="AUTOIMPROVEGEAR_CONFIRM_HOLD">
+                <Down>AutoImproveGear_OnConfirmHoldDown()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

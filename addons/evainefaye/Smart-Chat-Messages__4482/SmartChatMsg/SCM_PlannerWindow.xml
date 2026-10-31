@@ -1,0 +1,9 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="SCM_EventPlanner" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" resizeHandleSize="16">
+            <Dimensions x="1420" y="860" />
+            <Anchor point="CENTER" />
+            <OnInitialized>SmartChatMsg.plannerWindow = self</OnInitialized>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

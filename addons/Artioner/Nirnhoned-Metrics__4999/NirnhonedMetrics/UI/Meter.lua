@@ -154,7 +154,32 @@ local TEX_FIGHTS = {
     over = "EsoUI/Art/Guild/tabIcon_history_over.dds",
     down = "EsoUI/Art/Guild/tabIcon_history_down.dds",
 }
+local TEX_COLLAPSE = {
+    up = "EsoUI/Art/Buttons/ScrollBox_UpArrow_Up.dds",
+    over = "EsoUI/Art/Buttons/ScrollBox_UpArrow_Over.dds",
+    down = "EsoUI/Art/Buttons/ScrollBox_UpArrow_Down.dds",
+}
+local TEX_EXPAND = {
+    up = "EsoUI/Art/Buttons/ScrollBox_DownArrow_Up.dds",
+    over = "EsoUI/Art/Buttons/ScrollBox_DownArrow_Over.dds",
+    down = "EsoUI/Art/Buttons/ScrollBox_DownArrow_Down.dds",
+}
 local TEX_CLOCK = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_timer32.dds"
+
+local function SetButtonTextures(button, textures)
+    button:SetNormalTexture(textures.up)
+    button:SetMouseOverTexture(textures.over)
+    button:SetPressedTexture(textures.down)
+end
+
+-- Línea vertical entre grupos de iconos de la cabecera, a la izquierda de "right".
+local SEPARATOR_GAP = 4
+local function Separator(name, parent, right)
+    local line = Solid(name, parent, 1, 1, 1, 0.25)
+    line:SetDimensions(1, BUTTON_SIZE - 6)
+    line:SetAnchor(RIGHT, right, LEFT, -SEPARATOR_GAP, 0)
+    return line
+end
 
 ---------------------------------------------------------------------------
 -- Datos de las filas
@@ -492,7 +517,8 @@ local function TitleText(fight)
 end
 
 function M.Refresh()
-    if not M.frame or M.frame:IsHidden() then return end
+    -- Plegada solo se ve la cabecera: no hace falta montar las barras.
+    if not M.frame or M.frame:IsHidden() or NM.sv.window.collapsed then return end
     local sv = NM.sv
     local fight = F.Get(M.viewIndex)
     if not fight then
@@ -576,14 +602,17 @@ function M.SetShown(shown)
     M.UpdateVisibility()
 end
 
+-- Las asas de redimensionar solo se ven con la ventana desbloqueada y desplegada.
+local function UpdateResizeHandles()
+    local w = NM.sv.window
+    for _, handle in ipairs(M.resizeHandles) do handle:SetHidden(w.locked or w.collapsed) end
+end
+
 function M.SetLocked(locked)
     NM.sv.window.locked = locked
     if not M.frame then return end
-    for _, handle in ipairs(M.resizeHandles) do handle:SetHidden(locked) end
-    local tex = locked and TEX_LOCKED or TEX_UNLOCKED
-    M.lockBtn:SetNormalTexture(tex.up)
-    M.lockBtn:SetMouseOverTexture(tex.over)
-    M.lockBtn:SetPressedTexture(tex.down)
+    UpdateResizeHandles()
+    SetButtonTextures(M.lockBtn, locked and TEX_LOCKED or TEX_UNLOCKED)
 
     -- Bloqueada no se ven ajustes ni cerrar: el candado pasa a ser el último icono.
     M.settingsBtn:SetHidden(locked)
@@ -596,15 +625,30 @@ function M.SetLocked(locked)
     end
 end
 
+-- Plegada, la ventana mide lo que la cabecera y conserva la esquina superior izquierda.
 function M.ApplyPosition()
     local w = NM.sv.window
+    local height = zo_clamp(w.height, MinHeight(), MAX_H)
     M.frame:ClearAnchors()
     if w.x and w.y then
         M.frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, w.x, w.y)
     else
-        M.frame:SetAnchor(LEFT, GuiRoot, LEFT, 40, -80)
+        -- Posición inicial: a la izquierda, centrada en vertical (80 px por encima).
+        M.frame:SetAnchor(TOPLEFT, GuiRoot, LEFT, 40, -80 - height / 2)
     end
-    M.frame:SetDimensions(zo_clamp(w.width, MIN_W, MAX_W), zo_clamp(w.height, MinHeight(), MAX_H))
+    M.frame:SetDimensions(zo_clamp(w.width, MIN_W, MAX_W), w.collapsed and HeaderHeight() or height)
+end
+
+-- Plegar deja solo la cabecera; desplegar vuelve a mostrar barras y pie.
+function M.SetCollapsed(collapsed)
+    NM.sv.window.collapsed = collapsed
+    if not M.frame then return end
+    SetButtonTextures(M.collapseBtn, collapsed and TEX_EXPAND or TEX_COLLAPSE)
+    M.content:SetHidden(collapsed)
+    M.footer:SetHidden(collapsed)
+    UpdateResizeHandles()
+    M.ApplyPosition()
+    M.Refresh()
 end
 
 function M.ResetPosition()
@@ -618,7 +662,9 @@ end
 local function SavePosition()
     local w = NM.sv.window
     w.x, w.y = zo_round(M.frame:GetLeft()), zo_round(M.frame:GetTop())
-    w.width, w.height = zo_round(M.frame:GetWidth()), zo_round(M.frame:GetHeight())
+    w.width = zo_round(M.frame:GetWidth())
+    -- Plegada, el alto es el de la cabecera: se conserva el de la ventana desplegada.
+    if not w.collapsed then w.height = zo_round(M.frame:GetHeight()) end
     M.ApplyPosition()
 end
 
@@ -861,6 +907,7 @@ function M.ShowMenu(anchor)
 
     AddMenuItem(L.MENU_ACTIONS, nil, MENU_ADD_OPTION_LABEL)
     AddMenuItem("   " .. L.MENU_RESET, function() F.Reset() end)
+    AddMenuItem("   " .. (sv.window.collapsed and L.EXPAND or L.COLLAPSE), function() M.SetCollapsed(not sv.window.collapsed) end)
     AddMenuItem("   " .. (sv.window.locked and L.UNLOCK or L.LOCK), function() M.SetLocked(not sv.window.locked) end)
     AddMenuItem("   " .. L.SETTINGS, function() NM.Settings.Open() end)
     ShowMenu(anchor)
@@ -897,8 +944,9 @@ local function Build()
     M.MakeDraggable(header, function() M.ShowMenu(header) end)
     M.header = header
 
-    -- Nombre del addon y, a la derecha, la fila de iconos (de derecha a izquierda:
-    -- cerrar, ajustes, candado, reiniciar, combates, mis habilidades, grupo, sanación, daño).
+    -- Título y, a la derecha, la fila de iconos en tres grupos separados por una línea
+    -- (de derecha a izquierda: cerrar, ajustes, candado, plegar, reiniciar, combates |
+    -- mis habilidades, grupo | sanación, daño).
     -- Con la ventana bloqueada, cerrar y ajustes se ocultan (ver M.SetLocked).
     local close = IconButton("NirnhonedMetricsClose", header, TEX_CLOSE, L.HIDE_WINDOW, function() M.SetShown(false) end)
     close:SetDimensions(16, 16)
@@ -915,31 +963,40 @@ local function Build()
     M.lockBtn:SetDimensions(18, 18)
     M.lockBtn:SetAnchor(RIGHT, settings, LEFT, 0, 0)
 
+    M.collapseBtn = IconButton("NirnhonedMetricsCollapse", header, TEX_COLLAPSE,
+        function() return NM.sv.window.collapsed and L.EXPAND or L.COLLAPSE end,
+        function() M.SetCollapsed(not NM.sv.window.collapsed) end)
+    M.collapseBtn:SetDimensions(18, 18)
+    M.collapseBtn:SetAnchor(RIGHT, M.lockBtn, LEFT, 0, 0)
+
     local reset = IconButton("NirnhonedMetricsReset", header, TEX_RESET, L.MENU_RESET, function() F.Reset() end)
-    reset:SetAnchor(RIGHT, M.lockBtn, LEFT, 0, 0)
+    reset:SetAnchor(RIGHT, M.collapseBtn, LEFT, 0, 0)
 
     local fights
     fights = IconButton("NirnhonedMetricsFights", header, TEX_FIGHTS, FightsTooltip, function() M.ShowFightsMenu(fights) end)
     fights:SetAnchor(RIGHT, reset, LEFT, 0, 0)
 
+    local viewSeparator = Separator("NirnhonedMetricsSeparatorView", header, fights)
+
     M.abilitiesBtn = IconButton("NirnhonedMetricsModeAbilities", header, TEX_ABILITIES, L.MODE_ABILITIES,
         function() M.SetMode("abilities") end)
-    M.abilitiesBtn:SetAnchor(RIGHT, fights, LEFT, 0, 0)
+    M.abilitiesBtn:SetAnchor(RIGHT, viewSeparator, LEFT, -SEPARATOR_GAP, 0)
 
     M.groupBtn = IconButton("NirnhonedMetricsModeGroup", header, TEX_GROUP, L.MODE_GROUP,
         function() M.SetMode("group") end)
     M.groupBtn:SetAnchor(RIGHT, M.abilitiesBtn, LEFT, 0, 0)
 
+    local metricSeparator = Separator("NirnhonedMetricsSeparatorMetric", header, M.groupBtn)
+
     M.healingBtn = IconButton("NirnhonedMetricsMetricHealing", header, TEX_HEALING, L.METRIC_HEALING,
         function() M.SetMetric("healing") end)
-    M.healingBtn:SetAnchor(RIGHT, M.groupBtn, LEFT, -6, 0)
+    M.healingBtn:SetAnchor(RIGHT, metricSeparator, LEFT, -SEPARATOR_GAP, 0)
 
     M.damageBtn = IconButton("NirnhonedMetricsMetricDamage", header, TEX_DAMAGE, L.METRIC_DAMAGE,
         function() M.SetMetric("damage") end)
     M.damageBtn:SetAnchor(RIGHT, M.healingBtn, LEFT, 0, 0)
 
     M.title = Label("NirnhonedMetricsTitle", header, TEXT_ALIGN_LEFT)
-    M.title:SetText(NM.title)
     M.title:SetAnchor(LEFT, header, LEFT, 6, 0)
     M.title:SetAnchor(RIGHT, M.damageBtn, LEFT, -6, 0)
 
@@ -976,10 +1033,22 @@ local function Build()
     BuildResizeHandles(frame)
 end
 
--- Tamaños de texto de la cabecera y del pie; ambos crecen con su texto.
+-- Título de la ventana: el del addon o el que escriba el jugador (con su color; los
+-- códigos de color |cRRGGBB...|r del texto tienen prioridad). Vacío = el del addon.
+local function WindowTitle()
+    local sv = NM.sv
+    local custom = sv.titleMode == "custom" and U.Trim(sv.customTitle or "") or ""
+    if custom == "" then return NM.title, WHITE end
+    return custom, sv.titleColor
+end
+
+-- Título y tamaños de texto de la cabecera y del pie; ambos crecen con su texto.
 local function ApplyHeader()
     M.header:SetHeight(HeaderHeight())
     SetLabelFont(M.title, Font(NM.sv.titleFontSize))
+    local text, color = WindowTitle()
+    M.title:SetText(text)
+    M.title:SetColor(U.Color(color))
 
     local footerH = FooterHeight()
     local footerFont = Font(NM.sv.fontSize)
@@ -1004,8 +1073,8 @@ function M.Init()
     Build()
     ApplyHeader()
     UpdateModeButtons()
-    M.ApplyPosition()
     M.SetLocked(NM.sv.window.locked)
+    M.SetCollapsed(NM.sv.window.collapsed)
 
     CALLBACK_MANAGER:RegisterCallback(F.CHANGED, function(what)
         -- Al empezar un combate se vuelve a mostrar el combate actual.

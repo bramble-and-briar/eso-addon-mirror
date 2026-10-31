@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/nycthemere/MugShot__5000",
+  "archive_path": "addons/nycthemere/MugShot---Custom-target-frame__5000",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "nycthemere",
@@ -18,7 +18,7 @@
     "MugShot"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5000/",
-  "fingerprint": "352e13357e2c0511fa2f44f35b7aea3bc6eb9bd9a191e91c993388c2772da829",
+  "fingerprint": "1328d5c5f2cc6118c3c8705704ca222b1d7ea3e2809aaacf6817d777903c8493",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18188.png",
     "https://cdn-eso.mmoui.com/preview/pvw18192.png",
@@ -30,13 +30,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "5000",
-  "source_url": "https://www.esoui.com/downloads/info5000-MugShot.html",
+  "source_url": "https://www.esoui.com/downloads/info5000-MugShot-Customtargetframe.html",
   "stats": {
-    "downloads": 17,
+    "downloads": 38,
     "favorites": 2,
-    "monthly_downloads": 12
+    "monthly_downloads": 36
   },
-  "title": "MugShot",
-  "updated_at": 1793249111000,
-  "version": "2026.10.29-101045"
+  "title": "MugShot - Custom target frame",
+  "updated_at": 1793376997000,
+  "version": "2026.10.30-101046"
 }

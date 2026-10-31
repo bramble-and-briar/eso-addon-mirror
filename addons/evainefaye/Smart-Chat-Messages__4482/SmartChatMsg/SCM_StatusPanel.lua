@@ -77,16 +77,7 @@ end
 
 
 function SmartChatMsg:ShouldOpenStatusPanelOnRun(commandId, guildName)
-    if self:GetGuildOpenStatusPanelOnRun(commandId, guildName) ~= true then
-        return false
-    end
-
-    if self:GetGuildAutoPopulateOnZone(commandId, guildName) == true then
-        return true
-    end
-
-    local repeatMinutes = self:GetGuildReminderMinutes(commandId, guildName)
-    return type(repeatMinutes) == "number" and repeatMinutes > 0
+    return self:GetGuildOpenStatusPanelOnRun(commandId, guildName) == true
 end
 
 
@@ -103,10 +94,12 @@ function SmartChatMsg:FormatStatusDuration(secondsRemaining)
     end
 
     local total = math.max(0, math.floor(secondsRemaining))
-    local hours = math.floor(total / 3600)
+    local days = math.floor(total / 86400)
+    local hours = math.floor((total % 86400) / 3600)
     local minutes = math.floor((total % 3600) / 60)
     local seconds = total % 60
 
+    if days > 0 then return string.format("%dd %02d:%02d:%02d",days,hours,minutes,seconds) end
     if hours > 0 then
         return string.format("%d:%02d:%02d", hours, minutes, seconds)
     end
@@ -141,7 +134,7 @@ end
 
 
 function SmartChatMsg:GetStatusPanelRepeatCardHeight()
-    return 164
+    return 142
 end
 
 function SmartChatMsg:GetStatusSectionExpanded(section,hasContent)
@@ -160,9 +153,31 @@ function SmartChatMsg:ToggleStatusSection(section)
     if self.statusPanelVisible then self:RefreshStatusPanel() end
 end
 
+function SmartChatMsg:GetStatusPanelHeaderText()
+    local text='SmartChatMsg Status | Scheduled sending: '..(self:IsScheduledSendingEnabled() and 'ON' or 'OFF')
+    return text
+end
+
+function SmartChatMsg:GetStatusPanelCountdownText()
+    local now=GetTimeStamp()
+    if self.scheduleStartupEndsAt and self.scheduleStartupEndsAt>now then
+        return 'Startup delay: '..self:FormatStatusDuration(self.scheduleStartupEndsAt-now)
+    end
+    local pause=self.scheduledSendPause
+    if pause and pause.endsAt>now then
+        return 'Other schedules wait '..self:FormatStatusDuration(pause.endsAt-now)
+    end
+    return ''
+end
+
 function SmartChatMsg:GetRepeatCardTimingText(row)
     local text="Last Sent: "..tostring(row.lastSentText)
-    if row.isActive then text=text.." | Next Send: "..tostring(row.nextSendText) end
+    if row.isActive then
+        text=text.." | Next Send: "..tostring(row.nextSendText)
+        if row.nextSendAt and row.nextSendAt<math.huge then
+            text=text.." at "..(os.date("%I:%M:%S %p",row.nextSendAt) or "Unknown time")
+        end
+    end
     return text
 end
 
@@ -170,17 +185,17 @@ function SmartChatMsg:GetReminderPanelControlState(commandId,guildName)
     if self:GetGuildRunAt(commandId,guildName)=="SCHEDULED" then
         local schedule=self:GetGuildSchedule(commandId,guildName)
         if not schedule then return "OFF","ON" end
-        if schedule.paused then return "PAUSED","OFF" end
-        return schedule.enabled and "ON" or "OFF",schedule.enabled and "PAUSED" or "ON"
+        local active=schedule.enabled and not schedule.paused
+        return active and "ON" or "OFF",active and "OFF" or "ON"
     end
     local key=self:GetReminderStateKey(commandId,guildName)
-    local paused=self.repeatPanelPaused and self.repeatPanelPaused[key]
-    if paused then return "PAUSED","OFF" end
+    local disabled=self.repeatPanelDisabled and self.repeatPanelDisabled[key]
+    if disabled then return "OFF","ON" end
     local pending=self.pendingRestoreState and self.pendingRestoreState.metadata
     local queued=self.chatPopulationQueue and self.chatPopulationQueue[key]
     local preparing=(pending and pending.commandId==commandId and self:StringsEqualIgnoreCase(pending.guildName or "",guildName)) or queued
     local active=self:IsReminderAutomationActive(commandId,guildName) or preparing
-    return active and "ON" or "OFF",active and "PAUSED" or "ON"
+    return active and "ON" or "OFF",active and "OFF" or "ON"
 end
 
 function SmartChatMsg:IsScheduledOccurrenceCurrent(commandId,guildName)
@@ -189,9 +204,42 @@ function SmartChatMsg:IsScheduledOccurrenceCurrent(commandId,guildName)
     return occurrence and GetTimeStamp()>=occurrence.startsAtUtc and GetTimeStamp()<occurrence.endsAtUtc or false
 end
 
+-- Quotas are a delivery wait, not completion of the event occurrence.
+function SmartChatMsg:GetScheduledDailyLimitNotice(commandId,guildName,utc)
+    local config=self:GetGuildSchedule(commandId,guildName);utc=utc or GetTimeStamp()
+    if not config or config.timelineVersion~=1 or not config.enabled or config.paused or not self.GetReminderDailyLimit then return nil end
+    local occurrence=self:GetScheduleOccurrence(config,utc)
+    if not occurrence or utc<occurrence.startsAtUtc or utc>=occurrence.endsAtUtc then return nil end
+    -- A capped period must not obscure another period that can still run.
+    if self:GetActiveTimelineReminder(config,utc) then return nil end
+    local selected,selectedInfo,selectedStart
+    for _,row in ipairs(config.reminders or {}) do
+        local first,last=self:GetTimelineReminderWindow(config,occurrence,row)
+        local usage=(config.timelineUsage or {})[occurrence.occurrenceKey..':'..row.id]
+        if row.enabled~=false and not row.paused and first and last and utc>=first and utc<last and not (row.once and usage and usage.completed) then
+            local info=self:GetReminderDailyLimit(config,row,utc)
+            if info.reached and (not selected or row.timeSensitive and not selected.timeSensitive or row.timeSensitive==selected.timeSensitive and first>selectedStart) then selected,selectedInfo,selectedStart=row,info,first end
+        end
+    end
+    if not selected then return nil end
+    local scope=selectedInfo.shared and 'Command' or 'Period'
+    local text=scope..' daily limit reached ('..tostring(selectedInfo.count)..'/'..tostring(selectedInfo.limit)..')'
+    if not selectedInfo.shared then text=text..' — '..tostring(selected.label or 'Period') end
+    return text,selected,selectedInfo
+end
+local previousScheduleStatusText=SmartChatMsg.GetScheduleStatusText
+function SmartChatMsg:GetScheduleStatusText(commandId,guildName)
+    if not self:IsScheduledSendingEnabled() then return 'Scheduled sending OFF - use /scm on to resume' end
+    local notice=self:GetScheduledDailyLimitNotice(commandId,guildName)
+    if notice then return 'Active — '..notice end
+    return previousScheduleStatusText(self,commandId,guildName)
+end
+
 function SmartChatMsg:GetScheduledCardDetails(commandId,guildName,controlState)
-    if controlState=="PAUSED" then return "Paused","Paused" end
     if controlState=="OFF" then return "Inactive","Off" end
+    if not self:IsScheduledSendingEnabled() then return 'Suspended - Scheduled sending OFF','Scheduled sending OFF' end
+    local dailyLimit=self:GetScheduledDailyLimitNotice(commandId,guildName)
+    if dailyLimit then return 'Active — '..dailyLimit,'Waiting for an eligible period' end
     local wait=self:GetScheduleChatWaitText(commandId,guildName)
     if wait then return "Active — "..wait,wait end
     local pacingAt,pacingReason=self:GetSchedulePacingDelay(commandId,guildName)
@@ -200,7 +248,7 @@ function SmartChatMsg:GetScheduledCardDetails(commandId,guildName,controlState)
     local due=self:GetScheduledDueAt(commandId,guildName,phase)
     if due==math.huge then return "Active — Complete for this occurrence","No further delivery" end
     if pacingAt then return "Active — "..(self.scheduleStartupEndsAt==pacingAt and "Startup delay" or "5-minute pause"),
-        self:FormatStatusDuration(math.max(due,pacingAt)-GetTimeStamp()) end
+        self:FormatStatusDuration(math.max(due,pacingAt)-GetTimeStamp()),math.max(due,pacingAt) end
     if due>GetTimeStamp() then return "Active — Cooldown",self:FormatStatusDuration(due-GetTimeStamp()) end
     local runtime=self.scheduleRuntime and self.scheduleRuntime[self:GetReminderStateKey(commandId,guildName)]
     if runtime and runtime.reason then return "Active — "..runtime.reason,runtime.reason end
@@ -249,15 +297,17 @@ function SmartChatMsg:GetRepeatStatusPanelRows()
                     local scheduled=self:GetGuildRunAt(command.id,guildName)=="SCHEDULED"
                     local controlState,nextState=self:GetReminderPanelControlState(command.id,guildName)
                     if (scheduled and self:IsScheduledOccurrenceCurrent(command.id,guildName))
-                        or (not scheduled and reminderMinutes and reminderMinutes>0 and controlState~="OFF") then
+                        or (not scheduled and reminderMinutes and reminderMinutes>0 and (controlState~="OFF" or (self.repeatPanelDisabled and self.repeatPanelDisabled[self:GetReminderStateKey(command.id,guildName)]))) then
                         local isActive = self:IsReminderAutomationActive(command.id, guildName)
                         local nextTriggerAt = self:GetReminderNextTriggerAt(command.id, guildName)
                         local lastUsedAt = self:GetGuildLastUsedAt(command.id, guildName)
                         local nextSendText = "—"
                         local nextSendSeconds = nil
+                        local nextSendAt = nil
 
                         if isActive then
                             if type(nextTriggerAt) == "number" and nextTriggerAt > 0 then
+                                nextSendAt=nextTriggerAt
                                 nextSendSeconds = math.max(0, nextTriggerAt - now)
                                 nextSendText = self:FormatStatusDuration(nextSendSeconds)
                             else
@@ -265,14 +315,17 @@ function SmartChatMsg:GetRepeatStatusPanelRows()
                             end
                         end
 
-                        local statusText=controlState=="PAUSED" and "Paused" or controlState=="ON" and "Active" or "Inactive"
-                        if scheduled then statusText,nextSendText=self:GetScheduledCardDetails(command.id,guildName,controlState)
-                        elseif controlState=="PAUSED" then nextSendText="Paused" end
+                        local statusText=controlState=="ON" and "Active" or "Inactive"
+                        if scheduled then statusText,nextSendText,nextSendAt=self:GetScheduledCardDetails(command.id,guildName,controlState) end
                         isActive=controlState=="ON"
                         local schedule=scheduled and self:GetGuildSchedule(command.id,guildName)
                         local occurrence=schedule and self:GetScheduleOccurrence(schedule,now)
                         if schedule then
                             local description=self:GetSchedulePhaseDescription(command.id,guildName)
+                            if schedule.timelineVersion==1 then
+                                local period=self:GetActiveTimelineReminder(schedule,now)
+                                if period and type(period.label)=='string' and period.label:match('%S') then description='Period: '..description end
+                            end
                             statusText=statusText.." — "..description
                         elseif reminderMinutes then statusText=statusText.." — every "..tostring(reminderMinutes).." minutes" end
                         local displayName=scheduled and (command.name or "Scheduled message") or (self:BuildSlashCommandName(command.name or "command") or "/command")
@@ -291,14 +344,15 @@ function SmartChatMsg:GetRepeatStatusPanelRows()
                             guildName = guildName,
                             channelText = self:GetAutoPopulateChannelStatusText(command.id, guildName),
                             reminderMinutes = reminderMinutes,
-                            isActive = isActive,
+                            isActive = isActive and (not scheduled or self:IsScheduledSendingEnabled()),
                             statusText = statusText,
                             controlState = controlState,
                             lastUsedAt = lastUsedAt,
                             lastSentText = self:FormatStatusTimeOfDay(lastUsedAt),
                             nextSendText = nextSendText,
                             nextSendSeconds = nextSendSeconds,
-                            toggleText = nextState=="PAUSED" and "Pause" or nextState=="ON" and "Enable" or "Disable",
+                            nextSendAt = nextSendAt,
+                            toggleText = nextState=="ON" and "Enable" or "Disable",
                         })
                     end
                 end
@@ -352,36 +406,34 @@ function SmartChatMsg:ToggleReminderAutomationFromStatusPanel(commandId, guildNa
                 end
             end
             schedule.enabled=true;schedule.paused=false
-        elseif nextState=="OFF" then
-            schedule.enabled=false;schedule.paused=false;self:StopScheduledDelivery(commandId,guildName)
         else
-            schedule.paused=true;self:StopScheduledDelivery(commandId,guildName)
+            schedule.enabled=false;schedule.paused=false;self:StopScheduledDelivery(commandId,guildName)
         end
-        self:ShowStatusMessage(slashCommandName.." / "..guildName..": "..(nextState=="ON" and "Enabled" or nextState=="OFF" and "Disabled" or "Paused")..".")
+        self:ShowStatusMessage(slashCommandName.." / "..guildName..": "..(nextState=="ON" and "Enabled" or "Disabled")..".")
         self:TickSchedules()
         if self.statusPanelVisible then self:RefreshStatusPanel() end
         return
     end
     local reminderMinutes = self:GetGuildReminderMinutes(commandId, guildName)
     if not reminderMinutes or reminderMinutes <= 0 then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, string.format("%s does not have Repeat Every configured for %s.", slashCommandName, tostring(guildName)))
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, string.format("%s does not have Repeat Frequency configured for %s.", slashCommandName, tostring(guildName)))
         return
     end
 
     local _,nextState=self:GetReminderPanelControlState(commandId,guildName)
     local key=self:GetReminderStateKey(commandId,guildName)
-    self.repeatPanelPaused=self.repeatPanelPaused or {}
-    if nextState=="PAUSED" or nextState=="OFF" then
+    self.repeatPanelDisabled=self.repeatPanelDisabled or {}
+    if nextState=="OFF" then
         self:DeactivateReminderAutomation(commandId,guildName,"status panel "..nextState)
         self:CancelQueuedChatPopulation(commandId,guildName)
         self:WithdrawObservedChatDuplicate(commandId,guildName)
         self:ToggleOffActiveAutoPopulateIfMatching(commandId,guildName)
-        self.repeatPanelPaused[key]=nextState=="PAUSED" and {} or nil
-        self:ShowStatusMessage(slashCommandName.." / "..guildName..": "..(nextState=="PAUSED" and "Paused" or "Disabled")..".")
+        self.repeatPanelDisabled[key]=true
+        self:ShowStatusMessage(slashCommandName.." / "..guildName..": Disabled.")
         if self.statusPanelVisible then self:RefreshStatusPanel() end
         return
     end
-    self.repeatPanelPaused[key]=nil
+    self.repeatPanelDisabled[key]=nil
     self:SetReminderAutomationActive(commandId,guildName,true)
     local paramText=tostring(guildSlot)
 
@@ -698,6 +750,7 @@ function SmartChatMsg:GetStatusPanelTargetSize(active, rows)
         contentWidth = math.max(contentWidth, self:EstimateStatusPanelTextWidth("No repeat commands configured."))
     end
 
+    contentWidth=math.max(contentWidth,measured(panel and panel.titleLabel,self:GetStatusPanelHeaderText())+self:EstimateStatusPanelTextWidth(self:GetStatusPanelCountdownText())+16)
     local width = math.max(minWidth, math.min(maxWidth, contentWidth + 72))
 
     local height = 58
@@ -785,7 +838,12 @@ function SmartChatMsg:ApplyStatusPanelLayout(panel, width)
     local closeButtonReserve = 30
 
     panel.dragBar:SetWidth(math.max(120, contentWidth - closeButtonReserve))
-    panel.titleLabel:SetWidth(math.max(120, contentWidth - closeButtonReserve))
+    local countdownWidth=self:EstimateStatusPanelTextWidth(self:GetStatusPanelCountdownText())+8
+    if panel.headerCountdown then
+        panel.headerCountdown:SetWidth(countdownWidth)
+        panel.headerCountdown:SetHidden(self:GetStatusPanelCountdownText()=='')
+    end
+    panel.titleLabel:SetWidth(math.max(120, contentWidth - closeButtonReserve - countdownWidth - 12))
     panel.divider:SetWidth(contentWidth)
     panel.listHeader:SetWidth(contentWidth)
     panel.currentLabel:SetWidth(contentWidth)
@@ -965,7 +1023,7 @@ function SmartChatMsg:ApplyStatusPanelLayout(panel, width)
         row.commandLabel:ClearAnchors()
         row.commandLabel:SetAnchor(TOPLEFT, row, TOPLEFT, 8, 8)
 
-        row.statusLabel:SetDimensions(childWidth-16, 60)
+        row.statusLabel:SetDimensions(childWidth-16, 38)
         row.statusLabel:ClearAnchors()
         row.statusLabel:SetAnchor(TOPLEFT, row.commandLabel, BOTTOMLEFT, 0, 2)
 
@@ -1147,8 +1205,15 @@ function SmartChatMsg:CreateStatusPanel()
     local title = WINDOW_MANAGER:CreateControl("SCM_StatusPanelTitle", panel, CT_LABEL)
     title:SetFont("ZoFontWinH4")
     title:SetColor(0.95, 0.83, 0.46, 1)
-    title:SetText("SmartChatMsg Status")
+    title:SetText(self:GetStatusPanelHeaderText())
     title:SetAnchor(TOPLEFT, dragBar, TOPLEFT, 0, 0)
+
+    local headerCountdown = WINDOW_MANAGER:CreateControl("SCM_StatusPanelCountdown", panel, CT_LABEL)
+    headerCountdown:SetFont("ZoFontGameSmall")
+    headerCountdown:SetColor(0.95, 0.83, 0.46, 1)
+    headerCountdown:SetText(self:GetStatusPanelCountdownText())
+    headerCountdown:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -44, 14)
+    headerCountdown:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
     local closeButton = WINDOW_MANAGER:CreateControl("SCM_StatusPanelCloseButton", panel, CT_BUTTON)
     closeButton:SetDimensions(24, 24)
@@ -1321,6 +1386,7 @@ function SmartChatMsg:CreateStatusPanel()
     panel.backdrop = backdrop
     panel.dragBar = dragBar
     panel.titleLabel = title
+    panel.headerCountdown = headerCountdown
     panel.closeButton = closeButton
     panel.statusLabel = statusLabel
     panel.commandLabel = commandLabel
@@ -1350,6 +1416,8 @@ function SmartChatMsg:RefreshStatusPanel()
         return
     end
 
+    panel.titleLabel:SetText(self:GetStatusPanelHeaderText())
+    if panel.headerCountdown then panel.headerCountdown:SetText(self:GetStatusPanelCountdownText()) end
     local active = self:GetActiveAutoPopulate()
     local rows = {}
 

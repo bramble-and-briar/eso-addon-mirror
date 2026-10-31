@@ -69,6 +69,7 @@ end
 
 function CompassModule:ApplyStockStyle()
     for _, texture in pairs(self.artwork or {}) do texture:SetHidden(true) end
+    if Nirnsteel_UI.Themes then Nirnsteel_UI.Themes:ApplyMinimalBorder(self.minimalContainer, false) end
     if not self.nativeHidden then return end
     for control, hidden in pairs(self.nativeHidden) do control:SetHidden(hidden) end
     self.nativeHidden = nil
@@ -102,15 +103,29 @@ function CompassModule:ApplyNirnsteelStyle()
     -- The boss bar reuses these textures. Leave native atlas UVs, color, alpha,
     -- anchors and dimensions untouched; restore only the visibility we own.
     for control in pairs(self.nativeHidden) do control:SetHidden(true) end
+    self.minimalContainer = container
+    local themes = Nirnsteel_UI.Themes
+    if themes then themes:ApplyMinimalBorder(container, true, DL_BACKGROUND, DT_LOW) end
+    if themes and themes:IsMinimal() then
+        for _, texture in pairs(self.artwork or {}) do texture:SetHidden(true) end
+        self:ApplyCardinalStyle()
+        return
+    end
     self:CreateArtwork(container)
-    for _, texture in pairs(self.artwork) do texture:SetHidden(false) end
+    for name, texture in pairs(self.artwork) do
+        local path = "ui/compass/" .. (name == "rail" and "rail_v3_dxt5.dds"
+            or name == "heading" and "heading_v3_dxt5.dds" or "cap_v4_dxt5.dds")
+        texture:SetTexture(Nirnsteel_UI.Themes and Nirnsteel_UI.Themes:GetAssetPath(path) or Nirnsteel_UI:GetAssetPath(path))
+        texture:SetHidden(false)
+    end
     self:ApplyCardinalStyle()
 end
 
 function CompassModule:Apply()
     if self.applying then return end
     self.applying = true
-    if IsModuleEnabled() and not ShouldHideCompass() and not BossBarIsVisible() then
+    if IsModuleEnabled() and (not Nirnsteel_UI.Themes or Nirnsteel_UI.Themes:HasBorders())
+        and not ShouldHideCompass() and not BossBarIsVisible() then
         self:ApplyNirnsteelStyle()
     else
         self:ApplyStockStyle()

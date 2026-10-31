@@ -52,6 +52,26 @@ local CHUNK_PULSE_COUNT = 10
 local CHUNK_PULSE_MS = 460
 local STEEL_RIM = { 0.24, 0.30, 0.34, 0.55 }
 local STEEL_HIGHLIGHT = { 0.48, 0.58, 0.64, 0.48 }
+local PANEL_MATERIALS =
+{
+    nirnsteel = {
+        texture = "steel_panel_dxt5.dds",
+        caption = { 0.72, 0.79, 0.83, 1 }, rank = { 0.92, 0.95, 0.96, 1 },
+        progress = { 0.63, 0.70, 0.74, 1 }, percent = { 0.84, 0.89, 0.91, 1 },
+        divider = { 0.48, 0.60, 0.68, 0.50 }, track = { 0.16, 0.21, 0.24, 0.65 },
+    },
+    bronze = {
+        texture = "bronze_panel_dxt5.dds",
+        caption = { 0.79, 0.73, 0.62, 1 }, rank = { 0.92, 0.85, 0.72, 1 },
+        progress = { 0.68, 0.64, 0.56, 1 }, percent = { 0.86, 0.80, 0.69, 1 },
+        divider = { 0.64, 0.46, 0.27, 0.50 }, track = { 0.26, 0.19, 0.12, 0.65 },
+    },
+}
+
+local function GetExperienceArt(name)
+    local path = "ui/experience/" .. name
+    return Nirnsteel_UI.GetAssetPath and Nirnsteel_UI:GetAssetPath(path) or "NirnsteelUI/" .. path
+end
 
 local CP_ICONS =
 {
@@ -404,6 +424,14 @@ function ExperienceTracker:GetRoot()
     panel:SetDrawLayer(DL_BACKGROUND)
     root.panel = panel
 
+    -- One continuous texture avoids the seams and nested frames of bar caps.
+    local materialPanel = wm:CreateControl(nil, root, CT_TEXTURE)
+    materialPanel:SetAnchorFill(root)
+    materialPanel:SetDrawLayer(DL_BACKGROUND)
+    materialPanel:SetDrawLevel(1)
+    materialPanel:SetHidden(true)
+    root.materialPanel = materialPanel
+
     local panelInset = wm:CreateControl(nil, root, CT_BACKDROP)
     panelInset:SetCenterColor(0, 0, 0, 0)
     panelInset:SetEdgeColor(0.16, 0.20, 0.22, 0.24)
@@ -695,6 +723,65 @@ function ExperienceTracker:AnchorRankLabel(label, verticalOffset)
     end
 end
 
+function ExperienceTracker:ApplyTheme()
+    local themes = Nirnsteel_UI.Themes
+    if not themes or not self.root then return end
+    local root = self.root
+    local decorated = themes:HasDecorations()
+    local material = decorated and PANEL_MATERIALS[themes:GetId()]
+    local hideBackground = ShouldHideBackground()
+    root.outerShadow:SetHidden(hideBackground or decorated)
+    root.panel:SetHidden(hideBackground or decorated)
+    root.panel:SetCenterColor(0.018, 0.025, 0.030, 0.94)
+    root.panel:SetEdgeColor(STEEL_RIM[1], STEEL_RIM[2], STEEL_RIM[3], decorated and 0 or STEEL_RIM[4])
+    root.materialPanel:SetHidden(hideBackground or not decorated)
+    if material then root.materialPanel:SetTexture(GetExperienceArt(material.texture)) end
+    root.badge:SetHidden(decorated)
+    root.badgeGlow:SetHidden(decorated)
+    root.badge:SetCenterColor(0.025, 0.034, 0.040, 0.96)
+    root.badge:SetEdgeColor(STEEL_HIGHLIGHT[1], STEEL_HIGHLIGHT[2], STEEL_HIGHLIGHT[3],
+        decorated and 0 or STEEL_HIGHLIGHT[4])
+    root.panelInset:SetHidden(hideBackground or decorated)
+    root.panelInset:SetEdgeColor(0.16, 0.20, 0.22, 0.24)
+    root.topRail:SetHidden(hideBackground or decorated)
+    root.bottomRail:SetHidden(hideBackground or decorated)
+    root.divider:SetHidden(hideBackground)
+    root.topRail:SetColor(STEEL_HIGHLIGHT[1], STEEL_HIGHLIGHT[2], STEEL_HIGHLIGHT[3], 0.24)
+    root.bottomRail:SetColor(STEEL_RIM[1], STEEL_RIM[2], STEEL_RIM[3], 0.20)
+    root.typeLabel:SetFont("$(BOLD_FONT)|" .. (decorated and 13 or 14) .. "|soft-shadow-thin")
+    root.percentLabel:SetFont("$(BOLD_FONT)|" .. (decorated and 13 or 14) .. "|soft-shadow-thin")
+    root.progressLabel:SetFont("$(MEDIUM_FONT)|" .. (decorated and 11 or 12) .. "|soft-shadow-thin")
+    if material then
+        root.divider:SetTexture(GetExperienceArt("divider_dxt5.dds"))
+        root.divider:SetDimensions(1, math.max(20, root:GetHeight() - 24))
+        root.divider:SetColor(unpack(material.divider))
+        root.track:SetEdgeColor(unpack(material.track))
+        root.progressLabel:SetColor(unpack(material.progress))
+        root.percentLabel:SetColor(unpack(material.percent))
+        root.levelLabel:SetColor(unpack(material.rank))
+        root.nextLevelLabel:SetColor(unpack(material.rank))
+        root.typeLabel:SetColor(unpack(material.caption))
+    else
+        root.divider:SetTexture(ORNAMENT_TEXTURE)
+        root.divider:SetDimensions(1, math.max(root:GetHeight() - 14, 1))
+        root.divider:SetColor(STEEL_HIGHLIGHT[1], STEEL_HIGHLIGHT[2], STEEL_HIGHLIGHT[3], 0.22)
+        root.track:SetEdgeColor(unpack(root.nirnsteelTrackRim or STEEL_RIM))
+        root.progressLabel:SetColor(0.67, 0.73, 0.76, 0.96)
+        root.percentLabel:SetColor(0.91, 0.94, 0.94, 1)
+        local cp = self.currentMode == "cp"
+        root.levelLabel:SetColor(cp and 0.95 or 1, cp and 0.92 or 1, cp and 0.84 or 1, 1)
+        root.nextLevelLabel:SetColor(cp and 0.95 or 1, cp and 0.92 or 1, cp and 0.84 or 1, 1)
+        local info = GetModeInfo(self.currentMode or "xp", tonumber(self.currentLevelText))
+        local r, g, b = UnpackColorTable(info.finish, XP_COLORS.finish)
+        root.typeLabel:SetColor(zo_clamp(r + 0.10, 0, 1), zo_clamp(g + 0.10, 0, 1), zo_clamp(b + 0.10, 0, 1), 0.98)
+    end
+end
+
+function ExperienceTracker:RefreshTheme()
+    -- A theme switch must not replace an in-flight gain with a live XP snapshot.
+    self:ApplyTheme()
+end
+
 function ExperienceTracker:ApplyLayout()
     local root = self:GetRoot()
     local mover = self:GetMover()
@@ -850,6 +937,7 @@ function ExperienceTracker:ApplyLayout()
     mover:ClearAnchors()
     mover:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, position.x, position.y)
     mover:SetHidden(not IsModuleUnlocked())
+    self:ApplyTheme()
 end
 
 function ExperienceTracker:SetVisualMode(mode, level)
@@ -871,6 +959,7 @@ function ExperienceTracker:SetVisualMode(mode, level)
     root.badgeGlow:SetEdgeColor(glowR, glowG, glowB, 0.28 + 0.08 * GetIntensity())
     root.badgeGlow:SetCenterColor(glowR, glowG, glowB, 0.02 + 0.025 * GetIntensity())
     root.track:SetEdgeColor(glowR, glowG, glowB, 0.14)
+    root.nirnsteelTrackRim = {glowR, glowG, glowB, 0.14}
     root.gloss:SetColor(1, 1, 1, 0.10 + (0.04 * GetIntensity()))
     root.glow:SetEdgeColor(glowR, glowG, glowB, 0.48 * GetIntensity())
     root.glow:SetCenterColor(glowR, glowG, glowB, 0.025 * GetIntensity())

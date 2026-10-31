@@ -17,9 +17,9 @@
 -- describing a manifest directive the manifest did not use.
 --
 -- CONSOLE LAYOUT. LHAS turns every ST_SECTION into a navigable sub-menu row, so
--- the top-level screen for this addon is EIGHT arrow rows (five through 0.3.3;
--- Plague Indicator joined in 0.4.0, Pull Indicator and No More Oopsies in
--- 0.4.2) and every actual control lives one level down. Two consequences drove the copy below:
+-- the top-level screen for this addon is SEVEN arrow rows (five through 0.3.3;
+-- Plague Indicator joined in 0.4.0, Pull Indicator in 0.4.2; a No More Oopsies
+-- row existed for one day in 0.5.5) and every actual control lives one level down. Two consequences drove the copy below:
 --
 --   * The screen header keeps showing the ADDON name/version/author on those
 --     sub-pages -- the section name is NOT redisplayed anywhere. So each label
@@ -361,11 +361,11 @@ local function buildOptions()
         -- -------------------------------------------------------------------
         {
             type = LHAS.ST_SECTION, label = "Plague Indicator",
-            tooltip = "Plague Carrier icons, screen edge glow and chat report for the Plaguebreak set's plague.",
+            tooltip = "Triggered when afflicted with Plague Carrier (Plaguebreak).",
         },
         {
             type = LHAS.ST_LABEL,
-            label = "While a Plaguebreak plague is on you, a Plague Carrier icon flashes slowly in all four corners of the screen; you can also add a single icon below the reticle and a smoky green glow around the screen's edges. If you die with the plague on you, the indicators stay until you respawn and a note above the Death Recap says what you died with. If the plague is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw.",
+            label = "Triggered when afflicted with Plague Carrier (Plaguebreak).",
         },
         {
             -- The default plague visual (0.4.2). Independent of the Threat
@@ -448,6 +448,39 @@ local function buildOptions()
                 if UP.PlagueTint and UP.PlagueTint.RunPreview then UP.PlagueTint.RunPreview() end
             end,
         },
+        -- Groupmate plague (0.5.7, EXPERIMENTAL). A plague on someone else
+        -- explodes on everyone within 8 m of THEM, so knowing who carries one
+        -- is knowing who to stand clear of. Detection is a hard switch (the
+        -- subscriptions exist only while it is on); the two outputs are
+        -- separate so either can be silenced.
+        {
+            type = LHAS.ST_LABEL,
+            label = "Experimental: groupmate plague detection. A plague on someone else in your group explodes on everyone within 8 metres of them if it is removed early. With this on, the add-on watches your group for Plague Carrier and tells you who has it, on screen and/or in chat. Off by default until it is proven on console.",
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Groupmate plague detection (Experimental)",
+            tooltip = "Set to On to watch your group for Plague Carrier. Needs testing on console: the API audit under Debug shows whether group effect events are arriving. Default: Off.",
+            getFunction = function() return sv().plague_group_detect == true end,
+            setFunction = function(v)
+                sv().plague_group_detect = v
+                if UP.Ingest and UP.Ingest.SetGroupPlagueDetection then UP.Ingest.SetGroupPlagueDetection(v) end
+            end,
+            default = false,
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "On-screen message",
+            tooltip = "When a groupmate becomes a Plague Carrier, shows \"<name> tested positive for the plague!\" as a centre-screen announcement. Default: On.",
+            getFunction = function() return sv().plague_group_screen ~= false end,
+            setFunction = function(v) sv().plague_group_screen = v end,
+            default = true,
+        },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Chat lines",
+            tooltip = "When a groupmate becomes a Plague Carrier, prints who and how long it lasts to chat, and prints again when it ends or is removed early. Default: On.",
+            getFunction = function() return sv().plague_group_alert ~= false end,
+            setFunction = function(v) sv().plague_group_alert = v end,
+            default = true,
+        },
 
         -- -------------------------------------------------------------------
         -- Pull Indicator (0.4.2). ONE detection switch for every pull the
@@ -510,41 +543,6 @@ local function buildOptions()
             clickHandler = function()
                 if UP.PullIndicator and UP.PullIndicator.RunPreview then UP.PullIndicator.RunPreview() end
             end,
-        },
-
-        -- -------------------------------------------------------------------
-        -- No More Oopsies (0.5.5, experimental): guards against accidental
-        -- button presses. One guard so far. The hook rests on a binding-chunk
-        -- fact verified in the ESOUI source, not yet in game, hence the label.
-        -- See Engine/FirstPersonGuard.lua.
-        {
-            type = LHAS.ST_SECTION, label = "No More Oopsies",
-            tooltip = "Experimental guards against accidental button presses.",
-        },
-        {
-            type = LHAS.ST_LABEL,
-            label = "Experimental. Stops a single accidental press of the perspective button from flipping the camera into first person: the button has to be pressed three times within three seconds before the toggle goes through. The same applies to leaving first person, because the game offers no way to tell which way the camera is about to go.",
-        },
-        {
-            type = LHAS.ST_CHECKBOX, label = "Block accidental first-person toggle (Experimental)",
-            -- A function, so the tooltip shows the button the action is bound
-            -- to RIGHT NOW (EasyMark's technique), with a plain-words fallback.
-            tooltip = function()
-                local Guard = UP.FirstPersonGuard
-                return ("Requires %s to be pressed %d times within %d seconds before the camera " ..
-                        "toggles between first and third person. Does not affect the hold-and-zoom " ..
-                        "camera on the right stick. Default: Off."):format(
-                            Guard.BindingText(), Guard.PRESSES_REQUIRED, Guard.WINDOW_MS / 1000)
-            end,
-            getFunction = function() return sv().first_person_guard == true end,
-            setFunction = function(v)
-                if UP.FirstPersonGuard and UP.FirstPersonGuard.SetEnabled then
-                    UP.FirstPersonGuard.SetEnabled(v)   -- stores the value, installs or removes the hook
-                else
-                    sv().first_person_guard = v
-                end
-            end,
-            default = false,
         },
 
         -- -------------------------------------------------------------------

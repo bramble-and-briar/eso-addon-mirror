@@ -154,6 +154,35 @@ local function ApplyShadow(control, width, height, opacity, inside)
     end
 end
 
+-- Backdrop corner sizes do not define a solid border's thickness. Draw four
+-- non-overlapping strips inside the frame so every bar uses the same geometry.
+local function ApplyPlainBorder(control, width, height, thickness, alpha)
+    control:SetHidden(thickness <= 0)
+    if thickness <= 0 then return end
+    local pieces = {
+        { 0, 0, width, thickness },
+        { 0, height - thickness, width, thickness },
+        { 0, thickness, thickness, height - thickness * 2 },
+        { width - thickness, thickness, thickness, height - thickness * 2 },
+    }
+    control.pieces = control.pieces or {}
+    for index, piece in ipairs(pieces) do
+        local line = control.pieces[index]
+        if not line then
+            line = WINDOW_MANAGER:CreateControl(nil, control, CT_TEXTURE)
+            line:SetMouseEnabled(false)
+            line:SetDrawLayer(DL_OVERLAY)
+            line:SetDrawLevel(5)
+            line:SetPixelRoundingEnabled(false)
+            control.pieces[index] = line
+        end
+        line:ClearAnchors()
+        line:SetAnchor(TOPLEFT, control, TOPLEFT, piece[1], piece[2])
+        line:SetDimensions(piece[3], piece[4])
+        line:SetColor(0, 0, 0, alpha)
+    end
+end
+
 function BarVisuals:Create(parent, name, options)
     options = options or {}
     local frame = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
@@ -163,11 +192,8 @@ function BarVisuals:Create(parent, name, options)
     frame.outerShadow:SetAnchorFill(frame)
     frame.outerShadow:SetDrawLayer(DL_BACKGROUND)
 
-    frame.border = WINDOW_MANAGER:CreateControl(nil, frame, CT_BACKDROP)
+    frame.border = WINDOW_MANAGER:CreateControl(nil, frame, CT_CONTROL)
     frame.border:SetAnchorFill(frame)
-    frame.border:SetCenterColor(0, 0, 0, 0)
-    frame.border:SetEdgeColor(0, 0, 0, 1)
-    frame.border:SetEdgeTexture("", 1, 1, 1, 0)
     frame.border:SetDrawLayer(DL_OVERLAY)
     frame.border:SetDrawLevel(5)
 
@@ -376,21 +402,31 @@ function BarVisuals:ApplyPattern(frame)
 end
 
 function BarVisuals:ApplyRpgBorder(frame, enabled, width, height, alpha)
+    local themes = Nirnsteel_UI.Themes
+    if themes then enabled = themes:HasDecorations(enabled) end
     if not enabled and not frame.rpgBorder then return end
     if not frame.rpgBorder then
         frame.rpgBorder = {}
-        local art = Nirnsteel_UI:GetAssetPath("ui/borders/")
         for _,name in ipairs({"top","bottom","left","right"}) do
             local c = WINDOW_MANAGER:CreateControl(nil,frame,CT_TEXTURE)
-            c:SetTexture(art .. ((name == "top" or name == "bottom") and "rail_dxt5.dds" or "cap_dxt5.dds"))
             c:SetMouseEnabled(false)
             c:SetDrawLayer(DL_OVERLAY)
             c:SetDrawLevel(2)
             frame.rpgBorder[name] = c
         end
     end
-    for _,c in pairs(frame.rpgBorder) do c:SetHidden(not enabled); c:SetAlpha(alpha or 1) end
+    local themeId = themes and themes:GetId() or "nirnsteel"
+    local updateTextures = enabled and frame.rpgBorderTheme ~= themeId
+    for name,c in pairs(frame.rpgBorder) do
+        if updateTextures then
+            local path = "ui/borders/" .. ((name == "top" or name == "bottom") and "rail_dxt5.dds" or "cap_dxt5.dds")
+            c:SetTexture(themes and themes:GetAssetPath(path) or Nirnsteel_UI:GetAssetPath(path))
+        end
+        c:SetHidden(not enabled)
+        c:SetAlpha(alpha or 1)
+    end
     if not enabled then return end
+    frame.rpgBorderTheme = themeId
     local capWidth = math.max(10,math.min(16,height*.5))
     for _,name in ipairs({"top","bottom","left","right"}) do
         local c = frame.rpgBorder[name]
@@ -421,6 +457,7 @@ function BarVisuals:ApplyStyle(frame, style)
     local borderWidth = Clamp(style.borderWidth or 0, 0, math.min(12, (width - 1) / 2, (height - 1) / 2))
     local innerShadowAlpha = Clamp(style.innerShadowAlpha or 0, 0, 1)
     local outerShadowAlpha = Clamp(style.outerShadowAlpha or 0, 0, 1)
+    -- Themes select decorative artwork; plain borders and shadows use the module's settings.
     local alpha = Clamp(style.alpha or 1, 0, 1)
     local textureInfo = style.textureInfo or BarVisuals.Textures.genericTall
 
@@ -433,10 +470,7 @@ function BarVisuals:ApplyStyle(frame, style)
 
     ApplyShadow(frame.outerShadow, width, height, outerShadowAlpha * alpha * 0.65, false)
 
-    frame.border:SetHidden(borderWidth <= 0)
-    frame.border:SetEdgeColor(0, 0, 0, alpha)
-    frame.border:SetCenterColor(0, 0, 0, 0)
-    frame.border:SetEdgeTexture("", 1, 1, borderWidth, 0)
+    ApplyPlainBorder(frame.border, width, height, borderWidth, alpha)
 
     frame.track:ClearAnchors()
     frame.track:SetAnchor(TOPLEFT, frame, TOPLEFT, borderWidth, borderWidth)

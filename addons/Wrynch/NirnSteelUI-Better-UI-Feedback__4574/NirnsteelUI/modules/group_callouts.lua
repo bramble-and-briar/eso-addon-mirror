@@ -58,6 +58,71 @@ local SOUND_THROTTLE_MS = 250
 local SHIMMER_CYCLE_MS = 1900
 local SHIMMER_SWEEP_MS = 950
 local GLOW_CYCLE_MS = 1400
+local MATERIAL_FRAMES = { nirnsteel = "steel_frame_dxt5.dds", bronze = "bronze_frame_dxt5.dds" }
+
+local function GetCalloutArt(name)
+    local path = "ui/callouts/" .. name
+    return Nirnsteel_UI.GetAssetPath and Nirnsteel_UI:GetAssetPath(path) or "NirnsteelUI/" .. path
+end
+
+-- Matching nine-slice silhouettes keep the fill out of the clipped corners.
+-- Native constraints preserve corner shape at every row size and UI scale.
+local function CreateMaterialLayer(parent, center, layer, level)
+    local pieces = {}
+    local u, v = {0,12/512,500/512,1}, {0,12/64,52/64,1}
+    for row = 1, 3 do
+        for column = 1, 3 do
+            if center or row ~= 2 or column ~= 2 then
+                local piece = WINDOW_MANAGER:CreateControl(nil, parent, CT_TEXTURE)
+                piece:SetMouseEnabled(false)
+                piece:SetDrawLayer(layer)
+                piece:SetDrawLevel(level)
+                piece.materialCoords = {u[column],u[column+1],v[row],v[row+1]}
+                piece.materialRow, piece.materialColumn = row,column
+                if column == 2 then
+                    local top = row == 3 and BOTTOMLEFT or TOPLEFT
+                    local right = row == 3 and BOTTOMRIGHT or TOPRIGHT
+                    piece:SetAnchor(top,parent,top,10,0)
+                    piece:SetAnchor(right,parent,right,-10,0)
+                    if row == 2 then
+                        piece:ClearAnchors()
+                        piece:SetAnchor(TOPLEFT,parent,TOPLEFT,10,10)
+                        piece:SetAnchor(BOTTOMRIGHT,parent,BOTTOMRIGHT,-10,-10)
+                    else piece:SetHeight(10) end
+                elseif row == 2 then
+                    local top = column == 1 and TOPLEFT or TOPRIGHT
+                    local bottom = column == 1 and BOTTOMLEFT or BOTTOMRIGHT
+                    piece:SetAnchor(top,parent,top,0,10)
+                    piece:SetAnchor(bottom,parent,bottom,0,-10)
+                    piece:SetWidth(10)
+                else
+                    local anchor = row == 1 and (column == 1 and TOPLEFT or TOPRIGHT)
+                        or (column == 1 and BOTTOMLEFT or BOTTOMRIGHT)
+                    piece:SetAnchor(anchor,parent,anchor,0,0)
+                    piece:SetDimensions(10,10)
+                end
+                pieces[#pieces+1] = piece
+            end
+        end
+    end
+    return pieces
+end
+
+local function ApplyMaterialLayer(pieces, visible, path, r, g, b, alpha)
+    for _, piece in ipairs(pieces or {}) do
+        piece:SetHidden(not visible or alpha <= 0)
+        if path and piece.materialPath ~= path then
+            piece:SetTexture(path)
+            piece:SetTextureCoords(unpack(piece.materialCoords))
+            local row, column = piece.materialRow,piece.materialColumn
+            if row ~= 2 and column ~= 2 then piece:SetDimensions(10,10)
+            elseif row ~= 2 then piece:SetHeight(10)
+            elseif column ~= 2 then piece:SetWidth(10) end
+            piece.materialPath = path
+        end
+        piece:SetColor(r,g,b,alpha)
+    end
+end
 
 local FONT_FACES =
 {
@@ -417,6 +482,13 @@ function GroupCallouts:CreateEntry()
     icon:SetDrawLevel(6)
     entry.icon = icon
 
+    local roleAccent = WINDOW_MANAGER:CreateControl(nil, entry, CT_TEXTURE)
+    roleAccent:SetTexture(GetCalloutArt("role_accent_dxt5.dds"))
+    roleAccent:SetDrawLayer(DL_OVERLAY)
+    roleAccent:SetDrawLevel(5)
+    roleAccent:SetHidden(true)
+    entry.roleAccent = roleAccent
+
     local shimmer = WINDOW_MANAGER:CreateControl(nil, entry, CT_TEXTURE)
     shimmer:SetTexture(EFFECT_HIGHLIGHT_TEXTURE)
     shimmer:SetTextureCoords(0, 1, 0, 0.75)
@@ -493,16 +565,18 @@ end
 function GroupCallouts:ApplyEntryLayout(entry)
     local width = GetCalloutWidth()
     local height = GetCalloutHeight()
-    local iconSize = GetIconSize()
+    local decorated = Nirnsteel_UI.Themes and Nirnsteel_UI.Themes:HasDecorations() or false
+    local iconSize = decorated and math.min(GetIconSize(), height - 16) or GetIconSize()
     local showIcon = ShouldShowIcon()
     local nameFontSize = GetNameFontSize()
     local messageFontSize = GetMessageFontSize()
-    local nameTop = math.max(4, math.floor(height * 0.10))
+    local nameTop = math.max(decorated and 6 or 4, math.floor(height * 0.10))
     local nameHeight = math.min(math.max(nameFontSize + 4, 16), math.max(height - nameTop - 10, 12))
-    local textTop = nameTop + nameHeight
-    local textHeight = math.max(height - textTop - 5, 1)
-    local contentLeft = showIcon and (20 + iconSize + 8) or 18
-    local contentWidth = math.max(width - contentLeft - 12, 60)
+    local textTop = nameTop + nameHeight + (decorated and 1 or 0)
+    local textHeight = math.max(height - textTop - (decorated and 7 or 5), 1)
+    local iconLeft = decorated and 18 or 20
+    local contentLeft = showIcon and (iconLeft + iconSize + (decorated and 10 or 8)) or 18
+    local contentWidth = math.max(width - contentLeft - (decorated and 16 or 12), 60)
 
     entry:SetDimensions(width, height)
 
@@ -526,10 +600,13 @@ function GroupCallouts:ApplyEntryLayout(entry)
     entry.accent:SetDimensions(3, math.max(height - 16, 1))
     entry.accent:SetAnchor(LEFT, entry, LEFT, 7, 0)
     entry.accent:SetHidden(not ShouldShowAccent())
+    entry.roleAccent:ClearAnchors()
+    entry.roleAccent:SetDimensions(3,math.max(height-20,1))
+    entry.roleAccent:SetAnchor(LEFT,entry,LEFT,9,0)
 
     entry.icon:ClearAnchors()
     entry.icon:SetDimensions(iconSize, iconSize)
-    entry.icon:SetAnchor(LEFT, entry, LEFT, 20, 0)
+    entry.icon:SetAnchor(LEFT, entry, LEFT, iconLeft, 0)
     entry.icon:SetHidden(not showIcon)
 
     entry.nameLabel:ClearAnchors()
@@ -558,9 +635,26 @@ function GroupCallouts:ApplyEntryStyle(entry, isLeader)
     local textAlpha = GetTextOpacity()
     local shimmerIntensity = ClampNumber(GetSettingValue("shimmerIntensity"), 0, 100) / 100
     local glowIntensity = ClampNumber(GetSettingValue("glowIntensity"), 0, 100) / 100
+    local themes = Nirnsteel_UI.Themes
+    local decorated = themes and themes:HasDecorations() or false
+    -- Materials belong to the theme; all role colors belong to the user's
+    -- member/leader palette, including icon, accent and optional effects.
 
     entry.backdrop:SetCenterColor(backgroundR, backgroundG, backgroundB, backgroundAlpha)
-    entry.backdrop:SetEdgeColor(accentR, accentG, accentB, borderAlpha)
+    entry.backdrop:SetEdgeColor(accentR, accentG, accentB, decorated and 0 or borderAlpha)
+    entry.backdrop:SetHidden(decorated == true)
+    if decorated then
+        entry.materialBody = entry.materialBody or CreateMaterialLayer(entry,true,DL_BACKGROUND,1)
+        entry.materialFrame = entry.materialFrame or CreateMaterialLayer(entry,false,DL_OVERLAY,3)
+    end
+    ApplyMaterialLayer(entry.materialBody,decorated and not ShouldHideBackground(),GetCalloutArt("body_mask_dxt5.dds"),
+        backgroundR,backgroundG,backgroundB,backgroundAlpha)
+    local frameName = decorated and MATERIAL_FRAMES[themes:GetId()]
+    ApplyMaterialLayer(entry.materialFrame,decorated and not ShouldHideBackground(),frameName and GetCalloutArt(frameName),
+        1,1,1,borderAlpha)
+    entry.accent:SetHidden(decorated or not ShouldShowAccent())
+    entry.roleAccent:SetHidden(not decorated or not ShouldShowAccent())
+    entry.roleAccent:SetColor(accentR,accentG,accentB,accentAlpha)
     entry.accent:SetCenterColor(accentR, accentG, accentB, accentAlpha)
     entry.icon:SetColor(accentR, accentG, accentB, math.max(textAlpha, accentAlpha))
     entry.nameLabel:SetColor(nameR, nameG, nameB, textAlpha)
@@ -965,6 +1059,10 @@ function GroupCallouts:RefreshSettings()
     if self.settingsPreviewActive then
         self:ShowSettingsPreview()
     end
+end
+
+function GroupCallouts:RefreshTheme()
+    if self.root then self:ApplyLayout() end
 end
 
 function GroupCallouts:PreviewSound()

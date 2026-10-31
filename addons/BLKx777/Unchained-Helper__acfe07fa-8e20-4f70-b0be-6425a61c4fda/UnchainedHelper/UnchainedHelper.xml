@@ -7,19 +7,6 @@
 
         <Texture name="UnchainedHelperSpaceMarkerTextureTemplate" virtual="true" texture="" color="FFFFFFFF" width="1" height="1" pixelRoundingEnabled="false" />
 
-        <TopLevelControl name="UnchainedHelperFrame" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
-            <Dimensions x="500" y="72" />
-            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" />
-            <Controls>
-                <Backdrop name="$(parent)Bg" centerColor="000000AA" edgeColor="C9A34AFF" edgeSize="1">
-                    <AnchorFill />
-                </Backdrop>
-                <Label name="$(parent)Purge" text="" color="66FF66" inheritAlpha="true" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_36)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="CENTER">
-                    <AnchorFill />
-                </Label>
-            </Controls>
-        </TopLevelControl>
-
         <Control name="UnchainedHelperLegendRowTemplate" virtual="true" mouseEnabled="false" hidden="true" width="276" height="32">
             <Controls>
                 <Texture name="$(parent)Icon" texture="" width="24" height="24">
@@ -85,6 +72,40 @@
             </Controls>
         </TopLevelControl>
 
+
+
+
+        <TopLevelControl name="UnchainedHelperBRPSplitTracker" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
+            <Dimensions x="340" y="190" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="1540" offsetY="610" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" centerColor="00000088" edgeColor="00000000" edgeSize="0">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" text="BRP SPLITS" color="F0D58A" font="$(GAMEPAD_BOLD_FONT)|$(KB_20)|soft-shadow-thick">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="14" offsetY="10" />
+                </Label>
+                <Label name="$(parent)Time" text="TIME  00:00.0" color="FFFFFF" font="$(GAMEPAD_BOLD_FONT)|$(KB_28)|soft-shadow-thick">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+                </Label>
+                <Label name="$(parent)Progress" text="BLACKROSE PRISON" color="D8D8D8" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_18)|soft-shadow-thin">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Time" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Vitality" text="VITALITY  --" color="D8D8D8" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_18)|soft-shadow-thin">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Progress" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Current" text="CURRENT  00:00.0" color="FFFFFF" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_20)|soft-shadow-thin">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Vitality" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8" />
+                </Label>
+                <Label name="$(parent)Best" text="PB SPLIT  --" color="9EDBFF" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_18)|soft-shadow-thin">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Current" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Last" text="" color="FFFFFF" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_18)|soft-shadow-thin">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Best" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+                    <Dimensions x="312" y="28" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
 
         <TopLevelControl name="UnchainedHelperTotemTimer" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
             <Dimensions x="640" y="46" />

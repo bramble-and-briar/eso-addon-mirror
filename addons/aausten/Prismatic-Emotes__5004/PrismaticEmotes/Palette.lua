@@ -214,10 +214,27 @@ function Palette.MentionEntries()
     if cachedEntries then
         return cachedEntries
     end
-    local entries = {}
+    local entries, fullNames, firstNames = {}, {}, {}
     for key, entry in pairs(PE.saved.characters) do
-        if type(entry) == "table" and type(entry.color) == "string" and #key >= 3 then
-            entries[#entries + 1] = { key = key, color = entry.color }
+        if type(key) == "string" and type(entry) == "table" and type(entry.color) == "string" then
+            fullNames[key] = true
+            if #key >= 3 then
+                entries[#entries + 1] = { key = key, color = entry.color }
+            end
+            local firstName = key:match("^([^ ]+) +[^ ]")
+            if firstName then
+                if firstNames[firstName] == nil then
+                    firstNames[firstName] = entry.color
+                else
+                    -- false marks a shared first name, even when colors happen to match.
+                    firstNames[firstName] = false
+                end
+            end
+        end
+    end
+    for firstName, hex in pairs(firstNames) do
+        if hex and not fullNames[firstName] then
+            entries[#entries + 1] = { key = firstName, color = hex, firstName = true }
         end
     end
     table.sort(entries, function(a, b)

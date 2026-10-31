@@ -18,7 +18,7 @@
     "PrismaticEmotes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5004/",
-  "fingerprint": "dc98e7d22465b276d82d47852a349031df97e88388ef9c6411a01e28804f2cc8",
+  "fingerprint": "c23f957fb79ffb3ee39b6388a0a0c5afad9f9819acb4b9de1b827ba8786d99ce",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "5004",
   "source_url": "https://www.esoui.com/downloads/info5004-PrismaticEmotes.html",
   "stats": {
-    "downloads": 7,
+    "downloads": 26,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 23
   },
   "title": "Prismatic Emotes",
-  "updated_at": 1793146746000,
-  "version": "1.0.0"
+  "updated_at": 1793333214000,
+  "version": "1.0.2"
 }

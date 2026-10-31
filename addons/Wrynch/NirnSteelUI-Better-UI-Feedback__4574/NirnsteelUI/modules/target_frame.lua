@@ -677,8 +677,10 @@ end
 
 function TargetFrame:UpdateBossDecoration(data, barHeight)
     local visible = data and data.isBoss == true and not data.isPlayer and GetSetting("bossDecoration") ~= false
+    if Nirnsteel_UI.Themes then visible = visible and Nirnsteel_UI.Themes:HasDecorations() end
     -- Boss brackets replace the ordinary iron caps; the shared rails remain.
     local ironBorder = GetSetting("rpgBorder") == true
+    if Nirnsteel_UI.Themes then ironBorder = Nirnsteel_UI.Themes:HasDecorations(ironBorder) end
     if self.health and self.health.rpgBorder then
         self.health.rpgBorder.left:SetHidden(not ironBorder or visible)
         self.health.rpgBorder.right:SetHidden(not ironBorder or visible)
@@ -739,6 +741,19 @@ function TargetFrame:UpdateBossDecoration(data, barHeight)
         self.bossDecoration = ornaments
     end
     local ornaments = self.bossDecoration
+    if Nirnsteel_UI.Themes then
+        local themes = Nirnsteel_UI.Themes
+        for _, key in ipairs({ "left", "right", "leftFacet", "rightFacet", "rail", "crest" }) do
+            ornaments[key]:SetCenterColor(themes:Color("highlight", 0.57, 0.64, 0.68, 1))
+            ornaments[key]:SetBorderColor(themes:Color("rim", 0.25, 0.31, 0.35, 1))
+        end
+        for _, key in ipairs({ "leftInset", "rightInset" }) do
+            ornaments[key]:SetCenterColor(themes:Color("face", 0.20, 0.25, 0.28, 1))
+            ornaments[key]:SetBorderColor(themes:Color("rim", 0.25, 0.31, 0.35, 1))
+        end
+        ornaments.crestInset:SetCenterColor(themes:Color("recess", 0.07, 0.10, 0.12, 1))
+        ornaments.crestInset:SetBorderColor(themes:Color("rim", 0.25, 0.31, 0.35, 1))
+    end
     ornaments.crest:ClearAnchors()
     ornaments.crest:SetAnchor(TOP, self.health, BOTTOM, 0, GetBossCrestGap(data, barHeight))
     local bracketWidth = GetBossBracketWidth(barHeight)
@@ -892,10 +907,15 @@ function TargetFrame:ApplyLayout(data)
         self.levelBadge and self.levelBadge.height or 22)
     local totalHeight = identityHeight + HEADER_BAR_GAP + barHeight
     local decorated = data and data.isBoss == true and not data.isPlayer and GetSetting("bossDecoration") ~= false
+    local bordered = GetSetting("rpgBorder") == true
+    if Nirnsteel_UI.Themes then
+        decorated = decorated and Nirnsteel_UI.Themes:HasDecorations()
+        bordered = Nirnsteel_UI.Themes:HasDecorations(bordered)
+    end
     local sidePadding = decorated and GetBossBracketWidth(barHeight)
-        or (GetSetting("rpgBorder") == true and 4 or 0)
+        or (bordered and 4 or 0)
     totalHeight = totalHeight + (decorated and (24 + GetBossCrestGap(data, barHeight))
-        or (GetSetting("rpgBorder") == true and 4 or 0))
+        or (bordered and 4 or 0))
 
     root:SetScale(scale)
     root:SetDimensions(width + sidePadding * 2, totalHeight)

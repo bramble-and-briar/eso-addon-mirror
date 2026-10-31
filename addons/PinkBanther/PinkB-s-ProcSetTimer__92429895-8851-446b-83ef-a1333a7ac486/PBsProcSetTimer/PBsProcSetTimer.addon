@@ -1,0 +1,20 @@
+## To release a new version, edit the version in the two lines below and nothing else.
+## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
+## is read back through that markup, so it can sit inside or outside the colour.
+## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
+## Title: |cFF69B4PB's Proc Set Timer|r 0.5.1
+## Author: |cFF69B4PinkBanther|r
+## Description: Shows when a set's proc fires, how long it stays active and how long its cooldown has left -- for every timed effect of every set you wear, each on its own row. Nothing about any set is stored in the add-on: the worn sets, durations and cooldowns are read from the game's own item and bonus text in your game language, so a balance patch or a new set needs no update.
+## Version: 0.5.1
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsProcSetTimer_Data
+
+lang/strings.lua
+lang/$(language).lua
+
+Main.lua
+Parse.lua
+Settings.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

@@ -2,7 +2,7 @@ UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
 UnchainedHelper.name		= "UnchainedHelper"
-UnchainedHelper.version = "1.0.11"
+UnchainedHelper.version = "1.0.13"
 UnchainedHelper.varVersion 	= "9"
 
 UnchainedHelper.defaults	= {
@@ -11,6 +11,11 @@ UnchainedHelper.defaults	= {
     ["blockBlackroseSigils"] = false,
     ["sigilBlockNotice"] = true,
     ["showProgressCallouts"] = true,
+    ["showBRPSplitTracker"] = false,
+    ["brpSplitScale"] = 100,
+    ["brpSplitOffsetX"] = 1540,
+    ["brpSplitOffsetY"] = 610,
+    ["brpBestSplits"] = {},
     ["showSpawnCallout"] = true,
     ["spawnCalloutDuration"] = 4,
     ["spawnCalloutScale"] = 100,
@@ -51,10 +56,6 @@ UnchainedHelper.defaults	= {
 	["bossPosition"] = true,
 	["removeMarkerSeconds"] = 8,
 	["nextMarkerSeconds"] = 15,
-	["displayPurge"] = true,
-	["offsetX"]	= 1500,
-	["offsetY"]	= 350,
-	["soundEffectPurge"] = "Duel_Boundary_Warning",
     ["wardenPortals"] = false,
     ["spawnNumbers"] = false,
 
@@ -69,7 +70,6 @@ UnchainedHelper.defaults	= {
 
 UnchainedHelper.inCombat = false
 
-UnchainedHelper.currentPurgeable=0 -- how many people need purges
 
 UnchainedHelper.eraseIconTime = 0
 UnchainedHelper.icon1 = nil
@@ -101,6 +101,11 @@ UnchainedHelper.totemLastTimerText = nil
 UnchainedHelper.cardinalMarkers = {}
 UnchainedHelper.cardinalStage = 0
 
+UnchainedHelper.brpRunSplits = {}
+UnchainedHelper.brpNextSplitStep = 1
+UnchainedHelper.brpLastSplitText = ""
+UnchainedHelper.brpTrialState = 0
+
 
 UnchainedHelper.drawNextFightIconTime = 0
 UnchainedHelper.nextStage = 0
@@ -108,16 +113,6 @@ UnchainedHelper.nextRound = 0
 UnchainedHelper.nextWave = 0
 
 
-function UnchainedHelper.savePos()
-	UnchainedHelper.savedVars.offsetX = UnchainedHelperFrame:GetLeft()
-	UnchainedHelper.savedVars.offsetY = UnchainedHelperFrame:GetTop()
-end
-
-function UnchainedHelper.setPos()
-	local x, y = UnchainedHelper.savedVars.offsetX, UnchainedHelper.savedVars.offsetY
-	UnchainedHelperFrame:ClearAnchors()
-	UnchainedHelperFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
-end
 
 local UH_LEGEND_ORDER = { "priority", "interrupt", "tank", "group", "danger" }
 local UH_LEGEND_INFO = {
@@ -754,78 +749,6 @@ function UnchainedHelper.MarkerSelfCheck()
 end
 
 
-function UnchainedHelper.addPurgable(targetUnitId, abilityId)
-    if UnchainedHelper.currentPurgeable == 0 then
-        if UnchainedHelper.savedVars.soundEffectPurge and UnchainedHelper.savedVars.soundEffectPurge ~= "No Sound Effect" then
-            PlaySound(UnchainedHelper.savedVars.soundEffectPurge)
-        end
-    end
-    UnchainedHelper.currentPurgeable = UnchainedHelper.currentPurgeable + 1
-    UnchainedHelperFramePurge:SetText(string.format("Purge %d", UnchainedHelper.currentPurgeable))
-    if UnchainedHelper.savedVars.displayPurge then
-        UnchainedHelperFrame:SetHidden(false)
-    else
-        UnchainedHelperFrame:SetHidden(true)
-    end
-end
-
-
-
-function UnchainedHelper.removePurgable(targetUnitId, abilityId)
-    UnchainedHelper.currentPurgeable=UnchainedHelper.currentPurgeable-1
-    if UnchainedHelper.currentPurgeable<=0 then
-        UnchainedHelper.currentPurgeable=0
-
-        UnchainedHelperFramePurge:SetText("")
-        UnchainedHelperFrame:SetHidden(true)
- 	else
- 	    UnchainedHelperFramePurge:SetText(string.format("Purge %d", UnchainedHelper.currentPurgeable))
-        if UnchainedHelper.savedVars.displayPurge then
-            UnchainedHelperFrame:SetHidden(false)
-        else
-            UnchainedHelperFrame:SetHidden(true)
-        end
-    end
-end
-
-
-
-
-
-
-
-function UnchainedHelper.combatEvent(eventCode,result,isError,abilityName,abilityGraphic,abilityActionSlotType,sourceName,sourceType,targetName,targetType,hitValue,powerType,damageType,combatEventLog,sourceUnitId,targetUnitId,abilityId)
-    local desc = nil
-    if abilityId == 109992 then -- poison bloom - vBRP -- AUTO PURGE
-        desc = "POISONBLOOM"
-    elseif abilityId == 113150 then -- ARROWPOISON - vBRP -- AUTO PURGE
-        desc = "ARROWPOISON"
-    end
-
-    if not desc then return end
-
-    if ACTION_RESULT_EFFECT_GAINED_DURATION == result then
-        UnchainedHelper.addPurgable(targetUnitId, abilityId)
-    elseif ACTION_RESULT_EFFECT_FADED == result then
-        UnchainedHelper.removePurgable(targetUnitId, abilityId)
-    end
-end
-
-
-function UnchainedHelper.OnPlayerCombatState(event, inCombat)
-    if inCombat ~= UnchainedHelper.inCombat then
-        UnchainedHelper.inCombat = inCombat
-        if not inCombat then
-            UnchainedHelper.currentPurgeable=0
-            UnchainedHelperFramePurge:SetText("")
-            UnchainedHelperFrame:SetHidden(true)
-        end
-    end
-end
-
-function UnchainedHelper.hideFrame()
-	UnchainedHelperFramePurge:SetHidden(IsReticleHidden())
-end
 
 
 function UnchainedHelper.GetMarkerTexture(markerType, portal)
@@ -2470,6 +2393,11 @@ local UH_CARDINAL_TEXTURES = {
 function UnchainedHelper.ClearCardinalMarkerRefs()
     UnchainedHelper.cardinalMarkers = {}
     UnchainedHelper.cardinalStage = 0
+
+UnchainedHelper.brpRunSplits = {}
+UnchainedHelper.brpNextSplitStep = 1
+UnchainedHelper.brpLastSplitText = ""
+UnchainedHelper.brpTrialState = 0
 end
 
 function UnchainedHelper.DestroyCardinalMarkers()
@@ -2887,6 +2815,237 @@ function UnchainedHelper.RegisterTotemDetector()
     end
 end
 
+
+
+-- Blackrose Prison split tracker. Uses the arena's native raid timer and only runs in zone 1082.
+function UnchainedHelper.FormatBRPTime(milliseconds)
+    local ms = math.max(0, tonumber(milliseconds) or 0)
+    local totalTenths = math.floor(ms / 100)
+    local tenths = totalTenths % 10
+    local totalSeconds = math.floor(totalTenths / 10)
+    local seconds = totalSeconds % 60
+    local totalMinutes = math.floor(totalSeconds / 60)
+    local minutes = totalMinutes % 60
+    local hours = math.floor(totalMinutes / 60)
+    if hours > 0 then
+        return string.format("%d:%02d:%02d.%d", hours, minutes, seconds, tenths)
+    end
+    return string.format("%02d:%02d.%d", minutes, seconds, tenths)
+end
+
+function UnchainedHelper.UpdateBRPSplitPosition()
+    if not UnchainedHelperBRPSplitTracker or not UnchainedHelper.savedVars then return end
+    UnchainedHelperBRPSplitTracker:ClearAnchors()
+    UnchainedHelperBRPSplitTracker:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, UnchainedHelper.savedVars.brpSplitOffsetX or 1540, UnchainedHelper.savedVars.brpSplitOffsetY or 610)
+    UnchainedHelperBRPSplitTracker:SetScale((UnchainedHelper.savedVars.brpSplitScale or 100) / 100)
+end
+
+function UnchainedHelper.HideBRPSplitTracker()
+    if UnchainedHelperBRPSplitTracker then
+        UnchainedHelperBRPSplitTracker:SetHidden(true)
+    end
+end
+
+function UnchainedHelper.ResetBRPRunSplits()
+    UnchainedHelper.brpRunSplits = {}
+    UnchainedHelper.brpNextSplitStep = 1
+    UnchainedHelper.brpLastSplitText = ""
+    UnchainedHelper.brpTrialState = 0
+end
+
+function UnchainedHelper.GetBRPDisplayStep()
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    local round = UnchainedHelper.currentRound or 0
+    if stage < 1 or stage > 5 or round < 1 or round > 5 then return 0 end
+    return ((stage - 1) * 5) + round
+end
+
+function UnchainedHelper.GetBRPVitalityText()
+    local current = GetRaidReviveCountersRemaining and GetRaidReviveCountersRemaining() or nil
+    local maximum = GetCurrentRaidStartingReviveCounters and GetCurrentRaidStartingReviveCounters() or nil
+    if current == nil or maximum == nil then return "VITALITY  --" end
+    return string.format("VITALITY  %d/%d", current, maximum)
+end
+
+function UnchainedHelper.UpdateBRPSplitTracker()
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPSplitTracker ~= true then
+        UnchainedHelper.HideBRPSplitTracker()
+        return
+    end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.HideBRPSplitTracker()
+        return
+    end
+    if not UnchainedHelperBRPSplitTracker then return end
+
+    UnchainedHelper.UpdateBRPSplitPosition()
+    local raidMs = GetRaidDuration and GetRaidDuration() or 0
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    local round = UnchainedHelper.currentRound or 0
+    local displayStep = UnchainedHelper.GetBRPDisplayStep()
+    if displayStep <= 0 then displayStep = math.min(25, math.max(1, UnchainedHelper.brpNextSplitStep or 1)) end
+
+    local previousMs = 0
+    if displayStep > 1 and UnchainedHelper.brpRunSplits then
+        previousMs = UnchainedHelper.brpRunSplits[displayStep - 1] or 0
+    end
+    local currentSplitMs = math.max(0, raidMs - previousMs)
+    local best = UnchainedHelper.savedVars.brpBestSplits and UnchainedHelper.savedVars.brpBestSplits[displayStep] or nil
+
+    if UnchainedHelperBRPSplitTrackerTime then
+        UnchainedHelperBRPSplitTrackerTime:SetText("TIME  " .. UnchainedHelper.FormatBRPTime(raidMs))
+    end
+    if UnchainedHelperBRPSplitTrackerProgress then
+        if stage > 0 and round > 0 then
+            UnchainedHelperBRPSplitTrackerProgress:SetText(string.format("STAGE %d/5  •  ROUND %d/5", stage, round))
+        elseif stage > 0 then
+            UnchainedHelperBRPSplitTrackerProgress:SetText(string.format("STAGE %d/5  •  ROUND --/5", stage))
+        else
+            UnchainedHelperBRPSplitTrackerProgress:SetText("BLACKROSE PRISON")
+        end
+    end
+    if UnchainedHelperBRPSplitTrackerVitality then
+        UnchainedHelperBRPSplitTrackerVitality:SetText(UnchainedHelper.GetBRPVitalityText())
+    end
+    if UnchainedHelperBRPSplitTrackerCurrent then
+        UnchainedHelperBRPSplitTrackerCurrent:SetText("CURRENT  " .. UnchainedHelper.FormatBRPTime(currentSplitMs))
+    end
+    if UnchainedHelperBRPSplitTrackerBest then
+        if best and best > 0 then
+            UnchainedHelperBRPSplitTrackerBest:SetText("PB SPLIT  " .. UnchainedHelper.FormatBRPTime(best))
+        else
+            UnchainedHelperBRPSplitTrackerBest:SetText("PB SPLIT  --")
+        end
+    end
+    if UnchainedHelperBRPSplitTrackerLast then
+        UnchainedHelperBRPSplitTrackerLast:SetText(UnchainedHelper.brpLastSplitText or "")
+    end
+    UnchainedHelperBRPSplitTracker:SetHidden(false)
+end
+
+function UnchainedHelper.RecordBRPSplit(durationMs)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPSplitTracker ~= true then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+
+    local step = UnchainedHelper.brpNextSplitStep or 1
+    if step < 1 or step > 25 then return end
+    local totalMs = math.floor(tonumber(durationMs) or 0)
+    if totalMs <= 0 then return end
+
+    local previousMs = step > 1 and (UnchainedHelper.brpRunSplits[step - 1] or 0) or 0
+    if totalMs <= previousMs then return end
+    local splitMs = totalMs - previousMs
+
+    UnchainedHelper.brpRunSplits[step] = totalMs
+    UnchainedHelper.savedVars.brpBestSplits = UnchainedHelper.savedVars.brpBestSplits or {}
+    local oldBest = UnchainedHelper.savedVars.brpBestSplits[step]
+
+    local suffix = ""
+    if not oldBest or oldBest <= 0 or splitMs < oldBest then
+        UnchainedHelper.savedVars.brpBestSplits[step] = splitMs
+        if oldBest and oldBest > 0 then
+            suffix = string.format("  |c55FF88-%s|r", UnchainedHelper.FormatBRPTime(oldBest - splitMs))
+        else
+            suffix = "  |c55FF88NEW PB|r"
+        end
+    else
+        suffix = string.format("  |cFF7777+%s|r", UnchainedHelper.FormatBRPTime(splitMs - oldBest))
+    end
+
+    UnchainedHelper.brpLastSplitText = string.format("SPLIT %02d  %s%s", step, UnchainedHelper.FormatBRPTime(splitMs), suffix)
+    UnchainedHelper.brpNextSplitStep = step + 1
+    UnchainedHelper.UpdateBRPSplitTracker()
+end
+
+function UnchainedHelper.IsBRPStandardSplitReason(reason)
+    if type(reason) ~= "number" then return false end
+    if reason >= 13 and reason <= 16 then return true end
+    if RAID_POINT_REASON_MIN_VALUE ~= nil and reason == RAID_POINT_REASON_MIN_VALUE then return true end
+    return false
+end
+
+function UnchainedHelper.BRPSplitScoreUpdate(eventCode, scoreUpdateReason, scoreAmount, totalScore)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPSplitTracker ~= true then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+
+    local step = UnchainedHelper.brpNextSplitStep or 1
+    if step <= 24 and UnchainedHelper.IsBRPStandardSplitReason(scoreUpdateReason) then
+        UnchainedHelper.RecordBRPSplit(GetRaidDuration and GetRaidDuration() or 0)
+        return
+    end
+    if RAID_POINT_REASON_KILL_BOSS ~= nil and scoreUpdateReason == RAID_POINT_REASON_KILL_BOSS then
+        UnchainedHelper.RecordBRPSplit(GetRaidDuration and GetRaidDuration() or 0)
+    end
+end
+
+function UnchainedHelper.BRPSplitTrialStarted()
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+    UnchainedHelper.ResetBRPRunSplits()
+    UnchainedHelper.brpTrialState = 1
+    UnchainedHelper.UpdateBRPSplitTracker()
+end
+
+function UnchainedHelper.BRPSplitTrialComplete(eventCode, trialName, score, totalTime)
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+    if (UnchainedHelper.brpNextSplitStep or 1) <= 25 then
+        UnchainedHelper.RecordBRPSplit(totalTime or (GetRaidDuration and GetRaidDuration() or 0))
+    end
+    UnchainedHelper.brpTrialState = 2
+    UnchainedHelper.UpdateBRPSplitTracker()
+end
+
+function UnchainedHelper.BRPSplitTrialFailed()
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+    UnchainedHelper.brpTrialState = 3
+    UnchainedHelper.UpdateBRPSplitTracker()
+end
+
+function UnchainedHelper.RegisterBRPSplitTracker()
+    local prefix = UnchainedHelper.name .. "BRPSplit"
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Score", EVENT_RAID_TRIAL_SCORE_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Start", EVENT_RAID_TRIAL_STARTED)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Complete", EVENT_RAID_TRIAL_COMPLETE)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Failed", EVENT_RAID_TRIAL_FAILED)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Vitality", EVENT_RAID_REVIVE_COUNTER_UPDATE)
+    EVENT_MANAGER:UnregisterForUpdate(prefix .. "Update")
+
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPSplitTracker ~= true then
+        UnchainedHelper.HideBRPSplitTracker()
+        return
+    end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.HideBRPSplitTracker()
+        return
+    end
+
+    UnchainedHelper.ResetBRPRunSplits()
+    local raidMs = GetRaidDuration and GetRaidDuration() or 0
+    if raidMs > 0 then
+        local estimated = UnchainedHelper.GetBRPDisplayStep()
+        UnchainedHelper.brpNextSplitStep = estimated > 0 and estimated or 1
+        UnchainedHelper.brpTrialState = 1
+    end
+
+    EVENT_MANAGER:RegisterForEvent(prefix .. "Score", EVENT_RAID_TRIAL_SCORE_UPDATE, UnchainedHelper.BRPSplitScoreUpdate)
+    EVENT_MANAGER:RegisterForEvent(prefix .. "Start", EVENT_RAID_TRIAL_STARTED, UnchainedHelper.BRPSplitTrialStarted)
+    EVENT_MANAGER:RegisterForEvent(prefix .. "Complete", EVENT_RAID_TRIAL_COMPLETE, UnchainedHelper.BRPSplitTrialComplete)
+    EVENT_MANAGER:RegisterForEvent(prefix .. "Failed", EVENT_RAID_TRIAL_FAILED, UnchainedHelper.BRPSplitTrialFailed)
+    EVENT_MANAGER:RegisterForEvent(prefix .. "Vitality", EVENT_RAID_REVIVE_COUNTER_UPDATE, UnchainedHelper.UpdateBRPSplitTracker)
+    EVENT_MANAGER:RegisterForUpdate(prefix .. "Update", 100, UnchainedHelper.UpdateBRPSplitTracker)
+    UnchainedHelper.UpdateBRPSplitTracker()
+end
+
+function UnchainedHelper.UnregisterBRPSplitTracker()
+    local prefix = UnchainedHelper.name .. "BRPSplit"
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Score", EVENT_RAID_TRIAL_SCORE_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Start", EVENT_RAID_TRIAL_STARTED)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Complete", EVENT_RAID_TRIAL_COMPLETE)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Failed", EVENT_RAID_TRIAL_FAILED)
+    EVENT_MANAGER:UnregisterForEvent(prefix .. "Vitality", EVENT_RAID_REVIVE_COUNTER_UPDATE)
+    EVENT_MANAGER:UnregisterForUpdate(prefix .. "Update")
+    UnchainedHelper.HideBRPSplitTracker()
+end
+
 function UnchainedHelper.UpdateTimer()
     local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
     if UnchainedHelper.totemAlertHideAt and UnchainedHelper.totemAlertHideAt > 0 and now >= UnchainedHelper.totemAlertHideAt then
@@ -2915,13 +3074,11 @@ function UnchainedHelper.UnregisterZoneEvents()
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "Ability" .. 114578, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "Announcement", EVENT_DISPLAY_ANNOUNCEMENT)
     EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name.."Update")
-    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."PassiveHide", EVENT_PLAYER_COMBAT_STATE)
-    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."ECE"..109992, EVENT_COMBAT_EVENT)
-    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
     UnchainedHelper.HideTotemAlert()
     UnchainedHelper.ResetTotemSmartTimer()
     UnchainedHelper.ClearIcons(false, true)
+    if UnchainedHelper.UnregisterBRPSplitTracker then UnchainedHelper.UnregisterBRPSplitTracker() end
 end
 
 function UnchainedHelper.PlayerActivated()
@@ -2941,19 +3098,9 @@ function UnchainedHelper.PlayerActivated()
 
         EVENT_MANAGER:RegisterForEvent(UnchainedHelper.name .. "Announcement", EVENT_DISPLAY_ANNOUNCEMENT, UnchainedHelper.Announcement)
         EVENT_MANAGER:RegisterForUpdate(UnchainedHelper.name.."Update", 1000, UnchainedHelper.UpdateTimer)
-      	EVENT_MANAGER:RegisterForEvent(UnchainedHelper.name.."PassiveHide", EVENT_PLAYER_COMBAT_STATE, UnchainedHelper.OnPlayerCombatState)
-
-        EVENT_MANAGER:RegisterForEvent(UnchainedHelper.name.."ECE"..109992, EVENT_COMBAT_EVENT, UnchainedHelper.combatEvent)
-        EVENT_MANAGER:AddFilterForEvent(UnchainedHelper.name.."ECE"..109992, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 109992, REGISTER_FILTER_IS_ERROR, false)
-
-        EVENT_MANAGER:RegisterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT, UnchainedHelper.combatEvent)
-        EVENT_MANAGER:AddFilterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 113150, REGISTER_FILTER_IS_ERROR, false)
 
         UnchainedHelper.RegisterTotemDetector()
-
-
-        UnchainedHelperFramePurge:SetText("")
-        UnchainedHelperFrame:SetHidden(true)
+        if UnchainedHelper.RegisterBRPSplitTracker then UnchainedHelper.RegisterBRPSplitTracker() end
 
 
 
@@ -2974,8 +3121,6 @@ function UnchainedHelper.PlayerActivated()
 
         UnchainedHelper.UnregisterZoneEvents()
 
-        UnchainedHelperFramePurge:SetText("")
-        UnchainedHelperFrame:SetHidden(true)
         if UnchainedHelperLegend then UnchainedHelperLegend:SetHidden(true) end
 
 
@@ -2987,11 +3132,10 @@ function UnchainedHelper.Init(event, addon)
 
 	UnchainedHelper.inCombat = IsUnitInCombat("player")
 
-	UnchainedHelper.currentPurgeable=0
 
     UnchainedHelper.savedVars = ZO_SavedVars:New(UnchainedHelper.name.."SavedVars", UnchainedHelper.varVersion, nil, UnchainedHelper.defaults)
-    UnchainedHelper.setPos()
     UnchainedHelper.UpdateSpawnCalloutPosition()
+    if UnchainedHelper.UpdateBRPSplitPosition then UnchainedHelper.UpdateBRPSplitPosition() end
     UnchainedHelper.InstallSigilBlocker()
     UnchainedHelper.UpdateLegendPosition()
     UnchainedHelper.RefreshLegend()

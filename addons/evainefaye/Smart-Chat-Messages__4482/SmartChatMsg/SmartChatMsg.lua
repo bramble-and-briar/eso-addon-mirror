@@ -142,8 +142,8 @@ function SmartChatMsg:BuildSlashCommandName(commandName)
     return "/" .. cleaned
 end
 
-function SmartChatMsg:GetCurrentTimeTokenValue()
-    local hour = tonumber(os.date("%H")) or 12
+function SmartChatMsg:GetCurrentTimeTokenValue(nowEpoch)
+    local hour = tonumber(os.date("%H",nowEpoch)) or 12
     if hour < 12 then
         return "morning"
     elseif hour < 18 then
@@ -1180,15 +1180,15 @@ function SmartChatMsg:GetCountdownUntilEmbeddedTimeText(text)
     return countdownText, metadata
 end
 
-function SmartChatMsg:InsertCountdownPreservingTemplate(text,eventAtUtc)
+function SmartChatMsg:InsertCountdownPreservingTemplate(text,eventAtUtc,nowEpoch)
     local source = tostring(text or "")
-    local timeMatch, _, _, sourceTz = self:FindEmbeddedTimeDetails(source)
+    local timeMatch, _, _, sourceTz = self:FindEmbeddedTimeDetails(source,nowEpoch)
     if not timeMatch or timeMatch == "" then
         self:DebugLog("Countdown debug: message text left unchanged because no time was detected")
         return source
     end
 
-    local countdownText, countdownMeta = self:GetCountdownUntilEmbeddedTimeText(source,eventAtUtc)
+    local countdownText, countdownMeta = self:GetCountdownUntilEmbeddedTimeText(source,eventAtUtc,nowEpoch)
     if not countdownText or countdownText == "" then
         self:DebugLog("Countdown debug: message text left unchanged because countdown text could not be computed")
         return source
@@ -1425,6 +1425,14 @@ function SmartChatMsg:GetMessageEntriesForCommandAndGuild(commandId, guildName)
     return results
 end
 
+
+function SmartChatMsg:GetOrdinaryMessageEntriesForCommandAndGuild(commandId,guildName)
+    local result={}
+    for _,entry in ipairs(self:GetMessageEntriesForCommandAndGuild(commandId,guildName)) do
+        if self:IsOrdinaryMessageEnabled(commandId,guildName,entry.id) then result[#result+1]=entry end
+    end
+    return result
+end
 
 function SmartChatMsg:GetMessageUsageTimestamp(entry)
     local value = type(entry) == "table" and entry.lastUsedAt or nil
@@ -2431,6 +2439,9 @@ function SmartChatMsg:HandleRestoreWatcherChatMessage(eventCode, messageType, fr
     end
 
     local metadata = state.metadata
+    local expired=self.lastTimedOutMessage
+    if expired and metadata and expired.commandId==metadata.commandId and expired.entryId==metadata.selectedEntryId
+        and self:StringsEqualIgnoreCase(expired.guildName,metadata.guildName or "") then self.lastTimedOutMessage=nil end
     if type(metadata) == "table" then
         if type(metadata.selectedEntryId) == "string" and metadata.selectedEntryId ~= "" then
             for _, entry in ipairs(self.savedVars.messages or {}) do
@@ -2475,6 +2486,64 @@ function SmartChatMsg:HandleRestoreWatcherChatMessage(eventCode, messageType, fr
     self:ClearPendingRestoreState("watcher matched outgoing message")
 end
 
+-- Recover untouched text, including input ESO already cleared before timeout.
+-- Keep identity, not rendered countdowns or stale startup-queue callbacks.
+function SmartChatMsg:RetryTimedOutMessage()
+    local pending=self.pendingRestoreState
+    local record=self.lastTimedOutMessage
+    local metadata=pending and pending.metadata
+    local recoveringPending=metadata and metadata.commandId and metadata.guildName and metadata.selectedEntryId
+    if recoveringPending then
+        record={commandId=metadata.commandId,guildName=metadata.guildName,entryId=metadata.selectedEntryId,
+            channel=metadata.outputChannel or self:GetSavedChatChannel(metadata.commandId,metadata.guildName),
+            autoPopulate=metadata.autoPopulate==true,expiredAt=pending.preparedAt or GetTimeStamp()}
+    end
+    local function reject(reason)
+        self:AddLocalChatMessage("[SmartChatMsg] Cannot retry: "..reason)
+        return false,reason
+    end
+    if not record then return reject("no unsent timed-out message is available in this UI session.") end
+    local edit=self:GetChatEditControl()
+    local text=edit and edit.GetText and edit:GetText() or ""
+    local retryCommand=self:Trim(text):lower():match("^/scm%s+retry%s*$")~=nil
+    local reclaim=recoveringPending and (text=="" or text==pending.rawExpectedText or retryCommand)
+    if self:IsChatPopulationBusy() and not reclaim then return reject("chat input is busy; finish or clear it first.") end
+    local slot=self:GetGuildSlotByName(record.guildName)
+    if not slot or not self:GetCommandById(record.commandId) then return reject("the original command or guild is no longer available.") end
+    local last=self:GetGuildLastUsedAt(record.commandId,record.guildName)
+    if last and last>=record.expiredAt then return reject("another matching announcement was used after this message expired.") end
+    local observed=self:GetObservedCommandCooldownEndsAt(record.commandId,record.guildName,record.channel)
+    if observed and observed>GetTimeStamp() then return reject("a matching announcement is still on cooldown.") end
+    local scheduled=self:GetGuildRunAt(record.commandId,record.guildName)=="SCHEDULED"
+    if scheduled then
+        if self:GetGuildScheduleState(record.commandId,record.guildName)~="RUNNING" then return reject("the schedule is inactive, paused, or outside its window.") end
+        local pacing,reason=self:GetSchedulePacingDelay(record.commandId,record.guildName)
+        if pacing then return reject(reason) end
+    end
+    local metadata={commandId=record.commandId,guildName=record.guildName,guildIndex=slot,
+        paramText=self:BuildQueuedRawParam(slot,record.channel),retryEntryId=record.entryId}
+    local config=scheduled and self:GetGuildSchedule(record.commandId,record.guildName)
+    if (config and config.delivery=="ZONE") or (record.autoPopulate and record.channel=="Zone") then
+        metadata.zoneId=self:GetEffectiveAutoPopulateZoneId(self:GetPlayerZoneId())
+        if not metadata.zoneId then return reject("the current zone is not eligible.") end
+        metadata.autoPopulate=true
+    end
+    -- An explicit retry may reclaim our pending watcher before it times out.
+    -- Edited player text still requires clearing first; automation never uses this path.
+    if reclaim then
+        self.lastTimedOutMessage=record
+        if pending.previousChannel then self:RestoreChatChannel(pending.previousChannel) end
+        if text~="" then self:ClearPendingChatBuffer() end
+        self:ClearPendingRestoreState("explicit retry replaces pending message")
+    end
+    -- Cancel a queued automatic retry; this explicit request owns the buffer.
+    self:CancelQueuedChatPopulation(record.commandId,record.guildName)
+    local ok,reason=self:PopulateChatBufferForCommand(record.commandId,record.guildName,record.channel,metadata)
+    if not ok then return reject(reason or "the message is no longer eligible.") end
+    self:AddLocalChatMessage("[SmartChatMsg] Latest unsent message restored. Press Enter to send.")
+    return true
+end
+
 function SmartChatMsg:GetRestoreWatcherTimeoutSeconds(metadata)
     return self:GetRevertChatSeconds() or 60
 end
@@ -2501,6 +2570,7 @@ function SmartChatMsg:ArmPendingRestoreState(previousChannelInfo, expectedText, 
         rawExpectedText = expectedText,
         metadata = type(metadata) == "table" and metadata or nil,
         timeoutSeconds = timeoutSeconds,
+        preparedAt = GetTimeStamp(),
         armedAt = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or nil,
     }
 
@@ -2523,7 +2593,9 @@ function SmartChatMsg:ArmPendingRestoreState(previousChannelInfo, expectedText, 
         local pendingTimeoutSeconds = pendingState and pendingState.timeoutSeconds or timeoutSeconds
         SmartChatMsg:DebugLog("Restore watcher timed out after " .. tostring(pendingTimeoutSeconds) .. " seconds")
         local edit=self:GetChatEditControl()
-        local untouched=edit and edit.GetText and edit:GetText()==pendingState.rawExpectedText
+        local currentText=edit and edit.GetText and edit:GetText()
+        local untouched=currentText==pendingState.rawExpectedText
+        local alreadyEmpty=currentText==""
         if untouched and pendingState.previousChannel then
             SmartChatMsg:DebugLog("Timeout restore attempting previous channel: " .. SmartChatMsg:FormatChatChannelInfo(pendingState.previousChannel))
             local restored = SmartChatMsg:RestoreChatChannel(pendingState.previousChannel)
@@ -2532,6 +2604,13 @@ function SmartChatMsg:ArmPendingRestoreState(previousChannelInfo, expectedText, 
 
         local cleared = untouched and SmartChatMsg:ClearPendingChatBuffer()
         SmartChatMsg:DebugLog("Timeout clear pending chat result=" .. tostring(cleared))
+        local metadata=pendingState.metadata
+        if (cleared or alreadyEmpty) and metadata and metadata.commandId and metadata.guildName and metadata.selectedEntryId then
+            SmartChatMsg.lastTimedOutMessage={commandId=metadata.commandId,guildName=metadata.guildName,
+                entryId=metadata.selectedEntryId,channel=metadata.outputChannel or SmartChatMsg:GetSavedChatChannel(metadata.commandId,metadata.guildName),
+                autoPopulate=metadata.autoPopulate==true,expiredAt=GetTimeStamp()}
+            SmartChatMsg:AddLocalChatMessage("[SmartChatMsg] Message timed out unsent. Use /scm retry to restore it.")
+        end
 
         if pendingState and type(pendingState.metadata) == "table" and pendingState.metadata.reminderRepeat == true then
             SmartChatMsg:HandleReminderPopulateTimeout(pendingState.metadata)
@@ -2721,7 +2800,8 @@ function SmartChatMsg:GetAutoPopulateCooldownEndsAt(commandId, guildName, zoneId
     local lastSentAt = self:GetGuildAutoPopulateLastSentAt(commandId, guildName, zoneId)
     local cooldownMinutes = self:GetGuildAutoPopulateCooldownMinutes(commandId, guildName)
     local cooldownSeconds = (cooldownMinutes or 60) * 60
-    local ownEndsAt = lastSentAt and (lastSentAt + cooldownSeconds) or nil
+    local phaseStart=self:GetScheduledCooldownStart(commandId,guildName)
+    local ownEndsAt = lastSentAt and (not phaseStart or lastSentAt>=phaseStart) and (lastSentAt + cooldownSeconds) or nil
     local observedEndsAt = self:GetObservedChatCooldownEndsAt(commandId, guildName, zoneId, cooldownSeconds)
     if ownEndsAt and observedEndsAt then
         return math.max(ownEndsAt, observedEndsAt)
@@ -2881,6 +2961,7 @@ function SmartChatMsg:PopulateChatBufferForCommand(commandId, guildName, channel
         metadata.startupQueue=true; restoreMetadata=metadata
     end
     local isScheduled = self:GetGuildRunAt(commandId, guildName) == "SCHEDULED"
+    if isScheduled and not self:IsScheduledSendingEnabled() then return false,"Scheduled sending is OFF. Use /scm on to resume." end
     if isScheduled and self:GetGuildScheduleState(commandId, guildName) ~= "RUNNING" then
         return false, "Schedule is outside its active window or paused."
     end
@@ -2912,17 +2993,21 @@ function SmartChatMsg:PopulateChatBufferForCommand(commandId, guildName, channel
     ))
 
     local messages = isScheduled and self:GetScheduledMessageEntries(commandId, guildName)
-        or self:GetMessageEntriesForCommandAndGuild(commandId, guildName)
+        or self:GetOrdinaryMessageEntriesForCommandAndGuild(commandId, guildName)
     self:DebugLog("PopulateChatBufferForCommand message count=" .. tostring(#messages))
     if #messages == 0 then
         self:DebugLog("PopulateChatBufferForCommand aborted: no saved messages")
-        return false, "No messages are saved for that command and guild."
+        return false, "No enabled messages are available for that command and guild."
     end
 
-    local selectedEntry = self:SelectWeightedMessageEntry(messages)
+    local selectedEntry
+    if restoreMetadata and restoreMetadata.retryEntryId then
+        for _,entry in ipairs(messages) do if entry.id==restoreMetadata.retryEntryId then selectedEntry=entry;break end end
+        if not selectedEntry then return false,"The timed-out message was removed or is not eligible for this phase." end
+    else selectedEntry=self:SelectWeightedMessageEntry(messages) end
     if not selectedEntry then
         self:DebugLog("PopulateChatBufferForCommand aborted: no selected entry")
-        return false, "No messages are saved for that command and guild."
+        return false, "No enabled messages are available for that command and guild."
     end
 
     self:DebugLog("PopulateChatBufferForCommand selected entry id=" .. tostring(selectedEntry.id or "nil"))
@@ -2958,6 +3043,7 @@ function SmartChatMsg:PopulateChatBufferForCommand(commandId, guildName, channel
     watcherMetadata.commandId = watcherMetadata.commandId or commandId
     watcherMetadata.guildName = watcherMetadata.guildName or guildName
     watcherMetadata.selectedEntryId = selectedEntry.id
+    watcherMetadata.outputChannel = channel
     if isScheduled then
         watcherMetadata.scheduledDelivery = true
         watcherMetadata.scheduledPhase = self:GetSchedulePhase(self:GetGuildSchedule(commandId, guildName), GetTimeStamp())
@@ -3136,7 +3222,7 @@ function SmartChatMsg:HandleDynamicSlashCommand(commandId, slashCommandName, raw
     ))
 
     local commandDisplayName = self:GetSlashCommandDisplayName(commandId, slashCommandName)
-    if self.repeatPanelPaused then self.repeatPanelPaused[self:GetReminderStateKey(commandId,guildName)]=nil end
+    if self.repeatPanelDisabled then self.repeatPanelDisabled[self:GetReminderStateKey(commandId,guildName)]=nil end
 
     if self:GetGuildRunAt(commandId, guildName) == "SCHEDULED" then
         if stopAutomation then
@@ -3287,7 +3373,7 @@ function SmartChatMsg:RegisterDynamicCommands()
 
     for _, command in ipairs(self:GetCommands()) do
         if type(command) == "table" and type(command.id) == "string" and type(command.name) == "string"
-            and self:ShouldRegisterCommand(command.id) then
+            and not self:IsReservedCommandName(command.name) and self:ShouldRegisterCommand(command.id) then
             local slashCommandName = self:BuildSlashCommandName(command.name)
 
             if slashCommandName and not seenCommands[slashCommandName] then
@@ -3531,6 +3617,7 @@ local function OnAddonLoaded(event, addonName)
     EVENT_MANAGER:UnregisterForEvent(SmartChatMsg.name, EVENT_ADD_ON_LOADED)
 
     SmartChatMsg:InitializeSavedVars()
+    SmartChatMsg:RegisterGuildRosterEvents()
     SmartChatMsg:ClearActiveAutoPopulate()
     SmartChatMsg.activeReminderStates = {}
     SmartChatMsg:ClearPendingRestoreState()
@@ -3551,22 +3638,7 @@ local function OnAddonLoaded(event, addonName)
     end
 
     SLASH_COMMANDS["/scm"] = function(paramText)
-        local normalized = zo_strlower(SmartChatMsg:Trim(paramText or ""))
-        if normalized == "status" then
-            SmartChatMsg:ToggleStatusPanel()
-            return
-        elseif normalized == "schedule" then
-            SmartChatMsg:OpenSettings()
-            return
-        elseif normalized == "resetcooldowns" then
-            SmartChatMsg:ResetAllCooldowns()
-            return
-        elseif normalized ~= "" then
-            SmartChatMsg:AddLocalChatMessage("[SmartChatMsg] Usage: /scm, /scm schedule, /scm status, or /scm resetcooldowns")
-            return
-        end
-
-        SmartChatMsg:OpenSettings()
+        SmartChatMsg:HandleScmCommand(paramText)
     end
 
     SLASH_COMMANDS["/scmdebug"] = function(paramText)
@@ -3574,6 +3646,7 @@ local function OnAddonLoaded(event, addonName)
     end
 
     EVENT_MANAGER:RegisterForEvent(SmartChatMsg.name .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
+        SmartChatMsg:RefreshGuildRoster(true)
         SmartChatMsg:HandleZoneAutoPopulate()
         SmartChatMsg:TickSchedules()
         SmartChatMsg:InitializeStartupQueueOnce()
@@ -3701,9 +3774,13 @@ local function scm_resolve_timezone_context(token, eventEpoch, defaultTimezone)
     if family then
         local isDst = false
         if type(eventEpoch) == "number" then
-            local eventTable = os.date("*t", eventEpoch)
-            if eventTable and eventTable.isdst ~= nil then
-                isDst = eventTable.isdst == true
+            local zone = ({EASTERN="ET",CENTRAL="CT",MOUNTAIN="MT",PACIFIC="PT"})[family]
+            if SmartChatMsg.GetTimeZoneParts and zone then
+                local parts = SmartChatMsg:GetTimeZoneParts(eventEpoch,zone)
+                isDst = parts and (parts.timezone=="EDT" or parts.timezone=="CDT" or parts.timezone=="MDT" or parts.timezone=="PDT") or false
+            else
+                local eventTable = os.date("*t", eventEpoch)
+                isDst = eventTable and eventTable.isdst == true or false
             end
         end
 
@@ -3872,6 +3949,22 @@ local function scm_format_about_duration(totalMinutes)
         return "~" .. body
     end
     return body
+end
+
+-- Explicit deadline tokens retain minute precision so offsets remain visible.
+-- Automatic countdown insertion keeps its separate approximate formatter.
+function SmartChatMsg:FormatEventCountdown(seconds)
+    if seconds<0 then return "passed" end
+    if seconds==0 then return "now" end
+    local total=math.ceil(seconds/60)
+    local days=math.floor(total/1440)
+    local hours=math.floor((total%1440)/60)
+    local minutes=total%60
+    local parts={}
+    if days>0 then parts[#parts+1]=days.."d" end
+    if hours>0 then parts[#parts+1]=hours.."h" end
+    if minutes>0 then parts[#parts+1]=minutes.."m" end
+    return table.concat(parts," ")
 end
 
 local function scm_has_digit_before(text, s)
@@ -4699,8 +4792,8 @@ function SmartChatMsg:EmitCountdownDebugResult(label, input, best, all)
     SmartChatMsg:AddLocalChatMessage("[SmartChatMsg] Protected ESO Links: " .. tostring(best.protectedEsoLinks or 0))
 end
 
-function SmartChatMsg:FindEmbeddedTimeDetails(text)
-    local best = self:AnalyzeEmbeddedTime(text)
+function SmartChatMsg:FindEmbeddedTimeDetails(text,nowEpoch)
+    local best = self:AnalyzeEmbeddedTime(text,nil,nowEpoch and os.date("!*t",nowEpoch))
     if not best then return nil, nil, nil, nil end
     return best.rawMatch, best.resolvedHour24, best.resolvedMinute24, best.timezone
 end
@@ -4740,11 +4833,11 @@ function SmartChatMsg:GetEmbeddedDayOffset(text, nowEpoch, timeMatch)
     return 0
 end
 
-function SmartChatMsg:GetCountdownUntilEmbeddedTimeText(text,eventAtUtc)
-    local best = self:AnalyzeEmbeddedTime(text)
+function SmartChatMsg:GetCountdownUntilEmbeddedTimeText(text,eventAtUtc,nowEpoch)
+    local best = self:AnalyzeEmbeddedTime(text,nil,nowEpoch and os.date("!*t",nowEpoch))
     if best and type(eventAtUtc)=="number" then
         best.suppressCountdown=false
-        best.aboutString="("..scm_format_about_duration(math.floor((eventAtUtc-GetTimeStamp())/60))..")"
+        best.aboutString="("..scm_format_about_duration(math.floor((eventAtUtc-(nowEpoch or GetTimeStamp()))/60))..")"
     end
     if not best or best.suppressCountdown then return nil, nil end
     local countdownText = best.aboutString and best.aboutString:gsub("^%(", ""):gsub("%)$", "") or nil
@@ -4759,26 +4852,33 @@ function SmartChatMsg:GetCountdownUntilEmbeddedTimeText(text,eventAtUtc)
     return countdownText, metadata
 end
 
-function SmartChatMsg:InsertCountdownIntoMessageText(text,eventAtUtc)
+function SmartChatMsg:InsertCountdownIntoMessageText(text,eventAtUtc,nowEpoch)
     local source = tostring(text or "")
-    local best, all = self:AnalyzeEmbeddedTime(source)
+    local best, all = self:AnalyzeEmbeddedTime(source,nil,nowEpoch and os.date("!*t",nowEpoch))
     if self.debugEnabled then
         self:EmitCountdownDebugResult("Countdown Debug", source, best, all)
     end
     -- Use main's improved parser, but preserve the template's literal wording
     -- and expose countdown insertion metadata for incoming peer matching.
-    return self:InsertCountdownPreservingTemplate(source,eventAtUtc)
+    return self:InsertCountdownPreservingTemplate(source,eventAtUtc,nowEpoch)
 end
 
-function SmartChatMsg:ApplyMessageSubstitutions(text, commandId, guildName)
+function SmartChatMsg:ApplyMessageSubstitutions(text, commandId, guildName, context)
     local eventAtUtc
-    if zo_strlower(tostring(text or "")):find("%eventtime%",1,true) then
-        local schedule=self:GetGuildSchedule(commandId,guildName)
-        local occurrence=schedule and self:GetScheduleOccurrence(schedule,GetTimeStamp())
-        eventAtUtc=occurrence and occurrence.eventAtUtc
+    local eventOffset
+    local eventMark
+    for token in tostring(text or ""):gmatch("%%([%a][%w_:+%-]*)%%") do
+        local kind,offset,mark=self:ParseScheduledEventToken(token)
+        if kind=="eventtime" then eventOffset=offset;eventMark=mark;break end
     end
-    local result = self:ResolveScheduledEventTokens(text,commandId,guildName)
-    local timeOfDay = self:GetCurrentTimeTokenValue()
+    if eventOffset then
+        local schedule=context and context.schedule or self:GetGuildSchedule(commandId,guildName)
+        local occurrence=context and context.occurrence or (schedule and self:GetScheduleOccurrence(schedule,GetTimeStamp()))
+        if eventMark and schedule and (schedule.importantTimes or {})[eventMark] then eventOffset=schedule.importantTimes[eventMark].offsetMinutes*60 end
+        eventAtUtc=occurrence and occurrence.eventAtUtc+eventOffset
+    end
+    local result = self:ResolveScheduledEventTokens(text,commandId,guildName,context)
+    local timeOfDay = self:GetCurrentTimeTokenValue(context and context.now)
     local substitutions = {
         ["timeofday"] = timeOfDay,
         ["greeting"] = timeOfDay,
@@ -4793,7 +4893,9 @@ function SmartChatMsg:ApplyMessageSubstitutions(text, commandId, guildName)
         if replacement ~= nil and replacement ~= "" then return replacement end
         return "%" .. tostring(tokenName or "") .. "%"
     end)
-    result = self:InsertCountdownIntoMessageText(result,eventAtUtc)
+    if not self:HasExplicitEventCountdown(text) then
+        result = self:InsertCountdownIntoMessageText(result,eventAtUtc,context and context.now)
+    end
     return result
 end
 

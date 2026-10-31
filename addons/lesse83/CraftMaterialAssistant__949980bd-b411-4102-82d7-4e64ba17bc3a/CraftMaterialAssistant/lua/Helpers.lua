@@ -148,6 +148,8 @@ function CMA:deserializeCustomItemRuleTable(serializedString)
 end
 
 function CMA:updateItemRulesDropdown(selection)
+    self.customItemRuleDropdownValues = {}
+    self.customItemRuleDropdownNames = {}
     -- reset the names and values of the dropdown
     for k, v in pairs(self.customItemRuleTable) do
         table.insert(self.customItemRuleDropdownNames, v[1] .. " (" .. v[3] .. ")")
@@ -157,7 +159,7 @@ function CMA:updateItemRulesDropdown(selection)
 end
 
 -- add a custom rule to the persisted rules table
-function CMA:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleAction)
+function CMA:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleAction, CustomRulesDropdownControl)
     -- ensure that the data is present (=non empty)
     if
         customRuleName == nil or customRuleName == "" or string.find(customRuleName, ".", 1, true) or string.find(customRuleName, ":", 1, true) or string.find(customRuleName, ";", 1, true) or
@@ -181,12 +183,15 @@ function CMA:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleActio
     self:updateItemRulesDropdown(customRuleItemId)
     -- serialize the table
     self.db.serializedCustomItemRules = self:serializeCustomItemRuleTable(self.customItemRuleTable)
+    -- update the dropdown choices
+    CustomRulesDropdownControl:UpdateChoices(self.customItemRuleDropdownNames, self.customItemRuleDropdownValues)
+    
     -- if it was successful clear the fields
     return "", "", ""
 end
 
 -- remove the rule having customRuleItemId from the persisted rules table
-function CMA:CustomItemRuleRemove(customRuleItemId)
+function CMA:CustomItemRuleRemove(customRuleItemId, CustomRulesDropdownControl)
         -- ensure that the data is present (=non empty)
     if
         customRuleItemId == nil or customRuleItemId == ""
@@ -202,6 +207,8 @@ function CMA:CustomItemRuleRemove(customRuleItemId)
         self:updateItemRulesDropdown(customRuleItemId)
         -- serialize the table
         self.db.serializedCustomItemRules = self:serializeCustomItemRuleTable(self.customItemRuleTable)
+        -- update the dropdown choices
+        CustomRulesDropdownControl:UpdateChoices(self.customItemRuleDropdownNames, self.customItemRuleDropdownValues)
     else
         self:SendChatMessage("Failed to remove custom rule: " .. tostring(customRuleItemId))
     end
@@ -224,4 +231,21 @@ end
 
 function CMA:CustomItemRuleReloadUI()
     ReloadUI()
+end
+
+function CMA:InventoryRemoveTrashMarkings(bag)
+    -- iterate through the bag and get the items
+    local slot = ZO_GetNextBagSlotIndex(bag)
+    while slot do
+        if HasItemInSlot(bag, slot) then
+            if IsItemJunk(bag, slot) then
+                SetItemIsJunk(bag, slot, false)
+            end
+        end
+        -- go on with the next slot, if available
+        slot = ZO_GetNextBagSlotIndex(bag, slot)
+    end
+    self.junkedItems = {}
+    self.junkedIds = {}
+    self:SendChatMessage("Removed trash markings of items in the inventory bag...")
 end

@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/PinkBanther/PBsProcSetTimer-Beta__81a06296-da7a-447d-8784-8b2116d37dbf",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PinkBanther",
+  "canonical_id": "bethesda:81a06296-da7a-447d-8784-8b2116d37dbf",
+  "content_id": "81a06296-da7a-447d-8784-8b2116d37dbf",
+  "deleted": false,
+  "fingerprint": "32b40ad5bd6e619b7c9e01263fc0c760a5da7bacf8787182bb18f7773364339a",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "81a06296-da7a-447d-8784-8b2116d37dbf",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/81a06296-da7a-447d-8784-8b2116d37dbf",
+  "title": "PBsProcSetTimer(Beta)"
+}

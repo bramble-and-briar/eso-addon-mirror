@@ -44,6 +44,13 @@ function CMA:CreateSettingsMenu()
             end
         },
         {
+            type = "button",
+            name = "Unmark all Trash",
+            tooltip = "Removes the trash marking for all items currently in your inventory, in case you want to revert an item accidentally being marked as trash.",
+            disabled = function() return (not self.db.enableAddon)  end,
+            func = function() self:InventoryRemoveTrashMarkings(self.sourceBag) end
+        },
+        {
             type = "submenu",
             name = "General Options",
             controls = {
@@ -343,7 +350,6 @@ function CMA:CreateSettingsMenu()
                     setFunc = function(v) self.db.bankQualityThresholdProvisioning = v end,
                     disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end
                 },
-
                 {
                     type = "checkbox",
                     name = "Sell known Provisioning Recipes",
@@ -518,11 +524,218 @@ function CMA:CreateSettingsMenu()
                 {
                     type = "dropdown",
                     name = "Handling of researched gear trait",
-                    tooltip = "Applied if all characters have researched this trait.\n\nBank: Move to the bank.\nSell: Mark as junk to be sold at the vendor.\nIgnore: Don't do anything.",
+                    tooltip = "Applied if all characters have researched this trait. Only works on gear that is not player locked (protected).\n\nBank: Move to the bank.\nSell: Mark as junk to be sold at the vendor.\nIgnore: Don't do anything.",
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.actionKnownTraitItems end,
                     setFunc = function(v) self.db.actionKnownTraitItems = v end,
                     disabled = function() return (not self.db.enableAddon) or not(self.db.bankResearchableItems) end
+                }
+            }
+        },
+        {
+            type = "submenu",
+            name = "Companion Gear",
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Enable handling of companion gear",
+                    tooltip = "Enables or disables CMA to handle companion gear.\n\nOff: Ignore companion gear.\n\nOn: The rules below will be applied.",
+                    getFunc = function() return self.db.handleCompanionGear end,
+                    setFunc = function(v) self.db.handleCompanionGear = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                {
+                    type = "checkbox",
+                    name = "Mark not banked gear to be sold",
+                    tooltip = "On: All gear that is not banked will be marked to be sold the next time talking to a vendor.\n\nOff: The item will be ignored.",
+                    getFunc = function() return self.db.sellNotBankedCompanionGear end,
+                    setFunc = function(v) self.db.sellNotBankedCompanionGear = v end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "dropdown",
+                    name = "Banking quality threshold",
+                    tooltip = "Minimum quality of Companion Gear to be banked.",
+                    choices = self.qualityDropdownChoices,
+                    getFunc = function() return self.db.bankQualityCompanionGear end,
+                    setFunc = function(v) self.db.bankQualityCompanionGear = v end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+               	{
+                    type = "description",
+                    title = "Traits to bank",
+                    text = "Companion items are only banked if their quality meets the above set threshold and the trait is among those to bank (checkboxes below)."
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Aggressive' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Aggressive' (Increases damage done) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_AGGRESSIVE] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_AGGRESSIVE] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_AGGRESSIVE] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Augmented' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Augmented' (Increases duration of buffs and debuffs) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_AUGMENTED] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_AUGMENTED] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_AUGMENTED] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Bolstered' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Bolstered' (Reduces damage taken) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_BOLSTERED] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_BOLSTERED] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_BOLSTERED] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Focused' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Focused' (Increases Critical Strike Rating) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_FOCUSED] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_FOCUSED] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_FOCUSED] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Profilic' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Profilic' (Increases Ultimate generation) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_PROLIFIC] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_PROLIFIC] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_PROLIFIC] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Quickened' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Quickened' (Reduces ability cooldowns) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_QUICKENED] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_QUICKENED] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_QUICKENED] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Shattering' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Shattering' (Increases Penetration) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_SHATTERING] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_SHATTERING] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_SHATTERING] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Soothing' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Soothing' (Increases healing done) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_SOOTHING] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_SOOTHING] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_SOOTHING] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                },
+                {
+                    type = "checkbox",
+                    name = "Bank 'Vigorous' Trait",
+                    tooltip = "If turned off, Companion Items having the 'Vigorous' (Increases Max Health) Trait will never be banked.",
+                    getFunc = function() return self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_VIGOROUS] end,
+                    setFunc = function(v)
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_ARMOR_VIGOROUS] = v
+                                self.db.companionGearTraitHandling[ITEM_TRAIT_TYPE_WEAPON_VIGOROUS] = v
+                              end,
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.handleCompanionGear) end
+                }
+            }
+        },
+        {
+            type = "submenu",
+            name = "Other Types of Items",
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Sell Treasure Items",
+                    tooltip = "Enable selling of Treasure items.",
+                    getFunc = function() return self.db.autoSellTreasureItems end,
+                    setFunc = function(v) self.db.autoSellTreasureItems = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                {
+                    type = "checkbox",
+                    name = "Sell Trash Items",
+                    tooltip = "Enable selling of Trash items.",
+                    getFunc = function() return self.db.autoSellTrashItems end,
+                    setFunc = function(v) self.db.autoSellTrashItems = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                -- {
+                --     type = "checkbox",
+                --     name = "Sell stolen Treasure Items",
+                --     tooltip = "Enable selling of treasure items.",
+                --     getFunc = function() return self.db.autoSellStolenTreasureItems end,
+                --     setFunc = function(v) self.db.autoSellStolenTreasureItems = v end,
+                --     disabled = function() return not self.db.enableAddon end
+                -- },
+                {
+                    type = "checkbox",
+                    name = "Sell looted Potions and Poisons",
+                    tooltip = "Enable selling of looted Potions and Poisons. Crafted items and bound items won't be sold.",
+                    getFunc = function() return self.db.autoSellLootedPotionsAndPoisons end,
+                    setFunc = function(v) self.db.autoSellLootedPotionsAndPoisons = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                {
+                    type = "checkbox",
+                    name = "Sell Ornate Gear",
+                    tooltip = "Enable selling of Gear (Weapon, Armor) with the 'Ornate' (sells for more gold) Trait.",
+                    getFunc = function() return self.db.autoSellOrnateGear end,
+                    setFunc = function(v) self.db.autoSellOrnateGear = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                {
+                    type = "checkbox",
+                    name = "Sell Intricate Gear",
+                    tooltip = "Enable selling of Gear (Weapon, Armor) with the 'Intricate' (increases inspiration gained from deconstruction) Trait.",
+                    getFunc = function() return self.db.autoSellIntricateGear end,
+                    setFunc = function(v) self.db.autoSellIntricateGear = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                {
+                    type = "dropdown",
+                    name = "Traitless Gear (weapon, Armor)",
+                    tooltip = "Will be used in combination with the next drop down.\n\nBank: Move to the bank if quality > dropdown.\nSell: Mark as junk if quality < dropdown.\nIgnore: Don't do anything.",
+                    choices = self.simpleMaterialChoices,
+                    getFunc = function() return self.db.bankTraitlessGear end,
+                    setFunc = function(v) self.db.bankTraitlessGear = v end,
+                    disabled = function() return (not self.db.enableAddon) end
+                },
+                {
+                    type = "dropdown",
+                    name = "Traitless Gear Quality threshold",
+                    tooltip = "Concerns uncrafted gear. If 'Bank' is selected above only gear having at least this quality will be banked (other sold, if 'Vendor not banked items' in 'General Settings' is chosen).\n\nIf 'Sell' is chosen then all items having less quality then the selected will be sold the rest ignored.",
+                    choices = self.qualityDropdownChoices,
+                    getFunc = function() return self.db.bankTraitlessGearThreshold end,
+                    setFunc = function(v) self.db.bankTraitlessGearThreshold = v end,
+                    disabled = function() return (not self.db.enableAddon) or (self.db.bankTraitlessGear == "Ignore") end
                 }
             }
         },
@@ -552,13 +765,14 @@ function CMA:CreateSettingsMenu()
                     getFunc = function() return self.customItemRuleSelection end,
                     setFunc = function(v) self.customItemRuleSelection = v end,
                     disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end,
+                    reference = "CustomRulesDropdownControl"
                 },
                 {
                     type = "button",
                     name = "Remove Selected Item",
                     tooltip = "Upon triggering remove the currently active Rule in the 'All Active Rules' dropdown is deleted.\n\n|cff0000Afterwards it needs an UI Reload to be be reflected in the dropdown|r",
                     disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) or self.customItemRuleSelection == nil end,
-                    func = function() self:CustomItemRuleRemove(self.customItemRuleSelection) end
+                    func = function() self:CustomItemRuleRemove(self.customItemRuleSelection, CustomRulesDropdownControl) end
                 },
                 {
                     type = "header",
@@ -597,9 +811,9 @@ function CMA:CreateSettingsMenu()
                 {
                     type = "button",
                     name = "Add Item Rule",
-                    tooltip = "Adds a rule for the entered Name, Item ID and Action.\n\n|cff0000The rule will only be visible after an UI Reload. You can add more than one before reloading.|r",
+                    tooltip = "Adds a rule for the entered Name, Item ID and Action.\n\n|cff0000The rule will only be visible after an UI Reload|r",
                     disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) or (customRuleAction == "" or customRuleItemId == "" or customRuleName == "") end,
-                    func = function() customRuleName, customRuleItemId, customRuleAction = self:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleAction) end
+                    func = function() customRuleName, customRuleItemId, customRuleAction = self:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleAction, CustomRulesDropdownControl) end
                 },
                 {
                     type = "header",
@@ -620,7 +834,7 @@ function CMA:CreateSettingsMenu()
                     func = function() self:CustomItemRuleReloadUI() end
                 },
             }
-        },
+        }
     }
     LAM:RegisterOptionControls("Craft Material Assistant", optionsData)
 end

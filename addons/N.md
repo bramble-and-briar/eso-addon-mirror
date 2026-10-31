@@ -35,7 +35,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [New Life Festival Wayshrines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/New-Life-Festival-Wayshrines__3261) | kawamonkey | PC / Mac | 1.1 |
 | [New motifs and fixes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pesakm/New-motifs-and-fixes__3380) | pesakm | PC / Mac | 11.5.04 |
 | [new test ps5](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/new-test-ps5__2b60cc83-ca16-4441-ac8d-8aeabbf9bf14) | Lofand | Console | — |
-| [New World UI - NWUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/New-World-UI---NWUI__4587) | Wrynch | PC / Mac | 1.1.0 |
+| [New World UI - NWUI · Discontinued](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/New-World-UI---NWUI-Discontinued__4587) | Wrynch | PC / Mac | 1.1.0 |
 | [Next Boss Stage(Custom Boss Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/Next-Boss-Stage-Custom-Boss-Frame__2889) | awfuldead | PC / Mac | 2.0.6 |
 | [NextQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/NextQuest__dfed21f9-988b-44b9-a054-89bfcce20639) | dicen9 | Console | — |
 | [NextTry StatusTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/R0ctan/NextTry-StatusTracker__4589) | R0ctan | PC / Mac | 1.2.0 |
@@ -50,8 +50,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Nirn Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KingBloodWings/Nirn-Icons__3621) | KingBloodWings | PC / Mac | 1.0.5 |
 | [Nirn Traveler Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Armodeniz/Nirn-Traveler-Guild-Hall__3019) | Armodeniz | PC / Mac | 0.4 |
 | [Nirncrux Miner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Nirncrux-Miner__4764) | atharti | PC / Mac | 1.4 |
-| [Nirnhoned Metrics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/Nirnhoned-Metrics__4999) | Artioner | PC / Mac | 1.0.0 |
-| [NirnSteelUI · Better UI Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/NirnSteelUI-Better-UI-Feedback__4574) | Wrynch | PC / Mac | 3.0.2.1 |
+| [Nirnhoned Metrics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/Nirnhoned-Metrics__4999) | Artioner | PC / Mac | 1.1.0 |
+| [NirnSteelUI · Better UI Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/NirnSteelUI-Better-UI-Feedback__4574) | Wrynch | PC / Mac | 3.1.0 |
 | [No Accidental Learning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/No-Accidental-Learning__4017) | kawamonkey | PC / Mac | 1.0 |
 | [No Auto Pinned Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/No-Auto-Pinned-Golden-Pursuits__4033) | kawamonkey | PC / Mac | 1.0 |
 | [No compass](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hatsune681/No-compass__1187) | hatsune681 | PC / Mac | 11.101034 |

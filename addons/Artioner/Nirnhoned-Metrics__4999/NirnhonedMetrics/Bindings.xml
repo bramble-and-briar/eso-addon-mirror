@@ -2,16 +2,16 @@
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="Nirnhoned Metrics">
             <Action name="NIRNHONEDMETRICS_TOGGLE">
-                <Down>NirnhonedMetrics_Toggle()</Down>
+                <Down>NirnhonedMetrics.Toggle()</Down>
             </Action>
             <Action name="NIRNHONEDMETRICS_METRIC">
-                <Down>NirnhonedMetrics_SwitchMetric()</Down>
+                <Down>NirnhonedMetrics.SwitchMetric()</Down>
             </Action>
             <Action name="NIRNHONEDMETRICS_MODE">
-                <Down>NirnhonedMetrics_SwitchMode()</Down>
+                <Down>NirnhonedMetrics.SwitchMode()</Down>
             </Action>
             <Action name="NIRNHONEDMETRICS_RESET">
-                <Down>NirnhonedMetrics_Reset()</Down>
+                <Down>NirnhonedMetrics.Reset()</Down>
             </Action>
         </Category>
     </Layer>

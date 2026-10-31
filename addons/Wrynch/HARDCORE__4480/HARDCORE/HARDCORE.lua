@@ -2,7 +2,7 @@ local ADDON_NAME = "HARDCORE"
 HARDCORE = HARDCORE or {}
 local HARDCORE = HARDCORE
 HARDCORE.name = ADDON_NAME
-HARDCORE.version = "1.4.1"
+HARDCORE.version = "1.5.1"
 
 -- SavedVars
 HARDCORE.defaults = {

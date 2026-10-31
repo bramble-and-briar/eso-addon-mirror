@@ -101,9 +101,9 @@ function C.Init()
 end
 
 -- Teclas (Controles → Nirnhoned Metrics)
-function NirnhonedMetrics_Toggle() Meter.Toggle() end
-function NirnhonedMetrics_SwitchMetric()
+function NM.Toggle() Meter.Toggle() end
+function NM.SwitchMetric()
     if NM.sv.metric == "healing" then handlers.damage() else handlers.healing() end
 end
-function NirnhonedMetrics_SwitchMode() handlers.mode("") end
-function NirnhonedMetrics_Reset() NM.Fight.Reset() end
+function NM.SwitchMode() handlers.mode("") end
+function NM.Reset() NM.Fight.Reset() end

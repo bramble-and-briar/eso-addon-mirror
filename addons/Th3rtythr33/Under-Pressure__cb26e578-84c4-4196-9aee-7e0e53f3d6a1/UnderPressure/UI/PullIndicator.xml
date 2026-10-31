@@ -47,10 +47,10 @@
             <Dimensions x="120" y="120"/>
             <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" offsetY="0"/>
             <Controls>
-                <Texture name="$(parent)Icon" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                <Texture name="$(parent)Icon" textureFile="UnderPressure/UI/Textures/pull_warning.dds">
                     <AnchorFill/>
                 </Texture>
-                <Texture name="$(parent)Pulse" textureFile="UnderPressure/UI/Textures/pull_hazard_pulse.dds" alpha="0">
+                <Texture name="$(parent)Pulse" textureFile="UnderPressure/UI/Textures/pull_warning_pulse.dds" alpha="0">
                     <AnchorFill/>
                 </Texture>
             </Controls>
@@ -65,19 +65,19 @@
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT"/>
             <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT"/>
             <Controls>
-                <Texture name="$(parent)TL" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                <Texture name="$(parent)TL" textureFile="UnderPressure/UI/Textures/pull_warning.dds">
                     <Dimensions x="120" y="120"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="40" offsetY="40"/>
                 </Texture>
-                <Texture name="$(parent)TR" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                <Texture name="$(parent)TR" textureFile="UnderPressure/UI/Textures/pull_warning.dds">
                     <Dimensions x="120" y="120"/>
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-40" offsetY="40"/>
                 </Texture>
-                <Texture name="$(parent)BL" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                <Texture name="$(parent)BL" textureFile="UnderPressure/UI/Textures/pull_warning.dds">
                     <Dimensions x="120" y="120"/>
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="40" offsetY="-40"/>
                 </Texture>
-                <Texture name="$(parent)BR" textureFile="UnderPressure/UI/Textures/pull_hazard.dds">
+                <Texture name="$(parent)BR" textureFile="UnderPressure/UI/Textures/pull_warning.dds">
                     <Dimensions x="120" y="120"/>
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-40" offsetY="-40"/>
                 </Texture>

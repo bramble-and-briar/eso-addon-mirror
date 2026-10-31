@@ -1,0 +1,12 @@
+## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Motifs|r
+## Description: Tamriel Archive browser for Motifs, collection progress, acquisition details, search, sorting, and Show on Map.
+## Author: |c73E58CMajesticMinxi|r
+## Version: 1.0.2
+## APIVersion: 101051
+## AddOnVersion: 1002
+
+Shared.lua
+ArchiveMotifs.lua
+CollectionsUI.xml
+CollectionsUI.lua
+MainMenu.lua

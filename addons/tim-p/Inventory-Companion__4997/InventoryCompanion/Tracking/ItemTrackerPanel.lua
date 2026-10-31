@@ -180,9 +180,7 @@ local function PopulateBaseRow(rowIndex, itemData, wrapped)
 
         row:SetHandler("OnMouseDown", function(control, button)
             if button == MOUSE_BUTTON_INDEX_LEFT and itemData.ruleName then
-                local activeRules = this.GetActiveTrackedRules()
-                local ruleData = activeRules[itemData.ruleName]
-                local newState = not (ruleData.display.isExpanded == true)
+                local newState = not itemData.isExpanded
                 this.SetRuleFlag(itemData.ruleName, "isExpanded", newState)
                 this.RefreshItemTrackerPanel(newState and "expand" or "collapse", itemData.ruleName)
             end
@@ -646,7 +644,8 @@ local function BuildLayoutModel(items, rules)
     for _, item in ipairs(items) do
         if item.isGroup then
             local group = {
-                expanded = item.isExpanded, members = {}, memberCount = 0,
+                expanded = item.isExpanded, preferredExpanded = item.isExpanded,
+                members = {}, memberCount = 0,
                 ruleSignature = RuleSignature(rules[item.ruleName]), signatureParts = {},
             }
             model.groups[item.ruleName] = group
@@ -673,6 +672,7 @@ end
 local function SelectRows(model, expanded)
     local rows = {}
     for _, item in ipairs(model.items) do
+        if item.isGroup then item.isExpanded = expanded[item.ruleName] end
         if not item.isGroupMember or expanded[item.parentGroup] then
             rows[#rows + 1] = item
         end
@@ -706,8 +706,14 @@ end
 local function ChooseLayout(model, previous, reason, target, budget)
     local expanded, allExpanded = {}, {}
     for _, name in ipairs(model.order) do
-        expanded[name] = model.groups[name].expanded
-        allExpanded[name] = true
+        local group = model.groups[name]
+        local old = previous and previous.groups[name]
+        expanded[name] = group.preferredExpanded
+        if old and old.preferredExpanded == group.preferredExpanded
+            and not ((reason == "expand" or reason == "collapse") and name == target) then
+            expanded[name] = group.preferredExpanded and old.expanded
+        end
+        allExpanded[name] = group.preferredExpanded
     end
 
     local function Fits(selection)
@@ -716,6 +722,7 @@ local function ChooseLayout(model, previous, reason, target, budget)
 
     local changed = LayoutChanged(model, previous)
     local function Reintroduced(name)
+        if not model.groups[name].preferredExpanded then return false end
         local group, old = model.groups[name], previous.groups[name]
         if not old or old.signature ~= group.signature then
             -- Membership changes during inventory bursts are growth, not configuration changes.
@@ -1029,18 +1036,12 @@ function this.RefreshItemTrackerPanel(reason, targetGroup)
         wrapped = units <= budget
     end
     for _, name in ipairs(model.order) do
-        local group = model.groups[name]
-        if expanded[name] ~= group.expanded then
-            this.SetRuleFlag(name, "isExpanded", expanded[name])
-        end
-        group.expanded = expanded[name]
+        model.groups[name].expanded = expanded[name]
     end
     local contentHeight = RenderPopulatedRows(selected, wrapped)
     local target = nil
     for index, item in ipairs(selected) do
         if item.isGroup then
-            GetControl(trackerRows[index], "ExpandIcon"):SetTexture(expanded[item.ruleName]
-                and "EsoUI/Art/Buttons/minus_up.dds" or "EsoUI/Art/Buttons/plus_up.dds")
             if reason == "expand" and item.ruleName == targetGroup then target = trackerRows[index] end
         end
     end

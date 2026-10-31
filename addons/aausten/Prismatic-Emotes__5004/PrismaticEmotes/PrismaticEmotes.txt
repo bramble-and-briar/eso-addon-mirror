@@ -1,8 +1,8 @@
 ## Title: PrismaticEmotes
 ## Description: Persistent, automatic colors for roleplaying emotes in chat.
 ## Author: aausten
-## Version: 1.0.0
-## AddOnVersion: 2
+## Version: 1.0.2
+## AddOnVersion: 10002
 ## APIVersion: 101051
 ## SavedVariables: PrismaticEmotesSavedVariables
 ## OptionalDependsOn: pChat

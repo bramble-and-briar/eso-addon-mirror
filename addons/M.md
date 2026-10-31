@@ -167,7 +167,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin's Market Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Market-Manager__4980) | Muffins714 | PC / Mac | 1.1 |
 | [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.2 |
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
-| [MugShot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot__5000) | nycthemere | PC / Mac | 2026.10.29-101045 |
+| [MugShot - Custom target frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot---Custom-target-frame__5000) | nycthemere | PC / Mac | 2026.10.30-101046 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
 | [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.1 |

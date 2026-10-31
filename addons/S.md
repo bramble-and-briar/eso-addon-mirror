@@ -211,7 +211,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Slots Count](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lahouari/Slots-Count__3337) | lahouari | PC / Mac | 1.0.5 |
 | [SlowDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/SlowDialogs__66) | Shinni | PC / Mac | 1.13 |
 | [SlowDialogs - Custom Control Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/SlowDialogs---Custom-Control-Patch__1767) | Tyx | PC / Mac | 1.1.3 |
-| [Smart Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Smart-Chat-Messages__4482) | evainefaye | PC / Mac | 2.0.3 |
+| [Smart Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Smart-Chat-Messages__4482) | evainefaye | PC / Mac | 3.0.2 |
 | [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__09511722-e9f3-4e32-b5f9-d04c0cbee9c4) | code65536 | Console | — |
 | [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__2303) | code65536 | PC / Mac | 1.1.2 |
 | [Smart Node Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockintrumpet/Smart-Node-Radar__923318b4-3671-40d4-93f3-49d2f9203093) | rockintrumpet | Console | — |
@@ -328,7 +328,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.7 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.8 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |

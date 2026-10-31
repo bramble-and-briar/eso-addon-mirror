@@ -60,6 +60,15 @@ function Alert:CreateView()
     self.crest = Texture(frame, 108, 108, TOP, TOP, 0, 0, ART .. "iron_crest_dxt5.dds")
     self.crest:SetTransformNormalizedOriginPoint(0.5, 0.5)
     self.crest:SetDrawLevel(3)
+    self.minimalSeal = Texture(frame, 64, 64, TOP, TOP, 0, 0, ART .. "minimal_seal_dxt5.dds")
+    self.minimalSeal:SetColor(0.82, 0.79, 0.70, 1)
+    self.minimalSeal:SetDrawLevel(3)
+    self.minimalRule = Texture(frame, 440, 16, TOP, TOP, 0, 24, ART .. "minimal_rule_dxt5.dds")
+    self.minimalRule:SetColor(0.76, 0.73, 0.64, 1)
+    self.minimalRule:SetDrawLevel(2)
+    self.minimalRewardRule = Texture(frame, 260, 16, TOP, TOP, 0, 148, ART .. "minimal_reward_rule_dxt5.dds")
+    self.minimalRewardRule:SetColor(0.76, 0.73, 0.64, 0.8)
+    self.minimalRewardRule:SetDrawLevel(2)
     self.icon = Texture(frame, 42, 42, TOP, TOP, 0, 33, ART .. "iron_trophy_dxt5.dds")
     self.icon:SetTransformNormalizedOriginPoint(0.5, 0.5)
     self.icon:SetDrawLayer(DL_ARTWORK)
@@ -80,6 +89,79 @@ function Alert:CreateView()
         mote:SetDrawLayer(DL_OVERLAY)
         self.motes[i] = mote
     end
+    self:ApplyTheme()
+end
+
+function Alert:LayoutContent(minimal)
+    self.frame:SetDimensions(560, 230)
+    self.icon:SetDimensions(minimal and 36 or 42, minimal and 36 or 42)
+    self.icon:ClearAnchors()
+    self.icon:SetAnchor(TOP, self.frame, TOP, 0, minimal and 14 or 33)
+    for _, label in ipairs({ self.caption, self.title, self.points }) do
+        label:ClearAnchors()
+        label:SetWidth(minimal and 480 or 520)
+        label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    end
+    self.caption:SetAnchor(TOP, self.frame, TOP, 0, minimal and 78 or 114)
+    local titleY = minimal and (78 + math.max(16, self.caption:GetTextHeight()) + 8) or 137
+    self.title:SetAnchor(TOP, self.frame, TOP, 0, titleY)
+    -- The reward and its fine rules follow the last line of a localized title.
+    local titleBottom = titleY + math.max(minimal and 34 or 38, self.title:GetTextHeight())
+    local pointsY = titleBottom + (minimal and 12 or 6)
+    self.points:SetAnchor(TOP, self.frame, TOP, 0, pointsY)
+    if minimal then
+        local bottom = titleBottom
+        local pointsHeight = math.max(16, self.points:GetTextHeight())
+        if Settings().showPoints then bottom = pointsY + pointsHeight end
+        self.frame:SetHeight(bottom + 12)
+        -- Wide translations keep their own clear space between the rules.
+        local pointsWidth = self.points:GetTextWidth()
+        self.minimalRewardRule:SetHidden(not Settings().showPoints or pointsWidth > 108 or pointsHeight > 20)
+        self.minimalRewardRule:ClearAnchors()
+        self.minimalRewardRule:SetAnchor(TOP, self.frame, TOP, 0, pointsY + (pointsHeight - 16) / 2)
+    end
+    self.shade:SetDimensions(640, minimal and math.max(250, self.frame:GetHeight() + 64) or 270)
+end
+
+function Alert:ApplyTheme()
+    local themes = Nirnsteel_UI.Themes
+    if not themes or not self.root then return end
+    local minimal = themes:IsMinimal()
+    for _, decoration in ipairs({ self.rule, self.glow, self.crest }) do
+        decoration:SetHidden(minimal)
+    end
+    self.shade:SetAlpha(minimal and 0.8 or 1)
+    for _, decoration in ipairs({ self.minimalSeal, self.minimalRule, self.minimalRewardRule }) do
+        decoration:SetHidden(not minimal)
+    end
+    self.rule:SetColor(themes:Color("rim", 1, 1, 1, 1))
+    self.crest:SetColor(themes:Color("highlight", 1, 1, 1, 1))
+    self.glow:SetColor(themes:Color("highlight", 1, 1, 1, 1))
+    themes:ApplyMinimalBorder(self.icon, true, DL_ARTWORK)
+    -- Theme only the bundled trophy; earned achievement icons keep their colors.
+    if self.current and self.current.icon then
+        self.icon:SetTexture(self.current.icon)
+        self.icon:SetColor(1, 1, 1, 1)
+    elseif minimal then
+        self.icon:SetTexture(ART .. "minimal_mark_dxt5.dds")
+        self.icon:SetColor(0.88, 0.85, 0.75, 1)
+    else
+        self.icon:SetTexture(ART .. "iron_trophy_dxt5.dds")
+        self.icon:SetColor(themes:Color("text", 1, 1, 1, 1))
+    end
+    if minimal then
+        self.caption:SetColor(0.68, 0.68, 0.64, 1)
+        self.title:SetColor(0.96, 0.95, 0.91, 1)
+        self.points:SetColor(0.82, 0.79, 0.70, 1)
+    else
+        self.caption:SetColor(themes:Color("body", 0.68, 0.74, 0.79, 1))
+        self.title:SetColor(themes:Color("text", 0.91, 0.94, 0.96, 1))
+        self.points:SetColor(themes:Color("body", 0.70, 0.76, 0.80, 1))
+    end
+    self.caption:SetFont(minimal and "$(MEDIUM_FONT)|13|soft-shadow-thick" or "$(ANTIQUE_FONT)|16|soft-shadow-thick")
+    self.title:SetFont(minimal and "$(ANTIQUE_FONT)|28|soft-shadow-thin" or "$(ANTIQUE_FONT)|32|soft-shadow-thick")
+    self.points:SetFont(minimal and "$(MEDIUM_FONT)|14|soft-shadow-thin" or "$(MEDIUM_FONT)|17|soft-shadow-thick")
+    self:LayoutContent(minimal)
 end
 
 function Alert:ApplyLayout()
@@ -90,10 +172,7 @@ function Alert:ApplyLayout()
     self.root:SetScale(Clamp(settings.scale, 60, 160) / 100)
     self.root:SetAlpha(Clamp(settings.opacity, 20, 100) / 100)
     self.points:SetHidden(not settings.showPoints)
-    -- Long localized names expand downwards; the reward row follows the text.
-    local titleHeight = math.max(38, self.title:GetTextHeight())
-    self.points:ClearAnchors()
-    self.points:SetAnchor(TOP, self.frame, TOP, 0, 143 + titleHeight)
+    self:ApplyTheme()
 end
 
 function Alert:Animate()
@@ -110,10 +189,10 @@ function Alert:Animate()
     local reveal = Clamp((elapsed - 350) / 650, 0, 1)
     self.caption:SetAlpha(reveal)
     self.title:SetAlpha(Clamp((elapsed - 550) / 650, 0, 1))
-    self.title:ClearAnchors()
-    self.title:SetAnchor(TOP, self.frame, TOP, 0, 137)
     self.points:SetAlpha(Clamp((elapsed - 950) / 600, 0, 1))
     self.rule:SetAlpha(reveal)
+    self.minimalRule:SetAlpha(reveal)
+    self.minimalRewardRule:SetAlpha(Clamp((elapsed - 950) / 600, 0, 1))
     self.rule:SetWidth(512)
     self.glow:SetAlpha(0.48)
     self.glow:SetTransformScale(1)
@@ -133,7 +212,7 @@ function Alert:StartNext()
     self.elapsed = 0
     self.duration = Clamp(Settings().duration, 3, 12) * 1000
     self.lastTime = GetFrameTimeMilliseconds()
-    self.icon:SetTexture(self.current.icon)
+    self.icon:SetTexture(self.current.icon or ART .. "iron_trophy_dxt5.dds")
     self.title:SetText(self.current.name)
     self.points:SetText("+" .. tostring(self.current.points) .. " " .. GetString(SI_ACHIEVEMENTS_POINTS_STATIC))
     self.soundPlayed = false
@@ -166,7 +245,7 @@ function Alert:Enqueue(name, points, id, preview)
     local icon = id and select(4, GetAchievementInfo(id))
     self.queue[#self.queue + 1] = {
         name = zo_strformat("<<1>>", name or ""), points = tonumber(points) or 0,
-        icon = icon and icon ~= "" and icon or ART .. "iron_trophy_dxt5.dds",
+        icon = icon and icon ~= "" and icon or nil,
         preview = preview,
     }
     if not self.current then self:StartNext() end

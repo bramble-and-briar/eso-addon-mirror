@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Wrynch/HARDCORE__4480",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Wrynch",
   "canonical_id": "esoui:4480",
   "category_id": "27",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -13,10 +18,6 @@
     {
       "name": "Season Zero",
       "version": "11.3.0"
-    },
-    {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
     }
   ],
   "content_id": "esoui:4480",
@@ -25,7 +26,7 @@
     "HARDCORE"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4480/",
-  "fingerprint": "6ebe5c19ee251ca941d9c9d481b1e87dc28978a6d42659fe0ba287562d8b7a5b",
+  "fingerprint": "008797ca1f1dc65c0a9116e5b3069ea759ca35359c8e2da76bf779e9394d7ea3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15597.png",
     "https://cdn-eso.mmoui.com/preview/pvw16063.png",
@@ -38,11 +39,11 @@
   "source_id": "4480",
   "source_url": "https://www.esoui.com/downloads/info4480-HARDCORE.html",
   "stats": {
-    "downloads": 556,
-    "favorites": 4,
-    "monthly_downloads": 35
+    "downloads": 666,
+    "favorites": 3,
+    "monthly_downloads": 41
   },
   "title": "HARDCORE",
-  "updated_at": 1781002778000,
-  "version": "1.5.0"
+  "updated_at": 1793368356000,
+  "version": "1.5.1"
 }

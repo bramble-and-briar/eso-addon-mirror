@@ -354,6 +354,27 @@ function CastBar:GetMover()
     return mover
 end
 
+function CastBar:ApplyTheme()
+    local themes = Nirnsteel_UI.Themes
+    if not themes or not self.root then return end
+    local frame = self.root.frame
+    frame.shadow:SetHidden(themes:IsMinimal())
+    if self.phase == "complete" then
+        themes:StyleRim(frame.track, "rim", 0.64, 0.55, 0.37, 1)
+        themes:StyleRim(frame.iconFrame, "highlight", 0.77, 0.65, 0.43, 1)
+    else
+        themes:StyleRim(frame.track, "rim", 0.32, 0.40, 0.46, 0.95)
+        themes:StyleRim(frame.iconFrame, "highlight", 0.42, 0.52, 0.60, 1)
+    end
+    frame.track:SetCenterColor(themes:Color("recess", 0.018, 0.026, 0.035, 0.96))
+    frame.iconFrame:SetCenterColor(themes:Color("recess", 0.02, 0.026, 0.033, 1))
+    themes:ApplySocket(frame.iconFrame)
+    if Nirnsteel_UI.BarVisuals and Nirnsteel_UI.BarVisuals.ApplyRpgBorder then
+        Nirnsteel_UI.BarVisuals:ApplyRpgBorder(frame.track, themes:GetId() == "bronze",
+            frame.track:GetWidth(), frame.track:GetHeight(), 1)
+    end
+end
+
 function CastBar:ApplyLayout()
     local root = self:GetRoot()
     local mover = self:GetMover()
@@ -413,6 +434,7 @@ function CastBar:ApplyLayout()
     end
     self:UpdateText(self.elapsedMS or 0)
     if self.phase then self:UpdateAnimation() else root:SetAlpha(GetAlpha()) end
+    self:ApplyTheme()
 end
 
 function CastBar:UpdateText(elapsedMS)
@@ -439,6 +461,7 @@ function CastBar:ResetFeedback()
     frame.iconFrame:SetEdgeColor(0.42, 0.52, 0.60, 1)
     frame.rightLabel:SetColor(0.82, 0.92, 0.98, 1)
     frame.bar:SetGradientColors(0.16, 0.32, 0.44, 1, 0.50, 0.73, 0.85, 1)
+    self:ApplyTheme()
 end
 
 function CastBar:SetProgress(progress)
@@ -463,6 +486,7 @@ function CastBar:Hide(immediate)
     if immediate then
         self.castId = (self.castId or 0) + 1
         self.phase = nil
+        self.previewActive = nil
         root:SetHandler("OnUpdate", nil)
         root:SetAlpha(0)
         root:SetHidden(true)
@@ -494,12 +518,13 @@ function CastBar:Complete(castId)
     frame.iconFrame:SetEdgeColor(0.77, 0.65, 0.43, 1)
     frame.iconGlow:SetEdgeColor(1, 0.78, 0.38, 1)
     frame.rightLabel:SetColor(0.92, 0.81, 0.58, 1)
+    self:ApplyTheme()
 end
 
 function CastBar:UpdateAnimation()
     local root = self:GetRoot()
     if not self.phase then return end
-    if not IsModuleEnabled() or not IsHudSceneShowing() then
+    if not IsModuleEnabled() or (not self.previewActive and not IsHudSceneShowing()) then
         self:Hide(true)
         return
     end
@@ -593,11 +618,13 @@ function CastBar:UpdateAnimation()
     end
 end
 
-function CastBar:StartCast(abilityId, abilityName, iconTexture, durationMS)
+function CastBar:StartCast(abilityId, abilityName, iconTexture, durationMS, preview)
     durationMS = tonumber(durationMS) or 0
-    if durationMS < MIN_DURATION_MS or not IsModuleEnabled() or not IsHudSceneShowing() then return end
+    if durationMS < MIN_DURATION_MS or not IsModuleEnabled() or (not preview and not IsHudSceneShowing()) then return end
 
     self:Hide(true)
+    -- Settings hide the HUD scenes; only the sample cast may run there.
+    self.previewActive = preview == true or nil
     self.castId = (self.castId or 0) + 1
     self.abilityId = abilityId
     self.abilityName = abilityName and abilityName ~= "" and abilityName or "Unknown Ability"
@@ -647,20 +674,18 @@ end
 
 function CastBar:SetSettingsPreviewActive(active)
     if active then
-        self.previewActive = true
-        self:StartCast(0, "Nirnsteel Power", FALLBACK_ICON, 3200)
+        self:Preview()
     else
-        self.previewActive = nil
         self:Hide(true)
     end
 end
 
 function CastBar:Preview()
-    self:StartCast(0, "Nirnsteel Power", FALLBACK_ICON, 3200)
+    self:StartCast(0, "Nirnsteel Power", FALLBACK_ICON, 3200, true)
 end
 
 function CastBar:UpdateVisibility()
-    if not IsModuleEnabled() or not IsHudSceneShowing() then
+    if not IsModuleEnabled() or (not self.previewActive and not IsHudSceneShowing()) then
         self:Hide(true)
     end
 end

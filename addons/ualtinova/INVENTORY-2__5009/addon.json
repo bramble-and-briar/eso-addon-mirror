@@ -1,0 +1,45 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/ualtinova/INVENTORY-2__5009",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "ualtinova",
+  "canonical_id": "esoui:5009",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5009",
+  "deleted": false,
+  "directories": [
+    "Inventory2"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5009/",
+  "fingerprint": "33bc57f5b75ddf5101d1617484fc2b924cd80aef5765cffc3577b52724c03f09",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18238.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18237.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18239.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18240.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18241.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18242.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18243.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5009",
+  "source_url": "https://www.esoui.com/downloads/info5009-INVENTORY2.html",
+  "stats": {
+    "downloads": 77,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "INVENTORY 2",
+  "updated_at": 1793438041000,
+  "version": "1.0.1"
+}

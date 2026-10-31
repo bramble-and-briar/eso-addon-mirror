@@ -18,7 +18,7 @@
     "NirnhonedMetrics"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4999/",
-  "fingerprint": "2c8b5749c58c166f4b6c4c0735db295e901736bc7d246dbd37acd8fed4cdbc2b",
+  "fingerprint": "55319c4c1bc6d86b21e29ddb883dfa26f0dc547a329fc379e431122d77a3fb59",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18178.png",
     "https://cdn-eso.mmoui.com/preview/pvw18179.png",
@@ -36,11 +36,11 @@
   "source_id": "4999",
   "source_url": "https://www.esoui.com/downloads/info4999-NirnhonedMetrics.html",
   "stats": {
-    "downloads": 9,
-    "favorites": 1,
-    "monthly_downloads": 0
+    "downloads": 47,
+    "favorites": 2,
+    "monthly_downloads": 38
   },
   "title": "Nirnhoned Metrics",
-  "updated_at": 1793055817000,
-  "version": "1.0.0"
+  "updated_at": 1793401839000,
+  "version": "1.1.0"
 }

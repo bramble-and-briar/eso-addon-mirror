@@ -18,6 +18,12 @@ local NAMESPACE = "UnderPressure_Ingest"
 -- Plaguebreak explosion hits on anyone (0.4.0); one namespace per explosion
 -- ability id, filtered by that id. See Register().
 local NAMESPACE_BOOM = "UnderPressure_PlagueBoom"
+-- Groupmate plague (0.5.7, experimental): EVENT_EFFECT_CHANGED on "groupN"
+-- tags, one namespace per plague ability id, plus the group-change events
+-- under the bare namespace. Registered only while sv.plague_group_detect is
+-- on; see SetGroupPlagueDetection().
+local NAMESPACE_GROUP = "UnderPressure_PlagueGroup"
+local groupPlagueRegistered = false
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -362,6 +368,96 @@ local function onPlayerAlive(eventCode)
 end
 
 -- ---------------------------------------------------------------------------
+-- EVENT_EFFECT_CHANGED handler, group tags (0.5.7, experimental)
+-- ---------------------------------------------------------------------------
+-- Only plague effects on "groupN" tags should reach this (the C-level filters
+-- see SetGroupPlagueDetection); the checks here are for the fallback modes.
+local function onGroupEffectChanged(eventCode, changeType, effectSlot, effectName,
+                                     unitTag, beginTime, endTime, stackCount,
+                                     iconName, buffType, effectType, abilityType,
+                                     statusEffectType, unitName, unitId, abilityId,
+                                     sourceType)
+    if not UP.PlagueGroup then return end
+    if type(unitTag) ~= "string" or unitTag:sub(1, 5) ~= "group" then return end
+    local endTimeMs = 0
+    if type(endTime) == "number" and endTime > 0 then endTimeMs = endTime * 1000 end
+    UP.PlagueGroup.OnEffect(changeType, unitTag, unitName, abilityId, effectName, endTimeMs, now())
+end
+
+local function onGroupChanged()
+    if UP.PlagueGroup and UP.PlagueGroup.OnGroupChanged then UP.PlagueGroup.OnGroupChanged() end
+end
+
+-- Register or tear down the groupmate-plague subscriptions. Called from
+-- Register() with the saved setting and from the settings panel when the
+-- switch is flipped, so turning it off stops group effect events crossing into
+-- Lua at all rather than fast-exiting on each one.
+--
+-- Registration modes, best first, recorded for the API audit:
+--   filtered    both REGISTER_FILTER_ABILITY_ID (per plague id) and
+--               REGISTER_FILTER_UNIT_TAG_PREFIX "group" exist: only plague
+--               effects on group tags reach Lua
+--   prefix      only the prefix filter exists: every effect on a group tag
+--               reaches Lua and OnEffect discards non-plague ones
+--   abilityId   only the ability-id filter exists: plague effects on any tag
+--               reach Lua and the handler keeps the group ones
+--   unavailable neither filter exists: NOT registered. An unfiltered
+--               EVENT_EFFECT_CHANGED would push every effect in the zone into
+--               Lua, which this add-on will not do for an experimental feature.
+local GROUP_EVENTS = { "EVENT_GROUP_UPDATE", "EVENT_GROUP_MEMBER_JOINED", "EVENT_GROUP_MEMBER_LEFT", "EVENT_PLAYER_ACTIVATED" }
+
+function UP.Ingest.SetGroupPlagueDetection(on)
+    if not UP.PlagueGroup or not UP.Plague then return end
+    local ids = UP.Plague.PLAGUE_ABILITY_IDS
+    if on and not groupPlagueRegistered then
+        local hasId     = type(REGISTER_FILTER_ABILITY_ID) == "number"
+        local hasPrefix = type(REGISTER_FILTER_UNIT_TAG_PREFIX) == "number"
+        local mode
+        if hasId then
+            for id in pairs(ids) do
+                local ns = NAMESPACE_GROUP .. tostring(id)
+                EVENT_MANAGER:RegisterForEvent(ns, EVENT_EFFECT_CHANGED, onGroupEffectChanged)
+                if hasPrefix then
+                    EVENT_MANAGER:AddFilterForEvent(ns, EVENT_EFFECT_CHANGED,
+                        REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+                else
+                    EVENT_MANAGER:AddFilterForEvent(ns, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
+                end
+            end
+            mode = hasPrefix and "filtered" or "abilityId"
+        elseif hasPrefix then
+            EVENT_MANAGER:RegisterForEvent(NAMESPACE_GROUP, EVENT_EFFECT_CHANGED, onGroupEffectChanged)
+            EVENT_MANAGER:AddFilterForEvent(NAMESPACE_GROUP, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+            mode = "prefix"
+        else
+            UP.PlagueGroup.SetChannel("unavailable")
+            return
+        end
+        for _, name in ipairs(GROUP_EVENTS) do
+            if type(_G[name]) == "number" then
+                EVENT_MANAGER:RegisterForEvent(NAMESPACE_GROUP, _G[name], onGroupChanged)
+            end
+        end
+        groupPlagueRegistered = true
+        UP.PlagueGroup.SetChannel(mode)
+        UP.PlagueGroup.Resync()
+    elseif not on and groupPlagueRegistered then
+        for id in pairs(ids) do
+            EVENT_MANAGER:UnregisterForEvent(NAMESPACE_GROUP .. tostring(id), EVENT_EFFECT_CHANGED)
+        end
+        EVENT_MANAGER:UnregisterForEvent(NAMESPACE_GROUP, EVENT_EFFECT_CHANGED)
+        for _, name in ipairs(GROUP_EVENTS) do
+            if type(_G[name]) == "number" then
+                EVENT_MANAGER:UnregisterForEvent(NAMESPACE_GROUP, _G[name])
+            end
+        end
+        groupPlagueRegistered = false
+        UP.PlagueGroup.SetChannel("off")
+        UP.PlagueGroup.Clear()
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- Registration
 -- ---------------------------------------------------------------------------
 function UP.Ingest.Register()
@@ -435,6 +531,9 @@ function UP.Ingest.Register()
     if type(EVENT_ACTION_SLOT_ABILITY_USED) == "number" then
         EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_ACTION_SLOT_ABILITY_USED, onActionSlotUsed)
     end
+
+    -- Groupmate plague (0.5.7, experimental, off by default).
+    UP.Ingest.SetGroupPlagueDetection(UP.PlagueGroup ~= nil and UP.PlagueGroup.Enabled())
 end
 
 -- Counterpart to Register(). Nothing calls it as of 0.2.9 -- its only caller
@@ -464,4 +563,5 @@ function UP.Ingest.Unregister()
         end
         UP.Plague.SetBoomChannel(false)
     end
+    UP.Ingest.SetGroupPlagueDetection(false)
 end

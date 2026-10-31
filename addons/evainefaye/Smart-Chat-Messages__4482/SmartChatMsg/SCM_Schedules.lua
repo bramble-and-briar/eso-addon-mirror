@@ -38,8 +38,10 @@ function SmartChatMsg:NormalizeSchedule(data)
     if result.mode=="REMINDER" then result.eventAtUtc=result.startsAtUtc;result.endsAtUtc=result.startsAtUtc+120
     elseif result.mode=="WINDOW" then result.eventAtUtc=result.startsAtUtc
     elseif simpleEvent then
-        local lead,delay=tonumber(data.promotionDays or 1),positiveInteger(data.endDelayMinutes or 60)
-        if not lead or lead<0 or lead>3650 or lead~=math.floor(lead) or not delay then return nil,"Use whole promotion days and a positive end delay." end
+        local lead,delay=tonumber(data.promotionDays or 1),tonumber(data.endDelayMinutes or 60)
+        if not lead or lead<0 or lead>3650 or lead~=math.floor(lead) or not delay or delay<0 or delay==math.huge or delay~=math.floor(delay) then
+            return nil,"Use whole promotion days and zero or more whole minutes after event start."
+        end
         result.promotionDays,result.endDelayMinutes=lead,delay
         result.startsAtUtc,result.endsAtUtc=result.eventAtUtc-lead*86400,result.eventAtUtc+delay*60
         local o=self:BuildScheduleOccurrence(result,result.eventAtUtc);if not o then return nil,"Promotion start time does not exist." end
@@ -52,8 +54,26 @@ function SmartChatMsg:NormalizeSchedule(data)
             result[name.."Date"],result[name.."Time"]=formatted:sub(1,10),formatted:sub(12,19)
         end
     end
-    if result.startsAtUtc > result.eventAtUtc or result.eventAtUtc >= result.endsAtUtc then
-        return nil,"Schedule start must be at/before the event, and schedule end must be after the event."
+    if result.recurrence=='MONTHLY_WEEKDAY' or data.monthlyWeek~=nil or data.monthlyWeekday~=nil then
+        local anchor=self:GetScheduleParts(result.eventAtUtc,result)
+        local week=data.monthlyWeek
+        if week==nil then week=math.floor((anchor.day-1)/7)+1 end
+        if week~=nil then
+            week=week=='LAST' and week or tonumber(week)
+            if week~='LAST' and (not week or week<1 or week>5 or week~=math.floor(week)) then return nil,'Monthly on: choose First, Second, Third, Fourth, Fifth or Last.' end
+            result.monthlyWeek=week
+        end
+        local weekday=data.monthlyWeekday
+        if weekday==nil then weekday=anchor.wday end
+        if weekday~=nil then
+            weekday=tonumber(weekday)
+            if not weekday or weekday<1 or weekday>7 or weekday~=math.floor(weekday) then return nil,'Choose a valid monthly weekday.' end
+            result.monthlyWeekday=weekday
+        end
+    end
+    local eventAtEnd=result.mode=="EVENT" and result.eventAtUtc==result.endsAtUtc
+    if result.startsAtUtc > result.eventAtUtc or result.startsAtUtc>=result.endsAtUtc or (result.eventAtUtc >= result.endsAtUtc and not eventAtEnd) then
+        return nil,"Promotion must have time to run: start at/before the event and end at/after it. Windows must end after they start."
     end
     for id, assignments in pairs(type(data.messagePhases) == "table" and data.messagePhases or {}) do
         if type(id) == "string" and type(assignments) == "table" then
@@ -173,7 +193,14 @@ function SmartChatMsg:ExportScheduleRecords()
                 local days={};for day=1,7 do days[day]=s.weekdays and s.weekdays[day] and "1" or "0" end
                 local once={};for _,phase in ipairs(phases) do once[#once+1]=s.phaseOnce and s.phaseOnce[phase] and "1" or "0" end
                 lines[#lines+1]=encode({"SCHEDULEOPTIONS_V1",id,guild,s.mode or "EVENT",s.recurrence or "NONE",tostring(s.recurrenceInterval or 1),table.concat(days),tostring(s.promotionDays or ""),tostring(s.endDelayMinutes or ""),table.concat(once),s.startingSoonEnabled and "1" or "0",tostring(s.startingSoonMinutes or 120),tostring(s.phaseIntervals.SOON or "")})
+                if s.monthlyWeek~=nil or s.monthlyWeekday~=nil then
+                    lines[#lines+1]=encode({'SCHEDULEMONTHLY_V1',id,guild,tostring(s.monthlyWeek or ''),tostring(s.monthlyWeekday or '')})
+                end
                 lines[#lines+1]=encode({"SCHEDULEPATTERN_V1",id,guild,s.specialPattern or "NONE",tostring(s.rotationWeeks or 4),table.concat(s.rotationFactions or {"AD","EP","DC"},",")})
+                lines[#lines+1]=encode({'SCHEDULEEVENTROTATION_V1',id,guild,tostring(s.rotationEvery or 1)})
+                for _,activity in ipairs(s.rotationEvents or {}) do lines[#lines+1]=encode({'SCHEDULEACTIVITY_V1',id,guild,activity.id,activity.name}) end
+                local exceptionDates={};for date in pairs(s.occurrenceExceptions or {}) do exceptionDates[#exceptionDates+1]=date end;table.sort(exceptionDates)
+                for _,date in ipairs(exceptionDates) do lines[#lines+1]=encode({'SCHEDULEEXCEPTION_V1',id,guild,date,s.occurrenceExceptions[date].action}) end
                 for messageId,variant in pairs(s.messageVariants or {}) do
                     if not self:IsMessageLocked(messageId) then lines[#lines+1]=encode({"SCHEDULEVARIANT_V1",id,guild,messageId,variant}) end
                 end
@@ -213,9 +240,24 @@ function SmartChatMsg:ImportScheduleRecords(records,imported)
                 d.promotionDays=row[8]~="" and row[8] or nil;d.endDelayMinutes=row[9]~="" and row[9] or nil
                 d.startingSoonEnabled=row[11]=="1";d.startingSoonMinutes=row[12] or 120;d.startingSoonIntervalMinutes=row[13]
                 d.phaseOnce={};for index,phase in ipairs(phases) do d.phaseOnce[phase]=(row[10] or ""):sub(index,index)=="1" end
+            elseif kind=='SCHEDULEMONTHLY_V1' then
+                if d.monthlyWeek~=nil or d.monthlyWeekday~=nil then return false,'Duplicate monthly weekday settings.' end
+                if not row[4] or row[4]=='' or not row[5] or row[5]=='' then return false,'Imported monthly weekday settings need an ordinal and weekday.' end
+                d.monthlyWeek,d.monthlyWeekday=row[4],row[5]
             elseif kind=="SCHEDULEPATTERN_V1" then
                 d.specialPattern,d.rotationWeeks=row[4],row[5]
                 d.rotationFactions={};for faction in (row[6] or ""):gmatch("[^,]+") do d.rotationFactions[#d.rotationFactions+1]=faction end
+            elseif kind=='SCHEDULEEVENTROTATION_V1' then
+                if not row[4] or row[4]=='' then return false,'Imported activity rotation needs its occurrence count.' end
+                if d.rotationEvery~=nil then return false,'Duplicate activity rotation settings.' end
+                d.rotationEvery=row[4]
+            elseif kind=='SCHEDULEACTIVITY_V1' then
+                d.rotationEvents=d.rotationEvents or {};d.rotationEvents[#d.rotationEvents+1]={id=row[4],name=row[5]}
+            elseif kind=='SCHEDULEEXCEPTION_V1' then
+                if not row[4] or row[4]=='' then return false,'Imported cancellation needs a date.' end
+                d.occurrenceExceptions=d.occurrenceExceptions or {}
+                if d.occurrenceExceptions[row[4]] then return false,'Duplicate occurrence cancellation.' end
+                d.occurrenceExceptions[row[4]]={action=row[5]}
             elseif kind=="SCHEDULEVARIANT_V1" then
                 if not row[4] or row[4]=="" then return false,"Imported event group is missing its message ID." end
                 d.messageVariants=d.messageVariants or {};d.messageVariants[row[4]]=row[5]

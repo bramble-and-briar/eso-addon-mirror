@@ -262,9 +262,9 @@ local function Record(stat, result, abilityName, abilityId, hitValue, damageType
 end
 
 -- overflow: en las curaciones, la parte que sobró (sobrecuración).
-local function OnCombatEvent(_, result, isError, abilityName, _, _, _, sourceType, targetName, targetType,
+-- Los errores y los eventos de otras fuentes ya los descartan los filtros de F.Init.
+local function OnCombatEvent(_, result, _, abilityName, _, _, _, sourceType, targetName, targetType,
                              hitValue, _, damageType, _, _, _, abilityId, overflow)
-    if isError then return end
     local isDamage = DAMAGE_RESULTS[result]
     local isHeal = HEAL_RESULTS[result]
     if not isDamage and not isHeal then return end

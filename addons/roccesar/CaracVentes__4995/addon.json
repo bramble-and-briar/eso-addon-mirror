@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/roccesar/CaracVentes__4995",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "roccesar",
+  "canonical_id": "esoui:4995",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4995",
+  "deleted": false,
+  "directories": [
+    "CaracVentes"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4995/",
+  "fingerprint": "b9ac80aaf0cea1da133a6827665c592ebec0aaa77daad039c7a42ec62b6c9824",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18152.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18153.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4995",
+  "source_url": "https://www.esoui.com/downloads/info4995-CaracVentes.html",
+  "stats": {
+    "downloads": 20,
+    "favorites": 0,
+    "monthly_downloads": 19
+  },
+  "title": "CaracVentes",
+  "updated_at": 1793389412000,
+  "version": "1.1"
+}

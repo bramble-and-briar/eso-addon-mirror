@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.10.27",
+	version = "2026.10.30",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -841,7 +841,7 @@ local function RDInitializeControls()
 			{
 				type = "checkbox",
 				name = "Trader Enhancements",
-				tooltip = "Adds some QoL features to the trader window including active trader cycling by clicking guild name(skips non trading guilds with no listings), auto searching last search, listing counts",
+				tooltip = "Adds some QoL features to the trader window including active trader cycling by clicking guild name(skips non trading guilds with no listings), auto last search, listing counts & totals",
 				getFunc = function() return RidinDirty.savedVariables.traderEnhance end,
 				setFunc = function(value) RidinDirty.TraderEnhanceToggle(value) end,
 				warning = "NOT compatible with AwesomeGuildStore. Requires LibCharacterKnowledge to detect what is knownst on other characters & TTC for pricing data",
@@ -1502,46 +1502,48 @@ function RidinDirty.Teleport(value1, value2)
 		TP_PLAYER = nil
 		TP_HOUSE = nil
 	end
-	if value1 == "home" and value2 ~= nil then
-		if IsUnitInCombat("player") then
-			if RidinDirty.HourGlass:GetAlpha() == 1 then
-				RidinDirty.TeleportZoneQueueOff()
-				return
+	if value2 ~= nil then
+		if string.lower(value1) == "home" then
+			if IsUnitInCombat("player") then
+				if RidinDirty.HourGlass:GetAlpha() == 1 then
+					RidinDirty.TeleportZoneQueueOff()
+					return
+				else
+					TP_PLAYER = value1
+					TP_HOUSE = value2
+					RidinDirty.TeleportZoneQueueOn(value1, value2)
+					return
+				end
 			else
-				TP_PLAYER = value1
-				TP_HOUSE = value2
-				RidinDirty.TeleportZoneQueueOn(value1, value2)
-				return
+				if IsCollectibleUnlocked(GetCollectibleIdForHouse(GetHouseID(value2))) then
+					if IsMounted() then CallSecureProtected("ToggleMount") end
+					df(RD_LOGO .. "Traveling to your " .. GetHousingLink(GetHouseID(value2), ""))
+					RequestJumpToHouse(GetHouseID(value2), travelOutside)
+					return
+				else
+					if IsMounted() then CallSecureProtected("ToggleMount") end
+					df(RD_LOGO .. "Traveling to preview " .. GetHousingLink(GetHouseID(value2), ""))
+					RequestJumpToHouse(GetHouseID(value2), travelOutside)
+					return
+				end
 			end
 		else
-			if IsCollectibleUnlocked(GetCollectibleIdForHouse(GetHouseID(value2))) then
-				if IsMounted() then CallSecureProtected("ToggleMount") end
-				df(RD_LOGO .. "Traveling to your " .. GetHousingLink(GetHouseID(value2), ""))
-				RequestJumpToHouse(GetHouseID(value2), travelOutside)
-				return
+			if IsUnitInCombat("player") then
+				if RidinDirty.HourGlass:GetAlpha() == 1 then
+					RidinDirty.TeleportZoneQueueOff()
+					return
+				else
+					TP_PLAYER = value1
+					TP_HOUSE = value2
+					RidinDirty.TeleportZoneQueueOn(value1, value2)
+					return
+				end
 			else
 				if IsMounted() then CallSecureProtected("ToggleMount") end
-				df(RD_LOGO .. "Traveling to preview " .. GetHousingLink(GetHouseID(value2), ""))
-				RequestJumpToHouse(GetHouseID(value2), travelOutside)
+				df(RD_LOGO .. "Traveling to " .. GetHousingLink(GetHouseID(value2), value1))
+				JumpToSpecificHouse(value1, GetHouseID(value2))
 				return
 			end
-		end
-	elseif value2 ~= nil then
-		if IsUnitInCombat("player") then
-			if RidinDirty.HourGlass:GetAlpha() == 1 then
-				RidinDirty.TeleportZoneQueueOff()
-				return
-			else
-				TP_PLAYER = value1
-				TP_HOUSE = value2
-				RidinDirty.TeleportZoneQueueOn(value1, value2)
-				return
-			end
-		else
-			if IsMounted() then CallSecureProtected("ToggleMount") end
-			df(RD_LOGO .. "Traveling to " .. GetHousingLink(GetHouseID(value2), value1))
-			JumpToSpecificHouse(value1, GetHouseID(value2))
-			return
 		end
 	end
 	for iD = 1, GetGroupSize() do
@@ -2954,9 +2956,9 @@ end
 local function ChatterWhiteList(choice)
 	local options = {
 	"Guild Store",
+	"Store",
 	"Bank",
 	"Deconstruct",
-	"Store",
 	"Armory",
 	}
 	for _, option in ipairs(options) do

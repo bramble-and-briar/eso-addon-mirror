@@ -1,6 +1,5 @@
-2026.10.27
-- Fix for /tp home case sensitivity and trader enhancements not showing listing totals until you've cycled through your guilds.
-- Added "Skip Many Dialogs" feature which skips assistants, merchants and trader dialogs while attempting to maintain crafting compatability.
+2026.10.30
+- Fix again for /tp home case sensitivity.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

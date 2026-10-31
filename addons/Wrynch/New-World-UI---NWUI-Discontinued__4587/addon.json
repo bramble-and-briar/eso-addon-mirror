@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/Wrynch/New-World-UI---NWUI__4587",
+  "archive_path": "addons/Wrynch/New-World-UI---NWUI-Discontinued__4587",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "Wrynch",
@@ -22,7 +22,7 @@
     "NWUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4587/",
-  "fingerprint": "9c87e7d7cd74b47cf4a8ac8e477b100d480c5b1e1095ce9a85f376e84e220447",
+  "fingerprint": "deb7b8d5aa9a904fc6539ec1a634f03614e9e8ab808d86e7a7bd8faddf3fa9b2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16101.png"
   ],
@@ -30,13 +30,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4587",
-  "source_url": "https://www.esoui.com/downloads/info4587-NewWorldUI-NWUI.html",
+  "source_url": "https://www.esoui.com/downloads/info4587-NewWorldUI-NWUIDiscontinued.html",
   "stats": {
-    "downloads": 445,
+    "downloads": 589,
     "favorites": 7,
-    "monthly_downloads": 27
+    "monthly_downloads": 34
   },
-  "title": "New World UI - NWUI",
+  "title": "New World UI - NWUI \u00b7 Discontinued",
   "updated_at": 1788258575000,
   "version": "1.1.0"
 }

@@ -1,7 +1,21 @@
 local O=ObsidianHUD
+-- Staff-dependent slot/effect identities from the reference's destruction-
+-- staff resolver. Each morph stays separate; only its elemental variants
+-- share a timer when the inactive bar reports a generic/different variant.
+O.wallStaffSkills={}
+for _,family in ipairs({{28858,28807,28854,28849},
+    {39052,39053,39073,39067},{39011,39012,39018,39028}}) do
+    for _,id in ipairs(family) do
+        O.wallStaffSkills[id]=family
+        O.timerAliases[id]=family[1]
+    end
+end
 -- Duration/phase facts checked against the local FAB+ special-effect rules.
 -- true reads ESO's current duration; numbers are seconds for explicit cases.
 O.timerOnUse={
+    -- Ground walls may not emit a usable own-target interval. Use the actual
+    -- ability duration on activation, then let real effect/slot data correct it.
+    [28858]=true,[39052]=true,[39011]=true,
     [35750]=true,[40372]=true,[40382]=true,
     [28727]=true,[38312]=true,[38317]=true,
     [86135]=true,[86139]=true,[86143]=true,

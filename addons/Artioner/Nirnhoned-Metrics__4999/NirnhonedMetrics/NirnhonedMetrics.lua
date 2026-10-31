@@ -6,7 +6,7 @@ local NM = NirnhonedMetrics
 NM.name = "NirnhonedMetrics"
 NM.COLOR = "D42F2F"            -- rojo Nirnhoned (como el rasgo del juego)
 NM.title = "|c" .. NM.COLOR .. "Nirnhoned|r Metrics"
-NM.version = "1.0.0"
+NM.version = "1.1.0"
 NM.svVersion = 3
 NM.author = "@Artioner"
 NM.authorServer = "EU Megaserver"   -- el correo (donaciones) solo llega dentro del mismo megaservidor
@@ -23,6 +23,7 @@ NM.defaults = {
     window = {
         shown = true,
         locked = false,
+        collapsed = false,        -- plegada: solo se ve la cabecera
         x = nil, y = nil,         -- esquina superior izquierda; nil = posición inicial
         width = 390,
         height = 250,
@@ -33,6 +34,9 @@ NM.defaults = {
     rowSpacing = 1,
     fontSize = 16,
     titleFontSize = 18,
+    titleMode = "default",        -- "default" (nombre del addon) | "custom"
+    customTitle = "",             -- admite códigos de color |cRRGGBB...|r
+    titleColor = { 1, 1, 1, 1 },  -- color del título personalizado
     bgAlpha = 0.55,
     barAlpha = 0.9,
     hideOutOfCombat = false,
@@ -86,6 +90,8 @@ local function OnAddOnLoaded(_, addonName)
     if addonName ~= NM.name then return end
     EVENT_MANAGER:UnregisterForEvent(NM.name, EVENT_ADD_ON_LOADED)
 
+    -- Iguales en todos los servidores a propósito: solo son preferencias de la ventana
+    -- y de la vista, no datos que dependan del servidor (los combates no se guardan).
     NM.sv = ZO_SavedVars:NewAccountWide("NirnhonedMetrics_SV", NM.svVersion, nil, NM.defaults)
 
     NM.Fight.Init()

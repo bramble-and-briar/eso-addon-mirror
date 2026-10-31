@@ -1,0 +1,8 @@
+## Title: CaracBuffDebuff
+## Author: Roccesar & Claude IA
+## AddOnVersion: 1.1
+## APIVersion: 101051
+## SavedVariables: CaracBuffDebuffSV
+## Description: Trois blocs deplacables : tes buffs et les debuffs que tu appliques et ceux que tu reçois, avec leur timer.
+
+CaracBuffDebuff.lua

@@ -26,33 +26,38 @@ Nirnsteel_UI.Settings = Settings
 
 local MODULE_MENU_ICONS =
 {
-    ["Quest Tracker"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_mapandcompass.dds",
+    ["Quest Tracker"] = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_quests.dds",
     ["Werewolf Rage"] = "/esoui/art/armory/buildicons/buildicon_44.dds",
     ["Achievement Alert"] = Nirnsteel_UI:GetAssetPath("ui/achievement/iron_trophy_dxt5.dds"),
     ["Action Bar"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_abilitybar.dds",
     ["Adventure Camera"] = "EsoUI/Art/Options/Gamepad/gp_options_camera.dds",
     ["Cast Bar"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_castbarsandcooldowns.dds",
+    ["Class Indicators"] = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_skills.dds",
     ["Compass"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_mapandcompass.dds",
-    ["Damage Numbers"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_combat.dds",
+    ["Crosshair"] = "EsoUI/Art/WorldMap/map_centerReticle.dds",
+    ["Damage Numbers"] = "EsoUI/Art/Campaign/Gamepad/gp_overview_menuIcon_scoring.dds",
     ["Experience Tracker"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_characterprogression.dds",
     ["Group Callouts"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_chat.dds",
     ["Group Frames"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_unitframes.dds",
     ["HARDCORE Support"] = "EsoUI/Art/Campaign/campaignbrowser_indexicon_hardcore_up.dds",
     ["Kill Sound"] = "EsoUI/Art/Options/Gamepad/gp_options_audio.dds",
     ["Loot History"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_bankandinventory.dds",
-    ["Minimap"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_mapandcompass.dds",
+    ["Minimap"] = "EsoUI/Art/MainMenu/menuBar_map_up.dds",
     ["Misc"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_uigraphics.dds",
     ["PvP"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_combat.dds",
-    ["Resource Bars"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_uigraphics.dds",
-    ["Target Frame"] = "EsoUI/Art/AddOns/Gamepad/gp_mod_listing_category_unitframes.dds",
+    ["Resource Bars"] = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_character.dds",
+    ["Target Frame"] = "EsoUI/Art/Options/Gamepad/gp_options_nameplates.dds",
 }
 
 local function ConfigureModuleMenuOptions(options)
     local moduleOptions = {}
+    local globalOptions = {}
     local otherOptions = {}
 
     for _, option in ipairs(options) do
-        if option.type == "submenu" then
+        if option.nirnsteelGlobal then
+            globalOptions[#globalOptions + 1] = option
+        elseif option.type == "submenu" then
             option.icon = MODULE_MENU_ICONS[option.name]
             moduleOptions[#moduleOptions + 1] = option
         else
@@ -64,12 +69,14 @@ local function ConfigureModuleMenuOptions(options)
         return string.lower(left.name) < string.lower(right.name)
     end)
 
-    local orderedOptions = { otherOptions[1] }
+    local orderedOptions = {}
+    -- Keep appearance and complete configuration presets above every module.
+    for _, option in ipairs(globalOptions) do orderedOptions[#orderedOptions + 1] = option end
     for _, option in ipairs(moduleOptions) do
         orderedOptions[#orderedOptions + 1] = option
     end
-    for index = 2, #otherOptions do
-        orderedOptions[#orderedOptions + 1] = otherOptions[index]
+    for _, option in ipairs(otherOptions) do
+        orderedOptions[#orderedOptions + 1] = option
     end
 
     return orderedOptions
@@ -407,10 +414,23 @@ local MINIMAP_DEFAULTS =
 local ACCOUNT_DEFAULTS =
 {
     debugMode = false,
+    theme = "nirnsteel",
     modules =
     {
         questTracker = { enabled = true, unlocked = false, position = false, titleSize = 23, textSize = 17, spacing = 7 },
         werewolfRage = { enabled = true, scale = 100, opacity = 100, showValue = true, showReady = true, unlocked = false, x = 0, y = 170 },
+        overloadIndicator =
+        {
+            enabled = true, unlocked = false, scale = 100, opacity = 100,
+            animationIntensity = 100, activationBurst = true, verticalStrike = true,
+            customPosition = false, x = 0, y = -48,
+        },
+        magmaArmorIndicator =
+        {
+            enabled = true, unlocked = false, scale = 100, opacity = 100,
+            animationIntensity = 100, activationBurst = true,
+            customPosition = false, x = 0, y = -48,
+        },
         achievementAlert =
         {
             enabled = true, scale = 100, opacity = 100, duration = 6,
@@ -496,6 +516,26 @@ local ACCOUNT_DEFAULTS =
         immersiveTeleport =
         {
             enabled = false,
+        },
+        enchantConfirmation =
+        {
+            enabled = true,
+        },
+        interactionPrompt =
+        {
+            centerPrompt = false,
+        },
+        crosshair =
+        {
+            visibility = "always",
+            style = "eso",
+            scale = 100,
+            color = { r = 1, g = 1, b = 1 },
+            opacity = 100,
+            blockIndicator = false,
+            shieldScale = 100,
+            shieldColor = { r = 1, g = 1, b = 1 },
+            shieldOpacity = 100,
         },
         adventureCamera =
         {
@@ -1059,12 +1099,27 @@ local function UpgradeTargetFrameExecuteIcon(account)
     end
 end
 
+local function UpgradeCrosshairSettings(account)
+    local modules = account.modules
+    local legacy = modules and modules.interactionPrompt
+    if legacy and legacy.hideCrosshair ~= nil then
+        modules.crosshair = modules.crosshair or {}
+        -- SavedVars may already have merged the new default before returning.
+        if modules.crosshair.visibility == nil or modules.crosshair.visibility == "always" then
+            modules.crosshair.visibility = legacy.hideCrosshair and "hidden" or "always"
+        end
+        legacy.hideCrosshair = nil
+    end
+end
+
 function Settings:Initialize()
     self.serverKey = GetServerKey()
 
     self.account = ZO_SavedVars:NewAccountWide("NirnsteelUI_Account", SAVED_VARS_VERSION, nil, ACCOUNT_DEFAULTS, self.serverKey)
     MigrateKnownSettings(self.account, GetRawAccountWideSettings("NirnsteelUI_Account", "Default"), ACCOUNT_DEFAULTS)
+    UpgradeCrosshairSettings(self.account)
     CopyDefaults(self.account, ACCOUNT_DEFAULTS)
+    if self.account.theme == "none" then self.account.theme = "minimal" end
     -- Preserve the old combined preference once, then let each option vary.
     local minigame = self.account.modules.damageNumbers.damageDoneMinigame
     if minigame.showDetails ~= nil then
@@ -1090,7 +1145,17 @@ function Settings:Initialize()
     MigrateGroupCalloutsToCharacterSettings(self.account, self.server, self.character, self.serverKey)
     UpgradeGroupCalloutsSoundChoiceLabels(self.character)
 
+    if Nirnsteel_UI.Presets then Nirnsteel_UI.Presets:Initialize(self) end
     self:RegisterAddonMenu()
+end
+
+function Settings:GetTheme()
+    return self.account and self.account.theme or ACCOUNT_DEFAULTS.theme
+end
+
+function Settings:SetTheme(value)
+    self.account.theme = Nirnsteel_UI.Themes:Normalize(value)
+    Nirnsteel_UI.Themes:Refresh()
 end
 
 function Settings:GetLootHistory()
@@ -1143,6 +1208,51 @@ end
 
 function Settings:GetAdventureCamera()
     return self.account.modules.adventureCamera
+end
+
+function Settings:GetInteractionPrompt()
+    return self.account.modules.interactionPrompt
+end
+
+function Settings:SetInteractionPromptValue(key, value)
+    self:GetInteractionPrompt()[key] = value == true
+    if Nirnsteel_UI.InteractionPrompt then
+        Nirnsteel_UI.InteractionPrompt:RefreshSettings()
+    end
+end
+
+function Settings:GetCrosshair()
+    return self.account.modules.crosshair
+end
+
+function Settings:SetCrosshairValue(key, value)
+    if key == "visibility" then
+        local valid = { always = true, interaction = true, hidden = true }
+        value = valid[value] and value or "always"
+    elseif key == "style" then
+        local valid = { eso = true, dot = true, cross = true, openCross = true,
+            ring = true, diamond = true, chevron = true }
+        value = valid[value] and value or "eso"
+    elseif key == "blockIndicator" then
+        value = value == true
+    elseif key == "scale" or key == "shieldScale" then
+        value = math.max(50, math.min(300, tonumber(value) or 100))
+    elseif key == "opacity" or key == "shieldOpacity" then
+        value = math.max(0, math.min(100, tonumber(value) or 100))
+    else
+        return
+    end
+    self:GetCrosshair()[key] = value
+    if Nirnsteel_UI.Crosshair then Nirnsteel_UI.Crosshair:RefreshSettings() end
+end
+
+function Settings:SetCrosshairColor(key, r, g, b)
+    if key ~= "color" and key ~= "shieldColor" then return end
+    local color = self:GetCrosshair()[key]
+    color.r = math.max(0, math.min(1, tonumber(r) or 1))
+    color.g = math.max(0, math.min(1, tonumber(g) or 1))
+    color.b = math.max(0, math.min(1, tonumber(b) or 1))
+    if Nirnsteel_UI.Crosshair then Nirnsteel_UI.Crosshair:RefreshSettings() end
 end
 
 function Settings:GetCastBar()
@@ -1426,6 +1536,100 @@ end
 
 function Settings:GetWerewolfRage()
     return self.account.modules.werewolfRage
+end
+
+function Settings:GetOverloadIndicator()
+    return self.account.modules.overloadIndicator
+end
+
+function Settings:GetOverloadIndicatorOptions()
+    local controls = {
+        { type = "description", text = "Lightning while Overload or its morphs are active." },
+    }
+    local function Option(key, name, kind, minimum, maximum, tooltip)
+        controls[#controls + 1] = {
+            type = kind, name = name, min = minimum, max = maximum, step = 1,
+            tooltip = tooltip,
+            getFunc = function() return self:GetOverloadIndicator()[key] end,
+            setFunc = function(value)
+                if minimum then value = ClampNumber(value, minimum, maximum) end
+                self:GetOverloadIndicator()[key] = value
+                if Nirnsteel_UI.OverloadIndicator then Nirnsteel_UI.OverloadIndicator:RefreshSettings() end
+            end,
+            disabled = key ~= "enabled" and function() return not self:GetOverloadIndicator().enabled end or nil,
+            default = ACCOUNT_DEFAULTS.modules.overloadIndicator[key],
+        }
+    end
+    Option("enabled", "Enable Overload Indicator", "checkbox")
+    Option("unlocked", "Unlock Overload Position", "checkbox", nil, nil,
+        "Show a sample while this settings panel is open. Drag the lightning to move it, then lock it again to save the position.")
+    Option("verticalStrike", "Vertical Lightning", "checkbox", nil, nil, "Drop a lightning bolt from above when Overload is switched on. Can be disabled independently of the horizontal activation burst.")
+    Option("activationBurst", "Activation Burst", "checkbox", nil, nil, "Play a horizontal lightning discharge when Overload is switched on.")
+    Option("scale", "Scale (%)", "slider", 60, 180)
+    Option("opacity", "Opacity (%)", "slider", 20, 100)
+    Option("animationIntensity", "Lightning Intensity", "slider", 0, 150,
+        "Adjust the glow and electrical pulse. Zero shows a static lightning indicator without entrance effects.")
+    controls[#controls + 1] = {
+        type = "button", name = "Preview Lightning", width = "half",
+        tooltip = "Play the activation burst and continuous lightning for six seconds.",
+        func = function() if Nirnsteel_UI.OverloadIndicator then Nirnsteel_UI.OverloadIndicator:Preview() end end,
+        disabled = function() return not self:GetOverloadIndicator().enabled end,
+    }
+    controls[#controls + 1] = {
+        type = "button", name = "Reset Lightning Position", width = "half",
+        tooltip = "Anchor the lightning below the action bar again.",
+        func = function()
+            local settings = self:GetOverloadIndicator()
+            settings.customPosition, settings.x, settings.y = false, 0, -48
+            if Nirnsteel_UI.OverloadIndicator then Nirnsteel_UI.OverloadIndicator:RefreshSettings() end
+        end,
+        disabled = function() return not self:GetOverloadIndicator().enabled end,
+    }
+    return controls
+end
+
+function Settings:GetMagmaArmorIndicator()
+    return self.account.modules.magmaArmorIndicator
+end
+
+function Settings:GetMagmaArmorIndicatorOptions()
+    local controls = {
+        { type = "description", text = "Lava and rocks while Magma Armor or its morphs are active." },
+    }
+    local function Option(key, name, kind, minimum, maximum, tooltip)
+        controls[#controls + 1] = {
+            type = kind, name = name, min = minimum, max = maximum, step = 1, tooltip = tooltip,
+            getFunc = function() return self:GetMagmaArmorIndicator()[key] end,
+            setFunc = function(value)
+                if minimum then value = ClampNumber(value, minimum, maximum) end
+                self:GetMagmaArmorIndicator()[key] = value
+                if Nirnsteel_UI.MagmaArmorIndicator then Nirnsteel_UI.MagmaArmorIndicator:RefreshSettings() end
+            end,
+            disabled = key ~= "enabled" and function() return not self:GetMagmaArmorIndicator().enabled end or nil,
+            default = ACCOUNT_DEFAULTS.modules.magmaArmorIndicator[key],
+        }
+    end
+    Option("enabled", "Enable Magma Armor Indicator", "checkbox")
+    Option("unlocked", "Unlock Magma Position", "checkbox", nil, nil, "Show a sample while settings are open. Drag it to move the indicator.")
+    Option("activationBurst", "Activation Eruption", "checkbox", nil, nil, "Erupt with lava, rocks and embers when the ability activates.")
+    Option("scale", "Scale (%)", "slider", 60, 180)
+    Option("opacity", "Opacity (%)", "slider", 20, 100)
+    Option("animationIntensity", "Magma Intensity", "slider", 0, 150, "Adjust the molten glow. Zero shows static lava and rocks without the eruption.")
+    controls[#controls + 1] = {
+        type = "button", name = "Preview Magma", width = "half",
+        func = function() if Nirnsteel_UI.MagmaArmorIndicator then Nirnsteel_UI.MagmaArmorIndicator:Preview() end end,
+        disabled = function() return not self:GetMagmaArmorIndicator().enabled end,
+    }
+    controls[#controls + 1] = {
+        type = "button", name = "Reset Magma Position", width = "half",
+        func = function()
+            local settings = self:GetMagmaArmorIndicator()
+            settings.customPosition, settings.x, settings.y = false, 0, -48
+            if Nirnsteel_UI.MagmaArmorIndicator then Nirnsteel_UI.MagmaArmorIndicator:RefreshSettings() end
+        end,
+        disabled = function() return not self:GetMagmaArmorIndicator().enabled end,
+    }
+    return controls
 end
 
 function Settings:GetQuestTracker()
@@ -1811,6 +2015,17 @@ function Settings:SetImmersiveTeleportEnabled(value)
     self.account.modules.immersiveTeleport.enabled = value
     if Nirnsteel_UI.ImmersiveTeleport then
         Nirnsteel_UI.ImmersiveTeleport:RefreshSettings()
+    end
+end
+
+function Settings:IsEnchantConfirmationEnabled()
+    return self.account.modules.enchantConfirmation.enabled
+end
+
+function Settings:SetEnchantConfirmationEnabled(value)
+    self.account.modules.enchantConfirmation.enabled = value == true
+    if Nirnsteel_UI.EnchantConfirmation then
+        Nirnsteel_UI.EnchantConfirmation:RefreshSettings()
     end
 end
 
@@ -2661,7 +2876,7 @@ function Settings:BuildGroupFramesOptions()
     end)
 
     Header("Bar Appearance")
-    Checkbox("NirnSteel Iron Borders", "rpgBorder")
+    Checkbox("Theme Borders", "rpgBorder", "Use the global theme's decorative frames on these bars.")
     Checkbox("Gloss", "glossEnabled", nil)
     Checkbox("Bar Pattern", "patternEnabled", nil)
     Dropdown("Pattern", "patternKey", nil,
@@ -2899,7 +3114,7 @@ function Settings:BuildTargetFrameOptions()
     end)
 
     Header("Bar Appearance")
-    Checkbox("NirnSteel Iron Borders", "rpgBorder")
+    Checkbox("Theme Borders", "rpgBorder", "Use the global theme's decorative frame on the target bar.")
     Checkbox("Gloss", "glossEnabled")
     Checkbox("Fill Pattern", "barPatternEnabled")
     Dropdown("Fill Pattern Type", "barPatternKey", nil,
@@ -3041,7 +3256,10 @@ function Settings:BuildMinimapControls()
     Header("Appearance")
     Slider("Map Opacity", "mapOpacity", 0, 100)
     Slider("Frame Opacity", "frameOpacity", 0, 100)
-    Slider("Border Thickness", "borderThickness", 1, 6)
+    Slider("Border Thickness", "borderThickness", 1, 6, 1, {
+        tooltip = "Adjust the frame thickness, including Minimal's black border. Bronze uses a fixed sculpted bevel.",
+        disabled = function() return self:GetTheme() == "bronze" end,
+    })
     for _, entry in ipairs({ { "Border Color", "borderColor" }, { "Accent Color", "accentColor" } }) do
         local name, key = entry[1], entry[2]
         controls[#controls + 1] = {
@@ -3049,7 +3267,11 @@ function Settings:BuildMinimapControls()
             getFunc = function() local c = self:GetMinimap()[key]; return c.r, c.g, c.b, 1 end,
             setFunc = function(r, g, b) self:SetMinimapValue(key, { r = r, g = g, b = b }) end,
             default = { r = MINIMAP_DEFAULTS[key].r, g = MINIMAP_DEFAULTS[key].g, b = MINIMAP_DEFAULTS[key].b, a = 1 },
-            disabled = function() return not self:GetMinimap().enabled end,
+            tooltip = "Customize the Nirnsteel palette. Bronze uses its own metal and accent colors.",
+            disabled = function()
+                return not self:GetMinimap().enabled or self:GetTheme() == "bronze"
+                    or (key == "borderColor" and self:GetTheme() == "minimal")
+            end,
         }
     end
     Add("checkbox", "Frame Shadow", "shadow")
@@ -3126,6 +3348,17 @@ function Settings:RegisterAddonMenu()
         {
             type = "description",
             text = "Most settings are account wide",
+            nirnsteelGlobal = true,
+        },
+        {
+            type = "dropdown",
+            name = "Theme",
+            nirnsteelGlobal = true,
+            choices = Nirnsteel_UI.Themes.choices,
+            choicesValues = Nirnsteel_UI.Themes.values,
+            getFunc = function() return Nirnsteel_UI.Themes:Normalize(self:GetTheme()) end,
+            setFunc = function(value) self:SetTheme(value) end,
+            default = ACCOUNT_DEFAULTS.theme,
         },
         {
             type = "submenu",
@@ -3144,9 +3377,132 @@ function Settings:RegisterAddonMenu()
         },
         {
             type = "submenu",
+            name = "Class Indicators",
+            controls =
+            {
+                { type = "submenu", name = "Magma Armor Indicator", controls = self:GetMagmaArmorIndicatorOptions() },
+                { type = "submenu", name = "Overload Indicator", controls = self:GetOverloadIndicatorOptions() },
+            },
+        },
+        {
+            type = "submenu",
+            name = "Crosshair",
+            controls =
+            {
+                {
+                    type = "dropdown",
+                    name = "Visibility",
+                    tooltip = "Choose when the crosshair appears.",
+                    choices = { "Always Visible", "Interaction Only", "Hidden" },
+                    choicesValues = { "always", "interaction", "hidden" },
+                    getFunc = function() return self:GetCrosshair().visibility end,
+                    setFunc = function(value) self:SetCrosshairValue("visibility", value) end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.visibility,
+                },
+                {
+                    type = "dropdown",
+                    name = "Crosshair Style",
+                    tooltip = "Choose the crosshair shape.",
+                    choices = { "ESO Original", "Dot", "Fine Cross", "Open Cross", "Ring", "Diamond", "Chevron" },
+                    choicesValues = { "eso", "dot", "cross", "openCross", "ring", "diamond", "chevron" },
+                    getFunc = function() return self:GetCrosshair().style end,
+                    setFunc = function(value) self:SetCrosshairValue("style", value) end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.style,
+                },
+                {
+                    type = "slider",
+                    name = "Crosshair Scale",
+                    min = 50, max = 300, step = 1,
+                    getFunc = function() return self:GetCrosshair().scale end,
+                    setFunc = function(value) self:SetCrosshairValue("scale", value) end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.scale,
+                },
+                {
+                    type = "colorpicker",
+                    name = "Crosshair Color",
+                    getFunc = function()
+                        local color = self:GetCrosshair().color
+                        return color.r, color.g, color.b, 1
+                    end,
+                    setFunc = function(r, g, b) self:SetCrosshairColor("color", r, g, b) end,
+                    default = function()
+                        local color = ACCOUNT_DEFAULTS.modules.crosshair.color
+                        return color.r, color.g, color.b, 1
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Crosshair Opacity",
+                    min = 0, max = 100, step = 1,
+                    getFunc = function() return self:GetCrosshair().opacity end,
+                    setFunc = function(value) self:SetCrosshairValue("opacity", value) end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.opacity,
+                },
+                { type = "header", name = "Blocking Shield" },
+                {
+                    type = "checkbox",
+                    name = "Block Indicator",
+                    tooltip = "Show a shield while blocking, even when the crosshair is hidden.",
+                    getFunc = function() return self:GetCrosshair().blockIndicator end,
+                    setFunc = function(value) self:SetCrosshairValue("blockIndicator", value) end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.blockIndicator,
+                },
+                {
+                    type = "slider",
+                    name = "Shield Scale",
+                    min = 50, max = 300, step = 1,
+                    getFunc = function() return self:GetCrosshair().shieldScale end,
+                    setFunc = function(value) self:SetCrosshairValue("shieldScale", value) end,
+                    disabled = function() return not self:GetCrosshair().blockIndicator end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.shieldScale,
+                },
+                {
+                    type = "colorpicker",
+                    name = "Shield Color",
+                    getFunc = function()
+                        local color = self:GetCrosshair().shieldColor
+                        return color.r, color.g, color.b, 1
+                    end,
+                    setFunc = function(r, g, b) self:SetCrosshairColor("shieldColor", r, g, b) end,
+                    disabled = function() return not self:GetCrosshair().blockIndicator end,
+                    default = function()
+                        local color = ACCOUNT_DEFAULTS.modules.crosshair.shieldColor
+                        return color.r, color.g, color.b, 1
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Shield Opacity",
+                    min = 0, max = 100, step = 1,
+                    getFunc = function() return self:GetCrosshair().shieldOpacity end,
+                    setFunc = function(value) self:SetCrosshairValue("shieldOpacity", value) end,
+                    disabled = function() return not self:GetCrosshair().blockIndicator end,
+                    default = ACCOUNT_DEFAULTS.modules.crosshair.shieldOpacity,
+                },
+                { type = "header", name = "Interaction Prompt" },
+                {
+                    type = "checkbox",
+                    name = "Center Interaction Prompt",
+                    tooltip = "Use a compact, centered interaction prompt.",
+                    getFunc = function() return self:GetInteractionPrompt().centerPrompt end,
+                    setFunc = function(value) self:SetInteractionPromptValue("centerPrompt", value) end,
+                    default = ACCOUNT_DEFAULTS.modules.interactionPrompt.centerPrompt,
+                },
+            },
+        },
+        {
+            type = "submenu",
             name = "Misc",
             controls =
             {
+                {
+                    type = "checkbox",
+                    name = "Auto-fill Item Confirmation",
+                    tooltip = "Fill the confirmation word when enchanting or improving locked items.",
+                    getFunc = function() return self:IsEnchantConfirmationEnabled() end,
+                    setFunc = function(value) self:SetEnchantConfirmationEnabled(value) end,
+                    default = ACCOUNT_DEFAULTS.modules.enchantConfirmation.enabled,
+                },
                 {
                     type = "checkbox",
                     name = "Immersive Teleport",
@@ -4286,7 +4642,7 @@ function Settings:RegisterAddonMenu()
                 {
                     type = "checkbox",
                     name = "Enable Action Bar Frames",
-                    tooltip = "Restyle action bar buttons and highlight ready ultimates and quickslot cooldowns.",
+                    tooltip = "Restyle action bar buttons and highlight ready ultimates, skill procs and quickslot cooldowns.",
                     getFunc = function() return self:IsActionBarFramesEnabled() end,
                     setFunc = function(value) self:SetActionBarFramesEnabled(value) end,
                     default = ACCOUNT_DEFAULTS.modules.actionBarFrames.enabled,
@@ -4294,7 +4650,8 @@ function Settings:RegisterAddonMenu()
                 {
                     type = "dropdown",
                     name = "Frame Style",
-                    choices = { "NirnSteel", "Original", "None" },
+                    choices = { "Use Theme", "Original", "None" },
+                    tooltip = "Use Theme follows the global selector at the top of this panel. Original and None override it for action slots.",
                     choicesValues = { "rpg", "original", "none" },
                     getFunc = function() return self:GetActionBarFrames().frameStyle or "rpg" end,
                     setFunc = function(value)
@@ -4943,7 +5300,8 @@ function Settings:RegisterAddonMenu()
                 },
                 {
                     type = "checkbox",
-                    name = "NirnSteel Iron Borders",
+                    name = "Theme Borders",
+                    tooltip = "Use the global theme's decorative frames on the resource bars.",
                     getFunc = function() return self:GetResourceBars().rpgBorder == true end,
                     setFunc = function(value) self:SetResourceBarsValue("rpgBorder", value) end,
                     default = ACCOUNT_DEFAULTS.modules.resourceBars.rpgBorder,
@@ -5381,6 +5739,14 @@ function Settings:RegisterAddonMenu()
         },
     }
     options[#options + 1] = { type = "submenu", name = "Minimap", controls = self:BuildMinimapControls() }
+    if Nirnsteel_UI.Presets then
+        options[#options + 1] = {
+            type = "submenu", name = "Presets", nirnsteelGlobal = true,
+            tooltip = "Save and load all addon settings and Edit HUD layouts for keyboard and gamepad. Presets are shared across your characters on this server.",
+            controls = Nirnsteel_UI.Presets:GetOptions(),
+        }
+        options[#options + 1] = { type = "divider", height = 20, alpha = 0.35, nirnsteelGlobal = true }
+    end
     if Nirnsteel_UI.HUDEditor then Nirnsteel_UI.HUDEditor:ConfigureSettings(options) end
     options = ConfigureModuleMenuOptions(options)
 
@@ -5399,6 +5765,12 @@ function Settings:RegisterAddonMenu()
             end
             if panel and panel:GetName() == panelName and Nirnsteel_UI.SynergyAlert then
                 Nirnsteel_UI.SynergyAlert:SetSettingsPanelVisible(visible)
+            end
+            if panel and panel:GetName() == panelName and Nirnsteel_UI.OverloadIndicator then
+                Nirnsteel_UI.OverloadIndicator:SetSettingsPanelVisible(visible)
+            end
+            if panel and panel:GetName() == panelName and Nirnsteel_UI.MagmaArmorIndicator then
+                Nirnsteel_UI.MagmaArmorIndicator:SetSettingsPanelVisible(visible)
             end
         end)
     end

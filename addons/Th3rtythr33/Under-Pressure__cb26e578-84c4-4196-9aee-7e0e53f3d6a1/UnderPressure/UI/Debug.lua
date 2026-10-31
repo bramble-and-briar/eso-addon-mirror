@@ -159,6 +159,9 @@ function UP.Debug.Refresh()
                     and "HELD (died plagued; clears on respawn)" or "no"),
             (UP.PlagueTint and UP.PlagueTint.IsPreviewActive and UP.PlagueTint.IsPreviewActive())
                 and "  +PREVIEW" or ""),
+        -- Groupmate plague (0.5.7): off, none, or who carries one and for how long.
+        ("groupPlague=%s"):format(
+            (UP.PlagueGroup and UP.PlagueGroup.Summary) and UP.PlagueGroup.Summary(GetGameTimeMilliseconds()) or "n/a"),
         -- Pull detection (0.4.2): off / armed / a live warning with its set.
         ("pull=%s%s"):format(
             (UP.Pull and UP.Pull.Enabled and not UP.Pull.Enabled()) and "off"
@@ -181,8 +184,6 @@ function UP.Debug.Refresh()
             return ("shown: plagueCorners=%s plagueCentre=%s pullCorners=%s pullCentre=%s pullBorders=%s"):format(
                 yn(pc), yn(ps), yn(uc), yn(us), yn(ub))
         end)(),
-        -- No More Oopsies (0.5.5): the first-person guard's state.
-        (UP.FirstPersonGuard and UP.FirstPersonGuard.GetReport) and UP.FirstPersonGuard.GetReport() or "fpGuard=n/a",
         ("dmgEvts=%d  activeDebuffs=%d  cand=%s"):format(
             s.damageEventCount or 0, effectCount, tostring(s.candidateState)),
         "--- recent events ---",

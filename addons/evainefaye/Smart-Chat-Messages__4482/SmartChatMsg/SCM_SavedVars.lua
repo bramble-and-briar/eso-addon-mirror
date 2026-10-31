@@ -10,6 +10,8 @@ SmartChatMsg.defaults = {
     chatChannels = {}, -- [commandId] = { [guildKey] = "Zone"|"Guild"|"Officer" }
     schedulingTimeZone = "ET",
     guildSchedulingTimeZones = {},
+    guildRoster = {}, -- Recipient membership metadata; never part of portable settings.
+    guildRosterUpdatedAt = nil,
     commandGuildSettings = {}, -- [commandId] = { [guildKey] = { reminderMinutes = n|nil, reminderRetryMinutes = n, autoPopulateOnZone = bool, autoPopulateCooldownMinutes = n, runAt = "ON_DEMAND"|"STARTUP"|"SCHEDULED", openStatusPanelOnRun = bool, populateSound = "DUEL_START"|"NONE"|soundKey, lastUsedAt = unixTime|nil, lastUsedParamText = "..."|nil, lastUsedGuildIndex = n|nil, lastAutoPopulateSentAtByZone = { [zoneKey] = unixTime, ... } }, ... }
 
     selectedMessagesCommand = nil, -- commandId
@@ -20,6 +22,7 @@ SmartChatMsg.defaults = {
     revertChatSeconds = 60,
     activeAutoPopulate = nil, -- { commandId = "...", guildName = "..." }
     globalExecutionStatus = "available",
+    scheduledSendingEnabled = true,
     statusPanelState = {
         visible = false,
         offsetX = -40,
@@ -27,8 +30,65 @@ SmartChatMsg.defaults = {
     },
 }
 
+local function rosterInteger(value,min,max)
+    return type(value)=='number' and value==math.floor(value) and value>=min and value<=max
+end
+local function cleanGuildRoster(self,raw)
+    if type(raw)~='table' then return nil end
+    local result,ids,slots={},{},{}
+    for index,row in ipairs(raw) do
+        if index>5 or type(row)~='table' or not rosterInteger(row.guildId,1,9007199254740991)
+            or not rosterInteger(row.guildIndex,1,5) or type(row.guildName)~='string'
+            or self:Trim(row.guildName)=='' or ids[row.guildId] or slots[row.guildIndex] then return nil end
+        result[index]={guildId=row.guildId,guildIndex=row.guildIndex,guildName=self:Trim(row.guildName)}
+        ids[row.guildId],slots[row.guildIndex]=true,true
+    end
+    for key in pairs(raw) do if not rosterInteger(key,1,#result) then return nil end end
+    return result
+end
+
+-- Commit only a complete valid response. Startup can precede guild API readiness;
+-- player activation and self-membership events can confirm an actually empty roster.
+function SmartChatMsg:RefreshGuildRoster(allowEmpty)
+    if not self.savedVars or type(GetGuildId)~='function' or type(GetGuildName)~='function' then return false end
+    local expected
+    if type(GetNumGuilds)=='function' then
+        local ok,count=pcall(GetNumGuilds)
+        if not ok or not rosterInteger(count,0,5) then return false end
+        expected=count
+    end
+    local snapshot,ids={},{}
+    for slot=1,5 do
+        local ok,id=pcall(GetGuildId,slot)
+        if not ok or not rosterInteger(id,0,9007199254740991) then return false end
+        if id~=0 then
+            if ids[id] then return false end
+            local nameOk,name=pcall(GetGuildName,id)
+            if not nameOk or type(name)~='string' or self:Trim(name)=='' then return false end
+            snapshot[#snapshot+1]={guildId=id,guildIndex=slot,guildName=self:Trim(name)};ids[id]=true
+        end
+    end
+    if expected and expected~=#snapshot or #snapshot==0 and not allowEmpty then return false end
+    local clockOk,updatedAt=pcall(GetTimeStamp)
+    if not clockOk or not rosterInteger(updatedAt,0,9007199254740991) then return false end
+    self.savedVars.guildRoster,self.savedVars.guildRosterUpdatedAt=snapshot,updatedAt
+    return true
+end
+
+function SmartChatMsg:RegisterGuildRosterEvents()
+    for _,event in ipairs({EVENT_GUILD_SELF_JOINED or false,EVENT_GUILD_SELF_LEFT or false}) do
+        if event then
+            EVENT_MANAGER:RegisterForEvent(self.name..'_GuildRoster'..tostring(event),event,function() self:RefreshGuildRoster(true) end)
+        end
+    end
+end
+
 function SmartChatMsg:InitializeSavedVars()
     self.savedVars = ZO_SavedVars:NewAccountWide("SmartChatMsgSavedVars", 1, nil, self.defaults)
+    local roster=cleanGuildRoster(self,self.savedVars.guildRoster)
+    self.savedVars.guildRoster=roster or {}
+    if not roster or not rosterInteger(self.savedVars.guildRosterUpdatedAt,0,9007199254740991) then self.savedVars.guildRosterUpdatedAt=nil end
+    self:RefreshGuildRoster(false)
     if type(self.savedVars.guildSchedulingTimeZones)~="table" then self.savedVars.guildSchedulingTimeZones={} end
     local guildZones={}
     for guild,zone in pairs(self.savedVars.guildSchedulingTimeZones) do
@@ -146,19 +206,21 @@ function SmartChatMsg:InitializeSavedVars()
                     end
 
                     cleanedByGuild[normalizedGuildKey] = {
+                        disabledMessageIds = self:NormalizeDisabledMessageIds(settings.disabledMessageIds),
                         reminderMinutes = self:NormalizeReminderMinutes(settings.reminderMinutes),
                         reminderRetryMinutes = self:NormalizeReminderRetryMinutes(settings.reminderRetryMinutes),
                         autoPopulateOnZone = self:NormalizeAutoPopulateOnZone(settings.autoPopulateOnZone),
                         autoPopulateCooldownMinutes = self:NormalizeAutoPopulateCooldownMinutes(settings.autoPopulateCooldownMinutes),
                         runAt = self:NormalizeRunAt(settings.runAt),
                         openStatusPanelOnRun = self:NormalizeOpenStatusPanelOnRun(settings.openStatusPanelOnRun),
+                        condensedDateTime = settings.condensedDateTime == true,
                         populateSound = self:NormalizePopulateSound(settings.populateSound),
                         lastUsedAt = (type(settings.lastUsedAt) == "number" and settings.lastUsedAt >= 0) and math.floor(settings.lastUsedAt) or nil,
                         lastUsedParamText = self:Trim(settings.lastUsedParamText or ""),
                         lastUsedGuildIndex = (type(settings.lastUsedGuildIndex) == "number" and settings.lastUsedGuildIndex >= 1 and settings.lastUsedGuildIndex <= 5 and settings.lastUsedGuildIndex == math.floor(settings.lastUsedGuildIndex)) and settings.lastUsedGuildIndex or nil,
                         lastAutoPopulateSentAtByZone = cleanedZoneTimestamps,
                         observedChatCooldowns = self:NormalizeObservedChatCooldowns(settings.observedChatCooldowns),
-                        schedule = self:NormalizeSchedule(settings.schedule),
+                        schedule = type(settings.schedule)=='table' and settings.schedule.timelineVersion==1 and self:NormalizeSchedule(settings.schedule) or nil,
                     }
 
                     if cleanedByGuild[normalizedGuildKey].lastUsedParamText == "" then
@@ -215,6 +277,7 @@ function SmartChatMsg:InitializeSavedVars()
                     if settings.openStatusPanelOnRun == nil then
                         settings.openStatusPanelOnRun = self:NormalizeOpenStatusPanelOnRun(nil)
                     end
+                    settings.condensedDateTime = settings.condensedDateTime == true
                     if settings.populateSound == nil then
                         settings.populateSound = self:NormalizePopulateSound(nil)
                     end
@@ -228,6 +291,8 @@ function SmartChatMsg:InitializeSavedVars()
     local seenMessageIds = {}
     for _, entry in ipairs(self.savedVars.messages) do
         if type(entry) == "table" then
+            entry.name = self:NormalizeMessageName(entry.name)
+            entry.displayOrder = self:NormalizeMessageDisplayOrder(entry.displayOrder)
             local entryId = entry.id
             if type(entryId) ~= "string" or entryId == "" or seenMessageIds[entryId] then
                 entryId = self:GenerateUuid()
@@ -240,6 +305,25 @@ function SmartChatMsg:InitializeSavedVars()
             seenMessageIds[entryId] = true
         end
     end
+end
+
+function SmartChatMsg:CountMessageCharacters(text)
+    return select(2,tostring(text or ""):gsub("[^\128-\191]", ""))
+end
+
+-- Optional editor metadata never changes message text or randomized selection.
+function SmartChatMsg:NormalizeMessageName(value)
+    if type(value) ~= "string" then return nil end
+    local name = self:Trim(value)
+    if name == "" or #name > 240 or select(2,name:gsub("[^\128-\191]", "")) > 60 then return nil end
+    return name
+end
+
+function SmartChatMsg:NormalizeMessageDisplayOrder(value)
+    if type(value) == "number" and value >= 1 and value <= 1000000 and value == math.floor(value) then
+        return value
+    end
+    return nil
 end
 
 function SmartChatMsg:Trim(value)
@@ -422,7 +506,7 @@ function SmartChatMsg:UnescapeImportExportField(value)
     return text
 end
 
-function SmartChatMsg:BuildExportString()
+function SmartChatMsg:BuildSlotExportString()
     local lines = { "SCM_EXPORT_V1" }
 
     table.insert(lines, string.format("DEFAULT|%s", self:EscapeImportExportField(self.savedVars.defaultGuildIndex or "")))
@@ -457,6 +541,8 @@ function SmartChatMsg:BuildExportString()
                 self:EscapeImportExportField(entry.text or ""),
                 self:EscapeImportExportField(entry.lastUsedAt or ""),
                 self:EscapeImportExportField(entry.useCount or ""),
+                self:EscapeImportExportField(self:NormalizeMessageName(entry.name) or ""),
+                self:EscapeImportExportField(self:NormalizeMessageDisplayOrder(entry.displayOrder) or ""),
             }, "|"))
         end
     end
@@ -478,6 +564,11 @@ function SmartChatMsg:BuildExportString()
         if type(byGuild) == "table" then
             for guildKey, settings in pairs(byGuild) do
                 if type(settings) == "table" then
+                    for messageId in pairs(self:NormalizeDisabledMessageIds(settings.disabledMessageIds)) do
+                        if not self:IsMessageLocked(messageId) then
+                            lines[#lines+1]=table.concat({'MESSAGEPOOL_V1',self:EscapeImportExportField(commandId),self:EscapeImportExportField(guildKey),self:EscapeImportExportField(messageId)},'|')
+                        end
+                    end
                     local zonePairs = {}
                     if type(settings.lastAutoPopulateSentAtByZone) == "table" then
                         for zoneKey, timestamp in pairs(settings.lastAutoPopulateSentAtByZone) do
@@ -502,6 +593,7 @@ function SmartChatMsg:BuildExportString()
                         self:EscapeImportExportField(settings.populateSound or "DUEL_START"),
                         self:EscapeImportExportField(settings.runAt or "ON_DEMAND"),
                         self:EscapeImportExportField(settings.openStatusPanelOnRun == true and "1" or "0"),
+                        self:EscapeImportExportField(settings.condensedDateTime == true and "1" or "0"),
                     }, "|"))
                 end
             end
@@ -566,6 +658,15 @@ function SmartChatMsg:PreserveLockedMessages(imported)
                 local guild=self:NormalizeKey(entry.guildName or self:GetGuildNameByIndex(entry.guildIndex))
                 local localSchedule=guild and self:GetGuildSchedule(entry.commandId,guild)
                 local newSettings=guild and imported.commandGuildSettings and imported.commandGuildSettings[command.id] and imported.commandGuildSettings[command.id][guild]
+                local oldSettings=guild and self:GetCommandGuildSettings(entry.commandId,guild,false)
+                if not newSettings and oldSettings and oldSettings.disabledMessageIds and oldSettings.disabledMessageIds[entry.id]==true then
+                    imported.commandGuildSettings[command.id]=imported.commandGuildSettings[command.id] or {}
+                    newSettings={};imported.commandGuildSettings[command.id][guild]=newSettings
+                end
+                if newSettings then
+                    newSettings.disabledMessageIds=newSettings.disabledMessageIds or {}
+                    newSettings.disabledMessageIds[entry.id]=oldSettings and oldSettings.disabledMessageIds and oldSettings.disabledMessageIds[entry.id]==true and true or nil
+                end
                 if localSchedule and newSettings and newSettings.schedule then
                     newSettings.schedule.messagePhases[kept.id]=clone(localSchedule.messagePhases[entry.id])
                     newSettings.schedule.messageVariants[kept.id]=localSchedule.messageVariants[entry.id]
@@ -580,7 +681,54 @@ function SmartChatMsg:ApplyImportedSettings(imported)
         return false, "Import data is invalid."
     end
 
+    for _,guilds in pairs(imported.commandGuildSettings or {}) do for _,settings in pairs(guilds) do
+        if settings.schedule and (type(settings.schedule)~='table' or settings.schedule.timelineVersion~=1) then return false,'Unsupported schedule format. Only Period Timeline schedules can be imported; older schedules are not converted.' end
+    end end
+
+    for _,command in ipairs(imported.commands or {}) do if self:IsReservedCommandName(command.name) then return false,'Imported command name is reserved: '..tostring(command.name) end end
+
+    -- Resolve a locked activity by stable ID first, then by a unique exact name.
+    -- This supports portable imports from independently created rotations without
+    -- orphaning the local locked message's group.
+    for _,entry in ipairs(self.savedVars.messages or {}) do
+        if entry.locked then
+            local command
+            local name=self:GetCommandNameById(entry.commandId)
+            for _,candidate in ipairs(imported.commands or {}) do
+                if candidate.id==entry.commandId or name and zo_strlower(candidate.name)==zo_strlower(name) then command=candidate;break end
+            end
+            local guild=self:NormalizeKey(entry.guildName or self:GetGuildNameByIndex(entry.guildIndex))
+            local old=guild and self:GetGuildSchedule(entry.commandId,guild)
+            local settings=command and guild and imported.commandGuildSettings[command.id] and imported.commandGuildSettings[command.id][guild]
+            local target=settings and settings.schedule
+            local group=old and (old.messageVariants or {})[entry.id]
+            local oldActivity
+            for _,activity in ipairs(old and old.rotationEvents or {}) do if activity.id==group then oldActivity=activity end end
+            if oldActivity and target then
+                local sameId,byName,count,localCount=nil,nil,0,0
+                for _,activity in ipairs(old.rotationEvents) do if activity.name==oldActivity.name then localCount=localCount+1 end end
+                for _,activity in ipairs(target.rotationEvents or {}) do
+                    if activity.id==group then sameId=activity end
+                    if activity.name==oldActivity.name then byName=activity;count=count+1 end
+                end
+                if not sameId then
+                    if count~=1 or localCount~=1 then return false,'Import cannot preserve locked activity group for '..entry.id..': activity is missing or its name is ambiguous.' end
+                    local foreignId=byName.id;byName.id=group
+                    for id,variant in pairs(target.messageVariants or {}) do if variant==foreignId then target.messageVariants[id]=group end end
+                end
+            end
+        end
+    end
     self:PreserveLockedMessages(imported)
+    for _,guilds in pairs(imported.commandGuildSettings or {}) do
+        for _,settings in pairs(guilds) do
+            if settings.schedule then
+                local normalized,reason=self:NormalizeSchedule(settings.schedule)
+                if not normalized then return false,'Import cannot preserve locked schedule groups: '..tostring(reason) end
+                settings.schedule=normalized
+            end
+        end
+    end
     self.savedVars.commands = imported.commands or {}
     self.savedVars.messages = imported.messages or {}
     self.savedVars.chatChannels = imported.chatChannels or {}
@@ -605,7 +753,7 @@ function SmartChatMsg:ApplyImportedSettings(imported)
     return true
 end
 
-function SmartChatMsg:ImportSettingsFromString(rawText)
+function SmartChatMsg:ImportSlotSettingsFromString(rawText, transfer)
     local text = self:Trim(rawText or "")
     if text == "" then
         return false, "Paste exported settings first."
@@ -624,6 +772,7 @@ function SmartChatMsg:ImportSettingsFromString(rawText)
     end
 
     local imported = {
+        _presentGlobals = {},
         commands = {},
         messages = {},
         chatChannels = {},
@@ -636,6 +785,7 @@ function SmartChatMsg:ImportSettingsFromString(rawText)
     local commandIds = {}
     local messageIds = {}
     local scheduleRecords = {}
+    local disabledMessageRecords = {}
 
     for index = 2, #lines do
         local line = lines[index]
@@ -649,8 +799,9 @@ function SmartChatMsg:ImportSettingsFromString(rawText)
         end
 
         local recordType = table.remove(parts, 1)
+        if recordType=='DEFAULT' or recordType=='GENERALREVERT' or recordType=='GENERALTIMEZONE' or recordType=='STATUSPANEL' then imported._presentGlobals[recordType]=true end
 
-        if recordType == "SCHEDULE_V1" or recordType == "SCHEDULEMESSAGE_V1" or recordType == "SCHEDULEOPTIONS_V1" or recordType=="SCHEDULEPATTERN_V1" or recordType=="SCHEDULEVARIANT_V1" then
+        if recordType=="SCHEDULEDAILYLIMIT_V1" or recordType=="SCHEDULEAVAILABILITY_V1" or recordType=="SCHEDULEAVAILABILITYDAY_V1" or recordType=="SCHEDULEMONTHLY_V1" or recordType=="SCHEDULEEVENTROTATION_V1" or recordType=="SCHEDULEACTIVITY_V1" or recordType=="SCHEDULEEXCEPTION_V1" or recordType == "SCHEDULE_V1" or recordType == "SCHEDULEMESSAGE_V1" or recordType == "SCHEDULEOPTIONS_V1" or recordType=="SCHEDULEPATTERN_V1" or recordType=="SCHEDULEVARIANT_V1" or recordType=="SCHEDULETIMELINE_V1" or recordType=="SCHEDULEMARK_V1" or recordType=="SCHEDULEROW_V1" or recordType=="SCHEDULEPOOL_V1" or recordType=="SCHEDULEUSAGE_V1" then
             table.insert(parts, 1, recordType)
             scheduleRecords[#scheduleRecords + 1] = parts
         elseif recordType == "DEFAULT" then
@@ -678,6 +829,7 @@ function SmartChatMsg:ImportSettingsFromString(rawText)
         elseif recordType == "COMMAND" then
             local id = self:UnescapeImportExportField(parts[1] or "")
             local name = self:SanitizeCommandName(self:UnescapeImportExportField(parts[2] or ""))
+            if self:IsReservedCommandName(name) then return false,"Imported command name is reserved: "..name end
             local reminderMinutes = self:NormalizeReminderMinutes(self:UnescapeImportExportField(parts[3] or ""))
             local lastUsedAt = nil
 
@@ -715,6 +867,8 @@ function SmartChatMsg:ImportSettingsFromString(rawText)
             local messageText = self:Trim(self:UnescapeImportExportField(parts[5] or ""))
             local lastUsedAt = tonumber(self:UnescapeImportExportField(parts[6] or ""))
             local useCount = tonumber(self:UnescapeImportExportField(parts[7] or ""))
+            local messageName = self:NormalizeMessageName(self:UnescapeImportExportField(parts[8] or ""))
+            local displayOrder = self:NormalizeMessageDisplayOrder(tonumber(self:UnescapeImportExportField(parts[9] or "")))
 
             if id ~= "" and not messageIds[id] and commandIds[commandId] and messageText ~= "" then
                 messageIds[id] = true
@@ -726,8 +880,16 @@ function SmartChatMsg:ImportSettingsFromString(rawText)
                     text = messageText,
                     lastUsedAt = lastUsedAt and math.floor(lastUsedAt) or nil,
                     useCount = useCount and math.floor(useCount) or nil,
+                    name = messageName,
+                    displayOrder = displayOrder,
                 })
             end
+        elseif recordType=='MESSAGEPOOL_V1' then
+            local commandId=self:UnescapeImportExportField(parts[1] or '')
+            local guild=self:NormalizeKey(self:UnescapeImportExportField(parts[2] or ''))
+            local messageId=self:UnescapeImportExportField(parts[3] or '')
+            if not commandIds[commandId] or not guild or guild=='' or messageId=='' or #parts~=3 then return false,'Invalid ordinary message pool record.' end
+            disabledMessageRecords[#disabledMessageRecords+1]={commandId=commandId,guild=guild,messageId=messageId}
         elseif recordType == "CHANNEL" then
             local commandId = self:UnescapeImportExportField(parts[1] or "")
             local guildKey = self:NormalizeKey(self:UnescapeImportExportField(parts[2] or ""))
@@ -839,6 +1001,7 @@ elseif recordType == "GUILDSETTING" then
                     populateSound = self:NormalizePopulateSound(populateSound),
                     runAt = self:NormalizeRunAt(runAt),
                     openStatusPanelOnRun = self:NormalizeOpenStatusPanelOnRun(openStatusPanelOnRun),
+                    condensedDateTime = self:UnescapeImportExportField(parts[14] or "") == "1",
                 }
             end
         elseif recordType == "ACTIVE" then
@@ -853,9 +1016,20 @@ elseif recordType == "GUILDSETTING" then
         end
     end
 
+    for _,record in ipairs(disabledMessageRecords) do
+        imported.commandGuildSettings[record.commandId]=imported.commandGuildSettings[record.commandId] or {}
+        local guilds=imported.commandGuildSettings[record.commandId];guilds[record.guild]=guilds[record.guild] or {}
+        guilds[record.guild].disabledMessageIds=guilds[record.guild].disabledMessageIds or {}
+        guilds[record.guild].disabledMessageIds[record.messageId]=true
+    end
+    if transfer then self:RemapImportedGuildSlots(imported,transfer) end
     local schedulesOk, schedulesError = self:ImportScheduleRecords(scheduleRecords, imported)
     if not schedulesOk then return false, schedulesError end
-    return self:ApplyImportedSettings(imported)
+    local ok,reason=self:ApplyImportedSettings(imported)
+    if ok and transfer then
+        for _,notice in ipairs(transfer.notices) do self:AddLocalChatMessage(notice) end
+    end
+    return ok,reason
 end
 
 function SmartChatMsg:GetCommands()
@@ -926,6 +1100,34 @@ function SmartChatMsg:GetCommandGuildSettings(commandId, guildName, createIfMiss
     return byGuild[guildKey]
 end
 
+function SmartChatMsg:NormalizeDisabledMessageIds(raw)
+    local result={}
+    for id,value in pairs(type(raw)=='table' and raw or {}) do if type(id)=='string' and id~='' and value==true then result[id]=true end end
+    return result
+end
+function SmartChatMsg:IsOrdinaryMessageEnabled(commandId,guildName,messageId)
+    local settings=self:GetCommandGuildSettings(commandId,guildName,false)
+    return not (settings and type(settings.disabledMessageIds)=='table' and settings.disabledMessageIds[messageId]==true)
+end
+function SmartChatMsg:SetOrdinaryMessageEnabled(commandId,guildName,messageId,enabled)
+    local found=false
+    for _,entry in ipairs(self:GetMessageEntriesForCommandAndGuild(commandId,guildName)) do if entry.id==messageId then found=true;break end end
+    if not found then return false,'Message not found for this command and guild.' end
+    local settings=self:GetCommandGuildSettings(commandId,guildName,true)
+    settings.disabledMessageIds=self:NormalizeDisabledMessageIds(settings.disabledMessageIds)
+    if enabled==true then settings.disabledMessageIds[messageId]=nil else settings.disabledMessageIds[messageId]=true end
+    if enabled~=true and self:GetGuildRunAt(commandId,guildName)~='SCHEDULED' then
+        local pending=self.pendingRestoreState;local metadata=pending and pending.metadata
+        if metadata and metadata.commandId==commandId and self:StringsEqualIgnoreCase(metadata.guildName or '',guildName) and metadata.selectedEntryId==messageId then
+            local edit=self:GetChatEditControl()
+            if edit and edit.GetText and edit:GetText()==pending.rawExpectedText then self:ClearPendingChatBuffer();self:RestoreChatChannel(pending.previousChannel) end
+            self:ClearPendingRestoreState('ordinary message disabled')
+            if metadata.startupQueue then self:FinalizeStartupQueueCurrent(true,'startup message disabled') end
+        end
+    end
+    return true
+end
+
 function SmartChatMsg:GetGuildReminderMinutes(commandId, guildName)
     if self:GetGuildRunAt(commandId, guildName) == "SCHEDULED" then
         local schedule = self:GetGuildSchedule(commandId, guildName)
@@ -966,22 +1168,15 @@ function SmartChatMsg:GetGuildReminderRetryMinutes(commandId, guildName)
     return 0
 end
 
-function SmartChatMsg:GetGuildEffectiveReminderRetryMinutes(commandId, guildName)
-    local retryMinutes = self:GetGuildReminderRetryMinutes(commandId, guildName)
-    if retryMinutes == nil or retryMinutes <= 0 then
-        return 0
-    end
+function SmartChatMsg:GetGuildReminderRetryCapMinutes(commandId,guildName)
+    local repeatMinutes=self:GetGuildReminderMinutes(commandId,guildName)
+    local cooldownMinutes=self:GetGuildAutoPopulateCooldownMinutes(commandId,guildName)
+    if not repeatMinutes or repeatMinutes<=0 or not cooldownMinutes or cooldownMinutes<=0 then return 0 end
+    return math.min(repeatMinutes,cooldownMinutes)
+end
 
-    local reminderMinutes = self:GetGuildReminderMinutes(commandId, guildName)
-    if reminderMinutes == nil or reminderMinutes <= 0 then
-        return 0
-    end
-
-    if retryMinutes > reminderMinutes then
-        return reminderMinutes
-    end
-
-    return retryMinutes
+function SmartChatMsg:GetGuildEffectiveReminderRetryMinutes(commandId,guildName)
+    return math.min(self:GetGuildReminderRetryMinutes(commandId,guildName),self:GetGuildReminderRetryCapMinutes(commandId,guildName))
 end
 
 function SmartChatMsg:GetGuildAutoPopulateCooldownMinutes(commandId, guildName)
@@ -1110,6 +1305,7 @@ function SmartChatMsg:SetGuildReminderMinutes(commandId, guildName, reminderMinu
     end
 
     settings.reminderMinutes = self:NormalizeReminderMinutes(reminderMinutes)
+    settings.reminderRetryMinutes=math.min(self:NormalizeReminderRetryMinutes(settings.reminderRetryMinutes),self:GetGuildReminderRetryCapMinutes(commandId,guildName))
     return true
 end
 
@@ -1125,10 +1321,7 @@ function SmartChatMsg:SetGuildReminderRetryMinutes(commandId, guildName, retryMi
     end
 
     local normalizedRetryMinutes = self:NormalizeReminderRetryMinutes(retryMinutes)
-    local reminderMinutes = self:GetGuildReminderMinutes(commandId, guildName)
-    if reminderMinutes ~= nil and reminderMinutes > 0 and normalizedRetryMinutes > reminderMinutes then
-        normalizedRetryMinutes = reminderMinutes
-    end
+    normalizedRetryMinutes=math.min(normalizedRetryMinutes,self:GetGuildReminderRetryCapMinutes(commandId,guildName))
 
     settings.reminderRetryMinutes = normalizedRetryMinutes
     return true
@@ -1161,6 +1354,7 @@ function SmartChatMsg:SetGuildAutoPopulateCooldownMinutes(commandId, guildName, 
     end
 
     settings.autoPopulateCooldownMinutes = self:NormalizeAutoPopulateCooldownMinutes(cooldownMinutes)
+    settings.reminderRetryMinutes=math.min(self:NormalizeReminderRetryMinutes(settings.reminderRetryMinutes),self:GetGuildReminderRetryCapMinutes(commandId,guildName))
     return true
 end
 
@@ -1436,6 +1630,7 @@ end
 
 function SmartChatMsg:AddCommand(name, reminderMinutes, autoPopulateOnZone)
     local sanitized = self:SanitizeCommandName(name)
+    if self:IsReservedCommandName(sanitized) then return false,"That name is reserved for a built-in SmartChatMsg command." end
 
     if sanitized == "" then
         return false, "Command must contain at least one alphanumeric character."
@@ -1879,7 +2074,10 @@ function SmartChatMsg:GetMessageEntriesForSelection()
     return results
 end
 
-function SmartChatMsg:AddMessageEntryForSelection(text)
+function SmartChatMsg:AddMessageEntryForSelection(text, name)
+    if name~=nil and self:Trim(name)~="" and not self:NormalizeMessageName(name) then
+        return false,"Message name must be at most 60 characters."
+    end
     if not self:IsMessagesSelectionComplete() then
         return false, "Select a Command and Guild first."
     end
@@ -1903,6 +2101,7 @@ function SmartChatMsg:AddMessageEntryForSelection(text)
         guildIndex = guildIndex,
         guildName = guildName,
         text = trimmed,
+        name = self:NormalizeMessageName(name),
     }
 
     table.insert(self.savedVars.messages, entry)
@@ -1910,7 +2109,10 @@ function SmartChatMsg:AddMessageEntryForSelection(text)
     return true
 end
 
-function SmartChatMsg:UpdateMessageEntry(entryId, text)
+function SmartChatMsg:UpdateMessageEntry(entryId, text, name)
+    if name~=nil and self:Trim(name)~="" and not self:NormalizeMessageName(name) then
+        return false,"Message name must be at most 60 characters."
+    end
     local trimmed = self:Trim(text)
     if trimmed == "" then
         return false, "Message must contain at least one non-space character."
@@ -1928,6 +2130,7 @@ function SmartChatMsg:UpdateMessageEntry(entryId, text)
     for _, entry in ipairs(self.savedVars.messages) do
         if entry.id == entryId then
             entry.text = trimmed
+            if name~=nil then entry.name=self:NormalizeMessageName(name) end
             entry.commandId = commandId
             entry.guildIndex = guildIndex
             entry.guildName = guildName
@@ -1981,6 +2184,7 @@ end
 
 function SmartChatMsg:RenameCommand(commandId, newName, reminderMinutes, autoPopulateOnZone)
     local sanitizedNew = self:SanitizeCommandName(newName)
+    if self:IsReservedCommandName(sanitizedNew) then return false,"That name is reserved for a built-in SmartChatMsg command." end
 
     if sanitizedNew == "" then
         return false, "Command must contain at least one alphanumeric character."
@@ -2056,5 +2260,16 @@ function SmartChatMsg:DeleteCommand(commandId)
         self:RegisterDynamicCommands()
     end
 
+    return true
+end
+
+function SmartChatMsg:GetGuildCondensedDateTime(commandId,guildName)
+    local settings=self:GetCommandGuildSettings(commandId,guildName,false)
+    return settings and settings.condensedDateTime==true or false
+end
+function SmartChatMsg:SetGuildCondensedDateTime(commandId,guildName,value)
+    local settings=self:GetCommandGuildSettings(commandId,guildName,true)
+    if not settings then return false,'Choose a command and guild.' end
+    settings.condensedDateTime=value==true
     return true
 end

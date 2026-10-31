@@ -31,6 +31,28 @@ CMA.simpleMaterialDecisionMap = {
     ["Ignore"] = "ignore"
 }
 
+-- initial mapping of companion gear traits
+CMA.defaultCompanionGearTraits =  {
+    [ITEM_TRAIT_TYPE_ARMOR_AGGRESSIVE] = true, -- Agressive
+    [ITEM_TRAIT_TYPE_WEAPON_AGGRESSIVE] = true, -- Agressive
+    [ITEM_TRAIT_TYPE_ARMOR_AUGMENTED] = true, -- Augmented
+    [ITEM_TRAIT_TYPE_WEAPON_AUGMENTED] = true, -- Augmented
+    [ITEM_TRAIT_TYPE_ARMOR_BOLSTERED] = true, -- Bolstered
+    [ITEM_TRAIT_TYPE_WEAPON_BOLSTERED] = true, -- Bolstered
+    [ITEM_TRAIT_TYPE_ARMOR_FOCUSED] = true, -- Focused
+    [ITEM_TRAIT_TYPE_WEAPON_FOCUSED] = true, -- Focused
+    [ITEM_TRAIT_TYPE_ARMOR_PROLIFIC] = true, -- Profilic
+    [ITEM_TRAIT_TYPE_WEAPON_PROLIFIC] = true, -- Profilic
+    [ITEM_TRAIT_TYPE_ARMOR_QUICKENED] = true, -- Quickened
+    [ITEM_TRAIT_TYPE_WEAPON_QUICKENED] = true, -- Quickened
+    [ITEM_TRAIT_TYPE_ARMOR_SHATTERING] = true, -- Shattering
+    [ITEM_TRAIT_TYPE_WEAPON_SHATTERING] = true, -- Shattering
+    [ITEM_TRAIT_TYPE_ARMOR_SOOTHING] = true, -- Soothing
+    [ITEM_TRAIT_TYPE_WEAPON_SOOTHING] = true, -- Soothing
+    [ITEM_TRAIT_TYPE_ARMOR_VIGOROUS] = true,  -- Vigorous
+    [ITEM_TRAIT_TYPE_WEAPON_VIGOROUS] = true   -- Vigorous
+}
+
 -- default settings values
 CMA.savedVarsDefaults = {
     -- master toggle
@@ -68,6 +90,18 @@ CMA.savedVarsDefaults = {
     autoSellJunk = true,
     activateCustomRules = false,
     serializedCustomItemRules = "{}",
+    handleCompanionGear = false,
+    sellNotBankedCompanionGear = false,
+    bankQualityCompanionGear = "Grey",
+    companionGearTraitHandling = CMA.defaultCompanionGearTraits,
+    autoSellTreasureItems = false,
+    autoSellTrashItems = true,
+    autoSellStolenTreasureItems = false,
+    autoSellLootedPotionsAndPoisons = false,
+    bankTraitlessGear = "Ignore",
+    bankTraitlessGearThreshold = "Grey",
+    autoSellIntricateGear = false,
+    autoSellOrnateGear = false,
     -- quality thresholds
     bankQualityThresholdBlacksmithing = "Grey",
     bankQualityThresholdClothing = "Grey",
@@ -111,7 +145,7 @@ CMA.initialTimeoutName = "CraftMaterialAssistant.InitialDelayTimeout"
 -- max number of items used in a single chat message
 CMA.maxChatMessageItems = 20
 
--- array holdng the slots which have been junked - they are filled during banking and used when vendoring
+-- array holdng the uniqueId of items which have been junked - they are filled during banking and used when vendoring
 CMA.junkedIds = {}
 
 -- the item evaluation of the banking routine filtered those items to be moved to the bank

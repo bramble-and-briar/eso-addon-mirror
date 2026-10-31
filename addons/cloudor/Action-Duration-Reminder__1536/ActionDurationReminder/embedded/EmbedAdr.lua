@@ -20,7 +20,7 @@ if _G.ActionDurationReminder then
   _G.ADR_EMBED_SKIP = true
   if not _G.ADR_EMBED then
     _G.ADR_EMBED = {
-      version = "3.168",
+      version = "3.169",
       apiVersion = tonumber("3") or 0,
       activate = function() end,
     }
@@ -35,7 +35,7 @@ end
 local l = {} -- private table for local use
 local m = { l = l } -- public table for module use
 local NAME = "ActionDurationReminder"
-local VERSION = "3.168"
+local VERSION = "3.169"
 local API_VERSION = tonumber("3") or 0
 
 --========================================
@@ -47,7 +47,7 @@ l.actionMap = {}
 ---@type table<string, string>
 l.dict = {}
 ---store extensions for types
----@type table<string, fun(...: any)[]
+---@type table<string, fun(...: any)[]>
 l.extensionMap = {}
 ---@type table<string, any>
 l.registry = {}

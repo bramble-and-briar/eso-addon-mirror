@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/roccesar/CaracBuffDebuff__5002",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "roccesar",
+  "canonical_id": "esoui:5002",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5002",
+  "deleted": false,
+  "directories": [
+    "CaracBuffDebuff"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5002/",
+  "fingerprint": "be08caa5b81ce4b009d19e13d4f26498d19e764143abdb542bb81dbbcff0a278",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18195.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18196.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18197.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18199.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5002",
+  "source_url": "https://www.esoui.com/downloads/info5002-CaracBuffDebuff.html",
+  "stats": {
+    "downloads": 23,
+    "favorites": 0,
+    "monthly_downloads": 21
+  },
+  "title": "CaracBuffDebuff",
+  "updated_at": 1793391996000,
+  "version": "1.1"
+}

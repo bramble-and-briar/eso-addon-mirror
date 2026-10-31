@@ -34,6 +34,31 @@ function CMA:DetermineItemAction(bag, slotIndex)
         return self.simpleMaterialDecisionMap[self.db.bankBait]
     elseif itemType == ITEMTYPE_RAW_MATERIAL then
         return self.simpleMaterialDecisionMap[self.db.bankRawMaterials]
+    elseif itemType == ITEMTYPE_TREASURE then
+        local isStolen = IsItemStolen(bag, slotIndex)
+        if isStolen and self.db.autoSellStolenTreasureItems then
+            return "junk"
+        elseif not isStolen and self.db.autoSellTreasureItems then
+            return "junk"
+        end
+        -- if this point is reached its a treasure but selling is turned off - stop the evaluation by ignoring it
+        return "ignore"
+    elseif itemType == ITEMTYPE_TRASH then
+        if self.db.autoSellTrashItems then
+            return "junk"
+        else
+            return "ignore"
+        end
+    elseif itemType == ITEMTYPE_POTION or itemType == ITEMTYPE_POISON then
+        local itemLink = GetItemLink(bag, slotIndex)
+        local isCrafted = IsItemLinkCrafted(itemLink)
+        local isBound = IsItemBound(bag, slotIndex)
+        if self.db.autoSellLootedPotionsAndPoisons and not isCrafted and not isBound then
+            return "junk"
+        else
+            -- item is a potion or a poison but crafted or selling is turned off
+            return "ignore"
+        end
     elseif (specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD) or (specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK) then
         local itemLink = GetItemLink(bag, slotIndex)
         local quality = GetItemLinkFunctionalQuality(itemLink)
@@ -192,14 +217,92 @@ function CMA:DetermineItemAction(bag, slotIndex)
             qualityThreshold = self.db.bankQualityThresholdProvisioning
         end
     else
-        -- all the other unlocked gear - try if its trait researchable... but only if selected to handle it
+        -- all the other unlocked gear
+        local link = GetItemLink(bag, slotIndex)
+        local isCrafted = IsItemLinkCrafted(link)
+        -- check if its armor or weapon with no trait
+        if not isCrafted and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then
+            local traitInfo = GetItemTraitInformation(bag, slotIndex)
+            if traitInfo == ITEM_TRAIT_INFORMATION_ORNATE then
+                if self.db.autoSellOrnateGear then
+                    return "junk"
+                else
+                    return "ignore"
+                end
+            elseif traitInfo == ITEM_TRAIT_INFORMATION_INTRICATE then
+                if self.db.autoSellIntricateGear then
+                    return "junk"
+                else
+                    return "ignore"
+                end
+            elseif traitInfo == ITEM_TRAIT_INFORMATION_NONE then
+                local itemLink = GetItemLink(bag, slotIndex)
+                local quality = GetItemLinkFunctionalQuality(itemLink)
+                local actorCategory = GetItemActorCategory(bag, slotIndex)
+                if actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+                    if self.db.bankTraitlessGear == "Bank" then
+                        -- has no trait and bank is turned on -> check quality
+                        if quality >= self.qualityMap[self.db.bankTraitlessGearThreshold] then
+                            -- quality fits -> bank
+                            return "bank"
+                        elseif self.db.markAsTrashIfNotBanked then
+                            -- quality is too low and sell is active -> sell
+                            return "junk"
+                        end
+                        -- ignore
+                    elseif self.db.bankTraitlessGear == "Sell" then
+                        -- sell is activated, check quality
+                        if quality < self.qualityMap[self.db.bankTraitlessGearThreshold] then
+                            -- quality lower than threshold -> sell
+                            return "junk"
+                        end
+                        -- ignore
+                    end
+                    return "ignore"
+                end
+            end
+        end
+        -- check  if its trait researchable... but only if selected to handle it
         if self.db.bankResearchableItems and not IsItemPlayerLocked(bag, slotIndex) then
             -- call the logic to get trait info and check with LibCharacterKnowledge if all chars know it
             local traitResearchResult = self:HandleTraitItem(bag, slotIndex)
             if traitResearchResult == "bank" then
                 return traitResearchResult
             elseif traitResearchResult == "learned" then
-                return self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems]
+                -- its learned already, only carry out the decision if its not gold quality (do not sell gold quality)
+                local itemLink = GetItemLink(bag, slotIndex)
+                local quality = GetItemLinkFunctionalQuality(itemLink)
+                if (self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems] == "junk") and (quality >= ITEM_DISPLAY_QUALITY_LEGENDARY) then
+                    -- prevent gold or higher tier item from selling
+                    return "ignore"
+                else
+                    return self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems]
+                end
+            end
+        end
+        -- if companion items are handled, try if its a companion item
+        if self.db.handleCompanionGear then
+            -- get the actor category to know if its a companion item
+            local actorCategory = GetItemActorCategory(bag, slotIndex)
+            -- iterate the types
+            if actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+                -- it is comanion gear - handle it
+                -- get the trait of the item and its quality
+                local traitType = GetItemTrait(bag, slotIndex)
+                local itemLink = GetItemLink(bag, slotIndex)
+                local quality = GetItemLinkFunctionalQuality(itemLink)
+                if
+                    (traitType ~= nil) and
+                    (self.db.companionGearTraitHandling[traitType] == true) and
+                    (quality >= self.qualityMap[self.db.bankQualityCompanionGear])
+                then
+                    -- quality meets bank criteria and trait type is to be banked -> bank
+                    return "bank"
+                elseif self.db.sellNotBankedCompanionGear then
+                    -- item is not banked and sell option active -> mark as junk
+                    return "junk"
+                end
+                -- its a companion item but not banked or sold - break the loop and go on (probably leading to 'unknown')
             end
         end
         -- if that point is reached, its not a supported item with no traits to research

@@ -1,7 +1,7 @@
 ## Title: Tamriel Text Studio
 ## Author: CRY
 ## Description: Controller-friendly texture search, color picker, live preview and formatted message output in the native Add-ons settings menu.
-## Version: 2.3.6
+## Version: 2.4.3
 ## APIVersion: 101051
 ## DependsOn: LibHarvensAddonSettings
 ## SavedVariables: TamrielTextStudioSaved, GuildMarkupStudioSaved

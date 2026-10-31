@@ -504,7 +504,7 @@ local function BuildBarStyle(data, width, height, companion)
         width = width,
         height = height,
         alpha = Clamp(GetSetting("opacity"), 10, 100) / 100,
-        borderWidth = IsCompactTrial() and 1 or Clamp(GetSetting("borderWidth"), 0, 8),
+        borderWidth = Clamp(GetSetting("borderWidth"), 0, 8),
         rpgBorder = not IsCompactTrial() and GetSetting("rpgBorder") == true,
         innerShadowAlpha = Clamp(GetSetting("innerShadowAlpha"), 0, 100) / 100,
         outerShadowAlpha = Clamp(GetSetting("outerShadowAlpha"), 0, 100) / 100,

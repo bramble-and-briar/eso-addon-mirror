@@ -1,4 +1,12 @@
-# Obsidian HUD 0.7.53
+# Obsidian HUD 0.8.2
+
+Elementarwand, instabile Elementarwand und Blockade behalten beim Waffenwechsel
+ihre Morph-/Element-Zuordnung. Die Vorschau nutzt den Stab der jeweiligen Leiste
+und dessen passendes Morph-Symbol statt einer allgemeinen nativen Wand-Textur.
+Der Timer startet aus der echten Faehigkeitslaufzeit und bleibt bei generischen
+inaktiven Slot-IDs erhalten. Eigene Effektmeldungen und native Slot-Laufzeiten
+bleiben nutzbar; fremde Effekte starten keinen eigenen Timer. Keine geschuetzten
+SetSetting-Aufrufe und keine neuen Debug-/Chatbefehle.
 
 Der Skill-/Trank-/Ultimate-Rahmen verwendet jetzt eine 256x256-DDS mit
 gleichmaessigem Metallprofil und symmetrischen Ecken auf allen vier Seiten.

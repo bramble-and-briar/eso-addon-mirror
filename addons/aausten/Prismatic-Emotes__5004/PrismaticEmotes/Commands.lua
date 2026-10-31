@@ -142,6 +142,10 @@ function Commands.Handle(argument)
 end
 
 function Commands.Register()
-    SLASH_COMMANDS["/pe"] = Commands.Handle
-    SLASH_COMMANDS["/prismaticemotes"] = Commands.Handle
+    if SLASH_COMMANDS["/pe"] == nil then
+        SLASH_COMMANDS["/pe"] = Commands.Handle
+    end
+    if SLASH_COMMANDS["/prismaticemotes"] == nil then
+        SLASH_COMMANDS["/prismaticemotes"] = Commands.Handle
+    end
 end

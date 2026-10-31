@@ -2,7 +2,7 @@ SetTracker = SetTracker or {}
 
 local ST = SetTracker
 local ADDON_NAME = "SetTracker"
-local VERSION = "0.2.10-test11"
+local VERSION = "0.2.11-test13"
 local MENU_PREVIEW_SECONDS = 6
 
 local BAR_BOTH = 0
@@ -461,6 +461,9 @@ local function ApplyRowPosition(entry)
         return
     end
     local config = EnsureSetConfig(entry)
+    local x, y, scale = config.x or 0, config.y or 0, (config.scale or 100) / 100
+    if row.positionX == x and row.positionY == y and row.positionScale == scale then return end
+    row.positionX, row.positionY, row.positionScale = x, y, scale
     row.window:ClearAnchors()
     row.window:SetAnchor(CENTER, GuiRoot, CENTER, config.x or 0, config.y or 0)
     row.window:SetScale((config.scale or 100) / 100)
@@ -507,6 +510,20 @@ local function CreateRow(entry)
     return ST.rows[entry.key]
 end
 
+local ACTION_PROMPTS = {
+            HEAVY_ATTACK = "HA",
+            POTION = "POTION",
+            SYNERGY = "SYNERGY",
+            BASH = "BASH",
+            BLOCK = "BLOCK",
+            DODGE = "DODGE",
+            INTERRUPT = "INT",
+            STATUS = "APPLY",
+            ABILITY = "CAST",
+            DAMAGE = "HIT",
+            ACTION = "APPLY",
+        }
+
 local function RefreshRow(entry, now)
     local row = CreateRow(entry)
     local config = EnsureSetConfig(entry)
@@ -526,7 +543,11 @@ local function RefreshRow(entry, now)
 
     ApplyRowPosition(entry)
     local effect = ST.effects[entry.key]
-    row.icon:SetTexture(config.buffIcon or ST.buffIcons[entry.key] or entry.icon or "EsoUI/Art/Icons/icon_missing.dds")
+    local texture = config.buffIcon or ST.buffIcons[entry.key] or entry.icon or "EsoUI/Art/Icons/icon_missing.dds"
+    if row.texture ~= texture then
+        row.icon:SetTexture(texture)
+        row.texture = texture
+    end
     if effect and effect.endTime and effect.endTime > now then
         local remaining = effect.endTime - now
         if effect.isCooldown then
@@ -555,20 +576,7 @@ local function RefreshRow(entry, now)
         row.status:SetText("0")
         row.status:SetColor(0.25, 0.94, 0.38, 1)
     elseif entry.trackingMode == "DURATION" then
-        local prompts = {
-            HEAVY_ATTACK = "HA",
-            POTION = "POTION",
-            SYNERGY = "SYNERGY",
-            BASH = "BASH",
-            BLOCK = "BLOCK",
-            DODGE = "DODGE",
-            INTERRUPT = "INT",
-            STATUS = "APPLY",
-            ABILITY = "CAST",
-            DAMAGE = "HIT",
-            ACTION = "APPLY",
-        }
-        row.status:SetText(prompts[entry.triggerKind] or "APPLY")
+        row.status:SetText(ACTION_PROMPTS[entry.triggerKind] or "APPLY")
         row.status:SetColor(0.92, 0.72, 0.18, 1)
     else
         row.status:SetText("READY")
@@ -760,12 +768,12 @@ local function BuildDetectedUnion()
         CreateRow(entry)
         AddSetMenu(entry)
         if not oldDetected[key] then
-            TaggedMessage(string.format("Detected complete set [%s/%s]: %s (%d/%d, %s)", entry.filterType or "USER", entry.trackingMode or "NONE", entry.name, entry.equipped, entry.required, BarLabel(entry.barPair)))
+            if ST.sv and ST.sv.debug then TaggedMessage(string.format("Detected complete set [%s/%s]: %s (%d/%d, %s)", entry.filterType or "USER", entry.trackingMode or "NONE", entry.name, entry.equipped, entry.required, BarLabel(entry.barPair))) end
         end
     end
     for key, entry in pairs(oldDetected) do
         if not newDetected[key] then
-            TaggedMessage(string.format("No longer complete: %s (%s)", entry.name, BarLabel(entry.barPair)))
+            if ST.sv and ST.sv.debug then TaggedMessage(string.format("No longer complete: %s (%s)", entry.name, BarLabel(entry.barPair))) end
         end
     end
     RefreshAllRows()
@@ -795,6 +803,8 @@ local function ScanEquippedSets(reason)
                 entry = {
                     setId = data.setId,
                     name = data.name,
+                    normalizedName = NormalizeName(data.name),
+                    normalizedDescription = NormalizeName(finalDescription),
                     icon = data.icon,
                     equipped = totalEquipped,
                     required = required,
@@ -837,14 +847,14 @@ local function ScanEquippedSets(reason)
             end
         elseif entry.required > 0 and entry.equipped >= entry.required and not ST.ignoredSets[setId] then
             ST.ignoredSets[setId] = true
-            TaggedMessage(string.format("Ignored %s [%s/%s]: %s", entry.name, entry.filterType or "UNCLASSIFIED", entry.trackingMode or "NONE", entry.ignoredReason or "not a controllable cooldown or stack perk"))
+            if ST.sv and ST.sv.debug then TaggedMessage(string.format("Ignored %s [%s/%s]: %s", entry.name, entry.filterType or "UNCLASSIFIED", entry.trackingMode or "NONE", entry.ignoredReason or "not a controllable cooldown or stack perk")) end
         end
     end
 
     ST.barSets[activeBar] = newBarSets
     ST.barSets[BAR_BOTH] = newBothSets
     BuildDetectedUnion()
-    TaggedMessage(string.format("Scan complete (%s): %d complete set HUD(s)", tostring(reason or "manual"), TableCount(ST.detected)))
+    if ST.sv and ST.sv.debug then TaggedMessage(string.format("Scan complete (%s): %d complete set HUD(s)", tostring(reason or "manual"), TableCount(ST.detected))) end
 end
 
 local function EffectMatchesEntry(effectName, entry)
@@ -874,7 +884,7 @@ local function LearnBuffIcon(entry, iconName)
     local config = EnsureSetConfig(entry)
     if config.buffIcon ~= iconName then
         config.buffIcon = iconName
-        TaggedMessage(string.format("Learned buff icon for %s from %s: %s", entry.name, BarLabel(entry.barPair), iconName))
+        if ST.sv and ST.sv.debug then TaggedMessage(string.format("Learned buff icon for %s from %s: %s", entry.name, BarLabel(entry.barPair), iconName)) end
     end
 end
 
@@ -902,7 +912,7 @@ local function MatchEffectToEntries(effectName, abilityId, beginTime, endTime, s
                 ST.runtimeAbilityIds[abilityId] = key
             end
             matched = true
-            TaggedMessage(string.format("Effect matched %s: %s (%d)", entry.name, effectName, tonumber(abilityId) or 0))
+            if ST.sv and ST.sv.debug then TaggedMessage(string.format("Effect matched %s: %s (%d)", entry.name, effectName, tonumber(abilityId) or 0)) end
         end
     end
     return matched
@@ -940,11 +950,11 @@ local function OnEffectChanged(_, changeType, _, effectName, unitTag, beginTime,
             previous.endTime = 0
             previous.stacks = 0
             ST.effects[key] = previous
-            TaggedMessage(string.format("Prowler invisibility ended; cooldown started for %s", entry.name))
+            if ST.sv and ST.sv.debug then TaggedMessage(string.format("Prowler invisibility ended; cooldown started for %s", entry.name)) end
         elseif not IsProwler(entry) then
             ST.effects[key] = nil
         end
-        TaggedMessage(string.format("Effect ended for %s: %s (%d)", entry.name, effectName, tonumber(abilityId) or 0))
+        if ST.sv and ST.sv.debug then TaggedMessage(string.format("Effect ended for %s: %s (%d)", entry.name, effectName, tonumber(abilityId) or 0)) end
     elseif changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
         MatchEffectToEntries(effectName, abilityId, beginTime, endTime, stackCount, iconName)
     end
@@ -957,12 +967,18 @@ local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGra
     end
 
     local now = GetFrameTimeSeconds()
+    local changed = false
+    local normalizedAbility = NormalizeName(abilityName)
     for key, entry in pairs(ST.detected) do
         if entry.barPair == BAR_BOTH or entry.barPair == ST.activeBar then
             local config = EnsureSetConfig(entry)
             local learnedMatch = tonumber(config.procAbilityId) == tonumber(abilityId)
-            local nameMatch = NamesMatch(abilityName, entry.name)
-            local descriptionMatch = AbilityAppearsInDescription(abilityName, entry.finalDescription)
+            local normalizedSet = entry.normalizedName or NormalizeName(entry.name)
+            local nameMatch = normalizedAbility ~= "" and normalizedSet ~= "" and
+                (string.find(normalizedAbility, normalizedSet, 1, true) ~= nil
+                or string.find(normalizedSet, normalizedAbility, 1, true) ~= nil)
+            local descriptionMatch = #normalizedAbility >= 5 and
+                string.find(entry.normalizedDescription or NormalizeName(entry.finalDescription), normalizedAbility, 1, true) ~= nil
             local isEffectApplied = result == ACTION_RESULT_EFFECT_GAINED
                 or result == ACTION_RESULT_EFFECT_GAINED_DURATION
             local isHeavyAttackHit = entry.triggerKind == "HEAVY_ATTACK"
@@ -975,19 +991,21 @@ local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGra
             if durationTriggerMatch then
                 local effectDuration = entry.effectDurationSeconds or 0
                 if effectDuration > 0 then
-                    ST.effects[key] = {
-                        name = abilityName,
-                        beginTime = now,
-                        endTime = now + effectDuration,
-                        stacks = 0,
-                        isCooldown = false,
-                    }
+                    local effect = ST.effects[key] or {}
+                    effect.name = abilityName
+                    effect.beginTime = now
+                    effect.endTime = now + effectDuration
+                    effect.stacks = 0
+                    effect.isCooldown = false
+                    effect.cooldownEnd = nil
+                    ST.effects[key] = effect
+                    changed = true
                     if isEffectApplied then
                         config.procAbilityId = abilityId
                         local iconName = GetAbilityIcon and GetAbilityIcon(abilityId) or nil
                         LearnBuffIcon(entry, iconName)
                     end
-                    TaggedMessage(string.format("Duration refreshed for %s: %s (%d), %.1fs", entry.name, abilityName, tonumber(abilityId) or 0, effectDuration))
+                    if ST.sv and ST.sv.debug then TaggedMessage(string.format("Duration refreshed for %s: %s (%d), %.1fs", entry.name, abilityName, tonumber(abilityId) or 0, effectDuration)) end
                 end
             elseif learnedMatch or nameMatch then
                 local duration = entry.cooldownSeconds
@@ -1004,6 +1022,7 @@ local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGra
                     config.procAbilityId = abilityId
                     local iconName = GetAbilityIcon and GetAbilityIcon(abilityId) or nil
                     LearnBuffIcon(entry, iconName)
+                    changed = true
                     local activitySeconds = entry.procActivitySeconds or 0
                     local activityEnd = now + activitySeconds
                     ST.effects[key] = {
@@ -1013,12 +1032,12 @@ local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGra
                         isCooldown = false,
                         cooldownEnd = activityEnd + duration,
                     }
-                    TaggedMessage(string.format("Proc learned for %s: %s (%d), %.1fs active then %.1fs cooldown", entry.name, abilityName, tonumber(abilityId) or 0, activitySeconds, duration))
+                    if ST.sv and ST.sv.debug then TaggedMessage(string.format("Proc learned for %s: %s (%d), %.1fs active then %.1fs cooldown", entry.name, abilityName, tonumber(abilityId) or 0, activitySeconds, duration)) end
                 end
             end
         end
     end
-    RefreshAllRows()
+    if changed then RefreshAllRows() end
 end
 
 local function QueueScan(reason)
@@ -1060,7 +1079,7 @@ local function OnPlayerCombatState(_, inCombat)
         return
     end
 
-    TaggedMessage(string.format("Combat ended; HUD hide delayed by %d second(s).", hideDelaySeconds))
+    if ST.sv and ST.sv.debug then TaggedMessage(string.format("Combat ended; HUD hide delayed by %d second(s).", hideDelaySeconds)) end
     zo_callLater(function()
         if transitionId == ST.combatTransitionId and not ST.gameInCombat then
             ST.inCombat = false
@@ -1221,7 +1240,7 @@ local function Initialize()
     ScanEquippedSets("initial load")
     AddSettings()
     ScanPlayerEffects()
-    TaggedMessage(string.format("Loaded version %s", VERSION))
+    if ST.sv and ST.sv.debug then TaggedMessage(string.format("Loaded version %s", VERSION)) end
 end
 
 local function OnAddonLoaded(_, addonName)

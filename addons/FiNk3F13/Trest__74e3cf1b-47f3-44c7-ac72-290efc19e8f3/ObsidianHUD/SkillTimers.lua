@@ -299,7 +299,8 @@ function O.GetSkillTimerRemaining(slot,bar)
     -- Use that authoritative duration when no own event/snapshot was seen.
     -- Explicit placement/phase rules still must not borrow a parent timer.
     if (onUse or (O.timerPhases and O.timerPhases[raw]))
-        and not (O.timerSummons and O.timerSummons[id]) then return 0 end
+        and not (O.timerSummons and O.timerSummons[id])
+        and not (O.wallStaffSkills and O.wallStaffSkills[raw]) then return 0 end
     local native=GetActionSlotEffectTimeRemaining and GetActionSlotEffectTimeRemaining(slot,bar) or 0
     local key=tostring(bar)..":"..slot
     local saved=slotTimes[key]

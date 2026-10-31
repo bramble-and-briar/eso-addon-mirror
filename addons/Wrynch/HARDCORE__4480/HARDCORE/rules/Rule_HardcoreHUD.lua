@@ -69,7 +69,8 @@ local function EnsureFadeTimeline()
         aIn:SetEasingFunction(ZO_EaseInQuadratic)
     end
 
-    local hold = tl:InsertAnimation(ANIMATION_NONE, ZO_ActionBar1, PEEK_FADE_IN_MS)
+    local hold = tl:InsertAnimation(ANIMATION_ALPHA, ZO_ActionBar1, PEEK_FADE_IN_MS)
+    hold:SetAlphaValues(PEEK_MAX_ALPHA, PEEK_MAX_ALPHA)
     hold:SetDuration(PEEK_HOLD_MS)
 
     local aOut = tl:InsertAnimation(ANIMATION_ALPHA, ZO_ActionBar1, PEEK_FADE_IN_MS + PEEK_HOLD_MS)

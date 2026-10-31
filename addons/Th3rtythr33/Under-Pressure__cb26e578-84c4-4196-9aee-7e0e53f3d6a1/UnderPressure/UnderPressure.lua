@@ -44,7 +44,7 @@ UP.name    = "UnderPressure"
 -- version string lived in three places and disagreed four ways; as of 0.3.3
 -- there are two, because Settings.lua now READS UP.version for the settings
 -- panel header rather than carrying its own copy.
-UP.version = "0.5.5"
+UP.version = "0.5.7"
 -- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
 -- displays panel.author but never sets it). Matches ## Author in the manifest.
 UP.author  = "Th3rtythr33"
@@ -70,6 +70,12 @@ local DEFAULT_SAVED = {
     plague_icon_corners  = true,
     plague_icon_center   = false,
     plague_defaults_rev  = 1,
+    -- Groupmate plague (0.5.7, experimental): detection off until it is
+    -- proven on console; the two outputs default on so switching detection
+    -- on is enough to see something.
+    plague_group_detect  = false,
+    plague_group_screen  = true,
+    plague_group_alert   = true,
     -- Pull detection (0.4.2): ONE switch for every pull the tracker knows
     -- (Rush of Agony, Dark Convergence; scribing pulls later), OFF by default
     -- for everyone. The display switches below only shape the warning.
@@ -77,10 +83,6 @@ local DEFAULT_SAVED = {
     pull_icon_corners    = true,
     pull_icon_center     = false,
     pull_border          = false,
-    -- No More Oopsies (0.5.5, experimental): the perspective button must be
-    -- pressed three times within three seconds before the camera toggles.
-    -- OFF by default. See Engine/FirstPersonGuard.lua.
-    first_person_guard   = false,
     -- Debug overlay text size (0.4.0), formerly the /upfont tuner's argument,
     -- which was never persisted. Snapped to the gamepad font ladder on apply.
     debug_font_size      = 27,
@@ -163,6 +165,14 @@ end
 -- applied once to files from those builds. New files get the defaults from
 -- DEFAULT_SAVED (including plague_defaults_rev = 1) and are left alone, and
 -- anyone who turns the tint back on afterwards keeps it.
+-- 2026-10-30: the No More Oopsies first-person guard (0.5.5) was removed
+-- after proving impossible on console, so its saved key is dropped from any
+-- file that carries it. Harmless if absent.
+local function forgetRemovedKeys()
+    local sv = UP.sv
+    if sv then sv.first_person_guard = nil end
+end
+
 local function migratePlagueDefaults()
     local sv = UP.sv
     if sv and sv.plague_defaults_rev == nil then
@@ -213,6 +223,7 @@ local function loadSavedVars()
 
     pruneRemovedSettings()
     migratePlagueDefaults()
+    forgetRemovedKeys()
 end
 
 -- ---------------------------------------------------------------------------
@@ -255,11 +266,9 @@ local function onAddOnLoaded(eventCode, addonName)
     -- Plague tracker: resets state and checks the hard-coded ability ids still
     -- resolve to plague names (a failure becomes a startup note).
     UP.Plague.Init()
+    UP.PlagueGroup.Init()
     -- Pull tracker (0.4.2): resets state and checks its six ability ids.
     UP.Pull.Init()
-    -- No More Oopsies (0.5.5): wraps the first-person toggle only if the
-    -- setting is on. Needs no UI, so it runs before the UI gate below.
-    UP.FirstPersonGuard.Init()
 
     -- UI
     if not UP.UI.Init() then return end

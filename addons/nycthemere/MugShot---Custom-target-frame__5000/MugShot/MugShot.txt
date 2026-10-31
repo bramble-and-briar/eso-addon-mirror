@@ -1,0 +1,36 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+;
+; AI Disclosure: Artificial Intelligence tools were used to assist in the
+; development of this addon. All generated code has been personally reviewed,
+; tested, and validated by the author for correctness, performance, and
+; compatibility with the ESO addon API.
+
+## Title: |c9b00afMug Shot|r
+## AddOnName: MugShot
+## Version: 2026.10.30-101046
+## AddOnVersion: 101046
+## APIVersion: 101051 101052
+## Description: Custom target frame with personalized portraits, precise buff and debuff tracking, and granular controls to suit your playstyle.
+## Author: |c783f04nyc|r|c8fce00thé|r|c6a329fmère|r
+## SavedVariables: MugShotSV
+## OptionalDependsOn: LibAddonMenu-2.0 LibCustomIcons HodorReflexes LibSlashCommander
+
+Defaults.lua
+Constants.lua
+Localisation.lua
+Data/Portraits.lua
+Core/TargetState.lua
+Core/TargetPolicy.lua
+Core/Presentation.lua
+ESO/EsoAdapter.lua
+UI/Style.lua
+UI/TargetFrameView.lua
+ESO/NativeFrameBridge.lua
+ESO/EventBindings.lua
+Core/TargetController.lua
+Settings.lua
+Main.lua

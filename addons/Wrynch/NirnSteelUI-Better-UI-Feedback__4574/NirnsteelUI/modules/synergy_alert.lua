@@ -150,6 +150,23 @@ function SynergyAlert:CreateView(name, parent)
     return view
 end
 
+function SynergyAlert:ApplyTheme(view)
+    local themes = Nirnsteel_UI.Themes
+    if not themes then return end
+    local minimal = themes:IsMinimal()
+    view.border:SetHidden(minimal)
+    view.border:SetTexture(themes:GetId() == "bronze"
+        and themes:GetAssetPath("ui/actionbar/nirnsteel_socket_v3_dxt5.dds") or BORDER_TEXTURE)
+    themes:ApplyMinimalBorder(view.hero, true, DL_ARTWORK)
+    view.glow:SetHidden(minimal)
+    view.glow:SetColor(themes:Color("highlight", 0.36, 0.75, 1, 1))
+    if minimal then
+        view.label:SetColor(0.95, 0.95, 0.95, 1)
+    else
+        view.label:SetColor(themes:Color("text", 0.91, 0.95, 1, 1))
+    end
+end
+
 function SynergyAlert:LayoutView(view)
     if view.layingOut or view.moving then return end
     view.layingOut = true
@@ -175,6 +192,7 @@ function SynergyAlert:LayoutView(view)
     local rowHeight = math.max(view.key:GetHeight(), view.label:GetTextHeight())
     view.details:SetDimensions(rowWidth, rowHeight)
     view:SetDimensions(math.max(EMBLEM_SIZE, rowWidth), DETAILS_Y + rowHeight + 4)
+    self:ApplyTheme(view)
     if UsesHUDEditor() then
         if view == self.live then
             Nirnsteel_UI.HUDEditor:Apply("synergyAlert",view,{

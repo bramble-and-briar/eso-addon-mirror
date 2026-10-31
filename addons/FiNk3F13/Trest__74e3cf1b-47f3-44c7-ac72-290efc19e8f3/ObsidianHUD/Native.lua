@@ -217,7 +217,10 @@ function O.SkillPreviewTexture(slot,bar)
     local id=O.GetSkillAbilityId and O.GetSkillAbilityId(slot,bar) or GetSlotBoundId(slot,bar)
     id=tonumber(id) or 0
     if id<=0 then return nil end
-    local texture=GetSlotTexture(slot,bar)
+    -- The inactive native texture can belong to a generic/base wall while its
+    -- slotted morph is correct. Resolve that morph's equipped staff first.
+    local texture=O.wallStaffSkills and O.wallStaffSkills[id] and GetAbilityIcon and GetAbilityIcon(id)
+    if type(texture)~="string" or texture=="" then texture=GetSlotTexture(slot,bar) end
     -- Inactive slots can temporarily have no native slot texture during a
     -- weapon swap. The slotted ability still supplies its own icon.
     if type(texture)~="string" or texture=="" then

@@ -1,0 +1,9 @@
+## Title: New World UI
+## APIVersion: 101050
+## Version: 1.1.0
+## Author: |cFFFF00Wrynch|r
+## Description: Minimal New World inspired HUD overlay for ESO.
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: NWUI_SavedVariables
+
+NWUI.lua

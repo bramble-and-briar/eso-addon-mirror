@@ -1,23 +1,6 @@
 UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
-local sounds = {
-    "No Sound Effect",
-    "Justice_PickpocketFailed",
-    "Dialog_Decline",
-    "Ability_Ultimate_Ready_Sound",
-    "Quest_Shared",
-    "Champion_PointsCommitted",
-    "GroupElection_Requested",
-    "Duel_Boundary_Warning",
-}
-
-local function RefreshPosition()
-    if UnchainedHelper.setPos then
-        UnchainedHelper.setPos()
-    end
-end
-
 local function RefreshLegendPosition()
     if UnchainedHelper.UpdateLegendPosition then
         UnchainedHelper.UpdateLegendPosition()
@@ -111,6 +94,66 @@ function UnchainedHelper.setupMenu()
             setFunc = function(value) UnchainedHelper.savedVars.showProgressCallouts = value end,
             default = UnchainedHelper.defaults.showProgressCallouts,
         },
+
+        {
+            type = "header",
+            name = "BRP split tracker",
+        },
+        {
+            type = "checkbox",
+            name = "Show BRP split tracker",
+            tooltip = "Optional Blackrose Prison-only run timer with 25 round splits, vitality and saved personal-best segment times. Off by default.",
+            getFunc = function() return UnchainedHelper.savedVars.showBRPSplitTracker == true end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.showBRPSplitTracker = value
+                if value then
+                    if UnchainedHelper.RegisterBRPSplitTracker then UnchainedHelper.RegisterBRPSplitTracker() end
+                else
+                    if UnchainedHelper.UnregisterBRPSplitTracker then UnchainedHelper.UnregisterBRPSplitTracker() end
+                end
+            end,
+            default = UnchainedHelper.defaults.showBRPSplitTracker,
+        },
+        {
+            type = "slider",
+            name = "Split tracker scale",
+            min = 70,
+            max = 140,
+            step = 5,
+            getFunc = function() return UnchainedHelper.savedVars.brpSplitScale or 100 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.brpSplitScale = value
+                if UnchainedHelper.UpdateBRPSplitPosition then UnchainedHelper.UpdateBRPSplitPosition() end
+            end,
+            default = UnchainedHelper.defaults.brpSplitScale,
+        },
+        {
+            type = "slider",
+            name = "Split tracker X position",
+            min = 0,
+            max = 1800,
+            step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.brpSplitOffsetX or 1540 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.brpSplitOffsetX = value
+                if UnchainedHelper.UpdateBRPSplitPosition then UnchainedHelper.UpdateBRPSplitPosition() end
+            end,
+            default = UnchainedHelper.defaults.brpSplitOffsetX,
+        },
+        {
+            type = "slider",
+            name = "Split tracker Y position",
+            min = 0,
+            max = 900,
+            step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.brpSplitOffsetY or 610 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.brpSplitOffsetY = value
+                if UnchainedHelper.UpdateBRPSplitPosition then UnchainedHelper.UpdateBRPSplitPosition() end
+            end,
+            default = UnchainedHelper.defaults.brpSplitOffsetY,
+        },
+
         {
             type = "header",
             name = "Wave spawn callout",
@@ -389,58 +432,6 @@ function UnchainedHelper.setupMenu()
                 UnchainedHelper.savedVars.legendOffsetY = UnchainedHelper.defaults.legendOffsetY
                 UnchainedHelper.savedVars.legendBackgroundAlpha = UnchainedHelper.defaults.legendBackgroundAlpha
                 RefreshLegendPosition()
-            end,
-        },
-        {
-            type = "header",
-            name = "Purge display",
-        },
-        {
-            type = "checkbox",
-            name = "Show purge counter",
-            getFunc = function() return UnchainedHelper.savedVars.displayPurge end,
-            setFunc = function(value) UnchainedHelper.savedVars.displayPurge = value end,
-            default = UnchainedHelper.defaults.displayPurge,
-        },
-        {
-            type = "dropdown",
-            name = "Purge sound",
-            choices = sounds,
-            getFunc = function() return UnchainedHelper.savedVars.soundEffectPurge end,
-            setFunc = function(value) UnchainedHelper.savedVars.soundEffectPurge = value end,
-            default = UnchainedHelper.defaults.soundEffectPurge,
-        },
-        {
-            type = "header",
-            name = "Purge UI position",
-        },
-        {
-            type = "slider",
-            name = "Purge UI X position",
-            min = 0,
-            max = 3000,
-            step = 10,
-            getFunc = function() return UnchainedHelper.savedVars.offsetX end,
-            setFunc = function(value) UnchainedHelper.savedVars.offsetX = value RefreshPosition() end,
-            default = UnchainedHelper.defaults.offsetX,
-        },
-        {
-            type = "slider",
-            name = "Purge UI Y position",
-            min = 0,
-            max = 1800,
-            step = 10,
-            getFunc = function() return UnchainedHelper.savedVars.offsetY end,
-            setFunc = function(value) UnchainedHelper.savedVars.offsetY = value RefreshPosition() end,
-            default = UnchainedHelper.defaults.offsetY,
-        },
-        {
-            type = "button",
-            name = "Reset purge UI position",
-            func = function()
-                UnchainedHelper.savedVars.offsetX = UnchainedHelper.defaults.offsetX
-                UnchainedHelper.savedVars.offsetY = UnchainedHelper.defaults.offsetY
-                RefreshPosition()
             end,
         },
     }

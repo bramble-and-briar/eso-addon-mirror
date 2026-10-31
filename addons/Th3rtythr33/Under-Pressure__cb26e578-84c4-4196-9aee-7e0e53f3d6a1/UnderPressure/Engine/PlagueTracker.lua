@@ -727,6 +727,10 @@ function UP.Plague.VerifyIds()
     return good, ("159612=%q 159623=%q"):format(a, b)
 end
 
+-- Shared with PlagueGroup (0.5.7) so one definition decides what counts as
+-- the plague on anyone.
+function UP.Plague.IsPlagueEffect(abilityId, name) return isPlagueEffect(abilityId, name) end
+
 function UP.Plague.Init()
     active, pending, staged = nil, nil, nil
     heldThroughDeath = false

@@ -229,10 +229,8 @@ end
 local function Update()
     if not root then return end
     UpdateOrb(health) UpdateOrb(magicka) UpdateOrb(stamina)
-    if POWERTYPE_DAMAGE_SHIELD then
-        local v=GetUnitPower('player',POWERTYPE_DAMAGE_SHIELD)
-        shield:SetText(v>0 and ('+'..Short(v)) or '')
-    end
+    local _,maxHealth=GetUnitPower('player',POWERTYPE_HEALTH)
+    AlabuzyaUI.Shield.UpdateRing(shield,AlabuzyaUI.Shield.Amount(),maxHealth)
     -- Mount stamina is intentionally omitted: it bisects the two skill rows.
     mount:SetHidden(true)
     local earned,needed=0,0
@@ -292,7 +290,7 @@ function AlabuzyaUI.Core.Initialize()
     stamina=Orb(root,308,POWERTYPE_STAMINA,'right',nil,magicka.control)
     -- The two resource halves share one bezel; prevent duplicate dark backplates.
     stamina.dark:SetHidden(true) stamina.bezel:SetHidden(true)
-    shield=Label(health.control,0,0,18) shield:SetColor(0.4,0.85,1,1)
+    shield=AlabuzyaUI.Shield.NewRing(health.control)
     mount=WINDOW_MANAGER:CreateControl(nil,root,CT_STATUSBAR)
     mount:SetDimensions(388,5) mount:SetAnchor(BOTTOM,root,BOTTOM,0,-123)
     mount:SetColor(1,0.38,0.035,1)

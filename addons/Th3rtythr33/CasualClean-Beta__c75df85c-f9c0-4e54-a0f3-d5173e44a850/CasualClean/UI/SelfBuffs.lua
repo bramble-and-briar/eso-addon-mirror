@@ -23,7 +23,9 @@
 --   1. RECORDS every entry for the player container (ability id, name, icon,
 --      buff or debuff) into a capped catalogue in SavedVariables,
 --   2. REMOVES entries whose ability id the player has hidden, and
---   3. MERGES repeated instances of one effect into a single entry whose
+--   3. TAKES OFF entries that one of the Buff Trackers rows shows instead
+--      (UI/BuffTrackers.lua: the potion row and the Prominent row), and
+--   4. MERGES repeated instances of one effect into a single entry whose
 --      stackCount is the number of copies (see MergeRepeats below).
 --
 -- ZOS then draws the bar exactly as it always does: same icons, timers,
@@ -105,8 +107,10 @@ end
 
 -- Per-effect choice, three-way by decision (Matt, 2026-10-28): 1 = show,
 -- 0 = hide, absent = unset. An unset effect follows the "Show unset" switch
--- of its kind (buffs / debuffs), which defaults to shown.
-B.CHOICE_SHOW, B.CHOICE_HIDE = 1, 0
+-- of its kind (buffs / debuffs), which defaults to shown. 2 = prominent
+-- (2026-10-31): shown in the Buff Trackers' Prominent row instead of the
+-- bar, or on the bar as Show while that row is switched off.
+B.CHOICE_SHOW, B.CHOICE_HIDE, B.CHOICE_PROMINENT = 1, 0, 2
 local function Choice()
     local s = sv()
     if not s then return {} end
@@ -125,6 +129,10 @@ function B.GetShowUnset(isDebuff)
         return s[field]
     end
     return true
+end
+
+function B.GetChoice(key)
+    return Choice()[key]
 end
 
 local function Seen()
@@ -202,7 +210,7 @@ end
 local function IsHiddenByChoice(choice, key, isDebuff)
     local c = choice[key]
     if c == B.CHOICE_HIDE then return true end
-    if c == B.CHOICE_SHOW then return false end
+    if c == B.CHOICE_SHOW or c == B.CHOICE_PROMINENT then return false end
     return not B.GetShowUnset(isDebuff)
 end
 
@@ -284,6 +292,20 @@ local function MergeRepeats(list)
     end
 end
 
+-- Takes off the bar whatever a Buff Trackers row is showing instead, so no
+-- effect is drawn twice. Runs after FilterList, so the catalogue still sees
+-- every effect.
+local function RemoveRouted(list, trackers)
+    for i = #list, 1, -1 do
+        if trackers.DestinationOf(KeyOf(list[i])) then
+            table.remove(list, i)
+        end
+    end
+end
+
+B.KeyOf = KeyOf
+B.MergeRepeats = MergeRepeats
+
 -- Runs after ZO_BuffDebuffStyleObject.UpdateContainer has filled and sorted
 -- the style's lists, before the concrete style turns them into icons.
 local function AfterUpdateContainer(style, containerObject)
@@ -296,12 +318,20 @@ local function AfterUpdateContainer(style, containerObject)
     local filterOn = B.GetEnabled()
     local mergeOn = B.GetMergeRepeats()
     local choice = Choice()
+    local trackers = CC.BuffTrackers
+    if not (trackers and trackers.IsActive and trackers.IsActive()) then
+        trackers = nil
+    else
+        trackers.BeginPass()
+    end
     if type(style.sortedBuffs) == "table" then
         FilterList(style.sortedBuffs, choice, filterOn, false)
+        if trackers then RemoveRouted(style.sortedBuffs, trackers) end
         if mergeOn then MergeRepeats(style.sortedBuffs) end
     end
     if type(style.sortedDebuffs) == "table" then
         FilterList(style.sortedDebuffs, choice, filterOn, true)
+        if trackers then RemoveRouted(style.sortedDebuffs, trackers) end
         if mergeOn then MergeRepeats(style.sortedDebuffs) end
     end
 end
@@ -329,7 +359,12 @@ local function RefreshBar()
     if container and container.Update then
         container:Update()
     end
+    local trackers = CC.BuffTrackers
+    if trackers and trackers.MarkDirty then
+        trackers.MarkDirty()
+    end
 end
+B.RefreshBar = RefreshBar
 
 -- -----------------------------------------------------------------------------
 -- Settings rows
@@ -359,6 +394,7 @@ local CHOICE_ITEMS = {
     { name = "Unset", data = CHOICE_UNSET },
     { name = "Show",  data = B.CHOICE_SHOW },
     { name = "Hide",  data = B.CHOICE_HIDE },
+    { name = "Prominent", data = B.CHOICE_PROMINENT },
 }
 local CHOICE_NAME_BY_DATA = {}
 for _, item in ipairs(CHOICE_ITEMS) do CHOICE_NAME_BY_DATA[item.data] = item.name end
@@ -367,7 +403,7 @@ local function ChoiceName(c)
     return CHOICE_NAME_BY_DATA[c] or CHOICE_ITEMS[1].name
 end
 
--- Returns 1, 0 or nil (unset) from whichever of the two arguments LHAS sent.
+-- Returns 1, 0, 2 or nil (unset) from whichever of the two arguments LHAS sent.
 local function ResolveChoice(itemName, itemData)
     local data = type(itemData) == "table" and itemData.data or nil
     if data == nil then
@@ -375,7 +411,7 @@ local function ResolveChoice(itemName, itemData)
             if item.name == itemName then data = item.data end
         end
     end
-    if data == B.CHOICE_SHOW or data == B.CHOICE_HIDE then
+    if data == B.CHOICE_SHOW or data == B.CHOICE_HIDE or data == B.CHOICE_PROMINENT then
         return data
     end
     return nil
@@ -402,7 +438,8 @@ local function EffectRows(wantDebuffs)
             type = LibHarvensAddonSettings.ST_DROPDOWN,
             label = icon .. (entry.n ~= "" and entry.n or ("effect " .. tostring(key))),
             tooltip = string.format("%s, id %d. Show or Hide pins this effect on or off your self buff bar; " ..
-                "Unset follows the \"Show unset\" switch at the top of this page.", KindLabel(entry), key),
+                "Unset follows the \"Show unset\" switch at the top of this page; Prominent moves it to the larger " ..
+                "row above the bar (Buff Trackers).", KindLabel(entry), key),
             items = CHOICE_ITEMS,
             default = CHOICE_ITEMS[1].name,
             getFunction = function() return ChoiceName(choice[key]) end,
@@ -674,25 +711,34 @@ end
 
 -- For `/casualclean buffs`.
 function B.GetReport()
-    local shownCount, hiddenCount = 0, 0
+    local shownCount, hiddenCount, prominentCount = 0, 0, 0
     for _, c in pairs(Choice()) do
         if c == B.CHOICE_HIDE then
             hiddenCount = hiddenCount + 1
         elseif c == B.CHOICE_SHOW then
             shownCount = shownCount + 1
+        elseif c == B.CHOICE_PROMINENT then
+            prominentCount = prominentCount + 1
         end
     end
     local out = {}
-    out[#out + 1] = string.format("enabled=%s merge=%s hook=%s seen=%d/%d show=%d hide=%d unsetBuffs=%s unsetDebuffs=%s panel=%s rows=%d dirty=%s",
-        tostring(B.GetEnabled()), tostring(B.GetMergeRepeats()), hookState, seenCount, B.MAX_SEEN, shownCount, hiddenCount,
+    -- The pool every installed add-on shares on console (100 MB); compare a
+    -- reading before and after a fight to see what the add-ons cost.
+    if type(GetTotalUserAddOnMemoryPoolUsageMB) == "function" then
+        out[#out + 1] = string.format("memory: %.1f MB of the shared add-on pool in use", tonumber(GetTotalUserAddOnMemoryPoolUsageMB()) or 0)
+    else
+        out[#out + 1] = "memory: GetTotalUserAddOnMemoryPoolUsageMB missing"
+    end
+    out[#out + 1] = string.format("enabled=%s merge=%s hook=%s seen=%d/%d show=%d hide=%d prominent=%d unsetBuffs=%s unsetDebuffs=%s panel=%s rows=%d dirty=%s",
+        tostring(B.GetEnabled()), tostring(B.GetMergeRepeats()), hookState, seenCount, B.MAX_SEEN, shownCount, hiddenCount, prominentCount,
         B.GetShowUnset(false) and "shown" or "hidden", B.GetShowUnset(true) and "shown" or "hidden",
         tostring(panel ~= nil), tailRowCount, tostring(catalogueDirty))
-    for _, wantDebuffs in ipairs({ false, true }) do
-        out[#out + 1] = string.format("  %s: %d", wantDebuffs and "debuffs" or "buffs", CountKind(wantDebuffs))
-        for _, row in ipairs(EffectRows(wantDebuffs)) do
-            local plain = row.label:gsub("|t[^|]*|t ?", "")
-            out[#out + 1] = string.format("    [%-5s] %s", row.getFunction(), plain)
-        end
+    -- Counts only (1.8.2): the full per-effect list ran to 150 lines, and
+    -- the settings pages already show every effect with its choice.
+    out[#out + 1] = string.format("  catalogue: buffs %d, debuffs %d", CountKind(false), CountKind(true))
+    local trackers = CC.BuffTrackers
+    if trackers and trackers.GetReport then
+        for _, line in ipairs(trackers.GetReport()) do out[#out + 1] = line end
     end
     return out
 end

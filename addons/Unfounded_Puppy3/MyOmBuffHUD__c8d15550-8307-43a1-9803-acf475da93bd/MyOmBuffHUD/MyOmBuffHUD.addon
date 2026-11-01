@@ -1,0 +1,9 @@
+## Title: MyOmBuffHUD
+## Author: UnfoundedPuppy3
+## Version: 1.0
+## APIVersion: 101051
+## Description: Displays Minor Berserk, Major Force, and Major Slayer with remaining time.
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: MyOmBuffHUD_Saved
+
+MyOmBuffHUD.lua

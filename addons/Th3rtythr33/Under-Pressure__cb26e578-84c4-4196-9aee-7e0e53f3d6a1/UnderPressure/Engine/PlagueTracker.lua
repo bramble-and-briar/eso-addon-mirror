@@ -105,6 +105,7 @@ local BUFF_TYPE     = (type(BUFF_EFFECT_TYPE_BUFF)   == "number") and BUFF_EFFEC
 -- settings panel out of it.
 local EARLY_FADE_MS   = 750    -- FADED this far before endTime counts as removed early
 local REPORT_DELAY_MS = 1200   -- how long after fade/first hit to wait for the rest of the hits
+local DEATH_WINDOW_MS = 2000   -- a hit target dying this soon after its hit was killed by the explosion (0.5.9)
 local ATTRIB_WINDOW_MS = 1500  -- how far back to look for the cleanse
 local DEATH_LINK_MS   = 600    -- a death this soon after a FADED means the fade WAS the death
 local RECENT_MAX      = 16     -- friendly-event ring size while a plague is active
@@ -148,7 +149,10 @@ UP.Plague.CLEANSES = {
     ["cleansing ritual"]      = { cast = true,  applied = false, heal = false, buff = false },
     ["extended ritual"]       = { cast = true,  applied = false, heal = false, buff = false },
     ["ritual of retribution"] = { cast = true,  applied = false, heal = false, buff = false },
-    ["purify"]                = { cast = false, applied = true,  heal = true,  buff = true },
+    -- 0.5.9 (Matt): a cleanse through the Purify synergy is reported as
+    -- "removed by you using Purify synergy", whoever placed the Ritual.
+    ["purify"]                = { cast = false, applied = true,  heal = true,  buff = true,
+                                  selfSynergy = true, display = "Purify synergy" },
     -- Necromancer Living Death. Expunge morphs are self-only; Expunge and
     -- Modify also returns resources to you under its own name. Renewing
     -- Undeath heals the area it cleanses, so an ally's can be named.
@@ -244,6 +248,7 @@ local active = nil
 -- Friendly events seen while a plague was active, newest last. Only recorded
 -- while `active` is set, so the per-event cost in normal play is one boolean.
 local recent = {}
+local finalizeFor   -- defined below; scheduleFinalize refers to it
 -- An explosion being assembled for report, or nil. Survives Clear() on death
 -- so a burst that kills the carrier is still reported.
 local pending = nil
@@ -320,11 +325,14 @@ local function secs(ms)
     return ("%.1fs"):format((ms or 0) / 1000)
 end
 
--- Returns: description string, confidence ("known" | "likely" | "unknown").
+-- Returns: who (display name, "you", or nil when unknown), ability display
+-- name (or nil), confidence ("known" | "unknown"). 0.5.9: structured, so the
+-- report can phrase it; the timing ("0.2s before it vanished") is no longer
+-- part of the output.
 function UP.Plague.Attribute(p)
     local fadeT = p.fadedMs or p.startedMs
     local lo, hi = fadeT - ATTRIB_WINDOW_MS, fadeT + 150
-    local best, bestRank = nil, 99
+    local best, bestRank, bestKnown = nil, 99, nil
 
     for i = #p.recent, 1, -1 do
         local e = p.recent[i]
@@ -340,96 +348,187 @@ function UP.Plague.Attribute(p)
             end
             -- No further rungs. Unknown abilities are never named, however
             -- close to the fade they landed.
-            if rank and rank < bestRank then best, bestRank = e, rank end
+            if rank and rank < bestRank then best, bestRank, bestKnown = e, rank, known end
         end
     end
 
-    if not best then
-        return "unknown. Nothing that can cleanse you left a trace this client can see "
-            .. "(an ally's Purge or Efficient Purge, and most set passives, never do).",
-            "unknown"
-    end
+    if not best then return nil, nil, "unknown" end
 
-    local before = fadeT - best.t
-    local when = before >= 0 and (secs(before) .. " before it vanished") or (secs(-before) .. " after")
     local who
-    if best.kind == "cast" or best.whoType == UNIT_PLAYER then
+    if best.kind == "cast" or best.whoType == UNIT_PLAYER or bestKnown.selfSynergy then
         who = "you"
     elseif best.who and best.who ~= "" then
         who = unitDisplay(best.who)
-        if UNIT_GROUP and best.whoType == UNIT_GROUP then who = who .. " (group)" end
     else
         who = (UNIT_GROUP and best.whoType == UNIT_GROUP) and "a groupmate" or "someone"
     end
-    local ability = abilityDisplay(best.ability)
-    return ("%s with %s (%s)"):format(who, ability, when), "known"
+    local ability = bestKnown.display or abilityDisplay(best.ability)
+    return who, ability, "known"
 end
 
+-- Joins display names as "A", "A and B", "A, B and C".
+local function nameList(names)
+    local n = #names
+    if n == 0 then return "" end
+    if n == 1 then return names[1] end
+    return table.concat(names, ", ", 1, n - 1) .. " and " .. names[n]
+end
+
+-- One chat line, in the wording Matt set on 2026-10-31:
+--   You were afflicted with Plague Carrier [by <enemy>]. It exploded because
+--   [it was removed early | you died]. It was removed by [you | <name> |
+--   unknown] [using <ability>]. Your friends <names> were killed in the
+--   <total> damage explosion.
+-- "Killed" means a hit target whose death arrived within DEATH_WINDOW_MS of
+-- its hit (group members via EVENT_UNIT_DEATH_STATE_CHANGED, you via
+-- EVENT_PLAYER_DEAD). The removed-by sentence is left out when the trigger
+-- was your death, because the death is the removal.
+--
+-- Returns lines (for chat) and a RECORD for History (0.5.9): { text = the
+-- sentence without colour codes, short = a one-line summary for the menu row }.
 function UP.Plague.BuildReport(p, nowMs)
-    local lines = {}
     local plague = p.plague or {}
-
     local byDeath = (p.cause == "death")
-    local head = byDeath
-        and "|c7FBF5F[Under Pressure] Plaguebreak exploded when you died|r"
-        or  "|c7FBF5F[Under Pressure] Plaguebreak exploded on you|r"
-    local detail = {}
-    if p.remainingMs then
-        detail[#detail + 1] = (byDeath and "plague had %s left" or "plague removed with %s left"):format(secs(p.remainingMs))
-    elseif not byDeath then
-        detail[#detail + 1] = "plague removal not seen as an effect change"
-    end
-    if plague.gainedMs and p.fadedMs then
-        detail[#detail + 1] = ("applied %s earlier"):format(secs(p.fadedMs - plague.gainedMs))
-    end
+    local parts = {}
+
+    local first = "You were afflicted with Plague Carrier"
     if plague.applierName then
-        detail[#detail + 1] = ("by %s"):format(unitDisplay(plague.applierName))
+        first = first .. " by " .. unitDisplay(plague.applierName)
     end
-    lines[#lines + 1] = head .. " -- " .. table.concat(detail, ", ") .. "."
+    parts[#parts + 1] = first .. "."
 
-    local who, conf = UP.Plague.Attribute(p)
-    if byDeath then
-        -- The death is the trigger. A cleanse seen in the same instant is
-        -- still worth naming, as a fact rather than a verdict.
-        if conf == "known" then
-            lines[#lines + 1] = ("  Trigger: your death (a cleanse was also seen: %s)"):format(who)
+    parts[#parts + 1] = byDeath and "It exploded because you died." or "It exploded because it was removed early."
+
+    local who, ability
+    if not byDeath then
+        who, ability = UP.Plague.Attribute(p)
+        if who then
+            parts[#parts + 1] = ability
+                and ("It was removed by %s using %s."):format(who, ability)
+                or  ("It was removed by %s."):format(who)
         else
-            lines[#lines + 1] = "  Trigger: your death (no cleanse seen)"
+            parts[#parts + 1] = "It was removed by unknown."
         end
-    else
-        lines[#lines + 1] = ("  Removed by: %s"):format(who)
     end
 
+    local killed, youKilled = {}, false
     if p.hitCount > 0 then
-        -- Order targets: you first, then by damage.
         local order = {}
-        for name, rec in pairs(p.hits) do order[#order + 1] = { name = name, rec = rec } end
-        table.sort(order, function(a, b)
-            if a.rec.isYou ~= b.rec.isYou then return a.rec.isYou end
-            if a.rec.total ~= b.rec.total then return a.rec.total > b.rec.total end
-            return tostring(a.rec.name) < tostring(b.rec.name)
-        end)
-        local parts = {}
-        for _, o in ipairs(order) do
-            -- o.name is the dedupe KEY (unit id when present); the display name
-            -- lives on the record.
-            local shown = o.rec.isYou and "you" or unitDisplay(o.rec.name or o.name)
-            if shown == "" then shown = "unknown target" end
-            parts[#parts + 1] = ("%s %s"):format(shown, commas(o.rec.total))
+        for key, rec in pairs(p.hits) do
+            if rec.killed then
+                if rec.isYou then youKilled = true else order[#order + 1] = rec end
+            end
         end
-        local src = p.explosionSource and (" (dealt by %s)"):format(unitDisplay(p.explosionSource)) or ""
-        lines[#lines + 1] = ("  Explosion damage seen: %s over %d hit%s: %s%s"):format(
-            commas(p.total), p.hitCount, p.hitCount == 1 and "" or "s", table.concat(parts, ", "), src)
-        lines[#lines + 1] = "  Only hits this client received are counted; allies out of view are missed."
+        table.sort(order, function(a, b)
+            if a.hitMs ~= b.hitMs then return (a.hitMs or 0) < (b.hitMs or 0) end
+            return tostring(a.name) < tostring(b.name)
+        end)
+        for _, rec in ipairs(order) do
+            local shown = unitDisplay(rec.name)
+            if shown ~= "" then killed[#killed + 1] = shown end
+        end
+        local dmg = commas(p.total) .. " damage explosion."
+        if youKilled and #killed == 0 then
+            parts[#parts + 1] = "You were killed in the " .. dmg
+        elseif youKilled then
+            parts[#parts + 1] = ("You and your %s %s were killed in the "):format(#killed == 1 and "friend" or "friends", nameList(killed)) .. dmg
+        elseif #killed == 1 then
+            parts[#parts + 1] = ("Your friend %s was killed in the "):format(killed[1]) .. dmg
+        elseif #killed > 1 then
+            parts[#parts + 1] = ("Your friends %s were killed in the "):format(nameList(killed)) .. dmg
+        else
+            parts[#parts + 1] = "None of your friends were killed in the " .. dmg
+        end
     else
-        lines[#lines + 1] = "  Explosion damage seen: none reached this client."
+        parts[#parts + 1] = "No explosion damage reached this client."
     end
-    return lines
+
+    local text = table.concat(parts, " ")
+
+    -- One-line summary for the History row: "<cause>; <outcome>".
+    local cause
+    if byDeath then
+        cause = "You died"
+    else
+        cause = "Removed early by " .. (who or "unknown") .. (ability and (" (" .. ability .. ")") or "")
+    end
+    local outcome
+    if p.hitCount == 0 then
+        outcome = "no damage seen"
+    else
+        local deaths
+        if youKilled and #killed > 0 then deaths = "you and " .. nameList(killed) .. " killed"
+        elseif youKilled then deaths = "you killed"
+        elseif #killed > 0 then deaths = nameList(killed) .. " killed"
+        else deaths = "no deaths" end
+        outcome = deaths .. ", " .. commas(p.total) .. " damage"
+    end
+
+    return { "|c7FBF5F[Under Pressure]|r " .. text }, { text = text, short = cause .. "; " .. outcome }
 end
 
-function UP.Plague.Emit(lines)
+-- ---------------------------------------------------------------------------
+-- Where the report goes, and History (0.5.9)
+-- ---------------------------------------------------------------------------
+-- plague_report_mode: "chat" (one line in chat, the default), "recap" (a
+-- callout beside the death recap, UI/PlagueReport.lua) or "hidden". The
+-- 0.4.0 boolean plague_report is migrated once in UnderPressure.lua; the
+-- fallback here covers a file that has not been through that yet.
+function UP.Plague.ReportMode()
     local sv = UP.sv or {}
-    if sv.plague_report == false then return end
+    local m = sv.plague_report_mode
+    if m == "chat" or m == "recap" or m == "hidden" then return m end
+    if sv.plague_report == false then return "hidden" end
+    return "chat"
+end
+
+-- The last HISTORY_MAX reports, newest first, in saved variables. Recorded
+-- WHATEVER the display mode, "hidden" included (Matt, 2026-10-31). Capped on
+-- write, per the workspace SavedVariables rule. Each entry: stamp (wall-clock
+-- seconds, for the date), time (GetTimeString at the moment of writing; the
+-- API has no time-of-day-from-timestamp call, see Deathnote), text, short.
+UP.Plague.HISTORY_MAX = 20
+
+function UP.Plague.History()
+    local sv = UP.sv
+    if sv and type(sv.plague_history) == "table" then return sv.plague_history end
+    return {}
+end
+
+local function markHistoryDirty()
+    if UP.Settings and UP.Settings.MarkHistoryDirty then UP.Settings.MarkHistoryDirty() end
+end
+
+function UP.Plague.Record(record)
+    local sv = UP.sv
+    if not sv or type(record) ~= "table" then return end
+    if type(sv.plague_history) ~= "table" then sv.plague_history = {} end
+    local h = sv.plague_history
+    table.insert(h, 1, {
+        stamp = (type(GetTimeStamp) == "function") and GetTimeStamp() or 0,
+        time  = (type(GetTimeString) == "function") and GetTimeString() or nil,
+        text  = record.text,
+        short = record.short,
+    })
+    while #h > UP.Plague.HISTORY_MAX do table.remove(h) end
+    markHistoryDirty()
+end
+
+function UP.Plague.ClearHistory()
+    if UP.sv then UP.sv.plague_history = {} end
+    markHistoryDirty()
+end
+
+function UP.Plague.Emit(lines, record)
+    if record then UP.Plague.Record(record) end
+    local mode = UP.Plague.ReportMode()
+    if mode == "hidden" then return end
+    if mode == "recap" then
+        if UP.PlagueReport and UP.PlagueReport.Show and record then
+            UP.PlagueReport.Show(record.text, GetGameTimeMilliseconds())
+        end
+        return
+    end
     if type(d) ~= "function" then return end
     for _, l in ipairs(lines) do d(l) end
 end
@@ -449,17 +548,33 @@ local function snapshotActive()
     }
 end
 
-local function finalize()
-    local p = pending
-    if not p then return end
+local function scheduleFinalize(p, delayMs)
+    if type(zo_callLater) == "function" then
+        zo_callLater(function() if pending == p then finalizeFor(p) end end, delayMs)
+    else
+        finalizeFor(p)
+    end
+end
+
+-- Prints the report for p. If hits have landed, waits until DEATH_WINDOW_MS
+-- has passed since the LAST hit so deaths caused by the explosion can be
+-- counted (0.5.9); a stale timer for an older report is ignored by the
+-- pending == p check in scheduleFinalize.
+finalizeFor = function(p)
+    if pending ~= p then return end
+    local nowT = GetGameTimeMilliseconds()
+    if p.hitCount > 0 and p.lastHitMs and nowT < p.lastHitMs + DEATH_WINDOW_MS + 100 then
+        scheduleFinalize(p, p.lastHitMs + DEATH_WINDOW_MS + 100 - nowT)
+        return
+    end
     pending = nil
     -- Death with no explosion seen: either the set does not explode on death
     -- on this build, or nothing reached this client. Either way there is
     -- nothing true to say, so say nothing.
     if p.cause == "death" and p.hitCount == 0 then return end
-    local lines = UP.Plague.BuildReport(p, GetGameTimeMilliseconds())
-    if UP.Debug and UP.Debug.Log then UP.Debug.Log("PLAGUE " .. (lines[1] or ""):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")) end
-    UP.Plague.Emit(lines)
+    local lines, record = UP.Plague.BuildReport(p, GetGameTimeMilliseconds())
+    if UP.Debug and UP.Debug.Log then UP.Debug.Log("PLAGUE " .. (record and record.text or "")) end
+    UP.Plague.Emit(lines, record)
 end
 
 local function startPending(nowMs, cause)
@@ -476,14 +591,11 @@ local function startPending(nowMs, cause)
         hitCount  = 0,
         total     = 0,
         explosionSource = nil,
+        lastHitMs = nil,
     }
     -- Copy the ring now: Clear() on death must not take the evidence with it.
     for i, e in ipairs(recent) do pending.recent[i] = e end
-    if type(zo_callLater) == "function" then
-        zo_callLater(finalize, REPORT_DELAY_MS)
-    else
-        finalize()
-    end
+    scheduleFinalize(pending, REPORT_DELAY_MS)
     return pending
 end
 
@@ -563,14 +675,20 @@ function UP.Plague.OnCombat(channel, result, abilityName, sourceName, sourceType
     if isExplosion(abilityId, abilityName, result) then
         if channel == "main" and boomChannel then return end
         if not DIRECT_DAMAGE[result] then return end
+        -- 0.5.9: only OUR plague's explosion is reported. With no plague on
+        -- us and no report open, this is someone else's plague going off
+        -- (the groupmate detector covers that side), so it is dropped
+        -- rather than opening a report that says it exploded on us.
+        if not active and not pending then return end
         local p = startPending(nowMs)
         local isYou = (targetType == UNIT_PLAYER)
         local key = isYou and "\0you" or ((type(targetUnitId) == "number" and targetUnitId > 0) and ("u" .. targetUnitId) or (targetName or "?"))
         local rec = p.hits[key]
         if not rec then
-            rec = { total = 0, count = 0, isYou = isYou, name = targetName }
+            rec = { total = 0, count = 0, isYou = isYou, name = targetName, hitMs = nowMs, unitId = targetUnitId }
             p.hits[key] = rec
         end
+        p.lastHitMs = nowMs
         local amount = tonumber(hitValue) or 0
         rec.total = rec.total + amount
         rec.count = rec.count + 1
@@ -638,6 +756,9 @@ function UP.Plague.OnDeath(nowMs)
     isDead = true
     if pending and not pending.deathMs then
         pending.deathMs = nowMs
+        -- 0.5.9: our own hit followed by our death inside the window.
+        local you = pending.hits["\0you"]
+        if you and (nowMs - (you.hitMs or nowMs)) <= DEATH_WINDOW_MS then you.killed = true end
         -- A FADED (or a first hit) opened this report moments ago and the
         -- death arrived right behind it: the fade WAS the death.
         if (nowMs - (pending.fadedMs or pending.startedMs)) <= DEATH_LINK_MS then
@@ -659,6 +780,25 @@ function UP.Plague.OnDeath(nowMs)
     staged = nil
     if not pending then recent = {} end
     publish()
+end
+
+-- EVENT_UNIT_DEATH_STATE_CHANGED for a group member (0.5.9). If a report is
+-- open and this member took an explosion hit within DEATH_WINDOW_MS, they
+-- are listed as killed by it. Matching is by display name: the combat
+-- event carries the target's raw name and the death event only a unit tag,
+-- and there is no public tag-to-unit-id mapping.
+function UP.Plague.OnUnitDeath(unitTag, rawName, nowMs)
+    local p = pending
+    if not p or p.hitCount == 0 then return end
+    local who = unitDisplay(rawName)
+    if who == "" then return end
+    for _, rec in pairs(p.hits) do
+        if not rec.isYou and not rec.killed and unitDisplay(rec.name) == who
+           and (nowMs - (rec.hitMs or nowMs)) <= DEATH_WINDOW_MS then
+            rec.killed = true
+            return
+        end
+    end
 end
 
 -- EVENT_PLAYER_ALIVE. Ends the death hold on the tint and resumes normal
@@ -727,7 +867,7 @@ function UP.Plague.VerifyIds()
     return good, ("159612=%q 159623=%q"):format(a, b)
 end
 
--- Shared with PlagueGroup (0.5.7) so one definition decides what counts as
+-- Shared with PlagueGroup (0.5.8) so one definition decides what counts as
 -- the plague on anyone.
 function UP.Plague.IsPlagueEffect(abilityId, name) return isPlagueEffect(abilityId, name) end
 
@@ -743,4 +883,4 @@ function UP.Plague.Init()
 end
 
 -- Test hook: lets the harness drive time-based finalisation without zo_callLater.
-function UP.Plague._FinalizeNow() finalize() end
+function UP.Plague._FinalizeNow() local p = pending; if p then pending = nil; p.hitCount = 0; end end

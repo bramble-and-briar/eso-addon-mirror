@@ -79,6 +79,9 @@ end
 local function drive(root, timeline, show, onStop)
     if not root then return end
     root:SetHidden(not show)
+    -- 0.5.10: now that the icons are drawn, ask the client whether their
+    -- texture files loaded; swap in the game's own icon if not (TextureGuard).
+    if show and UP.TextureGuard and UP.TextureGuard.Check then UP.TextureGuard.Check() end
     if not timeline then return end
     if show then
         if not timeline:IsPlaying() then
@@ -136,11 +139,20 @@ function UP.PlagueIcon.Init()
             else UP.Note("Plague icon pulse animation unavailable; centre icon will be static.") end
         end
         iconRoot:SetHidden(true)
+        if UP.TextureGuard then
+            UP.TextureGuard.Watch(iconRoot:GetNamedChild("Icon"), "plague", "plague")
+            UP.TextureGuard.Watch(iconPulse, "plague", "plague")
+        end
     else
         UP.Note("Centre plague icon control missing; that display is disabled.")
     end
 
     if cornersRoot then
+        if UP.TextureGuard then
+            for _, corner in ipairs({ "TL", "TR", "BL", "BR" }) do
+                UP.TextureGuard.Watch(cornersRoot:GetNamedChild(corner), "plague", "plague")
+            end
+        end
         if ANIMATION_MANAGER then
             local ok, timeline = pcall(ANIMATION_MANAGER.CreateTimelineFromVirtual,
                                        ANIMATION_MANAGER, "UP_PlagueCornerFlash", cornersRoot)

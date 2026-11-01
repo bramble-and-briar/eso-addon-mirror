@@ -145,7 +145,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Clutch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Apogee/Clutch__2302) | Apogee | PC / Mac | 0.9.1 |
 | [CobbDialogueLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/CobbDialogueLogger__2560) | DavidJCobb | PC / Mac | 1 |
 | [Code's Combat Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Code-s-Combat-Alerts__fe065445-3217-4a76-8932-23a0a1c9c16c) | code65536 | Console | — |
-| [Code's Combat Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Code-s-Combat-Alerts__1855) | code65536 | PC / Mac | 2.6.8 |
+| [Code's Combat Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Code-s-Combat-Alerts__1855) | code65536 | PC / Mac | 2.6.9 |
 | [Cogs Assistants](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/coginthemachine/Cogs-Assistants__4687) | coginthemachine | PC / Mac | 0.1.5 |
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
@@ -291,7 +291,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrownCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/CrownCustomizer__1548) | triase | PC / Mac | 1.0.5 |
 | [CroZone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Obijovi/CroZone__4641) | Obijovi | PC / Mac | 1.1.0 |
 | [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__21f0cc83-5ba3-4776-ac75-a5a266fde574) | Kyzeragon | Console | — |
-| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.28.1 |
+| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.28.2 |
 | [CrutchAlerts Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts-Extensions__4693) | Kyzeragon | PC / Mac | 0.4.0 |
 | [CrutchAlerts-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/CrutchAlerts-KR__4517) | Ricci Curvature | PC / Mac | 1.0.0 |
 | [Crux Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Crux-Counter__3639) | g4rr3t | PC / Mac | 1.3.0 |

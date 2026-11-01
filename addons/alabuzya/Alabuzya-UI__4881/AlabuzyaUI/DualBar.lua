@@ -20,6 +20,15 @@ local function OtherBar()
     if active == HOTBAR_CATEGORY_BACKUP then return HOTBAR_CATEGORY_PRIMARY end
     return nil -- Werewolf, siege and other special bars are not weapon pairs.
 end
+local function OakensoulEquipped()
+    if not GetItemLinkSetInfo or not GetItemLink then return false end
+    for _,slot in ipairs({EQUIP_SLOT_RING1,EQUIP_SLOT_RING2}) do
+        local link=GetItemLink(BAG_WORN,slot)
+        local hasSet,_,_,_,_,setId=GetItemLinkSetInfo(link,true)
+        if hasSet and setId==658 then return true end
+    end
+    return false
+end
 local function Refresh()
     if not root then return end
     local other = OtherBar()
@@ -28,15 +37,17 @@ local function Refresh()
         local texture = other and GetSlotTexture(slotIndex, other)
         cell.icon:SetTexture(texture or "")
         cell.icon:SetHidden(not texture or texture == "")
-        cell:SetHidden(false)
+        cell:SetHidden(not other or OakensoulEquipped())
     end
 end
 function AlabuzyaUI.DualBar.Layout(topLevelCtrl, style)
     root, currentStyle = topLevelCtrl, style
     local container = GetControl(root, "ActionBarContainer")
     local size, gap = style.abilitySlotWidth, style.abilitySlotOffsetX
-    local iconSize = math.max(1, size - 8)
-    local offset = ((size + gap) * 5) / 2
+    local iconSize = math.max(1, size - 4)
+    local offset = ((size + gap) * 5-gap) / 2
+    local singleRow=not OtherBar() or OakensoulEquipped()
+    local rowY=singleRow and 16 or 4
     for i = 1, 5 do
         local button = ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + i)
         if button and button.slot then
@@ -53,11 +64,7 @@ function AlabuzyaUI.DualBar.Layout(topLevelCtrl, style)
                 button.timerText:SetDrawLayer(DL_OVERLAY)
             end
             button.slot:ClearAnchors()
-            if i == 6 then
-                button.slot:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
-            else
-                button.slot:SetAnchor(BOTTOMLEFT, container, BOTTOM, -offset + (i - 1) * (size + gap) + 4, 4)
-            end
+            button.slot:SetAnchor(BOTTOMLEFT,container,BOTTOM,-offset+(i-1)*(size+gap)+2,rowY)
             if not rows[i] then
                 local cell = WINDOW_MANAGER:CreateControl("AlabuzyaUIInactiveSlot" .. i, root, CT_CONTROL)
                 cell:SetMouseEnabled(false)
@@ -93,15 +100,15 @@ function AlabuzyaUI.DualBar.Layout(topLevelCtrl, style)
             local frame = emptyActive[i]
             frame:ClearAnchors()
             frame:SetDimensions(size, size)
-            frame:SetAnchor(BOTTOMLEFT, container, BOTTOM, -offset + (i - 1) * (size + gap), 0)
+            frame:SetAnchor(BOTTOMLEFT,container,BOTTOM,-offset+(i-1)*(size+gap),rowY-2)
             local activeTexture = GetSlotTexture(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + i, GetActiveHotbarCategory())
             frame:SetHidden(activeTexture ~= nil and activeTexture ~= "")
         end
     end
     local quick = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-    local sideSize=iconSize+12
+    local sideSize=48
     local sideX=offset+sideSize/2+8
-    local sideY=4-iconSize/2
+    local sideY=rowY-iconSize/2+8
     if quick and quick.slot then
         quick.slot:SetDimensions(sideSize,sideSize)
         if quick.icon then
@@ -135,6 +142,11 @@ function AlabuzyaUI.DualBar.Layout(topLevelCtrl, style)
             EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED, EVENT_HOTBAR_SLOT_UPDATED,
             EVENT_ACTIVE_WEAPON_PAIR_CHANGED, EVENT_PLAYER_ACTIVATED}) do
             EVENT_MANAGER:RegisterForEvent("AlabuzyaUIDualBar", event, ScheduleLayout)
+        end
+        if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then
+            EVENT_MANAGER:RegisterForEvent('AlabuzyaUIDualBarGear',EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(_,bag)
+                if bag==BAG_WORN then ScheduleLayout() end
+            end)
         end
         -- Native quickslot refreshes also reanchor without a hotbar event.
         -- Restore our layout after those methods, once per update batch.

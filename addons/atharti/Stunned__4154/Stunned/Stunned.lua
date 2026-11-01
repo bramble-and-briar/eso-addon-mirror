@@ -21,6 +21,15 @@ local BLOCKED_ABILITIES = {
 	[167949] = true, -- DSR | Water Silence
 	[263940] = true, -- MoS | Tarcyr Teleport
 	[264680] = true, -- MoS | Tarcyr Ghostly Indriks
+	[194570] = true, -- IA | Entrance Stun
+	[194571] = true, -- IA | Room Portals
+	[203124] = true, -- IA | Verses Choose UI 1
+	[203125] = true, -- IA | Verses Choose UI 2
+	[202995] = true, -- IA | Visions Choose UI 1
+	[203101] = true, -- IA | Visions Choose UI 2
+	[211431] = true, -- IA | Extra Portal Teleport
+	[272971] = true, -- Nowhere Vault | Watchers Whistle
+	[267547] = true, -- Nowhere Vault | Watchres Teleport
 }
 
 local combatResults = {

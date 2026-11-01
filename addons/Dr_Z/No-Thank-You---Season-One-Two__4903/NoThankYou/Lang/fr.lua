@@ -97,6 +97,12 @@ SafeAddString(NOTYOU_MAIL_HEADER,				"Confirmations pour les mails", 1)
 SafeAddString(NOTYOU_MAIL,					"Supprimer la confirmation \"Supprimer le mail\"", 1)
 SafeAddString(NOTYOU_MAIL_TOOLTIP,				"Supprimer la fenêtre de confirmation de suppression de mail sans pièce jointe.", 1)
 
+SafeAddString(NOTYOU_FAST_TRAVEL_HEADER, "VOYAGE RAPIDE", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "Ignorer la confirmation depuis un oratoire", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "Voyager immédiatement en choisissant une destination depuis un oratoire.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "Ignorer la confirmation hors d’un oratoire", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "Voyager immédiatement en choisissant une destination hors d’un oratoire. Le coût normal en or reste applicable.", 1)
+
 SafeAddString(NOTYOU_FENCE_HEADER,				"Confirmations pour le vol", 1)
 SafeAddString(NOTYOU_FENCE,					"Supprimer \"Rachat impossible des objets volés\"", 1)
 SafeAddString(NOTYOU_FENCE_TOOLTIP,				"Supprime la fenêtre de confirmation lors de la vente d'un objet volé rare.", 1)
@@ -195,6 +201,10 @@ SafeAddString(NOTYOU_NOLOREDISCOVERIES_TOOLTIP,			"Sélectionnez le type de redi
 SafeAddString(NOTYOU_NOSKILLSPROGRESS,				"Bloquer le message \"Augmentation de Compétence au rang X\"", 1)
 SafeAddString(NOTYOU_NOSKILLSPROGRESS_TOOLTIP,			"Sélectionnez le type de redirection à effectuer lors d'une réception d'un message de progression de compétence :\n|cFFFFFFAucune|r - Pas de modifications\n|cFFFFFFChat|r - Messages redirigés dans le Chat\n|cFFFFFFSilencieux|r - Les messages sont complètement supprimés", 1)
 
+SafeAddString(NOTYOU_HOME_TOURS_HEADER,				"VISITES DE MAISONS", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF,				"Bloquer les alertes de recommandation des visites de maisons", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF_TOOLTIP,			"Empêche les fenêtres de notification de recommandation de s’ouvrir lorsque cette option est activée.", 1)
+
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF,				"Désactiver les notifications du sac d'artisanat", 1)
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF_TOOLTIP,			"Ne pas notifier que mes objets ont étés déplacés dans le sac d'artisanat à la connexion et au changement de zone", 1)
 
@@ -210,6 +220,8 @@ SafeAddString(NOTYOU_LUA_MEMORY_TOOLTIP,			"Rediriger les erreurs de mémoire Lu
 SafeAddString(NOTYOU_LUA_ERROR,					"Rediriger les erreurs Lua vers :", 1)
 SafeAddString(NOTYOU_LUA_ERROR_TOOLTIP,				"Rediriger les erreurs Lua vers les notifications plutôt que d'afficher la fenêtre originale", 1)
 
-SafeAddString(NOTYOU_RAIDSCORE_ENDLESS, "Afficher les notifications des Archives infinies", 1)
-SafeAddString(NOTYOU_RAIDSCORE_SOUND, "Activer le son des notifications", 1)
-SafeAddString(NOTYOU_RAIDSCORE_SOUND_TOOLTIP, "Active ou désactive le son pour toutes les notifications utilisant NEW_NOTIFICATION.", 1)
+SafeAddString(NOTYOU_RAIDSCORE_ENDLESS,				"Afficher les notifications des Archives infinies", 1)
+SafeAddString(NOTYOU_RAIDSCORE_SOUND,				"Activer le son des notifications", 1)
+SafeAddString(NOTYOU_RAIDSCORE_SOUND_TOOLTIP,			"Active ou désactive le son pour toutes les notifications utilisant NEW_NOTIFICATION.", 1)
+
+

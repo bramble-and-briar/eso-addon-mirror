@@ -64,6 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Session Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Session-Timer__2259) | Rhyono | PC / Mac | 1.11 |
 | [Set Collection Marker (Sticker Book)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Set-Collection-Marker-Sticker-Book__2804) | Kyzeragon | PC / Mac | 3.0.0 |
 | [Set Container Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Set-Container-Collector__4652) | FirewoodDoge | PC / Mac | 1.0.1 |
+| [Set Cooldown Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Set-Cooldown-Tracker__630b3a3d-a865-43cb-ab6c-2a1c9923dbe6) | Bucketmore | Console | — |
 | [Set Hunter - Gear Finder & XP Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882) | brianmit | PC / Mac | 1.1.0 |
 | [Set Junker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HerrPulaRau/Set-Junker__2572) | HerrPulaRau | PC / Mac | 1.3.1 |
 | [Set Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoltActionBalrog/Set-Master__3192) | BoltActionBalrog | PC / Mac | 1.3.1 |
@@ -241,7 +242,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Solaris](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fosterwerks/Solaris__2521) | Fosterwerks | PC / Mac | 0.3.2 |
 | [Soldatii La Dreptate Guildhalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/animalu/Soldatii-La-Dreptate-Guildhalls__3037) | animalu | PC / Mac | 0.0.6 |
 | [Soloists of Tamriel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptivAzn/Soloists-of-Tamriel__3873) | CaptivAzn | PC / Mac | 1.70 |
-| [Sora Sorc Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Sorc-Reticle-Tracker__4959) | sora0v0 | PC / Mac | 1.0.2 |
+| [Sora Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Reticle-Tracker__5015) | sora0v0 | PC / Mac | 1.0.2 |
+| [Sora Sorc Reticle Tracker \[Discontinued\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Sorc-Reticle-Tracker-Discontinued__4959) | sora0v0 | PC / Mac | 1.0.2 |
 | [Sora Ultimate Pair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Ultimate-Pair__4583) | sora0v0 | PC / Mac | 1.0.61 |
 | [Sorc Overload Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smasharooisold/Sorc-Overload-Tracker__4785) | Smasharooisold | PC / Mac | 1.0 |
 | [Sorcerer Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vahrokh/Sorcerer-Helper__2576) | Vahrokh | PC / Mac | 3.2.1 |

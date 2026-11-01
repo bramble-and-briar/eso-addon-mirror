@@ -43,6 +43,8 @@ function TargetController.New(deps)
     self._inDebugMode   = false
     self._isInTrial     = false
     self._effectsBuffer = {} -- Reusable zero-GC presentation buffer
+    self._effectsRawBuffer = {} -- Reusable zero-GC raw effects buffer
+    self._clearTargetTimerId = nil
     return self
 end
 
@@ -57,6 +59,10 @@ function TargetController:Start()
 end
 
 function TargetController:Stop()
+    if self._clearTargetTimerId then
+        zo_removeCallLater(self._clearTargetTimerId)
+        self._clearTargetTimerId = nil
+    end
     self._eventBindings:Stop()
     self._view:SetVisible(false)
     self._nativeBridge:SetReplacementActive(false)
@@ -93,6 +99,9 @@ function TargetController:_ClearTarget(suppressNative)
     self._eventBindings:StopEffectTimer()
     self._view:SetVisible(false)
     self._view:Reset()
+    if self._state then
+        self._state.exists = false
+    end
     if suppressNative ~= false then
         self._nativeBridge:SetReplacementActive(true)
     else
@@ -138,19 +147,24 @@ end
 -- ── Move & Debug Modes ────────────────────────────────────
 
 function TargetController:SetMoveMode(active)
+    if self._clearTargetTimerId then
+        zo_removeCallLater(self._clearTargetTimerId)
+        self._clearTargetTimerId = nil
+    end
     self._inMoveMode = active
     local state = self._state
 
     self._view:SetMoveMode(active)
 
     if active then
+        self._eventBindings:StartMoveModeEvents()
         state:ResetForTargetChange()
         state.exists  = true
         state.unitTag = "player"
 
         self:RefreshMoveModeIdentity()
         state.vitals  = self._adapter:ReadVitals("player")
-        state.effects = self._adapter:ReadEffects("player")
+        state.effects = self._adapter:ReadEffects("player", nil, nil, self._effectsRawBuffer)
 
         local vitalsPres = self:_UpdateVitalsView()
         if not vitalsPres.healthKnown or not vitalsPres.healthText or vitalsPres.healthText == "" then
@@ -168,6 +182,7 @@ function TargetController:SetMoveMode(active)
         self._view:SetVisible(true)
         self:_SyncEffectTimer(state.effects)
     else
+        self._eventBindings:StopMoveModeEvents()
         state.unitTag = "reticleover"
         self:RefreshTarget()
     end
@@ -240,10 +255,31 @@ function TargetController:RefreshTarget()
 
     local unitTag = self._state.unitTag -- "reticleover"
 
-    if not DoesUnitExist(unitTag) then
-        self:_ClearTarget(true) -- Always keep native frame suppressed while addon is running
+    if not DoesUnitExist(unitTag) or AreUnitsEqual(unitTag, "player") then
+        if self._state.exists and IsUnitInCombat("player") then
+            if not self._clearTargetTimerId then
+                local gen = self._state.generation
+                self._clearTargetTimerId = zo_callLater(function()
+                    self._clearTargetTimerId = nil
+                    if (not DoesUnitExist(self._state.unitTag) or AreUnitsEqual(self._state.unitTag, "player")) and self._state.generation == gen then
+                        self:_ClearTarget(true)
+                    end
+                end, 350)
+            end
+        else
+            if self._clearTargetTimerId then
+                zo_removeCallLater(self._clearTargetTimerId)
+                self._clearTargetTimerId = nil
+            end
+            self:_ClearTarget(true)
+        end
         MugShot.logger:Debug("RefreshTarget: no target")
         return
+    end
+
+    if self._clearTargetTimerId then
+        zo_removeCallLater(self._clearTargetTimerId)
+        self._clearTargetTimerId = nil
     end
 
     -- 1. Squash native frame as the very first instruction upon target acquisition
@@ -258,7 +294,7 @@ function TargetController:RefreshTarget()
     state.exists   = true
     state.identity = self._adapter:ReadIdentity(unitTag)
     state.vitals   = self._adapter:ReadVitals(unitTag)
-    state.effects  = self._adapter:ReadEffects(unitTag)
+    state.effects  = self._adapter:ReadEffects(unitTag, nil, settings and settings.trackGroupDebuffs, self._effectsRawBuffer)
 
     if not TargetPolicy.ShouldDisplay(state, settings, self._isInTrial) then
         self:_ClearTarget(true) -- Target exists but filtered out: suppress native frame too!
@@ -284,9 +320,11 @@ end
 
 function TargetController:OnTargetDeath()
     if self._inMoveMode or self._inDebugMode then return end
-    if self._state then
-        self._state.vitals.isDead = true
+    if self._clearTargetTimerId then
+        zo_removeCallLater(self._clearTargetTimerId)
+        self._clearTargetTimerId = nil
     end
+    self._state.vitals.isDead = true
     self:_ClearTarget()
 end
 
@@ -364,7 +402,8 @@ function TargetController:RefreshEffects(targetGeneration, unitTag)
         return
     end
 
-    local effects = self._adapter:ReadEffects(self._state.unitTag)
+    local settings = self._settings:Get()
+    local effects = self._adapter:ReadEffects(self._state.unitTag, nil, settings and settings.trackGroupDebuffs, self._effectsRawBuffer)
     self._state.effects = effects
 
     self:_UpdateEffectsView()

@@ -1,0 +1,12 @@
+## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Antiquities|r
+## Description: Starter module for Antiquities with the shared Tamriel Archive menu, layout and icons. Collection data will be added in later releases.
+## Author: |c73E58CMajesticMinxi|r
+## Version: 0.1.0
+## APIVersion: 101051
+## AddOnVersion: 100
+
+Shared.lua
+ArchiveAntiquities.lua
+CollectionsUI.xml
+CollectionsUI.lua
+MainMenu.lua

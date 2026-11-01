@@ -121,6 +121,46 @@ end
 
 
 ---------------------------------------------------------------------
+-- Apprentice master writ
+---------------------------------------------------------------------
+local function CheckApprentice()
+    for i = 1, GetNumBuffs("player") do
+        local _, _, _, _, _, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", i)
+        if (abilityId == 13979) then
+            return
+        end
+    end
+    DisplayWarning("You started a master writ quest, but you do not have the Apprentice Mundus!")
+end
+
+local XP_BUFFS = {
+    [64210] = true, -- Psijic Ambrosia
+    [89683] = true, -- Aetherial Ambrosia
+    [88445] = true, -- Mythic Aetherial Ambrosia
+    [66776] = true, -- Crown Experience Scroll
+    [85501] = true, -- Gold Coast Experience Scroll
+    [85502] = true, -- Major Gold Coast Experience Scroll
+    [85503] = true, -- Grand Gold Coast Experience Scroll
+}
+local function CheckXPBuff()
+    for i = 1, GetNumBuffs("player") do
+        local _, _, _, _, _, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", i)
+        if (XP_BUFFS[abilityId]) then
+            return
+        end
+    end
+    DisplayWarning("You started a master writ quest, but you do not have an experience buff active!")
+end
+
+local function OnQuestStartedApprentice(_, questJournalIndex)
+    if (GetQuestConditionMasterWritInfo(questJournalIndex, 1, 1) ~= nil) then
+        CheckApprentice()
+        CheckXPBuff()
+    end
+end
+
+
+---------------------------------------------------------------------
 -- Init
 ---------------------------------------------------------------------
 function Writs.Initialize()
@@ -141,5 +181,10 @@ function Writs.Initialize()
     EVENT_MANAGER:UnregisterForEvent(KD.name .. "WritsBankOpened", EVENT_OPEN_BANK)
     if (KD.savedOptions.writs.depositEssenceOfHealth) then
         EVENT_MANAGER:RegisterForEvent(KD.name .. "WritsBankOpened", EVENT_OPEN_BANK, OnBankOpened)
+    end
+
+    EVENT_MANAGER:UnregisterForEvent(KD.name .. "WritsApprenticeQuestAdded", EVENT_QUEST_ADDED)
+    if (KD.savedOptions.writs.warnMasterWritXP) then
+        EVENT_MANAGER:RegisterForEvent(KD.name .. "WritsApprenticeQuestAdded", EVENT_QUEST_ADDED, OnQuestStartedApprentice)
     end
 end

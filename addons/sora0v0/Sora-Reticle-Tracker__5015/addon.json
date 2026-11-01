@@ -1,0 +1,42 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/sora0v0/Sora-Reticle-Tracker__5015",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "sora0v0",
+  "canonical_id": "esoui:5015",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5015",
+  "deleted": false,
+  "directories": [
+    "SoraReticleTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5015/",
+  "fingerprint": "2401136a3b3985906617862365dfc593cabc3d372080912b269ca2c9c0440966",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18256.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18257.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18258.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18259.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5015",
+  "source_url": "https://www.esoui.com/downloads/info5015-SoraReticleTracker.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Sora Reticle Tracker",
+  "updated_at": 1793530582000,
+  "version": "1.0.2"
+}

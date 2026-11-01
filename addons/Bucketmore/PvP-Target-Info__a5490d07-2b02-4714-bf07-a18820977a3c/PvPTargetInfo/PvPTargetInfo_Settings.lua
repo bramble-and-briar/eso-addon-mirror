@@ -357,6 +357,12 @@ function PTI.Settings.Initialize()
         text = "敵にかかっている「重要なバフ」を表示するパネルです。",
     })
     BuildPanelControls(buffControls, "buff", "buffUI", { x = -180, y = -250 })
+    -- v2.0.8: 敵BUFF表示に関する注意書き(表示のみ。検知ロジック・設定値には無関係)。
+    -- BuildPanelControlsの先頭=「このパネルを表示する」(敵BUFFのON/OFF)の直下に差し込む。
+    table.insert(buffControls, 3, {
+        type = "description",
+        text = "【ご注意】敵プレイヤーのBUFF情報は、ゲーム側のAPI制限や取得仕様により、表示できる環境が制限される場合があります。\n\n現在の確認では、決闘(Duel)では表示されますが、バトルグラウンド(BG)およびシロディール(Cyrodiil)では表示されないことを確認しています。\n\nゲーム側の仕様変更により、今後動作が変わる可能性があります。",
+    })
     BuildWatchControls(buffControls, "buff", "PTI_BuffPendingDropdown")
     table.insert(optionsTable, {
         type = "submenu",

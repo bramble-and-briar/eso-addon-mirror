@@ -18,7 +18,7 @@
     "NoThankYou"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4903/",
-  "fingerprint": "d39e14b29ee92e725f783b2bd506817d8ffa74e077280545f9f93863f491933a",
+  "fingerprint": "b9bc95eae063c946e645e937b25da93aa82da838db99fcb9d4493600a0425f62",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17655.jpg"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4903",
   "source_url": "https://www.esoui.com/downloads/info4903-NoThankYou-SeasonOneTwo.html",
   "stats": {
-    "downloads": 267,
+    "downloads": 498,
     "favorites": 4,
-    "monthly_downloads": 236
+    "monthly_downloads": 451
   },
   "title": "No, Thank You! - Season One & Two",
-  "updated_at": 1792620523000,
-  "version": "12.1.1"
+  "updated_at": 1793481977000,
+  "version": "12.1.4"
 }

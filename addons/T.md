@@ -22,12 +22,15 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Ambulance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheInfiniti352/Tamriel-Ambulance__3124) | TheInfiniti352 | PC / Mac | 1.2.11 |
 | [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.0 |
 | [Tamriel Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gandalf/Tamriel-Chronos---Clock__3348) | Gandalf | PC / Mac | 20101 |
+| [Tamriel Collections - Archive Antiquities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Antiquities__ce080e90-e198-4d6b-8b7e-19c933c02e6e) | MajesticMinxi | Console | — |
+| [Tamriel Collections - Archive Furnishing Plans](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Furnishing-Plans__8e8983cd-c304-4a89-b625-ec8c4560820d) | MajesticMinxi | Console | — |
+| [Tamriel Collections - Archive Lore Books](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Lore-Books__47c3cdf6-2b6c-4ace-99f9-f4c57bf852a3) | MajesticMinxi | Console | — |
 | [Tamriel Collections - Archive Motifs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Motifs__103c35ee-3bbb-4f5c-9fd4-3e0f20c3d626) | MajesticMinxi | Console | — |
 | [Tamriel Collections - Archive Style Pages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Style-Pages__c8ff27a5-4393-43c9-a816-b912384fdb2d) | MajesticMinxi | Console | — |
 | [Tamriel Collections – Guild Market Scanner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections-Guild-Market-Scanner__f419b0e2-e53c-4875-bcf2-5bf0e372218b) | MajesticMinxi | Console | — |
 | [Tamriel Master Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger__1e746db5-8418-4a6f-9f17-4449e0d7e3f0) | xPricee | Console | — |
 | [Tamriel Master Ledger - DEV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger---DEV__89ecfc27-e76b-48ae-8d40-e76bbf0c5c13) | xPricee | Console | — |
-| [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.8.0 |
+| [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.9.0 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
 | [Tamriel Text Studio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lucky38Tech/Tamriel-Text-Studio__a847021b-2ae6-4d43-81a4-9a8f3985f8b8) | Lucky38Tech | Console | — |
@@ -63,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tauntless](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hoellik/Tauntless__153e64a6-b621-4c91-b84a-c2ae48778142) | hoellik | Console | — |
 | [TauntTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/TauntTracker__4554) | Tenshiraito | PC / Mac | 3.0.0 |
 | [Taximeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Taximeter__3636) | MrPikPik | PC / Mac | 1.0 |
-| [Taz's Chat Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Taz-s-Chat-Notifier__2764) | Tazmyr | PC / Mac | 1.28 |
+| [Taz's Chat Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Taz-s-Chat-Notifier__2764) | Tazmyr | PC / Mac | 1.29 |
 | [TBag Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/TBag-Counter__1976) | kafeijao | PC / Mac | 0.4 |
 | [Tbudko's icons for Makos's ContentHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tbudko/Tbudko-s-icons-for-Makos-s-ContentHelper__4140) | Tbudko | PC / Mac | 1.1.0 |
 | [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.10.14 |
@@ -77,6 +80,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Teleport Tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deagl0r/Teleport-Tool__1333) | deagl0r | PC / Mac | 1.24.0.0 |
 | [TemplarMastery](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/TemplarMastery__4827) | its_wifey | PC / Mac | 1.7 |
 | [TESO Ingame Messenger - TIM (for Update 6)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Migoda/TESO-Ingame-Messenger---TIM-for-Update-6__944) | Migoda | PC / Mac | 5.52 |
+| [Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Test__f8bc38ae-b26d-4071-83f7-5987dbc4045f) | FiNk3F13 | Console | — |
 | [test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satuve/test__3735024b-209d-4fab-966c-339f5adffcb5) | satuve | Console | — |
 | [test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/test__081b2e52-b426-454f-9be3-3a9a4aa5678f) | sirinsidiator | Console | — |
 | [Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wh0c4r35ab0utth15/Test__43eacadc-428c-4ca4-b0da-e2777148a4fb) | wh0c4r35ab0utth15 | Console | — |

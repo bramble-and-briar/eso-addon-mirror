@@ -1,0 +1,13 @@
+## Title: SetCooldownTracker
+## Description: 装備セットProcの内部クールダウンを自動検知し、残り時間をパネル表示します。
+## Author: SetCooldownTracker
+## Version: 1.0.3
+## AddOnVersion: 103
+## APIVersion: 101051 101050
+## SavedVariables: SetCooldownTrackerSV
+## OptionalDependsOn: LibAddonMenu-2.0
+
+SCT_Database.lua
+SCT_UI.lua
+SCT_Core.lua
+SCT_Settings.lua

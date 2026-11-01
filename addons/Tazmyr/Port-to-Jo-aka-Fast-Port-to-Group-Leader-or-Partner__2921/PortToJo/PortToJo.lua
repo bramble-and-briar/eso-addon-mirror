@@ -5,7 +5,7 @@
 -- Initialize Addon
 PortToJo 		= {}
 PortToJo.Name 		= "PortToJo"
-PortToJo.Version 	= "3.09"
+PortToJo.Version 	= "3.10"
 PortToJo.Author 	= "Tazmyr"
 PTJ 			= PortToJo
 

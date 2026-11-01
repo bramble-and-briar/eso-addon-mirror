@@ -159,7 +159,7 @@ function UP.Debug.Refresh()
                     and "HELD (died plagued; clears on respawn)" or "no"),
             (UP.PlagueTint and UP.PlagueTint.IsPreviewActive and UP.PlagueTint.IsPreviewActive())
                 and "  +PREVIEW" or ""),
-        -- Groupmate plague (0.5.7): off, none, or who carries one and for how long.
+        -- Groupmate plague (0.5.8): off, none, or who carries one and for how long.
         ("groupPlague=%s"):format(
             (UP.PlagueGroup and UP.PlagueGroup.Summary) and UP.PlagueGroup.Summary(GetGameTimeMilliseconds()) or "n/a"),
         -- Pull detection (0.4.2): off / armed / a live warning with its set.
@@ -184,6 +184,11 @@ function UP.Debug.Refresh()
             return ("shown: plagueCorners=%s plagueCentre=%s pullCorners=%s pullCentre=%s pullBorders=%s"):format(
                 yn(pc), yn(ps), yn(uc), yn(us), yn(ub))
         end)(),
+        -- 0.5.10: did our DDS files actually load? "ok(6)" means the client
+        -- loaded all six plague icon textures; "FALLBACK n" means it did not
+        -- and those controls now show the game's own ability icon; "waiting"
+        -- means that display has not been on screen long enough to check.
+        (UP.TextureGuard and UP.TextureGuard.Summary) and UP.TextureGuard.Summary() or "textures: n/a",
         ("dmgEvts=%d  activeDebuffs=%d  cand=%s"):format(
             s.damageEventCount or 0, effectCount, tostring(s.candidateState)),
         "--- recent events ---",

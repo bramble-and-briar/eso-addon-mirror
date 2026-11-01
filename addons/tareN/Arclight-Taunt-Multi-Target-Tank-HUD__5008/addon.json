@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
-  "archive_path": "addons/tareN/Arclight-Taunt-Modern-Tank-HUD__5008",
+  "archive_format": "zip",
+  "archive_path": "addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "tareN",
   "canonical_id": "esoui:5008",
   "category_id": "25",
@@ -19,7 +18,7 @@
     "ArclightTaunt"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5008/",
-  "fingerprint": "93f15ab452455e242cc9ccf4d75e0bfa08ceddf9fa58126fb59465c3bab1e088",
+  "fingerprint": "c8baa0fce8709e48bbfc97d701182ac3253505fd5880f1c4477946972a6b91aa",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18223.png",
     "https://cdn-eso.mmoui.com/preview/pvw18225.jpg",
@@ -32,13 +31,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "5008",
-  "source_url": "https://www.esoui.com/downloads/info5008-ArclightTauntModernTankHUD.html",
+  "source_url": "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
   "stats": {
-    "downloads": 9,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 40,
+    "favorites": 2,
+    "monthly_downloads": 32
   },
-  "title": "Arclight Taunt \u2013 Modern Tank HUD",
-  "updated_at": 1793329360000,
-  "version": "1.0.1"
+  "title": "Arclight Taunt \u2013 Multi-Target Tank HUD",
+  "updated_at": 1793471407000,
+  "version": "1.0.3"
 }

@@ -1,0 +1,36 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="BS_Panel" inherits="ZO_RightPanelFootPrint" hidden="true">
+			<Controls>
+				<Label name="$(parent)WindowTitle" horizontalAlignment="CENTER" font="ZoFontAnnounceLarge" text="|cFFD700Better Scoreboard|r">
+					<Anchor point="BOTTOM" relativeTo="ZO_GroupList" relativePoint="TOP" offsetY="-15"/>
+				</Label>
+				<Control name="$(parent)Data">
+					<Anchor point="TOPLEFT" relativeTo="ZO_GroupList" relativePoint="TOPLEFT"/>
+				</Control>
+			</Controls>
+		</TopLevelControl>
+
+		<Control name="BS_Row" virtual="true">
+			<Dimensions y="ZO_ADDON_ROW_HEIGHT"/>
+			<Anchor point="TOPLEFT" offsetX="0" offsetY="0" />
+			<Controls>
+				<Button name="$(parent)Check" inherits="ZO_TriStateCheckButton">
+					<Anchor point="TOPLEFT" offsetX="0" offsetY="7" />
+				</Button>
+				<Label name="$(parent)Name" font="ZoFontWinH4" inherits="ZO_TooltipIfTruncatedLabel" maxLineCount="1" text="TEST">
+					<Dimensions x="265"/>
+					<Anchor point="LEFT" relativeTo="$(parent)Enabled" relativePoint="RIGHT" offsetX="20" offsetY="1" />
+				</Label>
+			</Controls>
+		</Control>
+
+		<Button name="BS_QueueButtonTemplate" inherits="ZO_DefaultButton" text="SI_LFG_JOIN_QUEUE" virtual="true">
+            <Dimensions x="200" />
+            <OnClicked>
+                BetterScoreboard.startSearch()
+            </OnClicked>
+        </Button>
+
+	</Controls>
+</GuiXml>

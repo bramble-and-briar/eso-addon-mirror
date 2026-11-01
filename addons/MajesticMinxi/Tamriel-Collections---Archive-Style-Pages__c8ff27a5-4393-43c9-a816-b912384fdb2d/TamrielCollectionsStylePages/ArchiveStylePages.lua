@@ -1,4 +1,4 @@
--- Tamriel Collections - Archive Style Pages v0.1.12
+-- Tamriel Collections - Archive Style Pages v1.0.0
 -- Groups individual outfit Style Pages into their ESO item-style families.
 local TC = TamrielCollections
 
@@ -537,10 +537,11 @@ local function BuildStylePageFastTravelNodes()
         local _, name = GetFastTravelNodeInfo(nodeIndex)
         local zoneIndex, poiIndex = GetFastTravelNodePOIIndicies(nodeIndex)
         if name and name ~= '' and zoneIndex and poiIndex then
+            local formattedName = zo_strformat(name)
             stylePageFastTravelNodes[#stylePageFastTravelNodes + 1] = {
                 nodeIndex = nodeIndex,
-                name = zo_strformat(name),
-                normalizedName = Normalize(name),
+                name = formattedName,
+                normalizedName = Normalize(formattedName),
                 zoneIndex = zoneIndex,
                 poiIndex = poiIndex,
             }
@@ -638,6 +639,99 @@ local function FindNodeByExactName(name)
     return nil
 end
 
+local MAP_NODE_GENERIC_WORDS = {
+    wayshrine = true,
+    dungeon = true,
+    trial = true,
+    arena = false,
+}
+
+local function GetTCMNodeCoreName(name)
+    local normalized = Normalize(name)
+    local words = {}
+    for word in normalized:gmatch('%S+') do
+        if not MAP_NODE_GENERIC_WORDS[word] then
+            words[#words + 1] = word
+        end
+    end
+    return table.concat(words, ' ')
+end
+
+local function FindNodeByTCMTargetName(name)
+    local target = Normalize(name)
+    if target == '' then return nil end
+    local targetCore = GetTCMNodeCoreName(target)
+
+    -- Exact native name first.
+    for _, node in ipairs(BuildStylePageFastTravelNodes()) do
+        if node.normalizedName == target then
+            return node
+        end
+    end
+
+    -- Then use the same generic-word stripping that TCM uses.  This handles
+    -- native names such as "Moongrave Fane Wayshrine" when the curated target
+    -- simply says "Moongrave Fane".
+    for _, node in ipairs(BuildStylePageFastTravelNodes()) do
+        local nodeCore = GetTCMNodeCoreName(node.normalizedName)
+        if nodeCore ~= '' and (nodeCore == target or nodeCore == targetCore) then
+            return node
+        end
+    end
+    return nil
+end
+
+local function ScoreTCMNodeAgainstText(node, sourceText, styleText)
+    local score = 0
+    local core = GetTCMNodeCoreName(node.normalizedName)
+    if core ~= '' and #core >= 4 then
+        if sourceText:find(core, 1, true) then
+            score = math.max(score, 100 + #core)
+        end
+        if styleText ~= '' and (core:find(styleText, 1, true) or styleText:find(core, 1, true)) then
+            score = math.max(score, 80 + math.min(#core, #styleText))
+        end
+        for word in core:gmatch('%S+') do
+            if #word >= 5 and sourceText:find(word, 1, true) then
+                score = math.max(score, 40 + #word)
+            end
+        end
+    end
+    return score
+end
+
+local function FindTCMNodeFromExplicitSource(family, source)
+    if not source then return nil end
+
+    -- Curated nodeName is authoritative.  Try it directly before any scoring.
+    if source.nodeName then
+        local direct = FindNodeByTCMTargetName(source.nodeName)
+        if direct then return direct end
+    end
+
+    -- Score only the explicit destination fields.  Do not include the long
+    -- acquisition description here; it may mention other legitimate places and
+    -- would reintroduce the ambiguous multi-location routing we are removing.
+    local sourceText = Normalize(table.concat({
+        source.nodeName or '',
+        source.location or '',
+    }, ' '))
+    local styleText = Normalize((family and family.name) or '')
+    local bestNode, bestScore = nil, 0
+
+    for _, node in ipairs(BuildStylePageFastTravelNodes()) do
+        local score = ScoreTCMNodeAgainstText(node, sourceText, styleText)
+        if score > bestScore then
+            bestNode, bestScore = node, score
+        end
+    end
+
+    if bestNode and bestScore >= 45 then
+        return bestNode
+    end
+    return nil
+end
+
 local function FindZoneByExactName(name)
     if not (GetNumZones and GetZoneNameByIndex) then return nil end
     local target = Normalize(name)
@@ -662,6 +756,29 @@ local function FindMapIdByExactName(name)
     local zone = FindZoneByExactName(name)
     if zone then
         return FindMapIdForStylePageZone(zone.zoneIndex)
+    end
+    return nil
+end
+
+local stylePageCityMapIds = {}
+local function FindStylePageCityMapId(name)
+    local key = Normalize(name)
+    if stylePageCityMapIds[key] then return stylePageCityMapIds[key] end
+    if not (GetNumMaps and GetMapIdByIndex and GetMapNameById) then return nil end
+
+    -- GetNumMaps lists travel/zone maps, not all city maps. Enumerate native
+    -- IDs up to the highest loaded zone-map ID, once per requested city.
+    -- Alinor and Wayrest predate the current chapter maps; their map IDs are
+    -- inside this range. Never substitute a parent zone for an absent city.
+    local highestMapId = GetCurrentMapId and GetCurrentMapId() or 0
+    for index = 1, GetNumMaps() do
+        highestMapId = math.max(highestMapId, GetMapIdByIndex(index) or 0)
+    end
+    for mapId = 1, highestMapId do
+        if Normalize(GetMapNameById(mapId)) == key then
+            stylePageCityMapIds[key] = mapId
+            return mapId
+        end
     end
     return nil
 end
@@ -691,6 +808,34 @@ local function FindPoiByExactName(name, preferredZoneIndex)
         if poi.normalizedName == target then
             return poi
         end
+    end
+    return nil
+end
+
+local function FindExactPoiFromExplicitSource(source)
+    if not source then return nil end
+
+    -- A NODE record may represent a dungeon entrance that ESO exposes as a POI
+    -- rather than as a fast-travel node.  Check the same exact curated name as
+    -- a POI before allowing any scored fallback.
+    local candidates = {}
+    local seen = {}
+    local function AddCandidate(value)
+        value = zo_strformat(value or '')
+        local normalized = Normalize(value)
+        if normalized ~= '' and not seen[normalized] then
+            seen[normalized] = true
+            candidates[#candidates + 1] = value
+        end
+    end
+
+    AddCandidate(source.nodeName)
+    AddCandidate(source.poiName)
+    AddCandidate(source.location)
+
+    for _, candidate in ipairs(candidates) do
+        local poi = FindPoiByExactName(candidate, nil)
+        if poi then return poi end
     end
     return nil
 end
@@ -754,6 +899,58 @@ local function MakeCoordinateTarget(mapName, x, y, label, kind)
         label = label or mapName,
         name = label or mapName,
     }
+end
+
+local function MakeDirectMapTarget(mapName, label, kind)
+    if not mapName then return nil end
+    local mapIndex = FindMapIndexByExactName(mapName)
+    local mapId = FindMapIdByExactName(mapName)
+    if not mapIndex and not mapId then return nil end
+    return {
+        kind = kind or 'zone',
+        mapIndex = mapIndex,
+        mapId = mapId,
+        mapName = mapName,
+        label = label or mapName,
+        name = label or mapName,
+    }
+end
+
+local function MakeMapLocationTarget(mapName, locationNames, label, mapId)
+    local target
+    if mapId and mapId > 0 then
+        target = { mapId = mapId, mapName = mapName, label = label, name = label }
+    else
+        target = MakeDirectMapTarget(mapName, label, 'location')
+    end
+    if not target then return nil end
+    target.kind = 'location'
+    target.locationNames = locationNames
+    return target
+end
+
+local function GetStylePageMapLocationCoordinates(locationNames)
+    if not (GetNumMapLocations and GetMapLocationTooltipHeader and GetMapLocationIcon) then
+        return nil
+    end
+    local names = {}
+    for _, name in ipairs(locationNames or {}) do names[Normalize(name)] = true end
+    for locationIndex = 1, GetNumMapLocations() do
+        local matches = names[Normalize(GetMapLocationTooltipHeader(locationIndex))]
+        -- Some hubs use a service heading and list the named merchant/club in
+        -- the tooltip. These are still exact names on the selected map.
+        if not matches and GetNumMapLocationTooltipLines and GetMapLocationTooltipLineInfo then
+            for lineIndex = 1, GetNumMapLocationTooltipLines(locationIndex) do
+                local _, name = GetMapLocationTooltipLineInfo(locationIndex, lineIndex)
+                if names[Normalize(name)] then matches = true; break end
+            end
+        end
+        if matches then
+            local _, x, y = GetMapLocationIcon(locationIndex)
+            if x and y and x > 0 and y > 0 and x < 1 and y < 1 then return x, y end
+        end
+    end
+    return nil
 end
 
 local function MakeExactPoiTarget(poiName, zoneName, label, kind)
@@ -841,65 +1038,128 @@ local function MakeExactNodeOrPoiTarget(name, label, kind)
         or MakeExactPoiTarget(name, nil, label or name, kind)
 end
 
+local function ResolveNamedLocationTarget(name, label, kind)
+    if not name then return nil end
+    return MakeExactNodeOrPoiTarget(name, label or name, kind or 'source')
+        or MakeExactNodeOrPoiTarget(name .. ' Wayshrine', label or name, kind or 'source')
+        or MakeZoneTarget(FindZoneByExactName(name), label or name, kind or 'source')
+        or MakeDirectMapTarget(name, label or name, kind or 'source')
+end
+
 local function ResolveCuratedStylePageHub(hubKey)
+    -- IMPORTANT: one hub key = one destination only.
+    -- Do not add fallback chains here.  The TCM map code works reliably when
+    -- it receives one unambiguous target and lets ESO position the native pin.
+
     if hubKey == 'NEW_LIFE' then
-        return MakeExactNodeTarget('Kynesgrove Wayshrine',
+        return MakeNodeTarget(FindNodeByTCMTargetName('Kynesgrove Wayshrine'),
             "New Life Festival - Breda's tent north of Kynesgrove Wayshrine", 'event')
+
     elseif hubKey == 'BELKARTH_FESTIVAL' or hubKey == 'BELKARTH_IMPRESARIO' then
-        -- Belkarth Festival Grounds is a real event-hub POI on the Craglorn map.
-        -- Prefer that exact POI; fall back to a fixed Craglorn coordinate derived
-        -- from the festival-grounds map location rather than the Belkarth city map.
-        return MakeExactPoiTargetInZones('Belkarth Festival Grounds', { 'Craglorn' },
-            'Impresario / Event Exchange - Belkarth Festival Grounds', 'event')
-            or MakeExactPoiTargetInZones('Balkarth Festival Grounds', { 'Craglorn' },
-                'Impresario / Event Exchange - Belkarth Festival Grounds', 'event')
-            or MakeCoordinateTarget('Craglorn', 0.4630859375, 0.4032552083,
-                'Impresario / Event Exchange - Belkarth Festival Grounds', 'event')
+        return MakeMapLocationTarget('Craglorn', { 'Belkarth Festival Grounds', 'The Impresario' },
+            'Impresario / Event Exchange - Belkarth')
+
     elseif hubKey == 'GLENUMBRA_IMPRESARIO' then
         return MakeCoordinateTarget('Glenumbra', 0.3396363258, 0.7399688363,
             'Impresario / Event Exchange - Glenumbra', 'event')
+
     elseif hubKey == 'GONFALON' then
-        return MakeExactPoiTargetInZones('Gonfalon Gaming Hall',
-            { 'Gonfalon Bay', 'High Isle and Amenos' },
-            'Gonfalon Gaming Hall', 'activity')
-            or MakeExactNodeOrPoiTarget('Gonfalon Palace Wayshrine',
-                'Gonfalon Gaming Hall - nearest wayshrine', 'activity')
+        return MakeMapLocationTarget('Gonfalon Bay',
+            { 'Gonfalon Gaming Hall', 'Gonfalon Tribute Club' }, 'Gonfalon Gaming Hall', 2163)
+
+    elseif hubKey == 'WAR_RESEARCHER' then
+        local alliance = GetUnitAlliance and GetUnitAlliance('player') or nil
+        local gate, merchant = 'Southern High Rock Gate', 'Telfour'
+        if alliance == ALLIANCE_ALDMERI_DOMINION then
+            gate, merchant = 'Eastern Elsweyr Gate', 'Eanor'
+        elseif alliance == ALLIANCE_EBONHEART_PACT then
+            gate, merchant = 'Northern Morrowind Gate', 'Llivia Ralas'
+        end
+        local mapId = FindStylePageCityMapId(gate)
+        if not mapId then return nil end
+        local target = MakeMapLocationTarget(gate, { 'War Researcher', merchant },
+            'War Researcher - ' .. gate, mapId)
+        target.forceMapId = true
+        target.expectedMapName = gate
+        return target
+
+    elseif hubKey == 'SOLSTICE_FELLOWSHIP' then
+        -- Use the same native camp wayshrine as the confirmed Motifs route.
+        local target = MakeExactNodeTarget('Rampart Camp Wayshrine',
+            'Fellowship Camp - Solstice', 'source')
+            or MakeExactPoiTarget('Rampart Camp Wayshrine', 'Solstice',
+                'Fellowship Camp - Solstice', 'source')
+        if target then
+            target.preferredLocationNames = { 'Fellowship Camp', 'Stirk Fellowship Camp' }
+        end
+        return target
+
+    elseif hubKey == 'STIRK_FELLOWSHIP' then
+        -- Stirk 572 is the old main-quest island. Zone 1508 is the Fellowship
+        -- island; selecting by the shared name alone can choose the old copy.
+        local zoneIndex = GetZoneIndex and GetZoneIndex(1508) or nil
+        if not zoneIndex or zoneIndex <= 0 then return nil end
+        local target
+        for _, node in ipairs(BuildStylePageFastTravelNodes()) do
+            if node.zoneIndex == zoneIndex and node.normalizedName == Normalize('Stirk Wayshrine') then
+                target = MakeNodeTarget(node, 'Stirk Fellowship Camp', 'source')
+                break
+            end
+        end
+        if not target then
+            local poi = FindPoiByExactName('Stirk Wayshrine', zoneIndex)
+            target = MakePoiTarget(poi, 'Stirk Fellowship Camp', 'source')
+        end
+        if not target then
+            target = MakeMapLocationTarget('Stirk', { 'Stirk Fellowship Camp' },
+                'Stirk Fellowship Camp', GetMapIdByZoneId and GetMapIdByZoneId(1508))
+        end
+        if not target then return nil end
+        -- A node can have a map-list entry on a broader map. Its coordinates
+        -- there are valid, but they are not the detailed Fellowship island.
+        target.mapId = GetMapIdByZoneId and GetMapIdByZoneId(1508) or nil
+        target.forceMapId = true
+        target.expectedMapName = 'Stirk'
+        target.expectedZoneId = 1508
+        target.preferredLocationNames = { 'Stirk Fellowship Camp' }
+        return target
+
     elseif hubKey == 'NIGHT_MARKET' then
-        return MakeExactNodeOrPoiTarget('Starlit Plaza Wayshrine',
-            'Night Market - Fargrave / Starlit Plaza Wayshrine', 'event')
-            or MakeZoneTarget(FindZoneByExactName('Fargrave City District'),
-                'Night Market - Fargrave', 'event')
-            or MakeZoneTarget(FindZoneByExactName('Fargrave'),
-                'Night Market - Fargrave', 'event')
+        -- User requested the Fargrave map for Night Market styles.
+        local zone = FindZoneByExactName('Fargrave')
+        return MakeZoneTarget(zone, 'Night Market - Fargrave', 'event')
+
     elseif hubKey == 'WITCHES' then
-        return MakeExactNodeTarget('Crosswych Wayshrine',
-            "Witches Festival - Olyve's Brewery (nearest wayshrine)", 'event')
+        return MakeNodeTarget(FindNodeByTCMTargetName('Crosswych Wayshrine'),
+            "Witches Festival - Olyve's Brewery", 'event')
+
     elseif hubKey == 'BATTLEGROUNDS' then
-        -- Use ESO's own Gladiator's Quarters POI instead of a guessed city-map
-        -- coordinate.  The Alinor/Summerset location is the user-selected hub.
-        return MakeExactPoiTargetInZones("Gladiator's Quarters",
-            { 'Alinor', 'Summerset' },
-            "Battlegrounds - Gladiator's Quarters, Alinor", 'activity')
-            or MakeZoneTarget(FindZoneByExactName('Summerset'),
-                "Battlegrounds - Gladiator's Quarters, Alinor", 'activity')
+        local mapId = FindStylePageCityMapId('Alinor')
+        if not mapId then return nil end
+        local target = MakeMapLocationTarget('Alinor',
+            { "Gladiator's Quarters", 'Battlemaster Rivyn' },
+            "Battlegrounds - Gladiator's Quarters, Alinor", mapId)
+        target.forceMapId = true
+        target.expectedMapName = 'Alinor'
+        return target
+
     elseif hubKey == 'UNDAUNTED_WAYREST' then
-        -- Resolve the real Undaunted Enclave POI outside Wayrest.  This avoids
-        -- fragile city-map coordinates.
-        return MakeExactPoiTargetInZones('Undaunted Enclave',
-            { 'Wayrest', 'Stormhaven' },
-            'Undaunted Enclave - Wayrest', 'activity')
-            or MakeZoneTarget(FindZoneByExactName('Stormhaven'),
-                'Undaunted Enclave - Wayrest', 'activity')
+        local mapId = FindStylePageCityMapId('Wayrest')
+        if not mapId then return nil end
+        local target = MakeMapLocationTarget('Wayrest', { 'Undaunted Enclave' },
+            'Undaunted Enclave - Wayrest', mapId)
+        target.forceMapId = true
+        target.expectedMapName = 'Wayrest'
+        return target
+
     elseif hubKey == 'INFINITE_ARCHIVE' then
-        -- Infinite Archive is exposed as its own map icon in Apocrypha.
-        -- Prefer that exact POI, then an exact fast-travel node if available.
-        return MakeExactPoiTarget('Infinite Archive', 'Apocrypha',
-            'Infinite Archive', 'activity')
-            or MakeExactNodeOrPoiTarget('Infinite Archive', 'Infinite Archive', 'activity')
-            or MakeExactNodeOrPoiTarget('Speiran Tarn Wayshrine',
-                'Infinite Archive - entrance north of Speiran Tarn Wayshrine', 'activity')
+        local apocrypha = FindZoneByExactName('Apocrypha')
+        local poi = apocrypha and FindPoiByExactName('Infinite Archive', apocrypha.zoneIndex) or nil
+        return MakePoiTarget(poi, 'Infinite Archive', 'activity')
     end
 
+    -- Generic Impresario/Event Exchange destinations: keep the exact coordinates
+    -- that were already working in PS5 testing.  This is still one target only.
     local alliance = GetUnitAlliance and GetUnitAlliance('player') or 0
     if hubKey == 'IMPRESARIO' or hubKey == 'JESTERS' or hubKey == 'WHITESTRAKE' then
         if alliance == ALLIANCE_ALDMERI_DOMINION then
@@ -916,122 +1176,251 @@ local function ResolveCuratedStylePageHub(hubKey)
     return nil
 end
 
+local function HasStylePageMapDefinition(family)
+    if not family then return false end
+    local source = GetStylePageSourceOverride(family)
+    if not source then return false end
+    return (source.mapType or 'NONE') ~= 'NONE'
+end
+
 local function ResolveStylePageMapTarget(family)
     if not family then return nil end
 
     local source = GetStylePageSourceOverride(family)
-    if not source then
-        -- Unknown/new Style Pages may still display ESO's source text, but they
-        -- never receive a guessed map target.
-        family._tcsMapResolved = true
-        family._tcsMapTarget = false
+    if not source then return nil end
+
+    local mapType = source.mapType or 'NONE'
+
+    -- One record -> one destination. Native locations are resolved only on
+    -- their specified map; dungeon/node resolution keeps its existing path.
+    if mapType == 'NODE' and source.nodeName then
+        -- Full TCM-style target resolution.  Some dungeon entrances are exposed
+        -- as native fast-travel nodes while others are only usable as POIs on
+        -- the parent zone map.  Resolve both before declaring the target absent.
+        local node = FindTCMNodeFromExplicitSource(family, source)
+        if node then
+            return MakeNodeTarget(node, source.location or source.nodeName, 'source')
+        end
+
+        local poi = FindExactPoiFromExplicitSource(source)
+        if poi then
+            return MakePoiTarget(poi, source.location or source.nodeName, 'source')
+        end
+
+        return nil
+
+    elseif mapType == 'POI' and source.poiName then
+        local preferredZoneIndex = nil
+        if source.zoneName then
+            local zone = FindZoneByExactName(source.zoneName)
+            preferredZoneIndex = zone and zone.zoneIndex or nil
+        end
+        return MakePoiTarget(
+            FindPoiByExactName(source.poiName, preferredZoneIndex),
+            source.location or source.poiName,
+            'source'
+        )
+
+    elseif mapType == 'LOCATION' and source.mapName and source.locationNames then
+        return MakeMapLocationTarget(source.mapName, source.locationNames,
+            source.location or source.mapName, source.mapId)
+
+    elseif mapType == 'COORD' and source.mapName and source.x and source.y then
+        return MakeCoordinateTarget(
+            source.mapName,
+            source.x,
+            source.y,
+            source.location or source.mapName,
+            'source'
+        )
+
+    elseif mapType == 'ZONE' and source.zoneName then
+        return MakeZoneTarget(
+            FindZoneByExactName(source.zoneName),
+            source.location or source.zoneName,
+            'zone'
+        )
+
+    elseif mapType == 'WORLD' then
+        return MakeWorldTarget(source.location or 'World Map')
+
+    elseif mapType == 'HUB' and source.hub then
+        return ResolveCuratedStylePageHub(source.hub)
+
+    elseif mapType == 'DREAD_AURELIAN' then
+        -- Kept for old source records, although the user correction layer now
+        -- explicitly routes Dread-Aurelian to Moongrave Fane as a NODE.
+        return ResolveDreadAurelianTarget(family)
+
+    elseif mapType == 'NONE' then
         return nil
     end
 
-    local mapType = source.mapType or 'NONE'
-    local progressSensitive = mapType == 'DREAD_AURELIAN'
-    if not progressSensitive and family._tcsMapResolved then
-        return family._tcsMapTarget ~= false and family._tcsMapTarget or nil
-    end
-
-    local target = nil
-    if mapType == 'NODE' and source.nodeName then
-        target = MakeExactNodeOrPoiTarget(source.nodeName, source.location or source.nodeName, 'source')
-    elseif mapType == 'POI' and source.poiName then
-        target = MakeExactPoiTarget(source.poiName, source.zoneName, source.location or source.poiName, 'source')
-    elseif mapType == 'COORD' and source.mapName and source.x and source.y then
-        target = MakeCoordinateTarget(source.mapName, source.x, source.y, source.location or source.mapName, 'source')
-    elseif mapType == 'ZONE' and source.zoneName then
-        target = MakeZoneTarget(FindZoneByExactName(source.zoneName), source.location or source.zoneName, 'zone')
-    elseif mapType == 'WORLD' then
-        target = MakeWorldTarget(source.location or 'World Map')
-    elseif mapType == 'HUB' and source.hub then
-        target = ResolveCuratedStylePageHub(source.hub)
-    elseif mapType == 'DREAD_AURELIAN' then
-        target = ResolveDreadAurelianTarget(family)
-    elseif mapType == 'NONE' then
-        target = nil
-    end
-
-    if not progressSensitive then
-        family._tcsMapTarget = target or false
-        family._tcsMapResolved = true
-    end
-    return target
+    return nil
 end
 
+local stylePageMapRequestId = 0
 local function ShowStylePageFamilyOnMap(screen)
     local data = screen.styleList and screen.styleList:GetTargetData() or nil
     local family = data and data.style or nil
     local target = ResolveStylePageMapTarget(family)
     if not target then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, 'No exact map location is available for this Style Page set yet.')
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+            'No exact map location is available for this Style Page yet.')
         return
     end
-    if WORLD_MAP_MANAGER and not WORLD_MAP_MANAGER:IsMapChangingAllowed() then return end
+
+    if WORLD_MAP_MANAGER and not WORLD_MAP_MANAGER:IsMapChangingAllowed() then
+        return
+    end
+
+    stylePageMapRequestId = stylePageMapRequestId + 1
+    local requestId = stylePageMapRequestId
+    local oldPinManager = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager() or nil
+    if oldPinManager then
+        oldPinManager:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCS_STYLE_PAGE_SOURCE')
+    end
+
+    -- World-only sources intentionally open the world map without a fake pin.
+    if target.kind == 'world' then
+        screen.returnToMotifsAfterMap = true
+        screen.returnMotifSelectedIndex = screen.styleList:GetSelectedIndex()
+        ZO_WorldMap_ShowWorldMap()
+        return
+    end
+
+    -- Keep the working TCM map-index route for existing targets. City and
+    -- instance maps without a map-list index use ESO's SetMapById instead.
+    local mapIndex
+    if not target.forceMapId then
+        mapIndex = target.mapIndex or FindMapIndexForStylePageZone(target.zoneIndex)
+    end
+    local mapId = target.mapId
+    if not mapIndex and not (mapId and mapId > 0 and WORLD_MAP_MANAGER.SetMapById) then
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+            'The Style Page location could not be opened on the map.')
+        return
+    end
 
     screen.returnToMotifsAfterMap = true
     screen.returnMotifSelectedIndex = screen.styleList:GetSelectedIndex()
+
     ZO_WorldMap_ShowWorldMap()
-
-    if target.kind == 'world' then
-        return
-    end
-
-    local mapId = target.mapId or FindMapIdForStylePageZone(target.zoneIndex)
-    local mapIndex = target.mapIndex or FindMapIndexForStylePageZone(target.zoneIndex)
-
-    if mapId and WORLD_MAP_MANAGER.SetMapById then
-        WORLD_MAP_MANAGER:SetMapById(mapId)
-    elseif mapIndex then
+    if mapIndex then
         WORLD_MAP_MANAGER:SetMapByIndex(mapIndex)
     else
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, 'The Style Page source could not be opened on the map.')
-        return
+        WORLD_MAP_MANAGER:SetMapById(mapId)
     end
 
-    -- Zone-level sources (antiquities, portals, multi-location events, etc.)
-    -- intentionally open the correct zone without inventing a fake pin.
-    if target.kind == 'zone' and not target.nodeIndex and not target.poiIndex then
+    -- Broad zone sources use exactly the TCM map-opening path, but no pin is
+    -- invented when the source is intentionally zone-wide.
+    if target.kind == 'zone'
+        and not target.nodeIndex
+        and not target.poiIndex
+        and not target.x then
         return
     end
 
     local attempts = 0
-    local function PlacePing()
+    local function PlaceStylePagePing()
+        if requestId ~= stylePageMapRequestId then return end
         attempts = attempts + 1
-        local mapReady = false
-        if mapId and GetCurrentMapId then
-            mapReady = GetCurrentMapId() == mapId
-        elseif mapIndex and GetCurrentMapIndex then
-            mapReady = GetCurrentMapIndex() == mapIndex
+
+        local correctMap = mapIndex and GetCurrentMapIndex() == mapIndex
+            or (not mapIndex and GetCurrentMapId and GetCurrentMapId() == mapId)
+        if not correctMap then
+            if attempts < 20 then
+                zo_callLater(PlaceStylePagePing, 50)
+            else
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                    'The Style Page location map did not become active.')
+            end
+            return
         end
-        if not mapReady then
-            if attempts < 30 then zo_callLater(PlacePing, 50) end
+
+        -- A pin is meaningful only on the specific city/instance it belongs
+        -- to, even if a broader map happens to share its zone or map index.
+        if target.expectedMapName and GetMapNameById
+            and Normalize(GetMapNameById(GetCurrentMapId())) ~= Normalize(target.expectedMapName) then
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                'The exact Style Page location map is unavailable.')
+            return
+        end
+        if target.expectedZoneId and GetCurrentMapZoneIndex and GetZoneId
+            and GetZoneId(GetCurrentMapZoneIndex()) ~= target.expectedZoneId then
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                'The Fellowship island map is unavailable.')
             return
         end
 
         local x, y = target.x, target.y
-        if (not x or not y) and (target.kind == 'node' or target.nodeIndex) then
-            local _, _, nx, ny, _, _, _, shown = GetFastTravelNodeInfo(target.nodeIndex)
-            if shown then x, y = nx, ny end
+
+        if target.preferredLocationNames then
+            x, y = GetStylePageMapLocationCoordinates(target.preferredLocationNames)
         end
-        if (not x or not y or x <= 0 or y <= 0 or x >= 1 or y >= 1) and target.zoneIndex and target.poiIndex and GetPOIMapInfo then
-            local px, py, _, _, shown = GetPOIMapInfo(target.zoneIndex, target.poiIndex)
-            if shown then x, y = px, py end
+        if x and y and x > 0 and y > 0 and x < 1 and y < 1 then
+            -- Use a native camp marker when the island exposes one.
+        elseif target.locationNames then
+            x, y = GetStylePageMapLocationCoordinates(target.locationNames)
+        -- Existing TCM priority: node coordinates first.
+        elseif target.nodeIndex then
+            local _, _, nx, ny, _, _, _, isLocatedInCurrentMap =
+                GetFastTravelNodeInfo(target.nodeIndex)
+            if isLocatedInCurrentMap
+                and nx and ny and nx > 0 and ny > 0 and nx < 1 and ny < 1 then
+                x, y = nx, ny
+            end
+
+            -- TCM fallback for nodes whose fast-travel coordinates are not
+            -- exposed until the map has refreshed.
+            if (not x or not y or x <= 0 or y <= 0 or x >= 1 or y >= 1)
+                and target.zoneIndex and target.poiIndex and GetPOIMapInfo then
+                local px, py, _, _, isShownInCurrentMap =
+                    GetPOIMapInfo(target.zoneIndex, target.poiIndex)
+                if isShownInCurrentMap
+                    and px and py and px > 0 and py > 0 and px < 1 and py < 1 then
+                    x, y = px, py
+                end
+            end
+        elseif target.zoneIndex and target.poiIndex and GetPOIMapInfo then
+            -- Read native POI coordinates only after its map is active.
+            local px, py, _, _, isShownInCurrentMap =
+                GetPOIMapInfo(target.zoneIndex, target.poiIndex)
+            if isShownInCurrentMap
+                and px and py and px > 0 and py > 0 and px < 1 and py < 1 then
+                x, y = px, py
+            end
         end
+
         if not x or not y or x <= 0 or y <= 0 or x >= 1 or y >= 1 then
-            if attempts < 20 then zo_callLater(PlacePing, 50) end
+            if attempts < 20 then
+                zo_callLater(PlaceStylePagePing, 50)
+            else
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                    'The Style Page location has no usable map coordinates.')
+            end
             return
         end
 
         local pinManager = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager() or nil
         local panAndZoom = ZO_WorldMap_GetPanAndZoom and ZO_WorldMap_GetPanAndZoom() or nil
-        if not pinManager or not panAndZoom then return end
-        pinManager:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING)
-        local pin = pinManager:CreatePin(MAP_PIN_TYPE_QUEST_PING, 'TCS_STYLE_PAGE_SOURCE', x, y)
-        if pin then panAndZoom:JumpToPin(pin) end
+        if not pinManager or not panAndZoom then
+            return
+        end
+
+        pinManager:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCS_STYLE_PAGE_SOURCE')
+        local pin = pinManager:CreatePin(
+            MAP_PIN_TYPE_QUEST_PING,
+            'TCS_STYLE_PAGE_SOURCE',
+            x,
+            y
+        )
+        if not pin then return end
+
+        panAndZoom:JumpToPin(pin)
     end
-    zo_callLater(PlacePing, 150)
+
+    zo_callLater(PlaceStylePagePing, 150)
 end
 
 local function InstallStylePageMapKeybind(screen)
@@ -1045,7 +1434,7 @@ local function InstallStylePageMapKeybind(screen)
             descriptor.visible = function()
                 if screen.activeModuleId == 'stylePages' and screen.mode == 'styles' then
                     local data = screen.styleList and screen.styleList:GetTargetData() or nil
-                    return data and data.style and ResolveStylePageMapTarget(data.style) ~= nil
+                    return data and data.style and HasStylePageMapDefinition(data.style)
                 end
                 return originalVisible and originalVisible() or false
             end
@@ -1251,7 +1640,9 @@ end
 TC:RegisterArchiveModule('stylePages', {
     displayName = 'Style Pages',
     addonName = 'Tamriel Collections - Archive Style Pages',
-    version = 109,
+    assetRoot = 'TamrielCollectionsStylePages',
+    screenControl = 'TCSQuestJournalTL',
+    version = 1000,
     icon = STYLE_PAGES_ICON,
     supportsSearch = true,
     onCategoryFocus = ShowStylePagesCategory,

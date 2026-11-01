@@ -44,7 +44,7 @@ UP.name    = "UnderPressure"
 -- version string lived in three places and disagreed four ways; as of 0.3.3
 -- there are two, because Settings.lua now READS UP.version for the settings
 -- panel header rather than carrying its own copy.
-UP.version = "0.5.7"
+UP.version = "0.5.10"
 -- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
 -- displays panel.author but never sets it). Matches ## Author in the manifest.
 UP.author  = "Th3rtythr33"
@@ -66,11 +66,15 @@ local DEFAULT_SAVED = {
     -- files that already carry these defaults -- see migratePlagueDefaults.
     plague_tint          = false,
     plague_tint_strength = 0.6,
-    plague_report        = true,
+    -- 0.5.9: plague_report (chat on/off) became plague_report_mode:
+    -- "chat" | "recap" (callout beside the death recap) | "hidden". The
+    -- report is always recorded in plague_history (last 20, newest first).
+    plague_report_mode   = "chat",
+    plague_history       = {},
     plague_icon_corners  = true,
     plague_icon_center   = false,
     plague_defaults_rev  = 1,
-    -- Groupmate plague (0.5.7, experimental): detection off until it is
+    -- Groupmate plague (0.5.8, experimental): detection off until it is
     -- proven on console; the two outputs default on so switching detection
     -- on is enough to see something.
     plague_group_detect  = false,
@@ -181,6 +185,20 @@ local function migratePlagueDefaults()
     end
 end
 
+-- 0.5.9: the chat on/off boolean became a three-way mode. ZO_SavedVars has
+-- already filled plague_report_mode with its default ("chat") for an older
+-- file, so the only thing to carry across is an explicit Off, and the old key
+-- is then dropped. plague_history is made a table if a hand-edited file lost it.
+local function migrateReportMode()
+    local sv = UP.sv
+    if not sv then return end
+    if sv.plague_report ~= nil then
+        if sv.plague_report == false then sv.plague_report_mode = "hidden" end
+        sv.plague_report = nil
+    end
+    if type(sv.plague_history) ~= "table" then sv.plague_history = {} end
+end
+
 local function loadSavedVars()
     -- Detect the pre-0.2.8 layout before ZO_SavedVars restructures the global.
     -- A ZO_SavedVars-managed table has a "Default" key at the top; a legacy
@@ -223,6 +241,7 @@ local function loadSavedVars()
 
     pruneRemovedSettings()
     migratePlagueDefaults()
+    migrateReportMode()
     forgetRemovedKeys()
 end
 
@@ -272,6 +291,9 @@ local function onAddOnLoaded(eventCode, addonName)
 
     -- UI
     if not UP.UI.Init() then return end
+    -- Texture guard (0.5.10): re-judges every icon texture after each load
+    -- screen; the displays register their controls with it in their own Init.
+    if UP.TextureGuard and UP.TextureGuard.Init then UP.TextureGuard.Init() end
     -- Not fatal if it fails: the silence ring disables itself and the rest of
     -- the addon carries on. Its initial state is seeded by the Resync below.
     UP.SilenceRing.Init()
@@ -279,6 +301,8 @@ local function onAddOnLoaded(eventCode, addonName)
     UP.PlagueTint.Init()
     -- Corner / centre Plague Carrier icons (0.4.2); same contract again.
     UP.PlagueIcon.Init()
+    -- Explosion report callout beside the death recap (0.5.9); same contract.
+    UP.PlagueReport.Init()
     -- Pull warning visuals (0.4.2); same contract.
     UP.PullIndicator.Init()
     UP.Debug.Init()

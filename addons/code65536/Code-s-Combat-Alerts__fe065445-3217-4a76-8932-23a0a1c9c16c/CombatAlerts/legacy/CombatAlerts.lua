@@ -331,7 +331,7 @@ function CombatAlerts.StartListening( )
 			CombatAlerts.TogglePanel(true, LCA.GetAbilityName(CombatAlertsData.ka.shockingHarpoon), true, true)
 		end
 
-		EVENT_MANAGER:RegisterForEvent(CombatAlerts.name, EVENT_COMBAT_EVENT, CombatAlerts.CombatEvent)
+		LCA.RegisterForFilteredEvent(CombatAlerts.name, EVENT_COMBAT_EVENT, CombatAlerts.CombatEvent, REGISTER_FILTER_IS_ERROR, false)
 
 		if (CombatAlertsData.effectTrackingZoneIds[CombatAlerts.zoneId]) then
 			CombatAlerts.units = { }

@@ -255,7 +255,7 @@ function UP.RunApiAudit()
                or "-- undocumented results absent; allies' effects applied to you are invisible"))
     end
 
-    -- Groupmate plague (0.5.7, experimental). Effects on group members reach
+    -- Groupmate plague (0.5.8, experimental). Effects on group members reach
     -- this client via EVENT_EFFECT_CHANGED on "groupN" tags (Group Buff Panels
     -- relies on it on console). Reports whether the setting is on, which
     -- registration mode was possible, and how many group plague events have

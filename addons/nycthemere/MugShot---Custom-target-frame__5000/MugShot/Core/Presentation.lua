@@ -27,6 +27,11 @@ for i = 1, 50 do
     STACK_STRINGS[i] = tostring(i)
 end
 
+local SOURCE_STRINGS = {}
+for i = 2, 20 do
+    SOURCE_STRINGS[i] = "x" .. tostring(i)
+end
+
 -- Helper to abbreviate large numbers cleanly (2.1m, 24.3k, etc.)
 -- Abbreviate a number for display.
 -- Examples:
@@ -40,33 +45,7 @@ local function FormatNumber(num)
     if not num then
         return "0"
     end
-
-    if ZO_AbbreviateAndLocalizeNumber and NUMBER_ABBREVIATION_PRECISION_TENTHS then
-        return ZO_AbbreviateAndLocalizeNumber(
-                num,
-                NUMBER_ABBREVIATION_PRECISION_TENTHS,
-                true
-        )
-    end
-
-    local function abbreviate(value, suffix)
-        local precision = value >= 10 and 0 or 1
-        local text = string.format("%." .. precision .. "f", value)
-
-        -- Remove a trailing zero only when it carries no information:
-        -- "5.0" becomes "5", while "2.5" remains "2.5".
-        text = text:gsub("%.0$", "")
-
-        return text .. suffix
-    end
-
-    if num >= 1000000 then
-        return abbreviate(num / 1000000, "m")
-    elseif num >= 1000 then
-        return abbreviate(num / 1000, "k")
-    end
-
-    return tostring(math.floor(num))
+    return ZO_AbbreviateAndLocalizeNumber(num, NUMBER_ABBREVIATION_PRECISION_TENTHS, true)
 end
 
 -- ── BuildIdentity ─────────────────────────────────────────
@@ -222,14 +201,32 @@ function Presentation.BuildEffects(state, _settings, outBuffer)
             stackText = STACK_STRINGS[stacks] or tostring(stacks)
         end
 
+        local sourceText = ""
+        local sources = eff.sourceCount
+        if sources and sources > 1 then
+            sourceText = SOURCE_STRINGS[sources] or ("x" .. tostring(sources))
+        end
+
+        local isPlayerCast = (eff.castByPlayer == true)
+        local isMultiSource = (sources and sources > 1)
+        local borderStyle = MugShot.Style
+        local border = isMultiSource and (borderStyle and (borderStyle.BORDER_COLOR_MULTI or borderStyle.BORDER_COLOR_GROUP)) or (borderStyle and borderStyle.BORDER_COLOR_PLAYER) or { r = 0, g = 0, b = 0, a = 1 }
+
         local item = items[i]
         if not item then
             item = {}
             items[i] = item
         end
-        item.icon      = eff.icon
-        item.timerText = timerText
-        item.stackText = stackText
+        item.icon         = eff.icon
+        item.timerText    = timerText
+        item.stackText    = stackText
+        item.sourceText   = sourceText
+        item.isPlayerCast = isPlayerCast
+        item.effectType   = eff.effectType
+        item.borderR      = border.r or 0
+        item.borderG      = border.g or 0
+        item.borderB      = border.b or 0
+        item.borderA      = border.a or 1
     end
 
     -- Trim excess slots from previous ticks

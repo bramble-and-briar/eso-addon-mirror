@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/cudddel/InventoryPulse__5012",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "cudddel",
+  "canonical_id": "esoui:5012",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5012",
+  "deleted": false,
+  "directories": [
+    "InventoryPulse"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5012/",
+  "fingerprint": "2839dc61e82a2fef73590fa744a83aa02d4d381090ef9d2ada6f7b45f77525fe",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18245.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18246.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18247.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18248.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5012",
+  "source_url": "https://www.esoui.com/downloads/info5012-InventoryPulse.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "InventoryPulse",
+  "updated_at": 1793455885000,
+  "version": "1.0.0"
+}

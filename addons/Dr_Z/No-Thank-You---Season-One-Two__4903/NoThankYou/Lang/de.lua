@@ -89,6 +89,12 @@ SafeAddString(NOTYOU_MAIL_HEADER,			"\"Lösche Nachricht\"-Dialog unterdrücken:
 SafeAddString(NOTYOU_MAIL,				"\"Lösche Nachricht\"-Dialog unterdrücken:", 1)
 SafeAddString(NOTYOU_MAIL_TOOLTIP,			"Blockiert den Dialog zur Bestätigung, wenn eine leere Nachricht gelöscht werden soll.", 1)
 
+SafeAddString(NOTYOU_FAST_TRAVEL_HEADER, "SCHNELLREISE", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "Bestätigung bei Nutzung eines Wegschreins überspringen", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "Bei Auswahl eines Reiseziels an einem Wegschrein sofort reisen.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "Bestätigung ohne Nutzung eines Wegschreins überspringen", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "Bei Auswahl eines Reiseziels außerhalb eines Wegschreins sofort reisen. Die normalen Goldkosten fallen weiterhin an.", 1)
+
 SafeAddString(NOTYOU_FENCE_HEADER,			"Hehler-Dialog", 1)
 SafeAddString(NOTYOU_FENCE,				"Hehler-Dialog unterdrücken:", 1)
 SafeAddString(NOTYOU_FENCE_TOOLTIP,			"Blockiert den Dialog zur Bestätigung, wenn ein seltener Gegenstand an einen Hehler verkauft werden soll.", 1)
@@ -187,6 +193,10 @@ SafeAddString(NOTYOU_NOLOREDISCOVERIES_TOOLTIP,		"Wählt aus, wie Nachrichten ü
 SafeAddString(NOTYOU_NOSKILLSPROGRESS,			"Benachrichtigung Fertigkeitenaufstieg deaktivieren", 1)
 SafeAddString(NOTYOU_NOSKILLSPROGRESS_TOOLTIP,		"Wählt aus, wie Nachrichten über Fertigkeitenlevel behandelt werden sollen:\n|cFFFFFFkeine|r - Standardspieleinstellung\n|cFFFFFFChatnachricht|r - Nachrichten werden ins Chatfenster umgeleitet.\n|cFFFFFFstumm|r - Nachrichten werden vollständig blockiert.", 1)
 
+SafeAddString(NOTYOU_HOME_TOURS_HEADER,			"HEIMSCHAU", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF,			"Empfehlungsbenachrichtigungen der Heimschau blockieren", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF_TOOLTIP,		"Verhindert bei aktivierter Option, dass sich Benachrichtigungsfenster für Empfehlungen öffnen.", 1)
+
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF,			"Benachrichtigung Handwerksbeutel deaktivieren", 1)
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF_TOOLTIP,		"Keine Benachrichtigung anzeigen, wenn meine Materialien beim Einloggen oder Zonenwechsel in den Handwerksbeutel verschoben werden", 1)
 
@@ -207,9 +217,11 @@ SafeAddString(NOTYOU_LUA_MEMORY_TOOLTIP,		"Lua Speicherfehler in eine Chat-Mitte
 SafeAddString(NOTYOU_LUA_ERROR,				"Lua Fehler umleiten", 1)
 SafeAddString(NOTYOU_LUA_ERROR_TOOLTIP,			"Lua Fehler in eine Chat-Mitteilung umwandeln, statt das Pop-up (Standard) anzuzeigen", 1)
 
-SafeAddString(NOTYOU_LUAMEM_HEADING, "Lua-Speicherfehler", 1)
-SafeAddString(NOTYOU_LUAMEM_MESSAGE, "Addons erreichen ihr Speicherlimit", 1)
-SafeAddString(NOTYOU_LUAMEM_SHORT, "Lua-Speicherfehler", 1)
-SafeAddString(NOTYOU_RAIDSCORE_ENDLESS, "Benachrichtigungen zum Endlosen Archiv anzeigen", 1)
-SafeAddString(NOTYOU_RAIDSCORE_SOUND, "Benachrichtigungston aktivieren", 1)
-SafeAddString(NOTYOU_RAIDSCORE_SOUND_TOOLTIP, "Aktiviert oder deaktiviert den Benachrichtigungston für alle Meldungen, die NEW_NOTIFICATION verwenden.", 1)
+SafeAddString(NOTYOU_LUAMEM_HEADING,			"Lua-Speicherfehler", 1)
+SafeAddString(NOTYOU_LUAMEM_MESSAGE,			"Addons erreichen ihr Speicherlimit", 1)
+SafeAddString(NOTYOU_LUAMEM_SHORT,			"Lua-Speicherfehler", 1)
+SafeAddString(NOTYOU_RAIDSCORE_ENDLESS,			"Benachrichtigungen zum Endlosen Archiv anzeigen", 1)
+SafeAddString(NOTYOU_RAIDSCORE_SOUND,			"Benachrichtigungston aktivieren", 1)
+SafeAddString(NOTYOU_RAIDSCORE_SOUND_TOOLTIP,		"Aktiviert oder deaktiviert den Benachrichtigungston für alle Meldungen, die NEW_NOTIFICATION verwenden.", 1)
+
+

@@ -1,0 +1,42 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/ZOSPlsFix/ESO-Hybrid-UI__5011",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "ZOSPlsFix",
+  "canonical_id": "esoui:5011",
+  "category_id": "162",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5011",
+  "deleted": false,
+  "directories": [
+    "src"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5011/",
+  "fingerprint": "5d7ef74d54f0d2249ad6427583b7bc425efa158756b5fa1efe3ea477c7678b48",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18249.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18250.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18251.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18252.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5011",
+  "source_url": "https://www.esoui.com/downloads/info5011-ESOHybridUI.html",
+  "stats": {
+    "downloads": 33,
+    "favorites": 0,
+    "monthly_downloads": 17
+  },
+  "title": "ESO Hybrid UI",
+  "updated_at": 1793531377000,
+  "version": "3.0.8"
+}

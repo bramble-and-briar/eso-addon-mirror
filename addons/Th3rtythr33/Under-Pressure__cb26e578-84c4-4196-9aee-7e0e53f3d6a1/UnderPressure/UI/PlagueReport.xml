@@ -1,0 +1,49 @@
+<GuiXml>
+    <Controls>
+        <!--
+            Plaguebreak explosion report callout (0.5.9).
+
+            A VIRTUAL control, instantiated by UI/PlagueReport.lua with
+            CreateControlFromVirtual as a CHILD of ZO_DeathRecap, exactly like
+            the "You died with" note in UI/PlagueTint.xml and Deathnote's graph
+            pane. Parenting makes visibility the recap's problem: the box
+            appears and fades with the recap, hides behind menus with it, and
+            goes away when the player closes the recap. Our own SetHidden on
+            top of that says whether there is a recent report to show and
+            whether the Explosion report setting is "Death recap callout".
+
+            Anchored from Lua to the RIGHT edge of whichever recap background
+            is visible (GamepadBackground on console), so it sits beside the
+            recap as a callout; Deathnote's pane uses the left side. Width is
+            clamped to what the screen has room for.
+
+            Backdrop with no texture file renders a solid box (workspace rule:
+            solid fills need no DDS). The icon is the same plague_carrier.dds
+            the corner icons use. Height is set from the body text's measured
+            height in Lua.
+
+            FONTS: named gamepad fonts, re-applied through UP.Fonts at init.
+        -->
+        <Control name="UP_PlagueReportCallout" virtual="true" hidden="true" mouseEnabled="false">
+            <Dimensions x="420" y="120"/>
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="0A160AE6" edgeColor="6B9E55FF">
+                    <AnchorFill/>
+                    <Edge edgeSize="2"/>
+                </Backdrop>
+                <Texture name="$(parent)Icon" textureFile="UnderPressure/UI/Textures/plague_carrier.dds">
+                    <Dimensions x="64" y="64"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="12" offsetY="12"/>
+                </Texture>
+                <Label name="$(parent)Title" font="ZoFontGamepadBold27" color="8FD66BFF" text="Plaguebreak explosion">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" offsetX="12" offsetY="0"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-12" offsetY="12"/>
+                </Label>
+                <Label name="$(parent)Body" font="ZoFontGamepad22" color="E6E6E6FF" verticalAlignment="TOP">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="6"/>
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

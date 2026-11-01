@@ -1,0 +1,10 @@
+## Title: |cFFD700Better Scoreboard|r
+## APIVersion: 101051
+## Version: 4.5-U51-18Fit
+## AddOnVersion: 10
+## Description: A small addon designed to bring additional features to the battlegrounds scoreboard.
+## Author: |c0DC1CF@M0R_Gaming|r (original); @MlRACLE (updates)
+## SavedVariables: BSVars
+
+BetterScoreboard.lua
+BetterScoreboard.xml

@@ -1,4 +1,4 @@
-# Store listing copy — PB's ChatAssistant 1.30.1
+# Store listing copy — PB's ChatAssistant 1.31.0
 
 Text for the ZOS Console AddOn Uploader. Plain text, no markup, so it survives whatever the
 uploader does to it.
@@ -36,6 +36,8 @@ WHAT IT DOES
   chat tab.
 - Optionally hides guild-link recruitment adverts before they enter the chat log.
 - Optionally removes NPC speech from the chat log without affecting subtitles.
+- Restores recent chat after /reloadui, a character change or a login, into the same tabs it
+  came from (by default the last 50 messages from the past 60 minutes; adjustable or off).
 - Switches to the next tab with L2 + D-pad Right while on the HUD.
 - Keeps the selected tab and outgoing channel synchronized in both directions.
 - Restores a non-guild destination when the normal chat tab is selected.

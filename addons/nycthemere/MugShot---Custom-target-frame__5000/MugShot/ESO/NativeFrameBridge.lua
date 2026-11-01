@@ -30,7 +30,7 @@ function NativeFrameBridge:Start()
     -- default UI for the reticle-over target frame control.
     local frame = ZO_TargetUnitFramereticleover
 
-    if frame and type(frame.SetHidden) == "function" then
+    if frame then
         self._nativeFrame      = frame
         self._foundNativeFrame = true
         MugShot.logger:Info("NativeFrameBridge: found ZO_TargetUnitFramereticleover")

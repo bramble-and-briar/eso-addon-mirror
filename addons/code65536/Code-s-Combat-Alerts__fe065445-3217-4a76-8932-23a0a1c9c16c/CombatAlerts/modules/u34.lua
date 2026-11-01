@@ -35,6 +35,7 @@ Module.STRINGS = {
 
 	-- Custom (Alerts)
 	teleportCounter = { default = "<<i:1>> Teleport Position" },
+	brandPosition = { default = "Position <<1>>" },
 	bridgeStatusLabel = { default = "Channelers" },
 	delugeSwim = { default = "Swim!" },
 
@@ -708,21 +709,25 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		local vb = Vars.brands
 		if (vb.prev < currentTime - db.duration) then
 			vb.prev = currentTime
+			vb.bannerText = nil
+			vb.bannerId = nil
 			vb.selfId = nil
 			ZO_ClearTable(vb[COLOR_FIRE])
 			ZO_ClearTable(vb[COLOR_ICE])
 		end
 		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
-			CA1.Alert(nil, LCA.GetAbilityName(abilityId), 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
+			vb.bannerText = LCA.GetAbilityName(abilityId)
+			vb.bannerId = CA1.Alert(nil, vb.bannerText, 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
 			vb.selfId = targetUnitId
 		end
-		if (self:GetSetting("brandMarker")) then
-			table.insert(vb[db[abilityId]], targetUnitId)
-			if (vb.selfId and #vb[COLOR_FIRE] == 2 and #vb[COLOR_ICE] == 2) then
-				table.sort(vb[COLOR_FIRE], self.BrandSort)
-				table.sort(vb[COLOR_ICE], self.BrandSort)
-				for i = 1, 2 do
-					if (vb.selfId == vb[COLOR_FIRE][i] or vb.selfId == vb[COLOR_ICE][i]) then
+		-- Brand stacking
+		table.insert(vb[db[abilityId]], targetUnitId)
+		if (vb.selfId and #vb[COLOR_FIRE] == 2 and #vb[COLOR_ICE] == 2) then
+			table.sort(vb[COLOR_FIRE], self.BrandSort)
+			table.sort(vb[COLOR_ICE], self.BrandSort)
+			for i = 1, 2 do
+				if (vb.selfId == vb[COLOR_FIRE][i] or vb.selfId == vb[COLOR_ICE][i]) then
+					if (self:GetSetting("brandMarker")) then
 						CA2.WorldTexturePlace({
 							pos = { db.X[i], db.Y, db.Z },
 							texture = "world-teardrop-down",
@@ -733,8 +738,11 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 							playerFacing = true,
 						})
 						zo_callLater(CA2.WorldCanvasClear, db.duration)
-						break
 					end
+					if (vb.bannerId) then
+						CA1.ModifyBanner(vb.bannerId, zo_strformat(self:GetString("brandPosition"), i), vb.bannerText, 0xCC3399FF)
+					end
+					break
 				end
 			end
 		end

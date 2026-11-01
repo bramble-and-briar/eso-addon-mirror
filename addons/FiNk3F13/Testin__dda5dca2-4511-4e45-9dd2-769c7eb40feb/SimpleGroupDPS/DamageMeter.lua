@@ -131,6 +131,7 @@ function meter:Start(timeMS)
     EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
     if state then return end
     state = { startMS = timeMS, endMS = timeMS, total = 0, groupTotal = 0, targets = {},
+        rawHealingTotal = 0, effectiveHealingTotal = 0,
         friendly = {}, unassigned = {},
         observedTargets = {}, bossIds = {}, bossNames = {}, confirmedNames = {}, zoneId = currentZone(),
         damageEvents = 0, personalEvents = 0, otherEvents = 0 }
@@ -245,6 +246,8 @@ function meter:GetStats()
         groupTotal = state.groupTotal, groupDPS = durationMS >= 1 and state.groupTotal * scale or nil,
         groupBossTotal = groupBossTotal,
         groupBossDPS = durationMS >= 1 and groupBossTotal and groupBossTotal > 0 and groupBossTotal * scale or nil,
+        rawHealingTotal = state.rawHealingTotal, effectiveHealingTotal = state.effectiveHealingTotal,
+        rawHPS = state.rawHealingTotal * scale, effectiveHPS = state.effectiveHealingTotal * scale,
     }
 end
 
@@ -258,7 +261,7 @@ function meter:Finish()
     if self.onFinished then self.onFinished(last) end
 end
 
-function meter:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId, sourceId)
+function meter:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId, sourceId, overflow, abilityId)
     hitValue = tonumber(hitValue)
     if isError or (not results[result] and not healingResults[result]) or not hitValue or hitValue < 0
         or hitValue ~= hitValue or hitValue == math.huge then return end
@@ -282,7 +285,20 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         return
     end
     rememberEventUnits(event)
-    if not results[result] then return end
+    if not results[result] then
+        -- Count only our outgoing healing (including self, pets and companions).
+        -- Incoming/group healing never becomes our output. Pet spawn initialization
+        -- is not a heal; absorbed-heal events carry no reliable overheal amount.
+        if isPersonal(sourceType) and isFriendly(targetType) and abilityId ~= 126366 then
+            overflow = tonumber(overflow) or 0
+            if result == _G.ACTION_RESULT_HEAL_ABSORBED then overflow = 0 end
+            if overflow < 0 or overflow ~= overflow or overflow == math.huge then return end
+            state.rawHealingTotal = state.rawHealingTotal + hitValue + overflow
+            state.effectiveHealingTotal = state.effectiveHealingTotal + hitValue
+        end
+        -- Healing must not change the existing DPS clock or damage totals.
+        return
+    end
     state.endMS = math.max(state.endMS, timeMS)
     state.damageAtMS = timeMS
     state.damageEvents = state.damageEvents + 1
@@ -297,11 +313,13 @@ function meter:Initialize(saved)
             bossTotal = tonumber(saved.bossDamageTotal), bossDPS = tonumber(saved.bossDPS),
             addsDPS = tonumber(saved.addsDPS), durationMS = tonumber(saved.damageDurationMS or saved.durationMS) or 0,
             groupTotal = tonumber(saved.groupDamageTotal), groupDPS = tonumber(saved.groupDPS),
-            groupBossTotal = tonumber(saved.groupBossDamageTotal), groupBossDPS = tonumber(saved.groupBossDPS) }
+            groupBossTotal = tonumber(saved.groupBossDamageTotal), groupBossDPS = tonumber(saved.groupBossDPS),
+            rawHealingTotal = tonumber(saved.rawHealingTotal), effectiveHealingTotal = tonumber(saved.effectiveHealingTotal),
+            rawHPS = tonumber(saved.rawHPS), effectiveHPS = tonumber(saved.effectiveHPS) }
     end
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamage", EVENT_COMBAT_EVENT,
-        function(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId)
-            self:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId, sourceId)
+        function(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, abilityId, overflow)
+            self:OnDamage(result, isError, sourceType, targetName, targetType, hitValue, targetId, sourceId, overflow, abilityId)
         end)
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageState", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
         if inCombat then self:Start(GetGameTimeMilliseconds()) else self:ScheduleFinish() end

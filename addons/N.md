@@ -50,7 +50,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Nirn Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KingBloodWings/Nirn-Icons__3621) | KingBloodWings | PC / Mac | 1.0.5 |
 | [Nirn Traveler Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Armodeniz/Nirn-Traveler-Guild-Hall__3019) | Armodeniz | PC / Mac | 0.4 |
 | [Nirncrux Miner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Nirncrux-Miner__4764) | atharti | PC / Mac | 1.4 |
-| [Nirnhoned Metrics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/Nirnhoned-Metrics__4999) | Artioner | PC / Mac | 1.1.0 |
+| [Nirnhoned Metrics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/Nirnhoned-Metrics__4999) | Artioner | PC / Mac | 1.2.1 |
 | [NirnSteelUI · Better UI Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/NirnSteelUI-Better-UI-Feedback__4574) | Wrynch | PC / Mac | 3.1.0 |
 | [No Accidental Learning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/No-Accidental-Learning__4017) | kawamonkey | PC / Mac | 1.0 |
 | [No Auto Pinned Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/No-Auto-Pinned-Golden-Pursuits__4033) | kawamonkey | PC / Mac | 1.0 |
@@ -73,7 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [No Worldmap Wayshrines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Biki/No-Worldmap-Wayshrines__1283) | Biki | PC / Mac | 1.1 |
 | [No Worldmap Wayshrines (One Tamriel fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudaiNao/No-Worldmap-Wayshrines-One-Tamriel-fix__1553) | YudaiNao | PC / Mac | API v.100017 |
 | [No Written Dialogue Continued](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shaen/No-Written-Dialogue-Continued__1485) | Shaen | PC / Mac | 1.5 |
-| [No, Thank You! - Season One & Two](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/No-Thank-You---Season-One-Two__4903) | Dr_Z | PC / Mac | 12.1.1 |
+| [No, Thank You! - Season One & Two](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/No-Thank-You---Season-One-Two__4903) | Dr_Z | PC / Mac | 12.1.4 |
 | [No, thank you!-Gold Road](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/No-thank-you--Gold-Road__3921) | FusRoDah | PC / Mac | 11.4.2 |
 | [NoAccidentalStealing (+no accidental casting)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/NoAccidentalStealing-no-accidental-casting__943) | Shinni | PC / Mac | 1.13 |
 | [noBUGS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zand3rs/noBUGS__3164) | Zand3rs | PC / Mac | 1.0 |

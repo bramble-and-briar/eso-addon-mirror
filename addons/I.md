@@ -74,7 +74,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Instant Swap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/delstrega/Instant-Swap__2987) | delstrega | PC / Mac | 1.2 |
 | [InstaQ](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Synkronist/InstaQ__5da20bd4-9950-42b8-aca8-deadd5817210) | Synkronist | Console | — |
 | [Interrupt Narc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/Interrupt-Narc__fe232f99-8f31-4163-906d-48182e80a59d) | brossin13 | Console | — |
-| [INVENTORY 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ualtinova/INVENTORY-2__5009) | ualtinova | PC / Mac | 1.0.1 |
+| [Inventory 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ualtinova/Inventory-2__5009) | ualtinova | PC / Mac | 1.0.2 |
 | [Inventory Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zsban/Inventory-Assistant__2015) | zsban | PC / Mac | 1.21.261002-beta |
 | [Inventory Bank Sort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rlinosaur/Inventory-Bank-Sort__3344) | rlinosaur | PC / Mac | 1.2 |
 | [Inventory Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Inventory-Companion__4997) | tim-p | PC / Mac | 1.5.0 |
@@ -99,6 +99,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Inventory Space Warning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pachvara/Inventory-Space-Warning__3674) | Pachvara | PC / Mac | 0.4 |
 | [InventoryManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iwontsay/InventoryManager__1642) | iwontsay | PC / Mac | 2.5.2 |
 | [InventoryManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/InventoryManagerTESO__4071) | IgorSab | PC / Mac | 1.0.2 |
+| [InventoryPulse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cudddel/InventoryPulse__5012) | cudddel | PC / Mac | 1.0.0 |
 | [InventoryUpkeep](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manyrabidrats/InventoryUpkeep__1045) | manyrabidrats | PC / Mac | 1.8.0.0 |
 | [Is Target Guildie?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Is-Target-Guildie__3717) | Masteroshi430 | PC / Mac | 2026.07.06 |
 | [IsItTaunted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RipleyZepher/IsItTaunted__6b4f359b-e17e-46f6-b2c9-9a1e42e7de2b) | RipleyZepher | Console | — |

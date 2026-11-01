@@ -155,7 +155,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.10 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.1.0 |
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/ALC-Benchmark__4960) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/ALC-Benchmark__e96f0d83-b3f0-47a8-a59a-2d6020816550) | APH0NlC | Console | — |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
@@ -270,7 +270,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.1 |
 | [Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Archive-Helper__3772) | FlatBadger | PC / Mac | 1.4.2 |
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
-| [Arclight Taunt – Modern Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Modern-Tank-HUD__5008) | tareN | PC / Mac | 1.0.2 |
+| [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.0.3 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
 | [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.2 |

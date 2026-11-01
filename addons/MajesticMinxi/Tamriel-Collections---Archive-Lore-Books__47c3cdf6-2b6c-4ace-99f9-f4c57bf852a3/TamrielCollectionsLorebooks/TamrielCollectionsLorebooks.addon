@@ -1,0 +1,14 @@
+## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Lorebooks|r
+## Description: Browse ESO Lore Library collections and books with native read status and search in the shared Tamriel Archive.
+## Author: |c73E58CMajesticMinxi|r
+## Version: 0.1.15
+## APIVersion: 101051
+## AddOnVersion: 115
+
+Shared.lua
+LorebookLocations.lua
+LorebookSources.lua
+ArchiveLorebooks.lua
+CollectionsUI.xml
+CollectionsUI.lua
+MainMenu.lua

@@ -4,6 +4,10 @@ local appName = "AutoImproveGear"
 local textOffsetY = 40
 local materialsGap = 7
 
+--Move the Gamepad scroll indicator icon relative to the background.
+local scrollIndicatorOffsetX = 436
+local scrollIndicatorOffsetY = 466
+
 local initialized = false
 
 --selection screen state
@@ -11,29 +15,51 @@ local selectionItems = {}
 local selectionScreen
 local selectionFragment
 local selectionControl
+local summaryScrollContainer
+local summaryScrollChildControl
 local itemsHeadingControl
 local materialsHeadingControl
 local itemsBodyControl
 local materialsBodyControl
 local confirmationMessageControl
 local processingMessageControl
-local processingDebugControl
+local processingResultsScrollContainer
+local processingResultsControl
+local processingResultsHeadingControl
 local selectionKeybindStateIndex
 local backKeybindDescriptor
 
---single-item test processor state
+--Temporarily disable the smithing improvement tooltip's own stick input
+--while Confirm Improvements is displayed. The tooltip remains visible.
+local smithingTooltipInputDisabled = false
+
+local function setSmithingTooltipInputEnabled(enabled)
+    local controlName = "ZO_GamepadSmithingTopLevelImprovementSourceTooltipContainerTip"
+    local control = _G and _G[controlName]
+
+    if not control or type(control.SetInputEnabled) ~= "function" then
+        smithingTooltipInputDisabled = false
+        return
+    end
+
+    local ok = pcall(control.SetInputEnabled, control, enabled)
+    smithingTooltipInputDisabled = ok and not enabled or false
+end
+
+--sequential item queue processor state
 local processingState = {
     active = false,
     awaitingCompletion = false,
     attemptId = 0,
     item = nil,
+    queue = {},
+    queueIndex = 0,
     craftingType = nil,
     previousQuality = nil,
-    debugLines = {},
     succeeded = false,
     finished = false,
 }
-local MAX_PROCESSING_DEBUG_LINES = 9
+local startNextImprovementStep
 local IMPROVEMENT_EVENT_TIMEOUT_MS = 15000
 local restoreAutoImproveKeybind
 local improveKeybindDescriptor
@@ -165,14 +191,14 @@ local function isRelevantItem(itemName, craftingType)
 end
 
 --check whether an item belongs to the current crafting station
-local function isValidEquipmentItem(slotIndex, craftingType)
+local function isValidEquipmentItem(bagId, slotIndex, craftingType)
     --keep the existing name search if item type information is unavailable
     if not GetItemType or not ITEMTYPE_ARMOR or not ITEMTYPE_WEAPON then
         return true
     end
 
-    local itemType = GetItemType(BAG_BACKPACK, slotIndex)
-    local _, _, _, _, _, equipType = GetItemInfo(BAG_BACKPACK, slotIndex)
+    local itemType = GetItemType(bagId, slotIndex)
+    local _, _, _, _, _, equipType = GetItemInfo(bagId, slotIndex)
 
     if craftingType == CRAFTING_TYPE_BLACKSMITHING then
         if itemType == ITEMTYPE_WEAPON then
@@ -180,13 +206,13 @@ local function isValidEquipmentItem(slotIndex, craftingType)
         end
 
         if itemType == ITEMTYPE_ARMOR and GetItemArmorType then
-            return GetItemArmorType(BAG_BACKPACK, slotIndex) == ARMORTYPE_HEAVY
+            return GetItemArmorType(bagId, slotIndex) == ARMORTYPE_HEAVY
         end
 
         return false
     elseif craftingType == CRAFTING_TYPE_CLOTHIER then
         if itemType == ITEMTYPE_ARMOR and GetItemArmorType then
-            local armorType = GetItemArmorType(BAG_BACKPACK, slotIndex)
+            local armorType = GetItemArmorType(bagId, slotIndex)
             return armorType == ARMORTYPE_LIGHT or armorType == ARMORTYPE_MEDIUM
         end
 
@@ -197,7 +223,7 @@ local function isValidEquipmentItem(slotIndex, craftingType)
         end
 
         if itemType == ITEMTYPE_ARMOR and GetItemWeaponType then
-            return GetItemWeaponType(BAG_BACKPACK, slotIndex) == WEAPONTYPE_SHIELD
+            return GetItemWeaponType(bagId, slotIndex) == WEAPONTYPE_SHIELD
         end
 
         return false
@@ -213,31 +239,76 @@ local function isValidEquipmentItem(slotIndex, craftingType)
     return false
 end
 
---find unlocked matching items in the backpack
-local function scanBackpack(craftingType)
-    local items = {}
-
-    for slotIndex = 0, GetBagSize(BAG_BACKPACK) - 1 do
-        if GetSlotStackSize(BAG_BACKPACK, slotIndex) > 0
-            and not IsItemPlayerLocked(BAG_BACKPACK, slotIndex) then
-
-            local itemName = GetItemName(BAG_BACKPACK, slotIndex)
-
-            --remove the trailing eso name-format suffix
-            if itemName and #itemName >= 2 then
-                local suffix = itemName:sub(-2)
-
-                if suffix:sub(1, 1) == "^" then
-                    itemName = itemName:sub(1, -3)
-                end
+--identify companion equipment using the item's actor category.
+--The item filter type is retained as a fallback for clients exposing that API.
+local function isCompanionItem(bagId, slotIndex)
+    if GetItemLink and GetItemLinkActorCategory and GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        local itemLink = GetItemLink(bagId, slotIndex)
+        if itemLink then
+            local ok, actorCategory = pcall(GetItemLinkActorCategory, itemLink)
+            if ok then
+                return actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION
             end
+        end
+    end
 
-            if isRelevantItem(itemName, craftingType)
-                and isValidEquipmentItem(slotIndex, craftingType) then
-                table.insert(items, {
-                    slotIndex = slotIndex,
-                    itemName = itemName,
-                })
+    if GetItemFilterTypeInfo and ITEMFILTERTYPE_COMPANION then
+        local filterTypes = { GetItemFilterTypeInfo(bagId, slotIndex) }
+        for _, filterType in ipairs(filterTypes) do
+            if filterType == ITEMFILTERTYPE_COMPANION then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+--find matching items in the backpack, bank and worn equipment bags
+local function scanAvailableItems(craftingType)
+    local items = {}
+    local bagsToScan = {
+        BAG_BACKPACK,
+        BAG_BANK,
+        BAG_WORN,
+    }
+
+    --ESO+ bank storage is exposed as a separate bag on clients that support it.
+    if BAG_SUBSCRIBER_BANK then
+        table.insert(bagsToScan, BAG_SUBSCRIBER_BANK)
+    end
+
+    for _, bagId in ipairs(bagsToScan) do
+        if bagId then
+            local bagSize = GetBagSize(bagId) or 0
+
+            for slotIndex = 0, bagSize - 1 do
+                if GetSlotStackSize(bagId, slotIndex) > 0 then
+                    local itemName = GetItemName(bagId, slotIndex)
+
+                    --remove the trailing eso name-format suffix
+                    if itemName and #itemName >= 2 then
+                        local suffix = itemName:sub(-2)
+
+                        if suffix:sub(1, 1) == "^" then
+                            itemName = itemName:sub(1, -3)
+                        end
+                    end
+
+                    local itemQuality = select(8, GetItemInfo(bagId, slotIndex))
+
+                    --Legendary (gold-quality) equipment is not eligible for selection.
+                    if itemQuality ~= 5
+                        and not isCompanionItem(bagId, slotIndex)
+                        and isRelevantItem(itemName, craftingType)
+                        and isValidEquipmentItem(bagId, slotIndex, craftingType) then
+                        table.insert(items, {
+                            bagId = bagId,
+                            slotIndex = slotIndex,
+                            itemName = itemName,
+                        })
+                    end
+                end
             end
         end
     end
@@ -281,14 +352,14 @@ local function updateSelectionKeybinds()
             primaryDescriptor.enabled = function()
                 return pendingImprovementSummary ~= nil
                     and pendingImprovementSummary.enoughMaterials
-                    and #pendingImprovementSummary.items == 1
+                    and #pendingImprovementSummary.items > 0
             end
         elseif selectionMode == "processing" then
             primaryDescriptor.name = "|c808080Confirm and Start|r"
             primaryDescriptor.enabled = function() return false end
         elseif selectionMode == "complete" then
-            primaryDescriptor.name = "Done"
-            primaryDescriptor.enabled = function() return true end
+            primaryDescriptor.name = "|c808080Confirm and Start|r"
+            primaryDescriptor.enabled = function() return false end
         else
             if selectionMode == "quality" or selectionMode == "summary" then
                 primaryDescriptor.name = "Select"
@@ -309,14 +380,13 @@ local function updateSelectionKeybinds()
             improveKeybindDescriptor.visible = function() return true end
             improveKeybindDescriptor.enabled = function() return true end
         elseif selectionMode == "processing" then
-            improveKeybindDescriptor.name = "|c808080Processing...|r  " .. holdSquareMarkup
+            improveKeybindDescriptor.name = "|c808080Improve Selected Items|r  " .. holdSquareMarkup .. "|c808080Confirm and Improve|r"
             improveKeybindDescriptor.visible = function() return true end
             improveKeybindDescriptor.enabled = function() return false end
         elseif selectionMode == "complete" then
-            --Restore the Square label's normal appearance after processing.
-            improveKeybindDescriptor.name = "Upgrade Test Finished  " .. holdSquareMarkup
+            improveKeybindDescriptor.name = "|c808080Improve Selected Items|r  " .. holdSquareMarkup .. "|c808080Confirm and Improve|r"
             improveKeybindDescriptor.visible = function() return true end
-            improveKeybindDescriptor.enabled = function() return true end
+            improveKeybindDescriptor.enabled = function() return false end
         else
             improveKeybindDescriptor.name = "Improve Selected Items"
             improveKeybindDescriptor.visible = function() return selectionMode ~= "finalConfirm" end
@@ -509,7 +579,7 @@ local function calculateMaterialRequirements(selectedItems, targetQuality, craft
     local expertiseRank = getImprovementExpertiseRank(craftingType)
 
     for _, item in ipairs(selectedItems) do
-        local itemQuality = select(8, GetItemInfo(BAG_BACKPACK, item.slotIndex))
+        local itemQuality = select(8, GetItemInfo(item.bagId or BAG_BACKPACK, item.slotIndex))
 
         if itemQuality and targetQuality > itemQuality then
             for nextQuality = itemQuality + 1, targetQuality do
@@ -536,7 +606,7 @@ local function calculateMaterialRequirements(selectedItems, targetQuality, craft
 end
 
 local function createImprovementItemRecord(item, craftingType, targetQuality, targetQualityName)
-    local bagId = BAG_BACKPACK
+    local bagId = item.bagId or BAG_BACKPACK
     local itemLink = GetItemLink and GetItemLink(bagId, item.slotIndex, LINK_STYLE_DEFAULT) or nil
     local itemId = GetItemId and GetItemId(bagId, item.slotIndex) or (itemLink and GetItemLinkItemId and GetItemLinkItemId(itemLink))
     local instanceId = GetItemInstanceId and GetItemInstanceId(bagId, item.slotIndex) or nil
@@ -615,39 +685,45 @@ local function confirmSelectedQuality(qualityName)
     updateSelectionKeybinds()
 end
 
-local function appendProcessingDebug(message)
-    local timestamp = GetGameTimeMilliseconds and math.floor(GetGameTimeMilliseconds() / 1000) or 0
-    table.insert(processingState.debugLines, string.format("[%ds] %s", timestamp, tostring(message)))
-
-    while #processingState.debugLines > MAX_PROCESSING_DEBUG_LINES do
-        table.remove(processingState.debugLines, 1)
-    end
-
-    if processingDebugControl then
-        processingDebugControl:SetText(table.concat(processingState.debugLines, "\n"))
-    end
-end
-
 local function finishProcessing(success, message)
-    processingState.active = false
     processingState.awaitingCompletion = false
-    processingState.finished = true
-    processingState.succeeded = success
 
-    if processingState.item then
-        processingState.item.completed = success
-        processingState.item.failed = not success
+    local item = processingState.item
+    if item then
+        item.completed = success
+        item.failed = not success
+        item.finalQuality = item.currentQuality or item.originalQuality
         if success then
-            processingState.item.failedReason = nil
+            item.failedReason = nil
         else
-            processingState.item.failedReason = message
+            item.failedReason = message
+            processingState.succeeded = false
         end
     end
 
-    appendProcessingDebug(message)
+    --Move to the next selected item after this item reaches a final state.
+    processingState.queueIndex = processingState.queueIndex + 1
+    local nextItem = processingState.queue[processingState.queueIndex]
+
+    if nextItem then
+        processingState.item = nextItem
+        processingState.previousQuality = nil
+        processingState.attemptId = processingState.attemptId + 1
+        zo_callLater(function()
+            if processingState.active and selectionMode == "processing" then
+                startNextImprovementStep()
+            end
+        end, 250)
+        return
+    end
+
+    processingState.active = false
+    processingState.finished = true
+    processingState.item = nil
+
     selectionMode = "complete"
     if processingMessageControl then
-        processingMessageControl:SetText(success and "Upgrade complete" or "Upgrade stopped - see debug details below")
+        processingMessageControl:SetText("Upgrade completed")
     end
     selectionScreen:Update()
     updateSelectionKeybinds()
@@ -694,7 +770,7 @@ local function verifyTrackedItemStillInSlot(item)
     return true
 end
 
-local function startNextImprovementStep()
+startNextImprovementStep = function()
     if not processingState.active then
         return
     end
@@ -706,7 +782,6 @@ local function startNextImprovementStep()
         return
     end
 
-    appendProcessingDebug("Checking recorded item and inventory slot")
     local itemStillPresent, identityError = verifyTrackedItemStillInSlot(item)
     if not itemStillPresent then
         finishProcessing(false, "FAIL: " .. identityError)
@@ -720,7 +795,6 @@ local function startNextImprovementStep()
     end
 
     item.currentQuality = currentQuality
-    appendProcessingDebug("Current quality=" .. tostring(currentQuality) .. ", target=" .. tostring(item.targetQuality))
 
     if currentQuality >= item.targetQuality then
         finishProcessing(true, "SUCCESS: target quality reached")
@@ -733,7 +807,6 @@ local function startNextImprovementStep()
     end
 
     local canImprove = CanItemBeSmithingImproved(item.bagId, item.slotIndex, craftingType)
-    appendProcessingDebug("CanItemBeSmithingImproved=" .. tostring(canImprove))
     if not canImprove then
         finishProcessing(false, "FAIL: game reports item cannot be improved")
         return
@@ -751,7 +824,6 @@ local function startNextImprovementStep()
     end
 
     local chance = GetSmithingImprovementChance(item.bagId, item.slotIndex, boosterCount, craftingType)
-    appendProcessingDebug("Chance check: " .. tostring(boosterCount) .. " boosters => " .. tostring(chance) .. "%")
     if not chance or chance < 100 then
         finishProcessing(false, "FAIL: calculated booster quantity is not 100%")
         return
@@ -779,16 +851,13 @@ local function startNextImprovementStep()
         link = materialLink,
         quantity = boosterCount,
     }
-    appendProcessingDebug("Material for this step=" .. tostring(materialName) .. ", quantity=" .. tostring(boosterCount))
 
-    appendProcessingDebug("Calling ImproveSmithingItem(" .. tostring(item.bagId) .. ", " .. tostring(item.slotIndex) .. ", " .. tostring(boosterCount) .. ")")
     local callSucceeded, callError = pcall(ImproveSmithingItem, item.bagId, item.slotIndex, boosterCount)
     if not callSucceeded then
         processingState.awaitingCompletion = false
         finishProcessing(false, "FAIL: ImproveSmithingItem raised error: " .. tostring(callError))
         return
     end
-    appendProcessingDebug("ImproveSmithingItem call returned without Lua error")
 
     zo_callLater(function()
         if not processingState.active or not processingState.awaitingCompletion
@@ -796,10 +865,8 @@ local function startNextImprovementStep()
             return
         end
 
-        appendProcessingDebug("TIMEOUT: no crafting completion event received")
         local updatedQuality = getCurrentTrackedQuality(item)
         if updatedQuality and updatedQuality > processingState.previousQuality then
-            appendProcessingDebug("Timeout fallback: item quality changed to " .. tostring(updatedQuality))
             item.currentQuality = updatedQuality
             processingState.awaitingCompletion = false
             startNextImprovementStep()
@@ -816,11 +883,9 @@ local function handleCraftCompleted(eventCode, craftingType)
     end
 
     if craftingType and processingState.craftingType and craftingType ~= processingState.craftingType then
-        appendProcessingDebug("Ignoring unrelated craft completion event: " .. tostring(craftingType))
         return
     end
 
-    appendProcessingDebug("EVENT_CRAFT_COMPLETED received: " .. tostring(craftingType))
     local resultName, resultStack, resultQuality, resultInstanceId
     if type(GetLastCraftingResultItemInfo) == "function" then
         local resultOk, name, icon, stack, sellPrice, meetsRequirements,
@@ -831,16 +896,11 @@ local function handleCraftCompleted(eventCode, craftingType)
             resultStack = stack
             resultQuality = quality
             resultInstanceId = instanceId
-            appendProcessingDebug("GetLastCraftingResultItemInfo(1) returned data")
         else
-            appendProcessingDebug("GetLastCraftingResultItemInfo failed: " .. tostring(name))
         end
     else
-        appendProcessingDebug("GetLastCraftingResultItemInfo API unavailable")
     end
 
-    appendProcessingDebug("Craft result: " .. tostring(resultName) .. ", stack=" .. tostring(resultStack)
-        .. ", quality=" .. tostring(resultQuality) .. ", instance=" .. tostring(resultInstanceId))
 
     local item = processingState.item
     item.lastCraftResult = {
@@ -861,7 +921,6 @@ local function handleCraftCompleted(eventCode, craftingType)
     local resultInstanceMatches = resultInstanceId and currentInstanceId
         and tostring(resultInstanceId) == tostring(currentInstanceId)
     if (resultInstanceId or resultName) and not resultInstanceMatches and not resultNameMatches then
-        appendProcessingDebug("Ignoring completion: result does not match tracked item")
         return
     end
 
@@ -874,7 +933,6 @@ local function handleCraftCompleted(eventCode, craftingType)
         end
 
         local updatedQuality = getCurrentTrackedQuality(item)
-        appendProcessingDebug("Backpack quality after event=" .. tostring(updatedQuality))
 
         if updatedQuality and updatedQuality > processingState.previousQuality then
             item.currentQuality = updatedQuality
@@ -882,7 +940,6 @@ local function handleCraftCompleted(eventCode, craftingType)
             if newInstanceId then
                 item.instanceId = newInstanceId
             end
-            appendProcessingDebug("Verified item quality increased to " .. tostring(updatedQuality))
             startNextImprovementStep()
         else
             finishProcessing(false, "FAIL: craft completed but item quality did not increase")
@@ -895,7 +952,6 @@ local function handleCraftFailed(eventCode, resultCode)
         return
     end
 
-    appendProcessingDebug("EVENT_CRAFT_FAILED received: result=" .. tostring(resultCode))
     processingState.awaitingCompletion = false
     finishProcessing(false, "FAIL: game reported crafting failure " .. tostring(resultCode))
 end
@@ -909,7 +965,6 @@ local function handleCraftStarted(eventCode, craftingType)
         return
     end
 
-    appendProcessingDebug("EVENT_CRAFT_STARTED received: " .. tostring(craftingType))
 end
 
 local function registerImprovementEvents()
@@ -924,56 +979,31 @@ local function registerImprovementEvents()
     end
 end
 
-local function startSingleItemTest()
-    if not pendingImprovementSummary then
+local function startImprovementQueue()
+    if not pendingImprovementSummary or not pendingImprovementSummary.enoughMaterials then
         return
     end
 
-    if not pendingImprovementSummary.enoughMaterials then
-        appendProcessingDebug("Blocked: material requirements are not met")
+    local itemQueue = pendingImprovementSummary.items
+    if #itemQueue == 0 then
         return
     end
 
-    if #pendingImprovementSummary.items ~= 1 then
-        processingState.active = false
-        processingState.awaitingCompletion = false
-        processingState.finished = true
-        processingState.succeeded = false
-        processingState.debugLines = {}
-        appendProcessingDebug("TEST LIMIT: exactly one selected item is required")
-        processingMessageControl:SetText("Testing currently supports one item only.\nPlease go back and select exactly one item.")
-        selectionMode = "complete"
-        selectionScreen:Update()
-        updateSelectionKeybinds()
-        return
-    end
-
-    local item = pendingImprovementSummary.items[1]
     processingState.active = true
     processingState.awaitingCompletion = false
     processingState.attemptId = 0
-    processingState.item = item
+    processingState.queue = itemQueue
+    processingState.queueIndex = 1
+    processingState.item = itemQueue[1]
     processingState.craftingType = pendingImprovementSummary.craftingType
     processingState.previousQuality = nil
-    processingState.debugLines = {}
-    processingState.succeeded = false
+    processingState.succeeded = true
     processingState.finished = false
 
     selectionMode = "processing"
     processingMessageControl:SetText("Upgrading items\nPlease wait..\nDon't press any buttons..")
-    processingDebugControl:SetText("")
     selectionScreen:Update()
     updateSelectionKeybinds()
-
-    appendProcessingDebug("Test process started for one item")
-    appendProcessingDebug("Item: " .. tostring(item.itemName))
-    appendProcessingDebug("Item ID=" .. tostring(item.itemId) .. ", instance=" .. tostring(item.instanceId))
-    appendProcessingDebug("Slot=" .. tostring(item.bagId) .. "/" .. tostring(item.slotIndex)
-        .. ", station=" .. tostring(item.craftingType))
-    appendProcessingDebug("Target quality=" .. tostring(item.targetQuality))
-    appendProcessingDebug("Craft events available: started=" .. tostring(EVENT_CRAFT_STARTED ~= nil)
-        .. ", completed=" .. tostring(EVENT_CRAFT_COMPLETED ~= nil)
-        .. ", failed=" .. tostring(EVENT_CRAFT_FAILED ~= nil))
 
     startNextImprovementStep()
 end
@@ -1001,6 +1031,9 @@ end
 
 local function closeSelectionOverlay()
     setHoldLayerActive(false)
+    if smithingTooltipInputDisabled then
+        setSmithingTooltipInputEnabled(true)
+    end
     if selectionFragment then
         SCENE_MANAGER:RemoveFragment(selectionFragment)
     end
@@ -1042,10 +1075,9 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
             if selectionMode == "processing" then
                 return
             elseif selectionMode == "finalConfirm" then
-                startSingleItemTest()
+                startImprovementQueue()
                 return
             elseif selectionMode == "complete" then
-                closeSelectionOverlay()
                 return
             end
 
@@ -1070,7 +1102,7 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
     }
 
     primaryDescriptor.enabled = function()
-        return selectionMode ~= "summary" and selectionMode ~= "processing"
+        return selectionMode ~= "summary" and selectionMode ~= "processing" and selectionMode ~= "complete"
     end
 
     self.primaryKeybindDescriptor = primaryDescriptor
@@ -1084,7 +1116,7 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
                 return selectionMode ~= "finalConfirm"
             end,
             enabled = function()
-                return selectionMode ~= "processing"
+                return selectionMode ~= "processing" and selectionMode ~= "complete"
             end,
             callback = function()
                 if selectionMode == "processing" or selectionMode == "complete" or selectionMode == "finalConfirm" then
@@ -1121,7 +1153,7 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
                     updateSelectionKeybinds()
                     return
                 elseif selectionMode == "complete" then
-                    returnToAvailableItems()
+                    closeSelectionOverlay()
                     return
                 end
 
@@ -1149,17 +1181,43 @@ end
 
 function AutoImproveGearSelectionScreen:PerformUpdate()
     local list = self:GetMainList()
+
+    --Remember the selected equipment record before rebuilding the list.
+    --The native header implementation attaches headings to item rows, so
+    --the list has fewer entries than the previous standalone-heading layout.
+    local previousSelectedItem
+    if selectionMode == "items" then
+        local previousSelectedData = list:GetSelectedData()
+        previousSelectedItem = previousSelectedData and previousSelectedData.item
+    end
+
     list:Clear()
 
+    -- Start each refresh with every free-text panel hidden. The active screen
+    -- below explicitly enables only the controls that belong to that screen.
+    if summaryScrollContainer then summaryScrollContainer:SetHidden(true) end
+    if itemsHeadingControl then itemsHeadingControl:SetHidden(true); itemsHeadingControl:SetText("") end
+    if itemsBodyControl then itemsBodyControl:SetHidden(true); itemsBodyControl:SetText("") end
+    if materialsHeadingControl then materialsHeadingControl:SetHidden(true); materialsHeadingControl:SetText("") end
+    if materialsBodyControl then materialsBodyControl:SetHidden(true); materialsBodyControl:SetText("") end
+    if confirmationMessageControl then confirmationMessageControl:SetHidden(true); confirmationMessageControl:SetText("") end
+    if processingMessageControl then processingMessageControl:SetHidden(true); processingMessageControl:SetText("") end
+    if processingResultsScrollContainer then processingResultsScrollContainer:SetHidden(true) end
+    if processingResultsControl then processingResultsControl:SetHidden(true); processingResultsControl:SetText("") end
+    if processingResultsHeadingControl then processingResultsHeadingControl:SetHidden(true); processingResultsHeadingControl:SetText("") end
+
     if selectionMode == "finalConfirm" then
+        if summaryScrollContainer then summaryScrollContainer:SetHidden(true) end
         if itemsHeadingControl then itemsHeadingControl:SetHidden(true) end
         if itemsBodyControl then itemsBodyControl:SetHidden(true) end
         if confirmationMessageControl then
             confirmationMessageControl:SetHidden(false)
             local confirmationLines = { "You are about to use" }
             if pendingImprovementSummary then
+                local hasMaterialsToUse = false
                 for _, material in ipairs(pendingImprovementSummary.materials) do
                     if material.required > 0 then
+                        hasMaterialsToUse = true
                         local materialName = capitalizeFirstLetter(material.name)
                         local qualityColor = material.quality and GetItemQualityColor(material.quality)
                         if qualityColor then
@@ -1169,10 +1227,18 @@ function AutoImproveGearSelectionScreen:PerformUpdate()
                             materialName .. " " .. tostring(material.required))
                     end
                 end
-                table.insert(confirmationLines,
-                    "to upgrade " .. tostring(#pendingImprovementSummary.items) .. " items...")
+                local itemCount = #pendingImprovementSummary.items
+                local itemWord = itemCount == 1 and "item" or "items"
+                if hasMaterialsToUse then
+                    table.insert(confirmationLines,
+                        "to upgrade " .. tostring(itemCount) .. " " .. itemWord)
+                else
+                    confirmationLines = {
+                        "No Materials to upgrade " .. tostring(itemCount) .. " " .. itemWord
+                    }
+                end
             else
-                table.insert(confirmationLines, "to upgrade 0 items...")
+                table.insert(confirmationLines, "to upgrade 0 items")
             end
             table.insert(confirmationLines, "")
             table.insert(confirmationLines, "Do you want to start the process ?")
@@ -1181,28 +1247,139 @@ function AutoImproveGearSelectionScreen:PerformUpdate()
         if materialsHeadingControl then materialsHeadingControl:SetHidden(true) end
         if materialsBodyControl then materialsBodyControl:SetHidden(true) end
         if processingMessageControl then processingMessageControl:SetHidden(true) end
-        if processingDebugControl then processingDebugControl:SetHidden(true) end
+        if processingResultsScrollContainer then processingResultsScrollContainer:SetHidden(true) end
+        if processingResultsControl then processingResultsControl:SetHidden(true) end
         list:Commit()
-        self.headerData = { titleText = "Confirm Upgrade" }
+        self.headerData = { titleText = "Confirm Improvements" }
     elseif selectionMode == "processing" or selectionMode == "complete" then
+        if summaryScrollContainer then summaryScrollContainer:SetHidden(true) end
         if itemsHeadingControl then itemsHeadingControl:SetHidden(true) end
         if materialsHeadingControl then materialsHeadingControl:SetHidden(true) end
         if itemsBodyControl then itemsBodyControl:SetHidden(true) end
         if materialsBodyControl then materialsBodyControl:SetHidden(true) end
         if confirmationMessageControl then confirmationMessageControl:SetHidden(true) end
         if processingMessageControl then processingMessageControl:SetHidden(false) end
-        if processingDebugControl then processingDebugControl:SetHidden(false) end
+        if processingResultsHeadingControl then
+            local totalItems = #(processingState.queue or {})
+            local upgradedCount = 0
+
+            for _, item in ipairs(processingState.queue or {}) do
+                if item.completed and not item.failed
+                    and not (item.originalQuality and item.targetQuality
+                        and item.originalQuality >= item.targetQuality) then
+                    upgradedCount = upgradedCount + 1
+                end
+            end
+
+            processingResultsHeadingControl:SetHidden(selectionMode ~= "complete" or totalItems == 0)
+
+            local headingText = ""
+            if totalItems == 1 then
+                headingText = upgradedCount == 1 and "1 Item Upgraded" or "0 Items Upgraded"
+            elseif totalItems > 1 then
+                headingText = tostring(upgradedCount) .. "/" .. tostring(totalItems) .. " Items Upgraded"
+            end
+
+            processingResultsHeadingControl:SetText(headingText)
+        end
+        if processingResultsScrollContainer then
+            processingResultsScrollContainer:SetHidden(selectionMode ~= "complete")
+        end
+        if processingResultsControl then
+            processingResultsControl:SetHidden(selectionMode ~= "complete")
+        end
+
         if selectionMode == "processing" then
+            processingMessageControl:ClearAnchors()
+            processingMessageControl:SetAnchor(TOP, selectionControl, TOP, 0, 145 + textOffsetY)
+            processingMessageControl:SetDimensions(590, 190)
             processingMessageControl:SetText("Upgrading items\nPlease wait..\nDon't press any buttons..")
+        else
+            processingMessageControl:ClearAnchors()
+            processingMessageControl:SetAnchor(TOP, selectionControl, TOP, 0, 155 + textOffsetY)
+            processingMessageControl:SetDimensions(590, 70)
+            processingMessageControl:SetText("Upgrade completed")
+            local resultLines = {}
+            local upgradedLines = {}
+            local failedLines = {}
+
+            for _, item in ipairs(processingState.queue or {}) do
+                if item.completed and not item.failed then
+                    local originalQuality = item.originalQuality
+                    local newQuality = item.finalQuality or item.currentQuality or getCurrentTrackedQuality(item)
+                    local originalColor = originalQuality and GetItemQualityColor(originalQuality)
+                    local newColor = newQuality and GetItemQualityColor(newQuality)
+                    local itemName = capitalizeFirstLetter(item.itemName)
+                    local originalName = itemName
+                    local newName = itemName
+                    if originalColor then originalName = originalColor:Colorize(originalName) end
+                    if newColor then newName = newColor:Colorize(newName) end
+
+                    --Items already at or above the chosen quality were not upgraded.
+                    if originalQuality and item.targetQuality and originalQuality >= item.targetQuality then
+                        if #itemName > 22 then
+                            table.insert(failedLines, originalName .. "\n→ " .. newName)
+                        else
+                            table.insert(failedLines, originalName .. " → " .. newName)
+                        end
+                    elseif #itemName > 22 then
+                        table.insert(upgradedLines, originalName .. "\n→ " .. newName)
+                    else
+                        table.insert(upgradedLines, originalName .. " → " .. newName)
+                    end
+                elseif item.failed then
+                    local failedQuality = item.finalQuality or item.currentQuality or item.originalQuality
+                    local failedColor = failedQuality and GetItemQualityColor(failedQuality)
+                    local failedName = capitalizeFirstLetter(item.itemName)
+                    if failedColor then
+                        failedName = failedColor:Colorize(failedName)
+                    end
+                    table.insert(failedLines, failedName)
+                end
+            end
+
+            if #upgradedLines > 0 then
+                for _, line in ipairs(upgradedLines) do
+                    table.insert(resultLines, line)
+                end
+            else
+                table.insert(resultLines, "None")
+            end
+
+            if #failedLines > 0 then
+                table.insert(resultLines, "")
+                table.insert(resultLines, "Items Not Upgraded")
+                for _, line in ipairs(failedLines) do
+                    table.insert(resultLines, line)
+                end
+            end
+
+            if processingResultsControl then
+                local resultText = table.concat(resultLines, "\n")
+                processingResultsControl:SetText(resultText)
+
+                --Size the scroll content to the complete text, including explicit
+                --line breaks used for long item names and the blank separator line.
+                local _, newlineCount = resultText:gsub("\n", "")
+                local resultLineCount = newlineCount + 1
+                processingResultsControl:SetHeight(math.max(32, resultLineCount * 32))
+            end
         end
         list:Commit()
-        self.headerData = { titleText = selectionMode == "processing" and "Upgrading Items" or "Upgrade Test Results" }
+        self.headerData = { titleText = selectionMode == "processing" and "Upgrading Selected Items" or "Improved Item Results" }
     elseif selectionMode == "summary" then
+        if summaryScrollContainer then summaryScrollContainer:SetHidden(false) end
         if confirmationMessageControl then confirmationMessageControl:SetHidden(true) end
         if processingMessageControl then processingMessageControl:SetHidden(true) end
-        if processingDebugControl then processingDebugControl:SetHidden(true) end
-        if itemsHeadingControl then itemsHeadingControl:SetHidden(false) end
-        if materialsHeadingControl then materialsHeadingControl:SetHidden(false) end
+        if itemsHeadingControl then
+            itemsHeadingControl:SetText("Items to Improve")
+            itemsHeadingControl:SetHidden(false)
+        end
+
+        if materialsHeadingControl then
+            materialsHeadingControl:SetText("Improvement Materials Required")
+            materialsHeadingControl:SetHidden(false)
+        end
         if itemsBodyControl then itemsBodyControl:SetHidden(false) end
         if materialsBodyControl then materialsBodyControl:SetHidden(false) end
 
@@ -1241,16 +1418,19 @@ function AutoImproveGearSelectionScreen:PerformUpdate()
             itemsBodyControl:SetText(table.concat(itemLines, "\n"))
             materialsBodyControl:SetText(table.concat(materialLines, "\n"))
 
-            --calculate the height needed for the selected items list
+            --Size each body to its actual number of lines so the native scroll
+            --container can calculate the complete content extent.
             local itemsHeight = #itemLines * 32
+            local materialsHeight = #materialLines * 32
+            itemsBodyControl:SetHeight(math.max(32, itemsHeight))
+            materialsBodyControl:SetHeight(math.max(32, materialsHeight))
 
-            --position the materials heading below the selected items
+            --Position the materials heading and list inside the summary scroll child.
             materialsHeadingControl:ClearAnchors()
-            materialsHeadingControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 225 + itemsHeight + textOffsetY)
+            materialsHeadingControl:SetAnchor(TOPLEFT, summaryScrollChildControl, TOPLEFT, 0, 85 + itemsHeight)
 
-            --position the materials list below its heading
             materialsBodyControl:ClearAnchors()
-            materialsBodyControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 262 + itemsHeight + textOffsetY + materialsGap)
+            materialsBodyControl:SetAnchor(TOPLEFT, summaryScrollChildControl, TOPLEFT, 0, 122 + itemsHeight + materialsGap)
         end
         list:Commit()
         self.headerData = {
@@ -1277,28 +1457,133 @@ function AutoImproveGearSelectionScreen:PerformUpdate()
         }
     else
         local selectedCount = 0
+        local itemGroups = {
+            { name = "Equipped weapons", items = {} },
+            { name = "Equipped Armor", items = {} },
+            { name = "Inventory Weapons", items = {} },
+            { name = "Inventory Armor", items = {} },
+            { name = "Banked Weapons", items = {} },
+            { name = "Banked Armor", items = {} },
+        }
 
+        --Separate each storage location into weapons and armour.
+        --Standard and ESO Plus bank bags share the same bank categories.
         for _, item in ipairs(selectionItems) do
-            local itemQuality = select(8, GetItemInfo(BAG_BACKPACK, item.slotIndex))
-            local itemQualityColor = GetItemQualityColor(itemQuality)
-            local coloredItemName = itemQualityColor and itemQualityColor:Colorize(item.itemName) or item.itemName
-            local entryName = item.selected and ("[X] " .. coloredItemName) or "[ ] " .. coloredItemName
-            local entryData = ZO_GamepadEntryData:New(entryName)
-            entryData.item = item
-            list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+            local bagId = item.bagId or BAG_BACKPACK
+            local firstGroupIndex
 
-            if item.selected then
-                selectedCount = selectedCount + 1
+            if bagId == BAG_WORN then
+                firstGroupIndex = 1
+            elseif bagId == BAG_BACKPACK then
+                firstGroupIndex = 3
+            elseif bagId == BAG_BANK or (BAG_SUBSCRIBER_BANK and bagId == BAG_SUBSCRIBER_BANK) then
+                firstGroupIndex = 5
+            else
+                --Keep any unexpected bag type visible in Inventory.
+                firstGroupIndex = 3
+            end
+
+            local itemType = GetItemType and GetItemType(bagId, item.slotIndex)
+            local groupIndex = firstGroupIndex + (itemType == ITEMTYPE_WEAPON and 0 or 1)
+            table.insert(itemGroups[groupIndex].items, item)
+        end
+
+        --Use ESO's smaller Gamepad menu-entry font for every equipment row.
+        --The ordinary and header-enabled templates have separate setup functions,
+        --so both must use the same wrapper.
+        local baseTemplateName = "ZO_GamepadMenuEntryTemplate"
+        local headerTemplateName = baseTemplateName .. "WithHeader"
+
+        if not list.autoImproveGearSmallFontSetup then
+            local baseEntryTemplate = list.dataTypes[baseTemplateName]
+            if baseEntryTemplate and baseEntryTemplate.setupFunction then
+                local originalSetupFunction = baseEntryTemplate.setupFunction
+
+                local function setupSmallerAvailableItemEntry(control, data, selected, selectedDuringRebuild, enabled, activated)
+                    originalSetupFunction(control, data, selected, selectedDuringRebuild, enabled, activated)
+
+                    --Only equipment rows carry data.item. Quality-selection rows
+                    --continue to use ESO's original normal-size menu-entry font.
+                    if data and data.item and control.label then
+                        control.label:SetFont("ZoFontGamepad25")
+                    end
+                end
+
+                --Ordinary rows use the base template.
+                list:SetDataTemplateSetupFunction(baseTemplateName, setupSmallerAvailableItemEntry)
+
+                --The first row in each category uses this header-enabled sibling.
+                --Register it if needed, then explicitly apply the item-row setup
+                --function even when ESO has already registered the template.
+                if not list:HasDataTemplate(headerTemplateName) then
+                    list:AddDataTemplateWithHeader(
+                        baseTemplateName,
+                        setupSmallerAvailableItemEntry,
+                        baseEntryTemplate.parametricFunction,
+                        baseEntryTemplate.equalityFunction,
+                        "ZO_GamepadMenuEntryHeaderTemplate"
+                    )
+                end
+
+                list:SetDataTemplateSetupFunction(headerTemplateName, setupSmallerAvailableItemEntry)
+
+                list.autoImproveGearSmallFontSetup = true
+            end
+        end
+        local canUseNativeHeaders = list:HasDataTemplate(headerTemplateName)
+
+        for _, group in ipairs(itemGroups) do
+            if #group.items > 0 then
+                for itemIndex, item in ipairs(group.items) do
+                    local itemQuality = select(8, GetItemInfo(item.bagId or BAG_BACKPACK, item.slotIndex))
+                    local itemQualityColor = GetItemQualityColor(itemQuality)
+                    local coloredItemName = itemQualityColor and itemQualityColor:Colorize(item.itemName) or item.itemName
+                    local entryName = item.selected and ("[X] " .. coloredItemName) or "[ ] " .. coloredItemName
+                    local entryData = ZO_GamepadEntryData:New(entryName)
+                    entryData.item = item
+
+                    if itemIndex == 1 and canUseNativeHeaders then
+                        --The heading is rendered above this item, not as a list row.
+                        --The equipment item itself remains selectable by default.
+                        entryData.header = group.name
+                        list:AddEntryWithHeader("ZO_GamepadMenuEntryTemplate", entryData)
+                    else
+                        list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+                    end
+
+                    if item.selected then
+                        selectedCount = selectedCount + 1
+                    end
+                end
             end
         end
 
         list:Commit()
+
+        --Restore focus to the same equipment item after the list loses the
+        --standalone heading rows, rather than relying on its old numeric index.
+        if previousSelectedItem then
+            list:SetSelectedDataByEval(function(data)
+                return data and data.item == previousSelectedItem
+            end)
+        end
         self.headerData = {
             titleText = "Available Items (" .. tostring(selectedCount) .. " selected)",
         }
     end
 
     ZO_GamepadGenericHeader_Refresh(self.header, self.headerData)
+
+    --Suppress the smithing tooltip's own scrolling while Confirm Improvements
+    --and Improved Item Results are visible. Restore it on every other screen/state.
+    if selectionMode == "summary" or selectionMode == "complete" then
+        if not smithingTooltipInputDisabled then
+            setSmithingTooltipInputEnabled(false)
+        end
+    elseif smithingTooltipInputDisabled then
+        setSmithingTooltipInputEnabled(true)
+    end
+
     self.dirty = false
 end
 
@@ -1330,47 +1615,85 @@ local function createSelectionScreen()
     background:SetCenterColor(0, 0, 0, 0.95)
     background:SetEdgeColor(0.45, 0.45, 0.45, 1)
 
-    itemsHeadingControl = WINDOW_MANAGER:CreateControl("AutoImproveGearItemsHeading", selectionControl, CT_LABEL)
+    --Native Gamepad scroll viewport for the variable-length Confirm Improvements summary.
+    --Its bottom edge is held at Y=880 relative to selectionControl.
+    local summaryScrollTop = 140 + textOffsetY
+    local summaryScrollBottom = 880
+    summaryScrollContainer = WINDOW_MANAGER:CreateControlFromVirtual(
+        "AutoImproveGearSummaryScroll",
+        selectionControl,
+        "ZO_ScrollContainer_Gamepad"
+    )
+    summaryScrollContainer:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, summaryScrollTop)
+    summaryScrollContainer:SetDimensions(590, summaryScrollBottom - summaryScrollTop)
+    summaryScrollContainer:SetHidden(true)
+
+    local summaryScrollIndicator = ZO_Scroll_GetScrollIndicator(summaryScrollContainer)
+    if summaryScrollIndicator then
+        ZO_Scroll_Gamepad_SetScrollIndicatorSide(
+            summaryScrollIndicator,
+            background,
+            RIGHT,
+            scrollIndicatorOffsetX,
+            scrollIndicatorOffsetY,
+            true
+        )
+
+        --Apply the custom screen position explicitly. The helper sets the side,
+        --but on some Gamepad layouts its custom offsets do not reposition the icon.
+        summaryScrollIndicator:ClearAnchors()
+        summaryScrollIndicator:SetAnchor(
+            TOPLEFT,
+            background,
+            TOPLEFT,
+            scrollIndicatorOffsetX,
+            scrollIndicatorOffsetY
+        )
+    end
+
+    summaryScrollChildControl = summaryScrollContainer:GetNamedChild("ScrollChild")
+
+    itemsHeadingControl = WINDOW_MANAGER:CreateControl("AutoImproveGearItemsHeading", summaryScrollChildControl, CT_LABEL)
     --position and size of the items heading
-    itemsHeadingControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 140 + textOffsetY) --x and y position
-    itemsHeadingControl:SetDimensions(590, 60) --width and height
+    itemsHeadingControl:SetAnchor(TOPLEFT, summaryScrollChildControl, TOPLEFT, 0, 0)
+    itemsHeadingControl:SetDimensions(590 - (ZO_SCROLL_BAR_WIDTH or 16), 60) --width and height
     itemsHeadingControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_36)|soft-shadow-thick")
     itemsHeadingControl:SetText("Items to Improve")
     itemsHeadingControl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     itemsHeadingControl:SetVerticalAlignment(TEXT_ALIGN_TOP)
     itemsHeadingControl:SetHidden(true)
 
-    itemsBodyControl = WINDOW_MANAGER:CreateControl("AutoImproveGearItemsBody", selectionControl, CT_LABEL)
+    itemsBodyControl = WINDOW_MANAGER:CreateControl("AutoImproveGearItemsBody", summaryScrollChildControl, CT_LABEL)
     --position and size of the selected items list
-    itemsBodyControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 181 + textOffsetY) --x and y position
-    itemsBodyControl:SetDimensions(590, 360) --width and height
+    itemsBodyControl:SetAnchor(TOPLEFT, summaryScrollChildControl, TOPLEFT, 0, 41)
+    itemsBodyControl:SetDimensions(590 - (ZO_SCROLL_BAR_WIDTH or 16), 32)
     itemsBodyControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_25)|soft-shadow-thick")
     itemsBodyControl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     itemsBodyControl:SetVerticalAlignment(TEXT_ALIGN_TOP)
     itemsBodyControl:SetHidden(true)
 
-    materialsHeadingControl = WINDOW_MANAGER:CreateControl("AutoImproveGearMaterialsHeading", selectionControl, CT_LABEL)
+    materialsHeadingControl = WINDOW_MANAGER:CreateControl("AutoImproveGearMaterialsHeading", summaryScrollChildControl, CT_LABEL)
     --position and size of the materials heading
-    materialsHeadingControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 230 + textOffsetY) --initial position, may be repositioned dynamically
-    materialsHeadingControl:SetDimensions(590, 60) --width and height
+    materialsHeadingControl:SetAnchor(TOPLEFT, summaryScrollChildControl, TOPLEFT, 0, 85) --initial position, repositioned dynamically
+    materialsHeadingControl:SetDimensions(590 - (ZO_SCROLL_BAR_WIDTH or 16), 60) --width and height
     materialsHeadingControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_36)|soft-shadow-thick")
     materialsHeadingControl:SetText("Improvement Materials Required")
     materialsHeadingControl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     materialsHeadingControl:SetVerticalAlignment(TEXT_ALIGN_TOP)
     materialsHeadingControl:SetHidden(true)
 
-    materialsBodyControl = WINDOW_MANAGER:CreateControl("AutoImproveGearMaterialsBody", selectionControl, CT_LABEL)
+    materialsBodyControl = WINDOW_MANAGER:CreateControl("AutoImproveGearMaterialsBody", summaryScrollChildControl, CT_LABEL)
     --position and size of the required materials list
-    materialsBodyControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 278 + textOffsetY) --initial position, may be repositioned dynamically
-    materialsBodyControl:SetDimensions(590, 220) --width and height
+    materialsBodyControl:SetAnchor(TOPLEFT, summaryScrollChildControl, TOPLEFT, 0, 122 + materialsGap) --initial position, repositioned dynamically
+    materialsBodyControl:SetDimensions(590 - (ZO_SCROLL_BAR_WIDTH or 16), 32)
     materialsBodyControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_25)|soft-shadow-thick")
     materialsBodyControl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     materialsBodyControl:SetVerticalAlignment(TEXT_ALIGN_TOP)
     materialsBodyControl:SetHidden(true)
 
     confirmationMessageControl = WINDOW_MANAGER:CreateControl("AutoImproveGearConfirmationMessage", selectionControl, CT_LABEL)
-    confirmationMessageControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 110 + textOffsetY)
-    confirmationMessageControl:SetDimensions(590, 430)
+    confirmationMessageControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 90 + textOffsetY)
+    confirmationMessageControl:SetDimensions(590, 860) --doubled for testing
     confirmationMessageControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_36)|soft-shadow-thick")
     confirmationMessageControl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     confirmationMessageControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -1379,18 +1702,69 @@ local function createSelectionScreen()
     processingMessageControl = WINDOW_MANAGER:CreateControl("AutoImproveGearProcessingMessage", selectionControl, CT_LABEL)
     processingMessageControl:SetAnchor(TOP, selectionControl, TOP, 0, 145 + textOffsetY)
     processingMessageControl:SetDimensions(590, 190)
-    processingMessageControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_36)|soft-shadow-thick")
+    processingMessageControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_42)|soft-shadow-thick")
     processingMessageControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     processingMessageControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     processingMessageControl:SetHidden(true)
 
-    processingDebugControl = WINDOW_MANAGER:CreateControl("AutoImproveGearProcessingDebug", selectionControl, CT_LABEL)
-    processingDebugControl:SetAnchor(TOPLEFT, selectionControl, TOPLEFT, 50, 430 + textOffsetY)
-    processingDebugControl:SetDimensions(590, 230)
-    processingDebugControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_18)|soft-shadow-thick")
-    processingDebugControl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    processingDebugControl:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
-    processingDebugControl:SetHidden(true)
+    processingResultsHeadingControl = WINDOW_MANAGER:CreateControl("AutoImproveGearProcessingResultsHeading", selectionControl, CT_LABEL)
+    processingResultsHeadingControl:SetAnchor(TOP, selectionControl, TOP, 0, 255 + textOffsetY)
+    processingResultsHeadingControl:SetDimensions(590, 60)
+    processingResultsHeadingControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_36)|soft-shadow-thick")
+    processingResultsHeadingControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    processingResultsHeadingControl:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    processingResultsHeadingControl:SetHidden(true)
+
+    --Native Gamepad scroll viewport. Its bottom edge is held at Y=880 relative
+    --to selectionControl so the results never overlap the bottom keystrip.
+    local resultsScrollTop = 296 + textOffsetY
+    local resultsScrollBottom = 880
+    local resultsScrollHeight = resultsScrollBottom - resultsScrollTop
+
+    processingResultsScrollContainer = WINDOW_MANAGER:CreateControlFromVirtual(
+        "AutoImproveGearProcessingResultsScroll",
+        selectionControl,
+        "ZO_ScrollContainer_Gamepad"
+    )
+    processingResultsScrollContainer:SetAnchor(TOP, selectionControl, TOP, 0, resultsScrollTop)
+    processingResultsScrollContainer:SetDimensions(590, resultsScrollHeight)
+    processingResultsScrollContainer:SetHidden(true)
+
+    local resultsScrollIndicator = ZO_Scroll_GetScrollIndicator(processingResultsScrollContainer)
+    if resultsScrollIndicator then
+        ZO_Scroll_Gamepad_SetScrollIndicatorSide(
+            resultsScrollIndicator,
+            background,
+            RIGHT,
+            scrollIndicatorOffsetX,
+            scrollIndicatorOffsetY,
+            true
+        )
+
+        --Keep the results-screen indicator at the same configurable position.
+        resultsScrollIndicator:ClearAnchors()
+        resultsScrollIndicator:SetAnchor(
+            TOPLEFT,
+            background,
+            TOPLEFT,
+            scrollIndicatorOffsetX,
+            scrollIndicatorOffsetY
+        )
+    end
+
+    local resultsScrollChild = processingResultsScrollContainer:GetNamedChild("ScrollChild")
+
+    processingResultsControl = WINDOW_MANAGER:CreateControl(
+        "AutoImproveGearProcessingResults",
+        resultsScrollChild,
+        CT_LABEL
+    )
+    processingResultsControl:SetAnchor(TOPLEFT, resultsScrollChild, TOPLEFT, 0, 0)
+    processingResultsControl:SetDimensions(590 - (ZO_SCROLL_BAR_WIDTH or 16), 32)
+    processingResultsControl:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_25)|soft-shadow-thick")
+    processingResultsControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    processingResultsControl:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    processingResultsControl:SetHidden(true)
 
     selectionScreen = AutoImproveGearSelectionScreen:New(
         selectionControl,
@@ -1407,6 +1781,18 @@ end
 --show the item list over the current crafting scene
 local function showSelectionScreen(items)
     refreshHoldBindingState()
+    -- Clear every overlay text control before reopening on Available Items.
+    -- This prevents the previous Results screen text resurfacing when R2 is pressed.
+    if summaryScrollContainer then summaryScrollContainer:SetHidden(true) end
+    if itemsHeadingControl then itemsHeadingControl:SetHidden(true); itemsHeadingControl:SetText("") end
+    if itemsBodyControl then itemsBodyControl:SetHidden(true); itemsBodyControl:SetText("") end
+    if materialsHeadingControl then materialsHeadingControl:SetHidden(true); materialsHeadingControl:SetText("") end
+    if materialsBodyControl then materialsBodyControl:SetHidden(true); materialsBodyControl:SetText("") end
+    if confirmationMessageControl then confirmationMessageControl:SetHidden(true); confirmationMessageControl:SetText("") end
+    if processingMessageControl then processingMessageControl:SetHidden(true); processingMessageControl:SetText("") end
+    if processingResultsScrollContainer then processingResultsScrollContainer:SetHidden(true) end
+    if processingResultsControl then processingResultsControl:SetHidden(true); processingResultsControl:SetText("") end
+    if processingResultsHeadingControl then processingResultsHeadingControl:SetHidden(true); processingResultsHeadingControl:SetText("") end
     selectionItems = items
     selectionMode = "items"
     pendingImprovementSummary = nil
@@ -1414,7 +1800,8 @@ local function showSelectionScreen(items)
     processingState.awaitingCompletion = false
     processingState.finished = false
     processingState.item = nil
-    processingState.debugLines = {}
+    processingState.queue = {}
+    processingState.queueIndex = 0
     selectionScreen:Update()
     updateSelectionKeybinds()
 
@@ -1439,7 +1826,7 @@ local function onAutoImprovePressed()
         return
     end
 
-    local items = scanBackpack(craftingType)
+    local items = scanAvailableItems(craftingType)
 
     if #items == 0 then
         return
@@ -1539,6 +1926,9 @@ local function initialize()
             processingState.active = false
             processingState.awaitingCompletion = false
             setHoldLayerActive(false)
+            if smithingTooltipInputDisabled then
+                setSmithingTooltipInputEnabled(true)
+            end
 
             if selectionFragment then
                 SCENE_MANAGER:RemoveFragment(selectionFragment)

@@ -8,7 +8,7 @@ if type(TC) ~= 'table' then
     _G.TamrielCollections = TC
 end
 
-TC.archiveProtocol = math.max(tonumber(TC.archiveProtocol) or 0, 2)
+TC.archiveProtocol = math.max(tonumber(TC.archiveProtocol) or 0, 3)
 TC.archiveModules = TC.archiveModules or {}
 TC.archiveCategories = TC.archiveCategories or {
     { name = 'Motifs', key = 'motifs', addonName = 'Tamriel Collections - Archive Motifs' },
@@ -74,5 +74,61 @@ if not TC.GetMapSections then
             end
         end
         return sections
+    end
+end
+
+-- Every module carries the same shell and artwork, so removing one module
+-- never removes a visual dependency from the remaining modules.
+if not TC.GetArchiveVisualModule then
+    function TC:GetArchiveVisualModule()
+        for _, id in ipairs({ 'motifs', 'stylePages', 'antiquities', 'furnishingPlans', 'lorebooks' }) do
+            local module = self:GetArchiveModule(id)
+            if module and module.assetRoot and module.screenControl then return module end
+        end
+    end
+end
+
+if not TC.GetArchiveAssetPath then
+    function TC:GetArchiveAssetPath(relativePath)
+        local module = self:GetArchiveVisualModule()
+        return module and (module.assetRoot .. '/' .. relativePath) or nil
+    end
+end
+
+if not TC.GetArchiveScreenControl then
+    function TC:GetArchiveScreenControl()
+        local module = self:GetArchiveVisualModule()
+        return module and _G[module.screenControl] or nil
+    end
+end
+
+if not TC.EnsureArchiveCategoryIcons then
+    function TC:EnsureArchiveCategoryIcons()
+        local category = self:GetArchiveCategory('motifs')
+        if not category then return end
+        -- Lore Library metadata is part of ESO, even when the Motifs addon
+        -- is absent. Use its first real motif icon, independent of progress.
+        if not self.archiveMotifIconResolved
+            and GetNumLoreCategories and GetLoreCategoryInfo and GetLoreCollectionInfo then
+            for categoryIndex = 1, GetNumLoreCategories() do
+                local name, count = GetLoreCategoryInfo(categoryIndex)
+                name = zo_strlower(zo_strformat(name or ''))
+                if name:find('motif', 1, true) or name:find('crafting', 1, true) then
+                    for collectionIndex = 1, (count or 0) do
+                        local title, _, _, total, hidden, icon = GetLoreCollectionInfo(categoryIndex, collectionIndex)
+                        if not hidden and total and total > 0 and icon and icon ~= ''
+                            and zo_strlower(zo_strformat(title or '')) ~= 'crafting books' then
+                            category.icon = icon
+                            self.archiveMotifIconResolved = true
+                            return
+                        end
+                    end
+                end
+            end
+        end
+        -- Preserve a visible family icon while native metadata is unavailable.
+        if not category.icon or category.icon == '' then
+            category.icon = self:GetArchiveAssetPath('art/collections_puzzle_native_v4.dds')
+        end
     end
 end

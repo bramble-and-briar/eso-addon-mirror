@@ -140,15 +140,16 @@ function Module:Initialize( )
 			a.state = ASTRAL_STATE_NONE
 		end
 		if (a.bannerId) then
-			local statusText
+			local minorText, majorText
 			if (a.state == ASTRAL_STATE_SHIELDED) then
-				statusText = string.format("%d×", a.count)
+				majorText = string.format("%s: %d×", LCA.GetAbilityName(DATA.astral.shield), a.count)
 			elseif (a.state == ASTRAL_STATE_SHIELDED_CASTING) then
-				statusText = string.format("%d× + %s", a.count, GetString(SI_LCA_CHANNELING))
+				majorText = string.format("%s: %d× + %s", LCA.GetAbilityName(DATA.astral.shield), a.count, GetString(SI_LCA_CHANNELING))
 			else
-				statusText = GetString(SI_LCA_CHANNELING)
+				minorText = GetString(SI_LCA_CHANNELING)
+				majorText = LCA.GetAbilityName(DATA.astral.shield)
 			end
-			CA1.ModifyBanner(a.bannerId, nil, string.format("%s: %s", LCA.GetAbilityName(DATA.astral.shield), statusText), 0x00FFFFFF)
+			CA1.ModifyBanner(a.bannerId, minorText, majorText, 0x00FFFFFF)
 		end
 	end
 end

@@ -95,6 +95,12 @@ SafeAddString(NOTYOU_MAIL_HEADER, "Диалог удаления письма", 
 SafeAddString(NOTYOU_MAIL, "Отключить диалог \"Удаление письма\"", 1)
 SafeAddString(NOTYOU_MAIL_TOOLTIP, "Отключить подтверждение при удалении письма.", 1)
 
+SafeAddString(NOTYOU_FAST_TRAVEL_HEADER, "БЫСТРОЕ ПЕРЕМЕЩЕНИЕ", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "Пропускать подтверждение у дорожного святилища", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "Немедленно перемещаться при выборе места назначения у дорожного святилища.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "Пропускать подтверждение вне дорожного святилища", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "Немедленно перемещаться при выборе места назначения вне дорожного святилища. Обычная стоимость в золоте сохраняется.", 1)
+
 SafeAddString(NOTYOU_FENCE_HEADER, "Скупщик краденого", 1)
 SafeAddString(NOTYOU_FENCE, "Удалить диалог \"Can't buyback from fence\"", 1)
 SafeAddString(NOTYOU_FENCE_TOOLTIP, "Отключить подтверждение при продаже редких вещей скупщику краденого.", 1)
@@ -185,6 +191,10 @@ SafeAddString(NOTYOU_NOLOREDISCOVERIES_TOOLTIP, "Выберите, как вы �
 SafeAddString(NOTYOU_NOSKILLSPROGRESS, "Отключить сообщение \"Навык повышен до ранга X\"", 1)
 SafeAddString(NOTYOU_NOSKILLSPROGRESS_TOOLTIP, "Выберите, как вы хотите обрабатывать сообщения о повышении навыков:\n|cFFFFFFне отключать|r - без изменений\n|cFFFFFFсообщение в чат|r - перенаправить сообщение в чат\n|cFFFFFFотключить|r - отключить сообщения", 1)
 
+SafeAddString(NOTYOU_HOME_TOURS_HEADER, "ЭКСКУРСИИ ПО ДОМАМ", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF, "Блокировать уведомления о рекомендованных домах", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF_TOOLTIP, "Если включено, блокирует появление окон уведомлений о рекомендациях.", 1)
+
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF, "Отключить уведомления о перемещении в ремесленную сумку", 1)
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF_TOOLTIP, "Не уведомлять, что ваши предметы были перемещены в ремесленную сумку.", 1)
 
@@ -208,3 +218,5 @@ SafeAddString(NOTYOU_GUILDSAPP_TOOLTIP, "Скрывать уведомления
 SafeAddString(NOTYOU_RAIDSCORE_ENDLESS, "Показывать уведомления Бесконечного архива", 1)
 SafeAddString(NOTYOU_RAIDSCORE_SOUND, "Включить звук уведомлений", 1)
 SafeAddString(NOTYOU_RAIDSCORE_SOUND_TOOLTIP, "Включает или отключает звук для всех уведомлений, использующих NEW_NOTIFICATION.", 1)
+
+

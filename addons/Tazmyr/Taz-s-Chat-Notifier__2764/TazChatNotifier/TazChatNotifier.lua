@@ -8,7 +8,7 @@
 -- Initialize Addon
 TazChatNotifier = {}
 TazChatNotifier.Name = "TazChatNotifier"
-TazChatNotifier.Version = "1.28"
+TazChatNotifier.Version = "1.29"
 TazChatNotifier.Author = "Tazmyr"
 TazChatNotifier.SavedVariablesName = "TazChatNotifier_SavedVariables"
 TazChatNotifier.SavedVariablesVersion = 1

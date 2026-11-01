@@ -1,6 +1,6 @@
 MSPAINTUI = {
     name = "MSPAINTUI",
-    version = "1.5.0",
+    version = "1.6.0",
 }
 local MSP = MSPAINTUI
 
@@ -82,6 +82,9 @@ local function Initialize()
             "icons/mapkey/mapkey_groupboss.dds",
             "champion/champion_icon.dds",
             "champion/champion_icon_32.dds",
+            "ava/ava_rankicon64_tribune.dds",
+            "ava/ava_rankicon64_prefect.dds",
+            "ava/ava_rankicon64_grandoverlord.dds",
         }
         for _, path in ipairs(icons) do
             RedirectTexture("/esoui/art/" .. path, "MSPAINTUI/art/ui/" .. path)

@@ -1,0 +1,11 @@
+## Title: Siphon Zahl
+## Description: Geschaetzte eigene Nekromanten-Leichen; Gamepad-Einstellungen und Move UI.
+## Author: FiNk3--F13--
+## Version: 0.6.9
+## AddOnVersion: 609
+## APIVersion: 101051
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: SiphonZahlSaved
+
+Counter.lua
+SiphonZahl.lua

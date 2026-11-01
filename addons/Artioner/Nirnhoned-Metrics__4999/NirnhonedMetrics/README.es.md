@@ -8,7 +8,7 @@
 
 **Un medidor de daño y sanación para The Elder Scrolls Online.** Barras de colores con el daño o la sanación total, el DPS/HPS y el porcentaje del grupo de cada jugador en cada combate, además del desglose de tus propias habilidades. Todo en una ventana pequeña que puedes mover, redimensionar y configurar.
 
-Versión actual: **1.1.0** (ver [CHANGELOG.md](CHANGELOG.md)).
+Versión actual: **1.2.1** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 <details>
 <summary><b>Capturas</b> (9)</summary>
@@ -36,7 +36,7 @@ Versión actual: **1.1.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 - `/nm` muestra y oculta el medidor. También con una tecla en *Controles → Nirnhoned Metrics*.
 - Cada barra muestra `4.43M (53.4K, 9.5%)`: daño total, DPS y porcentaje del grupo, ordenados de mayor a menor, con el icono y el color de la clase.
-- La barra de título muestra el título (el del addon o uno tuyo, con colores) y los iconos en tres grupos: **Daño** y **Sanación** · **Grupo** y **Mis habilidades** · combates anteriores, reiniciar, plegar, candado, ajustes y cerrar. El clic derecho en el medidor abre el menú completo.
+- La barra de título muestra el título (el del addon o uno tuyo, con colores) y los iconos en tres grupos: **Daño** y **Sanación** · **Grupo** y **Mis habilidades** · combates anteriores, reiniciar, plegar, candado, ajustes y cerrar. Los que no uses se pueden ocultar en los ajustes. El clic derecho en el medidor abre el menú completo.
 - La flecha de la barra de título pliega la ventana (solo queda la barra de título) y la vuelve a desplegar.
 - El pie de la ventana muestra la duración del combate (con un reloj) y qué combate se está viendo.
 - **Daño / Sanación:** cambia lo que se mide. En sanación se ve el HPS y, en la descripción emergente, la sobrecuración.

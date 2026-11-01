@@ -7,6 +7,7 @@ local registeredShare
 local receiverReady = false
 local receiverAttempted = false
 local damageProtocol
+local healingProtocol
 local lastSendAt
 local lastSendResult
 local connectionError
@@ -105,8 +106,11 @@ function bridge:Connect()
                 onData(unitTag, {messageType = "healing", rawHPS = decodeDPS(data.encodedRawHPS, 12, 511),
                     effectiveHPS = decodeDPS(data.encodedEffectiveHPS, 12, 511)})
             end)
-            healing:Finalize({ isRelevantInCombat = true })
+            if healing:Finalize({ isRelevantInCombat = true, replaceQueuedMessages = true }) then
+                healingProtocol = healing
+            end
         end
+        if not healingProtocol then connectionError = "HPS-Protokoll 431 konnte nicht aktiviert werden." end
         receiverReady = true
         return true
     end
@@ -156,6 +160,32 @@ function bridge:SendDPS(dps, force, bossDPS)
     return queued
 end
 
+function bridge:SendHPS(rawHPS, effectiveHPS, force)
+    if BattleScrolls and BattleScrolls.dpsShare then return false end
+    if not healingProtocol then self:Connect() end
+    if not healingProtocol or not IsUnitGrouped("player") or not healingProtocol:IsEnabled() then return false end
+    rawHPS, effectiveHPS = tonumber(rawHPS), tonumber(effectiveHPS)
+    if not rawHPS or rawHPS ~= rawHPS or rawHPS < 0 or rawHPS == math.huge
+        or not effectiveHPS or effectiveHPS ~= effectiveHPS or effectiveHPS < 0
+        or effectiveHPS == math.huge or effectiveHPS > rawHPS then return false end
+    local now = GetGameTimeMilliseconds()
+    if not force and lastSendAt and now - lastSendAt < SEND_INTERVAL_MS then return false end
+    local queued = healingProtocol:Send({encodedRawHPS = encodeDPS(rawHPS, 12, 511),
+        encodedEffectiveHPS = encodeDPS(effectiveHPS, 12, 511)})
+    lastSendResult = queued and "queued" or "failed"
+    if queued then lastSendAt = now; queuedCount = queuedCount + 1 end
+    return queued
+end
+
+function bridge:SendMetrics(stats, force)
+    local role = GetSelectedLFGRole and GetSelectedLFGRole()
+    -- Match the role-based display instead of switching tanks to HPS on self-heals.
+    if LFG_ROLE_HEAL ~= nil and role == LFG_ROLE_HEAL then
+        return self:SendHPS(stats.rawHPS, stats.effectiveHPS, force)
+    end
+    return self:SendDPS(stats.dps, force, stats.bossDPS)
+end
+
 -- Queue acceptance is observable here; delivery to another client is not.
 function bridge:GetStatus()
     local localShare = BattleScrolls and BattleScrolls.dpsShare
@@ -164,6 +194,8 @@ function bridge:GetStatus()
         connected = (localShare and registeredShare == localShare) or damageProtocol ~= nil,
         localBattleScrolls = localShare ~= nil,
         enabled = damageProtocol and damageProtocol:IsEnabled() or false,
+        healingConnected = (localShare and registeredShare == localShare) or healingProtocol ~= nil,
+        healingEnabled = healingProtocol and healingProtocol:IsEnabled() or false,
         lastSendAt = lastSendAt,
         lastSendResult = lastSendResult,
         error = connectionError,

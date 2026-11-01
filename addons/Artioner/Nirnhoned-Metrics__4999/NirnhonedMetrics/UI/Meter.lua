@@ -17,8 +17,9 @@ local M = {
 NM.Meter = M
 
 local BUTTON_SIZE = 22
-local MIN_W = 200
+local MIN_W = 280          -- la fila de iconos de la cabecera ocupa unos 230 px
 local MAX_W, MAX_H = 900, 900
+M.MIN_W, M.MAX_W = MIN_W, MAX_W
 local DRAG_UPDATE = "NirnhonedMetrics_Drag"
 local RESIZE_UPDATE = "NirnhonedMetrics_Resize"
 local CLICK_TOLERANCE = 3
@@ -69,11 +70,14 @@ local function Solid(name, parent, r, g, b, a)
     return bd
 end
 
-local function Label(name, parent, align)
+-- Una sola línea: si el texto no cabe se corta con puntos suspensivos (sin límite
+-- de líneas, el juego lo parte en varias y se sale de la fila o de la cabecera).
+local function Label(name, parent, align, multiline)
     local label = WM:CreateControl(name, parent, CT_LABEL)
     label:SetHorizontalAlignment(align or TEXT_ALIGN_LEFT)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    if not multiline then label:SetMaxLineCount(1) end
     return label
 end
 
@@ -172,12 +176,11 @@ local function SetButtonTextures(button, textures)
     button:SetPressedTexture(textures.down)
 end
 
--- Línea vertical entre grupos de iconos de la cabecera, a la izquierda de "right".
+-- Línea vertical entre grupos de iconos de la cabecera (la coloca LayoutHeader).
 local SEPARATOR_GAP = 4
-local function Separator(name, parent, right)
+local function Separator(name, parent)
     local line = Solid(name, parent, 1, 1, 1, 0.25)
     line:SetDimensions(1, BUTTON_SIZE - 6)
-    line:SetAnchor(RIGHT, right, LEFT, -SEPARATOR_GAP, 0)
     return line
 end
 
@@ -309,17 +312,23 @@ function M.BuildRows(fight)
     return rows, total
 end
 
+-- Texto de cada valor que se puede poner en un hueco (ver valueSlot1..3).
+local VALUE_TEXT = {
+    total = function(r) return U.FormatNumber(r.amount) end,
+    rate = function(r) return U.FormatNumber(r.rate) end,
+    percent = function(r) return U.FormatPercent(r.percent) end,
+}
+
+-- valor1 (valor2, valor3), saltando los ocultos: el primero visible va fuera del paréntesis.
 local function ValuesText(r)
     local sv = NM.sv
-    local extra = {}
-    if sv.showDps then extra[#extra + 1] = U.FormatNumber(r.rate) end
-    if sv.showPercent then extra[#extra + 1] = U.FormatPercent(r.percent) end
-    local text = table.concat(extra, ", ")
-    if sv.showTotal then
-        local total = U.FormatNumber(r.amount)
-        return text ~= "" and string.format("%s (%s)", total, text) or total
+    local parts = {}
+    for i = 1, 3 do
+        local format = VALUE_TEXT[sv["valueSlot" .. i]]
+        if format then parts[#parts + 1] = format(r) end
     end
-    return text
+    if #parts <= 1 then return parts[1] or "" end
+    return string.format("%s (%s)", parts[1], table.concat(parts, ", ", 2))
 end
 
 local function Number(n)
@@ -516,6 +525,17 @@ local function TitleText(fight)
     return string.format("%s: %s", prefix, FightName(fight))
 end
 
+-- Pie: duración del combate y, detrás, el DPS (o HPS) total: la suma del DPS de todas
+-- las barras de la vista, así que yendo solo coincide con el de tu barra.
+local function FooterTimeText(fight, rows)
+    local text = U.FormatDuration(fight and F.Duration(fight) or 0)
+    if not fight or not NM.sv.showFightRate or #rows == 0 then return text end
+    local total = 0
+    for _, r in ipairs(rows) do total = total + r.rate end
+    local label = NM.sv.metric == "healing" and L.HPS or L.DPS
+    return string.format("%s   |cAAAAAA%s:|r %s", text, label, U.FormatNumber(total))
+end
+
 function M.Refresh()
     -- Plegada solo se ve la cabecera: no hace falta montar las barras.
     if not M.frame or M.frame:IsHidden() or NM.sv.window.collapsed then return end
@@ -526,10 +546,10 @@ function M.Refresh()
         fight = F.Get(1)
     end
 
-    M.footerTime:SetText(U.FormatDuration(fight and F.Duration(fight) or 0))
+    local rows = M.BuildRows(fight)
+    M.footerTime:SetText(FooterTimeText(fight, rows))
     M.footerFight:SetText(fight and FightName(fight) or "")
 
-    local rows = M.BuildRows(fight)
     local width = M.frame:GetWidth() - 4
     local height = M.frame:GetHeight() - HeaderHeight() - FooterHeight() - 4
     local step = RowHeight() + sv.rowSpacing
@@ -608,21 +628,79 @@ local function UpdateResizeHandles()
     for _, handle in ipairs(M.resizeHandles) do handle:SetHidden(w.locked or w.collapsed) end
 end
 
+-- Iconos de la cabecera de derecha a izquierda, en grupos separados por una línea.
+-- key: clave en NM.sv.headerButtons (false = oculto); button: campo de M.
+-- Con la ventana bloqueada, ajustes y cerrar se ocultan siempre.
+local HEADER_GROUPS = {
+    {
+        { key = "close", button = "closeBtn", hideWhenLocked = true },
+        { key = "settings", button = "settingsBtn", hideWhenLocked = true },
+        { key = "lock", button = "lockBtn" },
+        { key = "collapse", button = "collapseBtn" },
+        { key = "reset", button = "resetBtn" },
+        { key = "fights", button = "fightsBtn" },
+    },
+    {
+        { key = "abilities", button = "abilitiesBtn" },
+        { key = "group", button = "groupBtn" },
+    },
+    {
+        { key = "healing", button = "healingBtn" },
+        { key = "damage", button = "damageBtn" },
+    },
+}
+
+-- Coloca los iconos visibles uno a la izquierda del otro (sin huecos), con una línea
+-- entre grupos que tengan algún icono, y el título en el espacio que queda.
+function M.LayoutHeader()
+    if not M.header then return end
+    local sv = NM.sv
+    local shownButtons = sv.headerButtons or {}
+    local leftmost, gap = nil, 0
+    local separatorsUsed = 0
+    for _, group in ipairs(HEADER_GROUPS) do
+        local visible = {}
+        for _, entry in ipairs(group) do
+            local button = M[entry.button]
+            local shown = shownButtons[entry.key] ~= false and not (entry.hideWhenLocked and sv.window.locked)
+            button:SetHidden(not shown)
+            if shown then visible[#visible + 1] = button end
+        end
+        if #visible > 0 and leftmost then
+            separatorsUsed = separatorsUsed + 1
+            local separator = M.separators[separatorsUsed]
+            separator:ClearAnchors()
+            separator:SetAnchor(RIGHT, leftmost, LEFT, -SEPARATOR_GAP, 0)
+            leftmost, gap = separator, -SEPARATOR_GAP
+        end
+        for _, button in ipairs(visible) do
+            button:ClearAnchors()
+            if leftmost then
+                button:SetAnchor(RIGHT, leftmost, LEFT, gap, 0)
+            else
+                button:SetAnchor(RIGHT, M.header, RIGHT, -4, 0)
+            end
+            leftmost, gap = button, -(button.spacing or 0)
+        end
+    end
+    for i, separator in ipairs(M.separators) do separator:SetHidden(i > separatorsUsed) end
+
+    M.title:ClearAnchors()
+    M.title:SetAnchor(LEFT, M.header, LEFT, 6, 0)
+    if leftmost then
+        M.title:SetAnchor(RIGHT, leftmost, LEFT, -6, 0)
+    else
+        M.title:SetAnchor(RIGHT, M.header, RIGHT, -6, 0)
+    end
+end
+
 function M.SetLocked(locked)
     NM.sv.window.locked = locked
     if not M.frame then return end
     UpdateResizeHandles()
     SetButtonTextures(M.lockBtn, locked and TEX_LOCKED or TEX_UNLOCKED)
-
-    -- Bloqueada no se ven ajustes ni cerrar: el candado pasa a ser el último icono.
-    M.settingsBtn:SetHidden(locked)
-    M.closeBtn:SetHidden(locked)
-    M.lockBtn:ClearAnchors()
-    if locked then
-        M.lockBtn:SetAnchor(RIGHT, M.header, RIGHT, -4, 0)
-    else
-        M.lockBtn:SetAnchor(RIGHT, M.settingsBtn, LEFT, 0, 0)
-    end
+    -- Bloqueada no se ven ajustes ni cerrar.
+    M.LayoutHeader()
 end
 
 -- Plegada, la ventana mide lo que la cabecera y conserva la esquina superior izquierda.
@@ -910,6 +988,7 @@ function M.ShowMenu(anchor)
     AddMenuItem("   " .. (sv.window.collapsed and L.EXPAND or L.COLLAPSE), function() M.SetCollapsed(not sv.window.collapsed) end)
     AddMenuItem("   " .. (sv.window.locked and L.UNLOCK or L.LOCK), function() M.SetLocked(not sv.window.locked) end)
     AddMenuItem("   " .. L.SETTINGS, function() NM.Settings.Open() end)
+    AddMenuItem("   " .. L.HIDE_WINDOW, function() M.SetShown(false) end)
     ShowMenu(anchor)
 end
 
@@ -944,61 +1023,45 @@ local function Build()
     M.MakeDraggable(header, function() M.ShowMenu(header) end)
     M.header = header
 
-    -- Título y, a la derecha, la fila de iconos en tres grupos separados por una línea
-    -- (de derecha a izquierda: cerrar, ajustes, candado, plegar, reiniciar, combates |
-    -- mis habilidades, grupo | sanación, daño).
-    -- Con la ventana bloqueada, cerrar y ajustes se ocultan (ver M.SetLocked).
-    local close = IconButton("NirnhonedMetricsClose", header, TEX_CLOSE, L.HIDE_WINDOW, function() M.SetShown(false) end)
-    close:SetDimensions(16, 16)
-    close:SetAnchor(RIGHT, header, RIGHT, -4, 0)
-    M.closeBtn = close
+    -- Título y, a la derecha, los iconos de la cabecera. Se colocan en LayoutHeader
+    -- según cuáles estén visibles (ver HEADER_GROUPS).
+    M.closeBtn = IconButton("NirnhonedMetricsClose", header, TEX_CLOSE, L.HIDE_WINDOW, function() M.SetShown(false) end)
+    M.closeBtn:SetDimensions(16, 16)
+    M.closeBtn.spacing = 2
 
-    local settings = IconButton("NirnhonedMetricsSettings", header, TEX_SETTINGS, L.SETTINGS, function() NM.Settings.Open() end)
-    settings:SetAnchor(RIGHT, close, LEFT, -2, 0)
-    M.settingsBtn = settings
+    M.settingsBtn = IconButton("NirnhonedMetricsSettings", header, TEX_SETTINGS, L.SETTINGS, function() NM.Settings.Open() end)
 
     M.lockBtn = IconButton("NirnhonedMetricsLock", header, TEX_LOCKED,
         function() return NM.sv.window.locked and L.UNLOCK or L.LOCK end,
         function() M.SetLocked(not NM.sv.window.locked) end)
     M.lockBtn:SetDimensions(18, 18)
-    M.lockBtn:SetAnchor(RIGHT, settings, LEFT, 0, 0)
 
     M.collapseBtn = IconButton("NirnhonedMetricsCollapse", header, TEX_COLLAPSE,
         function() return NM.sv.window.collapsed and L.EXPAND or L.COLLAPSE end,
         function() M.SetCollapsed(not NM.sv.window.collapsed) end)
     M.collapseBtn:SetDimensions(18, 18)
-    M.collapseBtn:SetAnchor(RIGHT, M.lockBtn, LEFT, 0, 0)
 
-    local reset = IconButton("NirnhonedMetricsReset", header, TEX_RESET, L.MENU_RESET, function() F.Reset() end)
-    reset:SetAnchor(RIGHT, M.collapseBtn, LEFT, 0, 0)
+    M.resetBtn = IconButton("NirnhonedMetricsReset", header, TEX_RESET, L.MENU_RESET, function() F.Reset() end)
 
-    local fights
-    fights = IconButton("NirnhonedMetricsFights", header, TEX_FIGHTS, FightsTooltip, function() M.ShowFightsMenu(fights) end)
-    fights:SetAnchor(RIGHT, reset, LEFT, 0, 0)
-
-    local viewSeparator = Separator("NirnhonedMetricsSeparatorView", header, fights)
+    M.fightsBtn = IconButton("NirnhonedMetricsFights", header, TEX_FIGHTS, FightsTooltip,
+        function() M.ShowFightsMenu(M.fightsBtn) end)
 
     M.abilitiesBtn = IconButton("NirnhonedMetricsModeAbilities", header, TEX_ABILITIES, L.MODE_ABILITIES,
         function() M.SetMode("abilities") end)
-    M.abilitiesBtn:SetAnchor(RIGHT, viewSeparator, LEFT, -SEPARATOR_GAP, 0)
-
     M.groupBtn = IconButton("NirnhonedMetricsModeGroup", header, TEX_GROUP, L.MODE_GROUP,
         function() M.SetMode("group") end)
-    M.groupBtn:SetAnchor(RIGHT, M.abilitiesBtn, LEFT, 0, 0)
-
-    local metricSeparator = Separator("NirnhonedMetricsSeparatorMetric", header, M.groupBtn)
 
     M.healingBtn = IconButton("NirnhonedMetricsMetricHealing", header, TEX_HEALING, L.METRIC_HEALING,
         function() M.SetMetric("healing") end)
-    M.healingBtn:SetAnchor(RIGHT, metricSeparator, LEFT, -SEPARATOR_GAP, 0)
-
     M.damageBtn = IconButton("NirnhonedMetricsMetricDamage", header, TEX_DAMAGE, L.METRIC_DAMAGE,
         function() M.SetMetric("damage") end)
-    M.damageBtn:SetAnchor(RIGHT, M.healingBtn, LEFT, 0, 0)
+
+    M.separators = {
+        Separator("NirnhonedMetricsSeparator1", header),
+        Separator("NirnhonedMetricsSeparator2", header),
+    }
 
     M.title = Label("NirnhonedMetricsTitle", header, TEXT_ALIGN_LEFT)
-    M.title:SetAnchor(LEFT, header, LEFT, 6, 0)
-    M.title:SetAnchor(RIGHT, M.damageBtn, LEFT, -6, 0)
 
     -- Pie: reloj con la duración del combate y, a la derecha, qué combate se ve.
     local footer = Solid("NirnhonedMetricsFooter", frame, 0.05, 0.05, 0.07, 0.9)
@@ -1024,7 +1087,7 @@ local function Build()
     content:SetAnchor(BOTTOMRIGHT, footer, TOPRIGHT, -2, -2)
     M.content = content
 
-    M.empty = Label("NirnhonedMetricsEmpty", content, TEXT_ALIGN_CENTER)
+    M.empty = Label("NirnhonedMetricsEmpty", content, TEXT_ALIGN_CENTER, true)
     M.empty:SetWrapMode(TEXT_WRAP_MODE_TRUNCATE)
     M.empty:SetColor(0.7, 0.7, 0.7, 1)
     M.empty:SetAnchor(TOPLEFT, content, TOPLEFT, 8, 8)
@@ -1063,6 +1126,7 @@ function M.ApplySettings()
     if not M.frame then return end
     M.bg:SetCenterColor(0, 0, 0, NM.sv.bgAlpha)
     ApplyHeader()
+    M.LayoutHeader()
     UpdateModeButtons()
     M.ApplyPosition()
     M.UpdateVisibility()

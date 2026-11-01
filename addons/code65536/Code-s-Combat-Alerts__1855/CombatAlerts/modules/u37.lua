@@ -62,6 +62,7 @@ function Module:Initialize( )
 
 	self.TIMER_ALERTS_LEGACY = {
 		-- Bal Sunnar
+		[146681] = { -2, 2 }, -- Crush
 		[176988] = { -2, 2 }, -- Bisect (Boss)
 		[176989] = { -2, 2 }, -- Bisect
 		[179945] = { 0, 0, false, { 1, 0, 0.6, 0.8 } }, -- Plague Bomb
@@ -148,7 +149,11 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 			elseif (result == ACTION_RESULT_EFFECT_FADED) then
 				Vars.darklight[targetUnitId] = nil
 			end
-			CA2.StatusSetCellText(1, 2, zo_strformat("<<1>> <<z:2>>", NonContiguousCount(Vars.darklight), GetString(SI_LCA_ACTIVE)))
+			local count = NonContiguousCount(Vars.darklight)
+			CA2.StatusModifyCell(1, 2,
+				"text", zo_strformat("<<1>> <<z:2>>", count, GetString(SI_LCA_ACTIVE)),
+				"color", count == 0 and 0xFFFFFFFF or 0xFF0000FF
+			)
 		end
 
 	-- Scrivener's Hall

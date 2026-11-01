@@ -65,6 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Personal Dps Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Personal-Dps-Tracker__c9b85989-bab6-4000-a3fc-80ed49e25e87) | Shienar | Console | — |
 | [PersonalAssistant (Banking, Consume, Junk, Loot, Repair, Worker) \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PersonalAssistant-Banking-Consume-Junk-Loot-Repair-Worker-Masteroshi430-s-branch__3512) | Masteroshi430 | PC / Mac | 2026.09.27 |
 | [Personality Designer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Atronyx/Personality-Designer__2695) | Atronyx | PC / Mac | 2.1.1 |
+| [Personality Designer - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Personality-Designer---Updated__5014) | Beacze | PC / Mac | 3.0.0 |
 | [pet](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satuve/pet__25a0aeff-e8df-4458-bc72-f5a8319dbade) | satuve | Console | — |
 | [Pet Dead Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockingdice/Pet-Dead-Alert__1825) | rockingdice | PC / Mac | 1.01 |
 | [Pet Dismiss](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/adriant1978/Pet-Dismiss__1314) | adriant1978 | PC / Mac | 1.3.1 |
@@ -184,7 +185,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Poppy's Hardmode Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AnythingGeneric/Poppy-s-Hardmode-Reminder__4824) | AnythingGeneric | PC / Mac | 1.0 |
 | [Port to Friend's House](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sordrak/Port-to-Friend-s-House__1758) | Sordrak | PC / Mac | 2.5.46 |
 | [Port to H's House](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HUMILIATION115/Port-to-H-s-House__2750) | HUMILIATION115 | PC / Mac | 3.1 |
-| [Port to Jo  (aka Fast Port to Group Leader or Partner)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Port-to-Jo-aka-Fast-Port-to-Group-Leader-or-Partner__2921) | Tazmyr | PC / Mac | 3.09 |
+| [Port to Jo  (aka Fast Port to Group Leader or Partner)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Port-to-Jo-aka-Fast-Port-to-Group-Leader-or-Partner__2921) | Tazmyr | PC / Mac | 3.10 |
 | [Port To Xim](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DonjaZero/Port-To-Xim__3726) | DonjaZero | PC / Mac | 1.2.1 |
 | [Postmaster Mail](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Postmaster-Mail__850) | silvereyes | PC / Mac | 4.1.8 |
 | [Potent Nirncrux Alert - Loot Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Potent-Nirncrux-Alert---Loot-Alert__3487) | notnear | PC / Mac | 2.0.2 |

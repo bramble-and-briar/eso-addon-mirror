@@ -97,6 +97,12 @@ SafeAddString(NOTYOU_MAIL_HEADER,			"删除消息对话框", 1)
 SafeAddString(NOTYOU_MAIL,				"禁用“删除邮件”对话框", 1)
 SafeAddString(NOTYOU_MAIL_TOOLTIP,			"删除电子邮件时禁用确认。", 1)
 
+SafeAddString(NOTYOU_FAST_TRAVEL_HEADER, "快速旅行", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "使用传送神龛时跳过确认", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "在传送神龛处选择目的地后立即旅行。", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "未使用传送神龛时跳过确认", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "在传送神龛之外选择目的地后立即旅行。仍需支付正常的金币费用。", 1)
+
 SafeAddString(NOTYOU_FENCE_HEADER,			"赃物买主", 1)
 SafeAddString(NOTYOU_FENCE,				"删除对话框“无法从围栏回购”", 1)
 SafeAddString(NOTYOU_FENCE_TOOLTIP,			"向赃物买家出售稀有物品时禁用确认.", 1)
@@ -195,6 +201,10 @@ SafeAddString(NOTYOU_NOLOREDISCOVERIES_TOOLTIP,		"选择您希望如何处理有
 SafeAddString(NOTYOU_NOSKILLSPROGRESS,			"禁用消息“技能升级到等级 X”", 1)
 SafeAddString(NOTYOU_NOSKILLSPROGRESS_TOOLTIP,		"选择您希望如何处理技能提升消息:\n|cFFFFFF不要禁用|r - 没有变化\n|cFFFFFF聊天消息|r - 将消息重定向到聊天\n|cFFFFFF禁用|r - 屏蔽消息", 1)
 
+SafeAddString(NOTYOU_HOME_TOURS_HEADER, "住宅巡览", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF, "屏蔽住宅巡览推荐通知", 1)
+SafeAddString(NOTYOU_HOME_TOURS_NOTIF_TOOLTIP, "开启后，阻止推荐通知窗口弹出。", 1)
+
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF,			"禁用移动到生产背包的通知", 1)
 SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF_TOOLTIP,		"不要通知您的物品已移至生产背包.", 1)
 
@@ -213,3 +223,5 @@ SafeAddString(NOTYOU_LUA_ERROR_TOOLTIP,			"将 Lua 错误显示为通知而不�
 SafeAddString(NOTYOU_RAIDSCORE_ENDLESS, "显示无尽档案塔通知", 1)
 SafeAddString(NOTYOU_RAIDSCORE_SOUND, "启用通知音效", 1)
 SafeAddString(NOTYOU_RAIDSCORE_SOUND_TOOLTIP, "开启或关闭所有使用 NEW_NOTIFICATION 的通知音效。", 1)
+
+

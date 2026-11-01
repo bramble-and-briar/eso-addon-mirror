@@ -1,11 +1,11 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.5.7
-## AddOnVersion: 18
+## Version: 0.5.10
+## AddOnVersion: 21
 ## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
-## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw. Experimental, off by default: watch your group for Plague Carrier and be told who has it, so you can stay 8 metres clear of them. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges.
+## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a report says who applied it, who removed it and with what, and which of your group were killed in the explosion; shown in chat, in a callout beside the death recap, or hidden, with the last 20 kept under Plague Indicator > History. Experimental, off by default: watch your group for Plague Carrier and be told who has it, so you can stay 8 metres clear of them. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges.
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are
@@ -21,8 +21,16 @@
 ; feature, the No More Oopsies first-person guard, was removed again on
 ; 2026-10-30 after proving impossible on console). 0.5.7 = 18 (2026-10-30:
 ; the four icon textures renamed plague_carrier* / pull_warning* because the
-; console caches textures by path, plus experimental groupmate plague
-; detection, off by default; 0.5.6 was Matt's upload of the guard
+; console caches textures by path). 0.5.8 = 19 (2026-10-30: experimental
+; groupmate plague detection, off by default, and the one-line Plague
+; Indicator description). 0.5.9 = 20 (2026-10-30/31: explosion report rewritten
+; in Matt's wording, with friends killed within 2 s and only for your own plague;
+; report routed to chat / death recap callout / hidden and kept in History).
+; 0.5.10 = 21 (2026-10-31: UI/TextureGuard.lua; a running client never loads
+; a texture file added by an update until it restarts, so icon controls whose
+; DDS did not load fall back to the game's own ability icons).
+; EVERY built change is a new upload and gets its
+; own Version and AddOnVersion step, without waiting to be told; 0.5.6 was Matt's upload of the guard
 ; removal). Matt publishes after EVERY change to test, so everything
 ; built here is live on Bethesda.net; 0.4.3 through 0.5.4 were his uploads
 ; of the 0.4.2-labelled work and this file never carried those numbers.
@@ -85,6 +93,7 @@ Engine/PressureEngine.lua
 Engine/EventIngest.lua
 
 UI/Fonts.lua
+UI/TextureGuard.lua
 UI/Indicator.xml
 UI/Indicator.lua
 UI/SilenceRing.xml
@@ -93,6 +102,8 @@ UI/PlagueTint.xml
 UI/PlagueTint.lua
 UI/PlagueIcon.xml
 UI/PlagueIcon.lua
+UI/PlagueReport.xml
+UI/PlagueReport.lua
 UI/PullIndicator.xml
 UI/PullIndicator.lua
 UI/Debug.xml

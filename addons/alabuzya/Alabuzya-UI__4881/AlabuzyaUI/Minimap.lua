@@ -143,7 +143,7 @@ end
 function AlabuzyaUI.Minimap.DrawPin(view,pins,index,x,y,texture,name,rotation,style,interactive)
     local pin=pins[index]
     if not pin then
-        pin=Texture(view) pin:SetDimensions(22,22) pin:SetDrawLayer(DL_OVERLAY)
+        pin=Texture(view) pin:SetDimensions(28,28) pin:SetDrawLayer(DL_OVERLAY)
         pin:SetMouseEnabled(interactive~=false)
         pin:SetHandler('OnMouseEnter',function(self)
             if self.caption then ZO_Tooltips_ShowTextTooltip(self,TOPLEFT,self.caption) end

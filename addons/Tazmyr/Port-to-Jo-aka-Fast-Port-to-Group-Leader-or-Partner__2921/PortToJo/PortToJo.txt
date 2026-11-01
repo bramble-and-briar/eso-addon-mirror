@@ -1,8 +1,8 @@
 ## Title: PortToJo
-## APIVersion: 101049
+## APIVersion: 101051
 ## Author: Tazmyr
-## Version: 3.09
-## AddOnVersion: 309
+## Version: 3.10
+## AddOnVersion: 310
 ## Description: Quick transport to Group Leader or Partner
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 

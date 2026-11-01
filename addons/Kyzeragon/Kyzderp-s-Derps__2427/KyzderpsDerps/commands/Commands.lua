@@ -17,7 +17,7 @@ local function HandleKDDCommand(argString)
         length = length + 1
     end
 
-    local usage = "Usage: /kdd <settings || grievous || bosstimer || played || playedall || points || totalpoints || armory || junkstyle || hidelogout || normlogout || questtracker || openall || writhing || resetcraft || pocket || multi || flex>"
+    local usage = "Usage: /kdd <settings || grievous || bosstimer || played || playedall || points || totalpoints || armory || junkstyle || hidelogout || normlogout || questtracker || openall || writhing || resetcraft || pocket || multi || flex || solosp>"
 
     if (length == 0) then
         CHAT_ROUTER:AddSystemMessage(usage)
@@ -211,6 +211,34 @@ local function HandleKDDCommand(argString)
         local chosen = available[math.random(1, #available)]
         UseCollectible(chosen)
         KD:msg(string.format("Flexing |H1:collectible:%d|h|h...", chosen))
+
+    -- Print sMHK sMoS
+    elseif (args[1] == "solosp") then
+        if (not LibQuestStatus) then
+            KD:msg("Printing solo dungeon skill points requires the LibQuestStatus addon.")
+            return
+        end
+
+        local done = "|t100%:100%:/esoui/art/mappins/skyshard_complete.dds|t"
+        local available = "|t100%:100%:/esoui/art/mappins/skyshard_seen.dds|t"
+
+        local charList = LibQuestStatus.GetServerAndCharacterList(true)
+        local result = "Solo dungeon skill points:"
+        for _, server in ipairs(charList) do
+            result = result .. "\n=========== " .. server.server .. " ==========="
+            for _, char in ipairs(server.characters) do
+                local mhkDone = LibQuestStatus.HasCompletedQuestOnCharacter(7514, server.server, char.charId)
+                local mosDone = LibQuestStatus.HasCompletedQuestOnCharacter(7509, server.server, char.charId)
+                result = string.format("%s\n|c%s%s (%s) - sMHK %s - sMoS %s",
+                    result,
+                    (mhkDone and mosDone) and "777777" or "CCCCCC",
+                    char.name,
+                    char.account,
+                    mhkDone and done or available,
+                    mosDone and done or available)
+            end
+        end
+        KD:msg(result)
 
     -- Unknown
     else

@@ -156,6 +156,24 @@ function addon:InitSettings()
 
 	settings:AddSetting(
 		{
+			type = library.ST_CHECKBOX,
+			label = GetString(SI_PBSSMS_NAMEPLATE),
+			tooltip = GetString(SI_PBSSMS_NAMEPLATE_TOOLTIP),
+			default = self.DEFAULTS.nameplateToggle,
+			getFunction = function()
+				return self:NameplateToggle()
+			end,
+			setFunction = function(value)
+				self:SetNameplateToggle(value)
+			end,
+			disable = function()
+				return not self:QuickShot()
+			end
+		}
+	)
+
+	settings:AddSetting(
+		{
 			type = library.ST_BUTTON,
 			label = GetString(SI_PBSSMS_RUN_NOW),
 			tooltip = GetString(SI_PBSSMS_RUN_NOW_TOOLTIP),

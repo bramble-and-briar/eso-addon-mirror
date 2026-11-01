@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Under Pressure -- PlagueGroup.lua
 -- =============================================================================
--- Which GROUPMATES are carrying a Plaguebreak plague right now (0.5.7,
+-- Which GROUPMATES are carrying a Plaguebreak plague right now (0.5.8,
 -- EXPERIMENTAL, off by default: sv.plague_group_detect).
 --
 -- Why it matters: a plague explodes on everyone within 8 m of the PERSON

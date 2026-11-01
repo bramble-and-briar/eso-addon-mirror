@@ -136,7 +136,7 @@ MugShot.Portraits.Map = {}
 
 local function CleanUnitName(name)
     if not name or type(name) ~= "string" then return "" end
-    local clean = (zo_strformat and zo_strformat("<<1>>", name)) or name:gsub("%^%a+", "")
+    local clean = zo_strformat("<<1>>", name)
     return clean:match("^%s*(.-)%s*$") or clean
 end
 
@@ -180,22 +180,19 @@ function MugShot.Portraits.PopulateDynamicRegistry()
         Register(name, icon, false)
     end
 
-    -- 2. Scan Collectible Categories (Category 27 = Companions, Category 8 = Assistants)
+    -- 2. Scan Collectible Categories (Companions & Assistants)
     local categories = {
-        COLLECTIBLE_CATEGORY_TYPE_COMPANION or 27,
-        COLLECTIBLE_CATEGORY_TYPE_ASSISTANT or 8,
+        COLLECTIBLE_CATEGORY_TYPE_COMPANION,
+        COLLECTIBLE_CATEGORY_TYPE_ASSISTANT,
     }
-    local count = GetTotalCollectiblesByCategoryType
-    if count then
-        for _, cat in ipairs(categories) do
-            local n = count(cat) or 0
-            for i = 1, n do
-                local colId = GetCollectibleIdFromType(cat, i)
-                if colId and colId > 0 then
-                    local name, _, icon = GetCollectibleInfo(colId)
-                    if name and icon then
-                        Register(name, icon, true)
-                    end
+    for _, cat in ipairs(categories) do
+        local n = GetTotalCollectiblesByCategoryType(cat) or 0
+        for i = 1, n do
+            local colId = GetCollectibleIdFromType(cat, i)
+            if colId and colId > 0 then
+                local name, _, icon = GetCollectibleInfo(colId)
+                if name and icon then
+                    Register(name, icon, true)
                 end
             end
         end
@@ -214,14 +211,12 @@ end
 -- ── Companion Collectibles (called on zone change) ────────
 function MugShot.Portraits.RegisterCompanionCollectibles()
     local categories = {
-        COLLECTIBLE_CATEGORY_TYPE_COMPANION or 27,
-        COLLECTIBLE_CATEGORY_TYPE_ASSISTANT or 8,
+        COLLECTIBLE_CATEGORY_TYPE_COMPANION,
+        COLLECTIBLE_CATEGORY_TYPE_ASSISTANT,
     }
     local map = MugShot.Portraits.Map
-    local count = GetTotalCollectiblesByCategoryType
-    if not count then return end
     for _, cat in ipairs(categories) do
-        local n = count(cat) or 0
+        local n = GetTotalCollectiblesByCategoryType(cat) or 0
         for i = 1, n do
             local colId = GetCollectibleIdFromType(cat, i)
             if colId and colId > 0 then
@@ -330,7 +325,7 @@ function MugShot.Portraits.GetPortraitInfo(unitTag)
         end
 
         -- 3. Active companion fallback (when unit is active companion)
-        if not tex and (unitTag == "companion" or (DoesUnitExist("companion") and DoesUnitExist(unitTag) and AreUnitsEqual(unitTag, "companion"))) then
+        if not tex and AreUnitsEqual(unitTag, "companion") then
             local defId = GetActiveCompanionDefId()
             if defId and defId > 0 then
                 local colId = GetCompanionCollectibleId(defId)

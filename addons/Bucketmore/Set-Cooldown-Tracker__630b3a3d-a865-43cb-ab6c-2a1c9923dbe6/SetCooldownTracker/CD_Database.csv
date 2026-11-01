@@ -1,0 +1,5 @@
+key,set_name_en,set_id,ability_ids,icd_seconds,status,proc_condition,source
+UmbralEdge,Umbral Edge,778,226384,6,DOCUMENTED,未確認,ExoY's ProcSet Timer
+Sentry,Sentry,89,117391,30,DOCUMENTED,未確認,ExoY's ProcSet Timer
+OrpheonTheTactician,Orpheon the Tactician,801,236654,8,DOCUMENTED,未確認,ExoY's ProcSet Timer
+HuntsmansWarmask,Huntsman's Warmask,845,252048,60,DOCUMENTED,未確認,ExoY's ProcSet Timer

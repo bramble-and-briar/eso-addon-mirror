@@ -1,11 +1,11 @@
 ## Title: TazChatNotifier
-## APIVersion: 101049
+## APIVersion: 101051
 ## Author: Tazmyr
-## Version: 1.28
-## AddOnVersion: 128
+## Version: 1.29
+## AddOnVersion: 129
 ## Description: Plays selected sounds to alert the player of inbound chat
 ## SavedVariables: TazChatNotifier_SavedVariables
-## DependsOn: LibAddonMenu-2.0>=41
+## DependsOn: LibAddonMenu-2.0>=43
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
 ; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. 

@@ -16,6 +16,24 @@
 -- listened to, because if a capture ever does get reported the interface may as well come
 -- back early.
 --
+-- Nameplates and health bars do not go down with the rest. They are not in the "ingame" GUI
+-- -- the client's own screenshot mode hides that GUI AND switches the plates off separately,
+-- through SetSetting, which is private to an add-on exactly like TakeScreenshot turned out to
+-- be. There is no public call for them: the API dump's only nameplate functions set a font.
+-- Hiding other GUIs does not reach them either; all twelve candidates were tried at once on a
+-- PS5 and the plates stayed up. (GetGuiHidden answers for invented names as readily as for
+-- real ones, so the probe can only ever suggest what to try, never confirm it.)
+--
+-- What does work in the client's screenshot mode is its own button for it, bound to
+-- SCREENSHOT_MODE_TOGGLE_NAMEPLATES in the client's bindings and handled by the client's
+-- code, which may call SetSetting because nothing of an add-on's is on the stack. The add-on
+-- cannot call that handler, but it can raise the layer the action lives in: for the length of
+-- a quick shot the HUD borrows the client's "ScreenshotMode" layer, and the same button that
+-- toggles the plates in screenshot mode toggles them here. The engine delivers the press
+-- straight to the client; see SetNameplateLayer. Confirmed on a PS5, 2026-11-01: the plates
+-- go down on the HUD and no private-function error is raised, so borrowing a layer really
+-- does leave the client's handler trusted.
+--
 -- Left is the D-pad only. The bind inherited from UI_SHORTCUT_INPUT_LEFT also arrives when
 -- the left analog stick is pushed left, because the stick emulates the same directional
 -- input, and there is no key code in the handler to tell the two apart. What can be read is
@@ -41,6 +59,11 @@ local SLASH = "/pbshot"
 local SHORT_SLASH = "/pbss"
 
 local TRIGGER_LAYER = "PBsScreenshotModeShortcutTriggerLayer"
+-- The client's own screenshot-mode layer. Its SCREENSHOT_MODE_TOGGLE_NAMEPLATES action
+-- belongs to the client, not to this add-on, which is the whole point: an add-on may not call
+-- SetSetting, but it may put the layer up and let the engine deliver the button to the
+-- client's handler. See the nameplate note at the top of this file.
+local NAMEPLATE_LAYER = "ScreenshotMode"
 local SCREENSHOT_SCENE = "gamepadScreenshotMode"
 local HUD_SCENE = "hud"
 
@@ -53,6 +76,18 @@ local WATCHDOG_MS = 100
 local DEFERRED_FIRE = addon.name .. "DeferredFire"
 
 local MODES = { "auto", "scene", "gui" }
+
+local BASE_GUI = "ingame"
+-- Candidates for /pbshot guis. The four the client's own Lua ever names are first; the rest
+-- are guesses at where nameplates and health bars might live, and asking costs nothing
+-- because GetGuiHidden only reads.
+local GUI_CANDIDATES = {
+	"ingame", "app", "pregame", "internal_ingame",
+	"nameplates", "nameplate", "unitframes", "hud", "world", "overlay", "3d", "console",
+}
+-- A GUI hidden by hand is put back on its own, so a wrong name cannot cost a relog.
+local GUI_TRIAL_S = 10
+local GUI_TRIAL_UPDATE = addon.name .. "GuiTrial"
 
 local QUICK_SHOT_UPDATE = addon.name .. "QuickShot"
 local QUICK_SHOT_TICK_MS = 50
@@ -67,6 +102,10 @@ local DEFAULTS = {
 	announce = true,
 	quickShot = false,
 	quickShotHoldMs = 5000,
+	nameplateToggle = true,
+	-- Extra GUI names hidden alongside "ingame". Empty until something is measured: the
+	-- client is the only authority on which names exist, and a wrong one is a no-op at best.
+	extraGuis = {},
 }
 
 -- ---------------------------------------------------------------------------------------
@@ -153,6 +192,20 @@ function addon:SetQuickShot(value)
 	self:RefreshPanel()
 end
 
+function addon:NameplateToggle()
+	return self.sv ~= nil and self.sv.nameplateToggle == true
+end
+
+function addon:SetNameplateToggle(value)
+	if self.sv then
+		self.sv.nameplateToggle = value and true or false
+	end
+	if not self:NameplateToggle() then
+		self:SetNameplateLayer(false)
+	end
+	self:RefreshPanel()
+end
+
 function addon:QuickShotHoldMs()
 	local held = self.sv and self.sv.quickShotHoldMs
 	for _, known in ipairs(QUICK_SHOT_HOLDS_MS) do
@@ -213,6 +266,7 @@ function addon:EnsureFragments()
 		return false
 	end
 	self.triggerFragment = ZO_ActionLayerFragment:New(TRIGGER_LAYER)
+	self.nameplateFragment = ZO_ActionLayerFragment:New(NAMEPLATE_LAYER)
 	self.triggerFragment:RegisterCallback("StateChange", function(_, state)
 		if state == SCENE_FRAGMENT_HIDDEN then
 			self:CancelPress()
@@ -244,6 +298,37 @@ function addon:SetInputLayer(wanted)
 			if self.screenshotScene then
 				pcall(function() self.screenshotScene:RemoveFragment(self.triggerFragment) end)
 			end
+		end
+	end
+end
+
+-- Lends the HUD the client's screenshot-mode layer for the length of a quick shot, so that
+-- the button that toggles nameplates in the client's own screenshot mode toggles them here
+-- too. Nothing of this add-on's runs when it is pressed: the engine finds the action in that
+-- layer and calls the client's handler, which is the only code allowed to call SetSetting.
+--
+-- The layer does not fall through, so while it is up the HUD's own buttons are shadowed,
+-- including this add-on's chord. That is why it is only up for the few seconds the interface
+-- is down, and why the hold timer -- not a second press -- is what ends a quick shot.
+function addon:SetNameplateLayer(wanted)
+	wanted = wanted and true or false
+	if self.nameplateLayerAdded == wanted or not self.nameplateFragment or not self.hudScene then
+		return
+	end
+	local ok, err = pcall(function()
+		if wanted then
+			self.hudScene:AddFragment(self.nameplateFragment)
+		else
+			self.hudScene:RemoveFragment(self.nameplateFragment)
+		end
+	end)
+	if ok then
+		self.nameplateLayerAdded = wanted
+	else
+		self.error = "nameplate layer: " .. tostring(err)
+		if wanted then
+			pcall(function() self.hudScene:RemoveFragment(self.nameplateFragment) end)
+			self.nameplateLayerAdded = false
 		end
 	end
 end
@@ -404,11 +489,28 @@ function addon:InScreenshotMode()
 		and SCENE_MANAGER:GetHUDSceneName() == SCREENSHOT_SCENE
 end
 
--- Called by the native sheathe binding (D-pad Left hold on standard gamepad
--- controls) inside ScreenshotMode. Only sheathe; never draw an already stowed weapon.
+-- Where the sheathe bind is coming from, or nil when this add-on has no business with it.
+-- Two places now have the client's ScreenshotMode layer up: the client's own screenshot mode,
+-- and the HUD for the length of a quick shot. The layer does not fall through, so an action
+-- this add-on declares in it is the ONLY thing standing between the button and nothing at
+-- all -- returning false does not hand the press back to the game.
+function addon:SheatheContext()
+	if self:QuickShotRunning() and self:OnHud() then
+		return "quick"
+	end
+	if self:InScreenshotMode() and SCENE_MANAGER:IsShowing(SCREENSHOT_SCENE) then
+		return "scene"
+	end
+	return nil
+end
+
+-- Called by the native sheathe binding (D-pad Left hold on standard gamepad controls) while
+-- that layer is up. In screenshot mode it only sheathes: the mode is left by the chord, and a
+-- weapon drawn there would be drawn on the way out. During a quick shot it does what the
+-- button does in the game, both ways, because the player is still standing in the world.
 function addon:OnScreenshotSheathe()
-	if not self:Enabled() or self:InCombat() or not self:InScreenshotMode()
-		or not SCENE_MANAGER:IsShowing(SCREENSHOT_SCENE)
+	local context = self:SheatheContext()
+	if not self:Enabled() or self:InCombat() or not context
 		or (IsInGamepadPreferredMode and not IsInGamepadPreferredMode()) then
 		return false
 	end
@@ -428,7 +530,7 @@ function addon:OnScreenshotSheathe()
 		self.lastInput = "sheathe: cannot read weapon state"
 		return true
 	end
-	if sheathed then
+	if sheathed and context ~= "quick" then
 		self.lastInput = "sheathe: already sheathed"
 		return true
 	end
@@ -440,7 +542,9 @@ function addon:OnScreenshotSheathe()
 		end
 	end
 	local toggleOk, err = pcall(TogglePlayerWield)
-	self.lastInput = toggleOk and "sheathe: requested" or ("sheathe failed: " .. tostring(err))
+	self.lastInput = toggleOk
+		and string.format("%s: requested (%s)", sheathed and "draw" or "sheathe", context)
+		or ("sheathe failed: " .. tostring(err))
 	return true
 end
 
@@ -483,27 +587,172 @@ function addon:EnterClientScreenshotMode()
 end
 
 -- The fallback: no scene, no client code, one public call.
+-- "ingame" plus whatever names have been kept. Nothing is hidden that is not named here, and
+-- every name that is hidden is remembered so the restore cannot miss one.
+-- What the client says about a GUI before it is touched. A GUI that was already hidden --
+-- the loading screen's "app" is one, on a live PS5 -- has to be left hidden afterwards, or
+-- putting the interface back would show something the client had deliberately taken away.
+local function WasHidden(name)
+	if not GetGuiHidden then
+		return nil
+	end
+	local ok, hidden = pcall(GetGuiHidden, name)
+	return ok and hidden or nil
+end
+
+function addon:GuisToHide()
+	local names = { BASE_GUI }
+	for _, name in ipairs(self.sv and self.sv.extraGuis or {}) do
+		if name ~= BASE_GUI then
+			names[#names + 1] = name
+		end
+	end
+	return names
+end
+
 function addon:HideGui()
 	if not SetGuiHidden then
 		return false, "no SetGuiHidden"
 	end
-	local ok, err = pcall(SetGuiHidden, "ingame", true)
-	if not ok then
-		return false, tostring(err)
+	local hidden = {}
+	for _, name in ipairs(self:GuisToHide()) do
+		local was = WasHidden(name)
+		local ok = pcall(SetGuiHidden, name, true)
+		if ok then
+			hidden[#hidden + 1] = { name = name, was = was }
+		elseif name == BASE_GUI then
+			-- The one name that must work. Anything already hidden goes back first.
+			self.hiddenGuis = hidden
+			self:RestoreGui()
+			return false, "SetGuiHidden refused"
+		end
 	end
+	self.hiddenGuis = hidden
 	self.guiHidden = true
 	self:StartWatchdog()
 	return true
 end
 
 function addon:RestoreGui()
-	if not self.guiHidden then
+	if not self.guiHidden and not (self.hiddenGuis and #self.hiddenGuis > 0) then
 		return
 	end
 	self.guiHidden = false
 	if SetGuiHidden then
-		pcall(SetGuiHidden, "ingame", false)
+		for _, entry in ipairs(self.hiddenGuis or {}) do
+			pcall(SetGuiHidden, entry.name, entry.was == true)
+		end
 	end
+	self.hiddenGuis = nil
+end
+
+-- ---------------------------------------------------------------------------------------
+-- Finding out which GUIs there are
+--
+-- GetGuiHidden is public and only reads, so the client can be asked directly rather than
+-- guessed at. Measured on a PS5, though, it answers false for invented names as readily as
+-- for real ones, so "exists" below means no more than "the client did not object". The only
+-- answer that carries information is a name that comes back already hidden, and the only
+-- proof is to hide one and look -- which is what the trial below is for.
+-- ---------------------------------------------------------------------------------------
+
+function addon:ProbeGuis()
+	if not GetGuiHidden then
+		self:Raw("no GetGuiHidden")
+		return
+	end
+	for _, name in ipairs(GUI_CANDIDATES) do
+		local ok, hidden = pcall(GetGuiHidden, name)
+		local answer
+		if not ok then
+			answer = "refused: " .. tostring(hidden)
+		elseif hidden == nil then
+			answer = "unknown to the client"
+		else
+			answer = "exists, hidden=" .. tostring(hidden)
+		end
+		self:Raw(string.format("gui %-16s %s", name, answer))
+	end
+	self:Raw("kept for quick shot: " .. table.concat(self:GuisToHide(), ", "))
+	self:Raw("a name answering false may still be unknown; /pbshot gui all hides every one at once")
+end
+
+-- Hides a GUI by name -- or every candidate at once, with "all" -- for as long as it takes to
+-- look at the screen. The trial always ends by itself: if a name turns out to be the one the
+-- chat window is in, there would be no way left to type the command that undoes it.
+--
+-- "all" exists because one look at a console settles in a single sitting what a name-by-name
+-- hunt would cost a dozen of: if nameplates survive every GUI the client will hide, no name
+-- hides them, and there is nothing left to try.
+function addon:TrialGui(name)
+	if not SetGuiHidden then
+		self:Raw("no SetGuiHidden")
+		return
+	end
+	if self.trialGui then
+		self:EndGuiTrial()
+		return
+	end
+	local names = name == "all" and GUI_CANDIDATES or { name }
+	local hidden = {}
+	for _, one in ipairs(names) do
+		local was = WasHidden(one)
+		if pcall(SetGuiHidden, one, true) then
+			hidden[#hidden + 1] = { name = one, was = was }
+		end
+	end
+	if #hidden == 0 then
+		self:Raw(string.format("gui %s refused", name))
+		return
+	end
+	self.trialGuis = hidden
+	self.trialGui = name
+	self.trialEndsAtS = GetGameTimeSeconds() + GUI_TRIAL_S
+	em:RegisterForUpdate(GUI_TRIAL_UPDATE, 100, function()
+		if not self.trialEndsAtS or GetGameTimeSeconds() >= self.trialEndsAtS then
+			self:EndGuiTrial()
+		end
+	end)
+	self:Raw(string.format("gui %s hidden for %d seconds", name, GUI_TRIAL_S))
+end
+
+function addon:EndGuiTrial()
+	if not self.trialGui then
+		return
+	end
+	local hidden = self.trialGuis or {}
+	self.trialGui = nil
+	self.trialGuis = nil
+	self.trialEndsAtS = nil
+	em:UnregisterForUpdate(GUI_TRIAL_UPDATE)
+	if SetGuiHidden then
+		for _, entry in ipairs(hidden) do
+			pcall(SetGuiHidden, entry.name, entry.was == true)
+		end
+	end
+end
+
+function addon:KeepGui(name)
+	if name == BASE_GUI or not self.sv then
+		return false
+	end
+	for _, kept in ipairs(self.sv.extraGuis) do
+		if kept == name then
+			return false
+		end
+	end
+	table.insert(self.sv.extraGuis, name)
+	return true
+end
+
+function addon:DropGui(name)
+	for index, kept in ipairs(self.sv and self.sv.extraGuis or {}) do
+		if kept == name then
+			table.remove(self.sv.extraGuis, index)
+			return true
+		end
+	end
+	return false
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -528,6 +777,9 @@ function addon:StartQuickShot()
 		self:Line(SI_PBSSMS_BOTH_FAILED, tostring(err))
 		return false, err
 	end
+	if self:NameplateToggle() then
+		self:SetNameplateLayer(true)
+	end
 	self.quickShotState = "holding"
 	self.quickShotStartedAtS = GetGameTimeSeconds()
 	self.quickShotSaved = nil
@@ -545,6 +797,7 @@ function addon:EndQuickShot()
 	self.quickShotState = nil
 	self.quickShotStartedAtS = nil
 	em:UnregisterForUpdate(QUICK_SHOT_UPDATE)
+	self:SetNameplateLayer(false)
 	self:RestoreGui()
 end
 
@@ -653,6 +906,7 @@ end
 function addon:Stop()
 	self:CancelPress()
 	self:EndQuickShot()
+	self:EndGuiTrial()
 	self:SetInputLayer(false)
 	self:RestoreGui()
 	self:StopWatchdog()
@@ -740,6 +994,10 @@ function addon:PrintStatus()
 	self:Raw(string.format("quick shot=%s hold=%dms state=%s shots=%d last shot=%s",
 		tostring(self:QuickShot()), self:QuickShotHoldMs(), tostring(self.quickShotState or "idle"),
 		self.quickShots or 0, tostring(self.lastShot or "none")))
+	self:Raw(string.format("guis hidden by quick shot: %s | trial=%s",
+		table.concat(self:GuisToHide(), ", "), tostring(self.trialGui or "none")))
+	self:Raw(string.format("nameplate toggle button=%s | client layer up=%s",
+		tostring(self:NameplateToggle()), tostring(self.nameplateLayerAdded == true)))
 	self:Raw(string.format("state: hudScene=%s guiHidden=%s error=%s last=%s",
 		tostring(SCENE_MANAGER and SCENE_MANAGER:GetHUDSceneName()), tostring(self.guiHidden == true),
 		tostring(self.error or "none"), tostring(self.lastError or "none")))
@@ -770,6 +1028,17 @@ function addon:Command(argumentString)
 	if command == "on" or command == "off" then
 		self:SetEnabled(command == "on")
 		self:Line(self:Enabled() and SI_PBSSMS_TURNED_ON or SI_PBSSMS_TURNED_OFF)
+		return
+	end
+
+	if command == "nameplates" then
+		local value = OnOrOff(argument)
+		if value == nil then
+			self:Line(SI_PBSSMS_ERROR_ON_OR_OFF)
+			return
+		end
+		self:SetNameplateToggle(value)
+		self:Raw("nameplate toggle button: " .. (value and "on" or "off"))
 		return
 	end
 
@@ -817,6 +1086,33 @@ function addon:Command(argumentString)
 		return
 	end
 
+	if command == "guis" then
+		self:ProbeGuis()
+		return
+	end
+
+	-- /pbshot gui <name>            hide it for ten seconds and put it back
+	-- /pbshot gui keep|drop <name>  add it to, or take it out of, what quick shot hides
+	if command == "gui" then
+		local third = words[3]
+		if argument == "keep" or argument == "drop" then
+			if not third then
+				self:Raw("which gui?")
+				return
+			end
+			local changed = argument == "keep" and self:KeepGui(third) or self:DropGui(third)
+			self:Raw(string.format("%s %s: %s", argument, third, changed and "done" or "no change"))
+			self:Raw("quick shot hides: " .. table.concat(self:GuisToHide(), ", "))
+			return
+		end
+		if not argument then
+			self:Raw("which gui? /pbshot gui all tries every one; /pbshot guis lists them")
+			return
+		end
+		self:TrialGui(argument)
+		return
+	end
+
 	if command == "binds" then
 		self:PrintBinds()
 		return
@@ -824,7 +1120,9 @@ function addon:Command(argumentString)
 
 	if command == "reset" then
 		for key, value in pairs(DEFAULTS) do
-			self.sv[key] = value
+			-- A table default must be copied: assigning it would hand the add-on's one
+			-- DEFAULTS table to the saved variables and make every later edit permanent.
+			self.sv[key] = type(value) == "table" and {} or value
 		end
 		self.announcedFallback = false
 		self:Restart()
@@ -840,7 +1138,9 @@ function addon:Command(argumentString)
 		self:Raw(Text(SI_PBSSMS_HELP_MODE))
 		self:Raw(Text(SI_PBSSMS_HELP_QUICK))
 		self:Raw(Text(SI_PBSSMS_HELP_HOLD))
+		self:Raw(Text(SI_PBSSMS_HELP_NAMEPLATES))
 		self:Raw(Text(SI_PBSSMS_HELP_BINDS))
+		self:Raw(Text(SI_PBSSMS_HELP_GUIS))
 		self:Raw(Text(SI_PBSSMS_HELP_MASTER))
 		self:Raw(Text(SI_PBSSMS_HELP_RESET))
 		return
@@ -917,5 +1217,7 @@ addon.TRIGGER_LAYER = TRIGGER_LAYER
 addon.SCREENSHOT_SCENE = SCREENSHOT_SCENE
 addon.MAX_HOLD_S = MAX_HOLD_S
 addon.QUICK_SHOT_HOLDS_MS = QUICK_SHOT_HOLDS_MS
+addon.GUI_CANDIDATES = GUI_CANDIDATES
+addon.GUI_TRIAL_S = GUI_TRIAL_S
 
 PBS_SCREENSHOT_MODE_SHORTCUT = addon

@@ -23,7 +23,7 @@ local function GetMundus(unitTag)
     local currentMundus = "NONE"
     for i = 1, GetNumBuffs(unitTag) do
         -- string buffName, number timeStarted, number timeEnding, number buffSlot, number stackCount, textureName iconFilename, string buffType, number BuffEffectType effectType, number AbilityType abilityType, number StatusEffectType statusEffectType, number abilityId, boolean canClickOff, boolean castByPlayer
-        local buffName, _, _, _, _, iconFilename, _, _, _, _, abilityId, _, _ = GetUnitBuffInfo("player", i)
+        local buffName, _, _, _, _, iconFilename, _, _, _, _, abilityId, _, _ = GetUnitBuffInfo(unitTag, i)
         if (MUNDUS_BUFFS[abilityId]) then
             -- Yes, this wouldn't get the second mundus for Twice-Born Star, but I cba dealing with that
             return MUNDUS_BUFFS[abilityId], abilityId

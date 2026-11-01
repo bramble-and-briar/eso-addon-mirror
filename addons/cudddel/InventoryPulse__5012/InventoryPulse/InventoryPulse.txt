@@ -1,0 +1,12 @@
+## Title: InventoryPulse
+## Author: cudddel
+## Version: 1.0.0
+## AddOnVersion: 1
+## APIVersion: 101051 101052
+## Description: BagCount shows your used/free backpack slots as flying text. StackCount reports full 200 stacks in the craft bag.
+## SavedVariables: InventoryPulse_SV
+## OptionalDependsOn: LibAddonMenu-2.0 LibMediaProvider
+
+lang/en.lua
+lang/$(language).lua
+InventoryPulse.lua

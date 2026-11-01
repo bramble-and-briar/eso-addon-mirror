@@ -65,7 +65,6 @@ function CC.Settings.Init()
     local Arcs = CC.MagStamArcs
     local Tracker = CC.QuestTracker
     local Companion = CC.Companion
-    local PvpUA = CC.PvPUA
     local Votan = CC.VotansMiniMap
 
     local panel = LHAS:AddAddon("CasualClean", {
@@ -266,16 +265,6 @@ function CC.Settings.Init()
         },
         {
             type = LHAS.ST_CHECKBOX,
-            label = "Hide the credit line in PvP UA!",
-            tooltip = "Hides the animated \"DC, the BEST Alliance!\" line at the top of PvP UA!'s " ..
-                      "under-attack list and moves the list up to close the gap. Does nothing unless " ..
-                      "PvP UA! is installed.",
-            getFunction = function() return PvpUA.GetEnabled() end,
-            setFunction = function(value) PvpUA.SetEnabled(value) end,
-            default = PvpUA.DEFAULT_ENABLED,
-        },
-        {
-            type = LHAS.ST_CHECKBOX,
             label = "Fix the position sliders in Votan's Minimap",
             tooltip = "Makes the Grid X and Grid Y sliders in Votan's Minimap's settings move one " ..
                       "step per press and stay where you leave them, and makes Reset to Defaults put " ..
@@ -290,5 +279,8 @@ function CC.Settings.Init()
     -- Last, so its rows keep stable indexes: the Self Buffs section, whose
     -- per-effect rows are generated from the collected catalogue and rebuilt
     -- by the module whenever this addon is selected in the Add-Ons menu.
+    -- Buff Trackers sits just above Buff Filtering, whose section must stay
+    -- last because it rebuilds its own rows at the end of the panel.
+    panel:AddSettings(CC.BuffTrackers.SettingsRows())
     CC.SelfBuffs.AttachToPanel(panel)
 end

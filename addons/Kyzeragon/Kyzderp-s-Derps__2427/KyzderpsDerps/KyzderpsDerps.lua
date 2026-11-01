@@ -4,7 +4,7 @@
 -----------------------------------------------------------
 KyzderpsDerps = {
     name = "KyzderpsDerps",
-    version = "1.55.0",
+    version = "1.56.0",
 }
 local KD = KyzderpsDerps
 
@@ -213,6 +213,7 @@ local defaultOptions = {
         warnEssenceOfHealth = false,
         depositEssenceOfHealth = false,
         numEssenceOfHealthEffects = 2,
+        warnMasterWritXP = false,
     },
     tomes = {
         enableTotals = false,
@@ -467,6 +468,7 @@ local function Initialize()
     ZO_CreateStringId("SI_BINDING_NAME_KDD_ANTISPUD_DISMISS", "Dismiss AntiSpud Notification")
     ZO_CreateStringId("SI_BINDING_NAME_KDD_ANTISPUD_SNOOZE", "Snooze AntiSpud Notification")
     ZO_CreateStringId("SI_BINDING_NAME_KDD_KMOUNT", "Use nearest multi-rider mount")
+    ZO_CreateStringId("SI_BINDING_NAME_KDD_RESUMMON_COMPANION", "Resummon companion cheesily")
 
     -- BEHOLD! My stuff.
     if (KyzderpsDerps.savedOptions.general.experimental) then

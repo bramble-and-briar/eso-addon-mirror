@@ -109,3 +109,7 @@ DS_3: оригинальный атлас создан с помощью ИИ; �
 
 0.1.53: Original transparent compass line generated with built-in OpenAI image generation using the approved concept crop as a style reference. Source art/ds3/DS3Compass-source.png; prompt compass-prompt.txt; alpha-preserving DDS export DS3Compass. No game assets copied.
 0.1.53: Линия компаса сгенерирована с помощью OpenAI по утверждённому референсу; исходник и запрос сохранены в art/ds3. Экспорт сохраняет прозрачность. Ресурсы игры не копировались.
+
+1.1.0 shield rim / Окантовка щита
+EN: Original geometric HUD rendering using native ESO line controls. The preview image is an AI-generated proposal; its one-sided arc direction was superseded by the maintainer-approved symmetric bottom-up design. No DiabloFrames code or textures were copied for the shield. Native shield API reference: https://github.com/esoui/esoui/blob/live/esoui/ingame/unitattributevisualizer/modules/powershield.lua
+RU: Собственная геометрическая отрисовка штатными линиями ESO. Макет создан с помощью ИИ; вместо односторонней дуги автором утверждён симметричный рост снизу вверх. Код и текстуры DiabloFrames для щита не копировались. Ссылка на штатный API щита приведена выше.

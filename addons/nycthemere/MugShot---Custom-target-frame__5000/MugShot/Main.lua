@@ -104,12 +104,7 @@ local function OnAddonLoaded(_eventCode, addonName)
         end,
 
         reset = function()
-            local defaultPos = {
-                point         = TOPLEFT,
-                relativePoint = TOPLEFT,
-                offsetX       = 100,
-                offsetY       = 200,
-            }
+            local defaultPos = MugShot.Defaults.position
             settings:Set("position", defaultPos)
             settings:Set("locked", false)
             view:ApplyLayout(settings:Get())
@@ -147,12 +142,29 @@ local function OnAddonLoaded(_eventCode, addonName)
             controller:RefreshIdentity(true)
         end,
 
+        debuffs = function(arg)
+            local current = settings:Get()
+            local nowTrack
+            if arg == "on" then nowTrack = true
+            elseif arg == "off" then nowTrack = false
+            else nowTrack = not (current.trackGroupDebuffs ~= false) end
+
+            settings:Set("trackGroupDebuffs", nowTrack)
+            if nowTrack then
+                CHAT_SYSTEM:AddMessage(MugShot.GetText("GROUP_DEBUFFS_ENABLED"))
+            else
+                CHAT_SYSTEM:AddMessage(MugShot.GetText("GROUP_DEBUFFS_DISABLED"))
+            end
+            controller:RefreshEffects()
+        end,
+
         help = function()
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_TITLE"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_TOGGLE"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_MOVE"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_RESET"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_TRIAL"))
+            CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_DEBUFFS"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_HODOR"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_HELP"))
         end,
@@ -187,8 +199,9 @@ local function OnAddonLoaded(_eventCode, addonName)
             AddSub("toggle", handlers.toggle, MugShot.GetText("CMD_HELP_TOGGLE"))
             AddSub("move",   handlers.move,   MugShot.GetText("CMD_HELP_MOVE"))
             AddSub("reset",  handlers.reset,  MugShot.GetText("CMD_HELP_RESET"))
-            AddSub("trial",  handlers.trial,  MugShot.GetText("CMD_HELP_TRIAL"))
-            AddSub("hodor",  handlers.hodor,  MugShot.GetText("CMD_HELP_HODOR"))
+            AddSub("trial",   handlers.trial,   MugShot.GetText("CMD_HELP_TRIAL"))
+            AddSub("debuffs", handlers.debuffs, MugShot.GetText("CMD_HELP_DEBUFFS"))
+            AddSub("hodor",   handlers.hodor,   MugShot.GetText("CMD_HELP_HODOR"))
             AddSub("help",   handlers.help,   MugShot.GetText("CMD_HELP_HELP"))
         end
     end
@@ -199,12 +212,8 @@ local function OnAddonLoaded(_eventCode, addonName)
     MugShot.logger:Info("=== MugShot initialisation complete ===")
 end
 
--- Register the load listener (filtered to our addon name for efficiency)
+-- Register the load listener
 EVENT_MANAGER:RegisterForEvent(
     MugShot.Constants.ADDON_NAME .. "_Load",
     EVENT_ADD_ON_LOADED,
     OnAddonLoaded)
-EVENT_MANAGER:AddFilterForEvent(
-    MugShot.Constants.ADDON_NAME .. "_Load",
-    EVENT_ADD_ON_LOADED,
-    REGISTER_FILTER_ADDON_NAME, MugShot.Constants.ADDON_NAME)

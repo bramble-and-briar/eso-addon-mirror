@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Miracle19/Miracle-s-Better-Scoreboard__5013",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Miracle19",
+  "canonical_id": "esoui:5013",
+  "category_id": "96",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5013",
+  "deleted": false,
+  "directories": [
+    "BetterScoreboard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5013/",
+  "fingerprint": "43e645be0bdea579e68194e300936b022c6c08aa8b2452b264861912c962e528",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18254.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5013",
+  "source_url": "https://www.esoui.com/downloads/info5013-MiraclesBetterScoreboard.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 1,
+    "monthly_downloads": 2
+  },
+  "title": "Miracle's Better Scoreboard",
+  "updated_at": 1793478566000,
+  "version": "v1"
+}

@@ -17,6 +17,8 @@ local strings = {
     SI_PBSSMS_HELP_RESET = "/pbshot reset — restore defaults",
     SI_PBSSMS_HELP_QUICK = "/pbshot quick on|off — quick shot mode",
     SI_PBSSMS_HELP_HOLD = "/pbshot hold 1|3|5|10 — seconds the interface stays down",
+    SI_PBSSMS_HELP_NAMEPLATES = "/pbshot nameplates on|off — during a quick shot, let the game's own toggle button reach the nameplates",
+    SI_PBSSMS_HELP_GUIS = "/pbshot guis — GUI names to try; /pbshot gui <name> or gui all hides them for 10 seconds",
 
     SI_PBSSMS_QUICK_ON = "Quick shot mode on. The chord takes the interface away for a few seconds and puts it back by itself -- take the picture with the console's capture button.",
     SI_PBSSMS_QUICK_OFF = "Quick shot mode off. The chord opens screenshot mode again.",
@@ -40,6 +42,8 @@ local strings = {
     SI_PBSSMS_HOLD = "Interface stays down for",
     SI_PBSSMS_HOLD_TOOLTIP = "How long the interface stays down -- the window in which to press the console's capture button. It also ends early on a second chord, or on anything that leaves the HUD.",
     SI_PBSSMS_HOLD_ITEM = "%g seconds",
+    SI_PBSSMS_NAMEPLATE = "Let the toggle button reach the nameplates",
+    SI_PBSSMS_NAMEPLATE_TOOLTIP = "While the interface is down, the HUD borrows the layer the game's own screenshot mode uses, so the button that toggles nameplates there toggles them here. The game does it, not the add-on, which is why it works at all -- and why the add-on cannot put them back: press the button again, or use Settings. While the layer is up the other HUD buttons are shadowed, the chord among them, so the hold is what ends the quick shot.",
     SI_PBSSMS_RUN_NOW = "Try it now",
     SI_PBSSMS_RUN_NOW_TOOLTIP = "Does what the chord does. Close this panel first: nothing happens unless you are on the HUD.",
     SI_PBSSMS_RUN_NOW_BUTTON = "Run",

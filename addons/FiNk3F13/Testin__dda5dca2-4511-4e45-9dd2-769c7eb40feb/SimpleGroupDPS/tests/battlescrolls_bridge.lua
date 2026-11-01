@@ -149,12 +149,43 @@ sendSucceeds = true
 assert(bridge:SendDPS(500), "queue failure does not throttle retry")
 
 -- When Battle Scrolls is installed, use its callback instead of claiming IDs.
+local ownRole = LFG_ROLE_HEAL
+function GetSelectedLFGRole() return ownRole end
+assert(bridge:GetStatus().healingConnected and bridge:GetStatus().healingEnabled)
+assert(bridge:SendMetrics({dps = 9000, rawHPS = 400, effectiveHPS = 200}, true))
+assert(sent[#sent].id == 431 and sent[#sent].data.encodedRawHPS == 400
+    and sent[#sent].data.encodedEffectiveHPS == 200, "A selected healer sends HPS even when DPS is higher")
+protocols[431].receive("group1", sent[#sent].data)
+assert(bridge:GetRows()[1].rawHPS == 400 and bridge:GetRows()[1].effectiveHPS == 200, "HPS wire roundtrip")
+assert(not bridge:SendHPS(400, 200), "HPS and DPS share the same send budget")
+clock = clock + 300
+assert(bridge:SendHPS(27200, 4900))
+protocols[431].receive("group1", sent[#sent].data)
+assert(math.abs(bridge:GetRows()[1].rawHPS / 27200 - 1) < 0.003)
+assert(math.abs(bridge:GetRows()[1].effectiveHPS / 4900 - 1) < 0.003)
+assert(bridge:SendHPS(0, 0, true) and sent[#sent].data.encodedRawHPS == 0, "Zero HPS is transmitted")
+assert(not bridge:SendHPS(-1, 0, true) and not bridge:SendHPS(100, 200, true)
+    and not bridge:SendHPS(0/0, 0, true) and not bridge:SendHPS(math.huge, 0, true), "Invalid HPS is rejected")
+ownRole = LFG_ROLE_TANK
+assert(bridge:SendMetrics({dps = 255, rawHPS = 100000, effectiveHPS = 9000}, true))
+assert(sent[#sent].id == 430 and sent[#sent].data.encodedAllDPS == 255,
+    "Tank self-healing cannot starve DPS updates")
+ownRole = LFG_ROLE_DPS
+assert(bridge:SendMetrics({dps = 255, rawHPS = 100000, effectiveHPS = 9000}, true) and sent[#sent].id == 430)
+sendEnabled = false
+assert(not bridge:SendHPS(400, 200, true), "HPS respects the library sharing preference")
+sendEnabled, sendSucceeds = true, false
+assert(not bridge:SendHPS(400, 200, true), "HPS queue rejection is reported")
+sendSucceeds = true
+assert(bridge:SendHPS(400, 200, true), "HPS queue can recover")
+
 local registered
 BattleScrolls = { dpsShare = { RegisterCallback = function(_, name, callback)
     assert(name == "SimpleGroupDPS")
     registered = callback
 end } }
 assert(not bridge:SendDPS(500, true), "local Battle Scrolls prevents duplicate senders")
+assert(not bridge:SendHPS(500, 200, true), "local Battle Scrolls also prevents duplicate HPS senders")
 dofile("BattleScrollsBridge.lua")
 bridge = SimpleGroupDPS_BattleScrolls
 assert(bridge:Connect() and handlers == 1, "local Battle Scrolls avoids protocol conflict")

@@ -1,0 +1,46 @@
+Version 4.2
+-----------
+Fixed bug (hopefully) with the new deathmatch rounds not properly displaying statistics
+Temporarily removed statistic collection since I didnt want to update it just yet (and it wasnt being displayed anyways)
+-Updated to fix random bugs regarding new BGs (like placeholder slots now not being displayed)
+-API Bump
+
+
+Version 4.1
+-----------
+Fixed Arcanist's Icons not showing up
+-API Bump
+
+Version 4.0
+-----------
+Added text to the medals sidebar to state the current BG type
+-Fixed bug where no queues would show up in the custom activity finder
+-API Bump
+
+Version 3.1
+-----------
+-Fixed bug where healing data was added ontop of damage data
+
+Version 3.0
+-----------
+Added new tab in activity finder with the ability to queue for multiple bgs at once
+Added inital implementation and data collection for charecter wide bg stats
+*This will only collect data for now, but in a future date it will display it
+-Bumped Api Version to High Isle
+
+Bugfix 2.1
+-----------
+-Fixed bug where class icons were slightly dimmed
+
+Version 2.0
+-----------
+Added class icons to the scoreboard
+-Bumped Api Version to Deadlands
+
+Bugfix 1.1
+-----------
+-Fixed bug where it didn't show damage/healing after a match.
+
+Version 1.0
+-----------
+Inital Upload

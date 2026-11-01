@@ -16,7 +16,11 @@ local table_sort   = table.sort
 
 -- ── Constructor ───────────────────────────────────────────
 function EsoAdapter.New()
-    return setmetatable({}, EsoAdapter)
+    local self = setmetatable({}, EsoAdapter)
+    self._effectsBuffer = {}
+    self._mapByKey      = {}
+    self._itemPool      = {}
+    return self
 end
 
 -- ── ReadIdentity ──────────────────────────────────────────
@@ -40,8 +44,9 @@ function EsoAdapter:ReadIdentity(unitTag)
     local displayName = GetUnitDisplayName(unitTag) or ""
     local isPlayer    = IsUnitPlayer(unitTag) or false
     local reaction    = GetUnitReaction(unitTag) or UNIT_REACTION_DEFAULT
+    local isLocal     = AreUnitsEqual(unitTag, "player")
 
-    if unitTag == "player" then
+    if unitTag == "player" or isLocal then
         isPlayer = true
         if reaction == nil or reaction == UNIT_REACTION_DEFAULT then
             reaction = UNIT_REACTION_PLAYER_ALLY
@@ -50,26 +55,22 @@ function EsoAdapter:ReadIdentity(unitTag)
 
     -- Reaction color resolution (Style mapping or API fallback)
     local r, g, b = 0.8, 0.8, 0.8
-    local Style = MugShot.Style
-    if Style and Style.REACTION_COLORS and Style.REACTION_COLORS[reaction] then
-        local c = Style.REACTION_COLORS[reaction]
-        r, g, b = c.r, c.g, c.b
+    local color = MugShot.Style.REACTION_COLORS[reaction]
+    if color then
+        r, g, b = color.r, color.g, color.b
     else
         local qr, qg, qb = GetUnitReactionColor(unitTag)
         if qr then r, g, b = qr, qg, qb end
     end
 
     -- Portrait and badge resolution
-    local pInfo = {}
-    local Portraits = MugShot.Portraits
-    if Portraits then
-        pInfo = Portraits.GetPortraitInfo(unitTag) or {}
-    end
+    local pInfo = MugShot.Portraits.GetPortraitInfo(unitTag) or {}
 
     return {
         name            = name,
         displayName     = displayName,
         isPlayer        = isPlayer,
+        isLocalPlayer   = isLocal,
         reaction        = reaction,
         reactionR       = r,
         reactionG       = g,
@@ -129,40 +130,110 @@ function EsoAdapter:ReadVitals(unitTag)
     }
 end
 
+-- ── IsInGroupOrCompanion ──────────────────────────────────
+-- Returns true when player is in a group > 1 or has an active companion.
+-- Official ESO API: IsUnitGrouped(), GetGroupSize(), HasActiveCompanion()
+function EsoAdapter:IsInGroupOrCompanion()
+    if IsUnitGrouped("player") and GetGroupSize() > 1 then
+        return true
+    end
+    return HasActiveCompanion()
+end
+
 -- ── ReadEffects ───────────────────────────────────────────
 -- Reads active buffs and debuffs on the unit.
--- For target units, only effects cast by the player are retained by default
--- to avoid displaying raid-wide debuff clutter (e.g., 40+ debuffs in trials).
--- Single-pass filtering avoids allocating throwaway tables for other players' debuffs.
--- @param  unitTag         string
--- @param  onlyPlayerCast  bool | nil (default: true for targets, false for "player")
--- @return table array of { name, icon, stackCount, timeEnding, timer, castByPlayer }
-function EsoAdapter:ReadEffects(unitTag, onlyPlayerCast)
-    if not DoesUnitExist(unitTag) then return {} end
-
-    local filterPlayer
-    if onlyPlayerCast ~= nil then
-        filterPlayer = onlyPlayerCast
-    else
-        filterPlayer = (unitTag ~= "player")
+-- In Solo mode (group size <= 1 without active companion), only effects cast by the player
+-- are displayed on targets (sourceCount is strictly 1, no multi-source badges or cyan borders).
+-- In Group mode (> 1) or with an active companion, all target effects are displayed,
+-- and multiple casts of the same effect from team members merge into a single icon
+-- showing the highest timer, the stack count, and the source multiplier (x2, x3) with cyan border.
+-- On the "player" unitTag (move mode / player frame), all player effects are displayed.
+-- @param  unitTag            string
+-- @param  onlyPlayerCast     bool | nil (optional override)
+-- @param  trackGroupDebuffs  bool | nil (default: true)
+-- @param  outBuffer          table | nil (optional reusable array)
+-- @return table array of { name, icon, stackCount, timeEnding, timer, castByPlayer, sourceCount, effectType }
+function EsoAdapter:ReadEffects(unitTag, onlyPlayerCast, trackGroupDebuffs, outBuffer)
+    local effects = outBuffer or self._effectsBuffer
+    for i = #effects, 1, -1 do
+        effects[i] = nil
     end
+    if not DoesUnitExist(unitTag) then return effects end
+
+    local isPlayerTag = (unitTag == "player")
+    local inGroup = self:IsInGroupOrCompanion()
+
+    local filterPlayer = false
+    if not isPlayerTag then
+        if onlyPlayerCast ~= nil then
+            filterPlayer = onlyPlayerCast
+        else
+            filterPlayer = not inGroup or (trackGroupDebuffs == false)
+        end
+    end
+
+    local allowMultiSource = inGroup and not filterPlayer and not isPlayerTag
     local now = GetGameTimeSeconds() or 0
-    local effects = {}
+    local mapByKey = self._mapByKey
+    for k in pairs(mapByKey) do
+        mapByKey[k] = nil
+    end
+
+    local pool = self._itemPool
+    local itemCount = 0
     local numBuffs = GetNumBuffs(unitTag) or 0
 
     for i = 1, numBuffs do
-        local buffName, _timeStarted, timeEnding, _buffSlot, stackCount, iconFilename, _buffType, _effectType, _abilityType, _statusEffectType, _abilityId, _canClickOff, castByPlayer = GetUnitBuffInfo(unitTag, i)
+        local buffName, _timeStarted, timeEnding, _buffSlot, stackCount, iconFilename, _buffType, effectType, _abilityType, _statusEffectType, abilityId, _canClickOff, castByPlayer = GetUnitBuffInfo(unitTag, i)
         if iconFilename and iconFilename ~= "" then
-            if not filterPlayer or castByPlayer then
+            local isCastByPlayer = castByPlayer or false
+
+            if not filterPlayer or isCastByPlayer then
+                local key = buffName or tostring(abilityId or i)
                 local timer = (timeEnding and timeEnding > now) and (timeEnding - now) or 0
-                table_insert(effects, {
-                    name         = buffName or "",
-                    icon         = iconFilename,
-                    stackCount   = stackCount or 0,
-                    timeEnding   = timeEnding or 0,
-                    timer        = timer,
-                    castByPlayer = castByPlayer or false,
-                })
+                local current = mapByKey[key]
+
+                if not current then
+                    itemCount = itemCount + 1
+                    current = pool[itemCount]
+                    if not current then
+                        current = {}
+                        pool[itemCount] = current
+                    end
+                    current.name         = buffName or ""
+                    current.icon         = iconFilename
+                    current.stackCount   = stackCount or 0
+                    current.timeEnding   = timeEnding or 0
+                    current.timer        = timer
+                    current.castByPlayer = isCastByPlayer
+                    current.sourceCount  = 1
+                    current.effectType   = effectType or 0
+                    current.key          = key
+                    mapByKey[key]        = current
+                    table_insert(effects, current)
+                else
+                    -- Merge duplicate casts (multi-source badge only in group mode)
+                    if allowMultiSource then
+                        current.sourceCount = current.sourceCount + 1
+                    else
+                        current.sourceCount = 1
+                    end
+                    if isCastByPlayer then
+                        current.castByPlayer = true
+                    end
+                    if effectType and effectType > 0 then
+                        current.effectType = effectType
+                    end
+                    -- Retain the highest remaining timer
+                    if timeEnding and timeEnding > current.timeEnding then
+                        current.timeEnding = timeEnding
+                        current.timer = timer
+                    end
+                    -- Retain highest stack count
+                    if stackCount and stackCount > current.stackCount then
+                        current.stackCount = stackCount
+                    end
+                end
             end
         end
     end

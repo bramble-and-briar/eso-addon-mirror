@@ -1,0 +1,32 @@
+[b][color=#F2D29A]ARCLIGHT TAUNT - PUBLIC CHANGELOG[/color][/b]
+
+[b][color=#2FE6C4]VERSION 1.0.3 | Clearer Boss Warnings & Reliable Tracking | 31 October 2026[/color][/b]
+- Boss warnings can now appear together: a large red banner for expired taunts and a smaller turquoise early warning below it. Each banner groups its own affected bosses and uses the existing position and opacity settings.
+- Early warnings follow the remaining taunt time and remove each boss on expiry, re-taunt or recognized death. They are no longer queued behind a red banner.
+- Turquoise warnings glide down from behind an active red banner and fade smoothly when shown alone. Existing early warnings stay in place when red appears; expanding boss groups no longer restart the fade abruptly.
+- Pinned bosses with expired taunts now appear before pinned bosses with active taunts. When the list is full, active taunts in the red countdown range are protected from being displaced by expired non-boss entries.
+- Made target highlighting and death cleanup more cautious when identities are uncertain, including same-name enemies and group or pet taunts. A matching timer alone cannot remove another enemy's row.
+- Pending boss expiry warnings now survive game stalls, while re-taunts, recognized deaths and combat end still cancel outdated warnings.
+- Warning switches dismiss only their corresponding banner. Changing the own/group tracking filter clears outdated targets and warnings together.
+- Boss expiry audio is enabled by default with Killing blow (German: Todesstoß) for new installations and restored defaults. Existing sound selections and audio preferences are preserved; early warnings remain silent.
+- Test warning now shows red first, followed by turquoise after 1.5 seconds if early warnings are enabled. It plays the selected sound only when audio is enabled, without affecting the sound cooldown during combat. The separate sound-preview button has been removed.
+- Reorganized settings with a combined Bosses section, a shorter introduction, white main headings and Arclight accent colors within each section. The two warning tests sit together directly below the early-warning settings.
+- Added a language and font test alongside the welcome test at the bottom of Tracking & experiments. Test buttons use matching widths and fit translated labels; newer tests and real warnings replace outdated delayed previews.
+- Long boss-warning text now scales to fit. Corrected Russian enemy and boss counts and improved Russian font coverage while preserving saved font selections.
+- Saved font and texture choices are retained when a media provider is temporarily unavailable. Selected media can return when available, and opening settings refreshes the media lists.
+- Fixed textured bar backgrounds retaining their old width after changing the HUD column width.
+- Experimental immunity and stack indicators now refresh when enabled and clear outdated observations when the target is checked again.
+- Reduced unnecessary updates while idle, in menus and during repeated identical effect notifications. Taunt tracking, expiry and boss warnings remain active when hidden HUD rows are not being drawn.
+
+[b][color=#AEBCCA]VERSION 1.0.2 | Boss Warning Fix + More Languages | 31 October 2026[/color][/b]
+- Fixed boss early-warning banners staying visible after a successful re-taunt.
+- Fixed expired-taunt banners staying visible after the affected boss is re-taunted.
+- Multi-boss alerts now dismiss only refreshed or defeated bosses, keeping warnings for any other bosses still affected.
+- Added French, Spanish and Russian localizations. (Feel free to help on improvings regarding the translations.)
+
+[b][color=#AEBCCA]VERSION 1.0.1 | Website & Feedback Links | 30 October 2026[/color][/b]
+- Added an official ESOUI website link to the add-on settings header.
+- Added a dedicated Feedback link to the same ESOUI page for comments and suggestions.
+- Updated internal version metadata to 1.0.1.
+- No changes to gameplay, taunt tracking, HUD behavior or saved settings.
+- More languages coming soon.

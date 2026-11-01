@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Kyzeragon/MSPAINTUI---Artistically-Incompetent-Ability-Icons__4337",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Kyzeragon",
   "canonical_id": "esoui:4337",
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4337",
@@ -21,7 +18,7 @@
     "MSPAINTUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4337/",
-  "fingerprint": "ac37ae9403d7156613af0df4d1fbc28a583ae8fff486f8eda3be57df253ccca5",
+  "fingerprint": "7ceaa2e06abcfd7abfb3a878b16d609f52f40bf0b9dae84c393d43c892507c38",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14964.png",
     "https://cdn-eso.mmoui.com/preview/pvw16015.png",
@@ -36,11 +33,11 @@
   "source_id": "4337",
   "source_url": "https://www.esoui.com/downloads/info4337-MSPAINTUI-ArtisticallyIncompetentAbilityIcons.html",
   "stats": {
-    "downloads": 798,
-    "favorites": 7,
-    "monthly_downloads": 55
+    "downloads": 887,
+    "favorites": 8,
+    "monthly_downloads": 25
   },
   "title": "MSPAINTUI - Artistically Incompetent Ability Icons",
-  "updated_at": 1778485972000,
-  "version": "1.5.0"
+  "updated_at": 1793477742000,
+  "version": "1.6.0"
 }

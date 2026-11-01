@@ -1,3 +1,10 @@
+Version 2.6.9 (2026/10/31)
+* The Darklight status in Bal Sunnar will now be colored red when non-zero
+* Tweaked the formatting of the alert for Astral Shield in Rockgrove
+* The brand alerts in Dreadsail Reef Hard Mode will now include a position
+  number for use by groups that have their own bespoke brand position markers
+  - These numbers are compatible with the ones recently added in Crutch Alerts
+
 Version 2.6.8 (2026/10/21)
 * The alert for Astral Shield in Rockgrove is now a 2-stage alert to show both
   the initial start of the channel and the resulting shield count

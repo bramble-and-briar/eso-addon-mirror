@@ -345,8 +345,12 @@ function version8(sv)
         sv.chatContentsSummary.icons = nil
         sv.chatContentsSummary.traits = nil
     end
-    addon.tracking.cooldownProtected = sv.cooldownProtected or {}
-    addon.tracking.cooldownEnd = sv.cooldownEnd or {}
+    if sv.cooldownProtected ~= nil then
+        addon.tracking.cooldownProtected = sv.cooldownProtected
+    end
+    if sv.cooldownEnd ~= nil then
+        addon.tracking.cooldownEnd = sv.cooldownEnd
+    end
     sv.cooldownProtected = nil
     sv.cooldownEnd = nil
     sv.slotUniqueContentItemIds = nil

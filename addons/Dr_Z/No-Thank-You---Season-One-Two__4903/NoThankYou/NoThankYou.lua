@@ -25,11 +25,12 @@ http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 ]]
 
 local ADDON_NAME = "NoThankYou"
-local ADDON_VERSION = "12.1.1"
+local ADDON_VERSION = "12.1.4"
 local ADDON_AUTHOR = "|cEFEBBEGarkin|r, Ayantir, Vostorn, |c8794C5SlippyCheeze|r, Uta, ZaiZah,FusRoDah, Dr_Z"
 local ADDON_WEBSITE = "http://www.esoui.com/downloads/info865-Nothankyou.html"
 local SV
 local defaults = {
+	homeToursNotifications = false,
 	ava = 1,
 	friends = false,
 	boss = false,
@@ -51,6 +52,8 @@ local defaults = {
 	noCameraSpin = false,
 	noCameraSpinStats = false,
 	noCameraSpinInv = false,
+	fastTravelDialog = false,
+	recallDialog = false,
 	fenceDialog = false,
 	ultimateSound = 0,
 	disbandDialog = false,
@@ -88,7 +91,7 @@ local isQueued = false
 local storedMessages = {}
 
 local function SafePrint(message)
-	if message == nil or not IsPlayerActivated or not CHAT_SYSTEM or not CHAT_SYSTEM.AddMessage or not EVENT_MANAGER or EVENT_PLAYER_ACTIVATED == nil or not ZO_ClearNumericallyIndexedTable then
+	if message == nil then
 		return
 	end
 	if IsPlayerActivated() then
@@ -112,13 +115,7 @@ end
 
 --AvA messages
 local function HookAvAMessages()
-    if not ZO_CenterScreenAnnounce_GetEventHandlers then
-        return
-    end
-    local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
-    if type(handlers) ~= "table" then
-        return
-    end
+	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
 	local avaEvents = {
 		EVENT_ARTIFACT_CONTROL_STATE,
 		EVENT_KEEP_GATE_STATE_CHANGED,
@@ -129,9 +126,9 @@ local function HookAvAMessages()
 	}
 	local function HookAvAEventHandler(event)
 		local original = handlers[event]
-			if type(original) ~= "function" then
-				return
-			end
+		if type(original) ~= "function" then
+			return
+		end
 		handlers[event] = function(...)
 			if IsPlayerInAvAWorld() then
 				return original(...)
@@ -156,13 +153,7 @@ end
 
 --Group Zone messages
 local function HookGroupZoneMessages()
-    if not ZO_CenterScreenAnnounce_GetEventHandlers then
-        return
-    end
-    local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
-    if type(handlers) ~= "table" then
-        return
-    end
+	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
 	local groupEvents = {
 		EVENT_DISPLAY_ANNOUNCEMENT,
 	}
@@ -174,9 +165,9 @@ local function HookGroupZoneMessages()
 	}
 	local function HookGroupZoneEventHandler(event)
 		local original = handlers[event]
-			if type(original) ~= "function" then
-				 return
-			end
+		if type(original) ~= "function" then
+			return
+		end
 		handlers[event] = function(title, description, ...)
 			for index, stringValue in pairs(groupValues) do
 				if title == stringValue or description == stringValue then
@@ -199,9 +190,6 @@ local function HookGroupZoneMessages()
 end
 
 local function HookFriendsMessages()
-	if not ZO_PreHook or not CHAT_ROUTER or EVENT_FRIEND_PLAYER_STATUS_CHANGED == nil then
-		return
-	end
 
 	ZO_PreHook(CHAT_ROUTER, "FormatAndAddChatMessage", function(_, eventType)
 		if eventType == EVENT_FRIEND_PLAYER_STATUS_CHANGED and SV.friends then
@@ -211,13 +199,7 @@ local function HookFriendsMessages()
 end
 
 local function BossAlertTextsHook()
-	if not ZO_AlertText_GetHandlers or not ZO_PreHook or EVENT_ABILITY_REQUIREMENTS_FAIL == nil or EVENT_COMBAT_EVENT == nil or ACTION_RESULT_MISSING_EMPTY_SOUL_GEM == nil or ACTION_RESULT_IMMUNE == nil then
-		return
-	end
 	local handlers = ZO_AlertText_GetHandlers()
-	if not handlers then
-		return
-	end
 	local abilityErrorIds = {
 		[162] = true, -- "Flying creatures are immune to snares."
 		[177] = true, -- "This target is too powerful for that effect."
@@ -242,11 +224,8 @@ local function BossAlertTextsHook()
 end
 
 local function NoLootWindowOnItems()
-	if not EVENT_MANAGER or EVENT_LOOT_UPDATED == nil or not SYSTEMS or not SYSTEMS.GetObject or not LOOT_SHARED or not LOOT_SHARED.LootAllItems or not GetLootTargetInfo or not GetSetting then
-		return
-	end
     local lootSystem = SYSTEMS:GetObject("loot")
-    if not lootSystem or not lootSystem.UpdateLootWindow then
+    if not lootSystem then
         return
     end
 	-- When LOOT_SETTING_AUTO_LOOT is on, the C++ LootAll() is called, all is handled by C++ side, and EVENT_CLOSE_LOOT is sent.
@@ -277,42 +256,24 @@ local function NoLootWindowOnItems()
 end
 
 local function ScreenshotAlertHook()
-	if not ZO_AlertText_GetHandlers or not ZO_PreHook or EVENT_SCREENSHOT_SAVED == nil then
-		return
-	end
 	local handlers = ZO_AlertText_GetHandlers()
-	if not handlers then
-		return
-	end
 	local function EventHook()
-	 return SV.screenshot
+		return SV.screenshot
 	end
 
 	ZO_PreHook(handlers, EVENT_SCREENSHOT_SAVED, EventHook)
 end
 
 local function EnlightenedAlertHook()
-	if not ZO_CenterScreenAnnounce_GetEventHandlers or not ZO_PreHook or EVENT_PLAYER_ACTIVATED == nil then
-	   return
-	end
 	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
-	if not handlers then
-	    return
-	end
-	 local function EventHook()
-	    return SV.enlightened
+	local function EventHook()
+		return SV.enlightened
 	end
 	ZO_PreHook(handlers, EVENT_PLAYER_ACTIVATED, EventHook)
 end
 
 local function CraftingResultAlertsHook()
-	if not ZO_AlertText_GetHandlers or not ZO_PreHook or not ZO_AlertNoSuppression or EVENT_CRAFT_FAILED == nil or SI_TRADESKILLRESULT119 == nil or SI_SMITHING_EXTRACTION_FAILED == nil or SI_SMITHING_DECONSTRUCTION_LEVEL_PENALTY == nil or SI_ALCHEMY_NO_YIELD == nil or SI_ENCHANT_NO_YIELD == nil then
-		return
-	end
 	local handlers = ZO_AlertText_GetHandlers()
-	if not handlers then
-		return
-	end
 	local blockedMessages = {
 		--[SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED] = true,
 		[SI_TRADESKILLRESULT119] = true,
@@ -344,15 +305,7 @@ local function RepairAlertsHook()
 end
 
 local function AlertTextThrottling()
-	if not ZO_RecentMessages or not ZO_RecentMessages.New or not ZO_PreHook or not ZO_Alert or not ZO_SoundAlert then
-		return
-	end
-
 	recentMessages = ZO_RecentMessages:New(SV.alertTextExpiryDelay * 1000)
-
-	if not recentMessages or not recentMessages.ShouldDisplayMessage then
-		return
-	end
 
 	local function ZO_Alert_Hook(category, soundId, message)
 		if message and message ~= "" then
@@ -384,7 +337,7 @@ end
 
 local function NoUniversalStones()
 
-	if not EVENT_MANAGER or EVENT_CRAFTING_STATION_INTERACT == nil or not GetCurrentSmithingStyleItemCount or not ZO_ADJUSTED_UNIVERSAL_STYLE_ITEM_INDEX or not ZO_SmithingTopLevelCreationPanelStyleListUniversalStyleItem or not ZO_SmithingTopLevelCreationPanelStyleListUniversalStyleItem.SetHidden then
+	if not ZO_SmithingTopLevelCreationPanelStyleListUniversalStyleItem then
 		return
 	end
 
@@ -410,9 +363,6 @@ local function NoUniversalStones()
 end
 
 local function GetGuildIndexFromId(guildId)
-	if not GetNumGuilds or not GetGuildId then
-		return nil
-	end
 
 	for index = 1, GetNumGuilds() do
 		if GetGuildId(index) == guildId then
@@ -444,7 +394,7 @@ local function NoGuildLeave()
 end
 
 local function NoGuildLeavePreHook()
-    if ZO_PreHook and GUILD_HOME and GUILD_HOME.RefreshAll then
+    if GUILD_HOME then
         ZO_PreHook(GUILD_HOME, "RefreshAll", NoGuildLeave)
     end
 end
@@ -452,25 +402,13 @@ end
 local function GuildRosterAlertsHook()
         local guildRosterManager = ZO_GuildRosterManager or GUILD_ROSTER
 
-	if not guildRosterManager or not ZO_PreHook or not GetNumGuilds or not GetGuildId then
+	if not guildRosterManager then
 		return
 	end
 
-	local function GetGuildIndex(guildId)
-		for index = 1, GetNumGuilds() do
-			if GetGuildId(index) == guildId then
-				return index
-			end
-		end
-		return 0
-	end
-
 	local function OnGuildMemberAdded_Hook(self, guildId, displayName)
-		if not self  or not self.RefreshData  or not self.FindDataByDisplayName then
-			return
-		end
 		if SV.guildAlerts == 1 then
-			local index = GetGuildIndex(guildId)
+			local index = GetGuildIndexFromId(guildId)
 			if SV.guildAlertsGuilds[index] then
 				self:RefreshData()
 				if DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_INVITE) then
@@ -483,7 +421,7 @@ local function GuildRosterAlertsHook()
 				return true
 			end
 		elseif SV.guildAlerts == 2 then
-			local index = GetGuildIndex(guildId)
+			local index = GetGuildIndexFromId(guildId)
 			if SV.guildAlertsGuilds[index] then
 				self:RefreshData()
 				return true
@@ -494,11 +432,8 @@ local function GuildRosterAlertsHook()
 		ZO_PreHook( guildRosterManager, "OnGuildMemberAdded", OnGuildMemberAdded_Hook )
 	end
 	local function OnGuildMemberRemoved_Hook(self, guildId, rawCharacterName)
-		if not self or not self.RefreshData then
-			return
-		end
 		if SV.guildAlerts == 1 then
-			local index = GetGuildIndex(guildId)
+			local index = GetGuildIndexFromId(guildId)
 			if SV.guildAlertsGuilds[index] then
 				if DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_INVITE) then
 					SafePrint(zo_strformat(SI_GUILD_ROSTER_REMOVED, rawCharacterName, self.guildName))
@@ -507,7 +442,7 @@ local function GuildRosterAlertsHook()
 				return true
 			end
 		elseif SV.guildAlerts == 2 then
-			local index = GetGuildIndex(guildId)
+			local index = GetGuildIndexFromId(guildId)
 			if SV.guildAlertsGuilds[index] then
 				self:RefreshData()
 				return true
@@ -521,13 +456,7 @@ end
 
 --raid notifications
 local function HookRaidNotifications()
-	if not ZO_PreHook or not ZO_ClearNumericallyIndexedTable or not GetSetting_Bool then
-		return
-	end
 	local function BuildNotificationList_Hook(self)
-		if not self or type(self.list) ~= "table" or not self.Decline or not self.CreateMessage then
-			return
-		end
 		ZO_ClearNumericallyIndexedTable(self.list)
 		if GetSetting_Bool(SETTING_TYPE_UI, UI_SETTING_SHOW_LEADERBOARD_NOTIFICATIONS) then
 			local function BuildMessageAndRemoveNotification(contacts, message, notificationId)
@@ -609,54 +538,46 @@ local function HookRaidNotifications()
 	end
 end
 
+-- Home Tours recommended-house notifications
+local function HookHomeToursNotifications()
+	SecurePostHook(ZO_HouseToursHouseRecommendedProvider, "BuildNotificationList", function(self)
+		if SV.homeToursNotifications then
+			ZO_ClearNumericallyIndexedTable(self.list)
+		end
+	end)
+end
+
 --Guild MotD notifications
 local function HookMotDNotifications()
-	if not ZO_PreHook or not ZO_ClearNumericallyIndexedTable or not GetNumGuilds or not GetGuildId or not GetGuildName or not GetGuildMotD then
-		return
-	end
 	local function BuildNotificationList_Hook(self)
-		if not self or type(self.sv) ~= "table" or type(self.list) ~= "table" then
+		if not self.sv or SV.motd == 0 then
 			return
 		end
-		if self.sv then
-			if SV.motd == 1 then
-				ZO_ClearNumericallyIndexedTable(self.list)
-				for i = 1, GetNumGuilds() do
-					local guildId = GetGuildId(i)
-					local guildName = GetGuildName(guildId)
-					local savedMotD = self.sv[guildName]
-					local currentMotD = GetGuildMotD(guildId)
-					if savedMotD ~= currentMotD then
-						local guildAlliance = GetGuildAlliance(guildId)
-						local allianceIcon = zo_iconFormat(GetAllianceBannerIcon(guildAlliance), 24, 24)
-						local message = zo_strformat("<<X:1>> |cFFFFFF<<2>>|r\n<<3>>", allianceIcon, guildName, currentMotD)
-						SafePrint(message)
-					end
-					self.sv[guildName] = currentMotD
+		for index = 1, GetNumGuilds() do
+			local guildId = GetGuildId(index)
+			local guildName = GetGuildName(guildId)
+			local currentMotD = GetGuildMotD(guildId)
+			local currentHash = HashString(currentMotD)
+			local savedMotD = self.sv[guildName]
+			if SV.motdGuilds[index] then
+				if SV.motd == 1 and savedMotD ~= nil and savedMotD ~= currentHash and savedMotD ~= currentMotD then
+					local allianceIcon = zo_iconFormat(GetAllianceBannerIcon(GetGuildAlliance(guildId)), 24, 24)
+					SafePrint(zo_strformat("<<X:1>> |cFFFFFF<<2>>|r\n<<3>>", allianceIcon, guildName, currentMotD))
 				end
-				return true
-			elseif SV.motd == 2 then
-				ZO_ClearNumericallyIndexedTable(self.list)
-				for i = 1, GetNumGuilds() do
-					local guildId = GetGuildId(i)
-					local guildName = GetGuildName(guildId)
-					self.sv[guildName] = GetGuildMotD(guildId)
-				end
-				return true
+				self.sv[guildName] = currentHash
+			elseif savedMotD == currentMotD then
+				-- Older version of NTY use to store the MotD. ESO Likes to play with Hashs.
+				self.sv[guildName] = currentHash
 			end
 		end
+		-- For the unselected guilds, Let ESO handel thier MotD notifications
 	end
-	if ZO_GuildMotDProvider and ZO_GuildMotDProvider.BuildNotificationList then
-	    ZO_PreHook(ZO_GuildMotDProvider, "BuildNotificationList", BuildNotificationList_Hook)
-	end
+	ZO_PreHook(ZO_GuildMotDProvider, "BuildNotificationList", BuildNotificationList_Hook)
 end
 
 --CraftBagNotifications notifications
 local function HookCraftBagNotifications()
 	local function BuildNotificationList_Hook(self)
-		if not self or type(self.list) ~= "table" then
-			return
-		end
 		if SV.craftBag then
 			ZO_ClearNumericallyIndexedTable(self.list)
 			return true
@@ -669,9 +590,6 @@ end
 
 --Reticle Hook
 local function HookReticleTake()
-	if not RETICLE or not RETICLE.TryHandlingInteraction or not ZO_PreHook or not GetGameCameraInteractableActionInfo or ADDITIONAL_INTERACT_INFO_EMPTY == nil then
-		return
-	end
 	local function DisableReticleTake_Hook(interactionPossible)
 		if interactionPossible then
 			if SV.reticleTake or SV.emptyInteractions then
@@ -693,11 +611,7 @@ local function HookReticleTake()
 						end
 					elseif SV.emptyInteractions and interactionBlocked then
 
-						local dontShow = {
-							[ADDITIONAL_INTERACT_INFO_EMPTY] = true
-						}
-
-						if dontShow[additionalInteractInfo] then
+						if additionalInteractInfo == ADDITIONAL_INTERACT_INFO_EMPTY then
 							return true
 						end
 
@@ -707,17 +621,12 @@ local function HookReticleTake()
 		end
 		return false
 	end
-	if RETICLE and RETICLE.TryHandlingInteraction then
-	    ZO_PreHook(RETICLE, "TryHandlingInteraction", DisableReticleTake_Hook)
-	end
+	ZO_PreHook(RETICLE, "TryHandlingInteraction", DisableReticleTake_Hook)
 end
 
 --Guild invite notifications
 local function HookGuildInvitesNotifications()
 	local function BuildNotificationList_Hook(self)
-		if not self or type(self.list) ~= "table" or not self.CreateMessage then
-			return
-		end
 		ZO_ClearNumericallyIndexedTable(self.list)
 		if SV.guildInvites == 0 or (SV.guildInvites == 2 and GetNumGuilds() < MAX_GUILDS) then
 			for i = 1, GetNumGuildInvites() do
@@ -748,9 +657,6 @@ local function HookGuildInvitesNotifications()
 end
 
 local function HookPlayerToPlayerGuildInvite()
-	if not PLAYER_TO_PLAYER or not PLAYER_TO_PLAYER.control or not PLAYER_TO_PLAYER.control.RegisterForEvent or not PLAYER_TO_PLAYER.control.UnregisterForEvent or not PLAYER_TO_PLAYER.AddPromptToIncomingQueue or not PLAYER_TO_PLAYER.RemoveFromIncomingQueue or EVENT_GUILD_INVITE_ADDED == nil then
-	    return
-	end
 	local INTERACT_TYPE_GUILD_INVITE = 7
 	PLAYER_TO_PLAYER.control:UnregisterForEvent(EVENT_GUILD_INVITE_ADDED)
 	PLAYER_TO_PLAYER.control:RegisterForEvent(EVENT_GUILD_INVITE_ADDED, function (eventCode, guildId, guildName, guildAlliance, inviterName, ...)
@@ -781,9 +687,6 @@ end
 --New Guild Applications notifications
 local function HookGuildNewApplicationsNotifications()
     local function BuildNotificationList_Hook(self)
-	if not self or type(self.list) ~= "table" then
-            return
-        end
         if SV.guildApps then
             ZO_ClearNumericallyIndexedTable(self.list)
             return true
@@ -796,9 +699,6 @@ end
 
 -- Aya: Don't interrupt on mailScenes anymore due to RequestOpenMailbox() - sec issue I guess
 local function DontInterruptHarvesting()
-	 if not END_IN_WORLD_INTERACTIONS_FRAGMENT or not END_IN_WORLD_INTERACTIONS_FRAGMENT.Show or not END_IN_WORLD_INTERACTIONS_FRAGMENT.OnShown or not EndPendingInteraction then
-	     return
-	end
 	local function Show_Hook(self)
 		if SV.nonstopHarvest then
 			EndPendingInteraction()
@@ -810,9 +710,6 @@ local function DontInterruptHarvesting()
 end
 
 local function DontReadBooks()
-	if not LORE_READER or not LORE_READER.control or not LORE_READER.control.RegisterForEvent or not LORE_READER.control.UnregisterForEvent or not LORE_READER.Show or not GetLoreBookOverrideImageFromBookId or not PlaySound or not EndInteraction or EVENT_SHOW_BOOK == nil or INTERACTION_BOOK == nil then
-		return
-	end
 	local function OnShowBook(eventCode, title, body, medium, showTitle, bookId)
 		local overrideImage, overrideImageTitlePosition = GetLoreBookOverrideImageFromBookId(bookId)
 		LORE_READER:Show(title, body, medium, showTitle, overrideImage, overrideImageTitlePosition)
@@ -831,13 +728,7 @@ local function DontReadBooks()
 end
 
 local function DontShowLoreDiscoveries()
-	if not ZO_CenterScreenAnnounce_GetEventHandlers then
-		return
-	end
 	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
-	if type(handlers) ~= "table" then
-		return
-	end
 	local loreEvents = {
 		EVENT_LORE_BOOK_ALREADY_KNOWN,
 		EVENT_LORE_BOOK_LEARNED,
@@ -870,13 +761,7 @@ local function DontShowLoreDiscoveries()
 end
 
 local function DontShowSkillProgression()
-	if not ZO_CenterScreenAnnounce_GetEventHandlers then
-		return
-	end
 	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
-	if type(handlers) ~= "table" then
-		return
-	end
 	local skillEvents = {
 		EVENT_ABILITY_PROGRESSION_RANK_UPDATE,
 	}
@@ -910,9 +795,6 @@ end
 
 local scenes = {}
 local function DontRotateGameCamera(doOverrideNoCameraSpin)
-	if not SCENE_MANAGER or type(SCENE_MANAGER.scenes) ~= "table" then
-		return
-	end
 	doOverrideNoCameraSpin = doOverrideNoCameraSpin or false
 	local emotesFragments = {
 		FRAME_PLAYER_FRAGMENT,
@@ -981,38 +863,54 @@ local function DontRotateGameCamera(doOverrideNoCameraSpin)
 	ChangeScenesBehavior(doDisableFragments)
 end
 
-local chatScene
+local chatState = {
+	removedMinimize = false,
+}
+
 local function DisableChatMinimize()
-	local fragmentToRemove = MINIMIZE_CHAT_FRAGMENT
 	local scene = TRADING_HOUSE_SCENE
-	if not fragmentToRemove or not scene or not scene.HasFragment or not scene.RemoveFragment or not scene.AddFragment then
-		return
-	end
 	if SV.chatForTradingHouse then
-		local sceneToSave = true
-		if scene:HasFragment(fragmentToRemove) then
-			scene:RemoveFragment(fragmentToRemove)
-			if sceneToSave then
-				sceneToSave = false
-				chatScene = scene
-				chatScene.toRestore = true
-			end
+		if scene:HasFragment(MINIMIZE_CHAT_FRAGMENT) then
+			scene:RemoveFragment(MINIMIZE_CHAT_FRAGMENT)
+			chatState.removedMinimize = true
 		end
-	else
-		if chatScene and chatScene.toRestore then
-			chatScene:AddFragment(fragmentToRemove)
-		end
+	elseif chatState.removedMinimize then
+		scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+		chatState.removedMinimize = false
 	end
 end
 
-local function HookFenceDialog()
-	if not ZO_Dialogs_ShowDialog or not ZO_PreHook or not SellInventoryItem then
-		return
+local function HookFastTravelDialogs()
+	local function ShowDialog_Hook(name, data)
+		if name == "FAST_TRAVEL_CONFIRM" then
+			if not SV.fastTravelDialog then
+				return
+			end
+		elseif name == "RECALL_CONFIRM" then
+			if not SV.recallDialog then
+				return
+			end
+			local currency = GetRecallCurrency(data.nodeIndex)
+			if GetRecallCost(data.nodeIndex) > GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER) then
+				return
+			end
+		else
+			return
+		end
+		PlaySound(SOUNDS.MAP_WAYSHRINE_TELEPORT)
+		FastTravelToNode(data.nodeIndex)
+		SCENE_MANAGER:ShowBaseScene()
+		return true
 	end
+	ZO_PreHook("ZO_Dialogs_ShowPlatformDialog", ShowDialog_Hook)
+	ZO_PreHook("ZO_Dialogs_ShowDialog", ShowDialog_Hook)
+end
+
+local function HookFenceDialog()
 	local function ShowDialog_Hook(name, data)
 		if name == "CANT_BUYBACK_FROM_FENCE" then
 			if SV.fenceDialog then
-			    if not data or data.bag == nil or data.slot == nil or data.stackCount == nil or not SellInventoryItem then
+			    if not data or data.bag == nil or data.slot == nil or data.stackCount == nil then
 				return
 			    end
 
@@ -1025,9 +923,6 @@ local function HookFenceDialog()
 end
 
 local function HookPlaySound()
-	if not SOUNDS or not PlaySound or not ZO_PreHook or not IsUnitInCombat then
-		return
-	end
 	local function PlaySound_Hook(soundId)
 		if (soundId == SOUNDS.ABILITY_ULTIMATE_READY) then
 			if SV.ultimateSound == 1 then
@@ -1049,9 +944,6 @@ local function HookPlaySound()
 end
 
 local function HookDisbandDialog()
-	if not GroupDisband or not ZO_Dialogs_ShowDialog or not ZO_PreHook then
-		return
-	end
 	local function ShowDialog_Hook(name, data)
 		if name == "GROUP_DISBAND_DIALOG" then
 			if SV.disbandDialog then
@@ -1064,15 +956,12 @@ local function HookDisbandDialog()
 end
 
 local function HookLargeGroupDialog()
-	if not ZO_Dialogs_ShowDialog or not ZO_PreHook or not ZO_Menu_SetLastCommandWasFromMenu or not ZO_Alert or not ZO_FormatUserFacingDisplayName or not ZO_AlertText_GetHandlers or EVENT_GROUP_TYPE_CHANGED == nil then
-		return
-	end
 	local function ShowDialog_Hook(name, data)
 		if name == "LARGE_GROUP_INVITE_WARNING" then
 			if SV.largeGroupDialog then
 				local characterOrDisplayName = data
 
-				if type(characterOrDisplayName) ~= "string" or characterOrDisplayName == "" or not GroupInviteByName then
+				if type(characterOrDisplayName) ~= "string" or characterOrDisplayName == "" then
 					return
 				end
 				GroupInviteByName(characterOrDisplayName)
@@ -1098,13 +987,10 @@ local function HookLargeGroupDialog()
 end
 
 local function HookImproveDialog()
-	if not ZO_Dialogs_ShowDialog or not ZO_PreHook or not ImproveSmithingItem then
-		return
-	end
 	local function ShowDialog_Hook(name, data)
 		if name == "CONFIRM_IMPROVE_ITEM" or name == "CONFIRM_IMPROVE_LOCKED_ITEM" or name == "GAMEPAD_CONFIRM_IMPROVE_LOCKED_ITEM" then
 			if SV.improveDialog then
-			    if not data or data.bagId == nil or data.slotIndex == nil or data.boostersToApply == nil or not ImproveSmithingItem then
+			    if not data or data.bagId == nil or data.slotIndex == nil or data.boostersToApply == nil then
 				return
 			    end
 			    ImproveSmithingItem(data.bagId, data.slotIndex, data.boostersToApply)
@@ -1116,11 +1002,8 @@ local function HookImproveDialog()
 end
 
 local function HookMarketAnnouncement()
-    if not SCENE_MANAGER or not SCENE_MANAGER.scenes or not SCENE_MANAGER.ShowBaseScene then
-        return
-    end
     local marketAnnouncementScene = SCENE_MANAGER.scenes.marketAnnouncement
-    if not marketAnnouncementScene or not marketAnnouncementScene.SetState then
+    if not marketAnnouncementScene then
         return
     end
     local function SetState_Hook(self, state, ...)
@@ -1135,7 +1018,7 @@ local function HookMarketAnnouncement()
 end
 
 local function DoDisableChatAutoComplete()
-    if not SlashCommandAutoComplete or not SlashCommandAutoComplete.GetAutoCompletionResults then
+    if not SlashCommandAutoComplete then
         return
     end
     local function GetAutoCompletionResults_Hook()
@@ -1154,9 +1037,6 @@ local function DisableChatAutoComplete()
 end
 
 local function HookAcceptOfferedQuest(fromLAM)
-	if not INTERACTION or type(INTERACTION.eventCallbacks) ~= "table" or not INTERACTION.control or not INTERACTION.control.RegisterForEvent or not INTERACTION.control.UnregisterForEvent or not INTERACTION.control.AddFilterForEvent then
-		return
-	end
 	local original = INTERACTION.eventCallbacks[EVENT_QUEST_OFFERED]
 	if type(original) ~= "function" then
 		return
@@ -1188,9 +1068,6 @@ local function HookAcceptOfferedQuest(fromLAM)
 end
 
 local function HookReportItemFromInventory()
-    if not ZO_InventorySlotActions or not ZO_InventorySlotActions.AddSlotAction then
-        return
-    end
     local function AddSlotActionHook(self, actionStringId)
         if SV.noReportOnItems  and actionStringId == SI_ITEM_ACTION_REPORT_ITEM then
             return true
@@ -1199,54 +1076,17 @@ local function HookReportItemFromInventory()
     ZO_PreHook(ZO_InventorySlotActions, "AddSlotAction",  AddSlotActionHook)
 end
 
-local NOTY_currentBagId
-local NOTY_currentSlotId
 local function HookBindAlerts()
-	if not EVENT_MANAGER or EVENT_INVENTORY_SLOT_LOCKED == nil or not ZO_Dialogs_ShowDialog or not ZO_PreHook then
-		return
-	end
-	local function TryEquipItem()
-		if SV.noBindAlert and NOTY_currentBagId ~= nil and NOTY_currentSlotId ~= nil and IsEquipable and EquipItem then
-			local equipable = IsEquipable(NOTY_currentBagId, NOTY_currentSlotId)
-			if equipable then
-				EquipItem(NOTY_currentBagId, NOTY_currentSlotId)
-				return true
-			end
-		end
-	end
-	local function OnInventorySlotLocked(eventCode, bagId, slotId)
-		if SV.noBindAlert then
-			NOTY_currentBagId = bagId
-			NOTY_currentSlotId = slotId
-		end
-	end
-	EVENT_MANAGER:RegisterForEvent("INVENTORY_SLOT_LOCKED", EVENT_INVENTORY_SLOT_LOCKED, OnInventorySlotLocked)
 	local function ShowDialog_Hook(name, data)
-		if name == "CONFIRM_EQUIP_ITEM" then
-			if SV.noBindAlert then
-			    local callback = data and data.onAcceptCallback
-
-			    if type(callback) == "function" then
-				local status = pcall(callback)
-
-				if status then
-				    return true
-				end
-			    end
-
-			    if TryEquipItem() then
-				return true
-			    end
-			end
+		if name == "CONFIRM_EQUIP_ITEM" and SV.noBindAlert then
+			data.onAcceptCallback()
+			return true
 		end
 	end
 	ZO_PreHook("ZO_Dialogs_ShowDialog", ShowDialog_Hook)
 end
 
 local function NoPortToLeader()	
-	if not PLAYER_TO_PLAYER or not PLAYER_TO_PLAYER.AddPromptToIncomingQueue or type(PLAYER_TO_PLAYER.incomingQueue) ~= "table" or not SecurePostHook or not ZO_Dialogs_ReleaseAllDialogsOfName then
-	    return
-	end
 	local INTERACT_TYPE_TRAVEL_TO_LEADER = 19
 	local cannotJump = {
 		[181] = true, -- Cyrodiil
@@ -1279,78 +1119,77 @@ local function NoPortToLeader()
 	end)
 end
 
-local function HandleLuaErrorEvent()
-	if not EVENT_LUA_ERROR then
-	    return
+local errorState = {
+	provider = nil,
+	seen = {},
+}
+
+local function ShowOriginalLuaError(_, ...)
+	ZO_ERROR_FRAME:OnUIError(...)
+end
+
+local function RemoveErrorNotification(errorString)
+	local provider = errorState.provider
+	for index, notification in ipairs(provider.notifications) do
+		if notification.note == errorString then
+			table.remove(provider.notifications, index)
+			provider:UpdateNotifications()
+			return
+		end
 	end
-	if SV.luaError == 1 then
-	    if not LibNotifications or not LibNotifications.CreateProvider or not ZO_ERROR_FRAME or not ZO_ERROR_FRAME.OnUIError then
+end
+
+local function OnLuaError(_, errorString, errorCode)
+	if errorState.seen[errorString] then
 		return
-	    end
 	end
-	if SV.luaError >= 1 then
-		local provider
-		if SV.luaError == 1 then
-			provider = LibNotifications:CreateProvider()
+	errorState.seen[errorString] = true
+	if SV.luaError == 2 then
+		SafePrint(errorString)
+		return
+	end
+	local function ShowError()
+		ZO_ERROR_FRAME:OnUIError(errorString, errorCode)
+		RemoveErrorNotification(errorString)
+	end
+	local function DismissError()
+		RemoveErrorNotification(errorString)
+	end
+	local notification = {
+		dataType = NOTIFICATIONS_REQUEST_DATA,
+		secsSinceRequest = ZO_NormalizeSecondsSince(0),
+		message = GetString(NOTYOU_LUAERR_MESSAGE),
+		note = errorString,
+		heading = GetString(NOTYOU_LUAERR_HEADING),
+		texture = "/esoui/art/miscellaneous/eso_icon_warning.dds",
+		shortDisplayText = GetString(NOTYOU_LUAERR_SHORT),
+		controlsOwnSounds = true,
+		keyboardAcceptCallback = ShowError,
+		keyboardDeclineCallback = DismissError,
+		gamepadAcceptCallback = ShowError,
+		gamepadDeclineCallback = DismissError,
+		data = {errString = errorString},
+	}
+	table.insert(errorState.provider.notifications, notification)
+	errorState.provider:UpdateNotifications()
+end
 
-			if not provider or type(provider.notifications) ~= "table" or not provider.UpdateNotifications then
-				return
-			end
+local function HandleLuaErrorEvent()
+	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME .. "LuaError", EVENT_LUA_ERROR)
+	EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
+	ZO_ClearTable(errorState.seen)
+	if errorState.provider then
+		for _, notification in ipairs(errorState.provider.notifications) do
+			errorState.seen[notification.note] = true
 		end
-
-		--unregister original handler
-		EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-		local seenBugs = {}
-
-		--create a new event handler
-		local function OnLuaError(_, errString)
-
-			-- Display a notification
-			if SV.luaError == 1 then
-				local function RemoveNotification(data)
-				    if not data or type(data.notificationId) ~= "number" then
-					return
-				    end
-				    if data.notificationId < 1 or data.notificationId > #provider.notifications then
-					return
-				    end
-				    table.remove(provider.notifications, data.notificationId)
-				    provider:UpdateNotifications()
-				end
-				if not seenBugs[errString] then
-					local msg = {
-						dataType				= NOTIFICATIONS_REQUEST_DATA,
-						secsSinceRequest			= ZO_NormalizeSecondsSince(0),
-						message					= GetString(NOTYOU_LUAERR_MESSAGE),
-						note					= errString,
-						heading					= GetString(NOTYOU_LUAERR_HEADING),
-						texture					= "/esoui/art/miscellaneous/eso_icon_warning.dds",
-						shortDisplayText			= GetString(NOTYOU_LUAERR_SHORT),
-						controlsOwnSounds			= true,
-						keyboardAcceptCallback	= function(data)
-							ZO_ERROR_FRAME:OnUIError(errString)
-							RemoveNotification(data)
-						end,
-						keybaordDeclineCallback	= RemoveNotification,
-						gamepadAcceptCallback	= function(data)
-							ZO_ERROR_FRAME:OnUIError(errString)
-							RemoveNotification(data)
-						end,
-						gamepadDeclineCallback	= RemoveNotification,
-						data					= {errString = errString},
-					}
-					table.insert(provider.notifications, msg)
-					provider:UpdateNotifications()
-					seenBugs[errString] = true
-				end
-			elseif SV.luaError == 2 then
-				if not seenBugs[errString] then
-					d(errString)
-					seenBugs[errString] = true
-				end
-			end
+	end
+	if SV.luaError == 0 then
+		EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR, ShowOriginalLuaError)
+	else
+		if SV.luaError == 1 and not errorState.provider then
+			errorState.provider = LibNotifications:CreateProvider()
 		end
-		EVENT_MANAGER:RegisterForEvent("LUA_ERROR", EVENT_LUA_ERROR, OnLuaError)
+		EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "LuaError", EVENT_LUA_ERROR, OnLuaError)
 	end
 end
 
@@ -1372,14 +1211,6 @@ local function BuildSettingsMenu()
 
 	local avaMode = { GetString(NOTY_AVA_MODE_OPTION_0), GetString(NOTY_AVA_MODE_OPTION_1), GetString(NOTY_AVA_MODE_OPTION_2) }
 	local avaModeLookup = { [GetString(NOTY_AVA_MODE_OPTION_0)] = 0, [GetString(NOTY_AVA_MODE_OPTION_1)] = 1, [GetString(NOTY_AVA_MODE_OPTION_2)] = 2 }
-
-	local loreLibraryMode = { GetString(NOTY_AVA_MODE_OPTION_0), GetString(NOTY_AVA_MODE_OPTION_1), GetString(NOTY_AVA_MODE_OPTION_2) }
-	local loreLibraryModeLookup = { [GetString(NOTY_AVA_MODE_OPTION_0)] = 0, [GetString(NOTY_AVA_MODE_OPTION_1)] = 1, [GetString(NOTY_AVA_MODE_OPTION_2)] = 2 }
-
-	local skillsProgressionMode = { GetString(NOTY_AVA_MODE_OPTION_0), GetString(NOTY_AVA_MODE_OPTION_1), GetString(NOTY_AVA_MODE_OPTION_2) }
-	local skillsProgressionModeLookup = { [GetString(NOTY_AVA_MODE_OPTION_0)] = 0, [GetString(NOTY_AVA_MODE_OPTION_1)] = 1, [GetString(NOTY_AVA_MODE_OPTION_2)] = 2 }
-
-	local groupZoneMode = { GetString(NOTY_AVA_MODE_OPTION_0), GetString(NOTY_AVA_MODE_OPTION_1), GetString(NOTY_AVA_MODE_OPTION_2) }
 
 	local soundMode = { GetString(NOTY_SOUND_MODE_OPTION_0), GetString(NOTY_SOUND_MODE_OPTION_1), GetString(NOTY_SOUND_MODE_OPTION_2), GetString(NOTY_SOUND_MODE_OPTION_3) }
 	local soundModeLookup = { [GetString(NOTY_SOUND_MODE_OPTION_0)] = 0, [GetString(NOTY_SOUND_MODE_OPTION_1)] = 1, [GetString(NOTY_SOUND_MODE_OPTION_2)] = 2, [GetString(NOTY_SOUND_MODE_OPTION_3)] = 3 }
@@ -1426,10 +1257,10 @@ local function BuildSettingsMenu()
 			type = "dropdown",
 			name = GetString(NOTYOU_GROUPZONE),
 			tooltip = GetString(NOTYOU_GROUPZONE_TOOLTIP),
-			choices = groupZoneMode,
-			getFunc = function() return groupZoneMode[SV.groupZone + 1] end,
+			choices = avaMode,
+			getFunc = function() return avaMode[SV.groupZone + 1] end,
 			setFunc = function(value) SV.groupZone = avaModeLookup[value] end,
-			default = groupZoneMode[defaults.groupZone + 1],
+			default = avaMode[defaults.groupZone + 1],
 		},
 		---[[ Friends Status Messages ]]---
 		{
@@ -1548,6 +1379,27 @@ local function BuildSettingsMenu()
 			getFunc = function() return SV.emptyMail end,
 			setFunc = function(value) SV.emptyMail = value end,
 			default = defaults.emptyMail,
+		},
+		---[[ Fast travel confirmation dialogs ]]---
+		{
+			type = "header",
+			name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_FAST_TRAVEL_HEADER)),
+		},
+		{
+			type = "checkbox",
+			name = GetString(NOTYOU_FAST_TRAVEL_WAYSHRINE),
+			tooltip = GetString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP),
+			getFunc = function() return SV.fastTravelDialog end,
+			setFunc = function(value) SV.fastTravelDialog = value end,
+			default = defaults.fastTravelDialog,
+		},
+		{
+			type = "checkbox",
+			name = GetString(NOTYOU_FAST_TRAVEL_RECALL),
+			tooltip = GetString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP),
+			getFunc = function() return SV.recallDialog end,
+			setFunc = function(value) SV.recallDialog = value end,
+			default = defaults.recallDialog,
 		},
 		---[[ Confirmation dialog when selling rare items to fence ]]---
 		{
@@ -1749,12 +1601,31 @@ local function BuildSettingsMenu()
 			type = "dropdown",
 			name = GetString(NOTYOU_NOLOREDISCOVERIES),
 			tooltip = GetString(NOTYOU_NOLOREDISCOVERIES_TOOLTIP),
-			choices = loreLibraryMode,
-			getFunc = function() return loreLibraryMode[SV.dontShowLoreDiscoveries + 1] end,
-			setFunc = function(value) SV.dontShowLoreDiscoveries = loreLibraryModeLookup[value] end,
-			default = loreLibraryMode[defaults.dontShowLoreDiscoveries + 1],
+			choices = avaMode,
+			getFunc = function() return avaMode[SV.dontShowLoreDiscoveries + 1] end,
+			setFunc = function(value) SV.dontShowLoreDiscoveries = avaModeLookup[value] end,
+			default = avaMode[defaults.dontShowLoreDiscoveries + 1],
 		},
-		-- Crafting Bag
+		--[[ Home Tours ]]--
+		{
+			type = "header",
+			name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_HOME_TOURS_HEADER)),
+		},
+		{
+			type = "checkbox",
+			name = GetString(NOTYOU_HOME_TOURS_NOTIF),
+			tooltip = GetString(NOTYOU_HOME_TOURS_NOTIF_TOOLTIP),
+			getFunc = function()
+				return SV.homeToursNotifications
+			end,
+			setFunc = function(value)
+				SV.homeToursNotifications = value
+				NOTIFICATIONS:RefreshNotificationList()
+				GAMEPAD_NOTIFICATIONS:RefreshNotificationList()
+			end,
+			default = defaults.homeToursNotifications,
+		},
+		--[[ Crafting Bag ]]--
 		{
 			type = "header",
 			name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(SI_NOTIFICATIONTYPE15)),
@@ -1766,7 +1637,7 @@ local function BuildSettingsMenu()
 			getFunc = function() return SV.craftBag end,
 			setFunc = function(value)
 				SV.craftBag = value
-				HookCraftBagNotifications()
+				NOTIFICATIONS:RefreshNotificationList()
 			end,
 			default = defaults.craftBag,
 		},
@@ -1779,10 +1650,10 @@ local function BuildSettingsMenu()
 			type = "dropdown",
 			name = GetString(NOTYOU_NOSKILLSPROGRESS),
 			tooltip = GetString(NOTYOU_NOSKILLSPROGRESS_TOOLTIP),
-			choices = skillsProgressionMode,
-			getFunc = function() return skillsProgressionMode[SV.dontShowSkillProgression + 1] end,
-			setFunc = function(value) SV.dontShowSkillProgression = skillsProgressionModeLookup[value] end,
-			default = skillsProgressionMode[defaults.dontShowSkillProgression + 1],
+			choices = avaMode,
+			getFunc = function() return avaMode[SV.dontShowSkillProgression + 1] end,
+			setFunc = function(value) SV.dontShowSkillProgression = avaModeLookup[value] end,
+			default = avaMode[defaults.dontShowSkillProgression + 1],
 		},
 		---[[ Inventory ]]---
 		{
@@ -1833,7 +1704,6 @@ local function BuildSettingsMenu()
 			getFunc = function() return SV.disableChatAutoComplete end,
 			setFunc = function(value)
 				SV.disableChatAutoComplete = value
-				DoDisableChatAutoComplete()
 			end,
 			default = defaults.disableChatAutoComplete,
 		},
@@ -1850,7 +1720,7 @@ local function BuildSettingsMenu()
 		},
 
 	}
-	--Guild Alerts
+	--[[ Guild Alerts ]]--
 	local submenuGuildAlerts = {
 		type = "submenu",
 		name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_GROSTER_HEADER)),
@@ -1873,7 +1743,7 @@ local function BuildSettingsMenu()
 			},
 		},
 	}
-	--RaidScore Notifications
+	--[[ RaidScore Notifications ]]--
 	local submenuRaidScore = {
 		type = "submenu",
 		name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_RAIDSCORE_HEADER)),
@@ -1914,7 +1784,7 @@ local function BuildSettingsMenu()
 			},
 		},
 	}
-	--Guild MotD Notifications
+	--[[ Guild MotD Notifications ]]--
 	local submenuGuildMotD = {
 		type = "submenu",
 		name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_MOTD_HEADER)),
@@ -1926,7 +1796,10 @@ local function BuildSettingsMenu()
 				tooltip = GetString(NOTYOU_MOTD_BLOCK_TOOLTIP),
 				choices = motdMode,
 				getFunc = function() return motdMode[SV.motd + 1] end,
-				setFunc = function(value) SV.motd = motdModeLookup[value] end,
+				setFunc = function(value)
+					SV.motd = motdModeLookup[value]
+					NOTIFICATIONS:RefreshNotificationList()
+				end,
 				default = motdMode[defaults.motd + 1],
 			},
 			{
@@ -1937,7 +1810,7 @@ local function BuildSettingsMenu()
 			},
 		},
 	}
-	-- NoGuildLeave Notifications
+	--[[ NoGuildLeave Notifications ]]--
 	local submenuGuildLeave = {
 		type = "submenu",
 		name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(NOTYOU_GUILDLEAVE_HEADER)),
@@ -1972,7 +1845,6 @@ local function BuildSettingsMenu()
 			getFunc = function() return SV.guildAlertsGuilds[i] end,
 			setFunc = function(value)
 				SV.guildAlertsGuilds[i] = value
-				NoGuildLeave()
 			end,
 			default = defaults.guildAlertsGuilds[i],
 			disabled = function() return SV.guildAlerts == 0 end,
@@ -2050,11 +1922,7 @@ local function BuildSettingsMenu()
 end
 
 function NTY_ToggleRotateGameCamera()
-	if SV.noCameraSpin then
-		SV.noCameraSpin = false
-	else
-		SV.noCameraSpin = true
-	end
+	SV.noCameraSpin = not SV.noCameraSpin
 	DontRotateGameCamera()
 end
 
@@ -2076,12 +1944,14 @@ local function OnAddonLoaded(event, name)
 		DeleteEmptyMailHook()
 		HookRaidNotifications()
 		HookMotDNotifications()
+		HookHomeToursNotifications()
 		HookCraftBagNotifications()
 		HookReticleTake()
 		HookGuildInvitesNotifications()
 		HandleLuaErrorEvent()
 		DontInterruptHarvesting()
 		DontRotateGameCamera()
+		HookFastTravelDialogs()
 		HookFenceDialog()
 		HookPlaySound()
 		HookDisbandDialog()

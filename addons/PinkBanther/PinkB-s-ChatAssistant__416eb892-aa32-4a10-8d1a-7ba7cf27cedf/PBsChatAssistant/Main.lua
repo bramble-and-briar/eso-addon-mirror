@@ -117,6 +117,12 @@ local DEFAULTS = {
 	-- 0 means leave the channel wherever the game left it. Any other value is a channel id
 	-- applied once when the player enters the world; see ApplyDefaultChannel.
 	defaultChannel = 0,
+	-- Recent chat, kept in the saved variables and played back after /reloadui, a character
+	-- change or a login. See ChatHistory.lua. The messages themselves live in chatHistory, which
+	-- is created on first use rather than defaulted here.
+	historyEnabled = true,
+	historyCount = 50,
+	historyMinutes = 60,
 	followInput = false,
 	idleSeconds = 15,
 	logResetDone = false,
@@ -157,7 +163,7 @@ local CATCHER_CONTROL_NAMES = {
 -- Reported by /pbchat rather than announced at login. It was announced while the add-on was
 -- being built, because a build behaving unlike its code was the hardest thing to diagnose from
 -- inside the game. That is worth a command, not a line of chat on every login.
-local VERSION = "1.30.1"
+local VERSION = "1.31.0"
 
 -- How long the catcher waits for the box to close before coming back anyway.
 local RESUME_DEADLINE_SECONDS = 120
@@ -1285,6 +1291,22 @@ function addon:InitSlashCommand()
 			Print("guild recruitment filter %s, whispers %s, hidden this session %d",
 				self.sv.recruitFilterEnabled and "on" or "off",
 				self.sv.recruitFilterWhispers and "on" or "off", self.hiddenRecruitment or 0)
+		elseif command == "history" then
+			if not self.chatHistory then
+				return
+			end
+			if argument == "clear" then
+				self.chatHistory:Clear()
+				Print("chat history cleared")
+			elseif argument == "on" or argument == "off" then
+				self.sv.historyEnabled = argument == "on"
+				Print("chat history %s", argument)
+			else
+				Print("chat history %s: %d stored, %d would be restored (last %d, %d min), %s restored at login",
+					self.sv.historyEnabled and "on" or "off", #self.chatHistory:Entries(),
+					#self.chatHistory:Recent(), self.chatHistory:MaxCount(),
+					math.floor(self.chatHistory:MaxAgeSeconds() / 60), tostring(self.chatHistory.restored))
+			end
 		elseif command == "npc" then
 			if argument == "on" or argument == "off" then
 				self.sv.npcChatFilterEnabled = argument == "on"
@@ -1410,6 +1432,9 @@ local function OnAddOnLoaded(_, name)
 
 	if addon.InstallRecruitmentFilter then
 		addon:InstallRecruitmentFilter()
+	end
+	if addon.chatHistory then
+		addon.chatHistory:Install()
 	end
 	addon:InitSlashCommand()
 	addon:ApplyCatcher()

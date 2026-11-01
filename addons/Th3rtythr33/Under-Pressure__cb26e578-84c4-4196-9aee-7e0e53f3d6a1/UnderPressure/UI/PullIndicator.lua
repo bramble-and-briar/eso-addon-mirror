@@ -73,6 +73,9 @@ end
 local function drive(root, timeline, show, onStop)
     if not root then return end
     root:SetHidden(not show)
+    -- 0.5.10: once drawn, check the icon textures loaded; fall back to the
+    -- game's own Rush of Agony icon if not (UI/TextureGuard.lua).
+    if show and UP.TextureGuard and UP.TextureGuard.Check then UP.TextureGuard.Check() end
     if not timeline then return end
     if show then
         if not timeline:IsPlaying() then
@@ -157,11 +160,20 @@ function UP.PullIndicator.Init()
         if iconPulse then iconPulse:SetAlpha(0) end
         pulseTimeline = timelineFor("UP_PullIconPulse", iconPulse, "centre icon pulse")
         iconRoot:SetHidden(true)
+        if UP.TextureGuard then
+            UP.TextureGuard.Watch(iconRoot:GetNamedChild("Icon"), "pull", "pull")
+            UP.TextureGuard.Watch(iconPulse, "pull", "pull")
+        end
     else
         UP.Note("Centre pull icon control missing; that display is disabled.")
     end
 
     if cornersRoot then
+        if UP.TextureGuard then
+            for _, corner in ipairs({ "TL", "TR", "BL", "BR" }) do
+                UP.TextureGuard.Watch(cornersRoot:GetNamedChild(corner), "pull", "pull")
+            end
+        end
         cornersTimeline = timelineFor("UP_PullFlash", cornersRoot, "corner icon flash")
         cornersRoot:SetAlpha(1)
         cornersRoot:SetHidden(true)

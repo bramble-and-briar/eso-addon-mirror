@@ -91,6 +91,20 @@ assert(intervals.SimpleGroupDPSUI == 300 and updates.SimpleGroupDPSSend == nil,
     "display and outgoing values share one 300ms tick")
 assert(window and window.hidden, "standalone addon starts without buff addon")
 assert(menu["Move UI"].type == LibHarvensAddonSettings.ST_BUTTON)
+local overallSize = menu["HUD-Gesamtgröße"]
+assert(overallSize and overallSize.min == 50 and overallSize.max == 150 and overallSize.step == 5)
+assert(overallSize.getFunction() == 70, "Existing overall scale is preserved and exposed in percent")
+local originalWidth, originalHeight, originalX, originalY = window.width, window.height, saved.posX, saved.posY
+overallSize.setFunction(50)
+assert(window.scale == 0.5 and saved.scale == 0.5 and overallSize.getFunction() == 50)
+assert(window:GetWidth() == window.width * 0.5 and window:GetHeight() == window.height * 0.5,
+    "Scaling shrinks both physical dimensions together, including all child content and spacing")
+assert(window.width == originalWidth and window.height == originalHeight and saved.dpsFontSize == 14
+    and saved.posX == originalX and saved.posY == originalY,
+    "Scaling preserves layout settings and anchor position")
+overallSize.setFunction(150)
+assert(window.scale == 1.5 and overallSize.getFunction() == 150)
+overallSize.setFunction(70)
 local retention = menu["Nach Kampfende anzeigen"]
 assert(retention and retention.type == LibHarvensAddonSettings.ST_DROPDOWN and #retention.items == 5)
 assert(not menu["Nach Kampfende anzeigen (Sekunden)"] and retention.getFunction() == "1 Minute")
@@ -118,7 +132,9 @@ assert(saved.dpsFontSize == 14 and saved.scale == 0.7 and window.width == 400,
     "DPS number control leaves name size, overall scale and width unchanged")
 local menuCount = 0
 for _ in pairs(menu) do menuCount = menuCount + 1 end
-assert(menuCount == 6, "menu adds just the requested linger control to five existing display controls")
+assert(menuCount == 9, "menu includes the two requested role visibility switches")
+assert(menu["Tanks anzeigen"].getFunction() and menu["Heiler anzeigen"].getFunction(),
+    "Both roles remain visible by default")
 window.left, window.top = 900, 200
 window.handlers.OnMoveStop()
 updates.SimpleGroupDPSMove()
@@ -283,7 +299,7 @@ assert(type(SLASH_COMMANDS["/sgdmove"]) == "function")
 assert(type(SLASH_COMMANDS["/sgdstatus"]) == "function")
 SLASH_COMMANDS["/sgdstatus"]()
 local diagnosticText = table.concat(logs, "\n")
-assert(diagnosticText:find("SimpleGroupDPS 1.5.1", 1, true)
+assert(diagnosticText:find("SimpleGroupDPS 1.6.2", 1, true)
     and diagnosticText:find("Takt: 300 ms", 1, true)
     and diagnosticText:find("Letzter Schaden:", 1, true)
     and diagnosticText:find("Schadensereignisse:", 1, true),
@@ -359,4 +375,7 @@ clock = 720000
 updates.SimpleGroupDPSUI()
 assert(window.hidden and #SimpleGroupDPS_BattleScrolls:GetRows() == 0, "Five-minute selection expires at 300 seconds")
 print("PASS: full addon, 1-5 minute retention, legacy migration, local group totals, peer reception and active-fight protection")
-return {receive = receive, window = window, tick = function() updates.SimpleGroupDPSUI() end}
+return {receive = receive, window = window, tick = function() updates.SimpleGroupDPSUI() end,
+    events = events, updates = updates, saved = saved, menu = menu,
+    setClock = function(value) clock = value end,
+    setCombat = function(value) inCombat = value end}

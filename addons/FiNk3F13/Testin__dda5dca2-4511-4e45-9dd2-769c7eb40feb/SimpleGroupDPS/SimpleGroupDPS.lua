@@ -1,10 +1,10 @@
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "1.5.1"
+local ADDON_VERSION = "1.6.2"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel
 local defaults = {
-    showGroup = true, shareDPS = true,
+    showGroup = true, shareDPS = true, showTanks = true, showHealers = true,
     posX = 720, posY = 300, scale = 1,
     dpsWidth = 400, dpsFontSize = 22, dpsRowSpacing = 8, lastSummary = {},
     lingerSeconds = 60,
@@ -119,12 +119,28 @@ updateUI = function(sceneVisible, snapshot)
     if not moveMode and not sceneVisible then window:SetHidden(true); return end
     local stats = snapshot or meter:GetStats()
     local rows = settings.showGroup and bridge:GetRows() or {}
-    if moveMode or meter:IsActive() or stats.total > 0 or #rows > 0 then
+    if moveMode or meter:IsActive() or stats.total > 0 or (stats.rawHealingTotal or 0) > 0 or #rows > 0 then
         rows[#rows + 1] = {
             name = GetUnitDisplayName("player"), dps = stats.dps,
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, isPlayer = true,
+            rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
             role = GetSelectedLFGRole and GetSelectedLFGRole(),
         }
+    end
+    -- Role filters affect only the rendered rows, never the meter or sender.
+    -- Move UI keeps a preview available even if every current role is hidden.
+    if not moveMode then
+        local visibleRows = {}
+        for _, member in ipairs(rows) do
+            local tank = LFG_ROLE_TANK ~= nil and member.role == LFG_ROLE_TANK
+            local healer = LFG_ROLE_HEAL ~= nil and member.role == LFG_ROLE_HEAL
+            local knownDamageRole = tank or (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)
+            if not knownDamageRole and (member.displayType or member.messageType) == "healing" then healer = true end
+            if not (tank and settings.showTanks == false) and not (healer and settings.showHealers == false) then
+                visibleRows[#visibleRows + 1] = member
+            end
+        end
+        rows = visibleRows
     end
     -- Shared DPS packets do not identify the sender's encounter.
     local bossFight = stats.bossDPS ~= nil
@@ -140,7 +156,7 @@ tick = function()
     bridge:Connect()
     -- One snapshot for display and sending, as in Battle Scrolls' CombatTicker.
     local stats = meter:GetStats()
-    if settings.shareDPS and meter:IsActive() then bridge:SendDPS(stats.dps, false, stats.bossDPS) end
+    if settings.shareDPS and meter:IsActive() then bridge:SendMetrics(stats, false) end
     updateUI(nil, stats)
 end
 
@@ -217,6 +233,15 @@ local function initSettings()
         { type = LHAS.ST_BUTTON, label = "Move UI", buttonText = "DPS-Anzeige verschieben",
           tooltip = "Mit Maus oder rechtem Stick verschieben. Speichert und endet nach 3 Sekunden ohne Bewegung.",
           clickHandler = function() setMoveMode(true) end },
+        { type = LHAS.ST_SLIDER, label = "HUD-Gesamtgröße", min = 50, max = 150, step = 5,
+          tooltip = "Skaliert das gesamte HUD gemeinsam: Namen, Zahlen, Balken, Fensterbreite und Abstände. Kleinere Werte machen die Anzeige kleiner und enger.",
+          getFunction = function() return math.floor(settings.scale * 100 + 0.5) end,
+          setFunction = function(value)
+              settings.scale = math.max(0.5, math.min(1.5, (tonumber(value) or 100) / 100))
+              window:SetScale(settings.scale)
+              refreshAnchor()
+              updateUI()
+          end },
         { type = LHAS.ST_SLIDER, label = "DPS-Zahlengröße", min = 14, max = 32, step = 1,
           tooltip = "Verändert die DPS-Zahlen und die Summe. Namen und Gesamtskalierung bleiben gleich. Größere Zahlen erhalten bei Bedarf mehr Zeilenhöhe. Für lange Boss-/Gesamtwerte die Fensterbreite erhöhen.",
           getFunction = function() return panel:GetValueFontSize(settings) end,
@@ -229,6 +254,14 @@ local function initSettings()
           tooltip = "Kleinere Werte rücken die Spielerzeilen näher zusammen. Die Schrift bleibt gleich groß.",
           getFunction = function() return settings.dpsRowSpacing end,
           setFunction = function(value) settings.dpsRowSpacing = value; updateUI() end },
+        { type = LHAS.ST_CHECKBOX, label = "Tanks anzeigen",
+          tooltip = "Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung und Versand laufen auch ausgeblendet weiter. Die lokal gemessene Gruppensumme bleibt vollständig.",
+          getFunction = function() return settings.showTanks ~= false end,
+          setFunction = function(value) settings.showTanks = value and true or false; updateUI() end },
+        { type = LHAS.ST_CHECKBOX, label = "Heiler anzeigen",
+          tooltip = "Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung und Versand laufen auch ausgeblendet weiter.",
+          getFunction = function() return settings.showHealers ~= false end,
+          setFunction = function(value) settings.showHealers = value and true or false; updateUI() end },
         { type = LHAS.ST_DROPDOWN, label = "Nach Kampfende anzeigen", items = retentionItems, default = 1,
           tooltip = "Setzt alte Ergebnisse nach 1 bis 5 Minuten zurück. Standard: 1 Minute. Laufende Kämpfe bleiben erhalten.",
           getFunction = function() return retentionItems[retentionSeconds(settings.lingerSeconds) / 60].name end,
@@ -257,6 +290,7 @@ local function onAddonLoaded(_, name)
         if settings.scale == 1 then settings.scale = 0.7 end
         settings.displaySizeAdjusted = nil
     end
+    settings.scale = math.max(0.5, math.min(1.5, tonumber(settings.scale) or defaults.scale))
     if settings.dpsValueFontSize == nil then settings.dpsValueFontSize = panel:GetValueFontSize(settings) end
     meter.onFinished = function(stats)
         lastResultAt = GetGameTimeMilliseconds()
@@ -265,8 +299,10 @@ local function onAddonLoaded(_, name)
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, damageDurationMS = stats.durationMS,
             groupDamageTotal = stats.groupTotal, groupDPS = stats.groupDPS,
             groupBossDamageTotal = stats.groupBossTotal, groupBossDPS = stats.groupBossDPS,
+            rawHealingTotal = stats.rawHealingTotal, effectiveHealingTotal = stats.effectiveHealingTotal,
+            rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
         }
-        if settings.shareDPS then bridge:SendDPS(stats.dps, true, stats.bossDPS) end
+        if settings.shareDPS then bridge:SendMetrics(stats, true) end
         updateUI()
     end
     meter:Initialize(settings.lastSummary)
@@ -319,6 +355,8 @@ local function onAddonLoaded(_, name)
                 d("[SimpleGroupDPS] Versand wird vom lokal installierten BattleScrolls uebernommen.")
             else
                 d("[SimpleGroupDPS] LibGroupBroadcast erlaubt Versand: " .. yes(status.enabled))
+                d("[SimpleGroupDPS] HPS-Sender bereit: " .. yes(status.healingConnected)
+                    .. " | HPS-Versand erlaubt: " .. yes(status.healingEnabled))
                 if status.lastSendAt then
                     local age = math.max(0, GetGameTimeMilliseconds() - status.lastSendAt) / 1000
                     d(string.format("[SimpleGroupDPS] Letzte DPS an Sendewarteschlange uebergeben: vor %.1f s", age))

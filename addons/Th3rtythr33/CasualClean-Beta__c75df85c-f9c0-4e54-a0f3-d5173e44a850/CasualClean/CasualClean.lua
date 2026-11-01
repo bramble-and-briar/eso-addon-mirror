@@ -434,12 +434,6 @@ local function RefreshState()
     if CC.QuestTracker then
         CC.QuestTracker.Refresh()
     end
-    -- PvP UA! builds its window in its own load handler, so the first refresh
-    -- that can succeed is the one after EVENT_PLAYER_ACTIVATED; the module
-    -- retries briefly on its own if the window is not there yet.
-    if CC.PvPUA then
-        CC.PvPUA.Refresh()
-    end
     if CC.VotansMiniMap then
         CC.VotansMiniMap.Refresh()
     end
@@ -532,9 +526,6 @@ local function OnAddOnLoaded(eventCode, addonName)
         arcsEnabled = CC.MagStamArcs.DEFAULT_ENABLED,
         companionMarker = DEFAULT_COMPANION_MARKER,
         hideCompanionFrame = DEFAULT_HIDE_COMPANION_FRAME,
-        -- Third-party tweak (1.6.6): PvP UA!'s credit line. On by default;
-        -- inert unless that add-on is installed.
-        hidePvpuaCredit = CC.PvPUA.DEFAULT_ENABLED,
         -- Third-party tweak (1.7.5): Votan's Minimap position sliders. On by
         -- default; inert unless that add-on is installed.
         fixVotansSliders = CC.VotansMiniMap.DEFAULT_ENABLED,
@@ -550,7 +541,18 @@ local function OnAddOnLoaded(eventCode, addonName)
         selfBuffsShowUnsetBuffs = true,
         selfBuffsShowUnsetDebuffs = true,
         selfBuffsSeen = {},
+        -- Buff Trackers (1.8.1): the potion row beside the quick slot, the
+        -- Prominent row above the self bar and its size in percent, and the
+        -- learned potions, keyed by potion name: {k = known ids} once two
+        -- drinks agree, {p = candidate ids} while learning.
+        buffTrackerPotion = CC.BuffTrackers.DEFAULT_POTION,
+        buffTrackerProminent = CC.BuffTrackers.DEFAULT_PROMINENT,
+        buffTrackerProminentScale = CC.BuffTrackers.DEFAULT_PROMINENT_SCALE,
+        buffTrackerPotions = {},
     })
+    -- 1.8.2 removed the PvP UA! credit-line hide (that add-on now offers
+    -- it in its own settings); drop the orphaned switch from saved files.
+    savedVars.hidePvpuaCredit = nil
     headOffsetY = savedVars.headOffsetY
     smoothingAlpha = savedVars.smoothingAlpha
     CC.sv = savedVars
@@ -561,11 +563,11 @@ local function OnAddOnLoaded(eventCode, addonName)
     -- the settings panel binds getters/setters to them.
     CC.MagStamArcs.Init()
     CC.QuestTracker.Init()
-    CC.PvPUA.Init()
     CC.VotansMiniMap.Init()
     -- Before Settings: the buff filter appends its own section to the panel
     -- from Settings.Init, and its hook must be in place before that.
     CC.SelfBuffs.Init()
+    CC.BuffTrackers.Init()
     CC.Settings.Init()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTIVE_COMPANION_STATE_CHANGED, RefreshState)
@@ -861,16 +863,9 @@ SLASH_COMMANDS["/casualclean"] = function(args)
             d("  " .. line)
         end
         return
-    elseif cmd == "pvpua" then
-        -- Whether PvP UA!'s window and credit label were found, and the raw
-        -- alpha / height / scale / offset numbers behind the hide.
-        for _, line in ipairs(CC.PvPUA.GetReport()) do
-            d("  " .. line)
-        end
-        return
     elseif cmd == "buffs" then
-        -- Hook state, catalogue size against its cap, and every collected
-        -- effect with whether it is currently shown or hidden.
+        -- Memory in use, hook state, catalogue counts against its cap, and
+        -- the Buff Trackers' state and learned potions.
         for _, line in ipairs(CC.SelfBuffs.GetReport()) do
             d("  " .. line)
         end

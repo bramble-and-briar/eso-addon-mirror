@@ -98,6 +98,12 @@ local strings = {
 	NOTYOU_MAIL =				"Remove \"Delete Mail\" dialog",
 	NOTYOU_MAIL_TOOLTIP =			"Remove confirmation dialog when deleting empty mail.",
 	
+	NOTYOU_FAST_TRAVEL_HEADER = "FAST TRAVEL",
+	NOTYOU_FAST_TRAVEL_WAYSHRINE = "Skip Confirmation When Using a Wayshrine",
+	NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP = "Travel immediately when selecting a destination from a wayshrine.",
+	NOTYOU_FAST_TRAVEL_RECALL = "Skip Confirmation When Not Using a Wayshrine",
+	NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP = "Travel immediately when selecting a destination away from a wayshrine. The normal gold cost still applies.",
+
 	NOTYOU_FENCE_HEADER =			"Fence dialog",
 	NOTYOU_FENCE =				"Remove \"Can't buyback from fence\" dialog",
 	NOTYOU_FENCE_TOOLTIP =			"Remove confirmation dialog when selling rare items to fence.",
@@ -191,13 +197,16 @@ local strings = {
 	NOTYOU_NOLOREREADER =			"Don't read discovered books",
 	NOTYOU_NOLOREREADER_TOOLTIP =		"Won't display the book you just discovered, except in the library",
 	
-
 	NOTYOU_NOLOREDISCOVERIES =		"Block Message \"Lorebook Discovered\"",
 	NOTYOU_NOLOREDISCOVERIES_TOOLTIP =	"Select how you want to handle Lore Library messages:\n|cFFFFFFnone|r - no changes to Lore Library messages\n|cFFFFFFchat message|r - messages are redirected to the chat\n|cFFFFFFsilent|r - messages are completely removed",
 	
 	NOTYOU_NOSKILLSPROGRESS =		"Block Message \"Ability progressed to Rank X\"",
 	NOTYOU_NOSKILLSPROGRESS_TOOLTIP =	"Select how you want to handle Skills Progression messages:\n|cFFFFFFnone|r - no changes to Skills Progression messages\n|cFFFFFFchat message|r - messages are redirected to the chat\n|cFFFFFFsilent|r - messages are completely removed",
 	
+	NOTYOU_HOME_TOURS_HEADER =		"HOME TOURS",
+	NOTYOU_HOME_TOURS_NOTIF =		"Block Home Tours recommendation alerts",
+	NOTYOU_HOME_TOURS_NOTIF_TOOLTIP =	"Blocks recommendation alert windows from opening when set to ON.",
+
 	NOTYOU_NOCRAFTBAG_NOTIF =		"Disable Crafting Bag Notifications",
 	NOTYOU_NOCRAFTBAG_NOTIF_TOOLTIP =	"Won't notify that my items have been moved to the crafting bag when logging & zoning",
 	
@@ -213,6 +222,7 @@ local strings = {
 	NOTYOU_LUA_ERROR =			"Redirect Lua error to:",
 	NOTYOU_LUA_ERROR_TOOLTIP =		"Redirect Lua errors to a notification instead than the original popup",
 	
+
 }
 
 for stringId, stringValue in pairs(strings) do

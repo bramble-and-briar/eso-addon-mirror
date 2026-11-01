@@ -166,6 +166,41 @@ local function WindowSize(key, name, min, max)
     }
 end
 
+-- Una casilla por icono de la cabecera, de izquierda a derecha como se ven.
+local function HeaderButtonOptions()
+    local buttons = {
+        { "damage", L.METRIC_DAMAGE },
+        { "healing", L.METRIC_HEALING },
+        { "group", L.MODE_GROUP },
+        { "abilities", L.MODE_ABILITIES },
+        { "fights", L.MENU_FIGHTS },
+        { "reset", L.MENU_RESET },
+        { "collapse", L.BUTTON_COLLAPSE },
+        { "lock", L.BUTTON_LOCK },
+        { "settings", L.SETTINGS },
+        { "close", L.BUTTON_CLOSE },
+    }
+    local controls = { { type = "description", text = L.OPT_BUTTONS_DESC } }
+    for _, button in ipairs(buttons) do
+        local key = button[1]
+        controls[#controls + 1] = {
+            type = "checkbox",
+            name = button[2],
+            getFunc = function() return NM.sv.headerButtons[key] ~= false end,
+            setFunc = function(v) NM.sv.headerButtons[key] = v; Refresh() end,
+            default = true,
+        }
+    end
+    return controls
+end
+
+-- Qué va en cada hueco del texto de las barras: valor1 (valor2, valor3).
+local function ValueSlot(i)
+    return Dropdown("valueSlot" .. i, string.format(L.OPT_VALUE_N, i),
+        { L.VALUE_NONE, L.VALUE_TOTAL, L.VALUE_RATE, L.VALUE_PERCENT },
+        { "none", "total", "rate", "percent" }, L.OPT_VALUE_TT)
+end
+
 local function ClassColorOptions()
     local controls = {}
     local notByClass = function() return NM.sv.colorMode ~= "class" end
@@ -240,9 +275,14 @@ function S.Init()
         },
         ColorPicker(function() return NM.sv.titleColor end, L.OPT_TITLE_COLOR, NM.defaults.titleColor,
             function() return NM.sv.titleMode ~= "custom" end),
+        {
+            type = "submenu",
+            name = L.OPT_BUTTONS,
+            controls = HeaderButtonOptions(),
+        },
         Checkbox("hideOutOfCombat", L.OPT_HIDE_OOC, L.OPT_HIDE_OOC_TT),
         Checkbox("hideInPvP", L.OPT_HIDE_PVP, L.OPT_HIDE_PVP_TT),
-        WindowSize("width", L.OPT_WIDTH, 200, 900),
+        WindowSize("width", L.OPT_WIDTH, NM.Meter.MIN_W, NM.Meter.MAX_W),
         WindowSize("height", L.OPT_HEIGHT, 54, 900),
         Slider("fontSize", L.OPT_FONT_SIZE, 10, 30),
         Slider("titleFontSize", L.OPT_TITLE_FONT_SIZE, 10, 28),
@@ -275,9 +315,10 @@ function S.Init()
         { type = "header", name = L.HEADER_TEXT },
         Checkbox("showRank", L.OPT_SHOW_RANK),
         Checkbox("showIcon", L.OPT_SHOW_ICON),
-        Checkbox("showTotal", L.OPT_SHOW_TOTAL),
-        Checkbox("showDps", L.OPT_SHOW_DPS),
-        Checkbox("showPercent", L.OPT_SHOW_PERCENT),
+        ValueSlot(1),
+        ValueSlot(2),
+        ValueSlot(3),
+        Checkbox("showFightRate", L.OPT_FIGHT_RATE, L.OPT_FIGHT_RATE_TT),
         Dropdown("nameFormat", L.OPT_NAME_FORMAT,
             { L.NAME_CHARACTER, L.NAME_ACCOUNT }, { "character", "account" }),
 

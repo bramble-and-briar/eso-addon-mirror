@@ -16,7 +16,8 @@
 -- of this file carried exactly such a branch, complete with a comment
 -- describing a manifest directive the manifest did not use.
 --
--- CONSOLE LAYOUT. LHAS turns every ST_SECTION into a navigable sub-menu row, so
+-- CONSOLE LAYOUT. LHAS turns every ST_SECTION into a navigable sub-menu row (ONE
+-- level deep: sections do not nest, see the History notes below), so
 -- the top-level screen for this addon is SEVEN arrow rows (five through 0.3.3;
 -- Plague Indicator joined in 0.4.0, Pull Indicator in 0.4.2; a No More Oopsies
 -- row existed for one day in 0.5.5) and every actual control lives one level down. Two consequences drove the copy below:
@@ -126,6 +127,149 @@ local function applyTtdDefaults()
     local panel = UP.Settings.panel
     if panel and panel.UpdateControls then
         pcall(panel.UpdateControls, panel)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Explosion report: where it goes (0.5.9)
+-- ---------------------------------------------------------------------------
+-- LHAS dropdown contract (verified against 2.2.0 Console/Settings.lua, same as
+-- AreYouSlow): items are { name =, data = } tables, getFunction returns the
+-- item NAME, setFunction receives (control, itemName, itemData), default is
+-- the item name.
+local REPORT_MODE_ITEMS = {
+    { name = "Chat",                data = "chat"   },
+    { name = "Death recap callout", data = "recap"  },
+    { name = "Hidden",              data = "hidden" },
+}
+local REPORT_MODE_NAME_BY_VALUE, REPORT_MODE_VALUE_BY_NAME = {}, {}
+for _, item in ipairs(REPORT_MODE_ITEMS) do
+    REPORT_MODE_NAME_BY_VALUE[item.data] = item.name
+    REPORT_MODE_VALUE_BY_NAME[item.name] = item.data
+end
+
+-- ---------------------------------------------------------------------------
+-- History (0.5.9): the stored explosion reports as menu rows
+-- ---------------------------------------------------------------------------
+-- Matt asked for Add-Ons > Under Pressure > Plague Indicator > History. LHAS
+-- cannot do that literally: its sections do not nest (2.2.0 SetupSections
+-- closes the current section at every ST_SECTION, and the console drill-down
+-- is one level deep), so History is the tail of the Plague Indicator page: a
+-- header, one label row per stored report, and a Clear button.
+--
+-- The rows are built at runtime, like CasualClean's Buff Filtering rows:
+-- inserted after the header with AddSettings(rows, index) and removed with
+-- RemoveSettings(index, count), rebuilt when the add-on is selected in the
+-- Add-Ons list ("LibHarvensAddonSettings_AddonSelected") if a report was
+-- recorded or the history cleared since the last build. Each row's label is
+-- the date, time and one-line summary; its tooltip (which LHAS shows in the
+-- left quadrant when the row is selected) is the full report, which is why
+-- the rows are selectable.
+local HISTORY_HEADER = "History: the last 20 explosion reports, newest first. Select one to read it in full."
+local historyRowCount = 0
+local historyDirty = true
+
+function UP.Settings.MarkHistoryDirty() historyDirty = true end
+
+local function historyWhen(entry)
+    local when = ""
+    if type(entry.stamp) == "number" and entry.stamp > 0 and type(GetDateStringFromTimestamp) == "function" then
+        local ok, date = pcall(GetDateStringFromTimestamp, entry.stamp)
+        if ok and type(date) == "string" then when = date end
+    end
+    if type(entry.time) == "string" and entry.time ~= "" then
+        when = (when ~= "") and (when .. " " .. entry.time) or entry.time
+    end
+    return when
+end
+
+local function historyRows()
+    local rows = {}
+    local list = (UP.Plague and UP.Plague.History) and UP.Plague.History() or {}
+    for _, entry in ipairs(list) do
+        if type(entry) == "table" then
+            local when = historyWhen(entry)
+            local summary = entry.short or entry.text or ""
+            rows[#rows + 1] = {
+                type = LHAS.ST_LABEL,
+                label = (when ~= "") and (when .. ": " .. summary) or summary,
+                tooltip = (entry.text or summary) .. ((when ~= "") and ("\n\n" .. when) or ""),
+                canSelect = true,
+            }
+        end
+    end
+    return rows
+end
+
+local function historyHeaderIndex(panel)
+    for i, setting in ipairs(panel.settings or {}) do
+        if setting.labelText == HISTORY_HEADER or setting.label == HISTORY_HEADER then return i end
+    end
+    return nil
+end
+
+local function RebuildHistoryRows()
+    local panel = UP.Settings.panel
+    if not (panel and panel.AddSettings and panel.RemoveSettings) then return end
+    local headerIdx = historyHeaderIndex(panel)
+    if not headerIdx then return end
+    local start = headerIdx + 1
+    if historyRowCount > 0 then panel:RemoveSettings(start, historyRowCount) end
+    local rows = historyRows()
+    if #rows > 0 then panel:AddSettings(rows, start) end
+    historyRowCount = #rows
+    historyDirty = false
+end
+
+local CLEAR_HISTORY_DIALOG = "UNDERPRESSURE_CLEAR_PLAGUE_HISTORY"
+
+local function clearHistory()
+    if UP.Plague and UP.Plague.ClearHistory then UP.Plague.ClearHistory() end
+    RebuildHistoryRows()
+    local panel = UP.Settings.panel
+    if panel and panel.UpdateControls then pcall(panel.UpdateControls, panel) end
+end
+
+local function registerClearHistoryDialog()
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return end
+    ZO_Dialogs_RegisterCustomDialog(CLEAR_HISTORY_DIALOG,
+    {
+        canQueue = true,
+        gamepadInfo =
+        {
+            dialogType = GAMEPAD_DIALOGS.BASIC,
+        },
+        title =
+        {
+            text = "Under Pressure: Plague history",
+        },
+        mainText =
+        {
+            text = function()
+                local n = (UP.Plague and UP.Plague.History) and #UP.Plague.History() or 0
+                return ("Delete all %d stored explosion report%s? This cannot be undone."):format(n, n == 1 and "" or "s")
+            end,
+        },
+        buttons =
+        {
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = "Clear",
+                callback = function() clearHistory() end,
+            },
+            {
+                keybind = "DIALOG_NEGATIVE",
+                text = "Cancel",
+            },
+        },
+    })
+end
+
+local function showClearHistoryDialog()
+    if type(ZO_Dialogs_ShowPlatformDialog) == "function" then
+        ZO_Dialogs_ShowPlatformDialog(CLEAR_HISTORY_DIALOG)
+    elseif type(ZO_Dialogs_ShowGamepadDialog) == "function" then
+        ZO_Dialogs_ShowGamepadDialog(CLEAR_HISTORY_DIALOG)
     end
 end
 
@@ -430,14 +574,23 @@ local function buildOptions()
             default = UP.PlagueTint.DEFAULT_STRENGTH,
         },
         {
-            -- The one place this add-on prints to chat without being asked by a
-            -- command. Default on because the report is the feature; the
-            -- switch exists for anyone who only wants the tint.
-            type = LHAS.ST_CHECKBOX, label = "Explosion report in chat",
-            tooltip = "When a plague on you is removed early, print who removed it, what with, and the explosion damage this client saw. Set to Off for the tint alone.",
-            getFunction = function() return sv().plague_report ~= false end,
-            setFunction = function(v) sv().plague_report = v end,
-            default = true,
+            -- Where the explosion report goes (0.5.9; a chat on/off checkbox
+            -- through 0.5.8). Stored as plague_report_mode; the old boolean is
+            -- migrated once in UnderPressure.lua. The report is RECORDED in
+            -- History whichever of the three is chosen, "Hidden" included.
+            type = LHAS.ST_DROPDOWN, label = "Explosion report",
+            tooltip = "Where the report goes when a Plaguebreak plague on you explodes. Chat: one line in the chat window. Death recap callout: a box with the Plague Carrier icon beside the death recap, so it is only seen when the explosion is part of your death. Hidden: nowhere. Every report is kept in the History at the bottom of this page whichever you choose. Default: Chat.",
+            items = REPORT_MODE_ITEMS,
+            default = REPORT_MODE_NAME_BY_VALUE["chat"],
+            getFunction = function()
+                local mode = (UP.Plague and UP.Plague.ReportMode) and UP.Plague.ReportMode() or "chat"
+                return REPORT_MODE_NAME_BY_VALUE[mode] or REPORT_MODE_NAME_BY_VALUE["chat"]
+            end,
+            setFunction = function(control, itemName, itemData)
+                local mode = (type(itemData) == "table" and itemData.data) or REPORT_MODE_VALUE_BY_NAME[itemName] or "chat"
+                sv().plague_report_mode = mode
+                if UP.PlagueReport and UP.PlagueReport.UpdateVisibility then UP.PlagueReport.UpdateVisibility() end
+            end,
         },
         {
             -- See the silence Preview button above for the mechanism.
@@ -448,7 +601,7 @@ local function buildOptions()
                 if UP.PlagueTint and UP.PlagueTint.RunPreview then UP.PlagueTint.RunPreview() end
             end,
         },
-        -- Groupmate plague (0.5.7, EXPERIMENTAL). A plague on someone else
+        -- Groupmate plague (0.5.8, EXPERIMENTAL). A plague on someone else
         -- explodes on everyone within 8 m of THEM, so knowing who carries one
         -- is knowing who to stand clear of. Detection is a hard switch (the
         -- subscriptions exist only while it is on); the two outputs are
@@ -480,6 +633,19 @@ local function buildOptions()
             getFunction = function() return sv().plague_group_alert ~= false end,
             setFunction = function(v) sv().plague_group_alert = v end,
             default = true,
+        },
+        -- History (0.5.9). The report rows are inserted between these two
+        -- entries at runtime; see RebuildHistoryRows above for why they are
+        -- not a section of their own.
+        {
+            type = LHAS.ST_LABEL,
+            label = HISTORY_HEADER,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "Clear history",
+            buttonText = "Clear",
+            tooltip = "Deletes every stored explosion report. You will be asked to confirm.",
+            clickHandler = function() showClearHistoryDialog() end,
         },
 
         -- -------------------------------------------------------------------
@@ -665,6 +831,8 @@ end
 UP.Settings._ttdDefaultLines  = ttdDefaultLines
 UP.Settings._applyTtdDefaults = applyTtdDefaults
 UP.Settings._TTD_DIALOG       = TTD_DEFAULTS_DIALOG
+UP.Settings._CLEAR_HISTORY_DIALOG = CLEAR_HISTORY_DIALOG
+UP.Settings._HISTORY_HEADER   = HISTORY_HEADER
 
 function UP.Settings.Init()
     LHAS = LibHarvensAddonSettings
@@ -704,4 +872,15 @@ function UP.Settings.Init()
 
     -- Confirmation dialog for the TTD section's Defaults button (0.4.2).
     registerTtdDefaultsDialog()
+
+    -- History rows (0.5.9): built now from the saved file (pure table work
+    -- while the panel is unselected) and rebuilt on each selection of this
+    -- add-on in the Add-Ons list if a report arrived or the list was cleared.
+    registerClearHistoryDialog()
+    RebuildHistoryRows()
+    if CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback then
+        CALLBACK_MANAGER:RegisterCallback("LibHarvensAddonSettings_AddonSelected", function(_, selected)
+            if selected == UP.Settings.panel and historyDirty then RebuildHistoryRows() end
+        end)
+    end
 end

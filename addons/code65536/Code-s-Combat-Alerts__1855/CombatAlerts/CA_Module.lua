@@ -135,7 +135,7 @@ function CA_Module:StartListening( )
 	if (not self.listening) then
 		self.listening = true
 		self:PreStartListening()
-		EVENT_MANAGER:RegisterForEvent(self.ID, EVENT_COMBAT_EVENT, function(_, ...) self:OnCombatEvent(...) end)
+		LCA.RegisterForFilteredEvent(self.ID, EVENT_COMBAT_EVENT, function(_, ...) self:OnCombatEvent(...) end, REGISTER_FILTER_IS_ERROR, false)
 		if (self.MONITOR_EFFECTS) then
 			EVENT_MANAGER:RegisterForEvent(self.ID, EVENT_EFFECT_CHANGED, function(_, ...) self:OnEffectChanged(...) end)
 		end

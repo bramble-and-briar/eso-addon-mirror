@@ -34,7 +34,7 @@ function TargetFrameView:_Build()
     local frame = wm:CreateTopLevelWindow("MugShot_TargetFrame")
 
     frame:SetDimensions(Style.FRAME_WIDTH, Style.FRAME_HEIGHT + Style.EFFECT_SLOT_SIZE + 6)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 100, 200)
+    frame:SetAnchor(TOP, GuiRoot, TOP, 0, 88)
     frame:SetMovable(true)
     frame:SetMouseEnabled(true)
     frame:SetClampedToScreen(true)
@@ -52,8 +52,8 @@ function TargetFrameView:_Build()
     barBg:SetAnchorFill(barContainer)
     barBg:SetCenterTexture("")
     barBg:SetEdgeTexture("", 2, 2, 2)
-    barBg:SetCenterColor(0.08, 0.08, 0.08, 1.0)
-    barBg:SetEdgeColor(0.0, 0.0, 0.0, 1.0)
+    barBg:SetCenterColor(Style.BAR_BG_COLOR.r, Style.BAR_BG_COLOR.g, Style.BAR_BG_COLOR.b, Style.BAR_BG_COLOR.a)
+    barBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
     barBg:SetMouseEnabled(true)
     barBg:SetDrawLayer(0)
 
@@ -61,9 +61,7 @@ function TargetFrameView:_Build()
     local healthBar = CreateControl("MugShot_HealthBar", barContainer, CT_TEXTURE)
     healthBar:SetDimensions(Style.BAR_WIDTH, Style.BAR_HEIGHT)
     healthBar:SetAnchor(TOPLEFT, barContainer, TOPLEFT, 2, 2)
-    if Style.BAR_TEXTURE and Style.BAR_TEXTURE ~= "" then
-        healthBar:SetTexture(Style.BAR_TEXTURE)
-    end
+    healthBar:SetTexture(Style.BAR_TEXTURE)
     healthBar:SetColor(1.0, 0.0, 0.0, 1.0)
     healthBar:SetMouseEnabled(true)
     healthBar:SetDrawLayer(1)
@@ -83,9 +81,7 @@ function TargetFrameView:_Build()
     local shieldBar = CreateControl("MugShot_ShieldBar", barContainer, CT_TEXTURE)
     shieldBar:SetDimensions(0, Style.BAR_HEIGHT)
     shieldBar:SetAnchor(TOPLEFT, barContainer, TOPLEFT, 2, 2)
-    if Style.BAR_TEXTURE and Style.BAR_TEXTURE ~= "" then
-        shieldBar:SetTexture(Style.BAR_TEXTURE)
-    end
+    shieldBar:SetTexture(Style.BAR_TEXTURE)
     local sc = Style.SHIELD_COLOR
     shieldBar:SetColor(sc.r, sc.g, sc.b, sc.a)
     shieldBar:SetHidden(true)
@@ -103,7 +99,7 @@ function TargetFrameView:_Build()
     local percentageLabel = CreateControl("MugShot_PercentageLabel", barContainer, CT_LABEL)
     percentageLabel:SetAnchor(TOPLEFT, barContainer, TOPLEFT, 8, 5)
     percentageLabel:SetFont(Style.FONT_PERCENTAGE)
-    percentageLabel:SetColor(1, 1, 1, 1)
+    percentageLabel:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
     percentageLabel:SetText("")
     percentageLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     percentageLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
@@ -113,7 +109,7 @@ function TargetFrameView:_Build()
     local healthLabel = CreateControl("MugShot_HealthLabel", barContainer, CT_LABEL)
     healthLabel:SetAnchor(TOPRIGHT, barContainer, TOPRIGHT, -8, 5)
     healthLabel:SetFont(Style.FONT_HEALTH)
-    healthLabel:SetColor(1, 1, 1, 1)
+    healthLabel:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
     healthLabel:SetText("")
     healthLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     healthLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
@@ -124,7 +120,7 @@ function TargetFrameView:_Build()
     targetNameLabel:SetAnchor(BOTTOMLEFT, barContainer, BOTTOMLEFT, 8, -5)
     targetNameLabel:SetAnchor(BOTTOMRIGHT, barContainer, BOTTOMRIGHT, -8, -5)
     targetNameLabel:SetFont(Style.FONT_NAME)
-    targetNameLabel:SetColor(1, 1, 1, 1)
+    targetNameLabel:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
     targetNameLabel:SetText("")
     targetNameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     targetNameLabel:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
@@ -139,8 +135,8 @@ function TargetFrameView:_Build()
     portraitBg:SetAnchor(TOPLEFT, barContainer, TOPRIGHT, -2, 0)
     portraitBg:SetCenterTexture("")
     portraitBg:SetEdgeTexture("", 2, 2, 2)
-    portraitBg:SetCenterColor(0.04, 0.04, 0.04, 1.0)
-    portraitBg:SetEdgeColor(0.0, 0.0, 0.0, 1.0)
+    portraitBg:SetCenterColor(Style.PORTRAIT_BG_COLOR.r, Style.PORTRAIT_BG_COLOR.g, Style.PORTRAIT_BG_COLOR.b, Style.PORTRAIT_BG_COLOR.a)
+    portraitBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
     portraitBg:SetMouseEnabled(true)
     portraitBg:SetDrawLayer(0)
 
@@ -209,16 +205,13 @@ function TargetFrameView:_Build()
 
     -- ── Scene Manager Integration ─────────────────────────
     self._shouldBeVisible = false
-    local FragmentClass = ZO_SimpleSceneFragment or ZO_HUDFadeSceneFragment
-    if FragmentClass and HUD_SCENE and HUD_UI_SCENE then
-        local fragment = FragmentClass:New(frame)
-        fragment:SetConditional(function()
-            return self._shouldBeVisible == true
-        end)
-        HUD_SCENE:AddFragment(fragment)
-        HUD_UI_SCENE:AddFragment(fragment)
-        self.fragment = fragment
-    end
+    local fragment = ZO_SimpleSceneFragment:New(frame)
+    fragment:SetConditional(function()
+        return self._shouldBeVisible == true
+    end)
+    HUD_SCENE:AddFragment(fragment)
+    HUD_UI_SCENE:AddFragment(fragment)
+    self.fragment = fragment
 
     -- Store references
     self.frame           = frame
@@ -253,8 +246,8 @@ function TargetFrameView:_GetOrCreateEffectSlot(i)
     slotBg:SetAnchor(TOPLEFT, self.effectContainer, TOPLEFT, x, y)
     slotBg:SetCenterTexture("")
     slotBg:SetEdgeTexture("", 1, 1, 1)
-    slotBg:SetCenterColor(0.04, 0.04, 0.04, 0.95)
-    slotBg:SetEdgeColor(0.0, 0.0, 0.0, 1.0)
+    slotBg:SetCenterColor(Style.SLOT_BG_COLOR.r, Style.SLOT_BG_COLOR.g, Style.SLOT_BG_COLOR.b, Style.SLOT_BG_COLOR.a)
+    slotBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
     slotBg:SetDrawLayer(0)
     slotBg:SetHidden(true)
 
@@ -267,28 +260,44 @@ function TargetFrameView:_GetOrCreateEffectSlot(i)
     timerLabel:SetAnchor(CENTER, slotIcon, CENTER, 0, 0)
     timerLabel:SetDimensions(Style.EFFECT_ICON_SIZE, Style.EFFECT_ICON_SIZE)
     timerLabel:SetFont(Style.FONT_TIMER)
-    timerLabel:SetColor(1, 1, 1, 1)
+    timerLabel:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
     timerLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     timerLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     timerLabel:SetDrawLayer(2)
 
-    local stackLabel = CreateControl("MugShot_EffectStack_" .. i, slotIcon, CT_LABEL)
-    stackLabel:SetAnchor(TOPRIGHT, slotIcon, TOPRIGHT, 0, 0)
+    local stackLabel = CreateControl("MugShot_EffectStack_" .. i, slotBg, CT_LABEL)
+    stackLabel:SetAnchor(TOPRIGHT, slotBg, TOPRIGHT, 0, 0)
+    stackLabel:SetDimensions(Style.EFFECT_SLOT_SIZE, Style.EFFECT_SLOT_SIZE)
     stackLabel:SetFont(Style.FONT_STACK)
-    stackLabel:SetColor(1, 1, 1, 1)
+    stackLabel:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
     stackLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     stackLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
     stackLabel:SetDrawLayer(2)
 
+    local sourceLabel = CreateControl("MugShot_EffectSource_" .. i, slotBg, CT_LABEL)
+    sourceLabel:SetAnchor(BOTTOMLEFT, slotBg, BOTTOMLEFT, 0, 0)
+    sourceLabel:SetDimensions(Style.EFFECT_SLOT_SIZE, Style.EFFECT_SLOT_SIZE)
+    sourceLabel:SetFont(Style.FONT_SOURCE)
+    sourceLabel:SetColor(Style.TEXT_COLOR_CYAN.r, Style.TEXT_COLOR_CYAN.g, Style.TEXT_COLOR_CYAN.b, Style.TEXT_COLOR_CYAN.a)
+    sourceLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    sourceLabel:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
+    sourceLabel:SetDrawLayer(2)
+
     local slot = {
-        bg             = slotBg,
-        icon           = slotIcon,
-        timerLabel     = timerLabel,
-        stackLabel     = stackLabel,
-        _lastIcon      = nil,
-        _lastTimerText = nil,
-        _lastStackText = nil,
-        _lastHidden    = true,
+        bg              = slotBg,
+        icon            = slotIcon,
+        timerLabel      = timerLabel,
+        stackLabel      = stackLabel,
+        sourceLabel     = sourceLabel,
+        _lastIcon       = nil,
+        _lastTimerText  = nil,
+        _lastStackText  = nil,
+        _lastSourceText = nil,
+        _lastBorderR    = nil,
+        _lastBorderG    = nil,
+        _lastBorderB    = nil,
+        _lastBorderA    = nil,
+        _lastHidden     = true,
     }
     self.effectSlots[i] = slot
     return slot
@@ -308,9 +317,7 @@ function TargetFrameView:SetIdentity(pres)
     self.healthBar:SetColor(r, g, b, 1.0)
 
     -- Native horizontal gradient: bright on left, subtle depth on right
-    if self.healthBar.SetGradientColors and ORIENTATION_HORIZONTAL then
-        self.healthBar:SetGradientColors(ORIENTATION_HORIZONTAL, r, g, b, 1.0, r * 0.70, g * 0.70, b * 0.70, 1.0)
-    end
+    self.healthBar:SetGradientColors(ORIENTATION_HORIZONTAL, r, g, b, 1.0, r * 0.70, g * 0.70, b * 0.70, 1.0)
 
     -- Solid opaque dark tinted background for unfilled portion
     self.barBg:SetCenterColor(r * 0.20, g * 0.20, b * 0.20, 1.0)
@@ -321,12 +328,10 @@ function TargetFrameView:SetIdentity(pres)
         self._currentBarWidth = Style.BAR_WIDTH
         self.barContainer:SetDimensions(Style.BAR_BG_WIDTH, Style.BAR_BG_HEIGHT)
         self.portrait:SetTexture(pres.portraitTexture)
-        if self.portrait.SetTextureCoords then
-            if pres.portraitCoords then
-                self.portrait:SetTextureCoords(unpack(pres.portraitCoords))
-            else
-                self.portrait:SetTextureCoords(0, 1, 0, 1)
-            end
+        if pres.portraitCoords then
+            self.portrait:SetTextureCoords(unpack(pres.portraitCoords))
+        else
+            self.portrait:SetTextureCoords(0, 1, 0, 1)
         end
         self.portrait:SetHidden(false)
         self.portraitBg:SetHidden(false)
@@ -400,9 +405,7 @@ function TargetFrameView:SetVitals(pres)
             end
             local shieldColor = Style.SHIELD_COLOR
             self.shieldBar:SetColor(shieldColor.r, shieldColor.g, shieldColor.b, shieldColor.a)
-            if self.shieldBar.SetGradientColors and ORIENTATION_HORIZONTAL then
-                self.shieldBar:SetGradientColors(ORIENTATION_HORIZONTAL, shieldColor.r, shieldColor.g, shieldColor.b, shieldColor.a, shieldColor.r * 0.75, shieldColor.g * 0.75, shieldColor.b * 0.75, shieldColor.a)
-            end
+            self.shieldBar:SetGradientColors(ORIENTATION_HORIZONTAL, shieldColor.r, shieldColor.g, shieldColor.b, shieldColor.a, shieldColor.r * 0.75, shieldColor.g * 0.75, shieldColor.b * 0.75, shieldColor.a)
             self.shieldBar:SetHidden(false)
         else
             if self._lastShieldPercent ~= 0 then
@@ -464,6 +467,21 @@ function TargetFrameView:SetEffects(items)
                 slot._lastStackText = stackText
             end
 
+            local sourceText = data.sourceText or ""
+            if slot._lastSourceText ~= sourceText then
+                slot.sourceLabel:SetText(sourceText)
+                slot._lastSourceText = sourceText
+            end
+
+            local br, bg, bb, ba = data.borderR or 0, data.borderG or 0, data.borderB or 0, data.borderA or 1
+            if slot._lastBorderR ~= br or slot._lastBorderG ~= bg or slot._lastBorderB ~= bb or slot._lastBorderA ~= ba then
+                slot.bg:SetEdgeColor(br, bg, bb, ba)
+                slot._lastBorderR = br
+                slot._lastBorderG = bg
+                slot._lastBorderB = bb
+                slot._lastBorderA = ba
+            end
+
             if slot._lastHidden ~= false then
                 slot.bg:SetHidden(false)
                 slot._lastHidden = false
@@ -473,9 +491,19 @@ function TargetFrameView:SetEffects(items)
             if slot and slot._lastHidden ~= true then
                 slot.bg:SetHidden(true)
                 slot._lastHidden = true
+                slot.icon:SetTexture("")
+                slot.timerLabel:SetText("")
+                slot.stackLabel:SetText("")
+                slot.sourceLabel:SetText("")
+                slot.bg:SetEdgeColor(0, 0, 0, 1)
                 slot._lastIcon = nil
                 slot._lastTimerText = nil
                 slot._lastStackText = nil
+                slot._lastSourceText = nil
+                slot._lastBorderR = nil
+                slot._lastBorderG = nil
+                slot._lastBorderB = nil
+                slot._lastBorderA = nil
             end
         end
     end
@@ -496,11 +524,11 @@ end
 -- @param  enabled  bool
 function TargetFrameView:SetMoveMode(enabled)
     if enabled then
-        self.barBg:SetEdgeColor(0.2, 0.8, 1.0, 1.0)
-        self.portraitBg:SetEdgeColor(0.2, 0.8, 1.0, 1.0)
+        self.barBg:SetEdgeColor(Style.MOVE_MODE_BORDER.r, Style.MOVE_MODE_BORDER.g, Style.MOVE_MODE_BORDER.b, Style.MOVE_MODE_BORDER.a)
+        self.portraitBg:SetEdgeColor(Style.MOVE_MODE_BORDER.r, Style.MOVE_MODE_BORDER.g, Style.MOVE_MODE_BORDER.b, Style.MOVE_MODE_BORDER.a)
     else
-        self.barBg:SetEdgeColor(0.0, 0.0, 0.0, 1.0)
-        self.portraitBg:SetEdgeColor(0.0, 0.0, 0.0, 1.0)
+        self.barBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
+        self.portraitBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
     end
 end
 
@@ -513,11 +541,11 @@ function TargetFrameView:ApplyLayout(settings)
 
     self.frame:ClearAnchors()
     self.frame:SetAnchor(
-        pos.point         or TOPLEFT,
+        pos.point         or TOP,
         GuiRoot,
-        pos.relativePoint or TOPLEFT,
-        pos.offsetX       or 100,
-        pos.offsetY       or 200
+        pos.relativePoint or TOP,
+        pos.offsetX       or 0,
+        pos.offsetY       or 88
     )
 end
 
@@ -537,10 +565,8 @@ function TargetFrameView:Reset()
     self.healthBar:SetValue(0)
     self.shieldBar:SetValue(0)
     self.shieldBar:SetHidden(true)
-    self.barBg:SetCenterColor(0.08, 0.08, 0.08, 1.0)
-    if self.portrait.SetTextureCoords then
-        self.portrait:SetTextureCoords(0, 1, 0, 1)
-    end
+    self.barBg:SetCenterColor(Style.BAR_BG_COLOR.r, Style.BAR_BG_COLOR.g, Style.BAR_BG_COLOR.b, Style.BAR_BG_COLOR.a)
+    self.portrait:SetTextureCoords(0, 1, 0, 1)
     self.portrait:SetHidden(true)
     self.portraitBg:SetHidden(true)
     self.raceIcon:SetHidden(true)

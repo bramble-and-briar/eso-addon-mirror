@@ -21,6 +21,8 @@ local strings = {
     SI_PBSSMS_HELP_RESET = "/pbshot reset — 設定を初期化",
     SI_PBSSMS_HELP_QUICK = "/pbshot quick on|off — クイックショットモード",
     SI_PBSSMS_HELP_HOLD = "/pbshot hold 1|3|5|10 — UIを隠す秒数",
+    SI_PBSSMS_HELP_NAMEPLATES = "/pbshot nameplates on|off — クイックショット中にESO標準のネームプレート切り替えボタンを有効にする",
+    SI_PBSSMS_HELP_GUIS = "/pbshot guis — GUI名の一覧／ /pbshot gui <名前> または gui all で10秒だけ非表示",
 
     SI_PBSSMS_QUICK_ON = "クイックショットモードを有効にしました。同時押しでUIを数秒間隠し、自動で戻します。その間に本体のキャプチャーボタンで撮影してください。",
     SI_PBSSMS_QUICK_OFF = "クイックショットモードを無効にしました。同時押しでスクリーンショットモードを開きます。",
@@ -44,6 +46,8 @@ local strings = {
     SI_PBSSMS_HOLD = "UIを隠す時間",
     SI_PBSSMS_HOLD_TOOLTIP = "UIを隠しておく時間です。この間に本体のキャプチャーボタンを押します。もう一度同時押しするか、通常画面から離れた場合は、待たずに戻ります。",
     SI_PBSSMS_HOLD_ITEM = "%g秒",
+    SI_PBSSMS_NAMEPLATE = "ネームプレート切り替えボタンを有効にする",
+    SI_PBSSMS_NAMEPLATE_TOOLTIP = "UIを隠している間、ESO標準のスクリーンショットモードと同じ入力レイヤーを通常画面に借ります。標準モードでネームプレートを切り替えるボタンが、そのまま同じ働きをします。処理するのはクライアント自身で、アドオンではありません。だから動作します。同じ理由でアドオンから元に戻すことはできません。もう一度同じボタンを押すか、ゲームの設定で戻してください。レイヤーが有効な間は他の通常画面のボタン（同時押しを含む）が効かないため、終了は時間切れのみになります。",
     SI_PBSSMS_RUN_NOW = "今すぐ試す",
     SI_PBSSMS_RUN_NOW_TOOLTIP = "同時押しと同じ動作をします。通常画面でないと何も起きないので、パネルを閉じてから確認してください。",
     SI_PBSSMS_RUN_NOW_BUTTON = "実行",

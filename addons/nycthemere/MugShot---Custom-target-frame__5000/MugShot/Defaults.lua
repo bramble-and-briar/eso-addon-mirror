@@ -17,10 +17,11 @@ MugShot.Defaults = {
     locked              = false,
     useHodorIcons       = true,
     onlyHostileInTrials = false,
+    trackGroupDebuffs   = true,
     position = {
-        point         = TOPLEFT,   -- ESO constant: evaluated at runtime
-        relativePoint = TOPLEFT,   -- ESO constant: evaluated at runtime
-        offsetX       = 100,
-        offsetY       = 200,
+        point         = TOP,       -- Native ESO target frame anchor: centered at top
+        relativePoint = TOP,       -- Native ESO target frame anchor: centered at top
+        offsetX       = 0,
+        offsetY       = 88,
     },
 }

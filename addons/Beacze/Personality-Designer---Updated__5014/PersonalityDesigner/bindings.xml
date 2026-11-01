@@ -1,0 +1,15 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="|cEECA2APersonality Designer|r">
+			<Action name="PD1">
+				<Down>TogglePD()</Down>
+			</Action>
+			<Action name="PD2">
+				<Down>CyclePersonality()</Down>
+			</Action>
+			<Action name="PD_MENU">
+				<Down>SLASH_COMMANDS["/personalitydesigner"]()</Down>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

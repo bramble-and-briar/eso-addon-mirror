@@ -309,6 +309,58 @@ function addon:InitSettings()
 
 	-- Keep the filter sections after every existing setting. LibHarvens treats following rows as
 	-- belonging to the most recent heading, so placing them earlier folds unrelated rows into them.
+	-- Chat history. Placed before the filter sections, under its own heading for the same reason.
+	if self.chatHistory then
+		local history = self.chatHistory
+		AddHeading(settings, LibHarvensAddonSettings, GetString(SI_PBSCHATASSISTANT_HISTORY_SECTION))
+		settings:AddSetting({
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCHATASSISTANT_HISTORY),
+			tooltip = GetString(SI_PBSCHATASSISTANT_HISTORY_TOOLTIP),
+			default = true,
+			getFunction = function()
+				return self.sv.historyEnabled ~= false
+			end,
+			setFunction = function(value)
+				self.sv.historyEnabled = value
+			end,
+		})
+		settings:AddSetting({
+			type = LibHarvensAddonSettings.ST_SLIDER,
+			label = GetString(SI_PBSCHATASSISTANT_HISTORY_COUNT),
+			tooltip = GetString(SI_PBSCHATASSISTANT_HISTORY_COUNT_TOOLTIP),
+			min = history.MIN_COUNT,
+			max = history.MAX_COUNT,
+			step = 10,
+			default = 50,
+			format = "%d",
+			getFunction = function()
+				return history:MaxCount()
+			end,
+			setFunction = function(value)
+				self.sv.historyCount = value
+				history:Trim()
+			end,
+		})
+		settings:AddSetting({
+			type = LibHarvensAddonSettings.ST_SLIDER,
+			label = GetString(SI_PBSCHATASSISTANT_HISTORY_MINUTES),
+			tooltip = GetString(SI_PBSCHATASSISTANT_HISTORY_MINUTES_TOOLTIP),
+			min = history.MIN_MINUTES,
+			max = history.MAX_MINUTES,
+			step = 5,
+			default = 60,
+			format = "%d",
+			unit = GetString(SI_PBSCHATASSISTANT_HISTORY_MINUTES_UNIT),
+			getFunction = function()
+				return math.floor(history:MaxAgeSeconds() / 60)
+			end,
+			setFunction = function(value)
+				self.sv.historyMinutes = value
+			end,
+		})
+	end
+
 	AddHeading(settings, LibHarvensAddonSettings, GetString(SI_PBSCHATASSISTANT_RECRUIT_SECTION))
 	settings:AddSetting({
 		type = LibHarvensAddonSettings.ST_LABEL,

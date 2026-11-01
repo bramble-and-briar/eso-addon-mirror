@@ -6,7 +6,7 @@ local NM = NirnhonedMetrics
 NM.name = "NirnhonedMetrics"
 NM.COLOR = "D42F2F"            -- rojo Nirnhoned (como el rasgo del juego)
 NM.title = "|c" .. NM.COLOR .. "Nirnhoned|r Metrics"
-NM.version = "1.1.0"
+NM.version = "1.2.1"
 NM.svVersion = 3
 NM.author = "@Artioner"
 NM.authorServer = "EU Megaserver"   -- el correo (donaciones) solo llega dentro del mismo megaservidor
@@ -37,6 +37,8 @@ NM.defaults = {
     titleMode = "default",        -- "default" (nombre del addon) | "custom"
     customTitle = "",             -- admite códigos de color |cRRGGBB...|r
     titleColor = { 1, 1, 1, 1 },  -- color del título personalizado
+    -- Iconos de la cabecera: [clave] = false para ocultarlo (ver HEADER_GROUPS en UI/Meter.lua).
+    headerButtons = {},
     bgAlpha = 0.55,
     barAlpha = 0.9,
     hideOutOfCombat = false,
@@ -59,9 +61,12 @@ NM.defaults = {
 
     showRank = true,
     showIcon = true,
-    showTotal = true,
-    showDps = true,
-    showPercent = true,
+    -- Valores de cada barra: valor1 (valor2, valor3).
+    -- "total" | "rate" (DPS/HPS) | "percent" | "none" (oculto)
+    valueSlot1 = "total",
+    valueSlot2 = "rate",
+    valueSlot3 = "percent",
+    showFightRate = true,         -- DPS/HPS total del combate en el pie, junto a la duración
     nameFormat = "character",     -- "character" | "account"
 
     includePets = true,
@@ -86,6 +91,19 @@ function NM.Print(fmt, ...)
     NM.Chat("|c" .. NM.COLOR .. "[Nirnhoned Metrics]|r " .. msg)
 end
 
+-- Hasta la 1.1.0 había una casilla por valor (total, DPS y porcentaje, siempre en
+-- ese orden); se pasan a los huecos valueSlot1..3 con los visibles en el mismo orden.
+local function MigrateValueSlots(sv)
+    local old = { { "showTotal", "total" }, { "showDps", "rate" }, { "showPercent", "percent" } }
+    if sv.showTotal == nil and sv.showDps == nil and sv.showPercent == nil then return end
+    local slots = {}
+    for _, entry in ipairs(old) do
+        if sv[entry[1]] ~= false then slots[#slots + 1] = entry[2] end
+        sv[entry[1]] = nil
+    end
+    for i = 1, 3 do sv["valueSlot" .. i] = slots[i] or "none" end
+end
+
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= NM.name then return end
     EVENT_MANAGER:UnregisterForEvent(NM.name, EVENT_ADD_ON_LOADED)
@@ -93,6 +111,7 @@ local function OnAddOnLoaded(_, addonName)
     -- Iguales en todos los servidores a propósito: solo son preferencias de la ventana
     -- y de la vista, no datos que dependan del servidor (los combates no se guardan).
     NM.sv = ZO_SavedVars:NewAccountWide("NirnhonedMetrics_SV", NM.svVersion, nil, NM.defaults)
+    MigrateValueSlots(NM.sv)
 
     NM.Fight.Init()
     NM.Group.Init()

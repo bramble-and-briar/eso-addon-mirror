@@ -18,7 +18,7 @@ local NAMESPACE = "UnderPressure_Ingest"
 -- Plaguebreak explosion hits on anyone (0.4.0); one namespace per explosion
 -- ability id, filtered by that id. See Register().
 local NAMESPACE_BOOM = "UnderPressure_PlagueBoom"
--- Groupmate plague (0.5.7, experimental): EVENT_EFFECT_CHANGED on "groupN"
+-- Groupmate plague (0.5.8, experimental): EVENT_EFFECT_CHANGED on "groupN"
 -- tags, one namespace per plague ability id, plus the group-change events
 -- under the bare namespace. Registered only while sv.plague_group_detect is
 -- on; see SetGroupPlagueDetection().
@@ -210,6 +210,21 @@ local function onEffectChanged(eventCode, changeType, effectSlot, effectName,
     UP.Engine.IngestEffect(now(), abilityId, category, changeType, endTimeMs)
 end
 
+-- A group member's death (0.5.9). EVENT_UNIT_DEATH_STATE_CHANGED fires for
+-- group unit tags (it is what ZOS's raid frames use) and does not depend on
+-- the member being in view. Filtered to the "group" prefix when the client
+-- has that filter; the handler re-checks so an unfiltered registration
+-- behaves the same. The player's own group tag is skipped: EVENT_PLAYER_DEAD
+-- already covers us.
+local function onUnitDeathStateChanged(eventCode, unitTag, isDead)
+    if not isDead or type(unitTag) ~= "string" or unitTag:sub(1, 5) ~= "group" then return end
+    if type(AreUnitsEqual) == "function" and AreUnitsEqual("player", unitTag) then return end
+    if UP.Plague and UP.Plague.OnUnitDeath then
+        local rawName = (type(GetUnitName) == "function") and GetUnitName(unitTag) or ""
+        UP.Plague.OnUnitDeath(unitTag, rawName, now())
+    end
+end
+
 -- ---------------------------------------------------------------------------
 -- Plaguebreak explosion channel and own-cast observer (0.4.0)
 -- ---------------------------------------------------------------------------
@@ -368,7 +383,7 @@ local function onPlayerAlive(eventCode)
 end
 
 -- ---------------------------------------------------------------------------
--- EVENT_EFFECT_CHANGED handler, group tags (0.5.7, experimental)
+-- EVENT_EFFECT_CHANGED handler, group tags (0.5.8, experimental)
 -- ---------------------------------------------------------------------------
 -- Only plague effects on "groupN" tags should reach this (the C-level filters
 -- see SetGroupPlagueDetection); the checks here are for the fallback modes.
@@ -509,6 +524,13 @@ function UP.Ingest.Register()
     if type(EVENT_PLAYER_ALIVE) == "number" then
         EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_PLAYER_ALIVE, onPlayerAlive)
     end
+    -- Group member deaths, for the explosion report's "killed" list (0.5.9).
+    if type(EVENT_UNIT_DEATH_STATE_CHANGED) == "number" then
+        EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_UNIT_DEATH_STATE_CHANGED, onUnitDeathStateChanged)
+        if type(REGISTER_FILTER_UNIT_TAG_PREFIX) == "number" then
+            EVENT_MANAGER:AddFilterForEvent(NAMESPACE, EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+        end
+    end
 
     -- Plaguebreak explosion hits on ANYONE (0.4.0). A second EVENT_COMBAT_EVENT
     -- registration per explosion id, each under its own namespace and filtered
@@ -532,7 +554,7 @@ function UP.Ingest.Register()
         EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_ACTION_SLOT_ABILITY_USED, onActionSlotUsed)
     end
 
-    -- Groupmate plague (0.5.7, experimental, off by default).
+    -- Groupmate plague (0.5.8, experimental, off by default).
     UP.Ingest.SetGroupPlagueDetection(UP.PlagueGroup ~= nil and UP.PlagueGroup.Enabled())
 end
 
@@ -553,6 +575,9 @@ function UP.Ingest.Unregister()
     end
     if type(EVENT_PLAYER_ALIVE) == "number" then
         EVENT_MANAGER:UnregisterForEvent(NAMESPACE, EVENT_PLAYER_ALIVE)
+    end
+    if type(EVENT_UNIT_DEATH_STATE_CHANGED) == "number" then
+        EVENT_MANAGER:UnregisterForEvent(NAMESPACE, EVENT_UNIT_DEATH_STATE_CHANGED)
     end
     if type(EVENT_ACTION_SLOT_ABILITY_USED) == "number" then
         EVENT_MANAGER:UnregisterForEvent(NAMESPACE, EVENT_ACTION_SLOT_ABILITY_USED)

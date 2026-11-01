@@ -414,12 +414,12 @@ local ABILITY_ICONS = {
         "ability_arcanist_007.dds", -- Runic Jolt
         "ability_arcanist_007_a.dds",
         "ability_arcanist_007_b.dds",
-        -- "ability_arcanist_008.dds",
-        -- "ability_arcanist_008_a.dds",
-        -- "ability_arcanist_008_b.dds",
-        -- "ability_arcanist_009.dds",
-        -- "ability_arcanist_009_a.dds",
-        -- "ability_arcanist_009_b.dds",
+        "ability_arcanist_008.dds", -- Runespite Ward
+        "ability_arcanist_008_a.dds",
+        "ability_arcanist_008_b.dds",
+        "ability_arcanist_009.dds", -- Fatewoven Armor
+        "ability_arcanist_009_a.dds",
+        "ability_arcanist_009_b.dds",
         -- "ability_arcanist_010.dds",
         -- "ability_arcanist_010_a.dds",
         -- "ability_arcanist_010_b.dds",
@@ -611,9 +611,9 @@ local ABILITY_ICONS = {
         "ability_fightersguild_001.dds", -- Circle
         "ability_fightersguild_001_a.dds",
         "ability_fightersguild_001_b.dds",
-        -- "ability_fightersguild_002.dds",
+        "ability_fightersguild_002.dds", -- Expert Hunter @Eashi
         -- "ability_fightersguild_002_a.dds",
-        -- "ability_fightersguild_002_b.dds",
+        "ability_fightersguild_002_b.dds", -- Camo @Eashi
         "ability_fightersguild_003.dds", -- Silver
         "ability_fightersguild_003_a.dds",
         "ability_fightersguild_003_b.dds",
@@ -641,7 +641,7 @@ local ABILITY_ICONS = {
         "ability_mageguild_005.dds", -- Meteor
         "ability_mageguild_005_a.dds",
         "ability_mageguild_005_b.dds",
-        -- "ability_grimoire_magesguild.dds",
+        "ability_grimoire_magesguild.dds", -- Contingency
 
         -- Psijic - @Eashi
         "ability_psijic_001.dds", -- Undo
@@ -659,9 +659,9 @@ local ABILITY_ICONS = {
         "ability_psijic_005.dds", -- Accelerate
         "ability_psijic_005_a.dds",
         "ability_psijic_005_b.dds",
-        -- "ability_psijic_006.dds",
-        -- "ability_psijic_006_a.dds",
-        -- "ability_psijic_006_b.dds",
+        "ability_psijic_006.dds", -- Mend Wounds
+        "ability_psijic_006_a.dds",
+        "ability_psijic_006_b.dds",
 
         -- Undaunted
         -- "ability_undaunted_001.dds",

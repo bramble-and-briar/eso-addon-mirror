@@ -246,12 +246,24 @@ function Quests.GetSettings()
         {
             type = "checkbox",
             name = "Reroll for Covetous Countess",
-            tooltip = "When you interact with the Thieves Guild tip board, automatically accepts or rerolls the quest until you get Covetous Countess, and turns in quests.  English client only.\n\nYou can adjust this or add different languages in KyzderpsDerps/modules/questchatter/QuestChatter.lua",
+            tooltip = "When you interact with the Thieves Guild tip board, automatically accepts or rerolls the quest until you get Covetous Countess, and turns in quests. English client only.\n\nYou can adjust this or add different languages in KyzderpsDerps/modules/questchatter/QuestChatter.lua",
             default = false,
             getFunc = function() return KD.savedOptions.chatter.rerollReistaff end,
             setFunc = function(value)
                     KD.savedOptions.chatter.rerollReistaff = value
                     Chatter.Initialize()
+                end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Warn master writ experience",
+            tooltip = "When you accept a master writ quest, warns you in chat if you do not have the Apprentice Mundus and/or an XP scroll active",
+            default = false,
+            getFunc = function() return KD.savedOptions.writs.warnMasterWritXP end,
+            setFunc = function(value)
+                    KD.savedOptions.writs.warnMasterWritXP = value
+                    Quests.Writs.Initialize()
                 end,
             width = "full",
         },

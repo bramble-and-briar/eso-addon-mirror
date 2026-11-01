@@ -1,0 +1,2 @@
+BetterScoreboard: 18 players visible (2 or 3 teams)\nExpanded native team-list scroll viewport and adaptive fit-to-screen scaling.\nPreserves the original BetterScoreboard functionality.\nDo not enable ScoreboardFixU51 alongside this addon, as that addon replaces the scoreboard.\n
+18-player full fit refinement: extend team-list viewport by 29 pixels beyond previous version and reserve extra bottom screen space through automatic panel scale. The larger stat fonts are unchanged.

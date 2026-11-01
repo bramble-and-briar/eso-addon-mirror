@@ -2,6 +2,10 @@
 Changelog for "No Thank You"
 ----------------------------
 
+v12.1.4 (Dr_Z)
+- Added HOME TOURS option to Stop the "House was Recommended" alerts.
+- Added FAST TRAVEL options to Skip "Confirmation Dialog" for both Wayshrine and Non Wayshrine fast travles.
+
 v12.1.1 (Dr_Z)
 - Edited the manifest to reflect the latest verion of LibAddonMenu-2.0<-43
 - Fixed a few Language files of unneeded old Map Filter Discriptions and a few duplicate discription identifiers
@@ -371,3 +375,62 @@ v12.1.1 (Dr_Z) - October 21, 2026
 - Corrected outdated Chinese friends and raid-score wording and mixed-language text.
 - No changes to addon behavior or SavedVariables. The reported blank-settings issue
   remains unconfirmed; these corrections are not a verified fix for that report.
+
+
+v12.1.2 - October 27, 2026
+- Remove redundant native-API guards and simplify duplicate logic.
+- Use the native equipment acceptance callback without a silent retry fallback.
+- Stop repeated Craft Bag/autocomplete hook installation on settings changes.
+- Respect per-guild MOTD choices and use ESO's MOTD hashes.
+- Restore normal Lua errors when redirection is disabled; reuse the notification
+  provider and remove pending notifications by error identity, not a stale index.
+- Keep existing settings, language corrections, artwork and dependency versions.
+
+
+v12.1.3 - October 29, 2026
+- Add HOME TOURS settings: Suppress Home Tours notifications, YES or NO.
+- Default NO preserves normal game behavior. YES hides recommended-house notices.
+- Changes apply immediately; listings and recommendations are not modified.
+
+
+v12.1.4 - October 29, 2026
+- Use a checkbox under HOME TOURS, matching Craft Bag.
+- Label: Block Home Tours recommendation alerts. Default remains OFF.
+- Clarify that this blocks alerts when your home reaches the Recommended list.
+
+v12.1.5 - October 29, 2026
+- Translate the Home Tours heading, checkbox label and tooltip into German,
+  French, Russian and Chinese. Includes the 12.1.4 checkbox update.
+
+
+v12.1.6 - October 29, 2026
+- Shorten the Home Tours tooltip in all five languages.
+- Move the three Home Tours string definitions directly above Craft Bag strings.
+
+
+v12.1.7 - October 29, 2026
+- Shorten Home Tours label and tooltip string IDs to NOTIF in the main code
+  and all five language files. Text and behavior are unchanged.
+
+
+Oct 30, 2026 - 12.1.8
+- Restored map visibility options, split into individual categories.
+- Added separate Tamriel, Aurbis, and zone-map settings, including primary house.
+- Retained the previous NTY capital-wayshrine list as an optional Tamriel setting.
+- Map filtering uses pin creation rather than replacing travel API results or textures.
+- Exposed an optional map controller interface; NTY has no TMF dependency.
+- Kept existing standalone map preferences when converting the old combined options.
+- Added all map-menu strings in English, German, French, Russian, and Chinese.
+
+12.1.10 - October 31, 2026
+- Add FAST TRAVEL above Fence Dialog, with separate confirmation options at and away from wayshrines. Both default OFF.
+- Keep normal recall charges and insufficient-funds messages. Update all five languages.
+
+12.1.11 - October 31, 2026
+- Remove the Map settings section and map-pin filtering pending further design.
+- Preserve Fast Travel, Home Tours and all other existing features.
+
+12.1.4 - October 31, 2026 - Public release
+- Public release numbering set to 12.1.4; earlier entries above retain development version numbers.
+- Includes Fast Travel confirmation options and Home Tours recommendation alert settings in all five languages.
+- Map options and map-pin filtering are excluded pending further design.

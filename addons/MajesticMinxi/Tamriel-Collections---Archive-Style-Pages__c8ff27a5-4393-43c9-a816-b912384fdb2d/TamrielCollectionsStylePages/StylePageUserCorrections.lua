@@ -1,5 +1,5 @@
 -- Tamriel Collections - user-verified Style Page source/map corrections
--- v0.1.15
+-- v1.0.0
 --
 -- These records are authoritative overrides collected from in-game PS5 testing.
 -- They are loaded after StylePageSources.lua.  Do not infer or fuzzy-match a
@@ -60,16 +60,49 @@ local function Poi(name, poiName, zoneName, location, text)
     Patch(name, values)
 end
 
+local function Coord(name, mapName, x, y, location, text)
+    local values = {
+        mapType = 'COORD',
+        mapName = mapName,
+        x = x,
+        y = y,
+        location = location or mapName,
+    }
+    if text then values.text = text end
+    Patch(name, values)
+end
+
+-- Map-location icons (event hubs, shops and the Tribute hall) are not zone
+-- POIs. Resolve their native icon coordinates only after this map is active.
+local function MapLocation(name, mapName, locationNames, location, mapId)
+    Patch(name, {
+        mapType = 'LOCATION',
+        mapName = mapName,
+        mapId = mapId,
+        locationNames = locationNames,
+        location = location,
+    })
+end
+
 -- -------------------------------------------------------------------------
 -- Event merchant / Impresario destinations
 -- -------------------------------------------------------------------------
-Hub('Zenithar Battlesmith', 'BELKARTH_IMPRESARIO', 'Impresario / Event Exchange - Belkarth')
-Hub('Kwama Miner\'s Kit', 'BELKARTH_IMPRESARIO', 'Impresario / Event Exchange - Belkarth')
-Hub('High Rock Spellsword', 'BELKARTH_IMPRESARIO', 'Impresario / Event Exchange - Belkarth')
-Hub('Gold Road Dragoon', 'BELKARTH_IMPRESARIO', 'Impresario / Event Exchange - Belkarth')
-Hub('Heart\'s Day Duelist', 'BELKARTH_IMPRESARIO', 'Heart\'s Week / Impresario - Belkarth Festival Grounds')
-
-Hub('Worm Cult Hunter', 'GLENUMBRA_IMPRESARIO', 'Impresario / Event Exchange - Glenumbra')
+for _, name in ipairs({
+    'Zenithar Battlesmith', "Kwama Miner's Kit", 'High Rock Spellsword',
+    'Gold Road Dragoon', "Heart's Day Duelist", 'Battlefield Provisioner',
+}) do
+    local location = 'Impresario / Event Exchange - Belkarth'
+    if name == 'Zenithar Battlesmith' or name == 'Battlefield Provisioner' then
+        location = 'Impresario / Event Exchange'
+    elseif name == "Heart's Day Duelist" then
+        location = "Heart's Week / Impresario - Belkarth"
+    end
+    MapLocation(name, 'Craglorn', { 'Belkarth Festival Grounds', 'The Impresario' }, location)
+end
+-- Battlefield Provisioner deliberately has no text override: keep ESO's full
+-- acquisition description, as before v0.1.21; change only its location line.
+Hub('Worm Cult Hunter', 'GLENUMBRA_IMPRESARIO', 'Impresario / Event Exchange')
+Patch('Dragonguard Berserker', { location = 'Tel Var General Merchant - Imperial City' })
 
 for _, name in ipairs({
     'Lion Guard Captain',
@@ -102,8 +135,8 @@ for _, name in ipairs({
 end
 
 -- -------------------------------------------------------------------------
--- Battleground styles: all user-verified to the Battleground location in
--- Alinor's Gladiator's Quarters (the exact coordinate is resolved by HUB).
+-- Battleground styles: resolve Alinor's native Gladiator's Quarters marker
+-- on the city map. City coordinates must never be used on Summerset's map.
 -- -------------------------------------------------------------------------
 for _, name in ipairs({
     'Truth in Wisdom',
@@ -134,7 +167,7 @@ for _, name in ipairs({
     'Eltheric Revenant',
     'Wickerchain Soul',
 }) do
-    Hub(name, 'WITCHES', "Witches Festival - Olyve's Brewery near Crosswych Wayshrine")
+    Hub(name, 'WITCHES', "Witches Festival - Olyve's Brewery")
 end
 
 -- -------------------------------------------------------------------------
@@ -170,7 +203,7 @@ Node('Chaplain of the Worm', 'Sunport Wayshrine', 'Sunport - Solstice',
 -- -------------------------------------------------------------------------
 Node('Lucent Sentinel', 'Lucent Citadel', 'Lucent Citadel Trial',
     [[Lucent Citadel Trial: obtain Lucent Sentinel Style Pages from Lucent Citadel weekly coffers and related trial rewards.]])
-Hub('Lady Thorn', 'UNDAUNTED_WAYREST', 'Undaunted Enclave - Wayrest',
+Hub('Lady Thorn', 'UNDAUNTED_WAYREST', 'Undaunted Enclave',
     [[Undaunted Enclave: obtain the Lady Thorn Shoulder Style Page from the Undaunted shoulder vendor/reward source.]])
 Node('Tarcyr', 'March of Sacrifices', 'March of Sacrifices',
     [[Solo March of Sacrifices: the Tarcyr Mask is obtained from Balorgh; the Tarcyr Shoulder is available from the Undaunted shoulder vendor.]])
@@ -180,14 +213,16 @@ Node('Mylenne Moon-Caller', 'Moon Hunter Keep', 'Moon Hunter Keep',
     [[Moon Hunter Keep: obtain the Myleene Moon-Caller Style Page from its Moon Hunter Keep source.]])
 Node('Dread-Aurelian', 'Moongrave Fane', 'Moongrave Fane',
     [[Scalebreaker achievements: Dread-Aurelian rewards require Scalebreaker dungeon achievements. Show on Map opens Moongrave Fane as the selected dungeon destination.]])
-Node('Wormwrithe', 'Stirk Wayshrine', 'Stirk Fellowship Camp',
+Hub('Wormwrithe', 'STIRK_FELLOWSHIP', 'Stirk Fellowship Camp',
     [[Writhing Wall: obtain Wormwrithe Style Pages from Writhing Wall daily quest coffers and associated event rewards at the Stirk Fellowship Camp.]])
 Node('Alessian Rebel', 'Vulkhel Guard Wayshrine', 'Auridon - Dynamic Encounter near Vulkhel Guard',
     [[Dynamic Encounters: obtain Alessian Rebel Style Pages from the relevant dynamic encounters; Show on Map opens the Auridon encounter starting area near Vulkhel Guard.]])
 
 -- Tales of Tribute / Gonfalon Gaming Hall
 for _, name in ipairs({ "Frandar's Tribute", 'Psijic Psion', "Pelin's Paragon" }) do
-    Poi(name, 'Gonfalon Gaming Hall', 'High Isle and Amenos', 'Gonfalon Gaming Hall')
+    -- ESO map ID 2163 is Gonfalon Bay, which has no map-list index.
+    MapLocation(name, 'Gonfalon Bay', { 'Gonfalon Gaming Hall', 'Gonfalon Tribute Club' },
+        'Gonfalon Gaming Hall', 2163)
 end
 
 -- Night Market / Fargrave
@@ -197,9 +232,11 @@ for _, name in ipairs({
     'Shoulder of the Ruckus', 'Shoulders of the Ruckus',
     'Shoulder of the Glittering Goad', 'Shoulders of the Glittering Goad',
     'Shoulder of the Thousand Eyes', 'Shoulders of the Thousand Eyes',
+    -- ESO also groups the three faction pieces under these shared headings.
+    'Helm of the', 'Helms of the', 'Shoulder of the', 'Shoulders of the',
 }) do
-    Hub(name, 'NIGHT_MARKET', 'Night Market - Fargrave',
-        [[Night Market: obtain this Style Page from the Night Market event in Fargrave.]])
+    Node(name, 'Fargrave Wayshrine', 'Night Market / Fargrave',
+        [[Obtain these Style Pages from the Night Market event in Fargrave.]])
 end
 
 -- Greymoor prologue / Windhelm Scale
@@ -215,9 +252,9 @@ Node('Barbas Replica', 'Vivec City Wayshrine', 'Vivec City - Vvardenfell', barba
 -- -------------------------------------------------------------------------
 -- Zone-level destinations
 -- -------------------------------------------------------------------------
-Zone('Oaken Order', 'High Isle and Amenos', 'High Isle')
-Zone("Annihilarch's Chosen", 'Deadlands', 'Deadlands - Oblivion Portals')
-Zone('Annihilarch Chosen', 'Deadlands', 'Deadlands - Oblivion Portals')
+Node('Oaken Order', 'Gonfalon Square Wayshrine', 'High Isle')
+Node("Annihilarch's Chosen", 'Wretched Spire Wayshrine', 'Deadlands')
+Node('Annihilarch Chosen', 'Wretched Spire Wayshrine', 'Deadlands')
 Zone("Yffre's Fallen-Wood", 'Blackwood', 'Blackwood')
 Zone("Yffres Fallen-Wood", 'Blackwood', 'Blackwood')
 Zone('Doctrine Ordinator', 'Clockwork City', 'Clockwork City')
@@ -256,3 +293,20 @@ Opal('Opal Rkugamz Sentinel', 'Darkshade Caverns I')
 Opal('Opal Sentinel of Rkugamz', 'Darkshade Caverns I')
 Opal('Opal Velidreth', 'Cradle of Shadows')
 Opal('Opal Scourge Harvester', 'Wayrest Sewers II')
+
+-- Final user-selected corrections for v1.0.0. Keep all other records intact.
+Zone('Apocrypha Expedition', 'Telvanni Peninsula', 'Telvanni Peninsula')
+
+for _, name in ipairs({
+    'Bristleback Hunter',
+    "Y'ffre's Fallen-Wood", "Yffre's Fallen-Wood", 'Yffres Fallen-Wood',
+    'Bog Blight Funerary',
+}) do
+    Patch(name, { mapType = 'NONE' })
+end
+
+for _, name in ipairs({ 'Cumberland Cavalier', 'Highborn Gallant', 'Thane of Falkreath' }) do
+    Patch(name, { mapType = 'HUB', hub = 'WAR_RESEARCHER' })
+end
+
+Patch('Wormwrithe', { mapType = 'HUB', hub = 'SOLSTICE_FELLOWSHIP' })

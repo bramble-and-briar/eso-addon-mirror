@@ -5,7 +5,7 @@ local TC = TamrielCollections
 local function Install()
     if TC.menuEntryInstalled then return true end
     if type(ZO_MENU_ENTRIES) ~= 'table' or not ZO_GamepadEntryData then return false end
-    local icon = 'TamrielCollectionsStylePages/art/collections_puzzle_native_v4.dds'
+    local icon = TC:GetArchiveAssetPath('art/collections_puzzle_native_v4.dds')
     local data = {
         name = 'TAMRIEL ARCHIVE',
         icon = icon,
@@ -48,8 +48,8 @@ local function Install()
     return true
 end
 
-EVENT_MANAGER:RegisterForEvent('TCArchiveStylePagesMenuInit', EVENT_PLAYER_ACTIVATED, function()
-    EVENT_MANAGER:UnregisterForEvent('TCArchiveStylePagesMenuInit', EVENT_PLAYER_ACTIVATED)
+EVENT_MANAGER:RegisterForEvent('TCArchiveMenuInit', EVENT_PLAYER_ACTIVATED, function()
+    EVENT_MANAGER:UnregisterForEvent('TCArchiveMenuInit', EVENT_PLAYER_ACTIVATED)
     local ok, result = pcall(Install)
     if (not ok or not result) and d then d('[TCS] Tamriel Archive menu entry could not be installed.') end
 end)

@@ -37,6 +37,9 @@
             <Action name="KDD_KMOUNT">
                 <Down>KyzderpsDerps.Sync.Kyzerg.KMount()</Down>
             </Action>
+            <Action name="KDD_RESUMMON_COMPANION">
+                <Down>KyzderpsDerps.Companion.CheeseCompanion()</Down>
+            </Action>
         </Category>
     </Layer>
     <Layer name="SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS">

@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/sora0v0/Sora-Sorc-Reticle-Tracker__4959",
+  "archive_path": "addons/sora0v0/Sora-Sorc-Reticle-Tracker-Discontinued__4959",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "sora0v0",
@@ -18,7 +18,7 @@
     "SoraSorcReticleTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4959/",
-  "fingerprint": "6a524c8a91abd74e866ad3f0d1a74a41ec704c01ab21d57ed13a0fa4969cf28d",
+  "fingerprint": "401a3620bc5f2e0f5b50b0c0c63b54fba5a995341e07e8f734b460f75e35c872",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18029.png"
   ],
@@ -26,13 +26,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4959",
-  "source_url": "https://www.esoui.com/downloads/info4959-SoraSorcReticleTracker.html",
+  "source_url": "https://www.esoui.com/downloads/info4959-SoraSorcReticleTrackerDiscontinued.html",
   "stats": {
-    "downloads": 19,
-    "favorites": 0,
-    "monthly_downloads": 14
+    "downloads": 73,
+    "favorites": 1,
+    "monthly_downloads": 70
   },
-  "title": "Sora Sorc Reticle Tracker",
+  "title": "Sora Sorc Reticle Tracker [Discontinued]",
   "updated_at": 1792333610000,
   "version": "1.0.2"
 }

@@ -3,6 +3,12 @@ AlabuzyaUI.GroupFrames = {}
 -- Independent compact group frames, GPL-3.0-or-later.
 local root,settings,ru,fragment
 local rows={}
+function AlabuzyaUI.GroupFrames.CompanionName(tag)
+    local level=GetUnitLevel and GetUnitLevel(tag) or 0
+    if tag=='companion' and GetActiveCompanionLevelInfo then level=GetActiveCompanionLevelInfo() end
+    local name=GetUnitName(tag)
+    return level and level>0 and ('['..level..'] '..name) or name
+end
 local guildCache={}
 local nextGuildRefresh=0
 function AlabuzyaUI.GroupFrames.SharedGuilds(tag)
@@ -165,6 +171,9 @@ local function Update()
         if tag then players[#players+1]=tag end
     end
     local raid=#players>4
+    if #players==0 and HasActiveCompanion and HasActiveCompanion() and DoesUnitExist('companion') then
+        units[#units+1]={tag='companion',companion=true}
+    end
     for i=1,GROUP_SIZE_MAX do
         local tag=GetGroupUnitTagByIndex(i)
         if tag then
@@ -293,7 +302,7 @@ local function Update()
         if texture then row.role:SetTexture(texture) end
         -- ESO's formatter follows the current keyboard/gamepad name preference
         -- and preserves the @ prefix of account names.
-        local display=unit.companion and GetUnitName(tag) or ZO_GetPrimaryPlayerNameFromUnitTag(tag)
+        local display=unit.companion and AlabuzyaUI.GroupFrames.CompanionName(tag) or ZO_GetPrimaryPlayerNameFromUnitTag(tag)
         local level=not unit.companion and UnitLevel(tag) or nil
         row.name:SetText((not raid and level and ('['..level..'] ') or '')..zo_strformat(SI_UNIT_NAME,display))
         row.name:SetColor(online and 1 or 0.5,online and 0.95 or 0.5,online and 0.8 or 0.5,1)

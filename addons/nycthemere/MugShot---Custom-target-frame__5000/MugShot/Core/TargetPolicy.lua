@@ -10,12 +10,15 @@ local TargetPolicy = {}
 
 -- ── Built-in Policy Strategies ────────────────────────────
 
--- 1. Base Strategy: Target must exist and be alive
+-- 1. Base Strategy: Target must exist, be alive, and NOT be the local player
 local function BaseLivingTargetStrategy(state, _settings, _isInTrial)
     if not state or state.exists ~= true then
         return false
     end
     if state.vitals and state.vitals.isDead == true then
+        return false
+    end
+    if state.identity and state.identity.isLocalPlayer == true then
         return false
     end
     return true

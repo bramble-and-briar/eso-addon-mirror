@@ -1,4 +1,4 @@
--- TCM 1.0.2: modular Archive registry with proven Motifs screen control restored.
+-- Tamriel Archive: identical shared screen shipped with every standalone module.
 local TC = TamrielCollections
 local CATEGORY_DEFS = TC.archiveCategories or {
     { name = 'Motifs', key = 'motifs', addonName = 'Tamriel Collections - Archive Motifs' },
@@ -446,7 +446,7 @@ function Screen:Initialize(control)
 
     -- Exact native Quest Journal screen template, including MiddlePane and RightPane.
     TC.initStage = 'native screen constructor'
-    assert(control, 'TCMQuestJournalTL missing (XML did not create control)')
+    assert(control, 'Tamriel Archive screen missing (XML did not create control)')
     ZO_Gamepad_ParametricList_Screen.Initialize(self, control, false, true, self.scene)
     self.fragment = ZO_FadeSceneFragment:New(control, true)
     -- Do NOT call SetParentFragment: it detaches the scene state callback.
@@ -541,8 +541,8 @@ function Screen:Initialize(control)
     self.detailTopLine:SetAnchor(TOPRIGHT, rightContent, TOPRIGHT, 0, 56)
     self.detailBottomLine = MakeDivider(rightContent, 'TCMMotifDetailBottomLine')
     -- Reserve a real acquisition/details block below the chapter list.
-    self.detailBottomLine:SetAnchor(BOTTOMLEFT, rightContent, BOTTOMLEFT, 0, -220)
-    self.detailBottomLine:SetAnchor(BOTTOMRIGHT, rightContent, BOTTOMRIGHT, 0, -220)
+    self.detailBottomLine:SetAnchor(BOTTOMLEFT, rightContent, BOTTOMLEFT, 0, -285)
+    self.detailBottomLine:SetAnchor(BOTTOMRIGHT, rightContent, BOTTOMRIGHT, 0, -285)
 
     self.detailAcquisition = MakeDetailLabel(rightContent, 'TCMMotifAcquisition', 'ZoFontGamepad25', 30)
     self.detailAcquisition:SetAnchor(TOPLEFT, self.detailBottomLine, BOTTOMLEFT, 18, 7)
@@ -563,24 +563,24 @@ function Screen:Initialize(control)
     self.detailLocation:SetColor(1, 0.92, 0.70, 1)
     self.detailLocation:SetText('')
 
-    self.detailSource = MakeDetailLabel(rightContent, 'TCMMotifSource', 'ZoFontGamepad22', 58)
+    self.detailSource = MakeDetailLabel(rightContent, 'TCMMotifSource', 'ZoFontGamepad22', 88)
     self.detailSource:SetAnchor(TOPLEFT, self.detailLocation, BOTTOMLEFT, 4, 4)
     self.detailSource:SetAnchor(TOPRIGHT, self.detailLocation, BOTTOMRIGHT, -4, 4)
     self.detailSource:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     self.detailSource:SetVerticalAlignment(TEXT_ALIGN_TOP)
-    self.detailSource:SetMaxLineCount(3)
+    self.detailSource:SetMaxLineCount(5)
     self.detailSource:SetText('')
 
-    self.detailAchievement = MakeDetailLabel(rightContent, 'TCMMotifAchievement', 'ZoFontGamepad22', 34)
+    self.detailAchievement = MakeDetailLabel(rightContent, 'TCMMotifAchievement', 'ZoFontGamepad20', 58)
     self.detailAchievement:SetAnchor(TOPLEFT, self.detailSource, BOTTOMLEFT, 0, 6)
     self.detailAchievement:SetAnchor(TOPRIGHT, self.detailSource, BOTTOMRIGHT, 0, 6)
     self.detailAchievement:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    self.detailAchievement:SetMaxLineCount(2)
+    self.detailAchievement:SetMaxLineCount(3)
     self.detailAchievement:SetText('')
 
     detailControl:ClearAnchors()
     detailControl:SetAnchor(TOPLEFT, rightContent, TOPLEFT, 0, 53)
-    detailControl:SetAnchor(BOTTOMRIGHT, rightContent, BOTTOMRIGHT, 0, -250)
+    detailControl:SetAnchor(BOTTOMRIGHT, rightContent, BOTTOMRIGHT, 0, -315)
 
     self.rightText:SetHidden(true)
     -- Hide original quest tasks, which are unrelated to motif chapters.
@@ -713,7 +713,7 @@ function Screen:Initialize(control)
         self.collectionsHeaderLogo = WINDOW_MANAGER:CreateControl('TCMCollectionsHeaderLogo', self.header, CT_TEXTURE)
         self.collectionsHeaderLogo:SetDimensions(128, 128)
         self.collectionsHeaderLogo:SetAnchor(TOP, self.collectionsHeaderLine, BOTTOM, 0, 26)
-        self.collectionsHeaderLogo:SetTexture('TamrielCollectionsMotifs/art/collections_puzzle_native_v4.dds')
+        self.collectionsHeaderLogo:SetTexture(TC:GetArchiveAssetPath('art/collections_puzzle_native_v4.dds'))
         self.collectionsHeaderLogo:SetDrawLayer(DL_CONTROLS)
         self.collectionsHeaderLogo:SetDrawLevel(20)
 
@@ -960,14 +960,10 @@ end
 
 function Screen:GetCategoryIcon(category)
     if not category then return nil end
+    if TC.EnsureArchiveCategoryIcons then TC:EnsureArchiveCategoryIcons() end
+    if category.icon and category.icon ~= '' then return category.icon end
     local module = TC.GetArchiveModule and TC:GetArchiveModule(category.key) or nil
-    if module and module.icon and module.icon ~= '' then
-        return module.icon
-    end
-    if category.key == 'motifs' and self.motifIcon then
-        return self.motifIcon
-    end
-    return category.icon
+    return module and module.icon or nil
 end
 
 function Screen:SetMotifContentVisible(visible)
@@ -1036,9 +1032,11 @@ end
 function Screen:ShowMotifCategory(data)
     self:SetMotifContentVisible(true)
     self.styles = MotifCollections() -- Refresh account knowledge when Tamriel Archive is opened.
-    -- Reuse the exact motif icon supplied by ESO's Lore Library.
-    if not self.motifIcon and self.styles and self.styles[1] then
-        self.motifIcon = self.styles[1].icon
+    -- The same native category icon is shown in every installation mode.
+    local category = TC.GetArchiveCategory and TC:GetArchiveCategory('motifs') or CATEGORY_DEFS[1]
+    local icon = self:GetCategoryIcon(category)
+    if self.motifIcon ~= icon then
+        self.motifIcon = icon
         self:BuildCategories()
     end
     self:PopulateMotifList()
@@ -1343,16 +1341,16 @@ local function Initialize()
     if TC.questScreen then return end
     local ok, err = pcall(function()
         TC.initStage = 'constructing Tamriel Archive screen'
-        TC.questScreen = Screen:New(TCMQuestJournalTL)
+        TC.questScreen = Screen:New(TC:GetArchiveScreenControl())
         TC.initStage = 'ready'
     end)
     if not ok then
         TC.questScreen = nil
         TC.initError = tostring(err)
-        if d then d('[Tamriel Archive Motifs v1.0.2] Init failed at '..tostring(TC.initStage)..': '..TC.initError) end
+        if d then d('[Tamriel Archive] Init failed at '..tostring(TC.initStage)..': '..TC.initError) end
     end
 end
-EVENT_MANAGER:RegisterForEvent('TCArchiveMotifsQuestInit', EVENT_PLAYER_ACTIVATED, function()
-    EVENT_MANAGER:UnregisterForEvent('TCArchiveMotifsQuestInit', EVENT_PLAYER_ACTIVATED)
+EVENT_MANAGER:RegisterForEvent('TCArchiveQuestInit', EVENT_PLAYER_ACTIVATED, function()
+    EVENT_MANAGER:UnregisterForEvent('TCArchiveQuestInit', EVENT_PLAYER_ACTIVATED)
     Initialize()
 end)

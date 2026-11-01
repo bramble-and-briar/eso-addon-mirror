@@ -122,6 +122,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MiniMap_jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/MiniMap_jpFix__1397) | 2ch | PC / Mac | 3.00.1 |
 | [MiniStats – Post-Combat Summary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PossEU/MiniStats-Post-Combat-Summary__4222) | PossEU | PC / Mac | 0.1.0 |
 | [Ministry of Normal Walks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Ministry-of-Normal-Walks__4022) | Kyzeragon | PC / Mac | 1.0.0 |
+| [Miracle's Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Miracle19/Miracle-s-Better-Scoreboard__5013) | Miracle19 | PC / Mac | v1 |
 | [Mirelda's CraftAutoLoot Upgrade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-CraftAutoLoot-Upgrade__4299) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's QuickWheelAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-QuickWheelAssist__3963) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's RogAllyPerformanceOptimization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-RogAllyPerformanceOptimization__3964) | Mirelda | PC / Mac | 1.22 |
@@ -159,7 +160,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MrPikPik's Group Loot Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/MrPikPik-s-Group-Loot-Display__3025) | MrPikPik | PC / Mac | 1.1 |
 | [MrPlow - Inventory Sorter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wobin/MrPlow---Inventory-Sorter__539) | Wobin | PC / Mac | 2.6b |
 | [MSPAINTUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/MSPAINTUI__9653b3d8-c1bf-4328-9b31-5e18a4ea643d) | Kyzeragon | Console | — |
-| [MSPAINTUI - Artistically Incompetent Ability Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/MSPAINTUI---Artistically-Incompetent-Ability-Icons__4337) | Kyzeragon | PC / Mac | 1.5.0 |
+| [MSPAINTUI - Artistically Incompetent Ability Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/MSPAINTUI---Artistically-Incompetent-Ability-Icons__4337) | Kyzeragon | PC / Mac | 1.6.0 |
 | [MTS WRITS HUD – Daily Crafting Tracker (PS5).](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Something_Spec90/MTS-WRITS-HUD-Daily-Crafting-Tracker-PS5__ce9458a5-0897-4765-9ec1-5cf8e8345462) | Something_Spec90 | Console | — |
 | [Mudballed - Memento Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Mudballed---Memento-Counter__3218) | Kyzeragon | PC / Mac | 1.0.2 |
 | [Mudcrab Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Mudcrab-Counter__4383) | TwinLamps | PC / Mac | 1.1 |
@@ -167,7 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin's Market Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Market-Manager__4980) | Muffins714 | PC / Mac | 1.1 |
 | [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.2 |
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
-| [MugShot - Custom target frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot---Custom-target-frame__5000) | nycthemere | PC / Mac | 2026.10.30-101046 |
+| [MugShot - Custom target frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nycthemere/MugShot---Custom-target-frame__5000) | nycthemere | PC / Mac | 2026.10.31-101047 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
 | [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.1 |
@@ -200,6 +201,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MyDynamicCamera](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vatechier/MyDynamicCamera__4115) | vatechier | PC / Mac | 1 |
 | [MyGridHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyGridHelper__36ae3d1e-dbb6-45d2-b0a4-30934a0634f8) | Unfounded_Puppy3 | Console | — |
 | [MyMapPos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyMapPos__2c07f374-57bc-4f20-814f-d40e4d93285b) | Unfounded_Puppy3 | Console | — |
+| [MyOmBuffHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyOmBuffHUD__c8d15550-8307-43a1-9803-acf475da93bd) | Unfounded_Puppy3 | Console | — |
 | [MyROCooldownBar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyROCooldownBar__f0dd3b3a-f4d7-48a0-9e5a-2db79cbe695d) | Unfounded_Puppy3 | Console | — |
 | [MyTankBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyTankBars__fe2be9f7-6b33-44e1-8b54-7a7afcc9b63d) | Unfounded_Puppy3 | Console | — |
 | [MyTauntTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyTauntTimer__4b4ff5af-f023-4720-a9dd-1d85048d7be4) | Unfounded_Puppy3 | Console | — |

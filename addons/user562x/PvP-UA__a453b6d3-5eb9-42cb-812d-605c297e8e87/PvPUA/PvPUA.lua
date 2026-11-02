@@ -93,6 +93,7 @@ PvPUA.constants.userIcons = {
     ["@rolo tsg"]        = { texture = "PvPUA/Textures/icon_wizard.dds" },
     ["@bella nekro"]     = { texture = "PvPUA/Textures/icon_bellamask.dds" },
     ["@o1knuckles1o"]    = { texture = "PvPUA/Textures/icon_knuckles.dds" },
+    ["@dollvteaz"]       = { texture = "PvPUA/Textures/icon_pinkpanda.dds" },
 }
 
 PvPUA.constants.ICON_NONE    = 1

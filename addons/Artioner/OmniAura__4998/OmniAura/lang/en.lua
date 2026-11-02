@@ -1,17 +1,18 @@
 -- English (base). Other language files only override the keys they translate.
+-- Keys that use GetString(...) take the game's own translation, so the other
+-- language files leave them out.
 local L = OmniAura.L
 
 -- General
 L.AURA_ERROR = "Error in aura '%s' (disabled until /reloadui): %s"
-L.EDITOR_NOT_LOADED = "The editor is not loaded: fully close the game and start it again (/reloadui is not enough)."
 L.BINDING_TOGGLE = "Open/close the editor"
 L.COPY_SUFFIX = " (copy)"
 
 -- Resources and combat
-L.POWER_HEALTH = "Health"
-L.POWER_MAGICKA = "Magicka"
-L.POWER_STAMINA = "Stamina"
-L.POWER_ULTIMATE = "Ultimate"
+L.POWER_HEALTH = GetString("SI_COMBATMECHANICFLAGS", COMBAT_MECHANIC_FLAGS_HEALTH)
+L.POWER_MAGICKA = GetString("SI_COMBATMECHANICFLAGS", COMBAT_MECHANIC_FLAGS_MAGICKA)
+L.POWER_STAMINA = GetString("SI_COMBATMECHANICFLAGS", COMBAT_MECHANIC_FLAGS_STAMINA)
+L.POWER_ULTIMATE = GetString("SI_COMBATMECHANICFLAGS", COMBAT_MECHANIC_FLAGS_ULTIMATE)
 L.IN_COMBAT = "In combat"
 L.OUT_OF_COMBAT = "Out of combat"
 
@@ -71,6 +72,7 @@ L.COUNT_MANY = "%d auras"
 L.TPL_BUFF = "Buff on me"
 L.TPL_DEBUFF = "My debuff on the target"
 L.TPL_MISSING = "Missing buff"
+L.TPL_SLOT = "Stacks of a skill on my bars"
 L.TPL_RESOURCE = "Resource (health, magicka...)"
 L.TPL_PROC = "Set / ability proc"
 L.TPL_COMBAT = "Combat state"
@@ -79,6 +81,7 @@ L.NAME_NEW_DEBUFF = "New debuff"
 L.NAME_MISSING = "Missing buff"
 L.NAME_LOW_HEALTH = "Low health"
 L.NAME_NEW_PROC = "New proc"
+L.NAME_NEW_SLOT = "Bar skill"
 
 -- Editor: sections and actions
 L.H_GENERAL = "General"
@@ -124,6 +127,7 @@ L.UNIT_PLAYER = "Me"
 L.UNIT_TARGET = "Target"
 L.UNIT_BOSS = "Boss %d"
 L.TRIG_BUFF = "Buff / debuff"
+L.TRIG_SLOT = "Skill on my bars (stacks)"
 L.TRIG_RESOURCE = "Resource"
 L.TRIG_PROC = "Proc (combat event)"
 L.TRIG_COMBAT = "Combat state"
@@ -218,17 +222,17 @@ L.CAT_GROUP_OTHER = "Other"
 L.CAT_ALL = "Everything"
 L.CAT_BUFF = "Buffs (major/minor)"
 L.CAT_DEBUFF = "Debuffs"
-L.CAT_2H = "Two-handed"
-L.CAT_1H = "One hand and shield"
-L.CAT_DW = "Dual wield"
-L.CAT_BOW = "Bow"
-L.CAT_DESTRO = "Destruction staff"
-L.CAT_RESTO = "Restoration staff"
-L.CAT_ARMOR = "Armor"
-L.CAT_GUILD = "Guilds"
+L.CAT_2H = GetString("SI_WEAPONCONFIGTYPE", WEAPON_CONFIG_TYPE_TWO_HANDED)
+L.CAT_1H = GetString("SI_WEAPONCONFIGTYPE", WEAPON_CONFIG_TYPE_ONE_HAND_AND_SHIELD)
+L.CAT_DW = GetString("SI_WEAPONCONFIGTYPE", WEAPON_CONFIG_TYPE_DUAL_WIELD)
+L.CAT_BOW = GetString("SI_WEAPONCONFIGTYPE", WEAPON_CONFIG_TYPE_BOW)
+L.CAT_DESTRO = GetString("SI_WEAPONCONFIGTYPE", WEAPON_CONFIG_TYPE_DESTRO_STAFF)
+L.CAT_RESTO = GetString("SI_WEAPONCONFIGTYPE", WEAPON_CONFIG_TYPE_RESTO_STAFF)
+L.CAT_ARMOR = GetString("SI_SKILLTYPE", SKILL_TYPE_ARMOR)
+L.CAT_GUILD = GetString("SI_SKILLTYPE", SKILL_TYPE_GUILD)
 L.CAT_WORLD = "World (vampire, werewolf...)"
-L.CAT_AVA = "Alliance war"
-L.CAT_RACIAL = "Racial"
+L.CAT_AVA = GetString("SI_SKILLTYPE", SKILL_TYPE_AVA)
+L.CAT_RACIAL = GetString("SI_SKILLTYPE", SKILL_TYPE_RACIAL)
 L.CAT_MUNDUS = "Mundus stones"
 L.CAT_COMPANION = "Companions"
 L.CAT_GEAR = "Gear / sets"
@@ -239,4 +243,4 @@ L.CAT_OTHER = "Uncategorized"
 L.WELCOME_TITLE = "Welcome to OmniAura"
 L.WELCOME_TEXT = "Thanks for installing OmniAura.\n\nCreate on-screen alerts (icons, bars or texts) for your buffs, debuffs, resources and procs.\n\n- Open the editor with /omni or bind a key in Controls.\n- Create an aura with \"+ New aura...\".\n- Drag the aura on screen to place it."
 L.UPDATE_TITLE = "OmniAura updated to v%s"
-L.CHANGELOG = "First public release:\n\n- Visual editor (/omni) with ready-made aura templates.\n- Alerts for buffs, debuffs, resources, procs and combat state.\n- Icons, icons with text, bars and texts.\n- Search and catalog of every ability in the game, filtered by class and category.\n- Move and resize auras by dragging them on screen, one by one or all at once while seeing your normal game interface.\n- Available in English, Spanish, German and French."
+L.CHANGELOG = "What's new in 1.1.1:\n\n- Resource, weapon and skill line names now use the game's own translations.\n- Lighter combat event handling and code cleanup following the ESOUI guidelines.\n\nIn 1.1.0:\n\n- New trigger \"Skill on my bars (stacks)\": shows the stacks and timer the game draws on a skill on your bars (e.g. Flame Lash → Power Lash), with its own template.\n- {stacks} now also shows a single stack.\n- Appearance texts can be left empty."

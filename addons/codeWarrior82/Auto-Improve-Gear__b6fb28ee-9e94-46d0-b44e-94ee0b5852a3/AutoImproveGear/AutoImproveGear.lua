@@ -29,6 +29,9 @@ local processingResultsHeadingControl
 local selectionKeybindStateIndex
 local backKeybindDescriptor
 
+--Allow the native improvement tooltip to settle before starting each item.
+local ITEM_TOOLTIP_SETTLE_DELAY_MS = 500
+
 --Temporarily disable the smithing improvement tooltip's own stick input
 --while Confirm Improvements is displayed. The tooltip remains visible.
 local smithingTooltipInputDisabled = false
@@ -54,12 +57,14 @@ local processingState = {
     item = nil,
     queue = {},
     queueIndex = 0,
+    tooltipPreparedQueueIndex = nil,
     craftingType = nil,
     previousQuality = nil,
     succeeded = false,
     finished = false,
 }
 local startNextImprovementStep
+local showItemInNativeImprovementTooltip
 local IMPROVEMENT_EVENT_TIMEOUT_MS = 15000
 local restoreAutoImproveKeybind
 local improveKeybindDescriptor
@@ -316,6 +321,41 @@ local function scanAvailableItems(craftingType)
     return items
 end
 
+--Build the Available Items groups in the same order used by the visible list.
+--The displayed rows therefore retain a consistent category and item order.
+local function buildAvailableItemGroups(items)
+    local itemGroups = {
+        { name = "Equipped weapons", items = {} },
+        { name = "Equipped Armor", items = {} },
+        { name = "Inventory Weapons", items = {} },
+        { name = "Inventory Armor", items = {} },
+        { name = "Banked Weapons", items = {} },
+        { name = "Banked Armor", items = {} },
+    }
+
+    for _, item in ipairs(items or {}) do
+        local bagId = item.bagId or BAG_BACKPACK
+        local firstGroupIndex
+
+        if bagId == BAG_WORN then
+            firstGroupIndex = 1
+        elseif bagId == BAG_BACKPACK then
+            firstGroupIndex = 3
+        elseif bagId == BAG_BANK or (BAG_SUBSCRIBER_BANK and bagId == BAG_SUBSCRIBER_BANK) then
+            firstGroupIndex = 5
+        else
+            --Keep any unexpected bag type visible in Inventory.
+            firstGroupIndex = 3
+        end
+
+        local itemType = GetItemType and GetItemType(bagId, item.slotIndex)
+        local groupIndex = firstGroupIndex + (itemType == ITEMTYPE_WEAPON and 0 or 1)
+        table.insert(itemGroups[groupIndex].items, item)
+    end
+
+    return itemGroups
+end
+
 --create the custom selection screen class
 local AutoImproveGearSelectionScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
 
@@ -403,7 +443,7 @@ local function updateSelectionKeybinds()
             backKeybindDescriptor.name = "Back"
             backKeybindDescriptor.enabled = function() return true end
         elseif selectionMode == "complete" then
-            backKeybindDescriptor.name = "Back to Items"
+            backKeybindDescriptor.name = "Finish"
             backKeybindDescriptor.enabled = function() return true end
         else
             backKeybindDescriptor.name = GetString(SI_GAMEPAD_BACK_OPTION)
@@ -605,6 +645,73 @@ local function calculateMaterialRequirements(selectedItems, targetQuality, craft
     return materials
 end
 
+--Keep only items that still need at least one improvement step to reach the target.
+--If quality cannot be read, retain the item so the processing safeguards can report it.
+local function getItemsNeedingUpgrade(items, targetQuality)
+    local itemsToUpgrade = {}
+
+    for _, item in ipairs(items or {}) do
+        local bagId = item.bagId or BAG_BACKPACK
+        local currentQuality = select(8, GetItemInfo(bagId, item.slotIndex))
+
+        if not currentQuality or currentQuality < targetQuality then
+            table.insert(itemsToUpgrade, item)
+        end
+    end
+
+    return itemsToUpgrade
+end
+
+--Recheck the pending selection immediately before each confirmation boundary.
+--This removes items that have since reached the target and refreshes material totals.
+local function refreshPendingImprovementSummary()
+    local summary = pendingImprovementSummary
+    if not summary then
+        return false
+    end
+
+    local previousItems = summary.items or {}
+    local itemsToUpgrade = getItemsNeedingUpgrade(previousItems, summary.targetQuality)
+    local changed = #itemsToUpgrade ~= #previousItems
+
+    if not changed then
+        for index, item in ipairs(itemsToUpgrade) do
+            if item ~= previousItems[index] then
+                changed = true
+                break
+            end
+        end
+    end
+
+    local materials = calculateMaterialRequirements(
+        itemsToUpgrade,
+        summary.targetQuality,
+        summary.craftingType
+    )
+
+    for index, material in ipairs(materials) do
+        local previousMaterial = summary.materials and summary.materials[index]
+        if not previousMaterial
+            or previousMaterial.required ~= material.required
+            or previousMaterial.available ~= material.available then
+            changed = true
+        end
+    end
+
+    summary.items = itemsToUpgrade
+    summary.materials = materials
+    summary.enoughMaterials = true
+
+    for _, material in ipairs(materials) do
+        if material.required > material.available then
+            summary.enoughMaterials = false
+            break
+        end
+    end
+
+    return changed
+end
+
 local function createImprovementItemRecord(item, craftingType, targetQuality, targetQualityName)
     local bagId = item.bagId or BAG_BACKPACK
     local itemLink = GetItemLink and GetItemLink(bagId, item.slotIndex, LINK_STYLE_DEFAULT) or nil
@@ -658,7 +765,17 @@ local function confirmSelectedQuality(qualityName)
         return
     end
 
-    local materials = calculateMaterialRequirements(selectedItems, targetQuality, craftingType)
+    --Items already at or above the chosen quality are excluded before the
+    --summary, material calculation, final confirmation and processing queue.
+    local itemsToUpgrade = getItemsNeedingUpgrade(selectedItems, targetQuality)
+    if #itemsToUpgrade == 0 then
+        selectionMode = "alreadyAtTargetInfo"
+        selectionScreen:Update()
+        updateSelectionKeybinds()
+        return
+    end
+
+    local materials = calculateMaterialRequirements(itemsToUpgrade, targetQuality, craftingType)
 
     local enoughMaterials = true
     for _, material in ipairs(materials) do
@@ -668,7 +785,7 @@ local function confirmSelectedQuality(qualityName)
     end
 
     local itemRecords = {}
-    for _, item in ipairs(selectedItems) do
+    for _, item in ipairs(itemsToUpgrade) do
         table.insert(itemRecords, createImprovementItemRecord(item, craftingType, targetQuality, qualityName))
     end
 
@@ -782,6 +899,30 @@ startNextImprovementStep = function()
         return
     end
 
+    --Show each selected item in ESO's native improvement tooltip once, then
+    --wait for the tooltip/UI to settle before running the existing upgrade step.
+    --The same item may require multiple quality upgrades; do not re-preview it
+    --between those individual quality steps.
+    if processingState.tooltipPreparedQueueIndex ~= processingState.queueIndex then
+        if type(showItemInNativeImprovementTooltip) ~= "function"
+            or not showItemInNativeImprovementTooltip(item) then
+            finishProcessing(false, "FAIL: unable to display selected item in improvement tooltip")
+            return
+        end
+
+        local preparedQueueIndex = processingState.queueIndex
+        local preparedItem = item
+        processingState.tooltipPreparedQueueIndex = preparedQueueIndex
+        zo_callLater(function()
+            if processingState.active
+                and selectionMode == "processing"
+                and processingState.queueIndex == preparedQueueIndex
+                and processingState.item == preparedItem then
+                startNextImprovementStep()
+            end
+        end, ITEM_TOOLTIP_SETTLE_DELAY_MS)
+        return
+    end
     local itemStillPresent, identityError = verifyTrackedItemStillInSlot(item)
     if not itemStillPresent then
         finishProcessing(false, "FAIL: " .. identityError)
@@ -980,12 +1121,37 @@ local function registerImprovementEvents()
 end
 
 local function startImprovementQueue()
-    if not pendingImprovementSummary or not pendingImprovementSummary.enoughMaterials then
+    if not pendingImprovementSummary then
         return
     end
 
+    --Last safety check: if an item reached the target while the final
+    --confirmation screen was open, refresh the screen and require confirmation again.
+    local summaryChanged = refreshPendingImprovementSummary()
     local itemQueue = pendingImprovementSummary.items
+
     if #itemQueue == 0 then
+        printMessage("All selected items are already at or above the chosen quality.")
+        pendingImprovementSummary = nil
+        selectionMode = "items"
+        selectionScreen:Update()
+        updateSelectionKeybinds()
+        return
+    end
+
+    if summaryChanged then
+        selectionMode = "finalConfirm"
+        selectionScreen:Update()
+        updateSelectionKeybinds()
+        printMessage("The item list or material requirements changed. Please confirm again.")
+        return
+    end
+
+    if not pendingImprovementSummary.enoughMaterials then
+        printMessage("Not enough materials.")
+        selectionMode = "summary"
+        selectionScreen:Update()
+        updateSelectionKeybinds()
         return
     end
 
@@ -995,6 +1161,7 @@ local function startImprovementQueue()
     processingState.queue = itemQueue
     processingState.queueIndex = 1
     processingState.item = itemQueue[1]
+    processingState.tooltipPreparedQueueIndex = nil
     processingState.craftingType = pendingImprovementSummary.craftingType
     processingState.previousQuality = nil
     processingState.succeeded = true
@@ -1009,11 +1176,30 @@ local function startImprovementQueue()
 end
 
 local function confirmImprovementSummary()
-    if not pendingImprovementSummary then return end
-    if not pendingImprovementSummary.enoughMaterials then
-        printMessage("Not enough materials.")
+    if not pendingImprovementSummary then
         return
     end
+
+    --Recheck at the user's confirmation point so already-upgraded items are
+    --removed before the final Confirm and Start screen is presented.
+    refreshPendingImprovementSummary()
+
+    if #pendingImprovementSummary.items == 0 then
+        printMessage("All selected items are already at or above the chosen quality.")
+        pendingImprovementSummary = nil
+        selectionMode = "items"
+        selectionScreen:Update()
+        updateSelectionKeybinds()
+        return
+    end
+
+    if not pendingImprovementSummary.enoughMaterials then
+        printMessage("Not enough materials.")
+        selectionScreen:Update()
+        updateSelectionKeybinds()
+        return
+    end
+
     selectionMode = "finalConfirm"
     selectionScreen:Update()
     updateSelectionKeybinds()
@@ -1023,6 +1209,7 @@ local function returnToAvailableItems()
     processingState.active = false
     processingState.awaitingCompletion = false
     processingState.finished = false
+    processingState.tooltipPreparedQueueIndex = nil
     pendingImprovementSummary = nil
     selectionMode = "items"
     selectionScreen:Update()
@@ -1102,7 +1289,10 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
     }
 
     primaryDescriptor.enabled = function()
-        return selectionMode ~= "summary" and selectionMode ~= "processing" and selectionMode ~= "complete"
+        return selectionMode ~= "summary"
+            and selectionMode ~= "processing"
+            and selectionMode ~= "complete"
+            and selectionMode ~= "alreadyAtTargetInfo"
     end
 
     self.primaryKeybindDescriptor = primaryDescriptor
@@ -1110,15 +1300,22 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         primaryDescriptor,
         {
-            name = "Improve Selected Items",
+            name = function()
+                return selectionMode == "alreadyAtTargetInfo" and "Return" or "Improve Selected Items"
+            end,
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
                 return selectionMode ~= "finalConfirm"
             end,
             enabled = function()
-                return selectionMode ~= "processing" and selectionMode ~= "complete"
+                return selectionMode == "alreadyAtTargetInfo"
+                    or (selectionMode ~= "processing" and selectionMode ~= "complete")
             end,
             callback = function()
+                if selectionMode == "alreadyAtTargetInfo" then
+                    returnToAvailableItems()
+                    return
+                end
                 if selectionMode == "processing" or selectionMode == "complete" or selectionMode == "finalConfirm" then
                     return
                 end
@@ -1140,12 +1337,17 @@ function AutoImproveGearSelectionScreen:InitializeKeybindStripDescriptors()
             end,
         },
         {
-            name = GetString(SI_GAMEPAD_BACK_OPTION),
+            name = function()
+                return selectionMode == "alreadyAtTargetInfo" and "Return" or GetString(SI_GAMEPAD_BACK_OPTION)
+            end,
             keybind = "UI_SHORTCUT_NEGATIVE",
             visible = function() return true end,
             enabled = function() return selectionMode ~= "processing" end,
             callback = function()
-                if selectionMode == "processing" then
+                if selectionMode == "alreadyAtTargetInfo" then
+                    returnToAvailableItems()
+                    return
+                elseif selectionMode == "processing" then
                     return
                 elseif selectionMode == "finalConfirm" then
                     selectionMode = "summary"
@@ -1206,7 +1408,19 @@ function AutoImproveGearSelectionScreen:PerformUpdate()
     if processingResultsControl then processingResultsControl:SetHidden(true); processingResultsControl:SetText("") end
     if processingResultsHeadingControl then processingResultsHeadingControl:SetHidden(true); processingResultsHeadingControl:SetText("") end
 
-    if selectionMode == "finalConfirm" then
+    if selectionMode == "alreadyAtTargetInfo" then
+        if processingMessageControl then
+            processingMessageControl:SetHidden(false)
+            processingMessageControl:ClearAnchors()
+            processingMessageControl:SetAnchor(TOP, selectionControl, TOP, 0, 190 + textOffsetY)
+            processingMessageControl:SetDimensions(590, 150)
+            processingMessageControl:SetText(
+                "The items selected cannot be \nupgraded to the selected level, \nthey are already at that level."
+            )
+        end
+        list:Commit()
+        self.headerData = { titleText = "Improvement Warning" }
+    elseif selectionMode == "finalConfirm" then
         if summaryScrollContainer then summaryScrollContainer:SetHidden(true) end
         if itemsHeadingControl then itemsHeadingControl:SetHidden(true) end
         if itemsBodyControl then itemsBodyControl:SetHidden(true) end
@@ -1457,36 +1671,8 @@ function AutoImproveGearSelectionScreen:PerformUpdate()
         }
     else
         local selectedCount = 0
-        local itemGroups = {
-            { name = "Equipped weapons", items = {} },
-            { name = "Equipped Armor", items = {} },
-            { name = "Inventory Weapons", items = {} },
-            { name = "Inventory Armor", items = {} },
-            { name = "Banked Weapons", items = {} },
-            { name = "Banked Armor", items = {} },
-        }
-
-        --Separate each storage location into weapons and armour.
-        --Standard and ESO Plus bank bags share the same bank categories.
-        for _, item in ipairs(selectionItems) do
-            local bagId = item.bagId or BAG_BACKPACK
-            local firstGroupIndex
-
-            if bagId == BAG_WORN then
-                firstGroupIndex = 1
-            elseif bagId == BAG_BACKPACK then
-                firstGroupIndex = 3
-            elseif bagId == BAG_BANK or (BAG_SUBSCRIBER_BANK and bagId == BAG_SUBSCRIBER_BANK) then
-                firstGroupIndex = 5
-            else
-                --Keep any unexpected bag type visible in Inventory.
-                firstGroupIndex = 3
-            end
-
-            local itemType = GetItemType and GetItemType(bagId, item.slotIndex)
-            local groupIndex = firstGroupIndex + (itemType == ITEMTYPE_WEAPON and 0 or 1)
-            table.insert(itemGroups[groupIndex].items, item)
-        end
+        --Use the shared grouping helper to keep the visible item order consistent.
+        local itemGroups = buildAvailableItemGroups(selectionItems)
 
         --Use ESO's smaller Gamepad menu-entry font for every equipment row.
         --The ordinary and header-enabled templates have separate setup functions,
@@ -1776,6 +1962,88 @@ local function createSelectionScreen()
 
     --connect the gamepad list to the overlay fragment for it owns navigation
     selectionScreen:SetParentFragment(selectionFragment)
+end
+
+--Return the native Gamepad improvement panel for the current station.
+local function getCurrentGamepadImprovementPanel()
+    local craftingType = GetCraftingInteractionType()
+    if craftingType == CRAFTING_TYPE_JEWELRYCRAFTING then
+        return JEWELRY_CRAFTING_GAMEPAD and JEWELRY_CRAFTING_GAMEPAD.improvementPanel
+    end
+    return SMITHING_GAMEPAD and SMITHING_GAMEPAD.improvementPanel
+end
+
+--Display one item using the game's own improvement source tooltip.
+--When the item exists in the native improvement inventory, select its row so
+--ESO runs its normal selection callback. For items outside that list (for
+--example bank or worn items), lay out the same native tooltip directly.
+showItemInNativeImprovementTooltip = function(item)
+    if not item then
+        return false
+    end
+
+    local panel = getCurrentGamepadImprovementPanel()
+    if not panel then
+        return false
+    end
+
+    local bagId = item.bagId or BAG_BACKPACK
+    local slotIndex = item.slotIndex
+    if slotIndex == nil then
+        return false
+    end
+
+    local inventory = panel.inventory
+    local list = inventory and inventory.list
+    if list and type(list.SetSelectedDataByEval) == "function" then
+        local selectionOk = pcall(function()
+            list:SetSelectedDataByEval(function(data)
+                return data and data.bagId == bagId and data.slotIndex == slotIndex
+            end)
+        end)
+
+        if selectionOk and type(inventory.CurrentSelectionBagAndSlot) == "function" then
+            local selectedBagId, selectedSlotIndex = inventory:CurrentSelectionBagAndSlot()
+            if selectedBagId == bagId and selectedSlotIndex == slotIndex then
+                return true
+            end
+        end
+    end
+
+    --Fallback for valid items that are not represented in the native inventory
+    --list. This uses the game's actual source-tooltip layout function/control.
+    local sourceTooltip = panel.sourceTooltip
+    if not sourceTooltip or not sourceTooltip.tip
+        or type(sourceTooltip.tip.LayoutImproveSourceSmithingItem) ~= "function" then
+        return false
+    end
+
+    local hasSelections = false
+    if type(panel.HasSelections) == "function" then
+        local ok, value = pcall(panel.HasSelections, panel)
+        hasSelections = ok and value or false
+    end
+
+    local layoutOk = pcall(function()
+        sourceTooltip.tip:ClearLines()
+        sourceTooltip.tip:LayoutImproveSourceSmithingItem(bagId, slotIndex, hasSelections)
+
+        if sourceTooltip.scrollTooltip then
+            sourceTooltip.scrollTooltip:ResetToTop()
+        end
+
+        local _, itemIcon = GetItemInfo(bagId, slotIndex)
+        if itemIcon and sourceTooltip.icon then
+            sourceTooltip.icon:SetTexture(itemIcon)
+        end
+
+        if panel.qualityBridge then
+            sourceTooltip:ClearAnchors()
+            sourceTooltip:SetAnchor(RIGHT, panel.qualityBridge, LEFT, 21)
+        end
+        sourceTooltip:SetHidden(false)
+    end)
+    return layoutOk
 end
 
 --show the item list over the current crafting scene

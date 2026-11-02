@@ -4,7 +4,7 @@ OmniAura = OmniAura or {}
 local OA = OmniAura
 
 OA.name = "OmniAura"
-OA.version = "1.0.0"
+OA.version = "1.1.1"
 OA.svVersion = 1
 OA.author = "@Artioner"
 OA.authorServer = "EU Megaserver"   -- el correo (donaciones) solo llega dentro del mismo megaservidor
@@ -23,11 +23,7 @@ OA.defaults = {
 -- Se usa el canal de sistema (no d(), que es de depuración): addons de chat como pChat
 -- solo muestran los mensajes de sistema.
 function OA.Chat(msg)
-    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
-        CHAT_ROUTER:AddSystemMessage(msg)
-    else
-        d(msg)
-    end
+    CHAT_ROUTER:AddSystemMessage(msg)
 end
 
 function OA.Print(fmt, ...)
@@ -44,19 +40,15 @@ local function OnAddOnLoaded(_, addonName)
     OA.Display.Init()
     OA.Engine.Init()
     OA.Commands.Init()
-    if OA.Recent then OA.Recent.Init() end
-    -- El juego solo relee el manifiesto (.txt) al arrancar: si se añadieron archivos
-    -- nuevos y solo se hizo /reloadui, estos módulos no existen todavía.
-    if OA.Editor then OA.Editor.Init() end
-    if OA.Settings then OA.Settings.Init() end
+    OA.Recent.Init()
+    OA.Editor.Init()
+    OA.Settings.Init()
 
     -- Ventana de bienvenida/novedades (solo al instalar o actualizar). Se retrasa unos
     -- segundos para que no coincida con la carga de la interfaz al entrar al mundo.
     EVENT_MANAGER:RegisterForEvent(OA.name .. "_Welcome", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(OA.name .. "_Welcome", EVENT_PLAYER_ACTIVATED)
-        zo_callLater(function()
-            if OA.Settings then OA.Settings.ShowWelcomeIfNeeded() end
-        end, WELCOME_DELAY_MS)
+        zo_callLater(OA.Settings.ShowWelcomeIfNeeded, WELCOME_DELAY_MS)
     end)
 end
 

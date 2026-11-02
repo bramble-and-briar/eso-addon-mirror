@@ -101,9 +101,9 @@ end
 
 -- Botón "?" del editor.
 function S.OpenHelp()
-    local LAM = LibAddonMenu2
-    if LAM and S.panel then
-        LAM:OpenToPanel(S.panel)
+    -- S.panel solo existe si LibAddonMenu-2.0 (dependencia opcional) está instalada.
+    if S.panel then
+        LibAddonMenu2:OpenToPanel(S.panel)
     else
         ZO_Dialogs_ShowDialog(HELP_DIALOG, nil, { mainTextParams = { HelpText() } })
     end

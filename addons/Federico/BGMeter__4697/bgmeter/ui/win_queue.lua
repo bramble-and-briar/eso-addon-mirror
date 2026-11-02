@@ -261,6 +261,17 @@ function Q.build(pw, opts)
     qc:SetDimensions(168, 30)
     qc:SetAnchor(BOTTOMLEFT, pw, BOTTOMLEFT, opts.x, opts.y)
     q = { combo_c = qc, sel = 1 }
+    local bgc = qc.GetNamedChild and qc:GetNamedChild("BG")
+    if bgc and bgc.SetEdgeTexture then
+        bgc:SetEdgeTexture(P.FRAME_THIN_EDGE, 128, 16, P.FRAME_THIN_SIZE)
+        bgc:SetCenterColor(P.BUTTON_FACE[1], P.BUTTON_FACE[2], P.BUTTON_FACE[3], 1)
+    end
+    if q.combo then
+        local g = K.COLOR.gold
+        if q.combo.SetFont then q.combo:SetFont("ZoFontGameBold") end
+        if q.combo.SetSelectedColor then q.combo:SetSelectedColor(g[1], g[2], g[3], 1) end
+        if q.combo.SetHighlightedColor then q.combo:SetHighlightedColor(1, 0.94, 0.66, 1) end
+    end
     if type(ZO_ComboBox_ObjectFromContainer) == "function" then
         local ok, obj = pcall(ZO_ComboBox_ObjectFromContainer, qc)
         if ok then q.combo = obj end
@@ -269,10 +280,9 @@ function Q.build(pw, opts)
         q.combo:SetSortsItems(false)
     end
 
-    q.btn = BGMeter.zenimax.ui.create_from_virtual(nil, pw, "ZO_DefaultButton")
+    q.btn = P.gold_button(pw, "Queue")
     q.btn:SetDimensions(92, 28)
     q.btn:SetAnchor(LEFT, qc, RIGHT, 4, 0)
-    q.btn:SetText("Queue")
     q.btn:SetHandler("OnClicked", function() Q.click() end)
 
     q.status = P.label(pw, S.FONT.small, K.COLOR.text_dim)

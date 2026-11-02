@@ -2,7 +2,8 @@
 <GuiXml>
   <Controls>
 
-    <TopLevelControl name="CharacterHomesDialog" hidden="true" movable="true" mouseEnabled="true" clampedToScreen="true" allowBringToTop="true">
+    <TopLevelControl name="CharacterHomesDialog" hidden="true" movable="true" mouseEnabled="true" keyboardEnabled="true" clampedToScreen="true" allowBringToTop="true">
+      <OnKeyDown>CharacterHomes.OnKeyDown(key, ctrl, alt, shift, command)</OnKeyDown>
       <Anchor point="CENTER" relativePoint="CENTER" relativeTo="GuiRoot"/>
       <Dimensions x="1180" y="720"/>
       <Controls>
@@ -20,7 +21,7 @@
           <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" relativeTo="$(parent)" offsetX="-10" offsetY="10"/>
           <Dimensions x="24" y="24"/>
           <Textures normal="esoui/art/buttons/decline_up.dds" mouseOver="esoui/art/buttons/decline_over.dds" pressed="esoui/art/buttons/decline_down.dds"/>
-          <OnClicked>CharacterHomesDialog:SetHidden(true) SetGameCameraUIMode(false)</OnClicked>
+          <OnClicked>CharacterHomes.HideDialog()</OnClicked>
         </Button>
 
         <Backdrop name="$(parent)Divider1" centerColor="00000000" edgeColor="6B5C2E">
@@ -139,10 +140,15 @@
           <Dimensions x="1" y="28"/>
         </Backdrop>
 
-        <!-- Differentiating label left-aligned with friend housing "Friend:" label -->
-        <Label name="$(parent)AddBarLabel" font="ZoFontGame" color="888888" text="My homes:">
-          <Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)AddRefBg" offsetX="25" offsetY="0"/>
+        <!-- Mirrors FHFriendLabel / friend combo positions in the row above -->
+        <Label name="$(parent)AddBarLabel" font="ZoFontGame" color="888888" text="Owned:">
+          <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)AddRefBg" offsetX="74" offsetY="0"/>
         </Label>
+
+        <Control name="$(parent)AddZoneCombo" inherits="ZO_ComboBox">
+          <Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)AddRefBg" offsetX="78" offsetY="0"/>
+          <Dimensions x="200" y="28"/>
+        </Control>
 
         <!-- House label (mirrors FHHouseLabel position) -->
         <Label name="$(parent)AddHouseLabel" font="ZoFontGame" color="888888" text="House:">

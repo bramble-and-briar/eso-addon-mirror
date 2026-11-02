@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Jesusofplaster/Jesus-de-Platre---Advanced-Taunt-Tracker__5017",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Jesusofplaster",
+  "canonical_id": "esoui:5017",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5017",
+  "deleted": false,
+  "directories": [
+    "JesusDePlatre_PrivateMarker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5017/",
+  "fingerprint": "20489a028128cccfeea1338c45bd235000f160c067d217e95ef188c3a30785f5",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5017",
+  "source_url": "https://www.esoui.com/downloads/info5017-JesusdePlatre-AdvancedTauntTracker.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Jesus de Platre - Advanced Taunt Tracker",
+  "updated_at": 1793582035000,
+  "version": "V.1.0"
+}

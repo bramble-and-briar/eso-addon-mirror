@@ -14,6 +14,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [JadeHelmetHide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheJadeSiren/JadeHelmetHide__1886) | TheJadeSiren | PC / Mac | 1.0.0 |
 | [Jensen Bounty Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeyJensen/Jensen-Bounty-Tracker__4637) | HeyJensen | PC / Mac | 1.0.2 |
 | [Jensen Ranked Duel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeyJensen/Jensen-Ranked-Duel__4635) | HeyJensen | PC / Mac | 1.2.8 |
+| [Jesus de Platre - Advanced Taunt Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jesusofplaster/Jesus-de-Platre---Advanced-Taunt-Tracker__5017) | Jesusofplaster | PC / Mac | V.1.0 |
 | [JoGroup (Renovated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lwndow/JoGroup-Renovated__2937) | lwndow | PC / Mac | 1.9.1 |
 | [JoGroup \[code's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/JoGroup-code-s-branch__3643) | code65536 | PC / Mac | 2.0.1.1 |
 | [JoGroup Quick Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Deandra/JoGroup-Quick-Update__1719) | Deandra | PC / Mac | 1.9 |

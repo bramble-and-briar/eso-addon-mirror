@@ -1,8 +1,27 @@
+-- =============================================================================
+-- Kwibus Isiibus Equipped (ISI)
+-- =============================================================================
+-- Lightweight on-screen display of currently equipped gear sets, armor weights,
+-- armor traits, and jewelry traits, with alerts for missing items or invalid skills.
+-- =============================================================================
+
 KwibusRandomThings = KwibusRandomThings or {}
 local KRT = KwibusRandomThings
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
-local ADDON_NAME = KRT.name
+local ADDON_NAME = KRT.name or "KwibusRandomThings"
+
+-- Resilient table clear fallback (used by table recycling pools)
+local ZO_ClearTable = ZO_ClearTable or function(t)
+    if not t then return end
+    for k in pairs(t) do
+        t[k] = nil
+    end
+end
+
+-- =========================================================
+-- SavedVariables Defaults & Accessor
+-- =========================================================
 
 local DEFAULTS = { isi = {
     enabled = true,
@@ -14,6 +33,9 @@ local DEFAULTS = { isi = {
     showArmorTraits = true,
     colorCodedTraits = true,
     hasForcedTraitColoringOnce = false,
+    showJewelryTraits = true,
+    colorCodedJewelryTraits = true,
+    hasForcedJewelryTraitColoringOnce = false,
     showAbilityWarning = true,
     showMissingGearWarning = true,
     showLocationTags = true,
@@ -36,18 +58,32 @@ KRT.ISI = {
     wMedium = nil,
     wHeavy = nil,
     wTraitsShort = nil,
+    wJewelryTraits = nil,
     labels = {},
+    _eventsRegistered = false,
 }
-local function SV()
-    return KRT.GetModuleSV("isi", DEFAULTS.isi)
+
+function KRT.ISI:SV()
+    if not self.sv then
+        self.sv = KRT.GetModuleSV(self.id, self.defaults)
+    end
+    return self.sv
 end
 
--- Local CP colors
+local function SV()
+    return KRT.ISI:SV()
+end
+
+-- =========================================================
+-- Color & Font Constants
+-- =========================================================
+
+-- Champion Point category colors
 local CP_BLUE = {0.36, 0.64, 1.00, 1}
 local CP_GREEN = {0.36, 1.00, 0.36, 1}
 local CP_RED = {1.00, 0.36, 0.36, 1}
 
--- Fonts & metrics
+-- Fonts & row metrics
 local ROW_FONT = "ZoFontGame"
 local HEADER_FONT = "ZoFontGame"
 local ROW_H = 21
@@ -55,7 +91,12 @@ local STAT_COLOR = {0.925, 0.925, 1.000, 1}
 local GREEN = {0.36, 1.00, 0.36, 1}
 local RED = {1.00, 0.36, 0.36, 1}
 
--- Trait Hex Colors (with resilient fallbacks for ESO enum variants)
+-- =========================================================
+-- Armor Trait Color Coding & Formatting
+-- =========================================================
+
+-- Armor trait hex colors (with resilient fallbacks for ESO enum variants).
+-- Meta traits receive high-visibility tones, while progression traits use muted shades.
 local TRAIT_HEX_COLORS = {
     -- Core Meta Traits (High Visibility)
     [ITEM_TRAIT_TYPE_ARMOR_DIVINES or ITEM_TRAIT_TYPE_DIVINES or 18]         = "FFD700", -- Radiant Gold
@@ -75,7 +116,10 @@ local TRAIT_HEX_COLORS = {
     [ITEM_TRAIT_TYPE_ARMOR_ORNATE or ITEM_TRAIT_TYPE_ORNATE or 19]       = "A07A48", -- Muted Bronze
 }
 
+-- Wraps armor trait text in the corresponding hex color tag if color coding is defined.
+-- Returns original text unchanged if no color mapping exists.
 local function ColorizeTrait(traitType, text)
+    if not traitType or not text then return text or "" end
     local hex = TRAIT_HEX_COLORS[traitType]
     if hex then
         return string.format("|c%s%s|r", hex, text)
@@ -83,7 +127,60 @@ local function ColorizeTrait(traitType, text)
     return text
 end
 
--- Slots
+-- =========================================================
+-- Jewelry Trait Color Coding & Formatting
+-- =========================================================
+
+-- Jewelry trait hex colors mapping ESO trait types to distinct colors:
+--   * Combat / Meta traits receive vibrant, high-contrast colors:
+--       - Bloodthirsty: Crimson Red ("FF3344")
+--       - Infused: Arcane Cyan ("00E5FF")
+--       - Harmony: Soft Orchid Purple ("C678DD")
+--       - Triune: Radiant Gold ("FFD700")
+--       - Swift: Neon Green ("00FF66")
+--   * Resource traits match standard resource colors:
+--       - Arcane: Magicka Blue ("4FC3F7")
+--       - Robust: Stamina Amber ("FF9900")
+--       - Healthy: Health Green ("98C379")
+--   * Non-combat / Economy traits use muted tones:
+--       - Protective / Intricate: Slate Gray ("828997")
+--       - Ornate: Muted Bronze ("A07A48")
+-- Includes numeric enum fallbacks in case constants are not yet initialized.
+local JEWELRY_TRAIT_HEX_COLORS = {
+    -- Core Meta / Combat (High Visibility)
+    [ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY or 31] = "FF3344", -- Crimson Red
+    [ITEM_TRAIT_TYPE_JEWELRY_INFUSED or 33]      = "00E5FF", -- Arcane Cyan
+    [ITEM_TRAIT_TYPE_JEWELRY_HARMONY or 29]      = "C678DD", -- Soft Orchid Purple
+    [ITEM_TRAIT_TYPE_JEWELRY_TRIUNE or 30]       = "FFD700", -- Radiant Gold
+    [ITEM_TRAIT_TYPE_JEWELRY_SWIFT or 28]        = "00FF66", -- Neon Green
+
+    -- Resources
+    [ITEM_TRAIT_TYPE_JEWELRY_ARCANE or 22]       = "4FC3F7", -- Magicka Blue
+    [ITEM_TRAIT_TYPE_JEWELRY_ROBUST or 23]       = "FF9900", -- Stamina Amber
+    [ITEM_TRAIT_TYPE_JEWELRY_HEALTHY or 21]      = "98C379", -- Health Green
+
+    -- Non-useful / Progression / Economy (Muted)
+    [ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE or 32]   = "828997", -- Slate Gray (Off-meta)
+    [ITEM_TRAIT_TYPE_JEWELRY_INTRICATE or 27]    = "828997", -- Slate Gray
+    [ITEM_TRAIT_TYPE_JEWELRY_ORNATE or 24]       = "A07A48", -- Muted Bronze
+}
+
+-- Wraps jewelry trait text in the corresponding hex color tag if color coding is defined.
+-- Returns original text unchanged if no color mapping exists.
+local function ColorizeJewelryTrait(traitType, text)
+    if not traitType or not text then return text or "" end
+    local hex = JEWELRY_TRAIT_HEX_COLORS[traitType]
+    if hex then
+        return string.format("|c%s%s|r", hex, text)
+    end
+    return text
+end
+
+-- =========================================================
+-- Equipment Slots & Item Classification
+-- =========================================================
+
+-- Equipment slot arrays
 local ARMOR_SLOTS = {
     EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST,
     EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET,
@@ -118,31 +215,95 @@ local function isTwoHanded(itemLink)
     return TWO_HANDED_WEAPON_TYPES[weaponType] or false
 end
 
+-- =========================================================
+-- Localization & Formatting Helpers
+-- =========================================================
+
 -- Helper to properly format localized strings (removes ^m, ^f, ^p, and grammatic tags)
 local function FormatLocalizedString(rawName)
     if not rawName or rawName == "" then return "" end
-    return zo_strformat("<<1>>", rawName)
+    if zo_strformat then
+        return zo_strformat("<<1>>", rawName)
+    end
+    return rawName
 end
 
 -- Capitalize first letter safely using ESO's string formatting specifier <<C:1>>
 local function CapitalizeFirstLetter(str)
     if not str or str == "" then return "" end
-    return zo_strformat("<<C:1>>", str)
+    if zo_strformat then
+        return zo_strformat("<<C:1>>", str)
+    end
+    return str:sub(1, 1):upper() .. str:sub(2)
 end
 
--- Trait name caching to eliminate string formatting and regex in sort comparators
+-- =========================================================
+-- Trait Name Caching (Armor & Jewelry)
+-- =========================================================
+
+-- Fallback English names for armor traits when SI_ITEMTRAITTYPE lookup is unavailable.
+local ARMOR_TRAIT_FALLBACK_NAMES = {
+    [ITEM_TRAIT_TYPE_ARMOR_DIVINES or 18]         = "Divines",
+    [ITEM_TRAIT_TYPE_ARMOR_INFUSED or 16]         = "Infused",
+    [ITEM_TRAIT_TYPE_ARMOR_STURDY or 11]           = "Sturdy",
+    [ITEM_TRAIT_TYPE_ARMOR_REINFORCED or 13]       = "Reinforced",
+    [ITEM_TRAIT_TYPE_ARMOR_WELL_FITTED or 14]     = "Well-fitted",
+    [ITEM_TRAIT_TYPE_ARMOR_IMPENETRABLE or 12]     = "Impenetrable",
+    [ITEM_TRAIT_TYPE_ARMOR_INVIGORATING or 25]     = "Invigorating",
+    [ITEM_TRAIT_TYPE_ARMOR_NIRNHONED or 26]       = "Nirnhoned",
+    [ITEM_TRAIT_TYPE_ARMOR_TRAINING or 15]         = "Training",
+    [ITEM_TRAIT_TYPE_ARMOR_INTRICATE or 20]        = "Intricate",
+    [ITEM_TRAIT_TYPE_ARMOR_ORNATE or 19]           = "Ornate",
+}
+
+-- Fallback English names for jewelry traits when SI_ITEMTRAITTYPE lookup is unavailable.
+local JEWELRY_TRAIT_FALLBACK_NAMES = {
+    [ITEM_TRAIT_TYPE_JEWELRY_ARCANE or 22]        = "Arcane",
+    [ITEM_TRAIT_TYPE_JEWELRY_ROBUST or 23]        = "Robust",
+    [ITEM_TRAIT_TYPE_JEWELRY_HEALTHY or 21]       = "Healthy",
+    [ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY or 31]  = "Bloodthirsty",
+    [ITEM_TRAIT_TYPE_JEWELRY_HARMONY or 29]       = "Harmony",
+    [ITEM_TRAIT_TYPE_JEWELRY_INFUSED or 33]       = "Infused",
+    [ITEM_TRAIT_TYPE_JEWELRY_TRIUNE or 30]        = "Triune",
+    [ITEM_TRAIT_TYPE_JEWELRY_SWIFT or 28]         = "Swift",
+    [ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE or 32]    = "Protective",
+    [ITEM_TRAIT_TYPE_JEWELRY_INTRICATE or 27]     = "Intricate",
+    [ITEM_TRAIT_TYPE_JEWELRY_ORNATE or 24]        = "Ornate",
+}
+
+-- Armor trait full name cache to eliminate repeated string formatting in sort comparators.
 local _traitFullCache = {}
+
+-- Safely retrieves and caches the localized full name of an armor trait.
+-- Performs safe lookup via pcall(GetString, "SI_ITEMTRAITTYPE", traitType) with fallback
+-- to ARMOR_TRAIT_FALLBACK_NAMES if missing or empty.
 local function GetArmorTraitNameFull(traitType)
-    if not traitType or traitType == ITEM_TRAIT_TYPE_NONE then return "" end
+    local noneTrait = ITEM_TRAIT_TYPE_NONE or 0
+    if not traitType or traitType == noneTrait or traitType == 0 then return "" end
     local cached = _traitFullCache[traitType]
     if cached then return cached end
-    cached = FormatLocalizedString(GetString("SI_ITEMTRAITTYPE", traitType))
+
+    local rawName = nil
+    if GetString then
+        local ok, str = pcall(GetString, "SI_ITEMTRAITTYPE", traitType)
+        if ok and str and str ~= "" then
+            rawName = str
+        end
+    end
+    if (not rawName or rawName == "") and ARMOR_TRAIT_FALLBACK_NAMES then
+        rawName = ARMOR_TRAIT_FALLBACK_NAMES[traitType]
+    end
+
+    cached = rawName and FormatLocalizedString(rawName) or ""
     _traitFullCache[traitType] = cached
     return cached
 end
 
--- Get localized short trait representation (cached)
+-- Armor trait short abbreviation cache.
 local _traitShortCache = {}
+
+-- Safely retrieves and caches a 4-character abbreviation or single-word short name
+-- for an armor trait, used when multiple distinct traits are equipped.
 local function GetArmorTraitShort(traitType)
     local cached = _traitShortCache[traitType]
     if cached then return cached end
@@ -150,10 +311,63 @@ local function GetArmorTraitShort(traitType)
     if full == "" then return "" end
     
     local firstWord = full:match("^(%S+)") or full
-    cached = (zo_strlen(firstWord) > 5) and zo_strsub(firstWord, 1, 4) or firstWord
+    local len = zo_strlen and zo_strlen(firstWord) or string.len(firstWord)
+    local sub = zo_strsub or string.sub
+    cached = (len > 5) and sub(firstWord, 1, 4) or firstWord
     _traitShortCache[traitType] = cached
     return cached
 end
+
+-- Jewelry trait full name cache to eliminate repeated string formatting and lookups.
+local _jewelryTraitFullCache = {}
+
+-- Safely retrieves and caches the localized full name of a jewelry trait.
+-- Performs safe lookup via pcall(GetString, "SI_ITEMTRAITTYPE", traitType) with fallback
+-- to JEWELRY_TRAIT_FALLBACK_NAMES if missing or empty.
+local function GetJewelryTraitNameFull(traitType)
+    local noneTrait = ITEM_TRAIT_TYPE_NONE or 0
+    if not traitType or traitType == noneTrait or traitType == 0 then return "" end
+    local cached = _jewelryTraitFullCache[traitType]
+    if cached then return cached end
+
+    local rawName = nil
+    if GetString then
+        local ok, str = pcall(GetString, "SI_ITEMTRAITTYPE", traitType)
+        if ok and str and str ~= "" then
+            rawName = str
+        end
+    end
+    if (not rawName or rawName == "") and JEWELRY_TRAIT_FALLBACK_NAMES then
+        rawName = JEWELRY_TRAIT_FALLBACK_NAMES[traitType]
+    end
+
+    cached = rawName and FormatLocalizedString(rawName) or ""
+    _jewelryTraitFullCache[traitType] = cached
+    return cached
+end
+
+-- Jewelry trait short abbreviation cache.
+local _jewelryTraitShortCache = {}
+
+-- Safely retrieves and caches a 4-character abbreviation or single-word short name
+-- for a jewelry trait, used when more than 2 distinct traits are worn across jewelry slots.
+local function GetJewelryTraitShort(traitType)
+    local cached = _jewelryTraitShortCache[traitType]
+    if cached then return cached end
+    local full = GetJewelryTraitNameFull(traitType)
+    if full == "" then return "" end
+    
+    local firstWord = full:match("^(%S+)") or full
+    local len = zo_strlen and zo_strlen(firstWord) or string.len(firstWord)
+    local sub = zo_strsub or string.sub
+    cached = (len > 5) and sub(firstWord, 1, 4) or firstWord
+    _jewelryTraitShortCache[traitType] = cached
+    return cached
+end
+
+-- =========================================================
+-- Set Name Cleaning (Multi-language Support)
+-- =========================================================
 
 -- Multi-language cleaning for "Perfected" prefix/suffix
 local PERFECTED_PATTERNS = {
@@ -196,7 +410,7 @@ local function CleanSetName(setName)
         clean = clean:gsub(pattern, "")
     end
     
-    clean = zo_strtrim(clean)
+    clean = zo_strtrim and zo_strtrim(clean) or clean:match("^%s*(.-)%s*$")
     
     -- Capitalize first character reliably via <<C:1>>
     cached = CapitalizeFirstLetter(clean)
@@ -204,37 +418,194 @@ local function CleanSetName(setName)
     return cached
 end
 
+-- =========================================================
+-- Armor Weights & Traits Aggregation (Recycled Pool)
+-- =========================================================
+
+local _cachedWeights = { light = 0, medium = 0, heavy = 0 }
+local _cachedTraitsMap = {}
+local _cachedTraitsList = {}
+local _traitEntryPool = {}
+
+-- Retrieves a recycled entry table from _traitEntryPool (or allocates a new one),
+-- initializing it with the specified traitType and piece count.
+local function GetTraitEntry(traitType, count)
+    local entry = table.remove(_traitEntryPool)
+    if not entry then
+        entry = {}
+    end
+    entry.traitType = traitType
+    entry.count = count
+    return entry
+end
+
+-- Sort comparator for armor traits:
+-- Sorts primarily by descending count (highest piece count first), secondarily by short name,
+-- and falls back to traitType ID for strict deterministic ordering.
+local function SortTraits(a, b)
+    if a.count ~= b.count then return a.count > b.count end
+    local an = GetArmorTraitShort(a.traitType)
+    local bn = GetArmorTraitShort(b.traitType)
+    if an ~= bn then return an < bn end
+    return (a.traitType or 0) < (b.traitType or 0)
+end
+
+-- Aggregates equipped armor weights (Light, Medium, Heavy) and worn armor traits.
+-- Recycles existing entries into _traitEntryPool to avoid garbage collection churn.
 local function GetArmorWeightsAndTraits()
-    local w = { light = 0, medium = 0, heavy = 0 }
-    local traits = {}
+    _cachedWeights.light = 0
+    _cachedWeights.medium = 0
+    _cachedWeights.heavy = 0
+    ZO_ClearTable(_cachedTraitsMap)
+
+    for i = #_cachedTraitsList, 1, -1 do
+        table.insert(_traitEntryPool, _cachedTraitsList[i])
+        _cachedTraitsList[i] = nil
+    end
+
+    local noneTrait = ITEM_TRAIT_TYPE_NONE or 0
     for _, slot in ipairs(ARMOR_SLOTS) do
         if HasItemInSlot(BAG_WORN, slot) then
             local at = GetItemArmorType(BAG_WORN, slot)
-            if at == ARMORTYPE_LIGHT then w.light = w.light + 1
-            elseif at == ARMORTYPE_MEDIUM then w.medium = w.medium + 1
-            elseif at == ARMORTYPE_HEAVY then w.heavy = w.heavy + 1 end
+            if at == ARMORTYPE_LIGHT then _cachedWeights.light = _cachedWeights.light + 1
+            elseif at == ARMORTYPE_MEDIUM then _cachedWeights.medium = _cachedWeights.medium + 1
+            elseif at == ARMORTYPE_HEAVY then _cachedWeights.heavy = _cachedWeights.heavy + 1 end
             
             local traitType = GetItemTrait(BAG_WORN, slot)
-            if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE then
-                traits[traitType] = (traits[traitType] or 0) + 1
+            if traitType and traitType ~= noneTrait and traitType ~= 0 then
+                _cachedTraitsMap[traitType] = (_cachedTraitsMap[traitType] or 0) + 1
             end
         end
     end
-    local list = {}
-    for t, c in pairs(traits) do table.insert(list, {traitType=t, count=c}) end
-    table.sort(list, function(a, b)
-        if a.count ~= b.count then return a.count > b.count end
-        local an = GetArmorTraitShort(a.traitType)
-        local bn = GetArmorTraitShort(b.traitType)
-        return an < bn
-    end)
-    return w, list
+
+    for t, c in pairs(_cachedTraitsMap) do
+        table.insert(_cachedTraitsList, GetTraitEntry(t, c))
+    end
+    table.sort(_cachedTraitsList, SortTraits)
+    return _cachedWeights, _cachedTraitsList
 end
 
+-- =========================================================
+-- Jewelry Traits Aggregation (Recycled Pool)
+-- =========================================================
+
+local _cachedJewelryTraitsMap = {}
+local _cachedJewelryTraitsList = {}
+local _jewelryTraitEntryPool = {}
+
+-- Retrieves a recycled entry table from _jewelryTraitEntryPool (or allocates a new one),
+-- initializing it with the specified traitType and piece count.
+local function GetJewelryTraitEntry(traitType, count)
+    local entry = table.remove(_jewelryTraitEntryPool)
+    if not entry then
+        entry = {}
+    end
+    entry.traitType = traitType
+    entry.count = count
+    return entry
+end
+
+-- Sort comparator for jewelry trait entries:
+-- Sorts primarily by descending count (highest piece count first), secondarily by short name,
+-- and falls back to traitType ID for strict deterministic weak ordering.
+local function SortJewelryTraits(a, b)
+    if a.count ~= b.count then return a.count > b.count end
+    local an = GetJewelryTraitShort(a.traitType)
+    local bn = GetJewelryTraitShort(b.traitType)
+    if an ~= bn then return an < bn end
+    return (a.traitType or 0) < (b.traitType or 0)
+end
+
+-- Scans equipped jewelry slots (Neck, Ring 1, Ring 2) for active item traits.
+-- Recycles existing entries into _jewelryTraitEntryPool, aggregates trait counts,
+-- and returns a sorted list of active jewelry traits.
+local function GetJewelryTraits()
+    ZO_ClearTable(_cachedJewelryTraitsMap)
+
+    for i = #_cachedJewelryTraitsList, 1, -1 do
+        table.insert(_jewelryTraitEntryPool, _cachedJewelryTraitsList[i])
+        _cachedJewelryTraitsList[i] = nil
+    end
+
+    local noneTrait = ITEM_TRAIT_TYPE_NONE or 0
+    for _, slot in ipairs(JEWELRY_SLOTS) do
+        if HasItemInSlot(BAG_WORN, slot) then
+            local traitType = GetItemTrait(BAG_WORN, slot)
+            if traitType and traitType ~= noneTrait and traitType ~= 0 then
+                _cachedJewelryTraitsMap[traitType] = (_cachedJewelryTraitsMap[traitType] or 0) + 1
+            end
+        end
+    end
+
+    for t, c in pairs(_cachedJewelryTraitsMap) do
+        table.insert(_cachedJewelryTraitsList, GetJewelryTraitEntry(t, c))
+    end
+    table.sort(_cachedJewelryTraitsList, SortJewelryTraits)
+    return _cachedJewelryTraitsList
+end
+
+-- =========================================================
+-- Equipped Sets Scanner & Categorization
+-- =========================================================
+
 local _globalSetInfoCache = {}
+local _scratchSetsById = {}
+local _scratchBaseById = {}
+local _scratchWeaponCountBySet = {}
+local _scratchSetsList = {}
+local _setEntryPool = {}
+
+local function GetSetEntry(id, name, max)
+    local e = table.remove(_setEntryPool)
+    if not e then
+        e = {}
+    end
+    e.id = id
+    e.name = name
+    e.max = max
+    e.num = 0
+    e.hasHead = false
+    e.hasShoulder = false
+    e.bodyNum = 0
+    e.frontBarNum = 0
+    e.backBarNum = 0
+    e.sortCategory = 99
+    e.sortSub = 9
+    return e
+end
+
+local function SortSets(a, b)
+    local catA = a.sortCategory or 99
+    local catB = b.sortCategory or 99
+
+    if catA ~= catB then 
+        return catA < catB 
+    end
+
+    if catA == 1 then
+        local subA = a.sortSub or 9
+        local subB = b.sortSub or 9
+        if subA ~= subB then
+            return subA < subB
+        end
+    end
+
+    local nameA = a.name or ""
+    local nameB = b.name or ""
+    if nameA ~= nameB then
+        return nameA < nameB
+    end
+    return (a.id or 0) < (b.id or 0)
+end
 
 function KRT.ISI:GetEquippedSets()
-    local setsById = {}
+    for i = #_scratchSetsList, 1, -1 do
+        table.insert(_setEntryPool, _scratchSetsList[i])
+        _scratchSetsList[i] = nil
+    end
+    ZO_ClearTable(_scratchSetsById)
+    ZO_ClearTable(_scratchBaseById)
+    ZO_ClearTable(_scratchWeaponCountBySet)
 
     local function addSetFromLink(link)
         if not link or link == "" then return nil end
@@ -246,8 +617,8 @@ function KRT.ISI:GetEquippedSets()
             _globalSetInfoCache[setId] = { name = CleanSetName(setName), max = max or 0 }
         end
         
-        if not setsById[setId] then
-            setsById[setId] = { id=setId, name=_globalSetInfoCache[setId].name, max=_globalSetInfoCache[setId].max, num=0 }
+        if not _scratchSetsById[setId] then
+            _scratchSetsById[setId] = GetSetEntry(setId, _globalSetInfoCache[setId].name, _globalSetInfoCache[setId].max)
         end
         return setId, _globalSetInfoCache[setId].name, _globalSetInfoCache[setId].max
     end
@@ -256,21 +627,19 @@ function KRT.ISI:GetEquippedSets()
         local link = GetItemLink(BAG_WORN, slot)
         local id = addSetFromLink(link)
         if id then 
-            setsById[id].num = (setsById[id].num or 0) + 1 
-            if slot == EQUIP_SLOT_HEAD then setsById[id].hasHead = true end
-            if slot == EQUIP_SLOT_SHOULDERS then setsById[id].hasShoulder = true end
+            _scratchSetsById[id].num = (_scratchSetsById[id].num or 0) + 1 
+            if slot == EQUIP_SLOT_HEAD then _scratchSetsById[id].hasHead = true end
+            if slot == EQUIP_SLOT_SHOULDERS then _scratchSetsById[id].hasShoulder = true end
         end
     end
     for _, slot in ipairs(JEWELRY_SLOTS) do
         local link = GetItemLink(BAG_WORN, slot)
         local id = addSetFromLink(link)
-        if id then setsById[id].num = (setsById[id].num or 0) + 1 end
+        if id then _scratchSetsById[id].num = (_scratchSetsById[id].num or 0) + 1 end
     end
     
-    local baseById = {}
-    for id, e in pairs(setsById) do baseById[id] = e.num or 0 end
+    for id, e in pairs(_scratchSetsById) do _scratchBaseById[id] = e.num or 0 end
 
-    local weaponCountBySet = {}
     local function addWeaponCount(link, barKey)
         if not link or link == "" then return end
         local has, _, _, _, _, id = GetItemLinkSetInfo(link, false)
@@ -281,28 +650,28 @@ function KRT.ISI:GetEquippedSets()
             _globalSetInfoCache[id] = { name = CleanSetName(setName), max = max or 0 }
         end
 
-        if not weaponCountBySet[id] then
-            weaponCountBySet[id] = { main=0, backup=0, name=_globalSetInfoCache[id].name, max=_globalSetInfoCache[id].max, id=id }
+        if not _scratchWeaponCountBySet[id] then
+            _scratchWeaponCountBySet[id] = { main=0, backup=0, name=_globalSetInfoCache[id].name, max=_globalSetInfoCache[id].max, id=id }
         end
-        weaponCountBySet[id][barKey] = (weaponCountBySet[id][barKey] or 0) + (isTwoHanded(link) and 2 or 1)
+        _scratchWeaponCountBySet[id][barKey] = (_scratchWeaponCountBySet[id][barKey] or 0) + (isTwoHanded(link) and 2 or 1)
     end
     
     for _, slot in ipairs(MAIN_BAR_SLOTS) do addWeaponCount(GetItemLink(BAG_WORN, slot), "main") end
     for _, slot in ipairs(BACK_BAR_SLOTS) do addWeaponCount(GetItemLink(BAG_WORN, slot), "backup") end
 
-    for id, wc in pairs(weaponCountBySet) do
-        if not setsById[id] then
-            setsById[id] = { id=id, name=wc.name, max=(wc.max or 0), num=0 }
-            baseById[id] = 0
+    for id, wc in pairs(_scratchWeaponCountBySet) do
+        if not _scratchSetsById[id] then
+            _scratchSetsById[id] = GetSetEntry(id, wc.name, wc.max or 0)
+            _scratchBaseById[id] = 0
         end
-        local base = baseById[id] or 0
-        setsById[id].frontBarNum = base + (wc.main or 0)
-        setsById[id].backBarNum = base + (wc.backup or 0)
-        setsById[id].num = math.max(setsById[id].frontBarNum, setsById[id].backBarNum)
+        local base = _scratchBaseById[id] or 0
+        _scratchSetsById[id].frontBarNum = base + (wc.main or 0)
+        _scratchSetsById[id].backBarNum = base + (wc.backup or 0)
+        _scratchSetsById[id].num = math.max(_scratchSetsById[id].frontBarNum, _scratchSetsById[id].backBarNum)
     end
     
-    for id, e in pairs(setsById) do
-        e.bodyNum = baseById[id] or 0
+    for id, e in pairs(_scratchSetsById) do
+        e.bodyNum = _scratchBaseById[id] or 0
         e.frontBarNum = e.frontBarNum or e.num
         e.backBarNum = e.backBarNum or e.num
 
@@ -323,32 +692,15 @@ function KRT.ISI:GetEquippedSets()
         end
     end
 
-    local list = {}
-    for _, e in pairs(setsById) do table.insert(list, e) end
-    table.sort(list, function(a, b)
-        local catA = a.sortCategory or 99
-        local catB = b.sortCategory or 99
+    for _, e in pairs(_scratchSetsById) do table.insert(_scratchSetsList, e) end
+    table.sort(_scratchSetsList, SortSets)
 
-        if catA ~= catB then 
-            return catA < catB 
-        end
-
-        if catA == 1 then
-            local subA = a.sortSub or 9
-            local subB = b.sortSub or 9
-            if subA ~= subB then
-                return subA < subB
-            end
-        end
-
-        local nameA = a.name or ""
-        local nameB = b.name or ""
-
-        return nameA < nameB
-    end)
-
-    return list
+    return _scratchSetsList
 end
+
+-- =========================================================
+-- UI Creation, Layout & Dragging
+-- =========================================================
 
 function KRT.ISI:ApplyAnchor()
     if not self.ui then return end
@@ -418,6 +770,14 @@ function KRT.ISI:EnsureOverlay()
     self.wMedium = wMedium
     self.wHeavy = wHeavy
     self.wTraitsShort = wTraitsShort
+
+    local wJewelryTraits = WM:CreateControl(nil, win, CT_LABEL)
+    wJewelryTraits:SetFont(ROW_FONT)
+    wJewelryTraits:SetHeight(ROW_H)
+    wJewelryTraits:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    wJewelryTraits:SetHidden(true)
+    self.wJewelryTraits = wJewelryTraits
+
     self.ui = win
 
     for i = 1, 7 do
@@ -456,39 +816,53 @@ function KRT.ISI:EnsureOverlay()
     self:UpdateSceneFragments()
 end
 
+-- =========================================================
+-- Scene Manager Fragments & Visibility
+-- =========================================================
+
 function KRT.ISI:UpdateSceneFragments()
     if not self.fragment then return end
     local sv = SV()
     local menuScenes = { "inventory", "bank", "guildBank", "houseBank", "store", "tradinghouse", "craftingResults" }
 
     if not sv.enabled then
-        if HUD_SCENE:HasFragment(self.fragment) then HUD_SCENE:RemoveFragment(self.fragment) end
-        if HUD_UI_SCENE:HasFragment(self.fragment) then HUD_UI_SCENE:RemoveFragment(self.fragment) end
-        for _, sceneName in ipairs(menuScenes) do
-            local scene = SCENE_MANAGER:GetScene(sceneName)
-            if scene and scene:HasFragment(self.fragment) then
-                scene:RemoveFragment(self.fragment)
+        if HUD_SCENE and HUD_SCENE:HasFragment(self.fragment) then HUD_SCENE:RemoveFragment(self.fragment) end
+        if HUD_UI_SCENE and HUD_UI_SCENE:HasFragment(self.fragment) then HUD_UI_SCENE:RemoveFragment(self.fragment) end
+        if SCENE_MANAGER then
+            for _, sceneName in ipairs(menuScenes) do
+                local scene = SCENE_MANAGER:GetScene(sceneName)
+                if scene and scene:HasFragment(self.fragment) then
+                    scene:RemoveFragment(self.fragment)
+                end
             end
         end
         return
     end
 
-    if not HUD_SCENE:HasFragment(self.fragment) then
+    if HUD_SCENE and not HUD_SCENE:HasFragment(self.fragment) then
         HUD_SCENE:AddFragment(self.fragment)
+    end
+    if HUD_UI_SCENE and not HUD_UI_SCENE:HasFragment(self.fragment) then
         HUD_UI_SCENE:AddFragment(self.fragment)
     end
     
-    for _, sceneName in ipairs(menuScenes) do
-        local scene = SCENE_MANAGER:GetScene(sceneName)
-        if scene then
-            if sv.showInMenus then
-                if not scene:HasFragment(self.fragment) then scene:AddFragment(self.fragment) end
-            else
-                if scene:HasFragment(self.fragment) then scene:RemoveFragment(self.fragment) end
+    if SCENE_MANAGER then
+        for _, sceneName in ipairs(menuScenes) do
+            local scene = SCENE_MANAGER:GetScene(sceneName)
+            if scene then
+                if sv.showInMenus then
+                    if not scene:HasFragment(self.fragment) then scene:AddFragment(self.fragment) end
+                else
+                    if scene:HasFragment(self.fragment) then scene:RemoveFragment(self.fragment) end
+                end
             end
         end
     end
 end
+
+-- =========================================================
+-- Overlay Render & Layout Pipeline
+-- =========================================================
 
 function KRT.ISI:UpdateOverlay()
     if not SV().enabled then
@@ -499,7 +873,7 @@ function KRT.ISI:UpdateOverlay()
 
     self:EnsureOverlay()
 
-    local inCombat = IsUnitInCombat("player")
+    local inCombat = (IsUnitInCombat and IsUnitInCombat("player")) or false
     if SV().hideInCombat and inCombat and not SV().enableReposition then
         if self.fragment then
             self.fragment:SetHiddenForReason("combat", true)
@@ -519,19 +893,21 @@ function KRT.ISI:UpdateOverlay()
     -- Apply background opacity (0 = transparent, 100 = full black)
     local opacity = (SV().bgOpacity ~= nil) and SV().bgOpacity or 25
     local alpha = math.max(0, math.min(1, opacity / 100))
-    self.bg:SetCenterColor(0, 0, 0, alpha)
+    if self.bg then
+        self.bg:SetCenterColor(0, 0, 0, alpha)
 
-    -- Show green border when repositioning is active as a visual hitbox
-    if SV().enableReposition then
-        self.bg:SetEdgeColor(0, 1, 0, 0.8)
-    else
-        self.bg:SetEdgeColor(0, 0, 0, 0)
+        -- Show green border when repositioning is active as a visual hitbox
+        if SV().enableReposition then
+            self.bg:SetEdgeColor(0, 1, 0, 0.8)
+        else
+            self.bg:SetEdgeColor(0, 0, 0, 0)
+        end
     end
 
     local y = 0
     local invalidFront, invalidBack = false, false
     
-    if SV().showAbilityWarning ~= false then
+    if SV().showAbilityWarning ~= false and ACTION_BAR_ASSIGNMENT_MANAGER then
         local frontHbManager = ACTION_BAR_ASSIGNMENT_MANAGER:GetHotbar(HOTBAR_CATEGORY_PRIMARY)
         if frontHbManager then
             for i = 1, 6 do
@@ -568,7 +944,7 @@ function KRT.ISI:UpdateOverlay()
 
     local missingSlots = {}
     if SV().showMissingGearWarning ~= false then
-        local lang = GetCVar("language.2")
+        local lang = (GetCVar and GetCVar("language.2")) or "en"
         if not self.slotNames or self._slotNamesLang ~= lang then
             local isRussian = (lang == "ru")
             self._slotNamesLang = lang
@@ -624,27 +1000,39 @@ function KRT.ISI:UpdateOverlay()
     end
 
     if #warnings > 0 then
-        self.wWarning:SetText(table.concat(warnings, "\n"))
-        self.wWarning:SetHidden(false)
+        if self.wWarning then
+            self.wWarning:SetText(table.concat(warnings, "\n"))
+            self.wWarning:SetHidden(false)
+        end
         y = 20 * #warnings + 5
     else
-        self.wWarning:SetHidden(true)
+        if self.wWarning then
+            self.wWarning:SetHidden(true)
+        end
     end
 
     if SV().showArmorWeights then
-        self.wLight:ClearAnchors()
-        self.wLight:SetAnchor(TOPLEFT, self.ui, TOPLEFT, 0, y)
-        self.wLight:SetHidden(false)
-        self.wMedium:SetHidden(false)
-        self.wHeavy:SetHidden(false)
+        if self.wLight then
+            self.wLight:ClearAnchors()
+            self.wLight:SetAnchor(TOPLEFT, self.ui, TOPLEFT, 0, y)
+            self.wLight:SetHidden(false)
+        end
+        if self.wMedium then self.wMedium:SetHidden(false) end
+        if self.wHeavy then self.wHeavy:SetHidden(false) end
 
         local weights, traitsList = GetArmorWeightsAndTraits()
-        self.wLight:SetText(tostring(weights.light))
-        self.wLight:SetColor(unpack(CP_BLUE))
-        self.wMedium:SetText(tostring(weights.medium))
-        self.wMedium:SetColor(unpack(CP_GREEN))
-        self.wHeavy:SetText(tostring(weights.heavy))
-        self.wHeavy:SetColor(unpack(CP_RED))
+        if self.wLight then
+            self.wLight:SetText(tostring(weights.light))
+            self.wLight:SetColor(unpack(CP_BLUE))
+        end
+        if self.wMedium then
+            self.wMedium:SetText(tostring(weights.medium))
+            self.wMedium:SetColor(unpack(CP_GREEN))
+        end
+        if self.wHeavy then
+            self.wHeavy:SetText(tostring(weights.heavy))
+            self.wHeavy:SetColor(unpack(CP_RED))
+        end
 
         if SV().showArmorTraits ~= false then
             local traitTxt = ""
@@ -665,29 +1053,33 @@ function KRT.ISI:UpdateOverlay()
                 end
             end
             traitTxt = table.concat(parts, ", ")
-            self.wTraitsShort:SetText(traitTxt)
-            self.wTraitsShort:SetColor(unpack(STAT_COLOR))
-            self.wTraitsShort:SetHidden(traitTxt == "")
+            if self.wTraitsShort then
+                self.wTraitsShort:SetText(traitTxt)
+                self.wTraitsShort:SetColor(unpack(STAT_COLOR))
+                self.wTraitsShort:SetHidden(traitTxt == "")
+            end
         else
-            self.wTraitsShort:SetHidden(true)
+            if self.wTraitsShort then
+                self.wTraitsShort:SetHidden(true)
+            end
         end
         y = y + 25
     else
-        self.wLight:SetHidden(true)
-        self.wMedium:SetHidden(true)
-        self.wHeavy:SetHidden(true)
-        self.wTraitsShort:SetHidden(true)
+        if self.wLight then self.wLight:SetHidden(true) end
+        if self.wMedium then self.wMedium:SetHidden(true) end
+        if self.wHeavy then self.wHeavy:SetHidden(true) end
+        if self.wTraitsShort then self.wTraitsShort:SetHidden(true) end
     end
 
     local sets = self:GetEquippedSets()
     for i = 1, 7 do
         local entry = sets[i]
         
-        local countLabel = self.labels[i].count
-        local tagLabel   = self.labels[i].tag
-        local nameLabel  = self.labels[i].name
+        local countLabel = self.labels[i] and self.labels[i].count
+        local tagLabel   = self.labels[i] and self.labels[i].tag
+        local nameLabel  = self.labels[i] and self.labels[i].name
 
-        if entry then
+        if entry and countLabel and tagLabel and nameLabel then
             countLabel:SetAnchor(TOPLEFT, self.ui, TOPLEFT, 0, y)
 
             local minPieces = SPECIAL_SET_MIN_PIECES[entry.id]
@@ -757,29 +1149,87 @@ function KRT.ISI:UpdateOverlay()
 
             y = y + ROW_H
         else
-            countLabel:SetHidden(true)
-            tagLabel:SetHidden(true)
-            nameLabel:SetHidden(true)
+            if countLabel then countLabel:SetHidden(true) end
+            if tagLabel then tagLabel:SetHidden(true) end
+            if nameLabel then nameLabel:SetHidden(true) end
         end
     end
 
-    -- Option A: Calculate backdrop width from column settings + 10px padding
+    if SV().showJewelryTraits ~= false then
+        local jewelryTraitsList = GetJewelryTraits()
+        local traitTxt = ""
+        local distinct = 0
+        for _, t in ipairs(jewelryTraitsList) do
+            if t.count and t.count > 0 then distinct = distinct + 1 end
+        end
+        if distinct > 0 then
+            local parts = {}
+            for _, t in ipairs(jewelryTraitsList) do
+                if t.count and t.count > 0 then
+                    local label = (distinct <= 2) and GetJewelryTraitNameFull(t.traitType) or GetJewelryTraitShort(t.traitType)
+                    if SV().colorCodedJewelryTraits ~= false then
+                        label = ColorizeJewelryTrait(t.traitType, label)
+                    end
+                    parts[#parts + 1] = string.format("%dx %s", t.count, label)
+                end
+            end
+            traitTxt = table.concat(parts, ", ")
+        end
+
+        if traitTxt ~= "" then
+            if self.wJewelryTraits then
+                self.wJewelryTraits:ClearAnchors()
+                self.wJewelryTraits:SetAnchor(TOPLEFT, self.ui, TOPLEFT, 0, y)
+                self.wJewelryTraits:SetText(traitTxt)
+                self.wJewelryTraits:SetColor(unpack(STAT_COLOR))
+                self.wJewelryTraits:SetHidden(false)
+            end
+            y = y + ROW_H
+        else
+            if self.wJewelryTraits then
+                self.wJewelryTraits:SetHidden(true)
+            end
+        end
+    else
+        if self.wJewelryTraits then
+            self.wJewelryTraits:SetHidden(true)
+        end
+    end
+
+    -- Calculate overlay dimensions with padding and minimum reposition height
     local totalWidth = (SV().columnSpacing or 45) + ((SV().showLocationTags ~= false) and (SV().tagSpacing or 40) or 0) + (SV().nameSpacing or 180) + 10
-    self.ui:SetDimensions(totalWidth, y)
-    self.bg:SetDimensions(totalWidth, y)
+    local totalHeight = math.max(y, SV().enableReposition and 40 or 0)
+    if self.ui then self.ui:SetDimensions(totalWidth, totalHeight) end
+    if self.bg then self.bg:SetDimensions(totalWidth, totalHeight) end
 end
+
+-- =========================================================
+-- Initialization & Event Handling
+-- =========================================================
 
 function KRT.ISI:Initialize()
     if not SV().hasForcedTraitColoringOnce then
         SV().colorCodedTraits = true
         SV().hasForcedTraitColoringOnce = true
     end
+    if not SV().hasForcedJewelryTraitColoringOnce then
+        SV().colorCodedJewelryTraits = true
+        SV().hasForcedJewelryTraitColoringOnce = true
+    end
 
     self:UpdateOverlay()
 
+    local function TriggerDebouncedUpdate()
+        if not SV().enabled then return end
+        self:UpdateOverlay()
+    end
     local function OnInventoryUpdate()
         if not SV().enabled then return end
-        KRT.DebounceNextFrame("IsiibusUpdate", function() self:UpdateOverlay() end)
+        if KRT.DebounceNextFrame then
+            KRT.DebounceNextFrame("IsiibusUpdate", TriggerDebouncedUpdate)
+        else
+            TriggerDebouncedUpdate()
+        end
     end
     local function OnCombatStateChanged(eventCode, inCombat)
         if not SV().enabled then return end
@@ -799,13 +1249,30 @@ function KRT.ISI:Initialize()
         end
     end
 
-    EM:RegisterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdate)
-    EM:AddFilterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
-    EM:AddFilterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
-    EM:RegisterForEvent(ADDON_NAME .. "_ISI2", EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdate)
-    EM:RegisterForEvent(ADDON_NAME .. "_ISI3", EVENT_ACTION_SLOTS_FULL_UPDATE, OnInventoryUpdate)
-    EM:RegisterForEvent(ADDON_NAME .. "_ISICombat", EVENT_PLAYER_COMBAT_STATE, OnCombatStateChanged)
+    function self:ToggleEvents(enable)
+        if enable and not self._eventsRegistered then
+            EM:RegisterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventoryUpdate)
+            EM:AddFilterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+            EM:AddFilterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+            EM:RegisterForEvent(ADDON_NAME .. "_ISI2", EVENT_INVENTORY_FULL_UPDATE, OnInventoryUpdate)
+            EM:RegisterForEvent(ADDON_NAME .. "_ISI3", EVENT_ACTION_SLOTS_FULL_UPDATE, OnInventoryUpdate)
+            EM:RegisterForEvent(ADDON_NAME .. "_ISICombat", EVENT_PLAYER_COMBAT_STATE, OnCombatStateChanged)
+            self._eventsRegistered = true
+        elseif not enable and self._eventsRegistered then
+            EM:UnregisterForEvent(ADDON_NAME .. "_ISI", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+            EM:UnregisterForEvent(ADDON_NAME .. "_ISI2", EVENT_INVENTORY_FULL_UPDATE)
+            EM:UnregisterForEvent(ADDON_NAME .. "_ISI3", EVENT_ACTION_SLOTS_FULL_UPDATE)
+            EM:UnregisterForEvent(ADDON_NAME .. "_ISICombat", EVENT_PLAYER_COMBAT_STATE)
+            self._eventsRegistered = false
+        end
+    end
+
+    self:ToggleEvents(SV().enabled)
 end
+
+-- =========================================================
+-- Settings Menu (LibAddonMenu)
+-- =========================================================
 
 function KRT.ISI:GetLAMSubmenu()
     return {
@@ -819,6 +1286,7 @@ function KRT.ISI:GetLAMSubmenu()
                 getFunc = function() return SV().enabled end,
                 setFunc = function(value)
                     SV().enabled = value
+                    self:ToggleEvents(value)
                     self:UpdateSceneFragments()
                     if not value then
                         self:EnableDragging(false)
@@ -827,6 +1295,7 @@ function KRT.ISI:GetLAMSubmenu()
                         self:UpdateOverlay()
                     end
                 end,
+                default = DEFAULTS.isi.enabled,
             },
             {
                 type = "checkbox",
@@ -838,6 +1307,7 @@ function KRT.ISI:GetLAMSubmenu()
                     self:EnableDragging(value)
                     self:UpdateOverlay()
                 end,
+                default = DEFAULTS.isi.enableReposition,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -878,6 +1348,7 @@ function KRT.ISI:GetLAMSubmenu()
                     SV().uiScale = value / 100.0
                     self:ApplyAnchor()
                 end,
+                default = math.floor((DEFAULTS.isi.uiScale or 1.0) * 100),
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -892,6 +1363,7 @@ function KRT.ISI:GetLAMSubmenu()
                     SV().bgOpacity = value 
                     self:UpdateOverlay() 
                 end,
+                default = DEFAULTS.isi.bgOpacity,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -903,6 +1375,7 @@ function KRT.ISI:GetLAMSubmenu()
                 step = 1,
                 getFunc = function() return SV().columnSpacing or 45 end,
                 setFunc = function(value) SV().columnSpacing = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.columnSpacing,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -914,6 +1387,7 @@ function KRT.ISI:GetLAMSubmenu()
                 step = 1,
                 getFunc = function() return SV().tagSpacing or 40 end,
                 setFunc = function(value) SV().tagSpacing = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.tagSpacing,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -925,6 +1399,7 @@ function KRT.ISI:GetLAMSubmenu()
                 step = 1,
                 getFunc = function() return SV().nameSpacing or 180 end,
                 setFunc = function(value) SV().nameSpacing = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.nameSpacing,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -933,6 +1408,7 @@ function KRT.ISI:GetLAMSubmenu()
                 tooltip = "Displays the overlay while interacting with your inventory, bank, or storage chests.",
                 getFunc = function() return SV().showInMenus end,
                 setFunc = function(value) SV().showInMenus = value; self:UpdateSceneFragments() end,
+                default = DEFAULTS.isi.showInMenus,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -941,6 +1417,7 @@ function KRT.ISI:GetLAMSubmenu()
                 tooltip = "Automatically hides the overlay when you enter combat.",
                 getFunc = function() return SV().hideInCombat end,
                 setFunc = function(value) SV().hideInCombat = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.hideInCombat,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -948,6 +1425,7 @@ function KRT.ISI:GetLAMSubmenu()
                 name = "Show Armor Weights",
                 getFunc = function() return SV().showArmorWeights end,
                 setFunc = function(value) SV().showArmorWeights = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.showArmorWeights,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -956,6 +1434,16 @@ function KRT.ISI:GetLAMSubmenu()
                 tooltip = "Displays armor traits alongside your armor weights.",
                 getFunc = function() return SV().showArmorTraits end,
                 setFunc = function(value) SV().showArmorTraits = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.showArmorTraits,
+                disabled = function() return not SV().enabled end,
+            },
+            {
+                type = "checkbox",
+                name = "Show Jewelry Traits",
+                tooltip = "Displays jewelry traits at the bottom of the overlay.",
+                getFunc = function() return SV().showJewelryTraits end,
+                setFunc = function(value) SV().showJewelryTraits = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.showJewelryTraits,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -964,6 +1452,7 @@ function KRT.ISI:GetLAMSubmenu()
                 tooltip = "Displays a red warning if you are missing armor, jewelry, or weapons.",
                 getFunc = function() return SV().showMissingGearWarning end,
                 setFunc = function(value) SV().showMissingGearWarning = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.showMissingGearWarning,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -972,6 +1461,7 @@ function KRT.ISI:GetLAMSubmenu()
                 tooltip = "Displays a red warning if you have a weapon ability slotted but are holding the wrong weapon.",
                 getFunc = function() return SV().showAbilityWarning end,
                 setFunc = function(value) SV().showAbilityWarning = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.showAbilityWarning,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -980,6 +1470,7 @@ function KRT.ISI:GetLAMSubmenu()
                 tooltip = "Shows (b), (fb), or (bb) to indicate where a set is equipped.",
                 getFunc = function() return SV().showLocationTags end,
                 setFunc = function(value) SV().showLocationTags = value; self:UpdateOverlay() end,
+                default = DEFAULTS.isi.showLocationTags,
                 disabled = function() return not SV().enabled end,
             },
             {
@@ -995,7 +1486,20 @@ function KRT.ISI:GetLAMSubmenu()
                             SV().colorCodedTraits = value 
                             self:UpdateOverlay() 
                         end,
+                        default = DEFAULTS.isi.colorCodedTraits,
                         disabled = function() return not SV().enabled or not SV().showArmorTraits end,
+                    },
+                    {
+                        type = "checkbox",
+                        name = "Color-Coded Jewelry Traits",
+                        tooltip = "Applies distinct thematic colors to equipped jewelry trait labels.",
+                        getFunc = function() return SV().colorCodedJewelryTraits end,
+                        setFunc = function(value)
+                            SV().colorCodedJewelryTraits = value
+                            self:UpdateOverlay()
+                        end,
+                        default = DEFAULTS.isi.colorCodedJewelryTraits,
+                        disabled = function() return not SV().enabled or not SV().showJewelryTraits end,
                     },
                     {
                         type = "colorpicker",
@@ -1006,6 +1510,7 @@ function KRT.ISI:GetLAMSubmenu()
                             SV().colorMonster = { r, g, b } 
                             self:UpdateOverlay() 
                         end,
+                        default = DEFAULTS.isi.colorMonster,
                         disabled = function() return not SV().enabled end,
                     },
                     {
@@ -1017,6 +1522,7 @@ function KRT.ISI:GetLAMSubmenu()
                             SV().colorMythic = { r, g, b } 
                             self:UpdateOverlay() 
                         end,
+                        default = DEFAULTS.isi.colorMythic,
                         disabled = function() return not SV().enabled end,
                     },
                     {
@@ -1028,6 +1534,7 @@ function KRT.ISI:GetLAMSubmenu()
                             SV().colorRegular = { r, g, b } 
                             self:UpdateOverlay() 
                         end,
+                        default = DEFAULTS.isi.colorRegular,
                         disabled = function() return not SV().enabled end,
                     },
                 },
@@ -1035,5 +1542,9 @@ function KRT.ISI:GetLAMSubmenu()
         }
     }
 end
+
+-- =========================================================
+-- Module Registration
+-- =========================================================
 
 KRT:RegisterModule(KRT.ISI)

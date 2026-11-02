@@ -54,6 +54,7 @@ function CS:InitializeReticle()
         end)
     end
 
+    self:InitializeSightShapes()
     self:LayoutReticle()
 end
 
@@ -166,9 +167,17 @@ function CS:UpdateReticle()
         stockReticleHidden = ZO_Reticle:GetAlpha() <= 0.01
     end
 
-    local hidden = (not s.enabled) or stockReticleHidden
+    local preview = self.compassPreviewScene and self.compassPreviewScene:GetState() ~= SCENE_HIDDEN
+    local hidden = not preview and ((not s.enabled) or stockReticleHidden)
     self.reticleRoot:SetHidden(hidden)
     if hidden then return end
+    self.previewStealthText:SetHidden(not preview)
+    if preview then
+        self:HideSightShapes()
+        self:UpdateSightShape("Compass", s.normalColor, "normal")
+        self:UpdateReticleWayfinder()
+        return
+    end
 
     local state = self:GetReticleState()
     local color = s.normalColor
@@ -178,6 +187,13 @@ function CS:UpdateReticle()
         color = s.hostileColor
     elseif state == "friendly" then
         color = s.friendlyColor
+    end
+
+    self:HideSightShapes()
+    if s.style and s.style ~= "Cross" then
+        self:UpdateSightShape(s.style, color, state)
+        self:UpdateReticleWayfinder()
+        return
     end
 
     for _, bar in pairs(self.reticleBars) do
@@ -247,4 +263,123 @@ function CS:UpdateReticle()
             SetColor(bar, color)
         end
     end
+    self:UpdateReticleWayfinder()
+end
+
+
+-- Lines use the same endpoint anchors as ESO's scenegraph line controls.
+function CS:InitializeSightShapes()
+    self.reticleWayfinder = self:CreateWingedWayfinder("ClearSightReticleWayfinder", self.reticleRoot)
+    self.sightLines = {}
+    for i = 1, 55 do
+        local pair = {}
+        for j = 1, 2 do
+            local line = WINDOW_MANAGER:CreateControl("ClearSightShape" .. i .. "_" .. j, self.reticleRoot, CT_LINE)
+            line:SetDrawLayer(j == 1 and DL_BACKGROUND or DL_OVERLAY)
+            line:SetHidden(true)
+            pair[j] = line
+        end
+        self.sightLines[i] = pair
+    end
+    self.previewStealthText = WINDOW_MANAGER:CreateControl("ClearSightPreviewStealthText", self.reticleRoot, CT_LABEL)
+    self.previewStealthText:SetFont("ZoFontWinH3")
+    self.previewStealthText:SetText("DETECTED")
+    self.previewStealthText:SetAnchor(CENTER, self.reticleRoot, CENTER, 0, -35)
+    self.previewStealthText:SetColor(1,1,1,1)
+    self.previewStealthText:SetHidden(true)
+    self.sightLabels = {}
+    for _, text in ipairs({"N", "E", "S", "W"}) do
+        local label = WINDOW_MANAGER:CreateControl("ClearSightDirection" .. text, self.reticleRoot, CT_LABEL)
+        label:SetFont("$(BOLD_FONT)|28|thick-outline")
+        label:SetText(text)
+        label:SetDrawLayer(DL_OVERLAY)
+        label:SetHidden(true)
+        self.sightLabels[text] = label
+    end
+end
+
+function CS:HideSightShapes()
+    self.reticleWayfinder:SetHidden(true)
+    for _, pair in ipairs(self.sightLines) do
+        pair[1]:SetHidden(true)
+        pair[2]:SetHidden(true)
+    end
+    for _, label in pairs(self.sightLabels) do label:SetHidden(true) end
+end
+
+function CS:DrawSightLine(index, x1, y1, x2, y2, color, lightOutline)
+    local s = self.saved.reticle
+    for j, line in ipairs(self.sightLines[index]) do
+        line:ClearAnchors()
+        line:SetAnchor(TOPLEFT, self.reticleRoot, CENTER, x1, y1)
+        line:SetAnchor(BOTTOMRIGHT, self.reticleRoot, CENTER, x2, y2)
+        line:SetThickness(s.thickness + (j == 1 and s.outline * 2 or 0))
+        if j == 1 then
+            local edge = lightOutline and 1 or 0
+            line:SetColor(edge, edge, edge, 0.92)
+        else line:SetColor(color[1], color[2], color[3], color[4] or 1) end
+        line:SetHidden(false)
+    end
+end
+
+-- ESO camera heading is counter-clockwise from north. A fixed world bearing
+-- therefore rotates clockwise on the screen as the camera turns left.
+function CS:GetSightDirection(heading, bearing, radius)
+    local angle = heading + bearing
+    return math.sin(angle) * radius, -math.cos(angle) * radius
+end
+
+function CS:UpdateSightShape(style, color, state)
+    for _, bar in pairs(self.reticleBars) do bar:SetHidden(true) end
+    for _, bar in pairs(self.reticleOutlineBars) do bar:SetHidden(true) end
+    local s = self.saved.reticle
+    local r = s.size / 2
+    if style == "Square" then
+        self:DrawSightLine(1, -r, -r, r, -r, color)
+        self:DrawSightLine(2, r, -r, r, r, color)
+        self:DrawSightLine(3, r, r, -r, r, color)
+        self:DrawSightLine(4, -r, r, -r, -r, color)
+    else
+        if style ~= "Compass" then
+        for i = 1, 48 do
+            local a, b = (i - 1) * math.pi / 24, i * math.pi / 24
+            self:DrawSightLine(i, math.sin(a)*r, -math.cos(a)*r, math.sin(b)*r, -math.cos(b)*r, color)
+        end
+        end
+        if style == "Compass" and GetPlayerCameraHeading then
+            r = self:GetCompassOrbitRadius()
+            local heading = GetPlayerCameraHeading()
+            for i, text in ipairs({"N", "E", "S", "W"}) do
+                local x, y = self:GetSightDirection(heading, (i-1)*math.pi/2, r)
+                local label = self.sightLabels[text]
+                label:SetFont("$(BOLD_FONT)|" .. (text == "N" and (s.compassLetterSize or 48) or (s.compassOtherLetterSize or 32)) .. "|thick-outline")
+                label:ClearAnchors()
+                label:SetAnchor(CENTER, self.reticleRoot, CENTER, x, y)
+                label:SetColor(color[1], color[2], color[3], color[4] or 1)
+                label:SetHidden(false)
+            end
+
+        end
+    end
+    for _, bar in ipairs(self.reticleBrackets) do
+        local show = style ~= "Compass" and s.showAcquiredBrackets and state ~= "normal"
+        bar:SetHidden(not show)
+        if show then SetColor(bar, color) end
+    end
+end
+
+
+function CS:GetCompassOrbitRadius()
+    return self.saved.reticle.compassLetterRadius or 95
+end
+
+
+function CS:UpdateReticleWayfinder()
+    local s = self.saved.waypoint
+    if not s.enabled or s.location == "Compass" then return end
+    local relative = self:GetWaypointNavigationData()
+    if relative == nil then return end
+    local r = self.saved.reticle.wayfinderRadius or 140
+    local x, y = -math.sin(relative)*r, -math.cos(relative)*r
+    self:DrawWingedWayfinder(self.reticleWayfinder, x,y,self.saved.reticle.wayfinderSize or 40,relative,relative,self:GetWaypointGuidanceColor(relative))
 end

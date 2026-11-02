@@ -72,9 +72,7 @@ local SETTINGS_SECTIONS = {
 }
 
 local function text_button(parent, label)
-    local b = BGMeter.zenimax.ui.create_from_virtual(nil, parent, "ZO_DefaultButton")
-    b:SetText(label)
-    return b
+    return P.gold_button(parent, label)
 end
 
 local function on_pref_changed(key)
@@ -106,6 +104,9 @@ local function build_settings()
 
     local bg = P.rect(win, { K.COLOR.bg[1], K.COLOR.bg[2], K.COLOR.bg[3], 0.98 })
     bg:SetAnchorFill(win)
+    s.weave = P.icon(win, "bgmeter/assets/settings_bg.dds")
+    s.weave:SetAnchorFill(win)
+    s.weave:SetColor(1, 1, 1, 0.6)
     P.frame(win):SetAnchorFill(win)
 
     local strip = P.rect(win, K.COLOR.accent)
@@ -120,7 +121,7 @@ local function build_settings()
     title:SetText(K.TITLE .. "  ·  Settings")
     title:SetAnchor(LEFT, emblem, RIGHT, 8, 0)
 
-    s.close = mk_button(win, TX.close, 20, function() W.toggle_settings() end, "Close")
+    s.close = U.mk_plate_button(win, TX.close, 22, function() W.toggle_settings() end, "Close")
     s.close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -14, 15)
 
     s.rows = {}
@@ -187,7 +188,11 @@ local function build_settings()
                         paint(); on_pref_changed(key)
                     end)
                 else
-                    paint = function() btn:SetText(Prefs.get(key) and "ON" or "OFF") end
+                    paint = function()
+                        local on = Prefs.get(key) and true or false
+                        btn:SetText(on and "ON" or "OFF")
+                        P.button_text_color(btn, on)
+                    end
                     btn:SetHandler("OnClicked", function()
                         Prefs.toggle(key)
                         paint(); on_pref_changed(key)
@@ -430,8 +435,18 @@ function W.render_detail(m)
         S.color(W.detail, K.COLOR.text_dim)
     else
         local session = BGMeter.Session and BGMeter.Session.summary()
-        set_text(W.detail, session or "click a row for detail  ·  click a column header to sort  ·  drag an edge to resize")
-        S.color(W.detail, session and K.COLOR.gold or K.COLOR.text_dim)
+        local bt = W.battle
+        local mvp = bt and bt.titlesFor == m and bt.mvpRow or nil
+        if mvp then
+            local Profile = BGMeter.Profile
+            local line = F.icon(Profile.MVP_STAR, 16) .. " |cf2cc55MVP  " .. U.player_ident(mvp)
+                .. (bt.mvpTitle and ("  ·  " .. bt.mvpTitle) or "") .. "|r"
+            set_text(W.detail, session and (line .. "     ·     " .. session) or line)
+            S.color(W.detail, K.COLOR.gold)
+        else
+            set_text(W.detail, session or "click a row for detail  ·  click a column header to sort  ·  drag an edge to resize")
+            S.color(W.detail, session and K.COLOR.gold or K.COLOR.text_dim)
+        end
     end
 end
 

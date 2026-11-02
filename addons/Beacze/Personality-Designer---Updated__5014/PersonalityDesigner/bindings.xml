@@ -2,10 +2,10 @@
 	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
 		<Category name="|cEECA2APersonality Designer|r">
 			<Action name="PD1">
-				<Down>TogglePD()</Down>
+				<Down>PersonalityDesigner.TogglePD()</Down>
 			</Action>
 			<Action name="PD2">
-				<Down>CyclePersonality()</Down>
+				<Down>PersonalityDesigner.CyclePersonality()</Down>
 			</Action>
 			<Action name="PD_MENU">
 				<Down>SLASH_COMMANDS["/personalitydesigner"]()</Down>

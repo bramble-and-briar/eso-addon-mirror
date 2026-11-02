@@ -17,7 +17,7 @@ local function Refresh()
 end
 
 local function RefreshEditor()
-    if OA.Editor then OA.Editor.RefreshIfShown() end
+    OA.Editor.RefreshIfShown()
 end
 
 -- Los comandos se refieren a las auras por su posición en /omni list (1, 2, 3...),
@@ -112,7 +112,7 @@ local logLast = {}
 local function OnLogEvent(_, result, isError, abilityName, abilityGraphic, actionSlotType,
                           sourceName, sourceType, targetName, targetType, hitValue, powerType,
                           damageType, log, sourceUnitId, targetUnitId, abilityId)
-    if isError or not abilityId or abilityId == 0 then return end
+    if abilityId == 0 then return end
     local now = GetFrameTimeSeconds()
     if logLast[abilityId] and now - logLast[abilityId] < LOG_THROTTLE then return end
     logLast[abilityId] = now
@@ -125,7 +125,8 @@ local function SetLogging(on)
         logLast = {}
         EVENT_MANAGER:RegisterForEvent(LOG_NS, EVENT_COMBAT_EVENT, OnLogEvent)
         EVENT_MANAGER:AddFilterForEvent(LOG_NS, EVENT_COMBAT_EVENT,
-            REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+            REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER,
+            REGISTER_FILTER_IS_ERROR, false)
     else
         EVENT_MANAGER:UnregisterForEvent(LOG_NS, EVENT_COMBAT_EVENT)
     end
@@ -235,25 +236,16 @@ function handlers.copy(rest)
     Print(L.AURA_COPIED, copy.name or "?")
 end
 
-local function EditorAvailable()
-    if OA.Editor then return true end
-    Print(L.EDITOR_NOT_LOADED)
-    return false
-end
-
 -- "Ubicar auras": coloca todas las auras sobre la interfaz de juego (ver Editor).
 function handlers.unlock()
-    if not EditorAvailable() then return end
     OA.Editor.StartMoveMode()
 end
 
 function handlers.lock()
-    if not EditorAvailable() then return end
     OA.Editor.EndMoveMode(false)
 end
 
 function handlers.editor()
-    if not EditorAvailable() then return end
     OA.Editor.Toggle()
 end
 

@@ -1,7 +1,7 @@
 Bankir = Bankir or {}
 
 local name = "Bankir"
-local version = "2.7.1"
+local version = "2.8"
 local author = "vexaiv"
 
 local function debugPrint(message)
@@ -17,7 +17,7 @@ local requiredForQuests
 local reprocessNeeded
 
 local function getRuleForItem(itemLink, bagIdAlias)
-	local toPush, toPull, pullInStacks, ruleDefId, qualityNeeded
+	local toPush, toPull, pullInStacks, ruleDefId
 	local itemType, specializedItemType, itemId = Bankir.Functions.redefineItemTypes(itemLink)
 	
 	ruleDefId = itemLink
@@ -56,19 +56,21 @@ local function getRuleForItem(itemLink, bagIdAlias)
 			ruleDefId = itemType
 		end
 	end
-	
+	-- check quality requirements
+	local neededQualities
 	if rule and rule.quality then
+		neededQualities = rule.quality
 		local displayQuality = GetItemLinkDisplayQuality(itemLink)
-		if displayQuality < rule.quality then
+		local hasNeededQuality = Bankir.Functions.isInArray(neededQualities, displayQuality)
+		if not hasNeededQuality then
 			toPush = nil
 			toPull = nil
 			pullInStacks = false
 			ruleDefId = itemLink
 		end
-		qualityNeeded = rule.quality
 	end
 	
-	return toPush, toPull, pullInStacks, ruleDefId, qualityNeeded
+	return toPush, toPull, pullInStacks, ruleDefId, neededQualities
 end
 
 local function getSlotData(bagId, slotId)
@@ -140,16 +142,18 @@ local function initCacheForBag(bagId)
 	end
 end
 
-local function updateTotalItemsInBag(bagId, itemLink, totalsId, minQuality)
+local function updateTotalItemsInBag(bagId, itemLink, totalsId, neededQualities)
 	local count = 0
 	for slotId in ZO_IterateBagSlots(bagId) do
 		repeat
 			local itemLinkInSlot = GetItemLink(bagId, slotId)
 			if not itemLinkInSlot then break end
-			if minQuality then
-				-- don't count if quality rule is set and this item is lower quality
+			if neededQualities then
+				-- don't count if quality rule is set and this item is not needed quality
 				local displayQuality = GetItemLinkDisplayQuality(itemLinkInSlot)
-				if displayQuality < minQuality then break end
+				if not Bankir.Functions.isInArray(neededQualities, displayQuality) then
+					break
+				end
 			end
 			-- special case for armor/weapon to count totals of all intricate light armor
 			-- as same item, all companion shields as same item and so on
@@ -248,7 +252,7 @@ local function populateQueue(sourceBagId, targetBagId)
 			if sourceBagId == BAG_BACKPACK
 			and GetItemLinkBindType(itemLink) == BIND_TYPE_ON_PICKUP_BACKPACK then break end
 			
-			local toPush, toPull, pullInStacks, ruleDefId, minQuality = getRuleForItem(itemLink, bankBagAlias)
+			local toPush, toPull, pullInStacks, ruleDefId, neededQualities = getRuleForItem(itemLink, bankBagAlias)
 			toPush = toPush or 0
 			toPull = toPull or 0
 			
@@ -281,8 +285,8 @@ local function populateQueue(sourceBagId, targetBagId)
 			
 			--update how many of the item is already in target bag
 			if not localCache[targetBagId].totals[totalsId] or not localCache[sourceBagId].totals[totalsId] then
-				updateTotalItemsInBag(targetBagId, itemLink, totalsId, minQuality)
-				updateTotalItemsInBag(sourceBagId, itemLink, totalsId, minQuality)
+				updateTotalItemsInBag(targetBagId, itemLink, totalsId, neededQualities)
+				updateTotalItemsInBag(sourceBagId, itemLink, totalsId, neededQualities)
 			end
 			
 			local stackSize, maxStackSize = getSlotStackSizeLocal(sourceBagId, slotId)
@@ -607,12 +611,9 @@ local function onAddOnLoaded(event, addonName)
 	if addonName ~= name then return end
 	EVENT_MANAGER:UnregisterForEvent(name, EVENT_ADD_ON_LOADED)
 	
-	Bankir.Data.getBankBags()
-	Bankir.Data.getCharactersList()
-	
-	-- upgrade saved vars structure for Bankir 2.7
 	if BankirSavedVariables then
 		if BankirSavedVariables.Default then
+			-- upgrade saved vars structure for Bankir 2.7
 			if BankirSavedVariables.Default.Profiles then
 				BankirSavedVariables.Profiles = {}
 				BankirSavedVariables.Common = {}
@@ -648,7 +649,44 @@ local function onAddOnLoaded(event, addonName)
 				BankirSavedVariables.Common.currencySlidersMaxValue = 100000
 			end
 		end
+		if BankirSavedVariables.Common then
+			if BankirSavedVariables.Common.version == 2.7 then
+				for profileName, profileTable in pairs(BankirSavedVariables.Profiles) do
+					for bagId, bagRules in pairs(profileTable) do
+						for typeId, typeRules in pairs(bagRules) do
+							for itemId, itemRules in pairs(typeRules) do
+								if itemRules.quality then
+									-- convert to table. 1=>{1,2,3,4,5}. 3=>{3,4,5}
+									local newQuality = {}
+									for i = itemRules.quality, 5 do
+										table.insert(newQuality, i)
+									end
+									itemRules.quality = newQuality
+								end
+								-- move style mats from itemId to specializedItemType
+								if typeId == "byItemType" then
+									if itemId == "StyleMaterialRacial" then
+										BankirSavedVariables.Profiles[profileName][bagId].bySpecializedItemType["StyleMaterialRacial"] = Bankir.Functions.copyData(itemRules)
+										BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
+									elseif itemId == "StyleMaterialOther" then
+										BankirSavedVariables.Profiles[profileName][bagId].bySpecializedItemType["StyleMaterialOther"] = Bankir.Functions.copyData(itemRules)
+										BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
+									end
+								end
+							end
+						end
+					end
+				end
+				BankirSavedVariables.Server[GetWorldName()].ResearchCharactersList = Bankir.Functions.copyData(
+					BankirSavedVariables.Server[GetWorldName()].Integrations.LCK.CharactersList)
+				BankirSavedVariables.Server[GetWorldName()].Integrations = nil
+				BankirSavedVariables.Common.version = 2.8
+			end
+		end
 	end
+	
+	Bankir.Data.getBankBags()
+	Bankir.Data.getCharactersList()
 	
 	local defaultProfileName = "Default"
 	local profiles = Bankir.Profiles.getProfilesNames()
@@ -666,8 +704,7 @@ local function onAddOnLoaded(event, addonName)
 	BankirSavedVariables.Server[GetWorldName()] = BankirSavedVariables.Server[GetWorldName()] or Bankir.Data.getDefaultServerSettings()
 	Bankir.savedVarsServer = BankirSavedVariables.Server[GetWorldName()]
 	
-	Bankir.Data.cleanUpLCKList()
-	
+	Bankir.Data.cleanUpResearchCharactersList()
 	Bankir.createSettingsMenu(name, author, version)
 	
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_OPEN_BANK, function(eventCode, bankBag)

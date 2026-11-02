@@ -64,6 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Beltalowda - testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kickimanjaro/Beltalowda---testing__4395) | Kickimanjaro | PC / Mac | 0.5.4 |
 | [Berserk Tracker (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Berserk-Tracker-PC-Console__4801) | Duesentrieb | PC / Mac | 20260829-0001 |
 | [BestFriends 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/BestFriends-2018__1975) | Phuein | PC / Mac | 2.16 |
+| [Beta Dolg Alch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Beta-Dolg-Alch__2711aec8-a92b-4dae-97c9-096e8d72bf16) | Dolgubon | Console | — |
 | [beta jh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/beta-jh__bd7f229c-f922-457b-a9c6-16e3f0427654) | j.hhh | Console | — |
 | [BetaBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/BetaBars__1f95515e-9df4-487e-9e56-ab184190fd95) | Tetsurion | Console | — |
 | [BetaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Latetide/BetaScry__3783) | Latetide | PC / Mac | 1.0.0 |
@@ -83,7 +84,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BetterUI :: Gamepad Interface Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goobsnake/BetterUI-Gamepad-Interface-Improvements__2013) | goobsnake | PC / Mac | 3.06 |
 | [Beyond The Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Beyond-The-Map__1f42735d-8e9b-47ab-a1a7-f70de8bef493) | xbutch | Console | — |
 | [BGHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/BGHelper__4527) | NPViral | PC / Mac | 3.0 |
-| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.9.1 |
+| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 1.0.0 |
 | [Bigger Chat Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Bigger-Chat-Window__657) | Crabby654 | PC / Mac | 1.6.3 |
 | [Bind & Invite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Bind-Invite__23c652bc-541e-443a-8f1f-e2f7c0bfef13) | TheGreyWolf98 | Console | — |
 | [Bind As Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Bind-As-Junk__4608) | Fluffiels | PC / Mac | 1.03 |
@@ -168,7 +169,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BSCs-TauntCounter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-TauntCounter__3695) | BloodStainCHild | PC / Mac | 1.0.0 |
 | [BSCs-UltiPoints](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-UltiPoints__3198) | BloodStainCHild | PC / Mac | 2.2.3 |
 | [BSCs-WizardPlugin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-WizardPlugin__4645) | BloodStainCHild | PC / Mac | 1.0.2 |
-| [BTV Tools Roster Importer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BallTongue/BTV-Tools-Roster-Importer__4852) | BallTongue_ | PC / Mac | 0.3.1 |
+| [BTV Tools Roster Importer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BallTongue/BTV-Tools-Roster-Importer__4852) | BallTongue_ | PC / Mac | 0.3.2 |
 | [BuddysCombat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buddy7744/BuddysCombat__2263) | buddy7744 | PC / Mac | 7.0 |
 | [BuddysWritStatus (Only on German Clients)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buddy7744/BuddysWritStatus-Only-on-German-Clients__2460) | buddy7744 | PC / Mac | 1.3.0 |
 | [Buff The Group (BTG)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/Buff-The-Group-BTG__2759) | bitrock | PC / Mac | 3.5.0 |

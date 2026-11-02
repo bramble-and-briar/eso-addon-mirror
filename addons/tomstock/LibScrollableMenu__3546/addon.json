@@ -58,7 +58,7 @@
     "LibScrollableMenu"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3546/",
-  "fingerprint": "0203fd45daa9db1d236dc458bdbe6622f061d78aa6a4a66039c7f22a5092db58",
+  "fingerprint": "8e39d637604300e444b1d83975ff47fd000ac5ba633a26a9d1f580f5aea587f6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14558.png",
     "https://cdn-eso.mmoui.com/preview/pvw17773.png",
@@ -75,11 +75,11 @@
   "source_id": "3546",
   "source_url": "https://www.esoui.com/downloads/info3546-LibScrollableMenu.html",
   "stats": {
-    "downloads": 832165,
-    "favorites": 226,
-    "monthly_downloads": 21684
+    "downloads": 864808,
+    "favorites": 230,
+    "monthly_downloads": 45804
   },
   "title": "LibScrollableMenu",
-  "updated_at": 1791316713000,
-  "version": "2.47"
+  "updated_at": 1793553133000,
+  "version": "2.48"
 }

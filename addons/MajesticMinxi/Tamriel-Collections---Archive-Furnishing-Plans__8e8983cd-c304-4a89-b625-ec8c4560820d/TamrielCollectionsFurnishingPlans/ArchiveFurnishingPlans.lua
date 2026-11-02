@@ -1,4 +1,4 @@
--- Tamriel Collections - Furnishing Plans starter v0.1.0
+-- Tamriel Collections - Furnishing Plans starter v0.1.2
 -- Registers the standalone module in the shared family. Collection features
 -- are intentionally left for a later release.
 local TC = TamrielCollections
@@ -41,7 +41,7 @@ TC:RegisterArchiveModule(MODULE_ID, {
     addonName = 'Tamriel Collections - Archive Furnishing Plans',
     assetRoot = 'TamrielCollectionsFurnishingPlans',
     screenControl = 'TCFQuestJournalTL',
-    version = 100,
+    version = 102,
     supportsSearch = false,
     starter = true,
     onCategoryFocus = function(screen, data)

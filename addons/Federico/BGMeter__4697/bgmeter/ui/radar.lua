@@ -17,6 +17,26 @@ local MARGIN = 10
 local LABEL_W = 56
 local LABEL_H = 14
 local TWO_PI = 2 * math.pi
+local DOT = "bgmeter/assets/dot.dds"
+local ORIENT = ORIENTATION_HORIZONTAL or 1
+local HEAT = {
+    { 0.12, 0.04, 0.22 },
+    { 0.45, 0.08, 0.42 },
+    { 0.80, 0.20, 0.30 },
+    { 0.98, 0.52, 0.16 },
+    { 1.00, 0.90, 0.45 },
+}
+
+local function heat(v)
+    if v <= 0 then local c = HEAT[1] return c[1], c[2], c[3] end
+    if v >= 1 then local c = HEAT[#HEAT] return c[1], c[2], c[3] end
+    local x = v * (#HEAT - 1)
+    local i = math.floor(x)
+    local f = x - i
+    local a, b = HEAT[i + 1], HEAT[i + 2]
+    return a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f
+end
+R.heat = heat
 
 function R.new(parent, label)
     local self = setmetatable({}, R)
@@ -30,7 +50,7 @@ function R.new(parent, label)
         self.line_pool.label = (label or "radar") .. ".lines"
     end
     self.dot_pool = BGMeter.Plot.pool.new(
-        function() return P.rect(self.root, { 1, 1, 1, 1 }) end,
+        function() return P.icon(self.root, DOT) end,
         function(r) r:SetHidden(true); r:ClearAnchors() end)
     self.dot_pool.label = (label or "radar") .. ".dots"
     self.labels = {}
@@ -111,12 +131,29 @@ local function seg(self, x0, y0, x1, y1, color, alpha, width)
     self.lines = self.lines + 1
 end
 
+local function ray(self, x0, y0, x1, y1, color, v)
+    if not self.line_pool then return end
+    local ln = self.line_pool:acquire()
+    ln:ClearAnchors()
+    ln:SetAnchor(TOPLEFT, self.root, TOPLEFT, x0, y0)
+    ln:SetAnchor(TOPRIGHT, self.root, TOPLEFT, x1, y1)
+    if ln.SetThickness then ln:SetThickness(1) end
+    local hr, hg, hb = heat(v)
+    if ln.SetGradientColors then
+        ln:SetGradientColors(ORIENT, color[1], color[2], color[3], 0.04, hr, hg, hb, 0.12 + 0.50 * v)
+    else
+        ln:SetColor(hr, hg, hb, 0.16)
+    end
+    ln:SetHidden(false)
+    self.lines = self.lines + 1
+end
+
 local function dot(self, x, y, color, size)
     local d = self.dot_pool:acquire()
     d:ClearAnchors()
     d:SetAnchor(CENTER, self.root, TOPLEFT, x, y)
     d:SetDimensions(size, size)
-    P.set_rect_color(d, { color[1], color[2], color[3], 1 })
+    d:SetColor(color[1], color[2], color[3], 1)
     d:SetHidden(false)
 end
 
@@ -149,7 +186,10 @@ local function draw_series(self, s)
             local f = t - (i - 1)
             local x = pts[i][1] + (pts[j][1] - pts[i][1]) * f
             local y = pts[i][2] + (pts[j][2] - pts[i][2]) * f
-            seg(self, self.cx, self.cy, x, y, sr.color, 0.16, 1)
+            local vi, vj = sr.v[i] or 0, sr.v[j] or 0
+            local vv = vi + (vj - vi) * f
+            if vv < 0 then vv = 0 elseif vv > 1 then vv = 1 end
+            ray(self, self.cx, self.cy, x, y, sr.color, vv)
         end
     end
     for i = 1, n do
@@ -157,7 +197,7 @@ local function draw_series(self, s)
         seg(self, pts[i][1], pts[i][2], pts[j][1], pts[j][2], sr.color, sr.alpha, sr.width)
     end
     if sr.width >= 2 then
-        for i = 1, n do dot(self, pts[i][1], pts[i][2], sr.color, 5) end
+        for i = 1, n do dot(self, pts[i][1], pts[i][2], sr.color, 7) end
     end
 end
 

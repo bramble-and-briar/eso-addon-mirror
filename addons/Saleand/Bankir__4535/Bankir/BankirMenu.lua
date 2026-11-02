@@ -258,10 +258,8 @@ function Bankir.createSettingsMenu(name, author, version)
 			iconPressed = "/esoui/art/inventory/inventory_tabicon_craftbag_stylematerial_down.dds",
 			widgets = BMBF.makeWidgetsForTypes(
 				{
-					{ id = "StyleMaterialRacial", idTypeStr = "itemType" },
-					{ id = "StyleMaterialOther", idTypeStr = "itemType" },
+					{ id = ITEMTYPE_STYLE_MATERIAL, idTypeStr = "itemType" },
 					{ id = ITEMTYPE_RAW_MATERIAL, idTypeStr = "itemType" },
-				--ITEMTYPE_STYLE_MATERIAL,
 				}
 			),
 		},
@@ -613,7 +611,7 @@ function Bankir.createSettingsMenu(name, author, version)
 		{
 			title = GetString(SI_CAMPAIGN_BROWSER_RULES_HEADER), -- "Rules"
 			widgets = {
-				BMBF.makeSelectedProfileLabel(),
+				BMBF.makeRulesProfileSelector(),
 				BMBF.dividerSmall,
 				BMBF.makeBankSelector(),
 			},

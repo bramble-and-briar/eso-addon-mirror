@@ -2,11 +2,13 @@
 
 *[English](README.md) · Español*
 
+> **Aviso sobre IA:** el código de OmniAura se ha escrito con la ayuda de un asistente de programación con IA (Claude, de Anthropic). El autor lo ha revisado y probado en el juego.
+
 ![OmniAura](screenshots/01-help.png)
 
 **Tus propios avisos en pantalla para The Elder Scrolls Online.** Vigila buffs, debuffs, recursos, procs de sets y el estado de combate, y muéstralos como iconos, barras o textos justo donde quieras, todo desde un editor visual dentro del juego y sin escribir ni un solo ID.
 
-Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
+Versión actual: **1.1.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 <details>
 <summary><b>Capturas</b> (9)</summary>
@@ -34,7 +36,7 @@ Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 - `/omni` abre y cierra el editor. También desde *Ajustes → Add-Ons → OmniAura* o con una tecla en *Controles → OmniAura*.
 - **+ Nueva aura...** crea un aura a partir de una plantilla.
-- En las auras de buff y proc, los efectos se eligen con el buscador, el **catálogo** o los atajos (efectos actuales, habilidades de tus barras, recientes). Un aura con varios efectos se muestra si hay *cualquiera* de ellos.
+- En las auras de buff, proc y habilidad de la barra, los efectos se eligen con el buscador, el **catálogo** o los atajos (efectos actuales, habilidades de tus barras, recientes). Un aura con varios efectos se muestra si hay *cualquiera* de ellos.
 - El botón **Ubicar en pantalla** (al final de Apariencia) cierra el editor y muestra el aura que editas sobre la interfaz de juego: se arrastra para moverla, su esquina amarilla cambia el tamaño y «Listo» vuelve al editor.
 - **Ubicar auras** (debajo de la lista) oculta el editor y muestra la interfaz de juego normal para colocar todas las auras a la vez; se termina con «Listo» o Esc.
 - La flecha junto a la X pliega el editor. Mientras está abierto, las auras activas no se muestran.
@@ -51,6 +53,11 @@ Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 /omni unlock | lock      entrar/salir del modo «Ubicar auras»
 /omni reset confirm      borra todas las auras
 ```
+
+## Créditos
+
+- [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) de sirinsidiator y Seerah (opcional): el panel de *Ajustes → Add-Ons*.
+- Los iconos, los sonidos y los nombres de recursos, clases, armas y líneas de habilidad son los del propio juego.
 
 ## Desarrollo
 
@@ -73,7 +80,7 @@ OmniAura.txt            manifiesto
 OmniAura.lua            namespace, SavedVariables, arranque, bienvenida
 lang/*.lua              textos (en = base; es, de, fr sobrescriben)
 Core/Utils.lua          parseo, rutas, formato de tiempo, plantillas de texto
-Core/Triggers.lua       tipos de trigger (buff, resource, proc, combat)
+Core/Triggers.lua       tipos de trigger (buff, slot, resource, proc, combat)
 Core/Recent.lua         efectos/habilidades vistos recientemente
 Core/AbilityIndex.lua   índice de todas las habilidades del juego (búsqueda y catálogo)
 Core/Engine.lua         evaluación de auras cada 100 ms; alta/copia/borrado
@@ -88,6 +95,14 @@ Bindings.xml            tecla para abrir el editor
 - **Trigger nuevo:** `OA.Triggers.types.<nombre> = { Prepare, Register, Unregister, Check }` y sus campos en `TRIGGER_FIELDS` del editor.
 - **Display nuevo:** `NewType("<nombre>")` con `Build`, `Configure`, `Update` y `SetBoxSize`, y sus campos en `DISPLAY_FIELDS`.
 - **Opción del formulario:** una línea en el esquema; `show = function(ctx)` la oculta cuando no aplica.
+
+### Normas de ESOUI
+
+- Nada global salvo la tabla `OmniAura` (más `OmniAura_SV` y el `SI_BINDING_NAME_...` de la tecla): las funciones van en ella, p. ej. `OmniAura.ToggleEditor()` en `Bindings.xml`.
+- No comprobar si existen funciones u objetos del juego (`if CHAT_ROUTER then`, `GetClassName and ...`, `pcall` para "por si acaso"): se verifican antes en `ESOUIDocumentation.txt` de la versión de API o en el [código de la interfaz](https://github.com/esoui/esoui), o en el juego con `/script d(NOMBRE)`.
+- Si un evento tiene filtro (`REGISTER_FILTER_IS_ERROR`, `REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE`...), se usa el filtro en vez de comprobarlo en Lua.
+- Los textos que ya existen en el juego se toman con `GetString(SI_...)` en `lang/en.lua` y no se repiten en los demás idiomas.
+- Evitar los alias de `addoncompatibilityaliases` (p. ej. `POWERTYPE_*`).
 
 ### Publicar una versión
 

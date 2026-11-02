@@ -10,7 +10,7 @@ OA.Recent = R
 local MAX_ENTRIES = 60
 
 local function Add(abilityId, name, icon)
-    if not abilityId or abilityId == 0 then return end
+    if abilityId == 0 then return end
     local now = GetFrameTimeSeconds()
     local entry = R.byId[abilityId]
     if entry then
@@ -51,7 +51,7 @@ end
 local function OnCombatEvent(_, result, isError, abilityName, abilityGraphic, actionSlotType,
                              sourceName, sourceType, targetName, targetType, hitValue, powerType,
                              damageType, log, sourceUnitId, targetUnitId, abilityId)
-    if not isError then Add(abilityId, abilityName) end
+    Add(abilityId, abilityName)
 end
 
 -- Lista ordenada de más reciente a más antiguo.
@@ -71,8 +71,9 @@ function R.Init()
     em:RegisterForEvent("OmniAura_RecentMine", EVENT_EFFECT_CHANGED, OnEffectChanged)
     em:AddFilterForEvent("OmniAura_RecentMine", EVENT_EFFECT_CHANGED,
         REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
-    -- Habilidades y procs que lanzas
+    -- Habilidades y procs que lanzas (sin errores: los descarta el filtro, no Lua)
     em:RegisterForEvent("OmniAura_RecentCombat", EVENT_COMBAT_EVENT, OnCombatEvent)
     em:AddFilterForEvent("OmniAura_RecentCombat", EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+        REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER,
+        REGISTER_FILTER_IS_ERROR, false)
 end

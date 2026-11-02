@@ -1,0 +1,1 @@
+-- English is already registered by default.lua; intentionally no duplicate strings.

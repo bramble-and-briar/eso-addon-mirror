@@ -20,16 +20,26 @@ local ROW_H          = 44
 -- }
 -- entry fields: houseId (number), owner (string|nil), displayName (string), zone (string|nil)
 
--- ── Forward declarations ──────────────────────────────────────────────────────
+-- Forward declarations
 local populateDialog
 local refreshIfOpen
 local getOwnedHouses
 
--- ── Helpers ───────────────────────────────────────────────────────────────────
+-- Helpers
 
 local function msg(text, ...)
     if select("#", ...) > 0 then text = string.format(text, ...) end
     d("|cffd700[CharacterHomes]|r " .. text)
+end
+
+-- chat message plus a center-screen announcement
+local function announce(text, ...)
+    if select("#", ...) > 0 then text = string.format(text, ...) end
+    msg(text)
+    local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.NONE)
+    params:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
+    params:SetText(text)
+    CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
 end
 
 local function charName() return GetUnitName("player") end
@@ -71,6 +81,49 @@ local function getHouseZone(houseId)
     return nil
 end
 
+local function getHouseMapIndex(houseId)
+    local zoneId = GetHouseZoneId(houseId)
+    for _ = 1, 3 do
+        if not zoneId or zoneId == 0 then return nil, nil end
+        local mapIndex = GetMapIndexByZoneId(zoneId)
+        if mapIndex then return mapIndex, zoneId end
+        zoneId = GetParentZoneId(zoneId)
+    end
+end
+
+-- Houses have no direct coordinates; match the house's map marker by name (same approach as BeamMeUp).
+local function findHousePOI(zoneId, houseName)
+    local zoneIndex = GetZoneIndex(zoneId)
+    local target = string.lower(zo_strformat("<<1>>", houseName))
+    for i = 1, GetNumPOIs(zoneIndex) do
+        local x, y, _, icon = GetPOIMapInfo(zoneIndex, i)
+        local name = string.lower(zo_strformat("<<1>>", GetPOIInfo(zoneIndex, i) or ""))
+        local iconLower = string.lower(icon or "")
+        if name ~= "" and name:find(target, 1, true)
+           and not iconLower:find("wayshrine", 1, true) and not iconLower:find("portal", 1, true) then
+            return x, y
+        end
+    end
+end
+
+function CH.ShowHouseOnMap(houseId)
+    local mapIndex, zoneId = getHouseMapIndex(houseId)
+    if not mapIndex then
+        msg("Couldn't find a map for %s.", getHouseName(houseId))
+        return
+    end
+    CH.HideDialog()
+    SCENE_MANAGER:Show("worldMap")
+    -- switch to Tamriel first to reset any subzone or zoom left over from earlier map use
+    WORLD_MAP_MANAGER:SetMapByIndex(1)
+    WORLD_MAP_MANAGER:SetMapByIndex(mapIndex)
+    CALLBACK_MANAGER:FireCallbacks("OnWorldMapChanged")
+    local x, y = findHousePOI(zoneId, getHouseName(houseId))
+    if x and y then
+        zo_callLater(function() ZO_WorldMap_PanToNormalizedPosition(x, y) end, 200)
+    end
+end
+
 local function currentHouseInfo()
     local houseId = GetCurrentZoneHouseId()
     if not houseId or houseId == 0 then return nil, nil, nil, nil end
@@ -79,11 +132,20 @@ local function currentHouseInfo()
     return houseId, owner, getHouseName(houseId), getHouseZone(houseId)
 end
 
-local function jumpTo(entry)
+local function jumpToInterior(entry)
     if entry.owner and entry.owner ~= "" then
         JumpToSpecificHouse(entry.owner, entry.houseId)
     else
         RequestJumpToHouse(entry.houseId)
+    end
+end
+
+local function jumpToExterior(entry)
+    if entry.owner and entry.owner ~= "" then
+        msg("Teleporting outside isn't available for friends' houses — going inside instead.")
+        JumpToSpecificHouse(entry.owner, entry.houseId)
+    else
+        RequestJumpToHouse(entry.houseId, true)
     end
 end
 
@@ -98,7 +160,7 @@ local function resolveNamed(name)
     end
 end
 
--- ── Slash Commands ────────────────────────────────────────────────────────────
+-- Slash Commands
 
 function CH.SlashSetHome(args)
     local name = args and zo_strtrim(args) or ""
@@ -207,13 +269,30 @@ function CH.SlashDelMyHome(args)
 end
 
 function CH.SlashHome(args)
-    local query = args and zo_strtrim(args) or ""
+    local query    = args and zo_strtrim(args) or ""
+    local exterior = false
+
+    -- "/gohome outside" or "/gohome outside <name>"
+    local stripped = query:match("^outside%s+(.*)")
+    if stripped then
+        exterior = true
+        query    = zo_strtrim(stripped)
+    elseif string.lower(query) == "outside" then
+        exterior = true
+        query    = ""
+    end
+
+    local function go(entry)
+        local official = getHouseName(entry.houseId)
+        local dest     = exterior and "outside" or "inside"
+        announce("Heading %s |cffffff%s|r (%s)...", dest, entry.displayName or official, official)
+        if exterior then jumpToExterior(entry) else jumpToInterior(entry) end
+    end
+
     if query == "" then
         local cd = charData()
         if cd.primary then
-            local official = getHouseName(cd.primary.houseId)
-            msg("Heading to |cffffff%s|r (%s)...", cd.primary.displayName or official, official)
-            jumpTo(cd.primary)
+            go(cd.primary)
         else
             msg("No primary home set. Use /setmyhome inside a house.")
         end
@@ -223,7 +302,6 @@ function CH.SlashHome(args)
     local lq      = string.lower(query)
     local matches = {}
 
-    -- first pass: search registered entries by display label
     local function collectLabelMatches()
         local found = {}
         local function check(entry)
@@ -239,7 +317,6 @@ function CH.SlashHome(args)
         return found
     end
 
-    -- fallback: search ALL owned houses by official ESO name, jump directly
     local function collectOwnedMatches()
         local found = {}
         for _, h in ipairs(getOwnedHouses()) do
@@ -251,18 +328,12 @@ function CH.SlashHome(args)
     end
 
     matches = collectLabelMatches()
-    if #matches == 0 then
-        matches = collectOwnedMatches()
-    end
+    if #matches == 0 then matches = collectOwnedMatches() end
 
     if #matches == 0 then
         msg("No home matching '|cffffff%s|r'. Use /homes to see your list.", query)
-        -- note: /gohome is the command (renamed from /home to avoid EHT conflict)
     elseif #matches == 1 then
-        local m = matches[1]
-        local official = getHouseName(m.entry.houseId)
-        msg("Heading to |cffffff%s|r (%s)...", m.label or official, official)
-        jumpTo(m.entry)
+        go(matches[1].entry)
     else
         table.sort(matches, function(a, b) return (a.label or "") < (b.label or "") end)
         msg("'|cffffff%s|r' matches %d homes — be more specific:", query, #matches)
@@ -276,7 +347,7 @@ function CH.SlashHomes()
     CH.ShowDialog()
 end
 
--- ── UI ────────────────────────────────────────────────────────────────────────
+-- UI
 
 local scrollChild   -- the scroll child control from XML
 local contentWrap   -- single CT_CONTROL parenting all dynamic rows
@@ -452,13 +523,25 @@ local function addRow(typeLabel, aliasName, entry, yOff, onDelete)
     ico:SetNormalTexture(teleIcon)
     ico:SetPressedTexture(teleIcon)
     ico:SetMouseOverTexture(teleIconMO)
-    ico:SetHandler("OnClicked", function()
-        CharacterHomesDialog:SetHidden(true)
-        SetGameCameraUIMode(false)
-        jumpTo(entry)
+    local function doTeleport(exterior)
+        CH.HideDialog()
+        local official = getHouseName(entry.houseId)
+        announce("Heading %s |cffffff%s|r (%s)...", exterior and "outside" or "inside", entry.displayName or official, official)
+        if exterior then jumpToExterior(entry) else jumpToInterior(entry) end
+    end
+
+    ico:SetHandler("OnMouseUp", function(self, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            doTeleport(false)
+        elseif button == MOUSE_BUTTON_INDEX_RIGHT and isOwned then  -- friend houses can't be entered from outside
+            ClearMenu()
+            AddMenuItem("Teleport Inside",  function() doTeleport(false) end)
+            AddMenuItem("Teleport Outside", function() doTeleport(true)  end)
+            ShowMenu(self)
+        end
     end)
-    local teleLabel = entry.owner and ("Teleport to " .. (entry.displayName or officialName) .. "\n|c888888via " .. entry.owner .. "|r")
-                                   or ("Teleport to " .. (entry.displayName or officialName))
+    local teleLabel = isOwned and ("Teleport to " .. (entry.displayName or officialName) .. "\n|c666666Right-click for outside|r")
+                               or ("Teleport to " .. (entry.displayName or officialName) .. "\n|c888888via " .. entry.owner .. "|r")
     addTooltip(ico, teleLabel)
 
     -- col2: owner @name for friend homes; blank for own homes
@@ -488,8 +571,22 @@ local function addRow(typeLabel, aliasName, entry, yOff, onDelete)
     houseLbl:SetAnchor(LEFT, row, LEFT, colHouse, 0)
     houseLbl:SetDimensions(HOUSE_COL_W, ROW_H)
     houseLbl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    houseLbl:SetMouseEnabled(true)
+    houseLbl:SetHandler("OnMouseUp", function(_, button, upInside)
+        if button == MOUSE_BUTTON_INDEX_LEFT and upInside then CH.ShowHouseOnMap(entry.houseId) end
+    end)
+    houseLbl:SetHandler("OnMouseEnter", function(self)
+        self:SetColor(1, 1, 1, 1)
+        InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4)
+        InformationTooltip:AddLine(entry.zone or getHouseZone(entry.houseId) or officialName, "ZoFontGameBold", 1, 1, 1)
+        InformationTooltip:AddLine("Click to show on map", "ZoFontGame", 0.6, 0.6, 0.6)
+    end)
+    houseLbl:SetHandler("OnMouseExit", function(self)
+        self:SetColor(0.75, 0.75, 0.75, 1)
+        ClearTooltip(InformationTooltip)
+    end)
 
-    -- ── inline edit controls (hidden until edit mode) ─────────────────────────
+    -- inline edit controls (hidden until edit mode)
 
     -- col3: display name editbox (replaces alias label in edit mode)
     local dnBgW = colHouse - COL_ALIAS - 8
@@ -687,12 +784,44 @@ refreshIfOpen = function()
 end
 
 function CH.ShowDialog()
-    CharacterHomesDialog:SetHidden(false)
-    SetGameCameraUIMode(true)
+    SCENE_MANAGER:ShowTopLevel(CharacterHomesDialog)
     populateDialog()
 end
 
--- ── Add Bar / Friend Housing Bar ─────────────────────────────────────────────
+function CH.HideDialog()
+    SCENE_MANAGER:HideTopLevel(CharacterHomesDialog)
+end
+
+-- Read at press time so changes made in Controls > Keybindings apply immediately.
+local function matchesCloseDialogBinding(key, ctrl, alt, shift, command)
+    local layer, category, action = GetActionIndicesFromName("DIALOG_CLOSE")
+    if not layer then return false end
+    local held = { [KEY_CTRL] = ctrl == true, [KEY_ALT] = alt == true, [KEY_SHIFT] = shift == true, [KEY_COMMAND] = command == true }
+    for i = 1, GetMaxBindingsPerAction() do
+        local keyCode, m1, m2, m3, m4 = GetActionBindingInfo(layer, category, action, i)
+        if keyCode ~= 0 and keyCode == key then
+            local modsMatch = true
+            for mod, isHeld in pairs(held) do
+                -- a bare modifier binding (e.g. just Alt) reports its own flag as held
+                if mod ~= keyCode and ZO_Keybindings_DoesKeyMatchAnyModifiers(mod, m1, m2, m3, m4) ~= isHeld then
+                    modsMatch = false
+                    break
+                end
+            end
+            if modsMatch then return true end
+        end
+    end
+    return false
+end
+
+function CH.OnKeyDown(key, ctrl, alt, shift, command)
+    -- keyboard-enabled windows swallow keys, so Escape must be handled here too
+    if key == KEY_ESCAPE or matchesCloseDialogBinding(key, ctrl, alt, shift, command) then
+        CH.HideDialog()
+    end
+end
+
+-- Add Bar / Friend Housing Bar
 
 local ADD_TYPES    = { "Primary (character)", "Named (character)", "Account wide" }
 local addTypeIndex = 1
@@ -858,9 +987,8 @@ local function buildFriendHousingBar()
             return
         end
         local houseName = getHouseName(selectedHouseId)
-        msg("Attempting to port to |cffffff%s|r at |c7a9cbf%s|r...", houseName, selectedFriend)
-        CharacterHomesDialog:SetHidden(true)
-        SetGameCameraUIMode(false)
+        announce("Attempting to port to |cffffff%s|r at |c7a9cbf%s|r...", houseName, selectedFriend)
+        CH.HideDialog()
         JumpToSpecificHouse(selectedFriend, selectedHouseId)
     end)
 end
@@ -876,7 +1004,7 @@ local function buildAddBar()
     -- anchor reference so combo x-offsets mirror the friend housing bar's column positions exactly.
     local ref = CharacterHomesDialogAddRefBg
 
-    -- Type combo at x=286, aligned with friend housing bar type combo (no label — "My homes:" label is at x=74)
+    -- Type combo at x=286, aligned with friend housing bar type combo
     local typeComboCtrl = WINDOW_MANAGER:CreateControlFromVirtual("CHAddTypeCombo", dlg, "ZO_ComboBox")
     typeComboCtrl:SetAnchor(LEFT, ref, LEFT, 286, 0)
     typeComboCtrl:SetDimensions(200, 28)
@@ -895,22 +1023,39 @@ local function buildAddBar()
 
     local selectedHouseInfo = nil
 
-    local function populateHouseCombo()
+    local function populateHouseCombo(zoneFilter)
         houseCb:ClearItems()
         selectedHouseInfo = nil
-        local houses = getOwnedHouses()
-        for _, h in ipairs(houses) do
-            local info = h
-            houseCb:AddItem(houseCb:CreateItemEntry(h.name, function()
-                selectedHouseInfo = info
-            end))
+        for _, h in ipairs(getOwnedHouses()) do
+            if not zoneFilter or h.zone == zoneFilter then
+                local info = h
+                houseCb:AddItem(houseCb:CreateItemEntry(h.name, function()
+                    selectedHouseInfo = info
+                end))
+                selectedHouseInfo = selectedHouseInfo or info
+            end
         end
-        if #houses > 0 then
-            houseCb:SelectFirstItem()
-            selectedHouseInfo = houses[1]
+        if selectedHouseInfo then houseCb:SelectFirstItem() end
+    end
+    populateHouseCombo(nil)
+
+    -- zone combo (structure defined in XML): "All zones" plus each zone you own a house in
+    local zoneCb = ZO_ComboBox_ObjectFromContainer(CharacterHomesDialogAddZoneCombo)
+    zoneCb:SetSortsItems(false)
+    zoneCb:AddItem(zoneCb:CreateItemEntry("All zones", function() populateHouseCombo(nil) end))
+    local zones, seen = {}, {}
+    for _, h in ipairs(getOwnedHouses()) do
+        if h.zone and not seen[h.zone] then
+            seen[h.zone] = true
+            table.insert(zones, h.zone)
         end
     end
-    populateHouseCombo()
+    table.sort(zones)
+    for _, z in ipairs(zones) do
+        local zone = z
+        zoneCb:AddItem(zoneCb:CreateItemEntry(zone, function() populateHouseCombo(zone) end))
+    end
+    zoneCb:SelectFirstItem()
 
     addTooltip(CharacterHomesDialogSetHomeButton, "Save selected house to your homes list")
     addTooltip(CharacterHomesDialogClearButton,   "Teleport to the selected house")
@@ -952,20 +1097,17 @@ local function buildAddBar()
             msg("Cannot teleport from your current location.")
             return
         end
-        msg("Heading to |cffffff%s|r...", selectedHouseInfo.name)
-        CharacterHomesDialog:SetHidden(true)
-        SetGameCameraUIMode(false)
+        announce("Heading to |cffffff%s|r...", selectedHouseInfo.name)
+        CH.HideDialog()
         RequestJumpToHouse(selectedHouseInfo.houseId)
     end)
 end
 
--- ── Addon shortcut links (right of search box) ───────────────────────────────
+-- Addon shortcut links (right of search box)
 
 local function buildAddonLinks()
     local dlg = CharacterHomesDialog
-    -- search bar row: y=53, h=28, centre at y=67
-    local ROW_Y   = 67
-    local RIGHT_X = -224  -- start left of the owner filter combo (200px wide, 16px inset, 8px gap)
+    local anchorTo = CharacterHomesDialogOwnerFilterLabel  -- each link chains left of the previous control
 
     local function tryLink(labelText, cmdCandidates, cmdArgs)
         local cmdKey = nil
@@ -977,7 +1119,7 @@ local function buildAddonLinks()
         local lbl = WINDOW_MANAGER:CreateControl(nil, dlg, CT_LABEL)
         lbl:SetFont("ZoFontGameSmall")
         lbl:SetText("|c5588bb" .. labelText .. "|r")
-        lbl:SetAnchor(RIGHT, dlg, TOPRIGHT, RIGHT_X, ROW_Y)
+        lbl:SetAnchor(RIGHT, anchorTo, LEFT, -16, 0)
         lbl:SetMouseEnabled(true)
         lbl:SetHandler("OnMouseEnter", function() lbl:SetText("|cffffff" .. labelText .. "|r") end)
         lbl:SetHandler("OnMouseExit",  function() lbl:SetText("|c5588bb" .. labelText .. "|r") end)
@@ -986,8 +1128,7 @@ local function buildAddonLinks()
                 SLASH_COMMANDS[cmdKey](cmdArgs)
             end
         end)
-        -- estimate width to shift next link left: ~7px per char for ZoFontGameSmall
-        RIGHT_X = RIGHT_X - (#labelText * 7 + 16)
+        anchorTo = lbl
     end
 
     tryLink("Open Port to Friend's House",      { "/ptf" },                                    "open")
@@ -1017,6 +1158,9 @@ local function onAddonLoaded(_, name)
         characters  = {},
         ownerFilter = 0,
     }, server)
+
+    -- lets the game close the window on Escape and manage the mouse cursor
+    SCENE_MANAGER:RegisterTopLevel(CharacterHomesDialog, false)
 
     -- ensure top-level keys exist (guards against stale saves from version 1)
     if not CH.sv.account    then CH.sv.account    = {} end

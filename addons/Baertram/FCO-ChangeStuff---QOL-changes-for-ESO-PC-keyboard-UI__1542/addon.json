@@ -74,7 +74,7 @@
     "FCOChangeStuff"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1542/",
-  "fingerprint": "7747d1c68599387a9ce4611141e53d2bf0e60ce00c23e0388f2cee146052eb4f",
+  "fingerprint": "70aa0f4abb8fc412056bd8bd561991e1ca84be98b818c299dfb972e254ff4f54",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5019.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw12339.png",
@@ -89,11 +89,11 @@
   "source_id": "1542",
   "source_url": "https://www.esoui.com/downloads/info1542-FCOChangeStuff-QOLchangesforESOPCkeyboardUI.html",
   "stats": {
-    "downloads": 40959,
-    "favorites": 71,
-    "monthly_downloads": 423
+    "downloads": 41220,
+    "favorites": 72,
+    "monthly_downloads": 561
   },
   "title": "FCO ChangeStuff - QOL changes for ESO (PC keyboard UI)",
-  "updated_at": 1791040786000,
-  "version": "0.5.96"
+  "updated_at": 1793572656000,
+  "version": "0.5.97"
 }

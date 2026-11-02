@@ -7,7 +7,7 @@ local WM = WINDOW_MANAGER
 
 FCOChangeStuff.addonVars = {}
 local addonVars = FCOChangeStuff.addonVars
-addonVars.addonVersion              = 0.596
+addonVars.addonVersion              = 0.597
 addonVars.addonSavedVarsVersion	    = "0.02"
 addonVars.addonName				    = "FCOChangeStuff"
 addonVars.addonNameMenu  		    = "FCO ChangeStuff"
@@ -174,7 +174,6 @@ local function throttledUpdate(callbackName, timer, callback, ...)
 end
 FCOChangeStuff.ThrottledUpdate = throttledUpdate
 
-
 --Keybinds callback function
 function FCOChangeStuff.keybinds(keybindType)
     if keybindType == nil or keybindType == "" then return end
@@ -292,6 +291,8 @@ function FCOChangeStuff.Player_Activated(...)
     FCOChangeStuff.UIChanges()
     --Notifications
     FCOChangeStuff.addNotificationsButtons()
+    --Guilds Selector
+    FCOChangeStuff.GuildChanges()
 
     FCOChangeStuff.playerActivatedDone = true
 end

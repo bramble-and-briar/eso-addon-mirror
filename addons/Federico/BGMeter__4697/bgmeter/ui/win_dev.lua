@@ -42,6 +42,7 @@ local ACTIONS = {
     { label = "Mock 6v6v6: chaosball", cmd = "mock tri ball" },
     { label = "Mock 6v6v6: capture the relic", cmd = "mock tri relic" },
     { label = "Trophy demo (next rank)", cmd = "trophy", tip = "Steps the competitive standing through the demo ranks." },
+    { label = "Tier-up banner (next tier)", cmd = "tierup", tip = "Shows the standing tier-up banner, one tier per click." },
     { label = "Vet mock: below cap", cmd = "vetmock below" },
     { label = "Vet mock: rank 34 rewards", cmd = "vetmock r34" },
     { label = "Vet mock: at cap", cmd = "vetmock cap" },

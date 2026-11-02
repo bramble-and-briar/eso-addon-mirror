@@ -1,7 +1,7 @@
 ## Title: |c00C8FFOmni|rAura
 ## Author: @Artioner
-## Version: 1.0.0
-## AddOnVersion: 100
+## Version: 1.1.1
+## AddOnVersion: 111
 ## APIVersion: 101051 101052
 ## Description: Your own on-screen alerts for buffs, debuffs, resources and procs, built with a simple visual editor. Type /omni to start.
 ## SavedVariables: OmniAura_SV

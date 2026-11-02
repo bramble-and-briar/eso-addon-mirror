@@ -67,6 +67,40 @@ local function isEqualItemLink(itemLink1, itemLink2)
     return true
 end
 
+local function isInArray(array, value)
+	local isIn = false
+	for i = 1, #array do
+		if value == array[i] then
+			isIn = true
+			break
+		end
+	end
+	return isIn
+end
+
+local function copyData(data)
+	local newData = {}
+	for k, v in pairs(data) do
+		if type(v) == "table" then
+			newData[k] = copyData(v)
+		else
+			newData[k] = v
+		end
+	end
+	return newData
+end
+
+local function mergeData(dest, src)
+	for k, v in pairs(src) do
+		if dest[k] == nil or type(dest[k]) ~= type(v) then
+			dest[k] = copyData(v)
+		elseif type(dest[k]) == "table" and type(v) == "table" then
+			dest[k] = mergeData(dest[k], v)
+		end
+	end
+	return dest
+end
+
 local function getEquipFilterType(itemLink)
 	local armorType = GetItemLinkArmorType(itemLink)
 	if armorType ~= ARMORTYPE_NONE then
@@ -126,7 +160,7 @@ local function redefineItemTypes(itemLink)
 					specializedItemType = "Research" .. equipFilterType
 				end
 				if LCK then
-					for charId in pairs(Bankir.savedVarsServer.Integrations.LCK.CharactersList) do
+					for charId in pairs(Bankir.savedVarsServer.ResearchCharactersList) do
 						if LCK.CanItemLinkBeTraitResearchedByCharacter(itemLink, nil, charId) then
 							if specializedItemType == "Research" .. equipFilterType then
 								specializedItemType = "ResearchBoth" .. equipFilterType
@@ -160,9 +194,9 @@ local function redefineItemTypes(itemLink)
 		end
 	elseif itemType == ITEMTYPE_STYLE_MATERIAL then
 		if Bankir.Data.isTweenOf("itemId", itemId, "StyleMaterialRacial") then
-			itemType = "StyleMaterialRacial"
+			specializedItemType = "StyleMaterialRacial"
 		else
-			itemType = "StyleMaterialOther"
+			specializedItemType = "StyleMaterialOther"
 		end
 	end
 	
@@ -204,9 +238,9 @@ local function getNameOfType(itemType, idTypeStr)
 			elseif itemType == "CompanionAll" then
 				s = GetString(SI_ITEM_FORMAT_STR_COMPANION) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
 			elseif itemType == "StyleMaterialRacial" then
-				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - " .. GetString(SI_SKILLTYPE7) -- "Style material - Race"
+				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - " .. GetString(SI_SKILLTYPE7) -- "Style material - Racial"
 			elseif itemType == "StyleMaterialOther" then
-				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - Not " .. GetString(SI_SKILLTYPE7) -- "Style material - Race"
+				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - " .. GetString(SI_GUILDLANGUAGEATTRIBUTEVALUE32) -- "Style material - Others" SI_GAMEPAD_HOUSING_PERMISSIONS_GUILD_OTHER
 			end
 		end
 	elseif idTypeStr == "itemId" then
@@ -288,22 +322,12 @@ local function checkItemForQuests(bagId, slotId)
 	return result
 end
 
-local function getFullCopy(originalTable)
-	local newTable = {}
-	for k, v in pairs(originalTable) do
-		if type(v) == "table" then
-			newTable[k] = getFullCopy(v)
-		else
-			newTable[k] = v
-		end
-	end
-	return newTable
-end
-
 Bankir.Functions = {
 	buildItemLink = buildItemLink,
 	normalizeItemLink = normalizeItemLink,
 	isEqualItemLink = isEqualItemLink,
+	copyData = copyData,
+	isInArray = isInArray,
 	getEquipFilterType = getEquipFilterType,
 	redefineItemTypes = redefineItemTypes,
 	getNameOfType = getNameOfType,
@@ -312,5 +336,4 @@ Bankir.Functions = {
 	getGuildIndexFromId = getGuildIndexFromId,
 	getBagName = getBagName,
 	checkItemForQuests = checkItemForQuests,
-	getFullCopy = getFullCopy,
 }

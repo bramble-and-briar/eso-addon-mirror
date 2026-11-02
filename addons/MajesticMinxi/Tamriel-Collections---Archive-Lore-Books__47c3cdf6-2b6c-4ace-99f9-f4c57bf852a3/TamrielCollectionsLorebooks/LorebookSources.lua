@@ -265,13 +265,14 @@ end
 
 local function Points(book)
     local collection = book.collection
+    local nameKey, collectionKey = Key(book.name), Key(collection.name)
     local acquisition = book.bookId and TC.lorebookAcquisitionData and TC.lorebookAcquisitionData[book.bookId]
     local points = {}
-    local ambiguous = TC.lorebookAmbiguousTitles and TC.lorebookAmbiguousTitles[Key(book.name)]
-    ambiguous = ambiguous and ambiguous[Key(collection.name)]
-    local records = not ambiguous and TC.lorebookLocationData and TC.lorebookLocationData[Key(book.name)]
+    local ambiguous = TC.lorebookAmbiguousTitles and TC.lorebookAmbiguousTitles[nameKey]
+    ambiguous = ambiguous and ambiguous[collectionKey]
+    local records = not ambiguous and TC.lorebookLocationData and TC.lorebookLocationData[nameKey]
     for _, record in ipairs(records or {}) do
-        if record[5] == '' or Key(record[5]) == Key(collection.name) then table.insert(points, record) end
+        if record[5] == '' or Key(record[5]) == collectionKey then table.insert(points, record) end
     end
     for _, record in ipairs(acquisition and acquisition.points or {}) do table.insert(points, record) end
     return points, acquisition
@@ -288,16 +289,46 @@ end
 
 function Sources.InZone(book, zone)
     if not zone then return true end
-    if book.collection.mailListIndex then return Key(MailSource(book.collection).location):find(zone, 1, true) ~= nil end
-    if TC.lorebookGlobalBookshelfSources and TC.lorebookGlobalBookshelfSources[book.bookId] then return true end
-    local named = TC.lorebookAcquisitionZones and TC.lorebookAcquisitionZones[book.bookId]
-    if named and named[zone] then return true end
-    for _, record in ipairs(Points(book)) do if RecordInZone(record, zone) then return true end end
-    for _, candidate in ipairs(book.bookId and NativeBooks()[book.bookId] or {}) do
-        if (candidate.title == '' or Key(candidate.title) == Key(book.name)) and GetZoneNameById
-            and Key(GetZoneNameById(candidate.zoneId)) == zone then return true end
+    -- Source membership does not depend on read status or the selected zone.
+    -- Resolve all memberships once per book, then subsequent zones use a lookup.
+    -- Map ancestry becomes complete after WarmMaps, so pre-warm results expire.
+    local zones = book._tclSourceZones
+    if not zones or book._tclSourceZonesMapReady ~= (mapReady == true) then
+        zones = {}
+        if book.collection.mailListIndex then
+            local location = Key(MailSource(book.collection).location)
+            for key in pairs(TC.lorebookZoneNames or {}) do
+                if location:find(key, 1, true) then zones[key] = true end
+            end
+        elseif TC.lorebookGlobalBookshelfSources and TC.lorebookGlobalBookshelfSources[book.bookId] then
+            zones.all = true
+        else
+            local named = TC.lorebookAcquisitionZones and TC.lorebookAcquisitionZones[book.bookId]
+            for key, included in pairs(named or {}) do if included then zones[key] = true end end
+            for _, record in ipairs(Points(book)) do
+                local geometry, identity = Geometry(record)
+                local memberships = TC.lorebookMapZones and TC.lorebookMapZones[identity]
+                if memberships then
+                    for key, included in pairs(memberships) do if included then zones[key] = true end end
+                elseif geometry and TC.lorebookZoneNames and TC.lorebookZoneNames[geometry[3]] then
+                    zones[geometry[3]] = true
+                else
+                    local target = ResolveMap(record[1], record[6] or '')
+                    for key, included in pairs(target and target.zones or {}) do
+                        if included then zones[key] = true end
+                    end
+                end
+            end
+            for _, candidate in ipairs(book.bookId and NativeBooks()[book.bookId] or {}) do
+                if (candidate.title == '' or Key(candidate.title) == Key(book.name)) and GetZoneNameById then
+                    zones[Key(GetZoneNameById(candidate.zoneId))] = true
+                end
+            end
+        end
+        book._tclSourceZones = zones
+        book._tclSourceZonesMapReady = mapReady == true
     end
-    return false
+    return zones.all == true or zones[zone] == true
 end
 
 function Sources.Get(book, zone)
@@ -357,8 +388,86 @@ function Sources.CanMap(source)
 end
 
 local mapRequest = 0
+local mapContext, parentCallbackInstalled
+
+local function EntrancePosition(name)
+    local exact = Key(name)
+    local wanted = exact:gsub('%s+[ivx]+$', '')
+    if wanted == '' then return end
+    local foundX, foundY, bestRank, ambiguous = nil, nil, 0, false
+    local function Match(label, x, y)
+        local key = Key(label)
+        local rank = key == exact and 2 or (key:gsub('%s+[ivx]+$', '') == wanted and 1 or 0)
+        if rank == 0 or rank < bestRank then return end
+        if not x or not y or x <= 0 or x >= 1 or y <= 0 or y >= 1 then return end
+        if rank > bestRank then foundX, foundY, ambiguous, bestRank = nil, nil, false, rank end
+        if foundX and (math.abs(foundX - x) > 0.001 or math.abs(foundY - y) > 0.001) then ambiguous = true end
+        foundX, foundY = x, y
+    end
+    local zoneIndex = GetCurrentMapZoneIndex and GetCurrentMapZoneIndex()
+    if zoneIndex and GetNumPOIs and GetPOIInfo and GetPOIMapInfo then
+        for index = 1, GetNumPOIs(zoneIndex) do
+            local label = GetPOIInfo(zoneIndex, index)
+            local x, y, _, _, shown = GetPOIMapInfo(zoneIndex, index)
+            if shown then Match(label, x, y) end
+        end
+    end
+    if not foundX and GetNumMapLocations and GetMapLocationTooltipHeader and GetMapLocationIcon then
+        for index = 1, GetNumMapLocations() do
+            local label = GetMapLocationTooltipHeader(index)
+            local _, x, y = GetMapLocationIcon(index)
+            Match(label, x, y)
+        end
+    end
+    if not ambiguous then return foundX, foundY end
+end
+
+local function WatchParentMap(source)
+    if not (CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback and GetCurrentMapId) then return end
+    mapContext = { source = source, mapId = GetCurrentMapId(), request = mapRequest }
+    if parentCallbackInstalled then return end
+    parentCallbackInstalled = true
+    CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged', function(navigateIn)
+        local context = mapContext
+        if not context or context.request ~= mapRequest then return end
+        local parentId, childId = GetCurrentMapId(), context.mapId
+        if parentId == childId then return end
+        context.mapId = parentId
+        -- Only follow the native outward navigation. Selecting another map or
+        -- entering another destination ends this book's navigation context.
+        if navigateIn ~= false then mapContext = nil; return end
+        local pins = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
+        if pins then pins:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE') end
+        local function CenterEntrance()
+            if mapContext ~= context or context.request ~= mapRequest or GetCurrentMapId() ~= parentId then return end
+            local name = GetMapNameById and GetMapNameById(childId)
+            local x, y = EntrancePosition(name or '')
+            if not x then x, y = EntrancePosition(context.source.mapName or '') end
+            if not x then
+                -- Floor names can be generic; the saved context names the
+                -- enclosing dungeon/city. Never reuse indoor XY outside it.
+                local parts = {}
+                for part in (context.source.context or ''):gmatch('[^/]+') do parts[#parts + 1] = part end
+                for index = #parts, 1, -1 do
+                    x, y = EntrancePosition(parts[index])
+                    if x then break end
+                end
+            end
+            local manager = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
+            local pan = ZO_WorldMap_GetPanAndZoom and ZO_WorldMap_GetPanAndZoom()
+            if x and manager and pan then
+                manager:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE')
+                local pin = manager:CreatePin(MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE', x, y)
+                if pin then pan:JumpToPin(pin) end
+            end
+        end
+        if zo_callLater then zo_callLater(CenterEntrance, 150) else CenterEntrance() end
+    end)
+end
+
 function Sources.CancelMap()
     mapRequest = mapRequest + 1
+    mapContext = nil
     local pins = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
     if pins then pins:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE') end
 end
@@ -367,6 +476,7 @@ function Sources.ShowMap(source)
     if not Sources.CanMap(source) then return false end
     if WORLD_MAP_MANAGER.IsMapChangingAllowed and not WORLD_MAP_MANAGER:IsMapChangingAllowed() then return false end
     mapRequest = mapRequest + 1
+    mapContext = nil
     local request = mapRequest
     local oldPins = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
     if oldPins then oldPins:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE') end
@@ -400,7 +510,10 @@ function Sources.ShowMap(source)
         if pins and pan then
             pins:RemovePins('pings', MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE')
             local pin = pins:CreatePin(MAP_PIN_TYPE_QUEST_PING, 'TCL_BOOK_SOURCE', x, y)
-            if pin then pan:JumpToPin(pin) end
+            if pin then
+                pan:JumpToPin(pin)
+                WatchParentMap(source)
+            end
         elseif attempts < 20 and zo_callLater then zo_callLater(Place, 50) end
     end
     if zo_callLater then zo_callLater(Place, 150) else Place() end

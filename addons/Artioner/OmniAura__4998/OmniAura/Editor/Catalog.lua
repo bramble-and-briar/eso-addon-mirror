@@ -3,7 +3,6 @@
 -- La lista es virtual: solo existen las filas visibles y se rellenan según el desplazamiento.
 
 local OA = OmniAura
-local U = OA.Utils
 local L = OA.L
 local WM = WINDOW_MANAGER
 
@@ -24,11 +23,9 @@ local PLUS = {
     down = "EsoUI/Art/Buttons/plus_down.dds",
 }
 
--- Nombre de clase traducido por el propio juego (con alternativa en inglés).
-local function ClassLabel(classId, fallback)
-    local name = GetClassName and GetClassName(GENDER_MALE, classId)
-    if name and name ~= "" then return U.FormatName(name) end
-    return fallback
+-- Nombre de clase traducido por el propio juego.
+local function ClassLabel(classId)
+    return zo_strformat(SI_CLASS_NAME, GetClassName(GENDER_MALE, classId))
 end
 
 local CATEGORIES = {
@@ -37,13 +34,13 @@ local CATEGORIES = {
     { key = "buff", label = L.CAT_BUFF },
     { key = "debuff", label = L.CAT_DEBUFF },
     { header = L.CAT_GROUP_CLASSES },
-    { key = "dk", label = ClassLabel(1, "Dragonknight") },
-    { key = "sorc", label = ClassLabel(2, "Sorcerer") },
-    { key = "nb", label = ClassLabel(3, "Nightblade") },
-    { key = "templar", label = ClassLabel(6, "Templar") },
-    { key = "warden", label = ClassLabel(4, "Warden") },
-    { key = "necro", label = ClassLabel(5, "Necromancer") },
-    { key = "arcanist", label = ClassLabel(117, "Arcanist") },
+    { key = "dk", label = ClassLabel(1) },
+    { key = "sorc", label = ClassLabel(2) },
+    { key = "nb", label = ClassLabel(3) },
+    { key = "templar", label = ClassLabel(6) },
+    { key = "warden", label = ClassLabel(4) },
+    { key = "necro", label = ClassLabel(5) },
+    { key = "arcanist", label = ClassLabel(117) },
     { header = L.CAT_GROUP_WEAPONS },
     { key = "2h", label = L.CAT_2H },
     { key = "1h", label = L.CAT_1H },
@@ -148,13 +145,13 @@ end
 
 local function ShowTooltip(row)
     local g = row.group
-    if not g or not AbilityTooltip then return end
+    if not g then return end
     InitializeTooltip(AbilityTooltip, Cat.win, TOPLEFT, 8, 0, TOPRIGHT)
     AbilityTooltip:SetAbilityId(g.iconId or g.ids[1])
 end
 
 local function HideTooltip()
-    if AbilityTooltip then ClearTooltip(AbilityTooltip) end
+    ClearTooltip(AbilityTooltip)
 end
 
 local function CreateRow(i, listW)
@@ -290,7 +287,7 @@ local function Build()
     searchBg:SetAnchor(TOPLEFT, win, TOPLEFT, left, 62)
     local search = WM:CreateControlFromVirtual("OmniAuraCatalogSearch", searchBg, "ZO_DefaultEditForBackdrop")
     search:SetMaxInputChars(100)
-    if ZO_EditDefaultText_Initialize then ZO_EditDefaultText_Initialize(search, L.CATALOG_FILTER) end
+    search:SetDefaultText(L.CATALOG_FILTER)
     search:SetHandler("OnTextChanged", function()
         -- Espera a que el jugador deje de escribir antes de filtrar.
         Cat.filterToken = (Cat.filterToken or 0) + 1

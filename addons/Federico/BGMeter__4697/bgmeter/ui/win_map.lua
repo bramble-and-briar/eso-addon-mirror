@@ -310,7 +310,7 @@ local function build()
     c.sub:SetAnchor(LEFT, c.title, RIGHT, 10, 1)
     c.sub:SetAnchor(RIGHT, c.head, RIGHT, -40, 1)
     c.sub:SetHeight(16)
-    c.close = mk_button(c.head, TX.close, 20, function() M.close() end, "Close")
+    c.close = U.mk_plate_button(c.head, TX.close, 22, function() M.close() end, "Close")
     c.close:SetAnchor(RIGHT, c.head, RIGHT, -8, 0)
 
     c.layersCard = card(win, 48, LAY_H, "LAYERS")

@@ -6,6 +6,10 @@ local W = U.W
 local SEC = U.SEC
 local set_text, set_bar, make_clickable = U.set_text, U.set_bar, U.make_clickable
 local ICON_STAR, ICON_SORTUP, ICON_SORTDN = U.ICON_STAR, U.ICON_SORTUP, U.ICON_SORTDN
+local VP_LEFT = (VERTEX_POINTS_TOPLEFT or 1) + (VERTEX_POINTS_BOTTOMLEFT or 4)
+local VP_RIGHT = (VERTEX_POINTS_TOPRIGHT or 2) + (VERTEX_POINTS_BOTTOMRIGHT or 8)
+local MVP_GLOW = "bgmeter/assets/glow.dds"
+local ICE = { 0.72, 0.90, 1.00 }
 
 local C = BGMeter.zenimax.constants
 local K = BGMeter.Constants
@@ -481,7 +485,7 @@ local function apply_dynamic_min_width(m)
         if tw > maxw then maxw = tw end
     end
     if maxw <= 0 then return end
-    local needed = math.ceil(maxw) + 26 + NAME_X + W.battle.grid:fixed_width() + 2 * L.margin + L.haul_w + L.gap
+    local needed = math.ceil(maxw) + 26 + 22 + NAME_X + W.battle.grid:fixed_width() + 2 * L.margin + L.haul_w + L.gap
     local dyn = math.max(L.min_w, math.min(needed, L.dyn_min_cap))
 
     local extra
@@ -606,6 +610,26 @@ function SEC.battle(m, animate)
     end
 
     local awards = Prefs.get("show_awards") and Awards.compute(m) or { leaders = {}, mvp = nil }
+    local Profile = BGMeter.Profile
+    if b.titlesFor ~= m then
+        b.titlesFor = m
+        b.titles = b.titles or {}
+        b.titleNames = b.titleNames or {}
+        for k in pairs(b.titles) do b.titles[k] = nil end
+        for k in pairs(b.titleNames) do b.titleNames[k] = nil end
+        local data = Profile.compute(m)
+        for i = 1, #m.battle do
+            local ttl, word = nil, nil
+            if data and data.players[i] and data.players[i].row == m.battle[i] then
+                word = Profile.classify(data.players[i].v, data.axes, data.n).name
+                ttl = Profile.icon(word)
+            end
+            b.titles[m.battle[i]] = ttl or false
+            b.titleNames[m.battle[i]] = word or false
+        end
+    end
+    b.mvpRow = awards.mvp
+    b.mvpTitle = awards.mvp and b.titleNames[awards.mvp] or nil
     local show_faces = Prefs.get("show_faces") ~= false
     local barKey = (key == "name" or key == "deaths") and "damage" or key
     local maxVal = BGMeter.Match.column_max(m, barKey)
@@ -640,8 +664,11 @@ function SEC.battle(m, animate)
         local cicon = Icons.class(prow.classId)
         if cicon then row.classIcon:SetTexture(cicon); row.classIcon:SetHidden(false) else row.classIcon:SetHidden(true) end
 
+        local isMvp = awards.mvp == prow
         local nm = U.player_ident(prow)
-        if awards.mvp == prow then nm = F.icon(ICON_STAR, 20) .. " " .. nm end
+        local tic = b.titles and b.titles[prow]
+        if tic then nm = F.icon(tic, 18) .. " " .. nm end
+        if isMvp then nm = F.icon(Profile.MVP_STAR, 22) .. " " .. nm end
         local face = (show_faces and not prow.isLocal) and Faces.get(prow) or nil
         if face and Faces.is_familiar(face) then
             row.face = face
@@ -650,7 +677,7 @@ function SEC.battle(m, animate)
             row.face = nil
         end
         set_text(row.name, nm)
-        S.color(row.name, prow.isLocal and K.COLOR.you or S.team_color(prow.team))
+        S.color(row.name, isMvp and K.COLOR.gold or (prow.isLocal and K.COLOR.you or S.team_color(prow.team)))
 
         if prow.team then
             local tc = S.team_color(prow.team)
@@ -696,11 +723,42 @@ function SEC.battle(m, animate)
         set_bar(row.bar, pct, { bc[1], bc[2], bc[3], K.ALPHA.bar_fill }, listW - BAR_X - BAR_RIGHT, animate)
 
         local hl = { 0, 0, 0, 0 }
-        if awards.mvp == prow then hl = { K.COLOR.gold[1], K.COLOR.gold[2], K.COLOR.gold[3], K.ALPHA.row_mvp } end
-        if prow.isLocal then hl = { K.COLOR.you[1], K.COLOR.you[2], K.COLOR.you[3], K.ALPHA.row_you } end
+        if isMvp then hl = { K.COLOR.gold[1], K.COLOR.gold[2], K.COLOR.gold[3], K.ALPHA.row_mvp } end
+        if prow.isLocal and not isMvp then hl = { K.COLOR.you[1], K.COLOR.you[2], K.COLOR.you[3], K.ALPHA.row_you } end
         if W.selected_row == prow then hl = { 1, 1, 1, K.ALPHA.row_selected } end
         row.baseHL = hl
         P.set_rect_color(row.highlight, hl)
+        if isMvp and W.selected_row ~= prow and row.highlight.SetVertexColors then
+            local g = K.COLOR.gold
+            row.highlight:SetVertexColors(VP_LEFT, g[1], g[2], g[3], K.ALPHA.row_mvp * 2.2)
+            row.highlight:SetVertexColors(VP_RIGHT, g[1], g[2], g[3], K.ALPHA.row_mvp * 0.5)
+        end
+        if isMvp then
+            if not row.mvpFrame then
+                row.mvpFrame = P.frame_thin(row.container)
+                row.mvpFrame:SetAnchorFill(row.container)
+                row.mvpGlow = P.icon(row.container, MVP_GLOW)
+                row.mvpGlow:SetDimensions(40, 40)
+                row.mvpGlow:SetAnchor(CENTER, row.name, LEFT, 11, 0)
+                if row.mvpGlow.SetBlendMode then row.mvpGlow:SetBlendMode(TEX_BLEND_MODE_ADD) end
+                row.mvpGlow:SetColor(ICE[1], ICE[2], ICE[3], 0.7)
+            end
+            row.mvpFrame:SetHidden(false)
+            row.mvpGlow:SetHidden(false)
+        elseif row.mvpFrame then
+            row.mvpFrame:SetHidden(true)
+            row.mvpGlow:SetHidden(true)
+        end
+        if prow.isLocal and not isMvp then
+            if not row.youFrame then
+                row.youFrame = P.frame_thin(row.container)
+                row.youFrame:SetAnchorFill(row.container)
+                if row.youFrame.SetEdgeColor then row.youFrame:SetEdgeColor(0.86, 0.86, 0.86, 0.7) end
+            end
+            row.youFrame:SetHidden(false)
+        elseif row.youFrame then
+            row.youFrame:SetHidden(true)
+        end
         row.container:SetHandler("OnMouseUp", function(_, button, upInside)
             if not upInside then return end
             if MOUSE_BUTTON_INDEX_RIGHT and button == MOUSE_BUTTON_INDEX_RIGHT then

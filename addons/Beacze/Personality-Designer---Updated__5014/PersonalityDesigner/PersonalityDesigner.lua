@@ -20,6 +20,7 @@ PD.personalityDesign = {}
 -- various UI fields
 PD.newPersonalityName = ""
 PD.deletePersonalityName = ""
+PD.searchTerm = ""
 PD.frequencies = {GetString(P_DESIGNER_INFREQUENT), GetString(P_DESIGNER_DEFAULT), GetString(P_DESIGNER_FREQUENT)}
 
 -- enable/disable checks
@@ -29,7 +30,7 @@ PD.active = 1
 PD.playlist = {}
 PD.playingActions = false
 
-function TogglePD()
+function PD.TogglePD()
 	PD.enabled = not PD.enabled
 	PD:SaveData()
 
@@ -53,7 +54,7 @@ function TogglePD()
 	CR:AddSystemMessage(chatLibPrefix .. msgText)
 end
 
-function CyclePersonality()
+function PD.CyclePersonality()
 	local numPersonalities = table.getn(PD.personalities)
 	if numPersonalities == 0 then return end
 
@@ -529,7 +530,7 @@ function PD:DeletePersonality()
 	-- if the designPersonality is the same as the activePersonality
 	-- then change active to default
 	if (PD.deletePersonalityName == PD.personalityActive.name) then
-		CyclePersonality() --PD.personalityActive = PD.personalityDefault
+		PD.CyclePersonality() --PD.personalityActive = PD.personalityDefault
 	end
 
 	table.remove(PD.personalities, PD:GetIndexFromName(PD.deletePersonalityName))
@@ -550,10 +551,14 @@ end
 
 function PD:FilterActions(selectedCategory)
 	local filtered = {}
+	local search = string.lower(PD.searchTerm or "")
 	
 	for k, v in pairs(PD.actions) do
 		if v.category == selectedCategory then
-			table.insert(filtered, v.action)
+			local actionName = string.lower(v.action or "")
+			if search == "" or string.find(actionName, search, 1, true) ~= nil then
+				table.insert(filtered, v.action)
+			end
 		end
 	end
 	
@@ -683,6 +688,26 @@ function PD:InitializeLAM()
 			getFunc = function() return PD.personalityDesign.name end,
 			setFunc = function(x) PD:SetDesignPersonality(x) end,
 			reference = "DesignDropdown",
+		},
+		{
+			type = "editbox",
+			name = "Search emotes",
+			tooltip = "Type to filter the current emote list by name or slash command.",
+			getFunc = function() return PD.searchTerm end,
+			setFunc = function(x)
+				PD.searchTerm = x or ""
+				Action01Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action01.category))
+				Action02Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action02.category))
+				Action03Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action03.category))
+				Action04Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action04.category))
+				Action05Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action05.category))
+				Action06Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action06.category))
+				Action07Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action07.category))
+				Action08Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action08.category))
+				Action09Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action09.category))
+				Action10Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action10.category))
+			end,
+			isMultiline = false,
 		},
 		{
 			type = "submenu",

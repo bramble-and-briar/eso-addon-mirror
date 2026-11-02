@@ -1,0 +1,14 @@
+AI DEVELOPMENT DISCLOSURE
+This fork was developed with AI-assisted code generation and review (ChatGPT). The generated changes have been reviewed with static checks, but complete in-game compatibility, performance and safety have not been independently verified.
+
+Miracle's BetterScoreboard
+Enhanced PvP scoreboard featuring 18-player support, damage dealt, healing, damage received, and K/D statistics. Includes player names, class icons, battleground queue features, and Deathmatch lives positioning adjustments.
+
+Original addon creator: @M0R_Gaming (BetterScoreboard).
+Fork updates and direction: @MlRACLE.
+This is a separately named community-maintained fork, not an official update by the original author.
+
+Compatibility: Do not enable the original BetterScoreboard or ScoreboardFixU51 alongside this fork; they modify the same ESO scoreboard.
+Saved settings: Character-ID scoped saved variables under MiraclesBetterScoreboardVars. Separate addon settings are not imported from the original BetterScoreboard.
+
+Please verify the original addon's license or obtain redistribution permission before publishing this derivative release.

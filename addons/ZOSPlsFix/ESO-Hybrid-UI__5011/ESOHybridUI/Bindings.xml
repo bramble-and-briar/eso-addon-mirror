@@ -1,0 +1,20 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_KEYBINDINGS_CATEGORY_ESO_HYBRID_UI">
+            <Action name="ESOHYBRIDUI_TOGGLE_UI">
+                <Down>ESOHybridUI:ToggleUI()</Down>
+            </Action>
+        </Category>
+    </Layer>
+
+    <Layer name="ESOHybridUI_UTILITY_WHEEL_BRIDGE" allowFallthrough="true">
+        <Category name="SI_KEYBINDINGS_CATEGORY_UTILITY_WHEEL_GAMEPAD">
+            <Action name="ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT">
+                <Down>if ESOHybridUI and ESOHybridUI:ShouldBridgeUtilityWheelInput() then return ESOHybridUI:CycleUtilityWheel(-1) end return false</Down>
+            </Action>
+            <Action name="ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT">
+                <Down>if ESOHybridUI and ESOHybridUI:ShouldBridgeUtilityWheelInput() then return ESOHybridUI:CycleUtilityWheel(1) end return false</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

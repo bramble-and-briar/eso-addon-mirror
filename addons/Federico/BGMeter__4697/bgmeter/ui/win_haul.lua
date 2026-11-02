@@ -21,12 +21,38 @@ local SHARE_SIZE = 26
 local SHARE_COLS = 3
 local SHARE_ROW_GAP = 4
 local SHARE_MIN_FREE = 60
-local EFF_BOTTOM = 335
+local EFF_BOTTOM = 281
 local STAND_H = 70
 local SHARE_KEYS = { "dmg", "heal", "kills", "taken", "obj", "medals" }
 local RINGS_H = SHARE_ROW_GAP + 2 * (SHARE_SIZE + SHARE_ROW_GAP)
 local MINI_GAP = 10
 local RADAR_MIN = 110
+local ARCH_H = 28
+local MEDAL = 28
+local ICE = { 0.72, 0.90, 1.00 }
+local MVP_PULSE = { name = "BGMeterHaulMvp", ms = 50, on = false, t0 = 0 }
+local MVP_PULSE_MS = 2400
+
+local function mvp_pulse_stop()
+    if not MVP_PULSE.on then return end
+    MVP_PULSE.on = false
+    BGMeter.zenimax.events.unregister_update(MVP_PULSE.name)
+end
+
+local function mvp_pulse_tick()
+    local p = W.haul
+    local g = p and p.mvpGlow
+    if not g or g:IsHidden() or (W.win and W.win:IsHidden()) then mvp_pulse_stop() return end
+    local t = GetGameTimeMilliseconds() - MVP_PULSE.t0
+    g:SetColor(ICE[1], ICE[2], ICE[3], 0.45 + 0.30 * math.sin(2 * math.pi * t / MVP_PULSE_MS))
+end
+
+local function mvp_pulse_start()
+    if MVP_PULSE.on then return end
+    MVP_PULSE.on = true
+    MVP_PULSE.t0 = GetGameTimeMilliseconds()
+    BGMeter.zenimax.events.register_update(MVP_PULSE.name, MVP_PULSE.ms, mvp_pulse_tick)
+end
 local MINI_OUTER_MIN = 130
 local function gold_line() return { K.COLOR.gold[1], K.COLOR.gold[2], K.COLOR.gold[3], 0.22 } end
 local flag_col_spec, caps_count = U.flag_col_spec, U.caps_count
@@ -45,7 +71,7 @@ local function build_medal_card()
 
     local bg = P.rect(root, { K.COLOR.bg[1], K.COLOR.bg[2], K.COLOR.bg[3], 0.98 })
     bg:SetAnchorFill(root)
-    P.frame(root):SetAnchorFill(root)
+    P.frame_thin(root):SetAnchorFill(root)
 
     local strip = P.rect(root, K.COLOR.gold)
     strip:SetAnchor(TOPLEFT, root, TOPLEFT, 4, 4)
@@ -125,15 +151,16 @@ local function build_haul(win)
 
     p.bd = P.backdrop(p.container)
     p.bd:SetAnchorFill(p.container)
-    P.frame(p.container):SetAnchorFill(p.container)
+    P.frame_thin(p.container):SetAnchorFill(p.container)
 
     p.heading = P.label(p.container, S.FONT.header, K.COLOR.gold)
     p.heading:SetText("YOUR HAUL")
     p.heading:SetAnchor(TOP, p.container, TOP, 0, 14)
+    p.heading:SetHidden(true)
 
     p.vetIcon = P.icon(p.container)
     p.vetIcon:SetDimensions(46, 46)
-    p.vetIcon:SetAnchor(TOPLEFT, p.container, TOPLEFT, PAD, 44)
+    p.vetIcon:SetAnchor(TOPLEFT, p.container, TOPLEFT, PAD, 16)
 
     p.vetTitle = P.label(p.container, S.FONT.row, K.COLOR.veterancy)
     U.clamp_line(p.vetTitle)
@@ -186,8 +213,9 @@ local function build_haul(win)
     p.div2 = P.rect(p.container, gold_line())
     p.div2:SetAnchor(TOPLEFT, p.cp.icon, BOTTOMLEFT, 0, 8)
     p.div2:SetDimensions(INNER, 1)
-    p.medalLabel:SetAnchor(TOPLEFT, p.div2, BOTTOMLEFT, 0, 8)
-    p.medalLabel:SetDimensions(INNER, 18)
+    p.medalLabel:SetAnchor(TOPLEFT, p.div2, BOTTOMLEFT, 0, 0)
+    p.medalLabel:SetDimensions(INNER, 0)
+    p.medalLabel:SetHidden(true)
     p.medalIcons = {}
     p.medalBadges = {}
     for i = 1, MEDAL_CAP do
@@ -246,7 +274,7 @@ local function build_haul(win)
     p.radarSide = RADAR_MIN
     p.archetype = P.label(p.container, S.FONT.row, K.COLOR.gold)
     U.clamp_line(p.archetype)
-    p.archetype:SetDimensions(INNER, 18)
+    p.archetype:SetDimensions(INNER, ARCH_H)
     p.archetype:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     p.archetype:SetHidden(true)
     W.tip_dynamic(p.archetype)
@@ -267,6 +295,14 @@ local function build_haul(win)
     p.standRank:SetDimensions(math.floor(INNER * 0.5) - 5, 30)
     p.standRank:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     p.standRank:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    p.standCupGlass = P.icon(p.container)
+    p.standCupGlass:SetDimensions(26, 26)
+    p.standCupGlass:SetAnchor(LEFT, p.standRank, LEFT, 0, 0)
+    p.standCupGlass:SetHidden(true)
+    p.standCup = P.icon(p.container)
+    p.standCup:SetDimensions(26, 26)
+    p.standCup:SetAnchor(LEFT, p.standRank, LEFT, 0, 0)
+    p.standCup:SetHidden(true)
 
     p.standSub = P.label(p.container, S.FONT.small, K.COLOR.text_dim)
     U.clamp_line(p.standSub)
@@ -391,12 +427,34 @@ local function haul_profile_body(p, top)
     else p.radar:set_emphasis(nil, nil) end
     p.radar:render()
     local label = c.name:upper()
+    if p.mvpRow and p.mvpRow == pl.row then label = F.icon(Profile.MVP_ICON, MEDAL) .. " " .. label end
+    local ic = Profile.icon(c.name)
+    if ic then label = F.icon(ic, MEDAL) .. " " .. label end
     W.tips[p.archetype] = Profile.meaning(c.name)
     p.archetype:ClearAnchors()
     p.archetype:SetAnchor(TOPLEFT, p.container, TOPLEFT, 16, top + (p.radarSide or RADAR_MIN) + 2)
     set_text(p.archetype, label)
     S.color(p.archetype, pl.row.isLocal and K.COLOR.gold or col)
     p.archetype:SetHidden(false)
+    local isMvp = p.mvpRow ~= nil and p.mvpRow == pl.row
+    if isMvp then
+        if not p.mvpGlow then
+            p.mvpGlow = P.icon(p.container, "bgmeter/assets/glow.dds")
+            p.mvpGlow:SetDimensions(52, 52)
+            if p.mvpGlow.SetBlendMode then p.mvpGlow:SetBlendMode(TEX_BLEND_MODE_ADD) end
+            p.mvpGlow:SetColor(ICE[1], ICE[2], ICE[3], 0.7)
+        end
+        local tw = p.archetype.GetTextWidth and p.archetype:GetTextWidth() or 0
+        local first = Profile.icon(c.name) and (MEDAL + 5) or 0
+        p.mvpGlow:ClearAnchors()
+        p.mvpGlow:SetAnchor(CENTER, p.archetype, LEFT, math.floor((L.haul_w - 32 - tw) / 2 + first + MEDAL / 2 + 0.5), 0)
+        p.mvpGlow:SetColor(ICE[1], ICE[2], ICE[3], 0.7)
+        p.mvpGlow:SetHidden(false)
+        if Prefs.get("animate") then mvp_pulse_start() else mvp_pulse_stop() end
+    elseif p.mvpGlow then
+        p.mvpGlow:SetHidden(true)
+        mvp_pulse_stop()
+    end
     return true
 end
 
@@ -515,15 +573,16 @@ function SEC.haul(m, animate)
     if p.profileFor ~= m then
         p.profileFor, p.profileHover = m, nil
         p.profile = BGMeter.Profile.compute(m)
+        p.mvpRow = Prefs.get("show_awards") and BGMeter.Awards.compute(m).mvp or nil
     end
     local room = contH - bottom - top - MINI_GAP
-    local side = room - 18 - MINI_GAP - MINI_OUTER_MIN
+    local side = room - ARCH_H - MINI_GAP - MINI_OUTER_MIN
     if side > inner then side = inner end
     if side < RADAR_MIN then side = RADAR_MIN end
     p.radarSide = side
     p.radar:layout(inner, side)
     p.radarTop = top
-    if haul_profile(p, top) then top = top + side + 18 + MINI_GAP end
+    if haul_profile(p, top) then top = top + side + ARCH_H + MINI_GAP end
     p.miniAvail = contH - bottom - top - MINI_GAP
     if BGMeter.UI.map then
         local outer = math.min(p.miniAvail, inner)
@@ -532,6 +591,8 @@ function SEC.haul(m, animate)
     end
 
     local standControls = { p.sep, p.standHeading, p.standRank, p.standSub }
+    p.standCup:SetHidden(true)
+    p.standCupGlass:SetHidden(true)
     local casual = (m.competitive == false)
         or (m.competitive == nil and m.teamSize == nil and #m.battle > 10)
     if not Prefs.get("show_standing") then hide_all(standControls, true); return end
@@ -562,6 +623,11 @@ function SEC.haul(m, animate)
         set_text(p.standSub, "loading"); S.color(p.standSub, K.COLOR.text_dim)
         W.tips[p.standRank] = "Competitive leaderboard standing"
     elseif st.rank and st.rank > 0 then
+        local Pn = BGMeter.UI.panel
+        local tier = Pn and Pn.tier_of and Pn.tier_of(st.rank)
+        if tier then Pn.trophy_paint(p.standCup, p.standCupGlass, tier) end
+        p.standCup:SetHidden(not tier)
+        p.standCupGlass:SetHidden(not tier)
         set_text(p.standRank, "#" .. F.commas(st.rank))
         local rankCol, move = K.COLOR.text, ""
         if st.rankDelta > 0 then rankCol = K.COLOR.heal; move = F.icon(ICON_SORTUP, 16) .. string.format(" |c5cc85f%d up|r   ", st.rankDelta)

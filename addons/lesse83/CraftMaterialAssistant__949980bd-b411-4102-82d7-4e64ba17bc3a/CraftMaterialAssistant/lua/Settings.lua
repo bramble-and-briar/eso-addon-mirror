@@ -704,19 +704,21 @@ function CMA:CreateSettingsMenu()
                     disabled = function() return not self.db.enableAddon end
                 },
                 {
-                    type = "checkbox",
-                    name = "Sell Ornate Gear",
-                    tooltip = "Enable selling of Gear (Weapon, Armor) with the 'Ornate' (sells for more gold) Trait.",
-                    getFunc = function() return self.db.autoSellOrnateGear end,
-                    setFunc = function(v) self.db.autoSellOrnateGear = v end,
+                    type = "dropdown",
+                    name = "Ornate Gear",
+                    tooltip = "Enable handling of Gear with the 'Ornate' (sells for more gold) Trait.\n\nBank: Move to the bank if quality > dropdown.\nSell: Mark as junk if quality < dropdown.\nIgnore: Don't do anything.",
+                    choices = self.simpleMaterialChoices,
+                    getFunc = function() return self.db.bankOrnateGearChoice end,
+                    setFunc = function(v) self.db.bankOrnateGearChoice = v end,
                     disabled = function() return not self.db.enableAddon end
                 },
                 {
-                    type = "checkbox",
-                    name = "Sell Intricate Gear",
-                    tooltip = "Enable selling of Gear (Weapon, Armor) with the 'Intricate' (increases inspiration gained from deconstruction) Trait.",
-                    getFunc = function() return self.db.autoSellIntricateGear end,
-                    setFunc = function(v) self.db.autoSellIntricateGear = v end,
+                    type = "dropdown",
+                    name = "Intricate Gear",
+                    tooltip = "Enable handling of Gear with the 'Intricate' (increases inspiration gained from deconstruction) Trait.\n\nBank: Move to the bank if quality > dropdown.\nSell: Mark as junk if quality < dropdown.\nIgnore: Don't do anything.",
+                    choices = self.simpleMaterialChoices,
+                    getFunc = function() return self.db.bankIntricateGearChoice end,
+                    setFunc = function(v) self.db.bankIntricateGearChoice = v end,
                     disabled = function() return not self.db.enableAddon end
                 },
                 {
@@ -736,6 +738,15 @@ function CMA:CreateSettingsMenu()
                     getFunc = function() return self.db.bankTraitlessGearThreshold end,
                     setFunc = function(v) self.db.bankTraitlessGearThreshold = v end,
                     disabled = function() return (not self.db.enableAddon) or (self.db.bankTraitlessGear == "Ignore") end
+                },
+                {
+                    type = "dropdown",
+                    name = "Glyphs (weapon, Armor, Jewelry)",
+                    tooltip = "Only affects non crafted glyphs (the ones you picked up).\n\nBank: Move to the bank.\nSell: Mark as junk.\nIgnore: Don't do anything.",
+                    choices = self.simpleMaterialChoices,
+                    getFunc = function() return self.db.bankGlyphChoice end,
+                    setFunc = function(v) self.db.bankGlyphChoice = v end,
+                    disabled = function() return (not self.db.enableAddon) end
                 }
             }
         },

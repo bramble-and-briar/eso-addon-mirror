@@ -3,10 +3,10 @@
         <Control name="WizardsHelperGamepadRow" virtual="true">
             <Dimensions x="920" y="58" />
             <Controls>
-                <Backdrop name="$(parent)Highlight" inherits="ZO_DefaultBackdrop" alpha="0.5" hidden="true">
+                <Backdrop name="$(parent)Highlight" inherits="ZO_DefaultBackdrop" centerColor="FF314E68" edgeColor="FF88B5D8" alpha="0.85" hidden="true">
                     <AnchorFill />
                 </Backdrop>
-                <Label name="$(parent)Text" font="ZoFontGamepad27" verticalAlignment="TEXT_ALIGN_CENTER">
+                <Label name="$(parent)Text" font="ZoFontGamepad27" color="FFFFFFFF" verticalAlignment="TEXT_ALIGN_CENTER">
                     <Anchor point="TOPLEFT" offsetX="16" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-16" />
                 </Label>

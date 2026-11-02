@@ -6,6 +6,25 @@ local Standing = {}
 
 local pending = nil
 
+Standing.TIERS = {
+    { max = 10,   word = "Champion!", col = { 0.97, 0.97, 1.00 }, glow = 0.90, hue = true, sheen = true, fx = "glitter", fxcol = { 1, 1, 1 },
+      metal_tex = "bgmeter/assets/trophies/trophy_champion_metal.dds", glass_tex = "bgmeter/assets/trophies/trophy_champion_glass.dds" },
+    { max = 25,   word = "Mythic!",   col = { 1.00, 0.55, 0.15 }, glow = 0.60, glass = { 1.00, 0.22, 0.12 }, sheen = true, fx = "embers", fxcol = { 1.00, 0.45, 0.10 },
+      metal_tex = "bgmeter/assets/trophies/trophy_mythic_metal.dds", glass_tex = "bgmeter/assets/trophies/trophy_mythic_glass.dds" },
+    { max = 50,   word = "Legendary", col = { 1.00, 0.84, 0.30 }, glow = 0.50, sheen = true, fx = "glitter" },
+    { max = 100,  word = "Epic",      col = { 0.72, 0.53, 0.98 }, glow = 0.42, sheen = true },
+    { max = 250,  word = "Superior",  col = { 0.40, 0.68, 0.98 }, glow = 0.36, sheen = true },
+    { max = 500,  word = "Fine",      col = { 0.45, 0.82, 0.35 }, glow = 0.30 },
+}
+
+function Standing.tier_of(rank)
+    if not rank or rank <= 0 then return nil end
+    for _, tier in ipairs(Standing.TIERS) do
+        if rank <= tier.max then return tier end
+    end
+    return nil
+end
+
 local function safe(fn, ...)
     if type(fn) ~= "function" then return nil end
     local ok, a, b = pcall(fn, ...)
@@ -79,6 +98,11 @@ function Standing.apply()
 
     if cur.rank > 0 and cur.rank <= 100 and (cur.prevRank == 0 or cur.prevRank > 100) then
         Standing.celebrate(cur.rank)
+    end
+    local banner = BGMeter.UI and BGMeter.UI.tierup
+    if banner and cur.rank > 0 then
+        local newTier, prevTier = Standing.tier_of(cur.rank), Standing.tier_of(cur.prevRank)
+        if newTier and (not prevTier or newTier.max < prevTier.max) then banner.show(newTier, cur.rank) end
     end
 
     BGMeter.Log.debug("standing: rank=%d (Δ%d) score=%d (Δ%d)",

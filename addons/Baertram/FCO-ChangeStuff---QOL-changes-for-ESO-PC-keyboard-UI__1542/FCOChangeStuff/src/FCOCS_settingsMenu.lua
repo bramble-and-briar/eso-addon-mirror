@@ -479,6 +479,23 @@ function FCOChangeStuff.buildAddonMenu()
         --==============================================================================
         {
             type = 'header',
+            name = 'Guilds',
+        },
+        {
+            type = "checkbox",
+            name = 'Disable Re-Order',
+            tooltip = 'Hide the up/down buttons at the guild selector, so you cannot accidentally reorder the guilds (only works with game patch v52 or newer!)',
+            getFunc = function() return settings.disableGuildReOrderDropdownEntries end,
+            setFunc = function(value) settings.disableGuildReOrderDropdownEntries = value
+            end,
+            default = defaults.disableGuildReOrderDropdownEntries,
+            width="full",
+            disabled = function() return GetAPIVersion() < 101052 end,
+        },
+
+        --==============================================================================
+        {
+            type = 'header',
             name = 'Stable',
         },
         {

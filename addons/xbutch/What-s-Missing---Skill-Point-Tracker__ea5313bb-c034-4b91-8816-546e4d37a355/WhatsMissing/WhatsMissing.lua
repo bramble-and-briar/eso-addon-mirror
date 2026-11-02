@@ -1707,201 +1707,31 @@ function SPT:ToggleWindow()
 	end
 end
 
-local function SPT_IsSkillsMenuEntry(data)
-	return data and data.isWhatsMissingSkillPointTracker == true
-end
-
-local function SPT_CanShowSkillsMenuTooltip(gamepadSkills)
-	-- Native hotbar refreshes also run while Skills is hidden. Respect its
-	-- scene, dialog, and action-bar guards before touching the shared tooltip.
-	if not SCENE_MANAGER:IsShowing("gamepad_skills_root") or gamepadSkills.showAttributeDialog
-		or gamepadSkills.mode ~= ZO_GAMEPAD_SKILLS_SKILL_LIST_BROWSE_MODE then return false end
-	return not (gamepadSkills.quickMenu and gamepadSkills.quickMenu:IsShowing())
-		and not (gamepadSkills.assignableActionBar and gamepadSkills.assignableActionBar:IsActive())
-end
-
-local function SPT_CleanupGamepadSkillsMenu()
-	if GAMEPAD_TOOLTIPS then
-		GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
-		GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-		GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
-	end
-	if SCENE_MANAGER then
-		if SKILLS_ADVISOR_SUGGESTIONS_GAMEPAD_FRAGMENT then
-			SCENE_MANAGER:RemoveFragment(SKILLS_ADVISOR_SUGGESTIONS_GAMEPAD_FRAGMENT)
-		end
-		if GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT then
-			SCENE_MANAGER:RemoveFragment(GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT)
-		end
+function SPT:AddToGamepadMainMenu()
+	if type(ZO_MENU_ENTRIES) ~= "table" or not MAIN_MENU_GAMEPAD then return false end
+	for _, entry in ipairs(ZO_MENU_ENTRIES) do
+		if entry.id == self.AddonName then return true end
 	end
 
-	local categoryList = GAMEPAD_SKILLS and GAMEPAD_SKILLS.categoryList
-	if not categoryList then return end
+	local name = GS(SPT_MENU_NAME)
+	local icon = "esoui/art/zonestories/completionTypeIcon_skyshard.dds"
+	local entry = ZO_GamepadEntryData:New(name, icon)
+	entry:SetIconTintOnSelection(true)
+	entry:SetIconDisabledTintOnSelection(true)
+	entry.id = self.AddonName
+	entry.data = { name = name, icon = icon, scene = "SPT_Scene" }
 
-	if SPT_IsSkillsMenuEntry(categoryList:GetTargetData()) then
-		for index = 1, categoryList:GetNumEntries() do
-			local data = categoryList:GetDataForDataIndex(index)
-			if data and data.skillLineData then
-				categoryList:SetSelectedIndexWithoutAnimation(index)
-				break
-			end
+	-- Keep addon launchers together at the bottom, before the system options.
+	local position = #ZO_MENU_ENTRIES + 1
+	for index, existing in ipairs(ZO_MENU_ENTRIES) do
+		if ZO_MENU_MAIN_ENTRIES and existing.id == ZO_MENU_MAIN_ENTRIES.OPTIONS then
+			position = index
+			break
 		end
 	end
-
-	if GAMEPAD_SKILLS.DeactivateCurrentList then
-		GAMEPAD_SKILLS:DeactivateCurrentList()
-	end
-
-	if GAMEPAD_TOOLTIPS then
-		GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
-		GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-		GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
-	end
-	if SCENE_MANAGER and GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT then
-		SCENE_MANAGER:RemoveFragment(GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT)
-	end
-end
-
-local function SPT_ShowWindow()
-	if SCENE_MANAGER and not SCENE_MANAGER:IsShowing("SPT_Scene") then
-		SPT_CleanupGamepadSkillsMenu()
-		SCENE_MANAGER:Show("SPT_Scene")
-	end
-end
-
-function SPT:AddToGamepadSkillsMenu()
-	if self.skillsMenuHooked or not ZO_GamepadSkills then return end
-
-	local entryName = "What's Missing?"
-	local entryDescription = "Review missing skill points, skill line ranks, and Scribing Scripts across characters."
-
-	ZO_PostHook(ZO_GamepadSkills, "RefreshCategoryList", function(gamepadSkills)
-		local categoryList = gamepadSkills and gamepadSkills.categoryList
-		if not categoryList then return end
-
-		for index = 1, categoryList:GetNumEntries() do
-			if SPT_IsSkillsMenuEntry(categoryList:GetDataForDataIndex(index)) then
-				return
-			end
-		end
-
-		local insertIndex = nil
-		for index = 1, categoryList:GetNumEntries() do
-			local data = categoryList:GetDataForDataIndex(index)
-			if data and data.isSkillsAdvisor then
-				insertIndex = index + 1
-				break
-			end
-		end
-
-		local entryData = ZO_GamepadEntryData:New(entryName)
-		entryData.isWhatsMissingSkillPointTracker = true
-		entryData.advised = true
-		if insertIndex then
-			categoryList:AddEntryAtIndex(insertIndex, "ZO_GamepadMenuEntryTemplate", entryData)
-		else
-			categoryList:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
-		end
-		categoryList:Commit()
-	end)
-
-	ZO_PreHook(ZO_GamepadSkills, "RefreshLineFilterList", function(gamepadSkills)
-		local categoryList = gamepadSkills and gamepadSkills.categoryList
-		if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
-			if gamepadSkills.lineFilterList then
-				gamepadSkills.lineFilterList:Clear()
-				gamepadSkills.lineFilterList:Commit()
-			end
-			return true
-		end
-		return false
-	end)
-
-	ZO_PreHook(ZO_GamepadSkills, "RefreshTooltip", function(gamepadSkills)
-		if not SPT_CanShowSkillsMenuTooltip(gamepadSkills) then return false end
-		local categoryList = gamepadSkills and gamepadSkills.categoryList
-		if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
-			GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, entryName, entryDescription)
-			return true
-		end
-		return false
-	end)
-
-	ZO_PreHook(ZO_GamepadSkills, "RefreshSelectedTooltip", function(gamepadSkills)
-		if not SPT_CanShowSkillsMenuTooltip(gamepadSkills) then return false end
-		local categoryList = gamepadSkills and gamepadSkills.categoryList
-		if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
-			GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
-			if SKILLS_ADVISOR_SUGGESTIONS_GAMEPAD_FRAGMENT then
-				SCENE_MANAGER:RemoveFragment(SKILLS_ADVISOR_SUGGESTIONS_GAMEPAD_FRAGMENT)
-			end
-			if GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT then
-				SCENE_MANAGER:AddFragment(GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT)
-			end
-			GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, entryName, entryDescription)
-			return true
-		end
-		return false
-	end)
-
-	local function HookCategoryKeybindDescriptor()
-		local descriptor = GAMEPAD_SKILLS and GAMEPAD_SKILLS.categoryKeybindStripDescriptor
-		if not descriptor then return end
-
-		for _, keybindDescriptor in ipairs(descriptor) do
-			if keybindDescriptor.keybind == "UI_SHORTCUT_PRIMARY" and not keybindDescriptor.sptHooked then
-				local originalCallback = keybindDescriptor.callback
-				keybindDescriptor.callback = function()
-					local categoryList = GAMEPAD_SKILLS and GAMEPAD_SKILLS.categoryList
-					if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
-						if GAMEPAD_SKILLS.DeactivateCurrentList then
-							GAMEPAD_SKILLS:DeactivateCurrentList()
-						end
-						SPT_ShowWindow()
-						return
-					end
-					if originalCallback then
-						return originalCallback()
-					end
-				end
-				keybindDescriptor.sptHooked = true
-			end
-
-			if keybindDescriptor.keybind == "UI_SHORTCUT_RIGHT_STICK" and not keybindDescriptor.sptHooked then
-				local originalCallback = keybindDescriptor.callback
-				local originalVisible = keybindDescriptor.visible
-				keybindDescriptor.callback = function()
-					local categoryList = GAMEPAD_SKILLS and GAMEPAD_SKILLS.categoryList
-					if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
-						return
-					end
-					if originalCallback then
-						return originalCallback()
-					end
-				end
-				keybindDescriptor.visible = function(...)
-					local categoryList = GAMEPAD_SKILLS and GAMEPAD_SKILLS.categoryList
-					if SPT_IsSkillsMenuEntry(categoryList and categoryList:GetTargetData()) then
-						return false
-					end
-					if originalVisible then
-						return originalVisible(...)
-					end
-					return false
-				end
-				keybindDescriptor.sptHooked = true
-			end
-		end
-	end
-
-	HookCategoryKeybindDescriptor()
-	ZO_PostHook(ZO_GamepadSkills, "InitializeCategoryKeybindStrip", HookCategoryKeybindDescriptor)
-
-	if GAMEPAD_SKILLS and GAMEPAD_SKILLS.categoryList and GAMEPAD_SKILLS.RefreshCategoryList then
-		GAMEPAD_SKILLS:RefreshCategoryList()
-	end
-
-	self.skillsMenuHooked = true
+	table.insert(ZO_MENU_ENTRIES, position, entry)
+	MAIN_MENU_GAMEPAD:RefreshMainList()
+	return true
 end
 
 function SPT:SetupValues()
@@ -2087,7 +1917,8 @@ local function SPT_Initialized(eventCode, addonName)
 	end
 
 	SPT:SetupValues()
-	SPT:AddToGamepadSkillsMenu()
+	SPT:AddToGamepadMainMenu()
+	SPT.Announcements:Init()
 	for _, module in ipairs(progressionModules) do module:Init() end
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Progression", EVENT_PLAYER_ACTIVATED, function()
 		SPT.progressionReady = true

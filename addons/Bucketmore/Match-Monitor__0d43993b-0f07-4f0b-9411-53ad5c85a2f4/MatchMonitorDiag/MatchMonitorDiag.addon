@@ -1,0 +1,10 @@
+## Title: MatchMonitorDiag
+## Description: Diagnostic add-on: investigates what the Activity Finder / LFG API exposes (own and other players' queue info). Phase 2 - no final UI.
+## Author: (set your name)
+## Version: 0.1.5
+## AddOnVersion: 1
+## APIVersion: 101051 101050
+## SavedVariables: MatchMonitorDiag_SV
+## IsLibrary: false
+
+MatchMonitorDiag.lua

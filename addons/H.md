@@ -34,7 +34,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Harven's Mute NPCs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Mute-NPCs__1196) | Harven | PC / Mac | 0.7 |
 | [Harven's Potions Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Potions-Alert__562) | Harven | PC / Mac | 2.2.2 |
 | [Harven's Potions Alert Patched (NOT SUPPORTED)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nesferatum/Harven-s-Potions-Alert-Patched-NOT-SUPPORTED__3405) | Nesferatum | PC / Mac | 1.11 |
-| [Harven's Quest Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Quest-Journal__580) | Harven | PC / Mac | 3.0.0 |
+| [Harven's Quest Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Quest-Journal__580) | Harven | PC / Mac | 3.0.1 |
 | [Harven's Research Timers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Research-Timers__521) | Harven | PC / Mac | 2.0.0 |
 | [Harven's Simple Chat Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Simple-Chat-Filter__516) | Harven | PC / Mac | 1.2e |
 | [Harven's Stack Split Slider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Stack-Split-Slider__458) | Harven | PC / Mac | 2.0.0 |
@@ -101,6 +101,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HideLoginAnnouncement](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/anathemort/HideLoginAnnouncement__2009) | anathemort | PC / Mac | 1.2.1 |
 | [HideLoginNotice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideLoginNotice__4248) | VollständigerName | PC / Mac | 1.0.3 |
 | [HidePlayerMapMarker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HidePlayerMapMarker__4249) | VollständigerName | PC / Mac | 1.0.2 |
+| [HideResearchIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/smj2k/HideResearchIcon__5016) | smj2k | PC / Mac | 1.1.0 |
 | [HideReticleMounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideReticleMounted__4332) | VollständigerName | PC / Mac | 1.0.1 |
 | [High-Low - ESO Group Roll Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Riparoo/High-Low---ESO-Group-Roll-Game__4877) | Riparoo | PC / Mac | 0.1.9 |
 | [Highland Sentinel Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Highland-Sentinel-Tick-Tracker__4045) | SkullElf | PC / Mac | 1.2 |

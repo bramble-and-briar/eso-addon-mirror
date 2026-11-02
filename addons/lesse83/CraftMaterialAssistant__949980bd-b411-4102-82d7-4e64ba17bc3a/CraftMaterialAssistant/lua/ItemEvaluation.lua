@@ -59,6 +59,19 @@ function CMA:DetermineItemAction(bag, slotIndex)
             -- item is a potion or a poison but crafted or selling is turned off
             return "ignore"
         end
+    elseif itemType == ITEMTYPE_GLYPH_ARMOR or itemType == ITEMTYPE_GLYPH_JEWELRY or itemType == ITEMTYPE_GLYPH_WEAPON then
+        local link = GetItemLink(bag, slotIndex)
+        local isCrafted = IsItemLinkCrafted(link)
+        -- check if its crafted - only act if its not crafted
+        if not isCrafted then 
+            if self.db.bankGlyphChoice == "Bank" then
+                return "bank"
+            elseif self.db.bankGlyphChoice == "Sell" then
+                return "junk"
+            end
+        end
+        -- either not crafted or ignored
+        return "ignore"
     elseif (specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD) or (specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK) then
         local itemLink = GetItemLink(bag, slotIndex)
         local quality = GetItemLinkFunctionalQuality(itemLink)
@@ -224,14 +237,18 @@ function CMA:DetermineItemAction(bag, slotIndex)
         if not isCrafted and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then
             local traitInfo = GetItemTraitInformation(bag, slotIndex)
             if traitInfo == ITEM_TRAIT_INFORMATION_ORNATE then
-                if self.db.autoSellOrnateGear then
+                if self.db.bankOrnateGearChoice == "Sell" then
                     return "junk"
+                elseif self.db.bankOrnateGearChoice == "Bank" then
+                    return "bank"
                 else
                     return "ignore"
                 end
             elseif traitInfo == ITEM_TRAIT_INFORMATION_INTRICATE then
-                if self.db.autoSellIntricateGear then
+                if self.db.bankIntricateGearChoice == "Sell" then
                     return "junk"
+                elseif self.db.bankIntricateGearChoice == "Bank" then
+                    return "bank"
                 else
                     return "ignore"
                 end

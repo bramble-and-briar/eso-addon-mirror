@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- RagsToRiches.lua — Stand-alone v1.5.0 (PS5 + Safe Inventory Automation)
+-- RagsToRiches.lua — Stand-alone v1.5.1 (PS5 + Safe Inventory Automation)
 -- Author: SugaComa
 --------------------------------------------------------------
 
@@ -1110,11 +1110,15 @@ end
 local function InstallInventoryReviewActions()
     local scene = GAMEPAD_INVENTORY_ROOT_SCENE
     if not scene or not ZO_InventorySlot_DiscoverSlotActionsFromActionList then return end
-    ZO_PostHook("ZO_InventorySlot_DiscoverSlotActionsFromActionList", function(inventorySlot, slotActions)
+    -- Do not wrap the native action builder: it creates trusted equip callbacks.
+    -- If unavailable, leave the native inventory untouched rather than taint it.
+    if not SecurePostHook then return end
+    SecurePostHook(_G, "ZO_InventorySlot_DiscoverSlotActionsFromActionList", function(inventorySlot, slotActions)
         if not RagsToRiches.SV.enabled or not scene:IsShowing() then return end
         local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
         if bagId ~= BAG_BACKPACK or slotIndex == nil then return end
-        if IsSlotLocked(inventorySlot) or not IsItemJunk(bagId, slotIndex) then return end
+        local slotData = ZO_Inventory_GetSlotDataForInventoryControl(inventorySlot)
+        if (slotData and slotData.locked) or not IsItemJunk(bagId, slotIndex) then return end
         if not CanItemBeMarkedAsJunk(bagId, slotIndex) then return end
         local itemId = Id64ToString(GetItemUniqueId(bagId, slotIndex))
         slotActions:AddSlotAction(SI_ITEM_ACTION_UNMARK_AS_JUNK, function()
@@ -2413,7 +2417,7 @@ local function OnLoaded(_, name)
     InstallAccidentalTheftProtection()
     zo_callLater(function() CheckBackpackSpace(false) end, 1000)
 
-    chat("RagsToRiches v1.5.0 loaded.")
+    chat("RagsToRiches v1.5.1 loaded.")
 end
 
 EM:RegisterForEvent("RTR_Loaded", EVENT_ADD_ON_LOADED, OnLoaded)

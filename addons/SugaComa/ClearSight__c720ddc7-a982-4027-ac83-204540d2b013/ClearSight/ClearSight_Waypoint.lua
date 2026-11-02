@@ -254,6 +254,12 @@ function CS:InitializeWaypoint()
     marker:SetCenterColor(0.1, 1, 0.2, 1)
     marker:SetEdgeColor(0, 0, 0, 1)
 
+    local edge = WINDOW_MANAGER:CreateControl("ClearSightWaypointOutline", root, CT_BACKDROP)
+    edge:SetDrawLayer(DL_BACKGROUND)
+    edge:SetEdgeColor(0, 0, 0, 0)
+    marker:SetDrawLayer(DL_OVERLAY)
+    self.mainWayfinder = self:CreateWingedWayfinder("ClearSightMainWayfinder", root)
+    self.waypointOutline = edge
     self.waypointRoot = root
     self.waypointMarker = marker
 end
@@ -335,6 +341,10 @@ function CS:UpdateWaypoint()
         return
     end
 
+    if s.location == "Reticle" then
+        self.waypointRoot:SetHidden(true)
+        return
+    end
     self.waypointRoot:SetHidden(false)
 
     -- Match the actual compass width where possible. This reduces the visual
@@ -359,6 +369,8 @@ function CS:UpdateWaypoint()
         targetSize, targetColor = s.redSize, s.redColor
     end
 
+    targetColor = self:GetWaypointGuidanceColor(relative)
+
     -- Near roughly 300m, stop changing the diamond's colour by heading error and
     -- adopt the player's own Accessibility waypoint colour. Size and position still
     -- communicate course correction until the overlay disappears around 150m.
@@ -372,12 +384,17 @@ function CS:UpdateWaypoint()
     local halfWidth = (self.waypointRoot:GetWidth() / 2) - (targetSize / 2)
     local x = normalized * halfWidth
 
-    self.waypointMarker:ClearAnchors()
-    self.waypointMarker:SetDimensions(targetSize, targetSize)
-    self.waypointMarker:SetAnchor(CENTER, self.waypointRoot, CENTER, x, 0)
-    SetSolidColor(self.waypointMarker, targetColor, s.opacity)
+    self.waypointMarker:SetHidden(true)
+    self.waypointOutline:SetHidden(true)
+    self:DrawWingedWayfinder(self.mainWayfinder,x,0,self.saved.reticle.wayfinderSize or 40,0,relative,targetColor)
 
-    if self.waypointMarker.SetTransformRotationZ then
-        self.waypointMarker:SetTransformRotationZ(math.rad(45))
-    end
+end
+
+
+function CS:GetWaypointGuidanceColor(relative)
+    local s = self.saved.waypoint
+    local degrees = math.abs(relative * 180 / math.pi)
+    if degrees <= s.greenThresholdDegrees then return s.greenColor end
+    if degrees <= s.amberThresholdDegrees then return s.amberColor end
+    return s.redColor
 end

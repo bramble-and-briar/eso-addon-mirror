@@ -381,7 +381,7 @@ function Drawer:init(pw)
     vbot:SetVertexColors(VP_TOP, bgc[1], bgc[2], bgc[3], 0)
     vbot:SetVertexColors(VP_BOTTOM, bgc[1], bgc[2], bgc[3], 0.85)
     drawer.vignette = { vtop, vbot }
-    drawer.frame = P.frame(d)
+    drawer.frame = P.frame_thin(d)
     drawer.frame:SetAnchorFill(d)
     drawer.strip = P.rect(d, K.COLOR.accent)
     drawer.strip:SetAnchor(TOPLEFT, d, TOPLEFT, 6, 6)

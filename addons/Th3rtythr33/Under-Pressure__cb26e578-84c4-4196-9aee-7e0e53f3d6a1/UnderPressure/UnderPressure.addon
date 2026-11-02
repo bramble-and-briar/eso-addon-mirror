@@ -1,11 +1,11 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.5.10
-## AddOnVersion: 21
+## Version: 0.5.11
+## AddOnVersion: 22
 ## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
-## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a report says who applied it, who removed it and with what, and which of your group were killed in the explosion; shown in chat, in a callout beside the death recap, or hidden, with the last 20 kept under Plague Indicator > History. Experimental, off by default: watch your group for Plague Carrier and be told who has it, so you can stay 8 metres clear of them. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges.
+## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a report says who applied it, who removed it and with what, and which of your group were killed in the explosion; shown in chat, in a callout beside the death recap, or hidden, with the last 20 kept under Plague Indicator > History. Experimental, off by default: watch your group for Plague Carrier and be told who has it, so you can stay 8 metres clear of them. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, and two seconds before a Leashing Burst from the moment the enemy casts it, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges.
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are
@@ -26,6 +26,10 @@
 ; Indicator description). 0.5.9 = 20 (2026-10-30/31: explosion report rewritten
 ; in Matt's wording, with friends killed within 2 s and only for your own plague;
 ; report routed to chat / death recap callout / hidden and kept in History).
+; 0.5.11 = 22 (2026-11-01: Leashing Burst joins Pull detection through its
+; caster's 2 s buff, visible to bystanders with no unit tag; Engine/Allegiance.lua
+; tells friend from foe by name from the kill feed, the reticle, the group
+; and who has hit or healed us).
 ; 0.5.10 = 21 (2026-10-31: UI/TextureGuard.lua; a running client never loads
 ; a texture file added by an update until it restarts, so icon controls whose
 ; DDS did not load fall back to the game's own ability icons).
@@ -88,6 +92,7 @@ Engine/AttackerTracker.lua
 Engine/SilenceTracker.lua
 Engine/PlagueTracker.lua
 Engine/PlagueGroup.lua
+Engine/Allegiance.lua
 Engine/PullTracker.lua
 Engine/PressureEngine.lua
 Engine/EventIngest.lua

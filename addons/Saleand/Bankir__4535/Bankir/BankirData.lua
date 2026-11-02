@@ -41,6 +41,7 @@ local itemTypeChildrenSpecializedTypes = {
 	[ITEMTYPE_POTION] = { "CapCP" .. ITEMTYPE_POTION, "Scalable" .. ITEMTYPE_POTION },
 	[ITEMTYPE_POISON] = { "CapCP" .. ITEMTYPE_POISON, "Scalable" .. ITEMTYPE_POISON },
 	[ITEMTYPE_CRAFTED_ABILITY_SCRIPT] = { SPECIALIZED_ITEMTYPE_CRAFTED_ABILITY_SCRIPT_PRIMARY, SPECIALIZED_ITEMTYPE_CRAFTED_ABILITY_SCRIPT_SECONDARY, SPECIALIZED_ITEMTYPE_CRAFTED_ABILITY_SCRIPT_TERTIARY },
+	[ITEMTYPE_STYLE_MATERIAL] = { "StyleMaterialRacial", "StyleMaterialOther" },
 	["EquipmentAll"] = { "IntricateAll", "ResearchAll", "CompanionAll" },
 }
 
@@ -111,6 +112,7 @@ local tweens = {
 		[153739] = { --blue
 			153737, --purple
 			153738 },--gold
+		-- base game racial style materials
 		["StyleMaterialRacial"] = { 33150, 33194, 33251, 33252, 33253, 33254, 33255, 33256, 33257, 33258 },
 	},
 }
@@ -144,11 +146,7 @@ local qualityRuledItemTypes = {
 		ITEMTYPE_POISON,
 		"EquipmentAll",
 	},
-	["specializedItemType"] = {
-		"IntricateAll",
-		"ResearchAll",
-		"CompanionAll",
-	},
+	["specializedItemType"] = {},
 	["itemId"] = {}
 }
 
@@ -283,7 +281,7 @@ local function getDefaultProfileSettings()
 			}
 		end
 	end
-	
+
 	return defaults
 end
 
@@ -294,27 +292,20 @@ local function getDefaultCommonSettings()
 		bankSlidersMaxValue = 10,
 		currencySlidersMaxValue = 100000,
 	}
-
 	return defaults
 end
 
 local function getDefaultServerSettings()
 	local defaults = {
-		["Integrations"] = {
-			-- LibCharacterKnowledge
-			["LCK"] = {
-				["CharactersList"] = {}
-			}
-		}
+		["ResearchCharactersList"] = {},
 	}
-	
 	return defaults
 end
 
--- update LCK saved vars list of characters to remove non-existing (deleted) characters
-local function cleanUpLCKList()
-	local LCKList = Bankir.savedVarsServer.Integrations.LCK.CharactersList
-	for id in pairs(LCKList) do
+-- update saved vars list of characters to remove non-existing (deleted) ones
+local function cleanUpResearchCharactersList()
+	local list = Bankir.savedVarsServer.ResearchCharactersList
+	for id in pairs(list) do
 		local isCharExists = false
 		for i = 1, #Bankir.Data.charactersList do
 			if Bankir.Data.charactersList[i].id == id then
@@ -323,7 +314,7 @@ local function cleanUpLCKList()
 			end
 		end
 		if not isCharExists then
-			Bankir.savedVarsServer.Integrations.LCK.CharactersList[id] = nil
+			Bankir.savedVarsServer.ResearchCharactersList[id] = nil
 		end
 	end
 end
@@ -341,5 +332,5 @@ Bankir.Data = {
 	getDefaultProfileSettings = getDefaultProfileSettings,
 	getDefaultCommonSettings = getDefaultCommonSettings,
 	getDefaultServerSettings = getDefaultServerSettings,
-	cleanUpLCKList = cleanUpLCKList,
+	cleanUpResearchCharactersList = cleanUpResearchCharactersList,
 }

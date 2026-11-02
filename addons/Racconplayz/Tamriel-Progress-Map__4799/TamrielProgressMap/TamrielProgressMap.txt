@@ -1,8 +1,8 @@
 ## Title: |cE6C45CTamriel Progress Map|r
 ## Author: |c66CCFFRaccoonplayz|r
 ## Description: Developed with AI assistance. Requires LibAddonMenu-2.0 r43+. Tamriel completion journal with Progress, Alliances, Economy and PvE/PvP/Character history. DE/EN/RU/FR/ES; follows the ESO client language.
-## Version: 2.8.0
-## AddOnVersion: 20800
+## Version: 2.9.0
+## AddOnVersion: 20900
 ## APIVersion: 101050 101051
 ## SavedVariables: TamrielProgressMap_SavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43
@@ -15,5 +15,10 @@
 # Language follows the ESO client automatically: English base + client language file
 localization/en.lua
 localization/$(language).lua
+RaccoonQuestData.lua
+RaccoonQuestZones.lua
+RaccoonQuestExceptions.lua
+RaccoonQuestValidation.lua
+RaccoonFragmentData.lua
 bindings.xml
 TamrielProgressMap.lua

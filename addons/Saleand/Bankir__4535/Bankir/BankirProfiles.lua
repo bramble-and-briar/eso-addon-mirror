@@ -27,7 +27,7 @@ end
 local function copyCurrentProfile()
 	local currentVars = BankirSavedVariables.Profiles[Bankir.savedVarsCharacter.profile]
 	local newName = Bankir.savedVarsCharacter.profile .. " (Copy)"
-	local newVars = Bankir.Functions.getFullCopy(currentVars)
+	local newVars = Bankir.Functions.copyData(currentVars)
 	BankirSavedVariables.Profiles[newName] = newVars
 	Bankir.savedVarsProfile = BankirSavedVariables.Profiles[newName]
 	Bankir.savedVarsCharacter.profile = newName

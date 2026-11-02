@@ -1,0 +1,9 @@
+## Title: Jesus de Platre - Cyber Taunt Reticle + Multi-Taunt
+## Description: Native-reticle anchored circular crosshair, left taunt countdown, and multi-enemy panel
+## Author: Jesus de Platre
+## Version: 0.8.4
+## SavedVariables: JDPPrivateMarkerSaved JDPMultiTauntSaved JDPCrosshairSaved
+JesusDePlatre_PrivateMarker.lua
+JesusDePlatre_MultiTaunt.lua
+JesusDePlatre_Crosshair.lua
+JesusDePlatre_Donate.lua

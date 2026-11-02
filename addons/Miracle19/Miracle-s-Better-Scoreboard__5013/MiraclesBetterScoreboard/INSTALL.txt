@@ -1,0 +1,18 @@
+AI-assisted development disclosure: This fork used ChatGPT for code generation and review; full in-game behavior has not been independently validated.
+
+Miracle's BetterScoreboard - separate ESO addon identity
+
+Install folder: Documents/Elder Scrolls Online/live/AddOns/MiraclesBetterScoreboard
+
+This fork has a unique addon/manifest ID, Lua global, XML/UI control identifiers,
+and SavedVariables name. Existing BetterScoreboard settings are NOT migrated.
+
+IMPORTANT: Disable the original BetterScoreboard and ScoreboardFixU51 when using this
+fork. They all modify ESO's native scoreboard and may conflict if enabled together.
+If switching from the previous modified BetterScoreboard, remove or disable its old
+BetterScoreboard folder before enabling this one.
+
+Original creator: @M0R_Gaming
+Update 51 / 18-player and new-stat enhancements: @MlRACLE
+
+This changes addon identity only; game behavior has not been intentionally modified.

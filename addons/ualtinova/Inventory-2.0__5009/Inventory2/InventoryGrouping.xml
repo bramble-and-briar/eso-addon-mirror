@@ -1,0 +1,81 @@
+<GuiXml>
+    <Controls>
+        <Control name="InventoryGrouping_HeaderRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="565" y="36" />
+            <OnMouseEnter>InventoryGrouping.OnHeaderMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>InventoryGrouping.OnHeaderMouseExit(self)</OnMouseExit>
+            <OnMouseUp>InventoryGrouping.OnHeaderMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Marker" textureFile="EsoUI/Art/Buttons/plus_up.dds" level="20">
+                    <Dimensions x="13" y="13" />
+                    <Anchor point="LEFT" relativePoint="LEFT" offsetX="8" />
+                </Texture>
+                <Texture name="$(parent)Icon" level="20">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Marker" relativePoint="RIGHT" offsetX="3" />
+                </Texture>
+                <Label name="$(parent)Location" font="ZoFontGame" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
+                    <Anchor point="RIGHT" relativePoint="RIGHT" offsetX="-16" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontWinH4" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="5" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Location" relativePoint="LEFT" offsetX="-12" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- A saved house chest item (HOME CONTAINERS): read-only, tooltip on hover. -->
+        <Control name="InventoryGrouping_StoredItemRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="565" y="44" />
+            <OnMouseEnter>InventoryGrouping.OnStoredRowMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>InventoryGrouping.OnStoredRowMouseExit(self)</OnMouseExit>
+            <!-- An equipment setup's faded line answers a right click (SetupsUI.lua). -->
+            <OnMouseUp>if InventoryGrouping.OnStoredRowMouseUp then InventoryGrouping.OnStoredRowMouseUp(self, button, upInside) end</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Icon" level="5">
+                    <Dimensions x="36" y="36" />
+                    <Anchor point="CENTER" relativePoint="LEFT" offsetX="70" />
+                </Texture>
+                <Label name="$(parent)Count" font="ZoFontGameOutline" level="6">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="BOTTOMRIGHT" offsetX="2" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGameShadow" wrapMode="ELLIPSIS" maxLineCount="1" level="5">
+                    <Dimensions x="330" />
+                    <Anchor point="LEFT" relativePoint="LEFT" offsetX="110" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Empty gap between top-level groups. -->
+        <Control name="InventoryGrouping_Spacer" virtual="true">
+            <Dimensions x="565" y="7" />
+        </Control>
+
+        <!-- Renaming a category from its own header: one line to type in, and the two buttons
+             every dialog in this game has. The title and the frame come from the game's own
+             dialog base, so it is the window the player already knows. -->
+        <TopLevelControl name="InventoryGrouping_RenameDialog" inherits="ZO_CustomDialogBase">
+            <DimensionConstraints minX="420" minY="200" maxX="420" maxY="200" />
+            <Controls>
+                <Backdrop name="$(parent)Field" inherits="ZO_EditBackdrop">
+                    <Dimensions x="340" y="36" />
+                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetY="28" />
+                    <Controls>
+                        <EditBox name="$(parent)Edit" maxInputCharacters="24" inherits="ZO_DefaultEditForBackdrop">
+                            <OnEffectivelyShown>self:TakeFocus()</OnEffectivelyShown>
+                            <OnEnter>InventoryGrouping.AcceptRename()</OnEnter>
+                        </EditBox>
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)Accept" inherits="ZO_DialogButton" text="SI_DIALOG_ACCEPT">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="-12" offsetY="-24" />
+                    <OnClicked>InventoryGrouping.AcceptRename()</OnClicked>
+                </Button>
+                <Button name="$(parent)Cancel" inherits="ZO_DialogButton" text="SI_DIALOG_CANCEL">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="12" offsetY="-24" />
+                    <OnClicked>InventoryGrouping.CancelRename()</OnClicked>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

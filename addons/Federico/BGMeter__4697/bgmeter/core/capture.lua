@@ -14,6 +14,8 @@ local MAX_ME      = 1500
 
 local active = nil
 local baseline = nil
+local vet_retries = 0
+local VET_RETRY_MAX = 120
 local obj_lookup = {}
 local obj_last = {}
 local relic_lookup = {}
@@ -545,8 +547,21 @@ local function discover_pins()
     end
 end
 
+local function retry_vet_start()
+    local vs = active.haul.vetStart
+    if vs and vs.tier ~= nil then return end
+    if vet_retries >= VET_RETRY_MAX then return end
+    vet_retries = vet_retries + 1
+    local s = BGMeter.Veterancy.snapshot()
+    if s.tier ~= nil then
+        active.haul.vetStart = s
+        if baseline then baseline.vet = s end
+    end
+end
+
 local function sample_me()
     if not active or not active.timeline then return end
+    retry_vet_start()
     local A = BGMeter.zenimax.api
     local tl = active.timeline
     if not tl.mt then tl.mt, tl.mx, tl.my = presize({}, MAX_ME), presize({}, MAX_ME), presize({}, MAX_ME) end
@@ -699,6 +714,7 @@ function Capture.begin()
         vet = Vet.snapshot(),
     }
     active.haul.vetStart = baseline.vet
+    vet_retries = 0
 
     active.map = read_map()
     start_sampler()
@@ -818,7 +834,7 @@ function Capture.finalize()
 
     active.haul.vetEnd = BGMeter.Veterancy.snapshot()
     local vs, ve = active.haul.vetStart, active.haul.vetEnd
-    if vs and ve and (ve.laps or 0) > (vs.laps or 0) then active.haul.vetRankUp = true end
+    if vs and ve and vs.tier ~= nil and (ve.laps or 0) > (vs.laps or 0) then active.haul.vetRankUp = true end
     local lr = Match.local_row(active)
     if lr then active.haul.medals = lr.medals end
 

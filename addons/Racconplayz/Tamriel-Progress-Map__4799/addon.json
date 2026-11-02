@@ -18,7 +18,7 @@
     "TamrielProgressMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4799/",
-  "fingerprint": "bf518256cab98281f9313722e811b61c050e7917834d1e68653467ea5137b10f",
+  "fingerprint": "fe8236cca5decbab312140812ee4395f9c870f355bfd34e726a9080aa0d3b953",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18125.png",
     "https://cdn-eso.mmoui.com/preview/pvw18124.png",
@@ -28,7 +28,9 @@
     "https://cdn-eso.mmoui.com/preview/pvw18120.png",
     "https://cdn-eso.mmoui.com/preview/pvw18128.png",
     "https://cdn-eso.mmoui.com/preview/pvw18126.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18127.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18127.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18260.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18261.png"
   ],
   "platform": "pc",
   "published": true,
@@ -36,11 +38,11 @@
   "source_id": "4799",
   "source_url": "https://www.esoui.com/downloads/info4799-TamrielProgressMap.html",
   "stats": {
-    "downloads": 1105,
+    "downloads": 1295,
     "favorites": 7,
-    "monthly_downloads": 411
+    "monthly_downloads": 430
   },
   "title": "Tamriel Progress Map",
-  "updated_at": 1792914351000,
-  "version": "2.8.0"
+  "updated_at": 1793517170000,
+  "version": "2.9.0"
 }

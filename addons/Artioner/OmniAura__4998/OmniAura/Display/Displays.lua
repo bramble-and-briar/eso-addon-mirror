@@ -90,12 +90,8 @@ function Base:BuildCommon(key)
         if button == MOUSE_BUTTON_INDEX_LEFT then self:StartResize() end
     end)
     grip:SetHandler("OnMouseUp", function() self:StopResize() end)
-    grip:SetHandler("OnMouseEnter", function()
-        if MOUSE_CURSOR_RESIZE_NWSE then WM:SetMouseCursor(MOUSE_CURSOR_RESIZE_NWSE) end
-    end)
-    grip:SetHandler("OnMouseExit", function()
-        if MOUSE_CURSOR_DO_NOT_CARE then WM:SetMouseCursor(MOUSE_CURSOR_DO_NOT_CARE) end
-    end)
+    grip:SetHandler("OnMouseEnter", function() WM:SetMouseCursor(MOUSE_CURSOR_RESIZE_NWSE) end)
+    grip:SetHandler("OnMouseExit", function() WM:SetMouseCursor(MOUSE_CURSOR_DO_NOT_CARE) end)
     self.grip = grip
 end
 

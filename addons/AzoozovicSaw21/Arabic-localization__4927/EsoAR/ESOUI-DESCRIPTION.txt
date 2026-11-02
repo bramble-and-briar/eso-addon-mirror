@@ -21,7 +21,7 @@ Food, drink, poison, potion, furniture and associated recipe/plan name correctio
 Crafting terminology corrections: Heartwood, ash wood, jewelry trait materials,
 style ingredients, crafting tools and ranked reward containers. Corrected selected
 profession labels. Full cumulative package; previous rune and name fixes included.
-All 112 rune records unchanged. Travel shrine labels receive separate corrections. Roman ranks and grammar tags preserved.
+Map names and all 112 rune records unchanged. Roman ranks and grammar tags preserved.
 Static validation only; not tested in-game. Native internal Lead prefix limitation remains.
 
 
@@ -34,7 +34,7 @@ Static validation only; not tested in-game. Native internal Lead prefix limitati
 - Arabic-script NPC names and translated descriptive titles.
 - Corrected Witches Festival prose and preserved highlighted text through paragraph RTL.
 - Updated supported antiquity lead terminology.
-- General map names preserved; travel shrine labels corrected separately.
+- Map and location name records preserved.
 
 Validation: LANG roundtrip and stable keys, Lua 5.1 syntax, manifest references,
 translation coverage and token checks, event formatter regression, ZIP CRC.
@@ -55,7 +55,3 @@ ESOUI API documentation and the ZOS interface source were used as implementation
 Thanks to Baertram for ESOUI publishing and SafeAddString review feedback.
 
 Optional compatibility targets: AwesomeGuildStore, LootDrop and LibGetText; credit belongs to their respective authors. These projects are not bundled and are not required dependencies. Compatibility support does not imply their endorsement.
-
-2.4.1 journal and travel corrections
-Corrected selected quest and achievement names, achievement requirements, Roman dungeon ranks, crafting and antiquity terminology, and travel shrine labels. Text widths use bundled font metrics.
-Validation covers all 3,431 quest-name, 3,915 achievement-name and 3,914 achievement-description records in the supplied source. This is a structural scan, not a claim that every translation has been semantically certified. Remaining review candidates are reported separately. No in-game validation performed.

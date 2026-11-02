@@ -211,6 +211,11 @@ function HarvensQuestJournal:ShowRumor()
 
 	self.title:SetText(zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, rumor[RS_NAME]))
 
+	local textColor = "|c" .. self.textColor:ToHex()
+	local function replaceWhite(text)
+		return text:gsub("|cFFFFFF", textColor)
+	end
+
 	local text = {}
 	if rumor[RS_STARTTIME] then
 		text[#text + 1] = GetDateStringFromTimestamp(rumor[RS_STARTTIME])
@@ -220,19 +225,22 @@ function HarvensQuestJournal:ShowRumor()
 
 	if rumor[RS_TYPE] then
 		local typeName = rumorTypeToName[rumor[RS_TYPE]] or "Rumor"
-		text[#text + 1] = "\n(" .. typeName .. ")\n\n"
+		text[#text + 1] = "\n("
+		text[#text + 1] = typeName
+		text[#text + 1] = ")\n\n"
 	else
 		text[#text + 1] = "\n\n"
 	end
 
 	if rumor[RS_BACKGROUND] and #rumor[RS_BACKGROUND] > 0 then
-		text[#text + 1] = rumor[RS_BACKGROUND]
+		text[#text + 1] = replaceWhite(rumor[RS_BACKGROUND])
 	end
 
 	if rumor[RS_STARTER_HINT] and #rumor[RS_STARTER_HINT] > 0 then
 		text[#text + 1] = "\n\n"
 		text[#text + 1] = GetString(HARVEN_QUEST_JOURNAL_RUMOR_STARTER_HINT)
-		text[#text + 1] = "\n" .. rumor[RS_STARTER_HINT]
+		text[#text + 1] = "\n"
+		text[#text + 1] = replaceWhite(rumor[RS_STARTER_HINT])
 	end
 
 	if rumor[RS_HINTS] and #rumor[RS_HINTS] > 0 then
@@ -243,11 +251,12 @@ function HarvensQuestJournal:ShowRumor()
 			local hint = rumor[RS_HINTS][i]
 			if type(hint) == "table" then
 				if hint.name and #hint.name > 0 then
-					text[#text + 1] = hint.name .. "\n  "
+					text[#text + 1] = hint.name
+					text[#text + 1] = "\n  "
 				end
-				text[#text + 1] = hint.desc
+				text[#text + 1] = replaceWhite(hint.desc)
 			else
-				text[#text + 1] = hint
+				text[#text + 1] = replaceWhite(hint)
 			end
 		end
 	end
@@ -258,7 +267,8 @@ function HarvensQuestJournal:ShowRumor()
 			text[#text + 1] = zo_strformat(GetString(HARVEN_QUEST_JOURNAL_COMPLETED_AT_TIME), GetDateStringFromTimestamp(rumor[RS_COMPLETEDTIME]), FormatTimeSeconds(rumor[RS_COMPLETEDTIME] + GetTimeZoneOffset(), TIME_FORMAT_STYLE_CLOCK_TIME, CLOCK_FORMAT, TIME_FORMAT_DIRECTION_NONE))
 		end
 		if rumor[RS_COMPLETED_TEXT] and #rumor[RS_COMPLETED_TEXT] > 0 then
-			text[#text + 1] = "\n\n" .. rumor[RS_COMPLETED_TEXT]
+			text[#text + 1] = "\n\n"
+			text[#text + 1] = replaceWhite(rumor[RS_COMPLETED_TEXT])
 		end
 	end
 
@@ -318,21 +328,21 @@ function HarvensQuestJournal:ShowQuest()
 			text[#text + 1] = "\n\n"
 			text[#text + 1] = GetString(SI_TIMED_ACTIVITIES_REWARD_HEADER)
 			text[#text + 1] = ":"
-			if quest[QS_REWARD][QS_EXPERIENCE] then
+			if type(quest[QS_REWARD][QS_EXPERIENCE]) == "number" then
 				text[#text + 1] = "\n- "
 				text[#text + 1] = zo_strformat(HARVEN_QUEST_JOURNAL_REWARD_XP, quest[QS_REWARD][QS_EXPERIENCE])
 			end
-			if quest[QS_REWARD][QS_CHAMPION_POINTS] then
+			if type(quest[QS_REWARD][QS_CHAMPION_POINTS]) == "number" then
 				text[#text + 1] = "\n- "
 				text[#text + 1] = zo_strformat(HARVEN_QUEST_JOURNAL_REWARD_CP, quest[QS_REWARD][QS_CHAMPION_POINTS])
 			end
-			if quest[QS_REWARD][QS_ITEMS] then
+			if type(quest[QS_REWARD][QS_ITEMS]) == "table" then
 				for i = 1, #quest[QS_REWARD][QS_ITEMS] do
 					text[#text + 1] = "\n- "
 					text[#text + 1] = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(quest[QS_REWARD][QS_ITEMS][i]))
 				end
 			end
-			if quest[QS_REWARD][QS_GOLD] then
+			if type(quest[QS_REWARD][QS_GOLD]) == "number" then
 				text[#text + 1] = "\n- "
 				text[#text + 1] = zo_strformat(HARVEN_QUEST_JOURNAL_REWARD_GOLD, quest[QS_REWARD][QS_GOLD])
 			end
@@ -377,7 +387,7 @@ function HarvensQuestJournal:ShowText(text)
 	self.leftPage.body:ClearAnchors()
 
 	self.bodyFontHeight = self.leftPage.body:GetFontHeight()
-	self.pageHeight = mathFloor(DEFAULT_PAGE_HEIGHT / self.bodyFontHeight) * self.bodyFontHeight
+	self.pageHeight = mathFloor(self.renderablePageHeight / self.bodyFontHeight) * self.bodyFontHeight
 
 	self.leftPage:SetHeight(self.pageHeight)
 	self.rightPage:SetHeight(self.pageHeight)
@@ -393,13 +403,8 @@ function HarvensQuestJournal:ShowText(text)
 	self.numPages = zo_ceil(((titleHeight + bodyLength) / self.pageHeight) / 2)
 end
 
-local function DarkenColor(r, g, b)
-	return ZO_ColorDef:New(r * 0.6, g * 0.6, b * 0.6, 0.8)
-end
-
 function HarvensQuestJournal:AppendQuest(quest, zone)
 	local text
-	--local color = DarkenColor(GetConColor(quest[QS_LEVEL]))
 	local completed = (self.currentSection == JS_CURRENT and 0 or 1)
 
 	local name = CreateLink(zo_strformat(SI_QUEST_JOURNAL_QUEST_NAME_FORMAT, quest[QS_NAME]), self.questColor, QUEST_LINK_TYPE, completed, quest[QS_TYPE], zone)
@@ -503,6 +508,12 @@ end
 
 do
 	local textHelper = WINDOW_MANAGER:CreateControl(nil, GuiRoot, CT_LABEL)
+	function HarvensQuestJournal:GetTextHeight(text, bodyWidth)
+		textHelper:SetText(text)
+		local result = mathFloor((textHelper:GetWidth() + bodyWidth - 1) / bodyWidth) * self.bodyFontHeight
+		return result
+	end
+
 	function HarvensQuestJournal:ShowIndexPage()
 		local svtable
 		if self.currentSection == JS_CURRENT then
@@ -524,13 +535,7 @@ do
 		local startPos = self.bodyFontHeight
 		local link
 
-		textHelper:SetFont(self.leftPage.body:GetFont())
 		local bodyWidth = self.leftPage.body:GetWidth()
-		local function GetTextHeight(text)
-			textHelper:SetText(text)
-			local result = mathFloor((textHelper:GetWidth() + bodyWidth - 1) / bodyWidth) * self.bodyFontHeight
-			return result
-		end
 
 		if self.currentSection == JS_COMPLETED and self.sv.showCompletedByCategory then
 			local text = {}
@@ -539,7 +544,7 @@ do
 					text[#text + 1] = "\n"
 					text[#text + 1] = categoryIdToName[i]
 					self.clickMap[mathFloor(startPos)] = CreateLink(categoryIdToName[i], self.questColor, QUEST_CATEGORY_LINK_TYPE, i)
-					startPos = startPos + GetTextHeight(text[#text])
+					startPos = startPos + self:GetTextHeight(text[#text], bodyWidth)
 				end
 
 				for j = 1, #sortedList[i] do
@@ -548,7 +553,7 @@ do
 						text[#text + 1] = "\n"
 						text[#text + 1] = zo_strformat(categoryIdToName[i], zoneName)
 						self.clickMap[mathFloor(startPos)] = CreateLink(zo_strformat(categoryIdToName[i], zoneName), self.questColor, QUEST_CATEGORY_LINK_TYPE, i, j)
-						startPos = startPos + GetTextHeight(text[#text])
+						startPos = startPos + self:GetTextHeight(text[#text], bodyWidth)
 					end
 				end
 			end
@@ -562,7 +567,7 @@ do
 			if i ~= QUEST_CATEGORY_ZONE then
 				text[#text + 1] = "\n"
 				text[#text + 1] = categoryIdToName[i]
-				startPos = startPos + GetTextHeight(text[#text])
+				startPos = startPos + self:GetTextHeight(text[#text], bodyWidth)
 			end
 
 			for j = 1, #sortedList[i] do
@@ -573,18 +578,18 @@ do
 							zoneName = sortedList[i][j][k].zone
 							text[#text + 1] = "\n"
 							text[#text + 1] = zo_strformat(categoryIdToName[i], zoneName)
-							startPos = startPos + GetTextHeight(text[#text])
+							startPos = startPos + self:GetTextHeight(text[#text], bodyWidth)
 						end
 						link = self:AppendQuest(svtable[i][sortedList[i][j][k].zone][sortedList[i][j][k].name], sortedList[i][j][k].zone)
 						text[#text + 1] = link
 						self.clickMap[mathFloor(startPos)] = link
-						startPos = startPos + GetTextHeight(text[#text])
+						startPos = startPos + self:GetTextHeight(text[#text], bodyWidth)
 					end
 				elseif i ~= QUEST_CATEGORY_ZONE then
 					link = self:AppendQuest(svtable[i][sortedList[i][j].name], nil)
 					text[#text + 1] = link
 					self.clickMap[mathFloor(startPos)] = link
-					startPos = startPos + GetTextHeight(text[#text])
+					startPos = startPos + self:GetTextHeight(text[#text], bodyWidth)
 				end
 			end
 		end
@@ -622,13 +627,7 @@ do
 		)
 
 		local startPos = self.bodyFontHeight
-		textHelper:SetFont(self.leftPage.body:GetFont())
 		local bodyWidth = self.leftPage.body:GetWidth()
-		local function GetTextHeight(text)
-			textHelper:SetText(text)
-			local result = mathFloor((textHelper:GetWidth() + bodyWidth - 1) / bodyWidth) * self.bodyFontHeight
-			return result
-		end
 
 		local text = {}
 
@@ -639,54 +638,114 @@ do
 			local lineText = string.format("\n  - %s", link)
 			text[#text + 1] = lineText
 			self.clickMap[mathFloor(startPos)] = link
-			startPos = startPos + GetTextHeight(lineText)
+			startPos = startPos + self:GetTextHeight(lineText, bodyWidth)
 		end
 
 		self:ShowText(tableConcat(text))
 	end
-end
 
-function HarvensQuestJournal:ShowIndexCategoryPage()
-	local svtable
-	self.title:SetText(self.currentCategoryName)
-	svtable = self.sv.completed
-	if not self.sortedListCompleted then
-		self.sortedListCompleted = self:CreateSortedList(svtable)
+	function HarvensQuestJournal:ShowIndexCategoryPage()
+		local svtable
+		self.title:SetText(self.currentCategoryName)
+		svtable = self.sv.completed
+		if not self.sortedListCompleted then
+			self.sortedListCompleted = self:CreateSortedList(svtable)
+		end
+
+		local sortedList = self.sortedListCompleted
+
+		local startPos = self.bodyFontHeight
+		local text = ""
+		local link
+
+		local bodyWidth = self.leftPage.body:GetWidth()
+		local i = self.currentCategory or QUEST_CATEGORY_ZONE
+		if i == QUEST_CATEGORY_ZONE then
+			local j = self.currentZoneKey
+			for k = 1, #sortedList[i][j] do
+				link = self:AppendQuest(svtable[i][sortedList[i][j][k].zone][sortedList[i][j][k].name], sortedList[i][j][k].zone)
+				text = text .. link
+				self.clickMap[mathFloor(startPos)] = link
+				startPos = startPos + self:GetTextHeight(link, bodyWidth)
+			end
+		else
+			for j = 1, #sortedList[i] do
+				link = self:AppendQuest(svtable[i][sortedList[i][j].name], nil)
+				text = text .. link
+				self.clickMap[mathFloor(startPos)] = link
+				startPos = startPos + self:GetTextHeight(link, bodyWidth)
+			end
+		end
+		self:ShowText(text)
 	end
 
-	local sortedList = self.sortedListCompleted
+	function HarvensQuestJournal:ApplySkin(name)
+		local medium = self.skinsToMediumId[name]
+		local isGamepad = ZO_IsConsoleOrGameCoreUI() or IsInGamepadPreferredMode()
+		local bg, numPages, pageWidth, pageHeight, pageYOffset, leftPageXOffset, rightPageXOffset, openSound, closeSound, turnPageSound = GetBookMediumInfo(medium)
+		local titleFontName, titleFontSize, titleFontStyle, bodyFontName, bodyFontSize, bodyFontStyle, r, g, b, a, styleR, styleG, styleB, styleA = GetBookMediumFontInfo(medium, isGamepad)
+		local fontTitle = ZO_CreateFontString(titleFontName, titleFontSize, titleFontStyle)
+		local fontBody = ZO_CreateFontString(bodyFontName, bodyFontSize, bodyFontStyle)
 
-	local startPos = self.bodyFontHeight
-	local text = ""
-	local link
+        self.leftPage:ClearAnchors()
+        self.rightPage:ClearAnchors()
+		self.leftPage.body:ClearAnchors()
+		self.rightPage.body:ClearAnchors()
+		self.leftPage:SetVerticalScroll(0)
+		self.rightPage:SetVerticalScroll(0)
 
-	local i = self.currentCategory
-	if i == QUEST_CATEGORY_ZONE then
-		local j = self.currentZoneKey
-		for k = 1, #sortedList[i][j] do
-			link = self:AppendQuest(svtable[i][sortedList[i][j][k].zone][sortedList[i][j][k].name], sortedList[i][j][k].zone)
-			text = text .. link
-			self.clickMap[mathFloor(startPos)] = link
-			startPos = startPos + self.bodyFontHeight --assume that quest name fits in one line
-		end
-	else
-		for j = 1, #sortedList[i] do
-			link = self:AppendQuest(svtable[i][sortedList[i][j].name], nil)
-			text = text .. link
-			self.clickMap[mathFloor(startPos)] = link
-			startPos = startPos + self.bodyFontHeight --assume that quest name fits in one line
-		end
+		self.background:SetTexture(bg)
+		self.leftPage.body:SetFont(fontBody)
+		self.rightPage.body:SetFont(fontBody)
+		self.title:SetFont(fontTitle)
+		textHelper:SetFont(fontBody)
+
+		self.title:SetColor(r, g, b, a)
+		self.title:SetStyleColor(styleR, styleG, styleB, styleA)
+        self.leftPage:SetHeight(pageHeight)
+		self.leftPage.body:SetColor(r, g, b, a)
+		self.leftPage.body:SetStyleColor(styleR, styleG, styleB, styleA)
+		self.rightPage:SetHeight(pageHeight)
+		self.rightPage.body:SetColor(r, g, b, a)
+		self.rightPage.body:SetStyleColor(styleR, styleG, styleB, styleA)
+
+		self.leftPage:SetWidth(pageWidth)
+        self.rightPage:SetWidth(pageWidth)
+		self.title:SetWidth(pageWidth)
+        self.leftPage.container:SetWidth(pageWidth)
+        self.rightPage.container:SetWidth(pageWidth)
+        self.leftPage.body:SetWidth(pageWidth)
+        self.rightPage.body:SetWidth(pageWidth)
+		self.leftPage:SetAnchor(LEFT, nil, LEFT, leftPageXOffset, pageYOffset)
+		self.rightPage:SetAnchor(RIGHT, nil, RIGHT, rightPageXOffset, pageYOffset)
+		self.leftPage:SetHorizontalScroll(0)
+		self.rightPage:SetHorizontalScroll(0)
+		self.leftPage.body:SetAnchor(TOPLEFT, nil, TOPLEFT)
+		self.rightPage.body:SetAnchor(TOPLEFT, nil, TOPLEFT)
+
+		self.leftPage.body:SetText("TEST")
+		self.bodyFontHeight = self.leftPage.body:GetFontHeight()
+
+		self.openSound = openSound
+		self.closeSound = closeSound
+		self.turnPageSound = turnPageSound
+
+		local d = (r + g + b) / 3
+		self.textColor = ZO_ColorDef:New((self.sv.layout.fontR + d) / 2, (self.sv.layout.fontG + d) / 2, (self.sv.layout.fontB + d) / 2, self.sv.layout.fontA)
+		self.questColor = ZO_ColorDef:New((self.sv.layout.questR + d) / 2, (self.sv.layout.questG + d) / 2, (self.sv.layout.questB + d) / 2, self.sv.layout.questA)
+		self.npcColor = ZO_ColorDef:New((self.sv.layout.npcR + d) / 2, (self.sv.layout.npcG + d) / 2, (self.sv.layout.npcB + d) / 2, self.sv.layout.npcA)
+		self.renderablePageHeight = pageHeight
 	end
-	self:ShowText(text)
 end
 
 function HarvensQuestJournal:UpdateJournal(silence)
 	if not silence then
-		PlaySound(SOUNDS.BOOK_PAGE_TURN)
+		PlaySound(self.turnPageSound)
 	end
+
 	self.leftPage:SetVerticalScroll(0)
+	self.rightPage:SetVerticalScroll(0)
 	self.currentPage = 1
-	self.clickMap = nil
 	self.clickMap = {}
 	if self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED then
 		self:ShowIndexPage()
@@ -721,7 +780,7 @@ function HarvensQuestJournal:OpenAtFocused()
 	self.currentSection = JS_CURRENT
 end
 
-function HarvensQuestJournal:OpenJournal()
+function HarvensQuestJournal:OpenJournal(silence)
 	self.activeQuests = {}
 	for i = 1, MAX_JOURNAL_QUESTS do
 		if IsValidQuestIndex(i) then
@@ -735,10 +794,25 @@ function HarvensQuestJournal:OpenJournal()
 		self.currentSection = JS_CURRENT
 	end
 
-	self:UpdateJournal()
+	self:UpdateJournal(silence)
 	if self.sv.openAtTracked then
 		self:SwitchPage(self.numPages - 1)
 	end
+end
+
+function HarvensQuestJournal:OnShow()
+	self:ApplySkin(self.sv.layout.skin)
+	PlaySound(self.openSound)
+end
+
+function HarvensQuestJournal:OnHide()
+	self.currentPage = 1
+	self:ShowText("")
+	self.clickMap = nil
+	self.background:SetTexture(nil)
+	self.leftPage.body:ClearAnchors()
+	self.rightPage.body:ClearAnchors()
+	PlaySound(self.closeSound)
 end
 
 function HarvensQuestJournal:HandleLinkClick(control, linkData, linkText, button)
@@ -781,25 +855,27 @@ function HarvensQuestJournal:SortChanged(control, selectedText, selectedItem)
 end
 
 function HarvensQuestJournal:InitJournal(control)
+	control:SetHandler(
+		"OnEffectivelyShown",
+		function(...)
+			self:OnShow(...)
+		end
+	)
+	control:SetHandler(
+		"OnHide",
+		function(...)
+			self:OnHide(...)
+		end
+	)
+
 	self.journal = control:GetNamedChild("Journal")
 
-	--local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_BOOK_MEDIUM, BOOK_MEDIUM_YELLOWED_PAPER)
-	self.questColor = ZO_ColorDef:New(self.sv.layout.questR, self.sv.layout.questG, self.sv.layout.questB, self.sv.layout.questA)
-	self.npcColor = ZO_ColorDef:New(self.sv.layout.npcR, self.sv.layout.npcG, self.sv.layout.npcB, self.sv.layout.npcA)
-
 	self.background = GetControl(self.journal, "Bg")
-	self.background:SetTexture(self.skinsToTextures[self.sv.layout.skin])
 
 	self.leftPage = GetControl(self.journal, "LeftPage")
 	self.leftPage.container = GetControl(self.leftPage, "Container")
 	self.title = GetControl(self.leftPage.container, "Title")
-	--self.title:SetFont(self.sv.layout.titleFont)
-	self.title:SetColor(self.sv.layout.fontR, self.sv.layout.fontG, self.sv.layout.fontB, self.sv.layout.fontA)
-	self.title:SetStyleColor(0, 0, 0, 1)
 	self.leftPage.body = GetControl(self.leftPage.container, "Body")
-	--self.leftPage.body:SetFont(self.sv.layout.bodyFont)
-	self.leftPage.body:SetColor(self.sv.layout.fontR, self.sv.layout.fontG, self.sv.layout.fontB, self.sv.layout.fontA)
-	self.leftPage.body:SetStyleColor(0, 0, 0, 1)
 	self.leftPage.body:SetMouseEnabled(true)
 	self.leftPage.body:SetHandler(
 		"OnLinkClicked",
@@ -817,7 +893,6 @@ function HarvensQuestJournal:InitJournal(control)
 	self.rightPage = GetControl(self.journal, "RightPage")
 	self.rightPage.container = GetControl(self.rightPage, "Container")
 	self.rightPage.body = GetControl(self.rightPage.container, "Body")
-	--self.rightPage.body:SetFont(self.sv.layout.bodyFont)
 	self.rightPage.body:SetColor(self.sv.layout.fontR, self.sv.layout.fontG, self.sv.layout.fontB, self.sv.layout.fontA)
 	self.rightPage.body:SetStyleColor(0, 0, 0, 1)
 	self.rightPage.body:SetMouseEnabled(true)
@@ -833,9 +908,8 @@ function HarvensQuestJournal:InitJournal(control)
 			self:HandleQuestClick(...)
 		end
 	)
-	self:ApplySkin(self.sv.layout.skin)
 
-	self.clickMap = {}
+	self.clickMap = nil
 end
 
 function HarvensQuestJournal:HandleLink(button, text, color, linkType, completed, ...)
@@ -1042,7 +1116,7 @@ function HarvensQuestJournal:SwitchPage(direction)
 	if (direction < 0 and self.currentPage <= 1) or (direction > 0 and self.currentPage >= self.numPages) then
 		return
 	end
-	PlaySound(SOUNDS.BOOK_PAGE_TURN)
+	PlaySound(self.turnPageSound)
 	self.currentPage = self.currentPage + direction
 	self.rightPage:SetVerticalScroll(self.rightPage.offset + (self.pageHeight * (2 * self.currentPage - 2)))
 	self.leftPage:SetVerticalScroll(self.pageHeight * (2 * self.currentPage - 2))
@@ -1143,11 +1217,7 @@ function HarvensQuestJournal:InitKeybindStripDescriptor()
 				self:UpdateJournal()
 			end,
 			visible = function(descriptor)
-				return self.currentSection == JS_CURRENT
-				 or self.currentSection == JS_COMPLETED
-				 or self.currentSection == JS_CURRENT_QUEST
-				 or self.currentSection == JS_RUMORS or
-				 self.currentSection == JS_COMPLETED_RUMORS
+				return self.currentSection == JS_CURRENT or self.currentSection == JS_COMPLETED or self.currentSection == JS_CURRENT_QUEST or self.currentSection == JS_RUMORS or self.currentSection == JS_COMPLETED_RUMORS
 			end
 		},
 		{
@@ -1359,27 +1429,10 @@ function HarvensQuestJournal:ToggleJournal()
 	end
 end
 
-function HarvensQuestJournal:ApplySkin(name)
-	self.background:SetTexture(self.skinsToTextures[name])
-	local fontBody, fontTitle
-	if ZO_IsConsoleOrGameCoreUI() or IsInGamepadPreferredMode() then
-		fontBody = "ZoFontGamepadBook" .. name
-		fontTitle = fontBody .. "Title"
-	else
-		fontBody = "ZoFontBook" .. name
-		fontTitle = fontBody .. "Title"
-	end
-	self.leftPage.body:SetFont(fontBody)
-	self.rightPage.body:SetFont(fontBody)
-	self.title:SetFont(fontTitle)
-
-	self.leftPage.body:SetText("TEST")
-	self.bodyFontHeight = self.leftPage.body:GetFontHeight()
-end
-
 function HarvensQuestJournal:SetupOptions()
 	local settings = LibHarvensAddonSettings:AddAddon("Harven's Quest Journal")
-	settings.version = "3.0.0"
+	settings.version = "3.0.1"
+	settings.allowDefaults = true
 
 	local skin = {
 		type = LibHarvensAddonSettings.ST_DROPDOWN,
@@ -1396,35 +1449,9 @@ function HarvensQuestJournal:SetupOptions()
 		setFunction = function(combobox, name)
 			self.sv.layout.skin = name
 			self:ApplySkin(name)
-		end
+		end,
+		default = self.defaults.layout.skin
 	}
-
-	-- local bodyFont = {
-	-- 	type = LibHarvensAddonSettings.ST_EDIT,
-	-- 	label = GetString(HARVEN_QUEST_JOURNAL_BODY_FONT),
-	-- 	getFunction = function()
-	-- 		return self.sv.layout.bodyFont
-	-- 	end,
-	-- 	setFunction = function(newValue)
-	-- 		self.sv.layout.bodyFont = newValue
-	-- 		--self.leftPage.body:SetFont(self.sv.layout.bodyFont)
-	-- 		--self.rightPage.body:SetFont(self.sv.layout.bodyFont)
-	-- 		self.leftPage.body:SetText("TEST")
-	-- 		self.bodyFontHeight = self.leftPage.body:GetFontHeight()
-	-- 	end
-	-- }
-
-	-- local titleFont = {
-	-- 	type = LibHarvensAddonSettings.ST_EDIT,
-	-- 	label = GetString(HARVEN_QUEST_JOURNAL_TITLE_FONT),
-	-- 	getFunction = function()
-	-- 		return self.sv.layout.titleFont
-	-- 	end,
-	-- 	setFunction = function(newValue)
-	-- 		self.sv.layout.titleFont = newValue
-	-- 		--self.title:SetFont(self.sv.layout.titleFont)
-	-- 	end
-	-- }
 
 	local fontColor = {
 		type = LibHarvensAddonSettings.ST_COLOR,
@@ -1437,7 +1464,8 @@ function HarvensQuestJournal:SetupOptions()
 			self.title:SetColor(...)
 			self.rightPage.body:SetColor(...)
 			self.leftPage.body:SetColor(...)
-		end
+		end,
+		default = {self.defaults.layout.fontR, self.defaults.layout.fontG, self.defaults.layout.fontB, self.defaults.layout.fontA}
 	}
 
 	local questColor = {
@@ -1448,9 +1476,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(...)
 			self.sv.layout.questR, self.sv.layout.questG, self.sv.layout.questB, self.sv.layout.questA = ...
-			self.questColor = nil
-			self.questColor = ZO_ColorDef:New(...)
-		end
+		end,
+		default = {self.defaults.layout.questR, self.defaults.layout.questG, self.defaults.layout.questB, self.defaults.layout.questA}
 	}
 
 	local npcNamesColor = {
@@ -1461,9 +1488,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(...)
 			self.sv.layout.npcR, self.sv.layout.npcG, self.sv.layout.npcB, self.sv.layout.npcA = ...
-			self.npcColor = nil
-			self.npcColor = ZO_ColorDef:New(...)
-		end
+		end,
+		default = {self.defaults.layout.npcR, self.defaults.layout.npcG, self.defaults.layout.npcB, self.defaults.layout.npcA}
 	}
 
 	local showCompletedByCategory = {
@@ -1475,7 +1501,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(state)
 			self.sv.showCompletedByCategory = state
-		end
+		end,
+		default = self.defaults.showCompletedByCategory
 	}
 
 	local openAtTracked = {
@@ -1486,7 +1513,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(state)
 			self.sv.openAtTracked = state
-		end
+		end,
+		default = self.defaults.openAtTracked
 	}
 
 	local saveDailyQuests = {
@@ -1497,7 +1525,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(state)
 			self.sv.saveDaily = state
-		end
+		end,
+		default = self.defaults.saveDaily
 	}
 
 	local saveRepeatableQuests = {
@@ -1508,7 +1537,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(state)
 			self.sv.saveRepeatable = state
-		end
+		end,
+		default = self.defaults.saveRepeatable
 	}
 
 	local playEmote = {
@@ -1519,7 +1549,8 @@ function HarvensQuestJournal:SetupOptions()
 		end,
 		setFunction = function(state)
 			self.sv.playEmote = state
-		end
+		end,
+		default = self.defaults.playEmote
 	}
 
 	settings:AddSettings({openAtTracked, skin, fontColor, questColor, npcNamesColor, showCompletedByCategory, saveDailyQuests, saveRepeatableQuests, playEmote})
@@ -1532,7 +1563,8 @@ function HarvensQuestJournal:SetupOptions()
 			end,
 			setFunction = function(state)
 				self.sv.showInMainMenu = state
-			end
+			end,
+			default = self.defaults.showInMainMenu
 		}
 	end
 end
@@ -1610,27 +1642,24 @@ end
 function HarvensQuestJournal:Initialize()
 	self.control = HarvensQuestJournalTopLevel
 
-	local re, gr, bl = GetInterfaceColor(INTERFACE_COLOR_TYPE_BOOK_MEDIUM, BOOK_MEDIUM_YELLOWED_PAPER)
 	local defaults = {
 		zonesFixed = false,
 		linksConverted = false,
 		layout = {
 			openAtTracked = false,
 			skin = "Paper",
-			bodyFont = "ZoFontBookPaper",
-			titleFont = "ZoFontBookPaperTitle",
-			fontR = re,
-			fontG = gr,
-			fontB = bl,
-			fontA = 0.8,
-			questR = 0.34,
-			questG = 0.05,
-			questB = 0.05,
-			questA = 0.8,
-			npcR = 0.05,
-			npcG = 0.37,
-			npcB = 0.06,
-			npcA = 0.8
+			fontR = 0.16,
+			fontG = 0.16,
+			fontB = 0.5,
+			fontA = 1,
+			questR = 0.5,
+			questG = 0.16,
+			questB = 0.16,
+			questA = 1,
+			npcR = 0.16,
+			npcG = 0.5,
+			npcB = 0.16,
+			npcA = 1
 		},
 		saveDaily = true,
 		saveRepeatable = true,
@@ -1642,10 +1671,7 @@ function HarvensQuestJournal:Initialize()
 		rumors = {},
 		completedRumors = {}
 	}
-	-- if ZO_IsConsoleOrGameCoreUI() then
-	-- 	defaults.layout.bodyFont = "ZoFontGamepadBookPaper"
-	-- 	defaults.layout.titleFont = "ZoFontGamepadBookPaperTitle"
-	-- end
+	self.defaults = defaults
 
 	self.sv = ZO_SavedVars:New("HarvensQuestJournal_SavedVariables", 1, nil, defaults)
 
@@ -1683,6 +1709,12 @@ function HarvensQuestJournal:Initialize()
 		["Rubbing"] = "EsoUI/Art/LoreLibrary/loreLibrary_rubbingBook.dds",
 		["Metal"] = "EsoUI/Art/LoreLibrary/loreLibrary_dwemerBook.dds"
 	}
+	self.skinsToMediumId = {
+		["Paper"] = 1,
+		["Skin"] = 2,
+		["Rubbing"] = 3,
+		["Metal"] = 8
+	}
 
 	local fragment = ZO_SimpleSceneFragment:New(HarvensQuestJournalTopLevel)
 
@@ -1712,7 +1744,6 @@ function HarvensQuestJournal:Initialize()
 
 	scene:AddFragment(fragment)
 	scene:AddFragment(FRAME_EMOTE_FRAGMENT_MAP)
-	scene:AddFragment(ZO_WindowSoundFragment:New(SOUNDS.BOOK_OPEN, SOUNDS.BOOK_CLOSE))
 
 	self:InitKeybindStripDescriptor()
 
@@ -1730,7 +1761,7 @@ function HarvensQuestJournal:Initialize()
 		function(oldState, newState)
 			if newState == SCENE_SHOWING then
 			elseif newState == SCENE_SHOWN then
-				self:OpenJournal()
+				self:OpenJournal(true)
 				KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
 				doEmote("/read")
 			elseif newState == SCENE_HIDING then
@@ -2104,7 +2135,6 @@ function HarvensQuestJournal:Initialize()
 				EVENT_RUMOR_STARTED,
 				function(eventType, rumorId)
 					HarvensQuestJournal:AddRumor(rumorId)
-					HarvensQuestJournal:UpdateJournal(true)
 				end
 			)
 
@@ -2113,7 +2143,6 @@ function HarvensQuestJournal:Initialize()
 				EVENT_RUMOR_UPDATED,
 				function(eventType, rumorId)
 					HarvensQuestJournal:AddRumor(rumorId)
-					HarvensQuestJournal:UpdateJournal(true)
 				end
 			)
 
@@ -2130,7 +2159,6 @@ function HarvensQuestJournal:Initialize()
 							rumorId = GetNextPendingRumorId(rumorId)
 						end
 					end
-					HarvensQuestJournal:UpdateJournal(true)
 				end
 			)
 
@@ -2139,7 +2167,6 @@ function HarvensQuestJournal:Initialize()
 				EVENT_RUMOR_COMPLETED,
 				function(eventType, rumorId)
 					HarvensQuestJournal:CompleteRumor(rumorId)
-					HarvensQuestJournal:UpdateJournal(true)
 				end
 			)
 

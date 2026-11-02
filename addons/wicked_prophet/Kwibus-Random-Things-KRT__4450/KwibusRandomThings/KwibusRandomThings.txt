@@ -1,7 +1,7 @@
 ## Title: kwibus random things
 ## Author: |ce6202dKwiebe-Kwibus|r
-## Version: 1.4.6
-## APIVersion: 101051
+## Version: 1.5.0
+## APIVersion: 101050 101051
 ## DependsOn: LibAddonMenu-2.0>=41
 ## OptionalDependsOn: LibSkillBlocker>=110
 ## SavedVariables: KwibusRandomThingsSV
@@ -19,3 +19,4 @@ Modules/KWS.lua
 Modules/EAL.lua
 Modules/GUID.lua
 Modules/KOW.lua
+Modules/KSPI.lua

@@ -1,73 +1,68 @@
-SIPHON ZAHL 0.6.9 BETA - .addon / Gamepad / PTS API 101052
+SIPHON ZAHL 0.9.2
+Autor: FiNk3--F13--
+Manifest: SiphonZahl.addon, AddOnVersion 902, APIVersion 101051.
+LibHarvensAddonSettings. Konsole/Gamepad. Keine Chatbefehle.
+
+AENDERUNG 0.9.2
+Eigener Skelett-Schuetze anhand echter Testdaten ergaenzt (Effekt118681).
+Der Beschwoerungsmarker merkt die ID vor, zaehlt aber keine lebende Einheit.
+Erst ein noch vorhandener, tatsaechlich toter eigener Koerper mit passender
+ID und Position wird gezaehlt. Verbrauch mit Siphon entfernt genau diese ID.
+Keine angesetzte Beschwoerungs- oder Leichenlebensdauer.
+PC-Beobachtungen: ID18749 verschwand beim Tod und wurde nicht als vorhandener
+toter Koerper bestaetigt. ID64565 blieb nach dem Tod noch9.989 Sekunden als
+tote Einheit bestehen. Bei ID36774 meldete Siphon exakt die tote Einheiten-ID.
+Diese Zeiten sind Beobachtungen, KEINE im Zaehler hinterlegten Ablaufzeiten.
+Skelettmagier/Arkanist und andere Quellen sind damit noch nicht bestaetigt.
+
+ZAEHLMETHODE
+Eigene Sprengknochen-/Schaedel-/Skelett-Schuetzen-Leichen werden ohne angenommene Lebensdauer
+verfolgt. Zum Zaehlen sind noetig:
+- Ein bekannter Erzeugungsmarker mit Einheiten-ID.
+- Dieselbe ID an einem eigenen playerpet-Tag.
+- Die Einheit existiert laut ESO noch und ist tot.
+- Ihre aktuelle RAW-Position liegt im 90-Grad-Kegel und innerhalb 11 Metern.
+
+Die Zahl sinkt bei tatsaechlichem Verlust der Einheit/des Tags oder bei
+zugeordnetem Siphon-Verbrauch. Eine neue Einheit im gleichen Pet-Slot ersetzt
+die alte Zuordnung. Doppelte oder verbrauchte Marker zaehlen nicht erneut.
+Keine Leiche wird nach fest eingestellten 5 oder 10 Sekunden abgezogen.
+Die 1.5s-Castkorrelation ordnet Siphon-Antworten zu, sie ist KEINE Leichendauer.
+
+BELEG AUS DEN VIER PC-TESTLAEUFEN
+Natuerliche Entfernung: BB-ID16518 nach 5.031s, Schaedel-ID6752 nach 5.016s.
+Das sind Beobachtungen, keine im neuen Zaehler hinterlegten Ablaufzeiten.
+Siphon meldete exakt die erzeugten IDs62334 und52568; die toten Einheiten
+koennen danach noch bestehen, deshalb wird der Ziel-ID-Verbrauch separat genutzt.
+FADED kam bereits beim Entstehen der Leiche und wird NICHT als Ende behandelt.
+Die Originalaufzeichnung und eine Sicherung bleiben im Arbeitsordner erhalten.
+
+GRENZEN
+Getestete Quellen: eigene Sprengknochen (PC-Morph verdorbene Sprengknochen)
+und Schaedel. Weitere Morphs/Plattformen beduerfen echter Spieltests.
+Gegnerleichen, Banner, Geist und andere Skelett-Morphs werden NICHT gezaehlt.
+Andere Leichenverbraucher sind nicht durch diese vier Laeufe bestaetigt.
+Fehlende Einheiten-Zuordnung oder Koordinaten werden ausgelassen; Hinweis sichtbar.
+Auch ein Zaehler0 schliesst daher andere nutzbare Leichen nicht aus.
+Keine vollstaendige Umgebungssuche und keine Sichtlinienpruefung.
+Das Modell ist anhand echter Ereignisse belegt, aber keine Garantie aller
+aktuell fuer jeden Verbraucher nutzbaren Leichen.
 
 BEDIENUNG
-Im Gamepad-Einstellungsmenue den Add-on-Bereich von LibHarvensAddonSettings
-und Siphon Zahl oeffnen. Keine Chatbefehle.
-Move UI einschalten, mit rechtem Stick verschieben und wieder ausschalten.
-Groesse sowie horizontale und vertikale Position sind per Regler einstellbar.
-Vorschau 3 ist eine Beispielzahl. Position und Groesse werden gespeichert.
-Leichenereignisse werden innerhalb und ausserhalb des Kampfes verarbeitet.
-Kampfende setzt die Zaehlung nicht zurueck. Nur im Kampf anzeigen betrifft
-ausschliesslich die Sichtbarkeit; Verbrauch und Ablauf werden weiter verfolgt.
-Ein Tastendruck ohne bestaetigten Verbrauch markiert Leichen nicht unsicher.
-Corpseburster-Verbrauchsmeldungen werden mit Siphon-Zielmeldungen abgeglichen.
-Ein verbleibendes ? bedeutet weiterhin: Verbrauch nicht eindeutig zugeordnet.
+Move UI: rechter Stick oder PC-Maus, Kameramodus wie Weaving Metronome.
+Nach 3 Sekunden ohne Eingabe automatisch sperren. Kompakter Rahmen fuer zwei
+Ziffern. Groesse/Farbe/Deckkraft und Position bleiben accountweit gespeichert.
+Keine Positionsregler, kein Vorschau-Button, kein Debug-/Ereignistest auf dem HUD.
 
-DIAGNOSE
-Bei wiederholten Fragezeichen Debug-Aufzeichnung im Einstellungsmenue aktivieren.
-Problem nachstellen und danach ausloggen, damit ESO die SavedVariables schreibt.
-Gespeichert werden maximal 300 Ereignisse in SiphonZahlSaved.debugLog mit
-Zeitpunkt, Kampfstatus, technischen IDs, Pet-Effekten und dem Unsicherheitsgrund.
-Keine Spielernamen und kein automatischer Upload. Standardmaessig aus.
-
-ABHAENGIGKEIT
-LibHarvensAddonSettings >=20109, separat installieren/aktivieren.
-CorpseTracker und LibAddonMenu sind fuer diese Version nicht erforderlich.
-
-BEGRENZTE LEICHENSCHAETZUNG
-Eigene Blastbones-Schadenereignisse, Schaedel-Leichenmarker 220102 und
-Banner-Leichenmarker 227114: geschaetzte Lebensdauer 5 Sekunden.
-Neu: erkannte Geister-Morphs (Spirit Guardian/Intensive Mender) bei natuerlichem
-Tod und erkannte Skelettmagier-/Schuetzen-Effekte bei Ablauf: Schaetzung 10 Sekunden.
-Erzeugung wird erst beim passenden Ereignis gezaehlt, nicht beim Beschwoeren.
-Geister werden nicht pauschal anhand eines Timers als tote Leichen behandelt.
-Mehrere Meldungen fuer dieselbe Unit-ID werden zusammengefasst.
-Siphon-Selbstmeldungen warten kurz auf eine identifizierende Zielmeldung.
-Identifizierter Verbrauch wird abgezogen; unbekannter Verbrauch markiert
-den bisherigen Restbestand mit ?. Neue Leichen werden dabei nicht rueckwirkend
-als unsicher markiert. Corpseburster wird nicht als Leichenerzeugung gezaehlt.
-Keine vollstaendige Zaehlung aller Leichen im Raum: NPC-Leichen, unerkannte
-Pet-Morphs, Ruestungsquellen und virtuelle Ressourcen sind nicht enthalten.
-Bereits vor dem UI-Neuladen beschworene Pets werden nicht nachtraeglich erfasst.
-IDs, Lebensdauern und Verhalten muessen im Zielpatch im Spiel getestet werden.
-Keine Garantie fuer Reichweite, Sichtlinie oder Nutzbarkeit.
-0 rot: keine unterstuetzten Leichen geschaetzt.
-3 gruen: drei geschaetzte Leichen.
-3? gelb: unsicherer Restbestand; es koennten weniger oder keine sein.
-
-STATUS
-SiphonZahl.addon ist das einzige Manifest; Dateinamen exakt geprueft.
-Im PC-PTS-AddOns-Ordner installiert. Nicht auf Konsole veroeffentlicht.
-Konsolen beziehen Add-ons aus ESOs Katalog; ein PC-PTS-Ordner reicht nicht.
-Lua-Mocktests bestanden. Kein realer Xbox-/PlayStation-Test erfolgt.
-Mit OpenAI Codex entwickelt. Keine fremden Quelldateien enthalten.
+VALIDIERUNG
+Alle vier urspruenglichen PC-Ereignislaeufe sowie die Skelett-Testlaeufe
+gegen den Zaehler wiedergegeben. Lebender Schuetze, sofortiger Tagverlust,
+vorhandener toter Schuetze, Verbrauch, gleichzeitige Leichen und reine
+Zeitspruenge zusaetzlich geprueft.
+Zusaetzlich: kein Ablauf bei reinem Zeitsprung, lebende Pet-Einheit zaehlt nicht,
+FADED bei Erzeugung, Siphon-Zielzuordnung, Doppelevents, Slot-Wiederverwendung,
+Verspinden ohne Event, RAW-/Kegelgrenzen, unbekannte Positionen, UI-Bewegung/Farbe.
+Neue Implementierung noch nicht direkt im Spiel/auf PS5 bestaetigt.
+Lokale Installation aktualisiert nur den PC-PTS-Ordner.
+Entwickelt mit Unterstuetzung von OpenAI Codex.
 Nicht mit ZeniMax Media Inc. verbunden oder von ihr gesponsert.
-
-
-Diagnose 0.6.4 protokolliert auch Todesereignisse und vergleicht deren IDs mit nicht zugeordneten Siphon-Zielen. Daraus werden noch keine NPC-Leichen gezaehlt.
-
-
-Korrektur 0.6.5: Ein in den Kampfereignissen identifizierter, getoeteter NPC wird als separate Verbrauchsquelle erkannt. Wird seine Leiche mit Siphon verwendet, bleiben eigene Schaedel-/Blastbones-Eintraege unveraendert. Diese Zuordnung laeuft auch bei deaktiviertem Debug. NPC-Leichen werden weiterhin nicht in die angezeigte eigene Leichenschaetzung aufgenommen.
-
-
-0.6.6: Skelettbeschwoerungen werden beim Entfernen nahe ihrem gemeldeten natuerlichen Laufzeitende ebenfalls als Leichenschaetzung erfasst, auch ausserhalb des Kampfes. Fruehes Entfernen wird nicht pauschal gezaehlt. Veraltete Fade-Meldungen fuer andere Unit-IDs werden ignoriert. Debug zeichnet nun auch den Ablauf gezaehlter Leichen auf. Dieser neue Ersatzpfad ist mit Mocktests geprueft, noch nicht im Spiel bestaetigt.
-
-
-0.6.7: Siphon-Effektmeldungen werden nur nach einer bestaetigten Siphon-Aktivierung als Verbrauch ausgewertet. Reines Frontbar-/Backbar-Wechseln darf weder Leichen verbrauchen noch den Bestand unsicher markieren. Antworten auf eine echte Aktivierung werden auch nach einem folgenden Waffenwechsel verarbeitet. Debug protokolliert Waffenwechsel und versieht neue Eintraege mit der Versionsnummer.
-
-
-0.6.8 PS5-Diagnose: Debug-Aufzeichnung im LibHarvens-Menue aktivieren und das Menue schliessen. Links oben erscheinen die laufende Add-on-Version, API, Plattform, letzte Aktivierung, Waffenpaar und Verbrauchsgrund. Leiche erzeugen, Frontbar/Backbar/Frontbar wechseln und bei erneutem Fragezeichen einen Screenshot dieser Diagnose aufnehmen. Diese ZIP ist fuer den Konsolen-Upload vorbereitet, nicht auf PS5 veroeffentlicht oder dort getestet.
-
-
-0.6.9: Autor FiNk3--F13--. Radiusfilter standardmaessig aktiv, Standardradius 8 Meter, im LibHarvens-Menue einstellbar. Verglichen werden die Spielerposition und gemeldete eigene Pet-Leichenpositionen. Bekannte Leichen ausserhalb des Radius werden nicht angezeigt, intern aber fuer Verbrauch und Ablauf weiterverfolgt. Position unbekannt oder ungueltig: Leiche wird ausgelassen. Eine 0 ist daher kein Beweis, dass absolut keine nutzbare Leiche existiert. Kein Sichtliniencheck, keine vollstaendige NPC-Erfassung. Die Debug-Anzeige zeigt Innen/Aussen/Position unbekannt. Positionsverfuegbarkeit auf echter PS5 muss noch geprueft werden. AI-Unterstuetzung: OpenAI Codex.
-

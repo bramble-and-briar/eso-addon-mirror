@@ -55,8 +55,8 @@ end
 -- cosa con duración se conserva aunque el juego la marque como pasiva (p. ej. el
 -- efecto temporal que pone una pasiva al activarse).
 local function IsPassive(abilityId)
-    if not (IsAbilityPassive and IsAbilityPassive(abilityId)) then return false end
-    local duration = GetAbilityDuration and GetAbilityDuration(abilityId)
+    if not IsAbilityPassive(abilityId) then return false end
+    local duration = GetAbilityDuration(abilityId, nil, "player")
     return not duration or duration <= 0
 end
 

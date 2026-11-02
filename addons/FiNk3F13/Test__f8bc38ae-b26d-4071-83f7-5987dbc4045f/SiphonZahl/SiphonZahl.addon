@@ -1,8 +1,8 @@
 ## Title: Siphon Zahl
-## Description: Geschaetzte eigene Nekromanten-Leichen; Gamepad-Einstellungen und Move UI.
+## Description: Ereigniszaehler eigener Sprengknochen-/Schaedel-/Skelett-Schuetzen-Leichen; Gamepad-Einstellungen und Move UI.
 ## Author: FiNk3--F13--
-## Version: 0.6.9
-## AddOnVersion: 609
+## Version: 0.9.2
+## AddOnVersion: 902
 ## APIVersion: 101051
 ## DependsOn: LibHarvensAddonSettings
 ## SavedVariables: SiphonZahlSaved

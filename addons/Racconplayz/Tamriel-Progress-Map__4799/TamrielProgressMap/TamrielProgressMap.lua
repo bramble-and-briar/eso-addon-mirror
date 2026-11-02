@@ -1,6 +1,6 @@
 local ADDON_NAME = "TamrielProgressMap"
 local DISPLAY_NAME = "Tamriel Progress Map"
-local VERSION = "2.8.0"
+local VERSION = "2.9.0"
 local AUTHOR = "Raccoonplayz"
 local PIN_TYPE_STRING = "TamrielProgressMap_ZoneProgressPin"
 local SUPPORTED_LANGUAGES = { de = true, en = true, ru = true, fr = true, es = true }
@@ -93,12 +93,15 @@ local DEFAULTS =
     combatStatsByCharacter = {},
     economyStats = { trackingVersion = "2.0.10", currencies = {} }, -- legacy account-wide ledger from 2.0.10-2.0.14
     economyStatsByCharacter = {},
+    economyBalanceHighs = {}, -- 2.9.0: account-wide highest observed displayed balance per currency
     economyZoneStatsByCharacter = {}, -- 2.6.32: zone-specific economy ledger; starts with this version
     economyZoneTrackingStartedAt = 0,
     economyDetailFocusZoneId = 0,
     economyDetailView = "overview",
     economyDetailX = false,
     economyDetailY = false,
+    fragmentDetailX = false,
+    fragmentDetailY = false,
     showAllianceTerritoryColors = false, -- 2.6.32 community: original alliance territory overlay
     allianceNeutralWhite = true,
     historyByCharacter = {},
@@ -272,7 +275,6 @@ local COLLECTION_STAT_DEFINITIONS =
     { typeGlobal = "COLLECTIBLE_CATEGORY_TYPE_HEAD_MARKING",         labelKey = "STAT_COLLECTION_HEAD_MARKINGS" },
     { typeGlobal = "COLLECTIBLE_CATEGORY_TYPE_HAIR",                 labelKey = "STAT_COLLECTION_HAIR" },
     { typeGlobal = "COLLECTIBLE_CATEGORY_TYPE_FACIAL_ACCESSORY",     labelKey = "STAT_COLLECTION_FACIAL_ACCESSORIES" },
-    { typeGlobal = "COLLECTIBLE_CATEGORY_TYPE_COMBINATION_FRAGMENT", labelKey = "STAT_COLLECTION_FRAGMENTS" },
 }
 
 local COMPLETION_LOCALIZATION_KEYS =
@@ -292,7 +294,8 @@ local COMPLETION_LOCALIZATION_KEYS =
     [ZONE_COMPLETION_TYPE_MAGES_GUILD_BOOKS] = "CAT_LOREBOOKS",
 }
 
-local SIDE_QUEST_CATEGORY_KEY = "side_quests"
+local BASE_SIDE_QUEST_CATEGORY_KEY = "base_side_quests"
+local DLC_SIDE_QUEST_CATEGORY_KEY = "dlc_side_quests"
 local CROWN_QUEST_CATEGORY_KEY = "crown_quests"
 local ZONE_STABLE_MOUNT_CATEGORY_KEY = "zone_stable_mount"
 
@@ -341,25 +344,35 @@ local ZONE_STABLEMASTER_MOUNTS =
 
 local STATISTICS_CATEGORY_ICON_TEXTURES =
 {
-    [ZONE_COMPLETION_TYPE_PRIORITY_QUESTS] = "TamrielProgressMap/art/cat_quests.dds",
-    [ZONE_COMPLETION_TYPE_WAYSHRINES] = "TamrielProgressMap/art/cat_wayshrine.dds",
-    [ZONE_COMPLETION_TYPE_DELVES] = "TamrielProgressMap/art/cat_delve.dds",
-    [ZONE_COMPLETION_TYPE_GROUP_DELVES] = "TamrielProgressMap/art/cat_groupdelve.dds",
-    [ZONE_COMPLETION_TYPE_POINTS_OF_INTEREST] = "TamrielProgressMap/art/cat_poi.dds",
-    [ZONE_COMPLETION_TYPE_STRIKING_LOCALES] = "TamrielProgressMap/art/cat_striking.dds",
-    [ZONE_COMPLETION_TYPE_SET_STATIONS] = "TamrielProgressMap/art/cat_setstation.dds",
-    [ZONE_COMPLETION_TYPE_MUNDUS_STONES] = "TamrielProgressMap/art/cat_mundus.dds",
-    [ZONE_COMPLETION_TYPE_PUBLIC_DUNGEONS] = "TamrielProgressMap/art/cat_publicdungeon.dds",
-    [ZONE_COMPLETION_TYPE_WORLD_EVENTS] = "TamrielProgressMap/art/cat_event.dds",
-    [ZONE_COMPLETION_TYPE_GROUP_BOSSES] = "TamrielProgressMap/art/cat_boss.dds",
-    [ZONE_COMPLETION_TYPE_SKYSHARDS] = "TamrielProgressMap/art/cat_skyshard.dds",
-    [ZONE_COMPLETION_TYPE_MAGES_GUILD_BOOKS] = "TamrielProgressMap/art/cat_book.dds",
-    [SIDE_QUEST_CATEGORY_KEY] = "TamrielProgressMap/art/cat_sidequests.dds",
-    [CROWN_QUEST_CATEGORY_KEY] = "TamrielProgressMap/art/cat_crown.dds",
-    [ZONE_STABLE_MOUNT_CATEGORY_KEY] = "TamrielProgressMap/art/cat_crown.dds",
+    [ZONE_COMPLETION_TYPE_PRIORITY_QUESTS] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_priorityQuest.dds", fallback = "TamrielProgressMap/art/cat_quests.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_WAYSHRINES] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_wayshrine.dds", fallback = "TamrielProgressMap/art/cat_wayshrine.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_DELVES] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_delve.dds", fallback = "TamrielProgressMap/art/cat_delve.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_GROUP_DELVES] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_groupDelve.dds", fallback = "TamrielProgressMap/art/cat_groupdelve.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_POINTS_OF_INTEREST] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_pointOfInterest.dds", fallback = "TamrielProgressMap/art/cat_poi.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_STRIKING_LOCALES] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_strikingLocales.dds", fallback = "TamrielProgressMap/art/cat_striking.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_SET_STATIONS] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_setStation.dds", fallback = "TamrielProgressMap/art/cat_setstation.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_MUNDUS_STONES] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_mundusStone.dds", fallback = "TamrielProgressMap/art/cat_mundus.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_PUBLIC_DUNGEONS] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_publicDungeon.dds", fallback = "TamrielProgressMap/art/cat_publicdungeon.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_WORLD_EVENTS] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_worldEvents.dds", fallback = "TamrielProgressMap/art/cat_event.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_GROUP_BOSSES] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_groupBoss.dds", fallback = "TamrielProgressMap/art/cat_boss.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_SKYSHARDS] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_skyshard.dds", fallback = "TamrielProgressMap/art/cat_skyshard.dds", preserveNativeColor = true },
+    [ZONE_COMPLETION_TYPE_MAGES_GUILD_BOOKS] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_lorebooks.dds", fallback = "TamrielProgressMap/art/cat_book.dds", preserveNativeColor = true },
+    [BASE_SIDE_QUEST_CATEGORY_KEY] = { texture = "EsoUI/Art/Journal/journal_Quest_Repeat.dds", fallback = "TamrielProgressMap/art/cat_sidequests.dds", preserveNativeColor = true },
+    [DLC_SIDE_QUEST_CATEGORY_KEY] = { texture = "EsoUI/Art/ZoneStories/completionTypeIcon_priorityQuest.dds", fallback = "TamrielProgressMap/art/cat_sidequests.dds", preserveNativeColor = true },
+    [CROWN_QUEST_CATEGORY_KEY] = { texture = "TamrielProgressMap/art/cat_crown.dds", fallback = "TamrielProgressMap/art/cat_crown.dds", preserveNativeColor = false },
+    [ZONE_STABLE_MOUNT_CATEGORY_KEY] = { texture = "TamrielProgressMap/art/cat_crown.dds", fallback = "TamrielProgressMap/art/cat_crown.dds", preserveNativeColor = false },
 }
+
+local function IsUsableStatisticsIcon(texture)
+    if type(texture) ~= "string" or texture == "" then return false end
+    local lower = zo_strlower(texture)
+    if lower == zo_strlower(tostring(ZO_NO_TEXTURE_FILE or "")) then return false end
+    return not (string.find(lower, "question", 1, true)
+        or string.find(lower, "unknown", 1, true)
+        or string.find(lower, "missing", 1, true)
+        or string.find(lower, "placeholder", 1, true))
+end
 local ESO_GOLD_HEX = "E6C45C"
-local SIDE_QUEST_SCAN_MAX_ID = 12000
 local STATISTICS_VISIBLE_ZONE_ROWS = 7
 local STATISTICS_PERCENT_GRAY_HEX = "B8B4A8"
 local HISTORY_CHECKPOINT_MS = 600000 -- 10 minutes; SavedVariables are still physically written by ESO itself.
@@ -369,7 +382,7 @@ local HISTORY_MAX_CHART_POINTS = 60
 local HISTORY_SAMPLE_INTERVAL_SECONDS = 300 -- detailed recent chart cadence; large changes can create an earlier point.
 local HISTORY_SAMPLE_RETENTION_DAYS = 45 -- older history uses daily close + daily high/low.
 local CHARACTER_PLAYTIME_RETENTION_DAYS = 365 -- dedicated Character page date/time + playtime ledger.
-local CURRENT_SCHEMA_VERSION = 4 -- schema v4: expanded Statistics theme color channels.
+local CURRENT_SCHEMA_VERSION = 5 -- schema v5: fragment detail window position.
 local HISTORY_MAX_SAMPLES = 1400
 local SESSION_CONTINUITY_SECONDS = 300
 
@@ -890,6 +903,18 @@ function TPM:GetEconomyCurrentAmount(definition)
     return self:GetEconomyCurrentAmounts(definition).current
 end
 
+function TPM:GetEconomyBalanceHigh(definition)
+    if not definition or type(definition.key) ~= "string" or definition.key == "" then return 0 end
+    local amounts = self:GetEconomyCurrentAmounts(definition)
+    local current = math.max(0, Round(tonumber(amounts.current) or 0))
+    if not self.saved then return current end
+    if type(self.saved.economyBalanceHighs) ~= "table" then self.saved.economyBalanceHighs = {} end
+    local previous = math.max(0, Round(tonumber(self.saved.economyBalanceHighs[definition.key]) or 0))
+    local highest = math.max(previous, current)
+    self.saved.economyBalanceHighs[definition.key] = highest
+    return highest
+end
+
 function TPM:MigrateLegacyEconomyStats(currentKey, currentCache)
     -- A populated character-ID ledger is authoritative. Older name-keyed
     -- snapshots must not replace it each time the economy page is refreshed.
@@ -949,6 +974,9 @@ function TPM:GetEconomyStats()
     if not self.saved then return { trackingVersion = "2.0.15", currencies = {} } end
     if type(self.saved.economyStatsByCharacter) ~= "table" then
         self.saved.economyStatsByCharacter = {}
+    end
+    if type(self.saved.economyBalanceHighs) ~= "table" then
+        self.saved.economyBalanceHighs = {}
     end
     if type(self.saved.historyByCharacter) ~= "table" then
         self.saved.historyByCharacter = {}
@@ -4983,6 +5011,40 @@ function TPM:GetCompletionTypeName(completionType)
     return tostring(completionType)
 end
 
+function TPM:GetStatisticsCategoryIcon(completionType)
+    local definition = STATISTICS_CATEGORY_ICON_TEXTURES[completionType]
+    if type(definition) == "table" then
+        if IsUsableStatisticsIcon(definition.texture) then
+            return definition.texture, definition.preserveNativeColor == true, definition.fallback
+        end
+        local fallback = definition.fallback or "TamrielProgressMap/art/cat_quests.dds"
+        return fallback, false, fallback
+    end
+    if IsUsableStatisticsIcon(definition) then return definition, false, "TamrielProgressMap/art/cat_quests.dds" end
+    return "TamrielProgressMap/art/cat_quests.dds", false, "TamrielProgressMap/art/cat_quests.dds"
+end
+
+function TPM:SetTextureWithFallback(textureControl, fallbackControl, primaryTexture, fallbackTexture)
+    if not textureControl or not fallbackControl then return end
+    fallbackTexture = IsUsableStatisticsIcon(fallbackTexture) and fallbackTexture or "TamrielProgressMap/art/cat_quests.dds"
+    fallbackControl:SetTexture(fallbackTexture)
+    fallbackControl:SetHidden(false)
+    textureControl:SetHidden(true)
+    textureControl.TPMExpectedTexture = primaryTexture
+    textureControl:SetHandler("OnTextureLoaded", function(control)
+        if control.IsTextureLoaded and control:IsTextureLoaded() then
+            control:SetHidden(false)
+            fallbackControl:SetHidden(true)
+        end
+    end)
+    if not IsUsableStatisticsIcon(primaryTexture) then return end
+    textureControl:SetTexture(primaryTexture)
+    if textureControl.IsTextureLoaded and textureControl:IsTextureLoaded() then
+        textureControl:SetHidden(false)
+        fallbackControl:SetHidden(true)
+    end
+end
+
 -- Zone Guide completion wrapper shared by API 101050 and 101051+.
 -- ZOS changed the underlying global functions in Update 51, while
 -- ZONE_STORIES_MANAGER:GetActivityCompletionProgressValues remains the stable
@@ -5177,6 +5239,7 @@ function TPM:HasActivePointerInteraction()
         or self.questRewardResizing == true
         or self.questRewardMoving == true
         or self.statisticsWindowMoving == true
+        or self.statisticsWindowResizing == true
 end
 
 function TPM:UpdateGlobalMouseUpRegistration()
@@ -5203,6 +5266,7 @@ function TPM:HandleGlobalMouseUp(_, button)
     if self.questRewardResizing then self:StopResizingQuestRewardWindow() end
     if self.questRewardMoving then self:StopMovingQuestRewardWindow() end
     if self.statisticsWindowMoving then self:StopMovingStatisticsWindow() end
+    if self.statisticsWindowResizing then self:StopResizingStatisticsWindow() end
     self:UpdateGlobalMouseUpRegistration()
 end
 
@@ -5746,7 +5810,8 @@ function TPM:IsProgressGoalCategoryActive(completionType)
 end
 
 function TPM:GetProgressGoalCategoryDisplayName(completionType)
-    if completionType == SIDE_QUEST_CATEGORY_KEY then return self:L("CAT_SIDE_QUESTS") end
+    if completionType == BASE_SIDE_QUEST_CATEGORY_KEY then return self:L("CAT_SIDE_QUESTS_BASE") end
+    if completionType == DLC_SIDE_QUEST_CATEGORY_KEY then return self:L("CAT_SIDE_QUESTS_DLC") end
     if completionType == CROWN_QUEST_CATEGORY_KEY then return self:L("CAT_CROWN_QUESTS") end
     if completionType == ZONE_STABLE_MOUNT_CATEGORY_KEY then return self:L("STAT_ZONE_STABLE_MOUNT") end
     return self:GetCompletionTypeName(completionType)
@@ -5759,27 +5824,10 @@ function TPM:GetProgressGoalCategoryIconTexture(completionType)
     local manager = _G.ZO_ZoneStories_Manager
     if type(completionType) == "number" and type(manager) == "table" and type(manager.GetCompletionTypeIcon) == "function" then
         local texture = manager.GetCompletionTypeIcon(completionType)
-        if type(texture) == "string" and texture ~= "" then return texture end
+        if IsUsableStatisticsIcon(texture) then return texture end
     end
-
-    -- Safe direct native fallbacks in case the manager has not initialized yet.
-    local nativeIcons =
-    {
-        [ZONE_COMPLETION_TYPE_PRIORITY_QUESTS] = "EsoUI/Art/ZoneStories/completionTypeIcon_priorityQuest.dds",
-        [ZONE_COMPLETION_TYPE_POINTS_OF_INTEREST] = "EsoUI/Art/ZoneStories/completionTypeIcon_pointOfInterest.dds",
-        [ZONE_COMPLETION_TYPE_WAYSHRINES] = "EsoUI/Art/ZoneStories/completionTypeIcon_wayshrine.dds",
-        [ZONE_COMPLETION_TYPE_DELVES] = "EsoUI/Art/ZoneStories/completionTypeIcon_delve.dds",
-        [ZONE_COMPLETION_TYPE_GROUP_DELVES] = "EsoUI/Art/ZoneStories/completionTypeIcon_groupDelve.dds",
-        [ZONE_COMPLETION_TYPE_SKYSHARDS] = "EsoUI/Art/ZoneStories/completionTypeIcon_skyshard.dds",
-        [ZONE_COMPLETION_TYPE_WORLD_EVENTS] = "EsoUI/Art/ZoneStories/completionTypeIcon_worldEvents.dds",
-        [ZONE_COMPLETION_TYPE_GROUP_BOSSES] = "EsoUI/Art/ZoneStories/completionTypeIcon_groupBoss.dds",
-        [ZONE_COMPLETION_TYPE_STRIKING_LOCALES] = "EsoUI/Art/ZoneStories/completionTypeIcon_strikingLocales.dds",
-        [ZONE_COMPLETION_TYPE_MAGES_GUILD_BOOKS] = "EsoUI/Art/ZoneStories/completionTypeIcon_lorebooks.dds",
-        [ZONE_COMPLETION_TYPE_MUNDUS_STONES] = "EsoUI/Art/ZoneStories/completionTypeIcon_mundusStone.dds",
-        [ZONE_COMPLETION_TYPE_PUBLIC_DUNGEONS] = "EsoUI/Art/ZoneStories/completionTypeIcon_publicDungeon.dds",
-        [ZONE_COMPLETION_TYPE_SET_STATIONS] = "EsoUI/Art/ZoneStories/completionTypeIcon_setStation.dds",
-    }
-    return nativeIcons[completionType] or STATISTICS_CATEGORY_ICON_TEXTURES[completionType] or "TamrielProgressMap/art/cat_quests.dds"
+    local texture = self:GetStatisticsCategoryIcon(completionType)
+    return texture
 end
 
 function TPM:GetProgressGoalHudTitle(completionType)
@@ -6203,7 +6251,7 @@ function TPM:InvalidateStatisticsData(rebuildZoneList)
         -- dynamic progress-zone set. Quest master metadata (quest -> zone,
         -- repeatable/type/name eligibility and Crown starter IDs) is static for
         -- the lifetime of the current UI session and can safely survive loading
-        -- screens. Keeping it avoids repeating the 1..SIDE_QUEST_SCAN_MAX_ID scan.
+        -- screens. Keeping it avoids repeating the expensive category lookup.
         self.progressZoneIdsCache = nil
     end
 end
@@ -7703,120 +7751,42 @@ function TPM:GetPriorityQuestIdSet(progressZoneIds)
     return ids
 end
 
-function TPM:IsLikelySideQuestName(name)
-    if not name or name == "" then return false end
-    local upper = zo_strupper(name)
-    -- The quest master table contains a few development/dummy records.
-    if upper:find("OUTOFDATE", 1, true) then return false end
-    if upper:find("QUEST IO BUG", 1, true) then return false end
-    if upper:find("DEBUG QUEST", 1, true) then return false end
-    if upper:find("TEST QUEST", 1, true) then return false end
-    if upper:find("PLACEHOLDER QUEST", 1, true) then return false end
-    return true
-end
-
-local function TPM_GetProgressZoneScopeKey(progressZoneIds)
-    local ids = {}
-    for zoneId in pairs(progressZoneIds or {}) do ids[#ids + 1] = tonumber(zoneId) or 0 end
-    table.sort(ids)
-    if #ids == 0 then return "none" end
-    if #ids == 1 then return "zone:" .. tostring(ids[1]) end
-    -- The normal all-Tamriel scope is stable for a client build. A compact key
-    -- avoids rescanning the entire quest master table whenever zone focus changes.
-    return "zones:" .. table.concat(ids, ",")
-end
-
-function TPM:BuildSideQuestIndex(progressZoneIds)
-    progressZoneIds = progressZoneIds or {}
-    self.sideQuestIdsByScope = self.sideQuestIdsByScope or {}
-    local scopeKey = TPM_GetProgressZoneScopeKey(progressZoneIds)
-    if self.sideQuestIdsByScope[scopeKey] then
-        return self.sideQuestIdsByScope[scopeKey]
-    end
-
-    local sideQuestIds = {}
-    if type(GetQuestName) ~= "function"
-        or type(GetQuestZoneId) ~= "function"
-        or type(GetQuestType) ~= "function"
-        or type(GetQuestRepeatableType) ~= "function"
-        or type(HasCompletedQuest) ~= "function" then
-        return sideQuestIds
-    end
-
-    local priorityQuestIds = self:GetPriorityQuestIdSet(progressZoneIds)
-    local notRepeatable = _G.QUEST_REPEAT_NOT_REPEATABLE
-    local normalQuestType = _G.QUEST_TYPE_NONE
-    if notRepeatable == nil or normalQuestType == nil then return sideQuestIds end
-
-    -- Index quest locations once, then reuse them across focus scopes. Keep
-    -- eligibility lazy so opening one zone does not query every quest's name
-    -- and type. Completion itself remains live in GetSideQuestStatistics.
-    if not self.sideQuestCandidatesByZone then
-        local byZone = {}
-        for questId = 1, SIDE_QUEST_SCAN_MAX_ID do
-            local zoneId = GetQuestZoneId(questId) or 0
-            if zoneId > 0 then
-                byZone[zoneId] = byZone[zoneId] or {}
-                local ids = byZone[zoneId]
-                ids[#ids + 1] = questId
-            end
-        end
-        self.sideQuestCandidatesByZone = byZone
-        self.sideQuestEligibilityById = {}
-    end
-
-    local eligibleById = self.sideQuestEligibilityById
-    for zoneId, questIds in pairs(self.sideQuestCandidatesByZone) do
-        local progressZoneId = zoneId
-        if not progressZoneIds[progressZoneId] and type(GetZoneStoryZoneIdForZoneId) == "function" then
-            local storyZoneId = GetZoneStoryZoneIdForZoneId(zoneId)
-            if storyZoneId and storyZoneId > 0 then progressZoneId = storyZoneId end
-        end
-        if progressZoneIds[progressZoneId] then
-            for _, questId in ipairs(questIds) do
-                if not priorityQuestIds[questId] then
-                    local eligible = eligibleById[questId]
-                    if eligible == nil then
-                        eligible = GetQuestRepeatableType(questId) == notRepeatable
-                            and GetQuestType(questId) == normalQuestType
-                            and self:IsLikelySideQuestName(GetQuestName(questId) or "")
-                        eligibleById[questId] = eligible == true
-                    end
-                    if eligible then sideQuestIds[#sideQuestIds + 1] = questId end
-                end
-            end
-        end
-    end
-
-    table.sort(sideQuestIds)
-    self.sideQuestIdsByScope[scopeKey] = sideQuestIds
-    return sideQuestIds
-end
-
-function TPM:GetSideQuestStatistics(progressZoneIds)
-    local sideQuestIds = self:BuildSideQuestIndex(progressZoneIds) or {}
-    local total = #sideQuestIds
-    if total <= 0 then return nil end
-    local completed = 0
-    for _, questId in ipairs(sideQuestIds) do
-        if HasCompletedQuest(questId) then completed = completed + 1 end
-    end
-    local percent = Clamp(Round((completed / total) * 100), 0, 100)
+local function TPM_MakeSideQuestRow(addon, bucket, completionType, labelKey, coverageComplete)
+    bucket = type(bucket) == "table" and bucket or { completed = 0, total = 0, open = 0 }
+    local total = math.max(0, tonumber(bucket.total) or 0)
+    local completed = Clamp(tonumber(bucket.completed) or 0, 0, total)
+    local percent = total > 0 and Clamp(Round((completed / total) * 100), 0, 100) or 0
     if completed < total and percent >= 100 then percent = 99 end
+    if not coverageComplete and percent >= 100 then percent = 99 end
     return {
-        completionType = SIDE_QUEST_CATEGORY_KEY,
-        name = self:L("CAT_SIDE_QUESTS"),
+        completionType = completionType,
+        name = addon:L(labelKey),
         completed = completed,
         total = total,
         remaining = math.max(0, total - completed),
         percent = percent,
+        informational = true,
+        coverageComplete = coverageComplete == true,
+        tooltipText = addon:L(coverageComplete and "STAT_SIDE_QUEST_COVERAGE_COMPLETE" or "STAT_SIDE_QUEST_COVERAGE_PARTIAL"),
+    }
+end
+
+function TPM:GetSideQuestStatistics(progressZoneIds)
+    local questData = _G.RaccoonQuestData
+    if type(questData) ~= "table" or type(questData.GetSideQuestStatistics) ~= "function" then return {} end
+    local priorityQuestIds = self:GetPriorityQuestIdSet(progressZoneIds)
+    local summary = RaccoonQuestData:GetSideQuestStatistics(progressZoneIds, priorityQuestIds, false)
+    if type(summary) ~= "table" then return {} end
+    return {
+        TPM_MakeSideQuestRow(self, summary.base, BASE_SIDE_QUEST_CATEGORY_KEY, "CAT_SIDE_QUESTS_BASE", summary.coverageComplete),
+        TPM_MakeSideQuestRow(self, summary.dlc, DLC_SIDE_QUEST_CATEGORY_KEY, "CAT_SIDE_QUESTS_DLC", summary.coverageComplete),
     }
 end
 
 -- ESO intentionally does not expose the live Crown Store catalog to addons.
 -- Track the curated permanent/current quest starters by stable quest ID rather
 -- than localized quest name. This works identically on DE/EN/FR/ES/RU and
--- avoids a second 1..SIDE_QUEST_SCAN_MAX_ID name scan.
+-- avoids a second broad quest-name scan.
 local CROWN_QUEST_STARTER_IDS =
 {
     6299, -- The Demon Weapon
@@ -7994,7 +7964,7 @@ function TPM:CreateFocusUI(spec)
     end)
 
     -- Popup ---------------------------------------------------------------------------
-    local pinned, listed, dropW = spec.pinned or 2, ctx.visibleRows, spec.width or 290
+    local pinned, listed, dropW = spec.pinned or 2, ctx.visibleRows, spec.dropdownWidth or spec.width or 290
     local listTop = 6 + pinned * TPM_FOCUS_ROW_H + 9
     local dropH = listTop + listed * TPM_FOCUS_ROW_H + 6
     local dropdown
@@ -8349,7 +8319,7 @@ function TPM:GetStatisticsData(forceRefresh, focusZoneId)
     -- completion percentage shown on the Tamriel map. Keep them directly under
     -- Main Quests in the journal because both are quest progress categories.
     local sideQuestStats = self:GetSideQuestStatistics(progressZoneIds)
-    if sideQuestStats then
+    if #sideQuestStats > 0 then
         local insertAt = 1
         for index, category in ipairs(stats.categories) do
             if category.completionType == ZONE_COMPLETION_TYPE_PRIORITY_QUESTS then
@@ -8357,7 +8327,9 @@ function TPM:GetStatisticsData(forceRefresh, focusZoneId)
                 break
             end
         end
-        table.insert(stats.categories, insertAt, sideQuestStats)
+        for index, row in ipairs(sideQuestStats) do
+            table.insert(stats.categories, insertAt + index - 1, row)
+        end
     end
 
     -- Crown Store quest starters are a journal-only statistic. They never alter
@@ -8370,9 +8342,11 @@ function TPM:GetStatisticsData(forceRefresh, focusZoneId)
         if crownQuestStats then
             local insertAt = 1
             for index, category in ipairs(stats.categories) do
-                if category.completionType == SIDE_QUEST_CATEGORY_KEY then
+                if category.completionType == DLC_SIDE_QUEST_CATEGORY_KEY then
                     insertAt = index + 1
                     break
+                elseif category.completionType == BASE_SIDE_QUEST_CATEGORY_KEY then
+                    insertAt = index + 1
                 elseif category.completionType == ZONE_COMPLETION_TYPE_PRIORITY_QUESTS then
                     insertAt = index + 1
                 end
@@ -8543,11 +8517,27 @@ function TPM:CreateStatisticsCategoryRow(parent, index, controlPrefix)
     rowBg:SetEdgeTexture(nil, 1, 1, 1)
     rowBg:SetMouseEnabled(false)
 
-    local icon = WINDOW_MANAGER:CreateControl(nil, row, CT_TEXTURE)
-    icon:SetDimensions(18, 18)
-    icon:SetAnchor(LEFT, row, LEFT, 5, 0)
+    local iconFrame = WINDOW_MANAGER:CreateControl(nil, row, CT_BACKDROP)
+    iconFrame:SetDimensions(20, 20)
+    iconFrame:SetAnchor(LEFT, row, LEFT, 3, 0)
+    iconFrame:SetCenterColor(0.025, 0.023, 0.019, 0.76)
+    iconFrame:SetEdgeColor(0.50, 0.39, 0.16, 0.42)
+    iconFrame:SetEdgeTexture(nil, 1, 1, 1)
+    iconFrame:SetMouseEnabled(false)
+
+    local iconFallback = WINDOW_MANAGER:CreateControl(nil, iconFrame, CT_TEXTURE)
+    iconFallback:SetDimensions(16, 16)
+    iconFallback:SetAnchor(CENTER, iconFrame, CENTER, 0, 0)
+    iconFallback:SetTexture("TamrielProgressMap/art/cat_quests.dds")
+    iconFallback:SetColor(0.86, 0.70, 0.28, 0.82)
+    iconFallback:SetMouseEnabled(false)
+
+    local icon = WINDOW_MANAGER:CreateControl(nil, iconFrame, CT_TEXTURE)
+    icon:SetDimensions(16, 16)
+    icon:SetAnchor(CENTER, iconFrame, CENTER, 0, 0)
     icon:SetTexture("TamrielProgressMap/art/cat_quests.dds")
     icon:SetColor(0.86, 0.70, 0.28, 0.82)
+    icon:SetMouseEnabled(false)
 
     local label = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
     label:SetDimensions(166, 20)
@@ -8602,7 +8592,7 @@ function TPM:CreateStatisticsCategoryRow(parent, index, controlPrefix)
     gearIcon:SetMouseEnabled(false)
     gearButton.TPMIcon = gearIcon
 
-    return { control = row, label = label, count = count, bar = bar, fill = fill, percent = percent, icon = icon, bg = rowBg, gearButton = gearButton }
+    return { control = row, label = label, count = count, bar = bar, fill = fill, percent = percent, icon = icon, iconFallback = iconFallback, iconFrame = iconFrame, bg = rowBg, gearButton = gearButton }
 end
 
 -- Returns the live account collection count reported by ESO for one
@@ -8639,19 +8629,6 @@ function TPM:GetCollectionStatisticData(definition)
     -- lookups return ESO's generic question-mark placeholder for categories such
     -- as markings, hair or fragments. Prefer an actual collectible icon first;
     -- only fall back to the Collections-book category icon when needed.
-    local function IsUsableCollectionIcon(texture)
-        if type(texture) ~= "string" or texture == "" then return false end
-        local lower = zo_strlower(texture)
-        if lower == zo_strlower(tostring(ZO_NO_TEXTURE_FILE or "")) then return false end
-        if string.find(lower, "question", 1, true)
-            or string.find(lower, "unknown", 1, true)
-            or string.find(lower, "missing", 1, true)
-            or string.find(lower, "placeholder", 1, true) then
-            return false
-        end
-        return true
-    end
-
     if total > 0 and type(GetCollectibleIdFromType) == "function" then
         local collectibleId = nil
         -- A few collection types can have an unusable first slot. Look through a
@@ -8663,7 +8640,7 @@ function TPM:GetCollectionStatisticData(definition)
                 collectibleId = candidateId
                 if type(GetCollectibleIcon) == "function" then
                     local collectibleIcon = GetCollectibleIcon(candidateId)
-                    if IsUsableCollectionIcon(collectibleIcon) then
+                    if IsUsableStatisticsIcon(collectibleIcon) then
                         data.icon = collectibleIcon
                         break
                     end
@@ -8677,7 +8654,7 @@ function TPM:GetCollectionStatisticData(definition)
             local topLevelIndex, categoryIndex = GetCategoryInfoFromCollectibleId(collectibleId)
             if topLevelIndex then
                 local normalIcon = GetCollectibleCategoryKeyboardIcons(topLevelIndex, categoryIndex)
-                if IsUsableCollectionIcon(normalIcon) then
+                if IsUsableStatisticsIcon(normalIcon) then
                     data.icon = normalIcon
                 end
             end
@@ -8886,7 +8863,14 @@ function TPM:GetAchievementStatisticsData()
         if totalPoints > 0 and type(name) == "string" and name ~= "" then
             local icon = nil
             if type(GetAchievementCategoryKeyboardIcons) == "function" then
-                icon = select(1, GetAchievementCategoryKeyboardIcons(categoryIndex))
+                local normalIcon, pressedIcon, mouseoverIcon = GetAchievementCategoryKeyboardIcons(categoryIndex)
+                if IsUsableStatisticsIcon(normalIcon) then
+                    icon = normalIcon
+                elseif IsUsableStatisticsIcon(pressedIcon) then
+                    icon = pressedIcon
+                elseif IsUsableStatisticsIcon(mouseoverIcon) then
+                    icon = mouseoverIcon
+                end
             end
             categories[#categories + 1] =
             {
@@ -8895,6 +8879,7 @@ function TPM:GetAchievementStatisticsData()
                 total = totalPoints,
                 percent = CompletionPercent(earnedPoints, totalPoints),
                 icon = icon,
+                preserveNativeIconColor = icon ~= nil,
             }
             summedEarned = summedEarned + math.min(earnedPoints, totalPoints)
             summedTotal = summedTotal + totalPoints
@@ -9428,9 +9413,16 @@ function TPM:RefreshStatisticsCollectionPager()
                     self:SetStatisticsBarPercent(row.fill, 96, 0)
                 end
                 if row.icon then
-                    row.icon:SetTexture(data.icon or "TamrielProgressMap/art/cat_quests.dds")
-                    local ir, ig, ib = self:GetStatisticsProgressColor(data.percent)
-                    row.icon:SetColor(ir, ig, ib, data.available and 0.96 or 0.45)
+                    self:SetTextureWithFallback(row.icon, row.iconFallback, data.icon, "TamrielProgressMap/art/cat_quests.dds")
+                    row.preserveNativeIconColor = IsUsableStatisticsIcon(data.icon)
+                    if row.preserveNativeIconColor then
+                        row.icon:SetColor(1, 1, 1, data.available and 1 or 0.45)
+                    else
+                        local ir, ig, ib = self:GetStatisticsProgressColor(data.percent)
+                        row.icon:SetColor(ir, ig, ib, data.available and 0.96 or 0.45)
+                    end
+                    local fr, fg, fb = self:GetStatisticsProgressColor(data.percent)
+                    row.iconFallback:SetColor(fr, fg, fb, data.available and 0.96 or 0.45)
                 end
                 if data.tooltipText then
                     row.control:SetHandler("OnMouseEnter", function(control)
@@ -9473,9 +9465,16 @@ function TPM:RefreshStatisticsCollectionPager()
             row.percent:SetText(string.format("|c%s%d%%|r", self:GetStatisticsPercentTextColor(data.percent or 0), data.percent or 0))
             self:SetStatisticsBarPercent(row.fill, 96, data.percent or 0)
             if row.icon then
-                row.icon:SetTexture(data.icon or "TamrielProgressMap/art/stat_objectives.dds")
-                local ir, ig, ib = self:GetStatisticsProgressColor(data.percent or 0)
-                row.icon:SetColor(ir, ig, ib, 0.96)
+                self:SetTextureWithFallback(row.icon, row.iconFallback, data.icon, "TamrielProgressMap/art/stat_objectives.dds")
+                row.preserveNativeIconColor = data.preserveNativeIconColor == true and IsUsableStatisticsIcon(data.icon)
+                if row.preserveNativeIconColor then
+                    row.icon:SetColor(1, 1, 1, 1)
+                else
+                    local ir, ig, ib = self:GetStatisticsProgressColor(data.percent or 0)
+                    row.icon:SetColor(ir, ig, ib, 0.96)
+                end
+                local fr, fg, fb = self:GetStatisticsProgressColor(data.percent or 0)
+                row.iconFallback:SetColor(fr, fg, fb, 0.96)
             end
             row.control:SetHandler("OnMouseEnter", function(control)
                 if data.tooltipText then
@@ -10222,9 +10221,9 @@ end
 -- active design (TPM:ApplySkinEconomyPage), so the generic skin walk skips it.
 local TPM_ECON_GRID_ORDER =
 {
-    "alliancePoints", "telVar", "writVouchers",
-    "transmute", "undauntedKeys", "seals",
-    "archivalFortunes", "tomePoints", "tradeBars",
+    "alliancePoints", "telVar", "undauntedKeys",
+    "transmute", "writVouchers", "tradeBars",
+    "archivalFortunes", "tomePoints", "seals",
     "crowns", "crownGems",
 }
 local TPM_ECON_GOLD_COLOR = { 0.95, 0.78, 0.16 }
@@ -10283,9 +10282,9 @@ function TPM:CreateEconomyCurrencyTile(parent, x, y, w, h)
     tile.name = TPM_EconLabel(card, 74, 9, w - 86, 20, "$(BOLD_FONT)|15")
     tile.value = TPM_EconLabel(card, 74, 30, w - 190, 30, "$(BOLD_FONT)|23")
     self:RegisterSkinValueFont(tile.value, 26)
-    tile.sub = TPM_EconLabel(card, 74, 61, w - 86, 16, "$(MEDIUM_FONT)|12")
-    tile.received = TPM_EconLabel(card, w - 114, 32, 102, 16, "$(BOLD_FONT)|13", TEXT_ALIGN_RIGHT)
-    tile.spent = TPM_EconLabel(card, w - 114, 48, 102, 15, "$(BOLD_FONT)|13", TEXT_ALIGN_RIGHT)
+    tile.sub = TPM_EconLabel(card, 74, 66, w - 86, 16, "$(MEDIUM_FONT)|12")
+    tile.highLabel = TPM_EconLabel(card, w - 114, 29, 102, 14, "$(MEDIUM_FONT)|10", TEXT_ALIGN_RIGHT)
+    tile.highValue = TPM_EconLabel(card, w - 114, 43, 102, 22, "$(BOLD_FONT)|15", TEXT_ALIGN_RIGHT)
 
     card:SetHandler("OnMouseEnter", function(control)
         tile.hover = true
@@ -10300,17 +10299,49 @@ function TPM:CreateEconomyCurrencyTile(parent, x, y, w, h)
     return tile
 end
 
-function TPM:CreateEconomyLegendTile(parent, x, y, w, h)
+function TPM:CreateEconomyFragmentTile(parent, x, y, w, h)
     local card = TPM_EconBox(parent, x, y, w, h)
-    local tile = { control = card, isLegend = true }
+    card:SetMouseEnabled(true)
+    local tile = { control = card, isFragment = true }
     tile.stripe = TPM_EconBox(card, 0, 0, 3, h)
-    tile.badge = TPM_EconBox(card, 22, math.floor((h - 32) / 2), 32, 32)
-    tile.badgeText = TPM_EconLabel(tile.badge, 0, 0, 32, 32, "$(BOLD_FONT)|18", TEXT_ALIGN_CENTER)
-    tile.badgeText:SetText("i")
+    tile.iconFallback = WINDOW_MANAGER:CreateControl(nil, card, CT_TEXTURE)
+    tile.iconFallback:SetDimensions(48, 48)
+    tile.iconFallback:SetAnchor(TOPLEFT, card, TOPLEFT, 14, math.floor((h - 48) / 2))
+    tile.iconFallback:SetTexture("EsoUI/Art/TreeIcons/store_indexicon_fragments_up.dds")
+    tile.icon = WINDOW_MANAGER:CreateControl(nil, card, CT_TEXTURE)
+    tile.icon:SetDimensions(48, 48)
+    tile.icon:SetAnchor(TOPLEFT, card, TOPLEFT, 14, math.floor((h - 48) / 2))
+    tile.icon:SetHidden(true)
     tile.name = TPM_EconLabel(card, 74, 9, w - 86, 20, "$(BOLD_FONT)|15")
-    tile.line1 = TPM_EconLabel(card, 74, 34, w - 86, 18, "$(BOLD_FONT)|14")
-    tile.line2 = TPM_EconLabel(card, 74, 56, w - 86, 18, "$(MEDIUM_FONT)|12")
+    tile.value = TPM_EconLabel(card, 74, 30, w - 86, 30, "$(BOLD_FONT)|23")
+    tile.sub = TPM_EconLabel(card, 74, 61, w - 86, 16, "$(MEDIUM_FONT)|12")
+    local clickButton = WINDOW_MANAGER:CreateControl(nil, card, CT_BUTTON)
+    clickButton:SetAnchorFill(card)
+    clickButton:SetMouseEnabled(true)
+    clickButton:SetHandler("OnClicked", function() TPM:ShowFragmentDetailWindow() end)
+    tile.clickButton = clickButton
+    local function OnEnter(control)
+        tile.hover = true
+        TPM:PaintEconomyTile(tile)
+        TPM:ShowStatisticsHoverTooltip(TPM:L("FRAGMENT_TITLE"), TPM:L("FRAGMENT_TILE_TOOLTIP"), control)
+    end
+    local function OnExit()
+        tile.hover = false
+        TPM:PaintEconomyTile(tile)
+        TPM:HideStatisticsHoverTooltips()
+    end
+    card:SetHandler("OnMouseEnter", OnEnter)
+    card:SetHandler("OnMouseExit", OnExit)
+    clickButton:SetHandler("OnMouseEnter", OnEnter)
+    clickButton:SetHandler("OnMouseExit", OnExit)
     return tile
+end
+
+function TPM:GetFragmentTileIcon(summary)
+    for _, group in ipairs((summary and summary.groups) or {}) do
+        if IsUsableStatisticsIcon(group.icon) then return group.icon end
+    end
+    return "EsoUI/Art/TreeIcons/store_indexicon_fragments_up.dds"
 end
 
 function TPM:CreateEconomyDashboard(page)
@@ -10360,7 +10391,7 @@ function TPM:CreateEconomyDashboard(page)
     end
     self.statisticsEconomyHero = hero
 
-    -- Currency grid: 3 columns x 4 rows; tile 12 explains the values. ----------------
+    -- Currency grid: 3 columns x 4 rows; tile 12 opens live fragment details. --------
     self.statisticsEconomyTiles = {}
     local tileW, tileH, gapX, gapY = 296, 84, 13, 10
     for index = 1, 12 do
@@ -10369,7 +10400,7 @@ function TPM:CreateEconomyDashboard(page)
         local x, y = 20 + column * (tileW + gapX), 238 + row * (tileH + gapY)
         local tile
         if index == 12 then
-            tile = self:CreateEconomyLegendTile(root, x, y, tileW, tileH)
+            tile = self:CreateEconomyFragmentTile(root, x, y, tileW, tileH)
         else
             tile = self:CreateEconomyCurrencyTile(root, x, y, tileW, tileH)
             tile.key = TPM_ECON_GRID_ORDER[index]
@@ -10415,7 +10446,8 @@ function TPM:RefreshEconomyDashboard(stats, definitions, focusZoneId, zoneAggreg
         TPM_SetTextIfChanged(slot.value, flow[2])
         slot.tone = flow[3]
     end
-    local period = self:L("STAT_ECON_PERIOD")
+    local goldHigh = self:GetEconomyBalanceHigh(goldDef)
+    local period = self:L("STAT_ECON_PERIOD") .. "  •  " .. self:L("STAT_ECONOMY_RECORD_VALUE", FormatNumber(goldHigh))
     if focusZoneId ~= 0 then period = period .. "  •  " .. self:GetEconomyZoneName(focusZoneId) end
     TPM_SetTextIfChanged(hero.period, period)
 
@@ -10433,9 +10465,8 @@ function TPM:RefreshEconomyDashboard(stats, definitions, focusZoneId, zoneAggreg
 
     -- Currency tiles ------------------------------------------------------------------
     for _, tile in ipairs(self.statisticsEconomyTiles or {}) do
-        if tile.isLegend then
-            TPM_SetTextIfChanged(tile.name, self:L("STAT_ECON_LEGEND"))
-            TPM_SetTextIfChanged(tile.line2, self:L("STAT_ECON_PERIOD"))
+        if tile.isFragment then
+            self:RefreshEconomyFragmentTile(tile)
         else
             local definition = tile.key and byKey[tile.key] or nil
             tile.control:SetHidden(definition == nil)
@@ -10444,6 +10475,7 @@ function TPM:RefreshEconomyDashboard(stats, definitions, focusZoneId, zoneAggreg
                 local amounts = self:GetEconomyCurrentAmounts(definition)
                 local visual = self:GetEconomyCardVisual(definition)
                 local name = self:GetEconomyCurrencyName(definition)
+                local balanceHigh = self:GetEconomyBalanceHigh(definition)
                 tile.accentColor = visual.accent or TPM_ECON_GOLD_COLOR
                 tile.zero = (tonumber(amounts.current) or 0) <= 0
                 local iconPath = TPM_EconSharpIcon(definition.currencyType) or visual.texture
@@ -10474,19 +10506,187 @@ function TPM:RefreshEconomyDashboard(stats, definitions, focusZoneId, zoneAggreg
                     self:L("STAT_ECONOMY_LABEL_SPENT"), FormatNumber(used))
                 TPM_SetTextIfChanged(tile.sub, sub)
                 tile.receivedAmount, tile.spentAmount = gained, used
-                if gained == 0 and used == 0 then
-                    TPM_SetTextIfChanged(tile.received, "—")
-                    TPM_SetTextIfChanged(tile.spent, "")
-                else
-                    -- Only the side that actually moved is shown.
-                    TPM_SetTextIfChanged(tile.received, gained > 0 and ("+" .. FormatNumber(gained)) or "")
-                    TPM_SetTextIfChanged(tile.spent, used > 0 and ("-" .. FormatNumber(used)) or "")
-                end
+                TPM_SetTextIfChanged(tile.highLabel, self:L("STAT_ECONOMY_RECORD"))
+                TPM_SetTextIfChanged(tile.highValue, FormatNumber(balanceHigh))
                 tile.tooltipTitle, tile.tooltipBody = name, body
             end
         end
     end
     self:ApplySkinEconomyPage(self.statisticsActiveSkin or self:GetActiveSkin())
+end
+
+function TPM:RefreshEconomyFragmentTile(tile)
+    tile = tile or (self.statisticsEconomyTiles and self.statisticsEconomyTiles[12])
+    if not tile then return end
+    local summary = _G.RaccoonFragmentData and RaccoonFragmentData:GetSummary(false) or nil
+    local unlocked = summary and tonumber(summary.unlocked) or 0
+    local total = summary and tonumber(summary.total) or 0
+    local completed = summary and tonumber(summary.completedCombinations) or 0
+    local combinations = summary and tonumber(summary.totalCombinations) or 0
+    tile.zero = total <= 0
+    tile.accentColor = { 0.55, 0.82, 0.95 }
+    local iconPath = self:GetFragmentTileIcon(summary)
+    self:SetTextureWithFallback(tile.icon, tile.iconFallback, iconPath, "EsoUI/Art/TreeIcons/store_indexicon_fragments_up.dds")
+    tile.iconPath = iconPath
+    tile.icon:SetColor(1, 1, 1, 1)
+    tile.iconFallback:SetColor(1, 1, 1, 1)
+    TPM_SetTextIfChanged(tile.name, self:L("FRAGMENT_TITLE"))
+    TPM_SetTextIfChanged(tile.value, string.format("%d / %d", unlocked, total))
+    TPM_SetTextIfChanged(tile.sub, self:L("FRAGMENT_TILE_COMBINATIONS", completed, combinations))
+end
+
+local TPM_FRAGMENT_STATE_KEYS = {
+    missing = "FRAGMENT_STATE_MISSING",
+    in_progress = "FRAGMENT_STATE_IN_PROGRESS",
+    ready = "FRAGMENT_STATE_READY",
+    partial_output = "FRAGMENT_STATE_PARTIAL_OUTPUT",
+    complete = "FRAGMENT_STATE_COMPLETE",
+}
+
+function TPM:CreateFragmentDetailWindow()
+    if self.fragmentDetailWindow then return end
+    local w = WINDOW_MANAGER:CreateTopLevelWindow(ADDON_NAME .. "FragmentDetailWindow")
+    w:SetDimensions(760, 610)
+    local savedX = tonumber(self.saved and self.saved.fragmentDetailX)
+    local savedY = tonumber(self.saved and self.saved.fragmentDetailY)
+    if savedX and savedY then w:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, savedX, savedY) else w:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0) end
+    w:SetClampedToScreen(true)
+    w:SetMouseEnabled(true)
+    w:SetMovable(true)
+    w:SetHidden(true)
+    if w.SetDrawTier then w:SetDrawTier(DT_HIGH) end
+    if w.SetDrawLayer then w:SetDrawLayer(DL_OVERLAY) end
+    w:SetHandler("OnMoveStop", function(control)
+        if TPM.saved then
+            TPM.saved.fragmentDetailX = Round(tonumber(control:GetLeft()) or 0)
+            TPM.saved.fragmentDetailY = Round(tonumber(control:GetTop()) or 0)
+        end
+    end)
+
+    local bg = WINDOW_MANAGER:CreateControl(nil, w, CT_BACKDROP)
+    bg:SetAnchorFill(w)
+    bg:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 128, 16, 2)
+    bg:SetInsets(4, 4, -4, -4)
+    local title = TPM_EconLabel(w, 22, 14, 620, 32, "ZoFontWinH2")
+    local close = WINDOW_MANAGER:CreateControl(nil, w, CT_BUTTON)
+    close:SetDimensions(34, 30)
+    close:SetMouseEnabled(true)
+    close:SetAnchor(TOPRIGHT, w, TOPRIGHT, -14, 12)
+    close:SetFont("$(BOLD_FONT)|22")
+    close:SetText("×")
+    close:SetHandler("OnClicked", function() w:SetHidden(true) end)
+    local summary = TPM_EconLabel(w, 24, 52, 710, 24, "$(BOLD_FONT)|16")
+    local note = TPM_EconLabel(w, 24, 78, 710, 32, "$(MEDIUM_FONT)|13")
+
+    self.fragmentDetailRows = {}
+    for index = 1, 8 do
+        local y = 116 + (index - 1) * 52
+        local row = { control = TPM_EconBox(w, 22, y, 716, 46) }
+        row.icon = WINDOW_MANAGER:CreateControl(nil, row.control, CT_TEXTURE)
+        row.icon:SetDimensions(36, 36)
+        row.icon:SetAnchor(LEFT, row.control, LEFT, 8, 0)
+        row.name = TPM_EconLabel(row.control, 54, 3, 360, 20, "$(BOLD_FONT)|15")
+        row.progress = TPM_EconLabel(row.control, 54, 23, 430, 18, "$(MEDIUM_FONT)|12")
+        row.state = TPM_EconLabel(row.control, 500, 3, 198, 38, "$(BOLD_FONT)|14", TEXT_ALIGN_RIGHT)
+        self.fragmentDetailRows[index] = row
+    end
+
+    local prev = WINDOW_MANAGER:CreateControl(nil, w, CT_BUTTON)
+    prev:SetDimensions(80, 28)
+    prev:SetMouseEnabled(true)
+    prev:SetAnchor(BOTTOMLEFT, w, BOTTOMLEFT, 24, -18)
+    prev:SetFont("$(BOLD_FONT)|15")
+    prev:SetText("‹")
+    prev:SetHandler("OnClicked", function() TPM:SetFragmentDetailPage((TPM.fragmentDetailPage or 1) - 1) end)
+    local pageLabel = TPM_EconLabel(w, 290, 564, 180, 28, "$(BOLD_FONT)|14", TEXT_ALIGN_CENTER)
+    local nextButton = WINDOW_MANAGER:CreateControl(nil, w, CT_BUTTON)
+    nextButton:SetDimensions(80, 28)
+    nextButton:SetMouseEnabled(true)
+    nextButton:SetAnchor(BOTTOMRIGHT, w, BOTTOMRIGHT, -24, -18)
+    nextButton:SetFont("$(BOLD_FONT)|15")
+    nextButton:SetText("›")
+    nextButton:SetHandler("OnClicked", function() TPM:SetFragmentDetailPage((TPM.fragmentDetailPage or 1) + 1) end)
+
+    self.fragmentDetailWindow = w
+    self.fragmentDetailBackdrop = bg
+    self.fragmentDetailTitle = title
+    self.fragmentDetailSummary = summary
+    self.fragmentDetailNote = note
+    self.fragmentDetailClose = close
+    self.fragmentDetailPrev = prev
+    self.fragmentDetailNext = nextButton
+    self.fragmentDetailPageLabel = pageLabel
+    self.fragmentDetailPage = 1
+end
+
+function TPM:ShowFragmentDetailWindow()
+    self:CreateFragmentDetailWindow()
+    self.fragmentDetailPage = 1
+    self:RefreshFragmentDetailWindow()
+    self.fragmentDetailWindow:SetHidden(false)
+    self.fragmentDetailWindow:BringWindowToTop()
+    self:ApplySkinFragmentDetailWindow(self.statisticsActiveSkin or self:GetActiveSkin())
+end
+
+function TPM:SetFragmentDetailPage(page)
+    local summary = _G.RaccoonFragmentData and RaccoonFragmentData:GetSummary(false) or { groups = {} }
+    local totalPages = math.max(1, math.ceil(#(summary.groups or {}) / 8))
+    self.fragmentDetailPage = math.max(1, math.min(totalPages, math.floor(tonumber(page) or 1)))
+    self:RefreshFragmentDetailWindow(summary)
+end
+
+function TPM:RefreshFragmentDetailWindow(summary)
+    if not self.fragmentDetailWindow then return end
+    summary = summary or (_G.RaccoonFragmentData and RaccoonFragmentData:GetSummary(false)) or { groups = {} }
+    local groups = summary.groups or {}
+    local totalPages = math.max(1, math.ceil(#groups / 8))
+    self.fragmentDetailPage = math.max(1, math.min(totalPages, tonumber(self.fragmentDetailPage) or 1))
+    TPM_SetTextIfChanged(self.fragmentDetailTitle, self:L("FRAGMENT_DETAIL_TITLE"))
+    TPM_SetTextIfChanged(self.fragmentDetailSummary, self:L("FRAGMENT_DETAIL_SUMMARY",
+        tonumber(summary.unlocked) or 0, tonumber(summary.total) or 0,
+        tonumber(summary.completedCombinations) or 0, tonumber(summary.totalCombinations) or 0))
+    TPM_SetTextIfChanged(self.fragmentDetailNote, summary.historyReliable == false and self:L("FRAGMENT_HISTORY_UNRELIABLE") or self:L("FRAGMENT_HISTORY_RELIABLE"))
+    TPM_SetTextIfChanged(self.fragmentDetailPageLabel, self:L("FRAGMENT_PAGE", self.fragmentDetailPage, totalPages))
+    self.fragmentDetailPrev:SetEnabled(self.fragmentDetailPage > 1)
+    self.fragmentDetailNext:SetEnabled(self.fragmentDetailPage < totalPages)
+    local startIndex = (self.fragmentDetailPage - 1) * 8
+    for index, row in ipairs(self.fragmentDetailRows or {}) do
+        local group = groups[startIndex + index]
+        row.control:SetHidden(group == nil)
+        if group then
+            if group.icon and group.icon ~= "" then row.icon:SetTexture(group.icon); row.icon:SetHidden(false) else row.icon:SetHidden(true) end
+            TPM_SetTextIfChanged(row.name, group.name or "?")
+            TPM_SetTextIfChanged(row.progress, self:L("FRAGMENT_ROW_PROGRESS",
+                tonumber(group.unlockedFragments) or 0, tonumber(group.totalFragments) or 0,
+                tonumber(group.missingFragments) or 0, tonumber(group.outputsUnlocked) or 0, tonumber(group.outputsTotal) or 0))
+            TPM_SetTextIfChanged(row.state, self:L(TPM_FRAGMENT_STATE_KEYS[group.state] or "FRAGMENT_STATE_MISSING"))
+            row.fragmentState = group.state
+        end
+    end
+    self:ApplySkinFragmentDetailWindow(self.statisticsActiveSkin or self:GetActiveSkin())
+end
+
+function TPM:ApplySkinFragmentDetailWindow(skin)
+    if not self.fragmentDetailWindow then return end
+    skin = skin or self:GetActiveSkin()
+    local P = skin.colors
+    self:SkinPaint(self.fragmentDetailBackdrop, "center", P.window, math.max(0.96, P.window[4]))
+    self:SkinPaint(self.fragmentDetailBackdrop, "edge", skin.journalBorder and P.accent or P.line)
+    self:SkinPaint(self.fragmentDetailTitle, "color", P.heading)
+    self:SkinPaint(self.fragmentDetailSummary, "color", P.value)
+    self:SkinPaint(self.fragmentDetailNote, "color", P.muted)
+    self:SkinPaint(self.fragmentDetailPageLabel, "color", P.text)
+    TPM_SkinFontColors(self.fragmentDetailClose, P.muted, P.accent)
+    TPM_SkinFontColors(self.fragmentDetailPrev, P.text, P.accent)
+    TPM_SkinFontColors(self.fragmentDetailNext, P.text, P.accent)
+    local stateColors = { complete = P.success, ready = P.value, partial_output = P.accent, in_progress = P.text, missing = P.muted }
+    for _, row in ipairs(self.fragmentDetailRows or {}) do
+        self:SkinPaint(row.control, "center", P.panel)
+        self:SkinPaint(row.control, "edge", P.line)
+        self:SkinPaint(row.name, "color", P.text)
+        self:SkinPaint(row.progress, "color", P.muted)
+        self:SkinPaint(row.state, "color", stateColors[row.fragmentState] or P.muted)
+    end
 end
 
 
@@ -14119,23 +14319,23 @@ end
 -- 2.7.0 ---------------------------------------------------------------------
 -- Statistics journal customization
 local TPM_THEME_TEXT = {
-    de={title="Design",chooseDesign="Design wählen",design="Design",designModern="Graphit",designTpm="Klassisch",designVanilla="Mitternacht",dark="Monochrom",designCustom="Eigenes",
+    de={title="Design",chooseDesign="Design wählen",design="Design",designModern="Graphit",designTpm="Klassisch",designVanilla="Mitternacht",dark="Monochrom",designCustom="Eigenes",resizeWindow="Größe ändern",resizeHint="Rand oder Ecke ziehen",
         hintModern="dunkel · flach",hintTpm="Gold · Journal",hintVanilla="blau · transparent",hintDark="schwarz-weiß",hintCustom="frei anpassbar",
         customColors="Farben anpassen",red="Rot",green="Grün",blue="Blau",alpha="Deckkraft",resetCustom="Auf Graphit zurücksetzen",reset="Standard wiederherstellen",close="Schließen",
         tok_window="Fenster",tok_panel="Flächen",tok_line="Linien",tok_heading="Überschriften",tok_text="Text",tok_muted="Nebentext",tok_accent="Akzent",tok_value="Werte",tok_progress="Fortschritt",tok_success="Abgeschlossen",tok_track="Balkenspur",tok_selection="Auswahl"},
-    en={title="Design",chooseDesign="Choose design",design="Design",designModern="Graphite",designTpm="Classic",designVanilla="Midnight",dark="Monochrome",designCustom="Custom",
+    en={title="Design",chooseDesign="Choose design",design="Design",designModern="Graphite",designTpm="Classic",designVanilla="Midnight",dark="Monochrome",designCustom="Custom",resizeWindow="Resize window",resizeHint="Drag an edge or corner",
         hintModern="dark · flat",hintTpm="gold · journal",hintVanilla="blue · translucent",hintDark="black & white",hintCustom="fully adjustable",
         customColors="Adjust colors",red="Red",green="Green",blue="Blue",alpha="Opacity",resetCustom="Reset to Graphite",reset="Restore Defaults",close="Close",
         tok_window="Window",tok_panel="Panels",tok_line="Lines",tok_heading="Headings",tok_text="Text",tok_muted="Secondary text",tok_accent="Accent",tok_value="Values",tok_progress="Progress",tok_success="Completed",tok_track="Bar track",tok_selection="Selection"},
-    fr={title="Design",chooseDesign="Choisir le design",design="Design",designModern="Graphite",designTpm="Classique",designVanilla="Minuit",dark="Monochrome",designCustom="Personnalisé",
+    fr={title="Design",chooseDesign="Choisir le design",design="Design",designModern="Graphite",designTpm="Classique",designVanilla="Minuit",dark="Monochrome",designCustom="Personnalisé",resizeWindow="Redimensionner",resizeHint="Faire glisser un bord ou un coin",
         hintModern="sombre · épuré",hintTpm="or · journal",hintVanilla="bleu · translucide",hintDark="noir et blanc",hintCustom="entièrement réglable",
         customColors="Ajuster les couleurs",red="Rouge",green="Vert",blue="Bleu",alpha="Opacité",resetCustom="Revenir à Graphite",reset="Valeurs par défaut",close="Fermer",
         tok_window="Fenêtre",tok_panel="Panneaux",tok_line="Lignes",tok_heading="Titres",tok_text="Texte",tok_muted="Texte secondaire",tok_accent="Accent",tok_value="Valeurs",tok_progress="Progression",tok_success="Terminé",tok_track="Fond de barre",tok_selection="Sélection"},
-    es={title="Diseño",chooseDesign="Elegir diseño",design="Diseño",designModern="Grafito",designTpm="Clásico",designVanilla="Medianoche",dark="Monocromo",designCustom="Personalizado",
+    es={title="Diseño",chooseDesign="Elegir diseño",design="Diseño",designModern="Grafito",designTpm="Clásico",designVanilla="Medianoche",dark="Monocromo",designCustom="Personalizado",resizeWindow="Cambiar tamaño",resizeHint="Arrastra un borde o una esquina",
         hintModern="oscuro · plano",hintTpm="oro · diario",hintVanilla="azul · translúcido",hintDark="blanco y negro",hintCustom="totalmente ajustable",
         customColors="Ajustar colores",red="Rojo",green="Verde",blue="Azul",alpha="Opacidad",resetCustom="Volver a Grafito",reset="Restaurar valores",close="Cerrar",
         tok_window="Ventana",tok_panel="Paneles",tok_line="Líneas",tok_heading="Títulos",tok_text="Texto",tok_muted="Texto secundario",tok_accent="Acento",tok_value="Valores",tok_progress="Progreso",tok_success="Completado",tok_track="Fondo de barra",tok_selection="Selección"},
-    ru={title="Дизайн",chooseDesign="Выбор дизайна",design="Дизайн",designModern="Графит",designTpm="Классика",designVanilla="Полночь",dark="Монохром",designCustom="Свой",
+    ru={title="Дизайн",chooseDesign="Выбор дизайна",design="Дизайн",designModern="Графит",designTpm="Классика",designVanilla="Полночь",dark="Монохром",designCustom="Свой",resizeWindow="Размер окна",resizeHint="Тяните за край или угол",
         hintModern="тёмный · плоский",hintTpm="золото · журнал",hintVanilla="синий · прозрачный",hintDark="чёрно-белый",hintCustom="полная настройка",
         customColors="Настроить цвета",red="Красный",green="Зелёный",blue="Синий",alpha="Непрозрачность",resetCustom="Сбросить на Графит",reset="По умолчанию",close="Закрыть",
         tok_window="Окно",tok_panel="Панели",tok_line="Линии",tok_heading="Заголовки",tok_text="Текст",tok_muted="Доп. текст",tok_accent="Акцент",tok_value="Значения",tok_progress="Прогресс",tok_success="Завершено",tok_track="Фон полосы",tok_selection="Выделение"},
@@ -15470,15 +15670,16 @@ function TPM:PaintEconomyTile(tile, skin)
         self:SkinPaint(tile.control, "edge", skin.journalBorder and P.accent or P.line, skin.journalBorder and 0.55 or nil)
     end
     self:SkinPaint(tile.stripe, "center", accent, zero and 0.30 or 0.95)
-    if tile.icon then
-        tile.icon:SetAlpha(zero and 0.45 or 1)
-        if tile.icon.SetDesaturation then tile.icon:SetDesaturation((zero or skin.monochrome) and 0.85 or 0) end
+    local iconDesaturation = skin.monochrome and 1 or (zero and 0.85 or 0)
+    for _, iconControl in TPM_EachPresent(tile.icon, tile.iconFallback) do
+        iconControl:SetAlpha(zero and 0.45 or 1)
+        if iconControl.SetDesaturation then iconControl:SetDesaturation(iconDesaturation) end
     end
     self:SkinPaint(tile.name, "color", zero and P.muted or P.text)
     self:SkinPaint(tile.value, "color", zero and P.muted or P.value)
     self:SkinPaint(tile.sub, "color", P.muted)
-    self:SkinPaint(tile.received, "color", (tile.receivedAmount or 0) > 0 and P.success or P.muted)
-    self:SkinPaint(tile.spent, "color", (tile.spentAmount or 0) > 0 and spentColor or P.muted)
+    self:SkinPaint(tile.highLabel, "color", P.muted)
+    self:SkinPaint(tile.highValue, "color", zero and P.muted or P.accent)
 end
 
 function TPM:ApplySkinEconomyPage(skin)
@@ -15878,7 +16079,7 @@ function TPM:SkinPass(skin, wrapHandlers)
     if self.statisticsPlaytimeCard and self.statisticsPlaytimeCard.topGlow then self.statisticsPlaytimeCard.topGlow:SetHidden(not skin.glows) end
     for _, ornament in ipairs(self.statisticsThemeWindowOrnaments or {}) do ornament:SetHidden(true) end
     self:SkinTree(self.statisticsWindow, skin, 0, 22, wrapHandlers)
-    for _, extra in TPM_EachPresent(self.statisticsThemeWindow, self.economyFocusDropdown, self.economyDetailWindow) do
+    for _, extra in TPM_EachPresent(self.statisticsThemeWindow, self.economyFocusDropdown, self.economyDetailWindow, self.fragmentDetailWindow) do
         if extra and not extra:IsHidden() then self:SkinTree(extra, skin, 0, 22, wrapHandlers) end
     end
     for _, tip in TPM_EachPresent(self.statisticsHoverTooltip, self.statisticsAchievementTooltip, self.statisticsLogHelpTooltip) do
@@ -15985,7 +16186,16 @@ function TPM:SkinPass(skin, wrapHandlers)
                 self:SkinPaint(row.bar, "center", P.track)
                 self:SkinPaint(row.bar, "edge", P.line, 0)
             end
-            self:SkinPaint(row.icon, "color", P.accent, 0.90)
+            if row.preserveNativeIconColor then
+                row.icon:SetColor(1, 1, 1, 1)
+            else
+                self:SkinPaint(row.icon, "color", P.accent, 0.90)
+            end
+            self:SkinPaint(row.iconFallback, "color", P.accent, 0.90)
+            if row.iconFrame then
+                self:SkinPaint(row.iconFrame, "center", P.panel, math.max(0.50, P.panel[4]))
+                self:SkinPaint(row.iconFrame, "edge", P.line, 0.55)
+            end
             self:SkinPaint(row.count, "color", P.muted)
             TPM_SkinPolishCategoryRow(row, skin)
         end
@@ -16024,6 +16234,7 @@ function TPM:SkinPass(skin, wrapHandlers)
             self.statisticsSkinLastError = tostring(pageErr)
         end
     end
+    self:ApplySkinFragmentDetailWindow(skin)
     local okCombat, combatErr = pcall(self.ApplySkinCombatPage, self, skin)
     if not okCombat then
         self.statisticsSkinErrors = (self.statisticsSkinErrors or 0) + 1
@@ -16089,7 +16300,7 @@ function TPM:EnsureStatisticsSkinWatchdog()
             TPM.statisticsSkinWatchdogActive = false
             return
         end
-        if TPM.statisticsWindowMoving then return end
+        if TPM.statisticsWindowMoving or TPM.statisticsWindowResizing then return end
         -- Back off if a pass ever gets expensive (large logs, slow machines).
         if (TPM.statisticsSkinWatchdogSkip or 0) > 0 then
             TPM.statisticsSkinWatchdogSkip = TPM.statisticsSkinWatchdogSkip - 1
@@ -16427,11 +16638,30 @@ end
 local TPM_THEME_PANEL_WIDTH = 384
 local TPM_THEME_DESIGN_ROW_HEIGHT = 34
 local TPM_THEME_EDITOR_HEIGHT = 414
+local TPM_THEME_SIZE_SECTION_HEIGHT = 68
 
 function TPM:GetThemePanelHeight()
-    local base = 76 + (#self:GetSkinDesignOrder() * TPM_THEME_DESIGN_ROW_HEIGHT) + 10
+    local base = 76 + (#self:GetSkinDesignOrder() * TPM_THEME_DESIGN_ROW_HEIGHT) + TPM_THEME_SIZE_SECTION_HEIGHT + 10
     if self:GetStatisticsDesign() == "custom" then return base + TPM_THEME_EDITOR_HEIGHT end
     return base
+end
+
+function TPM:RefreshStatisticsSizeControl()
+    local percent = Clamp(Round(tonumber(self.saved and self.saved.statisticsWindowScale) or 100), 80, 120)
+    if self.statisticsThemeSizeLabel then
+        self.statisticsThemeSizeLabel:SetText(self:GetStatisticsThemeText("resizeWindow"))
+    end
+    if self.statisticsThemeSizeHint then
+        self.statisticsThemeSizeHint:SetText(self:GetStatisticsThemeText("resizeHint"))
+    end
+    if self.statisticsThemeSizePercent then
+        self.statisticsThemeSizePercent:SetText(tostring(percent) .. "%")
+    end
+    if self.statisticsThemeSizeSlider then
+        self.statisticsThemeSizeUpdating = true
+        self.statisticsThemeSizeSlider:SetValue(percent)
+        self.statisticsThemeSizeUpdating = false
+    end
 end
 
 local function TPM_ThemeHex(c)
@@ -16526,6 +16756,7 @@ function TPM:RefreshStatisticsThemeWindowStates()
     if self.statisticsThemeWindow then
         self.statisticsThemeWindow:SetDimensions(TPM_THEME_PANEL_WIDTH, self:GetThemePanelHeight())
     end
+    self:RefreshStatisticsSizeControl()
     if self.statisticsThemeDesignLabel then
         self.statisticsThemeDesignLabel:SetText(self:GetStatisticsThemeText("chooseDesign"))
         self.statisticsThemeDesignLabel:SetColor(P.muted[1], P.muted[2], P.muted[3], 1)
@@ -16604,8 +16835,46 @@ function TPM:CreateStatisticsThemeWindow()
         self.statisticsThemeDesignRows[#self.statisticsThemeDesignRows + 1] = entry
     end
 
+    -- Journal size. This stays visible for every design and mirrors dragging
+    -- any journal edge/corner, making the new resize behavior discoverable.
+    local sizeTop = 76 + (#self:GetSkinDesignOrder() * TPM_THEME_DESIGN_ROW_HEIGHT) + 4
+    local sizeLine = WINDOW_MANAGER:CreateControl(nil, w, CT_BACKDROP)
+    sizeLine:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, 1); sizeLine:SetAnchor(TOPLEFT, w, TOPLEFT, 16, sizeTop)
+    sizeLine:SetCenterColor(0.46, 0.35, 0.14, 0.62); sizeLine:SetEdgeColor(0, 0, 0, 0)
+
+    local sizeLabel = WINDOW_MANAGER:CreateControl(nil, w, CT_LABEL)
+    sizeLabel:SetDimensions(150, 22); sizeLabel:SetAnchor(TOPLEFT, w, TOPLEFT, 16, sizeTop + 7)
+    sizeLabel:SetFont("$(BOLD_FONT)|15"); sizeLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER); sizeLabel.TPMSkinRole = "heading"
+    self.statisticsThemeSizeLabel = sizeLabel
+
+    local sizeHint = WINDOW_MANAGER:CreateControl(nil, w, CT_LABEL)
+    sizeHint:SetDimensions(145, 22); sizeHint:SetAnchor(TOPRIGHT, w, TOPRIGHT, -66, sizeTop + 7)
+    sizeHint:SetFont("$(MEDIUM_FONT)|12"); sizeHint:SetHorizontalAlignment(TEXT_ALIGN_RIGHT); sizeHint:SetVerticalAlignment(TEXT_ALIGN_CENTER); sizeHint.TPMSkinRole = "muted"
+    self.statisticsThemeSizeHint = sizeHint
+
+    local sizePercent = WINDOW_MANAGER:CreateControl(nil, w, CT_LABEL)
+    sizePercent:SetDimensions(48, 22); sizePercent:SetAnchor(TOPRIGHT, w, TOPRIGHT, -16, sizeTop + 7)
+    sizePercent:SetFont("$(BOLD_FONT)|14"); sizePercent:SetHorizontalAlignment(TEXT_ALIGN_RIGHT); sizePercent:SetVerticalAlignment(TEXT_ALIGN_CENTER); sizePercent.TPMSkinRole = "text"
+    self.statisticsThemeSizePercent = sizePercent
+
+    local sizeTrack = WINDOW_MANAGER:CreateControl(nil, w, CT_BACKDROP)
+    sizeTrack:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, 4); sizeTrack:SetAnchor(TOPLEFT, w, TOPLEFT, 16, sizeTop + 42)
+    sizeTrack:SetCenterColor(0.018, 0.016, 0.013, 0.92); sizeTrack:SetEdgeColor(0, 0, 0, 0)
+
+    local sizeSlider = WINDOW_MANAGER:CreateControl(nil, w, CT_SLIDER)
+    sizeSlider:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, 22); sizeSlider:SetAnchor(TOPLEFT, w, TOPLEFT, 16, sizeTop + 33)
+    sizeSlider:SetOrientation(ORIENTATION_HORIZONTAL); sizeSlider:SetMouseEnabled(true)
+    local sizeElevator = "/esoui/art/miscellaneous/scrollbox_elevator.dds"
+    sizeSlider:SetThumbTexture(sizeElevator, sizeElevator, sizeElevator, 12, 20, 0, 0, 1, 1)
+    sizeSlider:SetMinMax(80, 120); sizeSlider:SetValueStep(1)
+    sizeSlider:SetHandler("OnValueChanged", function(_, value)
+        if TPM.statisticsThemeSizeUpdating then return end
+        TPM:SetStatisticsWindowScale(value)
+    end)
+    self.statisticsThemeSizeSlider = sizeSlider
+
     -- Custom color editor.
-    local editorTop = 76 + (#self:GetSkinDesignOrder() * TPM_THEME_DESIGN_ROW_HEIGHT) + 6
+    local editorTop = sizeTop + TPM_THEME_SIZE_SECTION_HEIGHT
     local editor = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsThemeEditor", w, CT_CONTROL)
     editor:SetDimensions(TPM_THEME_PANEL_WIDTH - 32, TPM_THEME_EDITOR_HEIGHT - 10)
     editor:SetAnchor(TOPLEFT, w, TOPLEFT, 16, editorTop)
@@ -16709,29 +16978,40 @@ end
 function TPM:SetStatisticsThemeWindowVisible(show)
     if not self.statisticsThemeWindow then return end
     if show then
-        -- Match the journal scale and dock TOP-to-TOP on the right.
-        if self.statisticsWindow and self.statisticsThemeWindow.SetScale then
-            self.statisticsThemeWindow:SetScale(self.statisticsWindow:GetScale() or 1)
-        end
-        self.statisticsThemeWindow:ClearAnchors()
-        self.statisticsThemeWindow:SetAnchor(TOPLEFT,self.statisticsWindow,TOPRIGHT,8,0)
+        -- Keep this panel at a stable scale. It contains the journal-size
+        -- slider, so scaling or moving it under the pointer creates a feedback loop.
+        if self.statisticsThemeWindow.SetScale then self.statisticsThemeWindow:SetScale(1) end
 
         -- If journal + side panel do not fit, temporarily move the journal left.
         -- We keep the original top-left so closing the panel restores it exactly.
         if not self.statisticsThemeDockRestore and self.statisticsWindow and GuiRoot then
             local left,top=self.statisticsWindow:GetLeft(),self.statisticsWindow:GetTop()
             local right=self.statisticsWindow:GetRight()
+            local rootLeft,rootTop=GuiRoot:GetLeft() or 0,GuiRoot:GetTop() or 0
             local rootW=select(1,GuiRoot:GetDimensions()) or 0
-            local scale=self.statisticsWindow:GetScale() or 1
-            local panelW=384*scale
+            local panelW=TPM_THEME_PANEL_WIDTH
             local desiredRight=(right or 0)+8+panelW
-            if rootW>0 and desiredRight>rootW-8 and left and top then
-                local shift=desiredRight-(rootW-8)
-                local newLeft=math.max(8,left-shift)
+            if rootW>0 and desiredRight>rootLeft+rootW-8 and left and top then
+                local shift=desiredRight-(rootLeft+rootW-8)
+                local newLeft=math.max(rootLeft+8,left-shift)
                 self.statisticsThemeDockRestore={left=left,top=top}
                 self.statisticsWindow:ClearAnchors()
-                self.statisticsWindow:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,newLeft,top)
+                self.statisticsWindow:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,newLeft-rootLeft,top-rootTop)
             end
+        end
+
+        -- Anchor to GuiRoot after the optional fit adjustment. The panel now
+        -- stays at one screen position while its own slider changes journal scale.
+        if self.statisticsWindow and GuiRoot then
+            local rootLeft,rootTop=GuiRoot:GetLeft() or 0,GuiRoot:GetTop() or 0
+            local rootW,rootH=GuiRoot:GetDimensions()
+            local panelW,panelH=TPM_THEME_PANEL_WIDTH,self:GetThemePanelHeight()
+            local panelX=(self.statisticsWindow:GetRight() or rootLeft+8)+8-rootLeft
+            local panelY=(self.statisticsWindow:GetTop() or rootTop+8)-rootTop
+            panelX=Clamp(panelX,8,math.max(8,(rootW or 0)-panelW-8))
+            panelY=Clamp(panelY,8,math.max(8,(rootH or 0)-panelH-8))
+            self.statisticsThemeWindow:ClearAnchors()
+            self.statisticsThemeWindow:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, panelX, panelY)
         end
 
         if self.statisticsThemeWindow.BringWindowToTop then self.statisticsThemeWindow:BringWindowToTop() end
@@ -17001,7 +17281,7 @@ function TPM:CreateStatisticsWindow()
 
     local overall = WINDOW_MANAGER:CreateControl(nil, progressPage, CT_LABEL)
     overall:SetDimensions(106, 44)
-    overall:SetAnchor(CENTER, medallion, CENTER, 0, 3)
+    overall:SetAnchor(CENTER, medallion, CENTER, 0, 0)
     overall:SetFont("$(ANTIQUE_FONT)|32")
     overall:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     overall:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -17060,8 +17340,8 @@ function TPM:CreateStatisticsWindow()
     -- all-zone view; any supported Zone Story narrows the summary, categories
     -- and zone table to that one zone without affecting global history/goals.
     local focusLabel = WINDOW_MANAGER:CreateControl(nil, progressPage, CT_LABEL)
-    focusLabel:SetDimensions(72, 24)
-    focusLabel:SetAnchor(TOPLEFT, control, TOPLEFT, 598, 92)
+    focusLabel:SetDimensions(52, 24)
+    focusLabel:SetAnchor(TOPLEFT, control, TOPLEFT, 714, 92)
     focusLabel:SetFont("$(MEDIUM_FONT)|14")
     focusLabel:SetColor(0.74, 0.70, 0.62, 1)
     focusLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -17073,13 +17353,13 @@ function TPM:CreateStatisticsWindow()
     -- overlay. This control is fully mouse-driven and its popup lives directly
     -- on the statistics top-level window, so it cannot be clipped by the page.
     local focusSelector = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsFocusSelector", progressPage, CT_CONTROL)
-    focusSelector:SetDimensions(286, 26)
-    focusSelector:SetAnchor(TOPLEFT, control, TOPLEFT, 678, 91)
+    focusSelector:SetDimensions(190, 26)
+    focusSelector:SetAnchor(TOPLEFT, control, TOPLEFT, 774, 91)
     focusSelector:SetMouseEnabled(true)
     -- 2.8.0: shared zone-focus selector/popup (same look as the Economy page).
     self.statisticsFocusUI = self:CreateFocusUI({
         name = ADDON_NAME .. "StatisticsFocusDropdown", selector = focusSelector, parent = control,
-        width = 286, pinned = 2, listed = 8, drawLevel = 7600, font = "$(MEDIUM_FONT)|15",
+        width = 190, dropdownWidth = 260, pinned = 2, listed = 8, drawLevel = 7600, font = "$(MEDIUM_FONT)|14",
         onToggle = function() TPM:ToggleStatisticsFocusDropdown() end,
         onPick = function(zoneId) TPM:PickStatisticsFocusZone(zoneId) end,
     })
@@ -17428,9 +17708,139 @@ function TPM:CreateStatisticsWindow()
     self.statisticsProgressTab = CreatePageTab(ADDON_NAME .. "StatsTabProgress", 22, "progress", 302)
     self.statisticsEconomyTab = CreatePageTab(ADDON_NAME .. "StatsTabEconomy", 338, "economy", 302)
     self.statisticsHistoryTab = CreatePageTab(ADDON_NAME .. "StatsTabHistory", 654, "history", 302)
+    self:CreateStatisticsResizeGrips()
     self:RefreshStatisticsPageTabs()
     self:RefreshStatisticsSubPageNavigation()
     self:ApplyStatisticsTheme()
+end
+
+function TPM:SetStatisticsWindowScale(value, anchorMode, startLeft, startTop, startScale)
+    local percent = Clamp(Round(tonumber(value) or 100), 80, 120)
+    if self.saved then self.saved.statisticsWindowScale = percent end
+
+    local control = self.statisticsWindow
+    if control then
+        local oldScale = tonumber(startScale) or (control.GetScale and control:GetScale()) or 1
+        local left = tonumber(startLeft) or (control.GetLeft and control:GetLeft()) or 0
+        local top = tonumber(startTop) or (control.GetTop and control:GetTop()) or 0
+        local newScale = percent / 100
+        control:SetScale(newScale)
+
+        if anchorMode then
+            local newLeft, newTop = left, top
+            local rootLeft = (GuiRoot.GetLeft and GuiRoot:GetLeft()) or 0
+            local rootTop = (GuiRoot.GetTop and GuiRoot:GetTop()) or 0
+            if string.find(anchorMode, "left", 1, true) then
+                newLeft = left + (1000 * (oldScale - newScale))
+            end
+            if string.find(anchorMode, "top", 1, true) then
+                newTop = top + (750 * (oldScale - newScale))
+            end
+            control:ClearAnchors()
+            control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, newLeft - rootLeft, newTop - rootTop)
+        end
+
+        -- Once the user deliberately changes size while the side panel is open,
+        -- the current journal position becomes authoritative instead of the
+        -- temporary pre-panel restore point.
+        if self.statisticsThemeWindow and not self.statisticsThemeWindow:IsHidden() then
+            self.statisticsThemeDockRestore = nil
+        end
+        self:RefreshAlliancePlannerMapView(true)
+        self:ClampStatisticsWindowToScreen()
+    end
+    self:RefreshStatisticsSizeControl()
+end
+
+function TPM:UpdateStatisticsWindowResize()
+    if not self.statisticsWindowResizing or type(GetUIMousePosition) ~= "function" then return end
+    local mouseX, mouseY = GetUIMousePosition()
+    mouseX, mouseY = tonumber(mouseX), tonumber(mouseY)
+    if not mouseX or not mouseY then return end
+
+    local edge = tostring(self.statisticsResizeEdge or "")
+    local deltaX = mouseX - (tonumber(self.statisticsResizeStartMouseX) or mouseX)
+    local deltaY = mouseY - (tonumber(self.statisticsResizeStartMouseY) or mouseY)
+    local horizontal, vertical
+    if string.find(edge, "left", 1, true) then horizontal = -deltaX / 10
+    elseif string.find(edge, "right", 1, true) then horizontal = deltaX / 10 end
+    if string.find(edge, "top", 1, true) then vertical = -deltaY / 7.5
+    elseif string.find(edge, "bottom", 1, true) then vertical = deltaY / 7.5 end
+
+    local delta = horizontal or vertical or 0
+    if horizontal and vertical and math.abs(vertical) > math.abs(horizontal) then delta = vertical end
+    local target = (tonumber(self.statisticsResizeStartPercent) or 100) + delta
+    self:SetStatisticsWindowScale(target, edge, self.statisticsResizeStartLeft, self.statisticsResizeStartTop, self.statisticsResizeStartScale)
+end
+
+function TPM:StartResizingStatisticsWindow(edge, grip)
+    if not self.statisticsWindow or type(GetUIMousePosition) ~= "function" then return end
+    local mouseX, mouseY = GetUIMousePosition()
+    mouseX, mouseY = tonumber(mouseX), tonumber(mouseY)
+    local left, top = self.statisticsWindow:GetLeft(), self.statisticsWindow:GetTop()
+    if not mouseX or not mouseY or not left or not top then return end
+
+    self.statisticsWindowResizing = true
+    self.statisticsResizeEdge = edge
+    self.statisticsResizeActiveGrip = grip
+    self.statisticsResizeStartMouseX = mouseX
+    self.statisticsResizeStartMouseY = mouseY
+    self.statisticsResizeStartLeft = left
+    self.statisticsResizeStartTop = top
+    self.statisticsResizeStartScale = self.statisticsWindow:GetScale() or 1
+    self.statisticsResizeStartPercent = self.statisticsResizeStartScale * 100
+    self:UpdateGlobalMouseUpRegistration()
+    grip:SetHandler("OnUpdate", function() TPM:UpdateStatisticsWindowResize() end)
+end
+
+function TPM:StopResizingStatisticsWindow()
+    if not self.statisticsWindowResizing then return end
+    if self.statisticsResizeActiveGrip then self.statisticsResizeActiveGrip:SetHandler("OnUpdate", nil) end
+    self.statisticsWindowResizing = false
+    self.statisticsResizeEdge = nil
+    self.statisticsResizeActiveGrip = nil
+    self:UpdateGlobalMouseUpRegistration()
+    self:SaveStatisticsWindowPosition()
+end
+
+function TPM:CreateStatisticsResizeGrips()
+    if self.statisticsResizeGrips or not self.statisticsWindow then return end
+    local control = self.statisticsWindow
+    local border, corner = 6, 10
+    self.statisticsResizeGrips = {}
+
+    local function CreateGrip(edge)
+        local grip = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "StatisticsResize" .. edge, control, CT_CONTROL)
+        grip:SetMouseEnabled(true)
+        if grip.SetDrawLayer then grip:SetDrawLayer(DL_OVERLAY) end
+        if grip.SetDrawLevel then grip:SetDrawLevel(30000) end
+        grip:SetHandler("OnMouseDown", function(_, button)
+            if button == MOUSE_BUTTON_INDEX_LEFT then TPM:StartResizingStatisticsWindow(edge, grip) end
+        end)
+        grip:SetHandler("OnMouseUp", function(_, button)
+            if button == MOUSE_BUTTON_INDEX_LEFT then TPM:StopResizingStatisticsWindow() end
+        end)
+        self.statisticsResizeGrips[#self.statisticsResizeGrips + 1] = grip
+        return grip
+    end
+
+    local left = CreateGrip("left")
+    left:SetWidth(border); left:SetAnchor(TOPLEFT, control, TOPLEFT, 0, corner); left:SetAnchor(BOTTOMLEFT, control, BOTTOMLEFT, 0, -corner)
+    local right = CreateGrip("right")
+    right:SetWidth(border); right:SetAnchor(TOPRIGHT, control, TOPRIGHT, 0, corner); right:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, 0, -corner)
+    local top = CreateGrip("top")
+    top:SetHeight(border); top:SetAnchor(TOPLEFT, control, TOPLEFT, corner, 0); top:SetAnchor(TOPRIGHT, control, TOPRIGHT, -corner, 0)
+    local bottom = CreateGrip("bottom")
+    bottom:SetHeight(border); bottom:SetAnchor(BOTTOMLEFT, control, BOTTOMLEFT, corner, 0); bottom:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -corner, 0)
+
+    for _, def in ipairs({
+        { "topleft", TOPLEFT }, { "topright", TOPRIGHT },
+        { "bottomleft", BOTTOMLEFT }, { "bottomright", BOTTOMRIGHT },
+    }) do
+        local grip = CreateGrip(def[1])
+        grip:SetDimensions(corner, corner)
+        grip:SetAnchor(def[2], control, def[2], 0, 0)
+    end
 end
 
 function TPM:GetStatisticsViewportBounds()
@@ -17694,6 +18104,8 @@ function TPM:RefreshStatisticsWindow()
         local data = displayedCategories[index]
         categoryControl.control:SetHidden(data == nil)
         if data then
+            local isSideQuestRow = data.completionType == BASE_SIDE_QUEST_CATEGORY_KEY or data.completionType == DLC_SIDE_QUEST_CATEGORY_KEY
+            categoryControl.label:SetFont(isSideQuestRow and "$(MEDIUM_FONT)|14" or "$(MEDIUM_FONT)|16")
             categoryControl.label:SetText(data.name)
             categoryControl.count:SetText(data.countText or string.format("%d/%d", data.completed, data.total))
             if data.informational then
@@ -17706,10 +18118,17 @@ function TPM:RefreshStatisticsWindow()
                 self:SetStatisticsBarPercent(categoryControl.fill, 96, data.percent)
             end
             if categoryControl.icon then
-                local iconTexture = STATISTICS_CATEGORY_ICON_TEXTURES[data.completionType] or "TamrielProgressMap/art/cat_quests.dds"
-                categoryControl.icon:SetTexture(iconTexture)
-                local ir, ig, ib = self:GetStatisticsProgressColor(data.percent)
-                categoryControl.icon:SetColor(ir, ig, ib, 0.96)
+                local iconTexture, preserveNativeColor, fallbackTexture = self:GetStatisticsCategoryIcon(data.completionType)
+                self:SetTextureWithFallback(categoryControl.icon, categoryControl.iconFallback, iconTexture, fallbackTexture)
+                categoryControl.preserveNativeIconColor = preserveNativeColor == true
+                if preserveNativeColor then
+                    categoryControl.icon:SetColor(1, 1, 1, 1)
+                else
+                    local ir, ig, ib = self:GetStatisticsProgressColor(data.percent)
+                    categoryControl.icon:SetColor(ir, ig, ib, 0.96)
+                end
+                local fr, fg, fb = self:GetStatisticsProgressColor(data.percent)
+                categoryControl.iconFallback:SetColor(fr, fg, fb, 0.96)
             end
             local hudRowActive = self:IsProgressGoalCategoryActive(data.completionType)
             if categoryControl.gearButton then
@@ -18054,6 +18473,7 @@ end
 
 function TPM:HideStatisticsWindow()
     if self.statisticsThemeWindow and not self.statisticsThemeWindow:IsHidden() then self:SetStatisticsThemeWindowVisible(false) end
+    if self.fragmentDetailWindow then self.fragmentDetailWindow:SetHidden(true) end
     self:HideEconomyFocusDropdown()
     self:HideStatisticsHoverTooltips()
     self:HideStatisticsFocusDropdown()
@@ -18063,6 +18483,9 @@ function TPM:HideStatisticsWindow()
     -- the user clicks the gear again to save.
     if self.statisticsWindowMoving then
         self:StopMovingStatisticsWindow()
+    end
+    if self.statisticsWindowResizing then
+        self:StopResizingStatisticsWindow()
     end
     self:PlayStatisticsCloseAnimation()
 end
@@ -18324,7 +18747,6 @@ function TPM:RefreshQuickFilterBar()
     if not bar then return end
 
     local visible = self.saved
-        and self.saved.enabled
         and self.saved.showQuickFilters
         and self:IsFullWorldMapSceneVisible()
     bar:SetHidden(not visible)
@@ -18564,6 +18986,7 @@ function TPM:PrintHelp()
     d(self:L("HELP_STATS"))
     d(self:L("HELP_PAGE"))
     d(self:L("HELP_DEBUG_REPORT"))
+    d(self:L("HELP_QUESTDEBUG"))
 end
 
 function TPM:RefreshBindingStrings()
@@ -18571,6 +18994,70 @@ function TPM:RefreshBindingStrings()
     if stringId and type(SafeAddString) == "function" then
         SafeAddString(stringId, self:L("KEYBIND_TOGGLE_STATS"), 2)
     end
+end
+
+local TPM_QUESTDEBUG_FILTERS = {
+    suspicious = true,
+    all = true,
+    base = true,
+    dlc = true,
+    unknown = true,
+    excluded = true,
+    open = true,
+    complete = true,
+}
+
+local function TPM_QuestDebugSourceText(record)
+    local values = {}
+    for key, enabled in pairs(record.source or {}) do
+        if enabled == true then values[#values + 1] = tostring(key) end
+    end
+    table.sort(values)
+    return #values > 0 and table.concat(values, ",") or "none"
+end
+
+function TPM:PrintQuestDebug(filter, page, questId)
+    local questData = _G.RaccoonQuestData
+    if type(questData) ~= "table" then
+        if type(d) == "function" then d(self:L("QUESTDEBUG_UNAVAILABLE")) end
+        return
+    end
+    local progressZoneIds = self:GetAllProgressZoneIds()
+    local priorityQuestIds = self:GetPriorityQuestIdSet(progressZoneIds)
+    local revision = tostring(questData.dataRevision or "unknown")
+
+    local function PrintRecord(record)
+        if not record then
+            d(self:L("QUESTDEBUG_ID_NOT_FOUND", tonumber(questId) or 0))
+            return
+        end
+        local reasons = #(record.reasons or {}) > 0 and table.concat(record.reasons, ",") or "ok"
+        d(string.format("#%d %s | zone=%d/%d | type=%s repeat=%s | %s | %s | source=%s | reasons=%s",
+            tonumber(record.id) or 0,
+            tostring(record.name or "?"),
+            tonumber(record.zoneId) or 0,
+            tonumber(record.storyZoneId) or 0,
+            tostring(record.questType),
+            tostring(record.repeatType),
+            tostring(record.classification or "unknown"),
+            record.completed and "complete" or "open",
+            TPM_QuestDebugSourceText(record),
+            reasons))
+    end
+
+    if questId then
+        d(self:L("QUESTDEBUG_ID_HEADER", tonumber(questId) or 0, revision))
+        PrintRecord(questData:GetQuestDiagnostic(questId, progressZoneIds, priorityQuestIds))
+        return
+    end
+
+    filter = TPM_QUESTDEBUG_FILTERS[filter] and filter or "suspicious"
+    local result = questData:GetDiagnosticPage(filter, page, 8, progressZoneIds, priorityQuestIds)
+    local source = result and questData:GetSideQuestStatistics(progressZoneIds, priorityQuestIds, false).source or {}
+    local coverage = source.available and "library+history" or "history+fallback(partial)"
+    d(self:L("QUESTDEBUG_HEADER", filter, result.page, result.totalPages, result.total, revision, coverage))
+    for _, record in ipairs(result.items or {}) do PrintRecord(record) end
+    if #(result.items or {}) == 0 then d(self:L("QUESTDEBUG_EMPTY")) end
 end
 
 
@@ -18631,6 +19118,20 @@ function TPM:HandleSlashCommand(text)
         self:CheckpointHistory("manual", true)
         d(self:L("HISTORY_CHECKPOINT_SAVED"))
     else
+        local questDebugId = string.match(text, "^questdebug%s+id%s+(%d+)$")
+        if questDebugId then
+            self:PrintQuestDebug(nil, nil, tonumber(questDebugId))
+            return
+        end
+        if text == "questdebug" then
+            self:PrintQuestDebug("suspicious", 1)
+            return
+        end
+        local questDebugFilter, questDebugPage = string.match(text, "^questdebug%s+(%a+)%s*(%d*)$")
+        if questDebugFilter then
+            self:PrintQuestDebug(questDebugFilter, tonumber(questDebugPage) or 1)
+            return
+        end
         local page = string.match(text, "^page%s+(%S+)$")
         if page and self:IsValidStatisticsPage(page) then
             self.saved.statisticsPage = page
@@ -19218,7 +19719,7 @@ function TPM:ResetCurrentCharacterHistory()
     self:RefreshHistoryStatisticsPage()
 end
 
-function TPM:RegisterSettings()
+function TPM:RegisterSettingsLegacy281()
     local LAM = LibAddonMenu2
     if not LAM then return end
 
@@ -19351,14 +19852,7 @@ function TPM:RegisterSettings()
             tooltip = function() return TPM:L("SETTINGS_STATISTICS_SCALE_TT") end,
             min = 80, max = 120, step = 5,
             getFunc = function() return TPM.saved.statisticsWindowScale or 100 end,
-            setFunc = function(value)
-                TPM.saved.statisticsWindowScale = Clamp(Round(value), 80, 120)
-                if TPM.statisticsWindow then
-                    TPM.statisticsWindow:SetScale(TPM.saved.statisticsWindowScale / 100)
-                    TPM:RefreshAlliancePlannerMapView(true)
-                    TPM:ClampStatisticsWindowToScreen()
-                end
-            end,
+            setFunc = function(value) TPM:SetStatisticsWindowScale(value) end,
             default = DEFAULTS.statisticsWindowScale,
             width = "full",
         },
@@ -19539,6 +20033,423 @@ function TPM:RegisterSettings()
     end
 end
 
+function TPM:GetSettingsOverviewText()
+    local design = self:GetStatisticsDesign()
+    local palette = self:GetSkinPalette(design)
+    local designName = self:GetStatisticsThemeText(palette.nameKey)
+    local scale = Clamp(Round(tonumber(self.saved and self.saved.statisticsWindowScale) or 100), 80, 120)
+    local history = self.saved and self.saved.historyEnabled ~= false and self:L("ON") or self:L("OFF")
+    local hud = self.saved and self.saved.skyshardGoalEnabled == true and self:L("ON") or self:L("OFF")
+    return self:L("SETTINGS_V282_OVERVIEW", designName, scale, history, hud)
+end
+
+function TPM:SetProgressGoalHudEnabled(enabled)
+    if not self.saved then return end
+    enabled = enabled == true
+    if enabled and not self.saved.progressGoalCategoryType then
+        self.saved.progressGoalCategoryType = _G.ZONE_COMPLETION_TYPE_SKYSHARDS
+    end
+    self.saved.skyshardGoalEnabled = enabled
+    if not enabled and self.skyshardGoalEditMode == true then
+        self:SetSkyshardGoalEditMode(false, false)
+    end
+    self:UpdateSkyshardGoalRefreshTimer()
+    self:RefreshSkyshardGoalWidget()
+end
+
+function TPM:ApplySettingsDefaultsRefresh()
+    if not self.saved then return end
+    self:ApplyProgressFonts()
+    self:ApplyQuestRewardFonts()
+    self:RefreshQuickFilterBar()
+    self:RefreshVanillaQuestRewardColors()
+    self:UpdateQuestRewardLockState()
+    self:UpdateFocusedRewardPanelPolling()
+    self:SetStatisticsWindowScale(self.saved.statisticsWindowScale or DEFAULTS.statisticsWindowScale)
+    self:ApplyStatisticsTheme()
+    self:SetProgressGoalHudEnabled(self.saved.skyshardGoalEnabled == true)
+    if self.saved.showQuestRewards then self:QueueRefresh(10) else self:HideQuestRewards() end
+    if self.saved.historyEnabled ~= false then self:StartOrResumeHistorySession() end
+    self:InvalidateStatisticsData(false)
+    self:QueueRefresh(10)
+end
+
+function TPM:RegisterSettings()
+    local LAM = LibAddonMenu2
+    if not LAM then return end
+
+    local panelDisplayName = string.format("%s v%s", DISPLAY_NAME, VERSION)
+    local panelData =
+    {
+        type = "panel",
+        name = panelDisplayName,
+        displayName = "|cE6C45C" .. panelDisplayName .. "|r",
+        author = AUTHOR,
+        version = VERSION,
+        keywords = "Tamriel Progress Map journal statistics map progress history",
+        registerForRefresh = true,
+        registerForDefaults = true,
+        resetFunc = function() TPM:ApplySettingsDefaultsRefresh() end,
+    }
+    self.settingsPanel = LAM:RegisterAddonPanel(ADDON_NAME .. "Options", panelData)
+
+    local function Choices(keys)
+        local labels = {}
+        for index, key in ipairs(keys) do labels[index] = TPM:L(key) end
+        return labels
+    end
+
+    local fontChoices, fontValues = {}, {}
+    for index, fontKey in ipairs(FONT_STYLE_ORDER) do
+        fontChoices[index] = self:GetFontStyleName(fontKey)
+        fontValues[index] = fontKey
+    end
+
+    local designOrder = self:GetSkinDesignOrder()
+    local designChoices, designValues = {}, {}
+    for index, designKey in ipairs(designOrder) do
+        designChoices[index] = self:GetStatisticsThemeText(self:GetSkinPalette(designKey).nameKey)
+        designValues[index] = designKey
+    end
+
+    local mapDependent = function() return not TPM.saved.enabled end
+    local questWindowDependent = function() return not TPM.saved.showQuestRewards end
+    local hudDependent = function() return not TPM.saved.skyshardGoalEnabled end
+
+    local optionData =
+    {
+        {
+            type = "description",
+            title = function() return TPM:L("SETTINGS_V282_OVERVIEW_TITLE") end,
+            text = function() return TPM:GetSettingsOverviewText() end,
+            width = "full",
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_WORLD_MAP") end,
+            controls =
+            {
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_ENABLED") end,
+                    tooltip = function() return TPM:L("SETTINGS_ENABLED_TT") end,
+                    getFunc = function() return TPM.saved.enabled end,
+                    setFunc = function(value) TPM.saved.enabled = value; TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.enabled, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_QUICK_FILTERS") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUICK_FILTERS_TT") end,
+                    getFunc = function() return TPM.saved.showQuickFilters end,
+                    setFunc = function(value) TPM.saved.showQuickFilters = value; TPM:RefreshQuickFilterBar() end,
+                    default = DEFAULTS.showQuickFilters, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_NAMES") end,
+                    tooltip = function() return TPM:L("SETTINGS_NAMES_TT") end,
+                    getFunc = function() return TPM.saved.showZoneNames end,
+                    setFunc = function(value) TPM.saved.showZoneNames = value; TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.showZoneNames, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_TOOLTIP") end,
+                    tooltip = function() return TPM:L("SETTINGS_TOOLTIP_TT") end,
+                    getFunc = function() return TPM.saved.showTooltip end,
+                    setFunc = function(value) TPM.saved.showTooltip = value end,
+                    default = DEFAULTS.showTooltip, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_HEADER") end,
+                    tooltip = function() return TPM:L("SETTINGS_HEADER_TT") end,
+                    getFunc = function() return TPM.saved.showHeader end,
+                    setFunc = function(value) TPM.saved.showHeader = value; TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.showHeader, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_ALLIANCE_TERRITORY") end,
+                    tooltip = function() return TPM:L("SETTINGS_ALLIANCE_TERRITORY_TT") end,
+                    getFunc = function() return TPM.saved.showAllianceTerritoryColors end,
+                    setFunc = function(value) TPM.saved.showAllianceTerritoryColors = value == true; TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.showAllianceTerritoryColors, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_ALLIANCE_NEUTRAL_WHITE") end,
+                    tooltip = function() return TPM:L("SETTINGS_ALLIANCE_NEUTRAL_WHITE_TT") end,
+                    getFunc = function() return TPM.saved.allianceNeutralWhite end,
+                    setFunc = function(value) TPM.saved.allianceNeutralWhite = value == true; TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.allianceNeutralWhite,
+                    disabled = function() return not TPM.saved.enabled or not TPM.saved.showAllianceTerritoryColors end,
+                    width = "full",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_MAP_APPEARANCE") end,
+            controls =
+            {
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_V282_MAP_STYLE") end,
+                    tooltip = function() return TPM:L("SETTINGS_MAP_BADGES_TT") end,
+                    choices = Choices({ "SETTINGS_V282_MAP_STYLE_BADGE", "SETTINGS_V282_MAP_STYLE_TEXT" }),
+                    choicesValues = { "badge", "text" },
+                    getFunc = function() return TPM.saved.mapPercentStyle == "text" and "text" or "badge" end,
+                    setFunc = function(value) TPM.saved.mapPercentStyle = value; TPM:ApplyProgressFonts(); TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.mapPercentStyle, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_FONT") end,
+                    tooltip = function() return TPM:L("SETTINGS_FONT_TT") end,
+                    choices = fontChoices, choicesValues = fontValues,
+                    getFunc = function() return TPM.saved.fontStyle or DEFAULTS.fontStyle end,
+                    setFunc = function(value) TPM:SetFontStyle(value) end,
+                    default = DEFAULTS.fontStyle, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "slider", name = function() return TPM:L("SETTINGS_MAP_PERCENT_SIZE") end,
+                    tooltip = function() return TPM:L("SETTINGS_PERCENT_SIZE_TT") end,
+                    min = 70, max = 160, step = 5,
+                    getFunc = function() return TPM.saved.mapPercentScale or 100 end,
+                    setFunc = function(value) TPM:SetPercentScale("map", value) end,
+                    default = DEFAULTS.mapPercentScale, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "slider", name = function() return TPM:L("SETTINGS_HEADER_PERCENT_SIZE") end,
+                    tooltip = function() return TPM:L("SETTINGS_PERCENT_SIZE_TT") end,
+                    min = 70, max = 160, step = 5,
+                    getFunc = function() return TPM.saved.headerPercentScale or 100 end,
+                    setFunc = function(value) TPM:SetPercentScale("header", value) end,
+                    default = DEFAULTS.headerPercentScale, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_PERCENT_COLOR") end,
+                    tooltip = function() return TPM:L("SETTINGS_PERCENT_COLOR_TT") end,
+                    choices = Choices({ "COLOR_PROGRESS", "COLOR_BLACK", "COLOR_BROWN", "COLOR_GOLD", "COLOR_CUSTOM" }),
+                    choicesValues = { "progress", "black", "brown", "gold", "custom" },
+                    getFunc = function() return TPM.saved.percentColorMode or DEFAULTS.percentColorMode end,
+                    setFunc = function(value) TPM:SetPercentColorMode(value) end,
+                    default = DEFAULTS.percentColorMode, disabled = mapDependent, width = "full",
+                },
+                {
+                    type = "colorpicker", name = function() return TPM:L("SETTINGS_V282_CUSTOM_PERCENT_COLOR") end,
+                    tooltip = function() return TPM:L("SETTINGS_V282_CUSTOM_PERCENT_COLOR_TT") end,
+                    getFunc = function()
+                        local c = TPM.saved.customPercentColor or DEFAULTS.customPercentColor
+                        return c.r, c.g, c.b, 1
+                    end,
+                    setFunc = function(r, g, b)
+                        TPM.saved.customPercentColor = { r = r, g = g, b = b }
+                        TPM:QueueRefresh(10)
+                    end,
+                    default = DEFAULTS.customPercentColor,
+                    disabled = function() return not TPM.saved.enabled or TPM.saved.percentColorMode ~= "custom" end,
+                    width = "full",
+                },
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_HUNDRED_DISPLAY") end,
+                    tooltip = function() return TPM:L("SETTINGS_HUNDRED_DISPLAY_TT") end,
+                    choices = Choices({ "HUNDRED_PERCENT", "HUNDRED_CHECK", "HUNDRED_HIDDEN" }),
+                    choicesValues = { "percent", "check", "hidden" },
+                    getFunc = function() return TPM.saved.hundredDisplayMode or DEFAULTS.hundredDisplayMode end,
+                    setFunc = function(value) TPM:SetHundredDisplayMode(value) end,
+                    default = DEFAULTS.hundredDisplayMode, disabled = mapDependent, width = "full",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_JOURNAL") end,
+            controls =
+            {
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_V282_JOURNAL_DESIGN") end,
+                    tooltip = function() return TPM:L("SETTINGS_V282_JOURNAL_DESIGN_TT") end,
+                    choices = designChoices, choicesValues = designValues,
+                    getFunc = function() return TPM:GetStatisticsDesign() end,
+                    setFunc = function(value) TPM:SelectStatisticsDesign(value) end,
+                    default = DEFAULTS.statisticsThemeDesign, width = "full",
+                },
+                {
+                    type = "description", text = function() return TPM:L("SETTINGS_V282_CUSTOM_DESIGN_INFO") end, width = "full",
+                },
+                {
+                    type = "slider", name = function() return TPM:L("SETTINGS_STATISTICS_SCALE") end,
+                    tooltip = function() return TPM:L("SETTINGS_STATISTICS_SCALE_TT") end,
+                    min = 80, max = 120, step = 1,
+                    getFunc = function() return TPM.saved.statisticsWindowScale or 100 end,
+                    setFunc = function(value) TPM:SetStatisticsWindowScale(value) end,
+                    default = DEFAULTS.statisticsWindowScale, width = "full",
+                },
+                {
+                    type = "button", name = function() return TPM:L("SETTINGS_STATISTICS_RESET") end,
+                    tooltip = function() return TPM:L("SETTINGS_STATISTICS_RESET_TT") end,
+                    func = function() TPM:ResetStatisticsWindowPosition() end, width = "half",
+                },
+                {
+                    type = "description", text = function() return TPM:L("SETTINGS_STATISTICS_KEYBIND_INFO") end, width = "full",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_PROGRESS_HUD") end,
+            controls =
+            {
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_CALCULATION") end,
+                    tooltip = function() return TPM:L("SETTINGS_CALCULATION_TT") end,
+                    choices = Choices({ "MODE_OBJECTIVES", "MODE_CATEGORIES" }),
+                    choicesValues = { "objectives", "categories" },
+                    getFunc = function() return TPM.saved.calculationMode or DEFAULTS.calculationMode end,
+                    setFunc = function(value) TPM:SetCalculationMode(value) end,
+                    default = DEFAULTS.calculationMode, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_V282_HUD_ENABLED") end,
+                    tooltip = function() return TPM:L("SETTINGS_V282_HUD_ENABLED_TT") end,
+                    getFunc = function() return TPM.saved.skyshardGoalEnabled == true end,
+                    setFunc = function(value) TPM:SetProgressGoalHudEnabled(value) end,
+                    default = DEFAULTS.skyshardGoalEnabled, width = "full",
+                },
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_SKYSHARD_POSITION") end,
+                    tooltip = function() return TPM:L("SETTINGS_SKYSHARD_POSITION_TT") end,
+                    choices = Choices({ "SETTINGS_V282_HUD_ABOVE", "SETTINGS_V282_HUD_BELOW" }),
+                    choicesValues = { 1, 2 },
+                    getFunc = function() return tonumber(TPM.saved.skyshardGoalPosition) == 2 and 2 or 1 end,
+                    setFunc = function(value) TPM:SetSkyshardGoalPosition(value) end,
+                    default = DEFAULTS.skyshardGoalPosition, disabled = hudDependent, width = "full",
+                },
+                {
+                    type = "button", name = function() return TPM:L("SETTINGS_V282_HUD_RESET") end,
+                    tooltip = function() return TPM:L("SETTINGS_V282_HUD_RESET_TT") end,
+                    func = function() TPM:ResetSkyshardGoalCustomPosition() end,
+                    disabled = hudDependent, width = "half",
+                },
+                {
+                    type = "description", text = function() return TPM:L("SETTINGS_V282_HUD_INFO") end, width = "full",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_QUEST_REWARDS") end,
+            controls =
+            {
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_QUEST_REWARDS") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUEST_REWARDS_TT") end,
+                    getFunc = function() return TPM.saved.showQuestRewards end,
+                    setFunc = function(value)
+                        TPM.saved.showQuestRewards = value
+                        TPM:UpdateFocusedRewardPanelPolling()
+                        if value then TPM:QueueRefresh(10) else TPM:HideQuestRewards() end
+                    end,
+                    default = DEFAULTS.showQuestRewards, width = "full",
+                },
+                {
+                    type = "dropdown", name = function() return TPM:L("SETTINGS_QUEST_FONT") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUEST_FONT_TT") end,
+                    choices = fontChoices, choicesValues = fontValues,
+                    getFunc = function() return TPM.saved.questFontStyle or DEFAULTS.questFontStyle end,
+                    setFunc = function(value) TPM:SetQuestFontStyle(value) end,
+                    default = DEFAULTS.questFontStyle, disabled = questWindowDependent, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_QUEST_REWARD_COLORS") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUEST_REWARD_COLORS_TT") end,
+                    getFunc = function() return TPM.saved.colorVanillaQuestsByReward ~= false end,
+                    setFunc = function(value) TPM.saved.colorVanillaQuestsByReward = value; TPM:RefreshVanillaQuestRewardColors() end,
+                    default = DEFAULTS.colorVanillaQuestsByReward, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_QUEST_AUTO_SIZE") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUEST_AUTO_SIZE_TT") end,
+                    getFunc = function() return TPM.saved.questRewardAutoSize end,
+                    setFunc = function(value) TPM.saved.questRewardAutoSize = value; TPM:QueueRefresh(10) end,
+                    default = DEFAULTS.questRewardAutoSize, disabled = questWindowDependent, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_QUEST_LOCK") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUEST_LOCK_TT") end,
+                    getFunc = function() return TPM.saved.questRewardLocked end,
+                    setFunc = function(value) TPM.saved.questRewardLocked = value; TPM:UpdateQuestRewardLockState() end,
+                    default = DEFAULTS.questRewardLocked, disabled = questWindowDependent, width = "full",
+                },
+                {
+                    type = "button", name = function() return TPM:L("SETTINGS_QUEST_RESET") end,
+                    tooltip = function() return TPM:L("SETTINGS_QUEST_RESET_TT") end,
+                    func = function() TPM:ResetQuestRewardWindow() end,
+                    disabled = questWindowDependent, width = "half",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_HISTORY_DATA") end,
+            controls =
+            {
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_HISTORY_ENABLED") end,
+                    tooltip = function() return TPM:L("SETTINGS_HISTORY_ENABLED_TT") end,
+                    getFunc = function() return TPM.saved.historyEnabled ~= false end,
+                    setFunc = function(value)
+                        if value then
+                            TPM.saved.historyEnabled = true
+                            TPM:StartOrResumeHistorySession()
+                        else
+                            TPM:CheckpointHistoryOnDeactivated()
+                            TPM.saved.historyEnabled = false
+                        end
+                    end,
+                    default = DEFAULTS.historyEnabled, width = "full",
+                },
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_MILESTONES") end,
+                    tooltip = function() return TPM:L("SETTINGS_MILESTONES_TT") end,
+                    getFunc = function() return TPM.saved.showMilestones ~= false end,
+                    setFunc = function(value) TPM.saved.showMilestones = value end,
+                    default = DEFAULTS.showMilestones, width = "full",
+                },
+                {
+                    type = "description", text = function() return TPM:L("SETTINGS_V282_DATA_INFO") end, width = "full",
+                },
+                {
+                    type = "button", name = function() return TPM:L("SETTINGS_RESET_ECONOMY") end,
+                    tooltip = function() return TPM:L("SETTINGS_RESET_ECONOMY_TT") end,
+                    isDangerous = true, warning = function() return TPM:L("SETTINGS_V282_RESET_ECONOMY_WARNING") end,
+                    func = function() TPM:ResetCurrentCharacterEconomyStats() end, width = "half",
+                },
+                {
+                    type = "button", name = function() return TPM:L("SETTINGS_RESET_HISTORY") end,
+                    tooltip = function() return TPM:L("SETTINGS_RESET_HISTORY_TT") end,
+                    isDangerous = true, warning = function() return TPM:L("SETTINGS_V282_RESET_HISTORY_WARNING") end,
+                    func = function() TPM:ResetCurrentCharacterHistory() end, width = "half",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = function() return TPM:L("SETTINGS_V282_SECTION_ADVANCED") end,
+            controls =
+            {
+                {
+                    type = "checkbox", name = function() return TPM:L("SETTINGS_DEBUG") end,
+                    tooltip = function() return TPM:L("SETTINGS_DEBUG_TT") end,
+                    getFunc = function() return TPM.saved.debugMode end,
+                    setFunc = function(value) TPM.saved.debugMode = value end,
+                    default = DEFAULTS.debugMode, width = "full",
+                },
+                {
+                    type = "description", title = function() return TPM:L("SETTINGS_V282_RELEASE_TITLE") end,
+                    text = function() return TPM:L("SETTINGS_CHANGELOG") end, width = "full",
+                },
+            },
+        },
+    }
+
+    LAM:RegisterOptionControls(ADDON_NAME .. "Options", optionData)
+end
+
 
 function TPM:QueueProgressHistoryCheckpoint()
     if self.progressHistoryCheckpointQueued then return end
@@ -19584,6 +20495,13 @@ function TPM:RunSavedVariableMigrations()
         if type(old)=="table" then self.saved.statisticsThemeHeading={r=old.r,g=old.g,b=old.b} end
         if type(self.saved.statisticsThemeText)~="table" then self.saved.statisticsThemeText={r=.88,g=.84,b=.74} end
         schema=4
+    end
+    if schema < 5 then
+        -- New optional window coordinates only. Existing settings and every
+        -- recorded history/economy table remain untouched.
+        if type(self.saved.fragmentDetailX) ~= "number" then self.saved.fragmentDetailX = false end
+        if type(self.saved.fragmentDetailY) ~= "number" then self.saved.fragmentDetailY = false end
+        schema = 5
     end
     -- Never downgrade a SavedVariables file written by a newer TPM build.
     self.saved.schemaVersion = math.max(tonumber(self.saved.schemaVersion) or 0, CURRENT_SCHEMA_VERSION, schema)
@@ -19805,7 +20723,11 @@ function TPM:Initialize()
         self.saved.skyshardGoalCustomWidth = false
         self.saved.skyshardGoalCustomHeight = false
     end
-    if self.saved.progressGoalCategoryType ~= SIDE_QUEST_CATEGORY_KEY
+    if self.saved.progressGoalCategoryType == "side_quests" then
+        self.saved.progressGoalCategoryType = BASE_SIDE_QUEST_CATEGORY_KEY
+    end
+    if self.saved.progressGoalCategoryType ~= BASE_SIDE_QUEST_CATEGORY_KEY
+        and self.saved.progressGoalCategoryType ~= DLC_SIDE_QUEST_CATEGORY_KEY
         and self.saved.progressGoalCategoryType ~= CROWN_QUEST_CATEGORY_KEY
         and self.saved.progressGoalCategoryType ~= ZONE_STABLE_MOUNT_CATEGORY_KEY then
         local numericGoalType = tonumber(self.saved.progressGoalCategoryType)
@@ -19878,6 +20800,10 @@ function TPM:Initialize()
     if self.saved and not self.saved.economyFocusCacheRestore2646 then
         self.saved.economyDetailFocusZoneId = 0
         self.saved.economyFocusCacheRestore2646 = true
+    end
+
+    for _, definition in ipairs(self:GetEconomyCurrencyDefinitions()) do
+        self:GetEconomyBalanceHigh(definition)
     end
 
     self:ResolveLanguage()
@@ -20124,6 +21050,9 @@ function TPM:Initialize()
     local function RegisterCompletionRefreshEvent(suffix, eventCode)
         local namespace = ADDON_NAME .. "Progress" .. suffix
         EVENT_MANAGER:RegisterForEvent(namespace, eventCode, function()
+            if suffix == "QuestComplete" and _G.RaccoonQuestData and type(_G.RaccoonQuestData.InvalidateCache) == "function" then
+                RaccoonQuestData:InvalidateCache()
+            end
             TPM:InvalidateStatisticsData(false)
             if TPM:IsWorldMapVisible() or (TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden()) then
                 TPM:QueueRefresh(60)
@@ -20136,6 +21065,16 @@ function TPM:Initialize()
     -- ESO changes the account Collections data; no polling is required.
     local function RegisterCollectionRefreshEvent(suffix, eventCode)
         EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "Collections" .. suffix, eventCode, function()
+            if _G.RaccoonFragmentData and type(_G.RaccoonFragmentData.InvalidateCache) == "function" then
+                RaccoonFragmentData:InvalidateCache()
+            end
+            if TPM.fragmentDetailWindow and not TPM.fragmentDetailWindow:IsHidden() then
+                TPM:RefreshFragmentDetailWindow()
+            end
+            if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden()
+                and TPM.saved and TPM.saved.statisticsPage == "economy" then
+                TPM:RefreshEconomyStatisticsPage()
+            end
             if TPM.statisticsWindow and not TPM.statisticsWindow:IsHidden()
                 and TPM.saved and TPM.saved.statisticsPage == "progress" and TPM:GetStatisticsProgressSubPage() == 1
                 and tonumber(TPM.saved.statisticsCompletionPage) == 2 then
@@ -20426,8 +21365,9 @@ function TPM:Initialize()
             TPM:RecordTrackedActivityGoldGain(currencyType, currencyLocation, newAmount, oldAmount, reason)
             TPM:RecordEconomyCurrencyChange(currencyType, currencyLocation, newAmount, oldAmount, reason)
             TPM:GetEconomyCurrencyDefinitions()
-            if TPM.economyCurrencyByType and TPM.economyCurrencyByType[currencyType]
-                and reason ~= CURRENCY_CHANGE_REASON_PLAYER_INIT then
+            local definition = TPM.economyCurrencyByType and TPM.economyCurrencyByType[currencyType]
+            if definition then TPM:GetEconomyBalanceHigh(definition) end
+            if definition and reason ~= CURRENCY_CHANGE_REASON_PLAYER_INIT then
                 TPM:QueueEconomyHistoryCheckpoint()
             end
         end)

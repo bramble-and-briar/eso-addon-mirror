@@ -1,4 +1,4 @@
--- Tamriel Collections - Archive Lorebooks v0.1.15
+-- Tamriel Collections - Archive Lorebooks v1.0.0
 -- ESO's Lore Library owns the catalogue and character read state.
 local TC = TamrielCollections
 local ID = 'lorebooks'
@@ -407,7 +407,15 @@ local function FillMiddle(screen, index, selectedKey, onReady)
     CancelViewWork(screen)
     local model, zone = Model(screen), screen._tclZone
     screen._tclBooks = screen._tclBooks or {}
-    screen._tclZoneBooks = screen._tclZoneBooks or {}
+    -- Reuse completed collections when returning to a zone. Keep unfinished
+    -- collections private to the current job so cancellation cannot expose them.
+    screen._tclZoneViews = screen._tclZoneViews or {}
+    local zoneBooks
+    if zone then
+        zoneBooks = screen._tclZoneViews[zone] or {}
+        screen._tclZoneViews[zone] = zoneBooks
+    end
+    screen._tclZoneBooks = zoneBooks
     local prepare = false
     if zone or screen._tclLevel == 'search' then
         for _, collection in ipairs(model.collections) do
@@ -445,6 +453,14 @@ local function FillMiddle(screen, index, selectedKey, onReady)
     end
     screen:RefreshKeybinds()
     local ci, bi, books, filtered = 1, 1
+    local sources = TC.lorebookSources
+    local function AddToZone(book)
+        if sources and sources.InZone(book, zone) then
+            filtered.books[#filtered.books + 1] = book
+            filtered.total = filtered.total + 1
+            if book.known then filtered.known = filtered.known + 1 end
+        end
+    end
     local function Step()
         if serial ~= screen._tclViewSerial then return end
         if screen._tclHidden or model ~= screen._tclCatalogue or zone ~= screen._tclZone
@@ -453,7 +469,10 @@ local function FillMiddle(screen, index, selectedKey, onReady)
             return
         end
         local started = GetGameTimeMilliseconds and GetGameTimeMilliseconds()
-        for unit = 1, 32 do
+        -- Use the available time instead of sleeping after just 32 entries.
+        -- The hard cap also bounds work if a millisecond clock is unavailable.
+        local maximum = started and 256 or 32
+        for unit = 1, maximum do
             local collection = model.collections[ci]
             if not collection then
                 screen._tclLoading = nil
@@ -464,37 +483,42 @@ local function FillMiddle(screen, index, selectedKey, onReady)
             local cached = screen._tclBooks[collection.key]
             if not cached then
                 books = books or {}
+                if zone then filtered = filtered or { books = {}, known = 0, total = 0 } end
                 if bi <= collection.total then
                     local book = ReadBook(collection, bi)
-                    if book then books[#books + 1] = book end
+                    if book then
+                        books[#books + 1] = book
+                        if zone then AddToZone(book) end
+                    end
                     bi = bi + 1
                 else
                     SortBooks(books)
                     screen._tclBooks[collection.key] = books
+                    if zone then
+                        SortBooks(filtered.books)
+                        zoneBooks[collection.key] = filtered
+                    end
                     books, bi = nil, 1
+                    filtered, ci = nil, ci + 1
                 end
-            elseif zone and not screen._tclZoneBooks[collection.key] then
+            elseif zone and not zoneBooks[collection.key] then
                 filtered = filtered or { books = {}, known = 0, total = 0 }
                 local book = cached[bi]
                 if book then
-                    if TC.lorebookSources and TC.lorebookSources.InZone(book, zone) then
-                        filtered.books[#filtered.books + 1] = book
-                        filtered.total = filtered.total + 1
-                        if book.known then filtered.known = filtered.known + 1 end
-                    end
+                    AddToZone(book)
                     bi = bi + 1
                 else
-                    screen._tclZoneBooks[collection.key] = filtered
+                    zoneBooks[collection.key] = filtered
                     filtered, bi, ci = nil, 1, ci + 1
                 end
             else
                 bi, ci = 1, ci + 1
             end
-            if started and GetGameTimeMilliseconds() - started >= 4 then break end
+            if started and GetGameTimeMilliseconds() - started >= 2 then break end
         end
-        zo_callLater(Step, 10)
+        zo_callLater(Step, 0)
     end
-    zo_callLater(Step, 10)
+    zo_callLater(Step, 0)
 end
 
 local function ApplyZone(screen, zone)
@@ -684,7 +708,7 @@ local function Install(screen)
             -- Map ancestry may add zone matches. Cancel the old job before
             -- replacing its caches, including while previewing the family.
             if screen._tclZone then CancelViewWork(screen) end
-            screen._tclZoneBooks = nil
+            screen._tclZoneBooks, screen._tclZoneViews = nil, nil
             if IsVisible(screen) and WantsLorebooks(screen) then
                 if screen._tclZone then
                     local data = screen.styleList:GetTargetData()
@@ -846,7 +870,7 @@ end
 TC:RegisterArchiveModule(ID, {
     displayName = 'Lorebooks', addonName = 'Tamriel Collections - Archive Lorebooks',
     assetRoot = 'TamrielCollectionsLorebooks', screenControl = 'TCLQuestJournalTL',
-    version = 115, supportsSearch = true, onCategoryFocus = Preview,
+    version = 1000, supportsSearch = true, onCategoryFocus = Preview,
     open = function(screen)
         Install(screen)
         screen.activeModuleId, screen.mode = ID, 'styles'
@@ -867,7 +891,7 @@ local function Invalidate()
     local screen = TC.questScreen
     if not screen then return end
     CancelViewWork(screen)
-    screen._tclCatalogue, screen._tclBooks, screen._tclZoneBooks = nil, nil, nil
+    screen._tclCatalogue, screen._tclBooks, screen._tclZoneBooks, screen._tclZoneViews = nil, nil, nil, nil
     -- Learning from a bookshelf can happen while this screen is closed.
     -- Mark it dirty only; the next open builds the current state on demand.
     if not IsVisible(screen) then return end

@@ -66,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO Emoji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitkathy1994/ESO-Emoji__3376) | kitkathy1994 | PC / Mac | 0.4.2 |
 | [ESO Farm-Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Farm-Buddy__2553) | Keldor | PC / Mac | 1.0.36 |
 | [ESO Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marcjordan/ESO-Grinder__2788) | marcjordan | PC / Mac | 2.1.0 |
-| [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 3.0.8 |
+| [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 3.2.3 |
 | [ESO Language Overrider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hevnokaaz/ESO-Language-Overrider__2655) | Hevnokaaz | PC / Mac | 1.2.2 |
 | [ESO Launcher Closer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Draco9990/ESO-Launcher-Closer__3298) | Draco9990 | PC / Mac | 1.1 |
 | [ESO Master Recipe List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/ESO-Master-Recipe-List__1043) | Phinix | PC / Mac | 1.56.76 |
@@ -79,7 +79,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO-Database.com Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Export-AddOn__916) | Keldor | PC / Mac | 4.6.18 |
 | [ESO-Database.com Game Data Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Game-Data-Export-AddOn__2687) | Keldor | PC / Mac | 1.0.24 |
 | [ESO-Database.com Leaderboard Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Leaderboard-Export-AddOn__3438) | Keldor | PC / Mac | 1.0.13 |
-| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.10.26.02.53 |
+| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.11.02.02.54 |
 | [ESO-Skillfactory.com Build Export](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Skillfactory.com-Build-Export__2899) | Keldor | PC / Mac | 1.2.12 |
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |

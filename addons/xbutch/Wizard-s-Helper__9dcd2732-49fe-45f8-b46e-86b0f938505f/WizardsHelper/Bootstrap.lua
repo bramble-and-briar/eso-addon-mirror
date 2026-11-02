@@ -1,7 +1,7 @@
 WizardsHelper = {
     name = "WizardsHelper",
     title = "Wizard's Helper",
-    version = "0.1.0-beta.1",
+    version = "0.1.1",
     sliceMilliseconds = 2,
     operationsPerSlice = 40,
 }

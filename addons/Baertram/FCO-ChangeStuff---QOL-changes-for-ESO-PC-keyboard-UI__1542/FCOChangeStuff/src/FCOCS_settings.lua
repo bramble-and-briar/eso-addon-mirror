@@ -244,6 +244,9 @@ function FCOChangeStuff.getSettings()
         favoriteMountsContextMenu = false,
         excludedMountCollectionIdsEntries = {},
 
+        --Guild Selector reOrder
+        disableGuildReOrderDropdownEntries = false,
+
         --TODO 20231114 for debugging LibAddonMenu dropdwn.lua test for multiselection
         --[[
         _testMultiSelect = { "abc", "q" },

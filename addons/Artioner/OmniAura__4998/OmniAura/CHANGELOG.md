@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.1
+
+- Revisión según las normas de ESOUI: la tecla del editor llama a `OmniAura.ToggleEditor()` (ya no hay funciones globales sueltas).
+- Los eventos de combate descartan los errores con el filtro `REGISTER_FILTER_IS_ERROR` en vez de comprobarlo en Lua.
+- Quitadas las comprobaciones de existencia de funciones y objetos del juego (`CHAT_ROUTER`, `GetClassName`, `FRAGMENT_GROUP`...) y de los módulos propios del addon.
+- Se usan las constantes actuales (`COMBAT_MECHANIC_FLAGS_*`, `SetDefaultText`) en vez de los alias de compatibilidad.
+- Los nombres de recursos (salud, magia, aguante, definitiva), armas y líneas de habilidad del catálogo salen de los textos del propio juego.
+- Quitado del selector de sonidos `SKILL_GAINED`, que ya no existe en el juego.
+- Aviso sobre el uso de IA y créditos en el README.
+
+## 1.1.0
+
+- Nuevo trigger **Habilidad en mis barras (acumulaciones)**: muestra las acumulaciones y el tiempo que el juego pinta sobre una habilidad de tus barras (p. ej. Latigazo ardiente → Azote poderoso), aunque no haya un buff que los lleve. Plantilla «Acumulaciones de una habilidad de mis barras».
+- `{stacks}` muestra también una sola acumulación (antes solo aparecía a partir de 2).
+- Los textos de la apariencia (texto central, de esquina, etc.) se pueden dejar vacíos; antes volvía el texto por defecto.
+
 ## 1.0.0 — primera versión pública
 
 ### Editor

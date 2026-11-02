@@ -1,0 +1,13 @@
+ALTHI - Permissions
+Authors: Althi & Roman (@namorstradam & @bakaroobanzai)
+
+All rights reserved for the original ALTHI content to the extent permitted by
+applicable law. Personal installation and use are permitted. Copying or reusing
+the code in other projects, modifying, redistributing, reuploading or publishing
+modified versions requires prior written permission from Roman
+(@namorstradam / @bakaroobanzai).
+
+This notice applies to ALTHI's original material only. It does not claim ownership
+of ESO assets, public item identities, third-party materials or third-party code.
+Those remain subject to their respective owners' rights and applicable terms.
+See AUTHORS.md, MATERIALQUELLEN.md and KATALOG_QUELLEN.md for credits and sources.

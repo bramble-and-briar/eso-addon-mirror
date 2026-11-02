@@ -171,6 +171,11 @@ function UP.Debug.Refresh()
                     or "armed"),
             (UP.PullIndicator and UP.PullIndicator.IsPreviewActive and UP.PullIndicator.IsPreviewActive())
                 and "  +PREVIEW" or ""),
+        -- Caster-side pull detection (0.5.11): the channel ("abilityId" while
+        -- registered, "unavailable" if the filter is missing, "off"), how
+        -- many Leashing Burst casts were seen, warned about, or ignored as
+        -- allies, and the size of the friend/foe table behind that decision.
+        (UP.Pull and UP.Pull.CastSummary) and UP.Pull.CastSummary() or "pullCast=n/a",
         -- 0.5.5 field diagnostic: which icon/border controls are UNHIDDEN right
         -- now, straight from the controls. If this says Y while nothing is on
         -- screen, the logic ran and the fault is in drawing (texture, order);

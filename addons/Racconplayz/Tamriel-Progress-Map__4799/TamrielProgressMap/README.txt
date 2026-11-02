@@ -1,4 +1,4 @@
-Tamriel Progress Map 2.8.0
+Tamriel Progress Map 2.9.0
 Developed with AI assistance. The author is responsible for design, maintenance and final in-game validation.
 Required dependency: LibAddonMenu-2.0 r43 or newer (install separately).
 https://www.esoui.com/downloads/info7-LibAddonMenu.html
@@ -26,6 +26,9 @@ Opening a different server with modern settings does not import another server's
 
 WHAT IT TRACKS
 - Zone Guide completion and additional informational progress categories.
+- Base-game/free and Chapter/DLC side quests as separate informational rows.
+- Fragments and their combinations on the Economy page. Fragments are not a
+  currency and no longer appear in the normal Collections overview.
 - Alliance progress views and an optional goal HUD.
 - Currency balances, recorded income/spending and separate personal bank transfers.
 - Recorded PvE/PvP counters, activity logs and character playtime history.
@@ -38,6 +41,8 @@ Translations: English, German, French, Spanish and Russian. Other clients use En
 
 SLASH COMMANDS
 /tpm shows all commands. /tpm stats opens the statistics journal.
+/tpm questdebug shows suspicious quest records, optionally filtered and paged.
+/tpm questdebug id <ID> explains one quest ID.
 
 CREDITS
 - Addon and maintenance: Raccoonplayz.

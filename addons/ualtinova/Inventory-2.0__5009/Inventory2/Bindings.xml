@@ -1,0 +1,32 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <!-- Keep this short: the Controls page cut the old per-letter rainbow off at "INVE".
+             Color codes carry over without a closing |r, so three segments cost 39 characters. -->
+        <Category name="|cFF4D4DINVEN|c33B5FFTORY|cFFFFFF 2.0|r">
+            <Action name="INVENTORY_GROUPING_OPEN_SETTINGS">
+                <Down>InventoryGrouping.OpenSettings()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_FOCUS_SEARCH">
+                <Down>InventoryGrouping.FocusSearch()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_COLLAPSE_ALL">
+                <Down>InventoryGrouping.CollapseAllGroups()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_SEND_TO_SELL">
+                <Down>InventoryGrouping.SendHoveredToSell()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_SEND_TO_GUILDSELL">
+                <Down>InventoryGrouping.SendHoveredToGuildSell()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_SEND_TO_DECONSTRUCT">
+                <Down>InventoryGrouping.SendHoveredToDeconstruct()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_MARK_AS_JUNK">
+                <Down>InventoryGrouping.JunkHovered()</Down>
+            </Action>
+            <Action name="INVENTORY_GROUPING_UNDO">
+                <Down>InventoryGrouping.Undo()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Bucketmore/Match-Monitor__0d43993b-0f07-4f0b-9411-53ad5c85a2f4",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Bucketmore",
+  "canonical_id": "bethesda:0d43993b-0f07-4f0b-9411-53ad5c85a2f4",
+  "content_id": "0d43993b-0f07-4f0b-9411-53ad5c85a2f4",
+  "deleted": false,
+  "fingerprint": "9e7c98e76022523800b28b83d50724ddab39ab0c04b52af3dbcb0d20bf633c82",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "0d43993b-0f07-4f0b-9411-53ad5c85a2f4",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/0d43993b-0f07-4f0b-9411-53ad5c85a2f4",
+  "title": "Match Monitor"
+}

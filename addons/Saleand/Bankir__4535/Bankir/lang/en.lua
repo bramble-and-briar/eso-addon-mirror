@@ -34,8 +34,8 @@ local strings = {
 	BANKIR_MENU_PULL_DESC = "Minimal amount to keep at character's inventory.\nIf character has less, Bankir will try to get them from bank, when available",
 	BANKIR_MENU_PULL_IN_STACKS = "<<1>> full stacks",
 	BANKIR_MENU_PULL_IN_STACKS_DESC = "If enabled - the value in '<<1>>' is amount of full stacks.\nIf disabled - amount of items.\nFor non-stackable items (e.g., armor and weapon) this setting doesn't matter.",
-	BANKIR_MENU_QUALITY_SELECT = "Min quality",
-	BANKIR_MENU_QUALITY_SELECT_DESC = "The rule will apply to items with quality equal to or higher than the selected level",
+	BANKIR_MENU_QUALITY_SELECT = "Quality",
+	BANKIR_MENU_QUALITY_SELECT_DESC = "The rule will only apply to items with quality of selected levels",
 
 	BANKIR_MENU_OTHER_CHARACTERS = " on other characters",
 	

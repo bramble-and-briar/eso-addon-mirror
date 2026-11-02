@@ -2,28 +2,53 @@
 -- AI-assisted development: OpenAI Codex. In-game verification is still required.
 local NAME = "SiphonZahl"
 local EM = EVENT_MANAGER
-local saved, frame, label, fragment, backdrop, moveHint, settingsPanel
-local diagnosticFrame, diagnosticLabel, diagnosticFragment
-local previewUntil = 0
+local saved, frame, label, fragment, backdrop, settingsPanel
+local rangeHint
 local moving = false
 local moveFragment
+local previousUIMode, previousCameraMode, lastMoveInput, dragging
 local lastTick = 0
-local defaults = { x=0, y=100, size=76, locked=true, combatOnly=false, debugEnabled=false,
-    rangeEnabled=true, radiusMeters=8 }
+local defaults = { x=0, y=100, size=76, locked=true, combatOnly=false,
+    colorR=0.3,colorG=1,colorB=0.55,colorA=1 }
+
+local function ApplyNumberColor()
+    label:SetColor(saved.colorR,saved.colorG,saved.colorB,saved.colorA)
+end
+
+local function FitNumber(text)
+    frame:SetDimensions(math.max(label:GetStringWidth("00"),label:GetStringWidth(text))+12, saved.size*1.25+8)
+end
+
+local function SetNumberText(text)
+    label:SetText(text)
+    FitNumber(text)
+end
 
 local function Apply()
     frame:ClearAnchors()
     frame:SetAnchor(CENTER, GuiRoot, CENTER, saved.x, saved.y)
-    frame:SetDimensions(saved.size * 5, saved.size * 1.7)
     label:SetFont("$(BOLD_FONT)|" .. saved.size .. "|soft-shadow-thick")
+    FitNumber(label:GetText() or "00")
     frame:SetMouseEnabled(moving or not saved.locked)
     frame:SetMovable(moving or not saved.locked)
     if backdrop then backdrop:SetHidden(not moving) end
-    if moveHint then moveHint:SetHidden(not moving) end
     if fragment then fragment:Refresh() end
 end
 
 local function SetMoving(value)
+    if value == true and not moving then
+        previousUIMode = SCENE_MANAGER.IsInUIMode and SCENE_MANAGER:IsInUIMode()
+        previousCameraMode = IsGameCameraUIModeActive and IsGameCameraUIModeActive()
+        lastMoveInput = GetFrameTimeSeconds()
+        if SCENE_MANAGER.SetInUIMode then SCENE_MANAGER:SetInUIMode(true) end
+        if SetGameCameraUIMode then SetGameCameraUIMode(true) end
+    elseif value ~= true and moving then
+        frame:StopMovingOrResizing()
+        dragging=false
+        if previousUIMode == false and SCENE_MANAGER.SetInUIMode then SCENE_MANAGER:SetInUIMode(false) end
+        if previousCameraMode == false and SetGameCameraUIMode then SetGameCameraUIMode(false) end
+        previousUIMode,previousCameraMode=nil,nil
+    end
     moving = value == true
     saved.locked = not moving
     if moving then
@@ -53,42 +78,48 @@ end
 local function Update()
     local now=GetFrameTimeSeconds()
     local delta=math.min(0.1, math.max(0,now-lastTick));lastTick=now
-    if moving and GetGamepadRightStickX and GetGamepadRightStickY then
-        local x,y=GetGamepadRightStickX(true),GetGamepadRightStickY(true)
-        if math.abs(x)>0.15 or math.abs(y)>0.15 then
+    if moving then
+        if SCENE_MANAGER.SetInUIMode then SCENE_MANAGER:SetInUIMode(true) end
+        if SetGameCameraUIMode then SetGameCameraUIMode(true) end
+        local x=GetGamepadRightStickX and GetGamepadRightStickX(true) or 0
+        local y=GetGamepadRightStickY and GetGamepadRightStickY(true) or 0
+        if not dragging and (math.abs(x)>0.05 or math.abs(y)>0.05) then
             saved.x=math.max(-GuiRoot:GetWidth()/2+40, math.min(GuiRoot:GetWidth()/2-40,saved.x+x*500*delta))
             saved.y=math.max(-GuiRoot:GetHeight()/2+40, math.min(GuiRoot:GetHeight()/2-40,saved.y-y*500*delta))
             Apply()
+            lastMoveInput=now
         end
+        if dragging then lastMoveInput=now end
+        if now-lastMoveInput>=3 then SetMoving(false) end
     end
     if fragment then fragment:Refresh() end
     if moveFragment then moveFragment.fragment:Refresh() end
-    if diagnosticFragment then
-        diagnosticFragment:Refresh()
-        if not diagnosticFrame:IsHidden() then
-            diagnosticLabel:SetText(SiphonZahlCounter.GetDiagnosticsText())
-        end
-    end
     if frame:IsHidden() then return end
-    if moving or GetFrameTimeSeconds() < previewUntil then
-        label:SetText("3")
-        label:SetColor(0.3, 1, 0.55, 1)
+    rangeHint:SetHidden(true)
+    if moving then
+        SetNumberText("3")
+        ApplyNumberColor()
         return
     end
     local count = SiphonZahlCounter and SiphonZahlCounter.Snapshot()
     if type(count) ~= "table" or type(count.total) ~= "number"
         or count.total ~= count.total or count.total < 0 or count.total == math.huge then
-        label:SetText("?")
-        label:SetColor(1, 0.75, 0.2, 1)
+        SetNumberText("?")
+        ApplyNumberColor()
         return
     end
     local total = math.floor(count.total)
+    if count.directionUnknown then
+        rangeHint:SetText("Blickrichtung unbekannt")
+        rangeHint:SetHidden(false)
+    elseif (count.rangeUnknown or 0)>0 then
+        rangeHint:SetText(count.rangeFallback and "Entfernung unbekannt" or "Unbekannte Positionen ausgelassen")
+        rangeHint:SetHidden(false)
+    end
     local ambiguous = count.uncertain == true
         or (type(count.minimum) == "number" and count.minimum < total)
-    label:SetText(tostring(total) .. (ambiguous and "?" or ""))
-    if ambiguous then label:SetColor(1, 0.75, 0.2, 1)
-    elseif total == 0 then label:SetColor(1, 0.25, 0.25, 1)
-    else label:SetColor(0.3, 1, 0.55, 1) end
+    SetNumberText(tostring(total) .. (ambiguous and "?" or ""))
+    ApplyNumberColor()
 end
 
 local function RegisterSettings()
@@ -96,50 +127,28 @@ local function RegisterSettings()
     if not H then return end
     settingsPanel = H:AddAddon("Siphon Zahl", { allowRefresh=true })
     settingsPanel:AddSettings({
-        { type=H.ST_LABEL, label="Eigene Leichenschaetzung: Blastbones, Schaedel, Banner und erkannte Geist-/Skelettbeschwoerungen. Keine Zaehlung aller NPC-Leichen. ? = Verbrauch unsicher." },
+        { type=H.ST_LABEL, label="Ereigniszaehler eigener Sprengknochen-, Schaedel- und Skelett-Schuetzen-Leichen: identifizierte, tatsaechlich vorhandene tote Einheit und zugeordneter Siphon-Verbrauch. Kein angenommener Leichen-Timer. 90-Grad-Kegel, 11 Meter. Andere Quellen/Morphs und Gegnerleichen noch nicht bestaetigt. PC-Testdaten; PS5 noch zu pruefen." },
         { type=H.ST_BUTTON, label="Anzeige verschieben", buttonText="Move UI",
-          tooltip="Blendet den Verschieberahmen ein. Zum Beenden den Schalter Move UI / Anzeige verschieben ausschalten.",
-          clickHandler=function() SetMoving(true); Update() end },
-        { type=H.ST_CHECKBOX, label="Move UI / Anzeige verschieben",
-          tooltip="Zeigt Rahmen und Beispielzahl. Mit rechtem Stick verschieben, danach Move UI ausschalten. Auf PC auch mit der Maus.",
-          getFunction=function() return moving end,
-          setFunction=function(value) SetMoving(value); Update() end, default=false },
+          tooltip="Mit rechtem Stick verschieben. Nach 3 Sekunden ohne Eingabe automatisch sperren.",
+          clickHandler=function() SetMoving(not moving); Update() end },
         { type=H.ST_SLIDER, label="Groesse der Zahl", min=24, max=180, step=2, format="%d",
           getFunction=function() return saved.size end,
           setFunction=function(value) saved.size=value; Apply(); Update() end, default=76 },
-        { type=H.ST_SLIDER, label="Position horizontal", min=-math.floor(GuiRoot:GetWidth()/2)+40,
-          max=math.floor(GuiRoot:GetWidth()/2)-40, step=4, format="%d",
-          getFunction=function() return saved.x end,
-          setFunction=function(value) saved.x=value; Apply() end, default=0 },
-        { type=H.ST_SLIDER, label="Position vertikal", min=-math.floor(GuiRoot:GetHeight()/2)+40,
-          max=math.floor(GuiRoot:GetHeight()/2)-40, step=4, format="%d",
-          getFunction=function() return saved.y end,
-          setFunction=function(value) saved.y=value; Apply() end, default=100 },
+        { type=H.ST_COLOR, label="Farbe der Zahl",
+          getFunction=function() return saved.colorR,saved.colorG,saved.colorB,saved.colorA end,
+          setFunction=function(r,g,b,a)
+              saved.colorR=r;saved.colorG=g;saved.colorB=b;saved.colorA=a or 1
+              Update()
+          end,default={0.3,1,0.55,1} },
         { type=H.ST_CHECKBOX, label="Nur im Kampf anzeigen",
           getFunction=function() return saved.combatOnly end,
           setFunction=function(value) saved.combatOnly=value; Update() end, default=false },
-        { type=H.ST_CHECKBOX, label="Nur Leichen im Radius zaehlen",
-          tooltip="Zaehlt nur erfasste eigene Leichen mit bekannter Position im eingestellten Radius. Leichen mit unbekannter Position werden ausgelassen. Kein Sichtliniencheck.",
-          getFunction=function() return saved.rangeEnabled end,
-          setFunction=function(value) saved.rangeEnabled=value; Update() end, default=true },
-        { type=H.ST_SLIDER, label="Radius um deinen Charakter (Meter)",min=1,max=28,step=1,format="%d",
-          tooltip="Standard 8 Meter entsprechend dem Banner-Radius. Bei abweichendem Banner-Tooltip den Wert hier anpassen.",
-          getFunction=function() return saved.radiusMeters end,
-          setFunction=function(value) saved.radiusMeters=value; Update() end,default=8 },
-        { type=H.ST_CHECKBOX, label="Debug-Aufzeichnung",
-          tooltip="Zeigt links oben eine Diagnose fuer Konsolentests und speichert bis zu 300 Ereignisse ohne Spielernamen. Standard: aus.",
-          getFunction=function() return saved.debugEnabled end,
-          setFunction=function(value) saved.debugEnabled=value; SiphonZahlCounter.ConfigureDiagnostics(saved) end,
-          default=false },
-        { type=H.ST_BUTTON, label="Beispielzahl anzeigen", buttonText="Vorschau",
-          clickHandler=function() previewUntil=GetFrameTimeSeconds()+10; SetMoving(true); Update() end,
-          tooltip="Aktiviert Move UI mit einer Beispielzahl. Danach Move UI ausschalten." },
         { type=H.ST_BUTTON, label="Position zuruecksetzen", buttonText="Bildschirmmitte",
           clickHandler=function() saved.x=0; saved.y=100; Apply(); SetMoving(true); Update() end },
         { type=H.ST_BUTTON, label="Alle Anzeigeeinstellungen", buttonText="Zuruecksetzen",
           clickHandler=function()
               for key, value in pairs(defaults) do saved[key]=value end
-              previewUntil=0; SetMoving(false); Apply(); Update()
+              SetMoving(false); Apply(); Update()
           end },
     })
 end
@@ -148,21 +157,37 @@ local function Initialize(_, addonName)
     if addonName ~= NAME then return end
     EM:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
     saved = ZO_SavedVars:NewAccountWide("SiphonZahlSaved", 1, nil, defaults)
-    for _, key in ipairs({"x", "y", "size", "radiusMeters"}) do
+    for _, key in ipairs({"x", "y", "size"}) do
         if type(saved[key]) ~= "number" or saved[key] ~= saved[key]
             or math.abs(saved[key]) == math.huge then saved[key] = defaults[key] end
     end
     saved.size = math.floor(math.max(24, math.min(180, saved.size)))
-    saved.radiusMeters=math.max(1,math.min(28,saved.radiusMeters))
-    for _, key in ipairs({"locked", "combatOnly", "debugEnabled", "rangeEnabled"}) do
+    for _,key in ipairs({"colorR","colorG","colorB","colorA"}) do
+        if type(saved[key])~="number" or saved[key]~=saved[key]
+            or saved[key]<0 or saved[key]>1 then saved[key]=defaults[key] end
+    end
+    for _, key in ipairs({"locked", "combatOnly"}) do
         if type(saved[key]) ~= "boolean" then saved[key] = defaults[key] end
     end
+    saved.rangeEnabled=nil; saved.radiusMeters=nil; saved.estimateUnknown=nil
+    saved.debugEnabled=nil; saved.debugLog=nil; saved.locked=true
     frame = WINDOW_MANAGER:CreateTopLevelWindow(NAME .. "Window")
     frame:SetClampedToScreen(true)
     frame:SetHidden(true)
+    frame:SetHandler("OnMouseDown",function(self,button)
+        if moving and button==MOUSE_BUTTON_INDEX_LEFT then
+            dragging=true;lastMoveInput=GetFrameTimeSeconds();self:StartMoving()
+        end
+    end)
+    frame:SetHandler("OnMouseUp",function(self,button)
+        if dragging and button==MOUSE_BUTTON_INDEX_LEFT then
+            self:StopMovingOrResizing();dragging=false;lastMoveInput=GetFrameTimeSeconds()
+        end
+    end)
     frame:SetHandler("OnMoveStop", function(self)
         saved.x = self:GetLeft() + self:GetWidth()/2 - GuiRoot:GetWidth()/2
         saved.y = self:GetTop() + self:GetHeight()/2 - GuiRoot:GetHeight()/2
+        lastMoveInput=GetFrameTimeSeconds()
     end)
     label = WINDOW_MANAGER:CreateControl(NAME .. "Number", frame, CT_LABEL)
     label:SetAnchorFill(frame)
@@ -177,35 +202,22 @@ local function Initialize(_, addonName)
     backdrop:SetMouseEnabled(false)
     backdrop:SetDrawLevel(0)
     label:SetDrawLevel(2)
-    moveHint = WINDOW_MANAGER:CreateControl(NAME .. "MoveHint", frame, CT_LABEL)
-    moveHint:SetAnchor(BOTTOM, frame, TOP, 0, -4)
-    moveHint:SetFont("ZoFontGame")
-    moveHint:SetText("Siphon Zahl - rechter Stick / Move UI ausschalten zum Sperren")
-    moveHint:SetMouseEnabled(false)
+    rangeHint=WINDOW_MANAGER:CreateControl(NAME.."RangeHint",frame,CT_LABEL)
+    rangeHint:SetAnchor(TOP,frame,BOTTOM,0,2)
+    rangeHint:SetDimensions(420,32)
+    rangeHint:SetFont("$(BOLD_FONT)|16|soft-shadow-thick")
+    rangeHint:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    rangeHint:SetColor(1,0.75,0.2,1)
+    rangeHint:SetMouseEnabled(false)
+    rangeHint:SetHidden(true)
     fragment = ZO_HUDFadeSceneFragment:New(frame)
     fragment:SetConditional(function()
-        return moving or GetFrameTimeSeconds() < previewUntil or
+        return moving or
             (not IsUnitDead("player") and (not saved.combatOnly or IsUnitInCombat("player")))
     end)
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
-    diagnosticFrame=WINDOW_MANAGER:CreateTopLevelWindow(NAME.."Diagnostics")
-    diagnosticFrame:SetDimensions(math.min(900,GuiRoot:GetWidth()-40),180)
-    diagnosticFrame:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,20,120)
-    diagnosticFrame:SetClampedToScreen(true)
-    diagnosticFrame:SetMouseEnabled(false)
-    diagnosticFrame:SetHidden(true)
-    diagnosticLabel=WINDOW_MANAGER:CreateControl(NAME.."DiagnosticText",diagnosticFrame,CT_LABEL)
-    diagnosticLabel:SetAnchorFill(diagnosticFrame)
-    diagnosticLabel:SetFont("$(BOLD_FONT)|18|soft-shadow-thick")
-    diagnosticLabel:SetColor(1,0.85,0.3,1)
-    diagnosticLabel:SetMouseEnabled(false)
-    diagnosticFragment=ZO_HUDFadeSceneFragment:New(diagnosticFrame)
-    diagnosticFragment:SetConditional(function() return saved.debugEnabled end)
-    HUD_SCENE:AddFragment(diagnosticFragment)
-    HUD_UI_SCENE:AddFragment(diagnosticFragment)
     Apply()
-    SiphonZahlCounter.ConfigureDiagnostics(saved)
     SiphonZahlCounter.Initialize()
     RegisterSettings()
     EM:RegisterForUpdate(NAME, 33, Update)

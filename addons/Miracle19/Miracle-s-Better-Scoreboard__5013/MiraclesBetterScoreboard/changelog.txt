@@ -1,0 +1,21 @@
+Miracle's BetterScoreboard — Changelog
+===================================
+
+Version 2
+---------
+- Renamed the addon manifest and internal identifiers to prevent identity collisions with the original BetterScoreboard addon.
+- Updated XML control and template names to use a unique addon-specific prefix.
+- Improved Lua scoping and code structure to follow ESOUI best practices.
+- Added AI-development disclosure and retained original-author attribution.
+- Preserved the existing scoreboard features and layout.
+
+Version 1
+---------
+- Updated BetterScoreboard for ESO Update 51.
+- Adapted the scoreboard to show up to 18 players in two-team and three-team battlegrounds.
+- Added damage received statistics in red and a K/D ratio column.
+- Retained damage dealt, healing, account/character names, class icons, and battleground queue features.
+- Refined scoreboard spacing and Deathmatch lives positioning.
+
+Original BetterScoreboard created by @M0R_Gaming.
+Miracle's BetterScoreboard updated by @MlRACLE.

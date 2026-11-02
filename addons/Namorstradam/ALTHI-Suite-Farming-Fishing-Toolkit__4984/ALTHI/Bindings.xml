@@ -1,0 +1,22 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+    <Category name="ALTHI">
+      <Action name="ALTHI_TOGGLE"><Down>ALTHarvestItems:ToggleWindow()</Down></Action>
+      <Action name="ALTHI_SETTINGS"><Down>ALTHarvestItems:OpenSettings()</Down></Action>
+      <Action name="ALTHI_PAUSE"><Down>ALTHarvestItems:TogglePause()</Down></Action>
+      <Action name="ALTHI_RESET"><Down>ZO_Dialogs_ShowDialog("ALTHI_RESET")</Down></Action>
+      <Action name="ALTHI_FILLET"><Down>ALTHarvestItems:ToggleFilleting()</Down></Action>
+      <Action name="ALTHI_MOUSE"><Down>ALTHarvestItems:ReleaseSuiteMouse()</Down></Action>
+      <Action name="ALTHI_MINIMIZE"><Down>ALTHarvestItems:ToggleMinimized()</Down></Action>
+      <Action name="ALTHI_SURVEY_MINIMIZE"><Down>ALTHarvestItems:ToggleSurveyFoldShortcut()</Down></Action>
+      <Action name="ALTHI_SURVEYS"><Down>ALTHarvestItems:OpenSurveyShortcut()</Down></Action>
+    </Category>
+  </Layer>
+  <Layer name="ALTHarvestItemsDialogs" allowFallthrough="true">
+    <Category>
+      <Action name="ALTHARVESTITEMS_DIALOG_BACK" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_NEGATIVE"><Down>return ALTHarvestItems:HandleDialogEscape()</Down></Action>
+      <Action name="ALTHARVESTITEMS_DIALOG_EXIT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_EXIT"><Down>return ALTHarvestItems:HandleDialogEscape()</Down></Action>
+      <Action name="ALTHARVESTITEMS_DIALOG_SYSTEM" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_SYSTEM"><Down>return ALTHarvestItems:HandleDialogEscape()</Down></Action>
+    </Category>
+  </Layer>
+</Bindings>

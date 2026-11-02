@@ -100,8 +100,9 @@ CMA.savedVarsDefaults = {
     autoSellLootedPotionsAndPoisons = false,
     bankTraitlessGear = "Ignore",
     bankTraitlessGearThreshold = "Grey",
-    autoSellIntricateGear = false,
-    autoSellOrnateGear = false,
+    bankIntricateGearChoice = "Ignore",
+    bankOrnateGearChoice = "Ignore",
+    bankGlyphChoice = "Ignore",
     -- quality thresholds
     bankQualityThresholdBlacksmithing = "Grey",
     bankQualityThresholdClothing = "Grey",

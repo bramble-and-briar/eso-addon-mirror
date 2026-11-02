@@ -1,0 +1,62 @@
+## Title: ALTHI Suite
+## Description: Gathering, fishing, surveys, refining and gold overview
+## Author: Althi & Roman (@namorstradam & @bakaroobanzai)
+## Version: 2.0.0
+## AddOnVersion: 20000
+## APIVersion: 101051
+## SavedVariables: ALTHISavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0 AwesomeGuildStore TamrielTradeCentre ArkadiusTradeTools MasterMerchant LibHistoire>=1105
+
+Catalog.lua
+ALTHI.lua
+lang/default.lua
+lang/$(language).lua
+LanguageChoices.lua
+Language.lua
+Resources.lua
+Selection.lua
+SourceData.lua
+Sources.lua
+Prices.lua
+Session.lua
+Harvest.lua
+Layout.lua
+UI.lua
+Windows.lua
+Notifications.lua
+Settings.lua
+PriceEditor.lua
+MainSettings.lua
+Fishing.lua
+KeyHints.lua
+Gold.lua
+GoldMail.lua
+GoldHistory.lua
+GoldTrades.lua
+GoldPeriods.lua
+GoldImport.lua
+GoldUI.lua
+SuiteUI.lua
+MailUI.lua
+SuiteTooltip.lua
+MaterialFilters.lua
+ProfessionUI.lua
+InteractionUI.lua
+OpacityUI.lua
+Surveys.lua
+SurveyOpening.lua
+SurveyWindow.lua
+SurveyHUD.lua
+SurveyTravel.lua
+SurveyGroups.lua
+SurveyPolish.lua
+SurveyRecall.lua
+SurveyPerformance.lua
+SurveyStatus.lua
+Refining.lua
+RefiningUI.lua
+SessionDisplay.lua
+SurveyFinish.lua
+TimedDisplay.lua
+SurveyQuotes.lua
+Bindings.xml

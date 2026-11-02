@@ -2,12 +2,20 @@ ClearSight = ClearSight or {}
 local CS = ClearSight
 
 CS.name = "ClearSight"
-CS.version = "1.0.5"
+CS.version = "1.1.5"
 CS.updateIntervalMs = 100
 
 CS.defaults = {
     reticle = {
         enabled = true,
+        style = "Cross",
+        compassLetterRadius = 95,
+        compassLetterSize = 48,
+        compassOtherLetterSize = 32,
+        wayfinderRadius = 140,
+        wayfinderSize = 40,
+        compassArrowRadius = 116,
+        compassArrowSize = 14,
         size = 64,
         thickness = 5,
         gap = 7,
@@ -20,14 +28,15 @@ CS.defaults = {
     },
     waypoint = {
         enabled = true,
+        location = "Both",
         baseSize = 20,
         amberSize = 28,
         redSize = 38,
         greenThresholdDegrees = 8,
         amberThresholdDegrees = 35,
         greenColor = { 0.10, 1.00, 0.20, 1.00 },
-        amberColor = { 1.00, 0.65, 0.05, 1.00 },
-        redColor = { 1.00, 0.10, 0.10, 1.00 },
+        amberColor = { 0.65, 0.20, 1.00, 1.00 },
+        redColor = { 0.00, 0.00, 0.00, 1.00 },
         arrivalColor = { 1.00, 1.00, 1.00, 1.00 },
         arrivalSize = 16,
         -- Approximate normalized map-distance handoff thresholds, calibrated from
@@ -62,12 +71,32 @@ function CS:Initialize()
     -- previous cyan normal colour and add the two new state colours safely.
     if self.saved.reticle then
         local normal = self.saved.reticle.normalColor
-        if normal and normal[1] == 0.10 and normal[2] == 0.90 and normal[3] == 1.00 then
+        if not self.saved.reticle.customColorsEnabled and normal and normal[1] == 0.10 and normal[2] == 0.90 and normal[3] == 1.00 then
             self.saved.reticle.normalColor = { 1.00, 1.00, 1.00, 1.00 }
         end
         self.saved.reticle.friendlyColor = self.saved.reticle.friendlyColor or { 0.10, 1.00, 0.20, 1.00 }
         self.saved.reticle.deadColor = self.saved.reticle.deadColor or { 1.00, 0.82, 0.10, 1.00 }
     end
+
+    -- Only replace the former shipped defaults; preserve personalised colours.
+    if not self.saved.waypoint.guidancePaletteV2 then
+        local w = self.saved.waypoint
+        local a, r = w.amberColor, w.redColor
+        if a and a[1] == 1 and a[2] == 0.65 and a[3] == 0.05 then
+            w.amberColor = {0.65, 0.20, 1, a[4] or 1}
+        end
+        if r and r[1] == 1 and r[2] == 0.10 and r[3] == 0.10 then
+            w.redColor = {0, 0, 0, r[4] or 1}
+        end
+        w.guidancePaletteV2 = true
+    end
+    -- Calibrated values are defaults and upper limits; preserve smaller choices.
+    for key, maximum in pairs({compassLetterRadius=95, compassLetterSize=48,
+        compassOtherLetterSize=32, wayfinderRadius=140, wayfinderSize=40}) do
+        local minimum = (key == "compassLetterRadius" or key == "wayfinderRadius") and 40 or 16
+        self.saved.reticle[key] = math.max(minimum, math.min(maximum, tonumber(self.saved.reticle[key]) or maximum))
+    end
+    self.saved.reticle.customColorsEnabled = true
 
     if self.InitializeReticle then
         self:InitializeReticle()

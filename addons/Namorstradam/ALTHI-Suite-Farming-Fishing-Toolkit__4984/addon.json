@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Namorstradam/ALTHI-Suite-Farming-Fishing-Toolkit__4984",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Namorstradam",
+  "canonical_id": "esoui:4984",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4984",
+  "deleted": false,
+  "directories": [
+    "ALTHI"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4984/",
+  "fingerprint": "64c1a8304eeac8ddb5afc69a87ce90123fa3d5eb0c88149f2e8da19e0e2925b7",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18272.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18201.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18207.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18269.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18270.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18267.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18268.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18271.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18205.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18203.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4984",
+  "source_url": "https://www.esoui.com/downloads/info4984-ALTHISuiteFarmingFishingToolkit127907127807.html",
+  "stats": {
+    "downloads": 48,
+    "favorites": 0,
+    "monthly_downloads": 45
+  },
+  "title": "ALTHI Suite \u2013 Farming & Fishing Toolkit &#127907;&#127807;",
+  "updated_at": 1793556758000,
+  "version": "2.0.0"
+}

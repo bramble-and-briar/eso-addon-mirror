@@ -1,4 +1,15 @@
 local strings = {
+	SPT_MENU_NAME = "What's Missing?",
+	SPT_ANNOUNCEMENT_TITLE = "What's Missing? - Update 1.51.10",
+	SPT_ANNOUNCEMENT_LATER = "Later",
+	SPT_ANNOUNCEMENT_CONFIRM = "Got it",
+	SPT_ANNOUNCEMENT_MESSAGE = "Open What's Missing? at the bottom of the main menu, before Options.\n\n"
+		.. "Solo dungeons: separate quest skill points for Moon Hunter Keep and March of Sacrifices.\n\n"
+		.. "Nowhere Vault: track all six skyshards.\n\n"
+		.. "Scribing: compare Scripts, totals and pickup locations.\n\n"
+		.. "Skills: compare skill line ranks and maxed totals.\n\n"
+		.. "Multiple characters: review saved progress. Open the tracker on each character to refresh it.\n\n"
+		.. "Reports: DM @xbutch on Discord or ESO Xbox.",
 	SPT_GUI_CHAR_LEVEL	= "Character Level",
 	SPT_GUI_MAIN_QUEST	= "Main Quest",
 	SPT_GUI_FOLIUM		= "Folium Discognitum",

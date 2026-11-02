@@ -217,6 +217,21 @@ Profile.MEANING = {
     Balanced = "No dominant axis",
 }
 
+Profile.ICON_DIR = "bgmeter/assets/titles/"
+Profile.MVP_ICON = Profile.ICON_DIR .. "mvp.dds"
+Profile.MVP_STAR = Profile.ICON_DIR .. "mvp_star.dds"
+local icon_path = {}
+
+function Profile.icon(name)
+    if not name or not Profile.MEANING[name] then return nil end
+    local p = icon_path[name]
+    if not p then
+        p = Profile.ICON_DIR .. name:lower() .. ".dds"
+        icon_path[name] = p
+    end
+    return p
+end
+
 function Profile.meaning(name)
     return Profile.MEANING[name] or ""
 end

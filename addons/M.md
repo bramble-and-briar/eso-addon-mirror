@@ -71,6 +71,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/MasterThief__f3c99a31-b8b1-46d8-9717-1c3877f00995) | thewizadt | Console | — |
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/MasterThief__f7a31693-2690-4ce0-973f-0af5e5ce92f8) | thewizadt | Console | — |
 | [MatCalc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claymourn/MatCalc__2733) | Claymourn | PC / Mac | 1.1.3 |
+| [Match Monitor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Match-Monitor__0d43993b-0f07-4f0b-9411-53ad5c85a2f4) | Bucketmore | Console | — |
 | [Materialist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeDumCHee/Materialist__2574) | DeDumCHee | PC / Mac | 1.2 |
 | [May I Bash?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/May-I-Bash__2569) | ownedbynico | PC / Mac | 1.1 |
 | [Mechanic Mentor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BLKx777/Mechanic-Mentor__e4a3d0f8-bf1e-4c57-8b4b-4d65364fb344) | BLKx777 | Console | — |
@@ -122,7 +123,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MiniMap_jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/MiniMap_jpFix__1397) | 2ch | PC / Mac | 3.00.1 |
 | [MiniStats – Post-Combat Summary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PossEU/MiniStats-Post-Combat-Summary__4222) | PossEU | PC / Mac | 0.1.0 |
 | [Ministry of Normal Walks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Ministry-of-Normal-Walks__4022) | Kyzeragon | PC / Mac | 1.0.0 |
-| [Miracle's Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Miracle19/Miracle-s-Better-Scoreboard__5013) | Miracle19 | PC / Mac | v1 |
+| [Miracle's Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Miracle19/Miracle-s-Better-Scoreboard__5013) | Miracle19 | PC / Mac | Version 2 |
 | [Mirelda's CraftAutoLoot Upgrade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-CraftAutoLoot-Upgrade__4299) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's QuickWheelAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-QuickWheelAssist__3963) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's RogAllyPerformanceOptimization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-RogAllyPerformanceOptimization__3964) | Mirelda | PC / Mac | 1.22 |

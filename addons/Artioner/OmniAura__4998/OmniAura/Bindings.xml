@@ -2,7 +2,7 @@
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="OmniAura">
             <Action name="OMNIAURA_TOGGLE_EDITOR">
-                <Down>OmniAura_ToggleEditor()</Down>
+                <Down>OmniAura.ToggleEditor()</Down>
             </Action>
         </Category>
     </Layer>

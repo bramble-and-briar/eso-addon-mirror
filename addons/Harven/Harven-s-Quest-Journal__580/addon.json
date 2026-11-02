@@ -18,7 +18,7 @@
     "HarvensQuestJournal"
   ],
   "download_url": "https://www.esoui.com/downloads/dl580/",
-  "fingerprint": "13c40ed17915730b847cec94d552f576aaf7afb0d6627db0a66184579947f838",
+  "fingerprint": "d343e3babba8af10893b10deb73485e026c05d46ad48511421dd95a8c1b7ea10",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw1773.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw1774.jpg",
@@ -36,11 +36,11 @@
   "source_id": "580",
   "source_url": "https://www.esoui.com/downloads/info580-HarvensQuestJournal.html",
   "stats": {
-    "downloads": 119641,
+    "downloads": 120399,
     "favorites": 296,
-    "monthly_downloads": 307
+    "monthly_downloads": 973
   },
   "title": "Harven's Quest Journal",
-  "updated_at": 1792326217000,
-  "version": "3.0.0"
+  "updated_at": 1793548723000,
+  "version": "3.0.1"
 }

@@ -6,12 +6,13 @@ local actionChoices = {
 	[3] = GetString(BANKIR_MENU_MODE_WITHDRAW),
 }
 
+local defaultQualityValues = { 1, 2, 3, 4, 5 }
 local qualityChoices = {
-	[1] = GetItemQualityColor(1):Colorize(GetString("SI_ITEMQUALITY", 1)),
-	[2] = GetItemQualityColor(2):Colorize(GetString("SI_ITEMQUALITY", 2)),
-	[3] = GetItemQualityColor(3):Colorize(GetString("SI_ITEMQUALITY", 3)),
-	[4] = GetItemQualityColor(4):Colorize(GetString("SI_ITEMQUALITY", 4)),
-	[5] = GetItemQualityColor(5):Colorize(GetString("SI_ITEMQUALITY", 5)),
+	GetItemQualityColor(1):Colorize(GetString("SI_ITEMQUALITY", 1)),
+	GetItemQualityColor(2):Colorize(GetString("SI_ITEMQUALITY", 2)),
+	GetItemQualityColor(3):Colorize(GetString("SI_ITEMQUALITY", 3)),
+	GetItemQualityColor(4):Colorize(GetString("SI_ITEMQUALITY", 4)),
+	GetItemQualityColor(5):Colorize(GetString("SI_ITEMQUALITY", 5)),
 }
 
 local function getSavedVarForIdType(idTypeStr)
@@ -46,69 +47,51 @@ local function getTypeChildrenLists(id, idTypeStr)
 	return result
 end
 
-local function getStacks(id, idTypeStr)
+local function getRuleValues(id, idTypeStr)
 	local rule = getSavedVarForIdType(idTypeStr)[id]
 	if rule then
-		return rule.push, rule.pull, rule.pullInStacks
+		return rule.push or 0, rule.pull or 0, rule.pullInStacks or false, rule.quality or defaultQualityValues
 	else
-		return 0, 0, false
+		return 0, 0, false, defaultQualityValues
 	end
 end
 
-local function setStacks(value, action, id, idTypeStr)
+local function setRuleValue(valueName, value, id, idTypeStr, hasQualityRuleSet)
 	local ruleList = getSavedVarForIdType(idTypeStr)
 	local oldValue
+	
 	if ruleList[id] then
-		oldValue = ruleList[id][action]
-	else
+		oldValue = ruleList[id][valueName]
+	else -- new rule, oldValue is nil
 		ruleList[id] = { push = 0, pull = 0 }
 	end
 	
 	if oldValue ~= value then
-		ruleList[id][action] = value
+		ruleList[id][valueName] = value
 		
 		-- update children ids
 		local childrenLists = getTypeChildrenLists(id, idTypeStr)
 		if childrenLists then
 			for _, list in ipairs(childrenLists) do
 				for i, childId in ipairs(list.list) do
-					setStacks(value, action, childId, list.idTypeStr)
+					setRuleValue(valueName, value, childId, list.idTypeStr)
 				end
 			end
 		end
 		-- update tweens
 		if Bankir.Data.tweens[idTypeStr][id] then
 			for i, childId in ipairs(Bankir.Data.tweens[idTypeStr][id]) do
-				setStacks(value, action, childId, idTypeStr)
+				setRuleValue(valueName, value, childId, idTypeStr)
 			end
 		end
 	end
 	
-	local anotherAction
-	if action == "push" then anotherAction = "pull" else anotherAction = "push" end
-	if value == 0 and ruleList[id][anotherAction] == 0 then
-		ruleList[id] = nil
-	end
-end
-
-local function setQuality(value, id, idTypeStr)
-	local ruleList = getSavedVarForIdType(idTypeStr)
-	if ruleList[id] then
-		ruleList[id].quality = value
-	end
-	-- update children too
-	local childrenLists = getTypeChildrenLists(id, idTypeStr)
-	if childrenLists then
-		for _, list in ipairs(childrenLists) do
-			for i, childId in ipairs(list.list) do
-				setQuality(value, childId, list.idTypeStr)
+	local rule = ruleList[id]
+	if rule.push == 0 and rule.pull == 0 then
+		if not rule.pullInStacks then
+			if not rule.quality or #rule.quality == #defaultQualityValues then
+				ruleList[id] = nil
 			end
-		end
-	end
-	-- update tweens
-	if Bankir.Data.tweens[idTypeStr][id] then
-		for i, childId in ipairs(Bankir.Data.tweens[idTypeStr][id]) do
-			setQuality(value, childId, idTypeStr)
 		end
 	end
 end
@@ -256,39 +239,45 @@ local function makeCurrencyTab(currencyTypes)
 	return controls
 end
 
-local function makeQualityDropdown(id, idTypeStr, modeDropdown)
+local function makeQualityDropdown(id, idTypeStr)
 	return {
 		type = "dropdown",
 		name = GetString(BANKIR_MENU_QUALITY_SELECT),
 		tooltip = GetString(BANKIR_MENU_QUALITY_SELECT_DESC),
 		width = "full",
 		choices = qualityChoices,
+		choicesValues = defaultQualityValues,
+		multiSelect = true,
 		getFunc = function()
-			local ruleList = getSavedVarForIdType(idTypeStr)
-			local neededQuality = 1
-			if ruleList[id] then
-				neededQuality = ruleList[id].quality or 1
-			end
-			if neededQuality == 0 then neededQuality = 1 end
-			return qualityChoices[neededQuality]
+			local neededQualities = select(4, getRuleValues(id, idTypeStr))
+			return neededQualities
 		end,
-		setFunc = function(selectedChoice)
-			for i = 1, #qualityChoices do
-				if qualityChoices[i] == selectedChoice then
-					setQuality(i, id, idTypeStr)
-				end
+		setFunc = function(selectedChoices)
+			if #selectedChoices == #defaultQualityValues then
+				setRuleValue("quality", nil, id, idTypeStr)
+			else
+				setRuleValue("quality", selectedChoices, id, idTypeStr)
 			end
 		end,
 	}
 end
 
-local function makeSelectedProfileLabel()
+local function makeRulesProfileSelector()
 	return {
-		type = "description",
-		title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile,
-		tooltip = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME_DESC),
+		type = "dropdown",
+		name = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME),
+		tooltip = GetString(BANKIR_MENU_PROFILE_SELECT_DESC),
 		width = "full",
-		reference = "BankirMenuSelectedProfileLabel",
+		reference = "BankirMenuRulesProfilesDropdown",
+		choices = Bankir.Profiles.getProfilesNames(),
+		getFunc = function() return Bankir.savedVarsCharacter.profile end,
+		setFunc = function(selectedChoice)
+			Bankir.Profiles.setCurrentProfile(selectedChoice)
+			local settingsSelector = _G["BankirMenuSettingsProfilesDropdown"]
+			if settingsSelector then
+				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+			end
+		end,
 	}
 end
 
@@ -299,13 +288,12 @@ local function makeSettingsMenu()
 			name = GetString(BANKIR_MENU_PROFILE_SELECT),
 			tooltip = GetString(BANKIR_MENU_PROFILE_SELECT_DESC),
 			width = "full",
-			reference = "BankirMenuProfilesDropdown",
+			reference = "BankirMenuSettingsProfilesDropdown",
 			choices = Bankir.Profiles.getProfilesNames(),
 			getFunc = function() return Bankir.savedVarsCharacter.profile end,
 			setFunc = function(selectedChoice)
 				Bankir.Profiles.setCurrentProfile(selectedChoice)
-				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
-				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
+				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
 		})
 	table.insert(controls, {
@@ -315,9 +303,8 @@ local function makeSettingsMenu()
 			getFunc = function() return Bankir.savedVarsCharacter.profile end,
 			setFunc = function(text)
 				Bankir.Profiles.updateCurrentProfileName(Bankir.savedVarsCharacter.profile, text)
-				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
-				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
-				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
+				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
 			isMultiline = false,
 		})
@@ -326,9 +313,8 @@ local function makeSettingsMenu()
 			name = GetString(BANKIR_MENU_PROFILE_NEW),
 			func = function()
 				Bankir.Profiles.createNewProfile("New profile")
-				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
-				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
-				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
+				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
 			width = "full",
 		})
@@ -338,9 +324,8 @@ local function makeSettingsMenu()
 			tooltip = GetString(BANKIR_MENU_PROFILE_COPY_DESC),
 			func = function()
 				Bankir.Profiles.copyCurrentProfile()
-				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
-				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
-				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
+				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
 			width = "full",
 		})
@@ -349,9 +334,8 @@ local function makeSettingsMenu()
 			name = GetString(BANKIR_MENU_PROFILE_DELETE),
 			func = function()
 				Bankir.Profiles.deleteCurrentProfile()
-				_G["BankirMenuProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
-				_G["BankirMenuSelectedProfileLabel"].data.title = GetString(BANKIR_MENU_CURRENT_PROFILE_NAME) .. Bankir.savedVarsCharacter.profile
-				_G["BankirMenuSelectedProfileLabel"]:UpdateValue()
+				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
+				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
 			width = "full",
 			isDangerous = true,
@@ -417,7 +401,7 @@ local function makeIdTypeSliders(id, idTypeStr)
 	-- pre-declare so the functions of these two know about each other
 	local header, label, sliderPush, sliderPull, pullCheckbox
 	
-	-- prepare name for dropdown
+	-- prepare name
 	local name = Bankir.Functions.getNameOfType(id, idTypeStr)
 	name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name) -- make first char uppercase
 	if getTypeChildrenLists(id, idTypeStr) then
@@ -441,10 +425,10 @@ local function makeIdTypeSliders(id, idTypeStr)
 		step = 1,
 		width = "full",
 		getFunc = function()
-			return select(1, getStacks(id, idTypeStr))
+			return select(1, getRuleValues(id, idTypeStr))
 		end,
 		setFunc = function(value)
-			setStacks(value, "push", id, idTypeStr)
+			setRuleValue("push", value, id, idTypeStr)
 		end,
 	}
 	sliderPull = {
@@ -456,10 +440,10 @@ local function makeIdTypeSliders(id, idTypeStr)
 		step = 1,
 		width = "full",
 		getFunc = function()
-			return select(2, getStacks(id, idTypeStr))
+			return select(2, getRuleValues(id, idTypeStr))
 		end,
 		setFunc = function(value)
-			setStacks(value, "pull", id, idTypeStr)
+			setRuleValue("pull", value, id, idTypeStr)
 		end,
 	}
 	pullCheckbox = {
@@ -468,10 +452,10 @@ local function makeIdTypeSliders(id, idTypeStr)
 		tooltip = zo_strformat(GetString(BANKIR_MENU_PULL_IN_STACKS_DESC), GetString(SI_ITEM_ACTION_BANK_WITHDRAW)),
 		width = "full",
 		getFunc = function()
-			return select(3, getStacks(id, idTypeStr))
+			return select(3, getRuleValues(id, idTypeStr))
 		end,
 		setFunc = function(value)
-			setStacks(value, "pullInStacks", id, idTypeStr)
+			setRuleValue("pullInStacks", value, id, idTypeStr)
 		end,
 	}
 	return header, label, sliderPush, sliderPull, pullCheckbox
@@ -491,7 +475,7 @@ local function makeWidgetsForTypes(typesData)
 		for i = 1, #Bankir.Data.qualityRuledItemTypes[idTypeStr] do
 			if Bankir.Data.qualityRuledItemTypes[idTypeStr][i] == id then
 				isQualityRuled = true
-				local qualityDropdown = makeQualityDropdown(id, idTypeStr, dropdown)
+				local qualityDropdown = makeQualityDropdown(id, idTypeStr)
 				table.insert(controls, qualityDropdown)
 			end
 		end
@@ -506,7 +490,7 @@ local function makeWidgetsForTypes(typesData)
 					table.insert(controls, sliderPull)
 					table.insert(controls, pullCheckbox)
 					if isQualityRuled then
-						local qualityDropdown = makeQualityDropdown(childId, list.idTypeStr, dropdown)
+						local qualityDropdown = makeQualityDropdown(childId, list.idTypeStr)
 						table.insert(controls, qualityDropdown)
 					end
 				end
@@ -541,10 +525,10 @@ local function makeLCKSettings()
 				name = charData.name,
 				width = "full",
 				getFunc = function()
-					return Bankir.savedVarsServer.Integrations.LCK.CharactersList[charData.id] ~= nil
+					return Bankir.savedVarsServer.ResearchCharactersList[charData.id] ~= nil
 				end,
 				setFunc = function(value)
-					Bankir.savedVarsServer.Integrations.LCK.CharactersList[charData.id] = value and true or nil
+					Bankir.savedVarsServer.ResearchCharactersList[charData.id] = value and true or nil
 				end,
 				disabled = function()
 					return LCK == nil
@@ -561,7 +545,7 @@ Bankir.MenuBuildFunctions = {
 	makeHeader = makeHeader,
 	makeBankSelector = makeBankSelector,
 	makeCurrencyTab = makeCurrencyTab,
-	makeProfileSelector = makeProfileSelector,
+	makeRulesProfileSelector = makeRulesProfileSelector,
 	makeSelectedProfileLabel = makeSelectedProfileLabel,
 	makeSettingsMenu = makeSettingsMenu,
 	makeWidgetsForTypes = makeWidgetsForTypes,

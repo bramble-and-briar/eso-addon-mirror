@@ -2137,6 +2137,9 @@ local hud
 local function BuildHud()
 	local icon = WINDOW_MANAGER:CreateTopLevelWindow( "BTVToolsHud" )
 	icon:SetDimensions( 40, 40 )
+	-- A fragment never hides a control it never showed, so a new icon stayed up at sign-in
+	-- whenever the conditional said no (owner report 2026-11-01).
+	icon:SetHidden( true )
 	local pos = BTV.svAccount.hudPos
 	icon:SetAnchor( TOPLEFT, GuiRoot, TOPLEFT, pos and pos.x or 40, pos and pos.y or 200 )
 	icon:SetMouseEnabled( true )

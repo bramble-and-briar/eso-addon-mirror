@@ -74,7 +74,7 @@
     "PerfectPixel"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2103/",
-  "fingerprint": "d156d00a5088923f4d00b18e054fb894d90584a336c2cdc1be151d4887e3b4de",
+  "fingerprint": "8fd010b4ff10f4861bfad667b19bb8816951ed247beccf39696596ebb171e09f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8425.png",
     "https://cdn-eso.mmoui.com/preview/pvw8427.png",
@@ -91,11 +91,11 @@
   "source_id": "2103",
   "source_url": "https://www.esoui.com/downloads/info2103-PerfectPixel.html",
   "stats": {
-    "downloads": 1465626,
-    "favorites": 464,
-    "monthly_downloads": 15361
+    "downloads": 1475983,
+    "favorites": 465,
+    "monthly_downloads": 16606
   },
   "title": "PerfectPixel",
-  "updated_at": 1792339093000,
-  "version": "0.13.40"
+  "updated_at": 1793543951000,
+  "version": "0.13.41"
 }

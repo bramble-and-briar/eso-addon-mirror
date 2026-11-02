@@ -42,9 +42,22 @@ function P.backdrop(parent, name)
     return P.rect(parent, BGMeter.Constants.COLOR.panel, name or uniq("BGMeterBd"))
 end
 
+P.FRAME_EDGE = "bgmeter/assets/frame.dds"
+P.FRAME_SIZE = 14
+P.FRAME_THIN_EDGE = "bgmeter/assets/frame_thin.dds"
+P.FRAME_THIN_SIZE = 8
+
 function P.frame(parent, name)
     local c = ui().create_control(name or uniq("BGMeterFrame"), parent, CT_BACKDROP)
-    c:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 128, 16, 8)
+    c:SetEdgeTexture(P.FRAME_EDGE, 256, 32, P.FRAME_SIZE)
+    c:SetCenterColor(0, 0, 0, 0)
+    c:SetInsets(0, 0, 0, 0)
+    return c
+end
+
+function P.frame_thin(parent, name)
+    local c = ui().create_control(name or uniq("BGMeterFrameThin"), parent, CT_BACKDROP)
+    c:SetEdgeTexture(P.FRAME_THIN_EDGE, 128, 16, P.FRAME_THIN_SIZE)
     c:SetCenterColor(0, 0, 0, 0)
     c:SetInsets(0, 0, 0, 0)
     return c
@@ -80,6 +93,56 @@ function P.button(parent, normal, pressed, over, name)
     if over then b:SetMouseOverTexture(over) end
     b:SetMouseEnabled(true)
     return b
+end
+
+P.BUTTON_TEX = {
+    up = "bgmeter/assets/button_up.dds", over = "bgmeter/assets/button_over.dds",
+    down = "bgmeter/assets/button_down.dds", disabled = "bgmeter/assets/button_disabled.dds",
+}
+P.BUTTON_FACE = { 0.18, 0.13, 0.12 }
+P.BUTTON_SQ_TEX = {
+    up = "bgmeter/assets/button_sq_up.dds", over = "bgmeter/assets/button_sq_over.dds",
+    down = "bgmeter/assets/button_sq_down.dds", disabled = "bgmeter/assets/button_sq_disabled.dds",
+}
+
+function P.gold_button(parent, label, name, square)
+    local b = ui().create_from_virtual(name or uniq("BGMeterGoldButton"), parent, "ZO_DefaultButton")
+    if label then b:SetText(label) end
+    local tex = square and P.BUTTON_SQ_TEX or P.BUTTON_TEX
+    if b.SetNormalTexture then
+        b:SetNormalTexture(tex.up)
+        b:SetMouseOverTexture(tex.over)
+        b:SetPressedTexture(tex.down)
+        b:SetDisabledTexture(tex.disabled)
+        if b.SetEndCapWidth then b:SetEndCapWidth(0) end
+        if b.SetMouseOverBlendMode then b:SetMouseOverBlendMode(TEX_BLEND_MODE_ALPHA or 0) end
+    end
+    P.button_text_color(b, true)
+    return b
+end
+
+function P.button_text_color(b, lit)
+    if not b.SetNormalFontColor then return end
+    local g = BGMeter.Constants.COLOR.gold
+    if lit then
+        b:SetNormalFontColor(g[1], g[2], g[3], 1)
+        b:SetMouseOverFontColor(1, 0.94, 0.66, 1)
+        b:SetPressedFontColor(g[1] * 0.85, g[2] * 0.85, g[3] * 0.85, 1)
+    else
+        b:SetNormalFontColor(0.62, 0.58, 0.50, 1)
+        b:SetMouseOverFontColor(0.80, 0.76, 0.66, 1)
+        b:SetPressedFontColor(0.50, 0.46, 0.40, 1)
+    end
+    b:SetDisabledFontColor(0.45, 0.42, 0.35, 1)
+end
+
+function P.button_text_silver(b, font)
+    if font and b.SetFont then b:SetFont(font) end
+    if not b.SetNormalFontColor then return end
+    b:SetNormalFontColor(0.84, 0.82, 0.78, 1)
+    b:SetMouseOverFontColor(1, 1, 1, 1)
+    b:SetPressedFontColor(0.66, 0.64, 0.60, 1)
+    b:SetDisabledFontColor(0.45, 0.42, 0.35, 1)
 end
 
 function P.icon(parent, texturePath, name)

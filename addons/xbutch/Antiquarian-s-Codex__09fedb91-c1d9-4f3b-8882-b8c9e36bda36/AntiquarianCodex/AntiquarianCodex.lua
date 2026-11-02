@@ -758,7 +758,14 @@ local function AppendLeadToolip(tooltipStyle, leadId)
 end
 
 -- Generic helper: append our lines to any ZO_Tooltip instance (keyboard/gamepad)
-local function AppendACSectionToTooltip(tip, lines)
+local AC_SKILL_PROGRESS_ROW_STYLE = {
+	fontFace = '$(GAMEPAD_MEDIUM_FONT)',
+	fontSize = '$(GP_34)',
+	fontStyle = 'soft-shadow-thick',
+	fontColor = ZO_SELECTED_TEXT
+}
+
+local function AppendACSectionToTooltip(tip, lines, skillLineStyle)
 	if not tip or not lines or #lines == 0 then return end
 	-- Build a short signature for duplicate suppression
 	local sig = table.concat(lines, '\31') -- use unlikely separator
@@ -767,14 +774,32 @@ local function AppendACSectionToTooltip(tip, lines)
 		-- Duplicate within 150ms window; skip to avoid double display
 		return
 	end
-	local bodySectionStyle = tip:GetStyle('bodySection')
-	local bodyDescStyle = tip:GetStyle('bodyDescription')
-	local dividerStyle = tip:GetStyle('dividerLine')
-
-	local section = tip:AcquireSection(bodySectionStyle)
-	section:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, dividerStyle)
-	for _, line in ipairs(lines) do section:AddLine(line, bodyDescStyle) end
-	tip:AddSection(section)
+	if skillLineStyle then
+		local section = tip:AcquireSection({customSpacing = 50}, tip:GetStyle('skillLinePreviewBodySection'))
+		for _, line in ipairs(lines) do
+			if line == AC.TOOLTIP_SKILL_NEXT_LEVEL or line == AC.TOOLTIP_SKILL_MAX_LEVEL or line == AC.TOOLTIP_SKILL_MAXED then
+				if line == AC.TOOLTIP_SKILL_MAX_LEVEL then
+					section:SetNextSpacing(50)
+				end
+				local header = tip:AcquireSection(tip:GetStyle('skillLineEntryHeaderSection'))
+				header:AddLine(line, tip:GetStyle('skillLineEntryHeader'))
+				section:AddSection(header)
+			else
+				local row = tip:AcquireSection(tip:GetStyle('skillLineEntryHeaderSection'))
+				row:AddLine(line, AC_SKILL_PROGRESS_ROW_STYLE)
+				section:AddSection(row)
+			end
+		end
+		tip:AddSection(section)
+	else
+		local bodySectionStyle = tip:GetStyle('bodySection')
+		local bodyDescStyle = tip:GetStyle('bodyDescription')
+		local dividerStyle = tip:GetStyle('dividerLine')
+		local section = tip:AcquireSection(bodySectionStyle)
+		section:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, dividerStyle)
+		for _, line in ipairs(lines) do section:AddLine(line, bodyDescStyle) end
+		tip:AddSection(section)
+	end
 	-- Record signature
 	tip.__ac_lastAppendSignature = sig
 	tip.__ac_lastAppendTime = now
@@ -788,9 +813,76 @@ local acHookMonitorEnabled = false -- verbose hook monitor logging only; auto-re
 local acHookedPointers = {} -- "<method>|<pointer>" values of installed post-hook wrappers
 local acLoggedReplacements = {} -- track already logged replacements to reduce spam
 local AC_HOOK_MONITOR_INTERVAL_MS = 3000
+local ANTIQUITY_SKILL_MAX_RANK = 10
+local ANTIQUITY_SKILL_MAX_XP_FALLBACK = 700
+local ANTIQUITY_TREATISE_XP = 7
+local ANTIQUITY_SKILL_XP_BY_QUALITY = {
+	{quality = ANTIQUITY_QUALITY_GREEN, difficulty = ANTIQUITY_DIFFICULTY_SIMPLE, xp = 1, name = AC.TOOLTIP_SKILL_QUALITY_GREEN},
+	{quality = ANTIQUITY_QUALITY_BLUE, difficulty = ANTIQUITY_DIFFICULTY_INTERMEDIATE, xp = 3, name = AC.TOOLTIP_SKILL_QUALITY_BLUE},
+	{quality = ANTIQUITY_QUALITY_PURPLE, difficulty = ANTIQUITY_DIFFICULTY_ADVANCED, xp = 5, name = AC.TOOLTIP_SKILL_QUALITY_PURPLE},
+	{quality = ANTIQUITY_QUALITY_GOLD, difficulty = ANTIQUITY_DIFFICULTY_MASTER, xp = 10, name = AC.TOOLTIP_SKILL_QUALITY_GOLD}
+}
 
 local function GetHookPointerKey(name, ptr)
 	return tostring(name) .. '|' .. tostring(ptr)
+end
+
+local function GetAntiquitySkillMaxXP(skillType, skillLineIndex)
+	local maxRankStartXP = GetSkillLineRankXPExtents(skillType, skillLineIndex, ANTIQUITY_SKILL_MAX_RANK)
+	if maxRankStartXP then return maxRankStartXP end
+	local _, precedingRankEndXP = GetSkillLineRankXPExtents(skillType, skillLineIndex, ANTIQUITY_SKILL_MAX_RANK - 1)
+	return precedingRankEndXP or ANTIQUITY_SKILL_MAX_XP_FALLBACK
+end
+
+local function CreateAntiquitySkillProgressLines(skillLineData)
+	if not skillLineData or not skillLineData:IsAvailable() then return nil end
+	local skillLineId = skillLineData:GetId()
+	if skillLineId ~= GetAntiquityDiggingSkillLineId() and skillLineId ~= GetAntiquityScryingSkillLineId() then return nil end
+
+	local rank = skillLineData:GetCurrentRank()
+	if not rank then return nil end
+	if rank >= ANTIQUITY_SKILL_MAX_RANK then return {AC.TOOLTIP_SKILL_MAXED} end
+
+	local skillType, skillLineIndex = skillLineData:GetIndices()
+	local _, nextRankXP, currentXP = GetSkillLineXPInfo(skillType, skillLineIndex)
+	if not currentXP or not nextRankXP or nextRankXP <= currentXP then return nil end
+	local maxRankXP = GetAntiquitySkillMaxXP(skillType, skillLineIndex)
+	local highestDifficulty = GetHighestScryableDifficulty()
+	if type(highestDifficulty) ~= 'number' then return nil end
+
+	local lines = {}
+	local function AddCounts(heading, remainingXP)
+		lines[#lines + 1] = heading
+		for _, quality in ipairs(ANTIQUITY_SKILL_XP_BY_QUALITY) do
+			if highestDifficulty >= quality.difficulty then
+				local colorizedName = GetAntiquityQualityColor(quality.quality):Colorize(quality.name)
+				lines[#lines + 1] = zo_strformat(AC.TOOLTIP_SKILL_PROGRESS_ALTERNATIVE, math.ceil(remainingXP / quality.xp), colorizedName)
+			end
+		end
+		local treatiseCount = math.ceil(remainingXP / ANTIQUITY_TREATISE_XP)
+		local treatiseLabel = treatiseCount == 1 and AC.TOOLTIP_SKILL_TREATISE_SINGULAR or AC.TOOLTIP_SKILL_TREATISE_PLURAL
+		treatiseLabel = GetAntiquityQualityColor(ANTIQUITY_QUALITY_GOLD):Colorize(treatiseLabel)
+		lines[#lines + 1] = zo_strformat(AC.TOOLTIP_SKILL_PROGRESS_COUNT, treatiseCount, treatiseLabel)
+	end
+	AddCounts(AC.TOOLTIP_SKILL_NEXT_LEVEL, nextRankXP - currentXP)
+	if maxRankXP >= nextRankXP then
+		AddCounts(AC.TOOLTIP_SKILL_MAX_LEVEL, maxRankXP - currentXP)
+	end
+	return lines
+end
+
+local function TooltipSkillLinePreviewHook(self, skillLineData)
+	if not GAMEPAD_TOOLTIPS or self ~= GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP) then return end
+	AppendACSectionToTooltip(self, CreateAntiquitySkillProgressLines(skillLineData), true)
+end
+
+local function GamepadSkillsTooltipHook(skills)
+	if not GAMEPAD_TOOLTIPS or not skills or skills.mode ~= ZO_GAMEPAD_SKILLS_SKILL_LIST_BROWSE_MODE then return end
+	if not skills.categoryList or not skills.assignableActionBar or skills.assignableActionBar:IsActive() then return end
+	local selectedData = skills.categoryList:GetTargetData()
+	if not selectedData or not selectedData.skillLineData then return end
+	local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+	AppendACSectionToTooltip(tooltip, CreateAntiquitySkillProgressLines(selectedData.skillLineData), true)
 end
 
 local function TooltipLeadHook(self, id)
@@ -825,14 +917,37 @@ local function TooltipSetRewardHook(self, setId)
 	AppendACSectionToTooltip(self, CreateSetToolip(setId))
 end
 
+local function IsRecoveredFragmentWaitingForSet(antiquityId, recovered)
+	local setId = GetAntiquitySetId(antiquityId)
+	if not setId or setId == 0 or recovered == 0 then return false end
+	for index = 1, GetNumAntiquitySetAntiquities(setId) do
+		local partId = GetAntiquitySetAntiquityId(setId, index)
+		if partId and GetNumAntiquitiesRecovered(partId) < recovered then return true end
+	end
+	return false
+end
+
+local function GetTradeableLeadStatus(antiquityId)
+	if DoesAntiquityHaveLead(antiquityId) or GetNumAntiquityDigSites(antiquityId) > 0 then
+		return zo_strformat(AC.TOOLTIP_LEAD_ACTIVE, AC.TOOLTIP_YES)
+	end
+	local recovered = GetNumAntiquitiesRecovered(antiquityId)
+	if IsRecoveredFragmentWaitingForSet(antiquityId, recovered) then
+		return AC.TOOLTIP_LEAD_SET_INCOMPLETE
+	end
+	if recovered > 0 and not IsAntiquityRepeatable(antiquityId) then
+		return AC.TOOLTIP_LEAD_ALREADY_RECOVERED
+	end
+	return zo_strformat(AC.TOOLTIP_LEAD_ACTIVE, AC.TOOLTIP_NO)
+end
+
 local function TooltipTradeableLeadItemHook(self, itemLink)
 	local antiquityId = GetAntiquityIdFromItemLink(itemLink)
 	if not antiquityId then return end
 	if not units[antiquityId] then UpdateAntiquityRecord(antiquityId) end
 	local lines = CreateLeadToolip(antiquityId)
 	if #lines == 0 then return end
-	local active = DoesAntiquityHaveLead(antiquityId) and AC.TOOLTIP_YES or AC.TOOLTIP_NO
-	table.insert(lines, 1, zo_strformat(AC.TOOLTIP_LEAD_ACTIVE, active))
+	table.insert(lines, 1, GetTradeableLeadStatus(antiquityId))
 	AppendACSectionToTooltip(self, lines)
 end
 
@@ -843,6 +958,7 @@ local function TooltipClearedHook(self)
 end
 
 local TOOLTIP_HOOK_SPECS = {
+	{name = 'LayoutSkillLinePreview', handler = TooltipSkillLinePreviewHook},
 	{name = 'LayoutAntiquityLead', handler = TooltipLeadHook},
 	{name = 'LayoutAntiquitySetFragment', handler = TooltipFragmentHook},
 	{name = 'LayoutAntiquityReward', handler = TooltipRewardHook},
@@ -1029,6 +1145,7 @@ end
 -- onLoad initializion
 local function OnLoad(eventCode, name)
 	if name ~= ADDON_NAME then return end
+	AC.Announcements:Init()
 	dbg('onLoad called for ' .. tostring(name) .. ' (char=' .. GetUnitName('player') .. ')')
 	-- extra diagnostics
 	dbg('Antiquarian prerequisite check: skill line id presence = ' .. tostring(GetSkillLineId and select(3, GetSkillLineInfo and GetSkillLineInfo(52, 1) or nil) or 'n/a'))
@@ -1051,6 +1168,12 @@ local function OnLoad(eventCode, name)
 				dbg('onLoad: Hooked gamepad instance ' .. tostring(tooltipType))
 			end
 		end
+	end
+	if ZO_GamepadSkills and type(ZO_GamepadSkills.RefreshSelectedTooltip) == 'function' then
+		local ok, err = pcall(function()
+			ZO_PostHook(ZO_GamepadSkills, 'RefreshSelectedTooltip', GamepadSkillsTooltipHook)
+		end)
+		if not ok then dbg('onLoad: Skills tooltip hook failed: ' .. tostring(err)) end
 	end
 
 	dbg('Registering PLAYER_ACTIVATED for deferred init')
@@ -1158,13 +1281,30 @@ end
 
 -- Show current hook monitor status
 SLASH_COMMANDS['/ac_hookstatus'] = function()
-	local names = {'LayoutAntiquityLead', 'LayoutAntiquitySetFragment', 'LayoutAntiquityReward', 'LayoutAntiquitySetReward'}
+	local names = {'LayoutSkillLinePreview', 'LayoutAntiquityLead', 'LayoutAntiquitySetFragment', 'LayoutAntiquityReward', 'LayoutAntiquitySetReward'}
 	for _, n in ipairs(names) do
 		local ptr = ZO_Tooltip[n]
 		local tagged = acHookedPointers[GetHookPointerKey(n, ptr)] and 'HOOKED' or 'UNHOOKED'
 		d(string.format('AC Hook %s: %s (%s)', n, tostring(ptr), tagged))
 	end
 	d('Monitor active=' .. tostring(acHookMonitorActive) .. ' verbose=' .. tostring(acHookMonitorEnabled) .. ' tooltipHooksInstalled=' .. tostring(tooltipHooksInstalled))
+end
+
+SLASH_COMMANDS['/ac_skillprogress'] = function()
+	d('AC skill progress diagnostic')
+	d('Highest scryable difficulty: ' .. tostring(GetHighestScryableDifficulty()))
+	for _, skillLineId in ipairs({GetAntiquityScryingSkillLineId(), GetAntiquityDiggingSkillLineId()}) do
+		local data = SKILLS_DATA_MANAGER and SKILLS_DATA_MANAGER:GetSkillLineDataById(skillLineId)
+		d('Skill line ' .. tostring(skillLineId) .. ': data=' .. tostring(data))
+		if data then
+			local skillType, skillLineIndex = data:GetIndices()
+			local lastRankXP, nextRankXP, currentXP = GetSkillLineXPInfo(skillType, skillLineIndex)
+			local maxRankXP = GetAntiquitySkillMaxXP(skillType, skillLineIndex)
+			d(string.format('  rank=%s available=%s XP=%s/%s max=%s', tostring(data:GetCurrentRank()), tostring(data:IsAvailable()), tostring(currentXP), tostring(nextRankXP), tostring(maxRankXP)))
+			local lines = CreateAntiquitySkillProgressLines(data)
+			if lines then for _, line in ipairs(lines) do d('  ' .. line) end end
+		end
+	end
 end
 
 -- Toggle the hook monitor (disabled by default to reduce spam)

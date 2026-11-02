@@ -199,10 +199,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.5.39 |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Alternative-Group-Frames__21f64968-c492-4b43-82ff-b7b1f25c7500) | Copper0 | Console | — |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Group-Frames__a020fed1-e58d-4c59-8ec5-6fb71e8ee9cc) | j.hhh | Console | — |
+| [ALTHI Suite – Farming & Fishing Toolkit &#127907;&#127807;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Suite-Farming-Fishing-Toolkit__4984) | Namorstradam | PC / Mac | 2.0.0 |
 | [ALTHI – &#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081; &#1103;&#1079;&#1099;&#1082;&#1086;&#1074;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Русский-языков__4991) | Namorstradam | PC / Mac | 0.9.4 |
 | [ALTHI – &#26085;&#26412;&#35486;&#35328;&#35486;&#12497;&#12483;&#12463;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-日本語言語パック__4993) | Namorstradam | PC / Mac | 0.9.4 |
 | [ALTHI – &#31616;&#20307;&#20013;&#25991;&#35821;&#35328;&#21253;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-简体中文语言包__4992) | Namorstradam | PC / Mac | 0.9.4 |
-| [ALTHI – Advanced Logging & Tracking of Harvested Items](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Advanced-Logging-Tracking-of-Harvested-Items__4984) | Namorstradam | PC / Mac | 1.0.0 |
 | [ALTHI – Pack de langue française](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Pack-de-langue-française__4989) | Namorstradam | PC / Mac | 0.9.4 |
 | [ALTHI – Paquete de idioma español](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Paquete-de-idioma-español__4990) | Namorstradam | PC / Mac | 0.9.4 |
 | [Always Logging](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eurymachos/Always-Logging__4081) | Eurymachos | PC / Mac | v3.1.12.1.0 |
@@ -247,7 +247,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ar2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/Ar2__52bf209f-b1c3-4253-adfc-ba6e95b85072) | Lofand | Console | — |
 | [ArabChat - Arabic Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabChat---Arabic-Chat__4931) | alaooy | PC / Mac | 1.2.2 |
 | [arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic__c8823ab9-749b-4180-ad52-c15b1363d974) | Lofand | Console | — |
-| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.4.1 |
+| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.4.2 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
 | [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.2.0 |

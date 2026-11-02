@@ -1,7 +1,7 @@
 ## Title: |c00FF00FCO |cFFFF00ChangeStuff|r
 ## Author: Baertram
-## Version: 0.5.96
-## AddOnVersion: 050906
+## Version: 0.5.97
+## AddOnVersion: 050907
 ## APIVersion: 101051 101052
 ## Description: Change a few parts of the standard game UI
 ## SavedVariables: FCOChangeStuff_Settings
@@ -25,6 +25,7 @@ src/FCOCS_mainmenu.lua
 src/FCOCS_map.lua
 src/FCOCS_mail.lua
 src/FCOCS_group.lua
+src/FCOCS_guilds.lua
 src/FCOCS_stable.lua
 src/FCOCS_crafting.lua
 src/FCOCS_chat.lua
@@ -41,6 +42,7 @@ src/FCOCS_dialogs.lua
 src/FCOCS_guildHistory.lua
 src/FCOCS_UI.lua
 src/FCOCS_quest.lua
+
 
 ## Included addon settings LAM
 src/FCOCS_settingsMenu.lua

@@ -22,19 +22,21 @@
     "PersonalityDesigner"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5014/",
-  "fingerprint": "983bf5541dbbdb6c9ba8040638f11398e02be6b45079f93dd940166e3b668b95",
-  "images": [],
+  "fingerprint": "b6b0fd16bfff35e694ff8387c84e85fe8e5d25834dd1d715abb4de8bc16e8e39",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18273.png"
+  ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "5014",
   "source_url": "https://www.esoui.com/downloads/info5014-PersonalityDesigner-Updated.html",
   "stats": {
-    "downloads": 11,
+    "downloads": 35,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 28
   },
   "title": "Personality Designer - Updated",
-  "updated_at": 1793493693000,
-  "version": "3.0.0"
+  "updated_at": 1793571720000,
+  "version": "3.0.1"
 }

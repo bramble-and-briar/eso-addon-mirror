@@ -55,7 +55,7 @@ local UNIT_CHOICES = {
     { "boss1", string.format(L.UNIT_BOSS, 1) }, { "boss2", string.format(L.UNIT_BOSS, 2) },
 }
 local TRIGGER_TYPES = {
-    { "buff", L.TRIG_BUFF }, { "resource", L.TRIG_RESOURCE },
+    { "buff", L.TRIG_BUFF }, { "slot", L.TRIG_SLOT }, { "resource", L.TRIG_RESOURCE },
     { "proc", L.TRIG_PROC }, { "combat", L.TRIG_COMBAT },
 }
 local DISPLAY_TYPES = {
@@ -69,11 +69,11 @@ local OP_CHOICES = {
     { "<", L.OP_LT }, { "<=", L.OP_LE }, { ">", L.OP_GT }, { ">=", L.OP_GE },
 }
 
--- Sonidos ofrecidos en el selector (solo se muestran los que existen en esta versión del juego).
+-- Sonidos ofrecidos en el selector (claves de la tabla SOUNDS del juego).
 local SOUND_KEYS = {
     "ABILITY_ULTIMATE_READY", "ABILITY_SYNERGY_READY", "ABILITY_COMPANION_ULTIMATE_READY",
     "NEW_NOTIFICATION", "GENERAL_ALERT_ERROR", "DUEL_START", "DUEL_WON", "LEVEL_UP",
-    "CHAMPION_POINT_GAINED", "SKILL_GAINED", "QUEST_COMPLETED", "ACHIEVEMENT_AWARDED",
+    "CHAMPION_POINT_GAINED", "QUEST_COMPLETED", "ACHIEVEMENT_AWARDED",
     "TELVAR_GAINED", "BOOK_ACQUIRED", "COLLECTIBLE_UNLOCKED", "OBJECTIVE_DISCOVERED",
     "ENLIGHTENED_STATE_GAINED", "LOCKPICKING_BREAK", "LOCKPICKING_SUCCESS_CELEBRATION",
     "RAID_TRIAL_COMPLETED", "RAID_TRIAL_FAILED", "MAP_PING", "POSITIVE_CLICK", "NEGATIVE_CLICK",
@@ -115,6 +115,10 @@ local TRIGGER_FIELDS = {
           choices = { { "active", L.SHOW_ACTIVE }, { "missing", L.SHOW_MISSING } } },
         { key = "minStacks", label = L.F_MIN_STACKS, kind = "number", options = true,
           show = function(ctx) return ctx.trig.show ~= "missing" end },
+    },
+    slot = {
+        { key = "spells", kind = "spells", mode = "slot" },
+        { key = "minStacks", label = L.F_MIN_STACKS, kind = "number", options = true },
     },
     resource = {
         { key = "unit", label = L.F_UNIT, kind = "choice", choices = UNIT_CHOICES, default = "player" },
@@ -180,6 +184,9 @@ local TEMPLATES = {
     end },
     { L.TPL_MISSING, function()
         return L.NAME_MISSING, { { type = "buff", unit = "player", show = "missing", spells = {} } }, { type = "icon" }
+    end },
+    { L.TPL_SLOT, function()
+        return L.NAME_NEW_SLOT, { { type = "slot", spells = {} } }, { type = "icon", text = "{stacks}", text2 = "{time}" }
     end },
     { L.TPL_RESOURCE, function()
         return L.NAME_LOW_HEALTH, { { type = "resource", unit = "player", power = "health", op = "<", value = 50, percent = true } },
@@ -533,9 +540,10 @@ local function AddSpell(aura, trig, entry, mode)
     if mode == "proc" and entry.ids then
         -- Los eventos de combate se filtran por ID: se añaden las variantes.
         for i = 1, math.min(#entry.ids, MAX_PROC_IDS) do Add(entry.ids[i]) end
-    elseif mode == "buff" and (entry.slotted or (entry.ids and #entry.ids > 1)) then
+    elseif mode == "slot" or (mode == "buff" and (entry.slotted or (entry.ids and #entry.ids > 1))) then
         -- Por nombre: cubre todas las variantes (el buff que deja una habilidad suele
         -- tener otro ID pero el mismo nombre). Los IDs sueltos con ese nombre sobran.
+        -- En las barras igual: rangos y morfos con el mismo nombre tienen otro ID.
         for i = #spells, 1, -1 do
             if type(spells[i]) == "number" and SpellLName(spells[i]) == lname then table.remove(spells, i) end
         end
@@ -711,6 +719,9 @@ local function Field(aura, f, path)
             elseif f.required then
                 row.edit:SetText(shown)
                 return
+            elseif kind == "text" then
+                -- Vacío a propósito: se guarda "" para que no vuelva el texto por defecto.
+                value = ""
             end
             shown = newText
             Commit(aura, path, value, f.rerender)
@@ -725,7 +736,7 @@ local function Field(aura, f, path)
     elseif kind == "sound" then
         local choices = { { false, L.SOUND_NONE } }
         for _, key in ipairs(SOUND_KEYS) do
-            if SOUNDS[key] then choices[#choices + 1] = { key, PrettyKey(key) } end
+            choices[#choices + 1] = { key, PrettyKey(key) }
         end
         ChoiceRow(f.label, choices, U.GetPath(aura, path) or false, function(value)
             Commit(aura, path, value or nil, false)
@@ -799,6 +810,8 @@ local function Capabilities(aura)
             else
                 caps.time, caps.stacks = true, true
             end
+        elseif t.type == "slot" then
+            caps.time, caps.stacks = true, true
         elseif t.type == "proc" then
             caps.time = true
         elseif t.type == "resource" then
@@ -1057,7 +1070,7 @@ local function Build()
     help:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
 
     -- Enlace para donar (solo en el megaservidor del autor).
-    if OA.Settings and OA.Settings.CanDonate() then
+    if OA.Settings.CanDonate() then
         local donate = WM:CreateControl("OmniAuraEditorDonate", win, CT_BUTTON)
         donate:SetDimensions(130, 24)
         donate:SetFont("ZoFontGameSmall")
@@ -1126,9 +1139,7 @@ local function Build()
     -- Escena propia: muestra el cursor, se cierra con Esc y mantiene visibles las auras.
     local scene = ZO_Scene:New(SCENE_NAME, SCENE_MANAGER)
     scene:AddFragment(ZO_SimpleSceneFragment:New(win))
-    if FRAGMENT_GROUP and FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW then
-        scene:AddFragmentGroup(FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
-    end
+    scene:AddFragmentGroup(FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
     scene:AddFragment(OA.Display.fragment)
     scene:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_SHOWING then
@@ -1329,6 +1340,6 @@ function Ed.Init()
 end
 
 -- Usado por Bindings.xml
-function OmniAura_ToggleEditor()
+function OA.ToggleEditor()
     Ed.Toggle()
 end

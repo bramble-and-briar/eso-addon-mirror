@@ -1,20 +1,21 @@
 ## Title: ClearSight
 ## Description: Lightweight accessibility improvements for the ESO reticle and custom player waypoint.
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Version: 1.0.5
+## Version: 1.1.5
 ## APIVersion: 101050
 ## SavedVariables: ClearSight_SavedVariables
 ## OptionalDependsOn: LibHarvensAddonSettings
 
 ; DISCLAIMER:
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
-; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; Media Inc. or its affiliates. The Elder ScrollsÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â® and related logos are
 ; registered trademarks or trademarks of ZeniMax Media Inc. in the United
 ; States and/or other countries. All rights reserved.
 ; You can read the full terms at:
 ; https://account.elderscrollsonline.com/add-on-terms
 
 ClearSight.lua
+ClearSight_Wayfinder.lua
 ClearSight_Reticle.lua
 ClearSight_Waypoint.lua
 ClearSight_Settings.lua

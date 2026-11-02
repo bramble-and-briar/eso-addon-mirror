@@ -33,8 +33,8 @@ SafeAddString(BANKIR_MENU_PUSH_DESC, "Максимальное количест�
 SafeAddString(BANKIR_MENU_PULL_DESC, "Минимальное количество предметов в сумке.\nЕсли у персонажа в сумке меньше, Bankir по возможности будет стараться взять недостающие предметы из банка.", 1)
 SafeAddString(BANKIR_MENU_PULL_IN_STACKS, "<<1>> стаками", 1)
 SafeAddString(BANKIR_MENU_PULL_IN_STACKS_DESC, "Если включено - значение в '<<1>>' это количество полных стаков.\nЕсли выключено - количество предметов.\nДля предметов, которые не стакаются (например, оружие и броня) эта настройка ничего не делает.", 1)
-SafeAddString(BANKIR_MENU_QUALITY_SELECT, "Мин. качество", 1)
-SafeAddString(BANKIR_MENU_QUALITY_SELECT_DESC, "Правило будет применяться к предметам с качеством равным или превышающим выбранное значение", 1)
+SafeAddString(BANKIR_MENU_QUALITY_SELECT, "Качество", 1)
+SafeAddString(BANKIR_MENU_QUALITY_SELECT_DESC, "Правило будет применяться только к предметам с выбранными уровнями качества", 1)
 
 SafeAddString(BANKIR_MENU_OTHER_CHARACTERS, " на других персонажах", 1)
 

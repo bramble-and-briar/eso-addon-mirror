@@ -1,3 +1,54 @@
+2.9.0 - 2026-10-31
+
+DEUTSCH
+- Nebenquests sind im Fortschrittsjournal jetzt sauber in Grundspiel/kostenlos
+  und Kapitel/DLC getrennt. Beide Zeilen bleiben rein informativ und verändern
+  den normalen Tamriel-Prozentsatz nicht.
+- Das neue interne RaccoonQuestData führt ESO-Verlauf, Live-Metadaten und eine
+  optional vorhandene LibQuestData defensiv zusammen. Unbestätigte IDs bleiben
+  unbekannt; es gibt keine künstlichen 100 %.
+- `/tpm questdebug` bietet acht Einträge pro Seite, Filter und eine ID-Ansicht,
+  damit gemeldete Lücken mit echten Spielerdaten untersucht werden können.
+- Fragmente wurden aus der normalen Sammlungsübersicht entfernt. Auf der
+  Wirtschaftsseite öffnet eine neue, anklickbare Kachel eine paginierte Ansicht
+  aller aktuellen Fragment-Kombinationen, fehlenden Teile und Ausgaben.
+- Alle neuen Texte liegen auf Deutsch, Englisch, Französisch, Spanisch und
+  Russisch vor. Die SavedVariables-Migration auf Schema 5 erhält alle bisherigen
+  Einstellungen, Positionen, Verlaufs- und Wirtschaftsdaten.
+
+ENGLISH
+- Side quests are now split into Base game/free and Chapter/DLC rows. Both are
+  informational only and never change the normal Tamriel percentage.
+- The internal RaccoonQuestData layer defensively combines ESO history, live
+  metadata and optional LibQuestData provenance. Unverified IDs remain unknown;
+  no artificial 100% is produced.
+- `/tpm questdebug` adds eight-record pages, filters and a single-ID view so
+  reported gaps can be investigated with real player data.
+- Fragments were removed from the normal Collections overview. A new clickable
+  Economy tile opens a paged view of current combinations, missing parts and
+  unlocked outputs.
+- All new copy is localized in DE/EN/FR/ES/RU. Schema 5 preserves existing
+  settings, positions, history and economy data.
+
+2.8.2 - 2026-10-31
+- Rebuilt the add-on settings as seven clear, collapsible sections using native
+  LibAddonMenu controls; removed the unreliable custom rows and large blank areas.
+- Added current settings for journal design and size, progress HUD, quest rewards,
+  history, map appearance and advanced data maintenance.
+- Restored working defaults with immediate live refresh and added confirmation
+  warnings before destructive economy or history resets.
+- Fixed the journal size slider flickering by keeping the gear panel at a stable size
+  and screen position while the journal scales behind it.
+- Kept the quick-filter and journal bar available when only the map progress overlay
+  is disabled, and prevented defaults from switching the percent color to Custom.
+- Updated settings text and changelog summaries in German, English, French, Spanish
+  and Russian.
+
+2.8.1 - 2026-10-31
+- The statistics journal can now be resized proportionally by dragging any edge or corner.
+- Added a live 80-120% "Resize window" slider below the design choices in the gear panel.
+- Journal size and adjusted screen position are saved; the theme panel stays synchronized.
+
 2.8.0 - 2026-10-24
 - New skin engine for the statistics journal: every design is a set of 12 color tokens
   (window, panels, lines, headings, text, secondary text, accent, values, progress,

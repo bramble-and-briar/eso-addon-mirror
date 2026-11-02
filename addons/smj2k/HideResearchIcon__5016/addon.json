@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/smj2k/HideResearchIcon__5016",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "smj2k",
+  "canonical_id": "esoui:5016",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5016",
+  "deleted": false,
+  "directories": [
+    "HideResearchableIcon"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5016/",
+  "fingerprint": "c31d04b37b9917d5ba3f3fbcf2a9b86da2fff3ea039f1b2a4d9e1082b652b3d5",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5016",
+  "source_url": "https://www.esoui.com/downloads/info5016-HideResearchIcon.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "HideResearchIcon",
+  "updated_at": 1793513338000,
+  "version": "1.1.0"
+}

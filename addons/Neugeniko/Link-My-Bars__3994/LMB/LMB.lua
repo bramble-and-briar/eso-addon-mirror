@@ -213,6 +213,62 @@ local function getCurrentFood()
 
 end
 
+local function ListMyClassMasteries()
+    -- Loop through all skill lines to find the "Class Mastery" line
+    local compactMast = ""
+    local foundIt = 0
+    for skillType = 1, GetNumSkillTypes() do
+        for skillLineIndex = 1, GetNumSkillLines(skillType) do
+            local skillLineName, _, _, _, _, _, _, _, _ = GetSkillLineInfo(skillType, skillLineIndex)
+            if skillLineName == "Class Mastery" then
+                local numAbilities = GetNumSkillAbilities(skillType, skillLineIndex)
+                -- Loop through the 5 masteries in this line
+                for abilityIndex = 1, numAbilities do
+                    local name, _, _, _, _, isPurchased, _, _, _ = GetSkillAbilityInfo(skillType, skillLineIndex, abilityIndex)
+                    -- Check if you have allocated a mastery point to this passive
+                    local abilityId = GetSkillAbilityId(skillType, skillLineIndex, abilityIndex, false)
+
+                    -- 2. Convert the Ability ID into a formatted Skill Link
+                    local skillLink = GetAbilityLink(abilityId, LINK_STYLE_BRACKETS)
+                    if isPurchased then
+                        compactMast = compactMast .. skillLink
+                        foundIt = 1
+                    end
+                end
+            end
+        end
+    end
+    if foundIt == 1 then
+        return compactMast
+    else
+        return false
+    end
+end
+
+local function ListMySubclassLines()
+    local skillType = SKILL_TYPE_CLASS -- Class Skill Category
+    local numSkillLines = GetNumSkillLines(skillType)
+    local compactLines = ""
+    for i = 1, numSkillLines do
+        -- Get the name and details of the class skill lines currently loaded
+        local name, rank, available, skillLineId = GetSkillLineInfo(skillType, i)
+
+        if available then
+            -- Optional: Check if it's active or mastered
+            local firstWord = name:match("^([%S]+)")
+            if firstWord == "Class" then
+                skip = 1
+            else
+                compactLines = compactLines .. firstWord .. "/"
+            end
+        end
+    end
+    finalStr = string.sub(compactLines, 1 , -2)
+    return finalStr
+end
+
+
+
 local function LinkMyBar(hotbarCategory)
     local barabilities = ""
     for slotNum = 3,8 do
@@ -228,6 +284,20 @@ local function LinkMyBar(hotbarCategory)
         barabilities = barabilities .. thisabilitylink
     end
     return barabilities
+end
+
+local function ls_addchatchamp(_, ChannelType, fromName, _, _, fromDisplayName)
+    if fromDisplayName == GetDisplayName() or CHAT_CHANNEL_WHISPER_SENT==ChannelType then
+        local mast = ListMyClassMasteries()
+
+        if mast then
+            submaster = " Masteries: " .. mast
+        else
+            submaster = " Class Lines: " .. ListMySubclassLines()
+        end
+        StartChatInput(submaster)
+        EVENT_MANAGER:UnregisterForEvent("LMB", EVENT_CHAT_MESSAGE_CHANNEL)
+    end
 end
 
 function LinkMyChampandmisc()
@@ -254,8 +324,11 @@ function LinkMyChampandmisc()
         foodlink = GetAbilityLink(food, LINK_STYLE_BRACKETS)
     end
     local slot = GetCurrentQuickslot()
-    local pot = GetSlotItemLink(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    local pot = zo_strformat("[<<1>>]", GetSlotItemLink(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL))
+
     StartChatInput(chlinks .. " Mundus: " .. munduslink .. " Food: " .. foodlink .. " Quick: " .. pot)
+
+    EVENT_MANAGER:RegisterForEvent("LMB", EVENT_CHAT_MESSAGE_CHANNEL, ls_addchatchamp)
 end
 
 function LinkMyBars()
@@ -442,6 +515,8 @@ local function ls_addchat(_, ChannelType, fromName, _, _, fromDisplayName)
         end
     end
 end
+
+
 
 function LinkMySets()
     ordersets()

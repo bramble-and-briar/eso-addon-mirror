@@ -68,22 +68,22 @@ local function build_header(win)
         h.chips[i] = chip
     end
 
-    h.close = mk_button(win, TX.close, 22, function() W.hide() end, "Close")
-    h.close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -L.margin, 14)
+    h.close = U.mk_plate_button(win, TX.close, 26, function() W.hide() end, "Close")
+    h.close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -9, 12)
 
-    h.gear = mk_button(win, TX.gear, 28, function() W.toggle_settings() end, "Settings")
-    h.gear:SetAnchor(TOPRIGHT, win, TOPRIGHT, -(L.margin + 30), 11)
+    h.gear = U.mk_text_button(win, "Settings", 72, 26, function() W.toggle_settings() end, "Open the settings", true)
+    h.gear:SetAnchor(TOPRIGHT, win, TOPRIGHT, -41, 12)
 
-    h.next = mk_button(win, TX.nextb, 26, function() W.step(1) end, "Older match")
-    h.next:SetAnchor(TOPRIGHT, win, TOPRIGHT, -(L.margin + 64), 13)
+    h.next = U.mk_plate_button(win, TX.nextb, 26, function() W.step(1) end, "Older match")
+    h.next:SetAnchor(TOPRIGHT, win, TOPRIGHT, -121, 12)
 
     h.counter = P.label(win, S.FONT.small, K.COLOR.text_dim)
-    h.counter:SetAnchor(TOPRIGHT, win, TOPRIGHT, -(L.margin + 96), 17)
+    h.counter:SetAnchor(TOPRIGHT, win, TOPRIGHT, -151, 17)
     h.counter:SetDimensions(48, 18)
     h.counter:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
-    h.prev = mk_button(win, TX.prev, 26, function() W.step(-1) end, "Newer match")
-    h.prev:SetAnchor(TOPRIGHT, win, TOPRIGHT, -(L.margin + 148), 13)
+    h.prev = U.mk_plate_button(win, TX.prev, 26, function() W.step(-1) end, "Newer match")
+    h.prev:SetAnchor(TOPRIGHT, win, TOPRIGHT, -203, 12)
 
     return h
 end

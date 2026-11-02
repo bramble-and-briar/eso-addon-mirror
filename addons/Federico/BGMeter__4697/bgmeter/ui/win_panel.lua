@@ -21,6 +21,7 @@ local GLINT = "EsoUI/Art/HUD/starburst.dds"
 
 local stats = nil
 local host = nil
+local split_currency_row
 
 local function safe(fn, ...)
     if type(fn) ~= "function" then return nil end
@@ -34,15 +35,36 @@ local function clean(s)
     return (tostring(s):gsub("%^.*$", ""))
 end
 
-local TIERS = {
-    { max = 10,   word = "Champion!", col = { 0.97, 0.97, 1.00 }, glow = 0.90, hue = true },
-    { max = 25,   word = "Mythic!",   col = { 1.00, 0.55, 0.15 }, glow = 0.60 },
-    { max = 50,   word = "Legendary", col = { 1.00, 0.84, 0.30 }, glow = 0.50 },
-    { max = 100,  word = "Epic",      col = { 0.72, 0.53, 0.98 }, glow = 0.42 },
-    { max = 250,  word = "Superior",  col = { 0.40, 0.68, 0.98 }, glow = 0.36 },
-    { max = 500,  word = "Fine",      col = { 0.45, 0.82, 0.35 }, glow = 0.30 },
-}
+local TROPHY_METAL = "bgmeter/assets/trophies/trophy_metal.dds"
+local TROPHY_GLASS = "bgmeter/assets/trophies/trophy_glass.dds"
+local TIERS = BGMeter.Standing.TIERS
 Panel.TIERS = TIERS
+Panel.TROPHY_METAL, Panel.TROPHY_GLASS = TROPHY_METAL, TROPHY_GLASS
+local LEADERBOARD_ICON = "EsoUI/Art/Journal/journal_tabIcon_leaderboard_up.dds"
+local VERTS = { VERTEX_POINTS_TOPLEFT or 1, VERTEX_POINTS_TOPRIGHT or 2, VERTEX_POINTS_BOTTOMLEFT or 4, VERTEX_POINTS_BOTTOMRIGHT or 8 }
+local VERT_HUE = { 0, 0.25, 0.75, 0.5 }
+local WHITE = { 1, 1, 1 }
+
+local function paint(ic, r, g, b)
+    ic:SetColor(r, g, b, 1)
+    if ic.SetVertexColors then
+        for i = 1, 4 do ic:SetVertexColors(VERTS[i], r, g, b, 1) end
+    end
+end
+
+function Panel.trophy_textures(tier)
+    return tier.metal_tex or TROPHY_METAL, tier.glass_tex or TROPHY_GLASS
+end
+
+function Panel.trophy_paint(metal, glass, tier)
+    local mt, gt = Panel.trophy_textures(tier)
+    metal:SetTexture(mt)
+    glass:SetTexture(gt)
+    local m = tier.metal or WHITE
+    paint(metal, m[1], m[2], m[3])
+    local gc = tier.glass or tier.col
+    paint(glass, gc[1], gc[2], gc[3])
+end
 
 local FX = { name = "BGMeterStandingFx", ms = 40, on = false, t0 = 0, tier = nil, rank = 0 }
 local BREATH_MS = 2600
@@ -71,15 +93,14 @@ local function hue_rgb(h)
 end
 
 local function trophy_tier(rank)
-    for _, tier in ipairs(TIERS) do
-        if rank <= tier.max then return tier end
-    end
-    return nil
+    return BGMeter.Standing.tier_of(rank)
 end
 
 function Panel.tier_of(rank) return trophy_tier(rank) end
 
 local SWEEP_REST = 0.62
+local SHEEN_ON = 0.30
+local SHEEN_LAG = 900
 
 local function shimmer(word, col, spot, u)
     local n = #word
@@ -134,7 +155,11 @@ function Panel.podium_stop()
     FX.tier = nil
     BGMeter.zenimax.events.unregister_update(FX.name)
     local st = stats and stats.stand
-    if st then glint_set(st.glint1, nil); glint_set(st.glint2, nil) end
+    if st then
+        glint_set(st.glint1, nil); glint_set(st.glint2, nil)
+        BGMeter.UI.cupfx.sheen_tick(st.sheen, nil)
+        st.ps = BGMeter.UI.cupfx.stop(st.ps)
+    end
 end
 
 local function fx_tick()
@@ -148,12 +173,20 @@ local function fx_tick()
         local u = (t % HUE_MS) / HUE_MS
         local r, g, b = hue_rgb(u)
         st.glow:SetColor(0.45 + 0.55 * r, 0.45 + 0.55 * g, 0.45 + 0.55 * b, tier.glow * breath)
-        local r2, g2, b2 = hue_rgb(u + 0.5)
-        st.icon:SetColor(0.80 + 0.20 * r2, 0.80 + 0.20 * g2, 0.80 + 0.20 * b2, 1)
+        if st.glass and st.glass.SetVertexColors then
+            for i = 1, 4 do
+                local r2, g2, b2 = hue_rgb(u + VERT_HUE[i])
+                st.glass:SetVertexColors(VERTS[i], 0.45 + 0.55 * r2, 0.45 + 0.55 * g2, 0.45 + 0.55 * b2, 1)
+            end
+        end
     else
         st.glow:SetColor(col[1], col[2], col[3], tier.glow * breath)
     end
     local g = (t % GLINT_MS) / GLINT_MS
+    if tier.sheen then
+        local gs = ((t + SHEEN_LAG) % GLINT_MS) / GLINT_MS
+        BGMeter.UI.cupfx.sheen_tick(st.sheen, (gs < SHEEN_ON) and (gs / SHEEN_ON) or nil)
+    end
     glint_set(st.glint1, (g < GLINT_ON) and (g / GLINT_ON) or nil, 1)
     local g2 = ((t + GLINT_MS / 2) % GLINT_MS) / GLINT_MS
     glint_set(st.glint2, (FX.rank == 1 and g2 < GLINT_ON) and (g2 / GLINT_ON) or nil, -1)
@@ -173,7 +206,18 @@ local function fx_tick()
     end
 end
 
+local function fx_particles(st, tier)
+    st.ps = BGMeter.UI.cupfx.stop(st.ps)
+    if tier.fx then
+        local c = tier.fxcol or tier.col
+        st.ps = BGMeter.UI.cupfx.particles(st.icon, tier.fx, c[1], c[2], c[3], 5)
+        if st.ps then st.ps:Start() end
+    end
+end
+
 local function fx_start(tier, rank)
+    local st = stats and stats.stand
+    if st and (FX.tier ~= tier or not FX.on) then fx_particles(st, tier) end
     FX.tier, FX.rank = tier, rank
     if FX.on then return end
     FX.on = true
@@ -191,7 +235,11 @@ local function ensure_fx_controls(st)
     st.glow:SetDimensions(64, 64)
     if st.glow.SetBlendMode then st.glow:SetBlendMode(TEX_BLEND_MODE_ADD) end
     if st.glow.SetDrawLevel then st.glow:SetDrawLevel(1) end
+    st.glass = P.icon(st.c, TROPHY_GLASS)
+    st.glass:SetAnchorFill(st.icon)
+    if st.glass.SetDrawLevel then st.glass:SetDrawLevel(1) end
     if st.icon.SetDrawLevel then st.icon:SetDrawLevel(2) end
+    st.sheen = BGMeter.UI.cupfx.sheen(st.c, st.icon, TROPHY_METAL, 3)
     st.glint1 = P.icon(st.c, GLINT)
     st.glint1:SetDimensions(14, 14)
     st.glint1:SetAnchor(CENTER, st.icon, TOPRIGHT, -8, 7)
@@ -302,17 +350,22 @@ local function refresh_standing()
     if demo then standing = { rank = demo, score = 123456 } end
     st.c:SetHidden(false)
     if st.link then st.link:SetHidden(false) end
-    if same(st, standing and standing.rank or 0, standing and standing.score or 0, demo or 0, Prefs.get("animate") and 1 or 0) then return end
+    if same(st, standing and standing.rank or 0, standing and standing.score or 0, demo or 0, Prefs.get("animate") and 1 or 0) then
+        if st.tier and not FX.on and Prefs.get("animate") then fx_start(st.tier, st.rankNum) end
+        return
+    end
+    st.tier, st.rankNum = nil, 0
     if standing and (standing.rank or 0) > 0 then
         local tier = trophy_tier(standing.rank)
+        st.tier, st.rankNum = tier, standing.rank
         if st.icon then
-            st.icon:SetTexture(tier and "EsoUI/Art/Inventory/inventory_tabIcon_trophy_up.dds"
-                or "EsoUI/Art/Journal/journal_tabIcon_leaderboard_up.dds")
             local tierTag = ""
             if tier then
                 ensure_fx_controls(st)
+                st.glass:SetHidden(false)
+                Panel.trophy_paint(st.icon, st.glass, tier)
+                if st.sheen then st.sheen:SetTexture(tier.metal_tex or TROPHY_METAL) end
                 local col = tier.col
-                st.icon:SetColor(col[1], col[2], col[3], 1)
                 st.glow:SetColor(col[1], col[2], col[3], tier.glow)
                 st.glow:SetHidden(false)
                 st.rankText = "#" .. F.commas(standing.rank)
@@ -322,8 +375,10 @@ local function refresh_standing()
                 tierTag = string.format(" · |c%s%s|r", F.hexc(col), tier.word)
             else
                 Panel.podium_stop()
-                st.icon:SetColor(1, 1, 1, 1)
+                st.icon:SetTexture(LEADERBOARD_ICON)
+                paint(st.icon, 1, 1, 1)
                 if st.glow then st.glow:SetHidden(true) end
+                if st.glass then st.glass:SetHidden(true) end
             end
             st.tierTag = tierTag
         end
@@ -333,9 +388,10 @@ local function refresh_standing()
     else
         Panel.podium_stop()
         if st.icon then
-            st.icon:SetTexture("EsoUI/Art/Journal/journal_tabIcon_leaderboard_up.dds")
-            st.icon:SetColor(1, 1, 1, 1)
+            st.icon:SetTexture(LEADERBOARD_ICON)
+            paint(st.icon, 1, 1, 1)
             if st.glow then st.glow:SetHidden(true) end
+            if st.glass then st.glass:SetHidden(true) end
         end
         set_text(st.label, "unranked")
         S.color(st.label, K.COLOR.text_dim)
@@ -344,6 +400,38 @@ local function refresh_standing()
         else
             st.tip = "Competitive standing\nplay a ranked battleground to appear"
         end
+    end
+end
+
+local SPLIT_W = 62
+local SPLIT_ICON = 20
+
+split_currency_row = function(on)
+    local tv, jm = stats.telvar, stats.jerall
+    if not (tv and jm) then return end
+    local right = -(host.inset_pad + 2)
+    local y = host.head_h + 30
+    tv.c:ClearAnchors()
+    jm.c:ClearAnchors()
+    if on then
+        tv.c:SetAnchor(TOPRIGHT, host.win, TOPRIGHT, right - SPLIT_W - 2, y)
+        tv.c:SetWidth(SPLIT_W)
+        jm.c:SetAnchor(TOPRIGHT, host.win, TOPRIGHT, right, y)
+        jm.c:SetWidth(SPLIT_W)
+        for _, st in ipairs({ tv, jm }) do
+            if st.icon then st.icon:SetDimensions(SPLIT_ICON, SPLIT_ICON) end
+            st.label:ClearAnchors()
+            st.label:SetAnchor(LEFT, st.c, LEFT, SPLIT_ICON + 3, 0)
+            st.label:SetAnchor(RIGHT, st.c, RIGHT, 0, 0)
+        end
+    else
+        tv.c:SetAnchor(TOPRIGHT, host.win, TOPRIGHT, right, y)
+        tv.c:SetWidth(126)
+        if tv.icon then tv.icon:SetDimensions(26, 26) end
+        tv.label:ClearAnchors()
+        tv.label:SetAnchor(LEFT, tv.c, LEFT, 32, 0)
+        tv.label:SetAnchor(RIGHT, tv.c, RIGHT, 0, 0)
+        jm.c:SetHidden(true)
     end
 end
 
@@ -359,14 +447,35 @@ local function refresh_currencies()
         st.tip = "Alliance Points"
     end
 
+    local JM = A.jerall_currency and A.jerall_currency() or nil
+    local split = (TELVAR ~= nil) and (JM ~= nil)
+    if stats._split ~= split then
+        stats._split = split
+        split_currency_row(split)
+    end
+
     st = stats.telvar
     if TELVAR then
         st.c:SetHidden(false)
         local tv = safe(A.get_currency, TELVAR, C.CURRENCY_LOCATION_CHARACTER) or 0
         if not same(st, tv) then
             if st.icon then st.icon:SetTexture(safe(A.get_currency_icon, TELVAR) or "") end
-            set_text(st.label, F.commas(tv))
-            st.tip = "Tel Var Stones"
+            set_text(st.label, split and F.abbrev(tv) or F.commas(tv))
+            st.tip = "Tel Var Stones\n" .. F.commas(tv)
+        end
+    else
+        st.c:SetHidden(true)
+    end
+
+    st = stats.jerall
+    if JM then
+        st.c:SetHidden(false)
+        local jm = safe(A.get_currency, JM, C.CURRENCY_LOCATION_CHARACTER) or 0
+        if not same(st, jm) then
+            if st.icon then st.icon:SetTexture(safe(A.get_currency_icon, JM) or "") end
+            set_text(st.label, split and F.abbrev(jm) or F.commas(jm))
+            local nm = safe(A.get_currency_name, JM, false, false)
+            st.tip = ((nm and nm ~= "") and nm or "Jerall Marks") .. "\n" .. F.commas(jm)
         end
     else
         st.c:SetHidden(true)
@@ -542,10 +651,18 @@ function Panel.build(pw, opts)
         stand   = make_stat(pw, 3, false, true, false, { tx = TX.board, fn = opts.open_leaderboard, tip = "View competitive leaderboard" }),
         ap      = make_stat(pw, 1, true, true),
         telvar  = make_stat(pw, 2, true, true),
+        jerall  = make_stat(pw, 2, true, true),
         session = make_stat(pw, 3, true, false),
-        balance = make_stat(pw, 4, true, true),
+        balance = make_stat(pw, opts.session_y and 3 or 4, true, true),
     }
-    for _, key in ipairs({ "ap", "telvar" }) do
+    stats.jerall.c:SetHidden(true)
+    if opts.session_y then
+        local c = stats.session.c
+        c:ClearAnchors()
+        c:SetAnchor(BOTTOMRIGHT, pw, BOTTOMRIGHT, -(host.inset_pad + 2), opts.session_y)
+        stats.session.label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    end
+    for _, key in ipairs({ "ap", "telvar", "jerall" }) do
         local lbl = stats[key].label
         if lbl.SetFont then lbl:SetFont(S.FONT.row) end
     end

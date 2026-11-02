@@ -520,8 +520,10 @@ local function on_slash(args)
         BGMeter.Standing.celebrate(tonumber(args:match("(%d+)")) or 87)
     elseif args == "trophy" then
         BGMeter.UI.menu.demo_trophy()
+    elseif args == "tierup" then
+        BGMeter.UI.tierup.demo()
     else
-        Log.say("dev: show, hide, toggle, last, demo, demo2, ap, dump, clear, debug, layers, mock <dm/dom/ck/ball/relic>, vet, vet claim, vetmock <below/r34/cap/h1/h2/h3/off>, perf, prof, prof reset, validate, validate reset, gcprobe [sec], sound [name], csa [rank], trophy, geo [on/off/dump/clear/mark]")
+        Log.say("dev: show, hide, toggle, last, demo, demo2, ap, dump, clear, debug, layers, mock <dm/dom/ck/ball/relic>, vet, vet claim, vetmock <below/r34/cap/h1/h2/h3/off>, perf, prof, prof reset, validate, validate reset, gcprobe [sec], sound [name], csa [rank], trophy, tierup, geo [on/off/dump/clear/mark]")
     end
 end
 

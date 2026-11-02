@@ -134,7 +134,7 @@ local function card_build()
     root:SetHidden(true)
     local bg = P.rect(root, { K.COLOR.bg[1], K.COLOR.bg[2], K.COLOR.bg[3], 0.96 })
     bg:SetAnchorFill(root)
-    P.frame(root):SetAnchorFill(root)
+    P.frame_thin(root):SetAnchorFill(root)
     local strip = P.rect(root, K.COLOR.accent)
     strip:SetAnchor(TOPLEFT, root, TOPLEFT, 4, 4)
     strip:SetAnchor(BOTTOMLEFT, root, BOTTOMLEFT, 4, -4)
@@ -194,6 +194,43 @@ local function mk_button(parent, tx, size, onclick, tipText)
     local b = P.button(parent, tx.n, tx.p, tx.o)
     b._tex_normal = tx.n
     b:SetDimensions(size, size)
+    b:SetHandler("OnClicked", function() onclick() end)
+    if tipText then
+        b:SetHandler("OnMouseEnter", function() if U.card_show then U.card_show(b, BOTTOM, tipText) end end)
+        b:SetHandler("OnMouseExit", function() if U.card_hide then U.card_hide() end end)
+    end
+    return b
+end
+
+local function mk_plate_button(parent, tx, size, onclick, tipText)
+    local plate = P.icon(parent, P.BUTTON_SQ_TEX.up)
+    plate:SetDimensions(size, size)
+    if plate.SetDrawLevel then plate:SetDrawLevel(1) end
+    local b = P.button(plate, tx.n, tx.p, tx.o)
+    b._tex_normal = tx.n
+    local gs = math.floor(size * 0.62 + 0.5)
+    b:SetDimensions(gs, gs)
+    b:SetAnchor(CENTER, plate, CENTER, 0, 0)
+    if b.SetDrawLevel then b:SetDrawLevel(2) end
+    b:SetHandler("OnClicked", function() onclick() end)
+    b:SetHandler("OnMouseEnter", function()
+        plate:SetTexture(P.BUTTON_SQ_TEX.over)
+        if tipText and U.card_show then U.card_show(plate, BOTTOM, tipText) end
+    end)
+    b:SetHandler("OnMouseExit", function()
+        plate:SetTexture(P.BUTTON_SQ_TEX.up)
+        if U.card_hide then U.card_hide() end
+    end)
+    b:SetHandler("OnMouseDown", function() plate:SetTexture(P.BUTTON_SQ_TEX.down) end)
+    b:SetHandler("OnMouseUp", function() plate:SetTexture(P.BUTTON_SQ_TEX.over) end)
+    plate.btn = b
+    return plate
+end
+
+local function mk_text_button(parent, label, w, h, onclick, tipText, silver)
+    local b = P.gold_button(parent, label)
+    b:SetDimensions(w, h)
+    if silver then P.button_text_silver(b, S.FONT.small) end
     b:SetHandler("OnClicked", function() onclick() end)
     if tipText then
         b:SetHandler("OnMouseEnter", function() if U.card_show then U.card_show(b, BOTTOM, tipText) end end)
@@ -449,6 +486,8 @@ U.ICON_SORTDN = ICON_SORTDN
 U.set_text = set_text
 U.make_clickable = make_clickable
 U.mk_button = mk_button
+U.mk_plate_button = mk_plate_button
+U.mk_text_button = mk_text_button
 U.set_count = set_count
 U.set_bar = set_bar
 U.pop = pop

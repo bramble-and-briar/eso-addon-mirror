@@ -1,5 +1,5 @@
 Tamriel Collections - Archive Furnishing Plans
-Version: 0.1.0
+Version: 0.1.2
 Author: MajesticMinxi
 
 Purpose: preserve the working family base before adding collection features.
@@ -12,3 +12,6 @@ Collection databases, progress, search and map sources are not included yet.
 
 Keep the shared layout and independent-module behaviour in future versions.
 Only the module registration/content file should need collection logic.
+
+Emergency rollback: restores the original placeholder only. Furnishing-plan
+catalogue code and PlansData.lua are not loaded by this version.

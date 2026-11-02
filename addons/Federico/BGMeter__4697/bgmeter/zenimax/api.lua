@@ -62,6 +62,31 @@ A.get_cumulative_medal_count = GetBattlegroundCumulativeNumEarnedMedalsById
 
 A.get_currency       = GetCurrencyAmount
 A.get_currency_icon  = GetCurrencyKeyboardIcon
+A.get_currency_name  = GetCurrencyName
+
+local JERALL_GLOBALS = { "CURT_JERALL_MARKS", "CURT_JERALL_PASS_MARKS", "CURT_JERALL_MARK", "CURT_VENGEANCE_MARKS" }
+local jerall_type = nil
+A.jerall_currency = function()
+    if jerall_type ~= nil then return jerall_type or nil end
+    for _, g in ipairs(JERALL_GLOBALS) do
+        local v = rawget(_G, g)
+        if type(v) == "number" then jerall_type = v return v end
+    end
+    if type(GetCurrencyName) == "function" then
+        local top = rawget(_G, "CURT_MAX_VALUE")
+        if type(top) ~= "number" then top = 64 end
+        for ct = 1, top do
+            local ok, name = pcall(GetCurrencyName, ct, false, false)
+            if ok and type(name) == "string" and name:lower():find("jerall", 1, true) then
+                jerall_type = ct
+                return ct
+            end
+        end
+    end
+    jerall_type = false
+    return nil
+end
+A.reset_jerall_currency = function() jerall_type = nil end
 A.get_alliance_points = function()
     return GetCurrencyAmount(C.CURT_ALLIANCE_POINTS, C.CURRENCY_LOCATION_CHARACTER)
 end

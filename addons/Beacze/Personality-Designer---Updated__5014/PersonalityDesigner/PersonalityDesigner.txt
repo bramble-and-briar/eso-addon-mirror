@@ -1,12 +1,12 @@
 ## APIVersion: 101051
-## Title: Personality Designer - Updated
+## Title: Personality Designer
 ## Description: Design your own personality when idling with emotes and mementos.
-## Version: 3.0.0
-## AddOnVersion: 000300
+## Version: 3.0.1
+## AddOnVersion: 300010
 ## Author: Atronyx, Alianym, Beacze, Tes96
 ##
 ## SavedVariables: PersonalityAccountData PersonalityCharacterData
-## DependsOn: LibAddonMenu-2.0
+## DependsOn: LibAddonMenu-2.0>=43
 
 bindings.xml
 lang/en.lua

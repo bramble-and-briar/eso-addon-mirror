@@ -1,0 +1,10 @@
+## Title: |cFFD700Miracle's BetterScoreboard|r
+## APIVersion: 101051
+## Version: 4.5-U51-18Fit
+## AddOnVersion: 11
+## Description: Enhanced PvP scoreboard featuring 18-player support, damage dealt, healing, damage received, and K/D statistics.
+## Author: |c0DC1CF@M0R_Gaming|r (original); @MlRACLE (updates)
+## SavedVariables: MiraclesBetterScoreboardVars
+
+MiraclesBetterScoreboard.lua
+MiraclesBetterScoreboard.xml

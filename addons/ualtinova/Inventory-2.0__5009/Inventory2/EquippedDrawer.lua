@@ -990,8 +990,11 @@ end
 -- character: equipping, unequipping, swapping, and an Armory loadout being called up, which is
 -- a dozen of them at once and the reason for the wait above.
 EVENT_MANAGER:RegisterForEvent(SETTLE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnWornSlotUpdate)
+-- DEFAULT only: durability/charge ticking on a worn piece fires this same event under its own
+-- reason (see Repair.lua) and has nothing to redraw here -- filtered out before it reaches Lua.
 EVENT_MANAGER:AddFilterForEvent(SETTLE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-    REGISTER_FILTER_BAG_ID, BAG_WORN)
+    REGISTER_FILTER_BAG_ID, BAG_WORN,
+    REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
 -- The page's boxes, made one at a time a while after logging in, so the first opening of the
 -- page only has to hang them on it. One box per step, a step every WARM_STEP_MS, none in

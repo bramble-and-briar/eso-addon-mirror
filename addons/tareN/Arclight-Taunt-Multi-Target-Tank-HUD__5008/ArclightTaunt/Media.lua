@@ -1,4 +1,4 @@
--- Arclight Taunt 1.0.3 | Media module
+-- Arclight Taunt 1.1.0 | Media module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local MEDIA_BAR_FLAT = A.MEDIA_BAR_FLAT
@@ -6,6 +6,13 @@ local MEDIA_BG_NONE = A.MEDIA_BG_NONE
 local MEDIA_FONT_DEFAULT = A.MEDIA_FONT_DEFAULT
 local MEDIA_TIMER_INHERIT = A.MEDIA_TIMER_INHERIT
 local SetColor = A.SetColor
+local appliedFonts = setmetatable({}, {__mode="k"})
+local function SetStableFont(control, descriptor)
+    if appliedFonts[control] ~= descriptor then
+        control:SetFont(descriptor)
+        appliedFonts[control] = descriptor
+    end
+end
 
 local function RegisteredMediaPath(mediaType, key)
     if not A.LMP or not key or type(key) ~= "string" then return nil end
@@ -31,12 +38,15 @@ local function FontFor(baseSize, medium, timer)
     -- Keep the saved media key; custom numeric timer fonts remain available.
     if A.language == "ru" and not timer then font = nil end
     if font then font = font:match("^[^|]+") end
-    return (font or fallback) .. "|" .. tostring(size) .. "|soft-shadow-thin"
+    return (font or fallback) .. "|" .. tostring(size)
+        .. "|soft-shadow-thin"
 end
 
 local function SelectedBarPath()
     -- The old untextured fill stays available as an explicit alternative.
-    if not A.saved or A.saved.barKey == MEDIA_BAR_FLAT then return nil end
+    if not A.saved then return nil end
+    if A.saved.highContrast then return A.MEDIA_TEXTURE_SIGNATURE end
+    if A.saved.barKey == MEDIA_BAR_FLAT then return nil end
     return RegisteredMediaPath("statusbar", A.saved.barKey)
         or RegisteredMediaPath("statusbar", A.MEDIA_BAR_DEFAULT)
 end
@@ -71,23 +81,25 @@ end
 -- physical pixels depending on the row's sub-pixel position.  Choose an
 -- integer *physical* height, and opt into ESO's texture pixel rounding.
 -- Both the background track and the colour fill must use the same height.
-local function PixelAlignedBarHeight()
+local function PixelAlignedBarHeight(scale)
     local globalScale = type(GetUIGlobalScale) == "function" and GetUIGlobalScale() or 1
     if type(globalScale) ~= "number" or globalScale ~= globalScale
         or globalScale <= 0 or globalScale == math.huge or globalScale > 10 then
         globalScale = 1
     end
-    local combinedScale = (A.renderScale or A.saved.scale) * globalScale
-    local pixelHeight = math.max(1, math.floor(A.saved.barHeight * combinedScale + 0.5))
-    return pixelHeight / combinedScale
+    local combinedScale = (scale or A.renderScale or A.saved.scale) * globalScale
+    local height = A.saved.highContrast and math.max(5, A.saved.barHeight) or A.saved.barHeight
+    local pixelHeight = math.max(1, math.floor(height * combinedScale + 0.5))
+    return pixelHeight / combinedScale, 1 / combinedScale
 end
 
 local function ApplyMedia()
     if not A.root then return end
-    A.heading:SetFont(FontFor(13, false))
-    A.counter:SetFont(FontFor(13, false))
-    A.more:SetFont(FontFor(12, true))
-    A.moveHint:SetFont(FontFor(12, true))
+    local highContrast = A.saved.highContrast
+    SetStableFont(A.more, FontFor(12, true))
+    SetStableFont(A.moveHint, FontFor(12, true))
+    SetColor(A.footer, highContrast and A.C.highRow or A.C.header)
+    SetColor(A.more, highContrast and A.C.white or A.C.muted)
     for kind, alert in pairs(A.bossAlerts) do
         if alert.title then
             alert.title:SetFont(FontFor(alert.titleSize, false))
@@ -96,43 +108,74 @@ local function ApplyMedia()
         end
     end
     local barPath = SelectedBarPath()
-    local bgPath = (A.saved.backgroundKey ~= MEDIA_BG_NONE)
+    local bgPath = not highContrast and (A.saved.backgroundKey ~= MEDIA_BG_NONE)
         and (RegisteredMediaPath("background", A.saved.backgroundKey)
             or RegisteredMediaPath("background", A.MEDIA_BG_OBSIDIAN)) or nil
-    local barHeight = PixelAlignedBarHeight()
+    local barHeight, pixelUnit = PixelAlignedBarHeight()
+    A.focusPadding = math.max(highContrast and 3 or 2, pixelUnit)
+    A.capHeight = math.max(2, pixelUnit)
+    for _, cap in ipairs(A.columnCaps or {}) do
+        cap.root:SetHeight(A.capHeight)
+        for _, rail in ipairs(cap.rails) do rail:SetHeight(pixelUnit) end
+    end
     -- Font selections do not change per enemy. Resolve them once instead of
     -- querying LibMediaProvider for every row and every label.
-    local nameFont = FontFor(14, false)
+    local nameFont = FontFor(14)
     local timerFont = FontFor(15, false, true)
-    local badgeFont = FontFor(12, true)
     local fullMode = A.saved.barDisplay == "full"
+    local texturedTrack = A.saved.texturedTrack and not highContrast
     for _, row in ipairs(A.rows) do
-        row.name:SetFont(nameFont)
-        row.time:SetFont(timerFont)
-        row.badge:SetFont(badgeFont)
-        row.track:SetHeight(barHeight)
-        row.trackTexture:SetHeight(barHeight)
-        A.SetHidden(row.track, fullMode or A.saved.texturedTrack)
-        A.SetHidden(row.trackTexture, fullMode or not A.saved.texturedTrack)
+        SetStableFont(row.name, nameFont)
+        SetStableFont(row.time, timerFont)
+        row.name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        row.time:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        row.barHeight = barHeight
+        row.barRegion:SetHeight(barHeight)
+        row.contrastEdge:SetHeight(pixelUnit)
+        row.contrastHeight = pixelUnit
+        -- A one-UI-unit edge can round away at small combined UI/HUD scales.
+        row.focusThickness = math.max(highContrast and 2 or 1, pixelUnit)
+        A.SetHidden(row.barRegion, fullMode)
+        A.SetHidden(row.track, fullMode or texturedTrack)
+        A.SetHidden(row.trackTexture, fullMode or not texturedTrack)
+        SetColor(row.track, highContrast and A.C.highTrack or A.C.track)
         if bgPath and row.backgroundTexturePath ~= bgPath then
             row.bgTexture:SetTexture(bgPath)
             row.backgroundTexturePath = bgPath
         end
         A.SetHidden(row.bgTexture, bgPath == nil)
+        A.SetHidden(row.surface, not highContrast)
         -- The actual urgency tint stays on the solid base. Subtle translucent
         -- texture detail does not change taunt severity or obscure the labels.
         row.bgTexture:SetColor(1, 1, 1, A.saved.opacity)
-        row.fill:SetHeight(barHeight)
-        row.mediaFill:SetHeight(barHeight)
         -- A second, optional textured control avoids a texture-clearing bug
         -- when switching back to the original solid-colour bar.
         if barPath and row.mediaTexturePath ~= barPath then
             row.mediaFill:SetTexture(barPath)
             row.mediaTexturePath = barPath
         end
+        -- Assign dimensions after textures too. Native file-size changes must
+        -- never turn a narrow progress strip into a full-height row.
+        row.track:SetHeight(barHeight)
+        row.trackTexture:SetHeight(barHeight)
+        row.fill:SetHeight(barHeight)
+        row.mediaFill:SetHeight(barHeight)
         row.useMediaFill = barPath ~= nil
-        A.SetHidden(row.fill, fullMode or row.useMediaFill)
+        A.SetHidden(row.fill, fullMode or (row.useMediaFill and not highContrast))
         A.SetHidden(row.mediaFill, fullMode or not row.useMediaFill)
+    end
+    -- Measure native font metrics only when media/settings change, never per tick.
+    -- Numeric timers may use a different font family from enemy names.
+    local first = A.rows[1]
+    if first then
+        A.minRowContentHeight = math.ceil(math.max(first.name:GetFontHeight(), first.time:GetFontHeight()))
+        if A.saved.rowHeightExtra == nil then
+            local baseline = fullMode and A.ROW_HEIGHT or A.COMPACT_ROW_HEIGHT
+            local legacy = A.FiniteBoundedNumber(A.saved.rowHeight, 100, 80, 160)
+            local requested = math.floor(baseline * legacy / 100 + 0.5)
+            A.saved.rowHeightExtra = A.Clamp(requested - A.MinimumRowHeight(fullMode), 0, 40)
+        end
+        A.saved.rowHeight = nil -- migration only; no inactive percentage setting
     end
 end
 
@@ -140,6 +183,7 @@ end
 A.RegisteredMediaPath = RegisteredMediaPath
 A.FontFor = FontFor
 A.SelectedBarPath = SelectedBarPath
+A.PixelAlignedBarHeight = PixelAlignedBarHeight
 A.BuildMediaChoices = BuildMediaChoices
 A.ChoicePresent = ChoicePresent
 A.ApplyMedia = ApplyMedia

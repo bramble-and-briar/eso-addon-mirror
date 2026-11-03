@@ -139,7 +139,7 @@ function ADDON:DumpDiagnostics()
         "deathPrompt=" .. tostring(runtime.deathPromptHookInstalled),
         "actionButtons=" .. tostring(runtime.actionButtonHooksInstalled),
         "dialogs=" .. tostring(runtime.dialogHooksInstalled),
-        "worldMap=" .. tostring(runtime.worldMapHooksInstalled),
+        "worldMap=" .. tostring(runtime.hybridWorldMapHookInstalled or runtime.hybridMapCategoryHookInstalled),
         "mapScene=" .. tostring(runtime.hybridWorldMapHookInstalled),
         "mapCategory=" .. tostring(runtime.hybridMapCategoryHookInstalled),
         "utilityWheel=" .. tostring(runtime.utilityWheelHooksInstalled))

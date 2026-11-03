@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/saggy3214/FishAlert---Fishing-Assistant__5018",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "saggy3214",
+  "canonical_id": "esoui:5018",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5018",
+  "deleted": false,
+  "directories": [
+    "FishAlert"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5018/",
+  "fingerprint": "7457040fcfec7c2bdf5c744a5fd1af5162424fd9e893b5c4e364370738fe8dd4",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18284.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18285.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18286.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18287.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18288.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5018",
+  "source_url": "https://www.esoui.com/downloads/info5018-FishAlert-FishingAssistant.html",
+  "stats": {
+    "downloads": 10,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "FishAlert - Fishing Assistant",
+  "updated_at": 1793666225000,
+  "version": "1.5.0"
+}

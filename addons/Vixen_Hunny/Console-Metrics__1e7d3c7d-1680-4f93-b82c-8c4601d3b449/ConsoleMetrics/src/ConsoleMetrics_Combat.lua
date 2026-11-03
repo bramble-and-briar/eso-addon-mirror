@@ -1,64 +1,55 @@
-﻿function ConsoleMetrics:GetFightDuration(nowMs)
-    if not self.fight or not self.fight.startMs then
-        return 0
-    end
+-- ConsoleMetrics_Combat.lua
+-- Combat event processing: per-ability tracking, targets, effects, resource
+-- sampling, protection inference and the optional live trace output.
 
-    local endMs = nowMs
-    if self.fight.endMs then
-        endMs = self.fight.endMs
-    end
+local CM = ConsoleMetrics
+local Util = ConsoleMetrics.Util
+local COMBAT_COLOR_HEX = Util.COMBAT_COLOR_HEX
+local Clamp = Util.Clamp
+local ColorShort = Util.ColorShort
+local EFFECT_STATE_EVENT_THROTTLE_MS = Util.EFFECT_STATE_EVENT_THROTTLE_MS
+local FormatAbilityIdentity = Util.FormatAbilityIdentity
+local GetResourcePowerTypes = Util.GetResourcePowerTypes
+local IsCriticalResult = Util.IsCriticalResult
+local IsDamageResult = Util.IsDamageResult
+local IsEffectFadedResult = Util.IsEffectFadedResult
+local IsEffectGainedResult = Util.IsEffectGainedResult
+local IsHealResult = Util.IsHealResult
+local NumberText = Util.NumberText
+local OBSERVED_ABILITY_LOG_MAX = Util.OBSERVED_ABILITY_LOG_MAX
+local PING_DIP_DELTA_MS = Util.PING_DIP_DELTA_MS
+local PING_HIGH_DELAY_MS = Util.PING_HIGH_DELAY_MS
+local PING_SPIKE_DELTA_MS = Util.PING_SPIKE_DELTA_MS
+local RESISTANCE_SCALE = Util.RESISTANCE_SCALE
+local RESOURCE_SAMPLE_INTERVAL_MS = Util.RESOURCE_SAMPLE_INTERVAL_MS
+local RESOURCE_SAMPLE_MAX_POINTS = Util.RESOURCE_SAMPLE_MAX_POINTS
+local SafeAbilityId = Util.SafeAbilityId
+local SafeGetCurrentPowerFromList = Util.SafeGetCurrentPowerFromList
+local SafeGetLatencyMs = Util.SafeGetLatencyMs
+local SafeGetPowerPctFromList = Util.SafeGetPowerPctFromList
+local ShortNumber = Util.ShortNumber
+local THROUGHPUT_WINDOW_INTERVAL_MS = Util.THROUGHPUT_WINDOW_INTERVAL_MS
+local UnitName = Util.UnitName
 
-    return math.max((endMs - self.fight.startMs) / 1000, 0)
-end
+local Sets = ConsoleMetrics.Sets
+local ClassifyLikelySetProc = Sets.ClassifyLikelySetProc
 
-function ConsoleMetrics:ShouldPushCombatScrollLine(nowMs)
-    if not self.inCombat then
-        return true
-    end
+local Fight = ConsoleMetrics.Fight
+local AcquireTrackedEffect = Fight.AcquireTrackedEffect
+local AddThroughputWindowValueByTime = Fight.AddThroughputWindowValueByTime
+local AddTopMoment = Fight.AddTopMoment
+local EstimateTargetResistance = Fight.EstimateTargetResistance
+local GetFightDurationSeconds = Fight.GetFightDurationSeconds
+local InferProtectionFromDr = Fight.InferProtectionFromDr
+local NewFight = Fight.NewFight
+local NewThroughputWindowTracker = Fight.NewThroughputWindowTracker
+local StartTrackedEffect = Fight.StartTrackedEffect
+local StopTrackedEffect = Fight.StopTrackedEffect
 
-    local timestamp = nowMs or GetFrameTimeMilliseconds()
-    local last = self.lastScrollLineAtMs or 0
-    if timestamp < (last + COMBAT_SCROLL_EVENT_THROTTLE_MS) then
-        return false
-    end
 
-    self.lastScrollLineAtMs = timestamp
-    return true
-end
-
-function ConsoleMetrics:PushScrollLine(text, color)
-    local list = self.scrollEntries
-    list[#list + 1] = {
-        text = text,
-        color = color,
-        timeMs = GetFrameTimeMilliseconds(),
-    }
-
-    local startIndex = tonumber(list._cmStart) or 1
-    local scrollLimit = math.max(1, tonumber(self.saved and self.saved.scrollSize) or 8)
-    local logicalCount = (#list - startIndex) + 1
-    if logicalCount > scrollLimit then
-        startIndex = startIndex + (logicalCount - scrollLimit)
-    end
-    list._cmStart = startIndex
-
-    -- Compact infrequently to avoid per-event front shifts while keeping memory bounded.
-    if startIndex > 64 then
-        local dst = 1
-        for i = startIndex, #list do
-            list[dst] = list[i]
-            dst = dst + 1
-        end
-        for i = dst, #list do
-            list[i] = nil
-        end
-        list._cmStart = 1
-    end
-
-    -- Rendering is handled by the throttled OnUpdate refresh path.
-    self.lastScrollUpdateMs = 0
-end
-
+---------------------------------------------------------------------------
+-- Trace output
+---------------------------------------------------------------------------
 function ConsoleMetrics:NormalizeIoTraceMode(mode)
     local normalized = string.lower(tostring(mode or "summary"))
     if normalized == "in" or normalized == "incoming" then
@@ -93,12 +84,12 @@ function ConsoleMetrics:ResolveIoTraceTargetFilter()
     end
 
     if mode == "reticle" then
-        if type(GetUnitName) ~= "function" then
+        -- An empty reticle name must disable matching, not match "Unknown".
+        local rawName = type(GetUnitName) == "function" and GetUnitName("reticleover") or nil
+        if not rawName or rawName == "" then
             return "", "reticle"
         end
-        local reticleName = UnitName(GetUnitName("reticleover"))
-        local normalized = self:NormalizeIoTraceName(reticleName)
-        return normalized, "reticle"
+        return self:NormalizeIoTraceName(rawName), "reticle"
     end
 
     return self:NormalizeIoTraceName(self.saved.ioTraceTargetName), "name"
@@ -254,23 +245,12 @@ function ConsoleMetrics:TraceIoLine(nowMs, text)
     return true
 end
 
-function ConsoleMetrics:GetTraceFpsText()
-    local getFramerate = type(_G) == "table" and _G.GetFramerate or nil
-    if type(getFramerate) ~= "function" then
-        return "n/a"
-    end
-
-    local fps = tonumber(getFramerate())
-    if not fps then
-        return "n/a"
-    end
-
-    return string.format("%.1f", fps)
-end
 
 function ConsoleMetrics:GetTraceFpsValue()
-    local fpsText = self:GetTraceFpsText()
-    return tonumber(fpsText)
+    if type(GetFramerate) ~= "function" then
+        return nil
+    end
+    return tonumber(GetFramerate())
 end
 
 function ConsoleMetrics:GetTraceFpsDisplayForValue(fps)
@@ -500,6 +480,11 @@ function ConsoleMetrics:EmitIoTraceHeartbeat(nowMs)
     self:FlushIoTraceBuffer(nowMs, true)
 end
 
+---------------------------------------------------------------------------
+-- Player-owned heal procs
+---------------------------------------------------------------------------
+-- Some set/skill heals are attributed to other units by the game even though
+-- the player owns them; this lets them count as outgoing healing.
 local PLAYER_OWNED_HEAL_ALIASES = {
     "leeching strikes",
     "battalion defender",
@@ -507,7 +492,7 @@ local PLAYER_OWNED_HEAL_ALIASES = {
     "scourge harvester",
 }
 
-function ConsoleMetrics:IsLikelyPlayerOwnedHealProc(abilityId, abilityName, resolvedSourceName)
+function ConsoleMetrics:IsLikelyPlayerOwnedHealProc(abilityId, abilityName)
     local safeName = string.lower(tostring(abilityName or ""))
     if safeName == "" then
         return false
@@ -520,119 +505,103 @@ function ConsoleMetrics:IsLikelyPlayerOwnedHealProc(abilityId, abilityName, reso
     end
 
     local setMatch = self:MatchTrackedSet(abilityId, abilityName)
-    if setMatch and string.find(string.lower(setMatch.label or ""), "battalion", 1, true) ~= nil then
-        return true
-    end
-
-    if resolvedSourceName and resolvedSourceName == self.playerName then
-        return true
-    end
-
-    return false
+    return setMatch ~= nil and string.find(string.lower(setMatch.label or ""), "battalion", 1, true) ~= nil
 end
 
-function ConsoleMetrics:TrackSkill(abilityId, abilityName, damageValue, healValue, isCrit)
-    local skillId = abilityId or 0
-    local info = self.fight.skillMap[skillId]
-    if not info then
-        info = {
-            abilityId = skillId,
-            name = abilityName ~= "" and abilityName or "Unknown Skill",
-            damage = 0,
-            heal = 0,
-            hits = 0,
-            crits = 0,
-            maxHit  = 0,
-            maxHeal = 0,
-        }
-        self.fight.skillMap[skillId] = info
-    end
+---------------------------------------------------------------------------
+-- Per-ability stat tracking
+---------------------------------------------------------------------------
+-- Every per-ability map (skills, DoTs, HoTs, incoming skills, set procs) uses
+-- the same entry shape so the dialogs can render them with one code path.
 
-    info.damage = info.damage + damageValue
-    info.heal   = info.heal   + healValue
-    info.hits   = info.hits   + 1
-    if isCrit then
-        info.crits = info.crits + 1
+local function SafeName(abilityName, fallback)
+    if type(abilityName) == "string" and abilityName ~= "" then
+        return abilityName
     end
-    if damageValue > info.maxHit  then info.maxHit  = damageValue end
-    if healValue   > info.maxHeal then info.maxHeal = healValue   end
-    self.skillListDirty = true
+    return fallback
 end
 
-function ConsoleMetrics:TrackDotTick(abilityId, abilityName, damageValue, isCrit)
-    local skillId = abilityId or 0
-    local info = self.fight.dotMap[skillId]
+local function AcquireStatEntry(map, key, name, abilityId, extraFields)
+    local info = map[key]
     if not info then
         info = {
-            abilityId = skillId,
-            name = (abilityName and abilityName ~= "") and abilityName or "Unknown DoT",
+            abilityId = abilityId or 0,
+            name = name,
             damage = 0,
             heal = 0,
             hits = 0,
             crits = 0,
             maxHit = 0,
-        }
-        self.fight.dotMap[skillId] = info
-    end
-    info.damage = info.damage + damageValue
-    info.hits = info.hits + 1
-    if isCrit then
-        info.crits = info.crits + 1
-    end
-    if damageValue > info.maxHit then info.maxHit = damageValue end
-end
-
-function ConsoleMetrics:TrackHotTick(abilityId, abilityName, healValue, isCrit)
-    local skillId = abilityId or 0
-    local info = self.fight.hotMap[skillId]
-    if not info then
-        info = {
-            abilityId = skillId,
-            name = (abilityName and abilityName ~= "") and abilityName or "Unknown HoT",
-            damage = 0,
-            heal = 0,
-            hits = 0,
-            crits = 0,
             maxHeal = 0,
         }
-        self.fight.hotMap[skillId] = info
+        if extraFields then
+            for k, v in pairs(extraFields) do
+                info[k] = v
+            end
+        end
+        map[key] = info
     end
+    return info
+end
+
+local function AccumulateStat(info, damageValue, healValue, isCrit)
+    damageValue = damageValue or 0
+    healValue = healValue or 0
+    info.damage = info.damage + damageValue
     info.heal = info.heal + healValue
     info.hits = info.hits + 1
     if isCrit then
         info.crits = info.crits + 1
     end
-    if healValue > info.maxHeal then info.maxHeal = healValue end
+    if damageValue > (info.maxHit or 0) then
+        info.maxHit = damageValue
+    end
+    if healValue > (info.maxHeal or 0) then
+        info.maxHeal = healValue
+    end
 end
 
+local function BackfillEntry(info, abilityId, sourceName, effectName)
+    local safeId = SafeAbilityId(abilityId)
+    if (not info.abilityId or info.abilityId == 0) and safeId > 0 then
+        info.abilityId = safeId
+    end
+    if (not info.source or info.source == "Unknown") and sourceName and sourceName ~= "" then
+        info.source = sourceName
+    end
+    if effectName and effectName ~= "" and (not info.effectName or info.effectName == "") then
+        info.effectName = effectName
+    end
+end
+
+function ConsoleMetrics:TrackSkill(abilityId, abilityName, damageValue, healValue, isCrit)
+    local skillId = abilityId or 0
+    local info = AcquireStatEntry(self.fight.skillMap, skillId, SafeName(abilityName, "Unknown Skill"), skillId)
+    AccumulateStat(info, damageValue, healValue, isCrit)
+end
+
+function ConsoleMetrics:TrackDotTick(abilityId, abilityName, damageValue, isCrit)
+    local skillId = abilityId or 0
+    local info = AcquireStatEntry(self.fight.dotMap, skillId, SafeName(abilityName, "Unknown DoT"), skillId)
+    AccumulateStat(info, damageValue, 0, isCrit)
+end
+
+function ConsoleMetrics:TrackHotTick(abilityId, abilityName, healValue, isCrit)
+    local skillId = abilityId or 0
+    local info = AcquireStatEntry(self.fight.hotMap, skillId, SafeName(abilityName, "Unknown HoT"), skillId)
+    AccumulateStat(info, 0, healValue, isCrit)
+end
+
+-- sourceName must already be resolved through UnitName.
 function ConsoleMetrics:TrackIncomingSkill(abilityId, abilityName, damageValue, isCrit, sourceName)
     if not self.fight or damageValue <= 0 then
         return
     end
 
     local skillId = abilityId or 0
-    local info = self.fight.incomingSkillMap[skillId]
-    if not info then
-        info = {
-            abilityId = skillId,
-            name = (abilityName and abilityName ~= "") and abilityName or "Unknown Enemy Skill",
-            damage = 0,
-            heal = 0,
-            hits = 0,
-            crits = 0,
-            source = UnitName(sourceName),
-        }
-        self.fight.incomingSkillMap[skillId] = info
-    end
-
-    info.damage = info.damage + damageValue
-    info.hits = info.hits + 1
-    if isCrit then
-        info.crits = info.crits + 1
-    end
-    if not info.source or info.source == "Unknown" then
-        info.source = UnitName(sourceName)
-    end
+    local info = AcquireStatEntry(self.fight.incomingSkillMap, skillId, SafeName(abilityName, "Unknown Enemy Skill"), skillId, { source = sourceName })
+    AccumulateStat(info, damageValue, 0, isCrit)
+    BackfillEntry(info, abilityId, sourceName)
 end
 
 function ConsoleMetrics:TrackIncomingSetDamage(abilityId, abilityName, damageValue, isCrit, sourceName)
@@ -645,37 +614,14 @@ function ConsoleMetrics:TrackIncomingSetDamage(abilityId, abilityName, damageVal
         return
     end
 
-    local key = string.lower(setMatch.label)
-    local info = self.fight.incomingSetDamageMap[key]
-    if not info then
-        info = {
-            abilityId = SafeAbilityId(abilityId),
-            name = setMatch.label,
-            damage = 0,
-            heal = 0,
-            hits = 0,
-            crits = 0,
-            scene = setMatch.scene,
-            effectName = abilityName,
-            source = UnitName(sourceName),
-        }
-        self.fight.incomingSetDamageMap[key] = info
-    end
-
-    info.damage = info.damage + damageValue
-    info.hits = info.hits + 1
-    if isCrit then
-        info.crits = info.crits + 1
-    end
-    if (not info.abilityId or info.abilityId == 0) and SafeAbilityId(abilityId) > 0 then
-        info.abilityId = SafeAbilityId(abilityId)
-    end
-    if (not info.effectName or info.effectName == "") and abilityName and abilityName ~= "" then
-        info.effectName = abilityName
-    end
-    if not info.source or info.source == "Unknown" then
-        info.source = UnitName(sourceName)
-    end
+    local key = string.lower(setMatch.label or "")
+    local info = AcquireStatEntry(self.fight.incomingSetDamageMap, key, setMatch.label, SafeAbilityId(abilityId), {
+        scene = setMatch.scene,
+        effectName = abilityName,
+        source = sourceName,
+    })
+    AccumulateStat(info, damageValue, 0, isCrit)
+    BackfillEntry(info, abilityId, sourceName, abilityName)
 end
 
 function ConsoleMetrics:TrackIncomingLikelySetProc(abilityId, abilityName, damageValue, isCrit, sourceName)
@@ -693,39 +639,361 @@ function ConsoleMetrics:TrackIncomingLikelySetProc(abilityId, abilityName, damag
     end
 
     local key = string.lower(abilityName or "unknown")
-    local info = self.fight.incomingLikelySetProcMap[key]
-    if not info then
-        info = {
-            abilityId = SafeAbilityId(abilityId),
-            name = (abilityName and abilityName ~= "") and abilityName or "Unknown Likely Set Proc",
-            damage = 0,
-            heal = 0,
-            hits = 0,
-            crits = 0,
-            source = UnitName(sourceName),
-            heuristicReason = reason,
-            heuristicScore = score,
-        }
-        self.fight.incomingLikelySetProcMap[key] = info
-    end
-
-    info.damage = info.damage + damageValue
-    info.hits = info.hits + 1
-    if isCrit then
-        info.crits = info.crits + 1
-    end
-    if (not info.abilityId or info.abilityId == 0) and SafeAbilityId(abilityId) > 0 then
-        info.abilityId = SafeAbilityId(abilityId)
-    end
-    if not info.source or info.source == "Unknown" then
-        info.source = UnitName(sourceName)
-    end
+    local info = AcquireStatEntry(self.fight.incomingLikelySetProcMap, key, SafeName(abilityName, "Unknown Likely Set Proc"), SafeAbilityId(abilityId), {
+        source = sourceName,
+        heuristicReason = reason,
+        heuristicScore = score,
+    })
+    AccumulateStat(info, damageValue, 0, isCrit)
+    BackfillEntry(info, abilityId, sourceName)
     if (not info.heuristicReason or info.heuristicReason == "") and reason and reason ~= "" then
         info.heuristicReason = reason
     end
     if score and score > (info.heuristicScore or 0) then
         info.heuristicScore = score
     end
+end
+
+---------------------------------------------------------------------------
+-- Targets, moments, effects, protection inference, resource sampling
+---------------------------------------------------------------------------
+function ConsoleMetrics:AcquireTargetInfo(targetName)
+    local key = targetName
+    if not key or key == "" then
+        key = "Unknown"
+    end
+
+    local info = self.fight.targetMap[key]
+    if not info then
+        info = {
+            name = key,
+            damage = 0,
+            effective = 0,
+            overflow = 0,
+            blocked = 0,
+            shielded = 0,
+            hits = 0,
+        }
+        self.fight.targetMap[key] = info
+    end
+
+    return info
+end
+
+function ConsoleMetrics:SampleFightResources(nowMs, forceSample)
+    if not self.fight or not self.fight.resourceSamples then
+        return
+    end
+
+    if self.saved
+        and self.saved.ioTraceEnabled
+        and self.saved.ioTraceTargetOnlyProcessing
+        and self.saved.ioTraceSkipResourceSampling
+        and self.saved.ioTraceTargetMode ~= "off"
+    then
+        local graceMs = tonumber(self.saved.ioTraceTargetGraceMs) or 1500
+        graceMs = math.max(250, math.min(5000, math.floor(graceMs + 0.5)))
+        local lastMatchMs = self.lastTraceTargetMatchMs or 0
+        if not forceSample and nowMs > (lastMatchMs + graceMs) then
+            if self.ioTraceState then
+                self.ioTraceState.skippedSampleByFocus = (self.ioTraceState.skippedSampleByFocus or 0) + 1
+            end
+            return
+        end
+    end
+
+    local resourceSamples = self.fight.resourceSamples
+    if not forceSample and resourceSamples.lastSampleMs and nowMs < (resourceSamples.lastSampleMs + RESOURCE_SAMPLE_INTERVAL_MS) then
+        return
+    end
+
+    local resourceTypes = GetResourcePowerTypes()
+    local sampleLimit = tonumber(RESOURCE_SAMPLE_MAX_POINTS) or 1200
+
+    local function PushSample(sampleList, value)
+        sampleList[#sampleList + 1] = value
+        local startIndex = tonumber(sampleList._cmStart) or 1
+        local sampleCount = (#sampleList - startIndex) + 1
+        if sampleCount > sampleLimit then
+            startIndex = startIndex + (sampleCount - sampleLimit)
+            sampleList._cmStart = startIndex
+        else
+            sampleList._cmStart = startIndex
+        end
+
+        -- Compact infrequently so we avoid O(n) front-shifts on every sample push.
+        if startIndex > 256 then
+            local dst = 1
+            for i = startIndex, #sampleList do
+                sampleList[dst] = sampleList[i]
+                dst = dst + 1
+            end
+            for i = dst, #sampleList do
+                sampleList[i] = nil
+            end
+            sampleList._cmStart = 1
+        end
+    end
+
+    local healthPct = SafeGetPowerPctFromList(resourceTypes.health)
+    local magickaPct = SafeGetPowerPctFromList(resourceTypes.magicka)
+    local staminaPct = SafeGetPowerPctFromList(resourceTypes.stamina)
+    local sampledAny = false
+
+    if healthPct then
+        PushSample(resourceSamples.healthPct, healthPct)
+        sampledAny = true
+    end
+    if magickaPct then
+        PushSample(resourceSamples.magickaPct, magickaPct)
+        sampledAny = true
+    end
+    if staminaPct then
+        PushSample(resourceSamples.staminaPct, staminaPct)
+        sampledAny = true
+    end
+
+    local pingMs = SafeGetLatencyMs()
+    if pingMs ~= nil then
+        local pingSamples = resourceSamples.pingMs or {}
+        resourceSamples.pingMs = pingSamples
+        PushSample(pingSamples, pingMs)
+        if resourceSamples.minPingMs == nil or pingMs < resourceSamples.minPingMs then
+            resourceSamples.minPingMs = pingMs
+        end
+        if resourceSamples.maxPingMs == nil or pingMs > resourceSamples.maxPingMs then
+            resourceSamples.maxPingMs = pingMs
+        end
+
+        local lastPing = resourceSamples.lastPingMs
+        if lastPing ~= nil then
+            local delta = pingMs - lastPing
+            if delta <= -PING_DIP_DELTA_MS then
+                resourceSamples.pingDipCount = (resourceSamples.pingDipCount or 0) + 1
+            elseif delta >= PING_SPIKE_DELTA_MS then
+                resourceSamples.pingSpikeCount = (resourceSamples.pingSpikeCount or 0) + 1
+            end
+        end
+
+        if pingMs >= PING_HIGH_DELAY_MS then
+            resourceSamples.highDelaySamples = (resourceSamples.highDelaySamples or 0) + 1
+        end
+
+        resourceSamples.lastPingMs = pingMs
+        sampledAny = true
+    end
+
+    if sampledAny then
+        resourceSamples.lastSampleMs = nowMs
+        self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
+    end
+
+    -- Track absolute resource deltas: positive = regen, negative = drain.
+    local hpCurr   = SafeGetCurrentPowerFromList(resourceTypes.health)
+    local magCurr  = SafeGetCurrentPowerFromList(resourceTypes.magicka)
+    local stamCurr = SafeGetCurrentPowerFromList(resourceTypes.stamina)
+    local ultCurr  = SafeGetCurrentPowerFromList(resourceTypes.ultimate)
+
+    local function AccumulateDelta(lastKey, regenKey, drainKey, current)
+        if current == nil then return end
+        local last = resourceSamples[lastKey]
+        if last ~= nil then
+            local delta = current - last
+            if delta > 0 then
+                resourceSamples[regenKey] = (resourceSamples[regenKey] or 0) + delta
+            elseif delta < 0 then
+                resourceSamples[drainKey] = (resourceSamples[drainKey] or 0) - delta
+            end
+        end
+        resourceSamples[lastKey] = current
+    end
+
+    AccumulateDelta("lastAbsHealth",   "totalHealthRegen",   "totalHealthDrain",   hpCurr)
+    AccumulateDelta("lastAbsMagicka",  "totalMagickaRegen",  "totalMagickaDrain",  magCurr)
+    AccumulateDelta("lastAbsStamina",  "totalStaminaRegen",  "totalStaminaDrain",  stamCurr)
+    AccumulateDelta("lastAbsUltimate", "totalUltimateGen",   "totalUltimateDrain", ultCurr)
+
+    if sampledAny and self.TraceResourceSample then
+        self:TraceResourceSample(nowMs, hpCurr, magCurr, stamCurr, ultCurr, pingMs, forceSample)
+    end
+end
+
+function ConsoleMetrics:RecordTopHealingMoment(abilityId, abilityName, targetName, effectiveHeal, overflowHeal, isCrit)
+    if not self.fight then
+        return
+    end
+
+    local totalHeal = (effectiveHeal or 0) + (overflowHeal or 0)
+    if totalHeal <= 0 then
+        return
+    end
+
+    local critTag = isCrit and " [CRIT]" or ""
+    local healHex = isCrit and COMBAT_COLOR_HEX.healCrit or COMBAT_COLOR_HEX.heal
+    local overflowTag = (overflowHeal or 0) > 0 and string.format(" (+%s ovh)", ColorShort(overflowHeal, COMBAT_COLOR_HEX.overflow)) or ""
+    AddTopMoment(self.fight.topHealingMoments, {
+        value = totalHeal,
+        abilityId = SafeAbilityId(abilityId),
+        abilityName = abilityName,
+        effectName = abilityName,
+        label = string.format("+%s  %s%s", ColorShort(totalHeal, healHex), FormatAbilityIdentity(abilityName, abilityId), critTag),
+        tooltip = string.format("Healed %s for %s%s | Ability: %s", targetName, NumberText(effectiveHeal or 0), overflowTag, FormatAbilityIdentity(abilityName, abilityId)),
+    })
+end
+
+function ConsoleMetrics:RecordTopMitigationMoment(labelPrefix, actorName, reason, amount, abilityId, abilityName)
+    if not self.fight or amount <= 0 then
+        return
+    end
+
+    AddTopMoment(self.fight.topMitigationMoments, {
+        value = amount,
+        abilityId = SafeAbilityId(abilityId),
+        abilityName = abilityName,
+        effectName = abilityName,
+        label = string.format("%s%s  %s (%s)", labelPrefix, ColorShort(amount, COMBAT_COLOR_HEX.mitigation), actorName, reason),
+        tooltip = string.format("%s via %s", reason, FormatAbilityIdentity(abilityName, abilityId)),
+    })
+end
+
+function ConsoleMetrics:TrackMajorMinorAndSets(nowMs, result, abilityId, abilityName, sourceIsPlayer, targetIsPlayer, didDamage, didHeal, totalValue)
+    if not self.fight or not abilityName or abilityName == "" then
+        return
+    end
+
+    local touchesPlayer = sourceIsPlayer or targetIsPlayer
+    if not touchesPlayer then
+        return
+    end
+
+    local gained = IsEffectGainedResult(result)
+    local faded = IsEffectFadedResult(result)
+    local lowerName = string.lower(abilityName)
+
+    if gained or faded then
+        local allEffectTrack = AcquireTrackedEffect(self.fight.allEffects, lowerName, abilityName, "Effect", abilityId, abilityName)
+        if gained then
+            StartTrackedEffect(allEffectTrack, nowMs)
+        else
+            StopTrackedEffect(allEffectTrack, nowMs)
+        end
+
+        -- Buff/debuff separation: effect on player = buff; player applies to enemy = debuff.
+        if targetIsPlayer then
+            local buffTrack = AcquireTrackedEffect(self.fight.buffEffects, lowerName, abilityName, "Buff", abilityId, abilityName)
+            if gained then StartTrackedEffect(buffTrack, nowMs) else StopTrackedEffect(buffTrack, nowMs) end
+        elseif sourceIsPlayer then
+            local debuffTrack = AcquireTrackedEffect(self.fight.debuffEffects, lowerName, abilityName, "Debuff", abilityId, abilityName)
+            if gained then StartTrackedEffect(debuffTrack, nowMs) else StopTrackedEffect(debuffTrack, nowMs) end
+        end
+    end
+
+    -- Use pre-lowered lowerName directly; avoids a second string.lower inside IsMajorMinorEffectName.
+    local isMajorEffect = string.find(lowerName, "major ", 1, true) == 1
+    if isMajorEffect or string.find(lowerName, "minor ", 1, true) == 1 then
+        local category = isMajorEffect and "Major" or "Minor"
+        local majorMinorTrack = AcquireTrackedEffect(self.fight.majorMinorEffects, lowerName, abilityName, category, abilityId, abilityName)
+
+        if gained then
+            StartTrackedEffect(majorMinorTrack, nowMs)
+        elseif faded then
+            StopTrackedEffect(majorMinorTrack, nowMs)
+        end
+
+        if didDamage or didHeal then
+            majorMinorTrack.procs = (majorMinorTrack.procs or 0) + 1
+            majorMinorTrack.totalValue = (majorMinorTrack.totalValue or 0) + (totalValue or 0)
+        end
+    end
+
+    local setMatch = self:MatchTrackedSet(abilityId, abilityName)
+    if setMatch then
+        local setKey = string.lower(setMatch.label or "")
+        local setTrack = AcquireTrackedEffect(self.fight.setEffects, setKey, setMatch.label, setMatch.scene, abilityId, abilityName)
+
+        if gained then
+            StartTrackedEffect(setTrack, nowMs)
+        elseif faded then
+            StopTrackedEffect(setTrack, nowMs)
+        end
+
+        if didDamage or didHeal then
+            setTrack.procs = (setTrack.procs or 0) + 1
+            setTrack.totalValue = (setTrack.totalValue or 0) + (totalValue or 0)
+        end
+    end
+end
+
+function ConsoleMetrics:UpdateProtectionInference(nowMs)
+    if not self.fight or not self.fight.protectionInfo then
+        return
+    end
+
+    local topTarget = nil
+    local topDamage = -1
+    for _, target in pairs(self.fight.targetMap or {}) do
+        local damage = tonumber(target.damage) or 0
+        if damage > topDamage then
+            topDamage = damage
+            topTarget = target
+        end
+    end
+
+    local estimatedResistance = nil
+    if topTarget then
+        estimatedResistance = EstimateTargetResistance(topTarget)
+    end
+
+    local hasData = estimatedResistance ~= nil
+    local resistance = estimatedResistance or 0
+    local drPct = hasData and Clamp((resistance / RESISTANCE_SCALE) * 100, 0, 50) or 0
+
+    local info = self.fight.protectionInfo
+    local alpha = Clamp(tonumber(self.saved and self.saved.drSampleAlpha) or self.defaults.drSampleAlpha, 0.05, 0.85)
+    if (info.samples or 0) <= 0 then
+        info.drEma = drPct
+    else
+        info.drEma = (alpha * drPct) + ((1 - alpha) * (info.drEma or drPct))
+    end
+
+    local inferredLabel, inferredKey, confidence = InferProtectionFromDr(info.drEma or drPct, hasData)
+
+    local previousState = info.currentState or "unknown"
+    local elapsed = 0
+    if info.lastSampleMs and nowMs > info.lastSampleMs then
+        elapsed = nowMs - info.lastSampleMs
+    end
+    if elapsed > 0 then
+        info.stateMs[previousState] = (info.stateMs[previousState] or 0) + elapsed
+    end
+
+    info.currentState = inferredKey
+    info.currentLabel = inferredLabel
+    info.currentResistance = resistance
+    info.currentDrPct = drPct
+    info.confidence = confidence
+    info.lastSampleMs = nowMs
+    info.samples = (info.samples or 0) + 1
+    self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
+end
+
+---------------------------------------------------------------------------
+-- Fight lifecycle
+---------------------------------------------------------------------------
+-- Peak DPS/HPS are the highest running averages observed during the fight.
+function ConsoleMetrics:UpdateFightPeaks(nowMs)
+    local fight = self.fight
+    if not fight then
+        return
+    end
+
+    local duration = GetFightDurationSeconds(fight, nowMs or GetFrameTimeMilliseconds())
+    if duration <= 0 then
+        return
+    end
+
+    fight.peakDps = math.max(fight.peakDps or 0, (fight.totalDamage or 0) / duration)
+    fight.peakHps = math.max(fight.peakHps or 0, (fight.totalHeal or 0) / duration)
 end
 
 function ConsoleMetrics:StartFight()
@@ -735,28 +1003,20 @@ function ConsoleMetrics:StartFight()
 
     local nowMs = GetFrameTimeMilliseconds()
     self.inCombat = true
-    self.hideAtMs = nil
-    self.viewFightIndex = 0
-
-    if self.saved.autoClearOnNextFight then
-        self.scrollEntries = {}
-    end
-
     self.fight = NewFight(nowMs)
-    self.skillListDirty = true
-    self.lastScrollLineAtMs = 0
+    self.fightSnapshotCache = nil
     self.lastEffectStateEventMs = 0
     self.lastTraceTargetMatchMs = nil
-    self:SampleFightResources(nowMs, true)
-    self.lastDebugPrintAtMs = nil
+    self.lastProtectionUpdateMs = 0
+    self.lastMetricsUpdateMs = 0
 
-    if self.ui.root then
-        self.ui.root:SetHidden(true)
+    -- Auto clear: jump the dialog back to the live view when a new fight begins.
+    if not self.saved or self.saved.autoClearOnNextFight ~= false then
+        self.viewFightIndex = 0
     end
 
-    self:PushScrollLine("Combat started", COMBAT_TEXT_COLORS.start)
-    d("ConsoleMetrics: Combat Started with " .. (self.saved and self.saved.ioTraceMode or "summary") .. " trace mode")
-    self:UpdateMetrics()
+    self:SampleFightResources(nowMs, true)
+    self:DebugPrint(string.format("Combat started (trace mode: %s)", tostring(self.saved and self.saved.ioTraceMode or "summary")))
 end
 
 function ConsoleMetrics:StopFight()
@@ -767,35 +1027,22 @@ function ConsoleMetrics:StopFight()
     local nowMs = GetFrameTimeMilliseconds()
     self:SampleFightResources(nowMs, true)
     self:UpdateProtectionInference(nowMs)
+    self:UpdateFightPeaks(nowMs)
     self.inCombat = false
     self.fight.endMs = nowMs
-    self.hideAtMs = nowMs + POST_COMBAT_VISIBLE_MS
+    self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
 
-    local duration = self:GetFightDuration(nowMs)
-    local dps = 0
-    if duration > 0 then
-        dps = self.fight.totalDamage / duration
-    end
-
-    self:PushScrollLine(
-        string.format(
-            "Fight: %ss, %s DPS, %s HPS",
-            string.format("%.1f", duration),
-            ShortNumber(dps),
-            ShortNumber(duration > 0 and (self.fight.totalHeal / duration) or 0)
-        ),
-        COMBAT_TEXT_COLORS.summary
-    )
+    local duration = GetFightDurationSeconds(self.fight, nowMs)
+    local dps = duration > 0 and (self.fight.totalDamage / duration) or 0
+    local hps = duration > 0 and (self.fight.totalHeal / duration) or 0
+    self:DebugPrint(string.format("Fight ended: %.1fs, %s DPS, %s HPS", duration, ShortNumber(dps), ShortNumber(hps)))
 
     self:AddCurrentFightToHistory()
     if self:IsFightViewDialogShowing() then
         self:ArmDialogAutoHide()
-        if self.ui.fightViewDialog then
-            self:PopulateFightViewDialog(self.ui.fightViewDialog)
-            self.lastDialogRefreshKey = nil
-        end
+        self:RefreshFightViewDialog()
+        self.lastDialogRefreshKey = nil
     end
-    self:UpdateMetrics()
 end
 
 function ConsoleMetrics:OnCombatState(_, inCombat)
@@ -806,6 +1053,9 @@ function ConsoleMetrics:OnCombatState(_, inCombat)
     end
 end
 
+---------------------------------------------------------------------------
+-- Combat event handler
+---------------------------------------------------------------------------
 function ConsoleMetrics:OnCombatEvent(
     _,
     result,
@@ -852,8 +1102,6 @@ function ConsoleMetrics:OnCombatEvent(
     local didDamage = IsDamageResult(result)
     local didHeal = IsHealResult(result)
 
-    -- Mark event-driven state mutation for snapshot cache invalidation.
-    self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
 
     -- Weapon swapping can produce bursts of effect-only events; cap processing frequency.
     if isEffectStateChange and not didDamage and not didHeal then
@@ -885,6 +1133,9 @@ function ConsoleMetrics:OnCombatEvent(
         return
     end
 
+    -- Mark event-driven state mutation for snapshot cache invalidation (only for events we keep).
+    self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
+
     local sourceIsPlayer = sourceType == COMBAT_UNIT_TYPE_PLAYER
         or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
         or resolvedSourceName == self.playerName
@@ -892,7 +1143,7 @@ function ConsoleMetrics:OnCombatEvent(
 
     local isCrit = IsCriticalResult(result)
     local safeAbilityName = (abilityName and abilityName ~= "") and abilityName or "Unknown Skill"
-    local playerOwnedHealProc = didHeal and not sourceIsPlayer and self:IsLikelyPlayerOwnedHealProc(abilityId, safeAbilityName, resolvedSourceName)
+    local playerOwnedHealProc = didHeal and not sourceIsPlayer and self:IsLikelyPlayerOwnedHealProc(abilityId, safeAbilityName)
     local isOutgoingEvent = false
     local isIncomingEvent = false
 
@@ -920,9 +1171,8 @@ function ConsoleMetrics:OnCombatEvent(
             end
         end
     end
-    local allowScrollLine = self:ShouldPushCombatScrollLine(nowMs)
 
-    -- Accumulate every unique ability name -> ID pair seen this session for /cm dumpsets discovery.
+    -- Accumulate every unique ability name->ID pair seen this session for /cm dumpsets discovery.
     local safeIdForLog = SafeAbilityId(abilityId)
     if safeIdForLog > 0 and safeAbilityName ~= "Unknown Skill" and not self.observedAbilityLog[safeIdForLog] then
         local maxObserved = tonumber(OBSERVED_ABILITY_LOG_MAX) or 2048
@@ -1082,24 +1332,6 @@ function ConsoleMetrics:OnCombatEvent(
                 )
             end
         end
-
-        if didDamage then
-            if allowScrollLine then
-                local overflowText = overflowValue > 0 and string.format(" (+%s ovf)", ShortNumber(overflowValue)) or ""
-                self:PushScrollLine(
-                    string.format("%s%s  %s", ShortNumber(damageValue), overflowText, FormatAbilityIdentity(safeAbilityName, abilityId)),
-                    isCrit and COMBAT_TEXT_COLORS.damageCrit or COMBAT_TEXT_COLORS.damage
-                )
-            end
-        elseif didHeal then
-            if allowScrollLine then
-                local overflowText = overflowHealValue > 0 and string.format(" (+%s ovh)", ShortNumber(overflowHealValue)) or ""
-                self:PushScrollLine(
-                    string.format("+%s%s  %s", ShortNumber(healValue), overflowText, FormatAbilityIdentity(safeAbilityName, abilityId)),
-                    isCrit and COMBAT_TEXT_COLORS.healCrit or COMBAT_TEXT_COLORS.heal
-                )
-            end
-        end
     end
 
     if targetIsPlayer and didDamage and not sourceIsPlayer then
@@ -1129,9 +1361,9 @@ function ConsoleMetrics:OnCombatEvent(
         self.fight.totalIncomingOverflowDamage = self.fight.totalIncomingOverflowDamage + overflowValue
 
         local incomingDamageValue = effectiveValue + overflowValue
-        self:TrackIncomingSkill(abilityId, safeAbilityName, incomingDamageValue, isCrit, sourceName)
-        self:TrackIncomingSetDamage(abilityId, safeAbilityName, incomingDamageValue, isCrit, sourceName)
-        self:TrackIncomingLikelySetProc(abilityId, safeAbilityName, incomingDamageValue, isCrit, sourceName)
+        self:TrackIncomingSkill(abilityId, safeAbilityName, incomingDamageValue, isCrit, resolvedSourceName)
+        self:TrackIncomingSetDamage(abilityId, safeAbilityName, incomingDamageValue, isCrit, resolvedSourceName)
+        self:TrackIncomingLikelySetProc(abilityId, safeAbilityName, incomingDamageValue, isCrit, resolvedSourceName)
         if result == ACTION_RESULT_BLOCKED_DAMAGE then
             self.fight.totalIncomingBlockedDamage = self.fight.totalIncomingBlockedDamage + incomingDamageValue
             self:RecordTopMitigationMoment(
@@ -1164,14 +1396,6 @@ function ConsoleMetrics:OnCombatEvent(
                 safeAbilityName
             )
         end
-
-        if allowScrollLine then
-            local overflowText = overflowValue > 0 and string.format(" (+%s ovf)", ShortNumber(overflowValue)) or ""
-            self:PushScrollLine(
-                string.format("-%s%s  from %s via %s", ShortNumber(effectiveValue), overflowText, resolvedSourceName, FormatAbilityIdentity(safeAbilityName, abilityId)),
-                COMBAT_TEXT_COLORS.taken
-            )
-        end
     end
 
     if traceState and traceTargetMatch and not isIncomingEvent and not isOutgoingEvent then
@@ -1193,181 +1417,3 @@ function ConsoleMetrics:OnCombatEvent(
         )
     end
 end
-
-function ConsoleMetrics:RefreshScroll()
-    if not self.ui.scrollLabels then
-        return
-    end
-
-    local nowMs = GetFrameTimeMilliseconds()
-    local list = self.scrollEntries or {}
-    local startIndex = tonumber(list._cmStart) or 1
-
-    for index, label in ipairs(self.ui.scrollLabels) do
-        local sourceIndex = #list - index + 1
-        local entry = sourceIndex >= startIndex and list[sourceIndex] or nil
-
-        if entry then
-            local age = (nowMs - entry.timeMs) / 1000
-            local alpha = Clamp(1 - (age / 6), 0.25, 1)
-            local cachedText = label._cmLastText
-            if cachedText ~= entry.text then
-                label:SetText(entry.text)
-                label._cmLastText = entry.text
-            end
-            label:SetColor(entry.color[1], entry.color[2], entry.color[3], alpha)
-            label:SetHidden(false)
-        else
-            label:SetHidden(true)
-        end
-    end
-end
-
-function ConsoleMetrics:UpdateTopSkills()
-    if not self.ui.skillLabels or not self.fight then
-        return
-    end
-
-    if self.skillListDirty or not self.lastSortedSkillList or #self.lastSortedSkillList == 0 then
-        self.lastSortedSkillList = SortSkillEntries(self.fight.skillMap)
-        self.skillListDirty = false
-    end
-
-    local skillList = self.lastSortedSkillList
-
-    for i, label in ipairs(self.ui.skillLabels) do
-        local info = skillList[i]
-        if info then
-            local critPct = 0
-            if info.hits > 0 then
-                critPct = (info.crits / info.hits) * 100
-            end
-
-            local nextText = string.format(
-                "%d. %s [id:%d]  %s  (%.0f%%)",
-                i,
-                info.name,
-                info.abilityId or 0,
-                ShortNumber(info.damage),
-                critPct
-            )
-
-            if label._cmLastText ~= nextText then
-                label:SetText(nextText)
-                label._cmLastText = nextText
-            end
-            label:SetHidden(false)
-        else
-            local emptyText = string.format("%d. -", i)
-            if label._cmLastText ~= emptyText then
-                label:SetText(emptyText)
-                label._cmLastText = emptyText
-            end
-            label:SetHidden(false)
-        end
-    end
-end
-
--- Metric-cache helpers (module-level so UpdateMetrics does not allocate closures per call).
-local function SetTextIfChanged(metricCache, cacheKey, control, text)
-    if metricCache[cacheKey] ~= text then
-        control:SetText(text)
-        metricCache[cacheKey] = text
-    end
-end
-
-local function SetBarRangeIfChanged(metricCache, cacheKey, bar, minValue, maxValue)
-    local cached = metricCache[cacheKey]
-    if not cached or cached.min ~= minValue or cached.max ~= maxValue then
-        bar:SetMinMax(minValue, maxValue)
-        metricCache[cacheKey] = { min = minValue, max = maxValue }
-    end
-end
-
-local function SetBarValueIfChanged(metricCache, cacheKey, bar, value, epsilon)
-    local cached = metricCache[cacheKey]
-    epsilon = epsilon or 0.1
-    if cached == nil or math.abs(cached - value) >= epsilon then
-        bar:SetValue(value)
-        metricCache[cacheKey] = value
-    end
-end
-
-function ConsoleMetrics:UpdateMetrics()
-    if not self.fight then
-        return
-    end
-
-    local nowMs = GetFrameTimeMilliseconds()
-    local duration = self:GetFightDuration(nowMs)
-    local dps = duration > 0 and (self.fight.totalDamage / duration) or 0
-    local hps = duration > 0 and (self.fight.totalHeal / duration) or 0
-    local critPct = self.fight.hits > 0 and (self.fight.crits / self.fight.hits) * 100 or 0
-
-    self.fight.peakDps = math.max(self.fight.peakDps, dps)
-    self.fight.peakHps = math.max(self.fight.peakHps, hps)
-
-    if not self.ui.rows then
-        return
-    end
-
-    local totalMax = math.max(self.fight.totalDamage, self.fight.totalHeal, self.fight.totalTaken, 1)
-    local rateMax = math.max(dps, hps, 1)
-    local metricCache = self.uiMetricCache or {}
-    self.uiMetricCache = metricCache
-    local rows = self.ui.rows
-
-    SetTextIfChanged(metricCache, "durationText", self.ui.durationLabel, string.format("Encounter  %.1fs", duration))
-
-    SetTextIfChanged(metricCache, "dpsText",    rows.dps.value,    ShortNumber(dps))
-    SetTextIfChanged(metricCache, "hpsText",    rows.hps.value,    ShortNumber(hps))
-    SetTextIfChanged(metricCache, "damageText", rows.damage.value, NumberText(self.fight.totalDamage))
-    SetTextIfChanged(metricCache, "healText",   rows.heal.value,   NumberText(self.fight.totalHeal))
-    SetTextIfChanged(metricCache, "takenText",  rows.taken.value,  NumberText(self.fight.totalTaken))
-    SetTextIfChanged(metricCache, "critText",   rows.crit.value,   string.format("%.1f%%", critPct))
-
-    SetBarRangeIfChanged(metricCache, "dpsRange",    rows.dps.bar,    0, rateMax)
-    SetBarRangeIfChanged(metricCache, "hpsRange",    rows.hps.bar,    0, rateMax)
-    SetBarRangeIfChanged(metricCache, "damageRange", rows.damage.bar, 0, totalMax)
-    SetBarRangeIfChanged(metricCache, "healRange",   rows.heal.bar,   0, totalMax)
-    SetBarRangeIfChanged(metricCache, "takenRange",  rows.taken.bar,  0, totalMax)
-    SetBarRangeIfChanged(metricCache, "critRange",   rows.crit.bar,   0, 100)
-
-    SetBarValueIfChanged(metricCache, "dpsValue",    rows.dps.bar,    dps, 0.05)
-    SetBarValueIfChanged(metricCache, "hpsValue",    rows.hps.bar,    hps, 0.05)
-    SetBarValueIfChanged(metricCache, "damageValue", rows.damage.bar, self.fight.totalDamage, 1)
-    SetBarValueIfChanged(metricCache, "healValue",   rows.heal.bar,   self.fight.totalHeal, 1)
-    SetBarValueIfChanged(metricCache, "takenValue",  rows.taken.bar,  self.fight.totalTaken, 1)
-    SetBarValueIfChanged(metricCache, "critValue",   rows.crit.bar,   critPct, 0.05)
-
-    self:UpdateTopSkills()
-    self:UpdateTopHealing()
-end
-
-function ConsoleMetrics:UpdateTopHealing()
-    if not self.ui.healLabels or not self.fight then
-        return
-    end
-
-    local healList = self.fight.topHealingMoments or {}
-
-    for i, label in ipairs(self.ui.healLabels) do
-        local moment = healList[i]
-        if moment then
-            local nextText = string.format("%d. %s", i, moment.label)
-            if label._cmLastText ~= nextText then
-                label:SetText(nextText)
-                label._cmLastText = nextText
-            end
-            label:SetHidden(false)
-        else
-            local emptyText = string.format("%d. -", i)
-            if label._cmLastText ~= emptyText then
-                label:SetText(emptyText)
-                label._cmLastText = emptyText
-            end
-            label:SetHidden(false)
-        end
-    end
-end
-

@@ -1,6 +1,12 @@
 InventoryGrouping = InventoryGrouping or {}
 local IG = InventoryGrouping
 
+-- Cached once, not re-read from _G on every call (ESOUI admin review, 2026-11-02: every bare
+-- `LibSets.xxx` sends Lua hunting through the whole global table for the entry). Safe to read
+-- straight off the global here, at file load time: LibSets is a hard ## DependsOn, so its own
+-- file has already run and set the global by the time any of ours does.
+local libSets = LibSets
+
 -- Builds a lookup set from global constant names, skipping any that don't exist in this client version.
 local function ConstSet(...)
     local set = {}
@@ -277,7 +283,7 @@ end
 -- bag says which category is going to be emptied without the drawer having to be opened.
 local ACTION_TAGS = {
     SELL = { which = "sell", ask = "ASK TO SELL", auto = "AUTO SELL" },
-    DECON = { which = "decon", ask = "ASK TO DECONSTRUCT", auto = "AUTO DECONSTRUCT" },
+    DECON = { which = "decon", ask = "ASK TO DECONS", auto = "AUTO DECONS" },
     STOLEN = { which = "fence", ask = "ASK TO SELL", auto = "AUTO SELL" },
 }
 function IG.ActionHeaderTag(groupKey)
@@ -535,49 +541,67 @@ local function PvpPlace(label)
     return nil
 end
 
--- Maps a set to a group key and an optional sub-group label.
-local function SetGroupFromLibSets(setId)
-    if LibSets.IsMythicSet(setId) then return "MYTHIC" end
-    if LibSets.IsClassSet(setId) then return "CLASS" end
+-- One handler per LIBSETS_SETTYPE_*, dispatched through SET_TYPE_HANDLERS below instead of an
+-- if/elseif chain (ESOUI admin review, 2026-11-02) -- same branches, same order of precedence,
+-- nothing about where a set ends up changes. Each handler returns exactly what its old branch
+-- returned: a group key alone, or a group key plus a sub-group label.
+local function HandleDungeonSet(setId)
+    local dlcId = libSets.GetDLCId(setId)
+    if dlcId == nil or dlcId == DLC_BASE_GAME then
+        return PveSet("DUNGEON", "Base Game Dungeon Sets")
+    end
+    return PveSet("DLCDUNGEON", "DLC Dungeon Sets")
+end
 
-    local setType = LibSets.GetSetType(setId)
+local function HandleTrialSet() return PveSet("TRIAL", "Trial Sets") end
+local function HandleArenaSet() return PveSet("ARENA", "Arena Sets") end
+
+-- Never put back with the rest: where a set drops in the world says nothing about how you came
+-- by it, so it is a group of its own on either side of the switch.
+local function HandleOverlandSet() return "OVERLAND" end
+
+local function HandleCraftedSet() return "CRAFTABLE" end
+local function HandleMonsterSet() return "MONSTER" end
+local function HandleCyrodiilSet() return "PVP", PvpPlace("Cyrodiil") end
+
+-- The reward sets the daily random dungeon and the Imperial City both hand out. They were read
+-- as dungeon sets, and since the DLC they belong to is not the base game they stood under DLC
+-- DUNGEON SETS -- beside sets from dungeons they have nothing to do with, and against what their
+-- own drop location says, which is the City.
+local function HandleImperialCitySet() return "PVP", PvpPlace("Imperial City") end
+local function HandleBattlegroundSet() return "PVP", PvpPlace("Battleground") end
+local function HandleMythicSet() return "MYTHIC" end
+local function HandleClassSet() return "CLASS" end
+
+local SET_TYPE_HANDLERS = {
+    [LIBSETS_SETTYPE_DUNGEON] = HandleDungeonSet,
+    [LIBSETS_SETTYPE_TRIAL] = HandleTrialSet,
+    [LIBSETS_SETTYPE_ARENA] = HandleArenaSet,
+    [LIBSETS_SETTYPE_OVERLAND] = HandleOverlandSet,
+    [LIBSETS_SETTYPE_CRAFTED] = HandleCraftedSet,
+    [LIBSETS_SETTYPE_MONSTER] = HandleMonsterSet,
+    [LIBSETS_SETTYPE_IMPERIALCITY_MONSTER] = HandleMonsterSet,
+    [LIBSETS_SETTYPE_CYRODIIL_MONSTER] = HandleMonsterSet,
+    [LIBSETS_SETTYPE_CYRODIIL] = HandleCyrodiilSet,
+    [LIBSETS_SETTYPE_IMPERIALCITY] = HandleImperialCitySet,
+    [LIBSETS_SETTYPE_DAILYRANDOMDUNGEONANDICREWARD] = HandleImperialCitySet,
+    [LIBSETS_SETTYPE_BATTLEGROUND] = HandleBattlegroundSet,
+    [LIBSETS_SETTYPE_MYTHIC] = HandleMythicSet,
+    [LIBSETS_SETTYPE_CLASS] = HandleClassSet,
+}
+
+-- Maps a set to a group key and an optional sub-group label. IsMythicSet/IsClassSet are asked
+-- ahead of GetSetType, same as before the table existed -- a set LibSets would otherwise type as
+-- something else (a crafted mythic, say) is still caught here first.
+local function SetGroupFromLibSets(setId)
+    if libSets.IsMythicSet(setId) then return "MYTHIC" end
+    if libSets.IsClassSet(setId) then return "CLASS" end
+
+    local setType = libSets.GetSetType(setId)
     if setType == nil then return nil end
 
-    if setType == LIBSETS_SETTYPE_DUNGEON then
-        local dlcId = LibSets.GetDLCId(setId)
-        if dlcId == nil or dlcId == DLC_BASE_GAME then
-            return PveSet("DUNGEON", "Base Game Dungeon Sets")
-        end
-        return PveSet("DLCDUNGEON", "DLC Dungeon Sets")
-    elseif setType == LIBSETS_SETTYPE_TRIAL then
-        return PveSet("TRIAL", "Trial Sets")
-    elseif setType == LIBSETS_SETTYPE_ARENA then
-        return PveSet("ARENA", "Arena Sets")
-    elseif setType == LIBSETS_SETTYPE_OVERLAND then
-        -- Never put back with the rest: where a set drops in the world says nothing about how
-        -- you came by it, so it is a group of its own on either side of the switch.
-        return "OVERLAND"
-    elseif setType == LIBSETS_SETTYPE_CRAFTED then
-        return "CRAFTABLE"
-    elseif setType == LIBSETS_SETTYPE_MONSTER or setType == LIBSETS_SETTYPE_IMPERIALCITY_MONSTER
-        or setType == LIBSETS_SETTYPE_CYRODIIL_MONSTER then
-        return "MONSTER"
-    elseif setType == LIBSETS_SETTYPE_CYRODIIL then
-        return "PVP", PvpPlace("Cyrodiil")
-    elseif setType == LIBSETS_SETTYPE_IMPERIALCITY
-        -- The reward sets the daily random dungeon and the Imperial City both hand out. They
-        -- were read as dungeon sets, and since the DLC they belong to is not the base game they
-        -- stood under DLC DUNGEON SETS -- beside sets from dungeons they have nothing to do
-        -- with, and against what their own drop location says, which is the City.
-        or setType == LIBSETS_SETTYPE_DAILYRANDOMDUNGEONANDICREWARD then
-        return "PVP", PvpPlace("Imperial City")
-    elseif setType == LIBSETS_SETTYPE_BATTLEGROUND then
-        return "PVP", PvpPlace("Battleground")
-    elseif setType == LIBSETS_SETTYPE_MYTHIC then
-        return "MYTHIC"
-    elseif setType == LIBSETS_SETTYPE_CLASS then
-        return "CLASS"
-    end
+    local handler = SET_TYPE_HANDLERS[setType]
+    if handler then return handler(setId) end
     return "MISC"
 end
 
@@ -585,7 +609,7 @@ end
 -- piece that is in a bag; the equipped-sets drawer has a set and no piece to classify, because
 -- what it is looking at is on the character, and it jumps to the category by this.
 function IG.SetGroupKey(setId)
-    if not (setId and LibSets and LibSets.fullyLoaded) then return nil end
+    if not (setId and libSets and libSets.fullyLoaded) then return nil end
     local groupKey = SetGroupFromLibSets(setId)
     return groupKey
 end
@@ -598,7 +622,7 @@ local function GetSetLocation(setId, groupKey, subLabel)
     local names
     if not LOCATION_BY_ZONE[groupKey] and subLabel ~= "Overland Sets" then
         -- LibSets returns these as a set: { [name] = true }
-        local nameSet = LibSets.GetDropLocationNamesBySetId(setId)
+        local nameSet = libSets.GetDropLocationNamesBySetId(setId)
         if nameSet then
             names = {}
             -- A name with a colon is not a place but a list of who drops what ("Varlariel:
@@ -610,11 +634,11 @@ local function GetSetLocation(setId, groupKey, subLabel)
         end
     end
     if not names or #names == 0 then
-        local zoneIds = LibSets.GetZoneIds(setId)
+        local zoneIds = libSets.GetZoneIds(setId)
         if zoneIds then
             names = {}
             for _, zoneId in ipairs(zoneIds) do
-                local name = LibSets.GetZoneName(zoneId)
+                local name = libSets.GetZoneName(zoneId)
                 if name and name ~= "" then
                     names[#names + 1] = name
                 end
@@ -764,12 +788,12 @@ function IG.GetSetNode(itemLink)
         return nil
     end
     local groupKey, subLabel
-    if LibSets.fullyLoaded then
+    if libSets.fullyLoaded then
         groupKey, subLabel = SetGroupFromLibSets(setId)
     end
     local node = SetNode(setId, setName, itemLink, groupKey or "MISC", subLabel)
     -- Only cache once LibSets is ready, so the location gets filled in later.
-    if LibSets.fullyLoaded then setNodeCache[itemLink] = node end
+    if libSets.fullyLoaded then setNodeCache[itemLink] = node end
     return node
 end
 
@@ -799,7 +823,7 @@ local function ClassifyGear(itemLink, itemType, equipType)
     end
 
     -- LibSets loads its data after login; don't cache until it's ready.
-    if not LibSets.fullyLoaded then
+    if not libSets.fullyLoaded then
         return Path("MISC"), false
     end
 
@@ -1027,6 +1051,11 @@ function IG.CanListOnGuildStore(bagId, slotIndex)
     if not (bagId and slotIndex) then return false end
     if IsItemBound and IsItemBound(bagId, slotIndex) then return false end
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then return false end
+    -- Bind on Pickup but tradeable for a while yet: dungeon and trial drops read this way until
+    -- they bind for good. That window is a direct trade with whoever was in the group, never an
+    -- open guild store listing -- the game's own UI gates its "freely tradeable" bucket on the
+    -- same call (backpacklayouts.lua:119, shipped client source).
+    if IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) then return false end
     return true
 end
 
@@ -1352,7 +1381,10 @@ local function ClassifyWith(slotData, isNew, override, itemLink, lockedOn)
     -- is already one of them.
     -- Whether they are gathered is the list's own answer, handed in: the same piece is at the
     -- foot of one window and in its own category in the next.
-    if locked and lockedOn then
+    -- TO BANK is exempt: a piece marked for the bank is locked on purpose, to keep it from being
+    -- sold or broken down before it goes in, and gathering it under LOCKED instead would hide it
+    -- from the one place (its own module) that is actually going to empty it in.
+    if locked and lockedOn and path[1] and path[1].id ~= "TOBANK" then
         local top = path[1]
         -- And its set comes with it. A set is how a piece of gear is known -- which is the
         -- whole reason the list draws a divider for one -- so a run of locked gear with the

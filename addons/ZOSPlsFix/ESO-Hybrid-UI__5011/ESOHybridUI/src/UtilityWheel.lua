@@ -6,10 +6,8 @@
 local ADDON = ESOHybridUI
 local BRIDGE_LAYER = "ESOHybridUI_UTILITY_WHEEL_BRIDGE"
 
-if ZO_CreateStringId then
-    ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT", "Cycle utility wheel left (controller)")
-    ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT", "Cycle utility wheel right (controller)")
-end
+ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT", "Cycle utility wheel left (controller)")
+ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT", "Cycle utility wheel right (controller)")
 
 function ADDON:ShouldBridgeUtilityWheelInput()
     return self.runtime.utilityWheelLayerActive == true
@@ -24,7 +22,7 @@ function ADDON:CycleUtilityWheel(direction)
         return false
     end
 
-    if not INTERACTIVE_WHEEL_MANAGER or not ZO_INTERACTIVE_WHEEL_TYPE_UTILITY then
+    if not INTERACTIVE_WHEEL_MANAGER then
         return false
     end
 
@@ -62,17 +60,14 @@ end
 
 local function RemoveBridgeLayer()
     if ADDON.runtime.utilityWheelLayerActive then
-        if type(RemoveActionLayerByName) == "function" then
-            RemoveActionLayerByName(BRIDGE_LAYER)
-        end
+        RemoveActionLayerByName(BRIDGE_LAYER)
         ADDON.runtime.utilityWheelLayerActive = false
     end
 end
 
 local function InstallManagerHooks()
     local managerClass = ZO_InteractiveWheel_Manager
-    if not managerClass or not INTERACTIVE_WHEEL_MANAGER
-        or ADDON.runtime.utilityWheelHooksInstalled then
+    if not INTERACTIVE_WHEEL_MANAGER or ADDON.runtime.utilityWheelHooksInstalled then
         return
     end
 
@@ -80,24 +75,31 @@ local function InstallManagerHooks()
     -- singleton. Preserve StartInteraction's complete return tuple because
     -- ESO's input binding consumes its boolean result.
     local originalStart = managerClass.StartInteraction
-    local originalStop = managerClass.StopInteraction
-    if type(originalStart) ~= "function" or type(originalStop) ~= "function" then
-        return
-    end
-
-    ADDON.runtime.originalUtilityWheelStart = originalStart
-    ADDON.runtime.originalUtilityWheelStop = originalStop
 
     managerClass.StartInteraction = function(self, wheelType, ...)
         local function Pack(...) return { n = select("#", ...), ... } end
-        local results = Pack(originalStart(self, wheelType, ...))
+        local args = { n = select("#", ...), ... }
+        local function StartNativeWheel()
+            return originalStart(self, wheelType, unpack(args, 1, args.n))
+        end
+        local settings = ADDON:GetSettings()
+        local results
+        -- Hybrid's keyboard-style override is intentionally limited to the
+        -- utility/quickslot wheel. Fishing and target-marker wheels retain
+        -- ESO's native presentation; player-to-player has its own hook below.
+        if wheelType == ZO_INTERACTIVE_WHEEL_TYPE_UTILITY
+            and settings.useHybridUI
+            and ADDON:IsNativeGamepadMode() then
+            results = Pack(ADDON:WithKeyboardWheelMode(StartNativeWheel))
+        else
+            results = Pack(StartNativeWheel())
+        end
         local started = results[1]
         if started
             and wheelType == ZO_INTERACTIVE_WHEEL_TYPE_UTILITY
             and self.gamepad == false
             and ADDON:GetSettings().useControllerUI ~= true
-            and ADDON:IsNativeGamepadMode()
-            and type(PushActionLayerByName) == "function" then
+            and ADDON:IsNativeGamepadMode() then
             PushActionLayerByName(BRIDGE_LAYER)
             ADDON.runtime.utilityWheelLayerActive = true
         end
@@ -117,8 +119,35 @@ local function InstallManagerHooks()
     ADDON.runtime.utilityWheelHooksInstalled = true
 end
 
+local function InstallPlayerInteractionWheelHook()
+    local playerToPlayerClass = ZO_PlayerToPlayer
+    if not playerToPlayerClass or ADDON.runtime.playerInteractionWheelHookInstalled then
+        return
+    end
+
+    local originalStart = playerToPlayerClass.StartInteraction
+    if type(originalStart) ~= "function" then
+        return
+    end
+
+    playerToPlayerClass.StartInteraction = function(self, ...)
+        local settings = ADDON:GetSettings()
+        if settings.useHybridUI and ADDON:IsNativeGamepadMode() then
+            local args = { n = select("#", ...), ... }
+            local function StartKeyboardWheel()
+                return originalStart(self, unpack(args, 1, args.n))
+            end
+            return ADDON:WithKeyboardWheelMode(StartKeyboardWheel)
+        end
+        return originalStart(self, ...)
+    end
+
+    ADDON.runtime.playerInteractionWheelHookInstalled = true
+end
+
 function ADDON:ApplyUtilityWheel()
     InstallManagerHooks()
+    InstallPlayerInteractionWheelHook()
 
     if not self.runtime.utilityWheelLeftCopied then
         self.runtime.utilityWheelLeftCopied = CopyGamepadDefaultBindings(
@@ -135,7 +164,7 @@ function ADDON:ApplyUtilityWheel()
     self.runtime.utilityWheelDefaultsCopied =
         self.runtime.utilityWheelLeftCopied and self.runtime.utilityWheelRightCopied
 
-    if not self.runtime.utilityWheelRetryHook and EVENT_MANAGER and EVENT_PLAYER_ACTIVATED
+    if not self.runtime.utilityWheelRetryHook
         and (not self.runtime.utilityWheelHooksInstalled or not self.runtime.utilityWheelDefaultsCopied) then
         EVENT_MANAGER:RegisterForEvent(self.ADDON_NAME .. "_UtilityWheelRetry", EVENT_PLAYER_ACTIVATED, function()
             self:ApplyUtilityWheel()

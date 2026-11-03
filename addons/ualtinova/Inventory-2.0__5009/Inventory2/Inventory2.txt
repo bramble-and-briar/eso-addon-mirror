@@ -1,11 +1,11 @@
 ## Title: Inventory 2.0
 ## Description: Sorts your bag and bank into collapsible, color-coded groups: sets by where they drop, consumables, crafting, your Armory loadouts and more.
 ## Author: blekays
-## Version: 1.0.3
-## AddOnVersion: 103
+## Version: 1.0.5
+## AddOnVersion: 105
 ## APIVersion: 101051
-## DependsOn: LibSets>=000809
-## OptionalDependsOn: LibAddonMenu-2.0 LibCustomMenu LibFoodDrinkBuff
+## DependsOn: LibSets>=000809 LibCustomMenu>=730 LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibFoodDrinkBuff
 ## SavedVariables: InventoryGrouping_SV
 
 Strings.lua

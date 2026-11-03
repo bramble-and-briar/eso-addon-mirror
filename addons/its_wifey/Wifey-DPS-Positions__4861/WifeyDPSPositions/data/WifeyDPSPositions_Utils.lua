@@ -16,9 +16,9 @@ end
 
 function DDP.GetUnitTagByName(name)
     if not name then return nil end
-    for i = 1, GetGroupSize() do
+    for i = 1, (GROUP_SIZE_MAX or 24) do
         local unitTag = GetGroupUnitTagByIndex(i)
-        if DoesUnitExist(unitTag) then
+        if unitTag and DoesUnitExist(unitTag) then
             local unitName = zo_strformat("<<1>>", GetUnitDisplayName(unitTag))
             if unitName == name then
                 return unitTag
@@ -28,15 +28,20 @@ function DDP.GetUnitTagByName(name)
     return nil
 end
 
+function DDP.GetUnitRole(unitTag)
+    if not unitTag or not DoesUnitExist(unitTag) then return nil end
+    return GetGroupMemberAssignedRole(unitTag)
+end
+
 function DDP.IsUnitDPS(unitTag)
-    return GetGroupMemberAssignedRole(unitTag) == LFG_ROLE_DPS
+    return DDP.GetUnitRole(unitTag) == LFG_ROLE_DPS
 end
 
 function DDP.GetHealersInGroup()
     local healers = {}
-    for i = 1, GetGroupSize() do
+    for i = 1, (GROUP_SIZE_MAX or 24) do
         local unitTag = GetGroupUnitTagByIndex(i)
-        if DoesUnitExist(unitTag) and GetGroupMemberAssignedRole(unitTag) == LFG_ROLE_HEAL then
+        if unitTag and DoesUnitExist(unitTag) and DDP.GetUnitRole(unitTag) == LFG_ROLE_HEAL then
             local name = zo_strformat("<<1>>", GetUnitDisplayName(unitTag))
             table.insert(healers, name)
         end

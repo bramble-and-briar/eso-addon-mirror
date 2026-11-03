@@ -1,6 +1,6 @@
 ﻿local ADK = AntiDK2
 
--- ── Reset everything (player death, end-of-combat) ────────────────────────────
+-- ── Reset everything (player death) ──────────────────────────────────────────
 local function ResetAll()
     ADK.Combat.Events.Corrosive.Reset()
     ADK.Combat.Events.Wings.Reset()
@@ -20,20 +20,13 @@ local function RegisterEvents()
     ADK.Combat.Events.DragonknightStandard.Register()
 end
 
--- ── Build all UI panels ───────────────────────────────────────────────────────
+-- ── Build all UI panels (Popups first: it owns the main panel container) ─────
 local function InitUI()
-    local modules = {
-        { "ADK.UI.Popups",          function() ADK.UI.Popups.Init()          end },
-        { "ADK.UI.Corrosive",       function() ADK.UI.Corrosive.Init()       end },
-        { "ADK.UI.Stuns",           function() ADK.UI.Stuns.Init()           end },
-        { "ADK.UI.Wings",           function() ADK.UI.Wings.Init()           end },
-        { "ADK.UI.MoltenStacks",    function() ADK.UI.MoltenStacks.Init()    end },
-        { "ADK.UI.PowerLashStacks", function() ADK.UI.PowerLashStacks.Init() end },
-    }
-    for _, entry in ipairs(modules) do
-        local ok, err = pcall(entry[2])
+    local order = { "Popups", "Corrosive", "Stuns", "Wings", "MoltenStacks", "PowerLashStacks" }
+    for _, name in ipairs(order) do
+        local ok, err = pcall(ADK.UI[name].Init)
         if not ok then
-            error(entry[1] .. " failed: " .. tostring(err), 2)
+            error("ADK.UI." .. name .. " failed: " .. tostring(err), 2)
         end
     end
 end
@@ -46,7 +39,7 @@ local function OnAddOnLoaded(_, addOnName)
     local ok, err = pcall(function()
         -- Saved variables (per character)
         ADK.savedVars = ZO_SavedVars:NewCharacterIdSettings(
-            "AntiDK2_SavedVars", 1, nil, ADK.defaults
+            ADK.savedVarsName, ADK.savedVarsVersion, nil, ADK.defaults
         )
 
         InitUI()
@@ -54,13 +47,12 @@ local function OnAddOnLoaded(_, addOnName)
         RegisterEvents()
 
         -- Reset on player death
-        EVENT_MANAGER:RegisterForEvent(ADK.name .. "_PlayerDead", EVENT_PLAYER_DEAD,
-            function() ResetAll() end)
+        EVENT_MANAGER:RegisterForEvent(ADK.name .. "_PlayerDead", EVENT_PLAYER_DEAD, ResetAll)
     end)
 
     if not ok then
         -- Report any init error to chat so it can be diagnosed
-        CHAT_ROUTER:AddSystemMessage("|cFF2020[AntiDK2] Init error:|r " .. tostring(err))
+        ADK.Error("Init", err)
     end
 end
 

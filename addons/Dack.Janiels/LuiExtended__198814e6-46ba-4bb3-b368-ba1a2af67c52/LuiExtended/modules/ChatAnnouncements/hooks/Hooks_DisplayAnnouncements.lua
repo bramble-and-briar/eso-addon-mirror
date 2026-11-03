@@ -8,6 +8,22 @@ local LUIE = LUIE
 --- @class (partial) LUIE.ChatAnnouncements
 local ChatAnnouncements = LUIE.ChatAnnouncements
 
+local activityFinderActivityCompleteAnnouncementTextText = GetString(SI_ACTIVITY_FINDER_ACTIVITY_COMPLETE_ANNOUNCEMENT_TEXT)
+local respectypePointsresettitle1Text = GetString(SI_RESPECTYPE_POINTSRESETTITLE1)
+local respectypePointsresettitle0Text = GetString(SI_RESPECTYPE_POINTSRESETTITLE0)
+local respectypePointsresettitle4Text = GetString(SI_RESPECTYPE_POINTSRESETTITLE4)
+local currencyNotifySkillsText = GetString(LUIE_STRING_CA_CURRENCY_NOTIFY_SKILLS)
+local currencyNotifyAttributesText = GetString(LUIE_STRING_CA_CURRENCY_NOTIFY_ATTRIBUTES)
+local currencyNotifySkillLineText = GetString(LUIE_STRING_CA_CURRENCY_NOTIFY_SKILL_LINE)
+local displayAnnouncementGroupenterDText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPENTER_D)
+local displayAnnouncementGroupleaveDText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPLEAVE_D)
+local displayAnnouncementGroupenterCText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPENTER_C)
+local displayAnnouncementGroupleaveCText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPLEAVE_C)
+local displayDungeonJoiningEncounterInProgressText = GetString(LUIE_STRING_CA_DISPLAY_DUNGEON_JOINING_ENCOUNTER_IN_PROGRESS)
+local displayImpresarioBooksDiscoveredText = GetString(LUIE_STRING_CA_DISPLAY_IMPRESARIO_BOOKS_DISCOVERED)
+local displayAnnouncementIcTitlePrefixText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_IC_TITLE_PREFIX)
+
+
 local S = ChatAnnouncements.State
 local I = ChatAnnouncements.Internal
 local B = ChatAnnouncements.Brackets
@@ -28,7 +44,7 @@ function ChatAnnouncements.Hooks.RegisterDisplayAnnouncements(ctx)
     local moduleName = ctx.moduleName
     local FindCsaCallbackHandler = ctx.FindCsaCallbackHandler
     local function ActivityFinderCompleteHook()
-        local message = GetString(SI_ACTIVITY_FINDER_ACTIVITY_COMPLETE_ANNOUNCEMENT_TEXT)
+        local message = activityFinderActivityCompleteAnnouncementTextText
         if ChatAnnouncements.SV.Group.GroupLFGCompleteCA then
             ChatOutput:Print(message, true)
         end
@@ -192,11 +208,6 @@ function ChatAnnouncements.Hooks.RegisterDisplayAnnouncements(ctx)
 
     -- EVENT_DISPLAY_ANNOUNCEMENT (CSA Handler)
     local function DisplayAnnouncementHook(primaryText, secondaryText, icon, soundId, lifespanMS, category)
-        -- Disable Respec Display Announcement since we handle this from loot announcements (using Respec scroll)
-        if primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE1) then
-            return true
-        end
-
         -- Setup CSA with default function (don't display CSA here yet, we filter to check)
         soundId = soundId == "" and SOUNDS.DISPLAY_ANNOUNCEMENT or soundId
 
@@ -255,33 +266,33 @@ function ChatAnnouncements.Hooks.RegisterDisplayAnnouncements(ctx)
         local debugDisable -- flag to disable debug when its enabled
 
         -- Settings either use the subcategory settings or the generic settings if no subcategory
-        if primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE0) or primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE1) or primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE4) then
+        if primaryText == respectypePointsresettitle0Text or primaryText == respectypePointsresettitle1Text or primaryText == respectypePointsresettitle4Text then
             settings = LUIE.ChatAnnouncements.SV.DisplayAnnouncements.Respec
             debugDisable = true
             -- Update message syntax here
-            if primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE0) then
-                primaryText = GetString(LUIE_STRING_CA_CURRENCY_NOTIFY_SKILLS)
+            if primaryText == respectypePointsresettitle0Text then
+                primaryText = currencyNotifySkillsText
             end
-            if primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE1) then
-                primaryText = GetString(LUIE_STRING_CA_CURRENCY_NOTIFY_ATTRIBUTES)
+            if primaryText == respectypePointsresettitle1Text then
+                primaryText = currencyNotifyAttributesText
             end
-            if primaryText == GetString(SI_RESPECTYPE_POINTSRESETTITLE4) then
-                primaryText = GetString(LUIE_STRING_CA_CURRENCY_NOTIFY_SKILL_LINE)
+            if primaryText == respectypePointsresettitle4Text then
+                primaryText = currencyNotifySkillLineText
             end
-        elseif primaryText == GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPENTER_D) or primaryText == GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPLEAVE_D) then
+        elseif primaryText == displayAnnouncementGroupenterDText or primaryText == displayAnnouncementGroupleaveDText then
             settings = LUIE.ChatAnnouncements.SV.DisplayAnnouncements.GroupArea
             debugDisable = true
             -- Update message syntax here
-            if primaryText == GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPENTER_D) then
-                primaryText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPENTER_C)
+            if primaryText == displayAnnouncementGroupenterDText then
+                primaryText = displayAnnouncementGroupenterCText
             end
-            if primaryText == GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPLEAVE_D) then
-                primaryText = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_GROUPLEAVE_C)
+            if primaryText == displayAnnouncementGroupleaveDText then
+                primaryText = displayAnnouncementGroupleaveCText
             end
-        elseif primaryText == GetString(LUIE_STRING_CA_DISPLAY_DUNGEON_JOINING_ENCOUNTER_IN_PROGRESS) then
+        elseif primaryText == displayDungeonJoiningEncounterInProgressText then
             settings = LUIE.ChatAnnouncements.SV.DisplayAnnouncements.DungeonTrial
             debugDisable = true
-        elseif primaryText == GetString(LUIE_STRING_CA_DISPLAY_IMPRESARIO_BOOKS_DISCOVERED) then
+        elseif primaryText == displayImpresarioBooksDiscoveredText then
             settings = LUIE.ChatAnnouncements.SV.DisplayAnnouncements.General
             debugDisable = true
         else
@@ -305,7 +316,7 @@ function ChatAnnouncements.Hooks.RegisterDisplayAnnouncements(ctx)
         end
 
         if not settings then
-            local catalogSettings = ChatAnnouncements.ResolveCatalogDisplayAnnouncement(primaryText)
+            local catalogSettings = ChatAnnouncements.ResolveCatalogDisplayAnnouncement(primaryText, secondaryText)
             if catalogSettings then
                 settings = catalogSettings
                 debugDisable = true
@@ -345,7 +356,7 @@ function ChatAnnouncements.Hooks.RegisterDisplayAnnouncements(ctx)
             -- Note we don't want to mess with strings outside of EN localization for now (TODO)
             -- Custom formatting for IC messages
             if settings == LUIE.ChatAnnouncements.SV.DisplayAnnouncements.ZoneIC and language == "en" then
-                local prefix = GetString(LUIE_STRING_CA_DISPLAY_ANNOUNCEMENT_IC_TITLE_PREFIX)
+                local prefix = displayAnnouncementIcTitlePrefixText
                 caPrimary = zo_strgsub(primaryText, prefix, "")
                 caPrimary = settings.Description and string_format("%s|c%s%s: |r", prefix, ColorizeColors.QuestColorLocNameColorize, caPrimary) or string_format("%s|c%s%s|r", prefix, ColorizeColors.QuestColorLocNameColorize, caPrimary)
                 caSecondary = settings.Description and string_format("|c%s%s|r", ColorizeColors.QuestColorLocDescriptionColorize, caSecondary) or ""

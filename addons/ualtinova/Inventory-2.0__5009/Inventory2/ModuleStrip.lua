@@ -171,6 +171,9 @@ function IG.ShowSectionDisplayMenu(control, data)
     if data.label == "LOCKED" and IG.AddLockedSetItems then
         IG.AddLockedSetItems(data.invKey, data.inventoryType)
     end
+    -- Group Sets / Don't Group Sets for every set category under this section at once
+    -- (InventoryGrouping.lua) -- only where one can actually hold a set (SETS, LOCKED).
+    if IG.AddSectionSetViewItems then IG.AddSectionSetViewItems(data) end
     for _, mode in ipairs(DISPLAY_ORDER) do
         if mode ~= current then
             AddMenuItem(DISPLAY_MENU[mode], function()

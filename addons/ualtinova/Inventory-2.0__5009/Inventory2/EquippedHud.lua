@@ -640,8 +640,11 @@ end
 
 -- Equipping, unequipping or swapping one piece (by hand, or an addon such as LarvalTear).
 EVENT_MANAGER:RegisterForEvent(SETTLE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, ScheduleRedraw)
+-- DEFAULT only: durability/charge ticking on a worn piece fires this same event under its own
+-- reason (see Repair.lua) and has nothing to redraw here -- filtered out before it reaches Lua.
 EVENT_MANAGER:AddFilterForEvent(SETTLE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-    REGISTER_FILTER_BAG_ID, BAG_WORN)
+    REGISTER_FILTER_BAG_ID, BAG_WORN,
+    REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
 -- An Armory build being restored changes the gear as one bulk operation, which the worn slot
 -- updates above did not catch (the panel kept the old sets). The game's own character window and

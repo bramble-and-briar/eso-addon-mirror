@@ -69,6 +69,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [First Person Riding (gamepad supported)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/crocodarrel/First-Person-Riding-gamepad-supported__2583) | crocodarrel | PC / Mac | 2.8 |
 | [Fish Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Fish-Bar__3284) | FlatBadger | PC / Mac | 1.10.0 |
 | [Fish Breaker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Fish-Breaker__3188) | Marify | PC / Mac | 1.0.0 |
+| [FishAlert - Fishing Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saggy3214/FishAlert---Fishing-Assistant__5018) | saggy3214 | PC / Mac | 1.5.0 |
 | [FishBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/FishBreak__2597) | Solaris Lorica | PC / Mac | 1.2 |
 | [Fisherman's Friend](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zention/Fisherman-s-Friend__2731) | Zention | PC / Mac | 1.1 |
 | [Fisherman's Friend - Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sem/Fisherman-s-Friend---Update__2904) | Sem | PC / Mac | 1.7 |

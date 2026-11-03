@@ -96,6 +96,7 @@ necroTracker.defaults = {
     trackNecro = true,
     yAxisText = 600,
     xAxisText = 400,
+    textSize = 8,
     textColor = { 0.247, 0.129, 1, 1 },--{ 0, 1, 0, 1 } red
     numberColor = { 1, 0.573, 0, 1 }--{ 1, 0, 0, 1 } green
 }
@@ -151,6 +152,65 @@ local function setAnchor(x, y)
 	zo_callLater(function () if isMenuOpen == true then necroText:SetHidden(true) end end, 2000)
     necroText:ClearAnchors()
     necroText:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+end
+
+-- Text size presets and layout based on the original GP_54 positions.
+local textFontSizes = { 18, 20, 22, 25, 27, 34, 36, 42, 54, 61 }
+local textRowOffsets = { -5, 50, 100 }
+-- Original number-column positions before reducing the whitespace gap.
+local originalNumberColumnOffsets = { 212, 305, 162 }
+
+local function applyTextSize()
+    local sizeIndex = tonumber(necroTracker.savedVariables.textSize) or necroTracker.defaults.textSize
+    sizeIndex = math.max(1, math.min(10, math.floor(sizeIndex)))
+
+    local fontSize = textFontSizes[sizeIndex]
+    local scale = fontSize / 54
+    local font = "$(GAMEPAD_MEDIUM_FONT)|$(GP_" .. fontSize .. ")|soft-shadow-thick"
+    local originalFont = "$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick"
+
+    local labelControls = { necroTextBlast, necroTextWaste, necroTextCorpse }
+    local numberControls = { necroTextBlastNum, necroTextWasteNum, necroTextCorpseNum }
+    local containerWidth = 0
+    local fieldHeight = math.floor(64 * scale + 0.5)
+    local numberWidth = math.floor(140 * scale + 0.5)
+
+    for index = 1, 3 do
+        local labelControl = labelControls[index]
+
+        -- Measure the complete label at the original size, then at the selected size.
+        -- Temporarily widening the label prevents GetTextWidth from measuring clipped text.
+        labelControl:SetFont(originalFont)
+        labelControl:SetWidth(2000)
+        local originalLabelWidth = labelControl:GetTextWidth()
+
+        labelControl:SetFont(font)
+        labelControl:SetWidth(2000)
+        local selectedLabelWidth = labelControl:GetTextWidth()
+
+        -- Keep one third of the original empty space between label and number.
+        local originalGap = math.max(0, originalNumberColumnOffsets[index] - originalLabelWidth)
+        local reducedGap = math.floor((originalGap / 3) * scale + 0.5)
+        local numberOffset = math.floor(selectedLabelWidth + reducedGap + 0.5)
+        local rowOffset = math.floor(textRowOffsets[index] * scale + 0.5)
+
+        labelControl:ClearAnchors()
+        labelControl:SetAnchor(TOPLEFT, necroText, TOP, 0, rowOffset)
+        labelControl:SetDimensions(math.ceil(selectedLabelWidth + 2), fieldHeight)
+
+        local numberControl = numberControls[index]
+        numberControl:SetFont(font)
+        numberControl:ClearAnchors()
+        numberControl:SetAnchor(TOPLEFT, necroText, TOP, numberOffset, rowOffset)
+        numberControl:SetDimensions(numberWidth, fieldHeight)
+
+        containerWidth = math.max(containerWidth, numberOffset + numberWidth)
+    end
+
+    necroText:SetDimensions(
+        math.max(1, containerWidth),
+        math.floor(165 * scale + 0.5)
+    )
 end
 
 --track blastbones timer
@@ -775,10 +835,25 @@ local function createOptions()
              end,
         },
         {
+            type = "slider",
+            name = "Adjust Text Size",
+            tooltip = "Adjust the size of all six on-screen tracker text fields.",
+            min = 1, max = 10, step = 1,
+            getFunc = function()
+                return necroTracker.savedVariables.textSize
+            end,
+            setFunc = function(value)
+                necroTracker.savedVariables.textSize = value
+                applyTextSize()
+                setAnchor(necroTracker.savedVariables.xAxisText, necroTracker.savedVariables.yAxisText)
+            end,
+            default = necroTracker.defaults.textSize,
+        },
+        {
             type = "divider",
             height = 0,
             width = "full",
-        }
+        },
     }
 
     LAM:RegisterAddonPanel("Necro Tracker", panelData)
@@ -804,30 +879,25 @@ local function libLoaded(event, name)
     --setup text fields
     necroText:SetMovable(true)
 
-    necroTextBlast:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextBlast:SetText("Blastbones: ")
     necroTextBlast:SetColor(colourStartupText:UnpackRGBA())
 
-    necroTextWaste:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextWaste:SetText("Nothing Wasted: ")
     necroTextWaste:SetColor(colourStartupText:UnpackRGBA())
 
-    necroTextCorpse:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextCorpse:SetText("Corpses: ")
     necroTextCorpse:SetColor(colourStartupText:UnpackRGBA())
 
-    necroTextBlastNum:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextBlastNum:SetText("Ready")
     necroTextBlastNum:SetColor(colourStartupNumber:UnpackRGBA())
 
-    necroTextWasteNum:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextWasteNum:SetText("0")
     necroTextWasteNum:SetColor(colourStartupNumber:UnpackRGBA())
 
-    necroTextCorpseNum:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextCorpseNum:SetText("0")
     necroTextCorpseNum:SetColor(colourStartupNumber:UnpackRGBA())
 
+    applyTextSize()
     setAnchorStartup(necroTracker.savedVariables.xAxisText, necroTracker.savedVariables.yAxisText)
 
     if necroTracker.savedVariables.trackNecro then

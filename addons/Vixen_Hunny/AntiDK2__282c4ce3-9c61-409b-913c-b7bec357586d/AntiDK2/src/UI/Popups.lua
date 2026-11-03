@@ -2,29 +2,40 @@
 local M   = {}
 ADK.UI.Popups = M
 
--- Font helper: CrutchAlerts-style bold with thick shadow
-function ADK.UI.BoldFont(size)
-    return string.format("$(BOLD_FONT)|%d|soft-shadow-thick", math.floor(size))
-end
+-- ── Shared control helpers ───────────────────────────────────────────────────
 
--- Label helper
-function ADK.UI.MakeLabel(name, parent, font, r, g, b)
+-- Kept as an alias for UI/Wings.lua and any external callers; new code uses ADK.Font.
+ADK.UI.BoldFont = ADK.Font
+
+--- Create a label. `color` may be an ADK.COLORS entry or separate r, g, b.
+function ADK.UI.MakeLabel(name, parent, font, color, g, b)
     local lbl = WINDOW_MANAGER:CreateControl(name, parent, CT_LABEL)
-    lbl:SetFont(font or ADK.UI.BoldFont(16))
-    lbl:SetColor(r or 1, g or 1, b or 1, 1)
+    lbl:SetFont(font or ADK.Font(16))
+    if type(color) == "table" then
+        lbl:SetColor(ADK.RGB(color))
+    else
+        lbl:SetColor(color or 1, g or 1, b or 1, 1)
+    end
     return lbl
 end
-function ADK.UI.MakeStatusBar(name, parent, width, height, r, g, b)
+
+--- Create a 0-100 status bar. `color` may be an ADK.COLORS entry or separate r, g, b.
+function ADK.UI.MakeStatusBar(name, parent, width, height, color, g, b)
     local bar = WINDOW_MANAGER:CreateControl(name, parent, CT_STATUSBAR)
     bar:SetDimensions(width or 200, height or 20)
-    bar:SetColor(r or 1, g or 1, b or 1, 1)
+    if type(color) == "table" then
+        bar:SetColor(ADK.RGB(color))
+    else
+        bar:SetColor(color or 1, g or 1, b or 1, 1)
+    end
     bar:SetMinMax(0, 100)
     bar:SetValue(0)
     bar:SetTexture("/esoui/art/miscellaneous/progressbar_genericfill.dds")
     return bar
 end
--- Keep for backwards compat but no longer used
-function ADK.UI.MakeBackdrop(name, parent, eR, eG, eB)
+
+-- Kept for backwards compat but no longer used
+function ADK.UI.MakeBackdrop(name, parent)
     local bg = WINDOW_MANAGER:CreateControl(name, parent, CT_BACKDROP)
     bg:SetAnchorFill(parent)
     bg:SetCenterColor(0, 0, 0, 0)
@@ -48,30 +59,29 @@ end
 -- ── Main panel: transparent container, GCD-Tracker style ─────────────────────
 local PANEL_W = 280
 local PANEL_H = 230
+local WIN     = ADK.WINDOWS.main
 
 local function SaveMainPos(win)
-    ADK.savedVars.mainPanelX = win:GetLeft()
-    ADK.savedVars.mainPanelY = win:GetTop()
+    ADK.savedVars[WIN.x] = win:GetLeft()
+    ADK.savedVars[WIN.y] = win:GetTop()
 end
 
 function M.Init()
-    local sv = ADK.savedVars
-    local c  = ADK.COLORS
+    local c = ADK.COLORS
 
-    local win = WINDOW_MANAGER:CreateTopLevelWindow("AntiDK2MainPanel")
+    local win = WINDOW_MANAGER:CreateTopLevelWindow(WIN.control)
     win:SetDimensions(PANEL_W, PANEL_H)
-    win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, sv.mainPanelX, sv.mainPanelY)
+    win:SetAnchor(WIN.anchor, GuiRoot, WIN.anchor, ADK.Get(WIN.x), ADK.Get(WIN.y))
     win:SetMovable(true)
     win:SetMouseEnabled(true)
     win:SetClampedToScreen(true)
-    win:SetHandler("OnMoveStop", function(w) SaveMainPos(w) end)
-    win:SetScale(sv.mainPanelScale or 1.0)
-    win:SetHidden(false)  -- hidden until a tracked DK enemy is detected
+    win:SetHandler("OnMoveStop", SaveMainPos)
+    win:SetScale(ADK.Get(WIN.scale))
+    win:SetHidden(false)  -- SetPanelFlag hides it until a tracked DK enemy is detected
 
     -- Header label only, no background
-    local hdr = ADK.UI.MakeLabel("AntiDK2MainHdr", win, ADK.UI.BoldFont(14),
-        c.LIGHT_BLUE[1], c.LIGHT_BLUE[2], c.LIGHT_BLUE[3])
-    hdr:SetText("|c5BCEFAAnti DK|r |cF5A9B82.0|r")
+    local hdr = ADK.UI.MakeLabel("AntiDK2MainHdr", win, ADK.Font(14), c.LIGHT_BLUE)
+    hdr:SetText(ADK.Colorize(c.LIGHT_BLUE, "Anti DK") .. " " .. ADK.Colorize(c.PINK, "2.0"))
     hdr:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     hdr:SetAnchor(TOPLEFT, win, TOPLEFT, 0, 2)
 

@@ -6,8 +6,17 @@ ADK.Combat.Events.PowerLash = M
 -- 20824 = Power Lash hit: each damage hit on player decrements their stack by 1
 local ID_EFFECT   = ADK.IDS.POWER_LASH_EFFECT   -- 34117
 local ID_HIT      = ADK.IDS.POWER_LASH           -- 20824
-local MAX_STACKS  = 5
 local DECAY_MS    = 15000
+
+-- Combat results that count as a Power Lash swing at the player (hit or not).
+local HIT_RESULTS = {
+    [ACTION_RESULT_DAMAGE]          = true,
+    [ACTION_RESULT_CRITICAL_DAMAGE] = true,
+    [ACTION_RESULT_BLOCKED]         = true,
+    [ACTION_RESULT_BLOCKED_DAMAGE]  = true,
+    [ACTION_RESULT_DODGED]          = true,
+    [ACTION_RESULT_MISS]            = true,
+}
 
 -- stacks[sourceName] = { count = N, decayHandle = handle }
 local stacks = {}
@@ -22,9 +31,7 @@ end
 local function SetCount(name, n)
     n = math.max(0, n)
     if n == 0 then
-        if stacks[name] and stacks[name].decayHandle then
-            zo_removeCallLater(stacks[name].decayHandle)
-        end
+        if stacks[name] then ADK.CancelTimer(stacks[name].decayHandle) end
         stacks[name] = nil
     else
         if not stacks[name] then
@@ -32,7 +39,7 @@ local function SetCount(name, n)
         end
         local e = stacks[name]
         e.count = n
-        if e.decayHandle then zo_removeCallLater(e.decayHandle) end
+        e.decayHandle = ADK.CancelTimer(e.decayHandle)
         e.decayHandle = zo_callLater(function() Decay(name) end, DECAY_MS)
     end
     ADK.UI.PowerLashStacks.Refresh(stacks)
@@ -59,13 +66,12 @@ function M.Register()
     -- Detect when enemy gains Flame Lash effect (ID_EFFECT = 34117)
     EVENT_MANAGER:RegisterForEvent(
         ADK.name .. "_PLEffect", EVENT_COMBAT_EVENT,
-        function(_, result, _, _, _, _, sourceName, sourceType, _,_, hitValue, _, _, _, _, _, abilityId)
-            if not ADK.savedVars.trackPowerLash then return end
+        function(_, result, _, _, _, _, sourceName, sourceType, _, _, hitValue, _, _, _, _, _, abilityId)
+            if not ADK.Get("trackPowerLash")         then return end
+            if abilityId ~= ID_EFFECT                then return end
             if result ~= ACTION_RESULT_EFFECT_GAINED and result ~= ACTION_RESULT_EFFECT_FADED then return end
-            local name = zo_strformat("<<1>>", sourceName)
-            if name == GetUnitName("player") then return end
             if sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
-            if abilityId ~= ID_EFFECT then return end
+            if ADK.IsPlayer(sourceName)              then return end
             OnEffectGained(sourceName, sourceType, hitValue, result)
         end
     )
@@ -73,13 +79,11 @@ function M.Register()
     EVENT_MANAGER:RegisterForEvent(
         ADK.name .. "_PowerLash", EVENT_COMBAT_EVENT,
         function(_, result, _, _, _, _, sourceName, sourceType, targetName, _, _, _, _, _, _, _, abilityId)
-            if not ADK.savedVars.trackPowerLash then return end
-            if abilityId ~= ID_HIT then return end
-            if result ~= ACTION_RESULT_DAMAGE and result ~= ACTION_RESULT_CRITICAL_DAMAGE and result ~= ACTION_RESULT_DODGED and result ~= ACTION_RESULT_BLOCKED and result ~= ACTION_RESULT_MISS and result ~= ACTION_RESULT_BLOCKED_DAMAGE then return end
-            local tName = zo_strformat("<<1>>", targetName)
-            if tName ~= GetUnitName("player") then return end
+            if not ADK.Get("trackPowerLash") then return end
+            if abilityId ~= ID_HIT           then return end
+            if not HIT_RESULTS[result]       then return end
+            if not ADK.IsPlayer(targetName)  then return end
             OnHit(sourceName, sourceType, result)
-            --ADK.Combat.Events.Wings.TrackEnemy(sourceName, sourceType)
         end
     )
     -- Death cleanup

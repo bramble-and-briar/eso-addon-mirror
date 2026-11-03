@@ -14,7 +14,7 @@ local arcanistId = 117
 
 local idECT = "ExoYsCruxTracker"
 local nameECT = "|c00FF00ExoY|rs Crux Tracker"
-local versionECT = "2.1.0"
+local versionECT = "2.2.0"
 
 local cruxId = 184220
 local cruxDuration = GetAbilityDuration( cruxId )
@@ -40,6 +40,7 @@ local function HideGui( )
   Gui.numeric.SetScenes( false ) 
   Gui.timer.SetScenes( false ) 
   Gui.spattering.SetScenes( false ) 
+  Gui.fateRealigned.SetScenes( false ) 
 end 
 
 
@@ -49,6 +50,7 @@ local function ShowGui( showAll )
   Gui.numeric.SetScenes( showAll or SV.p.numeric.enabled )
   Gui.timer.SetScenes( showAll or SV.p.timer.enabled)
   Gui.spattering.SetScenes( showAll or SV.p.spattering.enabled )
+  Gui.fateRealigned.SetScenes( showAll or SV.p.fateRealigned.enabled )
 end
 
 
@@ -57,6 +59,7 @@ local function SetDemoMode( runDemo )
   Gui.numeric.SetDemoMode( runDemo ) 
   Gui.timer.SetDemoMode( runDemo ) 
   Gui.spattering.SetDemoMode( runDemo ) 
+  Gui.fateRealigned.SetDemoMode( runDemo ) 
 end
 
 
@@ -1245,11 +1248,16 @@ local function OnHeraldDmg(event, result, isError, abilityName, abilityGraphic, 
   end
   if not dmgResults[result] then return end -- it wasnt dmg 
 
+  --d( zo_strformat("Dmg Event: <<1>> (<<2>>) <<3>>", abilityName, abilityId, GetAbilityName(abilityId)) )  ---@debug
+  --d( "DmgEvent: "..abilityName.."("..GetAbilityName(abilityId)..")")
+
+
   if Spattering.heraldSkillNames[abilityName] then 
     if Spattering.active and not Spattering.dmgCd then
       Spattering.dmgCd = true 
       Spattering.dmgCdEnd = GetGameTimeMilliseconds() + 1000 
       Spattering.endTime = Spattering.endTime - 500  
+      --d("Reduced Spattering CD") --- @debug
     end
   end
 end
@@ -1461,7 +1469,321 @@ local function GetSpatteringTrackerMenuControls()
   }
 end
 
+--[[ -------------------- ]]
+--[[ -- Fate Realigned -- ]]
+--[[ -------------------- ]]
 
+local FateRealigned = {  
+  procId = 263407, 
+  buffId = 268372,
+  endTime = 0, 
+}
+
+local function GetFateRealignedSettingsDefaults() 
+  return {
+    enabled = false, 
+    threshold = 5, --
+    posX = 800, 
+    posY = 500, 
+    font = 1, 
+    size = 24, 
+    displayZero = false, 
+    colorLong = {0,1,0,1}, 
+    design = {
+      iconEnabled = true, 
+      iconAlpha = 0.3, 
+      iconDesaturation = 0.5, 
+      backgroundAlpha = 0.2, 
+      coloredEdgeEnabled = false, 
+      coloredEdgeSize = 4,  
+    },
+  }
+end
+
+
+local function InitializeFateRealignedTracker() 
+  local name = idECT.."FateRealigned" 
+
+  --- hardcoded dimensions 
+  local edgeLine = 2
+
+  local win = WM:CreateTopLevelWindow( name.."Window" )
+  win:ClearAnchors() 
+  win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SV.p.fateRealigned.posX, SV.p.fateRealigned.posY)
+  win:SetMouseEnabled(false) 
+  win:SetMovable(false)
+  win:SetClampedToScreen(true) 
+  win:SetDimensions( 50,50 )
+  win:SetHidden(true)  
+  win:SetHandler( "OnMoveStop", function() 
+    SV.p.fateRealigned.posX = win:GetLeft() 
+    SV.p.fateRealigned.posY = win:GetTop()
+  end)
+
+local frag = ZO_HUDFadeSceneFragment:New( win ) 
+local isShowing = false
+  local function SetScenes( showUi )
+    if isShowing == showUi then return end 
+    if showUi then 
+      HUD_UI_SCENE:AddFragment( frag )
+      HUD_SCENE:AddFragment( frag )
+    else 
+      HUD_UI_SCENE:RemoveFragment( frag )
+      HUD_SCENE:RemoveFragment( frag )
+    end
+    isShowing = showUi
+  end 
+
+  local ctrl = WM:CreateControl( name.."_Ctrl", win, CT_CONTROL)
+  ctrl:ClearAnchors() 
+  ctrl:SetAnchor(CENTER, win, CENTER, 0, 0) 
+
+  local coloredEdge = WM:CreateControl( name.."ColoredEdge", ctrl, CT_BACKDROP)
+  coloredEdge:ClearAnchors() 
+  coloredEdge:SetAnchor(CENTER, ctrl, CENTER, 0, 0) 
+  coloredEdge:SetCenterColor(0,0,0,0)
+  
+  local outerEdge = WM:CreateControl( name.."OuterEdge", ctrl, CT_BACKDROP) 
+  outerEdge:ClearAnchors() 
+  outerEdge:SetAnchor(CENTER, ctrl, CENTER, 0, 0) 
+  outerEdge:SetCenterColor(0,0,0,0)
+  outerEdge:SetEdgeColor(0,0,0,1)
+
+  local back = WM:CreateControl( name.."_Back", ctrl, CT_BACKDROP)
+  back:ClearAnchors() 
+  back:SetAnchor(CENTER, ctrl, CENTER, 0, 0) 
+  back:SetCenterColor(0,0,0)
+  back:SetEdgeColor(0,0,0,1)
+  back:SetEdgeTexture(nil, edgeLine, edgeLine, backgedgeLineroundEdge) 
+  
+  local icon = WM:CreateControl( name.."_Icon", ctrl, CT_TEXTURE) 
+  icon:ClearAnchors()
+  icon:SetAnchor(CENTER, ctrl, CENTER, 0, 0)
+  icon:SetTexture( "esoui/art/icons/passive_arcanist_08.dds") 
+  icon:SetColor(1,1,1,0.2)
+  icon:SetDesaturation(0.5) 
+
+  local label = WM:CreateControl( name.."_Label", ctrl, CT_LABEL)   
+  label:ClearAnchors() 
+  label:SetAnchor(CENTER, ctrl, CENTER, 0, 0) 
+  label:SetVerticalAlignment( TEXT_ALIGN_CENTER )
+  label:SetHorizontalAlignment( TEXT_ALIGN_CENTER )
+  label:SetScale(2)
+
+
+  local function UpdateDesign()
+    --- size
+    local iconSize = 3.2*SV.p.fateRealigned.size
+    local coloredEdgeSize = 2^SV.p.fateRealigned.design.coloredEdgeSize
+    local edgeSize = SV.p.fateRealigned.design.coloredEdgeEnabled and coloredEdgeSize or 0
+    local totalSize = iconSize + 2*edgeSize + 2*edgeLine
+    
+    win:SetDimensions( totalSize, totalSize )
+    outerEdge:SetDimensions( totalSize, totalSize )
+    coloredEdge:SetDimensions( totalSize, totalSize )
+    back:SetDimensions( 2*edgeLine+iconSize, 2*edgeLine+iconSize )
+    icon:SetDimensions(iconSize, iconSize) 
+    
+    --- label 
+    local fontData = {
+      font = LibExoY.GetFontList()[SV.p.fateRealigned.font], 
+      size = SV.p.fateRealigned.size, 
+      outline = 2, 
+    }
+    label:SetFont( LibExoY.GetFont(fontData) ) 
+    label:SetColor( unpack(SV.p.fateRealigned.colorLong) )
+
+    --- background
+    back:SetHidden(not SV.p.fateRealigned.design.iconEnabled)
+    back:SetAlpha( SV.p.fateRealigned.design.backgroundAlpha ) 
+    
+    --- edge 
+    outerEdge:SetHidden( not SV.p.fateRealigned.design.coloredEdgeEnabled)
+    coloredEdge:SetHidden( not SV.p.fateRealigned.design.coloredEdgeEnabled)
+    coloredEdge:SetEdgeTexture(nil,coloredEdgeSize,coloredEdgeSize,coloredEdgeSize)
+
+    --- icon 
+    icon:SetHidden( not SV.p.fateRealigned.design.iconEnabled )
+    icon:SetAlpha( SV.p.fateRealigned.design.iconAlpha) 
+    icon:SetDesaturation( SV.p.fateRealigned.design.iconDesaturation)
+  end 
+
+
+  local function SetDemoMode( demoMode ) 
+    win:SetMouseEnabled( demoMode ) 
+    win:SetMovable( demoMode )
+  end
+
+  UpdateDesign()
+  return {UpdateDesign = UpdateDesign, SetScenes = SetScenes, SetDemoMode = SetDemoMode, label = label}
+end
+
+
+local function OnFateRealignedProc()
+  d("Crux Tracker - FateRealignedProc) ")
+  FateRealigned.active = true 
+  FateRealigned.endTime = GetGameTimeMilliseconds() + GetAbilityCooldown(FateRealigned.procId)
+end
+
+local function OnFateRealignedUpdate() 
+    --if not Spattering.active then return end
+    local time = GetGameTimeMilliseconds()  
+
+    local timeRemaining = math.floor((FateRealigned.endTime - time )/100) 
+    local displayTime = zo_max(timeRemaining/10, 0) 
+    local displayStr =  tostring(displayTime)
+    if displayTime == 0 and not SV.p.fateRealigned.displayZero then displayStr = "" end
+
+    Gui.fateRealigned.label:SetText( displayStr ) 
+
+    if FateRealigned.endTime < time then 
+      FateRealigned.active = false 
+    end
+end
+
+local function StartTrackingFateRealigned() 
+  EM:RegisterForEvent("CruxTracker_FateRealigned", EVENT_COMBAT_EVENT, OnFateRealignedProc) 
+  EM:AddFilterForEvent("CruxTracker_FateRealigned", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, FateRealigned.procId) 
+  EM:AddFilterForEvent("CruxTracker_FateRealigned", EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE , COMBAT_UNIT_TYPE_PLAYER) 
+  EM:AddFilterForEvent("CruxTracker_FateRealigned", EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT , ACTION_RESULT_EFFECT_GAINED) 
+  Update:AddToList( "FateRealigned", OnFateRealignedUpdate) 
+end 
+
+
+local function StopTrackingFateRealigned() 
+  EM:UnregisterForEvent("CruxTracker_FateRealigned", EVENT_COMBAT_EVENT)
+  Update:RemoveFromList("FateRealigned") 
+end
+
+local function GetFateRealignedTrackerMenuControls() 
+  local controls = {}
+  table.insert(controls, {
+    type = "checkbox", 
+    name = ECT_SETTING_ENABLED, 
+    getFunc = function() return SV.p.fateRealigned.enabled end, 
+    setFunc = function(bool) 
+      SV.p.fateRealigned.enabled = bool 
+      SetVisibility() 
+    end, 
+  }) 
+
+  table.insert( controls, {
+    type = "header", 
+    name = ECT_SETTING_INDICATOR, 
+    width = "full", 
+  })
+  table.insert( controls, {
+    type = "dropdown", 
+    name = ECT_SETTING_FONT, 
+    choices = LibExoY.GetFontList(), 
+    getFunc = function() return LibExoY.GetFontList()[SV.p.fateRealigned.font] end, 
+    setFunc = function( selection ) 
+      for idx, font in ipairs(LibExoY.GetFontList() ) do 
+        if selection == font then 
+          SV.p.fateRealigned.font = idx
+          break 
+        end
+      end
+      Gui.fateRealigned.UpdateDesign() 
+    end,
+  })
+  table.insert( controls, {
+    type = "slider", 
+    name = ECT_SETTING_SIZE, 
+    min = 10, 
+    max = 80, 
+    step = 2, 
+    getFunc = function() return SV.p.fateRealigned.size end, 
+    setFunc = function( size ) 
+      SV.p.fateRealigned.size = size 
+      Gui.fateRealigned.UpdateDesign() 
+    end
+  })
+  table.insert( controls, {
+    type = "checkbox", 
+    name = ECT_SETTING_DISPLAY_ZERO, 
+    getFunc = function() return SV.p.fateRealigned.displayZero end,
+    setFunc = function(bool) 
+      SV.p.fateRealigned.displayZero = bool 
+    end,
+    })
+    table.insert( controls, {
+      type = "colorpicker", 
+      name = ECT_SETTING_COLOR, 
+      getFunc = function() return unpack(SV.p.fateRealigned.colorLong) end, 
+      setFunc = function(r,g,b,a)
+        SV.p.fateRealigned.colorLong = {r,g,b,a} 
+      end, 
+    })
+
+  local advancedDesignControls = {} 
+  table.insert(advancedDesignControls, {
+    type = "header", 
+    name = ECT_SETTING_ICON, 
+  })
+  table.insert(advancedDesignControls, {
+    type = "checkbox", 
+    name = ECT_SETTING_ENABLED, 
+    getFunc = function() return SV.p.fateRealigned.design.iconEnabled end, 
+    setFunc = function(bool)
+      SV.p.fateRealigned.design.iconEnabled = bool
+      Gui.fateRealigned.UpdateDesign()
+    end, 
+    width = "half"
+  })
+
+  table.insert(advancedDesignControls, { 
+    type = "slider", 
+    min = 0, 
+    max = 1, 
+    step = 0.1, 
+    name = ECT_SETTING_BACK_ALPHA, 
+    getFunc = function() return SV.p.fateRealigned.design.backgroundAlpha end, 
+    setFunc = function(value) 
+      SV.p.fateRealigned.design.backgroundAlpha = value
+      Gui.fateRealigned.UpdateDesign() 
+    end,
+    width = "half", 
+  })
+  table.insert(advancedDesignControls, { 
+    type = "slider", 
+    min = 0, 
+    max = 1, 
+    step = 0.1, 
+    name = ECT_SETTING_ICON_DESA, 
+    getFunc = function() return SV.p.fateRealigned.design.iconDesaturation end, 
+    setFunc = function(value) 
+      SV.p.fateRealigned.design.iconDesaturation = value
+      Gui.fateRealigned.UpdateDesign() 
+    end,
+    width = "half", 
+  })
+  table.insert(advancedDesignControls, { 
+    type = "slider", 
+    min = 0, 
+    max = 1, 
+    step = 0.1, 
+    name = ECT_SETTING_ICON_ALPHA, 
+    getFunc = function() return SV.p.fateRealigned.design.iconAlpha end, 
+    setFunc = function(value) 
+      SV.p.fateRealigned.design.iconAlpha = value
+      Gui.fateRealigned.UpdateDesign() 
+    end,
+    width = "half", 
+  })
+
+  table.insert(controls, {
+    type = "submenu", 
+    name = ECT_SETTING_ADVANCED_DESIGN, 
+    controls = advancedDesignControls,
+  })
+
+  return {
+    type = "submenu", 
+    name = LibExoY.AddIconToString("Fate Realigned", "esoui/art/icons/passive_arcanist_08.dds", 36, "front"),
+    controls = controls
+  }
+end
 
 --[[ ------------------ ]]
 --[[ -- Crux Tracker -- ]]
@@ -1654,6 +1976,7 @@ local function GetMenuControls()
   
   local cruxCreatorSubmenu = {}
   table.insert(cruxCreatorSubmenu, GetSpatteringTrackerMenuControls() )
+  table.insert(cruxCreatorSubmenu, GetFateRealignedTrackerMenuControls() )
   table.insert(controls, {type = "submenu", name = "CruxCreators (Beta)", controls = cruxCreatorSubmenu}
 
   )
@@ -1677,6 +2000,7 @@ local function ProfileDefaults()
     numeric = GetNumericTrackerSettingDefaults(),
     timer = GetCruxTimerSettingsDefaults(),
     spattering = GetSpatteringTrackerSettingsDefaults(),
+    fateRealigned = GetFateRealignedSettingsDefaults(),
   }
 end
 
@@ -1710,9 +2034,16 @@ local function Initialize()
   Gui.numeric = InitializeNumericTracker() 
   Gui.timer = InitializeCruxTimer()
   Gui.spattering = InitializeSpatteringTracker()
+  Gui.fateRealigned = InitializeFateRealignedTracker()
 
-  if SV.p.spattering.enabled then 
-    StartTrackingSpattering()
+  ---@todo investigate, i got an error from LSD line 1529 "function expected instead of nil", i suspect that an LSD function called to early but it doesnt make a lot of sence to me. --> the optional dependency is missing 
+  if GetUnitClassId("player") == arcanistId then 
+    if SV.p.spattering.enabled then 
+      StartTrackingSpattering()
+    end
+    if SV.p.fateRealigned.enabled then 
+      StartTrackingFateRealigned()
+    end
   end
   
   LibExoY.RegisterCombatStart( function() SetVisibility() end )
@@ -1755,5 +2086,5 @@ SLASH_COMMANDS["/ectdebug"] = function( )
 end
 
 SLASH_COMMANDS["/ect"] = function( )
-  exoytestvar = Gui.spattering  ---@debug
+  d(Spattering.heraldSkillNames) 
 end

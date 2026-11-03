@@ -247,6 +247,19 @@
                       relativePoint="RIGHT"
                       offsetX="-1" />
             </Texture>
+            <Texture name="$(parent)_CustomIcon"
+                     textureFile=""
+                     layer="OVERLAY"
+                     tier="LOW"
+                     inheritAlpha="false"
+                     hidden="true">
+              <Dimensions x="22"
+                          y="22" />
+              <Anchor point="RIGHT"
+                      relativeTo="$(parent)_ClassIcon"
+                      relativePoint="LEFT"
+                      offsetX="-2" />
+            </Texture>
             <Texture name="$(parent)_FriendIcon"
                      textureFile=""
                      hidden="true">

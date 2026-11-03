@@ -21,6 +21,9 @@
             <Action name="INVENTORY_GROUPING_SEND_TO_DECONSTRUCT">
                 <Down>InventoryGrouping.SendHoveredToDeconstruct()</Down>
             </Action>
+            <Action name="INVENTORY_GROUPING_SEND_TO_BANK">
+                <Down>InventoryGrouping.SendHoveredToBank()</Down>
+            </Action>
             <Action name="INVENTORY_GROUPING_MARK_AS_JUNK">
                 <Down>InventoryGrouping.JunkHovered()</Down>
             </Action>

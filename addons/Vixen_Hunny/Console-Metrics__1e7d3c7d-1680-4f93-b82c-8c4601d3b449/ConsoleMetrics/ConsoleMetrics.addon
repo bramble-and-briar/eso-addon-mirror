@@ -1,15 +1,21 @@
 ## Title: Console Metrics
 ## Author: Vixen Hunny
-## Version: 3.0.0
-## APIVersion: 101051
+## Version: 1.1.0
+## APIVersion: 101050
 ## SavedVariables: ConsoleMetricsSavedVars
-## OptionalDependsOn: PvPCooldownTracker LibConsoleDialogs LibHarvensAddonSettings LibAddonMenu-2.0 LMB
+## OptionalDependsOn: PvPCooldownTracker LibConsoleDialogs LibHarvensAddonSettings LMB
 
 src/ConsoleMetrics_Core.lua
+src/ConsoleMetrics_Build.lua
+src/ConsoleMetrics_Champion.lua
+src/ConsoleMetrics_Sets.lua
 src/ConsoleMetrics_FightData.lua
-src/ConsoleMetrics_Chat.lua
-src/ConsoleMetrics_PCDialog.lua
-src/ConsoleMetrics_Dialog.lua
-src/ConsoleMetrics_Integration.lua
 src/ConsoleMetrics_Combat.lua
-src/ConsoleMetrics_UIInit.lua
+src/ConsoleMetrics_Chat.lua
+src/ConsoleMetrics_Dialog.lua
+src/ConsoleMetrics_PCDialog.lua
+src/ConsoleMetrics_Integration.lua
+src/ConsoleMetrics_Debug.lua
+src/ConsoleMetrics_Settings.lua
+src/ConsoleMetrics_Commands.lua
+src/ConsoleMetrics_Init.lua

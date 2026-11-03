@@ -66,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO Emoji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitkathy1994/ESO-Emoji__3376) | kitkathy1994 | PC / Mac | 0.4.2 |
 | [ESO Farm-Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Farm-Buddy__2553) | Keldor | PC / Mac | 1.0.36 |
 | [ESO Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marcjordan/ESO-Grinder__2788) | marcjordan | PC / Mac | 2.1.0 |
-| [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 3.2.3 |
+| [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 3.3.8 |
 | [ESO Language Overrider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hevnokaaz/ESO-Language-Overrider__2655) | Hevnokaaz | PC / Mac | 1.2.2 |
 | [ESO Launcher Closer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Draco9990/ESO-Launcher-Closer__3298) | Draco9990 | PC / Mac | 1.1 |
 | [ESO Master Recipe List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/ESO-Master-Recipe-List__1043) | Phinix | PC / Mac | 1.56.76 |
@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExecuteNow+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RaeL/ExecuteNow__4067) | RaeL | PC / Mac | 0.5.0 |
 | [ExoYs Achievement Anonymizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Achievement-Anonymizer__3328) | ExoY | PC / Mac | 2.1 |
 | [ExoYs Auto Sheathe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Auto-Sheathe__2546) | ExoY | PC / Mac | 4.0 |
-| [ExoYs Crux Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Crux-Tracker__3619) | ExoY | PC / Mac | 2.1.0 |
+| [ExoYs Crux Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Crux-Tracker__3619) | ExoY | PC / Mac | 2.2.0 |
 | [ExoYs Juggernautificator (Offensive Tank Boni Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Juggernautificator-Offensive-Tank-Boni-Tracker__5003) | ExoY | PC / Mac | 0.0.1 |
 | [ExoYs Mundus Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Mundus-Reminder__2728) | ExoY | PC / Mac | 1.3 |
 | [ExoYs ProcSet Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-ProcSet-Timer__2783) | ExoY | PC / Mac | 2.14.0 |

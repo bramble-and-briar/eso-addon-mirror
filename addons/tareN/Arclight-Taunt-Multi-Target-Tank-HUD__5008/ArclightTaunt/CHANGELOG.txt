@@ -1,6 +1,41 @@
 [b][color=#F2D29A]ARCLIGHT TAUNT - PUBLIC CHANGELOG[/color][/b]
 
-[b][color=#2FE6C4]VERSION 1.0.3 | Clearer Boss Warnings & Reliable Tracking | 31 October 2026[/color][/b]
+[b][color=#2FE6C4]VERSION 1.1.0 | Clearer Combat HUD & Smooth Countdowns | 2 November 2026[/color][/b]
+
+[b]HUD & CUSTOMIZATION[/b]
+- Taunt countdown bars now move smoothly instead of advancing in steps with each HUD update. Re-taunts use the newly reported duration, and the bar clears together with the zero timer. Boss-banner countdown strips are smoother too.
+- Added optional High contrast for both existing progress styles: narrow bars and full-row fills. It uses stronger urgency colors and shaded surfaces while retaining your selected fonts and text size.
+- Added horizontal HUD mirroring. Timers move left, names move right, bars empty from left to right and two-column placement mirrors too. Boss icons stay beside the urgency stripe at a fixed position.
+- Added Show taunt list. Hide enemy rows while keeping your configured boss banners and sounds active. Preview and drag mode can still display the hidden list for setup.
+- Added Extra row height, adjustable independently of font size, HUD scale and bar thickness. Narrow rows have more room for readable text; the minimum height adapts to your font and countdown strip.
+- Replaced the blue-tinted Strong/Subtle target styles with one neutral target highlight. A pale outline surrounds the complete row, including its narrow countdown strip, and a brief light sweep marks target changes without recoloring names or urgency indicators.
+- Full-row display now keeps a persistent urgency stripe beside the countdown, including at zero. Both progress styles use the space beside this stripe for their fill, and changes in stripe width are animated.
+- Refined the ivory boss skull and enlarged it in warning banners. New rows can briefly fade in; selected, urgent and expired entries remain immediately readable.
+
+[b]BUG FIXES FROM VERSION 1.0.3[/b]
+- Fixed older application/update messages overwriting a newer taunt timer. When ESO supplies usable application times, an earlier application can no longer shorten the current one; late removal messages are also checked against the tracked application.
+- Fixed removal messages from foreign or unknown sources being able to end a tracked own taunt. Source checks now apply to removal messages as well as applications, including distinguishing your own effects from your pets’ effects.
+- Improved cleanup of defeated enemies by recognizing additional ESO death results, including killing blows. A directly identified enemy found dead under the crosshair can also be cleared when automatic removal is enabled. Removal still uses unit identity, not a shared enemy name.
+- Fixed the warning test clearing or replacing real combat warnings. It now leaves active or pending real warnings alone; genuine warnings cancel any remaining test sequence.
+
+[b]WARNINGS, SOUNDS & PREVIEW[/b]
+- Added a separate, optional early-warning sound, disabled by default. The sound mode offers expiration only, early warning only, both or off, with independent sound selections. Red and pending expiration warnings have priority; suppressed early sounds are discarded rather than played later.
+- Replaced the separate warning tests with one staged test: turquoise early warning first, then red expiration, then turquoise below red to demonstrate overlap. It follows your early-warning lead time and enabled sounds; without early warnings, it tests red only.
+- Added Pause preview beside Show preview. It freezes timers, arrivals and target focus, then resumes from the same point. Ending the preview clears the pause.
+- Reworked the existing list preview: instead of repeating the same fixed roster and timing, it starts with staggered active taunts, adds and re-taunts enemies irregularly, and chooses varied dungeon/trial names each cycle. Lord Okyl now appears occasionally rather than in every roster.
+- Expanded the sound selection with Duel start, Notification, Duel invitation, Duel accepted, Duel victory, Duel forfeit, Announcement, Trial start and Trial completed. Removed General alarm, Countdown warning, Detected and Ability failed. Removed or invalid saved sounds fall back to the relevant warning type’s default.
+
+[b]SETTINGS & COMPATIBILITY[/b]
+- Added Track taunts on players under Tracking & tests, disabled by default. Positively identified players are excluded unless enabled; unknown target types are not discarded on a guess.
+- Simplified sorting to remaining taunt time and removed the alternate warning-level order. Stable ties, boss pinning and the existing priority for expired pinned bosses remain.
+- Removed the optional status header and shortened the overflow display to +N more. Each occupied column now has a slim, text-free top edge. Removed the row-background selector while preserving existing saved backgrounds.
+- Removed group-taunt display and Show only my taunts: locally observed effects did not provide sufficiently reliable information about other players' taunt ownership and remaining duration. Arclight now consistently tracks your own supported taunts, including your pets.
+- Removed the experimental immunity and taunt-stack indicators and their settings: they could not reliably identify boss taunt-immunity phases and could give misleading information.
+- Reorganized position/list controls, warning controls and test buttons. Key readability settings use matching color accents; boss-icon settings show the actual skull. Sound headings and selectors are centered together.
+- Shortened settings labels and tooltips in English, German, French, Spanish and Russian. Removed outdated explanations and clarified options such as player targets, preview timing and readable row height.
+- For new installations and restored defaults, HUD size changes from 125% to 115%, the bar texture from Signal to Signature, banner background opacity from 100% to 72%, and expiration sound from Killing blow to Duel start. Early audio defaults off with Duel boundary warning selected. Existing personal scale, position, media, opacity and supported sound choices are preserved; no new required library is added.
+
+[b][color=#AEBCCA]VERSION 1.0.3 | Clearer Boss Warnings & Reliable Tracking | 31 October 2026[/color][/b]
 - Boss warnings can now appear together: a large red banner for expired taunts and a smaller turquoise early warning below it. Each banner groups its own affected bosses and uses the existing position and opacity settings.
 - Early warnings follow the remaining taunt time and remove each boss on expiry, re-taunt or recognized death. They are no longer queued behind a red banner.
 - Turquoise warnings glide down from behind an active red banner and fade smoothly when shown alone. Existing early warnings stay in place when red appears; expanding boss groups no longer restart the fade abruptly.

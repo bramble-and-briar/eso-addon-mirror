@@ -1,0 +1,12 @@
+## Title: MatchMonitor
+## Description: Shows your own Activity Finder / Battleground queue state, request kind and group roles as plain text on the TV screen (PS5/Console). Position is set from the settings screen.
+## Author: Bucketmore
+## Version: 1.0.1
+## AddOnVersion: 101
+## APIVersion: 101051 101050
+## SavedVariables: MatchMonitor_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+## IsLibrary: false
+
+MatchMonitor.lua
+MatchMonitor_Settings.lua

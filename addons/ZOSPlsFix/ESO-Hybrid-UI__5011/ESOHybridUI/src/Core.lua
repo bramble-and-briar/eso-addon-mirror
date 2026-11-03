@@ -34,11 +34,7 @@ local function CopyProfileSettings(source, target)
 end
 
 local function OriginalGamepadPreferredMode()
-    local original = ADDON.runtime.originalIsInGamepadPreferredMode
-    if type(original) == "function" then
-        return original()
-    end
-    return false
+    return ADDON.runtime.originalIsInGamepadPreferredMode()
 end
 
 local function GetSettings()
@@ -91,7 +87,6 @@ function ADDON:ApplyRecommendedESOSettings()
         saveOption
     )
 
-    self.savedVariablesAccountWide._esoHybridRecommendedSettingsApplied = true
     self:LogInfo("Recommended ESO controller and keyboard-chat settings applied and saved.")
 
     if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
@@ -117,9 +112,29 @@ function ADDON:WithNativeGamepadMode(callback, ...)
     return unpack(results, 2, results.n)
 end
 
+function ADDON:WithKeyboardWheelMode(callback, ...)
+    local runtime = ADDON.runtime
+    runtime.forceKeyboardWheelDepth = runtime.forceKeyboardWheelDepth + 1
+
+    local function Pack(...) return { n = select("#", ...), ... } end
+    local results = Pack(pcall(callback, ...))
+    runtime.forceKeyboardWheelDepth = math.max(0, runtime.forceKeyboardWheelDepth - 1)
+
+    if not results[1] then
+        error(results[2], 0)
+    end
+    return unpack(results, 2, results.n)
+end
+
 local function IsGamepadUIAllowed()
     if ADDON.runtime.forceNativeModeDepth > 0 then
         return OriginalGamepadPreferredMode()
+    end
+
+    -- A wheel is a deliberate exception: Hybrid uses ESO's keyboard wheel
+    -- presentation while keeping the surrounding menus in native gamepad mode.
+    if ADDON.runtime.forceKeyboardWheelDepth > 0 then
+        return false
     end
 
     local settings = GetSettings()
@@ -151,18 +166,21 @@ local function IsGamepadUIAllowed()
         -- Keep the combat/world HUD on the compact keyboard platform, but let
         -- the world map opt into ESO's native gamepad map presentation even
         -- though opening the map does not necessarily enter UI mode.
-        local worldMapShowing = WORLD_MAP_SCENE
-            and WORLD_MAP_SCENE.IsShowing
-            and WORLD_MAP_SCENE:IsShowing()
+        local worldMapShowing = WORLD_MAP_SCENE:IsShowing()
         if worldMapShowing then
             return OriginalGamepadPreferredMode()
         end
 
-        return OriginalGamepadPreferredMode()
-            and SCENE_MANAGER
+        -- UI mode alone is not enough: ESO also enters UI mode on focus
+        -- loss while showing its base HUD-UI scene. Only use gamepad styling
+        -- for an actual menu/overlay scene, not for the base HUD scene.
+        local inUIMode = SCENE_MANAGER
             and SCENE_MANAGER.IsInUIMode
             and SCENE_MANAGER:IsInUIMode()
-            or false
+        local showingBaseScene = SCENE_MANAGER
+            and SCENE_MANAGER.IsShowingBaseScene
+            and SCENE_MANAGER:IsShowingBaseScene()
+        return OriginalGamepadPreferredMode() and inUIMode and not showingBaseScene
     end
 
     return false
@@ -191,51 +209,85 @@ local function InstallModeOverride()
     return true
 end
 
+local function IsShowingBaseHUDScene()
+    return SCENE_MANAGER
+        and SCENE_MANAGER.IsShowingBaseScene
+        and SCENE_MANAGER:IsShowingBaseScene()
+end
+
 local function RefreshPlatformMode()
     local runtime = ADDON.runtime
-    -- ESO keeps PLATFORM_STYLE_MANAGER local to its platform-style library;
-    -- it exposes no public "reapply all styles" method. Changing the preferred
-    -- mode is what emits the native event that refreshes those styles. We
-    -- therefore restore the exact saved setting immediately after the event.
     if runtime.isRefreshing then
-        return
+        return false
     end
 
-    local currentMode = GetSetting(SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_INPUT_PREFERRED_MODE)
+    -- Changing GAMEPAD_SETTING_INPUT_PREFERRED_MODE while a gamepad menu is
+    -- current makes ESO's IngameSceneManager compare that menu's original
+    -- input mode with the temporary mode. It can close the menu and return
+    -- to the HUD. Never emit the mode-change event from an overlay/menu.
+    if not IsShowingBaseHUDScene() then
+        runtime.platformRefreshPending = true
+        return false
+    end
 
+    -- PLATFORM_STYLE_MANAGER is private to ESO's platform-style library and
+    -- has no public refresh method. The supported event is emitted by changing
+    -- the preferred-mode setting. At the base HUD scene, ESO's scene manager
+    -- will not replace the scene in response to that event. Restore the exact
+    -- saved value immediately; this is a presentation refresh, not a setting.
+    local currentMode = GetSetting(SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_INPUT_PREFERRED_MODE)
     local currentNumeric = tonumber(currentMode)
-    local keyboardMode = INPUT_PREFERRED_MODE_ALWAYS_KEYBOARD
-    local temporaryMode = currentNumeric == keyboardMode
+    local temporaryMode = currentNumeric == INPUT_PREFERRED_MODE_ALWAYS_KEYBOARD
         and INPUT_PREFERRED_MODE_ALWAYS_GAMEPAD
-        or keyboardMode
+        or INPUT_PREFERRED_MODE_ALWAYS_KEYBOARD
 
     runtime.isRefreshing = true
-    local changed, changeError = pcall(SetSetting, SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_INPUT_PREFERRED_MODE, tostring(temporaryMode))
-    local restored, restoreError = pcall(SetSetting, SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_INPUT_PREFERRED_MODE, tostring(currentMode))
+    local changed, changeError = pcall(
+        SetSetting,
+        SETTING_TYPE_GAMEPAD,
+        GAMEPAD_SETTING_INPUT_PREFERRED_MODE,
+        tostring(temporaryMode)
+    )
+    local restored, restoreError = pcall(
+        SetSetting,
+        SETTING_TYPE_GAMEPAD,
+        GAMEPAD_SETTING_INPUT_PREFERRED_MODE,
+        tostring(currentMode)
+    )
     runtime.isRefreshing = false
 
     if not changed or not restored then
+        runtime.platformRefreshPending = true
         ADDON:LogError("Could not refresh platform styles:", tostring(changeError or restoreError))
+        return false
     end
+
+    runtime.platformRefreshPending = false
+    return true
 end
 
 function ADDON:Refresh()
     self:LogDebug("Refreshing UI presentation.")
     InstallModeOverride()
 
-    if self.ApplyAll then
-        self:ApplyAll()
-    end
+    self:ApplyAll()
 
+    -- If called from a settings/menu scene, defer the native platform-style
+    -- refresh. The scene callback below performs it after the base HUD returns.
     RefreshPlatformMode()
 end
 
 function ADDON:ApplyAll()
-    if self.ApplyPrompts then self:LogDebug("Applying prompt styles."); self:ApplyPrompts() end
-    if self.ApplyDialogs then self:LogDebug("Applying dialog styles."); self:ApplyDialogs() end
-    if self.ApplyUtilityWheel then self:LogDebug("Applying utility-wheel bridge."); self:ApplyUtilityWheel() end
-    if self.ApplyActionBar then self:LogDebug("Applying action-bar style."); self:ApplyActionBar() end
-    if self.ApplyWorldMap then self:LogDebug("Applying world-map behavior."); self:ApplyWorldMap() end
+    self:LogDebug("Applying prompt styles.")
+    self:ApplyPrompts()
+    self:LogDebug("Applying dialog styles.")
+    self:ApplyDialogs()
+    self:LogDebug("Applying utility-wheel bridge.")
+    self:ApplyUtilityWheel()
+    self:LogDebug("Applying action-bar style.")
+    self:ApplyActionBar()
+    self:LogDebug("Applying world-map behavior.")
+    self:ApplyWorldMap()
 end
 
 function ADDON:SetUseAccountWideSettings(enabled)
@@ -265,7 +317,6 @@ function ADDON:SetUseAccountWideSettings(enabled)
     -- character enables it, every character on this ESO account uses the
     -- same account profile without requiring a separate opt-in.
     account._esoHybridUseAccountWideSettings = enabled == true
-    character.useAccountWideSettings = enabled == true
     self:Refresh()
 end
 
@@ -312,7 +363,6 @@ local function InitializeSavedVariables()
         CopyProfileSettings(legacyAccountProfile, account)
         account._esoHybridUseAccountWideSettings = legacyAccountProfile._esoHybridUseAccountWideSettings
         account._esoHybridWelcomeShown = legacyAccountProfile._esoHybridWelcomeShown
-        account._esoHybridRecommendedSettingsApplied = legacyAccountProfile._esoHybridRecommendedSettingsApplied
         account._esoHybridServerProfileMigrated = true
     end
 
@@ -419,23 +469,56 @@ local function OnGamepadPreferredModeChanged()
     end
 end
 
+
 local function OnAddonLoaded(_, addonName)
     if addonName ~= ADDON.ADDON_NAME or ADDON.runtime.initialized then
         return
     end
 
     InitializeSavedVariables()
-    if ADDON.InitializeDiagnostics then
-        ADDON:InitializeDiagnostics()
-        ADDON:RegisterDiagnosticCommands()
-        ADDON:LogInfo("Initializing addon", ADDON.VERSION)
-    end
+    ADDON:InitializeDiagnostics()
+    ADDON:RegisterDiagnosticCommands()
+    ADDON:LogInfo("Initializing addon", ADDON.VERSION)
     InstallModeOverride()
 
     EVENT_MANAGER:RegisterForEvent(ADDON.ADDON_NAME .. "_LockpickBegin", EVENT_BEGIN_LOCKPICK, OnLockpickBegin)
     EVENT_MANAGER:RegisterForEvent(ADDON.ADDON_NAME .. "_LockpickSuccess", EVENT_LOCKPICK_SUCCESS, OnLockpickEnd)
     EVENT_MANAGER:RegisterForEvent(ADDON.ADDON_NAME .. "_LockpickFailed", EVENT_LOCKPICK_FAILED, OnLockpickEnd)
     EVENT_MANAGER:RegisterForEvent(ADDON.ADDON_NAME .. "_ModeChanged", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, OnGamepadPreferredModeChanged)
+    -- SceneStateChanged fires for the menu scene as it hides too. Listen to
+    -- all scene transitions rather than only hud/hudui becoming SHOWN: HUD
+    -- may have remained shown underneath a stacked settings scene and receive
+    -- no new SHOWN event when it becomes current again. The delayed base-scene
+    -- check handles both that case and focus loss (which shows hudui).
+    if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
+        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState)
+            if newState ~= SCENE_SHOWN and newState ~= SCENE_HIDDEN then
+                return
+            end
+
+            local settings = GetSettings()
+            if not ADDON.runtime.platformRefreshPending and not settings.useHybridUI then
+                return
+            end
+
+            -- Scene transitions can arrive in bursts while menus stack or
+            -- close. Coalesce them into one deferred base-HUD refresh.
+            if ADDON.runtime.platformRefreshScheduled then
+                return
+            end
+            ADDON.runtime.platformRefreshScheduled = true
+            zo_callLater(function()
+                ADDON.runtime.platformRefreshScheduled = false
+                if ADDON.runtime.initialized
+                    and IsShowingBaseHUDScene()
+                    and (ADDON.runtime.platformRefreshPending or GetSettings().useHybridUI) then
+                    ADDON:LogDebug("Refreshing platform styles after returning to the base HUD scene.")
+                    RefreshPlatformMode()
+                end
+            end, 100)
+        end)
+    end
+
 
     local function OnLockpickSceneStateChanged(_, newState)
         if newState == SCENE_HIDDEN then
@@ -452,9 +535,7 @@ local function OnAddonLoaded(_, addonName)
 
     RegisterSlashCommands()
 
-    if ADDON.RegisterSettings then
-        ADDON:RegisterSettings()
-    end
+    ADDON:RegisterSettings()
 
     ADDON.runtime.initialized = true
     ADDON:Refresh()

@@ -739,11 +739,18 @@ end
 function SpellCastBuffs.RegisterDebugEvents()
     -- Unregister existing events
     eventManager:UnregisterForEvent(moduleName .. "DebugCombat", EVENT_COMBAT_EVENT)
+    eventManager:UnregisterForEvent(moduleName .. "DebugPower", EVENT_POWER_UPDATE)
     -- Register standard debug events if enabled
     if SpellCastBuffs.SV.ShowDebugCombat then
         eventManager:RegisterForEvent(moduleName .. "DebugCombat", EVENT_COMBAT_EVENT, function (eventId, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
             SpellCastBuffs.EventCombatDebug(eventId, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
         end)
+    end
+    if SpellCastBuffs.SV.ShowDebugPower then
+        eventManager:RegisterForEvent(moduleName .. "DebugPower", EVENT_POWER_UPDATE, function (eventId, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+            SpellCastBuffs.EventPowerDebug(eventId, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+        end)
+        eventManager:AddFilterForEvent(moduleName .. "DebugPower", EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
     end
     eventManager:UnregisterForEvent(moduleName .. "DebugEffect", EVENT_EFFECT_CHANGED)
     if SpellCastBuffs.SV.ShowDebugEffect then
@@ -755,10 +762,18 @@ function SpellCastBuffs.RegisterDebugEvents()
     -- Author-specific debug events
     if SpellCastBuffs.devDebugEnabled then
         eventManager:UnregisterForEvent(moduleName .. "AuthorDebugCombat", EVENT_COMBAT_EVENT)
+        eventManager:UnregisterForEvent(moduleName .. "AuthorDebugPower", EVENT_POWER_UPDATE)
         if SpellCastBuffs.SV.ShowDebugCombat then
             eventManager:RegisterForEvent(moduleName .. "AuthorDebugCombat", EVENT_COMBAT_EVENT, function (eventId, ...)
                 SpellCastBuffs.AuthorCombatDebug(eventId, ...)
             end)
+        end
+        -- Absent when _DevDebug.lua returns early on a non-dev load.
+        if SpellCastBuffs.SV.ShowDebugPower and SpellCastBuffs.AuthorPowerDebug then
+            eventManager:RegisterForEvent(moduleName .. "AuthorDebugPower", EVENT_POWER_UPDATE, function (eventId, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+                SpellCastBuffs.AuthorPowerDebug(eventId, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+            end)
+            eventManager:AddFilterForEvent(moduleName .. "AuthorDebugPower", EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
         end
         eventManager:UnregisterForEvent(moduleName .. "AuthorDebugEffect", EVENT_EFFECT_CHANGED)
         if SpellCastBuffs.SV.ShowDebugEffect then
@@ -1132,6 +1147,9 @@ function SpellCastBuffs.SetMovingState(state)
         container:SetMovable(state)
         UpdatePositionLabel(container, container.preview and container.preview.anchorLabel)
         container:SetHandler("OnMoveStop", function (self)
+            if not state then
+                return
+            end
             local left, top = self:GetLeft(), self:GetTop()
             if IsSnapToGridBuffsEnabled() then
                 left, top = LUIE.ApplyGridSnap(left, top, "buffs")
@@ -1754,14 +1772,14 @@ function SpellCastBuffs.Buff_OnMouseUp(self, button, upInside)
         local blacklist = SpellCastBuffs.SV.BlacklistTable
         local isBlacklisted = blacklist[id] or blacklist[name]
         AddMenuItem(isBlacklisted and "Remove from Blacklist" or "Add to Blacklist", function ()
-            if isBlacklisted then
-                SpellCastBuffs.RemoveFromCustomList(blacklist, id)
-                SpellCastBuffs.RemoveFromCustomList(blacklist, name)
-            else
-                SpellCastBuffs.AddToCustomList(blacklist, id)
-                SpellCastBuffs.AddToCustomList(blacklist, name)
-            end
-        end, MENU_ADD_OPTION_LABEL, contextMenuFont)
+                        if isBlacklisted then
+                            SpellCastBuffs.RemoveFromCustomList(blacklist, id)
+                            SpellCastBuffs.RemoveFromCustomList(blacklist, name)
+                        else
+                            SpellCastBuffs.AddToCustomList(blacklist, id)
+                            SpellCastBuffs.AddToCustomList(blacklist, name)
+                        end
+                    end, MENU_ADD_OPTION_LABEL, contextMenuFont)
 
         -- Prominent Buffs
         -- prominentByIdOnly abilities (Crystal Weapon 46331 / 143808) share a display name, so the name must not be stored.
@@ -1769,43 +1787,43 @@ function SpellCastBuffs.Buff_OnMouseUp(self, button, upInside)
         local matchProminentByName = SpellCastBuffs.MatchesProminentByName(id)
         local isPromBuff = SpellCastBuffs.IsProminentBuff(id, name)
         AddMenuItem(isPromBuff and "Remove from Prominent Buffs" or "Add to Prominent Buffs", function ()
-            if isPromBuff then
-                SpellCastBuffs.RemoveFromCustomList(promBuffs, id)
-                SpellCastBuffs.RemoveFromCustomList(promBuffs, name)
-            else
-                SpellCastBuffs.AddToCustomList(promBuffs, id)
-                if matchProminentByName then
-                    SpellCastBuffs.AddToCustomList(promBuffs, name)
-                end
-            end
-        end, MENU_ADD_OPTION_LABEL, contextMenuFont)
+                        if isPromBuff then
+                            SpellCastBuffs.RemoveFromCustomList(promBuffs, id)
+                            SpellCastBuffs.RemoveFromCustomList(promBuffs, name)
+                        else
+                            SpellCastBuffs.AddToCustomList(promBuffs, id)
+                            if matchProminentByName then
+                                SpellCastBuffs.AddToCustomList(promBuffs, name)
+                            end
+                        end
+                    end, MENU_ADD_OPTION_LABEL, contextMenuFont)
 
         -- Prominent Debuffs
         local promDebuffs = SpellCastBuffs.SV.PromDebuffTable
         local isPromDebuff = SpellCastBuffs.WantsProminentDebuff(id, name)
         AddMenuItem(isPromDebuff and "Remove from Prominent Debuffs" or "Add to Prominent Debuffs", function ()
-            if isPromDebuff then
-                if SpellCastBuffs.IsOffBalanceProminentKey(id) or SpellCastBuffs.IsOffBalanceProminentKey(name) then
-                    SpellCastBuffs.ClearOffBalanceProminentEntries(promDebuffs)
-                elseif SpellCastBuffs.IsCCImmunityProminentKey(id) or SpellCastBuffs.IsCCImmunityProminentKey(name) then
-                    SpellCastBuffs.ClearCCImmunityProminentEntries(promDebuffs)
-                else
-                    SpellCastBuffs.RemoveFromCustomList(promDebuffs, id)
-                    SpellCastBuffs.RemoveFromCustomList(promDebuffs, name)
-                end
-            else
-                SpellCastBuffs.AddToCustomList(promDebuffs, id)
-                if SpellCastBuffs.MatchesProminentByName(id) then
-                    SpellCastBuffs.AddToCustomList(promDebuffs, name)
-                end
-            end
-        end, MENU_ADD_OPTION_LABEL, contextMenuFont)
+                        if isPromDebuff then
+                            if SpellCastBuffs.IsOffBalanceProminentKey(id) or SpellCastBuffs.IsOffBalanceProminentKey(name) then
+                                SpellCastBuffs.ClearOffBalanceProminentEntries(promDebuffs)
+                            elseif SpellCastBuffs.IsCCImmunityProminentKey(id) or SpellCastBuffs.IsCCImmunityProminentKey(name) then
+                                SpellCastBuffs.ClearCCImmunityProminentEntries(promDebuffs)
+                            else
+                                SpellCastBuffs.RemoveFromCustomList(promDebuffs, id)
+                                SpellCastBuffs.RemoveFromCustomList(promDebuffs, name)
+                            end
+                        else
+                            SpellCastBuffs.AddToCustomList(promDebuffs, id)
+                            if SpellCastBuffs.MatchesProminentByName(id) then
+                                SpellCastBuffs.AddToCustomList(promDebuffs, name)
+                            end
+                        end
+                    end, MENU_ADD_OPTION_LABEL, contextMenuFont)
 
         -- Cancel Buff (if possible)
         if self.buffSlot then
             AddMenuItem("Cancel Buff", function ()
-                CancelBuff(self.buffSlot)
-            end, MENU_ADD_OPTION_LABEL, contextMenuFont)
+                            CancelBuff(self.buffSlot)
+                        end, MENU_ADD_OPTION_LABEL, contextMenuFont)
         end
         ShowMenu(self)
     end
@@ -2974,7 +2992,7 @@ function SpellCastBuffs.EnforceDisplayAlpha()
     for containerKey, control in pairs(SpellCastBuffs.BuffContainers) do
         if control and control.SetAlpha and control.GetAlpha and not g_displayAlphaSeen[control] then
             g_displayAlphaSeen[control] = true
-            if not SpellCastBuffs.ShouldUnitFramesOwnContainerAlpha(containerKey)
+            if  not SpellCastBuffs.ShouldUnitFramesOwnContainerAlpha(containerKey)
             and zo_abs(control:GetAlpha() - alpha) > 0.001 then
                 control:SetAlpha(alpha)
             end

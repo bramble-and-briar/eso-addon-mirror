@@ -1,6 +1,6 @@
 -- Canonical English language source for all A.T("English text") calls.
--- This table is intentionally small: English is embedded at call sites and
--- used verbatim when a locale does not provide a translation.
+-- Concise English copy lives at the call sites and is used verbatim as fallback.
+-- The other language files contain display translations only.
 local A = ArclightTaunt
 A.translations = A.translations or {}
 A.translations.en = {}

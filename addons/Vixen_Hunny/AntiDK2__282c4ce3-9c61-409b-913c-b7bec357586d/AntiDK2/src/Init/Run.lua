@@ -1,6 +1,10 @@
 ﻿local ADK = AntiDK2
 
--- ── Reset everything (player death, end-of-combat) ────────────────────────────
+-- Hardened variant of src/Run.lua: each init step is isolated in its own pcall
+-- so one failure does not prevent the others from loading.
+-- NOT listed in AntiDK2.addon; kept for reference.
+
+-- ── Reset everything (player death) ──────────────────────────────────────────
 local function ResetAll()
     ADK.Combat.Events.Corrosive.Reset()
     ADK.Combat.Events.Wings.Reset()
@@ -20,22 +24,22 @@ local function RegisterEvents()
     ADK.Combat.Events.DragonknightStandard.Register()
 end
 
--- ── Build all UI panels ───────────────────────────────────────────────────────
+-- ── Build all UI panels (Popups first: it owns the main panel container) ─────
 local function InitUI()
-    local modules = {
-        { "ADK.UI.Popups",          function() ADK.UI.Popups.Init()          end },
-        { "ADK.UI.Corrosive",       function() ADK.UI.Corrosive.Init()       end },
-        { "ADK.UI.Stuns",           function() ADK.UI.Stuns.Init()           end },
-        { "ADK.UI.Wings",           function() ADK.UI.Wings.Init()           end },
-        { "ADK.UI.MoltenStacks",    function() ADK.UI.MoltenStacks.Init()    end },
-        { "ADK.UI.PowerLashStacks", function() ADK.UI.PowerLashStacks.Init() end },
-    }
-    for _, entry in ipairs(modules) do
-        local ok, err = pcall(entry[2])
+    local order = { "Popups", "Corrosive", "Stuns", "Wings", "MoltenStacks", "PowerLashStacks" }
+    for _, name in ipairs(order) do
+        local ok, err = pcall(ADK.UI[name].Init)
         if not ok then
-            error(entry[1] .. " failed: " .. tostring(err), 2)
+            error("ADK.UI." .. name .. " failed: " .. tostring(err), 2)
         end
     end
+end
+
+-- Run one init step, reporting (but not propagating) any error.
+local function Step(label, fn)
+    local ok, err = pcall(fn)
+    if not ok then ADK.Error(label, err) end
+    return ok
 end
 
 -- ── Entry point ───────────────────────────────────────────────────────────────
@@ -43,39 +47,25 @@ local function OnAddOnLoaded(_, addOnName)
     if addOnName ~= ADK.name then return end
     EVENT_MANAGER:UnregisterForEvent(ADK.name .. "_Load", EVENT_ADD_ON_LOADED)
 
-    -- Step 1: saved variables (fallback to defaults if broken)
-    local ok, err = pcall(function()
+    -- Step 1: saved variables (fall back to defaults if broken)
+    if not Step("SavedVars", function()
         ADK.savedVars = ZO_SavedVars:NewCharacterIdSettings(
-            "AntiDK2_SavedVars", 1, nil, ADK.defaults
+            ADK.savedVarsName, ADK.savedVarsVersion, nil, ADK.defaults
         )
-    end)
-    if not ok then
-        CHAT_ROUTER:AddSystemMessage("|cFF2020[AntiDK2] SavedVars error:|r " .. tostring(err))
+    end) then
         ADK.savedVars = ADK.defaults
     end
 
-    -- Step 2: UI (non-critical)
-    local ok2, err2 = pcall(InitUI)
-    if not ok2 then
-        CHAT_ROUTER:AddSystemMessage("|cFF2020[AntiDK2] UI error:|r " .. tostring(err2))
+    -- Steps 2-3: UI and settings panel (non-critical)
+    Step("UI",       InitUI)
+    Step("Settings", ADK.Config.Settings.Init)
+
+    -- Step 4: combat event registration (always attempted)
+    if Step("Events", RegisterEvents) then
+        ADK.Msg("Combat tracking active.")
     end
 
-    -- Step 3: settings panel (non-critical)
-    local ok3, err3 = pcall(function() ADK.Config.Settings.Init() end)
-    if not ok3 then
-        CHAT_ROUTER:AddSystemMessage("|cFF2020[AntiDK2] Settings error:|r " .. tostring(err3))
-    end
-
-    -- Step 4: combat event registration (always runs)
-    local ok4, err4 = pcall(RegisterEvents)
-    if not ok4 then
-        CHAT_ROUTER:AddSystemMessage("|cFF2020[AntiDK2] Events error:|r " .. tostring(err4))
-    else
-        CHAT_ROUTER:AddSystemMessage("|c5BCEFA[AntiDK2]|r Combat tracking active.")
-    end
-
-    EVENT_MANAGER:RegisterForEvent(ADK.name .. "_PlayerDead", EVENT_PLAYER_DEAD,
-        function() ResetAll() end)
+    EVENT_MANAGER:RegisterForEvent(ADK.name .. "_PlayerDead", EVENT_PLAYER_DEAD, ResetAll)
 end
 
 EVENT_MANAGER:RegisterForEvent(ADK.name .. "_Load", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

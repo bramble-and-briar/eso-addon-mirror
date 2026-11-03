@@ -6,6 +6,18 @@ local ID         = ADK.IDS.MOLTEN_WHIP
 local MAX_STACKS = 3
 local DECAY_MS   = 12000
 
+-- Combat results that count as a Molten Whip interaction with the player.
+local TRACKED_RESULTS = {
+    [ACTION_RESULT_EFFECT_GAINED]   = true,
+    [ACTION_RESULT_EFFECT_FADED]    = true,
+    [ACTION_RESULT_DAMAGE]          = true,
+    [ACTION_RESULT_CRITICAL_DAMAGE] = true,
+    [ACTION_RESULT_BLOCKED]         = true,
+    [ACTION_RESULT_BLOCKED_DAMAGE]  = true,
+    [ACTION_RESULT_DODGED]          = true,
+}
+
+-- stacks[sourceName] = { count = N, decayHandle = handle }
 local stacks = {}
 
 local function Decay(name)
@@ -39,7 +51,7 @@ local function OnHit(sourceName, result)
         -- Sub-max damage: just refresh (stacks unchanged until EFFECT_GAINED fires)
     end
 
-    if e.decayHandle then zo_removeCallLater(e.decayHandle) end
+    e.decayHandle = ADK.CancelTimer(e.decayHandle)
     if e.count > 0 then
         e.decayHandle = zo_callLater(function() Decay(sourceName) end, DECAY_MS)
     else
@@ -51,22 +63,13 @@ end
 function M.Register()
     EVENT_MANAGER:RegisterForEvent(
         ADK.name .. "_MoltenWhip", EVENT_COMBAT_EVENT,
-        function(_, result, _, _, _, _, sourceName, sourceType, targetName, _, _, _, _, _, _, targetUnitId, abilityId)
-            if not ADK.savedVars.trackMoltenWhip then return end
+        function(_, result, _, _, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
+            if not ADK.Get("trackMoltenWhip") then return end
             if abilityId ~= ID and abilityId ~= ADK.IDS.MOLTEN_ATTACK then return end
-            local name = zo_strformat("<<1>>", sourceName)
-            if name == GetUnitName("player") then return end
-            local tName = zo_strformat("<<1>>", targetName)
-            if tName ~= GetUnitName("player") then return end
-            if result ~= ACTION_RESULT_EFFECT_FADED
-            and result ~= ACTION_RESULT_EFFECT_GAINED
-            and result ~= ACTION_RESULT_DAMAGE
-            and result ~= ACTION_RESULT_CRITICAL_DAMAGE
-            and result ~= ACTION_RESULT_BLOCKED
-            and result ~= ACTION_RESULT_BLOCKED_DAMAGE
-            and result ~= ACTION_RESULT_DODGED then return end
+            if ADK.IsPlayer(sourceName)     then return end
+            if not ADK.IsPlayer(targetName) then return end
+            if not TRACKED_RESULTS[result]  then return end
             OnHit(sourceName, result)
-            --ADK.Combat.Events.Wings.TrackEnemy(sourceName, sourceType)
         end
     )
     EVENT_MANAGER:RegisterForEvent(

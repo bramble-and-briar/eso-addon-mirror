@@ -1,6 +1,11 @@
 InventoryGrouping = InventoryGrouping or {}
 local IG = InventoryGrouping
 
+-- Cached once rather than read off _G on every menu build (ESOUI admin review, 2026-11-02).
+-- Safe at file load time: LibCustomMenu is a hard ## DependsOn now, so its own file has already
+-- set the global by the time this one runs.
+local libCustomMenu = LibCustomMenu
+
 -- EQUIPMENT SETUPS, the part you touch: the menus (EQUIPPED header, setup headers, item right
 -- click, the Ctrl selection menu), the small question panel, and Equip All. The data and the
 -- list side are Setups.lua.
@@ -153,17 +158,6 @@ end
 local function RemoveSlot(id, slot)
     Mutate(id, string.format("%s taken out of %s", IG.UndoPieces(1), SetupMenuName(IG.GetSetup(id))),
         function(copy) copy.gear[slot] = nil end)
-end
-
-local function RemovePieces(id, pieceIds)
-    local wanted = {}
-    for _, pieceId in ipairs(pieceIds) do wanted[pieceId] = true end
-    Mutate(id, string.format("%s taken out of %s", IG.UndoPieces(#pieceIds), SetupMenuName(IG.GetSetup(id))),
-        function(copy)
-            for slot, gear in pairs(copy.gear) do
-                if wanted[gear.piece] then copy.gear[slot] = nil end
-            end
-        end)
 end
 
 ---------------------------------------------------------------------------
@@ -453,40 +447,6 @@ local function AddItemEntries(inventorySlot)
     end
 end
 
--- The Ctrl selection menu (Overrides.lua, before Cancel).
-function IG.AddSetupSelectionMenu()
-    if not (AddCustomSubMenuItem and IG.SelectedPieces) then return end
-    if not next(IG.OrderedSetups()) then return end
-    local gear, pieceIds = {}, {}
-    for _, where in ipairs(IG.SelectedPieces()) do
-        if IG.SetupSlotsForLink(GetItemLink(where.bagId, where.slotIndex)) then
-            gear[#gear + 1] = where
-            pieceIds[#pieceIds + 1] = where.id
-        end
-    end
-    if #gear == 0 then return end
-    AddCustomSubMenuItem(MenuLabel(string.format("Add %d selected to Setup", #gear)), SetupEntries(function(setup)
-        return { label = SetupMenuName(setup), callback = function()
-            IG.AddPiecesToSetup(setup.id, gear)
-            if IG.ClearSelection then IG.ClearSelection() end
-        end }
-    end))
-    local removes = SetupEntries(function(setup)
-        local inIt = {}
-        for _, pieceId in ipairs(pieceIds) do
-            if IG.SetupSlotOfPiece(setup.id, pieceId) then inIt[#inIt + 1] = pieceId end
-        end
-        if #inIt == 0 then return nil end
-        return { label = string.format("%s (%d)", SetupMenuName(setup), #inIt), callback = function()
-            RemovePieces(setup.id, inIt)
-            if IG.ClearSelection then IG.ClearSelection() end
-        end }
-    end)
-    if #removes > 0 then
-        AddCustomSubMenuItem(MenuLabel("Remove selected from Setup"), removes)
-    end
-end
-
 -- A setup's faded line (missing, in bank, none in bag): right click takes a gear slot out.
 function InventoryGrouping.OnStoredRowMouseUp(control, button, upInside)
     if not upInside or button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
@@ -503,8 +463,8 @@ end
 local function OnLoaded()
     EVENT_MANAGER:UnregisterForEvent("Inventory2SetupsUI", EVENT_PLAYER_ACTIVATED)
     if not (IG.IsEnabled and IG.IsEnabled()) then return end
-    if LibCustomMenu and LibCustomMenu.RegisterContextMenu then
-        LibCustomMenu:RegisterContextMenu(AddItemEntries, LibCustomMenu.CATEGORY_SECONDARY)
+    if libCustomMenu and libCustomMenu.RegisterContextMenu then
+        libCustomMenu:RegisterContextMenu(AddItemEntries, libCustomMenu.CATEGORY_SECONDARY)
     end
 end
 EVENT_MANAGER:RegisterForEvent("Inventory2SetupsUI", EVENT_PLAYER_ACTIVATED, OnLoaded)
@@ -694,8 +654,12 @@ function IG.EquipSetup(id)
     EVENT_MANAGER:RegisterForEvent(EQUIP_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
         Check()
     end)
+    -- DEFAULT only: durability/charge ticking on a worn piece fires this same event under its own
+    -- reason (see Repair.lua) and says nothing about a Setup piece landing -- filtered out before
+    -- it reaches Lua.
     EVENT_MANAGER:AddFilterForEvent(EQUIP_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-        REGISTER_FILTER_BAG_ID, BAG_WORN)
+        REGISTER_FILTER_BAG_ID, BAG_WORN,
+        REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
     -- Poll fallback: a lost request is asked again; gives up after MAX_POLLS.
     local function Poll()

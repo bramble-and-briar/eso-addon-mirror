@@ -1443,6 +1443,32 @@ local function PaintActionButtons(body)
     end
 end
 
+-- The two risk toggles under the action buttons: plain Yes/No, no Ask step (unlike the three
+-- actions above, there is nothing to confirm -- this only widens what they are allowed to touch).
+-- Each wears its own category's colour (SELL's orange, DECON's cyan) lit when on.
+local RISK_TOGGLES = {
+    { key = "sellIncludeUncollected", label = "SELL UNCOLLECTED SETS", groupKey = "SELL",
+      description = "Auto-Sell normally skips a set piece you have not unlocked in your set "
+          .. "collection yet. Yes: it is sold anyway." },
+    { key = "deconIncludeUncollected", label = "DECON UNCOLLECTED SETS", groupKey = "DECON",
+      description = "Auto-Deconstruct normally skips a set piece you have not unlocked in your "
+          .. "set collection yet. Yes: it is broken down anyway." },
+}
+local function PaintRiskButtons(body)
+    for _, button in ipairs(body.igRiskButtons or {}) do
+        local on = IG.sv and IG.sv[button.igKey] and true or false
+        if on then
+            PaintBox(button, button.igColor, button.igHovered and 0.32 or 0.24, 0.95)
+            button.name:SetColor(IG.HexToRGB(AUTO_TEXT))
+        else
+            PaintBox(button, button.igHovered and AUTO_TEXT or AUTO_OFF, button.igHovered and 0.10 or 0.06, 0.4)
+            button.name:SetColor(IG.HexToRGB(button.igHovered and AUTO_TEXT or AUTO_OFF))
+        end
+        button.state:SetText(on and "YES" or "NO")
+        button.state:SetColor(IG.HexToRGB(on and button.igColor or AUTO_OFF))
+    end
+end
+
 -- The explanation on top hangs from the top; the tab bar below it; then only the lit tab's lines,
 -- one under the other, and under the sorting tabs the warning and the two action buttons. The
 -- rest are hidden and let go of their anchors, so they take no room.
@@ -1496,6 +1522,7 @@ function IG.BuildAutomateDrawer(body)
     body.igAutoPages = {}
     body.igAutoTabs = {}
     body.igActionButtons = {}
+    body.igRiskButtons = {}
 
     local function Add(pageKey, control, gap)
         body.igAutoPages[pageKey] = body.igAutoPages[pageKey] or {}
@@ -1658,6 +1685,49 @@ function IG.BuildAutomateDrawer(body)
         Add("BOTTOM", button, index == 1 and 4 or AUTO_ACTION_GAP)
     end
 
+    -- A thin rule, the risk toggles' own line between them and the three actions above.
+    local divider = WINDOW_MANAGER:CreateControl(nil, body, CT_TEXTURE)
+    divider:SetHeight(1)
+    divider:SetColor(IG.HexToRGB(AUTO_WARN_COLOR))
+    divider:SetAlpha(AUTO_RULE_ALPHA)
+    divider:SetMouseEnabled(false)
+    Add("BOTTOM", divider, AUTO_ACTION_GAP + 4)
+
+    for index, toggle in ipairs(RISK_TOGGLES) do
+        local key = toggle.key
+        local color = IG.GetGroupColor and IG.GetGroupColor(toggle.groupKey) or AUTO_TEXT
+        local button = AutoBox(body)
+        button:SetHeight(AUTO_ACTION_HEIGHT)
+        button.name = AutoLabel(button, AUTO_ACTION_FONT)
+        button.name:SetText(toggle.label)
+        button.name:SetAnchor(LEFT, button, LEFT, 10, 0)
+        button.name:SetDrawLayer(DL_CONTROLS)
+        button.state = AutoLabel(button, AUTO_ACTION_STATE_FONT)
+        button.state:SetAnchor(RIGHT, button, RIGHT, -10, 0)
+        button.state:SetDrawLayer(DL_CONTROLS)
+        button.igKey = key
+        button.igColor = color
+        button:SetHandler("OnMouseEnter", function(self)
+            self.igHovered = true
+            PaintRiskButtons(body)
+            InitializeTooltip(InformationTooltip, self, RIGHT, -8, 0)
+            SetTooltipText(InformationTooltip, toggle.description)
+        end)
+        button:SetHandler("OnMouseExit", function(self)
+            self.igHovered = false
+            PaintRiskButtons(body)
+            ClearTooltip(InformationTooltip)
+        end)
+        button:SetHandler("OnMouseUp", function(_, _, upInside)
+            if not upInside or not IG.sv then return end
+            PlaySound(SOUNDS.DEFAULT_CLICK)
+            IG.sv[key] = not IG.sv[key]
+            PaintRiskButtons(body)
+        end)
+        body.igRiskButtons[#body.igRiskButtons + 1] = button
+        Add("BOTTOM", button, index == 1 and 4 or AUTO_ACTION_GAP)
+    end
+
     ShowAutoTab(body)
     IG.RefreshAutomateDrawer(body)
 end
@@ -1670,6 +1740,7 @@ function IG.RefreshAutomateDrawer(body)
         PaintAutoTabs(body)
     end
     PaintActionButtons(body)
+    PaintRiskButtons(body)
     for _, row in ipairs(body.igAutoRows) do
         local rule = row.igRule
         local text = RuleText(rule)

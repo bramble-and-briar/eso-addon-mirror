@@ -3,6 +3,30 @@
 -- Replaces the LibConsoleDialogs / LibHarvensAddonSettings gamepad flow with
 -- a native ESO top-level scrollable window that works with mouse & keyboard.
 
+local CM = ConsoleMetrics
+local Util = ConsoleMetrics.Util
+local BuildDefaultFightSaveName = Util.BuildDefaultFightSaveName
+local Clamp = Util.Clamp
+local EFFECTS_PANEL_LIMIT = Util.EFFECTS_PANEL_LIMIT
+local Median = Util.Median
+local NumberText = Util.NumberText
+local RESISTANCE_SCALE = Util.RESISTANCE_SCALE
+local ShortNumber = Util.ShortNumber
+local TrimText = Util.TrimText
+
+local Build = ConsoleMetrics.Build
+local BuildActionBarSnapshot = Build.BuildActionBarSnapshot
+local BuildActiveBoonSnapshot = Build.BuildActiveBoonSnapshot
+local BuildEquipmentSnapshot = Build.BuildEquipmentSnapshot
+local BuildEquippedSetSummary = Build.BuildEquippedSetSummary
+
+local Champion = ConsoleMetrics.Champion
+local BuildChampionSnapshot = Champion.BuildChampionSnapshot
+
+local Fight = ConsoleMetrics.Fight
+local InferProtectionFromDr = Fight.InferProtectionFromDr
+
+
 local WM = WINDOW_MANAGER
 
 -------------------------------------------------------------------------------
@@ -37,16 +61,14 @@ local COL_BTN_TXT  = { 0.95, 0.95, 1.00, 1.00 }
 -------------------------------------------------------------------------------
 -- Internals
 -------------------------------------------------------------------------------
-local pcDlg = {}          -- module table (not exposed globally)
+local pcDlg = {}          -- module state for the PC window
 ConsoleMetrics.pcDlg = pcDlg
 
--- Tracks controls that need to be destroyed when clearing the panel.
-local dynamicControls = {}
-local contentHeight   = 0
-local currentPanel    = "main"
-local currentScrollPos = 0    -- manual scroll offset in pixels
+local contentHeight    = 0
+local currentScrollPos = 0     -- manual scroll offset in pixels
 local lastRenderedPanel = nil  -- detect panel changes to reset scroll
-local ScrollContent  -- forward declaration; defined below CreatePCDialog
+local ScrollContent            -- forward declaration; defined below CreatePCDialog
+
 
 -------------------------------------------------------------------------------
 -- Helper: make a backdrop control
@@ -100,7 +122,7 @@ function ConsoleMetrics:CreatePCDialog()
     closeBtn:SetFont(FONT_SECTION)
     closeBtn:SetNormalFontColor(1, 0.4, 0.4, 1)
     closeBtn:SetHandler("OnClicked", function()
-        ConsoleMetrics:ClosePCDialog()
+        ConsoleMetrics:CloseFightViewDialog(true, "button")
     end)
 
     -- nav bar (Back + breadcrumb)
@@ -200,11 +222,6 @@ function ConsoleMetrics:CreatePCDialog()
         ConsoleMetrics:SetScrollPos(frac * maxScroll)
     end)
 
-    -- mousewheel (also handled by children via Track → ScrollContent)
-    scrollFrame:SetHandler("OnMouseWheel", function(_, delta)
-        ScrollContent(delta)
-    end)
-
     -- window-level catch-all so the wheel works even when hovering the title / nav bar
     win:SetHandler("OnMouseWheel", function(_, delta)
         ScrollContent(delta)
@@ -215,7 +232,7 @@ function ConsoleMetrics:CreatePCDialog()
         if not pcDlg.window or pcDlg.window:IsHidden() then return end
         if ConsoleMetrics.saved and ConsoleMetrics.saved.closeOnMove then
             if type(IsPlayerMoving) == "function" and IsPlayerMoving() then
-                ConsoleMetrics:ClosePCDialog()
+                ConsoleMetrics:CloseFightViewDialog(true, "movement")
             end
         end
     end)
@@ -262,7 +279,7 @@ function ConsoleMetrics:OpenPCDialog(forceLive)
     lastRenderedPanel = nil  -- force scroll-to-top on first render
     self:RefreshPCDialog()
     self.wasFightViewDialogShowing = true
-    self.dialogRefreshAtMs   = 0
+    self.dialogRefreshAtMs   = nil
     self.lastDialogRefreshKey = nil
     self:ArmDialogAutoHide()
 end
@@ -297,11 +314,7 @@ end
 -- Shared scroll helper
 -------------------------------------------------------------------------------
 ScrollContent = function(delta)
-    local sf = pcDlg.scrollFrame
-    if not sf then return end
-    local visH      = sf:GetHeight()
-    local totalH    = pcDlg.content and pcDlg.content:GetHeight() or 0
-    local maxScroll = math.max(0, totalH - visH)
+    if not pcDlg.scrollFrame then return end
     ConsoleMetrics:SetScrollPos(currentScrollPos - delta * 60)
 end
 
@@ -321,38 +334,101 @@ function ConsoleMetrics:SetScrollPos(pos)
 end
 
 -------------------------------------------------------------------------------
--- Content builder helpers
+-- Dynamic control pool
 -------------------------------------------------------------------------------
-local function ClearDynamic()
-    for i = 1, #dynamicControls do
-        local ctrl = dynamicControls[i]
-        ctrl:SetHidden(true)
-        -- Clear anchors BEFORE unparenting so the layout engine no longer
-        -- traces these controls when resolving content's anchor dependencies.
-        -- Without this, orphaned controls accumulate anchor references to
-        -- content across refreshes and eventually trigger "too many anchors".
-        pcall(function() ctrl:ClearAnchors() end)
-        ctrl:SetParent(nil)
+-- ESO cannot destroy controls and the panel is rebuilt on every refresh, so
+-- controls are pooled per type and reused. Without this every refresh leaked
+-- a few dozen controls for the lifetime of the UI.
+local POOL_TYPES = {
+    label    = CT_LABEL,
+    button   = CT_BUTTON,
+    backdrop = CT_BACKDROP,
+    editbox  = CT_EDITBOX,
+    texture  = CT_TEXTURE,
+}
+local HANDLERS_TO_RESET = {
+    "OnMouseEnter", "OnMouseExit", "OnClicked", "OnMouseDown", "OnMouseUp",
+    "OnTextChanged", "OnFocusLost", "OnFocusGained",
+}
+
+local pools = {}
+for kind in pairs(POOL_TYPES) do
+    pools[kind] = {}
+end
+local activeControls = {}   -- { kind = ..., ctrl = ... } in use by the current render
+local controlCounter = 0
+
+local function Acquire(kind, parent)
+    local pool = pools[kind]
+    local ctrl = table.remove(pool)
+    if not ctrl then
+        controlCounter = controlCounter + 1
+        ctrl = WM:CreateControl("ConsoleMetricsPC_" .. kind .. controlCounter, parent, POOL_TYPES[kind])
+    else
+        ctrl:SetParent(parent)
     end
-    dynamicControls = {}
-    contentHeight   = 0
-end
 
-local ctrlIdx = 0
-local function NextName()
-    ctrlIdx = ctrlIdx + 1
-    return "CMPCCtrl" .. ctrlIdx
-end
+    ctrl:ClearAnchors()
+    ctrl:SetHidden(false)
+    ctrl:SetMouseEnabled(false)
+    for i = 1, #HANDLERS_TO_RESET do
+        pcall(ctrl.SetHandler, ctrl, HANDLERS_TO_RESET[i], nil)
+    end
+    -- Forward wheel events from every child so they always reach the scroll logic.
+    pcall(ctrl.SetHandler, ctrl, "OnMouseWheel", function(_, delta) ScrollContent(delta) end)
 
-local function Track(ctrl)
-    dynamicControls[#dynamicControls + 1] = ctrl
-    -- Forward wheel events from every child so they always reach the scroll logic
-    pcall(function()
-        ctrl:SetHandler("OnMouseWheel", function(_, delta) ScrollContent(delta) end)
-    end)
+    if kind == "label" then
+        -- Zero dimensions = auto-size to text; builders set explicit widths where needed.
+        ctrl:SetDimensions(0, 0)
+        ctrl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        ctrl:SetVerticalAlignment(TEXT_ALIGN_TOP)
+        ctrl:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    end
+
+    activeControls[#activeControls + 1] = { kind = kind, ctrl = ctrl }
     return ctrl
 end
 
+local function AcquireBackdrop(parent, r, g, b, a, er, eg, eb, ea)
+    local bd = Acquire("backdrop", parent)
+    bd:SetCenterColor(r, g, b, a)
+    bd:SetEdgeColor(er or COL_EDGE[1], eg or COL_EDGE[2], eb or COL_EDGE[3], ea or COL_EDGE[4])
+    bd:SetEdgeTexture(nil, 1, 1, 0, 0)
+    return bd
+end
+
+local function ReleaseAll()
+    for i = 1, #activeControls do
+        local entry = activeControls[i]
+        entry.ctrl:SetHidden(true)
+        entry.ctrl:ClearAnchors()
+        local pool = pools[entry.kind]
+        pool[#pool + 1] = entry.ctrl
+    end
+    activeControls = {}
+    contentHeight = 0
+end
+
+-- True while any edit box in the current render has keyboard focus.
+function ConsoleMetrics:IsPCDialogEditing()
+    if not pcDlg.window or pcDlg.window:IsHidden() then
+        return false
+    end
+    for i = 1, #activeControls do
+        local entry = activeControls[i]
+        if entry.kind == "editbox" then
+            local ok, focused = pcall(entry.ctrl.HasFocus, entry.ctrl)
+            if ok and focused then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Content builder helpers
+-------------------------------------------------------------------------------
 local function AdvanceCursor(h, extra)
     contentHeight = contentHeight + h + (extra or 0)
 end
@@ -364,19 +440,16 @@ end
 -- Section header
 local function AddSection(content, text)
     local y = ContentY()
-    local bd = MakeBD(NextName(), content,
-        COL_SECTION[1], COL_SECTION[2], COL_SECTION[3], 0.85)
-    bd:SetAnchor(TOPLEFT,  content, TOPLEFT,  0,         y)
-    bd:SetAnchor(TOPRIGHT, content, TOPRIGHT, 0,         y)
+    local bd = AcquireBackdrop(content, COL_SECTION[1], COL_SECTION[2], COL_SECTION[3], 0.85)
+    bd:SetAnchor(TOPLEFT,  content, TOPLEFT,  0, y)
+    bd:SetAnchor(TOPRIGHT, content, TOPRIGHT, 0, y)
     bd:SetHeight(SECTION_H)
-    Track(bd)
 
-    local lbl = WM:CreateControl(NextName(), bd, CT_LABEL)
+    local lbl = Acquire("label", bd)
     lbl:SetFont(FONT_SECTION)
     lbl:SetColor(1, 0.88, 0.55, 1)
     lbl:SetText(text)
     lbl:SetAnchor(LEFT, bd, LEFT, PADDING, 0)
-    Track(lbl)
 
     AdvanceCursor(SECTION_H, 4)
 end
@@ -384,24 +457,21 @@ end
 -- Stat line (left label, optional right value)
 local function AddStat(content, leftText, rightText, tooltip)
     local y = ContentY()
-    local lbl = WM:CreateControl(NextName(), content, CT_LABEL)
+    local lbl = Acquire("label", content)
     lbl:SetFont(FONT_STAT)
     lbl:SetColor(COL_STAT_TXT[1], COL_STAT_TXT[2], COL_STAT_TXT[3], COL_STAT_TXT[4])
     lbl:SetText(leftText or "")
     lbl:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y + 2)
     lbl:SetWidth(rightText and (CONTENT_W * 0.65) or (CONTENT_W - PADDING * 2))
-    lbl:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    Track(lbl)
 
     if rightText then
-        local rbl = WM:CreateControl(NextName(), content, CT_LABEL)
+        local rbl = Acquire("label", content)
         rbl:SetFont(FONT_STAT)
         rbl:SetColor(0.70, 0.90, 0.70, 1)
         rbl:SetText(tostring(rightText))
         rbl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
         rbl:SetAnchor(TOPRIGHT, content, TOPRIGHT, -PADDING, y + 2)
         rbl:SetWidth(CONTENT_W * 0.30)
-        Track(rbl)
     end
 
     if tooltip then
@@ -416,24 +486,24 @@ end
 -- Clickable action button
 local function AddButton(content, labelText, tooltip, callback, disabled)
     local y = ContentY()
-    local btn = WM:CreateControl(NextName(), content, CT_BUTTON)
+    local btn = Acquire("button", content)
     btn:SetDimensions(CONTENT_W - PADDING * 2, BTN_H)
     btn:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y)
     btn:SetText(labelText)
     btn:SetFont(FONT_STAT)
-    btn:SetNormalFontColor(COL_BTN_TXT[1], COL_BTN_TXT[2], COL_BTN_TXT[3], COL_BTN_TXT[4])
-    btn:SetMouseEnabled(not disabled)
     if disabled then
         btn:SetNormalFontColor(0.5, 0.5, 0.5, 1)
+    else
+        btn:SetNormalFontColor(COL_BTN_TXT[1], COL_BTN_TXT[2], COL_BTN_TXT[3], COL_BTN_TXT[4])
     end
-    Track(btn)
+    btn:SetMouseEnabled(true)
 
     if tooltip then
         btn:SetHandler("OnMouseEnter", function() ShowCMTooltip(tooltip) end)
         btn:SetHandler("OnMouseExit",  function() HideCMTooltip() end)
     end
 
-    if callback then
+    if callback and not disabled then
         btn:SetHandler("OnClicked", function()
             callback()
             ConsoleMetrics:RefreshPCDialog()
@@ -447,22 +517,19 @@ end
 local function AddEditBox(content, labelText, getter, setter, maxChars)
     local y = ContentY()
 
-    local lbl = WM:CreateControl(NextName(), content, CT_LABEL)
+    local lbl = Acquire("label", content)
     lbl:SetFont(FONT_STAT)
     lbl:SetColor(COL_STAT_TXT[1], COL_STAT_TXT[2], COL_STAT_TXT[3], 1)
     lbl:SetText(labelText or "")
     lbl:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y + 2)
-    Track(lbl)
     AdvanceCursor(STAT_H, 2)
 
     local editH = STAT_H + 8   -- tall enough for ZoFontGamepad22
-    local editBG = MakeBD(NextName(), content, 0.10, 0.10, 0.10, 1, 0.5, 0.5, 0.7, 1)
+    local editBG = AcquireBackdrop(content, 0.10, 0.10, 0.10, 1, 0.5, 0.5, 0.7, 1)
     editBG:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, ContentY())
     editBG:SetDimensions(CONTENT_W - PADDING * 2, editH)
-    editBG:SetMouseEnabled(false)   -- let clicks pass through to the edit control
-    Track(editBG)
 
-    local edit = WM:CreateControl(NextName(), editBG, CT_EDITBOX)
+    local edit = Acquire("editbox", editBG)
     edit:SetFont(FONT_STAT)
     edit:SetAnchorFill(editBG)
     edit:SetMaxInputChars(maxChars or 80)
@@ -470,18 +537,15 @@ local function AddEditBox(content, labelText, getter, setter, maxChars)
     edit:SetAllowMarkupType(ALLOW_MARKUP_TYPE_NONE)
     edit:SetMultiLine(false)
     edit:SetMouseEnabled(true)
-    -- Click or gamepad confirm focuses the box
-    edit:SetHandler("OnMouseDown", function(self)
-        self:TakeFocus()
+    edit:SetHandler("OnMouseDown", function(ctrl)
+        ctrl:TakeFocus()
     end)
-    edit:SetHandler("OnTextChanged", function(self)
-        if setter then setter(self:GetText()) end
+    edit:SetHandler("OnTextChanged", function(ctrl)
+        if setter then setter(ctrl:GetText()) end
     end)
-    edit:SetHandler("OnFocusLost", function(self)
-        -- commit final value when focus leaves
-        if setter then setter(self:GetText()) end
+    edit:SetHandler("OnFocusLost", function(ctrl)
+        if setter then setter(ctrl:GetText()) end
     end)
-    Track(edit)
 
     AdvanceCursor(editH, BTN_PAD)
     return edit
@@ -490,12 +554,11 @@ end
 -- Horizontal divider
 local function AddDivider(content)
     local y = ContentY()
-    local line = WM:CreateControl(NextName(), content, CT_TEXTURE)
+    local line = Acquire("texture", content)
     line:SetAnchor(TOPLEFT,  content, TOPLEFT,  PADDING, y + 4)
     line:SetAnchor(TOPRIGHT, content, TOPRIGHT, -PADDING, y + 4)
     line:SetHeight(1)
     line:SetColor(0.35, 0.35, 0.50, 0.60)
-    Track(line)
     AdvanceCursor(9, 0)
 end
 
@@ -551,18 +614,15 @@ local function CommitContent(resetScroll)
 end
 
 -------------------------------------------------------------------------------
--- Panel rendering helpers (mirror what PopulateFightViewDialog did)
+-- Panel rendering helpers
 -------------------------------------------------------------------------------
-local function FormatMs(ms) return string.format("%.1fs", (ms or 0) / 1000) end
-
 local function AddFightNavButtons(content, self)
     AddDivider(content)
+    local noHistory = #self.fightHistory == 0
     AddButton(content, "Previous Fight", "Step back one fight in history",
-        function() self:StepFightView(-1) end,
-        #self.fightHistory == 0)
+        function() self:StepFightView(-1) end, noHistory)
     AddButton(content, "Next Fight", "Step forward one fight in history",
-        function() self:StepFightView(1) end,
-        #self.fightHistory == 0)
+        function() self:StepFightView(1) end, noHistory)
     AddButton(content, "View Live Fight", "Return to current live combat view",
         function() self.viewFightIndex = 0 end)
 end
@@ -612,8 +672,8 @@ local function RenderMain(content, self)
     AddStat(content, "Damage Taken", NumberText(snap.totalTaken or 0),
         string.format("Incoming damage received  |  Overflow: %s  |  Blocked: %s  |  Shielded: %s",
             NumberText(snap.totalIncomingOverflowDamage or 0),
-            NumberText(snap.totalBlockedDamage or 0),
-            NumberText(snap.totalShieldedDamage or 0)))
+            NumberText(snap.totalIncomingBlockedDamage or 0),
+            NumberText(snap.totalIncomingShieldedDamage or 0)))
     AddStat(content, "Crit Rate",    string.format("%.1f%%", snap.critPct or 0),
         "% of outgoing hits that were critical strikes")
     AddStat(content, "Hit Value Range",
@@ -649,9 +709,9 @@ local function RenderMain(content, self)
 
     -- Save / manage
     AddButton(content, "Save This Fight…", "Name and persist this fight across sessions",
-        function() self.saved.saveFightDraftName = BuildDefaultFightSaveName(snap, #self.saved.savedFights + 1)
+        function() self.saved.saveFightDraftName = BuildDefaultFightSaveName(snap, #self:GetSavedFights() + 1)
             self.dialogPanel = "save" end)
-    AddButton(content, "Saved Fights", string.format("Browse %d saved fights", #self.saved.savedFights),
+    AddButton(content, "Saved Fights", string.format("Browse %d saved fights", #self:GetSavedFights()),
         function() self.dialogPanel = "saves" end)
 end
 
@@ -674,8 +734,8 @@ local function RenderOverview(content, self)
     AddStat(content, "Peak DPS",        ShortNumber(snap.peakDps or 0))
     AddStat(content, "Peak HPS",        ShortNumber(snap.peakHps or 0))
     AddStat(content, "Overflow Damage", NumberText(snap.totalOverflowDamage or 0))
-    AddStat(content, "Blocked Taken",   NumberText(snap.totalBlockedDamage  or 0))
-    AddStat(content, "Shielded Taken",  NumberText(snap.totalShieldedDamage or 0))
+    AddStat(content, "Blocked Taken",   NumberText(snap.totalIncomingBlockedDamage  or 0))
+    AddStat(content, "Shielded Taken",  NumberText(snap.totalIncomingShieldedDamage or 0))
     local bs = snap.burstWindowStats or {}
     local hs = snap.healingWindowStats or {}
     AddSection(content, "Burst Windows")
@@ -745,9 +805,8 @@ local function RenderResources(content, self)
     local function Row(label, tbl, tip)
         if tbl and tbl.hasData then
             AddStat(content, label,
-                string.format("avg %.1f%%  med %.1f%%  (min %.1f%% / max %.1f%%)",
-                    tbl.averagePct or 0, tbl.medianPct or 0,
-                    tbl.minPct or 0, tbl.maxPct or 0),
+                string.format("avg %.1f%%  med %.1f%%  (%d samples)",
+                    tbl.averagePct or 0, tbl.medianPct or 0, tbl.samples or 0),
                 tip)
         else
             AddStat(content, label, "no data", tip)
@@ -877,9 +936,7 @@ local function RenderMitigation(content, self)
     for i = 1, math.min(10, #moments) do
         local m = moments[i]
         if m then
-            AddStat(content, m.abilityName or "?",
-                NumberText(m.value or 0),
-                m.tooltip or string.format("Mitigated %s via %s", NumberText(m.value or 0), m.abilityName or "?"))
+            AddStat(content, string.format("%d. %s", i, m.label or m.abilityName or "?"), nil, m.tooltip)
         end
     end
     AddFightNavButtons(content, self)
@@ -893,25 +950,39 @@ local function RenderResistance(content, self)
     local snap, isLive = self:GetViewedFightSnapshot()
     snap = snap or {}
     pcDlg.breadcrumb:SetText("Resistance / DR")
-    -- Predicted values come from the behavior model; protectionSummary only holds uptime splits.
-    local bm = self:GetBehaviorModel(isLive and snap or nil) or {}
-    AddSection(content, "Resistance & Damage Reduction")
-    AddStat(content, "Inferred Resistance",  NumberText(bm.predictedResistance or 0))
-    AddStat(content, "Inferred DR %",        string.format("%.1f%%", bm.predictedDrPct or 0))
-    AddStat(content, "Protection Profile",   bm.pressureProfile or "n/a")
-    AddStat(content, "Samples",              tostring(bm.samples or 0))
+    local model = self:GetBehaviorModel(isLive and snap or nil) or {}
+    local prot = snap.protectionSummary or {}
+
+    AddSection(content, "Resistance & Damage Reduction (ML-lite)")
+    AddStat(content, "Predicted Resistance", NumberText(model.predictedResistance or 0),
+        "Estimated target resistance from observed mitigation samples, clamped to 0-33,000")
+    AddStat(content, "Predicted DR %",       string.format("%.1f%%", model.predictedDrPct or 0),
+        "Damage reduction estimate: DR = resistance / 66,000 (max 50%)")
+    AddStat(content, "Predicted Protections", model.predictedProtectionLabel or "No mitigation data",
+        "Protection state inferred from predicted DR")
+    AddStat(content, "Confidence",           string.format("%.0f%%", (model.predictedProtectionConfidence or 0) * 100))
+    AddStat(content, "Resistance Samples",   tostring(model.resistanceSamples or 0))
+
+    AddSection(content, "Inferred Protection Uptime (this fight)")
+    AddStat(content, "Any Protection", string.format("%.1f%%", prot.anyProtectionPct or 0),
+        "Share of fight time with inferred Major and/or Minor Protection")
+    AddStat(content, "Major",          string.format("%.1f%%", prot.majorPct or 0))
+    AddStat(content, "Minor",          string.format("%.1f%%", prot.minorPct or 0))
+    AddStat(content, "Major + Minor",  string.format("%.1f%%", prot.majorMinorPct or 0))
+    AddStat(content, "Unknown",        string.format("%.1f%%", prot.unknownPct or 0), "Time without any mitigation signal")
+
     local targets = snap.targetList or {}
     if #targets > 0 then
         AddSection(content, "Per-Target Estimates")
         for i = 1, math.min(10, #targets) do
             local t = targets[i]
             if t then
+                local drPct = Clamp(((t.estimatedResistance or 0) / RESISTANCE_SCALE) * 100, 0, 50)
+                local label, _, confidence = InferProtectionFromDr(drPct, true)
                 AddStat(content, t.name or "?",
-                    string.format("~%s resistance  (%.0f%% mitigation)",
-                        NumberText(t.estimatedResistance or 0), t.mitigationPct or 0),
-                    string.format("%s  |  %d hits dealt  |  %s total damage  |  ~%s est. resistance  →  %.1f%% DR",
-                        t.name or "?", t.hits or 0, NumberText(t.damage or 0),
-                        NumberText(t.estimatedResistance or 0), t.mitigationPct or 0))
+                    string.format("~%s resistance  (%.1f%% DR)", NumberText(t.estimatedResistance or 0), drPct),
+                    string.format("%s  |  %d hits dealt  |  %s total damage  |  %s (confidence %.0f%%)",
+                        t.name or "?", t.hits or 0, NumberText(t.damage or 0), label, confidence * 100))
             end
         end
     end
@@ -1036,37 +1107,32 @@ local function RenderOptions(content, self)
     pcDlg.breadcrumb:SetText("Options")
     local sv = self.saved
 
+    local function OnOff(flag)
+        return flag and "ON" or "OFF"
+    end
+
     AddSection(content, "Toggles")
-    AddButton(content,
-        sv.dialogAutoHide and "Dialog Auto-Hide: ON" or "Dialog Auto-Hide: OFF",
+    AddButton(content, "Dialog Auto-Hide: " .. OnOff(sv.dialogAutoHide),
         "Auto-close this dialog after combat ends",
-        function() sv.dialogAutoHide = not sv.dialogAutoHide end)
-    AddButton(content,
-        sv.closeOnMove and "Close on Movement: ON" or "Close on Movement: OFF",
+        function() self:SetDialogAutoHide(not sv.dialogAutoHide) end)
+    AddButton(content, "Close on Movement: " .. OnOff(sv.closeOnMove),
         "Close this dialog automatically when controller stick or movement key is pressed",
         function() sv.closeOnMove = not sv.closeOnMove end)
-    AddButton(content,
-        sv.autoClearOnNextFight and "Auto-Clear on Next Fight: ON" or "Auto-Clear on Next Fight: OFF",
-        "Clear combat data when the next fight starts",
+    AddButton(content, "Auto-Clear on Next Fight: " .. OnOff(sv.autoClearOnNextFight),
+        "Switch back to the live fight view when a new fight starts",
         function() sv.autoClearOnNextFight = not sv.autoClearOnNextFight end)
-    AddButton(content,
-        sv.lowMemoryMode and "Low Memory Mode: ON" or "Low Memory Mode: OFF",
+    AddButton(content, "Low Memory Mode: " .. OnOff(sv.lowMemoryMode),
         "Compact fight snapshots to reduce memory use",
-        function() sv.lowMemoryMode = not sv.lowMemoryMode end)
-    AddButton(content,
-        sv.performanceMode and "Performance Mode: ON" or "Performance Mode: OFF",
+        function() self:SetLowMemoryMode(not sv.lowMemoryMode) end)
+    AddButton(content, "Performance Mode: " .. OnOff(sv.performanceMode),
         "Apply the lightweight performance preset",
-        function()
-            sv.performanceMode = not sv.performanceMode
-            if sv.performanceMode then self:ApplyConsolePerformancePreset() end
-        end)
-    AddButton(content,
-        sv.behaviorModelEnabled and "Behavior Model: ON" or "Behavior Model: OFF",
+        function() self:SetPerformanceMode(not sv.performanceMode) end)
+    AddButton(content, "Behavior Model: " .. OnOff(sv.behaviorModelEnabled),
         "Enable the ML-lite resistance/behavior predictor",
-        function()
-            sv.behaviorModelEnabled = not sv.behaviorModelEnabled
-            if not sv.behaviorModelEnabled then self.behaviorModelCache = nil end
-        end)
+        function() self:SetBehaviorModelEnabled(not sv.behaviorModelEnabled) end)
+    AddButton(content, "Debug Output: " .. OnOff(sv.debugEnabled),
+        "Print fight start/end and other diagnostic lines to chat",
+        function() sv.debugEnabled = not sv.debugEnabled end)
 
     AddSection(content, "Fight History & Data")
     AddStat(content, string.format("History:  %d fights stored  (max %d)",
@@ -1074,17 +1140,23 @@ local function RenderOptions(content, self)
     AddButton(content, "Clear All Fight Data",
         "Wipe current fight and all stored history",
         function() self:ResetFightData(false) ; self:Print("Fight data cleared.") end)
+    AddButton(content, "Import PvPCooldownTracker Set Rules",
+        "Scans PvPCooldownTracker tables and imports ability-based set rules",
+        function() local _, message = self:ImportSetsFromPvPCooldownTracker() ; self:Print(message) end)
+    AddButton(content, string.format("Clear Custom Set Rules (%d)", #(sv.customSetRules or {})),
+        "Removes all custom set rules added through commands or import",
+        function() self:ClearCustomSetRules() ; self:Print("Cleared all custom set rules.") end)
 
     AddSection(content, "Slash Commands Reference")
     local help = {
-        "/cm view       — open this dialog",
-        "/cm next/prev  — step through fight history",
-        "/cm clear      — clear fight data",
-        "/cm share      — share fight stats to chat",
-        "/cm share build— share build to chat",
-        "/cm linkbuild  — same as share build",
-        "/cm reset      — reset all options to defaults",
-        "/cm help       — full command reference",
+        "/cm view        - open this dialog",
+        "/cm next/prev   - step through fight history",
+        "/cm clear       - clear fight data",
+        "/cm share       - share fight stats to chat",
+        "/cm share build - share build to chat",
+        "/cm linkbuild   - same as share build",
+        "/cm reset       - reset options to defaults (keeps saves and set rules)",
+        "/cm help        - full command reference",
     }
     for _, line in ipairs(help) do AddStat(content, line, nil) end
 
@@ -1153,7 +1225,7 @@ local function RenderSave(content, self)
     AddButton(content, "Auto-Fill Name", "Generate a default name from this fight",
         function()
             self.saved.saveFightDraftName =
-                BuildDefaultFightSaveName(snap, #self.saved.savedFights + 1)
+                BuildDefaultFightSaveName(snap, #self:GetSavedFights() + 1)
         end)
     AddButton(content, "Save Fight", "Persist this fight to saved slots",
         function()
@@ -1168,7 +1240,7 @@ end
 -- Saved-fights panel
 -------------------------------------------------------------------------------
 local function RenderSaves(content, self)
-    local saves = self.saved.savedFights or {}
+    local saves = self:GetSavedFights()
     pcDlg.breadcrumb:SetText("Saved Fights")
     AddSection(content, string.format("Saved Fights  (%d / %d)",
         #saves, self.saved.maxSavedFights or self.defaults.maxSavedFights))
@@ -1212,7 +1284,7 @@ local function RenderSaves(content, self)
         AddDivider(content)
         AddButton(content, "Clear All Saved Fights", "Delete every saved slot permanently",
             function()
-                self.saved.savedFights = {}
+                self:ClearSavedFights()
                 self:Print("All saved fights cleared.")
             end)
     end
@@ -1242,7 +1314,7 @@ local PANELS = {
 
 function ConsoleMetrics:RefreshPCDialog()
     if not pcDlg.window or pcDlg.window:IsHidden() then return end
-    ClearDynamic()
+    ReleaseAll()
 
     local panel = self.dialogPanel or "main"
     local panelChanged = (panel ~= lastRenderedPanel)

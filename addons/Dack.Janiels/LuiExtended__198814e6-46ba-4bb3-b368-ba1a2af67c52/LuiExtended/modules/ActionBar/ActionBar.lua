@@ -694,7 +694,11 @@ end
 local vanillaActionButtonApplyStyle = ActionButton.ApplyStyle
 local COOLDOWN_UPDATE_HANDLER_NAME = "CooldownUpdate"
 
---- @param slotControl Control
+--- Action slot control. LUIE stores the button here so the named OnUpdate handler can refresh that button's cooldown.
+--- @class LUIE_ActionButtonSlotControl : Control
+--- @field luiActionButton ActionButton|nil
+
+--- @param slotControl LUIE_ActionButtonSlotControl
 local function OnActionButtonCooldownUpdate(slotControl)
     local actionButton = slotControl.luiActionButton
     if actionButton then
@@ -708,7 +712,7 @@ local function SyncCooldownUpdateHandler(actionButton)
     if not actionButton or not actionButton.slot then
         return
     end
-    local slotControl = actionButton.slot
+    local slotControl = actionButton.slot --- @type LUIE_ActionButtonSlotControl
     if actionButton.showingCooldown then
         slotControl.luiActionButton = actionButton
         slotControl:SetHandler("OnUpdate", OnActionButtonCooldownUpdate, COOLDOWN_UPDATE_HANDLER_NAME)
@@ -753,6 +757,7 @@ function ActionBar.HookGCD()
     function ActionButton:UpdateUsable(slotnum, hotbarCategory, cooldownDuration)
         local duration = cooldownDuration
         if slotnum == nil then
+            local _
             slotnum, hotbarCategory, _, duration = GetActionButtonCooldownInfo(self)
         end
         local isGamepad = IsInGamepadPreferredMode()
@@ -3411,7 +3416,7 @@ function ActionBar.OnCombatEventBar(result, isError, abilityName, abilityGraphic
     local combatAbilityId = abilityId
     local barAbilityId = g_barCombatEventRemap[abilityId] or abilityId
 
-    if not isError and sourceType == COMBAT_UNIT_TYPE_PLAYER
+    if  not isError and sourceType == COMBAT_UNIT_TYPE_PLAYER
     and (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) then
         local chargeTrackAbilityId = g_barConsumeStackOnDamage[abilityId]
         if chargeTrackAbilityId then
@@ -3890,12 +3895,6 @@ function ActionBar.InventoryItemUsed()
                  end, 200)
 end
 
---- - **EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED **
----
--- -----------------------------------------------------------------------------
---- Handles EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED: updates hotbar category, backbar icons, ultimate.
---- @param didActiveHotbarChange boolean
---- @param shouldUpdateAbilityAssignments boolean
 --- Mirrors ZOS UpdateAllSlotsForActiveHotbar timerSwapAnimation / stackCountSwapAnimation on LUIE bar labels.
 local function PlaySwapLabelFadeAnimations()
     for _, customToggleControl in pairs(g_uiCustomToggle) do
@@ -3918,6 +3917,9 @@ local function PlaySwapLabelFadeAnimations()
     end
 end
 
+--- Handles EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED: updates hotbar category, backbar icons, ultimate.
+--- @param didActiveHotbarChange boolean
+--- @param shouldUpdateAbilityAssignments boolean
 --- @param activeHotbarCategory HotBarCategory
 function ActionBar.OnActiveHotbarUpdate(didActiveHotbarChange, shouldUpdateAbilityAssignments, activeHotbarCategory)
     if didActiveHotbarChange == true or shouldUpdateAbilityAssignments == true then

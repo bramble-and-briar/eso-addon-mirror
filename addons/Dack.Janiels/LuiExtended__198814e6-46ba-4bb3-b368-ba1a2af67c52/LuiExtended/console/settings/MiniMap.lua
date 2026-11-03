@@ -33,11 +33,11 @@ local miniMapRegionZoomSliders =
 
 local miniMapPinCategoryScales =
 {
-    { key = "pinScaleQuest",      name = LUIE_STRING_LAM_MINIMAP_PINSCALE_QUEST     },
-    { key = "pinScaleGroup",      name = LUIE_STRING_LAM_MINIMAP_PINSCALE_GROUP     },
-    { key = "pinScalePoi",        name = LUIE_STRING_LAM_MINIMAP_PINSCALE_POI       },
-    { key = "pinScaleWayshrine",  name = LUIE_STRING_LAM_MINIMAP_PINSCALE_WAYSHRINE },
-    { key = "pinScaleOther",      name = LUIE_STRING_LAM_MINIMAP_PINSCALE_OTHER     },
+    { key = "pinScaleQuest",      name = LUIE_STRING_LAM_MINIMAP_PINSCALE_QUEST                                                                },
+    { key = "pinScaleGroup",      name = LUIE_STRING_LAM_MINIMAP_PINSCALE_GROUP                                                                },
+    { key = "pinScalePoi",        name = LUIE_STRING_LAM_MINIMAP_PINSCALE_POI                                                                  },
+    { key = "pinScaleWayshrine",  name = LUIE_STRING_LAM_MINIMAP_PINSCALE_WAYSHRINE                                                            },
+    { key = "pinScaleOther",      name = LUIE_STRING_LAM_MINIMAP_PINSCALE_OTHER                                                                },
     { key = "pinScaleHarvestMap", name = LUIE_STRING_LAM_MINIMAP_PINSCALE_HARVESTMAP, tooltip = LUIE_STRING_LAM_MINIMAP_PINSCALE_HARVESTMAP_TP },
 }
 
@@ -520,8 +520,9 @@ function MiniMap.CreateConsoleSettings()
             default = Defaults.zoneNameAboveMap,
             disable = zoneNameFontDisabled,
         },
+        SettingsAPI:CreateOptionSelectButton(
         {
-            type = LHAS.ST_DROPDOWN,
+            kind = "face",
             label = GetString(LUIE_STRING_LAM_FONT),
             tooltip = GetString(LUIE_STRING_LAM_MINIMAP_ZONE_NAME_FONT_TP),
             items = fontItems,
@@ -534,7 +535,7 @@ function MiniMap.CreateConsoleSettings()
             end,
             default = Defaults.zoneNameFontFace,
             disable = zoneNameFontDisabled,
-        },
+        }),
         {
             type = LHAS.ST_SLIDER,
             label = GetString(LUIE_STRING_LAM_FONT_SIZE),
@@ -551,8 +552,9 @@ function MiniMap.CreateConsoleSettings()
             default = Defaults.zoneNameFontSize,
             disable = zoneNameFontDisabled,
         },
+        SettingsAPI:CreateOptionSelectButton(
         {
-            type = LHAS.ST_DROPDOWN,
+            kind = "style",
             label = GetString(LUIE_STRING_LAM_FONT_STYLE),
             tooltip = GetString(LUIE_STRING_LAM_MINIMAP_ZONE_NAME_FONT_STYLE_TP),
             items = fontStyleItems,
@@ -571,7 +573,7 @@ function MiniMap.CreateConsoleSettings()
             end,
             default = Defaults.zoneNameFontStyle,
             disable = zoneNameFontDisabled,
-        },
+        }),
     }
 
     -- Visibility -------------------------------------------------------------

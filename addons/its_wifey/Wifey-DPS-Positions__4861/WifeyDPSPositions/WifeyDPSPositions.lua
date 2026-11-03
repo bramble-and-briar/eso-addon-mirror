@@ -14,6 +14,48 @@ end
 
 local hudFragment
 
+-- RCRT interoperability: mirror PUSHes received by RCRT become the visible
+-- Wifey DPS Positions mirror board too. RCRT remains the network transport;
+-- this addon only mirrors RCRT's committed vLC board into its own HUD state.
+local lastRcrtMirrorSignature = nil
+local function syncMirrorsFromRCRT()
+    local rt = RyticTank
+    local board = rt and rt.saved and rt.saved.positions and rt.saved.positions.saved
+        and rt.saved.positions.saved[1478] and rt.saved.positions.saved[1478].Mirrors
+    if type(board) ~= "table" then return end
+
+    local byPosition = {}
+    local sigParts = {}
+    for _, row in ipairs(board) do
+        local pos = tostring(row.position or "")
+        local name = DDP.NormalizeName(row.name or "@Missing") or "@Missing"
+        if pos ~= "" then byPosition[pos] = name end
+        sigParts[#sigParts + 1] = pos .. "=" .. name
+    end
+    table.sort(sigParts)
+    local signature = table.concat(sigParts, "|")
+    if signature == lastRcrtMirrorSignature then return end
+    lastRcrtMirrorSignature = signature
+
+    local zoneData = DDP.positions and DDP.positions[1478]
+    local positions = zoneData and zoneData.mechanics and zoneData.mechanics.Mirrors
+    if type(positions) ~= "table" then return end
+
+    DDP.savedAssignments = DDP.savedAssignments or {}
+    DDP.savedAssignments[1478] = DDP.savedAssignments[1478] or {}
+    local out = {}
+    for i, pos in ipairs(positions) do
+        local name = byPosition[pos] or "@Missing"
+        out[i] = {name = name, position = pos, override = false}
+    end
+    DDP.savedAssignments[1478].Mirrors = out
+    if DDP.SV then DDP.SV.savedAssignments = DDP.savedAssignments end
+
+    if DDP.UI and DDP.UI.currentMechanic == "Mirrors" and DDP.UI.RefreshAssignments then
+        DDP.UI:RefreshAssignments()
+    end
+end
+
 local function hookSceneVisibility()
     if hudFragment or not DDP.UI or not DDP.UI.window then return end
     if not HUD_SCENE or not HUD_UI_SCENE then return end
@@ -56,7 +98,7 @@ local function onGroupChanged(eventCode, unitTag, reason, name)
     if not zoneData then return end
 
     if unitTag and DoesUnitExist(unitTag) then
-        local role = GetGroupMemberSelectedRole(unitTag)
+        local role = DDP.GetUnitRole(unitTag)
         if role ~= LFG_ROLE_TANK and role ~= LFG_ROLE_HEAL and role ~= LFG_ROLE_DPS then
             return
         end
@@ -96,11 +138,25 @@ local function onAddonLoaded(event, addonName)
 	end
 	
     DDP.savedAssignments = DDP.SV.savedAssignments
+    -- Clear legacy assignment flags without clearing saved assignments.
+    for _, zoneBoards in pairs(DDP.savedAssignments or {}) do
+        if type(zoneBoards) == "table" then
+            for _, slots in pairs(zoneBoards) do
+                if type(slots) == "table" then
+                    for _, slot in ipairs(slots) do
+                        if type(slot) == "table" then slot.override = false end
+                    end
+                end
+            end
+        end
+    end
 	DDP.freeAssignments  = DDP.SV.freeAssignments
 
     if DDP.UI and DDP.UI.Create then DDP.UI:Create() end
     registerKeybinds()
     hookSceneVisibility()
+
+    EVENT_MANAGER:RegisterForUpdate("WifeyDPSPositions_RCRTMirrorHUDSync", 250, syncMirrorsFromRCRT)
 
     EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupJoined", EVENT_GROUP_MEMBER_JOINED, onGroupChanged)
     EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupLeave", EVENT_GROUP_MEMBER_LEFT, onGroupChanged)

@@ -1,6 +1,11 @@
 InventoryGrouping = InventoryGrouping or {}
 local IG = InventoryGrouping
 
+-- Cached once rather than read off _G on every menu build (ESOUI admin review, 2026-11-02).
+-- Safe at file load time: LibCustomMenu is a hard ## DependsOn now, so its own file has already
+-- set the global by the time this one runs.
+local libCustomMenu = LibCustomMenu
+
 -- Right click an item: send it (or its whole set) to whichever group you want.
 -- Choices are kept per item id, or per set id when you pick the set, and beat the automatic rules.
 -- The same choice for a whole set is also on the set's own header.
@@ -214,7 +219,7 @@ end
 -- with its colour lines). Both of them go through LibCustomMenu, so without it this adds
 -- nothing and the menu around it stands on its own.
 function IG.AddSetMenuEntries(setId, setName, itemLink)
-    if not LibCustomMenu or not setId then return false end
+    if not libCustomMenu or not setId then return false end
     AddSetEntries(setId, setName, itemLink)
     return true
 end
@@ -223,7 +228,9 @@ end
 -- thing. SELL, GUILDSELL and DECON have a key: CUSTOM is named by the player and a binding
 -- cannot say what it would do.
 local ASIDE = {
-    { key = "SELL", action = "INVENTORY_GROUPING_SEND_TO_SELL" },
+    { key = "SELL", action = "INVENTORY_GROUPING_SEND_TO_SELL", takes = function(bagId, slotIndex)
+        return IG.CanSellToMerchant == nil or IG.CanSellToMerchant(bagId, slotIndex)
+    end },
     -- Straight after its twin, because the choice between the two is the whole question the
     -- moment either of them is the answer: what a merchant pays, or what somebody will. What it
     -- is called can be changed like CUSTOM's, so the line asks rather than says.
@@ -245,7 +252,7 @@ local ASIDE = {
     -- Put in the bank the next time it is opened (ToBank.lua): only from the backpack, and only
     -- what the bank takes. Its module switch hides the button and nothing else, so the line is
     -- offered whether or not the category is on show (always).
-    { key = "TOBANK", always = true, takes = function(bagId, slotIndex)
+    { key = "TOBANK", always = true, action = "INVENTORY_GROUPING_SEND_TO_BANK", takes = function(bagId, slotIndex)
         return IG.CanDepositToBank(bagId, slotIndex)
     end },
 }
@@ -270,53 +277,10 @@ local function AsideOffered(aside, bagId, slotIndex)
     return true
 end
 
--- How many of the marked pieces a category would actually take, counted before its line is
--- written so the number in the line is the number it moves -- the same promise the junk line
--- makes. A category that turns nobody away answers with the whole handful.
-local function AsideCount(aside, marked)
-    if not aside.takes then return marked end
-    local taken = 0
-    for _, piece in ipairs(IG.SelectedPieces()) do
-        if aside.takes(piece.bagId, piece.slotIndex) then taken = taken + 1 end
-    end
-    return taken
-end
-
--- Everything marked with ctrl, sent where one line says. The marks are dropped afterwards:
--- the sentence has been finished, and leaving them behind invites the next click to repeat it.
-local function SendSelectionTo(aside)
-    local key = aside.key
-    -- The whole handful under one line: one press filed them and one press hands them back.
-    IG.UndoStep(nil, function()
-        local moved = 0
-        for _, piece in ipairs(IG.SelectedPieces()) do
-            -- The ones the category will not have are left exactly where they are rather than the
-            -- line refusing the whole handful over them: the same way the junk line treats a piece
-            -- the game will not mark.
-            if not aside.takes or aside.takes(piece.bagId, piece.slotIndex) then
-                IG.NoteSaved(IG.sv.overrides.items, piece.id)
-                IG.sv.overrides.items[piece.id] = key
-                -- Same reason the single line has: the mark belongs to the pile, not to the piece.
-                if key ~= IG.AWAITING_GROUP then IG.SetAwaitingReason(piece.id, nil) end
-                moved = moved + 1
-            end
-        end
-        if moved > 0 then
-            return string.format("%s moved to %s", IG.UndoPieces(moved), IG.MenuGroupName(key))
-        end
-    end)
-    IG.ClearSelection()
-    -- Dropping the marks only repaints now, and every one of these pieces belongs somewhere
-    -- else than the row it is sitting in: the list itself has to be built again.
-    IG.RefreshLists()
-    -- Marked while the bank is already open: they go in now rather than on the next visit.
-    if key == "TOBANK" and IG.ToBankCheck then IG.ToBankCheck() end
-end
-
--- Everything marked with ctrl, junked. Shared rather than copied, because the keybind says the
--- same sentence the menu line does and there is only one right way to say it. What it does not
--- do is build the list: from the menu that is wanted and the caller asks for it, from the key
--- it is the whole of the insecure-callstack trouble (see HANDOFF section 5).
+-- Everything marked with ctrl, junked. Shared with the keybind (INVENTORY_GROUPING_MARK_AS_JUNK,
+-- IG.JunkHovered in this file): the key says the same sentence a selection-aware menu line used
+-- to, and there is only one right way to say it -- removing the menu line (below) left this as
+-- the one surviving way to junk a whole marked handful at once.
 function IG.JunkSelection()
     IG.UndoStep(nil, function()
         local marked = 0
@@ -335,159 +299,6 @@ function IG.JunkSelection()
         end
     end)
     IG.ClearSelection()
-end
-
-local function JunkSelection()
-    IG.JunkSelection()
-    IG.RefreshLists()
-end
-
--- How many of the marked pieces the junk line would actually touch, which is not how many are
--- marked: a piece already junked is left where it is, and so is one the game will not have the
--- mark put on at all. The same question JunkSelection asks itself as it goes, asked once before
--- the line is written -- so the number in it is a promise it keeps, and where the answer is
--- none the line is left out entirely rather than offered and doing nothing. On the game's own
--- Junk tab that is every piece on screen, which is what put "Mark 4 selected as junk" over a
--- handful of junk.
-local function MarkableCount()
-    local markable = 0
-    for _, piece in ipairs(IG.SelectedPieces()) do
-        local allowed = CanItemBeMarkedAsJunk == nil
-            or CanItemBeMarkedAsJunk(piece.bagId, piece.slotIndex)
-        if allowed and not IsItemJunk(piece.bagId, piece.slotIndex) then
-            markable = markable + 1
-        end
-    end
-    return markable
-end
-
--- Everything marked with ctrl that is sitting in the guild store pile, held back at once.
---
--- A selection is rarely all of one thing, and it does not have to be: the pieces filed
--- somewhere else are left exactly as they are rather than the line refusing the whole handful
--- over them. That is what the junk line does with a piece the game will not have junked, and it
--- is the same promise -- the number written in the line is the number it touches, counted the
--- same way before the line is written, so nobody is told a piece was held back that was not.
--- Where that number is none the line is left out entirely, which is also what happens when
--- every guild store piece in the selection is already marked: nothing left to say.
---
--- One direction only, as junking is. Several pieces have no one state between them to turn
--- over, and a line meant to hold a handful back would quietly let the marked ones go. Naming
--- the other reason over a handful already waiting for one is not that: it is the same change of
--- mind the single line makes, said about all of them at once, so a piece counts for a line
--- whenever that line's reason is not the one it is already holding.
-local function AwaitingCount(reasonKey)
-    local waiting = 0
-    for _, piece in ipairs(IG.SelectedPieces()) do
-        if IG.SetAsideKey(piece) == IG.AWAITING_GROUP
-            and IG.AwaitingReason(piece.id) ~= reasonKey then
-            waiting = waiting + 1
-        end
-    end
-    return waiting
-end
-
-local function AwaitSelection(reasonKey)
-    IG.UndoStep(nil, function()
-        local waiting = 0
-        for _, piece in ipairs(IG.SelectedPieces()) do
-            if IG.SetAsideKey(piece) == IG.AWAITING_GROUP then
-                IG.SetAwaitingReason(piece.id, reasonKey)
-                waiting = waiting + 1
-            end
-        end
-        if waiting > 0 then
-            return string.format("%s marked as %s", IG.UndoPieces(waiting),
-                IG.MenuName(IG.AwaitingLabel(reasonKey), IG.AWAITING_BY_KEY[reasonKey].color))
-        end
-    end)
-    IG.ClearSelection()
-    -- The same road a piece moved by hand travels: the rows say something new about themselves
-    -- and the list is built again to say it. Nothing here commits one.
-    IG.RefreshLists()
-end
-
--- Out of every run that claims them, all at once and without the list going anywhere: with
--- several pieces there is no one place to be taken to.
-local function DistributeSelection()
-    for _, piece in ipairs(IG.SelectedPieces()) do
-        IG.TakeOutOfRuns(piece.bagId, piece.slotIndex)
-    end
-    IG.ClearSelection()
-    IG.RefreshLists()
-end
-
-local function AnySelectedInRun()
-    if not IG.IsSlotInLastRun then return false end
-    for _, piece in ipairs(IG.SelectedPieces()) do
-        if IG.IsSlotInLastRun(piece.bagId, piece.slotIndex) then return true end
-    end
-    return false
-end
-
--- With something marked the menu is ours and nothing else's. Every line the game and the other
--- addons put there speaks for the one piece under the cursor, and that piece is not what the
--- click is about any more: what is marked is. So the menu is built here instead of added to,
--- and the game's own is never reached.
-local function ShowSelectionMenu(rowControl)
-    local marked = IG.SelectionCount()
-    if marked == 0 then return false end
-    -- Right clicking a worn piece opens the game's own menu for it, whatever is marked.
-    local ok, bagId = pcall(ZO_Inventory_GetBagAndIndex, rowControl)
-    if ok and IG.IsWornSlot(bagId) then return false end
-    ClearMenu()
-    for _, aside in ipairs(ASIDE) do
-        if AsideOffered(aside) then
-            local taking = AsideCount(aside, marked)
-            -- None of them can go there: nothing to say, so the line is left out rather than
-            -- offered and doing nothing.
-            if taking > 0 then
-                AddCustomMenuItem(MenuLabel(string.format("Move %d selected to %s", taking, AsideName(aside))),
-                    function() SendSelectionTo(aside) end)
-            end
-        end
-    end
-    -- Off by default (Modules > On/Off): a player who never asked for it does not see it.
-    if IG.sv and IG.sv.awaitingMarksEnabled then
-        for _, reason in ipairs(IG.AWAITING_REASONS) do
-            local waiting = AwaitingCount(reason.key)
-            if waiting > 0 then
-                AddCustomMenuItem(MenuLabel(string.format("Mark %d selected as %s", waiting,
-                    IG.MenuName(IG.AwaitingLabel(reason.key), reason.color))),
-                    function() AwaitSelection(reason.key) end)
-            end
-        end
-    end
-    local markable = MarkableCount()
-    if markable > 0 then
-        AddCustomMenuItem(MenuLabel(string.format("Mark %d selected as %s", markable,
-            IG.MenuGroupName("JUNK"))), JunkSelection)
-    end
-    -- Only where there is something to take out: a line that does nothing when pressed is a
-    -- line that has to be read twice to find that out.
-    if AnySelectedInRun() then
-        AddCustomMenuItem(MenuLabel(string.format("Distribute %d selected", marked),
-            IG.GetGroupColor("LASTRUN")), DistributeSelection)
-    end
-    -- Last, under everything that only moves a mark about, because it is the one line here that
-    -- parts with the pieces rather than filing them. It wears its own red and asks in its own
-    -- window; all of that, and the counting of which marked pieces a merchant would actually
-    -- take, belongs to the selling layout and is borrowed from it (Trading.lua). Away from a
-    -- merchant, or with nothing among the marks worth offering, there is no line at all.
-    local sellLabel, RunSell = nil, nil
-    if IG.SellSelectionOffer then sellLabel, RunSell = IG.SellSelectionOffer(IG.SelectedPieces) end
-    if sellLabel then
-        -- The marks are dropped once the sale has gone through and not before: they point at
-        -- pieces the merchant now has, and leaving them standing invites the next click to say
-        -- the same sentence over things that are gone. Dropping them only repaints, which is
-        -- the one thing our own frame may do here (see HANDOFF section 5).
-        AddCustomMenuItem(MenuLabel(sellLabel), function() RunSell(IG.ClearSelection) end)
-    end
-    -- Add / Remove the marked gear to an equipment setup (SetupsUI.lua).
-    if IG.AddSetupSelectionMenu then IG.AddSetupSelectionMenu() end
-    AddCustomMenuItem(IG.CANCEL_LABEL, function() end)
-    ShowMenu(rowControl)
-    return true
 end
 
 local function AddMenuEntries(inventorySlot)
@@ -663,14 +474,18 @@ local function SendHoveredTo(key)
     local pieceId = IG.PieceId(bagId, slotIndex)
     if not pieceId then return end
 
-    -- The key says what the menu line says, so it is silent wherever the line is not there:
-    -- the GUILD STORE key is refused for a bound piece, because a key that sent one to a pile it
-    -- cannot be listed from would be the one way in the menu line is closed. Asked before the
-    -- sound, because a press answered with nothing is worse than no press at all.
+    -- The key says what the menu line says: wherever the line is not there, the key refuses the
+    -- same piece. Said out loud rather than done silently -- a press that visibly does nothing
+    -- reads as the addon not responding, not as the game having a reason.
     local already = IG.sv.overrides.items[pieceId] == key
     if not already then
         for _, aside in ipairs(ASIDE) do
-            if aside.key == key and aside.takes and not aside.takes(bagId, slotIndex) then return end
+            if aside.key == key and aside.takes and not aside.takes(bagId, slotIndex) then
+                PlaySound(SOUNDS.NEGATIVE_CLICK)
+                d(string.format("Inventory 2.0: %s can't be moved to %s.",
+                    zo_strformat("<<1>>", itemLink), AsideName(aside)))
+                return
+            end
         end
     end
     PlaySound(SOUNDS.DEFAULT_CLICK)
@@ -714,6 +529,7 @@ end
 function IG.SendHoveredToSell() SendHoveredTo("SELL") end
 function IG.SendHoveredToDeconstruct() SendHoveredTo("DECON") end
 function IG.SendHoveredToGuildSell() SendHoveredTo("GUILDSELL") end
+function IG.SendHoveredToBank() SendHoveredTo("TOBANK") end
 
 function IG.CountOverrides()
     local count = 0
@@ -769,11 +585,19 @@ function IG.InitOverrides()
     -- Saves written before the "Always" rules have no table for them.
     IG.sv.overrides.types = IG.sv.overrides.types or {}
     if not IG.IsEnabled() then return end
-    if not LibCustomMenu then return end
-    LibCustomMenu:RegisterContextMenu(AddMenuEntries, LibCustomMenu.CATEGORY_SECONDARY)
-    -- Asked before the menu is built rather than while it is being filled: answering it takes
-    -- the whole menu over, which is the only way to leave out what everyone else puts in.
-    if ZO_InventorySlot_ShowContextMenu then
-        ZO_PreHook("ZO_InventorySlot_ShowContextMenu", ShowSelectionMenu)
-    end
+    -- LibCustomMenu is a hard DependsOn now (Inventory2.txt), so this guard never actually
+    -- fires -- kept anyway as a second, independent line of defence (CLAUDE.md: never trust
+    -- one safeguard alone) in case a future manifest edit ever loosens it back to optional.
+    if not libCustomMenu then return end
+    libCustomMenu:RegisterContextMenu(AddMenuEntries, libCustomMenu.CATEGORY_SECONDARY)
+    -- A raw ZO_PreHook on ZO_InventorySlot_ShowContextMenu used to stand here: with something
+    -- marked, it took the whole context menu over (Move N selected to ..., Mark N selected as
+    -- ..., a selection-wide sell offer, adding a marked handful to a setup) so the game's own
+    -- menu was never reached for that click. Hooking a protected function that way taints it, so
+    -- it is gone -- removed rather than ported, because LibCustomMenu's own public API only ever
+    -- ADDS entries through its category registry and has no mechanism to suppress the game's own
+    -- default actions or every other addon's additions for a click that answers for several
+    -- marked slots at once (see AddMenuEntries below, registered the ordinary way). The one piece
+    -- of that menu with a surviving equivalent is junking a selection, which the
+    -- INVENTORY_GROUPING_MARK_AS_JUNK keybind (IG.JunkHovered) already covered on its own.
 end

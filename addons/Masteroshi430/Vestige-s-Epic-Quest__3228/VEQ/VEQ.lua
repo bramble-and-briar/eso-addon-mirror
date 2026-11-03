@@ -811,6 +811,8 @@ function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture,
      else
          VEQ.FocusedMiniQuest = index
      end
+  elseif VEQ.CharSavedVars.lastSelectedMiniquest then 
+         VEQ.FocusedMiniQuest = VEQ.CharSavedVars.lastSelectedMiniquest
   end
 
 end
@@ -853,7 +855,7 @@ function VEQ.DisplayFocusedMiniQuest()
               VEQ.FocusedMiniQuest = VEQ.CharSavedVars.lastSelectedMiniquest
           else   
               VEQ.FocusedMiniQuest = next(VEQ.MiniQuestList)
-          end				
+          end
       end 
  
 		 if VEQ.boxmarker == nil then -- fix for nil VEQ.boxmarker

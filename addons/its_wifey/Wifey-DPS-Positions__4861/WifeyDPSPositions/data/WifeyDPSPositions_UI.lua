@@ -191,16 +191,10 @@ end
 function UI:OnAssignmentClicked(index)
     local zoneId, zoneData = self:GetContext()
     local mech = self.currentMechanic
+    if zoneId == 1548 and mech == "HM PORTALS" then return end
     local objs = DDP.savedAssignments and DDP.savedAssignments[zoneId] and DDP.savedAssignments[zoneId][mech]
     if not objs or not objs[index] then return end
 
-    if self.editMode == "lock" then
-        objs[index].override = not objs[index].override
-        if DDP.SV then DDP.SV.savedAssignments = DDP.savedAssignments end
-        self:MarkDirty()
-        self:RefreshAssignments()
-        return
-    end
 
     if self.editMode == "swap" then
         if not self.swapFirst then
@@ -249,8 +243,7 @@ function UI:RefreshAssignments()
         end
 
         local displayName = DDP.PrintName and DDP.PrintName(obj.name or "@Missing") or (obj.name or "@Missing")
-        local lockText = obj.override and "  [LOCK]" or ""
-        local name = makeLabel(cell, ASSIGNMENT_FONT, displayName .. lockText)
+        local name = makeLabel(cell, ASSIGNMENT_FONT, displayName)
         name:SetAnchor(TOPLEFT, pos, BOTTOMLEFT, 0, 4)
         name:SetDimensions(colW - 12, 28)
         name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
@@ -273,7 +266,6 @@ function UI:SetMode(mode)
         self.modeLabel:SetText("")
     else
         self.editMode = mode
-        if mode == "lock" then self.modeLabel:SetText("LOCK: click assignments to lock/unlock") end
         if mode == "swap" then self.modeLabel:SetText("SWAP: choose the first assignment") end
     end
     self:RefreshAssignments()
@@ -287,15 +279,22 @@ function UI:BuildActions()
     if not zoneData or not mech then return end
     local positions = zoneData.mechanics[mech]
 
-    local actions = {
-        {"REROLL", function() DDP.ShuffleAllAssignments(zoneId, mech, positions, true); self:MarkDirty(); self:RefreshAssignments() end},
-        {"LOCK", function() self:SetMode("lock") end},
-        {"SWAP", function() self:SetMode("swap") end},
-        {"FILL EMPTY", function() DDP.FillEmptyAssignments(zoneId, mech, positions); self:MarkDirty(); self:RefreshAssignments() end},
-        {"RESET", function() DDP.ResetMechanic(zoneId, mech, positions); self:MarkDirty(); self:RefreshAssignments() end},
-        {"SEND", function() if DDP.SendAssignments(zoneId, mech) then self.sentClean = true; self:UpdateSentState() end end},
-        {"RESEND", function() DDP.SendAssignments(zoneId, mech) end},
-    }
+    local actions
+    if zoneId == 1548 and mech == "HM PORTALS" then
+        actions = {
+            {"SEND", function() if DDP.SendAssignments(zoneId, mech) then self.sentClean = true; self:UpdateSentState() end end},
+            {"RESEND", function() DDP.SendAssignments(zoneId, mech) end},
+        }
+    else
+        actions = {
+            {"REROLL", function() DDP.ShuffleAllAssignments(zoneId, mech, positions, false); self:MarkDirty(); self:RefreshAssignments() end},
+            {"SWAP", function() self:SetMode("swap") end},
+            {"FILL EMPTY", function() DDP.FillEmptyAssignments(zoneId, mech, positions); self:MarkDirty(); self:RefreshAssignments() end},
+            {"RESET", function() DDP.ResetMechanic(zoneId, mech, positions); self:MarkDirty(); self:RefreshAssignments() end},
+            {"SEND", function() if DDP.SendAssignments(zoneId, mech) then self.sentClean = true; self:UpdateSentState() end end},
+            {"RESEND", function() DDP.SendAssignments(zoneId, mech) end},
+        }
+    end
     local y = 0
     for _, a in ipairs(actions) do
         local action = a

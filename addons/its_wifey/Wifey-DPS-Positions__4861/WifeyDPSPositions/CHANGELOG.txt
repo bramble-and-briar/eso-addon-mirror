@@ -1,0 +1,11 @@
+Wifey DPS Positions — Version 1.7
+Author: WifeyRytic
+
+Changes:
+- Removed the LOCK button and manual assignment-locking feature.
+- Removed the [LOCK] indicator beside player names.
+- Clears legacy lock flags while preserving existing saved assignments.
+- Keeps existing assignment controls and RCRT synchronization integration.
+
+Release note:
+This update removes the assignment lock feature entirely.

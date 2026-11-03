@@ -31,7 +31,6 @@ end
 
 local function OnHit(result)
     hitsThisWindow = hitsThisWindow + 1
-    -- Use ACTION_RESULT_CRITICAL_DAMAGE which is a confirmed ESO constant
     local isCrit = (result == ACTION_RESULT_DOT_TICK_CRITICAL)
     if not inRange then
         inRange    = true
@@ -39,7 +38,7 @@ local function OnHit(result)
         StartDurationTick()
     end
     ADK.UI.Corrosive.Show(hitsThisWindow, isCrit)
-    if windowHandle then zo_removeCallLater(windowHandle) end
+    windowHandle = ADK.CancelTimer(windowHandle)
     windowHandle = zo_callLater(function()
         windowHandle   = nil
         hitsThisWindow = 0
@@ -49,27 +48,22 @@ end
 local function StopTracking()
     inRange        = false
     hitsThisWindow = 0
-    if tickHandle   then zo_removeCallLater(tickHandle);   tickHandle   = nil end
-    if windowHandle then zo_removeCallLater(windowHandle); windowHandle = nil end
+    tickHandle     = ADK.CancelTimer(tickHandle)
+    windowHandle   = ADK.CancelTimer(windowHandle)
     ADK.UI.Corrosive.Hide()
 end
 
 function M.Register()
     EVENT_MANAGER:RegisterForEvent(
         ADK.name .. "_Corrosive", EVENT_COMBAT_EVENT,
-        function(_, result, _, _, _, _, sourceName, sourceType, targetName, _, _, _, _, _, _, targetUnitId, abilityId)
-            if not ADK.savedVars.trackCorrosive  then return end
-            if abilityId ~= ID                   then return end
-            local name = zo_strformat("<<1>>", sourceName)
-            if name == GetUnitName("player") then return end
-            local tName = zo_strformat("<<1>>", targetName)
-            if tName ~= GetUnitName("player") then return end
+        function(_, result, _, _, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
+            if not ADK.Get("trackCorrosive") then return end
+            if abilityId ~= ID               then return end
+            if ADK.IsPlayer(sourceName)      then return end   -- our own Corrosive Armor
+            if not ADK.IsPlayer(targetName)  then return end   -- not ticking on us
             if result == ACTION_RESULT_DOT_TICK or result == ACTION_RESULT_DOT_TICK_CRITICAL then
                 OnHit(result)
             end
-            --ADK.Combat.Events.Wings.TrackEnemy(sourceName, sourceType)
-            if sourceType == COMBAT_UNIT_TYPE_PLAYER then return end
-            -- Accept any damage result (DOT_TICK constant not available in all ESO builds)
         end
     )
 end

@@ -89,6 +89,13 @@ local COLLECT_FONT = "$(BOLD_FONT)|14|soft-shadow-thin"
 -- counter, which is gone; it is the green of the missing-piece counter now, which is what it is
 -- actually saying.
 local COLLECTABLE_COLOR = { 0.22, 1, 0.08 }
+-- A piece the game would actually refuse to sell or list, blinking so it reads as a warning
+-- rather than another note next to the name (SellWarningText, Classify.lua's
+-- CanSellToMerchant/CanListOnGuildStore).
+local SELL_WARNING_FONT = "$(BOLD_FONT)|14|soft-shadow-thin"
+local SELL_WARNING_COLOR = { 1, 0.25, 0.2 }
+local SELL_WARNING_PULSE_LOW, SELL_WARNING_PULSE_HIGH = 0.35, 1
+local SELL_WARNING_HALF_MS = 550
 -- The collection counter sits on its own line under the drop location, at the same right edge.
 local COLLECTED_DROP = 19
 -- The "Total items" bracket, against its row's own text color.
@@ -1608,6 +1615,22 @@ local function BuildGroupedList(inventory, inventoryType, mode)
     -- The row the reveal is looking out for, held until every pass that can move it has run.
     local watchedEntry
 
+    -- A piece sitting in SELL or SELL [GUILD STORE] that the game would actually turn away --
+    -- an old mark from before this check existed, an item that changed hands and bound since,
+    -- a dungeon/trial drop only tradeable within its own group (CanListOnGuildStore,
+    -- Classify.lua). Said on the row itself (DecorateItemRow) rather than silently skipped, so
+    -- it is not mistaken for sold or listed when the automate action runs and passes over it.
+    local function SellWarningText(path, bagId, slotIndex)
+        local topId = path and path[1] and path[1].id
+        if topId == "SELL" and IG.CanSellToMerchant and not IG.CanSellToMerchant(bagId, slotIndex) then
+            return "Can't be sold to a merchant!"
+        end
+        if topId == "GUILDSELL" and IG.CanListOnGuildStore and not IG.CanListOnGuildStore(bagId, slotIndex) then
+            return "Can't be listed on a guild store!"
+        end
+        return nil
+    end
+
     -- Classify and sort the raw item entries.
     local items = {}
     for _, entry in ipairs(scrollData) do
@@ -1622,9 +1645,11 @@ local function BuildGroupedList(inventory, inventoryType, mode)
             if trading then
                 entry.igPath = IG.GetTradingPath(entry.data)
                 entry.data.igCollectable = IG.IsUncollectedPiece(entry.data) or nil
+                entry.data.igSellWarning = SellWarningText(entry.igPath, entry.data.bagId, entry.data.slotIndex)
             elseif minimal then
                 entry.igPath = IG.GetMinimalPath(entry.data)
                 entry.data.igCollectable = nil
+                entry.data.igSellWarning = nil
             else
                 local isNew = isBackpack and IsNewSlot(entry.data)
                 if isNew and LastRunTakesOver(entry.data) then isNew = false end
@@ -1638,6 +1663,7 @@ local function BuildGroupedList(inventory, inventoryType, mode)
                 -- piece not yet collected, as the flat layout does.
                 entry.data.igCollectable = (merchantSell and IG.IsUncollectedPiece
                     and IG.IsUncollectedPiece(entry.data)) or nil
+                entry.data.igSellWarning = SellWarningText(entry.igPath, entry.data.bagId, entry.data.slotIndex)
             end
             if watched and entry.data.bagId == watched.bagId
                 and entry.data.slotIndex == watched.slotIndex then
@@ -1738,6 +1764,11 @@ local function BuildGroupedList(inventory, inventoryType, mode)
     -- PVE SETS keeps its sets a level down, under DUNGEON and TRIAL, and the right click that
     -- says how sets are drawn is on the category, so the question has to reach the whole tree.
     local totals, children, counted, setKids, hasSets = {}, {}, {}, {}, {}
+    -- Whether a section (the white divider over a run of categories) holds a set anywhere
+    -- under it right now -- read by the divider's own right click (ModuleStrip.lua:
+    -- IG.ShowSectionDisplayMenu) to decide whether Group Sets/Don't Group Sets belongs there
+    -- at all, instead of a fixed guess at which sections can ever hold one.
+    local sectionHasSets = {}
     -- The real categories standing under LOCKED in this build (set keys above, fed to the
     -- module-level lockedCategoryKeys at the end of this function).
     local lockedCategories = {}
@@ -1778,6 +1809,7 @@ local function BuildGroupedList(inventory, inventoryType, mode)
                     if path[depth].isSet then
                         hasSets[CategoryKey(path)] = true
                         hasSets[SetViewKey(path)] = true
+                        sectionHasSets[IG.GetGroupSection(path[1].id)] = true
                         break
                     end
                 end
@@ -1939,7 +1971,8 @@ local function BuildGroupedList(inventory, inventoryType, mode)
                 AddCategoryGap()
                 scrollData[#scrollData + 1] = ZO_ScrollList_CreateDataEntry(SECTION_TYPE,
                     { label = shutSection, rowHeight = metrics.section, isSection = true, shut = true,
-                      count = sectionCount[shutSection] or 0, invKey = invKey, inventoryType = inventoryType })
+                      count = sectionCount[shutSection] or 0, invKey = invKey, inventoryType = inventoryType,
+                      hasSets = sectionHasSets[shutSection] })
                 shownSection = shutSection
             end
             for depth = 1, MAX_DEPTH do previousKeys[depth] = nil; openHeaders[depth] = nil end
@@ -1986,7 +2019,8 @@ local function BuildGroupedList(inventory, inventoryType, mode)
                             scrollData[#scrollData + 1] = ZO_ScrollList_CreateDataEntry(SECTION_TYPE,
                                 { label = section, rowHeight = metrics.section, isSection = true,
                                   count = sectionCount[section] or 0,
-                                  invKey = invKey, inventoryType = inventoryType })
+                                  invKey = invKey, inventoryType = inventoryType,
+                                  hasSets = sectionHasSets[section] })
                             shownSection = section
                         end
                     elseif depth > 1 and not stripChip and openHeaders[depth] and openHeaders[depth].expanded then
@@ -2168,11 +2202,18 @@ local HINT_COLOR = { 1, 0.6, 0.2 }
 local BADGE_COLOR = { 1, 1, 1 }
 local RIGHT_EDGE_MARGIN = 12
 local BOX_GAP = 6
+-- A heading with both a Shift+Click/Collapse hint and a right click Menu hint no longer squeezes
+-- them onto one line (they could run into each other at the right edge, as ESOUI's own report
+-- against RECENT LOOT showed); one sits above the name line and the other below it instead.
+local STACK_LINE_OFFSET = 10
+-- Both stacked lines sit this close to the edge (closer than RIGHT_EDGE_MARGIN, which everything
+-- else on the row still uses) and share one frameless look, so their right ends line up exactly.
+local STACK_RIGHT_MARGIN = 6
 
 local function HintText(action)
     local mouseIcon = KEY_MOUSE_LEFT and GetMouseIconPathForKeyCode and GetMouseIconPathForKeyCode(KEY_MOUSE_LEFT)
     local mouse = mouseIcon and zo_iconFormat(mouseIcon, 22, 22) or "Click"
-    return string.format("%s + %s: %s", ZO_Keybindings_GenerateTextKeyMarkup(GetKeyName(KEY_SHIFT)), mouse, action)
+    return string.format("%s+%s: %s", ZO_Keybindings_GenerateTextKeyMarkup(GetKeyName(KEY_SHIFT)), mouse, action)
 end
 
 -- The one group that is never offered it. Its right side is already spent -- two counts on the
@@ -2195,7 +2236,14 @@ end
 
 local function EnsureHint(control)
     if not control.igHint then
-        control.igHint = IG.CreateTextBox(control, HINT_COLOR, HINT_FONT)
+        -- A bare label rather than IG.CreateTextBox's framed chip: a frame round a footnote this
+        -- short read as its own box fighting the Menu hint's for attention right next to it, and
+        -- the frame's own padding was why the two never quite lined up on the right (reported
+        -- 2026-11-03). No box, no padding: GetWidth() below is set from the text itself.
+        control.igHint = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+        control.igHint:SetFont(HINT_FONT)
+        control.igHint:SetColor(unpack(HINT_COLOR))
+        control.igHint:SetDrawLevel(20)
         control.igHint:SetHidden(true)
     end
     -- Pooled rows: the words follow whatever heading the row is today.
@@ -2203,7 +2251,8 @@ local function EnsureHint(control)
     local action = (data and IsShiftDistribute(data)) and "Distribute" or "Collapse All"
     if control.igHintAction ~= action then
         control.igHintAction = action
-        IG.SetTextBoxText(control.igHint, HintText(action))
+        control.igHint:SetText(HintText(action))
+        control.igHint:SetDimensions(control.igHint:GetTextWidth(), control.igHint:GetTextHeight())
     end
     return control.igHint
 end
@@ -2213,9 +2262,16 @@ local function PlaceRightBoxes(control, hintShown)
     local hint, badge = control.igHint, control.igBadge
     -- The room kept for "[right mouse] Menu", whether it is showing or not, so nothing jumps.
     local edge = RIGHT_EDGE_MARGIN + (control.igMenuWidth or 0)
+    -- Stacked (SetupHeaderRow, above): this hint takes the line above the name instead of
+    -- squeezing in next to a Menu hint that is sitting on the line below it.
+    local stacked = hintShown and control.igMenuStacked
     if hint then
         hint:ClearAnchors()
-        hint:SetAnchor(RIGHT, control, TOPRIGHT, -edge, center)
+        if stacked then
+            hint:SetAnchor(RIGHT, control, TOPRIGHT, -STACK_RIGHT_MARGIN, center - STACK_LINE_OFFSET)
+        else
+            hint:SetAnchor(RIGHT, control, TOPRIGHT, -edge, center)
+        end
         hint:SetHidden(not hintShown)
     end
     if badge and control.igBadgeShown then
@@ -2543,12 +2599,21 @@ local function SetupSectionRow(control, data)
             end
         end)
         control:SetHandler("OnMouseUp", function(self, button, upInside)
+            if button == MOUSE_BUTTON_INDEX_RIGHT then
+                -- The dropdown takes the mouse once it opens, so this row never reliably hears
+                -- it leave; forcing the hover look on here is how its lines were sometimes
+                -- still thick long after the mouse had gone (reported 2026-11-03). Dropped
+                -- flat instead -- a real OnMouseEnter lights it again if the mouse is still
+                -- over it once the menu closes.
+                if self.igSectionLabel then SetSectionLook(self, false) end
+                -- Rows, Chips or Tiles for this section (ModuleStrip.lua).
+                if upInside and IG.ShowSectionDisplayMenu then
+                    IG.ShowSectionDisplayMenu(self, self.igData)
+                end
+                return
+            end
             if self.igSectionLabel then SetSectionLook(self, upInside) end
             if upInside and button == MOUSE_BUTTON_INDEX_LEFT then IG.ToggleSection(self.igData) end
-            -- Rows, Chips or Tiles for this section (ModuleStrip.lua).
-            if upInside and button == MOUSE_BUTTON_INDEX_RIGHT and IG.ShowSectionDisplayMenu then
-                IG.ShowSectionDisplayMenu(self, self.igData)
-            end
         end)
     end
 end
@@ -2888,21 +2953,33 @@ local function SetupHeaderRow(control, data)
     -- The room kept clear on the right before anything of the hint's own: what the emptied
     -- category's words are already using.
     control.igMenuWidth = movedWidth > 0 and movedWidth or nil
+    -- A heading that also offers Collapse All or Shift+Click (CanCollapseChildren) gets its own
+    -- hint on the same corner; the two used to share one line and could run into each other
+    -- (RECENT LOOT's "Shift+Click: Distribute" against "Right click: Menu"). Stacked instead:
+    -- Menu goes under the name line, the other hint above it (PlaceRightBoxes).
+    local stacked = CanCollapseChildren(data)
+    control.igMenuStacked = stacked or nil
     if HeaderHasMenu(data) then
         if not menuHint then
             menuHint = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
             menuHint:SetFont(MENU_HINT_FONT)
             menuHint:SetDrawLevel(20)
             local mouseIcon = KEY_MOUSE_RIGHT and GetMouseIconPathForKeyCode and GetMouseIconPathForKeyCode(KEY_MOUSE_RIGHT)
-            menuHint:SetText(string.format("%s |c%sMenu|r", mouseIcon and zo_iconFormat(mouseIcon, 20, 20) or "Right click:",
+            menuHint:SetText(string.format("%s|c%sMenu|r", mouseIcon and zo_iconFormat(mouseIcon, 20, 20) or "Right click:",
                 SUBTITLE_COLOR))
             control.igMenuHint = menuHint
         end
         menuHint:ClearAnchors()
-        menuHint:SetAnchor(RIGHT, control, TOPRIGHT, -(RIGHT_EDGE_MARGIN + movedWidth), lineCenter)
+        if stacked then
+            menuHint:SetAnchor(RIGHT, control, TOPRIGHT, -STACK_RIGHT_MARGIN, lineCenter + STACK_LINE_OFFSET)
+            -- Its own line now, not a horizontal neighbour: nothing else needs to step around it.
+            control.igMenuWidth = nil
+        else
+            menuHint:SetAnchor(RIGHT, control, TOPRIGHT, -(RIGHT_EDGE_MARGIN + movedWidth), lineCenter)
+            control.igMenuWidth = movedWidth + menuHint:GetTextWidth() + BOX_GAP
+            locationWidth = locationWidth + menuHint:GetTextWidth() + 12
+        end
         menuHint:SetHidden(true)
-        control.igMenuWidth = movedWidth + menuHint:GetTextWidth() + BOX_GAP
-        locationWidth = locationWidth + menuHint:GetTextWidth() + 12
     elseif menuHint then
         menuHint:SetHidden(true)
     end
@@ -2968,7 +3045,7 @@ local function SetupHeaderRow(control, data)
     local count = ""
     if data.totalOnly then
         -- DISPOSAL: the items in it, said once (its categories are counted on their own rows).
-        count = string.format("|c%s(Total Items: %d)|r", countColor, items)
+        count = string.format("|c%s(Total: %d)|r", countColor, items)
         if not sv.showCounts and not sv.showTotalItems then count = "" end
         flat = true
     elseif sv.showCounts then
@@ -2980,7 +3057,7 @@ local function SetupHeaderRow(control, data)
     end
     local total = ""
     if sv.showTotalItems and not flat then
-        total = string.format("  |c%s(Total Items: %d)|r",
+        total = string.format("  |c%s(Total: %d)|r",
             IG.RGBToHex(textR * TOTAL_DARKEN, textG * TOTAL_DARKEN, textB * TOTAL_DARKEN),
             items)
     end
@@ -3907,6 +3984,42 @@ local function DecorateItemRow(control, data)
         collectable:SetHidden(true)
     end
 
+    -- A piece sitting in SELL or SELL [GUILD STORE] that cannot actually go there: blinks
+    -- instead of sitting still, so passing over it does not read as it having been handled.
+    local sellWarning = control.igSellWarning
+    if data.igSellWarning and nameLabel then
+        if not sellWarning then
+            sellWarning = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+            sellWarning:SetFont(SELL_WARNING_FONT)
+            sellWarning:SetColor(unpack(SELL_WARNING_COLOR))
+            sellWarning:SetInheritAlpha(false)
+            local timeline = ANIMATION_MANAGER:CreateTimeline()
+            local fade = timeline:InsertAnimation(ANIMATION_ALPHA, sellWarning, 0)
+            fade:SetAlphaValues(SELL_WARNING_PULSE_LOW, SELL_WARNING_PULSE_HIGH)
+            fade:SetDuration(SELL_WARNING_HALF_MS)
+            if ZO_EaseInOutQuadratic then fade:SetEasingFunction(ZO_EaseInOutQuadratic) end
+            timeline:SetPlaybackType(ANIMATION_PLAYBACK_PING_PONG, LOOP_INDEFINITELY)
+            sellWarning.igTimeline = timeline
+            sellWarning:SetHandler("OnEffectivelyHidden", function(self) self.igTimeline:Stop() end)
+            sellWarning:SetHandler("OnEffectivelyShown", function(self)
+                if not self.igTimeline:IsPlaying() then self.igTimeline:PlayFromStart() end
+            end)
+            control.igSellWarning = sellWarning
+        end
+        sellWarning:SetText(data.igSellWarning)
+        sellWarning:ClearAnchors()
+        sellWarning:SetAnchor(LEFT, nameLabel, LEFT, nameRight + NAME_NOTE_GAP, 0)
+        sellWarning:SetHidden(false)
+        if not sellWarning.igTimeline:IsPlaying() then
+            sellWarning:SetAlpha(SELL_WARNING_PULSE_LOW)
+            sellWarning.igTimeline:PlayFromStart()
+        end
+        nameRight = nameRight + NAME_NOTE_GAP + sellWarning:GetTextWidth()
+    elseif sellWarning then
+        sellWarning:SetHidden(true)
+        if sellWarning.igTimeline then sellWarning.igTimeline:Stop() end
+    end
+
     -- Sent aside, on a row that is not being stood down for it: the bare words, in the category's
     -- own name, so a category you renamed says what you called it. No alpha of its own to keep --
     -- the row it hangs on is at full strength, which is the whole point of this shape.
@@ -4765,14 +4878,21 @@ function IG.OnHeaderMouseEnter(control)
         IG.ShowSetTooltip(control, data)
     end
     SetCollapseHint(control, CanCollapseChildren(data))
-    if control.igMenuHint and control.igMenuWidth then
+    if control.igMenuHint and (control.igMenuWidth or control.igMenuStacked) then
         control.igMenuHint:SetHidden(false)
-        -- The drop location stands where the hint does; while the hint shows it steps to the
-        -- hint's left rather than being written over.
+        -- The drop location stands where the hint does; while the hint shows it steps aside
+        -- rather than being written over. Stacked, both hints share the one corner on two
+        -- lines, so the location steps past whichever of them is wider.
         local location = control:GetNamedChild("Location")
         if location and not location:IsHidden() and location:GetText() ~= "" then
             location:ClearAnchors()
-            location:SetAnchor(RIGHT, control.igMenuHint, LEFT, -BOX_GAP * 2, 0)
+            if control.igMenuStacked then
+                local hint = control.igHint
+                local width = zo_max(control.igMenuHint:GetWidth(), hint and hint:GetWidth() or 0)
+                location:SetAnchor(RIGHT, control, TOPRIGHT, -(STACK_RIGHT_MARGIN + width + BOX_GAP * 2), control.igLocationY or 0)
+            else
+                location:SetAnchor(RIGHT, control.igMenuHint, LEFT, -BOX_GAP * 2, 0)
+            end
             control.igLocationMoved = true
         end
     end
@@ -5202,6 +5322,42 @@ local function AddSetViewItems(data)
     Say("Don't Group Sets", IG.SET_VIEW_DIVIDERS)
     if IG.SetViewChoice(listKey, data.key) then Say("Back to default", nil) end
 end
+
+-- The same choice, said once from a section's own divider instead of once per category under
+-- it. DUNGEON SETS keeps the key "DUNGEON" wherever it is drawn (its own heading, or gathered
+-- under LOCKED), so one setting read by key already covers both places; this just writes it to
+-- every set-holding group key there is, regardless of section, since a piece sent aside by hand
+-- (SELL, CUSTOM, ...) or an unusual module (ARMORY, EQUIPPED) can hold a set too. The divider
+-- offers the line at all only when data.hasSets says this build actually found one under it
+-- (set in the loop that already answers this per category, InventoryGrouping.lua) -- a fixed
+-- guess at which sections can ever hold a set missed exactly this case (reported 2026-11-03).
+local SET_GROUP_KEYS = {
+    "DUNGEON", "DLCDUNGEON", "ARENA", "TRIAL", "OVERLAND", "CRAFTABLE", "MONSTER", "CLASS", "PVP", "PVE",
+    "MYTHIC", "MISC", "SELL", "GUILDSELL", "DECON", "CUSTOM", "ARMORY", "EQUIPPED", "LASTRUN", "SETUPS", "STOLEN",
+}
+
+local function AddSectionSetViewItems(data)
+    if not (data.isSection and data.hasSets) then return end
+    local listKey = INVENTORY_KEYS[data.inventoryType]
+    if not listKey then return end
+    -- LOCKED reads a category's choice under its own "LOCKED/<key>" entry first and only falls
+    -- back to the plain key when that one is empty (SetsAsDividersFor/SetViewKey above) -- and
+    -- its fallback is the word "LOCKED" itself, not the category under it, so a plain-key write
+    -- from here was never read at all for anything standing under LOCKED (reported 2026-11-03).
+    local prefix = data.label == "LOCKED" and "LOCKED/" or ""
+    local function Say(text, choice)
+        AddMenuItem(string.format("|c%s%s|r", SPLIT_MENU_COLOR, text), function()
+            IG.UndoStep(string.format("the way every set in %s is drawn", zo_strlower(data.label)), function()
+                for _, key in ipairs(SET_GROUP_KEYS) do IG.SetSetViewChoice(listKey, prefix .. key, choice) end
+            end)
+            IG.RefreshLists()
+        end)
+    end
+    Say("Group Sets", IG.SET_VIEW_BUTTONS)
+    Say("Don't Group Sets", IG.SET_VIEW_DIVIDERS)
+end
+-- Also asked from a section divider's own menu (ModuleStrip.lua: IG.ShowSectionDisplayMenu).
+IG.AddSectionSetViewItems = AddSectionSetViewItems
 
 -- The two colour lines every heading's menu ends with, written in the colour the heading is
 -- wearing at that moment, so the menu shows what it is about to change rather than saying it.
@@ -6140,8 +6296,13 @@ local function OnAddOnLoaded(_, addonName)
     EVENT_MANAGER:RegisterForEvent(IG.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     EVENT_MANAGER:RegisterForEvent(IG.name .. "Seen", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBackpackSlotUpdate)
     EVENT_MANAGER:AddFilterForEvent(IG.name .. "Seen", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-    -- No bag filter: a piece can be locked in the bank and in a house chest too.
+    -- No bag filter: a piece can be locked in the bank and in a house chest too. The reason filter
+    -- moves OnSlotLocked's own inventoryUpdateReason check (still left in place below, a second
+    -- guard rather than trusting the filter alone) out of Lua and into the event system itself --
+    -- every other kind of slot update used to reach the callback only to be thrown away there.
     EVENT_MANAGER:RegisterForEvent(IG.name .. "Locked", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnSlotLocked)
+    EVENT_MANAGER:AddFilterForEvent(IG.name .. "Locked", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+        REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_PLAYER_LOCKED)
 end
 
 EVENT_MANAGER:RegisterForEvent(IG.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

@@ -8,38 +8,36 @@ local Y_START    = 200
 local MAX_STACKS = 5
 local barLbl, countLbl
 
+-- "I I I . ." style pips: filled pips in blue, red once maxed, dim dots for empty.
 local function StackBar(n)
-    local filled = math.min(n, MAX_STACKS)
-    local empty  = MAX_STACKS - filled
-    local color  = (filled >= MAX_STACKS) and "|cFF2020" or "|c5BCEFA"
-    return string.rep(color .. "I|r", filled) .. string.rep("|c444455.|r", empty)
+    local c      = ADK.COLORS
+    local filled = math.max(0, math.min(n, MAX_STACKS))
+    local color  = (filled >= MAX_STACKS) and c.DANGER or c.LIGHT_BLUE
+    return string.rep(ADK.Colorize(color, "I"), filled)
+        .. string.rep(ADK.Colorize(c.PIP_EMPTY, "."), MAX_STACKS - filled)
 end
 
 function M.Init()
     local panel = ADK.UI.MainPanel
     local c     = ADK.COLORS
-    local bf    = ADK.UI.BoldFont
 
-    local lbl = ADK.UI.MakeLabel("AntiDK2PLbl", panel, bf(13),
-        c.GREY[1], c.GREY[2], c.GREY[3])
+    local lbl = ADK.UI.MakeLabel("AntiDK2PLbl", panel, ADK.Font(13), c.GREY)
     lbl:SetText("Power Lash")
     lbl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     lbl:SetAnchor(TOPLEFT, panel, TOPLEFT, 0, Y_START)
 
-    barLbl = ADK.UI.MakeLabel("AntiDK2PLBar", panel, bf(14),
-        c.WHITE[1], c.WHITE[2], c.WHITE[3])
+    barLbl = ADK.UI.MakeLabel("AntiDK2PLBar", panel, ADK.Font(14), c.WHITE)
     barLbl:SetText(StackBar(0))
     barLbl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     barLbl:SetAnchor(TOPLEFT, panel, TOPLEFT, 90, Y_START)
 
-    countLbl = ADK.UI.MakeLabel("AntiDK2PLCount", panel, bf(18),
-        c.LIGHT_BLUE[1], c.LIGHT_BLUE[2], c.LIGHT_BLUE[3])
+    countLbl = ADK.UI.MakeLabel("AntiDK2PLCount", panel, ADK.Font(18), c.LIGHT_BLUE)
     countLbl:SetText("")
     countLbl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     countLbl:SetAnchor(TOPRIGHT, panel, TOPRIGHT, 0, Y_START)
 end
 
--- stacks = { [name] = { count = N } }
+-- stacks = { [name] = { count = N } }; the row shows the most dangerous enemy.
 function M.Refresh(stacks)
     local maxCount = 0
     for _, e in pairs(stacks) do
@@ -49,11 +47,11 @@ function M.Refresh(stacks)
     barLbl:SetText(StackBar(maxCount))
 
     if maxCount >= MAX_STACKS then
-        countLbl:SetText("|cFF2020LASH READY|r")
-        countLbl:SetFont(ADK.UI.BoldFont(13))
+        countLbl:SetText(ADK.Colorize(ADK.COLORS.DANGER, "LASH READY"))
+        countLbl:SetFont(ADK.Font(13))
     elseif maxCount > 0 then
         countLbl:SetText(maxCount .. "/" .. MAX_STACKS)
-        countLbl:SetFont(ADK.UI.BoldFont(18))
+        countLbl:SetFont(ADK.Font(18))
     else
         countLbl:SetText("")
     end

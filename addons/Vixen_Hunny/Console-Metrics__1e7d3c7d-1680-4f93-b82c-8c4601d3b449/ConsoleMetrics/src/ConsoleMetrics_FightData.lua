@@ -1,166 +1,486 @@
-﻿local LIVE_SNAPSHOT_CACHE_MS = 200
+-- ConsoleMetrics_FightData.lua
+-- The fight data model: live fight state, summaries/snapshots, fight history,
+-- persisted saved fights and the ML-lite behavior model.
 
-function ConsoleMetrics:AcquireTargetInfo(targetName)
-    local key = targetName
-    if not key or key == "" then
-        key = "Unknown"
+local CM = ConsoleMetrics
+local Util = ConsoleMetrics.Util
+local BuildDefaultFightSaveName = Util.BuildDefaultFightSaveName
+local BuildNumericSampleSummary = Util.BuildNumericSampleSummary
+local BuildResourceSampleSummary = Util.BuildResourceSampleSummary
+local BuildSustainPerformanceSummary = Util.BuildSustainPerformanceSummary
+local Clamp = Util.Clamp
+local DeepCopy = Util.DeepCopy
+local ExponentialAverage = Util.ExponentialAverage
+local LOW_MEMORY_EFFECT_LIMIT = Util.LOW_MEMORY_EFFECT_LIMIT
+local LOW_MEMORY_LIST_LIMIT = Util.LOW_MEMORY_LIST_LIMIT
+local LOW_MEMORY_MOMENTS_LIMIT = Util.LOW_MEMORY_MOMENTS_LIMIT
+local LinearSlope = Util.LinearSlope
+local MAJOR_PROTECTION_DR_PCT = Util.MAJOR_PROTECTION_DR_PCT
+local MAX_FIGHT_HISTORY_HARD_CAP = Util.MAX_FIGHT_HISTORY_HARD_CAP
+local MINOR_PROTECTION_DR_PCT = Util.MINOR_PROTECTION_DR_PCT
+local Mean = Util.Mean
+local PING_HIGH_DELAY_MS = Util.PING_HIGH_DELAY_MS
+local RESISTANCE_CAP = Util.RESISTANCE_CAP
+local RESISTANCE_SCALE = Util.RESISTANCE_SCALE
+local SafeAbilityId = Util.SafeAbilityId
+local StdDev = Util.StdDev
+local THROUGHPUT_WINDOW_INTERVAL_MS = Util.THROUGHPUT_WINDOW_INTERVAL_MS
+local TOP_MOMENTS_LIMIT = Util.TOP_MOMENTS_LIMIT
+local TrimText = Util.TrimText
+
+
+local LIVE_SNAPSHOT_CACHE_MS = 200
+
+
+---------------------------------------------------------------------------
+-- Sorting, top moments, throughput windows
+---------------------------------------------------------------------------
+-- Module-level comparators: avoids allocating a new closure on every sort call (GC win on console).
+local function _SkillByDamageDesc(a, b) return (a.damage or 0) > (b.damage or 0) end
+local function _SkillByHealDesc(a, b) return (a.heal or 0) > (b.heal or 0) end
+local function _TopMomentByValueDesc(a, b) return (a.value or 0) > (b.value or 0) end
+
+local function SortSkillEntries(skillMap)
+    local list = {}
+    for _, info in pairs(skillMap) do
+        list[#list + 1] = info
     end
+    table.sort(list, _SkillByDamageDesc)
+    return list
+end
 
-    local info = self.fight.targetMap[key]
-    if not info then
-        info = {
-            name = key,
-            damage = 0,
-            effective = 0,
-            overflow = 0,
-            blocked = 0,
-            shielded = 0,
-            hits = 0,
+local function SortSkillEntriesByHeal(skillMap)
+    local list = {}
+    for _, info in pairs(skillMap) do
+        if (info.heal or 0) > 0 then
+            list[#list + 1] = info
+        end
+    end
+    table.sort(list, _SkillByHealDesc)
+    return list
+end
+
+local function AddTopMoment(momentList, moment)
+    local count = #momentList
+    -- Skip sort entirely when the list is full and this moment won't rank.
+    if count >= TOP_MOMENTS_LIMIT and (momentList[count].value or 0) >= (moment.value or 0) then
+        return
+    end
+    momentList[count + 1] = moment
+    table.sort(momentList, _TopMomentByValueDesc)
+    if #momentList > TOP_MOMENTS_LIMIT then
+        table.remove(momentList, #momentList)
+    end
+end
+
+local function CloneMoments(momentList)
+    local clone = {}
+    for i = 1, #momentList do
+        local moment = momentList[i]
+        clone[i] = {
+            value = moment.value,
+            label = moment.label,
+            tooltip = moment.tooltip,
+            abilityId = moment.abilityId,
+            abilityName = moment.abilityName,
+            effectName = moment.effectName,
         }
-        self.fight.targetMap[key] = info
     end
-
-    return info
+    return clone
 end
 
-function ConsoleMetrics:SampleFightResources(nowMs, forceSample)
-    if not self.fight or not self.fight.resourceSamples then
-        return
+local function NewThroughputWindowTracker(intervalMs)
+    return {
+        intervalMs = math.max(1, math.floor(tonumber(intervalMs) or 1000)),
+        currentWindowIndex = 0,
+        currentWindowValue = 0,
+        finalizedWindowCount = 0,
+        finalizedPeakValue = nil,
+        finalizedPeakIndex = nil,
+        finalizedLowestValue = nil,
+        finalizedLowestIndex = nil,
+        finalizedLowestNonZeroValue = nil,
+        finalizedLowestNonZeroIndex = nil,
+    }
+end
+
+local function FinalizeThroughputWindow(tracker, windowIndex, value)
+    tracker.finalizedWindowCount = (tonumber(tracker.finalizedWindowCount) or 0) + 1
+
+    local peakValue = tonumber(tracker.finalizedPeakValue)
+    if peakValue == nil or value > peakValue then
+        tracker.finalizedPeakValue = value
+        tracker.finalizedPeakIndex = windowIndex
     end
 
-    if self.saved
-        and self.saved.ioTraceEnabled
-        and self.saved.ioTraceTargetOnlyProcessing
-        and self.saved.ioTraceSkipResourceSampling
-        and self.saved.ioTraceTargetMode ~= "off"
-    then
-        local graceMs = tonumber(self.saved.ioTraceTargetGraceMs) or 1500
-        graceMs = math.max(250, math.min(5000, math.floor(graceMs + 0.5)))
-        local lastMatchMs = self.lastTraceTargetMatchMs or 0
-        if not forceSample and nowMs > (lastMatchMs + graceMs) then
-            if self.ioTraceState then
-                self.ioTraceState.skippedSampleByFocus = (self.ioTraceState.skippedSampleByFocus or 0) + 1
-            end
-            return
+    local lowValue = tonumber(tracker.finalizedLowestValue)
+    if lowValue == nil or value < lowValue then
+        tracker.finalizedLowestValue = value
+        tracker.finalizedLowestIndex = windowIndex
+    end
+
+    if value > 0 then
+        local lowNonZero = tonumber(tracker.finalizedLowestNonZeroValue)
+        if lowNonZero == nil or value < lowNonZero then
+            tracker.finalizedLowestNonZeroValue = value
+            tracker.finalizedLowestNonZeroIndex = windowIndex
         end
-    end
-
-    local resourceSamples = self.fight.resourceSamples
-    if not forceSample and resourceSamples.lastSampleMs and nowMs < (resourceSamples.lastSampleMs + RESOURCE_SAMPLE_INTERVAL_MS) then
-        return
-    end
-
-    local resourceTypes = GetResourcePowerTypes()
-    local sampleLimit = tonumber(RESOURCE_SAMPLE_MAX_POINTS) or 1200
-
-    local function PushSample(sampleList, value)
-        sampleList[#sampleList + 1] = value
-        local startIndex = tonumber(sampleList._cmStart) or 1
-        local sampleCount = (#sampleList - startIndex) + 1
-        if sampleCount > sampleLimit then
-            startIndex = startIndex + (sampleCount - sampleLimit)
-            sampleList._cmStart = startIndex
-        else
-            sampleList._cmStart = startIndex
-        end
-
-        -- Compact infrequently so we avoid O(n) front-shifts on every sample push.
-        if startIndex > 256 then
-            local dst = 1
-            for i = startIndex, #sampleList do
-                sampleList[dst] = sampleList[i]
-                dst = dst + 1
-            end
-            for i = dst, #sampleList do
-                sampleList[i] = nil
-            end
-            sampleList._cmStart = 1
-        end
-    end
-
-    local healthPct = SafeGetPowerPctFromList(resourceTypes.health)
-    local magickaPct = SafeGetPowerPctFromList(resourceTypes.magicka)
-    local staminaPct = SafeGetPowerPctFromList(resourceTypes.stamina)
-    local sampledAny = false
-
-    if healthPct then
-        PushSample(resourceSamples.healthPct, healthPct)
-        sampledAny = true
-    end
-    if magickaPct then
-        PushSample(resourceSamples.magickaPct, magickaPct)
-        sampledAny = true
-    end
-    if staminaPct then
-        PushSample(resourceSamples.staminaPct, staminaPct)
-        sampledAny = true
-    end
-
-    local pingMs = SafeGetLatencyMs()
-    if pingMs ~= nil then
-        local pingSamples = resourceSamples.pingMs or {}
-        resourceSamples.pingMs = pingSamples
-        PushSample(pingSamples, pingMs)
-        if resourceSamples.minPingMs == nil or pingMs < resourceSamples.minPingMs then
-            resourceSamples.minPingMs = pingMs
-        end
-        if resourceSamples.maxPingMs == nil or pingMs > resourceSamples.maxPingMs then
-            resourceSamples.maxPingMs = pingMs
-        end
-
-        local lastPing = resourceSamples.lastPingMs
-        if lastPing ~= nil then
-            local delta = pingMs - lastPing
-            if delta <= -PING_DIP_DELTA_MS then
-                resourceSamples.pingDipCount = (resourceSamples.pingDipCount or 0) + 1
-            elseif delta >= PING_SPIKE_DELTA_MS then
-                resourceSamples.pingSpikeCount = (resourceSamples.pingSpikeCount or 0) + 1
-            end
-        end
-
-        if pingMs >= PING_HIGH_DELAY_MS then
-            resourceSamples.highDelaySamples = (resourceSamples.highDelaySamples or 0) + 1
-        end
-
-        resourceSamples.lastPingMs = pingMs
-        sampledAny = true
-    end
-
-    if sampledAny then
-        resourceSamples.lastSampleMs = nowMs
-        self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
-    end
-
-    -- Track absolute resource deltas: positive = regen, negative = drain.
-    local hpCurr   = SafeGetCurrentPowerFromList(resourceTypes.health)
-    local magCurr  = SafeGetCurrentPowerFromList(resourceTypes.magicka)
-    local stamCurr = SafeGetCurrentPowerFromList(resourceTypes.stamina)
-    local ultCurr  = SafeGetCurrentPowerFromList(resourceTypes.ultimate)
-
-    local function AccumulateDelta(lastKey, regenKey, drainKey, current)
-        if current == nil then return end
-        local last = resourceSamples[lastKey]
-        if last ~= nil then
-            local delta = current - last
-            if delta > 0 then
-                resourceSamples[regenKey] = (resourceSamples[regenKey] or 0) + delta
-            elseif delta < 0 then
-                resourceSamples[drainKey] = (resourceSamples[drainKey] or 0) - delta
-            end
-        end
-        resourceSamples[lastKey] = current
-    end
-
-    AccumulateDelta("lastAbsHealth",   "totalHealthRegen",   "totalHealthDrain",   hpCurr)
-    AccumulateDelta("lastAbsMagicka",  "totalMagickaRegen",  "totalMagickaDrain",  magCurr)
-    AccumulateDelta("lastAbsStamina",  "totalStaminaRegen",  "totalStaminaDrain",  stamCurr)
-    AccumulateDelta("lastAbsUltimate", "totalUltimateGen",   "totalUltimateDrain", ultCurr)
-
-    if sampledAny and self.TraceResourceSample then
-        self:TraceResourceSample(nowMs, hpCurr, magCurr, stamCurr, ultCurr, pingMs, forceSample)
     end
 end
 
+local function AdvanceThroughputWindowTracker(tracker, targetWindowIndex)
+    if type(tracker) ~= "table" then
+        return
+    end
+
+    local targetIndex = math.max(0, math.floor(tonumber(targetWindowIndex) or 0))
+    local currentIndex = math.max(0, math.floor(tonumber(tracker.currentWindowIndex) or 0))
+    if targetIndex <= currentIndex then
+        return
+    end
+
+    local currentValue = tonumber(tracker.currentWindowValue) or 0
+    FinalizeThroughputWindow(tracker, currentIndex, currentValue)
+
+    if targetIndex > (currentIndex + 1) then
+        local firstGapIndex = currentIndex + 1
+        local gapCount = targetIndex - currentIndex - 1
+        tracker.finalizedWindowCount = (tonumber(tracker.finalizedWindowCount) or 0) + gapCount
+
+        local peakValue = tonumber(tracker.finalizedPeakValue)
+        if peakValue == nil or 0 > peakValue then
+            tracker.finalizedPeakValue = 0
+            tracker.finalizedPeakIndex = firstGapIndex
+        end
+
+        local lowValue = tonumber(tracker.finalizedLowestValue)
+        if lowValue == nil or 0 < lowValue then
+            tracker.finalizedLowestValue = 0
+            tracker.finalizedLowestIndex = firstGapIndex
+        end
+    end
+
+    tracker.currentWindowIndex = targetIndex
+    tracker.currentWindowValue = 0
+end
+
+local function AddThroughputWindowValueByTime(tracker, startMs, nowMs, value)
+    if type(tracker) ~= "table" then
+        return
+    end
+
+    local amount = tonumber(value) or 0
+    if amount <= 0 then
+        return
+    end
+
+    local intervalMs = math.max(1, math.floor(tonumber(tracker.intervalMs) or 1000))
+    local baseMs = tonumber(startMs) or tonumber(nowMs) or 0
+    local stampMs = tonumber(nowMs) or baseMs
+    local elapsedMs = math.max(0, stampMs - baseMs)
+    local targetIndex = math.floor(elapsedMs / intervalMs)
+
+    AdvanceThroughputWindowTracker(tracker, targetIndex)
+    tracker.currentWindowValue = (tonumber(tracker.currentWindowValue) or 0) + amount
+end
+
+---------------------------------------------------------------------------
+-- Fight model
+---------------------------------------------------------------------------
+local function NewFight(nowMs)
+    local startTimestampSec = nil
+    if type(GetTimeStamp) == "function" then
+        startTimestampSec = tonumber(GetTimeStamp())
+    end
+
+    return {
+        startMs = nowMs,
+        startTimestampSec = startTimestampSec,
+        endMs = nil,
+        snapshotRev = 0,
+        totalDamage = 0,
+        totalOverflowDamage = 0,
+        totalBlockedDamage = 0,
+        totalShieldedDamage = 0,
+        totalHeal = 0,
+        totalOverflowHeal = 0,
+        totalTaken = 0,
+        totalIncomingOverflowDamage = 0,
+        totalIncomingBlockedDamage = 0,
+        totalIncomingShieldedDamage = 0,
+        hits = 0,
+        crits = 0,
+        minHitValue = nil,
+        maxHitValue = nil,
+        peakDps = 0,
+        peakHps = 0,
+        damageWindowTracker = NewThroughputWindowTracker(THROUGHPUT_WINDOW_INTERVAL_MS),
+        healWindowTracker = NewThroughputWindowTracker(THROUGHPUT_WINDOW_INTERVAL_MS),
+        skillMap = {},
+        incomingSkillMap = {},
+        incomingSetDamageMap = {},
+        incomingLikelySetProcMap = {},
+        dotMap = {},
+        hotMap = {},
+        targetMap = {},
+        topHealingMoments = {},
+        topMitigationMoments = {},
+        -- Tracks every effect seen via ACTION_RESULT_EFFECT_GAINED/FADED style events.
+        allEffects = {},
+        -- Tracks major/minor subsets for fast console-friendly filtering.
+        majorMinorEffects = {},
+        -- Tracks popular PvE/PvP set procs by alias.
+        setEffects = {},
+        -- Separated tracking: buffs = effects whose target is the player,
+        -- debuffs = effects the player applies to non-player targets.
+        buffEffects   = {},
+        debuffEffects = {},
+        -- Resource snapshots sampled during combat for avg/median display.
+        resourceSamples = {
+            lastSampleMs = nil,
+            healthPct = {},
+            magickaPct = {},
+            staminaPct = {},
+            pingMs = {},
+            -- Absolute value tracking for per-fight regen/drain/ultimate gen.
+            lastAbsHealth = nil,
+            lastAbsMagicka = nil,
+            lastAbsStamina = nil,
+            lastAbsUltimate = nil,
+            lastPingMs = nil,
+            minPingMs = nil,
+            maxPingMs = nil,
+            pingDipCount = 0,
+            pingSpikeCount = 0,
+            highDelaySamples = 0,
+            totalHealthRegen = 0,
+            totalHealthDrain = 0,
+            totalMagickaRegen = 0,
+            totalMagickaDrain = 0,
+            totalStaminaRegen = 0,
+            totalStaminaDrain = 0,
+            totalUltimateGen = 0,
+            totalUltimateDrain = 0,
+        },
+        protectionInfo = {
+            currentState = "unknown",
+            currentLabel = "No mitigation data",
+            currentResistance = 0,
+            currentDrPct = 0,
+            confidence = 0,
+            samples = 0,
+            lastSampleMs = nowMs,
+            drEma = 0,
+            stateMs = {
+                majorMinor = 0,
+                major = 0,
+                minor = 0,
+                none = 0,
+                unknown = 0,
+            },
+        },
+    }
+end
+
+---------------------------------------------------------------------------
+-- Duration, resistance and protection inference
+---------------------------------------------------------------------------
+local function GetFightDurationSeconds(fight, nowMs)
+    if not fight or not fight.startMs then
+        return 0
+    end
+
+    local endMs = fight.endMs or nowMs
+    return math.max((endMs - fight.startMs) / 1000, 0)
+end
+
+local function EstimateTargetResistance(target)
+    if not target then
+        return 0, 0
+    end
+
+    local mitigatedLike = (target.blocked or 0) + (target.shielded or 0)
+    local totalObserved = (target.effective or 0) + (target.overflow or 0) + mitigatedLike
+    if totalObserved <= 0 then
+        return 0, 0
+    end
+
+    local mitigationRatio = Clamp(mitigatedLike / totalObserved, 0, 0.5)
+    local resistance = Clamp(mitigationRatio * RESISTANCE_SCALE, 0, RESISTANCE_CAP)
+    return resistance, mitigationRatio * 100
+end
+
+local function InferProtectionFromDr(drPct, hasData)
+    if not hasData then
+        return "No mitigation data", "unknown", 0
+    end
+
+    if drPct >= (MAJOR_PROTECTION_DR_PCT + MINOR_PROTECTION_DR_PCT - 1.0) then
+        local confidence = Clamp(0.65 + ((drPct - (MAJOR_PROTECTION_DR_PCT + MINOR_PROTECTION_DR_PCT)) / 20), 0.45, 0.98)
+        return "Major + Minor Protection (inferred)", "majorMinor", confidence
+    end
+
+    if drPct >= (MAJOR_PROTECTION_DR_PCT - 1.0) then
+        local confidence = Clamp(0.60 + ((drPct - MAJOR_PROTECTION_DR_PCT) / 18), 0.40, 0.95)
+        return "Major Protection (inferred)", "major", confidence
+    end
+
+    if drPct >= (MINOR_PROTECTION_DR_PCT - 1.0) then
+        local confidence = Clamp(0.55 + ((drPct - MINOR_PROTECTION_DR_PCT) / 15), 0.35, 0.90)
+        return "Minor Protection (inferred)", "minor", confidence
+    end
+
+    local confidence = Clamp(0.50 + ((MINOR_PROTECTION_DR_PCT - drPct) / 15), 0.30, 0.90)
+    return "No Protection inferred", "none", confidence
+end
+
+---------------------------------------------------------------------------
+-- Protection summary and tracked effects
+---------------------------------------------------------------------------
+local function BuildProtectionSummary(protectionInfo, nowMs)
+    local stateMs = {
+        majorMinor = 0,
+        major = 0,
+        minor = 0,
+        none = 0,
+        unknown = 0,
+    }
+
+    if protectionInfo and protectionInfo.stateMs then
+        stateMs.majorMinor = protectionInfo.stateMs.majorMinor or 0
+        stateMs.major = protectionInfo.stateMs.major or 0
+        stateMs.minor = protectionInfo.stateMs.minor or 0
+        stateMs.none = protectionInfo.stateMs.none or 0
+        stateMs.unknown = protectionInfo.stateMs.unknown or 0
+
+        if protectionInfo.lastSampleMs and protectionInfo.currentState and nowMs > protectionInfo.lastSampleMs then
+            local elapsed = nowMs - protectionInfo.lastSampleMs
+            local key = protectionInfo.currentState
+            stateMs[key] = (stateMs[key] or 0) + elapsed
+        end
+    end
+
+    local totalMs = stateMs.majorMinor + stateMs.major + stateMs.minor + stateMs.none + stateMs.unknown
+    local trackedKnownMs = stateMs.majorMinor + stateMs.major + stateMs.minor + stateMs.none
+    local anyProtectionMs = stateMs.majorMinor + stateMs.major + stateMs.minor
+
+    local function Ratio(ms)
+        if totalMs <= 0 then
+            return 0
+        end
+        return (ms / totalMs) * 100
+    end
+
+    return {
+        totalMs = totalMs,
+        trackedKnownMs = trackedKnownMs,
+        majorMinorMs = stateMs.majorMinor,
+        majorMs = stateMs.major,
+        minorMs = stateMs.minor,
+        noneMs = stateMs.none,
+        unknownMs = stateMs.unknown,
+        anyProtectionMs = anyProtectionMs,
+        majorMinorPct = Ratio(stateMs.majorMinor),
+        majorPct = Ratio(stateMs.major),
+        minorPct = Ratio(stateMs.minor),
+        nonePct = Ratio(stateMs.none),
+        unknownPct = Ratio(stateMs.unknown),
+        anyProtectionPct = Ratio(anyProtectionMs),
+    }
+end
+
+local function AcquireTrackedEffect(effectMap, key, name, category, abilityId, effectName)
+    local track = effectMap[key]
+    if not track then
+        track = {
+            key = key,
+            name = name,
+            category = category,
+            abilityId = SafeAbilityId(abilityId),
+            effectName = effectName or name,
+            uptimeMs = 0,
+            activeSinceMs = nil,
+            activations = 0,
+            fades = 0,
+            procs = 0,
+            totalValue = 0,
+        }
+        effectMap[key] = track
+    else
+        if (track.name == nil or track.name == "") and name and name ~= "" then
+            track.name = name
+        end
+        if (track.effectName == nil or track.effectName == "") and effectName and effectName ~= "" then
+            track.effectName = effectName
+        end
+        if (track.abilityId == nil or track.abilityId == 0) and SafeAbilityId(abilityId) > 0 then
+            track.abilityId = SafeAbilityId(abilityId)
+        end
+    end
+
+    return track
+end
+
+local function StartTrackedEffect(track, nowMs)
+    if track.activeSinceMs == nil then
+        track.activeSinceMs = nowMs
+        track.activations = (track.activations or 0) + 1
+    end
+end
+
+local function StopTrackedEffect(track, nowMs)
+    if track.activeSinceMs ~= nil and nowMs >= track.activeSinceMs then
+        track.uptimeMs = (track.uptimeMs or 0) + (nowMs - track.activeSinceMs)
+        track.activeSinceMs = nil
+        track.fades = (track.fades or 0) + 1
+    end
+end
+
+-- Convert internal per-effect runtime state into sorted, render-ready summary rows.
+local function _EffectByUptimeThenProcsDesc(a, b)
+    if a.uptimePct == b.uptimePct then
+        return (a.procs or 0) > (b.procs or 0)
+    end
+    return a.uptimePct > b.uptimePct
+end
+
+local function BuildTrackedEffectList(effectMap, durationSeconds, nowMs)
+    local list = {}
+    local durationMs = math.max((durationSeconds or 0) * 1000, 0)
+
+    for _, track in pairs(effectMap or {}) do
+        local uptimeMs = track.uptimeMs or 0
+        if track.activeSinceMs and nowMs > track.activeSinceMs then
+            uptimeMs = uptimeMs + (nowMs - track.activeSinceMs)
+        end
+
+        local uptimePct = 0
+        if durationMs > 0 then
+            uptimePct = Clamp((uptimeMs / durationMs) * 100, 0, 100)
+        end
+
+        list[#list + 1] = {
+            name = track.name,
+            category = track.category,
+            abilityId = SafeAbilityId(track.abilityId),
+            effectName = track.effectName or track.name,
+            uptimeMs = uptimeMs,
+            uptimePct = uptimePct,
+            activations = track.activations or 0,
+            fades = track.fades or 0,
+            procs = track.procs or 0,
+            totalValue = track.totalValue or 0,
+        }
+    end
+
+    table.sort(list, _EffectByUptimeThenProcsDesc)
+
+    return list
+end
+
+---------------------------------------------------------------------------
+-- Fight summary
+---------------------------------------------------------------------------
 local function FormatWindowRelativeTime(offsetMs)
     local safeOffsetMs = math.max(0, math.floor(tonumber(offsetMs) or 0))
     local totalSeconds = math.floor(safeOffsetMs / 1000)
@@ -518,770 +838,9 @@ function ConsoleMetrics:ApplyLowMemoryModeToHistory()
     end
 end
 
-function ConsoleMetrics:RecordTopHealingMoment(abilityId, abilityName, targetName, effectiveHeal, overflowHeal, isCrit)
-    if not self.fight then
-        return
-    end
-
-    local totalHeal = (effectiveHeal or 0) + (overflowHeal or 0)
-    if totalHeal <= 0 then
-        return
-    end
-
-    local critTag = isCrit and " [CRIT]" or ""
-    local healHex = isCrit and COMBAT_COLOR_HEX.healCrit or COMBAT_COLOR_HEX.heal
-    local overflowTag = (overflowHeal or 0) > 0 and string.format(" (+%s ovh)", ColorShort(overflowHeal, COMBAT_COLOR_HEX.overflow)) or ""
-    AddTopMoment(self.fight.topHealingMoments, {
-        value = totalHeal,
-        abilityId = SafeAbilityId(abilityId),
-        abilityName = abilityName,
-        effectName = abilityName,
-        label = string.format("+%s  %s%s", ColorShort(totalHeal, healHex), FormatAbilityIdentity(abilityName, abilityId), critTag),
-        tooltip = string.format("Healed %s for %s%s | Ability: %s", targetName, NumberText(effectiveHeal or 0), overflowTag, FormatAbilityIdentity(abilityName, abilityId)),
-    })
-end
-
-function ConsoleMetrics:RecordTopMitigationMoment(labelPrefix, actorName, reason, amount, abilityId, abilityName)
-    if not self.fight or amount <= 0 then
-        return
-    end
-
-    AddTopMoment(self.fight.topMitigationMoments, {
-        value = amount,
-        abilityId = SafeAbilityId(abilityId),
-        abilityName = abilityName,
-        effectName = abilityName,
-        label = string.format("%s%s  %s (%s)", labelPrefix, ColorShort(amount, COMBAT_COLOR_HEX.mitigation), actorName, reason),
-        tooltip = string.format("%s via %s", reason, FormatAbilityIdentity(abilityName, abilityId)),
-    })
-end
-
--- Central effect tracker used by the Buff Uptime panel.
--- It records all effects first, then derives focused subsets (Major/Minor and popular sets).
-function ConsoleMetrics:TrackMajorMinorAndSets(nowMs, result, abilityId, abilityName, sourceIsPlayer, targetIsPlayer, didDamage, didHeal, totalValue)
-    if not self.fight or not abilityName or abilityName == "" then
-        return
-    end
-
-    local touchesPlayer = sourceIsPlayer or targetIsPlayer
-    if not touchesPlayer then
-        return
-    end
-
-    local gained = IsEffectGainedResult(result)
-    local faded = IsEffectFadedResult(result)
-    local lowerName = string.lower(abilityName)
-
-    if gained or faded then
-        local allEffectTrack = AcquireTrackedEffect(self.fight.allEffects, lowerName, abilityName, "Effect", abilityId, abilityName)
-        if gained then
-            StartTrackedEffect(allEffectTrack, nowMs)
-        else
-            StopTrackedEffect(allEffectTrack, nowMs)
-        end
-
-        -- Buff/debuff separation: effect on player = buff; player applies to enemy = debuff.
-        if targetIsPlayer then
-            local buffTrack = AcquireTrackedEffect(self.fight.buffEffects, lowerName, abilityName, "Buff", abilityId, abilityName)
-            if gained then StartTrackedEffect(buffTrack, nowMs) else StopTrackedEffect(buffTrack, nowMs) end
-        elseif sourceIsPlayer then
-            local debuffTrack = AcquireTrackedEffect(self.fight.debuffEffects, lowerName, abilityName, "Debuff", abilityId, abilityName)
-            if gained then StartTrackedEffect(debuffTrack, nowMs) else StopTrackedEffect(debuffTrack, nowMs) end
-        end
-    end
-
-    -- Use pre-lowered lowerName directly; avoids a second string.lower inside IsMajorMinorEffectName.
-    local isMajorEffect = string.find(lowerName, "major ", 1, true) == 1
-    if isMajorEffect or string.find(lowerName, "minor ", 1, true) == 1 then
-        local category = isMajorEffect and "Major" or "Minor"
-        local majorMinorTrack = AcquireTrackedEffect(self.fight.majorMinorEffects, lowerName, abilityName, category, abilityId, abilityName)
-
-        if gained then
-            StartTrackedEffect(majorMinorTrack, nowMs)
-        elseif faded then
-            StopTrackedEffect(majorMinorTrack, nowMs)
-        end
-
-        if didDamage or didHeal then
-            majorMinorTrack.procs = (majorMinorTrack.procs or 0) + 1
-            majorMinorTrack.totalValue = (majorMinorTrack.totalValue or 0) + (totalValue or 0)
-        end
-    end
-
-    local setMatch = self:MatchTrackedSet(abilityId, abilityName)
-    if setMatch then
-        local setKey = string.lower(setMatch.label)
-        local setTrack = AcquireTrackedEffect(self.fight.setEffects, setKey, setMatch.label, setMatch.scene, abilityId, abilityName)
-
-        if gained then
-            StartTrackedEffect(setTrack, nowMs)
-        elseif faded then
-            StopTrackedEffect(setTrack, nowMs)
-        end
-
-        if didDamage or didHeal then
-            setTrack.procs = (setTrack.procs or 0) + 1
-            setTrack.totalValue = (setTrack.totalValue or 0) + (totalValue or 0)
-        end
-    end
-end
-
-function ConsoleMetrics:UpdateProtectionInference(nowMs)
-    if not self.fight or not self.fight.protectionInfo then
-        return
-    end
-
-    local topTarget = nil
-    local topDamage = -1
-    for _, target in pairs(self.fight.targetMap or {}) do
-        local damage = tonumber(target.damage) or 0
-        if damage > topDamage then
-            topDamage = damage
-            topTarget = target
-        end
-    end
-
-    local estimatedResistance = nil
-    if topTarget then
-        estimatedResistance = EstimateTargetResistance(topTarget)
-    end
-
-    local hasData = estimatedResistance ~= nil
-    local resistance = estimatedResistance or 0
-    local drPct = hasData and Clamp((resistance / RESISTANCE_SCALE) * 100, 0, 50) or 0
-
-    local info = self.fight.protectionInfo
-    local alpha = Clamp(tonumber(self.saved.drSampleAlpha) or self.defaults.drSampleAlpha, 0.05, 0.85)
-    if info.samples <= 0 then
-        info.drEma = drPct
-    else
-        info.drEma = (alpha * drPct) + ((1 - alpha) * (info.drEma or drPct))
-    end
-
-    local inferredLabel, inferredKey, confidence = InferProtectionFromDr(info.drEma or drPct, hasData)
-
-    local previousState = info.currentState or "unknown"
-    local elapsed = 0
-    if info.lastSampleMs and nowMs > info.lastSampleMs then
-        elapsed = nowMs - info.lastSampleMs
-    end
-    if elapsed > 0 then
-        info.stateMs[previousState] = (info.stateMs[previousState] or 0) + elapsed
-    end
-
-    info.currentState = inferredKey
-    info.currentLabel = inferredLabel
-    info.currentResistance = resistance
-    info.currentDrPct = drPct
-    info.confidence = confidence
-    info.lastSampleMs = nowMs
-    info.samples = (info.samples or 0) + 1
-    self.fight.snapshotRev = (self.fight.snapshotRev or 0) + 1
-end
-
-local function RuleToMatchResult(rule, safeId)
-    return {
-        label            = rule.label or string.format("Custom Set %d", safeId),
-        scene            = NormalizeCustomSetScene(rule.scene),
-        fromCustom       = not rule.fromPCT,
-        fromPCT          = rule.fromPCT or false,
-        cooldownDurationMs = rule.cooldownDurationMs,
-        procType         = rule.procType,
-        result           = rule.result,
-        texture          = rule.texture,
-        showFrame        = rule.showFrame,
-        description      = rule.description,
-        settingsColor    = rule.settingsColor,
-    }
-end
-
-function ConsoleMetrics:MatchCustomSetRule(abilityId, abilityName)
-    if not self.saved or type(self.saved.customSetRules) ~= "table" then
-        return nil
-    end
-
-    local safeId = SafeAbilityId(abilityId)
-    local lowerName = string.lower(abilityName or "")
-
-    -- Prefer exact abilityId match first; check primary abilityId and all entries in abilityIds.
-    if safeId > 0 then
-        for i = 1, #self.saved.customSetRules do
-            local rule = self.saved.customSetRules[i]
-            -- Check primary stored ID.
-            if SafeAbilityId(rule.abilityId) == safeId then
-                return RuleToMatchResult(rule, safeId)
-            end
-            -- Check multi-ID list (PCT sets like Pirate Skeleton).
-            if type(rule.abilityIds) == "table" then
-                for k = 1, #rule.abilityIds do
-                    if SafeAbilityId(rule.abilityIds[k]) == safeId then
-                        return RuleToMatchResult(rule, safeId)
-                    end
-                end
-            end
-        end
-    end
-
-    if lowerName == "" then
-        return nil
-    end
-
-    for i = 1, #self.saved.customSetRules do
-        local rule = self.saved.customSetRules[i]
-        local aliases = rule.aliases
-        if type(aliases) ~= "table" then
-            aliases = BuildCustomAliasList(rule.abilityName)
-            rule.aliases = aliases
-        end
-        for j = 1, #aliases do
-            local alias = aliases[j]
-            if alias ~= "" and string.find(lowerName, alias, 1, true) ~= nil then
-                return RuleToMatchResult(rule, SafeAbilityId(rule.abilityId))
-            end
-        end
-    end
-
-    return nil
-end
-
-function ConsoleMetrics:InvalidateTrackedSetMatchCache()
-    self.trackedSetMatchById = {}
-    self.trackedSetMatchByName = {}
-end
-
-function ConsoleMetrics:MatchTrackedSet(abilityId, abilityName)
-    local byId = self.trackedSetMatchById
-    if type(byId) ~= "table" then
-        byId = {}
-        self.trackedSetMatchById = byId
-    end
-
-    local byName = self.trackedSetMatchByName
-    if type(byName) ~= "table" then
-        byName = {}
-        self.trackedSetMatchByName = byName
-    end
-
-    local safeId = SafeAbilityId(abilityId)
-    if safeId > 0 then
-        local cachedById = byId[safeId]
-        if cachedById ~= nil then
-            return cachedById or nil
-        end
-    end
-
-    local lowerName = string.lower(abilityName or "")
-    if lowerName ~= "" then
-        local cachedByName = byName[lowerName]
-        if cachedByName ~= nil then
-            if safeId > 0 then
-                byId[safeId] = cachedByName
-            end
-            return cachedByName or nil
-        end
-    end
-
-    local matched = self:MatchCustomSetRule(safeId, abilityName)
-    if not matched then
-        matched = MatchPopularSet(abilityName)
-    end
-
-    local cachedValue = matched or false
-    if safeId > 0 then
-        byId[safeId] = cachedValue
-    end
-    if lowerName ~= "" then
-        byName[lowerName] = cachedValue
-    end
-
-    return matched
-end
-
-function ConsoleMetrics:AddCustomSetRule(label, scene, abilityId, abilityName)
-    if not self.saved then
-        return false, "Settings are not initialized yet."
-    end
-
-    self.saved.customSetRules = self.saved.customSetRules or {}
-
-    local cleanName = TrimText(abilityName)
-    local cleanLabel = TrimText(label)
-    local safeId = SafeAbilityId(abilityId)
-    local normalizedScene = NormalizeCustomSetScene(scene)
-
-    if cleanLabel == "" then
-        if cleanName ~= "" then
-            cleanLabel = cleanName
-        elseif safeId > 0 then
-            cleanLabel = string.format("Custom Set %d", safeId)
-        else
-            return false, "Add Custom Set: provide ability ID and/or ability name."
-        end
-    end
-
-    if safeId <= 0 and cleanName == "" then
-        return false, "Add Custom Set: provide ability ID and/or ability name."
-    end
-
-    local aliases = BuildCustomAliasList(cleanName)
-    for i = 1, #self.saved.customSetRules do
-        local existing = self.saved.customSetRules[i]
-        local existingId = SafeAbilityId(existing.abilityId)
-        local existingName = string.lower(TrimText(existing.abilityName))
-        if safeId > 0 and existingId == safeId then
-            return false, string.format("Custom set already exists for ability ID %d.", safeId)
-        end
-        if cleanName ~= "" and existingName ~= "" and existingName == string.lower(cleanName) then
-            return false, string.format("Custom set already exists for ability name '%s'.", cleanName)
-        end
-    end
-
-    self.saved.customSetRules[#self.saved.customSetRules + 1] = {
-        label    = cleanLabel,
-        scene    = normalizedScene,
-        abilityId = safeId,
-        abilityIds = { safeId },
-        abilityName = cleanName,
-        aliases  = aliases,
-        fromCustom = true,
-    }
-
-    self:InvalidateTrackedSetMatchCache()
-
-    return true, string.format("Added custom set rule: %s (scene=%s, id=%d, name=%s)", cleanLabel, normalizedScene, safeId, cleanName ~= "" and cleanName or "n/a")
-end
-
--- Import one full PvPCooldownTracker Data.Sets entry by set name key.
--- Handles id as number or array, carries all PCT fields verbatim.
-function ConsoleMetrics:AddPCTSetEntry(setName, entry)
-    if not self.saved then
-        return false, "Settings not initialized."
-    end
-
-    self.saved.customSetRules = self.saved.customSetRules or {}
-
-    local cleanLabel = TrimText(setName)
-    if cleanLabel == "" then
-        return false, "PCT entry has no set name."
-    end
-
-    -- Deduplicate by normalized label.
-    local lowerLabel = string.lower(cleanLabel)
-    for i = 1, #self.saved.customSetRules do
-        if string.lower(TrimText(self.saved.customSetRules[i].label)) == lowerLabel then
-            return false, string.format("Already have rule for '%s'.", cleanLabel)
-        end
-    end
-
-    -- Normalise id: may be number or array of numbers.
-    local primaryId = 0
-    local allIds = {}
-    if type(entry.id) == "table" then
-        for _, v in ipairs(entry.id) do
-            local sid = SafeAbilityId(v)
-            if sid > 0 then
-                allIds[#allIds + 1] = sid
-            end
-        end
-        primaryId = allIds[1] or 0
-    else
-        primaryId = SafeAbilityId(entry.id)
-        if primaryId > 0 then
-            allIds[1] = primaryId
-        end
-    end
-
-    -- Derive scene from procType (synergies/passives -> PvE leaning; sets -> PvP default).
-    local scene = "PvP"
-    if type(entry.procType) == "string" then
-        local pt = string.lower(entry.procType)
-        if pt == "synergy" or pt == "passive" then
-            scene = "PvE"
-        end
-    end
-
-    self.saved.customSetRules[#self.saved.customSetRules + 1] = {
-        label              = cleanLabel,
-        scene              = scene,
-        abilityId          = primaryId,
-        abilityIds         = allIds,
-        abilityName        = "",
-        aliases            = {},
-        fromPCT            = true,
-        -- Full PCT fields preserved:
-        cooldownDurationMs = tonumber(entry.cooldownDurationMs),
-        procType           = type(entry.procType) == "string" and entry.procType or nil,
-        result             = tonumber(entry.result),
-        texture            = type(entry.texture) == "string" and entry.texture or nil,
-        showFrame          = entry.showFrame ~= false,
-        description        = type(entry.description) == "string" and entry.description or nil,
-        settingsColor      = type(entry.settingsColor) == "string" and entry.settingsColor or nil,
-    }
-
-    self:InvalidateTrackedSetMatchCache()
-
-    return true, string.format("Imported: %s (id=%d, cooldown=%sms)",
-        cleanLabel, primaryId, tostring(tonumber(entry.cooldownDurationMs) or "?"))
-end
-
-function ConsoleMetrics:ImportSetsFromPvPCooldownTracker()
-    if not self.saved then
-        return 0, "Settings are not initialized yet."
-    end
-
-    -- Primary path: PvPCooldownTracker.Data.Sets is the canonical structured source.
-    -- Each key is the set display name; value contains id, cooldownDurationMs, procType, result, etc.
-    local g = type(_G) == "table" and _G or nil
-    local pct = g and g.PvPCooldownTracker or nil
-    local dataTable = pct and type(pct.Data) == "table" and pct.Data.Sets or nil
-
-    if type(dataTable) ~= "table" then
-        return 0, "PvPCooldownTracker.Data.Sets not found. Ensure PvPCooldownTracker is loaded before importing."
-    end
-
-    local addedCount = 0
-    local skippedCount = 0
-    local messages = {}
-
-    for setName, entry in pairs(dataTable) do
-        if type(setName) == "string" and type(entry) == "table" then
-            local ok, msg = self:AddPCTSetEntry(setName, entry)
-            if ok then
-                addedCount = addedCount + 1
-            else
-                skippedCount = skippedCount + 1
-                -- Only collect non-duplicate skip messages for debugging.
-                if not string.find(msg, "Already have rule", 1, true) then
-                    messages[#messages + 1] = msg
-                end
-            end
-        end
-    end
-
-    if addedCount == 0 and skippedCount == 0 then
-        return 0, "PvPCooldownTracker.Data.Sets is empty."
-    end
-
-    if addedCount == 0 then
-        return 0, string.format("No new entries imported (%d already present).", skippedCount)
-    end
-
-    local summary = string.format("Imported %d set rules from PvPCooldownTracker", addedCount)
-    if skippedCount > 0 then
-        summary = summary .. string.format(" (%d already present, skipped)", skippedCount)
-    end
-    summary = summary .. "."
-
-    if #messages > 0 then
-        for i = 1, math.min(5, #messages) do
-            self:Print("PCT import: " .. messages[i])
-        end
-    end
-
-    return addedCount, summary
-end
-
-function ConsoleMetrics:PrintHelp()
-    local helpLines = {
-        "Commands:",
-        "/cm view - Open the Console Metrics dialog.",
-        "/cm close - Close the dialog immediately.",
-        "/cm prev - View the previous saved fight.",
-        "/cm next - View the next saved fight.",
-        "/cm clear - Clear live fight data and all history.",
-        "/cm savefight [name] - Save the currently viewed fight to a persistent slot.",
-        "/cm loadfight <name> - Load one saved fight by name into history.",
-        "/cm loadfightexact <name> - Load one saved fight by exact name only.",
-        "/cm loadsaves - Load all saved fight slots into session fight history.",
-        "/cm debugbuild - Print build snapshot debug details.",
-        "/cm trace on|off - Enable or disable live event/resource trace output.",
-        "/cm trace mode summary|all|in|out - Choose trace scope.",
-        "/cm trace target off|reticle|<name> - Restrict trace to one target.",
-        "/cm trace focus on|off - Skip non-target combat processing during trace.",
-        "/cm trace samples on|off - Toggle non-target sample skipping in focus mode.",
-        "/cm trace min <value> - Ignore per-event trace lines below this value.",
-        "/cm trace cap <lines/sec> - Limit trace print spam per second.",
-        "/cm trace status - Print current trace mode and limits.",
-        "WARNING: Trace logging is expensive on console. Keep it short and disable with /cm trace off after debugging.",
-        "/cm linkbuild - Pre-fill chat with a compact build summary to share.",
-        "/cm dumpcpslottables - Dump confirmed Champion slottable skill IDs.",
-        "/cm autoclear on|off - Toggle auto clear when a new fight starts.",
-        "/cm autohide on|off - Toggle dialog auto close after combat.",
-        "/cm perf on|off|status - Toggle Series S performance preset mode.",
-        "/cm inject - Retry Journal menu/keybind integration.",
-        "/cm reset - Reset addon options to defaults.",
-        "/cm dumpsets - Dump all game item sets (API) and session-observed ability IDs.",
-        "/cm importpct - Import custom set rules from PvPCooldownTracker.",
-        "/cm addset <label>|<scene>|<abilityId>|<abilityName> - Add custom set matcher.",
-    }
-
-    for i = 1, #helpLines do
-        self:Print(helpLines[i])
-    end
-end
-
-function ConsoleMetrics:RegisterLAMSettings()
-    if not LibAddonMenu2 then
-        return
-    end
-
-    local panelData = {
-        type = "panel",
-        name = "Console Metrics",
-        displayName = "Console Metrics",
-        author = "Vixen Hunny",
-        version = self.version,
-        registerForRefresh = true,
-    }
-    local sceneChoices = { "PvP", "PvE", "Custom" }
-    local function NormalizeDraftAbilityId()
-        local id = SafeAbilityId(self.saved.customSetDraftAbilityId)
-        if id > 0 then
-            return tostring(id)
-        end
-        return ""
-    end
-        local optionsTable = {
-                {
-                    type = "button",
-                    name = "Open Console Metrics",
-                    tooltip = "Opens the combat metrics dialog window",
-                    func = function()
-                        self:OpenFightViewDialog(true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "header",
-                    name = "Dialog Options",
-                },
-                {
-                    type = "checkbox",
-                    name = "Auto Hide Dialog",
-                    tooltip = "Automatically close the dialog after leaving combat",
-                    getFunc = function()
-                        return self.saved.dialogAutoHide
-                    end,
-                    setFunc = function(value)
-                        self.saved.dialogAutoHide = value
-                        self:ArmDialogAutoHide()
-                    end,
-                    default = self.defaults.dialogAutoHide,
-                },
-                {
-                    type = "slider",
-                    name = "Auto Hide Delay (seconds)",
-                    tooltip = "How long to wait after combat ends before closing the dialog",
-                    getFunc = function()
-                        return self.saved.dialogAutoHideSeconds
-                    end,
-                    setFunc = function(value)
-                        self.saved.dialogAutoHideSeconds = value
-                        self:ArmDialogAutoHide()
-                    end,
-                    min = 3,
-                    max = 120,
-                    step = 1,
-                    default = self.defaults.dialogAutoHideSeconds,
-                },
-                {
-                    type = "checkbox",
-                    name = "Auto Clear on Next Fight",
-                    tooltip = "Clear displayed metrics when a new fight starts",
-                    getFunc = function()
-                        return self.saved.autoClearOnNextFight
-                    end,
-                    setFunc = function(value)
-                        self.saved.autoClearOnNextFight = value
-                    end,
-                    default = self.defaults.autoClearOnNextFight,
-                },
-                {
-                    type = "slider",
-                    name = "Max Fight History",
-                    tooltip = "Maximum number of previous fights to keep in history",
-                    getFunc = function()
-                        return self.saved.maxFightHistory
-                    end,
-                    setFunc = function(value)
-                        self.saved.maxFightHistory = value
-                        self:EnforceFightHistoryLimit()
-                    end,
-                    min = 5,
-                    max = tonumber(MAX_FIGHT_HISTORY_HARD_CAP) or 40,
-                    step = 1,
-                    default = self.defaults.maxFightHistory,
-                },
-                {
-                    type = "checkbox",
-                    name = "Low Memory Mode",
-                    tooltip = "Compacts stored history snapshots (top-N lists) to reduce memory on console.",
-                    getFunc = function()
-                        return self.saved.lowMemoryMode == true
-                    end,
-                    setFunc = function(value)
-                        self.saved.lowMemoryMode = value == true
-                        if self.saved.lowMemoryMode then
-                            self:ApplyLowMemoryModeToHistory()
-                        end
-                        self:EnforceFightHistoryLimit()
-                    end,
-                    default = self.defaults.lowMemoryMode,
-                },
-                {
-                    type = "checkbox",
-                    name = "Performance Mode (Series S)",
-                    tooltip = "Applies conservative update rates and disables costly features for smoother console frame times.",
-                    getFunc = function()
-                        return self.saved.performanceMode == true
-                    end,
-                    setFunc = function(value)
-                        self.saved.performanceMode = value == true
-                        if self.saved.performanceMode then
-                            self:ApplyConsolePerformancePreset()
-                        end
-                    end,
-                    default = self.defaults.performanceMode,
-                },
-                {
-                    type = "checkbox",
-                    name = "Enable ML Behavior Model",
-                    tooltip = "When off, disables behavior prediction math and returns lightweight placeholder values for better performance.",
-                    getFunc = function()
-                        return self.saved.behaviorModelEnabled == true
-                    end,
-                    setFunc = function(value)
-                        self.saved.behaviorModelEnabled = value == true
-                        self.behaviorModelCache = nil
-                    end,
-                    default = self.defaults.behaviorModelEnabled,
-                },
-                {
-                    type = "slider",
-                    name = "ML DR Learning Weight",
-                    tooltip = "Higher values adapt faster to changes in inferred DR",
-                    getFunc = function()
-                        return math.floor((self.saved.drSampleAlpha or self.defaults.drSampleAlpha) * 100 + 0.5)
-                    end,
-                    setFunc = function(value)
-                        self.saved.drSampleAlpha = Clamp(value / 100, 0.05, 0.85)
-                    end,
-                    disabled = function()
-                        return self.saved.behaviorModelEnabled ~= true
-                    end,
-                    min = 5,
-                    max = 85,
-                    step = 1,
-                    default = math.floor(self.defaults.drSampleAlpha * 100 + 0.5),
-                },
-                {
-                    type = "header",
-                    name = "Custom Set Matching",
-                },
-                {
-                    type = "description",
-                    text = "Add custom set rules by ability ID/name and optionally import from PvPCooldownTracker.",
-                    width = "full",
-                },
-                {
-                    type = "editbox",
-                    name = "Set Label",
-                    tooltip = "Friendly label for this set entry in panel output.",
-                    getFunc = function()
-                        return self.saved.customSetDraftLabel or ""
-                    end,
-                    setFunc = function(value)
-                        self.saved.customSetDraftLabel = TrimText(value)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "dropdown",
-                    name = "Set Scene",
-                    tooltip = "Classification tag shown in set-proc rows.",
-                    choices = sceneChoices,
-                    getFunc = function()
-                        return NormalizeCustomSetScene(self.saved.customSetDraftScene)
-                    end,
-                    setFunc = function(value)
-                        self.saved.customSetDraftScene = NormalizeCustomSetScene(value)
-                    end,
-                    width = "half",
-                },
-                {
-                    type = "editbox",
-                    name = "Ability ID",
-                    tooltip = "Exact match ability ID (optional, but recommended).",
-                    getFunc = function()
-                        return NormalizeDraftAbilityId()
-                    end,
-                    setFunc = function(value)
-                        self.saved.customSetDraftAbilityId = TrimText(value)
-                    end,
-                    width = "half",
-                },
-                {
-                    type = "editbox",
-                    name = "Ability Name / Alias",
-                    tooltip = "Name matcher. Comma-separated tokens are accepted as aliases.",
-                    getFunc = function()
-                        return self.saved.customSetDraftAbilityName or ""
-                    end,
-                    setFunc = function(value)
-                        self.saved.customSetDraftAbilityName = TrimText(value)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "button",
-                    name = "Add Custom Set Rule",
-                    tooltip = "Adds the current draft as a custom set matcher.",
-                    func = function()
-                        local abilityId = tonumber(self.saved.customSetDraftAbilityId)
-                        local ok, message = self:AddCustomSetRule(
-                            self.saved.customSetDraftLabel,
-                            self.saved.customSetDraftScene,
-                            abilityId,
-                            self.saved.customSetDraftAbilityName
-                        )
-                        self:Print(message)
-                        if ok then
-                            self.saved.customSetDraftAbilityId = ""
-                            self.saved.customSetDraftAbilityName = ""
-                        end
-                    end,
-                    width = "half",
-                },
-                {
-                    type = "button",
-                    name = "Import PvPCooldownTracker Rules",
-                    tooltip = "Scans PvPCooldownTracker tables and imports ability-based set rules.",
-                    func = function()
-                        local added, message = self:ImportSetsFromPvPCooldownTracker()
-                        self:Print(message)
-                        if added > 0 then
-                            self:Print(string.format("Custom set rule count: %d", #(self.saved.customSetRules or {})))
-                        end
-                    end,
-                    width = "half",
-                },
-                {
-                    type = "button",
-                    name = "Clear Custom Set Rules",
-                    tooltip = "Removes all custom set rules added through settings/import.",
-                    func = function()
-                        self.saved.customSetRules = {}
-                        self:InvalidateTrackedSetMatchCache()
-                        self:Print("Cleared all custom set rules.")
-                    end,
-                    width = "half",
-                },
-            }
-
-    LibAddonMenu2:RegisterAddonPanel("ConsoleMetricsPanel", panelData)
-    LibAddonMenu2:RegisterOptionControls("ConsoleMetricsPanel", optionsTable)
-end
-
+---------------------------------------------------------------------------
+-- Live snapshot cache
+---------------------------------------------------------------------------
 function ConsoleMetrics:GetFightSnapshot()
     local nowMs = GetFrameTimeMilliseconds()
     if not self.fight then
@@ -1324,14 +883,302 @@ function ConsoleMetrics:GetFightSnapshot()
     return summary
 end
 
+---------------------------------------------------------------------------
+-- Viewed snapshot
+---------------------------------------------------------------------------
+-- Returns the snapshot being viewed plus true when it is the live fight.
 function ConsoleMetrics:GetViewedFightSnapshot()
-    if self.viewFightIndex >= 1 and self.viewFightIndex <= #self.fightHistory then
-        return self.fightHistory[self.viewFightIndex], false
+    local history = self.fightHistory or {}
+    local index = tonumber(self.viewFightIndex) or 0
+    if index >= 1 and index <= #history then
+        return history[index], false
     end
-
     return self:GetFightSnapshot(), true
 end
 
+---------------------------------------------------------------------------
+-- Fight history
+---------------------------------------------------------------------------
+-- Appends a finished summary to history (compacting it first in low-memory
+-- mode), enforces the history limit and points the view at the new entry.
+function ConsoleMetrics:PushHistorySummary(summary)
+    if self.saved and self.saved.lowMemoryMode then
+        summary = self:CompactFightSummaryForHistory(summary)
+    end
+    self.fightHistory[#self.fightHistory + 1] = summary
+    self:EnforceFightHistoryLimit()
+    self.viewFightIndex = #self.fightHistory
+    self.behaviorModelCache = nil
+end
+
+function ConsoleMetrics:AddCurrentFightToHistory()
+    if not self.fight then
+        return
+    end
+
+    local nowMs = GetFrameTimeMilliseconds()
+    local summary = self:BuildFightSummaryFromFight(self.fight, nowMs)
+    if summary.totalDamage <= 0 and summary.totalHeal <= 0 and summary.totalTaken <= 0 then
+        return
+    end
+
+    self:PushHistorySummary(summary)
+end
+
+function ConsoleMetrics:ResetFightData(keepHistory)
+    local nowMs = GetFrameTimeMilliseconds()
+    self.fight = NewFight(nowMs)
+    self.viewFightIndex = 0
+    self.lastProtectionUpdateMs = 0
+    self.lastMetricsUpdateMs = 0
+    self.lastEffectStateEventMs = 0
+    self.lastTraceTargetMatchMs = nil
+    self.behaviorModelCache = nil
+    self.fightSnapshotCache = nil
+
+    if not keepHistory then
+        self.fightHistory = {}
+    end
+end
+
+---------------------------------------------------------------------------
+-- Saved fights (persisted in saved variables)
+---------------------------------------------------------------------------
+-- Saved snapshots are always deep-copied on the way in and on the way out so
+-- live updates, low-memory compaction and relabeling never corrupt the data
+-- that is written to disk.
+
+local function HasFightData(snapshot)
+    return (snapshot.totalDamage or 0) > 0 or (snapshot.totalHeal or 0) > 0 or (snapshot.totalTaken or 0) > 0
+end
+
+function ConsoleMetrics:GetSavedFights()
+    if not self.saved then
+        return {}
+    end
+    if type(self.saved.savedFights) ~= "table" then
+        self.saved.savedFights = {}
+    end
+    return self.saved.savedFights
+end
+
+function ConsoleMetrics:SaveViewedFight()
+    if not self.saved then
+        return false, "Settings are not initialized yet."
+    end
+
+    local snapshot = self:GetViewedFightSnapshot()
+    if not snapshot then
+        return false, "No fight data to save."
+    end
+    if not HasFightData(snapshot) then
+        return false, "Fight has no data worth saving."
+    end
+
+    local saves = self:GetSavedFights()
+    local maxSaves = tonumber(self.saved.maxSavedFights) or self.defaults.maxSavedFights
+    if #saves >= maxSaves then
+        return false, string.format("Saves full (%d/%d). Delete a save slot first.", #saves, maxSaves)
+    end
+
+    local requestedLabel = TrimText(self.saved.saveFightDraftName or "")
+    local autoLabel = requestedLabel == ""
+    local label = autoLabel and BuildDefaultFightSaveName(snapshot, #saves + 1) or requestedLabel
+
+    snapshot.savedLabel = label
+    local stored = DeepCopy(snapshot)
+    stored.savedLabel = label
+    saves[#saves + 1] = {
+        label = label,
+        autoLabel = autoLabel,
+        snapshot = stored,
+    }
+    return true, string.format("Fight saved: %s", label)
+end
+
+function ConsoleMetrics:DeleteSavedFight(index)
+    local saves = self:GetSavedFights()
+    if type(index) ~= "number" or index < 1 or index > #saves then
+        return false, "Invalid save slot."
+    end
+
+    local removedLabel = saves[index].label or string.format("Slot %d", index)
+    table.remove(saves, index)
+
+    -- Re-label only auto-generated entries so custom names remain unchanged.
+    for i = 1, #saves do
+        local entry = saves[i]
+        if entry and entry.autoLabel and type(entry.snapshot) == "table" then
+            entry.label = BuildDefaultFightSaveName(entry.snapshot, i)
+            entry.snapshot.savedLabel = entry.label
+        end
+    end
+    return true, string.format("Deleted: %s", removedLabel)
+end
+
+function ConsoleMetrics:ClearSavedFights()
+    if self.saved then
+        self.saved.savedFights = {}
+    end
+end
+
+function ConsoleMetrics:LoadSavedFightIntoHistory(index)
+    local saves = self:GetSavedFights()
+    local entry = saves[index]
+    if not entry or type(entry.snapshot) ~= "table" then
+        return false, "Invalid or empty save slot."
+    end
+
+    self:PushHistorySummary(DeepCopy(entry.snapshot))
+    local label = tostring(entry.label or string.format("Slot %d", index))
+    return true, string.format("Loaded: %s (history slot %d/%d)", label, self.viewFightIndex, #self.fightHistory)
+end
+
+-- Finds a saved fight by label (case-insensitive). Exact matches win; with
+-- allowPartial a single unique substring match is accepted as well.
+-- Returns the slot index, or nil plus a user-facing message.
+function ConsoleMetrics:FindSavedFightIndex(rawName, allowPartial)
+    local query = TrimText(rawName)
+    if query == "" then
+        return nil, "Provide a saved fight name."
+    end
+
+    local saves = self:GetSavedFights()
+    if #saves == 0 then
+        return nil, "No saved fights available."
+    end
+
+    local lowerQuery = string.lower(query)
+    local partialMatches = {}
+    for i = 1, #saves do
+        local entry = saves[i]
+        local label = string.lower(TrimText(entry and entry.label or ""))
+        if label ~= "" then
+            if label == lowerQuery then
+                return i
+            end
+            if allowPartial and string.find(label, lowerQuery, 1, true) ~= nil then
+                partialMatches[#partialMatches + 1] = i
+            end
+        end
+    end
+
+    if #partialMatches == 1 then
+        return partialMatches[1]
+    end
+    if #partialMatches > 1 then
+        local names = {}
+        for i = 1, math.min(5, #partialMatches) do
+            names[#names + 1] = tostring(saves[partialMatches[i]].label)
+        end
+        local suffix = #partialMatches > 5 and "..." or ""
+        return nil, string.format("Multiple saved fights match '%s': %s%s", query, table.concat(names, " | "), suffix)
+    end
+
+    if allowPartial then
+        return nil, string.format("Saved fight '%s' not found.", query)
+    end
+    return nil, string.format("Exact saved fight '%s' not found.", query)
+end
+
+function ConsoleMetrics:LoadSavedFightIntoHistoryByName(rawName)
+    local index, message = self:FindSavedFightIndex(rawName, true)
+    if not index then
+        return false, message
+    end
+    return self:LoadSavedFightIntoHistory(index)
+end
+
+function ConsoleMetrics:LoadSavedFightIntoHistoryByExactName(rawName)
+    local index, message = self:FindSavedFightIndex(rawName, false)
+    if not index then
+        return false, message
+    end
+    return self:LoadSavedFightIntoHistory(index)
+end
+
+-- Loads every saved slot into session history (used at startup and by /cm loadsaves).
+-- Returns the number of fights loaded.
+function ConsoleMetrics:RestoreSavedFightsIntoHistory()
+    local saves = self:GetSavedFights()
+    local loaded = 0
+    for i = 1, #saves do
+        local entry = saves[i]
+        if entry and type(entry.snapshot) == "table" then
+            self:PushHistorySummary(DeepCopy(entry.snapshot))
+            loaded = loaded + 1
+        end
+    end
+    return loaded
+end
+
+function ConsoleMetrics:EnforceFightHistoryLimit()
+    if type(self.fightHistory) ~= "table" then
+        self.fightHistory = {}
+    end
+
+    local hardCap = tonumber(MAX_FIGHT_HISTORY_HARD_CAP) or 40
+    local maxHistory = tonumber(self.saved and self.saved.maxFightHistory) or self.defaults.maxFightHistory
+    maxHistory = math.max(5, math.min(hardCap, math.floor(maxHistory + 0.5)))
+    if self.saved then
+        self.saved.maxFightHistory = maxHistory
+    end
+
+    local removed = 0
+    while #self.fightHistory > maxHistory do
+        table.remove(self.fightHistory, 1)
+        removed = removed + 1
+    end
+
+    if #self.fightHistory == 0 then
+        self.viewFightIndex = 0
+    elseif self.viewFightIndex and self.viewFightIndex > 0 then
+        self.viewFightIndex = self.viewFightIndex - removed
+        if self.viewFightIndex < 1 then
+            self.viewFightIndex = 1
+        elseif self.viewFightIndex > #self.fightHistory then
+            self.viewFightIndex = #self.fightHistory
+        end
+    end
+
+    if removed > 0 then
+        self.behaviorModelCache = nil
+        self.fightSnapshotCache = nil
+        if type(collectgarbage) == "function" then
+            collectgarbage("step", 200)
+        end
+    end
+
+    return removed, maxHistory
+end
+
+function ConsoleMetrics:StepFightView(step)
+    if #self.fightHistory == 0 then
+        self.viewFightIndex = 0
+        return false
+    end
+
+    if self.viewFightIndex == 0 then
+        if step < 0 then
+            self.viewFightIndex = #self.fightHistory
+        else
+            self.viewFightIndex = 1
+        end
+    else
+        self.viewFightIndex = self.viewFightIndex + step
+        if self.viewFightIndex < 1 then
+            self.viewFightIndex = #self.fightHistory
+        elseif self.viewFightIndex > #self.fightHistory then
+            self.viewFightIndex = 1
+        end
+    end
+
+    return true
+end
+
+---------------------------------------------------------------------------
+-- Behavior model (ML-lite)
+---------------------------------------------------------------------------
 function ConsoleMetrics:GetBehaviorModel(liveSummaryOverride)
     if not (self.saved and self.saved.behaviorModelEnabled) then
         if not self.behaviorModelDisabledResult then
@@ -1485,368 +1332,31 @@ function ConsoleMetrics:GetBehaviorModel(liveSummaryOverride)
     return model
 end
 
-function ConsoleMetrics:AddCurrentFightToHistory()
-    if not self.fight then
-        return
-    end
+---------------------------------------------------------------------------
+-- Exports
+---------------------------------------------------------------------------
 
-    local nowMs = GetFrameTimeMilliseconds()
-    local summary = self:BuildFightSummaryFromFight(self.fight, nowMs)
-    if summary.totalDamage <= 0 and summary.totalHeal <= 0 and summary.totalTaken <= 0 then
-        return
-    end
-
-    if self.saved and self.saved.lowMemoryMode then
-        summary = self:CompactFightSummaryForHistory(summary)
-    end
-
-    self.fightHistory[#self.fightHistory + 1] = summary
-
-    self:EnforceFightHistoryLimit()
-
-    self.viewFightIndex = #self.fightHistory
-    self.behaviorModelCache = nil
-end
-
-function ConsoleMetrics:EnforceFightHistoryLimit()
-    if type(self.fightHistory) ~= "table" then
-        self.fightHistory = {}
-    end
-
-    local hardCap = tonumber(MAX_FIGHT_HISTORY_HARD_CAP) or 40
-    local maxHistory = tonumber(self.saved and self.saved.maxFightHistory) or self.defaults.maxFightHistory
-    maxHistory = math.max(5, math.min(hardCap, math.floor(maxHistory + 0.5)))
-    if self.saved then
-        self.saved.maxFightHistory = maxHistory
-    end
-
-    local removed = 0
-    while #self.fightHistory > maxHistory do
-        table.remove(self.fightHistory, 1)
-        removed = removed + 1
-    end
-
-    if #self.fightHistory == 0 then
-        self.viewFightIndex = 0
-    elseif self.viewFightIndex and self.viewFightIndex > 0 then
-        self.viewFightIndex = self.viewFightIndex - removed
-        if self.viewFightIndex < 1 then
-            self.viewFightIndex = 1
-        elseif self.viewFightIndex > #self.fightHistory then
-            self.viewFightIndex = #self.fightHistory
-        end
-    end
-
-    if removed > 0 then
-        self.behaviorModelCache = nil
-        self.fightSnapshotCache = nil
-        if type(collectgarbage) == "function" then
-            collectgarbage("step", 200)
-        end
-    end
-
-    return removed, maxHistory
-end
-
-function ConsoleMetrics:StepFightView(step)
-    if #self.fightHistory == 0 then
-        self.viewFightIndex = 0
-        return false
-    end
-
-    if self.viewFightIndex == 0 then
-        if step < 0 then
-            self.viewFightIndex = #self.fightHistory
-        else
-            self.viewFightIndex = 1
-        end
-    else
-        self.viewFightIndex = self.viewFightIndex + step
-        if self.viewFightIndex < 1 then
-            self.viewFightIndex = #self.fightHistory
-        elseif self.viewFightIndex > #self.fightHistory then
-            self.viewFightIndex = 1
-        end
-    end
-
-    return true
-end
-
-function ConsoleMetrics:ResetFightData(keepHistory)
-    local nowMs = GetFrameTimeMilliseconds()
-    self.fight = NewFight(nowMs)
-    self.hideAtMs = nil
-    self.viewFightIndex = 0
-    self.scrollEntries = {}
-    self.lastSortedSkillList = {}
-    self.lastSkillMapSize = 0
-    self.lastProtectionUpdateMs = 0
-    self.skillListDirty = true
-    self.lastScrollLineAtMs = 0
-    self.lastEffectStateEventMs = 0
-    self.lastTraceTargetMatchMs = nil
-    self.behaviorModelCache = nil
-    self.fightSnapshotCache = nil
-    self.uiMetricCache = nil
-
-    if not keepHistory then
-        self.fightHistory = {}
-    end
-
-    if self.ui.root then
-        self.ui.root:SetHidden(true)
-    end
-
-    self:RefreshScroll()
-    self:UpdateMetrics()
-end
-
-function ConsoleMetrics:SaveViewedFight()
-    local snapshot = self:GetViewedFightSnapshot()
-    if not snapshot then
-        return false, "No fight data to save."
-    end
-    if (snapshot.totalDamage or 0) <= 0 and (snapshot.totalHeal or 0) <= 0 and (snapshot.totalTaken or 0) <= 0 then
-        return false, "Fight has no data worth saving."
-    end
-    local maxSaves = tonumber(self.saved.maxSavedFights) or self.defaults.maxSavedFights
-    if #self.saved.savedFights >= maxSaves then
-        return false, string.format("Saves full (%d/%d). Delete a save slot first.", #self.saved.savedFights, maxSaves)
-    end
-
-    local requestedLabel = TrimText((self.saved and self.saved.saveFightDraftName) or "")
-    local autoLabel = requestedLabel == ""
-    local label = autoLabel and BuildDefaultFightSaveName(snapshot, #self.saved.savedFights + 1) or requestedLabel
-    snapshot.savedLabel = label
-    self.saved.savedFights[#self.saved.savedFights + 1] = {
-        label = label,
-        autoLabel = autoLabel,
-        snapshot = snapshot,
-    }
-    return true, string.format("Fight saved: %s", label)
-end
-
-function ConsoleMetrics:DeleteSavedFight(index)
-    if type(index) ~= "number" or index < 1 or index > #self.saved.savedFights then
-        return false, "Invalid save slot."
-    end
-    local removedLabel = self.saved.savedFights[index].label or string.format("Slot %d", index)
-    table.remove(self.saved.savedFights, index)
-    -- Re-label only auto-generated entries so custom names remain unchanged.
-    for i = 1, #self.saved.savedFights do
-        local entry = self.saved.savedFights[i]
-        if entry and entry.autoLabel and type(entry.snapshot) == "table" then
-            entry.label = BuildDefaultFightSaveName(entry.snapshot, i)
-            entry.snapshot.savedLabel = entry.label
-        end
-    end
-    return true, string.format("Deleted: %s", removedLabel)
-end
-
-function ConsoleMetrics:LoadSavedFightIntoHistory(index)
-    local entry = self.saved.savedFights and self.saved.savedFights[index]
-    if not entry or type(entry.snapshot) ~= "table" then
-        return false, "Invalid or empty save slot."
-    end
-    local summary = entry.snapshot
-    if self.saved and self.saved.lowMemoryMode then
-        summary = self:CompactFightSummaryForHistory(summary)
-    end
-    self.fightHistory[#self.fightHistory + 1] = summary
-    self:EnforceFightHistoryLimit()
-    self.viewFightIndex = #self.fightHistory
-    return true, string.format("Loaded: %s (history slot %d/%d)", entry.label, self.viewFightIndex, #self.fightHistory)
-end
-
-function ConsoleMetrics:LoadSavedFightIntoHistoryByName(rawName)
-    local query = TrimText(rawName)
-    if query == "" then
-        return false, "Provide a saved fight name."
-    end
-
-    local saves = self.saved and self.saved.savedFights or nil
-    if type(saves) ~= "table" or #saves == 0 then
-        return false, "No saved fights available."
-    end
-
-    local lowerQuery = string.lower(query)
-    local exactIndex = nil
-    local partialMatches = {}
-
-    for i = 1, #saves do
-        local entry = saves[i]
-        local label = TrimText(entry and entry.label or "")
-        local lowerLabel = string.lower(label)
-
-        if label ~= "" then
-            if lowerLabel == lowerQuery then
-                exactIndex = i
-                break
-            end
-            if string.find(lowerLabel, lowerQuery, 1, true) ~= nil then
-                partialMatches[#partialMatches + 1] = i
-            end
-        end
-    end
-
-    if exactIndex then
-        return self:LoadSavedFightIntoHistory(exactIndex)
-    end
-
-    if #partialMatches == 1 then
-        return self:LoadSavedFightIntoHistory(partialMatches[1])
-    end
-
-    if #partialMatches > 1 then
-        local names = {}
-        for i = 1, math.min(5, #partialMatches) do
-            names[#names + 1] = saves[partialMatches[i]].label
-        end
-        local suffix = #partialMatches > 5 and "..." or ""
-        return false, string.format("Multiple saved fights match '%s': %s%s", query, table.concat(names, " | "), suffix)
-    end
-
-    return false, string.format("Saved fight '%s' not found.", query)
-end
-
-function ConsoleMetrics:LoadSavedFightIntoHistoryByExactName(rawName)
-    local query = TrimText(rawName)
-    if query == "" then
-        return false, "Provide a saved fight name."
-    end
-
-    local saves = self.saved and self.saved.savedFights or nil
-    if type(saves) ~= "table" or #saves == 0 then
-        return false, "No saved fights available."
-    end
-
-    local lowerQuery = string.lower(query)
-    for i = 1, #saves do
-        local entry = saves[i]
-        local label = TrimText(entry and entry.label or "")
-        if label ~= "" and string.lower(label) == lowerQuery then
-            return self:LoadSavedFightIntoHistory(i)
-        end
-    end
-
-    return false, string.format("Exact saved fight '%s' not found.", query)
-end
-
-function ConsoleMetrics:FindCustomSetRuleByLabel(label)
-    if type(label) ~= "string" or label == "" then
-        return nil
-    end
-    if not self.saved or type(self.saved.customSetRules) ~= "table" then
-        return nil
-    end
-
-    local lowerLabel = string.lower(TrimText(label))
-    for i = 1, #self.saved.customSetRules do
-        local rule = self.saved.customSetRules[i]
-        if type(rule) == "table" and string.lower(TrimText(rule.label or "")) == lowerLabel then
-            return rule
-        end
-    end
-
-    return nil
-end
-
-function ConsoleMetrics:BuildProcTimerSnapshot(nowMs)
-    local entries = {}
-    local seen = {}
-    local currentMs = nowMs
-    if type(currentMs) ~= "number" then
-        if type(GetGameTimeMilliseconds) == "function" then
-            currentMs = GetGameTimeMilliseconds()
-        else
-            currentMs = GetFrameTimeMilliseconds()
-        end
-    end
-
-    local g = type(_G) == "table" and _G or nil
-    local pctData = g and g.PvPCooldownTracker and g.PvPCooldownTracker.Data and g.PvPCooldownTracker.Data.Sets or nil
-    local equippedSets = BuildEquippedSetSummary()
-
-    local function AddEntry(label, equippedInfo)
-        if type(label) ~= "string" or label == "" then
-            return
-        end
-
-        local lowerLabel = string.lower(label)
-        if seen[lowerLabel] then
-            return
-        end
-
-        local rule = self:FindCustomSetRuleByLabel(label)
-        local pctEntry = pctData and pctData[label] or nil
-        local track = self.fight and self.fight.setEffects and self.fight.setEffects[lowerLabel] or nil
-        if not rule and not pctEntry and not track then
-            return
-        end
-
-        seen[lowerLabel] = true
-        local cooldownMs = tonumber((pctEntry and pctEntry.cooldownDurationMs) or (rule and rule.cooldownDurationMs)) or 0
-        local onCooldown = pctEntry and pctEntry.onCooldown or false
-        local procTimeMs = tonumber(pctEntry and pctEntry.timeOfProc) or 0
-        local remainingMs = 0
-        if onCooldown and cooldownMs > 0 and procTimeMs > 0 then
-            remainingMs = math.max(0, (procTimeMs + cooldownMs) - currentMs)
-        end
-
-        local stateText = "Ready"
-        if track and track.activeSinceMs then
-            if remainingMs > 0 then
-                stateText = string.format("Active | Ready %.1fs", remainingMs / 1000)
-            else
-                stateText = "Active"
-            end
-        elseif remainingMs > 0 then
-            stateText = string.format("Ready %.1fs", remainingMs / 1000)
-        end
-
-        entries[#entries + 1] = {
-            label = label,
-            stateText = stateText,
-            cooldownMs = cooldownMs,
-            remainingMs = remainingMs,
-            numEquipped = equippedInfo and equippedInfo.numEquipped or 0,
-            maxEquipped = equippedInfo and equippedInfo.maxEquipped or 0,
-            slots = equippedInfo and equippedInfo.slots or {},
-            fromPCT = pctEntry ~= nil,
-            fromCustomRule = rule ~= nil,
-        }
-    end
-
-    for i = 1, #equippedSets do
-        AddEntry(equippedSets[i].setName, equippedSets[i])
-    end
-
-    for i = 1, #(self.saved and self.saved.customSetRules or {}) do
-        local rule = self.saved.customSetRules[i]
-        if type(rule) == "table" and type(rule.label) == "string" and rule.label ~= "" then
-            AddEntry(rule.label, nil)
-        end
-    end
-
-    table.sort(entries, function(a, b)
-        local function Rank(entry)
-            if string.find(entry.stateText or "", "Active", 1, true) ~= nil then
-                return 1
-            end
-            if (entry.remainingMs or 0) > 0 then
-                return 2
-            end
-            return 3
-        end
-
-        local rankA = Rank(a)
-        local rankB = Rank(b)
-        if rankA == rankB then
-            return tostring(a.label) < tostring(b.label)
-        end
-        return rankA < rankB
-    end)
-
-    return entries
-end
-
+ConsoleMetrics.Fight = {
+    AcquireTrackedEffect = AcquireTrackedEffect,
+    AddThroughputWindowValueByTime = AddThroughputWindowValueByTime,
+    AddTopMoment = AddTopMoment,
+    AdvanceThroughputWindowTracker = AdvanceThroughputWindowTracker,
+    BuildProtectionSummary = BuildProtectionSummary,
+    BuildThroughputWindowStats = BuildThroughputWindowStats,
+    BuildTrackedEffectList = BuildTrackedEffectList,
+    CloneMoments = CloneMoments,
+    EstimateTargetResistance = EstimateTargetResistance,
+    FinalizeThroughputWindow = FinalizeThroughputWindow,
+    FormatWindowDateTime = FormatWindowDateTime,
+    FormatWindowRelativeTime = FormatWindowRelativeTime,
+    GetFightDurationSeconds = GetFightDurationSeconds,
+    HasFightData = HasFightData,
+    InferProtectionFromDr = InferProtectionFromDr,
+    NewFight = NewFight,
+    NewThroughputWindowTracker = NewThroughputWindowTracker,
+    SortSkillEntries = SortSkillEntries,
+    SortSkillEntriesByHeal = SortSkillEntriesByHeal,
+    StartTrackedEffect = StartTrackedEffect,
+    StopTrackedEffect = StopTrackedEffect,
+    TrimListInPlace = TrimListInPlace,
+}

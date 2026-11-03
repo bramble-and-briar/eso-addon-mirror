@@ -265,8 +265,14 @@ local function ApplyEnabled(on)
     registered = on
     if on then
         EVENT_MANAGER:RegisterForEvent(SETTLE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnWornSlotUpdate)
+        -- DEFAULT only: a worn piece losing durability or an enchant losing charge fires this
+        -- same event under its own reason (INVENTORY_UPDATE_REASON_DURABILITY_CHANGE /
+        -- _ITEM_CHARGE, see Repair.lua), and OnWornSlotUpdate cares about a piece actually
+        -- changing, not wearing down -- this filters the second kind of firing out before it
+        -- ever reaches Lua rather than after.
         EVENT_MANAGER:AddFilterForEvent(SETTLE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
-            REGISTER_FILTER_BAG_ID, BAG_WORN)
+            REGISTER_FILTER_BAG_ID, BAG_WORN,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
         EVENT_MANAGER:RegisterForEvent(foodSlots, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBackpackSlotUpdate)
         EVENT_MANAGER:AddFilterForEvent(foodSlots, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
             REGISTER_FILTER_BAG_ID, BAG_BACKPACK)

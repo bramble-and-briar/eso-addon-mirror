@@ -1,9 +1,9 @@
 ## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Furnishing Plans|r
-## Description: Starter module for Furnishing Plans with the shared Tamriel Archive menu, layout and icons. Collection data will be added in later releases.
+## Description: Native furnishing-plan families with learned status, missing-only views and search.
 ## Author: |c73E58CMajesticMinxi|r
-## Version: 0.1.2
+## Version: 0.1.5
 ## APIVersion: 101051
-## AddOnVersion: 102
+## AddOnVersion: 105
 
 Shared.lua
 ArchiveFurnishingPlans.lua

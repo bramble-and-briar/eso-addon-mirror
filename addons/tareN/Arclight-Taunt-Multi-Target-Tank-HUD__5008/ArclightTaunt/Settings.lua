@@ -1,4 +1,4 @@
--- Arclight Taunt 1.0.3 | Settings module
+-- Arclight Taunt 1.1.0 | Settings module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -9,8 +9,6 @@ local FiniteBoundedNumber = A.FiniteBoundedNumber
 local MAX_PER_COLUMN = A.MAX_PER_COLUMN
 local MEDIA_BAR_DEFAULT = A.MEDIA_BAR_DEFAULT
 local MEDIA_BAR_FLAT = A.MEDIA_BAR_FLAT
-local MEDIA_BG_NONE = A.MEDIA_BG_NONE
-local MEDIA_BG_OBSIDIAN = A.MEDIA_BG_OBSIDIAN
 local MEDIA_FONT_DEFAULT = A.MEDIA_FONT_DEFAULT
 local MEDIA_TIMER_INHERIT = A.MEDIA_TIMER_INHERIT
 local SetColor = A.SetColor
@@ -29,7 +27,7 @@ end
 -- The integration does not package or modify the third-party library.
 -- Native ESO buttons in one supported LAM custom row. Equal widths and a
 -- bounded font fit keep translated actions aligned without patching LAM.
-local function ActionRow(actions)
+local function ActionRow(actions, maxButtonWidth)
     return {
         type = "custom", width = "full", minHeight = 40, maxHeight = 40,
         actions = actions,
@@ -57,10 +55,12 @@ local function ActionRow(actions)
                 lastWidth = width
                 local gap = 12
                 local buttonWidth = math.max(1, (width - gap * (#buttons - 1)) / #buttons)
+                buttonWidth = math.min(buttonWidth, maxButtonWidth or buttonWidth)
+                local start = (width - buttonWidth * #buttons - gap * (#buttons - 1)) / 2
                 for i, button in ipairs(buttons) do
                     button:SetDimensions(buttonWidth, 28)
                     button:ClearAnchors()
-                    button:SetAnchor(TOPLEFT, row, TOPLEFT, (i - 1) * (buttonWidth + gap), 6)
+                    button:SetAnchor(TOPLEFT, row, TOPLEFT, start + (i - 1) * (buttonWidth + gap), 6)
                     local font
                     for size = 18, 14, -1 do
                         font = "$(BOLD_FONT)|" .. size .. "|soft-shadow-thin"
@@ -88,9 +88,9 @@ local function MakeSettings()
         name = "Arclight Taunt",
         displayName = "|c2FE6C4Arclight Taunt|r",
         author = "|cF7B95BtareN|r",
-        version = "1.0.3",
-        website = "https://www.esoui.com/downloads/info5008-ArclightTauntModernTankHUD.html",
-        feedback = "https://www.esoui.com/downloads/info5008-ArclightTauntModernTankHUD.html",
+        version = "1.1.0",
+        website = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
+        feedback = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments",
         registerForRefresh = true,
         registerForDefaults = true,
     }
@@ -133,15 +133,6 @@ local function MakeSettings()
         data.default = defaults[key]
         return data
     end
-    local function UpdateDiagnostics(key, value)
-        A.saved[key] = value
-        -- Never resurrect an old badge when either diagnostic is enabled.
-        for _, target in pairs(A.targets) do
-            target.tauntStacks, target.counterEnd, target.immuneUntil = nil, nil, nil
-        end
-        A.TargetChanged()
-        A.Tick()
-    end
     local mediaSpecs = {}
     local function MediaDropdown(key, spec, data)
         local keys = A.BuildMediaChoices(spec.kind, spec.first, spec.alternative, A.saved[key])
@@ -152,8 +143,6 @@ local function MakeSettings()
         end
         data.setFunc = function(value)
             if not A.ChoicePresent(keys, value) then return end
-            if spec.kind == "background" and value ~= MEDIA_BG_NONE
-                and not A.RegisteredMediaPath(spec.kind, value) then return end
             A.saved[key] = value
             A.ApplyMedia()
             A.Tick()
@@ -163,81 +152,7 @@ local function MakeSettings()
         mediaSpecs[data.reference] = spec
         return data
     end
-    local options = {
-        {
-            type = "description", width = "full",
-            text = T("Arclight Taunt shows taunt timers for multiple enemies. Adjust the HUD, boss warnings and tracking here."),
-        },
-        { type = "header", name = T("Quick settings"), width = "full" },
-        {
-                type = "checkbox", name = T("Show preview"), width = "half",
-                tooltip = T("Display test enemies with varied remaining durations instead of the real target list."),
-                getFunc = function() return A.demo end,
-                setFunc = function(value)
-                    A.demo = value
-                    if value then A.demoEntries = A.CreateDemo(A.demoCount or 14) end
-                    A.Tick()
-                end,
-                default = false,
-            },
-        {
-                type = "checkbox", name = T("Move HUD with mouse"), width = "half",
-                tooltip = T("Enable to show the preview and unlock dragging. Hold left mouse button to move the HUD; position saves on release. Disable afterwards. If the menu covers the HUD, adjust X/Y or close the menu and free the cursor with the period key."),
-                getFunc = function() return A.moving end,
-                setFunc = function(value)
-                    if value and not A.moving then
-                        A.moveStartedDemo = not A.demo
-                        if A.moveStartedDemo then
-                            A.demo = true
-                            A.demoEntries = A.CreateDemo(A.demoCount or 14)
-                        end
-                    end
-                    A.SetMoving(value)
-                    if not value and A.moveStartedDemo then
-                        A.demo = false
-                        A.moveStartedDemo = false
-                    end
-                    A.Tick()
-                end,
-                default = false,
-            },
-        {
-                type = "slider", name = T("HUD size (%)"), width = "half",
-                min = 70, max = 160, step = 5,
-                getFunc = function() return math.floor(A.saved.scale * 100 + 0.5) end,
-                setFunc = function(value) UpdateLayout("scale", value / 100) end,
-                default = 125,
-            },
-        ValueDropdown("barDisplay", {
-                name = T("Progress display"), width = "half",
-                tooltip = T("Narrow bar (default): Signal strip below the name. Full row: a tinted row drains with the timer. Names and urgency colors remain visible."),
-                choices = {T("Narrow bar"), T("Fill entire row")}, choicesValues = {"compact", "full"},
-            }),
-        {
-            type = "submenu", name = T("Position & list"), width = "full",
-            controls = {
-            {
-                    type = "slider", name = T("Preview enemies"), width = "half",
-                    tooltip = T("Number of simulated enemies (1–24)."),
-                    min = 1, max = 24, step = 1,
-                    getFunc = function() return A.demoCount or 14 end,
-                    setFunc = function(value)
-                        A.demoCount = math.floor(value)
-                        A.demoEntries = A.CreateDemo(A.demoCount)
-                        A.Tick()
-                    end,
-                    default = 14,
-                },
-            {
-                    type = "button", name = T("Reset position"), width = "half",
-                    tooltip = T("Reset only the HUD position to its default."),
-                    func = function()
-                        A.saved.x, A.saved.y = defaults.x, defaults.y
-                        A.screenX, A.screenY = nil, nil
-                        A.Layout()
-                        A.Tick()
-                    end,
-                },
+    local positionControls = {
             {
                     type = "slider", name = T("Position X (pixels)"), width = "half",
                     tooltip = T("Horizontal distance from screen left; alternatively drag the HUD."),
@@ -255,16 +170,16 @@ local function MakeSettings()
                     default = defaults.y,
                 },
             Checkbox("hideInMenus", {
-                    name = T("Hide HUD in menus"), width = "full",
-                    tooltip = T("Hide the enemy HUD in map, inventory and settings. Keep it visible during preview or dragging."),
+                    name = T("Hide HUD in menus"), width = "half",
+                    tooltip = T("Hides the list in menus, except during preview or dragging."),
                 }),
             Checkbox("fitToScreen", {
-                    name = T("Keep HUD on screen"), width = "full",
-                    tooltip = T("Keep the HUD visible at different resolutions and UI scales. Shrinks only if required; saved preferred position is preserved."),
+                    name = T("Keep HUD on screen"), width = "half",
+                    tooltip = T("Keeps the HUD on screen, shrinking only when needed. Saved position is preserved."),
                 }),
             {
-                    type = "checkbox", name = T("Grow HUD upward"), width = "full",
-                    tooltip = T("Keep the lower HUD edge fixed when new enemies appear. Switching attempts to preserve the visible position."),
+                    type = "checkbox", name = T("Grow HUD upward"), width = "half",
+                    tooltip = T("New rows grow upward from a fixed bottom edge. Switching tries to preserve the visible position."),
                     getFunc = function() return A.saved.growUp end,
                     setFunc = function(value)
                         if value == A.saved.growUp then return end
@@ -279,6 +194,100 @@ local function MakeSettings()
                     end,
                     default = defaults.growUp,
                 },
+            {
+                    type="button",name=T("Reset position"),width="half",
+                    tooltip=T("Reset only the HUD position to its default."),
+                    func=function()
+                        A.saved.x,A.saved.y=defaults.x,defaults.y;A.screenX,A.screenY=nil,nil
+                        A.Layout();A.Tick()
+                    end,
+                },
+    }
+    local function WithPosition(controls)
+        controls[#controls+1]={type="header",name=T("Position"),width="full"}
+        for _,item in ipairs(positionControls) do controls[#controls+1]=item end
+        return controls
+    end
+    local options = {
+        {
+            type = "description", width = "full",
+            text = T("Your taunts at a glance. Boss warnings also work with the list hidden. Use preview/pause to adjust."),
+        },
+        { type = "header", name = T("Quick settings"), width = "full" },
+        {
+                type = "checkbox", name = T("Show preview"), width = "half",
+                    tooltip = T("Starts with staggered taunts, then irregular arrivals and re-taunts for about a minute. Visible focus changes regularly. Pause to adjust."),
+                getFunc = function() return A.demo end,
+                setFunc = function(value)
+                    A.moveStartedDemo = false
+                    A.SetDemoEnabled(value)
+                    A.Tick()
+                end,
+                default = false,
+            },
+        {
+                type = "checkbox", name = T("Pause preview"), width = "half",
+                tooltip = T("Freezes preview timers, rows and arrivals. Resume without restarting; ending preview clears pause."),
+                disabled = function() return not A.demo end,
+                getFunc = function() return A.demoPausedAt ~= nil end,
+                setFunc = function(value) A.SetDemoPaused(value); A.Tick() end,
+                default = false,
+            },
+        {
+                type = "checkbox", name = T("Move HUD with mouse"), width = "half",
+                tooltip = T("Shows the preview for dragging. Hold left mouse, move, release to save; disable afterwards. If covered by the menu, use X/Y or close it and press period to free the cursor."),
+                getFunc = function() return A.moving end,
+                setFunc = function(value)
+                    if value and not A.moving then
+                        A.moveStartedDemo = not A.demo
+                        if A.moveStartedDemo then
+                            A.SetDemoEnabled(true)
+                        end
+                    end
+                    A.SetMoving(value)
+                    if not value and A.moveStartedDemo then
+                        A.SetDemoEnabled(false)
+                        A.moveStartedDemo = false
+                    end
+                    A.Tick()
+                end,
+                default = false,
+            },
+        {
+                type = "slider", name = T("Preview enemies"), width = "half",
+                tooltip = T("Sample pool per cycle: 1–24. The visible count varies as taunts start and expire."),
+                min = 1, max = 24, step = 1,
+                getFunc = function() return A.demoCount or 14 end,
+                setFunc = function(value)
+                    A.demoCount = math.floor(value)
+                    A.demoEntries = A.CreateDemo(A.demoCount)
+                    A.Tick()
+                end,
+                default = 14,
+            },
+        {
+                type = "slider", name = T("HUD size (%)"), width = "half",
+                min = 70, max = 160, step = 5,
+                getFunc = function() return math.floor(A.saved.scale * 100 + 0.5) end,
+                setFunc = function(value) UpdateLayout("scale", value / 100) end,
+                default = 115,
+            },
+        ValueDropdown("barDisplay", {
+                name = T("Progress display"), width = "half",
+                tooltip = T("Narrow: countdown below the name. Full row: a colored fill drains with the timer. Names and urgency stay visible."),
+                choices = {T("Narrow bar"), T("Fill entire row")}, choicesValues = {"compact", "full"},
+            }),
+        {
+            type = "submenu", name = T("List & layout"), width = "full",
+            controls = WithPosition({
+            Checkbox("showTauntList", {
+                    name = T("Show taunt list"), width = "full",
+                    tooltip = T("Hides the list; configured tracking, boss banners and sounds continue. Preview and drag mode can still show it."),
+                }),
+            Checkbox("mirrorTauntList", {
+                    name = T("Mirror taunt list"), width = "full",
+                    tooltip = T("Timers left, names right, skulls fixed beside the right stripe. Bars empty left to right; columns mirror too. Text and sorting stay unchanged."),
+                }),
             ValueDropdown("columns", {
                     name = T("Columns"), width = "half",
                     tooltip = T("One column saves width; two columns save height."),
@@ -286,19 +295,14 @@ local function MakeSettings()
                 }),
             {
                     type = "slider", name = T("Rows per column"), width = "half",
-                    tooltip = T("Show hidden taunts as +N. Sorting determines which active taunts are shown first."),
+                    tooltip = T("Hidden entries: +N. Active taunts sort by expiry; pinned bosses keep priority."),
                     min = 4, max = MAX_PER_COLUMN, step = 1,
                     getFunc = function() return A.saved.limit end,
                     setFunc = function(value) UpdateSaved("limit", math.floor(value)) end,
                     default = defaults.limit,
                 },
-            ValueDropdown("sortMode", {
-                    name = T("Sorting"), width = "half",
-                    tooltip = T("By remaining time: soonest expiring first. Stable by warning level: red, yellow, turquoise, keeping initial order within each level."),
-                    choices = {T("By remaining time"), T("Stable by warning level")}, choicesValues = {"remaining", "stable"},
-                }),
             {
-                    type = "slider", name = T("Column width (pixels)"), width = "half",
+                    type = "slider", name = T("Column width (pixels)"), width = "full",
                     tooltip = T("Wider rows leave more space for long names. With two columns, each has this width."),
                     min = 240, max = 360, step = 10,
                     getFunc = function() return A.saved.width end,
@@ -306,38 +310,53 @@ local function MakeSettings()
                     default = defaults.width,
                 },
             {
+                    type = "slider", name = T("Extra row height (px)"), width = "half",
+                    tooltip = T("Extra height above the font/bar minimum, 1 UI pixel per step. Zero is the compact readable minimum; fonts and bar thickness stay unchanged."),
+                    min = 0, max = 40, step = 1,
+                    getFunc = function() return A.saved.rowHeightExtra or 0 end,
+                    setFunc = function(value)
+                        UpdateSaved("rowHeightExtra", math.floor(FiniteBoundedNumber(value, 0, 0, 40) + 0.5))
+                    end,
+                    default = function()
+                        local full = A.saved.barDisplay == "full"
+                        return math.max(0, (full and A.ROW_HEIGHT or A.COMPACT_ROW_HEIGHT) - A.MinimumRowHeight(full))
+                    end,
+                },
+            {
                     type = "slider", name = T("Enemy row spacing (pixels)"), width = "half",
-                    tooltip = T("Space between enemy rows. Smaller values save room with many taunts. Default: 2 pixels."),
+                    tooltip = T("Row spacing; target focus reserves at least 2 px without changing this setting. Default: 2 px."),
                     min = 0, max = 8, step = 1,
                     getFunc = function() return A.saved.rowGap end,
                     setFunc = function(value) UpdateSaved("rowGap", math.floor(value)) end,
                     default = defaults.rowGap,
                 },
-            Checkbox("header", {
-                    name = T("Show status header"), width = "half",
-                    tooltip = T("Hidden by default. Enemy names, timers and urgency colors are sufficient. Optionally show ARCLIGHT and counters above; hidden enemies remain listed as +N below."),
-                }),
             Checkbox("smartTime", {
                     name = T("Smart countdown display"), width = "full",
-                    tooltip = T("Above five seconds show whole numbers; at five seconds and below show tenths. Warning colors still switch at 7 and 4 seconds."),
+                    tooltip = T("Whole seconds above 5 s; tenths at 5 s or less. Color thresholds are independent."),
                 }),
-            },
+            }),
         },
         {
             type = "submenu", name = T("Appearance & readability"), width = "full",
             controls = {
+            {
+                    type = "checkbox", name = Colored(T("High contrast"), "FFFFFF"), width = "full",
+                    tooltip = T("Vivid colors and shaded surfaces in both styles. Fonts stay unchanged; focus remains outside the row. Disabling restores your saved appearance."),
+                    getFunc = function() return A.saved.highContrast end,
+                    setFunc = function(value)
+                        A.saved.highContrast = value
+                        A.ApplyMedia()
+                        A.Tick()
+                    end,
+                    default = defaults.highContrast,
+                },
             Checkbox("highlightTarget", {
-                    name = Colored(T("Highlight current target"), C.selected), width = "full",
-                    tooltip = T("Highlight the clearly identified target; choose the style below. Taunt urgency colors stay intact."),
-                }),
-            ValueDropdown("focusStyle", {
-                    name = T("Target highlight style"), width = "half",
-                    disabled = function() return not A.saved.highlightTarget end,
-                    tooltip = T("Subtle: right-side marker only. Strong: adds a light blue outline and glow. Taunt urgency colors remain unchanged."),
-                    choices = {T("Strong"), T("Subtle")}, choicesValues = {"strong", "subtle"},
+                    name = Colored(T("Highlight current target"), "D4F0FF"), width = "full",
+                    tooltip = T("Pale outline around the current target, with a brief light sweep on target changes. Names and urgency colors stay unchanged."),
                 }),
             {
                     type = "slider", name = T("Background opacity (%)"), width = "half",
+                    disabled = function() return A.saved.highContrast end,
                     min = 25, max = 100, step = 5,
                     getFunc = function() return math.floor(A.saved.opacity * 100 + 0.5) end,
                     setFunc = function(value) UpdateSaved("opacity", value / 100) end,
@@ -345,16 +364,16 @@ local function MakeSettings()
                 },
             MediaDropdown("fontKey", {reference="FontChoice", kind="font", first=MEDIA_FONT_DEFAULT}, {
                     name = T("Font"), width = "half",
-                    tooltip = T("Fonts provided by LibMediaProvider. The Arclight default uses the original ESO font; other fonts may vary by language."),
+                    tooltip = T("Fonts from LibMediaProvider. Arclight uses the ESO font by default; other fonts may differ by language."),
                 }),
             MediaDropdown("timerFontKey", {reference="TimerFontChoice", kind="font",
                 first=MEDIA_TIMER_INHERIT, alternative=MEDIA_FONT_DEFAULT}, {
                     name = T("Countdown font"), width = "half",
-                    tooltip = T("Use a separate font for the countdown from LibMediaProvider. Default: same as enemy name. Narrow or monospaced digits may look calmer."),
+                    tooltip = T("Separate LibMediaProvider font for timers. Default: enemy-name font. Narrow or monospaced digits can improve readability."),
                 }),
             {
                     type = "slider", name = T("Font size (%)"), width = "half",
-                    tooltip = T("Change text size independently of row height. Long names may be truncated."),
+                    tooltip = T("Adjust text size. Long names may be shortened; the readable row minimum follows the font."),
                     min = 85, max = 115, step = 5,
                     getFunc = function() return A.saved.fontSize end,
                     setFunc = function(value)
@@ -367,13 +386,13 @@ local function MakeSettings()
             MediaDropdown("barKey", {reference="BarChoice", kind="statusbar",
                 first=MEDIA_BAR_DEFAULT, alternative=MEDIA_BAR_FLAT}, {
                     name = T("Bar texture"), width = "half",
-                    disabled = function() return A.saved.barDisplay == "full" end,
-                    tooltip = T("Only for narrow bar. Signal (default): fine segmentation; Signature: subtle sheen; Flat: solid color. Other textures via LibMediaProvider."),
+                    disabled = function() return A.saved.barDisplay == "full" or A.saved.highContrast end,
+                    tooltip = T("Narrow bars only. Signature (default): soft sheen; Signal: fine segments; Flat: solid color. More textures via LibMediaProvider."),
                 }),
             {
                     type = "slider", name = T("Bar thickness (pixels)"), width = "half",
                     disabled = function() return A.saved.barDisplay == "full" end,
-                    tooltip = T("Only for narrow bar: height from 2 to 6 pixels. Full-row display always fills the row height."),
+                    tooltip = T("Narrow bars: 2–6 px; high contrast uses at least 5 px without changing your setting. Full-row fills use the entire row height."),
                     min = 2, max = 6, step = 1,
                     getFunc = function() return A.saved.barHeight end,
                     setFunc = function(value)
@@ -383,14 +402,10 @@ local function MakeSettings()
                     end,
                     default = defaults.barHeight,
                 },
-            MediaDropdown("backgroundKey", {reference="BackgroundChoice", kind="background",
-                first=MEDIA_BG_OBSIDIAN, alternative=MEDIA_BG_NONE}, {
-                    name = T("Row background"), width = "half",
-                    tooltip = T("Choose from Arclight backgrounds. Obsidian has a subtle gradient; Carbon features fine lines. Other backgrounds may be available through LibMediaProvider. None keeps the original urgency-tinted surface."),
-                }),
             {
-                    type = "checkbox", name = T("Textured bar track"), width = "half",
-                    tooltip = T("Show a textured dark track behind the Signal progress bar. Disable for the plain bar track."),
+                    type = "checkbox", name = T("Emphasize bar track"), width = "full",
+                    disabled = function() return A.saved.highContrast end,
+                    tooltip = T("Brightens the empty narrow-bar track. Off: plain dark track."),
                     getFunc = function() return A.saved.texturedTrack end,
                     setFunc = function(value)
                         A.saved.texturedTrack = value
@@ -400,8 +415,9 @@ local function MakeSettings()
                     default = defaults.texturedTrack,
                 },
             Checkbox("subtleWarningBg", {
-                    name = T("Tint warning rows subtly"), width = "full",
-                    tooltip = T("Tint rows subtly yellow or red near expiration. Timers and status markers keep their urgency colors."),
+                    disabled = function() return A.saved.highContrast end,
+                    name = Colored(T("Tint warning rows subtly"), "D8C78E"), width = "full",
+                    tooltip = T("Subtle yellow/red row backgrounds near expiry. Timer and stripe keep their urgency colors."),
                 }),
             {
                     type = "slider", name = Colored(T("Yellow warning at (seconds)"), C.warning), width = "half",
@@ -433,76 +449,70 @@ local function MakeSettings()
             type = "submenu", name = T("Bosses"), width = "full",
             controls = {
             {
-                    type = "checkbox", name = Colored(T("Boss warning banner"), C.alertEdge), width = "full",
-                    tooltip = T("Show a brief red banner with the boss name. Enabled by default; no warning for a refreshed taunt or after combat."),
-                    getFunc = function() return A.saved.bossAlertText end,
-                    setFunc = function(value)
-                        UpdateSaved("bossAlertText", value)
-                        if not value then A.HideBossWarning("expired") end
-                    end,
-                    default = defaults.bossAlertText,
-                },
-            Checkbox("bossAlertSound", {
-                    name = T("Play sound on expired boss taunt"), width = "full",
-                    tooltip = T("Enabled by default. Only native ESO sounds. A four-second cooldown prevents sound spam."),
-                }),
+                type="checkbox",name=Colored(T("Boss warning banner"),C.alertEdge),width="full",
+                tooltip=T("Red banner on boss taunt expiry. Default: on. No alert after a re-taunt or combat end."),
+                getFunc=function() return A.saved.bossAlertText end,
+                setFunc=function(value) UpdateSaved("bossAlertText",value);if not value then A.HideBossWarning("expired") end end,
+                default=defaults.bossAlertText,
+            },
             {
-                    type = "dropdown", name = T("Alert sound"), width = "full",
-                    tooltip = T("ESO sounds associated with warnings or failures. Enable warning audio and use Test warning to hear the selected sound together with the banner."),
-                    choices = soundChoices, choicesValues = ALERT_SOUND_CHOICES,
-                    getFunc = function() return A.saved.bossAlertSoundKey end,
-                    setFunc = function(value)
-                        if ALERT_SOUNDS[value] then UpdateSaved("bossAlertSoundKey", value) end
-                    end,
-                    default = defaults.bossAlertSoundKey,
-                },
+                type="checkbox",name=Colored(T("Boss taunt early warning"),C.safe),width="full",
+                tooltip=T("Turquoise warning before boss taunt expiry, below red when needed. Clears on expiry, re-taunt or recognized death. Default: on; audio optional."),
+                getFunc=function() return A.saved.bossEarlyWarning end,
+                setFunc=function(value) UpdateSaved("bossEarlyWarning",value);if not value then A.HideBossWarning("early") end end,
+                default=defaults.bossEarlyWarning,
+            },
             {
-                    type = "checkbox", name = Colored(T("Boss taunt early warning"), C.safe), width = "full",
-                    tooltip = T("Show a small turquoise warning below the red banner for your boss taunts near expiry. Both can appear together. Silent; clears on expiry, re-taunt or death. Enabled by default."),
-                    getFunc = function() return A.saved.bossEarlyWarning end,
-                    setFunc = function(value)
-                        UpdateSaved("bossEarlyWarning", value)
-                        if not value then A.HideBossWarning("early") end
-                    end,
-                    default = defaults.bossEarlyWarning,
-                },
+                type="dropdown",name=T("Play warning sound"),width="full",
+                tooltip=T("Sound on expiry, early warning, both or off. Early audio requires early warnings. Red has priority; cooldowns are separate."),
+                choices={T("Off"),T("Only on expiry"),T("Only for early warning"),T("Both warnings")},
+                choicesValues={"off","expired","early","both"},
+                getFunc=function()
+                    if A.saved.bossAlertSound then return A.saved.bossEarlySound and "both" or "expired" end
+                    return A.saved.bossEarlySound and "early" or "off"
+                end,
+                setFunc=function(value)
+                    if value~="off" and value~="expired" and value~="early" and value~="both" then return end
+                    A.saved.bossAlertSound=value=="expired" or value=="both"
+                    A.saved.bossEarlySound=value=="early" or value=="both"
+                    A.Tick()
+                end,
+                default="expired",
+            },
             {
-                    type = "slider", name = T("Boss early warning at (seconds)"), width = "full",
-                    min = 1, max = 4, step = 0.5, decimals = 1,
-                    getFunc = function() return A.saved.bossEarlySeconds end,
-                    setFunc = function(value)
-                        UpdateSaved("bossEarlySeconds", math.floor(value * 2 + 0.5) / 2)
-                    end,
-                    default = defaults.bossEarlySeconds,
-                },
+                type="dropdown",name=Colored(T("Expiry warning sound"),C.alertEdge),width="half",
+                reference=A.ADDON.."ExpirySoundChoice",
+                tooltip=T("Native ESO sounds. Test playback with Test warning; a listed sound may be silent on your client."),
+                scrollable=true,
+                disabled=function() return not A.saved.bossAlertSound end,
+                choices=soundChoices,choicesValues=ALERT_SOUND_CHOICES,
+                getFunc=function() return A.saved.bossAlertSoundKey end,
+                setFunc=function(value) if ALERT_SOUNDS[value] then UpdateSaved("bossAlertSoundKey",value) end end,
+                default=defaults.bossAlertSoundKey,
+            },
+            {
+                type="dropdown",name=Colored(T("Early warning sound"),C.safe),width="half",
+                reference=A.ADDON.."EarlySoundChoice",
+                scrollable=true,
+                tooltip=T("Default: Duel boundary warning. The test plays it if early audio is enabled and no real red warning has priority."),
+                disabled=function() return not A.saved.bossEarlyWarning or not A.saved.bossEarlySound end,
+                choices=soundChoices,choicesValues=ALERT_SOUND_CHOICES,
+                getFunc=function() return A.saved.bossEarlySoundKey end,
+                setFunc=function(value) if ALERT_SOUNDS[value] then UpdateSaved("bossEarlySoundKey",value) end end,
+                default=defaults.bossEarlySoundKey,
+            },
             ActionRow({
                 {
                     name = T("Test warning"),
-                    tooltip = T("Preview red first, then turquoise 1.5 seconds later if early warnings are enabled. Red stays at least 2 seconds for this test. Sound follows the audio toggle."),
+                    tooltip = T("Early → expiry → both, with enabled sounds. Without early warning: red only. Red has audio priority. Short red previews last at least 2 s. Click to restart; real warnings take priority."),
                     func = function() A.PreviewBossWarnings() end,
                 },
-                {
-                    name = T("Test early warning"),
-                    tooltip = T("Preview the small turquoise early-warning banner below the expiry banner without combat."),
-                    func = function() A.ShowBossWarning(1, T("Bone Colossus"), true, "early") end,
-                },
-            }),
+            }, 280),
             { type = "header", name = Colored(T("Warning appearance"), "2FE6C4"), width = "full" },
             {
-                    type = "slider", name = T("Warning display duration (seconds)"), width = "half",
-                    tooltip = T("Duration of real red warnings and standalone previews. The combined test keeps red for at least 2 seconds. Live early warnings follow the affected taunts."),
-                    min = 1, max = 4, step = 0.5, decimals = 1,
-                    getFunc = function() return A.saved.bossAlertDuration end,
-                    setFunc = function(value)
-                        local safe = FiniteBoundedNumber(value, defaults.bossAlertDuration, 1, 4)
-                        UpdateSaved("bossAlertDuration", math.floor(safe * 2 + 0.5) / 2)
-                    end,
-                    default = defaults.bossAlertDuration,
-                },
-            {
-                    type = "slider", name = T("Boss warning opacity (%)"), width = "half",
-                    tooltip = T("100% is fully opaque. The warning design stays the same; only background opacity changes."),
-                    min = 60, max = 100, step = 5,
+                    type = "slider", name = T("Warning opacity (%)"), width = "half",
+                    tooltip = T("100% is opaque. Only the background changes; the warning design stays the same."),
+                    min = 60, max = 100, step = 1,
                     getFunc = function() return A.saved.bossAlertOpacity end,
                     setFunc = function(value)
                         A.saved.bossAlertOpacity = value
@@ -515,7 +525,7 @@ local function MakeSettings()
                     default = defaults.bossAlertOpacity,
                 },
             {
-                    type = "slider", name = T("Boss warning: distance from screen top"), width = "half",
+                    type = "slider", name = T("Warning offset from top"), width = "half",
                     tooltip = T("Only moves the boss warning; independent of the enemy list."),
                     min = 50, max = 600, step = 5,
                     getFunc = function() return A.saved.bossAlertOffsetY end,
@@ -525,83 +535,75 @@ local function MakeSettings()
                     end,
                     default = defaults.bossAlertOffsetY,
                 },
+            {
+                type="slider",name=T("Early warning lead time (s)"),width="half",min=1,max=4,step=0.5,decimals=1,
+                getFunc=function() return A.saved.bossEarlySeconds end,
+                setFunc=function(value) UpdateSaved("bossEarlySeconds",math.floor(value*2+0.5)/2) end,
+                default=defaults.bossEarlySeconds,
+            },
+            {
+                type="slider",name=T("Expiry warning duration (s)"),width="half",min=1,max=4,step=0.5,decimals=1,
+                tooltip=T("Red warning duration. The test uses the early lead time and keeps red for at least 2 s."),
+                getFunc=function() return A.saved.bossAlertDuration end,
+                setFunc=function(value) UpdateSaved("bossAlertDuration",math.floor(FiniteBoundedNumber(value,defaults.bossAlertDuration,1,4)*2+0.5)/2) end,
+                default=defaults.bossAlertDuration,
+            },
             { type = "header", name = Colored(T("Boss detection"), C.bossName), width = "full" },
             ValueDropdown("bossMode", {
                     name = T("Boss detection mode"), width = "full",
-                    tooltip = T("Strict: official boss unit tags only. Extended: also deadly enemies. Comprehensive (default): also hard enemies, including some Craglorn/world bosses. Difficulty does not conclusively identify bosses; powerful non-bosses can be flagged. The unit must be observed through a valid ESO unit tag."),
+                    tooltip = T("Strict: official bosses. Extended: also deadly enemies. Comprehensive: also hard enemies, including some world/Craglorn bosses. Difficulty may include non-bosses; a valid unit observation is required."),
                     choices = {T("Strict (official boss bars only)"), T("Extended (including deadly enemies)"), T("Comprehensive (including hard enemies)")},
                     choicesValues = {"strict", "dangerous", "comprehensive"},
                 }),
             Checkbox("bossAlertElites", {
-                    name = T("Warn for powerful enemies too (experimental)"), width = "full",
-                    tooltip = T("Off by default. Normally warn only for bosses identified through official boss unit tags; enables warnings for difficulty-based candidates, including possible elite non-bosses."),
+                    name = T("Elite alerts (experimental)"), width = "full",
+                    tooltip = T("Off by default: warnings require official boss tags. Enable to include difficulty-based candidates, possibly strong non-bosses."),
                 }),
             Checkbox("pinBosses", {
                     name = T("Pin bosses to top"), width = "full",
-                    tooltip = T("Off by default. Pin detected bosses above other enemies, with expired boss taunts first. Active bosses keep the selected sorting; expired entries follow the normal removal rules."),
+                    tooltip = T("Pins bosses above other enemies, expired bosses first. Active bosses sort by time; normal removal rules apply. Default: off."),
                 }),
             Checkbox("showBossIcon", {
-                    name = T("Show skull icon for bosses"), width = "full",
-                    tooltip = T("Show a skull for enemies identified via boss tags or difficulty. Comprehensive mode also includes strong non-bosses. Matching names alone are never used."),
+                    name = T("Boss skull icons") .. " |t24:21:" .. A.BOSS_ICON_TEXTURE .. "|t", width = "full",
+                    tooltip = T("Skulls mark bosses identified by tags or difficulty. Comprehensive may include strong non-bosses; matching names alone never qualify."),
                 }),
             Checkbox("highlightBossNames", {
-                    name = T("Highlight boss names"), width = "full",
-                    tooltip = T("Colors recognized boss names champagne gold. The skull stays ivory; urgency colors and target highlighting are unchanged."),
+                    name = Colored(T("Highlight boss names"), C.bossName), width = "full",
+                    tooltip = T("Champagne boss names and ivory skulls. Urgency colors and target focus stay unchanged."),
                 }),
 
             },
         },
         {
-            type = "submenu", name = T("Tracking & experiments"), width = "full",
+            type = "submenu", name = T("Tracking & tests"), width = "full",
             controls = {
             {
-                    type = "checkbox", name = T("Show only my taunts"), width = "full",
-                    tooltip = T("Off: Also track group taunts when ESO provides their effect events."),
-                    getFunc = function() return A.saved.onlyMine end,
-                    setFunc = function(value)
-                        A.saved.onlyMine = value
-                        A.targets, A.activeTarget, A.reticleUnitId = {}, nil, nil
-                        A.pendingBossWarnings, A.pendingFirstAt = nil, nil
-                        A.HideBossWarning()
-                        A.Tick()
+                    type="checkbox",name=T("Track taunts on players"),width="full",
+                    tooltip=T("Off: exclude confirmed player targets. On: also show your taunts on players. Unknown types stay until identified; only your own taunts are tracked."),
+                    getFunc=function() return A.saved.trackPlayerTargets end,
+                    setFunc=function(value)
+                        A.saved.trackPlayerTargets=value==true;A.PrunePlayerTargets();A.Tick()
                     end,
-                    default = defaults.onlyMine,
+                    default=false,
                 },
             Checkbox("removeDead", {
-                    name = T("Remove dead enemies immediately"), width = "full",
-                    tooltip = T("Remove enemies by unique unit ID when death is reported. ESO does not report every death; remaining entries clear at combat end."),
+                    name = T("Remove dead enemies"), width = "full",
+                    tooltip = T("Removes each enemy by its ID when ESO reports death. Some deaths are not reported; combat end clears remaining entries."),
                 }),
             Checkbox("showExpired", {
-                    name = T("Show expired taunts until combat ends"), width = "full",
-                    tooltip = T("Off by default: expired taunts show 0.0 for two seconds before disappearing. Enabled: keep 0.0 until re-taunted, death is recognized or combat ends. Lost entries have limited space."),
+                    name = T("Keep expired taunts"), width = "full",
+                    tooltip = T("Off: show zero for 2 s. On: keep zero until re-taunt, recognized death or combat end. Expired entries have limited slots."),
                 }),
-            { type = "header", name = Colored(T("Experimental indicators"), C.warning), width = "full" },
-            {
-                    type = "checkbox",
-                    name = T("Show taunt immunity (experimental)"), width = "full",
-                    tooltip = T("Experimental diagnostic: Shows IMMUNE only for a uniquely matched, active target with a recognized immunity effect or five taunt-counter stacks. A resisted taunt may not appear in the list at all; disabled by default."),
-                    getFunc = function() return A.saved.showImmunity end,
-                    setFunc = function(value) UpdateDiagnostics("showImmunity", value) end,
-                    default = defaults.showImmunity,
-                },
-            {
-                    type = "checkbox",
-                    name = T("Show taunt stacks (experimental)"), width = "full",
-                    tooltip = T("Experimental diagnostic: Only shows an actually observed 2/5–5/5 stack count for a uniquely matched active target. Never estimated; disabled by default."),
-                    getFunc = function() return A.saved.showTauntStacks end,
-                    setFunc = function(value) UpdateDiagnostics("showTauntStacks", value) end,
-                    default = defaults.showTauntStacks,
-                },
             { type = "header", name = Colored(T("Tests"), C.muted), width = "full" },
             ActionRow({
               {
                 name = T("Test welcome notice"),
-                tooltip = T("Display the one-time setup tip again without resetting saved settings."),
-                func = function() A.Chat(T("Welcome! Tip: Open ESC > Settings > Add-ons > Arclight Taunt to customize the HUD.")) end,
+                tooltip = T("Show the welcome tip again. Saved settings stay unchanged."),
+                func = function() A.Chat(T("Welcome! Set up your HUD: ESC > Settings > Add-ons > Arclight Taunt.")) end,
               },
               {
                 name = T("Test language & fonts"),
-                tooltip = T("Show a multi-boss warning and a font sample. Russian text uses ESO fonts; your saved font selection is preserved."),
+                tooltip = T("Multi-boss banner and font sample. Russian uses ESO fonts; saved choices are preserved."),
                 func = function()
                     A.ShowBossWarning(21, nil, true, "early")
                     local sample = A.language == "ru"
@@ -633,8 +635,23 @@ local function MakeSettings()
     end
     LAM:RegisterOptionControls(panelName, options)
     if CALLBACK_MANAGER and type(CALLBACK_MANAGER.RegisterCallback) == "function" then
+        local function AlignSoundControls(opened)
+            if opened ~= panel then return end
+            for _, suffix in ipairs({"ExpirySoundChoice", "EarlySoundChoice"}) do
+                local control = _G[A.ADDON .. suffix]
+                if control and control.label then
+                    control.label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+                    if control.container then
+                        control.container:ClearAnchors()
+                        control.container:SetAnchor(TOP, control.label, BOTTOM, 0, 2)
+                    end
+                end
+            end
+        end
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", AlignSoundControls)
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(opened)
             if panel and opened == panel then
+                AlignSoundControls(opened)
                 A.RefreshMediaChoices()
                 A.ApplyMedia()
                 A.Tick()

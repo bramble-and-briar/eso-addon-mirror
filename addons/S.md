@@ -330,7 +330,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.8 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.9 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |

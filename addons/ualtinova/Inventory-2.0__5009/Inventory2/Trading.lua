@@ -199,13 +199,32 @@ end
 -- it two the player said themselves: a lock is the one mark in this game that means "not this
 -- one", and stolen goods are a fence's trade, not a merchant's, so offering them here would
 -- count pieces into the sentence that the counter then silently leaves behind.
+-- Whether this piece has any hope of being bought at all: the game's own answer, read the way
+-- the merchant window itself reads it (inventory_sell_forbidden_icon, sharedinventory.lua) --
+-- a quest item, something bound to a purpose, anything this client simply will not have sold.
+-- Nothing about locks or stolen goods here: those say the player chose not to sell it right
+-- now, not that the game would refuse it, and the warning this feeds is about the second kind.
+function IG.CanSellToMerchant(bagId, slotIndex, itemLink)
+    itemLink = itemLink or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
+    if not itemLink or itemLink == "" then return true end
+    if GetItemLinkSellInformation and ITEM_SELL_INFORMATION_CANNOT_SELL then
+        if GetItemLinkSellInformation(itemLink) == ITEM_SELL_INFORMATION_CANNOT_SELL then return false end
+    end
+    return true
+end
+
 local function Refused(bagId, slotIndex, itemLink)
     if IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) == true then return true end
     if IsItemStolen and IsItemStolen(bagId, slotIndex) == true then return true end
     -- A piece a crafting writ is waiting for is never sold, even from SELL (DailyWrit.lua).
     if IG.IsDailyWritItem and IG.IsDailyWritItem({ bagId = bagId, slotIndex = slotIndex }) then return true end
-    if GetItemLinkSellInformation and ITEM_SELL_INFORMATION_CANNOT_SELL then
-        if GetItemLinkSellInformation(itemLink) == ITEM_SELL_INFORMATION_CANNOT_SELL then return true end
+    if not IG.CanSellToMerchant(bagId, slotIndex, itemLink) then return true end
+    -- A set piece the collection does not have yet is worth more kept than sold -- unless the
+    -- player said otherwise (Settings > Automate > "Sell Uncollected Set Pieces Too").
+    if not (IG.sv and IG.sv.sellIncludeUncollected)
+        and IsItemLinkSetCollectionPiece and IsItemLinkSetCollectionPiece(itemLink)
+        and not IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink)) then
+        return true
     end
     return false
 end
@@ -350,37 +369,6 @@ function IG.AddSellAllItem(Members)
             if #fresh == 0 or not AtMerchant() then return end
             ConfirmSellAll(fresh, freshTotal)
         end)
-end
-
--- The same sale, offered over a handful of pieces marked with ctrl instead of over a whole
--- category. Everything that matters is the category line's and is shared with it rather than
--- said twice: who may be sold to, which pieces the counter would turn away, what the lot comes
--- to, that the pieces are written down before the first sale, and the window that asks. What
--- the two do not share is where the pieces come from and where the line is drawn, so that much
--- is the caller's.
---
--- Which category a marked piece sits in is not asked at all. A selection is the player pointing
--- at things one by one, and a line that quietly left some of them behind for being filed
--- elsewhere would be counting pieces into a sentence the counter then does not take.
---
--- The answer is nil where there would be nothing to press: away from a merchant, or with
--- nothing among the marks the merchant would have. Otherwise it is the line's own words --
--- coloured here so both lines are the same red -- and the thing to do when it is pressed, which
--- takes what the caller wants said once the counter is done with it.
-function IG.SellSelectionOffer(Pieces)
-    if not AtMerchant() then return nil end
-    local pieces, total = Gather(Pieces())
-    if #pieces == 0 then return nil end
-    local label = string.format("|c%s>> SELL %d selected|r |c%sfor %s|r",
-        SELL_ALL_COLOR, #pieces, SELL_ALL_TOTAL_COLOR, Commas(total))
-    return label, function(after)
-        -- Asked again at the press, for the same reason the category line asks again: the menu
-        -- was drawn at one moment and pressed at another, and the window has to promise the
-        -- sale it is about to make.
-        local fresh, freshTotal = Gather(Pieces())
-        if #fresh == 0 or not AtMerchant() then return end
-        ConfirmSellAll(fresh, freshTotal, after)
-    end
 end
 
 ---------------------------------------------------------------------------

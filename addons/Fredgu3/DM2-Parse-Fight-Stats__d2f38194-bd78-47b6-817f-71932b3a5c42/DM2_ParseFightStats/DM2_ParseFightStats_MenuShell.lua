@@ -11,7 +11,7 @@ DM2StatsMenuShell = DM2StatsMenuShell or {}
 local M = DM2StatsMenuShell
 
 M.name    = "DM2StatsMenuShell"
-M.version = "3.18.5"
+M.version = "3.18.6"
 
 local WM = WINDOW_MANAGER
 local SCENE_NAME = "dm2StatsMenuShellGamepad"
@@ -5813,6 +5813,7 @@ local function buildCoachAnalysis(session, syn, diag, profile)
   local coach = {
     profileId = profile.id,
     wasteLines = {},
+    wasteMeters = {},
     waste = {},
     setImpact = {},
     nextTest = nil,
@@ -5927,58 +5928,66 @@ local function buildCoachAnalysis(session, syn, diag, profile)
   -- Waste lines for Insights §2
   -- Crit *rate* (hits) is Observed from combat; crit *damage mult* is a different sheet stat.
   local lines = coach.wasteLines
+  local sheetCrit = 0
+  if snap and snap.buffed then sheetCrit = tonumber(snap.buffed.critChance) or 0 end
+  local function pushWaste(text, meter)
+    lines[#lines + 1] = text
+    coach.wasteMeters[#lines] = meter
+  end
   local hitCrit = sessionCritPct(session)
   if hitCrit > 0 then
-    lines[#lines + 1] = string.format(
+    pushWaste(string.format(
       "Crit rate (hits): %s of damage events crit  %s",
       fmtPct(hitCrit), confidenceChip(CONFIDENCE.OBSERVED)
-    )
+    ), { pct = hitCrit, tick = (sheetCrit > 0) and sheetCrit or nil })
   end
   if critDmgPct > 0 then
-    lines[#lines + 1] = string.format(
+    pushWaste(string.format(
       "Crit damage mult (sheet): %0.0f%%  ·  ceiling %0.0f%%  %s",
       critDmgPct, ceiling, confidenceChip(CONFIDENCE.OBSERVED)
-    )
+    ), { pct = (ceiling > 0) and (critDmgPct / ceiling) or 0, tick = 1 })
   else
     -- Console rarely exposes STAT_CRITICAL_DAMAGE. Recipe from Force/Brittle/CP/racial.
     local rec = estimateCritDamageRecipe(session, profile)
     local headroom = math.max(0, (rec.ceiling or 125) - (rec.pct or 50))
-    lines[#lines + 1] = string.format(
+    local recCeil = rec.ceiling or 125
+    pushWaste(string.format(
       "Crit dmg recipe: ~%0.0f%% of %0.0f%% cap (%s headroom)  ·  %s  %s",
-      rec.pct or 50, rec.ceiling or 125,
+      rec.pct or 50, recCeil,
       (headroom <= 0) and "at/over" or string.format("+%0.0f", headroom),
       rec.recipeTxt or "base 50",
       confidenceChip(CONFIDENCE.ESTIMATED)
-    )
+    ), { pct = (recCeil > 0) and ((rec.pct or 50) / recCeil) or 0, tick = 1, tone = "est" })
     if rec.over and rec.over > 0.5 then
       overcapRisk = true
       riskReason = "recipe over ceiling"
     end
   end
   -- Only show sheet mult / exposure lines when we have data; skip permanent Insufficient spam
-  lines[#lines + 1] = string.format(
+  pushWaste(string.format(
     "Major Force uptime %s  ·  Minor Force %s  %s%s",
     fmtPct(majForceUp), fmtPct(minForceUp),
     confidenceChip(CONFIDENCE.OBSERVED),
     overcapRisk and string.format("  ·  overcap risk (%s) %s", riskReason, confidenceChip(CONFIDENCE.ESTIMATED)) or ""
-  )
+  ), { pct = majForceUp, tone = (majForceUp >= 0.75) and "good" or nil })
   if exposure and exposure.confidence ~= CONFIDENCE.INSUFFICIENT and (tonumber(exposure.samples) or 0) > 0 then
     local overPct = (tonumber(exposure.overcapExposure) or 0) * 100
     local capU = tonumber(exposure.capUptime) or 0
+    local expPct = (ceiling > 0) and ((tonumber(exposure.avgSheetCritPct) or 0) / ceiling) or 0
     if overPct < 0.05 and capU < 0.05 then
-      lines[#lines + 1] = string.format(
+      pushWaste(string.format(
         "Crit-dmg exposure (sheet samples): avg %0.0f%% · under ceiling  %s",
         tonumber(exposure.avgSheetCritPct) or 0,
         confidenceChip(exposure.confidence or CONFIDENCE.ESTIMATED)
-      )
+      ), { pct = expPct, tick = 1, tone = "est" })
     else
-      lines[#lines + 1] = string.format(
+      pushWaste(string.format(
         "Crit-dmg exposure (sheet samples): avg %0.0f%% · at/over cap %s · overcap ~%0.1f%%  %s",
         tonumber(exposure.avgSheetCritPct) or 0,
         fmtPct(capU),
         overPct,
         confidenceChip(exposure.confidence or CONFIDENCE.ESTIMATED)
-      )
+      ), { pct = expPct, tick = 1, tone = "est" })
     end
   end
 
@@ -6002,38 +6011,39 @@ local function buildCoachAnalysis(session, syn, diag, profile)
     )
   end
 
-  lines[#lines + 1] = string.format(
+  pushWaste(string.format(
     "Penetration: phys %s · spell %s (personal max %s)  %s",
     fmtInt(penP), fmtInt(penS), fmtInt(personalPen), confidenceChip(CONFIDENCE.OBSERVED)
-  )
+  ), nil)
   if #groupBits > 0 then
-    lines[#lines + 1] = string.format(
+    pushWaste(string.format(
       "Group resist reduction: %s (+%s est.)  %s",
       table.concat(groupBits, ", "),
       fmtInt(groupPen),
       confidenceChip(groupConf)
-    )
+    ), nil)
   end
   -- Explicit recipe so players see what builds effective pen
-  lines[#lines + 1] = string.format(
+  local penPct = (resistTarget > 0) and (effectivePen / resistTarget) or 0
+  pushWaste(string.format(
     "Effective pen recipe: personal %s + group %s = %s  (target resist %s)  %s",
     fmtInt(personalPen),
     fmtInt(groupPen),
     fmtInt(effectivePen),
     fmtInt(resistTarget),
     confidenceChip(CONFIDENCE.ESTIMATED)
-  )
+  ), { pct = penPct, tick = 1, tone = "est" })
   if remaining <= 0 then
-    lines[#lines + 1] = string.format(
+    pushWaste(string.format(
       "At/over resist reference — extra personal pen likely low value under this profile  %s",
       confidenceChip(CONFIDENCE.ESTIMATED)
-    )
+    ), nil)
   else
-    lines[#lines + 1] = string.format(
+    pushWaste(string.format(
       "About %s resist may remain if group assumptions hold  %s",
       fmtInt(remaining),
       confidenceChip(CONFIDENCE.ESTIMATED)
-    )
+    ), nil)
   end
   coach.waste.pen.recipeLine = lines[#lines - 1]
   coach.waste.pen.groupBits = groupBits
@@ -6053,9 +6063,9 @@ local function buildCoachAnalysis(session, syn, diag, profile)
   end
   table.sort(supportBits)
   if #supportBits > 0 then
-    lines[#lines + 1] = "Support you brought: " .. table.concat(supportBits, "  ·  ")
+    pushWaste("Support you brought: " .. table.concat(supportBits, "  ·  "), nil)
   else
-    lines[#lines + 1] = "Support you brought: none matched — see Buffs for the full list."
+    pushWaste("Support you brought: none matched — see Buffs for the full list.", nil)
   end
 
   -- Set impact (direct + buff-mediated notes)
@@ -7033,6 +7043,7 @@ local OV_TOP_SKILLS = 5
 local OV_SET_ROWS = 3
 
 local function createOverviewUI(screen)
+  if screen.overviewUI and not screen.overviewUI._v31806 then screen.overviewUI = nil end
   if screen.overviewUI then return screen.overviewUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.overview
@@ -7047,6 +7058,7 @@ local function createOverviewUI(screen)
     setRows = {},
     skillRows = {},
     sparkBars = {},
+    _v31806 = true,
   }
 
   -- Root fills the content plate; sections stack top→bottom.
@@ -7071,7 +7083,7 @@ local function createOverviewUI(screen)
     bg:SetAnchorFill(block)
     local value = makeDashLabel(block, "DM2StatsMenuOvKpiVal_" .. def.key, 16, THEME.textR, THEME.textG, THEME.textB, 1)
     value:SetAnchor(TOPLEFT, block, TOPLEFT, 8, 4)
-    local label = makeDashLabel(block, "DM2StatsMenuOvKpiLab_" .. def.key, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local label = makeDashLabel(block, "DM2StatsMenuOvKpiLab_" .. def.key, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     label:SetAnchor(TOPLEFT, value, BOTTOMLEFT, 0, 0)
     label:SetText(def.label)
     ui.kpi[def.key] = { block = block, value = value, label = label, bg = bg }
@@ -7084,7 +7096,7 @@ local function createOverviewUI(screen)
   ui.rotTitle = makeDashLabel(ui.rotPanel, "DM2StatsMenuOvRotTitle", 14, 0.58, 0.86, 1.0, 1)
   ui.rotTitle:SetAnchor(TOPLEFT, ui.rotPanel, TOPLEFT, 10, 6)
   ui.rotTitle:SetText("Rotation Health")
-  ui.rotHelp = makeDashLabel(ui.rotPanel, "DM2StatsMenuOvRotHelp", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.rotHelp = makeDashLabel(ui.rotPanel, "DM2StatsMenuOvRotHelp", 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.rotHelp:SetAnchor(TOPLEFT, ui.rotTitle, BOTTOMLEFT, 0, 1)
   ui.rotHelp:SetText("Light attack timing, misses, and rhythm health")
   for i = 1, 4 do
@@ -7099,9 +7111,9 @@ local function createOverviewUI(screen)
   ui.burstTitle = makeDashLabel(ui.burstPanel, "DM2StatsMenuOvBurstTitle", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.burstTitle:SetAnchor(TOPLEFT, ui.burstPanel, TOPLEFT, 10, 6)
   ui.burstTitle:SetText("Burst / Drop Windows")
-  ui.spikeHead = makeDashLabel(ui.burstPanel, "DM2StatsMenuOvSpikeHead", 12, 0.72, 0.95, 1.0, 1)
+  ui.spikeHead = makeDashLabel(ui.burstPanel, "DM2StatsMenuOvSpikeHead", 14, 0.72, 0.95, 1.0, 1)
   ui.spikeHead:SetText("Bursts")
-  ui.dipHead = makeDashLabel(ui.burstPanel, "DM2StatsMenuOvDipHead", 12, 1.0, 0.72, 0.55, 1)
+  ui.dipHead = makeDashLabel(ui.burstPanel, "DM2StatsMenuOvDipHead", 14, 1.0, 0.72, 0.55, 1)
   ui.dipHead:SetText("Drops")
   for i = 1, 3 do
     ui.spikes[i] = makeDashLabel(ui.burstPanel, "DM2StatsMenuOvSpike" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
@@ -7158,7 +7170,7 @@ local function createOverviewUI(screen)
   ui.skillsTitle:SetAnchor(TOPLEFT, ui.skillsPanel, TOPLEFT, 10, 6)
   ui.skillsTitle:SetText("Top Damage Skills")
   -- Legend on the same title row (right) so it never drops into skill rows.
-  ui.skillsLegend = makeDashLabel(ui.skillsPanel, "DM2StatsMenuOvSkillsLegend", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.skillsLegend = makeDashLabel(ui.skillsPanel, "DM2StatsMenuOvSkillsLegend", 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.skillsLegend:SetAnchor(TOPRIGHT, ui.skillsPanel, TOPRIGHT, -12, 8)
   ui.skillsLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   ui.skillsLegend:SetText("|c88DDAAF|r Front  |c88AADDB|r Back  |cFAC538U|r Ult  |cF29E38S|r Set  |cC761F2E|r Effect")
@@ -7173,7 +7185,7 @@ local function createOverviewUI(screen)
     stampForeground(icon, 110)
     local name = makeDashLabel(row, "DM2StatsMenuOvSkillName" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
     name:SetAnchor(TOPLEFT, row, TOPLEFT, 48, 0)
-    local sub = makeDashLabel(row, "DM2StatsMenuOvSkillSub" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local sub = makeDashLabel(row, "DM2StatsMenuOvSkillSub" .. i, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     sub:SetAnchor(TOPLEFT, name, BOTTOMLEFT, 0, 0)
     local shareBg = WM:CreateControl("DM2StatsMenuOvSkillShareBg" .. i, row, CT_BACKDROP)
     shareBg:SetCenterColor(0.12, 0.12, 0.14, 0.55)
@@ -7213,7 +7225,7 @@ local function layoutOverviewUI(ui, hostW, hostH)
 
   -- Fixed section heights that fit ~1080p plate without overlapping.
   local headerH = 44
-  local kpiH = 148
+  local kpiH = 160
   local midH = 150
   local sparkH = 58
   local setH = 78
@@ -7232,8 +7244,7 @@ local function layoutOverviewUI(ui, hostW, hostH)
   local kpiW = math.floor((kpiInnerW - gapX * (cols - 1)) / cols)
   local rows = 3
   local kpiBlockH = math.floor((kpiH - pad * 2 - gapY * (rows - 1)) / rows)
-  if kpiBlockH < 38 then kpiBlockH = 38 end
-  if kpiBlockH > 44 then kpiBlockH = 44 end
+  if kpiBlockH > 46 then kpiBlockH = 46 end
   for i, def in ipairs(OV_KPI_KEYS) do
     local cell = ui.kpi[def.key]
     local block = cell and cell.block
@@ -7351,8 +7362,8 @@ local function layoutOverviewUI(ui, hostW, hostH)
   ui.skillsTitle:SetWidth(math.min(280, math.floor(W * 0.40)))
   ui.skillsLegend:SetWidth(math.min(420, math.floor(W * 0.52)))
   local rowH = math.floor((skillsH - 28) / OV_TOP_SKILLS)
-  if rowH < 30 then rowH = 30 end
   if rowH > 34 then rowH = 34 end
+  if rowH < 1 then rowH = 1 end
   local skNameW = math.min(280, math.max(180, math.floor((W - 40) * 0.32)))
   local skSubW = math.min(420, math.max(200, math.floor((W - 40) * 0.40)))
   local skBarW = math.min(180, math.max(100, math.floor((W - 40) * 0.18)))
@@ -7529,27 +7540,27 @@ end
 local DMG_SKILL_ROWS = 22
 local DMG_FX_ROWS = 22
 local DMG_MAX_ROWS = 80 -- fetch budget before split into Skills / Effects panels
-local DMG_ROW_H = 26
+local DMG_ROW_H = 28
 
 local function makeDamageRow(parent, pfx, i, compact)
   local row = WM:CreateControl(pfx .. "Row" .. i, parent, CT_CONTROL)
-  local chip = makeDashLabel(row, pfx .. "Chip" .. i, 11, THEME.frontR, THEME.frontG, THEME.frontB, 1)
+  local chip = makeDashLabel(row, pfx .. "Chip" .. i, 13, THEME.frontR, THEME.frontG, THEME.frontB, 1)
   chip:SetDimensions(18, 16)
   local icon = WM:CreateControl(pfx .. "Icon" .. i, row, CT_TEXTURE)
   icon:SetDimensions(compact and 20 or 24, compact and 20 or 24)
   stampForeground(icon, 110)
-  local name = makeDashLabel(row, pfx .. "Name" .. i, compact and 12 or 13, THEME.textR, THEME.textG, THEME.textB, 1)
-  local amount = makeDashLabel(row, pfx .. "Amt" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+  local name = makeDashLabel(row, pfx .. "Name" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
+  local amount = makeDashLabel(row, pfx .. "Amt" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
   amount:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  local hits = makeDashLabel(row, pfx .. "Hits" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+  local hits = makeDashLabel(row, pfx .. "Hits" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
   hits:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  local share = makeDashLabel(row, pfx .. "Share" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+  local share = makeDashLabel(row, pfx .. "Share" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
   share:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  local crit = makeDashLabel(row, pfx .. "Crit" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+  local crit = makeDashLabel(row, pfx .. "Crit" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
   crit:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  local kind = makeDashLabel(row, pfx .. "Type" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  local kind = makeDashLabel(row, pfx .. "Type" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   kind:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-  local dps = makeDashLabel(row, pfx .. "Dps" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+  local dps = makeDashLabel(row, pfx .. "Dps" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
   dps:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   return {
     row = row, chip = chip, icon = icon, name = name,
@@ -7559,13 +7570,13 @@ local function makeDamageRow(parent, pfx, i, compact)
 end
 
 local function createDamageUI(screen)
-  if screen.damageUI and not screen.damageUI._v31714 then screen.damageUI = nil end
+  if screen.damageUI and not screen.damageUI._v31806 then screen.damageUI = nil end
   if screen.damageUI then return screen.damageUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.damage
   if not panel then return nil end
 
-  local ui = { panel = panel, skillRows = {}, fxRows = {}, _v31714 = true }
+  local ui = { panel = panel, skillRows = {}, fxRows = {}, _v31806 = true }
 
   ui.root = WM:CreateControl("DM2StatsMenuDmgRootV3", panel, CT_CONTROL)
   ui.root:SetAnchor(TOPLEFT, panel, TOPLEFT, 6, 2)
@@ -7574,9 +7585,9 @@ local function createDamageUI(screen)
   ui.title = makeDashLabel(ui.root, "DM2StatsMenuDmgTitleV3", 16, 0.90, 0.96, 1.0, 1)
   ui.title:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 0)
   ui.title:SetText("DAMAGE BREAKDOWN")
-  ui.meta = makeDashLabel(ui.root, "DM2StatsMenuDmgMetaV3", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.meta = makeDashLabel(ui.root, "DM2StatsMenuDmgMetaV3", 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.meta:SetAnchor(TOPLEFT, ui.title, BOTTOMLEFT, 0, 2)
-  ui.legend = makeDashLabel(ui.root, "DM2StatsMenuDmgLegendV3", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.legend = makeDashLabel(ui.root, "DM2StatsMenuDmgLegendV3", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.legend:SetAnchor(TOPLEFT, ui.meta, BOTTOMLEFT, 0, 1)
   ui.legend:SetText("|c88DDAAF|r Front  |c88AADDB|r Back  |cFAC538U|r Ult  |cF29E38S|r Set  |cC761F2E|r Effect  ·  Type = Direct/DoT · Mag/Phys · ST/AoE")
 
@@ -7586,23 +7597,23 @@ local function createDamageUI(screen)
   sbg:SetAnchorFill(ui.skillPanel)
   ui.skillTitle = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillTitleV3", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillTitle:SetText("SKILLS  ·  F / B / LA / HA / ULT")
-  ui.skillHdrName = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrN", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrName = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrN", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrName:SetText("Skill")
-  ui.skillHdrAmt = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrA", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrAmt = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrA", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrAmt:SetText("Amount")
   ui.skillHdrAmt:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.skillHdrHits = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrH", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrHits = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrH", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrHits:SetText("Hits")
   ui.skillHdrHits:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.skillHdrShare = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrS", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrShare = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrS", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrShare:SetText("Share")
   ui.skillHdrShare:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.skillHdrCrit = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrC", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrCrit = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrC", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrCrit:SetText("Crit")
   ui.skillHdrCrit:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.skillHdrType = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrT", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrType = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrT", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrType:SetText("Type")
-  ui.skillHdrDps = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrD", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.skillHdrDps = makeDashLabel(ui.skillPanel, "DM2StatsMenuDmgSkillHdrD", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillHdrDps:SetText("DPS")
   ui.skillHdrDps:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   for i = 1, DMG_SKILL_ROWS do
@@ -7615,17 +7626,17 @@ local function createDamageUI(screen)
   fbg:SetAnchorFill(ui.fxPanel)
   ui.fxTitle = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxTitleV3", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.fxTitle:SetText("EFFECTS  ·  E / S")
-  ui.fxHdrName = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrN", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.fxHdrName = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrN", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.fxHdrName:SetText("Effect")
-  ui.fxHdrAmt = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrA", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.fxHdrAmt = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrA", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.fxHdrAmt:SetText("Amount")
   ui.fxHdrAmt:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.fxHdrShare = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrS", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.fxHdrShare = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrS", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.fxHdrShare:SetText("Share")
   ui.fxHdrShare:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.fxHdrType = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrT", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.fxHdrType = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrT", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.fxHdrType:SetText("Type")
-  ui.fxHdrDps = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrD", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.fxHdrDps = makeDashLabel(ui.fxPanel, "DM2StatsMenuDmgFxHdrD", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.fxHdrDps:SetText("DPS")
   ui.fxHdrDps:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   for i = 1, DMG_FX_ROWS do
@@ -7689,10 +7700,10 @@ local function layoutDamagePanelColumns(panel, hdrs, rows, maxRows, W, H, compac
     placeHdr(hdrs.dps, xs[6], widths[6])
   end
 
-  local rowTop = 38
+  local rowTop = 42
   local avail = H - rowTop - 4
   local rowH = math.floor(avail / maxRows)
-  if rowH < 18 then rowH = 18 end
+  if rowH < 1 then rowH = 1 end
   if rowH > DMG_ROW_H then rowH = DMG_ROW_H end
 
   for i = 1, maxRows do
@@ -7751,7 +7762,7 @@ local function layoutDamageUI(ui, hostW, hostH)
   ui.empty:SetWidth(W)
 
   -- Title + 2-line meta + legend need room so panel headers do not occlude them
-  local bodyY, bodyH = 78, H - 82
+  local bodyY, bodyH = 86, H - 90
   local gap = 6
   local leftW = math.floor((W - gap) * 0.58)
   local rightW = W - leftW - gap
@@ -7886,12 +7897,12 @@ local BUFF_MID_ROWS = 12
 local BUFF_DEB_ROWS = 12
 
 local function createBuffsUI(screen)
-  if screen.buffsUI and not screen.buffsUI._v3181 then screen.buffsUI = nil end
+  if screen.buffsUI and not screen.buffsUI._v31806 then screen.buffsUI = nil end
   if screen.buffsUI then return screen.buffsUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.buffs
   if not panel then return nil end
-  local ui = { panel = panel, rows = {}, midRows = {}, sideRows = {}, _v3181 = true }
+  local ui = { panel = panel, rows = {}, midRows = {}, sideRows = {}, _v31806 = true }
 
   ui.root = WM:CreateControl("DM2StatsMenuBuffRootV4", panel, CT_CONTROL)
   ui.root:SetAnchor(TOPLEFT, panel, TOPLEFT, 4, 2)
@@ -7899,9 +7910,9 @@ local function createBuffsUI(screen)
   ui.title = makeDashLabel(ui.root, "DM2StatsMenuBuffTitleV4", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.title:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 0)
   ui.title:SetText("BUFFS / DEBUFFS")
-  ui.meta = makeDashLabel(ui.root, "DM2StatsMenuBuffMetaV4", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.meta = makeDashLabel(ui.root, "DM2StatsMenuBuffMetaV4", 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.meta:SetAnchor(TOPLEFT, ui.title, BOTTOMLEFT, 0, 1)
-  ui.legend = makeDashLabel(ui.root, "DM2StatsMenuBuffLegendV4", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.legend = makeDashLabel(ui.root, "DM2StatsMenuBuffLegendV4", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.legend:SetAnchor(TOPLEFT, ui.meta, BOTTOMLEFT, 0, 1)
   ui.legend:SetText("1 Always-on  ·  2 Sustained/Sit (self)  ·  3 Target status you applied")
 
@@ -7909,28 +7920,28 @@ local function createBuffsUI(screen)
   ui.table = WM:CreateControl("DM2StatsMenuBuffCol1V4", ui.root, CT_CONTROL)
   local tbg = makeSectionFrame(ui.table, "DM2StatsMenuBuffCol1BGV4", true)
   tbg:SetAnchorFill(ui.table)
-  ui.mainTitle = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1TitleV4", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.mainTitle = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1TitleV4", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.mainTitle:SetText("ALWAYS-ON")
-  ui.hdrName = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrN", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrName = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrN", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrName:SetText("Buff")
-  ui.hdrSrc = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrS", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrSrc = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrS", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrSrc:SetText("Src")
-  ui.hdrUp = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrU", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrUp = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrU", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrUp:SetText("Up%")
   ui.hdrUp:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrAct = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrA", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrAct = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrA", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrAct:SetText("Act")
   ui.hdrAct:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrApps = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrP", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrApps = makeDashLabel(ui.table, "DM2StatsMenuBuffCol1HdrP", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrApps:SetText("×")
   ui.hdrApps:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   for i = 1, BUFF_MAIN_ROWS do
     local row = WM:CreateControl("DM2StatsMenuBuffC1Row" .. i, ui.table, CT_CONTROL)
-    local chip = makeDashLabel(row, "DM2StatsMenuBuffC1Chip" .. i, 10, THEME.frontR, THEME.frontG, THEME.frontB, 1)
+    local chip = makeDashLabel(row, "DM2StatsMenuBuffC1Chip" .. i, 12, THEME.frontR, THEME.frontG, THEME.frontB, 1)
     local icon = WM:CreateControl("DM2StatsMenuBuffC1Icon" .. i, row, CT_TEXTURE)
     icon:SetDimensions(18, 18)
     stampForeground(icon, 110)
-    local name = makeDashLabel(row, "DM2StatsMenuBuffC1Name" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+    local name = makeDashLabel(row, "DM2StatsMenuBuffC1Name" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     local barBg = WM:CreateControl("DM2StatsMenuBuffC1BarBg" .. i, row, CT_BACKDROP)
     barBg:SetCenterColor(0.12, 0.12, 0.14, 0.55)
     barBg:SetEdgeColor(0, 0, 0, 0)
@@ -7939,12 +7950,12 @@ local function createBuffsUI(screen)
     barFg:SetEdgeColor(0, 0, 0, 0)
     barFg:SetAnchor(TOPLEFT, barBg, TOPLEFT, 0, 0)
     barFg:SetDimensions(2, 4)
-    local src = makeDashLabel(row, "DM2StatsMenuBuffC1Src" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    local up = makeDashLabel(row, "DM2StatsMenuBuffC1Up" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local src = makeDashLabel(row, "DM2StatsMenuBuffC1Src" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local up = makeDashLabel(row, "DM2StatsMenuBuffC1Up" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     up:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local act = makeDashLabel(row, "DM2StatsMenuBuffC1Act" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local act = makeDashLabel(row, "DM2StatsMenuBuffC1Act" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     act:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local apps = makeDashLabel(row, "DM2StatsMenuBuffC1Apps" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local apps = makeDashLabel(row, "DM2StatsMenuBuffC1Apps" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     apps:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     ui.rows[i] = {
       row = row, chip = chip, icon = icon, name = name, barBg = barBg, barFg = barFg,
@@ -7956,23 +7967,23 @@ local function createBuffsUI(screen)
   ui.mid = WM:CreateControl("DM2StatsMenuBuffCol2V4", ui.root, CT_CONTROL)
   local mbg = makeSectionFrame(ui.mid, "DM2StatsMenuBuffCol2BGV4", true)
   mbg:SetAnchorFill(ui.mid)
-  ui.midTitle = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2TitleV4", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.midTitle = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2TitleV4", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.midTitle:SetText("SUSTAINED + SIT")
-  ui.midHdrName = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrN", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.midHdrName = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrN", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.midHdrName:SetText("Buff")
-  ui.midHdrSrc = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrS", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.midHdrSrc = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrS", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.midHdrSrc:SetText("Src")
-  ui.midHdrEff = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrE", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.midHdrEff = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrE", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.midHdrEff:SetText("Effect")
-  ui.midHdrUp = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrU", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.midHdrUp = makeDashLabel(ui.mid, "DM2StatsMenuBuffCol2HdrU", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.midHdrUp:SetText("Up%")
   ui.midHdrUp:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   for i = 1, BUFF_MID_ROWS do
     local row = WM:CreateControl("DM2StatsMenuBuffC2Row" .. i, ui.mid, CT_CONTROL)
-    local name = makeDashLabel(row, "DM2StatsMenuBuffC2Name" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
-    local src = makeDashLabel(row, "DM2StatsMenuBuffC2Src" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    local eff = makeDashLabel(row, "DM2StatsMenuBuffC2Eff" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    local up = makeDashLabel(row, "DM2StatsMenuBuffC2Up" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local name = makeDashLabel(row, "DM2StatsMenuBuffC2Name" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
+    local src = makeDashLabel(row, "DM2StatsMenuBuffC2Src" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local eff = makeDashLabel(row, "DM2StatsMenuBuffC2Eff" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local up = makeDashLabel(row, "DM2StatsMenuBuffC2Up" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     up:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     local barBg = WM:CreateControl("DM2StatsMenuBuffC2BarBg" .. i, row, CT_BACKDROP)
     barBg:SetCenterColor(0.12, 0.12, 0.14, 0.55)
@@ -7989,28 +8000,28 @@ local function createBuffsUI(screen)
   ui.side = WM:CreateControl("DM2StatsMenuBuffCol3V4", ui.root, CT_CONTROL)
   local sbg = makeSectionFrame(ui.side, "DM2StatsMenuBuffCol3BGV4", true)
   sbg:SetAnchorFill(ui.side)
-  ui.sideTitle = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3TitleV4", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.sideTitle = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3TitleV4", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.sideTitle:SetText("TARGET DEBUFFS")
-  ui.sideHdrName = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrN", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.sideHdrName = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrN", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.sideHdrName:SetText("Status")
-  ui.sideHdrSrc = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrS", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.sideHdrSrc = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrS", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.sideHdrSrc:SetText("Kind")
-  ui.sideHdrDetail = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrD", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.sideHdrDetail = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrD", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.sideHdrDetail:SetText("Detail")
-  ui.sideHdrTier = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrA", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.sideHdrTier = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrA", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.sideHdrTier:SetText("Apps")
   ui.sideHdrTier:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.sideHdrUp = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrU", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.sideHdrUp = makeDashLabel(ui.side, "DM2StatsMenuBuffCol3HdrU", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.sideHdrUp:SetText("Up%")
   ui.sideHdrUp:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   for i = 1, BUFF_DEB_ROWS do
     local row = WM:CreateControl("DM2StatsMenuBuffC3RowV2" .. i, ui.side, CT_CONTROL)
-    local name = makeDashLabel(row, "DM2StatsMenuBuffC3NameV2" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
-    local src = makeDashLabel(row, "DM2StatsMenuBuffC3SrcV2" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    local detail = makeDashLabel(row, "DM2StatsMenuBuffC3DetV2" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    local tier = makeDashLabel(row, "DM2StatsMenuBuffC3AppsV2" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local name = makeDashLabel(row, "DM2StatsMenuBuffC3NameV2" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
+    local src = makeDashLabel(row, "DM2StatsMenuBuffC3SrcV2" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local detail = makeDashLabel(row, "DM2StatsMenuBuffC3DetV2" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local tier = makeDashLabel(row, "DM2StatsMenuBuffC3AppsV2" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     tier:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local up = makeDashLabel(row, "DM2StatsMenuBuffC3UpV2" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local up = makeDashLabel(row, "DM2StatsMenuBuffC3UpV2" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     up:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     local barBg = WM:CreateControl("DM2StatsMenuBuffC3BarBg" .. i, row, CT_BACKDROP)
     barBg:SetCenterColor(0.12, 0.12, 0.14, 0.55)
@@ -8022,7 +8033,7 @@ local function createBuffsUI(screen)
     barFg:SetDimensions(2, 3)
     ui.sideRows[i] = { row = row, name = name, src = src, detail = detail, tier = tier, up = up, barBg = barBg, barFg = barFg }
   end
-  ui.sideNote = makeDashLabel(ui.side, "DM2StatsMenuBuffC3NoteV4", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.sideNote = makeDashLabel(ui.side, "DM2StatsMenuBuffC3NoteV4", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   if ui.sideNote.SetWrapMode then ui.sideNote:SetWrapMode(TEXT_WRAP_MODE_TRUNCATE or TEXT_WRAP_MODE_ELLIPSIS) end
   if ui.sideNote.SetMaxLineCount then ui.sideNote:SetMaxLineCount(2) end
   ui.sideNote:SetText("Skill hit = your skill landing on the dummy (high % is normal). Debuff / Status = lasting effects like Breach.")
@@ -8031,9 +8042,9 @@ local function createBuffsUI(screen)
   ui.empty:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 60)
   ui.empty:SetHidden(true)
   -- Phase 2.5.4: pen discoverability (link to Insights recipe — not a full duplicate)
-  ui.penFooter = makeDashLabel(ui.root, "DM2StatsMenuBuffPenFootV4", 12, 0.85, 0.78, 0.45, 1)
+  ui.penFooter = makeDashLabel(ui.root, "DM2StatsMenuBuffPenFootV4", 13, 0.85, 0.78, 0.45, 1)
   ui.penFooter:SetMaxLineCount(2)
-  ui.raidLegend = makeDashLabel(ui.root, "DM2StatsMenuBuffRaidLegV1", 11, 0.78, 0.72, 0.52, 1)
+  ui.raidLegend = makeDashLabel(ui.root, "DM2StatsMenuBuffRaidLegV1", 13, 0.78, 0.72, 0.52, 1)
   ui.raidLegend:SetMaxLineCount(4)
   ui.raidLegend:SetText(
     "Raid essentials (Major / Minor):  Berserk +10/+5% dmg done  ·  Slayer +10/+5% vs monsters  ·  Force +20/+10% crit dmg   ·   "
@@ -8057,10 +8068,10 @@ local function layoutBuffsUI(ui, hostW, hostH)
   ui.empty:SetWidth(W)
 
   local footH = 72
-  local bodyY, bodyH = 48, H - 52 - footH
+  local bodyY, bodyH = 58, H - 62 - footH
   if ui.raidLegend then
     ui.raidLegend:ClearAnchors()
-    ui.raidLegend:SetAnchor(BOTTOMLEFT, ui.root, BOTTOMLEFT, 4, -22)
+    ui.raidLegend:SetAnchor(BOTTOMLEFT, ui.root, BOTTOMLEFT, 4, -36)
     ui.raidLegend:SetWidth(W - 8)
     if ui.raidLegend.SetWrapMode then
       ui.raidLegend:SetWrapMode(TEXT_WRAP_MODE_TRUNCATE or TEXT_WRAP_MODE_ELLIPSIS)
@@ -8098,7 +8109,7 @@ local function layoutBuffsUI(ui, hostW, hostH)
   local appsX = actX + actW + 2
   local function placeHdr1(lbl, hx, hw)
     lbl:ClearAnchors()
-    lbl:SetAnchor(TOPLEFT, ui.table, TOPLEFT, hx, 22)
+    lbl:SetAnchor(TOPLEFT, ui.table, TOPLEFT, hx, 26)
     lbl:SetWidth(hw)
   end
   placeHdr1(ui.hdrName, nameX, nameW)
@@ -8106,10 +8117,10 @@ local function layoutBuffsUI(ui, hostW, hostH)
   placeHdr1(ui.hdrUp, upX, upW)
   placeHdr1(ui.hdrAct, actX, actW)
   placeHdr1(ui.hdrApps, appsX, appsW)
-  local rowTop = 38
+  local rowTop = 44
   local rowH = math.floor((bodyH - rowTop - 4) / BUFF_MAIN_ROWS)
-  if rowH < 18 then rowH = 18 end
-  if rowH > 26 then rowH = 26 end
+  if rowH < 1 then rowH = 1 end
+  if rowH > 28 then rowH = 28 end
   for i = 1, BUFF_MAIN_ROWS do
     local r = ui.rows[i]
     if r then
@@ -8152,25 +8163,25 @@ local function layoutBuffsUI(ui, hostW, hostH)
   local mEffW = math.max(72, math.floor((mSrcX - mEffX - 4) * 1.05))
   if mEffX + mEffW > mSrcX - 2 then mEffW = math.max(60, mSrcX - mEffX - 2) end
   ui.midHdrName:ClearAnchors()
-  ui.midHdrName:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8, 22)
+  ui.midHdrName:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8, 26)
   ui.midHdrName:SetWidth(mNameW)
   ui.midHdrEff:ClearAnchors()
-  ui.midHdrEff:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8 + mEffX, 22)
+  ui.midHdrEff:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8 + mEffX, 26)
   ui.midHdrEff:SetWidth(mEffW)
   ui.midHdrSrc:ClearAnchors()
-  ui.midHdrSrc:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8 + mSrcX, 22)
+  ui.midHdrSrc:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8 + mSrcX, 26)
   ui.midHdrSrc:SetWidth(mSrcW)
   ui.midHdrUp:ClearAnchors()
-  ui.midHdrUp:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8 + mUpX, 22)
+  ui.midHdrUp:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 8 + mUpX, 26)
   ui.midHdrUp:SetWidth(mUpW)
-  local mH = math.floor((bodyH - 40) / BUFF_MID_ROWS)
-  if mH < 16 then mH = 16 end
-  if mH > 22 then mH = 22 end
+  local mH = math.floor((bodyH - 48) / BUFF_MID_ROWS)
+  if mH < 1 then mH = 1 end
+  if mH > 24 then mH = 24 end
   for i = 1, BUFF_MID_ROWS do
     local r = ui.midRows[i]
     if r then
       r.row:ClearAnchors()
-      r.row:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 6, 38 + (i - 1) * mH)
+      r.row:SetAnchor(TOPLEFT, ui.mid, TOPLEFT, 6, 44 + (i - 1) * mH)
       r.row:SetDimensions(colW - 12, mH - 1)
       r.name:ClearAnchors()
       r.name:SetAnchor(LEFT, r.row, LEFT, 0, 0)
@@ -8211,21 +8222,21 @@ local function layoutBuffsUI(ui, hostW, hostH)
   end
   if nW + 10 > sKindX then nW = math.max(120, sKindX - 10) end
   ui.sideHdrName:ClearAnchors()
-  ui.sideHdrName:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8, 22)
+  ui.sideHdrName:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8, 26)
   ui.sideHdrName:SetWidth(nW)
   ui.sideHdrSrc:ClearAnchors()
-  ui.sideHdrSrc:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sKindX, 22)
+  ui.sideHdrSrc:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sKindX, 26)
   ui.sideHdrSrc:SetWidth(sKindW)
   if ui.sideHdrDetail then
     ui.sideHdrDetail:ClearAnchors()
-    ui.sideHdrDetail:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sDetX, 22)
+    ui.sideHdrDetail:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sDetX, 26)
     ui.sideHdrDetail:SetWidth(sDetW)
   end
   ui.sideHdrTier:ClearAnchors()
-  ui.sideHdrTier:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sAppsX, 22)
+  ui.sideHdrTier:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sAppsX, 26)
   ui.sideHdrTier:SetWidth(sAppsW)
   ui.sideHdrUp:ClearAnchors()
-  ui.sideHdrUp:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sUpX, 22)
+  ui.sideHdrUp:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 8 + sUpX, 26)
   ui.sideHdrUp:SetWidth(sUpW)
   local noteH = (ui.sideNote and not ui.sideNote:IsHidden()) and 32 or 0
   if ui.sideNote then
@@ -8233,14 +8244,14 @@ local function layoutBuffsUI(ui, hostW, hostH)
     ui.sideNote:SetAnchor(BOTTOMLEFT, ui.side, BOTTOMLEFT, 8, -4)
     ui.sideNote:SetWidth(colW - 16)
   end
-  local sH = math.floor((bodyH - 40 - noteH) / BUFF_DEB_ROWS)
-  if sH < 16 then sH = 16 end
-  if sH > 22 then sH = 22 end
+  local sH = math.floor((bodyH - 48 - noteH) / BUFF_DEB_ROWS)
+  if sH < 1 then sH = 1 end
+  if sH > 24 then sH = 24 end
   for i = 1, BUFF_DEB_ROWS do
     local r = ui.sideRows[i]
     if r then
       r.row:ClearAnchors()
-      r.row:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 6, 38 + (i - 1) * sH)
+      r.row:SetAnchor(TOPLEFT, ui.side, TOPLEFT, 6, 44 + (i - 1) * sH)
       r.row:SetDimensions(colW - 12, sH - 1)
       r.name:ClearAnchors()
       r.name:SetAnchor(LEFT, r.row, LEFT, 0, 0)
@@ -8469,7 +8480,7 @@ local BUILD_SET_PROC_ROWS = 6
 local BUILD_SET_CP_ROWS = 8
 
 local function createProcsUI(screen)
-  if screen.procsUI and not screen.procsUI._v31719 then screen.procsUI = nil end
+  if screen.procsUI and not screen.procsUI._v31806 then screen.procsUI = nil end
   if screen.procsUI then return screen.procsUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.procs
@@ -8480,7 +8491,7 @@ local function createProcsUI(screen)
     cpRows = {},
     barIcons = { front = {}, back = {} },
     buildLines = {},
-    _v31719 = true,
+    _v31806 = true,
   }
 
   ui.root = WM:CreateControl("DM2StatsMenuBuildSetsRootV4", panel, CT_CONTROL)
@@ -8498,7 +8509,7 @@ local function createProcsUI(screen)
   bbg:SetAnchorFill(ui.buildPanel)
   ui.buildTitle = makeDashLabel(ui.buildPanel, "DM2StatsMenuBuildPanelTitleV4", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.buildTitle:SetText("CHAR BUILD  ·  this parse")
-  ui.buildProv = makeDashLabel(ui.buildPanel, "DM2StatsMenuBuildProvV4", 10, 0.85, 0.78, 0.45, 1)
+  ui.buildProv = makeDashLabel(ui.buildPanel, "DM2StatsMenuBuildProvV4", 12, 0.85, 0.78, 0.45, 1)
   ui.frontTitle = makeDashLabel(ui.buildPanel, "DM2StatsMenuBuildFrontV4", 12, THEME.frontR, THEME.frontG, THEME.frontB, 1)
   ui.frontTitle:SetText("FRONT")
   ui.backTitle = makeDashLabel(ui.buildPanel, "DM2StatsMenuBuildBackV4", 12, THEME.backR, THEME.backG, THEME.backB, 1)
@@ -8527,27 +8538,27 @@ local function createProcsUI(screen)
   tbg:SetAnchorFill(ui.table)
   ui.setTitle = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsSetTitleV4", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.setTitle:SetText("SET / PROC CONTRIBUTION")
-  ui.legend = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsLegendV4", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.legend = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsLegendV4", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.legend:SetText("Share = % of fight damage · enriched from this parse’s set attribution")
 
-  ui.hdrName = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrName", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrName = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrName", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrName:SetText("Set / Proc")
-  ui.hdrAmt = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrAmt", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrAmt = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrAmt", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrAmt:SetText("Amount")
   ui.hdrAmt:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrHits = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrHits", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrHits = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrHits", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrHits:SetText("Hits")
   ui.hdrHits:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrShare = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrShare", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrShare = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrShare", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrShare:SetText("Share")
   ui.hdrShare:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrCrit = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrCrit", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrCrit = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrCrit", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrCrit:SetText("Crit")
   ui.hdrCrit:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrType = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrType", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrType = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrType", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrType:SetText("Type")
   ui.hdrType:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrDps = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrDps", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrDps = makeDashLabel(ui.table, "DM2StatsMenuBuildSetsHdrDps", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrDps:SetText("DPS")
   ui.hdrDps:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
@@ -8556,17 +8567,17 @@ local function createProcsUI(screen)
   cbg:SetAnchorFill(ui.cpPanel)
   ui.cpTitle = makeDashLabel(ui.cpPanel, "DM2StatsMenuBuildSetsCpTitleV6", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.cpTitle:SetText("CHAMPION POINT IMPACT  ·  equipped | fit | parse impact")
-  ui.cpNote = makeDashLabel(ui.cpPanel, "DM2StatsMenuBuildSetsCpNoteV6", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.cpNote = makeDashLabel(ui.cpPanel, "DM2StatsMenuBuildSetsCpNoteV6", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.cpNote:SetMaxLineCount(1)
   ui.cpNote:SetText("Fit = parse-mix heuristic · Eligible % = damage share matching star · +DPS only from real A/B runs")
   for i = 1, BUILD_SET_CP_ROWS do
     local row = WM:CreateControl("DM2StatsMenuBuildSetsCpRowV6_" .. i, ui.cpPanel, CT_CONTROL)
-    local fit = makeDashLabel(row, "DM2StatsMenuBuildSetsCpFitV6_" .. i, 11, 0.45, 0.92, 0.55, 1)
+    local fit = makeDashLabel(row, "DM2StatsMenuBuildSetsCpFitV6_" .. i, 12, 0.45, 0.92, 0.55, 1)
     -- Colored constellation chip (Combat / Fitness / Craft) left of name
-    local tree = makeDashLabel(row, "DM2StatsMenuBuildSetsCpTreeV6_" .. i, 10, 0.91, 0.36, 0.36, 1)
+    local tree = makeDashLabel(row, "DM2StatsMenuBuildSetsCpTreeV6_" .. i, 12, 0.91, 0.36, 0.36, 1)
     tree:SetDimensions(14, 14)
     local name = makeDashLabel(row, "DM2StatsMenuBuildSetsCpNameV6_" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
-    local impact = makeDashLabel(row, "DM2StatsMenuBuildSetsCpImpactV6_" .. i, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local impact = makeDashLabel(row, "DM2StatsMenuBuildSetsCpImpactV6_" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     ui.cpRows[i] = { row = row, fit = fit, tree = tree, name = name, impact = impact }
   end
 
@@ -8684,7 +8695,8 @@ local function layoutProcsUI(ui, hostW, hostH)
     end
     -- Gap under the one-line note so it cannot cover Warfare row 1
     local cpTop = 42
-    local cpRowH = math.max(15, math.floor((cpH - cpTop - 4) / BUILD_SET_CP_ROWS))
+    local cpRowH = math.floor((cpH - cpTop - 4) / BUILD_SET_CP_ROWS)
+    if cpRowH < 1 then cpRowH = 1 end
     for i = 1, BUILD_SET_CP_ROWS do
       local r = ui.cpRows and ui.cpRows[i]
       if r then
@@ -8697,11 +8709,11 @@ local function layoutProcsUI(ui, hostW, hostH)
         if r.tree then
           r.tree:ClearAnchors()
           r.tree:SetAnchor(LEFT, r.row, LEFT, 50, 0)
-          r.tree:SetWidth(14)
+          r.tree:SetWidth(18)
         end
         local nW = math.max(110, math.floor((W - 20) * 0.26))
         r.name:ClearAnchors()
-        r.name:SetAnchor(LEFT, r.row, LEFT, 68, 0)
+        r.name:SetAnchor(LEFT, r.row, LEFT, 72, 0)
         r.name:SetWidth(nW)
         r.name:SetMaxLineCount(1)
         r.impact:ClearAnchors()
@@ -8752,7 +8764,7 @@ local function layoutProcsUI(ui, hostW, hostH)
 
   local rowTop = 56
   local rowH = math.floor((tableH - rowTop - 6) / BUILD_SET_PROC_ROWS)
-  if rowH < 24 then rowH = 24 end
+  if rowH < 1 then rowH = 1 end
   if rowH > 34 then rowH = 34 end
   for i = 1, BUILD_SET_PROC_ROWS do
     local r = ui.rows[i]
@@ -9044,7 +9056,7 @@ local WEAVE_SKILL_ROWS = 10
 local WEAVE_DOT_ROWS = 8
 
 local function createWeaveUI(screen)
-  if screen.weaveUI and not screen.weaveUI._v381 then screen.weaveUI = nil end
+  if screen.weaveUI and not screen.weaveUI._v31806 then screen.weaveUI = nil end
   if screen.weaveUI then return screen.weaveUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.weave
@@ -9055,7 +9067,7 @@ local function createWeaveUI(screen)
     kpi = {},
     skillRows = {},
     dotRows = {},
-    _v381 = true,
+    _v31806 = true,
   }
 
   ui.root = WM:CreateControl("DM2StatsMenuWeaveRootV8", panel, CT_CONTROL)
@@ -9090,7 +9102,7 @@ local function createWeaveUI(screen)
     local bg = makeSectionFrame(block, "DM2StatsMenuWeaveKpiBG_" .. def.key, false)
     bg:SetAnchorFill(block)
     -- Label on top, value below — label slightly higher so header block feels tighter
-    local label = makeDashLabel(block, "DM2StatsMenuWeaveKpiLab_" .. def.key, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local label = makeDashLabel(block, "DM2StatsMenuWeaveKpiLab_" .. def.key, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     label:SetAnchor(TOPLEFT, block, TOPLEFT, 8, 2)
     label:SetText(def.label)
     local value = makeDashLabel(block, "DM2StatsMenuWeaveKpiVal_" .. def.key, 18, THEME.textR, THEME.textG, THEME.textB, 1)
@@ -9105,38 +9117,38 @@ local function createWeaveUI(screen)
   ui.skillTitle = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveSkillTitle", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.skillTitle:SetAnchor(TOPLEFT, ui.skillPanel, TOPLEFT, 10, 6)
   ui.skillTitle:SetText("PER-SKILL WEAVE")
-  ui.skillLegend = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveSkillLegend", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.skillLegend = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveSkillLegend", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.skillLegend:SetAnchor(TOPLEFT, ui.skillTitle, BOTTOMLEFT, 0, 1)
   ui.skillLegend:SetText("|c88DDAAF|r Front   |c88AADDB|r Back   ·  Good / Late / Missed / Fast / Casts")
   -- Tip sits above the column headers with reserved vertical room (no merge into skill list).
-  ui.tipLine = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveTip", 12, 0.65, 0.90, 1.0, 1)
+  ui.tipLine = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveTip", 14, 0.65, 0.90, 1.0, 1)
   ui.tipLine:SetAnchor(TOPLEFT, ui.skillLegend, BOTTOMLEFT, 0, 4)
   ui.tipLine:SetMaxLineCount(2)
 
-  ui.hdrName = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrName", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrName = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrName", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrName:SetText("Skill")
-  ui.hdrGood = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrGood", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrGood = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrGood", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrGood:SetText("Good%")
   ui.hdrGood:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrG = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrG", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrG = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrG", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrG:SetText("Good")
   ui.hdrG:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrL = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrL", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrL = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrL", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrL:SetText("Late")
   ui.hdrL:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrM = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrM", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrM = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrM", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrM:SetText("Miss")
   ui.hdrM:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrF = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrF", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrF = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrF", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrF:SetText("Fast")
   ui.hdrF:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  ui.hdrN = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrN", 11, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.hdrN = makeDashLabel(ui.skillPanel, "DM2StatsMenuWeaveHdrN", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.hdrN:SetText("Casts")
   ui.hdrN:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
   for i = 1, WEAVE_SKILL_ROWS do
     local row = WM:CreateControl("DM2StatsMenuWeaveSkRow" .. i, ui.skillPanel, CT_CONTROL)
-    local chip = makeDashLabel(row, "DM2StatsMenuWeaveSkChip" .. i, 11, THEME.frontR, THEME.frontG, THEME.frontB, 1)
+    local chip = makeDashLabel(row, "DM2StatsMenuWeaveSkChip" .. i, 13, THEME.frontR, THEME.frontG, THEME.frontB, 1)
     chip:SetDimensions(12, 14)
     local icon = WM:CreateControl("DM2StatsMenuWeaveSkIcon" .. i, row, CT_TEXTURE)
     icon:SetDimensions(22, 22)
@@ -9177,7 +9189,7 @@ local function createWeaveUI(screen)
   ui.dotTitle = makeDashLabel(ui.dotPanel, "DM2StatsMenuWeaveDotTitle", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.dotTitle:SetAnchor(TOPLEFT, ui.dotPanel, TOPLEFT, 10, 6)
   ui.dotTitle:SetText("DOT UPTIME (worst maintainable first)")
-  ui.dotHelp = makeDashLabel(ui.dotPanel, "DM2StatsMenuWeaveDotHelp", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.dotHelp = makeDashLabel(ui.dotPanel, "DM2StatsMenuWeaveDotHelp", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.dotHelp:SetAnchor(TOPLEFT, ui.dotTitle, BOTTOMLEFT, 0, 1)
   ui.dotHelp:SetText("Uptime from tick gaps · long gaps shown when Phase 3 data present · enchant/status not skill-refresh")
   for i = 1, WEAVE_DOT_ROWS do
@@ -9186,7 +9198,7 @@ local function createWeaveUI(screen)
     icon:SetDimensions(22, 22)
     stampForeground(icon, 110)
     local name = makeDashLabel(row, "DM2StatsMenuWeaveDotName" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
-    local sub = makeDashLabel(row, "DM2StatsMenuWeaveDotSub" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local sub = makeDashLabel(row, "DM2StatsMenuWeaveDotSub" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     local barBg = WM:CreateControl("DM2StatsMenuWeaveDotBarBg" .. i, row, CT_BACKDROP)
     barBg:SetCenterColor(0.12, 0.12, 0.14, 0.55)
     barBg:SetEdgeColor(0, 0, 0, 0)
@@ -9296,7 +9308,7 @@ local function layoutWeaveUI(ui, hostW, hostH)
   placeHdr(ui.hdrN, xN, nnW)
 
   local rowH = math.floor((skillH - rowTop - 6) / WEAVE_SKILL_ROWS)
-  if rowH < 24 then rowH = 24 end
+  if rowH < 1 then rowH = 1 end
   if rowH > 30 then rowH = 30 end
   for i = 1, WEAVE_SKILL_ROWS do
     local r = ui.skillRows[i]
@@ -9334,9 +9346,9 @@ local function layoutWeaveUI(ui, hostW, hostH)
   ui.dotPanel:SetDimensions(W, dotH)
   ui.dotTitle:SetWidth(W - 20)
   ui.dotHelp:SetWidth(W - 20)
-  local dTop = 36
+  local dTop = 40
   local dH = math.floor((dotH - dTop - 4) / WEAVE_DOT_ROWS)
-  if dH < 22 then dH = 22 end
+  if dH < 1 then dH = 1 end
   if dH > 28 then dH = 28 end
   -- Name left; longer gap/uptime text; bars shifted ~20% right
   local nameColW = math.min(220, math.max(140, math.floor(W * 0.22)))
@@ -9711,7 +9723,7 @@ local function buildWornGearRows()
 end
 
 local function createGearUI(screen)
-  if screen.gearUI and not screen.gearUI._v3151 then screen.gearUI = nil end
+  if screen.gearUI and not screen.gearUI._v31806 then screen.gearUI = nil end
   if screen.gearUI then return screen.gearUI end
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.gear
@@ -9721,7 +9733,7 @@ local function createGearUI(screen)
     setLines = {},
     wornRows = {},
     barIcons = { front = {}, back = {} },
-    _v3151 = true,
+    _v31806 = true,
   }
 
   ui.root = WM:CreateControl("DM2StatsMenuGearRootV9", panel, CT_CONTROL)
@@ -9777,15 +9789,15 @@ local function createGearUI(screen)
 
   ui.wornTitle = makeDashLabel(ui.listPanel, "DM2StatsMenuGearWornTitleV9", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.wornTitle:SetText("Live worn  ·  names colored by upgrade quality")
-  ui.wornQuality = makeDashLabel(ui.listPanel, "DM2StatsMenuGearWornQV9", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.wornQuality = makeDashLabel(ui.listPanel, "DM2StatsMenuGearWornQV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.wornQuality:SetText("|cEECC4CGold|r · |cB366F2Purple|r · |c59A6F2Blue|r · |cEB7A1FMythic|r · green/white = not golded")
-  ui.hdrSlot = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrSlotV9", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.hdrSlot = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrSlotV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.hdrSlot:SetText("Slot")
-  ui.hdrItem = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrItemV9", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.hdrItem = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrItemV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.hdrItem:SetText("Item (quality color)")
-  ui.hdrTrait = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrTraitV9", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.hdrTrait = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrTraitV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.hdrTrait:SetText("Trait")
-  ui.hdrEnch = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrEnchV9", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.hdrEnch = makeDashLabel(ui.listPanel, "DM2StatsMenuGearHdrEnchV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.hdrEnch:SetText("Enchantment")
 
   for i = 1, GEAR_WORN_ROWS do
@@ -9878,13 +9890,13 @@ local function layoutGearUI(ui, hostW, hostH)
   ui.wornTitle:ClearAnchors()
   ui.wornTitle:SetAnchor(TOPLEFT, ui.listPanel, TOPLEFT, 12, y)
   ui.wornTitle:SetWidth(W - 24)
-  y = y + 16
+  y = y + 18
   if ui.wornQuality then
     ui.wornQuality:ClearAnchors()
     ui.wornQuality:SetAnchor(TOPLEFT, ui.listPanel, TOPLEFT, 12, y)
     ui.wornQuality:SetWidth(W - 24)
   end
-  y = y + 16
+  y = y + 18
 
   -- Slot | Item | Trait (long) | Enchantment (long, starts further right)
   -- Fixed columns so long trait text does not shove enchant out of alignment.
@@ -9917,10 +9929,10 @@ local function layoutGearUI(ui, hostW, hostH)
   ui.hdrEnch:ClearAnchors()
   ui.hdrEnch:SetAnchor(TOPLEFT, ui.listPanel, TOPLEFT, enchCol, y)
   ui.hdrEnch:SetWidth(enchW)
-  y = y + 16
+  y = y + 18
 
   local rowH = math.floor((listH - y - 4) / GEAR_WORN_ROWS)
-  if rowH < 22 then rowH = 22 end
+  if rowH < 1 then rowH = 1 end
   if rowH > 28 then rowH = 28 end
   for i = 1, GEAR_WORN_ROWS do
     local r = ui.wornRows[i]
@@ -10049,7 +10061,7 @@ end
 -- Rotation: summary + fine pulse + skill icons + pattern tips
 ---------------------------------------------------------------------
 local function createRotationUI(screen)
-  if screen.rotationUI and not screen.rotationUI._v31805 then
+  if screen.rotationUI and not screen.rotationUI._v31806 then
     if screen.rotationUI.root and type(screen.rotationUI.root.SetHidden) == "function" then
       screen.rotationUI.root:SetHidden(true)
     end
@@ -10059,7 +10071,7 @@ local function createRotationUI(screen)
   ensureContentHost(screen)
   local panel = screen.contentPanels and screen.contentPanels.rotation
   if not panel then return nil end
-  local ui = { panel = panel, pulse = {}, icons = {}, patterns = {}, _v31805 = true }
+  local ui = { panel = panel, pulse = {}, icons = {}, patterns = {}, _v31806 = true }
 
   ui.root = WM:CreateControl("DM2StatsMenuRotRootV8", panel, CT_CONTROL)
   ui.root:SetAnchor(TOPLEFT, panel, TOPLEFT, 4, 2)
@@ -10067,7 +10079,7 @@ local function createRotationUI(screen)
   ui.title = makeDashLabel(ui.root, "DM2StatsMenuRotTitleV8", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.title:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 0)
   ui.title:SetText("ROTATION DIAGNOSTICS")
-  ui.meta = makeDashLabel(ui.root, "DM2StatsMenuRotMetaV8", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.meta = makeDashLabel(ui.root, "DM2StatsMenuRotMetaV8", 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.meta:SetAnchor(TOPLEFT, ui.title, BOTTOMLEFT, 0, 2)
   ui.meta:SetText("|c66FF66border = good|r  |cFFCC66late|r  |cFF6666missed|r  |c66AAFFtoo fast|r  ·  top bar = cast pace  ·  |c88DDAAS|r swap / |cFFAA66U|r ult under icons")
 
@@ -10106,10 +10118,10 @@ local function createRotationUI(screen)
   ui.iconTitle:SetText("SKILL TIMELINE  ·  |c88DDAAS|r bar swap · |cFFAA66U|r ult under icon = when it happened")
   ui.iconWrap = WM:CreateControl("DM2StatsMenuRotIconWrapV8", ui.iconPanel, CT_CONTROL)
   -- Legend line only (per-icon S/U tags are under each halo)
-  ui.iconMarkerLine = makeDashLabel(ui.iconPanel, "DM2StatsMenuRotIconMarkV8", 11, 0.55, 0.75, 0.70, 1)
+  ui.iconMarkerLine = makeDashLabel(ui.iconPanel, "DM2StatsMenuRotIconMarkV8", 13, 0.55, 0.75, 0.70, 1)
   ui.iconMarkerLine:SetMaxLineCount(1)
   -- Pace key sits one line above the visible-icons footer.
-  ui.iconPaceLine = makeDashLabel(ui.iconPanel, "DM2StatsMenuRotIconPaceV11", 11, 0.72, 0.90, 0.78, 1)
+  ui.iconPaceLine = makeDashLabel(ui.iconPanel, "DM2StatsMenuRotIconPaceV11", 13, 0.72, 0.90, 0.78, 1)
   ui.iconPaceLine:SetMaxLineCount(1)
   -- Nested: avoid extra main-chunk locals (ESO 200-local cap).
   ui.ensurePool = function(needed)
@@ -10224,10 +10236,10 @@ local function layoutRotationUI(ui, hostW, hostH)
   ui.iconWrap:ClearAnchors()
   ui.iconWrap:SetAnchor(TOPLEFT, ui.iconPanel, TOPLEFT, 8, 22)
   -- Room for S/U tags, then the pace key, then the visible-icons line.
-  ui.iconWrap:SetDimensions(W - 16, math.max(40, iconH - 58))
+  ui.iconWrap:SetDimensions(W - 16, math.max(40, iconH - 74))
   if ui.iconPaceLine then
     ui.iconPaceLine:ClearAnchors()
-    ui.iconPaceLine:SetAnchor(BOTTOMLEFT, ui.iconPanel, BOTTOMLEFT, 12, -20)
+    ui.iconPaceLine:SetAnchor(BOTTOMLEFT, ui.iconPanel, BOTTOMLEFT, 12, -36)
     ui.iconPaceLine:SetWidth(W - 24)
   end
   if ui.iconMarkerLine then
@@ -10621,16 +10633,106 @@ local function buildNextTestStub(session, diag, syn, profile)
 end
 
 local function createInsightsUI(screen, mode)
+  -- Meter helpers live on M so this chunk does not gain another local.
+  if not M.PaintInsightMeter then
+    function M.MakeInsightMeter(parent, name)
+      local bg = WM:CreateControl(name .. "Bg", parent, CT_BACKDROP)
+      bg:SetCenterColor(0.10, 0.11, 0.13, 0.75)
+      bg:SetEdgeColor(0, 0, 0, 0)
+      bg:SetHidden(true)
+      stampBackground(bg, 6)
+      local fg = WM:CreateControl(name .. "Fg", bg, CT_BACKDROP)
+      fg:SetCenterColor(0.45, 0.78, 0.55, 0.92)
+      fg:SetEdgeColor(0, 0, 0, 0)
+      fg:SetAnchor(TOPLEFT, bg, TOPLEFT, 0, 0)
+      fg:SetDimensions(2, 6)
+      stampForeground(fg, 100)
+      local tick = WM:CreateControl(name .. "Tk", bg, CT_BACKDROP)
+      tick:SetCenterColor(0.96, 0.90, 0.55, 0.96)
+      tick:SetEdgeColor(0, 0, 0, 0)
+      tick:SetDimensions(2, 8)
+      tick:SetHidden(true)
+      stampForeground(tick, 120)
+      local pip = WM:CreateControl(name .. "Pip", parent, CT_BACKDROP)
+      pip:SetCenterColor(0.45, 0.78, 0.55, 0.95)
+      pip:SetEdgeColor(0.25, 0.45, 0.28, 0.5)
+      pip:SetDimensions(7, 7)
+      pip:SetHidden(true)
+      stampForeground(pip, 120)
+      return { bg = bg, fg = fg, tick = tick, pip = pip, w = 80, h = 6 }
+    end
+    function M.PaintInsightMeter(meter, pct, tickAt, tone, showPip)
+      if not meter or not meter.bg then return end
+      if pct == nil then
+        meter.bg:SetHidden(true)
+        if meter.pip then meter.pip:SetHidden(true) end
+        if meter.tick then meter.tick:SetHidden(true) end
+        return
+      end
+      local p = tonumber(pct) or 0
+      if p < 0 then p = 0 end
+      if p > 1 then p = 1 end
+      local w = tonumber(meter.w) or 80
+      local h = tonumber(meter.h) or 6
+      meter.bg:SetHidden(false)
+      meter.fg:ClearAnchors()
+      meter.fg:SetAnchor(TOPLEFT, meter.bg, TOPLEFT, 0, 0)
+      meter.fg:SetDimensions(math.max(2, math.floor(w * p)), h)
+      if tone == "est" then
+        meter.fg:SetCenterColor(0.55, 0.75, 0.88, 0.38)
+      elseif tone == "warn" then
+        meter.fg:SetCenterColor(0.93, 0.62, 0.28, 0.94)
+      elseif tone == "good" then
+        meter.fg:SetCenterColor(0.40, 0.82, 0.48, 0.94)
+      elseif p < 0.72 then
+        meter.fg:SetCenterColor(0.93, 0.62, 0.28, 0.94)
+      elseif p >= 0.85 then
+        meter.fg:SetCenterColor(0.40, 0.82, 0.48, 0.94)
+      else
+        meter.fg:SetCenterColor(0.45, 0.72, 0.88, 0.92)
+      end
+      if meter.tick then
+        local t = tonumber(tickAt)
+        if t then
+          if t < 0 then t = 0 end
+          if t > 1 then t = 1 end
+          meter.tick:ClearAnchors()
+          meter.tick:SetAnchor(TOPLEFT, meter.bg, TOPLEFT, math.max(0, math.floor(w * t) - 1), -1)
+          meter.tick:SetDimensions(2, h + 2)
+          meter.tick:SetHidden(false)
+        else
+          meter.tick:SetHidden(true)
+        end
+      end
+      if meter.pip then
+        if showPip == false then
+          meter.pip:SetHidden(true)
+        else
+          meter.pip:SetHidden(false)
+          if tone == "est" then
+            meter.pip:SetCenterColor(0.06, 0.07, 0.08, 0.15)
+            meter.pip:SetEdgeColor(0.78, 0.86, 0.94, 0.95)
+          elseif tone == "warn" or (tone == nil and p < 0.72) then
+            meter.pip:SetCenterColor(0.93, 0.62, 0.28, 0.95)
+            meter.pip:SetEdgeColor(0.45, 0.28, 0.12, 0.4)
+          else
+            meter.pip:SetCenterColor(0.40, 0.82, 0.48, 0.95)
+            meter.pip:SetEdgeColor(0.2, 0.45, 0.25, 0.45)
+          end
+        end
+      end
+    end
+  end
   -- mode: "dps" | "build" — split for readability / room to grow
   mode = (mode == "build") and "build" or "dps"
   local storeKey = (mode == "build") and "insightsBuildUI" or "insightsDpsUI"
-  if screen[storeKey] and not screen[storeKey]._v3180 then screen[storeKey] = nil end
+  if screen[storeKey] and not screen[storeKey]._v31806 then screen[storeKey] = nil end
   if screen[storeKey] then
     local existing = screen[storeKey]
     -- Lazy-add Next Test action line (2.5.3) without full rebuild
     if mode == "dps" and existing.nextPanel and not existing.nextAction then
       local pfx = "DM2StatsMenuInDps"
-      existing.nextAction = makeDashLabel(existing.nextPanel, pfx .. "NextActV6", 12, 0.55, 0.92, 0.75, 1)
+      existing.nextAction = makeDashLabel(existing.nextPanel, pfx .. "NextActV6", 14, 0.55, 0.92, 0.75, 1)
     end
     return existing
   end
@@ -10652,7 +10754,7 @@ local function createInsightsUI(screen, mode)
     ibCpStory = {},
     ibCpRows = {},
     ibPot = {},
-    _v3180 = true,
+    _v31806 = true,
   }
   local pfx = (mode == "build") and "DM2StatsMenuInBld" or "DM2StatsMenuInDps"
   local rootName = pfx .. "Root"
@@ -10663,51 +10765,63 @@ local function createInsightsUI(screen, mode)
   ui.title = makeDashLabel(ui.root, pfx .. "Title", 18, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.title:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 0)
   ui.title:SetText(mode == "build" and "INSIGHTS: BUILD  ·  contribution & fit" or "INSIGHTS: DPS  ·  diagnosis & next test")
-  ui.meta = makeDashLabel(ui.root, pfx .. "Meta", 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.meta = makeDashLabel(ui.root, pfx .. "Meta", 15, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.meta:SetAnchor(TOPLEFT, ui.title, BOTTOMLEFT, 0, 2)
-  ui.profileBadge = makeDashLabel(ui.root, pfx .. "Profile", 13, 0.85, 0.78, 0.45, 1)
+  ui.profileBadge = makeDashLabel(ui.root, pfx .. "Profile", 15, 0.85, 0.78, 0.45, 1)
   ui.profileBadge:SetAnchor(TOPRIGHT, ui.root, TOPRIGHT, -4, 2)
-  ui.assumption = makeDashLabel(ui.root, pfx .. "Assume", 13, 0.90, 0.82, 0.55, 1)
+  ui.assumption = makeDashLabel(ui.root, pfx .. "Assume", 15, 0.90, 0.82, 0.55, 1)
   ui.assumption:SetAnchor(TOPLEFT, ui.meta, BOTTOMLEFT, 0, 2)
   ui.assumption:SetMaxLineCount(2)
 
   ui.diagPanel = WM:CreateControl(pfx .. "Diag", ui.root, CT_CONTROL)
   local dbg = makeSectionFrame(ui.diagPanel, pfx .. "DiagBG", true)
   dbg:SetAnchorFill(ui.diagPanel)
-  ui.diagTitle = makeDashLabel(ui.diagPanel, pfx .. "DiagTitleV6", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.diagTitle = makeDashLabel(ui.diagPanel, pfx .. "DiagTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.diagTitle:SetText("1  PARSE DIAGNOSIS")
-  ui.headline = makeDashLabel(ui.diagPanel, pfx .. "HeadlineV6", 16, THEME.textR, THEME.textG, THEME.textB, 1)
-  ui.primary = makeDashLabel(ui.diagPanel, pfx .. "PrimaryV6", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.headline = makeDashLabel(ui.diagPanel, pfx .. "HeadlineV6", 18, THEME.textR, THEME.textG, THEME.textB, 1)
+  ui.primary = makeDashLabel(ui.diagPanel, pfx .. "PrimaryV6", 15, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.primary:SetMaxLineCount(2)
-  ui.phase = makeDashLabel(ui.diagPanel, pfx .. "PhaseV6", 13, THEME.textR, THEME.textG, THEME.textB, 1)
-  ui.limitsHdr = makeDashLabel(ui.diagPanel, pfx .. "LimitsHdrV6", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.phase = makeDashLabel(ui.diagPanel, pfx .. "PhaseV6", 15, THEME.textR, THEME.textG, THEME.textB, 1)
+  ui.limitsHdr = makeDashLabel(ui.diagPanel, pfx .. "LimitsHdrV6", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.limitsHdr:SetText("Top limits (estimated recovery)")
   for i = 1, INSIGHT_DIAG_OPP do
     local row = WM:CreateControl(pfx .. "OppV6_" .. i, ui.diagPanel, CT_CONTROL)
-    local rank = makeDashLabel(row, pfx .. "OppRankV6_" .. i, 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    local title = makeDashLabel(row, pfx .. "OppNameV6_" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
-    local est = makeDashLabel(row, pfx .. "OppEstV6_" .. i, 13, 0.95, 0.72, 0.35, 1)
+    local rank = makeDashLabel(row, pfx .. "OppRankV6_" .. i, 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    local title = makeDashLabel(row, pfx .. "OppNameV6_" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    local est = makeDashLabel(row, pfx .. "OppEstV6_" .. i, 15, 0.95, 0.72, 0.35, 1)
     est:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local ev = makeDashLabel(row, pfx .. "OppEvV6_" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    ui.oppRows[i] = { row = row, rank = rank, title = title, est = est, ev = ev }
+    local ev = makeDashLabel(row, pfx .. "OppEvV6_" .. i, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    ui.oppRows[i] = {
+      row = row, rank = rank, title = title, est = est, ev = ev,
+      meter = M.MakeInsightMeter(row, pfx .. "OppMeter" .. i),
+    }
+  end
+  ui.phaseMeters = {}
+  for i = 1, 3 do
+    ui.phaseMeters[i] = M.MakeInsightMeter(ui.diagPanel, pfx .. "PhM" .. i)
   end
 
   ui.wastePanel = WM:CreateControl(pfx .. "WasteV6", ui.root, CT_CONTROL)
   local wbg = makeSectionFrame(ui.wastePanel, pfx .. "WasteBGV6", true)
   wbg:SetAnchorFill(ui.wastePanel)
-  ui.wasteTitle = makeDashLabel(ui.wastePanel, pfx .. "WasteTitleV6", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.wasteTitle = makeDashLabel(ui.wastePanel, pfx .. "WasteTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.wasteTitle:SetText("2  WASTED OR MISSING VALUE")
+  ui.meterLegend = makeDashLabel(ui.wastePanel, pfx .. "MeterKey", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.meterLegend:SetText("tick = reference   ·   filled = observed   ·   hollow = estimated")
+  ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+  ui.wasteMeters = {}
   for i = 1, INSIGHT_WASTE_LINES do
-    ui.wasteLines[i] = makeDashLabel(ui.wastePanel, pfx .. "WasteL6_" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.wasteLines[i] = makeDashLabel(ui.wastePanel, pfx .. "WasteL6_" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.wasteMeters[i] = M.MakeInsightMeter(ui.wastePanel, pfx .. "WstM" .. i)
   end
 
   ui.buildPanel = WM:CreateControl(pfx .. "BuildV6", ui.root, CT_CONTROL)
   local bbg = makeSectionFrame(ui.buildPanel, pfx .. "BuildBGV6", true)
   bbg:SetAnchorFill(ui.buildPanel)
-  ui.buildTitle = makeDashLabel(ui.buildPanel, pfx .. "BuildTitleV6", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.buildTitle = makeDashLabel(ui.buildPanel, pfx .. "BuildTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.buildTitle:SetText(mode == "build" and "INSIGHTS: BUILD  ·  what you brought, and did it pay" or "3  BUILD CONTRIBUTION")
-  ui.buildMix = makeDashLabel(ui.buildPanel, pfx .. "BuildMixV6", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-  ui.buildFp = makeDashLabel(ui.buildPanel, pfx .. "BuildFpV6", 12, 0.85, 0.78, 0.45, 1)
+  ui.buildMix = makeDashLabel(ui.buildPanel, pfx .. "BuildMixV6", 15, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.buildFp = makeDashLabel(ui.buildPanel, pfx .. "BuildFpV6", 15, 0.85, 0.78, 0.45, 1)
   ui.buildSrcHdr = makeDashLabel(ui.buildPanel, pfx .. "BuildSrcHdrV6", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.buildSrcHdr:SetText("Top damage sources")
   ui.buildCpHdr = makeDashLabel(ui.buildPanel, pfx .. "BuildCpHdrV6", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
@@ -10735,67 +10849,90 @@ local function createInsightsUI(screen, mode)
 
   -- 3.18.0 Insights: Build stacked sections (not the old two-column src/CP clone)
   if mode == "build" then
-    ui.ibSetHdr = makeDashLabel(ui.buildPanel, pfx .. "IbSetHdr", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibSetHdr = makeDashLabel(ui.buildPanel, pfx .. "IbSetHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.ibSetHdr:SetText("B  SETS")
-    ui.ibSetNote = makeDashLabel(ui.buildPanel, pfx .. "IbSetNote", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    ui.ibSetNote = makeDashLabel(ui.buildPanel, pfx .. "IbSetNote", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     ui.ibSetNote:SetMaxLineCount(2)
     for i = 1, IB_SET_ROWS do
-      local line = makeDashLabel(ui.buildPanel, pfx .. "IbSet" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+      local line = makeDashLabel(ui.buildPanel, pfx .. "IbSet" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
       ui.ibSetRows[i] = line
     end
-    ui.ibBroughtHdr = makeDashLabel(ui.buildPanel, pfx .. "IbBrHdr", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibBroughtHdr = makeDashLabel(ui.buildPanel, pfx .. "IbBrHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.ibBroughtHdr:SetText("C  WHAT YOU BROUGHT")
     for i = 1, IB_BROUGHT do
-      ui.ibBrought[i] = makeDashLabel(ui.buildPanel, pfx .. "IbBr" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+      ui.ibBrought[i] = makeDashLabel(ui.buildPanel, pfx .. "IbBr" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
     end
-    ui.ibCpHdr = makeDashLabel(ui.buildPanel, pfx .. "IbCpHdr", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibCpHdr = makeDashLabel(ui.buildPanel, pfx .. "IbCpHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.ibCpHdr:SetText("D  CHAMPION POINTS")
     for i = 1, IB_CP_STORY do
-      ui.ibCpStory[i] = makeDashLabel(ui.buildPanel, pfx .. "IbCpS" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+      ui.ibCpStory[i] = makeDashLabel(ui.buildPanel, pfx .. "IbCpS" .. i, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     end
     for i = 1, IB_CP_ROWS do
       local row = WM:CreateControl(pfx .. "IbCpR" .. i, ui.buildPanel, CT_CONTROL)
-      local fit = makeDashLabel(row, pfx .. "IbCpF" .. i, 12, 0.45, 0.92, 0.55, 1)
-      local name = makeDashLabel(row, pfx .. "IbCpN" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
-      local impact = makeDashLabel(row, pfx .. "IbCpI" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+      local fit = makeDashLabel(row, pfx .. "IbCpF" .. i, 14, 0.45, 0.92, 0.55, 1)
+      local name = makeDashLabel(row, pfx .. "IbCpN" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
+      local impact = makeDashLabel(row, pfx .. "IbCpI" .. i, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
       ui.ibCpRows[i] = { row = row, fit = fit, name = name, impact = impact }
     end
-    ui.ibBarHdr = makeDashLabel(ui.buildPanel, pfx .. "IbBarHdr", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibBarHdr = makeDashLabel(ui.buildPanel, pfx .. "IbBarHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.ibBarHdr:SetText("E  FRONT / BACK")
-    ui.ibBarLine = makeDashLabel(ui.buildPanel, pfx .. "IbBarL", 12, THEME.textR, THEME.textG, THEME.textB, 1)
-    ui.ibPotHdr = makeDashLabel(ui.buildPanel, pfx .. "IbPotHdr", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibBarLine = makeDashLabel(ui.buildPanel, pfx .. "IbBarL", 14, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.ibPotHdr = makeDashLabel(ui.buildPanel, pfx .. "IbPotHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.ibPotHdr:SetText("F  POTIONS")
     for i = 1, IB_POT_LINES do
-      ui.ibPot[i] = makeDashLabel(ui.buildPanel, pfx .. "IbPot" .. i, 12, THEME.textR, THEME.textG, THEME.textB, 1)
+      ui.ibPot[i] = makeDashLabel(ui.buildPanel, pfx .. "IbPot" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
     end
-    ui.ibNextHdr = makeDashLabel(ui.buildPanel, pfx .. "IbNxHdr", 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibNextHdr = makeDashLabel(ui.buildPanel, pfx .. "IbNxHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.ibNextHdr:SetText("G  BUILD NEXT TEST")
-    ui.ibNextHead = makeDashLabel(ui.buildPanel, pfx .. "IbNxH", 13, 0.98, 0.84, 0.40, 1)
-    ui.ibNextBody = makeDashLabel(ui.buildPanel, pfx .. "IbNxB", 12, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.ibNextHead = makeDashLabel(ui.buildPanel, pfx .. "IbNxH", 16, 0.98, 0.84, 0.40, 1)
+    ui.ibNextBody = makeDashLabel(ui.buildPanel, pfx .. "IbNxB", 14, THEME.textR, THEME.textG, THEME.textB, 1)
     ui.ibNextBody:SetMaxLineCount(3)
-    ui.ibFoot = makeDashLabel(ui.buildPanel, pfx .. "IbFoot", 11, 0.50, 0.50, 0.46, 1)
+    ui.ibFoot = makeDashLabel(ui.buildPanel, pfx .. "IbFoot", 13, 0.50, 0.50, 0.46, 1)
+    ui.ibSetMeters = {}
+    for i = 1, IB_SET_ROWS do
+      ui.ibSetMeters[i] = M.MakeInsightMeter(ui.buildPanel, pfx .. "SetM" .. i)
+    end
+    for i = 1, IB_CP_ROWS do
+      if ui.ibCpRows[i] then
+        ui.ibCpRows[i].meter = M.MakeInsightMeter(ui.ibCpRows[i].row, pfx .. "CpM" .. i)
+      end
+    end
+    ui.ibBarMeter = M.MakeInsightMeter(ui.buildPanel, pfx .. "BarM")
+    ui.ibPotMeter = M.MakeInsightMeter(ui.buildPanel, pfx .. "PotM")
   end
 
   ui.execPanel = WM:CreateControl(pfx .. "ExecV6", ui.root, CT_CONTROL)
   local ebg = makeSectionFrame(ui.execPanel, pfx .. "ExecBGV6", true)
   ebg:SetAnchorFill(ui.execPanel)
-  ui.execTitle = makeDashLabel(ui.execPanel, pfx .. "ExecTitleV6", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.execTitle = makeDashLabel(ui.execPanel, pfx .. "ExecTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.execTitle:SetText("4  EXECUTION")
-  ui.execSummary = makeDashLabel(ui.execPanel, pfx .. "ExecSumV6", 13, THEME.textR, THEME.textG, THEME.textB, 1)
+  ui.execSummary = makeDashLabel(ui.execPanel, pfx .. "ExecSumV6", 15, THEME.textR, THEME.textG, THEME.textB, 1)
   for i = 1, INSIGHT_EXEC_LINES do
-    ui.execLines[i] = makeDashLabel(ui.execPanel, pfx .. "ExecL6_" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.execLines[i] = makeDashLabel(ui.execPanel, pfx .. "ExecL6_" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
   end
+  ui.execPace = M.MakeInsightMeter(ui.execPanel, pfx .. "PaceM")
 
   ui.nextPanel = WM:CreateControl(pfx .. "NextV6", ui.root, CT_CONTROL)
   local nbg = makeSectionFrame(ui.nextPanel, pfx .. "NextBGV6", true)
   nbg:SetAnchorFill(ui.nextPanel)
-  ui.nextTitle = makeDashLabel(ui.nextPanel, pfx .. "NextTitleV6", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  ui.nextTitle = makeDashLabel(ui.nextPanel, pfx .. "NextTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.nextTitle:SetText("5  NEXT TEST")
-  ui.nextHead = makeDashLabel(ui.nextPanel, pfx .. "NextHeadV6", 15, 0.98, 0.84, 0.40, 1)
-  ui.nextBody = makeDashLabel(ui.nextPanel, pfx .. "NextBodyV6", 13, THEME.textR, THEME.textG, THEME.textB, 1)
+  ui.nextHead = makeDashLabel(ui.nextPanel, pfx .. "NextHeadV6", 17, 0.98, 0.84, 0.40, 1)
+  ui.nextBody = makeDashLabel(ui.nextPanel, pfx .. "NextBodyV6", 15, THEME.textR, THEME.textG, THEME.textB, 1)
   ui.nextBody:SetMaxLineCount(3)
-  ui.nextAction = makeDashLabel(ui.nextPanel, pfx .. "NextActV6", 12, 0.55, 0.92, 0.75, 1)
-  ui.disclaimer = makeDashLabel(ui.nextPanel, pfx .. "DiscV6", 11, 0.50, 0.50, 0.46, 1)
+  ui.nextAction = makeDashLabel(ui.nextPanel, pfx .. "NextActV6", 14, 0.55, 0.92, 0.75, 1)
+  ui.disclaimer = makeDashLabel(ui.nextPanel, pfx .. "DiscV6", 13, 0.50, 0.50, 0.46, 1)
+  ui.disclaimer:SetMaxLineCount(2)
+  ui.nextPips = {}
+  for i = 1, 3 do
+    local pip = WM:CreateControl(pfx .. "ExpPip" .. i, ui.nextPanel, CT_BACKDROP)
+    pip:SetDimensions(8, 8)
+    pip:SetCenterColor(0.08, 0.09, 0.10, 0.3)
+    pip:SetEdgeColor(0.75, 0.82, 0.88, 0.9)
+    pip:SetHidden(true)
+    stampForeground(pip, 120)
+    ui.nextPips[i] = pip
+  end
 
   -- Hide sections not for this mode (full room for larger type)
   if mode == "dps" then
@@ -10819,11 +10956,15 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.root:ClearAnchors()
   ui.root:SetAnchor(TOPLEFT, ui.panel, TOPLEFT, 2, 0)
   ui.root:SetDimensions(W, H)
+  ui.title:ClearAnchors()
+  ui.title:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 0)
   ui.title:SetWidth(math.floor(W * 0.62))
+  ui.meta:ClearAnchors()
+  ui.meta:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 24)
   ui.meta:SetWidth(math.floor(W * 0.92))
   if ui.assumption then
     ui.assumption:ClearAnchors()
-    ui.assumption:SetAnchor(TOPLEFT, ui.meta, BOTTOMLEFT, 0, 2)
+    ui.assumption:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 44)
     ui.assumption:SetWidth(W - 8)
   end
   if ui.profileBadge then
@@ -10833,27 +10974,41 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.profileBadge:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   end
 
-  -- Extra headroom so profile assumption line is not clipped by section #3 box
-  local y0 = (ui.mode == "build") and 72 or 58
+  -- Header is title + meta + two-line assumption. Sections start under that.
+  local y0 = 82
   local gap = 5
   local mode = ui.mode or "dps"
   local heights, panels
   if mode == "build" then
-    -- Build page: one large contribution panel, start slightly lower
     heights = { H - y0 - 4 }
     panels = { ui.buildPanel }
     if ui.buildPanel then ui.buildPanel:SetHidden(false) end
   else
-    -- DPS page: diagnosis, waste, execution, next test (no build)
-    local weights = { 0.32, 0.28, 0.18, 0.22 }
     local avail = H - y0 - gap * 3 - 2
+    -- Next is tall enough for a 17pt head, three lines of body, the action, and the disclaimer.
+    local mins = { 192, 188, 150, 164 }
+    local minSum = 694
     heights = {}
-    local sum = 0
-    for i, w in ipairs(weights) do
-      heights[i] = math.floor(avail * w)
-      sum = sum + heights[i]
+    if avail >= minSum then
+      local extra = avail - minSum
+      local addW = math.min(extra, 10)
+      if extra > 10 then addW = 10 + math.floor((extra - 10) * 0.45) end
+      local remain = extra - addW
+      local addE = math.floor(remain * 0.55)
+      local addD = remain - addE
+      heights[1] = mins[1] + addD
+      heights[2] = mins[2] + addW
+      heights[3] = mins[3] + addE
+      heights[4] = mins[4]
+    else
+      local scale = avail / minSum
+      local got = 0
+      for i = 1, 4 do
+        heights[i] = math.max(64, math.floor(mins[i] * scale))
+        got = got + heights[i]
+      end
+      heights[1] = heights[1] + (avail - got)
     end
-    heights[1] = heights[1] + (avail - sum)
     panels = { ui.diagPanel, ui.wastePanel, ui.execPanel, ui.nextPanel }
   end
 
@@ -10866,78 +11021,126 @@ local function layoutInsightsUI(ui, hostW, hostH)
       y = y + (heights[i] or 100) + gap
     end
   end
-  -- For dps mode, still need layout dimensions for build panel (hidden)
   if mode == "dps" and ui.buildPanel then
     ui.buildPanel:SetHidden(true)
   end
-  -- Map heights for rest of layout that indexes heights[1..5]
   if mode == "dps" then
-    -- reuse local heights as h1..h4; set dummies for old indices
-    local h1, h2, h3, h4 = heights[1], heights[2], heights[3], heights[4]
-    heights = { h1, h2, 0, h3, h4 }
+    heights = { heights[1], heights[2], 0, heights[3], heights[4] }
   else
     heights = { 0, 0, heights[1], 0, 0 }
   end
 
-  local dH = heights[1] or 0
-  if mode ~= "build" and ui.diagPanel and not ui.diagPanel:IsHidden() then
-  ui.diagTitle:ClearAnchors()
-  ui.diagTitle:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 10, 4)
-  ui.diagTitle:SetWidth(W - 20)
-  ui.headline:ClearAnchors()
-  ui.headline:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, 22)
-  ui.headline:SetWidth(W - 24)
-  ui.primary:ClearAnchors()
-  ui.primary:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, 42)
-  ui.primary:SetWidth(W - 24)
-  ui.phase:ClearAnchors()
-  ui.phase:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, 68)
-  ui.phase:SetWidth(W - 24)
-  ui.limitsHdr:ClearAnchors()
-  ui.limitsHdr:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, 88)
-  ui.limitsHdr:SetWidth(W - 24)
-  local oppTop = 104
-  local oppH = math.max(20, math.floor((math.max(80, dH) - oppTop - 4) / INSIGHT_DIAG_OPP))
-  local nameW = math.min(240, math.max(140, math.floor(W * 0.30)))
-  local estW = 80
-  for i = 1, INSIGHT_DIAG_OPP do
-    local r = ui.oppRows[i]
-    if r then
-      r.row:ClearAnchors()
-      r.row:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 10, oppTop + (i - 1) * oppH)
-      r.row:SetDimensions(W - 20, oppH - 1)
-      r.rank:ClearAnchors()
-      r.rank:SetAnchor(LEFT, r.row, LEFT, 0, 0)
-      r.rank:SetWidth(18)
-      r.title:ClearAnchors()
-      r.title:SetAnchor(LEFT, r.row, LEFT, 20, 0)
-      r.title:SetWidth(nameW)
-      r.title:SetMaxLineCount(1)
-      r.est:ClearAnchors()
-      r.est:SetAnchor(LEFT, r.row, LEFT, 22 + nameW, 0)
-      r.est:SetWidth(estW)
-      r.ev:ClearAnchors()
-      r.ev:SetAnchor(LEFT, r.row, LEFT, 28 + nameW + estW, 0)
-      r.ev:SetWidth(math.max(120, W - 50 - nameW - estW))
-      r.ev:SetMaxLineCount(1)
+  local function placeTrack(meter, parent, right, top, barW, barH)
+    if not meter or not meter.bg or not parent then return end
+    barW = barW or 112
+    barH = barH or 6
+    meter.w = barW
+    meter.h = barH
+    meter.bg:ClearAnchors()
+    meter.bg:SetAnchor(TOPRIGHT, parent, TOPRIGHT, right, top)
+    meter.bg:SetDimensions(barW, barH)
+    if meter.pip then
+      meter.pip:ClearAnchors()
+      meter.pip:SetAnchor(RIGHT, meter.bg, LEFT, -4, 0)
+      meter.pip:SetDimensions(7, 7)
     end
   end
 
-  ui.wasteTitle:ClearAnchors()
-  ui.wasteTitle:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 10, 4)
-  ui.wasteTitle:SetWidth(W - 20)
-  local wTop = 22
-  local wRowH = math.max(18, math.floor((math.max(80, heights[2] or 100) - wTop - 4) / INSIGHT_WASTE_LINES))
-  for i = 1, INSIGHT_WASTE_LINES do
-    local line = ui.wasteLines[i]
-    if line then
-    line:ClearAnchors()
-    line:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 12, wTop + (i - 1) * wRowH)
-    line:SetWidth(W - 24)
-    line:SetMaxLineCount(1)
+  local dH = heights[1] or 0
+  if mode ~= "build" and ui.diagPanel and not ui.diagPanel:IsHidden() then
+    local spec = { 24, 46, 82, 100, 112, 130 }
+    local need = spec[6] + 52
+    if dH < need then
+      local scale = math.max(0.62, (dH - 8) / need)
+      for i = 1, 6 do spec[i] = math.max(4, math.floor(spec[i] * scale)) end
+    end
+    local headlineY, primaryY, phaseY = spec[1], spec[2], spec[3]
+    local phaseBarY, limitsY, oppTop = spec[4], spec[5], spec[6]
+    ui.diagTitle:ClearAnchors()
+    ui.diagTitle:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 10, 4)
+    ui.diagTitle:SetWidth(W - 20)
+    ui.headline:ClearAnchors()
+    ui.headline:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, headlineY)
+    ui.headline:SetWidth(W - 24)
+    ui.primary:ClearAnchors()
+    ui.primary:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, primaryY)
+    ui.primary:SetWidth(W - 24)
+    ui.phase:ClearAnchors()
+    ui.phase:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, phaseY)
+    ui.phase:SetWidth(W - 24)
+    local phaseW = math.max(48, math.floor((W - 40) / 3))
+    if ui.phaseMeters then
+      for i = 1, 3 do
+        local m = ui.phaseMeters[i]
+        if m and m.bg then
+          m.w = math.max(36, phaseW - 10)
+          m.h = 6
+          m.bg:ClearAnchors()
+          m.bg:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12 + (i - 1) * phaseW, phaseBarY)
+          m.bg:SetDimensions(m.w, 6)
+          if m.pip then m.pip:SetHidden(true) end
+        end
+      end
+    end
+    ui.limitsHdr:ClearAnchors()
+    ui.limitsHdr:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, limitsY)
+    ui.limitsHdr:SetWidth(W - 24)
+    local oppH = math.floor((dH - oppTop - 4) / INSIGHT_DIAG_OPP)
+    if oppH < 1 then oppH = 1 end
+    local nameW = math.min(220, math.max(120, math.floor(W * 0.26)))
+    local estW = 72
+    local meterW = 112
+    for i = 1, INSIGHT_DIAG_OPP do
+      local r = ui.oppRows[i]
+      if r then
+        r.row:ClearAnchors()
+        r.row:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 10, oppTop + (i - 1) * oppH)
+        r.row:SetDimensions(W - 20, math.max(1, oppH - 1))
+        r.rank:ClearAnchors()
+        r.rank:SetAnchor(LEFT, r.row, LEFT, 0, 0)
+        r.rank:SetWidth(22)
+        r.title:ClearAnchors()
+        r.title:SetAnchor(LEFT, r.row, LEFT, 24, 0)
+        r.title:SetWidth(nameW)
+        r.title:SetMaxLineCount(1)
+        r.est:ClearAnchors()
+        r.est:SetAnchor(LEFT, r.row, LEFT, 28 + nameW, 0)
+        r.est:SetWidth(estW)
+        local evX = 34 + nameW + estW
+        r.ev:ClearAnchors()
+        r.ev:SetAnchor(LEFT, r.row, LEFT, evX, 0)
+        r.ev:SetWidth(math.max(60, W - 40 - evX - meterW))
+        r.ev:SetMaxLineCount(1)
+        placeTrack(r.meter, r.row, -4, math.max(0, math.floor((oppH - 8) / 2)), meterW, 6)
+      end
+    end
+
+    ui.wasteTitle:ClearAnchors()
+    ui.wasteTitle:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 10, 4)
+    ui.wasteTitle:SetWidth(math.floor(W * 0.42))
+    if ui.meterLegend then
+      ui.meterLegend:ClearAnchors()
+      ui.meterLegend:SetAnchor(TOPRIGHT, ui.wastePanel, TOPRIGHT, -10, 6)
+      ui.meterLegend:SetWidth(math.max(180, math.floor(W * 0.54)))
+      ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    end
+    local wTop = 26
+    local wRowH = math.floor(((heights[2] or 100) - wTop - 4) / INSIGHT_WASTE_LINES)
+    if wRowH < 1 then wRowH = 1 end
+    for i = 1, INSIGHT_WASTE_LINES do
+      local line = ui.wasteLines[i]
+      if line then
+        line:ClearAnchors()
+        line:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 12, wTop + (i - 1) * wRowH)
+        line:SetWidth(math.max(80, W - 36 - 128))
+        line:SetMaxLineCount(1)
+      end
+      if ui.wasteMeters then
+        placeTrack(ui.wasteMeters[i], ui.wastePanel, -12,
+          wTop + (i - 1) * wRowH + math.max(0, math.floor((wRowH - 8) / 2)), 112, 6)
+      end
     end
   end
-  end -- dps diagnosis/waste layout
 
   if ui.buildPanel and (mode == "build" or (heights[3] or 0) > 40) then
   ui.buildTitle:ClearAnchors()
@@ -10947,11 +11150,10 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.buildFp:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, 22)
   ui.buildFp:SetWidth(W - 24)
   ui.buildMix:ClearAnchors()
-  ui.buildMix:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, 40)
+  ui.buildMix:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, 42)
   ui.buildMix:SetWidth(W - 24)
 
   if mode == "build" and ui.ibSetHdr then
-    -- Hide the old two-column clone (Damage / Build & Sets overlap)
     if ui.buildSrcHdr then ui.buildSrcHdr:SetHidden(true) end
     if ui.buildCpHdr then ui.buildCpHdr:SetHidden(true) end
     for i = 1, INSIGHT_BUILD_SRC do
@@ -10960,76 +11162,99 @@ local function layoutInsightsUI(ui, hostW, hostH)
     for i = 1, INSIGHT_BUILD_CP do
       if ui.buildCps[i] then ui.buildCps[i].row:SetHidden(true) end
     end
-    local y = 62
+    local buildH = heights[3] or 200
+    local lineH, cpPitch, noteH = 16, 20, 32
+    local function stackH(lh, ch, nh)
+      return 58 + (6 * 20) + nh + 20 + 20 + 48 + 24 + (17 * lh) + (4 * ch)
+    end
+    while stackH(lineH, cpPitch, noteH) > buildH - 22 and lineH > 14 do
+      lineH = lineH - 1
+      if cpPitch > lineH + 2 then cpPitch = cpPitch - 1 end
+    end
+    local yb = 58
     local innerW = W - 24
+    local meterReserve = 132
     local function placeHdr(lbl, textY)
       if not lbl then return textY end
       lbl:ClearAnchors()
       lbl:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, textY)
       lbl:SetWidth(innerW)
-      return textY + 16
+      return textY + 20
     end
-    local function placeLine(lbl, textY, h)
+    local function placeLine(lbl, textY, h, reserve)
       if not lbl then return textY end
       lbl:ClearAnchors()
       lbl:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, textY)
-      lbl:SetWidth(innerW - 4)
+      lbl:SetWidth(math.max(40, innerW - 4 - (reserve or 0)))
       lbl:SetMaxLineCount(1)
-      return textY + (h or 16)
+      return textY + (h or lineH)
     end
-    y = placeHdr(ui.ibSetHdr, y)
-    y = placeLine(ui.ibSetNote, y, 28)
+    yb = placeHdr(ui.ibSetHdr, yb)
+    yb = placeLine(ui.ibSetNote, yb, noteH, 0)
     if ui.ibSetNote then ui.ibSetNote:SetMaxLineCount(2) end
     for i = 1, IB_SET_ROWS do
-      y = placeLine(ui.ibSetRows[i], y, 16)
+      local yLine = yb
+      yb = placeLine(ui.ibSetRows[i], yb, lineH, meterReserve)
+      if ui.ibSetMeters then
+        placeTrack(ui.ibSetMeters[i], ui.buildPanel, -12,
+          yLine + math.max(0, math.floor((lineH - 7) / 2)), 108, 5)
+      end
     end
-    y = y + 4
-    y = placeHdr(ui.ibBroughtHdr, y)
+    yb = yb + 4
+    yb = placeHdr(ui.ibBroughtHdr, yb)
     for i = 1, IB_BROUGHT do
-      y = placeLine(ui.ibBrought[i], y, 16)
+      yb = placeLine(ui.ibBrought[i], yb, lineH, 0)
     end
-    y = y + 4
-    y = placeHdr(ui.ibCpHdr, y)
+    yb = yb + 4
+    yb = placeHdr(ui.ibCpHdr, yb)
     for i = 1, IB_CP_STORY do
-      y = placeLine(ui.ibCpStory[i], y, 16)
+      yb = placeLine(ui.ibCpStory[i], yb, lineH, 0)
     end
     for i = 1, IB_CP_ROWS do
       local r = ui.ibCpRows[i]
       if r then
         r.row:ClearAnchors()
-        r.row:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, y)
-        r.row:SetDimensions(innerW, 17)
+        r.row:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, yb)
+        r.row:SetDimensions(innerW, math.max(1, cpPitch - 1))
         r.fit:ClearAnchors()
         r.fit:SetAnchor(LEFT, r.row, LEFT, 0, 0)
         r.fit:SetWidth(48)
+        local nW = math.max(80, math.floor(innerW * 0.28))
         r.name:ClearAnchors()
         r.name:SetAnchor(LEFT, r.row, LEFT, 52, 0)
-        r.name:SetWidth(math.max(80, math.floor(innerW * 0.32)))
+        r.name:SetWidth(nW)
         r.name:SetMaxLineCount(1)
         r.impact:ClearAnchors()
-        r.impact:SetAnchor(LEFT, r.row, LEFT, 56 + math.max(80, math.floor(innerW * 0.32)), 0)
-        r.impact:SetWidth(math.max(120, innerW - 140))
+        r.impact:SetAnchor(LEFT, r.row, LEFT, 56 + nW, 0)
+        r.impact:SetWidth(math.max(80, innerW - 70 - nW - meterReserve))
         r.impact:SetMaxLineCount(1)
-        y = y + 18
+        placeTrack(r.meter, r.row, -2, math.max(0, math.floor((cpPitch - 8) / 2)), 108, 5)
+        yb = yb + cpPitch
       end
     end
-    y = y + 4
-    y = placeHdr(ui.ibBarHdr, y)
-    y = placeLine(ui.ibBarLine, y, 18)
-    y = y + 4
-    y = placeHdr(ui.ibPotHdr, y)
+    yb = yb + 4
+    yb = placeHdr(ui.ibBarHdr, yb)
+    local barY = yb
+    yb = placeLine(ui.ibBarLine, yb, math.max(lineH, 18), meterReserve)
+    placeTrack(ui.ibBarMeter, ui.buildPanel, -12, barY + 4, 108, 5)
+    yb = yb + 4
+    yb = placeHdr(ui.ibPotHdr, yb)
     for i = 1, IB_POT_LINES do
-      y = placeLine(ui.ibPot[i], y, 16)
+      local potY = yb
+      local reserve = (i == 1) and meterReserve or 0
+      yb = placeLine(ui.ibPot[i], yb, lineH, reserve)
+      if i == 1 then
+        placeTrack(ui.ibPotMeter, ui.buildPanel, -12, potY + math.max(0, math.floor((lineH - 7) / 2)), 108, 5)
+      end
     end
-    y = y + 4
-    y = placeHdr(ui.ibNextHdr, y)
-    y = placeLine(ui.ibNextHead, y, 18)
+    yb = yb + 4
+    yb = placeHdr(ui.ibNextHdr, yb)
+    yb = placeLine(ui.ibNextHead, yb, 20, 0)
     if ui.ibNextBody then
       ui.ibNextBody:ClearAnchors()
-      ui.ibNextBody:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, y)
+      ui.ibNextBody:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, yb)
       ui.ibNextBody:SetWidth(innerW - 4)
       ui.ibNextBody:SetMaxLineCount(3)
-      y = y + 48
     end
     if ui.ibFoot then
       ui.ibFoot:ClearAnchors()
@@ -11097,17 +11322,19 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.execTitle:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 10, 4)
   ui.execTitle:SetWidth(W - 20)
   ui.execSummary:ClearAnchors()
-  ui.execSummary:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, 22)
-  ui.execSummary:SetWidth(W - 24)
-  local eTop = 40
-  local eH = math.max(16, math.floor((math.max(60, heights[4] or 80) - eTop - 4) / INSIGHT_EXEC_LINES))
+  ui.execSummary:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, 24)
+  ui.execSummary:SetWidth(math.max(80, W - 160))
+  placeTrack(ui.execPace, ui.execPanel, -12, 30, 112, 6)
+  local eTop = 46
+  local eH = math.floor(((heights[4] or 80) - eTop - 4) / INSIGHT_EXEC_LINES)
+  if eH < 1 then eH = 1 end
   for i = 1, INSIGHT_EXEC_LINES do
     local line = ui.execLines[i]
     if line then
-    line:ClearAnchors()
-    line:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, eTop + (i - 1) * eH)
-    line:SetWidth(W - 24)
-    line:SetMaxLineCount(1)
+      line:ClearAnchors()
+      line:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, eTop + (i - 1) * eH)
+      line:SetWidth(W - 24)
+      line:SetMaxLineCount(1)
     end
   end
 
@@ -11115,20 +11342,36 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.nextTitle:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 10, 4)
   ui.nextTitle:SetWidth(W - 20)
   ui.nextHead:ClearAnchors()
-  ui.nextHead:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 22)
+  ui.nextHead:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 24)
   ui.nextHead:SetWidth(W - 24)
   ui.nextBody:ClearAnchors()
-  ui.nextBody:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 42)
+  ui.nextBody:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 46)
   ui.nextBody:SetWidth(W - 24)
+  if ui.nextBody.SetHeight then
+    -- Body ends above the action (anchored 40px up) so it does not cover that line.
+    local room = (heights[5] or 140) - 108
+    if room < 16 then room = 16 end
+    ui.nextBody:SetHeight(room)
+  end
   if ui.nextAction then
     ui.nextAction:ClearAnchors()
-    ui.nextAction:SetAnchor(BOTTOMLEFT, ui.nextPanel, BOTTOMLEFT, 12, -22)
-    ui.nextAction:SetWidth(W - 24)
+    ui.nextAction:SetAnchor(BOTTOMLEFT, ui.nextPanel, BOTTOMLEFT, 12, -40)
+    ui.nextAction:SetWidth(math.max(80, W - 88))
+  end
+  if ui.nextPips then
+    for i = 1, 3 do
+      local pip = ui.nextPips[i]
+      if pip then
+        pip:ClearAnchors()
+        pip:SetAnchor(BOTTOMRIGHT, ui.nextPanel, BOTTOMRIGHT, -12 - (3 - i) * 14, -42)
+        pip:SetDimensions(8, 8)
+      end
+    end
   end
   ui.disclaimer:ClearAnchors()
   ui.disclaimer:SetAnchor(BOTTOMLEFT, ui.nextPanel, BOTTOMLEFT, 12, -4)
   ui.disclaimer:SetWidth(W - 24)
-  end -- exec/next layout
+  end
 end
 
 local function fillInsightsBuildPage(ui, session, syn, coach, profile)
@@ -11163,7 +11406,7 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
       "Proc rows show observed set/proc damage. Buff-mediated sets (Rallying Cry, Shacklebreaker, many 5pc) have no damage event — Damage will not grow a proc row."
     )
   end
-  local setRows = {}
+  local setRows, setBars = {}, {}
   local dmgByName = {}
   if type(session.sets) == "table" then
     for _, ps in pairs(session.sets) do
@@ -11200,23 +11443,37 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
         end
       end
     end
-    local line
+    local line, barPct, barTone = nil, nil, nil
     if dmg > 0 then
       line = string.format("%s  ·  %s  %s DPS  %s share  %s",
         displayName(name, 28), fmtInt(dmg), fmtDps(dps), fmtPct(share), "[Observed]")
+      barPct, barTone = share, "good"
     elseif buffUp > 0.02 then
       line = string.format("%s  ·  buff set / no damage event  ·  %s up %s  %s",
         displayName(name, 28), displayName(buffName or "buff", 22), fmtPct(buffUp),
         "[Observed uptime, no proc DPS]")
+      barPct, barTone = buffUp, "warn"
     else
       line = string.format("%s  ·  buff set / no damage event  %s",
         displayName(name, 36), "[Observed]")
     end
     setRows[#setRows + 1] = line
+    setBars[#setBars + 1] = { pct = barPct, tone = barTone }
+  end
+  local maxSetBar = 0
+  for _, bm in ipairs(setBars) do
+    local p = tonumber(bm.pct) or 0
+    if p > maxSetBar then maxSetBar = p end
   end
   for i = 1, IB_SET_ROWS do
     if ui.ibSetRows[i] then
       ui.ibSetRows[i]:SetText(displayNamePlain(setRows[i] or (i == 1 and "(no equipped sets captured)" or ""), 110))
+    end
+    if M.PaintInsightMeter and ui.ibSetMeters then
+      local bm = setBars[i]
+      local pct = nil
+      if bm and bm.pct and maxSetBar > 0 then pct = bm.pct / maxSetBar end
+      M.PaintInsightMeter(ui.ibSetMeters[i], pct, nil, bm and bm.tone, true)
     end
   end
 
@@ -11313,8 +11570,13 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
             c.rankTxt or tostring(i), fmtPct(c.eligiblePct or 0), c.eligibleNote or c.reason or "")
         end
         r.impact:SetText(displayNamePlain(impact, 72))
+        if M.PaintInsightMeter then
+          local tone = (c.fitKey == "soft") and "warn" or "good"
+          M.PaintInsightMeter(r.meter, tonumber(c.eligiblePct) or 0, nil, tone, true)
+        end
       else
         r.row:SetHidden(true)
+        if M.PaintInsightMeter then M.PaintInsightMeter(r.meter, nil) end
       end
     end
   end
@@ -11347,6 +11609,9 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
       barSum > 0 and fmtPct(backDmg / barSum) or "—"
     ))
   end
+  if M.PaintInsightMeter then
+    M.PaintInsightMeter(ui.ibBarMeter, (barSum > 0) and (frontDmg / barSum) or nil, nil, "good", false)
+  end
 
   -- F. Potions
   local pot = session.potion
@@ -11356,6 +11621,7 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
     end
     if ui.ibPot[2] then ui.ibPot[2]:SetText("") end
     if ui.ibPot[3] then ui.ibPot[3]:SetText("") end
+    if M.PaintInsightMeter then M.PaintInsightMeter(ui.ibPotMeter, nil) end
   else
     local cover = dur > 0 and math.min(1, (tonumber(pot.coveredMs) or 0) / dur) or 0
     local first = tonumber(pot.firstUseMs)
@@ -11373,6 +11639,9 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
         firstTxt,
         conf
       ))
+    end
+    if M.PaintInsightMeter then
+      M.PaintInsightMeter(ui.ibPotMeter, cover, nil, pot.estimated and "est" or "good", true)
     end
     local st = pot.stats or {}
     if ui.ibPot[2] then
@@ -11412,7 +11681,7 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
     if ui.ibNextBody then ui.ibNextBody:SetText("") end
   end
   if ui.ibFoot then
-    ui.ibFoot:SetText("[Observed] measured this fight. [Estimated] heuristic. Outcome DPS is never changed by this page.")
+    ui.ibFoot:SetText("[Observed] measured this fight. [Estimated] heuristic. Outcome DPS is never changed by this page. Bar length is share, uptime, or eligible damage.")
   end
 end
 
@@ -11420,6 +11689,38 @@ local function refreshInsightsUI(screen, session, mode)
   mode = (mode == "build") and "build" or "dps"
   local ui = createInsightsUI(screen, mode)
   if not ui then return end
+  local function hideTrack(meter)
+    if M.PaintInsightMeter then M.PaintInsightMeter(meter, nil) end
+  end
+  local function hideInsightMeters()
+    if ui.phaseMeters then
+      for i = 1, 3 do hideTrack(ui.phaseMeters[i]) end
+    end
+    if ui.oppRows then
+      for i = 1, INSIGHT_DIAG_OPP do
+        if ui.oppRows[i] then hideTrack(ui.oppRows[i].meter) end
+      end
+    end
+    if ui.wasteMeters then
+      for i = 1, INSIGHT_WASTE_LINES do hideTrack(ui.wasteMeters[i]) end
+    end
+    hideTrack(ui.execPace)
+    if ui.nextPips then
+      for i = 1, 3 do
+        if ui.nextPips[i] then ui.nextPips[i]:SetHidden(true) end
+      end
+    end
+    if ui.ibSetMeters then
+      for i = 1, IB_SET_ROWS do hideTrack(ui.ibSetMeters[i]) end
+    end
+    if ui.ibCpRows then
+      for i = 1, IB_CP_ROWS do
+        if ui.ibCpRows[i] then hideTrack(ui.ibCpRows[i].meter) end
+      end
+    end
+    hideTrack(ui.ibBarMeter)
+    hideTrack(ui.ibPotMeter)
+  end
   local hostW, hostH = layoutContentHost(screen)
   layoutInsightsUI(ui, hostW, hostH)
   local profile = getActiveContentProfile()
@@ -11462,6 +11763,7 @@ local function refreshInsightsUI(screen, session, mode)
     if ui.nextBody then ui.nextBody:SetText("Parse a dummy or trial pull, then reopen Insights.") end
     if ui.nextAction then ui.nextAction:SetText("") end
     if ui.disclaimer then ui.disclaimer:SetText("") end
+    hideInsightMeters()
     return
   end
 
@@ -11490,7 +11792,23 @@ local function refreshInsightsUI(screen, session, mode)
       fmtDps(ph.opener or 0), fmtDps(ph.sustained or 0), fmtDps(ph.execute or 0)
     ))
   end
+  if ui.phaseMeters and M.PaintInsightMeter then
+    local phaseVals = { tonumber(ph.opener) or 0, tonumber(ph.sustained) or 0, tonumber(ph.execute) or 0 }
+    local maxPh = 0
+    for _, pv in ipairs(phaseVals) do if pv > maxPh then maxPh = pv end end
+    for i = 1, 3 do
+      local tone = (phaseVals[i] >= maxPh * 0.92) and "good" or "warn"
+      local pct = (maxPh > 0) and (phaseVals[i] / maxPh) or 0
+      M.PaintInsightMeter(ui.phaseMeters[i], pct, nil, tone, false)
+    end
+  end
   local opps = diag.opportunities or {}
+  local maxEst = 1
+  for i = 1, INSIGHT_DIAG_OPP do
+    local oe = opps[i]
+    local ev = oe and (tonumber(oe.estDps) or 0) or 0
+    if ev > maxEst then maxEst = ev end
+  end
   for i = 1, INSIGHT_DIAG_OPP do
     local r = ui.oppRows[i]
     local o = opps[i]
@@ -11501,7 +11819,11 @@ local function refreshInsightsUI(screen, session, mode)
         r.title:SetText(displayName(o.title or "?", 40))
         r.est:SetText("~" .. fmtDps(o.estDps or 0))
         r.ev:SetText(displayName(o.evidence or "", 80))
+        if M.PaintInsightMeter then
+          M.PaintInsightMeter(r.meter, (tonumber(o.estDps) or 0) / maxEst, nil, "warn", true)
+        end
       else
+        if M.PaintInsightMeter then M.PaintInsightMeter(r.meter, nil) end
         r.row:SetHidden(i ~= 1 or #opps > 0)
         if i == 1 and #opps == 0 then
           r.row:SetHidden(false)
@@ -11516,9 +11838,18 @@ local function refreshInsightsUI(screen, session, mode)
 
   -- §2 Waste — prefer coach lines (pen profile + crit/Force risk)
   local waste = coach.wasteLines or {}
+  local wasteMeters = coach.wasteMeters or {}
   for i = 1, INSIGHT_WASTE_LINES do
     if ui.wasteLines[i] then
-      ui.wasteLines[i]:SetText(displayName(waste[i] or "", 220))
+      ui.wasteLines[i]:SetText(displayName(waste[i] or "", 160))
+    end
+    if M.PaintInsightMeter and ui.wasteMeters then
+      local wm = wasteMeters[i]
+      if wm and wm.pct ~= nil then
+        M.PaintInsightMeter(ui.wasteMeters[i], wm.pct, wm.tick, wm.tone, true)
+      else
+        M.PaintInsightMeter(ui.wasteMeters[i], nil)
+      end
     end
   end
 
@@ -11649,6 +11980,17 @@ local function refreshInsightsUI(screen, session, mode)
       ui.execSummary:SetText("4  ·  exception-driven (detail on Rotation)")
     end
   end
+  if M.PaintInsightMeter then
+    local paceBar = M.SkillCastPace(session)
+    if paceBar and (tonumber(paceBar.samples) or 0) >= 8 then
+      local lost = (tonumber(paceBar.medianLostMs) or 0) / 300
+      if lost < 0 then lost = 0 end
+      if lost > 1 then lost = 1 end
+      M.PaintInsightMeter(ui.execPace, 1 - lost, nil, (lost > 0.35) and "warn" or "good", false)
+    else
+      M.PaintInsightMeter(ui.execPace, nil)
+    end
+  end
   local shown = 0
   if type(ex) == "table" and type(ex.lines) == "table" then
     for _, line in ipairs(ex.lines) do
@@ -11713,6 +12055,25 @@ local function refreshInsightsUI(screen, session, mode)
     end
     ui.nextAction:SetText(hint or "")
   end
+  if ui.nextPips then
+    local expP = getActiveExperiment()
+    local nP = (expP and type(expP.runs) == "table") and #expP.runs or 0
+    for i = 1, 3 do
+      local pip = ui.nextPips[i]
+      if pip then
+        pip:SetHidden(expP == nil)
+        if expP then
+          if i <= nP then
+            pip:SetCenterColor(0.40, 0.85, 0.50, 0.95)
+            pip:SetEdgeColor(0.20, 0.45, 0.25, 0.4)
+          else
+            pip:SetCenterColor(0.08, 0.09, 0.10, 0.25)
+            pip:SetEdgeColor(0.75, 0.82, 0.88, 0.9)
+          end
+        end
+      end
+    end
+  end
   local discParts = {}
   if diag.disclaimer then discParts[#discParts + 1] = diag.disclaimer end
   if syn and syn.disclaimer then discParts[#discParts + 1] = syn.disclaimer end
@@ -11724,11 +12085,11 @@ end
 -- History redesign: fight cards → trend bars (middle) → comparison table
 ---------------------------------------------------------------------
 local function createHistoryUI(screen)
-  if screen.historyUI and not screen.historyUI._v3120 then screen.historyUI = nil end
+  if screen.historyUI and not screen.historyUI._v31806 then screen.historyUI = nil end
   if screen.historyUI then
     -- Lazy-add 2.5.5 cohort strip without recreating the whole history tree
     if not screen.historyUI.cohort and screen.historyUI.root and screen.historyUI.subtitle then
-      local c = makeDashLabel(screen.historyUI.root, "DM2StatsMenuHistCohortV10", 12, 0.85, 0.78, 0.45, 1)
+      local c = makeDashLabel(screen.historyUI.root, "DM2StatsMenuHistCohortV10", 13, 0.85, 0.78, 0.45, 1)
       c:SetAnchor(TOPLEFT, screen.historyUI.subtitle, BOTTOMLEFT, 0, 1)
       screen.historyUI.cohort = c
     end
@@ -11749,7 +12110,7 @@ local function createHistoryUI(screen)
     parseHdrs = {},
     compHdr = {},
     compRows = {},
-    _v3120 = true,
+    _v31806 = true,
   }
 
   ui.root = WM:CreateControl("DM2StatsMenuHistRootV9", panel, CT_CONTROL)
@@ -11761,7 +12122,7 @@ local function createHistoryUI(screen)
   ui.subtitle = makeDashLabel(ui.root, "DM2StatsMenuHistSubV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.subtitle:SetAnchor(TOPLEFT, ui.title, BOTTOMLEFT, 0, 2)
   -- Phase 2.5.5: fingerprint cohort strip
-  ui.cohort = makeDashLabel(ui.root, "DM2StatsMenuHistCohortV10", 12, 0.85, 0.78, 0.45, 1)
+  ui.cohort = makeDashLabel(ui.root, "DM2StatsMenuHistCohortV10", 13, 0.85, 0.78, 0.45, 1)
   ui.cohort:SetAnchor(TOPLEFT, ui.subtitle, BOTTOMLEFT, 0, 1)
 
   -- 1) Fight cards (top) — single-line: # tag target | crit weave dur when | dps
@@ -11810,7 +12171,7 @@ local function createHistoryUI(screen)
   ui.trendTitle:SetText("DUMMY TRENDS  ·  newest → oldest  ·  value mid-bar  ·  left # = latest dummy")
   ui.parseHdrRow = WM:CreateControl("DM2StatsMenuHistParseHdrV9", ui.trendPanel, CT_CONTROL)
   for j = 1, TREND_SPARK_MAX_BARS do
-    ui.parseHdrs[j] = makeDashLabel(ui.parseHdrRow, "DM2StatsMenuHistParseHdrLblV9_" .. j, 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    ui.parseHdrs[j] = makeDashLabel(ui.parseHdrRow, "DM2StatsMenuHistParseHdrLblV9_" .. j, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     ui.parseHdrs[j]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     ui.parseHdrs[j]:SetHidden(true)
   end
@@ -11824,7 +12185,7 @@ local function createHistoryUI(screen)
     local wrap, bars = createSparkBarPool(row, "DM2StatsMenuHistSparkV9_" .. def.key, TREND_SPARK_MAX_BARS)
     local barLabels = {}
     for j = 1, TREND_SPARK_MAX_BARS do
-      barLabels[j] = makeDashLabel(row, "DM2StatsMenuHistSparkLblV9_" .. def.key .. j, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+      barLabels[j] = makeDashLabel(row, "DM2StatsMenuHistSparkLblV9_" .. def.key .. j, 13, THEME.textR, THEME.textG, THEME.textB, 1)
       barLabels[j]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
       barLabels[j]:SetHidden(true)
     end
@@ -11841,10 +12202,10 @@ local function createHistoryUI(screen)
   ui.compTitle = makeDashLabel(ui.compPanel, "DM2StatsMenuHistCompTitleV9", 13, THEME.titleR, THEME.titleG, THEME.titleB, 0.95)
   ui.compTitle:SetAnchor(TOPLEFT, ui.compPanel, TOPLEFT, 10, 4)
   ui.compTitle:SetText("DUMMY COMPARISON  ·  each column = one parse  ·  left (#1) = newest  ·  right = older")
-  ui.compCorner = makeDashLabel(ui.compPanel, "DM2StatsMenuHistCompCornerV9", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  ui.compCorner = makeDashLabel(ui.compPanel, "DM2StatsMenuHistCompCornerV9", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.compCorner:SetText("Metric")
   for c = 1, COMP_COLS do
-    ui.compHdr[c] = makeDashLabel(ui.compPanel, "DM2StatsMenuHistCompHdrV9_" .. c, 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.compHdr[c] = makeDashLabel(ui.compPanel, "DM2StatsMenuHistCompHdrV9_" .. c, 13, THEME.titleR, THEME.titleG, THEME.titleB, 1)
     ui.compHdr[c]:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   end
   for r = 1, COMP_METRICS do
@@ -11891,7 +12252,7 @@ local function layoutHistoryUI(ui, hostW, hostH)
   ui.listPanel:SetDimensions(W, listH)
   ui.histTitle:SetWidth(W - 20)
   local cardH = math.floor((listH - 30) / TREND_HIST_LINES)
-  if cardH < 32 then cardH = 32 end
+  if cardH < 1 then cardH = 1 end
   if cardH > 44 then cardH = 44 end
   -- Single-line card: # | tag | target ........ | crit | weave | dur | when | dps
   local dpsW, whenW, durW, weaveW, critW = 88, 90, 56, 64, 64
@@ -11937,7 +12298,7 @@ local function layoutHistoryUI(ui, hostW, hostH)
   ui.trendPanel:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, trendY)
   ui.trendPanel:SetDimensions(W, trendH)
   ui.trendTitle:SetWidth(W - 20)
-  local parseHdrH = 16
+  local parseHdrH = 18
   -- More left room for metric label + "latest" value; bars slightly narrower.
   local barLeft = 168
   local barAreaW = math.floor((W - 24 - barLeft) * 0.88)
@@ -11946,7 +12307,7 @@ local function layoutHistoryUI(ui, hostW, hostH)
   ui.parseHdrRow:SetDimensions(barAreaW, parseHdrH)
   local metricsTop = 20 + parseHdrH + 2
   local rowH = math.floor((trendH - metricsTop - 4) / 3)
-  if rowH < 32 then rowH = 32 end
+  if rowH < 1 then rowH = 1 end
   for i, row in ipairs(ui.metricRows) do
     row.row:ClearAnchors()
     row.row:SetAnchor(TOPLEFT, ui.trendPanel, TOPLEFT, 12, metricsTop + (i - 1) * rowH)
@@ -11985,8 +12346,8 @@ local function layoutHistoryUI(ui, hostW, hostH)
     end
   end
   local rh = math.floor((compH - top - 20) / COMP_METRICS)
-  if rh < 16 then rh = 16 end
-  if rh > 22 then rh = 22 end
+  if rh < 1 then rh = 1 end
+  if rh > 24 then rh = 24 end
   for r = 1, COMP_METRICS do
     local row = ui.compRows[r]
     if row then
@@ -12240,10 +12601,10 @@ local DASH_STAT_ROWS = 12
 local DASH_KEYBUFF_ROWS = 1
 
 local function createDashboardUI(screen)
-  if screen.dashboardUI and screen.dashboardUI.panel and screen.dashboardUI._v3121 then
+  if screen.dashboardUI and screen.dashboardUI.panel and screen.dashboardUI._v31806 then
     return screen.dashboardUI
   end
-  if screen.dashboardUI and not screen.dashboardUI._v3121 then
+  if screen.dashboardUI and not screen.dashboardUI._v31806 then
     screen.dashboardUI = nil
   end
   ensureContentHost(screen)
@@ -12260,7 +12621,7 @@ local function createDashboardUI(screen)
     cpColTitles = {},
     statRows = {},
     rotLines = {},
-    _v3121 = true,
+    _v31806 = true,
   }
 
   for index = 1, 2 do
@@ -12372,45 +12733,45 @@ local function createDashboardUI(screen)
   dash.statsTitle = makeDashLabel(col2, "DM2StatsMenuDashStatsTitleV4", 14, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.statsTitle:SetAnchor(TOPLEFT, col2, TOPLEFT, 12, 348)
   dash.statsTitle:SetText("CHAR STATS")
-  dash.statsProv = makeDashLabel(col2, "DM2StatsMenuDashStatsProvV4", 10, 0.85, 0.78, 0.45, 1)
+  dash.statsProv = makeDashLabel(col2, "DM2StatsMenuDashStatsProvV4", 12, 0.85, 0.78, 0.45, 1)
   dash.statsProv:SetAnchor(TOPLEFT, col2, TOPLEFT, 12, 364)
-  dash.statsLegend = makeDashLabel(col2, "DM2StatsMenuDashStatsLegendV4", 9, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  dash.statsLegend = makeDashLabel(col2, "DM2StatsMenuDashStatsLegendV4", 11, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   dash.statsLegend:SetAnchor(TOPLEFT, col2, TOPLEFT, 12, 378)
   dash.statsLegend:SetText(formatStatLegendLine())
 
-  dash.statHdrLabel = makeDashLabel(col2, "DM2StatsMenuDashStatHdrL", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  dash.statHdrLabel = makeDashLabel(col2, "DM2StatsMenuDashStatHdrL", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.statHdrLabel:SetText("Stat")
-  dash.statHdrSheet = makeDashLabel(col2, "DM2StatsMenuDashStatHdrS", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  dash.statHdrSheet = makeDashLabel(col2, "DM2StatsMenuDashStatHdrS", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.statHdrSheet:SetText("TOTAL")
   dash.statHdrSheet:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  dash.statHdrTemp = makeDashLabel(col2, "DM2StatsMenuDashStatHdrT", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  dash.statHdrTemp = makeDashLabel(col2, "DM2StatsMenuDashStatHdrT", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.statHdrTemp:SetText("FROM BUFFS")
   dash.statHdrTemp:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  dash.statHdrBase = makeDashLabel(col2, "DM2StatsMenuDashStatHdrB", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  dash.statHdrBase = makeDashLabel(col2, "DM2StatsMenuDashStatHdrB", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.statHdrBase:SetText("UNBUFFED")
   dash.statHdrBase:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-  dash.statHdrNote = makeDashLabel(col2, "DM2StatsMenuDashStatHdrN", 10, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+  dash.statHdrNote = makeDashLabel(col2, "DM2StatsMenuDashStatHdrN", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.statHdrNote:SetText("Pen note")
 
   for i = 1, DASH_STAT_ROWS do
     local row = WM:CreateControl("DM2StatsMenuDashStatRowV5_" .. i, col2, CT_CONTROL)
-    local lab = makeDashLabel(row, "DM2StatsMenuDashStatLabV5_" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
-    local sheet = makeDashLabel(row, "DM2StatsMenuDashStatSheetV5_" .. i, 11, THEME.textR, THEME.textG, THEME.textB, 1)
+    local lab = makeDashLabel(row, "DM2StatsMenuDashStatLabV5_" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
+    local sheet = makeDashLabel(row, "DM2StatsMenuDashStatSheetV5_" .. i, 13, THEME.textR, THEME.textG, THEME.textB, 1)
     sheet:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local temp = makeDashLabel(row, "DM2StatsMenuDashStatTempV5_" .. i, 11, 0.4, 0.95, 0.55, 1)
+    local temp = makeDashLabel(row, "DM2StatsMenuDashStatTempV5_" .. i, 13, 0.4, 0.95, 0.55, 1)
     temp:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local base = makeDashLabel(row, "DM2StatsMenuDashStatBaseV5_" .. i, 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local base = makeDashLabel(row, "DM2StatsMenuDashStatBaseV5_" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     base:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    local note = makeDashLabel(row, "DM2StatsMenuDashStatNoteV5_" .. i, 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    local note = makeDashLabel(row, "DM2StatsMenuDashStatNoteV5_" .. i, 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     dash.statRows[i] = { row = row, label = lab, sheet = sheet, temp = temp, base = base, note = note }
   end
 
-  dash.critCue = makeDashLabel(col2, "DM2StatsMenuDashCritCueV5", 11, 0.90, 0.82, 0.55, 1)
-  dash.penBreakdown = makeDashLabel(col2, "DM2StatsMenuDashPenBrkV5", 10, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+  dash.critCue = makeDashLabel(col2, "DM2StatsMenuDashCritCueV5", 13, 0.90, 0.82, 0.55, 1)
+  dash.penBreakdown = makeDashLabel(col2, "DM2StatsMenuDashPenBrkV5", 12, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   dash.penBreakdown:SetMaxLineCount(2)
   dash.keyBuffTitle = makeDashLabel(col2, "DM2StatsMenuDashKeyBuffTitleV5", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   dash.keyBuffTitle:SetText("KEY SELF-BUFFS")
-  dash.keyBuffLine = makeDashLabel(col2, "DM2StatsMenuDashKeyBuffLineV5", 11, THEME.textR, THEME.textG, THEME.textB, 1)
+  dash.keyBuffLine = makeDashLabel(col2, "DM2StatsMenuDashKeyBuffLineV5", 13, THEME.textR, THEME.textG, THEME.textB, 1)
   dash.keyBuffLine:SetMaxLineCount(2)
 
   -- Champion points — three columns: Combat | Fitness | Craft (fits without scrolling off)
@@ -12423,11 +12784,11 @@ local function createDashboardUI(screen)
     craft = { 0.44, 0.75, 0.45 },
   }
   for _, key in ipairs(colKeys) do
-    local title = makeDashLabel(col2, "DM2StatsMenuDashCpColT_" .. key, 10, colColors[key][1], colColors[key][2], colColors[key][3], 1)
+    local title = makeDashLabel(col2, "DM2StatsMenuDashCpColT_" .. key, 12, colColors[key][1], colColors[key][2], colColors[key][3], 1)
     title:SetText(string.upper(key))
     dash.cpColTitles[key] = title
     for i = 1, 4 do
-      local line = makeDashLabel(col2, "DM2StatsMenuDashCpCol_" .. key .. "_" .. i, 10, colColors[key][1], colColors[key][2], colColors[key][3], 1)
+      local line = makeDashLabel(col2, "DM2StatsMenuDashCpCol_" .. key .. "_" .. i, 12, colColors[key][1], colColors[key][2], colColors[key][3], 1)
       dash.cpCols[key][i] = line
     end
   end
@@ -12500,9 +12861,32 @@ local function layoutDashboardUI(screen)
   local bonusX = sheetX + sheetW + 4
   local baseX = bonusX + bonusW + 4
   local noteX = baseX + baseW + 4
-  local hdrY = 388
-  local col2c = dash.cols[2] and dash.cols[2].control
-  if not col2c then return end
+  local useLarge = colH >= 770
+  local provY, legendY, hdrY = 364, 378, 388
+  local rowH, cpPitch = 12, 12
+  local penDy, keyDy, keyLineDy, cpDy = 14, 40, 54, 78
+  local cpTitleDy, cpLineDy = 14, 28
+  if useLarge then
+    provY, legendY, hdrY = 366, 384, 400
+    rowH, cpPitch = 14, 14
+    penDy, keyDy, keyLineDy, cpDy = 16, 44, 60, 88
+    cpTitleDy, cpLineDy = 16, 32
+  end
+  if dash.statsTitle then
+    dash.statsTitle:ClearAnchors()
+    dash.statsTitle:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, 348)
+    dash.statsTitle:SetWidth(textW)
+  end
+  if dash.statsProv then
+    dash.statsProv:ClearAnchors()
+    dash.statsProv:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, provY)
+    dash.statsProv:SetWidth(textW)
+  end
+  if dash.statsLegend then
+    dash.statsLegend:ClearAnchors()
+    dash.statsLegend:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, legendY)
+    dash.statsLegend:SetWidth(textW)
+  end
   if dash.statHdrLabel then
     dash.statHdrLabel:ClearAnchors()
     dash.statHdrLabel:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, hdrY)
@@ -12528,8 +12912,7 @@ local function layoutDashboardUI(screen)
     dash.statHdrNote:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12 + noteX, hdrY)
     dash.statHdrNote:SetWidth(noteW)
   end
-  local rowH = 12
-  local rowTop = hdrY + 13
+  local rowTop = hdrY + 15
   for i = 1, DASH_STAT_ROWS do
     local r = dash.statRows and dash.statRows[i]
     if r and r.row then
@@ -12563,26 +12946,25 @@ local function layoutDashboardUI(screen)
   end
   if dash.penBreakdown then
     dash.penBreakdown:ClearAnchors()
-    dash.penBreakdown:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, afterStatsY + 14)
+    dash.penBreakdown:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, afterStatsY + penDy)
     dash.penBreakdown:SetWidth(textW)
   end
   if dash.keyBuffTitle then
     dash.keyBuffTitle:ClearAnchors()
-    dash.keyBuffTitle:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, afterStatsY + 40)
+    dash.keyBuffTitle:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, afterStatsY + keyDy)
     dash.keyBuffTitle:SetWidth(textW)
   end
   if dash.keyBuffLine then
     dash.keyBuffLine:ClearAnchors()
-    dash.keyBuffLine:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, afterStatsY + 54)
+    dash.keyBuffLine:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, afterStatsY + keyLineDy)
     dash.keyBuffLine:SetWidth(textW)
   end
-  local cpY = afterStatsY + 78
+  local cpY = afterStatsY + cpDy
   if dash.cpTitle then
     dash.cpTitle:ClearAnchors()
     dash.cpTitle:SetAnchor(TOPLEFT, col2c, TOPLEFT, 12, cpY)
     dash.cpTitle:SetWidth(textW)
   end
-  -- Three columns for Combat / Fitness / Craft
   local cpColW = math.floor((textW - 8) / 3)
   local cpKeys = { "combat", "fitness", "craft" }
   for ci, key in ipairs(cpKeys) do
@@ -12590,7 +12972,7 @@ local function layoutDashboardUI(screen)
     local title = dash.cpColTitles and dash.cpColTitles[key]
     if title then
       title:ClearAnchors()
-      title:SetAnchor(TOPLEFT, col2c, TOPLEFT, x, cpY + 14)
+      title:SetAnchor(TOPLEFT, col2c, TOPLEFT, x, cpY + cpTitleDy)
       title:SetWidth(cpColW)
     end
     local lines = dash.cpCols and dash.cpCols[key]
@@ -12599,7 +12981,7 @@ local function layoutDashboardUI(screen)
         local line = lines[i]
         if line then
           line:ClearAnchors()
-          line:SetAnchor(TOPLEFT, col2c, TOPLEFT, x, cpY + 28 + (i - 1) * 12)
+          line:SetAnchor(TOPLEFT, col2c, TOPLEFT, x, cpY + cpLineDy + (i - 1) * cpPitch)
           line:SetWidth(cpColW)
         end
       end

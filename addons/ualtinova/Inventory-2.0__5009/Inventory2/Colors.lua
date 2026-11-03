@@ -20,7 +20,7 @@ IG.GROUPS = {
     -- What you are wearing first: a module like the rest (equippedEnabled), gathered from the
     -- worn bag rather than the backpack. A light aqua none of its neighbours wears.
     { key = "EQUIPPED",    label = "EQUIPPED",           color = "7FF5E8", icon = ART .. "Inventory/inventory_tabIcon_armor_up.dds" },
-    { key = "LASTRUN",     label = "RECENT LOOT",        color = "FFB627", icon = ART .. "LFG/LFG_indexIcon_dungeon_up.dds" },
+    { key = "LASTRUN",     label = "RECENTLY ACQUIRED",  color = "FFB627", icon = ART .. "LFG/LFG_indexIcon_dungeon_up.dds" },
     { key = "ARMORY",      label = "ARMORY",             color = "FFFFFF", icon = "EsoUI/Art/Armory/buildItem_icon.dds" },
     -- Your saved equipment setups, one sub-category per setup (Setups.lua, setupsEnabled).
     { key = "SETUPS",      label = "SETUPS",             color = "E8C872", icon = "EsoUI/Art/Armory/buildItem_icon.dds" },

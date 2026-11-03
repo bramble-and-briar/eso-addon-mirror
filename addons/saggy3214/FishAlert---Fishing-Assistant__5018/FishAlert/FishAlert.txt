@@ -1,0 +1,11 @@
+## Title: Fish Alert
+## Author: @Saggy3214
+## Version: 1.5.0
+## AddOnVersion: 10500
+## APIVersion: 101051
+## Description: Bite alert with sound, fish and rare fish counters, fish to fillet, and a rare fish tracker for your zone. Announces rare fish, bonus loot, bait, furnishings, junk and completed zones.
+## SavedVariables: FishAlertSavedVars
+## OptionalDependsOn: LibAddonMenu-2.0
+
+FishAlert.lua
+FishAlertData.lua

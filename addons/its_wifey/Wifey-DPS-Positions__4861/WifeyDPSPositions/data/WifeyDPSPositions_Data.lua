@@ -2,7 +2,7 @@
 WifeyDPSPositions = WifeyDPSPositions or {}
 local DDP = WifeyDPSPositions
 
-DDP.version = "1.6"
+DDP.version = "1.6.11"
 DDP.positions = {
 	[636] = { mechOrder = {"2Groups"}, mechanics = {["2Groups"] = {"Upstairs","Upstairs","Upstairs","Upstairs","Downstairs","Downstairs","Downstairs","Downstairs"}} },
 	[725] = {
@@ -67,10 +67,22 @@ DDP.positions = {
         },
     },
 	[1548] = {
-        mechOrder = {"Portal", "2Groups"},
+        mechOrder = {"Portal", "2Groups", "HM CURSE", "HM PORTALS"},
         mechanics = {
             ["Portal"] = {"P","P","P","P","P","Healer"},
             ["2Groups"] = {"Left","Left","Left","Left","Right","Right","Right","Right"},
+            -- HM CURSE is the source-of-truth board. All 12 players are assigned here.
+            ["HM CURSE"] = {
+                "B TANK","B HEALER","B CURSE 1","B CURSE 2","B CURSE 3","B CURSE 4",
+                "R TANK","R HEALER","R CURSE 1","R CURSE 2","R CURSE 3","R CURSE 4",
+            },
+            -- HM PORTALS is derived from HM CURSE so the same people can never drift to the wrong side.
+            ["HM PORTALS"] = {
+                "B DRAGON","B DRAGON","B DRAGON",
+                "B CHANNELER","B CHANNELER","B CHANNELER",
+                "R DRAGON","R DRAGON","R DRAGON",
+                "R CHANNELER","R CHANNELER","R CHANNELER",
+            },
         },
     },
 }

@@ -337,12 +337,9 @@ local function Frame_Target_UI()	--UI init
 	health.bar		=BUI.UI.Statusbar("BUI_TargetFrame_HealthBar",health.bg,{w,h},{CENTER,CENTER,0,0},ch,BUI.Textures[BUI.Vars.FramesTexture],false)
 --	health.bar:SetGradientColors(ch[1],ch[2],ch[3],ch[4],ch1[1],ch1[2],ch1[3],ch1[4])
 	local targetValueFontSize=math.max(20, math.min(h+2,22))
-	health.textbg	=BUI.UI.Backdrop("BUI_TargetFrame_HealthTextBg",health.bg,{math.floor(w*0.52),h+8},{CENTER,CENTER,0,0},{0,0,0,0.45},{0,0,0,0},nil,false)
 	health.current	=BUI.UI.Label("BUI_TargetFrame_HealthCurrent",health.bg,{w-8,h+10},{CENTER,CENTER,0,0},BUI.UI.Font(BUI.Vars.FrameFont1,targetValueFontSize,true,true),{1,1,1,1},{1,1},'Health',false)
 	health.pct		=BUI.UI.Label("BUI_TargetFrame_HealthPct",health.bg,{w*1/3,h+4},{textpos.percent,textpos.percent,-textpos.spacing,0},BUI.UI.Font(BUI.Vars.FrameFont2,targetValueFontSize-1,true,true),nil,{2,1},'Pct%',true)
 	-- Keep target values above health, shield and trauma bars on the Xbox-PC client.
-	if health.textbg.SetDrawLayer then health.textbg:SetDrawLayer(2) end
-	if health.textbg.SetDrawLevel then health.textbg:SetDrawLevel(99) end
 	for _,label in ipairs({health.current,health.pct}) do
 		if label.SetDrawTier then label:SetDrawTier(2) end
 		if label.SetDrawLayer then label:SetDrawLayer(3) end

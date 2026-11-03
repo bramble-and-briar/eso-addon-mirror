@@ -12,7 +12,7 @@ local IG = InventoryGrouping
 -- offers them. code = nil is not a real language: it is "follow the client", the choice a player
 -- is on until they pick one by hand (IG.sv.languageOverride stays nil).
 IG.LANGUAGES = {
-    { code = nil,  label = "Automatic (Game Language)" },
+    { code = nil,  label = "Automatic" },
     { code = "en", label = "English" },
     { code = "de", label = "Deutsch" },
     { code = "fr", label = "Francais" },

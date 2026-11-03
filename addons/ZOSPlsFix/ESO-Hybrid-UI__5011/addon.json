@@ -18,7 +18,7 @@
     "ESOHybridUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5011/",
-  "fingerprint": "82139122b54d50ac71d8d2a625d6877343ebc3730772f3e3fb47b7d9ee73fc85",
+  "fingerprint": "6a6417ebc3f782071ed1b567384c1497339fdfcfa27c054436f1d96b8662f8e0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18249.png",
     "https://cdn-eso.mmoui.com/preview/pvw18250.png",
@@ -31,11 +31,11 @@
   "source_id": "5011",
   "source_url": "https://www.esoui.com/downloads/info5011-ESOHybridUI.html",
   "stats": {
-    "downloads": 44,
+    "downloads": 60,
     "favorites": 0,
-    "monthly_downloads": 42
+    "monthly_downloads": 54
   },
   "title": "ESO Hybrid UI",
-  "updated_at": 1793605647000,
-  "version": "3.2.3"
+  "updated_at": 1793640004000,
+  "version": "3.3.8"
 }

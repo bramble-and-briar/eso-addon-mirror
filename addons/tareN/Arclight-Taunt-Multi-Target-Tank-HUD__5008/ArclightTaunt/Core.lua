@@ -1,63 +1,58 @@
--- Arclight Taunt 1.0.3 | Core module
+-- Arclight Taunt 1.1.0 | Core module
 -- Lua implementation is original; uses only the public ESO UI API.
 local ADDON = "ArclightTaunt"
 local EM, WM = EVENT_MANAGER, WINDOW_MANAGER
 local A = { targets = {}, rows = {}, demo = false, moving = false, activeTarget = nil, dragActive = false, nextOrder = 0 }
 A.bossAlerts = { expired = { kind = "expired" }, early = { kind = "early" } }
 local TAUNT_IDS = { [38541] = true, [38254] = true }
+-- One shared set for native event filters and cleanup. Optional results are
+-- omitted on clients that do not expose them; never register an unfiltered event.
+local DEATH_RESULTS = {}
+for _, name in ipairs({"ACTION_RESULT_DIED", "ACTION_RESULT_DIED_XP",
+    "ACTION_RESULT_KILLING_BLOW", "ACTION_RESULT_DIED_COMPANION_XP"}) do
+    local result = _G[name]
+    if type(result) == "number" then DEATH_RESULTS[result] = true end
+end
 
 local COLUMN_GAP = 8
-local ROW_HEIGHT, HEADER_HEIGHT, FOOTER_HEIGHT = 25, 20, 18
+local ROW_HEIGHT, FOOTER_HEIGHT = 25, 18
 local MAX_PER_COLUMN = 12
 local MAX_TRACKED_TARGETS = 128 -- safety cap; never discard active targets for old losses
 local UPDATE_MS, EXPIRED_LINGER = 100, 2.0 -- used when persistent lost-taunt display is off
 local ALERT_BATCH_SECONDS = 0.35 -- combine nearly simultaneous boss taunt expirations
 local ALERT_SOUND_COOLDOWN = 4.0
+local EARLY_SOUND_COOLDOWN = 5.0
 local SMART_TIME_DECIMAL_AT = 5 -- full seconds above 5; tenths at 5 and below
--- Only negatively associated native UI sound identifiers from ESO's
+-- Selected native UI warning/notification identifiers from ESO's
 -- SoundIds.lua. Identifiers existing in SOUNDS do not guarantee audible output;
 -- our test button lets users confirm them in their own client.
 local ALERT_SOUNDS = {
-    ["Allgemeiner Alarm"] = "GENERAL_ALERT_ERROR",
-    ["Countdown-Warnung"] = "COUNTDOWN_WARNING",
     ["Duell-Grenzwarnung"] = "DUEL_BOUNDARY_WARNING",
     ["Rüstung beschädigt"] = "HUD_ARMOR_BROKEN",
     ["Prüfung gescheitert"] = "RAID_TRIAL_FAILED",
     ["Questschritt gescheitert"] = "QUEST_STEP_FAILED",
-    ["Entdeckt"] = "STEALTH_DETECTED",
     ["Gesucht"] = "JUSTICE_NOW_KOS",
-    ["Fähigkeit fehlgeschlagen"] = "ABILITY_FAILED_IN_COMBAT",
+    ["Duel start"] = "DUEL_START",
+    ["Notification"] = "NEW_NOTIFICATION",
     ["Todesstoß"] = "DEATH_RECAP_KILLING_BLOW_SHOWN",
+    ["Duel invitation"] = "DUEL_INVITE_RECEIVED",
+    ["Duel accepted"] = "DUEL_ACCEPTED",
+    ["Duel victory"] = "DUEL_WON",
+    ["Duel forfeit"] = "DUEL_FORFEIT",
+    ["Announcement"] = "DISPLAY_ANNOUNCEMENT",
+    ["Trial start"] = "RAID_TRIAL_STARTED",
+    ["Trial completed"] = "RAID_TRIAL_COMPLETED",
 }
 local ALERT_SOUND_CHOICES = {
-    "Allgemeiner Alarm", "Countdown-Warnung", "Duell-Grenzwarnung",
+    "Duell-Grenzwarnung",
     "Rüstung beschädigt", "Prüfung gescheitert",
-    "Questschritt gescheitert", "Entdeckt", "Gesucht",
-    "Fähigkeit fehlgeschlagen", "Todesstoß",
+    "Questschritt gescheitert", "Gesucht",
+    "Todesstoß", "Duel start", "Notification",
+    "Duel invitation", "Duel accepted", "Duel victory", "Duel forfeit",
+    "Announcement", "Trial start", "Trial completed",
+
 }
 local RETICLE_SCAN_INTERVAL = 0.25 -- do not scan reticle buffs every HUD redraw
-local IMMUNITY_STACK_THRESHOLD = 5
--- Only explicit, unambiguous effect names. These are NOT arbitrary ability IDs.
--- Some translations/patches may use different labels: show nothing if unmatched.
--- Later, confirmed ability IDs can replace this compatibility fallback.
-local COUNTER_NAMES = {
-    ["taunt counter"] = true,
-    ["spottzähler"] = true,
-    ["spott-zähler"] = true,
-    ["verspottungszähler"] = true,
-    ["verspottungs-zähler"] = true,
-}
-local IMMUNITY_NAMES = {
-    ["taunt immunity"] = true,
-    ["spottimmunität"] = true,
-    ["spott-immunität"] = true,
-    ["verspottungsimmunität"] = true,
-    ["verspottungs-immunität"] = true,
-}
-local function CanonicalEffectName(value)
-    if type(value) ~= "string" then return "" end
-    return value:lower():gsub("^%s+", ""):gsub("%s+$", "")
-end
 local C = {
     white      = {0.96, 0.97, 1.00, 1},
     muted      = {0.67, 0.73, 0.79, 1},
@@ -65,28 +60,34 @@ local C = {
     row        = {0.025, 0.039, 0.055, 1},
     warningRow = {0.095, 0.067, 0.029, 1},
     dangerRow  = {0.108, 0.035, 0.045, 1},
-    selected   = {0.53, 0.82, 1.00, 1},
+    focusLight = {0.98, 0.98, 0.96, 1},
     track      = {0.22, 0.25, 0.29, 0.60},
     safe       = {0.17, 0.94, 0.75, 1},
     warning    = {1.00, 0.71, 0.12, 1},
     danger     = {1.00, 0.26, 0.33, 1},
+    highDanger = {1.00, 0.26, 0.33, 1},
     -- Full-row progress uses darker tints than the text/bar colours, keeping
     -- white and champagne-gold names legible while making time progression clear.
     fullSafe   = {0.06, 0.33, 0.27, 0.64},
     fullWarning= {0.46, 0.28, 0.04, 0.64},
     fullDanger = {0.43, 0.07, 0.13, 0.64},
+    -- Contrast uses saturated urgency surfaces and our existing texture detail.
+    -- The pale focus outline and light sweep stay outside the countdown strip.
+    highRow = {0.018, 0.028, 0.045, 1},
+    highSafeRow = {0.02, 0.18, 0.14, 1},
+    highWarningRow = {0.22, 0.14, 0.028, 1},
+    highDangerRow = {0.39, 0.025, 0.075, 1},
+    highTrack = {0.13, 0.19, 0.23, 1},
+    highDivider = {0.065, 0.08, 0.10, 1},
+    highFullSafe = {0.025, 0.40, 0.30, 1},
+    highFullWarning = {0.48, 0.30, 0.025, 1},
+    highFullDanger = {0.62, 0.015, 0.04, 1},
     moveTint   = {0.18, 0.40, 0.57, 0.27},
-    immunity   = {0.76, 0.52, 1.00, 1},
-    focus      = {0.90, 0.95, 1.00, 1},
-    focusWash  = {0.27, 0.53, 0.78, 0.19},
-    focusLine  = {0.68, 0.86, 1.00, 0.88},
-    focusWashFull = {0.20, 0.44, 0.65, 0.32},
-    focusLineFull = {0.83, 0.94, 1.00, 1.00},
     -- Soft champagne: bright on turquoise/yellow/red rows, but distinct
     -- from the saturated yellow *timer*. Never colour-code boss names
     -- by remaining time; countdown and severity stripe keep that role.
     bossName   = {0.985, 0.898, 0.722, 1},
-    bossIcon   = {0.98, 0.94, 0.84, 1}, -- pale bone-ivory: clearer than white names, distinct from purple immunity
+    bossIcon   = {0.98, 0.94, 0.84, 1}, -- pale bone-ivory, distinct from countdown urgency
     -- Alert visuals are fixed across all profiles. Native textures and labels
     -- retain a high contrast independently of the taunt timer colours.
     alertBackground = {1, 1, 1, 1},
@@ -97,19 +98,21 @@ local C = {
     alertEarlyHairline = {0.20, 0.95, 0.78, 0.95},
 }
 local defaults = {
-    x = 1507, y = 370, scale = 1.25, onlyMine = true,
-    columns = 1, limit = 10, header = false, opacity = 0.72, width = 280, rowGap = 2,
+    x = 1507, y = 370, scale = 1.15,
+    columns = 1, limit = 10, opacity = 0.72, width = 280, rowGap = 2,
     subtleWarningBg = true, warningAt = 7, dangerAt = 4, removeDead = true,
-    showExpired = false, sortMode = "remaining", showBossIcon = true,
+    showExpired = false, showBossIcon = true,
     highlightBossNames = true, pinBosses = false, bossMode = "comprehensive",
-    showImmunity = false, showTauntStacks = false, highlightTarget = true, focusStyle = "strong",
+    highlightTarget = true,
     fontKey = "Arclight (Standard)", timerFontKey = "Wie Gegnername",
-    barKey = "Arclight (Signal)", fontSize = 100,
+    barKey = "Arclight (Signatur)", fontSize = 100,
     barHeight = 4, barDisplay = "compact", backgroundKey = "Ohne Textur", texturedTrack = false,
-    bossAlertText = true, bossAlertSound = true,
-    bossAlertSoundKey = "Todesstoß", bossAlertDuration = 2.5,
-    bossAlertOpacity = 100, bossAlertOffsetY = 290, bossAlertElites = false,
+    bossAlertText = true, bossAlertSound = true, bossEarlySound = false,
+    bossEarlySoundKey = "Duell-Grenzwarnung",
+    bossAlertSoundKey = "Duel start", bossAlertDuration = 2.5,
+    bossAlertOpacity = 72, bossAlertOffsetY = 290, bossAlertElites = false,
     hideInMenus = true, smartTime = true, growUp = false, fitToScreen = true,
+    showTauntList = true, mirrorTauntList = false, highContrast = false, trackPlayerTargets = false,
     bossEarlyWarning = true, bossEarlySeconds = 2.5,
 }
 local FONT_NAME = "$(BOLD_FONT)|14|soft-shadow-thin"
@@ -118,18 +121,18 @@ local FONT_HEADER = "$(BOLD_FONT)|13|soft-shadow-thin"
 local FONT_MORE = "$(MEDIUM_FONT)|12|soft-shadow-thin"
 
 -- LibMediaProvider-1.1 offers names and texture/font paths, not UI widgets.
--- Preserve our original CT_TEXTURE solid fill as the default; an empty LMP
+-- Keep the original CT_TEXTURE solid fill available; an empty LMP
 -- statusbar path must NEVER be passed to SetTexture (white rectangle bug).
 local MEDIA_FONT_DEFAULT = "Arclight (Standard)"
 local MEDIA_TIMER_INHERIT = "Wie Gegnername"
 local MEDIA_BAR_FLAT = "Arclight (Glatt)"
-local MEDIA_BAR_DEFAULT = "Arclight (Signal)"
+local MEDIA_BAR_DEFAULT = "Arclight (Signatur)"
 local MEDIA_BAR_ESO = "Arclight Taunt - ESO-Verlauf"
 local MEDIA_BAR_SIGNATURE = "Arclight (Signatur)"
 local MEDIA_BAR_SIGNAL = "Arclight (Signal)"
 local MEDIA_TEXTURE_SIGNATURE = "ArclightTaunt/Textures/ArclightSignatur.dds"
 local MEDIA_TEXTURE_SIGNAL = "ArclightTaunt/Textures/ArclightSignal.dds"
-local BOSS_ICON_TEXTURE = "ArclightTaunt/Textures/ArclightBoss.dds"
+local BOSS_ICON_TEXTURE = "ArclightTaunt/Textures/ArclightBossWorn.dds"
 local BOSS_WARNING_TEXTURE = "ArclightTaunt/Textures/ArclightBossWarning.dds"
 local BOSS_EARLY_TEXTURE = "ArclightTaunt/Textures/ArclightBossEarly.dds"
 local MEDIA_BG_NONE = "Ohne Textur"
@@ -191,7 +194,7 @@ end
 -- The first effect in a frame draws immediately; later effects share the next
 -- scheduled redraw. The periodic callback sleeps when no work remains.
 function A.RefreshUpdateState()
-    local needed = A.demo or A.moving or A.effectTickPending or next(A.targets) ~= nil
+    local needed = (A.demo and not A.demoPausedAt) or A.moving or A.effectTickPending or next(A.targets) ~= nil
         or A.bossAlerts.expired.visibleUntil ~= nil or A.bossAlerts.early.visibleUntil ~= nil
         or A.pendingBossPreview ~= nil
         or (A.pendingBossWarnings and next(A.pendingBossWarnings) ~= nil)
@@ -227,9 +230,10 @@ A.ADDON = ADDON
 A.EM = EM
 A.WM = WM
 A.TAUNT_IDS = TAUNT_IDS
+A.DEATH_RESULTS = DEATH_RESULTS
 A.COLUMN_GAP = COLUMN_GAP
 A.ROW_HEIGHT = ROW_HEIGHT
-A.HEADER_HEIGHT = HEADER_HEIGHT
+A.COMPACT_ROW_HEIGHT = 27 -- keep the narrow layout compact with room for its separate strip
 A.FOOTER_HEIGHT = FOOTER_HEIGHT
 A.MAX_PER_COLUMN = MAX_PER_COLUMN
 A.MAX_TRACKED_TARGETS = MAX_TRACKED_TARGETS
@@ -237,14 +241,11 @@ A.UPDATE_MS = UPDATE_MS
 A.EXPIRED_LINGER = EXPIRED_LINGER
 A.ALERT_BATCH_SECONDS = ALERT_BATCH_SECONDS
 A.ALERT_SOUND_COOLDOWN = ALERT_SOUND_COOLDOWN
+A.EARLY_SOUND_COOLDOWN = EARLY_SOUND_COOLDOWN
 A.SMART_TIME_DECIMAL_AT = SMART_TIME_DECIMAL_AT
 A.ALERT_SOUNDS = ALERT_SOUNDS
 A.ALERT_SOUND_CHOICES = ALERT_SOUND_CHOICES
 A.RETICLE_SCAN_INTERVAL = RETICLE_SCAN_INTERVAL
-A.IMMUNITY_STACK_THRESHOLD = IMMUNITY_STACK_THRESHOLD
-A.COUNTER_NAMES = COUNTER_NAMES
-A.IMMUNITY_NAMES = IMMUNITY_NAMES
-A.CanonicalEffectName = CanonicalEffectName
 A.C = C
 A.defaults = defaults
 A.FONT_NAME = FONT_NAME

@@ -83,13 +83,13 @@ PvPUA.constants.emperorKeeps = {
 }
 
 PvPUA.constants.userIcons = {
-    ["@user562"]         = { texture = "PvPUA/Textures/icon_panda.dds" },
+    ["@user562"]         = { texture = "PvPUA/Textures/icon_panda.dds", texture2 = "PvPUA/Textures/icon_usmx.dds" },
     ["@sir gilson7"]     = { texture = "PvPUA/Textures/icon_werewolf.dds", heightOffset = 1.0 },
     ["@get em nala"]     = { texture = "PvPUA/Textures/icon_hedgehog.dds" },
     ["@suzyqboston3383"] = { texture = "PvPUA/Textures/icon_trinity.dds", heightOffset = 1.0 },
     ["@suzibrew"]        = { texture = "PvPUA/Textures/icon_elephant.dds" },
     ["@maddogmcree6157"] = { texture = "PvPUA/Textures/icon_devildog.dds" },
-    ["@sgt bear78fh"]    = { texture = "PvPUA/Textures/icon_bear.dds", heightOffset = 1.0 },
+    ["@sgt bear78fh"]    = { texture = "PvPUA/Textures/icon_bear.dds", texture2 = "PvPUA/Textures/icon_bear2.dds", heightOffset = 1.0 },
     ["@rolo tsg"]        = { texture = "PvPUA/Textures/icon_wizard.dds" },
     ["@bella nekro"]     = { texture = "PvPUA/Textures/icon_bellamask.dds" },
     ["@o1knuckles1o"]    = { texture = "PvPUA/Textures/icon_knuckles.dds" },
@@ -122,6 +122,7 @@ PvPUA.constants.iconChoices = {
     { name = "AD Shield",  category = "alliances", texture = "PvPUA/Textures/icon_ad_shield.dds" },
     { name = "EP Banner",  category = "alliances", texture = "PvPUA/Textures/icon_ep_banner.dds" },
     { name = "EP Shield",  category = "alliances", texture = "PvPUA/Textures/icon_ep_shield.dds" },
+    { name = "Default 2",  category = "other",     isDefault = true, defaultSlot = 2 },
 }
 
 PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsFont = "EsoUI/Common/Fonts/FTN57.otf", settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListInCombat = true, listLayout = "Full List", barOrientation = "Horizontal", showListDeadRepair = false, listCap = 0 }

@@ -159,13 +159,19 @@ local function PIListStyle(nameLower)
     return PvPUA.constants.ICON_DEFAULT, math.floor((info.scale or 1) * 100 + 0.5), info.heightOffset or 0, PIRoundOpacity((info.alpha or 1) * 100)
 end
 
+local function PIDefaultTexture(info, icon)
+    if not info then return nil end
+    if icon.defaultSlot == 2 then return info.texture2 end
+    return info.texture
+end
+
 local function PIIconTexture(iconIndex, nameLower)
     local icon = iconIndex and PvPUA.constants.iconChoices[iconIndex]
     if not icon or icon.none then return nil end
     if icon.isDefault then
-        local info = nameLower and PIListEntry(nameLower)
-        if not info or not info.texture then return nil end
-        return info.texture, 1.0
+        local texture = PIDefaultTexture(nameLower and PIListEntry(nameLower), icon)
+        if not texture then return nil end
+        return texture, 1.0
     end
     return icon.texture, icon.alpha or 1.0
 end
@@ -191,8 +197,7 @@ local function PIIsChoiceAllowedForMe(index)
     if not icon then return false end
     if icon.isDefault then
         local me = PIMyNameLower()
-        local info = me and PIListEntry(me)
-        return info ~= nil and info.texture ~= nil
+        return PIDefaultTexture(me and PIListEntry(me), icon) ~= nil
     end
     return true
 end
@@ -244,14 +249,26 @@ function PI.BuildPickerChoices(categoryId)
     PI.indexToPicker = {}
     local textures = {}
     local me = PIMyNameLower()
+    local order = {}
     for i, icon in ipairs(PvPUA.constants.iconChoices) do
         if icon.category == categoryId and PIIsChoiceAllowedForMe(i) then
-            local texture = icon.texture
-            if icon.isDefault then texture = PIIconTexture(i, me) end
-            textures[#textures + 1] = texture
-            PI.pickerToIndex[#textures] = i
-            PI.indexToPicker[i] = #textures
+            local rank = 2
+            if icon.none then rank = 0 elseif icon.isDefault then rank = 1 end
+            order[#order + 1] = { index = i, rank = rank }
         end
+    end
+    table.sort(order, function(a, b)
+        if a.rank ~= b.rank then return a.rank < b.rank end
+        return a.index < b.index
+    end)
+    for _, entry in ipairs(order) do
+        local i = entry.index
+        local icon = PvPUA.constants.iconChoices[i]
+        local texture = icon.texture
+        if icon.isDefault then texture = PIIconTexture(i, me) end
+        textures[#textures + 1] = texture
+        PI.pickerToIndex[#textures] = i
+        PI.indexToPicker[i] = #textures
     end
     return textures
 end

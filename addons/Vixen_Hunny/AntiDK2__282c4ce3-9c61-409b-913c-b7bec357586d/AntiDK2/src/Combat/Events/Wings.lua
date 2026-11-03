@@ -10,7 +10,7 @@ local activeTargets = {}
 local function RemoveTarget(name)
     local e = activeTargets[name]
     if not e then return end
-    if e.decayHandle then zo_removeCallLater(e.decayHandle) end
+    ADK.CancelTimer(e.decayHandle)
     activeTargets[name] = nil
     ADK.UI.Wings.Refresh(activeTargets)
 end
@@ -18,10 +18,10 @@ end
 local function ScheduleDecay(name)
     local e = activeTargets[name]
     if not e then return end
-    if e.decayHandle then zo_removeCallLater(e.decayHandle) end
+    e.decayHandle = ADK.CancelTimer(e.decayHandle)
     e.decayHandle = zo_callLater(function()
         RemoveTarget(name)
-    end, ADK.savedVars.wingsCombatTimeout * 1000)
+    end, ADK.Get("wingsCombatTimeout") * 1000)
 end
 
 local function OnHit(sourceName, sourceType)
@@ -55,21 +55,19 @@ end
 function M.Register()
     EVENT_MANAGER:RegisterForEvent(
         ADK.name .. "_Wings", EVENT_COMBAT_EVENT,
-        function(_, result, _, _, _, _, sourceName, sourceType, targetName, _, _, _, _, _, _, targetUnitId, abilityId)
-            if not ADK.savedVars.trackWings then return end
-            if abilityId ~= ID              then return end
+        function(_, result, _, _, _, _, sourceName, sourceType, targetName, _, _, _, _, _, _, _, abilityId)
+            if not ADK.Get("trackWings") then return end
+            if abilityId ~= ID           then return end
             if result ~= ACTION_RESULT_EFFECT_GAINED and result ~= ACTION_RESULT_EFFECT_FADED then return end
-            local name = zo_strformat("<<1>>", sourceName)
-            if name ~= GetUnitName("player") then return end
-            local tName = zo_strformat("<<1>>", targetName)
-            if tName ~= GetUnitName("player") then return end
+            -- The stagger effect is reported with the player as both source and target.
+            if not ADK.IsPlayer(sourceName) then return end
+            if not ADK.IsPlayer(targetName) then return end
             M.TrackEnemy(sourceName, sourceType)
-                if result == ACTION_RESULT_EFFECT_FADED then
-                    OnFaded(sourceName, sourceType)
-                elseif result == ACTION_RESULT_EFFECT_GAINED then
-                    OnHit(sourceName, sourceType)
-
-                end
+            if result == ACTION_RESULT_EFFECT_FADED then
+                OnFaded(sourceName, sourceType)
+            else
+                OnHit(sourceName, sourceType)
+            end
         end
     )
     -- Detect when a tracked enemy dies

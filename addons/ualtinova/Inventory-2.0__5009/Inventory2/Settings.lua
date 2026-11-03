@@ -1,9 +1,14 @@
 InventoryGrouping = InventoryGrouping or {}
 local IG = InventoryGrouping
 
+-- Cached once rather than read off _G on every call (ESOUI admin review, 2026-11-02).
+-- LibAddonMenu-2.0 is a ## DependsOn now: the manifest guarantees its file loads ahead of ours,
+-- so this is never nil by the time anything here reads it.
+local libAddonMenu2 = LibAddonMenu2
+
 IG.DISPLAY_NAME = "Inventory 2.0"
 IG.SHORT_NAME = "INV2.0" -- what the right click menu signs its lines with
-IG.VERSION = "1.0.3"
+IG.VERSION = "1.0.5"
 IG.DATA_VERSION = 22-- shape of the saved settings; see IG.MigrateSavedVars
 
 IG.DEFAULT_SETTINGS = {
@@ -511,12 +516,13 @@ ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_COLLAPSE_ALL", "Close ever
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_SEND_TO_SELL", "Send hovered to SELL")
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_SEND_TO_GUILDSELL", "Send hovered to GUILD STORE")
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_SEND_TO_DECONSTRUCT", "Send hovered to DECON")
+ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_SEND_TO_BANK", "Send hovered to TO BANK")
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_MARK_AS_JUNK", "Mark as junk")
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_UNDO", "Undo")
 
 function IG.OpenSettings()
-    if LibAddonMenu2 and IG.settingsPanel then
-        LibAddonMenu2:OpenToPanel(IG.settingsPanel)
+    if IG.settingsPanel then
+        libAddonMenu2:OpenToPanel(IG.settingsPanel)
     end
 end
 
@@ -947,7 +953,7 @@ local function LastRunControls()
     -- run's loot goes to, and with one of them gone it has nothing left to decide. Left readable
     -- rather than hidden, so the line does not come and go as another page is switched.
     local overNew = Option("Keep run loot out of NEW",
-        "Run loot shows only in RECENT LOOT, not in NEW. Off: in both.",
+        "Run loot shows only in RECENTLY ACQUIRED, not in NEW. Off: in both.",
         "lastRunOverNew", true)
     overNew[1].disabled = function() return IG.sv.newEnabled ~= true end
     Append(controls, overNew)
@@ -955,7 +961,7 @@ local function LastRunControls()
         "Groups a run's stolen items under one Stolen line. Off: each listed by name.",
         "lastRunPileStolen", true))
     Append(controls, Option("Keep Stolen Items Out",
-        "Stolen items go to STOLEN, never RECENT LOOT.",
+        "Stolen items go to STOLEN, never RECENTLY ACQUIRED.",
         "automateHideStolen", true))
     Append(controls, { { type = "header", name = Color(SECTION.modules, "What counts as a run") } })
     Append(controls, Option("Dungeons, trials and arenas",
@@ -3160,11 +3166,24 @@ local BUTTON_HEIGHT = 28
 -- unset global and hand SetDimensions a nil width -- so the width every button and the language
 -- box line up on has to be declared before the first thing that reads it.
 local ABOUT_COLUMN_WIDTH = 170     -- the button column down the right, and every entry in it
+-- Moved up here with ABOUT_COLUMN_WIDTH for the same reason: Button() reads it, so it has to be
+-- declared before Button() is, not down by the version plate where it used to live alone.
+local VERSION_FILL = "12121A"
 
+-- ZO_DefaultButton on its own is bare text that fades at its edges -- standing next to the
+-- language box's own real border it read as a different, smaller control even at the same
+-- width. A plate behind the text (the same dark fill and thin gold outline the logo and version
+-- plate already wear) gives every entry in this column the one frame, so all four read as the
+-- same kind of thing at a glance.
 local function Button(parent, text, onClick, color)
+    local plate = WINDOW_MANAGER:CreateControl(nil, parent, CT_TEXTURE)
+    plate:SetDimensions(ABOUT_COLUMN_WIDTH, BUTTON_HEIGHT)
+    plate:SetColor(IG.HexToRGB(VERSION_FILL))
+    IG.AddOutline(plate, LOGO_OUTLINE, IG.DEFAULT_ICON_COLOR)
+
     local button = WINDOW_MANAGER:CreateControlFromVirtual(nil, parent, "ZO_DefaultButton")
     button:SetText(text)
-    button:SetDimensions(ABOUT_COLUMN_WIDTH, BUTTON_HEIGHT)
+    button:SetAnchorFill(plate)
     button:SetHandler("OnClicked", onClick)
     if color then
         local r, g, b = IG.HexToRGB(color)
@@ -3172,7 +3191,7 @@ local function Button(parent, text, onClick, color)
         button:SetMouseOverFontColor(1, 1, 1, 1)
         button:SetPressedFontColor(r, g, b, 1)
     end
-    return button
+    return plate
 end
 
 -- Changing the language takes a UI reload to actually swap every string over (anything already
@@ -3207,7 +3226,6 @@ local ABOUT_TEXT_GAP = 14          -- logo to the pitch beside it
 local ABOUT_TITLE_LIFT = 7
 local VERSION_GAP = 10             -- logo to the plate under it
 local VERSION_MIN_HEIGHT = 26
-local VERSION_FILL = "12121A"
 
 -- A real ZO_ComboBox (the control LibAddonMenu's own dropdowns are built from) standing in the
 -- button column, the same ABOUT_COLUMN_WIDTH every button there is. Clicking it drops its own
@@ -3524,6 +3542,17 @@ local function ActionLines()
             end,
         }
     end
+    -- Off by default: a set piece not yet in your set collection is skipped by both Auto-Sell
+    -- and Auto-Deconstruct (Trading.lua, Deconstruct.lua), because selling or breaking it down
+    -- loses it for good. Either switch lets that one piece through too.
+    lines[#lines + 1] = { name = "Sell Uncollected Set Pieces Too",
+        description = "Auto-Sell normally skips a set piece you have not unlocked in your set "
+            .. "collection yet. On: it is sold anyway.",
+        key = "sellIncludeUncollected", look = false }
+    lines[#lines + 1] = { name = "Deconstruct Uncollected Set Pieces Too",
+        description = "Auto-Deconstruct normally skips a set piece you have not unlocked in your "
+            .. "set collection yet. On: it is broken down anyway.",
+        key = "deconIncludeUncollected", look = false }
     return lines
 end
 
@@ -3689,8 +3718,8 @@ local function OpenCategory(submenu)
 end
 
 function IG.OpenDrawerSettings(key)
-    if not (LibAddonMenu2 and IG.settingsPanel) then return end
-    LibAddonMenu2:OpenToPanel(IG.settingsPanel)
+    if not IG.settingsPanel then return end
+    libAddonMenu2:OpenToPanel(IG.settingsPanel)
     if not key then return end
     local tries = 0
     local function Jump()
@@ -3715,8 +3744,10 @@ function IG.OpenDrawerSettings(key)
 end
 
 function IG.CreateSettingsPanel()
-    local LAM = LibAddonMenu2
-    if not LAM then return end
+    -- No "if not LAM then return end" here: LibAddonMenu-2.0 is a ## DependsOn, so the manifest
+    -- itself already refuses to load this addon at all without it present (ESOUI admin review,
+    -- 2026-11-02) -- a guard against something that can no longer happen is dead code, not safety.
+    local LAM = libAddonMenu2
 
     IG.settingsPanel = LAM:RegisterAddonPanel("InventoryGroupingSettings", {
         type = "panel",
@@ -3896,7 +3927,7 @@ function IG.CreateSettingsPanel()
                 { name = "Home Containers", description = "A HOME CONTAINERS group showing your house storage.", key = "homeEnabled", look = false },
                 { name = "Junk", description = "A JUNK group with everything marked as junk.", key = "junkEnabled", look = false },
                 { name = "New Items", description = "A NEW group with what arrived since you last closed the bag.", key = "newEnabled", look = false },
-                { name = "Recent Loot", description = "A RECENT LOOT group with what you picked up in recent places.", key = "lastRunEnabled", look = false },
+                { name = "Recently Acquired", description = "A RECENTLY ACQUIRED group with what you picked up in recent places.", key = "lastRunEnabled", look = false },
             }, true) },
         },
         {

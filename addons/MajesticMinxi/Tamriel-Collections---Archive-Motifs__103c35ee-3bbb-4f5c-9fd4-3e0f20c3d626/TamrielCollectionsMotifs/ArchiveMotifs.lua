@@ -5,7 +5,7 @@ local definition = {
     addonName = 'Tamriel Collections - Archive Motifs',
     assetRoot = 'TamrielCollectionsMotifs',
     screenControl = 'TCMQuestJournalTL',
-    version = 1006,
+    version = 1013,
     supportsSearch = true,
     onCategoryFocus = function(screen, data)
         screen:ShowMotifCategory(data)

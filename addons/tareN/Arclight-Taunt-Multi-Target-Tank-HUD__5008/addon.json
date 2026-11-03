@@ -18,14 +18,12 @@
     "ArclightTaunt"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5008/",
-  "fingerprint": "c8baa0fce8709e48bbfc97d701182ac3253505fd5880f1c4477946972a6b91aa",
+  "fingerprint": "04215a6a034a8bc674edd04cda78fa5b25ddfd5d4b6a5dd85cfa43bd02536b0d",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18223.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18225.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18226.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18227.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18228.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18229.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18277.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18283.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18279.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18282.png"
   ],
   "platform": "pc",
   "published": true,
@@ -33,11 +31,11 @@
   "source_id": "5008",
   "source_url": "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
   "stats": {
-    "downloads": 40,
-    "favorites": 2,
-    "monthly_downloads": 32
+    "downloads": 70,
+    "favorites": 4,
+    "monthly_downloads": 58
   },
   "title": "Arclight Taunt \u2013 Multi-Target Tank HUD",
-  "updated_at": 1793471407000,
-  "version": "1.0.3"
+  "updated_at": 1793652285000,
+  "version": "1.1.0"
 }

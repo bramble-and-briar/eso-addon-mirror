@@ -49,8 +49,10 @@ local function Refused(bagId, slotIndex, itemLink)
     if IsItemInArmory and IsItemInArmory(bagId, slotIndex) then return true end
     if IsItemStolen(bagId, slotIndex) then return true end
     if IG.IsDailyWritItem and IG.IsDailyWritItem({ bagId = bagId, slotIndex = slotIndex }) then return true end
-    -- A set piece the collection does not have yet is worth more kept than broken down.
-    if IsItemLinkSetCollectionPiece and IsItemLinkSetCollectionPiece(itemLink)
+    -- A set piece the collection does not have yet is worth more kept than broken down -- unless
+    -- the player said otherwise (Settings > Automate > "Deconstruct Uncollected Set Pieces Too").
+    if not (IG.sv and IG.sv.deconIncludeUncollected)
+        and IsItemLinkSetCollectionPiece and IsItemLinkSetCollectionPiece(itemLink)
         and not IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink)) then
         return true
     end

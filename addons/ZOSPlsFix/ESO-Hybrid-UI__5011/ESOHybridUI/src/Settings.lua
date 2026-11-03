@@ -53,9 +53,126 @@ function ADDON:RegisterSettings()
             return
         end
 
-        -- Only open a addressed draft. The player manually chooses whether
+        -- Only open an addressed draft. The player manually chooses whether
         -- to attach gold and the amount; this addon never changes mail gold.
         MAIL_SEND:ComposeMailTo("@ZOSPlsFix")
+    end
+
+    local function RegisterGamepadOptions()
+        local library = LibGamepadOptions
+        if type(library) ~= "table" or type(library.RegisterAddon) ~= "function" then
+            ADDON:LogInfo("LibGamepadOptions is not installed; native gamepad settings are unavailable.")
+            return false
+        end
+
+        local gamepadOptions = {
+            {
+                type = "description",
+                name = "Controller settings",
+                text = "Configure ESO Hybrid UI without leaving the gamepad interface. These settings are shared with the keyboard Add-Ons panel.",
+            },
+            {
+                type = "header",
+                name = "Interface",
+            },
+            {
+                type = "button",
+                name = "Recommended ESO settings",
+                tooltip = "Saves Gamepad Mode, Gamepad keybind display, Keyboard Chat, and cursor-on-chat-focus in ESO.",
+                buttonText = "Apply settings",
+                func = function() ADDON:ApplyRecommendedESOSettings() end,
+            },
+            {
+                type = "dropdown",
+                name = "Interface mode",
+                tooltip = "Gamepad uses ESO's full controller interface. Hybrid uses the compact keyboard HUD and keyboard-style wheels while menus remain native gamepad UI. ESO Gamepad Mode must be On, not Auto.",
+                choices = { "Gamepad", "Hybrid" },
+                choicesValues = { "gamepad", "hybrid" },
+                default = "gamepad",
+                getFunc = function()
+                    return ADDON:GetSettings().useHybridUI and "hybrid" or "gamepad"
+                end,
+                setFunc = function(value)
+                    local saved = ADDON:GetSettings()
+                    saved.useHybridUI = value == "hybrid"
+                    saved.useControllerUI = value == "gamepad"
+                    saved.useGamepadButtons = true
+                    ADDON:Refresh()
+                end,
+            },
+            {
+                type = "checkbox",
+                name = "Account-wide settings",
+                tooltip = "Use the same settings on all characters. Your current settings are copied to the shared profile when first enabled.",
+                default = false,
+                getFunc = function()
+                    return ADDON.savedVariablesAccountWide
+                        and ADDON.savedVariablesAccountWide._esoHybridUseAccountWideSettings == true
+                        or false
+                end,
+                setFunc = function(value) ADDON:SetUseAccountWideSettings(value) end,
+            },
+            {
+                type = "header",
+                name = "HUD prompts",
+            },
+            FontDropdown("Interaction button font", "Size of the button label beside the reticle.", "reticle", fontChoices, fontValues.reticle),
+            FontDropdown("Interaction context font", "Size of the interaction description beside the reticle.", "reticleContext", fontChoices, fontValues.reticleContext),
+            FontDropdown("Stealth icon font", "Size of stealth and lockpicking prompt icons.", "stealthIcon", fontChoices, fontValues.stealthIcon),
+            {
+                type = "header",
+                name = "Advanced",
+            },
+            {
+                type = "checkbox",
+                name = "Diagnostic logging",
+                tooltip = "Enable detailed debug messages. For saved logs and stack traces, install LibDebugLogger and DebugLogViewer.",
+                default = false,
+                getFunc = function() return ADDON.runtime.debugLoggingEnabled end,
+                setFunc = function(value) ADDON:SetDebugLogging(value) end,
+            },
+            {
+                type = "description",
+                name = "Troubleshooting",
+                text = "Chat commands: /esohybrid_debug on|off and /esohybrid_dump.",
+            },
+            {
+                type = "header",
+                name = "Support the addon",
+            },
+            {
+                type = "description",
+                name = "Optional donations",
+                text = "The button opens a mail draft addressed to @ZOSPlsFix. You choose whether to attach gold and the amount.",
+            },
+            {
+                type = "button",
+                name = "Donation mail",
+                tooltip = "Opens a mail draft only. ESO Hybrid UI does not attach or modify gold.",
+                buttonText = "Open mail",
+                func = OpenDonationMail,
+            },
+        }
+
+        local ok, err = pcall(function()
+            library:RegisterAddon("ESOHybridUI", {
+                name = "ESO Hybrid UI",
+                displayName = "ESO Hybrid UI",
+                categoryName = "ESO Hybrid UI",
+                directOpen = true,
+                showInRoot = false,
+                tooltip = "Controller-friendly settings for ESO Hybrid UI.",
+                sortOrder = 200,
+            }, gamepadOptions)
+        end)
+
+        if not ok then
+            ADDON:LogError("Could not register native gamepad settings:", tostring(err))
+            return false
+        end
+
+        ADDON:LogInfo("Registered native gamepad settings.")
+        return true
     end
 
     local options = {
@@ -74,7 +191,7 @@ function ADDON:RegisterSettings()
         {
             type = "dropdown",
             name = "Interface mode",
-            tooltip = "Gamepad uses ESO's full controller interface. Hybrid keeps the compact keyboard-style gameplay HUD with controller prompts and native gamepad menus. ESO's Gamepad Mode must be set to On, not Auto.",
+            tooltip = "Gamepad uses ESO's full controller interface. Hybrid uses the compact keyboard HUD and keyboard-style quickslot/player-interaction wheels. Menus and navigation remain native gamepad UI, with controller input and glyphs. ESO's Gamepad Mode must be set to On, not Auto.",
             choices = { "Gamepad", "Hybrid" },
             choicesValues = { "gamepad", "hybrid" },
             default = "gamepad",
@@ -142,4 +259,5 @@ function ADDON:RegisterSettings()
     }
 
     LibAddonMenu2:RegisterOptionControls(panelName, options)
+    RegisterGamepadOptions()
 end

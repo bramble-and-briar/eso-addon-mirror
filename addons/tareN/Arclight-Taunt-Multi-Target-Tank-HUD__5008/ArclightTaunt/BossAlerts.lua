@@ -1,4 +1,4 @@
--- Arclight Taunt 1.0.3 | BossAlerts module
+-- Arclight Taunt 1.1.0 | BossAlerts module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local ALERT_BATCH_SECONDS = A.ALERT_BATCH_SECONDS
@@ -6,7 +6,7 @@ local ALERT_SOUNDS = A.ALERT_SOUNDS
 local ALERT_SOUND_COOLDOWN = A.ALERT_SOUND_COOLDOWN
 local Clamp = A.Clamp
 local Now = A.Now
-local PREVIEW_EARLY_DELAY = 1.5
+local PREVIEW_EARLY_DELAY = 1.0
 local REVEAL_SECONDS = 0.32
 local function SmoothStep(value)
     local t = Clamp(value, 0, 1)
@@ -14,6 +14,7 @@ local function SmoothStep(value)
 end
 
 local function BossVisible(t)
+    if t.isPlayer then return false end
     if t.isBoss then return true end
     local mode = A.saved.bossMode
     local rank = t.bossDifficulty or 0
@@ -29,7 +30,7 @@ end
 -- Default requires the official boss unit tag; optional elites use the
 -- difficulty classifier (which can also include hard ordinary enemies).
 local function EligibleForBossAlert(t)
-    if t.dead then return false end
+    if t.dead or t.isPlayer then return false end
     if t.isBoss then return true end
     return A.saved.bossAlertElites and BossVisible(t) or false
 end
@@ -38,11 +39,37 @@ local function PlayBossAlertSound(preview)
     if not preview and not A.saved.bossAlertSound then return end
     local key = ALERT_SOUNDS[A.saved.bossAlertSoundKey]
     local sound = key and SOUNDS and SOUNDS[key]
-    if not sound and SOUNDS then sound = SOUNDS.GENERAL_ALERT_ERROR end
+    if not sound and SOUNDS then sound = SOUNDS.DUEL_START end
     if sound and type(PlaySound) == "function" then
-        -- Nonexistent sound constants fall back to the user-confirmed alarm.
+        -- Missing optional sounds fall back to the configured type's default.
         -- We cannot verify audible output from Lua; use the in-game preview.
         PlaySound(sound)
+    end
+end
+
+local function HasUrgentBossWarning(now)
+    local red = A.bossAlerts.expired
+    if red.visibleUntil and now < red.visibleUntil then return true end
+    -- Also protect the start of red audio when the visual banner is disabled.
+    if A.lastAlertSoundAt and now - A.lastAlertSoundAt < 1 then return true end
+    for key, entry in pairs(A.pendingBossWarnings or {}) do
+        local target = entry.target
+        if A.targets[key] == target and (target.tauntGeneration or 0) == entry.generation
+            and A.IsLost(target, now) and EligibleForBossAlert(target) then return true end
+    end
+    return false
+end
+local function PlayEarlyBossSound(preview)
+    if not A.saved.bossEarlyWarning or not A.saved.bossEarlySound then return end
+    local now = Now()
+    if HasUrgentBossWarning(now) then return end
+    if not preview and A.lastEarlySoundAt and now - A.lastEarlySoundAt < A.EARLY_SOUND_COOLDOWN then return end
+    local key = ALERT_SOUNDS[A.saved.bossEarlySoundKey]
+    local sound = SOUNDS and (SOUNDS[key or "DUEL_BOUNDARY_WARNING"] or SOUNDS.DUEL_BOUNDARY_WARNING)
+    if sound and type(PlaySound) == "function" then
+        PlaySound(sound)
+        if not preview then A.lastEarlySoundAt = now end
+        return true
     end
 end
 
@@ -50,12 +77,6 @@ local function SetAlertAlpha(alert, alpha)
     if alert.alpha ~= alpha then
         alert.root:SetAlpha(alpha)
         alert.alpha = alpha
-    end
-end
-local function SetAlertWidth(alert, width)
-    if alert.timerFill and alert.timerWidth ~= width then
-        alert.timerFill:SetWidth(width)
-        alert.timerWidth = width
     end
 end
 local function PositionBossAlert(alert)
@@ -80,9 +101,11 @@ end
 
 -- With no kind, clear both independent slots (combat end / tracking reset).
 local function HideBossWarning(kind)
+    local sequenceActive = A.pendingBossPreview ~= nil
     A.pendingBossPreview = nil
     for key, alert in pairs(A.bossAlerts) do
-        if not kind or kind == key then
+        if not kind or kind == key or (sequenceActive and alert.isPreview) then
+            if A.StopAlertProgress then A.StopAlertProgress(alert) end
             alert.visibleUntil, alert.visibleFrom = nil, nil
             alert.subjects, alert.currentCount, alert.isPreview = nil, nil, nil
             alert.progressUntil, alert.duration = nil, nil
@@ -116,7 +139,7 @@ local function IsEarlySubjectCurrent(key, subject, now)
     local target = A.targets[key]
     return target and (target.tauntGeneration or 0) == subject.generation
         and (not subject.target or subject.target == target)
-        and target.mine and EligibleForBossAlert(target) and not A.IsLost(target, now)
+        and EligibleForBossAlert(target) and not A.IsLost(target, now)
         and target.endTime - now <= A.saved.bossEarlySeconds
 end
 local function RefreshEarlyTiming(alert)
@@ -180,11 +203,15 @@ local function DismissBossAlertForTarget(unitId, kind)
     end
 end
 
-local function ShowBossWarning(count, bossName, preview, kind, subjects)
+local function ShowBossWarning(count, bossName, preview, kind, subjects, previewDuration)
     local now = Now()
     kind = (kind == "early") and "early" or "expired"
-    -- A newer preview or real warning supersedes a delayed sample. The combined
-    -- test installs its request only after its red sample has been shown.
+    -- Genuine warnings supersede the whole synthetic sequence.
+    if not preview then
+        for slot, sample in pairs(A.bossAlerts) do
+            if sample.isPreview then HideBossWarning(slot) end
+        end
+    end
     A.pendingBossPreview = nil
     local alert = A.bossAlerts[kind]
     if kind == "early" and not A.saved.bossEarlyWarning and not preview then return end
@@ -220,7 +247,7 @@ local function ShowBossWarning(count, bossName, preview, kind, subjects)
     if kind == "early" and not preview then
         RefreshEarlyTiming(alert)
     else
-        alert.duration = A.saved.bossAlertDuration
+        alert.duration = preview and previewDuration or A.saved.bossAlertDuration
         alert.visibleUntil = now + alert.duration
         alert.progressUntil = alert.visibleUntil
     end
@@ -244,44 +271,66 @@ local function ShowBossWarning(count, bossName, preview, kind, subjects)
         alert.fadeStartedAt = now
         SetContentOffset(alert, alert.revealFrom or 0)
         SetAlertAlpha(alert, alert.fadeFrom)
-        SetAlertWidth(alert, alert.width or 458)
         PositionBossAlert(alert)
     end
     A.SetHidden(alert.root, false)
+    A.AnimateAlertProgress(alert, now)
     A.RefreshUpdateState()
     return true
 end
 
 local function PreviewBossWarnings()
+    -- Never replace an actual fight warning with a settings sample.
+    for _, alert in pairs(A.bossAlerts) do
+        if alert.visibleUntil and not alert.isPreview then return false end
+    end
+    if A.pendingBossWarnings and next(A.pendingBossWarnings) then return false end
     HideBossWarning()
     local now = Now()
-    local shown = ShowBossWarning(1, A.T("Bone Colossus"), true)
-    PlayBossAlertSound(false)
-    if shown and A.saved.bossEarlyWarning then
-        local red = A.bossAlerts.expired
-        -- Keep a short red preview around long enough to demonstrate overlap.
-        -- This never changes the saved duration or a real warning's lifetime.
-        red.duration = math.max(red.duration, PREVIEW_EARLY_DELAY + 0.5)
-        red.visibleUntil, red.progressUntil = now + red.duration, now + red.duration
-        local request = { at = now + PREVIEW_EARLY_DELAY }
-        red.previewRequest, A.pendingBossPreview = request, request
+    if A.saved.bossEarlyWarning then
+        local early = A.bossAlerts.early
+        if ShowBossWarning(1, A.T("Bone Colossus"), true, "early", nil, A.saved.bossEarlySeconds) then
+            PlayEarlyBossSound(true)
+            local request = {stage = "expired", owner = "early", at = early.visibleUntil}
+            early.previewRequest, A.pendingBossPreview = request, request
+        end
+    else
+        ShowBossWarning(1, A.T("Bone Colossus"), true)
+        PlayBossAlertSound(false)
     end
     A.RefreshUpdateState()
+    return true
 end
+
 local function ProcessBossPreview(now)
     local request = A.pendingBossPreview
     if not request then return end
-    local red, early = A.bossAlerts.expired, A.bossAlerts.early
-    if not A.saved.bossEarlyWarning or not red.isPreview or red.previewRequest ~= request
-        or not red.visibleUntil or now >= red.visibleUntil
-        or (A.pendingBossWarnings and next(A.pendingBossWarnings) ~= nil)
-        or (early.visibleUntil and not early.isPreview) then
+    if not A.saved.bossEarlyWarning then A.pendingBossPreview = nil; return end
+    if now < request.at then return end
+    local owner = A.bossAlerts[request.owner]
+    local live = false
+    for _, alert in pairs(A.bossAlerts) do
+        if alert.visibleUntil and not alert.isPreview then live = true end
+    end
+    if live or not owner.isPreview
+        or owner.previewRequest ~= request or not owner.visibleUntil
+        or (A.pendingBossWarnings and next(A.pendingBossWarnings))
+        or now > request.at + 0.75
+        or (request.stage == "overlap" and now >= owner.visibleUntil) then
         A.pendingBossPreview = nil
         return
     end
-    if now >= request.at then
-        A.pendingBossPreview = nil
-        ShowBossWarning(1, A.T("Daedra Guardian"), true, "early")
+    A.pendingBossPreview = nil
+    if request.stage == "expired" then
+        HideBossWarning("early")
+        local duration = math.max(A.saved.bossAlertDuration, PREVIEW_EARLY_DELAY + 1)
+        ShowBossWarning(1, A.T("Bone Colossus"), true, "expired", nil, duration)
+        PlayBossAlertSound(false)
+        request.stage, request.owner, request.at = "overlap", "expired", now + PREVIEW_EARLY_DELAY
+        A.bossAlerts.expired.previewRequest, A.pendingBossPreview = request, request
+    else
+        ShowBossWarning(1, A.T("Daedra Guardian"), true, "early", nil, A.saved.bossEarlySeconds)
+        -- Red has audio priority; the second early sample never queues a sound.
     end
 end
 
@@ -294,21 +343,30 @@ local function CheckEarlyBossWarnings(now)
     if A.demo or not A.inCombat or not A.saved.bossEarlyWarning then return end
     if type(IsUnitDead) == "function" and IsUnitDead("player") then return end
     local alert = A.bossAlerts.early
-    local subjects, count, lastName
+    local subjects, count, lastName, soundNeeded
     count = 0
     for key, target in pairs(A.targets) do
-        if target.mine and EligibleForBossAlert(target) and not A.IsLost(target, now)
+        if EligibleForBossAlert(target) and not A.IsLost(target, now)
             and target.endTime - now <= A.saved.bossEarlySeconds then
             local previous = not alert.isPreview and alert.subjects and alert.subjects[key]
             if not previous or previous.generation ~= (target.tauntGeneration or 0)
                 or previous.target ~= target or previous.name ~= target.name then
                 subjects = subjects or {}
                 subjects[key] = { name = target.name, generation = target.tauntGeneration or 0, target = target }
+                local generation = target.tauntGeneration or 0
+                if target.earlySoundGeneration ~= generation then
+                    -- Consume the opportunity even when muted/suppressed. Never
+                    -- replay a stale cue after red clears or the option changes.
+                    target.earlySoundGeneration, soundNeeded = generation, true
+                end
                 count, lastName = count + 1, target.name
             end
         end
     end
-    if count > 0 then ShowBossWarning(count, lastName, false, "early", subjects) end
+    if count > 0 then
+        ShowBossWarning(count, lastName, false, "early", subjects)
+        if soundNeeded then PlayEarlyBossSound(false) end
+    end
 end
 -- Deduplicate per target/taunt generation; ignore expirations outside combat,
 -- foreign taunts, and uncertain boss identifications by default.
@@ -317,7 +375,8 @@ local function QueueBossLosses(lost, now)
     if type(IsUnitDead) == "function" and IsUnitDead("player") then return end
     if not A.saved.bossAlertText and not A.saved.bossAlertSound then return end
     for _, t in ipairs(lost) do
-        if t.mine and EligibleForBossAlert(t) and not t.bossWarnQueued then
+        if EligibleForBossAlert(t) and not t.bossWarnQueued then
+            if A.pendingBossPreview then HideBossWarning(A.pendingBossPreview.owner) end
             t.bossWarnQueued = true
             if not A.pendingBossWarnings then
                 A.pendingBossWarnings, A.pendingFirstAt = {}, now
@@ -336,7 +395,7 @@ local function ProcessBossWarnings(now)
         local target = entry.target
         -- If re-taunted or killed during the debounce window, suppress the alert.
         if A.targets[key] == target and (target.tauntGeneration or 0) == entry.generation
-            and A.IsLost(target, now) and EligibleForBossAlert(target) and target.mine then
+            and A.IsLost(target, now) and EligibleForBossAlert(target) then
             count = count + 1
             singleName = target.name
             subjects = subjects or {}
@@ -350,6 +409,7 @@ end
 
 -- Logic can retire both slots without any animation frame, including menus.
 local function ExpireBossAlert(now)
+    ProcessBossPreview(now)
     PruneEarlyWarning(now)
     for kind, alert in pairs(A.bossAlerts) do
         if alert.visibleUntil and now >= alert.visibleUntil then HideBossWarning(kind) end
@@ -379,10 +439,10 @@ local function AnimateBossAlert(alert, now)
         or from + (1 - from) * SmoothStep(fadeSince / alert.fadeInSeconds)
     if left < alert.fadeOutSeconds then alpha = math.min(alpha, SmoothStep(left / alert.fadeOutSeconds)) end
     SetAlertAlpha(alert, alpha)
-    local remaining = Clamp(((alert.progressUntil or alert.visibleUntil) - now) / alert.duration, 0, 1)
-    SetAlertWidth(alert, math.max(1, math.floor((alert.width or 458) * remaining + 0.5)))
+    A.AnimateAlertProgress(alert, now)
 end
 local function UpdateBossAlert(now, kind)
+    ProcessBossPreview(now)
     if kind == "early" or not kind then PruneEarlyWarning(now, true) end
     for slot, alert in pairs(A.bossAlerts) do
         if not kind or slot == kind then

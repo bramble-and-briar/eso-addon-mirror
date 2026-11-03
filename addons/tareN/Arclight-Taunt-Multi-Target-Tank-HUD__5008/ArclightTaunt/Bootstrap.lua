@@ -1,4 +1,4 @@
--- Arclight Taunt 1.0.3 | Bootstrap module
+-- Arclight Taunt 1.1.0 | Bootstrap module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -58,13 +58,6 @@ local function OnLoaded(_, name)
         end
         A.saved.settingsVersion = 802
     end
-    -- 0.8.6 removes the redundant status header from the live HUD. Older
-    -- saves never stored whether the former default was chosen intentionally;
-    -- migrate once to the new default, while leaving the checkbox available.
-    if (tonumber(A.saved.settingsVersion) or 0) < 806 then
-        A.saved.header = false
-        A.saved.settingsVersion = 806
-    end
     -- 0.9: restore the clean urgency-tinted background. Carbon remains
     -- explicitly available; saved custom third-party media are preserved.
     -- Previous defaults were Obsidian and a textured track; as with older
@@ -101,8 +94,7 @@ local function OnLoaded(_, name)
         end
         A.saved.settingsVersion = 905
     end
-    -- 0.9.10 updates defaults only (larger fresh-install HUD, immunity/stack
-    -- badges off by default) and deliberately preserves existing preferences.
+    -- 0.9.10 updated defaults without replacing existing preferences.
     if (tonumber(A.saved.settingsVersion) or 0) < 910 then
         A.saved.settingsVersion = 910
     end
@@ -128,22 +120,35 @@ local function OnLoaded(_, name)
     A.saved.bossAlertDuration = math.floor(
         FiniteBoundedNumber(A.saved.bossAlertDuration, defaults.bossAlertDuration, 1, 4) * 2 + 0.5
     ) / 2
-    A.saved.bossAlertOpacity = math.floor(FiniteBoundedNumber(A.saved.bossAlertOpacity, defaults.bossAlertOpacity, 60, 100) / 5 + 0.5) * 5
+    A.saved.bossAlertOpacity = math.floor(FiniteBoundedNumber(A.saved.bossAlertOpacity, defaults.bossAlertOpacity, 60, 100) + 0.5)
     A.saved.bossAlertOffsetY = math.floor(FiniteBoundedNumber(A.saved.bossAlertOffsetY, defaults.bossAlertOffsetY, 50, 600))
     if not ALERT_SOUNDS[A.saved.bossAlertSoundKey] then
         A.saved.bossAlertSoundKey = defaults.bossAlertSoundKey
     end
+    A.saved.bossEarlySound = A.saved.bossEarlySound == true
+    if not ALERT_SOUNDS[A.saved.bossEarlySoundKey] then
+        A.saved.bossEarlySoundKey = defaults.bossEarlySoundKey
+    end
     A.saved.bossMode = ({strict=true, dangerous=true, comprehensive=true})[A.saved.bossMode]
         and A.saved.bossMode or defaults.bossMode
     A.saved.texturedTrack = A.saved.texturedTrack ~= false
-    A.saved.sortMode = (A.saved.sortMode == "stable") and "stable" or "remaining"
-    A.saved.showImmunity = A.saved.showImmunity ~= false
-    A.saved.showTauntStacks = A.saved.showTauntStacks ~= false
+    A.saved.sortMode = nil -- the former alternative ordering has been removed
+    A.saved.showImmunity, A.saved.showTauntStacks = nil, nil -- obsolete diagnostic preferences
     A.saved.highlightTarget = A.saved.highlightTarget ~= false
-    A.saved.focusStyle = (A.saved.focusStyle == "subtle") and "subtle" or "strong"
-    A.saved.onlyMine = A.saved.onlyMine ~= false
-    A.saved.header = A.saved.header == true
+    A.saved.focusStyle = nil -- one target focus; preserve the separate enabled flag
+    A.saved.onlyMine = nil -- remove the obsolete tracking-mode preference
+    A.saved.trackPlayerTargets = A.saved.trackPlayerTargets == true
+    A.saved.header = nil -- obsolete status header removed
     A.saved.rowGap = math.floor(FiniteBoundedNumber(A.saved.rowGap, defaults.rowGap, 0, 8))
+    if A.saved.rowHeightExtra ~= nil then
+        A.saved.rowHeightExtra = math.floor(FiniteBoundedNumber(A.saved.rowHeightExtra, 0, 0, 40) + 0.5)
+    end
+    -- Legacy percentage is converted once after the selected fonts are measured.
+    if A.saved.rowHeightExtra == nil then
+        A.saved.rowHeight = FiniteBoundedNumber(A.saved.rowHeight, 100, 80, 160)
+    else
+        A.saved.rowHeight = nil
+    end
     A.saved.barDisplay = (A.saved.barDisplay == "full") and "full" or "compact"
     A.saved.warningAt = math.floor(FiniteBoundedNumber(A.saved.warningAt, defaults.warningAt, 5, 12))
     A.saved.dangerAt = math.floor(FiniteBoundedNumber(A.saved.dangerAt, defaults.dangerAt, 1, 8))
@@ -152,6 +157,9 @@ local function OnLoaded(_, name)
     end
     A.saved.removeDead = A.saved.removeDead ~= false
     A.saved.hideInMenus = A.saved.hideInMenus ~= false
+    A.saved.showTauntList = A.saved.showTauntList ~= false
+    A.saved.mirrorTauntList = A.saved.mirrorTauntList == true
+    A.saved.highContrast = A.saved.highContrast == true
     A.saved.smartTime = A.saved.smartTime ~= false
     A.saved.growUp = A.saved.growUp == true
     A.saved.fitToScreen = A.saved.fitToScreen ~= false
@@ -203,14 +211,11 @@ local function OnLoaded(_, name)
     end
     EM:RegisterForEvent(ADDON .. "_Combat", EVENT_PLAYER_COMBAT_STATE, A.CombatChanged)
     EM:RegisterForEvent(ADDON .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED, A.ReticleChanged)
-    local deathResults = {ACTION_RESULT_DIED, ACTION_RESULT_DIED_XP}
-    for i, result in ipairs(deathResults) do
-        if result then
-            local deathEvent = ADDON .. "_Death_" .. i
-            EM:RegisterForEvent(deathEvent, EVENT_COMBAT_EVENT, A.CombatDeath)
-            EM:AddFilterForEvent(deathEvent, EVENT_COMBAT_EVENT,
-                REGISTER_FILTER_COMBAT_RESULT, result)
-        end
+    for result in pairs(A.DEATH_RESULTS) do
+        local deathEvent = ADDON .. "_Death_" .. tostring(result)
+        EM:RegisterForEvent(deathEvent, EVENT_COMBAT_EVENT, A.CombatDeath)
+        EM:AddFilterForEvent(deathEvent, EVENT_COMBAT_EVENT,
+            REGISTER_FILTER_COMBAT_RESULT, result)
     end
     EM:RegisterForEvent(ADDON .. "_ReticleDeath", EVENT_UNIT_DEATH_STATE_CHANGED, A.ReticleDeath)
     if EVENT_BOSSES_CHANGED then
@@ -226,11 +231,9 @@ local function OnLoaded(_, name)
             EM:UnregisterForEvent(welcomeEvent, EVENT_PLAYER_ACTIVATED)
             if A.saved.welcomeNoticeShown then return end
             A.saved.welcomeNoticeShown = true
-            A.Chat(T("Welcome! Tip: Open ESC > Settings > Add-ons > Arclight Taunt to customize the HUD."))
+            A.Chat(T("Welcome! Set up your HUD: ESC > Settings > Add-ons > Arclight Taunt."))
         end)
     end
     A.Tick()
 end
 EM:RegisterForEvent(ADDON, EVENT_ADD_ON_LOADED, OnLoaded)
-
--- Public entry points used across modules.

@@ -3,7 +3,7 @@
 -- with the player's language; only labels and tooltips are translated.
 local A = ArclightTaunt
 local language = type(GetCVar) == "function" and GetCVar("language.2") or "en"
--- All installed dictionaries are loaded by the manifest before this file.
+-- The manifest loads English first, then only the client's $(language) file.
 -- Missing or unsupported languages use English, never a previous translation.
 A.language = (A.translations and A.translations[language]) and language or "en"
 function A.T(english)

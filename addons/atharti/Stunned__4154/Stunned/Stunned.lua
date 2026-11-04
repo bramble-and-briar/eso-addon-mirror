@@ -23,13 +23,18 @@ local BLOCKED_ABILITIES = {
 	[264680] = true, -- MoS | Tarcyr Ghostly Indriks
 	[194570] = true, -- IA | Entrance Stun
 	[194571] = true, -- IA | Room Portals
-	[203124] = true, -- IA | Verses Choose UI 1
-	[203125] = true, -- IA | Verses Choose UI 2
-	[202995] = true, -- IA | Visions Choose UI 1
-	[203101] = true, -- IA | Visions Choose UI 2
+	[203124] = true, -- IA | Verses Selection UI 1
+	[203125] = true, -- IA | Verses Selection UI 2
+	[202995] = true, -- IA | Visions Selection UI 1
+	[203101] = true, -- IA | Visions Selection UI 2
 	[211431] = true, -- IA | Extra Portal Teleport
 	[272971] = true, -- Nowhere Vault | Watchers Whistle
 	[267547] = true, -- Nowhere Vault | Watchres Teleport
+	[183787] = true, -- SE | FrostStun First Boss 1
+	[185403] = true, -- SE | FrostStun First Boss 2
+	[187215] = true, -- SE | Ansuul Portal 1
+	[187210] = true, -- SE | Ansuul Portal 2
+	[187216] = true, -- SE | Ansuul Portal 3
 }
 
 local combatResults = {

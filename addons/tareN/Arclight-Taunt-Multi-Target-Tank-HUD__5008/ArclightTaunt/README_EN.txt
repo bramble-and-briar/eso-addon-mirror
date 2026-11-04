@@ -1,4 +1,4 @@
-ARCLIGHT TAUNT 1.1.0
+ARCLIGHT TAUNT 1.1.1
 Modern Multi-Target Taunt HUD for The Elder Scrolls Online
 Author: tareN
 In-game contact: @uhtareN (PC/EU)
@@ -13,7 +13,7 @@ INSTALLATION
 Install these required libraries separately; they are not bundled:
 - LibAddonMenu-2.0 r43 or newer:
   https://www.esoui.com/downloads/info7-LibAddonMenu-2.0.html
-- LibMediaProvider:
+- LibMediaProvider r39 or newer:
   https://www.esoui.com/downloads/info56-LibMediaProvider.html
 
 Extract the ArclightTaunt folder into:
@@ -25,6 +25,8 @@ Replace the addon folder and keep your SavedVariables. Personal layout, media
 and supported sound selections are preserved. Old row-height percentages are
 converted once to extra height above the readable minimum. New installations
 use 115% HUD scale, Signature bars and 72% background opacity.
+Settings are account-wide and shared across megaservers. No combat history,
+character progress or other server-specific data is stored.
 
 SETTINGS
 ESC > Settings > Add-ons > Arclight Taunt
@@ -32,7 +34,7 @@ ESC > Settings > Add-ons > Arclight Taunt
 - List & layout: visibility, size, width, row height, spacing, one/two columns,
   mirroring, position and boss pinning. Active taunts sort by remaining time.
 - Design & readability: narrow/full-row display, optional high contrast,
-  current-target highlighting, fonts, bar textures and countdown thresholds.
+  Subtle/Strong current-target highlighting, fonts, bar textures and countdown thresholds.
 - Bosses: boss detection, indicators, warning timing, appearance and sound.
 - Tracking & tests: player-target tracking and the welcome/language-font tests.
 
@@ -80,7 +82,8 @@ Include your ability/morph or Scribing combination, client language, encounter,
 observed behavior and any Lua error. Screenshots help with visual issues.
 
 CREDITS / TRANSPARENCY
-Early alpha concept inspired by Untaunted.
+Early alpha concept inspired by Untaunted by Solinur:
+https://www.esoui.com/downloads/info1475-Untaunted.html
 AI-assisted Lua programming under the direction of tareN. Features have been
 tested in live ESO gameplay, including DLC dungeons, with automated regression
 tests supporting development. These tests do not reproduce the game client.

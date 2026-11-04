@@ -24,6 +24,8 @@ local defaultSV = {
 	enableSaleNotifications = true,
 	enableSaleNotificationsChat = true,
 	lifetimeGold = 0,
+	enablePriceTooltips = true,
+	enableKioskDeals = true,
 }
 
 GR.SV = {}
@@ -476,16 +478,18 @@ function GR.SetupGuildProcessor(guildId, guildName)
 			return
 		end
 
-		local eventId   = event:GetEventId()
+		local eventId	= event:GetEventId()
 		local timestamp = event:GetEventTimestampS()
-		local seller    = info.sellerDisplayName
-		local buyer     = "@" .. info.buyerDisplayName
-		local quantity  = info.quantity
-		local itemLink  = info.itemLink
-		local price     = info.price
-		local tax       = info.tax
+		local seller	= info.sellerDisplayName
+		local buyer		= "@" .. info.buyerDisplayName
+		local quantity	= info.quantity
+		local itemLink	= info.itemLink
+		local price		= info.price
+		local tax		= info.tax
 
-		GR.AddPriceHistory(itemLink, price, quantity, timestamp)
+		if GR.SV.enablePriceTooltips then
+			GR.AddPriceHistory(itemLink, price, quantity, timestamp)
+		end
 
 		local prev = GR.SV.lastEventIds[guildName]
 		if not prev or eventId > prev then
@@ -804,15 +808,26 @@ local function OnAddOnLoaded(_, addonName)
 
 	GR.LoadSavedSales()
 
-	GR.CleanPriceHistory()
-
 	GR.CleanGuildData()
 
-	GR.RebuildAvgPriceCache()
+	if GR.SV.enablePriceTooltips then
+		if next(GR.SV.itemPriceHistory) == nil then
+			ZO_ClearTable(GR.SV.lastEventIds)
+		end
+		GR.CleanPriceHistory()
+		GR.RebuildAvgPriceCache()
+		GR.SetupTooltipHooks()
+	else
+		ZO_ClearTable(GR.SV.itemPriceHistory)
+	end
 
-	GR.SetupTooltipHooks()
+	if not GR.SV.enablePriceTooltips then
+		GR.SV.enableKioskDeals = false
+	end
 
-	GR.SetupKioskRowInjections()
+	if GR.SV.enableKioskDeals then
+		GR.SetupKioskRowInjections()
+	end
 
 	GR.window:SetWidth(GR.SV.windowWidth)
 	GR.window:SetHeight(GR.SV.windowHeight)

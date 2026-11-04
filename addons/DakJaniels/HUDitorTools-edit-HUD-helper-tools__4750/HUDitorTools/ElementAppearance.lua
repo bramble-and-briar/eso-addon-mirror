@@ -3,9 +3,13 @@
 -- Scale: Control:SetScale. Font: LabelControl:SetFont / GetFont.
 -- Reapply after ZO_HUDManager:PropagateSettings (hudmanager.lua) and when
 -- the hud_editor_keyboard scene hides. SetScale is only on the HUD control.
--- The editor box stays the unscaled hudElementRef size from RefreshAnchors.
+-- RefreshAnchors copies hudElementRef:GetDimensions(). That value includes
+-- the control scale, same as GetHeight in ZO_Scroll_UpdateScrollBar. Divide
+-- by the HUD control GetScale once. The anchor from
+-- ZO_GetControlPointOffsetFromGuiRoot is left as RefreshAnchors set it.
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
+local eventManager = GetEventManager()
 
 HT.APPEARANCE_SCALE_STEP = 0.01
 HT.APPEARANCE_FONT_SIZE_DEFAULT = 18
@@ -38,9 +42,27 @@ local saveKeysWithFontApplied = {}
 local appliedFontLabelsBySaveKey = {}
 local controlsApplyingAppearance = {}
 local shownHookInstalled = {}
+local styledResourceNumberLabels = {}
+local resourceNumbersWidthHookInstalled = false
+local barFontCanvasResizeInstalled = false
+local nestedHudDetachInstalled = false
+
+-- GetStringWidth is pixels. SetWidth and anchor offsets are UI units
+-- (LuiExtended/src/Functions.lua 237-250). "0ui" stays put when custom UI scale changes.
+local FONT_OUTLINE_STYLE =
+{
+    ["none"] = FONT_STYLE_NORMAL,
+    ["outline"] = FONT_STYLE_OUTLINE,
+    ["thin-outline"] = FONT_STYLE_OUTLINE,
+    ["thick-outline"] = FONT_STYLE_OUTLINE_THICK,
+    ["shadow"] = FONT_STYLE_SHADOW,
+    ["soft-shadow-thin"] = FONT_STYLE_SOFT_SHADOW_THIN,
+    ["soft-shadow-thick"] = FONT_STYLE_SOFT_SHADOW_THICK,
+}
 
 -- Labels already created on this element. Not a walk of every HUD control.
 local MAX_FONT_LABEL_VISITS = 80
+local TRACKERS_SAVE_KEY = "ZO_HUDTrackers"
 
 local function ReadScale(scale)
     scale = tonumber(scale)
@@ -165,25 +187,110 @@ function HT.SetAppearanceRow(saveKey, row, inputModeKey)
     }
 end
 
+--- @param layoutValue number
+--- @return string
+local function FormatUiLayoutMeasurement(layoutValue)
+    return string.format("%dui", zo_round(layoutValue))
+end
+
+--- @param label LabelControl
+--- @param text string|nil
+--- @return number
+local function GetLabelStringWidthUI(label, text)
+    if text == nil or text == "" then
+        return 0
+    end
+    return label:GetStringWidth(text) / GetUIGlobalScale()
+end
+
+--- @param label LabelControl
+--- @return boolean
+local function IsResourceNumbersLabel(label)
+    return string.find(label:GetName(), "ResourceNumbers", 1, true) ~= nil
+end
+
+--- ZO_PlayerAttributeBar is local (PlayerAttributeBars.lua 132). New() stores each
+--- bar on PLAYER_ATTRIBUTE_BARS.bars (lines 489-545, assigned at 899).
+local function OnResourceNumbersUpdated(attributeBar)
+    local label = attributeBar.control.resourceNumbersLabel
+    if not label or not styledResourceNumberLabels[label] then
+        return
+    end
+    local textWidth = GetLabelStringWidthUI(label, label:GetText())
+    if textWidth > 0 then
+        label:SetWidth(textWidth)
+    end
+end
+
+local function InstallResourceNumbersWidthHook()
+    if resourceNumbersWidthHookInstalled then
+        return
+    end
+    resourceNumbersWidthHookInstalled = true
+    for _, attributeBar in ipairs(PLAYER_ATTRIBUTE_BARS.bars) do
+        SecurePostHook(attributeBar, "UpdateResourceNumbersLabel", OnResourceNumbersUpdated)
+    end
+end
+
+--- ResourceNumbers is CENTER in PlayerAttributeBarTemplates.xml 10-14.
+--- Width is UI units so the glyphs stay in the middle of the bar.
+--- @param label LabelControl
+local function CenterResourceNumbersLabel(label)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    local parentControl = label:GetParent()
+    label:ClearAnchors()
+    label:SetAnchor(CENTER, parentControl, CENTER, FormatUiLayoutMeasurement(0), FormatUiLayoutMeasurement(0))
+    local textWidth = GetLabelStringWidthUI(label, label:GetText())
+    if textWidth > 0 then
+        label:SetWidth(textWidth)
+    end
+    styledResourceNumberLabels[label] = true
+end
+
+local function RemeasureStyledResourceNumberLabels()
+    for label in pairs(styledResourceNumberLabels) do
+        local textWidth = GetLabelStringWidthUI(label, label:GetText())
+        if textWidth > 0 then
+            label:SetWidth(textWidth)
+        end
+    end
+end
+
+local function InstallBarFontCanvasResize()
+    if barFontCanvasResizeInstalled then
+        return
+    end
+    barFontCanvasResizeInstalled = true
+    -- EVENT_ALL_GUI_SCREENS_RESIZED is the finished canvas (Functions.lua 285-288).
+    eventManager:RegisterForEvent(HT.eventName .. "_BarFontCanvas", EVENT_ALL_GUI_SCREENS_RESIZED, RemeasureStyledResourceNumberLabels)
+end
+
 function HT.BuildAppearanceFontString(fontFace, fontSize, fontOutline)
     if fontFace == nil or fontFace == "" then
         return nil
     end
     fontSize = ReadFontSize(fontSize)
-    if LibMediaProvider and LibMediaProvider.Fetch then
+    local faceName = fontFace
+    if LibMediaProvider and not string.find(fontFace, "$(", 1, true) then
         local fontPath = LibMediaProvider:Fetch("font", fontFace)
-        if fontPath and fontPath ~= "" then
-            local outline = fontOutline
-            if outline == nil or outline == "" then
-                outline = HT.APPEARANCE_FONT_OUTLINE_WITH_MEDIA
-            end
-            return string.format("%s|%d|%s", fontPath, fontSize, outline)
+        if not fontPath then
+            return nil
+        end
+        faceName = fontPath
+    elseif not string.find(fontFace, "$(", 1, true) then
+        return nil
+    end
+    local fontStyle = FONT_OUTLINE_STYLE[fontOutline]
+    if fontStyle == nil then
+        if string.find(fontFace, "$(", 1, true) then
+            fontStyle = FONT_STYLE_SOFT_SHADOW_THIN
+        else
+            fontStyle = FONT_STYLE_SOFT_SHADOW_THICK
         end
     end
-    if string.find(fontFace, "$(", 1, true) then
-        return string.format("%s|%d|%s", fontFace, fontSize, HT.APPEARANCE_FONT_OUTLINE_GAME)
-    end
-    return nil
+    -- globalapi.lua 766-772. Size is the slider value.
+    return ZO_CreateFontString(faceName, fontSize, fontStyle)
 end
 
 function HT.GetFontFaceChoices()
@@ -191,9 +298,9 @@ function HT.GetFontFaceChoices()
     local choiceLabels = {}
     choices[1] = ""
     choiceLabels[1] = GetString(SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT)
-    if LibMediaProvider and LibMediaProvider.List then
+    if LibMediaProvider then
         local mediaNames = LibMediaProvider:List("font")
-        if type(mediaNames) == "table" then
+        if mediaNames then
             local sortedNames = {}
             for _, mediaName in ipairs(mediaNames) do
                 sortedNames[#sortedNames + 1] = mediaName
@@ -225,10 +332,9 @@ local function VisitLabels(control, onLabel)
         if currentControl and not visitedControls[currentControl] then
             visitedControls[currentControl] = true
             visitedCount = visitedCount + 1
-            local isLabel = currentControl.GetType and currentControl:GetType() == CT_LABEL and currentControl.SetFont
-            if isLabel then
+            if currentControl:GetType() == CT_LABEL then
                 onLabel(currentControl)
-            elseif currentControl.GetNumChildren then
+            else
                 local childCount = currentControl:GetNumChildren()
                 if childCount > MAX_FONT_LABEL_VISITS then
                     childCount = MAX_FONT_LABEL_VISITS
@@ -237,8 +343,11 @@ local function VisitLabels(control, onLabel)
                     if visitedCount + pendingCount >= MAX_FONT_LABEL_VISITS then
                         break
                     end
-                    pendingCount = pendingCount + 1
-                    pendingControls[pendingCount] = currentControl:GetChild(childIndex)
+                    local childControl = currentControl:GetChild(childIndex)
+                    if childControl then
+                        pendingCount = pendingCount + 1
+                        pendingControls[pendingCount] = childControl
+                    end
                 end
             end
         end
@@ -246,20 +355,105 @@ local function VisitLabels(control, onLabel)
 end
 
 local function SetLabelFont(label, fontString)
-    if not label.huditorToolsOriginalFont and label.GetFont then
+    if not label.huditorToolsOriginalFont then
         label.huditorToolsOriginalFont = label:GetFont()
     end
     label:SetFont(fontString)
+    if IsResourceNumbersLabel(label) then
+        CenterResourceNumbersLabel(label)
+    end
+end
+
+local function FontStringFromAppearanceRow(row)
+    if type(row) ~= "table" then
+        return nil
+    end
+    local fontFace = row.fontFace or ""
+    if fontFace == "" then
+        return nil
+    end
+    return HT.BuildAppearanceFontString(fontFace, ReadFontSize(row.fontSize), row.fontOutline or HT.GetDefaultFontOutline())
+end
+
+local function TrackerHasOwnFont(trackerControl)
+    return FontStringFromAppearanceRow(HT.GetAppearanceRow(trackerControl:GetName())) ~= nil
+end
+
+-- Combined trackers live under the scroll child. SeparatedTrackers reparents
+-- that same control onto ZO_HUDTrackers (HUDTracker_Manager:RefreshLayout).
+local function ApplyFontToRegisteredTrackers(fontString)
+    for _, trackerData in ipairs(HUD_TRACKER_MANAGER.trackers) do
+        if not TrackerHasOwnFont(trackerData.control) then
+            VisitLabels(trackerData.control, function (label)
+                SetLabelFont(label, fontString)
+            end)
+        end
+    end
+end
+
+local function RestoreFontOnRegisteredTrackers()
+    for _, trackerData in ipairs(HUD_TRACKER_MANAGER.trackers) do
+        if not TrackerHasOwnFont(trackerData.control) then
+            VisitLabels(trackerData.control, function (label)
+                local originalFont = label.huditorToolsOriginalFont
+                if originalFont then
+                    label:SetFont(originalFont)
+                end
+            end)
+        end
+    end
+end
+
+-- Quest lines take FONT_HEADER, FONT_GENERAL, and FONT_SUBCATEGORY when the
+-- header, condition, and step pools acquire them (QuestTracker.lua).
+local function FontStringForTracker(trackerOwner)
+    local fontString = FontStringFromAppearanceRow(HT.GetAppearanceRow(trackerOwner.control:GetName()))
+    if not fontString and not trackerOwner:IsDetached() then
+        fontString = FontStringFromAppearanceRow(HT.GetAppearanceRow(TRACKERS_SAVE_KEY))
+    end
+    return fontString
+end
+
+local function ReapplyFontOnTracker(trackerOwner)
+    local fontString = FontStringForTracker(trackerOwner)
+    if not fontString then
+        return
+    end
+    VisitLabels(trackerOwner.control, function (label)
+        SetLabelFont(label, fontString)
+    end)
+end
+
+local trackerHeaderFontHookInstalled = false
+
+local function InstallTrackerPlatformStyleHook()
+    if trackerHeaderFontHookInstalled then
+        return
+    end
+    trackerHeaderFontHookInstalled = true
+    SecurePostHook(ZO_HUDTracker_Base, "ApplyPlatformStyle", function (trackerOwner)
+        ReapplyFontOnTracker(trackerOwner)
+    end)
+    -- ZO_Tracker:ApplyPlatformStyle sets the stock quest fonts after the base call.
+    SecurePostHook(ZO_Tracker, "ApplyPlatformStyle", function (trackerOwner)
+        ReapplyFontOnTracker(trackerOwner)
+    end)
+    SecurePostHook(ZO_Tracker, "AddQuest", function (trackerOwner)
+        ReapplyFontOnTracker(trackerOwner)
+    end)
+    SecurePostHook(ZO_Tracker, "RebuildConditions", function (trackerOwner)
+        ReapplyFontOnTracker(trackerOwner)
+    end)
 end
 
 local function ApplyFontStringToLabels(control, fontString, saveKey)
     local knownLabels = appliedFontLabelsBySaveKey[saveKey]
     if knownLabels and #knownLabels > 0 then
         for labelIndex = 1, #knownLabels do
-            local label = knownLabels[labelIndex]
-            if label and label.SetFont then
-                label:SetFont(fontString)
-            end
+            knownLabels[labelIndex]:SetFont(fontString)
+        end
+        if saveKey == TRACKERS_SAVE_KEY then
+            ApplyFontToRegisteredTrackers(fontString)
         end
         return
     end
@@ -268,6 +462,9 @@ local function ApplyFontStringToLabels(control, fontString, saveKey)
         SetLabelFont(label, fontString)
         foundLabels[#foundLabels + 1] = label
     end)
+    if saveKey == TRACKERS_SAVE_KEY then
+        ApplyFontToRegisteredTrackers(fontString)
+    end
     if #foundLabels > 0 then
         appliedFontLabelsBySaveKey[saveKey] = foundLabels
     end
@@ -278,20 +475,32 @@ local function RestoreFontStringOnLabels(control, saveKey)
     if knownLabels and #knownLabels > 0 then
         for labelIndex = 1, #knownLabels do
             local label = knownLabels[labelIndex]
-            local originalFont = label and label.huditorToolsOriginalFont
-            if originalFont and label.SetFont then
+            local originalFont = label.huditorToolsOriginalFont
+            if originalFont then
                 label:SetFont(originalFont)
+                if IsResourceNumbersLabel(label) then
+                    CenterResourceNumbersLabel(label)
+                end
             end
         end
         appliedFontLabelsBySaveKey[saveKey] = nil
+        if saveKey == TRACKERS_SAVE_KEY then
+            RestoreFontOnRegisteredTrackers()
+        end
         return
     end
     VisitLabels(control, function (label)
         local originalFont = label.huditorToolsOriginalFont
         if originalFont then
             label:SetFont(originalFont)
+            if IsResourceNumbersLabel(label) then
+                CenterResourceNumbersLabel(label)
+            end
         end
     end)
+    if saveKey == TRACKERS_SAVE_KEY then
+        RestoreFontOnRegisteredTrackers()
+    end
 end
 
 local function InstallShownHook(control, element)
@@ -305,12 +514,34 @@ local function InstallShownHook(control, element)
     end)
 end
 
-function HT.ApplyElementAppearance(element)
-    if not element or not element.GetControl or not element.GetSaveKey then
+--- Target buffs are SetParent'd onto the target frame (BuffDebuff.lua 388-389).
+--- That is the only registered HUD element ZOS parents onto a different HUD element.
+--- Health, magicka, and stamina stay children of ZO_PlayerAttribute
+--- (PlayerAttributeBars.xml 85, 132, 197). Combined Resources and the pyramid
+--- layout (ResourceBarGroup.lua 149-159) depend on that parent.
+--- Trackers stay under ZO_HUDTrackers (HUDTracker_Manager.lua 244-255).
+function HT.DetachTargetBuffsFromTargetFrame()
+    local targetContainer = ZO_BuffDebuffTopLevelTargetContainer
+    local parentControl = targetContainer:GetParent()
+    if parentControl ~= ZO_BuffDebuffTopLevel and parentControl ~= GuiRoot then
+        targetContainer:SetParent(GuiRoot)
+    end
+end
+
+local function InstallTargetBuffDetach()
+    if nestedHudDetachInstalled then
         return
     end
+    nestedHudDetachInstalled = true
+    -- Runs after BuffDebuff.lua 487, which registered this callback first.
+    CALLBACK_MANAGER:RegisterCallback("TargetFrameCreated", function ()
+        HT.DetachTargetBuffsFromTargetFrame()
+    end)
+end
+
+function HT.ApplyElementAppearance(element)
     local control = element:GetControl()
-    if not control or controlsApplyingAppearance[control] then
+    if controlsApplyingAppearance[control] then
         return
     end
     controlsApplyingAppearance[control] = true
@@ -326,7 +557,7 @@ function HT.ApplyElementAppearance(element)
         fontSize = ReadFontSize(row.fontSize)
         fontOutline = row.fontOutline or fontOutline
     end
-    local currentScale = control:GetScale() or 1
+    local currentScale = control:GetScale()
     if zo_abs(currentScale - scale) >= 0.001 then
         control:SetScale(scale)
     end
@@ -347,13 +578,11 @@ function HT.ApplyElementAppearance(element)
 end
 
 function HT.ApplyAllElementAppearances()
-    if applyingAllAppearances or not HT.SV or not HUD_MANAGER then
+    if applyingAllAppearances then
         return
     end
     applyingAllAppearances = true
-    if HT.ApplyResourceBarGroup then
-        HT.ApplyResourceBarGroup()
-    end
+    HT.ApplyResourceBarGroup()
     local modeMap = HT.GetAppearanceMap()
     for saveKey, row in pairs(modeMap) do
         if not HT.IsAppearanceRowDefault(row) then
@@ -375,7 +604,7 @@ function HT.ApplyAllElementAppearances()
 end
 
 function HT.StepSelectedElementScale(editorElement, direction)
-    local elementData = editorElement and editorElement.GetElementData and editorElement:GetElementData()
+    local elementData = editorElement:GetElementData()
     if not elementData then
         return
     end
@@ -393,20 +622,14 @@ function HT.StepSelectedElementScale(editorElement, direction)
         fontOutline = row.fontOutline,
     })
     HT.ApplyElementAppearance(elementData)
-    if editorElement.RefreshAnchors then
-        editorElement:RefreshAnchors()
-    end
-    if HT.RefreshAppearanceInfoBox then
-        HT.RefreshAppearanceInfoBox()
-    end
-    if HT.RefreshLayoutInfoBoxSection then
-        HT.RefreshLayoutInfoBoxSection()
-    end
+    editorElement:RefreshAnchors()
+    HT.RefreshAppearanceInfoBox()
+    HT.RefreshLayoutInfoBoxSection()
 end
 
 local function OnEditorElementMouseWheel(editorControl, delta)
     local editorElement = editorControl.object
-    if not editorElement or HUD_EDITOR_KEYBOARD:GetSelectedElement() ~= editorElement then
+    if HUD_EDITOR_KEYBOARD:GetSelectedElement() ~= editorElement then
         return
     end
     local direction = 1
@@ -417,9 +640,6 @@ local function OnEditorElementMouseWheel(editorControl, delta)
 end
 
 function HT.InstallElementScaleMouseWheel(editor)
-    if not editor or not editor.elementControls then
-        return
-    end
     for _, elementControl in ipairs(editor.elementControls) do
         if not elementControl.huditorToolsScaleWheelInstalled then
             elementControl.huditorToolsScaleWheelInstalled = true
@@ -430,6 +650,17 @@ function HT.InstallElementScaleMouseWheel(editor)
     end
 end
 
+local function ApplyEditorSelectorLayoutSize(editorElement)
+    local hudControl = editorElement:GetElementData():GetControl()
+    local scale = hudControl:GetScale()
+    if zo_abs(scale - 1) < 0.001 then
+        return
+    end
+    local editorControl = editorElement:GetControl()
+    local width, height = editorControl:GetDimensions()
+    editorControl:SetDimensions(width / scale, height / scale)
+end
+
 function HT.InstallElementAppearanceEditorHooks()
     if editorScaleHooksInstalled then
         return
@@ -437,6 +668,9 @@ function HT.InstallElementAppearanceEditorHooks()
     editorScaleHooksInstalled = true
     SecurePostHook(ZO_HUDEditor_Keyboard, "PopulateElementControls", function (editor)
         HT.InstallElementScaleMouseWheel(editor)
+    end)
+    SecurePostHook(ZO_HUDEditorElement_Keyboard, "RefreshAnchors", function (editorElement)
+        ApplyEditorSelectorLayoutSize(editorElement)
     end)
 end
 
@@ -461,13 +695,16 @@ end
 function HT.InitializeElementAppearance()
     GetAppearanceRoot()
     HT.InstallElementAppearanceEditorHooks()
-    if HUD_MANAGER and HUD_MANAGER.RegisterCallback then
-        HUD_MANAGER:RegisterCallback("PropagateSettings", function ()
-            HT.ApplyAllElementAppearances()
-        end)
-    end
+    InstallTrackerPlatformStyleHook()
+    InstallResourceNumbersWidthHook()
+    InstallBarFontCanvasResize()
+    InstallTargetBuffDetach()
+    HT.DetachTargetBuffsFromTargetFrame()
+    HUD_MANAGER:RegisterCallback("PropagateSettings", function ()
+        HT.ApplyAllElementAppearances()
+    end)
     HT.ApplyAllElementAppearances()
-    GetEventManager():RegisterForEvent(HT.eventName .. "_Appearance", EVENT_PLAYER_ACTIVATED, function ()
+    eventManager:RegisterForEvent(HT.eventName .. "_Appearance", EVENT_PLAYER_ACTIVATED, function ()
         zo_callLater(HT.ApplyAllElementAppearances, 0)
     end)
 end

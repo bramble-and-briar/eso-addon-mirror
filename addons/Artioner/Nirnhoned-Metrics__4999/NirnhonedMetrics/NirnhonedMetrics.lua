@@ -6,7 +6,7 @@ local NM = NirnhonedMetrics
 NM.name = "NirnhonedMetrics"
 NM.COLOR = "D42F2F"            -- rojo Nirnhoned (como el rasgo del juego)
 NM.title = "|c" .. NM.COLOR .. "Nirnhoned|r Metrics"
-NM.version = "1.2.1"
+NM.version = "1.3.0"
 NM.svVersion = 3
 NM.author = "@Artioner"
 NM.authorServer = "EU Megaserver"   -- el correo (donaciones) solo llega dentro del mismo megaservidor
@@ -30,6 +30,7 @@ NM.defaults = {
     },
     metric = "damage",            -- "damage" | "healing"
     mode = "group",               -- "group" (miembros del grupo) | "abilities" (tus habilidades)
+    countMode = "fight",          -- "fight" (cada combate) | "run" (toda la run, hasta cambiar de zona)
     rowHeight = 24,               -- mínimo; crece si el texto no cabe
     rowSpacing = 1,
     fontSize = 16,
@@ -66,6 +67,7 @@ NM.defaults = {
     valueSlot1 = "total",
     valueSlot2 = "rate",
     valueSlot3 = "percent",
+    sortBy = "total",             -- orden y largo de las barras: "total" | "rate" (DPS/HPS)
     showFightRate = true,         -- DPS/HPS total del combate en el pie, junto a la duración
     nameFormat = "character",     -- "character" | "account"
 

@@ -1,0 +1,16 @@
+v1.2.1  (2026-11-03)
+  - Fixed the add-on name showing as "Buff Tracker" in the console menus.
+
+v1.2.0  (2026-11-03)
+  - Group members are now a checklist under Players: tick to pin, untick to unpin.
+  - Removed the "Pin / unpin last player I looked at" button.
+  - Next/Previous and "Pin / unpin selected player" moved to a new Saved pins section.
+
+v1.1.0  (2026-11-03)
+  - New "Show myself" setting adds a row for your own buffs. On by default.
+  - New console-friendly pinning buttons: pin/unpin the last player you looked at,
+    step through players with Next/Previous, and pin/unpin the selected player.
+  - Fixed the settings menu not loading on console (now supports LibVotans).
+
+v1.0.0  (2026-11-03)
+  - Initial release.

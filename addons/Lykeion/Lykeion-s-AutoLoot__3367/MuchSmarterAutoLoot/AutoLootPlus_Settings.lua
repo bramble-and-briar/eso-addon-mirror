@@ -1787,6 +1787,8 @@ function Settings.Initialize(args)
                 {
                     type = "dropdown",
                     name = GetString(SI_ITEMTYPE61),
+                    tooltip = zo_strformat(GetString(MSAL_CRAFTED_FILTER_TOOLTIP),
+                        GetString(SI_ITEMTYPE61)),
                     choices = dynamicfurnitureChoices,
                     choicesValues = dynamicfurnitureChoicesValues,
                     getFunc = function()
@@ -1884,20 +1886,6 @@ function Settings.Initialize(args)
                     disabled = function()
                         return db.filters.scribing == "never loot"
                     end
-                },
-                {
-                    type = "dropdown",
-                    name = GetString(SI_ITEMTYPEDISPLAYCATEGORY30),
-                    tooltip = GetString(MSAL_GLYPH_FILTER_TOOLTIP),
-                    choices = deconChoices,
-                    choicesValues = deconChoicesValues,
-                    getFunc = function()
-                        return db.filters.glyphs
-                    end,
-                    setFunc = function(value)
-                        db.filters.glyphs = value
-                    end,
-                    default = defaults.filters.glyphs
                 },
                 {
                     type = "dropdown",
@@ -2066,6 +2054,8 @@ function Settings.Initialize(args)
                 {
                     type = "dropdown",
                     name = GetString(SI_ITEMTYPE4) .. " & " .. GetString(SI_ITEMTYPE12),
+                    tooltip = zo_strformat(GetString(MSAL_CRAFTED_FILTER_TOOLTIP),
+                        GetString(SI_ITEMTYPE4) .. " & " .. GetString(SI_ITEMTYPE12)),
                     choices = foodChoices,
                     choicesValues = foodChoicesValues,
                     getFunc = function()
@@ -2078,7 +2068,24 @@ function Settings.Initialize(args)
                 },
                 {
                     type = "dropdown",
+                    name = GetString(SI_ITEMTYPEDISPLAYCATEGORY30),
+                    tooltip = zo_strformat(GetString(MSAL_CRAFTED_FILTER_TOOLTIP),
+                        GetString(SI_ITEMTYPEDISPLAYCATEGORY30)),
+                    choices = deconChoices,
+                    choicesValues = deconChoicesValues,
+                    getFunc = function()
+                        return db.filters.glyphs
+                    end,
+                    setFunc = function(value)
+                        db.filters.glyphs = value
+                    end,
+                    default = defaults.filters.glyphs
+                },
+                {
+                    type = "dropdown",
                     name = GetString(SI_ITEMTYPEDISPLAYCATEGORY23),
+                    tooltip = zo_strformat(GetString(MSAL_CRAFTED_FILTER_TOOLTIP),
+                        GetString(SI_ITEMTYPEDISPLAYCATEGORY23)),
                     choices = booleanChoices,
                     choicesValues = booleanChoicesValues,
                     getFunc = function()
@@ -2092,6 +2099,8 @@ function Settings.Initialize(args)
                 {
                     type = "dropdown",
                     name = GetString(SI_ITEMTYPEDISPLAYCATEGORY22),
+                    tooltip = zo_strformat(GetString(MSAL_CRAFTED_FILTER_TOOLTIP),
+                        GetString(SI_ITEMTYPEDISPLAYCATEGORY22)),
                     choices = potionsChoices,
                     choicesValues = potionsChoicesValues,
                     getFunc = function()
@@ -2731,7 +2740,7 @@ function Settings.Initialize(args)
             end,
             default = defaults.contextJunkingEnabled
         }
-        table.insert(optionsData[unwantedSettingsIndex].controls, contextJunkingCheckbox)
+        table.insert(optionsData[unwantedSettingsIndex].controls, descriptionIndex + 1, contextJunkingCheckbox)
     end
 
     local autoSellJunkCheckbox = {

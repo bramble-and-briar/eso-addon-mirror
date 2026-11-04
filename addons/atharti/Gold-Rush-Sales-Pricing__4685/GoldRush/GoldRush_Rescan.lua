@@ -57,7 +57,6 @@ function GR.RescanAllGuilds()
 					local price		= info.price
 					local tax		= info.tax
 
-					GR.AddPriceHistory(itemLink, price, quantity, timestamp)
 					GR.SV.lastEventIds[guildName] = eventId
 
 					if "@" .. seller == GR.displayName then

@@ -40,7 +40,8 @@ function EnchantConfirmation:RefreshSettings()
         if type(ZO_Dialogs_ShowDialog) ~= "function" or type(ZO_Dialogs_FindDialog) ~= "function" then
             return
         end
-        ZO_PostHook("ZO_Dialogs_ShowDialog", function(name)
+        -- A Lua wrapper taints housing dialogs that call the private OpenMarket.
+        SecurePostHook(_G, "ZO_Dialogs_ShowDialog", function(name)
             self:FillDialog(name)
         end)
         self.hookInstalled = true

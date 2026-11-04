@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.11"
-MSAL.addonVersion = 80311
+MSAL.version = "8.3.12"
+MSAL.addonVersion = 80312
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -34,6 +34,7 @@ local isRepetitiveGear = false
 local isAllCurtLooted = true
 local isUnboxing = false
 local unboxingSourceLink = nil
+local unboxCurtBlocked = false
 local isBagContainer = false
 local isJunkingBagContainerLeftovers = false
 -- local isHarvesting = false
@@ -1479,6 +1480,9 @@ local function ShouldLootNormal(filterType, itemType)
 end
 
 local function ShouldLootPotion(filterType, link)
+    if IsItemLinkCrafted(link) then
+        return true
+    end
     if (filterType == "always loot") then
         return true
     end
@@ -1588,6 +1592,13 @@ local function ShouldLootGlyph(filterType, link)
     return ShouldLootMisc(filterType, link)
 end
 
+local function ShouldLootPoison(filterType, link)
+    if IsItemLinkCrafted(link) then
+        return true
+    end
+    return ShouldLootMisc(filterType, link)
+end
+
 local function ShouldLootIntricate(filterType, link, quality, isJewelry)
     if (filterType == "always loot" or filterType == "loot and decon") then
         return true
@@ -1686,6 +1697,9 @@ local function ShouldLootUnopenedContent(filterType, itemType, specializedItemTy
 end
 
 local function ShouldLootFoodAndDrink(filterType, link)
+    if IsItemLinkCrafted(link) then
+        return true
+    end
     if (filterType == "always loot") then
         return true
     end
@@ -1845,6 +1859,9 @@ local function ShouldLootRecipe(filterType, link)
 end
 
 local function ShouldLootFurniture(filterType, link)
+    if IsItemLinkCrafted(link) then
+        return true
+    end
     local tempResult = false
     if filterType == "only unbound" and IsItemLinkTradeable(link) then
         return true
@@ -1958,20 +1975,25 @@ local function unboxQueuedContainer()
         end
     end
 
-    local function useContainer(slotIndex, sourceLink, stackCount, attempt, nextStep)
+    local function dropQueuedSlot(slotIndex)
+        for i = #cachedUnboxingQueue, queueIndex + 1, -1 do
+            if cachedUnboxingQueue[i] == slotIndex then
+                table.remove(cachedUnboxingQueue, i)
+            end
+        end
+    end
+
+    local function useContainer(slotIndex, sourceLink, stackCount, nextStep)
         DebugLog("unbox use: slot=" .. slotIndex .. " name=" .. GetItemName(BAG_BACKPACK, slotIndex))
         CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
         zo_callLater(function()
             local used = GetItemLink(BAG_BACKPACK, slotIndex) ~= sourceLink or
                              GetSlotStackSize(BAG_BACKPACK, slotIndex) < stackCount
-            if not used and attempt < 3 then
-                DebugLog("unbox retry: slot=" .. slotIndex)
-                waitForLootWindow(function()
-                    useContainer(slotIndex, sourceLink, stackCount, attempt + 1, nextStep)
-                end)
-            else
-                waitForLootWindow(nextStep)
+            if not used and unboxCurtBlocked then
+                DebugLog("unbox stop: currency full, slot=" .. slotIndex)
+                dropQueuedSlot(slotIndex)
             end
+            waitForLootWindow(nextStep)
         end, GetLatency() + 700)
     end
 
@@ -2000,7 +2022,8 @@ local function unboxQueuedContainer()
                 unboxingSourceLink = nil
             end
         end, GetLatency() + 5000)
-        useContainer(slotIndex, sourceLink, stackCount, 1, useNextContainer)
+        unboxCurtBlocked = false
+        useContainer(slotIndex, sourceLink, stackCount, useNextContainer)
     end
 
     waitForLootWindow(useNextContainer)
@@ -2338,7 +2361,7 @@ function MSAL.FilterItem(link, isQuest, lootType)
             return "potions", "potion"
         end
     elseif itemType == ITEMTYPE_POISON then
-        if ShouldLootMisc(db.filters.poisons, link) then
+        if ShouldLootPoison(db.filters.poisons, link) then
             return "poisons", "poison"
         end
     elseif itemType == ITEMTYPE_TREASURE then
@@ -2397,6 +2420,9 @@ local function LootCurrenciesByRules(showOverlimitWarning)
                         if showOverlimitWarning then
                             OverlimitWarning(curt)
                         end
+                        if isUnboxing then
+                            unboxCurtBlocked = true
+                        end
                         allCurrenciesLooted = false
                         isAllCurtLooted = false
                     end
@@ -2432,8 +2458,22 @@ local function IsLootingBackpackItem()
     return false
 end
 
+local function ShouldKeepWindowForStolenLeftovers(stolenRule, lootIds)
+    if #lootIds == 0 or (stolenRule ~= "never loot" and stolenRule ~= "never loot strict") then
+        return false
+    end
+    for i = 1, #lootIds do
+        local link = GetLootItemLink(lootIds[i])
+        if not link or not IsItemLinkStolen(link) then
+            return false
+        end
+    end
+    return true
+end
+
 local function OnLootUpdated()
     chatlogSuffix = nil
+    unboxCurtBlocked = false
     if (db.enabled == false) then
         return
     end
@@ -2472,6 +2512,8 @@ local function OnLootUpdated()
     -- CHAT_ROUTER:AddSystemMessage("Loot items number : "..num)
     local stackableLootedParts = {}
     local stackableJunkParts = {}
+    local bListedCount = 0
+    local bListedSetGearList = {}
     for i = 1, GetNumLootItems(), 1 do
         chatlogSuffix = nil
         styleMatHadValidPrice = false
@@ -2514,10 +2556,6 @@ local function OnLootUpdated()
 
         if (isStolen and (db.stolenRule == "never loot" or db.stolenRule == "never loot strict")) or
             (db.stolenRule == "follow" and not CanLootWithoutBounty(link)) or isBlacklisted then
-            if isStolen and db.stolenRule == "never loot strict" then
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_RESPECRESULT10)
-            end
-            -- do nothing
         elseif itemOnList(link, WLIST_JUNK_TOKEN) then
             LootItemById(lootId)
             lootedAs = "on whitelist junk"
@@ -2646,6 +2684,12 @@ local function OnLootUpdated()
             table.insert(currentNotLootedNameList, string.lower(name))
             table.insert(unwantedLootIdList, lootId)
             table.insert(unwantedNameList, string.lower(name))
+            if isBlacklisted then
+                bListedCount = bListedCount + 1
+                if isSetItem then
+                    table.insert(bListedSetGearList, link)
+                end
+            end
         end
 
         DebugLog("item: " .. link .. ", looted as: " .. tostring(lootedAs))
@@ -2661,6 +2705,10 @@ local function OnLootUpdated()
         FlushChatlogBuffer()
     end
 
+    if #bListedSetGearList > 0 and not IsSameArray(currentNotLootedNameList, lastNotLootedNameList) then
+        ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
+    end
+
     -- DebugLog("currentNotLootedNameList length: " .. tostring(#currentNotLootedNameList))
     -- ChatboxDebugLog("unwantedLootIdList: " .. tostring(#unwantedLootIdList))
     -- ChatboxDebugLog("length of id list: " .. #unwantedLootIdList)
@@ -2671,6 +2719,9 @@ local function OnLootUpdated()
     -- for i = 1, #unwantedNameList, 1 do
     --     ChatboxDebugLog("unwantedNameList" .. i .. ": " .. unwantedNameList[i])
     -- end
+
+    -- the strict rule leaves stolen contents in place; closing would hide the container the player just opened
+    local keepWindowForStolenLeftovers = ShouldKeepWindowForStolenLeftovers(db.stolenRule, unwantedLootIdList)
 
     -- Performed after looting has been completed for the wanted items
     -- DebugLog("currentScene :"..currentScene)
@@ -2718,19 +2769,12 @@ local function OnLootUpdated()
             isAllCurtLooted = LootCurrenciesByRules(false)
         end
 
-        local bListedSetGearList = {}
         local leftInWindow = false
         local bListedLeft = false
         for i = 1, #unwantedLootIdList, 1 do
             local lootId = unwantedLootIdList[i]
             local link = GetLootItemLink(lootId)
-            local isSetItem = IsItemLinkSetCollectionPiece(link)
-            local name = LocalizeString("<<1>>", GetItemLinkName(link))
             if itemOnList(link, BLIST_TOKEN) then
-                -- blacklisted means never looted; only a set piece is worth reporting
-                if isSetItem then
-                    table.insert(bListedSetGearList, link)
-                end
                 bListedLeft = true
             elseif IsItemLinkStolen(link) and (db.stolenRule == "never loot" or db.stolenRule == "never loot strict") then
                 leftInWindow = true
@@ -2738,15 +2782,13 @@ local function OnLootUpdated()
                 LootItemById(lootId)
             end
         end
-        if #bListedSetGearList > 0 then
-            ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
-        end
         -- a blacklisted leftover does not hold the window when skipping is on, but the same target
         -- opened again means the player wants to see it, so that one time the window is left alone
         local bListedHoldsWindow = bListedLeft and not db.closeLootWindow
         local isReopened = bListedLeft and db.closeLootWindow and #currentNotLootedNameList > 0 and
             IsSameArray(currentNotLootedNameList, lastNotLootedNameList)
-        if not leftInWindow and not bListedHoldsWindow and not isReopened and isAllCurtLooted then
+        if not leftInWindow and not bListedHoldsWindow and not isReopened and
+            (isAllCurtLooted or unboxCurtBlocked) then
             DebugLog("closing loot window after disposer")
             lootWindowClosed = true
             EndLooting()
@@ -2759,17 +2801,21 @@ local function OnLootUpdated()
                 DebugLog("is Succession loot")
             end
             -- If it is not a succession loot then it need to be closed, unless its a bag container
-            if not IsSameArray(currentNotLootedNameList, lastNotLootedNameList) then
+            if not keepWindowForStolenLeftovers and not IsSameArray(currentNotLootedNameList, lastNotLootedNameList) then
                 -- if the case is a bag container
                 if isBagContainer then
-                    if #currentNotLootedNameList == 0 and isAllCurtLooted then -- if it is a bag container and everything is looted then close it, otherwise do nothing
+                    local onlyBlacklistedLeft = bListedCount > 0 and bListedCount == #currentNotLootedNameList
+                    local done = #currentNotLootedNameList == 0 and isAllCurtLooted
+                    local skipped = isUnboxing and (onlyBlacklistedLeft or
+                        (unboxCurtBlocked and #currentNotLootedNameList == 0))
+                    if done or skipped then
                         DebugLog("closing bag container loot window")
                         lootWindowClosed = true
                         EndLooting()
                         SCENE_MANAGER:Show(currentScene)
                     end
                 else
-                    if isAllCurtLooted then
+                    if isAllCurtLooted or unboxCurtBlocked then
                         DebugLog("closing loot window")
                         lootWindowClosed = true
                         EndLooting()
@@ -4040,11 +4086,12 @@ local function OnLoaded(_, addon)
     local StartInteraction_orininal = INTERACTIVE_WHEEL_MANAGER.StartInteraction
     INTERACTIVE_WHEEL_MANAGER.StartInteraction = function(self, interactionType, ...)
         if db.stolenRule == "never loot strict" then
-            local _, _, _, isOwned = GetGameCameraInteractableActionInfo()
+            local action, _, _, isOwned = GetGameCameraInteractableActionInfo()
             local stealthState = GetUnitStealthState("player")
             local isHidden = stealthState == STEALTH_STATE_HIDDEN or stealthState == STEALTH_STATE_HIDDEN_ALMOST_DETECTED or
                 stealthState == STEALTH_STATE_STEALTH or stealthState == STEALTH_STATE_STEALTH_ALMOST_DETECTED
-            if isOwned and not isHidden then
+            local isStolenContainer = action == GetString(SI_GAMECAMERAACTIONTYPE20)
+            if isOwned and not isHidden and not isStolenContainer then
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_RESPECRESULT10)
                 return true
             end

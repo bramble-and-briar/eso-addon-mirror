@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | Media module
+-- Arclight Taunt 1.1.1 | Media module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local MEDIA_BAR_FLAT = A.MEDIA_BAR_FLAT
@@ -93,6 +93,16 @@ local function PixelAlignedBarHeight(scale)
     return pixelHeight / combinedScale, 1 / combinedScale
 end
 
+-- Outer screen/sweep reserve and inter-row clearance serve different purposes.
+-- Only the actual frame must fit between rows, not its extra sweep viewport.
+local function FocusMetrics(pixelUnit)
+    local highContrast = A.saved.highContrast
+    local subtlePad = math.max(highContrast and 3 or 2, pixelUnit)
+    local extra = A.saved.targetHighlightStyle == "strong" and 2 * pixelUnit or 0
+    local thickness = math.max(highContrast and 2 or 1, pixelUnit) + extra
+    return subtlePad + extra, math.max(subtlePad, thickness), thickness
+end
+
 local function ApplyMedia()
     if not A.root then return end
     local highContrast = A.saved.highContrast
@@ -112,7 +122,8 @@ local function ApplyMedia()
         and (RegisteredMediaPath("background", A.saved.backgroundKey)
             or RegisteredMediaPath("background", A.MEDIA_BG_OBSIDIAN)) or nil
     local barHeight, pixelUnit = PixelAlignedBarHeight()
-    A.focusPadding = math.max(highContrast and 3 or 2, pixelUnit)
+    local focusThickness
+    A.focusPadding, A.focusRowGap, focusThickness = FocusMetrics(pixelUnit)
     A.capHeight = math.max(2, pixelUnit)
     for _, cap in ipairs(A.columnCaps or {}) do
         cap.root:SetHeight(A.capHeight)
@@ -134,7 +145,7 @@ local function ApplyMedia()
         row.contrastEdge:SetHeight(pixelUnit)
         row.contrastHeight = pixelUnit
         -- A one-UI-unit edge can round away at small combined UI/HUD scales.
-        row.focusThickness = math.max(highContrast and 2 or 1, pixelUnit)
+        row.focusThickness = focusThickness
         A.SetHidden(row.barRegion, fullMode)
         A.SetHidden(row.track, fullMode or texturedTrack)
         A.SetHidden(row.trackTexture, fullMode or not texturedTrack)
@@ -184,6 +195,7 @@ A.RegisteredMediaPath = RegisteredMediaPath
 A.FontFor = FontFor
 A.SelectedBarPath = SelectedBarPath
 A.PixelAlignedBarHeight = PixelAlignedBarHeight
+A.FocusMetrics = FocusMetrics
 A.BuildMediaChoices = BuildMediaChoices
 A.ChoicePresent = ChoicePresent
 A.ApplyMedia = ApplyMedia

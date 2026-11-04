@@ -16,6 +16,32 @@ local WORN_INVENTORY = { slotType = SLOT_TYPE_EQUIPMENT }
 
 local OTHER_GEAR_NODE = { id = "other", label = "Other Gear", color = "B5B5B5", icon = "EsoUI/Art/Inventory/inventory_tabIcon_armor_up.dds" }
 
+-- Where a loadout piece actually is, said in words, for a piece this list cannot show because it
+-- is not the list's own: the game's own Armory window just leaves a missing piece blank, which
+-- is the exact confusion this answers (reported 2026-11-03). BAG_BANK is read plainly here on
+-- purpose -- the game's own Armory UI treats the bank as unreachable and hides this piece too,
+-- but our two lists (backpack, bank) are exactly the two places worth telling apart.
+local ELSEWHERE_LABELS = { [BAG_BACKPACK] = "In Backpack", [BAG_BANK] = "In Bank" }
+-- The extra bank space ESO Plus gives a subscriber is its own bag id, read the same way
+-- ToBank.lua already does (BankBags()) -- without this it fell through to "Elsewhere" for any
+-- piece actually sitting in that space (reported 2026-11-03).
+if BAG_SUBSCRIBER_BANK then ELSEWHERE_LABELS[BAG_SUBSCRIBER_BANK] = "In Bank" end
+if BAG_GUILDBANK then ELSEWHERE_LABELS[BAG_GUILDBANK] = "In Guild Bank" end
+for _, name in ipairs({ "BAG_HOUSE_BANK_ONE", "BAG_HOUSE_BANK_TWO", "BAG_HOUSE_BANK_THREE",
+    "BAG_HOUSE_BANK_FOUR", "BAG_HOUSE_BANK_FIVE", "BAG_HOUSE_BANK_SIX", "BAG_HOUSE_BANK_SEVEN",
+    "BAG_HOUSE_BANK_EIGHT", "BAG_HOUSE_BANK_NINE", "BAG_HOUSE_BANK_TEN" }) do
+    if _G[name] then ELSEWHERE_LABELS[_G[name]] = "In a House Bank" end
+end
+
+-- The real slot data for a bag this list is not drawing, read straight from the game's own
+-- shared cache (the same object every list's own rows come from) rather than built by hand --
+-- a hand-built stand-in would be missing whatever field the row, its tooltip or its icon reads
+-- next and nobody asked for here.
+local function ElsewhereSlotData(bagId, slotIndex)
+    local cache = SHARED_INVENTORY and SHARED_INVENTORY:GetOrCreateBagCache(bagId)
+    return cache and cache[slotIndex]
+end
+
 local function BuildName(buildIndex)
     local buildData = ZO_ARMORY_MANAGER and ZO_ARMORY_MANAGER:GetBuildDataByIndex(buildIndex)
     if buildData then return buildData:GetName() end
@@ -75,6 +101,9 @@ end
 function IG.CollectArmoryEntries(inventory, inventoryType, rawEntries, searchText)
     local result = {}
     if not IG.sv.armoryEnabled or not GetNumUnlockedArmoryBuilds then return result end
+    if inventoryType == INVENTORY_BANK and IG.sv.bankModules and IG.sv.bankModules.ARMORY == false then
+        return result
+    end
 
     local listed = {}
     for _, entry in ipairs(rawEntries) do
@@ -103,20 +132,29 @@ function IG.CollectArmoryEntries(inventory, inventoryType, rawEntries, searchTex
                 if slotState == ARMORY_BUILD_EQUIP_SLOT_STATE_VALID then
                     slotsInBuild = slotsInBuild + 1
                     if bagId == BAG_WORN then slotsWorn = slotsWorn + 1 end
-                    local slotData, worn
+                    local slotData, worn, elsewhere
                     if bagId == BAG_WORN then
                         slotData = wornCache and wornCache[slotIndex]
                         worn = true
                         if slotData and not PassesListFilter(inventory, slotData, searchText) then slotData = nil end
                     else
                         slotData = listed[bagId] and listed[bagId][slotIndex]
+                        -- Not in this list: read where it really is instead of leaving the
+                        -- piece out, the way the game's own Armory window does.
+                        if not slotData then
+                            local there = ElsewhereSlotData(bagId, slotIndex)
+                            if there and PassesListFilter(inventory, there, searchText) then
+                                slotData = there
+                                elsewhere = ELSEWHERE_LABELS[bagId] or "Elsewhere"
+                            end
+                        end
                     end
                     -- A piece set aside is listed where it was sent and nowhere else -- except
                     -- the one on your character, whose only row in this list is this one, and
                     -- which you can do nothing with while you are wearing it anyway.
                     if slotData and (worn or not IG.IsSetAside(slotData)) then
-                        local proxy = setmetatable({ igArmory = true, inventory = worn and WORN_INVENTORY or nil },
-                            { __index = slotData })
+                        local proxy = setmetatable({ igArmory = true, inventory = worn and WORN_INVENTORY or nil,
+                            igArmoryElsewhere = elsewhere }, { __index = slotData })
                         local itemLink = GetItemLink(slotData.bagId, slotData.slotIndex)
                         result[#result + 1] = {
                             data = proxy,

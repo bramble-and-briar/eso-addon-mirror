@@ -1,0 +1,93 @@
+<GuiXml>
+    <Controls>
+        <Control name="MyUIAlt_Bar_Keyboard_Template" virtual="true">
+            <Controls>
+                <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetY="-1"/>
+                </Label>
+                <Label name="$(parent)Percent" font="ZoFontGamepad18">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="10" offsetY="-1"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="MyUIAlt_BarReversed_Keyboard_Template" virtual="true">
+            <Controls>
+                <StatusBar name="$(parent)Bar" barAlignment="REVERSE">
+                </StatusBar>
+
+                <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetY="-1"/>
+                </Label>
+                <Label name="$(parent)Percent" font="ZoFontGamepad18">
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-10" offsetY="-1"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="MyUIAlt_Bar_Gamepad_Template" inherits="MyUIAlt_Bar_Keyboard_Template" virtual="true">
+            <Controls>
+                <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetY="2"/>
+                </Label>
+                <Label name="$(parent)Percent" font="ZoFontGamepad18">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="10" offsetY="2"/>
+                </Label>
+            </Controls>
+        </Control>
+        <Control name="MyUIAlt_BarReversed_Gamepad_Template" inherits="MyUIAlt_BarReversed_Keyboard_Template" virtual="true">
+            <Controls>
+                <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetY="2"/>
+                </Label>
+                <Label name="$(parent)Percent" font="ZoFontGamepad18">
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-10" offsetY="2"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <StatusBar name="MyUIAlt_ShieldBar" level="550" inherits="ZO_PlayerAttributeStatusBar" virtual="true">
+            <OnInitialized>
+                self.gloss = MyUIAlt_FakeGloss:New()
+            </OnInitialized>
+        </StatusBar>
+
+        <Control name="MyUIAlt_Bar" inherits="ZO_PlayerAttributeContainer" virtual="true">
+            <Controls>
+                <Control name="$(parent)BgContainer" inherits="ZO_PlayerAttributeBgContainer">
+                    <Anchor point="LEFT"/>
+                    <Anchor point="RIGHT"/>
+                    <Controls>
+                        <Texture name="$(parent)BgLeft" inherits="ZO_PlayerAttributeBgLeft" />
+                        <Texture name="$(parent)BgRight" inherits="ZO_PlayerAttributeBgRightArrow" />
+                        <Texture name="$(parent)BgCenter" inherits="ZO_PlayerAttributeBgCenter"/>
+                    </Controls>
+                </Control>
+
+                <StatusBar name="$(parent)Bar" inherits="ZO_PlayerAttributeStatusBar">
+                    <OnInitialized>
+                        self.gloss = MyUIAlt_FakeGloss:New()
+                    </OnInitialized>
+                </StatusBar>
+
+                <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                </Label>
+
+                <Label name="$(parent)Percent" horizontalAlignment="CENTER">
+                </Label>
+
+                <Texture name="$(parent)FrameLeft" inherits="ZO_PlayerAttributeFrameLeft"/>
+                <Texture name="$(parent)FrameRight" inherits="ZO_PlayerAttributeFrameRightArrow"/>
+                <Texture name="$(parent)FrameCenter" inherits="ZO_PlayerAttributeFrameCenter"/>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="MyUIAlt_Container">
+            <Anchor point="BOTTOM" relativeTo="ZO_ActionBar1" relativePoint="TOP" offsetX="0" offsetY="-50"/>
+            <Dimensions x="500" y="60"/>
+            <OnInitialized>
+                MyUIAlt_Initialize(self)
+            </OnInitialized>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

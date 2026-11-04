@@ -138,11 +138,6 @@ local strings = {
     ["SI_HUDITORTOOLS_COLOR_SELECTED"] = "Selected",
     ["SI_HUDITORTOOLS_COLOR_UNSELECTED"] = "Unselected",
     ["SI_HUDITORTOOLS_COLOR_HIDDEN"] = "Hidden",
-    ["SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS"] = "Hidden Elements",
-    ["SI_HUDITORTOOLS_CNTXT_ELEMENT_UNHIDE"] = "Unhide selected",
-    ["SI_HUDITORTOOLS_CNTXT_HIDE_AT_HUDEDITOR"] = "Hide at HUD Editor",
-    ["SI_HUDITORTOOLS_CNTXT_UNHIDE_AT_HUDEDITOR"] = "Unhide at HUD Editor",
-    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_HIDDEN"] = "|c00F000Show all|r hidden elements again",
 }
 
 for stringId, value in pairs(strings) do

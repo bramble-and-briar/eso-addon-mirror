@@ -114,7 +114,10 @@ local DEBUG_ITEMS =
 
 local function GetLootHistory()
     LootHistory:PatchHistories()
-    return LOOT_HISTORY_KEYBOARD or LOOT_HISTORY_GAMEPAD
+    if IsInGamepadPreferredMode() then
+        return LOOT_HISTORY_GAMEPAD
+    end
+    return LOOT_HISTORY_KEYBOARD
 end
 
 local function CreateDebugItemData(name, icon, displayQuality, stackCount)
@@ -679,7 +682,7 @@ local function RestoreStockHistory(lootHistory, descriptor)
 end
 
 function LootHistory:ApplySettingsToHistory(lootHistory, descriptor)
-    if not lootHistory then
+    if not lootHistory or not lootHistory.control then
         return false
     end
 
@@ -753,9 +756,17 @@ function LootHistory:PatchHistory(lootHistory, descriptor)
         return lootHistory and lootHistory.nirnsteelPatched
     end
 
-    -- U51 streams are anchored to their movable native HUD control.
+    -- U51's gamepad initializer omits the control and its anchor target.
+    lootHistory.control = lootHistory.control or _G["ZO_LootHistoryControl_" .. descriptor.key]
+    if not lootHistory.control then
+        return false
+    end
+
     for _,stream in ipairs({lootHistory.lootStream,lootHistory.lootStreamPersistent}) do
         stream.nirnsteelNativeAnchor = stream.nirnsteelNativeAnchor or stream.anchor
+        if UsesHUDEditor() and not stream.nirnsteelNativeAnchor:GetTarget() then
+            stream.nirnsteelNativeAnchor:SetTarget(lootHistory.control)
+        end
     end
     local normalPatched = CopyTemplateBehavior(lootHistory.lootStream, descriptor.templateName, descriptor.stockTemplateName)
     local persistentPatched = CopyTemplateBehavior(lootHistory.lootStreamPersistent, descriptor.templateName, descriptor.stockTemplateName)
@@ -833,6 +844,7 @@ local function CreateLootOrnament(parent, width, height, x, y, points, color, le
     local shape = WINDOW_MANAGER:CreateControl(nil, parent, CT_POLYGON)
     shape:SetDimensions(width, height)
     shape:SetAnchor(CENTER, parent, CENTER, x, y)
+    shape:SetExcludeFromResizeToFitExtents(true)
     shape:SetMouseEnabled(false)
     shape:SetDrawLayer(DL_BACKGROUND)
     shape:SetDrawLevel(level + 10)

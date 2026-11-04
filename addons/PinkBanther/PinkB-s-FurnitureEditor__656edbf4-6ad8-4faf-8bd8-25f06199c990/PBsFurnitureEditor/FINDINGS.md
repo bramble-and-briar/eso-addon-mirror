@@ -934,3 +934,35 @@ bar and the palette showed would say which descriptor the strip kept.
 update with no target event) against a mock strip that models drawing and handling: linked piece, nothing drawn along the
 bottom and the button cuts; unlinked, Browse drawn and browsing; the one-frame window; bursts of events are one refresh;
 repeated updates do not run on; moving between linked and unlinked brings Browse back and takes it away.
+
+## 26. Saved link sets, by name (1.0.7)
+
+Asked: save the copied link set under a name, and call it up later. It existed as `/pbfe save|load|drop|saved <name>` (one
+lower-case word, no number, no panel), which on a console is typing into an on-screen keyboard.
+
+* `Saved.lua` replaces those four commands. A name is what was typed (the dispatcher now also keeps the words as typed,
+  `self.rawWords`): spaces and capitals kept, found again whatever the case, or by its number in `/pbfe saved` (newest
+  first, `savedAt` from `GetTimeStamp`; the date shown is `GetDateStringFromTimestamp`, else `os.date`). No name: the
+  add-on names it ("<first furnishing> x<count>", with " (2)" for a clash). A taken name is refused; `force` replaces it.
+  At most `MAX_SAVED = 20`: every set is in SavedVariables and so in the game's memory at log-in, which a console shares.
+* A set is a copy of the clipboard. A cut that has not been pasted keeps `cut` and its `srcKey`s, so loading it makes the
+  clipboard a pending cut again (the same record as before), and `PendingCutBlocks` still stops a load from replacing a
+  pending cut. `load` now also announces the wheel (`AnnounceMenu`), as a copy does.
+* The settings panel (Settings.lua) has the saved sets FIRST: heading, explanation, a name box, a run of rows (Save the
+  copy; a list; Load; Delete) that is taken out and put in again (`RemoveSettings` / `AddSettings`, as PBsKillLog does for
+  its day rows) when the panel is opened (`LibHarvensAddonSettings_AddonSelected`) and after every save, load or delete.
+  Delete asks twice (`AskedTwice`, State.lua). The dropdown's `getFunction` never answers nil.
+* The name box is `ST_EDIT`, added beside the run (not in it) inside a pcall and only if the library defines it: what
+  shape that row wants, and whether a controller can type into it, is not known from here (PBsCraftMaterialAssistant made the
+  same decision). The panel works without it; a set is then named for you, and `/pbfe save <name>` takes any name.
+* A copy (chat or editor) now says how to keep it.
+
+**Unverified on a console:** that `RemoveSettings` / `AddSettings` redraw the rows on this client (PBsKillLog's day rows use
+them), that the name box exists and takes text, and `GetDateStringFromTimestamp`.
+
+**Tests.** Section 37: names with spaces and capitals; auto-names and the number suffix; a taken name, `force`; the numbered
+list, newest first; load by name, case and number; drop by number and name; an empty clipboard; surviving a reload; a cut saved
+and loaded (and blocking a load); the limit of 20; the panel (rows, Save, the redrawn list, a typed name, a taken name,
+choosing, Load, Delete asked twice and lapsing, opening the panel after a command save); a library with no `ST_EDIT`, with an
+`ST_EDIT` that will not build, and with no dynamic rows; Japanese labels. The mock library keeps ordered rows and a callback
+manager.

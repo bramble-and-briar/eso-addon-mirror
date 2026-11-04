@@ -5,7 +5,7 @@ local A = "JDP_MultiTaunt"
 local TAUNT_ID = 38254 -- taunt debuff ID, not the skill casting ID
 local MAX_TRACK = 40
 local MAX_ROWS = 8
-local TICK_MS = 100
+local TICK_MS = 250 -- timers and expiry display; effects use event callbacks
 local settings, window, title, subtitle, rows = nil,nil,nil,nil,{}
 local tracked = {} -- [unitId] = { name, expires, owner, updated, expiredAt }
 local samples = {effect=0, combat=0, combatTaunt=0, noId=0, target=0, last="none"}
@@ -159,7 +159,9 @@ local function demoEntries()
 end
 local function tick()
   if not window or not settings.enabled then if window then window:SetHidden(true) end;return end
-  if not demo then sampleReticle() end
+  -- Reticle buffs can update without a reticle-target event; sample at a
+  -- slower cadence only while an attackable reticle target is present.
+  if not demo and DoesUnitExist("reticleover") then sampleReticle() end
   local t=clock()
   local active={}
   local count=0
@@ -236,16 +238,14 @@ end
 local function onLoaded(_,name)
   if name~="JesusDePlatre_PrivateMarker" then return end
   EVENT_MANAGER:UnregisterForEvent(A.."_load",EVENT_ADD_ON_LOADED)
-  JDPMultiTauntSaved=JDPMultiTauntSaved or {}
-  settings=JDPMultiTauntSaved
-  for k,v in pairs(defaults) do if settings[k]==nil then settings[k]=v end end
+  settings=ZO_SavedVars:NewAccountWide("JDPMultiTauntSaved",1,nil,defaults,GetWorldName())
   createUI()
   SLASH_COMMANDS["/jdptaunt"]=command
   EVENT_MANAGER:RegisterForEvent(A.."_effect",EVENT_EFFECT_CHANGED,onEffect)
   EVENT_MANAGER:AddFilterForEvent(A.."_effect",EVENT_EFFECT_CHANGED,REGISTER_FILTER_ABILITY_ID,TAUNT_ID)
   EVENT_MANAGER:RegisterForEvent(A.."_combat",EVENT_COMBAT_EVENT,onCombat)
   EVENT_MANAGER:AddFilterForEvent(A.."_combat",EVENT_COMBAT_EVENT,REGISTER_FILTER_ABILITY_ID,TAUNT_ID)
+  EVENT_MANAGER:RegisterForEvent(A.."_target",EVENT_RETICLE_TARGET_CHANGED,function() sampleReticle(); tick() end)
   EVENT_MANAGER:RegisterForUpdate(A.."_tick",TICK_MS,tick)
-  say("v0.6.1 multi-enemy tracker ready. /jdptaunt demo for test; /jdptaunt debug for events")
 end
 EVENT_MANAGER:RegisterForEvent(A.."_load",EVENT_ADD_ON_LOADED,onLoaded)

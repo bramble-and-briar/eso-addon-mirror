@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Artioner/Vigilant---Group-Buff-Tracker__5019",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Artioner",
+  "canonical_id": "esoui:5019",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5019",
+  "deleted": false,
+  "directories": [
+    "Vigilant"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5019/",
+  "fingerprint": "53997b3f11bf5bc9105cd4c24739204e5690f1d45fd45d0bdb6394a537d5612b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18290.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18291.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5019",
+  "source_url": "https://www.esoui.com/downloads/info5019-Vigilant-GroupBuffTracker.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 1,
+    "monthly_downloads": 5
+  },
+  "title": "Vigilant - Group Buff Tracker",
+  "updated_at": 1793721983000,
+  "version": "1.0.0"
+}

@@ -1,4 +1,4 @@
-ARCLIGHT TAUNT 1.1.0
+ARCLIGHT TAUNT 1.1.1
 Modernes Multi-Target-Taunt-HUD für The Elder Scrolls Online
 Author: tareN
 Kontakt im Spiel: @uhtareN (PC/EU)
@@ -13,7 +13,7 @@ INSTALLATION
 Diese Pflichtbibliotheken separat installieren; sie sind nicht enthalten:
 - LibAddonMenu-2.0 r43 oder neuer:
   https://www.esoui.com/downloads/info7-LibAddonMenu-2.0.html
-- LibMediaProvider:
+- LibMediaProvider r39 oder neuer:
   https://www.esoui.com/downloads/info56-LibMediaProvider.html
 
 Den Ordner ArclightTaunt hierhin entpacken:
@@ -26,6 +26,8 @@ Medien und weiterhin angebotene Sounds bleiben erhalten. Alte Zeilenhöhen in
 Prozent werden einmalig in zusätzliche Höhe über dem lesbaren Minimum
 umgerechnet. Neue Installationen starten mit 115 Prozent HUD-Größe,
 Signatur-Balken und 72 Prozent Hintergrunddeckkraft.
+Einstellungen gelten accountweit und gemeinsam für alle Megaserver. Kampfverläufe,
+Charakterfortschritt und andere serverspezifische Daten werden nicht gespeichert.
 
 EINSTELLUNGEN
 ESC > Einstellungen > Erweiterungen > Arclight Taunt
@@ -33,7 +35,7 @@ ESC > Einstellungen > Erweiterungen > Arclight Taunt
 - Liste & Anordnung: Sichtbarkeit, Größe, Breite, Zeilenhöhe, Abstand,
   eine/zwei Spalten, Spiegelung, Position und Bosse anheften.
   Aktive Taunts werden nach verbleibender Zeit sortiert.
-- Design & Lesbarkeit: Schmal/Full-row, hoher Kontrast, Zielhervorhebung,
+- Design & Lesbarkeit: Schmal/Full-row, hoher Kontrast, dezente/deutliche Zielhervorhebung,
   Schriften, Balkentexturen und Warnschwellen.
 - Bosse: Erkennung, Kennzeichnung, Warnzeit, Darstellung und Warntoene.
 - Tracking & Tests: Spieler-Taunts und Willkommens-/Sprach-Schrifttests.
@@ -87,7 +89,8 @@ Bitte Fähigkeit/Morph oder Scribing-Kombination, Sprache, Begegnung,
 Beobachtung und gegebenenfalls Lua-Fehler nennen. Bei Bildfehlern hilft ein Screenshot.
 
 CREDITS / TRANSPARENZ
-Die frühe Alpha-Idee wurde von Untaunted inspiriert.
+Die frühe Alpha-Idee wurde von Untaunted von Solinur inspiriert:
+https://www.esoui.com/downloads/info1475-Untaunted.html
 KI-unterstützte Lua-Programmierung unter Leitung von tareN. Funktionen wurden
 im echten ESO-Spielbetrieb einschließlich DLC-Dungeons getestet, ergaenzt durch
 automatisierte Regressionstests. Diese ersetzen keinen echten Spielclient.

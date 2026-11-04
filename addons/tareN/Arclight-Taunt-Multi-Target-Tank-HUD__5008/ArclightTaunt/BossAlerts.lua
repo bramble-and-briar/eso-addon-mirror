@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | BossAlerts module
+-- Arclight Taunt 1.1.1 | BossAlerts module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local ALERT_BATCH_SECONDS = A.ALERT_BATCH_SECONDS

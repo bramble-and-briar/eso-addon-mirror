@@ -1,9 +1,16 @@
 ## Title: SetTracker
-## Author: SugaComa / Codex
-## Version: 0.2.11-test13
+## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
+## Version: 0.3.0
 ## APIVersion: 101051
 ## Description: Compact automatic set-perk tracker with independent, bar-aware HUD icons.
 ## SavedVariables: SetTrackerSavedVariables
 ## OptionalDependsOn: LibHarvensAddonSettings-1.0
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
 
 SetTracker.lua

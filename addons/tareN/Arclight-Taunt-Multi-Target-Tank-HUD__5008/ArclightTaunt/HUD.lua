@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | HUD module
+-- Arclight Taunt 1.1.1 | HUD module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -97,10 +97,11 @@ local function ResolveListScale(width, rowCount, full, footerHeight, moveExtra)
     if sw <= 0 or sh <= 0 then return scale end
     for _ = 1, 8 do
         local barHeight, pixelUnit = A.PixelAlignedBarHeight(scale)
-        local pad = saved.highlightTarget and math.max(saved.highContrast and 3 or 2, pixelUnit) or 0
+        local pad, gap = A.FocusMetrics(pixelUnit)
+        if not saved.highlightTarget then pad, gap = 0, 0 end
         local rowHeight = (A.minRowContentHeight or 0) + (full and 2 or math.ceil(barHeight)) + (saved.rowHeightExtra or 0)
         local height = math.max(2, pixelUnit)
-            + rowCount * (rowHeight + math.max(saved.rowGap, pad)) + footerHeight + moveExtra
+            + rowCount * (rowHeight + math.max(saved.rowGap, gap)) + footerHeight + moveExtra
         local nextScale = math.max(0.1, math.min(scale, (sw - 8) / math.max(1, width + 2 * pad),
             (sh - 8) / math.max(1, height + 2 * pad)))
         if nextScale >= scale then break end
@@ -492,9 +493,12 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.lastHighContrast = highContrast
     end
     local contentHeight = fullMode and rowHeight or rowHeight - (r.barHeight or saved.barHeight)
+    local focusPad = A.focusPadding or 2
+    local focusVerticalPad = math.min(focusPad, rowGap)
     if r.lastContentHeight ~= contentHeight or r.lastContentWidth ~= columnWidth
         or r.lastContentContrast ~= highContrast or r.lastContentRowHeight ~= rowHeight
-        or r.lastFocusThickness ~= r.focusThickness or r.lastFocusPadding ~= A.focusPadding then
+        or r.lastFocusThickness ~= r.focusThickness or r.lastFocusPadding ~= focusPad
+        or r.lastFocusVerticalPadding ~= focusVerticalPad then
         r.name:SetHeight(contentHeight)
         r.time:SetHeight(contentHeight)
         r.fullFill:SetHeight(rowHeight)
@@ -502,12 +506,12 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.accent:SetHeight(rowHeight)
         r.surface:SetDimensions(columnWidth, contentHeight)
         r.progressRegion:SetHeight(rowHeight)
-        local focusPad = A.focusPadding or 2
         r.focusViewport:ClearAnchors()
-        r.focusViewport:SetAnchor(TOPLEFT, r.box, TOPLEFT, -focusPad, -focusPad)
-        r.focusViewport:SetDimensions(columnWidth + 2 * focusPad, rowHeight + 2 * focusPad)
-        r.focusSweep:SetHeight(rowHeight + 2 * focusPad)
-        for _, glint in ipairs(r.focusGlints) do glint:SetHeight(focusPad) end
+        -- Clip the shimmer to the real gap so it cannot paint a neighbor.
+        r.focusViewport:SetAnchor(TOPLEFT, r.box, TOPLEFT, -focusPad, -focusVerticalPad)
+        r.focusViewport:SetDimensions(columnWidth + 2 * focusPad, rowHeight + 2 * focusVerticalPad)
+        r.focusSweep:SetHeight(rowHeight + 2 * focusVerticalPad)
+        for _, glint in ipairs(r.focusGlints) do glint:SetHeight(focusVerticalPad) end
         r.focusTravelWidth = columnWidth + 2 * focusPad
         local edge = r.focusThickness or (highContrast and 2 or 1)
         for side, outline in pairs(r.focusOutline) do
@@ -523,6 +527,7 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.lastContentRowHeight = rowHeight
         r.lastFocusThickness = edge
         r.lastFocusPadding = focusPad
+        r.lastFocusVerticalPadding = focusVerticalPad
         r.lastBossIcon = nil
     end
     local expired = A.IsLost(t, now)
@@ -770,7 +775,7 @@ local function RenderList(now, active, lost, items, saved)
     local topInset = GetListTopInset()
     -- Reserve room for an external outline even if a saved profile uses zero
     -- spacing. Do not change its preference or make rows jump on target changes.
-    local rowGap = math.max(saved.rowGap, FocusEdge())
+    local rowGap = math.max(saved.rowGap, saved.highlightTarget and (A.focusRowGap or 2) or 0)
     local rowHeight = GetRowHeight(fullMode)
     local rowRegionHeight = rowCount * (rowHeight + rowGap)
     local footerY = topInset + rowRegionHeight

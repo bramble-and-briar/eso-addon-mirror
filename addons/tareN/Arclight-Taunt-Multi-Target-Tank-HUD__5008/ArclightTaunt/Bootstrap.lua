@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | Bootstrap module
+-- Arclight Taunt 1.1.1 | Bootstrap module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -25,6 +25,9 @@ local defaults = A.defaults
 local function OnLoaded(_, name)
     if name ~= ADDON then return end
     EM:UnregisterForEvent(ADDON, EVENT_ADD_ON_LOADED)
+    -- Account-wide presentation preferences are intentionally shared across
+    -- megaservers. No server-specific identities, combat records or progress
+    -- are persisted. Keep the existing profile/schema to preserve user choices.
     A.saved = ZO_SavedVars:NewAccountWide("ArclightTauntSaved", 1, nil, defaults)
     -- Show one unobtrusive setup tip only to genuinely new installations.
     -- Older profiles already have a settingsVersion from previous migrations.
@@ -135,7 +138,8 @@ local function OnLoaded(_, name)
     A.saved.sortMode = nil -- the former alternative ordering has been removed
     A.saved.showImmunity, A.saved.showTauntStacks = nil, nil -- obsolete diagnostic preferences
     A.saved.highlightTarget = A.saved.highlightTarget ~= false
-    A.saved.focusStyle = nil -- one target focus; preserve the separate enabled flag
+    A.saved.focusStyle = nil -- obsolete visual designs; never restore their controls
+    A.saved.targetHighlightStyle = A.saved.targetHighlightStyle == "strong" and "strong" or "subtle"
     A.saved.onlyMine = nil -- remove the obsolete tracking-mode preference
     A.saved.trackPlayerTargets = A.saved.trackPlayerTargets == true
     A.saved.header = nil -- obsolete status header removed

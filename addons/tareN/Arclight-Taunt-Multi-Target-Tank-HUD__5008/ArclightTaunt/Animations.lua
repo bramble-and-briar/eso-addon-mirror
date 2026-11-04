@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | Native row and banner progress animations
+-- Arclight Taunt 1.1.1 | Native row and banner progress animations
 -- No frame-driven Lua loop: ESO animates cached visible controls directly.
 local A = ArclightTaunt
 local C, SetHidden, SetColor = A.C, A.SetHidden, A.SetColor

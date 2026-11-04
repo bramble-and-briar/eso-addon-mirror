@@ -1,7 +1,7 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.5.11
-## AddOnVersion: 22
+## Version: 0.5.12
+## AddOnVersion: 23
 ## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
@@ -26,6 +26,10 @@
 ; Indicator description). 0.5.9 = 20 (2026-10-30/31: explosion report rewritten
 ; in Matt's wording, with friends killed within 2 s and only for your own plague;
 ; report routed to chat / death recap callout / hidden and kept in History).
+; 0.5.12 = 23 (2026-11-03: Pull History at the bottom of the Pull Indicator
+; page, the last 20 warnings with set, route, source, ability, lead and zone,
+; to diagnose a warning seen in PvE; and the Leashing Burst caster route now
+; warns only in Cyrodiil, Imperial City and battlegrounds).
 ; 0.5.11 = 22 (2026-11-01: Leashing Burst joins Pull detection through its
 ; caster's 2 s buff, visible to bystanders with no unit tag; Engine/Allegiance.lua
 ; tells friend from foe by name from the kill feed, the reticle, the group

@@ -149,7 +149,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibFoodDrinkBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibFoodDrinkBuff__1902) | Baertram | PC / Mac | 19 |
 | [LibFsCommons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FelipeS11/LibFsCommons__2439) | FelipeS11 | PC / Mac | 3.0 |
 | [LibFurnitureCatalogue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/LibFurnitureCatalogue__f3fd583d-fcc3-4b4b-a454-8f3743390934) | killerkev77 | Console | — |
-| [LibFurnitureCatalogue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wookiefriseur/LibFurnitureCatalogue__4804) | wookiefriseur | PC / Mac | 1.2.0 |
+| [LibFurnitureCatalogue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wookiefriseur/LibFurnitureCatalogue__4804) | wookiefriseur | PC / Mac | 1.3.0 |
 | [LibGamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/LibGamepad__37661fa7-7702-4eeb-b3ed-7e840aa17647) | YeOldeDragon | Console | — |
 | [LibGamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/LibGamepad__4441) | YeOldeDragon | PC / Mac | 1.0.8 |
 | [LibGamepadOptions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OfficialZoruah/LibGamepadOptions__4614) | OfficialZoruah | PC / Mac | 0.2.4 |
@@ -372,7 +372,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.9 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.8.0 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.3.1 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |
@@ -391,7 +391,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LWT Price Info (formerly Tamriel Trash Centre)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drLemis/LWT-Price-Info-formerly-Tamriel-Trash-Centre__3724) | drLemis | PC / Mac | 2.1.0 |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__529cf85a-e597-4945-86c4-654d2a32a7bc) | Masteroshi430 | Console | — |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
-| [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.11 |
+| [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.12 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
 | [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.6 |
 | [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d) | Lykeion+ | Console | — |

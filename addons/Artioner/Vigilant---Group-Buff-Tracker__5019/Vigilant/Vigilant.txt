@@ -1,0 +1,21 @@
+## Title: |cF2B33DVigilant|r - Group Buff Tracker
+## Author: @Artioner
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101051 101052
+## Description: Track the buffs of every group member at a glance. Choose the buffs to watch from a list of the common ones, or pick any other buff or proc from a searchable catalog. Type /vigilant to start.
+## SavedVariables: Vigilant_SV
+## DependsOn: LibAddonMenu-2.0>=43
+
+Vigilant.lua
+lang/en.lua
+lang/$(language).lua
+Core/Utils.lua
+Core/Catalog.lua
+Core/Tracker.lua
+Core/AbilityIndex.lua
+UI/Panel.lua
+UI/Browser.lua
+UI/Settings.lua
+Core/Commands.lua
+Bindings.xml

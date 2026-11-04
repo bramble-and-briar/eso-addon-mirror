@@ -659,7 +659,7 @@ end
 -- What a category counts beside its name, where the rows it opens are not the answer. A
 -- category that holds whatever you put in it holds things, not an arrangement of things: how
 -- many sets they happen to fall into is not what you put there.
-local COUNTS_ITEMS = { CUSTOM = true, GUILDSELL = true, TOBANK = true }
+local COUNTS_ITEMS = { CUSTOM = true, GUILDSELL = true, TOBANK = true, TOHOME = true }
 
 local function GroupNode(key)
     local group = IG.GROUP_BY_KEY[key]
@@ -1115,6 +1115,11 @@ local function OverrideForSlot(slotData)
     if override == "TOBANK" and not IG.CanDepositToBank(slotData.bagId, slotData.slotIndex) then
         return nil, itemLink
     end
+    -- And for TO HOME CONTAINER: a piece with no container written down for it, or one that
+    -- could not be put in a chest, stands where it would on its own (ToHome.lua).
+    if override == "TOHOME" and not (IG.IsHomeMarked and IG.IsHomeMarked(slotData.bagId, slotData.slotIndex)) then
+        return nil, itemLink
+    end
     return override, itemLink
 end
 
@@ -1137,7 +1142,7 @@ end
 -- off, which puts its pieces back where they stand on their own until it is on again.
 -- TO BANK is the fifth: a piece marked for the bank, which is a decision too. Its switch hides
 -- the button only, and while it is hidden its pieces stand where they would on their own.
-local SET_ASIDE = { SELL = true, GUILDSELL = true, DECON = true, CUSTOM = true, TOBANK = true }
+local SET_ASIDE = { SELL = true, GUILDSELL = true, DECON = true, CUSTOM = true, TOBANK = true, TOHOME = true }
 
 local function SetAsideFrom(key)
     if not (key and SET_ASIDE[key]) then return nil end
@@ -1327,12 +1332,13 @@ local function ClassifyWith(slotData, isNew, override, itemLink, lockedOn)
     end
 
     -- A piece a crafting writ is waiting for lives in DAILY WRIT (DailyWrit.lua): above every
-    -- AUTOMATE rule and above where its kind would put it (GARBAGE, NONSET), below only a move
-    -- made by hand to a category that is standing. Asked outside both caches, because the
-    -- answer follows the quest journal rather than the item.
+    -- AUTOMATE rule, above where its kind would put it (GARBAGE, NONSET) and above a move made
+    -- by hand -- a piece sent to SELL last month is still the piece the writ wants today (reported
+    -- 2026-11-04). Asked outside both caches, because the answer follows the quest journal
+    -- rather than the item.
     local path
     local handMoved = override and IG.GROUP_BY_KEY[override] and IG.IsGroupAvailable(override)
-    if not handMoved and IG.IsDailyWritItem and IG.IsDailyWritItem(slotData) then
+    if IG.IsDailyWritItem and IG.IsDailyWritItem(slotData) then
         path = Path("DAILYWRIT")
         local link = itemLink or GetItemLink(slotData.bagId, slotData.slotIndex)
         local setNode = link and IG.GetSetNode(link)

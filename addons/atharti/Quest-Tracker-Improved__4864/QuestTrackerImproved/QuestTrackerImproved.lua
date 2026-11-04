@@ -435,7 +435,10 @@ function QTI.OnAddOnLoaded(_, addOnName)
 	QTI.HookHouseTracker()
 
 	if QTI.SV.hidePursuits then
-		ClearTrackedPromotionalEventActivity()
+		EM:RegisterForEvent(QTI.name .. "_HidePursuits", EVENT_PLAYER_ACTIVATED, function()
+			EM:UnregisterForEvent(QTI.name .. "_HidePursuits", EVENT_PLAYER_ACTIVATED)
+			ClearTrackedPromotionalEventActivity()
+		end)
 	end
 
 	if QTI.SV.hideArchive then

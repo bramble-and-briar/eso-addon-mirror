@@ -18,19 +18,21 @@
     "JesusDePlatre_PrivateMarker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5017/",
-  "fingerprint": "20489a028128cccfeea1338c45bd235000f160c067d217e95ef188c3a30785f5",
-  "images": [],
+  "fingerprint": "f1e01c4f2c50dc01c44097bd74767f89898e1cfa6382f137e5711b9479970368",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18293.png"
+  ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "5017",
   "source_url": "https://www.esoui.com/downloads/info5017-JesusdePlatre-AdvancedTauntTracker.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 25,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 23
   },
   "title": "Jesus de Platre - Advanced Taunt Tracker",
-  "updated_at": 1793582035000,
-  "version": "V.1.0"
+  "updated_at": 1793745692000,
+  "version": "V.1.1"
 }

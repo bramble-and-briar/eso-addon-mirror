@@ -245,8 +245,16 @@ end
 function HUD:RefreshSide(side, hotbar, now, cadenceKind, cadenceEnabled,
         cadencePulseUntil, cadenceNextCueTimeMs)
     local hasContent = false
-    for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
+    local sideName = hotbar == HOTBAR_CATEGORY_BACKUP and "left" or "right"
+    local row = 0
+    for _, number in ipairs(Addon:GetDisplayOrder(sideName)) do
+        local slot = number + Addon.Config.firstSlot - 1
         local entry = side.prompts[slot]
+        if SlotEnabled(hotbar, slot) then
+            entry.prompt:ClearAnchors()
+            entry.prompt:SetAnchor(TOP, side.root, TOP, 0, row * SLOT_STEP)
+            row = row + 1
+        end
         local record = Addon.State:GetRecord(hotbar, slot)
         local qualifying = record
             and (tonumber(record.durationMs) or 0) >= Addon.Config.minimumDurationMs
@@ -260,6 +268,8 @@ function HUD:RefreshSide(side, hotbar, now, cadenceKind, cadenceEnabled,
         end
     end
 
+    side.cadence.prompt:ClearAnchors()
+    side.cadence.prompt:SetAnchor(TOP, side.root, TOP, 0, row * SLOT_STEP)
     if cadenceEnabled and cadencePulseUntil and cadencePulseUntil > now then
         hasContent = true
         self:ShowCadencePrompt(side.cadence, cadenceKind)

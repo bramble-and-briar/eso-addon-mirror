@@ -766,7 +766,7 @@ end
  
  
 ------ add miniquest to table
-function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture, bagId, slotIndex, zoneId, iconColor, timeLimit) -- hereherehere
+function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture, bagId, slotIndex, zoneId, iconColor, timeLimit) 
  
   if index == 2 or index == 4 or index == 8 or index == 22 or index == 24 then -- 2 is zone todo list, 4 is Rumors, 8 is Tamriel tomes, 22 is Golden pursuits, 24 is community events
  
@@ -812,7 +812,11 @@ function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture,
          VEQ.FocusedMiniQuest = index
      end
   elseif VEQ.CharSavedVars.lastSelectedMiniquest then 
-         VEQ.FocusedMiniQuest = VEQ.CharSavedVars.lastSelectedMiniquest
+         if VEQ.SavedVars.GroupFrames and VEQ.MiniQuestList[16] then
+             VEQ.FocusedMiniQuest = 16
+         else
+             VEQ.FocusedMiniQuest = VEQ.CharSavedVars.lastSelectedMiniquest
+         end    
   end
 
 end

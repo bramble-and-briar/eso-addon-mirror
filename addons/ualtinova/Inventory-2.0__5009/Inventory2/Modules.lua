@@ -331,10 +331,11 @@ end
 
 function IG.DistributeOneFromLastRun(bagId, slotIndex)
     if not IG.TakeOutOfRuns(bagId, slotIndex) then return false end
-    -- And the list goes where the piece went: the row it has now is opened down to and put on
-    -- screen, so what the line did is watched rather than taken on trust. One piece only --
-    -- with several there is no one place to go and nothing to watch.
-    IG.RevealSlot(bagId, slotIndex)
+    -- The piece just leaves: the list is rebuilt where it stands. It used to follow the piece to
+    -- its own category (IG.RevealSlot), which shut RECENTLY ACQUIRED and carried you off with it
+    -- -- fine for watching what one press did, not for letting go of several pieces in a row
+    -- (reported 2026-11-03).
+    IG.RefreshLists()
     return true
 end
 
@@ -387,6 +388,9 @@ end
 function IG.CollectLastRunEntries(inventory, inventoryType, rawEntries)
     local result = {}
     if not sv.lastRunEnabled then return result end
+    -- RECENTLY ACQUIRED is about this trip, not the bank: a piece banked from a run still
+    -- belongs to its category there, not to a "where did this come from" group (2026-11-03).
+    if inventoryType ~= INVENTORY_BACKPACK then return result end
     if IG.OnJunkTab(inventory) then return result end
 
     -- A run belongs on this list only if this list has something of it to show. What is stored

@@ -1,11 +1,13 @@
 -- Registro de combate: tu daño y tu sanación por habilidad, inicio y fin de cada
--- combate e historial. Los datos de los demás miembros del grupo los añade Core/Group.lua.
+-- combate, historial y run (todos los combates desde que entras en una zona).
+-- Los datos de los demás miembros del grupo los añade Core/Group.lua.
 
 local NM = NirnhonedMetrics
 local U = NM.Utils
 local F = {
     history = {},   -- combates, el más reciente primero (history[1] puede estar en curso)
     active = nil,   -- combate en curso (es history[1]) o nil
+    run = nil,      -- run en curso (solo con "Contar: Toda la run") o nil
 }
 NM.Fight = F
 
@@ -63,16 +65,19 @@ function F.Get(index)
     return F.history[index or 1]
 end
 
--- Duración del combate en segundos (mínimo 1).
+-- Duración del combate en segundos (mínimo 1). En la run, el tiempo en combate.
 function F.Duration(fight)
+    if fight.isRun then return math.max(1, fight.time) end
     local stop = fight.endTime or Now()
     return math.max(1, (stop - fight.start) / 1000)
 end
 
 -- Tiempo desde tu primer golpe (o curación) hasta el último, o hasta ahora si sigue
 -- el combate: es lo que se usa para tu DPS/HPS. metric = "damage" | "healing".
+-- En la run, la suma de ese tiempo en cada combate.
 function F.ActiveTime(fight, metric)
     local stat = fight[metric or "damage"]
+    if fight.isRun then return math.max(1, stat.time) end
     if not stat.first then return 1 end
     local stop = fight.ended and stat.last or Now()
     return math.max(1, (stop - stat.first) / 1000)
@@ -86,6 +91,147 @@ function F.Label(fight)
         if damage > bestDamage then best, bestDamage = name, damage end
     end
     return best
+end
+
+---------------------------------------------------------------------------
+-- Run: suma de todos los combates desde que entras en una zona. Solo cuenta el
+-- tiempo en combate (el de ir de un grupo de enemigos al siguiente no). Se suma
+-- al cerrar cada combate; el combate en curso solo se añade al mostrarla (F.RunView).
+---------------------------------------------------------------------------
+local METRICS = { "damage", "healing" }
+
+local function NewRun(zoneId, zoneName)
+    return {
+        isRun = true,
+        zoneId = zoneId,
+        zoneName = zoneName,
+        fights = 0,      -- combates sumados
+        time = 0,        -- segundos en combate (suma de la duración de cada combate)
+        -- Como en un combate; time: suma del tiempo activo (F.ActiveTime) de cada combate.
+        damage = { total = 0, time = 0, abilities = {} },
+        healing = { total = 0, overheal = 0, time = 0, abilities = {} },
+        -- [nombre del personaje] = sumas de cada miembro; damageTime y healingTime son
+        -- la duración de los combates en los que aparece, para su DPS/HPS.
+        group = {},
+        rest = 0,        -- daño estimado del resto del grupo (suma de cada combate de jefe)
+        restTime = 0,    -- duración de esos combates
+    }
+end
+
+local function AddAbilities(dest, src)
+    for name, a in pairs(src) do
+        local d = dest[name]
+        if not d then
+            d = {
+                name = a.name, icon = a.icon, damageType = a.damageType, pet = a.pet,
+                amount = 0, hits = 0, crits = 0, max = 0, overheal = 0,
+            }
+            dest[name] = d
+        end
+        d.amount = d.amount + a.amount
+        d.hits = d.hits + a.hits
+        d.crits = d.crits + a.crits
+        d.overheal = d.overheal + a.overheal
+        if a.max > d.max then d.max = a.max end
+    end
+end
+
+-- Suma el daño o la sanación de un combate (o de otra run) y su tiempo activo.
+local function AddStat(dest, src, time)
+    dest.total = dest.total + src.total
+    if dest.overheal then dest.overheal = dest.overheal + src.overheal end
+    dest.time = dest.time + time
+    AddAbilities(dest.abilities, src.abilities)
+end
+
+local function AddMember(run, key, src, damage, bossDamage, damageTime, healing, overheal, healingTime)
+    local m = run.group[key]
+    if not m then
+        m = {
+            name = src.name, account = src.account,
+            damage = 0, bossDamage = 0, damageTime = 0,
+            healing = 0, overheal = 0, healingTime = 0,
+        }
+        run.group[key] = m
+    end
+    m.classId = src.classId or m.classId
+    m.damage = m.damage + damage
+    m.bossDamage = m.bossDamage + bossDamage
+    m.damageTime = m.damageTime + damageTime
+    m.healing = m.healing + healing
+    m.overheal = m.overheal + overheal
+    m.healingTime = m.healingTime + healingTime
+end
+
+-- Suma un combate a la run. Los datos de cada miembro ya son solo los de ese combate
+-- (ver G.Update), así que se pueden sumar sin contar nada dos veces.
+local function AddFight(run, fight)
+    local duration = F.Duration(fight)
+    run.fights = run.fights + 1
+    run.time = run.time + duration
+    for _, metric in ipairs(METRICS) do
+        local stat = fight[metric]
+        AddStat(run[metric], stat, stat.first and F.ActiveTime(fight, metric) or 0)
+    end
+    for key, member in pairs(fight.group) do
+        local damageTime = (member.damage or 0) > 0 and duration or 0
+        local healingTime = (member.healing or 0) > 0 and duration or 0
+        AddMember(run, key, member, member.damage or 0, member.bossDamage or 0, damageTime,
+            member.healing or 0, (member.overhealPerSecond or 0) * healingTime, healingTime)
+    end
+    local rest = NM.Group.EstimateRest(fight)
+    if rest then
+        run.rest = run.rest + rest
+        run.restTime = run.restTime + duration
+    end
+    run.grouped = run.grouped or fight.grouped
+end
+
+local function AddRun(dest, src)
+    dest.fights = dest.fights + src.fights
+    dest.time = dest.time + src.time
+    for _, metric in ipairs(METRICS) do AddStat(dest[metric], src[metric], src[metric].time) end
+    for key, m in pairs(src.group) do
+        AddMember(dest, key, m, m.damage, m.bossDamage, m.damageTime, m.healing, m.overheal, m.healingTime)
+    end
+    dest.rest = dest.rest + src.rest
+    dest.restTime = dest.restTime + src.restTime
+    dest.grouped = dest.grouped or src.grouped
+end
+
+-- DPS y HPS de cada miembro: lo que hizo entre la duración de sus combates.
+local function FinishRun(run)
+    for _, m in pairs(run.group) do
+        m.dps = m.damageTime > 0 and m.damage / m.damageTime or 0
+        m.hps = m.healingTime > 0 and m.healing / m.healingTime or 0
+        m.overhealPerSecond = m.healingTime > 0 and m.overheal / m.healingTime or 0
+    end
+end
+
+-- La run tal como se ve: la acumulada más el combate en curso, si lo hay.
+function F.RunView()
+    local run, fight = F.run, F.active
+    if not run or not fight then return run end
+    local view = NewRun(run.zoneId, run.zoneName)
+    AddRun(view, run)
+    AddFight(view, fight)
+    FinishRun(view)
+    return view
+end
+
+-- Empieza una run vacía en la zona actual, o ninguna si se cuenta cada combate.
+function F.ResetRun()
+    F.run = nil
+    if NM.sv.countMode ~= "run" then return end
+    local zoneId = GetUnitWorldPosition("player")
+    F.run = NewRun(zoneId, zo_strformat(SI_ZONE_NAME, GetZoneNameById(zoneId)))
+end
+
+-- "fight" (cada combate) | "run" (toda la run). Al cambiar, la run empieza de cero.
+-- La ventana se actualiza en NM.Meter.SetCountMode.
+function F.SetCountMode(mode)
+    NM.sv.countMode = mode
+    F.ResetRun()
 end
 
 ---------------------------------------------------------------------------
@@ -171,16 +317,21 @@ local function EndFight()
     if not fight then return end
 
     NM.Group.Update(fight)
+    NM.Group.Close(fight)
     fight.ended = true
     fight.endTime = fight.combatEnd or Now()
     F.active = nil
     F.lastEnd = Now()
 
     -- No se guarda un combate en el que nadie hizo daño ni curó (p. ej. te atacaron y
-    -- huiste) ni uno en el que nunca llegaste a entrar en combate.
+    -- huiste) ni uno en el que nunca llegaste a entrar en combate. Los que se guardan
+    -- se suman a la run, una sola vez, ya cerrados.
     local empty = fight.damage.total == 0 and fight.healing.total == 0 and next(fight.group) == nil
-    if (empty or not fight.inCombat) and F.history[1] == fight then
-        table.remove(F.history, 1)
+    if empty or not fight.inCombat then
+        if F.history[1] == fight then table.remove(F.history, 1) end
+    elseif F.run then
+        AddFight(F.run, fight)
+        FinishRun(F.run)
     end
     CALLBACK_MANAGER:FireCallbacks(F.CHANGED, "end")
 end
@@ -304,13 +455,14 @@ end
 ---------------------------------------------------------------------------
 -- API
 ---------------------------------------------------------------------------
--- Borra el historial. Si estás en combate, empieza uno nuevo desde cero.
+-- Borra el historial y la run. Si estás en combate, empieza uno nuevo desde cero.
 function F.Reset()
     local inFight = F.active ~= nil
     EM:UnregisterForUpdate(TICK_UPDATE)
     EM:UnregisterForUpdate(END_UPDATE)
     F.active = nil
     F.history = {}
+    F.ResetRun()
     if inFight and IsUnitInCombat("player") then
         StartFight()
     else
@@ -337,8 +489,15 @@ function F.Init()
     EM:AddFilterForEvent(bossName, EVENT_POWER_UPDATE, REGISTER_FILTER_POWER_TYPE, HEALTH)
     EM:RegisterForEvent(NM.name .. "_Bosses", EVENT_BOSSES_CHANGED, OnBossesChanged)
 
-    -- Al cambiar de zona se cierra el combate en curso.
+    -- Al cambiar de zona se cierra el combate en curso y la run empieza de cero. Las
+    -- pantallas de carga dentro de la misma zona (morir y reaparecer) no la reinician.
     EM:RegisterForEvent(NM.name .. "_FightZone", EVENT_PLAYER_ACTIVATED, function()
         if F.active and not IsUnitInCombat("player") then EndFight() end
+        if NM.sv.countMode ~= "run" then return end
+        local zoneId = GetUnitWorldPosition("player")
+        if not F.run or F.run.zoneId ~= zoneId then
+            F.ResetRun()
+            CALLBACK_MANAGER:FireCallbacks(F.CHANGED, "run")
+        end
     end)
 end

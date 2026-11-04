@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | Tracking module
+-- Arclight Taunt 1.1.1 | Tracking module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T

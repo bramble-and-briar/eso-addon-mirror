@@ -301,18 +301,22 @@
 PvPTargetInfo = PvPTargetInfo or {}
 local PTI = PvPTargetInfo
 
+-- v2.1.0 変更点:
+--   ・貫通パネル機能(旧UI④。専用ファイル・設定・保存データ)を完全に撤去。
+--   ・UI④を「Self Proc CD」に置き換え(PvPTargetInfo_ProcCD.lua / _ProcCDData.lua)。
+--     装備セットProcの発動を自動検知し、内部CDの残り時間・READYを縦並びで表示する。
+--   ・設定画面: ①敵BUFFの【ご注意】を明るい文字色・読みやすい位置に変更(文言は不変)。
+--   ・UI①〜③の検知・表示ロジックは無変更。
 -- v2.0.8 変更点:
---   ・UI④(PEN)のBreach判定を自動化。AbilityId手動登録(設定欄・保存データ)を廃止し、
---     言語に依存しないabilityId表+説明文の数値による補助判定(推定表示)に変更。
---     詳細はPvPTargetInfo_Pen.lua冒頭参照。UI①〜③・敵判定・スキャン周期は無変更。
+--   ・Breach判定の自動化(AbilityId手動登録を廃止)。※この機能はv2.1.0で撤去。
 -- v2.0.7 変更点:
---   ・敵バフ/敵デバフ/敵Breachの個別検知ON/OFF(enemyBuffDetect, enemyDebuffDetect,
---     pen.showEffects と /pti buffdetect||debuffdetect)を撤去。敵プレイヤーと確認できたら一律に検知する。
---   ・パネル表示がOFFの種類は、その敵バフ/デバフのスキャンを行わない(PENは従来どおりパネルOFFで停止)。
+--   ・敵バフ/敵デバフの個別検知ON/OFF(enemyBuffDetect, enemyDebuffDetect,
+--     と /pti buffdetect||debuffdetect)を撤去。敵プレイヤーと確認できたら一律に検知する。
+--   ・パネル表示がOFFの種類は、その敵バフ/デバフのスキャンを行わない。
 --   ・設定画面を 基本/検知/表示の残し方/パネル/詳細設定 の順に整理(設定キーは変更なし)。
 --   ・決闘中の相手(GetDuelInfo)を敵として扱う(任意変更・PS5実機未検証)。
 PTI.name = "PvPTargetInfo"
-PTI.version = "2.0.8"
+PTI.version = "2.1.2"
 
 local SV_VERSION = 2
 
@@ -388,17 +392,18 @@ local defaults = {
     watchedBuffs = {},
     watchedDebuffs = {},
 
-    -- v2.0.5で追加: UI④ 貫通・敵耐性低下パネル(既定OFF。ONにするまでスキャンも走らない)
-    penUI = {
-        enabled = false,
+    -- v2.1.0で追加: UI④ Self Proc CD(自分の装備セットProcの内部CD表示)
+    cdUI = {
+        enabled = true,
         point = CENTER, relPoint = CENTER, x = 0, y = -450,
         scale = 1.0,
         fontSize = 16,
         maxRows = 6,
+        rowGap = 0,            -- 表示間隔(行と行の追加余白px)
     },
-    pen = {
-        showSelfPen = true,    -- 自分の武器貫通/呪文貫通を表示
-        descFallback = true,   -- v2.0.8: ID表に無いデバフを説明文の数値(5948/2974)で補助判定する(「推定」表示)
+    cd = {
+        showReady = true,      -- CD終了後に「READY」を表示する
+        user = {},             -- ユーザーが実測登録したICD: [abilityId] = { cd=秒, name=表示名 }
     },
 
     procConfig = {
@@ -409,8 +414,8 @@ local defaults = {
 --------------------------------------------------------------------------
 -- ウィンドウ操作系コマンドの共通ヘルパー(UI①=buff, UI②=debuff, UI③=proc)
 --------------------------------------------------------------------------
-local WINDOW_KEYS = { buff = "buffUI", debuff = "debuffUI", proc = "procUI", pen = "penUI" }
-local WINDOW_LABELS_JP = { buff = "UI①(重要バフ)", debuff = "UI②(重要デバフ)", proc = "UI③(Condition)", pen = "UI④(貫通)" }
+local WINDOW_KEYS = { buff = "buffUI", debuff = "debuffUI", proc = "procUI", cd = "cdUI" }
+local WINDOW_LABELS_JP = { buff = "UI①(重要バフ)", debuff = "UI②(重要デバフ)", proc = "UI③(Condition)", cd = "UI④(Proc CD)" }
 
 local function ResolveWindowKey(token)
     token = (token or ""):lower()
@@ -453,16 +458,16 @@ local function PrintHelp()
     -- そのまま表示するには"||"(2つ重ねる)必要があるため、区切りに使う
     -- 全ての"|"を"||"に修正した。
     d("|c55CCFF[PvPTargetInfo]|r コマンド一覧: (対象は buff=UI①重要バフ / debuff=UI②重要デバフ / proc=UI③Condition)")
-    d("  /pti move <buff||debuff||proc||pen> up||down||left||right [px] - パネルを移動 (既定10px)")
-    d("  /pti pos <buff||debuff||proc||pen> <x> <y>                   - パネルの位置を絶対座標で指定")
-    d("  /pti scale <buff||debuff||proc||pen> <倍率>                  - パネルの拡大縮小 (例: 1.2)")
-    d("  /pti fontsize <buff||debuff||proc||pen> <10〜32>              - 文字サイズを変更")
-    d("  /pti maxrows <buff||debuff||proc||pen> <1〜10>                - 最大表示件数を変更(省略で現在値を表示)")
+    d("  /pti move <buff||debuff||proc||cd> up||down||left||right [px] - パネルを移動 (既定10px)")
+    d("  /pti pos <buff||debuff||proc||cd> <x> <y>                   - パネルの位置を絶対座標で指定")
+    d("  /pti scale <buff||debuff||proc||cd> <倍率>                  - パネルの拡大縮小 (例: 1.2)")
+    d("  /pti fontsize <buff||debuff||proc||cd> <10〜32>              - 文字サイズを変更")
+    d("  /pti maxrows <buff||debuff||proc||cd> <1〜10>                - 最大表示件数を変更(省略で現在値を表示)")
     d("  /pti resetpos <buff||debuff||proc||all>                  - 位置・大きさをリセット")
-    d("  /pti <buff||debuff||proc||pen> on||off                        - 個別のパネル表示を切替")
+    d("  /pti <buff||debuff||proc||cd> on||off                        - 個別のパネル表示を切替")
     d("  /pti hold <秒>                                        - ターゲット解除後にパネルを保持する秒数")
     d("  /pti enemy                                           - 現在のターゲットの敵味方判定の診断表示")
-    d("  /pti pen on||off||dump                               - UI④(貫通・敵耐性低下)のON/OFF、対象のデバフId診断")
+    d("  /pti cd on||off||sets||text||add||del||list||reset      - UI④(Proc CD)の操作(/pti cd で詳細)")
     d("  /pti linger <秒>                                      - 消えた効果の残像表示秒数(0〜10、0で残像なし)")
     d("  /pti learn proc                                       - Condition学習モードON/OFF(自分のバフ/デバフ)")
     d("  /pti learn target                                     - 敵バフ/デバフ学習モードON/OFF(重要リスト用)")
@@ -577,7 +582,7 @@ local function OnSlashCommand(args)
             if PTI.UI and PTI.UI.ApplyPosition then PTI.UI.ApplyPosition(key) end
             d(string.format("|c55CCFF[PvPTargetInfo]|r %s のスケールを %.2f に設定しました。", WINDOW_LABELS_JP[key], scale))
         else
-            d("|c55CCFF[PvPTargetInfo]|r 例: /pti scale buff 1.2 (対象は buff/debuff/proc/pen、0.3〜3.0の範囲)")
+            d("|c55CCFF[PvPTargetInfo]|r 例: /pti scale buff 1.2 (対象は buff/debuff/proc/cd、0.3〜3.0の範囲)")
         end
     elseif cmd == "fontsize" then
         local keyTok, sizeStr = rest:match("^(%S*)%s*(.-)$")
@@ -588,7 +593,7 @@ local function OnSlashCommand(args)
             if PTI.UI and PTI.UI.ApplyFontSize then PTI.UI.ApplyFontSize(key) end
             d(string.format("|c55CCFF[PvPTargetInfo]|r %s の文字サイズを %d にしました。", WINDOW_LABELS_JP[key], size))
         else
-            d("|c55CCFF[PvPTargetInfo]|r 例: /pti fontsize buff 20 (対象は buff/debuff/proc/pen、10〜32の範囲)")
+            d("|c55CCFF[PvPTargetInfo]|r 例: /pti fontsize buff 20 (対象は buff/debuff/proc/cd、10〜32の範囲)")
         end
     elseif cmd == "maxrows" then
         -- v1.4.21で追加: 「発動中のProcが3つあるのに1つしか出ない」等の
@@ -605,7 +610,7 @@ local function OnSlashCommand(args)
             d(string.format("|c55CCFF[PvPTargetInfo]|r %s の現在の最大表示件数: %d (例: /pti maxrows %s 5)",
                 WINDOW_LABELS_JP[key], PTI.sv[WINDOW_KEYS[key]].maxRows or 0, keyTok))
         else
-            d("|c55CCFF[PvPTargetInfo]|r 例: /pti maxrows proc 5 (対象は buff/debuff/proc/pen、1〜10の範囲)")
+            d("|c55CCFF[PvPTargetInfo]|r 例: /pti maxrows proc 5 (対象は buff/debuff/proc/cd、1〜10の範囲)")
         end
     elseif cmd == "resetpos" then
         local keyTok = rest:lower()
@@ -617,13 +622,13 @@ local function OnSlashCommand(args)
             if PTI.UI and PTI.UI.ApplyPosition then PTI.UI.ApplyPosition(key) end
         end
         if keyTok == "all" or keyTok == "" then
-            ResetOne("buff"); ResetOne("debuff"); ResetOne("proc"); ResetOne("pen")
+            ResetOne("buff"); ResetOne("debuff"); ResetOne("proc"); ResetOne("cd")
             d("|c55CCFF[PvPTargetInfo]|r 全パネルの位置をリセットしました。")
         elseif ResolveWindowKey(keyTok) then
             ResetOne(ResolveWindowKey(keyTok))
             d(string.format("|c55CCFF[PvPTargetInfo]|r %s の位置をリセットしました。", WINDOW_LABELS_JP[ResolveWindowKey(keyTok)]))
         else
-            d("|c55CCFF[PvPTargetInfo]|r 例: /pti resetpos all (対象は buff/debuff/proc/pen/all)")
+            d("|c55CCFF[PvPTargetInfo]|r 例: /pti resetpos all (対象は buff/debuff/proc/cd/all)")
         end
     elseif cmd == "buff" or cmd == "debuff" then
         local sub = rest:lower()
@@ -641,9 +646,9 @@ local function OnSlashCommand(args)
     elseif cmd == "enemy" then
         -- v2.0.6: 敵プレイヤー判定の診断(現在のターゲットの判定値と最終判定を表示)
         if PTI.Target and PTI.Target.PrintEnemyDiagnostics then PTI.Target.PrintEnemyDiagnostics() end
-    elseif cmd == "pen" then
-        -- v2.0.5: UI④(貫通・敵耐性低下)。on/off/dump
-        if PTI.Pen and PTI.Pen.HandleCommand then PTI.Pen.HandleCommand(rest) end
+    elseif cmd == "cd" then
+        -- v2.1.0: UI④(Proc CD)。on/off/sets/text/add/del/list/reset
+        if PTI.ProcCD and PTI.ProcCD.HandleCommand then PTI.ProcCD.HandleCommand(rest) end
     elseif cmd == "hold" then
         local sec = tonumber(rest)
         if sec and sec >= 0 then
@@ -814,13 +819,9 @@ function PTI.Initialize()
     -- 位置・サイズ・表示設定などの他のキーには触れない(SV_VERSIONも据え置き)。
     PTI.sv.enemyBuffDetect = nil
     PTI.sv.enemyDebuffDetect = nil
-    if type(PTI.sv.pen) == "table" then
-        PTI.sv.pen.showEffects = nil
-        -- v2.0.8: AbilityId手動登録(majorIdsText/minorIdsText)と旧補助判定(descMatch)を廃止
-        PTI.sv.pen.majorIdsText = nil
-        PTI.sv.pen.minorIdsText = nil
-        PTI.sv.pen.descMatch = nil
-    end
+    -- v2.1.0: 撤去した旧パネルの保存データを破棄する(他のキーには触れない)
+    PTI.sv.pen = nil
+    PTI.sv.penUI = nil
 
     -- v1.4.7〜v1.4.11で自動検知キーワードの持たせ方を試行錯誤していたが
     -- (自由入力欄→英語/日本語の個別チェックボックス)、最終的にv1.4.12で
@@ -839,7 +840,7 @@ function PTI.Initialize()
         { "UI",       PTI.UI },
         { "Target",   PTI.Target },
         { "Procs",    PTI.Procs },
-        { "Pen",      PTI.Pen },
+        { "ProcCD",   PTI.ProcCD },
         { "Settings", PTI.Settings },
     }
     for _, entry in ipairs(modules) do

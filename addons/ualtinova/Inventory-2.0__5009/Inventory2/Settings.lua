@@ -8,7 +8,7 @@ local libAddonMenu2 = LibAddonMenu2
 
 IG.DISPLAY_NAME = "Inventory 2.0"
 IG.SHORT_NAME = "INV2.0" -- what the right click menu signs its lines with
-IG.VERSION = "1.0.5"
+IG.VERSION = "1.0.6"
 IG.DATA_VERSION = 22-- shape of the saved settings; see IG.MigrateSavedVars
 
 IG.DEFAULT_SETTINGS = {
@@ -46,6 +46,14 @@ IG.DEFAULT_SETTINGS = {
     pvpByInstance = false,
     -- items: [piece id] = groupKey, one piece at a time; sets: [setId] = groupKey, the whole set.
     overrides = { items = {}, sets = {} },
+    -- Settings > Modules > Bank Modules: [group key] = false turns one off while the bank's own
+    -- list is the one open. Missing or true both mean on -- every one of these starts on.
+    bankModules = {},
+    -- TO HOME CONTAINER (ToHome.lua): [piece id] = the container it was marked for, and every
+    -- container seen in a house you own, [houseId .. ":" .. bagId] = { houseId, bagId,
+    -- collectibleId, name, houseName }.
+    homeTargets = {},
+    homeContainers = {},
     -- [piece id] = "upgrade" | "pricedrop", for the pieces in SELL [GUILD STORE] you are holding
     -- back, and what each one is waiting for. Nothing older has to be reshaped for it: a save
     -- written before today simply has no marks, which is what an empty table says.
@@ -169,6 +177,10 @@ IG.DEFAULT_SETTINGS = {
     bindOnEquipEnabled = true, -- UNCOLLECTED group (key BINDONEQUIP): not bound yet, or not learned yet
     justCraftedEnabled = true, -- JUST CRAFTED group: what you made at this bench, atop its lists
     researchableEnabled = true, -- RESEARCHABLE (inside DISPOSAL): gear with a trait still to research
+    researchAltsEnabled = false, -- RESEARCHABLE (ALTS): off by default, needs LibCharacterKnowledge
+    researchAltsShowLocked = false, -- Also list locked pieces, dimmed
+    researchAltsShowArmory = false, -- Also list Armory build pieces, dimmed
+    researchAltsShowSetup = false,  -- Also list Setup pieces, dimmed
     dailyWritEnabled = true,   -- DAILY WRIT group: what a crafting writ in the journal wants
     setupsEnabled = true,      -- SETUPS group: your saved equipment setups (Setups.lua)
     bindOnEquipShowGuild = false, -- UNCOLLECTED also lists what is in SELL [GUILD STORE]
@@ -520,10 +532,36 @@ ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_SEND_TO_BANK", "Send hover
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_MARK_AS_JUNK", "Mark as junk")
 ZO_CreateStringId("SI_BINDING_NAME_INVENTORY_GROUPING_UNDO", "Undo")
 
-function IG.OpenSettings()
-    if IG.settingsPanel then
-        libAddonMenu2:OpenToPanel(IG.settingsPanel)
+local function OpenSubmenuByReference(submenuRef)
+    local submenu = submenuRef and _G[submenuRef]
+    if submenu and submenu.label and not submenu.open then
+        local handler = submenu.label:GetHandler("OnMouseUp")
+        if handler then handler(submenu.label) end
+        return true
     end
+    return false
+end
+
+-- submenuRef: the global name a submenu was given through LAM's own "reference" field (the
+-- BANK MODULES page uses "Inventory2BankModulesSubmenu", below) -- opened the same way its own
+-- label's click does, since LAM has no "go straight to this page" call of its own to ask for.
+-- The panel's own controls are not built yet the moment this runs: LAM builds a panel's page the
+-- first time it is actually shown, and this very call is what starts that -- confirmed taking
+-- over 100ms and under 1.5s (reported 2026-11-03), so this polls every 150ms rather than betting
+-- on one guessed delay, and gives up after two seconds.
+local SUBMENU_POLL_MS = 150
+local SUBMENU_POLL_TRIES = 40
+function IG.OpenSettings(submenuRef)
+    if not IG.settingsPanel then return end
+    libAddonMenu2:OpenToPanel(IG.settingsPanel)
+    if not submenuRef or OpenSubmenuByReference(submenuRef) then return end
+    local tries = 0
+    local function Poll()
+        tries = tries + 1
+        if OpenSubmenuByReference(submenuRef) or tries >= SUBMENU_POLL_TRIES then return end
+        zo_callLater(Poll, SUBMENU_POLL_MS)
+    end
+    zo_callLater(Poll, SUBMENU_POLL_MS)
 end
 
 -- Drops saved entries that no longer mean anything (renamed or removed groups).
@@ -3917,6 +3955,7 @@ function IG.CreateSettingsPanel()
                 { name = "Custom Category", description = "A CUSTOM category you fill by hand from an item's right click menu.", key = "customEnabled", look = false },
                 { name = "Sell [Guild Store]", description = "A SELL [GUILD STORE] category you fill from an item's right click menu.", key = "guildSellEnabled", look = false },
                 { name = "Researchable", description = "A RESEARCHABLE category inside DISPOSAL for gear whose trait this character can still research.", key = "researchableEnabled", look = false },
+                { name = "Researchable (Alts)", description = "A RESEARCHABLE (ALTS) group for gear this character already knows but another character on your account does not yet. Needs LibCharacterKnowledge installed; off by default.", key = "researchAltsEnabled", look = false },
                 { name = "To Bank Button", description = "Shows the TO BANK button. Marking still works either way; see Module Settings for whether it deposits itself.", key = "toBankShown", look = false },
                 { name = "Equipped", description = "An EQUIPPED group with everything you are wearing.", key = "equippedEnabled", look = false },
                 { name = "Setups", description = "A SETUPS group with one sub-category per saved setup. Right click a saved setup to Equip All its pieces at once.", key = "setupsEnabled", look = false },
@@ -3932,6 +3971,47 @@ function IG.CreateSettingsPanel()
         },
         {
             type = "submenu",
+            name = Color("FF7AD9", "BANK MODULES"),
+            reference = "Inventory2BankModulesSubmenu",
+            igBlurb = "Which of these categories show while the bank's own list is open",
+            controls = {
+                { type = "description", text = Color(SOFT, "On above and here both: only while this list "
+                    .. "is the bank's own. The bag goes on reading the switches above as it always has.") },
+                SwitchBlock((function()
+                    local BANK_MODULE_LINES = {
+                        { name = "Armory", key = "ARMORY" },
+                        { name = "Sell", key = "SELL" },
+                        { name = "Sell [Guild Store]", key = "GUILDSELL" },
+                        { name = "Deconstruct", key = "DECON" },
+                        { name = "Custom Category", key = "CUSTOM" },
+                        { name = "Researchable", key = "RESEARCH" },
+                        { name = "Researchable (Alts)", key = "RESEARCHALTS" },
+                        { name = "Setups", key = "SETUPS" },
+                        { name = "Daily Writ", key = "DAILYWRIT" },
+                    }
+                    local lines = {}
+                    for _, line in ipairs(BANK_MODULE_LINES) do
+                        local key = line.key
+                        lines[#lines + 1] = {
+                            name = line.name,
+                            look = false,
+                            get = function() return not (IG.sv.bankModules and IG.sv.bankModules[key] == false) end,
+                            set = function(value)
+                                IG.sv.bankModules = IG.sv.bankModules or {}
+                                -- Off is stored as false and on as nothing at all: `value or nil`
+                                -- turned false back into nil, so switching one off never stuck.
+                                if value then IG.sv.bankModules[key] = nil else IG.sv.bankModules[key] = false end
+                                IG.RefreshLists()
+                                if IG.RefreshSettingsPanel then IG.RefreshSettingsPanel() end
+                            end,
+                        }
+                    end
+                    return lines
+                end)(), true),
+            },
+        },
+        {
+            type = "submenu",
             name = Color("FF7AD9", IG.S("CATEGORY_MODULE_SETTINGS")),
             igBlurb = "Extra settings for Sell [Guild Store], To Bank, Uncollected, Junk, New Items, Recent Loot",
             controls = {
@@ -3943,6 +4023,16 @@ function IG.CreateSettingsPanel()
                     igBlurb = "Market Study and Awaiting Upgrade marks",
                     controls = { SwitchBlock({
                         { name = "Market Study / Awaiting Upgrade", description = "Right click a SELL [GUILD STORE] piece to mark it Upgrade or Price Drop.", key = "awaitingMarksEnabled", look = false },
+                    }, true) },
+                },
+                {
+                    type = "submenu",
+                    name = Color(SECTION.modules, "Researchable (Alts)"),
+                    igBlurb = "Whether locked, Armory or Setup pieces are listed too",
+                    controls = { SwitchBlock({
+                        { name = "Also List Locked Pieces", description = "Off: a piece you locked is left out. On: it is listed too, dimmed, with a note.", key = "researchAltsShowLocked", look = false },
+                        { name = "Also List Armory Pieces", description = "Off: a piece in an Armory build is left out. On: it is listed too, dimmed, with a note.", key = "researchAltsShowArmory", look = false },
+                        { name = "Also List Setup Pieces", description = "Off: a piece in a saved Setup is left out. On: it is listed too, dimmed, with a note.", key = "researchAltsShowSetup", look = false },
                     }, true) },
                 },
                 {

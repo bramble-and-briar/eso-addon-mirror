@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- RagsToRiches.lua — Stand-alone v1.5.1 (PS5 + Safe Inventory Automation)
+-- RagsToRiches.lua — Stand-alone v1.5.12 (PS5 + Safe Inventory Automation)
 -- Author: SugaComa
 --------------------------------------------------------------
 
@@ -7,17 +7,131 @@ local ADDON_NAME = "RagsToRiches"
 local EM = EVENT_MANAGER
 
 --------------------------------------------------------------
--- Chat helper
+-- Message output
 --------------------------------------------------------------
+local MESSAGE_OUTPUT_MODES = { "Chat", "Top Right", "Both", "None" }
+local function ParseMessageOutput(value)
+    if value == "Top Corner" or value == "Top Left" then return "Top Right" end
+    if type(value) == "table" then
+        return ParseMessageOutput(value.data) or ParseMessageOutput(value.name) or ParseMessageOutput(value.value) or ParseMessageOutput(value.index)
+    end
+    if type(value) == "string" and tonumber(value) then value = tonumber(value) end
+    if type(value) == "number" then return MESSAGE_OUTPUT_MODES[value] end
+    for _, mode in ipairs(MESSAGE_OUTPUT_MODES) do
+        if value == mode then return mode end
+    end
+    return nil
+end
+
+-- Serialize RTR alerts through the native alert area without clearing ZOS alerts.
+local alertQueue = {}
+local alertPumpRunning = false
+local function WantsAlertOutput()
+    local mode = ParseMessageOutput(RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.messageOutput)
+    return mode == "Top Right" or mode == "Both"
+end
+local function PumpAlertQueue()
+    if not WantsAlertOutput() then
+        alertQueue = {}
+        alertPumpRunning = false
+        return
+    end
+    if #alertQueue == 0 then
+        alertPumpRunning = false
+        return
+    end
+    local gamepad = IsInGamepadPreferredMode()
+    local manager = gamepad and ALERT_MESSAGES_GAMEPAD or ALERT_MESSAGES
+    local busy = not manager
+    if manager then
+        if manager.HasActiveEntries then
+            busy = manager:HasActiveEntries()
+        elseif manager.alerts then
+            busy = manager.alerts:HasQueuedEntry() or manager.alerts:HasEntries()
+        else
+            busy = true
+        end
+    end
+    if not busy then
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.NONE, table.remove(alertQueue, 1))
+    end
+    zo_callLater(PumpAlertQueue, 250)
+end
+local function ShowCornerMessage(text)
+    table.insert(alertQueue, text)
+    if not alertPumpRunning then
+        alertPumpRunning = true
+        PumpAlertQueue()
+    end
+end
+
 local function chat(msg)
-    if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
-        CHAT_SYSTEM:AddMessage("|c00FF99[RagsToRiches]|r " .. msg)
-    else
-        d("|c00FF99[RagsToRiches]|r " .. msg)
+    local mode = ParseMessageOutput(RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.messageOutput) or "Chat"
+    local text = "|c00FF99[RagsToRiches]|r " .. tostring(msg)
+    if mode == "Chat" or mode == "Both" then
+        if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
+            CHAT_SYSTEM:AddMessage(text)
+        else
+            d(text)
+        end
+    end
+    if mode == "Top Right" or mode == "Both" then
+        ShowCornerMessage(text)
     end
 end
 
 --------------------------------------------------------------
+local function debugChat(msg)
+    if RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.debug then
+        chat("[Debug] " .. tostring(msg))
+    end
+end
+
+--------------------------------------------------------------
+-- Normal NPC summaries are generated from result events, not request counts.
+local pendingLaunders = {}
+local pendingDeconstruction = 0
+local summaries = {}
+local function AddResultSummary(kind, count, gold)
+    local row = summaries[kind] or { count = 0, gold = 0, generation = 0 }
+    summaries[kind] = row
+    row.count = row.count + count
+    row.gold = row.gold + gold
+    row.generation = row.generation + 1
+    local generation = row.generation
+    zo_callLater(function()
+        if row.generation ~= generation then return end
+        if kind == "launder" then
+            chat(string.format("%d items laundered costing %d gold.", row.count, row.gold))
+        elseif kind == "fence" then
+            chat(string.format("%d items fenced for %d gold.", row.count, row.gold))
+        else
+            chat(string.format("%d items sold for %d gold.", row.count, row.gold))
+        end
+        summaries[kind] = nil
+    end, 1000)
+end
+local function RequestItemSale(bag, slot, quantity, kind)
+    SellInventoryItem(bag, slot, quantity)
+end
+local function RequestItemLaunder(bag, slot, quantity)
+    table.insert(pendingLaunders, {quantity = quantity, gold = GetItemLaunderPrice(bag, slot) * quantity})
+    LaunderItem(bag, slot, quantity)
+end
+local saleLocation = "merchant"
+local function OnSaleReceipt(_, name, quantity, money)
+    -- Receipts are authoritative; formatted/localised names must not gate totals.
+    if RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.enabled then
+        AddResultSummary(saleLocation, quantity, money)
+    end
+end
+local function OnLaunderResult(_, result)
+    local request = table.remove(pendingLaunders, 1)
+    if request and result == ITEM_LAUNDER_RESULT_SUCCESS then
+        AddResultSummary("launder", request.quantity, request.gold)
+    end
+end
+
 -- Currency whitelist + names (top 4 only)
 --------------------------------------------------------------
 local RTR_ALLOWED_CURRENCIES = {
@@ -171,11 +285,13 @@ local function MoveCurrency(currency, fromBankToChar, amount)
 
     if TransferCurrency then
         TransferCurrency(currency, amount, fromLoc, toLoc)
+        chat(string.format("Requested transfer of %s %s from %s to %s.", FormatAmount(amount), RTR_CURRENCY_NAMES[currency] or tostring(currency), fromBankToChar and "bank" or "character", fromBankToChar and "character" or "bank"))
     else
         -- API not ready yet, retry once
         zo_callLater(function()
             if TransferCurrency then
                 TransferCurrency(currency, amount, fromLoc, toLoc)
+                chat(string.format("Requested transfer of %s %s from %s to %s.", FormatAmount(amount), RTR_CURRENCY_NAMES[currency] or tostring(currency), fromBankToChar and "bank" or "character", fromBankToChar and "character" or "bank"))
             elseif RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.debug then
                 chat("Could not move currency — API not ready.")
             end
@@ -316,8 +432,8 @@ local function NotifyLockpickGuildStoreExcess()
     if completeStacks < 1 then return end
 
     lockpickExcessNotified = true
-    chat("You have excess clean lockpicks — sell in the guild store for 8g each.")
-    chat(string.format("Guild-store stock: %d complete stack%s of %d above your bank reserve.",
+    debugChat("You have excess clean lockpicks — sell in the guild store for 8g each.")
+    debugChat(string.format("Guild-store stock: %d complete stack%s of %d above your bank reserve.",
         completeStacks, completeStacks == 1 and "" or "s", stackSize))
 end
 
@@ -451,10 +567,8 @@ local function ProcessStockControl(bankBag)
     end
 
     RunStockQueue(queue, function(moved, reason)
-        if RagsToRiches.SV.debug then
-            if moved > 0 then chat(string.format("Stock control moved %d item%s in full stacks.", moved, moved == 1 and "" or "s")) end
-            if reason then chat("Stock control stopped: " .. reason .. ".") end
-        end
+        if moved > 0 then chat(string.format("Stock control moved %d item%s in full stacks.", moved, moved == 1 and "" or "s")) end
+        if reason then debugChat("Stock control stopped: " .. reason .. ".") end
         -- Allow the secure inventory moves to settle before counting the bank.
         if GetLockpickAction() == "Notify" then
             zo_callLater(NotifyLockpickGuildStoreExcess, 500)
@@ -863,6 +977,12 @@ local function IsProtectedItem(bagId, slotIndex)
     -- Scribing Scripts setting. Once positively identified, do not let generic
     -- crafted/learnable/value protections override that setting.
     if IsScribingScriptItem(bagId, slotIndex, itemLink) then return false, nil end
+    if RagsToRiches.SV.protection.uncollectedSet and IsItemLinkSetCollectionPiece(itemLink) then
+        local pieceId = GetItemLinkItemSetCollectionSlot(itemLink)
+        if pieceId and pieceId ~= 0 and not IsItemSetCollectionPieceUnlocked(pieceId) then
+            return true, "uncollected set piece"
+        end
+    end
     if IsResearchableEquipment(bagId, slotIndex) then return true, "researchable trait" end
     if IsLegendaryOrMythic(bagId, slotIndex) then return true, "legendary/mythic" end
     if IsItemReconstructed and IsItemReconstructed(bagId, slotIndex) then
@@ -970,11 +1090,16 @@ local function IsSafeMerchantItem(bagId, slotIndex)
         return cfg.knownMotifs == true, "known low-quality motif/style"
     end
 
-    if MatchesDefinedConstant(itemType, ITEMTYPE_COMPANION_ARMOR, ITEMTYPE_COMPANION_WEAPON) then
+    if GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
         if cfg.companionGear == true and quality >= (ITEM_FUNCTIONAL_QUALITY_MAGIC or 2) and quality <= maxLowValueQuality then
             return true, "green/blue companion equipment"
         end
         return false, "protected companion equipment"
+    end
+
+    -- Explicit junk sales retain shared protections and companion opt-in above.
+    if cfg.sellJunk == true and IsItemJunk(bagId, slotIndex) then
+        return true, "junk (sell junk enabled)"
     end
 
     -- Intricate equipment has its own explicit policy. Handle it before any
@@ -992,6 +1117,15 @@ local function IsSafeMerchantItem(bagId, slotIndex)
     -- benefits selling, while Intricate was resolved immediately above.
     if cfg.ornate ~= false and ORNATE_TRAITS[trait] then return true, "ornate" end
 
+    -- Generic non-set equipment such as Rubedite Leather Gloves of Stamina can
+    -- be sold when enabled. Restrict this to white/green/blue and require a
+    -- positive non-set result; purple/gold and ambiguous set status are kept.
+    if cfg.nonSetEquipment == true and MatchesDefinedConstant(itemType, ITEMTYPE_ARMOR, ITEMTYPE_WEAPON) then
+        if quality <= maxLowValueQuality and not IsSetEquipment(link) then
+            return true, "low-quality non-set equipment"
+        end
+    end
+
     local categoryKey, categoryLabel = GetEquipmentCategory(bagId, slotIndex, itemType)
     if categoryKey then
         local categoryAction = GetEquipmentCategoryAction(categoryKey)
@@ -1008,15 +1142,6 @@ local function IsSafeMerchantItem(bagId, slotIndex)
     -- "Sell to a merchant for gold." Hard protections above still run first.
     if cfg.prioritySell == true and IsItemPrioritySell and IsItemPrioritySell(bagId, slotIndex) then
         return true, "ESO priority-sell item"
-    end
-
-    -- Generic non-set equipment such as Rubedite Leather Gloves of Stamina can
-    -- be sold when enabled. Restrict this to white/green/blue and require a
-    -- positive non-set result; purple/gold and ambiguous set status are kept.
-    if cfg.nonSetEquipment == true and MatchesDefinedConstant(itemType, ITEMTYPE_ARMOR, ITEMTYPE_WEAPON) then
-        if quality <= maxLowValueQuality and not IsSetEquipment(link) then
-            return true, "low-quality non-set equipment"
-        end
     end
 
     -- Scribing scripts are an explicit opt-in category. Knowledge detection is
@@ -1079,7 +1204,7 @@ local function SellFilledSoulGemExcess()
             local sellPrice = GetItemSellValueWithBonuses and GetItemSellValueWithBonuses(BAG_BACKPACK, slotIndex)
                 or GetItemSellValue(BAG_BACKPACK, slotIndex)
             if (tonumber(sellPrice) or 0) > 0 then
-                SellInventoryItem(BAG_BACKPACK, slotIndex, stackSize)
+                RequestItemSale(BAG_BACKPACK, slotIndex, stackSize, "merchant")
                 soldStacks = soldStacks + 1
                 soldItems = soldItems + stackSize
                 remaining = remaining - stackSize
@@ -1087,6 +1212,18 @@ local function SellFilledSoulGemExcess()
         end
     end
     return soldStacks, soldItems
+end
+
+-- Only review-worthy intentions are normal output; routine junk stays diagnostic.
+local function NotifyItemIntention(bag, slot, action, reason)
+    local link = GetItemLink(bag, slot)
+    local itemType = GetItemType(bag, slot)
+    local script = IsScribingScriptItem(bag, slot, link, itemType)
+    local quality = tonumber(GetItemFunctionalQuality(bag, slot)) or 0
+    local important = script or IsSetEquipment(link)
+        or (itemType == ITEMTYPE_RECIPE and quality >= (ITEM_FUNCTIONAL_QUALITY_ARCANE or 3))
+    local text = string.format("%s: %s (%s).", link, action, reason or "configured rule")
+    if important then chat(text) else debugChat(text) end
 end
 
 local function ClassifyMerchantItems()
@@ -1098,7 +1235,7 @@ local function ClassifyMerchantItems()
             if sell and CanItemBeMarkedAsJunk(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
                 SetItemIsJunk(BAG_BACKPACK, slotIndex, true)
                 marked = marked + 1
-                if RagsToRiches.SV.debug then chat(string.format("Marked %s as junk (%s).", GetItemLink(BAG_BACKPACK, slotIndex), reason)) end
+                NotifyItemIntention(BAG_BACKPACK, slotIndex, "marked as junk", reason)
             end
         end
     end
@@ -1125,7 +1262,7 @@ local function InstallInventoryReviewActions()
             if itemId ~= Id64ToString(GetItemUniqueId(bagId, slotIndex)) then return end
             inventoryReviewItems[itemId] = true
             SetItemIsJunk(bagId, slotIndex, false)
-            chat("Unmarked item as junk. Reopen Actions to lock it before leaving inventory.")
+            debugChat("Unmarked item as junk. Reopen Actions to lock it before leaving inventory.")
         end, "secondary")
     end)
     scene:RegisterCallback("StateChange", function(_, newState)
@@ -1166,8 +1303,8 @@ local function ProcessMerchant()
     merchantBusy = true
     zo_callLater(function()
         local soldStacks, soldItems = SellFilledSoulGemExcess()
-        if RagsToRiches.SV.debug and soldItems > 0 then
-            chat(string.format("Sold %d excess filled soul gems in %d full stack%s.", soldItems, soldStacks, soldStacks == 1 and "" or "s"))
+        if soldItems > 0 then
+            debugChat(string.format("Sold %d excess filled soul gems in %d full stack%s.", soldItems, soldStacks, soldStacks == 1 and "" or "s"))
         end
         for slotIndex = GetBagSize(BAG_BACKPACK) - 1, 0, -1 do
             local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
@@ -1176,14 +1313,14 @@ local function ProcessMerchant()
                 local sellPrice = GetItemSellValueWithBonuses and GetItemSellValueWithBonuses(BAG_BACKPACK, slotIndex)
                     or GetItemSellValue(BAG_BACKPACK, slotIndex)
                 if sell and (tonumber(sellPrice) or 0) > 0 then
-                    SellInventoryItem(BAG_BACKPACK, slotIndex, stack)
+                    RequestItemSale(BAG_BACKPACK, slotIndex, stack, "merchant")
                     soldStacks = soldStacks + 1
                     soldItems = soldItems + stack
-                    if RagsToRiches.SV.debug then chat(string.format("Sold %s x%d (%s).", GetItemLink(BAG_BACKPACK, slotIndex), stack, reason)) end
+                    debugChat(string.format("Sold %s x%d (%s).", GetItemLink(BAG_BACKPACK, slotIndex), stack, reason))
                 end
             end
         end
-        if RagsToRiches.SV.debug then chat(string.format("Merchant workflow sent %d stack%s / %d item%s for sale.", soldStacks, soldStacks == 1 and "" or "s", soldItems, soldItems == 1 and "" or "s")) end
+        debugChat(string.format("Merchant workflow sent %d stack%s / %d item%s for sale.", soldStacks, soldStacks == 1 and "" or "s", soldItems, soldItems == 1 and "" or "s"))
         merchantBusy = false
     end, 350)
 end
@@ -1450,7 +1587,7 @@ local function ProcessFencePreviewSelections(action)
                 local recommendedAction = GetFenceRecommendedAction(BAG_BACKPACK, slotIndex)
                 if recommendedAction == action then
                     local quantity = math.min(stack, remaining)
-                    if action == "sell" then SellInventoryItem(BAG_BACKPACK, slotIndex, quantity) else LaunderItem(BAG_BACKPACK, slotIndex, quantity) end
+                    if action == "sell" then RequestItemSale(BAG_BACKPACK, slotIndex, quantity, "fence") else RequestItemLaunder(BAG_BACKPACK, slotIndex, quantity) end
                     processed = processed + quantity
                     remaining = remaining - quantity
                 end
@@ -1461,7 +1598,7 @@ local function ProcessFencePreviewSelections(action)
         end
     end
 
-    chat(string.format("Fence preview confirmed: %s %d selected item%s.", action == "sell" and "sold" or "laundered", processed, processed == 1 and "" or "s"))
+    debugChat(string.format("Fence preview confirmed: %s %d selected item%s.", action == "sell" and "sold" or "laundered", processed, processed == 1 and "" or "s"))
     zo_callLater(RefreshFencePreviewUI, 250)
 end
 
@@ -1567,20 +1704,20 @@ local function ProcessFenceItems()
             local action, reason = GetFenceRecommendedAction(BAG_BACKPACK, slotIndex)
             if action == "launder" and launderRemaining > 0 then
                 local quantity = math.min(stack, launderRemaining)
-                LaunderItem(BAG_BACKPACK, slotIndex, quantity)
+                RequestItemLaunder(BAG_BACKPACK, slotIndex, quantity)
                 launderRemaining = launderRemaining - quantity
                 laundered = laundered + quantity
-                if RagsToRiches.SV.debug then chat(string.format("Laundered %s x%d (%s).", GetItemLink(BAG_BACKPACK, slotIndex), quantity, reason or "fence rule")) end
+                debugChat(string.format("Laundered %s x%d (%s).", GetItemLink(BAG_BACKPACK, slotIndex), quantity, reason or "fence rule"))
             elseif action == "sell" and sellRemaining > 0 then
                 local quantity = math.min(stack, sellRemaining)
-                SellInventoryItem(BAG_BACKPACK, slotIndex, quantity)
+                RequestItemSale(BAG_BACKPACK, slotIndex, quantity, "fence")
                 sellRemaining = sellRemaining - quantity
                 sold = sold + quantity
-                if RagsToRiches.SV.debug then chat(string.format("Fence-sold %s x%d (%s).", GetItemLink(BAG_BACKPACK, slotIndex), quantity, reason or "fence rule")) end
+                debugChat(string.format("Fence-sold %s x%d (%s).", GetItemLink(BAG_BACKPACK, slotIndex), quantity, reason or "fence rule"))
             end
         end
     end
-    if RagsToRiches.SV.debug then chat(string.format("Fence workflow: sold %d, laundered %d.", sold, laundered)) end
+    debugChat(string.format("Fence workflow: sold %d, laundered %d.", sold, laundered))
     fenceBusy = false
 end
 
@@ -1598,7 +1735,7 @@ local function OnContainerLootUpdated()
     zo_callLater(function()
         if LootAll then
             LootAll()
-            if RagsToRiches.SV.debug then chat("Auto-looted contents from opened stolen container.") end
+            debugChat("Auto-looted contents from opened stolen container.")
         end
     end, 50)
 end
@@ -1615,19 +1752,19 @@ local function OpenNextStolenContainer(opened)
         local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
         if stack and stack > 0 and IsStolenContainer(BAG_BACKPACK, slotIndex) and not IsItemPlayerLocked(BAG_BACKPACK, slotIndex) then
             if GetBackpackFreeSlots() <= 0 then
-                if RagsToRiches.SV.debug then chat("Stopped opening stolen containers: backpack is full.") end
+                debugChat("Stopped opening stolen containers: backpack is full.")
                 ProcessFenceItems()
                 return
             end
             ArmContainerAutoLoot()
             CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
-            if RagsToRiches.SV.debug then chat("Opened stolen container: " .. GetItemLink(BAG_BACKPACK, slotIndex)) end
+            chat("Opened stolen container: " .. GetItemLink(BAG_BACKPACK, slotIndex))
             zo_callLater(function() OpenNextStolenContainer((opened or 0) + 1) end, 500)
             return
         end
     end
 
-    if RagsToRiches.SV.debug and (opened or 0) > 0 then
+    if (opened or 0) > 0 then
         chat(string.format("Opened %d stolen container%s before fence processing.", opened, opened == 1 and "" or "s"))
     end
     zo_callLater(ProcessFenceItems, 350)
@@ -1643,7 +1780,7 @@ local function ProcessFence()
             RefreshFencePreviewUI()
             if FENCE_SELL_GAMEPAD then KEYBIND_STRIP:UpdateKeybindButtonGroup(FENCE_SELL_GAMEPAD.keybindStripDescriptor) end
             if FENCE_LAUNDER_GAMEPAD then KEYBIND_STRIP:UpdateKeybindButtonGroup(FENCE_LAUNDER_GAMEPAD.keybindStripDescriptor) end
-            chat(string.format("Fence preview: %d sale stack%s and %d laundering stack%s selected by default. Gold coin icons show selected recommendations. Deselect anything you want to keep, then use the bulk action on each fence tab.", sellCount, sellCount == 1 and "" or "s", launderCount, launderCount == 1 and "" or "s"))
+            debugChat(string.format("Fence preview: %d sale stack%s and %d laundering stack%s selected by default. Gold coin icons show selected recommendations. Deselect anything you want to keep, then use the bulk action on each fence tab.", sellCount, sellCount == 1 and "" or "s", launderCount, launderCount == 1 and "" or "s"))
             fenceBusy = false
         end, 350)
         return
@@ -1719,7 +1856,7 @@ local function ProcessDeconstruction(craftSkill, source)
             if deconstructionPreviewPrepared then craftBusy = false return end
             local panel = GetActiveDeconstructionPanel(source)
             if not panel or not panel.extractionSlot or not panel.AddItemToCraft then
-                if RagsToRiches.SV.debug then chat("Deconstruction preview: native selection panel not ready; will retry on the next panel refresh.") end
+                if RagsToRiches.SV.debug then debugChat("Deconstruction preview: native selection panel not ready; will retry on the next panel refresh.") end
                 craftBusy = false
                 return
             end
@@ -1735,6 +1872,7 @@ local function ProcessDeconstruction(craftSkill, source)
                             panel:AddItemToCraft(BAG_BACKPACK, slotIndex)
                             if panel.extractionSlot:ContainsBagAndSlot(BAG_BACKPACK, slotIndex) then
                                 added = added + 1
+                                debugChat(string.format("Selected %s for deconstruction preview (%s).", GetItemLink(BAG_BACKPACK, slotIndex), reason or "safe equipment"))
                             else
                                 rejected["native selection rejected"] = (rejected["native selection rejected"] or 0) + 1
                             end
@@ -1748,9 +1886,9 @@ local function ProcessDeconstruction(craftSkill, source)
 
             deconstructionPreviewPrepared = true
             if added > 0 then
-                chat(string.format("Deconstruction preview: pre-selected %d safe item%s. Review or deselect items, then use ESO's normal hold-Square confirmation.", added, added == 1 and "" or "s"))
+                debugChat(string.format("Deconstruction preview: pre-selected %d safe item%s. Review or deselect items, then use ESO's normal hold-Square confirmation.", added, added == 1 and "" or "s"))
             elseif RagsToRiches.SV.debug then
-                chat("Deconstruction preview: no additional safe equipment found to pre-select.")
+                debugChat("Deconstruction preview: no additional safe equipment found to pre-select.")
             end
         else
             PrepareDeconstructMessage()
@@ -1763,7 +1901,7 @@ local function ProcessDeconstruction(craftSkill, source)
                     if safe then
                         if AddItemToDeconstructMessage(BAG_BACKPACK, slotIndex, 1) then
                             queued = queued + 1
-                            if RagsToRiches.SV.debug then chat(string.format("Queued %s for deconstruction (%s).", GetItemLink(BAG_BACKPACK, slotIndex), reason or "safe equipment")) end
+                            debugChat(string.format("Queued %s for deconstruction (%s).", GetItemLink(BAG_BACKPACK, slotIndex), reason or "safe equipment"))
                         else
                             rejected["queue rejected"] = (rejected["queue rejected"] or 0) + 1
                         end
@@ -1774,10 +1912,11 @@ local function ProcessDeconstruction(craftSkill, source)
                 end
             end
             if queued > 0 then
+                pendingDeconstruction = queued
                 SendDeconstructMessage()
-                chat(string.format("Sent %d safe equipment item%s for deconstruction.", queued, queued == 1 and "" or "s"))
+                debugChat(string.format("Sent %d safe equipment item%s for deconstruction.", queued, queued == 1 and "" or "s"))
             elseif RagsToRiches.SV.debug then
-                chat("No safe equipment found for deconstruction.")
+                debugChat("No safe equipment found for deconstruction.")
             end
         end
 
@@ -1785,7 +1924,7 @@ local function ProcessDeconstruction(craftSkill, source)
             local parts = {}
             for reason, count in pairs(rejected) do table.insert(parts, string.format("%s=%d", reason, count)) end
             table.sort(parts)
-            if #parts > 0 then chat("Deconstruction rejected: " .. table.concat(parts, ", ")) end
+            if #parts > 0 then debugChat("Deconstruction rejected: " .. table.concat(parts, ", ")) end
         end
         craftBusy = false
     end, 500)
@@ -1810,12 +1949,13 @@ local function TryOpenStolenContainerFromInventory(slotIndex)
         if currentStack and currentStack > 0 and IsStolenContainer(BAG_BACKPACK, slotIndex) and not IsItemPlayerLocked(BAG_BACKPACK, slotIndex) then
             ArmContainerAutoLoot()
             CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
-            if RagsToRiches.SV.debug then chat("Auto-opened stolen container from backpack: " .. GetItemLink(BAG_BACKPACK, slotIndex)) end
+            chat("Auto-opened stolen container from backpack: " .. GetItemLink(BAG_BACKPACK, slotIndex))
         end
         zo_callLater(function() stolenContainerBusy = false end, 500)
     end, 250)
 end
 
+local lootIntentions = {}
 local function OnInventorySlotUpdate(_, bagId, slotIndex)
     if bagId ~= BAG_BACKPACK then return end
     zo_callLater(CheckBackpackSpace, 100)
@@ -1823,15 +1963,31 @@ local function OnInventorySlotUpdate(_, bagId, slotIndex)
 
     -- Merchant candidates are marked when they enter/change in the backpack,
     -- so the junk flag already exists before a vendor is opened.
-    if RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.enabled and RagsToRiches.SV.merchant.enabled then
+    if RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.enabled then
+        local expectedId = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex))
         zo_callLater(function()
+            if not RagsToRiches.SV.enabled or Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex)) ~= expectedId then return end
             local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
             if stack and stack > 0 and not IsItemStolen(BAG_BACKPACK, slotIndex) then
-                local sell, reason = IsSafeMerchantItem(BAG_BACKPACK, slotIndex)
+                local sell, reason = false, nil
+                if RagsToRiches.SV.merchant.enabled then sell, reason = IsSafeMerchantItem(BAG_BACKPACK, slotIndex) end
                 if sell and CanItemBeMarkedAsJunk(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
                     SetItemIsJunk(BAG_BACKPACK, slotIndex, true)
-                    if RagsToRiches.SV.debug then
-                        chat(string.format("Inventory update: marked %s as junk (%s).", GetItemLink(BAG_BACKPACK, slotIndex), reason or "merchant item"))
+                    do
+                        NotifyItemIntention(BAG_BACKPACK, slotIndex, "marked as junk", reason)
+                    end
+                elseif IsScribingScriptItem(BAG_BACKPACK, slotIndex) then
+                    local itemId = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex))
+                    if lootIntentions[itemId] ~= "script kept" then
+                        lootIntentions[itemId] = "script kept"
+                        NotifyItemIntention(BAG_BACKPACK, slotIndex, sell and "marked as junk" or "kept", sell and reason or "script sales disabled or item protected")
+                    end
+                elseif not sell and RagsToRiches.SV.deconstruct.enabled then
+                    local decon, deconReason = IsSafeDeconstructionItem(BAG_BACKPACK, slotIndex)
+                    local itemId = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex))
+                    if decon and lootIntentions[itemId] ~= deconReason then
+                        lootIntentions[itemId] = deconReason
+                        NotifyItemIntention(BAG_BACKPACK, slotIndex, "intended for deconstruction", deconReason)
                     end
                 end
             end
@@ -1841,7 +1997,7 @@ end
 
 local function RequestPanelDeconstruction(source)
     if not atCraftingStation or craftBusy then return end
-    if RagsToRiches.SV.debug then chat(source .. " deconstruction panel detected.") end
+    if RagsToRiches.SV.debug then debugChat(source .. " deconstruction panel detected.") end
     zo_callLater(function()
         if atCraftingStation then ProcessDeconstruction(activeCraftSkill, source) end
     end, (GetLatency and GetLatency() or 0) + 150)
@@ -1884,7 +2040,7 @@ local function OnCraftingStation(_, craftSkill, _, craftMode)
     else
         activeCraftSkill = craftSkill
     end
-    if RagsToRiches.SV.debug then chat("Crafting interaction detected; waiting for deconstruction panel.") end
+    if RagsToRiches.SV.debug then debugChat("Crafting interaction detected; waiting for deconstruction panel.") end
 end
 
 local function OnEndCraftingStation()
@@ -1972,7 +2128,7 @@ local function CreateSettings()
             local selected = NormalizeSettingsScope(itemData or itemName or controlOrValue)
             RagsToRiches.ScopeSV.settingsScope = selected
             ApplyActiveSettingsScope()
-            chat("Settings scope set to " .. selected .. ".")
+            debugChat("Settings scope set to " .. selected .. ".")
         end,
         -- Keep Reset to Defaults on the currently selected profile.
         default = GetActiveSettingsScope(),
@@ -1990,8 +2146,30 @@ local function CreateSettings()
     })
 
     settings:AddSetting({
+        type = LHAS.ST_DROPDOWN,
+        label = "Message Output",
+        tooltip = "Choose where RagsToRiches status and enabled debug messages appear. Top Right queues native ESO alerts one at a time, waiting for active alerts to finish. Backpack warnings keep their separate settings.",
+        items = {
+            { name = "Chat", data = "Chat" },
+            { name = "Top Right", data = "Top Right" },
+            { name = "Both", data = "Both" },
+            { name = "None", data = "None" },
+        },
+        getFunction = function() return ParseMessageOutput(RagsToRiches.SV.messageOutput) or "Chat" end,
+        setFunction = function(controlOrValue, itemName, itemData)
+            local selected = ParseMessageOutput(itemData) or ParseMessageOutput(itemName) or ParseMessageOutput(controlOrValue)
+            if selected then
+                RagsToRiches.SV.messageOutput = selected
+                debugChat("Message output set to " .. selected .. ".")
+            end
+        end,
+        default = "Chat",
+    })
+
+    settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Debug Messages",
+        tooltip = "Diagnostic details for unsupported items, unavailable APIs and rejected actions. Normal action messages do not require debug.",
         getFunction = function() return RagsToRiches.SV.debug end,
         setFunction = function(v) RagsToRiches.SV.debug = v end,
         default = false,
@@ -2165,20 +2343,20 @@ local function CreateSettings()
         tooltip = "Re-check every item currently in your backpack using the active RagsToRiches merchant rules. Newly recognised sellable items are marked as junk ready for the next merchant visit. This does not sell anything immediately.",
         clickHandler = function()
             if not RagsToRiches.SV.enabled then
-                chat("Inventory scan skipped — RagsToRiches is disabled.")
+                debugChat("Inventory scan skipped — RagsToRiches is disabled.")
                 return
             end
             if not RagsToRiches.SV.merchant.enabled then
-                chat("Inventory scan skipped — merchant automation is disabled.")
+                debugChat("Inventory scan skipped — merchant automation is disabled.")
                 return
             end
 
             local marked = ClassifyMerchantItems()
             CheckBackpackSpace(true)
             if marked > 0 then
-                chat(string.format("Inventory scan complete — marked %d new sellable stack%s as junk.", marked, marked == 1 and "" or "s"))
+                debugChat(string.format("Inventory scan complete — marked %d new sellable stack%s as junk.", marked, marked == 1 and "" or "s"))
             else
-                chat("Inventory scan complete — no new sellable stacks found.")
+                debugChat("Inventory scan complete — no new sellable stacks found.")
             end
         end,
     })
@@ -2220,7 +2398,7 @@ local function CreateSettings()
         setFunction = function(controlOrValue, itemName, itemData)
             local selected = NormalizeIntricateAction(itemData or itemName or controlOrValue)
             RagsToRiches.SV.deconstruct.intricateAction = selected
-            if RagsToRiches.SV.debug then chat("Intricate action set to: " .. selected) end
+            if RagsToRiches.SV.debug then debugChat("Intricate action set to: " .. selected) end
         end,
         default = "Keep",
     })
@@ -2278,6 +2456,7 @@ local function OnLoaded(_, name)
     local defaults = {
         enabled = true,
         debug = false,
+        messageOutput = "Chat",
         gold   = { enabled = true,  target = 5000  },
         ap     = { enabled = false, target = 50000 },
         telvar = { enabled = false, target = 0     },
@@ -2316,6 +2495,8 @@ local function OnLoaded(_, name)
 
     local function MigrateSettingsProfile(sv)
         if not sv then return end
+        -- Initialise both saved profiles without resetting an existing choice.
+        sv.messageOutput = ParseMessageOutput(sv.messageOutput) or "Chat"
         if not sv.schemaVersion or sv.schemaVersion < 139 then
             sv.deconstruct = sv.deconstruct or defaults.deconstruct
             if sv.deconstruct.enabled == nil then sv.deconstruct.enabled = true end
@@ -2403,6 +2584,20 @@ local function OnLoaded(_, name)
 
     EM:RegisterForEvent("RTR_BankOpen",  EVENT_OPEN_BANK,  OnBankOpened)
     EM:RegisterForEvent("RTR_BankClose", EVENT_CLOSE_BANK, OnBankClosed)
+    EM:RegisterForEvent("RTR_DeconCompleted", EVENT_CRAFT_COMPLETED, function()
+        if pendingDeconstruction > 0 then
+            chat(string.format("%d items safely deconstructed.", pendingDeconstruction))
+            pendingDeconstruction = 0
+        end
+    end)
+    EM:RegisterForEvent("RTR_DeconFailed", EVENT_CRAFT_FAILED, function()
+        pendingDeconstruction = 0
+        debugChat("Crafting action failed; no deconstruction success summary issued.")
+    end)
+    EM:RegisterForEvent("RTR_SummaryStore", EVENT_OPEN_STORE, function() saleLocation = "merchant" end)
+    EM:RegisterForEvent("RTR_SummaryFence", EVENT_OPEN_FENCE, function() saleLocation = "fence" end)
+    EM:RegisterForEvent("RTR_SaleReceipt", EVENT_SELL_RECEIPT, OnSaleReceipt)
+    EM:RegisterForEvent("RTR_LaunderResult", EVENT_ITEM_LAUNDER_RESULT, OnLaunderResult)
     EM:RegisterForEvent("RTR_Inventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySlotUpdate)
     EM:RegisterForEvent("RTR_ContainerLoot", EVENT_LOOT_UPDATED, OnContainerLootUpdated)
     EM:RegisterForEvent("RTR_Store", EVENT_OPEN_STORE, ProcessMerchant)
@@ -2417,7 +2612,7 @@ local function OnLoaded(_, name)
     InstallAccidentalTheftProtection()
     zo_callLater(function() CheckBackpackSpace(false) end, 1000)
 
-    chat("RagsToRiches v1.5.1 loaded.")
+    debugChat("RagsToRiches v1.5.12 loaded.")
 end
 
 EM:RegisterForEvent("RTR_Loaded", EVENT_ADD_ON_LOADED, OnLoaded)

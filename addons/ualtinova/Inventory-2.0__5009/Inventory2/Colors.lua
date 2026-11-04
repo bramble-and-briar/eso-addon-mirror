@@ -52,6 +52,10 @@ IG.GROUPS = {
     -- research bench. The smithing bench's own Research tab; a light orchid none of its
     -- DISPOSAL neighbours wears.
     { key = "RESEARCH",    label = "RESEARCHABLE",       color = "D9A6FF", icon = ART .. "Crafting/smithing_tabIcon_research_up.dds" },
+    -- Gear this character already knows but an alt on the same account does not yet (reads
+    -- LibCharacterKnowledge where it is installed, off and absent otherwise: AltResearch.lua).
+    -- Never a DISPOSAL member -- nothing here is on its way out of the bag.
+    { key = "RESEARCHALTS", label = "RESEARCHABLE (ALTS)", color = "A685E0", icon = ART .. "Crafting/smithing_tabIcon_research_up.dds" },
     -- A category that is nothing but what you put in it: no rule ever fills it, and what it is
     -- called is yours to say, from its own header. Third of the three you fill by hand.
     { key = "CUSTOM",      label = "CUSTOM",             color = "6FD3B5", icon = ART .. "MainMenu/menuBar_inventory_up.dds" },
@@ -135,6 +139,9 @@ IG.GROUPS = {
     -- no category above moves a place down -- an order the player gave a category is compared
     -- with these numbers -- and placed after CUSTOM by an order of its own, below.
     { key = "TOBANK",      label = "TO BANK",            color = "6F9BFF", icon = ART .. "Bank/bank_tabIcon_deposit_up.dds" },
+    -- Pieces marked for one of your home containers (ToHome.lua): no switch of its own -- it is
+    -- there while at least one piece is marked and gone when none is (IG.IsGroupAvailable).
+    { key = "TOHOME",      label = "TO HOME CONTAINER",  color = "E0B36F", icon = ART .. "WorldMap/map_indexIcon_housing_up.dds" },
 }
 
 IG.GROUP_BY_KEY = {}
@@ -144,6 +151,7 @@ for order, group in ipairs(IG.GROUPS) do
 end
 -- Between CUSTOM and whatever comes after it.
 IG.GROUP_BY_KEY.TOBANK.order = IG.GROUP_BY_KEY.CUSTOM.order + 0.5
+IG.GROUP_BY_KEY.TOHOME.order = IG.GROUP_BY_KEY.CUSTOM.order + 0.75
 
 ---------------------------------------------------------------------------
 -- A group as the user sees it: their own name, color, place and whether it shows at all.
@@ -247,8 +255,8 @@ local DEFAULT_SECTION = {
     -- piece -- sell it, break it, throw it away -- is not news, so it reads under MODULES.
     JUSTCRAFTED = "ATTENTION", NEW = "ATTENTION", REWARDS = "ATTENTION", BINDONEQUIP = "ATTENTION",
     EQUIPPED = "MODULES", LASTRUN = "MODULES", ARMORY = "MODULES", SETUPS = "MODULES", HOME = "MODULES", DAILYWRIT = "MODULES", STOLEN = "MODULES",
-    SELL = "MODULES", GUILDSELL = "MODULES", DECON = "MODULES", RESEARCH = "MODULES", CUSTOM = "MODULES", DISPOSAL = "MODULES",
-    TOBANK = "MODULES",
+    SELL = "MODULES", GUILDSELL = "MODULES", DECON = "MODULES", RESEARCH = "MODULES", RESEARCHALTS = "MODULES", CUSTOM = "MODULES", DISPOSAL = "MODULES",
+    TOBANK = "MODULES", TOHOME = "MODULES",
     GARBAGE = "MODULES",
     JUNK = "MODULES",
     PVE = "SETS", DUNGEON = "SETS", DLCDUNGEON = "SETS", ARENA = "SETS", TRIAL = "SETS",
@@ -410,6 +418,14 @@ local MODULE_ONLY = { CUSTOM = "customEnabled", GUILDSELL = "guildSellEnabled", 
     -- sent there by hand falls back too, and the category is not offered.
     RESEARCH = "researchableEnabled" }
 
+-- Settings > Modules > Bank Modules: which of the categories a piece can only reach by a rule
+-- or an override (never by what it simply is) are allowed to show while the bank's own list is
+-- the one being built. Off by default means every one of these is on -- the switches exist to
+-- turn one off, not to opt in. Read through IG.classifyingForBank (InventoryGrouping.lua,
+-- BuildGroupedList), set fresh at the start of every list build, bank or not.
+local BANK_TOGGLEABLE = { SELL = true, GUILDSELL = true, DECON = true, CUSTOM = true,
+    RESEARCH = true, RESEARCHALTS = true, SETUPS = true, DAILYWRIT = true, ARMORY = true }
+
 function IG.IsGroupAvailable(key)
     -- DISPOSAL is there while at least one of its categories is inside it and standing.
     if key == IG.DISPOSAL_KEY then
@@ -418,6 +434,12 @@ function IG.IsGroupAvailable(key)
         end
         return false
     end
+    if BANK_TOGGLEABLE[key] and IG.classifyingForBank and IG.sv and IG.sv.bankModules
+        and IG.sv.bankModules[key] == false then
+        return false
+    end
+    -- No switch: there while something is marked for a container, gone the moment nothing is.
+    if key == "TOHOME" then return IG.HomeMarkCount ~= nil and IG.HomeMarkCount() > 0 end
     local module = MODULE_ONLY[key]
     if module and not (IG.sv and IG.sv[module] == true) then return false end
     -- A kind of boost is a category only while it has been lifted out of BOOSTS. Folded in, it

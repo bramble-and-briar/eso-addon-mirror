@@ -210,23 +210,12 @@ local function Control(store, name, inventoryType, list, withTail)
     control:SetHandler("OnMouseExit", function(self)
         IG.SetHeaderSurface(self, self.igBgColor)
     end)
-    -- A click goes back to the real header and closes it, as a click on that header would: one
-    -- rebuild (CloseCategory), then the scroll. Closing only takes rows below the header away,
-    -- so the landing place read before the rebuild still holds after it.
+    -- A click goes back to the real header and nothing else: the category stays open, and the
+    -- list only travels as far up as that header (reported 2026-11-04 -- it used to close the
+    -- category on the way, which is what the mark on the left is for, below).
     control:SetHandler("OnMouseUp", function(self, _, upInside)
         if not upInside then return end
-        -- A Chips/Tiles category is shut by its button, not by the list's open state.
-        local strip = self.igStickyStrip
-        if strip and strip.strip and strip.chip then
-            IG.ToggleModuleStrip(strip.strip.invKey, strip.strip.inventoryType, strip.chip.key,
-                strip.strip.section)
-            return ScrollTo(self)
-        end
         PlaySound(SOUNDS.DEFAULT_CLICK)
-        local data = self.igData
-        if data and data.key and not data.isRule then
-            IG.CloseCategory(data.inventoryType, data.invKey, data.key)
-        end
         ScrollTo(self)
     end)
 

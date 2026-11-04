@@ -1132,6 +1132,7 @@ local MODULE_GROUPS = { EQUIPPED = "equippedEnabled", NEW = "newEnabled", ARMORY
     BINDONEQUIP = "bindOnEquipEnabled", JUNK = "junkEnabled", LOCKED = "lockedLists",
     CUSTOM = "customEnabled", GUILDSELL = "guildSellEnabled", JUSTCRAFTED = "justCraftedEnabled",
     DAILYWRIT = "dailyWritEnabled", SETUPS = "setupsEnabled", RESEARCH = "researchableEnabled",
+    RESEARCHALTS = "researchAltsEnabled",
     -- Its switch hides the button only: marking and depositing go on regardless (ToBank.lua).
     TOBANK = "toBankShown" }
 -- Read by the MODULES drawer (Drawer.lua), so a module added here is a line there as well.
@@ -1294,7 +1295,7 @@ local ASIDE_MODULE_GROUPS = { CUSTOM = true, GUILDSELL = true }
 local NEVER_EMPTY_GROUPS = { JUSTCRAFTED = true }
 -- Filled in the backpack and nowhere else: a piece marked for the bank stands on its own
 -- anywhere else (Classify.lua, OverrideForSlot), so in the bank's own list it never could be.
-local BACKPACK_ONLY_GROUPS = { TOBANK = true }
+local BACKPACK_ONLY_GROUPS = { TOBANK = true, TOHOME = true }
 
 local function AddEmptyGroups(items, ownBags, invKey, isBackpack)
     local used = {}
@@ -1594,6 +1595,10 @@ end
 local function BuildGroupedList(inventory, inventoryType, mode)
     local scrollData = ZO_ScrollList_GetDataList(inventory.listView)
     local isBackpack = inventoryType == INVENTORY_BACKPACK
+    -- Read by IG.IsGroupAvailable (Colors.lua) for the classify-driven categories Settings >
+    -- Bank Modules can turn off: set once per build rather than threaded through every classify
+    -- call, since nothing here runs across two builds at once.
+    IG.classifyingForBank = inventoryType == INVENTORY_BANK
     local trading = mode == "trading"
     local minimal = mode == "minimal"
     local merchantSell = isBackpack and AtMerchantSell()
@@ -1694,6 +1699,7 @@ local function BuildGroupedList(inventory, inventoryType, mode)
         IG.CollectJunkEntries(inventory, inventoryType, items, searchText),
         IG.CollectHomeEntries(inventory, inventoryType, searchText, STORED_ITEM_TYPE),
         IG.CollectSetupEntries and IG.CollectSetupEntries(inventory, inventoryType, items, searchText, STORED_ITEM_TYPE) or {},
+        IG.CollectAltResearchEntries and IG.CollectAltResearchEntries(inventory, inventoryType, items, searchText) or {},
     } or {}) do
         for _, extra in ipairs(list) do extras[#extras + 1] = extra end
     end
@@ -1769,6 +1775,8 @@ local function BuildGroupedList(inventory, inventoryType, mode)
     -- IG.ShowSectionDisplayMenu) to decide whether Group Sets/Don't Group Sets belongs there
     -- at all, instead of a fixed guess at which sections can ever hold one.
     local sectionHasSets = {}
+    -- Pieces of RESEARCHABLE (ALTS) already counted into their group's total (see the loop).
+    local altSeen = {}
     -- The real categories standing under LOCKED in this build (set keys above, fed to the
     -- module-level lockedCategoryKeys at the end of this function).
     local lockedCategories = {}
@@ -1824,9 +1832,17 @@ local function BuildGroupedList(inventory, inventoryType, mode)
             -- NodeKey walks the path from the start every time, so each level's key is kept and
             -- the one above it is the key the level before handed down.
             local parent
+            -- RESEARCHABLE (ALTS) lists one piece once under each alt that needs it, so the same
+            -- physical piece arrives here more than once; the group's own total counts the
+            -- piece, not its copies (each alt's own heading still counts its own rows).
+            local altPiece = entry.data.igAltResearch
+                and (tostring(entry.data.bagId) .. ":" .. tostring(entry.data.slotIndex)) or nil
             for depth = 1, #path do
                 local key = NodeKey(path, depth)
-                totals[key] = (totals[key] or 0) + 1
+                if depth > 1 or not altPiece or not altSeen[altPiece] then
+                    totals[key] = (totals[key] or 0) + 1
+                end
+                if depth == 1 and altPiece then altSeen[altPiece] = true end
                 if under then
                     under.counts[key] = (under.counts[key] or 0) + 1
                     if slotHeadings then slotHeadings[#slotHeadings + 1] = key end
@@ -2116,6 +2132,9 @@ local function BuildGroupedList(inventory, inventoryType, mode)
                         iconColor = node.iconColor,
                         keepIconColors = node.keepIconColors,
                         setId = node.setId,
+                        -- RESEARCHABLE (ALTS): which character a heading is for, and what is in it for them.
+                        altCharId = node.altCharId,
+                        altItems = node.altItems,
                         isLeaf = depth == #path and not path.isEmptyGroup,
                         -- A node can count something other than its rows (RECENT LOOT counts runs).
                         count = node.fixedCount or children[key] or 0,
@@ -3953,7 +3972,10 @@ local function DecorateItemRow(control, data)
         -- Rows come out of a pool: the one that was stood down a moment ago is this one now.
         -- A row held back for an upgrade or a price is at full strength: it pulses instead
         -- (AwaitingPulse), which says "waiting" without making the row hard to read.
-        if control:GetAlpha() ~= 1 then control:SetAlpha(1) end
+        -- An ARMORY piece shown for a bag this list is not drawing (Armory.lua) is the one
+        -- exception that dims plainly: there is nothing to do with it from here.
+        local targetAlpha = (data.igArmoryElsewhere or data.igAltResearchNote) and 0.55 or 1
+        if control:GetAlpha() ~= targetAlpha then control:SetAlpha(targetAlpha) end
         if control.igAsideCaption then control.igAsideCaption:SetHidden(true) end
     end
 
@@ -4018,6 +4040,46 @@ local function DecorateItemRow(control, data)
     elseif sellWarning then
         sellWarning:SetHidden(true)
         if sellWarning.igTimeline then sellWarning.igTimeline:Stop() end
+    end
+
+    -- Why a RESEARCHABLE (ALTS) row is shown despite being locked, in an Armory build or in a
+    -- saved setup ("Also List Locked, Armory and Setup Pieces", Settings.lua): said plainly next
+    -- to the name rather than hidden, since the row is there to be noticed, not acted on.
+    local altNote = control.igAltResearchNote
+    if data.igAltResearchNote and nameLabel then
+        if not altNote then
+            altNote = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+            altNote:SetFont(COLLECT_FONT)
+            altNote:SetColor(unpack(SELL_WARNING_COLOR))
+            control.igAltResearchNote = altNote
+        end
+        altNote:SetText(string.format("(%s)", data.igAltResearchNote))
+        altNote:ClearAnchors()
+        altNote:SetAnchor(LEFT, nameLabel, LEFT, nameRight + NAME_NOTE_GAP, 0)
+        altNote:SetHidden(false)
+        nameRight = nameRight + NAME_NOTE_GAP + altNote:GetTextWidth()
+    elseif altNote then
+        altNote:SetHidden(true)
+    end
+
+    -- An ARMORY loadout piece this list cannot actually show (it is in the other bag): said
+    -- plainly next to the name instead of being left out the way the game's own Armory window
+    -- leaves it (reported 2026-11-03).
+    local armoryNote = control.igArmoryElsewhereNote
+    if data.igArmoryElsewhere and nameLabel then
+        if not armoryNote then
+            armoryNote = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+            armoryNote:SetFont(COLLECT_FONT)
+            armoryNote:SetColor(unpack(SELL_WARNING_COLOR))
+            control.igArmoryElsewhereNote = armoryNote
+        end
+        armoryNote:SetText(string.format("(%s)", data.igArmoryElsewhere))
+        armoryNote:ClearAnchors()
+        armoryNote:SetAnchor(LEFT, nameLabel, LEFT, nameRight + NAME_NOTE_GAP, 0)
+        armoryNote:SetHidden(false)
+        nameRight = nameRight + NAME_NOTE_GAP + armoryNote:GetTextWidth()
+    elseif armoryNote then
+        armoryNote:SetHidden(true)
     end
 
     -- Sent aside, on a row that is not being stood down for it: the bare words, in the category's
@@ -4876,6 +4938,8 @@ function IG.OnHeaderMouseEnter(control)
     OfferHeaderAction(data)
     if data.isSet and sv.showSetTooltip then
         IG.ShowSetTooltip(control, data)
+    elseif data.altCharId and IG.ShowAltCharTooltip then
+        IG.ShowAltCharTooltip(control, data)
     end
     SetCollapseHint(control, CanCollapseChildren(data))
     if control.igMenuHint and (control.igMenuWidth or control.igMenuStacked) then

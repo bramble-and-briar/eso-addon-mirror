@@ -63,6 +63,7 @@ local CHIP_FONT = "$(BOLD_FONT)|17|soft-shadow-thin"
 local TILE_COUNT_FONT = "$(BOLD_FONT)|22|soft-shadow-thin"
 local TILE_NAME_FONT = "$(MEDIUM_FONT)|14|soft-shadow-thin"
 local TILE_ICON_SIZE = 36
+local TILE_ICON_TWO_LINE = 30   -- the icon of a tile whose name needs two lines
 local CHIP_ICON_SIZE = 18
 IG.MODULE_STRIP_STYLE = {
     chipFont = CHIP_FONT, tileCountFont = TILE_COUNT_FONT, tileNameFont = TILE_NAME_FONT,
@@ -460,21 +461,32 @@ local function DressChip(chip, info, mode, width)
     chip.icon:SetHidden(not hasIcon)
     if mode == "tiles" then
         -- Icon and count side by side on one line, the pair centred; the name under them.
+        -- A name too wide for one line (RESEARCHABLE (ALTS)) goes on two, with the icon row
+        -- drawn a little smaller and higher to make the room -- the tile is one fixed height,
+        -- so the second line has to be found inside it, not added below it. Measured on the
+        -- count label before it is given its own text and anchors, so it has its natural width.
+        local placedWidth = width or chip:GetWidth()
+        chip.label:SetFont(TILE_NAME_FONT)
+        chip.label:SetText(label)
+        local twoLines = chip.label:GetTextWidth() > placedWidth - 8
+        local iconDraw = twoLines and TILE_ICON_TWO_LINE or TILE_ICON_SIZE
+        local iconTop = twoLines and 2 or 4
         chip.label:SetFont(TILE_COUNT_FONT)
         chip.label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
         chip.label:SetText(info.firstCount and CountText(info) or tostring(info.count))
-        local iconSize = hasIcon and TILE_ICON_SIZE or 0
+        local iconSize = hasIcon and iconDraw or 0
         local gap = hasIcon and 4 or 0
         local pairWidth = iconSize + gap + chip.label:GetTextWidth()
         -- The width it was placed at, not GetWidth(): a pooled chip may still read its old size.
-        local left = zo_max(6, ((width or chip:GetWidth()) - pairWidth) / 2)
-        chip.icon:SetDimensions(TILE_ICON_SIZE, TILE_ICON_SIZE)
-        chip.icon:SetAnchor(TOPLEFT, chip, TOPLEFT, left, 4)
-        chip.label:SetAnchor(LEFT, chip, TOPLEFT, left + iconSize + gap, 4 + TILE_ICON_SIZE / 2)
+        local left = zo_max(6, (placedWidth - pairWidth) / 2)
+        chip.icon:SetDimensions(iconDraw, iconDraw)
+        chip.icon:SetAnchor(TOPLEFT, chip, TOPLEFT, left, iconTop)
+        chip.label:SetAnchor(LEFT, chip, TOPLEFT, left + iconSize + gap, iconTop + iconDraw / 2)
         chip.name:SetHidden(false)
+        chip.name:SetMaxLineCount(twoLines and 2 or 1)
         chip.name:SetText(label)
-        chip.name:SetAnchor(TOPLEFT, chip, TOPLEFT, 3, 6 + TILE_ICON_SIZE)
-        chip.name:SetAnchor(BOTTOMRIGHT, chip, BOTTOMRIGHT, -3, -2)
+        chip.name:SetAnchor(TOPLEFT, chip, TOPLEFT, 3, iconTop + iconDraw + 2)
+        chip.name:SetAnchor(BOTTOMRIGHT, chip, BOTTOMRIGHT, -3, -1)
     else
         chip.name:SetHidden(true)
         chip.name:SetText("")

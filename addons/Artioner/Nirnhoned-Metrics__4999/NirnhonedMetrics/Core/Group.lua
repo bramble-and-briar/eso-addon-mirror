@@ -18,6 +18,11 @@ local lgcs   -- objeto devuelto por LibGroupCombatStats.RegisterAddon
 -- se muestra (lo normal es que sean redondeos y escudos, no otro jugador).
 local REST_MIN_SHARE = 0.03
 
+-- El daño total que comparte la librería es el acumulado del combate de LibCombat de
+-- cada miembro. Si al cerrar tu combate un miembro seguía en combate, el suyo continúa
+-- y sigue sumando: se guarda lo que llevaba para restarlo en tu combate siguiente.
+local carry = {}   -- [nombre del personaje] = daño que llevaba
+
 -- Devuelve daño total, DPS y daño a jefes de un miembro.
 local function MemberValues(dps, fight)
     local lib = LibGroupCombatStats
@@ -42,8 +47,24 @@ local function GetMember(fight, tag, stats)
         }
         fight.group[stats.name] = member
     end
-    if tag and DoesUnitExist(tag) then member.classId = GetUnitClassId(tag) end
+    if tag and DoesUnitExist(tag) then
+        member.tag = tag
+        member.classId = GetUnitClassId(tag)
+    end
     return member
+end
+
+-- Daño total del miembro en este combate. Con el primer dato del combate se decide si
+-- su combate de LibCombat es el mismo que en tu combate anterior (sigue por encima de
+-- lo que llevaba entonces) o uno nuevo; si es el mismo, se resta lo que llevaba.
+local function OwnDamage(member, key, damage)
+    member.rawDamage = damage
+    if not member.base then
+        local base = carry[key]
+        member.base = base and damage >= base and base or 0
+        carry[key] = nil
+    end
+    return damage - member.base
 end
 
 -- Solo se usan los datos que cambiaron después de empezar el combate (los anteriores
@@ -61,6 +82,10 @@ function G.Update(fight)
                 local damage, dps, bossDamage = MemberValues(stats.dps, fight)
                 if damage and damage > 0 then
                     local member = GetMember(fight, tag, stats)
+                    if stats.dps.dmgType == LibGroupCombatStats.DAMAGE_TOTAL then
+                        damage = OwnDamage(member, stats.name, damage)
+                        bossDamage = damage
+                    end
                     member.damage = damage
                     member.dps = dps
                     member.bossDamage = bossDamage
@@ -78,9 +103,20 @@ function G.Update(fight)
     fight.grouped = true
 end
 
--- Daño estimado de los miembros que no comparten sus datos, o nil si no hay.
-function G.RestOfGroup(fight)
-    if not NM.sv.showRest or not fight.grouped or fight.bossHealthLost <= 0 then return nil end
+-- Al cerrar tu combate: lo que llevaba cada miembro que sigue en combate (ver carry).
+function G.Close(fight)
+    carry = {}
+    for key, member in pairs(fight.group) do
+        if member.rawDamage and member.tag and IsUnitInCombat(member.tag) then
+            carry[key] = member.rawDamage
+        end
+    end
+end
+
+-- Daño estimado de los miembros que no comparten sus datos en un combate, o nil si no
+-- hay. No mira el ajuste: la run lo suma al cerrar cada combate de jefe.
+function G.EstimateRest(fight)
+    if not fight.grouped or fight.bossHealthLost <= 0 then return nil end
     local known = fight.myBossDamage
     for _, member in pairs(fight.group) do
         known = known + (member.bossDamage or 0)
@@ -88,6 +124,19 @@ function G.RestOfGroup(fight)
     local rest = fight.bossHealthLost - known
     if rest < fight.bossHealthLost * REST_MIN_SHARE then return nil end
     return rest
+end
+
+-- Resto del grupo que se muestra y la duración sobre la que se calcula su DPS, o nil.
+-- En la run, la suma de cada combate de jefe y la duración de esos combates.
+function G.RestOfGroup(fight)
+    if not NM.sv.showRest then return nil end
+    if fight.isRun then
+        if fight.rest <= 0 then return nil end
+        return fight.rest, math.max(1, fight.restTime)
+    end
+    local rest = G.EstimateRest(fight)
+    if not rest then return nil end
+    return rest, NM.Fight.Duration(fight)
 end
 
 function G.Init()

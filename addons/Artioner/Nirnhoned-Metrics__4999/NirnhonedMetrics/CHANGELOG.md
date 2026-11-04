@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.0
+
+### Novedades
+- **Contar toda la run**: nueva opción *Contar* en *Ajustes → Datos* con *Cada combate* (como hasta ahora, por defecto) o *Toda la run (hasta cambiar de zona)*. La run suma todos los combates desde que entras en una zona, p. ej. una mazmorra o una prueba entera:
+  - Solo cuenta el tiempo en combate (no el de ir de un grupo de enemigos al siguiente): el pie muestra el tiempo en combate de la run y el DPS/HPS se calcula sobre él.
+  - Es la primera entrada de la lista de combates (*Run: nombre de la zona*) y la que se ve por defecto; los combates sueltos siguen en la lista. Funciona también en *Mis habilidades* y con el resto del grupo de los combates de jefe.
+  - Empieza de cero al cambiar de zona (las pantallas de carga dentro de la misma zona, como reaparecer tras morir, no la reinician), al pulsar reiniciar y al cambiar de modo.
+  - Se cambia también desde la ventana: icono nuevo en la barra de título, a la izquierda de reiniciar (espada: cada combate; puerta de mazmorra: toda la run, como en Vigilant), y sección *Contar* en el menú del clic derecho.
+  - Se suma al cerrar cada combate; el combate en curso solo se añade al mostrarla. No se guarda en las SavedVariables.
+- **Ordenar las barras** por total o por DPS/HPS (*Ajustes → Texto*). El largo de cada barra sigue el mismo valor. Sugerencia de un usuario de ESOUI.
+
+### Cambios
+- El icono de reiniciar es ahora la flecha circular del botón *Actualizar* del buscador de grupos.
+- Ancho mínimo de la ventana: 300 px, por el icono nuevo de la barra de título.
+
+### Correcciones
+- Si un miembro del grupo seguía en combate al cerrarse tu combate, en el siguiente se le sumaba otra vez el daño del anterior (LibGroupCombatStats comparte el acumulado de su propio combate). Ahora se resta lo que llevaba.
+
 ## 1.2.1
 
 ### Correcciones

@@ -38,6 +38,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [One Key Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ArMy-RiPPeR/One-Key-Assistant__2481) | \[ArMy\]RiPPeR | PC / Mac | 1.2 |
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__38f0df90-e793-4c9c-af2b-44a958ed38cf) | M0R | Console | — |
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__3985) | M0R | PC / Mac | 1.3.0 |
+| [OneChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneChat__5020) | oneDOK | PC / Mac | 26.11.1 |
 | [OneCrosshair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneCrosshair__4899) | oneDOK | PC / Mac | 26.1 |
 | [OneDungeon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneDungeon__4886) | oneDOK | PC / Mac | 26.1 |
 | [OneFrame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneFrame__4890) | oneDOK | PC / Mac | 26.1 |

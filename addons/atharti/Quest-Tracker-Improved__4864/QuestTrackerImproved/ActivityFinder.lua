@@ -76,7 +76,7 @@ EM:RegisterForEvent(QTI.name, EVENT_ACTIVITY_FINDER_STATUS_UPDATE, function(_, s
 	end
 end)
 
-EM:RegisterForEvent(QTI.name, EVENT_PLAYER_ACTIVATED, function()
+EM:RegisterForEvent(QTI.name .. "_LFG_Timer", EVENT_PLAYER_ACTIVATED, function()
 	local status = GetActivityFinderStatus()
 	QTI.HideInProgress(status)
 

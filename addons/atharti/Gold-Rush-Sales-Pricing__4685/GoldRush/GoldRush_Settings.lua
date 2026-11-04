@@ -1,9 +1,7 @@
 local GR = GoldRush
+local LAM = LibAddonMenu2
 
 function GR.InitSettings()
-	local LAM = LibAddonMenu2
-
-	GR.SV.guildProcessorsEnabled = GR.SV.guildProcessorsEnabled or {}
 	for i = 1, GetNumGuilds() do
 		local guildId = GetGuildId(i)
 		local guildName = GetGuildName(guildId)
@@ -14,6 +12,32 @@ function GR.InitSettings()
 
 	local optionsData = {
 		{
+		type = "header",
+		name = "Features",
+		},
+		{
+			type = "checkbox",
+			name = "Show Price Tooltips",
+			tooltip = "Show the average sale price of items in item tooltips. Turning this off erases all recorded price history (requires reload).",
+			getFunc = function() return GR.SV.enablePriceTooltips end,
+			setFunc = function(value)
+				GR.SV.enablePriceTooltips = value
+				if not value then
+					GR.SV.enableKioskDeals = false
+				end
+			end,
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
+			name = "Show Profit Meter in Guild Store",
+			tooltip = "Requires 'Show Price Tooltips' to be enabled. Shows the profit margin compared to the average sale price on guild trader listings.",
+			getFunc = function() return GR.SV.enableKioskDeals end,
+			setFunc = function(value) GR.SV.enableKioskDeals = value end,
+			disabled = function() return not GR.SV.enablePriceTooltips end,
+			requiresReload = true,
+		},
+		{
 			type = "header",
 			name = "Sale Notifications",
 		},
@@ -23,7 +47,6 @@ function GR.InitSettings()
 			tooltip = "Displays a pop‑up announcement in the center of the screen and plays a sound when you sell an item.",
 			getFunc = function() return GR.SV.enableSaleNotifications end,
 			setFunc = function(value) GR.SV.enableSaleNotifications = value end,
-			default = true,
 		},
 		{
 			type = "checkbox",
@@ -31,7 +54,6 @@ function GR.InitSettings()
 			tooltip = "Prints a message in the chat window when you sell an item.",
 			getFunc = function() return GR.SV.enableSaleNotificationsChat end,
 			setFunc = function(value) GR.SV.enableSaleNotificationsChat = value end,
-			default = true,
 		},
 		{
 			type = "header",

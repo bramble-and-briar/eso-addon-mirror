@@ -373,7 +373,7 @@ end
 --------------------------------------------------------------------------
 --
 -- v2.0.6: 「敵プレイヤーのみ」をアドオン全体の固定仕様にした。判定はこの1か所
--- (GetReticleVerdict)に集約し、UI①②(このファイル)と UI④(Pen.lua) の両方が
+-- (GetReticleVerdict)に集約し、UI①②(このファイル)が
 -- PTI.Target.IsEnemyPlayerTarget() を使う。設定でOFFにすることはできない。
 --
 -- 判定手順(どれか1つでも確認できなければ「敵ではない」=表示しない側に倒す):
@@ -484,7 +484,7 @@ local DEFAULT_LINGER_SECONDS = 2.0
 --     OFFのとき → その種類のスキャンはしない
 --   ・敵バフ/デバフの学習モード(debugLearnModeTarget)中は、候補収集のため
 --     パネルがOFFでもスキャンする
--- Condition(Procs.lua)・PEN(Pen.lua)の処理には関係しない。
+-- Condition(Procs.lua)・Proc CD(ProcCD.lua)の処理には関係しない。
 local function IsKindScanNeeded(kind)
     local sv = PTI.sv
     if not sv.enabled then return false end

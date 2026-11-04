@@ -93,10 +93,12 @@ local function BuildPanelControls(controls, key, svKey, defaultPos)
         setFunc = function(value)
             PTI.sv[svKey].enabled = value
             -- v2.0.7: パネルOFF中は①②のスキャンを止めるため、ON/OFF直後に再評価して
-            -- 即座に再開/停止する(PEN・ConditionはUI側の既存処理で整合する)。
+            -- 即座に再開/停止する(ConditionはUI側の既存処理で整合する)。
             if (key == "buff" or key == "debuff") and PTI.Target and PTI.Target.ForceRefresh then
                 PTI.Target.ForceRefresh()
             end
+            -- v2.1.0: UI④をOFFにしたらProc CDの監視(Tick・イベント)も止める
+            if key == "cd" and PTI.ProcCD and PTI.ProcCD.Sync then PTI.ProcCD.Sync() end
             PTI.UI.RefreshVisibility()
         end,
     })
@@ -242,7 +244,7 @@ function PTI.Settings.Initialize()
         { type = "header", name = "基本設定" },
         {
             type = "description",
-            text = "①敵のバフ ②敵のデバフ ③自分のCondition ④貫通 の4つのパネルを表示します。",
+            text = "①敵のバフ ②敵のデバフ ③自分のCondition ④自分のProc CD の4つのパネルを表示します。",
         },
         {
             type = "checkbox",
@@ -252,6 +254,7 @@ function PTI.Settings.Initialize()
             setFunc = function(value)
                 PTI.sv.enabled = value
                 if PTI.Target and PTI.Target.ForceRefresh then PTI.Target.ForceRefresh() end
+                if PTI.ProcCD and PTI.ProcCD.Sync then PTI.ProcCD.Sync() end
                 PTI.UI.RefreshVisibility()
             end,
         },
@@ -357,12 +360,15 @@ function PTI.Settings.Initialize()
         text = "敵にかかっている「重要なバフ」を表示するパネルです。",
     })
     BuildPanelControls(buffControls, "buff", "buffUI", { x = -180, y = -250 })
-    -- v2.0.8: 敵BUFF表示に関する注意書き(表示のみ。検知ロジック・設定値には無関係)。
-    -- BuildPanelControlsの先頭=「このパネルを表示する」(敵BUFFのON/OFF)の直下に差し込む。
-    table.insert(buffControls, 3, {
+    -- v2.1.0: 敵BUFF表示に関する注意書き(文言はv2.0.8から不変。表示のみで検知ロジック・設定値には無関係)。
+    -- 暗く読みにくかったため、明るい白(#F2F2F2)の色コードで囲み、設定項目より上
+    -- (説明文の直後)へ移動した。直後に空行の説明を1つ挟み、設定項目との余白を確保する。
+    table.insert(buffControls, 2, {
         type = "description",
-        text = "【ご注意】敵プレイヤーのBUFF情報は、ゲーム側のAPI制限や取得仕様により、表示できる環境が制限される場合があります。\n\n現在の確認では、決闘(Duel)では表示されますが、バトルグラウンド(BG)およびシロディール(Cyrodiil)では表示されないことを確認しています。\n\nゲーム側の仕様変更により、今後動作が変わる可能性があります。",
+        text = "|cF2F2F2" .. "【ご注意】敵プレイヤーのBUFF情報は、ゲーム側のAPI制限や取得仕様により、表示できる環境が制限される場合があります。\n\n現在の確認では、決闘(Duel)では表示されますが、バトルグラウンド(BG)およびシロディール(Cyrodiil)では表示されないことを確認しています。\n\nゲーム側の仕様変更により、今後動作が変わる可能性があります。" .. "|r",
+        width = "full",
     })
+    table.insert(buffControls, 3, { type = "description", text = " ", width = "full" })
     BuildWatchControls(buffControls, "buff", "PTI_BuffPendingDropdown")
     table.insert(optionsTable, {
         type = "submenu",
@@ -476,46 +482,48 @@ function PTI.Settings.Initialize()
     })
 
     ----------------------------------------------------------------------
-    -- サブメニュー④: 貫通・敵耐性低下(v2.0.5)
+    -- サブメニュー④: 自分のProc CD(v2.1.0)
     ----------------------------------------------------------------------
-    local penControls = {}
-    table.insert(penControls, {
+    local cdControls = {}
+    table.insert(cdControls, {
         type = "description",
-        text = "自分の武器貫通・呪文貫通(ゲームから読み取った値)と、ターゲット中の敵プレイヤーに付いている耐性低下(Major/Minor Breach等)を自動で検知し、種類・低下量(固定値:5948/2974)・残り時間・合計を表示します。AbilityIdの登録は不要で、日本語表示でも動作します。敵の基礎耐性は取得できないため「残り耐性」は表示しません。パネルがOFFの間は何も処理しません。",
+        text = "自分の装備セットProcが発動してから、次に再発動できるまでの時間を表示します。発動は自動で検知します(AbilityIdの登録は不要)。内部クールダウン(ICD)の秒数が確認できないProcは、推測せず表示しません。",
     })
-    BuildPanelControls(penControls, "pen", "penUI", { x = 0, y = -450 })
-    table.insert(penControls, {
+    BuildPanelControls(cdControls, "cd", "cdUI", { x = 0, y = -450 })
+    table.insert(cdControls, {
+        type = "slider",
+        name = "表示間隔",
+        tooltip = "行と行の間の余白です。",
+        min = 0, max = 20, step = 1,
+        getFunc = function() return PTI.sv.cdUI.rowGap or 0 end,
+        setFunc = function(value)
+            PTI.sv.cdUI.rowGap = value
+            PTI.UI.ApplyFontSize("cd")
+        end,
+        width = "full",
+    })
+    table.insert(cdControls, {
         type = "checkbox",
-        name = "自分の貫通を表示",
-        getFunc = function() return PTI.sv.pen.showSelfPen ~= false end,
-        setFunc = function(value) PTI.sv.pen.showSelfPen = value end,
+        name = "READY表示",
+        tooltip = "ONにすると、CD終了後に「READY」を表示します。OFFにするとCD終了後は非表示になります。",
+        getFunc = function() return PTI.sv.cd.showReady ~= false end,
+        setFunc = function(value) PTI.sv.cd.showReady = value end,
+    })
+    table.insert(cdControls, {
+        type = "description",
+        text = "ICD秒数は、①/pti cd add で実測登録した値、②定義表の確認済みの値、③装備セットの説明文から読み取れた値(PS5実機未検証)のいずれかを使います。装備中セットごとの状況は /pti cd sets で確認できます。",
     })
     table.insert(optionsTable, {
         type = "submenu",
-        name = "④ 貫通・敵耐性低下パネル",
-        controls = penControls,
+        name = "④ 自分のProc CDパネル",
+        controls = cdControls,
     })
 
     ----------------------------------------------------------------------
-    -- 詳細設定(Breach ID・学習モード・デバッグ)。通常は触らなくてよい項目を
+    -- 詳細設定(学習モード・デバッグ)。通常は触らなくてよい項目を
     -- 1つのサブメニューにまとめた(v2.0.7)。
     ----------------------------------------------------------------------
     local detailControls = {}
-    table.insert(detailControls, { type = "header", name = "Breach判定(自動)" })
-    table.insert(detailControls, {
-        type = "description",
-        text = "Major/Minor Breach等は、言語に依存しないAbilityId表で自動判定します(手動登録は不要になりました)。下の補助判定は、表に無いデバフを説明文の数値(5948/2974)で推定するもので、該当した行には「(推定)」と表示されます。",
-    })
-    table.insert(detailControls, {
-        type = "checkbox",
-        name = "補助判定: 説明文の数値で推定する",
-        tooltip = "ID表にないデバフでも、説明文に 5948 / 2974 が含まれていればMajor/Minor Breachの推定として表示します。誤判定が出る場合はOFFにしてください。",
-        getFunc = function() return PTI.sv.pen.descFallback ~= false end,
-        setFunc = function(value)
-            PTI.sv.pen.descFallback = value
-            if PTI.Pen and PTI.Pen.OnSettingsChanged then PTI.Pen.OnSettingsChanged() end
-        end,
-    })
     ----------------------------------------------------------------------
     -- 学習モード(敵バフ/デバフ側)は、UI①・UI②どちらの候補にも影響するため
     -- トップレベルに置いておく(サブメニューが違っても同じ1つのスイッチ)。
@@ -557,7 +565,7 @@ function PTI.Settings.Initialize()
 
     table.insert(optionsTable, {
         type = "submenu",
-        name = "詳細設定(Breach判定・学習・デバッグ)",
+        name = "詳細設定(学習・デバッグ)",
         controls = detailControls,
     })
 

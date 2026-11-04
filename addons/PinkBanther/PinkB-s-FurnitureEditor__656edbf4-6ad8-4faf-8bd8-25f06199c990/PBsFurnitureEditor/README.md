@@ -4,7 +4,7 @@ Copies a group of **linked furnishings** from one of your houses into another, i
 Scrolls Online on console.
 
 - **Author:** PinkBanther
-- **Version:** 1.0.6 (reading a house and the editor's Copy button are confirmed on a console; placing, linking, removing, travelling, the wheel and the cursor point are still being checked, see `FINDINGS.md`)
+- **Version:** 1.0.7 (reading a house and the editor's Copy button are confirmed on a console; placing, linking, removing, travelling, the wheel and the cursor point are still being checked, see `FINDINGS.md`)
 - **Needs:** nothing. No libraries.
 
 ## What it does
@@ -57,8 +57,31 @@ could not place everything (a piece missing from your bags, a stop half way) the
 the message says how many were not placed.
 
 ```
-/pbfe save table             keep it under a name (also: load, drop, saved, show, clear)
+/pbfe save Throne room       keep it under a name (spaces and capitals are kept); no name: named for you
+/pbfe saved                  the saved sets, numbered, newest first
+/pbfe load throne room       put one on the clipboard (any case, or its number)
+/pbfe drop 2                 forget one
 ```
+
+## Saved link sets
+
+A copied group can be kept under a name and brought back later. A saved set stays after you log out; loading one puts
+it on the clipboard as if you had just copied it, so the quickslot wheel offers Paste in any house of yours.
+
+* **In the add-on settings** (`PB’s FurnitureEditor`, the first rows, so no typing is needed): **Save the copy** keeps
+  what you last copied. If the add-on has a text box (`Name for the next save`) type a name there first; left empty,
+  the set is named for you, the furnishing it hangs from and how many ("Redguard Table x38"). A list of the saved sets
+  appears (newest first, with how many furnishings each holds), with **Load the selected set** and **Delete the selected
+  set** (press twice: a set cannot be got back).
+* **By command**: `/pbfe save [name]`, `/pbfe saved`, `/pbfe load <name or number>`, `/pbfe drop <name or number>`.
+  A name is what you typed, spaces and capitals included, and is found again whatever the case. A name that is taken is
+  refused (`force` replaces it).
+* There is room for **20 sets**: they are all loaded into the game's memory at log-in, which a console shares among all
+  add-ons.
+* A set made from a **cut that has not been pasted** keeps that fact: loading it makes the clipboard a pending cut again,
+  and a pending cut is never replaced by loading something else.
+* A paste that places everything empties the clipboard but never a saved set, so a saved set can be pasted again and
+  again: load it before each paste.
 
 ## Pasting
 

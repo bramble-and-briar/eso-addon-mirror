@@ -1573,25 +1573,39 @@ function TargetFrame:QueueStockVisibilityRefresh()
         if self.stockHideRetryToken ~= retryToken then return end
         self.stockHideRetryPending = false
         self:RunGuarded("stock target readiness", function()
-            self:SetStockFrameHidden(IsEnabled() and self.initialized == true, self.stockRefreshPending)
+            self:SetStockFrameHidden(IsEnabled() and self.initialized == true)
         end)
     end, 250)
 end
 
-function TargetFrame:SetStockFrameHidden(hidden, refreshStock)
+function TargetFrame:SetStockFrameHidden(hidden)
     hidden = hidden == true and IsEnabled() and self.runtimeRecoveryActive ~= true
     local frame = UNIT_FRAMES and UNIT_FRAMES.GetFrame and UNIT_FRAMES:GetFrame(UNIT_TAG)
     if not hidden then self:RestoreTargetEffects(frame) end
-    self.stockRefreshPending = self.stockRefreshPending or refreshStock
+    if not hidden and not self.stockFrameHidden then
+        self.stockHideRetryToken = (self.stockHideRetryToken or 0) + 1
+        self.stockHideRetryCount = 0
+        self.stockHideRetryPending = false
+        return
+    end
     if not UNIT_FRAMES or not UNIT_FRAMES.SetFrameHiddenForReason or (UNIT_FRAMES.GetFrame and not frame) then
         self:QueueStockVisibilityRefresh()
         return
     end
     local wasHidden = self.stockFrameHidden
-    if hidden and frame then self:AttachTargetEffects(frame) end
+    if hidden and frame then
+        local control = frame.GetPrimaryControl and frame:GetPrimaryControl()
+        if control and control ~= self.stockVisibilityControl then
+            self.stockVisibilityControl = control
+            -- Other addons can hide the control without setting an ESO hide reason.
+            self.stockControlWasHidden = control:IsHidden() and frame.IsHidden and not frame:IsHidden()
+        end
+        self:AttachTargetEffects(frame)
+    end
+    if hidden then self.stockFrameHidden = true end
     local ok = pcall(function()
         UNIT_FRAMES:SetFrameHiddenForReason(UNIT_TAG, STOCK_HIDE_REASON, hidden)
-        if not hidden and frame and (wasHidden or self.stockRefreshPending) then
+        if not hidden and frame and wasHidden then
             -- An instant show stops ESO's fade but does not restore its alpha.
             -- Reconcile its target/reasons before making the restored frame opaque.
             if frame.RefreshUnit then frame:RefreshUnit(true) end
@@ -1599,14 +1613,18 @@ function TargetFrame:SetStockFrameHidden(hidden, refreshStock)
             if frame.RefreshVisible then frame:RefreshVisible(true) end
             local control = frame.GetPrimaryControl and frame:GetPrimaryControl()
             if control and frame.IsHidden then
-                control:SetHidden(frame:IsHidden())
-                control:SetAlpha(1)
+                local preserveHidden = control == self.stockVisibilityControl and self.stockControlWasHidden
+                control:SetHidden(preserveHidden or frame:IsHidden())
+                if not preserveHidden then control:SetAlpha(1) end
             end
         end
     end)
     if not ok then self:QueueStockVisibilityRefresh(); return end
     self.stockFrameHidden = hidden
-    self.stockRefreshPending = nil
+    if not hidden then
+        self.stockVisibilityControl = nil
+        self.stockControlWasHidden = nil
+    end
     self.stockHideRetryToken = (self.stockHideRetryToken or 0) + 1
     self.stockHideRetryCount = 0
     self.stockHideRetryPending = false
@@ -1728,7 +1746,7 @@ end
 function TargetFrame:RefreshChangedTarget(resetState)
     self.targetRefreshToken = (self.targetRefreshToken or 0) + 1
     local refreshToken = self.targetRefreshToken
-    self:SetStockFrameHidden(IsEnabled() and self.initialized == true, not IsEnabled())
+    self:SetStockFrameHidden(IsEnabled() and self.initialized == true)
     if not IsEnabled() then return end
     if resetState ~= false then
         self:ResetTargetState()
@@ -1752,7 +1770,7 @@ function TargetFrame:QueueTargetReadinessRefresh()
     zo_callLater(function()
         self.readinessRefreshPending = nil
         self:RunGuarded("player target readiness", function()
-            self:SetStockFrameHidden(IsEnabled() and self.initialized == true, not IsEnabled())
+            self:SetStockFrameHidden(IsEnabled() and self.initialized == true)
             if IsEnabled() then self:RefreshTarget(true, true) end
         end)
     end, 25)
@@ -1860,7 +1878,7 @@ function TargetFrame:RefreshSettings()
             self.root:SetHandler("OnUpdate", nil)
         end
         if self.mover then self.mover:SetHidden(true) end
-        self:SetStockFrameHidden(false, true)
+        self:SetStockFrameHidden(false)
         return
     end
     local ok, errorMessage = pcall(function()

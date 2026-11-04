@@ -2,7 +2,7 @@ SetTracker = SetTracker or {}
 
 local ST = SetTracker
 local ADDON_NAME = "SetTracker"
-local VERSION = "0.2.11-test13"
+local VERSION = "0.3.0"
 local MENU_PREVIEW_SECONDS = 6
 
 local BAR_BOTH = 0

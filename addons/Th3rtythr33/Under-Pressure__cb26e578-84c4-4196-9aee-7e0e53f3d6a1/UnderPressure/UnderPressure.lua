@@ -44,7 +44,7 @@ UP.name    = "UnderPressure"
 -- version string lived in three places and disagreed four ways; as of 0.3.3
 -- there are two, because Settings.lua now READS UP.version for the settings
 -- panel header rather than carrying its own copy.
-UP.version = "0.5.11"
+UP.version = "0.5.12"
 -- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
 -- displays panel.author but never sets it). Matches ## Author in the manifest.
 UP.author  = "Th3rtythr33"
@@ -87,6 +87,8 @@ local DEFAULT_SAVED = {
     pull_icon_corners    = true,
     pull_icon_center     = false,
     pull_border          = false,
+    -- Pull History (0.5.12): why each warning fired, last 20, newest first.
+    pull_history         = {},
     -- Debug overlay text size (0.4.0), formerly the /upfont tuner's argument,
     -- which was never persisted. Snapped to the gamepad font ladder on apply.
     debug_font_size      = 27,
@@ -197,6 +199,7 @@ local function migrateReportMode()
         sv.plague_report = nil
     end
     if type(sv.plague_history) ~= "table" then sv.plague_history = {} end
+    if type(sv.pull_history) ~= "table" then sv.pull_history = {} end
 end
 
 local function loadSavedVars()

@@ -1,7 +1,6 @@
--- Jesus de Platre - Private Taunt Marker v0.5.0 (target health-bar indicator)
+-- Jesus de Platre - Private Taunt Marker v0.8.7 (target health-bar indicator)
 -- Private, current-target HUD only. Does NOT attach markers to world entities.
 local ADDON = "JesusDePlatre_PrivateMarker"
-local TICK = ADDON .. "_Tick"
 local TAUNT_ID = 38254
 local states = {
   mine = {0.20, 0.95, 0.35, "YOUR TAUNT"},
@@ -9,107 +8,13 @@ local states = {
   none = {1.00, 0.25, 0.25, "NO TAUNT"},
   unknown = {1.00, 0.82, 0.28, "TAUNT: UNKNOWN"},
 }
-local defaults = {enabled=true, x=0, y=-195, scale=1, showName=true, world=false, hud=true, plate=true, plateX=0, plateY=-6, plateSide="above"}
+local defaults = {enabled=true, x=0, y=-195, scale=1, showName=true, hud=true, plate=true, plateX=0, plateY=-6, plateSide="above"}
 local saved, panel, arrow, label, nameLabel, timerLabel, lastAppearance
 local demoState
 local platePanel, plateArrow, plateText, plateTimer, plateName
 local plateCandidates={"ZO_TargetUnitFramereticleover", "ZO_TargetUnitFramereticleoverFrame", "ZO_TargetUnitFramereticleoverHealth", "ZO_TargetUnitFramereticleoverHealthBar"}
 local plateFrame=nil
 local function Print(msg) d("|c66CCFF[JDP Marker]|r " .. msg) end
-local worldMarker, worldErrorPrinted = nil, false
-local lastSample = nil
-local lastSeenAt = nil
-local lastWorldCoordinates = nil
-local function RecordTargetSample()
-  if not DoesUnitExist("reticleover") then return end
-  local name = GetUnitName("reticleover") or "Unknown"
-  local dead = IsUnitDead("reticleover")
-  local attackable = IsUnitAttackable("reticleover")
-  local zone, x, y, z = nil, nil, nil, nil
-  local result = "API unavailable"
-  if type(GetUnitWorldPosition) == "function" then
-    local ok, a, b, c, d = pcall(GetUnitWorldPosition, "reticleover")
-    if ok then
-      zone, x, y, z = a, b, c, d
-      if type(x)=="number" and type(y)=="number" and type(z)=="number" and not (x==0 and y==0 and z==0) then
-        result = "nonzero coordinates"
-        lastWorldCoordinates = {zone=zone,x=x,y=y,z=z,name=name}
-      else
-        result = "missing/zero coordinates"
-      end
-    else
-      result = "API error: " .. tostring(a)
-    end
-  end
-  lastSample = {name=name,dead=dead,attackable=attackable,zone=zone,x=x,y=y,z=z,result=result}
-  lastSeenAt = GetFrameTimeSeconds and GetFrameTimeSeconds() or nil
-end
-local function ValidWorldTarget()
-  if not DoesUnitExist("reticleover") or IsUnitDead("reticleover") or not IsUnitAttackable("reticleover") then return nil end
-  if type(GetUnitWorldPosition) ~= "function" or type(WorldPositionToGuiRender3DPosition) ~= "function" then return nil end
-  local ok, zone, x, y, z = pcall(GetUnitWorldPosition, "reticleover")
-  if not ok or not zone or not x or not y or not z or (x==0 and y==0 and z==0) then return nil end
-  local pOk, pZone = pcall(GetUnitWorldPosition, "player")
-  if pOk and pZone and zone ~= pZone then return nil end
-  local converted, rx, ry, rz = pcall(WorldPositionToGuiRender3DPosition, x, y, z)
-  if not converted or type(rx)~="number" or type(ry)~="number" or type(rz)~="number" then return nil end
-  if rx~=rx or ry~=ry or rz~=rz then return nil end
-  return rx,ry,rz,zone,x,y,z
-end
-local function CreateWorldMarker()
-  if worldMarker then return true end
-  if not WINDOW_MANAGER or not GUI_RENDER_3D_SPACE_SYSTEM_WORLD then return false end
-  local ok, result=pcall(function()
-    local w=WINDOW_MANAGER:CreateTopLevelWindow(ADDON.."WorldRoot")
-    w:SetDimensions(64,64); w:SetMouseEnabled(false); w:SetHidden(false)
-    local t=WINDOW_MANAGER:CreateControl(ADDON.."WorldArrow",w,CT_TEXTURE)
-    t:SetTexture("/esoui/art/floatingmarkers/quest_available_icon.dds")
-    t:Create3DRenderSpace()
-    t:Set3DRenderSpaceSystem(GUI_RENDER_3D_SPACE_SYSTEM_WORLD)
-    t:Set3DLocalDimensions(0.8,0.8)
-    t:Set3DRenderSpaceUsesDepthBuffer(false)
-    t:SetHidden(true)
-    return t
-  end)
-  if ok then worldMarker=result; return true end
-  if not worldErrorPrinted then Print("World marker setup failed: "..tostring(result)); worldErrorPrinted=true end
-  return false
-end
-local function UpdateWorld(state)
-  if not saved.world or demoState or not state or not CreateWorldMarker() then
-    if worldMarker then worldMarker:SetHidden(true) end
-    return false
-  end
-  local rx,ry,rz=ValidWorldTarget()
-  if not rx then worldMarker:SetHidden(true); return false end
-  local c=states[state]
-  local ok,err=pcall(function()
-    worldMarker:Set3DRenderSpaceOrigin(rx,ry+1.8,rz)
-    worldMarker:SetColor(c[1],c[2],c[3],1)
-    worldMarker:SetHidden(false)
-  end)
-  if not ok then
-    worldMarker:SetHidden(true)
-    if not worldErrorPrinted then Print("3D update error: "..tostring(err));worldErrorPrinted=true end
-    return false
-  end
-  return true
-end
-local function Probe()
-  if not lastSample then
-    Print("No target recorded. Close chat, aim at a living Bloodfiend for two seconds, then retry /jdpmarker probe.")
-    return
-  end
-  local s=lastSample
-  local age=(lastSeenAt and GetFrameTimeSeconds) and math.max(0,GetFrameTimeSeconds()-lastSeenAt) or nil
-  Print(string.format("CACHED target=%s; age=%s; dead=%s; attackable=%s", tostring(s.name), age and string.format("%.1fs",age) or "unknown", tostring(s.dead), tostring(s.attackable)))
-  Print(string.format("Position=%s; zone=%s; xyz=%s, %s, %s",tostring(s.result),tostring(s.zone),tostring(s.x),tostring(s.y),tostring(s.z)))
-  if s.result=="nonzero coordinates" then
-    Print("Nonzero enemy position detected. Try /jdpmarker world on and keep target in sight.")
-  else
-    Print("Enemy 3D attachment unavailable from this sample; HUD mode remains functional.")
-  end
-end
 local function GetTargetState()
   if demoState then return demoState, 9.4, "DEMO TARGET" end
   if not DoesUnitExist("reticleover") or IsUnitDead("reticleover") or not IsUnitAttackable("reticleover") then
@@ -210,16 +115,13 @@ local function Place()
   panel:SetScale(saved.scale)
 end
 local function Update()
-  RecordTargetSample()
-  if not panel or not saved.enabled then
-    if worldMarker then worldMarker:SetHidden(true) end
+  if not panel or not saved.enabled or (not saved.hud and not saved.plate) then
     if panel then panel:SetHidden(true) end
     if platePanel then platePanel:SetHidden(true) end
     return
   end
   local state, remain, unitName = GetTargetState()
-  if not state then panel:SetHidden(true); if platePanel then platePanel:SetHidden(true) end; if worldMarker then worldMarker:SetHidden(true) end; lastAppearance=nil; return end
-  local worldDrawn=UpdateWorld(state)
+  if not state then panel:SetHidden(true); if platePanel then platePanel:SetHidden(true) end; lastAppearance=nil; return end
   local plateDrawn=UpdatePlate(state,remain,unitName)
   local c=states[state]
   if lastAppearance ~= state then
@@ -234,7 +136,7 @@ local function Update()
   else
     timerLabel:SetText("")
   end
-  panel:SetHidden(not saved.hud or plateDrawn or (saved.world and worldDrawn))
+  panel:SetHidden(not saved.hud or plateDrawn)
 end
 local function CreateUI()
   local wm=WINDOW_MANAGER
@@ -269,8 +171,8 @@ end
 local function Help()
   Print("/jdpmarker on | off | status | demo green/red/blue/yellow/off")
   Print("/jdpmarker x <number> | y <number> | scale <0.5-2> | name on/off | reset")
-  Print("/jdpmarker world on/off | probe | hud on/off  (3D experimental)")
-  Print("/jdpmarker plate on/off | plateprobe | platepos above/below | platex N | platey N")
+  Print("/jdpmarker hud on/off | plate on/off | plateprobe")
+  Print("/jdpmarker platepos above/below | platex N | platey N")
 end
 local function Command(txt)
   local args={}
@@ -289,7 +191,6 @@ local function Command(txt)
     local v=tonumber(args[2]); if v and v>=0.5 and v<=2 then saved.scale=v; Place(); Print("Scale="..v) else Print("Use 0.5 to 2") end
   elseif a=="name" then
     if args[2]=="on" or args[2]=="off" then saved.showName=(args[2]=="on"); Print("Target name "..args[2]) else Print("Use name on/off") end
-  elseif a=="probe" then Probe()
   elseif a=="plateprobe" then PlateProbe()
   elseif a=="plate" then
     if args[2]=="on" or args[2]=="off" then saved.plate=(args[2]=="on"); plateFrame=nil; Print("Target frame marker "..args[2])
@@ -302,14 +203,14 @@ local function Command(txt)
       saved[a=="platex" and "plateX" or "plateY"]=math.floor(n)
       Print(a.."="..math.floor(n))
     else Print("Use a number from -500 to 500") end
-  elseif a=="world" or a=="hud" then
+  elseif a=="hud" then
     if args[2]=="on" or args[2]=="off" then saved[a]=(args[2]=="on"); Print(a.." "..args[2])
     else Print("Use "..a.." on/off") end
   elseif a=="reset" then
     saved.x=0; saved.y=-195; saved.scale=1; Place(); Print("Position reset")
   elseif a=="status" then
     Print(string.format("Enabled=%s, x=%d, y=%d, scale=%.2f, demo=%s",tostring(saved.enabled),saved.x,saved.y,saved.scale,tostring(demoState)))
-    Print("World experimental="..tostring(saved.world)..", target-frame marker="..tostring(saved.plate)..", HUD="..tostring(saved.hud)..". Current target only.")
+    Print("Target-frame marker="..tostring(saved.plate)..", HUD="..tostring(saved.hud)..". Current target only.")
     Print(string.format("Bar position=%s, x=%d, y=%d", saved.plateSide, saved.plateX, saved.plateY))
   elseif a=="help" then Help()
   else Help() end
@@ -318,31 +219,27 @@ end
 local function OnLoaded(_,name)
   if name~=ADDON then return end
   EVENT_MANAGER:UnregisterForEvent(ADDON,EVENT_ADD_ON_LOADED)
-  JDPPrivateMarkerSaved=JDPPrivateMarkerSaved or {}
-  saved=JDPPrivateMarkerSaved
-  for k,v in pairs(defaults) do if saved[k]==nil then saved[k]=v end end
+  saved=ZO_SavedVars:NewAccountWide("JDPPrivateMarkerSaved", 1, nil, defaults, GetWorldName())
   -- Turn on the health-bar indicator once when upgrading from the earlier
   -- diagnostic builds, without overriding later user choices.
   if (saved.configVersion or 0)<5 then
     saved.plate=true
     saved.hud=true
-    saved.world=false
     saved.configVersion=5
   end
   -- Migrate previous default offset so indicator is visibly above the center of the screen.
   if saved.y==-95 then saved.y=-195 end
-  -- Multi-target v0.6 replaces the primary display. Older indicators can
+  -- Multi-target replaces the primary display. Older indicators can
   -- still be re-enabled individually via /jdpmarker hud on or plate on.
   if (saved.configVersion or 0)<6 then
     saved.plate=false
     saved.hud=false
-    saved.world=false
     saved.configVersion=6
   end
   CreateUI()
+  Update()
   SLASH_COMMANDS["/jdpmarker"]=Command
-  EVENT_MANAGER:RegisterForUpdate(TICK,100,Update)
+  EVENT_MANAGER:RegisterForUpdate(ADDON.."_Timer",250,Update) -- countdown while targeting
   EVENT_MANAGER:RegisterForEvent(ADDON.."_Target",EVENT_RETICLE_TARGET_CHANGED,Update)
-  Print("v0.6.0 loaded: multi-target panel via /jdptaunt; old HUD optional via /jdpmarker")
 end
 EVENT_MANAGER:RegisterForEvent(ADDON,EVENT_ADD_ON_LOADED,OnLoaded)

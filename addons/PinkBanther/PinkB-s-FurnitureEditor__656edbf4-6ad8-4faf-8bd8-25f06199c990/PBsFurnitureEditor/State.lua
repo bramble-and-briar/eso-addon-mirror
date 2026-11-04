@@ -101,6 +101,17 @@ local function Arm(self, what)
 	self.clearArmed = { what = what, at = addon.Now() }
 end
 
+-- "Do it again within a few seconds": true when this is the second time, within the time, for the same thing.
+-- Otherwise the first time is noted and false comes back, for the caller to say what is being asked.
+function addon:AskedTwice(what)
+	if Confirmed(self, what) then
+		return true
+	end
+	Arm(self, what)
+	return false
+end
+addon.CONFIRM_SECONDS = CONFIRM_MS / 1000
+
 local function Refuse(self, text, ...)
 	Print(text, ...)
 	addon.Alert(text, ...)

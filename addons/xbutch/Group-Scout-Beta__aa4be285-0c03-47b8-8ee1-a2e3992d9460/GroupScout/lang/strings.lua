@@ -1,0 +1,5 @@
+ZO_CreateStringId("GROUPSCOUT_NAME", "Group Scout")
+ZO_CreateStringId("GROUPSCOUT_ANNOUNCEMENT_TITLE", "Group Scout: first beta")
+ZO_CreateStringId("GROUPSCOUT_ANNOUNCEMENT_MESSAGE", "Group Scout beta adds local chat alerts for new Group Finder listings. Select your category and filters in Group Finder, then type /gs start. Monitoring is optional, checks every 5 or 10 minutes, and stops after 30 minutes. Type /gs stop to stop or /gs status for diagnostics. A widget is planned for a later version. Reports: DM @xbutch on Discord or ESO Xbox.")
+ZO_CreateStringId("GROUPSCOUT_ANNOUNCEMENT_CONFIRM", "Got it")
+ZO_CreateStringId("GROUPSCOUT_ANNOUNCEMENT_LATER", "Later")

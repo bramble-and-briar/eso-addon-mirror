@@ -2,6 +2,7 @@
 -- Never queues gold or sends mail; the player always chooses and confirms.
 local ADDON = "JesusDePlatre_PrivateMarker"
 local RECIPIENT = "@Evokation"
+local DONATION_SERVER = "PC NA"
 local popup
 local function say(message)
   d("|c66CCFF[JDP Donate]|r " .. message)
@@ -31,17 +32,10 @@ end
 local function openDonationMail()
   -- ComposeMailTo is an ESO UI helper. If another UI replaces mail,
   -- do not attempt an automatic transfer or send.
-  if MAIL_SEND and type(MAIL_SEND.ComposeMailTo) == "function" then
-    popup:SetHidden(true)
-    local ok, err = pcall(function() MAIL_SEND:ComposeMailTo(RECIPIENT) end)
-    if ok then
-      say("Mail recipient: " .. RECIPIENT .. ". Attach any gold amount you choose, review, and manually press Send.")
-      return
-    end
-    say("Could not open the mail composer: " .. tostring(err))
-  else
-    say("Mail composer unavailable. Open Social > Mail > Send and enter " .. RECIPIENT .. ".")
-  end
+  -- The mail UI may not be initialized until the player opens it.
+  -- Do not guess or invoke undocumented APIs; leave sending to the player.
+  if popup then popup:SetHidden(true) end
+  say("Donations are accepted on " .. DONATION_SERVER .. " only. Open Social > Mail > Send, enter " .. RECIPIENT .. ", and choose the gold amount yourself.")
 end
 
 local function createPopup()
@@ -60,16 +54,16 @@ local function createPopup()
   bg:SetCenterColor(0.02, 0.04, 0.07, 0.97)
   bg:SetEdgeColor(0.12, 0.6, 0.75, 1)
   createText(popup, "SUPPORT JESUS DE PLATRE", "ZoFontGameBold", 16, 12, 375, 26, 0.60, 0.95, 1)
-  createText(popup, "Optional in-game gold donation to " .. RECIPIENT, "ZoFontGame", 16, 42, 404, 26, 1, 1, 1)
-  createText(popup, "Choose your amount in ESO Mail. Nothing is sent automatically.", "ZoFontGame", 16, 68, 404, 40, 0.75, 0.83, 0.87)
-  createClickLabel(popup, "OPEN MAIL TO " .. RECIPIENT, 15, 125, 290, 35, openDonationMail)
+  createText(popup, "Optional gold donations: " .. RECIPIENT .. " (" .. DONATION_SERVER .. ")", "ZoFontGame", 16, 42, 404, 26, 1, 1, 1)
+  createText(popup, "Donations are appreciated but never required. Thank you for your support!", "ZoFontGame", 16, 68, 404, 50, 0.75, 0.83, 0.87)
+  createClickLabel(popup, "HOW TO SEND GOLD", 15, 125, 290, 35, openDonationMail)
   createClickLabel(popup, "CLOSE", 320, 125, 90, 35, function() popup:SetHidden(true) end)
 end
 
 local function showPopup()
   if not popup then return end
   popup:SetHidden(false)
-  say("Optional donation: " .. RECIPIENT .. ". Use your mouse cursor to select OPEN MAIL.")
+  -- Opt-in only; no chat spam at addon load.
 end
 
 local function onLoaded(_, name)

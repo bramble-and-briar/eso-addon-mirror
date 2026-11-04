@@ -4,6 +4,24 @@ AlabuzyaUI.Chat={}
 local M=AlabuzyaUI.Chat
 local history,serial={},0
 local copyWindow,edit
+local inputContainer
+-- A dedicated native fade reference keeps the whole chat visible while typing.
+-- It is independent of timestamps/colors, themes and other hover references.
+function M.UpdateInputVisibility()
+    local system=CHAT_SYSTEM
+    local current=system and system.primaryContainer
+    local active=system and system.IsTextEntryOpen and system:IsTextEntryOpen()
+    if inputContainer and (not active or inputContainer~=current) then
+        local previous=inputContainer
+        inputContainer=nil
+        previous:RemoveFadeInReference()
+    end
+    if active and current and not inputContainer and current.AddFadeInReference and current.RemoveFadeInReference then
+        inputContainer=current
+        if system.IsMinimized and system:IsMinimized() and system.Maximize then system:Maximize() end
+        current:AddFadeInReference()
+    end
+end
 function M.Plain(text)
     return (text:gsub('|H.-|h(.-)|h','%1'):gsub('|[cC]%x%x%x%x%x%x',''):gsub('|[rR]',''):gsub('|t.-|t',''):gsub('|u.-|u',''))
 end
@@ -36,6 +54,8 @@ local function Color(name,r,g,b)
     local category=_G[name] if category then palette[category]={r,g,b} end
 end
 function AlabuzyaUI.Chat.Initialize()
+    EVENT_MANAGER:RegisterForUpdate('AlabuzyaUIChatInput',100,M.UpdateInputVisibility)
+    M.UpdateInputVisibility()
     -- Respect a deliberately enabled standalone chat replacement.
     if pChat then return end
     Color('CHAT_CATEGORY_SAY',0.92,0.90,0.78)

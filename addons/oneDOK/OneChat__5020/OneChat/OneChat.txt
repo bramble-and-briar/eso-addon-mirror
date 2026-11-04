@@ -1,0 +1,18 @@
+## Title: OneChat
+## Description: Lightweight enhancements for the vanilla keyboard chat.
+## Author: oneDOK
+## Version: 26.11.1
+## AddOnVersion: 261101
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: OneChatSavedVariables
+
+lang/en.lua
+lang/$(language).lua
+Core.lua
+Channels.lua
+Tabs.lua
+Input.lua
+Messages.lua
+UI.lua
+OneChat.lua

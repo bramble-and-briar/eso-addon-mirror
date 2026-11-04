@@ -231,8 +231,10 @@ function CMA:DetermineItemAction(bag, slotIndex)
         end
     else
         -- all the other unlocked gear
-        local link = GetItemLink(bag, slotIndex)
-        local isCrafted = IsItemLinkCrafted(link)
+        local itemLink = GetItemLink(bag, slotIndex)
+        local quality = GetItemLinkFunctionalQuality(itemLink)
+        local actorCategory = GetItemActorCategory(bag, slotIndex)
+        local isCrafted = IsItemLinkCrafted(itemLink)
         -- check if its armor or weapon with no trait
         if not isCrafted and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then
             local traitInfo = GetItemTraitInformation(bag, slotIndex)
@@ -253,9 +255,6 @@ function CMA:DetermineItemAction(bag, slotIndex)
                     return "ignore"
                 end
             elseif traitInfo == ITEM_TRAIT_INFORMATION_NONE then
-                local itemLink = GetItemLink(bag, slotIndex)
-                local quality = GetItemLinkFunctionalQuality(itemLink)
-                local actorCategory = GetItemActorCategory(bag, slotIndex)
                 if actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
                     if self.db.bankTraitlessGear == "Bank" then
                         -- has no trait and bank is turned on -> check quality
@@ -280,15 +279,13 @@ function CMA:DetermineItemAction(bag, slotIndex)
             end
         end
         -- check  if its trait researchable... but only if selected to handle it
-        if self.db.bankResearchableItems and not IsItemPlayerLocked(bag, slotIndex) then
+        if self.db.bankResearchableItems and not IsItemPlayerLocked(bag, slotIndex) and (actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION) then
             -- call the logic to get trait info and check with LibCharacterKnowledge if all chars know it
             local traitResearchResult = self:HandleTraitItem(bag, slotIndex)
             if traitResearchResult == "bank" then
                 return traitResearchResult
             elseif traitResearchResult == "learned" then
                 -- its learned already, only carry out the decision if its not gold quality (do not sell gold quality)
-                local itemLink = GetItemLink(bag, slotIndex)
-                local quality = GetItemLinkFunctionalQuality(itemLink)
                 if (self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems] == "junk") and (quality >= ITEM_DISPLAY_QUALITY_LEGENDARY) then
                     -- prevent gold or higher tier item from selling
                     return "ignore"
@@ -298,29 +295,22 @@ function CMA:DetermineItemAction(bag, slotIndex)
             end
         end
         -- if companion items are handled, try if its a companion item
-        if self.db.handleCompanionGear then
-            -- get the actor category to know if its a companion item
-            local actorCategory = GetItemActorCategory(bag, slotIndex)
-            -- iterate the types
-            if actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-                -- it is comanion gear - handle it
-                -- get the trait of the item and its quality
-                local traitType = GetItemTrait(bag, slotIndex)
-                local itemLink = GetItemLink(bag, slotIndex)
-                local quality = GetItemLinkFunctionalQuality(itemLink)
-                if
-                    (traitType ~= nil) and
-                    (self.db.companionGearTraitHandling[traitType] == true) and
-                    (quality >= self.qualityMap[self.db.bankQualityCompanionGear])
-                then
-                    -- quality meets bank criteria and trait type is to be banked -> bank
-                    return "bank"
-                elseif self.db.sellNotBankedCompanionGear then
-                    -- item is not banked and sell option active -> mark as junk
-                    return "junk"
-                end
-                -- its a companion item but not banked or sold - break the loop and go on (probably leading to 'unknown')
+        if self.db.handleCompanionGear and (actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION) then
+            -- it is comanion gear - handle it
+            -- get the trait of the item and its quality
+            local traitType = GetItemTrait(bag, slotIndex)
+            if
+                (traitType ~= nil) and
+                (self.db.companionGearTraitHandling[traitType] == true) and
+                (quality >= self.qualityMap[self.db.bankQualityCompanionGear])
+            then
+                -- quality meets bank criteria and trait type is to be banked -> bank
+                return "bank"
+            elseif self.db.sellNotBankedCompanionGear then
+                -- item is not banked and sell option active -> mark as junk
+                return "junk"
             end
+            -- its a companion item but not banked or sold - break the loop and go on (probably leading to 'unknown')
         end
         -- if that point is reached, its not a supported item with no traits to research
         return "unknown"

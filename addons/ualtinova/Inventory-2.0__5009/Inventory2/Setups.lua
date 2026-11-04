@@ -385,6 +385,9 @@ end
 function IG.CollectSetupEntries(inventory, inventoryType, items, searchText, storedType)
     local result = {}
     if not store or not next(List()) or not IG.SetupsOn() then return result end
+    if inventoryType == INVENTORY_BANK and IG.sv.bankModules and IG.sv.bankModules.SETUPS == false then
+        return result
+    end
     Fresh()
     local isBackpack = inventoryType == INVENTORY_BACKPACK
 

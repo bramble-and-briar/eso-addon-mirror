@@ -1,0 +1,27 @@
+<GuiXml>
+    <Controls>
+        <Control name="EyesOfTheUndauntedGamepadSlider" inherits="ZO_GamepadOptionsSliderRow" virtual="true">
+            <Controls>
+                <Label name="$(parent)ValueLabel" font="ZoFontGamepad25">
+                    <Anchor point="LEFT" relativeTo="$(parent)Slider" relativePoint="RIGHT" offsetX="4" />
+                </Label>
+            </Controls>
+        </Control>
+        <TopLevelControl name="EyesOfTheUndauntedGamepad" inherits="ZO_Gamepad_ParametricList_Screen">
+            <Controls>
+                <Scroll name="$(parent)Mask" override="true">
+                    <Controls>
+                        <Control name="$(parent)Container" override="true">
+                            <Controls>
+                                <Control name="$(parent)List" inherits="ZO_VerticalParametricScrollListTemplate">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderContainer" relativePoint="BOTTOMLEFT" />
+                                    <Anchor point="BOTTOMRIGHT" />
+                                </Control>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Scroll>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

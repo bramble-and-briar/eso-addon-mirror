@@ -166,18 +166,16 @@ end
 local function loaded(_,name)
  if name~=ADDON then return end
  EVENT_MANAGER:UnregisterForEvent(NS.."_load",EVENT_ADD_ON_LOADED)
- JDPCrosshairSaved=JDPCrosshairSaved or {}
- saved=JDPCrosshairSaved
- for k,v in pairs(defaults) do if saved[k]==nil then saved[k]=v end end
+ saved=ZO_SavedVars:NewAccountWide("JDPCrosshairSaved",1,nil,defaults,GetWorldName())
  -- 0.8.2 used screen center. Migrate once to native anchor, zero offset.
  if (saved.cyberVersion or 0)<83 then
   saved.anchor="native";saved.x=0;saved.y=0;saved.size=124
   saved.textSide="left";saved.textOffset=22;saved.cyberVersion=83
  end
  build()
+ update()
  SLASH_COMMANDS["/jdpcross"]=command
- EVENT_MANAGER:RegisterForUpdate(NS.."_tick",100,update)
+ EVENT_MANAGER:RegisterForUpdate(NS.."_tick",250,update) -- countdown/alert animation
  EVENT_MANAGER:RegisterForEvent(NS.."_target",EVENT_RETICLE_TARGET_CHANGED,update)
- msg("v0.8.3 loaded. Native reticle anchoring + circular texture. /jdpcross probe")
 end
 EVENT_MANAGER:RegisterForEvent(NS.."_load",EVENT_ADD_ON_LOADED,loaded)

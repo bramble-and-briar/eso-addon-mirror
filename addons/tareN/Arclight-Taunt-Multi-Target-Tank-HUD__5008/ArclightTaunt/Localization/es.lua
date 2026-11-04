@@ -3,6 +3,10 @@
 local A = ArclightTaunt
 A.translations = A.translations or {}
 A.translations.es = {
+    ["Highlight strength"] = "Intensidad del resaltado",
+    ["Subtle"] = "Sutil",
+    ["Strong"] = "Intenso",
+    ["Same outline and light sweep. Strong adds 2 pixels to the outer border without recoloring the row."] = "Mismo contorno y destello. Intenso añade 2 píxeles al borde exterior sin cambiar el color de la fila.",
     [" BOSS TAUNTS EXPIRED"] = " PROVOCACIONES DE JEFES CADUCADAS",
     [" BOSS TAUNTS EXPIRING"] = " PROVOCACIONES DE JEFES A PUNTO DE CADUCAR",
     ["100% is opaque. Only the background changes; the warning design stays the same."] = "100 % hace opaco el fondo. El diseño del aviso no cambia.",

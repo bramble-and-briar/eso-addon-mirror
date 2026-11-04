@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | Settings module
+-- Arclight Taunt 1.1.1 | Settings module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -88,7 +88,7 @@ local function MakeSettings()
         name = "Arclight Taunt",
         displayName = "|c2FE6C4Arclight Taunt|r",
         author = "|cF7B95BtareN|r",
-        version = "1.1.0",
+        version = "1.1.1",
         website = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
         feedback = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments",
         registerForRefresh = true,
@@ -354,6 +354,20 @@ local function MakeSettings()
                     name = Colored(T("Highlight current target"), "D4F0FF"), width = "full",
                     tooltip = T("Pale outline around the current target, with a brief light sweep on target changes. Names and urgency colors stay unchanged."),
                 }),
+            {
+                    type = "dropdown", name = T("Highlight strength"), width = "full",
+                    tooltip = T("Same outline and light sweep. Strong adds 2 pixels to the outer border without recoloring the row."),
+                    choices = {T("Subtle"), T("Strong")}, choicesValues = {"subtle", "strong"},
+                    disabled = function() return not A.saved.highlightTarget end,
+                    getFunc = function() return A.saved.targetHighlightStyle end,
+                    setFunc = function(value)
+                        if value ~= "subtle" and value ~= "strong" then return end
+                        A.saved.targetHighlightStyle = value
+                        A.ApplyMedia()
+                        A.Tick()
+                    end,
+                    default = defaults.targetHighlightStyle,
+                },
             {
                     type = "slider", name = T("Background opacity (%)"), width = "half",
                     disabled = function() return A.saved.highContrast end,

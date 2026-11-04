@@ -4,7 +4,7 @@ local Addon = BackBarTimer
 Addon.Config = {
     addonName = "BackBarTimer",
     displayName = "BackBarTimer",
-    version = "2.0-rc3-test1",
+    version = "2.1.1",
     savedVariablesName = "BackBarTimer_Saved",
     savedVariablesVersion = 2,
 
@@ -35,6 +35,10 @@ Addon.Defaults = {
     hudCountdownSeconds = 10,
     skillIconFirst = false,
 
+    leftOrder = "1,2,3,4,5",
+    rightOrder = "1,2,3,4,5",
+    leftInvert = false,
+    rightInvert = false,
     hudScale = 1.0,
     leftInset = 500,
     leftY = -50,
@@ -59,3 +63,25 @@ function Addon:Log(message, force)
     end
 end
 
+
+-- User-facing skill numbers 1..5 map to ESO slots 3..7.
+function Addon:ParseDisplayOrder(text)
+    if type(text) ~= "string" then return nil end
+    local order, seen = {}, {}
+    for token in (text .. ","):gmatch("(.-),") do
+        local digit = token:match("^%s*([1-5])%s*$")
+        local number = tonumber(digit)
+        if not number or seen[number] then return nil end
+        seen[number] = true
+        order[#order + 1] = number
+    end
+    if #order ~= 5 then return nil end
+    return order
+end
+function Addon:GetDisplayOrder(side)
+    local order = self:ParseDisplayOrder(self.sv[side .. "Order"]) or {1,2,3,4,5}
+    if self.sv[side .. "Invert"] then
+        for index = 1, 2 do order[index], order[6-index] = order[6-index], order[index] end
+    end
+    return order
+end

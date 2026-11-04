@@ -38,6 +38,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [VFXFade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/VFXFade__4887) | Masteroshi430 | PC / Mac | 2026.09.29 |
 | [Vic's CharTrackr](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/crazedvic/Vic-s-CharTrackr__4565) | crazedvic | PC / Mac | 1.5.9 |
 | [Vic's Unfinished Business](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/crazedvic/Vic-s-Unfinished-Business__4568) | crazedvic | PC / Mac | 1.1.5 |
+| [Vigilant - Group Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Artioner/Vigilant---Group-Buff-Tracker__5019) | Artioner | PC / Mac | 1.0.0 |
 | [VisiblePickpocketPing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/VisiblePickpocketPing__1895) | manavortex | PC / Mac | 1.4 |
 | [VisitHouse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheNickm2/VisitHouse__2933) | TheNickm2 | PC / Mac | 2.0.0 |
 | [Visual Swap - Lightweight & Clean Swap Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lahabria/Visual-Swap---Lightweight-Clean-Swap-Indicator__2670) | Lahabria | PC / Mac | 1.0 |

@@ -272,6 +272,13 @@ local function cleanup()
     Editor.dirty={}
     Editor.frames={}
     Editor.index=nil
+    local obt=rawget(_G,'OffBalanceTracker')
+    if obt and Editor.obtPreviewActive then
+        obt.isMenuPreview=false
+        if obt.UpdateVisibility then obt.UpdateVisibility() end
+        if obt.UpdateVisuals then obt.UpdateVisuals(0,0,false) end
+        Editor.obtPreviewActive=false
+    end
     local saved=0
     for control,entry in pairs(dirty) do
         if entry.saveName=='MyUI_ChatWindow' then
@@ -280,6 +287,22 @@ local function cleanup()
             if x and y and gx and gy and BUI.Vars then
                 BUI.Vars.MyUI_ChatPosition={x-gx,y-gy}
                 saved=saved+1
+            end
+        elseif entry.saveName and string.find(entry.saveName,'^MyUI_AltPosition_') then
+            local key=string.sub(entry.saveName,string.len('MyUI_AltPosition_')+1)
+            if BUI.AlternativeAttributes and BUI.AlternativeAttributes.SavePosition then
+                BUI.AlternativeAttributes.SavePosition(key,control)
+                saved=saved+1
+            end
+        elseif entry.saveName=='MyUI_OffBalanceTracker' then
+            local obt=rawget(_G,'OffBalanceTracker')
+            if obt and obt.SV then
+                local left,top=control:GetLeft(),control:GetTop()
+                if left and top then
+                    obt.SV.offsetX=left
+                    obt.SV.offsetY=top
+                    saved=saved+1
+                end
             end
         elseif entry.saveName=='MyUI_TrackerCombined' then
             local x,y=control:GetCenter()
@@ -368,7 +391,14 @@ function Editor:Open()
         end
     end
     for _,name in ipairs(FRAME_NAMES) do
-        include(rawget(_G,name), nil, nil, nil)
+        if not (BUI.Vars and BUI.Vars.MyUI_AlternativeActive and name=='BUI_PlayerFrame') then
+            include(rawget(_G,name), nil, nil, nil)
+        end
+    end
+    if BUI.Vars and BUI.Vars.MyUI_AlternativeActive and BUI.AlternativeAttributes and BUI.AlternativeAttributes.GetBar then
+        for _, item in ipairs({{'health','Alternative Health'},{'magicka','Alternative Magicka'},{'stamina','Alternative Stamina'}}) do
+            include(BUI.AlternativeAttributes.GetBar(item[1]), 'MyUI_AltPosition_'..item[1], nil, item[2])
+        end
     end
     if BUI.MyUIChatLayout and BUI.MyUIChatLayout.GetControl then
         local chat=BUI.MyUIChatLayout.GetControl()
@@ -378,6 +408,17 @@ function Editor:Open()
         else
             -- No chat control available at this moment; leave the editor usable.
         end
+    end
+    -- Off Balance Tracker: show a temporary preview, so it remains selectable
+    -- outside combat; restore its normal visibility on editor close.
+    local obt=rawget(_G,'OffBalanceTracker')
+    if obt and obt.PARENT and obt.SV and obt.SV.enableAddon then
+        obt.isMenuPreview=true
+        self.obtPreviewActive=true
+        obt.uptimePercentage=100
+        if obt.UpdateVisibility then obt.UpdateVisibility() end
+        if obt.UpdateVisuals then obt.UpdateVisuals(1,4900,true) end
+        include(obt.PARENT,'MyUI_OffBalanceTracker',nil,'Off Balance Tracker')
     end
     -- Actual NPC "X TALK" reticle prompt (distinct from player-to-player prompt).
     local npcPrompt=rawget(_G,'RETICLE') and RETICLE.interact
@@ -401,7 +442,7 @@ function Editor:Open()
     if BUI.DefaultFrames then
         for name,desc in pairs(BUI.DefaultFrames) do
             local control=rawget(_G,name)
-            if name~='ZO_AlertTextNotification' and not TRACKER_NAMES[name] and control and not ((name=='ZO_LootHistoryControl_Keyboard' and BUI.GamepadMode) or (name=='ZO_LootHistoryControl_Gamepad' and not BUI.GamepadMode)) then
+            if name~='ZO_AlertTextNotification' and not TRACKER_NAMES[name] and not (BUI.Vars and BUI.Vars.MyUI_AlternativeActive and (name=='ZO_PlayerAttributeHealth' or name=='ZO_PlayerAttributeMagicka' or name=='ZO_PlayerAttributeStamina')) and control and not ((name=='ZO_LootHistoryControl_Keyboard' and BUI.GamepadMode) or (name=='ZO_LootHistoryControl_Gamepad' and not BUI.GamepadMode)) then
                 include(control, name, SPECIAL_ANCHOR_POINTS[name], desc)
             end
         end

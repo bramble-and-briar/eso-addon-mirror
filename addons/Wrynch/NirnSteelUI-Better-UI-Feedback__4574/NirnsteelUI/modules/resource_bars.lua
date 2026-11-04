@@ -809,20 +809,20 @@ function ResourceBars:ApplyLayout()
 end
 
 function ResourceBars:SetStockPlayerBarsHidden(hidden)
-    if ZO_PlayerAttribute then
-        local health = ZO_PlayerAttribute:GetNamedChild("Health")
-        local magicka = ZO_PlayerAttribute:GetNamedChild("Magicka")
-        local stamina = ZO_PlayerAttribute:GetNamedChild("Stamina")
-        local hideHealth = hidden or ShouldHideHealthResourceBar()
-
-        if health then
-            health:SetHidden(hideHealth)
-        end
-        if magicka then
-            magicka:SetHidden(hidden)
-        end
-        if stamina then
-            stamina:SetHidden(hidden)
+    if not ZO_PlayerAttribute then return end
+    self.stockPlayerBarHiddenStates = self.stockPlayerBarHiddenStates or {}
+    for _, name in ipairs({ "Health", "Magicka", "Stamina" }) do
+        local control = ZO_PlayerAttribute:GetNamedChild(name)
+        if control then
+            local previous = self.stockPlayerBarHiddenStates[control]
+            local shouldHide = hidden or (name == "Health" and ShouldHideHealthResourceBar())
+            if shouldHide then
+                if previous == nil then self.stockPlayerBarHiddenStates[control] = control:IsHidden() end
+                control:SetHidden(true)
+            elseif previous ~= nil then
+                control:SetHidden(previous)
+                self.stockPlayerBarHiddenStates[control] = nil
+            end
         end
     end
 end

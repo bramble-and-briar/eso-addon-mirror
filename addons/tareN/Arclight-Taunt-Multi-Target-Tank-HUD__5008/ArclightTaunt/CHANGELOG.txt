@@ -1,6 +1,11 @@
 [b][color=#F2D29A]ARCLIGHT TAUNT - PUBLIC CHANGELOG[/color][/b]
 
-[b][color=#2FE6C4]VERSION 1.1.0 | Clearer Combat HUD & Smooth Countdowns | 2 November 2026[/color][/b]
+[b][color=#2FE6C4]VERSION 1.1.1 | Compatibility & Target Highlight | 3 November 2026[/color][/b]
+- Added the missing minimum-version requirement for LibMediaProvider (r39 or newer) and clarified library requirements in the documentation.
+- Translation files now load according to your ESO client language, with English fallback, instead of loading all translations.
+- Added optional Strong target highlighting: the same pale outline and light sweep with a border 2 pixels wider. Subtle remains the default; both work with high contrast and mirrored layouts.
+
+[b][color=#AEBCCA]VERSION 1.1.0 | Clearer Combat HUD & Smooth Countdowns | 2 November 2026[/color][/b]
 
 [b]HUD & CUSTOMIZATION[/b]
 - Taunt countdown bars now move smoothly instead of advancing in steps with each HUD update. Re-taunts use the newly reported duration, and the bar clears together with the zero timer. Boss-banner countdown strips are smoother too.

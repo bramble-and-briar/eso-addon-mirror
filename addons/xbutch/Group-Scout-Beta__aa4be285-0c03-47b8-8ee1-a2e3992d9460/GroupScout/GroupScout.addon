@@ -1,0 +1,13 @@
+## Title: Group Scout (Beta)
+## Description: Optional Group Finder monitoring with local chat alerts for new listings.
+## Author: xbutch
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101051
+## IsLibrary: false
+## SavedVariables: GroupScoutSavedVariables
+
+lang/strings.lua
+GroupScout_Core.lua
+GroupScout_Announcements.lua
+GroupScout.lua

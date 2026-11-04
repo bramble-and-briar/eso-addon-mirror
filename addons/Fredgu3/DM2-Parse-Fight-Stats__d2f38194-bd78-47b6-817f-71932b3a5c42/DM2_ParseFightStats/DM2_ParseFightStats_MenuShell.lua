@@ -11,7 +11,7 @@ DM2StatsMenuShell = DM2StatsMenuShell or {}
 local M = DM2StatsMenuShell
 
 M.name    = "DM2StatsMenuShell"
-M.version = "3.18.6"
+M.version = "3.18.8"
 
 local WM = WINDOW_MANAGER
 local SCENE_NAME = "dm2StatsMenuShellGamepad"
@@ -5939,13 +5939,13 @@ local function buildCoachAnalysis(session, syn, diag, profile)
     pushWaste(string.format(
       "Crit rate (hits): %s of damage events crit  %s",
       fmtPct(hitCrit), confidenceChip(CONFIDENCE.OBSERVED)
-    ), { pct = hitCrit, tick = (sheetCrit > 0) and sheetCrit or nil })
+    ), { pct = hitCrit, tick = (sheetCrit > 0) and sheetCrit or nil, label = "Crit rate  " .. fmtPct(hitCrit) })
   end
   if critDmgPct > 0 then
     pushWaste(string.format(
       "Crit damage mult (sheet): %0.0f%%  ·  ceiling %0.0f%%  %s",
       critDmgPct, ceiling, confidenceChip(CONFIDENCE.OBSERVED)
-    ), { pct = (ceiling > 0) and (critDmgPct / ceiling) or 0, tick = 1 })
+    ), { pct = (ceiling > 0) and (critDmgPct / ceiling) or 0, tick = 1, label = string.format("Crit damage  %0.0f%%", critDmgPct) })
   else
     -- Console rarely exposes STAT_CRITICAL_DAMAGE. Recipe from Force/Brittle/CP/racial.
     local rec = estimateCritDamageRecipe(session, profile)
@@ -5957,7 +5957,7 @@ local function buildCoachAnalysis(session, syn, diag, profile)
       (headroom <= 0) and "at/over" or string.format("+%0.0f", headroom),
       rec.recipeTxt or "base 50",
       confidenceChip(CONFIDENCE.ESTIMATED)
-    ), { pct = (recCeil > 0) and ((rec.pct or 50) / recCeil) or 0, tick = 1, tone = "est" })
+    ), { pct = (recCeil > 0) and ((rec.pct or 50) / recCeil) or 0, tick = 1, tone = "est", label = string.format("Crit damage  ~%0.0f%%", rec.pct or 50) })
     if rec.over and rec.over > 0.5 then
       overcapRisk = true
       riskReason = "recipe over ceiling"
@@ -5969,7 +5969,7 @@ local function buildCoachAnalysis(session, syn, diag, profile)
     fmtPct(majForceUp), fmtPct(minForceUp),
     confidenceChip(CONFIDENCE.OBSERVED),
     overcapRisk and string.format("  ·  overcap risk (%s) %s", riskReason, confidenceChip(CONFIDENCE.ESTIMATED)) or ""
-  ), { pct = majForceUp, tone = (majForceUp >= 0.75) and "good" or nil })
+  ), { pct = majForceUp, tone = (majForceUp >= 0.75) and "good" or nil, label = "Major Force  " .. fmtPct(majForceUp) })
   if exposure and exposure.confidence ~= CONFIDENCE.INSUFFICIENT and (tonumber(exposure.samples) or 0) > 0 then
     local overPct = (tonumber(exposure.overcapExposure) or 0) * 100
     local capU = tonumber(exposure.capUptime) or 0
@@ -5979,7 +5979,7 @@ local function buildCoachAnalysis(session, syn, diag, profile)
         "Crit-dmg exposure (sheet samples): avg %0.0f%% · under ceiling  %s",
         tonumber(exposure.avgSheetCritPct) or 0,
         confidenceChip(exposure.confidence or CONFIDENCE.ESTIMATED)
-      ), { pct = expPct, tick = 1, tone = "est" })
+      ), { pct = expPct, tick = 1, tone = "est", label = string.format("Crit exposure  %0.0f%%", tonumber(exposure.avgSheetCritPct) or 0) })
     else
       pushWaste(string.format(
         "Crit-dmg exposure (sheet samples): avg %0.0f%% · at/over cap %s · overcap ~%0.1f%%  %s",
@@ -5987,7 +5987,7 @@ local function buildCoachAnalysis(session, syn, diag, profile)
         fmtPct(capU),
         overPct,
         confidenceChip(exposure.confidence or CONFIDENCE.ESTIMATED)
-      ), { pct = expPct, tick = 1, tone = "est" })
+      ), { pct = expPct, tick = 1, tone = "est", label = string.format("Crit exposure  %0.0f%%", tonumber(exposure.avgSheetCritPct) or 0) })
     end
   end
 
@@ -6032,7 +6032,7 @@ local function buildCoachAnalysis(session, syn, diag, profile)
     fmtInt(effectivePen),
     fmtInt(resistTarget),
     confidenceChip(CONFIDENCE.ESTIMATED)
-  ), { pct = penPct, tick = 1, tone = "est" })
+  ), { pct = penPct, tick = 1, tone = "est", label = "Effective pen  " .. fmtInt(effectivePen) })
   if remaining <= 0 then
     pushWaste(string.format(
       "At/over resist reference — extra personal pen likely low value under this profile  %s",
@@ -10637,29 +10637,34 @@ local function createInsightsUI(screen, mode)
   if not M.PaintInsightMeter then
     function M.MakeInsightMeter(parent, name)
       local bg = WM:CreateControl(name .. "Bg", parent, CT_BACKDROP)
-      bg:SetCenterColor(0.10, 0.11, 0.13, 0.75)
+      bg:SetCenterColor(0.16, 0.17, 0.20, 0.95)
       bg:SetEdgeColor(0, 0, 0, 0)
+      bg:SetInsets(0, 0, 0, 0)
       bg:SetHidden(true)
-      stampBackground(bg, 6)
+      -- Text tier, under the fill. Background tier sits under the plate and disappears.
+      stampForeground(bg, 90)
       local fg = WM:CreateControl(name .. "Fg", bg, CT_BACKDROP)
-      fg:SetCenterColor(0.45, 0.78, 0.55, 0.92)
+      fg:SetCenterColor(0.45, 0.78, 0.55, 0.95)
       fg:SetEdgeColor(0, 0, 0, 0)
+      fg:SetInsets(0, 0, 0, 0)
       fg:SetAnchor(TOPLEFT, bg, TOPLEFT, 0, 0)
-      fg:SetDimensions(2, 6)
-      stampForeground(fg, 100)
+      fg:SetDimensions(2, 8)
+      stampForeground(fg, 140)
       local tick = WM:CreateControl(name .. "Tk", bg, CT_BACKDROP)
-      tick:SetCenterColor(0.96, 0.90, 0.55, 0.96)
+      tick:SetCenterColor(0.96, 0.90, 0.55, 0.98)
       tick:SetEdgeColor(0, 0, 0, 0)
-      tick:SetDimensions(2, 8)
+      tick:SetInsets(0, 0, 0, 0)
+      tick:SetDimensions(2, 10)
       tick:SetHidden(true)
-      stampForeground(tick, 120)
+      stampForeground(tick, 145)
       local pip = WM:CreateControl(name .. "Pip", parent, CT_BACKDROP)
-      pip:SetCenterColor(0.45, 0.78, 0.55, 0.95)
+      pip:SetCenterColor(0.45, 0.78, 0.55, 0.98)
       pip:SetEdgeColor(0.25, 0.45, 0.28, 0.5)
-      pip:SetDimensions(7, 7)
+      pip:SetInsets(0, 0, 0, 0)
+      pip:SetDimensions(8, 8)
       pip:SetHidden(true)
-      stampForeground(pip, 120)
-      return { bg = bg, fg = fg, tick = tick, pip = pip, w = 80, h = 6 }
+      stampForeground(pip, 145)
+      return { bg = bg, fg = fg, tick = tick, pip = pip, w = 80, h = 8 }
     end
     function M.PaintInsightMeter(meter, pct, tickAt, tone, showPip)
       if not meter or not meter.bg then return end
@@ -10673,7 +10678,7 @@ local function createInsightsUI(screen, mode)
       if p < 0 then p = 0 end
       if p > 1 then p = 1 end
       local w = tonumber(meter.w) or 80
-      local h = tonumber(meter.h) or 6
+      local h = tonumber(meter.h) or 8
       meter.bg:SetHidden(false)
       meter.fg:ClearAnchors()
       meter.fg:SetAnchor(TOPLEFT, meter.bg, TOPLEFT, 0, 0)
@@ -10726,7 +10731,7 @@ local function createInsightsUI(screen, mode)
   -- mode: "dps" | "build" — split for readability / room to grow
   mode = (mode == "build") and "build" or "dps"
   local storeKey = (mode == "build") and "insightsBuildUI" or "insightsDpsUI"
-  if screen[storeKey] and not screen[storeKey]._v31806 then screen[storeKey] = nil end
+  if screen[storeKey] and not screen[storeKey]._v31808 then screen[storeKey] = nil end
   if screen[storeKey] then
     local existing = screen[storeKey]
     -- Lazy-add Next Test action line (2.5.3) without full rebuild
@@ -10754,7 +10759,7 @@ local function createInsightsUI(screen, mode)
     ibCpStory = {},
     ibCpRows = {},
     ibPot = {},
-    _v31806 = true,
+    _v31808 = true,
   }
   local pfx = (mode == "build") and "DM2StatsMenuInBld" or "DM2StatsMenuInDps"
   local rootName = pfx .. "Root"
@@ -10771,7 +10776,7 @@ local function createInsightsUI(screen, mode)
   ui.profileBadge:SetAnchor(TOPRIGHT, ui.root, TOPRIGHT, -4, 2)
   ui.assumption = makeDashLabel(ui.root, pfx .. "Assume", 15, 0.90, 0.82, 0.55, 1)
   ui.assumption:SetAnchor(TOPLEFT, ui.meta, BOTTOMLEFT, 0, 2)
-  ui.assumption:SetMaxLineCount(2)
+  ui.assumption:SetMaxLineCount(1)
 
   ui.diagPanel = WM:CreateControl(pfx .. "Diag", ui.root, CT_CONTROL)
   local dbg = makeSectionFrame(ui.diagPanel, pfx .. "DiagBG", true)
@@ -10797,8 +10802,13 @@ local function createInsightsUI(screen, mode)
     }
   end
   ui.phaseMeters = {}
+  ui.phaseCaps = {}
   for i = 1, 3 do
     ui.phaseMeters[i] = M.MakeInsightMeter(ui.diagPanel, pfx .. "PhM" .. i)
+    local cap = makeDashLabel(ui.diagPanel, pfx .. "PhCap" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    cap:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    cap:SetMaxLineCount(1)
+    ui.phaseCaps[i] = cap
   end
 
   ui.wastePanel = WM:CreateControl(pfx .. "WasteV6", ui.root, CT_CONTROL)
@@ -10807,7 +10817,8 @@ local function createInsightsUI(screen, mode)
   ui.wasteTitle = makeDashLabel(ui.wastePanel, pfx .. "WasteTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.wasteTitle:SetText("2  WASTED OR MISSING VALUE")
   ui.meterLegend = makeDashLabel(ui.wastePanel, pfx .. "MeterKey", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-  ui.meterLegend:SetText("tick = reference   ·   filled = observed   ·   hollow = estimated")
+  ui.meterLegend:SetText("tick = reference  ·  filled = seen  ·  hollow = estimate")
+  ui.meterLegend:SetMaxLineCount(1)
   ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   ui.wasteMeters = {}
   for i = 1, INSIGHT_WASTE_LINES do
@@ -10819,7 +10830,7 @@ local function createInsightsUI(screen, mode)
   local bbg = makeSectionFrame(ui.buildPanel, pfx .. "BuildBGV6", true)
   bbg:SetAnchorFill(ui.buildPanel)
   ui.buildTitle = makeDashLabel(ui.buildPanel, pfx .. "BuildTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-  ui.buildTitle:SetText(mode == "build" and "INSIGHTS: BUILD  ·  what you brought, and did it pay" or "3  BUILD CONTRIBUTION")
+  ui.buildTitle:SetText(mode == "build" and "What you brought, and did it pay" or "3  BUILD CONTRIBUTION")
   ui.buildMix = makeDashLabel(ui.buildPanel, pfx .. "BuildMixV6", 15, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
   ui.buildFp = makeDashLabel(ui.buildPanel, pfx .. "BuildFpV6", 15, 0.85, 0.78, 0.45, 1)
   ui.buildSrcHdr = makeDashLabel(ui.buildPanel, pfx .. "BuildSrcHdrV6", 12, THEME.titleR, THEME.titleG, THEME.titleB, 1)
@@ -10922,7 +10933,7 @@ local function createInsightsUI(screen, mode)
   ui.nextBody:SetMaxLineCount(3)
   ui.nextAction = makeDashLabel(ui.nextPanel, pfx .. "NextActV6", 14, 0.55, 0.92, 0.75, 1)
   ui.disclaimer = makeDashLabel(ui.nextPanel, pfx .. "DiscV6", 13, 0.50, 0.50, 0.46, 1)
-  ui.disclaimer:SetMaxLineCount(2)
+  ui.disclaimer:SetMaxLineCount(1)
   ui.nextPips = {}
   for i = 1, 3 do
     local pip = WM:CreateControl(pfx .. "ExpPip" .. i, ui.nextPanel, CT_BACKDROP)
@@ -10958,24 +10969,28 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.root:SetDimensions(W, H)
   ui.title:ClearAnchors()
   ui.title:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 0)
-  ui.title:SetWidth(math.floor(W * 0.62))
+  ui.title:SetWidth(math.floor(W * 0.68))
+  ui.title:SetMaxLineCount(1)
   ui.meta:ClearAnchors()
-  ui.meta:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 24)
-  ui.meta:SetWidth(math.floor(W * 0.92))
+  ui.meta:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 22)
+  ui.meta:SetWidth(W - 8)
+  ui.meta:SetMaxLineCount(1)
   if ui.assumption then
     ui.assumption:ClearAnchors()
-    ui.assumption:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 44)
+    ui.assumption:SetAnchor(TOPLEFT, ui.root, TOPLEFT, 0, 42)
     ui.assumption:SetWidth(W - 8)
+    ui.assumption:SetMaxLineCount(1)
   end
   if ui.profileBadge then
     ui.profileBadge:ClearAnchors()
-    ui.profileBadge:SetAnchor(TOPRIGHT, ui.root, TOPRIGHT, -4, 2)
-    ui.profileBadge:SetWidth(math.floor(W * 0.36))
+    ui.profileBadge:SetAnchor(TOPRIGHT, ui.root, TOPRIGHT, -4, 0)
+    ui.profileBadge:SetWidth(math.floor(W * 0.28))
     ui.profileBadge:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    ui.profileBadge:SetMaxLineCount(1)
   end
 
-  -- Header is title + meta + two-line assumption. Sections start under that.
-  local y0 = 82
+  -- Title, one meta line, one assumption line. Sections start under that.
+  local y0 = 64
   local gap = 5
   local mode = ui.mode or "dps"
   local heights, panels
@@ -10985,9 +11000,9 @@ local function layoutInsightsUI(ui, hostW, hostH)
     if ui.buildPanel then ui.buildPanel:SetHidden(false) end
   else
     local avail = H - y0 - gap * 3 - 2
-    -- Next is tall enough for a 17pt head, three lines of body, the action, and the disclaimer.
-    local mins = { 192, 188, 150, 164 }
-    local minSum = 694
+    -- Diagnosis holds three labeled phase bars and three limit rows. Next holds head, body, action, one disclaimer line.
+    local mins = { 210, 188, 150, 164 }
+    local minSum = 712
     heights = {}
     if avail >= minSum then
       local extra = avail - minSum
@@ -11033,7 +11048,8 @@ local function layoutInsightsUI(ui, hostW, hostH)
   local function placeTrack(meter, parent, right, top, barW, barH)
     if not meter or not meter.bg or not parent then return end
     barW = barW or 112
-    barH = barH or 6
+    barH = barH or 8
+    if barH < 8 then barH = 8 end
     meter.w = barW
     meter.h = barH
     meter.bg:ClearAnchors()
@@ -11048,8 +11064,8 @@ local function layoutInsightsUI(ui, hostW, hostH)
 
   local dH = heights[1] or 0
   if mode ~= "build" and ui.diagPanel and not ui.diagPanel:IsHidden() then
-    local spec = { 24, 46, 82, 100, 112, 130 }
-    local need = spec[6] + 52
+    local spec = { 22, 44, 86, 104, 122, 142 }
+    local need = spec[6] + 48
     if dH < need then
       local scale = math.max(0.62, (dH - 8) / need)
       for i = 1, 6 do spec[i] = math.max(4, math.floor(spec[i] * scale)) end
@@ -11065,21 +11081,28 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.primary:ClearAnchors()
     ui.primary:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, primaryY)
     ui.primary:SetWidth(W - 24)
-    ui.phase:ClearAnchors()
-    ui.phase:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, phaseY)
-    ui.phase:SetWidth(W - 24)
-    local phaseW = math.max(48, math.floor((W - 40) / 3))
-    if ui.phaseMeters then
-      for i = 1, 3 do
-        local m = ui.phaseMeters[i]
-        if m and m.bg then
-          m.w = math.max(36, phaseW - 10)
-          m.h = 6
-          m.bg:ClearAnchors()
-          m.bg:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12 + (i - 1) * phaseW, phaseBarY)
-          m.bg:SetDimensions(m.w, 6)
-          if m.pip then m.pip:SetHidden(true) end
-        end
+    if ui.phase then ui.phase:SetHidden(true) end
+    local gapB = 18
+    local phaseW = math.max(48, math.floor((W - 24 - gapB * 2) / 3))
+    local meterW = math.min(240, math.max(160, math.floor(W * 0.30)))
+    ui.barW = meterW
+    for i = 1, 3 do
+      local x = 12 + (i - 1) * (phaseW + gapB)
+      if ui.phaseCaps and ui.phaseCaps[i] then
+        local cap = ui.phaseCaps[i]
+        cap:ClearAnchors()
+        cap:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, x, phaseY)
+        cap:SetWidth(phaseW)
+        cap:SetHidden(false)
+      end
+      local m = ui.phaseMeters and ui.phaseMeters[i]
+      if m and m.bg then
+        m.w = phaseW
+        m.h = 8
+        m.bg:ClearAnchors()
+        m.bg:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, x, phaseBarY)
+        m.bg:SetDimensions(phaseW, 8)
+        if m.pip then m.pip:SetHidden(true) end
       end
     end
     ui.limitsHdr:ClearAnchors()
@@ -11087,9 +11110,8 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.limitsHdr:SetWidth(W - 24)
     local oppH = math.floor((dH - oppTop - 4) / INSIGHT_DIAG_OPP)
     if oppH < 1 then oppH = 1 end
-    local nameW = math.min(220, math.max(120, math.floor(W * 0.26)))
-    local estW = 72
-    local meterW = 112
+    local estW = 84
+    local nameW = math.max(100, W - 48 - estW - meterW)
     for i = 1, INSIGHT_DIAG_OPP do
       local r = ui.oppRows[i]
       if r then
@@ -11106,25 +11128,23 @@ local function layoutInsightsUI(ui, hostW, hostH)
         r.est:ClearAnchors()
         r.est:SetAnchor(LEFT, r.row, LEFT, 28 + nameW, 0)
         r.est:SetWidth(estW)
-        local evX = 34 + nameW + estW
-        r.ev:ClearAnchors()
-        r.ev:SetAnchor(LEFT, r.row, LEFT, evX, 0)
-        r.ev:SetWidth(math.max(60, W - 40 - evX - meterW))
-        r.ev:SetMaxLineCount(1)
-        placeTrack(r.meter, r.row, -4, math.max(0, math.floor((oppH - 8) / 2)), meterW, 6)
+        r.ev:SetHidden(true)
+        placeTrack(r.meter, r.row, -4, math.max(0, math.floor((oppH - 8) / 2)), meterW, 8)
       end
     end
 
     ui.wasteTitle:ClearAnchors()
     ui.wasteTitle:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 10, 4)
-    ui.wasteTitle:SetWidth(math.floor(W * 0.42))
+    ui.wasteTitle:SetWidth(300)
+    ui.wasteTitle:SetMaxLineCount(1)
     if ui.meterLegend then
       ui.meterLegend:ClearAnchors()
       ui.meterLegend:SetAnchor(TOPRIGHT, ui.wastePanel, TOPRIGHT, -10, 6)
-      ui.meterLegend:SetWidth(math.max(180, math.floor(W * 0.54)))
+      ui.meterLegend:SetWidth(math.max(120, W - 330))
       ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+      ui.meterLegend:SetMaxLineCount(1)
     end
-    local wTop = 26
+    local wTop = 30
     local wRowH = math.floor(((heights[2] or 100) - wTop - 4) / INSIGHT_WASTE_LINES)
     if wRowH < 1 then wRowH = 1 end
     for i = 1, INSIGHT_WASTE_LINES do
@@ -11132,12 +11152,12 @@ local function layoutInsightsUI(ui, hostW, hostH)
       if line then
         line:ClearAnchors()
         line:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 12, wTop + (i - 1) * wRowH)
-        line:SetWidth(math.max(80, W - 36 - 128))
+        line:SetWidth(math.max(80, W - 28 - meterW))
         line:SetMaxLineCount(1)
       end
       if ui.wasteMeters then
         placeTrack(ui.wasteMeters[i], ui.wastePanel, -12,
-          wTop + (i - 1) * wRowH + math.max(0, math.floor((wRowH - 8) / 2)), 112, 6)
+          wTop + (i - 1) * wRowH + math.max(0, math.floor((wRowH - 8) / 2)), meterW, 8)
       end
     end
   end
@@ -11173,7 +11193,8 @@ local function layoutInsightsUI(ui, hostW, hostH)
     end
     local yb = 58
     local innerW = W - 24
-    local meterReserve = 132
+    local meterReserve = math.min(220, math.max(156, math.floor(W * 0.24)))
+    local buildBar = meterReserve - 28
     local function placeHdr(lbl, textY)
       if not lbl then return textY end
       lbl:ClearAnchors()
@@ -11197,7 +11218,7 @@ local function layoutInsightsUI(ui, hostW, hostH)
       yb = placeLine(ui.ibSetRows[i], yb, lineH, meterReserve)
       if ui.ibSetMeters then
         placeTrack(ui.ibSetMeters[i], ui.buildPanel, -12,
-          yLine + math.max(0, math.floor((lineH - 7) / 2)), 108, 5)
+          yLine + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
       end
     end
     yb = yb + 4
@@ -11228,7 +11249,7 @@ local function layoutInsightsUI(ui, hostW, hostH)
         r.impact:SetAnchor(LEFT, r.row, LEFT, 56 + nW, 0)
         r.impact:SetWidth(math.max(80, innerW - 70 - nW - meterReserve))
         r.impact:SetMaxLineCount(1)
-        placeTrack(r.meter, r.row, -2, math.max(0, math.floor((cpPitch - 8) / 2)), 108, 5)
+        placeTrack(r.meter, r.row, -2, math.max(0, math.floor((cpPitch - 8) / 2)), buildBar, 8)
         yb = yb + cpPitch
       end
     end
@@ -11236,7 +11257,7 @@ local function layoutInsightsUI(ui, hostW, hostH)
     yb = placeHdr(ui.ibBarHdr, yb)
     local barY = yb
     yb = placeLine(ui.ibBarLine, yb, math.max(lineH, 18), meterReserve)
-    placeTrack(ui.ibBarMeter, ui.buildPanel, -12, barY + 4, 108, 5)
+    placeTrack(ui.ibBarMeter, ui.buildPanel, -12, barY + 4, buildBar, 8)
     yb = yb + 4
     yb = placeHdr(ui.ibPotHdr, yb)
     for i = 1, IB_POT_LINES do
@@ -11244,7 +11265,7 @@ local function layoutInsightsUI(ui, hostW, hostH)
       local reserve = (i == 1) and meterReserve or 0
       yb = placeLine(ui.ibPot[i], yb, lineH, reserve)
       if i == 1 then
-        placeTrack(ui.ibPotMeter, ui.buildPanel, -12, potY + math.max(0, math.floor((lineH - 7) / 2)), 108, 5)
+        placeTrack(ui.ibPotMeter, ui.buildPanel, -12, potY + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
       end
     end
     yb = yb + 4
@@ -11323,8 +11344,9 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.execTitle:SetWidth(W - 20)
   ui.execSummary:ClearAnchors()
   ui.execSummary:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, 24)
-  ui.execSummary:SetWidth(math.max(80, W - 160))
-  placeTrack(ui.execPace, ui.execPanel, -12, 30, 112, 6)
+  ui.execSummary:SetWidth(math.max(80, W - 28 - (ui.barW or 200)))
+  ui.execSummary:SetMaxLineCount(1)
+  placeTrack(ui.execPace, ui.execPanel, -12, 28, ui.barW or 200, 8)
   local eTop = 46
   local eH = math.floor(((heights[4] or 80) - eTop - 4) / INSIGHT_EXEC_LINES)
   if eH < 1 then eH = 1 end
@@ -11681,7 +11703,8 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
     if ui.ibNextBody then ui.ibNextBody:SetText("") end
   end
   if ui.ibFoot then
-    ui.ibFoot:SetText("[Observed] measured this fight. [Estimated] heuristic. Outcome DPS is never changed by this page. Bar length is share, uptime, or eligible damage.")
+    ui.ibFoot:SetText("[Observed] this fight. [Estimated] heuristic. Bars are share, uptime, or eligible damage.")
+    ui.ibFoot:SetMaxLineCount(1)
   end
 end
 
@@ -11728,19 +11751,19 @@ local function refreshInsightsUI(screen, session, mode)
     ui.profileBadge:SetText(formatProfileBadge(profile))
   end
   if ui.assumption then
-    ui.assumption:SetText(
-      "Trial-prep profile: coach lines may assume organized tank/healer buffs "
-        .. "(e.g. Major Breach, Crusher, Major Force). "
-        .. "[Estimated] = uses those assumptions. [Observed] = measured this fight. "
-        .. "Outcome DPS numbers are never changed by profile."
-    )
+    ui.assumption:SetText("Trial-prep: estimates may assume tank and healer buffs. Observed numbers are this fight.")
   end
 
   if not session then
     ui.meta:SetText("No fight selected")
     if ui.headline then ui.headline:SetText("Complete a parse to unlock coach diagnosis.") end
     if ui.primary then ui.primary:SetText("") end
-    if ui.phase then ui.phase:SetText("") end
+    if ui.phase then ui.phase:SetText("") ui.phase:SetHidden(true) end
+    if ui.phaseCaps then
+      for i = 1, 3 do
+        if ui.phaseCaps[i] then ui.phaseCaps[i]:SetText("") end
+      end
+    end
     for i = 1, INSIGHT_DIAG_OPP do
       if ui.oppRows[i] then ui.oppRows[i].row:SetHidden(true) end
     end
@@ -11786,17 +11809,16 @@ local function refreshInsightsUI(screen, session, mode)
   if ui.headline then ui.headline:SetText(diag.headline or "") end
   if ui.primary then ui.primary:SetText(diag.primaryLine or "") end
   local ph = diag.phases or {}
-  if ui.phase then
-    ui.phase:SetText(string.format(
-      "Phases: Opener %s  ·  Sustained %s  ·  Late %s",
-      fmtDps(ph.opener or 0), fmtDps(ph.sustained or 0), fmtDps(ph.execute or 0)
-    ))
-  end
+  if ui.phase then ui.phase:SetHidden(true) end
   if ui.phaseMeters and M.PaintInsightMeter then
     local phaseVals = { tonumber(ph.opener) or 0, tonumber(ph.sustained) or 0, tonumber(ph.execute) or 0 }
+    local capNames = { "Opener", "Sustained", "Late" }
     local maxPh = 0
     for _, pv in ipairs(phaseVals) do if pv > maxPh then maxPh = pv end end
     for i = 1, 3 do
+      if ui.phaseCaps and ui.phaseCaps[i] then
+        ui.phaseCaps[i]:SetText(string.format("%s  %s", capNames[i], fmtDps(phaseVals[i])))
+      end
       local tone = (phaseVals[i] >= maxPh * 0.92) and "good" or "warn"
       local pct = (maxPh > 0) and (phaseVals[i] / maxPh) or 0
       M.PaintInsightMeter(ui.phaseMeters[i], pct, nil, tone, false)
@@ -11839,13 +11861,18 @@ local function refreshInsightsUI(screen, session, mode)
   -- §2 Waste — prefer coach lines (pen profile + crit/Force risk)
   local waste = coach.wasteLines or {}
   local wasteMeters = coach.wasteMeters or {}
+  local rootW = (ui.root and ui.root.GetWidth and ui.root:GetWidth()) or 900
+  local barW = tonumber(ui.barW) or 200
   for i = 1, INSIGHT_WASTE_LINES do
+    local wm = wasteMeters[i]
+    local hasBar = wm and wm.pct ~= nil
     if ui.wasteLines[i] then
-      ui.wasteLines[i]:SetText(displayName(waste[i] or "", 160))
+      local shown = (hasBar and wm.label) or waste[i] or ""
+      ui.wasteLines[i]:SetText(displayName(shown, hasBar and 42 or 110))
+      ui.wasteLines[i]:SetWidth(hasBar and math.max(80, rootW - 28 - barW) or (rootW - 24))
     end
     if M.PaintInsightMeter and ui.wasteMeters then
-      local wm = wasteMeters[i]
-      if wm and wm.pct ~= nil then
+      if hasBar then
         M.PaintInsightMeter(ui.wasteMeters[i], wm.pct, wm.tick, wm.tone, true)
       else
         M.PaintInsightMeter(ui.wasteMeters[i], nil)
@@ -12074,11 +12101,9 @@ local function refreshInsightsUI(screen, session, mode)
       end
     end
   end
-  local discParts = {}
-  if diag.disclaimer then discParts[#discParts + 1] = diag.disclaimer end
-  if syn and syn.disclaimer then discParts[#discParts + 1] = syn.disclaimer end
-  discParts[#discParts + 1] = profile.note or ""
-  if ui.disclaimer then ui.disclaimer:SetText(table.concat(discParts, "  ·  ")) end
+  if ui.disclaimer then
+    ui.disclaimer:SetText(diag.disclaimer or "Estimates use this fight's observed damage — not guaranteed free DPS.")
+  end
 end
 
 ---------------------------------------------------------------------
@@ -13402,17 +13427,13 @@ end
 function DM2StatsMenuShell_Gamepad:RefreshHeader()
   if not self.header then return end
   local section = sectionLabelForTab(self.currentTab)
-  local exp = getActiveExperiment()
-  local expBit = "A: experiment on Insights"
-  if exp then
-    local n = type(exp.runs) == "table" and #exp.runs or 0
-    local need = tonumber(exp.targetRuns) or 3
-    expBit = exp.completed
-      and string.format("EXP DONE %d/%d", n, need)
-      or string.format("EXP ON %d/%d", n, need)
-  end
-  local subtitle = "v3.17.16  |  L2/R2 fights  |  " .. expBit .. "  |  "
-    .. (headerNote ~= "" and headerNote or section)
+  local ver = (R and R.version) or M.version or ""
+  local fight = headerNote ~= "" and headerNote or section
+  local cut = string.find(fight, " · L2/R2", 1, true)
+  if cut then fight = string.sub(fight, 1, cut - 1) end
+  fight = string.gsub(fight, "%^%a", "")
+  local subtitle = string.format("v%s  ·  %s", ver, fight)
+  if string.len(subtitle) > 52 then subtitle = string.sub(subtitle, 1, 49) .. "..." end
   local headerData = {
     titleText = R.displayName or "DM2 Parse & Fight Stats",
     subtitleText = subtitle,
@@ -13420,6 +13441,13 @@ function DM2StatsMenuShell_Gamepad:RefreshHeader()
   pcall(function()
     ZO_GamepadGenericHeader_Refresh(self.header, headerData, true)
     ZO_GamepadGenericHeader_Activate(self.header)
+    local sub = self.header.GetNamedChild and self.header:GetNamedChild("Subtitle")
+    if sub and sub.SetWidth then
+      local rootW = GuiRoot and GuiRoot:GetWidth() or 1920
+      sub:SetWidth(math.floor(rootW * 0.42))
+      if sub.SetWrapMode then sub:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+      if sub.SetMaxLineCount then sub:SetMaxLineCount(1) end
+    end
   end)
 end
 

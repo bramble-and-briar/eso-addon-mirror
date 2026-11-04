@@ -1840,7 +1840,7 @@ local CATEGORY_TO_STORE = {
 }
 
 -- Lightweight classifier using POI types; returns "delve" | "public" | "group" | "unknown"
-local function ClassifyCurrentMapCategory()
+local function ClassifyCurrentMapCategory(yieldWork)
 	local zoneIndex = GetCurrentMapZoneIndex()
 	if zoneIndex and zoneIndex > 0 then
 		local px, py = GetMapPlayerPosition("player")
@@ -1853,6 +1853,7 @@ local function ClassifyCurrentMapCategory()
 				local d2 = dx * dx + dy * dy
 				if d2 < bestDist2 then bestDist2, bestPoi = d2, poiIndex end
 			end
+			if yieldWork then yieldWork() end
 		end
 		if bestPoi then
 			local poiType = GetPOIType(zoneIndex, bestPoi)
@@ -1877,8 +1878,9 @@ end
 BossData.ClassifyCurrentMapCategory = BossData.ClassifyCurrentMapCategory or ClassifyCurrentMapCategory
 
 -- Unified accessor. If category is provided, only that store is searched.
--- If omitted, the function classifies and tries the best-matching store, then falls back to all.
-function BossData.GetChampionEntriesForMap(mapTexture, category)
+-- Unique map keys return directly. Ambiguous keys use POIs, then merge as fallback.
+-- Optional yieldWork lets asynchronous callers split the POI scan across frames.
+function BossData.GetChampionEntriesForMap(mapTexture, category, yieldWork)
 	local function copyInto(dst, src) for i = 1, #src do dst[#dst + 1] = src[i] end end
 
 	-- Build a small set of normalized candidate keys to handle common texture naming variants.
@@ -1936,13 +1938,6 @@ function BossData.GetChampionEntriesForMap(mapTexture, category)
 		return tryStoresForKeyCandidates(CATEGORY_TO_STORE[category], candidates)
 	end
 
-	-- Auto classify via POI proximity first
-	local inferred = ClassifyCurrentMapCategory()
-	if CATEGORY_TO_STORE[inferred] then
-		local t = tryStoresForKeyCandidates(CATEGORY_TO_STORE[inferred], candidates)
-		if t then return t end
-	end
-
 	-- Heuristic: if exactly one store has entries for this map (across candidates), return that
 	local found, foundTable = 0, nil
 	for _, getStore in pairs(CATEGORY_TO_STORE) do
@@ -1954,6 +1949,15 @@ function BossData.GetChampionEntriesForMap(mapTexture, category)
 		end
 	end
 	if found == 1 then return foundTable end
+	if found == 0 then return nil end
+
+	-- Only ambiguous maps need the POI classifier. Ordinary pin refreshes use
+	-- direct map-key lookup and never scan a zone's points of interest.
+	local inferred = ClassifyCurrentMapCategory(yieldWork)
+	if CATEGORY_TO_STORE[inferred] then
+		local t = tryStoresForKeyCandidates(CATEGORY_TO_STORE[inferred], candidates)
+		if t then return t end
+	end
 
 	-- Fallback: merge all stores that have any entries for any candidate key
 	local merged = nil

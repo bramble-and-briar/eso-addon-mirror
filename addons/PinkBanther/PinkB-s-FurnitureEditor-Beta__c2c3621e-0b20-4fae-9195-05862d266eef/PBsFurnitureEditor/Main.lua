@@ -467,17 +467,21 @@ function addon:AddCommand(name, usage, fn)
 end
 
 function addon:PrintHelp()
-	Print("copy linked furnishings between your houses (v1.0.6)")
+	Print("copy linked furnishings between your houses (v1.0.7)")
 	for _, text in ipairs(self.helpLines) do
 		Line(text)
 	end
 end
 
 function addon:HandleCommand(argumentString)
-	local words = {}
+	-- the words, in lower case for the commands; and as typed, for the ones that keep a name
+	local words, typed = {}, {}
 	for word in string.gmatch(argumentString or "", "%S+") do
 		words[#words + 1] = string.lower(word)
+		typed[#typed + 1] = word
 	end
+	table.remove(typed, 1)
+	self.rawWords = typed
 
 	local command = table.remove(words, 1)
 	if not command or command == "help" then

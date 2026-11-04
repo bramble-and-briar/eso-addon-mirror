@@ -589,6 +589,7 @@ addon:AddCommand("copy", "  /pbfe copy <n>|near|sel|all   put linked groups on t
 		Print("could not read your position; paste will use the first group's root")
 	end
 	Print("go to a house of yours: the quickslot wheel offers Paste (or /pbfe paste)")
+	Line("  to keep it for later: /pbfe save <name>, or the add-on settings > Save the copy")
 	self:AnnounceMenu()
 end)
 
@@ -629,55 +630,3 @@ addon:AddCommand("clear", nil, function(self, words)
 	Print("clipboard emptied")
 end)
 
-addon:AddCommand("save", "  /pbfe save|load|drop <name>, saved   keep clipboards under a name", function(self, words)
-	local name = words[1]
-	if not name then
-		Print("save under what name?")
-		return
-	end
-	if not self.sv.clip then
-		Print("the clipboard is empty")
-		return
-	end
-	self.sv.library[name] = addon.DeepCopy(self.sv.clip)
-	Print("saved as %s", name)
-end)
-
-addon:AddCommand("load", nil, function(self, words)
-	if self:PendingCutBlocks(TakeFlag(words, "force")) then
-		return
-	end
-	local saved = words[1] and self.sv.library[words[1]]
-	if not saved then
-		Print("nothing saved under that name (/pbfe saved)")
-		return
-	end
-	self.sv.clip = addon.DeepCopy(saved)
-	self.sv.clipFresh = true
-	Print("%s is on the clipboard: %d furnishings", words[1], #saved.nodes)
-end)
-
-addon:AddCommand("drop", nil, function(self, words)
-	if words[1] and self.sv.library[words[1]] then
-		self.sv.library[words[1]] = nil
-		Print("dropped %s", words[1])
-	else
-		Print("nothing saved under that name")
-	end
-end)
-
-addon:AddCommand("saved", nil, function(self)
-	local any = false
-	local names = {}
-	for name in pairs(self.sv.library) do
-		names[#names + 1] = name
-	end
-	table.sort(names)
-	for _, name in ipairs(names) do
-		any = true
-		Line("  %s: %d furnishings", name, #self.sv.library[name].nodes)
-	end
-	if not any then
-		Print("nothing saved")
-	end
-end)

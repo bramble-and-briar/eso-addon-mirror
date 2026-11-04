@@ -422,6 +422,7 @@ function addon:PerformEditorKey(kind, id)
 			Print("%d of them follow a path; the path is NOT copied", paths)
 		end
 		Print("leave the editor, go to a house of yours, and use the quickslot wheel: Paste")
+		Line("  to keep it for later: the add-on settings > Save the copy (or /pbfe save <name>)")
 		self:AnnounceMenu()
 		return
 	end

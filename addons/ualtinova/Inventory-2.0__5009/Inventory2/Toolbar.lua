@@ -1044,7 +1044,10 @@ function PaintScreen(screen)
     -- and what the haggling is worth across the run the box stands in, and the box went out on
     -- top of that writing. So there is no box at all there. Nothing is lost by it -- the four
     -- marks are the bag's own controls and the bag is a keypress away.
-    screen.box:SetHidden(SellingLayout(screen.inventory))
+    -- Or with nothing in it at all -- the player bank, which skips AddPanelIcons entirely
+    -- (reported 2026-11-03) -- an empty framed box is still a box sitting where its own
+    -- counter stands.
+    screen.box:SetHidden(SellingLayout(screen.inventory) or #screen.box.igIcons == 0)
     for _, icon in ipairs(screen.box.igIcons) do PaintIcon(icon, false) end
 end
 
@@ -1090,7 +1093,11 @@ local function AddScreen(panel)
         screen.boxPoint, screen.boxRef, screen.boxTo, screen.boxY = BOTTOM, sortBy, TOP, -SWITCH_RISE
     end
 
-    AddPanelIcons(screen)
+    -- Not on the player bank: its own "Bank Space" counter stands exactly where this box would
+    -- (reported 2026-11-03). Settings, Look and Help are one click away from the bag either way.
+    -- The box is still created (the bar-measuring pass above, lines.igBox, expects one wherever
+    -- this window has a bottom bar); PaintScreen hides an icon-less box on its own.
+    if panel.inventory ~= INVENTORY_BANK then AddPanelIcons(screen) end
     -- Only for a bench whose bottom bar was not found: there the pair falls back to the row
     -- above the sort header, beside the box.
     if panel.benchSwitch and not bar then
@@ -1632,6 +1639,82 @@ function IG.AttachGameSearchClears()
     IG.AttachSearchClear(_G["ZO_StoreWindowSearchBox"])
 end
 
+local BANK_BUTTON_WIDTH = 170
+local BANK_BUTTON_HEIGHT = 26
+local BANK_BUTTON_FONT = "$(BOLD_FONT)|15|soft-shadow-thin"
+
+local BANK_BUTTON_GAP = 10 -- outside the window's own left edge, the same way the drawer strip stands outside the bag's
+
+-- Just outside the window's own left edge -- the empty strip the game leaves beside it, the
+-- drawer strip's own column on the bag -- not centred on the gap between the window and the
+-- content it holds, which is its own small internal padding and not the screen's edge at all
+-- (reported 2026-11-03: that put the button almost on top of the window instead of beside it).
+-- Its top lines up with the sort row's own top.
+local function PositionBankButton(button, window, sortBy)
+    if not sortBy then return end
+    local windowLeft, windowTop = window:GetLeft(), window:GetTop()
+    local sortTop = sortBy:GetTop()
+    if windowLeft <= 0 or sortTop <= 0 then return end
+    local offsetX = -(BANK_BUTTON_GAP + BANK_BUTTON_HEIGHT / 2) + 5
+    -- CENTER survives the quarter turn unchanged (CreateWordmark, above); half the button's own
+    -- pre-turn width walks that centre back up to where the turned column's top edge lands.
+    local offsetY = (sortTop - windowTop) + BANK_BUTTON_WIDTH / 2
+    button:ClearAnchors()
+    button:SetAnchor(CENTER, window, TOPLEFT, offsetX, offsetY)
+end
+
+-- One long button standing where the drawer strip's column would be, had it reached this
+-- window: opens the settings page the module on/off switches live on (Settings.lua, CATEGORY
+-- MODULES_ON_OFF). Built once; the bank window itself does not get torn down between openings.
+local function CreateBankModulesButton(window)
+    local button = WINDOW_MANAGER:CreateControl(nil, window, CT_CONTROL)
+    button:SetDimensions(BANK_BUTTON_WIDTH, BANK_BUTTON_HEIGHT)
+    button:SetMouseEnabled(true)
+    -- Over the bank's own children, the same reason CreateBox needs it (above): drawn after
+    -- them is still behind them for the mouse, and the click never reached this button.
+    button:SetDrawTier(DT_HIGH)
+    local fill = WINDOW_MANAGER:CreateControl(nil, button, CT_TEXTURE)
+    fill:SetAnchorFill(button)
+    fill:SetColor(0, 0, 0, 1)
+    fill:SetAlpha(0.55)
+    fill:SetMouseEnabled(false)
+    AddEdges(button)
+    local r, g, b = IG.HexToRGB(IG.DEFAULT_ICON_COLOR)
+    for _, edge in ipairs(button.edges) do edge:SetColor(r, g, b, 0.6) end
+    local label = WINDOW_MANAGER:CreateControl(nil, button, CT_LABEL)
+    label:SetFont(BANK_BUTTON_FONT)
+    label:SetColor(r, g, b, 1)
+    label:SetText("MANAGE BANK MODULES")
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    label:SetAnchor(CENTER, button, CENTER, 0, 0)
+    label:SetMouseEnabled(false)
+    -- Built flat (wide) and then turned on end, the way the window's own name is
+    -- (CreateWordmark, above): a quarter turn about its own middle, so it reads top to bottom
+    -- in the strip's column instead of running off the edge of the screen sideways. CENTER
+    -- after a turn is still the same point it was before the turn -- RIGHT or LEFT would not be.
+    button:SetTransformRotationZ(-math.pi / 2)
+    local sortBy = _G["ZO_PlayerBankSortBy"]
+    PositionBankButton(button, window, sortBy)
+    -- The window is not its final size the moment this runs; settled again each time the bank
+    -- is shown, by when a real layout pass has happened (SettleStrip, above, hits the same wall).
+    ZO_PreHookHandler(window, "OnEffectivelyShown", function() PositionBankButton(button, window, sortBy) end)
+    button:SetHandler("OnMouseEnter", function(self)
+        for _, edge in ipairs(self.edges) do edge:SetColor(r, g, b, 1) end
+        fill:SetAlpha(0.75)
+    end)
+    button:SetHandler("OnMouseExit", function(self)
+        for _, edge in ipairs(self.edges) do edge:SetColor(r, g, b, 0.6) end
+        fill:SetAlpha(0.55)
+    end)
+    button:SetHandler("OnMouseUp", function(_, mouseButton, upInside)
+        if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        PlaySound(SOUNDS.DEFAULT_CLICK)
+        IG.OpenSettings("Inventory2BankModulesSubmenu")
+    end)
+    return button
+end
+
 function IG.CreateToolbar()
     if built then return end
     built = true
@@ -1663,5 +1746,12 @@ function IG.CreateToolbar()
     -- And the drawers that open beside that same window, whose strip shares the name's column.
     -- Built after it, because where the strip starts is a measurement the name owns.
     if bag and IG.CreateDrawers then IG.CreateDrawers(bag) end
+    -- The drawer strip is one window's own (CreateDrawers is a singleton, built on the bag
+    -- alone) and teaching it to stand beside a second window is a bigger rework than a button
+    -- asked for (reported 2026-11-03). This is the stand-in: one long button in the same column
+    -- the strip stands in, on the bank's side instead, that opens the settings page the module
+    -- switches live on.
+    local bankWindow = _G["ZO_PlayerBank"]
+    if bankWindow then CreateBankModulesButton(bankWindow) end
     IG.RepaintToolbar()
 end

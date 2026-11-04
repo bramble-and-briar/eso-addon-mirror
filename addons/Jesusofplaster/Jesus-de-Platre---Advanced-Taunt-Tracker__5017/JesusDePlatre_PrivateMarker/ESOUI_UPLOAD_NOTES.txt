@@ -1,0 +1,22 @@
+v0.8.7: Shortened and clarified optional donation popup text to avoid clipping.
+v0.8.6 hotfix: Removed an obsolete RecordTargetSample() call at startup (previous line 118) that caused "function expected instead of nil".
+
+ESOUI upload checklist - Jesus de Platre v0.8.5
+
+1. TEST in ESO live, including UI movement, taunt timer, reticle and popup.
+2. Take at least one real in-game screenshot. Recommended:
+   /jdptaunt demo
+   /jdpcross demo green
+   Capture UI with chat hidden; upload screenshot to ESOUI.
+3. In add-on listing, specify:
+   "Optional gold donations: @Evokation on PC NA only."
+4. List command help: /jdptaunt help, /jdpcross help,
+   /jdpmarker help, /jdpdonate.
+5. AI disclosure: "Code revisions were assisted by OpenAI ChatGPT;
+   tested and maintained by the author." Credit relevant sources.
+6. State that floating markers on individual world mobs are NOT offered;
+   the optional marker is attached only to the target UI health bar.
+7. Verify exact live API with /script d(GetAPIVersion()).
+
+Note: previous settings do not automatically migrate because old saved
+variables were mixed between accounts and servers. Reconfigure UI position.

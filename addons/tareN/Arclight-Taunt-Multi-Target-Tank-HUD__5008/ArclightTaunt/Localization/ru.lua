@@ -3,6 +3,10 @@
 local A = ArclightTaunt
 A.translations = A.translations or {}
 A.translations.ru = {
+    ["Highlight strength"] = "Выраженность подсветки",
+    ["Subtle"] = "Сдержанная",
+    ["Strong"] = "Выраженная",
+    ["Same outline and light sweep. Strong adds 2 pixels to the outer border without recoloring the row."] = "Те же контур и блик. Выраженная подсветка утолщает внешнюю рамку на 2 пикселя, не меняя цвет строки.",
     [" BOSS TAUNTS EXPIRED"] = " ПРОВОКАЦИЙ БОССОВ ИСТЕКЛО",
     [" BOSS TAUNTS EXPIRING"] = " ПРОВОКАЦИЙ БОССОВ СКОРО ИСТЕКУТ",
     ["100% is opaque. Only the background changes; the warning design stays the same."] = "100 % — непрозрачный фон. Меняется только фон, не оформление предупреждения.",

@@ -51,7 +51,7 @@ function Menu:Initialize()
         return
     end
     if not lib.ST_DROPDOWN or not lib.ST_SLIDER
-        or not lib.ST_CHECKBOX or not lib.ST_BUTTON then
+        or not lib.ST_CHECKBOX or not lib.ST_BUTTON or not lib.ST_EDIT then
         Addon:Log("Required console settings controls are unavailable", true)
         return
     end
@@ -168,6 +168,32 @@ function Menu:Initialize()
     if lib.ST_SECTION then
         settings:AddSetting({ type = lib.ST_SECTION, label = "HUD Layout" })
     end
+    for _, side in ipairs({"left", "right"}) do
+        local sideKey = side
+        local title = side == "left" and "Left (back bar)" or "Right (front bar)"
+        settings:AddSetting({
+            type = lib.ST_EDIT,
+            label = title .. " skill order",
+            tooltip = "Enter all five skill numbers once, separated by commas, for example 1,3,4,5,2. Invalid entries keep the previous order. Disabled skills leave no gap.",
+            default = "1,2,3,4,5",
+            getFunction = function() return Addon.sv[sideKey .. "Order"] or "1,2,3,4,5" end,
+            setFunction = function(value)
+                local order = Addon:ParseDisplayOrder(value)
+                if not order then Addon:Log("Order must contain each number 1 to 5 exactly once.", true); return end
+                Addon.sv[sideKey .. "Order"] = table.concat(order, ",")
+                Addon.HUD:Refresh()
+            end,
+        })
+        settings:AddSetting({
+            type = lib.ST_CHECKBOX,
+            label = title .. " invert order",
+            tooltip = "Reverse this side's chosen order from top to bottom.",
+            default = false,
+            getFunction = function() return Addon.sv[sideKey .. "Invert"] == true end,
+            setFunction = function(value) Addon.sv[sideKey .. "Invert"] = value == true; Addon.HUD:Refresh() end,
+        })
+    end
+
     settings:AddSetting({
         type = lib.ST_SLIDER,
         label = "HUD scale",
@@ -242,7 +268,7 @@ function Menu:Initialize()
     if lib.ST_LABEL then
         settings:AddSetting({
             type = lib.ST_LABEL,
-            label = "|cFFD700Built on tea, toast and ADHD – tested live on PS5.|r\n"
+            label = "|cFFD700Built on tea, toast and ADHD â€“ tested live on PS5.|r\n"
                 .. "|cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r",
         })
     end

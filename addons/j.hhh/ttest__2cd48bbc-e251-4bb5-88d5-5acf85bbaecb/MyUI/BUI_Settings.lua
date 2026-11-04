@@ -348,8 +348,9 @@ local function MenuOptions_Init()	--Menu options
 	--Player Frames
 	{	type		="dropdown",
 		name		="PlayerHeader",
-		choices	={"Default frames","Default: pyramid","Satuve: default","Satuve: pyramid","Satuve: vertical","Disabled"},
+		choices	={"Default frames","Default: pyramid","Satuve: default","Satuve: pyramid","Satuve: vertical","Alternative Attribute Bars","Disabled"},
 		getFunc	=function()
+					if BUI.Vars.MyUI_AlternativeActive then return "Alternative Attribute Bars" end
 					if BUI.Vars.DefaultPlayerFrames then
 						if BUI.Vars.RepositionFrames then return "Default: pyramid" else return "Default frames" end
 					elseif BUI.Vars.PlayerFrame then
@@ -361,12 +362,33 @@ local function MenuOptions_Init()	--Menu options
 					end
 				end,
 		setFunc	=function(i,value)
-					if value=="Default frames" then
+					local alt=(value=="Alternative Attribute Bars")
+                    BUI.Vars.MyUI_AlternativeActive=alt
+                    if BUI.AlternativeAttributes and BUI.AlternativeAttributes.SetActive then
+                        BUI.AlternativeAttributes.SetActive(false)
+                    end
+                    if alt then
+                        -- Preserve native event handling for werewolf/mount/siege,
+                        -- hide only ESO's 3 player resources in the alternative module.
+                        local oldDefault=BUI.Vars.DefaultPlayerFrames
+                        BUI.Vars.DefaultPlayerFrames=true
+                        BUI.Vars.PlayerFrame=false
+                        BUI.Vars.RepositionFrames=false
+                        if not oldDefault then BUI.Frames:ZO_PlayerAttribute_toggle(true) end
+                        BUI.Frames:Controls()
+                        if BUI.AlternativeAttributes and BUI.AlternativeAttributes.SetActive then
+                            BUI.AlternativeAttributes.SetActive(true)
+                        end
+                    elseif value=="Default frames" then
 						local old1=BUI.Vars.DefaultPlayerFrames BUI.Vars.DefaultPlayerFrames=true
 						local old2=BUI.Vars.RepositionFrames BUI.Vars.RepositionFrames=false
 						BUI.Vars.PlayerFrame=false
 						BUI.Menu.Reset("DefaultFrames")
 						if not old1 then BUI.Frames:ZO_PlayerAttribute_toggle(true) end
+                        for _, name in ipairs({"Health","Magicka","Stamina"}) do
+                            local bar=_G["ZO_PlayerAttribute" .. name]
+                            if bar then bar:SetHidden(false) end
+                        end
 						if old2 then BUI.Frames.ZO_PlayerAttribute_reposition() end
 						if BUI_PlayerFrame then BUI_PlayerFrame:SetHidden(true) end
 --						if not old1 or old2 then SCENE_MANAGER:SetInUIMode(false) BUI.OnScreen.Notification(8,"Reloading UI") BUI.CallLater("ReloadUI",1000,ReloadUI) end
@@ -376,6 +398,10 @@ local function MenuOptions_Init()	--Menu options
 						BUI.Vars.PlayerFrame=false
 						BUI.Frames:ZO_PlayerAttribute_reposition()
 						if not old1 then BUI.Frames:ZO_PlayerAttribute_toggle(true) end
+                        for _, name in ipairs({"Health","Magicka","Stamina"}) do
+                            local bar=_G["ZO_PlayerAttribute" .. name]
+                            if bar then bar:SetHidden(false) end
+                        end
 						if BUI_PlayerFrame then BUI_PlayerFrame:SetHidden(true) end
 --						if not old1 then SCENE_MANAGER:SetInUIMode(false) BUI.OnScreen.Notification(8,"Reloading UI") BUI.CallLater("ReloadUI",1000,ReloadUI) end
 					elseif value=="Satuve: default" then
@@ -420,6 +446,20 @@ local function MenuOptions_Init()	--Menu options
 		default	="Satuve Player frame",
 --		warning	=true,
 	},
+    -- Alternative Attribute Bars are separate from native and Bandits frames.
+    { type="slider", name="Alternative Bar Width", min=240, max=600, step=10,
+      getFunc=function() local a=BUI.Vars.MyUI_AlternativeAttributes or {}; return a.width or 360 end,
+      setFunc=function(v) BUI.Vars.MyUI_AlternativeAttributes=BUI.Vars.MyUI_AlternativeAttributes or {}; BUI.Vars.MyUI_AlternativeAttributes.width=v; if BUI.AlternativeAttributes and BUI.AlternativeAttributes.Refresh then BUI.AlternativeAttributes.Refresh() end end,
+      default=360, disabled=function() return not BUI.Vars.MyUI_AlternativeActive end },
+    { type="slider", name="Alternative Bar Height (Gamepad)", min=48, max=140, step=2,
+      getFunc=function() local a=BUI.Vars.MyUI_AlternativeAttributes or {}; return a.gamepadHeight or 96 end,
+      setFunc=function(v) BUI.Vars.MyUI_AlternativeAttributes=BUI.Vars.MyUI_AlternativeAttributes or {}; BUI.Vars.MyUI_AlternativeAttributes.gamepadHeight=v; if BUI.AlternativeAttributes and BUI.AlternativeAttributes.Refresh then BUI.AlternativeAttributes.Refresh() end end,
+      default=96, disabled=function() return not BUI.Vars.MyUI_AlternativeActive end },
+    { type="slider", name="Alternative Magicka / Stamina Gap", min=0, max=40, step=1,
+      getFunc=function() local a=BUI.Vars.MyUI_AlternativeAttributes or {}; return a.barGap or 5 end,
+      setFunc=function(v) BUI.Vars.MyUI_AlternativeAttributes=BUI.Vars.MyUI_AlternativeAttributes or {}; BUI.Vars.MyUI_AlternativeAttributes.barGap=v; if BUI.AlternativeAttributes and BUI.AlternativeAttributes.Refresh then BUI.AlternativeAttributes.Refresh() end end,
+      default=5, disabled=function() return not BUI.Vars.MyUI_AlternativeActive end },
+    { type="description", text="Move each alternative bar separately under Move Frames (L1/R1, D-pad, Circle). Positions persist after reload." },
 	--Frames Border
 	{	type		="dropdown",
 		name		="FramesBorder",
@@ -1326,6 +1366,19 @@ function BUI.Menu.Initialize()
 		end -- hidden LAM categories
 	end
 
+    -- Off Balance Tracker is integrated as a normal My UI section.
+    -- The original options retain their effect tracking, color, sound and role logic.
+    if OffBalanceTracker and OffBalanceTracker.CreateSettings and OffBalanceTracker.SV then
+        local obtOptions=OffBalanceTracker.CreateSettings()
+        if obtOptions then
+            table.insert(prepared,{
+                index="MyUIOffBalance", name="14.  Off Balance Tracker",
+                options=obtOptions, order=14,
+                noLegacyPanel=true,
+            })
+        end
+    end
+
 	table.sort(prepared,function(a,b)
 		if a.order==b.order then return a.index<b.index end
 		return a.order<b.order
@@ -1349,6 +1402,7 @@ function BUI.Menu.Initialize()
 	-- Previously, enabling the grouped LAM path skipped these pages, leaving only
 	-- the separately-created 2/9/18/20 pages in the old window.
 	for _,entry in ipairs(prepared) do
+        if not entry.noLegacyPanel then
 		local index=entry.index
 		MenuPanel[index].name=entry.name
 		local panel=BUI.Menu.RegisterPanel("BUI_"..index, MenuPanel[index])
@@ -1356,6 +1410,7 @@ function BUI.Menu.Initialize()
 		if MenuHandlers[index] and panel and panel.SetHandler then
 			for event,handler in pairs(MenuHandlers[index]) do panel:SetHandler(event, handler) end
 		end
+        end
 	end
 	BUI.init.Menu=true
 end

@@ -11,13 +11,13 @@ local EM = EVENT_MANAGER
 
 local M = {
     rows = {},       -- controles de fila creados
-    viewIndex = 1,   -- combate que se ve (1 = el más reciente)
+    viewIndex = 1,   -- combate que se ve (1 = el más reciente; 0 = la run)
     scroll = 0,      -- primera fila visible - 1
 }
 NM.Meter = M
 
 local BUTTON_SIZE = 22
-local MIN_W = 280          -- la fila de iconos de la cabecera ocupa unos 230 px
+local MIN_W = 300          -- la fila de iconos de la cabecera ocupa unos 250 px
 local MAX_W, MAX_H = 900, 900
 M.MIN_W, M.MAX_W = MIN_W, MAX_W
 local DRAG_UPDATE = "NirnhonedMetrics_Drag"
@@ -118,10 +118,23 @@ local TEX_SETTINGS = {
     over = "EsoUI/Art/SkillsAdvisor/advisor_tabIcon_settings_over.dds",
     down = "EsoUI/Art/SkillsAdvisor/advisor_tabIcon_settings_down.dds",
 }
+-- Flecha circular del botón "Actualizar" del buscador de grupos del juego.
 local TEX_RESET = {
-    up = "EsoUI/Art/Inventory/inventory_tabIcon_trash_up.dds",
-    over = "EsoUI/Art/Inventory/inventory_tabIcon_trash_over.dds",
-    down = "EsoUI/Art/Inventory/inventory_tabIcon_trash_down.dds",
+    up = "EsoUI/Art/LFG/LFG_groupFinder_refreshSearch_up.dds",
+    over = "EsoUI/Art/LFG/LFG_groupFinder_refreshSearch_over.dds",
+    down = "EsoUI/Art/LFG/LFG_groupFinder_refreshSearch_down.dds",
+}
+-- Qué se cuenta (como en Vigilant): espada (pestaña de armas del inventario) = cada
+-- combate; puerta del buscador de mazmorras = toda la run.
+local TEX_FIGHT = {
+    up = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_up.dds",
+    over = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_over.dds",
+    down = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_down.dds",
+}
+local TEX_RUN = {
+    up = "EsoUI/Art/LFG/LFG_indexIcon_dungeon_up.dds",
+    over = "EsoUI/Art/LFG/LFG_indexIcon_dungeon_over.dds",
+    down = "EsoUI/Art/LFG/LFG_indexIcon_dungeon_down.dds",
 }
 local TEX_LOCKED = {
     up = "EsoUI/art/miscellaneous/locked_up.dds",
@@ -261,13 +274,14 @@ local function GroupRows(fight, metric)
         end
     end
     -- La estimación del resto del grupo solo existe para el daño (vida de los jefes).
-    local rest = not healing and NM.Group.RestOfGroup(fight)
+    local rest, restTime
+    if not healing then rest, restTime = NM.Group.RestOfGroup(fight) end
     if rest then
         rows[#rows + 1] = {
             name = L.REST_OF_GROUP,
             color = REST_COLOR,
             amount = rest,
-            rate = rest / F.Duration(fight),
+            rate = rest / restTime,
             isRest = true,
         }
     end
@@ -301,11 +315,17 @@ local function AbilityRows(fight, metric)
     return rows
 end
 
+-- Valor de cada fila por el que se ordenan las barras y que marca su largo.
+local function SortKey()
+    return NM.sv.sortBy == "rate" and "rate" or "amount"
+end
+
 function M.BuildRows(fight)
     if not fight then return {} end
     local metric = NM.sv.metric
     local rows = NM.sv.mode == "abilities" and AbilityRows(fight, metric) or GroupRows(fight, metric)
-    table.sort(rows, function(a, b) return a.amount > b.amount end)
+    local key = SortKey()
+    table.sort(rows, function(a, b) return a[key] > b[key] end)
     local total = 0
     for _, r in ipairs(rows) do total = total + r.amount end
     for _, r in ipairs(rows) do r.percent = total > 0 and r.amount / total or 0 end
@@ -460,7 +480,8 @@ local function LayoutBar(row, c, barLeft, fillWidth, barMax, h)
     row.edge:SetHidden(not progress or width < 4 or fillWidth >= 0.999)
 end
 
-local function LayoutRow(row, r, rank, maxAmount, width)
+-- maxValue: el valor de la primera barra (la más larga) según el orden elegido.
+local function LayoutRow(row, r, rank, key, maxValue, width)
     local sv = NM.sv
     local h = RowHeight()
     row:SetDimensions(width, h)
@@ -480,7 +501,7 @@ local function LayoutRow(row, r, rank, maxAmount, width)
         row.icon:SetHidden(true)
     end
 
-    local fraction = maxAmount > 0 and r.amount / maxAmount or 0
+    local fraction = maxValue > 0 and r[key] / maxValue or 0
     LayoutBar(row, r.color, barLeft, fraction, width - barLeft, h)
 
     -- Cambiar la fuente obliga a recolocar el texto: solo cuando cambia el tamaño.
@@ -512,8 +533,20 @@ end
 ---------------------------------------------------------------------------
 -- Refresco
 ---------------------------------------------------------------------------
--- Nombre del combate que se ve: actual, último o el del jefe/objetivo.
+-- Con "Toda la run" se ve la run; si no, el último combate.
+local function DefaultView()
+    return F.run and 0 or 1
+end
+
+-- La run (con el combate en curso sumado) o un combate del historial.
+local function ViewedFight()
+    if M.viewIndex == 0 then return F.RunView() end
+    return F.Get(M.viewIndex)
+end
+
+-- Nombre del combate que se ve: actual, último o el del jefe/objetivo; la run, por su zona.
 local function FightName(fight)
+    if fight and fight.isRun then return string.format(L.RUN_NAME, fight.zoneName) end
     if not fight or fight == F.active then return L.FIGHT_CURRENT end
     if M.viewIndex == 1 then return L.FIGHT_LAST end
     return F.Label(fight) or string.format(L.FIGHT_N, M.viewIndex)
@@ -525,8 +558,9 @@ local function TitleText(fight)
     return string.format("%s: %s", prefix, FightName(fight))
 end
 
--- Pie: duración del combate y, detrás, el DPS (o HPS) total: la suma del DPS de todas
--- las barras de la vista, así que yendo solo coincide con el de tu barra.
+-- Pie: duración del combate (en la run, su tiempo en combate) y, detrás, el DPS (o HPS)
+-- total: la suma del DPS de todas las barras de la vista, así que yendo solo coincide
+-- con el de tu barra.
 local function FooterTimeText(fight, rows)
     local text = U.FormatDuration(fight and F.Duration(fight) or 0)
     if not fight or not NM.sv.showFightRate or #rows == 0 then return text end
@@ -540,10 +574,10 @@ function M.Refresh()
     -- Plegada solo se ve la cabecera: no hace falta montar las barras.
     if not M.frame or M.frame:IsHidden() or NM.sv.window.collapsed then return end
     local sv = NM.sv
-    local fight = F.Get(M.viewIndex)
+    local fight = ViewedFight()
     if not fight then
-        M.viewIndex = 1
-        fight = F.Get(1)
+        M.viewIndex = DefaultView()
+        fight = ViewedFight()
     end
 
     local rows = M.BuildRows(fight)
@@ -556,7 +590,8 @@ function M.Refresh()
     local visible = math.max(1, math.floor((height + sv.rowSpacing) / step))
     M.scroll = zo_clamp(M.scroll, 0, math.max(0, #rows - visible))
 
-    local maxAmount = rows[1] and rows[1].amount or 0
+    local key = SortKey()
+    local maxValue = rows[1] and rows[1][key] or 0
     local shown = 0
     for i = 1, visible do
         local r = rows[i + M.scroll]
@@ -564,7 +599,7 @@ function M.Refresh()
         local row = GetRow(i)
         row:ClearAnchors()
         row:SetAnchor(TOPLEFT, M.content, TOPLEFT, 0, (i - 1) * step)
-        LayoutRow(row, r, i + M.scroll, maxAmount, width)
+        LayoutRow(row, r, i + M.scroll, key, maxValue, width)
         shown = i
     end
     for i = shown + 1, #M.rows do
@@ -638,6 +673,7 @@ local HEADER_GROUPS = {
         { key = "lock", button = "lockBtn" },
         { key = "collapse", button = "collapseBtn" },
         { key = "reset", button = "resetBtn" },
+        { key = "count", button = "countBtn" },
         { key = "fights", button = "fightsBtn" },
     },
     {
@@ -911,8 +947,25 @@ local function UpdateModeButtons()
     local isGroup = NM.sv.mode ~= "abilities"
     SetActive(M.groupBtn, TEX_GROUP, isGroup)
     SetActive(M.abilitiesBtn, TEX_ABILITIES, not isGroup)
+    -- El icono de qué se cuenta muestra el modo actual; al pulsarlo se cambia al otro.
+    SetButtonTextures(M.countBtn, NM.sv.countMode == "run" and TEX_RUN or TEX_FIGHT)
 end
 M.UpdateModeButtons = UpdateModeButtons
+
+-- Qué se cuenta: "fight" (cada combate) | "run" (toda la run). Al cambiar, la run
+-- empieza de cero para que no se mezclen los dos.
+function M.SetCountMode(mode)
+    if mode == NM.sv.countMode then return end
+    F.SetCountMode(mode)
+    UpdateModeButtons()
+    M.ShowView(DefaultView())
+end
+
+local function CountTooltip()
+    local run = NM.sv.countMode == "run"
+    return string.format("%s: %s\n\n%s", L.OPT_COUNT, run and L.COUNT_RUN or L.COUNT_FIGHT,
+        string.format(L.COUNT_SWITCH, run and L.COUNT_FIGHT or L.COUNT_RUN))
+end
 
 -- Vista: "group" (miembros del grupo) | "abilities" (tus habilidades).
 function M.SetMode(mode)
@@ -938,7 +991,9 @@ end
 
 local function FightMenuLabel(fight, index)
     local name
-    if fight == F.active then
+    if fight.isRun then
+        name = string.format(L.RUN_NAME, fight.zoneName)
+    elseif fight == F.active then
         name = L.FIGHT_CURRENT
     else
         name = F.Label(fight) or string.format(L.FIGHT_N, index)
@@ -948,20 +1003,30 @@ end
 
 -- Descripción del icono de combates: qué combate se está viendo.
 local function FightsTooltip()
-    local fight = F.Get(M.viewIndex)
+    local fight = ViewedFight()
     if not fight then return L.MENU_FIGHTS end
-    return string.format("%s\n%s · %s", L.MENU_FIGHTS, TitleText(fight), U.FormatDuration(F.Duration(fight)))
+    local text = string.format("%s\n%s · %s", L.MENU_FIGHTS, TitleText(fight), U.FormatDuration(F.Duration(fight)))
+    if fight.isRun then text = text .. "\n" .. string.format(L.RUN_FIGHTS, fight.fights) end
+    return text
+end
+
+-- La run (si se cuenta toda la run) y después los combates, para elegir cuál se ve.
+local function AddFightItems()
+    if F.run then
+        AddMenuItem(Check(M.viewIndex == 0, FightMenuLabel(F.RunView(), 0)), function() M.ShowView(0) end)
+    end
+    for i, fight in ipairs(F.history) do
+        AddMenuItem(Check(i == M.viewIndex, FightMenuLabel(fight, i)), function() M.ShowView(i) end)
+    end
 end
 
 -- Icono de combates: lista de combates para elegir cuál se ve.
 function M.ShowFightsMenu(anchor)
     ClearMenu()
-    if #F.history == 0 then
+    if not F.run and #F.history == 0 then
         AddMenuItem(L.NO_FIGHTS, nil, MENU_ADD_OPTION_LABEL)
     end
-    for i, fight in ipairs(F.history) do
-        AddMenuItem(Check(i == M.viewIndex, FightMenuLabel(fight, i)), function() M.ShowView(i) end)
-    end
+    AddFightItems()
     ShowMenu(anchor)
 end
 
@@ -976,11 +1041,13 @@ function M.ShowMenu(anchor)
     AddMenuItem(Check(sv.mode == "group", L.MODE_GROUP), function() M.SetMode("group") end)
     AddMenuItem(Check(sv.mode == "abilities", L.MODE_ABILITIES), function() M.SetMode("abilities") end)
 
-    if #F.history > 0 then
+    AddMenuItem(L.OPT_COUNT, nil, MENU_ADD_OPTION_LABEL)
+    AddMenuItem(Check(sv.countMode ~= "run", L.COUNT_FIGHT), function() M.SetCountMode("fight") end)
+    AddMenuItem(Check(sv.countMode == "run", L.COUNT_RUN), function() M.SetCountMode("run") end)
+
+    if F.run or #F.history > 0 then
         AddMenuItem(L.MENU_FIGHTS, nil, MENU_ADD_OPTION_LABEL)
-        for i, fight in ipairs(F.history) do
-            AddMenuItem(Check(i == M.viewIndex, FightMenuLabel(fight, i)), function() M.ShowView(i) end)
-        end
+        AddFightItems()
     end
 
     AddMenuItem(L.MENU_ACTIONS, nil, MENU_ADD_OPTION_LABEL)
@@ -1042,6 +1109,9 @@ local function Build()
     M.collapseBtn:SetDimensions(18, 18)
 
     M.resetBtn = IconButton("NirnhonedMetricsReset", header, TEX_RESET, L.MENU_RESET, function() F.Reset() end)
+
+    M.countBtn = IconButton("NirnhonedMetricsCount", header, TEX_FIGHT, CountTooltip,
+        function() M.SetCountMode(NM.sv.countMode == "run" and "fight" or "run") end)
 
     M.fightsBtn = IconButton("NirnhonedMetricsFights", header, TEX_FIGHTS, FightsTooltip,
         function() M.ShowFightsMenu(M.fightsBtn) end)
@@ -1141,9 +1211,9 @@ function M.Init()
     M.SetCollapsed(NM.sv.window.collapsed)
 
     CALLBACK_MANAGER:RegisterCallback(F.CHANGED, function(what)
-        -- Al empezar un combate se vuelve a mostrar el combate actual.
-        if what == "start" then
-            M.viewIndex = 1
+        -- Al empezar un combate o una run se vuelve a mostrar el combate actual (o la run).
+        if what == "start" or what == "run" then
+            M.viewIndex = DefaultView()
             M.scroll = 0
         end
         if what then M.UpdateVisibility() else M.Refresh() end

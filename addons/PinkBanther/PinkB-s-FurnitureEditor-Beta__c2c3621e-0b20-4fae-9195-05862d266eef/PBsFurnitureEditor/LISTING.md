@@ -130,6 +130,18 @@ SecurePostHook が使えない場合や、内部で例外が出た場合は、�
 ・床の高さは「立っている階」です。テーブルの上のような高さは、up で指定します。
 ・コンソール専用に作っていますが、ゲームパッドのインターフェースで使う機能です。
 
+■ 保存したリンクセット
+
+コピーしたリンクセットに名前をつけて保存し、あとから呼び出せます。保存したものはログアウトしても残ります。
+読み込むとクリップボードに載り、自分の家のクイックスロットホイールに「ペースト」が出ます。
+設定メニューの先頭に「保存したリンクセット」の項目があり、「コピーしたものを保存」で保存します（名前欄に
+入力すればその名前、空なら「最初の家具の名前 x個数」で自動的に名前をつけます）。保存したセットの一覧
+（新しい順）から選んで「読み込む」「削除」ができます。削除は取り消せないので、数秒以内にもう一度押す必要が
+あります。コマンドなら /pbfe save [名前]、/pbfe saved、/pbfe load <名前または番号>、/pbfe drop <名前
+または番号> です（名前は空白や大文字小文字もそのまま使えます）。保存できるのは20件までです（コンソールの
+メモリは他のアドオンと共有のためです）。まだ貼り付けていないカットも保存でき、読み込むと再びカット待ちに
+なります。（実機では未確認です）
+
 ■ 進捗バー
 
 カット・ムーブ・ペースト・取り消しの進み具合を、画面の前面にバーで表示します（初期位置は上中央）。
@@ -234,6 +246,16 @@ When a paste has placed everything on the clipboard, the clipboard is emptied, s
 sit there to be pasted by mistake. If something could not be placed it stays, and the message says how
 many were left. To paste the same thing again and again, save it under a name (/pbfe save <name>) and
 load it (/pbfe load <name>) before each paste.
+
+SAVED LINK SETS
+
+A copied group can be saved under a name and loaded later; it stays after you log out, and loading one puts it on the
+clipboard so the quickslot wheel offers Paste in any house of yours. In the add-on settings (first rows) "Save the
+copy" keeps it (type a name in the box if there is one; empty, it is named for you: "Redguard Table x38"), and a
+list of the saved sets (newest first) has Load and Delete (Delete asks twice). By command: /pbfe save [name],
+saved, load <name or number>, drop <name or number>; names keep spaces and capitals. Room for 20 sets (a console
+shares its memory among add-ons). A set made from an unpasted cut stays a cut when loaded. Not yet checked on a
+console.
 
 PROGRESS BAR
 

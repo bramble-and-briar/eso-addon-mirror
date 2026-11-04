@@ -38,12 +38,14 @@
 - **Rest of group** — in boss fights, the health the bosses lose minus the damage already known gives an estimated bar for everyone who does not share theirs.
 - **My abilities** — switch the view to see your own damage or healing per ability (and per pet), colored by damage type. Hover over a bar for hits, critical rate, average and highest hit.
 - **Fight history** — the last fights are kept (10 by default); open any of them from the fights icon.
+- **Whole run** — switch from *Each fight* to *Whole run* to add up every fight since you entered the zone, such as a full dungeon or trial. Only the time in combat counts, so the footer shows the run's time in combat and DPS/HPS are calculated over it. The run is the first entry of the fights list and starts from zero when you change zone, reset or switch mode. Switch it with its title bar icon (sword: each fight, dungeon door: whole run), the right-click menu or the settings. The run is not saved: reloading the UI clears it.
 - **Fight duration** — the footer shows how long the fight lasted (with a clock icon) and which fight you are viewing.
-- **Title bar icons** — in three groups: damage and healing · group and my abilities · fights, reset, collapse, lock, settings and close. Hide the ones you do not use in the settings.
+- **Sorting** — order the bars by total or by DPS/HPS; the bar length follows the same value.
+- **Title bar icons** — in three groups: damage and healing · group and my abilities · fights, each fight / whole run, reset (circular arrow), collapse, lock, settings and close. Hide the ones you do not use in the settings.
 - **Collapse** — the arrow in the title bar folds the window down to its title bar and unfolds it again.
 - **Custom title** — keep the default title or write your own, with a color of your choice or ESO color codes.
 - **Move and resize** — unlock the window with the padlock, drag it from anywhere and resize it from its edges or the bottom-right corner. Mouse wheel scrolls when there are more bars than fit.
-- **Settings** — window title, title bar icons, size, bar style (progress bar or flat), bar height, spacing, bar and title text size, opacities, colors per class, single color, damage-type colors, which values to show and in which order, character or @account names, only show in combat, hide in PvP, pet damage, fight end delay, history size, DPS sharing and the rest-of-group estimate.
+- **Settings** — window title, title bar icons, size, bar style (progress bar or flat), bar height, spacing, bar and title text size, opacities, colors per class, single color, damage-type colors, which values to show and in which order, sorting, character or @account names, only show in combat, hide in PvP, each fight or whole run, pet damage, fight end delay, history size, DPS sharing and the rest-of-group estimate.
 - **Languages** — English, Spanish, German and French (follows the game client language).
 
 ## Installation

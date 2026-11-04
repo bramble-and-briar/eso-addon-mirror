@@ -18,7 +18,7 @@
     "HUDitorTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4750/",
-  "fingerprint": "8f193963ba912ee7ec291fd07f28a5a3c96e41c480cab5d500c2367636217441",
+  "fingerprint": "83ede54fb496738f6ad27c87454808f6edc182d750a3e1677e13ece22f079ad3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16914.png",
     "https://cdn-eso.mmoui.com/preview/pvw16968.png",
@@ -32,11 +32,11 @@
   "source_id": "4750",
   "source_url": "https://www.esoui.com/downloads/info4750-HUDitorToolseditHUDhelpertools.html",
   "stats": {
-    "downloads": 654,
-    "favorites": 6,
-    "monthly_downloads": 419
+    "downloads": 1225,
+    "favorites": 11,
+    "monthly_downloads": 557
   },
   "title": "HUDitorTools (edit HUD helper tools)",
-  "updated_at": 1791139364000,
-  "version": "1.3.0"
+  "updated_at": 1793744184000,
+  "version": "1.3.2"
 }

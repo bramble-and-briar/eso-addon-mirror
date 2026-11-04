@@ -175,7 +175,10 @@ local function GroupEntries(scope, id, barred)
         -- a mark on one piece that the bank takes off again once the piece is in it, so a whole
         -- set or every piece of an item is never sent there.
         if not (barred and barred[group.key]) and group.key ~= IG.DISPOSAL_KEY
-            and not (group.key == "TOBANK" and scope ~= "items") then
+            and not (group.key == "TOBANK" and scope ~= "items")
+            -- TO HOME CONTAINER needs a container picked first (Automation > Move to Home
+            -- Container), which the long list of categories cannot ask.
+            and group.key ~= "TOHOME" then
             entries[#entries + 1] = {
                 label = string.format("|c%s%s|r",
                     IG.GetGroupColor(group.key), IG.GetGroupLabel(group.key)),
@@ -301,6 +304,28 @@ function IG.JunkSelection()
     IG.ClearSelection()
 end
 
+-- Move to Home Container: LibCustomMenu's submenus do not nest, so the line in the Automation
+-- menu closes it and a second, small menu of the containers opens where the mouse is. The piece
+-- is read again when one is picked -- the menu is gone and a slot is only a number.
+local function OpenHomePicker(bagId, slotIndex, itemLink)
+    local pieceId = IG.PieceId(bagId, slotIndex)
+    local containers = IG.HomeContainers and IG.HomeContainers() or {}
+    if not pieceId or #containers == 0 then return end
+    zo_callLater(function()
+        ClearMenu()
+        for _, container in ipairs(containers) do
+            AddMenuItem(string.format("%s  |c%s(%s)|r", container.name, KEY_HINT_COLOR, container.houseName or ""),
+                function()
+                    if GetItemLink(bagId, slotIndex) ~= itemLink then return end
+                    IG.SetHomeTarget(pieceId, container)
+                    SetOverride("items", pieceId, "TOHOME")
+                end)
+        end
+        AddMenuItem(IG.CANCEL_LABEL, function() end)
+        ShowMenu(WINDOW_MANAGER:GetMouseOverControl() or GuiRoot)
+    end, 0)
+end
+
 local function AddMenuEntries(inventorySlot)
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bagId or not slotIndex then return end
@@ -340,6 +365,18 @@ local function AddMenuEntries(inventorySlot)
                 Flat(MenuLabel(WithKey(string.format("Take out of %s", name), aside.action)),
                     function() SetOverride("items", pieceId, nil) end)
             end
+        end
+    end
+
+    -- Home Container: only for a piece the chests can take, and only once a house with a chest
+    -- has been seen (ToHome.lua). Marked already, the same line takes it back out.
+    if IG.HomeContainers and IG.CanDepositToBank(bagId, slotIndex) and #IG.HomeContainers() > 0 then
+        if override ~= "TOHOME" then
+            Flat(MenuLabel("Move to Home Container"), function() OpenHomePicker(bagId, slotIndex, itemLink) end)
+        else
+            local target = IG.HomeTargetOf and IG.HomeTargetOf(pieceId)
+            Flat(MenuLabel(string.format("Take out of TO HOME CONTAINER%s", target and (" (" .. target.name .. ")") or "")),
+                function() SetOverride("items", pieceId, nil) end)
         end
     end
 
@@ -405,7 +442,7 @@ local function AddMenuEntries(inventorySlot)
         GroupEntries("items", pieceId, barred))
     -- The two above say it in their own words, so it is not said twice. TO BANK too, while its
     -- own line is there; a marked piece that is no longer in the backpack keeps this way out.
-    if override and override ~= "SELL" and override ~= "DECON"
+    if override and override ~= "SELL" and override ~= "DECON" and override ~= "TOHOME"
         and not (override == "TOBANK" and toBankLine) then
         Flat(MenuLabel("Reset This Single Item's Category To Default", RESET_ITEM_COLOR),
             function()

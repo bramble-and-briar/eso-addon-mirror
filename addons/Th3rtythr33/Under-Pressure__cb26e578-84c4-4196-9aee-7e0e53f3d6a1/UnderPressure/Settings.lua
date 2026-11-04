@@ -165,12 +165,9 @@ end
 -- the date, time and one-line summary; its tooltip (which LHAS shows in the
 -- left quadrant when the row is selected) is the full report, which is why
 -- the rows are selectable.
-local HISTORY_HEADER = "History: the last 20 explosion reports, newest first. Select one to read it in full."
-local historyRowCount = 0
-local historyDirty = true
-
-function UP.Settings.MarkHistoryDirty() historyDirty = true end
-
+-- Generalised in 0.5.12 so the Pull Indicator page can carry its own History
+-- (why each pull warning fired): makeHistory() builds one self-contained
+-- history for a page from a spec, and the two instances live below.
 local function historyWhen(entry)
     local when = ""
     if type(entry.stamp) == "number" and entry.stamp > 0 and type(GetDateStringFromTimestamp) == "function" then
@@ -183,95 +180,144 @@ local function historyWhen(entry)
     return when
 end
 
-local function historyRows()
-    local rows = {}
-    local list = (UP.Plague and UP.Plague.History) and UP.Plague.History() or {}
-    for _, entry in ipairs(list) do
-        if type(entry) == "table" then
-            local when = historyWhen(entry)
-            local summary = entry.short or entry.text or ""
-            rows[#rows + 1] = {
-                type = LHAS.ST_LABEL,
-                label = (when ~= "") and (when .. ": " .. summary) or summary,
-                tooltip = (entry.text or summary) .. ((when ~= "") and ("\n\n" .. when) or ""),
-                canSelect = true,
-            }
+-- spec: header (the label row the entries are inserted after; unique text),
+-- source() -> the stored list, clear() empties it, dialogName, dialogTitle,
+-- noun ("explosion report"), clearLabel / clearTooltip for the button.
+local function makeHistory(spec)
+    local H = { header = spec.header, dialogName = spec.dialogName, rowCount = 0, dirty = true }
+
+    function H.MarkDirty() H.dirty = true end
+
+    local function rows()
+        local list = {}
+        for _, entry in ipairs(spec.source() or {}) do
+            if type(entry) == "table" then
+                local when = historyWhen(entry)
+                local summary = entry.short or entry.text or ""
+                list[#list + 1] = {
+                    type = LHAS.ST_LABEL,
+                    label = (when ~= "") and (when .. ": " .. summary) or summary,
+                    tooltip = (entry.text or summary) .. ((when ~= "") and ("\n\n" .. when) or ""),
+                    canSelect = true,
+                }
+            end
+        end
+        return list
+    end
+
+    local function headerIndex(panel)
+        for i, setting in ipairs(panel.settings or {}) do
+            if setting.labelText == spec.header or setting.label == spec.header then return i end
+        end
+        return nil
+    end
+
+    function H.Rebuild()
+        local panel = UP.Settings.panel
+        if not (panel and panel.AddSettings and panel.RemoveSettings) then return end
+        local headerIdx = headerIndex(panel)
+        if not headerIdx then return end
+        local start = headerIdx + 1
+        if H.rowCount > 0 then panel:RemoveSettings(start, H.rowCount) end
+        local list = rows()
+        if #list > 0 then panel:AddSettings(list, start) end
+        H.rowCount = #list
+        H.dirty = false
+    end
+
+    local function clear()
+        spec.clear()
+        H.Rebuild()
+        local panel = UP.Settings.panel
+        if panel and panel.UpdateControls then pcall(panel.UpdateControls, panel) end
+    end
+
+    function H.RegisterDialog()
+        if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return end
+        ZO_Dialogs_RegisterCustomDialog(spec.dialogName,
+        {
+            canQueue = true,
+            gamepadInfo =
+            {
+                dialogType = GAMEPAD_DIALOGS.BASIC,
+            },
+            title =
+            {
+                text = spec.dialogTitle,
+            },
+            mainText =
+            {
+                text = function()
+                    local n = #(spec.source() or {})
+                    return ("Delete all %d stored %s%s? This cannot be undone."):format(n, spec.noun, n == 1 and "" or "s")
+                end,
+            },
+            buttons =
+            {
+                {
+                    keybind = "DIALOG_PRIMARY",
+                    text = "Clear",
+                    callback = function() clear() end,
+                },
+                {
+                    keybind = "DIALOG_NEGATIVE",
+                    text = "Cancel",
+                },
+            },
+        })
+    end
+
+    function H.ShowClearDialog()
+        if type(ZO_Dialogs_ShowPlatformDialog) == "function" then
+            ZO_Dialogs_ShowPlatformDialog(spec.dialogName)
+        elseif type(ZO_Dialogs_ShowGamepadDialog) == "function" then
+            ZO_Dialogs_ShowGamepadDialog(spec.dialogName)
         end
     end
-    return rows
-end
 
-local function historyHeaderIndex(panel)
-    for i, setting in ipairs(panel.settings or {}) do
-        if setting.labelText == HISTORY_HEADER or setting.label == HISTORY_HEADER then return i end
+    -- The two fixed rows a page carries; the entries go between them.
+    function H.HeaderRow()
+        return { type = LHAS.ST_LABEL, label = spec.header }
     end
-    return nil
-end
-
-local function RebuildHistoryRows()
-    local panel = UP.Settings.panel
-    if not (panel and panel.AddSettings and panel.RemoveSettings) then return end
-    local headerIdx = historyHeaderIndex(panel)
-    if not headerIdx then return end
-    local start = headerIdx + 1
-    if historyRowCount > 0 then panel:RemoveSettings(start, historyRowCount) end
-    local rows = historyRows()
-    if #rows > 0 then panel:AddSettings(rows, start) end
-    historyRowCount = #rows
-    historyDirty = false
-end
-
-local CLEAR_HISTORY_DIALOG = "UNDERPRESSURE_CLEAR_PLAGUE_HISTORY"
-
-local function clearHistory()
-    if UP.Plague and UP.Plague.ClearHistory then UP.Plague.ClearHistory() end
-    RebuildHistoryRows()
-    local panel = UP.Settings.panel
-    if panel and panel.UpdateControls then pcall(panel.UpdateControls, panel) end
-end
-
-local function registerClearHistoryDialog()
-    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return end
-    ZO_Dialogs_RegisterCustomDialog(CLEAR_HISTORY_DIALOG,
-    {
-        canQueue = true,
-        gamepadInfo =
-        {
-            dialogType = GAMEPAD_DIALOGS.BASIC,
-        },
-        title =
-        {
-            text = "Under Pressure: Plague history",
-        },
-        mainText =
-        {
-            text = function()
-                local n = (UP.Plague and UP.Plague.History) and #UP.Plague.History() or 0
-                return ("Delete all %d stored explosion report%s? This cannot be undone."):format(n, n == 1 and "" or "s")
-            end,
-        },
-        buttons =
-        {
-            {
-                keybind = "DIALOG_PRIMARY",
-                text = "Clear",
-                callback = function() clearHistory() end,
-            },
-            {
-                keybind = "DIALOG_NEGATIVE",
-                text = "Cancel",
-            },
-        },
-    })
-end
-
-local function showClearHistoryDialog()
-    if type(ZO_Dialogs_ShowPlatformDialog) == "function" then
-        ZO_Dialogs_ShowPlatformDialog(CLEAR_HISTORY_DIALOG)
-    elseif type(ZO_Dialogs_ShowGamepadDialog) == "function" then
-        ZO_Dialogs_ShowGamepadDialog(CLEAR_HISTORY_DIALOG)
+    function H.ClearRow()
+        return {
+            type = LHAS.ST_BUTTON, label = spec.clearLabel,
+            buttonText = "Clear",
+            tooltip = spec.clearTooltip,
+            clickHandler = function() H.ShowClearDialog() end,
+        }
     end
+
+    return H
 end
+
+local plagueHistory = makeHistory({
+    header = "History: the last 20 explosion reports, newest first. Select one to read it in full.",
+    source = function() return (UP.Plague and UP.Plague.History) and UP.Plague.History() or {} end,
+    clear = function() if UP.Plague and UP.Plague.ClearHistory then UP.Plague.ClearHistory() end end,
+    dialogName = "UNDERPRESSURE_CLEAR_PLAGUE_HISTORY",
+    dialogTitle = "Under Pressure: Plague history",
+    noun = "explosion report",
+    clearLabel = "Clear history",
+    clearTooltip = "Deletes every stored explosion report. You will be asked to confirm.",
+})
+
+-- Pull History (0.5.12): why each pull warning fired, for diagnosing a
+-- warning that should not have happened (Matt saw one in PvE).
+local pullHistory = makeHistory({
+    header = "History: the last 20 pull warnings, newest first, each saying what set it in motion. Select one for the details.",
+    source = function() return (UP.Pull and UP.Pull.History) and UP.Pull.History() or {} end,
+    clear = function() if UP.Pull and UP.Pull.ClearHistory then UP.Pull.ClearHistory() end end,
+    dialogName = "UNDERPRESSURE_CLEAR_PULL_HISTORY",
+    dialogTitle = "Under Pressure: Pull history",
+    noun = "pull warning",
+    clearLabel = "Clear pull history",
+    clearTooltip = "Deletes every stored pull warning. You will be asked to confirm.",
+})
+
+-- Called by the trackers when they record or clear.
+function UP.Settings.MarkHistoryDirty() plagueHistory.MarkDirty() end
+function UP.Settings.MarkPullHistoryDirty() pullHistory.MarkDirty() end
 
 local TTD_DEFAULTS_DIALOG = "UNDERPRESSURE_TTD_DEFAULTS"
 
@@ -635,18 +681,10 @@ local function buildOptions()
             default = true,
         },
         -- History (0.5.9). The report rows are inserted between these two
-        -- entries at runtime; see RebuildHistoryRows above for why they are
-        -- not a section of their own.
-        {
-            type = LHAS.ST_LABEL,
-            label = HISTORY_HEADER,
-        },
-        {
-            type = LHAS.ST_BUTTON, label = "Clear history",
-            buttonText = "Clear",
-            tooltip = "Deletes every stored explosion report. You will be asked to confirm.",
-            clickHandler = function() showClearHistoryDialog() end,
-        },
+        -- entries at runtime; see makeHistory above for why they are not a
+        -- section of their own.
+        plagueHistory.HeaderRow(),
+        plagueHistory.ClearRow(),
 
         -- -------------------------------------------------------------------
         -- Pull Indicator (0.4.2). ONE detection switch for every pull the
@@ -659,7 +697,7 @@ local function buildOptions()
         },
         {
             type = LHAS.ST_LABEL,
-            label = "Warns you just before an enemy's pull lands, while there is still time to block or move: about 0.8 seconds before a Rush of Agony pull, about 1 second before a Dark Convergence pull, and 2 seconds before a Leashing Burst (the Soul Burst scribing pull) from the moment the enemy casts it. Off by default. Leashing Burst casts by your group, and by players the add-on has learned are on your side, are ignored; everyone else's cast warns. The warning can be shown as flashing icons in the four corners, one icon beside the reticle, and flashing bars down the left and right edges of the screen.",
+            label = "Warns you just before an enemy's pull lands, while there is still time to block or move: about 0.8 seconds before a Rush of Agony pull, about 1 second before a Dark Convergence pull, and 2 seconds before a Leashing Burst (the Soul Burst scribing pull) from the moment the enemy casts it. Off by default. Leashing Burst detection works only in Cyrodiil, Imperial City and Battlegrounds; casts by your group, and by players the add-on has learned are on your side, are ignored, and everyone else's cast warns. The warning can be shown as flashing icons in the four corners, one icon beside the reticle, and flashing bars down the left and right edges of the screen.",
         },
         {
             type = LHAS.ST_CHECKBOX, label = "Pull detection",
@@ -712,6 +750,10 @@ local function buildOptions()
                 if UP.PullIndicator and UP.PullIndicator.RunPreview then UP.PullIndicator.RunPreview() end
             end,
         },
+        -- Pull History (0.5.12): the warning rows are inserted between these
+        -- two entries at runtime, as on the Plague Indicator page.
+        pullHistory.HeaderRow(),
+        pullHistory.ClearRow(),
 
         -- -------------------------------------------------------------------
         {
@@ -833,8 +875,10 @@ end
 UP.Settings._ttdDefaultLines  = ttdDefaultLines
 UP.Settings._applyTtdDefaults = applyTtdDefaults
 UP.Settings._TTD_DIALOG       = TTD_DEFAULTS_DIALOG
-UP.Settings._CLEAR_HISTORY_DIALOG = CLEAR_HISTORY_DIALOG
-UP.Settings._HISTORY_HEADER   = HISTORY_HEADER
+UP.Settings._CLEAR_HISTORY_DIALOG = plagueHistory.dialogName
+UP.Settings._HISTORY_HEADER   = plagueHistory.header
+UP.Settings._CLEAR_PULL_HISTORY_DIALOG = pullHistory.dialogName
+UP.Settings._PULL_HISTORY_HEADER = pullHistory.header
 
 function UP.Settings.Init()
     LHAS = LibHarvensAddonSettings
@@ -878,11 +922,17 @@ function UP.Settings.Init()
     -- History rows (0.5.9): built now from the saved file (pure table work
     -- while the panel is unselected) and rebuilt on each selection of this
     -- add-on in the Add-Ons list if a report arrived or the list was cleared.
-    registerClearHistoryDialog()
-    RebuildHistoryRows()
+    -- Pull History (0.5.12) rides the same hook.
+    plagueHistory.RegisterDialog()
+    pullHistory.RegisterDialog()
+    plagueHistory.Rebuild()
+    pullHistory.Rebuild()
     if CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback then
         CALLBACK_MANAGER:RegisterCallback("LibHarvensAddonSettings_AddonSelected", function(_, selected)
-            if selected == UP.Settings.panel and historyDirty then RebuildHistoryRows() end
+            if selected == UP.Settings.panel then
+                if plagueHistory.dirty then plagueHistory.Rebuild() end
+                if pullHistory.dirty then pullHistory.Rebuild() end
+            end
         end)
     end
 end

@@ -517,10 +517,17 @@ function addon:PrintLitePlayerPinDiagnostic()
 	local lines = self.playerPinDiagnostic
 	if not lines then
 		d(GetString(SI_PBSMINIMAP_PIN_DIAGNOSTIC_EMPTY))
-		return
+	else
+		for i = 1, #lines do
+			d("[PBsMiniMap] " .. lines[i])
+		end
 	end
-	for i = 1, #lines do
-		d("[PBsMiniMap] " .. lines[i])
+	-- What the zoom did the last few times the standard map opened or was tidied up after.
+	local zoomLog = self.mapZoomLog
+	if zoomLog then
+		for i = 1, #zoomLog do
+			d("[PBsMiniMap] " .. zoomLog[i])
+		end
 	end
 end
 
@@ -583,6 +590,70 @@ local function ClearStickyPin(panZoom)
 	end
 end
 
+-- Put the view on the player without touching the zoom.
+--
+-- ZO_WorldMap_JumpToPlayer is not that. It calls JumpToPin(pin) with no useCurrentZoom, and
+-- GetNormalizedPositionFocusZoomAndOffset (worldmap.lua) reads a missing flag as "zoom to 1" --
+-- the maximum. The tidy-up below used it for three releases, so the first map after a UI reload
+-- came up at full magnification. Its other half, GamepadMap:StopMotion, is not reachable from
+-- here, so the parts of it that matter are repeated: drop the sticky pin (which also stops a pan
+-- already on its way to it), keep it from re-grabbing on this frame, and clear the pan target.
+local function JumpToPlayerAtCurrentZoom(addon, navigateIn)
+	local panZoom = addon.panZoom
+	if not panZoom then
+		return
+	end
+	local pin = addon.pinManager and addon.pinManager:GetPlayerPin()
+	local control = pin and pin:GetControl()
+	-- Only where the game would centre on the player itself: it jumps to the player pin when
+	-- that pin is visible, and leaves the view alone when it is not.
+	if not pin or (control and control:IsHidden()) then
+		return
+	end
+	local sticky = ZO_WorldMap_GetStickyPin and ZO_WorldMap_GetStickyPin()
+	if sticky and sticky.ClearStickyPin then
+		sticky:ClearStickyPin(panZoom)
+		if sticky.SetEnabled then
+			sticky:SetEnabled(false)
+		end
+	end
+	if panZoom.ClearTargetOffset then
+		panZoom:ClearTargetOffset()
+	end
+	local before = panZoom.currentNormalizedZoom
+	-- A level change the player made is what InitializeMap's navigate branch handles: it sets
+	-- 1 - NAVIGATE_IN_OR_OUT_NORMALIZED_ZOOM_ADJUSTMENT on the way out and the adjustment itself
+	-- on the way in, then jumps to the player. That branch is the one the sticky pin's pending
+	-- pan pre-empted, so it is done here instead.
+	local gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode()
+	if navigateIn ~= nil and gamepad and panZoom.SetNormalizedZoomAndOffsetInNewMap then
+		local adjustment = (ZO_MapPanAndZoom and ZO_MapPanAndZoom.NAVIGATE_IN_OR_OUT_NORMALIZED_ZOOM_ADJUSTMENT) or 0.1
+		panZoom:SetNormalizedZoomAndOffsetInNewMap(navigateIn and adjustment or (1 - adjustment))
+	elseif panZoom.JumpToPin then
+		local USE_CURRENT_ZOOM = true
+		panZoom:JumpToPin(pin, USE_CURRENT_ZOOM)
+	end
+	addon:NoteMapZoom(navigateIn == nil and "tidy" or (navigateIn and "tidy-in" or "tidy-out"), before)
+end
+
+-- What the zoom did, kept for the troubleshooting report. A handful of lines, written once per
+-- opening or tidy-up: nothing here runs per frame.
+function addon:NoteMapZoom(kind, before)
+	local panZoom = self.panZoom
+	local log = self.mapZoomLog
+	if not log then
+		log = {}
+		self.mapZoomLog = log
+	end
+	log[#log + 1] = string.format("%s t=%.1f zoom %.2f->%.2f rng=%.2f-%.2f", kind,
+		GetFrameTimeMilliseconds() / 1000, before or -1,
+		panZoom and panZoom.currentNormalizedZoom or -1,
+		panZoom and panZoom.minZoom or -1, panZoom and panZoom.maxZoom or -1)
+	if #log > 6 then
+		table.remove(log, 1)
+	end
+end
+
 -- Centre the way the game does when the map is shown. The pending offset is cleared first, as
 -- InitializeMap does. Called exactly once per opening, and never repeated: it goes on to
 -- SetMapToPlayerLocation, which rebuilds the whole map, and running that again from add-on
@@ -598,8 +669,8 @@ function addon:CentreStandardMapOnPlayer()
 	end
 	if panZoom.OnWorldMapShowing then
 		panZoom:OnWorldMapShowing()
-	elseif ZO_WorldMap_JumpToPlayer then
-		ZO_WorldMap_JumpToPlayer()
+	else
+		JumpToPlayerAtCurrentZoom(self)
 	end
 end
 
@@ -627,6 +698,20 @@ end
 -- 2.2.8-2.2.10 crash when zooming out.
 local PENDING_CENTRE_TICKS = 40 -- 2 seconds at 50ms, then give up
 
+-- The zoom the standard map opens at, as a position inside its own range: 0 is the whole map.
+--
+-- The minimap sits at normalized zoom 1, the top of a range it installs for itself, and
+-- SetZoomMinMax keeps the normalized value as it is rather than converting it. When the range
+-- is handed back, the same 1 becomes the top of the game's range -- native resolution or more --
+-- and the standard map opened at full magnification every time. The game resets the zoom itself
+-- when the map mode changes (SetToMode, which a wayshrine goes through), but opening the plain
+-- map is no mode change, so nothing did.
+--
+-- 0 is what a map the game has just initialised starts at (InitializeMap), so this is the
+-- ordinary look of the standard map, and what the game itself does for a wayshrine. The player
+-- can still zoom in from there; it is only that the add-on's own zoom no longer leaks into it.
+local STANDARD_MAP_OPENING_ZOOM = 0
+
 -- The same thing happens when the player changes map level with the map open, and measured on
 -- console it is worse: the first zoom-out to the parent map after a UI reload lands on a pin
 -- near the old view instead of the player.
@@ -645,11 +730,14 @@ local PENDING_CENTRE_TICKS = 40 -- 2 seconds at 50ms, then give up
 -- and initialisation then honoured that instead of centring on the player.
 --
 -- So a map level change taken while the map is still loading is armed here too, and the same
--- one-shot ZO_WorldMap_JumpToPlayer tidies it up: StopMotion drops the sticky pin and stops its
--- pan, then the view goes to the player. Nothing here runs per frame or rebuilds the map.
-function addon:ArmCentreTidyUp()
+-- one-shot tidy-up puts the view where the navigate branch would have: the sticky pin is dropped
+-- and its pan stopped, then the view goes to the player at the zoom a level change gives. Nothing
+-- here runs per frame or rebuilds the map. (It used to call ZO_WorldMap_JumpToPlayer, which also
+-- sets the zoom to the maximum; see JumpToPlayerAtCurrentZoom.)
+function addon:ArmCentreTidyUp(navigateIn)
 	if self.panZoom and self.panZoom.pendingInitializeMap then
 		self.pendingCentreTicks = PENDING_CENTRE_TICKS
+		self.pendingCentreNavigateIn = navigateIn
 	end
 end
 
@@ -671,20 +759,11 @@ function addon:UpdatePendingCentre()
 		return
 	end
 	self.pendingCentreTicks = nil
-	-- Only where the game would centre on the player itself: it jumps to the player pin when
-	-- that pin is visible, and leaves the view alone when it is not.
-	local pin = self.pinManager and self.pinManager:GetPlayerPin()
-	local control = pin and pin:GetControl()
-	if control and control:IsHidden() then
-		return
-	end
+	local navigateIn = self.pendingCentreNavigateIn
+	self.pendingCentreNavigateIn = nil
 	-- It has landed. Drop the stale sticky pin, stopping its pan if one has already started,
 	-- and put the view back on the player.
-	if ZO_WorldMap_JumpToPlayer then
-		ZO_WorldMap_JumpToPlayer()
-	else
-		ClearStickyPin(self.panZoom)
-	end
+	JumpToPlayerAtCurrentZoom(self, navigateIn)
 end
 
 local dormant = false
@@ -765,8 +844,11 @@ function addon:SetDormant(value)
 		local travelMap = inSpecialMode and mapMode ~= nil
 			and (mapMode == MAP_MODE_FAST_TRAVEL or mapMode == MAP_MODE_KEEP_TRAVEL)
 		local playerFacing = IsWorldMapInFront() and (not inSpecialMode or travelMap)
+		-- A map somebody has already chosen a view of keeps it; the zoom is theirs, not ours.
+		local playerChoseMap = ZO_WorldMap_DidPlayerChooseCurrentMap and ZO_WorldMap_DidPlayerChooseCurrentMap()
 
 		local panZoom = self.panZoom
+		local zoomOnArrival
 		if panZoom then
 			if playerFacing then
 				-- The game never installs a custom zoom range itself; one left here is ours or
@@ -791,8 +873,21 @@ function addon:SetDormant(value)
 				-- zoom press by navigating to the next map level instead: the level changing by
 				-- itself on the wayshrine map. And JumpToPin multiplies by the scroll's width to
 				-- place the player, so a stale scroll put the player off-centre.
+				--
+				-- This is also where the zoom is put back: the call takes the zoom it lays out
+				-- at, and the minimap's own is not the one the standard map should open with.
 				if panZoom.SetCurrentNormalizedZoomInternal and panZoom.GetCurrentNormalizedZoom then
-					panZoom:SetCurrentNormalizedZoomInternal(panZoom:GetCurrentNormalizedZoom())
+					local before = panZoom:GetCurrentNormalizedZoom()
+					zoomOnArrival = before
+					if playerChoseMap then
+						panZoom:SetCurrentNormalizedZoomInternal(before)
+					elseif panZoom.SetCurrentNormalizedZoom then
+						-- Also drops a zoom target left over from the HUD, or the map would ease
+						-- back towards it.
+						panZoom:SetCurrentNormalizedZoom(STANDARD_MAP_OPENING_ZOOM)
+					else
+						panZoom:SetCurrentNormalizedZoomInternal(STANDARD_MAP_OPENING_ZOOM)
+					end
 				end
 			end
 
@@ -810,10 +905,13 @@ function addon:SetDormant(value)
 				self:CentreStandardMapOnPlayer()
 				-- If the centring was held back (the map it switched to is still loading), take
 				-- note: it lands on its own later, and something has to tidy up after it.
-				if panZoom.pendingInitializeMap
-					and not (ZO_WorldMap_DidPlayerChooseCurrentMap and ZO_WorldMap_DidPlayerChooseCurrentMap()) then
+				if panZoom.pendingInitializeMap and not playerChoseMap then
 					self.pendingCentreTicks = PENDING_CENTRE_TICKS
+					self.pendingCentreNavigateIn = nil
 				end
+				-- After the range is back and the centring has run, so the line shows what the
+				-- standard map actually opened at, with the range it opened with.
+				self:NoteMapZoom(travelMap and "open-travel" or "open", zoomOnArrival)
 			end
 		end
 		if self.ApplyLiteAlpha then
@@ -3049,7 +3147,7 @@ local function InitMemoryWatchdog()
 			-- Only while the standard map is in front: this is the player moving between
 			-- map levels there, not walking across a zone border on the HUD.
 			if addon.dormant then
-				addon:ArmCentreTidyUp()
+				addon:ArmCentreTidyUp(wasNavigateIn)
 			end
 			Emit("map changed: " .. tostring(GetMapName()))
 		end

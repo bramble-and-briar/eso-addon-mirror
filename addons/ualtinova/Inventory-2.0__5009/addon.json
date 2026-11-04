@@ -18,7 +18,7 @@
     "Inventory2"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5009/",
-  "fingerprint": "ac6ee41b158ef32f8a400125fbbddf8ae1f81a75f124cd9dca2a3cc98c36f788",
+  "fingerprint": "7490659cb82715f65d339e0052f288e6e8fd1a93acfbf05dae581671613f48cf",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18263.png",
     "https://cdn-eso.mmoui.com/preview/pvw18264.png",
@@ -35,11 +35,11 @@
   "source_id": "5009",
   "source_url": "https://www.esoui.com/downloads/info5009-Inventory2.0.html",
   "stats": {
-    "downloads": 208,
+    "downloads": 245,
     "favorites": 1,
-    "monthly_downloads": 168
+    "monthly_downloads": 224
   },
   "title": "Inventory 2.0",
-  "updated_at": 1793661283000,
-  "version": "1.0.5"
+  "updated_at": 1793744549000,
+  "version": "1.0.6"
 }

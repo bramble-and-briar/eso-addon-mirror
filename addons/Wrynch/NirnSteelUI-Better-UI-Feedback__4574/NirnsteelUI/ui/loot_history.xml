@@ -166,12 +166,12 @@
                 Nirnsteel_UI_LootHistory_Entry_OnInitialized(self)
             </OnInitialized>
             <Controls>
-                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD181510" layer="BACKGROUND" level="0">
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD181510" layer="BACKGROUND" level="0" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
                     <Anchor point="TOPLEFT" offsetX="-30" offsetY="7"/>
                     <Anchor point="BOTTOMRIGHT" offsetX="12" offsetY="-7"/>
                     <Controls>
-                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true" excludeFromResizeToFitExtents="true">
                             <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                             <Dimensions x="160" y="56"/>
                             <Anchor point="LEFT" offsetX="-8"/>
@@ -200,10 +200,10 @@
                     <Dimensions x="40" y="40"/>
                     <Anchor point="LEFT" offsetX="16"/>
                     <Controls>
-                        <Label name="$(parent)OverlayText" font="ZoFontGameOutline" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                        <Label name="$(parent)OverlayText" font="ZoFontGameOutline" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false" excludeFromResizeToFitExtents="true">
                             <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
                         </Label>
-                        <Texture name="$(parent)StatusIcon" hidden="true">
+                        <Texture name="$(parent)StatusIcon" hidden="true" excludeFromResizeToFitExtents="true">
                             <Dimensions x="22" y="22"/>
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
                         </Texture>
@@ -215,19 +215,19 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="2" offsetY="2"/>
                 </Control>
 
-                <Texture name="$(parent)RarityAccent" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD">
+                <Texture name="$(parent)RarityAccent" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                     <Dimensions x="240" y="3"/>
                     <Anchor point="LEFT" offsetX="69" offsetY="20"/>
                 </Texture>
 
-                <Texture name="$(parent)TopEdge" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" color="70DCC59A" blendMode="ADD">
+                <Texture name="$(parent)TopEdge" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" color="70DCC59A" blendMode="ADD" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                     <Dimensions x="140" y="2"/>
                     <Anchor point="LEFT" offsetX="65" offsetY="-22"/>
                 </Texture>
 
-                <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2" excludeFromResizeToFitExtents="true">
                     <Dimensions x="264"/>
                     <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="22"/>
                 </Label>
@@ -236,17 +236,17 @@
 
         <Control name="Nirnsteel_LootHistory_GamepadEntry" virtual="true">
             <Dimensions x="360" y="72"/>
-            <Anchor point="BOTTOMRIGHT"/>
+            <Anchor point="BOTTOMLEFT"/>
             <OnInitialized>
                 Nirnsteel_UI_LootHistory_GamepadEntry_OnInitialized(self)
             </OnInitialized>
             <Controls>
-                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD181510" layer="BACKGROUND" level="0">
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD181510" layer="BACKGROUND" level="0" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
                     <Anchor point="TOPLEFT" offsetX="-30" offsetY="7"/>
                     <Anchor point="BOTTOMRIGHT" offsetX="12" offsetY="-7"/>
                     <Controls>
-                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true" excludeFromResizeToFitExtents="true">
                             <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                             <Dimensions x="160" y="58"/>
                             <Anchor point="LEFT" offsetX="-8"/>
@@ -275,11 +275,11 @@
                     <Dimensions x="44" y="44"/>
                     <Anchor point="LEFT" offsetX="16"/>
                     <Controls>
-                        <Label name="$(parent)OverlayText" inherits="ZO_GamepadMenuEntryStackCountTemplate" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                        <Label name="$(parent)OverlayText" inherits="ZO_GamepadMenuEntryStackCountTemplate" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false" excludeFromResizeToFitExtents="true">
                             <Dimensions x="55"/>
                             <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
                         </Label>
-                        <Texture name="$(parent)StatusIcon" hidden="true">
+                        <Texture name="$(parent)StatusIcon" hidden="true" excludeFromResizeToFitExtents="true">
                             <Dimensions x="22" y="22"/>
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
                         </Texture>
@@ -291,19 +291,19 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="2" offsetY="2"/>
                 </Control>
 
-                <Texture name="$(parent)RarityAccent" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD">
+                <Texture name="$(parent)RarityAccent" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" blendMode="ADD" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                     <Dimensions x="240" y="3"/>
                     <Anchor point="LEFT" offsetX="69" offsetY="20"/>
                 </Texture>
 
-                <Texture name="$(parent)TopEdge" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" color="70DCC59A" blendMode="ADD">
+                <Texture name="$(parent)TopEdge" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" color="70DCC59A" blendMode="ADD" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                     <Dimensions x="140" y="2"/>
                     <Anchor point="LEFT" offsetX="65" offsetY="-22"/>
                 </Texture>
 
-                <Label name="$(parent)Label" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                <Label name="$(parent)Label" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2" excludeFromResizeToFitExtents="true">
                     <Dimensions x="260"/>
                     <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="22"/>
                     <OnInitialized>
@@ -334,12 +334,12 @@
                 Nirnsteel_UI_LootHistory_Legacy_Entry_OnInitialized(self)
             </OnInitialized>
             <Controls>
-                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD060606">
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD060606" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
                     <Anchor point="TOPLEFT" offsetX="-72"/>
                     <Anchor point="BOTTOMRIGHT" offsetX="42"/>
                     <Controls>
-                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true" excludeFromResizeToFitExtents="true">
                             <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                             <Dimensions x="160" y="56"/>
                             <Anchor point="LEFT" offsetX="-8"/>
@@ -368,10 +368,10 @@
                     <Dimensions x="48" y="48"/>
                     <Anchor point="LEFT" offsetX="-4"/>
                     <Controls>
-                        <Label name="$(parent)OverlayText" font="ZoFontGameOutline" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                        <Label name="$(parent)OverlayText" font="ZoFontGameOutline" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false" excludeFromResizeToFitExtents="true">
                             <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
                         </Label>
-                        <Texture name="$(parent)StatusIcon" hidden="true">
+                        <Texture name="$(parent)StatusIcon" hidden="true" excludeFromResizeToFitExtents="true">
                             <Dimensions x="34" y="34"/>
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
                         </Texture>
@@ -384,7 +384,7 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="4" offsetY="4"/>
                 </Texture>
 
-                <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2" excludeFromResizeToFitExtents="true">
                     <Dimensions x="270"/>
                     <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="12"/>
                 </Label>
@@ -393,17 +393,17 @@
 
         <Control name="Nirnsteel_LootHistory_Legacy_GamepadEntry" virtual="true">
             <Dimensions x="340" y="58"/>
-            <Anchor point="BOTTOMRIGHT"/>
+            <Anchor point="BOTTOMLEFT"/>
             <OnInitialized>
                 Nirnsteel_UI_LootHistory_Legacy_GamepadEntry_OnInitialized(self)
             </OnInitialized>
             <Controls>
-                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD060606">
+                <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" color="DD060606" excludeFromResizeToFitExtents="true">
                     <TextureCoords left="0" right="1" top="0" bottom=".78125"/>
                     <Anchor point="TOPLEFT" offsetX="-72"/>
                     <Anchor point="BOTTOMRIGHT" offsetX="42"/>
                     <Controls>
-                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true">
+                        <Texture name="$(parent)Highlight" textureFile="EsoUI/Art/HUD/lootHistory_highlight.dds" hidden="true" excludeFromResizeToFitExtents="true">
                             <TextureCoords left="0" right="1" top="0" bottom=".75"/>
                             <Dimensions x="160" y="58"/>
                             <Anchor point="LEFT" offsetX="-8"/>
@@ -432,11 +432,11 @@
                     <Dimensions x="50" y="50"/>
                     <Anchor point="LEFT" offsetX="-4"/>
                     <Controls>
-                        <Label name="$(parent)OverlayText" inherits="ZO_GamepadMenuEntryStackCountTemplate" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+                        <Label name="$(parent)OverlayText" inherits="ZO_GamepadMenuEntryStackCountTemplate" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false" excludeFromResizeToFitExtents="true">
                             <Dimensions x="55"/>
                             <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1"/>
                         </Label>
-                        <Texture name="$(parent)StatusIcon" hidden="true">
+                        <Texture name="$(parent)StatusIcon" hidden="true" excludeFromResizeToFitExtents="true">
                             <Dimensions x="34" y="34"/>
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5"/>
                         </Texture>
@@ -449,7 +449,7 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="4" offsetY="4"/>
                 </Texture>
 
-                <Label name="$(parent)Label" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+                <Label name="$(parent)Label" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2" excludeFromResizeToFitExtents="true">
                     <Dimensions x="260"/>
                     <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="12"/>
                     <OnInitialized>

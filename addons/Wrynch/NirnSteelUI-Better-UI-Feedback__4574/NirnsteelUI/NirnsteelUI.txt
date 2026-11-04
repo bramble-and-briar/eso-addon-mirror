@@ -3,7 +3,7 @@
 ## DependsOn: LibAddonMenu-2.0>=41
 ## SavedVariables: NirnsteelUI_Account NirnsteelUI_Servers NirnsteelUI_Character NirnsteelUI_Presets
 ## Author: |cFFFF00Wrynch|r
-## Version: 3.0.2
+## Version: 3.1.1
 ## Description: UI feedback and polish for ESO.
 
 ui/loot_history.xml

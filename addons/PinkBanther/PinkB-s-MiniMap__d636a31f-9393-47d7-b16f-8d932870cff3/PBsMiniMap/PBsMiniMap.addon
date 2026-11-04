@@ -2,10 +2,10 @@
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
 ## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
-## Title: |cFF69B4PB’s MiniMap|r 2.3.4
+## Title: |cFF69B4PB’s MiniMap|r 2.3.5
 ## Author: |cFF69B4PinkBanther|r
 ## Description: A lightweight minimap for console. Keeps the game's own world map parked on the HUD at a size and position you choose, and hands it straight back when you open the full map. Inspired by Votan's Minimap by votan, with thanks -- written for console so it stays inside the add-on memory limit.
-## Version: 2.3.4
+## Version: 2.3.5
 ## APIVersion: 101050 101051
 ## DependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsMiniMap_Data

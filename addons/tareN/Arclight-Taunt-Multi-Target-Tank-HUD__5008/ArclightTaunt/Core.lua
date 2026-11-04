@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.0 | Core module
+-- Arclight Taunt 1.1.1 | Core module
 -- Lua implementation is original; uses only the public ESO UI API.
 local ADDON = "ArclightTaunt"
 local EM, WM = EVENT_MANAGER, WINDOW_MANAGER
@@ -103,7 +103,7 @@ local defaults = {
     subtleWarningBg = true, warningAt = 7, dangerAt = 4, removeDead = true,
     showExpired = false, showBossIcon = true,
     highlightBossNames = true, pinBosses = false, bossMode = "comprehensive",
-    highlightTarget = true,
+    highlightTarget = true, targetHighlightStyle = "subtle",
     fontKey = "Arclight (Standard)", timerFontKey = "Wie Gegnername",
     barKey = "Arclight (Signatur)", fontSize = 100,
     barHeight = 4, barDisplay = "compact", backgroundKey = "Ohne Textur", texturedTrack = false,

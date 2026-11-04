@@ -41,7 +41,7 @@ local SV_KEY = {
     buff   = "buffUI",
     debuff = "debuffUI",
     proc   = "procUI",
-    pen    = "penUI", -- v2.0.5: UI④ 貫通・敵耐性低下パネル
+    cd     = "cdUI",  -- v2.1.0: UI④ Self Proc CD
 }
 
 -- v1.4.3で修正: 「重要バフ」「重要デバフ」の表記を廃止し、シンプルに
@@ -52,7 +52,7 @@ local WINDOW_TITLES = {
     buff   = "BUFF",
     debuff = "DEBUFF",
     proc   = "CONDITION",
-    pen    = "PEN",
+    cd     = "PROC CD",
 }
 
 -- v1.4.16で追加: ヘッダー背景バー方式(「デザイン版」設定)を廃止した代わりに、
@@ -61,7 +61,7 @@ local TITLE_COLORS = {
     buff   = { 0.55, 1.00, 0.55 }, -- 明るい緑(BUFF)
     debuff = { 1.00, 0.40, 0.40 }, -- 明るい赤(DEBUFF)
     proc   = { 0.45, 0.85, 1.00 }, -- 水色(Proc)
-    pen    = { 1.00, 0.75, 0.30 }, -- 橙(貫通)
+    cd     = { 0.949, 0.949, 0.949 }, -- 白(Proc CD。標準配色は白/黄/緑)
 }
 
 PTI.UI.windows = PTI.UI.windows or {}
@@ -75,12 +75,23 @@ function PTI.UI.GetFontSize(key)
     return (sv and sv.fontSize) or 16
 end
 
+-- v2.1.0: UI④(cd)だけ、背景透明でも読めるよう文字に縁取りを付ける。
+local function FontStyle(key)
+    if key == "cd" then return "thick-outline" end
+    return "soft-shadow-thin"
+end
+
 function PTI.UI.RowFont(key)
-    return string.format("$(BOLD_FONT)|%d|soft-shadow-thin", PTI.UI.GetFontSize(key))
+    return string.format("$(BOLD_FONT)|%d|%s", PTI.UI.GetFontSize(key), FontStyle(key))
 end
 
 function PTI.UI.TitleFont(key)
-    return string.format("$(BOLD_FONT)|%d|soft-shadow-thin", PTI.UI.GetFontSize(key) + 4)
+    return string.format("$(BOLD_FONT)|%d|%s", PTI.UI.GetFontSize(key) + 4, FontStyle(key))
+end
+
+-- 縁取りの色を薄い黒にする(SetStyleColorがPS5で使えるかは未検証。無ければ何もしない)
+function PTI.UI.ApplyOutline(label)
+    if label and label.SetStyleColor then label:SetStyleColor(0, 0, 0, 0.5) end
 end
 
 -- v1.4.9で追加: UI①・UI②の各行の下に残り時間バーを敷くための寸法。
@@ -92,6 +103,11 @@ function PTI.UI.RowHeight(key)
     -- 重要バフ/デバフは残り時間が短くなるほど文字が大きくなる(最大+6px)ため、
     -- 行の高さにも余裕を持たせて隣の行と重ならないようにする。
     local base = PTI.UI.GetFontSize(key) + 14
+    if key == "cd" then
+        -- v2.1.0: UI④は「表示間隔」設定(rowGap)を行の高さに加える
+        local sv = PTI.sv and PTI.sv.cdUI
+        base = base + ((sv and sv.rowGap) or 0)
+    end
     if key == "buff" or key == "debuff" then
         base = base + ROW_BAR_GAP + ROW_BAR_HEIGHT
     end
@@ -166,6 +182,7 @@ function PTI.UI.CreateWindow(key)
     local tc = TITLE_COLORS[key] or { 1, 1, 1 }
     titleLabel:SetColor(tc[1], tc[2], tc[3], 1)
     titleLabel:SetText(WINDOW_TITLES[key])
+    if key == "cd" then PTI.UI.ApplyOutline(titleLabel) end
 
     local container = WM:CreateControl("PTI_Rows_" .. key, win, CT_CONTROL)
     container:SetAnchor(TOPLEFT, titleLabel, BOTTOMLEFT, -4, 6)
@@ -307,7 +324,7 @@ function PTI.UI.ApplyAllPositions()
     PTI.UI.ApplyPosition("buff")
     PTI.UI.ApplyPosition("debuff")
     PTI.UI.ApplyPosition("proc")
-    PTI.UI.ApplyPosition("pen")
+    PTI.UI.ApplyPosition("cd")
 end
 
 function PTI.UI.ApplyFontSize(key)
@@ -352,13 +369,13 @@ function PTI.UI.SetWindowVisible(key)
         hiddenByCombat = PTI.UI.hiddenByCombat and not PTI.sv.previewMode
     end
 
-    -- v2.0.5: UI④(pen)は、パネルON(PTI.Pen.Sync)・プレイヤーをターゲット中
-    -- (PTI.UI.penHasContent、Pen.lua側が更新)の時だけ表示する。戦闘状態や
+    -- v2.1.0: UI④(cd)は、パネルON(PTI.ProcCD.Sync)で監視を開始し、表示する行が
+    -- ある時(PTI.UI.cdHasContent、ProcCD.lua側が更新)だけ表示する。戦闘状態や
     -- UI①②③の表示状態には一切依存しない。previewMode中は従来通り表示する。
-    local hiddenByEmptyPen = false
-    if key == "pen" then
-        if PTI.Pen and PTI.Pen.Sync then PTI.Pen.Sync() end
-        hiddenByEmptyPen = (not PTI.sv.previewMode) and not PTI.UI.penHasContent
+    local hiddenByEmptyCd = false
+    if key == "cd" then
+        if PTI.ProcCD and PTI.ProcCD.Sync then PTI.ProcCD.Sync() end
+        hiddenByEmptyCd = (not PTI.sv.previewMode) and not PTI.UI.cdHasContent
     end
 
     local hiddenByEmptyProc = false
@@ -367,7 +384,7 @@ function PTI.UI.SetWindowVisible(key)
     end
 
     local shouldShow = PTI.sv.enabled and not hiddenByScene and not hiddenByCombat
-        and not hiddenByEmptyProc and not hiddenByEmptyPen and sv.enabled ~= false
+        and not hiddenByEmptyProc and not hiddenByEmptyCd and sv.enabled ~= false
     entry.window:SetHidden(not shouldShow)
 end
 
@@ -390,13 +407,13 @@ function PTI.UI.Initialize()
     PTI.UI.CreateWindow("buff")
     PTI.UI.CreateWindow("debuff")
     PTI.UI.CreateWindow("proc")
-    PTI.UI.CreateWindow("pen")
+    PTI.UI.CreateWindow("cd")
 
     PTI.UI.ApplyAllPositions()
     PTI.UI.RefreshRowLayout("buff")
     PTI.UI.RefreshRowLayout("debuff")
     PTI.UI.RefreshRowLayout("proc")
-    PTI.UI.RefreshRowLayout("pen")
+    PTI.UI.RefreshRowLayout("cd")
 
     -- STEP5で追加: リロードUI等で既に戦闘中の場合に備え、IsUnitInCombatで
     -- 初期値を正しく設定してからRefreshVisibility()する(以後はイベント駆動)。
@@ -405,7 +422,7 @@ function PTI.UI.Initialize()
     -- STEP6で追加: procHasContentはProcs.lua側の最初のTickが来るまではfalse
     -- (=非表示)としておく(「発動していない時は勝手に表示しない」仕様のため)。
     PTI.UI.procHasContent = false
-    PTI.UI.penHasContent = false -- v2.0.5: Pen.luaの最初のスキャンまでは非表示
+    PTI.UI.cdHasContent = false -- v2.1.0: ProcCD.luaが最初に行を作るまでは非表示
 
     PTI.UI.RefreshVisibility()
 

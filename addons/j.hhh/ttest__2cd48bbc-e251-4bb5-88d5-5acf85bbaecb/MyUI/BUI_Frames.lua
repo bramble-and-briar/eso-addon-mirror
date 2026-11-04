@@ -1479,9 +1479,15 @@ function BUI.Frames.Attribute(unitTag, attribute, powerValue, powerMax, pct, shi
 		end
 		control.bar:SetWidth(pct*w)
 		if unitTag=='reticleover' and attribute=='health' then
-			local hpText = BUI.DisplayNumber(math.max(powerValue,0))
-			if powerValue > 999999 then hpText = BUI.DisplayNumber(powerValue/1000,1).."k" end
-			control.current:SetText(hpText.." ("..pctLabel..")")
+			-- Only the custom Bandits target frame shows DEAD for a dead target.
+			-- ESO's native target bar and the player/group frames are unaffected.
+			if IsUnitDead('reticleover') then
+				control.current:SetText("DEAD")
+			else
+				local hpText = BUI.DisplayNumber(math.max(powerValue,0))
+				if powerValue > 999999 then hpText = BUI.DisplayNumber(powerValue/1000,1).."k" end
+				control.current:SetText(hpText.." ("..pctLabel..")")
+			end
 			control.pct:SetText("")
 			control.pct:SetHidden(true)
 		else
@@ -1521,7 +1527,11 @@ function BUI.Frames:Shield(unitTag, shieldValue, shieldPct, healthValue, healthM
 			..(shieldValue>0 and BUI.DisplayNumber(shieldValue/(short and 1000 or 1)) or "")
 			..(traumaValue>0 and "-"..BUI.DisplayNumber(traumaValue/(short and 1000 or 1)) or "")
 			..((shieldValue>0 or traumaValue>0) and "]" or "")
-		frame.health.current:SetText(label)
+		if unitTag=='reticleover' and IsUnitDead('reticleover') then
+			frame.health.current:SetText("DEAD")
+		else
+			frame.health.current:SetText(label)
+		end
 	end
 end
 
@@ -1555,7 +1565,11 @@ function BUI.Frames:Trauma(unitTag, traumaValue, traumaPct, healthValue, healthM
 			..(shieldValue>0 and BUI.DisplayNumber(shieldValue/(short and 1000 or 1)) or "")
 			..(traumaValue>0 and "-"..BUI.DisplayNumber(traumaValue/(short and 1000 or 1)) or "")
 			..((shieldValue>0 or traumaValue>0) and "]" or "")
-		frame.health.current:SetText(label)
+		if unitTag=='reticleover' and IsUnitDead('reticleover') then
+			frame.health.current:SetText("DEAD")
+		else
+			frame.health.current:SetText(label)
+		end
 	end
 end
 

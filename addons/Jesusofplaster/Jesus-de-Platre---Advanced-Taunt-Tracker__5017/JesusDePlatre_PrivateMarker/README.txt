@@ -1,42 +1,62 @@
-Jesus de Platre - Cyber Taunt Reticle 0.8.3 (experimental)
+Jesus de Platre v0.8.7 — Hotfix
+Fixed a startup Lua error caused by a leftover call to the removed RecordTargetSample function.
+Gold donations: @Evokation, PC NA.
 
-Replace the entire JesusDePlatre_PrivateMarker folder with this one.
-Keeps the previous multi-enemy taunt tracker (/jdptaunt).
+Jesus de Platre - Cyber Taunt Reticle + Multi-Taunt v0.8.5
+Author: Jesus de Platre
 
-NEW: a true circular segmented reticle texture, not rectangular mockup brackets.
-NEW: anchors to ESO's ZO_ReticleContainerReticle / RETICLE.reticleTexture, with
-screen-center fallback if the native reticle isn't exposed.
+INSTALL
+Replace the existing JesusDePlatre_PrivateMarker directory in
+Documents/Elder Scrolls Online/live/AddOns/ with this directory.
+Do not keep two copies. Reload the UI (/reloadui).
 
-Quick test:
- /jdpcross demo green
- /jdpcross probe
- /jdpcross demo off
+COMMANDS (help is OPT-IN; no startup chatter)
+/jdptaunt help     Multi-enemy taunt tracker and move/lock controls
+/jdptaunt demo     Three example enemy entries
+/jdptaunt demo off
+/jdptaunt lock off  Unlock drag handle
+/jdpcross help     Cyber reticle and its positioning/options
+/jdpcross demo green
+/jdpcross demo off
+/jdpmarker help    Optional classic HUD/target health bar indicator
+/jdpdonate         Optional in-game gold donation instructions
 
-Controls:
- /jdpcross anchor native       Follow ESO's native crosshair control (default)
- /jdpcross anchor screen       Use screen center fallback
- /jdpcross x 0 /jdpcross y 0  Fine-tune relative position
- /jdpcross size 124           Scale circular ring
- /jdpcross textpos left       Default status position
- /jdpcross textoffset 22      Change label spacing
- /jdpcross vanilla off        Hide original crosshair texture (if found)
- /jdpcross vanilla on         Restore original reticle
- /jdpcross shownotarget off   Hide overlay while not aiming at an enemy
- /jdpcross reset              Restore defaults
- /jdpcross off                Disable custom reticle
+ABOUT
+Displays taunt indicators and countdowns for your reticle target and
+tracked combat targets. Green = yours, blue = other player's (when
+known), red = expired / no taunt, yellow = uncertain owner.
+Some combat events do not expose a reliable owner or unitId; the
+tracker avoids claiming certainty in such cases.
 
-Green YOUR TAUNT, Blue OTHER TAUNT, Red NO TAUNT, Yellow UNKNOWN.
-White-gray when there is no enemy.
+ESOUI REVIEW CHANGES v0.8.5
+- Settings use ZO_SavedVars NewAccountWide with GetWorldName profile;
+  prevents one account/server's config overwriting another's.
+- Removed experimental 3D marker and diagnostic protected calls.
+  /jdpmarker world and /jdpmarker probe are discontinued.
+- Removed loaded/version/info chat spam; help only by command.
+- Reduced countdown/alert UI refreshes from 100ms to 250ms;
+  target changes and taunt events are separately registered.
+  Periodic updates remain solely for countdowns and expirations,
+  which cannot update visually from events alone.
+- No automatic gold mailing; the user manually sends mail.
+- Manifest targets ESO API 101051.
 
-Limitations: the concept rendering was more detailed than the real in-game
-version; this uses a white DXT5 texture tinted by Lua. ESO may vary how the
-reticle texture is positioned or its visibility. Please report /jdpcross probe.
+IMPORTANT SAVED-SETTINGS CHANGE
+Older versions saved flat global tables without server/account separation.
+New settings therefore start from defaults per account/server instead of
+silently importing potentially mixed older values. Reposition UI if needed.
 
+SCREENSHOT FOR ESOUI
+Create an actual in-game screenshot showing /jdptaunt demo and
+/jdpcross demo green. Upload the screenshot separately on the ESOUI
+add-on page. This ZIP does not claim to include an in-game screenshot.
 
-v0.8.4 OPTIONAL IN-GAME GOLD DONATION
- /jdpdonate  Open an optional donation panel
- Or click Donate at the upper-right of the multi-taunt tracker.
- Recipient: @Evokation
- Clicking OPEN MAIL TO @Evokation opens ESO's mail composer when available.
- Pick any amount of gold in Mail; nothing is sent by the add-on.
- The player reviews and manually sends mail.
+DONATIONS
+Optional in-game gold gifts: @Evokation on PC NA only. Use /jdpdonate
+for instructions. Gold is NEVER transferred automatically.
+Players on PC EU cannot send gold across servers.
+
+AI DISCLOSURE AND CREDITS
+Lua code and maintenance were assisted by OpenAI ChatGPT (AI).
+Original design direction and publishing: Jesus de Platre.
+Please test in-game before public release.

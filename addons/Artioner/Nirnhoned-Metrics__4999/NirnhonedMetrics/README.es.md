@@ -35,10 +35,11 @@ Versión actual: **1.2.1** (ver [CHANGELOG.md](CHANGELOG.md)).
 ## Uso
 
 - `/nm` muestra y oculta el medidor. También con una tecla en *Controles → Nirnhoned Metrics*.
-- Cada barra muestra `4.43M (53.4K, 9.5%)`: daño total, DPS y porcentaje del grupo, ordenados de mayor a menor, con el icono y el color de la clase.
-- La barra de título muestra el título (el del addon o uno tuyo, con colores) y los iconos en tres grupos: **Daño** y **Sanación** · **Grupo** y **Mis habilidades** · combates anteriores, reiniciar, plegar, candado, ajustes y cerrar. Los que no uses se pueden ocultar en los ajustes. El clic derecho en el medidor abre el menú completo.
+- Cada barra muestra `4.43M (53.4K, 9.5%)`: daño total, DPS y porcentaje del grupo, ordenados de mayor a menor (por total o por DPS, a elegir en los ajustes), con el icono y el color de la clase.
+- La barra de título muestra el título (el del addon o uno tuyo, con colores) y los iconos en tres grupos: **Daño** y **Sanación** · **Grupo** y **Mis habilidades** · combates anteriores, cada combate / toda la run, reiniciar (flecha circular), plegar, candado, ajustes y cerrar. Los que no uses se pueden ocultar en los ajustes. El clic derecho en el medidor abre el menú completo.
 - La flecha de la barra de título pliega la ventana (solo queda la barra de título) y la vuelve a desplegar.
 - El pie de la ventana muestra la duración del combate (con un reloj) y qué combate se está viendo.
+- **Cada combate / Toda la run:** con *Toda la run* se suman todos los combates desde que entras en una zona (una mazmorra o una prueba entera). Solo cuenta el tiempo en combate: el pie muestra el tiempo en combate de la run y el DPS/HPS se calcula sobre él. La run es la primera entrada de la lista de combates (*Run: nombre de la zona*) y empieza de cero al cambiar de zona, al reiniciar o al cambiar de modo. Se cambia con su icono de la barra de título (espada: cada combate; puerta de mazmorra: toda la run), el menú del clic derecho o los ajustes. La run no se guarda: se pierde al recargar la interfaz.
 - **Daño / Sanación:** cambia lo que se mide. En sanación se ve el HPS y, en la descripción emergente, la sobrecuración.
 - **Mis habilidades** muestra tu daño o tu sanación por habilidad (y por mascota) con colores por tipo de daño. Al pasar el ratón por una barra se ven los golpes, el porcentaje de críticos, el golpe medio y el máximo.
 - El candado desbloquea la ventana: se mueve arrastrándola desde cualquier parte y cambia de tamaño con los bordes o la esquina inferior derecha. La rueda del ratón desplaza las barras si no caben.
@@ -85,7 +86,7 @@ NirnhonedMetrics.txt    manifiesto
 NirnhonedMetrics.lua    namespace, SavedVariables (valores por defecto), arranque, bienvenida
 lang/*.lua              textos (en = base; es, de, fr sobrescriben)
 Core/Utils.lua          formato de números y tiempo, colores, iconos de clase
-Core/Fight.lua          eventos de combate: tu daño por habilidad, inicio/fin de combate, historial
+Core/Fight.lua          eventos de combate: tu daño por habilidad, inicio/fin de combate, historial, run
 Core/Group.lua          daño del grupo (LibGroupCombatStats) y estimación del resto del grupo
 Core/Commands.lua       comandos /nm y funciones de las teclas
 UI/Meter.lua            ventana: cabecera, barras, menú, pie con la duración, mover y redimensionar
@@ -94,7 +95,8 @@ Bindings.xml            teclas
 ```
 
 - **Cómo se mide:** `EVENT_COMBAT_EVENT` filtrado a ti y a tus mascotas. Un combate empieza al entrar en combate (o con tu primer golpe) y termina unos segundos después de salir (`combatEndDelay`); si estás muerto y tu grupo sigue luchando, se espera. Tu DPS se calcula desde tu primer golpe hasta el último.
-- **Grupo:** `Core/Group.lua` copia en el combate los datos de LibGroupCombatStats que cambiaron después de empezar el combate, para no mezclar datos del combate anterior. El resto del grupo se estima con la vida que pierden los jefes (`EVENT_POWER_UPDATE` de `boss*`, solo bajadas) menos tu daño a los jefes y el de los miembros conocidos.
+- **Grupo:** `Core/Group.lua` copia en el combate los datos de LibGroupCombatStats que cambiaron después de empezar el combate, para no mezclar datos del combate anterior. El resto del grupo se estima con la vida que pierden los jefes (`EVENT_POWER_UPDATE` de `boss*`, solo bajadas) menos tu daño a los jefes y el de los miembros conocidos. LibGroupCombatStats comparte el daño acumulado del combate de LibCombat de cada miembro: si al cerrar tu combate un miembro sigue en combate, se guarda lo que llevaba y en tu combate siguiente se le resta.
+- **Run:** con `countMode = "run"`, `Core/Fight.lua` suma cada combate a `F.run` al cerrarlo (una sola vez, ya con los datos finales del grupo). Duración y DPS de la run usan solo el tiempo en combate. Mientras hay un combate en curso, `F.RunView()` lo suma a una copia solo cuando la ventana muestra la run. Se reinicia con un `zoneId` distinto en `EVENT_PLAYER_ACTIVATED`, con reiniciar y al cambiar de modo. No se guarda en las SavedVariables.
 - **Opción nueva:** valor por defecto en `NM.defaults` (`NirnhonedMetrics.lua`), control en `UI/Settings.lua` y textos en los cuatro `lang/*.lua`.
 
 ### Publicar una versión

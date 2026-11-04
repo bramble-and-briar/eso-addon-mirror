@@ -58,7 +58,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Go Fast Don't Die](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drezzek/Go-Fast-Don-t-Die__3332) | Drezzek | PC / Mac | 1.4 |
 | [Go Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Go-Home__1604) | static_recharge | PC / Mac | 8.0.0 |
 | [GoA_DolgubonsLazyWritCreatorUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_DolgubonsLazyWritCreatorUAPatch__4703) | Iriya_Altmer | PC / Mac | 1.7 |
-| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 47.00.01 |
+| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 47.64 |
 | [GoA_FCOLockpickerUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_FCOLockpickerUAPatch__4733) | Iriya_Altmer | PC / Mac | 1.0 |
 | [GoA_HarvestMapUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_HarvestMapUAPatch__4707) | Iriya_Altmer | PC / Mac | 1.1 |
 | [GoA_TamrielTradeCentreUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_TamrielTradeCentreUAPatch__4705) | Iriya_Altmer | PC / Mac | 1.2 |
@@ -121,6 +121,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Group Notifications](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Group-Notifications__1250) | CaptainBlagbird | PC / Mac | 2.0 |
 | [Group Reformer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MikeX/Group-Reformer__1162) | MikeX | PC / Mac | 1.3 |
 | [Group Resources](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/Group-Resources__3d1bd08c-876b-4248-b347-1a5fd451912d) | sirinsidiator | Console | — |
+| [Group Scout (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Group-Scout-Beta__aa4be285-0c03-47b8-8ee1-a2e3992d9460) | xbutch | Console | — |
 | [Group Stealth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Group-Stealth__1893) | aldericon | PC / Mac | 12.0 |
 | [Group Synergizer - Enhanced LFG Features \| Auto Accept Que \| Better Notifications](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scorpius2k1/Group-Synergizer---Enhanced-LFG-Features-Auto-Accept-Que-Better-Notifications__2286) | scorpius2k1 | PC / Mac | 4.1 |
 | [Group Synergy Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Group-Synergy-Tracker__2429) | init3 | PC / Mac | 1.4.5 |

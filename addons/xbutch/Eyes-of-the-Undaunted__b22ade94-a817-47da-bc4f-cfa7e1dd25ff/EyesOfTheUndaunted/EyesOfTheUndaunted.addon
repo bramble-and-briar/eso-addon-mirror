@@ -1,15 +1,18 @@
 ## Title: Eyes of the Undaunted
-## Description: Shows bosses and champions locations in delves, group dungeons and public dungeons.
-## Version: 1.51.02
-## AddOnVersion: 15102
+## Description: Shows boss locations in delves, group dungeons, public dungeons and Imperial City.
+## Version: 1.51.03
+## AddOnVersion: 15103
 ## Author: xbutch
 ## APIVersion: 101051
 ## SavedVariables: EOTU_SavedVars
-## DependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibRadialMenu
 
 EyesOfTheUndauntedConfig.lua
 EyesOfTheUndauntedStartUp.lua
 EyesOfTheUndauntedData.lua
+EyesOfTheUndauntedImperialCity.lua
 EyesOfTheUndauntedPins.lua
+EyesOfTheUndauntedAnnouncements.lua
 EyesOfTheUndaunted.lua
+EyesOfTheUndauntedGamepad.xml
 EyesOfTheUndauntedOptions.lua

@@ -1,7 +1,7 @@
 ## Title: |cD42F2FNirnhoned|r Metrics
 ## Author: @Artioner
-## Version: 1.2.1
-## AddOnVersion: 121
+## Version: 1.3.0
+## AddOnVersion: 130
 ## APIVersion: 101051 101052
 ## Description: Damage meter with colored bars: total damage, DPS and share of your group for every fight. Type /nm to show or hide it.
 ## SavedVariables: NirnhonedMetrics_SV

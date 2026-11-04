@@ -1,6 +1,6 @@
--- My UI: Compass-only horizontal expansion (+30%).
--- ESO shares ZO_CompassFrame with the boss-health bar. Keep boss-bar width native.
--- No changes to compass height, anchors, position, textures, or pin behavior.
+-- My UI: Matching compass and boss-bar horizontal expansion (+30%).
+-- ESO shares ZO_CompassFrame with the boss-health bar.
+-- Keep height, anchors, positions, textures and pins unchanged.
 local WIDTH_FACTOR = 1.30
 local function nativeWidth()
     if not GuiRoot or not GuiRoot.GetWidth then return nil end
@@ -12,11 +12,8 @@ local function applyCompassWidth(frame)
     if not frame or not frame.control or not frame.control.SetWidth then return end
     local base = nativeWidth()
     if not base then return end
-    if frame.bossBarActive then
-        frame.control:SetWidth(base)
-    else
-        frame.control:SetWidth(base * WIDTH_FACTOR)
-    end
+    -- Same width in compass and boss-bar modes; ESO manages anchored bar/bracket geometry.
+    frame.control:SetWidth(base * WIDTH_FACTOR)
 end
 local function install()
     local frame = rawget(_G, 'COMPASS_FRAME')

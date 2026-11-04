@@ -10,7 +10,7 @@ local HT = HUDitorTools
 
 -- Addon data
 local addonWebsite = "https://www.esoui.com/downloads/info4750"
-HT.version = "1.3.0"
+HT.version = "1.3.2"
 HT.name = "HUDitor Tools"
 HT.displayName = "|c00FF00HUD|cFFFF00itor|r Tools"
 HT.eventName = "HUDitorTools"
@@ -526,7 +526,7 @@ local function buildHiddenHUDElementLSMSubmenuEntry(hiddenHUDElement, elementCtr
     if #retTab == 0 then
         retTab[1] =
         {
-            label = GetString(SI_HUDITORTOOLS_CNTXT_ELEMENT_UNHIDE),
+            label = "Unhide selected",
             entryType = LSM_ENTRY_TYPE_BUTTON,
             callback = function (comboBox, itemName, item, checked, data)
                 -- Use LSM API func to get the same submenu's checkboxes
@@ -615,10 +615,10 @@ end
 ]]
 local function buildHUDElementUserHiddenContextMenuSubmenu(control)
     if isAnyHUDEditorElementHidden() then
-        addCustomScrollableMenuHeader(string_format(GetString(SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS_COUNT), tostring(getNumHUDEditorElementsHidden())))
+        addCustomScrollableMenuHeader("HUD Editor - Hidden Elements (#" .. tostring(getNumHUDEditorElementsHidden()) .. ")")
         local userHiddenHUDElementsTab = buildHiddenHUDElementLSMSubmenu({}, sortCustomScrollableMenu, control)
-        addCustomScrollableSubMenuEntry(GetString(SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS), userHiddenHUDElementsTab)
-        addCustomScrollableMenuEntry(GetString(SI_HUDITORTOOLS_CNTXT_SHOW_ALL_HIDDEN), function (comboBox, itemName, item, selectionChanged, oldItem)
+        addCustomScrollableSubMenuEntry("Hidden Elements", userHiddenHUDElementsTab)
+        addCustomScrollableMenuEntry("|c00F000Show all|r hidden elements again", function (comboBox, itemName, item, selectionChanged, oldItem)
                                          showAllHiddenHUDEditorElementsAgain(comboBox, control)
                                      end, LSM_ENTRY_TYPE_NORMAL
         )
@@ -940,14 +940,14 @@ local function InstallEditorHooks(fromSceneChange)
                     local elementNameForSVCHeck = data._elementRealTLCName or getElementRealTLCName(nil, object)
                     if getHUDElementHiddenState(elementNameForSVCHeck) == true then
                         -- Unhide element in HUDEditor again
-                        addCustomScrollableMenuEntry(GetString(SI_HUDITORTOOLS_CNTXT_UNHIDE_AT_HUDEDITOR), function ()
+                        addCustomScrollableMenuEntry("Unhide at HUD Editor", function ()
                                                          if hideElementUIInHUDOrEditor(elementCtrl, false) == true then
                                                              refreshCustomScrollableMenu(control, LSM_UPDATE_MODE_MAINMENU, comboBox)
                                                          end
                                                      end, LSM_ENTRY_TYPE_NORMAL)
                     else
                         -- Hide element in HUDEditor again
-                        addCustomScrollableMenuEntry(GetString(SI_HUDITORTOOLS_CNTXT_HIDE_AT_HUDEDITOR), function ()
+                        addCustomScrollableMenuEntry("Hide at HUD Editor", function ()
                                                          if hideElementUIInHUDOrEditor(elementCtrl, true) == true then
                                                              refreshCustomScrollableMenu(control, LSM_UPDATE_MODE_MAINMENU, comboBox)
                                                          end

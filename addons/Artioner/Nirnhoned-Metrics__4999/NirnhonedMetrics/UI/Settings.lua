@@ -123,8 +123,8 @@ local function AlphaSlider(key, name, min)
     }
 end
 
-local function Dropdown(key, name, choices, values, tooltip)
-    return {
+local function Dropdown(key, name, choices, values, tooltip, extra)
+    local option = {
         type = "dropdown",
         name = name,
         tooltip = tooltip,
@@ -134,6 +134,8 @@ local function Dropdown(key, name, choices, values, tooltip)
         setFunc = function(v) NM.sv[key] = v; Refresh() end,
         default = NM.defaults[key],
     }
+    for k, v in pairs(extra or {}) do option[k] = v end
+    return option
 end
 
 local function ColorPicker(getTable, name, default, disabled)
@@ -174,6 +176,7 @@ local function HeaderButtonOptions()
         { "group", L.MODE_GROUP },
         { "abilities", L.MODE_ABILITIES },
         { "fights", L.MENU_FIGHTS },
+        { "count", L.BUTTON_COUNT },
         { "reset", L.MENU_RESET },
         { "collapse", L.BUTTON_COLLAPSE },
         { "lock", L.BUTTON_LOCK },
@@ -318,6 +321,7 @@ function S.Init()
         ValueSlot(1),
         ValueSlot(2),
         ValueSlot(3),
+        Dropdown("sortBy", L.OPT_SORT, { L.VALUE_TOTAL, L.VALUE_RATE }, { "total", "rate" }, L.OPT_SORT_TT),
         Checkbox("showFightRate", L.OPT_FIGHT_RATE, L.OPT_FIGHT_RATE_TT),
         Dropdown("nameFormat", L.OPT_NAME_FORMAT,
             { L.NAME_CHARACTER, L.NAME_ACCOUNT }, { "character", "account" }),
@@ -325,6 +329,9 @@ function S.Init()
         { type = "header", name = L.HEADER_DATA },
         Dropdown("metric", L.OPT_METRIC, { L.METRIC_DAMAGE, L.METRIC_HEALING }, { "damage", "healing" }),
         Dropdown("mode", L.OPT_MODE, { L.MODE_GROUP, L.MODE_ABILITIES }, { "group", "abilities" }),
+        -- Al cambiarlo, la run empieza de cero (ver NM.Meter.SetCountMode).
+        Dropdown("countMode", L.OPT_COUNT, { L.COUNT_FIGHT, L.COUNT_RUN }, { "fight", "run" }, L.OPT_COUNT_TT,
+            { setFunc = function(v) NM.Meter.SetCountMode(v) end }),
         Checkbox("includePets", L.OPT_PETS, L.OPT_PETS_TT),
         Slider("combatEndDelay", L.OPT_END_DELAY, 0, 10, 1, L.OPT_END_DELAY_TT),
         Slider("historySize", L.OPT_HISTORY, 1, 30),

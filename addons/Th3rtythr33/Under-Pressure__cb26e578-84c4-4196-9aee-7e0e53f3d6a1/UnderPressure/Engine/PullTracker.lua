@@ -120,7 +120,25 @@ local activeSource = nil   -- wearer's name when the event carried one
 local triggerCount = 0
 -- Caster-side channel (0.5.11): how it is registered, and what it has seen.
 local castChannel = "off"  -- "abilityId" | "unavailable" | "off"; set by EventIngest
-local castSeen, castWarned, castAllied = 0, 0, 0
+local castSeen, castWarned, castAllied, castPvE = 0, 0, 0, 0
+
+-- Where another player can be hostile (0.5.12): Cyrodiil and Imperial City
+-- (IsPlayerInAvAWorld) or a battleground. Everywhere else every player is
+-- an ally, the allegiance table has nothing to learn from (no kill feed),
+-- and a Leashing Burst cast by a friendly player at a world boss would be a
+-- false warning; Matt saw exactly that. Duels in PvE zones are the one gap.
+local function inPvPArea()
+    if type(IsPlayerInAvAWorld) == "function" then
+        local ok, v = pcall(IsPlayerInAvAWorld)
+        if ok and v then return true end
+    end
+    if type(IsActiveWorldBattleground) == "function" then
+        local ok, v = pcall(IsActiveWorldBattleground)
+        if ok and v then return true end
+    end
+    return false
+end
+UP.Pull.InPvPArea = inPvPArea
 
 local function nowMs()
     return GetGameTimeMilliseconds()
@@ -152,12 +170,15 @@ local function logDebug(setKey, viaWhat, sourceName, leadMs, abilityId)
     end
 end
 
-local function trigger(setKey, sourceName, leadMs, t)
+local function trigger(setKey, sourceName, leadMs, t, detail)
     triggerCount = triggerCount + 1
     local deadline = t + leadMs
     if deadline > untilMs then untilMs = deadline end
     activeSet = setKey
     if sourceName and sourceName ~= "" then activeSource = sourceName end
+    -- History (0.5.12): every warning records why it fired. Resolved at call
+    -- time because Record is defined further down the file.
+    if UP.Pull.Record then UP.Pull.Record(setKey, sourceName, leadMs, detail) end
     publish()
     -- +50 ms guards an early callback; a surplus callback finds nothing to do.
     if type(zo_callLater) == "function" then
@@ -191,7 +212,10 @@ function UP.Pull.OnCombat(result, abilityId, sourceName, sourceType, targetType,
         -- the marker's value is taken.
         if setKey == "agony" then lead = clampLead(hitValue, lead) end
     end
-    trigger(setKey, sourceName, lead, t or nowMs())
+    trigger(setKey, sourceName, lead, t or nowMs(), {
+        route = "combat", result = result, abilityId = abilityId,
+        sourceType = sourceType, targetType = targetType, hitValue = hitValue,
+    })
     logDebug(setKey, "combat r=" .. tostring(result), sourceName, lead, abilityId)
 end
 
@@ -208,7 +232,9 @@ function UP.Pull.OnEffect(changeType, abilityId, endTimeMs, t)
     if setKey == "agony" and type(endTimeMs) == "number" and endTimeMs > t then
         lead = clampLead(endTimeMs - t, lead)
     end
-    trigger(setKey, nil, lead, t)
+    trigger(setKey, nil, lead, t, {
+        route = "effect", changeType = changeType, abilityId = abilityId, endTimeMs = endTimeMs,
+    })
     logDebug(setKey, "effect", nil, lead, abilityId)
 end
 
@@ -219,13 +245,18 @@ end
 -- everyone else the allegiance table decides: a known friend is ignored, a
 -- known foe or an unknown warns, because an ally's cast is a false alarm at
 -- worst and an enemy's is the whole point. endTime (ms) carries the real
--- lead when it is sane; the set default otherwise.
+-- lead when it is sane; the set default otherwise. Outside Cyrodiil,
+-- Imperial City and battlegrounds nothing warns (0.5.12, see inPvPArea).
 function UP.Pull.OnCasterEffect(changeType, abilityId, unitTag, unitName, sourceType, endTimeMs, t)
     if not enabled() then return end
     local setKey = UP.Pull.CAST_ABILITY_IDS[abilityId]
     if not setKey then return end
     if changeType ~= GAINED and changeType ~= UPDATED then return end
     castSeen = castSeen + 1
+    if not inPvPArea() then
+        castPvE = castPvE + 1
+        return
+    end
     if unitTag == "player" or FRIENDLY[sourceType]
        or (type(unitTag) == "string" and unitTag:sub(1, 5) == "group") then
         castAllied = castAllied + 1
@@ -249,7 +280,10 @@ function UP.Pull.OnCasterEffect(changeType, abilityId, unitTag, unitName, source
         lead = clampLead(endTimeMs - t, lead)
     end
     castWarned = castWarned + 1
-    trigger(setKey, shown, lead, t)
+    trigger(setKey, shown, lead, t, {
+        route = "cast", verdict = verdict, changeType = changeType, abilityId = abilityId,
+        sourceType = sourceType, unitTag = unitTag, endTimeMs = endTimeMs,
+    })
     logDebug(setKey, "cast(" .. verdict .. ")", shown, lead, abilityId)
 end
 
@@ -259,8 +293,9 @@ function UP.Pull.CastChannel() return castChannel end
 -- One overlay line: the channel, the counts, and the allegiance table's state.
 function UP.Pull.CastSummary()
     local a = (UP.Allegiance and UP.Allegiance.Summary) and UP.Allegiance.Summary() or ""
-    return ("pullCast=%s seen=%d warned=%d allies=%d  %s"):format(
-        castChannel, castSeen, castWarned, castAllied, a)
+    return ("pullCast=%s seen=%d warned=%d allies=%d pve=%d %s  %s"):format(
+        castChannel, castSeen, castWarned, castAllied, castPvE,
+        inPvPArea() and "[pvp area]" or "[pve area]", a)
 end
 
 -- Death, zone change, anything that makes a pending warning meaningless.
@@ -288,7 +323,8 @@ function UP.Pull.ActiveSource() return activeSource end
 
 function UP.Pull.Snapshot()
     return { untilMs = untilMs, set = activeSet, source = activeSource, triggers = triggerCount,
-             castChannel = castChannel, castSeen = castSeen, castWarned = castWarned, castAllied = castAllied }
+             castChannel = castChannel, castSeen = castSeen, castWarned = castWarned,
+             castAllied = castAllied, castPvE = castPvE }
 end
 
 -- Are the pre-pull combat results for Rush of Agony present at all? (On
@@ -306,6 +342,131 @@ local function abilityDisplay(name)
         if ok and type(s) == "string" and s ~= "" then return s end
     end
     return tostring(name or "?")
+end
+
+-- ---------------------------------------------------------------------------
+-- History (0.5.12): why each warning fired, last 20, newest first
+-- ---------------------------------------------------------------------------
+-- Matt saw the indicator fire in PvE and wanted to know why. Every accepted
+-- event records a row in sv.pull_history: the set, the route it came in on
+-- (combat result, effect on us, or a caster's buff and how the caster was
+-- judged), the source's name and unit type, the ability id and its live
+-- name, the lead, and the zone. The Settings panel shows the rows at the
+-- bottom of the Pull Indicator page, newest first, with a Clear button, the
+-- same way the Plague Indicator page shows its reports.
+UP.Pull.HISTORY_MAX = 20
+
+-- Names for the numbers in a row, nil-safe; a value with no name shows as
+-- the number alone. Known names are indexed, never walked (no pairs(_G)).
+local RESULT_NAMES = {}
+for _, n in ipairs({ "ACTION_RESULT_EFFECT_GAINED", "ACTION_RESULT_EFFECT_GAINED_DURATION",
+                     "ACTION_RESULT_SNARED", "ACTION_RESULT_STUNNED" }) do
+    if type(_G[n]) == "number" then RESULT_NAMES[_G[n]] = n:sub(15) end
+end
+local UNIT_TYPE_NAMES = {}
+for _, n in ipairs({ "COMBAT_UNIT_TYPE_PLAYER", "COMBAT_UNIT_TYPE_GROUP", "COMBAT_UNIT_TYPE_OTHER",
+                     "COMBAT_UNIT_TYPE_PLAYER_PET", "COMBAT_UNIT_TYPE_PLAYER_COMPANION",
+                     "COMBAT_UNIT_TYPE_TARGET_DUMMY", "COMBAT_UNIT_TYPE_NONE" }) do
+    if type(_G[n]) == "number" then UNIT_TYPE_NAMES[_G[n]] = n:sub(18):lower() end
+end
+local CHANGE_NAMES = {}
+for _, n in ipairs({ "EFFECT_RESULT_GAINED", "EFFECT_RESULT_UPDATED", "EFFECT_RESULT_FADED" }) do
+    if type(_G[n]) == "number" then CHANGE_NAMES[_G[n]] = n:sub(15):lower() end
+end
+
+local function named(v, names)
+    if v == nil then return "?" end
+    local n = names[v]
+    return n and (tostring(v) .. " " .. n) or tostring(v)
+end
+
+local function zoneName()
+    if type(GetPlayerActiveZoneName) == "function" then
+        local ok, z = pcall(GetPlayerActiveZoneName)
+        if ok and type(z) == "string" and z ~= "" then return z end
+    end
+    if type(GetUnitZone) == "function" then
+        local ok, z = pcall(GetUnitZone, "player")
+        if ok and type(z) == "string" and z ~= "" then return z end
+    end
+    return "?"
+end
+
+local function liveAbilityName(abilityId)
+    if type(abilityId) ~= "number" or type(GetAbilityName) ~= "function" then return "?" end
+    local ok, name = pcall(GetAbilityName, abilityId)
+    if ok and type(name) == "string" and name ~= "" then return abilityDisplay(name) end
+    return "?"
+end
+
+function UP.Pull.History()
+    local sv = UP.sv
+    if sv and type(sv.pull_history) == "table" then return sv.pull_history end
+    return {}
+end
+
+local function markHistoryDirty()
+    if UP.Settings and UP.Settings.MarkPullHistoryDirty then UP.Settings.MarkPullHistoryDirty() end
+end
+
+-- Called by trigger(). detail is the input's own description of the event.
+function UP.Pull.Record(setKey, sourceName, leadMs, detail)
+    local sv = UP.sv
+    if not sv then return end
+    detail = detail or {}
+    local set = UP.Pull.SETS[setKey]
+    local setName = set and set.name or tostring(setKey)
+    local who = (type(sourceName) == "string" and sourceName ~= "") and sourceName or "unknown source"
+    local abilityId = detail.abilityId
+    local abilityName = liveAbilityName(abilityId)
+
+    local routeShort, routeLong
+    if detail.route == "combat" then
+        routeShort = "combat r=" .. tostring(detail.result)
+        routeLong  = "combat event on you, result " .. named(detail.result, RESULT_NAMES)
+                     .. ((type(detail.hitValue) == "number") and (", hitValue " .. tostring(detail.hitValue)) or "")
+    elseif detail.route == "effect" then
+        routeShort = "effect"
+        routeLong  = "effect on you, change " .. named(detail.changeType, CHANGE_NAMES)
+    elseif detail.route == "cast" then
+        routeShort = "cast(" .. tostring(detail.verdict or "unknown") .. ")"
+        routeLong  = "the caster's own buff was seen (unit tag "
+                     .. ((detail.unitTag ~= nil and detail.unitTag ~= "") and ('"' .. tostring(detail.unitTag) .. '"') or "empty")
+                     .. "), caster judged " .. tostring(detail.verdict or "unknown")
+                     .. ", change " .. named(detail.changeType, CHANGE_NAMES)
+    else
+        routeShort = tostring(detail.route or "?")
+        routeLong  = routeShort
+    end
+
+    local lines = {
+        setName .. " warning",
+        "Route: " .. routeLong,
+        "From: " .. who .. ((detail.sourceType ~= nil) and (" (source type " .. named(detail.sourceType, UNIT_TYPE_NAMES) .. ")") or ""),
+        "Ability: " .. tostring(abilityId or "?") .. " " .. abilityName,
+        ("Lead: %d ms"):format(leadMs or 0),
+    }
+    if detail.targetType ~= nil then
+        lines[#lines + 1] = "Target type: " .. named(detail.targetType, UNIT_TYPE_NAMES)
+    end
+    lines[#lines + 1] = "Zone: " .. zoneName()
+
+    if type(sv.pull_history) ~= "table" then sv.pull_history = {} end
+    local h = sv.pull_history
+    table.insert(h, 1, {
+        stamp = (type(GetTimeStamp) == "function") and GetTimeStamp() or 0,
+        time  = (type(GetTimeString) == "function") and GetTimeString() or nil,
+        set   = setKey,
+        short = ("%s from %s via %s, %.1f s lead"):format(setName, who, routeShort, (leadMs or 0) / 1000),
+        text  = table.concat(lines, "\n"),
+    })
+    while #h > UP.Pull.HISTORY_MAX do table.remove(h) end
+    markHistoryDirty()
+end
+
+function UP.Pull.ClearHistory()
+    if UP.sv then UP.sv.pull_history = {} end
+    markHistoryDirty()
 end
 
 -- true when every id's live name contains its set's keyword; false when any
@@ -329,7 +490,7 @@ end
 
 function UP.Pull.Init()
     untilMs, activeSet, activeSource, triggerCount = 0, nil, nil, 0
-    castSeen, castWarned, castAllied = 0, 0, 0
+    castSeen, castWarned, castAllied, castPvE = 0, 0, 0, 0
     local ok, detail = UP.Pull.VerifyIds()
     if ok == false and UP.Note then
         UP.Note("Pull ability IDs no longer all resolve to their set names (" .. tostring(detail)

@@ -35,22 +35,31 @@ CMA.simpleMaterialDecisionMap = {
 CMA.defaultCompanionGearTraits =  {
     [ITEM_TRAIT_TYPE_ARMOR_AGGRESSIVE] = true, -- Agressive
     [ITEM_TRAIT_TYPE_WEAPON_AGGRESSIVE] = true, -- Agressive
+    [ITEM_TRAIT_TYPE_JEWELRY_AGGRESSIVE] = true, -- Agressive
     [ITEM_TRAIT_TYPE_ARMOR_AUGMENTED] = true, -- Augmented
     [ITEM_TRAIT_TYPE_WEAPON_AUGMENTED] = true, -- Augmented
+    [ITEM_TRAIT_TYPE_JEWELRY_AUGMENTED] = true, -- Augmented
     [ITEM_TRAIT_TYPE_ARMOR_BOLSTERED] = true, -- Bolstered
     [ITEM_TRAIT_TYPE_WEAPON_BOLSTERED] = true, -- Bolstered
+    [ITEM_TRAIT_TYPE_JEWELRY_BOLSTERED] = true, -- Bolstered
     [ITEM_TRAIT_TYPE_ARMOR_FOCUSED] = true, -- Focused
     [ITEM_TRAIT_TYPE_WEAPON_FOCUSED] = true, -- Focused
+    [ITEM_TRAIT_TYPE_JEWELRY_FOCUSED] = true, -- Focused
     [ITEM_TRAIT_TYPE_ARMOR_PROLIFIC] = true, -- Profilic
     [ITEM_TRAIT_TYPE_WEAPON_PROLIFIC] = true, -- Profilic
+    [ITEM_TRAIT_TYPE_JEWELRY_PROLIFIC] = true, -- Profilic
     [ITEM_TRAIT_TYPE_ARMOR_QUICKENED] = true, -- Quickened
     [ITEM_TRAIT_TYPE_WEAPON_QUICKENED] = true, -- Quickened
+    [ITEM_TRAIT_TYPE_JEWELRY_QUICKENED] = true, -- Quickened
     [ITEM_TRAIT_TYPE_ARMOR_SHATTERING] = true, -- Shattering
     [ITEM_TRAIT_TYPE_WEAPON_SHATTERING] = true, -- Shattering
+    [ITEM_TRAIT_TYPE_JEWELRY_SHATTERING] = true, -- Shattering
     [ITEM_TRAIT_TYPE_ARMOR_SOOTHING] = true, -- Soothing
     [ITEM_TRAIT_TYPE_WEAPON_SOOTHING] = true, -- Soothing
+    [ITEM_TRAIT_TYPE_JEWELRY_SOOTHING] = true, -- Soothing
     [ITEM_TRAIT_TYPE_ARMOR_VIGOROUS] = true,  -- Vigorous
-    [ITEM_TRAIT_TYPE_WEAPON_VIGOROUS] = true   -- Vigorous
+    [ITEM_TRAIT_TYPE_WEAPON_VIGOROUS] = true,   -- Vigorous
+    [ITEM_TRAIT_TYPE_JEWELRY_VIGOROUS] = true   -- Vigorous
 }
 
 -- default settings values

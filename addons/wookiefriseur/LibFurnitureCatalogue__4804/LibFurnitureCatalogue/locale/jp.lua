@@ -101,7 +101,7 @@ local strings = {
   SI_FURC_TRADERS_HOLIDAY = "ホリデーの実績家具商人^n,from",
   SI_FURC_TRADERS_LUXF = "高級家具商人^Nd,from",
   SI_FURC_TRADERS_ROLIS = "ロリス・フラール",
-  -- 43 ENTRIES UNTRANSLATED/IDENTICAL
+  -- 45 ENTRIES UNTRANSLATED/IDENTICAL
   SI_FURC_ACHIEVEMENT_UNKNOWN = "achievement^n",
   SI_FURC_CHAT_BAD_ITEM = "<<1>> is not an item link or an item id",
   SI_FURC_CHAT_BUILDING = "The database is still being built, please try again in a moment.",
@@ -128,6 +128,7 @@ local strings = {
   SI_FURC_ITEMPACK_JYGGALAG = "Sword of Jyggalag Style",
   SI_FURC_ITEMPACK_RAZOR = "Mehrunes' Razor",
   SI_FURC_ITEMPACK_STABLE = "Steadfast Stablemaster Bundle",
+  SI_FURC_LOC_GRAHTWOOD_REDFUR = "Redfur Trading Post",
   SI_FURC_NPC_ECHATERE = "Echatere^n",
   SI_FURC_SRC_BAZAAR = "Gold Coast Bazaar",
   SI_FURC_SRC_CABINET = "cabinets^P,from",
@@ -143,6 +144,7 @@ local strings = {
   SI_FURC_TOMESPACK_ARMOR = "Armor Principles",
   SI_FURC_TOMESPACK_DAWN = "Dawn and Dusk",
   SI_FURC_TOMESPACK_LOGIC = "Study of Wisdom and Logic",
+  SI_FURC_TOMESPACK_UNDERCROFT = "Undercroft Bundle",
   SI_FURC_TRADERS_COLL_MERCH = "Collectibles Merchant",
   SI_FURC_TRADERS_NM = "Night Market Vendors^n,from",
   -- ////// END   : DON'T REMOVE THIS LINE

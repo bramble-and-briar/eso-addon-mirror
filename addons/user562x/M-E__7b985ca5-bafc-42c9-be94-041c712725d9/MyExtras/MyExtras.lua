@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "1.2"
+MyExtras.version = "1.3"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -41,6 +41,7 @@ local FONT_CHOICES = {
     { name = "Arial Narrow",    value = "EsoUI/Common/Fonts/arialn.ttf" },
     { name = "Consolas",        value = "EsoUI/Common/Fonts/consola.ttf" },
 }
+MyExtras.FONT_CHOICES = FONT_CHOICES
 
 local RAINBOW_PALETTE = { "FF2222", "FF9900", "FFEE00", "33DD33", "00CCCC", "3399FF", "BB44EE" }
 
@@ -59,6 +60,7 @@ local function RainbowText(text)
     end
     return table.concat(out)
 end
+MyExtras.RainbowText = RainbowText
 
 local function PanelCall(method)
     local panel = MyExtras.settingsPanel
@@ -82,10 +84,54 @@ function MyExtras:RegisterFeature(feature)
     end
 end
 
+local function AnyMoving()
+    for _, feature in ipairs(MyExtras.features) do
+        if feature.moving then return true end
+    end
+    return false
+end
+
 local function CallFeatures(method, ...)
     for _, feature in ipairs(MyExtras.features) do
         if type(feature[method]) == "function" then
             pcall(feature[method], feature, ...)
+        end
+    end
+end
+
+--------------------------------------------------
+-- Placing
+--------------------------------------------------
+local PLACE_FRAGMENTS = {
+    "PLAYER_ATTRIBUTE_BARS_FRAGMENT",
+    "BUFF_DEBUFF_FRAGMENT",
+    "COMPASS_FRAME_FRAGMENT",
+    "UNIT_FRAMES_FRAGMENT",
+}
+
+function MyExtras:AddPlacementFragments(scene)
+    for i = 1, #PLACE_FRAGMENTS do
+        local fragment = rawget(_G, PLACE_FRAGMENTS[i])
+        if fragment then scene:AddFragment(fragment) end
+    end
+end
+
+function MyExtras:SetPlacing(value)
+    self.placing = value == true
+    CallFeatures("OnPlacing", self.placing)
+end
+
+function MyExtras:RaiseWhilePlacing(controls, raise)
+    for i = 1, #controls do
+        local control = controls[i]
+        if control then
+            if raise then
+                control.placeTier = control:GetDrawTier()
+                control:SetDrawTier(DT_MEDIUM)
+            elseif control.placeTier then
+                control:SetDrawTier(control.placeTier)
+                control.placeTier = nil
+            end
         end
     end
 end
@@ -279,7 +325,10 @@ function MyExtras:CreateSettings()
             return font
         end,
         windowOpacity   = function() return sv.settingsOpacity end,
-        rememberPage    = function() return MyExtras.forcedPage ~= nil or sv.settingsRemember == true end,
+        rememberPage    = function()
+            return MyExtras.forcedPage ~= nil or sv.settingsRemember == true
+                or MyExtras.keepPage == true or AnyMoving()
+        end,
         lastPage        = function()
             if MyExtras.forcedPage then return MyExtras.forcedPage end
             if type(sv.settingsLastPage) ~= "table" then sv.settingsLastPage = {} end
@@ -301,6 +350,13 @@ function MyExtras:CreateSettings()
     local scene = self.settingsPanel.scene
     if scene then
         scene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_HIDDEN and AnyMoving() then
+                MyExtras.keepPage = true
+                return
+            end
+            if newState == SCENE_SHOWN then
+                MyExtras.keepPage = nil
+            end
             if newState == SCENE_SHOWN or newState == SCENE_HIDDEN then
                 MyExtras.forcedPage = nil
             end

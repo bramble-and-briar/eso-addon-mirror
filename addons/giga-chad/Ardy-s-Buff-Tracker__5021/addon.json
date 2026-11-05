@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/giga-chad/Ardy-s-Buff-Tracker__5021",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "giga'chad",
+  "canonical_id": "esoui:5021",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5021",
+  "deleted": false,
+  "directories": [
+    "ArdysBuffTrackerPC"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5021/",
+  "fingerprint": "b6ec2b5c8c297d93da46c47cd89a6b46ffbc72efa80e797f998b41e16ce5aef5",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5021",
+  "source_url": "https://www.esoui.com/downloads/info5021-ArdysBuffTracker.html",
+  "stats": {
+    "downloads": 17,
+    "favorites": 1,
+    "monthly_downloads": 7
+  },
+  "title": "Ardy's Buff Tracker",
+  "updated_at": 1793809846000,
+  "version": "1.1.0"
+}

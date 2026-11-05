@@ -5,6 +5,8 @@ local strings = {
 	SI_PBSPST_READY = "Ready",
 	SI_PBSPST_IDLE = "-",
 	SI_PBSPST_AGO = "%.1fs ago",
+	SI_PBSPST_STACKS = "x%d",
+	SI_PBSPST_STACKS_OF = "x%d/%d",
 	SI_PBSPST_PREVIEW_ROW = "Active 3.2  CD 4.8",
 	SI_PBSPST_SAMPLE_SET = "Set name %d",
 

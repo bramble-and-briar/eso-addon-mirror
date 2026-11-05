@@ -41,46 +41,56 @@ local function IsCallable(func)
     return type(func) == "function" or type(rawget(getmetatable(func) or {}, "__call")) == "function"
 end
 
-local function IsThenable(table)
-    return type(table) == "table" and table.Then and IsCallable(table.Then)
+local function GetThenFunctionIfIsThenable(table)
+    if type(table) ~= "table" then return end
+    local thenFunction = table.Then
+    if thenFunction and IsCallable(thenFunction) then
+        return thenFunction
+    end
 end
 
 local Resolve
 
-local function ResolveThenable(promise, x)
+local function ResolveThenable(promise, x, thenFunction)
     local wasCalled = false
     local success, e = pcall(function()
-        return x:Then(function(y)
-            if(not wasCalled) then
+        return thenFunction(x, function(y)
+            if not wasCalled then
                 wasCalled = true
                 Resolve(promise, y)
             end
         end, function(r)
-            if(not wasCalled) then
+            if not wasCalled then
                 wasCalled = true
                 promise:Reject(r)
             end
         end)
     end)
-    if(not success and not wasCalled) then promise:Reject(e) return end
+    if not success and not wasCalled then
+        promise:Reject(e)
+        return
+    end
 end
 
 function Resolve(promise, x)
-    if(promise == x) then promise:Reject("TypeError: Tried to pass promise to itself") return end
-    if(IsPromise(x)) then
+    if promise == x then
+        promise:Reject("TypeError: Tried to pass promise to itself")
+        return
+    end
+    if IsPromise(x) then
         x:Then(function(value)
             Resolve(promise, value)
         end, function(reason)
             promise:Reject(reason)
         end)
-    elseif(IsCallable(x)) then
-        ResolveThenable(promise, { Then = x })
-    elseif(type(x) == "table") then
-        local success, e = pcall(IsThenable, x)
-        if(not success) then
-            promise:Reject(e)
-        elseif(e) then
-            ResolveThenable(promise, x)
+    elseif IsCallable(x) then
+        ResolveThenable(promise, { Then = x }, x)
+    elseif type(x) == "table" then
+        local success, thenFunction = pcall(GetThenFunctionIfIsThenable, x)
+        if not success then
+            promise:Reject(thenFunction)
+        elseif thenFunction then
+            ResolveThenable(promise, x, thenFunction)
         else
             promise:Resolve(x)
         end
@@ -89,16 +99,33 @@ function Resolve(promise, x)
     end
 end
 
-local function ExecuteLater(func, value)
+local functionsCache = { {}, {} }
+local targetIndex = 1
+local drainScheduled = false
+
+local function ScheduleDrain()
+    if drainScheduled then return end
+    drainScheduled = true
     zo_callLater(function()
-        func(value)
+        local functions = functionsCache[targetIndex]
+        targetIndex = targetIndex % #functionsCache + 1
+        drainScheduled = false
+        ZO_ClearTable(functionsCache[targetIndex])
+        for i = 1, #functions do
+            functions[i]()
+        end
+        ZO_ClearTable(functions)
     end, 0)
 end
 
 local function ExecuteAllLater(functions, value)
+    if #functions == 0 then return end
+    local target = functionsCache[targetIndex]
     for i = 1, #functions do
-        ExecuteLater(functions[i], value)
+        local func = functions[i]
+        target[#target + 1] = function() func(value) end
     end
+    ScheduleDrain()
 end
 
 local function ClearAll(functions)
@@ -108,13 +135,16 @@ local function ClearAll(functions)
 end
 
 local function SanitizeError(err)
-    -- Lua5.1 error() converts numeric arguments to string and prepends the line info
-    -- TODO: check behavior inside ESO and write some simple tests for it
-    if(type(err) == "string") then
-        local x = err:match("lua:%d+: (%d+)$")
-        if(x and tonumber(x)) then
-            return tonumber(x)
-        end
+    if type(err) == "string" then
+        -- Lua5.1 error() converts numeric arguments to string, and the game prefixes the
+        -- message with the location and appends a stack traceback
+        local traceback = err:find("stack traceback", 1, true)
+        if traceback then err = err:sub(1, traceback - 1) end
+        local message = err:match("^.-:%d+: (.*)$") or err
+        message = message:gsub("%s+$", "")
+        local number = tonumber(message)
+        if number then return number end
+        return message
     end
     return err
 end
@@ -129,9 +159,9 @@ local function WrapCall(callback, promise, nextPromise)
         local success, e = pcall(function()
             count, x = GetNumArgsAndArgs(callback(promise.value))
         end)
-        if(not success) then
+        if not success then
             nextPromise:Reject(SanitizeError(e))
-        elseif(count > 0) then
+        elseif count > 0 then
             Resolve(nextPromise, x)
         end
     end
@@ -160,14 +190,14 @@ local function ClearReportUnhandledRejectionIfNeeded(self)
 end
 
 local function FlushAllCallbacks(self)
-    if(self.state == STATE_FULFILLED) then
+    if self.state == STATE_FULFILLED then
         ExecuteAllLater(self.fulfilled, self.value)
-    elseif(self.state == STATE_REJECTED) then
+    elseif self.state == STATE_REJECTED then
         ClearReportUnhandledRejectionIfNeeded(self)
         ExecuteAllLater(self.rejected, self.value)
     end
 
-    if(self.state ~= STATE_PENDING) then
+    if self.state ~= STATE_PENDING then
         ClearAll(self.fulfilled)
         ClearAll(self.rejected)
     end
@@ -187,19 +217,19 @@ end
 function Promise:Then(OnFulfilled, OnRejected)
     local nextPromise = Promise:New()
 
-    if(IsCallable(OnFulfilled)) then
+    if IsCallable(OnFulfilled) then
         self.fulfilled[#self.fulfilled + 1] = WrapCall(OnFulfilled, self, nextPromise)
     else
         self.fulfilled[#self.fulfilled + 1] = function(value) nextPromise:Resolve(value) end
     end
 
-    if(IsCallable(OnRejected)) then
+    if IsCallable(OnRejected) then
         self.rejected[#self.rejected + 1] = WrapCall(OnRejected, self, nextPromise)
     else
         self.rejected[#self.rejected + 1] = function(value) nextPromise:Reject(value) end
     end
 
-    if(self.state ~= STATE_PENDING) then
+    if self.state ~= STATE_PENDING then
         FlushAllCallbacks(self)
     end
 
@@ -207,7 +237,7 @@ function Promise:Then(OnFulfilled, OnRejected)
 end
 
 function Promise:Resolve(value)
-    if(self.state == STATE_PENDING) then
+    if self.state == STATE_PENDING then
         self.value = value
         self.state = STATE_FULFILLED
         FlushAllCallbacks(self)
@@ -215,7 +245,7 @@ function Promise:Resolve(value)
 end
 
 function Promise:Reject(reason)
-    if(self.state == STATE_PENDING) then
+    if self.state == STATE_PENDING then
         self.value = reason
         self.state = STATE_REJECTED
         RequestReportUnhandledRejectionIfNeeded(self)

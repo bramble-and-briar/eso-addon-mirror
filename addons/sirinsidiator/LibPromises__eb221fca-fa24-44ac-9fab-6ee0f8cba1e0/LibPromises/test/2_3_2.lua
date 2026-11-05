@@ -13,9 +13,9 @@ Taneth("LibPromises", function()
     local sentinel = { sentinel = "sentinel" } -- a sentinel fulfillment value to test for with strict equality
 
     local function testPromiseResolution(xFactory, test)
-        it.async("via return from a fulfilled promise", function(done)
-            setfenv(test, getfenv()) -- pass setTimeout on
+        apply_test_env(test)
 
+        it.async("via return from a fulfilled promise", function(done)
             local promise = resolved(dummy):Then(function()
                 return xFactory()
             end)
@@ -24,8 +24,6 @@ Taneth("LibPromises", function()
         end)
 
         it.async("via return from a rejected promise", function(done)
-            setfenv(test, getfenv()) -- pass setTimeout on
-
             local promise = rejected(dummy):Then(nil, function()
                 return xFactory()
             end)

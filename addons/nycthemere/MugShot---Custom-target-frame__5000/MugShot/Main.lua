@@ -1,53 +1,37 @@
 -- =========================================================
 -- MugShot - Main  (Main.lua)
--- Bootstrap entry point.
--- Assembles all modules on EVENT_ADD_ON_LOADED and registers
--- two-word slash commands for runtime control.
+-- Entry point and initialization orchestrator.
+-- Listens to EVENT_ADD_ON_LOADED and registers slash commands.
 -- =========================================================
 
 local MugShot = MugShot
-local C = MugShot.Constants
 
--- ── Bootstrap ─────────────────────────────────────────────
--- All assembly happens inside this callback so that ESO has
--- fully initialised SavedVariables and UI controls before
--- we touch them.
+-- ── Event Callback ────────────────────────────────────────
 local function OnAddonLoaded(_eventCode, addonName)
-    if addonName ~= C.ADDON_NAME then return end
+    if addonName ~= MugShot.Constants.ADDON_NAME then
+        return
+    end
 
-    -- Unregister immediately — we only need this once
-    EVENT_MANAGER:UnregisterForEvent(C.ADDON_NAME .. "_Load", EVENT_ADD_ON_LOADED)
+    EVENT_MANAGER:UnregisterForEvent(
+        MugShot.Constants.ADDON_NAME .. "_Load",
+        EVENT_ADD_ON_LOADED
+    )
 
-    MugShot.logger:Info("=== MugShot %s by %s — initialising ===",
-        C.ADDON_VERSION, C.AUTHOR)
+    if MugShot.InitLanguage then
+        MugShot.InitLanguage()
+    end
 
-    -- Discover all registered companions from Collectibles
-    MugShot.Portraits.RegisterCompanionCollectibles()
-
-    EVENT_MANAGER:RegisterForEvent(C.ADDON_NAME .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
-        MugShot.Portraits.RegisterCompanionCollectibles()
-    end)
-
-    EVENT_MANAGER:RegisterForEvent(C.ADDON_NAME .. "_CompanionActivated", EVENT_COMPANION_ACTIVATED, function()
-        MugShot.Portraits.RegisterCompanionCollectibles()
-    end)
-
-    -- ── 1. Settings ──────────────────────────────────────
+    -- ── Instantiate Dependencies ──────────────────────────
     local settings = MugShot.Settings.New()
     settings:Load()
-    MugShot.settings = settings   -- stash for drag-save in TargetFrameView
+    MugShot.settings = settings
 
-    -- ── 2. Core objects ───────────────────────────────────
     local state         = MugShot.TargetState.New()
     local adapter       = MugShot.EsoAdapter.New()
-    local eventBindings = MugShot.EventBindings.New()
+    local eventBindings = MugShot.EventBindings.New(adapter)
     local nativeBridge  = MugShot.NativeFrameBridge.New()
     local view          = MugShot.TargetFrameView.New()
 
-    -- Apply saved position immediately
-    view:ApplyLayout(settings:Get())
-
-    -- ── 3. Controller ─────────────────────────────────────
     local controller = MugShot.TargetController.New({
         state         = state,
         adapter       = adapter,
@@ -57,29 +41,37 @@ local function OnAddonLoaded(_eventCode, addonName)
         settings      = settings,
     })
 
-    -- Stash references for tests and commands
-    MugShot._controller   = controller
-    MugShot._view         = view
+    -- Wire up bidirectional bridge between View and Controller
+    view._controller = controller
+    MugShot._controller = controller
+    MugShot._view = view
     MugShot._nativeBridge = nativeBridge
 
-    -- ── 4. Start (if enabled) ─────────────────────────────
+    -- Apply saved layout and position
+    view:ApplyLayout(settings:Get())
+
+    -- Respect the master enabled setting
     if settings:Get().enabled then
         controller:Start()
     else
-        MugShot.logger:Info(MugShot.GetText("DISABLED_HELP"))
+        controller:Stop()
     end
 
-    -- ── 5. Slash commands (/mugshot <action>) ──────────────
-    local handlers = {
-        toggle = function(arg)
-            local current = settings:Get()
-            local nowEnabled
-            if arg == "on" then nowEnabled = true
-            elseif arg == "off" then nowEnabled = false
-            else nowEnabled = not current.enabled end
+    -- If the frame was saved in an unlocked state, restore Move Mode on reload
+    if not settings:Get().locked then
+        controller:SetMoveMode(true, "enemy")
+        SetGameCameraUIMode(true)
+        CHAT_SYSTEM:AddMessage(MugShot.GetText("FRAME_UNLOCKED"))
+    end
 
-            settings:Set("enabled", nowEnabled)
-            if nowEnabled then
+    -- ── Slash Command Handlers ────────────────────────────
+    local handlers = {
+        toggle = function()
+            local current = settings:Get().enabled
+            local newState = not current
+            settings:Set("enabled", newState)
+
+            if newState then
                 controller:Start()
                 CHAT_SYSTEM:AddMessage(MugShot.GetText("ENABLED"))
             else
@@ -88,11 +80,36 @@ local function OnAddonLoaded(_eventCode, addonName)
             end
         end,
 
-        move = function()
+        move = function(param)
             local current = settings:Get()
+            param = param and string.lower(param) or ""
+
+            if param == "enemy" or param == "boss" then
+                if current.locked then
+                    settings:Set("locked", false)
+                    SetGameCameraUIMode(true)
+                    CHAT_SYSTEM:AddMessage(MugShot.GetText("FRAME_UNLOCKED"))
+                end
+                controller:SetMoveMode(true, "enemy")
+                return
+            elseif param == "player" or param == "self" then
+                if current.locked then
+                    settings:Set("locked", false)
+                    SetGameCameraUIMode(true)
+                    CHAT_SYSTEM:AddMessage(MugShot.GetText("FRAME_UNLOCKED"))
+                end
+                controller:SetMoveMode(true, "player")
+                return
+            elseif param == "toggle" then
+                if not current.locked and controller:IsInMoveMode() then
+                    controller:ToggleMoveModeTarget()
+                    return
+                end
+            end
+
             local nowLocked = not current.locked
             settings:Set("locked", nowLocked)
-            controller:SetMoveMode(not nowLocked)
+            controller:SetMoveMode(not nowLocked, "enemy")
 
             if nowLocked then
                 SetGameCameraUIMode(false)
@@ -108,7 +125,7 @@ local function OnAddonLoaded(_eventCode, addonName)
             settings:Set("position", defaultPos)
             settings:Set("locked", false)
             view:ApplyLayout(settings:Get())
-            controller:SetMoveMode(true)
+            controller:SetMoveMode(true, "enemy")
             SetGameCameraUIMode(true)
             CHAT_SYSTEM:AddMessage(MugShot.GetText("POSITION_RESET"))
         end,
@@ -158,11 +175,51 @@ local function OnAddonLoaded(_eventCode, addonName)
             controller:RefreshEffects()
         end,
 
+        layout = function(arg)
+            local current = settings:Get()
+            arg = arg and string.lower(arg) or ""
+            local newLayout
+            if arg == "classic" or arg == "on" or arg == "2" then
+                newLayout = "classic"
+            elseif arg == "compact" or arg == "off" or arg == "3" then
+                newLayout = "compact"
+            else
+                newLayout = (current.layout == "classic") and "compact" or "classic"
+            end
+
+            settings:Set("layout", newLayout)
+            controller:SetLayout(newLayout)
+            if newLayout == "classic" then
+                CHAT_SYSTEM:AddMessage(MugShot.GetText("LAYOUT_CLASSIC"))
+            else
+                CHAT_SYSTEM:AddMessage(MugShot.GetText("LAYOUT_COMPACT"))
+            end
+        end,
+
+        classic = function(arg)
+            local current = settings:Get()
+            local nowClassic
+            if arg == "on" then nowClassic = true
+            elseif arg == "off" then nowClassic = false
+            else nowClassic = not (current.layout == "classic") end
+
+            local newLayout = nowClassic and "classic" or "compact"
+            settings:Set("layout", newLayout)
+            controller:SetLayout(newLayout)
+            if nowClassic then
+                CHAT_SYSTEM:AddMessage(MugShot.GetText("LAYOUT_CLASSIC"))
+            else
+                CHAT_SYSTEM:AddMessage(MugShot.GetText("LAYOUT_COMPACT"))
+            end
+        end,
+
         help = function()
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_TITLE"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_TOGGLE"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_MOVE"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_RESET"))
+            CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_LAYOUT"))
+            CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_CLASSIC"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_TRIAL"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_DEBUFFS"))
             CHAT_SYSTEM:AddMessage(MugShot.GetText("CMD_HELP_HODOR"))
@@ -196,9 +253,11 @@ local function OnAddonLoaded(_eventCode, addonName)
                 sub:SetDescription(description)
             end
 
-            AddSub("toggle", handlers.toggle, MugShot.GetText("CMD_HELP_TOGGLE"))
-            AddSub("move",   handlers.move,   MugShot.GetText("CMD_HELP_MOVE"))
-            AddSub("reset",  handlers.reset,  MugShot.GetText("CMD_HELP_RESET"))
+            AddSub("toggle",  handlers.toggle,  MugShot.GetText("CMD_HELP_TOGGLE"))
+            AddSub("move",    handlers.move,    MugShot.GetText("CMD_HELP_MOVE"))
+            AddSub("reset",   handlers.reset,   MugShot.GetText("CMD_HELP_RESET"))
+            AddSub("layout",  handlers.layout,  MugShot.GetText("CMD_HELP_LAYOUT"))
+            AddSub("classic", handlers.classic, MugShot.GetText("CMD_HELP_CLASSIC"))
             AddSub("trial",   handlers.trial,   MugShot.GetText("CMD_HELP_TRIAL"))
             AddSub("debuffs", handlers.debuffs, MugShot.GetText("CMD_HELP_DEBUFFS"))
             AddSub("hodor",   handlers.hodor,   MugShot.GetText("CMD_HELP_HODOR"))

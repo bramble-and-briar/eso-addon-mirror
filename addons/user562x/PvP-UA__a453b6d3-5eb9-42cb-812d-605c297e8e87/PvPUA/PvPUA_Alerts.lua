@@ -5,7 +5,6 @@ local DC_HEX = U.DC_HEX
 local AD_HEX = U.AD_HEX
 local EP_HEX = U.EP_HEX
 local RainbowText = U.RainbowText
-local ScreenBounds = U.ScreenBounds
 local DetailsFont = U.DetailsFont
 local EA_FONT_CHOICES = U.EA_FONT_CHOICES
 local SAVED_ACCOUNT_TIP = U.SAVED_ACCOUNT_TIP
@@ -113,6 +112,41 @@ function PvPUA:EAApplyMetrics(key)
     local size = v.fontSize or 45
     a.panel:SetDimensions(EA_PANEL_WIDTH, math.ceil(size * 3))
     a.label:SetWidth(EA_PANEL_WIDTH)
+end
+
+function PvPUA:EAMoveTarget(key)
+    local def = EA_DEF_BY_KEY[key]
+    local defaultY = def and def.defaultPosY or -160
+    return {
+        controls    = function() return { self.effectAlerts[key] and self.effectAlerts[key].panel } end,
+        bounds      = function() return self:CenterBounds() end,
+        getPosition = function()
+            local v = self:EAVars(key)
+            return v.posX or 0, v.posY or defaultY
+        end,
+        setPosition = function(x, y)
+            local v = self:EAVars(key)
+            v.posX, v.posY = x, y
+            self:EAApplyPosition(key)
+        end,
+        getSize     = function() return self:EAVars(key).fontSize or 45 end,
+        setSize     = function(size)
+            self:EAVars(key).fontSize = size
+            self:EAApplyMetrics(key)
+            self:EARefresh(key)
+        end,
+        sizeMin     = 25,
+        sizeMax     = 90,
+        sizeSpeed   = 15,
+        defaultX    = 0,
+        defaultY    = defaultY,
+        defaultSize = 45,
+        setMoving   = function(on)
+            local a = self.effectAlerts[key]
+            if a then a.moving = on end
+            self:EARefresh(key)
+        end,
+    }
 end
 
 function PvPUA:EACreatePanel(key)
@@ -225,7 +259,7 @@ function PvPUA:EARefresh(key)
     local def = EA_DEF_BY_KEY[key]
     if def and def.mode == "queue" then
         local text
-        if a.preview then
+        if a.preview or a.moving or (self.placing and self.savedVariables.alertsEnabled) then
             text = def.defaultText
         elseif self.savedVariables.alertsEnabled and #self.hkQueue > 0 then
             text = self:HKText()
@@ -253,7 +287,8 @@ function PvPUA:EARefresh(key)
         return
     end
 
-    local show = a.preview or (v.enabled and a.active and not self:EAIsPlayerDead())
+    local show = a.preview or a.moving or (self.placing and v.enabled)
+        or (v.enabled and a.active and not self:EAIsPlayerDead())
     if not show then
         a.panel:SetHidden(true)
         self:EAStopPulse(key)
@@ -422,8 +457,6 @@ end
 
 function PvPUA:HKBuildSettings(def)
     local key = def.key
-    local screenW, screenH = ScreenBounds()
-    local halfW, halfH = math.ceil(screenW / 10) * 5, math.ceil(screenH / 10) * 5
     local function Sample()
         local v = self:EAVars(key)
         return def.defaultText, DetailsFont(v.font, v.fontSize), 1, 1, 1
@@ -436,16 +469,9 @@ function PvPUA:HKBuildSettings(def)
               if self.effectAlerts[key] then self.effectAlerts[key].preview = v end
               self:EARefresh(key)
           end },
-        { type = "slider", name = "Horizontal Position", min = -halfW, max = halfW, step = 5,
-          default = 0,
-          tooltip = "Default is 0.",
-          getFunc = function() return self:EAVars(key).posX end,
-          setFunc = function(v) self:EAVars(key).posX = v; self:EAApplyPosition(key) end },
-        { type = "slider", name = "Vertical Position", min = -halfH, max = halfH, step = 5,
-          default = def.defaultPosY or -160,
-          tooltip = "Default is " .. (def.defaultPosY or -160) .. ".",
-          getFunc = function() return self:EAVars(key).posY end,
-          setFunc = function(v) self:EAVars(key).posY = v; self:EAApplyPosition(key) end },
+        { type = "button", name = "Move / Scale", buttonText = "Move / Scale",
+          tooltip = PvPUA.MOVE_TIP,
+          func = function() self:StartMove(self:EAMoveTarget(key)) end },
 
 
         { type = "toggle", name = "Enabled", preset = "YES_NO",
@@ -464,11 +490,6 @@ function PvPUA:HKBuildSettings(def)
           setFunc = function(v) self.savedVariables.alertLifespan = v end },
 
 
-        { type = "slider", name = "Size", min = 25, max = 90, step = 1,
-          tooltip = "Default is 45.",
-          default = 45,
-          getFunc = function() return self:EAVars(key).fontSize end,
-          setFunc = function(v) self:EAVars(key).fontSize = v; self:EARefresh(key) end },
         { type = "dropdown", name = "Font",
           choices = EA_FONT_CHOICES,
           default = "EsoUI/Common/Fonts/univers67.otf",
@@ -491,8 +512,6 @@ end
 
 function PvPUA:EABuildSettings(def)
     local key = def.key
-    local screenW, screenH = ScreenBounds()
-    local halfW, halfH = math.ceil(screenW / 10) * 5, math.ceil(screenH / 10) * 5
     local function Sample()
         local v = self:EAVars(key)
         local text = v.messageText
@@ -508,16 +527,9 @@ function PvPUA:EABuildSettings(def)
               if self.effectAlerts[key] then self.effectAlerts[key].preview = v end
               self:EARefresh(key)
           end },
-        { type = "slider", name = "Horizontal Position", min = -halfW, max = halfW, step = 5,
-          default = 0,
-          tooltip = "Default is 0.",
-          getFunc = function() return self:EAVars(key).posX end,
-          setFunc = function(v) self:EAVars(key).posX = v; self:EAApplyPosition(key) end },
-        { type = "slider", name = "Vertical Position", min = -halfH, max = halfH, step = 5,
-          default = def.defaultPosY or -160,
-          tooltip = "Default is " .. (def.defaultPosY or -160) .. ".",
-          getFunc = function() return self:EAVars(key).posY end,
-          setFunc = function(v) self:EAVars(key).posY = v; self:EAApplyPosition(key) end },
+        { type = "button", name = "Move / Scale", buttonText = "Move / Scale",
+          tooltip = PvPUA.MOVE_TIP,
+          func = function() self:StartMove(self:EAMoveTarget(key)) end },
 
 
         { type = "toggle", name = "Enabled", preset = "YES_NO",
@@ -540,11 +552,6 @@ function PvPUA:EABuildSettings(def)
               self:EAVars(key).messageText = v
               self:EARefresh(key)
           end },
-        { type = "slider", name = "Size", min = 25, max = 90, step = 1,
-          tooltip = "Default is 45.",
-          default = 45,
-          getFunc = function() return self:EAVars(key).fontSize end,
-          setFunc = function(v) self:EAVars(key).fontSize = v; self:EARefresh(key) end },
         { type = "dropdown", name = "Font",
           choices = EA_FONT_CHOICES,
           default = "EsoUI/Common/Fonts/univers67.otf",
@@ -657,6 +664,37 @@ function P:ApplyPosition()
     local sv = self:SV()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(CENTER, GuiRoot, CENTER, sv.potionPosX, sv.potionPosY)
+end
+
+function P:MoveTarget()
+    return {
+        controls    = function() return { P.panel } end,
+        bounds      = function() return PvPUA:CenterBounds() end,
+        getPosition = function()
+            local sv = P:SV()
+            return sv.potionPosX, sv.potionPosY
+        end,
+        setPosition = function(x, y)
+            local sv = P:SV()
+            sv.potionPosX, sv.potionPosY = x, y
+            P:ApplyPosition()
+        end,
+        getSize     = function() return P:SV().potionFontSize end,
+        setSize     = function(size)
+            P:SV().potionFontSize = size
+            P:InvalidateFont()
+        end,
+        sizeMin     = 25,
+        sizeMax     = 90,
+        sizeSpeed   = 15,
+        defaultX    = POTION_DEFAULTS.potionPosX,
+        defaultY    = POTION_DEFAULTS.potionPosY,
+        defaultSize = POTION_DEFAULTS.potionFontSize,
+        setMoving   = function(on)
+            P.moving = on
+            P:RefreshDisplay()
+        end,
+    }
 end
 
 function P:CreatePanel()
@@ -793,7 +831,8 @@ function P:OnPlayerAlive()
 end
 
 function P:ShouldShow()
-    if self.previewMode then return true end
+    if self.previewMode or self.moving then return true end
+    if PvPUA.placing and self:SV().potionEnabled then return true end
     if not self:SV().potionEnabled then return false end
     if self:IsPlayerDead() then return false end
     if not potionInCombat then return false end
@@ -897,28 +936,11 @@ function P:GetOptions()
             end,
         },
         {
-            type    = "slider",
-            name    = "Horizontal Position",
-            min     = -1200, max = 1200, step = 5,
-            default = POTION_DEFAULTS.potionPosX,
-            tooltip = "Default is " .. POTION_DEFAULTS.potionPosX .. ".",
-            getFunc = function() return P:SV().potionPosX end,
-            setFunc = function(val)
-                P:SV().potionPosX = val
-                P:ApplyPosition()
-            end,
-        },
-        {
-            type    = "slider",
-            name    = "Vertical Position",
-            min     = -800, max = 800, step = 5,
-            default = POTION_DEFAULTS.potionPosY,
-            tooltip = "Default is " .. POTION_DEFAULTS.potionPosY .. ".",
-            getFunc = function() return P:SV().potionPosY end,
-            setFunc = function(val)
-                P:SV().potionPosY = val
-                P:ApplyPosition()
-            end,
+            type       = "button",
+            name       = "Move / Scale",
+            buttonText = "Move / Scale",
+            tooltip    = PvPUA.MOVE_TIP,
+            func       = function() PvPUA:StartMove(P:MoveTarget()) end,
         },
         {
             type    = "toggle",
@@ -1038,18 +1060,6 @@ function P:GetOptions()
                 if val == nil or val == "" then val = "USE POTION NOW!" end
                 P:SV().potionText = val
                 P:RefreshDisplay()
-            end,
-        },
-        {
-            type    = "slider",
-            name    = "Size",
-            min     = 25, max = 90, step = 1,
-            default = POTION_DEFAULTS.potionFontSize,
-            tooltip = "Default is 45.",
-            getFunc = function() return P:SV().potionFontSize end,
-            setFunc = function(val)
-                P:SV().potionFontSize = val
-                P:InvalidateFont()
             end,
         },
         {

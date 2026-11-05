@@ -1,0 +1,277 @@
+<GuiXml>
+    <Controls>
+
+        <Line name="ABB_HP_Line_Hard_Template" thickness="2" level="501" tier="1" virtual="true">
+            <OnInitialized>
+                self:SetColor(1, 1, 1, 0.7)
+            </OnInitialized>
+        </Line>
+
+        <Line name="ABB_HP_Line_Soft_Template" thickness="6" level="501" tier="1" virtual="true" textureFile="esoui/art/quest/questjournal_divider.dds" blendMode="COLOR_DODGE">
+        </Line>
+
+        <Control name="ABB_BossBar_Keyboard_Template" virtual="true">
+            <Dimensions x="500" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
+            <Controls>
+                <Control name="$(parent)Health">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="-10"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" offsetX="10"/>
+
+                    <Controls>
+                        <StatusBar name="$(parent)Bar">
+                            <Dimensions y="23"/>
+                        </StatusBar>
+                        <StatusBar name="$(parent)LeftBgBar">
+                            <Dimensions x="18" y="23"/>
+                        </StatusBar>
+                        <Label name="$(parent)Text" font="ZoFontGamepad22"/>
+                        <Label name="$(parent)Name" font="ZoFontGamepad22"/>
+                    </Controls>
+                </Control>
+                
+                <Control name="$(parent)Warner" tier="LOW" level="0" inherits="ZO_PlayerAttributeWarner">
+                    <Dimensions x="830" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD" />
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                </Control>
+                
+                <Texture name="$(parent)BgCenter" textureFile="$(COMPASS_PATH)compass.dds">
+                    <TextureCoords left="0.78125" right="1" top="0" bottom="0.609375"/>
+                </Texture>
+
+                <Texture name="$(parent)BgLeft" textureFile="$(COMPASS_PATH)compass.dds">
+                    <Dimensions x="18" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
+                    <TextureCoords left="0" right="0.28125" top="0" bottom="0.609375"/>
+                </Texture>
+
+                <Texture name="$(parent)BgRight" textureFile="$(COMPASS_PATH)compass.dds">
+                    <Dimensions x="18" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
+                    <TextureCoords left="0.28125" right="0" top="0" bottom="0.609375"/>
+                </Texture>
+            </Controls>
+        </Control>
+
+        <Control name="ABB_BossBar_Gamepad_Template" inherits="ABB_BossBar_Keyboard_Template" virtual="true"/>
+        <Control name="ABB_BossBar_Emb_Gamepad_Template" inherits="ABB_BossBar_Emb_Keyboard_Template" virtual="true"/>
+
+        <Control name="ABB_BossBar_Emb_Keyboard_Template" virtual="true">
+            <Dimensions x="500" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
+            <Controls>
+                <Control name="$(parent)Health">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="-10"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" offsetX="10"/>
+
+                    <Controls>
+                        <StatusBar name="$(parent)Bar" inherits="ZO_TargetAttributeStatusBar_Keyboard_Template">
+                            <Dimensions y="23"/>
+                        </StatusBar>
+                        <StatusBar name="$(parent)LeftBgBar">
+                            <Dimensions x="18" y="23"/>
+                        </StatusBar>
+                        <Label name="$(parent)Text" font="ZoFontGamepad22"/>
+                        <Label name="$(parent)Name" font="ZoFontGamepad22"/>
+                    </Controls>
+                </Control>
+                
+                <Control name="$(parent)Warner" level="1" inherits="ZO_PlayerAttributeWarner">
+                    <Dimensions x="800" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD" />
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                </Control>
+                
+                <Texture name="$(parent)BgRight" inherits="ZO_TargetAttributeBgRightAngle_Keyboard_Template" alpha="0.95" level="0">
+                    <Dimensions y="30" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetY="-1" />
+                </Texture>
+                
+                <Texture name="$(parent)BgCenter" textureFile="$(COMPASS_PATH)compass.dds">
+                    <TextureCoords left="0.78125" right="1" top="0" bottom="0.609375" />
+                </Texture>
+
+                <Texture name="$(parent)BgLeft" textureFile="$(COMPASS_PATH)compass.dds">
+                    <Dimensions x="18" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD" />
+                    <TextureCoords left="0" right="0.28125" top="0" bottom="0.609375" />
+                </Texture>
+
+                <Texture name="$(parent)FrameCenter" inherits="ZO_TargetAttributeFrameCenter_Keyboard_Template">
+                    <Dimensions y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD" />
+                </Texture>
+                
+                <Texture name="$(parent)NotchCenter" textureFile="esoui/art/worldmap/mapnav_downarrow_up.dds" tier="1" level="501">
+                    <Dimensions x="21" y="21" />
+                    <Anchor point="TOP" relativeTo="$(parent)BgCenter" relativePoint="TOP" offsetY="-5"/>
+                </Texture>
+                
+                <Texture name="$(parent)FrameRight" textureFile="MyUI/abb_frame_right.dds" tier="1" level="500">
+                    <Dimensions x="32" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT"/>
+                </Texture>
+                <Texture name="$(parent)BracketLeft" textureFile="EsoUI/Art/BossBar/bossBar_bracket_left.dds">
+                    <Dimensions x="64" y="64"/>
+                    <Anchor point="RIGHT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" offsetX="8"/>
+                    <TextureCoords left="0" right="1" top="0" bottom="1" />
+                </Texture>
+
+                <Texture name="$(parent)BracketRight" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_bracket_level4_right.dds">
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetX="-5"/>
+                    <TextureCoords left="0" right="1" top="0" bottom="1" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <Control name="ABB_BossBar" virtual="true">
+            <Controls>
+                <Control name="$(parent)Health" inherits="ZO_PlayerAttributeContainer">
+                    <Controls>
+                        <StatusBar name="$(parent)LeftBgBar" level="1" inherits="ZO_PlayerAttributeStatusBar" barAlignment="REVERSE" color="INTERFACE_COLOR_TYPE_POWER_START:POWERTYPE_HEALTH">
+                            <Anchor point="LEFT" />
+                            <Anchor point="RIGHT" relativePoint="LEFT" offsetX="18" />
+                            <OnInitialized>
+                                self.gloss = ABB_FakeGloss:New()
+                                self:SetMinMax(0,1)
+                                self:SetValue(1)
+                            </OnInitialized>
+                        </StatusBar>
+                        <StatusBar name="$(parent)Bar" inherits="ZO_PlayerAttributeStatusBar">
+                            <Anchor point="LEFT" offsetX="18" />
+                            <Anchor point="RIGHT" />
+                            <OnInitialized>
+                                self.gloss = ABB_FakeGloss:New()
+                            </OnInitialized>
+                        </StatusBar>
+                        <Label name="$(parent)Name" horizontalAlignment="CENTER">
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="15" offsetY="-1"/>
+                        </Label>
+                        <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-15" offsetY="-1"/>
+                        </Label>
+                    </Controls>
+                </Control>
+                
+                <Control name="$(parent)Warner">
+                    <Controls>
+                        <Texture name="$(parent)Left" inherits="ZO_PlayerAttributeWarnerLeftArrow" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds" />
+                        <Texture name="$(parent)Right" inherits="ZO_PlayerAttributeWarnerRightArrow" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds"/>
+                        <Texture name="$(parent)Center" inherits="ZO_PlayerAttributeWarnerCenter" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds"/>
+                    </Controls>
+                </Control>
+                
+                <Texture name="$(parent)BgCenter">
+                    <AnchorFill />
+                    <Controls>
+                        <Texture name="$(parent)TopMungeOverlay" inherits="ZO_RandomizedMunge" level="1">
+                            <Dimensions y="4" />
+                            <Anchor point="TOPLEFT" offsetY="2" />
+                            <Anchor point="TOPRIGHT" offsetY="2" />
+                        </Texture>
+                        <Texture name="$(parent)BottomMungeOverlay" inherits="ZO_RandomizedMunge" level="1">
+                            <Dimensions y="3" />
+                            <Anchor point="BOTTOMLEFT" offsetY="-4" />
+                            <Anchor point="BOTTOMRIGHT" offsetY="-4" />
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)BgLeft">
+                    <Anchor point="RIGHT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" />
+                </Texture>
+
+                <Texture name="$(parent)BgRight">
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" />
+                </Texture>
+
+            </Controls>
+        </Control>
+
+        <Control name="ABB_BossBar_Emb" virtual="true">
+            <Controls>
+                <Control name="$(parent)Health" inherits="ZO_PlayerAttributeContainer">
+                    <Controls>
+                        <StatusBar name="$(parent)LeftBgBar" level="1" inherits="ZO_PlayerAttributeStatusBar" barAlignment="REVERSE" color="INTERFACE_COLOR_TYPE_POWER_START:POWERTYPE_HEALTH">
+                            <Anchor point="LEFT" />
+                            <Anchor point="RIGHT" relativePoint="LEFT" offsetX="18" />
+                            <OnInitialized>
+                                self.gloss = ABB_FakeGloss:New()
+                                self:SetMinMax(0,1)
+                                self:SetValue(1)
+                            </OnInitialized>
+                        </StatusBar>
+                        <StatusBar name="$(parent)Bar" inherits="ZO_TargetAttributeStatusBar">
+                            <Anchor point="LEFT" offsetX="18" />
+                            <Anchor point="RIGHT" />
+                            <OnInitialized>
+                                self.gloss = ABB_FakeGloss:New()
+                            </OnInitialized>
+                        </StatusBar>
+                        <Label name="$(parent)Name" horizontalAlignment="CENTER">
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="15" offsetY="-1"/>
+                        </Label>
+                        <Label name="$(parent)Text" horizontalAlignment="CENTER">
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-15" offsetY="-1"/>
+                        </Label>
+                    </Controls>
+                </Control>
+                
+                <Control name="$(parent)Warner">
+                    <Controls>
+                        <Texture name="$(parent)Left" inherits="ZO_PlayerAttributeWarnerLeftArrow" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds" />
+                        <Texture name="$(parent)Right" inherits="ZO_PlayerAttributeWarnerRight" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds"/>
+                        <Texture name="$(parent)Center" inherits="ZO_PlayerAttributeWarnerCenter" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds"/>
+                    </Controls>
+                </Control>
+                
+                <Texture name="$(parent)BgRight" inherits="ZO_TargetAttributeBgRightAngle">
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" />
+                </Texture>
+                
+                <Texture name="$(parent)BgCenter">
+                    <AnchorFill />
+                    <Controls>
+                        <Texture name="$(parent)TopMungeOverlay" inherits="ZO_RandomizedMunge" level="1">
+                            <Dimensions y="4" />
+                            <Anchor point="TOPLEFT" offsetY="2" />
+                            <Anchor point="TOPRIGHT" offsetY="2" />
+                        </Texture>
+                        <Texture name="$(parent)BottomMungeOverlay" inherits="ZO_RandomizedMunge" level="1">
+                            <Dimensions y="3" />
+                            <Anchor point="BOTTOMLEFT" offsetY="-4" />
+                            <Anchor point="BOTTOMRIGHT" offsetY="-4" />
+                        </Texture>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)BgLeft">
+                    <Anchor point="RIGHT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" />
+                </Texture>
+                
+                <Texture name="$(parent)FrameCenter" inherits="ZO_TargetAttributeFrameCenter">
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" />
+                </Texture>
+                
+                <Texture name="$(parent)NotchCenter" />
+                
+                <Texture name="$(parent)FrameRight">
+                </Texture>
+                
+                <Texture name="$(parent)BracketLeft" hidden="true" />
+
+                <Texture name="$(parent)BracketRight" tier="MEDIUM" hidden="true">
+                    <Dimensions x="256" y="75" />
+                    <Controls>
+                        <Texture name="$(parent)Underlay" tier="LOW" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_glowUnderlay_level4_right.dds" inherits="ZO_DifficultyBracketGlow">
+                            <Anchor point="RIGHT" offsetY="-3" offsetX="1" />
+                        </Texture>
+                        <Texture name="$(parent)Glow" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_glowOverlay_level4_right.dds" inherits="ZO_DifficultyBracketGlow">
+                            <Anchor point="LEFT"/>
+                        </Texture>
+                    </Controls>
+                </Texture>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="ABB_Container" resizeToFitDescendents="true">
+            <Anchor point="TOPLEFT" relativeTo="ZO_CompassFrame" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+            <OnInitialized>
+                ABB_Initialize(self)
+            </OnInitialized>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

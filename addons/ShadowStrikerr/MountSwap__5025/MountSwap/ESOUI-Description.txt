@@ -1,0 +1,85 @@
+AI disclosure: MountSwap was developed with AI-assisted code generation using OpenAI Codex. It has been tested through automated checks and in-game use. Please report issues through the addon comments.
+
+MOUNTSWAP
+Your favorite mounts, ready when you are.
+
+Keep four Multi-Rider and four Single-Rider favorites in one convenient stable. Browse your unlocked mounts, select a favorite or choose a random mount, with keyboard, mouse and PC controller support. Seven interface languages are included, with an Automatic option that follows ESO.
+
+QUICK START
+1. Download and extract the ZIP.
+2. Place the MountSwap folder in Documents/Elder Scrolls Online/live/AddOns.
+3. Confirm the manifest is directly at AddOns/MountSwap/MountSwap.txt, without an extra nested folder.
+4. Enable MountSwap in ESO. Restart ESO if it does not detect the new folder.
+5. Type /ms to open your stable, then choose your favorites.
+
+RECOMMENDED LIBRARY
+No libraries are required.
+
+LibAddonMenu-2.0 by Seerah, sirinsidiator and contributors provides the keyboard Settings > AddOns panel. Release r43 (AddOnVersion 43) was tested and is recommended. Standalone controls and controller settings work without it. Install the library separately; it is not bundled.
+
+libAddonKeybinds by merlight, Baertram and votan, and Votan’s Keybinder by votan, are separate optional integrations for opening or searching keybindings. Neither is required or bundled.
+
+YOUR FAVORITE MOUNTS
+- Save four Multi-Rider favorites (M1–M4) and four Single-Rider favorites (S1–S4).
+- Choose from searchable lists of your unlocked mounts.
+- Click a favorite slot to change it, or Use to select its saved mount.
+- Select a random usable mount, excluding your currently selected mount.
+- Request a free passenger seat on the nearest eligible group member’s multi-rider mount. ESO controls eligibility, range and availability.
+
+SELECTING AND RIDING
+Saving a favorite does not summon it. Use or a favorite shortcut selects that mount; press ESO’s normal mount key to ride.
+
+MountSwap responds to your actions. It does not automate movement or combat, make purchases, or bypass protected-action restrictions.
+
+CONTROLS AND COMMANDS
+/ms — Open MountSwap.
+/m1 through /m4 — Select a Multi-Rider favorite.
+/s1 through /s4 — Select a Single-Rider favorite.
+/mountswap settings — Open settings.
+/mountswap debug — Show diagnostic information.
+
+The nine short commands are editable in settings, with conflict checks and Reset to Defaults. Original /mountswap, /mountswap1 through /mountswap8, /mountswapr and /mountswapp commands remain available.
+
+Assign your own keys in Controls > Keybindings. A separate Open MountSwap (controller) action is provided. MountSwap does not assign or overwrite your existing player bindings.
+
+PC CONTROLLER NAVIGATION
+Set ESO Gamepad Mode to Automatic or On. Use the D-pad or left stick to move the focus outline. Native ESO button icons show Select, Back, Details and contextual actions; shoulders and triggers provide navigation where applicable.
+
+Controller settings reuse the addon’s settings options. Controller text-entry helpers are used where available, with a keyboard fallback. Controller input is released when the relevant window closes, input mode changes or text editing requires it.
+
+Escape dismisses MountSwap; press Escape again to open ESO’s normal menu. Controller hints include a separate, compact direction row and adjustable text size.
+
+LANGUAGES AND TRANSLATION HELP
+Interface languages: Automatic (follow ESO), English, Simplified Chinese, French, German, Japanese, Russian and Spanish. Unsupported client language codes fall back to English. Choose a manual language in settings, then Reload UI. ESO supplies mount names and descriptions in the game client’s language.
+
+Mount classification uses ESO Collections metadata when available. Manage mount categories provides a manual fallback when classification needs review.
+
+Translations are AI-drafted and have dictionary and formatting-placeholder checks. Native-speaker review and complete in-game font/layout verification across all seven languages remain unverified. Corrections are welcome through Comments; include the current wording, suggested wording and a screenshot where possible.
+
+UPDATING AND SAVED DATA
+Exit ESO, privately back up your existing MountSwap SavedVariables, then replace only live/AddOns/MountSwap with the new addon folder. Preserve live/SavedVariables.
+
+Existing favorites, settings, account/server profiles and saved OFF preferences are preserved. The addon download contains no personal SavedVariables or backups. Do not post your full SavedVariables publicly.
+
+KNOWN LIMITATIONS
+- Long mount names can truncate in single-line rows. Controller Details shows the complete name.
+- Tested in-game on Windows PC, including PC controller navigation. Other controllers, bindings and layouts may still need adjustments. Mac remains unverified; this is not a console release.
+- Translations are AI-drafted. Native-speaker review and complete localized font/layout verification remain unverified.
+- ESO API changes may require future compatibility updates.
+
+SUPPORT
+Feedback and bug reports are welcome through the Comments tab on this ESOUI addon page. Please include your MountSwap version, PC_NA or PC_EU, keyboard/controller mode, the action that caused the issue and any Lua error text. Screenshots help; remove personal information before posting.
+
+CREDITS AND SOURCES
+Controller/navigation, shared settings and common translation labels adapted from Crown Crate Codex by ShadowStrikerr:
+https://www.esoui.com/downloads/info5023-CrownCrateCodex.html
+
+ESO UI/API, native fonts and controller button icons: ZeniMax Online Studios. Native UI/API reference:
+https://github.com/esoui/esoui/tree/live
+
+Full attribution and source links are included in CREDITS.txt. Optional libraries and integrations are credited under Recommended Library and are not bundled.
+
+ZENIMAX NOTICE
+This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+The optional settings overview in the gallery is an AI-assisted presentation composite of in-game captures. Refer to the original standalone settings pages for exact layout and text sizing.

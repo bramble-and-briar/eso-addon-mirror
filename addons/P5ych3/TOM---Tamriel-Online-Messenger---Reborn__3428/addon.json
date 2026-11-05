@@ -74,7 +74,7 @@
     "Tom"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3428/",
-  "fingerprint": "87fc21071817511b45540545237df3907f5cc1889f53c99c0c84e1de1ac6074e",
+  "fingerprint": "6234a6cf8af531b0be052f8444889f16ee8057e6aa421d44a6bbbc5554d7ffbb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11790.png",
     "https://cdn-eso.mmoui.com/preview/pvw11791.png",
@@ -93,11 +93,11 @@
   "source_id": "3428",
   "source_url": "https://www.esoui.com/downloads/info3428-TOM-TamrielOnlineMessenger-Reborn.html",
   "stats": {
-    "downloads": 33525,
-    "favorites": 43,
-    "monthly_downloads": 293
+    "downloads": 34128,
+    "favorites": 44,
+    "monthly_downloads": 649
   },
   "title": "TOM - Tamriel Online Messenger - Reborn",
-  "updated_at": 1791342635000,
-  "version": "6.4.3"
+  "updated_at": 1793804794000,
+  "version": "6.5.0"
 }

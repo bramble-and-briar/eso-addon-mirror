@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Dack.Janiels/queueNextWrit__2ea327f5-7b87-49e2-a306-9e7ce0021db9",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Dack.Janiels",
+  "canonical_id": "bethesda:2ea327f5-7b87-49e2-a306-9e7ce0021db9",
+  "content_id": "2ea327f5-7b87-49e2-a306-9e7ce0021db9",
+  "deleted": false,
+  "fingerprint": "42d11a5e3777696a3eeaaefd601b5022e4390c47c7d5d05ba23ce32edbfb3b15",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "2ea327f5-7b87-49e2-a306-9e7ce0021db9",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/2ea327f5-7b87-49e2-a306-9e7ce0021db9",
+  "title": "queueNextWrit"
+}

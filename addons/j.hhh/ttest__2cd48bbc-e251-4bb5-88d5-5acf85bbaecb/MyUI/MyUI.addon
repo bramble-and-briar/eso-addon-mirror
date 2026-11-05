@@ -3,8 +3,8 @@
 ## Author: Satuve, j.hhh
 ## Version: 1.9.28
 ## APIVersion: 101050 101051
-## SavedVariables: SATUVE_XBOX_UI_VARS SATUVE_XBOX_UI_REPORTS SATUVE_XBOX_UI_CP_CHAR OffBalanceTrackerVariables
-## OptionalDependsOn: LibAddonMenu-2.0 LibStub
+## SavedVariables: SATUVE_XBOX_UI_VARS SATUVE_XBOX_UI_REPORTS SATUVE_XBOX_UI_CP_CHAR OffBalanceTrackerVariables AltBossBarSavedVariables AltGroupFramesSavedVariables AutoInteractVars BASV AutoRecharge_SavedVariables AutoClaimTomePointsSavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0 LibStub LibGamepad CrutchAlerts
 
 ; My UI is a modified adaptation of Bandits User Interface.
 ;
@@ -30,7 +30,10 @@ BUI_Curved.lua
 BUI_Menu.lua
 SXUI_GamepadOptions.xml
 SXUI_LAMBridge.lua
+MyUI_ExternalSections.lua
 SXUI_GamepadQuickNav.lua
+MyUI_AltBossBar.lua
+MyUI_AltBossBar.xml
 BUI_Settings.lua
 BUI_Player.lua
 BUI_Statistics.lua
@@ -65,6 +68,23 @@ OBT_Menu.lua
 OBT_Display.lua
 OBT_Functions.lua
 OBT_Initialize.lua
+AltGroupFrames.lua
+AltGroupFramesSettings.lua
+AltGroupFramesBuffs.lua
+AltGroupFrames.xml
+MyUI_Embed_AutoInteract_lang.lua
+MyUI_Embed_AutoInteract_AutoInteract.lua
+MyUI_Embed_AutoInteract_Settings.lua
+MyUI_Embed_BindAll_BindAll.lua
+MyUI_Embed_BindAll_BindAllMenu.lua
+MyUI_Embed_Recharge_i18n_en.lua
+MyUI_Embed_Recharge_i18n_de.lua
+MyUI_Embed_Recharge_AutoRecharge.lua
+MyUI_Embed_Recharge_Bag.lua
+MyUI_Embed_Recharge_Charge.lua
+MyUI_Embed_Recharge_Repair.lua
+MyUI_Embed_Recharge_SettingsMenu.lua
+MyUI_Embed_AutoClaimTomePoints_AutoClaimTomePoints.lua
 BUI_Initialize.lua
 
 lang\en.lua

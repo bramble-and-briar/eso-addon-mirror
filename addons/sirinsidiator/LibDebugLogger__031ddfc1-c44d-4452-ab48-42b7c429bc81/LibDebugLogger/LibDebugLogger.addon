@@ -10,11 +10,14 @@
 
 ## Title: LibDebugLogger
 ## Author: sirinsidiator
-## Version: 2.6.2
-## APIVersion: 101050
-## AddOnVersion: 307
+## Version: 2.7.0
+## APIVersion: 101051 101052
+## AddOnVersion: 327
 ## IsLibrary: true
+## OptionalDependsOn: Taneth
 ## SavedVariables: LibDebugLoggerSettings LibDebugLoggerLog
+
+test/mocks.lua
 
 StartUp.lua
 

@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.10.30",
+	version = "2026.11.04",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -2393,7 +2393,7 @@ function RidinDirty.lootManagerToggle(toggle)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
 			if RidinDirty.savedVariables.traderEnhance then
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
 			end
 			if not traderMods then
 				traderMods = true
@@ -2442,7 +2442,7 @@ function RidinDirty.CycleTradingGuilds()
 		SelectTradingHouseGuildId(nextGuildId)
 		if not CanSellOnTradingHouse(GetCurrentTradingHouseGuildDetails()) and not HasTradingHouseListings() then RidinDirty.CycleTradingGuilds() return end
 		if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_BROWSE then
-			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
 		end
 	end
 end
@@ -2508,7 +2508,7 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 		end)
 		if not RidinDirty.savedVariables.lootManager then
 			SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
 			end)
 		end
 	else
@@ -3188,11 +3188,13 @@ if not Teleport and not EasyTravel then
 			table.insert(word, words)
 			if #word == 2 then break end
 		end
-		if word[1] ~= nil and string.lower(word[1]) == "home" and word[2] == nil then
+		local isHome = string.lower(word[1]) == "home"
+		local isUsername = string.find(word[1], "^(@)")
+		if word[1] ~= nil and isHome and word[2] == nil then
 			RidinDirty.TravelToHome()
-		elseif word[1] ~= nil and not string.find(word[1], "^(@)") and word[2] == nil then
+		elseif word[1] ~= nil and not isUsername and word[2] == nil then
 			RidinDirty.Teleport(word[1])
-		elseif word[1] ~= nil and ((string.find(word[1], "^(@)") and word[1] ~= GetUnitDisplayName("player")) or string.find(string.lower(word[1]), "home")) and word[2] ~= nil and GetHouseID(word[2]) then
+		elseif word[1] ~= nil and ((isUsername and word[1] ~= GetUnitDisplayName("player")) or isHome) and word[2] ~= nil and GetHouseID(word[2]) then
 			RidinDirty.Teleport(word[1], word[2])
 		else
 			df(RD_LOGO .. " /tp partialzonename => overland zones") df(RD_LOGO .. " /tp home => your primary home")
@@ -3502,7 +3504,7 @@ local function RDInitializeSettings()
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
 			if RidinDirty.savedVariables.traderEnhance then
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
 			end
 			if not traderMods then
 				traderMods = true
@@ -3574,7 +3576,7 @@ local function RDInitializeSettings()
 		end)
 		if not RidinDirty.savedVariables.lootManager then
 			SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
 			end)
 		end
 	end

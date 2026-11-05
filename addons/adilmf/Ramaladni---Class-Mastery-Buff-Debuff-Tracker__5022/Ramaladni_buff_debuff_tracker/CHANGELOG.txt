@@ -1,0 +1,16 @@
+Ramaladni Buff & Debuff Tracker — Changelog
+
+v1.0.0 STABLE — 2026-11-04
+- First public stable release, based on the user-tested v1.0.4g RC5.
+- Search buffs and debuffs by Russian/English names or Ability ID.
+- Click-to-add effects, automatic icons and grouped effect IDs.
+- Tracking of Major/Minor effects, eight combat statuses and select special
+  effects; separate Class Mastery trackers for all seven classes.
+- Movable HUD indicators, independent timers and cleanup when removing items.
+- Hide indicators in standard ESO menus; restore on returning to gameplay.
+- Updated settings layout, original MD logo, community and Discord links.
+- No external addon library dependencies.
+- Release metadata and documentation updated; combat logic unchanged from RC5.
+
+Earlier builds v1.0.4a through v1.0.4g were internal release-candidate
+iterations. The experimental v1.0.5 catalog was not adopted.

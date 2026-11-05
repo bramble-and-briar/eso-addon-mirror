@@ -1,0 +1,76 @@
+<GuiXml>
+    <Controls>
+        <Label name="ALTGF_UnitResourceNumbers" inherits="ZO_PlayerAttributeResourceNumbers_Gamepad_Template" font="ZoFontGamepad22" virtual="true" />
+
+        <Control name="ALTGF_UnitFrame" hidden="true" mouseEnabled="false" virtual="true">
+            <Dimensions x="200" y="30" />
+
+
+            <Controls>
+                <Texture name="$(parent)Background" color="000000" alpha="0.8">
+                    <AnchorFill />
+                </Texture>
+                <Backdrop name="$(parent)Border" level="1" edgeColor="000000">
+                    <AnchorFill />
+                    <Edge edgeSize="2"/>
+                    <OnInitialized>
+                        self:SetCenterColor(0, 0, 0, 0)
+                    </OnInitialized>
+                </Backdrop>
+                <Label name="$(parent)Name" font="ZoFontGamepad22" wrapMode="TRUNCATE" verticalAlignment="TOP" maxLineCount="1">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="4" offsetY="-2" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-4" offsetY="0" />
+                </Label>
+                <Label name="$(parent)ResourceNumbers" inherits="ALTGF_UnitResourceNumbers" horizontalAlignment="RIGHT" hidden="true">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-4" offsetY="-2" />
+                </Label>
+                <Label name="$(parent)Icon" inherits="ALTGF_UnitResourceNumbers" hidden="true">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="4" offsetY="-2" />
+                </Label>
+                <Label name="$(parent)Level" font="ZoFontGamepad22" wrapMode="TRUNCATE" maxLineCount="1" verticalAlignment="BOTTOM" horizontalAlighment="CENTER">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Icon" relativePoint="BOTTOMRIGHT" offsetX="0" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ResourceNumbers" relativePoint="BOTTOMLEFT" offsetX="-4" offsetY="0" />
+                </Label>
+                <StatusBar name="$(parent)HP" level="2" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="1" offsetY="1" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-1" offsetY="-1" />
+                </StatusBar>
+                <StatusBar name="$(parent)Shield" level="3" hidden="true" barAlignment="1">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="50" offsetY="1" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-1" offsetY="-1" />
+                </StatusBar>
+                <StatusBar name="$(parent)Trauma" level="4" hidden="true" barAlignment="1">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="50" offsetY="1" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-1" offsetY="-1" />
+                </StatusBar>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="ALTGF_UnitFrames" mouseEnabled="false" movable="false" clampedToScreen="true">
+            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="5" offsetY="5" />
+
+
+            <Controls>
+                <Texture name="$(parent)Background" color="000000" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Backdrop name="$(parent)Border" level="1">
+                    <AnchorFill />
+                    <Edge edgeSize="5"/>
+                    <OnInitialized>
+                        <!-- Init here to use separate alpha values -->
+                        self:SetEdgeColor(0, 0, 0, 0)
+                        self:SetCenterColor(0, 0, 0, 0)
+                    </OnInitialized>
+                </Backdrop>
+            </Controls>
+
+            <OnInitialized>
+                ALTGF_UnitFrames_Initialize(self)
+            </OnInitialized>
+            <OnUpdate>
+                ALTGF_UnitFrames_OnUpdate()
+            </OnUpdate>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

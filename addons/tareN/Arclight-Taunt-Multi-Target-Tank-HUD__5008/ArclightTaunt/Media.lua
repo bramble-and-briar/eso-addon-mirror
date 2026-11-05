@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | Media module
+-- Arclight Taunt 1.1.2 | Media module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local MEDIA_BAR_FLAT = A.MEDIA_BAR_FLAT
@@ -98,9 +98,13 @@ end
 local function FocusMetrics(pixelUnit)
     local highContrast = A.saved.highContrast
     local subtlePad = math.max(highContrast and 3 or 2, pixelUnit)
-    local extra = A.saved.targetHighlightStyle == "strong" and 2 * pixelUnit or 0
+    local extra = A.saved.targetHighlightStyle == "strong" and pixelUnit or 0
     local thickness = math.max(highContrast and 2 or 1, pixelUnit) + extra
-    return subtlePad + extra, math.max(subtlePad, thickness), thickness
+    -- One physical pixel separates the frame from the row. Besides avoiding
+    -- raster overlap at fractional scales, the gap exposes the moving light
+    -- rather than painting almost-white light only over a thick pale frame.
+    local padding = math.max(subtlePad + extra, thickness + pixelUnit)
+    return padding, math.max(subtlePad, thickness + pixelUnit), thickness, pixelUnit
 end
 
 local function ApplyMedia()
@@ -123,7 +127,7 @@ local function ApplyMedia()
             or RegisteredMediaPath("background", A.MEDIA_BG_OBSIDIAN)) or nil
     local barHeight, pixelUnit = PixelAlignedBarHeight()
     local focusThickness
-    A.focusPadding, A.focusRowGap, focusThickness = FocusMetrics(pixelUnit)
+    A.focusPadding, A.focusRowGap, focusThickness, A.focusClearance = FocusMetrics(pixelUnit)
     A.capHeight = math.max(2, pixelUnit)
     for _, cap in ipairs(A.columnCaps or {}) do
         cap.root:SetHeight(A.capHeight)
@@ -172,7 +176,8 @@ local function ApplyMedia()
         row.fill:SetHeight(barHeight)
         row.mediaFill:SetHeight(barHeight)
         row.useMediaFill = barPath ~= nil
-        A.SetHidden(row.fill, fullMode or (row.useMediaFill and not highContrast))
+        -- Signature is opaque; high contrast needs no second solid underlay.
+        A.SetHidden(row.fill, fullMode or row.useMediaFill)
         A.SetHidden(row.mediaFill, fullMode or not row.useMediaFill)
     end
     -- Measure native font metrics only when media/settings change, never per tick.

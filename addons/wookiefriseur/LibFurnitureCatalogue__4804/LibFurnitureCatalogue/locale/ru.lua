@@ -3,7 +3,7 @@
 local strings = {
   -- ////// START : DON'T REMOVE THIS LINE
   SI_FURC_EVENT_IC = "Imperial City Celebration",
-  -- 141 ENTRIES UNTRANSLATED/IDENTICAL
+  -- 143 ENTRIES UNTRANSLATED/IDENTICAL
   SI_FURC_ACHIEVEMENT_UNKNOWN = "achievement^n",
   SI_FURC_CHAT_BAD_ITEM = "<<1>> is not an item link or an item id",
   SI_FURC_CHAT_BUILDING = "The database is still being built, please try again in a moment.",
@@ -59,6 +59,7 @@ local strings = {
   SI_FURC_LOC_ANY = "anywhere^X",
   SI_FURC_LOC_ANY_CAPITAL = "any capital city",
   SI_FURC_LOC_ANY_CITY = "any city",
+  SI_FURC_LOC_GRAHTWOOD_REDFUR = "Redfur Trading Post",
   SI_FURC_LOC_LILANDRIL = "Lilandril",
   SI_FURC_LOC_MURKMIRE_LIL = "Lilmoth",
   SI_FURC_LOC_PLACE_ORSINIUM = "Orsinium",
@@ -128,6 +129,7 @@ local strings = {
   SI_FURC_TOMESPACK_ARMOR = "Armor Principles",
   SI_FURC_TOMESPACK_DAWN = "Dawn and Dusk",
   SI_FURC_TOMESPACK_LOGIC = "Study of Wisdom and Logic",
+  SI_FURC_TOMESPACK_UNDERCROFT = "Undercroft Bundle",
   SI_FURC_TRADERS_AF = "Achievement Furnisher^n,from",
   SI_FURC_TRADERS_ALCHEMISTS = "alchemists",
   SI_FURC_TRADERS_BGF = "Battlegrounds Furnishers^p,from",

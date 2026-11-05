@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/FiNk3F13/DontDownload__31353ae2-3899-477e-935e-69f9756c9d60",
+  "archive_path": "addons/FiNk3F13/SimpleGroupDPS__31353ae2-3899-477e-935e-69f9756c9d60",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "FiNk3F13",
   "canonical_id": "bethesda:31353ae2-3899-477e-935e-69f9756c9d60",
   "content_id": "31353ae2-3899-477e-935e-69f9756c9d60",
   "deleted": false,
-  "fingerprint": "a72a7509a77cd22603169e814dfb9b678dc54b89695355dfbe4525c2f5d2643d",
+  "fingerprint": "29d129f31728848a8eef8e966395db381df57b4363dd39a095d25208f58f905f",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "31353ae2-3899-477e-935e-69f9756c9d60",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/31353ae2-3899-477e-935e-69f9756c9d60",
-  "title": "DontDownload"
+  "title": "SimpleGroupDPS"
 }

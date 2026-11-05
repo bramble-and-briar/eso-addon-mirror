@@ -392,6 +392,7 @@ LFCGeneratedConstants={
       ["ANY"]=1, -- anywhere
       ["ANY_CAPITAL"]=2, -- any capital city
       ["ANY_CITY"]=3, -- any city
+      ["GRAHTWOOD_REDFUR"]=25, -- Redfur Trading Post
       ["GUILD_FIGHTERS"]=4, -- the Fighters' guild
       ["GUILD_MAGES"]=5, -- the Mages' guild
       ["LILANDRIL"]=6, -- Lilandril
@@ -437,6 +438,12 @@ LFCGeneratedConstants={
       ["tome_pack"]=16,
       ["vendor"]=1,
       ["writ_vendor"]=3,
+    },
+    ["tome_packs"]={
+      ["ARMOR"]=1, -- Armor Principles
+      ["DAWN"]=2, -- Dawn and Dusk
+      ["LOGIC"]=3, -- Study of Wisdom and Logic
+      ["UNDERCROFT"]=4, -- Undercroft Bundle
     },
     ["vendor_subtypes"]={["achievement"]=1,["home_goods"]=2,["other"]=3},
     ["vendors"]={
@@ -487,6 +494,7 @@ LFCGeneratedConstants={
       ["KITTY"]=11, -- Elsweyr U22
       ["MARKAT"]=17, -- Markarth U28
       ["MORROWIND"]=3, -- Morrowind U14
+      ["MURKM"]=8, -- Murkmire U19
       ["NECROM"]=27, -- Necrom U38
       ["NONE"]=1, -- (no patch)
       ["REACH"]=4, -- Horns of the Reach U15
@@ -495,7 +503,6 @@ LFCGeneratedConstants={
       ["SCRIBE"]=26, -- Scribes of Fate U37
       ["SHADOWS"]=36, -- Feast of Shadows (U47)
       ["SKYRIM"]=15, -- Greymoor U26
-      ["SLAVES"]=8, -- Murkmire U19
       ["STONET"]=16, -- Stonethorn U27
       ["THIEVES"]=39, -- Season One (U50)
       ["TIDES"]=22, -- Ascending Tide U33
@@ -851,6 +858,7 @@ LFCGeneratedConstants={
       [22]={["si"]="SI_FURC_LOC_VVARDENFELL_VIVEC_GQ"}, -- VVARDENFELL_VIVEC_GQ - Gladiator's Quarters
       [23]={["si"]="SI_FURC_LOC_VVARDENFELL_VIVEC_SDI"}, -- VVARDENFELL_VIVEC_SDI - Saint Delyn Inn
       [24]={["si"]="SI_FURC_LOC_WSKYRIM_SOLI_DH"}, -- WSKYRIM_SOLI_DH - Solitude, Dragon's Hearth
+      [25]={["si"]="SI_FURC_LOC_GRAHTWOOD_REDFUR"}, -- GRAHTWOOD_REDFUR - Redfur Trading Post
     },
     ["quest_reward_subtypes"]={},
     ["rarities"]={},
@@ -862,6 +870,12 @@ LFCGeneratedConstants={
       [5]={["skill_line"]=55}, -- UNDAUNTED
     },
     ["source_types"]={},
+    ["tome_packs"]={
+      [1]={["si"]="SI_FURC_TOMESPACK_ARMOR"}, -- ARMOR - Armor Principles
+      [2]={["si"]="SI_FURC_TOMESPACK_DAWN"}, -- DAWN - Dawn and Dusk
+      [3]={["si"]="SI_FURC_TOMESPACK_LOGIC"}, -- LOGIC - Study of Wisdom and Logic
+      [4]={["si"]="SI_FURC_TOMESPACK_UNDERCROFT"}, -- UNDERCROFT - Undercroft Bundle
+    },
     ["vendor_subtypes"]={},
     ["vendors"]={
       [1]={["si"]="SI_FURC_TRADERS_AF"}, -- AF - Achievement Furnisher
@@ -891,6 +905,8 @@ LFCGeneratedConstants={
     },
     ["versions"]={},
   },
+  ["recordFields"]={"type","version","cost","last_seen","rarity","container","blueprint"},
+  ["rowFields"]={"sources","version","blueprint"},
   ["sourceFieldOffset"]=7,
   ["sourceFields"]={
     "vendor",
@@ -913,6 +929,7 @@ LFCGeneratedConstants={
     "leads",
     "houses",
     "companion",
+    "tome",
   },
   ["sourcePriority"]={
     31, -- IGNORED
@@ -955,6 +972,7 @@ LFCGeneratedConstants={
     ["npc_group"]="npc_groups",
     ["packs"]="packs",
     ["skill_line"]="skill_lines",
+    ["tome"]="tome_packs",
     ["vendor"]="vendors",
   },
   ["symbols"]={
@@ -1360,6 +1378,7 @@ LFCGeneratedConstants={
       [22]="VVARDENFELL_VIVEC_GQ", -- Gladiator's Quarters
       [23]="VVARDENFELL_VIVEC_SDI", -- Saint Delyn Inn
       [24]="WSKYRIM_SOLI_DH", -- Solitude, Dragon's Hearth
+      [25]="GRAHTWOOD_REDFUR", -- Redfur Trading Post
     },
     ["quest_reward_subtypes"]={[1]="daily"},
     ["rarities"]={[1]="common",[2]="rare",[3]="extremely_rare"},
@@ -1384,6 +1403,12 @@ LFCGeneratedConstants={
       [17]="container",
       [18]="rumour",
       [19]="ignored",
+    },
+    ["tome_packs"]={
+      [1]="ARMOR", -- Armor Principles
+      [2]="DAWN", -- Dawn and Dusk
+      [3]="LOGIC", -- Study of Wisdom and Logic
+      [4]="UNDERCROFT", -- Undercroft Bundle
     },
     ["vendor_subtypes"]={[1]="achievement",[2]="home_goods",[3]="other"},
     ["vendors"]={
@@ -1420,7 +1445,7 @@ LFCGeneratedConstants={
       [5]="CLOCKWORK", -- Clockwork City U16
       [6]="DRAGONS", -- Dragon Bones U17
       [7]="ALTMER", -- Summerset U18
-      [8]="SLAVES", -- Murkmire U19
+      [8]="MURKM", -- Murkmire U19
       [9]="WEREWOLF", -- Wolfhunter U20
       [10]="WOTL", -- Wrathstone U21
       [11]="KITTY", -- Elsweyr U22
@@ -1467,5 +1492,5 @@ LFCGeneratedConstants={
       {nil,2},
     },
   },
-  ["vocabulary"]="307251a901fc9e322903f2f8e8e8366309d58a57474550f2585d78a40a943d40",
+  ["vocabulary"]="ddcdf831b4ac704ff4b488b3ac7ff17b6333ce3e153430755ac070e4b7c545e1",
 }

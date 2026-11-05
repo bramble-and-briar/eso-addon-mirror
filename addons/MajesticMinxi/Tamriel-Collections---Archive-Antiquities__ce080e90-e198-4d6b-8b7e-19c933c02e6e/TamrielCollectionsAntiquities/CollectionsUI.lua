@@ -1306,6 +1306,7 @@ function Screen:PerformUpdate()
 end
 
 function Screen:OnShowing()
+    if TC.archiveLayout then TC.archiveLayout.BeforeShowing(self) end
     ZO_Gamepad_ParametricList_Screen.OnShowing(self)
 
     if self.resumeMotifsAfterMap then

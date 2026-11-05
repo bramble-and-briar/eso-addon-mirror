@@ -50,6 +50,30 @@ local addon = {
 PBS_FURNITURE_EDITOR = addon
 
 local DISPLAY_NAME = "PB's FurnitureEditor"
+
+-- The version is written only in the manifest (## Title, and ## Version for the game's own list). It is read back
+-- from the ## Title line, as in the other add-ons of the series, so a release changes it in one place and the name
+-- in the settings list (Settings.lua) and the help line follow. Empty if the manager cannot be asked.
+local function ReadManifestVersion()
+	local ok, found = pcall(function()
+		local manager = GetAddOnManager and GetAddOnManager()
+		if not manager then
+			return ""
+		end
+		for index = 1, manager:GetNumAddOns() do
+			local name, title = manager:GetAddOnInfo(index)
+			if name == addon.name and type(title) == "string" then
+				local plain = title:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+				return plain:match("([%d]+[%d%.]*)%s*$") or ""
+			end
+		end
+		return ""
+	end)
+	return ok and type(found) == "string" and found or ""
+end
+
+addon.version = ReadManifestVersion()
+
 local SLASH = "/pbfurnitureeditor"
 local SHORT_SLASH = "/pbfe"
 
@@ -467,7 +491,7 @@ function addon:AddCommand(name, usage, fn)
 end
 
 function addon:PrintHelp()
-	Print("copy linked furnishings between your houses (v1.0.7)")
+	Print("copy linked furnishings between your houses%s", self.version ~= "" and (" (v" .. self.version .. ")") or "")
 	for _, text in ipairs(self.helpLines) do
 		Line(text)
 	end

@@ -26,7 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CanThisBeCraftedAtHome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CanThisBeCraftedAtHome__434ce5ca-211a-4a6b-8682-21f39dcb2d25) | Masteroshi430 | Console | — |
 | [CapsLOCK](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkOODaT/CapsLOCK__653) | SkOODaT | PC / Mac | 101032.1 |
 | [Capybara Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Capybara-Icons__4176) | wicked_prophet | PC / Mac | 1.9.4 |
-| [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.1 |
+| [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9 |
 | [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.1 |
 | [Card Combo - Mini Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Traybair/Card-Combo---Mini-Game__4512) | Traybair | PC / Mac | 1.0.2 |
 | [Caro's Auto Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Caro-s-Auto-Marker__3500) | Irniben | PC / Mac | 0.1.2 |
@@ -286,6 +286,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrowdednESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CrowdednESO__9d131435-84c4-4c6d-9d73-5e2ec6fa61b7) | Masteroshi430 | Console | — |
 | [CrowdednESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CrowdednESO__3296) | Masteroshi430 | PC / Mac | 2026.07.09 |
 | [Crown And Crux](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SaintAres97/Crown-And-Crux__0ac5fe21-6f1a-4c14-8b9f-be1a308a9619) | SaintAres97 | Console | — |
+| [Crown Crate Codex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/Crown-Crate-Codex__5023) | ShadowStrikerr | PC / Mac | 0.12.6 |
 | [Crown Crate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Faunter/Crown-Crate-Tracker__1741) | Faunter | PC / Mac | 4.0 |
 | [Crown of Cyrodiil](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tillalarrien/Crown-of-Cyrodiil__1784) | Tillalarrien | PC / Mac | 1.2.1 (Clockwork City) |
 | [CrownCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/CrownCustomizer__1548) | triase | PC / Mac | 1.0.5 |

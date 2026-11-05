@@ -1356,6 +1356,9 @@ function BUI.Menu.Initialize()
 			end
 		end
 
+
+        -- Frames Settings: preserve the original options exactly once.
+        -- LAM's console adapter flattens deep submenus; do not wrap them again.
 		local pageName=MenuNumber[index].."|t32:32:"..MenuIcon[index].."|t"..BUI.Loc(MenuPanel[index].name)
 		table.insert(prepared, {
 			index=index,
@@ -1366,17 +1369,56 @@ function BUI.Menu.Initialize()
 		end -- hidden LAM categories
 	end
 
-    -- Off Balance Tracker is integrated as a normal My UI section.
-    -- The original options retain their effect tracking, color, sound and role logic.
+    -- Off Balance Tracker: ONE top-level LAM entry (14), not four top-level entries.
+    -- Its contents consist solely of the original four OBT submenus in their
+    -- original order. All individual callbacks and defaults stay in OBT_Menu.lua.
     if OffBalanceTracker and OffBalanceTracker.CreateSettings and OffBalanceTracker.SV then
-        local obtOptions=OffBalanceTracker.CreateSettings()
-        if obtOptions then
-            table.insert(prepared,{
-                index="MyUIOffBalance", name="14.  Off Balance Tracker",
-                options=obtOptions, order=14,
-                noLegacyPanel=true,
+        local obtOptions = OffBalanceTracker.CreateSettings()
+        local expected = {
+            "VISIBILITY & ROLES",
+            "DESIGN & COLORS",
+            "AUDIO SETTINGS",
+            "CHAT SUMMARY",
+        }
+        local four = {}
+        if type(obtOptions) == "table" then
+            for _, name in ipairs(expected) do
+                for _, option in ipairs(obtOptions) do
+                    if option.type == "submenu" and type(option.controls) == "table"
+                        and type(option.name) == "string"
+                        and string.find(string.upper(option.name), name, 1, true) then
+                        table.insert(four, option)
+                        break
+                    end
+                end
+            end
+        end
+        if #four == 4 then
+            table.insert(prepared, {
+                index = "MyUIOffBalance",
+                name = "14. Off Balance Tracker",
+                options = four,
+                order = 14,
+                noLegacyPanel = true,
             })
         end
+    end
+
+
+    -- Integrated Alternative Bossbar settings (one My UI page, no separate LAM addon).
+    if type(MyUI_GetBossBarOptions) == "function" then
+        table.insert(prepared, {
+            index = "MyUIAlternativeBossBar",
+            name = "15. Alternative Bossbar",
+            options = MyUI_GetBossBarOptions(),
+            order = 15,
+            noLegacyPanel = true,
+        })
+    end
+
+    -- Single sources of truth for embedded settings; no separate LAM panels.
+    for _, section in pairs(MyUI_EmbeddedSections or {}) do
+        table.insert(prepared, section)
     end
 
 	table.sort(prepared,function(a,b)

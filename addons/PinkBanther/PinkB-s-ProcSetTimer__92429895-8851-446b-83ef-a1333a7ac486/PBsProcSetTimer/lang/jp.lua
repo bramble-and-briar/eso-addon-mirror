@@ -5,6 +5,8 @@ local strings = {
 	SI_PBSPST_READY = "発動可能",
 	SI_PBSPST_IDLE = "-",
 	SI_PBSPST_AGO = "%.1f秒前",
+	SI_PBSPST_STACKS = "x%d",
+	SI_PBSPST_STACKS_OF = "x%d/%d",
 	SI_PBSPST_PREVIEW_ROW = "発動中 3.2  CD 4.8",
 	SI_PBSPST_SAMPLE_SET = "セット名 %d",
 

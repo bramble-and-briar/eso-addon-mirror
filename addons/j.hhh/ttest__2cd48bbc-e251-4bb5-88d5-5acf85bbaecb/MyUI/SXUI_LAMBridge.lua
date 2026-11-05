@@ -29,7 +29,14 @@ local function GetLAM()
 end
 
 local function GetLibGamepad()
-    return rawget(_G, "LibGamepad")
+    local lib = rawget(_G, "LibGamepad")
+    if lib then return lib end
+    local stub = rawget(_G, "LibStub")
+    if stub then
+        local ok, result = pcall(stub, "LibGamepad", true)
+        if ok then return result end
+    end
+    return nil
 end
 
 local function Loc(key)
@@ -692,11 +699,25 @@ local function RegisterDirectGrouped(panelName)
     if not EnsureSafeGamepadTemplates() then return false end
 
     local sections = {}
+    local nested = {}
     for _, section in pairs(Bridge.pendingSections[panelName] or {}) do
         local order = tonumber(section.order) or tonumber(string.match(tostring(section.name or ""), "^%s*(%d+)")) or 999
         if order >= 1 and order <= 22 then
-            sections[#sections + 1] = section
+            if section.nestedGroup then
+                nested[section.nestedGroup] = nested[section.nestedGroup] or {}
+                nested[section.nestedGroup][#nested[section.nestedGroup] + 1] = section
+            else
+                sections[#sections + 1] = section
+            end
         end
+    end
+    for label, childSections in pairs(nested) do
+        table.sort(childSections, function(a,b) return tostring(a.name) < tostring(b.name) end)
+        local children = {}
+        for _, item in ipairs(childSections) do
+            children[#children + 1] = {type="submenu",name=item.name,controls=item.options}
+        end
+        sections[#sections + 1] = {id="MyUIAlternativeGroupframes",name="16. " .. label,order=16,options=children}
     end
     table.sort(sections, function(a, b)
         local ao = tonumber(a.order) or tonumber(string.match(tostring(a.name or ""), "^%s*(%d+)")) or 999
@@ -760,11 +781,13 @@ function Bridge.Available()
 end
 
 function Bridge.HasLibGamepad()
-    return false
+    local lib = GetLibGamepad()
+    return lib ~= nil and type(lib.RegisterSubmenu) == "function"
+        and type(lib.CreateNestedSubmenuEntry) == "function"
 end
 
 function Bridge.UsingDirectGamepad()
-    return false
+    return Bridge.mode == "gamepad-direct"
 end
 
 function Bridge.OpenDirect(panelName)
@@ -826,7 +849,11 @@ function Bridge.FinalizeGrouped(panelName)
     -- Creating nested panels before that point can leave the panel title visible
     -- while ESO has no usable shared option rows, which is rendered as
     -- "Unavailable". Register just after PLAYER_ACTIVATED instead.
-    if false then -- LibGamepad/direct-gamepad menu path intentionally disabled; LAM only.
+    local onConsole = (type(IsConsoleUI) == "function" and IsConsoleUI())
+        or (type(IsKeyboardUISupported) == "function" and not IsKeyboardUISupported())
+    if onConsole and Bridge.HasLibGamepad() and not Bridge.nativeFallback then
+        -- LibGamepad's native submenu tree preserves 13/14 at three levels.
+        -- LAM's console converter cannot; use it only when native fails.
         if not Bridge.directScheduled[panelName] then
             Bridge.directScheduled[panelName] = true
             local eventName = "MyUI_LibGamepad_" .. tostring(panelName)
@@ -834,13 +861,21 @@ function Bridge.FinalizeGrouped(panelName)
                 attempt = attempt or 1
                 local lib = GetLibGamepad()
                 local ready = lib and lib.RegisterSubmenu and lib.CreateNestedSubmenuEntry
-                    and rawget(_G, "GAMEPAD_SETTINGS_DATA") and rawget(_G, "ZO_SharedOptions")
-                if ready and RegisterDirectGrouped(panelName) then
-                    Bridge.groupedFinalized[panelName] = true
-                    return
+                    and rawget(_G, "GAMEPAD_OPTIONS")
+                if ready then
+                    local ok, registered = pcall(RegisterDirectGrouped, panelName)
+                    if ok and registered then
+                        Bridge.groupedFinalized[panelName] = true
+                        return
+                    end
                 end
                 if attempt < 12 and type(zo_callLater) == "function" then
                     zo_callLater(function() TryRegister(attempt + 1) end, 250)
+                else
+                    -- The original LAM bridge remains a fallback when LibGamepad
+                    -- cannot build nested pages on this console build.
+                    Bridge.nativeFallback = true
+                    Bridge.FinalizeGrouped(panelName)
                 end
             end
 
@@ -874,11 +909,25 @@ function Bridge.FinalizeGrouped(panelName)
     end
 
     local sections = {}
+    local nested = {}
     for _, section in pairs(Bridge.pendingSections[panelName] or {}) do
         local order = SectionOrder(section)
         if order >= 1 and order <= 22 then
-            sections[#sections + 1] = section
+            if section.nestedGroup then
+                nested[section.nestedGroup] = nested[section.nestedGroup] or {}
+                nested[section.nestedGroup][#nested[section.nestedGroup]+1] = section
+            else
+                sections[#sections+1] = section
+            end
         end
+    end
+    for label, childSections in pairs(nested) do
+        table.sort(childSections, function(a,b) return tostring(a.name)<tostring(b.name) end)
+        local children = {}
+        for _, item in ipairs(childSections) do
+            children[#children+1] = {type="submenu",name=item.name,controls=item.options}
+        end
+        sections[#sections+1] = {id="MyUIAlternativeGroupframes",name="16. "..label,order=16,options=children}
     end
     table.sort(sections, function(a, b)
         local ao, bo = SectionOrder(a), SectionOrder(b)
@@ -925,6 +974,7 @@ function Bridge.FinalizeGrouped(panelName)
     Bridge.panels[panelName] = panel or registered
     if panel then Bridge.firstPanel = Bridge.firstPanel or panel end
     Bridge.mode = isConsole and "lam-console" or "lam"
+    Bridge.nativeNestedUnavailable = isConsole
     if isConsole and (not registered or rowCount == 0) then
         -- This error affects the settings only: HUD init is separately guarded.
         return false

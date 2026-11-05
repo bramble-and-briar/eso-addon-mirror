@@ -24,13 +24,9 @@ local NAMESPACE_BOOM = "UnderPressure_PlagueBoom"
 -- on; see SetGroupPlagueDetection().
 local NAMESPACE_GROUP = "UnderPressure_PlagueGroup"
 local groupPlagueRegistered = false
--- Caster-side pull detection (0.5.11): EVENT_EFFECT_CHANGED filtered by
--- ability id ONLY (no unit-tag filter, because the caster has no tag), one
--- namespace per id in UP.Pull.CAST_ABILITY_IDS, plus the events that feed
--- Engine/Allegiance.lua under the bare namespace. Registered only while
--- sv.pull_detect is on; see SetPullCastDetection().
-local NAMESPACE_CAST = "UnderPressure_PullCast"
-local pullCastRegistered = false
+-- (0.5.11 to 0.5.13 had a third conditional namespace here,
+-- "UnderPressure_PullCast", for Leashing Burst's caster-side buff and hits
+-- on groupmates. Removed in 0.5.14; see Engine/PullTracker.lua's header.)
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -94,16 +90,6 @@ local function onCombatEvent(eventCode, result, isError, abilityName, abilityGra
     -- BEFORE the hostile filter. Fast exit while Pull detection is off.
     if UP.Pull then
         UP.Pull.OnCombat(result, abilityId, sourceName, sourceType, targetType, hitValue, now())
-    end
-
-    -- Allegiance learning (0.5.11), only while Pull detection is on: anyone
-    -- whose damage lands on us is a foe, anyone whose heal lands on us is a
-    -- friend. Placed before the hostile filter so the heals are seen. One
-    -- table lookup per event when off.
-    if UP.Allegiance and UP.Pull and UP.Pull.Enabled()
-       and targetType == COMBAT_UNIT_TYPE_PLAYER and sourceName ~= "" then
-        UP.Allegiance.OnCombat(HOSTILE_RESULTS[result] == true and (hitValue or 0) > 0,
-                               result, sourceName, sourceType)
     end
 
     if not HOSTILE_RESULTS[result] then return end
@@ -492,89 +478,6 @@ end
 -- ---------------------------------------------------------------------------
 -- Registration
 -- ---------------------------------------------------------------------------
--- ---------------------------------------------------------------------------
--- Caster-side pull detection (0.5.11)
--- ---------------------------------------------------------------------------
--- A Leashing Burst caster's 2 s buff reaches this client as EVENT_EFFECT_CHANGED
--- with an EMPTY unit tag (recorded 2026-11-01, Cyrodiil; see
--- Docs/PullDetection-LeashingBurst.md). The registration below is filtered
--- by ability id alone, which is the one filter that still matches a unit with
--- no tag. Without REGISTER_FILTER_ABILITY_ID nothing is registered: an
--- unfiltered EVENT_EFFECT_CHANGED would push every effect in the zone into
--- Lua, which this add-on will not do (same rule as the group channel).
-local function onCastEffectChanged(eventCode, changeType, effectSlot, effectName,
-                                   unitTag, beginTime, endTime, stackCount,
-                                   iconName, buffType, effectType, abilityType,
-                                   statusEffectType, unitName, unitId, abilityId,
-                                   sourceType)
-    -- Seconds to milliseconds at the boundary, as in onEffectChanged.
-    local endTimeMs = 0
-    if type(endTime) == "number" and endTime > 0 then
-        endTimeMs = endTime * 1000
-    end
-    if UP.Pull and UP.Pull.OnCasterEffect then
-        UP.Pull.OnCasterEffect(changeType, abilityId, unitTag, unitName, sourceType, endTimeMs, now())
-    end
-end
-
-local function onKillFeed(...)
-    if UP.Allegiance and UP.Allegiance.OnKillFeed then UP.Allegiance.OnKillFeed(...) end
-end
-
-local function onReticlePlayer()
-    if UP.Allegiance and UP.Allegiance.OnReticlePlayer then UP.Allegiance.OnReticlePlayer() end
-end
-
-local function onAllegianceResync()
-    if UP.Allegiance then
-        if UP.Allegiance.RefreshOwnAlliance then UP.Allegiance.RefreshOwnAlliance() end
-        if UP.Allegiance.ResyncGroup then UP.Allegiance.ResyncGroup() end
-    end
-end
-
-local ALLEGIANCE_EVENTS = {
-    EVENT_PVP_KILL_FEED_DEATH            = onKillFeed,
-    EVENT_RETICLE_TARGET_PLAYER_CHANGED  = onReticlePlayer,
-    EVENT_GROUP_UPDATE                   = onAllegianceResync,
-    EVENT_GROUP_MEMBER_JOINED            = onAllegianceResync,
-    EVENT_PLAYER_ACTIVATED               = onAllegianceResync,
-}
-
-function UP.Ingest.SetPullCastDetection(on)
-    if not UP.Pull or not UP.Pull.CAST_ABILITY_IDS then return end
-    local ids = UP.Pull.CAST_ABILITY_IDS
-    if on and not pullCastRegistered then
-        if type(REGISTER_FILTER_ABILITY_ID) ~= "number" then
-            if UP.Pull.SetCastChannel then UP.Pull.SetCastChannel("unavailable") end
-            return
-        end
-        for id in pairs(ids) do
-            local ns = NAMESPACE_CAST .. tostring(id)
-            EVENT_MANAGER:RegisterForEvent(ns, EVENT_EFFECT_CHANGED, onCastEffectChanged)
-            EVENT_MANAGER:AddFilterForEvent(ns, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, id)
-        end
-        for name, fn in pairs(ALLEGIANCE_EVENTS) do
-            if type(_G[name]) == "number" then
-                EVENT_MANAGER:RegisterForEvent(NAMESPACE_CAST, _G[name], fn)
-            end
-        end
-        pullCastRegistered = true
-        if UP.Pull.SetCastChannel then UP.Pull.SetCastChannel("abilityId") end
-        onAllegianceResync()
-    elseif not on and pullCastRegistered then
-        for id in pairs(ids) do
-            EVENT_MANAGER:UnregisterForEvent(NAMESPACE_CAST .. tostring(id), EVENT_EFFECT_CHANGED)
-        end
-        for name in pairs(ALLEGIANCE_EVENTS) do
-            if type(_G[name]) == "number" then
-                EVENT_MANAGER:UnregisterForEvent(NAMESPACE_CAST, _G[name])
-            end
-        end
-        pullCastRegistered = false
-        if UP.Pull.SetCastChannel then UP.Pull.SetCastChannel("off") end
-    end
-end
-
 function UP.Ingest.Register()
     -- Combat events. One registration, filtered to the local player.
     --
@@ -656,9 +559,6 @@ function UP.Ingest.Register()
 
     -- Groupmate plague (0.5.8, experimental, off by default).
     UP.Ingest.SetGroupPlagueDetection(UP.PlagueGroup ~= nil and UP.PlagueGroup.Enabled())
-
-    -- Caster-side pull detection (0.5.11), under the Pull detection switch.
-    UP.Ingest.SetPullCastDetection(UP.Pull ~= nil and UP.Pull.Enabled())
 end
 
 -- Counterpart to Register(). Nothing calls it as of 0.2.9 -- its only caller
@@ -692,5 +592,4 @@ function UP.Ingest.Unregister()
         UP.Plague.SetBoomChannel(false)
     end
     UP.Ingest.SetGroupPlagueDetection(false)
-    UP.Ingest.SetPullCastDetection(false)
 end

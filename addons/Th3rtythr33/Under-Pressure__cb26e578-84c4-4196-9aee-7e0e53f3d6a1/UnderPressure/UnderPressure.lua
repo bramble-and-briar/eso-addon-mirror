@@ -44,7 +44,7 @@ UP.name    = "UnderPressure"
 -- version string lived in three places and disagreed four ways; as of 0.3.3
 -- there are two, because Settings.lua now READS UP.version for the settings
 -- panel header rather than carrying its own copy.
-UP.version = "0.5.12"
+UP.version = "0.5.14"
 -- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
 -- displays panel.author but never sets it). Matches ## Author in the manifest.
 UP.author  = "Th3rtythr33"
@@ -289,9 +289,6 @@ local function onAddOnLoaded(eventCode, addonName)
     -- resolve to plague names (a failure becomes a startup note).
     UP.Plague.Init()
     UP.PlagueGroup.Init()
-    -- Allegiance table (0.5.11): friend-or-foe by character name, for the
-    -- caster-side pull route. Reads our own alliance now.
-    if UP.Allegiance and UP.Allegiance.Init then UP.Allegiance.Init() end
     -- Pull tracker (0.4.2): resets state and checks its ability ids.
     UP.Pull.Init()
 

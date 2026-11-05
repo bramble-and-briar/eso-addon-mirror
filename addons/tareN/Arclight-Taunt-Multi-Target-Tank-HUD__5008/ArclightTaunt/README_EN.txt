@@ -1,4 +1,4 @@
-ARCLIGHT TAUNT 1.1.1
+ARCLIGHT TAUNT 1.1.2
 Modern Multi-Target Taunt HUD for The Elder Scrolls Online
 Author: tareN
 In-game contact: @uhtareN (PC/EU)
@@ -7,7 +7,11 @@ ABOUT
 A compact overview of your own taunts from standard and Scribing skills,
 including your pets' taunts. Smooth countdown bars, target highlighting,
 boss indicators and separate early/expiration warnings keep priorities readable.
-Enemies with identical names remain separate.
+Enemies with identical names remain separate. Short row transitions close gaps;
+a small light edge marks the remaining countdown fill.
+Reduce animations under Appearance & readability stops decorative motion while keeping smooth countdowns and configured warnings.
+List & layout groups HUD size, spacing and position. Appearance & readability
+groups bars/backgrounds, text/countdowns and target effects.
 
 INSTALLATION
 Install these required libraries separately; they are not bundled:
@@ -68,8 +72,11 @@ GOOD TO KNOW
 - Tracks ESO-reported taunt effects (IDs 38254 and 38541), not measured aggro.
   Expiration is not proof that the enemy has changed target.
 - Player targets are excluded by default; enable them under Tracking & tests.
-- Broader boss detection can include strong non-boss enemies. Warnings require
-  an officially recognized boss unless alerts for classified elites are enabled.
+- Enemies to highlight offers ESO boss-bar targets only, or bosses and strong
+  enemies (default). Strong enemies are not necessarily bosses. Also show banners
+  for strong enemies extends enabled banners and sounds; off by default.
+  The old deadly-only selection becomes bosses and strong enemies; existing
+  warning preferences are retained.
 - HUD focus uses direct event identity or a unique own-taunt timing match.
   Uncertain timer matches never authorize removing another target. There is
   no separate crosshair HUD or other-player/group-taunt display.

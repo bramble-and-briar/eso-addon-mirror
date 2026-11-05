@@ -605,7 +605,39 @@ function OBT.CreateSettings()
         }
     }
 
-    -- My UI owns the LAM panel. Return the existing Off Balance options as
-    -- one section of that panel, rather than registering a second addon panel.
+    -- My UI owns the LAM panel. Give its Off Balance Tracker root exactly
+    -- four submenu entries, matching the original LAM group organization.
+    -- Move the original standalone master switch, preview and reset controls
+    -- into Visibility & Roles; keep the feedback controls in Chat Summary.
+    -- Do not change their callbacks or any of the tracking/display logic.
+    local fourSubmenus = {}
+    local generalControls = {}
+    local trailingControls = {}
+    local seenFirstSubmenu = false
+
+    for _, option in ipairs(optionsData) do
+        if option.type == "submenu" then
+            seenFirstSubmenu = true
+            table.insert(fourSubmenus, option)
+        elseif not seenFirstSubmenu then
+            table.insert(generalControls, option)
+        else
+            table.insert(trailingControls, option)
+        end
+    end
+
+    if #fourSubmenus == 4 then
+        local visibilityControls = fourSubmenus[1].controls
+        for i = #generalControls, 1, -1 do
+            table.insert(visibilityControls, 1, generalControls[i])
+        end
+        local chatControls = fourSubmenus[4].controls
+        for _, option in ipairs(trailingControls) do
+            table.insert(chatControls, option)
+        end
+        return fourSubmenus
+    end
+
+    -- Safety fallback if the upstream OBT layout changes in a future update.
     return optionsData
 end

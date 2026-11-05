@@ -1,3 +1,5 @@
+-- Reads and decodes GeneratedDatabase.lua + GeneratedConstants.lua
+
 local LFC = LibFurnitureCatalogue
 local data, vocabulary = assert(LFCGeneratedDatabase), assert(LFCGeneratedConstants)
 local constants = LFC.Internal.Constants
@@ -64,8 +66,14 @@ local categories = {
   cabinet = SI_FURC_SRC_CABINET,
 }
 local enumFields = vocabulary.sourceVocabularies
-local fieldNames =
-  { skill_line = "skillLine", skill_rank = "skillRank", part_of = "partOf", npc_class = "npcClass", npc_group = "note" }
+local fieldNames = {
+  skill_line = "skillLine",
+  skill_rank = "skillRank",
+  part_of = "partOf",
+  npc_class = "npcClass",
+  npc_group = "note",
+  tome = "itemPack",
+}
 local function symbol(group, id)
   return assert(vocabulary.symbols[group][id], "unknown generated vocabulary id")
 end
@@ -103,12 +111,34 @@ local function note(value)
   end
   return _G[value] or value
 end
+
+local ROW = { sources = 1, version = 2, blueprint = 3 }
+local FIRST_RECORD = 4
+
+local RECORD = { type = 1, version = 2, cost = 3, last_seen = 4, rarity = 5, container = 6, blueprint = 7 }
+
+-- Must fit the layout published by the generator (just in case someone changes the order without changing it here too)
+local function assertLayout(columns, names, what)
+  assert(names, "generated constants lack the " .. what .. " layout")
+  local count = 0
+  for name, column in pairs(columns) do
+    count = count + 1
+    assert(names[column] == name, "generated " .. what .. " layout mismatch at " .. name)
+  end
+  assert(#names == count, "generated " .. what .. " layout mismatch")
+end
+assertLayout(ROW, vocabulary.rowFields, "row")
+assertLayout(RECORD, vocabulary.recordFields, "record")
+assert(
+  FIRST_RECORD == #vocabulary.rowFields + 1 and vocabulary.sourceFieldOffset == #vocabulary.recordFields,
+  "generated source fields do not follow the record head"
+)
 local sourceColumn = {}
 for i, name in ipairs(vocabulary.sourceFields) do
   sourceColumn[name] = vocabulary.sourceFieldOffset + i
 end
 local function decode(record)
-  local kind = symbol("source_types", record[1])
+  local kind = symbol("source_types", record[RECORD.type])
   local fields = {}
   for name, column in pairs(sourceColumn) do
     fields[name] = record[column]
@@ -163,21 +193,33 @@ local function decode(record)
     }
     source.note = assert(names[symbol("companions", fields.companion)]) .. " rapport"
   end
-  if kind == "tome_pack" then
-    local names = { armor = "ARMOR", dawn = "DAWN", logic = "LOGIC" }
-    source.itemPack = constants.TomesPacks[names[fields.note]]
-    if source.itemPack then
-      source.note = nil
-    end
-  end
-  if record[5] then
-    local rarity = symbol("rarities", record[5])
+  if record[RECORD.rarity] then
+    local rarity = symbol("rarities", record[RECORD.rarity])
     source.rarity = rarity == "rare" and SI_FURC_RARITY_RARE
       or rarity == "extremely_rare" and SI_FURC_RARITY_EXTREMELYRARE
       or nil
   end
   return source, kind
 end
+
+-- A blueprint this client cannot resolve is not in this game version yet/anymore (PTS data on live / removed item)
+local blueprintsExist = {}
+local function blueprintExists(blueprintId)
+  local exists = blueprintsExist[blueprintId]
+  if exists == nil then
+    local _, resolved = LFC.Internal.Build.ResolveRecipe(blueprintId)
+    exists = resolved ~= nil
+    blueprintsExist[blueprintId] = exists
+  end
+  return exists
+end
+
+---@return integer? blueprintId nil when the row has none or this client does not have it
+local function rowBlueprint(row)
+  local blueprint = row[ROW.blueprint]
+  return blueprint ~= 0 and blueprintExists(blueprint) and blueprint or nil
+end
+
 local function recordsFor(id, active)
   local row = data.items[id]
   if not row then
@@ -187,32 +229,35 @@ local function recordsFor(id, active)
   assert(not active[id], "generated container cycle")
   active[id] = true
   local result, crafting = {}, {}
-  for i = 4, #row do
+  local itemBlueprint = row[ROW.blueprint] ~= 0 and row[ROW.blueprint]
+  for i = FIRST_RECORD, #row do
     local record = row[i]
     local first = #result + 1
     local source, kind = decode(record)
-    if kind == "container" then
+    local blueprint = record[RECORD.blueprint] or (kind == "recipe" and itemBlueprint)
+    if blueprint and kind ~= "container" and not blueprintExists(blueprint) then
+    elseif kind == "container" then
       for _, parent in ipairs(recordsFor(source.partOf, active)) do
         parent.source.partOf = source.partOf
         result[#result + 1] = parent
       end
     else
       assert(source.type, "unknown generated source")
-      if #record[3] == 0 then
-        result[#result + 1] = { source = source, lastSeen = record[4] }
+      if #record[RECORD.cost] == 0 then
+        result[#result + 1] = { source = source, lastSeen = record[RECORD.last_seen] }
       else
-        for _, cost in ipairs(record[3]) do
+        for _, cost in ipairs(record[RECORD.cost]) do
           local currency = assert(currencies[symbol("currencies", cost[1])], "unsupported game currency")
           local origin = ZO_DeepTableCopy(source)
           if kind == "crown_store" and currency == CURT_TRADE_BARS then
             origin.type = src.BAZAAR
           end
           result[#result + 1] =
-            { source = origin, cost = { currency = currency, amount = cost[2] }, lastSeen = record[4] }
+            { source = origin, cost = { currency = currency, amount = cost[2] }, lastSeen = record[RECORD.last_seen] }
         end
       end
     end
-    if record[7] and kind ~= "recipe" then
+    if record[RECORD.blueprint] and kind ~= "recipe" then
       for j = first, #result do
         local copy = ZO_DeepTableCopy(result[j])
         copy.source.type = src.CRAFTING
@@ -290,7 +335,7 @@ function generated.Install()
       end
       compatibility.itemDate = record.lastSeen
       if record.source.vendor == constants.NpcIds.MAGES_MYSTIC and not record.source.achievement then
-        bucket(FurC.Books, row[2])[id] = compatibility
+        bucket(FurC.Books, row[ROW.version])[id] = compatibility
       end
       if
         record.source.vendor
@@ -305,38 +350,42 @@ function generated.Install()
         for _, place in ipairs(record.source.locations) do
           local zone = place.location or place.place
           if zone then
-            local locations = bucket(vendors, row[2], zone)
+            local locations = bucket(vendors, row[ROW.version], zone)
             locations[record.source.vendor] = locations[record.source.vendor] or {}
             locations[record.source.vendor][id] = compatibility
           end
         end
       end
-      local view = bucket(FurC.MiscItemSources, row[2], record.source.type)
+      local view = bucket(FurC.MiscItemSources, row[ROW.version], record.source.type)
       view[id] = view[id] or compatibility
       if record.source.type == src.LUXURY then
-        bucket(FurC.LuxuryFurnisher, row[2])[id] = compatibility
+        bucket(FurC.LuxuryFurnisher, row[ROW.version])[id] = compatibility
       end
       if record.source.type == src.ROLIS then
         local vendor = record.source.vendor == constants.NpcIds.FAUSTINA and FurC.Faustina or FurC.Rolis
-        bucket(vendor, row[2])[row[3] ~= 0 and row[3] or id] = compatibility
+        bucket(vendor, row[ROW.version])[row[ROW.blueprint] ~= 0 and row[ROW.blueprint] or id] = compatibility
       end
     end
-    if row[3] ~= 0 then
+    local blueprint = rowBlueprint(row)
+    if blueprint then
       mask = build.AddSource(mask, src.CRAFTING)
     end
-    build.Upsert(id, { sources = mask, version = row[2], blueprint = row[3] ~= 0 and row[3] or nil })
-    for i = 4, #row do
-      if row[i][6] then
-        containers[id] = { kind = vocabulary.containerKinds[row[i][6]], contents = {} }
+    -- only craftable, from a blueprint this client does not have: nothing to list
+    if mask ~= 0 or row[ROW.blueprint] == 0 then
+      build.Upsert(id, { sources = mask, version = row[ROW.version], blueprint = blueprint })
+    end
+    for i = FIRST_RECORD, #row do
+      if row[i][RECORD.container] then
+        containers[id] = { kind = vocabulary.containerKinds[row[i][RECORD.container]], contents = {} }
       end
     end
   end
   for id, row in pairs(data.items) do
-    for i = 4, #row do
+    for i = FIRST_RECORD, #row do
       local parent = row[i][sourceColumn.part_of]
       local container = parent and containers[parent]
       if container then
-        table.insert(container.contents, row[i][7] or id)
+        table.insert(container.contents, row[i][RECORD.blueprint] or id)
       end
     end
   end

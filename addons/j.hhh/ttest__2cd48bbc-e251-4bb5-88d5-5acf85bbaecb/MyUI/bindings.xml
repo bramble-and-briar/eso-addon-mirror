@@ -56,4 +56,40 @@
 			</Action>
 		</Category>
 	</Layer>
+<!-- Embedded AutoInteract gamepad-accessible bindings -->
+
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="AutoInteract">
+            <Action name="AUTOINTERACT_TOGGLE_ENABLED">
+                <Down>AutoInteract.ToggleMaster()</Down>
+            </Action>
+        </Category>
+    </Layer>
+
+<!-- Embedded BindAll gamepad-accessible bindings -->
+
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="BindAll">
+			<Action name="BINDALL">
+				<Down>BindAll.BindAllUnknown()</Down>
+			</Action>
+		</Category>
+	</Layer>
+
+<!-- Embedded Recharge gamepad-accessible bindings -->
+
+  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+    <Category name="SI_KEYBINDINGS_CATEGORY_RECHARGE">
+      <Action name="RUN_RECHARGE">
+        <Down>Recharge.Triggle_Action()</Down>
+      </Action>
+      <Action name="RUN_RECHARGE_SINGLE">
+        <Down>Recharge.Keybind_Recharge()</Down>
+      </Action>
+      <Action name="RUN_REPAIR_SINGLE">
+        <Down>Recharge.Keybind_Repair()</Down>
+      </Action>
+    </Category>
+  </Layer>
+
 </Bindings>

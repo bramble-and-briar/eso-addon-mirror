@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/adilmf/Ramaladni---Class-Mastery-Buff-Debuff-Tracker__5022",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "adilmf",
+  "canonical_id": "esoui:5022",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5022",
+  "deleted": false,
+  "directories": [
+    "Ramaladni_buff_debuff_tracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5022/",
+  "fingerprint": "d502aff951c8b529547965c88de7c2743d091abdf4372cda0993e8b768d93861",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18307.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18309.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18308.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5022",
+  "source_url": "https://www.esoui.com/downloads/info5022-Ramaladni-ClassMasteryBuffDebuffTracker.html",
+  "stats": {
+    "downloads": 38,
+    "favorites": 1,
+    "monthly_downloads": 26
+  },
+  "title": "Ramaladni - Class Mastery & Buff/Debuff Tracker",
+  "updated_at": 1793792074000,
+  "version": "v1.0.0_STABLE"
+}

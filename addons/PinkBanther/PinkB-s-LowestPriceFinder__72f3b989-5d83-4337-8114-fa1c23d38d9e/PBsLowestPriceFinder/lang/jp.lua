@@ -1,0 +1,101 @@
+-- 日本語。lang/strings.lua のあとに読み込まれ、同じIDを上書きします。
+local strings = {
+	-- 起動とヘルプ
+	SI_PBSLPF_HELP = "/lpf add <アイテム名 | \"完全一致の名前\" | アイテムリンク> -- アイテムを監視に追加(リンクなら品質も揃えます)\n/lpf remove <番号または名前の一部> -- 監視をやめる\n/lpf list -- 監視中のアイテム\n/lpf find <アイテム名 | アイテムリンク> -- どこでも使えます。記録済みの最安ストアを出し、記録がなければ監視に足して、次に開くギルド商人で検索します(ギルドストアは商人を開いている間しか検索できません)\n/lpf -- アイテムごとの最安ストアを表示 (/lpf show all で全ストア)\n/lpf scan -- 次に開くギルド商人で検索(開いていればすぐ検索)\n/lpf auto on | off -- ギルド商人を開くたびに自動で検索する\n/lpf panel -- 結果パネルをもう一度出す\n/lpf forget -- 記録した価格と場所を消す\n/lpf clear -- 監視リストを空にする\n/lpf probe -- 次に開くギルド商人で、ゲームがアドオンに返す内容をチャットに出す\n/lpf log -- 直近の検索の経過\n/lpf status -- 設定と件数",
+
+	-- 監視リスト
+	SI_PBSLPF_ADD_DONE = "監視に追加: %s",
+	SI_PBSLPF_ADD_DUP = "すでに監視中です: %s",
+	SI_PBSLPF_ADD_FULL = "監視リストがいっぱいです(%d件)。先に /lpf remove で外してください。",
+	SI_PBSLPF_ADD_SHORT = "「%s」は短すぎます。ギルドストアの検索には %d 文字以上が必要です。",
+	SI_PBSLPF_ADD_USAGE = "使い方: /lpf add <アイテム名>、/lpf add \"完全一致のアイテム名\"、または /lpf add のあとにアイテムリンク。",
+	SI_PBSLPF_REMOVE_DONE = "監視をやめました: %s",
+	SI_PBSLPF_REMOVE_NONE = "「%s」に当てはまる監視アイテムがありません。/lpf list で確認できます。",
+	SI_PBSLPF_FIND_USAGE = "使い方: /lpf find <アイテム名またはアイテムリンク>",
+	SI_PBSLPF_FIND_QUEUED = "使える価格の記録がありません。ギルドストアはギルド商人を開いている間しか検索できないため、次に開くギルド商人で検索します。",
+	SI_PBSLPF_LIST_EMPTY = "まだ何も監視していません。/lpf add <アイテム名またはリンク>",
+	SI_PBSLPF_LIST_ROW = "%d. %s",
+	SI_PBSLPF_TAG_EXACT = "完全一致",
+	SI_PBSLPF_TAG_QUALITY = "品質は%sのみ",
+	SI_PBSLPF_CLEARED = "監視リストを空にしました。",
+	SI_PBSLPF_FORGOT = "記録した価格と場所を消しました。",
+
+	-- 見つかった結果
+	SI_PBSLPF_NO_DATA = "まだ価格が記録されていません。ギルド商人を開くと、開ける全ストアで監視アイテムを検索します。",
+	SI_PBSLPF_ITEM_HEADER = "== %s ==",
+	SI_PBSLPF_NOT_FOR_SALE = "検索したどのストアにも出品なし",
+	SI_PBSLPF_RAN_OUT = "記録した出品は期限が切れました。ギルド商人でもう一度検索してください",
+	SI_PBSLPF_NOT_SEARCHED = "まだ検索していません",
+	SI_PBSLPF_RANK_ROW = "%d. 1個 %sG  x%s = %sG   %s   %s   %s",
+	SI_PBSLPF_MORE_STORES = "   ほか %d ストア (/lpf show all)",
+	SI_PBSLPF_TRADER = "商人 %s",
+	SI_PBSLPF_PLACE_UNKNOWN = "場所は未記録",
+	SI_PBSLPF_PLACE_UNKNOWN_HINT = "場所は未記録(このギルドの商人を一度開くと記録されます)",
+	SI_PBSLPF_PLACE_NOT_LINKED = "この商人がどのギルドのものか読み取れませんでした。場所は記録しましたが、どのストアとも結びつけていません。ゲームが返した内容は /lpf log の「trader:」の行で見られます。",
+	SI_PBSLPF_PLACE_MOVED = "(移動した可能性あり)",
+	SI_PBSLPF_AGE_NOW = "たった今",
+	SI_PBSLPF_AGE_MIN = "%d分前",
+	SI_PBSLPF_AGE_HOUR = "%d時間前",
+	SI_PBSLPF_AGE_DAY = "%d日前",
+
+	-- 検索
+	SI_PBSLPF_BAR_MATCHING = "アイテム名を照合中...",
+	SI_PBSLPF_BAR_SEARCHING = "検索中 %d/%d  %s",
+	SI_PBSLPF_SCAN_DONE = "検索完了: %d 回検索 (%d ストア)",
+	SI_PBSLPF_SCAN_CLOSED = "ギルドストアが閉じられたので検索を止めました。ここまでの結果は残ります。",
+	SI_PBSLPF_SCAN_NO_ITEMS = "検索するものがありません。監視リストが空です。/lpf add <アイテム名またはリンク>",
+	SI_PBSLPF_SCAN_NO_STORES = "ここから検索できるギルドストアがありません。",
+	SI_PBSLPF_SCAN_NO_MATCH = "ゲームに見つからない名前: %s",
+	SI_PBSLPF_SCAN_FAILED = "検索失敗 %d 件 (/lpf log)",
+	SI_PBSLPF_SCAN_ERROR = "エラーのため検索を止めました: %s。/lpf log で直前の経過が見られます。",
+	SI_PBSLPF_SCAN_BROKEN = "このセッションで検索が失敗したため、自動では始めません。/lpf scan でもう一度試せます。",
+	SI_PBSLPF_SCAN_ARMED = "次に開くギルド商人でストアを検索します。",
+	SI_PBSLPF_SCAN_NOW = "いまストアを検索します。",
+	SI_PBSLPF_AUTO_ON = "自動検索をオンにしました。ギルド商人を開くたびに検索します。",
+	SI_PBSLPF_AUTO_OFF = "自動検索をオフにしました。検索は /lpf scan で行います。",
+	SI_PBSLPF_PROBE_ARMED = "ギルド商人を開いてください。ゲームがアドオンに返す内容をチャットに出します(閉じたあともチャットに残ります)。",
+	SI_PBSLPF_LOG_EMPTY = "まだ記録がありません。",
+
+	-- パネル
+	SI_PBSLPF_PANEL_TITLE = "最安値ファインダー",
+	SI_PBSLPF_PANEL_SCANNING = "検索中 %d/%d",
+	SI_PBSLPF_PANEL_EMPTY = "監視中のアイテムなし。/lpf add <アイテム名またはリンク>",
+	SI_PBSLPF_PANEL_MORE = "ほか%d件: /lpf",
+	SI_PBSLPF_PANEL_ITEM = "%s   1個 %sG",
+
+	-- 設定画面
+	SI_PBSLPF_EXPLANATION = "ギルド商人を開くと、開ける全ストアで監視アイテムを検索し、ストアごとの最安の出品を記録します。アイテムはチャットで /lpf add <名前またはアイテムリンク> と入力して追加します。",
+	SI_PBSLPF_SECTION_SEARCH = "検索",
+	SI_PBSLPF_SECTION_ITEMS = "監視中のアイテム",
+	SI_PBSLPF_SECTION_PANEL = "結果パネル",
+	SI_PBSLPF_SECTION_DATA = "データ",
+	SI_PBSLPF_AUTO = "ギルド商人を開いたら検索する",
+	SI_PBSLPF_AUTO_TOOLTIP = "オフ: 商人を開く前に /lpf scan と入力するまで検索しません。",
+	SI_PBSLPF_RESCAN = "この分数以内は再検索しない (0=常に検索)",
+	SI_PBSLPF_RESCAN_TOOLTIP = "自動で始まる検索は、この時間以内に検索したストアのアイテムを飛ばし、すべてが新しければ始めません。ギルドストアの画面は検索のたびに動くので、売るだけで商人を開いたときに毎回始まらないようにします。/lpf scan は常にすべてを検索します。",
+	SI_PBSLPF_MAX_AGE = "古い価格を無視する日数 (0=無視しない)",
+	SI_PBSLPF_MAX_AGE_TOOLTIP = "出品期限が切れた出品は常に外します。この設定は、それ以外の古い記録をこの日数で外します。",
+	SI_PBSLPF_PANEL = "結果パネルを表示する",
+	SI_PBSLPF_PANEL_TOOLTIP = "監視アイテムごとの最安ストアを出す小さな枠です。検索中と、検索後しばらく表示します。",
+	SI_PBSLPF_PANEL_HOLD = "パネルを出しておく秒数",
+	SI_PBSLPF_PANEL_SIZE = "パネルの文字サイズ",
+	SI_PBSLPF_PANEL_LEFT = "パネルの位置: 左から",
+	SI_PBSLPF_PANEL_TOP = "パネルの位置: 上から",
+	SI_PBSLPF_PANEL_PREVIEW = "パネルをいま表示する",
+	SI_PBSLPF_PANEL_PREVIEW_BUTTON = "表示",
+	SI_PBSLPF_ADD_EDIT = "アイテムを追加 (名前)",
+	SI_PBSLPF_ADD_EDIT_TOOLTIP = "アイテム名を入力します。アイテムリンクで追加するにはチャットで /lpf add を使います。",
+	SI_PBSLPF_NO_ITEMS = "(監視中のアイテムなし)",
+	SI_PBSLPF_REMOVE_BUTTON = "外す",
+	SI_PBSLPF_REMOVE_TOOLTIP = "このアイテムの監視をやめ、記録した価格も消します。",
+	SI_PBSLPF_FORGET = "記録した価格と場所を消す",
+	SI_PBSLPF_FORGET_BUTTON = "消す",
+	SI_PBSLPF_FORGET_TOOLTIP = "監視リストは残ります。",
+	SI_PBSLPF_CLEAR = "監視リストを空にする",
+	SI_PBSLPF_CLEAR_BUTTON = "空にする",
+}
+
+for stringId, stringValue in pairs(strings) do
+	ZO_CreateStringId(stringId, stringValue)
+	SafeAddVersion(stringId, 1)
+end

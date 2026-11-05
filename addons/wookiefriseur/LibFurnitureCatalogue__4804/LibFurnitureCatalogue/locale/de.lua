@@ -98,7 +98,7 @@ local strings = {
   SI_FURC_TRADERS_HGF = "Hausaustatter^n,von",
   SI_FURC_TRADERS_HOLIDAY = "Festtagsausstatter^n,von",
   SI_FURC_TRADERS_LUXF = "Luxusausstatter^n,von",
-  -- 46 ENTRIES UNTRANSLATED/IDENTICAL
+  -- 48 ENTRIES UNTRANSLATED/IDENTICAL
   SI_FURC_ACHIEVEMENT_UNKNOWN = "achievement^n",
   SI_FURC_ESO_PLUS = "ESO+",
   SI_FURC_EVENT_ANNIVERSARY = "Anniversary Jubilee",
@@ -121,6 +121,7 @@ local strings = {
   SI_FURC_ITEMPACK_JYGGALAG = "Sword of Jyggalag Style",
   SI_FURC_ITEMPACK_RAZOR = "Mehrunes' Razor",
   SI_FURC_ITEMPACK_STABLE = "Steadfast Stablemaster Bundle",
+  SI_FURC_LOC_GRAHTWOOD_REDFUR = "Redfur Trading Post",
   SI_FURC_LOC_LILANDRIL = "Lilandril",
   SI_FURC_LOC_MURKMIRE_LIL = "Lilmoth",
   SI_FURC_LOC_SUMMERSET_ALINOR = "Alinor",
@@ -141,6 +142,7 @@ local strings = {
   SI_FURC_TOMESPACK_ARMOR = "Armor Principles",
   SI_FURC_TOMESPACK_DAWN = "Dawn and Dusk",
   SI_FURC_TOMESPACK_LOGIC = "Study of Wisdom and Logic",
+  SI_FURC_TOMESPACK_UNDERCROFT = "Undercroft Bundle",
   SI_FURC_TRADERS_COLL_MERCH = "Collectibles Merchant",
   SI_FURC_TRADERS_FAUSTINA = "Faustina Curio",
   SI_FURC_TRADERS_NM = "Night Market Vendors^n,from",

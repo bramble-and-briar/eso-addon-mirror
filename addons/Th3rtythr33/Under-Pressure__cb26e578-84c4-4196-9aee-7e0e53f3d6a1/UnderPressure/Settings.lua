@@ -693,20 +693,18 @@ local function buildOptions()
         -- detected and Docs/PullDetection-*.md for the evidence.
         {
             type = LHAS.ST_SECTION, label = "Pull Indicator",
-            tooltip = "Warns you a moment before an enemy's Rush of Agony, Dark Convergence or Leashing Burst pulls you.",
+            tooltip = "Warns you a moment before an enemy's Rush of Agony or Dark Convergence pulls you.",
         },
         {
             type = LHAS.ST_LABEL,
-            label = "Warns you just before an enemy's pull lands, while there is still time to block or move: about 0.8 seconds before a Rush of Agony pull, about 1 second before a Dark Convergence pull, and 2 seconds before a Leashing Burst (the Soul Burst scribing pull) from the moment the enemy casts it. Off by default. Leashing Burst detection works only in Cyrodiil, Imperial City and Battlegrounds; casts by your group, and by players the add-on has learned are on your side, are ignored, and everyone else's cast warns. The warning can be shown as flashing icons in the four corners, one icon beside the reticle, and flashing bars down the left and right edges of the screen.",
+            label = "Warns you just before an enemy's pull lands, while there is still time to block or move: about 0.8 seconds before a Rush of Agony pull, about 1 second before a Dark Convergence pull. Off by default. The warning can be shown as flashing icons in the four corners, one icon beside the reticle, and flashing bars down the left and right edges of the screen.",
         },
         {
             type = LHAS.ST_CHECKBOX, label = "Pull detection",
-            tooltip = "Set to On to detect incoming Rush of Agony, Dark Convergence and Leashing Burst pulls and show the warning displays chosen below. One switch covers every pull this add-on can detect. Default: Off.",
+            tooltip = "Set to On to detect incoming Rush of Agony and Dark Convergence pulls and show the warning displays chosen below. One switch covers every pull this add-on can detect. Default: Off.",
             getFunction = function() return sv().pull_detect == true end,
             setFunction = function(v)
                 sv().pull_detect = v
-                -- The caster-side channel (0.5.11) is registered only while on.
-                if UP.Ingest and UP.Ingest.SetPullCastDetection then UP.Ingest.SetPullCastDetection(v) end
                 -- Turning it off mid-warning clears the warning.
                 if not v and UP.Pull and UP.Pull.Clear then UP.Pull.Clear() end
             end,

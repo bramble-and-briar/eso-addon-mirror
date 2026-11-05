@@ -1,0 +1,667 @@
+local lib = LibSets
+
+local MAJOR, MINOR = lib.name, lib.version
+local libPrefix = lib.prefix
+
+local tos = tostring
+local tins = table.insert
+local tcon = table.concat
+local zif = zo_iconFormat
+
+local clientLang = lib.clientLang
+local fallbackLang = lib.fallbackLang
+local isClientLangEqualToFallbackLang = clientLang == fallbackLang
+
+--The search UI table
+local searchUI = lib.SearchUI
+--local searchUIName         = searchUI.name
+local favoriteIconTextStar = searchUI.favoriteIconTextStar
+local favoriteIconTexts    = searchUI.favoriteIconTexts
+
+--Library's local helpers
+local LIBSETS_TABLEKEY_ZONEIDS = LIBSETS_TABLEKEY_ZONEIDS
+local preloadedSetNames = lib.setDataPreloaded[LIBSETS_TABLEKEY_SETNAMES]
+
+--local libSets_IsNoESOSet = lib.IsNoESOSet
+local libSets_GetSetBonuses = lib.GetSetBonuses
+local buildSetTypeInfo = lib.buildSetTypeInfo
+local buildSetDataText = lib.BuildSetDataText
+--local libSets_GetSetInfo = lib.GetSetInfo
+local libSets_GetSetFirstItemId = lib.GetSetFirstItemId
+--local getDropMechanicTexture = lib.GetDropMechanicTexture
+--local libSets_GetSpecialZoneNameById = lib.GetSpecialZoneNameById
+local getArmorTypeTexture = lib.GetArmorTypeTexture
+local getWeaponTypeTexture = lib.GetWeaponTypeTexture
+local getEquipSlotTexture = lib.GetEquipSlotTexture
+
+local possibleSetSearchFavoriteCategoriesUnsorted = lib.possibleSetSearchFavoriteCategoriesUnsorted
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Local helper functions
+------------------------------------------------------------------------------------------------------------------------
+local function updateFavoriteColumn(selfVar, rowControl, isFavorite, favoriteCategory)
+    if not rowControl or isFavorite == nil or favoriteCategory == nil then return end
+    local data = rowControl.data
+    if not data then return end
+
+    if isFavorite == true then
+        if data.isFavorite ~= favoriteCategory then
+            rowControl.data.isFavorite = favoriteCategory
+        end
+    else
+        if data.isFavorite ~= favoriteCategory then return end
+        rowControl.data.isFavorite = nil
+    end
+    data = rowControl.data
+
+    local favoriteColumn = rowControl:GetNamedChild("Favorite")
+    if favoriteColumn == nil then return end
+    favoriteColumn:SetText((isFavorite == true and favoriteIconTexts[favoriteCategory]) or "")
+
+    --FavoriteCategory was removed, but is any other favoriteCategory still applied to the item?
+    --Then show the next favoriteCategory icon at the row now!
+    if not isFavorite then
+        local setId = data.setId
+        local nextFavoriteCategory = selfVar._parentObject:GetNextFavoritesCategory(setId)
+        if nextFavoriteCategory ~= nil then
+            local nextFavCatIcon = favoriteIconTexts[nextFavoriteCategory]
+            if nextFavCatIcon ~= nil then
+                favoriteColumn:SetText(nextFavCatIcon)
+                rowControl.data.isFavorite = nextFavoriteCategory
+            end
+        end
+    end
+end
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Search results list for keyboard mode
+------------------------------------------------------------------------------------------------------------------------
+--- ZO_SortFilterList
+LibSets_SearchUI_List = ZO_SortFilterList:Subclass()
+
+-- ZO_SortFilterList:RefreshData()      =>  BuildMasterList()   =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshFilters()                           =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshSort()                                                      =>  SortScrollList()    =>  CommitScrollList()
+
+function LibSets_SearchUI_List:New(listParentControl, parentObject)
+	local listObject = ZO_SortFilterList.New(self, listParentControl)
+    listObject._parentObject = parentObject --Points to e.g. LIBSETS_SEARCH_UI_KEYBOARD object (of class LibSets_SearchUI_Keyboard)
+	listObject:Setup()
+	return listObject
+end
+
+--Setup the scroll list
+function LibSets_SearchUI_List:Setup( )
+	--Scroll UI
+	ZO_ScrollList_AddDataType(self.list, searchUI.scrollListDataTypeDefault, "LibSetsSearchUIRow", 30, function(control, data)
+        self:SetupItemRow(control, data)
+    end)
+	ZO_ScrollList_EnableHighlight(self.list, "ZO_ThinListHighlight")
+	self:SetAlternateRowBackgrounds(true)
+
+    self:SetEmptyText("\n"..GetString(SI_TRADINGHOUSESEARCHOUTCOME2) .. "\n") --No items found, which match your filters and text
+
+	self.masterList = { }
+
+    --Build the sortkeys depending on the settings
+    --self:BuildSortKeys() --> Will be called internally in "self.sortHeaderGroup:SelectAndResetSortForKey"
+	self.currentSortKey = "name"
+	self.currentSortOrder = ZO_SORT_ORDER_UP
+	self.sortHeaderGroup:SelectAndResetSortForKey(self.currentSortKey) -- Will call "SortScrollList" internally
+	--The sort function
+    self.sortFunction = function( listEntry1, listEntry2 )
+        local currentSortKey = self.currentSortKey
+        local currentSortOrder = self.currentSortOrder
+        local sortKeys = self.sortKeys
+        local listEntry1Data = listEntry1.data
+        local listEntry2Data = listEntry2.data
+
+        if     currentSortKey == nil or currentSortOrder == nil or ZO_IsTableEmpty(sortKeys) or sortKeys[currentSortKey] == nil
+            or listEntry1Data == nil or listEntry1Data[currentSortKey] == nil
+            or listEntry2Data == nil or listEntry2Data[currentSortKey] == nil then
+            return nil
+        end
+        return ZO_TableOrderingFunction(listEntry1Data, listEntry2Data, currentSortKey, sortKeys, currentSortOrder)
+	end
+
+    --Sort headers
+	self.headers =                  self.control:GetNamedChild("Headers")
+    self.headerFavorite =           self.headers:GetNamedChild("Favorite")
+    self.headerName =               self.headers:GetNamedChild("Name")
+    self.headerSetType =            self.headers:GetNamedChild("SetType")
+	self.headerArmorOrWeaponType =  self.headers:GetNamedChild("ArmorOrWeaponType")
+	self.headerEquipSlot =          self.headers:GetNamedChild("EquipSlot")
+	self.headerDropLocations =      self.headers:GetNamedChild("DropLocations")
+	self.headerSetId =              self.headers:GetNamedChild("SetId")
+
+    --Add the headers to the table of dimensionConstraints update, and add the column names of virtual XML template LibSetsSearchUIRow
+    --so the function LibSets_SearchUI_List:SetHeaderAndColumnDimensionConstraints(rowControl, columnsToo) can upate them too
+    self.headerAndColumnsMinAndMaxData = {}
+    self.headerAndColumnsMinAndMaxData[self.headerFavorite] =                   { minX = 24,    maxX = 24,      columnName="Favorite" }
+    self.headerAndColumnsMinAndMaxData[self.headerName] =                       { minX = 400,   maxX = 400,     columnName="Name"}
+    self.headerAndColumnsMinAndMaxData[self.headerSetType] =                    { minX = 40,    maxX = 40,      columnName="SetType"}
+    self.headerAndColumnsMinAndMaxData[self.headerArmorOrWeaponType] =          { minX = 40,    maxX = 40,      columnName="ArmorOrWeaponType"}
+    self.headerAndColumnsMinAndMaxData[self.headerEquipSlot] =                  { minX = 40,    maxX = 40,      columnName="EquipSlot"}
+    self.headerAndColumnsMinAndMaxData[self.headerDropLocations] =              { minX = 300,   maxX = "calcByTLCWidth,-650",    factorMultiplier=2, columnName="DropLocations"}
+    --self.headerAndColumnsMinAndMaxData[self.headerSetId] =                      { minX = 40,    maxX = 40,    columnName="SetId", anchors = { [1] = { point = RIGHT, relativeTo=self.headers, relativePoint=RIGHT } }}
+
+    --Build initial masterlist via self:BuildMasterList() --> Do not automatically here but only as the LibSets search UI opens first time!
+    --self:RefreshData()
+end
+
+--Update the list's header columns and the virtual XML template LibSetsSearchUIRow columns in width and anchors
+function LibSets_SearchUI_List:SetHeaderAndColumnDimensionConstraints(rowControl, columnsToo, noHeader)
+    if ZO_IsTableEmpty(self.headerAndColumnsMinAndMaxData) then return end
+
+    local changeColumnsToo = rowControl ~= nil and columnsToo == true
+    noHeader = noHeader or false
+
+--d("LibSets_SearchUI_List:SetHeaderAndColumnDimensionConstraints - rowControl: " ..tos((rowControl and rowControl:GetName()) or nil) .. "; changeColumnsToo: " .. tos(changeColumnsToo) ..", columnsToo: " ..tos(columnsToo) .. "; noHeader: " ..tos(noHeader))
+
+    for controlToSetDimensions, dimensionsData in pairs(self.headerAndColumnsMinAndMaxData) do
+        if dimensionsData then
+            controlToSetDimensions.minX = dimensionsData.minX
+            controlToSetDimensions.maxX = dimensionsData.maxX
+            controlToSetDimensions.factorMultiplier = dimensionsData.factorMultiplier
+            if not noHeader then
+                --Calculate the new width based on the TLC width and apply it
+                lib.XMLGetDynamicWidth(controlToSetDimensions, nil, nil, true, nil, nil, true)
+
+                --Reanchor the control again, if needed
+                local anchors = dimensionsData.anchors
+                if not ZO_IsTableEmpty(anchors) then
+                    controlToSetDimensions:ClearAnchors()
+                    for _, anchorData in ipairs(anchors) do
+                        controlToSetDimensions:SetAnchor(anchorData.point, anchorData.relativeTo, anchorData.relativePoint, anchorData.offsetX, anchorData.offsetY)
+                    end
+                end
+            end
+
+            --Columns should be changed in size too?
+            if changeColumnsToo == true then
+                local columnName = dimensionsData.columnName
+--d(">columnName: " .. tos(columnName))
+                --Find the column name childControl of the rowControl and change it liek the header control above
+                if columnName ~= nil and columnName ~= "" then
+                    local rowChildControl = rowControl:GetNamedChild(columnName)
+                    if rowChildControl ~= nil then
+    --d("Changing the column: " ..tos(rowChildControl:GetName()))
+                        rowChildControl.minX = dimensionsData.minX
+                        rowChildControl.maxX = dimensionsData.maxX
+                        rowChildControl.factorMultiplier = dimensionsData.factorMultiplier
+                        lib.XMLGetDynamicWidth(rowChildControl, nil, nil, true, 30, 30, true)
+                    end
+                end
+            end
+        end
+    end
+end
+
+--[[
+-- ZO_SortFilterList:RefreshData()      =>  BuildMasterList()   =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshFilters()                           =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshSort()                                                      =>  SortScrollList()    =>  CommitScrollList()
+function LibSets_SearchUI_List:CommitScrollList( )
+end
+]]
+
+--Get the data of the masterlist entries and add it to the list columns
+function LibSets_SearchUI_List:SetupItemRow(control, data)
+    --local clientLang = WL.clientLang or WL.fallbackSetLang
+    --d(">>>      [LibSets_SearchUI_List:SetupItemRow] " ..tos(data.names[clientLang]))
+    control.data = data
+
+    local lastColumn
+
+    --Set the list row's column width constraints based on the TLC width
+    -->Only if the TLC was resized! Update each row control once then (visible and new visible upon scrolling -> until next resize of the TLC)
+    local updateListColumnWith = self.updateListColumnWith
+    if updateListColumnWith ~= nil then
+        --Was this control resized already?
+        local controlUpdatedListColumnWith = control._updatedListColumnWith
+        if controlUpdatedListColumnWith == nil or controlUpdatedListColumnWith < updateListColumnWith then
+            self:SetHeaderAndColumnDimensionConstraints(control, true, true)
+            control._updatedListColumnWith = updateListColumnWith
+        end
+    end
+
+
+    local favoriteColumn = control:GetNamedChild("Favorite")
+    favoriteColumn.normalColor = ZO_DEFAULT_TEXT
+    favoriteColumn:ClearAnchors()
+    favoriteColumn:SetAnchor(LEFT, control, nil, 0, 0)
+    local favoriteIconColumnText = ""
+    local isFavorite = data.isFavorite
+    if isFavorite ~= nil then
+        --todo check if data.isFavorite == true then show star, else if it's a String: show that category's icon
+        local favoriteType = type(isFavorite)
+--d("[LibSets]LibSets_SearchUI_List:SetupItemRow - favoriteType: " ..tos(favoriteType) .. ", isFavorite: " ..tos(isFavorite))
+        if favoriteType == "number" or favoriteType == "boolean" then
+            if isFavorite == LIBSETS_SET_ITEMID_TABLE_VALUE_OK or isFavorite == true then
+                favoriteIconColumnText = favoriteIconTextStar
+            end
+        elseif favoriteType == "string" then
+            favoriteIconColumnText = favoriteIconTexts[isFavorite]
+        end
+    end
+    favoriteColumn:SetText(favoriteIconColumnText)
+    favoriteColumn:SetHidden(false)
+
+    local nameColumn = control:GetNamedChild("Name")
+    nameColumn.normalColor = ZO_DEFAULT_TEXT
+    nameColumn:ClearAnchors()
+    nameColumn:SetAnchor(LEFT, favoriteColumn, RIGHT, 0, 0)
+    nameColumn:SetText(data.name)
+    nameColumn:SetHidden(false)
+
+    local setTypeColumn = control:GetNamedChild("SetType")
+    setTypeColumn:ClearAnchors()
+    setTypeColumn:SetAnchor(LEFT, nameColumn, RIGHT, 0, 0)
+    setTypeColumn:SetText(data.setTypeTexture or data.setType or "")
+    setTypeColumn:SetHidden(false)
+
+    local armorOrWeaponTypeColumn = control:GetNamedChild("ArmorOrWeaponType")
+    armorOrWeaponTypeColumn:ClearAnchors()
+    armorOrWeaponTypeColumn:SetAnchor(LEFT, setTypeColumn, RIGHT, 0, 0)
+    armorOrWeaponTypeColumn:SetText(data.armorOrWeaponTypeTexture or "")
+    armorOrWeaponTypeColumn:SetHidden(false)
+
+    local slotColumn = control:GetNamedChild("EquipSlot")
+    slotColumn:ClearAnchors()
+    slotColumn:SetAnchor(LEFT, armorOrWeaponTypeColumn, RIGHT, 0, 0)
+    slotColumn:SetText(data.equipSlotTexture or data.equipSlotText or "")
+    slotColumn:SetHidden(false)
+
+    local dropLocationsColumn = control:GetNamedChild("DropLocations")
+    dropLocationsColumn:ClearAnchors()
+    dropLocationsColumn:SetAnchor(LEFT, slotColumn, RIGHT, 0, 0)
+    dropLocationsColumn:SetText(data.dropLocationText or "")
+    dropLocationsColumn:SetHidden(false)
+
+    local setIdColumn = control:GetNamedChild("SetId")
+    setIdColumn:ClearAnchors()
+    setIdColumn:SetAnchor(LEFT, dropLocationsColumn, RIGHT, 0, 0)
+    setIdColumn:SetText(data.setId or "")
+    setIdColumn:SetHidden(false)
+
+    --Anchor the last column's right edge to the right edge of the row
+    lastColumn = setIdColumn
+    lastColumn:SetAnchor(RIGHT, control, RIGHT, -10, 0)
+
+    --Set the row to the list now
+    ZO_SortFilterList.SetupRow(self, control, data)
+end
+
+--Create a row at the resultslist, and respect the search filters (multiselect dropdowns of armor, weapon, equipment type,
+--enchantment, etc.)
+function LibSets_SearchUI_List:CreateEntryForSet(setId, setData)
+    local parentObject = self._parentObject -- Get the SearchUI object
+    --SavedVariables check
+    local settings = lib.svData
+    local setSearchShowSetNamesInEnglishToo = settings.setSearchShowSetNamesInEnglishToo
+
+    local itemId
+    --The name column
+    local nameColumnValue, nameColumnValueClean
+    local setNames = setData.setNames
+    if not isClientLangEqualToFallbackLang then
+--[[
+    if setData.setNames[fallbackLang] == nil then
+    d(">setName['en'] is missing-setId: " .. tos(setData.setId) .. " - "..tos(setData.setNames[clientLang]))
+    end
+]]
+        nameColumnValueClean = setNames[clientLang] or setNames[fallbackLang]
+    else
+        nameColumnValueClean = setNames[clientLang]
+    end
+    --Show English set names too?
+    if setSearchShowSetNamesInEnglishToo == true and not isClientLangEqualToFallbackLang then
+        local setNameFallback = setData.setNames[fallbackLang] or preloadedSetNames[fallbackLang]
+        if setNameFallback ~= nil then
+            nameColumnValueClean = nameColumnValueClean .. " / " .. setNameFallback
+        end
+    end
+    nameColumnValue = nameColumnValueClean
+
+    --Favorites
+    local isFavoriteColumnText
+    for setSearchFavoriteCategory, _ in pairs(possibleSetSearchFavoriteCategoriesUnsorted) do
+        if isFavoriteColumnText == nil then
+            local isFavorite = parentObject:IsSetIdInFavorites(setId, setSearchFavoriteCategory)
+            if isFavorite == true then
+                isFavoriteColumnText = setSearchFavoriteCategory
+            end
+        end
+    end
+    isFavoriteColumnText = isFavoriteColumnText or ""
+
+    --The set type
+    local setTypeName, setTypeTexture = buildSetTypeInfo(setData, true)
+
+    --Get an itemId for the itemLink
+    if self.isAnyItemIdRelevantFilterActive == true then
+        --Get a matching (to the multiselect dropdown filters) itemId
+        local itemIds = parentObject:GetItemIdsForSetIdRespectingFilters(setId, true) --only 1 itemId
+        if itemIds == nil then return end
+        --Use the first itemId found
+        itemId = itemIds[1]
+    else
+        --Get "any" itemId (the first found of the setId)
+        itemId = libSets_GetSetFirstItemId(setId, nil)
+    end
+
+    if itemId == nil then return nil end
+    local itemLink = lib.buildItemLink(itemId, 370) -- Always use the legendary quality for the sets list
+
+    --Prepare the itemtypes, and their textures
+    local armorOrWeaponTypeTexture, armorOrWeaponTypeTextWithTexture, armorOrWeaponTypeText, equipSlotTexture, equipSlotTextWithTexture, equipSlotText
+    local equipType = GetItemLinkEquipType(itemLink)
+    equipSlotTexture, equipSlotTextWithTexture, equipSlotText = getEquipSlotTexture(equipType)
+    local itemType = GetItemLinkItemType(itemLink)
+    local armorOrWeaponType
+    --Jewelry got no armor or weaapon type -> And thus no texture there
+    if equipType == EQUIP_TYPE_NECK or equipType == EQUIP_TYPE_RING then
+        armorOrWeaponType = ITEMTYPE_NONE
+        armorOrWeaponTypeTexture, armorOrWeaponTypeTextWithTexture, armorOrWeaponTypeText = getEquipSlotTexture(equipType)
+    else
+        if itemType == ITEMTYPE_ARMOR then
+            armorOrWeaponType = GetItemLinkArmorType(itemLink)
+            armorOrWeaponTypeTexture, armorOrWeaponTypeTextWithTexture, armorOrWeaponTypeText = getArmorTypeTexture(armorOrWeaponType)
+        elseif itemType == ITEMTYPE_WEAPON then
+            armorOrWeaponType = GetItemLinkWeaponType(itemLink)
+            --Shield?
+            if armorOrWeaponType == WEAPONTYPE_SHIELD and equipType == EQUIP_TYPE_OFF_HAND then
+                armorOrWeaponTypeTexture, armorOrWeaponTypeTextWithTexture, armorOrWeaponTypeText = getWeaponTypeTexture(armorOrWeaponType)
+                equipSlotTexture = armorOrWeaponTypeTexture
+                equipSlotTextWithTexture = armorOrWeaponTypeTextWithTexture
+                equipSlotText = armorOrWeaponTypeText
+            else
+                armorOrWeaponTypeTexture, armorOrWeaponTypeTextWithTexture, armorOrWeaponTypeText = getWeaponTypeTexture(armorOrWeaponType)
+            end
+        end
+    end
+
+    --Get the bonuses info
+    local _, _, numBonuses = GetItemLinkSetInfo(itemLink, false)
+    local bonuses = (numBonuses == 0 and {}) or setData.bonuses
+    setData.numBonuses = numBonuses
+    if numBonuses > 0 and (bonuses == nil or type(bonuses) == "number") then
+        -- Lazy initialization of set bonus data
+        setData.bonuses = libSets_GetSetBonuses(itemLink, numBonuses)
+        bonuses = setData.bonuses
+    end
+
+    --[[
+        --Get the drop location(s) of the set via LibSets
+        The base info for that: DropZones, mechanics and location names are already loaded into setData once.
+         See function updateSetsInfoWithDropLocationsAndNames in LibSets_SearchUI_Shared.lua -> ShowUI()
+    ]]
+    local setDataText, setInfoParts, setDataTextClean = buildSetDataText(setData, itemLink, false)
+    --[[
+        Table setInfoParts contains subtables with keys
+        "setType"
+        "DLC" -- OPTIONAL
+        "crafted" -- OPTIONAL
+        "reconstruction" -- OPTIONAL
+        "dropMechanics" -- OPTIONAL
+        "dropZones" -- OPTIONAL
+        "dropLocations" -- OPTIONAL
+        "overallTextsPerZone" -- OPTIONAL
+
+        Each providing a table with:
+            {
+                enabled = boolean,
+                data = value or table, --OPTIONAL
+                text = string, --OPTIONAL
+                icon = string, --OPTIONAL
+            }
+
+        If enabled == true then the optional data can be parsed, and/or the optional text and/or the optional icon can be used
+        to provide additional output info at the columns
+    ]]
+
+    local dropLocationText --a string containing the zone names and their drop locations and boss names etc. just like in the tooltips (including icons if enabled at settings)
+    local dropLocationSort --A string containing the zoneId of a drop location first, and then the dropLocationIds at that zone? Used to sort the drop location column properly
+
+    local dropMechanicTab = setData.dropMechanic
+    if not ZO_IsTableEmpty(dropMechanicTab) then
+        local overallTextsPerZone = setInfoParts["overallTextsPerZone"]
+        if overallTextsPerZone ~= nil and overallTextsPerZone.enabled == true then
+            local overallTextsPerZoneData = overallTextsPerZone.data
+            --Add up to 5 rows of drop locations text to the set search UI entry
+            dropLocationText = overallTextsPerZoneData[1]
+            if overallTextsPerZoneData[2] ~= nil then
+                dropLocationText = dropLocationText .. "   " .. overallTextsPerZoneData[2]
+            end
+            if overallTextsPerZoneData[3] ~= nil then
+                dropLocationText = dropLocationText .. "   " .. overallTextsPerZoneData[3]
+            end
+            if overallTextsPerZoneData[4] ~= nil then
+                dropLocationText = dropLocationText .. "   " .. overallTextsPerZoneData[4]
+            end
+            if overallTextsPerZoneData[5] ~= nil then
+                dropLocationText = dropLocationText .. "   " .. overallTextsPerZoneData[5]
+            end
+        end
+
+        local dropZoneIds = setData[LIBSETS_TABLEKEY_ZONEIDS]
+        if dropZoneIds ~= nil and not ZO_IsTableEmpty(dropZoneIds) then
+            dropLocationSort = ""
+
+            --Remove duplicate dropZone Ids
+            local dropZonesNonDuplicateKey = {}
+            local dropZonesNonDuplicate = {}
+            for dropMechanicIdx, dropZoneId in ipairs(dropZoneIds) do
+                if not dropZonesNonDuplicateKey[dropZoneId] then
+                    dropZonesNonDuplicateKey[dropZoneId] = true
+                    tins(dropZonesNonDuplicate, dropZoneId)
+                end
+            end
+            --Now concatenate the non-dupplicate zoneIds as ; separated string
+            dropLocationSort = dropLocationSort .. "Z" .. tcon(dropZonesNonDuplicate, ";")
+
+            --Remove duplicate dropMechnic Ids
+            local dropMechnicsNonDuplicateKey = {}
+            local dropMechnicsNonDuplicate = {}
+            for dropMechanicIdx, dropMechanicId in ipairs(dropMechanicTab) do
+                if not dropMechnicsNonDuplicateKey[dropMechanicId] then
+                    dropMechnicsNonDuplicateKey[dropMechanicId] = true
+                    tins(dropMechnicsNonDuplicate, dropMechanicId)
+                end
+            end
+            --Now concatenate the non-dupplicate dropMechnicId as , separated string
+            dropLocationSort = dropLocationSort .. "M" .. tcon(dropMechnicsNonDuplicate, ",")
+        end
+        --[[
+        local dropZoneNames = setInfoParts["dropZones"]
+        if dropZoneNames ~= nil and dropZoneNames.enabled == true then
+            local dropZoneNames = dropZoneNames.data
+        end
+        ]]
+    end
+
+
+    --The row's data table of each item/entry in the ZO_ScrollFilterList
+    local itemData = {
+        type = searchUI.searchTypeDefault     -- for the search function -> Processor. !!!Needs to match -> See LibSets_SearchUI_Shared.lua, function self.stringSearch:AddProcessor(searchUI.searchTypeDefault...)
+    }
+
+    --todo: Pass in whole table of set's info (for debugging!)
+    itemData._LibSets_setData    = setData
+
+    --Mix in the missing setData (setId, setType, bonuses, numBonuses, zoneIds, ...) directly to the itemData
+    zo_mixin(itemData, setData)
+
+    --And now add additional itemData
+    --Itemlink
+    itemData.itemLink            =              itemLink
+    itemData.itemId              =              itemId
+
+    --Set info
+    itemData.setTypeName         =              setTypeName
+    itemData.setTypeTexture      =              setTypeTexture ~= nil and zif(setTypeTexture, 24, 24)
+
+    itemData.name                =              nameColumnValue --Shows multi language xx / en (if enabled at the searchUI settings context menu)
+    itemData.nameLower           =              nameColumnValueClean:lower() --Always add that for the string text search!!!
+    itemData.nameClean           =              nameColumnValueClean
+
+    --Favorite
+    itemData.isFavorite          =              isFavoriteColumnText
+
+    --Set item related
+    itemData.armorOrWeaponType   =              armorOrWeaponType
+    itemData.armorOrWeaponTypeText =            armorOrWeaponTypeText
+    itemData.armorOrWeaponTypeTextWithTexture = armorOrWeaponTypeTextWithTexture
+    itemData.armorOrWeaponTypeTexture =         armorOrWeaponTypeTexture ~= nil and zif(armorOrWeaponTypeTexture, 24, 24)
+    itemData.equipSlot           =              equipType
+    itemData.equipSlotText       =              equipSlotText
+    itemData.equipSlotTextWithTexture =         equipSlotTextWithTexture
+    itemData.equipSlotTexture =                 equipSlotTexture ~= nil and zif(equipSlotTexture, 24, 24)
+
+    --Drop zones and locations (and boss names)
+    itemData.dropLocationText    =              dropLocationText
+    itemData.dropLocationSort    =              dropLocationSort
+
+    --Pass in generated tooltip text
+    itemData.setDataText         =              setDataText
+    itemData.setDataTextClean    =              setDataTextClean
+    --Pass in generated tooltip parts table
+    itemData.setInfoParts        =              setInfoParts
+
+    --Table entry for the ZO_ScrollList data
+	return itemData
+end
+
+--Build the masterlist based of the sets searched/filtered
+-- ZO_SortFilterList:RefreshData()      =>  BuildMasterList()   =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+function LibSets_SearchUI_List:BuildMasterList()
+--d("[LibSets_SearchUI_List:BuildMasterList]")
+    local setsData = lib.setInfo
+    self.masterList = {}
+
+    --Pr-Filter the masterlist and hide any sets that do not match e.g. the setType, DLCId etc.
+    local setsBaseList = self._parentObject:PreFilterMasterList(setsData)
+--lib._debugSetsBaseList = setsBaseList
+    if setsBaseList == nil or ZO_IsTableEmpty(setsBaseList) then return end
+
+    --Check if any other filters which need the set itemIds are active (multiselect dropdown boxes for armor/weapon/equipment type/enchantment search category/ etc.)
+    local isAnyItemIdRelevantFilterActive = self._parentObject:IsAnyItemIdRelevantFilterActive()
+    self.isAnyItemIdRelevantFilterActive = isAnyItemIdRelevantFilterActive
+    if isAnyItemIdRelevantFilterActive == true then
+        --Will be used at function LibSets_SearchUI_Keyboard:GetItemIdsForSetIdRespectingFilters(setId, onlyOneItemId) -> Called at self:CreateEntryForSet(setId, setData)
+        self._parentObject.itemIdRelevantFilterKeys = self._parentObject:GetItemIdRelevantFilterKeys()
+    end
+
+    for setId, setData in pairs(setsBaseList) do
+        table.insert(self.masterList, self:CreateEntryForSet(setId, setData))
+    end
+--lib._debugSetsMasterList = self.masterList
+end
+
+--Filter the scroll list by fiter data
+-- ZO_SortFilterList:RefreshData()      =>  BuildMasterList()   =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshFilters()                           =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+function LibSets_SearchUI_List:FilterScrollList()
+--d("[LibSets_SearchUI_List:FilterScrollList]")
+	local scrollData = ZO_ScrollList_GetDataList(self.list)
+	ZO_ClearNumericallyIndexedTable(scrollData)
+
+    --Get the search method chosen at the search dropdown
+    --self.searchType = self.searchDrop:GetSelectedItemData().id
+
+    --Check the search text
+    local searchInput = self._parentObject.searchEditBoxControl:GetText()
+    local searchIsEmpty = (searchInput == "" and true) or false
+
+    --Check the bonus search text
+    local bonusSearchInput = self._parentObject.bonusSearchEditBoxControl:GetText()
+    local bonusSearchIsEmpty = (bonusSearchInput == "" and true) or false
+
+    for i = 1, #self.masterList do
+        --Get the data of each set item
+        local data = self.masterList[i]
+
+        local addItemToList = false
+
+        --Search for name/ID text, set bonuses text
+        if searchIsEmpty == true or self._parentObject:CheckForMatch(data, searchInput) then
+            if bonusSearchIsEmpty == true or self._parentObject:SearchSetBonuses(data.bonuses, bonusSearchInput, data.setId) then
+                addItemToList = true
+            end
+        end
+
+        if addItemToList == true then
+            table.insert(scrollData, ZO_ScrollList_CreateDataEntry(searchUI.scrollListDataTypeDefault, data))
+        end
+    end
+
+    --Update the counter
+    self:UpdateCounter(scrollData)
+
+    --Set the minX and maxX constraints of the resultsList header column controls
+    --> Do that here, once, after the ZO_ScrollList's dataType has applied the row column's width via the setupFunction
+    if self.updateListColumnWith ~= nil then
+        self:SetHeaderAndColumnDimensionConstraints(nil, false, false)
+    end
+end
+
+--The sort keys for the sort headers of the list
+-- ZO_SortFilterList:RefreshData()      =>  BuildMasterList()   =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshFilters()                           =>  FilterScrollList()  =>  SortScrollList()    =>  CommitScrollList()
+-- ZO_SortFilterList:RefreshSort()                                                      =>  SortScrollList()    =>  CommitScrollList()
+function LibSets_SearchUI_List:SortScrollList( )
+    --Build the sortkeys depending on the settings
+    self:BuildSortKeys()
+    --Get the current sort header's key and direction
+    self.currentSortKey = self.sortHeaderGroup:GetCurrentSortKey()
+    self.currentSortOrder = self.sortHeaderGroup:GetSortDirection()
+--d("[LibSets_SearchUI_List:SortScrollList] sortKey: " .. tos(self.currentSortKey) .. ", sortOrder: " ..tos(self.currentSortOrder))
+	if (self.currentSortKey ~= nil and self.currentSortOrder ~= nil) then
+        --Update the scroll list and re-sort it -> Calls "SetupItemRow" internally!
+		local scrollData = ZO_ScrollList_GetDataList(self.list)
+        if scrollData and #scrollData > 0 then
+            table.sort(scrollData, self.sortFunction)
+            self:RefreshVisible()
+        end
+	end
+end
+
+
+--The sort keys for the sort headers of the list
+function LibSets_SearchUI_List:BuildSortKeys()
+    --Get the tiebraker for the 2nd sort after the selected column
+    self.sortKeys = {
+        --["timestamp"]               = { isId64          = true, tiebreaker = "name"  }, --isNumeric = true
+        --["knownInSetItemCollectionBook"] = { caseInsensitive = true, isNumeric = true, tiebreaker = "name" },
+        --["gearId"]                  = { caseInsensitive = true, isNumeric = true, tiebreaker = "name" },
+        ["isFavorite"]              = { caseInsensitive = true,         tiebreaker = "name" },
+        ["name"]                    = { caseInsensitive = true },
+        ["setType"]                 = { isNumeric = true,               tiebreaker = "name" },
+        ["armorOrWeaponType"]       = { isNumeric = true,               tiebreaker = "name" },
+        ["equipSlot"]               = { isNumeric = true,               tiebreaker = "name" },
+        ["dropLocationSort"]        = { caseInsensitive = true,         tiebreaker = "name" },
+        ["setId"]                   = { isNumeric = true,               tiebreaker = "name" },
+        ["DLCID"]                   = { isNumeric = true,               tiebreaker = "name" },
+    }
+end
+
+function LibSets_SearchUI_List:UpdateCounter(scrollData)
+    --Update the counter (found by search/total) at the bottom right of the scroll list
+    local listCountAndTotal = ""
+    if self.masterList == nil or (self.masterList ~= nil and #self.masterList == 0) then
+        listCountAndTotal = "0 / 0"
+    else
+        listCountAndTotal = string.format("%d / %d", #scrollData, #self.masterList)
+    end
+    self._parentObject.counterControl:SetText(listCountAndTotal)
+end
+
+function LibSets_SearchUI_List:AddFavorite(rowControl, favoriteCategory)
+    updateFavoriteColumn(self, rowControl, true, favoriteCategory)
+end
+
+function LibSets_SearchUI_List:RemoveFavorite(rowControl, favoriteCategory)
+    updateFavoriteColumn(self, rowControl, false, favoriteCategory)
+end

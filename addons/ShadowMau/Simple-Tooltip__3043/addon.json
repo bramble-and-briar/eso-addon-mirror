@@ -1,23 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/ShadowMau/Simple-Tooltip__3043",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "ShadowMau",
   "canonical_id": "esoui:3043",
   "category_id": "27",
-  "compatibility": [
-    {
-      "name": "Firesong",
-      "version": "8.2.5"
-    }
-  ],
+  "compatibility": [],
   "content_id": "esoui:3043",
   "deleted": false,
   "directories": [
     "SimpleTooltip"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3043/",
-  "fingerprint": "df84cabe1a8df075314319810339a4d05f922ec32736a17ea8eefef550e5e811",
+  "fingerprint": "46270cebbbe249d389663ce47b28a35d5c6fccaa74eab23377fcebd4381a740d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10226.png"
   ],
@@ -27,9 +23,9 @@
   "source_id": "3043",
   "source_url": "https://www.esoui.com/downloads/info3043-SimpleTooltip.html",
   "stats": {
-    "downloads": 2527,
+    "downloads": 2555,
     "favorites": 1,
-    "monthly_downloads": 9
+    "monthly_downloads": 8
   },
   "title": "Simple Tooltip",
   "updated_at": 1677368349000,

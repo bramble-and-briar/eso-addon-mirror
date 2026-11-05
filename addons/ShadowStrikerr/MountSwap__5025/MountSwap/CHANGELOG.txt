@@ -1,0 +1,146 @@
+MountSwap changelog - newest first
+
+0.8.9 - November 4, 2026
+- Final publication wording: Crown Crate Codex-style gold headings, blue links,
+  consistent spacing and concise opening AI disclosure; Recommended Library
+  follows Quick Start. Remove duplicate listing author line and keep internal
+  test/audit evidence in verification documents, with player-facing limitations
+  in the listing. Existing AI disclosure, credits and ZeniMax notice retained.
+- Keep the direction hints in a compact left-aligned group rather than spreading
+  four cells across the whole window. Size each cell from native text metrics,
+  with a minimum width and bounded translated wrapping.
+- Retain 24px content gaps and 16px separation below action hints.
+- Extend regression checks to prevent full-width English direction spreading;
+  retain seven-language/three-size bounds and cleanup checks.
+- Record the accepted final English screenshot and successful prior Escape test;
+  synchronize publication documents and label the AI-assisted settings overview.
+- No movement, Escape/menu behavior, player binding or SavedVariables changes.
+
+
+0.8.8 - November 4, 2026
+- Give Up/Down/Left/Right four equal-width columns with 24px gaps.
+- Add a real 16px gap between action hints and the directions row. Measure
+  each translated label and reserve at least the native 28px icon height.
+- Preserve wrapping and screen fitting across seven languages and three sizes.
+- Extend bounds/spacing/hidden-state regressions. No navigation, keybinding or
+  SavedVariables changes. Escape fix from 0.8.7 remains included; author verified
+  that Escape now works. New spacing awaits the targeted live visual retest.
+
+
+0.8.7 - November 4, 2026
+- Set the manifest and keyboard settings author credit to ShadowStrikerr.
+- Keep Up/Down/Left/Right hints together on their own measured, wrapping row.
+- Fix Escape/menu trapping: register top levels without locking UI mode, and
+  allow native menu, chat and input-mode actions through the controller layer.
+  Native ownership still preserves cursor needs of other open panels.
+- Correct OptionalDependsOn to plain identifiers; optional >= suffixes do not
+  enforce numeric minimums. Keep r43 as the tested/recommended settings library.
+- Record the author's successful 0.8.6 in-game gamepad test and subsequent
+  confirmation that the 0.8.7 Escape/menu correction works in game.
+- Synchronize disclosures, credits, language limitations, submission guide,
+  listing/BBCode and the detailed Crown Crate Codex handoff review.
+- Add player-facing README.txt with installation help and the existing notice.
+- AI disclosure, initial credits and ZeniMax notice were already present; retained.
+- No movement/gameplay behavior, SavedVariables identity/schema/data or player
+  keybinding changes. No publication, Git push or merge performed.
+
+
+0.8.6 - November 4, 2026
+- Follow-up to the user's 0.8.5 test: focus and bank shoulders work, but
+  directional movement does not. Remove unconditional suppression of D-pad
+  actions; dispatch them directly through inherited ESO UI bindings.
+- Restrict native movement sampling to the left stick so it cannot consume or
+  duplicate D-pad steps. Preserve native modal/text/mode/close protections.
+- Keep an in-memory controller activity snapshot in /ms debug across the normal
+  switch to keyboard mode caused by typing. No forced input mode or saved data.
+- Add regression coverage for S1-S4 and lower dashboard actions while native
+  stick sampling is blocked. Hardware retest remains pending.
+
+
+0.8.5 - November 4, 2026
+- Respond to the user's 0.8.3 in-game report: hints display but movement fails.
+- Add native ESO D-pad/left-stick movement/repeat handling, scoped to the active
+  addon window and released for text, mode changes and closing. Existing direct
+  D-pad binding fallback remains if the native helpers are unavailable.
+- Reacquire input once after the native UI-mode show transition and recover
+  a removed action layer. Verify layer activation where the helper is available.
+- Use a native solid focus border; add technical controller state to /ms debug.
+- Add native-input lifecycle regressions. This is a candidate fix pending an
+  actual in-game controller retest, not hardware certification.
+- Includes 0.8.4 classification/language changes; no SavedVariables reset.
+
+
+0.8.4 - November 4, 2026
+- Discover the live Multi-Rider category via known collectible identities instead
+  of depending on English labels. Verify type, index bounds and membership;
+  retain Review/manual fallback when metadata is missing or inconsistent.
+- Refit dynamic mount labels, picker headings and native settings buttons; use
+  a 14px minimum, restore normal font for shorter text and reserve wrapped
+  subtitle/hint space. Widen the French search label without growing the window.
+- Refine French multi-rider terminology and compact French/Russian action labels.
+- Verify ESO native font fallbacks and language-aware string casing from official
+  source; add seven-language classification and fitting regressions.
+- No SavedVariables schema/identity reset; existing data and OFF choices retained.
+- Installed 0.8.3 is untouched during the user's controller test.
+
+
+0.8.3 - November 4, 2026
+- Add seven interface languages matching Crown Crate Codex, automatic ESO client
+  language detection, manual settings override and explicit Reload UI action.
+- Translate dashboard, picker, settings, controller hints/menus, binding labels
+  and addon feedback; preserve game-provided mount names and command tokens.
+- Validate 153 translation keys per language and placeholder integrity.
+- Preserve all existing saved data and OFF preferences; no schema/identity reset.
+- Add language regression coverage and a readable separate submission guide.
+- AI disclosure, existing credits and ZeniMax notice were already present;
+  retain them and add AI-translation disclosure and language source credit.
+- Hardware, native-language and live font/classification review remain pending.
+
+0.8.2 - November 4, 2026
+- Follow-up to the updated PC gamepad/release handoff: preserve the saved
+  dashboard OFF choice during missing-library keyboard fallback. Previously
+  opening the fallback permanently turned standalonePanel ON.
+- Keep temporary dashboard pickers usable while retaining OFF. When the
+  optional library returns, settings-only routing follows the saved choice.
+- Add regression coverage for repeated fallback, library restoration, shared
+  settings getters and preservation of chat OFF and existing data identities.
+- Re-run globals, dependency, lifecycle, cursor, controller/text-layout and
+  documentation/package checks; distinguish mock verification from live tests.
+- No SavedVariables name/schema/account/server changes or automatic reset.
+- AI disclosure, source credits and ZeniMax notice were already present; retained.
+- Expanded the existing Crown Crate Codex credit with its verified public ESOUI
+  link and author ShadowStrikerr; retained the distinct manifest author label.
+
+0.8.1 - November 4, 2026
+- Audit-only maintenance: adds optional LibAddonMenu-2.0>=43 and
+  libAddonKeybinds>=6 constraints verified from actual installed manifests;
+  adds optional VotansKeybinder load order without an invented version minimum.
+- Uses operation-local references for library registries, saved subtables,
+  category maps and UI helpers, including nested callbacks. Optional addons
+  still resolve at use time. No FPS improvement is claimed.
+- Skips closed-UI navigation refreshes and releases controller input on player
+  deactivation, resuming only when relevant UI/input conditions permit.
+- Centralizes the code/settings version. Adds proxy global-write auditing and
+  lifecycle regression coverage to the existing automated suites.
+- Clarifies platform/dependency/testing limits and expands attribution details.
+  AI disclosure, Crown Crate Codex reference credit and ZeniMax notice were
+  ALREADY PRESENT before this release; they are retained/clarified.
+- No SavedVariables name/schema/account/server changes, new resets, migration
+  behavior, gameplay automation or player-keybinding assignment.
+- Final author-label/distribution-license approval and new live-client/controller
+  verification remain outstanding. See the audit report and test checklist.
+
+0.8.0
+- Added PC controller dashboard/picker focus, native binding icons, D-pad,
+  contextual actions, mount Details, list paging and shared controller settings.
+- Added a separate unbound controller open action and text-entry fallback.
+- Added wrapped/measured hints with three text sizes. Hardware tests pending.
+
+0.7.7
+- Added editable /ms, /m1-/m4 and /s1-/s4 shortcuts with conflict checks,
+  individual disabling and atomic reset to defaults; original commands retained.
+
+0.7.6
+- Aligned chat/dashboard toggles and Keybindings button in keyboard settings.
+
+Earlier changes: preserved in README.md's version history.

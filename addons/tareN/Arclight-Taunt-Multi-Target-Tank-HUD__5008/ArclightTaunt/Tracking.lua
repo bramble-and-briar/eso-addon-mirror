@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | Tracking module
+-- Arclight Taunt 1.1.2 | Tracking module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -130,7 +130,7 @@ local function CreateDemo(count, keepRoster, startedAt)
         lastEnd = math.max(lastEnd, starts[#starts] + DEMO_TAUNT_SECONDS)
     end
     A.demoAt = now
-    A.demoFocusId, A.demoFocusUntil, A.demoFocusOrder = nil, nil, 0
+    A.demoFocusId, A.demoFocusUntil = nil, nil
     A.demoCycleLength = lastEnd - now + EXPIRED_LINGER + 1 + math.random(1000) / 1000
     return entries
 end
@@ -150,16 +150,22 @@ local function SetDemoPaused(paused)
         if A.demoAt then A.demoAt = A.demoAt + delta end
         if A.demoFocusUntil then A.demoFocusUntil = A.demoFocusUntil + delta end
         if A.focusAcquiredAt then A.focusAcquiredAt = A.focusAcquiredAt + delta end
+        if A.gloss and A.gloss.owner then A.gloss.at = A.gloss.at + delta end
         for target, at in pairs(A.rowEntryStarts or {}) do A.rowEntryStarts[target] = at + delta end
         for _, row in ipairs(A.rows or {}) do
             if row.stripeAt then row.stripeAt = row.stripeAt + delta end
+            if row.placementAt then row.placementAt = row.placementAt + delta end
+            if row.revealAt then row.revealAt = row.revealAt + delta end
         end
         A.demoPausedAt = nil
     end
 end
 local function SetDemoEnabled(enabled)
+    if A.StopGloss then A.StopGloss() end
+    A.lastVisibleItems = nil
+    A.listPeakRows, A.listPeakFooter = nil, nil
     A.demoPausedAt = nil
-    A.demoFocusId, A.demoFocusUntil, A.demoFocusOrder = nil, nil, 0
+    A.demoFocusId, A.demoFocusUntil = nil, nil
     A.demo = enabled == true
     if A.demo then A.demoEntries = CreateDemo(A.demoCount or 14) end
 end
@@ -249,7 +255,7 @@ local function SelectVisible(active, lost, capacity)
     -- Optional boss priority: pin only *positively identified* bosses.
     -- Reserve visible slots before processing regular targets, even if the
     -- boss has a longer timer than every other enemy. Expired bosses go first;
-    -- active boss timers retain the user-selected sort mode from Gather.
+    -- active boss timers retain remaining-time order from Gather.
     if A.saved.pinBosses then
         nonBossActive, nonBossLost = {}, {}
         for _, t in ipairs(lost) do
@@ -274,7 +280,7 @@ local function SelectVisible(active, lost, capacity)
     -- Never evict a pinned boss to make room for an expired trash mob.
     local lostBudget = #nonBossActive > 0
         and math.min(3, math.max(1, math.floor(remainingSlots / 4))) or remainingSlots
-    -- Both active sort modes place danger-zone taunts first. Protect those
+    -- Remaining-time sorting places danger-zone taunts first. Protect those
     -- slots before reserving space for losses; explicit boss pins stay above.
     local now, criticalCount = DemoNow(Now()), 0
     for _, t in ipairs(nonBossActive) do
@@ -289,6 +295,58 @@ local function SelectVisible(active, lost, capacity)
     for i = 1, lostCount do items[#items + 1] = nonBossLost[i] end
     for i = 1, activeCount do items[#items + 1] = nonBossActive[i] end
     return items
+end
+-- Preserve a normal expired record's last displayed rank during its existing
+-- linger time. Active records still sort by deadline; pinned bosses still lead.
+-- Only actually rendered identities qualify, never names or hidden old records.
+local function StabilizeVisible(items, now)
+    local previous = A.lastVisibleItems
+    if not previous then return items end
+    local hasExpired = false
+    for _, target in ipairs(items) do
+        if IsLost(target, now) and not (A.saved.pinBosses and A.BossVisible(target)) then
+            hasExpired = true
+            break
+        end
+    end
+    if not hasExpired then return items end
+    local ranks = {}
+    for _, target in ipairs(items) do ranks[target] = math.huge end
+    local rank = 0
+    for _, target in ipairs(previous) do
+        if ranks[target] then
+            rank = rank + 1
+            ranks[target] = rank
+        end
+    end
+    local result, expired = {}, {}
+    for _, target in ipairs(items) do
+        if IsLost(target, now) and not (A.saved.pinBosses and A.BossVisible(target)) then
+            expired[#expired + 1] = target
+        else
+            result[#result + 1] = target
+        end
+    end
+    if #expired == 0 then return items end
+    local pinned = 0
+    if A.saved.pinBosses then
+        for _, target in ipairs(result) do
+            if not A.BossVisible(target) then break end
+            pinned = pinned + 1
+        end
+    end
+    table.sort(expired, function(a, b)
+        local ar, br = ranks[a] or math.huge, ranks[b] or math.huge
+        if ar ~= br then return ar < br end
+        return LostLess(a, b)
+    end)
+    local lastSlot = pinned
+    for _, target in ipairs(expired) do
+        local slot = math.min(#result + 1, math.max(lastSlot + 1, ranks[target] or (#result + 1)))
+        table.insert(result, slot, target)
+        lastSlot = slot
+    end
+    return result
 end
 -- Resolve focus from direct identity or a unique own-taunt timing match.
 local function TargetChanged()
@@ -497,6 +555,8 @@ end
 local function CombatChanged(_, inCombat)
     A.inCombat = inCombat == true
     if not A.inCombat then
+        A.lastVisibleItems = nil
+        A.listPeakRows, A.listPeakFooter = nil, nil
         playerTargetIds,playerTargetCount={},0
         A.targets, A.activeTarget, A.reticleUnitId = {}, nil, nil
         A.pendingBossWarnings, A.pendingFirstAt = nil, nil
@@ -523,7 +583,7 @@ local function RemoveDeadUnit(unitId, deferTick)
         end
         -- Observations already run inside a tick, or their caller draws next.
         -- Avoid recursively rendering the HUD from the reticle polling fallback.
-        if not deferTick then A.Tick() end
+        if not deferTick then A.RequestEffectTick() end
     end
 end
 
@@ -555,6 +615,7 @@ A.SetDemoEnabled = SetDemoEnabled
 A.IsLost = IsLost
 A.Gather = Gather
 A.SelectVisible = SelectVisible
+A.StabilizeVisible = StabilizeVisible
 A.TargetChanged = TargetChanged
 A.ReticleChanged = ReticleChanged
 A.EffectChanged = EffectChanged

@@ -1,12 +1,14 @@
 ## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Furnishing Plans|r
-## Description: Native furnishing-plan families with learned status, missing-only views and search.
+## Description: Native furnishing-plan families with learned status, acquisition sources, missing-only views and search.
 ## Author: |c73E58CMajesticMinxi|r
-## Version: 0.1.5
+## Version: 1.0.0
 ## APIVersion: 101051
-## AddOnVersion: 105
+## AddOnVersion: 10000
 
 Shared.lua
+FurnishingSources.lua
 ArchiveFurnishingPlans.lua
+ArchiveFurnishingMap.lua
 CollectionsUI.xml
 CollectionsUI.lua
 MainMenu.lua

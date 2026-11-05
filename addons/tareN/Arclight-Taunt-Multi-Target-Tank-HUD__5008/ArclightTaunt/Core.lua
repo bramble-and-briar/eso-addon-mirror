@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | Core module
+-- Arclight Taunt 1.1.2 | Core module
 -- Lua implementation is original; uses only the public ESO UI API.
 local ADDON = "ArclightTaunt"
 local EM, WM = EVENT_MANAGER, WINDOW_MANAGER
@@ -103,7 +103,7 @@ local defaults = {
     subtleWarningBg = true, warningAt = 7, dangerAt = 4, removeDead = true,
     showExpired = false, showBossIcon = true,
     highlightBossNames = true, pinBosses = false, bossMode = "comprehensive",
-    highlightTarget = true, targetHighlightStyle = "subtle",
+    highlightTarget = true, targetHighlightStyle = "subtle", reduceAnimations = false,
     fontKey = "Arclight (Standard)", timerFontKey = "Wie Gegnername",
     barKey = "Arclight (Signatur)", fontSize = 100,
     barHeight = 4, barDisplay = "compact", backgroundKey = "Ohne Textur", texturedTrack = false,
@@ -191,8 +191,7 @@ function A.SetHidden(control, hidden)
     end
 end
 
--- The first effect in a frame draws immediately; later effects share the next
--- scheduled redraw. The periodic callback sleeps when no work remains.
+-- The periodic callback sleeps when no work remains.
 function A.RefreshUpdateState()
     local needed = (A.demo and not A.demoPausedAt) or A.moving or A.effectTickPending or next(A.targets) ~= nil
         or A.bossAlerts.expired.visibleUntil ~= nil or A.bossAlerts.early.visibleUntil ~= nil
@@ -208,21 +207,20 @@ function A.RefreshUpdateState()
     end
 end
 
--- Store every effect immediately, but draw at most once per effect frame.
--- A pending final redraw also keeps the callback alive after the last removal.
+-- Wake an idle HUD immediately; otherwise combine combat changes in the
+-- existing 100-ms tick. Records change immediately, never via a replay queue.
+-- A pending final redraw keeps that tick alive after the last removal.
 -- Duplicate data does not bypass the regular reticle scan interval.
 function A.RequestEffectTick(observationChanged)
     if observationChanged ~= false then
         A.reticleDirty, A.earlyWarningDirty = true, true
     end
-    local now = Now()
-    if A.lastEffectTickAt ~= now then
-        A.lastEffectTickAt = now
-        A.Tick()
-    else
+    if A.updateRunning then
         A.effectTickPending = true
-        A.RefreshUpdateState()
+    else
+        A.Tick()
     end
+    A.RefreshUpdateState()
 end
 
 -- The sole addon namespace; all other files use this shared state.

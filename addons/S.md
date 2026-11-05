@@ -157,6 +157,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleDailyCraft 0.97 (0.96 + New Alchemy Regs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/SimpleDailyCraft-0.97-0.96-New-Alchemy-Regs__4945) | sinnereso | PC / Mac | 0.97 |
 | [SimpleDailyCraft 0.97 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.97-U51-FIX__4898) | VotMyID | PC / Mac | 0.97 |
 | [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101042 |
+| [SimpleGroupDPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS__31353ae2-3899-477e-935e-69f9756c9d60) | FiNk3F13 | Console | — |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
 | [SimplePlayTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrumpyEthilin/SimplePlayTime__4452) | GrumpyEthilin | PC / Mac | 1.1.3 |
 | [SimpleUltShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/SimpleUltShare__6a159f04-1342-485c-be46-ea92c4b7c730) | M0R | Console | — |

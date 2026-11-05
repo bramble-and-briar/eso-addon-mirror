@@ -2,31 +2,35 @@
 -- MugShot - Constants  (Constants.lua)
 -- =========================================================
 
+MugShot = MugShot or {}
 local MugShot = MugShot
 
 -- ── Logger (available immediately for all modules) ────────
 -- Uses LibDebugLogger when present; falls back to a no-op stub
 -- so every module can call MugShot.logger:Info/Debug/Warn/Error
 -- without guarding every call site.
+local noop = function() end
+local stub = {
+    Info    = noop,
+    Debug   = noop,
+    Warn    = noop,
+    Error   = noop,
+    Verbose = noop,
+    Create  = function(self, _tag) return self end,
+}
+
 if LibDebugLogger then
-    MugShot.logger = LibDebugLogger("MugShot")
+    local logger = (type(LibDebugLogger.Create) == "function" and LibDebugLogger.Create("MugShot"))
+        or (type(LibDebugLogger) == "function" and LibDebugLogger("MugShot"))
+    MugShot.logger = logger or stub
 else
-    local noop = function() end
-    local stub = {
-        Info    = noop,
-        Debug   = noop,
-        Warn    = noop,
-        Error   = noop,
-        Verbose = noop,
-        Create  = function(self, _tag) return self end,
-    }
     MugShot.logger = stub
 end
 
 -- ── Constants ──────────────────────────────────────────────
 local C = {
     ADDON_NAME      = "MugShot",
-    ADDON_VERSION   = "2026.10.31-101047",
+    ADDON_VERSION   = "2026.11.03-101113",
     AUTHOR          = "|c783f04nyc|r|c8fce00thé|r|c6a329fmère|r",
     SAVED_VARS_NAME = "MugShotSV",
     UNIT_TAG        = "reticleover",
@@ -39,6 +43,37 @@ local C = {
         RED    = "|cff0000",
         GREEN  = "|c00ff00",
         CYAN   = "|c2ec7f5",
+        GOLD   = "|cffd700",
+        SILVER = "|cc0c0c0",
+    },
+
+    -- Quadrant Identifiers & Value Types (3 Equal Lines, Left & Right)
+    QUADRANTS = {
+        LINE1_LEFT   = "line1Left",
+        LINE1_RIGHT  = "line1Right",
+        LINE2_LEFT   = "line2Left",
+        LINE2_RIGHT  = "line2Right",
+        LINE3_LEFT   = "line3Left",
+        LINE3_RIGHT  = "line3Right",
+        -- Backward-compatibility aliases
+        TOP_LEFT     = "line1Left",
+        TOP_RIGHT    = "line1Right",
+        BOTTOM_LEFT  = "line2Left",
+        BOTTOM_RIGHT = "line2Right",
+    },
+
+    VALUES = {
+        PERCENT    = "percent",
+        HEALTH     = "health",
+        NAME       = "name",
+        PRIVILEGED = "privileged",
+        NONE       = "none",
+    },
+
+    LINES = {
+        LINE_1 = 1,
+        LINE_2 = 2,
+        LINE_3 = 3,
     },
 
     -- Standardized RGBA color palettes (Flyweight singletons - zero GC allocation)
@@ -47,18 +82,37 @@ local C = {
         WHITE               = { r = 1.00, g = 1.00, b = 1.00, a = 1.00 },
         BAR_BG              = { r = 0.08, g = 0.08, b = 0.08, a = 1.00 },
         PORTRAIT_BG         = { r = 0.04, g = 0.04, b = 0.04, a = 1.00 },
-        SLOT_BG             = { r = 0.04, g = 0.04, b = 0.04, a = 0.95 },
+        SLOT_BG             = { r = 0.00, g = 0.00, b = 0.00, a = 0.40 },
 
         -- Accents & Borders
         SHIELD              = { r = 0.50, g = 0.85, b = 1.00, a = 0.65 },
         MOVE_MODE_BORDER    = { r = 0.20, g = 0.80, b = 1.00, a = 1.00 },
         GROUP_DEBUFF_CYAN   = { r = 0.18, g = 0.78, b = 0.96, a = 1.00 },
+        GOLD_HIGHLIGHT      = { r = 1.00, g = 0.85, b = 0.00, a = 1.00 },
+        GOLD_HIGHLIGHT_BG   = { r = 1.00, g = 0.85, b = 0.00, a = 0.25 },
+        SILVER_HIGHLIGHT    = { r = 0.80, g = 0.90, b = 1.00, a = 1.00 },
+        BADGE_DISABLED      = { r = 0.40, g = 0.40, b = 0.40, a = 0.45 },
+
+        -- High-contrast debuff colors
+        DEBUFF_GHOST_TEXT   = { r = 0.90, g = 0.92, b = 0.95, a = 0.65 },
+        DEBUFF_GHOST_BORDER = { r = 0.70, g = 0.75, b = 0.85, a = 0.35 },
+        DEBUFF_SLOT_BG      = { r = 0.00, g = 0.00, b = 0.00, a = 0.40 },
 
         -- Target Reaction Colors
         REACTION_HOSTILE     = { r = 1.00, g = 0.00, b = 0.00, a = 1.00 },
         REACTION_FRIENDLY    = { r = 0.00, g = 1.00, b = 0.00, a = 1.00 },
         REACTION_NEUTRAL     = { r = 1.00, g = 0.85, b = 0.00, a = 1.00 },
         REACTION_DEFAULT     = { r = 0.85, g = 0.85, b = 0.85, a = 1.00 },
+
+        -- Reusable static flyweights to prevent GC allocations
+        WHITE_ARRAY          = { 1.00, 1.00, 1.00, 1.00 },
+        DEFAULT_BORDER       = { r = 0.00, g = 0.00, b = 0.00, a = 1.00 },
+    },
+
+    ICONS = {
+        MISSING           = "/esoui/art/icons/icon_missing.dds",
+        FALLBACK_RACE     = "/esoui/art/icons/race_icon_breton.dds",
+        FALLBACK_ALLIANCE = "/esoui/art/icons/alliance_icon_aldmeri.dds",
     },
 }
 

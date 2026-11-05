@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | HUD module
+-- Arclight Taunt 1.1.2 | HUD module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -37,8 +37,14 @@ end
 local function GetColumnWidth()
     return A.saved.width or 280
 end
-local function GetWidth()
-    return GetColumnWidth() * A.saved.columns + COLUMN_GAP * (A.saved.columns - 1)
+local function GetColumnGap(scale)
+    if not A.saved.highlightTarget then return COLUMN_GAP end
+    local _, pixelUnit = A.PixelAlignedBarHeight(scale or A.renderScale or A.saved.scale)
+    local pad = A.FocusMetrics(pixelUnit)
+    return math.max(COLUMN_GAP, pad)
+end
+local function GetWidth(scale)
+    return GetColumnWidth() * A.saved.columns + GetColumnGap(scale) * (A.saved.columns - 1)
 end
 local function FocusEdge(horizontal)
     return A.saved.highlightTarget and (A.focusPadding or 2) or 0
@@ -90,7 +96,7 @@ end
 -- Start from the saved preference, never the preceding progress style's scale.
 -- Pixel-rounded bars depend on the final scale; shrink monotonically until the
 -- measured row layout fits. Pure bounded layout arithmetic, no control writes.
-local function ResolveListScale(width, rowCount, full, footerHeight, moveExtra)
+local function ResolveListScale(rowCount, full, footerHeight, moveExtra)
     local saved, scale = A.saved, A.saved.scale
     if not saved.fitToScreen then return scale end
     local sw, sh = GuiRoot:GetWidth(), GuiRoot:GetHeight()
@@ -102,6 +108,7 @@ local function ResolveListScale(width, rowCount, full, footerHeight, moveExtra)
         local rowHeight = (A.minRowContentHeight or 0) + (full and 2 or math.ceil(barHeight)) + (saved.rowHeightExtra or 0)
         local height = math.max(2, pixelUnit)
             + rowCount * (rowHeight + math.max(saved.rowGap, gap)) + footerHeight + moveExtra
+        local width = GetColumnWidth() * saved.columns + math.max(COLUMN_GAP, pad) * (saved.columns - 1)
         local nextScale = math.max(0.1, math.min(scale, (sw - 8) / math.max(1, width + 2 * pad),
             (sh - 8) / math.max(1, height + 2 * pad)))
         if nextScale >= scale then break end
@@ -138,7 +145,10 @@ local function SetMoving(moving)
 end
 
 local function NewRow()
-    local box = WM:CreateControl(nil, A.root, CT_CONTROL)
+    -- Independent appearance alpha; it never interferes with entrance alpha.
+    local gate = WM:CreateControl(nil, A.root, CT_CONTROL)
+    gate:SetAnchorFill(A.root)
+    local box = WM:CreateControl(nil, gate, CT_CONTROL)
     box:SetDimensions(GetColumnWidth(), ROW_HEIGHT)
     A.SetHidden(box, true)
 
@@ -157,6 +167,7 @@ local function NewRow()
     local fullFill = Solid(box, C.fullSafe)
     fullFill:SetAnchor(TOPLEFT, box, TOPLEFT, 0, 0)
     fullFill:SetDimensions(GetColumnWidth(), ROW_HEIGHT)
+    fullFill:SetAutoRectClipChildren(true)
     if fullFill.SetPixelRoundingEnabled then fullFill:SetPixelRoundingEnabled(false) end
     A.SetHidden(fullFill, true)
 
@@ -221,6 +232,7 @@ local function NewRow()
     A.SetHidden(trackTexture, true)
 
     local fill = Solid(barRegion, C.safe)
+    fill:SetAutoRectClipChildren(true)
     fill:SetResizeToFitFile(false)
     if fill.SetPixelRoundingEnabled then fill:SetPixelRoundingEnabled(false) end
     fill:SetAnchor(BOTTOMLEFT, barRegion, BOTTOMLEFT, 0, 0)
@@ -229,11 +241,19 @@ local function NewRow()
     -- Kept separate from the existing solid bar. Do not SetTexture("") on
     -- a previously textured control; ESO can expose a white fallback.
     local mediaFill = Solid(barRegion, C.safe)
+    mediaFill:SetAutoRectClipChildren(true)
     mediaFill:SetResizeToFitFile(false)
     if mediaFill.SetPixelRoundingEnabled then mediaFill:SetPixelRoundingEnabled(false) end
     mediaFill:SetAnchor(BOTTOMLEFT, barRegion, BOTTOMLEFT, 0, 0)
     mediaFill:SetDimensions(GetColumnWidth(), 4)
     A.SetHidden(mediaFill, true)
+
+    -- A tiny gradient follows the native fill edge through anchors alone.
+    -- The fill clips it to its remaining width, including the final subpixel.
+    local progressTip = Solid(fill, C.safe)
+    progressTip:SetResizeToFitFile(false)
+    progressTip:SetPixelRoundingEnabled(false)
+    A.SetHidden(progressTip, true)
 
     local contrastEdge = Solid(box, C.highDivider)
     if contrastEdge.SetPixelRoundingEnabled then contrastEdge:SetPixelRoundingEnabled(true) end
@@ -245,7 +265,9 @@ local function NewRow()
     local focusOutline = {}
     for _, side in ipairs({"top", "bottom", "left", "right"}) do
         local edge = Solid(box, FOCUS_BORDER)
-        if edge.SetPixelRoundingEnabled then edge:SetPixelRoundingEnabled(true) end
+        -- Geometry already reserves a physical pixel outside the row; native
+        -- rounding must not move these external edges back onto its fill.
+        if edge.SetPixelRoundingEnabled then edge:SetPixelRoundingEnabled(false) end
         DrawOrder(edge, DL_OVERLAY, 1)
         A.SetHidden(edge, true)
         focusOutline[side] = edge
@@ -264,6 +286,7 @@ local function NewRow()
     local focusGlints = {}
     for i = 1, 4 do
         local glint = Solid(focusSweep, C.focusLight)
+        if glint.SetPixelRoundingEnabled then glint:SetPixelRoundingEnabled(false) end
         local left = i % 2 == 1
         local first, last = left and 0 or 1, left and 1 or 0
         glint:SetGradientColors(ORIENTATION_HORIZONTAL, 1, 1, 0.98, first, 1, 1, 0.98, last)
@@ -292,12 +315,12 @@ local function NewRow()
     DrawOrder(time, DL_TEXT, 0)
     DrawOrder(bossIcon, DL_TEXT, 1)
 
-    return {box = box, bg = bg, bgTexture = bgTexture, fullFill = fullFill, accent = accent,
+    return {box = box, gate = gate, bg = bg, bgTexture = bgTexture, fullFill = fullFill, accent = accent,
             focusViewport = focusViewport, focusSweep = focusSweep, focusGlints = focusGlints, focusOutline = focusOutline,
             progressRegion = progressRegion,
             bossIcon = bossIcon, name = name, time = time,
             barRegion = barRegion, track = track, trackTexture = trackTexture, fill = fill,
-            mediaFill = mediaFill, surface = surface,
+            mediaFill = mediaFill, surface = surface, progressTip = progressTip,
             useMediaFill = false, contrastEdge = contrastEdge}
 end
 
@@ -318,9 +341,11 @@ local function MakeBossAlert(kind)
     root:SetDrawTier(DT_HIGH)
     root:SetMouseEnabled(false)
     A.SetHidden(root, true)
-    root:SetHandler("OnUpdate", function(_, time)
+    alert.frameHandler = function(_, time)
         if alert.visibleUntil then A.UpdateBossAlert(time or Now(), kind) end
-    end)
+    end
+    alert.frameUpdatesEnabled = not A.saved.reduceAnimations
+    root:SetHandler("OnUpdate", alert.frameUpdatesEnabled and alert.frameHandler or nil)
     local body = root
     if compact then
         root:SetAutoRectClipChildren(true)
@@ -464,14 +489,13 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
     local mirrored, highContrast = saved.mirrorTauntList == true, saved.highContrast == true
     if mirrored then col = saved.columns - 1 - col end
     local line = (i - 1) % rowsPerCol
+    A.PlaceRow(r, t, now, col * (columnWidth + A.layoutColumnGap), topInset + line * (rowHeight + rowGap))
     if r.lastCol ~= col or r.lastLine ~= line or r.lastTopInset ~= topInset or r.lastWidth ~= columnWidth
-        or r.lastGap ~= rowGap or r.lastRowHeight ~= rowHeight then
-        r.box:ClearAnchors()
-        r.box:SetAnchor(TOPLEFT, A.root, TOPLEFT,
-            col * (columnWidth + COLUMN_GAP), topInset + line * (rowHeight + rowGap))
+        or r.lastGap ~= rowGap or r.lastRowHeight ~= rowHeight or r.lastColumnGap ~= A.layoutColumnGap then
         r.box:SetHeight(rowHeight)
         r.lastRowHeight = rowHeight
         r.lastCol, r.lastLine, r.lastTopInset, r.lastWidth, r.lastGap = col, line, topInset, columnWidth, rowGap
+        r.lastColumnGap = A.layoutColumnGap
     end
     if r.lastMirrored ~= mirrored then
         local nameSide = mirrored and TOPRIGHT or TOPLEFT
@@ -494,10 +518,12 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
     end
     local contentHeight = fullMode and rowHeight or rowHeight - (r.barHeight or saved.barHeight)
     local focusPad = A.focusPadding or 2
+    local focusClearance = A.focusClearance or 0
     local focusVerticalPad = math.min(focusPad, rowGap)
     if r.lastContentHeight ~= contentHeight or r.lastContentWidth ~= columnWidth
         or r.lastContentContrast ~= highContrast or r.lastContentRowHeight ~= rowHeight
         or r.lastFocusThickness ~= r.focusThickness or r.lastFocusPadding ~= focusPad
+        or r.lastFocusClearance ~= focusClearance
         or r.lastFocusVerticalPadding ~= focusVerticalPad then
         r.name:SetHeight(contentHeight)
         r.time:SetHeight(contentHeight)
@@ -515,10 +541,11 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.focusTravelWidth = columnWidth + 2 * focusPad
         local edge = r.focusThickness or (highContrast and 2 or 1)
         for side, outline in pairs(r.focusOutline) do
-            local x, y, w, h = -edge, -edge, columnWidth + 2 * edge, edge
-            if side == "bottom" then y = rowHeight
-            elseif side == "left" then y, w, h = 0, edge, rowHeight
-            elseif side == "right" then x, y, w, h = columnWidth, 0, edge, rowHeight end
+            local outside = edge + focusClearance
+            local x, y, w, h = -outside, -outside, columnWidth + 2 * outside, edge
+            if side == "bottom" then y = rowHeight + focusClearance
+            elseif side == "left" then y, w, h = -focusClearance, edge, rowHeight + 2 * focusClearance
+            elseif side == "right" then x, y, w, h = columnWidth + focusClearance, -focusClearance, edge, rowHeight + 2 * focusClearance end
             outline:ClearAnchors()
             outline:SetAnchor(TOPLEFT, r.box, TOPLEFT, x, y)
             outline:SetDimensions(w, h)
@@ -527,6 +554,7 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.lastContentRowHeight = rowHeight
         r.lastFocusThickness = edge
         r.lastFocusPadding = focusPad
+        r.lastFocusClearance = focusClearance
         r.lastFocusVerticalPadding = focusVerticalPad
         r.lastBossIcon = nil
     end
@@ -658,8 +686,28 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
     local texturedTrack = saved.texturedTrack and not highContrast
     A.SetHidden(r.track, fullMode or texturedTrack)
     A.SetHidden(r.trackTexture, fullMode or not texturedTrack)
-    A.SetHidden(r.fill, fullMode or barHidden or (r.useMediaFill and not highContrast))
+    A.SetHidden(r.fill, fullMode or barHidden or r.useMediaFill)
     A.SetHidden(r.mediaFill, fullMode or barHidden or not r.useMediaFill)
+    local tipParent = fullMode and r.fullFill or (r.useMediaFill and r.mediaFill or r.fill)
+    local pixelUnit = A.focusClearance or 1
+    if r.tipParent ~= tipParent or r.tipMirrored ~= mirrored or r.tipPixelUnit ~= pixelUnit then
+        local top = mirrored and TOPLEFT or TOPRIGHT
+        local bottom = mirrored and BOTTOMLEFT or BOTTOMRIGHT
+        r.progressTip:SetParent(tipParent)
+        r.progressTip:ClearAnchors()
+        r.progressTip:SetAnchor(top, tipParent, top, 0, 0)
+        r.progressTip:SetAnchor(bottom, tipParent, bottom, 0, 0)
+        r.progressTip:SetWidth(2 * pixelUnit)
+        r.progressTip:SetGradientColors(ORIENTATION_HORIZONTAL,
+            1, 1, 1, mirrored and 1 or 0, 1, 1, 1, mirrored and 0 or 1)
+        DrawOrder(r.progressTip, fullMode and DL_BACKGROUND or DL_CONTROLS, 4)
+        r.tipParent, r.tipMirrored, r.tipPixelUnit = tipParent, mirrored, pixelUnit
+    end
+    if r.lastTipColor ~= color or r.lastTipFull ~= fullMode then
+        SetColor(r.progressTip, color, fullMode and 0.5 or 0.9)
+        r.lastTipColor, r.lastTipFull = color, fullMode
+    end
+    A.SetHidden(r.progressTip, barHidden)
     -- Always show numerical seconds, including expired (0,0).
     -- Explicit decimal comma avoids depending on ESO/client locale.
     local displayTime
@@ -677,6 +725,7 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.time:SetText(displayTime)
         r.lastDisplayTime = displayTime
     end
+    A.AnimateRowGloss(r, t, now, columnWidth, fullMode, danger)
 end
 
 local function ObserveTargets(now)
@@ -726,22 +775,110 @@ local function UpdateDemoFocus(now, items)
         if t.unitId == A.demoFocusId then currentVisible = true; break end
     end
     if currentVisible and A.demoFocusUntil and now < A.demoFocusUntil then return end
-    -- Select from the actual rendered rows, including after overflow/sorting.
-    -- Prefer a different active target; keep a remaining expired row if needed.
-    local candidate, firstActive, fallback
+    -- Looking at a target is independent of applying a taunt. Avoid following
+    -- roster/application order or automatically selecting the newest arrival.
+    -- Work only at focus changes, using already selected visible records.
+    local newest, firstActive, fallback
     for _, t in ipairs(items) do
         fallback = fallback or t
-        if t.endTime > now and t.unitId ~= A.demoFocusId then
-            if not firstActive or t.order < firstActive.order then firstActive = t end
-            if t.order > (A.demoFocusOrder or 0) and (not candidate or t.order < candidate.order) then
-                candidate = t
-            end
+        if t.endTime > now then
+            firstActive = firstActive or t
+            if not newest or t.startTime > newest.startTime then newest = t end
         end
     end
-    candidate = candidate or firstActive or fallback
+    local candidates = {}
+    for _, t in ipairs(items) do
+        if t.endTime > now and t ~= newest and t.unitId ~= A.demoFocusId then
+            candidates[#candidates + 1] = t
+        end
+    end
+    local candidate = #candidates > 0 and candidates[math.random(#candidates)] or firstActive or fallback
     A.demoFocusId = candidate and candidate.unitId or nil
-    A.demoFocusOrder = candidate and candidate.order or 0
-    A.demoFocusUntil = candidate and now + 7 or nil
+    A.demoFocusUntil = candidate and now + 5 + math.random(3000) / 1000 or nil
+end
+
+-- Reassign pooled controls by record identity only when membership/order/layout
+-- changes. The regular tick neither rebuilds this map nor restarts transitions.
+local function PrepareRows(items, now, saved, rowsPerCol, rowHeight, rowGap, topInset, columnWidth, focusId)
+    local previous = A.lastVisibleItems
+    local layoutChanged = A.rowLayoutScale ~= A.renderScale or A.rowLayoutWidth ~= columnWidth
+        or A.rowLayoutHeight ~= rowHeight or A.rowLayoutGap ~= rowGap or A.rowLayoutTop ~= topInset
+        or A.rowLayoutColumnGap ~= A.layoutColumnGap or A.rowLayoutLimit ~= rowsPerCol
+        or A.rowLayoutColumns ~= saved.columns or A.rowLayoutMirror ~= saved.mirrorTauntList
+        or A.rowLayoutFull ~= saved.barDisplay or A.rowLayoutDemo ~= A.demo
+        or A.rowLayoutReduced ~= saved.reduceAnimations
+    local changed = layoutChanged or not previous or #previous ~= #items
+    for i, target in ipairs(items) do
+        if not previous or previous[i] ~= target then changed = true end
+        local row = A.rows[i]
+        -- The old slot can belong to a removed arrival. Only its own record
+        -- can force an urgent reveal; a selected survivor inheriting that slot
+        -- must not cancel otherwise safe compaction.
+        if row and row.displayTarget == target and row.revealAt
+            and (target.unitId == focusId or target.endTime - now <= saved.dangerAt) then
+            changed = true
+        end
+    end
+    if not changed then return end
+    local wanted, byTarget, oldRanks, spare, ordered = {}, {}, {}, {}, {}
+    for _, target in ipairs(items) do wanted[target] = true end
+    for i, row in ipairs(A.rows) do
+        if row.displayTarget and wanted[row.displayTarget] then
+            byTarget[row.displayTarget], oldRanks[row.displayTarget] = row, i
+        else spare[#spare + 1] = row end
+    end
+    local consistent = not layoutChanged and not saved.reduceAnimations
+    local lastRanks, blockedColumns = {}, {}
+    for i, target in ipairs(items) do
+        local rank = oldRanks[target]
+        local column = math.floor((i - 1) / rowsPerCol)
+        if rank and math.floor((rank - 1) / rowsPerCol) == column then
+            local col = saved.mirrorTauntList and saved.columns - 1 - column or column
+            if lastRanks[col] and rank < lastRanks[col] then blockedColumns[col] = true end
+            lastRanks[col] = rank
+        end
+    end
+    local geometry, movingColumns, spareIndex = {}, {}, 1
+    for i, target in ipairs(items) do
+        local row = byTarget[target]
+        local existing = row ~= nil
+        if not row then
+            row, spareIndex = spare[spareIndex], spareIndex + 1
+            A.StopRowAnimations(row)
+        end
+        ordered[i] = row
+        local col = math.floor((i - 1) / rowsPerCol)
+        if saved.mirrorTauntList then col = saved.columns - 1 - col end
+        local x = col * (columnWidth + A.layoutColumnGap)
+        local y = topInset + ((i - 1) % rowsPerCol) * (rowHeight + rowGap)
+        local oldX, oldY = A.RowPosition(row, now)
+        local move = consistent and not blockedColumns[col] and existing
+            and oldX == x and oldY and math.abs(oldY - y) > .001
+        if move then movingColumns[col] = true end
+        local arrival = not existing or oldX ~= x
+        -- Do not extend an interrupted arrival or hold an urgent/selected record
+        -- behind an animation. Settle that column to the latest real state.
+        if row.revealAt or (arrival and (target.unitId == focusId or target.endTime - now <= saved.dangerAt)) then
+            blockedColumns[col] = true
+        end
+        geometry[i] = {col = col, x = x, y = y, move = move, fromY = oldY, arrival = arrival, existing = existing}
+    end
+    for i, target in ipairs(items) do
+        local row, plan = ordered[i], geometry[i]
+        local moves = movingColumns[plan.col] and not blockedColumns[plan.col]
+        if layoutChanged or not plan.existing or row.placementTarget ~= target
+            or row.placementX ~= plan.x or row.placementY ~= plan.y or plan.move or row.revealAt then
+            row.placementPlan = {move = moves and plan.move, fromY = plan.fromY, wait = moves and plan.arrival}
+        end
+        row.displayTarget = target
+    end
+    for i = spareIndex, #spare do ordered[#ordered + 1] = spare[i] end
+    A.rows = ordered
+    A.rowLayoutScale, A.rowLayoutWidth, A.rowLayoutHeight = A.renderScale, columnWidth, rowHeight
+    A.rowLayoutGap, A.rowLayoutTop, A.rowLayoutColumnGap = rowGap, topInset, A.layoutColumnGap
+    A.rowLayoutLimit, A.rowLayoutColumns, A.rowLayoutMirror = rowsPerCol, saved.columns, saved.mirrorTauntList
+    A.rowLayoutFull, A.rowLayoutDemo = saved.barDisplay, A.demo
+    A.rowLayoutReduced = saved.reduceAnimations
 end
 
 local function RenderList(now, active, lost, items, saved)
@@ -756,17 +893,27 @@ local function RenderList(now, active, lost, items, saved)
     local visible = #items
     local hidden = total - visible
 
-    local width = GetWidth()
     local mirrored = saved.mirrorTauntList == true
     if A.lastListMirrored ~= mirrored then
         A.more:SetHorizontalAlignment(mirrored and TEXT_ALIGN_RIGHT or TEXT_ALIGN_LEFT)
         A.lastListMirrored = mirrored
     end
-    local rowsPerCol = (saved.columns == 2) and math.ceil(visible / 2) or saved.limit
+    -- A changing total must not move the column boundary back and forth.
+    local rowsPerCol = saved.limit
     local rowCount = math.min(rowsPerCol, visible)
+    local peakReset = A.peakColumns ~= saved.columns or A.peakLimit ~= saved.limit
+        or A.peakScale ~= saved.scale or A.peakDemo ~= A.demoAt
+    if peakReset or not (A.inCombat or A.demo) then
+        A.listPeakRows, A.listPeakFooter = rowCount, 0
+    end
+    A.peakColumns, A.peakLimit, A.peakScale, A.peakDemo = saved.columns, saved.limit, saved.scale, A.demoAt
+    A.listPeakRows = math.max(A.listPeakRows or 0, rowCount)
+    A.listPeakFooter = math.max(A.listPeakFooter or 0, hidden > 0 and FOOTER_HEIGHT or 0)
     local fullMode = saved.barDisplay == "full"
     local moveExtra = A.moving and 18 or 0
-    local resolvedScale = ResolveListScale(width, rowCount, fullMode, hidden > 0 and FOOTER_HEIGHT or 0, moveExtra)
+    local resolvedScale = ResolveListScale(A.listPeakRows, fullMode, A.listPeakFooter, moveExtra)
+    local width = GetWidth(resolvedScale)
+    A.layoutColumnGap = GetColumnGap(resolvedScale)
     if A.renderScale ~= resolvedScale then
         A.renderScale = resolvedScale
         Layout()
@@ -779,7 +926,9 @@ local function RenderList(now, active, lost, items, saved)
     local rowHeight = GetRowHeight(fullMode)
     local rowRegionHeight = rowCount * (rowHeight + rowGap)
     local footerY = topInset + rowRegionHeight
-    local hudHeight = topInset + rowRegionHeight + (hidden > 0 and FOOTER_HEIGHT or 0) + moveExtra
+    -- Keep the transparent combat envelope stable while a pull shrinks. This
+    -- avoids repeated rescaling/clamping and top shifts of a bottom anchor.
+    local hudHeight = topInset + A.listPeakRows * (rowHeight + rowGap) + A.listPeakFooter + moveExtra
     if A.lastRootWidth ~= width or A.lastRootHeight ~= hudHeight then
         A.root:SetDimensions(width, hudHeight)
         A.lastRootWidth, A.lastRootHeight = width, hudHeight
@@ -793,16 +942,16 @@ local function RenderList(now, active, lost, items, saved)
         local occupied = column < saved.columns and (mirrored and column >= saved.columns - columnsUsed
             or not mirrored and column < columnsUsed)
         A.SetHidden(cap.root, not occupied)
-        if occupied and cap.width ~= columnWidth then
+        if occupied and (cap.width ~= columnWidth or cap.gap ~= A.layoutColumnGap) then
             cap.root:ClearAnchors()
-            cap.root:SetAnchor(TOPLEFT, A.root, TOPLEFT, column * (columnWidth + COLUMN_GAP), 0)
+            cap.root:SetAnchor(TOPLEFT, A.root, TOPLEFT, column * (columnWidth + A.layoutColumnGap), 0)
             cap.root:SetWidth(columnWidth)
             for half, rail in ipairs(cap.rails) do
                 rail:ClearAnchors()
                 rail:SetAnchor(TOPLEFT, cap.root, TOPLEFT, (half - 1) * columnWidth / 2, 0)
                 rail:SetWidth(columnWidth / 2)
             end
-            cap.width = columnWidth
+            cap.width, cap.gap = columnWidth, A.layoutColumnGap
         end
     end
 
@@ -833,15 +982,18 @@ local function RenderList(now, active, lost, items, saved)
         A.moveHint:SetAnchor(BOTTOMLEFT, A.root, BOTTOMLEFT, 0, 0)
     end
 
+    PrepareRows(items, now, saved, rowsPerCol, rowHeight, rowGap, topInset, columnWidth, focusId)
     for i = 1, #A.rows do
         local row = A.rows[i]
         A.SetHidden(row.box, i > visible)
         if i <= visible then
             RenderRow(row, items[i], i, rowsPerCol, topInset, columnWidth, now, saved, fullMode, rowGap, rowHeight)
-        elseif row.progressTarget or row.focusRunning or row.focusSerial then
+        elseif row.displayTarget or row.progressTarget or row.focusRunning or row.focusSerial
+            or row.placementRunning or row.revealRunning then
             A.StopRowAnimations(row)
         end
     end
+    A.lastVisibleItems = items
 end
 
 local function Tick()
@@ -859,6 +1011,8 @@ local function Tick()
     -- Selection and all enemy-row
     -- rendering resume from current data on the first visible tick.
     if hideRoot then
+        A.lastVisibleItems = nil
+        A.listPeakRows, A.listPeakFooter = nil, nil
         if not A.rowVisualsSuspended then
             A.ObserveFocus(nil, A.DemoNow(now))
             for _, row in ipairs(A.rows) do A.StopRowAnimations(row) end
@@ -866,7 +1020,7 @@ local function Tick()
         end
         return
     end
-    local items = A.SelectVisible(active, lost, saved.columns * saved.limit)
+    local items = A.StabilizeVisible(A.SelectVisible(active, lost, saved.columns * saved.limit), A.DemoNow(now))
     RenderList(A.DemoNow(now), active, lost, items, saved)
 end
 

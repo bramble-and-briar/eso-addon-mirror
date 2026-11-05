@@ -6,6 +6,9 @@ if not Taneth then return end
 local other = { other = "other" } -- a value we don't want to be strict equal to
 
 local exports = {}
+local deferred = LibPromiseTest.deferred
+local resolved = LibPromiseTest.resolved
+local rejected = LibPromiseTest.rejected
 
 exports.fulfilled = {
     ["a synchronously-fulfilled custom thenable"] = function(value)
@@ -19,7 +22,7 @@ exports.fulfilled = {
     ["an asynchronously-fulfilled custom thenable"] = function(value)
         return {
             Then = function(self, onFulfilled)
-                setTimeout(function()
+                zo_callLater(function()
                     onFulfilled(value)
                 end, 0)
             end
@@ -28,14 +31,19 @@ exports.fulfilled = {
 
     ["a synchronously-fulfilled one-time thenable"] = function(value)
         local numberOfTimesThenRetrieved = 0
-        return {
-            Then = function(self, onFulfilled)
-                if (numberOfTimesThenRetrieved == 0) then
-                    numberOfTimesThenRetrieved = numberOfTimesThenRetrieved + 1
-                    onFulfilled(value)
+        return setmetatable({}, {
+            __index = function(_, key)
+                if key == "Then" then
+                    if numberOfTimesThenRetrieved == 0 then
+                        numberOfTimesThenRetrieved = numberOfTimesThenRetrieved + 1
+                        return function(self, onFulfilled)
+                            onFulfilled(value)
+                        end
+                    end
+                    return nil
                 end
             end
-        }
+        })
     end,
 
     ["a thenable that tries to fulfill twice"] = function(value)
@@ -62,7 +70,7 @@ exports.fulfilled = {
 
     ["an eventually-fulfilled promise"] = function(value)
         local d = deferred()
-        setTimeout(function()
+        zo_callLater(function()
             d.resolve(value)
         end, 50)
         return d.promise
@@ -81,7 +89,7 @@ exports.rejected = {
     ["an asynchronously-rejected custom thenable"] = function(reason)
         return {
             Then = function(self, onFulfilled, onRejected)
-                setTimeout(function()
+                zo_callLater(function()
                     onRejected(reason)
                 end, 0)
             end
@@ -90,14 +98,19 @@ exports.rejected = {
 
     ["a synchronously-rejected one-time thenable"] = function(reason)
         local numberOfTimesThenRetrieved = 0
-        return {
-            Then = function(self, onFulfilled, onRejected)
-                if (numberOfTimesThenRetrieved == 0) then
-                    numberOfTimesThenRetrieved = numberOfTimesThenRetrieved + 1
-                    onRejected(reason)
+        return setmetatable({}, {
+            __index = function(_, key)
+                if key == "Then" then
+                    if numberOfTimesThenRetrieved == 0 then
+                        numberOfTimesThenRetrieved = numberOfTimesThenRetrieved + 1
+                        return function(self, onFulfilled, onRejected)
+                            onRejected(reason)
+                        end
+                    end
+                    return nil
                 end
             end
-        }
+        })
     end,
 
     ["a thenable that immediately throws in `then`"] = function(reason)
@@ -122,11 +135,11 @@ exports.rejected = {
 
     ["an eventually-rejected promise"] = function(reason)
         local d = deferred()
-        setTimeout(function()
+        zo_callLater(function()
             d.reject(reason)
         end, 50)
         return d.promise
     end
 }
 
-return exports
+LibPromiseTest.thenables = exports

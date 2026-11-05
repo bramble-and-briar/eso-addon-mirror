@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/DakJaniels/queueNextWrit__5024",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "DakJaniels",
+  "canonical_id": "esoui:5024",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5024",
+  "deleted": false,
+  "directories": [
+    "queueNextWrit"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5024/",
+  "fingerprint": "ad3a18ed4ab8a1f9bc3a2f6abe54232c65716281ca3cb0ca45653c9afd1cf840",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5024",
+  "source_url": "https://www.esoui.com/downloads/info5024-queueNextWrit.html",
+  "stats": {
+    "downloads": 14,
+    "favorites": 1,
+    "monthly_downloads": 1
+  },
+  "title": "queueNextWrit",
+  "updated_at": 1793847143000,
+  "version": "2"
+}

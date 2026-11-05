@@ -5,7 +5,7 @@
 ArdysBuffTracker = ArdysBuffTracker or {}
 local PB = ArdysBuffTracker
 PB.name = "ArdysBuffTracker"
-PB.version = "1.2.1"
+PB.version = "1.3.0"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -144,11 +144,13 @@ end
 local function RescanUnit(unitTag, dn)
     state[dn] = {}
     for i = 1, GetNumBuffs(unitTag) do
-        local buffName, timeStarted, timeEnding, buffSlot, _, iconFile, _, _, _, _, abilityId = GetUnitBuffInfo(unitTag, i)
+        local buffName, timeStarted, timeEnding, buffSlot, _, iconFile, _, _, _, _, abilityId, _, castByPlayer = GetUnitBuffInfo(unitTag, i)
         local buff = MatchBuff(buffName, abilityId)
         if buff then
             LearnIcon(buff, iconFile)
-            SetSlot(dn, buff, buffSlot, (timeEnding > timeStarted) and timeEnding or math.huge)
+            if castByPlayer or not PB.sv.onlyMine then
+                SetSlot(dn, buff, buffSlot, (timeEnding > timeStarted) and timeEnding or math.huge)
+            end
         end
     end
 end
@@ -162,21 +164,28 @@ local CHANGE_TEXT = {
     [EFFECT_RESULT_UPDATED] = "|cFFDD33~updated|r",
 }
 
-local function LogEffect(changeType, effectSlot, effectName, unitTag, dn, beginTime, endTime, abilityId, buff)
+-- "Mine" = cast by you or your pet (the same test ZOS's own UI uses).
+local function IsMine(sourceType)
+    return sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
+end
+
+local function LogEffect(changeType, effectSlot, effectName, unitTag, dn, beginTime, endTime, abilityId, buff, sourceType)
     local dur = (endTime > beginTime) and string.format("%.1fs", endTime - beginTime) or "no timer"
-    d(string.format("[PB] %s %s (id %d, slot %d, %s) on %s [%s]%s",
-        CHANGE_TEXT[changeType] or tostring(changeType), effectName, abilityId, effectSlot, dur,
+    local by = ""
+    if changeType ~= EFFECT_RESULT_FADED then by = IsMine(sourceType) and ", by you" or ", by someone else" end
+    d(string.format("[PB] %s %s (id %d, slot %d, %s%s) on %s [%s]%s",
+        CHANGE_TEXT[changeType] or tostring(changeType), effectName, abilityId, effectSlot, dur, by,
         LabelFor(dn), unitTag, buff and "" or " |c888888untracked|r"))
 end
 
 local function OnEffectChanged(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime,
-                               _, iconName, _, effectType, _, _, _, _, abilityId)
+                               _, iconName, _, effectType, _, _, _, _, abilityId, sourceType)
     -- Cheapest check first: this event fires constantly in a trial.
     local dn = pinnedTags[unitTag]
     if not dn then return end
     local buff = MatchBuff(effectName, abilityId)
     if PB.debug.log and (buff or (PB.debug.logAll and effectType == BUFF_EFFECT_TYPE_BUFF)) then
-        LogEffect(changeType, effectSlot, effectName, unitTag, dn, beginTime, endTime, abilityId, buff)
+        LogEffect(changeType, effectSlot, effectName, unitTag, dn, beginTime, endTime, abilityId, buff, sourceType)
     end
     if not buff then return end
 
@@ -184,6 +193,7 @@ local function OnEffectChanged(_, changeType, effectSlot, effectName, unitTag, b
         ClearSlot(dn, buff, effectSlot)
     else
         LearnIcon(buff, iconName)
+        if PB.sv.onlyMine and not IsMine(sourceType) then return end
         SetSlot(dn, buff, effectSlot, (endTime > beginTime) and endTime or math.huge)
     end
 end
@@ -573,6 +583,12 @@ function PB.ClearPins()
     PB.Refresh()
 end
 
+-- "Only Buffs I Apply": rescans everyone so the panel matches at once.
+function PB.SetOnlyMine(on)
+    PB.sv.onlyMine = on and true or false
+    PB.Refresh()
+end
+
 function PB.SetShowSelf(on)
     PB.sv.showSelf = on and true or false
     if not on then state[SELF_KEY] = nil end
@@ -666,7 +682,8 @@ function PB.PrintStatus()
     d(string.format("[PB] grouped: %s (%d members)", IsUnitGrouped("player") and "yes" or "no", GetGroupSize()))
     d("[PB] settings library: " .. ((LibHarvensAddonSettings or LibVotans) and "found" or "|cFF4444missing|r")
         .. ", settings menu: " .. (PB.settings and "built" or "|cFF4444not built|r"))
-    d("[PB] show myself: " .. (PB.sv.showSelf and "on" or "off"))
+    d("[PB] show myself: " .. (PB.sv.showSelf and "on" or "off")
+        .. ", Only Buffs I Apply: " .. (PB.sv.onlyMine and "on" or "off"))
     d("[PB] selected: " .. (PB.selected or "none"))
     d(string.format("[PB] buffs on: %d of %d", #PB.active, #PB.BUFFS))
 
@@ -813,6 +830,13 @@ local function CreateSettings()
     settings:AddSetting({ type = LHAS.ST_SECTION, label = "Buffs to track" })
     settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
+        label = "Only Buffs I Apply",
+        tooltip = "Only show buffs you cast. Buffs other group members give your pinned players are ignored.",
+        getFunction = function() return PB.sv.onlyMine end,
+        setFunction = function(v) PB.SetOnlyMine(v) end,
+    })
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
         label = "Enable all buffs",
         tooltip = "On: track every buff. Off: turn every buff off, then switch on only the ones you want.",
         getFunction = AllBuffsEnabled,
@@ -919,6 +943,9 @@ local function HandleSlash(args)
         PB.SetPinned(rest, false)
     elseif cmd == "target" then
         PB.TogglePinTarget()
+    elseif cmd == "mine" then
+        PB.SetOnlyMine(not PB.sv.onlyMine)
+        d("[PB] Only Buffs I Apply " .. (PB.sv.onlyMine and "on" or "off"))
     elseif cmd == "self" then
         PB.SetShowSelf(not PB.sv.showSelf)
         d("[PB] show myself " .. (PB.sv.showSelf and "on" or "off"))
@@ -966,7 +993,7 @@ local function HandleSlash(args)
             PB.PrintStatus()
         end
     else
-        d("[PB] /pb pin @name | unpin @name | target | self | list | clear")
+        d("[PB] /pb pin @name | unpin @name | target | self | mine | list | clear")
         d("[PB] /pb buffs | buff <name> | only <name> | all [on|off] | scale <50-200> | scan | preview")
         d("[PB] /pb debug | debug target | debug log | debug logall")
     end
@@ -983,6 +1010,7 @@ local DEFAULTS = {
     x = 400, y = 300,
     locked = false,
     showSelf = true,
+    onlyMine = false,  -- true: only show buffs you (or your pet) applied
 }
 
 local function OnLoaded(_, addonName)

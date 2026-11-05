@@ -18,7 +18,7 @@
     "HideResearchableIcon"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5016/",
-  "fingerprint": "c31d04b37b9917d5ba3f3fbcf2a9b86da2fff3ea039f1b2a4d9e1082b652b3d5",
+  "fingerprint": "7a5c1e4feef4ad530191b1a2fb8c2f52c599b26b359f6bf2fd4ed4b8348803d6",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "5016",
   "source_url": "https://www.esoui.com/downloads/info5016-HideResearchIcon.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 25,
     "favorites": 0,
-    "monthly_downloads": 6
+    "monthly_downloads": 21
   },
   "title": "HideResearchIcon",
-  "updated_at": 1793513338000,
-  "version": "1.1.0"
+  "updated_at": 1793854125000,
+  "version": "1.1.1"
 }

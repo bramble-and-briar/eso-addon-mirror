@@ -1,0 +1,20 @@
+## Title: Ramaladni - Buff & Debuff Tracker
+## Description: Buff, debuff, status effect and class mastery tracker with Russian/English search and movable icons.
+## Author: Northknightwest (Ramaladni)
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051 101052
+## SavedVariables: RamaladniTrackerSaved
+
+RamaladniMastery.lua
+RamaladniDragonknight.lua
+RamaladniNightblade.lua
+RamaladniSorcerer.lua
+RamaladniTemplar.lua
+RamaladniWarden.lua
+RamaladniNecromancer.lua
+RamaladniArcanist.lua
+RamaladniEffectGroups.lua
+RamaladniEffectSearch.lua
+Ramaladni_buff_debuff_tracker.lua
+Bindings.xml

@@ -60,7 +60,7 @@ Taneth("LibPromises", function()
 
             describe("applied to a promise fulfilled and then chained off of", function()
                 local function testNonFunction(nonFunction, stringRepresentation)
-                    it.async("`onFulfilled` is " .. stringRepresentation, function(done)
+                    it.async("`onRejected` is " .. stringRepresentation, function(done)
                         resolved(dummy):Then(nil, function() end):Then(function()
                             done()
                         end, nonFunction)

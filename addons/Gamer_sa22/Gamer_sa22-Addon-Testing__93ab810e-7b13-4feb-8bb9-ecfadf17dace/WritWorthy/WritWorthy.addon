@@ -1,0 +1,108 @@
+## Title: WritWorthy 7.5.9
+## Version: 7.5.9
+## AddOnVersion: 070509
+## Last Updated: 2026-09-27
+## APIVersion: 101051 101052
+## Description: Master Writs: calculate material costs and automate crafting.
+## Author: ziggr, |cff9b15Sharlikran|r
+## Contributors: Dolgubon Friday-The13-rus Sharlikran
+## SavedVariables: WritWorthyVars
+## DependsOn: LibAddonMenu-2.0>=43 LibPrice>=70000 LibLazyCrafting>=4038 LibSets>=9020 LibCharacterKnowledge>=300040
+## OptionalDependsOn: LibCustomMenu AwesomeGuildStore LibSlashCommander LibDebugLogger HomeStationMarker
+
+# Gamepad UI tooltip hook added by Friday-The13-rus
+
+# DE translation by Baertram 2019-04-30
+# RU translation by ivann339 2019-09-06 2020-10-16
+# FR translation by JAKEZ31  2020-08-27 2021-01-05
+
+            # LibAddonMenu-2.0  required
+            #   by Seerah, sirinsidiator
+            #       https://www.esoui.com/downloads/info7-LibAddonMenu.html
+            #       https://github.com/sirinsidiator/ESO-LibAddonMenu
+            #   The "Settings/Addons" UI library that everybody uses.
+
+            # LibPrice  required
+            #   by ziggr
+            #       https://www.esoui.com/downloads/info2204-LibPrice.html
+            #       https://github.com/ziggr/ESO-LibPrice
+            #   Provides material price lookups from
+            #     - Master Merchant
+            #     - Arkadius' Trade Tools
+            #     - Tamriel Trade Centre.
+
+            # LibLazyCrafting  required
+            #   by Dolgubon
+            #       https://www.esoui.com/downloads/info1594-LibLazyCrafting.html
+            #       https://github.com/Dolgubon/LibLazyCrafting
+            #   How WritWorthy queues and crafts items.
+
+            # LibSets required
+            #   by Baertram
+            #       https://www.esoui.com/downloads/info2241-LibSets.html
+            #       https://github.com/Baertram/LibSets
+            #   Set names such as "Alessia's Bullwark" and their required trait counts.
+
+            # LibCharacterKnowledge required
+            #   by code65536
+            #       https://www.esoui.com/downloads/info3317-LibCharacterKnowledge.html
+            #  Motif knowledge: do you know Ashlander Bows?
+
+            # LibSlashCommander optional
+            #   by sirinsidiator
+            #       https://www.esoui.com/downloads/info1508-LibSlashCommander.html
+            #   Provides autocompletion and help text for /writworthy
+            #   subcommands like "count".
+
+            # AwesomeGuildStore
+            #   by sirinsidiator
+            #       https://www.esoui.com/downloads/info695-AwesomeGuildStore.html
+            #   OptionalDependsOn so that WritWorthy can detect that AwesomeGuildStore
+            #   is present, and add its "crafted price per voucher" filter.
+
+            # LibDebugLogger
+            # by Sirinsidiator
+            # Allows error/warn/info/debug logging to saved variables.
+            # https://www.esoui.com/downloads/info2275-LibDebugLogger.html
+            # Can be omitted. Only useful for Zig while developing.
+
+            # Optional libraries used only for unreleased WritWorthy_AutoQuest.lua.
+            # Optional as long as I refuse to publish the autoquest feature.
+            #
+            # LibCustomMenu>=713     optional
+            #   by votan
+            #       https://www.esoui.com/downloads/info1146-LibCustomMenu>=713.html
+            #   Allows "Accept Writ Quests" button in inventory window
+            #
+            # LibCraftText      optional
+            #   by ziggr
+            #       https://www.esoui.com/downloads/info2184-LibCraftText.html
+            #       https://github.com/ziggr/ESO-LibCraftText
+            #   Allows Accept/Rolis dialog automation in languages other than EN English.
+
+WritWorthy_Define.lua
+
+lang/en.lua
+lang/$(language).lua
+lang/en_forced.lua
+
+WritWorthy_Price.lua
+WritWorthy_Util.lua
+WritWorthy_Log.lua
+WritWorthy_Know.lua
+WritWorthy_RequiredSkill.lua
+WritWorthy_Smithing.lua
+WritWorthy_Alchemy.lua
+WritWorthy_Enchanting.lua
+WritWorthy_Provisioning.lua
+WritWorthy_Link.lua
+WritWorthy_MatRow.lua
+WritWorthy_Window.lua
+WritWorthy_AGS.lua
+WritWorthy_I18N.lua
+WritWorthy_Profiler.lua
+# WritWorthy_AutoQuest.lua
+WritWorthy_MatListWindow.lua
+WritWorthy.lua
+WritWorthy.xml
+Bindings.xml

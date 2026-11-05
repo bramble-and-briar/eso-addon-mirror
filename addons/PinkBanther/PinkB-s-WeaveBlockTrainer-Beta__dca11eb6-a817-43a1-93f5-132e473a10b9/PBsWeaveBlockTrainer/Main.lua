@@ -40,11 +40,16 @@ if PBS_WEAVEBLOCKTRAINER then
 	return
 end
 
+-- TYPOGRAPHIC apostrophe (U+2019). With an ASCII ' here the settings panel eats the whole
+-- "PB's " and shows only the rest. The manifest keeps the ASCII form, because that is what the
+-- in-game add-on list and the store listing want.
+local DISPLAY_NAME = "PB’s Weave & Block Trainer"
+
 local addon = {
 	name = "PBsWeaveBlockTrainer",
-	title = "PB’s Weave & Block Trainer",
+	title = DISPLAY_NAME, -- gets the version added once the manifest is read: this is the name in the add-on list
 	author = "PinkBanther",
-	version = "1.4.0", -- keep in step with ## Version in the manifest
+	version = "", -- read from the manifest's ## Title line, see ReadManifestVersion
 }
 PBS_WEAVEBLOCKTRAINER = addon
 
@@ -431,11 +436,31 @@ local function OnPlayerActivated()
 	d(string.format(GetString(SI_PBSWT_LOADED), addon.version))
 end
 
+-- The version is written only in the manifest, in the ## Title line; it is read back from there, so
+-- a release changes it in one place (and in ## Version, which the game's own list shows).
+local function ReadManifestVersion()
+	local manager = GetAddOnManager and GetAddOnManager()
+	if not manager then
+		return ""
+	end
+	for index = 1, manager:GetNumAddOns() do
+		local name, title = manager:GetAddOnInfo(index)
+		if name == addon.name and title then
+			local plain = title:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+			return plain:match("([%d]+[%d%.]*)%s*$") or ""
+		end
+	end
+	return ""
+end
+
 local function OnAddOnLoaded(_, name)
 	if name ~= addon.name then
 		return
 	end
 	em:UnregisterForEvent(addon.name, EVENT_ADD_ON_LOADED)
+
+	addon.version = ReadManifestVersion()
+	addon.title = addon.version ~= "" and (DISPLAY_NAME .. " " .. addon.version) or DISPLAY_NAME
 
 	addon.sv = ZO_SavedVars:NewAccountWide("PBsWeaveBlockTrainer_Data", 1, nil, addon.DEFAULTS)
 

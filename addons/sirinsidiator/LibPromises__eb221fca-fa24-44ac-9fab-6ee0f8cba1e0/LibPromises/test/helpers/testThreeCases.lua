@@ -9,6 +9,7 @@ local rejected = LibPromiseTest.rejected
 
 local function testFulfilled(value, test)
     setfenv(1, getfenv(2))
+    apply_test_env(test)
 
     it.async("already-fulfilled", function(done)
         test(resolved(value), done)
@@ -32,6 +33,7 @@ LibPromiseTest.testFulfilled = testFulfilled
 
 local function testRejected(reason, test)
     setfenv(1, getfenv(2))
+    apply_test_env(test)
 
     it.async("already-rejected", function(done)
         test(rejected(reason), done)

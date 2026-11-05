@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/sirinsidiator/LibPromises__2274",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "sirinsidiator",
   "canonical_id": "esoui:2274",
   "category_id": "53",
   "compatibility": [
     {
-      "name": " Seasons of the Worm Cult Pt1",
-      "version": "11.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     },
     {
-      "name": "Fallen Banners",
-      "version": "10.3.5"
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:2274",
@@ -21,7 +22,7 @@
     "LibPromises"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2274/",
-  "fingerprint": "974bbd6a51fb1b7a0783b7df9761027e7af107cbbffc4e52dea468fe9d7c5d07",
+  "fingerprint": "da3354bb69fda53d9394c2e4a36aebc2510aae1122ffbd574ac4ff51d13312f2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7773.png"
   ],
@@ -31,11 +32,11 @@
   "source_id": "2274",
   "source_url": "https://www.esoui.com/downloads/info2274-LibPromises.html",
   "stats": {
-    "downloads": 840540,
-    "favorites": 485,
-    "monthly_downloads": 4500
+    "downloads": 856562,
+    "favorites": 484,
+    "monthly_downloads": 5938
   },
   "title": "LibPromises",
-  "updated_at": 1746123303000,
-  "version": "1.1.2"
+  "updated_at": 1793813881000,
+  "version": "2.0.0"
 }

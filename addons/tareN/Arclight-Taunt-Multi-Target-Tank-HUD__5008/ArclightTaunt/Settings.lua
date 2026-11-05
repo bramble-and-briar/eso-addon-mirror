@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | Settings module
+-- Arclight Taunt 1.1.2 | Settings module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -88,7 +88,7 @@ local function MakeSettings()
         name = "Arclight Taunt",
         displayName = "|c2FE6C4Arclight Taunt|r",
         author = "|cF7B95BtareN|r",
-        version = "1.1.1",
+        version = "1.1.2",
         website = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
         feedback = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments",
         registerForRefresh = true,
@@ -152,62 +152,6 @@ local function MakeSettings()
         mediaSpecs[data.reference] = spec
         return data
     end
-    local positionControls = {
-            {
-                    type = "slider", name = T("Position X (pixels)"), width = "half",
-                    tooltip = T("Horizontal distance from screen left; alternatively drag the HUD."),
-                    min = 0, max = 3840, step = 1,
-                    getFunc = function() return A.saved.x end,
-                    setFunc = function(value) UpdateLayout("x", math.floor(value)) end,
-                    default = defaults.x,
-                },
-            {
-                    type = "slider", name = T("Position Y (pixels)"), width = "half",
-                    tooltip = T("Vertical distance from top edge."),
-                    min = 0, max = 2160, step = 1,
-                    getFunc = function() return A.saved.y end,
-                    setFunc = function(value) UpdateLayout("y", math.floor(value)) end,
-                    default = defaults.y,
-                },
-            Checkbox("hideInMenus", {
-                    name = T("Hide HUD in menus"), width = "half",
-                    tooltip = T("Hides the list in menus, except during preview or dragging."),
-                }),
-            Checkbox("fitToScreen", {
-                    name = T("Keep HUD on screen"), width = "half",
-                    tooltip = T("Keeps the HUD on screen, shrinking only when needed. Saved position is preserved."),
-                }),
-            {
-                    type = "checkbox", name = T("Grow HUD upward"), width = "half",
-                    tooltip = T("New rows grow upward from a fixed bottom edge. Switching tries to preserve the visible position."),
-                    getFunc = function() return A.saved.growUp end,
-                    setFunc = function(value)
-                        if value == A.saved.growUp then return end
-                        local top = A.root:GetTop()
-                        local bottom = A.root.GetBottom and A.root:GetBottom() or
-                            (top + (A.root.GetHeight and A.root:GetHeight() or 0) * (A.renderScale or A.saved.scale))
-                        A.saved.y = math.floor((value and bottom or top) + 0.5)
-                        A.saved.growUp = value
-                        A.screenX, A.screenY = nil, nil
-                        A.Layout()
-                        A.Tick()
-                    end,
-                    default = defaults.growUp,
-                },
-            {
-                    type="button",name=T("Reset position"),width="half",
-                    tooltip=T("Reset only the HUD position to its default."),
-                    func=function()
-                        A.saved.x,A.saved.y=defaults.x,defaults.y;A.screenX,A.screenY=nil,nil
-                        A.Layout();A.Tick()
-                    end,
-                },
-    }
-    local function WithPosition(controls)
-        controls[#controls+1]={type="header",name=T("Position"),width="full"}
-        for _,item in ipairs(positionControls) do controls[#controls+1]=item end
-        return controls
-    end
     local options = {
         {
             type = "description", width = "full",
@@ -256,53 +200,29 @@ local function MakeSettings()
         {
                 type = "slider", name = T("Preview enemies"), width = "half",
                 tooltip = T("Sample pool per cycle: 1–24. The visible count varies as taunts start and expire."),
+                disabled = function() return not A.demo end,
                 min = 1, max = 24, step = 1,
                 getFunc = function() return A.demoCount or 14 end,
                 setFunc = function(value)
                     A.demoCount = math.floor(value)
-                    A.demoEntries = A.CreateDemo(A.demoCount)
+                    if A.demo then A.demoEntries = A.CreateDemo(A.demoCount) end
                     A.Tick()
                 end,
                 default = 14,
             },
         {
+            type = "submenu", name = T("List & layout"), width = "full",
+            controls = {
+            { type = "header", name = Colored(T("Size & spacing"), "AEBCCA"), width = "full" },
+            {
                 type = "slider", name = T("HUD size (%)"), width = "half",
                 min = 70, max = 160, step = 5,
                 getFunc = function() return math.floor(A.saved.scale * 100 + 0.5) end,
                 setFunc = function(value) UpdateLayout("scale", value / 100) end,
                 default = 115,
             },
-        ValueDropdown("barDisplay", {
-                name = T("Progress display"), width = "half",
-                tooltip = T("Narrow: countdown below the name. Full row: a colored fill drains with the timer. Names and urgency stay visible."),
-                choices = {T("Narrow bar"), T("Fill entire row")}, choicesValues = {"compact", "full"},
-            }),
-        {
-            type = "submenu", name = T("List & layout"), width = "full",
-            controls = WithPosition({
-            Checkbox("showTauntList", {
-                    name = T("Show taunt list"), width = "full",
-                    tooltip = T("Hides the list; configured tracking, boss banners and sounds continue. Preview and drag mode can still show it."),
-                }),
-            Checkbox("mirrorTauntList", {
-                    name = T("Mirror taunt list"), width = "full",
-                    tooltip = T("Timers left, names right, skulls fixed beside the right stripe. Bars empty left to right; columns mirror too. Text and sorting stay unchanged."),
-                }),
-            ValueDropdown("columns", {
-                    name = T("Columns"), width = "half",
-                    tooltip = T("One column saves width; two columns save height."),
-                    choices = {T("One column"), T("Two columns")}, choicesValues = {1, 2},
-                }),
             {
-                    type = "slider", name = T("Rows per column"), width = "half",
-                    tooltip = T("Hidden entries: +N. Active taunts sort by expiry; pinned bosses keep priority."),
-                    min = 4, max = MAX_PER_COLUMN, step = 1,
-                    getFunc = function() return A.saved.limit end,
-                    setFunc = function(value) UpdateSaved("limit", math.floor(value)) end,
-                    default = defaults.limit,
-                },
-            {
-                    type = "slider", name = T("Column width (pixels)"), width = "full",
+                    type = "slider", name = T("Column width (pixels)"), width = "half",
                     tooltip = T("Wider rows leave more space for long names. With two columns, each has this width."),
                     min = 240, max = 360, step = 10,
                     getFunc = function() return A.saved.width end,
@@ -330,15 +250,89 @@ local function MakeSettings()
                     setFunc = function(value) UpdateSaved("rowGap", math.floor(value)) end,
                     default = defaults.rowGap,
                 },
-            Checkbox("smartTime", {
-                    name = T("Smart countdown display"), width = "full",
-                    tooltip = T("Whole seconds above 5 s; tenths at 5 s or less. Color thresholds are independent."),
+            { type = "header", name = Colored(T("Columns & direction"), "AEBCCA"), width = "full" },
+            ValueDropdown("columns", {
+                    name = T("Columns"), width = "half",
+                    tooltip = T("One column saves width; two columns save height."),
+                    choices = {T("One column"), T("Two columns")}, choicesValues = {1, 2},
                 }),
-            }),
+            {
+                    type = "slider", name = T("Rows per column"), width = "half",
+                    tooltip = T("Hidden entries: +N. Active taunts sort by expiry; pinned bosses keep priority."),
+                    min = 4, max = MAX_PER_COLUMN, step = 1,
+                    getFunc = function() return A.saved.limit end,
+                    setFunc = function(value) UpdateSaved("limit", math.floor(value)) end,
+                    default = defaults.limit,
+                },
+            Checkbox("mirrorTauntList", {
+                    name = T("Mirror taunt list"), width = "half",
+                    tooltip = T("Timers left, names right, skulls fixed beside the right stripe. Bars empty left to right; columns mirror too. Text and sorting stay unchanged."),
+                }),
+            {
+                    type = "checkbox", name = T("Grow HUD upward"), width = "half",
+                    tooltip = T("New rows grow upward from a fixed bottom edge. Switching tries to preserve the visible position."),
+                    getFunc = function() return A.saved.growUp end,
+                    setFunc = function(value)
+                        if value == A.saved.growUp then return end
+                        local top = A.root:GetTop()
+                        local bottom = A.root.GetBottom and A.root:GetBottom() or
+                            (top + (A.root.GetHeight and A.root:GetHeight() or 0) * (A.renderScale or A.saved.scale))
+                        A.saved.y = math.floor((value and bottom or top) + 0.5)
+                        A.saved.growUp = value
+                        A.screenX, A.screenY = nil, nil
+                        A.Layout()
+                        A.Tick()
+                    end,
+                    default = defaults.growUp,
+                },
+            { type = "header", name = Colored(T("Position & visibility"), "AEBCCA"), width = "full" },
+            {
+                    type = "slider", name = T("Position X (pixels)"), width = "half",
+                    tooltip = T("Horizontal distance from screen left; alternatively drag the HUD."),
+                    min = 0, max = 3840, step = 1,
+                    getFunc = function() return A.saved.x end,
+                    setFunc = function(value) UpdateLayout("x", math.floor(value)) end,
+                    default = defaults.x,
+                },
+            {
+                    type = "slider", name = T("Position Y (pixels)"), width = "half",
+                    tooltip = T("Vertical distance from top edge."),
+                    min = 0, max = 2160, step = 1,
+                    getFunc = function() return A.saved.y end,
+                    setFunc = function(value) UpdateLayout("y", math.floor(value)) end,
+                    default = defaults.y,
+                },
+            Checkbox("showTauntList", {
+                    name = T("Show taunt list"), width = "full",
+                    tooltip = T("Hides the list; configured tracking, boss banners and sounds continue. Preview and drag mode can still show it."),
+                }),
+            Checkbox("hideInMenus", {
+                    name = T("Hide HUD in menus"), width = "half",
+                    tooltip = T("Hides the list in menus, except during preview or dragging."),
+                }),
+            Checkbox("fitToScreen", {
+                    name = T("Keep HUD on screen"), width = "half",
+                    tooltip = T("Keeps the HUD on screen, shrinking only when needed. Saved position is preserved."),
+                }),
+            {
+                    type="button",name=T("Reset position"),width="full",
+                    tooltip=T("Reset only the HUD position to its default."),
+                    func=function()
+                        A.saved.x,A.saved.y=defaults.x,defaults.y;A.screenX,A.screenY=nil,nil
+                        A.Layout();A.Tick()
+                    end,
+                },
+            },
         },
         {
             type = "submenu", name = T("Appearance & readability"), width = "full",
             controls = {
+            { type = "header", name = Colored(T("Bars & background"), "AEBCCA"), width = "full" },
+            ValueDropdown("barDisplay", {
+                name = T("Progress display"), width = "full",
+                tooltip = T("Narrow: countdown below the name. Full row: a colored fill drains with the timer. Names and urgency stay visible."),
+                choices = {T("Narrow bar"), T("Fill entire row")}, choicesValues = {"compact", "full"},
+            }),
             {
                     type = "checkbox", name = Colored(T("High contrast"), "FFFFFF"), width = "full",
                     tooltip = T("Vivid colors and shaded surfaces in both styles. Fonts stay unchanged; focus remains outside the row. Disabling restores your saved appearance."),
@@ -350,58 +344,11 @@ local function MakeSettings()
                     end,
                     default = defaults.highContrast,
                 },
-            Checkbox("highlightTarget", {
-                    name = Colored(T("Highlight current target"), "D4F0FF"), width = "full",
-                    tooltip = T("Pale outline around the current target, with a brief light sweep on target changes. Names and urgency colors stay unchanged."),
-                }),
-            {
-                    type = "dropdown", name = T("Highlight strength"), width = "full",
-                    tooltip = T("Same outline and light sweep. Strong adds 2 pixels to the outer border without recoloring the row."),
-                    choices = {T("Subtle"), T("Strong")}, choicesValues = {"subtle", "strong"},
-                    disabled = function() return not A.saved.highlightTarget end,
-                    getFunc = function() return A.saved.targetHighlightStyle end,
-                    setFunc = function(value)
-                        if value ~= "subtle" and value ~= "strong" then return end
-                        A.saved.targetHighlightStyle = value
-                        A.ApplyMedia()
-                        A.Tick()
-                    end,
-                    default = defaults.targetHighlightStyle,
-                },
-            {
-                    type = "slider", name = T("Background opacity (%)"), width = "half",
-                    disabled = function() return A.saved.highContrast end,
-                    min = 25, max = 100, step = 5,
-                    getFunc = function() return math.floor(A.saved.opacity * 100 + 0.5) end,
-                    setFunc = function(value) UpdateSaved("opacity", value / 100) end,
-                    default = 72,
-                },
-            MediaDropdown("fontKey", {reference="FontChoice", kind="font", first=MEDIA_FONT_DEFAULT}, {
-                    name = T("Font"), width = "half",
-                    tooltip = T("Fonts from LibMediaProvider. Arclight uses the ESO font by default; other fonts may differ by language."),
-                }),
-            MediaDropdown("timerFontKey", {reference="TimerFontChoice", kind="font",
-                first=MEDIA_TIMER_INHERIT, alternative=MEDIA_FONT_DEFAULT}, {
-                    name = T("Countdown font"), width = "half",
-                    tooltip = T("Separate LibMediaProvider font for timers. Default: enemy-name font. Narrow or monospaced digits can improve readability."),
-                }),
-            {
-                    type = "slider", name = T("Font size (%)"), width = "half",
-                    tooltip = T("Adjust text size. Long names may be shortened; the readable row minimum follows the font."),
-                    min = 85, max = 115, step = 5,
-                    getFunc = function() return A.saved.fontSize end,
-                    setFunc = function(value)
-                        A.saved.fontSize = math.floor(value)
-                        A.ApplyMedia()
-                        A.Tick()
-                    end,
-                    default = defaults.fontSize,
-                },
             MediaDropdown("barKey", {reference="BarChoice", kind="statusbar",
                 first=MEDIA_BAR_DEFAULT, alternative=MEDIA_BAR_FLAT}, {
                     name = T("Bar texture"), width = "half",
                     disabled = function() return A.saved.barDisplay == "full" or A.saved.highContrast end,
-                    tooltip = T("Narrow bars only. Signature (default): soft sheen; Signal: fine segments; Flat: solid color. More textures via LibMediaProvider."),
+                    tooltip = T("Narrow bars: Signature (default), segmented Signal or Flat. More via LibMediaProvider. High contrast uses Signature without changing your selection."),
                 }),
             {
                     type = "slider", name = T("Bar thickness (pixels)"), width = "half",
@@ -417,8 +364,16 @@ local function MakeSettings()
                     default = defaults.barHeight,
                 },
             {
-                    type = "checkbox", name = T("Emphasize bar track"), width = "full",
+                    type = "slider", name = T("Background opacity (%)"), width = "full",
                     disabled = function() return A.saved.highContrast end,
+                    min = 25, max = 100, step = 5,
+                    getFunc = function() return math.floor(A.saved.opacity * 100 + 0.5) end,
+                    setFunc = function(value) UpdateSaved("opacity", value / 100) end,
+                    default = 72,
+                },
+            {
+                    type = "checkbox", name = T("Emphasize bar track"), width = "full",
+                    disabled = function() return A.saved.highContrast or A.saved.barDisplay == "full" end,
                     tooltip = T("Brightens the empty narrow-bar track. Off: plain dark track."),
                     getFunc = function() return A.saved.texturedTrack end,
                     setFunc = function(value)
@@ -432,6 +387,32 @@ local function MakeSettings()
                     disabled = function() return A.saved.highContrast end,
                     name = Colored(T("Tint warning rows subtly"), "D8C78E"), width = "full",
                     tooltip = T("Subtle yellow/red row backgrounds near expiry. Timer and stripe keep their urgency colors."),
+                }),
+            { type = "header", name = Colored(T("Text & countdown"), "AEBCCA"), width = "full" },
+            MediaDropdown("fontKey", {reference="FontChoice", kind="font", first=MEDIA_FONT_DEFAULT}, {
+                    name = T("Font"), width = "half",
+                    tooltip = T("Fonts from LibMediaProvider. Arclight uses the ESO font by default; other fonts may differ by language."),
+                }),
+            MediaDropdown("timerFontKey", {reference="TimerFontChoice", kind="font",
+                first=MEDIA_TIMER_INHERIT, alternative=MEDIA_FONT_DEFAULT}, {
+                    name = T("Countdown font"), width = "half",
+                    tooltip = T("Separate LibMediaProvider font for timers. Default: enemy-name font. Narrow or monospaced digits can improve readability."),
+                }),
+            {
+                    type = "slider", name = T("Font size (%)"), width = "full",
+                    tooltip = T("Adjust text size. Long names may be shortened; the readable row minimum follows the font."),
+                    min = 85, max = 115, step = 5,
+                    getFunc = function() return A.saved.fontSize end,
+                    setFunc = function(value)
+                        A.saved.fontSize = math.floor(value)
+                        A.ApplyMedia()
+                        A.Tick()
+                    end,
+                    default = defaults.fontSize,
+                },
+            Checkbox("smartTime", {
+                    name = T("Smart countdown display"), width = "full",
+                    tooltip = T("On: whole seconds above 5 s, tenths at 5 s or less. Off: always tenths. Warning thresholds stay independent."),
                 }),
             {
                     type = "slider", name = Colored(T("Yellow warning at (seconds)"), C.warning), width = "half",
@@ -456,6 +437,35 @@ local function MakeSettings()
                         A.Tick()
                     end,
                     default = defaults.dangerAt,
+                },
+            { type = "header", name = Colored(T("Target focus & motion"), "AEBCCA"), width = "full" },
+            Checkbox("highlightTarget", {
+                    name = Colored(T("Highlight current target"), "D4F0FF"), width = "full",
+                    tooltip = T("Pale outline around the current target, with a brief light sweep on target changes. Names and urgency colors stay unchanged."),
+                }),
+            {
+                    type = "dropdown", name = T("Highlight strength"), width = "full",
+                    tooltip = T("Both keep the border light sweep. Strong adds 1 border pixel and a soft diagonal reflection when switching targets. Taunts and re-taunts do not trigger reflections."),
+                    choices = {T("Subtle"), T("Strong")}, choicesValues = {"subtle", "strong"},
+                    disabled = function() return not A.saved.highlightTarget end,
+                    getFunc = function() return A.saved.targetHighlightStyle end,
+                    setFunc = function(value)
+                        if value ~= "subtle" and value ~= "strong" then return end
+                        A.saved.targetHighlightStyle = value
+                        A.ApplyMedia()
+                        A.Tick()
+                    end,
+                    default = defaults.targetHighlightStyle,
+                },
+            {
+                    type = "checkbox", name = T("Reduce animations"), width = "full",
+                    tooltip = T("Stops row transitions, light effects and banner fades. Countdown bars stay smooth; warnings and sounds stay active."),
+                    getFunc = function() return A.saved.reduceAnimations end,
+                    setFunc = function(value)
+                        A.saved.reduceAnimations = value == true
+                        A.RefreshAnimationMode()
+                    end,
+                    default = defaults.reduceAnimations,
                 },
             },
         },
@@ -522,7 +532,7 @@ local function MakeSettings()
                     func = function() A.PreviewBossWarnings() end,
                 },
             }, 280),
-            { type = "header", name = Colored(T("Warning appearance"), "2FE6C4"), width = "full" },
+            { type = "header", name = Colored(T("Warning layout & timing"), "2FE6C4"), width = "full" },
             {
                     type = "slider", name = T("Warning opacity (%)"), width = "half",
                     tooltip = T("100% is opaque. Only the background changes; the warning design stays the same."),
@@ -562,28 +572,29 @@ local function MakeSettings()
                 setFunc=function(value) UpdateSaved("bossAlertDuration",math.floor(FiniteBoundedNumber(value,defaults.bossAlertDuration,1,4)*2+0.5)/2) end,
                 default=defaults.bossAlertDuration,
             },
-            { type = "header", name = Colored(T("Boss detection"), C.bossName), width = "full" },
+            { type = "header", name = Colored(T("Boss & elite detection"), C.bossName), width = "full" },
             ValueDropdown("bossMode", {
-                    name = T("Boss detection mode"), width = "full",
-                    tooltip = T("Strict: official bosses. Extended: also deadly enemies. Comprehensive: also hard enemies, including some world/Craglorn bosses. Difficulty may include non-bosses; a valid unit observation is required."),
-                    choices = {T("Strict (official boss bars only)"), T("Extended (including deadly enemies)"), T("Comprehensive (including hard enemies)")},
-                    choicesValues = {"strict", "dangerous", "comprehensive"},
+                    name = T("Enemies to highlight"), width = "full",
+                    tooltip = T("Boss bars identify bosses. The broader option also highlights enemies ESO rates as hard or deadly; they are not necessarily bosses. Requires a valid unit observation."),
+                    choices = {T("Only enemies with ESO boss bars"), T("Bosses and strong enemies")},
+                    choicesValues = {"strict", "comprehensive"},
                 }),
             Checkbox("bossAlertElites", {
-                    name = T("Elite alerts (experimental)"), width = "full",
-                    tooltip = T("Off by default: warnings require official boss tags. Enable to include difficulty-based candidates, possibly strong non-bosses."),
+                    name = T("Also show banners for strong enemies"), width = "full",
+                    tooltip = T("Off: warnings only for enemies identified through ESO boss bars. On: includes highlighted strong enemies in enabled banners and their configured sounds."),
+                    disabled = function() return A.saved.bossMode == "strict" end,
                 }),
             Checkbox("pinBosses", {
                     name = T("Pin bosses to top"), width = "full",
-                    tooltip = T("Pins bosses above other enemies, expired bosses first. Active bosses sort by time; normal removal rules apply. Default: off."),
+                    tooltip = T("Pins highlighted bosses and strong enemies above other targets, expired first. Active entries sort by time. Default: off."),
                 }),
             Checkbox("showBossIcon", {
                     name = T("Boss skull icons") .. " |t24:21:" .. A.BOSS_ICON_TEXTURE .. "|t", width = "full",
-                    tooltip = T("Skulls mark bosses identified by tags or difficulty. Comprehensive may include strong non-bosses; matching names alone never qualify."),
+                    tooltip = T("Skulls mark enemies included by your highlight selection. Strong enemies are not necessarily bosses; matching names alone never qualify."),
                 }),
             Checkbox("highlightBossNames", {
                     name = Colored(T("Highlight boss names"), C.bossName), width = "full",
-                    tooltip = T("Champagne boss names and ivory skulls. Urgency colors and target focus stay unchanged."),
+                    tooltip = T("Champagne names and ivory skulls follow your highlight selection. Urgency colors and target focus stay unchanged."),
                 }),
 
             },

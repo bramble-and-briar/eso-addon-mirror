@@ -1956,8 +1956,16 @@ function PvPUA:CreateUI()
     if SCENE_MANAGER and not self.listSceneHooked then
         self.listSceneHooked = true
         SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, _, newState)
-            if newState == SCENE_HIDDEN and PvPUA:IsSettingsSceneObject(scene) then
-                PvPUA.listPreview = false
+            if PvPUA:IsSettingsSceneObject(scene) then
+                if newState == SCENE_HIDDEN then
+                    if PvPUA.Move and PvPUA.Move.target then
+                        PvPUA.keepPage = true
+                    else
+                        PvPUA.listPreview = false
+                    end
+                elseif newState == SCENE_SHOWN then
+                    PvPUA.keepPage = nil
+                end
             end
             if newState == SCENE_SHOWN or newState == SCENE_HIDDEN then
                 PvPUA:ApplyListVisibility()
@@ -3228,7 +3236,10 @@ function PvPUA:CreateSettings()
             return font
         end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,
-        rememberPage    = function() return PvPUA.savedVariables.settingsRemember == true end,
+        rememberPage    = function()
+            return PvPUA.savedVariables.settingsRemember == true or PvPUA.keepPage == true
+                or (PvPUA.Move ~= nil and PvPUA.Move.target ~= nil)
+        end,
         lastPage        = function()
             local sv = PvPUA.savedVariables
             if type(sv.settingsLastPage) ~= "table" then sv.settingsLastPage = {} end

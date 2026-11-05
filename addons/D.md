@@ -143,7 +143,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Don't push the horses!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/Don-t-push-the-horses__4184) | Frozenshtoldts | PC / Mac | 1.0.6 |
 | [Donation Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Libum/Donation-Tracker__2191) | Libum | PC / Mac | 1.20 |
 | [Dont Portal Twice (Cloudrest)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Dont-Portal-Twice-Cloudrest__2511) | ownedbynico | PC / Mac | 1.3 |
-| [DontDownload](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/DontDownload__31353ae2-3899-477e-935e-69f9756c9d60) | FiNk3F13 | Console | — |
 | [DontLeaveGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uberswe/DontLeaveGuild__3335) | uberswe | PC / Mac | 1.2 |
 | [DovahMova - Ukrainian AI Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/DovahMova---Ukrainian-AI-Localization__4202) | Frozenshtoldts | PC / Mac | 1.5.2 |
 | [DoYouEvenDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AiMPlAyEr/DoYouEvenDebuff__2243) | AiMPlAyEr | PC / Mac | 1.7 |

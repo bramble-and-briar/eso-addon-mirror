@@ -6,7 +6,6 @@ local EP_HEX = U.EP_HEX
 local RainbowText = U.RainbowText
 local GetColorForAlliance = U.GetColorForAlliance
 local IsInCyrodiilOrIC = U.IsInCyrodiilOrIC
-local ScreenBounds = U.ScreenBounds
 local DetailsFont = U.DetailsFont
 local EA_FONT_CHOICES = U.EA_FONT_CHOICES
 local SAVED_ACCOUNT_TIP = U.SAVED_ACCOUNT_TIP
@@ -25,6 +24,36 @@ function PvPUA:ApplyScale()
     if not self.controls.TLW then return end
     local scale = self.savedVariables and self.savedVariables.uiScale or 1.0
     self.controls.TLW:SetScale(scale)
+end
+
+function PvPUA:ListMoveTarget()
+    local sv = self.savedVariables
+    return {
+        controls    = function() return { self.controls.TLW } end,
+        bounds      = function() return self:ScreenEdges() end,
+        getPosition = function()
+            return sv.posX or PvPUA.defaults.posX, sv.posY or PvPUA.defaults.posY
+        end,
+        setPosition = function(x, y)
+            sv.posX, sv.posY = x, y
+            self:ApplyPosition()
+        end,
+        getSize     = function() return math.floor((sv.uiScale or 1.0) * 100 + 0.5) end,
+        setSize     = function(size)
+            sv.uiScale = size / 100
+            self:ApplyScale()
+        end,
+        sizeMin     = 80,
+        sizeMax     = 150,
+        sizeSpeed   = 40,
+        defaultX    = PvPUA.defaults.posX,
+        defaultY    = PvPUA.defaults.posY,
+        defaultSize = 100,
+        setMoving   = function(on)
+            self.listMoving = on
+            self:ApplyListVisibility()
+        end,
+    }
 end
 
 --------------------------------------------------
@@ -172,7 +201,9 @@ function PvPUA:ApplyListVisibility()
     if self:IsHudScene() or self:IsSiegeScene() then return end
 
     local show
-    if self:IsSettingsScene() then
+    if self.listMoving or self.placing then
+        show = true
+    elseif self:IsSettingsScene() then
         show = self.listPreview == true
     else
         show = self:ShowListInMenus()
@@ -511,7 +542,6 @@ end
 -- Menu
 --------------------------------------------------
 function PvPUA:ListMenu()
-    local screenW, screenH = ScreenBounds()
     return { type = "submenu",
           name = "|c" .. DC_HEX .. "List|r",
           tooltip = SAVED_ACCOUNT_TIP,
@@ -588,21 +618,10 @@ function PvPUA:ListMenu()
               PvPUA.listPreview = v == true
               PvPUA:ApplyListVisibility()
           end },
-        { type = "slider", name = "Size", min = 80, max = 150, step = 5,
-          default = 100,
-          tooltip = "Default is 100.",
-          getFunc = function() return math.floor((self.savedVariables.uiScale or 1.0) * 100 + 0.5) end,
-          setFunc = function(v) self.savedVariables.uiScale = v / 100; self:ApplyScale() end },
-        { type = "slider", name = "Horizontal Position", min = 0, max = screenW, step = 5,
-          default = PvPUA.defaults.posX,
-          tooltip = "Default is " .. PvPUA.defaults.posX .. ".",
-          getFunc = function() return self.savedVariables.posX end,
-          setFunc = function(v) self.savedVariables.posX = v; self:ApplyPosition() end },
-        { type = "slider", name = "Vertical Position", min = 0, max = screenH, step = 5,
-          default = PvPUA.defaults.posY,
-          tooltip = "Default is " .. PvPUA.defaults.posY .. ".",
-          getFunc = function() return self.savedVariables.posY end,
-          setFunc = function(v) self.savedVariables.posY = v; self:ApplyPosition() end },
+        { type = "button", name = "Move / Scale", buttonText = "Move / Scale",
+          tooltip = PvPUA.MOVE_TIP,
+          disabled = function() return not IsInCyrodiilOrIC() end,
+          func = function() self:StartMove(self:ListMoveTarget()) end },
         { type = "checklist",
           name = "Show in List",
           noSelectionText = "None",

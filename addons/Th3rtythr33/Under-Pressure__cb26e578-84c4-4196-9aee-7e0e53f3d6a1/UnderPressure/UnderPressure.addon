@@ -1,11 +1,11 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.5.12
-## AddOnVersion: 23
+## Version: 0.5.14
+## AddOnVersion: 25
 ## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
-## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a report says who applied it, who removed it and with what, and which of your group were killed in the explosion; shown in chat, in a callout beside the death recap, or hidden, with the last 20 kept under Plague Indicator > History. Experimental, off by default: watch your group for Plague Carrier and be told who has it, so you can stay 8 metres clear of them. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, and two seconds before a Leashing Burst from the moment the enemy casts it, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges.
+## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a report says who applied it, who removed it and with what, and which of your group were killed in the explosion; shown in chat, in a callout beside the death recap, or hidden, with the last 20 kept under Plague Indicator > History. Experimental, off by default: watch your group for Plague Carrier and be told who has it, so you can stay 8 metres clear of them. Each Indicator can be turned off in the settings if it's not wanted. Pull Indicator (off by default): warns you about a second before an enemy's Rush of Agony or Dark Convergence pulls you, as flashing corner icons, an icon beside the reticle and/or flashing bars down both screen edges.
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are
@@ -26,6 +26,14 @@
 ; Indicator description). 0.5.9 = 20 (2026-10-30/31: explosion report rewritten
 ; in Matt's wording, with friends killed within 2 s and only for your own plague;
 ; report routed to chat / death recap callout / hidden and kept in History).
+; 0.5.14 = 25 (2026-11-05: Leashing Burst detection removed entirely; Matt
+; went over the combat log data and found no reliable signal. 0.5.13 was
+; built and dry-run validated but never uploaded, so 24 never existed on
+; Bethesda.net.)
+; 0.5.13 = 24 (2026-11-04: a Leashing Burst cast warns only once the caster
+; lands a close-range hit on you or a groupmate while the buff runs, or did
+; within the second before; Engine/Allegiance.lua and the PvP-area gate are
+; gone, both having produced false alarms by the dozen).
 ; 0.5.12 = 23 (2026-11-03: Pull History at the bottom of the Pull Indicator
 ; page, the last 20 warnings with set, route, source, ability, lead and zone,
 ; to diagnose a warning seen in PvE; and the Leashing Burst caster route now
@@ -96,7 +104,6 @@ Engine/AttackerTracker.lua
 Engine/SilenceTracker.lua
 Engine/PlagueTracker.lua
 Engine/PlagueGroup.lua
-Engine/Allegiance.lua
 Engine/PullTracker.lua
 Engine/PressureEngine.lua
 Engine/EventIngest.lua

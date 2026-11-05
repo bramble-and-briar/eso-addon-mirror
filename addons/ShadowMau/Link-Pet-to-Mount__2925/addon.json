@@ -1,31 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/ShadowMau/Link-Pet-to-Mount__2925",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "ShadowMau",
   "canonical_id": "esoui:2925",
   "category_id": "114",
-  "compatibility": [
-    {
-      "name": "Blackwood",
-      "version": "7.0.5"
-    },
-    {
-      "name": "Flames of Ambition",
-      "version": "6.3.5"
-    },
-    {
-      "name": "Markarth",
-      "version": "6.2.5"
-    }
-  ],
+  "compatibility": [],
   "content_id": "esoui:2925",
   "deleted": false,
   "directories": [
     "LinkPetToMount"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2925/",
-  "fingerprint": "2efedd83882a3e7d72084e86f105e909e675e9cf7351b21ff9e471c97d37d597",
+  "fingerprint": "cf166ba391f48a15cfb4641f57529619ed3d43c37259c83b097579a77a145826",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10018.png",
     "https://cdn-eso.mmoui.com/preview/pvw10019.png",
@@ -37,9 +25,9 @@
   "source_id": "2925",
   "source_url": "https://www.esoui.com/downloads/info2925-LinkPettoMount.html",
   "stats": {
-    "downloads": 4549,
+    "downloads": 4580,
     "favorites": 3,
-    "monthly_downloads": 8
+    "monthly_downloads": 7
   },
   "title": "Link Pet to Mount",
   "updated_at": 1626049868000,

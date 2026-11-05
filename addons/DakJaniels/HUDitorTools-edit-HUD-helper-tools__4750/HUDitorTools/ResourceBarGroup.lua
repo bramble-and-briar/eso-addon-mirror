@@ -3,8 +3,9 @@
 -- PlayerAttributeBars.lua: NORMAL_WIDTH 237, EXPANDED_WIDTH 323, SHRUNK_WIDTH 141.
 -- Pyramid matches LuiExtended UnitFrames.RepositionDefaultFrames: magicka
 -- TOPRIGHT and stamina TOPLEFT on health BOTTOM. Health stays CENTER.
--- ShrinkExpand OnValueChanged(..., ANIMATION_INSTANT) keeps every width at 237.
--- PlayerAttributeBars.lua AddModule list, unregistered by class .. GetModuleId().
+-- ShrinkExpand stays registered. Don't expand keeps increased max power at
+-- normalWidth. Other PlayerAttributeBars visual modules are unregistered
+-- by class .. GetModuleId().
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
 
@@ -19,6 +20,7 @@ HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH = STOCK_BAR_WIDTH * 2
 
 local groupedLayoutIsApplied = false
 local resourceBarHooksInstalled = false
+local shrinkExpandOnValueChangedHooked = false
 local shrinkExpandModule = nil
 
 -- Event namespace is the string passed to RegisterForEvent in each module's OnAdded.
@@ -197,24 +199,51 @@ local function RestoreStockResourceBarLayout()
     PLAYER_ATTRIBUTE_BARS:ResizeToFitScreen()
 end
 
-local function ApplyPreventResourceBarExpand()
+-- Instance method only. Target frames use ZO_UnitVisualizer_ShrinkExpandModule too.
+-- While the original runs, the instance field points at the original so any
+-- self:OnValueChanged() call inside it cannot re-enter this wrapper.
+local function HookPlayerShrinkExpandOnValueChanged(shrinkModule)
+    if shrinkExpandOnValueChangedHooked then
+        return
+    end
+    shrinkExpandOnValueChangedHooked = true
+    local originalOnValueChanged = ZO_UnitVisualizer_ShrinkExpandModule.OnValueChanged
+    local hookedOnValueChanged
+    hookedOnValueChanged = function (self, bar, info, stat, instant)
+        if HT.IsResourceBarPreventExpand() and info.value > 0 then
+            -- Stop a width animation that is already playing, or it writes the expanded width when it ends.
+            if info.animation then
+                info.animation:Stop()
+            end
+            info.state = ATTRIBUTE_BAR_STATE_NORMAL
+            SetBarWidth(bar, self.normalWidth)
+            return
+        end
+        self.OnValueChanged = originalOnValueChanged
+        originalOnValueChanged(self, bar, info, stat, instant)
+        self.OnValueChanged = hookedOnValueChanged
+    end
+    shrinkModule.OnValueChanged = hookedOnValueChanged
+end
+
+local function ApplyResourceBarExpandSetting()
     local shrinkModule = GetShrinkExpandModule()
+    if not shrinkModule then
+        return
+    end
+    HookPlayerShrinkExpandOnValueChanged(shrinkModule)
     shrinkModule.normalWidth = STOCK_BAR_WIDTH
-    shrinkModule.expandedWidth = STOCK_BAR_WIDTH
-    shrinkModule.shrunkWidth = STOCK_BAR_WIDTH
+    shrinkModule.expandedWidth = STOCK_EXPANDED_WIDTH
+    shrinkModule.shrunkWidth = STOCK_SHRUNK_WIDTH
     -- OnAdded calls InitializeBarValues only when IsPlayerActivated() is already true.
     if not shrinkModule.barInfo then
         return
     end
     for stat, bar in pairs(shrinkModule.barControls) do
         local info = shrinkModule.barInfo[stat]
-        -- TryChangingState returns a width only when info.state does not already match.
-        if info.value == 0 then
-            info.state = ATTRIBUTE_BAR_STATE_EXPANDED
-        else
-            info.state = ATTRIBUTE_BAR_STATE_NORMAL
+        if info then
+            shrinkModule:OnValueChanged(bar, info, stat, ANIMATION_INSTANT)
         end
-        shrinkModule:OnValueChanged(bar, info, stat, ANIMATION_INSTANT)
     end
 end
 
@@ -230,13 +259,13 @@ function HT.ApplyResourceBarGroup()
         RestoreStockResourceBarLayout()
         groupedLayoutIsApplied = false
     end
-    ApplyPreventResourceBarExpand()
+    ApplyResourceBarExpandSetting()
 end
 
 function HT.SetResourceBarPreventExpand(preventExpand)
     local settings = GetResourceBarGroupSettings()
     settings.preventExpand = preventExpand == true
-    ApplyPreventResourceBarExpand()
+    ApplyResourceBarExpandSetting()
     HT.RefreshLayoutInfoBoxSection()
 end
 
@@ -340,11 +369,14 @@ end
 local function SilencePlayerAttributeVisualizer()
     local visualModules = PLAYER_ATTRIBUTE_BARS.attributeVisualizer.visualModules
     for visualModule in pairs(visualModules) do
-        local eventName = GetPlayerAttributeVisualEventName(visualModule)
-        EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_PLAYER_ACTIVATED)
-        EVENT_MANAGER:UnregisterForUpdate(eventName)
-        ReleasePlayerAttributeVisualModule(visualModule)
-        visualModules[visualModule] = nil
+        -- ShrinkExpand stays registered so Don't expand can restore stock grow and shrink.
+        if not visualModule:IsInstanceOf(ZO_UnitVisualizer_ShrinkExpandModule) then
+            local eventName = GetPlayerAttributeVisualEventName(visualModule)
+            EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_PLAYER_ACTIVATED)
+            EVENT_MANAGER:UnregisterForUpdate(eventName)
+            ReleasePlayerAttributeVisualModule(visualModule)
+            visualModules[visualModule] = nil
+        end
     end
 end
 

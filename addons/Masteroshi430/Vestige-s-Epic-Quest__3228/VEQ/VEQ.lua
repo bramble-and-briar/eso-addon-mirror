@@ -851,6 +851,7 @@ function VEQ.DisplayFocusedMiniQuest()
 			    ZO_EndDunHUDTracker:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, -(VEQ.main:GetWidth()-100), 40) -- move endless dungeon UI at the bottom of VEQ
 			 end
 			 ZO_HouseInformationTrackerTopLevel:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move house information UI at the bottom of VEQ
+       ZO_DynamicEventsTracker_TL:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move Dynamic events UI at the bottom of VEQ
 		     return 
 		  end
  
@@ -1125,12 +1126,13 @@ function VEQ.DisplayFocusedMiniQuest()
 		  VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+(VEQ.main:GetWidth()/5), (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop()) + 250)
 		
 			BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move battlegrounds UI at the bottom of VEQ
+      
 			if ZO_EndDunHUDTracker then
 			   ZO_EndDunHUDTracker:ClearAnchors()
 			   ZO_EndDunHUDTracker:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, -(VEQ.main:GetWidth()-120), 80) -- move endless dungeon UI at the bottom of VEQ
 			end
 			ZO_HouseInformationTrackerTopLevel:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move house information UI at the bottom of VEQ
-      
+      ZO_DynamicEventsTracker_TL:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move Dynamic events UI at the bottom of VEQ
 end
  
  

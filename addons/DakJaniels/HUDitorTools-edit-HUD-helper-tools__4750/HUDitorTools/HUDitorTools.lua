@@ -10,7 +10,7 @@ local HT = HUDitorTools
 
 -- Addon data
 local addonWebsite = "https://www.esoui.com/downloads/info4750"
-HT.version = "1.3.2"
+HT.version = "1.3.3"
 HT.name = "HUDitor Tools"
 HT.displayName = "|c00FF00HUD|cFFFF00itor|r Tools"
 HT.eventName = "HUDitorTools"

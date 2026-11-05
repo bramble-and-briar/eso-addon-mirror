@@ -74,7 +74,7 @@
     "LibFurnitureCatalogue"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4804/",
-  "fingerprint": "d44d336e4871fa3b1f8944d937f09a87104bd1f781c2e171c0678a5b0df21459",
+  "fingerprint": "5ef6507cdafe0e5e8121207dbeca1e8cb339c34aa9fd23ba7a12c449747306bb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17297.png",
     "https://cdn-eso.mmoui.com/preview/pvw17298.png",
@@ -88,11 +88,11 @@
   "source_id": "4804",
   "source_url": "https://www.esoui.com/downloads/info4804-LibFurnitureCatalogue.html",
   "stats": {
-    "downloads": 1005,
-    "favorites": 2,
-    "monthly_downloads": 564
+    "downloads": 3572,
+    "favorites": 10,
+    "monthly_downloads": 2619
   },
   "title": "LibFurnitureCatalogue",
-  "updated_at": 1791684760000,
-  "version": "1.2.0"
+  "updated_at": 1793782975000,
+  "version": "1.3.0"
 }

@@ -55,6 +55,46 @@ function Settings:Load()
         end
     end
 
+    -- Deep-merge quadrants sub-table
+    if type(defaults.quadrants) == "table" then
+        sv.quadrants = sv.quadrants or {}
+        for k, v in pairs(defaults.quadrants) do
+            if sv.quadrants[k] == nil then
+                sv.quadrants[k] = v
+            end
+        end
+    end
+
+    -- Deep-merge quadrantsEnemy sub-table
+    if type(defaults.quadrantsEnemy) == "table" then
+        sv.quadrantsEnemy = sv.quadrantsEnemy or {}
+        for k, v in pairs(defaults.quadrantsEnemy) do
+            if sv.quadrantsEnemy[k] == nil then
+                sv.quadrantsEnemy[k] = v
+            end
+        end
+    end
+
+    -- Deep-merge quadrantsNeutral sub-table
+    if type(defaults.quadrantsNeutral) == "table" then
+        sv.quadrantsNeutral = sv.quadrantsNeutral or {}
+        for k, v in pairs(defaults.quadrantsNeutral) do
+            if sv.quadrantsNeutral[k] == nil then
+                sv.quadrantsNeutral[k] = v
+            end
+        end
+    end
+
+    -- Deep-merge lines sub-table
+    if type(defaults.lines) == "table" then
+        sv.lines = sv.lines or {}
+        for k, v in pairs(defaults.lines) do
+            if sv.lines[k] == nil then
+                sv.lines[k] = v
+            end
+        end
+    end
+
     self._data = sv
     MugShot.logger:Info("Settings: loaded (schemaVersion=%d, enabled=%s)",
         self._data.schemaVersion, tostring(self._data.enabled))

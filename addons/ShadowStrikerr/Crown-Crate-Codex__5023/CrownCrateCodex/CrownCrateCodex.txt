@@ -1,0 +1,35 @@
+## Title: Crown Crate Codex
+## Description: Automatically discovers crate types and records rewards, tiers, history, and personal statistics.
+## Author: Crown Crate Codex contributors
+## Version: 0.12.6
+## APIVersion: 101051
+## SavedVariables: CrownCrateCodexSavedVariables
+## OptionalDependsOn: CrownCrateLogger LibAddonMenu-2.0
+
+Core.lua
+Localization.lua
+lang/en.lua
+lang/de.lua
+lang/fr.lua
+lang/es.lua
+lang/ru.lua
+lang/zh.lua
+lang/ja.lua
+Rewards.lua
+HistoricalCatalog.lua
+GemCatalog.lua
+Catalog.lua
+Import.lua
+LegacySeed.lua
+Status.lua
+Navigation.lua
+Gamepad.lua
+UI.lua
+Choices.lua
+Tooltips.lua
+Stats.lua
+Settings.lua
+LegacyImportUI.lua
+Export.lua
+Bootstrap.lua
+Bindings.xml

@@ -38,6 +38,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rakkis Guild Points](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arkais_troumaan/Rakkis-Guild-Points__2605) | arkais_troumaan | PC / Mac | 1.15 |
 | [Rally Group](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Rally-Group__4658) | evainefaye | PC / Mac | 1.02 |
 | [Rallying Cry Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rallying-Cry-Tracker__cec19621-d3f2-4b43-b391-5d028918cfb4) | codeWarrior82 | Console | — |
+| [Ramaladni - Class Mastery & Buff/Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/adilmf/Ramaladni---Class-Mastery-Buff-Debuff-Tracker__5022) | adilmf | PC / Mac | v1.0.0_STABLE |
 | [Ranckor's Baggage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Ranckor-s-Baggage__a17836b4-17ec-478f-91a6-f0c59e123e2a) | Ranckor90 | Console | — |
 | [Ranckors Baggage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Ranckors-Baggage__3933) | Ranckor90 | PC / Mac | v3.1.2 |
 | [Ranckors Leaderboard Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Ranckors-Leaderboard-Tracker__4047) | Ranckor90 | PC / Mac | v1.0.3 |
@@ -129,7 +130,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.30 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.11.04 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |

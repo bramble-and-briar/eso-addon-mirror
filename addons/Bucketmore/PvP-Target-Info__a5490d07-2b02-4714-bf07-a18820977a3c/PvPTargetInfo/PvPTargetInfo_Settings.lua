@@ -510,8 +510,40 @@ function PTI.Settings.Initialize()
         setFunc = function(value) PTI.sv.cd.showReady = value end,
     })
     table.insert(cdControls, {
+        type = "dropdown",
+        name = "表示モード",
+        tooltip = "常時表示: 戦闘外でも表示します。戦闘終了後は非表示: 戦闘終了の数秒後にパネルを隠し、次の戦闘開始で再表示します。隠れている間もCDの計測は続きます。",
+        choices = { "常時表示(既定)", "戦闘終了後は非表示" },
+        choicesValues = { "always", "combat" },
+        getFunc = function() return PTI.sv.cdUI.displayMode or "always" end,
+        setFunc = function(value)
+            PTI.sv.cdUI.displayMode = value
+            if PTI.ProcCD and PTI.ProcCD.ApplyDisplayMode then PTI.ProcCD.ApplyDisplayMode() end
+        end,
+    })
+    table.insert(cdControls, { type = "header", name = "Procの自動学習" })
+    table.insert(cdControls, {
         type = "description",
-        text = "ICD秒数は、①/pti cd add で実測登録した値、②定義表の確認済みの値、③装備セットの説明文から読み取れた値(PS5実機未検証)のいずれかを使います。装備中セットごとの状況は /pti cd sets で確認できます。",
+        text = "通常の戦闘中に、装備セットのProcに関係しそうな戦闘イベントを観察して学習します。根拠が十分に揃ったものだけ自動で使い、それ以外は候補として保存するだけで検知には使いません。誤って登録するより、未登録のままにする方針です。(PS5実機未検証)",
+    })
+    table.insert(cdControls, {
+        type = "checkbox",
+        name = "Procを自動学習する",
+        getFunc = function() return PTI.sv.cd.autoLearn ~= false end,
+        setFunc = function(value)
+            PTI.sv.cd.autoLearn = value
+            if PTI.ProcCD and PTI.ProcCD.SyncCombat then PTI.ProcCD.SyncCombat() end
+        end,
+    })
+    table.insert(cdControls, {
+        type = "button",
+        name = "学習状況をチャットに表示",
+        tooltip = "学習済みセット数・AbilityId数・未確認の候補数を表示します。候補の一覧と確定は /pti cd auto list / accept で行います。",
+        func = function() if PTI.ProcCD and PTI.ProcCD.PrintAutoStatus then PTI.ProcCD.PrintAutoStatus() end end,
+    })
+    table.insert(cdControls, {
+        type = "description",
+        text = "ICD秒数は、①/pti cd add で実測登録した値、②定義表の確認済みの値、③装備セットの説明文から読み取れた値(PS5実機未検証)のいずれかを使います。装備中セットの状況は /pti cd sets、説明文の全文は /pti cd text、ICD候補の分析は /pti cd icd で確認できます。",
     })
     table.insert(optionsTable, {
         type = "submenu",

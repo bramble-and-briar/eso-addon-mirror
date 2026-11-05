@@ -16,16 +16,19 @@ local defaultSV = {
 	windowTop = 87,
 	windowWidth = 956,
 	windowHeight = 674,
-	savedSales = {},
-	lastEventIds = {},
-	itemPriceHistory = {},
-	guildProcessorsEnabled = {},
-	guildMapping = {},
 	enableSaleNotifications = true,
 	enableSaleNotificationsChat = true,
-	lifetimeGold = 0,
 	enablePriceTooltips = true,
 	enableKioskDeals = true,
+	guildProcessorsEnabled = {},
+	lifetimeGold = 0,
+	lastEventIds = {},
+}
+
+local defaultSV_Data = {
+	savedSales = {},
+	itemPriceHistory = {},
+	guildMapping = {},
 }
 
 GR.SV = {}
@@ -250,7 +253,7 @@ function GR.CreateCleanSale(timestamp, guildName, buyer, quantity, itemLink, pri
 	}
 end
 
-function GR.AddSale(eventId, timestamp, guildName, seller, buyer, quantity, itemLink, price, tax)
+function GR.AddSale(eventId, timestamp, guildName, seller, buyer, quantity, itemLink, price, tax, wasNew)
 	if "@" .. seller ~= GR.displayName then return false end
 	if GR.sales[eventId] then return false end
 
@@ -258,7 +261,10 @@ function GR.AddSale(eventId, timestamp, guildName, seller, buyer, quantity, item
 	local sale = GR.CreateCleanSale(timestamp, guildName, buyer, quantity, normItemLink, price, tax)
 	GR.sales[eventId] = sale
 
-	GR.SV.lifetimeGold = GR.SV.lifetimeGold + price
+	if wasNew then
+		GR.SV.lifetimeGold = GR.SV.lifetimeGold + price
+	end
+
 	GR.SaveSales()
 	GR.BuildSalesList()
 	GR.NotifySale(sale)
@@ -273,9 +279,12 @@ function GR.UpdateAvgPriceCache(itemLink)
 	local totalGold = 0
 	local totalQty = 0
 
-	for _, bucket in pairs(GR.SV.itemPriceHistory[itemLink]) do
-		totalGold = totalGold + bucket[1]
-		totalQty = totalQty + bucket[2]
+	for _, packed in pairs(GR.Data.itemPriceHistory[itemLink]) do
+		local p, q = packed:match("^(%d+),(%d+)$")
+		if p then
+			totalGold = totalGold + tonumber(p)
+			totalQty = totalQty + tonumber(q)
+		end
 	end
 
 	GR.avgPriceCache[itemLink] = totalGold / totalQty
@@ -283,7 +292,7 @@ end
 
 function GR.RebuildAvgPriceCache()
 	ZO_ClearTable(GR.avgPriceCache)
-	for itemLink, _ in pairs(GR.SV.itemPriceHistory) do
+	for itemLink, _ in pairs(GR.Data.itemPriceHistory) do
 		GR.UpdateAvgPriceCache(itemLink)
 	end
 end
@@ -464,8 +473,9 @@ function GR.SetupGuildProcessor(guildId, guildName)
 	end
 
 	local lastEventId = GR.SV.lastEventIds[guildName]
+	local forceBackfill = next(GR.Data.itemPriceHistory) == nil
 
-	if lastEventId then
+	if lastEventId and not forceBackfill then
 		processor:SetAfterEventId(lastEventId)
 	else
 		local cutoffTime = GetTimeStamp() - GR.SV.keepDays * SECONDS_IN_DAY
@@ -492,13 +502,15 @@ function GR.SetupGuildProcessor(guildId, guildName)
 		end
 
 		local prev = GR.SV.lastEventIds[guildName]
-		if not prev or eventId > prev then
+		local wasNew = not prev or eventId > prev
+
+		if wasNew then
 			GR.SV.lastEventIds[guildName] = eventId
 		end
 
 		if "@" .. seller == GR.displayName then
 			GR.AddSale(eventId, timestamp, guildName, seller, buyer,
-					   quantity, itemLink, price, tax)
+					   quantity, itemLink, price, tax, wasNew)
 		end
 	end
 
@@ -527,14 +539,14 @@ function GR.SaveSales()
 
 	for eventId, sale in pairs(GR.sales) do
 		if sale.timeStamp > cutoffTime then
-			local guildId = GR.SV.guildMapping[sale.guildName]
+			local guildId = GR.Data.guildMapping[sale.guildName]
 			if not guildId then
 				local maxId = 0
-				for _, existingId in pairs(GR.SV.guildMapping) do
+				for _, existingId in pairs(GR.Data.guildMapping) do
 					if existingId > maxId then maxId = existingId end
 				end
 				guildId = maxId + 1
-				GR.SV.guildMapping[sale.guildName] = guildId
+				GR.Data.guildMapping[sale.guildName] = guildId
 			end
 
 			GR._salesToSave[eventId] = {
@@ -549,18 +561,18 @@ function GR.SaveSales()
 		end
 	end
 
-	GR.SV.savedSales = GR._salesToSave
+	GR.Data.savedSales = GR._salesToSave
 end
 
 function GR.LoadSavedSales()
 	local cutoffTime = GetTimeStamp() - GR.SV.keepDays * SECONDS_IN_DAY
 
 	local idToName = {}
-	for name, id in pairs(GR.SV.guildMapping) do
+	for name, id in pairs(GR.Data.guildMapping) do
 		idToName[id] = name
 	end
 
-	for eventId, sale in pairs(GR.SV.savedSales) do
+	for eventId, sale in pairs(GR.Data.savedSales) do
 		if sale[1] > cutoffTime then
 			GR.sales[eventId] = {
 				timeStamp = sale[1],
@@ -581,19 +593,21 @@ end
 -- ============================================
 function GR.AddPriceHistory(itemLink, price, quantity, timestamp)
 	local normLink = GR.NormalizeItemLink(itemLink)
+	if not normLink then return end
 
-	if not GR.SV.itemPriceHistory[normLink] then
-		GR.SV.itemPriceHistory[normLink] = {}
+	local history = GR.Data.itemPriceHistory[normLink]
+	if not history then
+		history = {}
+		GR.Data.itemPriceHistory[normLink] = history
 	end
 
 	local dayId = math.floor(timestamp / 86400)
-	local dayData = GR.SV.itemPriceHistory[normLink][dayId]
-
-	if not dayData then
-		GR.SV.itemPriceHistory[normLink][dayId] = { price, quantity }
+	local packed = history[dayId]
+	if packed then
+		local p, q = packed:match("^(%d+),(%d+)$")
+		history[dayId] = (tonumber(p) + price) .. "," .. (tonumber(q) + quantity)
 	else
-		dayData[1] = dayData[1] + price
-		dayData[2] = dayData[2] + quantity
+		history[dayId] = price .. "," .. quantity
 	end
 
 	GR.UpdateAvgPriceCache(normLink)
@@ -604,7 +618,7 @@ function GR.CleanPriceHistory()
 	local cutoffDay = currentDay - GR.SV.keepDays
 	local cleanedCount = 0
 
-	for itemLink, dayBuckets in pairs(GR.SV.itemPriceHistory) do
+	for itemLink, dayBuckets in pairs(GR.Data.itemPriceHistory) do
 		for dayId, _ in pairs(dayBuckets) do
 			if dayId < cutoffDay then
 				dayBuckets[dayId] = nil
@@ -613,7 +627,7 @@ function GR.CleanPriceHistory()
 		end
 
 		if next(dayBuckets) == nil then
-			GR.SV.itemPriceHistory[itemLink] = nil
+			GR.Data.itemPriceHistory[itemLink] = nil
 		end
 	end
 
@@ -769,7 +783,7 @@ function GR.CleanGuildData()
 		end
 	end
 
-	for guildName, _ in pairs(GR.SV.guildMapping) do
+	for guildName, _ in pairs(GR.Data.guildMapping) do
 		if not currentGuilds[guildName] then
 			local hasSales = false
 			for _, sale in pairs(GR.sales) do
@@ -780,7 +794,7 @@ function GR.CleanGuildData()
 			end
 
 			if not hasSales then
-				GR.SV.guildMapping[guildName] = nil
+				GR.Data.guildMapping[guildName] = nil
 			end
 		end
 	end
@@ -803,6 +817,13 @@ local function OnAddOnLoaded(_, addonName)
 	GR.displayName = GetDisplayName()
 
 	GR.SV = ZO_SavedVars:NewAccountWide("GoldRush_SV", 2, nil, defaultSV, GetWorldName())
+	GR.Data = ZO_SavedVars:NewAccountWide("GoldRush_SV_Data", 1, nil, defaultSV_Data, GetWorldName())
+
+	--temp cleanup, 2.9, remove later
+	GR.SV.itemPriceHistory = nil
+	GR.SV.savedSales = nil
+	GR.SV.guildMapping = nil
+	-----------------------------
 
 	GR.InitSettings()
 
@@ -811,14 +832,11 @@ local function OnAddOnLoaded(_, addonName)
 	GR.CleanGuildData()
 
 	if GR.SV.enablePriceTooltips then
-		if next(GR.SV.itemPriceHistory) == nil then
-			ZO_ClearTable(GR.SV.lastEventIds)
-		end
 		GR.CleanPriceHistory()
 		GR.RebuildAvgPriceCache()
 		GR.SetupTooltipHooks()
 	else
-		ZO_ClearTable(GR.SV.itemPriceHistory)
+		ZO_ClearTable(GR.Data.itemPriceHistory)
 	end
 
 	if not GR.SV.enablePriceTooltips then

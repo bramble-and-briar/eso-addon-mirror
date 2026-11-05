@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | Bootstrap module
+-- Arclight Taunt 1.1.2 | Bootstrap module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -132,12 +132,14 @@ local function OnLoaded(_, name)
     if not ALERT_SOUNDS[A.saved.bossEarlySoundKey] then
         A.saved.bossEarlySoundKey = defaults.bossEarlySoundKey
     end
-    A.saved.bossMode = ({strict=true, dangerous=true, comprehensive=true})[A.saved.bossMode]
-        and A.saved.bossMode or defaults.bossMode
+    -- Keep strict selection; the removed deadly-only tier joins the broader
+    -- strong-enemy option. Existing warning preferences remain independent.
+    A.saved.bossMode = A.saved.bossMode == "strict" and "strict" or defaults.bossMode
     A.saved.texturedTrack = A.saved.texturedTrack ~= false
     A.saved.sortMode = nil -- the former alternative ordering has been removed
     A.saved.showImmunity, A.saved.showTauntStacks = nil, nil -- obsolete diagnostic preferences
     A.saved.highlightTarget = A.saved.highlightTarget ~= false
+    A.saved.reduceAnimations = A.saved.reduceAnimations == true
     A.saved.focusStyle = nil -- obsolete visual designs; never restore their controls
     A.saved.targetHighlightStyle = A.saved.targetHighlightStyle == "strong" and "strong" or "subtle"
     A.saved.onlyMine = nil -- remove the obsolete tracking-mode preference

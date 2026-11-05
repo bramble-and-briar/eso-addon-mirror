@@ -18,12 +18,13 @@
     "CaracBuffDebuff"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5002/",
-  "fingerprint": "be08caa5b81ce4b009d19e13d4f26498d19e764143abdb542bb81dbbcff0a278",
+  "fingerprint": "1870713a407a8b431f69ae9d04720d04d7f214f2fdb93295ca0491a220fba615",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18195.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18196.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18197.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18199.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw18313.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18312.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18311.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18310.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18314.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -31,11 +32,11 @@
   "source_id": "5002",
   "source_url": "https://www.esoui.com/downloads/info5002-CaracBuffDebuff.html",
   "stats": {
-    "downloads": 23,
+    "downloads": 46,
     "favorites": 0,
-    "monthly_downloads": 21
+    "monthly_downloads": 41
   },
   "title": "CaracBuffDebuff",
-  "updated_at": 1793391996000,
-  "version": "1.1"
+  "updated_at": 1793812751000,
+  "version": "1.9"
 }

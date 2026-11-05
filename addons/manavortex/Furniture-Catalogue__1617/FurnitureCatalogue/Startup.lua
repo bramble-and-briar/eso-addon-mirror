@@ -7,7 +7,7 @@ this.name = "FurnitureCatalogue"
 this.author = "manavortex"
 this.tag = "FurC"
 
-this.version = 8000001 -- will be AUTOREPLACED with AddonVersion
+this.version = 8001000 -- will be AUTOREPLACED with AddonVersion
 
 this.CharacterName = nil
 this.website = "https://www.esoui.com/downloads/fileinfo.php?id=1617"
@@ -223,7 +223,7 @@ this.DropdownData = {
     [ver.CLOCKWORK] = GetString(SI_FURC_FILTER_VERSION_CC),
     [ver.DRAGONS] = GetString(SI_FURC_FILTER_VERSION_DRAGON),
     [ver.ALTMER] = GetString(SI_FURC_FILTER_VERSION_ALTMER),
-    [ver.SLAVES] = GetString(SI_FURC_FILTER_VERSION_SLAVES),
+    [ver.MURKM] = GetString(SI_FURC_FILTER_VERSION_MURKM),
     [ver.WEREWOLF] = GetString(SI_FURC_FILTER_VERSION_WEREWOLF),
     [ver.WOTL] = GetString(SI_FURC_FILTER_VERSION_WOTL),
     [ver.KITTY] = GetString(SI_FURC_FILTER_VERSION_KITTY),
@@ -266,7 +266,7 @@ this.DropdownData = {
     [ver.CLOCKWORK] = GetString(SI_FURC_FILTER_VERSION_CC_TT),
     [ver.DRAGONS] = GetString(SI_FURC_FILTER_VERSION_DRAGON_TT),
     [ver.ALTMER] = GetString(SI_FURC_FILTER_VERSION_ALTMER_TT),
-    [ver.SLAVES] = GetString(SI_FURC_FILTER_VERSION_SLAVES_TT),
+    [ver.MURKM] = GetString(SI_FURC_FILTER_VERSION_MURKM_TT),
     [ver.WEREWOLF] = GetString(SI_FURC_FILTER_VERSION_WEREWOLF_TT),
     [ver.WOTL] = GetString(SI_FURC_FILTER_VERSION_WOTL_TT),
     [ver.KITTY] = GetString(SI_FURC_FILTER_VERSION_KITTY_TT),
@@ -331,47 +331,46 @@ function this.getOrCreateLogger()
     return logger
   end -- return existing reference
 
-  if not LibDebugLogger then
-    local function ignore(...) end -- black hole for most property calls, like logger:Debug
-    local function info(self, ...)
-      local prefix = string.format("[%s]: ", this.tag)
-      if tostring(...):find("%%") then
-        d(prefix .. string.format(...))
-      else
-        d(prefix .. tostring(...))
-      end
+  if LibDebugLogger then
+    -- In case LibDebugLogger fails but is loaded
+    local ok, candidate = pcall(function()
+      local instance = LibDebugLogger(this.tag)
+      instance.LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
+      instance.LOG_LEVEL_DEBUG = LibDebugLogger.LOG_LEVEL_DEBUG
+      instance.LOG_LEVEL_INFO = LibDebugLogger.LOG_LEVEL_INFO
+      instance.LOG_LEVEL_WARNING = LibDebugLogger.LOG_LEVEL_WARNING
+      instance.LOG_LEVEL_ERROR = LibDebugLogger.LOG_LEVEL_ERROR
+      instance:SetMinLevelOverride(this.settings.enableDebug and instance.LOG_LEVEL_DEBUG or instance.LOG_LEVEL_INFO)
+      return instance
+    end)
+    if ok then
+      logger = candidate
+      return logger
     end
-    logger = {}
-    logger.Verbose = ignore
-    logger.Debug = ignore
-    logger.Info = info
-    logger.Warn = ignore
-    logger.Error = ignore
-    logger.Log = ignore
-    logger.LOG_LEVEL_VERBOSE = "V"
-    logger.LOG_LEVEL_DEBUG = "D"
-    logger.LOG_LEVEL_INFO = "I"
-    logger.LOG_LEVEL_WARNING = "W"
-    logger.LOG_LEVEL_ERROR = "E"
-    logger.SetMinLevelOverride = ignore
-
-    return logger
   end
 
-  -- use logger from library
-  logger = LibDebugLogger(this.tag)
-  logger.LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
-  logger.LOG_LEVEL_DEBUG = LibDebugLogger.LOG_LEVEL_DEBUG
-  logger.LOG_LEVEL_INFO = LibDebugLogger.LOG_LEVEL_INFO
-  logger.LOG_LEVEL_WARNING = LibDebugLogger.LOG_LEVEL_WARNING
-  logger.LOG_LEVEL_ERROR = LibDebugLogger.LOG_LEVEL_ERROR
-
-  -- set initial log level
-  if this.settings.enableDebug then
-    logger:SetMinLevelOverride(logger.LOG_LEVEL_DEBUG)
-  else
-    logger:SetMinLevelOverride(logger.LOG_LEVEL_INFO)
+  local function ignore(...) end -- black hole for most property calls, like logger:Debug
+  local function info(self, ...)
+    local prefix = string.format("[%s]: ", this.tag)
+    if tostring(...):find("%%") then
+      d(prefix .. string.format(...))
+    else
+      d(prefix .. tostring(...))
+    end
   end
+  logger = {}
+  logger.Verbose = ignore
+  logger.Debug = ignore
+  logger.Info = info
+  logger.Warn = ignore
+  logger.Error = ignore
+  logger.Log = ignore
+  logger.LOG_LEVEL_VERBOSE = "V"
+  logger.LOG_LEVEL_DEBUG = "D"
+  logger.LOG_LEVEL_INFO = "I"
+  logger.LOG_LEVEL_WARNING = "W"
+  logger.LOG_LEVEL_ERROR = "E"
+  logger.SetMinLevelOverride = ignore
 
   return logger
 end

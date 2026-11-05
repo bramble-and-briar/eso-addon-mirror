@@ -1,0 +1,22 @@
+Version 2.0.1 (2026/08/03)
+* Improved handling of season changes
+
+Version 2.0.0 (2026/06/19)
+* Added the option to hide the on-screen Tome Challenge rewards prompt instead
+  of auto-claiming the rewards
+  - The optional LibAddonMenu-2.0 needs to be installed in order to change this
+    setting
+* Renamed the addon to "Auto-Claim or Hide Tome Challenges"
+
+Version 1.1.2 (2026/04/26)
+* Improved handling of unusual edge cases
+
+Version 1.1.1 (2026/04/17)
+* Tweaked the logic surrounding server response time and double claims
+
+Version 1.1.0 (2026/04/03)
+* Added chat message to give players feedback on which challenge was completed
+  and how many times the challenge has been claimed
+
+Version 1.0.0 (2026/04/03)
+* Initial version

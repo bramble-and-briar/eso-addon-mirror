@@ -160,7 +160,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |
 | [ToggleQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleQuestTracker__3809) | Saint-Ange | PC / Mac | 1.2.2 |
 | [ToggleStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/ToggleStatus__2954) | Wheels | PC / Mac | 2.1 |
-| [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.3 |
+| [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.5.0 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
 | [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.2 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |

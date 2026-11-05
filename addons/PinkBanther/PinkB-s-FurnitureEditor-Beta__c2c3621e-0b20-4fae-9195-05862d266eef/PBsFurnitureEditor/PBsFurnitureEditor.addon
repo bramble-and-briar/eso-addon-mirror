@@ -1,7 +1,8 @@
 ## To release a new version, edit the version in the two lines below and nothing else.
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
-## The name itself is fixed in Main.lua.
+## The name itself is fixed in Main.lua; the version is read back from the Title line for the name in the
+## settings list ("PB's FurnitureEditor <version>") and for /pbfe help.
 ## Title: |cFF69B4PB's FurnitureEditor|r 1.0.7
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Copies a group of linked furnishings from one house into another. A first build: it reads the links in the house you stand in, keeps a group as a clipboard, and in another house places the same furnishings from your inventory at the same relative positions and links them again. A paste can name the house to travel to first, a cut moves a group instead of copying it, either can be reserved to happen when you next enter a house, on arrival the quickslot wheel temporarily gains Paste and Move entries, and in the housing editor a linked furnishing gets Copy and Cut buttons: copy or cut, go to any house of yours, and the wheel pastes or moves it. Everything the client might refuse is measured first, from /pbfe, and the answers are printed to chat.

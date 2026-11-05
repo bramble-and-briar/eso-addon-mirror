@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.10.09",
+	version = "2026.11.04",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -10,7 +10,10 @@ local SELECTED_GUILD_ID
 local SELECTED_GUILD_DATA
 local SELECTED_GUILD_IS_CURRENT
 local SELECTED_USER_DISPLAY_NAME
-
+--local LINKED_MARKER = "|t18:18:/esoui/art/buttons/checkbox_checked.dds|t "--radiobuttondown --checkbox_checked_disabled --featuredot_active --art/tooltips/greenarrow
+--local UNLINKED_MARKER = "|t18:18:/esoui/art/buttons/checkbox_unchecked.dds|t "--radiobuttonup --checkbox_unchecked_disabled --featuredot_inactive
+local LINKED_MARKER = "|t18:18:/esoui/art/tooltips/arrow_up.dds|t"
+local UNLINKED_MARKER = "|t18:18:/esoui/art/tooltips/arrow_down.dds|t"
 --/script local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskResetNEW() df(tostring(resetTime))
 local function GetLastKioskResetOLD()
 	local utcReset = {["NA Megaserver"] = 19, ["EU Megaserver"] = 14, ["PTS"] = 19,}
@@ -58,7 +61,7 @@ local function GuildTraderHistoryTrim()
 			local guildName = GetGuildName(guildId)
 			ClearGuildHistoryCache(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, (GetTimeStamp() - previousStamp))
 		end
-		df("|c6666FF[GTA]|r Trimmed guild trader history")
+		df("|c6666FF[GTA]|r Trimmed trader cache data")
 	end
 end
 ---------------------------------------------
@@ -71,7 +74,11 @@ local function LayoutNameRow(ctrl, data, scrollList)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-		SetTooltipText(InformationTooltip, "VIEW GUILD DETAILS")
+		if string.find(data.name, LINKED_MARKER) then
+			SetTooltipText(InformationTooltip, "(CURRENT) ~ VIEW GUILD DETAILS")
+		else
+			SetTooltipText(InformationTooltip, "(PENDING) ~ VIEW GUILD DETAILS")
+		end
 	end)
 	ctrl:SetHandler("OnMouseExit", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
@@ -143,7 +150,11 @@ local function LayoutPreviousNameRow(ctrl, data, scrollList)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-		SetTooltipText(InformationTooltip, "VIEW GUILD DETAILS")
+		if string.find(data.name, LINKED_MARKER) then
+			SetTooltipText(InformationTooltip, "(CURRENT) ~ VIEW GUILD DETAILS")
+		else
+			SetTooltipText(InformationTooltip, "(PENDING) ~ VIEW GUILD DETAILS")
+		end
 	end)
 	ctrl:SetHandler("OnMouseExit", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
@@ -238,30 +249,70 @@ GTADisclaimer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 GTADisclaimer:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
 GTADisclaimer:SetColor(0.1, 0.1, 0.1, 0.9)
 GTADisclaimer:SetText ("")
+--ShowAllButton
+local GTAShowAllBox = WINDOW_MANAGER:CreateControlFromVirtual("GTAShowAllBox", GTAMain, "ZO_CheckButton")
+GTAShowAllBox:SetAnchor(LEFT, GTADisclaimer, RIGHT, 10, -16)
+ZO_CheckButton_SetLabelText(GTAShowAllBox, "Show All Guilds")
+local GTAShowAllLabel = GTAShowAllBox.label
+GTAShowAllLabel:ClearAnchors()
+--GTAShowAllLabel:SetAnchor(RIGHT, GTAShowAllBox, LEFT, -5, 4)
+GTAShowAllLabel:SetAnchor(LEFT, GTAShowAllBox, RIGHT, 5, 2)
+GTAShowAllLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
+GTAShowAllLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+GTAShowAllLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+--GTAShowAllLabel:SetText ("Show All")
+GTAShowAllBox:SetHandler("OnMouseEnter", function(self)
+	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	--InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
+	--SetTooltipText(InformationTooltip, "SHOW ALL GUILDS")
+end)
+GTAShowAllBox:SetHandler("OnMouseExit", function(self)
+	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	--ClearTooltip(InformationTooltip)
+end)
+GTAShowAllBoxLabel:SetHandler("OnMouseEnter", function(self)
+	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	--InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
+	--SetTooltipText(InformationTooltip, "SHOW ALL GUILDS")
+end)
+GTAShowAllBoxLabel:SetHandler("OnMouseExit", function(self)
+	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	--ClearTooltip(InformationTooltip)
+end)
+local function OnShowAllBoxToggled(GTAShowAllBox, checkedState)
+    GuildTraderActivity.savedVariables.showAll = checkedState
+	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	GuildTraderActivity.Refresh()
+end
+ZO_CheckButton_SetToggleFunction(GTAShowAllBox, OnShowAllBoxToggled)
 --CacheTrimButton
 local GTACacheTrimBox = WINDOW_MANAGER:CreateControlFromVirtual("GTACacheTrimBox", GTAMain, "ZO_CheckButton")
-GTACacheTrimBox:SetAnchor(LEFT, GTADisclaimer, RIGHT, 20, -2)
-ZO_CheckButton_SetLabelText(GTACacheTrimBox, "Cache Trim")
---local GTACacheTrimBoxLabel = _G[GTACacheTrimBox:GetName() .. "Label"]
+GTACacheTrimBox:SetAnchor(LEFT, GTADisclaimer, RIGHT, 10, 8)
+ZO_CheckButton_SetLabelText(GTACacheTrimBox, "Auto Cache Trim")
 local GTACacheTrimBoxLabel = GTACacheTrimBox.label
-GTACacheTrimBoxLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 18), FONT_STYLE_SOFT_SHADOW_THIN)
+GTACacheTrimBoxLabel:ClearAnchors()
+GTACacheTrimBoxLabel:SetAnchor(LEFT, GTACacheTrimBox, RIGHT, 5, 2)
+GTACacheTrimBoxLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
 GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
---GTACacheTrimBoxLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
---GTACacheTrimBoxLabel:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
+GTACacheTrimBoxLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+--GTACacheTrimBoxLabel:SetText ("Cache Trim")
 GTACacheTrimBox:SetHandler("OnMouseEnter", function(self)
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-	InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-	SetTooltipText(InformationTooltip, "TRIM PREVIOUS IRRELEVANT DATA")
+	--InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
+	--SetTooltipText(InformationTooltip, "TRIM PREVIOUS IRRELEVANT DATA")
 end)
 GTACacheTrimBox:SetHandler("OnMouseExit", function(self)
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-	ClearTooltip(InformationTooltip)
+	--ClearTooltip(InformationTooltip)
 end)
 GTACacheTrimBoxLabel:SetHandler("OnMouseEnter", function(self)
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	--InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
+	--SetTooltipText(InformationTooltip, "AUTO TRIM CACHE")
 end)
 GTACacheTrimBoxLabel:SetHandler("OnMouseExit", function(self)
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	--ClearTooltip(InformationTooltip)
 end)
 local function OnCacheTrimBoxToggled(GTACacheTrimBox, checkedState)
     GuildTraderActivity.savedVariables.cacheTrim = checkedState
@@ -316,11 +367,11 @@ GTACurrentLabel:SetText ("~ Current Week ~")
 --CurrentNameList
 local GTANameList = WINDOW_MANAGER:CreateControlFromVirtual("GTANameList", GTAPersonalView, "ZO_ScrollList")
 local scrollListHeight = 104
-GTANameList:SetDimensions(350, scrollListHeight)
+GTANameList:SetDimensions(380, scrollListHeight)--350
 GTANameList:SetAnchor(TOPLEFT, GTAPersonalView, TOPLEFT, 0, 58)
 ZO_ScrollList_AddDataType(GTANameList, 1, "ZO_SelectableLabel", 20, LayoutNameRow)
 local GTANameLabel = WINDOW_MANAGER:CreateControl("GTANameLabel", GTAPersonalView, CT_LABEL)
-GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 0, 0)
+GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-->> TESTING
 GTANameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTANameLabel:SetFont("ZoFontGameMedium")
 GTANameLabel:SetColor(0.3, 0.3, 0.2, 0.9)
@@ -344,9 +395,9 @@ GTANameLabel:SetHandler("OnMouseExit", function(self)
 end)
 --CurrentsalesList
 local GTASalesList = WINDOW_MANAGER:CreateControlFromVirtual("GTASalesList", GTAPersonalView, "ZO_ScrollList")
-GTASalesList:SetDimensions(140, scrollListHeight)
+GTASalesList:SetDimensions(130, scrollListHeight)--140
 GTASalesList:SetAnchor(LEFT, GTANameList, RIGHT, 4, 0)
-ZO_ScrollList_AddDataType(GTASalesList, 2, "ZO_SelectableLabel", 20, LayoutSalesRow)
+ZO_ScrollList_AddDataType(GTASalesList, 1, "ZO_SelectableLabel", 20, LayoutSalesRow)
 local GTASalesLabel = WINDOW_MANAGER:CreateControl("GTASalesLabel", GTAPersonalView, CT_LABEL)
 GTASalesLabel:SetAnchor(BOTTOMRIGHT, GTASalesList, TOPRIGHT, -16, 0)
 GTASalesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -372,9 +423,9 @@ GTASalesLabel:SetHandler("OnMouseExit", function(self)
 end)
 --CurrentpurchaseList
 local GTAPurchaseList = WINDOW_MANAGER:CreateControlFromVirtual("GTAPurchaseList", GTAPersonalView, "ZO_ScrollList")
-GTAPurchaseList:SetDimensions(140, scrollListHeight)
+GTAPurchaseList:SetDimensions(130, scrollListHeight)--140
 GTAPurchaseList:SetAnchor(LEFT, GTASalesList, RIGHT, 4, 0)
-ZO_ScrollList_AddDataType(GTAPurchaseList, 3, "ZO_SelectableLabel", 20, LayoutPurchaseRow)
+ZO_ScrollList_AddDataType(GTAPurchaseList, 1, "ZO_SelectableLabel", 20, LayoutPurchaseRow)
 local GTAPurchaseLabel = WINDOW_MANAGER:CreateControl("GTAPurchaseLabel", GTAPersonalView, CT_LABEL)
 GTAPurchaseLabel:SetAnchor(BOTTOMRIGHT, GTAPurchaseList, TOPRIGHT, -16, 0)
 GTAPurchaseLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -400,9 +451,9 @@ GTAPurchaseLabel:SetHandler("OnMouseExit", function(self)
 end)
 --CurrentactivityList
 local GTAActivityList = WINDOW_MANAGER:CreateControlFromVirtual("GTAActivityList", GTAPersonalView, "ZO_ScrollList")
-GTAActivityList:SetDimensions(140, scrollListHeight)
+GTAActivityList:SetDimensions(130, scrollListHeight)--140
 GTAActivityList:SetAnchor(LEFT, GTAPurchaseList, RIGHT, 4, 0)
-ZO_ScrollList_AddDataType(GTAActivityList, 4, "ZO_SelectableLabel", 20, LayoutActivityRow)
+ZO_ScrollList_AddDataType(GTAActivityList, 1, "ZO_SelectableLabel", 20, LayoutActivityRow)
 local GTAActivityLabel = WINDOW_MANAGER:CreateControl("GTAActivityLabel", GTAPersonalView, CT_LABEL)
 GTAActivityLabel:SetAnchor(BOTTOMRIGHT, GTAActivityList, TOPRIGHT, -16, 0)
 GTAActivityLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -464,24 +515,24 @@ GTAPreviousLabel:SetColor(0.1, 0.1, 0.1, 0.8)
 GTAPreviousLabel:SetText ("~ Previous Week ~")
 --PreviousNameList
 local GTAPreviousNameList = WINDOW_MANAGER:CreateControlFromVirtual("GTAPreviousNameList", GTAPersonalView, "ZO_ScrollList")
-GTAPreviousNameList:SetDimensions(350, scrollListHeight)
+GTAPreviousNameList:SetDimensions(380, scrollListHeight)--350
 GTAPreviousNameList:SetAnchor(BOTTOMLEFT, GTAPersonalView, BOTTOMLEFT, 0, -24)
-ZO_ScrollList_AddDataType(GTAPreviousNameList, 5, "ZO_SelectableLabel", 20, LayoutPreviousNameRow)
+ZO_ScrollList_AddDataType(GTAPreviousNameList, 2, "ZO_SelectableLabel", 20, LayoutPreviousNameRow)
 --PreviousSalesList
 local GTAPreviousSalesList = WINDOW_MANAGER:CreateControlFromVirtual("GTAPreviousSalesList", GTAPersonalView, "ZO_ScrollList")
-GTAPreviousSalesList:SetDimensions(140, scrollListHeight)
+GTAPreviousSalesList:SetDimensions(130, scrollListHeight)--140
 GTAPreviousSalesList:SetAnchor(LEFT, GTAPreviousNameList, RIGHT, 4, 0)
-ZO_ScrollList_AddDataType(GTAPreviousSalesList, 6, "ZO_SelectableLabel", 20, LayoutPreviousSalesRow)
+ZO_ScrollList_AddDataType(GTAPreviousSalesList, 2, "ZO_SelectableLabel", 20, LayoutPreviousSalesRow)
 --PreviousPurchaseList
 local GTAPreviousPurchaseList = WINDOW_MANAGER:CreateControlFromVirtual("GTAPreviousPurchaseList", GTAPersonalView, "ZO_ScrollList")
-GTAPreviousPurchaseList:SetDimensions(140, scrollListHeight)
+GTAPreviousPurchaseList:SetDimensions(130, scrollListHeight)--140
 GTAPreviousPurchaseList:SetAnchor(LEFT, GTAPreviousSalesList, RIGHT, 4, 0)
-ZO_ScrollList_AddDataType(GTAPreviousPurchaseList, 7, "ZO_SelectableLabel", 20, LayoutPreviousPurchaseRow)
+ZO_ScrollList_AddDataType(GTAPreviousPurchaseList, 2, "ZO_SelectableLabel", 20, LayoutPreviousPurchaseRow)
 --PreviousActivityList
 local GTAPreviousActivityList = WINDOW_MANAGER:CreateControlFromVirtual("GTAPreviousActivityList", GTAPersonalView, "ZO_ScrollList")
-GTAPreviousActivityList:SetDimensions(140, scrollListHeight)
+GTAPreviousActivityList:SetDimensions(130, scrollListHeight)--140
 GTAPreviousActivityList:SetAnchor(LEFT, GTAPreviousPurchaseList, RIGHT, 4, 0)
-ZO_ScrollList_AddDataType(GTAPreviousActivityList, 8, "ZO_SelectableLabel", 20, LayoutPreviousActivityRow)
+ZO_ScrollList_AddDataType(GTAPreviousActivityList, 2, "ZO_SelectableLabel", 20, LayoutPreviousActivityRow)
 --PreviousTotalSales
 local GTATotalPreviousSalesLabel = WINDOW_MANAGER:CreateControl("GTATotalPreviousSalesLabel", GTAPersonalView, CT_LABEL)
 GTATotalPreviousSalesLabel:SetAnchor(TOPRIGHT, GTAPreviousSalesList, BOTTOMRIGHT, -16, 0)
@@ -870,14 +921,8 @@ GTASelectedGuildView:SetHidden(true)
 --------- POPULATE VIEW FUNCTIONS --
 ---------------------------------------------
 local function PopulateTraderActivity()
-	local namesList = {}
-	local purchaseList = {}
-	local salesList = {}
-	local activityList = {}
-	local prevNamesList = {}
-	local prevSalesList = {}
-	local prevPurchaseList = {}
-	local prevActivityList = {}
+	local currentList = {}
+	local previousList = {}
 	local currentCounter = 0
 	local guildTotal = 0
 	local sales = 0
@@ -897,7 +942,8 @@ local function PopulateTraderActivity()
 		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
-			local guildName = GetGuildName(guildId)
+			local guildName = (LINKED_MARKER .. GetGuildName(guildId))--GetGuildName(guildId)-->> TESTING
+			--if LibHistoire.gtaLinked[guildId][CATEGORY] or not GetGuildOwnedKioskInfo(guildId) then guildName = (LINKED_MARKER .. guildName) else guildName = (UNLINKED_MARKER .. guildName) end-->> TESTING
 			for x = 1, GetNumGuildHistoryEvents(guildId, CATEGORY) do
 				local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(guildId, x)
 				if eventStamp > resetStamp then
@@ -910,34 +956,11 @@ local function PopulateTraderActivity()
 					if DecorateDisplayName(sellerName) == GetUnitDisplayName("player") then prevSales = (prevSales + itemPrice) prevAllSales = (prevAllSales + itemPrice) prevAllActivity = (prevAllActivity + itemPrice) end
 				end
 			end
-			if guildTotal ~= 0 then
+			if guildTotal ~= 0 or GuildTraderActivity.savedVariables.showAll then
 				currentCounter = currentCounter + 1
-				namesList[currentCounter] = {
+				currentList[currentCounter] = {
 					index = i,
-					name = guildName,
-					total = guildTotal,
-					sales = sales,
-					purchases = purchases,
-					activity = sales + purchases,
-				}
-				salesList[currentCounter] = {
-					index = i,
-					name = guildName,
-					total = guildTotal,
-					sales = sales,
-					purchases = purchases,
-					activity = sales + purchases,
-				}
-				purchaseList[currentCounter] = {
-					index = i,
-					name = guildName,
-					total = guildTotal,
-					sales = sales,
-					purchases = purchases,
-					activity = sales + purchases,
-				}
-				activityList[currentCounter] = {
-					index = i,
+					id = guildId,
 					name = guildName,
 					total = guildTotal,
 					sales = sales,
@@ -945,34 +968,11 @@ local function PopulateTraderActivity()
 					activity = sales + purchases,
 				}
 			end
-			if prevGuildTotal ~= 0 then
+			if prevGuildTotal ~= 0 or GuildTraderActivity.savedVariables.showAll then
 				previousCounter = previousCounter + 1
-				prevNamesList[previousCounter] = {
+				previousList[previousCounter] = {
 					index = i,
-					name = guildName,
-					total = prevGuildTotal,
-					sales = prevSales,
-					purchases = prevPurchases,
-					activity = prevSales + prevPurchases,
-				}
-				prevSalesList[previousCounter] = {
-					index = i,
-					name = guildName,
-					total = prevGuildTotal,
-					sales = prevSales,
-					purchases = prevPurchases,
-					activity = prevSales + prevPurchases,
-				}
-				prevPurchaseList[previousCounter] = {
-					index = i,
-					name = guildName,
-					total = prevGuildTotal,
-					sales = prevSales,
-					purchases = prevPurchases,
-					activity = prevSales + prevPurchases,
-				}
-				prevActivityList[previousCounter] = {
-					index = i,
+					id = guildId,
 					name = guildName,
 					total = prevGuildTotal,
 					sales = prevSales,
@@ -997,7 +997,7 @@ local function PopulateTraderActivity()
 	else
 		return
 	end
-	return namesList, salesList, purchaseList, activityList, prevNamesList, prevSalesList, prevPurchaseList, prevActivityList
+	return currentList, previousList
 end
 
 function GuildTraderActivity.CreateGuildList(data, isCurrent)
@@ -1049,7 +1049,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
     end
 	if isCurrent then
 		SELECTED_GUILD_LIST:Update(1, salesData)
-		GTASelectedGuildLabel:SetText ("~ " .. guildName .. " (Current Week) ~")
+		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Current Week) ~")-->> TESTING
 		GTAPersonalView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(false)
 		if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
@@ -1059,7 +1059,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 		end
 	else
 		SELECTED_GUILD_LIST:Update(1, salesData)
-		GTASelectedGuildLabel:SetText ("~ " .. guildName .. " (Previous Week) ~")
+		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Previous Week) ~")-->> TESTING
 		GTAPersonalView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(false)
 		if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
@@ -1087,15 +1087,15 @@ local function UpdateTraderActivityList(ctrl, data, rowType)
 end
 
 function GuildTraderActivity.Refresh()
-	local namesList, purchaseList, salesList, activityList, prevNamesList, prevSalesList, prevPurchaseList, prevActivityList = PopulateTraderActivity()
-	UpdateTraderActivityList(GTANameList, namesList, 1)
-	UpdateTraderActivityList(GTASalesList, salesList, 2)
-	UpdateTraderActivityList(GTAPurchaseList, purchaseList, 3)
-	UpdateTraderActivityList(GTAActivityList, activityList, 4)
-	UpdateTraderActivityList(GTAPreviousNameList, prevNamesList, 5)
-	UpdateTraderActivityList(GTAPreviousSalesList, prevSalesList, 6)
-	UpdateTraderActivityList(GTAPreviousPurchaseList, prevPurchaseList, 7)
-	UpdateTraderActivityList(GTAPreviousActivityList, prevActivityList, 8)
+	local currentList, previousList = PopulateTraderActivity()
+	UpdateTraderActivityList(GTANameList, currentList, 1)
+	UpdateTraderActivityList(GTASalesList, currentList, 1)
+	UpdateTraderActivityList(GTAPurchaseList, currentList, 1)
+	UpdateTraderActivityList(GTAActivityList, currentList, 1)
+	UpdateTraderActivityList(GTAPreviousNameList, previousList, 2)
+	UpdateTraderActivityList(GTAPreviousSalesList, previousList, 2)
+	UpdateTraderActivityList(GTAPreviousPurchaseList, previousList, 2)
+	UpdateTraderActivityList(GTAPreviousActivityList, previousList, 2)
 	GTAMain:SetTopmost()
 end
 
@@ -1116,6 +1116,7 @@ function GuildTraderActivity.Toggle(mailCallback)
 		SetGameCameraUIMode(true)
 		MAIL_SEND:ClearFields()
 	elseif GTAMain:IsHidden() then
+		ZO_CheckButton_SetCheckState(GTAShowAllBox, GuildTraderActivity.savedVariables.showAll)
 		ZO_CheckButton_SetCheckState(GTACacheTrimBox, GuildTraderActivity.savedVariables.cacheTrim)
 		GTASelectedGuildView:SetHidden(true)
 		GTAPersonalView:SetHidden(false)
@@ -1138,14 +1139,8 @@ SLASH_COMMANDS["/gta"] = function (option)
 end
 
 if GetUnitDisplayName("player") == GuildTraderActivity.author then
-	SLASH_COMMANDS["/gtatest"] = function (option)--<< TESTING
-		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
-		for i = 1, GetNumGuilds() do
-			local guildId = GetGuildId(i)
-			local guildName = GetGuildName(guildId)
-			ClearGuildHistoryCache(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, (GetTimeStamp() - previousStamp))
-			df("TRIMMED TRADER HISTORY: " .. guildName)
-		end
+	SLASH_COMMANDS["/gtatest"] = function (option)
+		GuildTraderHistoryTrim()
 	end
 end
 
@@ -1153,8 +1148,8 @@ local function AddOnLoaded(eventCode, addOnName)
 	if addOnName ~= "GTA" then return end
 	ZO_CreateStringId("SI_BINDING_NAME_TRADER_ACTIVITY_TOGGLE", "Trader Activity Toggle")
 	if LibHistoire and GetNumGuilds() > 0 then
-		LibHistoire_Settings.markGapsInHistory = false--<< TESTING
-		--SetSetting(SETTING_TYPE_USER_INTERFACE, UI_SETTING_GUILD_HISTORY_CACHE_MAX_NUMBER_OF_DAYS_TRADER, "15")--<< TESTING
+		LibHistoire_Settings.markGapsInHistory = false
+		--SetSetting(SETTING_TYPE_USER_INTERFACE, UI_SETTING_GUILD_HISTORY_CACHE_MAX_NUMBER_OF_DAYS_TRADER, "15")
 		LibHistoire:OnReady(function(lib)
 			local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 			for i = 1, GetNumGuilds() do
@@ -1167,10 +1162,10 @@ local function AddOnLoaded(eventCode, addOnName)
 			end
 		end)
 	end
-	--CreateLists()
 	local defaultAccountVars = {
 		activitySorting = "name",
 		lastReset = 0,
+		showAll = false,
 		cacheTrim = false,
 	}
 	GuildTraderActivity.savedVariables = ZO_SavedVars:NewAccountWide( GuildTraderActivity.svName, GuildTraderActivity.svVersion, nil, defaultAccountVars )

@@ -1,0 +1,136 @@
+MountSwap 0.8.9 - PC in-game controller test checklist
+
+Automated verification uses mocked ESO APIs and controls. It does not certify
+hardware operation, rendering, native virtual keyboard behavior, or gameplay
+restrictions. Complete these checks in ESO with your controller and Bug Catcher.
+
+Before installing
+1. Exit ESO. Privately back up live/SavedVariables/MountSwap.lua and any .bak.
+   Do not put personal saved data in the addon folder, a public ZIP or GitHub.
+2. Extract the ZIP's MountSwap folder into live/AddOns. Keep SavedVariables.
+3. Verify favorites, classifications, shortcuts and chat/dashboard preferences.
+   Reload and change characters; confirm account/server separation is retained.
+
+Keyboard and cursor
+4. In keyboard mode, open from gameplay using /ms or your existing open binding.
+   Confirm a usable cursor, working mouse buttons, wheel/scrollbar, search,
+   Cancel/Clear, slash shortcuts, all favorite actions and Random.
+5. Open another ESO panel, open and close MountSwap, and confirm that panel keeps
+   its needed cursor/UI input. With no other panels open, close MountSwap and
+   confirm normal gameplay input. Repeat with chat text focused.
+
+Controller dashboard
+6. Enable gamepad preferred mode. Assign your chosen controller binding to
+   MountSwap - General > Open MountSwap (controller). No default is assigned.
+   Check that your existing bindings remain unchanged. Open/close/reopen.
+7. Verify native button artwork matches your current ESO input display. Test
+   remapped UI actions and an unbound action; no Xbox-letter assumptions or
+   generic button-number labels should appear.
+8. Follow the cyan outline with all four D-pad directions. Navigate both favorite
+   banks, Use buttons, Settings, Random, Keybindings, category management, nearest
+   passenger and Close. Shoulders should jump to the corresponding bank/row.
+9. Select opens the focused favorite's picker. Secondary on a favorite selects
+   its saved mount. Verify the normal ESO mount key is still required to ride.
+   Test empty slots, already selected mounts and ESO-rejected requests.
+
+Picker, details and text
+10. With many mounts, navigate past the first and eighth rows in both directions.
+    Use triggers to page to the final result and back. Verify unlocked/type
+    filters, search reset and no-result behavior. Select saves the intended slot.
+11. Use Details on a mount. Read long descriptions, page if needed, and Back to
+    the same picker/settings context. Test Picker actions, Search, Clear search,
+    Clear favorite, Cancel and category classifications without unintended saves.
+12. Start Search with Secondary. Check native text entry where ESO provides it.
+    While editing, D-pad/Select must not activate MountSwap controls. Use keyboard
+    fallback if needed. Finish/cancel and confirm navigation resumes.
+
+Settings and text size
+13. Open controller Settings using Options, its dashboard button and /ms settings.
+    Scroll/page through every option. Test chat toggle, dashboard toggle/open,
+    favorite selection/clear/use, Random, passenger and Keybindings navigation.
+14. Edit shortcuts: Enter/native completion saves; Escape cancels. Test a duplicate,
+    another addon's registered command, invalid text, blank disabling and Reset.
+    Recheck original /mountswap commands and persistence after /reloadui.
+15. Disable the dashboard. Open/reopen settings, change and use a favorite, then
+    re-enable the dashboard. Repeat without LibAddonMenu; controller settings
+    should remain available. Keyboard settings need that optional library.
+    With dashboard OFF and chat OFF, switch to keyboard mode without the library:
+    /ms should open a temporary usable dashboard/picker without saving ON. Close,
+    reopen and reload; restore the library and confirm both OFF choices remain.
+16. Test Normal, Large and Extra Large controller text at your resolution/UI scale.
+    Hints, native icons, menu rows and Details must wrap without clipping or
+    overlapping content. Verify keyboard layout after switching back.
+
+Lifecycle
+17. Switch keyboard/controller mode with dashboard, picker, Settings, Details and
+    text entry open. Verify keyboard/mouse usability, focused text, and layer
+    release/reacquisition. Close through Back, mouse Close, Escape and the open
+    binding. Reopen and verify no stale overlay or invisible input capture.
+    Also zone/reload/log out with a window open: navigation must release during
+    player deactivation and only resume for a relevant visible window afterward.
+18. Open Keybindings from controller mode. Confirm native controls navigation, or
+    clear keyboard fallback guidance if the native panel/helper is unavailable.
+19. In a group, test nearest passenger with empty/full seats, range restrictions,
+    and already-passenger state. ESO's restrictions must remain enforced.
+
+Report failures with action, window, controller/input mode, text size, resolution,
+API version (/script d(GetAPIVersion())) and the full Bug Catcher stack trace.
+
+Language checks for 0.8.3
+- Test Automatic in en, zh, fr, de, ja/jp, ru and es clients. Unknown codes use English.
+- Test each manual language and Reload UI; verify it persists per existing profile.
+- Confirm native glyphs, button widths, wrapping and all three controller text sizes.
+- Check translated dropdowns still save the original option values, and search
+  preserves native mount names. Check classification fallback on non-English clients.
+- Confirm chat OFF, dashboard OFF, favorites, commands and account/server data
+  stay unchanged. Recheck cursor ownership, text save/cancel, mode switching,
+  close/reopen and library-present/absent paths. Have native speakers review wording.
+
+0.8.4 classification/layout checks
+Confirm multi/single pickers in every client language with reference mounts
+locked as well as owned; no metadata should leave uncertain mounts in Review.
+Check short/long favorite labels, French search spacing, subtitle/footer wrapping
+and native settings buttons. Installed 0.8.3 controller results remain useful,
+but 0.8.4 changes need a later in-game smoke test.
+
+0.8.5 controller retest
+Open /ms from chat and from its separate bound action. Confirm a cyan focus
+border, D-pad AND left-stick motion, then Select, Back, Details and secondary
+actions. Test all windows, chat/search/text entry, mode switches and close/reopen.
+If motion still fails, run /ms debug and provide the Controller diagnostic line
+and any Bug Catcher error. Technical diagnostic fields remain in English.
+
+0.8.6 targeted retest: use D-pad Down from S1 through S4 and into Settings,
+then test the Multi-Rider column, left/right movement, picker rows, menu paging
+and left stick. Enter/Escape switching to keyboard mode is normal and retained.
+If needed, /ms debug retains last-action and stick activity counters in memory
+after typing switches input mode. No personal SavedVariables store this trace.
+
+User hardware result, November 4, 2026
+The author reported: Gamepad works perfectly now, after installing 0.8.6.
+This is recorded as successful user hardware testing of that setup. The user
+did not separately enumerate every checklist item, text size, language or
+controller model, so those are not individually certified. 0.8.7 also groups direction hints and corrects native Escape/menu routing; its
+Escape change needs the targeted live retest.
+
+0.8.7 Escape regression retest
+From gameplay open /ms in keyboard mode. First Escape should dismiss MountSwap;
+the next should reach the normal ESO menu. Repeat with picker/controller settings
+open and after controller-to-keyboard switching. Test chat Enter/slash and Alt/UI
+mode actions. After a direct MountSwap close, confirm another open panel retains
+its cursor. Do not force the input mode or change SavedVariables to fix routing.
+
+0.8.7 live result: the author subsequently reported that Escape now works.
+This confirms the targeted Escape/menu fix on that setup; it does not mark
+every text size, localized client or external-panel scenario as tested.
+
+0.8.8 spacing update: directions use four equal columns, 24px horizontal gaps
+and a 16px vertical gap below the action hints. Labels are measured/wrapped at
+every supported controller text size; actual new spacing awaits visual retest.
+
+0.8.9 supersedes the 0.8.8 equal-width direction cells: hints now form a compact
+left-aligned group sized from native text metrics, retaining 24px gaps and the
+16px row separation. Automated fitting tests pass; final English 0.8.9 spacing was reviewed and accepted.
+
+Final 0.8.9 visual result
+The final English 0.8.9 dashboard screenshot was reviewed and accepted: compact direction hints have clear gaps and no visible clipping. This is not certification of every localized client or text size.

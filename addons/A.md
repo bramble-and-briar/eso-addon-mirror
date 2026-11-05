@@ -270,9 +270,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.1 |
 | [Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Archive-Helper__3772) | FlatBadger | PC / Mac | 1.4.2 |
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
-| [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.1.1 |
+| [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.1.2 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
+| [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Buff-Tracker__5021) | giga'chad | PC / Mac | 1.1.0 |
 | [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gigachadESO/Ardy-s-Buff-Tracker__c816691d-2f46-451b-9ac0-5a63292d6297) | gigachadESO | Console | — |
 | [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.2 |
 | [Are We Mounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaWeedle/Are-We-Mounted__4134) | DaWeedle | PC / Mac | 1.0.0 |

@@ -267,6 +267,9 @@ local function NewRec(set, effect)
 		actEnd = 0, -- latest end of the effect on any unit
 		actTotal = 0,
 		units = {}, -- [unitId] = endTime of the effect on that unit
+		unitStacks = {}, -- [unitId] = how many stacks of the effect that unit has
+		stacks = 0, -- the stacks of the effect that ends last: what the row shows
+		stackPeak = 0, -- the most stacks ever seen; 2 or more means the effect builds up
 		flashUntil = 0,
 		lastProc = -1000,
 		procs = 0,
@@ -310,6 +313,8 @@ local function ResetTimers(rec)
 	rec.actEnd = 0
 	rec.actTotal = 0
 	rec.units = {}
+	rec.unitStacks = {}
+	rec.stacks = 0
 	rec.flashUntil = 0
 	-- a new row, a zone change: what fired before says nothing about the next proc
 	rec.lastProc = -1000
@@ -551,15 +556,17 @@ local function StartProc(rec, t, quiet)
 end
 
 local function RecomputeActive(rec, now)
-	local latest = 0
+	local latest, latestUnit = 0, nil
 	for unitId, finish in pairs(rec.units) do
 		if finish <= now then
 			rec.units[unitId] = nil
+			rec.unitStacks[unitId] = nil
 		elseif finish > latest then
-			latest = finish
+			latest, latestUnit = finish, unitId
 		end
 	end
 	rec.actEnd = latest
+	rec.stacks = latestUnit and rec.unitStacks[latestUnit] or 0
 end
 
 local function OnEffectChanged(
@@ -570,7 +577,7 @@ local function OnEffectChanged(
 	_,
 	beginTime,
 	endTime,
-	_,
+	stackCount,
 	_,
 	_,
 	_,
@@ -590,6 +597,7 @@ local function OnEffectChanged(
 		local rec = verdictEffect[abilityId]
 		if rec then
 			rec.units[unitId] = nil
+			rec.unitStacks[unitId] = nil
 			RecomputeActive(rec, now)
 		end
 		return
@@ -599,7 +607,7 @@ local function OnEffectChanged(
 	local rec = Match(verdictEffect, abilityId, effectName, length)
 	if not rec then
 		if state.probe and sourceType == COMBAT_UNIT_TYPE_PLAYER then
-			Probe("effect", abilityId, effectName, string.format("begin %.1f end %.1f", beginTime or 0, endTime or 0))
+			Probe("effect", abilityId, effectName, string.format("begin %.1f end %.1f stacks %d", beginTime or 0, endTime or 0, stackCount or 0))
 		end
 		return
 	end
@@ -617,12 +625,19 @@ local function OnEffectChanged(
 		finish = now + bonus.duration
 	end
 
+	local stacks = stackCount or 0
+	rec.stackPeak = zo_max(rec.stackPeak, stacks)
 	local wasActive = rec.actEnd > now
 	if finish then
 		rec.units[unitId] = finish
+		rec.unitStacks[unitId] = stacks
 		rec.actTotal = finish - startedAt
 		if finish > rec.actEnd then
 			rec.actEnd = finish
+		end
+		-- the stacks shown are those of the effect that ends last
+		if finish >= rec.actEnd then
+			rec.stacks = stacks
 		end
 	end
 	if fresh then
@@ -1035,6 +1050,20 @@ local function UpdateSample(row)
 	end
 end
 
+-- "x3/10" for an effect that builds up, "x3" when the cap is not known; nil when it does not stack.
+-- An effect counts as building up when its text says so, or once it has been seen with two or more.
+local function StackText(rec)
+	local count = rec.stacks
+	if count < 1 or not (rec.bonus.stacking or rec.stackPeak >= 2) then
+		return nil
+	end
+	local cap = rec.bonus.maxStacks
+	if cap and cap >= count then
+		return string.format(GetString(SI_PBSPST_STACKS_OF), count, cap)
+	end
+	return string.format(GetString(SI_PBSPST_STACKS), count)
+end
+
 local function UpdateRow(row, now)
 	if row.sample then
 		UpdateSample(row)
@@ -1067,6 +1096,11 @@ local function UpdateRow(row, now)
 		text = string.format(GetString(SI_PBSPST_ACTIVE), act)
 		if cd > 0 then
 			text = text .. "  " .. string.format(GetString(SI_PBSPST_COOLDOWN), cd)
+		end
+		-- in front, so a text that is too wide for its box loses the end, not the count
+		local stackText = StackText(rec)
+		if stackText then
+			text = stackText .. "  " .. text
 		end
 	elseif cd > 0 then
 		colorKey = "cooldown"
@@ -1354,6 +1388,17 @@ local function PrintStatus()
 				)
 			)
 			d(string.format("    procs %d, other players' events skipped %d", rec.procs, rec.foreign))
+			if bonus.stacking or bonus.maxStacks or rec.stackPeak > 0 then
+				d(
+					string.format(
+						"    stacks: now %d, most seen %d; the text %s%s",
+						rec.stacks,
+						rec.stackPeak,
+						bonus.stacking and "says it builds up" or "does not say so",
+						bonus.maxStacks and string.format(", up to %d", bonus.maxStacks) or ""
+					)
+				)
+			end
 			for abilityId, entry in pairs(rec.seen) do
 				d(string.format("    matched %s %d %s x%d  %s", entry.kind, abilityId, entry.name or "?", entry.n, Describe(abilityId)))
 			end
@@ -1399,6 +1444,17 @@ local function PrintText(argument)
 				d(string.format("  [%d] %d pc%s: %s", index, bonus.required, bonus.perfected and " (perfected)" or "", bonus.text))
 				for _, hit in ipairs(bonus.parsed.hits) do
 					d(string.format("      %.1f s -> %s", hit.seconds, hit.class))
+				end
+				-- what the text says about stacking
+				for _, effect in ipairs(bonus.effects) do
+					if effect.stacking or effect.maxStacks then
+						d(
+							string.format(
+								"      builds up in stacks%s",
+								effect.maxStacks and string.format(", up to %d", effect.maxStacks) or " (the text names no maximum)"
+							)
+						)
+					end
 				end
 				-- a line cut into several effects: what each of them was read as
 				if #bonus.effects > 1 then

@@ -1,0 +1,6 @@
+v1.1.0  (2026-11-04)
+  - New "Only Buffs I Apply" setting: show only buffs you (or your pet) cast,
+    ignoring the same buffs from other group members. Off by default.
+
+v1.0.0  (2026-11-03)
+  - Initial release.

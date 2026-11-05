@@ -17,8 +17,8 @@ function GR.InitSettings()
 		},
 		{
 			type = "checkbox",
-			name = "Show Price Tooltips",
-			tooltip = "Show the average sale price of items in item tooltips. Turning this off erases all recorded price history (requires reload).",
+			name = "Price Tooltips",
+			tooltip = "Show the average sale price of items in item tooltips. Turning this off erases all recorded price data (requires reload).",
 			getFunc = function() return GR.SV.enablePriceTooltips end,
 			setFunc = function(value)
 				GR.SV.enablePriceTooltips = value
@@ -30,7 +30,7 @@ function GR.InitSettings()
 		},
 		{
 			type = "checkbox",
-			name = "Show Profit Meter in Guild Store",
+			name = "Profit Meter in Guild Store",
 			tooltip = "Requires 'Show Price Tooltips' to be enabled. Shows the profit margin compared to the average sale price on guild trader listings.",
 			getFunc = function() return GR.SV.enableKioskDeals end,
 			setFunc = function(value) GR.SV.enableKioskDeals = value end,
@@ -43,14 +43,14 @@ function GR.InitSettings()
 		},
 		{
 			type = "checkbox",
-			name = "Show Center-Screen Notification",
+			name = "Center-Screen Notification",
 			tooltip = "Displays a pop‑up announcement in the center of the screen and plays a sound when you sell an item.",
 			getFunc = function() return GR.SV.enableSaleNotifications end,
 			setFunc = function(value) GR.SV.enableSaleNotifications = value end,
 		},
 		{
 			type = "checkbox",
-			name = "Show Chat Notification",
+			name = "Chat Notification",
 			tooltip = "Prints a message in the chat window when you sell an item.",
 			getFunc = function() return GR.SV.enableSaleNotificationsChat end,
 			setFunc = function(value) GR.SV.enableSaleNotificationsChat = value end,

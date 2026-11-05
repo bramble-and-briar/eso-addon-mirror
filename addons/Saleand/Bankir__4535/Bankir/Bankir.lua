@@ -1,7 +1,7 @@
 Bankir = Bankir or {}
 
 local name = "Bankir"
-local version = "2.8"
+local version = "2.8.1"
 local author = "vexaiv"
 
 local function debugPrint(message)
@@ -575,7 +575,6 @@ local function onBankOpen(bagId)
 	
 	if bagId == BAG_BANK and IsESOPlusSubscriber() then
 		populateQueue(BAG_SUBSCRIBER_BANK, BAG_BACKPACK)
-		populateQueueForQuests(BAG_SUBSCRIBER_BANK)
 	end
 	
 	--d("Queue building took " .. GetGameTimeMilliseconds() - startTimeMs .. " ms")

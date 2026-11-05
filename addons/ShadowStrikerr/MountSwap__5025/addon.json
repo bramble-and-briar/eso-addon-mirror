@@ -1,0 +1,44 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/ShadowStrikerr/MountSwap__5025",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "ShadowStrikerr",
+  "canonical_id": "esoui:5025",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5025",
+  "deleted": false,
+  "directories": [
+    "MountSwap"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5025/",
+  "fingerprint": "a158b672e1fbc81b95cfae6de33e82ee9095be066f705ffec10459b4236d7e3c",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18333.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18327.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18328.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18329.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18330.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18331.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18332.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5025",
+  "source_url": "https://www.esoui.com/downloads/info5025-MountSwap.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "MountSwap",
+  "updated_at": 1793847783000,
+  "version": "0.8.9"
+}

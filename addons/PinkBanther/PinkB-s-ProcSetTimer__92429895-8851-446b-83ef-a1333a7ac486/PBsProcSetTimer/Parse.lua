@@ -107,6 +107,29 @@ local CUES = {
 }
 local CLASS_ORDER = { "cooldown", "delay", "duration" }
 
+-- A bare "every 2 seconds" is as likely the interval of a tick ("heals every 2 seconds") as a
+-- cooldown, so cooldown cues come in two strengths: these say "cooldown" for certain ("once every",
+-- "cooldown", "に1回"), the rest of CUES.cooldown only say "every".
+local STRONG_COOLDOWN = {
+	before = { "once every%s*$", "once per%s*$", "cooldown of%s*$", "abklingzeit von%s*$", "раз в%s*$" },
+	after = {
+		"^%s*cooldown",
+		"^%s*internal cooldown",
+		"^%s*abklingzeit",
+		"^%s*de recharge",
+		"^%s*de reutilizaci",
+		"^%s*перезарядк",
+		"^に1回",
+		"^に一回",
+		"^に1度",
+		"^に一度",
+		"^のクールダウン",
+		"^クールダウン",
+		"^冷却",
+		"^的冷却",
+	},
+}
+
 -- How much text on either side of a number is looked at for a cue.
 local CONTEXT_BYTES = 32
 
@@ -131,14 +154,16 @@ local function Cued(list, str)
 	return false
 end
 
+-- The class of a time, and for a cooldown whether the wording is a sure one.
 local function Classify(before, after)
 	for _, class in ipairs(CLASS_ORDER) do
 		local cues = CUES[class]
 		if Cued(cues.before, before) or Cued(cues.after, after) then
-			return class
+			local strong = class == "cooldown" and (Cued(STRONG_COOLDOWN.before, before) or Cued(STRONG_COOLDOWN.after, after))
+			return class, strong
 		end
 	end
-	return "unknown"
+	return "unknown", false
 end
 
 -- All "<number> <seconds>" in a text, in reading order.
@@ -169,7 +194,8 @@ local function ScanTimes(text)
 			if seconds then
 				local before = text:sub(zo_max(1, s - CONTEXT_BYTES), s - 1):lower()
 				local after = text:sub(unitEnd + 1, unitEnd + CONTEXT_BYTES):lower()
-				hits[#hits + 1] = { seconds = seconds, class = Classify(before, after), first = s, last = unitEnd }
+				local class, strong = Classify(before, after)
+				hits[#hits + 1] = { seconds = seconds, class = class, strong = strong, first = s, last = unitEnd }
 			end
 			pos = unitEnd + 1
 		end
@@ -181,11 +207,20 @@ end
 function addon.ParseBonusText(text)
 	local hits = ScanTimes(Normalize(text))
 
+	-- The sentence that gives the cooldown comes after the description of what happens, and the
+	-- description may hold tick intervals of its own ("deals damage every 2 seconds"): so the last
+	-- sure cooldown, or failing that the last "every", is the one.
 	local cooldown
 	for _, hit in ipairs(hits) do
-		if hit.class == "cooldown" then
+		if hit.class == "cooldown" and hit.strong then
 			cooldown = hit
-			break
+		end
+	end
+	if not cooldown then
+		for _, hit in ipairs(hits) do
+			if hit.class == "cooldown" then
+				cooldown = hit
+			end
 		end
 	end
 	-- No cooldown phrase recognised: the closing time of a text with several is the cooldown.
@@ -247,55 +282,146 @@ end
 -- A bonus line can hold more than one effect. It is read sentence by sentence and cut into
 -- groups of sentences, one group per effect:
 --
---     * a sentence with a cooldown closes the group it is in ("This effect can occur once every 8
---       seconds."), and whatever comes next starts a new one;
+--     * a sentence that only gives a cooldown for sure ("This effect can occur once every 8
+--       seconds.") closes the group it is in, and the next sentence starts a new one;
 --     * a sentence with a duration ("for 15 seconds") starts a new group when the group it would
---       join already has one -- two effects that each last a while are two effects.
+--       join already has one -- two effects that each last a while are two effects. Not when it
+--       holds a cooldown-like interval or a delay of its own (it goes on with what came before:
+--       "heals every 2 seconds for 8 seconds", "after 1 second ... stuns for 3 seconds"), and not
+--       in a text about stacks (a build-up, its trigger and its payoff read as one effect).
 --
--- A line that yields fewer than two groups with a time in them stays whole, which is what every
--- line did before. (A time whose wording is not recognised never starts a group: the wording
--- may be a cooldown the cues missed, and splitting on it would cut one effect in two.)
+-- A group with no time of its own is added to the one before it. A line that yields fewer than two
+-- groups with a time in them stays whole, which is what every line did before. (A time whose wording
+-- is not recognised never starts a group: the wording may be a cooldown the cues missed, and
+-- splitting on it would cut one effect in two.)
 function addon.SplitEffects(text)
 	text = Normalize(text)
 	local hits = ScanTimes(text)
+	local stackText = addon.ParseStacks(text).stacking
 
 	local groups = {}
 	local current
 	local from = 1
 	while from <= #text and not text:sub(from):match("^%s*$") do
 		local stop = SentenceEnd(text, from)
-		local hasCooldown, hasDuration = false, false
+		local cooldownSure, cooldownAny, hasDuration, hasDelay = false, false, false, false
 		for _, hit in ipairs(hits) do
 			if hit.first >= from and hit.first <= stop then
 				if hit.class == "cooldown" then
-					hasCooldown = true
+					cooldownAny = true
+					cooldownSure = cooldownSure or hit.strong
 				elseif hit.class == "duration" then
 					hasDuration = true
+				elseif hit.class == "delay" then
+					hasDelay = true
 				end
 			end
 		end
-		if not current or current.closed or (hasDuration and current.hasDuration) then
+		local onlyCooldown = cooldownSure and not hasDuration and not hasDelay
+		local newEffect = hasDuration and current and current.hasDuration and not cooldownAny and not hasDelay and not stackText
+		if not current or current.closed or newEffect then
 			current = { first = from, hasDuration = false, closed = false }
 			groups[#groups + 1] = current
 		end
 		current.last = stop
 		current.hasDuration = current.hasDuration or hasDuration
-		current.closed = current.closed or hasCooldown
+		current.closed = current.closed or onlyCooldown
 		from = stop + 1
 	end
 
+	-- read each group; one that says nothing about time belongs to the group before it
 	local pieces = {}
 	for _, group in ipairs(groups) do
 		local piece = text:sub(group.first, group.last):match("^%s*(.-)%s*$")
 		local read = addon.ParseBonusText(piece)
-		if read.cooldown ~= nil or read.duration ~= nil then
+		if read.cooldown ~= nil or read.duration ~= nil or #pieces == 0 then
 			pieces[#pieces + 1] = piece
+		else
+			pieces[#pieces] = pieces[#pieces] .. " " .. piece
 		end
 	end
-	if #pieces < 2 then
+	local timed = {}
+	for _, piece in ipairs(pieces) do
+		local read = addon.ParseBonusText(piece)
+		if read.cooldown ~= nil or read.duration ~= nil then
+			timed[#timed + 1] = piece
+		end
+	end
+	if #timed < 2 then
 		return { text }
 	end
-	return pieces
+	return timed
+end
+
+-- ---------------------------------------------------------------------------------------
+-- STACKS
+-- ---------------------------------------------------------------------------------------
+-- Some effects build up ("generates a stack of X for 30 seconds, up to 10 stacks"). The game says
+-- how many there are in every effect event (stackCount); the text says whether the effect stacks
+-- and, sometimes, how many it can. A sentence that holds a stack word makes the effect a stacking
+-- one, and a "max N" / "up to N" in the same sentence is the most it builds up to. A cap in
+-- percent ("up to 5%") is a size, not a count, and is left alone.
+local STACK_WORDS = {
+	"stack", "stapel", "cumul", "acumul", "apil", "накоп", "стак",
+	"累積", "累积", "スタック", "叠加",
+}
+local MAX_CUES = {
+	"max%.?%s*(%d+)",
+	"maximum%s+of%s+(%d+)",
+	"maximum%s+(%d+)",
+	"maximal%s+(%d+)",
+	"up%s+to%s+(%d+)",
+	"bis%s+zu%s+(%d+)",
+	"ximo%s+(%d+)",
+	"максимум%s+(%d+)",
+	"до%s+(%d+)",
+	"最大(%d+)",
+	"最多(%d+)",
+	"上限(%d+)",
+}
+
+-- text -> { stacking = bool, max = number|nil }
+function addon.ParseStacks(text)
+	text = Normalize(text):lower()
+	local stacking, maximum = false, nil
+	local from = 1
+	while from <= #text and not text:sub(from):match("^%s*$") do
+		local stop = SentenceEnd(text, from)
+		local sentence = text:sub(from, stop)
+		local hasWord = false
+		for _, word in ipairs(STACK_WORDS) do
+			if sentence:find(word, 1, true) then
+				hasWord = true
+				break
+			end
+		end
+		if hasWord then
+			stacking = true
+			for _, cue in ipairs(MAX_CUES) do
+				if maximum then
+					break
+				end
+				local init = 1
+				while true do
+					local first, last, digits = sentence:find(cue, init)
+					if not first then
+						break
+					end
+					local next1, next3 = sentence:sub(last + 1, last + 1), sentence:sub(last + 1, last + 3)
+					local isPercent = next1 == "%" or next3 == "％"
+					local isDecimal = next1 == "." and sentence:sub(last + 2, last + 2):match("%d") ~= nil
+					local value = tonumber(digits)
+					if not isPercent and not isDecimal and value and value >= 2 and value <= 99 then
+						maximum = value
+						break
+					end
+					init = last + 1
+				end
+			end
+		end
+		from = stop + 1
+	end
+	return { stacking = stacking, max = maximum }
 end
 
 -- setId -> every bonus line of the set, each read for its timings; nil if the game has no such set.
@@ -346,7 +472,10 @@ function addon.ReadSetEffect(setId)
 				local read = (#pieces == 1) and parsed or addon.ParseBonusText(piece)
 				if read.cooldown ~= nil or read.duration ~= nil then
 					local k = #line.effects + 1
+					local stacks = addon.ParseStacks(piece)
 					line.effects[k] = {
+						stacking = stacks.stacking, -- the text says the effect builds up
+						maxStacks = stacks.max, -- ... and, if it does, how far
 						index = index,
 						key = index * 100 + k,
 						k = k,

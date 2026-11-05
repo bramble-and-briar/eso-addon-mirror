@@ -6,7 +6,8 @@
 
 ## Title: Hide Researchable Icon
 ## Author: |c66ccffsmj2k|r
-## Version: 1.0.0
+## Version: 1.1.1
+## AddOnVersion: 111
 ## APIVersion: 101051 101050
 ## Description: Hides the vanilla researchable/can-learn icon without changing research state.
 ## IsLibrary: false

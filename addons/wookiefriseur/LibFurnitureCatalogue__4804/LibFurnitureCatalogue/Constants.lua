@@ -246,6 +246,9 @@ this.Versioning.LATEST = latestVersion
 --- Delete at next main version update.
 this.Versioning.ZERO2 = this.Versioning.THIEVES
 
+---@deprecated Old name of MURKM, still used by FC 8.0.x
+this.Versioning.SLAVES = this.Versioning.MURKM
+
 -- Game zones, translated by the game
 --  Careful: the ids may change with expansions, use FurCDev.FindZone to fix any broken ones
 this.ZoneIds = fromVocabulary("locations", "zone")
@@ -405,11 +408,7 @@ this.BookContainers = {
 this.ItemPacks = fromVocabulary("packs", "item")
 
 --- Tamriel Tomes item packs. We don't have ids for those, so we use the strings
-this.TomesPacks = {
-  ARMOR = SI_FURC_TOMESPACK_ARMOR,
-  DAWN = SI_FURC_TOMESPACK_DAWN,
-  LOGIC = SI_FURC_TOMESPACK_LOGIC,
-}
+this.TomesPacks = stringsOf("tome_packs")
 
 --- Crown Store bundles without itemlink, mv to ItemPacks when you get an ID
 this.ItemBundles = stringsOf("bundles")
@@ -558,7 +557,7 @@ FURC_DRAGONS = this.Versioning.DRAGONS -- 6 Dragon Bones
 FURC_ALTMER = this.Versioning.ALTMER -- 7 Summerset
 
 -- @warning deprecated
-FURC_SLAVES = this.Versioning.SLAVES -- 8 Murkmire
+FURC_SLAVES = this.Versioning.MURKM -- 8 Murkmire
 
 -- @warning deprecated
 FURC_WEREWOLF = this.Versioning.WEREWOLF -- 9 Wolfhunter

@@ -5,6 +5,9 @@
       <Action name="TOM_GUILD"><Down>tomUI.guildClick()</Down></Action>
       <Action name="TOM_CATAC"><Down>tomUI.catacombClick()</Down></Action>
       <Action name="TOM_MAGIC"><Down>tomUI.magicClick()</Down></Action>
+      <!-- P5YCH3 v6.5.0: Roleplay panel keys. -->
+      <Action name="TOM_ROLEPLAY"><Down>tomUI.roleplayClick()</Down></Action>
+      <Action name="TOM_ROLEPLAY_NEXT"><Down>tomUI.roleplayHotkey()</Down></Action>
       <Action name="TOM_SCAN"><Down>tomUI.scanClick()</Down></Action>
       <Action name="TOM_FAIL"><Down>tomUI.failMailClick()</Down></Action>
       <Action name="TOM_RELOAD"><Down>tomUI.executeAction(1)</Down></Action>

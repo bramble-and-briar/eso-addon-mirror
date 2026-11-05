@@ -11,7 +11,7 @@ DM2StatsMenuShell = DM2StatsMenuShell or {}
 local M = DM2StatsMenuShell
 
 M.name    = "DM2StatsMenuShell"
-M.version = "3.18.8"
+M.version = "3.18.9"
 
 local WM = WINDOW_MANAGER
 local SCENE_NAME = "dm2StatsMenuShellGamepad"
@@ -11045,15 +11045,16 @@ local function layoutInsightsUI(ui, hostW, hostH)
     heights = { 0, 0, heights[1], 0, 0 }
   end
 
-  local function placeTrack(meter, parent, right, top, barW, barH)
+  local function placeTrack(meter, parent, left, top, barW, barH)
     if not meter or not meter.bg or not parent then return end
     barW = barW or 112
     barH = barH or 8
     if barH < 8 then barH = 8 end
+    if left < 0 then left = 0 end
     meter.w = barW
     meter.h = barH
     meter.bg:ClearAnchors()
-    meter.bg:SetAnchor(TOPRIGHT, parent, TOPRIGHT, right, top)
+    meter.bg:SetAnchor(TOPLEFT, parent, TOPLEFT, left, top)
     meter.bg:SetDimensions(barW, barH)
     if meter.pip then
       meter.pip:ClearAnchors()
@@ -11061,6 +11062,19 @@ local function layoutInsightsUI(ui, hostW, hostH)
       meter.pip:SetDimensions(7, 7)
     end
   end
+
+  -- One reading measure. Section frames stay the full plate.
+  -- Bars start just after their label. A wide TV was pinning a short bar to the plate's right edge.
+  local readW = W - 8
+  if readW > 1240 then readW = 1240 end
+  ui.readW = readW
+  local wasteLabelW = 260
+  if readW < 720 then wasteLabelW = math.max(150, math.floor(readW * 0.40)) end
+  ui.meterLabelW = wasteLabelW
+  local wasteBarLeft = 12 + wasteLabelW + 22
+  local wasteBarW = readW - wasteBarLeft - 12
+  if wasteBarW < 120 then wasteBarW = 120 end
+  ui.barW = wasteBarW
 
   local dH = heights[1] or 0
   if mode ~= "build" and ui.diagPanel and not ui.diagPanel:IsHidden() then
@@ -11082,10 +11096,8 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.primary:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, primaryY)
     ui.primary:SetWidth(W - 24)
     if ui.phase then ui.phase:SetHidden(true) end
-    local gapB = 18
-    local phaseW = math.max(48, math.floor((W - 24 - gapB * 2) / 3))
-    local meterW = math.min(240, math.max(160, math.floor(W * 0.30)))
-    ui.barW = meterW
+    local gapB = 14
+    local phaseW = math.max(48, math.floor((math.max(180, readW - 24) - gapB * 2) / 3))
     for i = 1, 3 do
       local x = 12 + (i - 1) * (phaseW + gapB)
       if ui.phaseCaps and ui.phaseCaps[i] then
@@ -11093,6 +11105,7 @@ local function layoutInsightsUI(ui, hostW, hostH)
         cap:ClearAnchors()
         cap:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, x, phaseY)
         cap:SetWidth(phaseW)
+        cap:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
         cap:SetHidden(false)
       end
       local m = ui.phaseMeters and ui.phaseMeters[i]
@@ -11110,26 +11123,32 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.limitsHdr:SetWidth(W - 24)
     local oppH = math.floor((dH - oppTop - 4) / INSIGHT_DIAG_OPP)
     if oppH < 1 then oppH = 1 end
-    local estW = 84
-    local nameW = math.max(100, W - 48 - estW - meterW)
+    -- rank | name | value | bar, adjacent. Name stays wide enough for the longest limit title.
+    local oppNameW = 340
+    local oppEstW = 78
+    if readW < 860 then oppNameW = math.max(160, math.floor(readW * 0.36)) end
+    local oppBarLeft = 24 + oppNameW + 8 + oppEstW + 18
+    local oppRowW = math.max(oppBarLeft + 80, readW - 10)
+    local oppBarW = oppRowW - oppBarLeft - 4
+    if oppBarW < 100 then oppBarW = 100 end
     for i = 1, INSIGHT_DIAG_OPP do
       local r = ui.oppRows[i]
       if r then
         r.row:ClearAnchors()
         r.row:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 10, oppTop + (i - 1) * oppH)
-        r.row:SetDimensions(W - 20, math.max(1, oppH - 1))
+        r.row:SetDimensions(oppRowW, math.max(1, oppH - 1))
         r.rank:ClearAnchors()
         r.rank:SetAnchor(LEFT, r.row, LEFT, 0, 0)
         r.rank:SetWidth(22)
         r.title:ClearAnchors()
         r.title:SetAnchor(LEFT, r.row, LEFT, 24, 0)
-        r.title:SetWidth(nameW)
+        r.title:SetWidth(oppNameW)
         r.title:SetMaxLineCount(1)
         r.est:ClearAnchors()
-        r.est:SetAnchor(LEFT, r.row, LEFT, 28 + nameW, 0)
-        r.est:SetWidth(estW)
+        r.est:SetAnchor(LEFT, r.row, LEFT, 24 + oppNameW + 6, 0)
+        r.est:SetWidth(oppEstW)
         r.ev:SetHidden(true)
-        placeTrack(r.meter, r.row, -4, math.max(0, math.floor((oppH - 8) / 2)), meterW, 8)
+        placeTrack(r.meter, r.row, oppBarLeft, math.max(0, math.floor((oppH - 8) / 2)), oppBarW, 8)
       end
     end
 
@@ -11139,8 +11158,8 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.wasteTitle:SetMaxLineCount(1)
     if ui.meterLegend then
       ui.meterLegend:ClearAnchors()
-      ui.meterLegend:SetAnchor(TOPRIGHT, ui.wastePanel, TOPRIGHT, -10, 6)
-      ui.meterLegend:SetWidth(math.max(120, W - 330))
+      ui.meterLegend:SetAnchor(TOPRIGHT, ui.wastePanel, TOPLEFT, readW - 8, 6)
+      ui.meterLegend:SetWidth(math.max(160, math.min(520, readW - 340)))
       ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
       ui.meterLegend:SetMaxLineCount(1)
     end
@@ -11152,12 +11171,12 @@ local function layoutInsightsUI(ui, hostW, hostH)
       if line then
         line:ClearAnchors()
         line:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 12, wTop + (i - 1) * wRowH)
-        line:SetWidth(math.max(80, W - 28 - meterW))
+        line:SetWidth(wasteLabelW)
         line:SetMaxLineCount(1)
       end
       if ui.wasteMeters then
-        placeTrack(ui.wasteMeters[i], ui.wastePanel, -12,
-          wTop + (i - 1) * wRowH + math.max(0, math.floor((wRowH - 8) / 2)), meterW, 8)
+        placeTrack(ui.wasteMeters[i], ui.wastePanel, wasteBarLeft,
+          wTop + (i - 1) * wRowH + math.max(0, math.floor((wRowH - 8) / 2)), wasteBarW, 8)
       end
     end
   end
@@ -11193,8 +11212,14 @@ local function layoutInsightsUI(ui, hostW, hostH)
     end
     local yb = 58
     local innerW = W - 24
-    local meterReserve = math.min(220, math.max(156, math.floor(W * 0.24)))
-    local buildBar = meterReserve - 28
+    -- Name and note stay in a fixed column. The bar starts at the end of that column.
+    local buildBar = 280
+    local buildTextW = math.min(760, readW - 40 - buildBar)
+    if buildTextW < 180 then
+      buildBar = math.max(120, math.floor((readW - 36) * 0.32))
+      buildTextW = math.max(140, readW - 40 - buildBar)
+    end
+    local buildBarLeft = 14 + buildTextW + 20
     local function placeHdr(lbl, textY)
       if not lbl then return textY end
       lbl:ClearAnchors()
@@ -11215,9 +11240,10 @@ local function layoutInsightsUI(ui, hostW, hostH)
     if ui.ibSetNote then ui.ibSetNote:SetMaxLineCount(2) end
     for i = 1, IB_SET_ROWS do
       local yLine = yb
-      yb = placeLine(ui.ibSetRows[i], yb, lineH, meterReserve)
+      yb = placeLine(ui.ibSetRows[i], yb, lineH, 0)
+      if ui.ibSetRows[i] then ui.ibSetRows[i]:SetWidth(buildTextW) end
       if ui.ibSetMeters then
-        placeTrack(ui.ibSetMeters[i], ui.buildPanel, -12,
+        placeTrack(ui.ibSetMeters[i], ui.buildPanel, buildBarLeft,
           yLine + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
       end
     end
@@ -11234,38 +11260,40 @@ local function layoutInsightsUI(ui, hostW, hostH)
     for i = 1, IB_CP_ROWS do
       local r = ui.ibCpRows[i]
       if r then
+        local cpRowW = (buildBarLeft - 12) + buildBar + 4
         r.row:ClearAnchors()
         r.row:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, yb)
-        r.row:SetDimensions(innerW, math.max(1, cpPitch - 1))
+        r.row:SetDimensions(cpRowW, math.max(1, cpPitch - 1))
         r.fit:ClearAnchors()
         r.fit:SetAnchor(LEFT, r.row, LEFT, 0, 0)
         r.fit:SetWidth(48)
-        local nW = math.max(80, math.floor(innerW * 0.28))
+        local nW = 168
         r.name:ClearAnchors()
         r.name:SetAnchor(LEFT, r.row, LEFT, 52, 0)
         r.name:SetWidth(nW)
         r.name:SetMaxLineCount(1)
         r.impact:ClearAnchors()
         r.impact:SetAnchor(LEFT, r.row, LEFT, 56 + nW, 0)
-        r.impact:SetWidth(math.max(80, innerW - 70 - nW - meterReserve))
+        r.impact:SetWidth(math.max(60, (buildBarLeft - 12) - (56 + nW) - 8))
         r.impact:SetMaxLineCount(1)
-        placeTrack(r.meter, r.row, -2, math.max(0, math.floor((cpPitch - 8) / 2)), buildBar, 8)
+        placeTrack(r.meter, r.row, buildBarLeft - 12, math.max(0, math.floor((cpPitch - 8) / 2)), buildBar, 8)
         yb = yb + cpPitch
       end
     end
     yb = yb + 4
     yb = placeHdr(ui.ibBarHdr, yb)
     local barY = yb
-    yb = placeLine(ui.ibBarLine, yb, math.max(lineH, 18), meterReserve)
-    placeTrack(ui.ibBarMeter, ui.buildPanel, -12, barY + 4, buildBar, 8)
+    yb = placeLine(ui.ibBarLine, yb, math.max(lineH, 18), 0)
+    if ui.ibBarLine then ui.ibBarLine:SetWidth(buildTextW) end
+    placeTrack(ui.ibBarMeter, ui.buildPanel, buildBarLeft, barY + 4, buildBar, 8)
     yb = yb + 4
     yb = placeHdr(ui.ibPotHdr, yb)
     for i = 1, IB_POT_LINES do
       local potY = yb
-      local reserve = (i == 1) and meterReserve or 0
-      yb = placeLine(ui.ibPot[i], yb, lineH, reserve)
+      yb = placeLine(ui.ibPot[i], yb, lineH, 0)
       if i == 1 then
-        placeTrack(ui.ibPotMeter, ui.buildPanel, -12, potY + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
+        if ui.ibPot[i] then ui.ibPot[i]:SetWidth(buildTextW) end
+        placeTrack(ui.ibPotMeter, ui.buildPanel, buildBarLeft, potY + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
       end
     end
     yb = yb + 4
@@ -11344,9 +11372,14 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.execTitle:SetWidth(W - 20)
   ui.execSummary:ClearAnchors()
   ui.execSummary:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, 24)
-  ui.execSummary:SetWidth(math.max(80, W - 28 - (ui.barW or 200)))
+  local sumW = math.min(700, math.max(160, readW - 36 - 200))
+  ui.execSummary:SetWidth(sumW)
   ui.execSummary:SetMaxLineCount(1)
-  placeTrack(ui.execPace, ui.execPanel, -12, 28, ui.barW or 200, 8)
+  local paceLeft = 12 + sumW + 22
+  local paceW = readW - paceLeft - 12
+  if paceW > 360 then paceW = 360 end
+  if paceW < 80 then paceW = 80 end
+  placeTrack(ui.execPace, ui.execPanel, paceLeft, 28, paceW, 8)
   local eTop = 46
   local eH = math.floor(((heights[4] or 80) - eTop - 4) / INSIGHT_EXEC_LINES)
   if eH < 1 then eH = 1 end
@@ -11862,14 +11895,15 @@ local function refreshInsightsUI(screen, session, mode)
   local waste = coach.wasteLines or {}
   local wasteMeters = coach.wasteMeters or {}
   local rootW = (ui.root and ui.root.GetWidth and ui.root:GetWidth()) or 900
-  local barW = tonumber(ui.barW) or 200
+  local meterLabelW = tonumber(ui.meterLabelW) or 260
   for i = 1, INSIGHT_WASTE_LINES do
     local wm = wasteMeters[i]
     local hasBar = wm and wm.pct ~= nil
     if ui.wasteLines[i] then
       local shown = (hasBar and wm.label) or waste[i] or ""
       ui.wasteLines[i]:SetText(displayName(shown, hasBar and 42 or 110))
-      ui.wasteLines[i]:SetWidth(hasBar and math.max(80, rootW - 28 - barW) or (rootW - 24))
+      -- Metered rows keep the short label. Sentences with no bar use the plate.
+      ui.wasteLines[i]:SetWidth(hasBar and meterLabelW or math.max(80, rootW - 24))
     end
     if M.PaintInsightMeter and ui.wasteMeters then
       if hasBar then

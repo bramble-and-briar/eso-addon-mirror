@@ -6,6 +6,31 @@ A custom target frame with personalized portraits, buff and debuff tracking, and
 <!-- ESOUI:start -->
 ## History
 
+### 2026.11.03-101113 — Differentiate player vs team debuffs, add layout command, and refine 3-line UI.
+
+#### Added
+
+- Differentiate player versus team debuff origins on Line 3: display the highest timer between player and team casts, rendering in white when applied by the local player (or player timer >= team timer) and in cyan when applied by the team;
+- Support independent origin color evaluation for paired debuffs, allowing Major and Minor timers to independently display in white or cyan;
+- Add /mugshot layout [classic|compact] and /mugshot classic [on|off] to toggle between 2-line classic layout (default) and 3-line compact layout with Line 3 privileged debuffs;
+- Add Move Mode target toggle via /mugshot move [enemy|player|toggle] and in-frame button to configure both enemy and player frames;
+- Add interactive Move Mode handles on the target frame to swap quadrant positions and interchange lines 1, 2, and 3 directly;
+- Add custom player nickname resolution through LibCustomNames and HodorReflexes hooks, controllable via /mugshot hodor;
+- Add deep-merge settings migration for quadrantsEnemy, quadrantsNeutral, and lines sub-tables.
+
+#### Fixed
+
+- Ensure race and alliance badges appear exclusively on player targets and respect visibility toggles;
+- Align text and border styling across line handles during repositioning.
+
+#### Improved
+
+- Modularize target frame into three equal 32 px lines accommodating name, health, and a dedicated 5-slot privileged debuffs row;
+- Support paired layout (Major Gold / Minor Silver badges) and single layout (timer and stacks) on Line 3;
+- Synchronize Move Mode dynamically with the active layout, presenting either classic 2-line or compact 3-line structures;
+- Memoize combat text normalization with NORMALIZE_CACHE to eliminate runtime string allocation overhead;
+- Format large numbers with uppercase K and M suffixes with fallback localization support.
+
 ### 2026.10.31-101047 — Improve target tracking, refine effect layouts, and align default frame positioning.
 
 #### Fixed

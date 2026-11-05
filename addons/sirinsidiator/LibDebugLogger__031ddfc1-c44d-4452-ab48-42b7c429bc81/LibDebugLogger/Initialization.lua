@@ -10,52 +10,58 @@ local tconcat = table.concat
 local traceback = debug.traceback
 local zo_strformat = zo_strformat
 local GetGameTimeMilliseconds = GetGameTimeMilliseconds
-local LDL_LOGGER_CONFIG = {
-    tag = lib.id
-}
+local LDL_LOGGER_CONFIG = internal.LOGGER_CONFIG
 local LDL_LOGGER_PERF_CONFIG = {
-    tag = lib.id .. "/" .. "PerformanceStats"
+    tag = LDL_LOGGER_CONFIG.tag .. "/PerformanceStats"
 }
+
+local function pairsToMap(pairs)
+    local map = {}
+    for _, pair in ipairs(pairs) do
+        if pair[1] ~= nil then
+            map[pair[1]] = pair[2]
+        end
+    end
+    return map
+end
 
 local UNKNOWN_STATE_STRING = "unknown state (%d)"
-local STATE_STRING = {
-    [ADDON_STATE_NO_STATE] = "no state",
-    [ADDON_STATE_TOC_LOADED] = "toc loaded",
-    [ADDON_STATE_ENABLED] = "enabled",
-    [ADDON_STATE_DISABLED] = "disabled",
-    [ADDON_STATE_VERSION_MISMATCH] = "out of date",
-    [ADDON_STATE_DEPENDENCIES_DISABLED] = "missing dependency",
-    [ADDON_STATE_ERROR_STATE_UNABLE_TO_LOAD] = "failed to load",
-}
-local PLATFORMS = {
-    [PLATFORM_SERVICE_TYPE_ZOS] = "PC",
-    [PLATFORM_SERVICE_TYPE_PSN] = "Playstation",
-    [PLATFORM_SERVICE_TYPE_XBL] = "Xbox",
-    [PLATFORM_SERVICE_TYPE_DMM] = "PC - DMM",
-    [PLATFORM_SERVICE_TYPE_STEAM] = "PC - Steam",
-    [PLATFORM_SERVICE_TYPE_EPIC] = "PC - Epic",
-}
-
-local FULLSCREEN_MODE = {
-    [tostring(FULLSCREEN_MODE_FULLSCREEN_EXCLUSIVE)] = "fullscreen",
-    [tostring(FULLSCREEN_MODE_FULLSCREEN_WINDOWED)] = "fullscreen windowed",
-    [tostring(FULLSCREEN_MODE_WINDOWED)] = "windowed",
-}
-
-local GAMEPAD_TYPE = {
-    [GAMEPAD_TYPE_NONE] = "no gamepad",
-    [GAMEPAD_TYPE_XBOX] = "xbox gamepad",
-    [GAMEPAD_TYPE_PS4] = "ps4 gamepad",
-    [GAMEPAD_TYPE_SWITCH] = "switch gamepad",
-    [GAMEPAD_TYPE_STADIA] = "stadia gamepad",
-    [GAMEPAD_TYPE_PS5] = "ps5 gamepad",
-    [GAMEPAD_TYPE_XBSX] = "xbox series-x gamepad",
-}
-if GetAPIVersion() < 101049 then
-    GAMEPAD_TYPE[GAMEPAD_TYPE_PS4_NO_TOUCHPAD] = "ps4 gamepad (no touchpad)"
-else
-    GAMEPAD_TYPE[GAMEPAD_TYPE_DEPRECATED] = "deprecated"
+local STATE_STRING = pairsToMap({
+    {ADDON_STATE_NO_STATE, "no state"},
+    {ADDON_STATE_TOC_LOADED, "toc loaded"},
+    {ADDON_STATE_ENABLED, "enabled"},
+    {ADDON_STATE_DISABLED, "disabled"},
+    {ADDON_STATE_VERSION_MISMATCH, "out of date"},
+    {ADDON_STATE_DEPENDENCIES_DISABLED, "missing dependency"},
+    {ADDON_STATE_ERROR_STATE_UNABLE_TO_LOAD, "failed to load"},
+})
+local PLATFORMS = pairsToMap({
+    {PLATFORM_SERVICE_TYPE_ZOS, "PC"},
+    {PLATFORM_SERVICE_TYPE_PSN, "Playstation"},
+    {PLATFORM_SERVICE_TYPE_XBL, "Xbox"},
+    {PLATFORM_SERVICE_TYPE_STEAM, "PC - Steam"},
+    {PLATFORM_SERVICE_TYPE_EPIC, "PC - Epic"},
+})
+if GetAPIVersion() < 101052 then
+    PLATFORMS[PLATFORM_SERVICE_TYPE_DMM] = "PC - DMM"
 end
+
+local FULLSCREEN_MODE = pairsToMap({
+    {tostring(FULLSCREEN_MODE_FULLSCREEN_EXCLUSIVE), "fullscreen"},
+    {tostring(FULLSCREEN_MODE_FULLSCREEN_WINDOWED), "fullscreen windowed"},
+    {tostring(FULLSCREEN_MODE_WINDOWED), "windowed"},
+})
+
+local GAMEPAD_TYPE = pairsToMap({
+    {GAMEPAD_TYPE_NONE, "no gamepad"},
+    {GAMEPAD_TYPE_XBOX, "xbox gamepad"},
+    {GAMEPAD_TYPE_PS4, "ps4 gamepad"},
+    {GAMEPAD_TYPE_SWITCH, "switch gamepad"},
+    {GAMEPAD_TYPE_STADIA, "stadia gamepad"},
+    {GAMEPAD_TYPE_PS5, "ps5 gamepad"},
+    {GAMEPAD_TYPE_XBSX, "xbox series-x gamepad"},
+    {GAMEPAD_TYPE_DEPRECATED, "deprecated"}
+})
 -- player info logging
 
 local AddOnManager = GetAddOnManager()
@@ -170,7 +176,7 @@ internal.Log(internal.LOG_LEVEL_INFO, LDL_LOGGER_CONFIG, "Initializing..." .. de
 LogPerformance("init")
 
 -- ingame logging hooks
-
+internal.TIME_SYNC_ERROR_CODE = {}
 EVENT_MANAGER:RegisterForEvent(lib.id, EVENT_LUA_ERROR, function(eventCode, errorString, errorCode)
     if(errorString and not internal.TIME_SYNC_ERROR_CODE[errorCode]) then
         if internal.tlcStacktrace then

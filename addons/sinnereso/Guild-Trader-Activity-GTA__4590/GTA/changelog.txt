@@ -1,8 +1,11 @@
-2026.10.09
-- Moved trim function to the close event instead of upon opening.
-- Added trim informational tooltip.
+2026.11.04
+- Pre-Added an up to date indicator next to guild name to indicate if that particular guild is linked to current data and up to date once LibHistiore also updates to support it.
+- Added "Show All" option to list all guilds regardless of being a trading guild or having any sales. Option mostly for myself but others might find useful.
+- Revamped the list population function by compacting the tables by 75% which should improve performance by as much as 50%.
+- Slightly increased the width of the guild name field by 30pts to account for longer guild names and larger sales.
 
 ** POSSIBLE FUTURE OPTIONS **
+- fix name length issue
 
 
 

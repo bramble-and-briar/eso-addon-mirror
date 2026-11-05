@@ -17,7 +17,7 @@ local TOM_REBORN_ADDON_WEBSITE = "https://www.esoui.com/downloads/info3428-TOM-T
 local TOM_REBORN_FEEDBACK_WEBSITE = "https://www.esoui.com/forums/member.php?u=47541"
 
 tom.name="tom"
-tom.version="6.4.3"
+tom.version="6.5.0" -- ✅ P5YCH3: v6.5.0 (was "6.4.3").
 tom.isDebug=false
 tom.loaded=false
 tom.PlayerReady=false
@@ -1709,7 +1709,47 @@ function tom.GarbageCollection()
 	if GCtime>1 then tom.sendDebugMessage("Garbage Collection beendet - " .. GCtime .. " Sekunde(n)") end
 end
 
+-- ✅ P5YCH3: v6.5.0 - The side windows (Catacombs, Magic Messages, Guild Functions) normally follow the main window. With their "keep open" setting they stay up
+-- when the player closes the main window, until the player closes them; combat, menus and chatter (hasToClose) still hide them as they hide the main window.
+-- standIn[kind] is true while the window replaced the main window (the "keep TOM open when ... opens" setting is off).
+tom.windowKeys={
+	catacomb={requested="requestedCatacombState",keep="keepCatacombOpen",tomKeep="keepTomOpenForCatacomb"},
+	magic={requested="requestedMagicState",keep="keepMagicOpen",tomKeep="keepTomOpenForMagic"},
+	guild={requested="requestedGuildState",keep="keepGuildOpen",tomKeep="keepTomOpenForGuild"},
+}
+tom.standIn={}
+function tom.windowShouldShow(kind,mainShown,forced)
+	local keys=tom.windowKeys[kind]
+	if tom.vars[keys.requested]~=true then return false end
+	if mainShown==true then return true end
+	if tom.standIn[kind]==true and tom.vars.requestedWindowState==false and forced~=true then return true end
+	return (tom.vars[keys.keep]==true) and (tom.vars.requestedWindowState==false) and (forced~=true)
+end
+
+function tom.catacombShouldShow(mainShown,forced)
+	return tom.windowShouldShow("catacomb",mainShown,forced)
+end
+
+-- Called after a side window was toggled from the main window: with "keep TOM open when it opens" off, the main window closes and the side window stays.
+function tom.sideWindowToggled(kind)
+	local keys=tom.windowKeys[kind]
+	tom.standIn[kind]=false
+	if tom.vars[keys.requested]==true and tom.vars[keys.tomKeep]==false and tom.vars.requestedWindowState==true then
+		tom.vars.requestedWindowState=false
+		tom.standIn[kind]=true
+		tom.resetOverides(true)
+	end
+end
+
+-- ✅ P5YCH3: v6.5.0 - Should the Roleplay panel close with the main window? Only when the player closes the main window, the setting
+-- keepRoleplayOpen is off, and the main window was not closed because the Roleplay panel just opened.
+function tom.roleplayShouldClose(bShow)
+	return (bShow~=true) and (tom.windowState==true) and (tom.vars.keepRoleplayOpen==false) and (tom.vars.requestedWindowState==false) and (tom.rpStandsIn~=true)
+end
+
 function tom.showWindow(bShow)
+	if tom.roleplayShouldClose(bShow)==true and tomRP and tomRP.UI and tomRP.UI.Hide then tomRP.UI.Hide() end -- ✅ P5YCH3: v6.5.0
+	tom.rpStandsIn=false
 	-- das Hauptfenster und die ungedockten Fenster in den angeforderten Zustand bringen
 	for looper=1,tom.vars.twtCount,1 do
 		local windowKey=tom.windowName .. tom.to2string(looper)
@@ -1717,7 +1757,8 @@ function tom.showWindow(bShow)
 		if (bShow==true) and (tom.vars.twt[windowKey].act==true) then
 			gBC:SetHidden(false)
 			-- New settings option to toggle the automatic display of the cursor when opening TOM. Checks the 'automaticallyShowCursor' saved variable.
-			if tom.vars.automaticallyShowCursor == true then
+			-- ✅ P5YCH3: v6.5.0 - Not while the game is still loading (EnterWorld shows it afterwards): switching the scene that early made other addons' scene callbacks fail.
+			if tom.vars.automaticallyShowCursor == true and tom.PlayerReady == true then
 				SCENE_MANAGER:Show("hudui") --P5YCH3 - Automatically show the cursor when the main window opens (if enabled).
 			end
 		else
@@ -1726,7 +1767,7 @@ function tom.showWindow(bShow)
 	end
 	-- das Magiefenster in den angeforderten Zustand bringen
 	-- bring the magic window to the requested state
-	if (bShow==true) and (tom.vars.requestedMagicState==true) then
+	if tom.windowShouldShow("magic",bShow,(bShow~=true) and tom.hasToClose())==true then
 		tomMagic:SetHidden(false)
 		tom.magicState=true
 	else
@@ -1734,7 +1775,7 @@ function tom.showWindow(bShow)
 		tom.magicState=false
 	end
 	-- die Katakomben in den angeforderten Zustand bringen
-	if (bShow==true) and (tom.vars.requestedCatacombState==true) then
+	if tom.catacombShouldShow(bShow,(bShow~=true) and tom.hasToClose())==true then -- ✅ P5YCH3: v6.5.0 - was: (bShow==true) and (tom.vars.requestedCatacombState==true)
 		tomCatacomb:SetHidden(false)
 		tom.catacombState=true
 	else
@@ -1742,7 +1783,7 @@ function tom.showWindow(bShow)
 		tom.catacombState=false
 	end
 	-- das Gildenfenster in den angeforderten Zustand bringen
-	if (bShow==true) and (tom.vars.requestedGuildState==true) then
+	if tom.windowShouldShow("guild",bShow,(bShow~=true) and tom.hasToClose())==true then
 		if tom.guildIsReaded==false then tom.guildReadGuild() end
 		tomGuild:SetHidden(false)
 		tom.guildState=true
@@ -1805,7 +1846,8 @@ function tomUI.AlerterUpdate()
 		if tom.UpdateThrottle()==true then
 			-- Das Fenster in den angeforderten Status bringen
 			local newWindowState=tom.vars.requestedWindowState
-			if tom.hasToClose()==true then
+			local forcedClosed=tom.hasToClose()
+			if forcedClosed==true then
 				--================================================================================--===========================================--
 				-- P5YCH3 - SCENE_MANAGER HANDLING FOR UI CONTROLS
 				--================================================================================--===========================================--
@@ -1822,12 +1864,12 @@ function tomUI.AlerterUpdate()
 				--================================================================================--===========================================--
 			end
 			if ((newWindowState~=tom.windowState) or 
-					(tom.vars.requestedMagicState~=tom.magicState) or 
-					(tom.vars.requestedCatacombState~=tom.catacombState) or 
+					(tom.windowShouldShow("magic",newWindowState,forcedClosed)~=tom.magicState) or 
+					(tom.catacombShouldShow(newWindowState,forcedClosed)~=tom.catacombState) or -- ✅ P5YCH3: v6.5.0 - was: (tom.vars.requestedCatacombState~=tom.catacombState)
 					(tom.vars.requestedScanState~=tom.scanState) or 
 					(tom.vars.requestedClipState~=tom.clipState) or 
 					(tom.vars.requestedFailState~=tom.failState) or 
-					(tom.vars.requestedGuildState~=tom.guildState)) then
+					(tom.windowShouldShow("guild",newWindowState,forcedClosed)~=tom.guildState)) then
 				tom.playSound(1)
 				tom.showWindow(newWindowState)
 			end
@@ -1889,6 +1931,7 @@ function tomUI.AlerterClick()
 				end
 			end
 			tom.vars.requestedWindowState=true
+			tom.standIn={} -- ✅ P5YCH3: v6.5.0
 		end
 		tom.immediateThrottle()
 	end
@@ -1897,6 +1940,48 @@ end
 function tomUI.guildClick()
 	if tom.PlayerReady==true then
 		tom.vars.requestedGuildState=not tom.vars.requestedGuildState
+		tom.sideWindowToggled("guild") -- ✅ P5YCH3: v6.5.0
+		tom.immediateThrottle()
+	end
+end
+
+-- ✅ P5YCH3: v6.5.0 - Brings the main window back (or to the front if it is already up). Used by the TOM bubble on the Catacombs and Roleplay panels.
+function tomUI.showMainWindow()
+	if tom.PlayerReady~=true then return end
+	if tom.windowState==false then
+		if IsUnitInCombat("player")==true then tom.ovrCombat=true end
+		if tom.isChattering==true then tom.ovrChatter=true end
+		if tom.isInStrip()==true then tom.ovrStrip=true end
+	end
+	tom.vars.requestedWindowState=true
+	tom.standIn={}
+	tom.immediateThrottle()
+	if tomWindow01 and tomWindow01.BringWindowToTop then pcall(tomWindow01.BringWindowToTop,tomWindow01) end
+end
+
+-- The TOM bubble on the Catacombs window: closes the Catacombs and returns to the main window.
+function tomUI.catacombToMain()
+	if tom.vars.requestedCatacombState==true then tomUI.catacombClick() end
+	tomUI.showMainWindow()
+end
+
+-- The TOM bubble on the Magic Messages and Guild Functions windows.
+function tomUI.magicToMain()
+	if tom.vars.requestedMagicState==true then tomUI.magicClick() end
+	tomUI.showMainWindow()
+end
+
+function tomUI.guildToMain()
+	if tom.vars.requestedGuildState==true then tomUI.guildClick() end
+	tomUI.showMainWindow()
+end
+
+-- ✅ P5YCH3: v6.5.0 - Called when the Roleplay panel opens: closes the main window unless the setting keepTomOpenForRoleplay is on.
+function tomUI.roleplayOpened()
+	if tom.vars and tom.vars.keepTomOpenForRoleplay==false and tom.vars.requestedWindowState==true then
+		tom.vars.requestedWindowState=false
+		tom.rpStandsIn=true
+		tom.resetOverides(true)
 		tom.immediateThrottle()
 	end
 end
@@ -1904,6 +1989,7 @@ end
 function tomUI.catacombClick()
 	if tom.PlayerReady==true then
 		tom.vars.requestedCatacombState=not tom.vars.requestedCatacombState
+		tom.sideWindowToggled("catacomb") -- ✅ P5YCH3: v6.5.0
 		tom.immediateThrottle()
 	end
 end
@@ -1911,6 +1997,7 @@ end
 function tomUI.magicClick()
 	if tom.PlayerReady==true then
 		tom.vars.requestedMagicState=not tom.vars.requestedMagicState
+		tom.sideWindowToggled("magic") -- ✅ P5YCH3: v6.5.0
 		-- beim Schliessen des Fensters die UI in Ordnung bringen
 		if tom.vars.requestedMagicState==false then
 			tom.rebuildMMT()
@@ -1960,6 +2047,37 @@ function tomUI.WindowMoveStop(self)
 		tom.vars.twt[windowName].Y=self:GetTop()
 		self:ClearAnchors()
 		self:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, tom.vars.twt[windowName].X, tom.vars.twt[windowName].Y)
+	end
+end
+
+-- ✅ P5YCH3: v6.5.0 - The player resized the main window by hand. The new size is stored in the two settings the size sliders already use
+-- (chat width and number of group rows), so the sliders, the saved size and the layout always agree, and the window is rebuilt the same way.
+function tomUI.WindowResizeStop(self)
+	if (tom.loaded == true) then
+		local WindowRow2=10+tom.gombuttonwidth+6
+		local width=math.floor(self:GetWidth()-WindowRow2-20+0.5)
+		local rows=math.floor((self:GetHeight()-100)/tom.gombuttonheight+0.5)
+		tom.vars.chatWidth=math.max(tom.tom_defaults.chatWidth-200,math.min(tom.chatMaxWidth,width))
+		tom.vars.gomButtons=math.max(tom.tom_defaults.gomButtons-2,math.min(tom.gomMaxButtons,rows))
+		-- dragging the left or top edge moves the window as well, so remember where it now sits
+		local windowName=self:GetName()
+		tom.vars.twt[windowName].X=self:GetLeft()
+		tom.vars.twt[windowName].Y=self:GetTop()
+		tom.activateUIchanges()
+	end
+end
+
+-- ✅ P5YCH3: v6.5.0 - Same for an undocked group window. All undocked windows share one size (the undocked width and height settings), so they all follow.
+function tomUI.UndockedResizeStop(self)
+	if (tom.loaded == true) then
+		local width=math.floor(self:GetWidth()-20+0.5)
+		local rows=math.floor((self:GetHeight()-50)/tom.gombuttonheight+0.5)
+		tom.vars.undockedWidth=math.max(tom.tom_defaults.undockedWidth-200,math.min(tom.chatMaxWidth,width))
+		tom.vars.undockedHeigth=math.max(tom.tom_defaults.undockedHeigth-2,math.min(tom.gomMaxButtons,rows))
+		local windowName=self:GetName()
+		tom.vars.twt[windowName].X=self:GetLeft()
+		tom.vars.twt[windowName].Y=self:GetTop()
+		tom.activateUIchanges()
 	end
 end
 
@@ -2071,6 +2189,10 @@ function tom.EnterWorld()
 		tom.WelcomeBackMessage()
 		tom.GarbageCollection()
 		tom.PlayerReady=true
+		-- ✅ P5YCH3: v6.5.0 - Show the cursor for a main window that was open at login, once the game has finished loading.
+		if tom.vars.automaticallyShowCursor == true and tom.windowState == true then
+			zo_callLater(function() if tom.windowState == true then pcall(function() SCENE_MANAGER:Show("hudui") end) end end, 1500)
+		end
 		tom.magicLomTransport(tom.vars.shownLOM,true)
 		tom.refreshCatacombUI()
 		tom.firstRun()
@@ -2703,6 +2825,9 @@ function tom.createUndockedWindow(newKey,newGOM)
 	gBC:ClearAnchors()
 	gBC:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, tom.vars.twt[newKey].X, tom.vars.twt[newKey].Y)
 	gBC:SetDimensions(winWidth,winHeight)
+	-- ✅ P5YCH3: v6.5.0 - Smallest and largest size when resizing by hand: the same limits as the undocked window size sliders.
+	gBC:SetDimensionConstraints(tom.tom_defaults.undockedWidth-200+20,(tom.tom_defaults.undockedHeigth-2)*tom.gombuttonheight+WindowGOMblock+10,
+		tom.chatMaxWidth+20,tom.gomMaxButtons*tom.gombuttonheight+WindowGOMblock+10)
 	gBC2=GetControl(newKey .. "Background")
 	gBC2:SetAlpha(tom.vars.BGalpha/100)
 	gBC2=GetControl(newKey .. "Bubble")
@@ -2742,7 +2867,7 @@ function tom.createUndockedWindow(newKey,newGOM)
 	gBC2=GetControl(newKey .. "Rolle")
 	gBC2:SetDimensions(winWidth-20,winHeight-(WindowGOMblock+10))
 	-- Den Rollen-Slider erzeugen/platzieren
-	gBC=tom.createRolleSlider(newKey,winWidth-17,WindowGOMblock,winHeight-(WindowGOMblock+10))
+	gBC=tom.createRolleSlider(newKey,winWidth-21,WindowGOMblock,winHeight-(WindowGOMblock+10)) -- ✅ P5YCH3: v6.5.0 - was winWidth-17
 	gBC2=GetControl(newKey .. "Rolle")
 	gBC:SetMinMax(0,gBC2:GetNumHistoryLines())
 	gBC:SetValue(gBC2:GetNumHistoryLines())
@@ -4006,6 +4131,8 @@ end
 
 function tom.setMovability(value)
 	tomWindow01:SetMovable(value)
+	-- ✅ P5YCH3: v6.5.0 - A window can only be resized by hand while windows are movable (the "movable windows" setting).
+	tomWindow01:SetResizeHandleSize(value and 6 or 0)
 	tomAlerter:SetMovable(value)
 	tomAlerterBubble:SetMovable(value)
 	tom.vars.moveableWindows=value
@@ -4126,6 +4253,8 @@ function tom.refreshLAM()
 end
 
 function tom.InitializeOptions()
+	-- ✅ P5YCH3: v6.5.0 - Text for the Roleplay commands in the menu; empty if the Roleplay files are not there, so the settings menu still builds.
+	local function rpText(key) if tomRP and tomRP.L then return tomRP.L(key) end return "" end
 	-- Das Einstellungsfenster aufbauen - LibAddonMenu Version 2.0
 	local panelData = {
 				type = "panel",
@@ -4582,7 +4711,71 @@ function tom.InitializeOptions()
 				setFunc=function(newValue) tom.vars.closeInMenus=newValue end,
 				default=tom.tom_defaults.closeInMenus,
 				},
-			[51]={ --P5YCH3 - New submenu for all addon console commands (includes German (DE) tranlations!).
+			[51]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the Catacombs window open when the main window is closed (text is English in every language).
+				type="checkbox",
+				name=rpText("SET_KEEP_CATACOMB"),
+				tooltip=rpText("SET_KEEP_CATACOMB_TIP"),
+				getFunc=function() return tom.vars.keepCatacombOpen end,
+				setFunc=function(newValue) tom.vars.keepCatacombOpen=newValue tom.immediateThrottle() end,
+				default=tom.tom_defaults.keepCatacombOpen,
+				},
+			[52]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the Roleplay panel open when the main window is closed.
+				type="checkbox",
+				name=rpText("SET_KEEP_RP"),
+				tooltip=rpText("SET_KEEP_RP_TIP"),
+				getFunc=function() return tom.vars.keepRoleplayOpen end,
+				setFunc=function(newValue) tom.vars.keepRoleplayOpen=newValue end,
+				default=tom.tom_defaults.keepRoleplayOpen,
+				},
+			[53]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the Magic Messages window open when the main window is closed.
+				type="checkbox",
+				name=rpText("SET_KEEP_MAGIC"),
+				tooltip=rpText("SET_KEEP_MAGIC_TIP"),
+				getFunc=function() return tom.vars.keepMagicOpen end,
+				setFunc=function(newValue) tom.vars.keepMagicOpen=newValue end,
+				default=tom.tom_defaults.keepMagicOpen,
+				},
+			[54]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the Guild Functions window open when the main window is closed.
+				type="checkbox",
+				name=rpText("SET_KEEP_GUILD"),
+				tooltip=rpText("SET_KEEP_GUILD_TIP"),
+				getFunc=function() return tom.vars.keepGuildOpen end,
+				setFunc=function(newValue) tom.vars.keepGuildOpen=newValue end,
+				default=tom.tom_defaults.keepGuildOpen,
+				},
+			[55]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the main window open when the Catacombs are opened.
+				type="checkbox",
+				name=rpText("SET_KEEP_TOM_CATACOMB"),
+				tooltip=rpText("SET_KEEP_TOM_CATACOMB_TIP"),
+				getFunc=function() return tom.vars.keepTomOpenForCatacomb end,
+				setFunc=function(newValue) tom.vars.keepTomOpenForCatacomb=newValue end,
+				default=tom.tom_defaults.keepTomOpenForCatacomb,
+				},
+			[56]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the main window open when the Roleplay panel is opened.
+				type="checkbox",
+				name=rpText("SET_KEEP_TOM_RP"),
+				tooltip=rpText("SET_KEEP_TOM_RP_TIP"),
+				getFunc=function() return tom.vars.keepTomOpenForRoleplay end,
+				setFunc=function(newValue) tom.vars.keepTomOpenForRoleplay=newValue end,
+				default=tom.tom_defaults.keepTomOpenForRoleplay,
+				},
+			[57]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the main window open when Magic Messages is opened.
+				type="checkbox",
+				name=rpText("SET_KEEP_TOM_MAGIC"),
+				tooltip=rpText("SET_KEEP_TOM_MAGIC_TIP"),
+				getFunc=function() return tom.vars.keepTomOpenForMagic end,
+				setFunc=function(newValue) tom.vars.keepTomOpenForMagic=newValue end,
+				default=tom.tom_defaults.keepTomOpenForMagic,
+				},
+			[58]={ -- ✅ P5YCH3: v6.5.0 - New settings option: keep the main window open when Guild Functions is opened.
+				type="checkbox",
+				name=rpText("SET_KEEP_TOM_GUILD"),
+				tooltip=rpText("SET_KEEP_TOM_GUILD_TIP"),
+				getFunc=function() return tom.vars.keepTomOpenForGuild end,
+				setFunc=function(newValue) tom.vars.keepTomOpenForGuild=newValue end,
+				default=tom.tom_defaults.keepTomOpenForGuild,
+				},
+			[59]={ --P5YCH3 - New submenu for all addon console commands (includes German (DE) tranlations!).
 				type = "submenu",
 				name = ZO_HIGHLIGHT_TEXT:Colorize(tom.locTxt[155]), --Console Commands
 				controls =
@@ -4609,6 +4802,23 @@ function tom.InitializeOptions()
 						{
 						type = "description",
 						text = ZO_HIGHLIGHT_TEXT:Colorize("/tom settings") .. " - " .. tom.locTxt[166] .. "\n"
+						},
+						-- ✅ P5YCH3: v6.5.0 - The Roleplay commands (text is in tom_rp_core.lua; shown in English in every language).
+						{
+						type = "header",
+						name = ZO_HIGHLIGHT_TEXT:Colorize(rpText("CMD_HEADER")),
+						},
+						{
+						type = "description",
+						text = ZO_HIGHLIGHT_TEXT:Colorize("/tomrp") .. " - " .. rpText("CMD_OPEN") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/rp") .. " - " .. rpText("CMD_ALIAS") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp pause") .. " - " .. rpText("CMD_PAUSE") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp resume") .. " - " .. rpText("CMD_RESUME") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp next") .. " - " .. rpText("CMD_NEXT") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp previous") .. " - " .. rpText("CMD_PREVIOUS") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp cancel") .. " - " .. rpText("CMD_CANCEL") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp test") .. " - " .. rpText("CMD_TEST") .. "\n"
+						..ZO_HIGHLIGHT_TEXT:Colorize("/tomrp debug") .. " - " .. rpText("CMD_DEBUG") .. "\n"
 						},
 					}
 				},
@@ -4645,6 +4855,9 @@ function tom.InitializeUI()
 	tomWindow01:ClearAnchors()
 	tomWindow01:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, tom.vars.twt[tom.windowNameMain].X, tom.vars.twt[tom.windowNameMain].Y)
 	tomWindow01:SetDimensions(winWidth,winHeight)
+	-- ✅ P5YCH3: v6.5.0 - Smallest and largest size when resizing by hand: the same limits as the two window size sliders.
+	tomWindow01:SetDimensionConstraints(WindowRow2+(tom.tom_defaults.chatWidth-200)+20,WindowGOMblock+(tom.tom_defaults.gomButtons-2)*tom.gombuttonheight+50,
+		WindowRow2+tom.chatMaxWidth+20,WindowGOMblock+tom.gomMaxButtons*tom.gombuttonheight+50)
 	tomWindow01Background:SetAlpha(tom.vars.BGalpha/100)
 	tomWindow01Bubble:SetTexture("/esoui/art/chatwindow/chat_notification_echo.dds")
 	--tomWindow01Bubble:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,tom.bubbleStatistics()) end)
@@ -4711,7 +4924,7 @@ function tom.InitializeUI()
 	tomWindow01Rolle:SetHandler("OnMouseWheel", function(self, delta, ctrl, alt, shift) tom.OnRolleWheel(self,delta) end)
 	-- Den Rollen-Slider erzeugen/platzieren
 	-- Create/place the reel slider
-	tom.createRolleSlider(tom.windowNameMain,winWidth-17,WindowGOMblock,WindowGOMblock2-WindowGOMblock)
+	tom.createRolleSlider(tom.windowNameMain,winWidth-21,WindowGOMblock,WindowGOMblock2-WindowGOMblock) -- ✅ P5YCH3: v6.5.0 - was winWidth-17; moved in 4 pixels to leave the right edge free for resizing
 	-- Die CryptBox anpassen
 
 	--P5YCH3 - New button to toggle the language from TOMish or Common for quickly responding in the selected channel.
@@ -4837,6 +5050,9 @@ function tom.InitializeUI()
 	tomMagicBackground:SetAlpha(tom.vars.BGalpha/100)
 	tomMagicHeader:SetText(tom.locMsg(75)) --locTxt[75], locMsg(75)
 	tomMagicBubble:SetTexture("/esoui/art/chatwindow/chat_notification_echo.dds")
+	-- ✅ P5YCH3: v6.5.0 - The bubble returns to the main window and closes this window.
+	tomMagicBubble:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,(tomRP and tomRP.L and tomRP.L("BACK_TO_TOM_TIP")) or "") end)
+	tomMagicBubble:SetHandler("OnMouseExit", function(self) ClearTooltip(InformationTooltip) end)
 	tomMagicCloser:SetTexture("/esoui/art/buttons/cancel_up.dds")
 	tomMagicCloser:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,tom.locMsg(84)) end)
 	tomMagicCloser:SetHandler("OnMouseExit", function(self) ClearTooltip(InformationTooltip) end)
@@ -4942,6 +5158,10 @@ function tom.InitializeUI()
 	tomCatacombBackground:SetAlpha(tom.vars.BGalpha/100)
 	tomCatacombHead1:SetText(tom.locTxt[86][1])
 	tomCatacombBubble:SetTexture("/esoui/art/chatwindow/chat_notification_up.dds")
+	-- ✅ P5YCH3: v6.5.0 - The bubble returns to the main window and closes the Catacombs.
+	tomCatacombBubble:SetMouseEnabled(true)
+	tomCatacombBubble:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,(tomRP and tomRP.L and tomRP.L("BACK_TO_TOM_TIP")) or "") end)
+	tomCatacombBubble:SetHandler("OnMouseExit", function(self) ClearTooltip(InformationTooltip) end)
 	tomCatacombCloser:SetTexture("/esoui/art/buttons/cancel_up.dds")
 	tomCatacombCloser:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,tom.locTxt[86][2]) end)
 	tomCatacombCloser:SetHandler("OnMouseExit", function(self) ClearTooltip(InformationTooltip) end)
@@ -5028,6 +5248,9 @@ function tom.InitializeUI()
 	tomGuildBackground:SetAlpha(tom.vars.BGalpha/100)
 	tomGuildHead1:SetText(tom.locMsg(92))
 	tomGuildBubble:SetTexture("/esoui/art/chatwindow/chat_notification_up.dds")
+	-- ✅ P5YCH3: v6.5.0 - The bubble returns to the main window and closes this window.
+	tomGuildBubble:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,(tomRP and tomRP.L and tomRP.L("BACK_TO_TOM_TIP")) or "") end)
+	tomGuildBubble:SetHandler("OnMouseExit", function(self) ClearTooltip(InformationTooltip) end)
 	tomGuildCloser:SetTexture("/esoui/art/buttons/cancel_up.dds")
 	tomGuildCloser:SetHandler("OnMouseEnter", function(self) tom.ShowTooltip(self,tom.locTxt[93]) end)
 	tomGuildCloser:SetHandler("OnMouseExit", function(self) ClearTooltip(InformationTooltip) end)
@@ -5247,6 +5470,14 @@ function tom.Initialize(eventCode, addOnName)
 			openOnAlarm=true,
 			closeInCombat=true,
 			closeInMenus=true, --P5YCH3 - New settings option to toggle the main window display within other game menus.
+			keepCatacombOpen=true, -- ✅ P5YCH3: v6.5.0 - New settings option: closing the main window leaves the Catacombs window open.
+			keepRoleplayOpen=true, -- ✅ P5YCH3: v6.5.0 - New settings option: closing the main window leaves the Roleplay panel open.
+			keepMagicOpen=true, -- ✅ P5YCH3: v6.5.0 - New settings option: closing the main window leaves the Magic Messages window open.
+			keepGuildOpen=true, -- ✅ P5YCH3: v6.5.0 - New settings option: closing the main window leaves the Guild Functions window open.
+			keepTomOpenForMagic=false, -- ✅ P5YCH3: v6.5.0 - New settings option: opening Magic Messages keeps the main window open.
+			keepTomOpenForGuild=false, -- ✅ P5YCH3: v6.5.0 - New settings option: opening Guild Functions keeps the main window open.
+			keepTomOpenForCatacomb=false, -- ✅ P5YCH3: v6.5.0 - New settings option: opening the Catacombs keeps the main window open.
+			keepTomOpenForRoleplay=false, -- ✅ P5YCH3: v6.5.0 - New settings option: opening the Roleplay panel keeps the main window open.
 			use24hours=true,
 			requestedWindowState=true,
 			requestedMagicState=false,

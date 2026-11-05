@@ -8,8 +8,8 @@ Taneth("LibPromises", function()
     local testFulfilled = LibPromiseTest.testFulfilled
     local testRejected = LibPromiseTest.testRejected
 
-    local dummy = { dummy = "dummy" }      -- we fulfill or reject with this when we don't intend to test against it
-    local other = { other = "other" }      -- a value we don't want to be strict equal to
+    local dummy = { dummy = "dummy" }          -- we fulfill or reject with this when we don't intend to test against it
+    local other = { other = "other" }          -- a value we don't want to be strict equal to
     local sentinel = { sentinel = "sentinel" } -- a sentinel fulfillment value to test for with strict equality
     local sentinel2 = { sentinel2 = "sentinel2" }
     local sentinel3 = { sentinel3 = "sentinel3" }
@@ -18,7 +18,7 @@ Taneth("LibPromises", function()
         local soFar = 0
         return function()
             soFar = soFar + 1
-            if (soFar == times) then
+            if soFar == times then
                 ultimateCallback()
             end
         end
@@ -26,7 +26,7 @@ Taneth("LibPromises", function()
 
     describe("2.2.6: `then` may be called multiple times on the same promise.", function()
         describe(
-        "2.2.6.1: If/when `promise` is fulfilled, all respective `onFulfilled` callbacks must execute in the order of their originating calls to `then`.",
+            "2.2.6.1: If/when `promise` is fulfilled, all respective `onFulfilled` callbacks must execute in the order of their originating calls to `then`.",
             function()
                 describe("multiple boring fulfillment handlers", function()
                     testFulfilled(sentinel, function(promise, done)
@@ -138,7 +138,7 @@ Taneth("LibPromises", function()
                                 zo_callLater(function()
                                     assert.same(order, { 1, 2, 3 })
                                     done()
-                                end, 15)
+                                end, 50)
                             end)
                         end)
                     end)
@@ -146,7 +146,7 @@ Taneth("LibPromises", function()
             end)
 
         describe(
-        "2.2.6.2: If/when `promise` is rejected, all respective `onRejected` callbacks must execute in the order of their originating calls to `then`.",
+            "2.2.6.2: If/when `promise` is rejected, all respective `onRejected` callbacks must execute in the order of their originating calls to `then`.",
             function()
                 describe("multiple boring rejection handlers", function()
                     testRejected(sentinel, function(promise, done)
@@ -258,7 +258,7 @@ Taneth("LibPromises", function()
                                 zo_callLater(function()
                                     assert.same(order, { 1, 2, 3 })
                                     done()
-                                end, 15)
+                                end, 50)
                             end)
                         end)
                     end)

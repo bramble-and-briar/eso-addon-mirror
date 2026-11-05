@@ -1,0 +1,101 @@
+-- English, and the base every other language file overrides.
+local strings = {
+	-- start-up and help
+	SI_PBSLPF_HELP = "/lpf add <item name | \"exact name\" | item link> -- watch an item (a link keeps its quality)\n/lpf remove <number or part of the name> -- stop watching it\n/lpf list -- the watched items\n/lpf find <item name | item link> -- works anywhere: the cheapest store recorded for it; with nothing recorded it is watched and searched at the next guild trader you open (a guild store can only be searched while a trader is open)\n/lpf -- the cheapest stores recorded for each item (/lpf show all: every store)\n/lpf scan -- search the stores at the next guild trader you open (or now, if one is open)\n/lpf auto on | off -- search by itself whenever a guild trader opens\n/lpf panel -- show the result panel again\n/lpf forget -- delete the recorded prices and places\n/lpf clear -- empty the watch list\n/lpf probe -- print what the game tells the add-on at the next guild trader you open\n/lpf log -- the last steps of the latest search\n/lpf status -- settings and counts",
+
+	-- the watch list
+	SI_PBSLPF_ADD_DONE = "Watching: %s",
+	SI_PBSLPF_ADD_DUP = "Already watching: %s",
+	SI_PBSLPF_ADD_FULL = "The watch list is full (%d items). /lpf remove one first.",
+	SI_PBSLPF_ADD_SHORT = "'%s' is too short: the guild store needs at least %d letters.",
+	SI_PBSLPF_ADD_USAGE = "Usage: /lpf add <item name>, /lpf add \"exact item name\", or /lpf add followed by an item link.",
+	SI_PBSLPF_REMOVE_DONE = "No longer watching: %s",
+	SI_PBSLPF_REMOVE_NONE = "No watched item matches '%s'. /lpf list shows them.",
+	SI_PBSLPF_FIND_USAGE = "Usage: /lpf find <item name or item link>",
+	SI_PBSLPF_FIND_QUEUED = "No usable price is recorded for this. The game only lets a guild store be searched while a guild trader is open, so it will be searched at the next guild trader you open.",
+	SI_PBSLPF_LIST_EMPTY = "Nothing is watched yet. /lpf add <item name or link>",
+	SI_PBSLPF_LIST_ROW = "%d. %s",
+	SI_PBSLPF_TAG_EXACT = "exact name",
+	SI_PBSLPF_TAG_QUALITY = "%s quality only",
+	SI_PBSLPF_CLEARED = "The watch list is empty now.",
+	SI_PBSLPF_FORGOT = "Recorded prices and places deleted.",
+
+	-- what was found
+	SI_PBSLPF_NO_DATA = "No price has been recorded yet. Open a guild trader: the watched items are searched in every store you can open.",
+	SI_PBSLPF_ITEM_HEADER = "== %s ==",
+	SI_PBSLPF_NOT_FOR_SALE = "not for sale in any store searched",
+	SI_PBSLPF_RAN_OUT = "the recorded listings have run out; search again at a guild trader",
+	SI_PBSLPF_NOT_SEARCHED = "not searched yet",
+	SI_PBSLPF_RANK_ROW = "%d. %sg each  x%s = %sg   %s   %s   %s",
+	SI_PBSLPF_MORE_STORES = "   ... and %d more (/lpf show all)",
+	SI_PBSLPF_TRADER = "trader %s",
+	SI_PBSLPF_PLACE_UNKNOWN = "place not recorded yet",
+	SI_PBSLPF_PLACE_UNKNOWN_HINT = "place not recorded (open this guild's trader once)",
+	SI_PBSLPF_PLACE_NOT_LINKED = "Could not tell which guild this trader belongs to, so its place is kept but no store is tied to it. /lpf log shows what the game said (the line starting 'trader:').",
+	SI_PBSLPF_PLACE_MOVED = "(may have moved)",
+	SI_PBSLPF_AGE_NOW = "just now",
+	SI_PBSLPF_AGE_MIN = "%d min ago",
+	SI_PBSLPF_AGE_HOUR = "%d h ago",
+	SI_PBSLPF_AGE_DAY = "%d d ago",
+
+	-- searching
+	SI_PBSLPF_BAR_MATCHING = "Looking up item names...",
+	SI_PBSLPF_BAR_SEARCHING = "Searching %d/%d  %s",
+	SI_PBSLPF_SCAN_DONE = "Search finished: %d search(es) in %d store(s)",
+	SI_PBSLPF_SCAN_CLOSED = "Search stopped: the guild store was closed. What was found is kept.",
+	SI_PBSLPF_SCAN_NO_ITEMS = "Nothing to search: the watch list is empty. /lpf add <item name or link>",
+	SI_PBSLPF_SCAN_NO_STORES = "No guild store can be searched from here.",
+	SI_PBSLPF_SCAN_NO_MATCH = "Names the game does not know: %s",
+	SI_PBSLPF_SCAN_FAILED = "%d search(es) failed (/lpf log)",
+	SI_PBSLPF_SCAN_ERROR = "Search stopped by an error: %s. /lpf log shows the last steps.",
+	SI_PBSLPF_SCAN_BROKEN = "A search failed earlier in this session, so none is started by itself. /lpf scan tries again.",
+	SI_PBSLPF_SCAN_ARMED = "The stores are searched at the next guild trader you open.",
+	SI_PBSLPF_SCAN_NOW = "Searching the stores now.",
+	SI_PBSLPF_AUTO_ON = "Automatic search on: it runs whenever a guild trader opens.",
+	SI_PBSLPF_AUTO_OFF = "Automatic search off: /lpf scan runs one.",
+	SI_PBSLPF_PROBE_ARMED = "Open a guild trader: what the game tells the add-on is printed to chat, and stays in the chat window afterwards.",
+	SI_PBSLPF_LOG_EMPTY = "Nothing logged yet.",
+
+	-- the panel
+	SI_PBSLPF_PANEL_TITLE = "Lowest Price Finder",
+	SI_PBSLPF_PANEL_SCANNING = "searching %d/%d",
+	SI_PBSLPF_PANEL_EMPTY = "Nothing watched. /lpf add <item name or link>",
+	SI_PBSLPF_PANEL_MORE = "+%d more: /lpf",
+	SI_PBSLPF_PANEL_ITEM = "%s   %sg each",
+
+	-- the settings panel
+	SI_PBSLPF_EXPLANATION = "Open a guild trader and the add-on searches every store you can open for the items you watch, then keeps the cheapest listing of each store. Add items with /lpf add <name or item link> in chat.",
+	SI_PBSLPF_SECTION_SEARCH = "Search",
+	SI_PBSLPF_SECTION_ITEMS = "Watched items",
+	SI_PBSLPF_SECTION_PANEL = "Result panel",
+	SI_PBSLPF_SECTION_DATA = "Data",
+	SI_PBSLPF_AUTO = "Search when a guild trader opens",
+	SI_PBSLPF_AUTO_TOOLTIP = "Off: nothing is searched until /lpf scan is typed before opening the trader.",
+	SI_PBSLPF_RESCAN = "Do not search again within (minutes, 0 = always)",
+	SI_PBSLPF_RESCAN_TOOLTIP = "A search that starts by itself skips an item in a store that was searched less than this long ago, and does not start at all when everything is that fresh. The guild store screen follows every search, so this keeps it from starting each time a trader is opened only to sell. /lpf scan always searches everything.",
+	SI_PBSLPF_MAX_AGE = "Ignore prices older than (days, 0 = never)",
+	SI_PBSLPF_MAX_AGE_TOOLTIP = "A listing that has run out its time is dropped anyway; this drops the rest after this many days.",
+	SI_PBSLPF_PANEL = "Show the result panel",
+	SI_PBSLPF_PANEL_TOOLTIP = "A small box with the cheapest store of each watched item. It is up while a search runs and for a while after.",
+	SI_PBSLPF_PANEL_HOLD = "Keep the panel up for (seconds)",
+	SI_PBSLPF_PANEL_SIZE = "Panel text size",
+	SI_PBSLPF_PANEL_LEFT = "Panel position: from the left",
+	SI_PBSLPF_PANEL_TOP = "Panel position: from the top",
+	SI_PBSLPF_PANEL_PREVIEW = "Show the panel now",
+	SI_PBSLPF_PANEL_PREVIEW_BUTTON = "Show",
+	SI_PBSLPF_ADD_EDIT = "Add an item (name)",
+	SI_PBSLPF_ADD_EDIT_TOOLTIP = "Type an item name. Adding by item link needs /lpf add in chat.",
+	SI_PBSLPF_NO_ITEMS = "(nothing watched)",
+	SI_PBSLPF_REMOVE_BUTTON = "Remove",
+	SI_PBSLPF_REMOVE_TOOLTIP = "Stop watching this item and delete its recorded prices.",
+	SI_PBSLPF_FORGET = "Delete recorded prices and places",
+	SI_PBSLPF_FORGET_BUTTON = "Delete",
+	SI_PBSLPF_FORGET_TOOLTIP = "The watch list stays.",
+	SI_PBSLPF_CLEAR = "Empty the watch list",
+	SI_PBSLPF_CLEAR_BUTTON = "Empty",
+}
+
+for stringId, stringValue in pairs(strings) do
+	ZO_CreateStringId(stringId, stringValue)
+	SafeAddVersion(stringId, 1)
+end

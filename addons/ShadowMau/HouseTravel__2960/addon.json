@@ -1,27 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/ShadowMau/HouseTravel__2960",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "ShadowMau",
   "canonical_id": "esoui:2960",
   "category_id": "24",
-  "compatibility": [
-    {
-      "name": "Blackwood",
-      "version": "7.0.5"
-    },
-    {
-      "name": "Flames of Ambition",
-      "version": "6.3.5"
-    }
-  ],
+  "compatibility": [],
   "content_id": "esoui:2960",
   "deleted": false,
   "directories": [
     "HouseTravel"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2960/",
-  "fingerprint": "c23c69f693855b854ae3cb993e4a645ccb343a48d46ec3e59fd3469af03be3c8",
+  "fingerprint": "45bd293a702a615703728ae6dc570fe181258912caf21b475ab3c15090aec171",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -29,9 +21,9 @@
   "source_id": "2960",
   "source_url": "https://www.esoui.com/downloads/info2960-HouseTravel.html",
   "stats": {
-    "downloads": 5612,
+    "downloads": 5667,
     "favorites": 3,
-    "monthly_downloads": 17
+    "monthly_downloads": 10
   },
   "title": "HouseTravel",
   "updated_at": 1623607139000,

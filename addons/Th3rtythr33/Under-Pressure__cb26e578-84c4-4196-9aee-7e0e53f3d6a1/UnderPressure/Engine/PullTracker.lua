@@ -1,12 +1,10 @@
 -- =============================================================================
--- Under Pressure -- Engine/PullTracker.lua (0.4.2, caster-side route 0.5.11)
+-- Under Pressure -- Engine/PullTracker.lua (0.4.2; Leashing Burst detection
+-- added 0.5.11, reworked 0.5.13, removed 0.5.14)
 -- =============================================================================
 -- Detects an incoming pull on the player before it lands and tells
 -- UI/PullIndicator how long the warning should stay up. One switch
--- (sv.pull_detect, default OFF) covers every pull this module knows about,
--- including the scribing pull Leashing Burst since 0.5.11 (see
--- CAST_ABILITY_IDS and OnCasterEffect below, and Engine/Allegiance.lua for
--- how a caster with no unit tag is told friend from foe).
+-- (sv.pull_detect, default OFF) covers every pull this module knows about.
 --
 -- WHAT IS DETECTED, AND HOW (research in Docs/PullDetection-*.md, 2026-10-29):
 --
@@ -27,6 +25,17 @@
 --   table; which one is the snare is not yet known, so all four are
 --   watched). Lead 1 s. STUNNED from the same ids is accepted too: it is the
 --   pull itself, and the 1642 damage is still 3 s away.
+--
+--   LEASHING BURST (Soul Burst + the Pull focus script) is NOT detected.
+--   0.5.11 to 0.5.13 tried, from the caster's own 2 s buff (ability id
+--   217979, visible to bystanders with no unit tag): warning on every cast
+--   in view, then only outside allies, then only once the caster landed a
+--   close hit on us or a groupmate. Matt went over the combat log data on
+--   2026-11-05 and concluded there is no reliable signal on the victim's
+--   client, so the whole route was removed in 0.5.14. The research and the
+--   three designs are kept in Docs/PullDetection-LeashingBurst.md and
+--   Docs/UnderPressure.md (0.5.11 to 0.5.14); the 0.5.13 code is in the
+--   workspace's OneDrive history.
 --
 -- Only the pre-pull signals are accepted. Damage results from these ids are
 -- ignored on purpose: by then the pull has happened and a warning is noise.
@@ -52,6 +61,9 @@ UP.Pull = {}
 UP.Pull.SETS = {
     agony       = { name = "Rush of Agony",    leadMs = 800,  match = "agony" },
     convergence = { name = "Dark Convergence", leadMs = 1000, match = "convergence" },
+    -- "leash" stays in the table so that History rows written by 0.5.11 to
+    -- 0.5.13 (sv.pull_history, set = "leash") still resolve to a name.
+    leash       = { name = "Leashing Burst",   leadMs = 2000, match = "leashing" },
 }
 
 UP.Pull.ABILITY_IDS = {
@@ -61,19 +73,6 @@ UP.Pull.ABILITY_IDS = {
     [159387] = "convergence",  -- LuiData aoePlayerSet, priority 1
     [159391] = "convergence",  -- LuiData aoePlayerSet, priority 0 (same source)
     [160317] = "convergence",  -- LuiData aoePlayerSet, priority 0 (same source)
-}
-UP.Pull.SETS.leash = { name = "Leashing Burst", leadMs = 2000, match = "leashing" }
-
--- CASTER-SIDE ids (0.5.11). Leashing Burst (Soul Burst + the Pull focus
--- script) puts a 2.0 s buff on its CASTER, and the client delivers that buff
--- to every nearby client through EVENT_EFFECT_CHANGED with an EMPTY unit tag
--- and the caster's name (Matt's recording, Cyrodiil, 2026-11-01; see
--- Docs/PullDetection-LeashingBurst.md). EventIngest registers one
--- EVENT_EFFECT_CHANGED per id here, filtered by REGISTER_FILTER_ABILITY_ID
--- only, while the switch is on. Kept apart from ABILITY_IDS so the player's
--- OWN Leashing Burst (unit tag "player") never reaches OnEffect.
-UP.Pull.CAST_ABILITY_IDS = {
-    [217979] = "leash",        -- "Leashing Burst" buff on the caster, 2.0 s
 }
 
 -- A lead carried by the event (Rush of Agony's hitValue, or an effect's
@@ -109,7 +108,6 @@ for _, v in ipairs({ ACTION_RESULT_SNARED, ACTION_RESULT_STUNNED }) do
 end
 
 local GAINED = (type(EFFECT_RESULT_GAINED) == "number") and EFFECT_RESULT_GAINED or 1
-local UPDATED = (type(EFFECT_RESULT_UPDATED) == "number") and EFFECT_RESULT_UPDATED or 3
 
 -- ---------------------------------------------------------------------------
 -- State
@@ -118,27 +116,6 @@ local untilMs = 0          -- warning deadline (GetGameTimeMilliseconds clock), 
 local activeSet = nil      -- "agony" / "convergence" while a warning is up
 local activeSource = nil   -- wearer's name when the event carried one
 local triggerCount = 0
--- Caster-side channel (0.5.11): how it is registered, and what it has seen.
-local castChannel = "off"  -- "abilityId" | "unavailable" | "off"; set by EventIngest
-local castSeen, castWarned, castAllied, castPvE = 0, 0, 0, 0
-
--- Where another player can be hostile (0.5.12): Cyrodiil and Imperial City
--- (IsPlayerInAvAWorld) or a battleground. Everywhere else every player is
--- an ally, the allegiance table has nothing to learn from (no kill feed),
--- and a Leashing Burst cast by a friendly player at a world boss would be a
--- false warning; Matt saw exactly that. Duels in PvE zones are the one gap.
-local function inPvPArea()
-    if type(IsPlayerInAvAWorld) == "function" then
-        local ok, v = pcall(IsPlayerInAvAWorld)
-        if ok and v then return true end
-    end
-    if type(IsActiveWorldBattleground) == "function" then
-        local ok, v = pcall(IsActiveWorldBattleground)
-        if ok and v then return true end
-    end
-    return false
-end
-UP.Pull.InPvPArea = inPvPArea
 
 local function nowMs()
     return GetGameTimeMilliseconds()
@@ -197,7 +174,7 @@ end
 -- Inputs
 -- ---------------------------------------------------------------------------
 -- From EventIngest's main EVENT_COMBAT_EVENT handler (target = player). The
--- first line is the fast exit normal play pays while the switch is off.
+-- first two lines are the fast exit normal play pays while the switch is off.
 function UP.Pull.OnCombat(result, abilityId, sourceName, sourceType, targetType, hitValue, t)
     if not enabled() then return end
     local setKey = UP.Pull.ABILITY_IDS[abilityId]
@@ -238,66 +215,6 @@ function UP.Pull.OnEffect(changeType, abilityId, endTimeMs, t)
     logDebug(setKey, "effect", nil, lead, abilityId)
 end
 
--- From EventIngest's caster-side EVENT_EFFECT_CHANGED registration (0.5.11):
--- a buff gained by SOMEONE ELSE that announces a pull they are about to do.
--- The unit tag is normally empty (a stranger has none); "player" or a group
--- tag means it is us or a groupmate casting, which cannot pull us. For
--- everyone else the allegiance table decides: a known friend is ignored, a
--- known foe or an unknown warns, because an ally's cast is a false alarm at
--- worst and an enemy's is the whole point. endTime (ms) carries the real
--- lead when it is sane; the set default otherwise. Outside Cyrodiil,
--- Imperial City and battlegrounds nothing warns (0.5.12, see inPvPArea).
-function UP.Pull.OnCasterEffect(changeType, abilityId, unitTag, unitName, sourceType, endTimeMs, t)
-    if not enabled() then return end
-    local setKey = UP.Pull.CAST_ABILITY_IDS[abilityId]
-    if not setKey then return end
-    if changeType ~= GAINED and changeType ~= UPDATED then return end
-    castSeen = castSeen + 1
-    if not inPvPArea() then
-        castPvE = castPvE + 1
-        return
-    end
-    if unitTag == "player" or FRIENDLY[sourceType]
-       or (type(unitTag) == "string" and unitTag:sub(1, 5) == "group") then
-        castAllied = castAllied + 1
-        return
-    end
-    local verdict = "unknown"
-    if UP.Allegiance and UP.Allegiance.Classify then
-        verdict = UP.Allegiance.Classify(unitName, sourceType)
-    end
-    local shown = (UP.Allegiance and UP.Allegiance.CleanName and UP.Allegiance.CleanName(unitName)) or unitName
-    if verdict == "friend" then
-        castAllied = castAllied + 1
-        if UP.Debug and UP.Debug.Log then
-            UP.Debug.Log(("pull %s cast by ally %s ignored"):format(setKey, tostring(shown or "?")))
-        end
-        return
-    end
-    t = t or nowMs()
-    local lead = UP.Pull.SETS[setKey].leadMs
-    if type(endTimeMs) == "number" and endTimeMs > t then
-        lead = clampLead(endTimeMs - t, lead)
-    end
-    castWarned = castWarned + 1
-    trigger(setKey, shown, lead, t, {
-        route = "cast", verdict = verdict, changeType = changeType, abilityId = abilityId,
-        sourceType = sourceType, unitTag = unitTag, endTimeMs = endTimeMs,
-    })
-    logDebug(setKey, "cast(" .. verdict .. ")", shown, lead, abilityId)
-end
-
-function UP.Pull.SetCastChannel(mode) castChannel = mode or "off" end
-function UP.Pull.CastChannel() return castChannel end
-
--- One overlay line: the channel, the counts, and the allegiance table's state.
-function UP.Pull.CastSummary()
-    local a = (UP.Allegiance and UP.Allegiance.Summary) and UP.Allegiance.Summary() or ""
-    return ("pullCast=%s seen=%d warned=%d allies=%d pve=%d %s  %s"):format(
-        castChannel, castSeen, castWarned, castAllied, castPvE,
-        inPvPArea() and "[pvp area]" or "[pve area]", a)
-end
-
 -- Death, zone change, anything that makes a pending warning meaningless.
 function UP.Pull.Clear()
     untilMs, activeSet, activeSource = 0, nil, nil
@@ -322,9 +239,7 @@ function UP.Pull.ActiveSet() return activeSet end
 function UP.Pull.ActiveSource() return activeSource end
 
 function UP.Pull.Snapshot()
-    return { untilMs = untilMs, set = activeSet, source = activeSource, triggers = triggerCount,
-             castChannel = castChannel, castSeen = castSeen, castWarned = castWarned,
-             castAllied = castAllied, castPvE = castPvE }
+    return { untilMs = untilMs, set = activeSet, source = activeSource, triggers = triggerCount }
 end
 
 -- Are the pre-pull combat results for Rush of Agony present at all? (On
@@ -349,11 +264,13 @@ end
 -- ---------------------------------------------------------------------------
 -- Matt saw the indicator fire in PvE and wanted to know why. Every accepted
 -- event records a row in sv.pull_history: the set, the route it came in on
--- (combat result, effect on us, or a caster's buff and how the caster was
--- judged), the source's name and unit type, the ability id and its live
--- name, the lead, and the zone. The Settings panel shows the rows at the
--- bottom of the Pull Indicator page, newest first, with a Clear button, the
--- same way the Plague Indicator page shows its reports.
+-- (combat result or effect on us), the source's name and unit type, the
+-- ability id and its live name, the lead, and the zone. The Settings panel
+-- shows the rows at the bottom of the Pull Indicator page, newest first,
+-- with a Clear button, the same way the Plague Indicator page shows its
+-- reports. Rows are formatted once, when written, so rows left by earlier
+-- versions (the "cast" and "cast+hit" routes of 0.5.11 to 0.5.13) still
+-- display as they were recorded.
 UP.Pull.HISTORY_MAX = 20
 
 -- Names for the numbers in a row, nil-safe; a value with no name shows as
@@ -428,12 +345,6 @@ function UP.Pull.Record(setKey, sourceName, leadMs, detail)
     elseif detail.route == "effect" then
         routeShort = "effect"
         routeLong  = "effect on you, change " .. named(detail.changeType, CHANGE_NAMES)
-    elseif detail.route == "cast" then
-        routeShort = "cast(" .. tostring(detail.verdict or "unknown") .. ")"
-        routeLong  = "the caster's own buff was seen (unit tag "
-                     .. ((detail.unitTag ~= nil and detail.unitTag ~= "") and ('"' .. tostring(detail.unitTag) .. '"') or "empty")
-                     .. "), caster judged " .. tostring(detail.verdict or "unknown")
-                     .. ", change " .. named(detail.changeType, CHANGE_NAMES)
     else
         routeShort = tostring(detail.route or "?")
         routeLong  = routeShort
@@ -476,10 +387,9 @@ function UP.Pull.VerifyIds()
     local good, parts = true, {}
     local ids = {}
     for id in pairs(UP.Pull.ABILITY_IDS) do ids[#ids + 1] = id end
-    for id in pairs(UP.Pull.CAST_ABILITY_IDS) do ids[#ids + 1] = id end
     table.sort(ids)
     for _, id in ipairs(ids) do
-        local setKey = UP.Pull.ABILITY_IDS[id] or UP.Pull.CAST_ABILITY_IDS[id]
+        local setKey = UP.Pull.ABILITY_IDS[id]
         local ok, name = pcall(GetAbilityName, id)
         local shown = ok and abilityDisplay(name) or "?"
         if not shown:lower():find(UP.Pull.SETS[setKey].match, 1, true) then good = false end
@@ -490,7 +400,6 @@ end
 
 function UP.Pull.Init()
     untilMs, activeSet, activeSource, triggerCount = 0, nil, nil, 0
-    castSeen, castWarned, castAllied, castPvE = 0, 0, 0, 0
     local ok, detail = UP.Pull.VerifyIds()
     if ok == false and UP.Note then
         UP.Note("Pull ability IDs no longer all resolve to their set names (" .. tostring(detail)

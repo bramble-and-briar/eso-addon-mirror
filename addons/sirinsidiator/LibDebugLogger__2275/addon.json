@@ -22,7 +22,7 @@
     "LibDebugLogger"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2275/",
-  "fingerprint": "9464e2c9e2af31279e4cf3379f521b7a4f071708fd269c7226afe925804f9fc2",
+  "fingerprint": "58bad67d98112d09eac5f3fe63d29ddd13a46556af1d25cf6931643519896206",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8129.png"
   ],
@@ -32,11 +32,11 @@
   "source_id": "2275",
   "source_url": "https://www.esoui.com/downloads/info2275-LibDebugLogger.html",
   "stats": {
-    "downloads": 3766731,
-    "favorites": 1667,
-    "monthly_downloads": 20178
+    "downloads": 3801692,
+    "favorites": 1668,
+    "monthly_downloads": 48525
   },
   "title": "LibDebugLogger",
-  "updated_at": 1793049977000,
-  "version": "2.6.3"
+  "updated_at": 1793827940000,
+  "version": "2.7.0"
 }

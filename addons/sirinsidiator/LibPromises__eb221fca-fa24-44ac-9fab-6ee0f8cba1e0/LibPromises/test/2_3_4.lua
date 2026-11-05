@@ -13,10 +13,10 @@ Taneth("LibPromises", function()
     describe("2.3.4: If `x` is not an object or function, fulfill `promise` with `x`", function()
         local function testValue(expectedValue, stringRepresentation, beforeEachHook, afterEachHook)
             describe("The value is " .. stringRepresentation, function()
-                if (type(beforeEachHook) == "function") then
+                if type(beforeEachHook) == "function" then
                     before_each(beforeEachHook)
                 end
-                if (type(afterEachHook) == "function") then
+                if type(afterEachHook) == "function" then
                     after_each(afterEachHook)
                 end
 

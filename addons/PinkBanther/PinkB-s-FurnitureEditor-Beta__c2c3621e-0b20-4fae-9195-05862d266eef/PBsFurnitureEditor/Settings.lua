@@ -28,9 +28,18 @@ local Print = addon.Print
 -- ASCII form in its manifest for the add-on list and the store, as this one does).
 local DISPLAY_NAME = "PB’s FurnitureEditor"
 
+-- The name with the version after it, as the other add-ons of the series list themselves: "PB’s FurnitureEditor 1.0.7".
+-- The version is read from the manifest in Main.lua; without one the name is listed bare.
+local function PanelTitle()
+	local version = addon.version
+	if type(version) == "string" and version ~= "" then
+		return DISPLAY_NAME .. " " .. version
+	end
+	return DISPLAY_NAME
+end
+
 local TEXT = {
 	en = {
-		title = DISPLAY_NAME,
 		savedSection = "Saved link sets",
 		savedExplanation = "Copy a group, then save it here under a name. A saved set stays after you log out. Loading one "
 			.. "puts it on the clipboard, and the quickslot wheel offers Paste in any house of yours.",
@@ -74,7 +83,6 @@ local TEXT = {
 		clearAllButton = "Clear all",
 	},
 	jp = {
-		title = DISPLAY_NAME,
 		savedSection = "保存したリンクセット",
 		savedExplanation = "コピーしたリンクセットに名前をつけて保存できます。保存したものはログアウトしても残ります。"
 			.. "「読み込む」でクリップボードに戻すと、自分の家のクイックスロットホイールに「ペースト」が出ます。",
@@ -316,7 +324,7 @@ function addon:InitSettings()
 	end
 
 	local text = Text()
-	local settings = library:AddAddon(text.title)
+	local settings = library:AddAddon(PanelTitle())
 	if not settings then
 		return
 	end

@@ -1,0 +1,124 @@
+Furnishing-plan acquisition data attribution
+
+The compact planSourceGroups table and planSourceIndex string in
+ArchiveFurnishingPlans.lua adapt furnishing result-item IDs, plan acquisition
+facts, vendor documents, folios, prices and acquisition instructions from
+UESP contributors, snapshot 2026-11-02:
+https://en.uesp.net/wiki/Online:Furnishing_Plans/all
+https://en.uesp.net/wiki/Online:Furnisher_Documents
+https://en.uesp.net/wiki/Online:Rolis_Hlaalu
+https://en.uesp.net/wiki/Online:Faustina_Curio
+https://en.uesp.net/wiki/Online:Nalirsewen
+https://en.uesp.net/wiki/Online:Filer_Ool
+Individual furnishing pages and the linked document/folio pages were also used.
+An individual page is at https://en.uesp.net/wiki/Online: followed by the
+English furnishing name, with spaces replaced by underscores.
+
+Licensed under Creative Commons Attribution-ShareAlike 2.5:
+https://creativecommons.org/licenses/by-sa/2.5/
+
+Changes: selected plan-only acquisition facts; condensed and paraphrased
+instructions; separated permanent, random, rotating and seasonal sources;
+marked unconfirmed live sources; shared repeated descriptions across item IDs.
+The data licence applies to those acquisition tables, not the independent
+module code. ESO remains the authority for recipes and learned state.
+
+Event availability was cross-checked against the ESO Community Manager's
+High Seas event-lead clarification:
+https://forums.elderscrollsonline.com/en/discussion/699927/event-specific-leads
+
+Additional source facts added 2026-11-05:
+The Elder Scrolls Online official furnishing guide and release notes,
+paraphrased and matched to the corresponding release/item cohorts:
+https://www.elderscrollsonline.com/en-us/news/post/25927
+https://forums.elderscrollsonline.com/en/discussion/335600/pts-patch-notes-v3-0-0/p1
+https://forums.elderscrollsonline.com/en/discussion/528633/pc-mac-patch-notes-v6-0-5-greymoor-update-26
+https://forums.elderscrollsonline.com/en/discussion/542612/
+https://forums.elderscrollsonline.com/en/discussion/564242/pc-mac-patch-notes-v6-3-5-flames-of-ambition-dlc-update-29
+https://forums.elderscrollsonline.com/en/discussion/584299/pc-mac-patch-notes-v7-1-5-waking-flame-update-31
+https://forums.elderscrollsonline.com/en/discussion/599843/pc-mac-patch-notes-v7-3-5-ascending-tide-dlc-update-33/p1
+https://forums.elderscrollsonline.com/en-gb/discussion/comment/7708423/
+https://forums.elderscrollsonline.com/en/discussion/630148/playstation-patch-notes-v2-42-1-24-scribes-of-fate-dlc-update-37
+https://forums.elderscrollsonline.com/en-gb/discussion/641025/pc-mac-patch-notes-v9-1-5-update-39
+https://forums.elderscrollsonline.com/en-gb/discussion/comment/8358791
+https://forums.elderscrollsonline.com/en-gb/discussion/comment/8439387
+https://forums.elderscrollsonline.com/en/discussion/693682/update-50-live-patch-notes-all-platforms
+https://forums.elderscrollsonline.com/en-gb/discussion/590109/pc-mac-patch-notes-v7-2-5-deadlands-update-32
+https://forums.elderscrollsonline.com/en/discussion/comment/7742239/
+https://forums.elderscrollsonline.com/en/discussion/comment/8064196/
+https://forums.elderscrollsonline.com/en/discussion/664131/pc-mac-patch-notes-v10-1-5-update-43
+https://forums.elderscrollsonline.com/en/discussion/668828/playstation-patch-notes-v2-66-ps4-v1-47-ps5-update-44
+https://forums.elderscrollsonline.com/en-gb/discussion/674341/pc-mac-patch-notes-v10-3-5-fallen-banners-dlc-update-45
+https://en.uesp.net/wiki/Online:Completed_Bounty_Sheet,_Framed_Breton_Man
+https://forums.elderscrollsonline.com/en-gb/discussion/697154/pts-patch-notes-v12-1-0
+
+Additional acquisition facts reviewed for v0.1.9, 2026-11-05:
+ESO official release notes and firsthand recipe-drop reports; factual cross-checks
+against the public ESO Housing Helper (Sapphire_Ocelot) and ESO-Hub recipe pages.
+Descriptions are paraphrased; no spreadsheet, add-on code or runtime dependency is included.
+https://forums.elderscrollsonline.com/en/discussion/376895/pc-mac-patch-notes-v3-2-5-clockwork-city
+https://docs.google.com/spreadsheets/d/11XxNt07znE3cHqWMecO-NxSjNWWnaA8hMA6uDV_53O8/edit
+https://forums.elderscrollsonline.com/en/discussion/413283/pc-mac-patch-notes-v4-0-5-summerset-update-18
+https://forums.elderscrollsonline.com/en/discussion/563388/furniture-plans-and-you-how-to-farm-them
+https://forums.elderscrollsonline.com/en/discussion/529441/so-how-do-the-drop-rates-for-greymoor-furnishings-seem/p3
+https://forums.elderscrollsonline.com/en/discussion/474422/pc-mac-patch-notes-v5-0-5-elsweyr-update-22
+https://en.uesp.net/wiki/Online:Elsweyr_Journeyman_Furnisher's_Document
+https://en.uesp.net/wiki/Online:Elsweyr_Master_Furnisher's_Document
+https://forums.elderscrollsonline.com/en/discussion/550927/pc-mac-patch-notes-v6-2-5-markarth-update-28
+https://forums.elderscrollsonline.com/en/discussion/comment/7271477/p1
+https://forums.elderscrollsonline.com/en/discussion/584299/pc-mac-patch-notes-v7-1-5-waking-flame-update-31
+https://forums.elderscrollsonline.com/en/discussion/608717/playstation-patch-notes-v2-32-1-14-high-isle-update-34
+https://forums.elderscrollsonline.com/en/discussion/comment/7742239/
+https://forums.elderscrollsonline.com/en/discussion/635069/pc-mac-patch-notes-v9-0-5-necrom-update-38
+https://eso-hub.com/en/furniture/book-stack-trio
+https://forums.elderscrollsonline.com/en/discussion/637268/some-necrom-banner-furnishing-plans-are-bind-on-pickup-intended-or-bug
+https://forums.elderscrollsonline.com/en/discussion/636980/bastion-nymic-book-furnishings-furnishing-plans-drops
+https://forums.elderscrollsonline.com/en/discussion/636251/necrom-furnishing-plan-farming-is-busted
+https://forums.elderscrollsonline.com/en/discussion/646923/playstation-patch-notes-v2-51-v1-33-update-40
+https://forums.elderscrollsonline.com/en-gb/discussion/comment/8067892/
+https://forums.elderscrollsonline.com/en-gb/discussion/659550/pc-mac-patch-notes-v10-0-5-gold-road-update-42
+https://ce.thesubnet.com/eso/esoDailies_WestWeald.html
+https://forums.elderscrollsonline.com/en-gb/discussion/678310/pc-mac-patch-notes-v11-0-5-update-46
+https://forums.elderscrollsonline.com/en/discussion/679172/how-many-algae-laden-sunport-packs-before-you-get-a-recipe
+https://forums.elderscrollsonline.com/en/discussion/681844/where-how-did-you-get-tide-born-lamp-coral-and-floor-lamp-coral
+https://eso-hub.com/en/furniture/tide-born-sculpture-turtle
+https://eso-hub.com/en/furniture/tide-born-firepit-covered-stone
+https://forums.elderscrollsonline.com/en/discussion/682703/playstation-patch-notes-v-2-76-1-57-ps4-ps5-update-47
+https://forums.elderscrollsonline.com/en/discussion/685145/playstation-patch-notes-v-2-79-1-60-ps4-ps5-update-48-seasons-of-the-worm-cult-part-2
+https://eso-hub.com/en/furniture/stone-nest-seed-doll-fish
+https://eso-hub.com/en/furniture/stone-nest-seed-doll-frog
+https://forums.elderscrollsonline.com/en/discussion/683125/pts-update-48-feedback-thread-for-housing-furnishings
+https://forums.elderscrollsonline.com/en/discussion/589494/witches-festival-2021-new-furnishing-recipes
+https://forums.elderscrollsonline.com/en/discussion/430154/pc-mac-patch-notes-v4-1-5-wolfhunter-update-19
+https://forums.elderscrollsonline.com/en/discussion/394810/pc-mac-patch-notes-v3-3-5-dragon-bones-amp-update-17
+https://forums.elderscrollsonline.com/en/discussion/365904
+https://forums.elderscrollsonline.com/en/discussion/684412/what-even-are-the-rewards-for-the-writhing-wall-event/p3
+https://eso-hub.com/en/furniture/grave-marker-soldiers
+
+Additional acquisition facts and map locations reviewed for v0.1.10, 2026-11-05:
+https://forums.elderscrollsonline.com/en/discussion/699757/high-seas-of-tamriel-new-items-list
+https://en.uesp.net/wiki/Online:Scrimshaw,_Skull
+https://en.uesp.net/wiki/Online:Scrimshaw,_Horn
+https://forums.elderscrollsonline.com/en-gb/discussion/697154/pts-patch-notes-v12-1-0
+https://forums.elderscrollsonline.com/en/discussion/comment/8537023/
+https://eso-hub.com/en/furniture/mural-fluffy-clouds-tile
+https://forums.elderscrollsonline.com/en/discussion/693682/update-50-live-patch-notes-all-platforms
+https://eso-hub.com/en/furniture/breton-monument-short
+https://forums.elderscrollsonline.com/en-gb/discussion/341078/pickpocketing-furnishings-and-blueprints
+https://eso-hub.com/en/furniture/witches-totem-antler-charms
+https://eso-hub.com/en/furniture/witches-corpse-wrapped
+https://eso-hub.com/en/furniture/hagraven-cauldron-ritual
+https://en.uesp.net/wiki/Online:Witches_Totem,_Antler_Charms
+https://eso-hub.com/en/furniture/jesters-pavilion-open
+https://eso-hub.com/en/furniture/redguard-desk-florid
+https://eso-hub.com/en/furniture/redguard-cannister-gilded
+https://eso-hub.com/en/furniture/redguard-censer-hanging-bell
+https://eso-hub.com/en/furniture/redguard-mat-desert-sun
+https://eso-hub.com/en/furniture/redguard-mat-sunrise
+https://eso-hub.com/en/furniture/redguard-bowl-gilded
+https://eso-hub.com/en/furniture/argonian-box-woven
+https://eso-hub.com/en/furniture/dwarven-pipeline-cap-sealed
+https://en.uesp.net/wiki/Online:Dwarven_Pipeline_Cap,_Sealed_(standard)
+Named vendor map coordinates: ESO-Hub vendor pages for Rolis Hlaalu, Faustina Curio,
+Nalirsewen, Filer Ool, Byla Drethan, Am-Eepa, Felariel, Chef Freki and Llurour Dres.
+https://eso-hub.com/en/vendors

@@ -1,13 +1,35 @@
-[b][color=#F2D29A]ARCLIGHT TAUNT - PUBLIC CHANGELOG[/color][/b]
+ARCLIGHT TAUNT - PUBLIC CHANGELOG
 
-[b][color=#2FE6C4]VERSION 1.1.1 | Compatibility & Target Highlight | 3 November 2026[/color][/b]
+VERSION 1.1.2 | Calmer Combat HUD | 5 November 2026
+
+CALMER LIST MOVEMENT
+- Rows close gaps with short, smooth movements when enemies disappear. Each enemy keeps its countdown and target-highlight animation through list changes. Re-taunts that change the order move directly to their new position so names do not cross each other.
+- Normal expired taunts keep their previous visible position during the existing zero-time linger instead of jumping to the top before disappearing. Pinned bosses and critical active taunts retain their priority.
+- Two-column layouts now fill to the configured per-column limit instead of redistributing rows whenever the number of enemies changes.
+- The HUD retains its required screen space while a pull shrinks, avoiding repeated size and position adjustments as entries disappear. The unused area stays transparent.
+
+READABILITY & ANIMATION OPTIONS
+- Added Reduce animations under Appearance & readability to stop decorative row movement, entrances, light effects and banner fades/slides while keeping countdowns, static target outlines, warnings and sounds active.
+- Reorganized settings into clearer sections. HUD size, spacing, columns and positioning are under List & layout; progress styles, backgrounds, text, countdown thresholds and target effects are grouped under Appearance & readability. Quick settings keeps preview, pause and dragging together.
+- Simplified enemy highlighting to two choices: enemies with ESO boss bars only, or bosses and strong enemies (default). The former deadly-only tier joins the broader option. Warnings for strong enemies remain a separate option, off by default; existing warning preferences are kept. Tooltips clarify that strong enemies are not necessarily bosses.
+- Clarified countdown tooltips and the warning-layout heading, explained the fixed Signature texture in High contrast, and disabled controls where they have no effect. Preview target changes now choose among existing visible enemies independently of new taunts, giving a more representative view of target highlighting.
+- Added a small urgency-colored light edge at the moving countdown endpoint in narrow and full-row styles. It follows the remaining fill and disappears with the zero timer; mirrored layouts reverse it automatically.
+- Refined Strong target highlighting with a slimmer border: 1 extra screen pixel over Subtle instead of 2. Both strengths keep the border light sweep.
+- Strong target highlighting now adds a softly feathered diagonal reflection when acquiring a tracked target. Taunts and re-taunts do not trigger reflections; red taunts stay free of diagonal reflections.
+
+FIXES & BACKGROUND WORK
+- Fixed target-highlight edges encroaching on countdown contents at fractional scales by adding a one-pixel separation from the row. Small two-column layouts also reserve more clearance for external highlights.
+- Removed a fully hidden duplicate fill beneath narrow High contrast countdowns, along with its unnecessary animation. Signature textures and urgency colors are preserved.
+- Combined HUD refreshes during bursts of effect and death events and removed redundant position updates for stationary rows. Tracked taunt data still updates immediately.
+
+VERSION 1.1.1 | Compatibility & Target Highlight | 3 November 2026
 - Added the missing minimum-version requirement for LibMediaProvider (r39 or newer) and clarified library requirements in the documentation.
 - Translation files now load according to your ESO client language, with English fallback, instead of loading all translations.
 - Added optional Strong target highlighting: the same pale outline and light sweep with a border 2 pixels wider. Subtle remains the default; both work with high contrast and mirrored layouts.
 
-[b][color=#AEBCCA]VERSION 1.1.0 | Clearer Combat HUD & Smooth Countdowns | 2 November 2026[/color][/b]
+VERSION 1.1.0 | Clearer Combat HUD & Smooth Countdowns | 2 November 2026
 
-[b]HUD & CUSTOMIZATION[/b]
+HUD & CUSTOMIZATION
 - Taunt countdown bars now move smoothly instead of advancing in steps with each HUD update. Re-taunts use the newly reported duration, and the bar clears together with the zero timer. Boss-banner countdown strips are smoother too.
 - Added optional High contrast for both existing progress styles: narrow bars and full-row fills. It uses stronger urgency colors and shaded surfaces while retaining your selected fonts and text size.
 - Added horizontal HUD mirroring. Timers move left, names move right, bars empty from left to right and two-column placement mirrors too. Boss icons stay beside the urgency stripe at a fixed position.
@@ -17,20 +39,20 @@
 - Full-row display now keeps a persistent urgency stripe beside the countdown, including at zero. Both progress styles use the space beside this stripe for their fill, and changes in stripe width are animated.
 - Refined the ivory boss skull and enlarged it in warning banners. New rows can briefly fade in; selected, urgent and expired entries remain immediately readable.
 
-[b]BUG FIXES FROM VERSION 1.0.3[/b]
+BUG FIXES FROM VERSION 1.0.3
 - Fixed older application/update messages overwriting a newer taunt timer. When ESO supplies usable application times, an earlier application can no longer shorten the current one; late removal messages are also checked against the tracked application.
 - Fixed removal messages from foreign or unknown sources being able to end a tracked own taunt. Source checks now apply to removal messages as well as applications, including distinguishing your own effects from your pets’ effects.
 - Improved cleanup of defeated enemies by recognizing additional ESO death results, including killing blows. A directly identified enemy found dead under the crosshair can also be cleared when automatic removal is enabled. Removal still uses unit identity, not a shared enemy name.
 - Fixed the warning test clearing or replacing real combat warnings. It now leaves active or pending real warnings alone; genuine warnings cancel any remaining test sequence.
 
-[b]WARNINGS, SOUNDS & PREVIEW[/b]
+WARNINGS, SOUNDS & PREVIEW
 - Added a separate, optional early-warning sound, disabled by default. The sound mode offers expiration only, early warning only, both or off, with independent sound selections. Red and pending expiration warnings have priority; suppressed early sounds are discarded rather than played later.
 - Replaced the separate warning tests with one staged test: turquoise early warning first, then red expiration, then turquoise below red to demonstrate overlap. It follows your early-warning lead time and enabled sounds; without early warnings, it tests red only.
 - Added Pause preview beside Show preview. It freezes timers, arrivals and target focus, then resumes from the same point. Ending the preview clears the pause.
 - Reworked the existing list preview: instead of repeating the same fixed roster and timing, it starts with staggered active taunts, adds and re-taunts enemies irregularly, and chooses varied dungeon/trial names each cycle. Lord Okyl now appears occasionally rather than in every roster.
 - Expanded the sound selection with Duel start, Notification, Duel invitation, Duel accepted, Duel victory, Duel forfeit, Announcement, Trial start and Trial completed. Removed General alarm, Countdown warning, Detected and Ability failed. Removed or invalid saved sounds fall back to the relevant warning type’s default.
 
-[b]SETTINGS & COMPATIBILITY[/b]
+SETTINGS & COMPATIBILITY
 - Added Track taunts on players under Tracking & tests, disabled by default. Positively identified players are excluded unless enabled; unknown target types are not discarded on a guess.
 - Simplified sorting to remaining taunt time and removed the alternate warning-level order. Stable ties, boss pinning and the existing priority for expired pinned bosses remain.
 - Removed the optional status header and shortened the overflow display to +N more. Each occupied column now has a slim, text-free top edge. Removed the row-background selector while preserving existing saved backgrounds.
@@ -40,7 +62,7 @@
 - Shortened settings labels and tooltips in English, German, French, Spanish and Russian. Removed outdated explanations and clarified options such as player targets, preview timing and readable row height.
 - For new installations and restored defaults, HUD size changes from 125% to 115%, the bar texture from Signal to Signature, banner background opacity from 100% to 72%, and expiration sound from Killing blow to Duel start. Early audio defaults off with Duel boundary warning selected. Existing personal scale, position, media, opacity and supported sound choices are preserved; no new required library is added.
 
-[b][color=#AEBCCA]VERSION 1.0.3 | Clearer Boss Warnings & Reliable Tracking | 31 October 2026[/color][/b]
+VERSION 1.0.3 | Clearer Boss Warnings & Reliable Tracking | 31 October 2026
 - Boss warnings can now appear together: a large red banner for expired taunts and a smaller turquoise early warning below it. Each banner groups its own affected bosses and uses the existing position and opacity settings.
 - Early warnings follow the remaining taunt time and remove each boss on expiry, re-taunt or recognized death. They are no longer queued behind a red banner.
 - Turquoise warnings glide down from behind an active red banner and fade smoothly when shown alone. Existing early warnings stay in place when red appears; expanding boss groups no longer restart the fade abruptly.
@@ -58,13 +80,13 @@
 - Experimental immunity and stack indicators now refresh when enabled and clear outdated observations when the target is checked again.
 - Reduced unnecessary updates while idle, in menus and during repeated identical effect notifications. Taunt tracking, expiry and boss warnings remain active when hidden HUD rows are not being drawn.
 
-[b][color=#AEBCCA]VERSION 1.0.2 | Boss Warning Fix + More Languages | 31 October 2026[/color][/b]
+VERSION 1.0.2 | Boss Warning Fix + More Languages | 31 October 2026
 - Fixed boss early-warning banners staying visible after a successful re-taunt.
 - Fixed expired-taunt banners staying visible after the affected boss is re-taunted.
 - Multi-boss alerts now dismiss only refreshed or defeated bosses, keeping warnings for any other bosses still affected.
 - Added French, Spanish and Russian localizations. (Feel free to help on improvings regarding the translations.)
 
-[b][color=#AEBCCA]VERSION 1.0.1 | Website & Feedback Links | 30 October 2026[/color][/b]
+VERSION 1.0.1 | Website & Feedback Links | 30 October 2026
 - Added an official ESOUI website link to the add-on settings header.
 - Added a dedicated Feedback link to the same ESOUI page for comments and suggestions.
 - Updated internal version metadata to 1.0.1.

@@ -9,6 +9,7 @@
 
 PvPUA.xml
 PvPUA.lua
+PvPUA_Move.lua
 PvPUA_List.lua
 PvPUA_Alerts.lua
 PvPUA_APChat.lua

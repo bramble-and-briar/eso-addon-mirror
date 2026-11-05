@@ -88,7 +88,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Noob Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Plint/Noob-Filter__1510) | Plint | PC / Mac | 100030 |
 | [NOR Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garadian/NOR-Guild-Tools__4121) | Garadian | PC / Mac | 5.00 |
 | [Not a Craftsman](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Martype/Not-a-Craftsman__1839) | Martype | PC / Mac | 0.0.1 |
-| [Notebook 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Notebook-2018__1991) | Phuein | PC / Mac | 5.00 |
+| [Notebook 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Notebook-2018__1991) | Phuein | PC / Mac | 5.01 |
 | [Notebooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Glen348/Notebooks__1105) | Glen348 | PC / Mac | Outdated |
 | [Notes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/Notes__1303) | Noobanidus | PC / Mac | 1.0.3 |
 | [NothingWasted Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/NothingWasted-Tracker__4642) | haze068 | PC / Mac | 2.0 |

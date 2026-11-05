@@ -2,22 +2,24 @@
 --
 -- SPDX-License-Identifier: Artistic-2.0
 
-if true or not Taneth then return end -- TODO implement before_each
+if not Taneth then return end
 
 Taneth("LibPromises", function()
     local deferred = LibPromiseTest.deferred
     local resolved = LibPromiseTest.resolved
     local rejected = LibPromiseTest.rejected
 
-    local thenables = LibPromiseTest.henables
+    local thenables = LibPromiseTest.thenables
     local reasons = LibPromiseTest.reasons
 
-    local dummy = { dummy = "dummy" }      -- we fulfill or reject with this when we don't intend to test against it
+    local dummy = { dummy = "dummy" }          -- we fulfill or reject with this when we don't intend to test against it
     local sentinel = { sentinel = "sentinel" } -- a sentinel fulfillment value to test for with strict equality
-    local other = { other = "other" }      -- a value we don't want to be strict equal to
-    local sentinelArray = { sentinel }     -- a sentinel fulfillment value to test when we need an array
+    local other = { other = "other" }          -- a value we don't want to be strict equal to
+    local sentinelArray = { sentinel }         -- a sentinel fulfillment value to test when we need an array
 
     local function testPromiseResolution(xFactory, test)
+        apply_test_env(test)
+
         it.async("via return from a fulfilled promise", function(done)
             local promise = resolved(dummy):Then(function()
                 return xFactory()
@@ -100,7 +102,7 @@ Taneth("LibPromises", function()
             promise:Then(function(value)
                 assert.equals(value, fulfillmentValue)
                 done()
-            end):Then(nil, function(e) d(e) end)
+            end)
         end)
     end
 
@@ -144,7 +146,7 @@ Taneth("LibPromises", function()
 
                 testPromiseResolution(xFactory, function(promise, done)
                     promise:Then(function()
-                        assert.equals(numberOfTimesThenWasRetrieved, 3) -- twice when we test if it is callable and once when we call it
+                        assert.equals(numberOfTimesThenWasRetrieved, 1)
                         done()
                     end)
                 end)
@@ -180,7 +182,7 @@ Taneth("LibPromises", function()
         end)
 
         describe(
-        "2.3.3.2: If retrieving the property `x.then` results in a thrown exception `e`, reject `promise` with `e` as the reason.",
+            "2.3.3.2: If retrieving the property `x.then` results in a thrown exception `e`, reject `promise` with `e` as the reason.",
             function()
                 local function testRejectionViaThrowingGetter(e, stringRepresentation)
                     local function xFactory()
@@ -207,7 +209,7 @@ Taneth("LibPromises", function()
             end)
 
         describe(
-        "2.3.3.3: If `then` is a function, call it with `x` as `this`, first argument `resolvePromise`, and second argument `rejectPromise`",
+            "2.3.3.3: If `then` is a function, call it with `x` as `this`, first argument `resolvePromise`, and second argument `rejectPromise`",
             function()
                 describe("Calls with `x` as `this` and two function arguments", function()
                     local function xFactory()
@@ -222,6 +224,7 @@ Taneth("LibPromises", function()
                         }
                         return x
                     end
+                    apply_test_env(xFactory)
 
                     testPromiseResolution(xFactory, function(promise, done)
                         promise:Then(function()
@@ -240,7 +243,7 @@ Taneth("LibPromises", function()
                     local function xFactory()
                         return setmetatable({}, {
                             __index = function()
-                                if (numberOfTimesThenWasRetrieved == 0) then
+                                if numberOfTimesThenWasRetrieved == 0 then
                                     return function(self, onFulfilled)
                                         onFulfilled()
                                     end
@@ -290,7 +293,7 @@ Taneth("LibPromises", function()
                             for outerStringRepresentation, outerThenableFactory in pairs(thenables.fulfilled) do
                                 for innerStringRepresentation, innerThenableFactory in pairs(thenables.fulfilled) do
                                     local stringRepresentation = outerStringRepresentation ..
-                                    " for " .. innerStringRepresentation
+                                        " for " .. innerStringRepresentation
 
                                     local function yFactory()
                                         return outerThenableFactory(innerThenableFactory(sentinel))
@@ -301,7 +304,7 @@ Taneth("LibPromises", function()
 
                                 for innerStringRepresentation, innerThenableFactory in pairs(thenables.rejected) do
                                     local stringRepresentation = outerStringRepresentation ..
-                                    " for " .. innerStringRepresentation
+                                        " for " .. innerStringRepresentation
 
                                     local function yFactory()
                                         return outerThenableFactory(innerThenableFactory(sentinel))
@@ -321,7 +324,7 @@ Taneth("LibPromises", function()
                     end)
 
                 describe(
-                "2.3.3.3.3: If both `resolvePromise` and `rejectPromise` are called, or multiple calls to the same argument are made, the first call takes precedence, and any further calls are ignored.",
+                    "2.3.3.3.3: If both `resolvePromise` and `rejectPromise` are called, or multiple calls to the same argument are made, the first call takes precedence, and any further calls are ignored.",
                     function()
                         describe("calling `resolvePromise` then `rejectPromise`, both synchronously", function()
                             local function xFactory()
@@ -368,10 +371,9 @@ Taneth("LibPromises", function()
                                     Then = function(self, resolvePromise, rejectPromise)
                                         zo_callLater(function()
                                             resolvePromise(sentinel)
-                                        end, 0)
-
-                                        zo_callLater(function()
-                                            rejectPromise(other)
+                                            zo_callLater(function()
+                                                rejectPromise(other)
+                                            end, 0)
                                         end, 0)
                                     end
                                 }
@@ -386,7 +388,7 @@ Taneth("LibPromises", function()
                         end)
 
                         describe(
-                        "calling `resolvePromise` with an asynchronously-fulfilled promise, then calling `rejectPromise`, both synchronously",
+                            "calling `resolvePromise` with an asynchronously-fulfilled promise, then calling `rejectPromise`, both synchronously",
                             function()
                                 local function xFactory()
                                     local d = deferred()
@@ -411,7 +413,7 @@ Taneth("LibPromises", function()
                             end)
 
                         describe(
-                        "calling `resolvePromise` with an asynchronously-rejected promise, then calling `rejectPromise`, both synchronously",
+                            "calling `resolvePromise` with an asynchronously-rejected promise, then calling `rejectPromise`, both synchronously",
                             function()
                                 local function xFactory()
                                     local d = deferred()
@@ -480,10 +482,9 @@ Taneth("LibPromises", function()
                                     Then = function(self, resolvePromise, rejectPromise)
                                         zo_callLater(function()
                                             rejectPromise(sentinel)
-                                        end, 0)
-
-                                        zo_callLater(function()
-                                            resolvePromise(other)
+                                            zo_callLater(function()
+                                                resolvePromise(other)
+                                            end, 0)
                                         end, 0)
                                     end
                                 }
@@ -542,10 +543,9 @@ Taneth("LibPromises", function()
                                     Then = function(self, resolvePromise)
                                         zo_callLater(function()
                                             resolvePromise(sentinel)
-                                        end, 0)
-
-                                        zo_callLater(function()
-                                            resolvePromise(other)
+                                            zo_callLater(function()
+                                                resolvePromise(other)
+                                            end, 0)
                                         end, 0)
                                     end
                                 }
@@ -560,7 +560,7 @@ Taneth("LibPromises", function()
                         end)
 
                         describe(
-                        "calling `resolvePromise` with an asynchronously-fulfilled promise, then calling it again, both times synchronously",
+                            "calling `resolvePromise` with an asynchronously-fulfilled promise, then calling it again, both times synchronously",
                             function()
                                 local function xFactory()
                                     local d = deferred()
@@ -585,7 +585,7 @@ Taneth("LibPromises", function()
                             end)
 
                         describe(
-                        "calling `resolvePromise` with an asynchronously-rejected promise, then calling it again, both times synchronously",
+                            "calling `resolvePromise` with an asynchronously-rejected promise, then calling it again, both times synchronously",
                             function()
                                 local function xFactory()
                                     local d = deferred()
@@ -654,10 +654,9 @@ Taneth("LibPromises", function()
                                     Then = function(self, resolvePromise, rejectPromise)
                                         zo_callLater(function()
                                             rejectPromise(sentinel)
-                                        end, 0)
-
-                                        zo_callLater(function()
-                                            rejectPromise(other)
+                                            zo_callLater(function()
+                                                rejectPromise(other)
+                                            end, 0)
                                         end, 0)
                                     end
                                 }
@@ -701,7 +700,7 @@ Taneth("LibPromises", function()
                                     end
                                 )
 
-                                if (savedResolvePromise and savedRejectPromise) then
+                                if savedResolvePromise and savedRejectPromise then
                                     savedResolvePromise(dummy)
                                     savedResolvePromise(dummy)
                                     savedRejectPromise(dummy)

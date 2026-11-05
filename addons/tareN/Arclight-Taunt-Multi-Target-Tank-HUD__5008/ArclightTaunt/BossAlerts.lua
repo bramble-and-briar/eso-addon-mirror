@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.1 | BossAlerts module
+-- Arclight Taunt 1.1.2 | BossAlerts module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local ALERT_BATCH_SECONDS = A.ALERT_BATCH_SECONDS
@@ -19,9 +19,7 @@ local function BossVisible(t)
     local mode = A.saved.bossMode
     local rank = t.bossDifficulty or 0
     local hard = MONSTER_DIFFICULTY_HARD or 3
-    local deadly = MONSTER_DIFFICULTY_DEADLY or 4
     if mode == "comprehensive" then return rank >= hard end
-    if mode == "dangerous" then return rank >= deadly end
     return false
 end
 
@@ -97,6 +95,14 @@ local function SetContentOffset(alert, offset)
         alert.content:SetAnchor(TOPLEFT, alert.root, TOPLEFT, 0, offset)
         alert.contentOffset = offset
     end
+end
+
+local function SetStaticBossVisual(alert, now)
+    alert.startSlide, alert.slidePixels, alert.revealFrom = 0, 0, nil
+    alert.fadeFrom, alert.fadeStartedAt = 1, now - (alert.fadeInSeconds or .18)
+    SetContentOffset(alert, 0)
+    PositionBossAlert(alert)
+    SetAlertAlpha(alert, 1)
 end
 
 -- With no kind, clear both independent slots (combat end / tracking reset).
@@ -262,6 +268,10 @@ local function ShowBossWarning(count, bossName, preview, kind, subjects, preview
     -- entrance. Red keeps the established finite display duration on merges.
     if not merge or kind == "expired" then
         alert.visibleFrom = now
+    end
+    if A.saved.reduceAnimations then
+        SetStaticBossVisual(alert, now)
+    elseif not merge or kind == "expired" then
         alert.startSlide = merge and (alert.slidePixels or 0) or (alert.introSlide or 0)
         alert.slidePixels = alert.startSlide
         local red = A.bossAlerts.expired
@@ -417,6 +427,11 @@ local function ExpireBossAlert(now)
 end
 local function AnimateBossAlert(alert, now)
     if not alert.root or not alert.visibleUntil then return end
+    if A.saved.reduceAnimations then
+        SetStaticBossVisual(alert, now)
+        A.AnimateAlertProgress(alert, now)
+        return
+    end
     local left = alert.visibleUntil - now
     local since = math.max(0, now - (alert.visibleFrom or now))
     if alert.slidePixels ~= 0 then

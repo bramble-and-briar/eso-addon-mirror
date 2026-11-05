@@ -1,5 +1,5 @@
-2026.10.30
-- Fix again for /tp home case sensitivity.
+2026.11.04
+- Minor /tp code iprovements.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
-
+- add needs hook to trader window

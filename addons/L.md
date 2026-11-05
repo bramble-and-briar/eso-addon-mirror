@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__fc98f3c0-0b5a-4797-aaa4-379955c3310c) | sirinsidiator | Console | — |
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__2277) | sirinsidiator | PC / Mac | 1.2.0 |
 | [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__031ddfc1-c44d-4452-ab48-42b7c429bc81) | sirinsidiator | Console | — |
-| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.6.3 |
+| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.7.0 |
 | [LibDelayedHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibDelayedHandler__2807) | zelenin | PC / Mac | 0.0.2 |
 | [LibDialog - Custom confirmation dialog with 2 buttons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibDialog---Custom-confirmation-dialog-with-2-buttons__1931) | Baertram | PC / Mac | 1.27 |
 | [LibDungeonFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jindra/LibDungeonFinder__4600) | Jindra | PC / Mac | 1.2.0 |
@@ -238,7 +238,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibPrice__2204) | ziggr | PC / Mac | 7.53 |
 | [LibPriceCache](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/LibPriceCache__4494) | Hyborem | PC / Mac | v.1.1.7 |
 | [LibPromises](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibPromises__eb221fca-fa24-44ac-9fab-6ee0f8cba1e0) | sirinsidiator | Console | — |
-| [LibPromises](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibPromises__2274) | sirinsidiator | PC / Mac | 1.1.2 |
+| [LibPromises](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibPromises__2274) | sirinsidiator | PC / Mac | 2.0.0 |
 | [LibQRC](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SolinurAddons/LibQRC__053412e8-989a-4dce-9551-7011dc3096ac) | SolinurAddons | Console | — |
 | [LibQRCode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RoyalTonberry/LibQRCode__da93c9ce-04e0-4acf-a62a-16e23c1e8d06) | RoyalTonberry | Console | — |
 | [LibQRCode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RoyalTonberry/LibQRCode__4102) | RoyalTonberry | PC / Mac | 1.0.8 |

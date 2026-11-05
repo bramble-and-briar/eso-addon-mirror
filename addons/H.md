@@ -101,7 +101,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HideLoginAnnouncement](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/anathemort/HideLoginAnnouncement__2009) | anathemort | PC / Mac | 1.2.1 |
 | [HideLoginNotice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideLoginNotice__4248) | VollständigerName | PC / Mac | 1.0.3 |
 | [HidePlayerMapMarker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HidePlayerMapMarker__4249) | VollständigerName | PC / Mac | 1.0.2 |
-| [HideResearchIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/smj2k/HideResearchIcon__5016) | smj2k | PC / Mac | 1.1.0 |
+| [HideResearchIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/smj2k/HideResearchIcon__5016) | smj2k | PC / Mac | 1.1.1 |
 | [HideReticleMounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideReticleMounted__4332) | VollständigerName | PC / Mac | 1.0.1 |
 | [High-Low - ESO Group Roll Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Riparoo/High-Low---ESO-Group-Roll-Game__4877) | Riparoo | PC / Mac | 0.1.9 |
 | [Highland Sentinel Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Highland-Sentinel-Tick-Tracker__4045) | SkullElf | PC / Mac | 1.2 |
@@ -148,7 +148,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HowToKyne](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/HowToKyne__3486) | Floliroy | PC / Mac | 1.1 |
 | [HowToSunspire](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/HowToSunspire__2430) | Floliroy | PC / Mac | 1.3.10 |
 | [Huah's Add-on Lab](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/huahtu/Huah-s-Add-on-Lab__41cdae3a-ab73-4780-8ab7-c1e464ec55fe) | huahtu | Console | — |
-| [HUDitorTools (edit HUD helper tools)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/HUDitorTools-edit-HUD-helper-tools__4750) | DakJaniels | PC / Mac | 1.3.2 |
+| [HUDitorTools (edit HUD helper tools)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/HUDitorTools-edit-HUD-helper-tools__4750) | DakJaniels | PC / Mac | 1.3.3 |
 | [Huntsman Warmask Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/Huntsman-Warmask-Reminder__4287) | VollständigerName | PC / Mac | 2.0.5 |
 | [Hyborem Assistant Rotation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Hyborem-Assistant-Rotation__4410) | Hyborem | PC / Mac | v.1.6 |
 | [Hyborem's Bugs'n'Weeds (based on Flowers She Likes by Ayantir)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Hyborem-s-Bugs-n-Weeds-based-on-Flowers-She-Likes-by-Ayantir__4528) | Hyborem | PC / Mac | v.2.0.0 |

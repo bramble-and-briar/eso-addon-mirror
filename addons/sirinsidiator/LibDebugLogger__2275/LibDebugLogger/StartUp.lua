@@ -26,6 +26,9 @@ local lib = {
         FireCallbacks = FireCallbacks,
         UI_LOAD_START_TIME = UI_LOAD_START_TIME,
         SESSION_START_TIME = SESSION_START_TIME,
+        LOGGER_CONFIG = {
+            tag = LIB_IDENTIFIER
+        }
     },
     callback = {},
 }

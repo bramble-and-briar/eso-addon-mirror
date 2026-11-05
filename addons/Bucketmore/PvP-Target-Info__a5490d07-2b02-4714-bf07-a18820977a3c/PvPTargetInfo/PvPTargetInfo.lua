@@ -301,6 +301,21 @@
 PvPTargetInfo = PvPTargetInfo or {}
 local PTI = PvPTargetInfo
 
+-- v2.4.0 変更点:
+--   ・Proc CD: Procの自動学習(/pti cd auto)。誤登録防止のため、根拠が揃ったものだけ自動登録(AUTO)し、
+--     足りないものは候補(CAND)として保存するだけにする。
+--   ・UI④に表示モード(常時表示/戦闘終了後は非表示)を追加。
+--   ・保存データ: cd.autoLearn / cd.learned / cd.learnIgnore / cdUI.displayMode を追加(既存キーは無変更)。
+-- v2.3.0 変更点:
+--   ・Proc CD: 自分にバフが付かないProc向けに「戦闘イベント方式」を追加(PS5実機未検証・既定ON)。
+--     /pti cd probe で戦闘/エフェクトイベントがPS5で届くかを診断、addev/delevでID登録、combat on/off。
+--   ・保存データ: cd.combatDetect / cd.userEv を追加(既存キーは無変更)。
+-- v2.2.0 変更点:
+--   ・/pti cd text を全面改善(全装備セットの全ボーナス説明文を全文・段階別・複数行で表示、
+--     取得成功/失敗数と失敗箇所を表示)。ICD候補の分析は /pti cd icd に分離。
+--   ・ICD定義表を拡充(約80セット。ゲーム内説明文の転載資料で確認した秒数のみ。IDは未確認のため空)。
+--   ・Proc CD: 起点が特殊なセット(機械的精度)に対応、/pti cd buffs・learn・alias を追加。
+--   ・UI①〜③、設定の保存データ(既存キー)は無変更。
 -- v2.1.0 変更点:
 --   ・貫通パネル機能(旧UI④。専用ファイル・設定・保存データ)を完全に撤去。
 --   ・UI④を「Self Proc CD」に置き換え(PvPTargetInfo_ProcCD.lua / _ProcCDData.lua)。
@@ -316,7 +331,7 @@ local PTI = PvPTargetInfo
 --   ・設定画面を 基本/検知/表示の残し方/パネル/詳細設定 の順に整理(設定キーは変更なし)。
 --   ・決闘中の相手(GetDuelInfo)を敵として扱う(任意変更・PS5実機未検証)。
 PTI.name = "PvPTargetInfo"
-PTI.version = "2.1.2"
+PTI.version = "2.4.0"
 
 local SV_VERSION = 2
 
@@ -400,10 +415,17 @@ local defaults = {
         fontSize = 16,
         maxRows = 6,
         rowGap = 0,            -- 表示間隔(行と行の追加余白px)
+        displayMode = "always", -- v2.4.0: "always"=常時表示 / "combat"=戦闘終了後は非表示
     },
     cd = {
         showReady = true,      -- CD終了後に「READY」を表示する
         user = {},             -- ユーザーが実測登録したICD: [abilityId] = { cd=秒, name=表示名 }
+        alias = {},            -- v2.2.0: 日本語セット名と定義表keyの対応: [セット名] = key
+        combatDetect = true,   -- v2.3.0: 戦闘イベント方式(バフが付かないProc向け)
+        userEv = {},           -- v2.3.0: 戦闘イベント側の実測登録: [abilityId] = { cd=秒, name=表示名 }
+        autoLearn = true,      -- v2.4.0: Procの自動学習
+        learned = {},          -- v2.4.0: 学習記録 [abilityId] = { conf="AUTO"|"CAND"|"ACCEPTED", setKey, setName, cd, name, score, n, fights, ... }
+        learnIgnore = {},      -- v2.4.0: 除外したAbilityId [id] = true
     },
 
     procConfig = {
@@ -467,7 +489,7 @@ local function PrintHelp()
     d("  /pti <buff||debuff||proc||cd> on||off                        - 個別のパネル表示を切替")
     d("  /pti hold <秒>                                        - ターゲット解除後にパネルを保持する秒数")
     d("  /pti enemy                                           - 現在のターゲットの敵味方判定の診断表示")
-    d("  /pti cd on||off||sets||text||add||del||list||reset      - UI④(Proc CD)の操作(/pti cd で詳細)")
+    d("  /pti cd on||off||sets||text||icd||buffs||auto||probe||combat||learn||alias||add||addev||del||list||reset - UI④の操作(/pti cd で詳細)")
     d("  /pti linger <秒>                                      - 消えた効果の残像表示秒数(0〜10、0で残像なし)")
     d("  /pti learn proc                                       - Condition学習モードON/OFF(自分のバフ/デバフ)")
     d("  /pti learn target                                     - 敵バフ/デバフ学習モードON/OFF(重要リスト用)")
@@ -647,7 +669,7 @@ local function OnSlashCommand(args)
         -- v2.0.6: 敵プレイヤー判定の診断(現在のターゲットの判定値と最終判定を表示)
         if PTI.Target and PTI.Target.PrintEnemyDiagnostics then PTI.Target.PrintEnemyDiagnostics() end
     elseif cmd == "cd" then
-        -- v2.1.0: UI④(Proc CD)。on/off/sets/text/add/del/list/reset
+        -- v2.1.0: UI④(Proc CD)。サブコマンドはProcCD.luaのHandleCommand参照
         if PTI.ProcCD and PTI.ProcCD.HandleCommand then PTI.ProcCD.HandleCommand(rest) end
     elseif cmd == "hold" then
         local sec = tonumber(rest)

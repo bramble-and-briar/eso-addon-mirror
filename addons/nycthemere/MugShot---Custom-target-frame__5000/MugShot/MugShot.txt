@@ -6,16 +6,16 @@
 
 ## Title: |c9b00afMug Shot|r
 ## AddOnName: MugShot
-## Version: 2026.10.31-101047
-## AddOnVersion: 101047
+## Version: 2026.11.03-101113
+## AddOnVersion: 101113
 ## APIVersion: 101051 101052
 ## Description: A custom target frame with personalized portraits, buff and debuff tracking, and configurable display settings.
 ## Author: |c783f04nyc|r|c8fce00thé|r|c6a329fmère|r
 ## SavedVariables: MugShotSV
-## OptionalDependsOn: LibAddonMenu-2.0 LibCustomIcons HodorReflexes LibSlashCommander
+## OptionalDependsOn: LibAddonMenu-2.0 LibCustomIcons LibCustomNames HodorReflexes LibSlashCommander
 
-Defaults.lua
 Constants.lua
+Defaults.lua
 Localisation.lua
 Data/Portraits.lua
 Core/TargetState.lua

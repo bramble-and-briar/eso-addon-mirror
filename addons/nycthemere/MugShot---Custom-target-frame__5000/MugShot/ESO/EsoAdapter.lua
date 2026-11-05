@@ -31,6 +31,7 @@ end
 --     displayName    : string
 --     isPlayer       : bool
 --     reaction       : UnitReactionType constant
+--     attackable     : bool
 --     reactionR      : number (0–1)
 --     reactionG      : number (0–1)
 --     reactionB      : number (0–1)
@@ -48,6 +49,9 @@ function EsoAdapter:ReadIdentity(unitTag)
 
     if unitTag == "player" or isLocal then
         isPlayer = true
+        if (displayName == "" or displayName == nil) and GetDisplayName then
+            displayName = GetDisplayName() or ""
+        end
         if reaction == nil or reaction == UNIT_REACTION_DEFAULT then
             reaction = UNIT_REACTION_PLAYER_ALLY
         end
@@ -63,6 +67,11 @@ function EsoAdapter:ReadIdentity(unitTag)
         if qr then r, g, b = qr, qg, qb end
     end
 
+    local attackable = false
+    if IsUnitAttackable then
+        attackable = (IsUnitAttackable(unitTag) == true)
+    end
+
     -- Portrait and badge resolution
     local pInfo = MugShot.Portraits.GetPortraitInfo(unitTag) or {}
 
@@ -72,6 +81,7 @@ function EsoAdapter:ReadIdentity(unitTag)
         isPlayer        = isPlayer,
         isLocalPlayer   = isLocal,
         reaction        = reaction,
+        attackable      = attackable,
         reactionR       = r,
         reactionG       = g,
         reactionB       = b,
@@ -201,6 +211,7 @@ function EsoAdapter:ReadEffects(unitTag, onlyPlayerCast, trackGroupDebuffs, outB
                         pool[itemCount] = current
                     end
                     current.name         = buffName or ""
+                    current.abilityId    = abilityId or 0
                     current.icon         = iconFilename
                     current.stackCount   = stackCount or 0
                     current.timeEnding   = timeEnding or 0
@@ -209,6 +220,22 @@ function EsoAdapter:ReadEffects(unitTag, onlyPlayerCast, trackGroupDebuffs, outB
                     current.sourceCount  = 1
                     current.effectType   = effectType or 0
                     current.key          = key
+                    if isCastByPlayer then
+                        current.playerTimer      = timer
+                        current.playerTimeEnding  = timeEnding or 0
+                        current.teamTimer        = 0
+                        current.teamTimeEnding    = 0
+                        current.castByPlayer     = true
+                        current.castByTeam       = false
+                    else
+                        current.playerTimer      = 0
+                        current.playerTimeEnding  = 0
+                        current.teamTimer        = timer
+                        current.teamTimeEnding    = timeEnding or 0
+                        current.castByPlayer     = false
+                        current.castByTeam       = true
+                    end
+                    current.winnerFromPlayer = isCastByPlayer
                     mapByKey[key]        = current
                     table_insert(effects, current)
                 else
@@ -220,15 +247,28 @@ function EsoAdapter:ReadEffects(unitTag, onlyPlayerCast, trackGroupDebuffs, outB
                     end
                     if isCastByPlayer then
                         current.castByPlayer = true
+                        if timer > (current.playerTimer or 0) then
+                            current.playerTimer = timer
+                            current.playerTimeEnding = timeEnding or 0
+                        end
+                    else
+                        current.castByTeam = true
+                        if timer > (current.teamTimer or 0) then
+                            current.teamTimer = timer
+                            current.teamTimeEnding = timeEnding or 0
+                        end
                     end
                     if effectType and effectType > 0 then
                         current.effectType = effectType
                     end
                     -- Retain the highest remaining timer
+                    local pTimer = current.playerTimer or 0
+                    local tTimer = current.teamTimer or 0
+                    current.timer = (pTimer > tTimer) and pTimer or tTimer
                     if timeEnding and timeEnding > current.timeEnding then
                         current.timeEnding = timeEnding
-                        current.timer = timer
                     end
+                    current.winnerFromPlayer = (pTimer >= tTimer) and (pTimer > 0)
                     -- Retain highest stack count
                     if stackCount and stackCount > current.stackCount then
                         current.stackCount = stackCount

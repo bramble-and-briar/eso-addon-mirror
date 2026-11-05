@@ -37,6 +37,8 @@
        <TopLevelControl name="tomWindow01" mouseEnabled="true" movable="true" clampedToScreen="true">
 			<Dimensions x="600" y="310" /><Anchor point="CENTER" />
 			<OnMoveStop>tomUI.WindowMoveStop(self)</OnMoveStop>
+			<!-- P5YCH3 v6.5.0: The window can be resized by its edges and corners (handle set in tom.setMovability). -->
+			<OnResizeStop>tomUI.WindowResizeStop(self)</OnResizeStop>
 			<OnMouseWheel>tomUI.OnGOMScroll(delta)</OnMouseWheel>
             <Controls>
 				<Backdrop name="$(parent)Background" integralWrapping="true">
@@ -50,14 +52,15 @@
 
 				<!--P5YCH3 - Adds a function for the main window that opens the addon settings panel when clicking on the main window's bubble icon.-->
 				<!--Also restores the message count tooltips.-->
+				<!-- P5YCH3 v6.5.0: Bubble moved in 6 pixels (was 40x40 at 0,0) so the window corner can be grabbed to resize. -->
 				<Texture name="$(parent)Bubble" alpha="1" layer="CONTROLS" mouseEnabled="true" movable="false">
-					<Dimensions x="40" y="40"></Dimensions>
-					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor>
+					<Dimensions x="36" y="36"></Dimensions>
+					<Anchor point="TOPLEFT" offsetX="6" offsetY="4"></Anchor>
 					<OnMouseUp>tomUI.ShowAddonSettingsMenu()</OnMouseUp>
 				</Texture>
 
 				<Label name="$(parent)Header" font="ZoFontGameBold" color="E0E0E0" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="Tamriel Online Messenger (TOM)">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="0" offsetY="10"></Anchor>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="-2" offsetY="6"></Anchor>
 				</Label>
 
 				<!-- Removed by P5YCH3 - Broken with update 34-->
@@ -73,7 +76,8 @@
 				</Texture>
 
 				<Button name="$(parent)Closer" mouseEnabled="true">
-					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-5" offsetY="5"></Anchor>
+					<!-- P5YCH3 v6.5.0: Old offset -5,5; now 6,6 in from the corner so the corner can be grabbed to resize. -->
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-6" offsetY="6"></Anchor>
 					<Dimensions x="30" y="30"></Dimensions>
 					<Textures normal="/esoui/art/buttons/cancel_up.dds" />
 					<OnClicked>tomUI.AlerterClick()</OnClicked>
@@ -82,14 +86,16 @@
 				<!-- P5YCH3 - New button/function to open the addon settings menu directly from the TOM window for convenience. -->
 				<Button name="$(parent)Settings" mouseEnabled="true">
 					<!--P5YCH3 - New anchor point and offsets for the new settings button-->
-					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="2"></Anchor>
-					<Dimensions x="18" y="18"></Dimensions>
+					<!-- P5YCH3 v6.5.0: Moved from the bottom-right corner to the title bar, left of the close button (old: BOTTOMRIGHT 0,2, 18x18). -->
+					<Anchor point="RIGHT" relativeTo="$(parent)Closer" relativePoint="LEFT" offsetX="-4" offsetY="0"></Anchor>
+					<Dimensions x="22" y="22"></Dimensions>
 					<Textures normal="/esoui/art/chatwindow/chat_options_up.dds" />
 					<OnMouseUp>tomUI.ShowAddonSettingsMenu()</OnMouseUp>
 				</Button>
 
 				<Label name="$(parent)Gom" font="ZoFontWinH4" color="E0E0A0" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="---">
-					<Anchor point="TOPRIGHT" relativeTo="$(parent)Closer" relativePoint="TOPLEFT" offsetX="-10" offsetY="5"></Anchor>
+					<!-- P5YCH3 v6.5.0: Old: -10,5 from the close button; now clear of the settings button. -->
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)Closer" relativePoint="TOPLEFT" offsetX="-36" offsetY="5"></Anchor>
 				</Label>
 				<Texture name="$(parent)Line1" hidden="false" mouseEnabled="false" textureFile="/esoui/art/miscellaneous/centerscreen_topdivider.dds"><Dimensions x="580" y="2"></Dimensions>
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="40"></Anchor>
@@ -111,9 +117,10 @@
 
 				<!-- P5YCH3 - Fix for the 'Answer/Copy to Clipboard' button -->
 				<!-- left click=answer the current group, right clock=last messages into clipboard. -->
+				<!-- P5YCH3 v6.5.0: Bottom button row (Answer to Magic) is now one even row: 24x24, same baseline, 1 pixel gap, each button anchored to the one before. Old Answer: 25x25. -->
 				<Button name="$(parent)Answer" mouseEnabled="true">
 					<Anchor relativeTo="$(parent)" point="BOTTOMLEFT" offsetX="10" offsetY="-10"></Anchor>
-					<Dimensions x="25" y="25"></Dimensions>
+					<Dimensions x="24" y="24"></Dimensions>
 					<Textures normal="/esoui/art/buttons/edit_up.dds" />
 					<OnMouseUp>tomUI.executeGOMclick(1,button)</OnMouseUp>
 				</Button>
@@ -128,9 +135,10 @@
 
 				<!-- P5YCH3 - Fix for the 'Undock' button -->
 				<!-- undock the current group, does not do tomUI.undockCloseClick(self) -->
+				<!-- P5YCH3 v6.5.0: Old Undock: offsetX=25 from Answer, 25x25. -->
 				<Button name="$(parent)Undock" mouseEnabled="true">
-					<Anchor relativeTo="$(parent)Answer" point="BOTTOMLEFT" offsetX="25" offsetY="0"></Anchor>
-					<Dimensions x="25" y="25"></Dimensions>
+					<Anchor relativeTo="$(parent)Answer" point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" offsetX="1" offsetY="0"></Anchor>
+					<Dimensions x="24" y="24"></Dimensions>
 					<Textures normal="/esoui/art/vendor/vendor_tabicon_buyback_up.dds" />
 					<OnMouseUp>tomUI.executeGOMclick(2,button)</OnMouseUp>
 				</Button>
@@ -148,34 +156,52 @@
 
 				<!-- P5YCH3 - Fix for the 'Delete/Toggle Alert Override' button -->
 				<!-- left click=delete messages from the current group, right click=toggle alert popup override-->
+				<!-- P5YCH3 v6.5.0: Old Delete: offsetX=25 from Undock, 25x25. -->
 				<Button name="$(parent)Kill"  mouseEnabled="true" >
-					<Anchor relativeTo="$(parent)Undock" point="TOPRIGHT" offsetX="25" offsetY="0"></Anchor>
-					<Dimensions x="25" y="25"></Dimensions>
+					<Anchor relativeTo="$(parent)Undock" point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" offsetX="1" offsetY="0"></Anchor>
+					<Dimensions x="24" y="24"></Dimensions>
 					<FontColors normalColor="FFFFFF" />
 					<Textures normal="/esoui/art/buttons/edit_cancel_up.dds" />
 					<OnMouseUp>tomUI.executeGOMclick(3,button)</OnMouseUp>
 				</Button>
 
+				<!-- P5YCH3 v6.5.0: Old Catacomb: offsetX=42 offsetY=1 from Kill, 25x25. -->
 				<Button name="$(parent)Catacomb"  mouseEnabled="true">
 					<!-- P5YCH3 - Adjust the verticle position of the 'Catacomb' button to make it align better with the other icons -->
 					<!--<Anchor relativeTo="$(parent)Kill" point="TOPRIGHT" offsetX="42" offsetY="0"></Anchor>-->
-					<Anchor relativeTo="$(parent)Kill" point="TOPRIGHT" offsetX="42" offsetY="1"></Anchor>
-					<Dimensions x="25" y="25"></Dimensions>
+					<!--<Anchor relativeTo="$(parent)Kill" point="TOPRIGHT" offsetX="42" offsetY="1"></Anchor>-->
+					<Anchor relativeTo="$(parent)Kill" point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" offsetX="1" offsetY="0"></Anchor>
+					<Dimensions x="24" y="24"></Dimensions>
 					<FontColors normalColor="FFFFFF" />
 					<Textures normal="/esoui/art/guild/tabicon_roster_up.dds" />
 					<OnClicked>tomUI.catacombClick()</OnClicked>
 				</Button>
+
+				<!-- P5YCH3 v6.5.0: New 'Roleplay' button next to Catacombs. Opens the Roleplay panel. -->
+				<Button name="$(parent)Roleplay" mouseEnabled="true">
+					<Anchor relativeTo="$(parent)Catacomb" point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" offsetX="1" offsetY="0"></Anchor>
+					<Dimensions x="24" y="24"></Dimensions>
+					<FontColors normalColor="FFFFFF" />
+					<Textures normal="EsoUI/Art/Help/help_tabIcon_emotes_up.dds" pressed="EsoUI/Art/Help/help_tabIcon_emotes_down.dds" mouseOver="EsoUI/Art/Help/help_tabIcon_emotes_over.dds" />
+					<OnClicked>tomUI.roleplayClick()</OnClicked>
+					<OnMouseEnter>tomUI.roleplayTooltip(self)</OnMouseEnter>
+					<OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+				</Button>
+
+				<!-- P5YCH3 v6.5.0: Old Guild: offsetX=28 offsetY=-3 from Catacomb, 30x30. -->
 				<Button name="$(parent)Guild" mouseEnabled="true">
 					<!-- P5YCH3 - Adjust the verticle position of the 'Guild Functions' button because it is anchored relative to the Catacomb button.. -->
 					<!--<Anchor relativeTo="$(parent)Catacomb" point="TOPRIGHT" offsetX="28" offsetY="3"></Anchor>-->
-					<Anchor relativeTo="$(parent)Catacomb" point="TOPRIGHT" offsetX="28" offsetY="-3"></Anchor>
-					<Dimensions x="30" y="30"></Dimensions>
+					<!--<Anchor relativeTo="$(parent)Catacomb" point="TOPRIGHT" offsetX="28" offsetY="-3"></Anchor>-->
+					<Anchor relativeTo="$(parent)Roleplay" point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" offsetX="1" offsetY="0"></Anchor>
+					<Dimensions x="24" y="24"></Dimensions>
 					<Textures normal="/esoui/art/guild/guildheraldry_indexicon_crest_up.dds" />
 					<OnClicked>tomUI.guildClick()</OnClicked>
 				</Button>
+				<!-- P5YCH3 v6.5.0: Old Magic: offsetX=28 from Guild, 30x30. -->
 				<Button name="$(parent)Magic" mouseEnabled="true">
-					<Anchor relativeTo="$(parent)Guild" point="TOPRIGHT" offsetX="28" offsetY="0"></Anchor>
-					<Dimensions x="30" y="30"></Dimensions>
+					<Anchor relativeTo="$(parent)Guild" point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" offsetX="1" offsetY="0"></Anchor>
+					<Dimensions x="24" y="24"></Dimensions>
 					<Textures normal="/esoui/art/icons/guildranks/guild_indexicon_misc11_up.dds" />
 					<OnMouseUp>tomUI.magicClick()</OnMouseUp>
 				</Button>
@@ -249,8 +275,10 @@
 					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
 					<Insets left="4" top="4" right="-4" bottom="-4" />
 					<AnchorFill /></Backdrop>
-				<Texture name="$(parent)Bubble" mouseEnabled="true" movable="false"><Dimensions x="40" y="40"></Dimensions>
-					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor></Texture>
+				<!-- P5YCH3 v6.5.0: clickable TOM bubble (returns to the main window, closes this window). -->
+				<Texture name="$(parent)Bubble" alpha="1" layer="CONTROLS" mouseEnabled="true" movable="false"><Dimensions x="40" y="40"></Dimensions>
+					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor>
+					<OnMouseUp>tomUI.magicToMain()</OnMouseUp></Texture>
 				<Label name="$(parent)Header" font="ZoFontGameBold" color="E0E0E0" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="Tamriel Online Messenger (TOM)">
 					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="0" offsetY="10"></Anchor>
 				</Label>
@@ -346,6 +374,41 @@
 			</Controls>
 		</TopLevelControl>
 		<!--	Die Katakomben	 -->
+		<!-- P5YCH3 v6.5.0: Roleplay panel frame. Its contents are built in tom_rp_ui.lua. -->
+		<TopLevelControl name="tomRoleplay" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+			<Dimensions x="780" y="672" /><Anchor point="CENTER" />
+			<OnMoveStop>tomUI.roleplayMoveStop(self)</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)Background" integralWrapping="true">
+					<Edge file="EsoUI/Art/ChatWindow/chat_BG_edge.dds" edgeSize="4" />
+					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
+					<Insets left="4" top="4" right="-4" bottom="-4" />
+					<AnchorFill /></Backdrop>
+				<!-- P5YCH3 v6.5.0: Roleplay panel progress bar. -->
+				<Backdrop name="$(parent)Track" alpha="0.5" centerColor="0F0F0F" edgeColor="808080" hidden="true">
+					<Dimensions x="740" y="14" /><Anchor point="TOPLEFT" offsetX="20" offsetY="560" /><Edge edgeSize="1" /></Backdrop>
+				<Backdrop name="$(parent)Fill" alpha="1" centerColor="4779CE" edgeColor="4779CE" hidden="true">
+					<Dimensions x="2" y="12" /><Anchor point="TOPLEFT" offsetX="21" offsetY="561" /><Edge edgeSize="1" /></Backdrop>
+			</Controls>
+		</TopLevelControl>
+
+        <!-- P5YCH3 v6.5.0: Small floating Roleplay progress bar, shown while a post is sent and the panel is closed. -->
+        <TopLevelControl name="tomRoleplayBar" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+			<Dimensions x="500" y="110" /><Anchor point="TOP" offsetY="110" />
+			<OnMoveStop>tomUI.roleplayBarMoveStop(self)</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)Background" integralWrapping="true">
+					<Edge file="EsoUI/Art/ChatWindow/chat_BG_edge.dds" edgeSize="4" />
+					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
+					<Insets left="4" top="4" right="-4" bottom="-4" />
+					<AnchorFill /></Backdrop>
+				<Backdrop name="$(parent)Track" alpha="0.5" centerColor="0F0F0F" edgeColor="808080" hidden="true">
+					<Dimensions x="480" y="14" /><Anchor point="TOPLEFT" offsetX="10" offsetY="54" /><Edge edgeSize="1" /></Backdrop>
+				<Backdrop name="$(parent)Fill" alpha="1" centerColor="4779CE" edgeColor="4779CE" hidden="true">
+					<Dimensions x="2" y="12" /><Anchor point="TOPLEFT" offsetX="11" offsetY="55" /><Edge edgeSize="1" /></Backdrop>
+			</Controls>
+        </TopLevelControl>
+
         <TopLevelControl name="tomCatacomb" mouseEnabled="true" movable="true" clampedToScreen="true">
 			<Dimensions x="450" y="660" /><Anchor point="CENTER" />
 			<OnMoveStop>tomUI.CatacombMoveStop(self)</OnMoveStop>
@@ -355,8 +418,10 @@
 					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
 					<Insets left="4" top="4" right="-4" bottom="-4" />
 					<AnchorFill /></Backdrop>
-				<Texture name="$(parent)Bubble"><Dimensions x="40" y="40"></Dimensions>
-					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor></Texture>
+				<!-- P5YCH3 v6.5.0: clickable TOM bubble (returns to the main window, closes the Catacombs). -->
+				<Texture name="$(parent)Bubble" alpha="1" layer="CONTROLS" mouseEnabled="true" movable="false"><Dimensions x="40" y="40"></Dimensions>
+					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor>
+					<OnMouseUp>tomUI.catacombToMain()</OnMouseUp></Texture>
 				<Label name="$(parent)Head1" font="ZoFontGameBold" color="E0E0E0" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="Katakomben">
 					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="0" offsetY="10"></Anchor>
 				</Label>
@@ -488,8 +553,10 @@
 					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
 					<Insets left="4" top="4" right="-4" bottom="-4" />
 					<AnchorFill /></Backdrop>
-				<Texture name="$(parent)Bubble"><Dimensions x="40" y="40"></Dimensions>
-					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor></Texture>
+				<!-- P5YCH3 v6.5.0: clickable TOM bubble (returns to the main window, closes this window). -->
+				<Texture name="$(parent)Bubble" alpha="1" layer="CONTROLS" mouseEnabled="true" movable="false"><Dimensions x="40" y="40"></Dimensions>
+					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor>
+					<OnMouseUp>tomUI.guildToMain()</OnMouseUp></Texture>
 				<Label name="$(parent)Head1" font="ZoFontGameBold" color="E0E0E0" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="TIM - Guild functions">
 					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="0" offsetY="10"></Anchor>
 				</Label>
@@ -954,17 +1021,20 @@
 		<Label name="tomfailMailText" virtual="true" mouseEnabled="true" font="ZoFontWinT2" text="00" verticalAlignment="CENTER" horizontalAlignment="LEFT"><Dimensions x="240" y="24"></Dimensions>
 			<Anchor relativeTo="$(parent)" point="TOPLEFT" offsetX="0" offsetY="0"></Anchor>
 		</Label>
-        <TopLevelControl name="tomWindowVM" virtual="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+        <TopLevelControl name="tomWindowVM" virtual="true" mouseEnabled="true" movable="true" clampedToScreen="true" resizeHandleSize="6">
 			<Dimensions x="600" y="310" /><Anchor point="CENTER" />
 			<OnMoveStop>tomUI.WindowMoveStop(self)</OnMoveStop>
+			<!-- P5YCH3 v6.5.0: Undocked windows can be resized by their edges and corners. -->
+			<OnResizeStop>tomUI.UndockedResizeStop(self)</OnResizeStop>
             <Controls>
 				<Backdrop name="$(parent)Background" integralWrapping="true">
 					<Edge file="EsoUI/Art/ChatWindow/chat_BG_edge.dds" edgeSize="4" />
 					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
 					<Insets left="4" top="4" right="-4" bottom="-4" />
 					<AnchorFill /></Backdrop>
-				<!--P5YCH3 - FIX THIS SHIT--><Texture name="$(parent)Bubble" mouseEnabled="true" movable="false"><Dimensions x="40" y="40"></Dimensions>
-					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"></Anchor></Texture>
+				<!--P5YCH3 - FIX THIS SHIT--><!-- P5YCH3 v6.5.0: Bubble moved in 6 pixels (was 40x40 at 0,0) so the corner can be grabbed to resize. -->
+				<Texture name="$(parent)Bubble" mouseEnabled="true" movable="false"><Dimensions x="36" y="36"></Dimensions>
+					<Anchor point="TOPLEFT" offsetX="6" offsetY="4"></Anchor></Texture>
 
 				<!-- Removed by P5YCH3 - Broken with update 34 -->
 				<!--<Texture name="$(parent)Closer" mouseEnabled="true"><Dimensions x="30" y="30"></Dimensions>
@@ -975,7 +1045,7 @@
 				<!-- P5YCH3 - Fix for the 'Undock Group - Close' button -->
 				<Texture name="$(parent)Closer" alpha="1" layer="CONTROLS" mouseEnabled="true" movable="false">
 					<Dimensions x="30" y="30"></Dimensions>
-					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-5" offsetY="5"></Anchor>
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-6" offsetY="6"></Anchor>
 					<OnMouseUp>tomUI.undockCloseClick(self)</OnMouseUp>
 				</Texture>
 
@@ -993,7 +1063,7 @@
 				</Texture>
 
 				<Label name="$(parent)Gom" font="ZoFontWinH4" color="E0E0A0" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="---">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="10" offsetY="7"></Anchor>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Bubble" relativePoint="TOPRIGHT" offsetX="8" offsetY="3"></Anchor>
 				</Label>
 				<Texture name="$(parent)Line1" hidden="false" mouseEnabled="false" textureFile="/esoui/art/miscellaneous/centerscreen_topdivider.dds"><Dimensions x="580" y="2"></Dimensions>
 					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="44"></Anchor>

@@ -1,0 +1,26 @@
+;	==================================================================
+;				AutoInteract.txt  –  v1.8.6  (April 01 2026)
+;	==================================================================
+
+; DISCLAIMER:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: AutoInteract
+## APIVersion: 101048 101049
+## Version: 1.8.5
+## AddOnVersion: 185
+## Author: SquidMeat
+## Description: Automates NPC and quest interactions with filters for costs, hard mode, books, and writs. Auto-learn/bind collectibles, recipes, styles, set pieces, etc. Auto-mark junk and/or sell junk at merchants.
+## SavedVariables: AutoInteractVars
+
+## DependsOn: LibAddonMenu-2.0>=41
+
+lang.lua
+AutoInteract.lua
+Settings.lua
+Bindings.xml

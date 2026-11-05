@@ -966,3 +966,19 @@ and loaded (and blocking a load); the limit of 20; the panel (rows, Save, the re
 choosing, Load, Delete asked twice and lapsing, opening the panel after a command save); a library with no `ST_EDIT`, with an
 `ST_EDIT` that will not build, and with no dynamic rows; Japanese labels. The mock library keeps ordered rows and a callback
 manager.
+
+## 27. The version in the settings list's name
+
+Asked: the add-on's name in the list should carry the version, like the other add-ons of the series. The manifest `## Title`
+already did; the settings panel (the list that LibHarvensAddonSettings draws) was a fixed `PB’s FurnitureEditor`.
+
+* Main.lua reads the version back from the manifest's `## Title` line (`GetAddOnManager():GetAddOnInfo`, colour markup
+  stripped, trailing number kept; in a pcall, empty if the manager cannot be asked), exactly as PBsDiceExtension and
+  PBsProcSetTimer do. Settings.lua lists the panel as `PB’s FurnitureEditor <version>` (typographic apostrophe kept); `/pbfe`
+  help prints the same version instead of a number typed into the code. A release now changes the manifest's two version
+  lines (plus the README and FINDINGS headings, which are text).
+
+**Unverified on a console:** that `GetAddOnInfo` hands back the `## Title` markup unchanged there (the siblings rely on it).
+
+**Tests.** Section 38: the harness's add-on manager answers from the real manifest; the version read, the panel name, the help
+line, a client with no manager, a manager that throws.

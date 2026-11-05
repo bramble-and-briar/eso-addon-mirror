@@ -1,9 +1,9 @@
 ## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Style Pages|r
 ## Description: Tamriel Archive browser for Style Pages, collection status, search, and source information.
 ## Author: |c73E58CMajesticMinxi|r
-## Version: 1.0.0
+## Version: 1.1.1
 ## APIVersion: 101051
-## AddOnVersion: 1000
+## AddOnVersion: 1101
 
 Shared.lua
 StylePageSources.lua

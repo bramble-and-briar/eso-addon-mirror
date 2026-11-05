@@ -378,13 +378,16 @@ function PTI.UI.SetWindowVisible(key)
         hiddenByEmptyCd = (not PTI.sv.previewMode) and not PTI.UI.cdHasContent
     end
 
+    -- v2.4.0: UI④の表示モード「戦闘終了後は非表示」(ProcCD.luaがフラグを更新する。計測は止めない)
+    local hiddenByCdMode = (key == "cd") and PTI.UI.cdHiddenAfterCombat and not PTI.sv.previewMode
+
     local hiddenByEmptyProc = false
     if key == "proc" then
         hiddenByEmptyProc = (not PTI.sv.previewMode) and not PTI.UI.procHasContent
     end
 
     local shouldShow = PTI.sv.enabled and not hiddenByScene and not hiddenByCombat
-        and not hiddenByEmptyProc and not hiddenByEmptyCd and sv.enabled ~= false
+        and not hiddenByEmptyProc and not hiddenByEmptyCd and not hiddenByCdMode and sv.enabled ~= false
     entry.window:SetHidden(not shouldShow)
 end
 

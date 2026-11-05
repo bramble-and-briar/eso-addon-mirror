@@ -1,0 +1,79 @@
+MountSwap - credits, framework exceptions and licensing status
+
+Author: ShadowStrikerr, explicitly selected by the author on November 4, 2026.
+No separate open-source implementation license is declared. No MIT/GPL/CC
+redistribution grant has been selected or inferred. The author must personally
+confirm rights to submit when agreeing to ESOUI hosting terms.
+
+Already-present reference credit, expanded here:
+Crown Crate Codex by ShadowStrikerr (verified public ESOUI author); its manifest
+uses the label "Crown Crate Codex contributors".
+https://www.esoui.com/downloads/info5023-CrownCrateCodex.html
+The workspace's controller/window/shared-settings approach was adapted to
+MountSwap, not its crate features or data. Versions 0.12.4 and 0.12.5 and the updated handoff were inspected. The user
+authorized this workspace adaptation and requested the same author credit.
+No separate implementation LICENSE was found; do not apply the Crown Crate
+Codex UESP reference-data license to MountSwap. No UESP data is included.
+The public source/author link above was verified during the 0.8.2 handoff review.
+
+Optional external integrations, not bundled dependencies:
+- LibAddonMenu-2.0 by Seerah, sirinsidiator and contributors:
+  https://www.esoui.com/downloads/info7-LibAddonMenu.html
+  Actual manifest: AddOnVersion 43, display Version 2.0 r43.
+  Its installed LICENSE is Artistic License 2.0; no library code is redistributed.
+- libAddonKeybinds by merlight, Baertram and votan:
+  https://www.esoui.com/downloads/info1253-libAddonKeybinds.html
+  Actual manifest: AddOnVersion 6. The manifest spells Beartram; the ESOUI author
+  listing spells Baertram. It is a standalone addon providing keybinding-panel
+  organization; its manifest also marks it as a library. No source is bundled.
+- Votan's Keybinder by votan:
+  https://www.esoui.com/downloads/info1174-VotansKeybinder.html
+  Actual manifest: display Version 1.4.6; no AddOnVersion. The optional manifest
+  entry stays unversioned. VOTANS_KEYBINDER belongs to that addon and is read only.
+
+ESO native UI functions, controls, fonts and button textures: ZeniMax Online
+Studios. Textures are referenced from the game, not redistributed in this ZIP.
+https://github.com/esoui/esoui/blob/live/ESOUIDocumentation.txt
+
+Legitimate global and framework exceptions:
+- MountSwap is the single addon runtime namespace; every other Lua module holds
+  a local M reference. Ordinary functions/data live under that namespace.
+- MountSwapSavedVariables is required by ESO's SavedVariables loader and retains
+  schema version 1, account identities and GetWorldName-based server profiles.
+- ESO creates SI_BINDING_NAME_MOUNTSWAP_* string constants via ZO_CreateStringId.
+- ESO/framework named UI references use MountSwap-prefixed names: MountSwapWindow,
+  MountSwapPicker, MountSwapNotice, MountSwapControllerMenu, MountSwapTextEntry,
+  MountSwapControllerEdit, MountSwapOptions, MountSwapSettingsSearch_multi/single,
+  and MountSwapSettingsSlot1 through MountSwapSettingsSlot8.
+- LAMCreateControl is owned by LibAddonMenu-2.0 by Seerah, sirinsidiator and
+  contributors. MountSwap registers only its four namespaced widget factories:
+  mountswapfavorite, mountswapdashboard, mountswapchattoggle, mountswaprightbutton.
+  These registry entries are required framework extensions, not new globals or
+  replacement definitions of another addon/library.
+- SLASH_COMMANDS is ESO's command registry. Original MountSwap commands and
+  configurable aliases register handlers there; alias conflicts preserve the
+  existing handler. libAddonKeybinds, LibAddonMenu2 and VOTANS_KEYBINDER are read
+  at use/registration time, never created or replaced by MountSwap.
+
+AI code generation with OpenAI Codex was already disclosed before 0.8.1.
+Global-write regression tests cover exercised startup/UI/settings/controller/
+migration callbacks. This is not a full live-client global-pollution certification.
+
+0.8.3 language attribution: common UI labels were adapted from the workspace
+Crown Crate Codex language dictionaries. Remaining MountSwap-specific strings
+and translations were drafted with OpenAI Codex. Native-speaker review is not
+claimed. No external implementation license or rights grant is inferred.
+
+0.8.4 metadata reference: Grand Pillion Draft Horse (9576) and Nightmare
+Pillion Courser (11887), verified against player-supplied ESO collectible links
+in the tralce's Vanity Keybinds discussion (comment by Morgaloth). Only factual
+identifiers are used; no implementation or asset was copied.
+https://www.esoui.com/downloads/info3233-2021-11-23.html
+Native category APIs and font fallback/casing verified in official esoui/esoui
+live source: ESOUIDocumentation.txt, fontstrings/* and globals/globalapi.lua.
+
+Gallery note, final 0.8.9 preparation: the optional combined settings overview
+is the earlier OpenAI image-tool composite of user-provided ESO captures. It is
+labelled as an AI-assisted presentation overview, not an exact game capture.
+The three original settings pages are supplied as alternatives. Gallery images
+are separate from the addon ZIP; no AI image is a runtime addon asset.

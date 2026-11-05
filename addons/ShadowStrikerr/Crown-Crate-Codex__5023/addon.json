@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/ShadowStrikerr/Crown-Crate-Codex__5023",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "ShadowStrikerr",
+  "canonical_id": "esoui:5023",
+  "category_id": "26",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5023",
+  "deleted": false,
+  "directories": [
+    "CrownCrateCodex"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5023/",
+  "fingerprint": "420c065bebbe64fcb395b0bff491d5f36a3d6003de02bdc5b29af5ef6391a3ce",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18326.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18315.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18316.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18317.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18318.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18319.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18320.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18321.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18322.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18323.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5023",
+  "source_url": "https://www.esoui.com/downloads/info5023-CrownCrateCodex.html",
+  "stats": {
+    "downloads": 16,
+    "favorites": 1,
+    "monthly_downloads": 4
+  },
+  "title": "Crown Crate Codex",
+  "updated_at": 1793851276000,
+  "version": "0.12.6"
+}

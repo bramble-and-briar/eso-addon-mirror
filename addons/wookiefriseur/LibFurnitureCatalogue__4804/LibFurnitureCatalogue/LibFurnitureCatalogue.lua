@@ -1,6 +1,6 @@
 -- LibFurnitureCatalogue - Furniture Catalogue database library, startup file
 
-local MAJOR, MINOR = "LibFurnitureCatalogue", 1002000 -- AUTOREPLACED with AddOnVersion
+local MAJOR, MINOR = "LibFurnitureCatalogue", 1003000 -- AUTOREPLACED with AddOnVersion
 
 -- set up key maps for "id -> SI_" (used in locale files)
 local lib = _G[MAJOR] or {}

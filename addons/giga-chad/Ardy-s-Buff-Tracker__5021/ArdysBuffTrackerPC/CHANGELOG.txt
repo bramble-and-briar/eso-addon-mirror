@@ -1,3 +1,10 @@
+v1.2.0  (2026-11-05)
+  - Added Major and Minor Brutality, Heroism, Mending, Resolve, Savagery and Vitality,
+    plus Aggressive Horn, Rallying Cry and Robes of Transmutation. New buffs start
+    turned off; turn them on under Buffs to track.
+  - Buffs are now listed Major, then Minor, then Aggressive Horn, then sets,
+    each in alphabetical order. Your existing on/off choices are kept.
+
 v1.1.0  (2026-11-04)
   - New "Only Buffs I Apply" setting: show only buffs you (or your pet) cast,
     ignoring the same buffs from other group members. Off by default.

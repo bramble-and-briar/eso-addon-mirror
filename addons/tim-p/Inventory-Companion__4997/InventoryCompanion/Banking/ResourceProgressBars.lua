@@ -128,6 +128,8 @@ function this.RefreshResourceProgressBars()
         local control = progressBarControls[resource.key]
         if settings.showBar or control then
             control = control or CreateProgressBarControl(resource, this.GetProgressBarSettings(resource.key))
+            control:ClearAnchors()
+            control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, settings.offsetX, settings.offsetY)
             UpdateProgressBar(resource, control, settings)
         end
     end

@@ -18,19 +18,26 @@
     "ArdysBuffTrackerPC"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5021/",
-  "fingerprint": "b6ec2b5c8c297d93da46c47cd89a6b46ffbc72efa80e797f998b41e16ce5aef5",
-  "images": [],
+  "fingerprint": "ecfe13ba312026f746d1e666f0879fc7f362097773da41a979d222ee92c5a03e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18339.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18334.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18335.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18336.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18337.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18338.png"
+  ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "5021",
   "source_url": "https://www.esoui.com/downloads/info5021-ArdysBuffTracker.html",
   "stats": {
-    "downloads": 17,
+    "downloads": 24,
     "favorites": 1,
-    "monthly_downloads": 7
+    "monthly_downloads": 21
   },
   "title": "Ardy's Buff Tracker",
-  "updated_at": 1793809846000,
-  "version": "1.1.0"
+  "updated_at": 1793905838000,
+  "version": "1.2.0"
 }

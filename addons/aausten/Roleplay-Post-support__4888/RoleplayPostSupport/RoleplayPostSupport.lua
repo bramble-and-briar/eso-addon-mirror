@@ -1,7 +1,7 @@
 RoleplayPostSupport = RoleplayPostSupport or {}
 local A = RoleplayPostSupport
 local function L(...) return A.L(...) end
-A.name, A.version = "RoleplayPostSupport", "1.2.5"
+A.name, A.version = "RoleplayPostSupport", "1.2.6"
 local ready = false
 
 function A.Notify(message)

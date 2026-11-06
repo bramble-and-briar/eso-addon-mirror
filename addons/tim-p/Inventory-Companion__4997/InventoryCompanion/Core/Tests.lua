@@ -348,11 +348,11 @@ end
 
 local function RunCurrencyMessageScenario(scenario, verbose)
     local currencyType = scenario.currencyType or CURT_MONEY
-    local savedPreferences = this.accountWide.currencyPreferences
+    local savedPreferences = this.GetSettingsProfile().currencyPreferences
     local clock = 100000
 
     local ok, err = pcall(function()
-        this.accountWide.currencyPreferences = {}
+        this.GetSettingsProfile().currencyPreferences = {}
         this.SetCurrencyNotificationEnabled(currencyType, true)
         this.BeginCurrencyNotificationSuppression(0)
         if scenario.baselines then
@@ -380,7 +380,7 @@ local function RunCurrencyMessageScenario(scenario, verbose)
 
     local captured = this.Utils.EndMessageCapture()
     this.BeginCurrencyNotificationSuppression(0)
-    this.accountWide.currencyPreferences = savedPreferences
+    this.GetSettingsProfile().currencyPreferences = savedPreferences
     if not ok then error(err, 0) end
 
     local actualLines = SummarizeMessages(captured)
@@ -470,11 +470,11 @@ local function GetCapacityMessageScenarios()
 end
 
 local function RunCapacityMessageScenario(scenario, verbose)
-    local savedPreferences = this.accountWide.capacityPreferences
+    local savedPreferences = this.GetSettingsProfile().capacityPreferences
     local clock = 100000
 
     local ok, err = pcall(function()
-        this.accountWide.capacityPreferences = {}
+        this.GetSettingsProfile().capacityPreferences = {}
         for _, kind in ipairs({ "bag", "bank" }) do
             local enabled = scenario.enabled == nil or scenario.enabled[kind] == true
             this.SetCapacityNotificationEnabled(kind, enabled)
@@ -495,7 +495,7 @@ local function RunCapacityMessageScenario(scenario, verbose)
 
     local captured = this.Utils.EndMessageCapture()
     this.BeginCurrencyNotificationSuppression(0)
-    this.accountWide.capacityPreferences = savedPreferences
+    this.GetSettingsProfile().capacityPreferences = savedPreferences
     if not ok then error(err, 0) end
 
     local expectedMessages = {}
@@ -662,6 +662,78 @@ local function CollectTestDiscovery(lines)
     table.insert(lines, "INFO Safety: live scans are read-only; synthetic tests temporarily replace runtime state and restore it; no inventory transfers or intentional saved-variable writes.")
 end
 
+local function CheckAutoCategoryRuntime()
+    local ac = AutoCategory
+    if ac == nil then
+        return "WARN AutoCategory runtime check skipped: optional dependency is not loaded."
+    end
+    Check(type(ac) == "table", "AutoCategory namespace is incompatible")
+    Check(type(ac.Plugins) == "table", "AutoCategory plugin registry is unavailable")
+    local plugin = ac.Plugins["Inventory Companion"]
+    Check(type(plugin) == "table" and type(plugin.predef) == "table" and #plugin.predef > 0,
+        "Inventory Companion plugin was not registered with AutoCategory")
+
+    if ac.Inited ~= true then
+        return "WARN AutoCategory runtime check pending: plugin is registered, but AutoCategory has not initialized; rerun Debug Key after entering the world."
+    end
+
+    local contexts = {
+        { title = "Backpack", bagType = AC_BAG_TYPE_BACKPACK },
+        { title = "Bank", bagType = AC_BAG_TYPE_BANK },
+        { title = "Guild Bank", bagType = AC_BAG_TYPE_GUILDBANK },
+        { title = "House Bank", bagType = AC_BAG_TYPE_HOUSEBANK },
+        { title = "Crafting Station", bagType = AC_BAG_TYPE_CRAFTSTATION },
+        { title = "Craft Bag", bagType = AC_BAG_TYPE_CRAFTBAG },
+        { title = "Furniture Vault", bagType = AC_BAG_TYPE_FURNVAULT },
+    }
+    Check(type(ac.saved) == "table" and type(ac.saved.bags) == "table",
+        "AutoCategory active profile assignments are unavailable after initialization")
+    local ownedByContext = {}
+    local ownedTotal = 0
+    for _, context in ipairs(contexts) do
+        local bag = ac.saved.bags[context.bagType]
+        Check(type(bag) == "table" and type(bag.rules) == "table",
+            "AutoCategory active assignments are missing for " .. context.title)
+        local owned = 0
+        for _, assignment in ipairs(bag.rules) do
+            Check(type(assignment) == "table", "AutoCategory assignment is malformed in " .. context.title)
+            if assignment.icOwned == true then
+                owned = owned + 1
+            end
+        end
+        ownedByContext[context.title] = owned
+        ownedTotal = ownedTotal + owned
+    end
+
+    local enabled = this.GetAutoCategoryState().enabled
+    local status, message = this.AutoCategoryIntegration.GetStatus()
+    if enabled and status == "pending" then
+        return "WARN AutoCategory runtime check pending: active bags exist, but projection has not completed; rerun Debug Key shortly."
+    end
+    if enabled and status == "unsupported" then
+        return "WARN AutoCategory integration paused by the external AutoCategory layout: " .. tostring(message)
+    end
+    Check(enabled and status == "available" or not enabled and status == "disabled",
+        "AutoCategory integration state mismatch (" .. tostring(status) .. "): " .. tostring(message))
+
+    local groups = 0
+    for ruleKey, rule in pairs(this.GetRuntimeRules()) do
+        if ruleKey ~= "miscellaneous" and rule.isPreloaded ~= nil then
+            groups = groups + 1
+        end
+    end
+    for _, context in ipairs(contexts) do
+        local expected = enabled and groups + 1 or 0
+        Check(ownedByContext[context.title] == expected,
+            string.format("AutoCategory %s has %d Inventory Companion assignments; expected %d",
+                context.title, ownedByContext[context.title], expected))
+    end
+    return string.format(
+        "PASS AutoCategory runtime startup: plugin registered; AutoCategory initialized; integration %s; %d ordinary groups plus Other; %d managed assignments across seven contexts.",
+        enabled and "active" or "disabled", groups, ownedTotal
+    )
+end
+
 local function RunTests(arguments)
     if not this.state or not this.state.isLoaded then
         d("[InventoryCompanion tests] Addon is not fully loaded.")
@@ -670,8 +742,8 @@ local function RunTests(arguments)
 
     local options = {}
     for option in tostring(arguments or ""):lower():gmatch("%S+") do
-        if option ~= "verbose" and option ~= "copy" then
-            d("[InventoryCompanion tests] Usage: /ictest [verbose] [copy]")
+        if option ~= "verbose" and option ~= "veryverbose" and option ~= "copy" then
+            d("[InventoryCompanion tests] Usage: /ictest [verbose] [veryverbose] [copy]")
             return
         end
         options[option] = true
@@ -697,6 +769,16 @@ local function RunTests(arguments)
         table.insert(results, "PASS Runtime and dependency discovery")
     else
         table.insert(results, "FAIL Runtime and dependency discovery: " .. tostring(discoveryError))
+    end
+    local autoCategoryOk, autoCategoryResult = pcall(CheckAutoCategoryRuntime)
+    if autoCategoryOk then
+        if autoCategoryResult:sub(1, 5) ~= "WARN " then passed = passed + 1 end
+        table.insert(results, autoCategoryResult)
+    else
+        table.insert(results, "FAIL AutoCategory runtime startup: " .. tostring(autoCategoryResult))
+    end
+    for _, line in ipairs(this.AutoCategoryIntegration.GetOrphanedAssignmentReport(options.veryverbose == true)) do
+        table.insert(discovery, line)
     end
 
     local liveBagIds = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
@@ -742,6 +824,46 @@ local function RunTests(arguments)
         table.insert(results, "FAIL Live read-only scan: " .. tostring(scanError))
     end
 
+    -- AutoCategory live performance: read-only reorder preflights plus AutoCategory's own registry rebuild
+    -- and compile, the operations a group create or rename triggers. Writes no assignments or saved data.
+    local autoCategoryPreflightIterations = 5
+    local autoCategoryPreflightLimitMs = 250
+    local autoCategoryCompileLimitMs = 250
+    local autoCategoryPreflightMs, autoCategoryCompileMs
+    if AutoCategory == nil or AutoCategory.Inited ~= true
+        or not this.AutoCategoryIntegration.IsAvailable() or not this.GetAutoCategoryState().enabled then
+        table.insert(results,
+            "WARN AutoCategory live performance skipped: integration is not active; enable it and rerun for timing coverage.")
+    else
+        local perfOk, perfError = pcall(function()
+            local startedAt = GetGameTimeMilliseconds()
+            for _ = 1, autoCategoryPreflightIterations do
+                local prepared, failure = this.AutoCategoryIntegration.PreflightAutoCategory()
+                Check(prepared ~= nil, "AutoCategory preflight failed: " .. tostring(failure))
+            end
+            autoCategoryPreflightMs = GetGameTimeMilliseconds() - startedAt
+            startedAt = GetGameTimeMilliseconds()
+            AutoCategory.cacheRuleInitialize()
+            AutoCategory.RulesW.CompileAll(AutoCategory.RulesW)
+            autoCategoryCompileMs = GetGameTimeMilliseconds() - startedAt
+        end)
+        if perfOk then
+            local result = string.format(
+                "PASS AutoCategory live performance: %d reorder preflights %d/%d ms; rule registry rebuild and compile %d/%d ms",
+                autoCategoryPreflightIterations, autoCategoryPreflightMs, autoCategoryPreflightLimitMs,
+                autoCategoryCompileMs, autoCategoryCompileLimitMs)
+            if autoCategoryPreflightMs > autoCategoryPreflightLimitMs
+                or autoCategoryCompileMs > autoCategoryCompileLimitMs then
+                result = "FAIL " .. result:sub(6)
+            else
+                passed = passed + 1
+            end
+            table.insert(results, result)
+        else
+            table.insert(results, "FAIL AutoCategory live performance: " .. tostring(perfError))
+        end
+    end
+
     local syntheticOriginal = {
         accountWide = this.accountWide,
         character = this.character,
@@ -784,9 +906,13 @@ local function RunTests(arguments)
     local performanceMs
     local slotMatchMs
     local slotUpdateMs
+    local ruleCreationMs
+    local classificationMs
     local performanceLimitMs = 500
     local slotMatchLimitMs = 100
     local slotUpdateLimitMs = 200
+    local ruleCreationLimitMs = 250
+    local classificationLimitMs = 100
     local environmentOk, environmentError = pcall(function()
         this.accountWide = { trackedRules = {} }
         this.character = { useCharacterItemList = false }
@@ -841,12 +967,12 @@ local function RunTests(arguments)
             {
                 name = "Progress bar resource model and preferences",
                 run = function()
-                    local savedPreferences = this.accountWide.progressBarPreferences
-                    local savedAlertColors = this.accountWide.progressBarAlertColors
+                    local savedPreferences = this.GetSettingsProfile().progressBarPreferences
+                    local savedAlertColors = this.GetSettingsProfile().progressBarAlertColors
                     local savedTestValue = this.accountWide.unrelatedProgressTestValue
                     local ok, err = pcall(function()
-                        this.accountWide.progressBarPreferences = {}
-                        this.accountWide.progressBarAlertColors = {}
+                        this.GetSettingsProfile().progressBarPreferences = {}
+                        this.GetSettingsProfile().progressBarAlertColors = {}
                         local resources = this.GetProgressBarResources()
                         local resourcesByKey = {}
                         local capacityCount = 0
@@ -936,7 +1062,7 @@ local function RunTests(arguments)
                         CheckEqual(settings.warningThreshold, 0.20, "Crossing danger should move warning to the selected value")
                         CheckEqual(settings.dangerThreshold, 0.20, "Danger threshold change should be retained")
 
-                        this.accountWide.progressBarPreferences = {
+                        this.GetSettingsProfile().progressBarPreferences = {
                             [bag.key] = { showBar = "invalid", warningThreshold = 1.5, dangerThreshold = 0.2 },
                             ["capacity:future"] = { futureSetting = true },
                         }
@@ -945,17 +1071,17 @@ local function RunTests(arguments)
                         CheckEqual(settings.warningThreshold, 0.75, "Malformed threshold ordering should fall back to defaults")
                         CheckEqual(settings.dangerThreshold, 0.90, "Malformed threshold ordering should fall back to defaults")
                         CheckEqual(
-                            this.accountWide.progressBarPreferences["capacity:future"].futureSetting,
+                            this.GetSettingsProfile().progressBarPreferences["capacity:future"].futureSetting,
                             true,
                             "Unknown resource preferences should be preserved"
                         )
-                        this.accountWide.progressBarPreferences = "malformed"
+                        this.GetSettingsProfile().progressBarPreferences = "malformed"
                         CheckEqual(this.GetProgressBarSettings(bag.key).showBar, true, "Malformed preference tables should use resource defaults")
-                        Check(type(this.accountWide.progressBarPreferences) == "table", "Malformed preference tables should be recovered")
+                        Check(type(this.GetSettingsProfile().progressBarPreferences) == "table", "Malformed preference tables should be recovered")
                         CheckEqual(this.accountWide.unrelatedProgressTestValue, "preserved", "Unrelated saved variables should remain unchanged")
                     end)
-                    this.accountWide.progressBarPreferences = savedPreferences
-                    this.accountWide.progressBarAlertColors = savedAlertColors
+                    this.GetSettingsProfile().progressBarPreferences = savedPreferences
+                    this.GetSettingsProfile().progressBarAlertColors = savedAlertColors
                     this.accountWide.unrelatedProgressTestValue = savedTestValue
                     if not ok then error(err) end
                 end,
@@ -963,7 +1089,7 @@ local function RunTests(arguments)
             {
                 name = "Currency notification preferences and changes",
                 run = function()
-                    local savedPreferences = this.accountWide.currencyPreferences
+                    local savedPreferences = this.GetSettingsProfile().currencyPreferences
                     local savedUserWarning = this.Utils.UserWarning
                     local ok, err = pcall(function()
                         local currencyTypes = this.GetCurrencyList()
@@ -977,7 +1103,7 @@ local function RunTests(arguments)
                             end
                         end
                         Check(isGoldAvailable, "Expected gold to be initialized for notification tests")
-                        this.accountWide.currencyPreferences = {}
+                        this.GetSettingsProfile().currencyPreferences = {}
                         local notifications = {}
                         this.Utils.UserWarning = function(chat, hud)
                             table.insert(notifications, { chat = chat, hud = hud })
@@ -1131,7 +1257,7 @@ local function RunTests(arguments)
                     end)
                     this.FlushCurrencyNotifications()
                     this.SeedCurrencyNotificationBaselines()
-                    this.accountWide.currencyPreferences = savedPreferences
+                    this.GetSettingsProfile().currencyPreferences = savedPreferences
                     this.Utils.UserWarning = savedUserWarning
                     if not ok then error(err) end
                 end,
@@ -1172,11 +1298,11 @@ local function RunTests(arguments)
             {
                 name = "Currency panel resource preferences",
                 run = function()
-                    local savedCurrencyPreferences = this.accountWide.currencyPreferences
-                    local savedCapacityPreferences = this.accountWide.capacityPreferences
+                    local savedCurrencyPreferences = this.GetSettingsProfile().currencyPreferences
+                    local savedCapacityPreferences = this.GetSettingsProfile().capacityPreferences
                     local ok, err = pcall(function()
-                        this.accountWide.currencyPreferences = {}
-                        this.accountWide.capacityPreferences = {}
+                        this.GetSettingsProfile().currencyPreferences = {}
+                        this.GetSettingsProfile().capacityPreferences = {}
 
                         local entries = this.GetCurrencyPanelResourceEntries()
                         Check(#entries > 0, "Expected currency and capacity resources")
@@ -1196,12 +1322,12 @@ local function RunTests(arguments)
                         end
                         Check(currencyEntry ~= nil, "Expected a discovered currency resource")
 
-                        this.accountWide.capacityPreferences.bag = { showCompact = false }
+                        this.GetSettingsProfile().capacityPreferences.bag = { showCompact = false }
                         CheckEqual(this.IsCapacityResourceVisible("bag"), false, "A hidden backpack capacity should report hidden")
-                        this.accountWide.capacityPreferences.bag.showCompact = nil
+                        this.GetSettingsProfile().capacityPreferences.bag.showCompact = nil
                         CheckEqual(this.IsCapacityResourceVisible("bag"), true, "A shown backpack capacity should report visible")
 
-                        this.accountWide.currencyPreferences[currencyEntry.currencyType] = {
+                        this.GetSettingsProfile().currencyPreferences[currencyEntry.currencyType] = {
                             locations = {
                                 [currencyEntry.location] = { hidden = true },
                             },
@@ -1217,15 +1343,15 @@ local function RunTests(arguments)
                         end
                         CheckEqual(hiddenCount, 1, "Expected exactly one matching currency location")
 
-                        this.accountWide.currencyPreferences = {}
-                        this.accountWide.capacityPreferences = {}
+                        this.GetSettingsProfile().currencyPreferences = {}
+                        this.GetSettingsProfile().capacityPreferences = {}
                         local function SetTestOrder(entry, order)
                             if entry.kind == "currency" then
-                                this.accountWide.currencyPreferences[entry.currencyType] = {
+                                this.GetSettingsProfile().currencyPreferences[entry.currencyType] = {
                                     locations = { [entry.location] = { order = order } },
                                 }
                             else
-                                this.accountWide.capacityPreferences[entry.resourceKey] = { order = order }
+                                this.GetSettingsProfile().capacityPreferences[entry.resourceKey] = { order = order }
                             end
                         end
                         SetTestOrder(entries[1], 2)
@@ -1234,8 +1360,8 @@ local function RunTests(arguments)
                         CheckEqual(orderedEntries[1].key, entries[2].key, "Explicit resource order should be applied")
                         CheckEqual(orderedEntries[2].key, entries[1].key, "Explicit resource order should be deterministic")
                     end)
-                    this.accountWide.currencyPreferences = savedCurrencyPreferences
-                    this.accountWide.capacityPreferences = savedCapacityPreferences
+                    this.GetSettingsProfile().currencyPreferences = savedCurrencyPreferences
+                    this.GetSettingsProfile().capacityPreferences = savedCapacityPreferences
                     if not ok then error(err) end
                 end,
             },
@@ -1326,7 +1452,7 @@ local function RunTests(arguments)
                         this.character = { useCharacterItemList = false }
                         _G[this.SettingsName] = {
                             Default = {
-                                account = {
+                                [GetDisplayName()] = {
                                     ["$AccountWide"] = sourceProfile,
                                     sourceCharacter = sourceProfile,
                                 },
@@ -1546,6 +1672,73 @@ local function RunTests(arguments)
                 end,
             },
             {
+                name = "Synthetic Inventory Companion rule creation and pattern editing",
+                run = function()
+                    this.accountWide.trackedRules = {}
+                    this.preLoadedRulesets = {}
+                    local startedAt = GetGameTimeMilliseconds()
+                    for index = 1, 20 do
+                        local ruleKey = string.format("synthetic-created-%02d", index)
+                        this.CreateCustomRule(ruleKey, string.format("Synthetic Created %02d", index))
+                        this.UpdateRulePatterns(ruleKey, {
+                            string.format("Synthetic Item %03d", index),
+                            "Synthetic Miss *",
+                        })
+                    end
+                    ruleCreationMs = GetGameTimeMilliseconds() - startedAt
+                    local rules = this.GetRuntimeRules()
+                    local created = 0
+                    for ruleKey in pairs(rules) do
+                        if ruleKey:match("^synthetic%-created%-%d%d$") then created = created + 1 end
+                    end
+                    CheckEqual(created, 20, "Every synthetic rule should be created and loadable")
+                    Check(
+                        ruleCreationMs <= ruleCreationLimitMs,
+                        string.format(
+                            "Creating 20 synthetic rules and editing their patterns took %d ms (limit %d ms)",
+                            ruleCreationMs,
+                            ruleCreationLimitMs
+                        )
+                    )
+                end,
+            },
+            {
+                name = "AutoCategory classification: 100 items across 20 participating groups",
+                run = function()
+                    this.accountWide.trackedRules = {}
+                    this.preLoadedRulesets = {}
+                    for index = 1, 20 do
+                        this.accountWide.trackedRules["synthetic-" .. index] = {
+                            displayName = string.format("Synthetic Group %02d", index),
+                            addedPatterns = { string.format("Synthetic Item %03d", index), "Synthetic Miss *" },
+                            autoCategoryEnabled = true,
+                        }
+                    end
+                    this.InvalidateRuleCache()
+                    local rules = this.GetRuntimeRules()
+                    local matched = 0
+                    local startedAt = GetGameTimeMilliseconds()
+                    for index = 1, 100 do
+                        local link = "synthetic-item-" .. index
+                        for _, rule in pairs(rules) do
+                            if this.ItemMatchesRuntimeRule(link, rule) then
+                                matched = matched + 1
+                            end
+                        end
+                    end
+                    classificationMs = GetGameTimeMilliseconds() - startedAt
+                    CheckEqual(matched, 20, "Each synthetic group should match exactly its own item")
+                    Check(
+                        classificationMs <= classificationLimitMs,
+                        string.format(
+                            "2000 AutoCategory classifications took %d ms (limit %d ms)",
+                            classificationMs,
+                            classificationLimitMs
+                        )
+                    )
+                end,
+            },
+            {
                 name = "100 synthetic tracked-item slot updates",
                 run = function()
                     local warningCount = 0
@@ -1602,6 +1795,7 @@ local function RunTests(arguments)
                         visibleCurrencyProgressBars = false,
                         currencyNotifications = false,
                         capacityNotifications = false,
+                        itemNotifications = false,
                         visibleCappedCurrencyResources = false,
                         visibleCappedProgressBars = false,
                         bagProgressBar = false,
@@ -1616,6 +1810,7 @@ local function RunTests(arguments)
                         "HasVisibleCurrencyProgressBars",
                         "HasCurrencyNotifications",
                         "HasCapacityNotifications",
+                        "HasTrackedItemNotifications",
                         "HasVisibleCappedCurrencyResources",
                         "HasVisibleCappedProgressBars",
                         "IsProgressBarVisible",
@@ -1668,6 +1863,7 @@ local function RunTests(arguments)
                     this.HasVisibleCurrencyProgressBars = function() return listenerState.visibleCurrencyProgressBars end
                     this.HasCurrencyNotifications = function() return listenerState.currencyNotifications end
                     this.HasCapacityNotifications = function() return listenerState.capacityNotifications end
+                    this.HasTrackedItemNotifications = function() return listenerState.itemNotifications end
                     this.HasVisibleCappedCurrencyResources = function() return listenerState.visibleCappedCurrencyResources end
                     this.HasVisibleCappedProgressBars = function() return listenerState.visibleCappedProgressBars end
                     this.IsProgressBarVisible = function(resourceKey)
@@ -1775,6 +1971,15 @@ local function RunTests(arguments)
                         ClearCalls()
                         this.UpdateEventRegistry()
                         CheckEqual(#unregistrationCalls, 4, "Hiding the tracker should unregister its four slot-update listeners")
+
+                        ClearCalls()
+                        listenerState.itemNotifications = true
+                        this.UpdateEventRegistry()
+                        CheckSlotListenersRegistered()
+                        ClearCalls()
+                        listenerState.itemNotifications = false
+                        this.UpdateEventRegistry()
+                        CheckEqual(#unregistrationCalls, 4, "Disabling item notifications should unregister unused slot listeners")
 
                         ClearCalls()
                         listenerState.visibleCapacityResources = true
@@ -1971,11 +2176,11 @@ local function RunTests(arguments)
                 local cap = GetMaxPossibleCurrency(currencyType, location)
                 local resourceKey = "currency:" .. tostring(currencyType)
 
-                local savedColors = this.accountWide.progressBarAlertColors
-                local savedPreferences = this.accountWide.progressBarPreferences
+                local savedColors = this.GetSettingsProfile().progressBarAlertColors
+                local savedPreferences = this.GetSettingsProfile().progressBarPreferences
                 local ok, err = pcall(function()
-                    this.accountWide.progressBarAlertColors = {}
-                    this.accountWide.progressBarPreferences = {}
+                    this.GetSettingsProfile().progressBarAlertColors = {}
+                    this.GetSettingsProfile().progressBarPreferences = {}
                     this.SetProgressBarAlertColor("warning", { r = 1, g = 0.5, b = 0, a = 1 })
                     this.SetProgressBarAlertColor("danger", { r = 1, g = 0, b = 0, a = 1 })
                     local settings = this.GetProgressBarSettings(resourceKey)
@@ -2004,8 +2209,8 @@ local function RunTests(arguments)
                         "At the danger threshold the balance should use the danger colour"
                     )
                 end)
-                this.accountWide.progressBarAlertColors = savedColors
-                this.accountWide.progressBarPreferences = savedPreferences
+                this.GetSettingsProfile().progressBarAlertColors = savedColors
+                this.GetSettingsProfile().progressBarPreferences = savedPreferences
                 if not ok then error(err, 0) end
             end,
         })
@@ -2035,11 +2240,11 @@ local function RunTests(arguments)
         table.insert(tests, {
             name = "Capacity messages: balance colours follow the progress bar thresholds",
             run = function()
-                local savedColors = this.accountWide.progressBarAlertColors
-                local savedPreferences = this.accountWide.progressBarPreferences
+                local savedColors = this.GetSettingsProfile().progressBarAlertColors
+                local savedPreferences = this.GetSettingsProfile().progressBarPreferences
                 local ok, err = pcall(function()
-                    this.accountWide.progressBarAlertColors = {}
-                    this.accountWide.progressBarPreferences = {}
+                    this.GetSettingsProfile().progressBarAlertColors = {}
+                    this.GetSettingsProfile().progressBarPreferences = {}
                     this.SetProgressBarAlertColor("warning", { r = 1, g = 0.5, b = 0, a = 1 })
                     this.SetProgressBarAlertColor("danger", { r = 1, g = 0, b = 0, a = 1 })
                     for _, kind in ipairs({ "bag", "bank" }) do
@@ -2070,8 +2275,8 @@ local function RunTests(arguments)
                         )
                     end
                 end)
-                this.accountWide.progressBarAlertColors = savedColors
-                this.accountWide.progressBarPreferences = savedPreferences
+                this.GetSettingsProfile().progressBarAlertColors = savedColors
+                this.GetSettingsProfile().progressBarPreferences = savedPreferences
                 if not ok then error(err, 0) end
             end,
         })
@@ -2079,9 +2284,9 @@ local function RunTests(arguments)
         table.insert(tests, {
             name = "Capacity notification preferences",
             run = function()
-                local savedPreferences = this.accountWide.capacityPreferences
+                local savedPreferences = this.GetSettingsProfile().capacityPreferences
                 local ok, err = pcall(function()
-                    this.accountWide.capacityPreferences = {}
+                    this.GetSettingsProfile().capacityPreferences = {}
                     Check(not this.HasCapacityNotifications(), "Capacity notifications should default to off")
                     this.SetCapacityNotificationEnabled("bank", true)
                     Check(this.IsCapacityNotificationEnabled("bank"), "Bank notifications should turn on")
@@ -2089,9 +2294,9 @@ local function RunTests(arguments)
                     Check(this.HasCapacityNotifications(), "Any enabled capacity notification should be reported")
                     this.SetCapacityNotificationEnabled("bank", false)
                     Check(not this.HasCapacityNotifications(), "Turning the last notification off should be reported")
-                    Check(this.accountWide.capacityPreferences.bank == nil, "Empty capacity preferences should be removed")
+                    Check(this.GetSettingsProfile().capacityPreferences.bank == nil, "Empty capacity preferences should be removed")
                 end)
-                this.accountWide.capacityPreferences = savedPreferences
+                this.GetSettingsProfile().capacityPreferences = savedPreferences
                 if not ok then error(err, 0) end
             end,
         })
@@ -2158,6 +2363,20 @@ local function RunTests(arguments)
     else
         summary = string.format("[InventoryCompanion tests] %d/%d passed.", passed, total)
     end
+    if classificationMs then
+        summary = summary .. string.format(
+            "; 2000 AutoCategory classifications: %d/%d ms", classificationMs, classificationLimitMs)
+    end
+    if ruleCreationMs then
+        summary = summary .. string.format(
+            "; 20 synthetic rule creations + pattern edits: %d/%d ms", ruleCreationMs, ruleCreationLimitMs)
+    end
+    if autoCategoryPreflightMs then
+        summary = summary .. string.format(
+            "; %d AutoCategory preflights: %d/%d ms; AC rule rebuild+compile: %d/%d ms",
+            autoCategoryPreflightIterations, autoCategoryPreflightMs, autoCategoryPreflightLimitMs,
+            autoCategoryCompileMs, autoCategoryCompileLimitMs)
+    end
 
     local reportLines = { summary }
     for _, line in ipairs(discovery) do
@@ -2170,7 +2389,7 @@ local function RunTests(arguments)
     local hasFailures = passed < total
     if options.copy or hasFailures then
         error(table.concat(reportLines, "\n"), 0)
-    elseif options.verbose then
+    elseif options.verbose or options.veryverbose then
         for _, reportLine in ipairs(reportLines) do
             d(reportLine)
         end

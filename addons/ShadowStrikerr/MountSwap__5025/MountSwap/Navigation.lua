@@ -39,7 +39,7 @@ function M:SetWindowHidden(window, hidden)
             -- returns. Acquire ours once after that transition has completed.
             zo_callLater(function()
                 if self.gamepadShowToken~=token or window:IsHidden() then return end
-                if self.gamepadLayerActive and RemoveActionLayerByName then
+                if self.gamepadLayerActive then
                     RemoveActionLayerByName('MountSwapGamepad');self.gamepadLayerActive=false
                 end
                 self:SyncGamepad()
@@ -66,7 +66,7 @@ function M:HookTextEntry(edit, root, native)
     self:HookControl(edit, 'OnFocusGained', function(control)
         self.editingControl = control
         self:SyncGamepad()
-        if native and IsInGamepadPreferredMode and IsInGamepadPreferredMode() and ZO_GamepadEditBox_FocusGained then
+        if native and IsInGamepadPreferredMode() and ZO_GamepadEditBox_FocusGained then
             control.mountSwapNativeEditing = true
             ZO_GamepadEditBox_FocusGained(control)
         end
@@ -90,18 +90,14 @@ function M:InitializeNavigation()
             if self:GamepadRoot() or self.gamepadLayerActive then self:SyncGamepad() end
         end)
     end
-    if EVENT_PLAYER_DEACTIVATED then
-        EVENT_MANAGER:RegisterForEvent('MountSwapNavigation', EVENT_PLAYER_DEACTIVATED, function()
-            self.navigationSuspended=true
-            self:SyncGamepad()
-        end)
-    end
-    if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent('MountSwapNavigation', EVENT_PLAYER_ACTIVATED, function()
-            self.navigationSuspended=false
-            if self:GamepadRoot() then self:SyncGamepad() end
-        end)
-    end
+    EVENT_MANAGER:RegisterForEvent('MountSwapNavigation', EVENT_PLAYER_DEACTIVATED, function()
+        self.navigationSuspended = true
+        self:SyncGamepad()
+    end)
+    EVENT_MANAGER:RegisterForEvent('MountSwapNavigation', EVENT_PLAYER_ACTIVATED, function()
+        self.navigationSuspended = false
+        if self:GamepadRoot() then self:SyncGamepad() end
+    end)
     -- Chat is an external edit control; suspend navigation while the player types.
     for _, system in pairs({KEYBOARD_CHAT_SYSTEM, GAMEPAD_CHAT_SYSTEM}) do
         local entry = system.textEntry and system.textEntry.editControl

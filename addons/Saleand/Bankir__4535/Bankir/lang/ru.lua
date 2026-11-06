@@ -39,7 +39,8 @@ SafeAddString(BANKIR_MENU_QUALITY_SELECT_DESC, "Правило будет при
 SafeAddString(BANKIR_MENU_OTHER_CHARACTERS, " на других персонажах", 1)
 
 SafeAddString(BANKIR_CHAT_REQUIRED_FOR_QUESTS, "<<1>> x<<2>> требуется для квестов", 1)
-SafeAddString(BANKIR_CHAT_NO_FREE_SPACE, "Нет свободного места в <<1>> для <<2>>", 1)
+SafeAddString(BANKIR_CHAT_NO_FREE_SPACE, "|cFF0000Не удалось.|r Нет свободного места в <<1>> для <<2>>", 1)
+SafeAddString(BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM, "|cFF0000Не удалось.|r Вы можете иметь только один экземпляр <<1>> в хранилище, и у вас уже есть один в <<2>>.", 1)
 
 SafeAddString(BANKIR_MENU_INTEGRATIONS, "Интеграции", 1)
 SafeAddString(BANKIR_MENU_INTEGRATIONS_LCK_DESC, "Если включен аддон LibCharacterKnowledge, в правилах для снаряжения появляются особые правила для снаряжения, которое могут изучить (исследовать) ваши другие персонажи.\n\nНиже представлен список других ваших персонажей на этом сервере.\n\nЕсли вы установили правило отправлять в банк предметы, которые могут изучить другие пресонажи, то Bankir выполнит соответствующее действие только для включенных здесь персонажей. Правило не будет применяться для персонажей, которые отключены в этом списке.", 1)

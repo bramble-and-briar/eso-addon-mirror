@@ -26,7 +26,11 @@ end
 function CS:DrawWingedWayfinder(root, x, y, size, rotation, relative, baseColor)
     local s = self.saved.waypoint
     local left, right = baseColor, baseColor
-    if math.abs(relative*180/math.pi) > s.amberThresholdDegrees then
+    if math.cos(rotation) < 0 then
+        -- In the rear half of the reticle orbit, use a solid black marker.
+        -- Rotation is zero on the upper compass, preserving its original cue.
+        left, right = {0, 0, 0, 1}, {0, 0, 0, 1}
+    elseif math.abs(relative*180/math.pi) > s.amberThresholdDegrees then
         -- The relative bearing used by reticle navigation is positive left.
         if relative > 0 then left = s.amberColor else right = s.amberColor end
     end

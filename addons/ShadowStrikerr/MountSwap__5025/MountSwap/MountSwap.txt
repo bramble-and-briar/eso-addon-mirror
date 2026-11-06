@@ -1,7 +1,7 @@
 ## Title: MountSwap
 ## Description: Eight mount favorites, random selection and PC gamepad navigation. Optional LibAddonMenu-2.0 r43+ for keyboard settings.
 ## Author: ShadowStrikerr
-## Version: 0.8.9
+## Version: 0.8.11
 ## APIVersion: 101051
 ## OptionalDependsOn: LibAddonMenu-2.0 libAddonKeybinds VotansKeybinder
 ## SavedVariables: MountSwapSavedVariables

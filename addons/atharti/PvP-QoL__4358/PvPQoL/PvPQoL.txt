@@ -1,6 +1,6 @@
 ## Title: |cFFD700PvP QoL|r
 ## APIVersion: 101051
-## Version: 4.7
+## Version: 4.8
 ## Author: |cFFD700@Atharti|r
 ## DependsOn: LibAddonMenu-2.0>=43 LibDailyReset>=19
 ## SavedVariables: PvPQoL_SavedVariables

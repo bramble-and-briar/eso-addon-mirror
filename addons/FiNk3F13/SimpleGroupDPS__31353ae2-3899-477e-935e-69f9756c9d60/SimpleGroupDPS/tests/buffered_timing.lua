@@ -23,7 +23,7 @@ for _, targetType in ipairs({7,8}) do
     clock = 30000
     meter:Finish()
     local final = meter:GetStats()
-    assert(final.durationMS == live.durationMS and final.dps == live.dps,
+    assert(final.durationMS == 29900 and math.abs(final.dps - 23600000 / 29900) < 0.000001,
         'Combat exit does not add a second or change final DPS')
 end
 clock = 40000

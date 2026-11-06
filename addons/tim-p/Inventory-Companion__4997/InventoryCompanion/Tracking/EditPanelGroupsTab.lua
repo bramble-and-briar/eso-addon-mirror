@@ -2,7 +2,9 @@ local this = InventoryCompanion
 
 local groupRows = {}
 local patternRows = {}
+local patternExclusionDivider
 local selectedGroupName = nil
+local searchQuery = ""
 local SetActionButtons
 
 ------------------------------------------------------------------
@@ -30,7 +32,9 @@ local function GetSortedGroupNames()
     local activeRules = this.GetActiveTrackedRules(true)
     local groupNames = {}
     for name in pairs(activeRules) do
-        table.insert(groupNames, name)
+        if searchQuery == "" or activeRules[name].displayName:lower():find(searchQuery, 1, true) then
+            table.insert(groupNames, name)
+        end
     end
 	
 	table.sort(groupNames, function(a, b)
@@ -235,6 +239,7 @@ local function HideAllPatternRows()
     for _, row in ipairs(patternRows) do
         row:SetHidden(true)
     end
+    if patternExclusionDivider then patternExclusionDivider:SetHidden(true) end
 end
 
 local function GetOrCreatePatternRow(scrollChild, index)
@@ -246,35 +251,127 @@ local function GetOrCreatePatternRow(scrollChild, index)
     return row
 end
 
-local function SaveRulePatterns(groupName, patterns)
-    this.UpdateRulePatterns(groupName, patterns)
+local function GetOrCreatePatternExclusionDivider(scrollChild)
+    if not patternExclusionDivider then
+        patternExclusionDivider = CreateControlFromVirtual(
+            "InventoryCompanion_PatternExclusionDivider_", scrollChild,
+            "InventoryCompanion_PatternExclusionDivider_Template", 1)
+    end
+    return patternExclusionDivider
 end
 
-local function HandlePatternTextChanged(self, patterns, index)
-    patterns[index] = self:GetText()
+local function DecodePatternRows(patterns)
+    local includes, excludes = {}, {}
+    local suffix = this.constants.RULE_PATTERN_EXCLUSION_SUFFIX
+    for _, storedPattern in ipairs(patterns) do
+        local isExclusion = storedPattern:sub(-#suffix) == suffix
+        local pattern = isExclusion and storedPattern:sub(1, #storedPattern - #suffix) or storedPattern
+        table.insert(isExclusion and excludes or includes, {
+            pattern = pattern,
+            isExclusion = isExclusion,
+            lastSavedPattern = pattern,
+        })
+    end
+    for _, row in ipairs(excludes) do table.insert(includes, row) end
+    return includes, #includes - #excludes
 end
 
-local function HandlePatternFocusLost(self, patterns, index, targetGroup)
-    patterns[index] = self:GetText()
-    
+local function EncodePatternRows(rows)
+    local patterns = {}
+    local suffix = this.constants.RULE_PATTERN_EXCLUSION_SUFFIX
+    for _, row in ipairs(rows) do
+        assert(type(row.pattern) == "string", "Pattern row text must be a string")
+        assert(row.pattern:sub(-#suffix) ~= suffix, "Pattern text cannot end with the reserved exclusion marker")
+        table.insert(patterns, row.pattern .. (row.isExclusion and suffix or ""))
+    end
+    return patterns
+end
+
+local function SaveRulePatterns(groupName, rows)
+    this.UpdateRulePatterns(groupName, EncodePatternRows(rows))
+    for _, row in ipairs(rows) do row.lastSavedPattern = row.pattern end
+    this.RefreshEditorChrome(InventoryCompanion_GroupsWindow, "groups")
+end
+
+local function HandlePatternTextChanged(self, row)
+    row.pattern = self:GetText()
+end
+
+local function HandlePatternFocusLost(self, row, rows, targetGroup)
+    local pattern = self:GetText()
+    local suffix = this.constants.RULE_PATTERN_EXCLUSION_SUFFIX
+    if pattern:sub(-#suffix) == suffix then
+        this.Utils.UserWarning("Pattern text cannot end with the reserved exclusion marker.")
+        row.pattern = row.lastSavedPattern
+        self:SetText(row.pattern)
+        return
+    end
+    row.pattern = pattern
+
     if targetGroup == selectedGroupName then
-        SaveRulePatterns(targetGroup, patterns)
+        SaveRulePatterns(targetGroup, rows)
         this.RefreshItemTrackerPanel()
         SetActionButtons(this.GetActiveTrackedRules(true))
     end
 end
 
-local function HandlePatternDelete(patterns, index)
-    table.remove(patterns, index)
-    SaveRulePatterns(selectedGroupName, patterns)
+local function HandlePatternDelete(rows, index, targetGroup)
+    table.remove(rows, index)
+    SaveRulePatterns(targetGroup, rows)
     this.RefreshGroupsEditor()
     this.RefreshItemTrackerPanel()
 end
 
-local function HandleAddRule(patterns)
-    table.insert(patterns, "")
-    SaveRulePatterns(selectedGroupName, patterns)
+local function HandleAddRule(rows, targetGroup)
+    table.insert(rows, { pattern = "", isExclusion = false, lastSavedPattern = "" })
+    SaveRulePatterns(targetGroup, rows)
     this.RefreshGroupsEditor()
+end
+
+local function SetPatternKindLabel(label, isExclusion)
+    if isExclusion then
+        label:SetTexture("EsoUI/Art/Bank/bank_tabicon_withdraw_up.dds")
+        label:SetColor(1.0, 0.3, 0.3, 1.0)
+    else
+        label:SetTexture("EsoUI/Art/Bank/bank_tabicon_deposit_up.dds")
+        label:SetColor(0.2, 0.8, 0.4, 1.0)
+    end
+end
+
+local function ShowPatternKindTooltip(control, row, isAction)
+    InitializeTooltip(InformationTooltip, control, TOP, 0, -5)
+    if isAction then
+        InformationTooltip:AddLine(row.isExclusion and "Make this an Include rule" or "Make this an Exclude rule",
+            "ZoFontGame", 1, 1, 1, 1)
+        InformationTooltip:AddLine(row.isExclusion
+            and "The pattern will move above the Exclusions section."
+            or "The pattern will move to the Exclusions section below.",
+            "ZoFontGame", 0.8, 0.8, 0.8, 1)
+    else
+        InformationTooltip:AddLine(row.isExclusion and "Exclude rule" or "Include rule",
+            "ZoFontGame", 1, 1, 1, 1)
+        InformationTooltip:AddLine(row.isExclusion
+            and "This pattern removes matching items from this group."
+            or "Matching this pattern adds an item to this group.",
+            "ZoFontGame", 0.8, 0.8, 0.8, 1)
+    end
+end
+
+local function ShowPatternDeleteTooltip(control, row)
+    InitializeTooltip(InformationTooltip, control, TOP, 0, -5)
+    InformationTooltip:AddLine("Remove pattern", "ZoFontGame", 1, 1, 1, 1)
+    InformationTooltip:AddLine("Remove this " .. (row.isExclusion and "Exclude" or "Include")
+        .. " rule from the group.", "ZoFontGame", 0.8, 0.8, 0.8, 1)
+end
+
+local function HandlePatternKindToggle(label, row, rows, targetGroup)
+    row.isExclusion = not row.isExclusion
+    SetPatternKindLabel(label, row.isExclusion)
+    if targetGroup == selectedGroupName then
+        SaveRulePatterns(targetGroup, rows)
+        this.RefreshGroupsEditor()
+        this.RefreshItemTrackerPanel()
+    end
 end
 
 local function ConfigureCustomGroupActionBar(btnReset, btnHide, btnDelete, actionBar, groupId, activeRules, isHidden)
@@ -441,37 +538,75 @@ local function PopulateSingleGroupPane(activeRules)
         patternScrollContainer:SetHidden(false)
         btnAddRule:SetHidden(false)
 
-        local patterns = {}
-        for _, p in ipairs(ruleData.patterns) do
-            table.insert(patterns, p)
-        end
+        local rows, includeCount = DecodePatternRows(ruleData.patterns)
 
-        titleLabel:SetText(string.format("Group Name: %s (%d patterns/rules)", displayName, #patterns))
+        titleLabel:SetText(string.format("Group Name: %s (%d patterns/rules)", displayName, #rows))
 
         HideAllPatternRows()
         local patternScrollChild = GetControl(patternScrollContainer, "ScrollChild")
         local rowHeight = 36
-        for i, patternText in ipairs(patterns) do
+        local offsetY = 0
+        for i, patternRow in ipairs(rows) do
+            if includeCount > 0 and i == includeCount + 1 then
+                local divider = GetOrCreatePatternExclusionDivider(patternScrollChild)
+                divider:ClearAnchors()
+                divider:SetAnchor(TOPLEFT, patternScrollChild, TOPLEFT, 0, offsetY)
+                divider:SetHidden(false)
+                offsetY = offsetY + 28
+            end
             local row = GetOrCreatePatternRow(patternScrollChild, i)
             row:ClearAnchors()
-            row:SetAnchor(TOPLEFT, patternScrollChild, TOPLEFT, 0, (i - 1) * rowHeight)
+            row:SetAnchor(TOPLEFT, patternScrollChild, TOPLEFT, 0, offsetY)
             row:SetHidden(false)
+            offsetY = offsetY + rowHeight
 
             local rowEditBox = GetControl(row, "Edit")
             rowEditBox:SetHandler("OnTextChanged", nil)
             rowEditBox:SetHandler("OnFocusLost", nil)
-            rowEditBox:SetText(patternText)
+            rowEditBox:SetText(patternRow.pattern)
             
             local targetGroup = selectedGroupName
 
-            rowEditBox:SetHandler("OnTextChanged", function(self) HandlePatternTextChanged(self, patterns, i) end)
-            rowEditBox:SetHandler("OnFocusLost", function(self) HandlePatternFocusLost(self, patterns, i, targetGroup) end)
+            rowEditBox:SetHandler("OnTextChanged", function(self) HandlePatternTextChanged(self, patternRow) end)
+            rowEditBox:SetHandler("OnFocusLost", function(self)
+                HandlePatternFocusLost(self, patternRow, rows, targetGroup)
+            end)
+
+            local lblKind = GetControl(row, "LblKind")
+            SetPatternKindLabel(lblKind, patternRow.isExclusion)
+            lblKind:SetHandler("OnMouseEnter", function(self)
+                ShowPatternKindTooltip(self, patternRow, false)
+            end)
+            lblKind:SetHandler("OnMouseExit", function()
+                ClearTooltip(InformationTooltip)
+            end)
+            local btnKind = GetControl(row, "BtnKind")
+            btnKind:SetNormalTexture("EsoUI/Art/CharacterWindow/swap_button_up.dds")
+            btnKind:SetPressedTexture("EsoUI/Art/CharacterWindow/swap_button_down.dds")
+            btnKind:SetMouseOverTexture("EsoUI/Art/CharacterWindow/swap_button_over.dds")
+            btnKind:SetDisabledTexture("EsoUI/Art/CharacterWindow/swap_button_disabled.dds")
+            btnKind:SetHandler("OnClicked", function()
+                ClearTooltip(InformationTooltip)
+                HandlePatternKindToggle(lblKind, patternRow, rows, targetGroup)
+            end)
+            btnKind:SetHandler("OnMouseEnter", function(self)
+                ShowPatternKindTooltip(self, patternRow, true)
+            end)
+            btnKind:SetHandler("OnMouseExit", function()
+                ClearTooltip(InformationTooltip)
+            end)
 
             local btnDelete = GetControl(row, "BtnDelete")
-            btnDelete:SetHandler("OnClicked", function() HandlePatternDelete(patterns, i) end)
+            btnDelete:SetHandler("OnClicked", function() HandlePatternDelete(rows, i, targetGroup) end)
+            btnDelete:SetHandler("OnMouseEnter", function(self)
+                ShowPatternDeleteTooltip(self, patternRow)
+            end)
+            btnDelete:SetHandler("OnMouseExit", function()
+                ClearTooltip(InformationTooltip)
+            end)
         end
 
-        btnAddRule:SetHandler("OnClicked", function() HandleAddRule(patterns) end)
+        btnAddRule:SetHandler("OnClicked", function() HandleAddRule(rows, selectedGroupName) end)
     end
 
     pencilBtn:SetHandler("OnClicked", function() HandlePencilClick(titleLabel, pencilBtn, editBox, activeRules) end)
@@ -488,6 +623,7 @@ end
 local function InitEditItemsButton()
     local btnEditItems = GetControl(InventoryCompanion_GroupsWindow, "BtnEditItems")
 	btnEditItems:SetHandler("OnClicked", function() this.OpenEditItemsPanel() end)
+    GetControl(InventoryCompanion_GroupsWindow, "BtnAutoCategory"):SetHidden(not this.AutoCategoryIntegration.IsPanelAvailable())
 end
 
 local function InitNewGroupButton()
@@ -522,6 +658,11 @@ end
 local function InitToolbar()
     InitEditItemsButton()
     InitNewGroupButton()
+    GetControl(GetControl(InventoryCompanion_GroupsWindow, "TopActionBar"), "FindBox"):SetHandler(
+        "OnTextChanged", function(control)
+            searchQuery = control:GetText():match("^%s*(.-)%s*$"):lower()
+            this.RefreshGroupsEditor()
+        end)
 end
 
 function this.RefreshGroupsEditor()
@@ -532,6 +673,8 @@ function this.RefreshGroupsEditor()
     PopulateGroupListPane(groupNames, activeRules)
     PopulateSingleGroupPane(activeRules)
 	SetActionButtons(activeRules)
+    this.UpdateEventRegistry()
+    this.RefreshEditorChrome(InventoryCompanion_GroupsWindow, "groups")
 end
 
 ------------------------------------------------------------------
@@ -560,6 +703,7 @@ InventoryCompanion_GroupsWindow:SetHandler("OnEffectivelyShown", function()
 end)
 
 InventoryCompanion_GroupsWindow:SetHandler("OnEffectivelyHidden", function()
+    this.EndEditorVisit(InventoryCompanion_GroupsWindow)
     SetGameCameraUIMode(false)
     this.UpdateEditorLayout()
 end)

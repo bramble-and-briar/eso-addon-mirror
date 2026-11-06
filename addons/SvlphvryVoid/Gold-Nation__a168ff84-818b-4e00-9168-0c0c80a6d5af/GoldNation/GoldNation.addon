@@ -1,0 +1,17 @@
+## Title: Gold Nation
+## Description: Addon Manager For Gold Nation Guild
+## Author: @SvlphvryVoid
+## Version: 1.0
+
+## DependsOn: LibAddonMenu-2.0
+
+## SavedVariables: GoldNationSavedVariables
+
+Core/Initialization.lua
+Modules/Automation.lua
+Modules/MoneyMaking.lua
+Modules/Guild.lua
+Modules/Settings.lua
+Menu/Navigation.lua
+Menu/MainMenu.lua
+GoldNation.lua

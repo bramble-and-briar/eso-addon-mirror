@@ -33,7 +33,6 @@ function GF.RegisterLAMPanel()
 			setFunc = function(value)
 				GF.SV.AllowAllRoles = value
 			end,
-			default = true,
 			requiresReload = true,
 		},
 		{
@@ -45,7 +44,6 @@ function GF.RegisterLAMPanel()
 				GF.SV.HideInsufficientCP = value
 				GF.RefreshUI()
 			end,
-			default = false,
 		},
 		{
 			type = "checkbox",
@@ -56,7 +54,6 @@ function GF.RegisterLAMPanel()
 				GF.SV.HideWTSListings = value
 				GF.RefreshUI()
 			end,
-			default = true,
 		},
 
 		{
@@ -67,7 +64,6 @@ function GF.RegisterLAMPanel()
 			setFunc = function(value)
 				GF.SV.ShowInstanceTooltip = value
 			end,
-			default = true,
 		},
 
 		{
@@ -81,7 +77,6 @@ function GF.RegisterLAMPanel()
 				GF.SV.ShowInstanceModeButton = value
 				GF.UpdateInstanceModeButtonVisibility()
 			end,
-			default = true,
 		},
 
 		{
@@ -94,7 +89,6 @@ function GF.RegisterLAMPanel()
 			setFunc = function(value)
 				GF.SV.SaveLastCategory = value
 			end,
-			default = false,
 		},
 
 		{
@@ -107,7 +101,6 @@ function GF.RegisterLAMPanel()
 			setFunc = function(value)
 				GF.SV.FullAchievements = value
 			end,
-			default = true,
 		},
 
 		{
@@ -123,7 +116,6 @@ function GF.RegisterLAMPanel()
 					GF.RefreshUI()
 				end
 			end,
-			default = false,
 		},
 
 		{
@@ -137,7 +129,6 @@ function GF.RegisterLAMPanel()
 				GF.SV.HideInInstance = value
 				GF.MasterToggleCheck()
 			end,
-			default = false,
 		},
 
 		-- =====================================================
@@ -159,7 +150,6 @@ function GF.RegisterLAMPanel()
 				GF.SV.CategoriesEnabled[cat.id] = value
 				GF.RefreshUI()
 			end,
-			default = true,
 		})
 	end
 
@@ -182,7 +172,6 @@ function GF.RegisterLAMPanel()
 				GF.SV.TrialsEnabled[short] = value
 				GF.RefreshUI()
 			end,
-			default = true,
 		})
 	end
 
@@ -247,7 +236,6 @@ function GF.RegisterLAMPanel()
 		displayName = "|cFFD700GroupFinder+|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	LAM:RegisterOptionControls("GroupFinderPlusPanel", optionsData)

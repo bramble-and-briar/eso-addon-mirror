@@ -4,6 +4,66 @@ A.messageRecords = {}
 A.messageSequence = 0
 A.messageWindows = setmetatable({}, { __mode = "k" })
 
+local function findMarkup(text, pattern, offset)
+    local first, last = text:find(pattern, offset)
+    while first do
+        local cursor = first - 1
+        while cursor > 0 and text:sub(cursor, cursor) == "|" do cursor = cursor - 1 end
+        if (first - cursor - 1) % 2 == 0 then return first, last end
+        first, last = text:find(pattern, first + 1)
+    end
+end
+
+function A:PruneChatHistory(state, now)
+    local history = state.history
+    if not history then
+        history = { entries = {}, first = 1, last = 0 }
+        state.history = history
+    end
+    local cutoff = now - 24 * 60 * 60
+    while history.first <= history.last do
+        local entry = history.entries[history.first]
+        if entry and entry.time > cutoff then break end
+        history.entries[history.first] = nil
+        history.first = history.first + 1
+    end
+    if history.first > history.last then
+        history.first, history.last = 1, 0
+    end
+    return history
+end
+
+function A:RecordChatMessage(container, window, message, r, g, b, category)
+    if self.restoringHistory then return end
+    local state = self:GetTabState(container, window)
+    local now = GetTimeStamp()
+    local history = self:PruneChatHistory(state, now)
+    history.last = history.last + 1
+    -- Store original native links, never session-specific copy/player IDs.
+    history.entries[history.last] = { time = now, text = message, r = r, g = g, b = b, category = category }
+    window.buffer:SetMaxHistoryLines(math.max(window.buffer:GetMaxHistoryLines(), history.last - history.first + 1))
+end
+
+function A:RestoreChatHistory()
+    if self.historyRestored then return end
+    self.historyRestored = true
+    self.restoringHistory = true
+    local now = GetTimeStamp()
+    for _, container in ipairs(self.chat.containers) do
+        for _, window in ipairs(container.windows) do
+            if not window.combatLog and window.buffer then
+                local history = self:PruneChatHistory(self:GetTabState(container, window), now)
+                window.buffer:SetMaxHistoryLines(math.max(window.buffer:GetMaxHistoryLines(), history.last - history.first + 1))
+                for index = history.first, history.last do
+                    local entry = history.entries[index]
+                    container:AddMessageToWindow(window, entry.text, entry.r, entry.g, entry.b, entry.category)
+                end
+            end
+        end
+    end
+    self.restoringHistory = false
+end
+
 function A:FormatMessage(base, messageType, fromName, text, customerService, displayName, ...)
     local formatted, target, fromDisplay, raw, narration, override = base(
         messageType, fromName, text, customerService, displayName, ...)
@@ -20,22 +80,38 @@ function A:FormatMessage(base, messageType, fromName, text, customerService, dis
         name = zo_strformat(SI_UNIT_NAME, name)
         playerLink = ZO_LinkHandler_CreateLinkWithoutBrackets(name, nil, CHARACTER_LINK_TYPE, fromName)
     end
-    local prefix = ""
+    local seconds = GetSecondsSinceMidnight()
+    local time = string.format("%02d:%02d", math.floor(seconds / 3600) % 24, math.floor(seconds / 60) % 60)
+    local prefix, guildLink = "", ""
     if self.sv.timestamps then
-        local seconds = GetSecondsSinceMidnight()
-        prefix = string.format("[%02d:%02d] ", math.floor(seconds / 3600) % 24, math.floor(seconds / 60) % 60)
+        prefix = "[" .. time .. "] "
     end
     local t = self.byChannel[messageType]
     if t and t.guildId then
-        local label = self.sv.abbreviations[tostring(t.guildId)]
+        local label = not self.sv.customMessage and self.sv.abbreviations[tostring(t.guildId)]
         if not label or label == "" then label = GetGuildName(t.guildId) end
         -- User-supplied abbreviations are plain labels, never link markup.
         label = label:gsub("|", ""):gsub("[\r\n]", " ")
-        prefix = prefix .. ZO_LinkHandler_CreateLink("" .. label, nil, GUILD_LINK, t.guildId) .. " "
+        local createGuildLink = self.sv.customMessage and ZO_LinkHandler_CreateLinkWithoutBrackets or ZO_LinkHandler_CreateLink
+        guildLink = createGuildLink(label, nil, GUILD_LINK, t.guildId)
+        prefix = prefix .. guildLink .. " "
     end
     if customerService then prefix = prefix .. "|t16:16:EsoUI/Art/ChatWindow/csIcon.dds|t" end
     local message = info.formatMessage and zo_strformat(SI_CHAT_MESSAGE_FORMATTER, text) or text
     formatted = prefix .. playerLink .. " >" .. (self.sv.newline and "\n" or " ") .. message
+    if self.sv.customMessage then
+        local values = {
+            name = playerLink, time = time, guild = guildLink, message = message,
+            character = ZO_LinkHandler_CreateLinkWithoutBrackets(zo_strformat(SI_UNIT_NAME, fromName), nil, CHARACTER_LINK_TYPE, fromName),
+            account = displayName and displayName ~= "" and ZO_LinkHandler_CreateLinkWithoutBrackets(displayName, nil,
+                DISPLAY_NAME_LINK_TYPE, UndecorateDisplayName(displayName)) or "",
+            channel = GetChannelName(messageType),
+        }
+        local template = self.sv.messageTemplate or self.defaultMessageTemplate
+        -- Escape literal game markup before substitution; inserted native links stay intact.
+        formatted = template:gsub("|", "||"):gsub("{([%a_]+)}", function(key) return values[key] end)
+        if customerService then formatted = "|t16:16:EsoUI/Art/ChatWindow/csIcon.dds|t" .. formatted end
+    end
     -- Preserve native targets, narration, category colors, and raw text.
     return formatted, target, fromDisplay, raw, narration, override
 end
@@ -64,19 +140,34 @@ function A:WrapMessage(window, text)
     self.messageRecords[id] = { text = self:PlainText(text) }
 
     local result, offset = {}, 1
+    local function appendCopy(value)
+        -- TextBuffer parses links per line. Keep line breaks outside their
+        -- labels so a copy link cannot hide or break the next native link.
+        local cursor = 1
+        while cursor <= #value do
+            local first, last = value:find("[\r\n]+", cursor)
+            local finish = first and first - 1 or #value
+            if finish >= cursor then
+                result[#result + 1] = ZO_LinkHandler_CreateLinkWithoutBrackets(value:sub(cursor, finish), nil, COPY_LINK, id)
+            end
+            if not first then break end
+            result[#result + 1] = value:sub(first, last)
+            cursor = last + 1
+        end
+    end
     local function appendPlain(value)
         if value ~= "" then
             -- Color tags stay outside copy links; textures keep their markup
             -- inside the copy label. Never nest existing native links.
             local cursor = 1
             while cursor <= #value do
-                local first, last = value:find("|[crt]", cursor)
+                local first, last = findMarkup(value, "|[crt]", cursor)
                 if not first then
-                    result[#result + 1] = ZO_LinkHandler_CreateLinkWithoutBrackets(value:sub(cursor), nil, COPY_LINK, id)
+                    appendCopy(value:sub(cursor))
                     break
                 end
                 if first > cursor then
-                    result[#result + 1] = ZO_LinkHandler_CreateLinkWithoutBrackets(value:sub(cursor, first - 1), nil, COPY_LINK, id)
+                    appendCopy(value:sub(cursor, first - 1))
                 end
                 local tag = value:sub(first, last)
                 if tag == "|c" and value:sub(first + 2, first + 7):match("^%x%x%x%x%x%x$") then
@@ -86,14 +177,14 @@ function A:WrapMessage(window, text)
                     last = textureEnd or last
                 end
                 local markup = value:sub(first, last)
-                result[#result + 1] = tag == "|t"
-                    and ZO_LinkHandler_CreateLinkWithoutBrackets(markup, nil, COPY_LINK, id) or markup
+                if tag == "|t" then appendCopy(markup)
+                else result[#result + 1] = markup end
                 cursor = last + 1
             end
         end
     end
     while true do
-        local first, last = text:find("|H[^|]*|h.-|h", offset)
+        local first, last = findMarkup(text, "|H[^|]*|h.-|h", offset)
         if not first then appendPlain(text:sub(offset)); break end
         appendPlain(text:sub(offset, first - 1))
         local link = text:sub(first, last)
@@ -170,10 +261,28 @@ function A:TravelToPlayer(playerName)
 end
 
 function A:PlayerMenu(playerName, rawName, id)
-    -- Build the original menu first (report, group management, etc.), then
-    -- append only actions it does not already supply.
-    self.chat:ShowPlayerContextMenu(playerName, rawName)
-    AddMenuItem(GetString(SI_ONECHAT_COPY), function() A:CopyMessage(id) end)
+    ClearMenu()
+    AddMenuItem(GetString(SI_CHAT_PLAYER_CONTEXT_WHISPER), function()
+        self.chat:StartTextEntry(nil, CHAT_CHANNEL_WHISPER, playerName)
+    end)
+    -- Keep the native group, friend and ignore availability checks.
+    if IsGroupModificationAvailable() then
+        local grouped = IsUnitGrouped("player")
+        local leader = IsUnitGroupLeader("player")
+        local inGroup = IsPlayerInGroup(rawName)
+        if not grouped or (leader and not inGroup) then
+            AddMenuItem(GetString(SI_CHAT_PLAYER_CONTEXT_ADD_GROUP), function()
+                TryGroupInviteByName(playerName, false, true)
+            end)
+        elseif inGroup and leader then
+            AddMenuItem(GetString(SI_CHAT_PLAYER_CONTEXT_REMOVE_GROUP), function() GroupKickByName(rawName) end)
+        end
+    end
+    if not IsFriend(playerName) then
+        AddMenuItem(GetString(SI_CHAT_PLAYER_CONTEXT_ADD_FRIEND), function()
+            ZO_Dialogs_ShowDialog("REQUEST_FRIEND", { name = playerName })
+        end)
+    end
     AddMenuItem(GetString(SI_SOCIAL_MENU_SEND_MAIL), function()
         if IsUnitDead("player") then A:Notify(SI_ONECHAT_ACTION_UNAVAILABLE)
         else MAIL_SEND:ComposeMailTo(playerName) end
@@ -183,6 +292,13 @@ function A:PlayerMenu(playerName, rawName, id)
         if CanJumpToHouseFromCurrentLocation() and not IsUnitDead("player") then JumpToHouse(playerName)
         else A:Notify(SI_ONECHAT_TRAVEL_UNAVAILABLE) end
     end)
+    if not IsIgnored(playerName) then
+        AddMenuItem(GetString(SI_CHAT_PLAYER_CONTEXT_ADD_IGNORE), function() ZO_PlatformIgnorePlayer(playerName) end)
+    end
+    AddMenuItem(zo_strformat(SI_CHAT_PLAYER_CONTEXT_REPORT, rawName), function()
+        ZO_HELP_GENERIC_TICKET_SUBMISSION_MANAGER:OpenReportPlayerTicketScene(playerName)
+    end)
+    AddMenuItem(GetString(SI_ONECHAT_COPY), function() A:CopyMessage(id) end)
     ShowMenu()
 end
 
@@ -211,13 +327,21 @@ function A:OnMessageLink(link, button, _, _, linkType, ...)
 end
 
 function A:InstallMessages()
-    local base = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
+    local formatters = CHAT_ROUTER:GetRegisteredMessageFormatters()
+    local base = formatters[EVENT_CHAT_MESSAGE_CHANNEL]
     CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, function(...)
         return A:FormatMessage(base, ...)
     end)
+    local statusFormatter = formatters[EVENT_FRIEND_PLAYER_STATUS_CHANGED]
+    if statusFormatter then
+        CHAT_ROUTER:RegisterMessageFormatter(EVENT_FRIEND_PLAYER_STATUS_CHANGED, function(...)
+            if not A.sv.hidePlayerStatus then return statusFormatter(...) end
+        end)
+    end
     local original = SharedChatContainer.AddMessageToWindow
     SharedChatContainer.AddMessageToWindow = function(container, window, message, ...)
         if container.system == A.chat and not window.combatLog and window.buffer then
+            A:RecordChatMessage(container, window, message, ...)
             if not window.oneChatLinkHook then
                 window.oneChatLinkHook = true
                 ZO_PostHookHandler(window.buffer, "OnLinkMouseUp", function(_, _, link, button)

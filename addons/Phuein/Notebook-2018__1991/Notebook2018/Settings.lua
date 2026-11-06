@@ -2,11 +2,11 @@ function CreateNBUISettings()
 	local LAM = LibAddonMenu2
 
 	local panelData = {
-        type = "panel",
-        name = "Notebook 2018",
+		type = "panel",
+		name = "Notebook 2018",
 		displayName = ZO_HIGHLIGHT_TEXT:Colorize(GetString(SI_NBUI_ADDONOPTIONS_NAME)),
 		author = GetString(SI_NBUI_AUTHOR),
-		registerForRefresh  = true,
+		registerForRefresh	= true,
 		registerForDefaults = true,
 		-- chat command to open settings window
 		slashCommand = "/nbs",
@@ -18,7 +18,7 @@ function CreateNBUISettings()
 			local _,a,_,b,x,y = NBUI.NB1MainWindow:GetAnchor()
 			NBUI.db.NB1_Anchor = {["a"]=a, ["b"]=b, ["x"]=x, ["y"]=y}
 		end
-    }
+	}
 	LAM:RegisterAddonPanel("NBUIOptions", panelData)
 
 	local optionsData = {}
@@ -190,7 +190,7 @@ function CreateNBUISettings()
 
 									-- Create tables. Will only overwrite Account-Wide Notebook, but not individual character.
 									if not _G["NBUISVDBACCT"]["Default"][overwriteAccount] then
-										_G["NBUISVDBACCT"]["Default"][overwriteAccount]  = {}
+										_G["NBUISVDBACCT"]["Default"][overwriteAccount]	 = {}
 									end
 
 									_G["NBUISVDBACCT"]["Default"][overwriteAccount]["$AccountWide"] = ZO_DeepTableCopy(t)
@@ -253,7 +253,7 @@ function CreateNBUISettings()
 
 									-- Create tables. Do not overwrite whole table, only character's table.
 									if not _G["NBUISVDB"]["Default"][overwriteAccount] then
-										_G["NBUISVDB"]["Default"][overwriteAccount]  = {}
+										_G["NBUISVDB"]["Default"][overwriteAccount]	 = {}
 									end
 									_G["NBUISVDB"]["Default"][overwriteAccount][overwriteCharacter] = ZO_DeepTableCopy(t)
 
@@ -391,7 +391,7 @@ function CreateNBUISettings()
 	-- Toggle chat button.
 	table.insert(optionsData, {
 		type = "checkbox",
-		name =  GetString(SI_NBUI_BUTTON_NAME),
+		name =	GetString(SI_NBUI_BUTTON_NAME),
 		tooltip = GetString(SI_NBUI_BUTTON_TOOLTIP),
 		getFunc = function() return NBUI.db.NB1_ChatButton end,
 		setFunc = function(value)
@@ -407,7 +407,7 @@ function CreateNBUISettings()
 	-- Opened-chat button offset.
 	table.insert(optionsData, {
 		type = "slider",
-		name =  GetString(SI_NBUI_OFFSETMAX_NAME),
+		name =	GetString(SI_NBUI_OFFSETMAX_NAME),
 		tooltip = GetString(SI_NBUI_OFFSETMAX_TOOLTIP),
 		min = -180,
 		max = 40,
@@ -426,7 +426,7 @@ function CreateNBUISettings()
 	-- Closed-chat button offset.
 	table.insert(optionsData, {
 		type = "slider",
-		name =  GetString(SI_NBUI_OFFSETMIN_NAME),
+		name =	GetString(SI_NBUI_OFFSETMIN_NAME),
 		tooltip = GetString(SI_NBUI_OFFSETMIN_TOOLTIP),
 		min = -100,
 		max = 220,
@@ -516,80 +516,6 @@ function CreateNBUISettings()
 			end
 		end,
 	})
-
-	-- -- Copy mail to new page.
-	-- table.insert(optionsData, {
-	-- 	type = "dropdown",
-	-- 	name = 'Make Note From Mail',
-	-- 	tooltip = 'Make a new page from matching mail, with a keybind or automatically.',
-	-- 	-- choices = NBUI.BookTexturesNames,
-	-- 	-- choicesValues = NBUI.BookTextures,
-	-- 	choices = {'Disable', 'Keybind', 'Automatic'},
-	-- 	choicesValues = {0, 1, 2},
-	-- 	getFunc = function() return NBUI.db.NB1_MailToPage end,
-	-- 	setFunc = function(v) NBUI.db.NB1_MailToPage = v end,
-	-- 	default = NBUI.settings.NB1_MailToPage,
-	-- })
-
-	-- -- Formatted display category. --
-	-- table.insert(optionsData, {
-	-- 	type = "header",
-	-- 	name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(SI_NBUI_HEADER_EDITMODE)),
-	-- })
-
-	-- -- Display Text-Formatting mode over Editbox, at all.
-	-- table.insert(optionsData, {
-	-- 	type = "checkbox",
-	-- 	name = GetString(SI_NBUI_FORMATTEDMODE_NAME),
-	-- 	tooltip = GetString(SI_NBUI_FORMATTEDMODE_TOOLTIP),
-	-- 	getFunc = function() return NBUI.db.NB1_FormattedMode end,
-	-- 	setFunc = function(v)
-	-- 		NBUI.db.NB1_FormattedMode = v
-	-- 		if v then
-	-- 			NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
-	-- 			NBUI.NB1RightPage_Contents:SetHidden(true)
-	-- 		else
-	-- 			NBUI.NB1RightPage_ContentsLabel:SetHidden(true)
-	-- 			NBUI.NB1RightPage_Contents:SetHidden(false)
-	-- 		end
-	-- 	end,
-	-- })
-
-	-- -- Switch to Edit Mode on mouse hover over page.
-	-- table.insert(optionsData, {
-	-- 	type = "checkbox",
-	-- 	name = GetString(SI_NBUI_EDITMODE_HOVER_NAME),
-	-- 	tooltip = GetString(SI_NBUI_EDITMODE_HOVER_TOOLTIP),
-	-- 	getFunc = function() return NBUI.db.NB1_EditModeHover end,
-	-- 	setFunc = function(v) NBUI.db.NB1_EditModeHover = v end,
-	-- })
-
-	-- -- Switch to Edit Mode on mouse click on page.
-	-- table.insert(optionsData, {
-	-- 	type = "checkbox",
-	-- 	name = GetString(SI_NBUI_EDITMODE_CLICK_NAME),
-	-- 	tooltip = GetString(SI_NBUI_EDITMODE_CLICK_TOOLTIP),
-	-- 	getFunc = function() return NBUI.db.NB1_EditModeClick end,
-	-- 	setFunc = function(v) NBUI.db.NB1_EditModeClick = v end,
-	-- })
-
-	-- -- Leave Edit Mode on page lose focus.
-	-- table.insert(optionsData, {
-	-- 	type = "checkbox",
-	-- 	name = GetString(SI_NBUI_LEAVEEDITMODE_FOCUS_NAME),
-	-- 	tooltip = GetString(SI_NBUI_LEAVEEDITMODE_FOCUS_TOOLTIP),
-	-- 	getFunc = function() return NBUI.db.NB1_LeaveEditModeOnFocus end,
-	-- 	setFunc = function(v) NBUI.db.NB1_LeaveEditModeOnFocus = v end,
-	-- })
-
-	-- -- Leave Edit Mode on mouse exit page.
-	-- table.insert(optionsData, {
-	-- 	type = "checkbox",
-	-- 	name = GetString(SI_NBUI_LEAVEEDITMODE_EXIT_NAME),
-	-- 	tooltip = GetString(SI_NBUI_LEAVEEDITMODE_EXIT_TOOLTIP),
-	-- 	getFunc = function() return NBUI.db.NB1_LeaveEditModeOnExit end,
-	-- 	setFunc = function(v) NBUI.db.NB1_LeaveEditModeOnExit = v end,
-	-- })
 
 	LAM:RegisterOptionControls("NBUIOptions", optionsData)
 end

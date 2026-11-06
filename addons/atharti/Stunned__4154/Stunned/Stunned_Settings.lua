@@ -20,7 +20,6 @@ function S.RegisterLAMPanel()
 		displayName = "|cFFD700Stunned|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	local optionsData = {
@@ -34,7 +33,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Apply fullscreen blur when stunned",
 			getFunc = function() return S.SV.blurOnStun end,
 			setFunc = function(value) S.SV.blurOnStun = value end,
-			default = true,
 		},
 		{
 			type = "checkbox",
@@ -42,18 +40,16 @@ function S.RegisterLAMPanel()
 			tooltip = "Hides the game interface (action bars, chat, etc.) when affected. Text pop-ups will not be visible if its ON.",
 			getFunc = function() return S.SV.hideGameUI end,
 			setFunc = function(value) S.SV.hideGameUI = value end,
-			default = false,
 		},
 		{
 			type = "dropdown",
-			name = "Stun Alert Font Size",
-			tooltip = "Select the font size for stun/fear/charm alert messages",
+			name = "Stun Popup Font Size",
+			tooltip = "Select the font size for stun/fear/charm popup messages",
 			choices = {24, 28, 30, 32, 34, 36, 40, 48, 54},
-			getFunc = function() return S.SV.alertFontSize end,
+			getFunc = function() return S.SV.popupFontSize end,
 			setFunc = function(value)
-				S.SV.alertFontSize = value
+				S.SV.popupFontSize = value
 			end,
-			default = 48,
 			requiresReload = true,
 		},
 		{
@@ -65,13 +61,19 @@ function S.RegisterLAMPanel()
 			setFunc = function(value)
 				S.SV.notificationFontSize = value
 			end,
-			default = 36,
 			requiresReload = true,
 		},
-
+		{
+			type = "checkbox",
+			name = "Only In Combat",
+			tooltip = "Only show popups/sounds for stuns and other effects while in combat",
+			getFunc = function() return S.SV.combatOnly end,
+			setFunc = function(value) S.SV.combatOnly = value end,
+			requiresReload = true,
+		},
 		{
 			type = "header",
-			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_duel.dds|t Stun Alerts",
+			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_duel.dds|t Stun Popups",
 		},
 		{
 			type = "checkbox",
@@ -79,13 +81,12 @@ function S.RegisterLAMPanel()
 			tooltip = "Show blur and announcement when stunned",
 			getFunc = function() return S.SV.trackStun end,
 			setFunc = function(value) S.SV.trackStun = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for stunned alert text",
+			tooltip = "Choose the color for stunned popup text",
 			getFunc = function()
 				local hex = S.SV.stunColor or "FF0000"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -97,7 +98,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.stunColor = hex
 			end,
-			default = {1, 0, 0},
 			disabled = function() return not S.SV.trackStun end,
 			width = "half",
 		},
@@ -107,7 +107,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when stunned",
 			getFunc = function() return S.SV.stunSoundEnabled end,
 			setFunc = function(value) S.SV.stunSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackStun end,
 			width = "half",
 		},
@@ -121,7 +120,6 @@ function S.RegisterLAMPanel()
 				S.SV.stunSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",
 			disabled = function() return not S.SV.trackStun or not S.SV.stunSoundEnabled end,
 			width = "half",
 		},
@@ -131,7 +129,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Show on-screen text when stunned",
 			getFunc = function() return S.SV.textStun end,
 			setFunc = function(value) S.SV.textStun = value end,
-			default = true,
 			disabled = function() return not S.SV.trackStun end,
 		},
 		{
@@ -143,13 +140,12 @@ function S.RegisterLAMPanel()
 			tooltip = "Show blur and announcement when feared",
 			getFunc = function() return S.SV.trackFear end,
 			setFunc = function(value) S.SV.trackFear = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for feared alert text",
+			tooltip = "Choose the color for feared popup text",
 			getFunc = function()
 				local hex = S.SV.fearColor or "FF0000"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -161,7 +157,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.fearColor = hex
 			end,
-			default = {1, 0, 0},
 			disabled = function() return not S.SV.trackFear end,
 			width = "half",
 		},
@@ -171,7 +166,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when feared",
 			getFunc = function() return S.SV.fearSoundEnabled end,
 			setFunc = function(value) S.SV.fearSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackFear end,
 			width = "half",
 		},
@@ -185,7 +179,6 @@ function S.RegisterLAMPanel()
 				S.SV.fearSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",
 			disabled = function() return not S.SV.trackFear or not S.SV.fearSoundEnabled end,
 			width = "half",
 		},
@@ -195,7 +188,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Show on-screen text when feared",
 			getFunc = function() return S.SV.textFear end,
 			setFunc = function(value) S.SV.textFear = value end,
-			default = true,
 			disabled = function() return not S.SV.trackFear end,
 		},
 		{
@@ -207,13 +199,12 @@ function S.RegisterLAMPanel()
 			tooltip = "Show blur and announcement when charmed",
 			getFunc = function() return S.SV.trackCharm end,
 			setFunc = function(value) S.SV.trackCharm = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for charmed alert text",
+			tooltip = "Choose the color for charmed popup text",
 			getFunc = function()
 				local hex = S.SV.charmColor or "FF0000"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -225,7 +216,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.charmColor = hex
 			end,
-			default = {1, 0, 0},
 			disabled = function() return not S.SV.trackCharm end,
 			width = "half",
 		},
@@ -235,7 +225,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when charmed",
 			getFunc = function() return S.SV.charmSoundEnabled end,
 			setFunc = function(value) S.SV.charmSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackCharm end,
 			width = "half",
 		},
@@ -249,7 +238,6 @@ function S.RegisterLAMPanel()
 				S.SV.charmSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",
 			disabled = function() return not S.SV.trackCharm or not S.SV.charmSoundEnabled end,
 			width = "half",
 		},
@@ -259,7 +247,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Show on-screen text when charmed",
 			getFunc = function() return S.SV.textCharm end,
 			setFunc = function(value) S.SV.textCharm = value end,
-			default = true,
 			disabled = function() return not S.SV.trackCharm end,
 		},
 		{
@@ -269,16 +256,15 @@ function S.RegisterLAMPanel()
 		{
 			type = "checkbox",
 			name = "|cFFD700ROOTED!|r",
-			tooltip = "Show alert when rooted",
+			tooltip = "Show popup when rooted",
 			getFunc = function() return S.SV.trackRooted end,
 			setFunc = function(value) S.SV.trackRooted = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for rooted alert text",
+			tooltip = "Choose the color for rooted popup text",
 			getFunc = function()
 				local hex = S.SV.rootedColor or "FF8C00"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -290,7 +276,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.rootedColor = hex
 			end,
-			default = {1, 0.55, 0},
 			disabled = function() return not S.SV.trackRooted end,
 			width = "half",
 		},
@@ -300,7 +285,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when rooted",
 			getFunc = function() return S.SV.rootedSoundEnabled end,
 			setFunc = function(value) S.SV.rootedSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackRooted end,
 			width = "half",
 		},
@@ -314,7 +298,6 @@ function S.RegisterLAMPanel()
 				S.SV.rootedSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
 			disabled = function() return not S.SV.trackRooted or not S.SV.rootedSoundEnabled end,
 			width = "half",
 		},
@@ -324,16 +307,15 @@ function S.RegisterLAMPanel()
 		{
 			type = "checkbox",
 			name = "|cFFD700SILENCED!|r",
-			tooltip = "Show alert when silenced",
+			tooltip = "Show popup when silenced",
 			getFunc = function() return S.SV.trackSilenced end,
 			setFunc = function(value) S.SV.trackSilenced = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for silenced alert text",
+			tooltip = "Choose the color for silenced popup text",
 			getFunc = function()
 				local hex = S.SV.silencedColor or "4169E1"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -345,7 +327,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.silencedColor = hex
 			end,
-			default = {0.255, 0.412, 0.882},
 			disabled = function() return not S.SV.trackSilenced end,
 			width = "half",
 		},
@@ -355,7 +336,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when silenced",
 			getFunc = function() return S.SV.silencedSoundEnabled end,
 			setFunc = function(value) S.SV.silencedSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackSilenced end,
 			width = "half",
 		},
@@ -369,7 +349,6 @@ function S.RegisterLAMPanel()
 				S.SV.silencedSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
 			disabled = function() return not S.SV.trackSilenced or not S.SV.silencedSoundEnabled end,
 			width = "half",
 		},
@@ -379,16 +358,15 @@ function S.RegisterLAMPanel()
 		{
 			type = "checkbox",
 			name = "|cFFD700STAGGERED!|r",
-			tooltip = "Show alert when staggered",
+			tooltip = "Show popup when staggered",
 			getFunc = function() return S.SV.trackStaggered end,
 			setFunc = function(value) S.SV.trackStaggered = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for staggered alert text",
+			tooltip = "Choose the color for staggered popup text",
 			getFunc = function()
 				local hex = S.SV.staggeredColor or "FFD700"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -400,7 +378,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.staggeredColor = hex
 			end,
-			default = {1, 0.843, 0},
 			disabled = function() return not S.SV.trackStaggered end,
 			width = "half",
 		},
@@ -410,7 +387,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when staggered",
 			getFunc = function() return S.SV.staggeredSoundEnabled end,
 			setFunc = function(value) S.SV.staggeredSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackStaggered end,
 			width = "half",
 		},
@@ -424,7 +400,6 @@ function S.RegisterLAMPanel()
 				S.SV.staggeredSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
 			disabled = function() return not S.SV.trackStaggered or not S.SV.staggeredSoundEnabled end,
 			width = "half",
 		},
@@ -434,16 +409,15 @@ function S.RegisterLAMPanel()
 		{
 			type = "checkbox",
 			name = "|cFFD700PACIFIED!|r",
-			tooltip = "Show alert when pacified",
+			tooltip = "Show popup when pacified",
 			getFunc = function() return S.SV.trackPacified end,
 			setFunc = function(value) S.SV.trackPacified = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for pacified alert text",
+			tooltip = "Choose the color for pacified popup text",
 			getFunc = function()
 				local hex = S.SV.pacifiedColor or "4169E1"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -455,7 +429,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.pacifiedColor = hex
 			end,
-			default = {0.255, 0.412, 0.882},
 			disabled = function() return not S.SV.trackPacified end,
 			width = "half",
 		},
@@ -465,7 +438,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when pacified",
 			getFunc = function() return S.SV.pacifiedSoundEnabled end,
 			setFunc = function(value) S.SV.pacifiedSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackPacified end,
 			width = "half",
 		},
@@ -479,7 +451,6 @@ function S.RegisterLAMPanel()
 				S.SV.pacifiedSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
 			disabled = function() return not S.SV.trackPacified or not S.SV.pacifiedSoundEnabled end,
 			width = "half",
 		},
@@ -489,16 +460,15 @@ function S.RegisterLAMPanel()
 		{
 			type = "checkbox",
 			name = "|cFFD700OFF-BALANCE!|r",
-			tooltip = "Show alert when off-balance",
+			tooltip = "Show popup when off-balance",
 			getFunc = function() return S.SV.trackOffBalance end,
 			setFunc = function(value) S.SV.trackOffBalance = value end,
-			default = true,
 			width = "half",
 		},
 		{
 			type = "colorpicker",
 			name = "",
-			tooltip = "Choose the color for off-balance alert text",
+			tooltip = "Choose the color for off-balance popup text",
 			getFunc = function()
 				local hex = S.SV.offBalanceColor or "00CED1"
 				local r = tonumber("0x" .. hex:sub(1,2)) / 255
@@ -510,7 +480,6 @@ function S.RegisterLAMPanel()
 				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
 				S.SV.offBalanceColor = hex
 			end,
-			default = {0, 0.808, 0.82},
 			disabled = function() return not S.SV.trackOffBalance end,
 			width = "half",
 		},
@@ -520,7 +489,6 @@ function S.RegisterLAMPanel()
 			tooltip = "Play a sound when off-balance",
 			getFunc = function() return S.SV.offBalanceSoundEnabled end,
 			setFunc = function(value) S.SV.offBalanceSoundEnabled = value end,
-			default = true,
 			disabled = function() return not S.SV.trackOffBalance end,
 			width = "half",
 		},
@@ -534,7 +502,6 @@ function S.RegisterLAMPanel()
 				S.SV.offBalanceSound = value
 				PlaySound(SOUNDS[value])
 			end,
-			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
 			disabled = function() return not S.SV.trackOffBalance or not S.SV.offBalanceSoundEnabled end,
 			width = "half",
 		},

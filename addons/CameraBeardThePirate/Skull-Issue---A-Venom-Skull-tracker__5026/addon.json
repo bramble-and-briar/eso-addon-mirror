@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/CameraBeardThePirate/Skull-Issue---A-Venom-Skull-tracker__5026",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "CameraBeardThePirate",
+  "canonical_id": "esoui:5026",
+  "category_id": "165",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5026",
+  "deleted": false,
+  "directories": [
+    "SkullIssue"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5026/",
+  "fingerprint": "50cb5db15f0d86a4867288856e67002739f23b4994500752932a95113e623628",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18340.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18341.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5026",
+  "source_url": "https://www.esoui.com/downloads/info5026-SkullIssue-AVenomSkulltracker.html",
+  "stats": {
+    "downloads": 32,
+    "favorites": 1,
+    "monthly_downloads": 8
+  },
+  "title": "Skull Issue - A Venom Skull tracker",
+  "updated_at": 1793916004000,
+  "version": "1.0.0"
+}

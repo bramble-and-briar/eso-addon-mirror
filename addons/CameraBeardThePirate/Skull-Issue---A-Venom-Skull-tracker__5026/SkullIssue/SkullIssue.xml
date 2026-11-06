@@ -1,0 +1,43 @@
+<GuiXml>
+    <Controls>
+        <!-- Custom Movable Top-Level Frame for Skull Issue -->
+        <TopLevelControl name="SkullIssueFrame" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="false">
+            <Dimensions x="136" y="136" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="150" />
+            <Controls>
+                <!-- Visual repositioning guide when unlocked via /skullissue unlock -->
+                <Backdrop name="$(parent)MoverBackdrop" edgeColor="00FF66" centerColor="00000088" hidden="true">
+                    <AnchorFill />
+                    <Edge edgeFile="EsoUI/Art/Tooltips/UI-Border.dds" edgeFileWidth="16" edgeFileHeight="16" />
+                    <Controls>
+                        <Label name="$(parent)MoverLabel" font="ZoFontGameSmall" text="Skull Issue (Drag to Move)" color="00FF66" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                            <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="-4" />
+                        </Label>
+                    </Controls>
+                </Backdrop>
+
+                <!-- Green Flame Image (136x136) placed behind the skull (raised slightly for visual centering) -->
+                <Texture name="$(parent)Flame" textureFile="SkullIssue/GreenFlame.dds" tier="LOW" layer="BACKGROUND" level="1" hidden="true">
+                    <Dimensions x="136" y="136" />
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="-12" />
+                </Texture>
+
+                <!-- Skull Face Image (96x96) centered on top of the flame (lowered to sit cleanly inside the flame aura) -->
+                <Texture name="$(parent)Skull" textureFile="SkullIssue/SkullFace.dds" tier="MEDIUM" layer="OVERLAY" level="2" hidden="true">
+                    <Dimensions x="96" y="96" />
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="14" />
+                </Texture>
+
+                <!-- Optional stack count number (toggled via /skullissue number) -->
+                <Label name="$(parent)StackCount" font="ZoFontHeader3" text="" color="FFFFFF" horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH" layer="OVERLAY" level="3" hidden="true">
+                    <Anchor point="BOTTOM" relativeTo="$(parent)Skull" relativePoint="BOTTOM" offsetX="0" offsetY="6" />
+                </Label>
+
+                <!-- "Spooky" Empowered Banner Label (Displayed at both 2 and 3 stacks, toggled via /skullissue text) -->
+                <Label name="$(parent)EmpoweredText" font="ZoFontHeader" text="Spooky" color="00FF66" horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH" layer="OVERLAY" level="4" hidden="true">
+                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

@@ -1,5 +1,18 @@
 [SIZE="4"][B]Inventory Companion Changelog[/B][/SIZE]
 
+[SIZE="2"][B]1.6.3 [current version][/B][/SIZE]
+
+[LIST]
+[*]Guild-bank right-click actions now deposit or withdraw one item, or all but one. Partial deposits require guild-bank deposit access. Partial withdrawals temporarily withdraw the whole stack and return the remainder, require both deposit and withdrawal access, and can be disabled with the account-wide setting (on by default).
+[*]New optional AutoCategory integration lets you manage native categories alongside Inventory Companion groups. Set independent Display and Priority orders for Backpack, Bank, Guild Bank, House Bank, Crafting Station, Craft Bag and Furniture Vault. AutoCategory remains responsible for classifying and displaying inventory items.
+[*]Use Hide and Show to exclude or include categories in one inventory area without deleting their definitions or changing other areas. Move the special Other heading in Display order without changing its catch-all matching behavior. Reorder selections and copy both orders between areas.
+[*]Account-wide and character-specific profiles now include panel preferences and positions, editor filters, tracking configuration and AutoCategory layouts. First-time character setup copies the account profile; later switches resume that character's retained settings. Copy From in Main Settings replaces a complete profile after confirmation.
+[*]Integration enablement, item transfer delay, chest-stack merging and diagnostic controls remain account-wide. AutoCategory integration is off by default and has a guided first setup and a dedicated recovery panel.
+[*]Streamlined Main Settings and consistent editor navigation bring Manage Tracking, Manage Groups and Manage AutoCategory together. Tracking has aligned single-line Show and Notify summaries, Groups has name filtering, and all three editors offer visit-scoped Undo changes.
+[*]Group patterns now support Include and Exclude rules: an item must match an Include and no Exclude in that group. Per-item and per-group backpack/bank display, grouping and Chat/HUD notifications can be configured independently. Tracker stock indicators distinguish carried and banked items.
+[*]Saved-variable schema 10 upgrades stored profiles before loading, validates imported data and prevents incompatible older builds from changing newer settings. Built-in group overrides and a shared compiled matching cache preserve customization without saving unchanged defaults.
+[/LIST]
+
 [SIZE="2"][B]1.5.0[/B][/SIZE]
 
 [LIST]
@@ -10,15 +23,12 @@
 [SIZE="2"][B]1.4.1[/B][/SIZE]
 
 [LIST]
+[*]Groups with more than 200 eligible items now show an overflow message instead of constructing a large list of item rows. Narrow the group's patterns to display its items; summary counts still include all matching items.
+[*]Added an amber information icon to oversized groups. Groups with up to 200 eligible items retain their normal item rows and scrolling.
 [*]Removed an unwanted debug chat message when the tracking editors reposition the tracker panel.
 [/LIST]
 
 [SIZE="2"][B]1.4.0[/B][/SIZE]
-
-[LIST]
-[*]Groups with more than 200 eligible items now show an overflow message instead of constructing a large list of item rows. Narrow the group's patterns to display its items; summary counts still include all matching items.
-[*]Added an amber information icon to oversized groups. Groups with up to 200 eligible items retain their normal item rows and scrolling.
-[/LIST]
 
 [SIZE="2"][B]1.3.2[/B][/SIZE]
 

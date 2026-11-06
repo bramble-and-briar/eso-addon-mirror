@@ -1,0 +1,207 @@
+<GuiXml>
+    <Controls>
+        <Control name="InventoryCompanion_AutoCategoryRow_Template" virtual="true" mouseEnabled="true">
+            <Dimensions x="800" y="32" />
+            <Controls>
+                <Texture name="$(parent)BG" color="FFFFFF" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGame" color="FFFFFF" verticalAlignment="CENTER" wrapMode="ELLIPSE">
+                    <Dimensions x="440" y="32" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" />
+                </Label>
+                <Button name="$(parent)MoveDown" inherits="ZO_DefaultButton" text="v" hidden="true">
+                    <Dimensions x="28" y="24" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-4" />
+                </Button>
+                <Button name="$(parent)MoveUp" inherits="ZO_DefaultButton" text="^" hidden="true">
+                    <Dimensions x="28" y="24" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)MoveDown" relativePoint="LEFT" offsetX="-4" />
+                </Button>
+                <Button name="$(parent)Participation" font="ZoFontGame" mouseEnabled="true" hidden="true">
+                    <Dimensions x="82" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)MoveUp" relativePoint="LEFT" offsetX="-8" />
+                </Button>
+                <Label name="$(parent)Orders" font="ZoFontGameSmall" color="E6B35C" verticalAlignment="CENTER" horizontalAlignment="RIGHT">
+                    <Dimensions x="100" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Participation" relativePoint="LEFT" offsetX="-8" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="InventoryCompanion_AutoCategoryWindow" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+            <Dimensions x="860" y="800" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" />
+                <Label name="$(parent)Title" font="ZoFontHeader3" text="Manage AutoCategory" wrapMode="ELLIPSE"><Dimensions x="225" y="30"/><Anchor point="TOPLEFT" offsetX="20" offsetY="12"/></Label>
+<Button name="$(parent)BtnOtherSettings" inherits="ZO_DefaultButton" text="Main Settings"><Dimensions x="115" y="26"/><Anchor point="TOPLEFT" offsetX="245" offsetY="15"/><OnClicked>InventoryCompanion.OpenSettingsFromEditor()</OnClicked></Button>
+<Button name="$(parent)BtnEditItems" inherits="ZO_DefaultButton" text="Manage Tracking"><Dimensions x="135" y="26"/><Anchor point="TOPLEFT" offsetX="365" offsetY="15"/></Button>
+<Button name="$(parent)BtnEditGroups" inherits="ZO_DefaultButton" text="Manage Groups"><Dimensions x="125" y="26"/><Anchor point="TOPLEFT" offsetX="505" offsetY="15"/></Button>
+<Button name="$(parent)BtnAutoCategory" inherits="ZO_DefaultButton" text="Manage AutoCategory"><Dimensions x="170" y="26"/><Anchor point="TOPLEFT" offsetX="635" offsetY="15"/></Button>
+<Button name="$(parent)Close" inherits="ZO_CloseButton"><Anchor point="TOPRIGHT" offsetX="-10" offsetY="10"/><OnClicked>SCENE_MANAGER:Hide("InventoryCompanion_AutoCategoryScene")</OnClicked></Button>
+<Button name="$(parent)BtnUndo" inherits="ZO_DefaultButton" text="Undo changes" hidden="true"><Dimensions x="140" y="26"/><Anchor point="TOPRIGHT" offsetX="-20" offsetY="65"/></Button>
+<Texture name="$(parent)Divider" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
+                    <Dimensions x="860" y="4" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="-5" offsetY="10" />
+                </Texture>
+
+                <Control name="$(parent)Enablement" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="15" offsetY="12" />
+                    <Dimensions x="810" y="220" />
+                    <Controls>
+                        <Label name="$(parent)Info" font="ZoFontGame" wrapMode="TEXT_WRAP_MODE_WORD">
+                            <Dimensions x="800" y="150" /><Anchor point="TOPLEFT" />
+                        </Label>
+                        <Button name="$(parent)Toggle" inherits="ZO_CheckButton">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Info" relativePoint="BOTTOMLEFT" offsetY="12" />
+                        </Button>
+                        <Label name="$(parent)Label" font="ZoFontGame" text="Enable AutoCategory Integration">
+                            <Anchor point="LEFT" relativeTo="$(parent)Toggle" relativePoint="RIGHT" offsetX="8" />
+                        </Label>
+                    </Controls>
+                </Control>
+                <Control name="$(parent)Recovery" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="15" offsetY="12" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-20" offsetY="-20" />
+                    <Controls>
+                        <Label name="$(parent)Warning" font="ZoFontGame" color="FFFFFF" wrapMode="TEXT_WRAP_MODE_WORD">
+                            <Dimensions x="800" y="180" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                        </Label>
+                        <Button name="$(parent)BtnRetry" inherits="ZO_DefaultButton" text="Retry synchronization">
+                            <Dimensions x="240" y="28" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Warning" relativePoint="BOTTOMLEFT" offsetY="16" />
+                        </Button>
+                        <Button name="$(parent)BtnRepair" inherits="ZO_DefaultButton" text="Repair affected assignments">
+                            <Dimensions x="260" y="28" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnRetry" relativePoint="RIGHT" offsetX="12" />
+                        </Button>
+                        <Button name="$(parent)BtnDetails" inherits="ZO_DefaultButton" text="Show details">
+                            <Dimensions x="160" y="28" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnRepair" relativePoint="RIGHT" offsetX="12" />
+                        </Button>
+                        <Button name="$(parent)BtnReset" inherits="ZO_DefaultButton" text="Reset integration...">
+                            <Dimensions x="240" y="28" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)BtnRetry" relativePoint="BOTTOMLEFT" offsetY="16" />
+                        </Button>
+                        <Button name="$(parent)BtnEnableSetup" inherits="ZO_DefaultButton" text="Enable and set up again" hidden="true">
+                            <Dimensions x="260" y="28" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Warning" relativePoint="BOTTOMLEFT" offsetY="16" />
+                        </Button>
+                        <Label name="$(parent)Help" font="ZoFontGame" color="CCCCCC" wrapMode="TEXT_WRAP_MODE_WORD">
+                            <Dimensions x="800" y="90" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)BtnReset" relativePoint="BOTTOMLEFT" offsetY="20" />
+                        </Label>
+                        <Control name="$(parent)Problems" inherits="ZO_ScrollContainer">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Help" relativePoint="BOTTOMLEFT" offsetY="12" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-10" offsetY="-8" />
+                            <Controls>
+                                <Control name="$(parent)ScrollChild" override="true">
+                                    <Controls>
+                                        <Label name="$(parent)ProblemRows" font="$(MEDIUM_FONT)|20|soft-shadow-thin" color="FFFFFF" wrapMode="TEXT_WRAP_MODE_WORD">
+                                            <Dimensions x="760" />
+                                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                                        </Label>
+                                    </Controls>
+                                </Control>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)TopActionBar">
+                    <Dimensions x="830" y="32" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="15" offsetY="8" />
+                    <Controls>
+                        <Control name="$(parent)ContextMode" inherits="ZO_ComboBox">
+                            <Dimensions x="155" y="28" />
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" />
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)OptionsBar">
+                    <Dimensions x="830" y="30" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)TopActionBar" relativePoint="BOTTOMLEFT" offsetY="6" />
+                    <Controls>
+<Button name="$(parent)BtnCopy" inherits="ZO_DefaultButton" text="Copy">
+                            <Dimensions x="90" y="26" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" />
+                        </Button>
+<Control name="$(parent)CopyContext" inherits="ZO_ComboBox">
+                            <Dimensions x="180" y="28" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)BtnCopy" relativePoint="LEFT" offsetX="-8" />
+                        </Control>
+<Label name="$(parent)CopyFromLabel" font="ZoFontGame" color="CCCCCC" text="Copy from:">
+                            <Anchor point="RIGHT" relativeTo="$(parent)CopyContext" relativePoint="LEFT" offsetX="-6" />
+                        </Label>
+                        <Button name="$(parent)BtnDisplayOrder" inherits="ZO_DefaultButton" text="Edit Display Order">
+                            <Dimensions x="155" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" />
+                        </Button>
+                        <Button name="$(parent)BtnPriorityOrder" inherits="ZO_DefaultButton" text="Edit Priority Order">
+                            <Dimensions x="155" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnDisplayOrder" relativePoint="RIGHT" offsetX="8" />
+                        </Button>
+                    </Controls>
+                </Control>
+
+                <Label name="$(parent)OrderTitle" font="ZoFontWinH3" color="FFFFFF">
+                    <Dimensions x="830" y="30" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)OptionsBar" relativePoint="BOTTOMLEFT" offsetY="8" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGame" verticalAlignment="TOP">
+                    <Dimensions x="830" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)OrderTitle" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Label>
+                <Control name="$(parent)MovementBar">
+                    <Dimensions x="830" y="32" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="15" offsetY="-20" />
+                    <Controls>
+<Button name="$(parent)BtnSelectBlock" inherits="ZO_DefaultButton" text="Select block">
+                            <Dimensions x="110" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" />
+                        </Button>
+<Button name="$(parent)BtnClear" inherits="ZO_DefaultButton" text="Clear">
+                            <Dimensions x="70" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnSelectBlock" relativePoint="RIGHT" offsetX="6" />
+                        </Button>
+<Button name="$(parent)BtnUp1" inherits="ZO_DefaultButton" text="Up 1">
+                            <Dimensions x="64" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnClear" relativePoint="RIGHT" offsetX="6" />
+                        </Button>
+<Button name="$(parent)BtnUp5" inherits="ZO_DefaultButton" text="Up 5">
+                            <Dimensions x="64" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnUp1" relativePoint="RIGHT" offsetX="6" />
+                        </Button>
+<Button name="$(parent)BtnTop" inherits="ZO_DefaultButton" text="Move to top">
+                            <Dimensions x="112" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnUp5" relativePoint="RIGHT" offsetX="6" />
+                        </Button>
+<Button name="$(parent)BtnDown1" inherits="ZO_DefaultButton" text="Down 1">
+                            <Dimensions x="80" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnTop" relativePoint="RIGHT" offsetX="24" />
+                        </Button>
+<Button name="$(parent)BtnDown5" inherits="ZO_DefaultButton" text="Down 5">
+                            <Dimensions x="80" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnDown1" relativePoint="RIGHT" offsetX="6" />
+                        </Button>
+<Button name="$(parent)BtnBottom" inherits="ZO_DefaultButton" text="Move to bottom">
+                            <Dimensions x="130" y="26" />
+                            <Anchor point="LEFT" relativeTo="$(parent)BtnDown5" relativePoint="RIGHT" offsetX="6" />
+                        </Button>
+</Controls>
+                </Control>
+                <Label name="$(parent)Instructions" font="ZoFontGame" verticalAlignment="TOP">
+                    <Dimensions x="830" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)MovementBar" relativePoint="TOPLEFT" offsetY="-8" />
+                </Label>
+                <Control name="$(parent)List" inherits="ZO_ScrollContainer">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Info" relativePoint="BOTTOMLEFT" offsetY="6" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Instructions" relativePoint="TOPRIGHT" offsetY="-8" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

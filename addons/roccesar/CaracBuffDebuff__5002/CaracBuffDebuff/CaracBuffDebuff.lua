@@ -12,7 +12,7 @@ local TEXT = {
 
     account = {
         label = "Paramètres communs au compte.",
-        tip   = "Cochée : position du panneau et paramètres communs au compte ; Décochées : position du panneau et paramètres propres au personnage.",
+        tip   = "Cochée : position du panneau et paramètres communs au compte ; Décochée : position du panneau et paramètres propres au personnage.",
     },
     playerBuffs = {
         label = "Bonus du joueur.",
@@ -90,7 +90,7 @@ local CFG = {
     
     -- Provocation (malus sur la cible), repérée par son numéro, affichée dans une couleur spéciale
     tauntId        = 38254,
-    tauntColor     = { 0.6, 0.25, 0.9, 1 }, -- couleur du nom de la provocation (violet foncé)
+    tauntColor     = { 1, 0.8, 1 , 1 }, -- couleur du nom de la provocation (violet clair)
 
     -- Panneau CaracBuffLong : position d'origine = X lignes sous CaracBuff (ajuste ici ; le panneau reste déplaçable)
     longPanelRowsBelow = 16,
@@ -124,7 +124,10 @@ local CFG = {
 
     -- VAMPIRISME (case « Vampirisme & Lycanthropie. ») : repéré par son numéro. Le niveau apparaît dans le libellé du jeu.
     vampireIds     = {
-        [135399] = true,
+        [135397] = true,  -- Vampirisme niveau 1
+        [135399] = true,  -- Vampirisme niveau 2
+        [135400] = true,  -- Vampirisme niveau 3
+        [135402] = true,  -- Vampirisme niveau 4
     },
 
     -- LYCANTHROPIE (case « Vampirisme & Lycanthropie. ») : repérée par son numéro, classée avec le vampirisme
@@ -223,7 +226,7 @@ local function RefreshChecks(block)
     end
 end
 
--- Table où est rangée la position du panneau : compte (case « Position commune au compte » cochée) ou personnage
+-- Table où est rangée la position du panneau : compte (case « Paramètres communs au compte » cochée) ou personnage
 local function PosScope(key)
     if UsesAccount(key) then return Sub(acc, "pos") end
     return Sub(ch, "pos")
@@ -270,8 +273,10 @@ local function SetUsesAccount(block, checked)
 
     flags[key] = checked
     if checked then
-        -- Retour à la position et aux paramètres communs au compte
-        PlaceBlock(block)
+        -- Le panneau reste où il est : sa position et l'état des cases deviennent ceux du compte
+        Sub(acc, "pos")[key] = { x = S(block.top:GetLeft()), y = S(block.top:GetTop()) }
+        local opts = Sub(Sub(acc, "opts"), key)
+        for id, value in pairs(current) do opts[id] = value end
     else
         -- Réglages propres au personnage : le panneau reste où il est et les cases gardent leur état actuel,
         -- qui deviennent ceux du personnage
@@ -296,7 +301,7 @@ local function MigrateLegacyPositions()
     if type(old) ~= "table" then return end
 
     local pos = Sub(acc, "pos")
-    for _, key in ipairs({ "buff", "debuff", "self" }) do
+    for _, key in ipairs({ "buff", "debuff", "self", "long", "perm" }) do
         local x, y = old[key .. "X"], old[key .. "Y"]
         if type(x) == "number" and type(y) == "number" and not pos[key] then
             pos[key] = { x = x, y = y }
@@ -782,8 +787,9 @@ local function CollectPermanent()
                     -- Vampirisme : si une minuterie existe et qu'il reste peu de temps (changement de niveau proche),
                     -- on affiche la durée et le nom prend la couleur du cooldown
                     local color, shown = CFG.permanentColor, 0
-                    if isVamp and remaining > 0 and remaining <= CFG.cooldownSeconds then
-                        color, shown = CFG.cooldownColor, remaining
+                    if isVamp and remaining > 0 then
+                        shown = remaining
+                        if remaining <= CFG.cooldownSeconds then color = CFG.cooldownColor end
                     end
 
                     list[#list + 1] = { icon = iconFile, name = text, remaining = shown,

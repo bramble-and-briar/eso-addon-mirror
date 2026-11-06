@@ -5,7 +5,7 @@
 ArdysBuffTracker = ArdysBuffTracker or {}
 local PB = ArdysBuffTracker
 PB.name = "ArdysBuffTracker"
-PB.version = "1.3.0"
+PB.version = "1.4.0"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -20,24 +20,50 @@ ZO_CreateStringId("SI_BINDING_NAME_ARDYSBUFFTRACKER_TOGGLE_TARGET", "Pin / Unpin
 -- to make matching faster and locale-proof. The first ID also supplies the
 -- icon at load time.
 ---------------------------------------------------------------------------
+-- Order: Major buffs, Minor buffs, Warhorn, then sets, each alphabetical.
+-- `new = true` buffs start switched off until the player turns them on.
+-- Keys never change, so saved on/off choices survive reordering.
 PB.BUFFS = {
-    { key = "majSlayer",  name = "Major Slayer",     short = "MjSl", ids = {} },
-    { key = "majForce",   name = "Major Force",      short = "MjFo", ids = {} },
-    { key = "majCourage", name = "Major Courage",    short = "MjCo", ids = {} },
-    { key = "majProt",    name = "Major Protection", short = "MjPr", ids = {} },
-    { key = "majBers",    name = "Major Berserk",    short = "MjBe", ids = {} },
-    { key = "minCourage", name = "Minor Courage",    short = "MnCo", ids = {} },
-    { key = "minForce",   name = "Minor Force",      short = "MnFo", ids = {} },
-    { key = "minBers",    name = "Minor Berserk",    short = "MnBe", ids = {} },
-    { key = "minProt",    name = "Minor Protection", short = "MnPr", ids = {} },
-    { key = "pa",         name = "Powerful Assault", short = "PA",   ids = {} },
+    { key = "majBers",    name = "Major Berserk",          short = "MjBe", ids = {} },
+    { key = "majBrut",    name = "Major Brutality",        short = "MjBr", ids = {}, new = true },
+    { key = "majCourage", name = "Major Courage",          short = "MjCo", ids = {} },
+    { key = "majForce",   name = "Major Force",            short = "MjFo", ids = {} },
+    { key = "majHero",    name = "Major Heroism",          short = "MjHe", ids = {}, new = true },
+    { key = "majMend",    name = "Major Mending",          short = "MjMe", ids = {}, new = true },
+    { key = "majProt",    name = "Major Protection",       short = "MjPr", ids = {} },
+    { key = "majResolve", name = "Major Resolve",          short = "MjRe", ids = {}, new = true },
+    { key = "majSav",     name = "Major Savagery",         short = "MjSa", ids = {}, new = true },
+    { key = "majSlayer",  name = "Major Slayer",           short = "MjSl", ids = {} },
+    { key = "majVit",     name = "Major Vitality",         short = "MjVi", ids = {}, new = true },
+    { key = "minBers",    name = "Minor Berserk",          short = "MnBe", ids = {} },
+    { key = "minBrut",    name = "Minor Brutality",        short = "MnBr", ids = {}, new = true },
+    { key = "minCourage", name = "Minor Courage",          short = "MnCo", ids = {} },
+    { key = "minForce",   name = "Minor Force",            short = "MnFo", ids = {} },
+    { key = "minHero",    name = "Minor Heroism",          short = "MnHe", ids = {}, new = true },
+    { key = "minMend",    name = "Minor Mending",          short = "MnMe", ids = {}, new = true },
+    { key = "minProt",    name = "Minor Protection",       short = "MnPr", ids = {} },
+    { key = "minResolve", name = "Minor Resolve",          short = "MnRe", ids = {}, new = true },
+    { key = "minSav",     name = "Minor Savagery",         short = "MnSa", ids = {}, new = true },
+    { key = "minVit",     name = "Minor Vitality",         short = "MnVi", ids = {}, new = true },
+    { key = "aggHorn",    name = "Aggressive Horn",        short = "Horn", ids = {}, new = true },
+    { key = "pa",         name = "Powerful Assault",       short = "PA",   ids = {} },
+    { key = "rallyCry",   name = "Rallying Cry",           short = "RC",   ids = {}, new = true },
+    { key = "robes",      name = "Robes of Transmutation", short = "RoT",  ids = {}, new = true },
 }
 
 local allByName = {}                  -- every defined buff (for /pb scan)
 local buffByName, buffById = {}, {}   -- enabled buffs only (hot path)
 PB.active = {}                        -- enabled buffs, in display order
 
-local function IsBuffEnabled(key) return PB.sv.buffs[key] ~= false end
+local defaultOn = {}
+for _, b in ipairs(PB.BUFFS) do defaultOn[b.key] = not b.new end
+
+-- A saved choice wins; otherwise original buffs are on and new ones are off.
+local function IsBuffEnabled(key)
+    local v = PB.sv.buffs[key]
+    if v == nil then return defaultOn[key] end
+    return v
+end
 
 local function AllBuffsEnabled()
     for _, b in ipairs(PB.BUFFS) do
@@ -1004,7 +1030,7 @@ end
 ---------------------------------------------------------------------------
 local DEFAULTS = {
     pins = {},     -- [@account] = true
-    buffs = {},    -- [buffKey] = false when turned off (on by default)
+    buffs = {},    -- [buffKey] = true/false once the player chooses
     icons = {},    -- [buffKey] = learned icon path
     scale = 75,    -- percent; small by default
     x = 400, y = 300,

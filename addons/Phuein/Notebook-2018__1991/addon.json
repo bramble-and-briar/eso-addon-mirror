@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Phuein/Notebook-2018__1991",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Phuein",
   "canonical_id": "esoui:1991",
   "category_id": "27",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1991",
@@ -17,7 +18,7 @@
     "Notebook2018"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1991/",
-  "fingerprint": "761dc2a5a293fe98ac5b59f19a829a9341fc593f1fae32ef2cf96dbd85fa7ef9",
+  "fingerprint": "6d17bdb6ad3d06332785181771ef59a289f881a5e4fffda9a3cc13cc8482b4ab",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8092.png",
     "https://cdn-eso.mmoui.com/preview/pvw7883.png",
@@ -29,11 +30,11 @@
   "source_id": "1991",
   "source_url": "https://www.esoui.com/downloads/info1991-Notebook2018.html",
   "stats": {
-    "downloads": 48159,
-    "favorites": 142,
-    "monthly_downloads": 630
+    "downloads": 48882,
+    "favorites": 143,
+    "monthly_downloads": 222
   },
   "title": "Notebook 2018",
-  "updated_at": 1783890444000,
-  "version": "5.00"
+  "updated_at": 1793878822000,
+  "version": "5.01"
 }

@@ -1,12 +1,21 @@
 ## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Antiquities|r
-## Description: Starter module for Antiquities with the shared Tamriel Archive menu, layout and icons. Collection data will be added in later releases.
+## Description: Browse all native Antiquity reward types with lead sources, codex progress and related achievements in the shared Archives layout.
 ## Author: |c73E58CMajesticMinxi|r
-## Version: 0.1.1
+## Version: 0.1.8
 ## APIVersion: 101051
-## AddOnVersion: 101
+## AddOnVersion: 108
 
 Shared.lua
+AntiquitySources.lua
+AntiquityTreasureChains.lua
+AntiquityMotifs.lua
+AntiquityAchievementLinks.lua
+AntiquityInfo.lua
+AntiquityCatalogue.lua
+ArchiveAntiquityMap.lua
 ArchiveAntiquities.lua
+AntiquityFurnitureSources.lua
+AntiquityExtraSources.lua
 CollectionsUI.xml
 CollectionsUI.lua
 MainMenu.lua

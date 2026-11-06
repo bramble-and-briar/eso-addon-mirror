@@ -26,7 +26,6 @@ function AD.SetupSettings()
 		displayName = "|cFFD700Auto Destroy|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	local selectedItemLink
@@ -49,7 +48,6 @@ function AD.SetupSettings()
 					AD.SV.autoDestroyEnabled = value
 				end
 			end,
-			default = false,
 			reference = "AD_MAIN",
 		},
 		{
@@ -58,6 +56,7 @@ function AD.SetupSettings()
 			tooltip = "Select an item to remove from the AutoDestroy list.",
 			choices = choices,
 			choicesValues = values,
+			choicesTooltips = choices,
 			getFunc = function() return end,
 			setFunc = function(value)
 				selectedItemLink = value
@@ -101,7 +100,6 @@ function AD.SetupSettings()
 					AD.SV.destroyMaps = value
 				end
 			end,
-			default = false,
 			reference = "AD_DESTROY_TRASHURE",
 		},
 	}

@@ -11,7 +11,6 @@ function ALT.RegisterSettingsPanel()
 		displayName = "|cFFD700Addon Loading Times|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	local optionsData = {
@@ -29,13 +28,12 @@ function ALT.RegisterSettingsPanel()
 			step = 0.5,
 			decimals = 1,
 			getFunc = function()
-				return ALT.SV and ALT.SV.reloadDelay or 3
+				return ALT.SV.reloadDelay
 			end,
 			setFunc = function(value)
 				ALT.SV.reloadDelay = value
 			end,
 			width = "half",
-			default = 3,
 		},
 
 		{

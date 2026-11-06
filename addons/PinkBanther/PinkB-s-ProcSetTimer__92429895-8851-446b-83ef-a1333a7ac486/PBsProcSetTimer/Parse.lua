@@ -358,9 +358,17 @@ end
 -- ---------------------------------------------------------------------------------------
 -- Some effects build up ("generates a stack of X for 30 seconds, up to 10 stacks"). The game says
 -- how many there are in every effect event (stackCount); the text says whether the effect stacks
--- and, sometimes, how many it can. A sentence that holds a stack word makes the effect a stacking
--- one, and a "max N" / "up to N" in the same sentence is the most it builds up to. A cap in
--- percent ("up to 5%") is a size, not a count, and is left alone.
+-- and, sometimes, how many it can. Two ways a text says so:
+--
+--     * a sentence that holds a stack word makes the effect a stacking one, and a "max N" / "up to N"
+--       in the same sentence is the most it builds up to;
+--     * a step in percent with a cap in percent ("1% more damage for each damage over time effect,
+--       up to 5%") has no stack word, but is a build-up of cap / step steps: 5. The cap may be in
+--       the sentence after the step ("...1%の追加ダメージを受ける。最大5%まで。"). A cap with no
+--       step before it ("up to 8% more damage") is a size, not a count, and is left alone.
+--
+-- When the steps are counted in the target's own damage-over-time effects, the effect is a "tally":
+-- the game does not count those steps in an event, so the caller counts them on the target.
 local STACK_WORDS = {
 	"stack", "stapel", "cumul", "acumul", "apil", "накоп", "стак",
 	"累積", "累积", "スタック", "叠加",
@@ -379,22 +387,47 @@ local MAX_CUES = {
 	"最多(%d+)",
 	"上限(%d+)",
 }
+-- the same cues for a cap in percent
+local PERCENT_CAPS = {}
+for _, cue in ipairs(MAX_CUES) do
+	PERCENT_CAPS[#PERCENT_CAPS + 1] = (cue:gsub("%(%%d%+%)", "(%%d+%%.?%%d*)%%s*%%%%"))
+end
+-- what makes a percentage a step that is added again and again, not a size
+local STEP_CUES = {
+	"each", "every", "per ", "ごと", "毎", "ことに", "につき", "ずつ",
+	"pro ", "jede", "jeden", "jedes", "chaque", "por cada", "cada ", "кажд", "每",
+}
+-- the target's own damage-over-time effects, in the languages the game ships in
+local DOT_WORDS = {
+	"damage over time", "damage-over-time",
+	"継続ダメージ", "持続ダメージ", "継続的なダメージ",
+	"schaden über zeit", "schaden ueber zeit",
+	"dégâts sur la durée", "dégâts continus",
+	"daño continuo", "daño con el tiempo", "daño en el tiempo", "daño a lo largo del tiempo",
+	"урон с течением времени", "периодический урон",
+	"持续伤害", "持续性伤害",
+}
 
--- text -> { stacking = bool, max = number|nil }
+local function HasAny(str, list)
+	for _, word in ipairs(list) do
+		if str:find(word, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+-- text -> { stacking = bool, max = number|nil, tally = bool }
 function addon.ParseStacks(text)
-	text = Normalize(text):lower()
+	text = (Normalize(text):lower():gsub("\239\188\133", "%%")) -- the full-width percent sign
 	local stacking, maximum = false, nil
+	local stepStacking, stepMax, stepDots = false, nil, false
+	local previous -- the sentence before: { text, last = its last percentage, dots }
 	local from = 1
 	while from <= #text and not text:sub(from):match("^%s*$") do
 		local stop = SentenceEnd(text, from)
 		local sentence = text:sub(from, stop)
-		local hasWord = false
-		for _, word in ipairs(STACK_WORDS) do
-			if sentence:find(word, 1, true) then
-				hasWord = true
-				break
-			end
-		end
+		local hasWord = HasAny(sentence, STACK_WORDS)
 		if hasWord then
 			stacking = true
 			for _, cue in ipairs(MAX_CUES) do
@@ -419,9 +452,51 @@ function addon.ParseStacks(text)
 				end
 			end
 		end
+
+		-- a cap in percent, and the step it counts in
+		local percents = {}
+		for at, digits in sentence:gmatch("()(%d+%.?%d*)%s*%%") do
+			percents[#percents + 1] = { at = at, value = tonumber(digits) }
+		end
+		local dots = HasAny(sentence, DOT_WORDS)
+		if not stepStacking then
+			for _, cue in ipairs(PERCENT_CAPS) do
+				local first, _, digits = sentence:find(cue)
+				local cap = first and tonumber(digits)
+				if cap then
+					local step, stepText, stepDot
+					for _, percent in ipairs(percents) do
+						if percent.at < first then
+							step, stepText, stepDot = percent.value, sentence, dots
+						end
+					end
+					if not step and previous and previous.last then
+						step, stepText, stepDot = previous.last, previous.text, previous.dots
+					end
+					if step and step > 0 and cap > step and HasAny(stepText, STEP_CUES) then
+						local ratio = cap / step
+						local count = math.floor(ratio + 0.5)
+						if math.abs(ratio - count) < 0.01 and count >= 2 and count <= 99 then
+							stepStacking, stepMax, stepDots = true, count, stepDot or dots
+							break
+						end
+					end
+				end
+			end
+		end
+
+		previous = { text = sentence, last = percents[#percents] and percents[#percents].value, dots = dots }
 		from = stop + 1
 	end
-	return { stacking = stacking, max = maximum }
+
+	-- A text that names stacks keeps what it says (its stacks are counted in the event, and a percent
+	-- in it is some other size); a build-up told only in percent steps stands on them. Those counted
+	-- in the target's own damage over time are counted by the add-on.
+	local byStep = stepStacking and not stacking
+	if byStep then
+		stacking, maximum = true, stepMax
+	end
+	return { stacking = stacking, max = maximum, tally = byStep and stepDots }
 end
 
 -- setId -> every bonus line of the set, each read for its timings; nil if the game has no such set.
@@ -476,6 +551,7 @@ function addon.ReadSetEffect(setId)
 					line.effects[k] = {
 						stacking = stacks.stacking, -- the text says the effect builds up
 						maxStacks = stacks.max, -- ... and, if it does, how far
+						tally = stacks.tally, -- ... in steps of the target's own damage over time, counted by the add-on
 						index = index,
 						key = index * 100 + k,
 						k = k,

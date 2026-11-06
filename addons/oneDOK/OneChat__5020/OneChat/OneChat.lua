@@ -8,10 +8,10 @@ local function initialize()
     A:InstallInput()
     A:InstallTabs()
     A:InstallMessages()
+    A:RestoreChatHistory()
     A:InstallOptions()
     A:InstallToolbar()
     A:InstallSettings()
-    SLASH_COMMANDS["/onechat"] = function() A:ShowSettings() end
     EVENT_MANAGER:RegisterForEvent(A.name, EVENT_PLAYER_DEACTIVATED, function() A:SnapshotTabs() end)
     for _, event in ipairs({ EVENT_GUILD_SELF_JOINED_GUILD, EVENT_GUILD_SELF_LEFT_GUILD,
         EVENT_GUILD_DATA_LOADED, EVENT_GUILD_RANK_CHANGED, EVENT_GROUP_UPDATE }) do

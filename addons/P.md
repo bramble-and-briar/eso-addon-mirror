@@ -137,6 +137,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's QuestTrackerFontChanger(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-QuestTrackerFontChanger-Beta__35920898-3b27-4e32-9f59-c0d8fee0b3bb) | PinkBanther | Console | — |
 | [PinkB's ResourceAndSkillBarCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ResourceAndSkillBarCustomizer__51bd8b59-40b0-4e2f-b31d-527bb63f0bfc) | PinkBanther | Console | — |
 | [PinkB's ResourceAndSkillBarCustomizer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ResourceAndSkillBarCustomizer-Beta__23fd4e21-b28d-4af9-badd-3e009f4cb75b) | PinkBanther | Console | — |
+| [PinkB's Reticle(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Reticle-Beta__b3cb5c11-367d-4c6e-9868-4a0cb33b4fcb) | PinkBanther | Console | — |
 | [PinkB's ScreenshotModeShortcut](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ScreenshotModeShortcut__f092f755-7f1e-43bf-b184-f2a9871a86ea) | PinkBanther | Console | — |
 | [PinkB's ScreenshotModeShortcut(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ScreenshotModeShortcut-Beta__c3b0724d-c60e-44de-9244-7cdc9f20c868) | PinkBanther | Console | — |
 | [PinkB's Tamriel de Janken](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Tamriel-de-Janken__d20dffae-5fe1-494b-b70d-0c0a5967bf72) | PinkBanther | Console | — |
@@ -197,6 +198,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Potion Cooldown Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/Potion-Cooldown-Tracker__4122) | partdark | PC / Mac | 1.3.3 |
 | [Potion Maker (for Alchemy Crafting)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/facit/Potion-Maker-for-Alchemy-Crafting__405) | facit | PC / Mac | 5.11.0 |
 | [Potion Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kamaros/Potion-Reminder__2768) | Kamaros | PC / Mac | 1.2.0 |
+| [Potion Resorce Tags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/Potion-Resorce-Tags__5027) | Thory | PC / Mac | 0.4.0 |
 | [Potion Taken Sound Fix & Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trader08/Potion-Taken-Sound-Fix-Alerts__2463) | Trader08 | PC / Mac | 1.10 |
 | [Power Lash Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Power-Lash-Tracker__32111121-29be-4447-ba40-3c064d28680e) | Vixen_Hunny | Console | — |
 | [Powerful Assault](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Powerful-Assault__2757) | Wheels | PC / Mac | 1.1 |
@@ -260,7 +262,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PvDoor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/PvDoor__3098) | skineh | PC / Mac | 1.0.2 |
 | [PVP Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alpha-AC/PVP-Buddy__643e39fa-2b3f-46f8-aef4-eee9ff92360d) | Alpha-AC | Console | — |
 | [PvP FPS 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/PvP-FPS-2018__2011) | Phuein | PC / Mac | 1.22 |
-| [PvP QoL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/PvP-QoL__4358) | atharti | PC / Mac | 4.7 |
+| [PvP QoL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/PvP-QoL__4358) | atharti | PC / Mac | 4.8 |
 | [PvP Ranks (patch for Update 28 - Markarth)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/PvP-Ranks-patch-for-Update-28---Markarth__2824) | ForgottenLight | PC / Mac | 2.5d |
 | [PvP Ranks and Veterancy: Update 50](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sufia_Heolcyn/PvP-Ranks-and-Veterancy-Update-50__4640) | Sufia_Heolcyn | PC / Mac | 3.01 |
 | [Pvp Ready Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectofmusic/Pvp-Ready-Emotes__2d86078c-b982-4ffc-a7f0-7905e41c2354) | Architectofmusic | Console | — |

@@ -188,7 +188,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AlphaScry (Leads, Antiquities, Filter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaScry-Leads-Antiquities-Filter__2689) | mesota | PC / Mac | 1.0.0 |
 | [AlphaStyle (Outfit, Mount, Pet, Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaStyle-Outfit-Mount-Pet-Collectibles__2411) | mesota | PC / Mac | 1.0.0 |
 | [AlreadyListed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/svammy/AlreadyListed__66e34000-1a7c-4b71-9c6b-18742fa714c5) | svammy | Console | — |
-| [ALT — Addon Loading Times](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/ALT-Addon-Loading-Times__4613) | atharti | PC / Mac | 2.0 |
+| [ALT — Addon Loading Times](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/ALT-Addon-Loading-Times__4613) | atharti | PC / Mac | 2.1 |
 | [Alternate Death Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Alternate-Death-Recap__4454) | Shienar | PC / Mac | 3.3 |
 | [AlternateDeathRecap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/AlternateDeathRecap__9e55edc2-32f8-4c75-b87c-e921fd53e9cf) | Shienar | Console | — |
 | [Alternative Attribute Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Attribute-Bars__3056) | buldezir | PC / Mac | 1.0.16 |
@@ -273,7 +273,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.1.2 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
-| [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Buff-Tracker__5021) | giga'chad | PC / Mac | 1.1.0 |
+| [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Buff-Tracker__5021) | giga'chad | PC / Mac | 1.2.0 |
 | [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gigachadESO/Ardy-s-Buff-Tracker__c816691d-2f46-451b-9ac0-5a63292d6297) | gigachadESO | Console | — |
 | [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.2 |
 | [Are We Mounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaWeedle/Are-We-Mounted__4134) | DaWeedle | PC / Mac | 1.0.0 |
@@ -348,7 +348,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Complete](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Complete__2026) | Dolgubon | PC / Mac | 1.0.2 |
 | [Auto Daily Rewards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Auto-Daily-Rewards__2041) | SDPhantom | PC / Mac | 1.2 |
 | [Auto Daily Rewards - Notifications](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Auto-Daily-Rewards---Notifications__2051) | SDPhantom | PC / Mac | 1.0 |
-| [Auto Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Auto-Destroy__4139) | atharti | PC / Mac | 2.4 |
+| [Auto Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Auto-Destroy__4139) | atharti | PC / Mac | 2.5 |
 | [Auto Eat, Recharge, Repair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Auto-Eat-Recharge-Repair__2198) | Jodynn | PC / Mac | 1.1 |
 | [Auto Extract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Auto-Extract__0763042f-816e-4f4f-baae-c50159fc5bd5) | msetten | Console | — |
 | [Auto Guild Welcome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/Auto-Guild-Welcome__2387) | Phobus11 | PC / Mac | 0.2.0 |

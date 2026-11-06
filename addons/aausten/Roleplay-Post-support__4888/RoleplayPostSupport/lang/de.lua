@@ -88,6 +88,9 @@ local strings = {
     UI_UNKNOWN_TIME = "Unbekannte Zeit",
     UI_VERSION = "Version %s",
     UI_WHISPER_TARGET = "Flüsterziel",
+    UI_WINDOW_SCALE = "Zoom: %d%%",
+    UI_WINDOW_SCALE_FIT = "Zoom: %d%% (angep. %d%%)",
+    UI_WINDOW_SCALE_RESET = "Größe zurücksetzen",
     UI_WINDOW_TITLE = "Roleplay Post Support",
 
     -- Core

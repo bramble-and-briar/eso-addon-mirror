@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- FashionMount.lua — v1.1.0-test1 (Generic Collectible Categories)
+-- FashionMount.lua — v1.1.2 (Generic Collectible Categories)
 -- Link outfits to selected collectible categories (Console-safe)
 -- Author: SugaComa (Rik Sprint)
 --------------------------------------------------------------
@@ -23,7 +23,6 @@ local COLLECTIBLE_OPTIONS = {
     { key = "hat",             type = COLLECTIBLE_CATEGORY_TYPE_HAT,                label = "Hat" },
     { key = "headMarking",     type = COLLECTIBLE_CATEGORY_TYPE_HEAD_MARKING,       label = "Head Marking" },
     { key = "mount",           type = COLLECTIBLE_CATEGORY_TYPE_MOUNT,              label = "Mount" },
-    { key = "outfitStyle",     type = COLLECTIBLE_CATEGORY_TYPE_OUTFIT_STYLE,       label = "Outfit Style" },
     { key = "piercingJewelry", type = COLLECTIBLE_CATEGORY_TYPE_PIERCING_JEWELRY,   label = "Piercing / Jewelry" },
     { key = "polymorph",       type = COLLECTIBLE_CATEGORY_TYPE_POLYMORPH,          label = "Polymorph" },
     { key = "skin",            type = COLLECTIBLE_CATEGORY_TYPE_SKIN,               label = "Skin" },
@@ -46,7 +45,6 @@ local defaults = {
         [COLLECTIBLE_CATEGORY_TYPE_HAT]                = false,
         [COLLECTIBLE_CATEGORY_TYPE_HEAD_MARKING]       = false,
         [COLLECTIBLE_CATEGORY_TYPE_MOUNT]              = true,
-        [COLLECTIBLE_CATEGORY_TYPE_OUTFIT_STYLE]       = false,
         [COLLECTIBLE_CATEGORY_TYPE_PIERCING_JEWELRY]   = false,
         [COLLECTIBLE_CATEGORY_TYPE_POLYMORPH]          = false,
         [COLLECTIBLE_CATEGORY_TYPE_SKIN]               = false,
@@ -173,7 +171,7 @@ end
 
 local function GetActiveCollectibleSafe(categoryType)
     if not GetActiveCollectibleByType then return 0 end
-    local ok, id = pcall(GetActiveCollectibleByType, categoryType)
+    local ok, id = pcall(GetActiveCollectibleByType, categoryType, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
     if ok and id then
         return id
     end
@@ -231,11 +229,14 @@ local function ApplyForOutfit(outfitIndex)
     for _, option in ipairs(COLLECTIBLE_OPTIONS) do
         if sv.enabledCategories and sv.enabledCategories[option.type] then
             local collectibleId = collectibles[option.type]
-            if collectibleId and collectibleId > 0 and IsCollectibleValid(collectibleId) then
-                local activeId = GetActiveCollectibleSafe(option.type)
-                if activeId ~= collectibleId then
-                    UseCollectible(collectibleId)
-                end
+            local activeId = GetActiveCollectibleSafe(option.type)
+            -- Zero is an explicitly saved empty selection; nil is an older unsaved category.
+            local targetId = collectibleId
+            if targetId == 0 then targetId = activeId end
+            if collectibleId ~= nil and activeId ~= collectibleId and targetId and targetId > 0
+                and IsCollectibleValid(targetId)
+                and IsCollectibleUsable(targetId, GAMEPLAY_ACTOR_CATEGORY_PLAYER) then
+                UseCollectible(targetId, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
             end
         end
     end
@@ -264,9 +265,9 @@ local function GetSavedComboTooltip(outfitIndex)
     }
 
     for _, option in ipairs(COLLECTIBLE_OPTIONS) do
-        if sv.enabledCategories and sv.enabledCategories[option.type] then
+        if collectibles[option.type] ~= nil then
             local name = GetCollectibleNameOrNone(collectibles[option.type])
-            table.insert(lines, string.format("%s: |cFFFFFF%s|r", option.label, name))
+            table.insert(lines, string.format("|cFFD700%s:|r |cFFFFFF%s|r", option.label, name))
         end
     end
 
@@ -279,7 +280,6 @@ local function GetCurrentComboTooltipForSave(outfitIndex)
         return "Base appearance is kept vanilla and cannot be accessorised."
     end
 
-    local saved = GetMappingCollectiblesFor(outfitIndex)
     local lines = {
         "Saving to:",
         GetOutfitDisplayName(outfitIndex),
@@ -290,17 +290,7 @@ local function GetCurrentComboTooltipForSave(outfitIndex)
     for _, option in ipairs(COLLECTIBLE_OPTIONS) do
         if sv.enabledCategories and sv.enabledCategories[option.type] then
             local currentName = GetCollectibleNameOrNone(GetActiveCollectibleSafe(option.type))
-            table.insert(lines, string.format("  %s: |cFFFFFF%s|r", option.label, currentName))
-        end
-    end
-
-    table.insert(lines, "")
-    table.insert(lines, "Saved cosmetics:")
-
-    for _, option in ipairs(COLLECTIBLE_OPTIONS) do
-        if sv.enabledCategories and sv.enabledCategories[option.type] then
-            local savedName = saved and GetCollectibleNameOrNone(saved[option.type]) or "None saved"
-            table.insert(lines, string.format("  %s: |cFFFFFF%s|r", option.label, savedName))
+            table.insert(lines, string.format("  |cFFD700%s:|r |cFFFFFF%s|r", option.label, currentName))
         end
     end
 
@@ -318,7 +308,7 @@ local function GetClearTooltip(outfitIndex)
     return string.format(
         "This will remove all saved accessories for:\n%s",
         GetOutfitDisplayName(outfitIndex)
-    )
+    ) .. "\n\n" .. GetSavedComboTooltip(outfitIndex)
 end
 
 --------------------------------------------------------------
@@ -484,13 +474,6 @@ local function InitSettingsMenu()
         clickHandler = RemoveAccessoriesForSelectedOutfit,
         disable      = function()
             return not HasAnySavedCollectibles(selectedOutfitIndex)
-        end,
-    })
-
-    settings:AddSetting({
-        type  = LHAS.ST_LABEL,
-        label = function()
-            return GetSavedComboTooltip(selectedOutfitIndex)
         end,
     })
 

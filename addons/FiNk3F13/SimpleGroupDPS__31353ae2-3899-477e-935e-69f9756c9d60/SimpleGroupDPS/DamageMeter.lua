@@ -1,7 +1,7 @@
 -- One encounter clock for all-target, boss and non-boss DPS.
--- Damage clock: first outgoing damage to last observed damage event.
+-- Damage clock: first outgoing damage through the active encounter, including pauses.
 -- Combat-state notifications control encounter lifetime, not the first-hit timestamp.
--- A hit at combat entry uses a fixed one-second estimate until a later damage timestamp exists.
+-- Damage and healing rates each use at least one second, including multi-hit bursts.
 -- Dummies, adds and bosses use the same independent clock; no native dummy/chat correction.
 -- HUD timer, DPS and saved result use the same measured damage duration.
 -- Damage uses effective hitValue; overkill is not added to the total.
@@ -139,7 +139,7 @@ end
 
 function meter:Start(timeMS)
     EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
-    if state then return end
+    if state then state.stopMS = nil; return end
     state = { startMS = timeMS, endMS = timeMS, total = 0, groupTotal = 0, targets = {},
         rawHealingTotal = 0, effectiveHealingTotal = 0,
         friendly = {}, unassigned = {},
@@ -224,12 +224,17 @@ end
 function meter:ScheduleFinish()
     EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
     if not state then return end
+    if self:ShouldFinish() then state.stopMS = state.stopMS or GetGameTimeMilliseconds() end
     local function check()
         EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
         if self:ShouldFinish() then
             self:Finish()
-        elseif state and not IsUnitInCombat("player") then
-            EVENT_MANAGER:RegisterForUpdate(RESET_UPDATE, 500, check)
+        elseif state then
+            -- A temporary combat drop must not freeze a still-running group fight.
+            state.stopMS = nil
+            if not IsUnitInCombat("player") then
+                EVENT_MANAGER:RegisterForUpdate(RESET_UPDATE, 500, check)
+            end
         end
     end
     EVENT_MANAGER:RegisterForUpdate(RESET_UPDATE, 150, check)
@@ -238,15 +243,15 @@ end
 function meter:GetStats()
     if not state then return last end
     local startMS = state.damageStartMS or state.startMS
-    local endMS = state.endMS
-    if endMS <= startMS then
-        if state.damageEvents > 0 or state.groupTotal > 0 then
-            endMS = startMS + 1000
-        else
-            endMS = GetGameTimeMilliseconds()
-        end
-    end
+    -- While the encounter is active, pauses are part of its elapsed time.
+    -- Finish stores this same calculation; never switch back to last-hit time.
+    local endMS = math.max(state.endMS, state.stopMS or GetGameTimeMilliseconds())
     local durationMS = math.max(0, endMS - startMS)
+    -- A burst of hits in the first milliseconds must not produce million-DPS estimates.
+    if state.total > 0 or state.groupTotal > 0 then durationMS = math.max(1000, durationMS) end
+    local healingDurationMS = state.healingStartMS and math.max(0, state.healingEndMS - state.healingStartMS) or 0
+    -- The rate floor protects HPS estimates, but is not elapsed time for the HUD.
+    local healingScale = state.healingStartMS and 1000 / math.max(1000, healingDurationMS) or 0
     local bossTotal, groupBossTotal
     local hasBoss = false
     for _, target in pairs(state.observedTargets) do
@@ -270,7 +275,8 @@ function meter:GetStats()
         groupBossTotal = groupBossTotal,
         groupBossDPS = durationMS >= 1 and groupBossTotal and groupBossTotal > 0 and groupBossTotal * scale or nil,
         rawHealingTotal = state.rawHealingTotal, effectiveHealingTotal = state.effectiveHealingTotal,
-        rawHPS = state.rawHealingTotal * scale, effectiveHPS = state.effectiveHealingTotal * scale,
+        rawHPS = state.rawHealingTotal * healingScale, effectiveHPS = state.effectiveHealingTotal * healingScale,
+        healingDurationMS = healingDurationMS,
     }
 end
 
@@ -316,6 +322,10 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
             overflow = tonumber(overflow) or 0
             if result == _G.ACTION_RESULT_HEAL_ABSORBED then overflow = 0 end
             if overflow < 0 or overflow ~= overflow or overflow == math.huge then return end
+            if hitValue + overflow > 0 then
+                state.healingStartMS = state.healingStartMS or timeMS
+                state.healingEndMS = timeMS
+            end
             state.rawHealingTotal = state.rawHealingTotal + hitValue + overflow
             state.effectiveHealingTotal = state.effectiveHealingTotal + hitValue
         end
@@ -326,6 +336,7 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         state.damageStartMS = math.min(state.damageStartMS or timeMS, timeMS)
     end
     if event.outgoing or (event.catchAll and state.friendly[event.id] == false) then
+        state.stopMS = nil
         state.endMS = math.max(state.endMS, timeMS)
         state.damageAtMS = timeMS
     end
@@ -343,7 +354,8 @@ function meter:Initialize(saved)
             groupTotal = tonumber(saved.groupDamageTotal), groupDPS = tonumber(saved.groupDPS),
             groupBossTotal = tonumber(saved.groupBossDamageTotal), groupBossDPS = tonumber(saved.groupBossDPS),
             rawHealingTotal = tonumber(saved.rawHealingTotal), effectiveHealingTotal = tonumber(saved.effectiveHealingTotal),
-            rawHPS = tonumber(saved.rawHPS), effectiveHPS = tonumber(saved.effectiveHPS) }
+            rawHPS = tonumber(saved.rawHPS), effectiveHPS = tonumber(saved.effectiveHPS),
+            healingDurationMS = tonumber(saved.healingDurationMS) }
     end
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamage", EVENT_COMBAT_EVENT,
         function(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, abilityId, overflow)

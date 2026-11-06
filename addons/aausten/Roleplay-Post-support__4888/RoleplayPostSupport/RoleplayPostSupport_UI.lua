@@ -6,6 +6,9 @@ A.UI = U
 
 -- Practical editor cap in codepoints, not a chat limit; no draft is saved to disk.
 local EDITOR_CAP, HISTORY_PAGE_SIZE = 1000000, 10
+local MAIN_WIDTH, MAIN_HEIGHT = 780, 678
+local MIN_SCALE, MAX_SCALE, SCALE_STEP = 0.75, 1.25, 0.05
+local mainScale, appliedScale = 1, nil
 local c = {}
 local initialized, loadingParticipants = false, false
 local tab, destinationIndex, previewPage, historyPage = "compose", 1, 1, 1
@@ -148,6 +151,59 @@ local function window(name, width, height)
     local backdrop = WINDOW_MANAGER:CreateControlFromVirtual(controlName(), item, "ZO_DefaultBackdrop")
     backdrop:SetAnchorFill(item)
     return item
+end
+
+local function finite(value)
+    return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+
+local function normalizeScale(scale)
+    if not finite(scale) then return 1 end
+    return math.floor(math.max(MIN_SCALE, math.min(MAX_SCALE, scale)) * 100 + 0.5) / 100
+end
+
+local function applyWindowScale(scale, left, top)
+    mainScale = normalizeScale(scale)
+    local width, height = GuiRoot:GetDimensions()
+    local hasScreen = finite(width) and width > 0 and finite(height) and height > 0
+    -- Fit in UI-canvas units, without applying ESO's global UI scale a second time.
+    local effective = hasScreen and math.min(mainScale, width / MAIN_WIDTH, height / MAIN_HEIGHT) or mainScale
+    if effective ~= appliedScale then
+        if appliedScale and c.destination then c.destination:HideDropdown() end
+        c.main:SetScale(effective)
+        appliedScale = effective
+    end
+    c.main:ClearAnchors()
+    local position = A.saved.window
+    if finite(left) and finite(top) then
+        if hasScreen then
+            left = math.max(0, math.min(left, width - MAIN_WIDTH * effective))
+            top = math.max(0, math.min(top, height - MAIN_HEIGHT * effective))
+        end
+        c.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, left, top)
+        position.left, position.top = left, top
+    else
+        c.main:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+        position.left, position.top = nil, nil
+    end
+    -- This preference belongs to the keyboard window, not a future gamepad UI.
+    -- Temporary fitting must not overwrite the user's preferred percentage.
+    position.scale = mainScale
+    local requested, fitted = math.floor(mainScale * 100 + 0.5), math.floor(effective * 100 + 0.5)
+    c.scaleLabel:SetText(fitted < requested and L("UI_WINDOW_SCALE_FIT", requested, fitted)
+        or L("UI_WINDOW_SCALE", requested))
+    c.scaleSmaller:SetEnabled(mainScale > MIN_SCALE)
+    c.scaleLarger:SetEnabled(mainScale < MAX_SCALE)
+    c.scaleReset:SetEnabled(mainScale ~= 1)
+end
+
+local function restoreWindowScale()
+    local position = A.saved.window
+    applyWindowScale(position.scale, position.left, position.top)
+end
+
+local function changeWindowScale(scale)
+    applyWindowScale(scale, c.main:GetLeft(), c.main:GetTop())
 end
 
 local function destination()
@@ -499,19 +555,16 @@ function U.Init()
     if not A.saved or not A.Chat or not A.Queue or not A.Sessions then
         return nil, L("UI_INIT_REQUIRES_MODULES")
     end
-    c.main = window("RoleplayPostSupportWindow", 780, 678)
-    c.main:SetHandler("OnShow", function() SetGameCameraUIMode(true) end)
-    local position = A.saved.window or {}
-    if type(position.left) == "number" and type(position.top) == "number" then
-        c.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, position.left, position.top)
-    else
-        c.main:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
-    end
-    draggable(c.main, L("UI_WINDOW_TITLE"), 780)
+    if type(A.saved.window) ~= "table" then A.saved.window = {} end
+    c.main = window("RoleplayPostSupportWindow", MAIN_WIDTH, MAIN_HEIGHT)
+    c.main:SetHandler("OnShow", function()
+        restoreWindowScale()
+        SetGameCameraUIMode(true)
+    end)
+    draggable(c.main, L("UI_WINDOW_TITLE"), MAIN_WIDTH)
     c.main:SetHandler("OnMoveStop", function(self)
         self:SetMovable(false)
-        A.saved.window = A.saved.window or {}
-        A.saved.window.left, A.saved.window.top = self:GetLeft(), self:GetTop()
+        applyWindowScale(mainScale, self:GetLeft(), self:GetTop())
     end)
     local close = control(c.main, CT_BUTTON, 740, 6, 28, 28, "ZO_CloseButton")
     close:SetHandler("OnClicked", function() c.main:SetHidden(true) end)
@@ -521,6 +574,10 @@ function U.Init()
     end)
     c.composeTab = button(c.main, L("UI_COMPOSE_TAB"), 20, 46, 140, function() changeTab("compose") end)
     c.sessionsTab = button(c.main, L("UI_SESSIONS_TAB"), 170, 46, 140, function() changeTab("sessions") end)
+    c.scaleLabel = label(c.main, "", 330, 49, 190)
+    c.scaleSmaller = button(c.main, "-", 524, 46, 36, function() changeWindowScale(mainScale - SCALE_STEP) end)
+    c.scaleLarger = button(c.main, "+", 566, 46, 36, function() changeWindowScale(mainScale + SCALE_STEP) end)
+    c.scaleReset = button(c.main, L("UI_WINDOW_SCALE_RESET"), 608, 46, 132, function() changeWindowScale(1) end)
     c.compose = control(c.main, CT_CONTROL, 20, 88, 740, 512)
     c.sessions = control(c.main, CT_CONTROL, 20, 88, 740, 512)
     c.status = label(c.main, notice, 20, 610, 740, 28)
@@ -532,6 +589,8 @@ function U.Init()
     buildSessions()
     buildIndicator()
     buildRecordingIndicator()
+    restoreWindowScale()
+    EVENT_MANAGER:RegisterForEvent(A.name .. "UI", EVENT_ALL_GUI_SCREENS_RESIZED, restoreWindowScale)
     initialized = true
     U.Refresh()
     return true

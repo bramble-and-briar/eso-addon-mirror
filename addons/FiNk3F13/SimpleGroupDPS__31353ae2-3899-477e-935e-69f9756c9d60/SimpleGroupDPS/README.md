@@ -1,5 +1,25 @@
 SimpleGroupDPS ist ein eigenstaendiges ESO-Add-on. SimpleWarhornTimer und LibCombat werden nicht benoetigt.
 
+Version 1.9.6 berechnet DPS waehrend aktiver Begegnungen laufend mit der vergangenen Kampfzeit ab dem ersten ausgehenden Treffer, auch ohne weitere Angriffe oder DoTs. Schadenspausen senken dadurch die durchschnittlichen DPS. Beim regulaeren Kampfende werden Zeit und Ergebnis eingefroren; der verzoegerte Abschlusscheck verlaengert die gespeicherte Messzeit nicht. Bei Gruppenkampf, Portalen und voruebergehenden Kampfstatuswechseln bleibt die Begegnung aktiv. Endergebnisse wechseln nicht auf eine kuerzere Letzter-Treffer-Zeit zurueck. Die separate HPS-Berechnung und Tsd.-Einheiten bleiben bestehen.
+
+Version 1.9.5 entfernt die orange/gelbe Faerbung aelterer Werte und den Hinweis darunter. Zahlen bleiben weiss, der eigene Name gold. Gruppenmitglieder ohne empfangene Messwerte werden nicht mehr als Platzhalter angezeigt, auch nicht in Move UI. Empfangene echte Nullwerte bleiben sichtbar; Datenalter und Ablauf werden intern weiter verwaltet.
+
+Version 1.9.4 zeigt bei vorhandenem Schaden im Heilungsbereich dieselbe Kampfzeit wie bei der DD-Rolle. Weiterlaufende Heilung verlaengert diesen Anzeigetimer nicht; HPS behalten ihre unabhaengige Zeitbasis. Bei reinen Heilungskaempfen zeigt der Timer die tatsaechliche Heilungsdauer ab 0:00 statt der Mindestzeit fuer HPS. Keine Puppenanbindung.
+
+Version 1.9.3 zeigt neben Heilung (HPS) die eigene gemessene Heilungszeit, wenn keine Schadenszeile sichtbar ist, zum Beispiel solo als Heiler. Ganze Minuten und Sekunden ohne Nachkommastelle; der Timer bleibt nach Kampfende mit dem Heilungsergebnis erhalten.
+
+Version 1.9.2 entfernt Fotomodus, Test-DD, simulierte Bosswerte und saemtliche zugehoerigen Menueoptionen und Uebersetzungen. PhotoMode.lua sowie die beiden zugehoerigen Testdateien sind entfernt. Echte Messung und normale Menuevorschau bleiben erhalten.
+
+Version 1.9.1 simuliert im Test-DD-Modus ohne echten Boss den eigenen gemessenen Schaden zusaetzlich als Boss-Schaden. So laesst sich solo auch als Heiler die Boss-/Gesamtsumme pruefen. Heilung wird nicht hinzugefuegt. Nur eine lokale Anzeigekopie; reale Boss-Erkennung, gespeicherte Ergebnisse und Versand bleiben unveraendert.
+
+Version 1.9.0 zeigt den lokalen Test-DD in der Boss-/Gesamtansicht: 20.000 Boss-DPS (30.000 Gesamt-DPS). Echte eigene Bosswerte bleiben erhalten; ohne Bossdaten zeigt die Testvorschau fuer den eigenen Anteil 0 Boss-DPS. Der Test veraendert weder reale Boss-Erkennung noch Messung oder Versand.
+
+Version 1.8.9 ergaenzt Test-DD anzeigen unter Allgemein: TestDD mit festen 30.000 DPS neben den eigenen echten Messwerten. Beispielschaden wird ausschliesslich der lokalen HUD-Vorschau hinzugefuegt, niemals dem Meter, Versand oder gespeicherten Ergebnis. So kann solo geprueft werden, dass weiteres Heilen die Schadenssumme nicht erhoeht. Nicht gespeichert; Fotomodus und Test-DD schliessen sich aus.
+
+Version 1.8.8 trennt HPS von der Schadenszeit. Effektive und gesamte Heilung werden durch die Zeit zwischen erster und letzter eigener Heilung geteilt, mindestens eine Sekunde. Weitere Angriffe veraendern diese HPS-Zeit nicht. Die gemessene Heilungsdauer wird mit dem Ergebnis gespeichert. Auch sehr kurze Schadenssalven verwenden mindestens eine Sekunde, damit Millisekunden-Abstaende keine Millionen-DPS erzeugen. Keine Aenderung an der Bedeutung von effektiv und Gesamt-Heilung.
+
+Version 1.8.7 zeigt bei fehlenden DPS- oder HPS-Werten im HUD nur 0 statt eines Hinweises auf fehlende Daten. Intern bleiben unbekannte Werte unbekannt; keine erfundenen Empfangspakete oder Aenderungen an Messung und Summen.
+
 Version 1.8.6 entfernt die Nachkommastelle im HUD-Timer. Anzeige wieder Minuten:Sekunden, ohne Aufrunden; Messzeit und DPS behalten volle Genauigkeit.
 
 Version 1.8.5 startet die Schadenszeit beim ersten ausgehenden Treffer statt beim davorliegenden Kampfstatus. Eingehende und verbuendete Treffer sowie ungeklaerte Drittziele verlaengern die Messzeit nicht mehr. Erst spaeter als feindlich bestaetigter Drittschaden uebernimmt seine urspruenglichen Zeitstempel. HUD und DPS verwenden dieselbe unabhaengige Zeitbasis fuer alle Ziele. Keine Puppenanbindung. Bei nur einem Treffer bleibt die bisherige Ein-Sekunden-Schaetzung bestehen; Gleichheit mit anderen Messverfahren ist dadurch nicht garantiert.

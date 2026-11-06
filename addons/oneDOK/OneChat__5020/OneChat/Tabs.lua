@@ -41,6 +41,7 @@ function A:SnapshotTabs()
         for index, window in ipairs(container.windows) do
             if not window.combatLog then
                 local state = self:GetTabState(container, window)
+                if self.PruneChatHistory then self:PruneChatHistory(state, GetTimeStamp()) end
                 state.name = container:GetTabName(index)
                 records[index] = state
             end

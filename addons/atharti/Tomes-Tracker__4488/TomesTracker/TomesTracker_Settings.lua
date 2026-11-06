@@ -3,8 +3,6 @@ local TT = TomesTracker
 function TT.RegisterLAMPanel()
 	local LAM = LibAddonMenu2
 
-	TT.SV = TT.SV or {}
-
 	local optionsData = {
 		{
 			type = "header",
@@ -19,7 +17,6 @@ function TT.RegisterLAMPanel()
 				TT.SV.HideCompleted = value
 				TT.RefreshTasksPositions()
 			end,
-			default = false,
 		},
 		{
 			type = "checkbox",
@@ -29,7 +26,6 @@ function TT.RegisterLAMPanel()
 			setFunc = function(value)
 				TT.SV.chatUpdates = value
 			end,
-			default = true,
 		},
 		{
 			type = "checkbox",
@@ -40,7 +36,6 @@ function TT.RegisterLAMPanel()
 				TT.SV.hideRerollsZero = value
 				TT.UpdateCurrency()
 			end,
-			default = false,
 		},
 		{
 			type = "slider",
@@ -51,13 +46,12 @@ function TT.RegisterLAMPanel()
 			step = 0.1,
 			decimals = 1,
 			getFunc = function()
-				return TT.SV.panelOpacity or 0.8
+				return TT.SV.panelOpacity
 			end,
 			setFunc = function(value)
 				TT.SV.panelOpacity = value
 				TT.RefreshPanel()
 			end,
-			default = 0.8,
 		},
 		{
 			type = "slider",
@@ -68,13 +62,12 @@ function TT.RegisterLAMPanel()
 			step = 0.05,
 			decimals = 2,
 			getFunc = function()
-				return TT.SV.uiScale or 1.0
+				return TT.SV.uiScale
 			end,
 			setFunc = function(value)
 				TT.SV.uiScale = value
 				TT.RefreshPanel()
 			end,
-			default = 1.0,
 		},
 		{
 			type = "checkbox",
@@ -84,7 +77,6 @@ function TT.RegisterLAMPanel()
 			setFunc = function(value)
 				TT.SV.hideInCombat = value
 			end,
-			default = false,
 			requiresReload = true,
 		},
 
@@ -96,7 +88,6 @@ function TT.RegisterLAMPanel()
 		displayName = "|cFFD700Tomes Tracker|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	LAM:RegisterAddonPanel("TomesTrackerPanel", panelData)

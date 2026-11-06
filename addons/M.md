@@ -60,6 +60,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Marker__3684) | akamatsu02 | PC / Mac | 3.16 |
 | [MarkPledges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/MarkPledges__2261) | KLISK | PC / Mac | 1.0.5 |
 | [Martial Knowledge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/Martial-Knowledge-Tracker__2680) | Skvysh | PC / Mac | 1.7.1 |
+| [Mascot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Mascot__5d143529-b075-433f-b9b6-c5e28e44497a) | Bucketmore | Console | — |
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Waboku/Masquerade__1679) | Waboku | PC / Mac | 001-100018 |
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Masquerade__1514) | Werewolf Finds Dragon | PC / Mac | 010-100022 |
 | [Mass Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ahmetertem/Mass-Deconstructor__1118) | ahmetertem | PC / Mac | 7.3 |
@@ -152,7 +153,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Motif Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Motif-Tracker__e816c8fb-9db6-4e60-a241-6bee24b8f1b0) | Eldibabalo | Console | — |
 | [MotifHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MefBezTufel/MotifHelper__3193) | MefBezTufel | PC / Mac | 0.0.2 |
 | [Mount Shuffle - Random Favorite Mount per Character](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/Mount-Shuffle---Random-Favorite-Mount-per-Character__66e37433-eec7-410c-8d64-001233195f18) | -Chin | Console | — |
-| [MountSwap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/MountSwap__5025) | ShadowStrikerr | PC / Mac | 0.8.9 |
+| [MountSwap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/MountSwap__5025) | ShadowStrikerr | PC / Mac | 0.8.11 |
 | [MountTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/L_cky/MountTracker__4362) | L_cky | PC / Mac | 0.3.0 |
 | [Mousoboros](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Mousoboros__4742) | Masteroshi430 | PC / Mac | 2026.08.07 |
 | [Movable Addon Memory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Movable-Addon-Memory__acf1ef04-4ec0-400b-86c6-98b7dd9d2f72) | M0R | Console | — |

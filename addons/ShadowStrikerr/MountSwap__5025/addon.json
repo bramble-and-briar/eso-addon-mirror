@@ -18,7 +18,7 @@
     "MountSwap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5025/",
-  "fingerprint": "a158b672e1fbc81b95cfae6de33e82ee9095be066f705ffec10459b4236d7e3c",
+  "fingerprint": "3b3dc1e798acf47483e9b59362f8ef2e92e6da42539cb325b40671bf1aa973c7",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18333.png",
     "https://cdn-eso.mmoui.com/preview/pvw18327.png",
@@ -34,11 +34,11 @@
   "source_id": "5025",
   "source_url": "https://www.esoui.com/downloads/info5025-MountSwap.html",
   "stats": {
-    "downloads": 5,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 16,
+    "favorites": 2,
+    "monthly_downloads": 10
   },
   "title": "MountSwap",
-  "updated_at": 1793847783000,
-  "version": "0.8.9"
+  "updated_at": 1793924226000,
+  "version": "0.8.11"
 }

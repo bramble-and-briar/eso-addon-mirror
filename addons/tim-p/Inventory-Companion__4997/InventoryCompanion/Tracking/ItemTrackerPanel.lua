@@ -19,8 +19,8 @@ local function GetRowsChild()
 end
 
 local function OnTrackerMoveStop(control)
-    this.accountWide.trackerOffsetX = control:GetLeft()
-    this.accountWide.trackerOffsetY = control:GetTop()
+    this.GetSettingsProfile().trackerOffsetX = control:GetLeft()
+    this.GetSettingsProfile().trackerOffsetY = control:GetTop()
 end
 
 local function OnTrackerMouseUp(control, button)
@@ -28,22 +28,22 @@ local function OnTrackerMouseUp(control, button)
         ClearMenu()
 
         -- 1. Toggle: Show/Hide Empty Tracked Items
-        local showEmpty = (this.accountWide.showEmptyTrackedItems ~= false)
+        local showEmpty = (this.GetSettingsProfile().showEmptyTrackedItems ~= false)
         AddCustomMenuItem(
             (showEmpty and "Hide Empty Tracked Items" or "Show Empty Tracked Items"),
             function()
-                this.accountWide.showEmptyTrackedItems = not showEmpty
+                this.GetSettingsProfile().showEmptyTrackedItems = not showEmpty
                 this.RefreshItemTrackerPanel()
             end,
             MENU_ADD_OPTION_LABEL
         )
 
         -- 2. Toggle: Multiline / Single Line View
-        local isWrapped = (this.accountWide.wrapTrackedItemNames == true)
+        local isWrapped = (this.GetSettingsProfile().wrapTrackedItemNames == true)
         AddCustomMenuItem(
             (isWrapped and "Single Line View" or "Multiline View"),
             function()
-                this.accountWide.wrapTrackedItemNames = not isWrapped
+                this.GetSettingsProfile().wrapTrackedItemNames = not isWrapped
                 this.RefreshItemTrackerPanel()
             end,
             MENU_ADD_OPTION_LABEL
@@ -51,7 +51,7 @@ local function OnTrackerMouseUp(control, button)
 
         -- 3. Open Full Settings Editor
         AddCustomMenuItem(
-            "Open Tracked Items Editor...",
+            "Manage Tracking...",
             function()
                 this.ToggleTrackedItemsEditor()
             end,
@@ -64,7 +64,7 @@ end
 
 function this.InitItemTrackerPanel()
     InventoryCompanion_ItemTrackerFloat:ClearAnchors()
-    InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, this.accountWide.trackerOffsetX, this.accountWide.trackerOffsetY)
+    InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, this.GetSettingsProfile().trackerOffsetX, this.GetSettingsProfile().trackerOffsetY)
     InventoryCompanion_ItemTrackerFloat:SetHandler("OnMoveStop", OnTrackerMoveStop)
     InventoryCompanion_ItemTrackerFloat:SetHandler("OnMouseUp", OnTrackerMouseUp)
 
@@ -147,11 +147,21 @@ end
 
 local function GetCountText(item)
     if item.isEmpty then return "" end
-    local text = this.Utils.FormatBigNumber(item.count)
+    local counts = {}
     if item.showBank then
-        text = (item.bankCount and this.Utils.FormatBigNumber(item.bankCount) or "err") .. " \\ " .. text
+        counts[#counts + 1] = "|t16:16:EsoUI/Art/Tooltips/icon_bank.dds|t "
+            .. this.Utils.FormatBigNumber(item.bankCount - item.count)
     end
-    return text
+    if item.showBackpack ~= false then
+        counts[#counts + 1] = "|t16:16:EsoUI/Art/Tooltips/icon_bag.dds|t "
+            .. this.Utils.FormatBigNumber(item.count)
+    end
+    return table.concat(counts, "  ")
+end
+
+local function EstimateCountWidth(text)
+    local visibleText = text:gsub("|t16:16:[^|]+|t", "  ")
+    return #visibleText * COUNT_WIDTH_PER_CHARACTER
 end
 
 local function PopulateBaseRow(rowIndex, itemData, wrapped)
@@ -257,7 +267,7 @@ local function CalculateMaxCountWidth(computedRows)
         entry.countCtrl:SetWidth(0)
         local width = entry.countCtrl:GetTextWidth()
         if entry.countText ~= "" then
-            width = math.max(width, MIN_COUNT_WIDTH, #entry.countText * COUNT_WIDTH_PER_CHARACTER)
+            width = math.max(width, MIN_COUNT_WIDTH, EstimateCountWidth(entry.countText))
         end
         if width > maxWidth then
             maxWidth = width
@@ -304,8 +314,9 @@ local function MeasureWrappedRows(items)
     local maxCountWidth, maxIndent = 0, 22
     count:SetWidth(0)
     for _, item in ipairs(items) do
-        count:SetText(GetCountText(item))
-        maxCountWidth = math.max(maxCountWidth, count:GetTextWidth())
+        local text = GetCountText(item)
+        count:SetText(text)
+        maxCountWidth = math.max(maxCountWidth, count:GetTextWidth(), EstimateCountWidth(text))
         maxIndent = math.max(maxIndent, item.isGroup and 44 or (item.isGroupMember and 40 or 22))
     end
     local width = math.max(50, ROW_WIDTH - maxIndent - maxCountWidth - 12)
@@ -345,6 +356,7 @@ local function CollectSortedGroupNames(activeRules, snapshot)
             if itemIds and #itemIds > 0 then
                 if ruleName ~= "miscellaneous" then table.insert(sortedGroupNames, ruleName) end
             end
+
         end
     end
     table.sort(sortedGroupNames)
@@ -357,6 +369,18 @@ local function CollectSortedGroupNames(activeRules, snapshot)
     return sortedGroupNames
 end
 
+local function GetItemLocations(ruleName, display, snapshot, itemId)
+    local backpack, bank = display.showBackpack, display.showBank
+    if ruleName == "miscellaneous" and snapshot.itemShowBank[itemId] ~= nil then
+        backpack, bank = snapshot.itemShowBackpack[itemId], snapshot.itemShowBank[itemId]
+    end
+    return backpack, bank
+end
+
+local function GetRelevantCount(item, backpack, bank)
+    return (backpack and item.bagCount or 0) + (bank and (item.bankCount - item.bagCount) or 0)
+end
+
 local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, showEmpty, itemsToDisplay)
     for _, ruleName in ipairs(sortedGroupNames) do
         local ruleData = activeRules[ruleName]
@@ -367,23 +391,18 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
         local highestQuality = -1
         local bestIcon = nil
         local bestLink = ""
-        local showBank = ruleData.display.bank == true
+        local showBank = ruleData.display.showBank
+        local showBackpack = ruleData.display.showBackpack ~= false
 
         if itemIds then
             for _, itemId in ipairs(itemIds) do
                 local itemData = snapshot.items[itemId]
-                local itemShowBank = showBank
-                if ruleName == "miscellaneous" and snapshot.itemShowBank and snapshot.itemShowBank[itemId] ~= nil then
-                    itemShowBank = snapshot.itemShowBank[itemId]
-                end
-
-                local hasRelevantStock = itemShowBank and ((itemData.bagCount + itemData.bankCount) > 0) or (itemData.bagCount > 0)
+                local itemShowBackpack, itemShowBank = GetItemLocations(ruleName, ruleData.display, snapshot, itemId)
+                local hasRelevantStock = GetRelevantCount(itemData, itemShowBackpack, itemShowBank) > 0
                 
                 if itemData and hasRelevantStock then
-                    totalGroupCount = totalGroupCount + itemData.bagCount
-                    if itemShowBank then
-                        totalGroupBankCount = totalGroupBankCount + itemData.bankCount
-                    end
+                    totalGroupCount = totalGroupCount + (itemShowBackpack and itemData.bagCount or 0)
+                    totalGroupBankCount = totalGroupBankCount + GetRelevantCount(itemData, itemShowBackpack, itemShowBank)
 
                     if not bestIcon and itemData.icon and itemData.icon ~= "" then
                         bestIcon = itemData.icon
@@ -410,14 +429,14 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
 		
         local effectiveGroupBankActive = showBank
         if ruleName == "miscellaneous" and itemIds then
+            showBackpack = false
+            effectiveGroupBankActive = false
             for _, itemId in ipairs(itemIds) do
-                if snapshot.itemShowBank and snapshot.itemShowBank[itemId] then
-                    effectiveGroupBankActive = true
-                    break
-                end
+                showBackpack = showBackpack or snapshot.itemShowBackpack[itemId]
+                effectiveGroupBankActive = effectiveGroupBankActive or snapshot.itemShowBank[itemId]
             end
         end
-        local relevantCount = effectiveGroupBankActive and (totalGroupCount + totalGroupBankCount) or totalGroupCount
+        local relevantCount = totalGroupBankCount
 
         if relevantCount > 0 or showEmpty then
             local colorDef = GetItemQualityColor(math.max(0, highestQuality))
@@ -428,7 +447,8 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
             local groupHeader = {
                 link = displayName,
                 icon = bestIcon,
-                count = totalGroupCount,
+                count = showBackpack and totalGroupCount or 0,
+                showBackpack = showBackpack,
                 showBank = effectiveGroupBankActive,
                 bankCount = effectiveGroupBankActive and totalGroupBankCount or 0,
                 sortName = groupTitle,
@@ -445,12 +465,9 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
                 for _, itemId in ipairs(itemIds) do
                     local itemData = snapshot.items[itemId]
                     if itemData then
-                        local itemShowBank = showBank
-                        if ruleName == "miscellaneous" and snapshot.itemShowBank and snapshot.itemShowBank[itemId] ~= nil then
-                            itemShowBank = snapshot.itemShowBank[itemId]
-                        end
+                        local itemShowBackpack, itemShowBank = GetItemLocations(ruleName, ruleData.display, snapshot, itemId)
 
-                        local memberRelCount = itemShowBank and ((itemData.bagCount + itemData.bankCount) > 0) or (itemData.bagCount > 0)
+                        local memberRelCount = GetRelevantCount(itemData, itemShowBackpack, itemShowBank) > 0
                         if memberRelCount or showEmpty then
                             memberCount = memberCount + 1
                             if memberCount <= MAX_GROUP_ITEM_ROWS then
@@ -458,6 +475,7 @@ local function ProcessGroupsAndMembers(sortedGroupNames, activeRules, snapshot, 
                                     link = itemData.link,
                                     icon = itemData.icon,
                                     count = itemData.bagCount,
+                                    showBackpack = itemShowBackpack,
                                     showBank = itemShowBank,
                                     bankCount = itemData.bankCount,
                                     sortName = GetItemLinkName(itemData.link) or "",
@@ -507,17 +525,15 @@ local function CollectAllVisibleItems(snapshot, activeRules, trackedItems, showE
                 for _, itemId in ipairs(itemIds) do
                     local itemData = snapshot.items[itemId]
                     if itemData and not seenVisibleIds[itemId] then
-                        local showBank = ruleData.display.bank == true
-                        if ruleName == "miscellaneous" and snapshot.itemShowBank and snapshot.itemShowBank[itemId] ~= nil then
-                            showBank = snapshot.itemShowBank[itemId]
-                        end
-                        local relevantCount = showBank and (itemData.bagCount + itemData.bankCount) or itemData.bagCount
+                        local showBackpack, showBank = GetItemLocations(ruleName, ruleData.display, snapshot, itemId)
+                        local relevantCount = GetRelevantCount(itemData, showBackpack, showBank)
                         if relevantCount > 0 or showEmpty then
                             seenVisibleIds[itemId] = true
                             table.insert(allVisibleItems, {
                                 link = itemData.link,
                                 icon = itemData.icon,
                                 count = itemData.bagCount,
+                                showBackpack = showBackpack,
                                 showBank = showBank,
                                 bankCount = itemData.bankCount,
                                 sortName = GetItemLinkName(itemData.link) or "",
@@ -532,11 +548,12 @@ local function CollectAllVisibleItems(snapshot, activeRules, trackedItems, showE
     if trackedItems then
         for itemId, data in pairs(trackedItems) do
             local itemData = snapshot.items[itemId]
-            if itemData and data.display and data.display.show and not seenVisibleIds[itemId] then
+            local display = this.ResolveItemDisplay(data.display)
+            if itemData and display.show and not seenVisibleIds[itemId] then
                 local bagCount = itemData.bagCount or 0
                 local bankCount = itemData.bankCount or 0
-                local showBank = data.display.bank == true
-                local relevantCount = showBank and (bagCount + bankCount) or bagCount
+                local showBank = display.showBank
+                local relevantCount = GetRelevantCount(itemData, display.showBackpack, showBank)
 
                 if relevantCount > 0 or showEmpty then
                     seenVisibleIds[itemId] = true
@@ -544,6 +561,7 @@ local function CollectAllVisibleItems(snapshot, activeRules, trackedItems, showE
                         link = itemData.link,
                         icon = itemData.icon,
                         count = bagCount,
+                        showBackpack = display.showBackpack,
                         showBank = showBank,
                         bankCount = bankCount,
                         sortName = GetItemLinkName(itemData.link) or "",
@@ -559,6 +577,7 @@ end
 local function FoldSingleMemberAndUngroupedIntoMisc(snapshot, activeRules, trackedItems, processedItemIds)
     snapshot.ruleIndex["miscellaneous"] = {}
     snapshot.itemShowBank = {}
+    snapshot.itemShowBackpack = {}
 
     for ruleName, ruleData in pairs(activeRules) do
         if ruleName ~= "miscellaneous" and ruleData.display and not ruleData.display.group and ruleData.display.show then
@@ -569,7 +588,8 @@ local function FoldSingleMemberAndUngroupedIntoMisc(snapshot, activeRules, track
                     if itemData and not processedItemIds[itemId] then
                         processedItemIds[itemId] = true
                         table.insert(snapshot.ruleIndex["miscellaneous"], itemId)
-                        snapshot.itemShowBank[itemId] = ruleData.display.bank == true
+                        snapshot.itemShowBank[itemId] = ruleData.display.showBank
+                        snapshot.itemShowBackpack[itemId] = ruleData.display.showBackpack ~= false
                     end
                 end
             end
@@ -579,10 +599,12 @@ local function FoldSingleMemberAndUngroupedIntoMisc(snapshot, activeRules, track
     if trackedItems then
         for itemId, data in pairs(trackedItems) do
             local itemData = snapshot.items[itemId]
-            if not processedItemIds[itemId] and data.display and data.display.show then
+            local display = this.ResolveItemDisplay(data.display)
+            if not processedItemIds[itemId] and display.show then
                 processedItemIds[itemId] = true
                 table.insert(snapshot.ruleIndex["miscellaneous"], itemId)
-                snapshot.itemShowBank[itemId] = data.display.bank == true
+                snapshot.itemShowBank[itemId] = display.showBank
+                snapshot.itemShowBackpack[itemId] = display.showBackpack
             end
         end
     end
@@ -596,7 +618,8 @@ local function FoldSingleMemberAndUngroupedIntoMisc(snapshot, activeRules, track
                     if itemData and not processedItemIds[itemId] then
                         processedItemIds[itemId] = true
                         table.insert(snapshot.ruleIndex["miscellaneous"], itemId)
-                        snapshot.itemShowBank[itemId] = ruleData.display.bank == true
+                        snapshot.itemShowBank[itemId] = ruleData.display.showBank
+                        snapshot.itemShowBackpack[itemId] = ruleData.display.showBackpack ~= false
                     end
                 end
                 snapshot.ruleIndex[ruleName] = nil
@@ -611,10 +634,11 @@ local function FoldSingleMemberAndUngroupedIntoMisc(snapshot, activeRules, track
 end
 
 local function BuildDisplayList(snapshot, activeRules, trackedItems, showEmpty)
+    snapshot.itemShowBank, snapshot.itemShowBackpack = {}, {}
     local seenVisibleIds = {}
     local allVisibleItems = CollectAllVisibleItems(snapshot, activeRules, trackedItems, showEmpty, seenVisibleIds)
 
-    local threshold = (this.accountWide and this.accountWide.trackerGroupThreshold) or 8
+    local threshold = (this.accountWide and this.GetSettingsProfile().trackerGroupThreshold) or 8
     if #allVisibleItems < threshold then
         table.sort(allVisibleItems, function(a, b) return a.sortName < b.sortName end)
         return allVisibleItems
@@ -631,8 +655,8 @@ local function BuildDisplayList(snapshot, activeRules, trackedItems, showEmpty)
 end
 
 local function RuleSignature(rule)
-    local parts = { tostring(rule.display.show), tostring(rule.display.bank),
-        tostring(rule.display.group), tostring(rule.display.isHidden) }
+    local parts = { tostring(rule.display.show), tostring(rule.display.showBank),
+        tostring(rule.display.group), tostring(rule.display.isHidden), tostring(rule.display.showBackpack) }
     for _, pattern in ipairs(rule.patterns) do
         parts[#parts + 1] = #pattern .. ":" .. pattern
     end
@@ -655,7 +679,7 @@ local function BuildLayoutModel(items, rules)
             group.members[item.itemId] = true
             group.memberCount = group.memberCount + 1
             group.signatureParts[#group.signatureParts + 1] = tostring(item.itemId) .. ":" .. tostring(item.showBank)
-                .. ":" .. tostring(item.overflowCount)
+                .. ":" .. tostring(item.showBackpack) .. ":" .. tostring(item.overflowCount)
         end
         if not item.isGroupMember then
             model.baseRows = model.baseRows + 1
@@ -950,15 +974,15 @@ end
 local function GetTrackerCoordinates()
     local oldLeft = InventoryCompanion_ItemTrackerFloat:GetLeft()
     local oldTop = InventoryCompanion_ItemTrackerFloat:GetTop()
-    if not oldLeft or oldLeft <= 0 then oldLeft = this.accountWide.trackerOffsetX or 50 end
-    if not oldTop or oldTop <= 0 then oldTop = this.accountWide.trackerOffsetY or 50 end
+    if not oldLeft or oldLeft <= 0 then oldLeft = this.GetSettingsProfile().trackerOffsetX or 50 end
+    if not oldTop or oldTop <= 0 then oldTop = this.GetSettingsProfile().trackerOffsetY or 50 end
     return oldLeft, oldTop
 end
 
 local function GetTrackerDisplayList()
     local trackedItems = this.GetActiveTrackedItems()
     local activeRules = this.GetActiveTrackedRules()
-    local showEmpty = this.accountWide.showEmptyTrackedItems ~= false
+    local showEmpty = this.GetSettingsProfile().showEmptyTrackedItems ~= false
 
     local bagIdList = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
     if IsESOPlusSubscriber() then
@@ -988,22 +1012,22 @@ end
 
 function this.SetItemTrackerPanelVisible(visible)
     assert(type(visible) == "boolean", "Tracker visibility must be a boolean")
-    this.accountWide.showTrackedItemsPanel = visible
+    this.GetSettingsProfile().showTrackedItemsPanel = visible
     this.UpdateEventRegistry()
     this.RefreshItemTrackerPanel()
 end
 
 function this.ToggleItemTrackerPanel()
-    this.SetItemTrackerPanelVisible(this.accountWide.showTrackedItemsPanel == false)
+    this.SetItemTrackerPanelVisible(this.GetSettingsProfile().showTrackedItemsPanel == false)
 end
 
 function this.RefreshItemTrackerPanel(reason, targetGroup)
-    local titleSize = this.accountWide.trackerTitleSize
+    local titleSize = this.GetSettingsProfile().trackerTitleSize
     InventoryCompanion_ItemTrackerFloatTitle:SetFont(string.format("%s|%d|soft-shadow-thin",
         ZoFontGame:GetFontInfo(), titleSize))
     InventoryCompanion_ItemTrackerFloatEditIcon:SetDimensions(titleSize, titleSize)
     InventoryCompanion_ItemTrackerFloatSettingsIcon:SetDimensions(titleSize, titleSize)
-    if this.accountWide.showTrackedItemsPanel == false then
+    if this.GetSettingsProfile().showTrackedItemsPanel == false then
         InventoryCompanion_ItemTrackerFloat:SetHidden(true)
         return
     end
@@ -1022,14 +1046,14 @@ function this.RefreshItemTrackerPanel(reason, targetGroup)
         items = { { link = "|c888888No tracked items in backpack|r", count = 0,
             icon = "EsoUI/Art/Buttons/edit_up.dds", isEmpty = true } }
     end
-    local budget = math.min(this.accountWide.trackerMaxRows,
+    local budget = math.min(this.GetSettingsProfile().trackerMaxRows,
         math.max(1, math.floor((GuiRoot:GetHeight() - InventoryCompanion_ItemTrackerFloatTitle:GetHeight() - 12) / 24)))
     local model = BuildLayoutModel(items, rules)
     -- Single-line row totals are a lower bound: an overflowing selection cannot fit wrapped.
     local expanded, collapsed = ChooseLayout(model, previousLayout, reason, targetGroup, budget)
     local selected = SelectRows(model, expanded)
     local wrapped = false
-    if this.accountWide.wrapTrackedItemNames == true and not collapsed and #selected <= budget then
+    if this.GetSettingsProfile().wrapTrackedItemNames == true and not collapsed and #selected <= budget then
         MeasureWrappedRows(selected)
         local units = 0
         for _, item in ipairs(selected) do units = units + item.rowUnits end

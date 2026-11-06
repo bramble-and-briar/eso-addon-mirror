@@ -19,9 +19,452 @@ local KNOWN_BANK_NAMES = {
     [BAG_HOUSE_BANK_TEN]   = "House Bank",
 }
 
+local GUILD_BANK_WITHDRAW_TIMEOUT_MS = 10000
+local GUILD_BANK_PARTIAL_DEPOSIT_TIMEOUT_MS = 10000
+local GUILD_BANK_PARTIAL_DEPOSIT_POLL_MS = 100
+local guildBankPartialWithdrawal = nil
+local guildBankPartialWithdrawalSequence = 0
+local guildBankPartialDeposit = nil
+
+local function ExecuteGuildBankAction(functionName, ...)
+    if IsProtectedFunction(functionName) then
+        local succeeded, failure = CallSecureProtected(functionName, ...)
+        if not succeeded then return false, failure end
+    else
+        _G[functionName](...)
+    end
+    return true
+end
+
+local function PlaceCursorInBagSlot(bagId, slotIndex)
+    local placed, failure = CallSecureProtected("PlaceInInventory", bagId, slotIndex)
+    if not placed then
+        return false, "PlaceInInventory failed: " .. tostring(failure)
+    end
+    return true
+end
+
+local function SplitBackpackStackForGuildBankDeposit(sourceSlot, amount)
+    local sourceCount = select(2, GetItemInfo(BAG_BACKPACK, sourceSlot))
+    local keepInBackpack = sourceCount - amount
+    if keepInBackpack <= 0 then return true end
+
+    local cursorReturnSlot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+    if not cursorReturnSlot then
+        return false, string.format("You need one free slot to deposit %d to a guild bank.", amount)
+    end
+
+    local pickedUp, pickupFailure =
+        CallSecureProtected("PickupInventoryItem", BAG_BACKPACK, sourceSlot, keepInBackpack)
+    if not pickedUp then
+        return false, "PickupInventoryItem failed: " .. tostring(pickupFailure)
+    end
+
+    local returned, returnFailure = PlaceCursorInBagSlot(BAG_BACKPACK, cursorReturnSlot)
+    if not returned then
+        return false, returnFailure .. ". The remainder may still be on your cursor."
+    end
+    return true
+end
+
 ------------------------------------------------------------------
 -- 2. Local Transfer Execution Helpers
 ------------------------------------------------------------------
+local function GetItemCountsById(bagId, itemId)
+    local counts = {}
+    for slotIndex = 0, GetBagSize(bagId) - 1 do
+        if GetItemId(bagId, slotIndex) == itemId then
+            counts[slotIndex] = select(2, GetItemInfo(bagId, slotIndex))
+        end
+    end
+    return counts
+end
+
+local function GetTotalItemCountById(bagId, itemId)
+    local totalCount = 0
+    for _, count in pairs(GetItemCountsById(bagId, itemId)) do
+        totalCount = totalCount + count
+    end
+    return totalCount
+end
+
+local function CompleteGuildBankPartialDeposit(operation, succeeded, failure)
+    if guildBankPartialDeposit ~= operation then return end
+    guildBankPartialDeposit = nil
+    operation.onComplete(succeeded, failure, operation)
+end
+
+local function PollGuildBankPartialDeposit(operation)
+    if guildBankPartialDeposit ~= operation then return end
+    if not IsGuildBankOpen() or GetSelectedGuildBankId() ~= operation.guildId then
+        CompleteGuildBankPartialDeposit(operation, false,
+            "The guild bank closed or changed before the split was confirmed; no transfer was started.")
+        return
+    end
+
+    local sourceItemId = GetItemId(BAG_BACKPACK, operation.sourceSlot)
+    local sourceCount = select(2, GetItemInfo(BAG_BACKPACK, operation.sourceSlot))
+    local totalCount = GetTotalItemCountById(BAG_BACKPACK, operation.itemId)
+    if sourceItemId == operation.itemId and sourceCount == operation.amount
+        and totalCount == operation.initialItemCount then
+        local transferStarted, transferFailure =
+            ExecuteGuildBankAction("TransferToGuildBank", BAG_BACKPACK, operation.sourceSlot)
+        if not transferStarted then
+            CompleteGuildBankPartialDeposit(operation, false,
+                "TransferToGuildBank failed: " .. tostring(transferFailure))
+            return
+        end
+
+        CompleteGuildBankPartialDeposit(operation, true)
+        return
+    end
+
+    zo_callLater(function()
+        PollGuildBankPartialDeposit(operation)
+    end, GUILD_BANK_PARTIAL_DEPOSIT_POLL_MS)
+end
+
+local function TimeoutGuildBankPartialDeposit(operation)
+    if guildBankPartialDeposit ~= operation then return end
+    local sourceItemId = GetItemId(BAG_BACKPACK, operation.sourceSlot)
+    local sourceCount = select(2, GetItemInfo(BAG_BACKPACK, operation.sourceSlot))
+    local totalCount = GetTotalItemCountById(BAG_BACKPACK, operation.itemId)
+    CompleteGuildBankPartialDeposit(operation, false, string.format(
+        "The split did not settle within %d ms (source slot %d has item ID %s and count %s; expected item ID %d and count %d; backpack total is %d of %d); no guild-bank transfer was started.",
+        GUILD_BANK_PARTIAL_DEPOSIT_TIMEOUT_MS, operation.sourceSlot, tostring(sourceItemId),
+        tostring(sourceCount), operation.itemId, operation.amount, totalCount, operation.initialItemCount))
+end
+
+local BeginGuildBankPartialDeposit
+
+BeginGuildBankPartialDeposit = function(sourceSlot, amount, sourceCount, onComplete)
+    if guildBankPartialDeposit then
+        return false, "A guild-bank partial deposit is already in progress."
+    end
+    if not this.CanUseGuildBankPartialDeposits() then
+        return false, "Guild-bank partial deposits require guild-bank deposit access."
+    end
+
+    local itemLink = GetItemLink(BAG_BACKPACK, sourceSlot)
+    local itemId = GetItemId(BAG_BACKPACK, sourceSlot)
+    local currentCount = select(2, GetItemInfo(BAG_BACKPACK, sourceSlot))
+    if not itemLink or itemLink == "" or not itemId or itemId <= 0 or currentCount ~= sourceCount
+        or amount < 1 or amount > sourceCount then
+        return false, "The backpack stack changed before the partial guild-bank deposit could start."
+    end
+    if GetNumBagFreeSlots(BAG_GUILDBANK) == 0 or IsItemStolen(BAG_BACKPACK, sourceSlot) then
+        return false, "The guild bank has no free slot or this item cannot be deposited."
+    end
+
+    local operation = {
+        guildId = GetSelectedGuildBankId(),
+        itemLink = itemLink,
+        itemId = itemId,
+        sourceSlot = sourceSlot,
+        amount = amount,
+        initialItemCount = GetTotalItemCountById(BAG_BACKPACK, itemId),
+        onComplete = onComplete,
+    }
+    guildBankPartialDeposit = operation
+
+    local split, splitFailure = SplitBackpackStackForGuildBankDeposit(sourceSlot, amount)
+    if not split then
+        guildBankPartialDeposit = nil
+        return false, splitFailure
+    end
+
+    zo_callLater(function()
+        PollGuildBankPartialDeposit(operation)
+    end, GUILD_BANK_PARTIAL_DEPOSIT_POLL_MS)
+    zo_callLater(function()
+        TimeoutGuildBankPartialDeposit(operation)
+    end, GUILD_BANK_PARTIAL_DEPOSIT_TIMEOUT_MS)
+    return true
+end
+
+local function UnregisterGuildBankPartialWithdrawalEvent(operation)
+    if operation.eventId then
+        EVENT_MANAGER:UnregisterForEvent(operation.eventId, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+        operation.eventId = nil
+    end
+end
+
+local function FinishGuildBankPartialWithdrawal(operation, message, isError)
+    if guildBankPartialWithdrawal ~= operation then return end
+    UnregisterGuildBankPartialWithdrawalEvent(operation)
+    guildBankPartialWithdrawal = nil
+    if message then
+        if isError then
+            this.Utils.UserError(message, message)
+        else
+            this.Utils.UserMessage(message, message)
+        end
+    end
+end
+
+local function FailGuildBankPartialWithdrawal(operation, message)
+    FinishGuildBankPartialWithdrawal(operation, message, true)
+end
+
+local function ReportGuildBankTransferFailure(operation, functionName, failure, context)
+    FinishGuildBankPartialWithdrawal(operation)
+    local message = string.format("%s failed: %s. %s",
+        functionName, tostring(failure), context)
+    this.Utils.UserError(message, message)
+end
+
+local function ProcessGuildBankPartialWithdrawal(operation, planIndex)
+    if guildBankPartialWithdrawal ~= operation then return end
+    if not IsGuildBankOpen() or GetSelectedGuildBankId() ~= operation.guildId then
+        FailGuildBankPartialWithdrawal(operation,
+            "Guild-bank partial withdrawal stopped before the remainder was returned. Check your backpack and guild bank.")
+        return
+    end
+
+    local plan = operation.returnPlans[planIndex]
+    if not plan then
+        FinishGuildBankPartialWithdrawal(operation,
+            string.format("Withdrew x%d %s from the guild bank.", operation.requestedAmount, operation.itemLink), false)
+        return
+    end
+
+    local currentItemId = GetItemId(BAG_BACKPACK, plan.slotIndex)
+    local currentCount = select(2, GetItemInfo(BAG_BACKPACK, plan.slotIndex))
+    if currentItemId ~= operation.itemId or not currentCount or currentCount < plan.amount then
+        FailGuildBankPartialWithdrawal(operation,
+            "Guild-bank partial withdrawal could not safely return the remainder. Check your backpack and guild bank.")
+        return
+    end
+
+    if GetNumBagFreeSlots(BAG_GUILDBANK) == 0 or IsItemStolen(BAG_BACKPACK, plan.slotIndex) then
+        FailGuildBankPartialWithdrawal(operation,
+            "Guild-bank partial withdrawal could not return the remainder. Check your guild-bank space and item eligibility.")
+        return
+    end
+
+    local depositStarted, failure = BeginGuildBankPartialDeposit(
+        plan.slotIndex, plan.amount, currentCount,
+        function(succeeded, depositFailure)
+            if not succeeded then
+                ReportGuildBankTransferFailure(operation, "partial guild-bank deposit", depositFailure,
+                    "Check your backpack and guild bank before trying again.")
+                return
+            end
+
+            local delay = this.accountWide.bankItemDelay
+            zo_callLater(function()
+                ProcessGuildBankPartialWithdrawal(operation, planIndex + 1)
+            end, delay)
+        end)
+    if not depositStarted then
+        ReportGuildBankTransferFailure(operation, "partial guild-bank deposit", failure,
+            "Check your backpack and guild bank before trying again.")
+    end
+end
+
+local function BuildGuildBankPartialWithdrawalPlan(operation)
+    local currentCounts = GetItemCountsById(BAG_BACKPACK, operation.itemId)
+    local remainingStack = operation.sourceCount
+    local remainingToKeep = operation.requestedAmount
+    local returnPlans = {}
+
+    for slotIndex = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        local currentCount = currentCounts[slotIndex]
+        if currentCount then
+            local addedCount = math.max(currentCount - (operation.beforeCounts[slotIndex] or 0), 0)
+            local attributableCount = math.min(addedCount, remainingStack)
+            local keepCount = math.min(attributableCount, remainingToKeep)
+            local returnCount = attributableCount - keepCount
+            if returnCount > 0 then
+                table.insert(returnPlans, { slotIndex = slotIndex, amount = returnCount })
+            end
+            remainingStack = remainingStack - attributableCount
+            remainingToKeep = remainingToKeep - keepCount
+        end
+    end
+
+    if remainingStack > 0 or remainingToKeep > 0 then
+        return nil
+    end
+    return returnPlans
+end
+
+local function GetGuildBankPartialWithdrawalAddedCount(operation)
+    local currentCounts = GetItemCountsById(BAG_BACKPACK, operation.itemId)
+    local addedCount = 0
+    for slotIndex, currentCount in pairs(currentCounts) do
+        addedCount = addedCount + math.max(currentCount - (operation.beforeCounts[slotIndex] or 0), 0)
+    end
+    return addedCount
+end
+
+local function OnGuildBankPartialWithdrawalInventoryUpdate(operation, _, bagId)
+    if guildBankPartialWithdrawal ~= operation or not operation.waitingForWithdrawal or bagId ~= BAG_BACKPACK then return end
+    local addedCount = GetGuildBankPartialWithdrawalAddedCount(operation)
+    if addedCount < operation.sourceCount then return end
+
+    operation.waitingForWithdrawal = false
+    operation.returnPlans = BuildGuildBankPartialWithdrawalPlan(operation)
+    if not operation.returnPlans then
+        FailGuildBankPartialWithdrawal(operation,
+            "Guild-bank partial withdrawal could not identify the withdrawn stack safely. Check your backpack and guild bank.")
+        return
+    end
+
+    UnregisterGuildBankPartialWithdrawalEvent(operation)
+    zo_callLater(function()
+        ProcessGuildBankPartialWithdrawal(operation, 1)
+    end, this.accountWide.bankItemDelay)
+end
+
+local function PollGuildBankPartialWithdrawal(operation)
+    if guildBankPartialWithdrawal ~= operation or not operation.waitingForWithdrawal then return end
+    OnGuildBankPartialWithdrawalInventoryUpdate(operation, nil, BAG_BACKPACK)
+    if operation.waitingForWithdrawal then
+        zo_callLater(function()
+            PollGuildBankPartialWithdrawal(operation)
+        end, 100)
+    end
+end
+
+function this.CanUseGuildBankPartialWithdrawals()
+    if not this.accountWide.guildBankPartialWithdrawEnabled or not IsGuildBankOpen() then return false end
+    local guildId = GetSelectedGuildBankId()
+    return guildId ~= nil
+        and DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_WITHDRAW)
+        and DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_DEPOSIT)
+        and DoesGuildHavePrivilege(guildId, GUILD_PRIVILEGE_BANK_DEPOSIT)
+end
+
+function this.CanUseGuildBankPartialDeposits()
+    if not IsGuildBankOpen() then return false end
+    local guildId = GetSelectedGuildBankId()
+    return guildId ~= nil
+        and DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_DEPOSIT)
+        and DoesGuildHavePrivilege(guildId, GUILD_PRIVILEGE_BANK_DEPOSIT)
+end
+
+function this.DepositGuildBankPartial(sourceSlot, amount, sourceCount)
+    if guildBankPartialDeposit then
+        this.Utils.UserWarning("A guild-bank partial deposit is already in progress.")
+        return
+    end
+    if guildBankPartialWithdrawal then
+        this.Utils.UserWarning("A guild-bank partial withdrawal is already in progress.")
+        return
+    end
+    if not this.CanUseGuildBankPartialDeposits() then
+        this.Utils.UserError("Guild-bank partial deposits require guild-bank deposit access.")
+        return
+    end
+
+    local itemLink = GetItemLink(BAG_BACKPACK, sourceSlot)
+    local itemId = GetItemId(BAG_BACKPACK, sourceSlot)
+    local currentCount = select(2, GetItemInfo(BAG_BACKPACK, sourceSlot))
+    if not itemLink or itemLink == "" or not itemId or itemId <= 0 or currentCount ~= sourceCount
+        or amount < 1 or amount >= sourceCount then
+        this.Utils.UserError("The backpack stack changed before the partial guild-bank deposit could start.")
+        return
+    end
+    if not FindFirstEmptySlotInBag(BAG_BACKPACK) then
+        this.Utils.UserError(string.format("You need one free slot to deposit %d to a guild bank.", amount))
+        return
+    end
+    if GetNumBagFreeSlots(BAG_GUILDBANK) == 0 or IsItemStolen(BAG_BACKPACK, sourceSlot) then
+        this.Utils.UserError("The guild bank has no free slot or this item cannot be deposited.")
+        return
+    end
+
+    local started, failure = BeginGuildBankPartialDeposit(sourceSlot, amount, sourceCount,
+        function(succeeded, depositFailure, operation)
+            if not succeeded then
+                local message = string.format("Partial guild-bank deposit failed: %s. Check your cursor, backpack, and guild bank.",
+                    tostring(depositFailure))
+                this.Utils.UserError(message, message)
+                return
+            end
+
+            local message = string.format("Depositing x%d %s to Guild Bank", operation.amount, operation.itemLink)
+            this.Utils.UserMessage(message, message)
+        end)
+    if not started then
+        local message = string.format("Partial guild-bank deposit failed: %s. Check your cursor, backpack, and guild bank.",
+            tostring(failure))
+        this.Utils.UserError(message, message)
+    end
+end
+
+function this.WithdrawGuildBankPartial(sourceSlot, requestedAmount, sourceCount)
+    if guildBankPartialWithdrawal then
+        this.Utils.UserWarning("A guild-bank partial withdrawal is already in progress.")
+        return
+    end
+    if guildBankPartialDeposit then
+        this.Utils.UserWarning("A guild-bank partial deposit is already in progress.")
+        return
+    end
+    if not this.CanUseGuildBankPartialWithdrawals() then
+        this.Utils.UserError("Guild-bank partial withdrawal requires guild-bank withdrawal and deposit access.")
+        return
+    end
+
+    local itemLink = GetItemLink(BAG_GUILDBANK, sourceSlot)
+    local itemId = GetItemId(BAG_GUILDBANK, sourceSlot)
+    local currentCount = select(2, GetItemInfo(BAG_GUILDBANK, sourceSlot))
+    if not itemLink or itemLink == "" or not itemId or itemId <= 0 or currentCount ~= sourceCount
+        or requestedAmount < 1 or requestedAmount >= sourceCount then
+        this.Utils.UserError("The guild-bank stack changed before the partial withdrawal could start.")
+        return
+    end
+    if GetNumBagFreeSlots(BAG_BACKPACK) < 2 then
+        this.Utils.UserError(string.format(
+            "You need at least 2 slots free to withdraw %d from a guild bank.", sourceCount))
+        return
+    end
+    if not DoesBagHaveSpaceFor(BAG_BACKPACK, BAG_GUILDBANK, sourceSlot) then
+        this.Utils.UserError("There is not enough backpack space to withdraw the guild-bank stack.")
+        return
+    end
+
+    guildBankPartialWithdrawalSequence = guildBankPartialWithdrawalSequence + 1
+    local operation = {
+        guildId = GetSelectedGuildBankId(),
+        itemLink = itemLink,
+        itemId = itemId,
+        sourceCount = sourceCount,
+        requestedAmount = requestedAmount,
+        beforeCounts = GetItemCountsById(BAG_BACKPACK, itemId),
+        eventId = string.format("%s_GuildBankPartial_%d", this.Name, guildBankPartialWithdrawalSequence),
+        waitingForWithdrawal = true,
+    }
+    guildBankPartialWithdrawal = operation
+    EVENT_MANAGER:RegisterForEvent(operation.eventId, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+        function(eventCode, bagId)
+            OnGuildBankPartialWithdrawalInventoryUpdate(operation, eventCode, bagId)
+        end)
+
+    zo_callLater(function()
+        if guildBankPartialWithdrawal == operation and operation.waitingForWithdrawal then
+            local addedCount = GetGuildBankPartialWithdrawalAddedCount(operation)
+            FinishGuildBankPartialWithdrawal(operation)
+            local message = string.format(
+                "Guild-bank partial withdrawal timed out; detected %d of %d withdrawn items in the backpack.",
+                addedCount, operation.sourceCount)
+            this.Utils.UserError(message, message)
+        end
+    end, GUILD_BANK_WITHDRAW_TIMEOUT_MS)
+
+    local transferStarted, transferFailure = ExecuteGuildBankAction("TransferFromGuildBank", sourceSlot)
+    if not transferStarted then
+        ReportGuildBankTransferFailure(operation, "TransferFromGuildBank", transferFailure,
+            "Check your backpack and guild bank before trying again.")
+        return
+    end
+    zo_callLater(function()
+        PollGuildBankPartialWithdrawal(operation)
+    end, 100)
+end
+
 local function ExecuteTransferInstruction(instruction)
     local amount = instruction.amount or select(2, GetItemInfo(instruction.sourceBag, instruction.sourceSlot))
     if not amount or amount <= 0 then return false end
@@ -350,4 +793,3 @@ function this.TransferContextItem(sourceBag, sourceSlot, amount)
     CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, targetBag, targetSlot, amount)
     PlaySound(SOUNDS.DIALOG_ACCEPT)
 end
-

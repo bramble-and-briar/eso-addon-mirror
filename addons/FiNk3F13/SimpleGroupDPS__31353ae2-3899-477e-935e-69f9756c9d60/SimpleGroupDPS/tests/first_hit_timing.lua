@@ -20,13 +20,13 @@ for _, targetType in ipairs({7,8}) do
         'Start at first hit: 7.3s and 1100.5 DPS, rather than 7.9s and 1016.9 DPS')
     clock = 9500
     meter:OnDamage(1,false,8,'Player',1,500,99,10)
-    assert(meter:GetStats().durationMS == 7300, 'Incoming damage does not extend outgoing DPS')
+    assert(meter:GetStats().durationMS == 7900 and meter:GetStats().total == stats.total, 'Elapsed time advances without counting incoming damage')
     clock = 10000
     meter:OnDamage(1,false,1,'Friend',4,500,20,99)
-    assert(meter:GetStats().durationMS == 7300, 'Friendly damage does not extend outgoing DPS')
+    assert(meter:GetStats().durationMS == 8400 and meter:GetStats().total == stats.total, 'Elapsed time advances without counting friendly damage')
     clock = 12000
     meter:Finish()
-    assert(meter:GetStats().durationMS == 7300 and math.abs(meter:GetStats().dps-1100.5) < 0.000001,
+    assert(meter:GetStats().durationMS == 10400 and math.abs(meter:GetStats().dps-8033650/10400) < 0.000001,
         'Same measured clock and DPS before and after combat exit')
 end
 print('PASS: screenshot reproduction, first outgoing hit clock, incoming/friendly exclusion and stable final DPS')

@@ -88,6 +88,9 @@ local strings = {
     UI_UNKNOWN_TIME = "Heure inconnue",
     UI_VERSION = "Version %s",
     UI_WHISPER_TARGET = "Destinataire",
+    UI_WINDOW_SCALE = "Zoom : %d%%",
+    UI_WINDOW_SCALE_FIT = "Zoom : %d%% (ajusté %d%%)",
+    UI_WINDOW_SCALE_RESET = "Taille par défaut",
     UI_WINDOW_TITLE = "Assistance aux messages de roleplay",
 
     -- Core

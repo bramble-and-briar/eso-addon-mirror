@@ -4,7 +4,8 @@ M.translations={en={}}
 function M:LanguageCode()
     if self.activeLanguage then return self.activeLanguage end
     local chosen=self.saved and self.saved.language or 'auto'
-    local code=chosen=='auto' and (GetCVar and GetCVar('Language.2') or 'en') or chosen
+    local code = chosen
+    if chosen == 'auto' then code = GetCVar('Language.2') end
     if type(code)~='string' then return 'en' end
     code=string.lower(code)
     if code=='jp' then code='ja' end

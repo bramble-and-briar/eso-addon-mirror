@@ -44,10 +44,11 @@ end
 
 local function ShouldListenSlotUpdate()
     local showMeters   = this.HasVisibleProgressBars()
-    local showTracker  = this.accountWide.showTrackedItemsPanel ~= false
+    local showTracker  = this.GetSettingsProfile().showTrackedItemsPanel ~= false
     local showCapacity = this.HasVisibleCapacityResources()
 
     return showMeters or showTracker or showCapacity or this.HasCapacityNotifications()
+        or this.HasTrackedItemNotifications()
 end
 
 local function ShouldListenCurrencyUpdates()
@@ -83,7 +84,7 @@ local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, ite
         this.NotifyLiveCapacityChanges(nil, eventKind, stackCountChange)
     end
 
-    if this.accountWide.showTrackedItemsPanel ~= false then
+    if this.GetSettingsProfile().showTrackedItemsPanel ~= false then
         Enqueue("RefreshItemTracker", function()
             this.RefreshItemTrackerPanel("inventory")
         end, 500)
@@ -223,14 +224,12 @@ function this.InitCutsceneTicker()
     EVENT_MANAGER:RegisterForUpdate(this.Name .. "_HideCheck", 100, function()
         if ZO_CompassFrame then
             local inCutscene = ZO_CompassFrame:IsHidden()
-            local isItemEditorOpen = InventoryCompanion_TrackedItemsWindow and (not InventoryCompanion_TrackedItemsWindow:IsHidden())
-            local isGroupEditorOpen = InventoryCompanion_GroupsWindow and (not InventoryCompanion_GroupsWindow:IsHidden())
-            local isEditorOpen = isItemEditorOpen or isGroupEditorOpen
+            local isEditorOpen = this.IsEditorWindowOpen()
         
             local isInteractionOpen = this.Utils.IsItemInteractionActive()
 
             if InventoryCompanion_ItemTrackerFloat then
-                local showTracked = (this.accountWide.showTrackedItemsPanel ~= false)
+                local showTracked = (this.GetSettingsProfile().showTrackedItemsPanel ~= false)
                 local shouldShowTracker = showTracked and (not inCutscene or isEditorOpen or isInteractionOpen)
                 InventoryCompanion_ItemTrackerFloat:SetHidden(not shouldShowTracker)
 

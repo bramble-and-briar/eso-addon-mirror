@@ -18,12 +18,13 @@
     "ALT"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4613/",
-  "fingerprint": "ffe5a36c209b15d66960b24d9039d72032cb7cf8e2fbd1c1d376de095c231714",
+  "fingerprint": "c4c22dfe83daa2525febfbe1d8b76b393472224f887038fe013f8401a3c6811c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16693.png",
     "https://cdn-eso.mmoui.com/preview/pvw17344.png",
     "https://cdn-eso.mmoui.com/preview/pvw16362.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16366.png"
+    "https://cdn-eso.mmoui.com/preview/pvw16366.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18345.png"
   ],
   "platform": "pc",
   "published": true,
@@ -31,11 +32,11 @@
   "source_id": "4613",
   "source_url": "https://www.esoui.com/downloads/info4613-ALTAddonLoadingTimes.html",
   "stats": {
-    "downloads": 1195,
+    "downloads": 1428,
     "favorites": 7,
-    "monthly_downloads": 191
+    "monthly_downloads": 323
   },
   "title": "ALT \u2014 Addon Loading Times",
-  "updated_at": 1792156869000,
-  "version": "2.0"
+  "updated_at": 1793889563000,
+  "version": "2.1"
 }

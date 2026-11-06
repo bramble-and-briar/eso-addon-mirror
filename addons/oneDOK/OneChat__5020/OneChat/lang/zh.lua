@@ -33,6 +33,12 @@ local strings = {
     SI_ONECHAT_LANGUAGE_BUTTON = "显示游戏语言按钮",
     SI_ONECHAT_LANGUAGE_TOOLTIP = "更改游戏语言（将重新加载界面）",
     SI_ONECHAT_BUTTONS_SECTION = "按钮",
+    SI_ONECHAT_NOTIFICATIONS_SECTION = "通知",
+    SI_ONECHAT_HIDE_PLAYER_STATUS = "隐藏上线和下线消息",
+    SI_ONECHAT_HIDE_PLAYER_STATUS_HINT = "隐藏好友上线或下线时的聊天通知。立即对新消息生效。",
+    SI_ONECHAT_CUSTOM_MESSAGE = "自定义消息样式",
+    SI_ONECHAT_MESSAGE_TEMPLATE = "消息模板",
+    SI_ONECHAT_MESSAGE_TEMPLATE_HINT = "{name}：可点击的发送者；{time}：HH:MM；{guild}：公会全名（非公会频道为空）；{message}：消息；{character}：角色名；{account}：账号名；{channel}：频道。其他文字、未知变量和换行原样显示。仅应用于新的玩家消息。启用后禁用标准格式设置。",
 }
 for id, text in pairs(strings) do
     SafeAddString(_G[id], text, 1)

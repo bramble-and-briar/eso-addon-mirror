@@ -33,6 +33,12 @@ local strings = {
     SI_ONECHAT_LANGUAGE_BUTTON = "Sprachauswahl anzeigen",
     SI_ONECHAT_LANGUAGE_TOOLTIP = "Spielsprache ändern (lädt die Oberfläche neu)",
     SI_ONECHAT_BUTTONS_SECTION = "Schaltflächen",
+    SI_ONECHAT_NOTIFICATIONS_SECTION = "Benachrichtigungen",
+    SI_ONECHAT_HIDE_PLAYER_STATUS = "An- und Abmeldungen ausblenden",
+    SI_ONECHAT_HIDE_PLAYER_STATUS_HINT = "Chatmeldungen zur An- und Abmeldung von Freunden ausblenden. Gilt sofort für neue Nachrichten.",
+    SI_ONECHAT_CUSTOM_MESSAGE = "Eigenes Nachrichtenlayout",
+    SI_ONECHAT_MESSAGE_TEMPLATE = "Nachrichtenvorlage",
+    SI_ONECHAT_MESSAGE_TEMPLATE_HINT = "{name}: anklickbarer Absender; {time}: HH:MM; {guild}: voller Gildenname (außerhalb des Gildenchats leer); {message}: Nachricht; {character}: Charakter; {account}: Konto; {channel}: Kanal. Anderer Text, unbekannte Platzhalter und Zeilenumbrüche bleiben erhalten. Gilt für neue Spielernachrichten. Standardformatierung ist dabei deaktiviert.",
 }
 for id, text in pairs(strings) do
     SafeAddString(_G[id], text, 1)

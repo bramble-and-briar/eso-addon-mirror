@@ -33,6 +33,12 @@ local strings = {
     SI_ONECHAT_LANGUAGE_BUTTON = "Afficher le bouton de langue",
     SI_ONECHAT_LANGUAGE_TOOLTIP = "Changer la langue du jeu (recharge l’interface)",
     SI_ONECHAT_BUTTONS_SECTION = "Boutons",
+    SI_ONECHAT_NOTIFICATIONS_SECTION = "Notifications de connexion",
+    SI_ONECHAT_HIDE_PLAYER_STATUS = "Masquer les connexions et déconnexions",
+    SI_ONECHAT_HIDE_PLAYER_STATUS_HINT = "Masquer les notifications de connexion et de déconnexion des amis dans le chat. Effet immédiat sur les nouveaux messages.",
+    SI_ONECHAT_CUSTOM_MESSAGE = "Présentation personnalisée des messages",
+    SI_ONECHAT_MESSAGE_TEMPLATE = "Modèle de message",
+    SI_ONECHAT_MESSAGE_TEMPLATE_HINT = "{name} : expéditeur cliquable ; {time} : HH:MM ; {guild} : nom complet de guilde (vide hors du canal de guilde) ; {message} : texte ; {character} : personnage ; {account} : compte ; {channel} : canal. Les autres caractères, variables inconnues et sauts de ligne sont conservés. Pour les nouveaux messages de joueurs. Désactive la mise en forme standard.",
 }
 for id, text in pairs(strings) do
     SafeAddString(_G[id], text, 1)

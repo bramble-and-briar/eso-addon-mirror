@@ -59,7 +59,6 @@ function M:ControllerFont()
 end
 
 function M:GamepadBinding(action)
-    if not GetHighestPriorityActionBindingInfoFromName then return M.L('[Unavailable]') end
     local key,m1,m2,m3,m4=GetHighestPriorityActionBindingInfoFromName(action,true)
     local function render(code)
         if not code or code==0 or code==KEY_INVALID then return end
@@ -154,13 +153,13 @@ function M:SyncGamepad()
     self.syncingGamepad=true
     local root=self:GamepadRoot()
     local focus=WINDOW_MANAGER.GetFocusControl and WINDOW_MANAGER:GetFocusControl()
-    local active=root and not self.navigationSuspended and IsInGamepadPreferredMode and IsInGamepadPreferredMode()
-        and not self.editingControl and not focus and PushActionLayerByName and RemoveActionLayerByName
+    local active=root and not self.navigationSuspended and IsInGamepadPreferredMode()
+        and not self.editingControl and not focus
     if active then
-        if not self.gamepadLayerActive or (IsActionLayerActiveByName and not IsActionLayerActiveByName(LAYER)) then
+        if not self.gamepadLayerActive or not IsActionLayerActiveByName(LAYER) then
             PushActionLayerByName(LAYER)
         end
-        self.gamepadLayerActive=not IsActionLayerActiveByName or IsActionLayerActiveByName(LAYER)
+        self.gamepadLayerActive=IsActionLayerActiveByName(LAYER)
         active=self.gamepadLayerActive
         local candidates=self:GamepadCandidates(root)
         local current
@@ -173,7 +172,7 @@ function M:SyncGamepad()
         self.gamepadRoot=root
         self:GamepadFocus(current or candidates[1])
     else
-        if self.gamepadLayerActive and RemoveActionLayerByName then RemoveActionLayerByName(LAYER) end
+        if self.gamepadLayerActive then RemoveActionLayerByName(LAYER) end
         self.gamepadLayerActive=false; self.gamepadRoot=nil; self:GamepadFocus(nil)
     end
     self:SyncDirectionalInput(active and root)
@@ -214,7 +213,7 @@ function M:UpdateDirectionalInput()
     trace.updates=(trace.updates or 0)+1
     local focus=WINDOW_MANAGER.GetFocusControl and WINDOW_MANAGER:GetFocusControl()
     if focus or self.editingControl or not IsInGamepadPreferredMode() then self:SyncGamepad();return end
-    if IsActionLayerTopLayerByName and not IsActionLayerTopLayerByName(LAYER) then
+    if not IsActionLayerTopLayerByName(LAYER) then
         trace.blockedByTop=(trace.blockedByTop or 0)+1
         return
     end
@@ -230,9 +229,9 @@ end
 function M:ControllerDiagnostics()
     local root=self:GamepadRoot()
     local name=root and root.GetName and root:GetName() or tostring(root)
-    local active=IsActionLayerActiveByName and IsActionLayerActiveByName(LAYER)
-    local top=IsActionLayerTopLayerByName and IsActionLayerTopLayerByName(LAYER)
-    local key=GetHighestPriorityActionBindingInfoFromName and GetHighestPriorityActionBindingInfoFromName('MOUNTSWAP_GP_DOWN',true)
+    local active=IsActionLayerActiveByName(LAYER)
+    local top=IsActionLayerTopLayerByName(LAYER)
+    local key=GetHighestPriorityActionBindingInfoFromName('MOUNTSWAP_GP_DOWN',true)
     local trace=self.controllerInputTrace or {}
     return string.format('Controller diagnostic | root=%s | targets=%d | candidates=%d | layer=%s | top=%s | directional=%s | down-key=%s | last-action=%s | stick-updates=%s | blocked-top=%s | stick-h=%s | stick-v=%s',
         tostring(name),#(self.gamepadTargets or {}),#self:GamepadCandidates(root),tostring(active),tostring(top),tostring(self.directionalRoot~=nil),tostring(key),

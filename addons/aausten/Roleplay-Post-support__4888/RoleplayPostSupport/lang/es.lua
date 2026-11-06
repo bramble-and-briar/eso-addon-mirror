@@ -89,6 +89,9 @@ local strings = {
     UI_UNKNOWN_TIME = "Hora desconocida",
     UI_VERSION = "Versión %s",
     UI_WHISPER_TARGET = "Susurro a:",
+    UI_WINDOW_SCALE = "Escala: %d%%",
+    UI_WINDOW_SCALE_FIT = "Escala: %d%% (aj. %d%%)",
+    UI_WINDOW_SCALE_RESET = "Restablecer tamaño",
     UI_WINDOW_TITLE = "Roleplay Post Support",
 
     -- Core

@@ -33,6 +33,12 @@ local strings = {
     SI_ONECHAT_LANGUAGE_BUTTON = "Показывать кнопку выбора языка",
     SI_ONECHAT_LANGUAGE_TOOLTIP = "Сменить язык игры (интерфейс перезагрузится)",
     SI_ONECHAT_BUTTONS_SECTION = "Кнопки",
+    SI_ONECHAT_NOTIFICATIONS_SECTION = "Уведомления",
+    SI_ONECHAT_HIDE_PLAYER_STATUS = "Скрывать сообщения о входе и выходе",
+    SI_ONECHAT_HIDE_PLAYER_STATUS_HINT = "Скрывать в чате уведомления о входе друзей в игру и выходе из неё. Применяется сразу к новым сообщениям.",
+    SI_ONECHAT_CUSTOM_MESSAGE = "Кастомный вид сообщения",
+    SI_ONECHAT_MESSAGE_TEMPLATE = "Шаблон сообщения",
+    SI_ONECHAT_MESSAGE_TEMPLATE_HINT = "{name} — кликабельный отправитель; {time} — ЧЧ:ММ; {guild} — полное название гильдии (пусто вне гильдейского чата); {message} — текст сообщения; {character} — имя персонажа; {account} — имя аккаунта; {channel} — канал. Остальной текст, неизвестные переменные и переносы строк отображаются как введены. Применяется к новым сообщениям игроков. Обычные настройки оформления при этом отключены.",
 }
 for id, text in pairs(strings) do
     SafeAddString(_G[id], text, 1)

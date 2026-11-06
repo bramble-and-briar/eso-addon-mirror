@@ -2,6 +2,7 @@ OneChat = {}
 local A = OneChat
 A.name = "OneChat"
 A.schema = 2
+A.defaultMessageTemplate = "[{time}] {guild} {name} >\n{message}"
 A.windows = setmetatable({}, { __mode = "k" })
 
 function A:Notify(id)
@@ -28,7 +29,8 @@ end
 
 function A:InitializeSavedVariables()
     self.sv = ZO_SavedVars:NewAccountWide("OneChatSavedVariables", 1, nil, {
-        schema = 1, timestamps = true, newline = false,
+        schema = 1, timestamps = true, newline = false, hidePlayerStatus = false,
+        customMessage = false, messageTemplate = self.defaultMessageTemplate,
         abbreviations = {}, toolbar = { home = true, reload = true, language = true },
     }, GetWorldName())
     self.character = ZO_SavedVars:NewCharacterIdSettings("OneChatSavedVariables", 1, "Tabs", {
@@ -43,8 +45,9 @@ end
 
 -- Strip presentation markup for the copy dialog; never strip links in chat.
 function A:PlainText(text)
+    text = text:gsub("||", "\1")
     text = text:gsub("|H[^|]*|h(.-)|h", "%1")
     text = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
     text = text:gsub("|t.-|t", ""):gsub("|u.-|u", "")
-    return text
+    return (text:gsub("\1", "|"))
 end

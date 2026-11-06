@@ -1,10 +1,15 @@
--- HideResearchIcon
+-- HideResearchableIcon
+-- Hides the "can be researched" magnifier icon by filtering it at the icon lookup level.
+-- Returning nil is safe: ZO_MultiIcon:AddIcon(nil) is a no-op, so no icon is shown.
+-- No item data is modified, so research warnings and other addons keep working.
+-- Other trait icons (ornate / intricate / retraited / reconstructed) are untouched.
 
-HideResearchIcon = HideResearchIcon or {}
-local HRI = HideResearchIcon
+HideResearchableIcon = HideResearchableIcon or {}
+local HRI = HideResearchableIcon
 
-HRI.name = "HideResearchIcon"
-HRI.version = "1.1.1"
+-- must match the addon folder / manifest name exactly (EVENT_ADD_ON_LOADED passes the folder name)
+HRI.name = "HideResearchableIcon"
+HRI.version = "1.1.2"
 
 local function Initialize()
     local origTraitIcon = ZO_GetPlatformTraitInformationIcon

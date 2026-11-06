@@ -44,8 +44,8 @@ heal(2, 1, 4, 0, 200) -- pure overheal still contributes to raw HPS
 clock = 9000
 stats = meter:GetStats()
 assert(stats.rawHealingTotal == 2000 and stats.effectiveHealingTotal == 850)
-assert(stats.durationMS == 1000 and stats.dps == 1000 and stats.groupTotal == 1000,
-    "Healing cannot advance the existing damage clock or contaminate damage sums")
+assert(stats.durationMS == 7000 and math.abs(stats.dps - 1000000 / 7000) < 0.000001 and stats.groupTotal == 1000,
+    "Elapsed combat time advances DPS while healing remains separate from damage totals")
 meter:Finish()
 clock = 15000
 assert(meter:GetStats().rawHPS == 2000 and meter:GetStats().effectiveHPS == 850,

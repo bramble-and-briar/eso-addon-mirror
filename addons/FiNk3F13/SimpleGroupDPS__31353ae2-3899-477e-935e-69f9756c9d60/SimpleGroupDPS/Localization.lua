@@ -2,8 +2,6 @@
 SimpleGroupDPS_Language = { english = GetCVar ~= nil and GetCVar("language.2") == "en" }
 local language = SimpleGroupDPS_Language
 local english = {
-    ["Fotomodus"] = "Photo mode",
-    ["Zeigt 12 Fake-Spieler mit Beispielwerten für Screenshots. Wird nicht gespeichert und bei Kampfbeginn beendet. Die Werte werden nicht übertragen."] = "Shows 12 fictional players with sample values for screenshots. Not saved; ends when combat starts. Sample values are never shared.",
     ["HPS-Protokoll 431 konnte nicht aktiviert werden."] = "Could not activate HPS protocol 431.",
     ["DPS-Protokoll 430 konnte nicht aktiviert werden."] = "Could not activate DPS protocol 430.",
     ["DPS-Protokoll 430 konnte nicht registriert werden (moeglicherweise bereits belegt)."] = "Could not register DPS protocol 430 (it may already be in use).",
@@ -46,13 +44,10 @@ local english = {
     ["SimpleGroupDPS: mit Maus oder rechtem Stick verschieben\nSpeichert nach 3 Sekunden ohne Bewegung"] = "SimpleGroupDPS: move with the mouse or right stick\nSaves after 3 seconds without movement",
     ["Dein Schaden · Gruppenanteil"] = "Your Damage · Group Share",
     ["(Gesamt: "] = "(Total: ",
-    ["Keine HPS-Daten"] = "No HPS data",
-    ["Keine DPS-Daten"] = "No DPS data",
     ["Boss-Schaden (Gesamtschaden)"] = "Boss Damage (Total Damage)",
     ["Gesamtschaden"] = "Total Damage",
     ["Heilung (HPS)"] = "Healing (HPS)",
     ["Summe"] = "Total",
-    ["Gelb: Wert älter als 15 s"] = "Yellow: value older than 15 s",
     ["Ja"] = "Yes",
     ["Nein"] = "No",
     ["noch keiner"] = "none yet",

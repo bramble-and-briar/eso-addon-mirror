@@ -1,5 +1,18 @@
 <GuiXml>
     <Controls>
+        <Control name="InventoryCompanion_PatternExclusionDivider_Template" virtual="true">
+            <Dimensions x="490" y="28" />
+            <Controls>
+                <Texture name="$(parent)Line" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
+                    <Dimensions x="490" y="4" />
+                    <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetY="-1" />
+                </Texture>
+                <Label name="$(parent)Label" font="ZoFontGameSmall" color="CC7777" text="Exclusions">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="4" offsetY="0" />
+                </Label>
+            </Controls>
+        </Control>
+
         <!-- Group List Row Template -->
         <Control name="InventoryCompanion_GroupRow_Template" virtual="true" mouseEnabled="true">
             <Dimensions x="260" y="32" />
@@ -14,21 +27,29 @@
             </Controls>
         </Control>
 
-        <!-- Pattern Edit Row Template (EditBox + Delete Button) -->
+        <!-- Pattern Edit Row Template (kind status + EditBox + kind toggle + Delete) -->
         <Control name="InventoryCompanion_PatternEditRow_Template" virtual="true">
             <Dimensions x="490" y="32" />
             <Controls>
+                <Texture name="$(parent)LblKind" textureFile="EsoUI/Art/Bank/bank_tabicon_deposit_up.dds" mouseEnabled="true" color="33CC66">
+                    <Dimensions x="25" y="25" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                </Texture>
                 <EditBox name="$(parent)Edit" font="ZoFontWinT1" editEnabled="true" maxInputCharacters="64" multiLine="false" newLineEnabled="false" inherits="ZO_DefaultEditForBackdrop" tier="LOW" layer="CONTROLS" level="5">
-                    <Dimensions x="430" y="30"/>
-                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="5" offsetY="0" />
+                    <Dimensions x="330" y="30"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)LblKind" relativePoint="RIGHT" offsetX="8" offsetY="0" />
                     <Controls>
                         <Backdrop name="$(parent)Bg" inherits="ZO_EditBackdrop" alpha="1">
                             <AnchorFill />
                         </Backdrop>
                     </Controls>
                 </EditBox>
+                <Button name="$(parent)BtnKind" mouseEnabled="true">
+                    <Dimensions x="32" y="30" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Edit" relativePoint="RIGHT" offsetX="4" offsetY="0" />
+                </Button>
                 <Button name="$(parent)BtnDelete" inherits="ZO_CloseButton">
-                    <Anchor point="LEFT" relativeTo="$(parent)Edit" relativePoint="RIGHT" offsetX="6" offsetY="0" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BtnKind" relativePoint="RIGHT" offsetX="5" offsetY="0" />
                 </Button>
             </Controls>
         </Control>
@@ -41,32 +62,14 @@
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" />
                 
                 <!-- Window Title -->
-                <Label name="$(parent)Title" font="ZoFontHeader3" color="FFFFFF" text="Manage Tracked Groups">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="20" offsetY="15" />
-                </Label>
-                <Button name="$(parent)BtnOtherSettings" inherits="ZO_DefaultButton" text="Other Settings">
-                    <Dimensions x="150" y="26" />
-                    <Anchor point="LEFT" relativeTo="$(parent)Title" relativePoint="RIGHT" offsetX="20" offsetY="0" />
-                    <OnClicked>
-                        InventoryCompanion.OpenSettingsFromEditor()
-                    </OnClicked>
-                </Button>
-                
-                <!-- Edit Items Switch Button -->
-                <Button name="$(parent)BtnEditItems" inherits="ZO_DefaultButton" text="Edit Items">
-                    <Dimensions x="100" y="26" />
-                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Close" relativePoint="TOPRIGHT" offsetX="-50" offsetY="18" />
-                </Button>
-                
-                <!-- Close Button -->
-                <Button name="$(parent)Close" inherits="ZO_CloseButton">
-                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-10" offsetY="10" />
-                    <OnClicked>
-                        SCENE_MANAGER:Hide("InventoryCompanion_GroupsScene")
-                    </OnClicked>
-                </Button>
-                
-                <Texture name="$(parent)Divider" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
+                <Label name="$(parent)Title" font="ZoFontHeader3" text="Manage Groups" wrapMode="ELLIPSE"><Dimensions x="225" y="30"/><Anchor point="TOPLEFT" offsetX="20" offsetY="12"/></Label>
+<Button name="$(parent)BtnOtherSettings" inherits="ZO_DefaultButton" text="Main Settings"><Dimensions x="115" y="26"/><Anchor point="TOPLEFT" offsetX="245" offsetY="15"/><OnClicked>InventoryCompanion.OpenSettingsFromEditor()</OnClicked></Button>
+<Button name="$(parent)BtnEditItems" inherits="ZO_DefaultButton" text="Manage Tracking"><Dimensions x="135" y="26"/><Anchor point="TOPLEFT" offsetX="365" offsetY="15"/></Button>
+<Button name="$(parent)BtnEditGroups" inherits="ZO_DefaultButton" text="Manage Groups"><Dimensions x="125" y="26"/><Anchor point="TOPLEFT" offsetX="505" offsetY="15"/></Button>
+<Button name="$(parent)BtnAutoCategory" inherits="ZO_DefaultButton" text="Manage AutoCategory"><Dimensions x="170" y="26"/><Anchor point="TOPLEFT" offsetX="635" offsetY="15"/></Button>
+<Button name="$(parent)Close" inherits="ZO_CloseButton"><Anchor point="TOPRIGHT" offsetX="-10" offsetY="10"/><OnClicked>SCENE_MANAGER:Hide("InventoryCompanion_GroupsScene")</OnClicked></Button>
+<Button name="$(parent)BtnUndo" inherits="ZO_DefaultButton" text="Undo changes" hidden="true"><Dimensions x="140" y="26"/><Anchor point="TOPRIGHT" offsetX="-155" offsetY="65"/></Button>
+<Texture name="$(parent)Divider" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
                     <Dimensions x="860" y="4" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="-5" offsetY="10" />
                 </Texture>
@@ -138,7 +141,7 @@
                         </EditBox>
 
                         <!-- Instructions / Subtitle -->
-                        <Label name="$(parent)InstructionsLabel" font="ZoFontGameSmall" color="AAAAAA" text="Enter wildcard rules to select items">
+                        <Label name="$(parent)InstructionsLabel" font="ZoFontGameSmall" color="AAAAAA" text="Any Include can match; a matching Exclude removes the item from this group.">
                             <Anchor point="TOPLEFT" relativeTo="$(parent)GroupTitleLabel" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
                         </Label>
 

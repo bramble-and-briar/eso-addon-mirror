@@ -203,8 +203,8 @@ function bridge:GetStatus()
     }
 end
 
-function bridge:GetRows(includeMissing)
-    local rows, seen = {}, {}
+function bridge:GetRows()
+    local rows = {}
     local now = GetGameTimeMilliseconds()
     local function append(member, tag)
         if GetGroupMemberSelectedRole then member.role = GetGroupMemberSelectedRole(tag) end
@@ -221,7 +221,6 @@ function bridge:GetRows(includeMissing)
         member.stale = not metricAt or now - metricAt > STALE_MS
         member.metricAgeMS = metricAt and math.max(0, now - metricAt) or nil
         rows[#rows + 1] = member
-        seen[tag] = true
     end
     for tag, member in pairs(members) do
         if not IsUnitGrouped("player") or not DoesUnitExist(tag)
@@ -229,18 +228,6 @@ function bridge:GetRows(includeMissing)
             members[tag] = nil
         else
             append(member, tag)
-        end
-    end
-    -- Waiting rows are view-only. They must never count as received packets,
-    -- become zero DPS, or keep an expired encounter/result alive.
-    if includeMissing and IsUnitGrouped("player") and GetGroupSize and ZO_Group_GetUnitTagForGroupIndex then
-        for i = 1, GetGroupSize() do
-            local tag = ZO_Group_GetUnitTagForGroupIndex(i)
-            if tag and not seen[tag] and DoesUnitExist(tag) and not AreUnitsEqual(tag, "player")
-                and (not IsUnitOnline or IsUnitOnline(tag)) then
-                local name = GetUnitDisplayName(tag)
-                if name and name ~= "" then append({name = name, identity = name}, tag) end
-            end
         end
     end
     table.sort(rows, function(a, b)

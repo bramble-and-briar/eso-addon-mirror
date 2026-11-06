@@ -10,7 +10,6 @@ function PQ.RegisterLAMPanel()
 		displayName = "|cFFD700PvP QoL|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	local optionsData = {
@@ -31,7 +30,6 @@ function PQ.RegisterLAMPanel()
 				setFunc = function(r, g, b)
 					SV.victimColor = ZO_ColorDef:New(r, g, b):ToHex()
 				end,
-				default = {1, 0, 0},
 			},
 
 			{
@@ -45,7 +43,6 @@ function PQ.RegisterLAMPanel()
 				setFunc = function(r, g, b)
 					SV.killerColor = ZO_ColorDef:New(r, g, b):ToHex()
 				end,
-				default = {1, 0.65, 0},
 			},
 			{
 				type = "colorpicker",
@@ -58,7 +55,6 @@ function PQ.RegisterLAMPanel()
 				setFunc = function(r, g, b)
 					SV.arrowColor = ZO_ColorDef:New(r, g, b):ToHex()
 				end,
-				default = {1, 0.843, 0},
 			},
 			{
 				type = "colorpicker",
@@ -71,7 +67,6 @@ function PQ.RegisterLAMPanel()
 				setFunc = function(r, g, b)
 					SV.abilityColor = ZO_ColorDef:New(r, g, b):ToHex()
 				end,
-				default = {1, 0.843, 0},
 			},
 			{
 				type = "checkbox",
@@ -79,7 +74,6 @@ function PQ.RegisterLAMPanel()
 				tooltip = "Removes the arrow and ability name from kill messages.",
 				getFunc = function() return SV.hideArrowAndSkill end,
 				setFunc = function(value) SV.hideArrowAndSkill = value end,
-				default = false,
 			},
 
 			{
@@ -88,7 +82,6 @@ function PQ.RegisterLAMPanel()
 				tooltip = "Removes the execute/skull icons from chat messages.",
 				getFunc = function() return SV.hideKillIcons end,
 				setFunc = function(value) SV.hideKillIcons = value end,
-				default = false,
 			},
 
 			{
@@ -100,7 +93,6 @@ function PQ.RegisterLAMPanel()
 					SV.hideKillMessages = value
 					PQ.ManageEventHandlers()
 				end,
-				default = false,
 			},
 			{
 				type = "checkbox",
@@ -111,7 +103,6 @@ function PQ.RegisterLAMPanel()
 					SV.hideDeathMessages = value
 					PQ.ManageEventHandlers()
 				end,
-				default = false,
 			},
 			{
 				type = "checkbox",
@@ -119,7 +110,6 @@ function PQ.RegisterLAMPanel()
 				tooltip = "Show @AccountName instead of character name in kill/death messages.",
 				getFunc = function() return SV.useAccountNames end,
 				setFunc = function(value) SV.useAccountNames = value end,
-				default = false,
 			},
 			{
 				type = "checkbox",
@@ -129,7 +119,6 @@ function PQ.RegisterLAMPanel()
 				setFunc = function(value)
 					SV.showRankIcon = value
 				end,
-				default = false,
 				requiresReload = true,
 			},
 
@@ -150,7 +139,6 @@ function PQ.RegisterLAMPanel()
 					SV.killFlashColor = ZO_ColorDef:New(r, g, b):ToHex()
 					PQ.SetupAlertBorderColors()
 				end,
-				default = {1, 0.647, 0},
 			},
 			{
 				type = "checkbox",
@@ -158,7 +146,6 @@ function PQ.RegisterLAMPanel()
 				tooltip = "Disables the sound played on killing blows.",
 				getFunc = function() return SV.disableKillSound end,
 				setFunc = function(value) SV.disableKillSound = value end,
-				default = false,
 			},
 
 			{
@@ -167,7 +154,6 @@ function PQ.RegisterLAMPanel()
 				tooltip = "Disables the screen edge flash when you get a kill.",
 				getFunc = function() return SV.disableKillFlash end,
 				setFunc = function(value) SV.disableKillFlash = value end,
-				default = false,
 			},
 
 			{
@@ -184,7 +170,6 @@ function PQ.RegisterLAMPanel()
 				SV.enableStandIns = value
 				PQ.ApplyStandInsSetting()
 			end,
-			default = false,
 		},
 
 		{
@@ -199,7 +184,6 @@ function PQ.RegisterLAMPanel()
 				SV.standInsPerFrame = value
 				PQ.ApplyStandInsSetting()
 			end,
-			default = 8,
 		},
 
 		{
@@ -217,7 +201,6 @@ function PQ.RegisterLAMPanel()
 				PQ.FlushBGCountersIfLeft()
 				PQ.UpdateUI()
 			end,
-			default = false,
 		},
 
 		{
@@ -228,7 +211,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.trackItems = value
 			end,
-			default = true,
 			requiresReload = true,
 		},
 
@@ -243,7 +225,6 @@ function PQ.RegisterLAMPanel()
 			tooltip = "Prevents Alliance Point gain messages from appearing in chat.",
 			getFunc = function() return SV.hideAPGains end,
 			setFunc = function(value) SV.hideAPGains = value end,
-			default = false,
 		},
 
 		{
@@ -252,7 +233,6 @@ function PQ.RegisterLAMPanel()
 			tooltip = "Prevents Tel Var Stone gain messages from appearing in chat.",
 			getFunc = function() return SV.hideTelvarGains end,
 			setFunc = function(value) SV.hideTelvarGains = value end,
-			default = false,
 		},
 
 		{
@@ -268,7 +248,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.minTelvarMessage = value
 			end,
-			default = 100,
 		},
 		{
 			type = "slider",
@@ -283,7 +262,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.minAPMessage = value
 			end,
-			default = 100,
 		},
 		{
 			type = "header",
@@ -300,7 +278,6 @@ function PQ.RegisterLAMPanel()
 				PQ.UpdateVisibility()
 				PQ.ManageEventHandlers()
 			end,
-			default = false,
 		},
 
 		{
@@ -318,7 +295,6 @@ function PQ.RegisterLAMPanel()
 				PQ.SetUIScale(value)
 				PQ.UpdateUI()
 			end,
-			default = 1.0,
 		},
 
 		-- =========================
@@ -337,7 +313,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.autoQueue = value
 			end,
-			default = false,
 			requiresReload = true,
 		},
 
@@ -347,7 +322,6 @@ function PQ.RegisterLAMPanel()
 			tooltip = "Shows a message in chat when a queue is auto-accepted.",
 			getFunc = function() return SV.chatQueue end,
 			setFunc = function(value) SV.chatQueue = value end,
-			default = false,
 		},
 		-- =========================
 		-- Quest Helpers
@@ -362,7 +336,6 @@ function PQ.RegisterLAMPanel()
 			tooltip = "Will auto abandon all board quests except one to kill 20 players. Will auto turn-off once acuired once per day.",
 			getFunc = function() return SV.helpIC end,
 			setFunc = function(value) SV.helpIC = value end,
-			default = false,
 			requiresReload = true,
 		},
 		{
@@ -373,7 +346,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.helpBG = value
 			end,
-			default = false,
 			requiresReload = true,
 		},
 		{
@@ -384,7 +356,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.helpCYRO = value
 			end,
-			default = false,
 			requiresReload = true,
 		},
 
@@ -404,7 +375,6 @@ function PQ.RegisterLAMPanel()
 			setFunc = function(value)
 				SV.hideKeepTooltip = value
 			end,
-			default = true,
 			requiresReload = true,
 		},
 	}

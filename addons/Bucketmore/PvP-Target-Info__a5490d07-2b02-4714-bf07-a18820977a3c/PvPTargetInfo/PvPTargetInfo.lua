@@ -301,6 +301,10 @@
 PvPTargetInfo = PvPTargetInfo or {}
 local PTI = PvPTargetInfo
 
+-- v2.5.0 変更点:
+--   ・Proc CD: 登録履歴(AUTO/MANUAL)、登録後の信頼性チェック(正常/要確認/無効候補)、
+--     設定画面からのMANUAL登録(セット・Ability ID・ICD)。設定画面④を整理(折りたたみ式)。
+--   ・保存データ: cd.history / cd.manual を追加(既存キーは無変更)。
 -- v2.4.0 変更点:
 --   ・Proc CD: Procの自動学習(/pti cd auto)。誤登録防止のため、根拠が揃ったものだけ自動登録(AUTO)し、
 --     足りないものは候補(CAND)として保存するだけにする。
@@ -331,7 +335,7 @@ local PTI = PvPTargetInfo
 --   ・設定画面を 基本/検知/表示の残し方/パネル/詳細設定 の順に整理(設定キーは変更なし)。
 --   ・決闘中の相手(GetDuelInfo)を敵として扱う(任意変更・PS5実機未検証)。
 PTI.name = "PvPTargetInfo"
-PTI.version = "2.4.0"
+PTI.version = "2.5.0"
 
 local SV_VERSION = 2
 
@@ -426,6 +430,8 @@ local defaults = {
         autoLearn = true,      -- v2.4.0: Procの自動学習
         learned = {},          -- v2.4.0: 学習記録 [abilityId] = { conf="AUTO"|"CAND"|"ACCEPTED", setKey, setName, cd, name, score, n, fights, ... }
         learnIgnore = {},      -- v2.4.0: 除外したAbilityId [id] = true
+        history = {},          -- v2.5.0: 登録履歴(AUTO/MANUAL)。登録時の内容を追記(上限60件)
+        manual = {},           -- v2.5.0: 設定画面からのMANUAL登録 [setKey#id] = { id, setKey, setName, cd, name, ts, ... }
     },
 
     procConfig = {
@@ -489,7 +495,7 @@ local function PrintHelp()
     d("  /pti <buff||debuff||proc||cd> on||off                        - 個別のパネル表示を切替")
     d("  /pti hold <秒>                                        - ターゲット解除後にパネルを保持する秒数")
     d("  /pti enemy                                           - 現在のターゲットの敵味方判定の診断表示")
-    d("  /pti cd on||off||sets||text||icd||buffs||auto||probe||combat||learn||alias||add||addev||del||list||reset - UI④の操作(/pti cd で詳細)")
+    d("  /pti cd on||off||sets||text||icd||buffs||auto||hist||probe||combat||learn||alias||add||addev||del||list||reset - UI④の操作(/pti cd で詳細)")
     d("  /pti linger <秒>                                      - 消えた効果の残像表示秒数(0〜10、0で残像なし)")
     d("  /pti learn proc                                       - Condition学習モードON/OFF(自分のバフ/デバフ)")
     d("  /pti learn target                                     - 敵バフ/デバフ学習モードON/OFF(重要リスト用)")

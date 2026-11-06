@@ -1,6 +1,6 @@
 local L = SimpleGroupDPS_Translate or function(text) return text end
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "1.8.6"
+local ADDON_VERSION = "1.9.6"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel
@@ -14,7 +14,6 @@ local settings, window, personalWindow, moveHint, moveOverlay
 local personalPanel = SimpleGroupDPS_PersonalDPSPanel
 local moveWindow
 local settingsPanel
-local photoMode = false
 local moveMode = false
 local moveLastInputAt, moveLastX, moveLastY
 local moveDragging = false
@@ -147,18 +146,15 @@ updateUI = function(sceneVisible, snapshot)
         end
         bridge:Expire(retentionMS)
     end
-    if meter:IsActive() then photoMode = false end
     local stats = snapshot or meter:GetStats()
-    local photoRows
-    if photoMode then photoRows, stats = SimpleGroupDPS_PhotoMode:GetPreview() end
     local groupPreview, personalPreview = settingsPreview()
     local personalMoving = moveMode and moveWindow == personalWindow
     local groupMoving = moveMode and moveWindow == window
     personalPanel:Render(personalWindow, stats, personalMoving or (personalPreview and settings.showPersonal ~= false)
-        or (settings.showPersonal ~= false and sceneVisible and (photoMode or meter:IsActive() or stats.total > 0)))
+        or (settings.showPersonal ~= false and sceneVisible and (meter:IsActive() or stats.total > 0)))
     if not groupMoving and not groupPreview and not sceneVisible then window:SetHidden(true); return end
-    local rows = photoRows or (settings.showGroup and bridge:GetRows(meter:IsActive() or groupMoving) or {})
-    if not photoMode and (groupMoving or groupPreview or meter:IsActive() or stats.total > 0 or (stats.rawHealingTotal or 0) > 0 or #rows > 0) then
+    local rows = settings.showGroup and bridge:GetRows() or {}
+    if groupMoving or groupPreview or meter:IsActive() or stats.total > 0 or (stats.rawHealingTotal or 0) > 0 or #rows > 0 then
         rows[#rows + 1] = {
             name = GetUnitDisplayName("player"), dps = stats.dps,
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, isPlayer = true,
@@ -359,10 +355,6 @@ local function initSettings()
               updateUI()
           end },
         { type = LHAS.ST_SECTION, label = L("Allgemein") },
-        { type = LHAS.ST_CHECKBOX, label = L("Fotomodus"),
-          tooltip = L("Zeigt 12 Fake-Spieler mit Beispielwerten für Screenshots. Wird nicht gespeichert und bei Kampfbeginn beendet. Die Werte werden nicht übertragen."),
-          getFunction = function() return photoMode end,
-          setFunction = function(value) photoMode = value and not meter:IsActive() or false; updateUI() end },
         { type = LHAS.ST_DROPDOWN, label = L("Nach Kampfende anzeigen"), items = retentionItems, default = 1,
           tooltip = L("Setzt alte Ergebnisse nach 1 bis 5 Minuten zurück. Standard: 1 Minute. Laufende Kämpfe bleiben erhalten."),
           getFunction = function() return retentionItems[retentionSeconds(settings.lingerSeconds) / 60].name end,
@@ -396,6 +388,7 @@ local function onAddonLoaded(_, name)
             groupBossDamageTotal = stats.groupBossTotal, groupBossDPS = stats.groupBossDPS,
             rawHealingTotal = stats.rawHealingTotal, effectiveHealingTotal = stats.effectiveHealingTotal,
             rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
+            healingDurationMS = stats.healingDurationMS,
         }
         if settings.shareDPS then bridge:SendMetrics(stats, true) end
         updateUI()

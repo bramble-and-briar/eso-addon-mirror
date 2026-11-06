@@ -1,7 +1,7 @@
 local M = MountSwap
 function M:SetStandalonePanel(enabled)
     local library = LibAddonMenu2
-    if not enabled and not library and not (IsInGamepadPreferredMode and IsInGamepadPreferredMode()) then
+    if not enabled and not library and not (IsInGamepadPreferredMode()) then
         self:Chat('Settings-only mode requires LibAddonMenu-2.0. The standalone panel remains available.', true)
         return false
     end
@@ -107,7 +107,7 @@ function M:SettingsControls()
             if valid[code] then M.saved.language=code end
         end}
     options[#options+1]={type='button',name='Reload UI',func=function()
-        if ReloadUI then ReloadUI() else M:Chat('Reload UI is unavailable. Use /reloadui from chat.',true) end
+        ReloadUI()
     end}
     self.settingsDropdowns = {}
     for slot = 1, 8 do
@@ -209,7 +209,7 @@ function M:InitializeSettings()
     return true
 end
 function M:OpenSettings()
-    if IsInGamepadPreferredMode and IsInGamepadPreferredMode() then self:GamepadSettings(); return end
+    if IsInGamepadPreferredMode() then self:GamepadSettings(); return end
     if self:InitializeSettings() then
         self:ClosePicker()
         self:CloseWindows()

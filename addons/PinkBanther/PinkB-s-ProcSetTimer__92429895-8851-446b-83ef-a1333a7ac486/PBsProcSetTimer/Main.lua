@@ -270,6 +270,8 @@ local function NewRec(set, effect)
 		unitStacks = {}, -- [unitId] = how many stacks of the effect that unit has
 		stacks = 0, -- the stacks of the effect that ends last: what the row shows
 		stackPeak = 0, -- the most stacks ever seen; 2 or more means the effect builds up
+		tally = nil, -- for a build-up told in damage-over-time steps: how many of those the target has (CountDots)
+		tallyAt = -1000, -- when it was last counted
 		flashUntil = 0,
 		lastProc = -1000,
 		procs = 0,
@@ -315,6 +317,8 @@ local function ResetTimers(rec)
 	rec.units = {}
 	rec.unitStacks = {}
 	rec.stacks = 0
+	rec.tally = nil
+	rec.tallyAt = -1000
 	rec.flashUntil = 0
 	-- a new row, a zone change: what fired before says nothing about the next proc
 	rec.lastProc = -1000
@@ -567,6 +571,58 @@ local function RecomputeActive(rec, now)
 	end
 	rec.actEnd = latest
 	rec.stacks = latestUnit and rec.unitStacks[latestUnit] or 0
+end
+
+-- ---- a build-up counted in the target's own damage over time --------------------------
+-- Z'en's Redress: "1% more damage for each damage over time effect you've placed on them, up to 5%".
+-- The debuff itself is one effect; the five are the player's other damage-over-time debuffs on the
+-- same enemy, which the game does not report as stacks. They are counted on the unit under the
+-- reticle by reading its buffs.
+local TALLY_SECONDS = 0.25 -- a count is kept this long before the buffs are read again
+local TALLY_UNIT = "reticleover"
+
+-- A first rule for "one of the player's damage-over-time effects": a debuff the player put on the
+-- target whose ability is a damage one, or that shows as bleeding, poison or disease. Whether it sorts
+-- a target's real buffs the way the game's own count does is what /procset buffs is there to check.
+local function IsOwnDot(effectType, abilityType, statusEffectType, castByPlayer)
+	if not castByPlayer or effectType ~= BUFF_EFFECT_TYPE_DEBUFF then
+		return false
+	end
+	return abilityType == ABILITY_TYPE_DAMAGE
+		or statusEffectType == STATUS_EFFECT_TYPE_BLEED
+		or statusEffectType == STATUS_EFFECT_TYPE_POISON
+		or statusEffectType == STATUS_EFFECT_TYPE_DISEASE
+end
+
+-- Counts the player's damage-over-time debuffs (each ability once) on the unit under the reticle, but
+-- only when that unit carries the effect of this very row: that is what says the count is about the
+-- enemy the row follows. nil when it does not, or when no unit is under the reticle.
+local function CountDots(rec, now)
+	if now - rec.tallyAt < TALLY_SECONDS then
+		return rec.tally
+	end
+	rec.tallyAt = now
+	rec.tally = nil
+	if not DoesUnitExist(TALLY_UNIT) then
+		return nil
+	end
+	local carries, dots, counted = false, 0, {}
+	for index = 1, GetNumBuffs(TALLY_UNIT) do
+		local _, started, finish, _, _, _, _, effectType, abilityType, statusEffectType, abilityId, _, castByPlayer =
+			GetUnitBuffInfo(TALLY_UNIT, index)
+		if finish == started or finish > now then
+			if castByPlayer and rec.seen[abilityId] then
+				carries = true
+			elseif not counted[abilityId] and IsOwnDot(effectType, abilityType, statusEffectType, castByPlayer) then
+				counted[abilityId] = true
+				dots = dots + 1
+			end
+		end
+	end
+	if carries then
+		rec.tally = dots
+	end
+	return rec.tally
 end
 
 local function OnEffectChanged(
@@ -1052,12 +1108,23 @@ end
 
 -- "x3/10" for an effect that builds up, "x3" when the cap is not known; nil when it does not stack.
 -- An effect counts as building up when its text says so, or once it has been seen with two or more.
-local function StackText(rec)
+-- A build-up told in steps of the target's own damage over time is counted here (CountDots), unless the
+-- game reports two or more stacks of the effect by itself.
+local function StackText(rec, now)
+	local bonus = rec.bonus
 	local count = rec.stacks
-	if count < 1 or not (rec.bonus.stacking or rec.stackPeak >= 2) then
+	local cap = bonus.maxStacks
+	if bonus.tally and rec.stackPeak < 2 then
+		count = CountDots(rec, now)
+		if not count then
+			return nil
+		end
+		if cap then
+			count = zo_min(count, cap)
+		end
+	elseif count < 1 or not (bonus.stacking or rec.stackPeak >= 2) then
 		return nil
 	end
-	local cap = rec.bonus.maxStacks
 	if cap and cap >= count then
 		return string.format(GetString(SI_PBSPST_STACKS_OF), count, cap)
 	end
@@ -1098,7 +1165,7 @@ local function UpdateRow(row, now)
 			text = text .. "  " .. string.format(GetString(SI_PBSPST_COOLDOWN), cd)
 		end
 		-- in front, so a text that is too wide for its box loses the end, not the count
-		local stackText = StackText(rec)
+		local stackText = StackText(rec, now)
 		if stackText then
 			text = stackText .. "  " .. text
 		end
@@ -1388,7 +1455,17 @@ local function PrintStatus()
 				)
 			)
 			d(string.format("    procs %d, other players' events skipped %d", rec.procs, rec.foreign))
-			if bonus.stacking or bonus.maxStacks or rec.stackPeak > 0 then
+			if bonus.tally then
+				local counted = CountDots(rec, Now())
+				d(
+					string.format(
+						"    stacks: the text counts them in steps of your own damage over time%s; counted on the target under the reticle: %s (the game itself reported at most %d)",
+						bonus.maxStacks and string.format(", up to %d", bonus.maxStacks) or "",
+						counted and tostring(counted) or "none (no target, or it does not carry the effect)",
+						rec.stackPeak
+					)
+				)
+			elseif bonus.stacking or bonus.maxStacks or rec.stackPeak > 0 then
 				d(
 					string.format(
 						"    stacks: now %d, most seen %d; the text %s%s",
@@ -1414,6 +1491,61 @@ local function PrintLog()
 	end
 	for _, line in ipairs(state.log) do
 		d(line)
+	end
+end
+
+-- The effects on the unit under the reticle, to check how CountDots sorts them: '*' is counted as one
+-- of the player's damage-over-time effects, '+' is the effect of one of the rows. Only the player's
+-- own effects, unless "all" is given.
+local function PrintBuffs(argument)
+	local showAll = zo_strlower(argument or "") == "all"
+	if not DoesUnitExist(TALLY_UNIT) then
+		d("No unit under the reticle: look at an enemy that has your damage over time on it.")
+		return
+	end
+	local now = Now()
+	local total = GetNumBuffs(TALLY_UNIT)
+	d(
+		string.format(
+			"%s: %d effect(s).  * = counted as one of your damage-over-time effects, + = the effect of a row.  columns: ability type / status type / stacks / time left",
+			GetUnitName(TALLY_UNIT),
+			total
+		)
+	)
+	local shown, counted = 0, {}
+	for index = 1, total do
+		local name, started, finish, _, stacks, _, _, effectType, abilityType, statusEffectType, abilityId, _, castByPlayer =
+			GetUnitBuffInfo(TALLY_UNIT, index)
+		if castByPlayer or showAll then
+			shown = shown + 1
+			local mark = " "
+			for _, rec in ipairs(activeRecs) do
+				if castByPlayer and rec.seen[abilityId] then
+					mark = "+"
+				end
+			end
+			if mark == " " and not counted[abilityId] and IsOwnDot(effectType, abilityType, statusEffectType, castByPlayer) then
+				mark = "*"
+				counted[abilityId] = true
+			end
+			d(
+				string.format(
+					"%s %s (id %d) %s%s  %s/%s  x%d  %s",
+					mark,
+					Clip(name or "?", 36),
+					abilityId or 0,
+					effectType == BUFF_EFFECT_TYPE_DEBUFF and "debuff" or "buff",
+					castByPlayer and ", yours" or "",
+					tostring(abilityType),
+					tostring(statusEffectType),
+					stacks or 0,
+					finish == started and "no end" or string.format("%.1fs", finish - now)
+				)
+			)
+		end
+	end
+	if shown < total then
+		d(string.format("%d more effect(s) not cast by you: /procset buffs all lists them.", total - shown))
 	end
 end
 
@@ -1450,8 +1582,9 @@ local function PrintText(argument)
 					if effect.stacking or effect.maxStacks then
 						d(
 							string.format(
-								"      builds up in stacks%s",
-								effect.maxStacks and string.format(", up to %d", effect.maxStacks) or " (the text names no maximum)"
+								"      builds up in stacks%s%s",
+								effect.maxStacks and string.format(", up to %d", effect.maxStacks) or " (the text names no maximum)",
+								effect.tally and "; counted in your own damage over time on the target (/procset buffs)" or ""
 							)
 						)
 					end
@@ -1554,6 +1687,8 @@ local function OnSlash(argument)
 		PrintStatus()
 	elseif command == "log" then
 		PrintLog()
+	elseif command == "buffs" then
+		PrintBuffs(rest)
 	elseif command == "text" then
 		PrintText(rest)
 	elseif command == "hide" then

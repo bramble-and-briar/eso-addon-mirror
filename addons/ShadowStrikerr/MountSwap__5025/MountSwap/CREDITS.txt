@@ -5,6 +5,9 @@ No separate open-source implementation license is declared. No MIT/GPL/CC
 redistribution grant has been selected or inferred. The author must personally
 confirm rights to submit when agreeing to ESOUI hosting terms.
 
+Inspired by ShowMount by Phuein for quick mount switching.
+https://www.esoui.com/downloads/info2315-ShowMount.html
+
 Already-present reference credit, expanded here:
 Crown Crate Codex by ShadowStrikerr (verified public ESOUI author); its manifest
 uses the label "Crown Crate Codex contributors".

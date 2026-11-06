@@ -289,7 +289,7 @@ function Remove_NB1_IndexButton(button)
 	button:SetHidden(true)
 end
 ---------------------------------------------------------------------------------------------------
---  Interface  --
+--	Interface  --
 ---------------------------------------------------------------------------------------------------
 function CreateNB1()
 	-- To let elements tweak text alpha.
@@ -319,12 +319,12 @@ function CreateNB1()
 		end)
 		NBUI.NB1MainWindow:SetHidden(true)
 		NBUI.NB1MainWindow:SetMouseEnabled(true)
- 		NBUI.NB1MainWindow:SetMovable(not NBUI.db.NB1_Locked)
- 		-- Add fragment to scene, like other UI elements.
- 		-- local fragment = ZO_HUDFadeSceneFragment:New(NBUI.NB1MainWindow)
- 		-- Add to scenes.
- 		-- HUD_SCENE:AddFragment(fragment)
- 		-- HUD_UI_SCENE:AddFragment(fragment)
+		NBUI.NB1MainWindow:SetMovable(not NBUI.db.NB1_Locked)
+		-- Add fragment to scene, like other UI elements.
+		-- local fragment = ZO_HUDFadeSceneFragment:New(NBUI.NB1MainWindow)
+		-- Add to scenes.
+		-- HUD_SCENE:AddFragment(fragment)
+		-- HUD_UI_SCENE:AddFragment(fragment)
 ---------------------------------------------------------------------------------------------------
 	NBUI.NB1MainWindow_Cover = WINDOW_MANAGER:CreateControl("NBUI_NB1MainWindow_Cover", NBUI.NB1MainWindow, CT_TEXTURE)
 		NBUI.NB1MainWindow_Cover:SetAnchor(TOPLEFT, NBUI.NB1MainWindow, TOPLEFT, -10, -126)
@@ -334,7 +334,7 @@ function CreateNB1()
 		NBUI.NB1MainWindow_Cover:SetColor(unpack(NBUI.db.NB1_BookColor))
 		NBUI.NB1MainWindow_Cover:SetAlpha(1)
 --***********************************************************************************************--
---  LEFT PAGE  ------------------------------------------------------------------------------------
+--	LEFT PAGE  ------------------------------------------------------------------------------------
 	NBUI.NB1LeftPage_TitleBackdrop = WINDOW_MANAGER:CreateControlFromVirtual("NBUI_NB1LeftPage_TitleBackdrop", NBUI.NB1MainWindow, "ZO_EditBackdrop")
 		NBUI.NB1LeftPage_TitleBackdrop:SetAnchor(TOPLEFT, NBUI.NB1MainWindow_Cover, TOPLEFT, 85, 160)
 		NBUI.NB1LeftPage_TitleBackdrop:SetCenterColor(0, 0, 0, 0)
@@ -457,7 +457,7 @@ function CreateNB1()
 		NBUI.NB1MovePageUp_Button:SetDrawTier(0)
 		NBUI.NB1MovePageUp_Button:SetHandler("OnClicked", function(self)
 			-- if (NBUI.db.NB1_ShowDialog) then
-			-- 	ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_MOVEPAGEUP")
+			--	ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_MOVEPAGEUP")
 			-- else
 				NBUI.NB1MovePageUp(self)
 			-- end
@@ -483,7 +483,7 @@ function CreateNB1()
 		NBUI.NB1MovePageDown_Button:SetDrawTier(0)
 		NBUI.NB1MovePageDown_Button:SetHandler("OnClicked", function(self)
 			-- if (NBUI.db.NB1_ShowDialog) then
-			-- 	ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_MOVEPAGEDOWN")
+			--	ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_MOVEPAGEDOWN")
 			-- else
 				NBUI.NB1MovePageDown(self)
 			-- end
@@ -501,55 +501,55 @@ function CreateNB1()
 		NBUI.NB1MovePageDown_Button:SetPressedTexture("esoui/art/buttons/gamepad/gp_downarrow.dds")
 ---------------------------------------------------------------------------------------------------
 	-- NBUI.NB1UndoPage_Button = WINDOW_MANAGER:CreateControl("NBUI_NB1UndoPage_Button", NBUI.NB1LeftPage_ScrollContainer.scrollChild, CT_BUTTON)
-	-- 	NBUI.NB1UndoPage_Button:SetAnchor(RIGHT, NBUI.NB1SelectedPage_Button, RIGHT, -30, 0)
-	-- 	NBUI.NB1UndoPage_Button:SetClickSound(SOUNDS.BOOK_PAGE_TURN)
-	-- 	NBUI.NB1UndoPage_Button:SetDimensions(32, 35)
-	-- 	NBUI.NB1UndoPage_Button:SetDrawLayer(2)
-	-- 	NBUI.NB1UndoPage_Button:SetDrawLevel(1)
-	-- 	NBUI.NB1UndoPage_Button:SetDrawTier(0)
-	-- 	NBUI.NB1UndoPage_Button:SetHandler("OnClicked", function(self)
-	-- 		if (NBUI.db.NB1_ShowDialog) then
-	-- 			ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_UNDO")
-	-- 		else
-	-- 			NBUI.NB1UndoPage()
-	-- 		end
-	-- 	end)
-	-- 	NBUI.NB1UndoPage_Button:SetHandler("OnMouseEnter", function(self)
-	-- 		InitializeTooltip(InformationTooltip, self, TOPLEFT, 0, 0, BOTTOMRIGHT)
-	-- 		SetTooltipText(InformationTooltip, GetString(SI_NBUI_UNDOBUTTON_TOOLTIP))
-	-- 	end)
-	-- 	NBUI.NB1UndoPage_Button:SetHandler("OnMouseExit", function(self)
-	-- 		ClearTooltip(InformationTooltip)
-	-- 	end)
-	-- 	NBUI.NB1UndoPage_Button:SetHidden(true)
-	-- 	NBUI.NB1UndoPage_Button:SetMouseOverTexture("/esoui/art/contacts/social_note_over.dds")
-	-- 	NBUI.NB1UndoPage_Button:SetNormalTexture("/esoui/art/contacts/social_note_up.dds")
-	-- 	NBUI.NB1UndoPage_Button:SetPressedTexture("/esoui/art/contacts/social_note_down.dds")
+	--	NBUI.NB1UndoPage_Button:SetAnchor(RIGHT, NBUI.NB1SelectedPage_Button, RIGHT, -30, 0)
+	--	NBUI.NB1UndoPage_Button:SetClickSound(SOUNDS.BOOK_PAGE_TURN)
+	--	NBUI.NB1UndoPage_Button:SetDimensions(32, 35)
+	--	NBUI.NB1UndoPage_Button:SetDrawLayer(2)
+	--	NBUI.NB1UndoPage_Button:SetDrawLevel(1)
+	--	NBUI.NB1UndoPage_Button:SetDrawTier(0)
+	--	NBUI.NB1UndoPage_Button:SetHandler("OnClicked", function(self)
+	--		if (NBUI.db.NB1_ShowDialog) then
+	--			ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_UNDO")
+	--		else
+	--			NBUI.NB1UndoPage()
+	--		end
+	--	end)
+	--	NBUI.NB1UndoPage_Button:SetHandler("OnMouseEnter", function(self)
+	--		InitializeTooltip(InformationTooltip, self, TOPLEFT, 0, 0, BOTTOMRIGHT)
+	--		SetTooltipText(InformationTooltip, GetString(SI_NBUI_UNDOBUTTON_TOOLTIP))
+	--	end)
+	--	NBUI.NB1UndoPage_Button:SetHandler("OnMouseExit", function(self)
+	--		ClearTooltip(InformationTooltip)
+	--	end)
+	--	NBUI.NB1UndoPage_Button:SetHidden(true)
+	--	NBUI.NB1UndoPage_Button:SetMouseOverTexture("/esoui/art/contacts/social_note_over.dds")
+	--	NBUI.NB1UndoPage_Button:SetNormalTexture("/esoui/art/contacts/social_note_up.dds")
+	--	NBUI.NB1UndoPage_Button:SetPressedTexture("/esoui/art/contacts/social_note_down.dds")
 ---------------------------------------------------------------------------------------------------
 	-- NBUI.NB1RunScript_Button = WINDOW_MANAGER:CreateControl("NBUI_NB1RunScript_Button", NBUI.NB1LeftPage_ScrollContainer.scrollChild, CT_BUTTON)
-	-- 	NBUI.NB1RunScript_Button:SetAnchor(RIGHT, NBUI.NB1SelectedPage_Button, RIGHT, -30, -2)
-	-- 	NBUI.NB1RunScript_Button:SetClickSound(SOUNDS.BOOK_PAGE_TURN)
-	-- 	NBUI.NB1RunScript_Button:SetDimensions(28, 28)
-	-- 	NBUI.NB1RunScript_Button:SetDrawLayer(2)
-	-- 	NBUI.NB1RunScript_Button:SetDrawLevel(1)
-	-- 	NBUI.NB1RunScript_Button:SetDrawTier(0)
-	-- 	NBUI.NB1RunScript_Button:SetHandler("OnClicked", function(self)
-	-- 		local NBUIScript = zo_loadstring(NBUI.NB1RightPage_Contents:GetText())
-	-- 		if NBUIScript then
-	-- 			NBUIScript()
-	-- 		end
-	-- 	end)
-	-- 	NBUI.NB1RunScript_Button:SetHandler("OnMouseEnter", function(self)
-	-- 		InitializeTooltip(InformationTooltip, self, TOPLEFT, 0, 0, BOTTOMRIGHT)
-	-- 		SetTooltipText(InformationTooltip, GetString(SI_NBUI_RUNBUTTON_TOOLTIP))
-	-- 	end)
-	-- 	NBUI.NB1RunScript_Button:SetHandler("OnMouseExit", function(self)
-	-- 		ClearTooltip(InformationTooltip)
-	-- 	end)
-	-- 	NBUI.NB1RunScript_Button:SetHidden(true)
-	-- 	NBUI.NB1RunScript_Button:SetMouseOverTexture("/esoui/art/buttons/edit_over.dds")
-	-- 	NBUI.NB1RunScript_Button:SetNormalTexture("/esoui/art/buttons/edit_up.dds")
-	-- 	NBUI.NB1RunScript_Button:SetPressedTexture("/esoui/art/buttons/edit_down.dds")
+	--	NBUI.NB1RunScript_Button:SetAnchor(RIGHT, NBUI.NB1SelectedPage_Button, RIGHT, -30, -2)
+	--	NBUI.NB1RunScript_Button:SetClickSound(SOUNDS.BOOK_PAGE_TURN)
+	--	NBUI.NB1RunScript_Button:SetDimensions(28, 28)
+	--	NBUI.NB1RunScript_Button:SetDrawLayer(2)
+	--	NBUI.NB1RunScript_Button:SetDrawLevel(1)
+	--	NBUI.NB1RunScript_Button:SetDrawTier(0)
+	--	NBUI.NB1RunScript_Button:SetHandler("OnClicked", function(self)
+	--		local NBUIScript = zo_loadstring(NBUI.NB1RightPage_Contents:GetText())
+	--		if NBUIScript then
+	--			NBUIScript()
+	--		end
+	--	end)
+	--	NBUI.NB1RunScript_Button:SetHandler("OnMouseEnter", function(self)
+	--		InitializeTooltip(InformationTooltip, self, TOPLEFT, 0, 0, BOTTOMRIGHT)
+	--		SetTooltipText(InformationTooltip, GetString(SI_NBUI_RUNBUTTON_TOOLTIP))
+	--	end)
+	--	NBUI.NB1RunScript_Button:SetHandler("OnMouseExit", function(self)
+	--		ClearTooltip(InformationTooltip)
+	--	end)
+	--	NBUI.NB1RunScript_Button:SetHidden(true)
+	--	NBUI.NB1RunScript_Button:SetMouseOverTexture("/esoui/art/buttons/edit_over.dds")
+	--	NBUI.NB1RunScript_Button:SetNormalTexture("/esoui/art/buttons/edit_up.dds")
+	--	NBUI.NB1RunScript_Button:SetPressedTexture("/esoui/art/buttons/edit_down.dds")
 ---------------------------------------------------------------------------------------------------
 	NBUI.NB1DeletePage_Button = WINDOW_MANAGER:CreateControl("NBUI_NB1DeletePage_Button", NBUI.NB1LeftPage_ScrollContainer.scrollChild, CT_BUTTON)
 		NBUI.NB1DeletePage_Button:SetAnchor(RIGHT, NBUI.NB1SelectedPage_Button, RIGHT, 0, 0)
@@ -560,9 +560,9 @@ function CreateNB1()
 		NBUI.NB1DeletePage_Button:SetDrawTier(0)
 		NBUI.NB1DeletePage_Button:SetHandler("OnClicked", function(self)
 			-- if (NBUI.db.NB1_ShowDialog) then
-			-- 	ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_DELETE")
+			--	ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_DELETE")
 			-- else
-			-- 	NBUI.NB1DeletePage()
+			--	NBUI.NB1DeletePage()
 			-- end
 			-- NOTE Always confirm deletion!
 			ZO_Dialogs_ShowDialog("NBUI_NB1CONFIRM_DELETE")
@@ -578,8 +578,8 @@ function CreateNB1()
 		NBUI.NB1DeletePage_Button:SetNormalTexture("/esoui/art/buttons/decline_up.dds")
 		NBUI.NB1DeletePage_Button:SetPressedTexture("/esoui/art/buttons/decline_down.dds")
 --***********************************************************************************************--
---  RIGHT PAGE  -----------------------------------------------------------------------------------
-	NBUI.NB1RightPage_TitleBackdrop  = WINDOW_MANAGER:CreateControlFromVirtual("NBUI_NB1RightPage_TitleBackdrop", NBUI.NB1MainWindow, "ZO_EditBackdrop")
+--	RIGHT PAGE	-----------------------------------------------------------------------------------
+	NBUI.NB1RightPage_TitleBackdrop	 = WINDOW_MANAGER:CreateControlFromVirtual("NBUI_NB1RightPage_TitleBackdrop", NBUI.NB1MainWindow, "ZO_EditBackdrop")
 		NBUI.NB1RightPage_TitleBackdrop:SetAnchor(TOPRIGHT, NBUI.NB1MainWindow_Cover, TOPRIGHT, -70, 160)
 		NBUI.NB1RightPage_TitleBackdrop:SetCenterColor(0, 0, 0, 0)
 		NBUI.NB1RightPage_TitleBackdrop:SetDimensions(420, 45)
@@ -664,16 +664,16 @@ function CreateNB1()
 		NBUI.NB1RightPage_Contents:SetSelectionColor(unpack(NBUI.db.NB1_SelectionColor))
 
 		-- NBUI.NB1RightPage_Contents:SetHandler("OnFocusLost", function()
-		-- 	if NBUI.db.NB1_FormattedMode and NBUI.db.NB1_LeaveEditModeOnFocus then
-		-- 		NBUI.NB1RightPage_Contents:SetHidden(true)
-		-- 		NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
-		-- 	end
+		--	if NBUI.db.NB1_FormattedMode and NBUI.db.NB1_LeaveEditModeOnFocus then
+		--		NBUI.NB1RightPage_Contents:SetHidden(true)
+		--		NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
+		--	end
 		-- end)
 		-- NBUI.NB1RightPage_Contents:SetHandler("OnMouseExit", function()
-		-- 	if NBUI.db.NB1_FormattedMode and NBUI.db.NB1_LeaveEditModeOnExit then
-		-- 		NBUI.NB1RightPage_Contents:SetHidden(true)
-		-- 		NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
-		-- 	end
+		--	if NBUI.db.NB1_FormattedMode and NBUI.db.NB1_LeaveEditModeOnExit then
+		--		NBUI.NB1RightPage_Contents:SetHidden(true)
+		--		NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
+		--	end
 		-- end)
 
 		NBUI.NB1RightPage_Contents:SetHandler("OnEscape", NBUI.NB1RightPage_Contents.LoseFocus)
@@ -771,46 +771,46 @@ function CreateNB1()
 		end)
 ---------------------------------------------------------------------------------------------------
 	-- NBUI.NB1RightPage_ContentsLabel = WINDOW_MANAGER:CreateControl("NBUI_NB1RightPage_ContentsLabel", NBUI.NB1RightPage_ScrollContainer.scrollChild, CT_LABEL)
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetAnchor(TOPLEFT, NBUI.NB1RightPage_ScrollContainer.scrollChild, TOPLEFT, 6, 5) -- Matches Editbox.
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetWidth(NBUI.NB1RightPage_ScrollContainer:GetWidth()-20)
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetHeight(NBUI.NB1RightPage_ScrollContainer:GetHeight())
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetColor(unpack(NBUI.db.NB1_TextColor))
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetDrawLayer(0)
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetDrawLevel(3)
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetDrawTier(1)
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetFont("ZoFontBookPaper")
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
-	-- 	if not NBUI.db.NB1_FormattedMode then NBUI.NB1RightPage_ContentsLabel:SetHidden(true) end
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetMouseEnabled(true)
-	-- 	-- NBUI.NB1RightPage_ContentsLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)	-- TEXT_WRAP_MODE_TRUNCATE / TEXT_WRAP_MODE_ELLIPSIS
+	--	NBUI.NB1RightPage_ContentsLabel:SetAnchor(TOPLEFT, NBUI.NB1RightPage_ScrollContainer.scrollChild, TOPLEFT, 6, 5) -- Matches Editbox.
+	--	NBUI.NB1RightPage_ContentsLabel:SetWidth(NBUI.NB1RightPage_ScrollContainer:GetWidth()-20)
+	--	NBUI.NB1RightPage_ContentsLabel:SetHeight(NBUI.NB1RightPage_ScrollContainer:GetHeight())
+	--	NBUI.NB1RightPage_ContentsLabel:SetColor(unpack(NBUI.db.NB1_TextColor))
+	--	NBUI.NB1RightPage_ContentsLabel:SetDrawLayer(0)
+	--	NBUI.NB1RightPage_ContentsLabel:SetDrawLevel(3)
+	--	NBUI.NB1RightPage_ContentsLabel:SetDrawTier(1)
+	--	NBUI.NB1RightPage_ContentsLabel:SetFont("ZoFontBookPaper")
+	--	NBUI.NB1RightPage_ContentsLabel:SetHidden(false)
+	--	if not NBUI.db.NB1_FormattedMode then NBUI.NB1RightPage_ContentsLabel:SetHidden(true) end
+	--	NBUI.NB1RightPage_ContentsLabel:SetMouseEnabled(true)
+	--	-- NBUI.NB1RightPage_ContentsLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)	-- TEXT_WRAP_MODE_TRUNCATE / TEXT_WRAP_MODE_ELLIPSIS
 
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetHandler("OnMouseEnter", function(self)
-	-- 		if NBUI.db.NB1_EditModeHover then
-	-- 			NBUI.NB1RightPage_Contents:SetHidden(false)
-	-- 			NBUI.NB1RightPage_ContentsLabel:SetHidden(true)
-	-- 			NBUI.NB1RightPage_Contents:TakeFocus()
-	-- 		end
-	-- 	end)
+	--	NBUI.NB1RightPage_ContentsLabel:SetHandler("OnMouseEnter", function(self)
+	--		if NBUI.db.NB1_EditModeHover then
+	--			NBUI.NB1RightPage_Contents:SetHidden(false)
+	--			NBUI.NB1RightPage_ContentsLabel:SetHidden(true)
+	--			NBUI.NB1RightPage_Contents:TakeFocus()
+	--		end
+	--	end)
 
-	-- 	NBUI.NB1RightPage_ContentsLabel:SetHandler("OnMouseUp", function(self, button, upInside)
-	-- 		if NBUI.db.NB1_EditModeClick and upInside then
-	-- 			NBUI.NB1RightPage_Contents:SetHidden(false)
-	-- 			NBUI.NB1RightPage_ContentsLabel:SetHidden(true)
-	-- 			NBUI.NB1RightPage_Contents:TakeFocus()
-	-- 		end
-	-- 	end)
+	--	NBUI.NB1RightPage_ContentsLabel:SetHandler("OnMouseUp", function(self, button, upInside)
+	--		if NBUI.db.NB1_EditModeClick and upInside then
+	--			NBUI.NB1RightPage_Contents:SetHidden(false)
+	--			NBUI.NB1RightPage_ContentsLabel:SetHidden(true)
+	--			NBUI.NB1RightPage_Contents:TakeFocus()
+	--		end
+	--	end)
 
-	-- 	NBUI.NB1RightPage_ContentsLabel.UpdateHeight = function(self, hidden)
-	-- 		-- Filled height if shorter than page,
-	-- 		-- otherwise let dynamic height set it for scrollsbar.
-	-- 		NBUI.NB1RightPage_ContentsLabel:SetHeight(0) -- Test dynamic height with current text.
-	-- 		zo_callLater(function(self, height)
-	-- 			local height = NBUI.NB1RightPage_ScrollContainer:GetHeight()
-	-- 			if NBUI.NB1RightPage_ContentsLabel:GetHeight() < height then
-	-- 				NBUI.NB1RightPage_ContentsLabel:SetHeight(height)
-	-- 			end
-	-- 		end, 100)
-	-- 	end
+	--	NBUI.NB1RightPage_ContentsLabel.UpdateHeight = function(self, hidden)
+	--		-- Filled height if shorter than page,
+	--		-- otherwise let dynamic height set it for scrollsbar.
+	--		NBUI.NB1RightPage_ContentsLabel:SetHeight(0) -- Test dynamic height with current text.
+	--		zo_callLater(function(self, height)
+	--			local height = NBUI.NB1RightPage_ScrollContainer:GetHeight()
+	--			if NBUI.NB1RightPage_ContentsLabel:GetHeight() < height then
+	--				NBUI.NB1RightPage_ContentsLabel:SetHeight(height)
+	--			end
+	--		end, 100)
+	--	end
 ---------------------------------------------------------------------------------------------------
 	NBUI.NB1NewPage_Button = WINDOW_MANAGER:CreateControl("NBUI_NB1NewPage_Button", NBUI.NB1MainWindow, CT_BUTTON)
 		NBUI.NB1NewPage_Button:SetAnchor(TOPRIGHT, NBUI.NB1RightPage_TitleBackdrop, TOPRIGHT, 34, -25)
@@ -847,7 +847,7 @@ function CreateNB1()
 		NBUI.NB1NewPage_Button.highlight:SetTexture("/esoui/art/chatwindow/maximize_up.dds")
 		NBUI.NB1NewPage_Button.highlight:SetAlpha(1)
 --***********************************************************************************************--
---  MAIN WINDOW CLOSE BUTTON  ---------------------------------------------------------------------
+--	MAIN WINDOW CLOSE BUTTON  ---------------------------------------------------------------------
 --[[
 		NBUI.NB1Close_Button = WINDOW_MANAGER:CreateControlFromVirtual("NBUI_NB1Close_Button", NBUI.NB1MainWindow, "ZO_CloseButton")
 			NBUI.NB1Close_Button:SetDimensions(16, 16)
@@ -876,7 +876,7 @@ function CreateNB1()
 			-- function(self)
 			-- NBUI.NB1MainWindow:SetHidden(true)
 			-- if SCENE_MANAGER:IsInUIMode() then
-			-- 	SCENE_MANAGER:SetInUIMode(false)
+			--	SCENE_MANAGER:SetInUIMode(false)
 			-- end
 			-- DoCommand("/idle")
 			--end
@@ -904,7 +904,7 @@ function CreateNB1()
 		NBUI.NB1Close_ButtonTexture:SetAlpha(1)
 
 --***********************************************************************************************--
---  CHAT WINDOW BUTTONS  --------------------------------------------------------------------------
+--	CHAT WINDOW BUTTONS	 --------------------------------------------------------------------------
 	NBUI.NB1MaxChatWin_Button = WINDOW_MANAGER:CreateControl("NBUI_NB1MaxChatWin_Button", ZO_ChatWindow, CT_BUTTON)
 		NBUI.NB1MaxChatWin_Button:SetDimensions(32, 32)
 		NBUI.NB1MaxChatWin_Button:SetAnchor(CENTER, ZO_ChatWindowOptions, CENTER, -30 + NBUI.db.NB1_ChatButton_Max_Offset, 1)
@@ -1065,8 +1065,8 @@ function NBUI.NB1SavePage(self)
 
 	-- Display selection element and buttons.
 	-- if self.new then
-	-- 	-- NBUI.NB1SelectedPage_Button:SetAnchorFill(_G["NBUI_Index"..currentlyViewing])
-	-- 	NBUI.NB1SelectedPage_Button:SetAnchorFill(NB1_IndexPool:AcquireObject(currentlyViewing))
+	--	-- NBUI.NB1SelectedPage_Button:SetAnchorFill(_G["NBUI_Index"..currentlyViewing])
+	--	NBUI.NB1SelectedPage_Button:SetAnchorFill(NB1_IndexPool:AcquireObject(currentlyViewing))
 	-- end
 
 	-- NBUI.NB1UndoPage_Button:SetHidden(true)

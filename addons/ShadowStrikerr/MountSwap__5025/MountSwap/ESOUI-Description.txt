@@ -71,6 +71,9 @@ SUPPORT
 Feedback and bug reports are welcome through the Comments tab on this ESOUI addon page. Please include your MountSwap version, PC_NA or PC_EU, keyboard/controller mode, the action that caused the issue and any Lua error text. Screenshots help; remove personal information before posting.
 
 CREDITS AND SOURCES
+Inspired by ShowMount by Phuein for quick mount switching.
+https://www.esoui.com/downloads/info2315-ShowMount.html
+
 Controller/navigation, shared settings and common translation labels adapted from Crown Crate Codex by ShadowStrikerr:
 https://www.esoui.com/downloads/info5023-CrownCrateCodex.html
 

@@ -77,7 +77,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Inventory 2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ualtinova/Inventory-2.0__5009) | ualtinova | PC / Mac | 1.0.6 |
 | [Inventory Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zsban/Inventory-Assistant__2015) | zsban | PC / Mac | 1.21.261002-beta |
 | [Inventory Bank Sort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rlinosaur/Inventory-Bank-Sort__3344) | rlinosaur | PC / Mac | 1.2 |
-| [Inventory Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Inventory-Companion__4997) | tim-p | PC / Mac | 1.5.0 |
+| [Inventory Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Inventory-Companion__4997) | tim-p | PC / Mac | 1.6.3 |
 | [Inventory Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Panicida/Inventory-Extensions__2801) | Panicida | PC / Mac | 1.0.0 |
 | [Inventory Grid View](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DunkleMaterie/Inventory-Grid-View__2227) | DunkleMaterie | PC / Mac | 2.0.9.2c |
 | [Inventory Grid View Skin: Abyss](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vixion/Inventory-Grid-View-Skin-Abyss__900) | vixion | PC / Mac | 1 |
@@ -129,7 +129,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder__1541) | Rhyono | PC / Mac | 1.31 |
 | [Item Finder (PTS)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder-PTS__1980) | Rhyono | PC / Mac | 1.31 |
 | [Item Quality as Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cavalier07/Item-Quality-as-Text__745) | Cavalier07 | PC / Mac | 1.3.0 |
-| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.3 |
+| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.4 |
 | [Item Scripting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Item-Scripting__2089) | Amerlite | PC / Mac | 2.3 |
 | [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.1.2 |
 | [Item Set Collection Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Item-Set-Collection-Tracker__2816) | zelenin | PC / Mac | 0.4.1 |

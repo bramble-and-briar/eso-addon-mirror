@@ -1,0 +1,54 @@
+## Title: |cFF69B4PB's Reticle|r 1.0.0
+## Author: |cFF69B4PinkBanther|r
+## Description: A stylish, high-visibility reticle. Six designs with a dark outline that reads on any background, colour by what you look at, a lock-on and open motion, hit and kill markers, and a preview on a dark and a light background in the settings.
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsReticle_Data
+
+lang/strings.lua
+lang/$(language).lua
+Geometry.lua
+Core.lua
+Reticle.lua
+Preview.lua
+Settings.lua
+Main.lua
+assets/solid.dds
+assets/dot.dds
+assets/dot_o.dds
+assets/hit.dds
+assets/hit_o.dds
+assets/ring_thin.dds
+assets/ring_thin_o.dds
+assets/ring_regular.dds
+assets/ring_regular_o.dds
+assets/ring_bold.dds
+assets/ring_bold_o.dds
+assets/orbit_thin.dds
+assets/orbit_thin_o.dds
+assets/orbit_regular.dds
+assets/orbit_regular_o.dds
+assets/orbit_bold.dds
+assets/orbit_bold_o.dds
+assets/arm_h_thin.dds
+assets/arm_h_thin_o.dds
+assets/arm_h_regular.dds
+assets/arm_h_regular_o.dds
+assets/arm_h_bold.dds
+assets/arm_h_bold_o.dds
+assets/arm_v_thin.dds
+assets/arm_v_thin_o.dds
+assets/arm_v_regular.dds
+assets/arm_v_regular_o.dds
+assets/arm_v_bold.dds
+assets/arm_v_bold_o.dds
+assets/brk_thin.dds
+assets/brk_thin_o.dds
+assets/brk_regular.dds
+assets/brk_regular_o.dds
+assets/brk_bold.dds
+assets/brk_bold_o.dds
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

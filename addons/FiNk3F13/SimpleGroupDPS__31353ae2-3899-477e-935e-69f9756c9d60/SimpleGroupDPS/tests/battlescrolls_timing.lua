@@ -25,13 +25,13 @@ clock = 1300
 assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 500,
     "first-hit-only sample does not decay while idle")
 clock = 12000
-assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 500,
-    "long idle time does not change the initial estimate")
+assert(meter:GetStats().durationMS == 11100 and math.abs(meter:GetStats().dps - 500000 / 11100) < 0.000001,
+    "Live DPS declines without new damage")
 clock = 1300
 meter:OnDamage(1, false, 1, "Dummy", 7, 1000, 10)
 clock = 7000
-assert(meter:GetStats().durationMS == 400 and meter:GetStats().dps == 3750,
-    "after later damage timestamp, idle ticks preserve the last damage clock")
+assert(meter:GetStats().durationMS == 6100 and math.abs(meter:GetStats().dps - 1500000 / 6100) < 0.000001,
+    "Active combat clock advances between damage events")
 local idle = meter:GetDiagnostics()
 assert(idle.active and idle.inCombat and idle.damageAgeMS == 5700 and idle.personalEvents == 1,
     "diagnostics distinguish an active encounter with no new damage from a stopped measurement")
@@ -50,7 +50,7 @@ assert(meter:GetStats().total == 2000 and meter:GetStats().durationMS == 6700, "
 local live = meter:GetStats()
 clock = 10000
 meter:Finish()
-assert(meter:GetStats().durationMS == live.durationMS and meter:GetStats().dps == live.dps,
+assert(meter:GetStats().durationMS == 9100 and math.abs(meter:GetStats().dps - 2000000 / 9100) < 0.000001,
     "final display/sending sample keeps the same clock once later damage exists")
 clock = 11000
 local finished = meter:GetDiagnostics()
@@ -58,14 +58,14 @@ assert(not finished.active and finished.finishedAgeMS == 1000 and finished.damag
     and finished.personalEvents == 3 and finished.otherEvents == 1,
     "diagnostics preserve the finished fight so opening chat after a pause does not erase evidence")
 
--- A short dummy test has no custom one-second floor in Battle Scrolls.
+-- A short burst uses the same minimum duration for all targets.
 clock = 20000
 meter:Start(clock)
 meter:OnDamage(1, false, 1, "Dummy", 7, 2000, 10)
 clock = 20677
 meter:OnDamage(1, false, 1, "Dummy", 7, 2319, 10)
-assert(meter:GetStats().durationMS == 677 and math.floor(meter:GetStats().dps + 0.5) == 6380,
-    "dummy DPS follows exact Battle Scrolls formula rather than native dummy chat")
+assert(meter:GetStats().durationMS == 1000 and math.floor(meter:GetStats().dps + 0.5) == 4319,
+    "subsecond bursts use a stable one-second minimum without reading dummy chat")
 meter:Finish()
 assert(meter.OnDummyResult == nil, "dummy chat cannot override Battle Scrolls calculation")
 print("PASS: combat entry, buffer, stable first-hit estimate, shared damage clock and multi-hit dummy parity")

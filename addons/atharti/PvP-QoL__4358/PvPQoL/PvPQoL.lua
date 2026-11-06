@@ -863,7 +863,7 @@ end
 -- Tracked Item Loot Handler
 -- =========================
 
-function PQ.OnLootReceived(eventCode, receivedBy, itemName, quantity, soundCategory, lootType, isMe, isPickpocketLoot, questItemIcon, itemId, isStolen)
+function PQ.OnLootReceived(_, _, _, _, _, lootType, isMe, _, _, itemId)
 	if not isMe then return end
 	if lootType ~= LOOT_TYPE_ITEM then return end
 

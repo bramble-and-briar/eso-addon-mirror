@@ -33,6 +33,12 @@ local strings = {
     SI_ONECHAT_LANGUAGE_BUTTON = "Show game language button",
     SI_ONECHAT_LANGUAGE_TOOLTIP = "Change game language (reloads the interface)",
     SI_ONECHAT_BUTTONS_SECTION = "Buttons",
+    SI_ONECHAT_NOTIFICATIONS_SECTION = "Notifications",
+    SI_ONECHAT_HIDE_PLAYER_STATUS = "Hide login/logout messages",
+    SI_ONECHAT_HIDE_PLAYER_STATUS_HINT = "Hide chat notifications when friends log in or out. Applies immediately to new messages.",
+    SI_ONECHAT_CUSTOM_MESSAGE = "Custom message layout",
+    SI_ONECHAT_MESSAGE_TEMPLATE = "Message template",
+    SI_ONECHAT_MESSAGE_TEMPLATE_HINT = "{name}: clickable sender; {time}: HH:MM; {guild}: full guild name (empty outside guild chat); {message}: message text; {character}: character name; {account}: account name; {channel}: channel. All other text, unknown placeholders and line breaks are displayed literally. Applies to new player messages. Standard formatting settings are disabled while enabled.",
 }
 for id, text in pairs(strings) do
     if not _G[id] then ZO_CreateStringId(id, text) end

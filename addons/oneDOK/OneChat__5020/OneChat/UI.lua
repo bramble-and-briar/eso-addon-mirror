@@ -219,16 +219,18 @@ function A:InstallSettings()
     local LAM = LibAddonMenu2
     self.settingsPanel = LAM:RegisterAddonPanel("OneChatSettings", {
         type = "panel", name = "OneChat", displayName = GetString(SI_ONECHAT_SETTINGS),
-        author = "oneDOK", version = "26.11.1",
+        author = "oneDOK", version = "26.11.2",
         registerForRefresh = true, registerForDefaults = true,
     })
     local options = {
         { type = "header", name = GetString(SI_ONECHAT_FORMATTING) },
         { type = "checkbox", name = GetString(SI_ONECHAT_TIMESTAMPS),
+          disabled = function() return A.sv.customMessage end,
           tooltip = GetString(SI_ONECHAT_TIMESTAMPS_HINT), default = true,
           getFunc = function() return A.sv.timestamps end,
           setFunc = function(value) A.sv.timestamps = value end },
         { type = "checkbox", name = GetString(SI_ONECHAT_NEWLINE),
+          disabled = function() return A.sv.customMessage end,
           tooltip = GetString(SI_ONECHAT_NEWLINE_HINT), default = false,
           getFunc = function() return A.sv.newline end,
           setFunc = function(value) A.sv.newline = value end },
@@ -256,7 +258,7 @@ function A:InstallSettings()
                 local id = GetGuildId(slot)
                 return id and id ~= 0 and GetGuildName(id) or ""
             end,
-            disabled = function() return slot > GetNumGuilds() end,
+            disabled = function() return A.sv.customMessage or slot > GetNumGuilds() end,
             getFunc = function()
                 return A.sv.abbreviations[tostring(GetGuildId(slot))] or ""
             end,
@@ -267,6 +269,27 @@ function A:InstallSettings()
             end,
         }
     end
+    options[#options + 1] = { type = "header", name = GetString(SI_ONECHAT_NOTIFICATIONS_SECTION) }
+    options[#options + 1] = {
+        type = "checkbox", name = GetString(SI_ONECHAT_HIDE_PLAYER_STATUS),
+        tooltip = GetString(SI_ONECHAT_HIDE_PLAYER_STATUS_HINT), default = false,
+        getFunc = function() return A.sv.hidePlayerStatus end,
+        setFunc = function(value) A.sv.hidePlayerStatus = value end,
+    }
+    table.insert(options, 2, {
+        type = "checkbox", name = GetString(SI_ONECHAT_CUSTOM_MESSAGE), default = false,
+        getFunc = function() return A.sv.customMessage end,
+        setFunc = function(value) A.sv.customMessage = value end,
+    })
+    table.insert(options, 3, {
+        type = "editbox", name = GetString(SI_ONECHAT_MESSAGE_TEMPLATE),
+        tooltip = GetString(SI_ONECHAT_MESSAGE_TEMPLATE_HINT),
+        isMultiline = true, isExtraWide = true, width = "full", maxChars = 4096,
+        default = A.defaultMessageTemplate,
+        disabled = function() return not A.sv.customMessage end,
+        getFunc = function() return A.sv.messageTemplate end,
+        setFunc = function(value) A.sv.messageTemplate = value end,
+    })
     LAM:RegisterOptionControls("OneChatSettings", options)
 end
 
@@ -322,29 +345,24 @@ end
 function A:InstallToolbar()
     self.toolbarButtons = {}
     local definitions = {
-        { key = "home", texture = "OneChat/art/home.dds",
+        { key = "home", texture = "EsoUI/Art/WorldMap/map_indexIcon_housing",
           tooltip = SI_ONECHAT_HOME_TOOLTIP, action = function() A:TravelHome() end },
-        { key = "reload", texture = "OneChat/art/reload.dds",
+        { key = "reload", texture = "EsoUI/Art/LFG/LFG_groupFinder_refreshSearch",
           tooltip = SI_ONECHAT_RELOAD_TOOLTIP, action = function() A:SnapshotTabs(); ReloadUI("ingame") end },
-        { key = "language", texture = "OneChat/art/language.dds",
+        { key = "language", texture = "EsoUI/Art/MainMenu/menuBar_map",
           tooltip = SI_ONECHAT_LANGUAGE_TOOLTIP, action = function(button) A:ShowLanguageMenu(button) end },
     }
-    local r, g, b = ZO_NORMAL_TEXT:UnpackRGB()
     for _, definition in ipairs(definitions) do
         local button = WM:CreateControl("OneChatToolbar" .. definition.key, self.chat.primaryContainer.control, CT_BUTTON)
         button:SetMouseEnabled(true)
         button:SetDimensions(24, 24)
-        local icon = WM:CreateControl(nil, button, CT_TEXTURE)
-        icon:SetAnchorFill()
-        icon:SetTexture(definition.texture)
-        icon:SetColor(r, g, b, 1)
+        -- Use the same baked colors, glow and pressed states as native buttons.
+        button:SetNormalTexture(definition.texture .. "_up.dds")
+        button:SetMouseOverTexture(definition.texture .. "_over.dds")
+        button:SetPressedTexture(definition.texture .. "_down.dds")
         button:SetHandler("OnClicked", definition.action)
         tooltip(button, GetString(definition.tooltip))
-        ZO_PostHookHandler(button, "OnMouseEnter", function()
-            icon:SetColor(math.min(1, r * 1.2), math.min(1, g * 1.2), math.min(1, b * 1.2), 1)
-        end)
-        ZO_PostHookHandler(button, "OnMouseExit", function() icon:SetColor(r, g, b, 1) end)
-        self.toolbarButtons[#self.toolbarButtons + 1] = { key = definition.key, control = button, icon = icon }
+        self.toolbarButtons[#self.toolbarButtons + 1] = { key = definition.key, control = button }
     end
     self:RefreshToolbar()
 end

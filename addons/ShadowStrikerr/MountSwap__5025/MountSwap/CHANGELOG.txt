@@ -1,5 +1,14 @@
 MountSwap changelog - newest first
 
+0.8.11 - API cleanup test build
+- Call the documented ESO gamepad mode, binding and action-layer APIs directly.
+- Call language lookup, Reload UI and mount category lookup directly. Keep
+  language and category fallbacks for unusable returned data.
+
+0.8.10 - In-game test build
+- Register the documented ESO player activation and deactivation events directly.
+- Credit ShowMount by Phuein as inspiration for quick mount switching.
+
 0.8.9 - November 4, 2026
 - Final publication wording: Crown Crate Codex-style gold headings, blue links,
   consistent spacing and concise opening AI disclosure; Recommended Library

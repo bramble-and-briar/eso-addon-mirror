@@ -56,7 +56,7 @@ assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == '0:01')
 assert(parent.swtGroupDPSLabels.summary.text == 'Total')
 format:Render(parent,{{name='Player'}},true,1000,env.saved,{})
 assert(parent.swtGroupDPSLabels[0].text == 'Boss Damage (Total Damage)')
-assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == 'No DPS data')
+assert(parent.swtGroupDPSLabels[1].swtDPSValue.text == '0')
 SCENE_MANAGER.GetCurrentScene = oldScene
 function GetCVar() return 'de' end
 dofile('Localization.lua')

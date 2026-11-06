@@ -1,0 +1,144 @@
+Antiquity acquisition data attribution
+
+The acquisition facts in AntiquitySources.lua were adapted and condensed from
+UESP's Mythic Item pages and contributors, accessed 5 November 2026.
+AntiquityMotifs.lua adapts motif lead sources from the zone pages below;
+its verified lead ranges compact 98 chapter records into five ranges.
+Additional Ancestral Reach source clarification (Greymoor Caverns):
+https://tianlein.de/en/eso/guide/style/ancestral-reach
+AntiquityFurnitureSources.lua condenses furnishing lead sources from the zone
+pages below. Four unverified sources are omitted. Conflicting source IDs for
+Smoothed Stone Grinder (502), Fargrave (547) and West Weald (687) are corrected
+using each furnishing's Antiquity entry:
+https://en.uesp.net/wiki/Online:Druidic_Provisioning_Station
+https://en.uesp.net/wiki/Online:Antique_Map_of_Fargrave
+https://en.uesp.net/wiki/Online:Antique_Map_of_West_Weald
+https://www.esoui.com/downloads/fileinfo.php?id=1881&page=34&so=ASC
+Fixed-object positions adapt UESP Gamemap contributors' markers (Y inverted
+from the map's coordinate system into native ESO normalized coordinates):
+https://gamemap.uesp.net/eso/?world=blackwood
+https://gamemap.uesp.net/eso/?world=u34_systreszone
+https://gamemap.uesp.net/eso/?world=u38_telvannipeninsula
+This adapted data is provided under Creative Commons Attribution-ShareAlike 2.5:
+https://creativecommons.org/licenses/by-sa/2.5/
+https://en.uesp.net/wiki/UESPWiki:Copyright_and_Ownership
+
+Changes: compact lead-ID records, shorter acquisition instructions, explicit
+lead-source zones, and map routes. Game progress and the catalogue are read
+from ESO. This data licence does not apply to the module's original Lua logic.
+
+Source pages (each page's history credits its contributors):
+https://en.uesp.net/wiki/Online:Belharza's_Band
+https://en.uesp.net/wiki/Online:Bloodlord's_Embrace
+https://en.uesp.net/wiki/Online:Cryptcanon_Vestments
+https://en.uesp.net/wiki/Online:Death_Dealer's_Fete
+https://en.uesp.net/wiki/Online:Dov-rha_Sabatons
+https://en.uesp.net/wiki/Online:Esoteric_Environment_Greaves
+https://en.uesp.net/wiki/Online:Faun's_Lark_Cladding
+https://en.uesp.net/wiki/Online:Gaze_of_Sithis
+https://en.uesp.net/wiki/Online:Harpooner's_Wading_Kilt
+https://en.uesp.net/wiki/Online:Huntsman's_Warmask
+https://en.uesp.net/wiki/Online:Lefthander's_Aegis_Belt
+https://en.uesp.net/wiki/Online:Mad_God's_Dancing_Shoes
+https://en.uesp.net/wiki/Online:Malacath's_Band_of_Brutality
+https://en.uesp.net/wiki/Online:Markyn_Ring_of_Majesty
+https://en.uesp.net/wiki/Online:Monomyth_Reforged
+https://en.uesp.net/wiki/Online:Mora's_Whispers
+https://en.uesp.net/wiki/Online:Oakensoul_Ring
+https://en.uesp.net/wiki/Online:Pearls_of_Ehlnofey
+https://en.uesp.net/wiki/Online:Rakkhat's_Voidmantle
+https://en.uesp.net/wiki/Online:Ring_of_the_Pale_Order
+https://en.uesp.net/wiki/Online:Ring_of_the_Wild_Hunt
+https://en.uesp.net/wiki/Online:Rourken_Steamguards
+https://en.uesp.net/wiki/Online:Sea-Serpent's_Coil
+https://en.uesp.net/wiki/Online:Shapeshifter's_Chain
+https://en.uesp.net/wiki/Online:Shattered_Paths_Signet
+https://en.uesp.net/wiki/Online:Snow_Treaders
+https://en.uesp.net/wiki/Online:Spaulder_of_Ruin
+https://en.uesp.net/wiki/Online:Stormweaver's_Cavort
+https://en.uesp.net/wiki/Online:Syrabane's_Ward
+https://en.uesp.net/wiki/Online:The_Saint_and_the_Seducer
+https://en.uesp.net/wiki/Online:The_Shadow_Queen's_Cowl
+https://en.uesp.net/wiki/Online:Thrassian_Stranglers
+https://en.uesp.net/wiki/Online:Torc_of_Tonal_Constancy
+https://en.uesp.net/wiki/Online:Torc_of_the_Last_Ayleid_King
+https://en.uesp.net/wiki/Online:Velothi_Ur-Mage's_Amulet
+
+Additional cross-checks for recent leads:
+https://eso-hub.com/en/sets/huntsmans-warmask
+https://forums.elderscrollsonline.com/en/discussion/694209/shatter-path-signet-leads-outside-of-night-market
+
+Music-box acquisition facts added in v0.1.3, adapted and condensed from:
+https://en.uesp.net/wiki/Online:Music_Box%2C_Blessings_of_Stone
+https://en.uesp.net/wiki/Online:Music_Box%2C_Dreams_and_Memories
+https://en.uesp.net/wiki/Online:Music_Box%2C_Glyphic_Secrets
+https://en.uesp.net/wiki/Online:Music_Box%2C_Lament_For_the_Path_Not_Taken
+https://en.uesp.net/wiki/Online:Music_Box%2C_The_Hermit_Crab_Dance
+https://en.uesp.net/wiki/Online:Desuuga_the_Siren
+https://en.uesp.net/wiki/Online:Siren%27s_Cove
+
+Mount acquisition facts and Favor coffer correction added in v0.1.4:
+https://en.uesp.net/wiki/Online:Ebon_Dwarven_Wolf
+https://en.uesp.net/wiki/Online:The_Earth_Forge
+https://en.uesp.net/wiki/Online:Rkulftzel
+https://en.uesp.net/wiki/Online:Favors
+
+Default zone-treasure chain membership added in v0.1.5, adapted and condensed from:
+https://en.uesp.net/wiki/Online:Alik'r_Desert_Antiquities
+https://en.uesp.net/wiki/Online:Apocrypha_Antiquities
+https://en.uesp.net/wiki/Online:Artaeum_Antiquities
+https://en.uesp.net/wiki/Online:Auridon_Antiquities
+https://en.uesp.net/wiki/Online:Bal_Foyen_Antiquities
+https://en.uesp.net/wiki/Online:Bangkorai_Antiquities
+https://en.uesp.net/wiki/Online:Betnikh_Antiquities
+https://en.uesp.net/wiki/Online:Blackwood_Antiquities
+https://en.uesp.net/wiki/Online:Bleakrock_Isle_Antiquities
+https://en.uesp.net/wiki/Online:Clockwork_City_Antiquities
+https://en.uesp.net/wiki/Online:Coldharbour_Antiquities
+https://en.uesp.net/wiki/Online:Craglorn_Antiquities
+https://en.uesp.net/wiki/Online:Deshaan_Antiquities
+https://en.uesp.net/wiki/Online:Eastmarch_Antiquities
+https://en.uesp.net/wiki/Online:Eyevea_Antiquities
+https://en.uesp.net/wiki/Online:Galen_Antiquities
+https://en.uesp.net/wiki/Online:Glenumbra_Antiquities
+https://en.uesp.net/wiki/Online:Gold_Coast_Antiquities
+https://en.uesp.net/wiki/Online:Grahtwood_Antiquities
+https://en.uesp.net/wiki/Online:Greenshade_Antiquities
+https://en.uesp.net/wiki/Online:Hew's_Bane_Antiquities
+https://en.uesp.net/wiki/Online:High_Isle_Antiquities
+https://en.uesp.net/wiki/Online:Khenarthi's_Roost_Antiquities
+https://en.uesp.net/wiki/Online:Malabal_Tor_Antiquities
+https://en.uesp.net/wiki/Online:Murkmire_Antiquities
+https://en.uesp.net/wiki/Online:Northern_Elsweyr_Antiquities
+https://en.uesp.net/wiki/Online:Reaper's_March_Antiquities
+https://en.uesp.net/wiki/Online:Rivenspire_Antiquities
+https://en.uesp.net/wiki/Online:Shadowfen_Antiquities
+https://en.uesp.net/wiki/Online:Solstice_Antiquities
+https://en.uesp.net/wiki/Online:Southern_Elsweyr_Antiquities
+https://en.uesp.net/wiki/Online:Stonefalls_Antiquities
+https://en.uesp.net/wiki/Online:Stormhaven_Antiquities
+https://en.uesp.net/wiki/Online:Stros_M'Kai_Antiquities
+https://en.uesp.net/wiki/Online:Summerset_Antiquities
+https://en.uesp.net/wiki/Online:Telvanni_Peninsula_Antiquities
+https://en.uesp.net/wiki/Online:The_Deadlands_Antiquities
+https://en.uesp.net/wiki/Online:The_Reach_Antiquities
+https://en.uesp.net/wiki/Online:The_Rift_Antiquities
+https://en.uesp.net/wiki/Online:Vvardenfell_Antiquities
+https://en.uesp.net/wiki/Online:West_Weald_Antiquities
+https://en.uesp.net/wiki/Online:Western_Skyrim_Antiquities
+https://en.uesp.net/wiki/Online:Wrothgar_Antiquities
+
+Completion-stage data (AntiquityExtraSources.lua and AntiquityAchievementLinks.lua):
+Lead sources and reward relationships are adapted and shortened from the zone
+pages above and UESP Antiquities Achievements, under the same CC BY-SA 2.5 terms.
+Native achievement identifiers and reward-set relationships were cross-checked
+against the UESP game-data dump accessed 5 November 2026. Names, criteria,
+completion, ownership and the live catalogue still come from ESO.
+https://en.uesp.net/wiki/Online:Antiquities_Achievements
+https://esolog.uesp.net/viewlog.php?record=antiquityLeads
+https://esolog.uesp.net/viewlog.php?record=achievements
+Night Market acquisition reports and High Seas event clarifications:
+https://forums.elderscrollsonline.com/en-gb/discussion/687903/update-49-antiquity-lead-locations
+https://forums.elderscrollsonline.com/en-gb/discussion/699927/event-specific-leads
+https://eso-hub.com/en/antiquities/leads/hourglass-of-akatosh-brace-massive
+https://eso-hub.com/en/antiquities/leads/valenwood-skull-blocks

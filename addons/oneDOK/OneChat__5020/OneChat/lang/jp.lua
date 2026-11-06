@@ -33,6 +33,12 @@ local strings = {
     SI_ONECHAT_LANGUAGE_BUTTON = "言語選択ボタンを表示",
     SI_ONECHAT_LANGUAGE_TOOLTIP = "ゲームの言語を変更（UIが再読み込みされます）",
     SI_ONECHAT_BUTTONS_SECTION = "ボタン",
+    SI_ONECHAT_NOTIFICATIONS_SECTION = "通知",
+    SI_ONECHAT_HIDE_PLAYER_STATUS = "ログイン・ログアウト通知を非表示",
+    SI_ONECHAT_HIDE_PLAYER_STATUS_HINT = "フレンドのログイン・ログアウトを知らせるチャット通知を非表示にします。新しいメッセージに即座に適用されます。",
+    SI_ONECHAT_CUSTOM_MESSAGE = "メッセージの表示をカスタマイズ",
+    SI_ONECHAT_MESSAGE_TEMPLATE = "メッセージテンプレート",
+    SI_ONECHAT_MESSAGE_TEMPLATE_HINT = "{name}：クリック可能な送信者、{time}：HH:MM、{guild}：ギルドの正式名（ギルドチャット以外では空）、{message}：本文、{character}：キャラクター名、{account}：アカウント名、{channel}：チャンネル。それ以外の文字、未知の変数、改行はそのまま表示します。新しいプレイヤーメッセージに適用し、標準の書式設定を無効にします。",
 }
 for id, text in pairs(strings) do
     SafeAddString(_G[id], text, 1)

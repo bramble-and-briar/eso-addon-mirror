@@ -51,7 +51,7 @@ bridge:Clear()
 env.receive("group3", {messageType = "healing", rawHPS = 27200, effectiveHPS = 4900})
 env.receive("group4", {messageType = "damage", allTargetsDPS = 500})
 assert(row("HealerOne").swtDPSValue.text == "4,9 Tsd. (27,2 Tsd.)"
-    and row("HealerTwo").swtDPSValue.text == "Keine HPS-Daten", "Missing second-healer HPS is not a one-healer limit")
+    and row("HealerTwo").swtDPSValue.text == "0", "Missing second-healer HPS is not a one-healer limit")
 assert(member("@HealerTwo").rawHPS == nil and member("@HealerTwo").displayType == "healing")
 env.receive("group4", {messageType = "healing", rawHPS = 18000, effectiveHPS = 6000})
 assert(row("HealerTwo").swtDPSValue.text == "6,0 Tsd. (18,0 Tsd.)",

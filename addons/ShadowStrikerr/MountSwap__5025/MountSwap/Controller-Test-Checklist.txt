@@ -1,4 +1,8 @@
-MountSwap 0.8.9 - PC in-game controller test checklist
+MountSwap 0.8.11 - PC in-game controller test checklist
+
+Event fix retest: log in and open MountSwap with /ms. Close it, travel through
+a loading screen, then reopen in Gamepad Mode. Verify D-pad focus and Back.
+
 
 Automated verification uses mocked ESO APIs and controls. It does not certify
 hardware operation, rendering, native virtual keyboard behavior, or gameplay

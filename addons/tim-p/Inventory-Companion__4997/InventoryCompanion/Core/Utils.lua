@@ -68,7 +68,7 @@ end
 ------------------------------------------------------------
 local lastMessageTime = 0
 local spamCount = 0
-local SPAM_WINDOW_SECONDS = 1
+local SPAM_WINDOW_SECONDS = 3
 
 -- Track the last sent message text to prevent exact duplicate spam
 local lastSentText = ""
@@ -117,10 +117,13 @@ local function SendMessageNow(chatMessage, hudAlert, colorPrefix)
     end
 end
 
-local function HandleSpamAndSend(message, alert, colorPrefix)
+local function HandleSpamAndSend(message, alert, colorPrefix, restrictDestinations)
     local nowMS = GetNowMs()
     local now = nowMS / 1000
     local textKey = message or alert or ""
+    if restrictDestinations then
+        textKey = tostring(message) .. "\001" .. tostring(alert)
+    end
 
     -- Check if it's a duplicate within the 500ms window
     if textKey == lastSentText and (nowMS - lastSentTimeMS < 500) then
@@ -137,6 +140,7 @@ local function HandleSpamAndSend(message, alert, colorPrefix)
             local flaggedAlert = alert and ("[DUP] " .. alert) or nil
             SendMessageNow(flaggedMessage, flaggedAlert, flaggedColor)
         else
+            if restrictDestinations and not message then return end
             -- Debug OFF: Leave HUD alone, just log to chat quietly
             d(string.format("|c888888[%s Dupe Suppressed]:|r %s", this.DisplayName(), tostring(message or alert)))
         end
@@ -161,9 +165,17 @@ local function HandleSpamAndSend(message, alert, colorPrefix)
         SendMessageNow(message, alert, colorPrefix)
         return
     elseif spamCount == 6 then
-        SendMessageNow(message, "...check chat for more!", colorPrefix)
+        if restrictDestinations then
+            SendMessageNow(message, alert and (message and "...check chat for more!" or alert) or nil, colorPrefix)
+        else
+            SendMessageNow(message, "...check chat for more!", colorPrefix)
+        end
         return
     else
+        if restrictDestinations then
+            if message then SendMessageNow(message, nil, colorPrefix) end
+            return
+        end
         local chatText = message or alert
         if chatText then 
             SendMessageNow(chatText, nil, colorPrefix)
@@ -190,8 +202,8 @@ function this.UserError(message, alert)
     HandleSpamAndSend(message, alert, "|cFF5252")
 end
 
-function this.UserWarning(message, alert)
-    HandleSpamAndSend(message, alert, "|cFFEB3B")
+function this.UserWarning(message, alert, restrictDestinations)
+    HandleSpamAndSend(message, alert, "|cFFEB3B", restrictDestinations)
 end
 
 ------------------------------------------------------------

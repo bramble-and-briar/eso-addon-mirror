@@ -82,7 +82,7 @@ local strings = {
 	SI_PBSPST_RESET_BUTTON = "リセット",
 
 	SI_PBSPST_LOADED = "PB's Proc Set Timer %s を読み込みました。/procset でコマンド一覧を表示します。",
-	SI_PBSPST_HELP = "/procset on | off -- 表示のオン・オフ\n/procset sets -- 装備中のセットと、それぞれに行があるか\n/procset hide | show <セットIDまたはセット名の一部> -- セットの行を消す・戻す\n/procset status -- 各行について、説明文から読み取った時間と、対応づけたアビリティ\n/procset log -- 装備セットの最近の変化(バー切り替え、装備数、ボーナスの有効・無効)\n/procset text [セットID] -- 装備中のセット(またはIDで指定した1つ)のボーナス説明文の原文と、読み取った内容\n/procset probe -- セット装備中に出たアビリティを一覧表示(対応づけに失敗した効果を探すため)\n/procset bind <アビリティID> <セットIDまたは名前>[:<装備数>[-<n>]] -- アビリティを手動でセット(または、その装備数で有効になるボーナスのn番目の効果)に結びつける。bind clear で解除\n/procset ignore <アビリティID> -- このアビリティを照合の対象から外す。ignore clear で解除\n/procset preview -- 位置決め用のサンプル表示",
+	SI_PBSPST_HELP = "/procset on | off -- 表示のオン・オフ\n/procset sets -- 装備中のセットと、それぞれに行があるか\n/procset hide | show <セットIDまたはセット名の一部> -- セットの行を消す・戻す\n/procset status -- 各行について、説明文から読み取った時間と、対応づけたアビリティ\n/procset log -- 装備セットの最近の変化(バー切り替え、装備数、ボーナスの有効・無効)\n/procset text [セットID] -- 装備中のセット(またはIDで指定した1つ)のボーナス説明文の原文と、読み取った内容\n/procset buffs [all] -- 注目している敵にかかっている効果と、そのうち自分の継続ダメージとして数えているもの(ズェンの矯正のように、継続ダメージの数で積み上がる効果のため)\n/procset probe -- セット装備中に出たアビリティを一覧表示(対応づけに失敗した効果を探すため)\n/procset bind <アビリティID> <セットIDまたは名前>[:<装備数>[-<n>]] -- アビリティを手動でセット(または、その装備数で有効になるボーナスのn番目の効果)に結びつける。bind clear で解除\n/procset ignore <アビリティID> -- このアビリティを照合の対象から外す。ignore clear で解除\n/procset preview -- 位置決め用のサンプル表示",
 	SI_PBSPST_ON = "Proc Set Timer をオンにしました。",
 	SI_PBSPST_OFF = "Proc Set Timer をオフにしました。",
 	SI_PBSPST_PROBE_ON = "プローブをオンにしました。どのセットにも対応しない自分のアビリティを、1つにつき1回だけ表示します。",

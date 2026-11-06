@@ -32,19 +32,19 @@ local ReorderResourceSettingsRows
 local resourceSettingsListControl
 
 local function OnCurrencyMoveStop(control)
-    this.accountWide.currencyOffsetX = control:GetLeft()
-    this.accountWide.currencyOffsetY = control:GetTop()
+    this.GetSettingsProfile().currencyOffsetX = control:GetLeft()
+    this.GetSettingsProfile().currencyOffsetY = control:GetTop()
 end
 
 local function OnCurrencyPanelMouseUp(_, button)
     if button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
 
     ClearMenu()
-    local showEmptyCurrencies = this.accountWide.showEmptyCurrencies ~= false
+    local showEmptyCurrencies = this.GetSettingsProfile().showEmptyCurrencies ~= false
     AddCustomMenuItem(
         showEmptyCurrencies and "Hide Zero-Balance Currencies" or "Show Zero-Balance Currencies",
         function()
-            this.accountWide.showEmptyCurrencies = not showEmptyCurrencies
+            this.GetSettingsProfile().showEmptyCurrencies = not showEmptyCurrencies
             this.RefreshCurrencyPanel()
             this.UpdateEventRegistry()
         end,
@@ -62,22 +62,22 @@ end
 -- Saved variables persist across addon versions and can be edited externally, so validate this
 -- input boundary; warn and recover only the affected preference tables, preserving other settings.
 local function EnsurePreferences()
-    if type(this.accountWide.currencyPreferences) ~= "table" then
-        if this.accountWide.currencyPreferences ~= nil then
+    if type(this.GetSettingsProfile().currencyPreferences) ~= "table" then
+        if this.GetSettingsProfile().currencyPreferences ~= nil then
             WarnMalformedPreference("currencyPreferences must be a table")
         end
-        this.accountWide.currencyPreferences = {}
+        this.GetSettingsProfile().currencyPreferences = {}
     end
-    if type(this.accountWide.capacityPreferences) ~= "table" then
-        if this.accountWide.capacityPreferences ~= nil then
+    if type(this.GetSettingsProfile().capacityPreferences) ~= "table" then
+        if this.GetSettingsProfile().capacityPreferences ~= nil then
             WarnMalformedPreference("capacityPreferences must be a table")
         end
-        this.accountWide.capacityPreferences = {}
+        this.GetSettingsProfile().capacityPreferences = {}
     end
 end
 
 local function GetCurrencyLocationPreference(currencyType, location, create)
-    local currencyPreferences = this.accountWide.currencyPreferences
+    local currencyPreferences = this.GetSettingsProfile().currencyPreferences
     local currencyPreference = currencyPreferences[currencyType]
     if type(currencyPreference) ~= "table" then
         if currencyPreference ~= nil then
@@ -111,7 +111,7 @@ local function GetCurrencyLocationPreference(currencyType, location, create)
 end
 
 local function GetCapacityPreference(resourceKey, create)
-    local preferences = this.accountWide.capacityPreferences
+    local preferences = this.GetSettingsProfile().capacityPreferences
     local preference = preferences[resourceKey]
     if type(preference) ~= "table" then
         if preference ~= nil then
@@ -125,7 +125,7 @@ local function GetCapacityPreference(resourceKey, create)
 end
 
 local function GetCurrencyPreference(currencyType, create)
-    local currencyPreferences = this.accountWide.currencyPreferences
+    local currencyPreferences = this.GetSettingsProfile().currencyPreferences
     local preference = currencyPreferences[currencyType]
     if type(preference) ~= "table" then
         if preference ~= nil then
@@ -282,7 +282,7 @@ local function GetResourceEntries()
 end
 
 local function InitializeCurrencyPanelPreferences()
-    local isFirstInitialization = this.accountWide.currencyPreferences == nil
+    local isFirstInitialization = this.GetSettingsProfile().currencyPreferences == nil
     EnsurePreferences()
     if not isFirstInitialization then return end
 
@@ -376,7 +376,7 @@ local function GetVisibleGridEntries(resourceEntries)
     local gridEntries = {}
     local addedCurrencies = {}
     local function HasPositiveBalance(currencyLocations)
-        if this.accountWide.showEmptyCurrencies ~= false then return true end
+        if this.GetSettingsProfile().showEmptyCurrencies ~= false then return true end
         for _, locationEntry in ipairs(currencyLocations) do
             if locationEntry.amount > 0 then return true end
         end
@@ -646,8 +646,8 @@ local function SetSettingsRowVisibility(row, visible)
 end
 
 local function ResetCurrencyPanelPreferences()
-    this.accountWide.currencyPreferences = {}
-    this.accountWide.capacityPreferences = {}
+    this.GetSettingsProfile().currencyPreferences = {}
+    this.GetSettingsProfile().capacityPreferences = {}
 
     for _, entry in ipairs(GetResourceEntries()) do
         if entry.kind == "currency" and entry.currencyType ~= CURT_MONEY then
@@ -698,7 +698,7 @@ function this.SetCurrencyNotificationEnabled(currencyType, enabled)
         this.SeedCurrencyNotificationBaselines()
     end
     if next(preference) == nil then
-        this.accountWide.currencyPreferences[currencyType] = nil
+        this.GetSettingsProfile().currencyPreferences[currencyType] = nil
     end
 end
 
@@ -720,7 +720,7 @@ function this.SetCapacityNotificationEnabled(resourceKey, enabled)
         this.SeedCapacityNotificationBaselines()
     end
     if next(preference) == nil then
-        this.accountWide.capacityPreferences[resourceKey] = nil
+        this.GetSettingsProfile().capacityPreferences[resourceKey] = nil
     end
 end
 
@@ -1632,9 +1632,9 @@ function this.GetCurrencyPanelSettingsControls()
             type = "checkbox",
             name = "Show Empty Currencies",
             tooltip = "If enabled, currencies with a zero balance remain in the panel. Disable this to show only currencies with a positive balance in at least one selected location.",
-            getFunc = function() return this.accountWide.showEmptyCurrencies ~= false end,
+            getFunc = function() return this.GetSettingsProfile().showEmptyCurrencies ~= false end,
             setFunc = function(value)
-                this.accountWide.showEmptyCurrencies = value
+                this.GetSettingsProfile().showEmptyCurrencies = value
                 this.RefreshCurrencyPanel()
                 this.UpdateEventRegistry()
             end,
@@ -1671,7 +1671,7 @@ function this.InitCurrencyPanel()
     InitializeCurrencyPanelPreferences()
     this.SeedCurrencyNotificationBaselines()
     InventoryCompanion_CurrencyFloat:ClearAnchors()
-    InventoryCompanion_CurrencyFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, this.accountWide.currencyOffsetX or 50, this.accountWide.currencyOffsetY or 150)
+    InventoryCompanion_CurrencyFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, this.GetSettingsProfile().currencyOffsetX or 50, this.GetSettingsProfile().currencyOffsetY or 150)
     InventoryCompanion_CurrencyFloat:SetHandler("OnMoveStop", OnCurrencyMoveStop)
     InventoryCompanion_CurrencyFloat:SetHandler("OnMouseUp", OnCurrencyPanelMouseUp)
 

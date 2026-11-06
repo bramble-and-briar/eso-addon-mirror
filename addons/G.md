@@ -71,8 +71,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Gold House Finder - Maisons en or ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Metakraos/Gold-House-Finder---Maisons-en-or-ESO__4751) | Metakraos | PC / Mac | 1.9.1 |
 | [Gold Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Gold-Ledger__53c19565-2bb9-4872-a40f-90825e736a2f) | Eldibabalo | Console | — |
 | [Gold Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/Gold-Ledger__3566) | P5ych3 | PC / Mac | 2.3.1 |
+| [Gold Nation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SvlphvryVoid/Gold-Nation__a168ff84-818b-4e00-9168-0c0c80a6d5af) | SvlphvryVoid | Console | — |
 | [Gold Per Hour](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satchmo1991/Gold-Per-Hour__2604) | satchmo1991 | PC / Mac | 1.2 |
-| [Gold Rush — Sales & Pricing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Gold-Rush-Sales-Pricing__4685) | atharti | PC / Mac | 2.9 |
+| [Gold Rush — Sales & Pricing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Gold-Rush-Sales-Pricing__4685) | atharti | PC / Mac | 3.0 |
 | [Gold!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheSpyridon/Gold__1551) | TheSpyridon | PC / Mac | Alpha 0.6.3 |
 | [Golden Light Guild Hall Portal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lerozain/Golden-Light-Guild-Hall-Portal__3389) | Lerozain | PC / Mac | 1.1 |
 | [Golden Pursuits Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Golden-Pursuits-Tracker__4276) | atharti | PC / Mac | 1.8 |
@@ -132,7 +133,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Groupbound – All-in-One Group Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Groupbound-All-in-One-Group-Finder__4951) | brianmit | PC / Mac | 1.0.0 |
 | [GroupBuffTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/GroupBuffTracker__4120) | Tenshiraito | PC / Mac | 2.8 |
 | [GroupEncore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/GroupEncore__6a072e95-965d-4368-9c0f-196d198ad5dd) | SugaComa | Console | — |
-| [GroupFinder+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/GroupFinder__4338) | atharti | PC / Mac | 6.9 |
+| [GroupFinder+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/GroupFinder__4338) | atharti | PC / Mac | 7.0 |
 | [GroupHealth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ckau/GroupHealth__2527) | Ckau | PC / Mac | 1.2 |
 | [GroupRegenTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/GroupRegenTracker__1422) | 2ch | PC / Mac | 6.2 |
 | [GroupResources](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/GroupResources__1338) | sirinsidiator | PC / Mac | 0.10.0 |

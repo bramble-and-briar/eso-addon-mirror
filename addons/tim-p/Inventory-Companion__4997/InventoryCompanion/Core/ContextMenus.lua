@@ -40,15 +40,24 @@ local function AddContextMenuItems(rowControl)
         end, MENU_ADD_OPTION_LABEL)
     end
 
-    if IsBankOpen() then
+    if IsBankOpen() or IsGuildBankOpen() then
         local currentCount = select(2, GetItemInfo(bagId, slotIndex))
         if currentCount and currentCount > 1 then 
             local mode = nil
+            local useGuildBankTransfer = false
 
             if bagId == BAG_BACKPACK then
-                mode = "Deposit"
+                if IsGuildBankOpen() and this.CanUseGuildBankPartialDeposits() then
+                    mode = "Deposit"
+                    useGuildBankTransfer = true
+                elseif IsBankOpen() then
+                    mode = "Deposit"
+                end
             elseif bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bagId) then
+                if IsBankOpen() then mode = "Withdraw" end
+            elseif bagId == BAG_GUILDBANK and this.CanUseGuildBankPartialWithdrawals() then
                 mode = "Withdraw"
+                useGuildBankTransfer = true
             end
 
             if mode then
@@ -56,11 +65,27 @@ local function AddContextMenuItems(rowControl)
                 local sendMostLabel = string.format("%s %d (of %d)", mode, currentCount - 1, currentCount)
 
                 AddCustomMenuItem(sendOneLabel, function() 
-                    this.TransferContextItem(bagId, slotIndex, 1) 
+                    if useGuildBankTransfer then
+                        if bagId == BAG_GUILDBANK then
+                            this.WithdrawGuildBankPartial(slotIndex, 1, currentCount)
+                        else
+                            this.DepositGuildBankPartial(slotIndex, 1, currentCount)
+                        end
+                    else
+                        this.TransferContextItem(bagId, slotIndex, 1)
+                    end
                 end, MENU_ADD_OPTION_LABEL)
 
                 AddCustomMenuItem(sendMostLabel, function() 
-                    this.TransferContextItem(bagId, slotIndex, currentCount - 1) 
+                    if useGuildBankTransfer then
+                        if bagId == BAG_GUILDBANK then
+                            this.WithdrawGuildBankPartial(slotIndex, currentCount - 1, currentCount)
+                        else
+                            this.DepositGuildBankPartial(slotIndex, currentCount - 1, currentCount)
+                        end
+                    else
+                        this.TransferContextItem(bagId, slotIndex, currentCount - 1)
+                    end
                 end, MENU_ADD_OPTION_LABEL)
             end
         end

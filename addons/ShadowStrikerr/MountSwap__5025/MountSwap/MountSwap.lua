@@ -1,6 +1,6 @@
 MountSwap = {}
 local M = MountSwap
-M.version = '0.8.9'
+M.version = '0.8.11'
 local NAME = 'MountSwap'
 function M:Chat(message, force)
     local saved = self.saved
@@ -73,19 +73,17 @@ function M:Mounts()
     -- category positions. Grand Pillion Draft Horse and Nightmare Pillion
     -- Courser are multi-rider references; locked collectibles still have metadata.
     local referenceTop, referenceSub, inconsistent
-    if GetCategoryInfoFromCollectibleId then
-        for _, id in ipairs({9576,11887}) do
-            local _, _, _, _, _, _, _, kind=GetCollectibleInfo(id)
-            if kind==COLLECTIBLE_CATEGORY_TYPE_MOUNT then
-                local top,sub,index=GetCategoryInfoFromCollectibleId(id)
-                if type(top)=='number' and top>0 and type(sub)=='number' and sub>0 and
-                    type(index)=='number' and index>0 and top<=GetNumCollectibleCategories() then
-                    local _,count=GetCollectibleCategoryInfo(top)
-                    if type(count)=='number' and sub<=count and
-                        index<=GetNumCollectiblesInCollectibleCategory(top,sub) and GetCollectibleId(top,sub,index)==id then
-                        if referenceTop and (referenceTop~=top or referenceSub~=sub) then inconsistent=true end
-                        referenceTop,referenceSub=top,sub
-                    end
+    for _, id in ipairs({9576,11887}) do
+        local _, _, _, _, _, _, _, kind=GetCollectibleInfo(id)
+        if kind==COLLECTIBLE_CATEGORY_TYPE_MOUNT then
+            local top,sub,index=GetCategoryInfoFromCollectibleId(id)
+            if type(top)=='number' and top>0 and type(sub)=='number' and sub>0 and
+                type(index)=='number' and index>0 and top<=GetNumCollectibleCategories() then
+                local _,count=GetCollectibleCategoryInfo(top)
+                if type(count)=='number' and sub<=count and
+                    index<=GetNumCollectiblesInCollectibleCategory(top,sub) and GetCollectibleId(top,sub,index)==id then
+                    if referenceTop and (referenceTop~=top or referenceSub~=sub) then inconsistent=true end
+                    referenceTop,referenceSub=top,sub
                 end
             end
         end
@@ -379,7 +377,7 @@ end
 function M:OpenPicker(slot, manage, fromSettings)
     if not self.saved then return end
     if self.saved.standalonePanel == false and not fromSettings then
-        local controller = IsInGamepadPreferredMode and IsInGamepadPreferredMode()
+        local controller = IsInGamepadPreferredMode()
         if LibAddonMenu2 or controller then self:Toggle(); return end
         -- Keyboard fallback remains usable without altering the saved OFF preference.
     end
@@ -517,7 +515,7 @@ end
 function M:Toggle()
     if not self.saved then return end
     if self.saved.standalonePanel == false then
-        if IsInGamepadPreferredMode and IsInGamepadPreferredMode() then
+        if IsInGamepadPreferredMode() then
             if self.controllerMenu and not self.controllerMenu:IsHidden() then self:CloseWindows() else self:OpenSettings() end
             return
         end
@@ -646,13 +644,11 @@ local function loaded(_, addonName)
     M:InitializeCommands()
     M:InitializeNavigation()
     -- Check again after all addons load; do not reclaim a shortcut taken by a later addon.
-    if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(NAME .. 'Commands', EVENT_PLAYER_ACTIVATED, function()
-            EVENT_MANAGER:UnregisterForEvent(NAME .. 'Commands', EVENT_PLAYER_ACTIVATED)
-            M:ApplyCommands()
-            if next(M.commandErrors) then M:Chat(M:CommandStatus(), true) end
-        end)
-    end
+    EVENT_MANAGER:RegisterForEvent(NAME .. 'Commands', EVENT_PLAYER_ACTIVATED, function()
+        EVENT_MANAGER:UnregisterForEvent(NAME .. 'Commands', EVENT_PLAYER_ACTIVATED)
+        M:ApplyCommands()
+        if next(M.commandErrors) then M:Chat(M:CommandStatus(), true) end
+    end)
     M:InitializeSettings()
 end
 EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, loaded)

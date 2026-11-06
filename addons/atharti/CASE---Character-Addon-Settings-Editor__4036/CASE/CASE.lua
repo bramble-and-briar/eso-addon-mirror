@@ -42,14 +42,11 @@ end
 local memoryLabel
 
 function CASE.UpdateMemoryLabel()
-	if not memoryLabel then return end
 	local memMB = collectgarbage("count") / 1024
-	memoryLabel:SetText(string.format("LuaMem: %.1f MB", memMB))
+	memoryLabel:SetText(string.format("%.1f MB", memMB))
 end
 
 function CASE.CreateMemoryUI()
-	if memoryLabel then return end
-
 	local ctl = WINDOW_MANAGER:CreateTopLevelWindow(CASE.name .. "_MemoryUI")
 	ctl:SetDimensions(200, 30)
 	ctl:SetMouseEnabled(true)
@@ -75,20 +72,19 @@ function CASE.CreateMemoryUI()
 	label:SetFont("ZoFontGameSmall")
 	label:SetColor(1, 1, 1, 1)
 
+	ctl:SetHidden(true)
+
 	memoryLabel = label
 end
 
 function CASE.ToggleMemoryUI(enabled)
 	if enabled then
-		CASE.CreateMemoryUI()
 		memoryLabel:GetParent():SetHidden(false)
 		EM:RegisterForUpdate(CASE.name .. "_MemoryUI", 1000, CASE.UpdateMemoryLabel)
 		CASE.UpdateMemoryLabel()
 	else
 		EM:UnregisterForUpdate(CASE.name .. "_MemoryUI")
-		if memoryLabel then
-			memoryLabel:GetParent():SetHidden(true)
-		end
+		memoryLabel:GetParent():SetHidden(true)
 	end
 end
 
@@ -97,8 +93,8 @@ end
 -- ================================
 function CASE.ClearPVPAlertsTables()
 	if PVP_Alerts_Main_Table and PVP_Alerts_Main_Table.SV then
-		PVP_Alerts_Main_Table.SV.CP = {}
-		PVP_Alerts_Main_Table.SV.playersDB = {}
+		ZO_ClearTable(PVP_Alerts_Main_Table.SV.CP)
+		ZO_ClearTable(PVP_Alerts_Main_Table.SV.playersDB)
 	end
 end
 
@@ -113,7 +109,6 @@ function CASE.InitializeSettings()
 		displayName = "|cFFD700Character Addon Settings Editor|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	local INGAME_SV = ZO_Ingame_SavedVariables['Default']
@@ -218,9 +213,7 @@ function CASE.InitializeSettings()
 			func = function()
 				GetAddOnManager():ClearUnusedAddOnSavedVariables()
 				local labelControl = _G["CASE_UnusedDataLabel"]
-				if labelControl and labelControl.UpdateValue then
-					labelControl:UpdateValue()
-				end
+				labelControl:UpdateValue()
 			end,
 			width = "half",
 			isDangerous = true,
@@ -246,7 +239,6 @@ function CASE.InitializeSettings()
 				CASE.SV.showMemoryUI = value
 				CASE.ToggleMemoryUI(value)
 			end,
-			default = false,
 		},
 		{
 			type = "checkbox",
@@ -257,7 +249,6 @@ function CASE.InitializeSettings()
 				CASE.SV.enableGC = value
 				CASE.UpdateGarbageCollector()
 			end,
-			default = false,
 		},
 		{
 			type = "slider",
@@ -270,7 +261,6 @@ function CASE.InitializeSettings()
 			setFunc = function(value) CASE.SV.gcMemoryLimitMB = value end,
 			disabled = function() return not CASE.SV.enableGC end,
 			format = "%d MB",
-			default = 500,
 		},
 		-- ================================
 		-- Misc
@@ -290,7 +280,6 @@ function CASE.InitializeSettings()
 					CASE.ClearPVPAlertsTables()
 				end
 			end,
-			default = false,
 			requiresReload = true,
 		},
 	}
@@ -309,6 +298,7 @@ local function OnAddonLoaded(_, addonName)
 
 	CASE.SV = ZO_SavedVars:NewAccountWide("CASE_SavedVariables", 1, nil, defaultSV)
 
+	CASE.CreateMemoryUI()
 	CASE.InitializeSettings()
 	CASE.ToggleMemoryUI(CASE.SV.showMemoryUI)
 	CASE.UpdateGarbageCollector()

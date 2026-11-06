@@ -65,6 +65,30 @@ function PTI.Settings.RefreshProcPendingDropdown()
     pcall(function() dd:UpdateChoices(labels, values) end)
 end
 
+--------------------------------------------------------------------------
+-- v2.5.0: Proc CD設定(手動登録・履歴)の表示を最新にする
+--------------------------------------------------------------------------
+PTI.Settings.cdForm = PTI.Settings.cdForm or { setKey = "", id = "", cd = "", name = "", reg = "", editCd = "", msg = nil }
+
+function PTI.Settings.RefreshCdUI()
+    local CD = PTI.ProcCD
+    if not CD then return end
+    local dd = _G["PTI_CD_ManualSetDd"]
+    if dd and dd.UpdateChoices and CD.GetSetChoices then
+        local labels, values = CD.GetSetChoices()
+        pcall(function() dd:UpdateChoices(labels, values) end)
+    end
+    local rd = _G["PTI_CD_RegDd"]
+    if rd and rd.UpdateChoices and CD.GetRegChoices then
+        local labels, values = CD.GetRegChoices()
+        pcall(function() rd:UpdateChoices(labels, values) end)
+    end
+    for _, ref in ipairs({ "PTI_CD_Status", "PTI_CD_ManualPreview", "PTI_CD_RegDetail", "PTI_CD_History", "PTI_CD_Health", "PTI_CD_IdList" }) do
+        local c = _G[ref]
+        if c and c.UpdateValue then pcall(function() c:UpdateValue() end) end
+    end
+end
+
 function PTI.Settings.RefreshWatchPendingDropdowns()
     local buffDd = _G["PTI_BuffPendingDropdown"]
     if buffDd and buffDd.UpdateChoices and PTI.Target and PTI.Target.GetPendingChoices then
@@ -236,7 +260,13 @@ function PTI.Settings.Initialize()
         registerForRefresh = true,
         registerForDefaults = false,
     }
-    LAM:RegisterAddonPanel("PTI_LAM_Panel", panelData)
+    local lamPanel = LAM:RegisterAddonPanel("PTI_LAM_Panel", panelData)
+    -- v2.5.0: 設定画面を開いた時に、Proc CDの登録一覧・履歴表示を最新にする
+    if CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback then
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+            if panel == lamPanel and PTI.Settings.RefreshCdUI then PTI.Settings.RefreshCdUI() end
+        end)
+    end
 
     -- v2.0.7: 設定画面を「基本 → 検知 → 表示の残し方 → パネル①〜④ → 詳細設定」の順に整理。
     -- 設定キー・保存値は従来のまま(並びと説明文だけ変更)。
@@ -482,14 +512,38 @@ function PTI.Settings.Initialize()
     })
 
     ----------------------------------------------------------------------
-    -- サブメニュー④: 自分のProc CD(v2.1.0)
+    -- サブメニュー④: 自分のProc CD(v2.5.0で整理)
+    --   ① 表示設定 → ② 自動学習 → ③ 手動登録(折りたたみ) → ④ 詳細情報・履歴(折りたたみ)
     ----------------------------------------------------------------------
+    local GRAY = "|cDDDDDD"
     local cdControls = {}
+    local form = PTI.Settings.cdForm
+    local function refreshCd() if PTI.Settings.RefreshCdUI then PTI.Settings.RefreshCdUI() end end
+    local function CDCall(fn, ...)
+        local CD = PTI.ProcCD
+        if CD and CD[fn] then return CD[fn](...) end
+        return false, "Proc CD機能が読み込まれていません。"
+    end
+
+    -- ① 表示設定
+    table.insert(cdControls, { type = "header", name = "① Proc CD 表示設定" })
     table.insert(cdControls, {
         type = "description",
-        text = "自分の装備セットProcが発動してから、次に再発動できるまでの時間を表示します。発動は自動で検知します(AbilityIdの登録は不要)。内部クールダウン(ICD)の秒数が確認できないProcは、推測せず表示しません。",
+        text = GRAY .. "装備セットのProc発動後、再発動できるまでの時間を表示します。ICD秒数が確認できないProcは表示しません。|r",
     })
     BuildPanelControls(cdControls, "cd", "cdUI", { x = 0, y = -450 })
+    table.insert(cdControls, {
+        type = "dropdown",
+        name = "表示モード",
+        tooltip = "常時表示: 戦闘外でも表示します。戦闘終了後は非表示: 戦闘終了の数秒後にパネルを隠し、次の戦闘開始で再表示します。隠れている間もCDの計測は続きます。",
+        choices = { "常時表示(既定)", "戦闘終了後は非表示" },
+        choicesValues = { "always", "combat" },
+        getFunc = function() return PTI.sv.cdUI.displayMode or "always" end,
+        setFunc = function(value)
+            PTI.sv.cdUI.displayMode = value
+            if PTI.ProcCD and PTI.ProcCD.ApplyDisplayMode then PTI.ProcCD.ApplyDisplayMode() end
+        end,
+    })
     table.insert(cdControls, {
         type = "slider",
         name = "表示間隔",
@@ -509,42 +563,221 @@ function PTI.Settings.Initialize()
         getFunc = function() return PTI.sv.cd.showReady ~= false end,
         setFunc = function(value) PTI.sv.cd.showReady = value end,
     })
-    table.insert(cdControls, {
-        type = "dropdown",
-        name = "表示モード",
-        tooltip = "常時表示: 戦闘外でも表示します。戦闘終了後は非表示: 戦闘終了の数秒後にパネルを隠し、次の戦闘開始で再表示します。隠れている間もCDの計測は続きます。",
-        choices = { "常時表示(既定)", "戦闘終了後は非表示" },
-        choicesValues = { "always", "combat" },
-        getFunc = function() return PTI.sv.cdUI.displayMode or "always" end,
-        setFunc = function(value)
-            PTI.sv.cdUI.displayMode = value
-            if PTI.ProcCD and PTI.ProcCD.ApplyDisplayMode then PTI.ProcCD.ApplyDisplayMode() end
-        end,
-    })
-    table.insert(cdControls, { type = "header", name = "Procの自動学習" })
-    table.insert(cdControls, {
-        type = "description",
-        text = "通常の戦闘中に、装備セットのProcに関係しそうな戦闘イベントを観察して学習します。根拠が十分に揃ったものだけ自動で使い、それ以外は候補として保存するだけで検知には使いません。誤って登録するより、未登録のままにする方針です。(PS5実機未検証)",
-    })
+
+    -- ② 自動学習
+    table.insert(cdControls, { type = "header", name = "② 自動学習" })
     table.insert(cdControls, {
         type = "checkbox",
-        name = "Procを自動学習する",
+        name = "|c55D68BAUTO|r学習を使う",
+        tooltip = "通常の戦闘中にProcのAbility IDを観察し、根拠が十分に揃ったものだけ自動登録します。足りないものは候補として保存するだけで、検知には使いません。(PS5実機未検証)",
         getFunc = function() return PTI.sv.cd.autoLearn ~= false end,
         setFunc = function(value)
             PTI.sv.cd.autoLearn = value
             if PTI.ProcCD and PTI.ProcCD.SyncCombat then PTI.ProcCD.SyncCombat() end
+            refreshCd()
         end,
     })
     table.insert(cdControls, {
+        type = "editbox",
+        name = "現在の学習状態",
+        reference = "PTI_CD_Status",
+        isMultiline = true,
+        isExtraWide = true,
+        readOnly = true,
+        getFunc = function() return CDCall("FormatStatus") or "" end,
+        setFunc = function() end,
+        width = "full",
+    })
+
+    -- ③ 手動登録(折りたたみ)
+    local manualControls = {}
+    table.insert(manualControls, {
+        type = "description",
+        text = "|cFFC247【手動登録とは】|r\n" .. GRAY .. "手動登録は、セット効果の発動を検知するAbility IDと再発動までの待ち時間（ICD）を指定する機能です。Ability IDが正しくない場合やICDが実際の効果と異なる場合、Proc CDは正しく表示されません。|r",
+    })
+    table.insert(manualControls, {
+        type = "description",
+        text = "|cFFC247【Ability IDの確認方法】|r\n" .. GRAY .. "Ability IDはゲーム内の戦闘ログや診断機能などで確認した数値を入力してください。スキルのIDとセット効果のIDは異なる場合があります。|r",
+    })
+    table.insert(manualControls, { type = "header", name = "新規登録" })
+    table.insert(manualControls, {
+        type = "dropdown",
+        name = "1. セット名を選択",
+        tooltip = "装備中のセットが先頭に並びます。装備を変えた後は「選択肢を更新」を押してください。",
+        reference = "PTI_CD_ManualSetDd",
+        choices = { "(選択肢を更新してください)" },
+        choicesValues = { "" },
+        getFunc = function() return form.setKey or "" end,
+        setFunc = function(value) form.setKey = value; form.msg = nil; refreshCd() end,
+        width = "full",
+    })
+    table.insert(manualControls, {
         type = "button",
-        name = "学習状況をチャットに表示",
-        tooltip = "学習済みセット数・AbilityId数・未確認の候補数を表示します。候補の一覧と確定は /pti cd auto list / accept で行います。",
-        func = function() if PTI.ProcCD and PTI.ProcCD.PrintAutoStatus then PTI.ProcCD.PrintAutoStatus() end end,
+        name = "選択肢を更新(装備中のセット)",
+        func = function() refreshCd() end,
+        width = "full",
+    })
+    table.insert(manualControls, {
+        type = "editbox",
+        name = "2. Ability ID(数字)",
+        getFunc = function() return form.id or "" end,
+        setFunc = function(text) form.id = text; form.msg = nil; refreshCd() end,
+        width = "half",
+    })
+    table.insert(manualControls, {
+        type = "editbox",
+        name = "3. ICD(秒)",
+        getFunc = function() return form.cd or "" end,
+        setFunc = function(text) form.cd = text; form.msg = nil; refreshCd() end,
+        width = "half",
+    })
+    table.insert(manualControls, {
+        type = "editbox",
+        name = "Ability名(任意。空欄なら自動取得を試みます)",
+        getFunc = function() return form.name or "" end,
+        setFunc = function(text) form.name = text; form.msg = nil; refreshCd() end,
+        width = "full",
+    })
+    table.insert(manualControls, {
+        type = "editbox",
+        name = "入力内容の確認",
+        reference = "PTI_CD_ManualPreview",
+        isMultiline = true,
+        isExtraWide = true,
+        readOnly = true,
+        getFunc = function()
+            if form.msg then return form.msg end
+            return CDCall("ManualPreview", form.setKey, form.id, form.cd, form.name) or ""
+        end,
+        setFunc = function() end,
+        width = "full",
+    })
+    table.insert(manualControls, {
+        type = "button",
+        name = "|c55D68B4. 登録する|r",
+        tooltip = "上の「入力内容の確認」が「登録できます」になっている時に登録できます。",
+        func = function()
+            local ok, msg = CDCall("ManualRegister", form.setKey, form.id, form.cd, form.name)
+            if ok then form.id, form.cd, form.name = "", "", "" end
+            form.msg = (ok and "○ " or "× ") .. tostring(msg)
+            refreshCd()
+        end,
+        width = "full",
+    })
+    table.insert(manualControls, { type = "header", name = "登録済みの一覧・編集・削除" })
+    table.insert(manualControls, {
+        type = "dropdown",
+        name = "登録を選択 ([AUTO]=自動 / [MANUAL]=手動)",
+        reference = "PTI_CD_RegDd",
+        choices = { "(登録なし)" },
+        choicesValues = { "" },
+        getFunc = function() return form.reg or "" end,
+        setFunc = function(value) form.reg = value; refreshCd() end,
+        width = "full",
+    })
+    table.insert(manualControls, {
+        type = "editbox",
+        name = "選択中の登録の内容",
+        reference = "PTI_CD_RegDetail",
+        isMultiline = true,
+        isExtraWide = true,
+        readOnly = true,
+        getFunc = function() return CDCall("FormatRegDetail", form.reg) or "" end,
+        setFunc = function() end,
+        width = "full",
+    })
+    table.insert(manualControls, {
+        type = "editbox",
+        name = "ICDを変更(MANUALのみ・秒)",
+        getFunc = function() return form.editCd or "" end,
+        setFunc = function(text) form.editCd = text end,
+        width = "half",
+    })
+    table.insert(manualControls, {
+        type = "button",
+        name = "ICDを更新",
+        func = function()
+            local ok, msg = CDCall("ManualUpdateCd", form.reg, form.editCd)
+            d("[PvPTargetInfo] " .. tostring(msg))
+            if ok then form.editCd = "" end
+            refreshCd()
+        end,
+        width = "half",
+    })
+    table.insert(manualControls, {
+        type = "button",
+        name = "無効化(記録は残す)",
+        tooltip = "この登録を検知に使わなくします。記録は削除されません。",
+        func = function()
+            local _, msg = CDCall("RegSetDisabled", form.reg, true)
+            d("[PvPTargetInfo] " .. tostring(msg)); refreshCd()
+        end,
+        width = "half",
+    })
+    table.insert(manualControls, {
+        type = "button",
+        name = "再有効化",
+        tooltip = "無効になっている登録を、検知に使うよう戻します(観測回数をリセット)。",
+        func = function()
+            local _, msg = CDCall("RegSetDisabled", form.reg, false)
+            d("[PvPTargetInfo] " .. tostring(msg)); refreshCd()
+        end,
+        width = "half",
+    })
+    table.insert(manualControls, {
+        type = "button",
+        name = "|cFF6B6BMANUAL登録を削除|r",
+        tooltip = "選択中のMANUAL登録を削除します。AUTO登録は削除できません(無効化で止められます)。",
+        isDangerous = true,
+        warning = "選択中のMANUAL登録を削除します。元に戻せません。",
+        func = function()
+            local ok, msg = CDCall("ManualDelete", form.reg)
+            if ok then form.reg = "" end
+            d("[PvPTargetInfo] " .. tostring(msg)); refreshCd()
+        end,
+        width = "full",
     })
     table.insert(cdControls, {
-        type = "description",
-        text = "ICD秒数は、①/pti cd add で実測登録した値、②定義表の確認済みの値、③装備セットの説明文から読み取れた値(PS5実機未検証)のいずれかを使います。装備中セットの状況は /pti cd sets、説明文の全文は /pti cd text、ICD候補の分析は /pti cd icd で確認できます。",
+        type = "submenu",
+        name = "③ 手動登録(Ability IDとICDを指定)",
+        controls = manualControls,
     })
+
+    -- ④ 詳細情報(折りたたみ)
+    local detailCd = {}
+    local function roText(name, ref, fn)
+        table.insert(detailCd, {
+            type = "editbox",
+            name = name,
+            reference = ref,
+            isMultiline = true,
+            isExtraWide = true,
+            readOnly = true,
+            getFunc = function() return CDCall(fn) or "" end,
+            setFunc = function() end,
+            width = "full",
+        })
+    end
+    roText("AUTO登録履歴(登録時の内容・新しい順)", "PTI_CD_History", "FormatHistory")
+    roText("誤検知・要確認の履歴", "PTI_CD_Health", "FormatHealth")
+    roText("Ability ID一覧", "PTI_CD_IdList", "FormatIdList")
+    table.insert(detailCd, {
+        type = "description",
+        text = GRAY .. "|c55D68B正常|r=問題なし / |cFFC247要確認|r=ICDと合わない発動などを複数回検出 / |cFF6B6B無効候補|r=誤検知の可能性が高く、AUTO登録は検知を停止(記録は残ります)。1回の例外では変わりません。|r",
+    })
+    table.insert(detailCd, {
+        type = "button",
+        name = "候補の一覧をチャットに表示",
+        tooltip = "未確認の候補を表示します。確定は /pti cd auto accept <番号> です。",
+        func = function() if PTI.ProcCD then PTI.ProcCD.HandleCommand("auto list") end end,
+        width = "full",
+    })
+    table.insert(cdControls, {
+        type = "submenu",
+        name = "④ 学習履歴・詳細情報",
+        controls = detailCd,
+    })
+
     table.insert(optionsTable, {
         type = "submenu",
         name = "④ 自分のProc CDパネル",

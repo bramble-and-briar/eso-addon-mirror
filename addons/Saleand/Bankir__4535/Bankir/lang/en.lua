@@ -40,7 +40,8 @@ local strings = {
 	BANKIR_MENU_OTHER_CHARACTERS = " on other characters",
 	
 	BANKIR_CHAT_REQUIRED_FOR_QUESTS = "<<1>> x<<2>> required for quests",
-	BANKIR_CHAT_NO_FREE_SPACE = "No free space left in <<1>> for <<2>>.",
+	BANKIR_CHAT_NO_FREE_SPACE = "|cFF0000Failed.|r No free space left in <<1>> for <<2>>.",
+	BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM = "|cFF0000Failed.|r You can only have one <<1>> in a storage, and you already have one in <<2>>.",
 	
 	BANKIR_MENU_INTEGRATIONS = "Integrations",
 	BANKIR_MENU_INTEGRATIONS_LCK_DESC = "If LibCharacterKnowledge addon is enabled, Bankir will have special rules for equipment that can be trait-researched on your other characters.\n\nHere is a list of your other characters on this server.\n\nIf you have set a rule to deposit items that can be researched on other characters, Bankir will move such items only for the characters enabled in this list. Not enabled characters will be ignored.",

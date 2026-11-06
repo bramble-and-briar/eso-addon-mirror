@@ -71,7 +71,6 @@ function GR.InitSettings()
 				tooltip = "Enable or disable GoldRush's trader history processor for " .. guildName .. ".",
 				getFunc = function() return GR.SV.guildProcessorsEnabled[guildName] end,
 				setFunc = function(value) GR.SV.guildProcessorsEnabled[guildName] = value end,
-				default = true,
 				requiresReload = true,
 			})
 		end
@@ -83,7 +82,6 @@ function GR.InitSettings()
 		displayName = "|cFFD700Gold Rush|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	LAM:RegisterAddonPanel("GoldRushPanel", panelData)

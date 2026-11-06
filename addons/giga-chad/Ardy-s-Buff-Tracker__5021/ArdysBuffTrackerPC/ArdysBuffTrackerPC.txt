@@ -1,8 +1,8 @@
 ## Title: Ardy's Buff Tracker PC
 ## Description: Track raid buffs on hand-picked group members, not by role.
 ## Author: |cFF0800@giga'chad|r
-## Version: 1.1.0
-## AddOnVersion: 10100
+## Version: 1.2.0
+## AddOnVersion: 10200
 ## APIVersion: 101051 101052
 ## SavedVariables: ArdysBuffTrackerPC_SV
 ## DependsOn: LibAddonMenu-2.0>=43

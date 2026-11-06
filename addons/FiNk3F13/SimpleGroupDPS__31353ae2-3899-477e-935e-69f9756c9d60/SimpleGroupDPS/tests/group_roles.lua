@@ -14,7 +14,7 @@ end
 
 -- Screenshot sequence: a DD sends healing first, then damage, then healing again.
 env.receive("group1", {messageType = "healing", rawHPS = 1800, effectiveHPS = 0})
-assert(peerRow().swtDPSValue.text == "Keine DPS-Daten" and peerRow().swtIcon.texture:find("dps", 1, true),
+assert(peerRow().swtDPSValue.text == "0" and peerRow().swtIcon.texture:find("dps", 1, true),
     "A DD with only healing received remains damage with unknown DPS, never invented HPS-as-DPS")
 assert(rows.healingHeader.hidden and peerRow().top < rows.summary.top)
 env.receive("group1", {messageType = "damage", allTargetsDPS = 13200, bossDPS = 13200})
@@ -46,7 +46,7 @@ assert(rows.summary.swtDPSValue.text == "1,0 Tsd.")
 bridge:Clear()
 peerRole = LFG_ROLE_HEAL
 env.receive("group1", {messageType = "damage", allTargetsDPS = 1000})
-assert(not rows.healingHeader.hidden and peerRow().swtDPSValue.text == "Keine HPS-Daten",
+assert(not rows.healingHeader.hidden and peerRow().swtDPSValue.text == "0",
     "Damage-only healer appears in healing without substituting DPS for missing HPS")
 assert(bridge:GetRows()[1].stale, "Damage packets cannot claim missing HPS is fresh")
 

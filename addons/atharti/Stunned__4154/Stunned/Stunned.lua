@@ -6,13 +6,15 @@ local EM = EVENT_MANAGER
 S.name = "Stunned"
 
 local playerName = nil
-local StunAlert = nil
+local StunPopup = nil
 local StunNotification = nil
 
 local activeStunID = nil
+local inCombat = false
 local debugEnabled = false
 
 local BLOCKED_ABILITIES = {
+	[54363] = true, -- Guard's Stop
 	[163818] = true, -- Teleport (Encounter In Progress)
 	[163850] = true, -- Teleport (Encounter In Progress) -- DSR
 	[167948] = true, -- Coral Aerie | Maligalig Tornadoe Silence
@@ -52,8 +54,9 @@ local combatResults = {
 local defaultSV = {
 	blurOnStun = true,
 	hideGameUI = false,
-	alertFontSize = 48,
+	popupFontSize = 48,
 	notificationFontSize = 36,
+	combatOnly = true,
 
 	trackStun = true,
 	textStun = true,
@@ -100,14 +103,14 @@ local defaultSV = {
 }
 
 function S.CreateUI()
-	StunAlert = WINDOW_MANAGER:CreateTopLevelWindow("StunAlert")
-	StunAlert:SetDimensions(800, 150)
-	local alertLabel = StunAlert:CreateControl(nil, CT_LABEL)
-	alertLabel:SetFont(string.format("$(BOLD_FONT)|$(KB_%d)|soft-shadow-thick", S.SV.alertFontSize))
-	alertLabel:SetAnchor(CENTER, StunAlert, CENTER, 0, 0)
-	alertLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-	alertLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-	StunAlert.label = alertLabel
+	StunPopup = WINDOW_MANAGER:CreateTopLevelWindow("StunPopup")
+	StunPopup:SetDimensions(800, 150)
+	local popupLabel = StunPopup:CreateControl(nil, CT_LABEL)
+	popupLabel:SetFont(string.format("$(BOLD_FONT)|$(KB_%d)|soft-shadow-thick", S.SV.popupFontSize))
+	popupLabel:SetAnchor(CENTER, StunPopup, CENTER, 0, 0)
+	popupLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	popupLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	StunPopup.label = popupLabel
 
 	StunNotification = WINDOW_MANAGER:CreateTopLevelWindow("StunNotification")
 	StunNotification:SetDimensions(800, 150)
@@ -119,7 +122,7 @@ function S.CreateUI()
 	StunNotification.label = notifLabel
 end
 
-function S.ShowStunAlert(msgText, soundName, color, showText)
+function S.ShowStunPopup(msgText, soundName, color, showText)
 	if S.SV.hideGameUI then
 		ToggleShowIngameGui()
 	end
@@ -137,11 +140,11 @@ function S.ShowStunAlert(msgText, soundName, color, showText)
 		local xPos = screenWidth / 2
 		local yPos = screenHeight / 3
 
-		StunAlert:ClearAnchors()
-		StunAlert:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, xPos - 400, yPos - 75)
+		StunPopup:ClearAnchors()
+		StunPopup:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, xPos - 400, yPos - 75)
 
-		StunAlert.label:SetText("|c" .. color .. msgText .. "|r")
-		StunAlert:SetHidden(false)
+		StunPopup.label:SetText("|c" .. color .. msgText .. "|r")
+		StunPopup:SetHidden(false)
 	end
 end
 
@@ -167,11 +170,12 @@ function S.RemoveStunnedMode()
 		if S.SV.hideGameUI then ToggleShowIngameGui() end
 	end
 	activeStunID = nil
-	StunAlert:SetHidden(true)
+	StunPopup:SetHidden(true)
 end
 
 function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
-	-- if not IsUnitInCombat("player") then return end
+	if S.SV.combatOnly and not inCombat and result ~= ACTION_RESULT_EFFECT_FADED then return end
+
 	if isError then
 		if result == ACTION_RESULT_STUNNED or result == ACTION_RESULT_FEARED or result == ACTION_RESULT_CHARMED then
 			if debugEnabled then d(string.format("|cFF0000ERROR|r %s abilityId=%s name=%s", tostring(result), tostring(abilityId), tostring(abilityName))) end
@@ -183,14 +187,14 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 	if normalizedSource == playerName then return end
 	if BLOCKED_ABILITIES[abilityId] then return end
 	local normalizedTarget = zo_strformat("<<1>>", targetName)
-	
+
 	if normalizedTarget == playerName then
 		if result == ACTION_RESULT_STUNNED and S.SV.trackStun then
 			if activeStunID == nil then
 				if debugEnabled then d(string.format("STUNNED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(normalizedSource))) end
 
 				local sound = S.SV.stunSoundEnabled and S.SV.stunSound
-				S.ShowStunAlert("STUNNED!", sound, S.SV.stunColor, S.SV.textStun)
+				S.ShowStunPopup("STUNNED!", sound, S.SV.stunColor, S.SV.textStun)
 				activeStunID = abilityId
 			end
 
@@ -199,7 +203,7 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 				if debugEnabled then d(string.format("FEARED: abilityId=%s name=%s", tostring(abilityId), tostring(abilityName))) end
 
 				local sound = S.SV.fearSoundEnabled and S.SV.fearSound
-				S.ShowStunAlert("FEARED!", sound, S.SV.fearColor, S.SV.textFear)
+				S.ShowStunPopup("FEARED!", sound, S.SV.fearColor, S.SV.textFear)
 				activeStunID = abilityId
 			end
 
@@ -208,7 +212,7 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 				if debugEnabled then d(string.format("CHARMED: abilityId=%s name=%s", tostring(abilityId), tostring(abilityName))) end
 
 				local sound = S.SV.charmSoundEnabled and S.SV.charmSound
-				S.ShowStunAlert("CHARMED!", sound, S.SV.charmColor, S.SV.textCharm)
+				S.ShowStunPopup("CHARMED!", sound, S.SV.charmColor, S.SV.textCharm)
 				activeStunID = abilityId
 			end
 
@@ -244,9 +248,9 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 	end
 end
 
-function S.NoStunAfterTP()
-	S.RemoveStunnedMode()
-end
+-- function S.NoStunAfterTP()
+	-- S.RemoveStunnedMode()
+-- end
 
 function S.OnInitPlayerActivated()
 	playerName = GetUnitName("player")
@@ -264,6 +268,12 @@ function S.OnAddonLoaded(_, addonName)
 		S.RegisterLAMPanel()
 
 		EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.OnInitPlayerActivated)
+
+		if S.SV.combatOnly then
+			EM:RegisterForEvent(S.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, function(_, isInCombat)
+				inCombat = isInCombat
+			end)
+		end
 
 		for _, result in ipairs(combatResults) do
 			local ns = S.name .. "_" .. tostring(result)

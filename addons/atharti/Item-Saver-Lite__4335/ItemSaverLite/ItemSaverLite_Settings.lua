@@ -154,6 +154,7 @@ function ISL.CreateSettingsMenu()
 			name = "Item List:",
 			choices = savedChoices,
 			choicesValues = savedValues,
+			choicesTooltips = savedChoices,
 			getFunc = function() return end,
 			setFunc = function(value)
 				ISL.selectedSavedItem = value
@@ -192,7 +193,8 @@ function ISL.CreateSettingsMenu()
 	local mySettingsPanel = LAM:RegisterAddonPanel("ItemSaverLiteSettingsPanel", {
 		type = "panel",
 		name = "|cFFD700Item Saver Lite|r",
-		author = "|cFFD700@Atharti|r"
+		author = "|cFFD700@Atharti|r",
+		registerForRefresh = true,
 	})
 
 	CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)

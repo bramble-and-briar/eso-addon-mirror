@@ -32,6 +32,12 @@
          保存するだけで検知には使わない。候補は /pti cd auto accept <番号> で本登録できる。
       2) 表示モード(UI④): 常時表示 / 戦闘終了後は非表示。判定はEVENT_PLAYER_COMBAT_STATE(イベント駆動)+
          猶予時間。非表示中もCD計測と学習は継続し、表示の更新だけを止める。
+    ■ v2.5.0 追加
+      ・登録履歴: AUTO/MANUALの登録時に、セット名・AbilityId・能力名・発動回数・戦闘回数・日時・ICD・方法を保存
+      ・登録後の監視: 登録済みIdの発動間隔・未装備での発動・バー上のスキル名との一致を数え、
+        正常/要確認/無効候補を表示。1回の例外では何もせず、複数回の観測で判定し、原因と回数を残す。
+        無効候補になったAUTO登録は検知に使わなくなるが削除はしない(ユーザーが再有効化できる)。
+      ・MANUAL登録: セット・AbilityId・ICDを指定する登録(設定画面から操作。チャットコマンド不要)
     ■ 説明文の取得(/pti cd text)とICD候補の分析(/pti cd icd)は別処理。
       textは「秒」の有無に関係なく全ボーナスの全文を出す(固定文字数での切り捨てなし)。
 
@@ -89,6 +95,9 @@ local learnTargets = false
 local learnActive = false
 local barNames, barKnown = {}, false
 local obs, obsN, ignoredIds = {}, 0, {}
+local regIdSet = {}              -- 登録記録(AUTO/MANUAL)のAbilityId一覧(戦闘イベントの登録に使う)
+local lastHit = {}               -- 登録済みIdの直近の発動(同一発動の判定用。セッション限り)
+local HIST_CAP = 60
 local SyncCombat                 -- 前方宣言(戦闘イベントの登録/解除)
 local combatTargets = false      -- 名前一致で戦闘イベント検知する対象セットが装備中か
 local MIN_CD_NAME = 5            -- 名前一致の戦闘検知は、ICDがこの秒数未満のセットでは行わない(DoT再検知防止)
@@ -374,6 +383,7 @@ local function RebuildIndex()
     ZO_ClearTable(entryById)
     ZO_ClearTable(entryByName)
     ZO_ClearTable(entryByBuff)
+    ZO_ClearTable(regIdSet)
     local data = PTI.CDData and PTI.CDData.entries or {}
     for _, e in ipairs(data) do
         for _, nm in ipairs(e.names or {}) do entryByName[NormName(nm)] = e end
@@ -395,10 +405,25 @@ local function RebuildIndex()
         local n = tonumber(id)
         if n and type(r) == "table" and (r.conf == "AUTO" or r.conf == "ACCEPTED")
             and type(r.cd) == "number" and r.cd > 0 and type(r.setKey) == "string" then
-            local gateDef, gateName
-            if r.setKey:sub(1, 2) == "d:" then gateDef = r.setKey:sub(3) else gateName = r.setKey:sub(3) end
-            entryById[n] = { key = r.setKey, name = r.setName, cd = r.cd, status = "LEARNED", byId = true,
-                             gateDef = gateDef, gateName = gateName }
+            regIdSet[n] = true
+            if not r.disabled then
+                local gateDef, gateName
+                if r.setKey:sub(1, 2) == "d:" then gateDef = r.setKey:sub(3) else gateName = r.setKey:sub(3) end
+                entryById[n] = { key = r.setKey, name = r.setName, cd = r.cd, status = "LEARNED", byId = true,
+                                 gateDef = gateDef, gateName = gateName, reg = r }
+            end
+        end
+    end
+    local manual = sv and sv.cd and sv.cd.manual or {}
+    for _, m in pairs(manual) do
+        if type(m) == "table" and type(m.id) == "number" and type(m.cd) == "number" and m.cd > 0 and type(m.setKey) == "string" then
+            regIdSet[m.id] = true
+            if not m.disabled then
+                local gateDef, gateName
+                if m.setKey:sub(1, 2) == "d:" then gateDef = m.setKey:sub(3) else gateName = m.setKey:sub(3) end
+                entryById[m.id] = { key = m.setKey, name = m.setName, cd = m.cd, status = "MANUAL", byId = true,
+                                    gateDef = gateDef, gateName = gateName, reg = m }
+            end
         end
     end
     local userEv = sv and sv.cd and sv.cd.userEv or {}
@@ -639,6 +664,94 @@ end
 --     5回以上・2戦闘以上で再現し、アクションバーのスキル名ではないこと
 --   上記を満たさないものは候補(CAND)として保存するだけで、検知には使わない
 --------------------------------------------------------------------------
+--------------------------------------------------------------------------
+-- 登録履歴と、登録後の信頼性チェック
+--   履歴(sv.cd.history): 登録に成功した時点の内容(セット名・AbilityId・能力名・発動回数・戦闘回数・
+--     日時・ICD・方法)を追記する。上限HIST_CAP件。再ログイン後も残る。
+--   信頼性: 正常(OK) / 要確認(WARN) / 無効候補(INVALID)。1回の例外では状態を変えない。
+--     ・ICDより短い間隔の発動(誤差0.7秒)を数える ・登録セットを未装備のまま発動した回数を数える
+--     ・能力名がアクションバーのスキル名と一致していないかを見る
+--   無効候補になった時だけ、検知に使うのをやめる(記録は削除しない。手動で再有効化できる)。
+--------------------------------------------------------------------------
+local function NowStamp()
+    if GetTimeStamp then
+        local ok, t = pcall(GetTimeStamp)
+        if ok then return tonumber(t) end
+    end
+    return nil
+end
+
+local function FormatStamp(ts)
+    if type(ts) ~= "number" then return "-" end
+    local ok, str = pcall(os.date, "%Y/%m/%d %H:%M", ts)
+    if ok and type(str) == "string" then return str end
+    return "-"
+end
+
+local function LogHistory(id, rec, method, note)
+    local sv = PTI.sv
+    if type(sv.cd.history) ~= "table" then sv.cd.history = {} end
+    local h = sv.cd.history
+    h[#h + 1] = {
+        id = id, setKey = rec.setKey, setName = rec.setName, name = rec.name,
+        n = rec.regN or rec.n or 0, fights = rec.regFights or rec.fights or 0,
+        ts = rec.regAt, cd = rec.cd, method = method, note = note,
+    }
+    while #h > HIST_CAP do table.remove(h, 1) end
+end
+
+local function HealthState(rec)
+    local viol, unq, hits = rec.viol or 0, rec.unequip or 0, rec.hits or 0
+    local reasons = {}
+    if viol > 0 then reasons[#reasons + 1] = string.format("ICDと一致しない発動 %d回/観測%d回", viol, hits) end
+    if unq > 0 then reasons[#reasons + 1] = string.format("未装備での検知 %d回", unq) end
+    if rec.barMatch then reasons[#reasons + 1] = "能力名がアクションバーのスキル名と一致" end
+    local state = "OK"
+    if viol >= 2 or unq >= 3 or rec.barMatch then state = "WARN" end
+    if (viol >= 5 and viol >= 0.3 * math.max(hits, 1)) or unq >= 8 then state = "INVALID" end
+    return state, table.concat(reasons, " / ")
+end
+
+local STATE_LABEL = { OK = "正常", WARN = "要確認", INVALID = "無効候補" }
+
+local function EvalHealth(rec)
+    local state, reason = HealthState(rec)
+    local order = { OK = 0, WARN = 1, INVALID = 2 }
+    if (order[state] or 0) > (order[rec.lastState or "OK"] or 0) then
+        rec.log = rec.log or {}
+        rec.log[#rec.log + 1] = { ts = NowStamp(), state = state, text = reason }
+        while #rec.log > 6 do table.remove(rec.log, 1) end
+        rec.lastState = state
+    end
+    if state == "INVALID" and not rec.disabled and not rec.hold then
+        rec.disabled, rec.autoDisabled = true, true
+        RebuildIndex()
+        SyncCombat()
+    end
+    return state
+end
+
+-- 登録済みIdの発動を観察(同一発動の複数ヒットは1回に数える)
+local function RegHit(rec, id, cd, now)
+    local last = lastHit[id]
+    if last and now - last.t < 0.6 then last.t = now; return end
+    local gap = last and (now - last.occ) or nil
+    lastHit[id] = { t = now, occ = now }
+    rec.hits = (rec.hits or 0) + 1
+    if gap and gap < cd - 0.7 then rec.viol = (rec.viol or 0) + 1 end
+    local nm = NormName(rec.name or "")
+    rec.barMatch = (nm ~= "" and barNames[nm] and not (rec.setName and NormName(rec.setName) == nm)) and true or nil
+    EvalHealth(rec)
+end
+
+local function RegUnequipped(rec, id, now)
+    local last = lastHit[id]
+    if last and now - last.t < 0.6 then last.t = now; return end
+    lastHit[id] = { t = now, occ = now }
+    rec.unequip = (rec.unequip or 0) + 1
+    EvalHealth(rec)
+end
+
 local function LearnedTable()
     local sv = PTI.sv
     if type(sv.cd.learned) ~= "table" then sv.cd.learned = {} end
@@ -690,12 +803,7 @@ local function EvaluateObs(id, o)
         if sc and (not best or sc > best) then best, bestS, bestTight, bestName = sc, S, tight, nameEv end
     end
     if not best then
-        -- ICDより短い間隔で起きた = 自動登録済みでも根拠が崩れたので候補へ戻す
-        if violated and rec and rec.conf == "AUTO" then
-            rec.conf = "CAND"
-            rec.demoted = (rec.demoted or 0) + 1
-            RebuildIndex()
-        end
+        -- ICDより短い間隔があった場合の扱い: 登録済みのものは RegHit が複数回の観測で判定する(1回では何もしない)
         return
     end
     if not rec then
@@ -713,8 +821,10 @@ local function EvaluateObs(id, o)
     rec.score = best
     rec.tight = rec.tight or bestTight or false
     rec.nameEv = rec.nameEv or bestName or false
-    if rec.conf ~= "AUTO" and rec.nameEv and rec.tight and (rec.n or 0) >= 5 and (rec.fights or 0) >= 2 then
+    if rec.conf ~= "AUTO" and not rec.regAt and rec.nameEv and rec.tight and (rec.n or 0) >= 5 and (rec.fights or 0) >= 2 then
         rec.conf = "AUTO"
+        rec.regAt, rec.regN, rec.regFights = NowStamp(), rec.n, rec.fights
+        LogHistory(id, rec, "AUTO")
         RebuildIndex()
     end
 end
@@ -772,6 +882,15 @@ local function OnCombatEvent(_, result, _, aName, _, _, _, sType, _, _, _, _, _,
     if learnActive and type(abilityId) == "number" and type(aName) == "string" and aName ~= "" then
         ObserveCombat(aName, abilityId, GetGameTimeSeconds())
     end
+    local e0 = entryById[abilityId]
+    if e0 and e0.reg then
+        -- 登録済みIdの信頼性チェック(未装備での発動 / ICDと合わない間隔)
+        if (e0.gateDef and not equippedDefs[e0.gateDef]) or (e0.gateName and not equippedSets[e0.gateName]) then
+            RegUnequipped(e0.reg, abilityId, GetGameTimeSeconds())
+        else
+            RegHit(e0.reg, abilityId, e0.cd, GetGameTimeSeconds())
+        end
+    end
     if PTI.sv.cd.combatDetect == false then return end
     local key, info = Resolve(aName, abilityId, (type(aName) == "string") and CachedNorm(aName) or "")
     if not key then return end
@@ -804,6 +923,7 @@ SyncCombat = function()
         local n = tonumber(id)
         if n then userIds[n] = true end
     end
+    for id in pairs(regIdSet) do userIds[id] = true end
     if learn or (detect and combatTargets) then
         -- 1本の登録で全て処理(名前一致・学習。AbilityId指定の登録は不要)
         for id in pairs(idRegs) do
@@ -1134,6 +1254,8 @@ function CD.Initialize()
         if type(PTI.sv.cd.userEv) ~= "table" then PTI.sv.cd.userEv = {} end
         if type(PTI.sv.cd.learned) ~= "table" then PTI.sv.cd.learned = {} end
         if type(PTI.sv.cd.learnIgnore) ~= "table" then PTI.sv.cd.learnIgnore = {} end
+        if type(PTI.sv.cd.history) ~= "table" then PTI.sv.cd.history = {} end
+        if type(PTI.sv.cd.manual) ~= "table" then PTI.sv.cd.manual = {} end
     end
     CD.Sync()
 end
@@ -1318,6 +1440,281 @@ local function CmdLearn(arg)
 end
 
 
+
+--------------------------------------------------------------------------
+-- 設定画面用API: 登録一覧・履歴表示・MANUAL登録(チャットコマンド不要)
+--------------------------------------------------------------------------
+local function ManualTable()
+    local sv = PTI.sv
+    if type(sv.cd.manual) ~= "table" then sv.cd.manual = {} end
+    return sv.cd.manual
+end
+
+-- 登録一覧(AUTO/確定済み/MANUAL)。key: "L:<id>"=学習記録 / "M:<mid>"=手動登録
+local function RegList()
+    local list = {}
+    for id, r in pairs(LearnedTable()) do
+        if type(r) == "table" and (r.conf == "AUTO" or r.conf == "ACCEPTED") then
+            list[#list + 1] = { key = "L:" .. id, id = tonumber(id) or 0, src = (r.conf == "AUTO") and "AUTO" or "MANUAL", rec = r }
+        end
+    end
+    for mid, m in pairs(ManualTable()) do
+        if type(m) == "table" then list[#list + 1] = { key = "M:" .. mid, id = m.id or 0, src = "MANUAL", rec = m, manual = true } end
+    end
+    table.sort(list, function(a, b)
+        if a.src ~= b.src then return a.src < b.src end
+        return a.id < b.id
+    end)
+    return list
+end
+
+local function StateOf(item)
+    local state, reason = HealthState(item.rec)
+    if item.rec.disabled then
+        if item.rec.autoDisabled then return "INVALID", "自動で検知を停止中。" .. reason end
+        return "OFF", "手動で無効化中"
+    end
+    return state, reason
+end
+
+local function StateText(state)
+    if state == "OFF" then return "無効" end
+    return STATE_LABEL[state] or state
+end
+
+function CD.GetRegChoices()
+    local labels, values = {}, {}
+    for _, it in ipairs(RegList()) do
+        local st = StateOf(it)
+        labels[#labels + 1] = string.format("[%s][%s] %s / %d", it.src, StateText(st), it.rec.setName or "?", it.id)
+        values[#values + 1] = it.key
+    end
+    if #labels == 0 then labels[1], values[1] = "(登録なし)", "" end
+    return labels, values
+end
+
+local function FindReg(key)
+    for _, it in ipairs(RegList()) do if it.key == key then return it end end
+    return nil
+end
+
+function CD.FormatStatus()
+    local autos, cands, manuals, warn = 0, 0, 0, 0
+    for _, r in pairs(LearnedTable()) do
+        if type(r) == "table" then
+            if r.conf == "AUTO" then autos = autos + 1 elseif r.conf == "CAND" then cands = cands + 1 end
+        end
+    end
+    for _, it in ipairs(RegList()) do
+        if it.src == "MANUAL" then manuals = manuals + 1 end
+        local st = StateOf(it)
+        if st == "WARN" or st == "INVALID" then warn = warn + 1 end
+    end
+    return string.format("学習 %s / 学習対象セット %d / AUTO登録 %d件 / 候補 %d件 / MANUAL %d件 / 要確認 %d件",
+        (PTI.sv.cd.autoLearn ~= false) and (learnActive and "ON(動作中)" or "ON(待機)") or "OFF", #learnSets, autos, cands, manuals, warn)
+end
+
+local function Lines(t) return table.concat(t, "\n") end
+
+-- AUTO登録履歴(登録成功時の内容)
+function CD.FormatHistory()
+    local h = PTI.sv.cd.history or {}
+    if #h == 0 then return "(登録履歴はまだありません)" end
+    local out = {}
+    for i = #h, 1, -1 do
+        local e = h[i]
+        out[#out + 1] = string.format("[%s] %s", e.method or "?", e.setName or "?")
+        out[#out + 1] = string.format("  Ability ID %s / %s", tostring(e.id), (e.name and e.name ~= "") and zo_strformat("<<t:1>>", e.name) or "(名前なし)")
+        out[#out + 1] = string.format("  発動回数 %d回 / 戦闘回数 %d回 / 推定ICD %s秒", e.n or 0, e.fights or 0, tostring(e.cd or "?"))
+        out[#out + 1] = string.format("  登録日時 %s%s", FormatStamp(e.ts), e.note and (" / " .. e.note) or "")
+    end
+    return Lines(out)
+end
+
+-- 誤検知・要確認の履歴
+function CD.FormatHealth()
+    local out = {}
+    for _, it in ipairs(RegList()) do
+        local st, reason = StateOf(it)
+        if st ~= "OK" or (it.rec.log and #it.rec.log > 0) then
+            out[#out + 1] = string.format("[%s][%s] %s / %d  観測%d回", it.src, StateText(st), it.rec.setName or "?", it.id, it.rec.hits or 0)
+            if reason ~= "" then out[#out + 1] = "  " .. reason end
+            for _, l in ipairs(it.rec.log or {}) do
+                out[#out + 1] = string.format("  %s %s: %s", FormatStamp(l.ts), STATE_LABEL[l.state] or "?", l.text or "")
+            end
+        end
+    end
+    if #out == 0 then return "(要確認・無効候補はありません)" end
+    return Lines(out)
+end
+
+-- Ability ID一覧
+function CD.FormatIdList()
+    local out = {}
+    for _, it in ipairs(RegList()) do
+        local st = StateOf(it)
+        out[#out + 1] = string.format("%d / %s / %s / %s秒 / [%s][%s]", it.id,
+            it.rec.name and zo_strformat("<<t:1>>", it.rec.name) or "-", it.rec.setName or "?", tostring(it.rec.cd), it.src, StateText(st))
+    end
+    local ev = PTI.sv.cd.userEv or {}
+    for id, u in pairs(ev) do
+        out[#out + 1] = string.format("%s / %s / (旧形式の戦闘イベント登録) / %s秒", tostring(id), tostring(u.name or "-"), tostring(u.cd))
+    end
+    if #out == 0 then return "(登録なし)" end
+    return Lines(out)
+end
+
+function CD.FormatRegDetail(key)
+    local it = key and FindReg(key)
+    if not it then return "(上の一覧から登録を選んでください)" end
+    local r = it.rec
+    local st, reason = StateOf(it)
+    return Lines({
+        string.format("[%s][%s] %s", it.src, StateText(st), r.setName or "?"),
+        string.format("Ability ID %d / %s", it.id, r.name and zo_strformat("<<t:1>>", r.name) or "(名前なし)"),
+        string.format("ICD %s秒 / 発動観測 %d回 / 間隔の不一致 %d回 / 未装備での検知 %d回", tostring(r.cd), r.hits or 0, r.viol or 0, r.unequip or 0),
+        (reason ~= "") and ("理由: " .. reason) or "理由: なし",
+        string.format("登録 %s", FormatStamp(r.regAt or r.ts)),
+    })
+end
+
+-- セット選択肢: 装備中のセット(先頭) + 定義表のセット
+function CD.GetSetChoices()
+    EnsureIndex()
+    local labels, values, seen = {}, {}, {}
+    for _, st in ipairs(CollectSets()) do
+        local def = entryByName[st.norm]
+        local key = def and ("d:" .. def.key) or ("n:" .. st.norm)
+        if not seen[key] then
+            seen[key] = true
+            labels[#labels + 1] = st.name .. "(装備中)"
+            values[#values + 1] = key
+        end
+    end
+    for _, e in ipairs(PTI.CDData and PTI.CDData.entries or {}) do
+        local key = "d:" .. e.key
+        if not seen[key] then
+            seen[key] = true
+            labels[#labels + 1] = (e.names and e.names[1]) or e.key
+            values[#values + 1] = key
+        end
+    end
+    return labels, values
+end
+
+local function SetNameOfKey(key)
+    if type(key) ~= "string" then return nil end
+    local kind, rest = key:sub(1, 2), key:sub(3)
+    if kind == "d:" then
+        local e = PTI.CDData and PTI.CDData.byKey and PTI.CDData.byKey[rest]
+        if e then
+            for _, st in ipairs(CollectSets()) do
+                if entryByName[st.norm] == e then return st.name end
+            end
+            return e.names and e.names[1] or rest
+        end
+    elseif kind == "n:" then
+        for _, st in ipairs(CollectSets()) do if st.norm == rest then return st.name end end
+        return rest
+    end
+    return nil
+end
+
+-- 入力の検証。戻り値: ok, メッセージ, 正規化した値(table)
+function CD.ManualValidate(setKey, idText, cdText, nameText)
+    if type(setKey) ~= "string" or setKey == "" or not SetNameOfKey(setKey) then
+        return false, "セットを選んでください。"
+    end
+    local idStr = tostring(idText or ""):gsub("%s+", "")
+    if not idStr:match("^%d+$") then return false, "Ability IDは数字で入力してください。" end
+    local id = tonumber(idStr)
+    if not id or id <= 0 or id > 999999999 then return false, "Ability IDの範囲が正しくありません。" end
+    local cd = tonumber((tostring(cdText or ""):gsub("%s+", "")))
+    if not cd or cd <= 0 then return false, "ICDは0より大きい秒数で入力してください。" end
+    if cd > 300 then return false, "ICDは300秒以下で入力してください。" end
+    local mid = setKey .. "#" .. id
+    if ManualTable()[mid] then return false, "同じセット・同じAbility IDが既にMANUAL登録されています。" end
+    local lr = LearnedTable()[id]
+    if lr and (lr.conf == "AUTO" or lr.conf == "ACCEPTED") then
+        return false, "このAbility IDは既にAUTO/確定登録されています(上書きしません)。"
+    end
+    for _, m in pairs(ManualTable()) do
+        if m.id == id then return false, "このAbility IDは別のセットでMANUAL登録済みです。" end
+    end
+    local name = tostring(nameText or "")
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    local auto = false
+    if name == "" and GetAbilityName then
+        local a = GetAbilityName(id)
+        if type(a) == "string" and a ~= "" then name = zo_strformat("<<t:1>>", a); auto = true end
+    end
+    return true, "登録できます。", { setKey = setKey, setName = SetNameOfKey(setKey), id = id, cd = cd, name = name, mid = mid, nameAuto = auto }
+end
+
+function CD.ManualPreview(setKey, idText, cdText, nameText)
+    local blank = (tostring(idText or "") == "" and tostring(cdText or "") == "")
+    local ok, msg, v = CD.ManualValidate(setKey, idText, cdText, nameText)
+    if ok then
+        return Lines({
+            "セット: " .. v.setName,
+            string.format("Ability ID: %d / %s%s", v.id, (v.name ~= "") and v.name or "(名前なし)", v.nameAuto and "(自動取得)" or ""),
+            string.format("ICD: %s秒", tostring(v.cd)),
+            "→ 登録できます。「登録する」を押してください。",
+        })
+    end
+    if blank then return "(セット・Ability ID・ICDを入力すると、ここに確認内容が表示されます)" end
+    return "× " .. msg
+end
+
+function CD.ManualRegister(setKey, idText, cdText, nameText)
+    local ok, msg, v = CD.ManualValidate(setKey, idText, cdText, nameText)
+    if not ok then return false, msg end
+    local rec = { id = v.id, setKey = v.setKey, setName = v.setName, cd = v.cd, name = v.name, ts = NowStamp(), regAt = NowStamp() }
+    ManualTable()[v.mid] = rec
+    LogHistory(v.id, rec, "MANUAL")
+    RebuildIndex()
+    equippedDirty = true
+    SyncCombat()
+    return true, string.format("登録しました: %s / %d / %s秒", v.setName, v.id, tostring(v.cd))
+end
+
+function CD.RegSetDisabled(key, flag)
+    local it = FindReg(key)
+    if not it then return false, "登録を選んでください。" end
+    if flag then
+        it.rec.disabled, it.rec.autoDisabled, it.rec.hold = true, nil, nil
+    else
+        -- 再有効化: 数え直す。ユーザーが確認済みなので、以後は自動では停止しない
+        it.rec.disabled, it.rec.autoDisabled = nil, nil
+        it.rec.hold = true
+        it.rec.viol, it.rec.unequip, it.rec.hits, it.rec.lastState = 0, 0, 0, nil
+    end
+    RebuildIndex()
+    SyncCombat()
+    return true, flag and "無効化しました(記録は残ります)。" or "再有効化しました(観測回数をリセット)。"
+end
+
+function CD.ManualDelete(key)
+    local mid = key and key:match("^M:(.+)$")
+    if not mid or not ManualTable()[mid] then return false, "MANUAL登録を選んでください(AUTO登録は削除せず、無効化で止められます)。" end
+    ManualTable()[mid] = nil
+    RebuildIndex()
+    SyncCombat()
+    return true, "MANUAL登録を削除しました。"
+end
+
+function CD.ManualUpdateCd(key, cdText)
+    local mid = key and key:match("^M:(.+)$")
+    local m = mid and ManualTable()[mid]
+    if not m then return false, "MANUAL登録を選んでください。" end
+    local cd = tonumber((tostring(cdText or ""):gsub("%s+", "")))
+    if not cd or cd <= 0 or cd > 300 then return false, "ICDは0より大きく300以下の秒数で入力してください。" end
+    m.cd = cd
+    m.viol, m.hits, m.lastState = 0, 0, nil
+    RebuildIndex()
+    return true, string.format("ICDを %s秒 に更新しました(観測回数をリセット)。", tostring(cd))
+end
+
 --------------------------------------------------------------------------
 -- 自動学習の状況表示とコマンド /pti cd auto ...
 --------------------------------------------------------------------------
@@ -1388,7 +1785,10 @@ local function CmdAuto(args)
             Out(TAG .. "候補の番号を /pti cd auto list で確認してください。例: /pti cd auto " .. sub .. " 1")
         elseif sub == "accept" then
             c.r.conf = "ACCEPTED"
+            c.r.regAt, c.r.regN, c.r.regFights = NowStamp(), c.r.n, c.r.fights
+            LogHistory(c.id, c.r, "MANUAL", "候補を確定")
             RebuildIndex()
+            SyncCombat()
             Out(TAG .. string.format("確定しました: %d %s -> %s", c.id, ChatEsc(zo_strformat("<<t:1>>", c.r.name or "")), ChatEsc(c.r.setName or "?")))
         else
             LearnedTable()[c.id] = nil
@@ -1451,6 +1851,11 @@ function CD.HandleCommand(rest)
         end
     elseif sub == "auto" then
         CmdAuto(args)
+    elseif sub == "hist" then
+        Out(TAG .. "登録履歴 (新しい順)")
+        for line in (CD.FormatHistory() .. "\n"):gmatch("(.-)\n") do Out(ChatEsc(line)) end
+        Out(TAG .. "要確認・無効候補")
+        for line in (CD.FormatHealth() .. "\n"):gmatch("(.-)\n") do Out(ChatEsc(line)) end
     elseif sub == "combat" then
         local a = args:lower()
         if a == "on" or a == "off" then
@@ -1571,6 +1976,7 @@ function CD.HandleCommand(rest)
         Out(TAG .. "/pti cd learn on||off||show||clear - 新しく付いたバフのAbilityIdを記録")
         Out(TAG .. "/pti cd probe [秒] / probe show - 戦闘/エフェクトイベントがPS5で届くかの診断(自動停止)")
         Out(TAG .. "/pti cd auto [on||off||list||accept N||reject N||clear] - Procの自動学習の状況・操作")
+        Out(TAG .. "/pti cd hist - 登録履歴と要確認の一覧(設定画面でも確認・手動登録ができます)")
         Out(TAG .. "/pti cd combat on||off - 戦闘イベント方式(バフが付かないProc向け)")
         Out(TAG .. "/pti cd add <AbilityId> <秒> [名前] / del <AbilityId> / list - 実測ICDの登録(バフ)")
         Out(TAG .. "/pti cd addev <AbilityId> <秒> [名前] / delev <AbilityId> - 戦闘イベント側の登録")
@@ -1585,6 +1991,7 @@ CD._test = {
     CharCount = CharCount, CollectSets = CollectSets, FetchBonuses = FetchBonuses, ScanBuffs = ScanBuffs,
     RebuildIndex = RebuildIndex, RescanEquipped = RescanEquipped, states = states, pending = pending,
     FlushOut = FlushOut, ObserveCombat = ObserveCombat, learnSets = learnSets, obs = obs,
+    RegHit = RegHit, HealthState = HealthState, RegList = RegList,
     SetFight = function(n) fightId = n end, GetFight = function() return fightId end,
     OnCombatState = OnCombatState, SyncCombat = function() SyncCombat() end,
     OnCombatEventForTest = function(...) return OnCombatEvent(...) end,

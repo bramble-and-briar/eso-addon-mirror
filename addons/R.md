@@ -70,7 +70,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Realistic Needs and Diseases](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Realistic-Needs-and-Diseases__4711) | kreksar@gmail.com | PC / Mac | 0.19.32b |
 | [Rebar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Rebar__1e6ecfd4-9947-49dc-9392-c5fab2256ab2) | Vixen_Hunny | Console | — |
 | [Recall Rotator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ookimus/Recall-Rotator__4765) | Ookimus | PC / Mac | 1.0 |
-| [Recipe and Motif Price For Writ Worthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/Recipe-and-Motif-Price-For-Writ-Worthy__3625) | alezhu | PC / Mac | 1.1.1 |
+| [Recipe and Motif Price For Writ Worthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/Recipe-and-Motif-Price-For-Writ-Worthy__3625) | alezhu | PC / Mac | 1.2.0 |
 | [ReconGearIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/daimon/ReconGearIcon__4976) | daimon | PC / Mac | 1.1 |
 | [Recount (Renovated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lwndow/Recount-Renovated__2739) | lwndow | PC / Mac | 0.7.6 |
 | [Recount (Update)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ferather/Recount-Update__2754) | Ferather | PC / Mac | 0.6.5 |
@@ -147,7 +147,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RoleCrowns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheWizardLizard/RoleCrowns__2539) | TheWizardLizard | PC / Mac | 1.0.1 |
 | [Roleplay Marker 2020](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Roleplay-Marker-2020__2878) | Phuein | PC / Mac | 1.11 |
 | [Roleplay Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Roleplay-Plus__351) | Smaxx | PC / Mac | 0.3b |
-| [Roleplay Post support](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Roleplay-Post-support__4888) | aausten | PC / Mac | 1.2.5 |
+| [Roleplay Post support](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Roleplay-Post-support__4888) | aausten | PC / Mac | 1.2.6 |
 | [Roleplay Suite - Character Skill & Needs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Christopherv1995/Roleplay-Suite---Character-Skill-Needs__1935) | Christopherv1995 | PC / Mac | 2.3 |
 | [RolePlayNeeds - I Heard a Rumor...](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---I-Heard-a-Rumor__4149) | matheusbk2 | PC / Mac | 0.3.2 |
 | [RolePlayNeeds - Immersive Hair!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---Immersive-Hair__4173) | matheusbk2 | PC / Mac | 0.1 FIX |

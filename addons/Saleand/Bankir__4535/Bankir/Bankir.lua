@@ -1,7 +1,7 @@
 Bankir = Bankir or {}
 
 local name = "Bankir"
-local version = "2.8.1"
+local version = "2.8.3"
 local author = "vexaiv"
 
 local function debugPrint(message)
@@ -142,7 +142,7 @@ local function initCacheForBag(bagId)
 	end
 end
 
-local function updateTotalItemsInBag(bagId, itemLink, totalsId, neededQualities)
+local function countSameItemsInBag(bagId, itemLink, totalsId, neededQualities)
 	local count = 0
 	for slotId in ZO_IterateBagSlots(bagId) do
 		repeat
@@ -169,7 +169,27 @@ local function updateTotalItemsInBag(bagId, itemLink, totalsId, neededQualities)
 			count = count + stackSize
 		until true
 	end
+	return count
+end
+
+local function updateTotalItemsInBag(bagId, itemLink, totalsId, neededQualities)
+	local count = countSameItemsInBag(bagId, itemLink, totalsId, neededQualities)
+	if IsESOPlusSubscriber() then
+		if bagId == BAG_BANK then
+			count = count + countSameItemsInBag(BAG_SUBSCRIBER_BANK, itemLink, totalsId, neededQualities)
+		elseif bagId == BAG_SUBSCRIBER_BANK then
+			count = count + countSameItemsInBag(BAG_BANK, itemLink, totalsId, neededQualities)
+			bagId = BAG_BANK
+		end
+	end
 	localCache[bagId].totals[totalsId] = count
+end
+
+local function getTotalItemsInBag(bagId, totalsId)
+	if bagId == BAG_SUBSCRIBER_BANK then
+		bagId = BAG_BANK
+	end
+	return localCache[bagId].totals[totalsId]
 end
 
 local function updateLocalCache(itemLink, totalsId, sourceBagId, sourceSlotId, targetBagId, targetSlotId, movedCount, maxStackSize)
@@ -236,6 +256,8 @@ local function populateQueue(sourceBagId, targetBagId)
 	if bankBagAlias == BAG_GUILDBANK then
 		local guildId = GetSelectedGuildBankId()
 		bankBagAlias = "Guild" .. guildId
+	elseif bankBagAlias == BAG_SUBSCRIBER_BANK then
+		bankBagAlias = BAG_BANK
 	end
 	
 	local cache = SHARED_INVENTORY:GetOrCreateBagCache(sourceBagId)
@@ -284,7 +306,7 @@ local function populateQueue(sourceBagId, targetBagId)
 			end
 			
 			--update how many of the item is already in target bag
-			if not localCache[targetBagId].totals[totalsId] or not localCache[sourceBagId].totals[totalsId] then
+			if not getTotalItemsInBag(targetBagId, totalsId) or not getTotalItemsInBag(sourceBagId, totalsId) then
 				updateTotalItemsInBag(targetBagId, itemLink, totalsId, neededQualities)
 				updateTotalItemsInBag(sourceBagId, itemLink, totalsId, neededQualities)
 			end
@@ -303,7 +325,7 @@ local function populateQueue(sourceBagId, targetBagId)
 				targetMax = toPull
 			end
 			
-			if localCache[targetBagId].totals[totalsId] >= targetMax then break end
+			if getTotalItemsInBag(targetBagId, totalsId) >= targetMax then break end
 			
 			--finally, if all good, add to the queue
 			--d("add to queue " .. itemLink .. " as " .. totalsId .. " sourceBagId = " .. sourceBagId .. " sourceSlotId = " .. slotId .. " targetBagId = " .. targetBagId .. " targetMax = " .. targetMax .. " sourceMin = " .. toPull)
@@ -378,8 +400,18 @@ local function processQueue()
 	
 	--d("processQueue at index " .. queue.index .. "(" .. itemLink .. ") bag " .. sourceBagId .. " slot " .. sourceSlotId)
 	
-	local targetTotal = localCache[targetBagId].totals[totalsId]
-	local sourceTotal = localCache[sourceBagId].totals[totalsId]
+	local targetTotal = getTotalItemsInBag(targetBagId, totalsId)
+	local sourceTotal = getTotalItemsInBag(sourceBagId, totalsId)
+	
+	if IsItemLinkUnique(itemLink) then
+		if getTotalItemsInBag(targetBagId, itemLink) > 0 then
+			if Bankir.savedVarsCommon.showOperationFailMessages then
+				d(zo_strformat(GetString(BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM), itemLink, Bankir.Functions.getBagName(targetBagId)))
+			end
+			processQueue()
+			return
+		end
+	end
 	
 	local sourceStackSize, maxStackSize = getSlotStackSizeLocal(sourceBagId, sourceSlotId)
 	local sourceStackSizeFinal = sourceStackSize
@@ -404,6 +436,13 @@ local function processQueue()
 		return
 	else
 		local targetSlotId = getTargetSlot(targetBagId, itemLink)
+		
+		if not targetSlotId and targetBagId == BAG_BANK and IsESOPlusSubscriber() then
+			targetSlotId = getTargetSlot(BAG_SUBSCRIBER_BANK, itemLink)
+			if targetSlotId then
+				targetBagId = BAG_SUBSCRIBER_BANK
+			end
+		end
 		
 		if not targetSlotId then
 			if Bankir.savedVarsCommon.showOperationFailMessages then
@@ -483,6 +522,7 @@ local function onSlotChanged(bagId, slotId, countChange)
 		-- print on success
 		printToChat(itemLink, countChange, bagId)
 		
+		-- guild bank back and forth movements when tempSlotId is set
 		local totalsId = itemInQueue.totalsId
 		if itemInQueue.tempSlotId == slotId then
 			if itemInQueue.targetBagId == bagId then

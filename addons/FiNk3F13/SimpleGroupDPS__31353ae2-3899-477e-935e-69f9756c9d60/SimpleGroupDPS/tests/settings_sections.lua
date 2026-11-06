@@ -13,7 +13,7 @@ for _, entry in ipairs(env.menuEntries) do
         assert(current, 'Every setting belongs to a section')
         if entry.label:find('Anteil%-HUD') or entry.label:find('Gruppenanteil%-HUD') then
             assert(current == 'Gruppenanteil-HUD', 'Personal HUD controls belong together')
-        elseif entry.label == 'Nach Kampfende anzeigen' or entry.label == 'Fotomodus' then
+        elseif entry.label == 'Nach Kampfende anzeigen' then
             assert(current == 'Allgemein', 'Shared retention applies to both HUDs')
         else
             assert(current == 'DPS-HUD', 'Group display controls belong together')

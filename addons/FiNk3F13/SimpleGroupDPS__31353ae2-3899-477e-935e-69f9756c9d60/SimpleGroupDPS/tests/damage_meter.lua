@@ -37,8 +37,8 @@ local stats = meter:GetStats()
 assert(stats.total == 1000 and stats.bossTotal == 600)
 assert(stats.dps == 1000 and stats.bossDPS == 600 and stats.addsDPS == 400, "all categories use the same encounter clock")
 clock = 9000
-assert(meter:GetStats().dps == 1000 and meter:GetStats().durationMS == 1000,
-    "no-damage waiting cannot artificially lower damage-window DPS")
+assert(meter:GetStats().dps == 125 and meter:GetStats().durationMS == 8000,
+    "DPS decreases with elapsed encounter time during damage pauses")
 damage(10000, 6, "Boss", 2, 800, 10, 2, 10000)
 stats = meter:GetStats()
 assert(stats.total == 1800 and stats.dps == 200, "companion included and overkill excluded")
@@ -57,14 +57,14 @@ damage(12000, 1, "Second Boss", 2, 1100, 30)
 assert(meter:GetStats().bossTotal == 2700, "multiple bosses combined")
 stats = meter:GetStats()
 clock = 18000
-assert(meter:GetStats().dps == stats.dps and meter:GetStats().durationMS == stats.durationMS,
-    "live result remains stable without new damage")
+assert(math.abs(meter:GetStats().dps - 3600000 / 17000) < 0.000001 and meter:GetStats().durationMS == 17000,
+    "Live clock advances without new damage")
 clock, inCombat = 20000, false
 callbacks.SimpleGroupDPSDamageState(nil, false)
 assert(meter:IsActive() and updates.SimpleGroupDPSDamageReset.interval == 150, "combat exit waits 150ms before reset check")
 updates.SimpleGroupDPSDamageReset.run()
-assert(not meter:IsActive() and meter:GetStats().dps == stats.dps
-    and meter:GetStats().durationMS == stats.durationMS, "combat exit preserves the same damage window")
+assert(not meter:IsActive() and math.abs(meter:GetStats().dps - 3600000 / 19000) < 0.000001
+    and meter:GetStats().durationMS == 19000, "combat exit preserves the same damage window")
 damage(21000, 1, "New Add", 2, 500, 40)
 assert(meter:GetStats().total == 3600, "precombat hits do not overwrite previous result")
 
@@ -89,8 +89,8 @@ meter:Start(clock)
 damage(30000, 1, "New Add", 2, 100, 40)
 clock = 35000
 meter:Finish()
-assert(meter:GetStats().durationMS == 1000 and meter:GetStats().dps == 100,
-    "first-hit-only encounter preserves its fixed estimate when finished after idle time")
+assert(meter:GetStats().durationMS == 5000 and meter:GetStats().dps == 20,
+    "First-hit-only encounter includes subsequent active combat time")
 bosses = { boss1 = "Boss^Mx" }
 clock = 40000
 meter:Start(clock)
@@ -159,7 +159,7 @@ callbacks.SimpleGroupDPSDamageEffects(nil, 1, nil, nil, "player", nil, nil, nil,
 assert(not meter:ShouldFinish(), "Cloudrest portal keeps encounter open")
 callbacks.SimpleGroupDPSDamageEffects(nil, 3, nil, nil, "player", nil, nil, nil, nil, nil, nil, nil, nil, "Player", 99, 108045)
 updates.SimpleGroupDPSDamageReset.run()
-assert(not meter:IsActive() and meter:GetStats().durationMS == 5000, "portal exit adds no idle damage time")
+assert(not meter:IsActive() and meter:GetStats().durationMS == 5500, "Portal encounter includes elapsed time until exit")
 clock = 70000
 meter:Start(clock)
 damage(70000, 1, "Boss", 2, 1000, 10)

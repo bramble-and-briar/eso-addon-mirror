@@ -40,11 +40,11 @@ local function WarnMalformedPreference(message)
 end
 
 local function EnsurePreferences()
-    if type(this.accountWide.progressBarPreferences) ~= "table" then
-        if this.accountWide.progressBarPreferences ~= nil then
+    if type(this.GetSettingsProfile().progressBarPreferences) ~= "table" then
+        if this.GetSettingsProfile().progressBarPreferences ~= nil then
             WarnMalformedPreference("progressBarPreferences must be a table")
         end
-        this.accountWide.progressBarPreferences = {}
+        this.GetSettingsProfile().progressBarPreferences = {}
     end
 end
 
@@ -85,7 +85,7 @@ end
 
 local function GetStoredPreference(resource, create)
     EnsurePreferences()
-    local preferences = this.accountWide.progressBarPreferences
+    local preferences = this.GetSettingsProfile().progressBarPreferences
     local preference = preferences[resource.key]
     if type(preference) ~= "table" then
         if preference ~= nil then
@@ -99,13 +99,13 @@ local function GetStoredPreference(resource, create)
 end
 
 local function GetAlertColors()
-    local colors = this.accountWide.progressBarAlertColors
+    local colors = this.GetSettingsProfile().progressBarAlertColors
     if type(colors) ~= "table" then
         if colors ~= nil then
             WarnMalformedPreference("progressBarAlertColors must be a table")
         end
         colors = {}
-        this.accountWide.progressBarAlertColors = colors
+        this.GetSettingsProfile().progressBarAlertColors = colors
     end
     return colors
 end
@@ -376,7 +376,7 @@ function this.SetProgressBarSetting(resourceKey, setting, value)
     end
 
     if next(preference) == nil then
-        this.accountWide.progressBarPreferences[resource.key] = nil
+        this.GetSettingsProfile().progressBarPreferences[resource.key] = nil
     end
 end
 

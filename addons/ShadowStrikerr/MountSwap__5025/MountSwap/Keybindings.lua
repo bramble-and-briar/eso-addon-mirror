@@ -21,7 +21,7 @@ local function findPanel()
     return tree, addonNode or standardNode
 end
 function M:OpenKeybindings()
-    if IsInGamepadPreferredMode and IsInGamepadPreferredMode() then
+    if IsInGamepadPreferredMode() then
         if KEYBINDINGS_SCENE_GAMEPAD and SCENE_MANAGER.Push then
             self:CloseWindows()
             SCENE_MANAGER:Push('keybindings_gamepad')

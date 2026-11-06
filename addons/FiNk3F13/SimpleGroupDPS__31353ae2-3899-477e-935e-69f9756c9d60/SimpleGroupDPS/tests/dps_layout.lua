@@ -99,9 +99,9 @@ assert(narrowOptions.dpsValueFontSize == 32, "Compact fitting must not overwrite
 narrowOptions.dpsWidth = 280
 panel:Render(narrowParent, {{name = "@ANameThatNeedsEllipsis", dps = 2000000, bossDPS = 1000000, stale = true}},
     true, 6000, narrowOptions)
-assert(not narrowRows.status.hidden and narrowRows.status.width == 256)
+assert(narrowRows.status == nil, "No stale footer is created")
 assert(narrowRows[1].swtDPSValue:GetTextWidth() <= narrowRows[1].swtDPSValue.width,
-    "Showing a stale indication preserves the full boss/total numbers even at minimum width")
+    "Older values preserve the full boss/total numbers without a footer")
 narrowOptions.dpsWidth = 800
 panel:Render(narrowParent, {{name = "@Known", dps = 200, bossDPS = 100}}, true, 6000, narrowOptions)
 assert(narrowRows[1].swtDPSValue.font:find("|32|", 1, true), "Widening must restore the requested number size")

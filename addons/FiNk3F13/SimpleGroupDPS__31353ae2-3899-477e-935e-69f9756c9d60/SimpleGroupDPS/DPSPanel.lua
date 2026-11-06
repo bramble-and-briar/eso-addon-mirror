@@ -82,10 +82,10 @@ end
 
 local function formatMetrics(member, bossFight)
     if isHealing(member) then
-        if member.rawHPS == nil then return L("Keine HPS-Daten") end
+        if member.rawHPS == nil then return "0" end
         return formatValue(member.effectiveHPS) .. " (" .. formatValue(member.rawHPS) .. ")"
     end
-    if member.dps == nil then return L("Keine DPS-Daten") end
+    if member.dps == nil then return "0" end
     if bossFight and member.bossDPS == nil then return "(" .. formatValue(member.dps) .. ")" end
     if bossFight then return formatValue(member.bossDPS) .. " (" .. formatValue(member.dps) .. ")" end
     return formatValue(member.dps)
@@ -189,13 +189,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     end
     local damageRows = damageCount > 0 and damageCount + 2 or 0
     local totalRows = damageRows + (healingCount > 0 and healingCount + 1 or 0)
-    local hasStale = false
-    for _, member in ipairs(members) do
-        local metric
-        if isHealing(member) then metric = member.rawHPS else metric = member.dps end
-        if member.stale and metric ~= nil then hasStale = true; break end
-    end
-    local height = totalRows * rowHeight + 8 + (hasStale and 22 or 0)
+    local height = totalRows * rowHeight + 8
     rows.backdrop:SetDimensions(width, height)
     rows.backdrop:SetHidden(false)
 
@@ -220,7 +214,17 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         healingHeader:ClearAnchors()
         healingHeader:SetAnchor(TOPLEFT, parent, TOPLEFT, 12, 4 + damageRows * rowHeight)
         healingHeader:SetText(L("Heilung (HPS)"))
-        setValue(healingHeader.swtDPSValue, "")
+        local healingTime = ""
+        if damageCount == 0 then
+            -- Role changes must not replace an existing damage encounter timer
+            -- with the separate HPS denominator. Healing-only fights use healing time.
+            local hasDamage = localTotals and ((localTotals.total or 0) > 0 or (localTotals.groupTotal or 0) > 0)
+            local healingMS = hasDamage and (durationMS or 0)
+                or (localTotals and localTotals.healingDurationMS or durationMS or 0)
+            local healingSeconds = math.floor(math.max(0, healingMS) / 1000)
+            healingTime = string.format("%d:%02d", math.floor(healingSeconds / 60), healingSeconds % 60)
+        end
+        setValue(healingHeader.swtDPSValue, healingTime)
         healingHeader:SetColor(0.55, 0.95, 0.7, 1)
         healingHeader:SetHidden(false)
     end
@@ -252,10 +256,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         else
             row:SetColor(0.88, 0.97, 1, 1)
         end
-        local missing = (healing and member.rawHPS == nil) or (not healing and member.dps == nil)
-        if missing then row.swtDPSValue:SetColor(0.65, 0.7, 0.75, 1)
-        elseif member.stale then row.swtDPSValue:SetColor(1, 0.75, 0.3, 1)
-        else row.swtDPSValue:SetColor(0.88, 0.97, 1, 1) end
+        row.swtDPSValue:SetColor(0.88, 0.97, 1, 1)
         row.swtIcon:SetHidden(false)
         row.swtIcon:SetTexture(roleIcon(member))
         local texture = classIcon(member.classId)
@@ -290,21 +291,6 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     summary.swtBar:SetValue(1)
     summary.swtBar:SetColor(0.35, 0.35, 0.35, 0.25)
     summary:SetHidden(damageCount == 0)
-    if hasStale then
-        local status = rows.status
-        if not status then
-            status = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
-            status:SetMaxLineCount(1)
-            rows.status = status
-        end
-        status:ClearAnchors()
-        status:SetAnchor(TOPLEFT, parent, TOPLEFT, 12, 4 + totalRows * rowHeight)
-        status:SetDimensions(width - 24, 20)
-        status:SetFont("$(BOLD_FONT)|14|soft-shadow-thin")
-        status:SetColor(1, 0.75, 0.3, 1)
-        status:SetText(L("Gelb: Wert älter als 15 s"))
-        status:SetHidden(false)
-    end
     return height
 end
 

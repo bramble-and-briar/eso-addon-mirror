@@ -1,173 +1,339 @@
-<GuiXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sir.insidi.at/or/schema/esoui.xsd">
-    <Controls>
+<GuiXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/DakJaniels/esoui_gui_xsd/main/esoui_gui_xml.xsd">
+	<String name="IMP_IMPSTATS_COLOR_1" value="00000000" />
+	<String name="IMP_IMPSTATS_COLOR_2" value="282D3761" />
+	<String name="IMP_IMPSTATS_COLOR_3" value="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" />
+	<String name="IMP_IMPSTATS_VALUES_FONT_1" value="ZoFontHeader4" />
+	<String name="IMP_IMPSTATS_VALUES_FONT_2" value="ZoFontCallout" />
+	<String name="IMP_IMPSTATS_LABELS_FONT_1" value="ZoFontWinH4" />
+	<String name="IMP_IMPSTATS_LABELS_COLOR_1" value="888888" />
+
+	<Controls>
+		<Control name="IMP_MultiselectComboBox" mouseEnabled="true" virtual="true" resizeToFitDescendents="true" resizeToFitConstrains="X">
+            <Dimensions y="32"/>
+            <OnInitialized>
+                ZO_MultiSelectComboBox:New(self)
+				ZO_PostHook(self.m_comboBox, 'ShowDropdownInternal', function(self_)
+					ZO_Menu:ClearAnchors()
+    				ZO_Menu:SetAnchor(TOPRIGHT, self_.m_container, BOTTOMRIGHT)
+				end)
+            </OnInitialized>
+            <OnMouseUp>
+                ZO_ComboBoxDropdown_Keyboard.OnClicked(self, button, upInside)
+            </OnMouseUp>
+            <Controls>
+                <Label name="$(parent)SelectedItemText" color="D4AF37" wrapMode="ELLIPSIS" verticalAlignment="CENTER" horizontalAlignment="CENTER" excludeFromResizeToFitExtents="true">
+					<Anchor point="CENTER" />
+					<DimensionConstraints minX="30" />
+                </Label>
+				<Control name="$(parent)VeryBadHackToAddMargin">
+					<Anchor point="LEFT" relativeTo="$(parent)SelectedItemText" offsetX="-8" />
+					<Anchor point="RIGHT" relativeTo="$(parent)SelectedItemText" offsetX="8" />
+				</Control>
+            </Controls>
+        </Control>
+
 		<TopLevelControl name="IMP_STATS_MATCHES" inherits="ZO_RightPanelFootPrint" hidden="true">
 			<!-- <AnchorFill /> -->
 			<Controls>
-				<Control name="$(parent)TopBlock">
+				<Control name="$(parent)Header" resizeToFitDescendents="true">
 					<Anchor point="TOPLEFT" offsetX="-8" />
-					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-8" offsetY="150" />
+					<!-- <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-8" offsetY="150" /> -->
+					<Anchor point="TOPRIGHT" offsetX="-8" />
 					<Controls>
-						<!-- <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" edgeColor="FF0000" centerColor="00FF00" /> -->
-						
-						<Control name="$(parent)Stats">
+						<Control name="$(parent)Filters">
 							<Anchor point="TOPLEFT" />
+							<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetY="40" />
 							<Controls>
-								<Control name="$(parent)GaugeKDAMeter" inherits="IMP_STATS_GaugeKDAMeter">
+								<Control name="$(parent)CharactersFilter" inherits="IMP_MultiselectComboBox">
+									<Dimensions y="32" />
+									<Anchor point="RIGHT" />
+								</Control>
+								<Texture name="$(parent)Divider1" textureFile="/esoui/art/buttons/featuredot_active.dds" color="$(IMP_IMPSTATS_COLOR_3)">
+									<!-- <Anchor point="TOPRIGHT" relativeTo="$(parent)CharactersFilter" relativePoint="TOPLEFT" offsetY="5" />
+									<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)CharactersFilter" relativePoint="BOTTOMLEFT" offsetY="-5" /> -->
+									<Anchor point="RIGHT" relativeTo="$(parent)CharactersFilter" relativePoint="LEFT" offsetX="-4" />
+									<Dimensions x="8" y="8" />
+								</Texture>
+								<Control name="$(parent)FilterGameMode" inherits="IMP_MultiselectComboBox">
+									<Dimensions y="32" />
+									<Anchor point="RIGHT" relativeTo="$(parent)Divider1" relativePoint="LEFT" offsetX="-4" />
+								</Control>
+								<Texture name="$(parent)Divider2" textureFile="/esoui/art/buttons/featuredot_active.dds" color="$(IMP_IMPSTATS_COLOR_3)">
+									<!-- <Anchor point="TOPRIGHT" relativeTo="$(parent)FilterGameMode" relativePoint="TOPLEFT" offsetY="5" />
+									<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FilterGameMode" relativePoint="BOTTOMLEFT" offsetY="-5" /> -->
+									<Anchor point="RIGHT" relativeTo="$(parent)FilterGameMode" relativePoint="LEFT" offsetX="-4" />
+									<Dimensions x="8" y="8" />
+								</Texture>
+								<Control name="$(parent)FilterTeamType" inherits="IMP_MultiselectComboBox">
+									<Dimensions y="32" />
+									<Anchor point="RIGHT" relativeTo="$(parent)Divider2" relativePoint="LEFT" offsetX="-4" />
+								</Control>
+
+								<Label name="$(parent)Label" font="ZoFontWinT1" text="Filters:" color="777777">  <!-- TODO: font .eso-font-game-small { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: bold; } -->
+									<Anchor point="RIGHT" relativeTo="$(parent)FilterTeamType" relativePoint="LEFT" offsetX="-4" />
+								</Label>
+							</Controls>
+						</Control>
+						<Control name="$(parent)Stats">
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Filters" relativePoint="BOTTOMLEFT" />
+							<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Filters" relativePoint="BOTTOMRIGHT" offsetY="220" />
+							<Controls>
+								<Control name="$(parent)LeftContainer">
 									<Anchor point="TOPLEFT" />
-								</Control>
-
-								<Control name="$(parent)TopLeftCorner" hidden="true">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="110" offsetY="12" />
-								</Control>
-
-								<Label name="$(parent)TotalMatches" inherits="IMP_STATS_StatName" text="Matches recorded:">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)TopLeftCorner" />
-								</Label>
-								<Label name="$(parent)TotalMatchesValue" inherits="IMP_STATS_StatValue">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)TotalMatches" relativePoint="TOPRIGHT" offsetX="5" />
-								</Label>
-
-								<Control name="$(parent)TopLeftCorner2" hidden="true">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)TopLeftCorner" offsetY="42" />
-								</Control>
-
-								<Label name="$(parent)MatchesCount" inherits="IMP_STATS_StatName" text="Stats over last - matches">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)TopLeftCorner2" />
-								</Label>
-								<!-- <Label name="$(parent)MatchesCountValue" inherits="IMP_STATS_StatValue">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)MatchesCount" relativePoint="TOPRIGHT" offsetX="5" />
-								</Label> -->
-
-								<Label name="$(parent)Winrate" inherits="IMP_STATS_StatName" text="Winrate:">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)MatchesCount" relativePoint="BOTTOMLEFT" offsetY="6" />
-								</Label>
-								<Label name="$(parent)WinrateValue" inherits="IMP_STATS_StatValue">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)Winrate" relativePoint="TOPRIGHT" offsetX="5" />
-								</Label>
-
-								<Label name="$(parent)KD" inherits="IMP_STATS_StatName" text="Kills/Deaths:">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)Winrate" relativePoint="BOTTOMLEFT" offsetY="6"/>
-								</Label>
-								<Label name="$(parent)KDValue" inherits="IMP_STATS_StatValue">
-									<Anchor point="TOPLEFT" relativeTo="$(parent)KD" relativePoint="TOPRIGHT" offsetX="5" />
-								</Label>
-
-								<Control name="$(parent)KDAStats">
-									<Dimensions x="100" y="100" />
-									<Anchor point="TOPLEFT" relativeTo="$(parent)TopLeftCorner2" offsetX="285" />
+									<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" offsetX="180" />
 									<Controls>
-										<!-- <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" edgeColor="0000FF" centerColor="00FF00" /> -->
-										<Label name="$(parent)InvisibleLabel" inherits="IMP_STATS_StatName" text="-" hidden="true">
-											<Anchor point="TOPLEFT" />
-										</Label>
-										<Label name="$(parent)SumLabel" inherits="IMP_STATS_StatName" text="Sum">
-											<Anchor point="TOPRIGHT" relativeTo="$(parent)InvisibleLabel" relativePoint="BOTTOMRIGHT" offsetY="6"/>
-										</Label>
-										<Label name="$(parent)AvgLabel" inherits="IMP_STATS_StatName" text="Avg">
-											<Anchor point="TOPRIGHT" relativeTo="$(parent)SumLabel" relativePoint="BOTTOMRIGHT" offsetY="6"/>
-										</Label>
+										<Control name="$(parent)InnerContainer" resizeToFitDescendents="true">
+											<Anchor point="CENTER" offsetY="-16" />
+											<Controls>
+												<Control name="$(parent)GaugeKDAMeter">
+													<Dimensions x="200" y="200" />
+													<Anchor point="TOP" />
+													<Controls>
+														<Label name="$(parent)Winrate" verticalAlignment="CENTER" horizontalAlignment="CENTER" font="ZoFontCallout" text="50%"> <!-- tier="MEDIUM" level="6"  -->
+															<Anchor point="CENTER" />
+														</Label>
+														<Cooldown name="$(parent)Bar" textureFile="ImpressiveStats/battlegrounds/gauge2.dds" level="3" fillColor="00DD00">
+															<Anchor point="CENTER" />
+															<Dimensions x="150" y="150" />
+														</Cooldown>
+														<Texture name="$(parent)HHH" textureFile="ImpressiveStats/battlegrounds/gauge2.dds" level="2" color="50A0A0A0">
+															<Anchor point="CENTER" />
+															<Dimensions x="150" y="150" />
+														</Texture>
+													</Controls>
+												</Control>
+												<!-- <Control name="$(parent)GaugeKDAMeter" inherits="IMP_STATS_GaugeKDAMeter">
+													<Dimensions x="200" y="200" />
+													<Anchor point="TOP" />
+												</Control> -->
+												<Label name="$(parent)WLValue" font="ZoFontWinH2" text="...">
+													<Anchor point="TOP" relativeTo="$(parent)GaugeKDAMeter" relativePoint="BOTTOM" offsetY="-24" />
+												</Label>
+											</Controls>
+										</Control>
+									</Controls>
+								</Control>
+								<Texture name="$(parent)Divider" color="$(IMP_IMPSTATS_COLOR_3)">
+									<Anchor point="TOPLEFT" relativeTo="$(parent)LeftContainer" relativePoint="TOPRIGHT" offsetX="8" />
+									<Anchor point="BOTTOMLEFT" relativeTo="$(parent)LeftContainer" relativePoint="BOTTOMRIGHT" offsetX="8" />
+									<!-- <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)LeftContainer" relativePoint="BOTTOMRIGHT" offsetX="9" /> -->
+									 <Dimensions x="2" />
+								</Texture>
+								<Control name="$(parent)RightContainer">
+									<Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="TOPRIGHT" offsetX="16" />
+									<Anchor point="BOTTOMRIGHT" />
 
-										<Label name="$(parent)K" inherits="IMP_STATS_StatName" text="Kills">
-											<Anchor point="LEFT" relativeTo="$(parent)InvisibleLabel" relativePoint="RIGHT" offsetX="18" />
-										</Label>
-										<Label name="$(parent)KSum" inherits="IMP_STATS_StatValue">
-											<Anchor point="CENTER" relativeTo="$(parent)K" relativePoint="CENTER" offsetY="32" />
-										</Label>
-										<Label name="$(parent)KAvg" inherits="IMP_STATS_StatValue">
-											<Anchor point="CENTER" relativeTo="$(parent)KSum" relativePoint="CENTER" offsetY="32" />
-										</Label>
-
-										<Label name="$(parent)D" inherits="IMP_STATS_StatName" text="Deaths">
-											<Anchor point="LEFT" relativeTo="$(parent)InvisibleLabel" relativePoint="RIGHT" offsetX="68" />
-										</Label>
-										<Label name="$(parent)DSum" inherits="IMP_STATS_StatValue">
-											<Anchor point="CENTER" relativeTo="$(parent)D" relativePoint="CENTER" offsetY="32" />
-										</Label>
-										<Label name="$(parent)DAvg" inherits="IMP_STATS_StatValue">
-											<Anchor point="CENTER" relativeTo="$(parent)DSum" relativePoint="CENTER" offsetY="32" />
-										</Label>
-
-										<Label name="$(parent)A" inherits="IMP_STATS_StatName" text="Assists">
-											<Anchor point="LEFT" relativeTo="$(parent)InvisibleLabel" relativePoint="RIGHT" offsetX="128" />
-										</Label>
-										<Label name="$(parent)ASum" inherits="IMP_STATS_StatValue">
-											<Anchor point="CENTER" relativeTo="$(parent)A" relativePoint="CENTER" offsetY="32" />
-										</Label>
-										<Label name="$(parent)AAvg" inherits="IMP_STATS_StatValue">
-											<Anchor point="CENTER" relativeTo="$(parent)ASum" relativePoint="CENTER" offsetY="32" />
-										</Label>
+									<Controls>
+										<Control name="$(parent)TopContainer">
+											<Anchor point="TOPLEFT" offsetX="8" />
+											<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetY="95" />
+											<Controls>
+												<Control name="$(parent)KDARatio">
+													<Anchor point="TOPLEFT" />
+													<Anchor point="BOTTOMLEFT" />
+													<Dimensions x="230" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="KDA RATIO">
+															<Anchor point="TOP" offsetY="IMP_LABELS_OFFSET_Y_1" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_1)" text="-">
+															<Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" />
+														</Label>
+													</Controls>
+												</Control>
+												<Control name="$(parent)KDA">
+													<Anchor point="TOPLEFT" relativeTo="$(parent)KDARatio" relativePoint="TOPRIGHT" offsetX="10" />
+													<Anchor point="BOTTOMLEFT" relativeTo="$(parent)KDARatio" relativePoint="BOTTOMRIGHT" offsetX="10" />
+													<Dimensions x="230" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="AVG K/D/A">
+															<Anchor point="TOP" offsetY="IMP_LABELS_OFFSET_Y_1" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_1)" text="-">
+															<Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" />
+														</Label>
+													</Controls>
+												</Control>
+												<Control name="$(parent)MatchCounter">
+													<Anchor point="TOPLEFT" relativeTo="$(parent)KDA" relativePoint="TOPRIGHT" offsetX="10" />
+													<Anchor point="BOTTOMLEFT" relativeTo="$(parent)KDA" relativePoint="BOTTOMRIGHT" offsetX="10" />
+													<Dimensions x="230" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="MATCHES">
+															<Anchor point="TOP" offsetY="IMP_LABELS_OFFSET_Y_1" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_1)" text="-">
+															<Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" />
+														</Label>
+													</Controls>
+												</Control>
+											</Controls>
+										</Control>
+										<Control name="$(parent)BottomContainer">
+											<Anchor point="TOPLEFT" relativeTo="$(parent)TopContainer" relativePoint="BOTTOMLEFT" offsetY="10" />
+											<Anchor point="BOTTOMRIGHT" />
+											<Controls>
+												<Control name="$(parent)Damage">
+													<Anchor point="TOPLEFT" />
+													<Anchor point="BOTTOMLEFT" />
+													<Dimensions x="170.25" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Texture name="$(parent)Icon" textureFile="/esoui/art/lfg/gamepad/lfg_roleicon_dps.dds">
+															<Anchor point="TOPLEFT" offsetX="8" offsetY="8" />
+															<Dimensions x="24" y="24" />
+														</Texture>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="DAMAGE">
+															<Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="4" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_2)" color="FF6B6B" text="-">
+															<!-- <Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" /> -->
+															<Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="BOTTOMLEFT" offsetX="4" offsetY="4" />
+														</Label>
+														<StatusBar name="$(parent)Performance" textureFile="ImpressiveStats/battlegrounds/stars1.dds" level="3" color="00DD00">
+															<Anchor point="BOTTOM" offsetY="-3" />
+															<Dimensions x="64" y="32" />
+															<OnInitialized>
+																self:SetMinMax(0, 3)
+															</OnInitialized>
+															<Controls>
+																<Texture name="$(parent)Outline" textureFile="ImpressiveStats/battlegrounds/stars1.dds" color="50A0A0A0">
+																	<!-- <Anchor point="TOPLEFT" offsetX="-2" offsetY="-2" />
+																	<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2" /> -->
+																	<AnchorFill />
+																</Texture>
+															</Controls>
+														</StatusBar>
+													</Controls>
+												</Control>
+												<Control name="$(parent)Healing">
+													<Anchor point="TOPLEFT" relativeTo="$(parent)Damage" relativePoint="TOPRIGHT" offsetX="10" />
+													<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Damage" relativePoint="BOTTOMRIGHT" offsetX="10" />
+													<Dimensions x="170.25" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Texture name="$(parent)Icon" textureFile="/esoui/art/lfg/gamepad/lfg_roleicon_healer.dds">
+															<Anchor point="TOPLEFT" offsetX="8" offsetY="8" />
+															<Dimensions x="24" y="24" />
+														</Texture>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="HEALING">
+															<Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="4" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_2)" color="6BCB77" text="-">
+															<!-- <Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" /> -->
+															<Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="BOTTOMLEFT" offsetX="4" offsetY="4" />
+														</Label>
+														<StatusBar name="$(parent)Performance" textureFile="ImpressiveStats/battlegrounds/stars1.dds" level="3" color="00DD00">
+															<Anchor point="BOTTOM" offsetY="-3" />
+															<Dimensions x="64" y="32" />
+															<OnInitialized>
+																self:SetMinMax(0, 3)
+															</OnInitialized>
+															<Controls>
+																<Texture name="$(parent)Outline" textureFile="ImpressiveStats/battlegrounds/stars1.dds" color="50A0A0A0">
+																	<!-- <Anchor point="TOPLEFT" offsetX="-2" offsetY="-2" />
+																	<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2" /> -->
+																	<AnchorFill />
+																</Texture>
+															</Controls>
+														</StatusBar>
+													</Controls>
+												</Control>
+												<Control name="$(parent)Taken">
+													<Anchor point="TOPLEFT" relativeTo="$(parent)Healing" relativePoint="TOPRIGHT" offsetX="10" />
+													<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Healing" relativePoint="BOTTOMRIGHT" offsetX="10" />
+													<Dimensions x="170.25" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Texture name="$(parent)Icon" textureFile="/esoui/art/lfg/gamepad/lfg_roleicon_tank.dds">
+															<Anchor point="TOPLEFT" offsetX="8" offsetY="8" />
+															<Dimensions x="24" y="24" />
+														</Texture>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="TAKEN">
+															<Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="4" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_2)" color="4D96FF" text="-">
+															<!-- <Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" /> -->
+															<Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="BOTTOMLEFT" offsetX="4" offsetY="4" />
+														</Label>
+														<StatusBar name="$(parent)Performance" textureFile="ImpressiveStats/battlegrounds/stars1.dds" level="3" color="00DD00">
+															<Anchor point="BOTTOM" offsetY="-3" />
+															<Dimensions x="64" y="32" />
+															<OnInitialized>
+																self:SetMinMax(0, 3)
+															</OnInitialized>
+															<Controls>
+																<Texture name="$(parent)Outline" textureFile="ImpressiveStats/battlegrounds/stars1.dds" color="50A0A0A0">
+																	<!-- <Anchor point="TOPLEFT" offsetX="-2" offsetY="-2" />
+																	<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2" /> -->
+																	<AnchorFill />
+																</Texture>
+															</Controls>
+														</StatusBar>
+													</Controls>
+												</Control>
+												<Control name="$(parent)Medals">
+													<Anchor point="TOPLEFT" relativeTo="$(parent)Taken" relativePoint="TOPRIGHT" offsetX="10" />
+													<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Taken" relativePoint="BOTTOMRIGHT" offsetX="10" />
+													<Dimensions x="170.25" />
+													<Controls>
+														<Backdrop name="$(parent)BG" inherits="ZO_GamepadGreyOutlineThin" edgeColor="$(IMP_IMPSTATS_COLOR_1)" centerColor="$(IMP_IMPSTATS_COLOR_2)">
+															<Anchor point="TOPLEFT" offsetX="-2" offsetY="-2"/>
+                                            				<Anchor point="BOTTOMRIGHT" offsetX="2" offsetY="2"/>
+														</Backdrop>
+														<Texture name="$(parent)Icon" textureFile="/esoui/art/menubar/gamepad/gp_playermenu_icon_leaderboards.dds">
+															<Anchor point="TOPLEFT" offsetX="8" offsetY="8" />
+															<Dimensions x="24" y="24" />
+														</Texture>
+														<Label name="$(parent)Label" font="$(IMP_IMPSTATS_LABELS_FONT_1)" color="$(IMP_IMPSTATS_LABELS_COLOR_1)" text="SCORE">
+															<Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="4" />
+														</Label>
+														<Label name="$(parent)Value" font="$(IMP_IMPSTATS_VALUES_FONT_2)" color="D4AF37" text="-">
+															<!-- <Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetY="IMP_LABELS_OFFSET_Y_2" /> -->
+															<Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="BOTTOMLEFT" offsetX="4" offsetY="4" />
+														</Label>
+														<!-- TODO: DRY -->
+													</Controls>
+												</Control>
+											</Controls>
+										</Control>
 									</Controls>
 								</Control>
 							</Controls>
 						</Control>
-						
-						<Control name="$(parent)Filters">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)GaugeKDAMeter" relativePoint="TOPRIGHT" />
-							<Controls>
-								<Control name="$(parent)FilterTeamType" inherits="ZO_MultiselectComboBox">
-									<Dimensions x="270" y="32" />
-									<Anchor point="TOPRIGHT" offsetX="-16" offsetY="8" />
-								</Control>
-
-								<Control name="$(parent)FilterGameMode" inherits="ZO_MultiselectComboBox">
-									<Dimensions x="270" y="32" />
-									<Anchor point="TOPLEFT" relativeTo="$(parent)FilterTeamType" relativePoint="BOTTOMLEFT" offsetY="4" />
-								</Control>
-
-								<Control name="$(parent)CharactersFilter" inherits="IMP_STATS_CharactersFilter">
-									<Dimensions x="270" y="32" />
-									<Anchor point="TOPRIGHT" relativeTo="$(parent)FilterGameMode" relativePoint="BOTTOMRIGHT" offsetY="4" />
-
-									<!-- <Controls>
-										<Button name="$(parent)SelectButton" inherits="ZO_DefaultButton" text="Select All">
-											<Dimensions x="200" />
-											<Anchor point="TOP" relativeTo="$(parent)" relativePoint="BOTTOM" />
-										</Button>
-									</Controls> -->
-								</Control>
-							</Controls>
-						</Control>
-
-						<!-- <Label name="$(parent)TotalKDA" inherits="IMP_STATS_StatName" text="K/D/A (total):">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)Winrate" relativePoint="BOTTOMLEFT" offsetY="6"/>
-						</Label>
-						<Label name="$(parent)TotalKDAValue" inherits="IMP_STATS_StatValue">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)TotalKDA" relativePoint="TOPRIGHT" offsetX="5" />
-						</Label> -->
-						
-						<!-- <Label name="$(parent)KDA" inherits="IMP_STATS_StatName" text="K/D/A:">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)TotalKDA" relativePoint="BOTTOMLEFT" offsetY="6"/>
-						</Label>
-						<Label name="$(parent)KDAValue" inherits="IMP_STATS_StatValue">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)KDA" relativePoint="TOPRIGHT" offsetX="5" />
-						</Label> -->
-
-						<!-- <Label name="$(parent)Totals" inherits="IMP_STATS_StatName" text="Total damage/healing/damage taken:">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)KDA" relativePoint="BOTTOMLEFT" offsetY="6"/>
-						</Label>
-						<Label name="$(parent)TotalsValue" inherits="IMP_STATS_StatValue">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)Totals" relativePoint="TOPRIGHT" offsetX="5" />
-						</Label> -->
 					</Controls>
 				</Control>
-				
-				<Control name="$(parent)Divider">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)TopBlock" relativePoint="BOTTOMLEFT" offsetY="10" />
-					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)TopBlock" relativePoint="BOTTOMRIGHT" offsetY="24" />
-					<Controls>
-						<Texture name="$(parent)Left" textureFile="EsoUI/Art/Guild/sectionDivider_left.dds">
-							<Anchor point="TOPLEFT"/>
-							<Dimensions x="880" y="4"/>
-						</Texture>
-						<Texture name="$(parent)Right" textureFile="EsoUI/Art/Guild/sectionDivider_right.dds">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)Left" relativePoint="TOPRIGHT"/>
-							<Dimensions x="100" y="4"/>
-						</Texture>
-					</Controls>
-				</Control>
+
+				<Texture name="$(parent)Divider" color="$(IMP_IMPSTATS_COLOR_3)">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetY="12" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetY="12" />
+					<!-- <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetY="24" /> -->
+					 <Dimensions y="2" />
+				</Texture>
 
 				<Control name="$(parent)Listing">
-					<Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="-8" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetY="0" />
 					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-16" />
 				</Control>
 
@@ -199,44 +365,6 @@
 					<OnClicked>
 						IMP_STATS_PlayersSummary:SetHidden(not IMP_STATS_PlayersSummary:IsHidden())
 					</OnClicked>
-				</Button>
-
-				<Button name="$(parent)Stats" mouseOverBlendMode="ADD" excludeFromResizeToFitExtents="true">
-					<Dimensions x="42" y="42"/>
-					<Anchor point="LEFT" relativeTo="$(parent)OpenPlayers" relativePoint="RIGHT" />
-					<Textures
-						normal="EsoUI/Art/Journal/journal_tabIcon_leaderboard_up.dds"
-						mouseOver="EsoUI/Art/Journal/journal_tabIcon_leaderboard_over.dds"
-						pressed="EsoUI/Art/Journal/journal_tabIcon_leaderboard_down.dds"
-						disabled="EsoUI/Art/Journal/journal_tabIcon_leaderboard_disabled.dds"
-					/>
-					<OnMouseEnter>
-						local s = IMP_STATS_MATCHES_UI.stats
-						local ilog2 = 1 / math.log(2)
-						local tooltip = {
-							'Your Overall Performance',
-							''
-						}
-
-						if IsControlKeyDown() then
-							tooltip[#tooltip+1] = 'It shows how your stat compares to other players\' average stat:'
-							tooltip[#tooltip+1] = '- |cFFFFFF1|r means you have the average stat.'
-							tooltip[#tooltip+1] = '- Numbers above |cFFFFFF1|r mean you are |cFFFFFFX|r times better than average (e.g., |cFFFFFF2|r = twice as much damage as the average player).'
-							tooltip[#tooltip+1] = '- Numbers below |cFFFFFF1|r mean you are |cFFFFFFX|r times worse than average (e.g., |cFFFFFF0.5|r = half as much damage as the average player).'
-						else
-							tooltip[#tooltip+1] = ('Damage: |cFFFFFF%.1f|r, healing: |cFFFFFF%.1f|r, tankiness: |cFFFFFF%.1f|r, lethality: |cFFFFFF%.1f|r' ):format(s.EDD, s.EHD, s.EDT, s.EK)
-							tooltip[#tooltip+1] = ''
-							tooltip[#tooltip+1] = 'Hold |cFFFFFFCtrl|r and hover again for description.'
-						end
-
-						ZO_Tooltips_ShowTextTooltip(self, TOP, table.concat(tooltip, '\n'))
-					</OnMouseEnter>
-					<OnMouseExit>
-						ZO_Tooltips_HideTextTooltip()
-					</OnMouseExit>
-					<!-- <OnClicked>
-						IMP_STATS_PlayersSummary:SetHidden(not IMP_STATS_PlayersSummary:IsHidden())
-					</OnClicked> -->
 				</Button>
 			</Controls>
 		</TopLevelControl>

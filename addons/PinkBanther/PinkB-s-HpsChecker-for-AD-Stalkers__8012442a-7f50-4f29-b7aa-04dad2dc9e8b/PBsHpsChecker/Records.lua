@@ -23,9 +23,6 @@ local ADDON = PBsHpsChecker
 --       targets = { amount = {}, count = {}, group = {} }   who was healed (never the player); group[name] is
 --                                                           the part of it healed while the target was in the party
 --       skills  = { amount = {}, count = {} }               with which ability, keyed by ability id
---       recv = { amount = {}, count = {} }                  what OTHER healers healed party members for, by
---                                                           member (heals the player cast are not in it)
---       recvOthers, recvHits             the same, in total: amount and number of heals
 --       dropped                          amount healed to players who fell off the target list
 --   }
 --   sv.names["<ability id>"] = "ability name"
@@ -47,7 +44,6 @@ local MAX_TARGETS_PER_DAY = 60
 local MAX_SKILLS_PER_DAY = 40
 -- Party members listed under what other healers did for them: a party is at most a couple of dozen,
 -- but a day can have several.
-local MAX_RECV_PER_DAY = 100
 local PRUNE_KEEP = 0.8
 local MAX_FIGHTS = 40
 -- The HUD's short-term HPS looks back this many seconds.
@@ -264,10 +260,10 @@ end
 -- The data
 ---------------------------------------------------------------------------------------------------
 
-local NUMBER_FIELDS = { "heal", "over", "hits", "crits", "ticks", "group", "other", "self", "secs", "fights", "bestHps", "bestHeal", "dropped", "recvOthers", "recvHits" }
+local NUMBER_FIELDS = { "heal", "over", "hits", "crits", "ticks", "group", "other", "self", "secs", "fights", "bestHps", "bestHeal", "dropped" }
 
 local function NewDay()
-    local day = { targets = NewTally(true), skills = NewTally(false), recv = NewTally(false) }
+    local day = { targets = NewTally(true), skills = NewTally(false) }
     for _, field in ipairs(NUMBER_FIELDS) do
         day[field] = 0
     end
@@ -296,7 +292,8 @@ local function NormalizeDay(day)
     end
     day.targets = NormalizeTally(day.targets, true)
     day.skills = NormalizeTally(day.skills, false)
-    day.recv = NormalizeTally(day.recv, false)
+    -- what other healers did for party members was kept up to 0.6.3 and is not any more
+    day.recv, day.recvOthers, day.recvHits = nil, nil, nil
     -- group[name] used to be a flag; it is the amount healed as a party member now.
     for name, value in pairs(day.targets.group) do
         if type(value) ~= "number" then
@@ -356,7 +353,6 @@ records.lastFight = nil
 local function PruneDay(day)
     day.dropped = day.dropped + TallyPrune(day.targets, MAX_TARGETS_PER_DAY)
     TallyPrune(day.skills, MAX_SKILLS_PER_DAY)
-    TallyPrune(day.recv, MAX_RECV_PER_DAY)
 end
 
 local function GapMs()
@@ -371,7 +367,6 @@ local function NewFight(nowMs, dayKey)
         secs = 1,
         heal = 0, over = 0, hits = 0, crits = 0,
         group = 0, other = 0, self = 0,
-        recvOthers = 0, recvHits = 0,
         people = 0,
         targets = NewTally(false),
         ringSec = {},
@@ -527,43 +522,6 @@ function records:RecordHeal(nowMs, kind, targetName, abilityId, abilityName, hit
     return true
 end
 
--- A heal somebody ELSE did to a party member, as the engine delivers it (target type GROUP, source
--- not the player). It is kept apart from the player's own heals, which are never in here, so that
--- "the player's share of what a party member received" is hers / (hers + this). It does not open or
--- extend a fight: the player's HPS is about the player's healing. Returns true if it was counted.
-function records:RecordReceived(nowMs, targetName, hit)
-    if hit <= 0 then
-        return false
-    end
-    local day = Today(nowMs)
-    local name = Plain(targetName)
-    if name == "" then
-        name = "?"
-    end
-    TallyAdd(day.recv, name, hit)
-    day.recvOthers = day.recvOthers + hit
-    day.recvHits = day.recvHits + 1
-    local fight = self.fight
-    if fight then
-        fight.recvOthers = fight.recvOthers + hit
-        fight.recvHits = fight.recvHits + 1
-    end
-    return true
-end
-
--- The player's share of what party members received, 0 to 1: hers over hers plus everybody else's that
--- reached the add-on. When none of anybody else's has reached it that is all of it, 100% (it was first
--- "unknown" in that case, so that a game that sends nothing could not read as "all of it was hers";
--- PB chose 100%, and /hps status shows whether other healers' heals arrive at all). nil only when no
--- party member was healed by anybody, which has no share.
-function records.PartyShare(group, recvOthers)
-    local total = group + recvOthers
-    if total <= 0 then
-        return nil
-    end
-    return group / total
-end
-
 -- The fight's HPS over its whole length, and over the last RING_SECONDS.
 function records:FightHps(fight)
     return fight.heal / math.max(1, fight.secs)
@@ -668,7 +626,7 @@ end
 
 -- Scratch tables for Top, reused so that the statistics screen, which asks every few seconds, does
 -- not leave a table per player behind each time.
-local scratchAmount, scratchCount, scratchGroup, scratchRecv = {}, {}, {}, {}
+local scratchAmount, scratchCount, scratchGroup = {}, {}, {}
 
 local function Clear(tbl)
     for key in pairs(tbl) do
@@ -681,12 +639,11 @@ local function Beats(amount, name, entry)
 end
 
 -- Adds up one kind of tally ("targets" or "skills") over the days of a period into the scratch
--- tables (for "targets", also what other healers did for each party member). Returns the amount healed to players who fell off the days' target lists.
+-- tables. Returns the amount healed to players who fell off the days' target lists.
 local function Collect(kind, days)
     Clear(scratchAmount)
     Clear(scratchCount)
     Clear(scratchGroup)
-    Clear(scratchRecv)
     local dropped = 0
     for _, day in ipairs(days) do
         local tally = day[kind]
@@ -696,11 +653,6 @@ local function Collect(kind, days)
             if tally.group and tally.group[key] then
                 -- the part of it healed while the target was in the party
                 scratchGroup[key] = (scratchGroup[key] or 0) + tally.group[key]
-            end
-        end
-        if kind == "targets" then
-            for key, value in pairs(day.recv.amount) do
-                scratchRecv[key] = (scratchRecv[key] or 0) + value
             end
         end
         dropped = dropped + day.dropped
@@ -733,8 +685,6 @@ function records:Totals(scope)
         total.otherShare = total.other / total.heal
         total.selfShare = total.self / total.heal
     end
-    -- The player's share of everything party members received.
-    total.partyShare = records.PartyShare(total.group, total.recvOthers)
     -- Overheal as a share of everything the heals would have done.
     local potential = total.heal + total.over
     total.overShare = potential > 0 and total.over / potential or nil
@@ -761,7 +711,7 @@ function records:Summary(scope)
 end
 
 -- The largest `limit` entries of a kind ("targets" or "skills") over a period, as
--- { name, amount, count, group, partyAmount, recvAmount }, largest first. Also returns the amount healed to players that fell
+-- { name, amount, count, group, partyAmount }, largest first. Also returns the amount healed to players that fell
 -- off the days' target lists, and how many distinct entries there were.
 function records:Top(kind, scope, limit)
     limit = limit or 10
@@ -781,7 +731,7 @@ function records:Top(kind, scope, limit)
             end
             table.insert(top, position, {
                 name = name, amount = value, count = scratchCount[key],
-                group = scratchGroup[key] ~= nil, partyAmount = scratchGroup[key] or 0, recvAmount = scratchRecv[key] or 0,
+                group = scratchGroup[key] ~= nil, partyAmount = scratchGroup[key] or 0,
             })
             if #top > limit then
                 top[#top] = nil
@@ -799,7 +749,7 @@ local function Row(id, ...)
     return string.format(L(id), ...)
 end
 
--- The summary block: ten rows at most. Returns nothing but the "no records" row when the period
+-- The summary block: nine rows at most. Returns nothing but the "no records" row when the period
 -- has no heals in it.
 function records:SummaryLines(scope)
     local s = self:Summary(scope)
@@ -819,18 +769,12 @@ function records:SummaryLines(scope)
     lines[#lines + 1] = Row(SI_PBSHPS_ROW_OTHER, Percent(s.otherShare, 1), Commas(s.other),
         s.otherPeople .. (s.outsideCut and "+" or ""))
     lines[#lines + 1] = Row(SI_PBSHPS_ROW_SELF, Percent(s.selfShare, 1), Commas(s.self))
-    -- Of what party members received from every healer, how much was the player's; "-" when no party
-    -- member was healed at all.
-    lines[#lines + 1] = s.partyShare and Row(SI_PBSHPS_ROW_PT_SHARE, Percent(s.partyShare, 1))
-        or Row(SI_PBSHPS_ROW_PT_SHARE, L(SI_PBSHPS_PT_UNKNOWN))
     return lines
 end
 
--- "1. Name  amount  [PT 72%]  share". The share at the end is of what went to others (not to the
--- player), for people, and of everything for skills. The tag is only on party members; its percentage
--- is the player's share of what that member received from every healer, and is left out when no
--- heal of anybody else's has reached the add-on. The least important part is last, because a long
--- name is cut short from the right.
+-- "1. Name  amount  [PT]  share". The share at the end is of what went to others (not to the
+-- player), for people, and of everything for skills. The tag is only on party members. The least
+-- important part is last, because a long name is cut short from the right.
 function records:TopLines(kind, scope, limit)
     local top, dropped = self:Top(kind, scope, limit)
     if #top == 0 then
@@ -842,8 +786,7 @@ function records:TopLines(kind, scope, limit)
     for index, entry in ipairs(top) do
         local tag = ""
         if kind == "targets" and entry.group then
-            local share = records.PartyShare(entry.partyAmount, entry.recvAmount)
-            tag = "  " .. (share and string.format(L(SI_PBSHPS_TAG_PARTY_SHARE), Percent(share, 0)) or L(SI_PBSHPS_TAG_PARTY))
+            tag = "  " .. L(SI_PBSHPS_TAG_PARTY)
         end
         local shown = kind == "targets" and records.DisplayName(entry.name) or entry.name
         lines[index] = string.format("%d. %s  %s%s  %s", index, shown, Commas(entry.amount), tag,
@@ -852,9 +795,8 @@ function records:TopLines(kind, scope, limit)
     return lines
 end
 
--- One row of the list of periods: the period, the amount, HPS, fights, time healing, how much of it
--- went to the party, and the player's share of what party members received (a dash where there is
--- nothing to share).
+-- One row of the list of periods: the period, the amount, HPS, fights, time healing, and how much of
+-- it went to the party.
 function records:PeriodColumns(scope)
     local total = self:Totals(scope)
     local healed = total.heal > 0
@@ -865,7 +807,6 @@ function records:PeriodColumns(scope)
         Commas(total.fights),
         Duration(total.secs),
         healed and Percent(total.groupShare, 1) or "-",
-        total.partyShare and Percent(total.partyShare, 1) or "-",
     }
 end
 
@@ -897,7 +838,7 @@ end
 -- The longest each kind of row can get -- the biggest numbers, a long name, the longest wording --
 -- for the statistics screen to measure against its column. A font is only used if all of these fit.
 function records:WorstCaseLines()
-    local share = string.format(L(SI_PBSHPS_TAG_PARTY_SHARE), "100%")
+    local share = L(SI_PBSHPS_TAG_PARTY)
     return {
         Row(SI_PBSHPS_ROW_HEAL, "999,999,999"),
         Row(SI_PBSHPS_ROW_HPS, "99,999"),
@@ -908,8 +849,6 @@ function records:WorstCaseLines()
         Row(SI_PBSHPS_ROW_GROUP, "100.0%", "999,999,999", "24"),
         Row(SI_PBSHPS_ROW_OTHER, "100.0%", "999,999,999", "999+"),
         Row(SI_PBSHPS_ROW_SELF, "100.0%", "999,999,999"),
-        Row(SI_PBSHPS_ROW_PT_SHARE, "100.0%"),
-        Row(SI_PBSHPS_ROW_PT_SHARE, L(SI_PBSHPS_PT_UNKNOWN)),
         -- the longest a name gets: a 16-character PSN ID and a 20-character character name
         string.format("10. %s  %s  %s  %s", "Abcdefghijklmnop(Abcdefghijklmnopqrst)", "99,999,999", share, "100.0%"),
         string.format("10. %s  %s  %s", "Radiating Regeneration", "999,999,999", "100.0%"),

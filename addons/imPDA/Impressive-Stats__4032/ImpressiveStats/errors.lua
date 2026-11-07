@@ -1,3 +1,5 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
+
 local errors = {}
 
 function errors:Initialize(settings)

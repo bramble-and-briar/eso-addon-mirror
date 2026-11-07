@@ -200,7 +200,6 @@ function ADDON.InitializeSettings()
     -- ---- Recording -----------------------------------------------------------------------
     AddSection(SI_PBSHPS_SECTION_RECORD)
     AddCheckbox(SI_PBSHPS_ENABLED, SI_PBSHPS_ENABLED_TIP, "enabled", ADDON.SetEnabled)
-    AddCheckbox(SI_PBSHPS_OTHERS, SI_PBSHPS_OTHERS_TIP, "countOthers", ADDON.SetCountOthers)
 
     local zoneItems, zoneItemByKey = {}, {}
     for _, key in ipairs(ADDON.ZONES) do

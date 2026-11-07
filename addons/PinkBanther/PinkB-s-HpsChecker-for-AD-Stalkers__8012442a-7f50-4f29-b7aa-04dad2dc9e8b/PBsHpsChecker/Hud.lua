@@ -59,7 +59,7 @@ hud.DEFAULT_SIZE = DEFAULT_SIZE
 
 local SAMPLE = {
     hps = 8420, recent = 9100, heal = 456789, secs = 54, people = 14,
-    groupShare = 0.62, otherShare = 0.31, selfShare = 0.07, ptShare = 0.72,
+    groupShare = 0.62, otherShare = 0.31, selfShare = 0.07,
 }
 
 local records = ADDON.records
@@ -105,11 +105,10 @@ function hud:ChooseWidth(bigFont, rowFont)
     Take(rowFont, string.format(L(SI_PBSHPS_HUD_RECENT), records.RING_SECONDS, "99,999"))
     Take(rowFont, string.format(L(SI_PBSHPS_HUD_TOTAL), "999,999,999", "9:59:59", 250))
     Take(rowFont, string.format(L(SI_PBSHPS_HUD_SHARE), 100, 100, 100))
-    Take(rowFont, string.format(L(SI_PBSHPS_HUD_PT_SHARE), "100%"))
     return math.min(MAX_WIDTH, math.max(MIN_WIDTH, math.ceil(widest) + PADDING * 2))
 end
 
--- Fonts, sizes and places of the five lines and the box, from the size chosen. Run when the box is
+-- Fonts, sizes and places of the four lines and the box, from the size chosen. Run when the box is
 -- built and again whenever the size is changed: a control cannot be built twice, so the ones there are
 -- are set again.
 function hud:Layout()
@@ -117,11 +116,9 @@ function hud:Layout()
     local bigFont, rowFont = self:Fonts()
     local bigHeight = ADDON.MeasureFont(bigFont) + LINE_PADDING
     local rowHeight = ADDON.MeasureFont(rowFont) + LINE_PADDING
-    -- What the text needs: as wide as its longest line, as tall as four lines, or five when the player's
-    -- share of what party members received is known.
+    -- What the text needs: as wide as its longest line, as tall as its four lines.
     self.autoWidth = self:ChooseWidth(bigFont, rowFont)
-    self.heightBase = PADDING * 2 + bigHeight + rowHeight * 3
-    self.heightWithShare = self.heightBase + rowHeight
+    self.height = PADDING * 2 + bigHeight + rowHeight * 3
     -- What is used: that, or the size given in pixels.
     self.width = self:BoxWidth()
     local innerWidth = self.width - PADDING * 2
@@ -133,7 +130,6 @@ function hud:Layout()
         { self.recent, rowFont, rowHeight },
         { self.total, rowFont, rowHeight },
         { self.share, rowFont, rowHeight },
-        { self.partyShare, rowFont, rowHeight },
     }
     for _, line in ipairs(lines) do
         local label, font, height = line[1], line[2], line[3]
@@ -170,9 +166,6 @@ function hud:Create()
     self.recent = Label(top, "Recent")
     self.total = Label(top, "Total")
     self.share = Label(top, "Share")
-    self.partyShare = Label(top, "PartyShare")
-    self.partyShare:SetHidden(true)
-    self.partyShareShown = false
     self:Layout()
 
     top:SetHandler("OnUpdate", function()
@@ -202,21 +195,21 @@ end
 function hud:BoxHeight()
     local sv = ADDON.sv
     if not (sv and sv.hudCustomSize) then
-        return self.partyShareShown and self.heightWithShare or self.heightBase
+        return self.height
     end
     local screen = GuiRoot and GuiRoot:GetHeight() or 1080
     return math.max(MIN_BOX_HEIGHT, math.min(math.floor(screen), math.floor(tonumber(sv.hudHeight) or ADDON.defaults.hudHeight)))
 end
 
 -- Switching "set the size in pixels" on: start from the size the box has now, so that it does not
--- jump, with room for all five lines. Rounded up to the slider's step.
+-- jump, with room for all four lines. Rounded up to the slider's step.
 function hud:StartCustomSize(step)
     if not self:Create() then
         return
     end
     step = step or 5
     ADDON.sv.hudWidth = math.ceil(self.autoWidth / step) * step
-    ADDON.sv.hudHeight = math.ceil(self.heightWithShare / step) * step
+    ADDON.sv.hudHeight = math.ceil(self.height / step) * step
 end
 
 -- The size was changed in the settings: set the box out again and draw it. Nothing to do before the
@@ -269,18 +262,6 @@ function hud:Draw(data, ended)
 
     self.share:SetColor(recentColor[1], recentColor[2], recentColor[3], 1)
     self.share:SetText(string.format(L(SI_PBSHPS_HUD_SHARE), Shares(data.groupShare, data.otherShare, data.selfShare)))
-
-    -- The fifth line, and the box grown to hold it, only while there is a share to show.
-    local showShare = data.ptShare ~= nil
-    if showShare ~= self.partyShareShown then
-        self.partyShareShown = showShare
-        self.partyShare:SetHidden(not showShare)
-        self.control:SetDimensions(self.width, self:BoxHeight())
-    end
-    if showShare then
-        self.partyShare:SetColor(recentColor[1], recentColor[2], recentColor[3], 1)
-        self.partyShare:SetText(string.format(L(SI_PBSHPS_HUD_PT_SHARE), records.Percent(data.ptShare, 0)))
-    end
 end
 
 local function FightData(fight, now, ended)
@@ -294,7 +275,6 @@ local function FightData(fight, now, ended)
         groupShare = fight.group / heal,
         otherShare = fight.other / heal,
         selfShare = fight.self / heal,
-        ptShare = records.PartyShare(fight.group, fight.recvOthers),
     }
 end
 

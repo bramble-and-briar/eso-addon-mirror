@@ -11,6 +11,7 @@
 --   Chat        chat sharing (links + text)
 --   Dialog      gamepad/console dialog (LibConsoleDialogs)
 --   PCDialog    keyboard/mouse window
+--   LibFights   optional LibFights bridge (logging control, panel rows)
 --   Integration journal menu hooks
 --   Debug       diagnostic dumps
 --   Settings    saved-variable schema, settings menu, presets
@@ -52,6 +53,7 @@ ConsoleMetrics = {
         loadFightDraftName = "",
         savedFights = {},
         maxSavedFights = 10,
+        libFightsAutoStart = true,
     },
 
     -- Runtime state (not persisted).

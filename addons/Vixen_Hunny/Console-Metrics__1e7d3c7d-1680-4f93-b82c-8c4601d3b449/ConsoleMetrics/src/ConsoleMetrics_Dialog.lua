@@ -314,6 +314,11 @@ local function RenderMain(ctx)
     ctx:AddButton("Open ML Model Panel", "Prediction model outputs and confidence", function()
         self.dialogPanel = "behavior"
     end)
+    if self.LibFightsBridge.IsAvailable() then
+        ctx:AddButton("Open LibFights Panel", "Fight metrics and predictions from the LibFights library", function()
+            self.dialogPanel = "libfights"
+        end)
+    end
     ctx:AddButton("Open Formula Panel", "ESO stat math reference and addon equations", function()
         self.dialogPanel = "formulas"
     end)
@@ -1877,10 +1882,55 @@ local function RenderSaves(ctx)
     ctx:AddCloseButton()
 end
 
+local function RenderLibFights(ctx)
+    local self = ctx.self
+    local bridge = self.LibFightsBridge
+    local rows = self:BuildLibFightsRows()
+    for i = 1, #rows do
+        local row = rows[i]
+        if row.section then
+            ctx:AddSection(row.section, row.tooltip)
+        elseif row.value ~= nil and row.value ~= "" then
+            ctx:AddStat(string.format("%s: %s", row.label, row.value), row.tooltip)
+        else
+            ctx:AddStat(row.label, row.tooltip)
+        end
+    end
+
+    if bridge.IsAvailable() then
+        ctx:AddSection("LibFights Controls", "Logging and fight browsing")
+        if bridge.IsLogging() then
+            ctx:AddButton("Stop LibFights Logging", "Stop_Logging(): end the current fight and unregister LibFights events", function()
+                self:StopLibFightsLogging()
+            end)
+        else
+            ctx:AddButton("Start LibFights Logging", "Start_Logging(): LibFights records nothing until this is called", function()
+                local ok, reason = self:StartLibFightsLogging()
+                if not ok then
+                    self:Print("LibFights: " .. tostring(reason))
+                end
+            end)
+        end
+        ctx:AddButton("Previous LibFights Fight", "Show the LibFights fight before this one", function()
+            self:StepLibFightsView(-1)
+        end)
+        ctx:AddButton("Next LibFights Fight", "Show the next LibFights fight (towards the live one)", function()
+            self:StepLibFightsView(1)
+        end)
+        ctx:AddButton("Print LibFights Report", "Print the full LibFights report for this fight to chat", function()
+            self:PrintLibFightsLines("all")
+        end)
+    end
+
+    ctx:AddBackButton()
+    ctx:AddCloseButton()
+end
+
 ---------------------------------------------------------------------------
 -- Panel dispatch
 ---------------------------------------------------------------------------
 local PANEL_RENDERERS = {
+    libfights = RenderLibFights,
     main = RenderMain,
     overview = RenderOverview,
     save = RenderSave,
@@ -1964,6 +2014,18 @@ function ConsoleMetrics:IsFightViewDialogEditing()
     return self:IsPCDialogEditing()
 end
 
+-- True while the player is actively using the PC window (cursor over it,
+-- typing, or interacted recently). Auto-hide waits while this is true.
+function ConsoleMetrics:IsFightViewDialogInUse()
+    return self:IsPCDialogInUse()
+end
+
+-- True during a click / scrollbar drag / just after one, when a rebuild
+-- would swallow the click.
+function ConsoleMetrics:IsFightViewDialogBusy()
+    return self:IsPCDialogBusy()
+end
+
 -- Re-renders whichever dialog is currently open.
 function ConsoleMetrics:RefreshFightViewDialog()
     if self:IsFightViewDialogShowingPC() then
@@ -1985,7 +2047,11 @@ function ConsoleMetrics:ArmDialogAutoHide()
 end
 
 function ConsoleMetrics:CloseFightViewDialog(silent, reason)
-    self.dialogPanel = "main"
+    -- The PC window remembers its panel so reopening continues where the
+    -- player was; the console dialog always restarts at Main.
+    if not self:IsFightViewDialogShowingPC() then
+        self.dialogPanel = "main"
+    end
     self.dialogAutoHideAtMs = nil
     self.dialogRefreshAtMs = nil
     self.lastDialogRefreshKey = nil

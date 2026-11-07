@@ -113,7 +113,7 @@
 					<Controls>
 						<!-- <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" edgeColor="FF0000" centerColor="00FF00" /> -->
 						<Control name="$(parent)GaugeKDAMeter" inherits="IMP_STATS_GaugeKDAMeter">
-							<Anchor point="TOPLEFT" />
+							<Anchor point="TOPLEFT" offsetX="-24" offsetY="8" />
 						</Control>
 
 						<Label name="$(parent)TotalGames" inherits="IMP_STATS_StatName" text="Games recorded:">

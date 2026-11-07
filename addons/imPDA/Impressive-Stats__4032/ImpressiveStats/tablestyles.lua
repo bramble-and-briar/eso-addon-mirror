@@ -1,3 +1,5 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
+
 local combine = LibScrollList.combine
 local Label = LibScrollList.Label
 local Texture = LibScrollList.Texture
@@ -20,6 +22,10 @@ end
 
 local function setRaceIcon(ctrl, raceId)
     ctrl:SetTexture(raceId and IMP_STATS_SHARED.GetRaceIcon(raceId) or 'EsoUI/Art/Icons/icon_missing.dds')
+end
+
+local function formatNames(ctrl, playerNames)
+    ctrl:SetText(zo_strformat('<<1>> (<<2>>)', playerNames[1], playerNames[2]))
 end
 
 local defaultCellStyle = {
@@ -116,6 +122,7 @@ IMP_STATS_TABLESTYLES = {
     ClassIcon = Texture(classIconStyle, setClassIcon),
     RaceIcon = Texture(raceIconStyle, setRaceIcon),
 	ClassHeader = Label(combine(defaultStyle_center, defaultHeadersStyle)),
+    Names = Label(defaultStyle_left, formatNames),
 
     buildButtonStyle = buildButtonStyle,
 }

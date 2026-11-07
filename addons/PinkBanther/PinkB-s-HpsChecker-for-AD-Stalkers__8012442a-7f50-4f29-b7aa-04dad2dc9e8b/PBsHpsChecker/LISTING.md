@@ -57,8 +57,6 @@ It only reads game events; it never presses anything for you.
 　　・回復に使ったスキルごとの回復量
 　　・回復先の内訳：パーティーメンバー／パーティー外／自分自身、それぞれの回復量と比率（パーティーと
 　　　パーティー外は、回復した人数つき）
-　　・パーティーメンバーが受けた回復のうち、自分の分が何%か（全体と、メンバーごと。他のヒーラーの回復が
-　　　アドオンに届く場合）
 　　・戦闘の回数、回復していた時間、最高の戦闘HPS、最大の1回復、クリティカル率、オーバーヒール
 　　・直近の戦闘の履歴（日時・時間・HPS・回復量）
 
@@ -73,7 +71,6 @@ It only reads game events; it never presses anything for you.
 　　直近10秒　9,100
 　　回復量　456,789　3:12　14人
 　　パーティー 62%　パーティー外 31%　自分 7%
-　　パーティーが受けた回復のうち自分の分　72%
 
 　戦闘が終わると「戦闘終了」に変わり、少し（初期値10秒）残ってから消えます。設定画面を開いている間は、
 　位置を決められるようにサンプルの数字で表示します。
@@ -124,16 +121,10 @@ It only reads game events; it never presses anything for you.
 　　回復量を記録する（初期値：オン）
 　　記録する場所（初期値：シロディールのみ）
 　　戦闘とみなす途切れ時間（初期値：10秒、5〜30）
-　　他のヒーラーの回復も数える（初期値：オン）
 　　記録をすべて消去
 
 ■ 既知の制限
 
-　・「パーティーメンバーが受けた回復のうち自分の分」は、他のヒーラーがパーティーメンバーに行った回復が
-　　アドオンに届くことが前提です。届くかどうかは実機で確認中で、届いていない間は、自分の回復だけで数える
-　　ので100%と表示します（100%は「全部自分」と「他の回復が届いていない」の両方で出ます）。/hps status と
-　　/hps probe で確かめられます。パーティー外の方が受ける回復は、自分が行った分しか
-　　届かない見込みなので、割合は出ません。
 　・パーティー外のプレイヤーへの回復が、どの種類の相手として届くかは、コンソールの実機で確認中です。
 　　グループのメンバー＝パーティー、それ以外＝パーティー外と読んでいます。/hps status に相手の種類ごとの
 　　件数が出るので、パーティー外の方を回復したときに「OTHER」が増えているか確認できます。
@@ -171,8 +162,6 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 　　- healing per skill
 　　- who it went to: party members / everybody outside the party / yourself, with the amount
 　　  and the ratio of each (and how many players, for the party and for everybody else)
-　　- your share of what party members received from every healer (overall, and per member), when other
-　　  healers' heals on party members reach the add-on
 　　- number of fights, time spent healing, best fight HPS, biggest single heal, critical rate,
 　　  overheal
 　　- a history of your latest fights (date and time, length, HPS, amount)
@@ -189,7 +178,6 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 　　Last 10 s  9,100
 　　Healed  456,789   3:12   14 players
 　　Party 62%  Others 31%  You 7%
-　　Your share of party healing  72%
 
 　When the fight ends it reads "Fight over" and stays a little while (10 seconds by default). While
 　the settings panel is open it is shown with sample numbers so that you can place it.
@@ -241,16 +229,10 @@ For healers: see how much you contribute in PvP (Cyrodiil) as numbers.
 　　Record healing (default: on)
 　　Where to count (default: Cyrodiil only)
 　　Fight ends after (default: 10 s, 5-30)
-　　Count other healers' heals (default: on)
 　　Delete all records
 
 ■ Known limitations
 
-　- "Your share of what party members received" needs the heals other healers do to party members to reach
-　　the add-on. Whether they do is still being confirmed on console; until they do the share counts only
-　　your own heals and reads 100% (so 100% means either "all of it was yours" or "theirs do not arrive").
-　　/hps status and /hps probe check it. What players outside your party receive cannot be shown:
-　　only the part you healed reaches the add-on.
 　- What target type a heal on a player outside your party arrives with is still being confirmed on
 　　console. Group members are read as the party and everybody else as outside it. /hps status lists
 　　heals by target type, so you can check that "OTHER" goes up when you heal someone outside your

@@ -37,3 +37,9 @@ if not ONEDUNGEON_VETERAN_SHORT then ZO_CreateStringId("ONEDUNGEON_VETERAN_SHORT
 if not ONEDUNGEON_UNAVAILABLE_SYMBOL then ZO_CreateStringId("ONEDUNGEON_UNAVAILABLE_SYMBOL", "—") end
 if not ONEDUNGEON_UNKNOWN_SYMBOL then ZO_CreateStringId("ONEDUNGEON_UNKNOWN_SYMBOL", "?") end
 if not ONEDUNGEON_COMMAND_HELP then ZO_CreateStringId("ONEDUNGEON_COMMAND_HELP", "/onedungeon debug | dump | refresh") end
+
+if not ONEDUNGEON_SETTINGS_DESCRIPTION then ZO_CreateStringId("ONEDUNGEON_SETTINGS_DESCRIPTION", "Choose how dungeons are ordered in Dungeon Finder > Specific Dungeons. Settings are shared by your characters and apply immediately.") end
+if not ONEDUNGEON_SORT_ORDER then ZO_CreateStringId("ONEDUNGEON_SORT_ORDER", "Dungeon sorting") end
+if not ONEDUNGEON_SORT_ORDER_TIP then ZO_CreateStringId("ONEDUNGEON_SORT_ORDER_TIP", "Standard keeps ESO's order with normal and veteran difficulties combined. Alphabetical sorts by dungeon names in your client language, ignoring letter case.") end
+if not ONEDUNGEON_SORT_STANDARD then ZO_CreateStringId("ONEDUNGEON_SORT_STANDARD", "Standard (ESO order)") end
+if not ONEDUNGEON_SORT_ALPHABETICAL then ZO_CreateStringId("ONEDUNGEON_SORT_ALPHABETICAL", "Alphabetical") end

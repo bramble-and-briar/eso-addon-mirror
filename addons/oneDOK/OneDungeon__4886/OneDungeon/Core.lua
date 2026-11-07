@@ -1,4 +1,4 @@
-OneDungeon = { name = "OneDungeon", version = "1.0", errors = {} }
+OneDungeon = { name = "OneDungeon", version = "26.11.1", errors = {} }
 local A = OneDungeon
 function A:Log(message)
     if self.saved and self.saved.debug then d("OneDungeon: " .. tostring(message)) end

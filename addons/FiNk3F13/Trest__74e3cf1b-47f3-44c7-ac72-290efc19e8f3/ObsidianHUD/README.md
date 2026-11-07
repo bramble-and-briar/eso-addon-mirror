@@ -1,4 +1,6 @@
-# Obsidian HUD 0.8.2
+# Obsidian HUD 0.8.3
+
+Der Charaktername oberhalb der Ressourcenbalken wurde entfernt.
 
 Elementarwand, instabile Elementarwand und Blockade behalten beim Waffenwechsel
 ihre Morph-/Element-Zuordnung. Die Vorschau nutzt den Stab der jeweiligen Leiste

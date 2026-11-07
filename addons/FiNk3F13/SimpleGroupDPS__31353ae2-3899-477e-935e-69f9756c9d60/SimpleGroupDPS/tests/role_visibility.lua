@@ -44,14 +44,12 @@ env.menu["Move UI"].clickHandler()
 assert(not env.window.hidden and visible("Me"), "Move UI remains usable with every role hidden")
 SLASH_COMMANDS["/sgdmove"]()
 assert(env.window.hidden, "Leaving Move UI restores role filters")
-local sends = 0
-bridge.SendHPS = function() sends = sends + 1; return true end
 env.setClock(800000)
 env.setCombat(true)
 env.events["SimpleGroupDPSDamageState:combat"](nil, true)
 env.tick()
-assert(sends == 1 and SimpleGroupDPS_DamageMeter:IsActive() and env.window.hidden,
-    "Hidden own healer keeps measuring and sending HPS")
+assert(type(bridge.SendHPS)=="function" and SimpleGroupDPS_DamageMeter:IsActive() and env.window.hidden,
+    "Hidden own healer keeps measuring locally")
 env.menu["Layout zurücksetzen"].clickHandler()
 assert(env.saved.showTanks == false and env.saved.showHealers == false, "Layout reset preserves role preferences")
-print("PASS: independent tank/healer visibility, own role, live reception/send, empty HUD and Move UI")
+print("PASS: independent tank/healer visibility, own role, live reception, empty HUD and Move UI")

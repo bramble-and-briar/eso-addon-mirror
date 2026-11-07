@@ -55,7 +55,8 @@ assert(dialog.buttons[2].text == "Abbrechen")
 dialog.finishedCallback(shown)
 assert(#saved.uptimeHistory == 4 and list.index == 1 and list.entries[1].fightIndex == 4 and list.active,
     "Cancel must restore the exact selected fight without deleting anything")
-assert(not env.controls.LiveBuffUptimeReportWindow.hidden and not env.controls.LiveBuffUptimeReportDetails.hidden)
+assert(not env.controls.LiveBuffUptimeReportWindow.hidden and env.controls.LiveBuffUptimeReportDetails.hidden,
+    "Canceling deletion restores the fight list without showing uptime details")
 bindings[6].callback()
 assert(not list.active and shown.data.report == third)
 -- A new fight arriving during confirmation must not change the deletion target.

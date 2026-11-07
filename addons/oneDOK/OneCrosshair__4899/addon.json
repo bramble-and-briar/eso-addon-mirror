@@ -18,7 +18,7 @@
     "OneCrosshair"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4899/",
-  "fingerprint": "f867cd9b0e89eb2db64de392074082fc0a133d1b272d8b2e690b40e94bd0c054",
+  "fingerprint": "4f6bd241e4d54b3af9b7d7e51ce87da3796efbfeb5258ea4d85645930037247b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17651.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4899",
   "source_url": "https://www.esoui.com/downloads/info4899-OneCrosshair.html",
   "stats": {
-    "downloads": 50,
+    "downloads": 149,
     "favorites": 0,
-    "monthly_downloads": 32
+    "monthly_downloads": 74
   },
   "title": "OneCrosshair",
-  "updated_at": 1791059758000,
-  "version": "26.1"
+  "updated_at": 1793998177000,
+  "version": "26.11.1"
 }

@@ -1,10 +1,8 @@
--- One encounter clock for all-target, boss and non-boss DPS.
--- Damage clock: first outgoing damage through the active encounter, including pauses.
--- Combat-state notifications control encounter lifetime, not the first-hit timestamp.
--- Damage and healing rates each use at least one second, including multi-hit bursts.
--- Dummies, adds and bosses use the same independent clock; no native dummy/chat correction.
--- HUD timer, DPS and saved result use the same measured damage duration.
--- Damage uses effective hitValue; overkill is not added to the total.
+-- Combat timing follows BattleScrolls ef6d762d48998fa91e302d99fafce334568a3845:
+-- combat initialization -> last damage event of any source; current-time fallback
+-- only until a later damage timestamp exists. No backdating or one-second DPS floor.
+-- HUD, DPS, sharing and saved result use this same duration. Healing stays separate.
+-- Reference: BattleScrolls/combat/{state,arithmancer,scribe}.lua
 local meter = {}
 SimpleGroupDPS_DamageMeter = meter
 local state
@@ -13,6 +11,7 @@ local completedClock
 local pending = {}
 local RESET_UPDATE = "SimpleGroupDPSDamageReset"
 local lastAliveMS
+local AETHERIAN_ARCHIVE_ZONE_ID = 638
 local portalEffects = { [108045] = true, [121216] = true }
 local results = {}
 for _, name in ipairs({ "ACTION_RESULT_DAMAGE", "ACTION_RESULT_CRITICAL_DAMAGE",
@@ -39,7 +38,6 @@ end
 
 local function isFriendly(value)
     return isPersonal(value) or isType(value, "COMBAT_UNIT_TYPE_GROUP")
-        or isType(value, "COMBAT_UNIT_TYPE_GROUP_PET")
 end
 
 local function normalizeName(name)
@@ -50,7 +48,7 @@ local function normalizeName(name)
 end
 
 local function isBossTarget(target)
-    return state.bossIds[target.id] or (state.bossNames[target.name] and not state.confirmedNames[target.name])
+    return state.bossIds[target.id] == true
 end
 
 local function currentZone()
@@ -61,22 +59,32 @@ function meter:RefreshBosses()
     if not state then return end
     for i = 1, (_G.MAX_BOSSES or _G.BOSS_RANK_ITERATION_END or 12) do
         local tag = "boss" .. i
-        if DoesUnitExist(tag) then
+        if DoesUnitExist(tag) and (not IsUnitDead or not IsUnitDead(tag)) then
             local name = normalizeName(GetRawUnitName and GetRawUnitName(tag) or GetUnitName(tag))
-            if name and name ~= "" then state.bossNames[name] = true end
+            if name and name ~= "" then
+                local previous = state.bossTags[tag]
+                if not previous or previous.name ~= name then
+                    state.bossTags[tag] = {name = name}
+                end
+            end
         end
     end
 end
 
 function meter:CorrelateBoss(tag, id, name)
     if not state or type(tag) ~= "string" or not tag:match("^boss%d+$") or not id or id == 0 then return end
+    local boss = state.bossTags[tag]
+    name = normalizeName(name)
+    if not boss or (name and boss.name ~= name) then
+        boss = {name = name}
+        state.bossTags[tag] = boss
+    end
+    -- An effect on a boss tag is authoritative. Correct an earlier name guess,
+    -- but retain confirmed IDs when that same boss is recreated on the client.
+    if boss.id and boss.id ~= id and not boss.confirmed then state.bossIds[boss.id] = nil end
+    boss.id, boss.confirmed = id, true
     state.bossIds[id] = true
     rememberUnit(id, false)
-    name = normalizeName(name)
-    if name and name ~= "" then
-        state.bossNames[name] = true
-        state.confirmedNames[name] = true
-    end
 end
 
 local function accumulate(event)
@@ -88,19 +96,22 @@ local function accumulate(event)
         if friendly == nil then
             local unknown = state.unassigned[event.id] or {value = 0, name = event.name}
             unknown.value = unknown.value + event.value
-            if event.time then
-                unknown.firstTime = math.min(unknown.firstTime or event.time, event.time)
-                unknown.lastTime = math.max(unknown.lastTime or event.time, event.time)
-            end
             if event.name then unknown.name = event.name end
             state.unassigned[event.id] = unknown
             return
         end
     end
     if event.id and state.friendly[event.id] == true then return end
-    if event.time then
-        state.damageStartMS = math.min(state.damageStartMS or event.time, event.time)
-        state.endMS = math.max(state.endMS, event.lastTime or event.time)
+    -- BattleScrolls uses a name fallback only for a boss tag without an ID,
+    -- and only from personal damage. A second same-name target is not a boss.
+    if event.personal and event.id and event.id ~= 0 and not state.bossIds[event.id] then
+        for _, boss in pairs(state.bossTags) do
+            if boss.id == nil and boss.name == event.name then
+                boss.id, boss.confirmed = event.id, false
+                state.bossIds[event.id] = true
+                break
+            end
+        end
     end
     state.observedTargets[key] = { id = event.id, name = event.name }
     local target = state.targets[key]
@@ -122,16 +133,14 @@ rememberUnit = function(id, friendly)
     local unknown = state.unassigned[id]
     state.unassigned[id] = nil
     if unknown and not friendly then
-        accumulate({id = id, name = unknown.name, value = unknown.value, outgoing = true,
-            time = unknown.firstTime, lastTime = unknown.lastTime})
+        accumulate({id = id, name = unknown.name, value = unknown.value, outgoing = true})
     end
 end
 
 local function rememberEventUnits(event)
-    if isFriendly(event.sourceType) then rememberUnit(event.sourceId, true) end
-    if isFriendly(event.targetType) then rememberUnit(event.id, true) end
-    -- Untyped third-party hits alone cannot establish whether their target is hostile.
-    if event.outgoing or isPersonal(event.sourceType) or isPersonal(event.targetType) then
+    -- Group damage does not identify targets in BattleScrolls. Only a personal
+    -- outgoing/incoming interaction may resolve the pending group-damage bucket.
+    if isPersonal(event.sourceType) or isPersonal(event.targetType) then
         rememberUnit(event.sourceId, isFriendly(event.sourceType))
         rememberUnit(event.id, isFriendly(event.targetType))
     end
@@ -139,30 +148,18 @@ end
 
 function meter:Start(timeMS)
     EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
-    if state then state.stopMS = nil; return end
+    if state then return end
     state = { startMS = timeMS, endMS = timeMS, total = 0, groupTotal = 0, targets = {},
         rawHealingTotal = 0, effectiveHealingTotal = 0,
         friendly = {}, unassigned = {},
-        observedTargets = {}, bossIds = {}, bossNames = {}, confirmedNames = {}, zoneId = currentZone(),
+        observedTargets = {}, bossIds = {}, bossTags = {}, zoneId = currentZone(),
         damageEvents = 0, personalEvents = 0, otherEvents = 0 }
     self:RefreshBosses()
-    local bufferedEnd
+    -- Replay damage without backdating the combat initialization timestamp.
     for _, event in ipairs(pending) do
-        if event.time >= timeMS - 1000 then
-            rememberEventUnits(event)
-            accumulate(event)
-            -- A hit can arrive before ESO reports combat entry. Its damage
-            -- and timestamp belong together; never discard that elapsed time.
-            if event.outgoing and event.value > 0 then
-                state.damageStartMS = math.min(state.damageStartMS or event.time, event.time)
-                state.startMS = math.min(state.startMS, event.time)
-                bufferedEnd = math.max(bufferedEnd or event.time, event.time)
-            end
-        end
+        if event.time >= timeMS - 1000 then rememberEventUnits(event); accumulate(event) end
     end
-    if bufferedEnd then state.endMS = bufferedEnd end
     pending = {}
-    -- Peers can be in a different encounter and may not send another result yet.
     if SimpleGroupDPS_BattleScrolls then SimpleGroupDPS_BattleScrolls:ResetSendClock() end
 end
 
@@ -181,7 +178,8 @@ function meter:GetDiagnostics()
     local clock = state or completedClock
     return {
         active = state ~= nil, inCombat = IsUnitInCombat("player"),
-        durationMS = stats.durationMS, dps = stats.dps,
+        durationMS = stats.durationMS, dps = stats.dps, total = stats.total,
+        bossTotal = stats.bossTotal, bossDPS = stats.bossDPS,
         damageAgeMS = clock and clock.damageAtMS and math.max(0, GetGameTimeMilliseconds() - clock.damageAtMS),
         finishedAgeMS = not state and clock and math.max(0, GetGameTimeMilliseconds() - clock.finishedAtMS),
         damageEvents = clock and clock.damageEvents or 0,
@@ -192,7 +190,10 @@ end
 
 -- Match Battle Scrolls' encounter lifetime, including temporary combat drops.
 function meter:ShouldFinish()
-    if not state or IsUnitInCombat("player") or state.inPortal then return false end
+    if not state then return false end
+    if IsUnitInCombat("player") or state.inPortal then
+        return false
+    end
     local pvp = (IsPlayerInAvAWorld and IsPlayerInAvAWorld())
         or (IsActiveWorldBattleground and IsActiveWorldBattleground())
     if not pvp and GetGroupSize and ZO_Group_GetUnitTagForGroupIndex and IsUnitOnline then
@@ -218,20 +219,21 @@ function meter:ShouldFinish()
             end
         end
     end
-    return not (health > 0 and health < maximum)
+    if health > 0 and health < maximum then
+        return false
+    end
+    return true
 end
 
 function meter:ScheduleFinish()
     EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
     if not state then return end
-    if self:ShouldFinish() then state.stopMS = state.stopMS or GetGameTimeMilliseconds() end
     local function check()
         EVENT_MANAGER:UnregisterForUpdate(RESET_UPDATE)
         if self:ShouldFinish() then
             self:Finish()
         elseif state then
             -- A temporary combat drop must not freeze a still-running group fight.
-            state.stopMS = nil
             if not IsUnitInCombat("player") then
                 EVENT_MANAGER:RegisterForUpdate(RESET_UPDATE, 500, check)
             end
@@ -242,13 +244,10 @@ end
 
 function meter:GetStats()
     if not state then return last end
-    local startMS = state.damageStartMS or state.startMS
-    -- While the encounter is active, pauses are part of its elapsed time.
-    -- Finish stores this same calculation; never switch back to last-hit time.
-    local endMS = math.max(state.endMS, state.stopMS or GetGameTimeMilliseconds())
+    local startMS = state.startMS
+    local endMS = state.endMS
+    if endMS <= startMS then endMS = GetGameTimeMilliseconds() end
     local durationMS = math.max(0, endMS - startMS)
-    -- A burst of hits in the first milliseconds must not produce million-DPS estimates.
-    if state.total > 0 or state.groupTotal > 0 then durationMS = math.max(1000, durationMS) end
     local healingDurationMS = state.healingStartMS and math.max(0, state.healingEndMS - state.healingStartMS) or 0
     -- The rate floor protects HPS estimates, but is not elapsed time for the HUD.
     local healingScale = state.healingStartMS and 1000 / math.max(1000, healingDurationMS) or 0
@@ -297,8 +296,10 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
     local timeMS = GetGameTimeMilliseconds()
     local event = { time = timeMS, name = normalizeName(targetName), id = targetId, value = hitValue,
         sourceType = sourceType, targetType = targetType, sourceId = sourceId,
-        catchAll = not isFriendly(sourceType) and not isFriendly(targetType),
-        outgoing = isFriendly(sourceType) and not isFriendly(targetType),
+        catchAll = isType(sourceType, "COMBAT_UNIT_TYPE_GROUP")
+            or (not isPersonal(sourceType) and not isPersonal(targetType)
+                and not isType(targetType, "COMBAT_UNIT_TYPE_GROUP")),
+        outgoing = isPersonal(sourceType) and not isFriendly(targetType),
         personal = isPersonal(sourceType) and not isFriendly(targetType) }
     if not state then
         -- Initialize on the combat-state event, not on a preceding hit.
@@ -313,8 +314,14 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         pending = recent
         return
     end
-    rememberEventUnits(event)
     if not results[result] then
+        -- Ignore unsupported/empty healing routes for identity discovery too.
+        local personalSource, personalTarget = isPersonal(sourceType), isPersonal(targetType)
+        local supported = (personalSource and (personalTarget or isType(targetType, "COMBAT_UNIT_TYPE_GROUP")))
+            or (isType(sourceType, "COMBAT_UNIT_TYPE_GROUP") and personalTarget)
+        if supported and abilityId ~= 126366 and hitValue + (tonumber(overflow) or 0) > 0 then
+            rememberEventUnits(event)
+        end
         -- Count only our outgoing healing (including self, pets and companions).
         -- Incoming/group healing never becomes our output. Pet spawn initialization
         -- is not a heal; absorbed-heal events carry no reliable overheal amount.
@@ -332,18 +339,17 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         -- Healing must not change the existing DPS clock or damage totals.
         return
     end
-    if event.outgoing and hitValue > 0 then
-        state.damageStartMS = math.min(state.damageStartMS or timeMS, timeMS)
-    end
-    if event.outgoing or (event.catchAll and state.friendly[event.id] == false) then
-        state.stopMS = nil
-        state.endMS = math.max(state.endMS, timeMS)
-        state.damageAtMS = timeMS
-    end
+    -- Like BattleScrolls, every valid damage event advances this timestamp.
+    -- Incoming/unknown damage advances time but is never added to own damage.
+    state.endMS = timeMS
+    state.damageAtMS = timeMS
     state.damageEvents = state.damageEvents + 1
     if event.personal then state.personalEvents = state.personalEvents + 1
     else state.otherEvents = state.otherEvents + 1 end
-    if hitValue > 0 and not (isFriendly(sourceType) and isFriendly(targetType)) then accumulate(event) end
+    if hitValue > 0 then
+        rememberEventUnits(event)
+        if not (isFriendly(sourceType) and isFriendly(targetType)) then accumulate(event) end
+    end
 end
 
 function meter:Initialize(saved)
@@ -390,7 +396,8 @@ function meter:Initialize(saved)
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSDamageEffects", EVENT_EFFECT_CHANGED,
         function(_, changeType, _, _, tag, _, _, _, _, _, _, _, _, name, id, abilityId)
             -- Aetherian Archive: the Mage arrival starts a new encounter after the add waves.
-            if state and abilityId == 50184 and changeType == _G.EFFECT_RESULT_GAINED and state.total > 0 then
+            if state and state.zoneId == AETHERIAN_ARCHIVE_ZONE_ID
+                and abilityId == 50184 and changeType == _G.EFFECT_RESULT_GAINED and state.total > 0 then
                 self:Finish()
                 self:Start(GetGameTimeMilliseconds())
             end

@@ -1,0 +1,169 @@
+local clock, inCombat = 0, false
+local bosses = { boss1 = "Boss" }
+local callbacks = {}
+local updates = {}
+ACTION_RESULT_DAMAGE, ACTION_RESULT_CRITICAL_DAMAGE, ACTION_RESULT_DAMAGE_SHIELDED = 1, 2, 3
+COMBAT_UNIT_TYPE_PLAYER, COMBAT_UNIT_TYPE_PLAYER_PET, COMBAT_UNIT_TYPE_GROUP = 1, 3, 4
+COMBAT_UNIT_TYPE_GROUP_PET, COMBAT_UNIT_TYPE_PLAYER_COMPANION = 5, 6
+EVENT_COMBAT_EVENT, EVENT_PLAYER_COMBAT_STATE, EVENT_BOSSES_CHANGED, EVENT_EFFECT_CHANGED = 1, 2, 3, 4
+EVENT_PLAYER_ALIVE, EVENT_PLAYER_ACTIVATED = 5, 6
+EFFECT_RESULT_FADED = 3
+function GetGameTimeMilliseconds() return clock end
+function IsUnitInCombat() return inCombat end
+function DoesUnitExist(tag) return bosses[tag] ~= nil end
+function GetRawUnitName(tag) return bosses[tag] or "" end
+function zo_strformat(_, name) return (name:gsub("%^.*$", "")) end
+EVENT_MANAGER = {
+    RegisterForEvent = function(_, name, event, callback) callbacks[name] = callback end,
+    RegisterForUpdate = function(_, name, interval, callback) updates[name] = { interval = interval, run = callback } end,
+    UnregisterForUpdate = function(_, name) updates[name] = nil end,
+}
+dofile("DamageMeter.lua")
+local meter = SimpleGroupDPS_DamageMeter
+meter:Initialize({ damageTotal = 100, dps = 10, durationMS = 10000 })
+assert(meter:GetStats().total == 100 and meter:GetStats().bossDPS == nil, "legacy summary restores unknown boss values")
+
+local function damage(time, source, name, target, amount, id, result, overflow)
+    clock = time
+    callbacks.SimpleGroupDPSDamage(nil, result or 1, false, nil, nil, nil, nil,
+        source, name, target, amount, nil, nil, nil, 99, id, 123, overflow or 0)
+end
+clock, inCombat = 1000, true
+callbacks.SimpleGroupDPSDamageState(nil, true)
+damage(1000, 1, "Boss", 2, 600, 10)
+damage(1500, 3, "Add", 2, 400, 20)
+damage(2000, 4, "Boss", 2, 9000, 10)
+local stats = meter:GetStats()
+assert(stats.total == 1000 and stats.bossTotal == 600)
+assert(stats.dps == 1000 and stats.bossDPS == 600 and stats.addsDPS == 400, "all categories use the same encounter clock")
+clock = 9000
+assert(meter:GetStats().dps == 1000 and meter:GetStats().durationMS == 1000,
+    "Damage-window DPS excludes idle time")
+damage(10000, 6, "Boss", 2, 800, 10, 2, 10000)
+stats = meter:GetStats()
+assert(stats.total == 1800 and stats.dps == 200, "companion included and overkill excluded")
+assert(math.abs(stats.dps - stats.bossDPS - stats.addsDPS) < 0.000001)
+damage(11000, 1, "Boss", 2, 200, 10, 3)
+assert(meter:GetStats().total == 2000, "shield damage counted once")
+damage(11000, 1, "Friend", 4, 9000, 44)
+damage(11000, 2, "Player", 1, 9000, 99)
+assert(meter:GetStats().total == 2000, "friendly and incoming damage excluded from own total")
+damage(11000, 1, "Boss", 2, 500, 11)
+callbacks.SimpleGroupDPSDamageEffects(nil, 1, nil, nil, "boss1", nil, nil, nil, nil, nil, nil, nil, nil, "Boss", 10)
+assert(meter:GetStats().bossTotal == 1600, "authoritative boss unit ID disambiguates same-name adds retroactively")
+bosses.boss2 = "Second Boss"
+callbacks.SimpleGroupDPSDamageBosses()
+damage(12000, 1, "Second Boss", 2, 1100, 30)
+assert(meter:GetStats().bossTotal == 2700, "multiple bosses combined")
+stats = meter:GetStats()
+clock = 18000
+assert(meter:GetStats().dps == stats.dps and meter:GetStats().durationMS == stats.durationMS,
+    "Damage-window clock does not advance without damage")
+clock, inCombat = 20000, false
+callbacks.SimpleGroupDPSDamageState(nil, false)
+assert(meter:IsActive() and updates.SimpleGroupDPSDamageReset.interval == 150, "combat exit waits 150ms before reset check")
+updates.SimpleGroupDPSDamageReset.run()
+assert(not meter:IsActive() and meter:GetStats().dps == stats.dps
+    and meter:GetStats().durationMS == stats.durationMS, "combat exit preserves the same damage window")
+damage(21000, 1, "New Add", 2, 500, 40)
+assert(meter:GetStats().total == 3600, "precombat hits do not overwrite previous result")
+
+bosses = {}
+clock, inCombat = 21500, true
+callbacks.SimpleGroupDPSDamageState(nil, true)
+damage(22000, 1, "New Add", 2, 500, 40)
+stats = meter:GetStats()
+assert(stats.total == 1000 and stats.durationMS == 500 and stats.dps == 2000,
+    "BattleScrolls replays damage but keeps combat initialization as start time")
+assert(stats.bossDPS == nil and stats.addsDPS == nil, "no boss data stays unknown")
+inCombat = false
+callbacks.SimpleGroupDPSDamageState(nil, false)
+updates.SimpleGroupDPSDamageReset.run()
+clock = 25000
+meter:Start(clock)
+damage(25100, 1, "New Add", 2, 100, 40)
+assert(meter:GetStats().total == 100 and meter:GetStats().dps == 1000, "New fight uses initialization time before the first hit")
+meter:Finish()
+clock = 30000
+meter:Start(clock)
+damage(30000, 1, "New Add", 2, 100, 40)
+clock = 35000
+meter:Finish()
+assert(meter:GetStats().durationMS == 5000 and meter:GetStats().dps == 20,
+    "Before a later damage timestamp, original BattleScrolls falls back to current time")
+bosses = { boss1 = "Boss^Mx" }
+clock = 40000
+meter:Start(clock)
+damage(41000, 1, "Unrelated Add", 2, 100, 55)
+assert(meter:GetStats().bossDPS == nil, "nearby boss tag alone does not turn add damage into a boss encounter")
+callbacks.SimpleGroupDPSDamageEffects(nil, 1, nil, nil, "boss1", nil, nil, nil, nil, nil, nil, nil, nil, "Boss", 10)
+assert(meter:GetStats().bossDPS == nil, "boss effect without boss damage does not trigger boss encounter")
+damage(42000, 4, "Boss", 2, 200, 10)
+assert(meter:GetStats().bossDPS == 0 and meter:GetStats().dps == 50,
+    "group boss damage confirms encounter while own add damage stays in overall DPS")
+meter:Finish()
+clock = 50000
+meter:Start(clock)
+damage(51000, 1, "BOSS", 2, 100, 10)
+assert(meter:GetStats().bossDPS == 100, "boss names match across grammar suffixes and case")
+meter:Finish()
+
+-- Keep one encounter through group combat, boss phases, death and portals.
+local groupCombat, online, pvp, dead = true, true, false, false
+local bossHealth, bossMax = 100, 100
+function GetGroupSize() return 1 end
+function ZO_Group_GetUnitTagForGroupIndex() return "group1" end
+function AreUnitsEqual(a, b) return a == b end
+function IsUnitOnline() return online end
+function IsPlayerInAvAWorld() return pvp end
+function IsActiveWorldBattleground() return false end
+function IsUnitInCombat(tag) return tag == "group1" and groupCombat or tag == "player" and inCombat end
+function IsUnitDeadOrReincarnating() return dead end
+function IsUnitDead() return false end
+function GetUnitPower() return bossHealth, bossMax end
+COMBAT_MECHANIC_FLAGS_HEALTH = 0
+clock, inCombat = 60000, true
+meter:Start(clock)
+damage(61000, 1, "Boss", 2, 1000, 10)
+inCombat = false
+meter:ScheduleFinish()
+clock = 61150
+updates.SimpleGroupDPSDamageReset.run()
+assert(meter:IsActive() and updates.SimpleGroupDPSDamageReset.interval == 500, "group combat holds encounter and retries after 500ms")
+damage(62000, 4, "Boss", 2, 500, 10)
+assert(meter:GetStats().total == 1000 and meter:GetStats().durationMS == 2000, "group damage continues clock while player is out of combat")
+inCombat = true
+meter:Start(63000)
+assert(updates.SimpleGroupDPSDamageReset == nil and meter:GetStats().durationMS == 2000, "combat re-entry retains original start and cancels pending reset")
+inCombat, groupCombat, bossHealth = false, false, 50
+assert(not meter:ShouldFinish(), "wounded living boss holds encounter")
+bossHealth = 100
+dead, clock = true, 65000
+assert(not meter:ShouldFinish(), "recent damage holds dead player's encounter for four seconds")
+clock = 66000
+assert(meter:ShouldFinish(), "dead player without ongoing damage can finish")
+dead = false
+damage(66000, 4, "Boss", 2, 500, 10)
+callbacks.SimpleGroupDPSDamageAlive()
+clock = 66150
+assert(not meter:ShouldFinish(), "revive has a 500ms grace period while combat state settles")
+clock = 66500
+assert(meter:ShouldFinish(), "revive grace expires without artificially extending damage time")
+groupCombat, online = true, false
+assert(meter:ShouldFinish(), "offline combat flag cannot hold encounter")
+online, pvp = true, true
+assert(meter:ShouldFinish(), "PvP ignores group combat flags")
+pvp, groupCombat = false, false
+EFFECT_RESULT_GAINED = 1
+callbacks.SimpleGroupDPSDamageEffects(nil, 1, nil, nil, "player", nil, nil, nil, nil, nil, nil, nil, nil, "Player", 99, 108045)
+assert(not meter:ShouldFinish(), "Cloudrest portal keeps encounter open")
+callbacks.SimpleGroupDPSDamageEffects(nil, 3, nil, nil, "player", nil, nil, nil, nil, nil, nil, nil, nil, "Player", 99, 108045)
+updates.SimpleGroupDPSDamageReset.run()
+assert(not meter:IsActive() and meter:GetStats().durationMS == 6000, "Portal exit does not add idle time")
+clock = 70000
+meter:Start(clock)
+damage(70000, 1, "Boss", 2, 1000, 10)
+clock = 70100
+assert(meter:GetStats().durationMS == 100 and meter:GetStats().dps == 10000,
+    "First-hit fallback follows elapsed time exactly as BattleScrolls")
+print("PASS: unified DPS clock, boss identification, pet/companion damage, shields, overkill and encounter lifecycle")

@@ -40,7 +40,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Impified UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impified-UI__4141) | imPDA | PC / Mac | 2 |
 | [ImpitoyableStack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/ImpitoyableStack__4168) | Tenshiraito | PC / Mac | 1.1 |
 | [Importers for Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Importers-for-Master-Merchant-3.0__3334) | Sharlikran | PC / Mac | 1.03 |
-| [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.7 |
+| [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.8 |
 | [Improved Achievement Categories](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Achievement-Categories__3114) | MrPikPik | PC / Mac | 1.0.5 |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__11036cca-172c-4428-83fe-301cb496b33e) | code65536 | Console | — |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.3.0 |
@@ -74,7 +74,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Instant Swap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/delstrega/Instant-Swap__2987) | delstrega | PC / Mac | 1.2 |
 | [InstaQ](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Synkronist/InstaQ__5da20bd4-9950-42b8-aca8-deadd5817210) | Synkronist | Console | — |
 | [Interrupt Narc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/Interrupt-Narc__fe232f99-8f31-4163-906d-48182e80a59d) | brossin13 | Console | — |
-| [Inventory 2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ualtinova/Inventory-2.0__5009) | ualtinova | PC / Mac | 1.0.6 |
+| [Inventory 2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blekays/Inventory-2.0__5009) | blekays | PC / Mac | 1.0.6 |
 | [Inventory Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zsban/Inventory-Assistant__2015) | zsban | PC / Mac | 1.21.261002-beta |
 | [Inventory Bank Sort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rlinosaur/Inventory-Bank-Sort__3344) | rlinosaur | PC / Mac | 1.2 |
 | [Inventory Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Inventory-Companion__4997) | tim-p | PC / Mac | 1.6.3 |
@@ -99,7 +99,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Inventory Space Warning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pachvara/Inventory-Space-Warning__3674) | Pachvara | PC / Mac | 0.4 |
 | [InventoryManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iwontsay/InventoryManager__1642) | iwontsay | PC / Mac | 2.5.2 |
 | [InventoryManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/InventoryManagerTESO__4071) | IgorSab | PC / Mac | 1.0.2 |
-| [InventoryPulse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cudddel/InventoryPulse__5012) | cudddel | PC / Mac | 1.0.0 |
+| [InventoryPulse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cudddel/InventoryPulse__5012) | cudddel | PC / Mac | 1.0.1 |
 | [InventoryUpkeep](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manyrabidrats/InventoryUpkeep__1045) | manyrabidrats | PC / Mac | 1.8.0.0 |
 | [Is Target Guildie?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Is-Target-Guildie__3717) | Masteroshi430 | PC / Mac | 2026.07.06 |
 | [IsItTaunted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RipleyZepher/IsItTaunted__6b4f359b-e17e-46f6-b2c9-9a1e42e7de2b) | RipleyZepher | Console | — |

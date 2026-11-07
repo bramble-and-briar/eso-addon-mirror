@@ -23,13 +23,14 @@ assert(report.buffs[1].covered == 120 and report.buffs[1].duration == 1200 and r
 local count = #saved.uptimeHistory
 showReports.setFunction(false)
 fight(2000)
-assert(#saved.uptimeHistory == count and saved.lastUptimeReport == report,
-    "Report exclusion only affects new reports, never saved history")
+assert(#saved.uptimeHistory == count + 1 and #saved.lastUptimeReport.buffs == 0
+    and #saved.lastUptimeReport.skills > 0 and saved.uptimeHistory[2] == report,
+    "Tracker exclusion removes that buff from new reports; independent skill damage and saved history remain")
 showHud.setFunction(true)
 assert(not hud.hidden and config.showInReports == false, "HUD and report switches are independent")
 showReports.setFunction(true)
 fight(3000)
-assert(#saved.uptimeHistory == count + 1 and saved.lastUptimeReport ~= report)
+assert(#saved.uptimeHistory == count + 2 and saved.lastUptimeReport ~= report)
 
 -- Exercise fallback capture and enemy filtering independently of the library.
 local reports = LiveBuffUptimeReports

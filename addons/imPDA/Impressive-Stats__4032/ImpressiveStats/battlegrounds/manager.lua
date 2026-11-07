@@ -1,3 +1,4 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
 local Log = IMP_STATS_Logger('MATCHES_MANAGER')
 
 -- ----------------------------------------------------------------------------
@@ -245,6 +246,24 @@ local function WorthSaving(match)  -- TODO: unused function
     return true
 end
 
+local function isCurrentMatch(match)
+    if not match then return end
+
+    local started = match.entryTimestamp or 0
+
+    local currentBattlegroundGameType = GetCurrentBattlegroundGameType()
+    local currentBattlegroundId = GetCurrentBattlegroundId()
+
+    local sameGameType = match.type == currentBattlegroundGameType
+    local sameBattlegroundId = match.battlegroundId == currentBattlegroundId
+
+    Log('Type, previous: %d, current: %d, eq: %s', match.type, currentBattlegroundGameType, tostring(sameGameType))
+    Log('Id, previous: %d, current: %d, eq: %s', match.battlegroundId, currentBattlegroundId, tostring(sameBattlegroundId))
+    Log('Started %d ago', GetTimeStamp() - started)
+
+    return sameGameType and sameBattlegroundId and (GetTimeStamp() - started) <= 60 * 20
+end
+
 -- ----------------------------------------------------------------------------
 
 local MatchManager = IMP_STATS_SHARED.class()
@@ -280,18 +299,48 @@ function MatchManager:__init__(savedMatches)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED, function(_, initial) self:OnPlayerActivated(initial) end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_BATTLEGROUND_STATE_CHANGED, function(_, old, new) self:OnBattlegroundStateChanged(old, new) end)
 
-    function OnMatchStateChanged(oldState, newState)
+    local function OnMatchStateChanged(oldState, newState)
         if newState == MATCH_STATE_ONGOING then
             self:CreateMatch()
         elseif newState == MATCH_STATE_ENDED then
-            self:FinalizeCurrentMatch()
-            self:SaveMatch()
+            if self.currentMatch then
+                self:FinalizeCurrentMatch()
+                self:SaveMatch()
+            else
+                -- no current match because user reload UI after match end of something similar happened
+
+                -- still can save match results, but there is no way to know match start time
+                -- and if it was played from the start
+                local lastSavedMatch = self.savedMatches[#self.savedMatches]
+
+                local lastSavedMatchUnpacked
+                if type(lastSavedMatch) == 'string' then
+                    local FULL = true
+                    lastSavedMatchUnpacked = self.UnpackMatch(lastSavedMatch, FULL)
+                elseif type(lastSavedMatch) == 'table' then
+                    lastSavedMatchUnpacked = lastSavedMatch
+                else
+                    -- this should NEVER happen
+                    Log(('Last match is %s'):format(type(lastSavedMatch)))
+                    return
+                end
+
+                local currentMatchSavedCorrectly = isCurrentMatch(lastSavedMatchUnpacked)
+
+                if currentMatchSavedCorrectly then
+                    Log('Current match was saved, no further actions needed')
+                else
+                    -- this should NEVER EVER happen
+                    local message = ('%s Build for BG was not saved'):format(os.date("!%Y-%m-%d %H:%M:%SZ"))
+                    IMP_STATS_SHARED.Errors:AddError('MatchManager', message, 'last saved match not equal to current at the end of match')
+                end
+            end
         elseif newState == MATCH_STATE_NONE then
             self:Clean()
         end
     end
 
-    function OnRoundEnded()
+    local function OnRoundEnded()
         local round = GetCurrentBattlegroundRoundIndex()
         self:UpdateCurrentMatchRound(round)
     end
@@ -453,21 +502,6 @@ end
 
 -- ----------------------------------------------------------------------------
 
-local function isCurrentMatch(match)
-    if not match then return end
-
-    local started = match.entryTimestamp or 0
-
-    Log('Type, previous: %d, current: %d, eq: %s', match.type, GetCurrentBattlegroundGameType(), tostring(match.type == GetCurrentBattlegroundGameType()))
-    Log('Id, previous: %d, current: %d, eq: %s', match.battlegroundId, GetCurrentBattlegroundId(), tostring(match.battlegroundId == GetCurrentBattlegroundId()))
-    Log('Started %d ago', GetTimeStamp() - started)
-
-    return
-    match.type == GetCurrentBattlegroundGameType() and
-    match.battlegroundId == GetCurrentBattlegroundId() and
-    (GetTimeStamp() - started) <= 60 * 20
-end
-
 function MatchManager:CreateMatch()
     local currentMatchAlreadyCreated = isCurrentMatch(self.currentMatch)
 
@@ -579,6 +613,9 @@ function MatchManager:Clean()
 end
 
 -- ----------------------------------------------------------------------------
+
+-- TODO: can use GetActivityGroupType to set self.grouped, is it reliable tho?
+-- need to check if it works correctly if reload UI in the start/middle/end of match
 
 function MatchManager:OnActivityFinderStatusUpdate(state)
     -- TODO: clear state if ready check failed
@@ -851,6 +888,7 @@ local ENCODE_BASE = LDP.Base.Base64RCF4648
 local function PackMatch(matchData, schema)
     schema = schema or LAST_MATCH_SCHEMA
     return LDP.Pack(matchData, schema, ENCODE_BASE)
+    -- TODO: check if the lenght is less than 2000 otherwise this match will not be saved and it has to be split into pieces for saving
 end
 MatchManager.PackMatch = PackMatch
 

@@ -447,7 +447,7 @@ end
 --------------------------------------------------
 -- Settings Details
 --------------------------------------------------
-local PREVIEW_TIP     = "Shows it on screen so you can place it. Stays on until you turn it off."
+local PREVIEW_TIP     = "Shows the alert here so you can see your changes. Stays on until you turn it off or leave the settings."
 local PULSATE_TIP     = "Makes the alert fade in and out."
 local PULSE_SPEED_TIP = "How fast the alert pulses. 1 is the slowest, 10 is the fastest. Default is 3."
 
@@ -462,6 +462,15 @@ function PvPUA:HKBuildSettings(def)
         return def.defaultText, DetailsFont(v.font, v.fontSize), 1, 1, 1
     end
     return { type = "submenu", name = def.label, icon = def.icon, options = {
+        { type = "toggle", name = "Enabled", preset = "YES_NO",
+          tooltip = "Shows an alert when a home keep comes under attack.",
+          default = PvPUA.defaults.alertsEnabled,
+          getFunc = function() return self.savedVariables.alertsEnabled end,
+          setFunc = function(v)
+              self.savedVariables.alertsEnabled = v
+              if not v then self:HKClear() end
+              self:EARefresh(key)
+          end },
         { type = "toggle", name = "Preview",
           tooltip = PREVIEW_TIP,
           getFunc = function() return self.effectAlerts[key] and self.effectAlerts[key].preview or false end,
@@ -472,17 +481,6 @@ function PvPUA:HKBuildSettings(def)
         { type = "button", name = "Move / Scale", buttonText = "Move / Scale",
           tooltip = PvPUA.MOVE_TIP,
           func = function() self:StartMove(self:EAMoveTarget(key)) end },
-
-
-        { type = "toggle", name = "Enabled", preset = "YES_NO",
-          tooltip = "Shows an alert when a home keep comes under attack.",
-          default = PvPUA.defaults.alertsEnabled,
-          getFunc = function() return self.savedVariables.alertsEnabled end,
-          setFunc = function(v)
-              self.savedVariables.alertsEnabled = v
-              if not v then self:HKClear() end
-              self:EARefresh(key)
-          end },
         { type = "slider", name = "Duration", min = 5, max = 30, step = 1,
           tooltip = "How long each keep stays on screen (seconds). Default is " .. PvPUA.defaults.alertLifespan .. ".",
           default = PvPUA.defaults.alertLifespan,
@@ -520,6 +518,15 @@ function PvPUA:EABuildSettings(def)
         return text, DetailsFont(v.font, v.fontSize), c.r or 1, c.g or 1, c.b or 1
     end
     return { type = "submenu", name = def.label, icon = def.icon, options = {
+        { type = "toggle", name = "Enabled", preset = "YES_NO",
+          tooltip = def.enabledTip,
+          default = false,
+          getFunc = function() return self:EAVars(key).enabled end,
+          setFunc = function(v)
+              self:EAVars(key).enabled = v
+              self:EAApplyCombatListener()
+              self:EARefresh(key)
+          end },
         { type = "toggle", name = "Preview",
           tooltip = PREVIEW_TIP,
           getFunc = function() return self.effectAlerts[key] and self.effectAlerts[key].preview or false end,
@@ -530,17 +537,6 @@ function PvPUA:EABuildSettings(def)
         { type = "button", name = "Move / Scale", buttonText = "Move / Scale",
           tooltip = PvPUA.MOVE_TIP,
           func = function() self:StartMove(self:EAMoveTarget(key)) end },
-
-
-        { type = "toggle", name = "Enabled", preset = "YES_NO",
-          tooltip = def.enabledTip,
-          default = false,
-          getFunc = function() return self:EAVars(key).enabled end,
-          setFunc = function(v)
-              self:EAVars(key).enabled = v
-              self:EAApplyCombatListener()
-              self:EARefresh(key)
-          end },
 
 
         { type = "editbox", name = "Text",
@@ -927,6 +923,18 @@ function P:GetOptions()
     return {
         {
             type    = "toggle",
+            name    = "Enabled",
+            preset = "YES_NO",
+            tooltip = "Shows an alert telling you to drink a potion when one is ready during combat. Choose when with the options below.",
+            default = POTION_DEFAULTS.potionEnabled,
+            getFunc = function() return P:SV().potionEnabled end,
+            setFunc = function(val)
+                P:SV().potionEnabled = val
+                P:RefreshDisplay()
+            end,
+        },
+        {
+            type    = "toggle",
             name    = "Preview",
             tooltip = PREVIEW_TIP,
             getFunc = function() return P.previewMode end,
@@ -944,21 +952,9 @@ function P:GetOptions()
         },
         {
             type    = "toggle",
-            name    = "Enabled",
-            preset = "YES_NO",
-            tooltip = "Shows an alert telling you to drink a potion when one is ready during combat. Choose when with the options below.",
-            default = POTION_DEFAULTS.potionEnabled,
-            getFunc = function() return P:SV().potionEnabled end,
-            setFunc = function(val)
-                P:SV().potionEnabled = val
-                P:RefreshDisplay()
-            end,
-        },
-        {
-            type    = "toggle",
             name    = "Always On",
             preset = "YES_NO",
-            tooltip = "Show the alert whenever you are in combat with a potion ready, ignoring the resource options below.",
+            tooltip = "Shows the alert whenever you are in combat with a potion ready, ignoring the resource options below.",
             default = POTION_DEFAULTS.potionAlwaysOn,
             getFunc = function() return P:SV().potionAlwaysOn end,
             setFunc = function(val)
@@ -969,7 +965,7 @@ function P:GetOptions()
         {
             type     = "toggle",
             name     = "|c" .. EP_HEX .. "Health|r",
-            tooltip  = "Show the alert when you are in combat with a potion ready and your health has dropped to or below the threshold.",
+            tooltip  = "Shows the alert when you are in combat with a potion ready and your health has dropped to or below the threshold.",
             default  = POTION_DEFAULTS.potionHealthGate,
             disabled = function() return P:SV().potionAlwaysOn end,
             getFunc  = function() return P:SV().potionHealthGate end,
@@ -997,7 +993,7 @@ function P:GetOptions()
         {
             type     = "toggle",
             name     = "|c" .. DC_HEX .. "Magicka|r",
-            tooltip  = "Show the alert when you are in combat with a potion ready and your magicka has dropped to or below the threshold.",
+            tooltip  = "Shows the alert when you are in combat with a potion ready and your magicka has dropped to or below the threshold.",
             default  = POTION_DEFAULTS.potionMagickaGate,
             disabled = function() return P:SV().potionAlwaysOn end,
             getFunc  = function() return P:SV().potionMagickaGate end,
@@ -1025,7 +1021,7 @@ function P:GetOptions()
         {
             type     = "toggle",
             name     = "|c00CC44Stamina|r",
-            tooltip  = "Show the alert when you are in combat with a potion ready and your stamina has dropped to or below the threshold.",
+            tooltip  = "Shows the alert when you are in combat with a potion ready and your stamina has dropped to or below the threshold.",
             default  = POTION_DEFAULTS.potionStaminaGate,
             disabled = function() return P:SV().potionAlwaysOn end,
             getFunc  = function() return P:SV().potionStaminaGate end,
@@ -1189,7 +1185,8 @@ end
 function PvPUA:AlertsMenu()
     return { type = "submenu",
           name = "|c" .. AD_HEX .. "Alerts|r",
-          tooltip = SAVED_ACCOUNT_TIP,
+          tooltip = "Shows alerts on screen for your home keeps, enemy Negates and Corrosives, and potions.\n\n"
+                 .. SAVED_ACCOUNT_TIP,
           childrenAlign = "center",
           icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_communications.dds",
           options = {

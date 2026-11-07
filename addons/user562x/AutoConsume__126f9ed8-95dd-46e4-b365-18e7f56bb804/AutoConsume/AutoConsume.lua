@@ -28,12 +28,14 @@ local DEFAULTS = {
 
     bagScanned      = false,
 
-    hudEnabled    = true,
+    hudEnabled    = false,
     hudPosX       = 900,
     hudPosY       = 500,
     hudIconSize   = 40,
     hudHorizontal = false,
+}
 
+local ACCOUNT_DEFAULTS = {
     settingsFontSize       = 30,
     settingsFont           = "EsoUI/Common/Fonts/FTN57.otf",
     settingsOpacity        = 100,
@@ -41,6 +43,15 @@ local DEFAULTS = {
     settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
     settingsRemember       = true,
 }
+
+local SETTINGS_KEYS = {
+    "settingsFontSize", "settingsFont", "settingsOpacity", "settingsHighlight",
+    "settingsHighlightColor", "settingsRemember", "settingsLastPage",
+}
+
+local function AV()
+    return AC.accountVariables
+end
 
 --------------------------------------------------
 -- KNOWN BUFF NAMES
@@ -231,8 +242,21 @@ local pending = {
 local ICON_GENERIC  = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 
+local SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 local SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
-local PREVIEW_TIP         = "Shows it on screen so you can place it. Stays on until you turn it off."
+
+local MOVE_SCENE  = "AutoConsume_Move"
+local MOVE_SPEED  = 500
+local SCALE_SPEED = 30
+local SIZE_MIN    = 20
+local SIZE_MAX    = 100
+
+local PLACE_FRAGMENTS = {
+    "PLAYER_ATTRIBUTE_BARS_FRAGMENT",
+    "BUFF_DEBUFF_FRAGMENT",
+    "COMPASS_FRAME_FRAGMENT",
+    "UNIT_FRAMES_FRAGMENT",
+}
 
 local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
 
@@ -418,7 +442,7 @@ function AC:SettingsMenu()
         type    = "submenu",
         name    = "Settings",
         icon    = ICON_SETTINGS,
-        tooltip = SAVED_CHARACTER_TIP,
+        tooltip = SAVED_ACCOUNT_TIP,
         options = {
             {
                 type    = "slider",
@@ -426,11 +450,11 @@ function AC:SettingsMenu()
                 min     = 18,
                 max     = 44,
                 step    = 1,
-                default = DEFAULTS.settingsFontSize,
+                default = ACCOUNT_DEFAULTS.settingsFontSize,
                 tooltip = "Default is 30.",
-                getFunc = function() return AC.savedVariables.settingsFontSize end,
+                getFunc = function() return AV().settingsFontSize end,
                 setFunc = function(val)
-                    AC.savedVariables.settingsFontSize = val
+                    AV().settingsFontSize = val
                     PanelCall("ApplyTextSize")
                 end,
             },
@@ -440,9 +464,9 @@ function AC:SettingsMenu()
                 choices = FONT_CHOICES,
                 default = DEFAULT_FONT,
                 tooltip = "Some fonts look bigger or smaller than others, so you may need to adjust Font Size.\n\nDefault is Gamepad Medium.",
-                getFunc = function() return AC.savedVariables.settingsFont end,
+                getFunc = function() return AV().settingsFont end,
                 setFunc = function(val)
-                    AC.savedVariables.settingsFont = val
+                    AV().settingsFont = val
                     PanelCall("ApplyFont")
                 end,
             },
@@ -452,11 +476,11 @@ function AC:SettingsMenu()
                 min     = 0,
                 max     = 100,
                 step    = 5,
-                default = DEFAULTS.settingsOpacity,
+                default = ACCOUNT_DEFAULTS.settingsOpacity,
                 tooltip = "Default is 100.",
-                getFunc = function() return AC.savedVariables.settingsOpacity end,
+                getFunc = function() return AV().settingsOpacity end,
                 setFunc = function(val)
-                    AC.savedVariables.settingsOpacity = val
+                    AV().settingsOpacity = val
                     PanelCall("ApplyOpacity")
                 end,
             },
@@ -468,23 +492,23 @@ function AC:SettingsMenu()
                 default      = DEFAULTS.settingsHighlight,
                 colorDefault = { r = 1, g = 1, b = 1 },
                 details      = function()
-                    if AC.savedVariables.settingsHighlight == "Custom" then
+                    if AV().settingsHighlight == "Custom" then
                         return "Highlights and sliders use your color."
                     end
                     return "Highlights and sliders use your alliance color."
                 end,
-                getFunc  = function() return AC.savedVariables.settingsHighlight end,
+                getFunc  = function() return AV().settingsHighlight end,
                 setFunc  = function(val)
-                    AC.savedVariables.settingsHighlight = val
+                    AV().settingsHighlight = val
                     PanelCall("ApplyAccent")
                 end,
                 getColor = function()
-                    local c = AC.savedVariables.settingsHighlightColor
+                    local c = AV().settingsHighlightColor
                     if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
                     return 1, 1, 1
                 end,
                 setColor = function(r, g, b)
-                    AC.savedVariables.settingsHighlightColor = { r = r, g = g, b = b, a = 1 }
+                    AV().settingsHighlightColor = { r = r, g = g, b = b, a = 1 }
                     PanelCall("ApplyAccent")
                 end,
             },
@@ -492,16 +516,16 @@ function AC:SettingsMenu()
                 type    = "toggle",
                 name    = "Remember Last Page",
                 preset  = "YES_NO",
-                default = DEFAULTS.settingsRemember,
+                default = ACCOUNT_DEFAULTS.settingsRemember,
                 tooltip = "Reopens the last page where you left off.",
-                getFunc = function() return AC.savedVariables.settingsRemember end,
-                setFunc = function(val) AC.savedVariables.settingsRemember = val end,
+                getFunc = function() return AV().settingsRemember end,
+                setFunc = function(val) AV().settingsRemember = val end,
             },
             {
                 type       = "button",
                 name       = "|cFF3333Reset All|r",
                 buttonText = "Reset All",
-                tooltip    = "Puts every AutoConsume setting back to its default.",
+                details    = "Resets all categories to default.",
                 confirm    = "Reset every AutoConsume setting to its default? This can't be undone.",
                 func       = function() AC:ResetSettings() end,
             },
@@ -521,10 +545,6 @@ function AC:CreateSettings()
     pending.foodID   = AC.savedVariables.foodID
     pending.xpItemID = AC.savedVariables.xpItemID
     pending.apItemID = AC.savedVariables.apItemID
-
-    local screenW, screenH = GuiRoot:GetDimensions()
-    screenW = math.floor(tonumber(screenW) or 1920)
-    screenH = math.floor(tonumber(screenH) or 1080)
 
     local options = {
 
@@ -713,12 +733,21 @@ function AC:CreateSettings()
                 {
                     type     = "toggle",
                     name     = "Preview",
-                    tooltip  = PREVIEW_TIP,
+                    tooltip  = "Shows your buff icons here so you can see your changes. "
+                            .. "Stays on until you turn it off or leave the settings.",
                     disabled = function() return not AC.savedVariables.hudEnabled end,
                     getFunc  = function() return AC.previewing == true end,
                     setFunc  = function(val)
                         if val then AC:StartPreview() else AC:EndPreview() end
                     end,
+                },
+                {
+                    type       = "button",
+                    name       = "Move / Scale",
+                    buttonText = "Move / Scale",
+                    tooltip    = "Move it with the left stick and scale it with the right stick.",
+                    disabled   = function() return not AC.savedVariables.hudEnabled end,
+                    func       = function() AC:StartMove() end,
                 },
                 {
                     type    = "dropdown",
@@ -729,48 +758,6 @@ function AC:CreateSettings()
                     setFunc = function(val)
                         AC.savedVariables.hudHorizontal = (val == "Horizontal")
                         AC:HUDRefresh()
-                    end,
-                },
-                {
-                    type    = "slider",
-                    name    = "Size",
-                    min     = 20,
-                    max     = 100,
-                    step    = 2,
-                    default = DEFAULTS.hudIconSize,
-                    tooltip = "Default is " .. DEFAULTS.hudIconSize .. ".",
-                    getFunc = function() return AC.savedVariables.hudIconSize end,
-                    setFunc = function(val)
-                        AC.savedVariables.hudIconSize = val
-                        AC:HUDRefresh()
-                    end,
-                },
-                {
-                    type    = "slider",
-                    name    = "Horizontal Position",
-                    min     = 0,
-                    max     = screenW,
-                    step    = 5,
-                    default = DEFAULTS.hudPosX,
-                    tooltip = "Default is " .. DEFAULTS.hudPosX .. ".",
-                    getFunc = function() return AC.savedVariables.hudPosX end,
-                    setFunc = function(val)
-                        AC.savedVariables.hudPosX = val
-                        AC:ApplyHUDPosition()
-                    end,
-                },
-                {
-                    type    = "slider",
-                    name    = "Vertical Position",
-                    min     = 0,
-                    max     = screenH,
-                    step    = 5,
-                    default = DEFAULTS.hudPosY,
-                    tooltip = "Default is " .. DEFAULTS.hudPosY .. ".",
-                    getFunc = function() return AC.savedVariables.hudPosY end,
-                    setFunc = function(val)
-                        AC.savedVariables.hudPosY = val
-                        AC:ApplyHUDPosition()
                     end,
                 },
             },
@@ -786,27 +773,29 @@ function AC:CreateSettings()
         menuIcon        = ICON_GENERIC,
         title           = "AutoConsume",
         author          = "user562",
-        version         = "3.5",
+        version         = "3.6",
         frameColor      = FRAME_GREY,
         previewControls = function()
             if AC_HUD.panel then return { AC_HUD.panel } end
             return {}
         end,
-        textSize        = function() return AC.savedVariables.settingsFontSize end,
+        textSize        = function() return AV().settingsFontSize end,
         textFont        = function()
-            local font = AC.savedVariables.settingsFont
+            local font = AV().settingsFont
             if type(font) ~= "string" or font == "" or font == DEFAULT_FONT then return nil end
             return font
         end,
-        windowOpacity   = function() return AC.savedVariables.settingsOpacity end,
-        rememberPage    = function() return AC.savedVariables.settingsRemember == true end,
+        windowOpacity   = function() return AV().settingsOpacity end,
+        rememberPage    = function()
+            return AV().settingsRemember == true or AC.keepPage == true or AC.moving == true
+        end,
         lastPage        = function()
-            local sv = AC.savedVariables
+            local sv = AV()
             if type(sv.settingsLastPage) ~= "table" then sv.settingsLastPage = {} end
             return sv.settingsLastPage
         end,
         accentColor     = function()
-            local sv = AC.savedVariables
+            local sv = AV()
             if sv.settingsHighlight ~= "Custom" then return nil end
             local c = sv.settingsHighlightColor
             if type(c) ~= "table" then return nil end
@@ -814,7 +803,25 @@ function AC:CreateSettings()
         end,
         options         = options,
     })
-    if not AC.settingsPanel then AC.settingsUnavailable = true end
+    if not AC.settingsPanel then
+        AC.settingsUnavailable = true
+        return
+    end
+
+    local scene = AC.settingsPanel.scene
+    if scene then
+        scene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_HIDDEN then
+                if AC.moving then
+                    AC.keepPage = true
+                    return
+                end
+                AC:EndPreview()
+            elseif newState == SCENE_SHOWN then
+                AC.keepPage = nil
+            end
+        end)
+    end
 end
 
 --------------------------------------------------
@@ -869,6 +876,25 @@ local function OnAddonLoaded(event, addonName)
         nil,
         DEFAULTS
     )
+
+    AC.accountVariables = ZO_SavedVars:NewAccountWide(
+        "AutoConsume_SavedVars",
+        1,
+        "Settings",
+        ACCOUNT_DEFAULTS
+    )
+
+    local sv, av = AC.savedVariables, AC.accountVariables
+    if not av.copiedFromCharacter then
+        for i = 1, #SETTINGS_KEYS do
+            local key = SETTINGS_KEYS[i]
+            if sv[key] ~= nil then av[key] = sv[key] end
+        end
+        av.copiedFromCharacter = true
+    end
+    for i = 1, #SETTINGS_KEYS do
+        sv[SETTINGS_KEYS[i]] = nil
+    end
 
     local settingsOk, settingsErr = pcall(function() AC:CreateSettings() end)
     if not settingsOk then
@@ -1142,6 +1168,134 @@ function AC:EndPreview()
 end
 
 --------------------------------------------------
+-- MOVE
+--------------------------------------------------
+AC.mover = {}
+
+function AC.mover:UpdateDirectionalInput(deltaS)
+    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
+    if x ~= 0 or y ~= 0 then
+        AC:SetPosition(AC.moveX + x * MOVE_SPEED * deltaS, AC.moveY - y * MOVE_SPEED * deltaS)
+    end
+    local _, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if scaleY ~= 0 then
+        AC:SetScale(AC.moveSize + scaleY * SCALE_SPEED * deltaS)
+    end
+end
+
+AC.moveKeybinds = {
+    alignment = KEYBIND_STRIP_ALIGN_CENTER,
+    {
+        name     = "Save",
+        keybind  = "UI_SHORTCUT_PRIMARY",
+        callback = function() AC:EndMove(true) end,
+    },
+    {
+        name     = "Default",
+        keybind  = "UI_SHORTCUT_TERTIARY",
+        callback = function() AC:MoveToDefault() end,
+    },
+    {
+        name     = "Cancel",
+        keybind  = "UI_SHORTCUT_NEGATIVE",
+        callback = function() AC:EndMove(false) end,
+    },
+}
+
+function AC:SetPosition(x, y)
+    local screenW, screenH = GuiRoot:GetDimensions()
+    AC.moveX = zo_clamp(x, 0, screenW)
+    AC.moveY = zo_clamp(y, 0, screenH)
+    AC.savedVariables.hudPosX = math.floor(AC.moveX + 0.5)
+    AC.savedVariables.hudPosY = math.floor(AC.moveY + 0.5)
+    AC:ApplyHUDPosition()
+end
+
+function AC:SetScale(size)
+    AC.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
+    local rounded = math.floor(AC.moveSize + 0.5)
+    if AC.savedVariables.hudIconSize ~= rounded then
+        AC.savedVariables.hudIconSize = rounded
+        AC:HUDRefresh()
+    end
+end
+
+function AC:MoveToDefault()
+    AC:SetScale(DEFAULTS.hudIconSize)
+    AC:SetPosition(DEFAULTS.hudPosX, DEFAULTS.hudPosY)
+end
+
+function AC:GetMoveScene()
+    if AC.moveScene then return AC.moveScene end
+    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
+    for i = 1, #PLACE_FRAGMENTS do
+        local fragment = rawget(_G, PLACE_FRAGMENTS[i])
+        if fragment then scene:AddFragment(fragment) end
+    end
+    scene:RegisterCallback("StateChange", function(oldState, newState)
+        if newState == SCENE_SHOWING then
+            AC:OnMoveShowing()
+        elseif newState == SCENE_HIDDEN then
+            AC:OnMoveHidden()
+        end
+    end)
+    AC.moveScene = scene
+    return scene
+end
+
+function AC:StartMove()
+    if AC.moving or not AC_HUD.panel then return end
+    AC.moveSaved = false
+    AC.moving = true
+    AC:GetMoveScene()
+    SCENE_MANAGER:Push(MOVE_SCENE)
+end
+
+function AC:OnMoveShowing()
+    local sv = AC.savedVariables
+    AC.moving = true
+    AC.movePreview = AC.previewing == true
+    AC.moveStartX, AC.moveStartY = sv.hudPosX, sv.hudPosY
+    AC.moveStartSize = sv.hudIconSize
+    AC.moveX, AC.moveY = sv.hudPosX, sv.hudPosY
+    AC.moveSize = sv.hudIconSize
+    AC.moveTier = AC_HUD.panel:GetDrawTier()
+    AC_HUD.panel:SetDrawTier(DT_MEDIUM)
+    KEYBIND_STRIP:AddKeybindButtonGroup(AC.moveKeybinds)
+    DIRECTIONAL_INPUT:Activate(AC.mover, AC_HUD.panel)
+    AC:StartPreview()
+    AC:HUDRefresh()
+end
+
+function AC:OnMoveHidden()
+    DIRECTIONAL_INPUT:Deactivate(AC.mover)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(AC.moveKeybinds)
+    if not AC.moveSaved then
+        AC:SetScale(AC.moveStartSize)
+        AC:SetPosition(AC.moveStartX, AC.moveStartY)
+    end
+    AC.moving = false
+    if AC.moveTier then
+        AC_HUD.panel:SetDrawTier(AC.moveTier)
+        AC.moveTier = nil
+    end
+    if not AC.movePreview then AC:EndPreview() end
+    AC:HUDRefresh()
+end
+
+function AC:EndMove(save)
+    if not AC.moving then return end
+    AC.moveSaved = save == true
+    if save then
+        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
+    else
+        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+    end
+    SCENE_MANAGER:HideCurrentScene()
+end
+
+--------------------------------------------------
 -- RESET
 --------------------------------------------------
 
@@ -1162,7 +1316,18 @@ function AC:ResetSettings()
     AC.savedVariables.foodID   = nil
     AC.savedVariables.xpItemID = nil
     AC.savedVariables.apItemID = nil
-    AC.savedVariables.settingsLastPage = nil
+
+    local av = AV()
+    for key, value in pairs(ACCOUNT_DEFAULTS) do
+        if type(value) == "table" then
+            local copy = {}
+            for k, v in pairs(value) do copy[k] = v end
+            av[key] = copy
+        else
+            av[key] = value
+        end
+    end
+    av.settingsLastPage = nil
 
     pending.foodID   = nil
     pending.xpItemID = nil

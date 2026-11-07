@@ -1,4 +1,5 @@
 local logger
+
 local function GetUnknownMotifLink(parser)
     local LCK = LibCharacterKnowledge
     if not LCK then
@@ -15,15 +16,32 @@ local function GetUnknownMotifLink(parser)
     if not parser.motif_num then
         return nil
     end
-    local chapter = parser.request_item.motif_page or ITEM_STYLE_CHAPTER_ALL
+    local request_item = parser.request_item or {}
+    local chapter = request_item.motif_page or ITEM_STYLE_CHAPTER_ALL
     local is_unknown = LCK.GetMotifKnowledgeForCharacter(motif, chapter) == LCK.KNOWLEDGE_UNKNOWN
     if not is_unknown then
         return nil
     end
 
-    local LCKI = LibCharacterKnowledgeInternal
-    local id = LCKI.TranslateItem({ styleId = motif, chapterId = chapter })
-    local link = LCKI.GetItemLink(id, LINK_STYLE_BRACKETS)
+    -- LibCharacterKnowledge no longer exposes LibCharacterKnowledgeInternal;
+    -- use its public API instead.
+    local items = LCK.GetMotifItemsFromStyle(motif)
+    if type(items) ~= "table" then
+        logger:Debug("No motif items for style " .. tostring(motif))
+        return nil
+    end
+    -- Same styleId/chapterId -> itemId logic as LCK's internal TranslateItem
+    local id
+    if chapter ~= ITEM_STYLE_CHAPTER_ALL then
+        id = items.chapters[chapter]
+    else
+        id = items.books and items.books[1] or nil
+    end
+    if not id or id == 0 then
+        logger:Debug("No chapter item id for style " .. tostring(motif) .. " chapter " .. tostring(chapter))
+        return nil
+    end
+    local link = LCK.GetItemLinkFromItemId(id, LINK_STYLE_BRACKETS)
     return link
 end
 
@@ -43,19 +61,20 @@ local function GetMotifInfo(motif_link)
                 table.insert(string_list,
                         string.format("TTC %s: %s",
                                 GetString(TTC_SETTING_INCLUDESUGGESTEDPRICE),
-                        --TTC:FormatNumber(ttc.SuggestedPrice)
                                 curr_fmt(ttc.SuggestedPrice)
                         )
                 )
             end
-            table.insert(string_list,
-                    string.format("TTC " .. GetString(TTC_PRICE_AGGREGATEPRICESXYZ) .. " %s",
-                            TTC:FormatNumber(ttc.Avg),
-                            TTC:FormatNumber(ttc.Min),
-                            TTC:FormatNumber(ttc.Max),
-                            ZO_Currency_GetPlatformFormattedCurrencyIcon(CURT_MONEY, false, true)
-                    )
-            )
+            if ttc.Avg ~= nil and ttc.Min ~= nil and ttc.Max ~= nil then
+                table.insert(string_list,
+                        string.format("TTC " .. GetString(TTC_PRICE_AGGREGATEPRICESXYZ) .. " %s",
+                                TTC:FormatNumber(ttc.Avg),
+                                TTC:FormatNumber(ttc.Min),
+                                TTC:FormatNumber(ttc.Max),
+                                ZO_Currency_GetPlatformFormattedCurrencyIcon(CURT_MONEY, false, true)
+                        )
+                )
+            end
         end
 
         local mm = priceData.mm
@@ -79,7 +98,6 @@ local function GetOrCreateTooltipControlForMotifInfo(control)
     local motif_label = WINDOW_MANAGER:GetControlByName(motif_label_name)
     if motif_label == nil then
         logger:Debug("Create " .. motif_label_name)
-        --motif_label = CreateControlFromVirtual(motif_label_name, control, "ZO_InventorySlot")
         motif_label = CreateControl(motif_label_name, control, CT_LABEL)
         motif_label:SetFont("ZoFontGame")
         motif_label:SetMouseEnabled(true)
@@ -108,9 +126,6 @@ local function GetOrCreateTooltipControlForMotifInfo(control)
         motif_label:SetHandler('OnMouseDown', function(self, button)
             if button == MOUSE_BUTTON_INDEX_RIGHT then
                 zo_callLater(function()
-
-                    --local chat = CHAT_SYSTEM.textEntry:GetText()
-                    --StartChatInput(chat .. self.data.link)
                     ClearMenu()
                     if TamrielTradeCentre then
                         local itemInfo = TamrielTradeCentre_ItemInfo:New(self.data.link)
@@ -156,6 +171,10 @@ local function GetOrCreateTooltipControlForMotifInfo(control)
             end
         end)
     end
+    -- NOTE: ZO_Tooltip:AddControl() is a layout operation, not just a
+    -- parent change: it (re)inserts the label into the tooltip's row
+    -- flow after the tooltip has been rebuilt for the current item.
+    -- Tooltips are reused for many items, so this must run every time.
     control:AddControl(motif_label)
     motif_label:SetAnchor(CENTER)
     return motif_label
@@ -163,46 +182,53 @@ end
 
 local function HookWritWorthy()
     logger:Debug("HookWritWorthy")
-    local orig_TooltipInsertOurText = WritWorthy.TooltipInsertOurText
+
+    -- Capture the parser created by ToMatKnowList, keyed by item_link:
+    -- a tooltip then consumes the parser of its *own* item_link, even if
+    -- other code (WritWorthy window etc.) calls ToMatKnowList in between.
+    -- Entry is consumed on read, so nothing accumulates.
+    local parser_cache = {}
     local orig_ToMatKnowList = WritWorthy.ToMatKnowList
-    local last_parser
-    local ToMatKnowList = function(item_link)
-        logger:Debug("ToMatKnowList")
-        local result = { orig_ToMatKnowList(item_link) }
-        last_parser = result[3]
-        return unpack(result)
+    WritWorthy.ToMatKnowList = function(item_link, ...)
+        local mat_list, know_list, parser = orig_ToMatKnowList(item_link, ...)
+        parser_cache[item_link] = parser
+        return mat_list, know_list, parser
     end
 
-    WritWorthy["ToMatKnowList"] = ToMatKnowList
-
-    local TooltipInsertOurText = function(control, item_link, purchase_gold, unique_id, style)
+    SecurePostHook(WritWorthy, "TooltipInsertOurText", function(control, item_link, purchase_gold, unique_id, style)
+        -- Only master writs were parsed by the original function
+        if GetItemLinkItemType(item_link) ~= ITEMTYPE_MASTER_WRIT then
+            return
+        end
         logger:Debug("TooltipInsertOurText")
-        --orig_TooltipInsertOurText(control, item_link, purchase_gold, unique_id, style)
         local motif_label = GetOrCreateTooltipControlForMotifInfo(control)
         motif_label:SetHidden(true)
-        if last_parser then
-            local motif_link = GetUnknownMotifLink(last_parser)
-            if motif_link then
-                motif_label.data = { link = motif_link }
-                local motif_text = GetMotifInfo(motif_link)
-                motif_label:SetText(motif_text)
-                --motif_label.itemLink = motif_link
-                motif_label:SetHidden(false)
-            end
-			last_parser = nil
+
+        -- Parser from the just-finished ToMatKnowList call for this link;
+        -- re-parse only as a fallback if WritWorthy stops calling it there
+        local parser = parser_cache[item_link]
+        parser_cache[item_link] = nil
+        if not parser then
+            local _, _, fallback = WritWorthy.ToMatKnowList(item_link)
+            parser = fallback
         end
-    end
-    SecurePostHook(WritWorthy, "TooltipInsertOurText", TooltipInsertOurText)
+        if not parser then
+            return
+        end
+        local motif_link = GetUnknownMotifLink(parser)
+        if motif_link then
+            motif_label.data = { link = motif_link }
+            motif_label:SetText(GetMotifInfo(motif_link))
+            motif_label:SetHidden(false)
+        end
+    end)
 end
 
 local function Start(addonName)
     if LibDebugLogger then
         logger = LibDebugLogger(addonName)
-        else
-        logger = {}
-        logger.Debug = function()
-
-        end
+    else
+        logger = { Debug = function() end }
     end
     -- On load
     logger:Debug("Start")

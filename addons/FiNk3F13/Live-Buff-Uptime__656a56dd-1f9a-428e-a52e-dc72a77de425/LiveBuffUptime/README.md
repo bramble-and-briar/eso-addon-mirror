@@ -1,5 +1,76 @@
 # LiveBuffUptime
 
+2.4.4: Der native Skill-Zaehler startet bereits mit ESOs eigenem Kampfstatus.
+Eine spaetere LibCombat2-Startmeldung setzt laufende Rohsummen nicht zurueck.
+Damit bleiben Anfangstreffer auch dann erhalten, wenn die Bibliotheksmeldung
+spaeter als das einsekundige Rueckblickfenster ankommt. Buff-Messung bleibt
+unveraendert an der Bibliothek; keine Korrektur aus Puppen- oder Chatwerten.
+
+2.4.3: Konsolen-Skill-Schaden wird direkt aus eigenen ESO-Schadensereignissen
+und denen eigener Begleiter erfasst. Ein auf 200 Ereignisse begrenzter Puffer
+uebernimmt Treffer aus der letzten Sekunde vor dem Bibliotheks-Kampfstart.
+Diese Rohwerte werden unabhaengig von LibCombat2-Resets gesammelt; beim
+Speichern ersetzen sie die Bibliothekswerte, damit keine Doppelzaehlung entsteht.
+DPS verwenden ersten bis letzten eigenen Treffer mit mindestens einer Sekunde,
+entsprechend der Zeitformel im ESO-Puppenlog. Ohne Rohereignisse bleibt der
+LibCombat2-Abschluss der Rueckfall. Buff-Uptimes und PC-LibCombat bleiben erhalten.
+
+2.4.1: Gespeicherter Skill-Schaden und Trefferzahlen werden beim Abschluss aus
+den vollstaendigen LibCombat2-Summen pro eigener Quelle, Gegner und Schadens-ID
+uebernommen. Unvollstaendige Live-Meldungen werden ersetzt, nicht addiert.
+Eigene Begleiter und Boss-Fortsetzungen bleiben enthalten; Gruppenschaden,
+Selbstschaden und Heilung werden ausgeschlossen. Die DPS-Zeit folgt den
+zugehoerigen Schadensdaten. PC-LibCombat und Bibliotheksabschluesse ohne
+detaillierte Skill-Daten verwenden weiterhin die erfassten Live-Werte.
+
+2.3.4: Skill-Schaden bleibt wie in CMX nach Schadens-ID getrennt; ID und
+Trefferzahl stehen unter dem Namen. Auf PC stammen die Summen aus dem
+LibCombat-EVENT_DAMAGE_OUT-Strom (hitValue plus Schild-Overflow), nicht mehr
+aus einer parallelen rohen ESO-Zaehllogik. Rohmeldungen ergaenzen dort nur
+Gegnernamen. DPS verwenden die vom PC-LibCombat-Abschluss gelieferte dpstime.
+Die echte PC-API mit GetCurrentFight wird ebenfalls als PC-Bibliothek erkannt.
+Aufzeichnungen mit zuvor zusammengefassten IDs lassen sich nicht nachtraeglich
+wieder aufteilen; fuer den Vergleich einen neuen Kampf aufzeichnen.
+
+2.3.3: Der rechte Hintergrund gehoert nur zu den geoeffneten Details. Das
+Statistikfenster hat keinen automatischen Szenen-Fade mehr, der beim Oeffnen
+kurz den vorherigen Bericht einblenden konnte. Gleichnamige Skill-Varianten
+werden in einer Zeile summiert, einschliesslich Trefferzahl, DPS und Anteil.
+Das gilt auch beim Anzeigen bereits gespeicherter Skill-Berichte; deren
+urspruengliche Einzelwerte werden beim Anzeigen nicht veraendert.
+
+2.3.2: Die rechte Statistikflaeche erscheint ausschliesslich in den geoeffneten
+Buff-/Debuff-/Skill-Details. Gebiets- und Kampfauswahl zeigen keine zusaetzliche
+Uptime-Vorschau mehr. Zurueck, erneutes Oeffnen und abgebrochenes Loeschen
+stellen den passenden Sichtbarkeitszustand wieder her.
+
+2.3.1: LibCombat und LibCombat2 sind optionale Ladeabhaengigkeiten. Die bisherige
+ConsoleDependsOn-Pflicht fuer LibCombat2 blockierte Tests im Konsolenlayout auf
+PC bereits vor dem Start des Addons. Vorhandene Bibliotheken werden weiterhin
+vor LiveBuffUptime geladen; die automatische Auswahl und Ersatzmessung bleiben
+erhalten. LibHarvensAddonSettings bleibt erforderlich.
+
+2.3.0: Die echte PC-LibCombat-Anbindung wird auch im Controller-/Konsolenlayout
+bevorzugt, wenn ihre erforderliche API vorhanden ist. LibCombat2 bleibt die
+Anbindung fuer die Konsole und der Rueckfall bei fehlender PC-Bibliothek.
+L1/R1 wechselt ausschliesslich in den geoeffneten Buff-/Debuff-/Skill-
+Details. Gebiets- und Kampfauswahl haben keine Seitenreiter und keine Schulter-
+Aktionen mehr. Skills bleiben auf derselben Detailstufe; Zurueck fuehrt zur
+Kampfauswahl. Der parallele native Header-Tabwechsel wurde entfernt, damit
+PC-Tastatur und Controller nur einen zustaendigen Seitenwechsel-Handler haben.
+
+2.2.8: Kampfberichte mit den drei Reitern Buffs, Debuffs und Skills. R1/RB
+wechselt vorwaerts, L1/LB rueckwaerts; der ausgewaehlte Kampf bleibt erhalten.
+In der Kampfliste zeigt rechts jede Effektzeile ihre Uptime. Mit Bestaetigen
+bleiben die bisherigen Spieler-/Gegnerdetails erreichbar. Die Skill-Seite zeigt
+eigenen Schaden samt eigenen Begleitern pro Faehigkeit, absteigend nach
+Gesamtschaden, mit DPS und Schadensanteil. Mehr als 12 Zeilen sind mit dem rechten
+Trigger erreichbar. Es werden nur Summen und Trefferzahlen gespeichert, keine
+einzelnen Trefferverlaeufe. Alte Berichte ohne Skill-Daten bleiben lesbar und
+werden entsprechend gekennzeichnet. Gebiets-/Datumsgruppierung, Sperren und
+Loeschen bleiben erhalten. Native Reiterstruktur zuvor mit BattleScrolls
+ui/journal/journal.lua, chronicler.lua und renderers/damage.lua abgeglichen.
+
 Ab 2.2.7 zeigt das HUD gelieferte Stapelzahlen ueber 1 statt der Restzeit im Icon. Bei Effekten ohne Ablaufzeit wird auch ein einzelner Stapel angezeigt; nur ohne gelieferte Stapelzahl bleibt das Sternchen. Die Uptime-Berechnung bleibt unveraendert.
 
 Eigenstaendiges ESO-Addon fuer frei platzierbare Effekt-Tracker.

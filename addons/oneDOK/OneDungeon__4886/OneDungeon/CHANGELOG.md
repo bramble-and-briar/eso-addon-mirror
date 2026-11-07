@@ -1,25 +1,14 @@
-# OneDungeon 26.1 — 03.10.2026
+# OneDungeon 26.11.1
 
-Автор: oneDOK. Поддерживаемый ESO API: 101051.
+- Added settings under Settings > Addons > OneDungeon (requires LibAddonMenu-2.0 r43+).
+- Added a saved choice between standard ESO dungeon order and alphabetical sorting, applied immediately without clearing selections.
+- Localized the settings in all seven supported languages and completed missing Russian interface strings.
 
-## Изменения
+# OneDungeon 26.1
 
-По сравнению с предоставленным архивом «OneDungeon 1.1.zip» от 29.09.2026 (внутри него указана версия 1.0):
+- Moved the quest legend to the Quest header and added native ESO icons.
+- Added localized difficulty tooltips to N/V headers.
+- Improved accepted pledge visibility and icon layering.
+- Updated the addon version to 26.1.
 
-- Легенда заданий перенесена на заголовок Quest; значки в строках больше не открывают подсказку.
-- Легенда показывает штатные значки ESO и локализованные пояснения во всех семи языках.
-- Заголовки N/V показывают полные локализованные названия сложности. Подсказки очищаются при уходе курсора и скрытии заголовков.
-- Принятый обет обозначается отдельной текстурой и остаётся различимым даже без свечения. Исправлены слои значка и свечения, а также сброс текстуры при повторном использовании строк.
-- Номер версии в манифесте и документации обновлён до 26.1.
-
-Текущая логика совпадает с локальным архивом dist/OneDungeon-1.0.zip от 02.10.2026; после него изменены только номер версии и документация релиза.
-
-Если базой считать первый коммит версии 1.0 (8bf674e), также добавлены немецкий, французский, испанский, китайский и японский языки, а локализация переведена на штатные ESO String IDs с английским резервным текстом.
-
-## Установка
-
-Распакуйте папку OneDungeon в Documents\Elder Scrolls Online\live\AddOns, замените файлы предыдущей установки и выполните /reloadui. Внешние библиотеки не требуются.
-
-## Ограничения проверки
-
-Локальные проверки используют имитацию ESO API. Отрисовка, выбор сложности, очередь и ready check требуют проверки в ESO; подтверждённого результата в игровом клиенте нет. План: docs/TESTING.md в репозитории.
+Compared with the supplied OneDungeon 1.1.zip. ESO API: 101051. In-game validation pending.

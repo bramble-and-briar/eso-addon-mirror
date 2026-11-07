@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__fc98f3c0-0b5a-4797-aaa4-379955c3310c) | sirinsidiator | Console | — |
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__2277) | sirinsidiator | PC / Mac | 1.2.0 |
 | [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__031ddfc1-c44d-4452-ab48-42b7c429bc81) | sirinsidiator | Console | — |
-| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.7.0 |
+| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.7.1 |
 | [LibDelayedHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibDelayedHandler__2807) | zelenin | PC / Mac | 0.0.2 |
 | [LibDialog - Custom confirmation dialog with 2 buttons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibDialog---Custom-confirmation-dialog-with-2-buttons__1931) | Baertram | PC / Mac | 1.27 |
 | [LibDungeonFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jindra/LibDungeonFinder__4600) | Jindra | PC / Mac | 1.2.0 |
@@ -142,6 +142,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibExtendedSavedVars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/LibExtendedSavedVars__4755) | Phobus11 | PC / Mac | 107 |
 | [LibFBCommon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/LibFBCommon__3977) | FlatBadger | PC / Mac | 1.0.7 |
 | [LibFeedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/LibFeedback__2079) | Dolgubon | PC / Mac | 1.32 |
+| [LibFights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/LibFights__8be171bd-c74f-44e8-811e-65bda3a42015) | Vixen_Hunny | Console | — |
 | [LibFilteredChatPanel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/LibFilteredChatPanel__3240) | Kyzeragon | PC / Mac | 1.0.0 |
 | [LibFilters-3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibFilters-3.0__2343) | Baertram | PC / Mac | 3.0r5.0 |
 | [LibFloatingIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/LibFloatingIcons__3599) | ExoY | PC / Mac | 0.2 |
@@ -356,7 +357,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LootWall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vicodine/LootWall__1010) | Vicodine | PC / Mac | 0.7 |
 | [LootWall Ultimate 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redgabber/LootWall-Ultimate-2018__1988) | redgabber | PC / Mac | 1.0.8 |
 | [Lore Book Locations](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni42/Lore-Book-Locations__ca0d62e7-58ab-4ea4-9729-f139cb28a64d) | Shinni42 | Console | — |
-| [LoreBook Locations (3D, Compass, Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/LoreBook-Locations-3D-Compass-Map-Pins__4756) | Shinni | PC / Mac | 1.0.104 |
+| [LoreBook Locations (3D, Compass, Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/LoreBook-Locations-3D-Compass-Map-Pins__4756) | Shinni | PC / Mac | 1.0.109 |
 | [LoreBooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/LoreBooks__288) | Kyoma | PC / Mac | 108 |
 | [Lorebooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Lorebooks__d324f223-1cd9-40d2-8e37-8cf302dde557) | Sharlikran | Console | — |
 | [LorebooksColoredLibrary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/LorebooksColoredLibrary__3168) | tim99 | PC / Mac | 4.1 |

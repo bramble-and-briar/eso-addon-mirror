@@ -24,10 +24,15 @@ function A:Discover(finder)
             end
         end
     end
-    table.sort(rows, function(a, b)
-        if a.name == b.name then return a.key < b.key end
-        return a.name < b.name
-    end)
+    -- GetLocationsData already follows ESO's native order. Keep the first
+    -- occurrence when merging difficulties, including veteran-only entries.
+    if self.saved and self.saved.sortOrder == "alphabetical" then
+        for _, row in ipairs(rows) do row.sortName = zo_strlower(row.name) end
+        table.sort(rows, function(a, b)
+            if a.sortName == b.sortName then return a.key < b.key end
+            return a.sortName < b.sortName
+        end)
+    end
     return rows
 end
 

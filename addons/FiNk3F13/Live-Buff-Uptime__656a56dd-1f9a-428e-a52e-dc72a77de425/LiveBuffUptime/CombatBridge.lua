@@ -23,6 +23,7 @@ function Bridge.Create(lib)
     api.name = "LibCombat2"
     api.EVENT_ENCOUNTER_DAMAGE = "EVENT_ENCOUNTER_DAMAGE"
     local first, last
+    local damageFirst, damageLast
     local rawUnits, rawUnitCount = {}, 0
     local recent, recentRing, recentIndex = {}, {}, 0
     local closed = false
@@ -103,7 +104,71 @@ function Bridge.Create(lib)
         if event == "EVENT_DAMAGE_OUT" or event == "EVENT_HEAL_OUT" or event == "EVENT_HEAL_SELF" then
             first, last = math.min(first or time, time), math.max(last or time, time)
         end
+        if event == "EVENT_DAMAGE_OUT" and (value or 0) + (overflow or 0) > 0 then
+            damageFirst, damageLast = math.min(damageFirst or time, time), math.max(damageLast or time, time)
+        end
         emit(event, time, result, source, target, ability, value, damageType, overflow)
+    end
+    local function damageSnapshot(fight, units, playerId)
+        -- v2 damageDone is [sourceId][targetId][abilityId], with string-keyed
+        -- aggregate fields at every level. Read leaves once at fight end;
+        -- callback-time unit classification and ordering can be incomplete.
+        local snapshot = { skills = {}, targets = {}, total = 0 }
+        local found = false
+        for sourceId, source in pairs(fight.damageDone or {}) do
+            if type(sourceId) == "number" and type(source) == "table" and (sourceId == playerId
+                or (COMBAT_UNIT_TYPE_PLAYER_PET ~= nil and units[sourceId]
+                    and units[sourceId].unitType == COMBAT_UNIT_TYPE_PLAYER_PET)) then
+                for targetId, target in pairs(source) do
+                    if type(targetId) == "number" and targetId > 0 and type(target) == "table" then
+                        local kind = units[targetId] and units[targetId].unitType
+                        local friendly = targetId == playerId or kind == COMBAT_UNIT_TYPE_PLAYER
+                            or (COMBAT_UNIT_TYPE_GROUP ~= nil and kind == COMBAT_UNIT_TYPE_GROUP)
+                            or (COMBAT_UNIT_TYPE_PLAYER_PET ~= nil and kind == COMBAT_UNIT_TYPE_PLAYER_PET)
+                            or (COMBAT_UNIT_TYPE_GROUP_PET ~= nil and kind == COMBAT_UNIT_TYPE_GROUP_PET)
+                        for id, data in pairs(target) do
+                            if type(id) == "number" and id > 0 and type(data) == "table"
+                                and type(data.totalAmount) == "number" and data.totalAmount >= 0
+                                and data.totalAmount < math.huge then
+                                found = true
+                                if not friendly and data.totalAmount > 0 then
+                                    local skill = snapshot.skills[id] or { damage = 0, hits = 0 }
+                                    snapshot.skills[id] = skill
+                                    skill.damage = skill.damage + data.totalAmount
+                                    skill.hits = skill.hits + (data.totalCount or 0)
+                                    local recipient = snapshot.targets[targetId] or { damage = 0 }
+                                    snapshot.targets[targetId] = recipient
+                                    recipient.damage = recipient.damage + data.totalAmount
+                                    snapshot.total = snapshot.total + data.totalAmount
+                                    local starts = data.startTime or target.startTime
+                                    local ends = data.endTime or target.endTime
+                                    if starts and ends then
+                                        snapshot.starts = math.min(snapshot.starts or starts, starts)
+                                        snapshot.ends = math.max(snapshot.ends or ends, ends)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return found and snapshot or nil
+    end
+    local function mergeDamageSnapshot(current, previous)
+        if not current or not previous then return nil end
+        for _, key in ipairs({ "skills", "targets" }) do
+            for id, row in pairs(previous[key]) do
+                local entry = current[key][id] or { damage = 0, hits = 0 }
+                current[key][id] = entry
+                entry.damage = entry.damage + row.damage
+                if key == "skills" then entry.hits = (entry.hits or 0) + row.hits end
+            end
+        end
+        current.total = current.total + previous.total
+        if previous.starts then current.starts = math.min(current.starts or previous.starts, previous.starts) end
+        if previous.ends then current.ends = math.max(current.ends or previous.ends, previous.ends) end
+        return current
     end
     local function effect(time, id, ability, change, effectType, stacks, sourceType, slot)
         if not id or not ability or not slot then return end
@@ -150,6 +215,7 @@ function Bridge.Create(lib)
                 else
                     if pending then finish(pending, L("Getrennter Kampf oder Boss-Reset")) end
                     first, last, closed, segments = nil, nil, false, 1
+                    damageFirst, damageLast = nil, nil
                     rawUnits, rawUnitCount = {}, 0
                 end
                 recent, recentRing, recentIndex = {}, {}, 0
@@ -209,11 +275,29 @@ function Bridge.Create(lib)
                 ends = math.max(ends or data.endTime, data.endTime)
                 return math.max(0, data.endTime - data.startTime) / 1000
             end
-            local dps = span(fight.damageDone and fight.damageDone[playerId])
+            -- Skill DPS uses the own-damage window, including own pets. Healing
+            -- and incoming/group actions still retain their separate uptime basis.
+            for id, data in pairs(fight.damageDone or {}) do
+                if id == playerId or (COMBAT_UNIT_TYPE_PLAYER_PET ~= nil and units[id]
+                    and units[id].unitType == COMBAT_UNIT_TYPE_PLAYER_PET) then
+                    if data.startTime and data.endTime then
+                        span(data)
+                        damageFirst = math.min(damageFirst or data.startTime, data.startTime)
+                        damageLast = math.max(damageLast or data.endTime, data.endTime)
+                    end
+                end
+            end
+            local dps = damageFirst and damageLast and math.max(1, (damageLast - damageFirst) / 1000) or 0
             local hps = span(fight.healingDone and fight.healingDone[playerId])
+            local snapshot = damageSnapshot(fight, units, playerId)
+            if pending then snapshot = mergeDamageSnapshot(snapshot, pending.skillDamageSnapshot) end
+            if snapshot and snapshot.starts and snapshot.ends then
+                dps = math.max(1, (snapshot.ends - snapshot.starts) / 1000)
+            end
             first, last = starts, ends
             local summary = { starttime = starts, endtime = ends, units = units, playerid = playerId,
-                dpstime = dps, hpstime = hps, activetime = starts and ends and (ends - starts) / 1000 or 0 }
+                dpstime = dps, hpstime = hps, activetime = starts and ends and (ends - starts) / 1000 or 0,
+                skillDamageSnapshot = snapshot }
             if pending then
                 local count = 0
                 for _ in pairs(units) do count = count + 1 end

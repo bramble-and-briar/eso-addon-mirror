@@ -269,7 +269,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Crafting Swit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AssemblerManiac/Crafting-Swit__825) | AssemblerManiac | PC / Mac | 1.07 |
 | [Crafting Tracker 2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JRCandeias/Crafting-Tracker-2.0__1577) | JRCandeias | PC / Mac | 2.0.0 |
 | [Crafting Writ Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Argusus/Crafting-Writ-Assistant__1121) | Argusus | PC / Mac | .34b |
-| [CraftingDailyNotification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eswagrom/CraftingDailyNotification__4808) | Eswagrom | PC / Mac | 1.0 |
+| [CraftingDailyNotification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eswagrom/CraftingDailyNotification__4808) | Eswagrom | PC / Mac | 1.2 |
 | [CraftingHouse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PrimeRibeye/CraftingHouse__3492) | PrimeRibeye | PC / Mac | 1.4 |
 | [CraftMaterialAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant__949980bd-b411-4102-82d7-4e64ba17bc3a) | lesse83 | Console | — |
 | [CraftMaterialAssistant (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant-Beta__96d1c172-661c-4739-960f-fcf660401298) | lesse83 | Console | — |

@@ -62,7 +62,11 @@ function A:Dump()
 end
 
 function A:Initialize()
-    self.saved = ZO_SavedVars:NewAccountWide("OneDungeonSavedVariables", 1, nil, { debug = false })
+    self.saved = ZO_SavedVars:NewAccountWide("OneDungeonSavedVariables", 1, nil, {
+        debug = false, sortOrder = "standard",
+    })
+    if self.saved.sortOrder ~= "alphabetical" then self.saved.sortOrder = "standard" end
+    self:InstallSettings()
     SLASH_COMMANDS["/onedungeon"] = function(command)
         if command == "debug" then
             self.saved.debug = not self.saved.debug

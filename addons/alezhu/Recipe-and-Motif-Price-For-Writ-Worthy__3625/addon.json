@@ -1,26 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/alezhu/Recipe-and-Motif-Price-For-Writ-Worthy__3625",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "alezhu",
   "canonical_id": "esoui:3625",
   "category_id": "40",
   "compatibility": [
     {
-      "name": "Scribes of Fate",
-      "version": "8.3.5"
-    },
-    {
-      "name": "Firesong",
-      "version": "8.2.5"
-    },
-    {
-      "name": "Lost Depths",
-      "version": "8.1.5"
-    },
-    {
-      "name": "High Isle",
-      "version": "8.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3625",
@@ -29,7 +18,7 @@
     "RecipePriceForWritWorthy"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3625/",
-  "fingerprint": "6440ad3c748ac9c41fefa527e2c4bdf1af2cb5b23fba37ebc513db8cccbca402",
+  "fingerprint": "4581795d033817104efa864abed7f973596e129fbb406f59177ca09ff339706b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12345.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw12346.jpg",
@@ -42,11 +31,11 @@
   "source_id": "3625",
   "source_url": "https://www.esoui.com/downloads/info3625-RecipeandMotifPriceForWritWorthy.html",
   "stats": {
-    "downloads": 11213,
+    "downloads": 11815,
     "favorites": 11,
-    "monthly_downloads": 174
+    "monthly_downloads": 175
   },
   "title": "Recipe and Motif Price For Writ Worthy",
-  "updated_at": 1684662312000,
-  "version": "1.1.1"
+  "updated_at": 1793948164000,
+  "version": "1.2.0"
 }

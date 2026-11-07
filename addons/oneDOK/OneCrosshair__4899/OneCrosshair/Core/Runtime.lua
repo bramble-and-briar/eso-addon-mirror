@@ -3,8 +3,7 @@ O.Runtime = {}
 function O.Runtime.New(settings)
     local self = { settings = settings, active = false, visibility = O.VisibilityController.New(),
         health = O.Health.New(), magicka = O.Magicka.New(), stamina = O.Stamina.New(),
-        shield = O.Shield.New(), gcd = O.GCD.New(),
-        warnings = { health = O.LowResource.New(), magicka = O.LowResource.New(), stamina = O.LowResource.New() } }
+        shield = O.Shield.New(), gcd = O.GCD.New() }
     self.root = WINDOW_MANAGER:CreateTopLevelWindow("OneCrosshairHUD")
     self.root:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     self.root:SetDimensions(80, 70)
@@ -24,7 +23,6 @@ function O.Runtime.New(settings)
     end)
     EVENT_MANAGER:RegisterForEvent(O.name .. "Deactivated", EVENT_PLAYER_DEACTIVATED, function()
         self.active = false
-        O.LowResource.Reset(self.warnings, GetFrameTimeMilliseconds())
         self.gcd = O.GCD.New()
         self.root:SetHidden(true)
         O.ReticleReplacement.SetActive(false)
@@ -45,7 +43,6 @@ function O.Runtime.Update(self)
     self.crosshair.root:SetHidden(native)
     O.NativeReticleColor.Update(visible and native, native and IsUnitInCombat("player"), now)
     if not visible then
-        O.LowResource.Reset(self.warnings, now)
         O.HeavyChannel.Read(s.gcd, now, false) -- expire without a hidden completion frame
         self.gcd = O.GCD.New()
         return
@@ -62,8 +59,7 @@ function O.Runtime.Update(self)
         local alpha = O.VisibilityController.Alpha(self.visibility, name, s.visibility, s.resources,
             state.combat, resource.fraction < 1, now) * s.hudOpacity
         if name == "health" then healthAlpha = alpha end
-        local glow = O.LowResource.Intensity(self.warnings[name],
-            alpha > 0 and O.LowResource.Active(s.lowResource, resource.fraction), now)
+        local glow = O.LowResource.Active(s.lowResource, resource.fraction)
         O.ResourceRing.Draw(self.ring, name, fills[name], resource.color, alpha, glow)
     end
     O.ResourceRing.Draw(self.ring, "shield", O.Shield.Read(self.shield, self.health.maximum, now),

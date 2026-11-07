@@ -47,7 +47,6 @@ function QTI.RegisterSettings()
 		displayName = "|cFFD700Quest Tracker Improved|r",
 		author = "|cFFD700@Atharti|r",
 		registerForRefresh = true,
-		registerForDefaults = true,
 	}
 
 	local optionsData = {
@@ -455,6 +454,28 @@ function QTI.RegisterSettings()
 					end,
 				},
 				{
+					type = "checkbox",
+					name = "Use House Icon Instead of Name",
+					tooltip = "Replaces the house name with a house icon.",
+					getFunc = function() return QTI.SV.houseUseIcon end,
+					setFunc = function(value)
+						QTI.SV.houseUseIcon = value
+						QTI.ApplyHouseStyle()
+						HOUSE_INFORMATION_TRACKER:Update()
+					end,
+				},
+				{
+					type = "checkbox",
+					name = "Show Tags",
+					tooltip = "Toggle house tags.",
+					getFunc = function() return QTI.SV.houseShowTags end,
+					setFunc = function(value)
+						QTI.SV.houseShowTags = value
+						QTI.ApplyHouseStyle()
+						HOUSE_INFORMATION_TRACKER:Update()
+					end,
+				},
+				{
 					type = "header",
 					name = "House Name",
 				},
@@ -467,6 +488,7 @@ function QTI.RegisterSettings()
 					getFunc = function() return QTI.SV.houseHeaderFont end,
 					setFunc = function(value) QTI.SV.houseHeaderFont = value; QTI.ApplyHouseStyle() end,
 					width = "half",
+					disabled = function() return QTI.SV.houseUseIcon end,
 				},
 				{
 					type = "slider",
@@ -478,6 +500,7 @@ function QTI.RegisterSettings()
 					getFunc = function() return QTI.SV.houseHeaderSize end,
 					setFunc = function(value) QTI.SV.houseHeaderSize = value; QTI.ApplyHouseStyle() end,
 					width = "half",
+					disabled = function() return QTI.SV.houseUseIcon end,
 				},
 				{
 					type = "colorpicker",
@@ -492,6 +515,7 @@ function QTI.RegisterSettings()
 						QTI.ApplyHouseStyle()
 					end,
 					width = "half",
+					disabled = function() return QTI.SV.houseUseIcon end,
 				},
 				{
 					type = "dropdown",
@@ -502,6 +526,7 @@ function QTI.RegisterSettings()
 					getFunc = function() return QTI.SV.houseHeaderStyle end,
 					setFunc = function(value) QTI.SV.houseHeaderStyle = value; QTI.ApplyHouseStyle() end,
 					width = "half",
+					disabled = function() return QTI.SV.houseUseIcon end,
 				},
 				{
 					type = "header",
@@ -614,6 +639,7 @@ function QTI.RegisterSettings()
 					getFunc = function() return QTI.SV.houseTagsFont end,
 					setFunc = function(value) QTI.SV.houseTagsFont = value; QTI.ApplyHouseStyle() end,
 					width = "half",
+					disabled = function() return not QTI.SV.houseShowTags end,
 				},
 				{
 					type = "slider",
@@ -625,6 +651,7 @@ function QTI.RegisterSettings()
 					getFunc = function() return QTI.SV.houseTagsSize end,
 					setFunc = function(value) QTI.SV.houseTagsSize = value; QTI.ApplyHouseStyle() end,
 					width = "half",
+					disabled = function() return not QTI.SV.houseShowTags end,
 				},
 				{
 					type = "colorpicker",
@@ -639,6 +666,7 @@ function QTI.RegisterSettings()
 						QTI.ApplyHouseStyle()
 					end,
 					width = "half",
+					disabled = function() return not QTI.SV.houseShowTags end,
 				},
 				{
 					type = "dropdown",
@@ -649,6 +677,7 @@ function QTI.RegisterSettings()
 					getFunc = function() return QTI.SV.houseTagsStyle end,
 					setFunc = function(value) QTI.SV.houseTagsStyle = value; QTI.ApplyHouseStyle() end,
 					width = "half",
+					disabled = function() return not QTI.SV.houseShowTags end,
 				},
 			},
 		},

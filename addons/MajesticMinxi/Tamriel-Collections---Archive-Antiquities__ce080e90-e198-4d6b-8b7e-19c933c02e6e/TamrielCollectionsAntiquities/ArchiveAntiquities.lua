@@ -1,10 +1,24 @@
--- Tamriel Collections - Archive Antiquities v0.1.8
+-- Tamriel Collections - Archive Antiquities v1.0.2
 -- Whole rewards and their parts share native recovery and codex progress.
 local TC=TamrielCollections
 local ID,TEMPLATE='antiquities','ZO_QuestJournal_Gamepad_MenuEntryTemplate'
 local Catalogue=TC.antiquityCatalogue
 local Key=Catalogue.Key
-local Render,ShowFamily,Install
+local Render,ShowSelection,Install,NavigationLayout,StartLeadRefresh
+local function Now()return GetFrameTimeSeconds and GetFrameTimeSeconds()or 0 end
+local function ActiveLead(part)
+    return part.hasLead and part.requiresLead and(not part.leadExpires or part.leadExpires>Now())or false
+end
+local function ExpiryText(part)
+    local seconds=part.leadExpires and math.max(0,part.leadExpires-Now())
+    if not seconds then return 'Active lead'end
+    local value,unit
+    if seconds>=86400 then value,unit=math.ceil(seconds/86400),'day'
+    elseif seconds>=3600 then value,unit=math.ceil(seconds/3600),'hour'
+    elseif seconds>=60 then value,unit=math.ceil(seconds/60),'minute'
+    else value,unit=math.ceil(seconds),'second'end
+    return string.format('Active lead - expires in %d %s%s',value,unit,value==1 and ''or 's')
+end
 local function Active(screen)
     return screen.activeModuleId==ID and (screen.mode=='styles' or screen.mode=='details')
 end
@@ -46,10 +60,30 @@ local function Matches(screen,item)
     return PartVisible(screen,item) and InZone(item,screen._tcaZone)
         and (parentMatch or item.nameKey:find(query,1,true))
 end
+local function LeadCount(screen,item)
+    if item.parts then
+        if not PartVisible(screen,item)then return 0 end
+        local count=0
+        for _,part in ipairs(item.parts)do
+            if Matches(screen,part)and ActiveLead(part)then count=count+1 end
+        end
+        return count
+    end
+    return Matches(screen,item)and ActiveLead(item)and 1 or 0
+end
+local function LeadSummary(count)
+    return string.format('%d active lead%s',count,count==1 and ''or 's')
+end
+local function LeadBadge(count,group)
+    if count==0 then return ''end
+    local text=group and(count..' LEAD'..(count==1 and ''or 'S'))or 'LEAD'
+    return '  |cE0BF7C['..text..']|r'
+end
 local function Selected(screen)
-    local row=screen.detailList:GetTargetData();return row and row.antiquityItem
+    local row=screen.styleList:GetTargetData();return row and row.antiquityItem
 end
 local function LeadStatus(part)
+    if ActiveLead(part)then return ExpiryText(part)end
     if part.ready then
         if part.treasure then return 'Treasure recovered'end
         if part.motif then return 'Chapter recovered'end
@@ -57,12 +91,54 @@ local function LeadStatus(part)
         if part.single then return 'Reward recovered'end
         return part.parent.family=='mounts'and 'Part recovered'or 'Part ready for assembly'
     end
-    if part.hasLead then
-        local remaining=part.leadExpires and math.max(0,part.leadExpires-(GetFrameTimeSeconds and GetFrameTimeSeconds() or 0))
-        if remaining and remaining<=0 then return 'Lead expired' end
-        return 'Lead held'..(remaining and (' - '..math.ceil(remaining/86400)..'d remaining') or '')
-    end
+    if part.hasLead and part.leadExpires and part.leadExpires<=Now()then return 'Lead expired'end
     return part.requiresLead and 'Lead not held' or 'No lead required'
+end
+local function StopLeadRefresh(screen)
+    if screen._tcaLeadRefresh then
+        if EVENT_MANAGER and EVENT_MANAGER.UnregisterForUpdate then EVENT_MANAGER:UnregisterForUpdate('TCAActiveLeads')end
+        screen._tcaLeadRefresh=nil
+    end
+end
+local function HideInformation(screen)
+    StopLeadRefresh(screen)
+    for _,name in ipairs({'_tcaBody','_tcaPath'})do
+        if screen[name]then screen[name]:SetHidden(true)end
+    end
+    if TC.antiquityInfo then TC.antiquityInfo.Hide(screen)end
+end
+local function Body(screen,text)
+    screen._tcaBodyText=text or ''
+    if screen._tcaBody then screen._tcaBody:SetText(screen._tcaBodyText)end
+end
+local function ItemBody(screen,item)
+    local lines={}
+    local count=LeadCount(screen,item)
+    if count>0 then
+        lines[#lines+1]='|cE0BF7C'..(item.parts and LeadSummary(count)or ExpiryText(item))..'|r\n'
+    end
+    if item.description and item.description~=''then lines[#lines+1]=item.description..'\n'end
+    if item.motifGroup then
+        lines[#lines+1]=string.format('Chapters learned: %d/%d',item.chaptersLearned,#item.parts)
+        lines[#lines+1]=string.format('Codex-complete chapters: %d/%d',item.chaptersComplete,#item.parts)
+        lines[#lines+1]='\nPress X to browse chapter leads.'
+    elseif item.treasureGroup then
+        lines[#lines+1]=string.format('Treasures recovered: %d/%d',item.partsRecovered,#item.parts)
+        lines[#lines+1]='Green > Blue > Purple'
+        lines[#lines+1]='\nPress X to browse this zone\'s treasures.'
+    elseif item.parts then
+        lines[#lines+1]=string.format('Parts %s: %d/%d',item.family=='mounts'and 'recovered'or 'ready',
+            item.family=='mounts'and item.partsRecovered or item.ready,#item.parts)
+        local complete=0;for _,part in ipairs(item.parts)do if part.complete then complete=complete+1 end end
+        lines[#lines+1]=string.format('Codex-complete parts: %d/%d',complete,#item.parts)
+        lines[#lines+1]='\nPress X to browse fragments and their sources.'
+    else
+        if item.parent then lines[#lines+1]=(item.parent.kind or 'Reward')..': '..(item.parent.shortName or item.parent.name)..'\n'end
+        lines[#lines+1]='Recovered: '..item.recovered
+        lines[#lines+1]='Excavation: '..ZoneName(item.zoneId)
+        if count==0 then lines[#lines+1]=LeadStatus(item)end
+    end
+    return table.concat(lines,'\n')
 end
 local function ItemInfo(screen,item)
     local heading=item and item.name or 'Antiquities'
@@ -81,11 +157,12 @@ local function ItemInfo(screen,item)
     if not item then
         if TC.antiquityInfo then TC.antiquityInfo.Update(screen)end
         local model=Catalogue.Get()
-        screen.detailSource:SetText(not model and 'Preparing antiquities...' or model.error
+        Body(screen,not model and 'Preparing antiquities...' or model.error
             or (#model.parts==0 and 'No supported antiquities were supplied by the game.'
-                or 'No matching unfinished codices. Show all, change the zone or clear the search.'))
+                or 'No matching entries.\n\nShow all, change the zone or clear the search.\n\nPress Circle to go back.'))
         return
     end
+    Body(screen,ItemBody(screen,item))
     if item.motifGroup then
         screen.detailWhereTitle:SetText('Style progress')
         screen.detailLocation:SetText(item.chaptersChecked==#item.parts
@@ -123,55 +200,100 @@ local function ItemInfo(screen,item)
                 ..'\nExcavation: '..ZoneName(item.zoneId)..'\n'..LeadStatus(item))
         end
     end
+    if item.parts then
+        screen.detailWhereTitle:SetText('Lead sources')
+        screen.detailLocation:SetText(item.motifGroup and 'Chapter leads'or item.treasureGroup and 'Zone treasures'or 'Individual fragments')
+        screen.detailSource:SetText('Press X to browse the entries in the middle panel. Select an entry to see where to obtain it.')
+    end
+    screen.detailAchievement:SetText('')
     if TC.antiquityInfo then TC.antiquityInfo.Update(screen,item)end
 end
 local function Layout(screen)
     screen:SetMotifContentVisible(true);screen.middle:SetHidden(false);screen.right:SetHidden(false)
     screen.detailIcon:SetHidden(true)
     if screen.rightText then screen.rightText:SetHidden(true)end
-    for _,name in ipairs({'detailControl','detailHeading','detailAcquisition','detailWhereTitle',
+    screen.detailControl:SetHidden(true)
+    for _,name in ipairs({'detailHeading','detailAcquisition','detailWhereTitle',
         'detailLocation','detailSource','detailAchievement'})do screen[name]:SetHidden(false)end
     screen.detailSource:SetFont('ZoFontGamepad20');screen.detailSource:SetHeight(88);screen.detailSource:SetMaxLineCount(4)
-    screen.detailAchievement:SetFont('ZoFontGamepad18');screen.detailAchievement:SetHeight(58);screen.detailAchievement:SetMaxLineCount(3)
+    screen.detailAchievement:SetFont('ZoFontGamepad20');screen.detailAchievement:SetHeight(58);screen.detailAchievement:SetMaxLineCount(2)
 end
-ShowFamily=function(screen,data)
-    if screen._tcaRendering then return end
-    local row=data and data.antiquityFamily
-    screen._tcaRendering=true
-    screen.detailList:Clear()
-    local model=Catalogue.Get()
-    if not model then
-        screen.detailList:Commit();screen._tcaRendering=false;ItemInfo(screen);return
-    end
-    if row then
-        screen._tcaFamily=row.key
-        local parent=model and model.byKey[screen._tcaParent]
-        local parentInView=false
-        for _,item in ipairs(row.items)do if item==parent then parentInView=true;break end end
-        local items=row.items
-        if not row.partsView and parent and parent.parts and parent.family==row.key and parentInView then
-            items={}
-            for _,part in ipairs(parent.parts)do if PartVisible(screen,part)then items[#items+1]=part end end
-        else screen._tcaParent=nil end
-        for _,item in ipairs(items)do
-            local title=item.name
-            if item.treasure then
-                local tiers={'|c66CC66Green|r','|c6699FFBlue|r','|cCC88FFPurple|r'}
-                title=tiers[item.tier]..' - '..title
+local familyIntros={
+    mythics='Browse Mythic items and the fragments needed to assemble them.',
+    musicBoxes='Browse music boxes and their component leads.',mounts='Browse mounts and their component leads.',
+    pets='Browse pets and their component leads.',appearance='Browse appearance collectibles, emotes and their leads.',
+    furnishings='Browse furnishings and crafting stations. Assembled rewards open into their fragments.',
+    motifs='Browse styles, chapter leads and learning progress.',
+    zoneTreasures='Browse each zone\'s green, blue and purple treasure sequence.',
+    treasures='Browse additional Antiquity treasures.',otherRewards='Browse other native Antiquity rewards.',
+}
+local function FamilyInfo(screen,row)
+    if not row then ItemInfo(screen);return end
+    screen._tcaFamily=row.key
+    screen.detailHeading:SetText('|cFFEBB3'..row.name..'|r')
+    screen.detailAcquisition:SetText(string.format('%d/%d entries complete',row.known,row.total))
+    screen.detailWhereTitle:SetText('Collection filters');screen.detailLocation:SetText('')
+    screen.detailSource:SetText('Search by name or choose a zone to narrow the list. Toggle Show all to include completed codices.')
+    screen.detailAchievement:SetText('')
+    Body(screen,((row.activeLeads or 0)>0 and '|cE0BF7C'..LeadSummary(row.activeLeads)..'|r\n\n'or '')
+        ..(familyIntros[row.key]or 'Browse individual fragment leads and their acquisition sources.')
+        ..string.format('\n\n%d entries shown.\n\nPress X to browse %s.',#row.items,row.name))
+    if TC.antiquityInfo then TC.antiquityInfo.Hide(screen)end
+end
+NavigationLayout=function(screen)
+    local state=screen._tcArchiveLayout
+    if not Active(screen)or not state or not state.active or state.moduleId~=ID then return end
+    local b=state.bounds
+    if not screen._tcaBody and WINDOW_MANAGER and CT_LABEL and screen.control then
+        for _,name in ipairs({'Body','Path'})do
+            local control=WINDOW_MANAGER:CreateControl('TCAAntiquity'..name,screen.control,CT_LABEL)
+            control:SetDrawLayer(DL_CONTROLS);control:SetDrawLevel(92)
+            control:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            control:SetFont(name=='Body'and 'ZoFontGamepad25'or 'ZoFontGamepad20')
+            if name=='Path'then
+                control:SetColor(1,.92,.70,1);control:SetMaxLineCount(1)
+                if TEXT_WRAP_MODE_ELLIPSIS then control:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)end
             end
-            local entry=ZO_GamepadEntryData:New(string.format('%s  (%d/%d)',title,item.known,item.total))
-            entry.antiquityItem=item;screen.detailList:AddEntry(TEMPLATE,entry)
+            screen['_tca'..name]=control
         end
-        screen.detailList:Commit()
-        local selected=1
-        for index,item in ipairs(items)do if item.key==screen._tcaItem then selected=index;break end end
-        if #items>0 then screen.detailList:SetSelectedIndex(selected)end
-    else
-        screen._tcaParent=nil;screen.detailList:Commit()
     end
-    screen._tcaRendering=false
-    local item=Selected(screen);screen._tcaItem=item and item.key
-    ItemInfo(screen,item)
+    local function Place(control,left,right,top,height)
+        if not control then return end
+        control:ClearAnchors();control:SetAnchor(TOPLEFT,b.root,TOPLEFT,left,top)
+        control:SetAnchor(TOPRIGHT,b.root,TOPLEFT,right,top);control:SetHeight(height);control:SetHidden(false)
+    end
+    Place(screen._tcaBody,b.right+28,b.edge-28,b.listTop+10,b.lower-b.listTop-24)
+    if screen._tcaBody then
+        screen._tcaBody:SetMaxLineCount(math.max(1,math.floor((b.lower-b.listTop-24)/28)))
+        screen._tcaBody:SetText(screen._tcaBodyText or '')
+    end
+    Place(screen._tcaPath,b.middle+28,b.middleEnd-28,b.second-34,26)
+    local model=Catalogue.Get()
+    local family=model and model.byFamily[screen._tcaFamily]
+    local path,title='Families','ANTIQUITIES'
+    if screen._tcaLevel~='families'and family then
+        title=string.upper(family.name);path='Families > '..family.name
+        local parent=model.byKey[screen._tcaParent]
+        if screen._tcaLevel=='parts'and parent then path=family.name..' > '..(parent.shortName or parent.name)end
+    end
+    if screen._tcaPath then screen._tcaPath:SetText(path)end
+    state.controls.ModuleTitle:SetText(title)
+    screen.detailControl:SetHidden(true)
+    if TC.antiquityInfo then TC.antiquityInfo.Layout(screen,b)end
+end
+ShowSelection=function(screen,data)
+    if screen._tcaRendering then return end
+    if screen._tcaLevel=='families'then FamilyInfo(screen,data and data.antiquityFamily)
+    else
+        local item=data and data.antiquityItem
+        if item then
+            screen._tcaItem=item.key
+            screen._tcaSelections=screen._tcaSelections or {}
+            screen._tcaSelections[screen._tcaParent or screen._tcaFamily]=item.key
+        end
+        ItemInfo(screen,item)
+    end
+    NavigationLayout(screen)
 end
 Render=function(screen)
     if not Alive(screen)then return end
@@ -180,9 +302,11 @@ Render=function(screen)
     local rows={}
     if model then
         for _,family in ipairs(model.families)do
-            local row={key=family.key,name=family.name,partsView=family.partsView,items={},total=0,known=0}
+            local row={key=family.key,name=family.name,partsView=family.partsView,items={},total=0,known=0,activeLeads=0}
             for _,item in ipairs(family.items)do
-                if Matches(screen,item)then row.items[#row.items+1]=item end
+                if Matches(screen,item)then
+                    row.items[#row.items+1]=item;row.activeLeads=row.activeLeads+LeadCount(screen,item)
+                end
                 local inZone=false
                 if item.parts then
                     for _,part in ipairs(item.parts)do if InZone(part,screen._tcaZone)then inZone=true;break end end
@@ -192,19 +316,61 @@ Render=function(screen)
             if #row.items>0 then rows[#rows+1]=row end
         end
     end
+    local level=screen._tcaLevel or 'families'
+    local items,selection={},screen._tcaItem
+    if level=='families'then items=rows;selection=screen._tcaFamily
+    else
+        local family=model and model.byFamily[screen._tcaFamily]
+        local parent=model and model.byKey[screen._tcaParent]
+        if level=='parts'and parent and parent.parts then
+            for _,item in ipairs(parent.parts)do if Matches(screen,item)then items[#items+1]=item end end
+        elseif family then
+            for _,item in ipairs(family.items)do if Matches(screen,item)then items[#items+1]=item end end
+        end
+    end
     screen._tcaRendering=true;screen.styleList:Clear()
+    screen.detailList:Clear();screen.detailList:Commit()
     local selected=1
-    for index,row in ipairs(rows)do
-        local entry=ZO_GamepadEntryData:New(string.format('%s (%d/%d)',row.name,row.known,row.total))
-        entry.antiquityFamily=row;screen.styleList:AddEntry(TEMPLATE,entry)
-        if row.key==screen._tcaFamily then selected=index end
+    for index,item in ipairs(items)do
+        local title=item.name
+        if item.treasure then
+            local tiers={'|c66CC66Green|r','|c6699FFBlue|r','|cCC88FFPurple|r'}
+            title=tiers[item.tier]..' - '..title
+        end
+        local leads=level=='families'and item.activeLeads or LeadCount(screen,item)
+        local entry=ZO_GamepadEntryData:New(string.format('%s  (%d/%d)',title,item.known,item.total)
+            ..LeadBadge(leads,level=='families'or item.parts~=nil))
+        entry.antiquityLeadCount=leads
+        if level=='families'then entry.antiquityFamily=item else entry.antiquityItem=item end
+        screen.styleList:AddEntry(TEMPLATE,entry)
+        if item.key==selection then selected=index end
     end
     screen.styleList:Commit()
-    if #rows>0 then screen.styleList:SetSelectedIndex(selected)end
+    if #items>0 then screen.styleList:SetSelectedIndex(selected)end
     screen._tcaRendering=false
-    ShowFamily(screen,screen.styleList:GetTargetData())
+    ShowSelection(screen,screen.styleList:GetTargetData())
+    screen._tcaNextLeadExpiry=nil
+    for _,part in ipairs(model and model.parts or {})do
+        if ActiveLead(part)and part.leadExpires and(not screen._tcaNextLeadExpiry or part.leadExpires<screen._tcaNextLeadExpiry)then
+            screen._tcaNextLeadExpiry=part.leadExpires
+        end
+    end
     if not model then Catalogue.Request(function()return Alive(screen)end,function()Render(screen)end)end
     screen:RefreshKeybinds()
+    StartLeadRefresh(screen)
+end
+StartLeadRefresh=function(screen)
+    if screen._tcaLeadRefresh or not(EVENT_MANAGER and EVENT_MANAGER.RegisterForUpdate)then return end
+    screen._tcaLeadRefresh=true
+    EVENT_MANAGER:RegisterForUpdate('TCAActiveLeads',30000,function()
+        if not Alive(screen)then StopLeadRefresh(screen);return end
+        if ZO_GenericGamepadDialog_IsShowing and ZO_GenericGamepadDialog_IsShowing()then return end
+        if screen._tcaNextLeadExpiry and screen._tcaNextLeadExpiry<=Now()then Render(screen)
+        else
+            local item=Selected(screen)
+            if item then Body(screen,ItemBody(screen,item))end
+        end
+    end)
 end
 local function ResetSearch(screen)
     screen._tcaQuery=''
@@ -249,7 +415,7 @@ local function ChooseZone(screen)
             buttons={{keybind='DIALOG_PRIMARY',text='Select',callback=function(dialog)
                 local owner=dialog.data.screen;local entry=dialog.entryList:GetTargetData()
                 if Active(owner)and entry then
-                    owner._tcaZone=entry.zoneId;owner._tcaParent=nil
+                    owner._tcaZone=entry.zoneId
                     Render(owner)
                 end
             end},{keybind='DIALOG_NEGATIVE',text='Cancel'}},
@@ -263,14 +429,14 @@ Install=function(screen)
     for _,method in ipairs({'ShowCategory','ShowCategories'})do
         local original=screen[method]
         if original then screen[method]=function(self,...)
-            if TC.antiquityInfo then TC.antiquityInfo.Hide(self)end
+            HideInformation(self)
             return original(self,...)
         end end
     end
     local show=screen.ShowStyle
     screen.ShowStyle=function(self,data)
-        if Active(self)then ShowFamily(self,data)elseif show then
-            if TC.antiquityInfo then TC.antiquityInfo.Hide(self)end
+        if Active(self)then ShowSelection(self,data)elseif show then
+            HideInformation(self)
             return show(self,data)
         end
     end
@@ -278,7 +444,7 @@ Install=function(screen)
     screen.OnMotifSearchTextChanged=function(self,value)
         if not Active(self)then if search then return search(self,value)end;return end
         if self._tcaChangingSearch then return end
-        self._tcaQuery=Key(value);self._tcaParent=nil;Render(self)
+        self._tcaQuery=Key(value);Render(self)
     end
     local showing,hiding=screen.OnShowing,screen.OnHiding
     screen.OnShowing=function(self,...)
@@ -288,22 +454,17 @@ Install=function(screen)
         if resume then
             self._tcaMapReturn=nil;self.activeModuleId=ID
             self._tcaFamily,self._tcaParent,self._tcaItem=resume.family,resume.parent,resume.item
-            self.mode=resume.mode=='details' and 'details' or 'styles';Render(self)
-            self:SetCurrentList(self.mode=='details' and self.detailList or self.styleList);self:RefreshKeybinds()
+            self._tcaLevel=resume.level or(resume.parent and 'parts'or 'items')
+            self.mode='styles';Render(self)
+            self:SetCurrentList(self.styleList);self:RefreshKeybinds()
         end
         return result
     end
     screen.OnHiding=function(self,...)
         self._tcaHidden=true
-        if TC.antiquityInfo then TC.antiquityInfo.Hide(self)end
+        HideInformation(self)
         if hiding then return hiding(self,...)end
     end
-    screen.detailList:SetOnTargetDataChangedCallback(function(_,data)
-        if Active(screen)and not screen._tcaRendering then
-            local item=data and data.antiquityItem;screen._tcaItem=item and item.key
-            ItemInfo(screen,item);screen:RefreshKeybinds()
-        end
-    end)
     local showMap=screen.ShowSelectedMotifOnMap
     screen.ShowSelectedMotifOnMap=function(self,...)
         if Active(self)then
@@ -317,17 +478,22 @@ Install=function(screen)
             descriptor.visible=function()
                 if not Active(screen)then return visible and visible()or false end
                 local item=Selected(screen)
-                return screen.mode=='styles' and screen.styleList:GetTargetData()~=nil
-                    or screen.mode=='details' and item and item.parts~=nil or false
+                local row=screen.styleList:GetTargetData()
+                return row and(row.antiquityFamily~=nil or item and item.parts~=nil)or false
             end
             descriptor.callback=function()
                 if not Active(screen)then if callback then return callback()end;return end
                 local item=Selected(screen)
-                if screen.mode=='styles' and screen.styleList:GetTargetData()then
-                    screen.mode='details';screen:SetCurrentList(screen.detailList)
-                elseif screen.mode=='details' and item and item.parts then
-                    screen._tcaParent,screen._tcaItem=item.key,nil
-                    ShowFamily(screen,screen.styleList:GetTargetData())
+                local row=screen.styleList:GetTargetData()
+                if row and row.antiquityFamily then
+                    screen._tcaFamily,screen._tcaLevel=row.antiquityFamily.key,'items'
+                    screen._tcaParent=nil
+                    screen._tcaItem=screen._tcaSelections and screen._tcaSelections[screen._tcaFamily]
+                    Render(screen)
+                elseif item and item.parts then
+                    screen._tcaParent,screen._tcaLevel=item.key,'parts'
+                    screen._tcaItem=screen._tcaSelections and screen._tcaSelections[item.key]
+                    Render(screen)
                 end
                 screen:RefreshKeybinds()
             end
@@ -343,12 +509,11 @@ Install=function(screen)
         elseif descriptor.keybind=='UI_SHORTCUT_NEGATIVE' then
             descriptor.callback=function()
                 if not Active(screen)then if callback then return callback()end;return end
-                if screen.mode=='details' and screen._tcaParent then
+                if screen._tcaLevel=='parts'then
                     screen._tcaItem=screen._tcaParent;screen._tcaParent=nil
-                    ShowFamily(screen,screen.styleList:GetTargetData())
-                elseif screen.mode=='details' then
-                    screen.mode='styles';screen:SetCurrentList(screen.styleList)
-                elseif screen._tcaQuery and screen._tcaQuery~='' then ResetSearch(screen);Render(screen)
+                    screen._tcaLevel='items';Render(screen)
+                elseif screen._tcaLevel=='items'then
+                    screen._tcaLevel='families';screen._tcaItem=nil;Render(screen)
                 else screen:ShowCategories()end
                 screen:RefreshKeybinds()
             end
@@ -380,16 +545,16 @@ Install=function(screen)
 end
 TC:RegisterArchiveModule(ID,{
     displayName='Antiquities',addonName='Tamriel Collections - Archive Antiquities',
-    assetRoot='TamrielCollectionsAntiquities',screenControl='TCAQuestJournalTL',version=108,supportsSearch=true,
+    assetRoot='TamrielCollectionsAntiquities',screenControl='TCAQuestJournalTL',version=10002,supportsSearch=true,
     open=function(screen)
         Install(screen);screen._tcaHidden=nil
-        screen.activeModuleId,screen.mode=ID,'styles';screen._tcaParent=nil
+        screen.activeModuleId,screen.mode=ID,'styles'
+        screen._tcaLevel,screen._tcaParent,screen._tcaItem='families',nil,nil
         ResetSearch(screen)
         if Catalogue.Get()and Catalogue.Get().error then Catalogue.Invalidate()end
         screen:SetCurrentList(screen.styleList);Render(screen)
     end,
     activateSearch=function(screen)
-        if screen.mode=='details' then screen.mode='styles';screen:SetCurrentList(screen.styleList)end
         screen:ActivateMotifSearch()
     end,
 })
@@ -407,7 +572,7 @@ if EVENT_MANAGER then
     for _,event in ipairs({'EVENT_ACHIEVEMENT_UPDATED','EVENT_ACHIEVEMENT_AWARDED'})do
         if _G[event]then EVENT_MANAGER:RegisterForEvent('TCAAntiquityAchievements',_G[event],function()
             local screen=TC.questScreen
-            if screen and Alive(screen)then ItemInfo(screen,Selected(screen))end
+            if screen and Alive(screen)and Selected(screen)then ItemInfo(screen,Selected(screen))end
         end)end
     end
     for _,event in ipairs({'EVENT_ANTIQUITIES_UPDATED','EVENT_ANTIQUITY_UPDATED','EVENT_ANTIQUITY_LEAD_ACQUIRED'})do
@@ -896,4 +1061,15 @@ end
 
 end
 TC.archiveLayout.Register("antiquities", { name = "Antiquities", intro = "Explore furnishings, rewards, motifs and zone treasures.\nTrack recovered items and unfinished codices.\n\nPress X to browse Antiquities.", hint = "Choose a reward or zone to view its items,\ncodex progress and lead sources." })
+end
+
+-- Keep the approved shared layout intact. Only this module replaces the
+-- right-hand list with information and adds its current middle-panel path.
+do
+    local apply=TC.archiveLayout.Apply
+    TC.archiveLayout.Apply=function(screen,...)
+        local result=apply(screen,...)
+        if result then NavigationLayout(screen)end
+        return result
+    end
 end

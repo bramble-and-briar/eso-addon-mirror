@@ -14,8 +14,8 @@ assert(nativeList.current and nativeList.scene.fragments[nativeList.headerFragme
     and nativeList.scene.fragments[nativeList.listFragment], "Left title and fight list must belong to the visible scene")
 assert(nativeList.entries[1].subtitle and nativeList.entries[1].icon)
 local details = assert(env.controls.LiveBuffUptimeReportDetails)
-assert(not details.hidden and details.x == 24 and details.anchorRelative == ZO_SharedGamepadNavQuadrant_2_Background,
-    "Report details must be visible in screen space, not offset from the animated left quadrant")
+assert(details.hidden and details.x == 24 and details.anchorRelative == ZO_SharedGamepadNavQuadrant_2_Background,
+    "Fight selection must hide uptime details while retaining their correct screen-space anchor")
 assert(details.scale * 960 <= 840 - 48, "Table must fit the two right console quadrants")
 assert(details.height * details.scale <= 850 - 24, "All twelve rows and the footer must fit vertically")
 local lastRow = env.controls.LiveBuffUptimeReportPercent12
@@ -33,7 +33,7 @@ assert(24 + details.width * details.scale <= 840 - 48, "A right-hand safety marg
 assert(lastRow.y + lastRow.height < env.controls.LiveBuffUptimeReportTotal.y, "Summary must not overlap the last player")
 assert(env.controls.LiveBuffUptimeReportPercent1.parent == details)
 assert(env.controls.LiveBuffUptimeReportPercent1.text:find("%%"), "Console report must show member uptime")
-assert(env.controls.LiveBuffUptimeReportTotal.text:find("Gruppen%-Uptime"))
+assert(env.controls.LiveBuffUptimeReportTotal.text == "Buffs  1", "Fight overview shows every recorded buff")
 assert(not env.controls.LiveBuffUptimeReportClose)
 assert(not env.controls.LiveBuffUptimeReportNext, "Mouse arrows must not exist")
 assert(not env.controls.LiveBuffUptimeFightPrevious, "Native scrolling replaces custom fight buttons")
@@ -45,10 +45,11 @@ assert(env.controls.LiveBuffUptimeReportBuff.text ~= "")
 assert(bindings[5].visible())
 bindings[5].callback()
 assert(nativeList.entries[1].buffIndex == 1 and not bindings[5].visible(), "Confirming a fight must open its left-side buff list")
+assert(not details.hidden,"Uptime becomes visible only inside the opened effect details")
 nativeList:SetSelectedIndex(1)
 assert(env.controls.LiveBuffUptimeReportPercent1.text:find("%%"))
 bindings[1].callback()
-assert(nativeList.entries[1].fightIndex == 1 and nativeList.active and not details.hidden,
+assert(nativeList.entries[1].fightIndex == 1 and nativeList.active and details.hidden,
     "Back from buffs must return to fight selection without closing the menu")
 bindings[1].callback()
 assert(nativeList.entries[1].zoneKey and nativeList.active, "Back from fights must return to areas")
@@ -57,7 +58,7 @@ assert(not nativeList.active and env.controls.LiveBuffUptimeReportWindow.hidden)
 assert(details.hidden, "Closing the scene must also hide the independent details panel")
 SLASH_COMMANDS["/lbu"]("uptime")
 assert(nativeList.active)
-assert(not details.hidden, "Reopening must restore report details")
+assert(details.hidden, "Reopening starts at areas with no uptime preview")
 LiveBuffUptimeReports.Close()
 -- Console safe-zone backgrounds need not equal two nominal quadrant widths.
 ZO_SharedGamepadNavQuadrant_2_Background.GetLeft = function() return 100 end

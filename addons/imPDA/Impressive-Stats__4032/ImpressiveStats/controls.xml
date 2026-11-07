@@ -15,27 +15,23 @@
             <Controls>
 				<!-- <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" edgeColor="0000FF" centerColor="000000" /> -->
                 <Texture name="$(parent)Background" textureFile="EsoUI/Art/HUD/infamy_meter-back-grey_px_per.dds" level="1">
-					<Anchor point="TOPLEFT" offsetX="-30" />
-					<Anchor point="BOTTOMRIGHT" offsetX="-30" /> 
+					<AnchorFill />
                 </Texture>
 				<Label name="$(parent)Winrate" verticalAlignment="CENTER" horizontalAlignment="CENTER" font="ZoFontHeader4" text="50%"> <!-- tier="MEDIUM" level="6"  -->
-					<Anchor point="TOPLEFT" offsetX="-30" />
-					<Anchor point="BOTTOMRIGHT" offsetX="-30" /> 
 					<!-- <Controls>
 						<Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" edgeColor="FFFF00" centerColor="000000" />
 					</Controls> -->
+					<AnchorFill />
 				</Label>
                 <!-- <Cooldown name="$(parent)MenuBar" textureFile="EsoUI/Art/HUD/infamy_meter-heat_px_per.dds" level="2" fillColor="dc0000">
                     <Dimensions x="INFAMY_METER_HEIGHT" y="INFAMY_METER_HEIGHT" />
                     <Anchor point="RIGHT" offsetX="INFAMY_METER_KEYBOARD_BAR_OFFSET_X" offsetY="INFAMY_METER_KEYBOARD_BAR_OFFSET_Y" />
                 </Cooldown> -->
                 <Cooldown name="$(parent)Bar" textureFile="EsoUI/Art/HUD/infamy_meter-bounty_px_per.dds" level="3" fillColor="00DD00">
-					<Anchor point="TOPLEFT" offsetX="-30" />
-					<Anchor point="BOTTOMRIGHT" offsetX="-30" />
+					<AnchorFill />
                 </Cooldown>
 				<Texture name="$(parent)HHH" textureFile="EsoUI/Art/HUD/infamy_meter-bounty_px_per.dds" level="2" color="333333">
-					<Anchor point="TOPLEFT" offsetX="-30" />
-					<Anchor point="BOTTOMRIGHT" offsetX="-30" /> 
+					<AnchorFill />
                 </Texture>
                 <!-- <Texture name="$(parent)Frame" textureFile="EsoUI/Art/HUD/infamy_meter-frame-generic.dds" tier="MEDIUM" level="4" hidden="true">
                     <Dimensions x="INFAMY_METER_WIDTH" y="INFAMY_METER_HEIGHT" />

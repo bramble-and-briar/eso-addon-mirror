@@ -44,6 +44,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [What's Left?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/What-s-Left__3495) | Complicative | PC / Mac | 1.0.2 |
 | [What's Missing? - Skill Point Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/What-s-Missing---Skill-Point-Tracker__ea5313bb-c034-4b91-8816-546e4d37a355) | xbutch | Console | — |
 | [What's My Build Again](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/What-s-My-Build-Again__61ffae27-7976-4d4b-a9fa-0fafb387434a) | Eldibabalo | Console | — |
+| [WhatDropsHere?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cudddel/WhatDropsHere__5030) | cudddel | PC / Mac | 0.2.0 |
 | [Wheewheel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/Wheewheel__6b001219-cfeb-4b80-b418-e3c7da481d73) | murphyx | Console | — |
 | [Where Are You](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Where-Are-You__2664) | kadeer | PC / Mac | v0.3 alpha |
 | [Where Is It?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/Where-Is-It__45d919f9-f85b-4930-9348-94fe2e245f98) | user562x | Console | — |

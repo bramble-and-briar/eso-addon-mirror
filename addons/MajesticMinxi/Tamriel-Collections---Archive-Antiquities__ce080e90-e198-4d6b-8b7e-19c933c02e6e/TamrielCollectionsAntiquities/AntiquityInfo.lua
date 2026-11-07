@@ -16,7 +16,9 @@ local function Ids(item)
     if parent and parent.key:match('^set:')then
         for _,id in ipairs(data.sets[parent.id]or {})do Add(id)end
     end
-    for _,id in ipairs(data.parts[item.id]or {})do Add(id)end
+    -- Native reward-set IDs and individual lead IDs are different namespaces.
+    -- A whole Mythic numbered 53 must not inherit motif chapter 53's links.
+    if not item.parts then for _,id in ipairs(data.parts[item.id]or {})do Add(id)end end
     if item.motifGroup then
         for _,part in ipairs(item.parts)do for _,id in ipairs(data.parts[part.id]or {})do Add(id)end end
     end
@@ -51,29 +53,54 @@ function Info.Achievements(item)
 end
 function Info.Hide(screen)
     if screen._tcaAchievementHint then screen._tcaAchievementHint:SetHidden(true)end
+    if screen._tcaAchievementVisible then
+        screen.detailAchievement:SetText('');screen._tcaAchievementVisible=nil
+    end
+end
+function Info.Layout(screen,b)
+    if not screen._tcaAchievementVisible then return end
+    local label=screen.detailAchievement
+    local height=math.max(58,label:GetTextHeight()or (screen._tcaAchievementCount or 1)*26)
+    local top=b.footer-height-6
+    local function Place(control,y,h)
+        control:ClearAnchors();control:SetAnchor(TOPLEFT,b.root,TOPLEFT,b.right+24,y)
+        control:SetAnchor(TOPRIGHT,b.root,TOPLEFT,b.edge-24,y);control:SetHeight(h)
+    end
+    -- Most rewards use the original two-row footer. If names wrap or a
+    -- native collectible adds another achievement, use the source block's
+    -- actual text heights to keep the complete stack below the source.
+    local sourceHeight=screen.detailSource:GetTextHeight()or 88
+    if height>58 and b.lower+76+sourceHeight+4>top then
+        local y=b.lower+4
+        for _,row in ipairs({{screen.detailWhereTitle,22},{screen.detailLocation,26},{screen.detailSource,88}})do
+            local h=row[1]:GetTextHeight()or row[2]
+            Place(row[1],y,h);y=y+h+3
+        end
+        top=y
+    end
+    Place(label,top,height)
 end
 function Info.Update(screen,item)
+    -- Use the same bottom-right achievement field as Motifs. The header is
+    -- reserved for the reward name and codex progress.
+    if screen._tcaAchievementHint then screen._tcaAchievementHint:SetHidden(true)end
     if not item then Info.Hide(screen);return end
     local rows=Info.Achievements(item)
-    if #rows==0 then Info.Hide(screen);return end
-    local label=screen._tcaAchievementHint
-    if not label and WINDOW_MANAGER and CT_LABEL and screen.detailHeading then
-        label=WINDOW_MANAGER:CreateControl('TCAAntiquityAchievementHint',screen.detailHeading,CT_LABEL)
-        label:SetFont('ZoFontGamepad18');label:SetHeight(18);label:SetMaxLineCount(1)
-        label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-        label:SetAnchor(TOPLEFT,screen.detailHeading,BOTTOMLEFT,0,45)
-        label:SetAnchor(TOPRIGHT,screen.detailHeading,BOTTOMRIGHT,0,45)
-        label:SetDrawLayer(DL_CONTROLS);label:SetDrawLevel(91)
-        if TEXT_WRAP_MODE_ELLIPSIS then label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)end
-        screen._tcaAchievementHint=label
+    local label=screen.detailAchievement
+    if #rows==0 then label:SetText('');screen._tcaAchievementVisible=nil;return end
+    local lines={}
+    for index,row in ipairs(rows)do
+        local icon=row.icon and row.icon~=''and '|t26:26:'..row.icon..'|t  'or ''
+        local prefix=row.requirement and '|cFFEBB3Required:|r '
+            or index==1 and '|cFFEBB3'..(#rows>1 and 'Achievements:'or 'Achievement:')..'|r 'or ''
+        lines[#lines+1]=prefix..icon..row.name
     end
-    if label then
-        local first=rows[1]
-        local icon=first.icon and first.icon~=''and '|t16:16:'..first.icon..'|t 'or ''
-        label:SetText((first.requirement and 'Required: 'or 'Achievement: ')..icon..first.name
-            ..' ('..first.status..')'..(#rows>1 and ' +'..(#rows-1)or ''))
-        label:SetColor(1,.92,.70,1);label:SetHidden(false)
-    end
+    label:SetMaxLineCount(math.max(2,#rows*2))
+    label:SetText(table.concat(lines,'\n'))
+    screen._tcaAchievementVisible=true
+    screen._tcaAchievementCount=#rows
+    local state=screen._tcArchiveLayout
+    if state and state.active and state.moduleId=='antiquities'then Info.Layout(screen,state.bounds)end
 end
 function Info.Describe(item,source,leadStatus)
     local lines={item.name,string.format('Codex: %d/%d',item.known,item.total)}
@@ -104,7 +131,7 @@ function Info.Show(screen,item,source,leadStatus)
     if not Info.dialog then
         Info.dialog=true
         ZO_Dialogs_RegisterCustomDialog('TCA_ANTIQUITY_INFO',{
-            gamepadInfo={dialogType=GAMEPAD_DIALOGS.BASIC},title={text='Antiquity details'},
+            gamepadInfo={dialogType=GAMEPAD_DIALOGS.BASIC,allowRightStickPassThrough=true},title={text='Antiquity details'},
             mainText={text=function(dialog)return dialog.data.text end},
             buttons={{keybind='DIALOG_NEGATIVE',text='Back'}},
         })

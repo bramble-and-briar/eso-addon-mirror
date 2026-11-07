@@ -235,6 +235,22 @@ function CMA:DetermineItemAction(bag, slotIndex)
         local quality = GetItemLinkFunctionalQuality(itemLink)
         local actorCategory = GetItemActorCategory(bag, slotIndex)
         local isCrafted = IsItemLinkCrafted(itemLink)
+        -- check  if its trait researchable... but only if selected to handle it
+        if self.db.bankResearchableItems and not IsItemPlayerLocked(bag, slotIndex) and (actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION) then
+            -- call the logic to get trait info and check with LibCharacterKnowledge if all chars know it
+            local traitResearchResult = self:HandleTraitItem(bag, slotIndex)
+            if traitResearchResult == "bank" then
+                return traitResearchResult
+            elseif traitResearchResult == "learned" then
+                -- its learned already, only carry out the decision if its not gold quality (do not sell gold quality)
+                if (self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems] == "junk") and (quality >= ITEM_DISPLAY_QUALITY_LEGENDARY) then
+                    -- prevent gold or higher tier item from selling
+                    return "ignore"
+                else
+                    return self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems]
+                end
+            end
+        end
         -- check if its armor or weapon with no trait
         if not isCrafted and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then
             local traitInfo = GetItemTraitInformation(bag, slotIndex)
@@ -275,22 +291,6 @@ function CMA:DetermineItemAction(bag, slotIndex)
                         -- ignore
                     end
                     return "ignore"
-                end
-            end
-        end
-        -- check  if its trait researchable... but only if selected to handle it
-        if self.db.bankResearchableItems and not IsItemPlayerLocked(bag, slotIndex) and (actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION) then
-            -- call the logic to get trait info and check with LibCharacterKnowledge if all chars know it
-            local traitResearchResult = self:HandleTraitItem(bag, slotIndex)
-            if traitResearchResult == "bank" then
-                return traitResearchResult
-            elseif traitResearchResult == "learned" then
-                -- its learned already, only carry out the decision if its not gold quality (do not sell gold quality)
-                if (self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems] == "junk") and (quality >= ITEM_DISPLAY_QUALITY_LEGENDARY) then
-                    -- prevent gold or higher tier item from selling
-                    return "ignore"
-                else
-                    return self.simpleMaterialDecisionMap[self.db.actionKnownTraitItems]
                 end
             end
         end

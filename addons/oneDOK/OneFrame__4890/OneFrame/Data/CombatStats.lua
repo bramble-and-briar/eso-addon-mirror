@@ -19,10 +19,12 @@ function C:State(inCombat)
     if inCombat then
         if not self.started or self.finished then
             self:Reset()
+            A.SharedStats:Reset(false)
             self.started = GetFrameTimeMilliseconds()
         end
     elseif self.started and not self.finished then
         self.finished = GetFrameTimeMilliseconds()
+        A.SharedStats.ended = GetGameTimeMilliseconds()
     end
     self:Timer(inCombat or self.finished ~= nil)
 end

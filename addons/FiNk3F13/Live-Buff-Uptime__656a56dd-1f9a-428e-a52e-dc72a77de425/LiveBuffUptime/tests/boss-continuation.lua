@@ -133,4 +133,18 @@ assert(result == nil)
 send(1, 630, 1); action(630); action(650); health = 0
 callbacks[51](51, { unitIds = { player = 1 }, units = {} })
 assert(result.starttime == 700000 and result.endtime == 750000 and result.encounterSegments == 2)
+-- Complete skill snapshots must also survive deferred boss segments exactly once.
+health, result = 50, nil
+send(1,800,1); action(800); action(810)
+callbacks[51](51,{unitIds={player=1,bosses={[99]=true}},units={[1]={unitType=1},[99]={unitType=4,isBoss=true}},
+    damageDone={[1]={startTime=900000,endTime=910000,[99]={
+        [123]={totalAmount=100,totalCount=1,startTime=900000,endTime=910000}}}}})
+assert(result==nil)
+send(1,820,1); action(820); action(830); health=0
+callbacks[51](51,{unitIds={player=1},units={[1]={unitType=1},[99]={unitType=4}},
+    damageDone={[1]={startTime=920000,endTime=930000,[99]={
+        [123]={totalAmount=200,totalCount=2,startTime=920000,endTime=930000}}}}})
+assert(result.skillDamageSnapshot.total==300 and result.skillDamageSnapshot.skills[123].hits==3,
+    "final skill snapshot includes each boss segment once, rather than replacing earlier phases")
+assert(result.skillDamageSnapshot.targets[99].damage==300 and result.dpstime==30)
 print("Boss continuation: phases, pause effects, full span, recipients, frozen end, resets, boss identity, wipes and disappearance passed")

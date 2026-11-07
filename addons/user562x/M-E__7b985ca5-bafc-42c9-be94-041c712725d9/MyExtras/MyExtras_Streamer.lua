@@ -15,6 +15,13 @@ local SCALE_SPEED   = 15
 local SIZE_MIN      = 25
 local SIZE_MAX      = 90
 local MOVE_SCENE    = "MyExtras_StreamerMove"
+local BOX_PAD_X     = 0.3
+local BOX_PAD_Y     = 0.12
+local BOX_CORNER    = 0.35
+
+Streamer.charDefaults = {
+    streamerUseCharacter = false,
+}
 
 Streamer.defaults = {
     streamerText     = DEFAULT_TEXT,
@@ -25,6 +32,8 @@ Streamer.defaults = {
     streamerPosX     = 0,
     streamerPosY     = -400,
     streamerShowing  = false,
+    streamerBackground        = false,
+    streamerBackgroundOpacity = 50,
 }
 
 Streamer.durationChoices = {
@@ -51,8 +60,45 @@ local checking   = false
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
+local charFilled = false
+
+local function CharSettings()
+    local cv = ME.charVariables
+    if not cv then return nil end
+    if type(cv.streamerCharSettings) ~= "table" then cv.streamerCharSettings = {} end
+    local settings = cv.streamerCharSettings
+    if not settings.seeded then
+        local account = ME.savedVariables
+        for key, value in pairs(Streamer.defaults) do
+            local current = account and account[key]
+            if current == nil then current = value end
+            settings[key] = current
+        end
+        settings.seeded = true
+        charFilled = true
+    elseif not charFilled then
+        for key, value in pairs(Streamer.defaults) do
+            if settings[key] == nil then settings[key] = value end
+        end
+        charFilled = true
+    end
+    return settings
+end
+
+function Streamer:UsesCharacterSettings()
+    return ME.charVariables ~= nil and ME.charVariables.streamerUseCharacter == true
+end
+
 local function SV()
+    if Streamer:UsesCharacterSettings() then
+        return CharSettings() or ME.savedVariables
+    end
     return ME.savedVariables
+end
+
+local function SavedTip()
+    if Streamer:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
+    return ME.SAVED_ACCOUNT_TIP
 end
 
 local function MessageText()
@@ -100,12 +146,34 @@ function Streamer:CreatePanel()
     panel:SetHidden(true)
     self.panel = panel
 
+    local box = ME:CreateRoundBox("MyExtras_StreamerBox", panel)
+    box:SetHidden(true)
+    self.box = box
+
     local label = WINDOW_MANAGER:CreateControl("MyExtras_StreamerLabel", panel, CT_LABEL)
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    label:SetWidth(PANEL_WIDTH)
+    label:SetDimensionConstraints(0, 0, PANEL_WIDTH, 0)
     label:SetAnchor(CENTER, panel, CENTER, 0, 0)
+    label:SetDrawLevel(2)
     self.label = label
+end
+
+function Streamer:ApplyBox()
+    if not self.box then return end
+    local sv = SV()
+    local show = sv.streamerBackground == true
+    self.box:SetHidden(not show)
+    if not show then return end
+    local size = sv.streamerSize or self.defaults.streamerSize
+    local padX = math.max(4, zo_floor(size * BOX_PAD_X))
+    local padY = math.max(2, zo_floor(size * BOX_PAD_Y))
+    local opacity = tonumber(sv.streamerBackgroundOpacity) or self.defaults.streamerBackgroundOpacity
+    self.box:SetFillColor(0, 0, 0, opacity / 100)
+    self.box:SetCorner(math.max(6, size * BOX_CORNER))
+    self.box.control:ClearAnchors()
+    self.box.control:SetAnchor(TOPLEFT, self.label, TOPLEFT, -padX, -padY)
+    self.box.control:SetAnchor(BOTTOMRIGHT, self.label, BOTTOMRIGHT, padX, padY)
 end
 
 function Streamer:ApplyPosition()
@@ -120,6 +188,7 @@ function Streamer:ApplyStyle()
     self.label:SetFont(MessageFont())
     self.label:SetText(MessageText())
     self.label:SetColor(MessageColor())
+    self:ApplyBox()
 end
 
 --------------------------------------------------
@@ -345,15 +414,31 @@ function Streamer:GetOptions()
             type    = "submenu",
             name    = "Streamer",
             icon    = SUBMENU_ICON,
-            tooltip = "Puts your own message on screen for your viewers.\n\n" .. ME.SAVED_ACCOUNT_TIP,
+            tooltip = function()
+                return "Puts your own message on screen for your viewers.\n\n" .. SavedTip()
+            end,
             options = {
                 {
                     type    = "toggle",
                     name    = "Show Message",
                     preset  = "YES_NO",
-                    tooltip = "Puts your message on screen once you leave the settings.",
+                    tooltip = "Puts your message on screen.",
                     getFunc = function() return Streamer.active end,
                     setFunc = function(val) Streamer:SetActive(val) end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Character Settings",
+                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
+                           .. "copied from the account settings the first time you turn it on.",
+                    details = function()
+                        if Streamer:UsesCharacterSettings() then
+                            return "This character has its own settings."
+                        end
+                        return "All your characters share the same settings."
+                    end,
+                    getFunc = function() return Streamer:UsesCharacterSettings() end,
+                    setFunc = function(val) Streamer:SetUseCharacterSettings(val) end,
                 },
                 {
                     type    = "toggle",
@@ -369,6 +454,31 @@ function Streamer:GetOptions()
                     buttonText = "Move / Scale",
                     tooltip    = "Move it with the left stick and scale it with the right stick.",
                     func       = function() Streamer:StartMove() end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Background",
+                    preset  = "YES_NO",
+                    default = defaults.streamerBackground,
+                    tooltip = "Puts a black box behind your message so it's easier to read.",
+                    getFunc = function() return SV().streamerBackground end,
+                    setFunc = function(val)
+                        SV().streamerBackground = val
+                        Streamer:ApplyBox()
+                    end,
+                },
+                {
+                    type     = "slider",
+                    name     = "Background Opacity",
+                    min      = 0, max = 100, step = 5,
+                    default  = defaults.streamerBackgroundOpacity,
+                    tooltip  = "Default is " .. defaults.streamerBackgroundOpacity .. ".",
+                    disabled = function() return not SV().streamerBackground end,
+                    getFunc  = function() return SV().streamerBackgroundOpacity end,
+                    setFunc  = function(val)
+                        SV().streamerBackgroundOpacity = val
+                        Streamer:ApplyBox()
+                    end,
                 },
                 {
                     type    = "editbox",
@@ -453,8 +563,43 @@ function Streamer:OnPlayerActivated()
     self:UpdateVisibility()
 end
 
+function Streamer:SetUseCharacterSettings(value)
+    local cv = ME.charVariables
+    if not cv then return end
+    value = value == true
+    if (cv.streamerUseCharacter == true) == value then return end
+    cv.streamerUseCharacter = value
+    self:ApplyPosition()
+    self:ApplyStyle()
+    self:UpdateVisibility()
+    RefreshPanel()
+end
+
+function Streamer:ResetSkipKeys()
+    local keys = {}
+    if self:UsesCharacterSettings() then
+        for key in pairs(self.defaults) do keys[#keys + 1] = key end
+    end
+    return keys
+end
+
 function Streamer:OnReset()
     self.preview = false
+    if self:UsesCharacterSettings() then
+        local settings = CharSettings()
+        if settings then
+            for key, value in pairs(self.defaults) do
+                if type(value) == "table" then
+                    local copy = {}
+                    for k, v in pairs(value) do copy[k] = v end
+                    settings[key] = copy
+                else
+                    settings[key] = value
+                end
+            end
+            settings.seeded = true
+        end
+    end
     self:SetActive(false)
     self:ApplyPosition()
 end

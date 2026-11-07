@@ -2,9 +2,9 @@
 -- Author: PinkBanther
 --
 -- A reticle with a clean design and a dark outline that reads on any background. It replaces the game's
--- small centre mark with one of six designs (dot, cross, ring, bracket, orbit, scope), tints it by what
--- you are looking at, closes it on an enemy and opens it on something friendly or usable, and flashes a
--- marker when your hits land.
+-- small centre mark with one of eight designs (prism, aegis, dot, cross, ring, bracket, orbit, scope), tints
+-- it by what you are looking at, closes it on an enemy and opens it on something friendly or usable, and
+-- flashes a marker when your hits land.
 --
 -- This file holds everything that needs no controls: the settings and what each may be, the colours, the
 -- way a target is classed, and the geometry of each design. Reticle.lua draws it.
@@ -14,8 +14,9 @@
 -- ---------------------------------------------------------------------------------------
 --
 -- Distances are in "u", one UI pixel at a size of 100 %; the settings' size multiplies them all. The
--- art is drawn four texture pixels to a unit (scripts/build_assets.py), and PBS_RETICLE_SHAPES (generated
--- beside the art, Geometry.lua) says how big each canvas is, so the two cannot disagree.
+-- art is drawn four texture pixels to a unit (scripts/build_assets.py, which runs build_prism_assets.py for
+-- the Prism), and PBS_RETICLE_SHAPES (generated beside the art, Geometry.lua) says how big each canvas is,
+-- so the two cannot disagree.
 --
 -- `pose` is how far the reticle is closed or open, -1 .. 1: -1 is locked on an enemy (arms and brackets
 -- draw in, the orbit turns a quarter of a gap so its arcs sit on the axes), +1 is open (everything moves
@@ -26,20 +27,20 @@ PBS_RETICLE = {
 	baseTitle = "PB’s Reticle",
 	chatName = "PB’s Reticle",
 	author = "PinkBanther",
-	version = "1.0.0",
+	version = "1.1.0",
 	slash = "/pbreticle",
 	shortSlash = "/pbret",
 	defaults = {
 		enabled = true,
 		preview = true,
-		style = "orbit",
+		style = "prism",
 		color = "white",
 		auto = true,
 		size = 100,
 		weight = "regular",
 		gap = 0,
 		dot = true,
-		outline = 80,
+		outline = 100,
 		opacity = 100,
 		idle = 100,
 		hit = true,
@@ -68,7 +69,7 @@ A.title = A.baseTitle .. " " .. A.version
 -- Settings: what each one may be
 -- ---------------------------------------------------------------------------------------
 
-A.STYLES = { "dot", "cross", "ring", "bracket", "orbit", "scope" }
+A.STYLES = { "prism", "aegis", "dot", "cross", "ring", "bracket", "orbit", "scope" }
 A.COLOR_NAMES = { "white", "cyan", "lime", "yellow", "orange", "pink", "red" }
 A.WEIGHTS = { "thin", "regular", "bold" }
 
@@ -161,7 +162,7 @@ A.LOOKS = {
 	neutral = { pose = 1, color = { 1, 0.85, 0.25 } }, -- a neutral you cannot attack
 	wary = { pose = -1, color = { 1, 0.85, 0.25 } }, -- a neutral you can attack (a critter, a bystander)
 	hostile = { pose = -1, color = { 1, 0.3, 0.28 } },
-	dead = { pose = 0, color = { 0.62, 0.65, 0.68 } },
+	dead = { pose = 0, color = { 0.76, 0.79, 0.82 } },
 }
 A.HIT_COLORS = {
 	hit = { 1, 1, 1 },
@@ -210,7 +211,12 @@ end
 -- `arms`: four arms, `inner` u from the middle to where they start.
 -- `ring` / `orbit`: a ring or four arcs of `r` u.
 -- `brackets`: four corner brackets at `half` u from the middle.
+-- `prism`: a custom faceted frame and cardinal ticks.
 A.PRESETS = {
+	-- Faceted frame, four floating ticks, and a diamond aiming point.
+	prism = { dot = true, dotShape = "prismDot", dotScale = 0.9, prism = true },
+	-- Four open arcs frame short aiming marks, leaving the centre and the cardinal gaps clear.
+	aegis = { dot = true, dotScale = 0.9, orbit = { r = 25, turn = 0.5 }, arms = { inner = 8, length = 0.7, clearCenter = true } },
 	dot = { dot = true, dotScale = 1.7 },
 	cross = { dot = true, arms = { inner = 7 } },
 	ring = { dot = true, ring = { r = 20 } },
@@ -225,32 +231,40 @@ A.DOT_CORE = { thin = 3.2, regular = 4.2, bold = 5.6 }
 local pi = math.pi
 
 function A.ArmShift(pose)
-	return pose < 0 and pose * 3 or pose * 4
+	return pose < 0 and pose * 2 or pose * 3
 end
 
 function A.BracketShift(pose)
-	return pose < 0 and pose * 4 or pose * 3
+	return pose * 3
 end
 
 function A.RingScale(pose, pulse)
-	return 1 + 0.08 * pose + 0.06 * pulse
+	return 1 + 0.05 * pose + 0.04 * pulse
 end
 
-function A.OrbitTurn(pose)
-	return pose < 0 and -pose * pi / 4 or 0
+-- `orbit.turn` is how much of the eighth of a circle the design turns (the Aegis turns half of it).
+function A.OrbitTurn(pose, orbit)
+	return pose < 0 and -pose * pi / 4 * (orbit and orbit.turn or 1) or 0
 end
 
 function A.DotScale(pose)
-	return 1 + 0.25 * math.max(0, -pose)
+	return 1 + 0.12 * math.max(0, -pose)
 end
 
--- Where the arms start. Arms never cross the middle, and in the scope they stay inside the ring.
+-- Arms never cross the middle or run into an enclosing ring or orbit.
 function A.ArmInner(sv, preset, pose)
 	local inner = preset.arms.inner + sv.gap + A.ArmShift(pose)
-	if preset.ring then
-		inner = math.min(inner, preset.ring.r - PBS_RETICLE_SHAPES.armH.len - 4)
+	local enclosure = preset.ring or preset.orbit
+	if enclosure then
+		-- The enclosure contracts on lock; reserve space at its smallest size.
+		local radius = enclosure.r * A.RingScale(-1, 0)
+		inner = math.min(inner, radius - PBS_RETICLE_SHAPES.armH.len * (preset.arms.length or 1) - 4)
 	end
-	return math.max(1, inner)
+	local minimum = 1
+	if preset.arms.clearCenter and A.ShowDot(sv, preset) then
+		minimum = A.DotCore(sv, preset, pose) / 2 + 3.5
+	end
+	return math.max(minimum, inner)
 end
 
 function A.BracketHalf(sv, preset, pose)

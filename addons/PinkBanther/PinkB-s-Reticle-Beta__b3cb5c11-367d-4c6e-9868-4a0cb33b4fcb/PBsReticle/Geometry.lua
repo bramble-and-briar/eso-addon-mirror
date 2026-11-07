@@ -2,6 +2,7 @@
 -- pixels to a unit) and where a shape's own centre or corner sits on its canvas. Do not edit by hand.
 PBS_RETICLE_SHAPES = {
 	dot = { w = 16, h = 16, core = 6 },
+	prism = { w = 64, h = 64 },
 	ring = { w = 64, h = 64, r = 20 },
 	orbit = { w = 64, h = 64, r = 22 },
 	armH = { w = 16, h = 8, len = 12 },

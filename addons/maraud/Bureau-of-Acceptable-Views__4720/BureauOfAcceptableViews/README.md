@@ -55,16 +55,19 @@ health, sprint, update, or profile observers at all.
   then restored when the feature is disabled - including after a `/reloadui`.
 
 ### Camera response
-- One global response setting controls Dynamic FOV, context presets, and
-  over-the-shoulder movement.
+- One global response setting controls the transition timing and curve for
+  Dynamic FOV, context presets, and over-the-shoulder movement.
 - **As in ESO** applies BAV values immediately and leaves the game's own camera
   smoothing setting untouched.
-- **Instant** suppresses native smoothing and lands every BAV change in one frame.
+- **Instant** suppresses native smoothing for direct preset and shoulder changes
+  and lands them in one frame. Dynamic FOV never toggles native smoothing while
+  following live zoom input.
 - **Responsive** uses a short 90 ms fast-settling transition.
 - **Smooth** uses a longer 300 ms cinematic ease-in/out transition.
 - If ESO rejects restoration of native smoothing, BAV retries up to three times
   at 100 ms intervals. The original value is retained for later recovery in the
-  current session if all retries fail.
+  current session if all retries fail. A failed or unverified temporary disable is
+  also recovered, so native camera input is not left unsmoothed without an owner.
 - Emergency reset, load-screen recovery, siege safety, and live offset nudging
   remain immediate regardless of the selected profile.
 

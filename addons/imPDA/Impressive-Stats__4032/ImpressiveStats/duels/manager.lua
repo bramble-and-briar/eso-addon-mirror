@@ -1,3 +1,5 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
+
 local addon = {}
 addon.name = 'IMP_STATS_Duels_MANAGER'
 

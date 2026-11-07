@@ -2,6 +2,14 @@
 SimpleGroupDPS_Language = { english = GetCVar ~= nil and GetCVar("language.2") == "en" }
 local language = SimpleGroupDPS_Language
 local english = {
+    [" | Empfang bereit: "] = " | Receiver ready: ",
+    [" | HPS-Empfang bereit: "] = " | HPS receiver ready: ",
+    ["[SimpleGroupDPS] Gruppenversand: automatisch."] = "[SimpleGroupDPS] Group sharing: automatic.",
+    ["[SimpleGroupDPS] Empfang über lokales BattleScrolls."] = "[SimpleGroupDPS] Receiving through locally installed BattleScrolls.",
+    ["[SimpleGroupDPS] Empfang über LibGroupBroadcast."] = "[SimpleGroupDPS] Receiving through LibGroupBroadcast.",
+    ["[SimpleGroupDPS] DPS-/HPS-Pakete empfangen: %d | An Sendewarteschlange uebergeben: %d"] = "[SimpleGroupDPS] DPS/HPS packets received: %d | Queued for sending: %d",
+
+    ["[SimpleGroupDPS] Eigener Schaden: %.0f | Boss-Schaden: %s | Boss-DPS: %s"] = "[SimpleGroupDPS] Own damage: %.0f | Boss damage: %s | Boss DPS: %s",
     ["HPS-Protokoll 431 konnte nicht aktiviert werden."] = "Could not activate HPS protocol 431.",
     ["DPS-Protokoll 430 konnte nicht aktiviert werden."] = "Could not activate DPS protocol 430.",
     ["DPS-Protokoll 430 konnte nicht registriert werden (moeglicherweise bereits belegt)."] = "Could not register DPS protocol 430 (it may already be in use).",
@@ -34,10 +42,10 @@ local english = {
     ["Verändert die DPS-Zahlen und die Summe. Namen und Gesamtskalierung bleiben gleich. Größere Zahlen erhalten bei Bedarf mehr Zeilenhöhe. Für lange Boss-/Gesamtwerte die Fensterbreite erhöhen."] = "Changes DPS numbers and the total. Names and overall scale stay the same. Larger numbers receive more row height when needed. Increase window width for long boss/total values.",
     ["Kleinere Werte ziehen Namen und DPS enger zusammen. Lange Namen werden gekürzt; zu breite Zahlen passend verkleinert."] = "Lower values bring names and DPS closer together. Long names are shortened and wide numbers are scaled to fit.",
     ["Kleinere Werte rücken die Spielerzeilen näher zusammen. Die Schrift bleibt gleich groß."] = "Lower values bring player rows closer together. Font size stays the same.",
-    ["Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung und Versand laufen auch ausgeblendet weiter. Die lokal gemessene Gruppensumme bleibt vollständig."] = "Shows players with the tank role, including yourself. Measurement and sharing continue while hidden. The locally measured group total remains complete.",
-    ["Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung und Versand laufen auch ausgeblendet weiter."] = "Shows healers and the healing section, including yourself. Measurement and sharing continue while hidden.",
+    ["Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung und Empfang laufen auch ausgeblendet weiter. Die lokal gemessene Gruppensumme bleibt vollständig."] = "Shows players with the tank role, including yourself. Measurement and reception continue while hidden. The locally measured group total remains complete.",
+    ["Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung und Empfang laufen auch ausgeblendet weiter."] = "Shows healers and the healing section, including yourself. Measurement and reception continue while hidden.",
     ["Setzt DPS-Zahlengröße, Fensterbreite und Zeilenabstand zurück. Position, Namensgröße und Gesamtskalierung bleiben erhalten."] = "Resets DPS number size, window width and row spacing. Position, name size and overall scale are preserved.",
-    ["Blendet das persönliche DPS-/Anteil-HUD ein oder aus. Gruppenanzeige, Messung und Versand laufen weiter."] = "Shows or hides the personal DPS/share HUD. Group display, measurement and sharing continue.",
+    ["Blendet das persönliche DPS-/Anteil-HUD ein oder aus. Gruppenanzeige, Messung und Empfang laufen weiter."] = "Shows or hides the personal DPS/share HUD. Group display, measurement and reception continue.",
     ["Verschiebt das separate DPS-/Anteil-HUD mit Maus oder rechtem Stick. Speichert nach 3 Sekunden ohne Bewegung."] = "Moves the separate DPS/share HUD with the mouse or right stick. Saves after 3 seconds without movement.",
     ["Vergrößert oder verkleinert nur das persönliche DPS-/Anteil-HUD. Die Gruppenanzeige bleibt gleich."] = "Resizes only the personal DPS/share HUD. The group display stays the same.",
     ["Setzt alte Ergebnisse nach 1 bis 5 Minuten zurück. Standard: 1 Minute. Laufende Kämpfe bleiben erhalten."] = "Clears old results after 1 to 5 minutes. Default: 1 minute. Active fights are preserved.",
@@ -59,16 +67,6 @@ local english = {
     ["[SimpleGroupDPS] Schadensereignisse: %d | Eigene/Pets: %d | Andere/eingehend: %d"] = "[SimpleGroupDPS] Damage events: %d | Own/pets: %d | Other/incoming: %d",
     ["[SimpleGroupDPS] Messung vor %.1f s abgeschlossen."] = "[SimpleGroupDPS] Measurement finished %.1f s ago.",
     ["[SimpleGroupDPS] Gruppe: "] = "[SimpleGroupDPS] Grouped: ",
-    [" | Teilen: "] = " | Sharing: ",
-    [" | Sender bereit: "] = " | Sender ready: ",
-    ["[SimpleGroupDPS] Versand wird vom lokal installierten BattleScrolls uebernommen."] = "[SimpleGroupDPS] Locally installed BattleScrolls handles sharing.",
-    ["[SimpleGroupDPS] LibGroupBroadcast erlaubt Versand: "] = "[SimpleGroupDPS] LibGroupBroadcast allows sharing: ",
-    ["[SimpleGroupDPS] HPS-Sender bereit: "] = "[SimpleGroupDPS] HPS sender ready: ",
-    [" | HPS-Versand erlaubt: "] = " | HPS sharing allowed: ",
-    ["[SimpleGroupDPS] Letzte DPS an Sendewarteschlange uebergeben: vor %.1f s"] = "[SimpleGroupDPS] Last DPS queued for sending: %.1f s ago",
-    ["[SimpleGroupDPS] Seit dem letzten Kampfstart noch keine DPS an die Sendewarteschlange uebergeben."] = "[SimpleGroupDPS] No DPS queued for sending since combat started.",
-    ["[SimpleGroupDPS] Letzter Sendeversuch wurde abgelehnt."] = "[SimpleGroupDPS] Last send attempt was rejected.",
-    ["[SimpleGroupDPS] DPS-/HPS-Pakete empfangen: %d | An Sendewarteschlange uebergeben: %d"] = "[SimpleGroupDPS] DPS/HPS packets received: %d | Queued for sending: %d",
 }
 function SimpleGroupDPS_Translate(text)
     return language.english and (english[text] or text) or text

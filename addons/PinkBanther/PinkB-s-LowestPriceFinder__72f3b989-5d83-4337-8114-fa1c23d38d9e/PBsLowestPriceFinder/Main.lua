@@ -140,6 +140,14 @@ local function OnSlashCommand(text)
 	elseif word == "add" then
 		ADDON:AddWatch(rest)
 		ADDON.panel:Refresh()
+	elseif word == "quality" or word == "q" then
+		if ADDON:SetQualityCommand(rest) then
+			ADDON.panel:Refresh()
+		end
+	elseif word == "history" or word == "hist" then
+		if ADDON:History(rest) then
+			ADDON.panel:Refresh()
+		end
 	elseif word == "remove" or word == "rm" or word == "del" then
 		local index = ADDON:FindWatch(rest)
 		if index then

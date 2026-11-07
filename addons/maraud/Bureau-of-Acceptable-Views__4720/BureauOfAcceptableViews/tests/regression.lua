@@ -15,7 +15,7 @@ end
 local function fixture(overrides)
     local state = {
         camera = { distance = 4, horizontalOffset = 0, verticalOffset = 0 },
-        timers = {}, events = {}, hooks = {}, logs = {}, writes = 0, now = 0,
+        timers = {}, events = {}, hooks = {}, logs = {}, writes = 0, writesByKey = {}, now = 0,
     }
     local env = setmetatable({ SLASH_COMMANDS = {} }, { __index = _G })
     local strings = {}
@@ -33,6 +33,7 @@ local function fixture(overrides)
     end
     env.SetSetting = function(_, key, value)
         state.writes = state.writes + 1
+        state.writesByKey[key] = (state.writesByKey[key] or 0) + 1
         if state.writeFailed then return false end
         state.camera[key] = tonumber(value)
     end
@@ -357,14 +358,155 @@ for _, failure in ipairs({ "readFailed", "writeFailed" }) do
     state.addon.CameraSettings.Get = function() return nil, false end
     runSmoothingRestore(state)
     state.addon.CameraSettings.Get = originalGet
-    local retry = state.timers[SMOOTHING_RESTORE_TIMER]
     state[failure] = true
     equal(response.AcquireSmoothing("unavailable"), false, "failed acquisition does not take ownership")
-    equal(state.timers[SMOOTHING_RESTORE_TIMER], retry, "failed acquisition preserves recovery timer")
+    equal(state.timers[SMOOTHING_RESTORE_TIMER] ~= nil, true, "failed acquisition preserves recovery timer")
     state[failure] = false
     runSmoothingRestore(state)
     equal(state.camera.smoothing, 1, "recovery survives failed acquisition")
     equal(state.timers[SMOOTHING_RESTORE_TIMER], nil, "recovery after failed acquisition removes timer")
+end
+
+do
+    local state = smoothingFixture()
+    local response = state.response
+    local settings = state.addon.CameraSettings
+    local originalGet = settings.Get
+    local reads = 0
+    settings.Get = function(key)
+        reads = reads + 1
+        if reads == 2 then return nil, false end
+        return originalGet(key)
+    end
+
+    equal(response.AcquireSmoothing("unverified-disable"), false, "unverified disable rejects ownership")
+    equal(response.ReleaseSmoothing("unverified-disable"), false, "failed acquisition has no owner to release")
+    settings.Get = originalGet
+    equal(state.camera.smoothing, 1, "failed acquisition immediately restores native smoothing")
+    equal(state.timers[SMOOTHING_RESTORE_TIMER], nil, "successful recovery needs no retry")
+end
+
+do
+    local state = smoothingFixture()
+    local response = state.response
+    local settings = state.addon.CameraSettings
+    local originalGet = settings.Get
+    local reads = 0
+    settings.Get = function(key)
+        reads = reads + 1
+        if reads == 2 or reads == 3 then return nil, false end
+        return originalGet(key)
+    end
+
+    equal(response.AcquireSmoothing("unverified-disable"), false, "unverified disable rejects ownership")
+    settings.Get = originalGet
+    equal(state.timers[SMOOTHING_RESTORE_TIMER] ~= nil, true, "failed recovery schedules a retry")
+    runSmoothingRestore(state)
+    equal(state.camera.smoothing, 1, "retry restores native smoothing")
+    equal(state.timers[SMOOTHING_RESTORE_TIMER], nil, "successful retry removes timer")
+end
+
+local function dynamicFovFixture(mode, initialSmoothing)
+    local state = smoothingFixture(initialSmoothing)
+    state.camera.thirdPersonFov = 50
+    state.response.Configure({ mode = mode })
+    loadAddonFile(state.env, "DynamicFov.lua")
+    loadAddonFile(state.env, "FovArbiter.lua")
+    state.dynamicFov = state.addon.DynamicFov
+    state.dynamicFov.Configure({ enabled = true })
+    return state
+end
+
+local function finishDynamicFov(state)
+    local timer = state.timers.BAV_DynamicFovSmoothing
+    if timer then
+        state.now = state.now + state.response.GetDurationMs()
+        timer.callback()
+    end
+    equal(state.timers.BAV_DynamicFovSmoothing, nil, "FOV glide tears down on landing")
+end
+
+for _, mode in ipairs({ "native", "instant", "responsive", "smooth" }) do
+    for _, initialSmoothing in ipairs({ 0, 1 }) do
+        local state = dynamicFovFixture(mode, initialSmoothing)
+        local dynamicFov = state.dynamicFov
+        local duration = state.response.GetDurationMs()
+        dynamicFov.ActivateAfterRecovery()
+        local observer = state.timers.BAV_DynamicFovObserver
+        equal(observer.delay, 100, "distance observer interval preserved")
+        equal(state.camera.smoothing, initialSmoothing, "FOV start preserves native smoothing")
+        equal(state.timers.BAV_DynamicFovSmoothing ~= nil, duration > 0, "profile controls FOV animation")
+        if duration > 0 then
+            state.now = math.floor(duration / 2)
+            state.timers.BAV_DynamicFovSmoothing.callback()
+            local expected = tonumber(string.format("%.2f", 50 + (47 - 50)
+                * state.response.GetCurve()(state.now / duration)))
+            equal(state.camera.thirdPersonFov, expected, "FOV uses the selected response curve")
+        end
+        finishDynamicFov(state)
+        equal(state.camera.thirdPersonFov, 47, "FOV interpolation target preserved")
+        equal(state.vars.dynamicFovBaseSnapshot, 50, "manual FOV captured before override")
+
+        state.camera.distance = 5
+        observer.callback()
+        local animation = state.timers.BAV_DynamicFovSmoothing
+        state.camera.distance = 6
+        observer.callback()
+        if duration > 0 then
+            equal(state.timers.BAV_DynamicFovSmoothing, animation, "retarget reuses FOV updater")
+        end
+        finishDynamicFov(state)
+        equal(state.camera.thirdPersonFov, 53, "observer follows native distance changes")
+
+        equal(state.hooks.CameraZoomOut(), true, "manual zoom still handled with Dynamic FOV")
+        finishDynamicFov(state)
+        equal(state.camera.thirdPersonFov, 54.05, "manual zoom still updates dynamic FOV")
+        equal(state.camera.smoothing, initialSmoothing, "manual zoom leaves native smoothing alone")
+
+        dynamicFov.Apply(8)
+        dynamicFov.CancelAnimation()
+        equal(state.timers.BAV_DynamicFovSmoothing, nil, "cancellation removes FOV updater")
+        dynamicFov.Apply(4)
+        finishDynamicFov(state)
+        equal(state.camera.thirdPersonFov, 47, "cancelled FOV can be reapplied")
+
+        local writes = state.writes
+        state.readFailed = true
+        observer.callback()
+        state.readFailed = false
+        equal(state.writes, writes, "unavailable distance sample causes no writes")
+        state.writeFailed = true
+        dynamicFov.Apply(7)
+        finishDynamicFov(state)
+        equal(state.camera.thirdPersonFov, 47, "rejected FOV write leaves live value unchanged")
+        state.writeFailed = false
+        dynamicFov.Apply(7)
+        finishDynamicFov(state)
+        equal(state.camera.thirdPersonFov, 56, "FOV recovers from rejected write")
+
+        dynamicFov.Apply(8)
+        dynamicFov.Configure({ enabled = false })
+        equal(state.timers.BAV_DynamicFovSmoothing, nil, "disable cancels FOV glide")
+        equal(state.timers.BAV_DynamicFovObserver, nil, "disable stops distance observer")
+        equal(state.camera.thirdPersonFov, 50, "disable restores manual FOV")
+        equal(state.vars.dynamicFovBaseSnapshot, nil, "disable clears restored FOV snapshot")
+        equal(state.camera.smoothing, initialSmoothing, "FOV lifecycle preserves native smoothing")
+        equal(state.writesByKey.smoothing, nil, "FOV lifecycle never writes native smoothing")
+        equal(state.timers[SMOOTHING_RESTORE_TIMER], nil, "FOV lifecycle needs no smoothing recovery")
+    end
+end
+
+for _, initialSmoothing in ipairs({ 0, 1 }) do
+    local state = dynamicFovFixture("responsive", initialSmoothing)
+    state.response.AcquireSmoothing("spatial-transition")
+    state.dynamicFov.ActivateAfterRecovery()
+    state.response.ReleaseSmoothing("spatial-transition")
+    runSmoothingRestore(state)
+    equal(state.camera.smoothing, initialSmoothing, "FOV does not delay another owner's smoothing restore")
+    finishDynamicFov(state)
+    equal(state.camera.thirdPersonFov, 47, "FOV lands after independent smoothing restore")
+    equal(state.writesByKey.smoothing or 0, initialSmoothing == 0 and 0 or 2,
+        "only the spatial owner changes native smoothing")
 end
 
 print(string.format("PASS: %d regression assertions", checks))

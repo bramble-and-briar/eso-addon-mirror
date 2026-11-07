@@ -1,9 +1,11 @@
 local addon = {}
 addon.name = 'ImpressiveStats'
-addon.displayName = '|c7c42f2Imp|ceeeeee-ressive Stats|r'
-addon.version = '1.5.7'
+addon.displayName = '|c7c42f2Imp|ceeeeeeressive Stats|r'
+addon.version = '1.5.8'
 
 local Log = IMP_STATS_Logger('IMP_STATS_MAIN')
+local Errors = IMP_STATS_SHARED.Errors
+local Notifications = IMP_STATS_SHARED.Notifications
 
 local DEFAULTS = {
 	battlegrounds = {
@@ -118,7 +120,7 @@ function addon:OnLoad()
 
 	-- ------------------------------------------------------------------------
 
-	IMP_STATS_SHARED.Errors:Initialize(self.sv.errors)
+	Errors:Initialize(self.sv.errors)
 
 	--[[
 	IMP_STATS_SHARED.Errors:AddError('Test', 'Test message 1', 'Test traceback 1')
@@ -127,7 +129,7 @@ function addon:OnLoad()
 	--]]
 
 	if self.sv.errors.enabled then
-		IMP_STATS_SHARED.Notifications.RegisterNotifications()
+		Notifications.RegisterNotifications()
 	end
 
 	-- ------------------------------------------------------------------------
@@ -144,6 +146,7 @@ local function OnAddonLoaded(_, addonName)
 	addon:OnLoad()
 
 	-- IMP_STATS = addon
+	IMP_STATS_SHARED = nil
 end
 
 EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)

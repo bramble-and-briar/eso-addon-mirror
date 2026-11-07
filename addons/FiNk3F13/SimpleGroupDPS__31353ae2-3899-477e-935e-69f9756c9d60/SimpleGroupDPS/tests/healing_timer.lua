@@ -45,7 +45,7 @@ env.setClock(907900)
 meter:OnDamage(1,false,1,'Enemy',0,1000,99,10)
 heal(909400)
 local healerTime = rows.healingHeader.swtDPSValue.text
-assert(healerTime == '0:08' and meter:GetStats().durationMS == 8800)
+assert(healerTime == '0:07' and meter:GetStats().durationMS == 7900)
 assert(meter:GetStats().healingDurationMS == 8700, 'HPS retains its independent healing clock')
 function GetSelectedLFGRole() return LFG_ROLE_DPS end
 env.tick()

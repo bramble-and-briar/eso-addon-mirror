@@ -2672,6 +2672,17 @@ elseif tabId == 9 then
             currentY
         )
 
+        currentY = CreateCheckbox(scrollChild, GetString(SI_NC_LAM_TARGET_SHOW_NPC_TITLE),
+            function() return NC.savedVars and NC.savedVars.frames and NC.savedVars.frames.showNpcTitle ~= false end,
+            function(v)
+                if NC.savedVars and NC.savedVars.frames then
+                    NC.savedVars.frames.showNpcTitle = v
+                    if Frames and Frames.ApplyTargetLayout then Frames.ApplyTargetLayout() end
+                end
+            end,
+            currentY
+        )
+        
         currentY = CreateCheckbox(scrollChild, GetString(SI_NC_LAM_TARGET_SHOW_RANK),
             function() return NC.savedVars and NC.savedVars.frames and NC.savedVars.frames.showRank ~= false end,
             function(v)

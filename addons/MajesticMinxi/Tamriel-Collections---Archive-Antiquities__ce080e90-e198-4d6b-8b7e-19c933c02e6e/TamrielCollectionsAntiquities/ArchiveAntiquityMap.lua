@@ -115,7 +115,7 @@ function Map.Show(screen,part,source,preferred)
         Map.returnCallback=true
         GAMEPAD_WORLD_MAP_SCENE:RegisterCallback('StateChange',function(_,state)if state==SCENE_HIDDEN then Clear()end end)
     end
-    screen._tcaMapReturn={mode=screen.mode,family=screen._tcaFamily,parent=screen._tcaParent,item=screen._tcaItem}
+    screen._tcaMapReturn={mode=screen.mode,level=screen._tcaLevel,family=screen._tcaFamily,parent=screen._tcaParent,item=screen._tcaItem}
     screen.returnToMotifsAfterMap=true;screen.returnMotifSelectedIndex=screen.styleList:GetSelectedIndex()
     ZO_WorldMap_ShowWorldMap()
     if target.mapId and WORLD_MAP_MANAGER.SetMapById then WORLD_MAP_MANAGER:SetMapById(target.mapId)

@@ -8,15 +8,26 @@ O.Settings.defaults = {
     resourceThickness = O.Config.resourceThickness, resourceLength = O.Config.resourceLength, resourceRadius = O.Config.resourceRadius,
 }
 function O.Settings.Load()
-    local s = ZO_SavedVars:NewAccountWide("OneCrosshairSavedVariables", 1, nil, O.Settings.defaults)
-    for key, default in pairs(O.Settings.defaults) do
-        if type(s[key]) ~= type(default) then s[key] = default end
+    local s = ZO_SavedVars:NewAccountWide("OneCrosshairSavedVariables", 1, nil, {}, GetWorldName())
+    -- Copy missing settings once; keep the legacy profile intact for other servers.
+    if not s.serverSettingsInitialized then
+        local legacy = OneCrosshairSavedVariables and OneCrosshairSavedVariables.Default
+        legacy = legacy and legacy[GetDisplayName()]
+        legacy = legacy and legacy["$AccountWide"]
+        if type(legacy) == "table" then
+            for key in pairs(O.Settings.defaults) do
+                if s[key] == nil then s[key] = legacy[key] end
+            end
+        end
+        s.serverSettingsInitialized = true
     end
-    -- Release appearance is code-owned, independent of old account settings.
-    for key, value in pairs(O.Config) do s[key] = value end
-    s.criticalState, s.heavyChannel = nil, nil -- retired options; GCD is authoritative
+    for key, default in pairs(O.Settings.defaults) do
+        if type(s[key]) ~= type(default)
+            or (type(default) == "number" and (s[key] ~= s[key] or math.abs(s[key]) == math.huge)) then
+            s[key] = default
+        end
+    end
     for key, bounds in pairs({ resourceThickness = {1,12}, resourceLength = {0,100}, resourceRadius = {20,100} }) do
-        if s[key] ~= s[key] then s[key] = O.Settings.defaults[key] end
         s[key] = math.max(bounds[1], math.min(bounds[2], s[key]))
     end
     s.crosshairOpacity, s.hudOpacity = O.Clamp(s.crosshairOpacity), O.Clamp(s.hudOpacity)
@@ -32,14 +43,23 @@ function O.Settings.Initialize(s)
     local function text(key) return GetString(_G["SI_ONECROSSHAIR_" .. key]) end
     local panel = LAM:RegisterAddonPanel(O.name .. "Settings", {
         type = "panel", name = "OneCrosshair", displayName = "OneCrosshair", author = O.author,
-        version = O.version, registerForRefresh = true, registerForDefaults = false,
+        version = O.version, registerForRefresh = true, registerForDefaults = true,
     })
     local options = {}
     local function add(option) options[#options + 1] = option end
     local function header(key) add({ type = "header", name = text(key) }) end
     local function checkbox(key, label)
         add({ type = "checkbox", name = text(label), getFunc = function() return s[key] end,
-            setFunc = function(value) s[key] = value; O.Preview.Refresh() end, width = "full" })
+            setFunc = function(value) s[key] = value; O.Preview.Refresh() end,
+            default = O.Settings.defaults[key], width = "full" })
+    end
+    local function slider(key, label, minimum, maximum, step, decimals)
+        add({ type = "slider", name = text(label), min = minimum, max = maximum,
+            step = step, decimals = decimals, clampInput = true,
+            disabled = function() return key == "crosshairOpacity" and O.PresetRegistry.Get(s.preset).native == true end,
+            getFunc = function() return s[key] end,
+            setFunc = function(value) s[key] = value; O.Preview.Refresh() end,
+            default = O.Settings.defaults[key], width = "full" })
     end
     add({ type = "custom", width = "full", minHeight = 200, maxHeight = 200,
         createFunc = function(control) O.Preview.Initialize(control, s) end,
@@ -51,14 +71,23 @@ function O.Settings.Initialize(s)
     end
     add({ type = "dropdown", name = text("PRESET"), choices = choices, choicesValues = values,
         getFunc = function() return s.preset end,
-        setFunc = function(value) s.preset = value; O.Preview.Refresh() end })
+        setFunc = function(value) s.preset = value; O.Preview.Refresh() end,
+        default = O.Settings.defaults.preset })
+    header("APPEARANCE")
+    slider("crosshairOpacity", "CROSSHAIR_OPACITY", 0, 1, .05, 2)
+    slider("hudOpacity", "HUD_OPACITY", 0, 1, .05, 2)
+    header("RESOURCE_GEOMETRY")
+    slider("resourceThickness", "RESOURCE_THICKNESS", 1, 12, .25, 2)
+    slider("resourceLength", "RESOURCE_LENGTH", 0, 100, 1, 0)
+    slider("resourceRadius", "RESOURCE_RADIUS", 20, 100, .25, 2)
     header("HUD")
     checkbox("resources", "RESOURCES")
     checkbox("gcd", "GCD")
     add({ type = "dropdown", name = text("VISIBILITY"),
         choices = { text("ALWAYS"), text("COMBAT_ONLY"), text("DYNAMIC"), text("OFF") },
         choicesValues = { "ALWAYS", "COMBAT_ONLY", "DYNAMIC", "OFF" },
-        getFunc = function() return s.visibility end, setFunc = function(value) s.visibility = value; O.Preview.Refresh() end })
+        getFunc = function() return s.visibility end, setFunc = function(value) s.visibility = value; O.Preview.Refresh() end,
+        default = O.Settings.defaults.visibility })
     header("EFFECTS")
     checkbox("lowResource", "LOW_RESOURCE")
     checkbox("shield", "SHIELD")

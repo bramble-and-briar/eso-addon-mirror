@@ -1,10 +1,9 @@
 ## Title: LiveBuffUptime
 ## APIVersion: 101051
-## Version: 2.2.7
-## Author: FiNk3F13
+## Version: 2.4.4
+## Author: FiNk3--F13--
 ## Description: Freely positioned effect icons with duration, live uptime and combat statistics for players and enemies.
-## DependsOn: LibHarvensAddonSettings
-## ConsoleDependsOn: LibCombat2
+## DependsOn: LibHarvensAddonSettings LibCombat2
 ## OptionalDependsOn: LibCombat
 ## SavedVariables: LiveBuffUptime_SavedVariables
 

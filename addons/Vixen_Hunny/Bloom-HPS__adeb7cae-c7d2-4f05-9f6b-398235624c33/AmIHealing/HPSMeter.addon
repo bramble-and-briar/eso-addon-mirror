@@ -1,9 +1,15 @@
 ## Title: Bloom HPS
-## APIVersion: 101046
-## AddOnVersion: 2.1
+## APIVersion: 101047 101048
+## AddOnVersion: 4
 ## Author: Vixen Hunny
-## SavedVariables: HPSMeterSavedVars HPSMeterHealingData
-## DependsOn: LibAddonMenu-2.0
-## Description: HPS and SPS Meter
+## SavedVariables: HPSMeterSavedVars
+## DependsOn: LibFights>=10000
+## OptionalDependsOn: LibAddonMenu-2.0
+## Description: HPS / HPM and shield per second / minute meter, powered by LibFights
 
-HPSMeter.lua
+src/Core.lua
+src/Data.lua
+src/UI.lua
+src/Settings.lua
+src/Commands.lua
+src/Init.lua

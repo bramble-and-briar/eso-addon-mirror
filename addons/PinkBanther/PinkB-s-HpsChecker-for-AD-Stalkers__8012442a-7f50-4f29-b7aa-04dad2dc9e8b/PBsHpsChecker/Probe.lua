@@ -37,7 +37,21 @@ local HEAL_RESULTS = {
     { name = "CritTick", result = ACTION_RESULT_HOT_TICK_CRITICAL },
 }
 
+-- A heal can arrive with no name for its source or its target (the first PS5 run saw 65 of them, type NONE
+-- on both sides, amount 0). Such an event still carries the unit IDs, and an ID is named by any other
+-- event that has its name, so the IDs are remembered with their names and types and the nameless
+-- events are resolved when the result is printed (an ID may be named only after the nameless event).
+local MAX_UNITS = 400
+local MAX_NAMELESS = 60
+-- Lines printed for nameless pairs: the result goes to the chat, which scrolls.
+local NAMELESS_LINES = 4
+
 local rows = {}
+local known = {}
+local knownCount = 0
+local nameless = {}
+local namelessCount = 0
+local namelessLost = 0
 
 local function L(id)
     return GetString(id)
@@ -47,11 +61,28 @@ local function Plain(name)
     return (tostring(name or ""):gsub("%^.*$", ""))
 end
 
--- rows[sourceType][targetType] = { events, amount, people, names = {}, sample }
-local function OnHeal(_, _, isError, _, _, _, sourceName, sourceType, targetName, targetType, hitValue)
+local function Learn(unitId, name, unitType)
+    if type(unitId) ~= "number" or unitId <= 0 or name == nil or name == "" then
+        return
+    end
+    if known[unitId] == nil then
+        if knownCount >= MAX_UNITS then
+            return
+        end
+        knownCount = knownCount + 1
+    end
+    known[unitId] = { name = Plain(name), type = unitType }
+end
+
+-- rows[sourceType][targetType] = { events, amount, overflow, people, names = {}, sample, ability }
+local function OnHeal(_, _, isError, abilityName, _, _, sourceName, sourceType, targetName, targetType, hitValue,
+                      _, _, _, sourceUnitId, targetUnitId, abilityId, overflow)
     if isError then
         return
     end
+    Learn(sourceUnitId, sourceName, sourceType)
+    Learn(targetUnitId, targetName, targetType)
+
     local row = rows[sourceType]
     if not row then
         row = {}
@@ -59,15 +90,60 @@ local function OnHeal(_, _, isError, _, _, _, sourceName, sourceType, targetName
     end
     local cell = row[targetType]
     if not cell then
-        cell = { events = 0, amount = 0, people = 0, names = {}, sample = Plain(sourceName) .. " > " .. Plain(targetName) }
+        cell = {
+            events = 0, amount = 0, overflow = 0, people = 0, names = {},
+            sample = Plain(sourceName) .. " > " .. Plain(targetName),
+            ability = Plain(abilityName),
+        }
         row[targetType] = cell
     end
     cell.events = cell.events + 1
     cell.amount = cell.amount + (tonumber(hitValue) or 0)
+    cell.overflow = cell.overflow + (tonumber(overflow) or 0)
     if cell.people < MAX_NAMES and not cell.names[sourceName] then
         cell.names[sourceName] = true
         cell.people = cell.people + 1
     end
+
+    if sourceName == nil or sourceName == "" or targetName == nil or targetName == "" then
+        local key = tostring(sourceUnitId) .. ">" .. tostring(targetUnitId)
+        local pair = nameless[key]
+        if not pair then
+            if namelessCount >= MAX_NAMELESS then
+                namelessLost = namelessLost + 1
+                return
+            end
+            namelessCount = namelessCount + 1
+            pair = {
+                events = 0, sourceId = sourceUnitId, targetId = targetUnitId,
+                sourceName = Plain(sourceName), sourceType = sourceType,
+                targetName = Plain(targetName), targetType = targetType,
+                ability = Plain(abilityName), abilityId = abilityId,
+            }
+            nameless[key] = pair
+        end
+        pair.events = pair.events + 1
+    end
+end
+
+-- Who a unit ID is, as far as this run learned: name and type from the event itself, else from another
+-- event that named the ID, else nothing.
+local function Resolve(unitId, ownName, ownType)
+    if ownName ~= "" then
+        return ownName, ownType
+    end
+    local unit = known[unitId]
+    if unit then
+        return unit.name, unit.type
+    end
+    return nil, ownType
+end
+
+local function Described(name, unitType, unitId)
+    if name then
+        return string.format("%s (%s)", name, ADDON.TypeName(unitType))
+    end
+    return string.format("ID %s (%s)", tostring(unitId), ADDON.TypeName(unitType))
 end
 
 local function Cell(sourceType, targetType)
@@ -77,6 +153,8 @@ end
 
 function probe:Start(nowMs)
     rows = {}
+    known, knownCount = {}, 0
+    nameless, namelessCount, namelessLost = {}, 0, 0
     self.running = true
     self.startedMs = nowMs
     self.endsMs = nowMs + PROBE_MS
@@ -109,8 +187,45 @@ function probe:Lines(seconds)
     end
     for _, seen in ipairs(pairsSeen) do
         local cell = seen.cell
+        local sample = cell.sample
+        if cell.ability ~= "" then
+            sample = sample .. " [" .. cell.ability .. "]"
+        end
         lines[#lines + 1] = string.format(L(SI_PBSHPS_PROBE_LINE), seen.source, seen.target, cell.events,
-            ADDON.records.Commas(cell.amount), cell.people, cell.sample)
+            ADDON.records.Commas(cell.amount) .. "/" .. ADDON.records.Commas(cell.overflow), cell.people, sample)
+    end
+
+    -- The events that came without a name, resolved through the IDs: the busiest pairs first, and how
+    -- many of all of them are aimed at somebody the run knows to be a party member.
+    local resolved = {}
+    local namelessToGroup, namelessTotal = 0, 0
+    for _, pair in pairs(nameless) do
+        local sourceName, sourceType = Resolve(pair.sourceId, pair.sourceName, pair.sourceType)
+        local targetName, targetType = Resolve(pair.targetId, pair.targetName, pair.targetType)
+        local ability = pair.ability
+        if ability == "" and type(pair.abilityId) == "number" and pair.abilityId > 0 then
+            ability = "#" .. tostring(pair.abilityId)
+        end
+        resolved[#resolved + 1] = {
+            events = pair.events, ability = ability,
+            source = Described(sourceName, sourceType, pair.sourceId),
+            target = Described(targetName, targetType, pair.targetId),
+        }
+        namelessTotal = namelessTotal + pair.events
+        if targetName and targetType == COMBAT_UNIT_TYPE_GROUP then
+            namelessToGroup = namelessToGroup + pair.events
+        end
+    end
+    table.sort(resolved, function(a, b)
+        if a.events ~= b.events then
+            return a.events > b.events
+        end
+        return a.source .. a.target < b.source .. b.target
+    end)
+    for index = 1, math.min(#resolved, NAMELESS_LINES) do
+        local pair = resolved[index]
+        lines[#lines + 1] = string.format(L(SI_PBSHPS_PROBE_NAMELESS), pair.events, pair.source, pair.target,
+            pair.ability ~= "" and pair.ability or "?")
     end
 
     local PLAYER, GROUP, OTHER = COMBAT_UNIT_TYPE_PLAYER, COMBAT_UNIT_TYPE_GROUP, COMBAT_UNIT_TYPE_OTHER
@@ -125,6 +240,11 @@ function probe:Lines(seconds)
         local cell = Cell(question[2], question[3])
         lines[#lines + 1] = "  " .. L(question[1]) .. "  "
             .. (cell and string.format(L(SI_PBSHPS_PROBE_YES), cell.events) or L(SI_PBSHPS_PROBE_NO))
+    end
+    if namelessTotal > 0 then
+        lines[#lines + 1] = "  " .. L(SI_PBSHPS_PROBE_Q_NAMELESS_GROUP) .. "  "
+            .. (namelessToGroup > 0 and string.format(L(SI_PBSHPS_PROBE_YES), namelessToGroup)
+                or L(SI_PBSHPS_PROBE_NO))
     end
     lines[#lines + 1] = L(SI_PBSHPS_PROBE_CAVEAT)
     return lines

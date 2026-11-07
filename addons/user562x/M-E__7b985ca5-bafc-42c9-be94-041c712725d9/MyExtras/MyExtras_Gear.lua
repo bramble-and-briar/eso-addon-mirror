@@ -16,6 +16,13 @@ local SCALE_SPEED   = 10
 local SIZE_MIN      = 16
 local SIZE_MAX      = 48
 local MOVE_SCENE    = "MyExtras_GearMove"
+local BOX_PAD_X     = 0.4
+local BOX_PAD_Y     = 0.2
+local BOX_CORNER    = 0.35
+
+Gear.charDefaults = {
+    gearUseCharacter = false,
+}
 
 Gear.defaults = {
     gearShow          = false,
@@ -28,6 +35,8 @@ Gear.defaults = {
     gearPartialColor  = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
     gearPosX          = 60,
     gearPosY          = 520,
+    gearBackground        = false,
+    gearBackgroundOpacity = 50,
 }
 
 local ARMOR = {
@@ -70,8 +79,45 @@ local pending    = false
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
+local charFilled = false
+
+local function CharSettings()
+    local cv = ME.charVariables
+    if not cv then return nil end
+    if type(cv.gearCharSettings) ~= "table" then cv.gearCharSettings = {} end
+    local settings = cv.gearCharSettings
+    if not settings.seeded then
+        local account = ME.savedVariables
+        for key, value in pairs(Gear.defaults) do
+            local current = account and account[key]
+            if current == nil then current = value end
+            settings[key] = current
+        end
+        settings.seeded = true
+        charFilled = true
+    elseif not charFilled then
+        for key, value in pairs(Gear.defaults) do
+            if settings[key] == nil then settings[key] = value end
+        end
+        charFilled = true
+    end
+    return settings
+end
+
+function Gear:UsesCharacterSettings()
+    return ME.charVariables ~= nil and ME.charVariables.gearUseCharacter == true
+end
+
 local function SV()
+    if Gear:UsesCharacterSettings() then
+        return CharSettings() or ME.savedVariables
+    end
     return ME.savedVariables
+end
+
+local function SavedTip()
+    if Gear:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
+    return ME.SAVED_ACCOUNT_TIP
 end
 
 local function WornLink(slot)
@@ -235,8 +281,13 @@ function Gear:CreatePanel()
     panel:SetHidden(true)
     self.panel = panel
 
+    local box = ME:CreateRoundBox("MyExtras_GearBox", panel)
+    box:SetHidden(true)
+    self.box = box
+
     local title = WINDOW_MANAGER:CreateControl("MyExtras_GearTitle", panel, CT_LABEL)
     title:SetAnchor(TOPLEFT, panel, TOPLEFT, 0, 0)
+    title:SetDrawLevel(2)
     title:SetText(TITLE_TEXT)
     self.title = title
 end
@@ -245,9 +296,27 @@ local function GetRow(index)
     local row = rows[index]
     if not row then
         row = WINDOW_MANAGER:CreateControl("MyExtras_GearRow" .. index, Gear.panel, CT_LABEL)
+        row:SetDrawLevel(2)
         rows[index] = row
     end
     return row
+end
+
+function Gear:ApplyBox(width, height)
+    if not self.box then return end
+    local sv = SV()
+    local show = sv.gearBackground == true and width > 0 and height > 0
+    self.box:SetHidden(not show)
+    if not show then return end
+    local size = sv.gearSize or self.defaults.gearSize
+    local padX = math.max(4, zo_floor(size * BOX_PAD_X))
+    local padY = math.max(2, zo_floor(size * BOX_PAD_Y))
+    local opacity = tonumber(sv.gearBackgroundOpacity) or self.defaults.gearBackgroundOpacity
+    self.box:SetFillColor(0, 0, 0, opacity / 100)
+    self.box:SetCorner(math.max(6, size * BOX_CORNER))
+    self.box.control:ClearAnchors()
+    self.box.control:SetAnchor(TOPLEFT, self.panel, TOPLEFT, -padX, -padY)
+    self.box.control:SetDimensions(zo_ceil(width) + padX * 2, zo_ceil(height) + padY * 2)
 end
 
 function Gear:ApplyPosition()
@@ -266,11 +335,14 @@ function Gear:Render()
     local partR, partG, partB = StyleColor(sv.gearPartialStyle, sv.gearPartialColor)
 
     local y = 0
+    local width, height = 0, 0
     local showTitle = sv.gearTitle == true
     self.title:SetHidden(not showTitle)
     if showTitle then
         self.title:SetFont(font)
         self.title:SetColor(1, 1, 1, 1)
+        width = self.title:GetTextWidth() or 0
+        height = self.title:GetTextHeight() or 0
         y = spacing
     end
 
@@ -297,6 +369,8 @@ function Gear:Render()
         row:ClearAnchors()
         row:SetAnchor(TOPLEFT, self.panel, TOPLEFT, 0, y)
         row:SetHidden(false)
+        width = math.max(width, row:GetTextWidth() or 0)
+        height = y + (row:GetTextHeight() or 0)
         y = y + spacing
     end
     for i = #list + 1, #rows do
@@ -304,6 +378,7 @@ function Gear:Render()
     end
 
     self.panel:SetDimensions(400, math.max(y, spacing))
+    self:ApplyBox(width, height)
 end
 
 function Gear:Refresh()
@@ -587,6 +662,20 @@ function Gear:SettingOptions()
         },
         {
             type    = "toggle",
+            name    = "Character Settings",
+            tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
+                   .. "copied from the account settings the first time you turn it on.",
+            details = function()
+                if Gear:UsesCharacterSettings() then
+                    return "This character has its own settings."
+                end
+                return "All your characters share the same settings."
+            end,
+            getFunc = function() return Gear:UsesCharacterSettings() end,
+            setFunc = function(val) Gear:SetUseCharacterSettings(val) end,
+        },
+        {
+            type    = "toggle",
             name    = "Preview",
             tooltip = "Shows your sets here so you can see your changes. "
                    .. "Stays on until you turn it off or leave the settings.",
@@ -599,6 +688,31 @@ function Gear:SettingOptions()
             buttonText = "Move / Scale",
             tooltip    = "Move it with the left stick and scale it with the right stick.",
             func       = function() Gear:StartMove() end,
+        },
+        {
+            type    = "toggle",
+            name    = "Background",
+            preset  = "YES_NO",
+            default = defaults.gearBackground,
+            tooltip = "Puts a black box behind your sets so they're easier to read.",
+            getFunc = function() return SV().gearBackground end,
+            setFunc = function(val)
+                SV().gearBackground = val
+                Gear:Render()
+            end,
+        },
+        {
+            type     = "slider",
+            name     = "Background Opacity",
+            min      = 0, max = 100, step = 5,
+            default  = defaults.gearBackgroundOpacity,
+            tooltip  = "Default is " .. defaults.gearBackgroundOpacity .. ".",
+            disabled = function() return not SV().gearBackground end,
+            getFunc  = function() return SV().gearBackgroundOpacity end,
+            setFunc  = function(val)
+                SV().gearBackgroundOpacity = val
+                Gear:Render()
+            end,
         },
         {
             type    = "toggle",
@@ -721,8 +835,9 @@ function Gear:GetOptions()
             type    = "submenu",
             name    = "Gear",
             icon    = SUBMENU_ICON,
-            tooltip = "Shows your equipped sets on screen and lists everything this character has equipped, "
-                   .. "including both weapon bars.\n\n" .. ME.SAVED_ACCOUNT_TIP,
+            tooltip = function()
+                return "Shows your equipped sets on screen.\n\n" .. SavedTip()
+            end,
             options = function() return Gear:PageOptions() end,
         }
     end
@@ -759,8 +874,43 @@ function Gear:OnPlayerActivated()
     self:Refresh()
 end
 
+function Gear:SetUseCharacterSettings(value)
+    local cv = ME.charVariables
+    if not cv then return end
+    value = value == true
+    if (cv.gearUseCharacter == true) == value then return end
+    cv.gearUseCharacter = value
+    self:ApplyPosition()
+    self:Render()
+    self:UpdateVisibility()
+    RefreshPanelPages()
+end
+
+function Gear:ResetSkipKeys()
+    local keys = {}
+    if self:UsesCharacterSettings() then
+        for key in pairs(self.defaults) do keys[#keys + 1] = key end
+    end
+    return keys
+end
+
 function Gear:OnReset()
     self.preview = false
+    if self:UsesCharacterSettings() then
+        local settings = CharSettings()
+        if settings then
+            for key, value in pairs(self.defaults) do
+                if type(value) == "table" then
+                    local copy = {}
+                    for k, v in pairs(value) do copy[k] = v end
+                    settings[key] = copy
+                else
+                    settings[key] = value
+                end
+            end
+            settings.seeded = true
+        end
+    end
     self:ApplyPosition()
     self:Render()
     self:UpdateVisibility()

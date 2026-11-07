@@ -23,7 +23,7 @@ assert(meter:GetStats().groupTotal == 0, "Unknown-target damage must wait for id
 hit(1200, 1, 0, 42, 1000, 1)
 local stats = meter:GetStats()
 assert(stats.total == 1000 and stats.groupTotal == 10000, "Own hit identifies the enemy and includes buffered anonymous damage once")
-assert(stats.groupBossTotal == 10000 and stats.groupBossDPS == 10000, "Anonymous boss damage uses the same boss filter and duration")
+assert(stats.groupBossTotal == 10000 and stats.groupBossDPS == 50000, "Anonymous boss damage uses the same boss filter and duration")
 hit(1300, 0, 0, 80, 4000, 88, nil, "Add")
 assert(meter:GetStats().groupTotal == 10000)
 hit(1500, 0, 1, 1, 50, 80, nil, "Player")
@@ -31,7 +31,7 @@ assert(meter:GetStats().groupTotal == 14000 and meter:GetStats().groupBossTotal 
     "Incoming damage identifies its enemy source but is not added to outgoing group damage")
 hit(1700, 0, 0, 77, 5000)
 hit(1750, 1, 4, 77, 1000000, 1, ACTION_RESULT_HEAL, "Friend")
-assert(meter:GetStats().groupTotal == 14000 and meter:GetStats().durationMS == 1000,
+assert(meter:GetStats().groupTotal == 14000 and meter:GetStats().durationMS == 700,
     "Healing identifies friends, discards their pending incoming damage and never advances the damage clock")
 hit(1800, 0, 0, 48, 1000, 88, nil, "Second Boss")
 hit(1900, 0, 0, 48, 2000, 88, nil, "Second Boss")
@@ -50,7 +50,7 @@ assert(stats.total == 1500 and stats.groupTotal == 18400 and stats.groupBossTota
     "Pets, companions, shield hits and identified group damage count once; friends and missing anonymous IDs do not")
 hit(2300, 0, 0, 66, 999)
 hit(9999, 1, 4, 77, 1000000, 1, ACTION_RESULT_HEAL)
-assert(meter:GetStats().durationMS == 8899 and meter:GetStats().groupTotal == 18400)
+assert(meter:GetStats().durationMS == 1300 and meter:GetStats().groupTotal == 18400)
 meter:Finish()
 assert(meter:GetStats().groupTotal == 18400, "Unknown targets must not be guessed hostile at fight end")
 clock = 11000

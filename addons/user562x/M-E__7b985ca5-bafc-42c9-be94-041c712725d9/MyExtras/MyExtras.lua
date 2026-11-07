@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "1.3"
+MyExtras.version = "2.9"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -19,7 +19,8 @@ MyExtras.features = {}
 --------------------------------------------------
 MyExtras.SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 MyExtras.SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
-MyExtras.PREVIEW_TIP         = "Shows it on screen so you can place it. Stays on until you turn it off."
+
+local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "Antiquity", "Streamer", "GuildLoop", "ChatTravel" }
 
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"
@@ -134,6 +135,86 @@ function MyExtras:RaiseWhilePlacing(controls, raise)
             end
         end
     end
+end
+
+--------------------------------------------------
+-- Round Box
+--------------------------------------------------
+local BOX_FILL   = "MyExtras/Textures/boxfill.dds"
+local BOX_EDGE   = "MyExtras/Textures/boxedge.dds"
+local BOX_SILVER = 0.55
+local BOX_COORDS = {
+    { 0,    0.25, 0,    0.25 }, { 0.25, 0.75, 0,    0.25 }, { 0.75, 1,    0,    0.25 },
+    { 0,    0.25, 0.25, 0.75 }, { 0.25, 0.75, 0.25, 0.75 }, { 0.75, 1,    0.25, 0.75 },
+    { 0,    0.25, 0.75, 1    }, { 0.25, 0.75, 0.75, 1    }, { 0.75, 1,    0.75, 1    },
+}
+
+local RoundBox = {}
+RoundBox.__index = RoundBox
+
+local function BoxPieces(name, parent, file, level)
+    local pieces = {}
+    for i = 1, #BOX_COORDS do
+        local piece = WINDOW_MANAGER:CreateControl(name .. i, parent, CT_TEXTURE)
+        local c = BOX_COORDS[i]
+        piece:SetTexture(file)
+        piece:SetTextureCoords(c[1], c[2], c[3], c[4])
+        piece:SetDrawLevel(level)
+        pieces[i] = piece
+    end
+    return pieces
+end
+
+local function PlacePieces(pieces, box, r)
+    for i = 1, #pieces do pieces[i]:ClearAnchors() end
+    pieces[1]:SetAnchor(TOPLEFT, box, TOPLEFT, 0, 0)
+    pieces[1]:SetDimensions(r, r)
+    pieces[3]:SetAnchor(TOPRIGHT, box, TOPRIGHT, 0, 0)
+    pieces[3]:SetDimensions(r, r)
+    pieces[7]:SetAnchor(BOTTOMLEFT, box, BOTTOMLEFT, 0, 0)
+    pieces[7]:SetDimensions(r, r)
+    pieces[9]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, 0, 0)
+    pieces[9]:SetDimensions(r, r)
+    pieces[2]:SetAnchor(TOPLEFT, box, TOPLEFT, r, 0)
+    pieces[2]:SetAnchor(BOTTOMRIGHT, box, TOPRIGHT, -r, r)
+    pieces[8]:SetAnchor(TOPLEFT, box, BOTTOMLEFT, r, -r)
+    pieces[8]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, -r, 0)
+    pieces[4]:SetAnchor(TOPLEFT, box, TOPLEFT, 0, r)
+    pieces[4]:SetAnchor(BOTTOMRIGHT, box, BOTTOMLEFT, r, -r)
+    pieces[6]:SetAnchor(TOPLEFT, box, TOPRIGHT, -r, r)
+    pieces[6]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, 0, -r)
+    pieces[5]:SetAnchor(TOPLEFT, box, TOPLEFT, r, r)
+    pieces[5]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, -r, -r)
+end
+
+local function TintPieces(pieces, r, g, b, a)
+    for i = 1, #pieces do pieces[i]:SetColor(r, g, b, a) end
+end
+
+function MyExtras:CreateRoundBox(name, parent)
+    local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
+    local box = setmetatable({ control = control, corner = 0 }, RoundBox)
+    box.fill = BoxPieces(name .. "Fill", control, BOX_FILL, 0)
+    box.edge = BoxPieces(name .. "Edge", control, BOX_EDGE, 1)
+    TintPieces(box.edge, BOX_SILVER, BOX_SILVER, BOX_SILVER, 1)
+    box:SetCorner(12)
+    return box
+end
+
+function RoundBox:SetCorner(r)
+    r = math.max(2, zo_floor(r))
+    if r == self.corner then return end
+    self.corner = r
+    PlacePieces(self.fill, self.control, r)
+    PlacePieces(self.edge, self.control, r)
+end
+
+function RoundBox:SetFillColor(r, g, b, a)
+    TintPieces(self.fill, r, g, b, a)
+end
+
+function RoundBox:SetHidden(hidden)
+    self.control:SetHidden(hidden)
 end
 
 --------------------------------------------------
@@ -261,14 +342,7 @@ function MyExtras:SettingsMenu()
                 type       = "button",
                 name       = "|cFF3333Reset All|r",
                 buttonText = "Reset All",
-                tooltip    = "Puts every MyExtras setting back to its default. Guild Loop is only reset on this character.",
-                details    = function()
-                    local trackers = MyExtras.Trackers
-                    if trackers and trackers.UsesCharacterSettings and trackers:UsesCharacterSettings() then
-                        return "Resets only this character's Trackers layout."
-                    end
-                    return "Resets the account Trackers layout, used by every character with Character Settings off."
-                end,
+                details    = "Resets all categories to default.",
                 confirm    = "Reset every MyExtras setting to its default? This can't be undone.",
                 func       = function() self:ResetSettings() end,
             },
@@ -296,8 +370,21 @@ function MyExtras:CreateSettings()
         return
     end
 
-    local options = {}
+    local ordered = {}
+    for i = 1, #MENU_ORDER do
+        local feature = self[MENU_ORDER[i]]
+        if feature then ordered[#ordered + 1] = feature end
+    end
     for _, feature in ipairs(self.features) do
+        local listed = false
+        for i = 1, #ordered do
+            if ordered[i] == feature then listed = true break end
+        end
+        if not listed then ordered[#ordered + 1] = feature end
+    end
+
+    local options = {}
+    for _, feature in ipairs(ordered) do
         if type(feature.GetOptions) == "function" then
             local featureOptions = feature:GetOptions()
             for i = 1, #featureOptions do

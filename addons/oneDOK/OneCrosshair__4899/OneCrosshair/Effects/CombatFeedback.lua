@@ -6,6 +6,7 @@ function O.CombatFeedback.Initialize(settings, crosshair)
         local now = GetFrameTimeMilliseconds()
         for id, expiry in pairs(pending) do if expiry < now then pending[id] = nil end end
         local id = GetSlotBoundId(slot)
+        if GetSlotType(slot) == ACTION_TYPE_CRAFTED_ABILITY then id = GetAbilityIdForCraftedAbilityId(id) end
         if id and id > 0 then pending[id] = now + 1500 end
         if slot <= ACTION_BAR_FIRST_NORMAL_SLOT_INDEX then pendingWeapon = now + 1500 end
     end)

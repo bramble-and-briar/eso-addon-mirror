@@ -1,11 +1,11 @@
 local L = SimpleGroupDPS_Translate or function(text) return text end
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "1.9.6"
+local ADDON_VERSION = "1.9.14"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel
 local defaults = {
-    showGroup = true, shareDPS = true, showTanks = true, showHealers = true, showPersonal = true,
+    showGroup = true, showTanks = true, showHealers = true, showPersonal = true,
     posX = 720, posY = 300, scale = 1,
     dpsWidth = 400, dpsFontSize = 22, dpsRowSpacing = 8, lastSummary = {},
     lingerSeconds = 60,
@@ -190,9 +190,9 @@ tick = function()
     tickCount = tickCount + 1
     -- Receiving must also connect while idle, without waiting for our first attack.
     bridge:Connect()
-    -- One snapshot for display and sending, as in Battle Scrolls' CombatTicker.
+    -- Share and display the same independently measured snapshot.
     local stats = meter:GetStats()
-    if settings.shareDPS and meter:IsActive() then bridge:SendMetrics(stats, false) end
+    if meter:IsActive() then bridge:SendMetrics(stats, false) end
     updateUI(nil, stats)
 end
 
@@ -320,11 +320,11 @@ local function initSettings()
           getFunction = function() return settings.dpsRowSpacing end,
           setFunction = function(value) settings.dpsRowSpacing = value; updateUI() end },
         { type = LHAS.ST_CHECKBOX, label = L("Tanks anzeigen"),
-          tooltip = L("Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung und Versand laufen auch ausgeblendet weiter. Die lokal gemessene Gruppensumme bleibt vollständig."),
+          tooltip = L("Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung und Empfang laufen auch ausgeblendet weiter. Die lokal gemessene Gruppensumme bleibt vollständig."),
           getFunction = function() return settings.showTanks ~= false end,
           setFunction = function(value) settings.showTanks = value and true or false; updateUI() end },
         { type = LHAS.ST_CHECKBOX, label = L("Heiler anzeigen"),
-          tooltip = L("Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung und Versand laufen auch ausgeblendet weiter."),
+          tooltip = L("Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung und Empfang laufen auch ausgeblendet weiter."),
           getFunction = function() return settings.showHealers ~= false end,
           setFunction = function(value) settings.showHealers = value and true or false; updateUI() end },
         { type = LHAS.ST_BUTTON, label = L("Layout zurücksetzen"), buttonText = L("Standardlayout"),
@@ -336,7 +336,7 @@ local function initSettings()
           end },
         { type = LHAS.ST_SECTION, label = L("Gruppenanteil-HUD") },
         { type = LHAS.ST_CHECKBOX, label = L("Anteil-HUD anzeigen"),
-          tooltip = L("Blendet das persönliche DPS-/Anteil-HUD ein oder aus. Gruppenanzeige, Messung und Versand laufen weiter."),
+          tooltip = L("Blendet das persönliche DPS-/Anteil-HUD ein oder aus. Gruppenanzeige, Messung und Empfang laufen weiter."),
           getFunction = function() return settings.showPersonal ~= false end,
           setFunction = function(value) settings.showPersonal = value and true or false; updateUI() end },
         { type = LHAS.ST_BUTTON, label = L("Anteil-HUD verschieben"), buttonText = L("Eigenen Gruppenanteil verschieben"),
@@ -368,6 +368,7 @@ end
 local function onAddonLoaded(_, name)
     if name ~= ADDON_NAME then return end
     settings = ZO_SavedVars:NewAccountWide("SimpleGroupDPS_SavedVariables", 1, nil, defaults)
+    settings.shareDPS = nil -- Remove the obsolete sending preference.
     settings.chatSummary = nil
     settings.dpsWidth = panel:GetWidth(settings)
     settings.lingerSeconds = retentionSeconds(settings.lingerSeconds)
@@ -390,7 +391,7 @@ local function onAddonLoaded(_, name)
             rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
             healingDurationMS = stats.healingDurationMS,
         }
-        if settings.shareDPS then bridge:SendMetrics(stats, true) end
+        bridge:SendMetrics(stats, true)
         updateUI()
     end
     meter:Initialize(settings.lastSummary)
@@ -433,26 +434,23 @@ local function onAddonLoaded(_, name)
                 tickCount, tickAge, UPDATE_INTERVAL_MS))
             d(string.format(L("[SimpleGroupDPS] Messzeit: %.3f s | DPS: %.1f | Letzter Schaden: %s"),
                 measurement.durationMS / 1000, measurement.dps, damageAge))
+            d(string.format(L("[SimpleGroupDPS] Eigener Schaden: %.0f | Boss-Schaden: %s | Boss-DPS: %s"),
+                measurement.total or 0,
+                measurement.bossTotal and string.format("%.0f", measurement.bossTotal) or "--",
+                measurement.bossDPS and string.format("%.1f", measurement.bossDPS) or "--"))
             d(string.format(L("[SimpleGroupDPS] Schadensereignisse: %d | Eigene/Pets: %d | Andere/eingehend: %d"),
                 measurement.damageEvents, measurement.personalEvents, measurement.otherEvents))
             if measurement.finishedAgeMS then
                 d(string.format(L("[SimpleGroupDPS] Messung vor %.1f s abgeschlossen."), measurement.finishedAgeMS / 1000))
             end
-            d(L("[SimpleGroupDPS] Gruppe: ") .. yes(status.grouped) .. L(" | Teilen: ") .. yes(settings.shareDPS)
-                .. L(" | Sender bereit: ") .. yes(status.connected))
+            d(L("[SimpleGroupDPS] Gruppe: ") .. yes(status.grouped)
+                .. L(" | Empfang bereit: ") .. yes(status.connected)
+                .. L(" | HPS-Empfang bereit: ") .. yes(status.healingConnected))
+            d(L("[SimpleGroupDPS] Gruppenversand: automatisch."))
             if status.localBattleScrolls then
-                d(L("[SimpleGroupDPS] Versand wird vom lokal installierten BattleScrolls uebernommen."))
+                d(L("[SimpleGroupDPS] Empfang über lokales BattleScrolls."))
             else
-                d(L("[SimpleGroupDPS] LibGroupBroadcast erlaubt Versand: ") .. yes(status.enabled))
-                d(L("[SimpleGroupDPS] HPS-Sender bereit: ") .. yes(status.healingConnected)
-                    .. L(" | HPS-Versand erlaubt: ") .. yes(status.healingEnabled))
-                if status.lastSendAt then
-                    local age = math.max(0, GetGameTimeMilliseconds() - status.lastSendAt) / 1000
-                    d(string.format(L("[SimpleGroupDPS] Letzte DPS an Sendewarteschlange uebergeben: vor %.1f s"), age))
-                else
-                    d(L("[SimpleGroupDPS] Seit dem letzten Kampfstart noch keine DPS an die Sendewarteschlange uebergeben."))
-                end
-                if status.lastSendResult == "failed" then d(L("[SimpleGroupDPS] Letzter Sendeversuch wurde abgelehnt.")) end
+                d(L("[SimpleGroupDPS] Empfang über LibGroupBroadcast."))
             end
             if status.error then d("[SimpleGroupDPS] " .. L(status.error)) end
             if status.receivedCount then

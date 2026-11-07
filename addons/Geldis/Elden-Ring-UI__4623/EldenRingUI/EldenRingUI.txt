@@ -2,25 +2,29 @@
 ## Author: Geldis1306
 ## Description: Based ui
 ## APIVersion: 101049 101050 101051 101052
-## Version: 2.0.1
+## Version: 2.1.0
 ## SavedVariables: ERUiVars
+## DependsOn: LibAddonMenu-2.0
 
 HUD\BossBar.xml
 HUD\PlayerResources.xml
-HUD\SimpleFoodTracker.xml
+HUD\FoodTracker.xml
+HUD\RunesScore.xml
 
 BossBar.lua
 PlayerResources.lua
 
-SetTracker.lua
+SetsTracker.lua
+SetsData.lua
 Config.lua
 
 SimpleImage.lua
-SimpleFoodTracker.lua
-
-CustomCompass.lua
-
+FoodTracker.lua
+Compass.lua
 SimpleChat.lua
+RunesScore.lua
 
+BuffsCore.lua
+BuffsAura.lua
 
-
+Settings.lua

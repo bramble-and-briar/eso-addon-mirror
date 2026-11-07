@@ -41,6 +41,7 @@ local OPTION_SCHEMA = {
     { key = "saveFightDraftName",          kind = "string" },
     { key = "loadFightDraftName",          kind = "string" },
     { key = "maxSavedFights",              kind = "integer", min = 1,    max = 50 },
+    { key = "libFightsAutoStart",          kind = "boolean" },
 }
 
 local function NormalizeOption(self, entry, value)
@@ -158,9 +159,14 @@ function ConsoleMetrics:SetPerformanceMode(enabled)
     if not self.saved then
         return
     end
+    local changed = (self.saved.performanceMode == true) ~= (enabled == true)
     self.saved.performanceMode = enabled == true
     if enabled then
         self:ApplyConsolePerformancePreset()
+    end
+    if changed then
+        -- LibFights reads its options at Start_Logging(), so restart it to apply the preset.
+        self:RestartLibFightsLogging()
     end
 end
 
@@ -205,39 +211,47 @@ function ConsoleMetrics:ApplyConsolePerformancePreset()
     self:EnforceFightHistoryLimit()
 end
 
+
 ---------------------------------------------------------------------------
--- Settings menu (LibHarvensAddonSettings)
+-- Settings menu (LibAddonMenu-2.0 / LibHarvensAddonSettings)
 ---------------------------------------------------------------------------
-function ConsoleMetrics:RegisterSettingsMenu()
-    if not LibHarvensAddonSettings then
-        return
+-- The menu is described once as a list of controls and then rendered with
+-- whichever settings library is available:
+--   PC:      LibAddonMenu-2.0 when installed, otherwise LibHarvensAddonSettings
+--   Console: LibHarvensAddonSettings (LibAddonMenu-2.0 is keyboard-only)
+-- Only one library is used, so the addon never appears twice in the menu.
+--
+-- Control fields: kind ("section"|"checkbox"|"slider"|"button"), label,
+-- tooltip, get, set, default, disabled (function), min, max, step,
+-- buttonText, onClick.
+local SETTINGS_PANEL_NAME = "Console Metrics"
+local LAM_PANEL_ID = "ConsoleMetricsSettingsPanel"
+
+local function BuildSettingsControls(self)
+    local controls = {}
+    local function Add(control)
+        controls[#controls + 1] = control
     end
 
-    local panel = LibHarvensAddonSettings:AddAddon("Console Metrics")
-
     -- General
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "General",
-    })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_CHECKBOX,
+    Add({ kind = "section", label = "General" })
+    Add({
+        kind = "checkbox",
         label = "Auto Clear on Next Fight",
         tooltip = "Switch the fight dialog back to the live view when a new fight starts.",
-        getFunction = function() return self.saved.autoClearOnNextFight end,
-        setFunction = function(v) self.saved.autoClearOnNextFight = v end,
+        get = function() return self.saved.autoClearOnNextFight end,
+        set = function(v) self.saved.autoClearOnNextFight = v end,
         default = self.defaults.autoClearOnNextFight,
     })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SLIDER,
+    Add({
+        kind = "slider",
         label = "Max Fight History",
         tooltip = "How many past fights to keep in memory for browsing (5–40).",
         min = 5,
         max = MAX_FIGHT_HISTORY_HARD_CAP,
         step = 1,
-        format = "%d",
-        getFunction = function() return tonumber(self.saved.maxFightHistory) or self.defaults.maxFightHistory end,
-        setFunction = function(v)
+        get = function() return tonumber(self.saved.maxFightHistory) or self.defaults.maxFightHistory end,
+        set = function(v)
             self.saved.maxFightHistory = Clamp(math.floor(v + 0.5), 5, MAX_FIGHT_HISTORY_HARD_CAP)
             self:EnforceFightHistoryLimit()
         end,
@@ -245,135 +259,275 @@ function ConsoleMetrics:RegisterSettingsMenu()
     })
 
     -- Dialog
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Fight Dialog",
-    })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_CHECKBOX,
+    Add({ kind = "section", label = "Fight Dialog" })
+    Add({
+        kind = "checkbox",
         label = "Dialog Auto Hide",
         tooltip = "Automatically close the fight view dialog after combat ends.",
-        getFunction = function() return self.saved.dialogAutoHide end,
-        setFunction = function(v) self:SetDialogAutoHide(v) end,
+        get = function() return self.saved.dialogAutoHide end,
+        set = function(v) self:SetDialogAutoHide(v) end,
         default = self.defaults.dialogAutoHide,
     })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SLIDER,
+    Add({
+        kind = "slider",
         label = "Auto Hide Delay (seconds)",
         tooltip = "Seconds after combat to wait before auto-closing the dialog (3–120).",
         min = 3,
         max = 120,
         step = 1,
-        format = "%d",
-        getFunction = function() return tonumber(self.saved.dialogAutoHideSeconds) or self.defaults.dialogAutoHideSeconds end,
-        setFunction = function(v)
+        get = function() return tonumber(self.saved.dialogAutoHideSeconds) or self.defaults.dialogAutoHideSeconds end,
+        set = function(v)
             self.saved.dialogAutoHideSeconds = math.max(3, math.min(120, math.floor(v + 0.5)))
         end,
         default = self.defaults.dialogAutoHideSeconds,
-        disable = function() return not self.saved.dialogAutoHide end,
+        disabled = function() return not self.saved.dialogAutoHide end,
+    })
+    Add({
+        kind = "button",
+        label = "Open Fight Viewer",
+        tooltip = "Open the Console Metrics fight viewer (same as /cm view).",
+        buttonText = "Open",
+        onClick = function()
+            self.dialogPanel = "main"
+            self:OpenFightViewDialog()
+        end,
     })
 
     -- Performance
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Performance",
-    })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_CHECKBOX,
+    Add({ kind = "section", label = "Performance" })
+    Add({
+        kind = "checkbox",
         label = "Performance Mode",
         tooltip = "Apply Series S / low-end console preset (enables low memory mode, disables ML model and trace).",
-        getFunction = function() return self.saved.performanceMode end,
-        setFunction = function(v) self:SetPerformanceMode(v) end,
+        get = function() return self.saved.performanceMode end,
+        set = function(v) self:SetPerformanceMode(v) end,
         default = self.defaults.performanceMode,
     })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_CHECKBOX,
+    Add({
+        kind = "checkbox",
         label = "Low Memory Mode",
         tooltip = "Compact fight snapshots to reduce memory usage. Disables some detailed breakdowns.",
-        getFunction = function() return self.saved.lowMemoryMode end,
-        setFunction = function(v) self:SetLowMemoryMode(v) end,
+        get = function() return self.saved.lowMemoryMode end,
+        set = function(v) self:SetLowMemoryMode(v) end,
         default = self.defaults.lowMemoryMode,
     })
 
     -- ML Model
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Behavior Model (ML)",
-    })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_CHECKBOX,
+    Add({ kind = "section", label = "Behavior Model (ML)" })
+    Add({
+        kind = "checkbox",
         label = "Enable Behavior Model",
         tooltip = "Run the ML-lite resistance and behavior prediction model during combat.",
-        getFunction = function() return self.saved.behaviorModelEnabled end,
-        setFunction = function(v) self:SetBehaviorModelEnabled(v) end,
+        get = function() return self.saved.behaviorModelEnabled end,
+        set = function(v) self:SetBehaviorModelEnabled(v) end,
         default = self.defaults.behaviorModelEnabled,
     })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SLIDER,
+    Add({
+        kind = "slider",
         label = "Model Refresh (ms)",
         tooltip = "How often the behavior model recalculates during combat (250–5000 ms).",
         min = 250,
         max = 5000,
         step = 250,
-        format = "%d",
-        getFunction = function() return tonumber(self.saved.behaviorModelRefreshMs) or self.defaults.behaviorModelRefreshMs end,
-        setFunction = function(v)
+        get = function() return tonumber(self.saved.behaviorModelRefreshMs) or self.defaults.behaviorModelRefreshMs end,
+        set = function(v)
             self.saved.behaviorModelRefreshMs = math.max(250, math.min(5000, math.floor(v / 250 + 0.5) * 250))
         end,
         default = self.defaults.behaviorModelRefreshMs,
-        disable = function() return not self.saved.behaviorModelEnabled end,
+        disabled = function() return not self.saved.behaviorModelEnabled end,
+    })
+
+    -- LibFights
+    Add({ kind = "section", label = "LibFights" })
+    Add({
+        kind = "checkbox",
+        label = "Start LibFights Logging",
+        tooltip = "When the LibFights library is installed, start its logging on load so the LibFights panel has data. Turning this off stops a session Console Metrics started.",
+        get = function() return self.saved.libFightsAutoStart end,
+        set = function(v) self:SetLibFightsAutoStart(v) end,
+        default = self.defaults.libFightsAutoStart,
+        disabled = function() return not self.LibFightsBridge.IsAvailable() end,
     })
 
     -- Actions
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Actions",
-    })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
+    Add({ kind = "section", label = "Actions" })
+    Add({
+        kind = "button",
         label = "Apply Performance Preset",
         tooltip = "Apply the low-memory / high-performance preset (same as /cm perf on).",
         buttonText = "Apply",
-        clickHandler = function()
-            self.saved.performanceMode = true
-            self:ApplyConsolePerformancePreset()
+        onClick = function()
+            self:SetPerformanceMode(true)
             self:Print("Performance preset applied.")
         end,
     })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
+    Add({
+        kind = "button",
         label = "Clear All Fight Data",
         tooltip = "Wipe current fight and full fight history from memory.",
         buttonText = "Clear",
-        clickHandler = function()
+        isDangerous = true,
+        onClick = function()
             self:ResetFightData(false)
             self:Print("Fight data cleared.")
         end,
     })
 
     -- Set rules
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Custom Set Rules",
-    })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
+    Add({ kind = "section", label = "Custom Set Rules" })
+    Add({
+        kind = "button",
         label = "Import PvPCooldownTracker Rules",
         tooltip = "Scans PvPCooldownTracker tables and imports ability-based set rules. Use /cm addset to add rules by hand.",
         buttonText = "Import",
-        clickHandler = function()
+        onClick = function()
             local _, message = self:ImportSetsFromPvPCooldownTracker()
             self:Print(message)
         end,
     })
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
+    Add({
+        kind = "button",
         label = "Clear Custom Set Rules",
         tooltip = "Removes all custom set rules added through commands or import.",
         buttonText = "Clear",
-        clickHandler = function()
+        isDangerous = true,
+        onClick = function()
             self:ClearCustomSetRules()
             self:Print("Cleared all custom set rules.")
         end,
     })
+
+    return controls
+end
+
+-- LibAddonMenu-2.0 renderer ---------------------------------------------
+local LAM_TYPES = { section = "header", checkbox = "checkbox", slider = "slider", button = "button" }
+
+local function RegisterLibAddonMenu(self, controls)
+    local LAM = LibAddonMenu2
+    local panelData = {
+        type = "panel",
+        name = SETTINGS_PANEL_NAME,
+        displayName = SETTINGS_PANEL_NAME,
+        author = "Vixen Hunny",
+        version = tostring(self.version or ""),
+        registerForRefresh = true,
+        registerForDefaults = true,
+    }
+    self.ui.lamPanel = LAM:RegisterAddonPanel(LAM_PANEL_ID, panelData)
+
+    local options = {}
+    for i = 1, #controls do
+        local c = controls[i]
+        local option = {
+            type = LAM_TYPES[c.kind],
+            name = c.label,
+            tooltip = c.tooltip,
+            disabled = c.disabled,
+        }
+        if c.kind == "checkbox" or c.kind == "slider" then
+            option.getFunc = c.get
+            option.setFunc = c.set
+            option.default = c.default
+        end
+        if c.kind == "slider" then
+            option.min = c.min
+            option.max = c.max
+            option.step = c.step
+        elseif c.kind == "button" then
+            option.func = c.onClick
+            option.isDangerous = c.isDangerous
+            option.width = "half"
+        end
+        options[#options + 1] = option
+    end
+    LAM:RegisterOptionControls(LAM_PANEL_ID, options)
+    return "LibAddonMenu-2.0"
+end
+
+-- LibHarvensAddonSettings renderer -------------------------------------
+local function RegisterLibHarvens(self, controls)
+    local LHAS = LibHarvensAddonSettings
+    local panel = LHAS:AddAddon(SETTINGS_PANEL_NAME)
+    self.ui.lhasPanel = panel
+
+    local types = {
+        section = LHAS.ST_SECTION,
+        checkbox = LHAS.ST_CHECKBOX,
+        slider = LHAS.ST_SLIDER,
+        button = LHAS.ST_BUTTON,
+    }
+    for i = 1, #controls do
+        local c = controls[i]
+        local setting = {
+            type = types[c.kind],
+            label = c.label,
+            tooltip = c.tooltip,
+            disable = c.disabled,
+        }
+        if c.kind == "checkbox" or c.kind == "slider" then
+            setting.getFunction = c.get
+            setting.setFunction = c.set
+            setting.default = c.default
+        end
+        if c.kind == "slider" then
+            setting.min = c.min
+            setting.max = c.max
+            setting.step = c.step
+            setting.format = "%d"
+        elseif c.kind == "button" then
+            setting.buttonText = c.buttonText
+            setting.clickHandler = c.onClick
+        end
+        panel:AddSetting(setting)
+    end
+    return "LibHarvensAddonSettings"
+end
+
+local function HasLibAddonMenu()
+    if type(IsConsoleUI) == "function" and IsConsoleUI() then
+        return false
+    end
+    return type(LibAddonMenu2) == "table" and type(LibAddonMenu2.RegisterAddonPanel) == "function"
+end
+
+local function HasLibHarvens()
+    return type(LibHarvensAddonSettings) == "table" and type(LibHarvensAddonSettings.AddAddon) == "function"
+end
+
+function ConsoleMetrics:RegisterSettingsMenu()
+    if self.settingsMenuLibrary then
+        return self.settingsMenuLibrary
+    end
+
+    local renderer
+    if HasLibAddonMenu() then
+        renderer = RegisterLibAddonMenu
+    elseif HasLibHarvens() then
+        renderer = RegisterLibHarvens
+    else
+        return nil
+    end
+
+    local ok, result = pcall(renderer, self, BuildSettingsControls(self))
+    if not ok then
+        self:Print("Settings menu failed to load: " .. tostring(result))
+        return nil
+    end
+    self.settingsMenuLibrary = result
+    return result
+end
+
+-- Opens the settings panel directly when LibAddonMenu-2.0 is in use.
+function ConsoleMetrics:OpenSettingsMenu()
+    if self.settingsMenuLibrary == "LibAddonMenu-2.0" and self.ui.lamPanel and type(LibAddonMenu2.OpenToPanel) == "function" then
+        LibAddonMenu2:OpenToPanel(self.ui.lamPanel)
+        return true
+    end
+    if self.settingsMenuLibrary == "LibHarvensAddonSettings" then
+        self:Print("Open Settings > Addons > Console Metrics.")
+        return true
+    end
+    self:Print("No settings menu library installed. Install LibAddonMenu-2.0 (PC) or LibHarvensAddonSettings.")
+    return false
 end

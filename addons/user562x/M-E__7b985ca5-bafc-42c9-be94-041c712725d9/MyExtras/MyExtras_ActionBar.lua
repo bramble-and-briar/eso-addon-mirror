@@ -26,16 +26,60 @@ local RESOURCE_OFFSET_GAMEPAD  = -105
 local RESOURCE_OFFSET_KEYBOARD = -74
 local RESOURCE_SIDE_OFFSET     = 237
 
-local STACK_WINDOWS = {
-    { name = "ZO_SynergyTopLevel" },
-    { name = "ZO_ObjectiveCapture" },
-    { name = "ZO_PlayerToPlayerArea", lift = -40 },
-    { name = "ZO_ActiveCombatTips" },
-    { name = "ZO_InstanceKickWarning_Alive" },
+local STACK_GAP    = 12
+local STACK_DELAY  = 50
+local PROMPT_GUESS = 50
+local BARS_GUESS   = 40
+
+local FLOOR_CONTROLS = {
+    "ZO_PlayerAttributeHealth",
+    "ZO_PlayerAttributeMagicka",
+    "ZO_PlayerAttributeStamina",
+}
+local BUFF_ROWS = {
+    "ZO_BuffDebuffTopLevelSelfContainerContainer1",
+    "ZO_BuffDebuffTopLevelSelfContainerContainer2",
+}
+local PROMPT_BASE  = "ZO_PlayerToPlayerAreaPromptContainer"
+local PROMPT_PARTS = {
+    "ZO_PlayerToPlayerAreaPromptContainerActionArea",
+    "ZO_PlayerToPlayerAreaPromptContainerActionAreaActionKeybindButton",
+    "ZO_PlayerToPlayerAreaPromptContainerActionAreaPromptKeybindButton1",
+    "ZO_PlayerToPlayerAreaPromptContainerActionAreaPromptKeybindButton2",
+    "ZO_PlayerToPlayerAreaPromptContainerActionAreaAdditionalInfo",
+    "ZO_PlayerToPlayerAreaPromptContainerActionAreaPendingResurrectInfo",
+}
+local STACK_PLACED = {
+    "ZO_SynergyTopLevelContainer",
+    "ZO_ObjectiveCaptureMeter",
+    "ZO_ActiveCombatTipsTip",
+    "ZO_InstanceKickWarning_AliveContainer",
+    "ZO_RamTopLevel",
 }
 
-local STACK_PINNED = {
-    { name = "ZO_RamTopLevel", offsetY = -210 },
+local FOOD_DIM      = 0.45
+local FOOD_SHOW_MIN = 59
+local FOOD_FALLBACK = 61259
+local FOOD_IDS = {
+    [17407] = true, [17577] = true, [17581] = true, [17608] = true, [17614] = true,
+    [61218] = true, [61255] = true, [61257] = true, [61259] = true, [61260] = true,
+    [61261] = true, [61294] = true, [61322] = true, [61325] = true, [61328] = true,
+    [61335] = true, [61340] = true, [61345] = true, [61350] = true, [66125] = true,
+    [66128] = true, [66130] = true, [66132] = true, [66137] = true, [66141] = true,
+    [66551] = true, [66568] = true, [66576] = true, [66586] = true, [66590] = true,
+    [66594] = true, [68411] = true, [68416] = true, [72816] = true, [72819] = true,
+    [72822] = true, [72824] = true, [72956] = true, [72959] = true, [72961] = true,
+    [72965] = true, [72968] = true, [72971] = true, [84678] = true, [84681] = true,
+    [84700] = true, [84704] = true, [84709] = true, [84720] = true, [84725] = true,
+    [84731] = true, [84732] = true, [84733] = true, [84735] = true, [84736] = true,
+    [85484] = true, [85497] = true, [86559] = true, [86560] = true, [86673] = true,
+    [86674] = true, [86677] = true, [86678] = true, [86746] = true, [86747] = true,
+    [86749] = true, [86787] = true, [86789] = true, [86791] = true, [89955] = true,
+    [89957] = true, [89971] = true, [92433] = true, [92435] = true, [92437] = true,
+    [92474] = true, [92476] = true, [92477] = true, [100488] = true, [100498] = true,
+    [100502] = true, [107748] = true, [107789] = true, [127531] = true, [127537] = true,
+    [127572] = true, [127578] = true, [127596] = true, [127619] = true, [127736] = true,
+    [148633] = true, [267468] = true,
 }
 
 local TEX_RING  = "MyExtras/Textures/ring.dds"
@@ -53,9 +97,14 @@ local PREVIEW_FRONT  = { 16, 0, 12, 0, 6 }
 local PREVIEW_BACK   = { 10, 4, 0, 14, 0 }
 local PREVIEW_STACKS = { 0, 0, 3, 0, 0 }
 
+AB.charDefaults = {
+    actionBarUseCharacter = false,
+}
+
 AB.defaults = {
     actionBarEnabled    = false,
     actionBarShow       = "Always",
+    actionBarStatic     = true,
     actionBarResources  = "Row",
     actionBarPulse      = true,
     actionBarPulseSpeed = 3,
@@ -109,8 +158,45 @@ local percentTexts = {}
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
+local charFilled = false
+
+local function CharSettings()
+    local cv = ME.charVariables
+    if not cv then return nil end
+    if type(cv.actionBarCharSettings) ~= "table" then cv.actionBarCharSettings = {} end
+    local settings = cv.actionBarCharSettings
+    if not settings.seeded then
+        local account = ME.savedVariables
+        for key, value in pairs(AB.defaults) do
+            local current = account and account[key]
+            if current == nil then current = value end
+            settings[key] = current
+        end
+        settings.seeded = true
+        charFilled = true
+    elseif not charFilled then
+        for key, value in pairs(AB.defaults) do
+            if settings[key] == nil then settings[key] = value end
+        end
+        charFilled = true
+    end
+    return settings
+end
+
+function AB:UsesCharacterSettings()
+    return ME.charVariables ~= nil and ME.charVariables.actionBarUseCharacter == true
+end
+
 local function SV()
+    if AB:UsesCharacterSettings() then
+        return CharSettings() or ME.savedVariables
+    end
     return ME.savedVariables
+end
+
+local function SavedTip()
+    if AB:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
+    return ME.SAVED_ACCOUNT_TIP
 end
 
 local function IsEnabled()
@@ -373,6 +459,11 @@ function AB:CreatePanel()
     self.ultimate.mini = CreateRound("MyExtras_ActionBarUltimateBack", miniTop, 1)
     self.ultimate.mini.icon:SetDesaturation(1)
     self.ultimate.mini:SetHidden(true)
+
+    self.food = CreateRound("MyExtras_ActionBarFood", miniTop, 1)
+    self.food.value = NewLabel("MyExtras_ActionBarFoodValue", self.food, 11)
+    self.food.value:SetColor(1, 1, 1, 1)
+    self.food.value:SetHidden(true)
 end
 
 --------------------------------------------------
@@ -455,42 +546,43 @@ function AB:Layout()
 
     local rowsW  = SLOT_COUNT * size + (SLOT_COUNT - 1) * gap
     local rowsH  = size * 2 + gap
-    local rowsX  = ringSize + side + arrowW + gap
     local miniSize = zo_floor(ringSize * 0.5)
     local miniPad  = zo_floor(ringSize * 0.14)
+    local rowsX  = miniPad + ringSize + side + arrowW + gap
     local width  = rowsX + rowsW + side + ringSize + miniPad
     local height = rowsH + (showKeys and keyH or 0)
 
     panel:SetDimensions(width, height)
     self.panelHeight = height
 
-    local frontY = 0
-    local backY  = size + gap
+    local backY = size + gap
     for i = 1, SLOT_COUNT do
         local x = rowsX + (i - 1) * (size + gap)
         LayoutSlot(back[i], panel, x, backY, size, border, edge)
-        LayoutSlot(front[i], panel, x, frontY, size, border, edge)
+        LayoutSlot(front[i], panel, x, 0, size, border, edge)
 
         local key = front[i].key
         key:ClearAnchors()
-        key:SetAnchor(TOP, back[i], BOTTOM, 0, 0)
+        key:SetAnchor(TOP, panel, TOPLEFT, x + zo_floor(size / 2), rowsH)
         key:SetDimensions(size, keyH)
         key:SetFont(Font(zo_floor(keyH * 0.8), "soft-shadow-thick"))
         key:SetHidden(not showKeys)
     end
 
-    local arrowX    = ringSize + side + zo_floor(arrowW / 2)
-    local arrowY    = frontY + zo_floor(size / 2)
     local arrowSize = zo_floor(size * 0.53)
-    self.arrow:ClearAnchors()
-    self.arrow:SetAnchor(CENTER, panel, TOPLEFT, arrowX, arrowY)
     self.arrow:SetDimensions(arrowSize, arrowSize)
-    self.arrowEdge:ClearAnchors()
-    self.arrowEdge:SetAnchor(CENTER, panel, TOPLEFT, arrowX, arrowY)
     self.arrowEdge:SetDimensions(arrowSize, arrowSize)
+    self.rowLayout = {
+        rowsX  = rowsX,
+        size   = size,
+        gap    = gap,
+        backY  = backY,
+        arrowX = miniPad + ringSize + side + zo_floor(arrowW / 2),
+    }
+    self:PlaceRows(true)
 
     local centerY = zo_floor(rowsH / 2)
-    LayoutRing(self.potion, panel, zo_floor(ringSize / 2), centerY, ringSize, 0.4, 0, rowsH, keyH, showKeys)
+    LayoutRing(self.potion, panel, miniPad + zo_floor(ringSize / 2), centerY, ringSize, 0.4, 0, rowsH, keyH, showKeys)
     LayoutRing(self.ultimate, panel, width - miniPad - zo_floor(ringSize / 2), centerY, ringSize, 0.3, NUMBER_DROP,
         rowsH, keyH, showKeys)
 
@@ -498,6 +590,14 @@ function AB:Layout()
     mini:ClearAnchors()
     mini:SetAnchor(CENTER, self.ultimate, BOTTOMRIGHT, -zo_floor(ringSize * 0.12), -zo_floor(ringSize * 0.1))
     LayoutRound(mini, miniSize)
+
+    local food = self.food
+    food:ClearAnchors()
+    food:SetAnchor(CENTER, self.potion, BOTTOMLEFT, zo_floor(ringSize * 0.12), -zo_floor(ringSize * 0.1))
+    LayoutRound(food, miniSize)
+    food.value:ClearAnchors()
+    food.value:SetAnchor(CENTER, food, CENTER, 0, 0)
+    food.value:SetFont(Font(zo_floor(miniSize * 0.4)))
     self:ApplyStack()
     self:ApplyResourceLayout(GetControl("ZO_PlayerAttribute"))
 end
@@ -531,9 +631,33 @@ local function SetSlotIcon(slot, hotbar)
     ApplyEdge(slot)
 end
 
+function AB:PlaceRows(force)
+    local rows = self.rowLayout
+    if not rows then return end
+    local swapped = SV().actionBarStatic == true and activeBar == HOTBAR_CATEGORY_BACKUP
+    if not force and self.rowsSwapped == swapped then return end
+    self.rowsSwapped = swapped
+    local activeY = swapped and rows.backY or 0
+    local otherY  = swapped and 0 or rows.backY
+    local panel = self.panel
+    for i = 1, SLOT_COUNT do
+        local x = rows.rowsX + (i - 1) * (rows.size + rows.gap)
+        front[i]:ClearAnchors()
+        front[i]:SetAnchor(TOPLEFT, panel, TOPLEFT, x, activeY)
+        back[i]:ClearAnchors()
+        back[i]:SetAnchor(TOPLEFT, panel, TOPLEFT, x, otherY)
+    end
+    local arrowY = activeY + zo_floor(rows.size / 2)
+    self.arrow:ClearAnchors()
+    self.arrow:SetAnchor(CENTER, panel, TOPLEFT, rows.arrowX, arrowY)
+    self.arrowEdge:ClearAnchors()
+    self.arrowEdge:SetAnchor(CENTER, panel, TOPLEFT, rows.arrowX, arrowY)
+end
+
 function AB:RefreshIcons()
     if not self.panel or not IsEnabled() then return end
     ResolveBars()
+    self:PlaceRows()
 
     local hasBack = backBar ~= nil
     for i = 1, SLOT_COUNT do
@@ -755,7 +879,7 @@ local function SetUltimateFill(round, pct, isBack)
     local shade
     if pct >= 1 then
         SetRingFill(round, 1, ringR, ringG, ringB)
-        shade = isBack and 0.7 or 0.55
+        shade = isBack and 0.7 or 1
     else
         SetRingFill(round, pct, ringR, ringG, ringB)
         shade = isBack and 0.45 or 0.3
@@ -813,6 +937,95 @@ function AB:Update()
     end
     self:UpdatePotion(nowMs)
     self:UpdateUltimate(nowMs)
+    self:UpdateFood()
+end
+
+--------------------------------------------------
+-- Food
+--------------------------------------------------
+local function IsFood(abilityId, abilityType, effectType)
+    if effectType == BUFF_EFFECT_TYPE_DEBUFF then return false end
+    return FOOD_IDS[abilityId] == true or abilityType == ABILITY_TYPE_INTERACTIVES
+end
+
+function AB:SetFood(started, ending, icon)
+    if ending and ending > 0 and started and ending > started then
+        self.foodStart = started
+        self.foodEnd = ending
+    else
+        self.foodStart = nil
+        self.foodEnd = nil
+    end
+    if icon and icon ~= "" then
+        self.foodIcon = icon
+        local cv = ME.charVariables
+        if cv then cv.actionBarFoodIcon = icon end
+    end
+    self.foodShown = nil
+    if self.food then
+        self.food.icon:SetTexture(self.foodIcon or GetAbilityIcon(FOOD_FALLBACK))
+    end
+end
+
+function AB:ScanFood()
+    local cv = ME.charVariables
+    if not self.foodIcon and cv and type(cv.actionBarFoodIcon) == "string" then
+        self.foodIcon = cv.actionBarFoodIcon
+    end
+    for i = 1, GetNumBuffs("player") do
+        local _, started, ending, _, _, icon, _, effectType, abilityType, _, abilityId = GetUnitBuffInfo("player", i)
+        if ending and ending > 0 and IsFood(abilityId, abilityType, effectType) then
+            self:SetFood(started, ending, icon)
+            return
+        end
+    end
+    self:SetFood(nil, nil, nil)
+end
+
+function AB:OnEffectChanged(changeType, started, ending, icon, effectType, abilityType, abilityId)
+    if not IsFood(abilityId, abilityType, effectType) then return end
+    if changeType == EFFECT_RESULT_FADED then
+        self:ScanFood()
+    else
+        self:SetFood(started, ending, icon)
+    end
+end
+
+function AB:UpdateFood()
+    local food = self.food
+    if not food then return end
+    local remain = self.foodEnd and (self.foodEnd - GetGameTimeSeconds()) or 0
+    if remain <= 0 then
+        if self.foodShown ~= 0 then
+            self.foodShown = 0
+            SetRingFill(food, 0, ringR, ringG, ringB)
+            food.icon:SetColor(FOOD_DIM, FOOD_DIM, FOOD_DIM, 1)
+            food.value:SetHidden(true)
+        end
+        return
+    end
+    SetRingFill(food, remain / (self.foodEnd - self.foodStart), ringR, ringG, ringB)
+    local minutes = zo_ceil(remain / 60)
+    local shown
+    if remain < 60 then
+        shown = -zo_ceil(remain)
+    elseif minutes <= FOOD_SHOW_MIN then
+        shown = minutes
+    else
+        shown = 1000
+    end
+    if shown == self.foodShown then return end
+    self.foodShown = shown
+    food.icon:SetColor(1, 1, 1, 1)
+    if shown == 1000 then
+        food.value:SetHidden(true)
+    elseif shown < 0 then
+        SetLabel(food.value, -shown .. "s")
+        food.value:SetHidden(false)
+    else
+        SetLabel(food.value, shown .. "m")
+        food.value:SetHidden(false)
+    end
 end
 
 --------------------------------------------------
@@ -879,7 +1092,7 @@ function AB:ApplyResourceLayout(bars)
         local size = SV().actionBarSize
         local gap = zo_floor(size * 0.25)
         local miniPad = zo_floor(zo_floor(size * 1.7) * 0.14)
-        SetBarAnchor("ZO_PlayerAttributeMagicka", RIGHT, self.potion, LEFT, -gap, 0)
+        SetBarAnchor("ZO_PlayerAttributeMagicka", RIGHT, self.potion, LEFT, -(miniPad + gap), 0)
         SetBarAnchor("ZO_PlayerAttributeStamina", LEFT, self.ultimate, RIGHT, miniPad + gap, 0)
         self.resourceSplit = true
     elseif self.resourceSplit then
@@ -905,37 +1118,135 @@ function AB:ApplyResourceBars()
     self:ApplyResourceLayout(bars)
 end
 
+local function MeasureFloor()
+    local floor
+    for i = 1, #FLOOR_CONTROLS do
+        local control = GetControl(FLOOR_CONTROLS[i])
+        local top = control and control:GetTop()
+        if top and top > 0 then
+            floor = floor and math.min(floor, top) or top
+        end
+    end
+    for i = 1, #BUFF_ROWS do
+        local row = GetControl(BUFF_ROWS[i])
+        if row and not row:IsHidden() and row:GetHeight() > 0 then
+            local top = row:GetTop()
+            if top and top > 0 then
+                floor = floor and math.min(floor, top) or top
+            end
+        end
+    end
+    return floor
+end
+
+local function PromptReach()
+    local base = GetControl(PROMPT_BASE)
+    local baseBottom = base and base:GetBottom()
+    if not baseBottom then return PROMPT_GUESS end
+    local lowest
+    for i = 1, #PROMPT_PARTS do
+        local part = GetControl(PROMPT_PARTS[i])
+        if part and not part:IsHidden() and part:GetHeight() > 0 then
+            local bottom = part:GetBottom()
+            if bottom and bottom > 0 then
+                lowest = lowest and math.max(lowest, bottom) or bottom
+            end
+        end
+    end
+    if not lowest then return PROMPT_GUESS end
+    return math.max(0, zo_ceil(lowest - baseBottom))
+end
+
 function AB:ApplyStack()
-    if not self.panelHeight then return end
-    local shift = 0
-    local active = IsEnabled()
-    if active then
-        local _, screenH = GuiRoot:GetDimensions()
-        local defaultOffset = IsInGamepadPreferredMode() and RESOURCE_OFFSET_GAMEPAD or RESOURCE_OFFSET_KEYBOARD
-        local barsBottom = SV().actionBarPosY - self.panelHeight
-        shift = zo_floor(barsBottom - (screenH + defaultOffset))
-    elseif not self.stackShifted then
+    local name = ME.name .. "_ActionBarStack"
+    EVENT_MANAGER:UnregisterForUpdate(name)
+    EVENT_MANAGER:RegisterForUpdate(name, STACK_DELAY, function()
+        EVENT_MANAGER:UnregisterForUpdate(name)
+        AB:PlaceStack()
+    end)
+end
+
+function AB:PinStack(name, offsetY)
+    local control = GetControl(name)
+    if not control then return end
+    self.stackAnchors = self.stackAnchors or {}
+    if not self.stackAnchors[name] then
+        local isValid, point, relativeTo, relativePoint, offsetX, originalY = control:GetAnchor(0)
+        if not isValid then return end
+        self.stackAnchors[name] = { point, relativeTo, relativePoint, offsetX, originalY }
+    end
+    local _, point, relativeTo, relativePoint, offsetX, currentY = control:GetAnchor(0)
+    if point == BOTTOM and relativeTo == GuiRoot and relativePoint == TOP
+        and offsetX == 0 and currentY == offsetY then
         return
     end
-    for i = 1, #STACK_WINDOWS do
-        local entry = STACK_WINDOWS[i]
-        local window = GetControl(entry.name)
-        if window then
-            local offsetY = active and (shift + (entry.lift or 0)) or 0
-            window:ClearAnchors()
-            window:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 0, offsetY)
-            window:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, 0, offsetY)
+    control:ClearAnchors()
+    control:SetAnchor(BOTTOM, GuiRoot, TOP, 0, offsetY)
+end
+
+function AB:UnpinStack()
+    local anchors = self.stackAnchors
+    if not anchors then return end
+    for name, anchor in pairs(anchors) do
+        local control = GetControl(name)
+        if control then
+            control:ClearAnchors()
+            control:SetAnchor(anchor[1], anchor[2], anchor[3], anchor[4], anchor[5])
         end
     end
-    for i = 1, #STACK_PINNED do
-        local entry = STACK_PINNED[i]
-        local window = GetControl(entry.name)
-        if window then
-            window:ClearAnchors()
-            window:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, entry.offsetY + shift)
+    self.stackAnchors = nil
+end
+
+function AB:PlaceStack()
+    if not self.panelHeight then return end
+    if not IsEnabled() then
+        self:UnpinStack()
+        return
+    end
+    local floor = MeasureFloor()
+    if not floor and self.panel then
+        local top = self.panel:GetTop()
+        if top and top > 0 then floor = top - BARS_GUESS end
+    end
+    if not floor then return end
+    local baseline = zo_floor(floor - STACK_GAP)
+    self:PinStack(PROMPT_BASE, baseline - PromptReach())
+    for i = 1, #STACK_PLACED do
+        self:PinStack(STACK_PLACED[i], baseline)
+    end
+end
+
+function AB:WatchStack()
+    if self.stackWatched then return end
+    self.stackWatched = true
+    local function OnStackChanged()
+        if IsEnabled() then AB:ApplyStack() end
+    end
+    for i = 1, #FLOOR_CONTROLS do
+        local control = GetControl(FLOOR_CONTROLS[i])
+        if control then control:SetHandler("OnRectChanged", OnStackChanged, ME.name) end
+    end
+    for i = 1, #BUFF_ROWS do
+        local row = GetControl(BUFF_ROWS[i])
+        if row then
+            row:SetHandler("OnRectChanged", OnStackChanged, ME.name)
+            row:SetHandler("OnEffectivelyShown", OnStackChanged, ME.name)
+            row:SetHandler("OnEffectivelyHidden", OnStackChanged, ME.name)
         end
     end
-    self.stackShifted = active
+    local base = GetControl(PROMPT_BASE)
+    if base then base:SetHandler("OnEffectivelyShown", OnStackChanged, ME.name) end
+    for i = 1, #PROMPT_PARTS do
+        local part = GetControl(PROMPT_PARTS[i])
+        if part then
+            part:SetHandler("OnRectChanged", OnStackChanged, ME.name)
+            part:SetHandler("OnEffectivelyShown", OnStackChanged, ME.name)
+        end
+    end
+    for i = 1, #STACK_PLACED do
+        local control = GetControl(STACK_PLACED[i])
+        if control then control:SetHandler("OnEffectivelyShown", OnStackChanged, ME.name) end
+    end
 end
 
 function AB:HookResourceBars()
@@ -965,6 +1276,7 @@ function AB:Refresh()
     self:ApplyResourceBars()
     self:ApplyStack()
     self:RefreshIcons()
+    self:ScanFood()
     self:UpdateVisibility()
     if ticking then self:Update() end
 end
@@ -1136,6 +1448,14 @@ function AB:RegisterEvents()
     EVENT_MANAGER:RegisterForEvent(name, EVENT_ACTIVE_WEAPON_PAIR_CHANGED, OnSlotsChanged)
     EVENT_MANAGER:RegisterForEvent(name, EVENT_COLLECTIBLE_UPDATED, OnSlotsChanged)
 
+    local foodName = name .. "_Food"
+    EVENT_MANAGER:RegisterForEvent(foodName, EVENT_EFFECT_CHANGED,
+        function(_, changeType, _, _, _, started, ending, _, icon, _, effectType, abilityType, _, _, _, abilityId)
+            AB:OnEffectChanged(changeType, started, ending, icon, effectType, abilityType, abilityId)
+        end)
+    EVENT_MANAGER:AddFilterForEvent(foodName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
+    EVENT_MANAGER:RegisterForEvent(foodName, EVENT_PLAYER_ACTIVATED, function() AB:ScanFood() end)
+
     EVENT_MANAGER:RegisterForEvent(name, EVENT_PLAYER_COMBAT_STATE, function(_, combat)
         inCombat = combat == true
         AB:UpdateVisibility()
@@ -1183,7 +1503,9 @@ function AB:GetOptions()
             type    = "submenu",
             name    = "Action Bar",
             icon    = SUBMENU_ICON,
-            tooltip = "Turn off any other action bar add-on while this is enabled.\n\n" .. ME.SAVED_ACCOUNT_TIP,
+            tooltip = function()
+                return "Turn off any other action bar addon while this is enabled.\n\n" .. SavedTip()
+            end,
             options = {
                 {
                     type    = "toggle",
@@ -1193,6 +1515,20 @@ function AB:GetOptions()
                     tooltip = "Replaces the game's action bar with both of your bars at once.",
                     getFunc = function() return SV().actionBarEnabled end,
                     setFunc = function(val) AB:SetEnabled(val) end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Character Settings",
+                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
+                           .. "copied from the account settings the first time you turn it on.",
+                    details = function()
+                        if AB:UsesCharacterSettings() then
+                            return "This character has its own settings."
+                        end
+                        return "All your characters share the same settings."
+                    end,
+                    getFunc = function() return AB:UsesCharacterSettings() end,
+                    setFunc = function(val) AB:SetUseCharacterSettings(val) end,
                 },
                 {
                     type     = "toggle",
@@ -1227,6 +1563,24 @@ function AB:GetOptions()
                     setFunc  = function(val)
                         SV().actionBarShow = val
                         AB:UpdateVisibility()
+                    end,
+                },
+                {
+                    type     = "toggle",
+                    name     = "Static Bars",
+                    preset   = "YES_NO",
+                    default  = defaults.actionBarStatic,
+                    details  = function()
+                        if SV().actionBarStatic then
+                            return "Your front bar stays on top and the arrow moves to the bar you're using."
+                        end
+                        return "The bar you're using moves to the top when you swap."
+                    end,
+                    disabled = IsOff,
+                    getFunc  = function() return SV().actionBarStatic end,
+                    setFunc  = function(val)
+                        SV().actionBarStatic = val
+                        AB:PlaceRows(true)
                     end,
                 },
                 {
@@ -1378,8 +1732,15 @@ end
 -- Lifecycle
 --------------------------------------------------
 function AB:Init()
+    local account = ME.savedVariables
+    if account then
+        account.actionBarPromptReach = nil
+        account.actionBarPromptSpace = nil
+        account.actionBarReadout = nil
+    end
     self:CreatePanel()
     self:HookResourceBars()
+    self:WatchStack()
     self:RegisterEvents()
     self:RegisterScenes()
     ResolveColors()
@@ -1395,8 +1756,43 @@ function AB:OnPlayerActivated()
     self:Refresh()
 end
 
+function AB:SetUseCharacterSettings(value)
+    local cv = ME.charVariables
+    if not cv then return end
+    value = value == true
+    if (cv.actionBarUseCharacter == true) == value then return end
+    cv.actionBarUseCharacter = value
+    if not IsEnabled() then self.preview = false end
+    self:Refresh()
+    local panel = ME.settingsPanel
+    if panel and panel.Refresh then panel:Refresh() end
+end
+
+function AB:ResetSkipKeys()
+    local keys = {}
+    if self:UsesCharacterSettings() then
+        for key in pairs(self.defaults) do keys[#keys + 1] = key end
+    end
+    return keys
+end
+
 function AB:OnReset()
     self.preview = false
+    if self:UsesCharacterSettings() then
+        local settings = CharSettings()
+        if settings then
+            for key, value in pairs(self.defaults) do
+                if type(value) == "table" then
+                    local copy = {}
+                    for k, v in pairs(value) do copy[k] = v end
+                    settings[key] = copy
+                else
+                    settings[key] = value
+                end
+            end
+            settings.seeded = true
+        end
+    end
     self:Refresh()
 end
 

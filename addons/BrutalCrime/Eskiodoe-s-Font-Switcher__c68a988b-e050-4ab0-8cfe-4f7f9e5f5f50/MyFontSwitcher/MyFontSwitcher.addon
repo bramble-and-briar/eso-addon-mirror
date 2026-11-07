@@ -1,0 +1,10 @@
+## Title: MyFontSwitcher
+## Description: Switch between custom fonts
+## Author: Eskiodoe
+## Version: 1.1
+## APIVersion: 101046
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: MyFontSwitcherSavedVars
+
+
+MyFontSwitcher.lua

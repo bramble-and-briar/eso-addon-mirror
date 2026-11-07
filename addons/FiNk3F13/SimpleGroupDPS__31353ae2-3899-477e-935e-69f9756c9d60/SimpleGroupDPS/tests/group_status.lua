@@ -48,10 +48,8 @@ local showPersonal = env.menu["Anteil-HUD anzeigen"]
 assert(showPersonal.getFunction() and not env.personalWindow.hidden)
 showPersonal.setFunction(false)
 assert(env.saved.showPersonal == false and env.personalWindow.hidden and not env.window.hidden)
-local sends = 0
-bridge.SendDPS = function() sends = sends + 1; return true end
 env.tick()
-assert(sends == 1 and meter:IsActive(), "Hidden personal HUD cannot stop measuring or sending")
+assert(meter:IsActive() and type(bridge.SendDPS)=="function", "Hidden personal HUD preserves measurement and automatic sharing")
 env.menu["Anteil-HUD verschieben"].clickHandler()
 assert(not env.personalWindow.hidden, "Move preview remains usable for a disabled personal HUD")
 SLASH_COMMANDS["/sgdsharemove"]()

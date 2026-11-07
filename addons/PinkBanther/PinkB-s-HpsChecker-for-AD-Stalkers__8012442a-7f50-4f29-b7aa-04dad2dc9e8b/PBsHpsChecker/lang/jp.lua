@@ -20,9 +20,6 @@ local strings = {
 	SI_PBSHPS_ROW_GROUP = "パーティーへ  %s  %s  %s人",
 	SI_PBSHPS_ROW_OTHER = "パーティー外へ  %s  %s  %s人",
 	SI_PBSHPS_ROW_SELF = "自分へ  %s  %s",
-	SI_PBSHPS_ROW_PT_SHARE = "パーティーが受けた回復のうち自分の分  %s",
-	SI_PBSHPS_PT_UNKNOWN = "-",
-	SI_PBSHPS_TAG_PARTY_SHARE = "[PT %s]",
 	SI_PBSHPS_TAG_PARTY = "[PT]",
 
 	-- HUDメーター
@@ -31,11 +28,10 @@ local strings = {
 	SI_PBSHPS_HUD_ENDED = "戦闘終了",
 	SI_PBSHPS_HUD_TOTAL = "回復量  %s   %s   %d人",
 	SI_PBSHPS_HUD_SHARE = "パーティー %d%%  パーティー外 %d%%  自分 %d%%",
-	SI_PBSHPS_HUD_PT_SHARE = "パーティーが受けた回復のうち自分の分  %s",
 
 	-- 統計画面
 	SI_PBSHPS_BLOCK_SUMMARY = "概要",
-	SI_PBSHPS_BLOCK_TARGETS = "回復した相手 上位10  [PT n%]＝自分の割合",
+	SI_PBSHPS_BLOCK_TARGETS = "回復した相手 上位10  [PT]＝パーティーメンバー",
 	SI_PBSHPS_BLOCK_SKILLS = "回復スキル 上位10",
 	SI_PBSHPS_BLOCK_FIGHTS = "直近10戦",
 
@@ -52,8 +48,8 @@ local strings = {
 	SI_PBSHPS_SCREEN_PERIOD = "期間: %s  (%d / %d)",
 	SI_PBSHPS_SCREEN_PERIODS = "期間 %d 件。選んで A を押すと、その期間の統計を開きます。",
 	SI_PBSHPS_SCREEN_FIGHTS = "最新 %d 戦 (新しい順)",
-	SI_PBSHPS_HINT_STATS = "← → 期間を切り替え    LB / RB ページ    X 今日    [PT n%]・自分の分＝パーティーが受けた回復のうち自分の割合",
-	SI_PBSHPS_HINT_PERIODS = "↑ ↓ 選ぶ    A 開く    LB / RB ページ    X 今日    自分の分＝パーティーが受けた回復のうち自分の割合",
+	SI_PBSHPS_HINT_STATS = "← → 期間を切り替え    LB / RB ページ    X 今日",
+	SI_PBSHPS_HINT_PERIODS = "↑ ↓ 選ぶ    A 開く    LB / RB ページ    X 今日",
 	SI_PBSHPS_HINT_FIGHTS = "↑ ↓ スクロール    LB / RB ページ    X 今日",
 	SI_PBSHPS_COL_PERIOD = "期間",
 	SI_PBSHPS_COL_HEAL = "回復量",
@@ -61,7 +57,6 @@ local strings = {
 	SI_PBSHPS_COL_FIGHTS = "戦闘",
 	SI_PBSHPS_COL_TIME = "回復時間",
 	SI_PBSHPS_COL_PARTY = "パーティーへ",
-	SI_PBSHPS_COL_SHARE = "自分の分",
 	SI_PBSHPS_COL_WHEN = "日時",
 	SI_PBSHPS_COL_LENGTH = "時間",
 	SI_PBSHPS_COL_PEOPLE = "人数",
@@ -99,8 +94,6 @@ local strings = {
 	SI_PBSHPS_SECTION_RECORD = "記録",
 	SI_PBSHPS_ENABLED = "回復量を記録する",
 	SI_PBSHPS_ENABLED_TIP = "オフにすると何も数えません。",
-	SI_PBSHPS_OTHERS = "他のヒーラーの回復も数える",
-	SI_PBSHPS_OTHERS_TIP = "パーティーメンバーが受けた回復のうち自分の分を出すために、他のヒーラーがパーティーメンバーに行った回復も数えます。オフにすると自分の回復だけを数えるので、その割合は100%になります。他のヒーラーの回復が1つも届かないときも同じです。大きな戦闘ではすべてのヒーラーの回復が対象になるので、動作が重く感じたらオフにしてください。",
 	SI_PBSHPS_ZONES = "記録する場所",
 	SI_PBSHPS_ZONES_TIP = "シロディールのみ (初期値)、すべてのPvPゾーン (シロディール・帝都・バトルグラウンド)、PvEも含めてどこでも、から選びます。",
 	SI_PBSHPS_ZONE_CYRODIIL = "シロディールのみ",
@@ -133,7 +126,7 @@ local strings = {
 	-- 計測 (/hps probe)
 	SI_PBSHPS_PROBE_START = "計測を開始しました。%d秒間、誰が誰を回復したかを問わず、ゲームから届く回復をすべて数えます。他のヒーラーが回復している場所にいてください。もう一度 /hps probe で途中で止めて結果を出せます。",
 	SI_PBSHPS_PROBE_RUNNING = "[HPS] 計測中です。あと%d秒。",
-	SI_PBSHPS_PROBE_HEADING = "[HPS] 計測結果 (%d秒)。ゲームから届いた回復を「発生源 > 相手」で分けたものです:",
+	SI_PBSHPS_PROBE_HEADING = "[HPS] 計測結果 (%d秒)。ゲームから届いた回復を「発生源 > 相手」で分けたものです（回数、回復量/超過分、発生源の人数、例 [技名]）:",
 	SI_PBSHPS_PROBE_NONE = "回復は1つも届きませんでした。",
 	SI_PBSHPS_PROBE_LINE = "  %s > %s  %d回  %s  (発生源%d人)  例: %s",
 	SI_PBSHPS_PROBE_LEGEND = "[HPS] 届いたか？ (PLAYER=自分、GROUP=パーティーメンバー、OTHER=それ以外)",
@@ -142,6 +135,8 @@ local strings = {
 	SI_PBSHPS_PROBE_Q_GROUP_GROUP = "パーティーメンバー > パーティーメンバー",
 	SI_PBSHPS_PROBE_Q_OTHER_GROUP = "パーティー外 > パーティーメンバー",
 	SI_PBSHPS_PROBE_Q_OTHER_OTHER = "パーティー外 > パーティー外",
+	SI_PBSHPS_PROBE_Q_NAMELESS_GROUP = "名前なしの回復 > パーティーメンバー（IDから判明）",
+	SI_PBSHPS_PROBE_NAMELESS = "  名前なしで届いた回復: %d回  %s > %s  [%s]",
 	SI_PBSHPS_PROBE_YES = "○ 届いた (%d回)",
 	SI_PBSHPS_PROBE_NO = "× 届かなかった",
 	SI_PBSHPS_PROBE_CAVEAT = "[HPS] × は、計測中にその場面が無かっただけの可能性もあります。他のヒーラーが近くで回復している場面で、最初の2行は自分の回復も必要です。",

@@ -1,4 +1,4 @@
-## Title: |c7c42f2Imp|ceeeeee-ressive Stats|r
+## Title: |c7c42f2Imp|ceeeeeeressive Stats|r
 ## AddOnVersion: 1157000
 ## APIVersion: 101051
 ## Author: |c7c42f2@impda|r [EU]
@@ -13,6 +13,7 @@
 ## SavedVariables: ImpressiveStatsPlayersCache ImpressiveStatsPlayersSV
 ## SavedVariables: ImpressiveStatsErrors
 
+constants.lua
 strings.lua
 logger.lua
 shared.lua

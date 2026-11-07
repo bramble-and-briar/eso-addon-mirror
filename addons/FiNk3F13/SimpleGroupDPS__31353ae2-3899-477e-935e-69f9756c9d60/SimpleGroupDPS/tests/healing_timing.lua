@@ -11,8 +11,8 @@ meter:Start(clock)
 meter:OnDamage(1,false,1,'Enemy',0,1000,99,10)
 clock = 1001
 meter:OnDamage(1,false,1,'Enemy',0,1000,99,10)
-assert(meter:GetStats().dps == 2000 and meter:GetStats().durationMS == 1000,
-    'Millisecond multi-hit bursts cannot generate millions of DPS')
+assert(meter:GetStats().dps == 2000000 and meter:GetStats().durationMS == 1,
+    'Exact BattleScrolls subsecond timing has no custom DPS denominator floor')
 local function heal(time)
     clock = time
     meter:OnDamage(2,false,1,'Ally',4,5000,20,10,5000,123)
@@ -21,8 +21,8 @@ heal(2000)
 heal(12000)
 local stats = meter:GetStats()
 assert(stats.rawHealingTotal == 20000 and stats.rawHPS == 2000 and stats.effectiveHPS == 1000)
-assert(stats.healingDurationMS == 10000 and stats.durationMS == 11000 and math.abs(stats.dps - 2000000/11000) < 0.000001,
-    'Only healing continues: HPS keeps its own clock while DPS continues to decrease')
+assert(stats.healingDurationMS == 10000 and stats.durationMS == 1 and stats.dps == 2000000,
+    'Only healing continues: healing clock advances without changing damage time')
 clock = 12100
 meter:OnDamage(1,false,1,'Enemy',0,1000,99,10)
 assert(meter:GetStats().rawHPS == stats.rawHPS and meter:GetStats().effectiveHPS == stats.effectiveHPS,

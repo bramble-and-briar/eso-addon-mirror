@@ -8,12 +8,12 @@
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2275",
@@ -22,7 +22,7 @@
     "LibDebugLogger"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2275/",
-  "fingerprint": "58bad67d98112d09eac5f3fe63d29ddd13a46556af1d25cf6931643519896206",
+  "fingerprint": "c9decca21478dd5a4d8d07cd7d74ceaaa0137d7f83f6f859265441c625df3350",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8129.png"
   ],
@@ -32,11 +32,11 @@
   "source_id": "2275",
   "source_url": "https://www.esoui.com/downloads/info2275-LibDebugLogger.html",
   "stats": {
-    "downloads": 3801692,
+    "downloads": 3820349,
     "favorites": 1668,
-    "monthly_downloads": 48525
+    "monthly_downloads": 66780
   },
   "title": "LibDebugLogger",
-  "updated_at": 1793827940000,
-  "version": "2.7.0"
+  "updated_at": 1793987438000,
+  "version": "2.7.1"
 }

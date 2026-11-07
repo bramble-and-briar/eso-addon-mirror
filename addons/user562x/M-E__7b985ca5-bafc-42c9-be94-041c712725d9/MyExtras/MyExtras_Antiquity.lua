@@ -19,6 +19,13 @@ local POPUP_GAP      = 10
 local POPUP_PAD      = 44
 local POPUP_PAD_Y    = 20
 local POPUP_LINE_GAP = 10
+local POPUP_CORNER   = 14
+
+local MOVE_SCENE  = "MyExtras_AntiquityMove"
+local MOVE_SPEED  = 500
+local SCALE_SPEED = 40
+local SIZE_MIN    = 50
+local SIZE_MAX    = 200
 
 local TIMER_NAME = ME.name .. "_AntiquityTimer"
 local WAIT_NAME  = ME.name .. "_AntiquityWait"
@@ -28,8 +35,6 @@ local TICK_MS    = 100
 local JOURNAL_SCENE    = "gamepad_antiquity_journal"
 local TRAVEL_WINDOW_MS = 30000
 local JOURNAL_DELAY_MS = 1500
-
-local FRAME_GREY = { 0.55, 0.55, 0.55 }
 
 AR.defaults = {
     antiquityEnabled      = true,
@@ -41,6 +46,8 @@ AR.defaults = {
     antiquityHours        = 0,
     antiquityPopupSeconds = 10,
     antiquityPopupSize    = 120,
+    antiquityPosX         = 0,
+    antiquityPosY         = POPUP_Y,
 }
 
 AR.charDefaults = {
@@ -209,7 +216,6 @@ function AR:CreatePopup()
 
     local root = wm:CreateTopLevelWindow("MyExtras_AntiquityPopupRoot")
     root:SetDimensions(1, 1)
-    root:SetAnchor(CENTER, GuiRoot, CENTER, 0, POPUP_Y)
     root:SetDrawLayer(DL_OVERLAY)
     root:SetDrawTier(DT_HIGH)
     root:SetMouseEnabled(false)
@@ -219,31 +225,36 @@ function AR:CreatePopup()
     popup:SetDimensions(POPUP_WIDTH, POPUP_HEIGHT)
     popup:SetAnchor(CENTER, root, CENTER, 0, 0)
 
-    local bg = wm:CreateControlFromVirtual("MyExtras_AntiquityPopupBg", popup, "ZO_GamepadWhiteOutlineThin")
-    bg:SetAnchorFill(popup)
-    bg:SetCenterColor(0.02, 0.02, 0.03, 0.85)
-    bg:SetEdgeColor(FRAME_GREY[1], FRAME_GREY[2], FRAME_GREY[3], 1)
+    local bg = ME:CreateRoundBox("MyExtras_AntiquityPopupBg", popup)
+    bg.control:SetAnchorFill(popup)
+    bg:SetFillColor(0.02, 0.02, 0.03, 0.85)
+    bg:SetCorner(POPUP_CORNER)
 
     local icon = wm:CreateControl("MyExtras_AntiquityPopupIcon", popup, CT_TEXTURE)
+    icon:SetDrawLevel(2)
     icon:SetDimensions(POPUP_ICON_SIZE, POPUP_ICON_SIZE)
     icon:SetTexture(POPUP_ICON)
 
     local title = wm:CreateControl("MyExtras_AntiquityPopupTitle", popup, CT_LABEL)
+    title:SetDrawLevel(2)
     title:SetFont("$(GAMEPAD_MEDIUM_FONT)|34|soft-shadow-thick")
     title:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     title:SetText("Antiquity Reminder")
 
     local body = wm:CreateControl("MyExtras_AntiquityPopupBody", popup, CT_LABEL)
+    body:SetDrawLevel(2)
     body:SetFont("$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thick")
     body:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     body:SetColor(0.82, 0.85, 0.9, 1)
 
     local hint = wm:CreateControl("MyExtras_AntiquityPopupHint", popup, CT_LABEL)
+    hint:SetDrawLevel(2)
     hint:SetFont("$(GAMEPAD_MEDIUM_FONT)|27|soft-shadow-thick")
     hint:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     hint:SetColor(1, 1, 1, 1)
 
     local countdown = wm:CreateControl("MyExtras_AntiquityPopupCountdown", popup, CT_LABEL)
+    countdown:SetDrawLevel(2)
     countdown:SetFont("$(GAMEPAD_MEDIUM_FONT)|22|soft-shadow-thick")
     countdown:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     countdown:SetColor(0.7, 0.72, 0.76, 1)
@@ -256,6 +267,7 @@ function AR:CreatePopup()
     self.popupBody = body
     self.popupHint = hint
     self.popupCountdown = countdown
+    self:ApplyPosition()
 end
 
 local function MeasureWidth(label, maxWidth)
@@ -302,6 +314,15 @@ function AR:LayoutPopup()
     body:SetAnchor(TOP, self.popup, TOP, 0, POPUP_PAD_Y + titleHeight + POPUP_LINE_GAP)
     hint:ClearAnchors()
     hint:SetAnchor(TOP, body, BOTTOM, 0, POPUP_LINE_GAP)
+end
+
+function AR:ApplyPosition()
+    if not self.popupRoot then return end
+    local sv = SV()
+    self.popupRoot:ClearAnchors()
+    self.popupRoot:SetAnchor(CENTER, GuiRoot, CENTER,
+        tonumber(sv.antiquityPosX) or self.defaults.antiquityPosX,
+        tonumber(sv.antiquityPosY) or self.defaults.antiquityPosY)
 end
 
 function AR:ApplyPopupSize()
@@ -377,6 +398,15 @@ function AR:SetPreview(value)
         EVENT_MANAGER:UnregisterForUpdate(TICK_NAME)
         if self.popupRoot then self.popupRoot:SetHidden(true) end
     end
+end
+
+function AR:SyncPreview()
+    local want = self.moving == true or (ME.placing == true and SV().antiquityEnabled == true)
+    if want ~= self.preview then self:SetPreview(want) end
+end
+
+function AR:OnPlacing()
+    self:SyncPreview()
 end
 
 function AR:RefreshPreview()
@@ -493,6 +523,129 @@ function AR:InstallHooks()
 end
 
 --------------------------------------------------
+-- Move
+--------------------------------------------------
+AR.mover = {}
+
+function AR.mover:UpdateDirectionalInput(deltaS)
+    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
+    if x ~= 0 or y ~= 0 then
+        AR:SetPosition(AR.moveX + x * MOVE_SPEED * deltaS, AR.moveY - y * MOVE_SPEED * deltaS)
+    end
+    local _, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if scaleY ~= 0 then
+        AR:SetScale(AR.moveSize + scaleY * SCALE_SPEED * deltaS)
+    end
+end
+
+AR.moveKeybinds = {
+    alignment = KEYBIND_STRIP_ALIGN_CENTER,
+    {
+        name     = "Save",
+        keybind  = "UI_SHORTCUT_PRIMARY",
+        callback = function() AR:EndMove(true) end,
+    },
+    {
+        name     = "Default",
+        keybind  = "UI_SHORTCUT_TERTIARY",
+        callback = function() AR:MoveToDefault() end,
+    },
+    {
+        name     = "Cancel",
+        keybind  = "UI_SHORTCUT_NEGATIVE",
+        callback = function() AR:EndMove(false) end,
+    },
+}
+
+function AR:SetPosition(x, y)
+    local screenW, screenH = GuiRoot:GetDimensions()
+    local halfW, halfH = screenW / 2, screenH / 2
+    self.moveX = zo_clamp(x, -halfW, halfW)
+    self.moveY = zo_clamp(y, -halfH, halfH)
+    local sv = SV()
+    sv.antiquityPosX = zo_floor(self.moveX + 0.5)
+    sv.antiquityPosY = zo_floor(self.moveY + 0.5)
+    self:ApplyPosition()
+end
+
+function AR:SetScale(size)
+    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
+    local rounded = zo_floor(self.moveSize + 0.5)
+    local sv = SV()
+    if sv.antiquityPopupSize ~= rounded then
+        sv.antiquityPopupSize = rounded
+        self:ApplyPopupSize()
+    end
+end
+
+function AR:MoveToDefault()
+    self:SetScale(self.defaults.antiquityPopupSize)
+    self:SetPosition(self.defaults.antiquityPosX, self.defaults.antiquityPosY)
+end
+
+function AR:GetMoveScene()
+    if self.moveScene then return self.moveScene end
+    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
+    ME:AddPlacementFragments(scene)
+    scene:RegisterCallback("StateChange", function(oldState, newState)
+        if newState == SCENE_SHOWING then
+            AR:OnMoveShowing()
+        elseif newState == SCENE_HIDDEN then
+            AR:OnMoveHidden()
+        end
+    end)
+    self.moveScene = scene
+    return scene
+end
+
+function AR:StartMove()
+    if self.moving then return end
+    self:CreatePopup()
+    self.moveSaved = false
+    self.moving = true
+    self:GetMoveScene()
+    SCENE_MANAGER:Push(MOVE_SCENE)
+end
+
+function AR:OnMoveShowing()
+    local sv = SV()
+    self.moving = true
+    self.moveStartX = tonumber(sv.antiquityPosX) or self.defaults.antiquityPosX
+    self.moveStartY = tonumber(sv.antiquityPosY) or self.defaults.antiquityPosY
+    self.moveStartSize = tonumber(sv.antiquityPopupSize) or self.defaults.antiquityPopupSize
+    self.moveX, self.moveY = self.moveStartX, self.moveStartY
+    self.moveSize = self.moveStartSize
+    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
+    DIRECTIONAL_INPUT:Activate(self.mover, self.popupRoot)
+    ME:SetPlacing(true)
+    self:SyncPreview()
+end
+
+function AR:OnMoveHidden()
+    DIRECTIONAL_INPUT:Deactivate(self.mover)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
+    if not self.moveSaved then
+        self:SetScale(self.moveStartSize)
+        self:SetPosition(self.moveStartX, self.moveStartY)
+    end
+    self.moving = false
+    ME:SetPlacing(false)
+    self:SyncPreview()
+end
+
+function AR:EndMove(save)
+    if not self.moving then return end
+    self.moveSaved = save == true
+    if save then
+        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
+    else
+        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+    end
+    SCENE_MANAGER:HideCurrentScene()
+end
+
+--------------------------------------------------
 -- Settings
 --------------------------------------------------
 local function IsOff()
@@ -523,6 +676,8 @@ function AR:SetUseCharacterSettings(value)
         self:HidePopup()
     end
     self:ApplyTimer()
+    self:ApplyPosition()
+    self:ApplyPopupSize()
     self:RefreshPreview()
     RefreshPanelPages()
 end
@@ -556,12 +711,12 @@ function AR:SettingOptions()
             setFunc = function(val) AR:SetUseCharacterSettings(val) end,
         },
         {
-            type     = "toggle",
-            name     = "Preview",
-            tooltip  = "Shows it on screen so you can size it. Stays on until you turn it off or leave the settings.",
-            disabled = IsOff,
-            getFunc  = function() return AR.preview end,
-            setFunc  = function(val) AR:SetPreview(val) end,
+            type       = "button",
+            name       = "Move / Scale",
+            buttonText = "Move / Scale",
+            tooltip    = "Move it with the left stick and scale it with the right stick.",
+            disabled   = IsOff,
+            func       = function() AR:StartMove() end,
         },
         {
             type     = "checklist",
@@ -631,19 +786,6 @@ function AR:SettingOptions()
                 SV().antiquityHours = val
                 RefreshPanelPages()
                 AR:RefreshPreview()
-            end,
-        },
-        {
-            type     = "slider",
-            name     = "Size",
-            min      = 50, max = 150, step = 5,
-            default  = defaults.antiquityPopupSize,
-            tooltip  = "Default is " .. defaults.antiquityPopupSize .. ".",
-            disabled = IsOff,
-            getFunc  = function() return SV().antiquityPopupSize end,
-            setFunc  = function(val)
-                SV().antiquityPopupSize = val
-                AR:ApplyPopupSize()
             end,
         },
         {
@@ -877,7 +1019,6 @@ function AR:OnSettingsState(newState)
     if newState == SCENE_HIDDEN then
         self.dirty = true
         self.pageOptions = nil
-        if self.preview then self:SetPreview(false) end
     end
 end
 
@@ -943,6 +1084,8 @@ function AR:OnReset()
     self.preview = false
     self:HidePopup()
     self:ApplyTimer()
+    self:ApplyPosition()
+    self:ApplyPopupSize()
     RefreshPanelPages()
 end
 

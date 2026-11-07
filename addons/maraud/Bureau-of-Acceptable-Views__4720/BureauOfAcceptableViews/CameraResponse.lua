@@ -271,16 +271,24 @@ function CameraResponse.AcquireSmoothing(owner, force)
         if not ok then
             return false
         end
-        if current ~= 0 and not CameraSettings.Set("smoothing", 0) then
-            LogWarn("CameraResponse: unable to suspend engine smoothing")
-            return false
-        end
-        CancelSmoothingRestore()
-        -- A rejected restore may outlive its retries; never snapshot the
-        -- temporary disabled value over the player's original setting.
+
+        -- Snapshot before disabling. SetSetting can change ESO's value even when
+        -- the immediate read-back verification fails (for example during a
+        -- combat camera transition); without this snapshot a failed acquisition
+        -- leaves native smoothing disabled with nobody owning it to restore it.
         if previousEngineSmoothing == nil then
             previousEngineSmoothing = current
         end
+
+        if current ~= 0 and not CameraSettings.Set("smoothing", 0) then
+            LogWarn("CameraResponse: unable to suspend engine smoothing")
+            -- Recover immediately when possible; keep the bounded retry path for
+            -- a second transient failure during the same camera transition.
+            RestoreEngineSmoothing()
+            return false
+        end
+
+        CancelSmoothingRestore()
         restoreRetries = 0
     end
 

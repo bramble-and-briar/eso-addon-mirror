@@ -39,10 +39,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__38f0df90-e793-4c9c-af2b-44a958ed38cf) | M0R | Console | — |
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__3985) | M0R | PC / Mac | 1.3.0 |
 | [OneChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneChat__5020) | oneDOK | PC / Mac | 26.11.2 |
-| [OneCrosshair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneCrosshair__4899) | oneDOK | PC / Mac | 26.1 |
-| [OneDungeon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneDungeon__4886) | oneDOK | PC / Mac | 26.1 |
-| [OneFrame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneFrame__4890) | oneDOK | PC / Mac | 26.1 |
+| [OneCrosshair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneCrosshair__4899) | oneDOK | PC / Mac | 26.11.1 |
+| [OneDungeon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneDungeon__4886) | oneDOK | PC / Mac | 26.11.1 |
+| [OneFrame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneFrame__4890) | oneDOK | PC / Mac | 26.11.1 |
 | [OneKey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ancillae_Secretorum/OneKey__4188) | Ancillae_Secretorum | PC / Mac | 0.1 |
+| [OneMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneMap__5029) | oneDOK | PC / Mac | 26.11.1 |
 | [Onix - MenuHUD - Easy Navigation Bar (Full Costum)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/natosz/Onix---MenuHUD---Easy-Navigation-Bar-Full-Costum__4790) | natosz | PC / Mac | 1.1.1 |
 | [Onix - Worldmap - Easy Navigation ( More Zoom & Radar)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/natosz/Onix---Worldmap---Easy-Navigation-More-Zoom-Radar__4789) | natosz | PC / Mac | 1.1 |
 | [Only Cast Crystal Fragments Proc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/stybbe/Only-Cast-Crystal-Fragments-Proc__2577) | stybbe | PC / Mac | 1.7 |

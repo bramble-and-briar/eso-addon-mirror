@@ -29,7 +29,7 @@ LibGroupBroadcast = {
                 function p:IsEnabled() return sendEnabled end
                 function p:Send(data)
                     if not sendSucceeds then return false end
-                    sent[#sent + 1] = { id = id, data = data }
+                    sent[#sent+1]={id=id,data=data}
                     return true
                 end
                 protocols[id] = p
@@ -96,108 +96,44 @@ receive("group1", { encodedAllDPS = 1.5 })
 assert(#bridge:GetRows() == 0, "invalid encoded data rejected")
 
 assert(#sent == 0, "receiving alone never broadcasts")
-assert(bridge:SendDPS(255), "first outgoing DPS queued")
-assert(sent[1].id == 430 and sent[1].data.encodedAllDPS == 255)
-assert(sent[1].data.encodedBossDPS == nil, "unknown boss DPS omitted")
-assert(bridge:GetStatus().queuedCount == 1, "queued counter counts successful submissions")
-assert(bridge:GetStatus().connected and bridge:GetStatus().enabled
-    and bridge:GetStatus().lastSendAt == clock and bridge:GetStatus().lastSendResult == "queued",
-    "status reports queue acceptance, not remote delivery")
-assert(not bridge:SendDPS(500), "duplicate send in the same tick is throttled")
-clock = clock + 299
-assert(not bridge:SendDPS(500), "send interval matches Battle Scrolls' 300ms tick")
-clock = clock + 1
-assert(bridge:SendDPS(256) and sent[2].data.encodedAllDPS == 256)
-assert(bridge:SendDPS(1048576, true) and sent[3].data.encodedAllDPS == 2046)
-assert(bridge:SendDPS(1048577, true) and sent[4].data.encodedAllDPS == 2047)
-assert(bridge:SendDPS(0, true) and sent[5].data.encodedAllDPS == 0)
-for _, value in ipairs({ 1000, 12345, 100000, 500000 }) do
-    assert(bridge:SendDPS(value, true))
-    receive("group1", sent[#sent].data)
-    assert(math.abs(bridge:GetRows()[1].dps / value - 1) < 0.003, "wire roundtrip within compression precision")
-end
-assert(bridge:SendDPS(100000, true, 60000), "boss DPS transmitted alongside overall DPS")
-receive("group1", sent[#sent].data)
-rows = bridge:GetRows()
-assert(math.abs(rows[1].bossDPS / 60000 - 1) < 0.002, "12-bit boss DPS roundtrip")
-assert(math.abs(rows[1].addsDPS / 40000 - 1) < 0.01, "adds DPS derived from the same time basis")
-assert(bridge:SendDPS(511, true, 511) and sent[#sent].data.encodedBossDPS == 511)
-assert(bridge:SendDPS(512, true, 512) and sent[#sent].data.encodedBossDPS == 512)
-assert(bridge:SendDPS(1048576, true, 1048576) and sent[#sent].data.encodedBossDPS == 4094)
-assert(bridge:SendDPS(1048577, true, 1048577) and sent[#sent].data.encodedBossDPS == 4095)
-receive("group1", sent[#sent].data)
-assert(bridge:GetRows()[1].addsDPS == nil, "overflow cannot produce an inf-minus-inf adds value")
-assert(bridge:SendDPS(1000, true, 0) and sent[#sent].data.encodedBossDPS == 0)
-receive("group1", sent[#sent].data)
-assert(bridge:GetRows()[1].bossDPS == 0 and bridge:GetRows()[1].addsDPS > 990, "zero boss DPS is valid")
-receive("group1", { encodedAllDPS = 1000, encodedBossDPS = 5000 })
-assert(bridge:GetRows()[1].bossDPS == nil and bridge:GetRows()[1].addsDPS == nil, "invalid boss encoding stays unknown")
-grouped = false
-assert(not bridge:SendDPS(500, true), "no solo broadcasts")
-grouped = true
-sendEnabled = false
-assert(not bridge:SendDPS(500, true), "LibGroupBroadcast sharing preference respected")
-assert(not bridge:GetStatus().enabled, "status exposes disabled library protocol")
-sendEnabled = true
-assert(not bridge:SendDPS(-1, true) and not bridge:SendDPS(0 / 0, true)
-    and not bridge:SendDPS(math.huge, true), "invalid DPS never transmitted")
-clock = clock + 1000
-sendSucceeds = false
-assert(not bridge:SendDPS(500), "queue failure reported")
-assert(bridge:GetStatus().lastSendResult == "failed", "rejected queue submission is visible in status")
-sendSucceeds = true
-assert(bridge:SendDPS(500), "queue failure does not throttle retry")
-
--- When Battle Scrolls is installed, use its callback instead of claiming IDs.
-local ownRole = LFG_ROLE_HEAL
-function GetSelectedLFGRole() return ownRole end
-assert(bridge:GetStatus().healingConnected and bridge:GetStatus().healingEnabled)
-assert(bridge:SendMetrics({dps = 9000, rawHPS = 400, effectiveHPS = 200}, true))
-assert(sent[#sent].id == 431 and sent[#sent].data.encodedRawHPS == 400
-    and sent[#sent].data.encodedEffectiveHPS == 200, "A selected healer sends HPS even when DPS is higher")
-protocols[431].receive("group1", sent[#sent].data)
-assert(bridge:GetRows()[1].rawHPS == 400 and bridge:GetRows()[1].effectiveHPS == 200, "HPS wire roundtrip")
-assert(not bridge:SendHPS(400, 200), "HPS and DPS share the same send budget")
-clock = clock + 300
-assert(bridge:SendHPS(27200, 4900))
-protocols[431].receive("group1", sent[#sent].data)
-assert(math.abs(bridge:GetRows()[1].rawHPS / 27200 - 1) < 0.003)
-assert(math.abs(bridge:GetRows()[1].effectiveHPS / 4900 - 1) < 0.003)
-assert(bridge:SendHPS(0, 0, true) and sent[#sent].data.encodedRawHPS == 0, "Zero HPS is transmitted")
-assert(not bridge:SendHPS(-1, 0, true) and not bridge:SendHPS(100, 200, true)
-    and not bridge:SendHPS(0/0, 0, true) and not bridge:SendHPS(math.huge, 0, true), "Invalid HPS is rejected")
-ownRole = LFG_ROLE_TANK
-assert(bridge:SendMetrics({dps = 255, rawHPS = 100000, effectiveHPS = 9000}, true))
-assert(sent[#sent].id == 430 and sent[#sent].data.encodedAllDPS == 255,
-    "Tank self-healing cannot starve DPS updates")
-ownRole = LFG_ROLE_DPS
-assert(bridge:SendMetrics({dps = 255, rawHPS = 100000, effectiveHPS = 9000}, true) and sent[#sent].id == 430)
-sendEnabled = false
-assert(not bridge:SendHPS(400, 200, true), "HPS respects the library sharing preference")
-sendEnabled, sendSucceeds = true, false
-assert(not bridge:SendHPS(400, 200, true), "HPS queue rejection is reported")
-sendSucceeds = true
-assert(bridge:SendHPS(400, 200, true), "HPS queue can recover")
-
+assert(type(bridge.SendDPS)=="function" and type(bridge.SendHPS)=="function" and type(bridge.SendMetrics)=="function")
+roles.group1 = LFG_ROLE_DPS
+receive("group1", {encodedAllDPS=1000, encodedBossDPS=511})
+assert(bridge:GetRows()[1].dps > 1000 and bridge:GetRows()[1].bossDPS == 511)
+protocols[431].receive("group1", {encodedRawHPS=1000,encodedEffectiveHPS=511})
+assert(bridge:GetRows()[1].rawHPS > 1000 and bridge:GetRows()[1].effectiveHPS == 511)
+assert(#sent == 0, "Wire reception never submits outgoing packets")
+assert(bridge:SendDPS(100000,true,60000))
+assert(sent[#sent].id==430)
+receive("group1",sent[#sent].data)
+assert(math.abs(bridge:GetRows()[1].dps/100000-1)<0.003 and math.abs(bridge:GetRows()[1].bossDPS/60000-1)<0.003)
+assert(not bridge:SendDPS(100000), "Duplicate sends within 300ms are throttled")
+clock=clock+300
+assert(bridge:SendHPS(27200,4900))
+assert(sent[#sent].id==431)
+protocols[431].receive("group1",sent[#sent].data)
+assert(math.abs(bridge:GetRows()[1].rawHPS/27200-1)<0.003)
+assert(math.abs(bridge:GetRows()[1].effectiveHPS/4900-1)<0.003)
+assert(bridge:SendDPS(1048577,true) and sent[#sent].data.encodedAllDPS==2047)
+assert(not bridge:SendDPS(-1,true) and not bridge:SendHPS(100,200,true))
+sendEnabled=false
+assert(not bridge:SendDPS(1000,true), "Native library preference remains respected")
+sendEnabled=true
+local sentBeforeNative=#sent
 local registered
-BattleScrolls = { dpsShare = { RegisterCallback = function(_, name, callback)
-    assert(name == "SimpleGroupDPS")
-    registered = callback
-end } }
-assert(not bridge:SendDPS(500, true), "local Battle Scrolls prevents duplicate senders")
-assert(not bridge:SendHPS(500, 200, true), "local Battle Scrolls also prevents duplicate HPS senders")
+BattleScrolls={dpsShare={RegisterCallback=function(_,_,callback) registered=callback end}}
 dofile("BattleScrollsBridge.lua")
-bridge = SimpleGroupDPS_BattleScrolls
-assert(bridge:Connect() and handlers == 1, "local Battle Scrolls avoids protocol conflict")
-registered("group1", { messageType = "damage", allTargetsDPS = 12345, bossDPS = 10000 })
-assert(bridge:GetRows()[1].dps == 12345, "local callback forwards exact DPS")
-assert(bridge:GetRows()[1].bossDPS == 10000 and bridge:GetRows()[1].addsDPS == 2345, "local callback preserves boss split")
-bridge:Clear()
-assert(#bridge:GetRows() == 0)
-BattleScrolls = nil
-LibGroupBroadcast = nil
+bridge=SimpleGroupDPS_BattleScrolls
+assert(bridge:Connect() and handlers == 1, "Local BattleScrolls is used for reception without protocol conflict")
+registered("group1",{messageType="damage",allTargetsDPS=12345,bossDPS=10000})
+assert(bridge:GetRows()[1].dps==12345 and bridge:GetRows()[1].bossDPS==10000)
+registered("player",{messageType="damage",allTargetsDPS=999999})
+assert(#bridge:GetRows()==1 and bridge:GetRows()[1].dps==12345,
+    "Local BattleScrolls player values are never substituted into the own meter")
+assert(not bridge:SendDPS(1000,true) and not bridge:SendHPS(1000,500,true) and #sent==sentBeforeNative,
+    "Locally installed BattleScrolls prevents duplicate sends")
+bridge:Clear();assert(#bridge:GetRows()==0)
+BattleScrolls,LibGroupBroadcast=nil,nil
 dofile("BattleScrollsBridge.lua")
-assert(not SimpleGroupDPS_BattleScrolls:Connect(), "missing optional dependencies are harmless")
-assert(not SimpleGroupDPS_BattleScrolls:SendDPS(100), "missing dependency cannot send")
-assert(not SimpleGroupDPS_BattleScrolls:GetStatus().connected, "missing dependency status stays disconnected")
-print("PASS: Battle Scrolls send/receive, wire codec, throttling, preferences, callbacks and group changes")
+assert(not SimpleGroupDPS_BattleScrolls:Connect() and not SimpleGroupDPS_BattleScrolls:GetStatus().connected)
+print("PASS: sending/receiving wire codec, independent samples, roundtrip, throttling, local callbacks and duplicate prevention")

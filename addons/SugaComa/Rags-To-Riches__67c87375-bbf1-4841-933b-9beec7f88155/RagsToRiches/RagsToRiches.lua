@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- RagsToRiches.lua — Stand-alone v1.5.12 (PS5 + Safe Inventory Automation)
+-- RagsToRiches.lua — Stand-alone v1.6.3 (PS5 + Safe Inventory Automation)
 -- Author: SugaComa
 --------------------------------------------------------------
 
@@ -102,11 +102,11 @@ local function AddResultSummary(kind, count, gold)
     zo_callLater(function()
         if row.generation ~= generation then return end
         if kind == "launder" then
-            chat(string.format("%d items laundered costing %d gold.", row.count, row.gold))
+            chat(string.format("Laundered %d - %d gold.", row.count, row.gold))
         elseif kind == "fence" then
-            chat(string.format("%d items fenced for %d gold.", row.count, row.gold))
+            chat(string.format("Fenced %d items for |cFFD700%dG|r.", row.count, row.gold))
         else
-            chat(string.format("%d items sold for %d gold.", row.count, row.gold))
+            chat(string.format("Sold %d items for |cFFD700%dG|r.", row.count, row.gold))
         end
         summaries[kind] = nil
     end, 1000)
@@ -285,15 +285,15 @@ local function MoveCurrency(currency, fromBankToChar, amount)
 
     if TransferCurrency then
         TransferCurrency(currency, amount, fromLoc, toLoc)
-        chat(string.format("Requested transfer of %s %s from %s to %s.", FormatAmount(amount), RTR_CURRENCY_NAMES[currency] or tostring(currency), fromBankToChar and "bank" or "character", fromBankToChar and "character" or "bank"))
+        chat(string.format("Transfer requested: %s %s, %s to %s.", FormatAmount(amount), RTR_CURRENCY_NAMES[currency] or tostring(currency), fromBankToChar and "bank" or "character", fromBankToChar and "character" or "bank"))
     else
         -- API not ready yet, retry once
         zo_callLater(function()
             if TransferCurrency then
                 TransferCurrency(currency, amount, fromLoc, toLoc)
-                chat(string.format("Requested transfer of %s %s from %s to %s.", FormatAmount(amount), RTR_CURRENCY_NAMES[currency] or tostring(currency), fromBankToChar and "bank" or "character", fromBankToChar and "character" or "bank"))
+                chat(string.format("Transfer requested: %s %s, %s to %s.", FormatAmount(amount), RTR_CURRENCY_NAMES[currency] or tostring(currency), fromBankToChar and "bank" or "character", fromBankToChar and "character" or "bank"))
             elseif RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.debug then
-                chat("Could not move currency — API not ready.")
+                chat("Currency transfer failed.")
             end
         end, 150)
     end
@@ -567,7 +567,7 @@ local function ProcessStockControl(bankBag)
     end
 
     RunStockQueue(queue, function(moved, reason)
-        if moved > 0 then chat(string.format("Stock control moved %d item%s in full stacks.", moved, moved == 1 and "" or "s")) end
+        if moved > 0 then chat(string.format("Stock moved: %d item%s.", moved, moved == 1 and "" or "s")) end
         if reason then debugChat("Stock control stopped: " .. reason .. ".") end
         -- Allow the secure inventory moves to settle before counting the bank.
         if GetLockpickAction() == "Notify" then
@@ -673,11 +673,11 @@ local function InstallAccidentalTheftProtection()
             local thievesTrove = IsThievesTroveInteractable()
             if isOwned and not thievesTrove and not IsPlayerHiddenForTheftProtection() then
                 if RagsToRiches.SV.debug then
-                    chat("Accidental theft protection: blocked owned interaction while visible/detected.")
+                    chat("Theft blocked - not hidden.")
                 end
                 return true
             elseif thievesTrove and RagsToRiches.SV.debug then
-                chat("Accidental theft protection: Thieves Trove bypassed stealth requirement.")
+                debugChat("Thieves Trove: stealth check skipped.")
             end
         end
 
@@ -859,7 +859,7 @@ local function CheckBackpackSpace(force)
         if freeSlots == 0 then
             LargeAlert("BACKPACK FULL", SOUNDS.NEGATIVE_CLICK)
         else
-            LargeAlert(string.format("Backpack nearly full — %d spaces remaining", freeSlots), SOUNDS.NEGATIVE_CLICK)
+            LargeAlert(string.format("Backpack: %d spaces left.", freeSlots), SOUNDS.NEGATIVE_CLICK)
         end
     end
 end
@@ -941,70 +941,153 @@ local function IsGameplayProtectedItem(bagId, slotIndex, itemLink)
     return false, nil
 end
 
+-- Resolve the exact item research line, then query this character's knowledge.
+-- The generic Can Research inventory flag is not proof that the trait is unknown.
 local function IsResearchableEquipment(bagId, slotIndex)
-    local protection = RagsToRiches.SV and RagsToRiches.SV.protection
-    if not protection or protection.researchable ~= true then return false end
-
-    -- Intricate and Ornate are economic traits, not research traits. Exclude
-    -- them explicitly so they can never be falsely protected by this rule.
+    local itemType = GetItemType(bagId, slotIndex)
+    if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then return false end
+    if GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then return false end
     local trait = GetItemTrait(bagId, slotIndex)
-    if not trait or trait == ITEM_TRAIT_TYPE_NONE or INTRICATE_TRAITS[trait] or ORNATE_TRAITS[trait] then
-        return false
+    if not trait or trait == ITEM_TRAIT_TYPE_NONE or INTRICATE_TRAITS[trait] or ORNATE_TRAITS[trait] then return false end
+    if GetItemTraitInformation then
+        local ok, status = pcall(GetItemTraitInformation, bagId, slotIndex)
+        if ok and ((ITEM_TRAIT_INFORMATION_RETRAITED and status == ITEM_TRAIT_INFORMATION_RETRAITED)
+            or (ITEM_TRAIT_INFORMATION_RECONSTRUCTED and status == ITEM_TRAIT_INFORMATION_RECONSTRUCTED)) then return false end
     end
-
-    -- ESO's smithing API is the source of truth: true means this exact item can
-    -- currently be consumed to research a trait the character has not learned.
-    if CanItemBeSmithingTraitResearched then
-        local ok, canResearch = pcall(CanItemBeSmithingTraitResearched, bagId, slotIndex)
-        if ok then return canResearch == true end
+    if GetRearchLineInfoFromRetraitItem and GetNumSmithingResearchLines and GetSmithingResearchLineInfo and GetSmithingResearchLineTraitInfo then
+        -- ESO spells this API Re arch (GetRearch...), not GetResearch....
+        local ok, craft, itemLineName = pcall(GetRearchLineInfoFromRetraitItem, bagId, slotIndex)
+        if ok and craft and type(itemLineName) == "string" and itemLineName ~= "" then
+            local countOK, lineCount = pcall(GetNumSmithingResearchLines, craft)
+            if countOK and type(lineCount) == "number" then
+                for lineIndex = 1, lineCount do
+                    local lineOK, lineName, _, traitCount = pcall(GetSmithingResearchLineInfo, craft, lineIndex)
+                    if lineOK and lineName == itemLineName and type(traitCount) == "number" then
+                        for traitIndex = 1, traitCount do
+                            local traitOK, lineTrait, _, known = pcall(GetSmithingResearchLineTraitInfo, craft, lineIndex, traitIndex)
+                            if traitOK and lineTrait == trait then
+                                if known == true then return false, "trait already known by this character" end
+                                if known == false then return true, "trait unknown to this character" end
+                                return nil, "character research knowledge unavailable"
+                            end
+                        end
+                        return nil, "item trait not found on its research line"
+                    end
+                end
+            end
+        end
     end
-    return false
+    -- A positive knowledge result is useful even if line resolution is absent.
+    -- A false result alone cannot establish whether this item has a valid line.
+    if IsItemTraitKnownForRetraitResult then
+        local ok, known = pcall(IsItemTraitKnownForRetraitResult, bagId, slotIndex, trait)
+        if ok and known == true then return false, "trait already known by this character" end
+    end
+    return nil, "character research knowledge unavailable"
 end
 
--- Items explicitly unmarked in the inventory stay untouched until it closes.
+-- Item Keep overrides are saved in the active account/character profile.
 local inventoryReviewItems = {}
 local function IsInventoryReviewItem(bagId, slotIndex)
-    return inventoryReviewItems[Id64ToString(GetItemUniqueId(bagId, slotIndex))] == true
+    local id = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    local rules = RagsToRiches.SV.itemRules or {}
+    return inventoryReviewItems[id] == true or (rules.keptItems and rules.keptItems[id] == true)
 end
 
-local function IsProtectedItem(bagId, slotIndex)
+local function IsProtectedItem(bagId, slotIndex, allowStolen)
     local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
+    local cfg = RagsToRiches.SV.protection or {}
     if itemLink == "" then return true, "empty" end
     if IsInventoryReviewItem(bagId, slotIndex) then return true, "inventory review" end
     if IsItemPlayerLocked(bagId, slotIndex) then return true, "locked" end
-    if IsItemStolen(bagId, slotIndex) then return true, "stolen" end
-    -- Scribing scripts are governed exclusively by the explicit Sell All
-    -- Scribing Scripts setting. Once positively identified, do not let generic
-    -- crafted/learnable/value protections override that setting.
-    if IsScribingScriptItem(bagId, slotIndex, itemLink) then return false, nil end
-    if RagsToRiches.SV.protection.uncollectedSet and IsItemLinkSetCollectionPiece(itemLink) then
-        local pieceId = GetItemLinkItemSetCollectionSlot(itemLink)
-        if pieceId and pieceId ~= 0 and not IsItemSetCollectionPieceUnlocked(pieceId) then
-            return true, "uncollected set piece"
-        end
-    end
-    if IsResearchableEquipment(bagId, slotIndex) then return true, "researchable trait" end
-    if IsLegendaryOrMythic(bagId, slotIndex) then return true, "legendary/mythic" end
-    if IsItemReconstructed and IsItemReconstructed(bagId, slotIndex) then
-        return true, "reconstructed"
-    end
-    if IsItemLinkCrafted(itemLink) then return true, "crafted" end
+    if not allowStolen and IsItemStolen(bagId, slotIndex) then return true, "stolen: fence only" end
+    local mythic = ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE and GetItemDisplayQuality(bagId, slotIndex) == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE
+    if mythic and cfg.mythic ~= false then return true, "protected mythic" end
+    if not mythic and IsLegendaryOrMythic(bagId, slotIndex) and cfg.legendary ~= false then return true, "protected legendary" end
+    if cfg.reconstructed ~= false and IsItemReconstructed and IsItemReconstructed(bagId, slotIndex) then return true, "protected reconstructed" end
+    if cfg.crafted ~= false and IsItemLinkCrafted(itemLink) then return true, "protected crafted" end
     if IsTripot(bagId, slotIndex) then return true, "tripot" end
-    local gameplayProtected, reason = IsGameplayProtectedItem(bagId, slotIndex, itemLink)
-    if gameplayProtected then return true, reason end
-    if CanItemBeUsedToLearn(bagId, slotIndex) and not IsScribingScriptItem(bagId, slotIndex, itemLink) then
-        return true, "unknown learnable"
+    -- Fence utilities have their own laundering rules; clean stock has its own reserves.
+    local itemType = GetItemType(bagId, slotIndex)
+    local fenceUtility = allowStolen and MatchesDefinedConstant(itemType, ITEMTYPE_TOOL, ITEMTYPE_SOUL_GEM, ITEMTYPE_LOCKPICK, ITEMTYPE_REPAIR_KIT, ITEMTYPE_GROUP_REPAIR_KIT)
+    if not fenceUtility then
+        local protected, reason = IsGameplayProtectedItem(bagId, slotIndex, itemLink)
+        if protected then return true, reason end
     end
     return false, nil
 end
 
-local function BindUncollectedSetPiece(bagId, slotIndex)
-    local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
-    if not IsItemLinkSetCollectionPiece(link) then return end
-    local pieceId = GetItemLinkItemSetCollectionSlot(link)
-    if pieceId and pieceId ~= 0 and not IsItemSetCollectionPieceUnlocked(pieceId) then
-        if BindItem then pcall(BindItem, bagId, slotIndex) end
+local function NormalizePolicyAction(value, fallback)
+    if type(value) == "table" then value = value.data or value.name or value.value or value.index end
+    if type(value) == "number" then value = ({ "Keep", "Deconstruct", "Sell", "Follow" })[value] end
+    if type(value) == "string" and tonumber(value) then value = ({ "Keep", "Deconstruct", "Sell", "Follow" })[tonumber(value)] end
+    if value == "Keep" or value == "Deconstruct" or value == "Sell" or value == "Follow" then return value end
+    return fallback or "Keep"
+end
+
+local bindingAttempts = {}
+local bindingFailures = {}
+local bindingResumed = {}
+local bindingOutcomeReasons = {}
+local RefreshBoundItem
+local ResumeItemProcessing
+local merchantSessionOpen = false
+local activeDeconstructionSource
+local function GetUncollectedStatus(bagId, slotIndex)
+    -- Query actual sticker-book knowledge by item ID, independently of the UI
+    -- marker refresh. AutoBind uses this same public collection API pair.
+    if IsItemLinkSetCollectionPiece and GetItemLinkItemId and IsItemSetCollectionPieceUnlocked then
+        local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
+        local pieceOK, isPiece = pcall(IsItemLinkSetCollectionPiece, link)
+        if pieceOK and isPiece == false then return false end
+        if pieceOK and isPiece == true then
+            local idOK, pieceId = pcall(GetItemLinkItemId, link)
+            if idOK and type(pieceId) == "number" and pieceId > 0 then
+                local knownOK, unlocked = pcall(IsItemSetCollectionPieceUnlocked, pieceId)
+                if knownOK and type(unlocked) == "boolean" then return not unlocked end
+            end
+        end
     end
+    if not IsItemLockedSetPiece then return nil end
+    local ok, missing = pcall(IsItemLockedSetPiece, bagId, slotIndex)
+    if not ok or type(missing) ~= "boolean" then return nil end
+    return missing
+end
+
+local function ApplyCollectionPolicy(bagId, slotIndex, allowBind)
+    local missing = GetUncollectedStatus(bagId, slotIndex)
+    if missing == nil then return "Keep", "collection status unavailable" end
+    if not missing then return nil end
+    local policy = RagsToRiches.SV.itemRules or {}
+    if policy.uncollectedAction ~= "Bind" then return "Keep", "uncollected set piece" end
+    if IsItemStolen(bagId, slotIndex) then return "Keep", "uncollected: launder before binding" end
+    local id = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    if bindingFailures[id] then return "Keep", bindingFailures[id] end
+    if not allowBind then return "Keep", bindingAttempts[id] and "binding requested; collection not confirmed" or "uncollected: auto-bind not yet requested" end
+    if not bindingAttempts[id] then
+        bindingAttempts[id] = true
+        if not IsItemBound or not IsItemBound(bagId, slotIndex) then
+            local ok = BindItem and pcall(BindItem, bagId, slotIndex)
+            if not ok then
+                bindingFailures[id] = "binding request failed"
+                chat(string.format("%s - bind failed; kept.", GetItemLink(bagId, slotIndex)))
+                return "Keep", bindingFailures[id]
+            end
+            debugChat("Binding requested for " .. GetItemLink(bagId, slotIndex) .. "; checking the result.")
+        end
+        for _, delay in ipairs({ 250, 750, 1500, 3000 }) do
+            local isFinalCheck = delay == 3000
+            zo_callLater(function()
+                if not RagsToRiches.SV.enabled or Id64ToString(GetItemUniqueId(bagId, slotIndex)) ~= id then return end
+                if RefreshBoundItem then RefreshBoundItem(bagId, slotIndex) end
+                if isFinalCheck and GetUncollectedStatus(bagId, slotIndex) ~= false and not bindingFailures[id] then
+                    bindingFailures[id] = "binding/collection could not be confirmed"
+                    chat(string.format("%s - bind unconfirmed; kept.", GetItemLink(bagId, slotIndex)))
+                end
+            end, delay)
+        end
+    end
+    return "Keep", "binding requested; collection not confirmed"
 end
 
 local function IsKnownLearnableItem(bagId, slotIndex, itemLink, itemType)
@@ -1043,6 +1126,12 @@ local function IsFurnishingPlan(itemLink, specializedType)
     return FURNISHING_RECIPE_SPECIALIZED_TYPES[specializedType] == true
 end
 
+local function IsMotifOrStyle(bagId, slotIndex, itemType)
+    if itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then return true end
+    local specialized = GetItemSpecializedType and GetItemSpecializedType(bagId, slotIndex)
+    return MatchesDefinedConstant(specialized, SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE, SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE)
+end
+
 local function IsSetEquipment(itemLink)
     -- GetItemLinkSetInfo is the preferred test because non-collection set items
     -- still belong to a set. If the API is unavailable, fail safe and treat the
@@ -1059,108 +1148,72 @@ local function IsSetEquipment(itemLink)
     return true
 end
 
-local function IsSafeMerchantItem(bagId, slotIndex)
-    local protected, reason = IsProtectedItem(bagId, slotIndex)
-    if protected then return false, reason end
-    BindUncollectedSetPiece(bagId, slotIndex)
-
-    local cfg = RagsToRiches.SV.merchant or {}
-    local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
-    local trait = GetItemTrait(bagId, slotIndex)
+-- A terminal action is shared by all destinations; junk never overrides it.
+local function GetPriorityDecision(bagId, slotIndex, allowBind, allowStolen)
+    local protected, reason = IsProtectedItem(bagId, slotIndex, allowStolen)
+    if protected then return "Keep", reason end
+    local action, collectionReason = ApplyCollectionPolicy(bagId, slotIndex, allowBind)
+    if action then return action, collectionReason end
+    local researchable, researchReason = IsResearchableEquipment(bagId, slotIndex)
     local itemType = GetItemType(bagId, slotIndex)
-    local specializedType = GetItemSpecializedType and GetItemSpecializedType(bagId, slotIndex)
-        or (GetItemLinkSpecializedItemType and GetItemLinkSpecializedItemType(link))
+    if researchable == nil and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then return "Keep", researchReason or "character research knowledge unavailable" end
+    local rules = RagsToRiches.SV.itemRules or {}
+    if researchable then
+        action = NormalizePolicyAction(rules.researchAction, "Keep")
+        if action ~= "Follow" then return action, "trait unknown to this character: " .. action end
+    end
+    if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON and CanItemBeUsedToLearn(bagId, slotIndex) then
+        local key = "unknownOtherAction"
+        local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
+        if IsMotifOrStyle(bagId, slotIndex, itemType) then key = "unknownMotifAction"
+        elseif itemType == ITEMTYPE_RECIPE then key = IsFurnishingPlan(link, GetItemSpecializedType and GetItemSpecializedType(bagId, slotIndex)) and "unknownPlanAction" or "unknownRecipeAction" end
+        action = NormalizePolicyAction(rules[key], "Keep")
+        if action ~= "Follow" then return action, "not learned: " .. action end
+    end
+    local trait = GetItemTrait(bagId, slotIndex)
+    if INTRICATE_TRAITS[trait] then return GetIntricateAction(), "intricate policy" end
+    if ORNATE_TRAITS[trait] then return NormalizePolicyAction(rules.ornateAction, "Sell"), "ornate policy" end
+    return nil, researchReason
+end
+
+local function GetItemDecision(bagId, slotIndex, allowBind, allowStolen)
+    local action, reason = GetPriorityDecision(bagId, slotIndex, allowBind, allowStolen)
+    if action then return action, reason end
+    local cfg = RagsToRiches.SV.merchant or {}
+    local rules = RagsToRiches.SV.itemRules or {}
+    local itemType = GetItemType(bagId, slotIndex)
+    local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
     local quality = tonumber(GetItemFunctionalQuality(bagId, slotIndex)) or 0
-    local maxLowValueQuality = ITEM_FUNCTIONAL_QUALITY_ARCANE or 3 -- white/green/blue only
-
-    -- Learnable document categories are handled explicitly so the generic
-    -- white-quality rule can never bypass their individual settings.
-    if itemType == ITEMTYPE_RECIPE then
-        if not IsKnownLearnableItem(bagId, slotIndex, link, itemType) then return false, "unknown recipe/plan" end
-        if quality > maxLowValueQuality then return false, "valuable recipe/plan quality" end
-        if IsFurnishingPlan(link, specializedType) then
-            return cfg.knownFurnishingPlans == true, "known low-quality furnishing plan"
+    local lowQuality = quality >= 1 and quality <= 3
+    if IsScribingScriptItem(bagId, slotIndex, link, itemType) then return cfg.sellScripts == true and "Sell" or "Keep", "scribing scripts policy (unknown policy runs first)" end
+    if itemType == ITEMTYPE_RECIPE or IsMotifOrStyle(bagId, slotIndex, itemType) then
+        if not IsKnownLearnableItem(bagId, slotIndex, link, itemType) then return "Keep", "unknown document with no sale decision" end
+        local sell = cfg.knownMotifs == true
+        if itemType == ITEMTYPE_RECIPE then
+            if IsFurnishingPlan(link, GetItemSpecializedType and GetItemSpecializedType(bagId, slotIndex)) then sell = cfg.knownFurnishingPlans == true else sell = cfg.knownRecipes == true end
         end
-        return cfg.knownRecipes == true, "known low-quality recipe"
+        return lowQuality and sell and "Sell" or "Keep", "known document policy (white/green/blue only)"
     end
-
-    if itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
-        if not IsKnownLearnableItem(bagId, slotIndex, link, itemType) then return false, "unknown motif" end
-        if quality > maxLowValueQuality then return false, "valuable motif quality" end
-        return cfg.knownMotifs == true, "known low-quality motif/style"
+    if GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then return cfg.companionGear == true and quality >= 2 and quality <= 3 and "Sell" or "Keep", "companion equipment policy" end
+    local category, categoryLabel = GetEquipmentCategory(bagId, slotIndex, itemType)
+    if category then
+        if quality < 1 or quality > (tonumber(rules.maxEquipmentQuality) or 4) then return "Keep", "outside equipment quality filter" end
+        local nonSetAction = NormalizePolicyAction(rules.nonSetAction, "Follow")
+        if nonSetAction ~= "Follow" and lowQuality and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) and not IsSetEquipment(link) then return nonSetAction, "white/green/blue non-set equipment policy" .. (reason and ("; " .. reason) or "") end
+        return GetEquipmentCategoryAction(category), categoryLabel .. " category policy" .. (reason and ("; " .. reason) or "")
     end
+    local id = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    if cfg.sellJunk == true and IsItemJunk(bagId, slotIndex) and not (rules.saleMarks and rules.saleMarks[id]) then return "Sell", "other junk (first rules still apply)" end
+    if cfg.prioritySell == true and IsItemPrioritySell and IsItemPrioritySell(bagId, slotIndex) then return "Sell", "ESO priority-sell item" end
+    if cfg.vendorTrash ~= false and (IsItemLinkVendorTrash(link) or MatchesDefinedConstant(itemType, ITEMTYPE_TRASH, ITEMTYPE_TREASURE)) then return "Sell", "vendor trash/treasure" end
+    if cfg.basicPotions == true and MatchesDefinedConstant(itemType, ITEMTYPE_POTION, ITEMTYPE_POISON) then return "Sell", "basic potion/poison" end
+    if cfg.whiteItems == true and quality == 1 then return "Sell", "other white-quality item" end
+    return "Keep", "unmatched item"
+end
 
-    if GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-        if cfg.companionGear == true and quality >= (ITEM_FUNCTIONAL_QUALITY_MAGIC or 2) and quality <= maxLowValueQuality then
-            return true, "green/blue companion equipment"
-        end
-        return false, "protected companion equipment"
-    end
-
-    -- Explicit junk sales retain shared protections and companion opt-in above.
-    if cfg.sellJunk == true and IsItemJunk(bagId, slotIndex) then
-        return true, "junk (sell junk enabled)"
-    end
-
-    -- Intricate equipment has its own explicit policy. Handle it before any
-    -- generic non-set or white-quality rule so Keep/Deconstruct can never be
-    -- bypassed by merchant automation.
-    if INTRICATE_TRAITS[trait] then
-        local intricateAction = GetIntricateAction()
-        if intricateAction == "Sell" then
-            return true, "intricate equipment set to sell"
-        end
-        return false, intricateAction == "Deconstruct" and "intricate reserved for deconstruction" or "intricate kept"
-    end
-
-    -- Economic traits override the general category action. Ornate always
-    -- benefits selling, while Intricate was resolved immediately above.
-    if cfg.ornate ~= false and ORNATE_TRAITS[trait] then return true, "ornate" end
-
-    -- Generic non-set equipment such as Rubedite Leather Gloves of Stamina can
-    -- be sold when enabled. Restrict this to white/green/blue and require a
-    -- positive non-set result; purple/gold and ambiguous set status are kept.
-    if cfg.nonSetEquipment == true and MatchesDefinedConstant(itemType, ITEMTYPE_ARMOR, ITEMTYPE_WEAPON) then
-        if quality <= maxLowValueQuality and not IsSetEquipment(link) then
-            return true, "low-quality non-set equipment"
-        end
-    end
-
-    local categoryKey, categoryLabel = GetEquipmentCategory(bagId, slotIndex, itemType)
-    if categoryKey then
-        local categoryAction = GetEquipmentCategoryAction(categoryKey)
-        if categoryAction == "Sell" then
-            return true, categoryLabel .. " category set to sell"
-        end
-        return false, categoryAction == "Deconstruct"
-            and categoryLabel .. " reserved for deconstruction"
-            or categoryLabel .. " category kept"
-    end
-
-    -- ESO itself marks merchant-purpose items with the Priority Sell flag.
-    -- This is the same underlying flag used for the tooltip text
-    -- "Sell to a merchant for gold." Hard protections above still run first.
-    if cfg.prioritySell == true and IsItemPrioritySell and IsItemPrioritySell(bagId, slotIndex) then
-        return true, "ESO priority-sell item"
-    end
-
-    -- Scribing scripts are an explicit opt-in category. Knowledge detection is
-    -- intentionally not used: when enabled, every script is sold; when disabled,
-    -- every script is kept. This makes the behaviour predictable per settings profile.
-    if IsScribingScriptItem(bagId, slotIndex, link, itemType, specializedType) then
-        if cfg.sellScripts == true then
-            return true, "scribing script (sell all enabled)"
-        end
-        return false, "scribing scripts kept"
-    end
-
-    if cfg.vendorTrash ~= false and IsItemLinkVendorTrash(link) then return true, "vendor trash" end
-    if cfg.vendorTrash ~= false and MatchesDefinedConstant(itemType, ITEMTYPE_TRASH, ITEMTYPE_TREASURE) then return true, "trash/treasure" end
-    if MatchesDefinedConstant(itemType, ITEMTYPE_POTION, ITEMTYPE_POISON) and not IsTripot(bagId, slotIndex) then
-        return true, "basic potion/poison"
-    end
-    if quality <= 1 then return true, "white quality" end
-    return false, "not a merchant rule"
+local function IsSafeMerchantItem(bagId, slotIndex, allowBind)
+    local action, reason = GetItemDecision(bagId, slotIndex, allowBind)
+    return action == "Sell", reason
 end
 
 local function GetFilledSoulGemExcessForSale()
@@ -1200,7 +1253,7 @@ local function SellFilledSoulGemExcess()
     for slotIndex = GetBagSize(BAG_BACKPACK) - 1, 0, -1 do
         if remaining < stackSize then break end
         local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
-        if stack == stackSize and IsFilledSoulGem(BAG_BACKPACK, slotIndex) and not IsItemStolen(BAG_BACKPACK, slotIndex) then
+        if stack == stackSize and IsFilledSoulGem(BAG_BACKPACK, slotIndex) and not IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemPlayerLocked(BAG_BACKPACK, slotIndex) and not IsInventoryReviewItem(BAG_BACKPACK, slotIndex) then
             local sellPrice = GetItemSellValueWithBonuses and GetItemSellValueWithBonuses(BAG_BACKPACK, slotIndex)
                 or GetItemSellValue(BAG_BACKPACK, slotIndex)
             if (tonumber(sellPrice) or 0) > 0 then
@@ -1222,8 +1275,55 @@ local function NotifyItemIntention(bag, slot, action, reason)
     local quality = tonumber(GetItemFunctionalQuality(bag, slot)) or 0
     local important = script or IsSetEquipment(link)
         or (itemType == ITEMTYPE_RECIPE and quality >= (ITEM_FUNCTIONAL_QUALITY_ARCANE or 3))
-    local text = string.format("%s: %s (%s).", link, action, reason or "configured rule")
-    if important then chat(text) else debugChat(text) end
+    local outcome = action
+    if action == "marked as junk for merchant sale" or action == "marked as junk" then outcome = "marked as junk"
+    elseif action == "reserved for deconstruction" then outcome = "marked for decon"
+    elseif action == "kept" and reason and reason:find("trait unknown to this character", 1, true) then outcome = "kept for research" end
+    if important then chat(string.format("%s - %s.", link, outcome)) end
+    debugChat(string.format("%s: %s (%s).", link, outcome, reason or "configured rule"))
+end
+
+local function ReportBindingOutcome(bagId, slotIndex, action, reason)
+    local id = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    if bindingAttempts[id] ~= true or GetUncollectedStatus(bagId, slotIndex) ~= false or reason == "binding requested; collection not confirmed" then return false end
+    bindingAttempts[id] = "confirmed"
+    bindingOutcomeReasons[id] = reason
+    bindingFailures[id] = nil
+    local prefix = IsItemBound and IsItemBound(bagId, slotIndex) and "Bound" or "Collected"
+    local destination
+    if action == "Sell" then
+        destination = IsItemJunk(bagId, slotIndex) and RagsToRiches.SV.merchant.enabled and "marked as junk" or "kept for sale"
+    elseif action == "Deconstruct" then
+        destination = "marked for decon"
+    elseif reason and reason:find("trait unknown to this character", 1, true) then
+        destination = "kept for research"
+    else
+        destination = "kept"
+    end
+    chat(string.format("%s - %s - %s.", GetItemLink(bagId, slotIndex), prefix, destination))
+    debugChat(string.format("%s: %s (%s).", GetItemLink(bagId, slotIndex), destination, reason or "configured rule"))
+    return true
+end
+
+local function ApplyInventoryDecision(bagId, slotIndex, allowBind)
+    local action, reason = GetItemDecision(bagId, slotIndex, allowBind)
+    local id = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    local rules = RagsToRiches.SV.itemRules
+    rules.saleMarks = rules.saleMarks or {}
+    local managedJunk = rules.saleMarks
+    local shouldMark = action == "Sell" and RagsToRiches.SV.merchant.enabled and not IsItemStolen(bagId, slotIndex)
+    local marked = false
+    if shouldMark and CanItemBeMarkedAsJunk(bagId, slotIndex) and not IsItemJunk(bagId, slotIndex) then
+        managedJunk[id] = true
+        SetItemIsJunk(bagId, slotIndex, true)
+        marked = IsItemJunk(bagId, slotIndex) == true
+    elseif not shouldMark and managedJunk[id] then
+        managedJunk[id] = nil
+        if IsItemJunk(bagId, slotIndex) and CanItemBeMarkedAsJunk(bagId, slotIndex) then SetItemIsJunk(bagId, slotIndex, false) end
+    end
+    local reported = ReportBindingOutcome(bagId, slotIndex, action, reason)
+    if marked and not reported then NotifyItemIntention(bagId, slotIndex, "marked as junk for merchant sale", reason) end
+    return marked
 end
 
 local function ClassifyMerchantItems()
@@ -1231,46 +1331,109 @@ local function ClassifyMerchantItems()
     for slotIndex = 0, GetBagSize(BAG_BACKPACK) - 1 do
         local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
         if stack and stack > 0 and not IsItemStolen(BAG_BACKPACK, slotIndex) then
-            local sell, reason = IsSafeMerchantItem(BAG_BACKPACK, slotIndex)
-            if sell and CanItemBeMarkedAsJunk(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
-                SetItemIsJunk(BAG_BACKPACK, slotIndex, true)
-                marked = marked + 1
-                NotifyItemIntention(BAG_BACKPACK, slotIndex, "marked as junk", reason)
-            end
+            if ApplyInventoryDecision(BAG_BACKPACK, slotIndex, true) then marked = marked + 1 end
         end
     end
     return marked
 end
 
+RefreshBoundItem = function(bagId, slotIndex)
+    local _, count = GetItemInfo(bagId, slotIndex)
+    if not count or count <= 0 then return end
+    ApplyInventoryDecision(bagId, slotIndex, false)
+    local id = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    if bindingAttempts[id] == "confirmed" and not bindingResumed[id] then
+        bindingResumed[id] = true
+        if ResumeItemProcessing then ResumeItemProcessing() end
+    end
+end
+
+local policyRefreshPending = false
+local function RefreshItemPolicies()
+    if policyRefreshPending then return end
+    policyRefreshPending = true
+    zo_callLater(function()
+        policyRefreshPending = false
+        if RagsToRiches.SV.enabled then ClassifyMerchantItems() end
+    end, 200)
+end
+
 -- Gamepad deliberately omits ESO's native junk actions. Restore unmarking
 -- in the backpack without altering native locking or other menu actions.
+local researchIconHookInstalled = false
+local function PreserveResearchStatusIcon(control, data)
+    if not RagsToRiches or not RagsToRiches.SV or not RagsToRiches.SV.enabled then return end
+    local indicator = control and control.statusIndicator
+    if not indicator or not data then return end
+    local bagId, slotIndex = data.bagId or data.bag, data.slotIndex or data.index
+    if type(bagId) ~= "number" or type(slotIndex) ~= "number" or not GetItemTraitInformation then return end
+    local ok, information = pcall(GetItemTraitInformation, bagId, slotIndex)
+    if not ok or information ~= ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED then return end
+    local texture = ZO_GetPlatformTraitInformationIcon(information)
+    if data.overrideStatusIndicatorIcons then
+        for _, icon in ipairs(data.overrideStatusIndicatorIcons) do
+            if icon.iconTexture == texture then return end
+        end
+    elseif data.traitInformation == information and not data.ignoreTraitInformation then
+        return -- Native setup already added this icon.
+    end
+    -- Append to native equipped/selection/lock/Armory markers; never replace them
+    -- or change the inventory's shared trait information / item research state.
+    indicator:AddIcon(texture, nil, GetString("SI_ITEMTRAITINFORMATION", information))
+    indicator:Show()
+end
+
+local function InstallResearchStatusIcons()
+    if researchIconHookInstalled or not SecurePostHook or not ZO_SharedGamepadEntry_OnSetup then return end
+    SecurePostHook(_G, "ZO_SharedGamepadEntry_OnSetup", PreserveResearchStatusIcon)
+    researchIconHookInstalled = true
+end
+
+local inventoryReviewHookInstalled = false
 local function InstallInventoryReviewActions()
     local scene = GAMEPAD_INVENTORY_ROOT_SCENE
-    if not scene or not ZO_InventorySlot_DiscoverSlotActionsFromActionList then return end
-    -- Do not wrap the native action builder: it creates trusted equip callbacks.
-    -- If unavailable, leave the native inventory untouched rather than taint it.
-    if not SecurePostHook then return end
+    if inventoryReviewHookInstalled or not scene or not ZO_InventorySlot_DiscoverSlotActionsFromActionList or not SecurePostHook or not ZO_CreateStringId then return end
+    ZO_CreateStringId("SI_RTR_KEEP_ITEM", "Keep Item (Undo RTR)")
+    ZO_CreateStringId("SI_RTR_RESUME_ITEM", "Use RTR Rules")
+    -- Post-hook only: native equip/use callbacks retain their trusted origin.
     SecurePostHook(_G, "ZO_InventorySlot_DiscoverSlotActionsFromActionList", function(inventorySlot, slotActions)
         if not RagsToRiches.SV.enabled or not scene:IsShowing() then return end
         local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        if bagId ~= BAG_BACKPACK or slotIndex == nil then return end
-        local slotData = ZO_Inventory_GetSlotDataForInventoryControl(inventorySlot)
-        if (slotData and slotData.locked) or not IsItemJunk(bagId, slotIndex) then return end
-        if not CanItemBeMarkedAsJunk(bagId, slotIndex) then return end
+        if bagId ~= BAG_BACKPACK or slotIndex == nil or IsItemPlayerLocked(bagId, slotIndex) then return end
+        local _, count = GetItemInfo(bagId, slotIndex)
+        if not count or count <= 0 then return end
         local itemId = Id64ToString(GetItemUniqueId(bagId, slotIndex))
-        slotActions:AddSlotAction(SI_ITEM_ACTION_UNMARK_AS_JUNK, function()
-            if itemId ~= Id64ToString(GetItemUniqueId(bagId, slotIndex)) then return end
-            inventoryReviewItems[itemId] = true
-            SetItemIsJunk(bagId, slotIndex, false)
-            debugChat("Unmarked item as junk. Reopen Actions to lock it before leaving inventory.")
+        local kept = IsInventoryReviewItem(bagId, slotIndex)
+        slotActions:AddSlotAction(kept and SI_RTR_RESUME_ITEM or SI_RTR_KEEP_ITEM, function()
+            if not RagsToRiches.SV.enabled or itemId ~= Id64ToString(GetItemUniqueId(bagId, slotIndex)) then return end
+            local rules = RagsToRiches.SV.itemRules
+            if kept then
+                inventoryReviewItems[itemId] = nil
+                rules.keptItems[itemId] = nil
+                chat(GetItemLink(bagId, slotIndex) .. " - using RTR rules.")
+                RefreshItemPolicies()
+            else
+                inventoryReviewItems[itemId] = true
+                rules.keptItems[itemId] = true
+                if rules.saleMarks then rules.saleMarks[itemId] = nil end
+                if IsItemJunk(bagId, slotIndex) and CanItemBeMarkedAsJunk(bagId, slotIndex) then SetItemIsJunk(bagId, slotIndex, false) end
+                local panels = {
+                    SMITHING_GAMEPAD and SMITHING_GAMEPAD.deconstructionPanel or false,
+                    UNIVERSAL_DECONSTRUCTION_GAMEPAD and UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel or false,
+                }
+                for _, panel in ipairs(panels) do
+                    if panel and panel.extractionSlot and panel.RemoveItemFromCraft and panel.extractionSlot:ContainsBagAndSlot(bagId, slotIndex) then
+                        panel:RemoveItemFromCraft(bagId, slotIndex)
+                    end
+                end
+                chat(GetItemLink(bagId, slotIndex) .. " - kept.")
+            end
         end, "secondary")
     end)
+    inventoryReviewHookInstalled = true
     scene:RegisterCallback("StateChange", function(_, newState)
         if newState ~= SCENE_HIDDEN then return end
-        inventoryReviewItems = {}
-        if RagsToRiches.SV.enabled and RagsToRiches.SV.merchant.enabled then
-            ClassifyMerchantItems()
-        end
+        if RagsToRiches.SV.enabled and RagsToRiches.SV.merchant.enabled then ClassifyMerchantItems() end
     end)
 end
 
@@ -1302,6 +1465,7 @@ local function ProcessMerchant()
     if merchantBusy or not RagsToRiches.SV.enabled or not RagsToRiches.SV.merchant.enabled then return end
     merchantBusy = true
     zo_callLater(function()
+        if not merchantSessionOpen or not RagsToRiches.SV.enabled or not RagsToRiches.SV.merchant.enabled then merchantBusy = false return end
         local soldStacks, soldItems = SellFilledSoulGemExcess()
         if soldItems > 0 then
             debugChat(string.format("Sold %d excess filled soul gems in %d full stack%s.", soldItems, soldStacks, soldStacks == 1 and "" or "s"))
@@ -1309,7 +1473,7 @@ local function ProcessMerchant()
         for slotIndex = GetBagSize(BAG_BACKPACK) - 1, 0, -1 do
             local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
             if stack and stack > 0 and not IsItemStolen(BAG_BACKPACK, slotIndex) then
-                local sell, reason = IsSafeMerchantItem(BAG_BACKPACK, slotIndex)
+                local sell, reason = IsSafeMerchantItem(BAG_BACKPACK, slotIndex, true)
                 local sellPrice = GetItemSellValueWithBonuses and GetItemSellValueWithBonuses(BAG_BACKPACK, slotIndex)
                     or GetItemSellValue(BAG_BACKPACK, slotIndex)
                 if sell and (tonumber(sellPrice) or 0) > 0 then
@@ -1453,6 +1617,18 @@ local function GetFenceRecommendedAction(bagId, slotIndex)
     if not IsItemStolen(bagId, slotIndex) then return nil, "not stolen" end
     if IsItemPlayerLocked(bagId, slotIndex) then return nil, "locked" end
     if IsStolenContainer(bagId, slotIndex) then return nil, "container" end
+    local decision, decisionReason = GetPriorityDecision(bagId, slotIndex, false, true)
+    if decisionReason == "uncollected: launder before binding" or decisionReason == "uncollected: awaiting auto-bind" then
+        return "launder", "prepare uncollected piece for auto-bind"
+    end
+    if not decision and IsPurpleOrGoldFurnishing(bagId, slotIndex) then return "launder", "purple/gold furnishing" end
+    local itemType = GetItemType(bagId, slotIndex)
+    if not decision and (GetEquipmentCategory(bagId, slotIndex, itemType) or itemType == ITEMTYPE_RECIPE or IsMotifOrStyle(bagId, slotIndex, itemType) or IsScribingScriptItem(bagId, slotIndex)) then
+        decision, decisionReason = GetItemDecision(bagId, slotIndex, false, true)
+    end
+    if decision == "Keep" then return nil, decisionReason end
+    if decision == "Sell" then return "sell", decisionReason end
+    if decision == "Deconstruct" then return "launder", "reserved for deconstruction after laundering" end
 
     -- Quest demand wins over the ordinary tradeable/non-tradeable fence rules.
     -- Every journal entry is scanned, not only the currently tracked quest.
@@ -1573,7 +1749,7 @@ local function ToggleFencePreviewSelection(component, action)
 end
 
 local function ProcessFencePreviewSelections(action)
-    if not RagsToRiches.SV.fence.previewOnly then return end
+    if not RagsToRiches.SV.enabled or not RagsToRiches.SV.fence.enabled or not RagsToRiches.SV.fence.previewOnly then return end
     local sellRemaining, launderRemaining = GetFenceRemaining()
     local remaining = action == "sell" and sellRemaining or launderRemaining
     local processed = 0
@@ -1696,6 +1872,7 @@ local function InstallFencePreviewHooks()
 end
 
 local function ProcessFenceItems()
+    if not RagsToRiches.SV.enabled or not RagsToRiches.SV.fence.enabled then fenceBusy = false return end
     local sellRemaining, launderRemaining = GetFenceRemaining()
     local sold, laundered = 0, 0
     for slotIndex = GetBagSize(BAG_BACKPACK) - 1, 0, -1 do
@@ -1758,14 +1935,14 @@ local function OpenNextStolenContainer(opened)
             end
             ArmContainerAutoLoot()
             CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
-            chat("Opened stolen container: " .. GetItemLink(BAG_BACKPACK, slotIndex))
+            chat("Opened: " .. GetItemLink(BAG_BACKPACK, slotIndex))
             zo_callLater(function() OpenNextStolenContainer((opened or 0) + 1) end, 500)
             return
         end
     end
 
     if (opened or 0) > 0 then
-        chat(string.format("Opened %d stolen container%s before fence processing.", opened, opened == 1 and "" or "s"))
+        chat(string.format("Opened %d container%s.", opened, opened == 1 and "" or "s"))
     end
     zo_callLater(ProcessFenceItems, 350)
 end
@@ -1798,42 +1975,10 @@ local function GetCraftingSkillRank(craftSkill)
 end
 
 local function IsSafeDeconstructionItem(bagId, slotIndex, craftSkill)
-    local cfg = RagsToRiches.SV.deconstruct
-    local protected, protectedReason = IsProtectedItem(bagId, slotIndex)
-    if protected then return false, protectedReason or "protected" end
-    if IsItemStolen(bagId, slotIndex) then return false, "stolen" end
-    if not CanItemBeDeconstructed(bagId, slotIndex, craftSkill) then return false, "not deconstructable here" end
-
-    BindUncollectedSetPiece(bagId, slotIndex)
-    local trait = GetItemTrait(bagId, slotIndex)
-    if ORNATE_TRAITS[trait] then return false, "ornate (sell instead)" end
-
-    -- Intricate has an explicit user-selected action and must be resolved before
-    -- generic quality/trait filters. This prevents those filters overriding the
-    -- Deconstruct / Sell / Keep choice.
-    if INTRICATE_TRAITS[trait] then
-        local intricateAction = GetIntricateAction()
-        if intricateAction ~= "Deconstruct" then
-            return false, intricateAction == "Sell" and "intricate set to sell" or "intricate kept"
-        end
-    end
-
-    local quality = tonumber(GetItemFunctionalQuality(bagId, slotIndex)) or 0
-    if not INTRICATE_TRAITS[trait] and (quality < 1 or quality > 4) then
-        return false, "quality outside white-purple"
-    end
-
-    local itemType = GetItemType(bagId, slotIndex)
-    local categoryKey, categoryLabel = GetEquipmentCategory(bagId, slotIndex, itemType)
-    if not categoryKey then return false, "not a configured equipment category" end
-
-    local categoryAction = GetEquipmentCategoryAction(categoryKey)
-    if categoryAction ~= "Deconstruct" then
-        return false, categoryAction == "Sell"
-            and categoryLabel .. " set to sell"
-            or categoryLabel .. " category kept"
-    end
-    return true, categoryLabel .. " category set to deconstruct"
+    local action, reason = GetItemDecision(bagId, slotIndex, true)
+    if action ~= "Deconstruct" then return false, reason end
+    if not CanItemBeDeconstructed(bagId, slotIndex, craftSkill) then return false, "reserved for deconstruction; not available here" end
+    return true, reason
 end
 
 local function GetActiveDeconstructionPanel(source)
@@ -1846,10 +1991,13 @@ local function GetActiveDeconstructionPanel(source)
     return nil
 end
 
+local activeCraftSkill = nil
+local atCraftingStation = false
 local function ProcessDeconstruction(craftSkill, source)
     if craftBusy or not RagsToRiches.SV.enabled or not RagsToRiches.SV.deconstruct.enabled then return end
     craftBusy = true
     zo_callLater(function()
+        if not atCraftingStation or not RagsToRiches.SV.enabled or not RagsToRiches.SV.deconstruct.enabled then craftBusy = false return end
         local rejected = {}
 
         if RagsToRiches.SV.deconstruct.previewOnly then
@@ -1930,8 +2078,6 @@ local function ProcessDeconstruction(craftSkill, source)
     end, 500)
 end
 
-local activeCraftSkill = nil
-local atCraftingStation = false
 local deconstructionHooksInstalled = false
 
 local function TryOpenStolenContainerFromInventory(slotIndex)
@@ -1949,7 +2095,7 @@ local function TryOpenStolenContainerFromInventory(slotIndex)
         if currentStack and currentStack > 0 and IsStolenContainer(BAG_BACKPACK, slotIndex) and not IsItemPlayerLocked(BAG_BACKPACK, slotIndex) then
             ArmContainerAutoLoot()
             CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
-            chat("Auto-opened stolen container from backpack: " .. GetItemLink(BAG_BACKPACK, slotIndex))
+            chat("Opened: " .. GetItemLink(BAG_BACKPACK, slotIndex))
         end
         zo_callLater(function() stolenContainerBusy = false end, 500)
     end, 250)
@@ -1960,42 +2106,23 @@ local function OnInventorySlotUpdate(_, bagId, slotIndex)
     if bagId ~= BAG_BACKPACK then return end
     zo_callLater(CheckBackpackSpace, 100)
     TryOpenStolenContainerFromInventory(slotIndex)
-
-    -- Merchant candidates are marked when they enter/change in the backpack,
-    -- so the junk flag already exists before a vendor is opened.
-    if RagsToRiches and RagsToRiches.SV and RagsToRiches.SV.enabled then
-        local expectedId = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex))
-        zo_callLater(function()
-            if not RagsToRiches.SV.enabled or Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex)) ~= expectedId then return end
-            local _, stack = GetItemInfo(BAG_BACKPACK, slotIndex)
-            if stack and stack > 0 and not IsItemStolen(BAG_BACKPACK, slotIndex) then
-                local sell, reason = false, nil
-                if RagsToRiches.SV.merchant.enabled then sell, reason = IsSafeMerchantItem(BAG_BACKPACK, slotIndex) end
-                if sell and CanItemBeMarkedAsJunk(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
-                    SetItemIsJunk(BAG_BACKPACK, slotIndex, true)
-                    do
-                        NotifyItemIntention(BAG_BACKPACK, slotIndex, "marked as junk", reason)
-                    end
-                elseif IsScribingScriptItem(BAG_BACKPACK, slotIndex) then
-                    local itemId = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex))
-                    if lootIntentions[itemId] ~= "script kept" then
-                        lootIntentions[itemId] = "script kept"
-                        NotifyItemIntention(BAG_BACKPACK, slotIndex, sell and "marked as junk" or "kept", sell and reason or "script sales disabled or item protected")
-                    end
-                elseif not sell and RagsToRiches.SV.deconstruct.enabled then
-                    local decon, deconReason = IsSafeDeconstructionItem(BAG_BACKPACK, slotIndex)
-                    local itemId = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slotIndex))
-                    if decon and lootIntentions[itemId] ~= deconReason then
-                        lootIntentions[itemId] = deconReason
-                        NotifyItemIntention(BAG_BACKPACK, slotIndex, "intended for deconstruction", deconReason)
-                    end
-                end
-            end
-        end, 100)
-    end
+    if not RagsToRiches or not RagsToRiches.SV or not RagsToRiches.SV.enabled then return end
+    local expectedId = Id64ToString(GetItemUniqueId(bagId, slotIndex))
+    zo_callLater(function()
+        if not RagsToRiches.SV.enabled or Id64ToString(GetItemUniqueId(bagId, slotIndex)) ~= expectedId then return end
+        local _, stack = GetItemInfo(bagId, slotIndex)
+        if not stack or stack <= 0 or IsItemStolen(bagId, slotIndex) then return end
+        ApplyInventoryDecision(bagId, slotIndex, true)
+        local action, reason = GetItemDecision(bagId, slotIndex, false)
+        if lootIntentions[expectedId] ~= reason then
+            lootIntentions[expectedId] = reason
+            if action ~= "Sell" and bindingAttempts[expectedId] ~= true and not bindingFailures[expectedId] and bindingOutcomeReasons[expectedId] ~= reason then NotifyItemIntention(bagId, slotIndex, action == "Deconstruct" and "reserved for deconstruction" or "kept", reason) end
+        end
+    end, 100)
 end
 
 local function RequestPanelDeconstruction(source)
+    activeDeconstructionSource = source
     if not atCraftingStation or craftBusy then return end
     if RagsToRiches.SV.debug then debugChat(source .. " deconstruction panel detected.") end
     zo_callLater(function()
@@ -2046,8 +2173,17 @@ end
 local function OnEndCraftingStation()
     atCraftingStation = false
     activeCraftSkill = nil
+    activeDeconstructionSource = nil
     craftBusy = false
     deconstructionPreviewPrepared = false
+end
+
+ResumeItemProcessing = function()
+    if not RagsToRiches.SV.enabled then return end
+    if merchantSessionOpen then ProcessMerchant() end
+    if atCraftingStation and activeDeconstructionSource and not RagsToRiches.SV.deconstruct.previewOnly then
+        ProcessDeconstruction(activeCraftSkill, activeDeconstructionSource)
+    end
 end
 
 --------------------------------------------------------------
@@ -2097,11 +2233,39 @@ local function CreateSettings()
     local settings = LHAS:AddAddon("Rags To Riches", {allowDefaults=true, allowRefresh=true})
     if not settings then return end
 
+    -- Console LHAS compares entry data, whereas PC LHAS selects by label.
+    -- Canonical saved values (e.g. Bind/Follow) can differ from visible names.
+    local function AddSetting(params)
+        if params.type == LHAS.ST_DROPDOWN then
+            local getValue = params.getFunction
+            local function GetItems()
+                return type(params.items) == "function" and params.items() or params.items
+            end
+            local function FindItem(value)
+                local items = GetItems()
+                if type(value) == "table" then value = value.data or value.name or value.value or value.index end
+                for _, item in ipairs(items) do
+                    if value == item.data or value == item.name then return item end
+                end
+                if type(value) == "number" then return items[value] end
+            end
+            local defaultItem = FindItem(params.default) or GetItems()[1]
+            -- ResetToDefaults in LHAS uses the displayed name to find its entry.
+            params.default = defaultItem.name
+            params.getFunction = function()
+                local item = FindItem(getValue()) or defaultItem
+                if ZO_IsConsoleOrGameCoreUI and ZO_IsConsoleOrGameCoreUI() then return item end
+                return item.name
+            end
+        end
+        settings:AddSetting(params)
+    end
+
     -- Console LHAS keeps settings after a normal ST_SECTION inside that
     -- section until another section resets it.  A section with subMenu=false
     -- acts as a top-level visual divider without opening an options page.
     local function AddCategoryHeader(label)
-        settings:AddSetting({
+        AddSetting({
             type = LHAS.ST_SECTION,
             subMenu = false,
             label = "|cFFD700-- " .. label .. " --|r",
@@ -2115,7 +2279,7 @@ local function CreateSettings()
     ----------------------------------------------------------
     -- Settings scope (first choice)
     ----------------------------------------------------------
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_DROPDOWN,
         label = "Settings Scope",
         tooltip = "Account-wide shares one RagsToRiches configuration across every character. Per Character gives each character its own independent configuration. Switching scope does not overwrite the other profile.",
@@ -2128,6 +2292,8 @@ local function CreateSettings()
             local selected = NormalizeSettingsScope(itemData or itemName or controlOrValue)
             RagsToRiches.ScopeSV.settingsScope = selected
             ApplyActiveSettingsScope()
+            inventoryReviewItems = {}
+            RefreshItemPolicies()
             debugChat("Settings scope set to " .. selected .. ".")
         end,
         -- Keep Reset to Defaults on the currently selected profile.
@@ -2137,7 +2303,7 @@ local function CreateSettings()
     ----------------------------------------------------------
     -- Core toggles
     ----------------------------------------------------------
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Enable RagsToRiches",
         getFunction = function() return RagsToRiches.SV.enabled end,
@@ -2145,7 +2311,7 @@ local function CreateSettings()
         default = true,
     })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_DROPDOWN,
         label = "Message Output",
         tooltip = "Choose where RagsToRiches status and enabled debug messages appear. Top Right queues native ESO alerts one at a time, waiting for active alerts to finish. Backpack warnings keep their separate settings.",
@@ -2166,44 +2332,99 @@ local function CreateSettings()
         default = "Chat",
     })
 
-    settings:AddSetting({
-        type = LHAS.ST_CHECKBOX,
-        label = "Debug Messages",
-        tooltip = "Diagnostic details for unsupported items, unavailable APIs and rejected actions. Normal action messages do not require debug.",
-        getFunction = function() return RagsToRiches.SV.debug end,
-        setFunction = function(v) RagsToRiches.SV.debug = v end,
-        default = false,
+    local function AddChoice(label, group, key, choices, defaultValue, tooltip)
+        local items = {}
+        for _, value in ipairs(choices) do items[#items + 1] = { name = value == "Follow" and "Follow normal rules" or (value == "Bind" and "Auto-bind, then continue" or value), data = value } end
+        local function ParseChoice(value)
+            if type(value) == "table" then value = value.data or value.value or value.name or value.index end
+            if type(value) == "number" or (type(value) == "string" and tonumber(value)) then value = choices[tonumber(value)] end
+            for _, item in ipairs(items) do if value == item.data or value == item.name then return item.data end end
+        end
+        AddSetting({ type = LHAS.ST_DROPDOWN, label = label, tooltip = tooltip,
+            items = items, default = defaultValue,
+            getFunction = function() return ParseChoice(RagsToRiches.SV[group][key]) or defaultValue end,
+            setFunction = function(controlOrValue, itemName, itemData)
+                local value = ParseChoice(itemData) or ParseChoice(itemName) or ParseChoice(controlOrValue)
+                if value then RagsToRiches.SV[group][key] = value RefreshItemPolicies() end
+            end,
+        })
+    end
+    local function AddProtection(label, key)
+        AddSetting({ type = LHAS.ST_CHECKBOX, label = label, default = true,
+            getFunction = function() return RagsToRiches.SV.protection[key] ~= false end,
+            setFunction = function(value) RagsToRiches.SV.protection[key] = value RefreshItemPolicies() end,
+        })
+    end
+    local actions = { "Keep", "Deconstruct", "Sell", "Follow" }
+    local equipmentActions = { "Keep", "Deconstruct", "Sell" }
+    local documentActions = { "Keep", "Sell", "Follow" }
+
+    AddCategoryHeader("ITEM DECISIONS - RUNS FIRST")
+    AddSetting({ type = LHAS.ST_SECTION, label = "1. Safety Protections" })
+    AddSetting({ type = LHAS.ST_LABEL, label = "Order: Safety > Collection > Research > Intricate/Ornate > Equipment/other rules > Keep.", tooltip = "Keep stops all automatic disposal. Sell and Deconstruct reserve the item for that destination; a disabled destination leaves it waiting. Locked items and saved item Keeps always stop processing." })
+    AddProtection("Protect Mythic Items", "mythic")
+    AddProtection("Protect Legendary Items", "legendary")
+    AddProtection("Protect Crafted Items", "crafted")
+    AddProtection("Protect Reconstructed Items", "reconstructed")
+    AddSetting({ type = LHAS.ST_LABEL, label = "Gameplay supplies and documents are protected", tooltip = "Always keeps tri-stat potions, maps, surveys, master writs, keys/fragments and other protected gameplay documents/supplies. Clean lockpicks and soul gems use Stock Control. Fence utilities use laundering rules. Locked items are never auto-bound." })
+    AddSetting({ type = LHAS.ST_SECTION, label = "2. Set Collection" })
+    AddChoice("Uncollected Set Pieces", "itemRules", "uncollectedAction", { "Keep", "Bind" }, "Keep", "Uses ESO's Not Collected icon status. Auto-bind requests binding once per item per session, holds it until collection is confirmed, then continues to Research and later rules. Failed/unconfirmed binding keeps the item. Stolen pieces are laundered first. Binding is permanent and removes tradeability.")
+    AddSetting({ type = LHAS.ST_SECTION, label = "3. Research and Learning" })
+    AddChoice("Researchable Equipment", "itemRules", "researchAction", actions, "Keep", "Checks whether THIS character knows the exact trait on this weapon, armour or jewellery research line. Known traits continue to equipment rules; only unknown traits use this choice. Collection runs first. Keep saves unknown traits for research; Sell/Deconstruct explicitly choose disposal; Follow continues to later rules.")
+    AddChoice("Unknown Motifs / Styles", "itemRules", "unknownMotifAction", documentActions, "Keep", "Uses ESO's Not Learned status. Keep overrides junk and merchant/fence sale rules. Sell is an explicit choice to sell an unknown item.")
+    AddChoice("Unknown Recipes", "itemRules", "unknownRecipeAction", documentActions, "Keep", "Unknown provisioning recipes. Known copies use the Merchant settings. Follow leaves unknown recipes kept unless another supported rule applies.")
+    AddChoice("Unknown Furnishing Plans", "itemRules", "unknownPlanAction", documentActions, "Keep", "Unknown furnishing plans use the same Not Learned status as ESO's icon. Known copies use the Merchant settings.")
+    AddChoice("Unknown Other Learnable Items", "itemRules", "unknownOtherAction", documentActions, "Keep", "Other Not Learned items, including unknown scribing scripts. Keep takes priority over the Merchant script-sale option.")
+    AddSetting({ type = LHAS.ST_SECTION, label = "4. Intricate and Ornate" })
+    AddChoice("Intricate Equipment", "deconstruct", "intricateAction", equipmentActions, "Keep", "Runs after collection and research. Its explicit action overrides equipment categories and junk.")
+    AddChoice("Ornate Equipment", "itemRules", "ornateAction", equipmentActions, "Sell", "Runs after collection and research. Its explicit action overrides equipment categories and junk.")
+    AddCategoryHeader("GENERAL EQUIPMENT")
+    AddSetting({ type = LHAS.ST_SECTION, label = "5. Equipment Defaults" })
+    AddChoice("White/Green/Blue Non-Set Equipment", "itemRules", "nonSetAction", actions, "Follow", "Optional specific rule before the four category defaults. Follow uses the category choice. First rules still win; higher quality uses the category choice.")
+    AddChoice("Weapons", "deconstruct", "weaponAction", equipmentActions, "Deconstruct", "Default for weapons after all earlier rules. Keep cannot be overridden by junk.")
+    AddChoice("Armour", "deconstruct", "armorAction", equipmentActions, "Deconstruct", "Default for armour after all earlier rules.")
+    AddChoice("Jewellery", "deconstruct", "jewelryAction", equipmentActions, "Deconstruct", "Default for jewellery after all earlier rules.")
+    AddChoice("Glyphs / Enchantments", "deconstruct", "enchantAction", equipmentActions, "Deconstruct", "Default for glyphs after all earlier rules.")
+    AddSetting({ type = LHAS.ST_EDIT, label = "General Equipment Maximum Quality (1-5)", tooltip = "1 White, 2 Green, 3 Blue, 4 Purple, 5 Gold. Applies to general equipment rules, after Runs First policies. Legendary/Mythic protection still wins.", default = "4",
+        getFunction = function() return tostring(RagsToRiches.SV.itemRules.maxEquipmentQuality) end,
+        setFunction = function(value) RagsToRiches.SV.itemRules.maxEquipmentQuality = math.max(1, math.min(5, math.floor(tonumber(value) or 4))) RefreshItemPolicies() end,
     })
+    AddSetting({ type = LHAS.ST_LABEL, label = "6. Unmatched items are kept" })
 
+    AddCategoryHeader("COMMERCE")
+    AddSetting({ type = LHAS.ST_SECTION, label = "Merchant" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Merchant Automation", getFunction = function() return RagsToRiches.SV.merchant.enabled end, setFunction = function(v) RagsToRiches.SV.merchant.enabled = v RefreshItemPolicies() end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Mark Vendor-Only Items as Junk", getFunction = function() return RagsToRiches.SV.merchant.vendorTrash end, setFunction = function(v) RagsToRiches.SV.merchant.vendorTrash = v RefreshItemPolicies() end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Scribing Scripts", tooltip = "Sells scripts after Runs First rules. Unknown scripts are kept unless Unknown Other Learnable Items explicitly allows sale or follows normal rules.", getFunction = function() return RagsToRiches.SV.merchant.sellScripts == true end, setFunction = function(v) RagsToRiches.SV.merchant.sellScripts = v == true RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Green/Blue Companion Equipment", getFunction = function() return RagsToRiches.SV.merchant.companionGear end, setFunction = function(v) RagsToRiches.SV.merchant.companionGear = v RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell ESO Priority-Sell Items", tooltip = "Automatically sells items ESO explicitly marks with the merchant-purpose flag used for 'Sell to a merchant for gold.' Existing RagsToRiches protection rules still run first.", getFunction = function() return RagsToRiches.SV.merchant.prioritySell end, setFunction = function(v) RagsToRiches.SV.merchant.prioritySell = v RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Recipes", getFunction = function() return RagsToRiches.SV.merchant.knownRecipes end, setFunction = function(v) RagsToRiches.SV.merchant.knownRecipes = v RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Motifs/Styles", getFunction = function() return RagsToRiches.SV.merchant.knownMotifs end, setFunction = function(v) RagsToRiches.SV.merchant.knownMotifs = v RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Furnishing Plans", getFunction = function() return RagsToRiches.SV.merchant.knownFurnishingPlans end, setFunction = function(v) RagsToRiches.SV.merchant.knownFurnishingPlans = v RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Other Junk When Merchant Opens", getFunction = function() return RagsToRiches.SV.merchant.sellJunk end, setFunction = function(v) RagsToRiches.SV.merchant.sellJunk = v RefreshItemPolicies() end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Basic Potions / Poisons", tooltip = "Tri-stat potions remain protected. Runs First policies always apply.", default = true, getFunction = function() return RagsToRiches.SV.merchant.basicPotions end, setFunction = function(v) RagsToRiches.SV.merchant.basicPotions = v RefreshItemPolicies() end })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Other White-Quality Items", tooltip = "Only other items that have no earlier decision. Equipment, documents, scripts and protected supplies keep their own policies.", default = true, getFunction = function() return RagsToRiches.SV.merchant.whiteItems end, setFunction = function(v) RagsToRiches.SV.merchant.whiteItems = v RefreshItemPolicies() end })
+    AddSetting({ type = LHAS.ST_SECTION, label = "Fence" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Fence Automation", getFunction = function() return RagsToRiches.SV.fence.enabled end, setFunction = function(v) RagsToRiches.SV.fence.enabled = v end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Fence Preview Only", tooltip = "When enabled, RagsToRiches marks recommended items in the fence Sell and Launder tabs instead of processing them automatically. Deselect anything you want to keep, then use the bulk action on that tab. Stolen containers are not auto-opened in preview mode.", getFunction = function() return RagsToRiches.SV.fence.previewOnly == true end, setFunction = function(v) RagsToRiches.SV.fence.previewOnly = v == true end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Open Stolen Containers Before Fence Processing", tooltip = "Opens stolen reward/container boxes first, then processes the stolen contents for laundering or sale. Stops if the backpack is full. Disabled while Fence Preview Only is active.", getFunction = function() return RagsToRiches.SV.fence.openStolenContainers == true end, setFunction = function(v) RagsToRiches.SV.fence.openStolenContainers = v end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Prevent Accidental Theft Unless Hidden", tooltip = "Blocks interactions with owned objects while you are visible or detected. Owned interactions are allowed while Hidden or in a stealth state. Does not change ESO's protected game settings.", getFunction = function() return RagsToRiches.SV.fence.preventAccidentalTheftUnlessHidden == true end, setFunction = function(v) RagsToRiches.SV.fence.preventAccidentalTheftUnlessHidden = v == true end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Launder Items Needed by Journal Quests", tooltip = "When enabled, stolen items that ESO reports as fulfilling The Covetous Countess or a supported Blackfeather Court item quest are laundered before ordinary fence rules. Every quest in the journal is checked, not only the currently tracked quest.", getFunction = function() return RagsToRiches.SV.fence.launderQuestItems ~= false end, setFunction = function(v) RagsToRiches.SV.fence.launderQuestItems = v ~= false end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Launder Tradeable Stolen Items", getFunction = function() return RagsToRiches.SV.fence.launderTradeable end, setFunction = function(v) RagsToRiches.SV.fence.launderTradeable = v end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Non-Tradeable Stolen Items", getFunction = function() return RagsToRiches.SV.fence.sellNonTradeable end, setFunction = function(v) RagsToRiches.SV.fence.sellNonTradeable = v end, default = true })
 
-    ----------------------------------------------------------
-    -- Protection
-    ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Item Protection (runs first)" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Protect Mythic Items", getFunction = function() return RagsToRiches.SV.protection.mythic end, setFunction = function(v) RagsToRiches.SV.protection.mythic = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Protect Legendary Items", getFunction = function() return RagsToRiches.SV.protection.legendary end, setFunction = function(v) RagsToRiches.SV.protection.legendary = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Protect Researchable Items", getFunction = function() return RagsToRiches.SV.protection.researchable end, setFunction = function(v) RagsToRiches.SV.protection.researchable = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Protect Crafted Items", getFunction = function() return RagsToRiches.SV.protection.crafted end, setFunction = function(v) RagsToRiches.SV.protection.crafted = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Protect Uncollected Set Pieces", getFunction = function() return RagsToRiches.SV.protection.uncollectedSet end, setFunction = function(v) RagsToRiches.SV.protection.uncollectedSet = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Protect Unknown Learnable Items", getFunction = function() return RagsToRiches.SV.protection.unknownLearnable end, setFunction = function(v) RagsToRiches.SV.protection.unknownLearnable = v end, default = true })
-
-    ----------------------------------------------------------
-    -- Backpack warning
-    ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Backpack Warning" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Backpack Warning", getFunction = function() return RagsToRiches.SV.backpack.enabled end, setFunction = function(v) RagsToRiches.SV.backpack.enabled = v CheckBackpackSpace(true) end, default = true })
-    settings:AddSetting({ type = LHAS.ST_EDIT, label = "Warn At Spaces Remaining", getFunction = function() return tostring(RagsToRiches.SV.backpack.threshold) end, setFunction = function(v) RagsToRiches.SV.backpack.threshold = math.max(0, tonumber(v) or 10) CheckBackpackSpace(true) end, default = "10" })
-    settings:AddSetting({ type = LHAS.ST_EDIT, label = "Repeat Every X Spaces", getFunction = function() return tostring(RagsToRiches.SV.backpack.repeatStep) end, setFunction = function(v) RagsToRiches.SV.backpack.repeatStep = math.max(1, tonumber(v) or 5) end, default = "5" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Play Warning Sound", getFunction = function() return RagsToRiches.SV.backpack.sound end, setFunction = function(v) RagsToRiches.SV.backpack.sound = v end, default = true })
-
+    AddSetting({ type = LHAS.ST_SECTION, label = "RagPicker / Deconstruction" })
+    AddSetting({ type = LHAS.ST_LABEL, label = "Uses the shared item decisions above. Reserved items wait for the correct destination." })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Safe Equipment Deconstruction", getFunction = function() return RagsToRiches.SV.deconstruct.enabled end, setFunction = function(v) RagsToRiches.SV.deconstruct.enabled = v end, default = true })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Preview Only (pre-select for review)", tooltip = "Pre-selects shared recommendations in ESO's native deconstruction list. Review/deselect, then use ESO's normal hold-Square confirmation. Auto-binding, if enabled, still occurs before disposal and is permanent.", getFunction = function() return RagsToRiches.SV.deconstruct.previewOnly end, setFunction = function(v) RagsToRiches.SV.deconstruct.previewOnly = v end, default = false })
     AddCategoryHeader("BANKING")
 
     ----------------------------------------------------------
     -- GOLD
     ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Gold" })
+    AddSetting({ type = LHAS.ST_SECTION, label = "Gold" })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Manage Gold",
         getFunction = function() return RagsToRiches.SV.gold.enabled end,
@@ -2211,7 +2432,7 @@ local function CreateSettings()
         default = true,
     })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_EDIT,
         label = "Gold Target",
         tooltip = bankTargetTooltip,
@@ -2223,9 +2444,9 @@ local function CreateSettings()
     ----------------------------------------------------------
     -- ALLIANCE POINTS
     ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Alliance Points" })
+    AddSetting({ type = LHAS.ST_SECTION, label = "Alliance Points" })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Manage AP",
         getFunction = function() return RagsToRiches.SV.ap.enabled end,
@@ -2233,7 +2454,7 @@ local function CreateSettings()
         default = false,
     })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_EDIT,
         label = "AP Target",
         tooltip = bankTargetTooltip,
@@ -2245,9 +2466,9 @@ local function CreateSettings()
     ----------------------------------------------------------
     -- TEL VAR STONES
     ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Tel Var Stones" })
+    AddSetting({ type = LHAS.ST_SECTION, label = "Tel Var Stones" })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Manage Tel Var",
         getFunction = function() return RagsToRiches.SV.telvar.enabled end,
@@ -2255,7 +2476,7 @@ local function CreateSettings()
         default = false,
     })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_EDIT,
         label = "Tel Var Target (IC only)",
         tooltip = bankTargetTooltip,
@@ -2267,9 +2488,9 @@ local function CreateSettings()
     ----------------------------------------------------------
     -- WRIT VOUCHERS
     ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Writ Vouchers" })
+    AddSetting({ type = LHAS.ST_SECTION, label = "Writ Vouchers" })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Manage Writ Vouchers",
         getFunction = function() return RagsToRiches.SV.writs.enabled end,
@@ -2277,7 +2498,7 @@ local function CreateSettings()
         default = false,
     })
 
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_EDIT,
         label = "Writ Target",
         tooltip = bankTargetTooltip,
@@ -2290,9 +2511,9 @@ local function CreateSettings()
     ----------------------------------------------------------
     -- Stock Control
     ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Stock Control (at account bank)" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Stock Control", getFunction = function() return RagsToRiches.SV.stock.enabled end, setFunction = function(v) RagsToRiches.SV.stock.enabled = v end, default = true })
-    settings:AddSetting({
+    AddSetting({ type = LHAS.ST_SECTION, label = "Stock Control (at account bank)" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Stock Control", getFunction = function() return RagsToRiches.SV.stock.enabled end, setFunction = function(v) RagsToRiches.SV.stock.enabled = v end, default = true })
+    AddSetting({
         type = LHAS.ST_DROPDOWN,
         label = "Lockpick Action",
         tooltip = "Keep touches no lockpicks. Sell manages clean working stock (withdraw 200 below 50 and deposits complete stacks above 399) and always sells stolen lockpicks at fences. Notify does the same and warns when clean banked stock exceeds your reserve. Clean lockpicks are never sold to merchants or laundered.",
@@ -2307,7 +2528,7 @@ local function CreateSettings()
         end,
         default = "Notify",
     })
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_EDIT,
         label = "Clean Lockpick Bank Reserve Stacks",
         tooltip = "Each stack contains 200 lockpicks. In Notify mode, complete clean stacks above this bank reserve trigger guild-store advice. Lockpicks can commonly be listed for 2–8 gold each; RagsToRiches never auto-sells clean lockpicks.",
@@ -2315,135 +2536,48 @@ local function CreateSettings()
         setFunction = function(v) RagsToRiches.SV.stock.lockpicks.bankStacks = math.max(0, math.floor(tonumber(v) or 20)) end,
         default = "20",
     })
-    settings:AddSetting({ type = LHAS.ST_EDIT, label = "Filled Soul Gem Character Stacks", getFunction = function() return tostring(RagsToRiches.SV.stock.soulGems.characterStacks or 2) end, setFunction = function(v) RagsToRiches.SV.stock.soulGems.characterStacks = math.max(1, math.floor(tonumber(v) or 2)) end, default = "2" })
-    settings:AddSetting({ type = LHAS.ST_EDIT, label = "Filled Soul Gem Bank Stacks", getFunction = function() return tostring(RagsToRiches.SV.stock.soulGems.bankStacks or 5) end, setFunction = function(v) RagsToRiches.SV.stock.soulGems.bankStacks = math.max(0, math.floor(tonumber(v) or 5)) end, default = "5" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Complete Soul Gem Stacks Above Both Reserves", getFunction = function() return RagsToRiches.SV.stock.soulGems.sellExcess ~= false end, setFunction = function(v) RagsToRiches.SV.stock.soulGems.sellExcess = v end, default = true })
+    AddSetting({ type = LHAS.ST_EDIT, label = "Filled Soul Gem Character Stacks", getFunction = function() return tostring(RagsToRiches.SV.stock.soulGems.characterStacks or 2) end, setFunction = function(v) RagsToRiches.SV.stock.soulGems.characterStacks = math.max(1, math.floor(tonumber(v) or 2)) end, default = "2" })
+    AddSetting({ type = LHAS.ST_EDIT, label = "Filled Soul Gem Bank Stacks", getFunction = function() return tostring(RagsToRiches.SV.stock.soulGems.bankStacks or 5) end, setFunction = function(v) RagsToRiches.SV.stock.soulGems.bankStacks = math.max(0, math.floor(tonumber(v) or 5)) end, default = "5" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Complete Soul Gem Stacks Above Both Reserves", getFunction = function() return RagsToRiches.SV.stock.soulGems.sellExcess ~= false end, setFunction = function(v) RagsToRiches.SV.stock.soulGems.sellExcess = v end, default = true })
 
-    AddCategoryHeader("COMMERCE")
-
-    ----------------------------------------------------------
-    -- Merchant
-    ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Merchant" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Merchant Automation", getFunction = function() return RagsToRiches.SV.merchant.enabled end, setFunction = function(v) RagsToRiches.SV.merchant.enabled = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Mark Ornate Items as Junk", getFunction = function() return RagsToRiches.SV.merchant.ornate end, setFunction = function(v) RagsToRiches.SV.merchant.ornate = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Mark Vendor-Only Items as Junk", getFunction = function() return RagsToRiches.SV.merchant.vendorTrash end, setFunction = function(v) RagsToRiches.SV.merchant.vendorTrash = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell All Scribing Scripts", tooltip = "WARNING: When enabled, RagsToRiches will sell ALL scribing scripts at merchants, including scripts this character has not learned. Leave this off on characters that still need to learn scripts.", getFunction = function() return RagsToRiches.SV.merchant.sellScripts == true end, setFunction = function(v) RagsToRiches.SV.merchant.sellScripts = v == true end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Green/Blue Companion Equipment", getFunction = function() return RagsToRiches.SV.merchant.companionGear end, setFunction = function(v) RagsToRiches.SV.merchant.companionGear = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell ESO Priority-Sell Items", tooltip = "Automatically sells items ESO explicitly marks with the merchant-purpose flag used for 'Sell to a merchant for gold.' Existing RagsToRiches protection rules still run first.", getFunction = function() return RagsToRiches.SV.merchant.prioritySell end, setFunction = function(v) RagsToRiches.SV.merchant.prioritySell = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell White/Green/Blue Non-Set Equipment", getFunction = function() return RagsToRiches.SV.merchant.nonSetEquipment end, setFunction = function(v) RagsToRiches.SV.merchant.nonSetEquipment = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Recipes", getFunction = function() return RagsToRiches.SV.merchant.knownRecipes end, setFunction = function(v) RagsToRiches.SV.merchant.knownRecipes = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Motifs/Styles", getFunction = function() return RagsToRiches.SV.merchant.knownMotifs end, setFunction = function(v) RagsToRiches.SV.merchant.knownMotifs = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Furnishing Plans", getFunction = function() return RagsToRiches.SV.merchant.knownFurnishingPlans end, setFunction = function(v) RagsToRiches.SV.merchant.knownFurnishingPlans = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell All Junk When Merchant Opens", getFunction = function() return RagsToRiches.SV.merchant.sellJunk end, setFunction = function(v) RagsToRiches.SV.merchant.sellJunk = v end, default = true })
-    settings:AddSetting({
-        type = LHAS.ST_BUTTON,
-        label = "Inventory Scan",
-        buttonText = "Scan Inventory Now",
-        tooltip = "Re-check every item currently in your backpack using the active RagsToRiches merchant rules. Newly recognised sellable items are marked as junk ready for the next merchant visit. This does not sell anything immediately.",
-        clickHandler = function()
-            if not RagsToRiches.SV.enabled then
-                debugChat("Inventory scan skipped — RagsToRiches is disabled.")
-                return
+    AddCategoryHeader("BACKPACK AND REVIEW")
+    AddSetting({ type = LHAS.ST_SECTION, label = "Review Item Decisions" })
+    AddSetting({ type = LHAS.ST_BUTTON, label = "Scan Inventory", buttonText = "Scan Inventory Now", tooltip = "Applies active policies to the backpack, including auto-binding when enabled, and marks merchant candidates as junk. No items are sold or deconstructed. Enable Debug Messages to see each decision and reason.", clickHandler = function()
+        if not RagsToRiches.SV.enabled then return end
+        local marked = ClassifyMerchantItems()
+        for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+            local _, count = GetItemInfo(BAG_BACKPACK, slot)
+            if count and count > 0 then
+                local action, reason = GetItemDecision(BAG_BACKPACK, slot, false, IsItemStolen(BAG_BACKPACK, slot))
+                debugChat(string.format("%s: %s (%s)", GetItemLink(BAG_BACKPACK, slot), action, reason))
             end
-            if not RagsToRiches.SV.merchant.enabled then
-                debugChat("Inventory scan skipped — merchant automation is disabled.")
-                return
-            end
+        end
+        chat(string.format("Scan done - %d stacks marked as junk.", marked))
+    end })
+    AddSetting({ type = LHAS.ST_LABEL, label = "Keep Item (Undo RTR) saves your item choice", tooltip = "Inventory Actions: Keep Item (Undo RTR) cancels junk/sale/decon intent and saves Keep across inventory close and reload. Use RTR Rules releases that item; Clear Saved Item Keeps releases all overrides. Binding and completed sale/deconstruction cannot be reversed. Native locks stay unchanged." })
+    AddSetting({ type = LHAS.ST_BUTTON, label = "Clear Saved Item Keeps", buttonText = "Clear Saved Item Keeps", clickHandler = function() RagsToRiches.SV.itemRules.keptItems = {} inventoryReviewItems = {} RefreshItemPolicies() end })
+    AddSetting({ type = LHAS.ST_SECTION, label = "Backpack Warning" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Backpack Warning", getFunction = function() return RagsToRiches.SV.backpack.enabled end, setFunction = function(v) RagsToRiches.SV.backpack.enabled = v CheckBackpackSpace(true) end, default = true })
+    AddSetting({ type = LHAS.ST_EDIT, label = "Warn At Spaces Remaining", getFunction = function() return tostring(RagsToRiches.SV.backpack.threshold) end, setFunction = function(v) RagsToRiches.SV.backpack.threshold = math.max(0, tonumber(v) or 10) CheckBackpackSpace(true) end, default = "10" })
+    AddSetting({ type = LHAS.ST_EDIT, label = "Repeat Every X Spaces", getFunction = function() return tostring(RagsToRiches.SV.backpack.repeatStep) end, setFunction = function(v) RagsToRiches.SV.backpack.repeatStep = math.max(1, tonumber(v) or 5) end, default = "5" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Play Warning Sound", getFunction = function() return RagsToRiches.SV.backpack.sound end, setFunction = function(v) RagsToRiches.SV.backpack.sound = v end, default = true })
 
-            local marked = ClassifyMerchantItems()
-            CheckBackpackSpace(true)
-            if marked > 0 then
-                debugChat(string.format("Inventory scan complete — marked %d new sellable stack%s as junk.", marked, marked == 1 and "" or "s"))
-            else
-                debugChat("Inventory scan complete — no new sellable stacks found.")
-            end
-        end,
-    })
-
-    ----------------------------------------------------------
-    -- Fence
-    ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "Fence" })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Fence Automation", getFunction = function() return RagsToRiches.SV.fence.enabled end, setFunction = function(v) RagsToRiches.SV.fence.enabled = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Fence Preview Only", tooltip = "When enabled, RagsToRiches marks recommended items in the fence Sell and Launder tabs instead of processing them automatically. Deselect anything you want to keep, then use the bulk action on that tab. Stolen containers are not auto-opened in preview mode.", getFunction = function() return RagsToRiches.SV.fence.previewOnly == true end, setFunction = function(v) RagsToRiches.SV.fence.previewOnly = v == true end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Open Stolen Containers Before Fence Processing", tooltip = "Opens stolen reward/container boxes first, then processes the stolen contents for laundering or sale. Stops if the backpack is full. Disabled while Fence Preview Only is active.", getFunction = function() return RagsToRiches.SV.fence.openStolenContainers == true end, setFunction = function(v) RagsToRiches.SV.fence.openStolenContainers = v end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Prevent Accidental Theft Unless Hidden", tooltip = "Blocks interactions with owned objects while you are visible or detected. Owned interactions are allowed while Hidden or in a stealth state. Does not change ESO's protected game settings.", getFunction = function() return RagsToRiches.SV.fence.preventAccidentalTheftUnlessHidden == true end, setFunction = function(v) RagsToRiches.SV.fence.preventAccidentalTheftUnlessHidden = v == true end, default = false })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Launder Items Needed by Journal Quests", tooltip = "When enabled, stolen items that ESO reports as fulfilling The Covetous Countess or a supported Blackfeather Court item quest are laundered before ordinary fence rules. Every quest in the journal is checked, not only the currently tracked quest.", getFunction = function() return RagsToRiches.SV.fence.launderQuestItems ~= false end, setFunction = function(v) RagsToRiches.SV.fence.launderQuestItems = v ~= false end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Launder Tradeable Stolen Items", getFunction = function() return RagsToRiches.SV.fence.launderTradeable end, setFunction = function(v) RagsToRiches.SV.fence.launderTradeable = v end, default = true })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Non-Tradeable Stolen Items", getFunction = function() return RagsToRiches.SV.fence.sellNonTradeable end, setFunction = function(v) RagsToRiches.SV.fence.sellNonTradeable = v end, default = true })
-
-    ----------------------------------------------------------
-    -- RagPicker
-    ----------------------------------------------------------
-    settings:AddSetting({ type = LHAS.ST_SECTION, label = "RagPicker" })
-    settings:AddSetting({
-        type = LHAS.ST_LABEL,
-        label = "|cFFD700Tip:|r Items selected for deconstruction may not be auto-sold. RagsToRiches works best when you deconstruct unwanted equipment before visiting a merchant.",
-    })
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Safe Equipment Deconstruction", getFunction = function() return RagsToRiches.SV.deconstruct.enabled end, setFunction = function(v) RagsToRiches.SV.deconstruct.enabled = v end, default = true })
-    settings:AddSetting({
-        type = LHAS.ST_DROPDOWN,
-        label = "Intricate Equipment",
-        tooltip = "Choose what RagsToRiches should do with Intricate-trait equipment. Keep prevents both automatic selling and deconstruction.",
-        -- Console LHAS renders dropdown choices from named item tables.
-        -- The setter remains tolerant of LHAS callback variants and normalises
-        -- the selected table/data/name/index into our canonical action string.
-        items = {
-            { name = "Keep", data = "Keep" },
-            { name = "Deconstruct", data = "Deconstruct" },
-            { name = "Sell", data = "Sell" },
-        },
-        getFunction = function() return GetIntricateAction() end,
-        setFunction = function(controlOrValue, itemName, itemData)
-            local selected = NormalizeIntricateAction(itemData or itemName or controlOrValue)
-            RagsToRiches.SV.deconstruct.intricateAction = selected
-            if RagsToRiches.SV.debug then debugChat("Intricate action set to: " .. selected) end
-        end,
-        default = "Keep",
-    })
-    local categoryActionItems = {
-        { name = "Keep", data = "Keep" },
-        { name = "Deconstruct", data = "Deconstruct" },
-        { name = "Sell", data = "Sell" },
-    }
-    local function AddCategoryActionSetting(label, actionKey)
-        settings:AddSetting({
-            type = LHAS.ST_DROPDOWN,
-            label = label,
-            tooltip = "Choose whether this category is kept, selected for deconstruction, or marked for merchant sale. Existing safety protections run first; among eligible items, Ornate and Intricate trait rules take priority over this category choice.",
-            items = categoryActionItems,
-            getFunction = function()
-                return NormalizeCategoryAction(RagsToRiches.SV.deconstruct[actionKey], "Keep")
-            end,
-            setFunction = function(controlOrValue, itemName, itemData)
-                RagsToRiches.SV.deconstruct[actionKey] = NormalizeCategoryAction(
-                    itemData or itemName or controlOrValue,
-                    "Keep"
-                )
-            end,
-            default = "Deconstruct",
-        })
-    end
-    AddCategoryActionSetting("Weapons", "weaponAction")
-    AddCategoryActionSetting("Armour", "armorAction")
-    AddCategoryActionSetting("Enchantments", "enchantAction")
-    AddCategoryActionSetting("Jewellery", "jewelryAction")
-    settings:AddSetting({ type = LHAS.ST_CHECKBOX, label = "Preview Only (pre-select for review)", tooltip = "Pre-selects RagsToRiches recommendations in ESO's native deconstruction list. Review or deselect items first, then use ESO's normal hold-Square confirmation.", getFunction = function() return RagsToRiches.SV.deconstruct.previewOnly end, setFunction = function(v) RagsToRiches.SV.deconstruct.previewOnly = v end, default = false })
-
+    AddCategoryHeader("DIAGNOSTICS")
+    AddSetting({ type = LHAS.ST_SECTION, label = "RagsToRiches 1.6.3" })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Debug Messages", tooltip = "Shows item decisions, their winning rule, binding requests and rejected actions.", getFunction = function() return RagsToRiches.SV.debug end, setFunction = function(v) RagsToRiches.SV.debug = v end, default = false })
     ----------------------------------------------------------
     -- SugaComa signature and contact
     ----------------------------------------------------------
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_SECTION,
         subMenu = false,
         label = "|cFFD700Built on tea, toast and ADHD – tested live on PS5.|r\n" ..
                 "|cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r",
     })
-    settings:AddSetting({
+    AddSetting({
         type = LHAS.ST_LABEL,
         label = "Contact",
-        tooltip = "Found an error or need to contact me about Rags To Riches?\n\nPlayStation User / PSN: SugaComa\nEmail: eso.addons@rik-sprint.co.uk",
+        tooltip = "Found an error or need to contact me about Rags To Riches?\n\nPlayStation User / PSN: SugaComa\nEmail: eso.addons@rik-sprint.co.uk or use the contact form at www.rik-sprint.co.uk/contact",
     })
 end
 
@@ -2454,6 +2588,8 @@ local function OnLoaded(_, name)
     if name ~= ADDON_NAME then return end
 
     local defaults = {
+        schemaVersion = 161,
+        itemRules = { researchAction = "Keep", uncollectedAction = "Keep", ornateAction = "Sell", nonSetAction = "Follow", unknownMotifAction = "Keep", unknownRecipeAction = "Keep", unknownPlanAction = "Keep", unknownOtherAction = "Keep", maxEquipmentQuality = 4, keptItems = {}, saleMarks = {} },
         enabled = true,
         debug = false,
         messageOutput = "Chat",
@@ -2462,8 +2598,8 @@ local function OnLoaded(_, name)
         telvar = { enabled = false, target = 0     },
         writs  = { enabled = false, target = 0     },
         backpack = { enabled = true, threshold = 10, repeatStep = 5, sound = true },
-        protection = { mythic = true, legendary = true, researchable = false, crafted = true, uncollectedSet = false, unknownLearnable = true },
-        merchant = { enabled = true, ornate = true, vendorTrash = true, sellScripts = false, companionGear = false, prioritySell = false, nonSetEquipment = false, knownRecipes = false, knownMotifs = false, knownFurnishingPlans = false, sellJunk = true },
+        protection = { mythic = true, legendary = true, researchable = true, crafted = true, reconstructed = true, uncollectedSet = true, unknownLearnable = true },
+        merchant = { enabled = true, ornate = true, vendorTrash = true, sellScripts = false, companionGear = false, prioritySell = false, nonSetEquipment = false, knownRecipes = false, knownMotifs = false, knownFurnishingPlans = false, sellJunk = true, basicPotions = true, whiteItems = true },
         stock = {
             enabled = true,
             lockpicks = { enabled = true, action = "Notify", low = 50, carryMax = 399, bankStacks = 20, stackSize = 200 },
@@ -2576,17 +2712,45 @@ local function OnLoaded(_, name)
             if sv.fence.launderQuestItems == nil then sv.fence.launderQuestItems = true end
             sv.schemaVersion = 141
         end
+        if not sv.schemaVersion or sv.schemaVersion < 161 then
+            sv.itemRules = sv.itemRules or {}
+            local rules = sv.itemRules
+            -- Schema 161 deliberately restores research safety on upgrade. The old
+            -- false default is not evidence of an explicit disposal choice.
+            rules.researchAction = "Keep"
+            rules.uncollectedAction = sv.protection.uncollectedSet == true and "Keep" or "Bind"
+            rules.ornateAction = sv.merchant.ornate == false and "Keep" or "Sell"
+            rules.nonSetAction = sv.merchant.nonSetEquipment == true and "Sell" or "Follow"
+            rules.unknownMotifAction = "Keep"
+            rules.unknownRecipeAction = "Keep"
+            rules.unknownPlanAction = "Keep"
+            rules.unknownOtherAction = "Keep"
+            rules.maxEquipmentQuality = 4
+            rules.keptItems = rules.keptItems or {}
+            rules.saleMarks = rules.saleMarks or {}
+            if sv.protection.reconstructed == nil then sv.protection.reconstructed = true end
+            -- These switches were displayed but ignored before 1.6.3. Keep
+            -- their actual protective behaviour during the upgrade.
+            sv.protection.mythic = true
+            sv.protection.legendary = true
+            sv.protection.crafted = true
+            sv.merchant.basicPotions = true
+            sv.merchant.whiteItems = true
+            sv.schemaVersion = 161
+        end
+
     end
 
     MigrateSettingsProfile(RagsToRiches.AccountSV)
     MigrateSettingsProfile(RagsToRiches.CharacterSV)
     ApplyActiveSettingsScope()
+    zo_callLater(RefreshItemPolicies, 1500)
 
     EM:RegisterForEvent("RTR_BankOpen",  EVENT_OPEN_BANK,  OnBankOpened)
     EM:RegisterForEvent("RTR_BankClose", EVENT_CLOSE_BANK, OnBankClosed)
     EM:RegisterForEvent("RTR_DeconCompleted", EVENT_CRAFT_COMPLETED, function()
         if pendingDeconstruction > 0 then
-            chat(string.format("%d items safely deconstructed.", pendingDeconstruction))
+            chat(string.format("Deconned %d.", pendingDeconstruction))
             pendingDeconstruction = 0
         end
     end)
@@ -2599,20 +2763,30 @@ local function OnLoaded(_, name)
     EM:RegisterForEvent("RTR_SaleReceipt", EVENT_SELL_RECEIPT, OnSaleReceipt)
     EM:RegisterForEvent("RTR_LaunderResult", EVENT_ITEM_LAUNDER_RESULT, OnLaunderResult)
     EM:RegisterForEvent("RTR_Inventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySlotUpdate)
+    EM:RegisterForEvent("RTR_Collection", EVENT_ITEM_SET_COLLECTION_UPDATED, function()
+        zo_callLater(function()
+            if not RagsToRiches.SV.enabled then return end
+            for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+                RefreshBoundItem(BAG_BACKPACK, slot)
+            end
+        end, 200)
+    end)
     EM:RegisterForEvent("RTR_ContainerLoot", EVENT_LOOT_UPDATED, OnContainerLootUpdated)
-    EM:RegisterForEvent("RTR_Store", EVENT_OPEN_STORE, ProcessMerchant)
+    EM:RegisterForEvent("RTR_Store", EVENT_OPEN_STORE, function() merchantSessionOpen = true ProcessMerchant() end)
+    EM:RegisterForEvent("RTR_StoreClose", EVENT_CLOSE_STORE, function() merchantSessionOpen = false end)
     EM:RegisterForEvent("RTR_Fence", EVENT_OPEN_FENCE, ProcessFence)
     EM:RegisterForEvent("RTR_Crafting", EVENT_CRAFTING_STATION_INTERACT, OnCraftingStation)
     EM:RegisterForEvent("RTR_CraftingEnd", EVENT_END_CRAFTING_STATION_INTERACT, OnEndCraftingStation)
     zo_callLater(InstallDeconstructionHooks, 1000)
     zo_callLater(InstallInventoryReviewActions, 1000)
+    zo_callLater(InstallResearchStatusIcons, 1000)
     zo_callLater(InstallFencePreviewHooks, 1000)
 
     CreateSettings()
     InstallAccidentalTheftProtection()
     zo_callLater(function() CheckBackpackSpace(false) end, 1000)
 
-    debugChat("RagsToRiches v1.5.12 loaded.")
+    debugChat("RagsToRiches v1.6.3 loaded.")
 end
 
 EM:RegisterForEvent("RTR_Loaded", EVENT_ADD_ON_LOADED, OnLoaded)

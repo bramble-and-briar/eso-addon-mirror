@@ -69,13 +69,14 @@ function ImperessiveStatsViewer:_initTable()
 	local ClassIcon = IMP_STATS_TABLESTYLES.ClassIcon
 	local THU = IMP_STATS_TABLESTYLES.Text.HeaderUpper
 
+	local TS = IMP_STATS_TABLESTYLES
 
 	local SORTABLE = true
 	local columns = {
 		Column('Index', 	   20,  0, TC.Right,       '##', THU.Right,  SORTABLE),
 		Column('Team',  	   50, 16, TeamIcon,	 'Team', THU.Center, SORTABLE),
 		Column('Class', 	   28, 22, ClassIcon,		nil, THU.Center, SORTABLE),
-		Column('DisplayName', 400,  8, TC.Left, 	 'Name', THU.Left,   SORTABLE),
+		Column('DisplayName', 400,  8, TS.Names, 	 'Name', THU.Left,   SORTABLE),
 		Column('MedalScore',   80,  0, TC.Center,	'Score', THU.Center, SORTABLE),
 		Column('Kills',        50, 15, TC.Center,	    'K', THU.Center, SORTABLE),
 		Column('Deaths',       50,  0, TC.Center,	    'D', THU.Center, SORTABLE),
@@ -87,8 +88,31 @@ function ImperessiveStatsViewer:_initTable()
 	local WITH_HEADERS = true
     local myTable = Table(WITH_HEADERS)
 
+	local function _showRMBMenu(rowCtrl, button)
+		if button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
+
+		local data = rowCtrl.dataEntry.data
+
+		ClearMenu()
+
+		AddCustomMenuItem(GetString(SI_PLAYER_TO_PLAYER_WHISPER), function()
+			local playerNames = data[4]
+			KEYBOARD_CHAT_SYSTEM:StartTextEntry(nil, CHAT_CHANNEL_WHISPER, playerNames[1])
+		end)
+
+		ShowMenu()
+	end
+
 	local postCreateCallback = function(rowControl)
 		local background = CreateControlFromVirtual('$(parent)Background', rowControl, 'IMP_TallListSelectedHighlight')
+
+		rowControl:SetHandler('OnMouseDown', function(control, button)
+            if button == MOUSE_BUTTON_INDEX_LEFT then
+                --  ZO_ScrollList_MouseClick(scrollList, rowControl)
+            else
+                _showRMBMenu(control, button)
+            end
+        end)
 	end
 	local postSetupCallback = function(rowControl, dataEntryData, scrollList)
 		local team = dataEntryData[2]
@@ -145,7 +169,7 @@ function ImperessiveStatsViewer:LayoutRound(roundNumber)
 			0,  -- can't put nil because it will try to sort by 1 column by default and fail
 			player.battlegroundTeam,
 			player.classId,
-			zo_strformat('<<1>> (<<2>>)', player.displayName, player.characterName),
+			{player.displayName, player.characterName},  -- zo_strformat('<<1>> (<<2>>)', player.displayName, player.characterName),
 			player.medalScore,
 			player.kills,
 			player.deaths,

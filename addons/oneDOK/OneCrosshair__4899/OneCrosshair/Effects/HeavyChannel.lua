@@ -170,8 +170,17 @@ function H.Initialize(settings)
     local function Event(suffix, event, fn) EVENT_MANAGER:RegisterForEvent(O.name .. "Timing" .. suffix, event, fn) end
     Event("Slot", EVENT_ACTION_SLOT_ABILITY_USED, SlotUsed)
     Event("Cooldown", EVENT_ACTION_UPDATE_COOLDOWNS, Cooldowns)
+    -- This listener needs outgoing attacks, incoming control loss and target deaths;
+    -- a source-only player filter would miss cancellation events.
     Event("Combat", EVENT_COMBAT_EVENT, Combat)
-    Event("Effect", EVENT_EFFECT_CHANGED, Effect)
+    for abilityId in pairs(data.beams) do
+        local suffix = "Effect" .. abilityId
+        Event(suffix, EVENT_EFFECT_CHANGED, Effect)
+        EVENT_MANAGER:AddFilterForEvent(O.name .. "Timing" .. suffix, EVENT_EFFECT_CHANGED,
+            REGISTER_FILTER_ABILITY_ID, abilityId)
+        EVENT_MANAGER:AddFilterForEvent(O.name .. "Timing" .. suffix, EVENT_EFFECT_CHANGED,
+            REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    end
     Event("Swap", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED, function(_, changed)
         if changed then H.Stop() end
     end)

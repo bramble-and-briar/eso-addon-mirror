@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/PinkBanther/PinkB-s-Compass-for-AD-Stalkers__9cf7a466-7ad1-4e05-b1d9-093450347229",
+  "archive_path": "addons/PinkBanther/PinkB-s-Compass__9cf7a466-7ad1-4e05-b1d9-093450347229",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "PinkBanther",
   "canonical_id": "bethesda:9cf7a466-7ad1-4e05-b1d9-093450347229",
   "content_id": "9cf7a466-7ad1-4e05-b1d9-093450347229",
   "deleted": false,
-  "fingerprint": "513fa0c03d6e219ad1b152c029ee1a8fe56bbb8f7e68ec8e86914c44e6df9d01",
+  "fingerprint": "851dbb177f9f987aa719e5450cdeb52738919ff2668c4548b37af6cc64c8a2a7",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "9cf7a466-7ad1-4e05-b1d9-093450347229",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/9cf7a466-7ad1-4e05-b1d9-093450347229",
-  "title": "PinkB's Compass for AD Stalkers"
+  "title": "PinkB's Compass"
 }

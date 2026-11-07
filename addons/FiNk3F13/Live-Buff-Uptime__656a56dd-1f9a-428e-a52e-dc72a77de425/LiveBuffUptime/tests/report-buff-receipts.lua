@@ -43,7 +43,7 @@ assert(value.y + value.height <= uptime.y + uptime.height, "The count must not s
 assert(env.controls.LiveBuffUptimeReportBuffIcon12 and not env.controls.LiveBuffUptimeReportBuffIcon13)
 reports.ChangeCategory()
 assert(icon.hidden and value.text == "", "Receipt icons must not leak into the enemy debuff view")
-reports.ChangeCategory()
+reports.ChangeCategory(-1)
 member.received = nil
 reports.Refresh()
 member.renewed = nil

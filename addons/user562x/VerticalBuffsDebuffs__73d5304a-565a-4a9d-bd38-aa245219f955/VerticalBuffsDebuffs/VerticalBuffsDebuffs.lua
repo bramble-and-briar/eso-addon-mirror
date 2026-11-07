@@ -59,7 +59,23 @@ local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds
 
 local SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 local SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
-local PREVIEW_TIP         = "Shows it on screen so you can place it. Stays on until you turn it off."
+
+local MOVE_SCENE   = "VerticalBuffsDebuffs_Move"
+local MOVE_SPEED   = 500
+local SCALE_SPEED  = 10
+local SIZE_MIN     = 18
+local SIZE_MAX     = 60
+local GRID_STEP    = 60
+local GRID_LINE    = 2
+local GRID_ALPHA   = 0.12
+local CENTER_ALPHA = 0.35
+
+local PLACE_FRAGMENTS = {
+    "PLAYER_ATTRIBUTE_BARS_FRAGMENT",
+    "BUFF_DEBUFF_FRAGMENT",
+    "COMPASS_FRAME_FRAGMENT",
+    "UNIT_FRAMES_FRAGMENT",
+}
 
 local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
 
@@ -453,15 +469,18 @@ end
 function VerticalBuffsDebuffs:RefreshDisplay()
     local now = GetGameTimeSeconds()
 
+    local sampleBuffs   = self.previewBuffs or (self.placing and self.savedVariables.showBuffs)
+    local sampleDebuffs = self.previewDebuffs or (self.placing and self.savedVariables.showDebuffs)
+
     local buffsToShow
-    if self.previewBuffs then
+    if sampleBuffs then
         buffsToShow = GetPreviewList()
     else
         buffsToShow = BuildActiveList(activeBuffs, now, buffList)
     end
 
     local debuffsToShow
-    if self.previewDebuffs then
+    if sampleDebuffs then
         debuffsToShow = GetPreviewList()
     else
         debuffsToShow = BuildActiveList(activeDebuffs, now, debuffList)
@@ -470,8 +489,8 @@ function VerticalBuffsDebuffs:RefreshDisplay()
     local buffVisible,   buffHeight   = self:RenderBoxes(buffBoxes,   buffsToShow,   false)
     local debuffVisible, debuffHeight = self:RenderBoxes(debuffBoxes, debuffsToShow, true)
 
-    local showBuffs   = self.savedVariables.showBuffs   or self.previewBuffs
-    local showDebuffs = self.savedVariables.showDebuffs or self.previewDebuffs
+    local showBuffs   = self.savedVariables.showBuffs   or sampleBuffs
+    local showDebuffs = self.savedVariables.showDebuffs or sampleDebuffs
 
     self.buffPanel:SetHidden(not showBuffs or buffVisible == 0)
     if showBuffs and buffVisible > 0 then
@@ -676,6 +695,199 @@ function VerticalBuffsDebuffs:SetUseCharacterSettings(value)
 end
 
 --------------------------------------------------
+-- Grid
+--------------------------------------------------
+function VerticalBuffsDebuffs:ShowGrid(show)
+    if not show then
+        if self.grid then self.grid:SetHidden(true) end
+        return
+    end
+    local screenW, screenH = GuiRoot:GetDimensions()
+    if not self.grid then
+        self.grid = WINDOW_MANAGER:CreateTopLevelWindow("VerticalBuffsDebuffs_Grid")
+        self.grid:SetDrawLayer(DL_BACKGROUND)
+        self.grid:SetDrawTier(DT_MEDIUM)
+        self.grid:SetAnchorFill(GuiRoot)
+        self.gridLines = {}
+    end
+    if self.gridW ~= screenW or self.gridH ~= screenH then
+        self.gridW, self.gridH = screenW, screenH
+        for i = 1, #self.gridLines do self.gridLines[i]:SetHidden(true) end
+        local count = 0
+        local function Line(vertical, at, alpha)
+            count = count + 1
+            local line = self.gridLines[count]
+            if not line then
+                line = WINDOW_MANAGER:CreateControl("VerticalBuffsDebuffs_GridLine" .. count, self.grid, CT_TEXTURE)
+                self.gridLines[count] = line
+            end
+            line:ClearAnchors()
+            if vertical then
+                line:SetAnchor(TOPLEFT, self.grid, TOPLEFT, at - GRID_LINE / 2, 0)
+                line:SetDimensions(GRID_LINE, screenH)
+            else
+                line:SetAnchor(TOPLEFT, self.grid, TOPLEFT, 0, at - GRID_LINE / 2)
+                line:SetDimensions(screenW, GRID_LINE)
+            end
+            line:SetColor(1, 1, 1, alpha)
+            line:SetHidden(false)
+        end
+        local centerX, centerY = math.floor(screenW / 2), math.floor(screenH / 2)
+        Line(true, centerX, CENTER_ALPHA)
+        Line(false, centerY, CENTER_ALPHA)
+        for x = centerX - GRID_STEP, 0, -GRID_STEP do Line(true, x, GRID_ALPHA) end
+        for x = centerX + GRID_STEP, screenW, GRID_STEP do Line(true, x, GRID_ALPHA) end
+        for y = centerY - GRID_STEP, 0, -GRID_STEP do Line(false, y, GRID_ALPHA) end
+        for y = centerY + GRID_STEP, screenH, GRID_STEP do Line(false, y, GRID_ALPHA) end
+    end
+    self.grid:SetHidden(false)
+end
+
+--------------------------------------------------
+-- Move
+--------------------------------------------------
+VerticalBuffsDebuffs.mover = {}
+
+function VerticalBuffsDebuffs.mover:UpdateDirectionalInput(deltaS)
+    local vbd = VerticalBuffsDebuffs
+    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
+    if x ~= 0 or y ~= 0 then
+        vbd:SetPosition(vbd.moveX + x * MOVE_SPEED * deltaS, vbd.moveY - y * MOVE_SPEED * deltaS)
+    end
+    local _, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if scaleY ~= 0 then
+        vbd:SetScale(vbd.moveSize + scaleY * SCALE_SPEED * deltaS)
+    end
+end
+
+VerticalBuffsDebuffs.moveKeybinds = {
+    alignment = KEYBIND_STRIP_ALIGN_CENTER,
+    {
+        name     = "Save",
+        keybind  = "UI_SHORTCUT_PRIMARY",
+        callback = function() VerticalBuffsDebuffs:EndMove(true) end,
+    },
+    {
+        name     = "Default",
+        keybind  = "UI_SHORTCUT_TERTIARY",
+        callback = function() VerticalBuffsDebuffs:MoveToDefault() end,
+    },
+    {
+        name     = "Cancel",
+        keybind  = "UI_SHORTCUT_NEGATIVE",
+        callback = function() VerticalBuffsDebuffs:EndMove(false) end,
+    },
+}
+
+local function MoveKeys(isDebuff)
+    local prefix = isDebuff and "debuff" or "buff"
+    return prefix .. "PosX", prefix .. "PosY", prefix .. "Size"
+end
+
+function VerticalBuffsDebuffs:MovePanel()
+    if self.moving == "debuff" then return self.debuffPanel end
+    return self.buffPanel
+end
+
+function VerticalBuffsDebuffs:SetPosition(x, y)
+    local screenW, screenH = GuiRoot:GetDimensions()
+    self.moveX = zo_clamp(x, 0, screenW)
+    self.moveY = zo_clamp(y, 0, screenH)
+    local posX, posY = MoveKeys(self.moving == "debuff")
+    self.savedVariables[posX] = math.floor(self.moveX + 0.5)
+    self.savedVariables[posY] = math.floor(self.moveY + 0.5)
+    if self.moving == "debuff" then self:ApplyDebuffPosition() else self:ApplyBuffPosition() end
+end
+
+function VerticalBuffsDebuffs:SetScale(value)
+    self.moveSize = zo_clamp(value, SIZE_MIN, SIZE_MAX)
+    local rounded = math.floor(self.moveSize + 0.5)
+    local _, _, size = MoveKeys(self.moving == "debuff")
+    if self.savedVariables[size] ~= rounded then
+        self.savedVariables[size] = rounded
+        self:RefreshDisplay()
+    end
+end
+
+function VerticalBuffsDebuffs:MoveToDefault()
+    if not self.moving then return end
+    local posX, posY, size = MoveKeys(self.moving == "debuff")
+    self:SetScale(self.defaults[size])
+    self:SetPosition(self.defaults[posX], self.defaults[posY])
+end
+
+function VerticalBuffsDebuffs:GetMoveScene()
+    if self.moveScene then return self.moveScene end
+    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
+    for i = 1, #PLACE_FRAGMENTS do
+        local fragment = rawget(_G, PLACE_FRAGMENTS[i])
+        if fragment then scene:AddFragment(fragment) end
+    end
+    scene:RegisterCallback("StateChange", function(oldState, newState)
+        if newState == SCENE_SHOWING then
+            VerticalBuffsDebuffs:OnMoveShowing()
+        elseif newState == SCENE_HIDDEN then
+            VerticalBuffsDebuffs:OnMoveHidden()
+        end
+    end)
+    self.moveScene = scene
+    return scene
+end
+
+function VerticalBuffsDebuffs:StartMove(isDebuff)
+    if self.moving then return end
+    self.moving = isDebuff and "debuff" or "buff"
+    self.moveSaved = false
+    self:GetMoveScene()
+    SCENE_MANAGER:Push(MOVE_SCENE)
+end
+
+function VerticalBuffsDebuffs:OnMoveShowing()
+    if not self.moving then return end
+    local posX, posY, size = MoveKeys(self.moving == "debuff")
+    local sv = self.savedVariables
+    self.moveStartX, self.moveStartY = sv[posX], sv[posY]
+    self.moveStartSize = sv[size]
+    self.moveX, self.moveY = sv[posX], sv[posY]
+    self.moveSize = sv[size]
+    self.placing = true
+    self.buffPanel:SetDrawTier(DT_HIGH)
+    self.debuffPanel:SetDrawTier(DT_HIGH)
+    self:ShowGrid(true)
+    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
+    DIRECTIONAL_INPUT:Activate(self.mover, self:MovePanel())
+    self:RefreshDisplay()
+end
+
+function VerticalBuffsDebuffs:OnMoveHidden()
+    if not self.moving then return end
+    DIRECTIONAL_INPUT:Deactivate(self.mover)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
+    if not self.moveSaved then
+        self:SetScale(self.moveStartSize)
+        self:SetPosition(self.moveStartX, self.moveStartY)
+    end
+    self.moving = nil
+    self.placing = false
+    self.buffPanel:SetDrawTier(DT_LOW)
+    self.debuffPanel:SetDrawTier(DT_LOW)
+    self:ShowGrid(false)
+    self:RefreshDisplay()
+end
+
+function VerticalBuffsDebuffs:EndMove(save)
+    if not self.moving then return end
+    self.moveSaved = save == true
+    if save then
+        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
+    else
+        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+    end
+    SCENE_MANAGER:HideCurrentScene()
+end
+
+--------------------------------------------------
 -- Settings Window
 --------------------------------------------------
 local function RainbowText(text)
@@ -747,8 +959,6 @@ end
 --------------------------------------------------
 function VerticalBuffsDebuffs:PanelMenu(isDebuff)
     local prefix  = isDebuff and "debuff" or "buff"
-    local posX    = prefix .. "PosX"
-    local posY    = prefix .. "PosY"
     local size    = prefix .. "Size"
     local cap     = prefix .. "Cap"
     local shown   = isDebuff and "showDebuffs" or "showBuffs"
@@ -757,30 +967,21 @@ function VerticalBuffsDebuffs:PanelMenu(isDebuff)
     local noun    = isDebuff and "debuff" or "buff"
     local Noun    = isDebuff and "Debuff" or "Buff"
 
-    local screenW, screenH = GuiRoot:GetDimensions()
-    screenW = math.floor(tonumber(screenW) or 1920)
-    screenH = math.floor(tonumber(screenH) or 1080)
+    local Nouns = isDebuff and "Debuffs" or "Buffs"
+    local nouns = isDebuff and "debuffs" or "buffs"
 
-    local function ApplyPosition()
-        if isDebuff then self:ApplyDebuffPosition() else self:ApplyBuffPosition() end
+    local function IsOff()
+        return not self.savedVariables[shown]
     end
 
     return {
         type    = "submenu",
         name    = isDebuff and "|cFF3333Debuffs|r" or "|c33FF33Buffs|r",
         icon    = ICON_CATEGORY,
-        tooltip = LayoutTip,
+        tooltip = function()
+            return "Shows your " .. nouns .. " with a minute or less left, with timers.\n\n" .. LayoutTip()
+        end,
         options = {
-            {
-                type    = "toggle",
-                name    = "Preview",
-                tooltip = PREVIEW_TIP,
-                getFunc = function() return self[preview] == true end,
-                setFunc = function(val)
-                    self[preview] = val
-                    self:RefreshDisplay()
-                end,
-            },
             {
                 type    = "toggle",
                 name    = "Enabled",
@@ -789,8 +990,29 @@ function VerticalBuffsDebuffs:PanelMenu(isDebuff)
                 getFunc = function() return self.savedVariables[shown] end,
                 setFunc = function(val)
                     self.savedVariables[shown] = val
+                    if not val then self[preview] = false end
                     self:RefreshDisplay()
                 end,
+            },
+            {
+                type     = "toggle",
+                name     = "Preview",
+                tooltip  = "Shows your " .. nouns .. " here so you can see your changes. "
+                        .. "Stays on until you turn it off or leave the settings.",
+                disabled = IsOff,
+                getFunc  = function() return self[preview] == true end,
+                setFunc  = function(val)
+                    self[preview] = val
+                    self:RefreshDisplay()
+                end,
+            },
+            {
+                type       = "button",
+                name       = "Move / Scale",
+                buttonText = "Move / Scale",
+                tooltip    = "Move it with the left stick and scale it with the right stick.",
+                disabled   = IsOff,
+                func       = function() self:StartMove(isDebuff) end,
             },
             {
                 type    = "toggle",
@@ -806,7 +1028,7 @@ function VerticalBuffsDebuffs:PanelMenu(isDebuff)
             {
                 type    = "slider",
                 name    = "Size",
-                min     = 18, max = 60, step = 1,
+                min     = SIZE_MIN, max = SIZE_MAX, step = 1,
                 default = self.defaults[size],
                 tooltip = "Default is " .. self.defaults[size] .. ".",
                 getFunc = function() return self.savedVariables[size] end,
@@ -831,30 +1053,6 @@ function VerticalBuffsDebuffs:PanelMenu(isDebuff)
                     self:RefreshDisplay()
                 end,
             },
-            {
-                type    = "slider",
-                name    = "Horizontal Position",
-                min     = 0, max = screenW, step = 5,
-                default = self.defaults[posX],
-                tooltip = "Default is " .. self.defaults[posX] .. ".",
-                getFunc = function() return self.savedVariables[posX] end,
-                setFunc = function(val)
-                    self.savedVariables[posX] = val
-                    ApplyPosition()
-                end,
-            },
-            {
-                type    = "slider",
-                name    = "Vertical Position",
-                min     = 0, max = screenH, step = 5,
-                default = self.defaults[posY],
-                tooltip = "Default is " .. self.defaults[posY] .. ".",
-                getFunc = function() return self.savedVariables[posY] end,
-                setFunc = function(val)
-                    self.savedVariables[posY] = val
-                    ApplyPosition()
-                end,
-            },
         },
     }
 end
@@ -865,17 +1063,18 @@ function VerticalBuffsDebuffs:SettingsMenu()
         type    = "submenu",
         name    = "Settings",
         icon    = ICON_SETTINGS,
-        tooltip = SAVED_ACCOUNT_TIP .. " Character Settings is set separately on each character.",
+        tooltip = SAVED_ACCOUNT_TIP .. " Character Settings itself is set separately on each character.",
         options = {
             {
                 type    = "toggle",
                 name    = "Character Settings",
-                tooltip = "Off uses one layout for the whole account. On gives this character its own layout, copied from the account layout the first time you turn it on.",
+                tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
+                       .. "copied from the account settings the first time you turn it on.",
                 details = function()
                     if self:UsesCharacterSettings() then
-                        return "This character has its own layout."
+                        return "This character has its own settings."
                     end
-                    return "All your characters share one layout."
+                    return "All your characters share the same settings."
                 end,
                 getFunc = function() return self:UsesCharacterSettings() end,
                 setFunc = function(val) self:SetUseCharacterSettings(val) end,
@@ -957,13 +1156,7 @@ function VerticalBuffsDebuffs:SettingsMenu()
                 type       = "button",
                 name       = "|cFF3333Reset All|r",
                 buttonText = "Reset All",
-                tooltip    = "Puts every Vertical Buffs Debuffs setting back to its default.",
-                details    = function()
-                    if self:UsesCharacterSettings() then
-                        return "Resets only this character's layout."
-                    end
-                    return "Resets the account layout, used by every character with Character Settings off."
-                end,
+                details    = "Resets all categories to default.",
                 confirm    = "Reset every Vertical Buffs Debuffs setting to its default? This can't be undone.",
                 func       = function() self:ResetSettings() end,
             },
@@ -993,7 +1186,7 @@ function VerticalBuffsDebuffs:CreateSettings()
         menuIcon        = ICON_CATEGORY,
         title           = "Vertical Buffs Debuffs",
         author          = "user562",
-        version         = "1.7",
+        version         = "1.9",
         frameColor      = FRAME_GREY,
         previewControls = function()
             local controls = {}
@@ -1008,7 +1201,9 @@ function VerticalBuffsDebuffs:CreateSettings()
             return font
         end,
         windowOpacity   = function() return profile.settingsOpacity end,
-        rememberPage    = function() return profile.settingsRemember == true end,
+        rememberPage    = function()
+            return profile.settingsRemember == true or self.keepPage == true or self.moving ~= nil
+        end,
         lastPage        = function()
             if type(profile.settingsLastPage) ~= "table" then profile.settingsLastPage = {} end
             return profile.settingsLastPage
@@ -1021,7 +1216,27 @@ function VerticalBuffsDebuffs:CreateSettings()
         end,
         options         = options,
     })
-    if not self.settingsPanel then VerticalBuffsDebuffs.settingsUnavailable = true end
+    if not self.settingsPanel then
+        VerticalBuffsDebuffs.settingsUnavailable = true
+        return
+    end
+
+    local scene = self.settingsPanel.scene
+    if scene then
+        scene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_HIDDEN then
+                if self.moving ~= nil then
+                    self.keepPage = true
+                    return
+                end
+                self.previewBuffs   = false
+                self.previewDebuffs = false
+                self:RefreshDisplay()
+            elseif newState == SCENE_SHOWN then
+                self.keepPage = nil
+            end
+        end)
+    end
 end
 
 --------------------------------------------------

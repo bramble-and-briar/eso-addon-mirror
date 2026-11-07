@@ -9,7 +9,7 @@ SulXansMarker = SulXansMarker or {}
 local PSM = SulXansMarker
 
 PSM.name    = "SulXansMarker"
-PSM.version = "2.6"
+PSM.version = "2.7"
 
 local EM  = EVENT_MANAGER
 local LCA = LibCombatAlerts
@@ -30,7 +30,11 @@ PSM.defaults = {
   language = "auto",      -- "auto" / "ja" / "en": メッセージと設定画面の言語
   maxShowDist = 36,       -- 三角測量できず推測した位置を表示する最大距離(m)
   useGround = true,       -- 地面の高さを三角測量の追加条件として使う(奥行きの補強)
-  hideWhenNoPos = false,  -- 位置が全く取れない時は何も表示しない(OFF なら画面上の ↓ と残り秒数を出す)
+  hideWhenNoPos = false,
+  arrowScale   = 100,     -- beta25: 地面の矢印の大きさ(%)。50〜200
+  strictGuess  = false,   -- 位置が曖昧な場合の推測を厳しくする(倒れた敵が分からない時は、照準中の生きている敵の位置で推測せず赤い丸にする)
+  opacity      = 1.0,
+  debugLog     = false,   -- デバッグ用のログをチャットに出す(/sulxan log と同じ)     -- マーカーの不透明度(0.1〜1.0)。地面の矢印・数字・画面の表示すべてに掛ける  -- 位置が全く取れない時は何も表示しない(OFF なら画面上の ↓ と残り秒数を出す)
   showCandidates = true, -- 同時死亡時は計算できた全候補を小さく表示
   enabled      = true,
   use3D        = true,   -- ワールド空間(魂の位置)に表示
@@ -58,6 +62,50 @@ local UPDATE_NAME = PSM.name .. "_Update"
 local SAMPLE_NAME = PSM.name .. "_Sample"
 local now = GetGameTimeMilliseconds
 local DIAG_LOG_MAX = 40
+-- beta14: チャットへのログ出力。デバッグがオンで「ログを保存データに記録する」がオンなら、保存データにも記録する
+-- (ファイルへの書き出しは、ESO の仕様でログアウト・/reloadui・ゲーム終了の時)
+PSM.LOG_SAVE_MAX = 2000   -- beta25: 3000行 → 2000行(ログが多いとゲームが落ちることがあるため)
+-- beta17: ログの設定はログ保存用アドオン(Sul-Xan's marker Log)が持つ。
+--   chatLog : ログをチャットに表示する(Log アドオンの設定。Log アドオンが無い時は /sulxan log で切り替え)
+--   recLog  : ログをファイルに記録する(Log アドオンが有効で、その記録がオンの時)
+--   logEnabled = chatLog または recLog(ログを作るかどうか)
+function PSM.UpdateLogFlags()
+  local sv = PSM.sv or {}
+  local LD = _G.SulXansMarkerLog_Data
+  if type(LD) == "table" then
+    PSM.chatLog = LD.chat == true
+    PSM.recLog = LD.enabled ~= false
+  else
+    PSM.chatLog = sv.debugLog == true
+    PSM.recLog = false
+  end
+  PSM.logEnabled = PSM.chatLog or PSM.recLog
+end
+function PSM.d(msg)
+  if PSM.shadow then return end
+  local sv = PSM.sv
+  -- デバッグ表示がオフでも作られたログ(ファイル記録用)は、チャットに出さない。
+  -- ログ以外の通常のメッセージ(コマンドの返事など)は、今までどおり常に出す。
+  -- チャットに出すのは、デバッグ表示がオンの時か、コマンドへの返事の時だけ
+  if PSM.chatLog or PSM.inCommand or not sv then d(msg) end
+  -- beta16: ログはログ保存用アドオン(SulXansMarkerLog)の保存データ(SavedVariables\SulXansMarkerLog.lua)に記録する。
+  --         そのアドオンが無効の時は、ファイルには記録しない(チャット表示はできる)
+  local store = _G.SulXansMarkerLog_Data
+  if PSM.recLog and sv and type(store) == "table" then
+    if type(store.lines) ~= "table" then store.lines = {} end
+    local l = store.lines
+    local ts = (GetTimeString and GetTimeString() or "") .. string.format(" %d", GetGameTimeMilliseconds())
+    l[#l + 1] = ts .. " " .. tostring(msg)
+    local over = #l - PSM.LOG_SAVE_MAX
+    if over > 0 then
+      -- 古い行から消す(負担を減らすため、上限を超えたら500行分まとめて消す)
+      over = over + 500
+      local k = {}
+      for i = over + 1, #l do k[#k + 1] = l[i] end
+      store.lines = k
+    end
+  end
+end
 local diagnosticLog = {}
 
 local function StoreDiagnostic(line)
@@ -68,12 +116,12 @@ end
 
 local function DumpDiagnosticLog()
   if #diagnosticLog == 0 then
-    d("[Sul-Xan's marker] No diagnostic log. Turn on /sulxan log, reproduce the issue, then run /sulxan dump.")
+    PSM.d("[Sul-Xan's marker] No diagnostic log. Turn on /sulxan log, reproduce the issue, then run /sulxan dump.")
     return
   end
-  d(string.format("[Sul-Xan's marker] --- diagnostic log (%d lines) ---", #diagnosticLog))
-  for _, line in ipairs(diagnosticLog) do d(line) end
-  d("[Sul-Xan's marker] --- end diagnostic log ---")
+  PSM.d(string.format("[Sul-Xan's marker] --- diagnostic log (%d lines) ---", #diagnosticLog))
+  for _, line in ipairs(diagnosticLog) do PSM.d(line) end
+  PSM.d("[Sul-Xan's marker] --- end diagnostic log ---")
 end
 
 -- 日本語クライアントなら日本語、それ以外は英語のメッセージを返す
@@ -142,7 +190,8 @@ local recentDeaths = {}  -- 直近の死亡の一覧 { name, time, unitId }
 local soulDeathIntervals = {} -- 魂が存在していた時間帯。後続の候補計算から除外
 local activeSoulInterval = nil
 local SAMPLE_KEEP_MS   = 30000
-local DROP_DELAY_MS     = 250   -- 魂イベントの後、死亡イベントを待つ時間
+local DROP_DELAY_MS     = 600   -- 魂イベントの後、死亡イベントを待つ時間(beta25: 0.25秒 → 0.6秒。遅れて届く死亡イベントを拾うため)
+PSM.RAY_AFTER_DEATH_MS = 250  -- 死亡の後も「その敵への線」として使う時間(beta24 までの DROP_DELAY_MS と同じ)
 local EARLY_PICKUP_DISPLAY_MS = 750 -- 表示前に拾得された魂のマーカー表示時間
 local EARLY_CANDIDATE_DISPLAY_MS = 2500 -- 候補マーカーは拾得直後も確認できるよう長めに表示
 local GROUND_DY_KEEP_MS    = 60000 -- 高さの差を覚えておく時間
@@ -624,14 +673,14 @@ function PSM.HmProfile(maxM)
   local okp, _, px, py, pz = pcall(GetUnitRawWorldPosition, "player")
   local okc, _, _, _, fx, _, fz = pcall(GetCameraRay)
   if not (okp and px and okc and fx) then
-    d("[Sul-Xan's marker] hmline: 位置または向きが取れません")
+    PSM.d("[Sul-Xan's marker] hmline: 位置または向きが取れません")
     return
   end
   local hl = math.sqrt(fx * fx + fz * fz)
-  if hl < 0.01 then d("[Sul-Xan's marker] hmline: 真上・真下を向いています") return end
+  if hl < 0.01 then PSM.d("[Sul-Xan's marker] hmline: 真上・真下を向いています") return end
   fx, fz = fx / hl, fz / hl
-  d(string.format("[Sul-Xan's marker] hmline: 前方%dmの地面の高さ(自分の足元=0、m) 地図のマス数=%d", maxM, hm.count))
-  d("  記号: 数字だけ=記録したマス / ~=周りのマスから推定 / ?=凸凹で平面にならないマス / *=上下に2層以上(橋・2階) / --=記録なし")
+  PSM.d(string.format("[Sul-Xan's marker] hmline: 前方%dmの地面の高さ(自分の足元=0、m) 地図のマス数=%d", maxM, hm.count))
+  PSM.d("  記号: 数字だけ=記録したマス / ~=周りのマスから推定 / ?=凸凹で平面にならないマス / *=上下に2層以上(橋・2階) / --=記録なし")
   local items, nearY = {}, py
   local have, est, none, lo, hi, maxStep, prevH = 0, 0, 0, nil, nil, 0, nil
   for m = 0, maxM do
@@ -659,9 +708,9 @@ function PSM.HmProfile(maxM)
     items[#items + 1] = string.format("%dm:%s", m, txt)
   end
   for i = 1, #items, 7 do
-    d("  " .. table.concat(items, "  ", i, math.min(i + 6, #items)))
+    PSM.d("  " .. table.concat(items, "  ", i, math.min(i + 6, #items)))
   end
-  d(string.format("  記録 %d点 / 推定 %d点 / なし %d点  高さの範囲 %s〜%s m  1mあたりの最大の高低差 %.1f m",
+  PSM.d(string.format("  記録 %d点 / 推定 %d点 / なし %d点  高さの範囲 %s〜%s m  1mあたりの最大の高低差 %.1f m",
     have, est, none, lo and string.format("%+.1f", lo) or "-", hi and string.format("%+.1f", hi) or "-", maxStep))
   -- 誰が記録したか(地図全体と、この線上のマス)。1つのマスを複数が記録していれば、それぞれに数える
   local function countBy(cells)
@@ -682,9 +731,9 @@ function PSM.HmProfile(maxM)
     if not seen[k] and hm.cells[k] then seen[k] = true; lineCells[#lineCells + 1] = hm.cells[k] end
   end
   local ln = countBy(lineCells)
-  d(string.format("  記録者(地図全体 %dマス): 自分 %d(だけ %d) / グループ %d(だけ %d) / コンパニオン %d(だけ %d) / ペット %d(だけ %d)",
+  PSM.d(string.format("  記録者(地図全体 %dマス): 自分 %d(だけ %d) / グループ %d(だけ %d) / コンパニオン %d(だけ %d) / ペット %d(だけ %d)",
     hm.count, all.self, all.only.self, all.group, all.only.group, all.comp, all.only.comp, all.pet, all.only.pet))
-  d(string.format("  記録者(この線上 %dマス): 自分 %d / グループ %d / コンパニオン %d / ペット %d",
+  PSM.d(string.format("  記録者(この線上 %dマス): 自分 %d / グループ %d / コンパニオン %d / ペット %d",
     #lineCells, ln.self, ln.group, ln.comp, ln.pet))
 end
 
@@ -742,6 +791,11 @@ end
 local rays = {}              -- 名前 -> { last, segs = { {list = { {t, ox,oy,oz, fx,fy,fz}, ... }, hp, hpMax, last}, ... } }
 local MAX_RAYS        = 170  -- 長い範囲(最大8秒)の線を保存できる本数
 local RAY_WINDOW_MS   = 3000 -- 計算に使う線の保持時間(モック検証で3秒が最適: 古い線が混ざって外れることが減る)
+-- beta22(試験): 設定「照準線を10秒分使う」が ON の時は10秒(線は0.05秒ごとなので、保存できる本数も増やす)
+-- beta25: 照準線を10秒分使う設定(beta22 試験)は削除。線は3秒分を保存して使う
+function PSM.RayWindow() return RAY_WINDOW_MS end
+function PSM.MaxRays() return MAX_RAYS end
+function PSM.StoreWindow() return RAY_WINDOW_MS end
 local MIN_RAYS        = 6
 local MIN_BASELINE_CM = 100  -- 線の位置のばらつき(横方向)の最小値
 local WEIGHT_TAU_MS    = 1500 -- 線の重み exp(-経過/τ): 最新の線ほど重く、古い線ほど軽く扱う
@@ -881,9 +935,7 @@ local function RecordRay(name)
   end
 
   if not seg then
-    if #e.segs > 0 and PSM.logEnabled then
-      d(string.format(L("[Sul-Xan's marker] 別の個体に照準が移りました (%s 体力 %d)", "[Sul-Xan's marker] Aim switched to another individual (%s hp %d)"), name, hp))
-    end
+    -- 最初から体力0の敵(死体)は線として扱わないので、ログにも出さない
     seg = { list = {}, hp = hp, hpMax = hpMax, last = t, isNew = true, unitIds = {} }
     e.segs[#e.segs + 1] = seg
     while #e.segs > MAX_SEGS do
@@ -902,6 +954,7 @@ local function RecordRay(name)
     end
   end
   seg.isNew = nil
+  if hpMax > 0 and hp > hpMax * DEAD_HP_RATIO then seg.aliveAt = t end
   seg.hp, seg.last = hp, t
 
   -- A corpse can remain under the reticle and keep returning a valid position.
@@ -909,8 +962,10 @@ local function RecordRay(name)
   if okp and hp ~= nil and hpMax and hpMax > 0 and hp <= 0 then return end
 
   local l = seg.list
-  l[#l + 1] = { t, ox, oy, oz, fx, fy, fz }
-  while #l > 0 and (#l > MAX_RAYS or l[1][1] < t - RAY_WINDOW_MS) do
+  -- 8〜10番目: この時の自分の位置(拾得後の aim-check でカメラの距離を出すため)
+  local _, _, rpx, rpy, rpz = pcall(GetUnitRawWorldPosition, "player")
+  l[#l + 1] = { t, ox, oy, oz, fx, fy, fz, rpx, rpy, rpz }
+  while #l > 0 and (#l > PSM.MaxRays() or l[1][1] < t - PSM.StoreWindow()) do
     table.remove(l, 1)
   end
 end
@@ -919,8 +974,11 @@ end
 -- the unitTag needed for position sampling. Join them only when both identify
 -- the same currently targeted name; this helps separate simultaneous same-name
 -- enemies without assuming the soul proc itself identifies its victim.
-local function OnPlayerCombatTarget(_, _, _, _, _, _, _, sourceType, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId)
+local function OnPlayerCombatTarget(_, cres, _, _, _, _, _, sourceType, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId)
   if sourceType ~= COMBAT_UNIT_TYPE_PLAYER or not targetUnitId then return end
+  if PSM.NoteDotTick then PSM.NoteDotTick(cres, targetUnitId, abilityId, hitValue) end
+  if PSM.NoteHitDelay then PSM.NoteHitDelay(cres, targetUnitId, hitValue) end
+  if PSM.NoteHitRay then PSM.NoteHitRay(cres, hitValue, abilityId) end
   if PSM.NoteHitRange then PSM.NoteHitRange(hitValue, abilityId) end
   -- G: 当てた瞬間に照準していた敵の名前を、当てた個体IDごとに覚える
   if hitValue and hitValue > 0 and targetUnitId ~= 0 then
@@ -1118,7 +1176,7 @@ local function TriangulateCore(name, deathTime, deathUnitId)
   local tLastRay = deathTime or full[#full][1]
   local l = {}
   for _, r in ipairs(full) do
-    if r[1] >= tLastRay - RAY_WINDOW_MS and r[1] <= tLastRay then l[#l + 1] = r end
+    if r[1] >= tLastRay - PSM.RayWindow() and r[1] <= tLastRay then l[#l + 1] = r end
   end
   local n = #l
   local tauMs = ((PSM.sv.weightTau or 1.5) * 1000)
@@ -1157,9 +1215,15 @@ local function TriangulateCore(name, deathTime, deathUnitId)
           end
         end
         if b1 then
-          usedGround = true; hmUsed = useHm
           -- 地面の条件で答えがどれだけ動いたか(平地の仮定で大きく動いたなら、その位置は仮定頼み)
-          groundShift = math.sqrt(((b1 + b4) - (a1 + a4)) ^ 2 + ((b3 + b6) - (a3 + a6)) ^ 2)
+          local gsh = math.sqrt(((b1 + b4) - (a1 + a4)) ^ 2 + ((b3 + b6) - (a3 + a6)) ^ 2)
+          -- 地図ではなく仮定の地面(自分と同じ高さ等)で答えが3m以上動いた時は、仮定を使わない
+          -- (高台から下の敵など、敵が自分と違う高さにいる時に、手前の空中へ引っ張られるのを防ぐ)
+          if not useHm and gsh > PSM.GS_MAX_CM then
+            return a1, a2, a3, a4, a5, a6, a7, a8
+          end
+          usedGround = true; hmUsed = useHm
+          groundShift = gsh
           return b1, b2, b3, b4, b5, b6, b7, b8
         end
       end
@@ -1200,7 +1264,8 @@ local function TriangulateCore(name, deathTime, deathUnitId)
   -- (線がほぼ平行だと、交点が遠くへ大きくずれる)
   local depthErr = dist * dist * AIM_NOISE_RAD / baseline
   if usedGround then depthErr = depthErr * GROUND_DERR_FACTOR end  -- 地面の条件で奥行きが補強された分
-  if depthErr > DEPTH_ERR_MAX_CM then return nil, "depth-uncertain(" .. zo_floor(depthErr) .. ")" end
+  -- beta13: 奥行きの誤差の見込みが4mを超える交点は使わず、最後の線(案B・地形・いつもの距離)に回す
+  if depthErr > (PSM.DEPTH_ERR_USE_CM or DEPTH_ERR_MAX_CM) then return nil, "depth-uncertain(" .. zo_floor(depthErr) .. ")" end
 
   -- 最新の線(死亡直前に狙っていた先)が交点から離れていれば、別の敵を追っている疑いがある
   local lastOff = RayDist(l[#l], x, y, z, rx, ry, rz)
@@ -1315,17 +1380,91 @@ local function GroupRayPick(ox, oy, oz, fx, fy, fz, cr, cur)
   return found[1].p, "grp"
 end
 local LASTRAY_REASONS = { ["small-baseline"] = true, ["small-baseline-final"] = true, ["few-rays"] = true,
-  ["large-residual"] = true, ["bad-distance"] = true, ["tri-conflict"] = true }
+  ["large-residual"] = true, ["bad-distance"] = true, ["tri-conflict"] = true, ["depth-uncertain"] = true }
+PSM.DEPTH_ERR_USE_CM = 400
 -- 交点の確認: 最後の照準線を地図または水平面と交差させた位置と、交点が離れすぎていたら交点を捨てる
 -- (無敵中に移動した敵など、移動前と移動後に向けた線が混ざると、自分の近くに誤った交点ができるため)
 PSM.TRI_LASTRAY_CONFLICT_CM = 500
-PSM.TRI_RAY_COMPARE_MAX_CM = 1200
+PSM.GS_MAX_CM = 300   -- 仮定の地面でこれ以上答えが動いたら、仮定を使わない
+PSM.TRI_NEAR_PLAYER_CM = 700   -- 交点を捨てるのは、交点が自分からこの距離未満の時だけ
+-- 案B(横の向きだけの交点)を求める。使えない時は nil
+function PSM.BearSolve(seg, deathTime, r)
+  if not seg or not r then return nil end
+  local ox, oz, fx, fz = r[2], r[4], r[5], r[7]
+  local A11, A12, A22, b1, b2, n = 0, 0, 0, 0, 0, 0
+  local list = {}
+  for k = #seg.list, 1, -1 do
+    local q = seg.list[k]
+    if (not deathTime or q[1] <= deathTime + PSM.RAY_AFTER_DEATH_MS) and (r[1] - q[1]) <= math.min(4000, PSM.RayWindow()) then list[#list + 1] = q end
+  end
+  for _, q in ipairs(list) do
+    local hx, hz = q[5], q[7]
+    local hl = math.sqrt(hx * hx + hz * hz)
+    if hl > 0.01 then
+      hx, hz = hx / hl, hz / hl
+      local m11, m12, m22 = 1 - hx * hx, -hx * hz, 1 - hz * hz
+      A11, A12, A22 = A11 + m11, A12 + m12, A22 + m22
+      b1, b2 = b1 + m11 * q[2] + m12 * q[4], b2 + m12 * q[2] + m22 * q[4]
+      n = n + 1
+    end
+  end
+  local det = A11 * A22 - A12 * A12
+  if n < 5 or det <= 0 then return nil end
+  local tr = A11 + A22
+  local lmin = (tr - math.sqrt(math.max(0, tr * tr - 4 * det))) / 2
+  local X, Z = (A22 * b1 - A12 * b2) / det, (A11 * b2 - A12 * b1) / det
+  local hl = math.sqrt(fx * fx + fz * fz)
+  if hl < 0.01 then return nil end
+  local ux, uz = fx / hl, fz / hl
+  local tt = (X - ox) * ux + (Z - oz) * uz
+  local res = 0
+  for _, q in ipairs(list) do
+    local hx, hz = q[5], q[7]
+    local h2 = math.sqrt(hx * hx + hz * hz)
+    if h2 > 0.01 then
+      hx, hz = hx / h2, hz / h2
+      local wx, wz = X - q[2], Z - q[4]
+      local cr = wx * hz - wz * hx
+      res = res + cr * cr
+    end
+  end
+  res = math.sqrt(res / n)
+  local depthErr = (PSM.bearLat or 100) / math.sqrt(math.max(lmin, 1e-6))
+  if tt > 200 and tt < 5000 and res <= (PSM.bearRes or 150) and depthErr <= (PSM.bearMaxErr or 400) then
+    return { ox + ux * tt, oz + uz * tt }
+  end
+  return nil
+end
+-- beta19: 同じ魂で「地形の地図と交わった位置(hm)」と「向きの交点(bear/bear1)」の両方が出た時に覚えておき、
+--         拾った時に両方との差をログに出す(地形を優先の設定に関係なく、どちらが当たるかを比べるため)
+function PSM.AddHmCmp(h, b, kind, name)
+  if PSM.shadow or not PSM.hmCmp or not h or not b then return end
+  for _, c in ipairs(PSM.hmCmp) do
+    if c.kind == kind and c.name == name and math.abs(c.hm[1] - h[1]) < 50 and math.abs(c.hm[3] - h[3]) < 50
+      and math.abs(c.bear[1] - b[1]) < 50 and math.abs(c.bear[3] - b[3]) < 50 then return end
+  end
+  if #PSM.hmCmp >= 4 then return end
+  PSM.hmCmp[#PSM.hmCmp + 1] = { hm = { h[1], h[2], h[3] }, bear = { b[1], b[2], b[3] }, kind = kind, name = name }
+end
 local function Triangulate(name, deathTime, deathUnitId)
   local pos, info, quality = TriangulateCore(name, deathTime, deathUnitId)
+  -- ソロの時は、交点が求まっていても案B(横の向きだけの交点)を優先する(グループでは今までどおり交点を優先)
+  if pos and type(quality) == "table" and quality.seg and not (IsUnitGrouped and IsUnitGrouped("player")) then
+    local seg, r = quality.seg, nil
+    for k = #seg.list, 1, -1 do
+      if not deathTime or seg.list[k][1] <= deathTime + PSM.RAY_AFTER_DEATH_MS then r = seg.list[k]; break end
+    end
+    local b = PSM.BearSolve(seg, deathTime, r)
+    -- beta15: 線を引いた位置の移動量(base)が10m未満の時は、案Bを交点より優先しない
+    --         (ゲームのログで base 10m以上: 19件中15件が3m以内 / 10m未満: 22件中5件)
+    if b and not (type(quality) == "table" and quality.baseline and quality.baseline >= (PSM.BEAR1_MIN_BASE_CM or 1000)) then b = nil end
+    -- beta21: 地形を優先(beta12)は削除。地形と交わった時も案Bを使う(beta25: 比較用のログも削除)
+    if b then return { b[1], pos[2], b[2] }, "bear1(" .. tostring(info) .. ")", quality end
+  end
   if pos and type(quality) == "table" and quality.seg then
     local seg, r = quality.seg, nil
     for k = #seg.list, 1, -1 do
-      if not deathTime or seg.list[k][1] <= deathTime + DROP_DELAY_MS then r = seg.list[k]; break end
+      if not deathTime or seg.list[k][1] <= deathTime + PSM.RAY_AFTER_DEATH_MS then r = seg.list[k]; break end
     end
     if r then
       local ox, oy, oz, fx, fy, fz = r[2], r[3], r[4], r[5], r[6], r[7]
@@ -1348,24 +1487,27 @@ local function Triangulate(name, deathTime, deathUnitId)
         local hl2 = fx * fx + fz * fz
         local tTri = hl2 > 0.0001 and ((pos[1] - ox) * fx + (pos[3] - oz) * fz) / hl2 or 0
         local tLr = hl2 > 0.0001 and ((lp[1] - ox) * fx + (lp[3] - oz) * fz) / hl2 or 0
-        -- 水平面との交点(ray)は、遠いほど少しの高低差で前後に大きくずれるので、12m以内の時だけ比べる相手にする
-        local lrFar = false
-        if lm == "ray" then
-          local okp, _, ppx, _, ppz = pcall(GetUnitRawWorldPosition, "player")
-          if okp and ppx then
-            lrFar = (lp[1] - ppx) ^ 2 + (lp[3] - ppz) ^ 2 > PSM.TRI_RAY_COMPARE_MAX_CM ^ 2
-          end
+        -- 交点が自分のすぐ近く(7m未満)にある時だけ捨てる。
+        -- 移動前と移動後に向けた線が混ざってできる誤った交点は、ほぼ自分の足元近くに出る。
+        -- 遠くにある交点は、最後の線の位置(地図の端・水平面)の方がずれていることが多いので残す。
+        local triNear = false
+        local okp, _, ppx, _, ppz = pcall(GetUnitRawWorldPosition, "player")
+        if okp and ppx then
+          triNear = (pos[1] - ppx) ^ 2 + (pos[3] - ppz) ^ 2 < PSM.TRI_NEAR_PLAYER_CM ^ 2
         end
-        if lrFar and PSM.logEnabled and dd > PSM.TRI_LASTRAY_CONFLICT_CM and tTri < tLr then
-          d(string.format("[Sul-Xan's marker] tri kept: last ray (ray) is too far to compare (%dm nearer)", zo_floor(dd / 100)))
+        -- カメラの近くにできた交点も捨てる(カメラを遠くしている時は、誤った交点がカメラの前にできる)
+        local camNear = (pos[1] - ox) ^ 2 + (pos[3] - oz) ^ 2 < PSM.TRI_NEAR_PLAYER_CM ^ 2
+        triNear = triNear or camNear
+        if not triNear and PSM.logEnabled and dd > PSM.TRI_LASTRAY_CONFLICT_CM and tTri < tLr then
+          PSM.d(string.format("[Sul-Xan's marker] tri kept: tri is not near you (%dm nearer than last ray (%s))", zo_floor(dd / 100), lm))
         end
-        if dd > PSM.TRI_LASTRAY_CONFLICT_CM and tTri < tLr and not lrFar then
+        if dd > PSM.TRI_LASTRAY_CONFLICT_CM and tTri < tLr and triNear then
           if PSM.logEnabled then
-            d(string.format("[Sul-Xan's marker] tri rejected: %dm nearer than last ray (%s) tri=%d,%d,%d lastray=%d,%d,%d",
+            PSM.d(string.format("[Sul-Xan's marker] tri rejected: %dm nearer than last ray (%s) tri=%d,%d,%d lastray=%d,%d,%d",
               zo_floor(dd / 100), lm, pos[1], pos[2], pos[3], lp[1], lp[2], lp[3]))
           end
           -- 確認用: 捨てた交点を覚えておき、拾った時に「交点を使っていたら何mずれたか」をログに出す
-          if PSM.rejectedTris then
+          if PSM.rejectedTris and not PSM.shadow then
             PSM.rejectedTris[#PSM.rejectedTris + 1] = { tri = { pos[1], pos[2], pos[3] }, lr = { lp[1], lp[2], lp[3] }, method = lm, name = name }
           end
           pos, info, quality = nil, string.format("tri-conflict(%s,%d)", lm, zo_floor(dd)), nil
@@ -1383,7 +1525,7 @@ local function Triangulate(name, deathTime, deathUnitId)
   -- とどめの時刻以前の最後の線
   local r
   for k = #seg.list, 1, -1 do
-    if not deathTime or seg.list[k][1] <= deathTime + DROP_DELAY_MS then r = seg.list[k]; break end
+    if not deathTime or seg.list[k][1] <= deathTime + PSM.RAY_AFTER_DEATH_MS then r = seg.list[k]; break end
   end
   if not r then return pos, info, quality end
   -- E: 最後の線が古い(その後に敵が動いた可能性がある)時は使わない
@@ -1412,16 +1554,106 @@ local function Triangulate(name, deathTime, deathUnitId)
     local gp, gm = GroupRayPick(ox, oy, oz, fx, fy, fz, cr, p)
     if gp then p, method, alts = gp, gm, nil end
   end
+  -- 癖の学習: 最後の線の上下の角度が「いつもの角度」の範囲内なら、上下の角度では距離が分からないので、
+  -- 地面・仲間の位置との交点ではなく、横の向きはそのままで「いつもの距離」(学習した中央値)に置く
+  local bearDone = false
+  -- beta21: 地形を優先(beta12)は削除。hm でも案Bで上書きする(beta11 と同じ)
+  local hmKeep = false
+  local hmP = method == "hm" and p or nil   -- beta19: 比較用(hm の位置)
+  do
+    -- 案B: 照準線の横の向きだけで交点を求める(上下の角度は使わない)。自分の移動で向きが変わることから距離を出す
+    local A11, A12, A22, b1, b2, n = 0, 0, 0, 0, 0, 0
+    local list = {}
+    for k = #seg.list, 1, -1 do
+      local q = seg.list[k]
+      if (not deathTime or q[1] <= deathTime + PSM.RAY_AFTER_DEATH_MS) and (r[1] - q[1]) <= math.min(4000, PSM.RayWindow()) then list[#list + 1] = q end
+    end
+    for _, q in ipairs(list) do
+      local hx, hz = q[5], q[7]
+      local hl = math.sqrt(hx * hx + hz * hz)
+      if hl > 0.01 then
+        hx, hz = hx / hl, hz / hl
+        local m11, m12, m22 = 1 - hx * hx, -hx * hz, 1 - hz * hz
+        A11, A12, A22 = A11 + m11, A12 + m12, A22 + m22
+        b1, b2 = b1 + m11 * q[2] + m12 * q[4], b2 + m12 * q[2] + m22 * q[4]
+        n = n + 1
+      end
+    end
+    local det = A11 * A22 - A12 * A12
+    if n >= 5 and det > 0 then
+      local tr = A11 + A22
+      local lmin = (tr - math.sqrt(math.max(0, tr * tr - 4 * det))) / 2
+      local X, Z = (A22 * b1 - A12 * b2) / det, (A11 * b2 - A12 * b1) / det
+      local hl = math.sqrt(fx * fx + fz * fz)
+      local ux, uz = fx / hl, fz / hl
+      local tt = (X - ox) * ux + (Z - oz) * uz
+      local res = 0
+      for _, q in ipairs(list) do
+        local hx, hz = q[5], q[7]
+        local h2 = math.sqrt(hx * hx + hz * hz)
+        if h2 > 0.01 then
+          hx, hz = hx / h2, hz / h2
+          local wx, wz = X - q[2], Z - q[4]
+          local cr = wx * hz - wz * hx
+          res = res + cr * cr
+        end
+      end
+      res = math.sqrt(res / n)
+      local depthErr = (PSM.bearLat or 100) / math.sqrt(math.max(lmin, 1e-6))
+      if tt > 200 and tt < 5000 and res <= (PSM.bearRes or 150) and depthErr <= (PSM.bearMaxErr or 400) then
+        local _, _, py = GetUnitRawWorldPosition("player")
+        local gy = (p and p[2]) or ((py or oy) + (KnownGroundDy() or 0))
+        local bp = { ox + ux * tt, gy, oz + uz * tt }
+        if not hmKeep then
+          p, method, alts = bp, "bear", nil
+          bearDone = true
+        end
+      end
+    end
+  end
+  -- beta16: いつもの距離の優先度を下げる。仲間の位置(grp)・地形の地図(hmo/amb)で位置が出ている時は、いつもの距離で上書きしない
+  --         (水平面(ray)だけの時は今までどおり、いつもの距離を使う)
+  local habitBlocked = p ~= nil and method ~= "ray"
+  if PSM.habitOn ~= false and not bearDone and not hmKeep and not habitBlocked then
+    local un, st = PSM.VertUninformative(fx, fy, fz)
+    if un and st and st.dmed then
+      local dm = st.dmed
+      local hl = math.sqrt(fx * fx + fz * fz)
+      local _, _, py = GetUnitRawWorldPosition("player")
+      local gy = (p and p[2]) or ((py or oy) + (KnownGroundDy() or 0))
+      local tt = dm
+      do
+        local m = PSM.MapPrep()
+        local ux, uz = fx / hl, fz / hl
+        local sig = math.max(300, dm * 0.3)
+        local best
+        for t2 = 200, 4500, 50 do
+          local sc = -0.5 * ((t2 - dm) / sig) ^ 2 + math.log(PSM.MapScore(m, ox + ux * t2, oz + uz * t2))
+          if not best or sc > best then best, tt = sc, t2 end
+        end
+      end
+      p, method, alts = { ox + fx / hl * tt, gy, oz + fz / hl * tt }, "habit", nil
+    end
+  end
   -- D: 地図で地面が確定した時(hm)と、グループメンバーで決めた時(grp)だけ使う
   if PSM.def.D and p and method ~= "hm" and method ~= "grp" and method ~= "grp+hm" then p = nil end
   -- D2: 地図と交わらない(水平面で求めた)位置だけ使わない
   if PSM.def.D2 and p and method == "ray" then p = nil end
   if not p then return pos, info, quality end
+  -- beta24: ルールCで交点を捨てた時は、代わりに最後の線の処理で決まった位置(bear・habit 等の上書き後)も覚えておき、
+  --         拾った時に「交点を使っていた場合」と「実際の処理の場合」の両方との差をログに出す
+  if reason == "tri-conflict" and PSM.rejectedTris and not PSM.shadow then
+    for k = #PSM.rejectedTris, 1, -1 do
+      local rj = PSM.rejectedTris[k]
+      if rj.name == name and not rj.kept and not rj.fin then rj.fin = { p[1], p[2], p[3] }; rj.finMethod = method; break end
+    end
+  end
   return p, string.format("lastray(%s)[%s,%s/%d]", method, reason, tostring(matchMethod), cands), {
     uncertain = true, isDead = isDead, matchMethod = matchMethod, unitIdAgeMs = unitIdAgeMs,
     lastRay = true, alts = alts, trimmed = 0, lastOff = 0, seg = seg,
   }
 end
+PSM.Triangulate = Triangulate
 
 
 -- ----------------------------------------------------------------------------
@@ -1469,7 +1701,6 @@ local function AoeEstimate(unitId)
     end
   end
   if not same then
-    if PSM.logEnabled then d("[Sul-Xan's marker] aoe estimate skipped: aimed target was not hit by the same skill") end
     return nil
   end
   local e = rays[h.aimName]
@@ -1522,6 +1753,251 @@ local function NoteHitRange(hitValue, abilityId)
   while #recentHits > 0 and t - recentHits[1][1] > RANGE_KEEP_MS do table.remove(recentHits, 1) end
 end
 PSM.NoteHitRange = NoteHitRange
+-- 確認用(参考ログ): 敵から自分への攻撃・コンパニオン・突進(自分の位置の急な移動)・スキル使用から命中までの時間
+PSM.enemyAtk, PSM.hitDelay, PSM.posHist = {}, {}, {}
+function PSM.OnEnemyAttack(_, res, _, _, _, _, _, sourceType, _, targetType, hitValue, _, _, _, sourceUnitId, _, abilityId)
+  if not PSM.logEnabled or targetType ~= COMBAT_UNIT_TYPE_PLAYER then return end
+  if not sourceUnitId or sourceUnitId == 0 or not (hitValue and hitValue > 0) then return end
+  if sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET or sourceType == COMBAT_UNIT_TYPE_GROUP
+      or sourceType == COMBAT_UNIT_TYPE_PLAYER_COMPANION then return end
+  local _, px, _, pz = GetUnitRawWorldPosition("player")
+  PSM.enemyAtk[sourceUnitId] = { t = now(), abil = abilityId, px = px, pz = pz }
+end
+function PSM.OnSlotUsed()
+  if PSM.logEnabled then PSM.lastSlotUse = now() end
+end
+function PSM.NoteHitDelay(res, uid, hitValue)
+  if not PSM.logEnabled or not uid or uid == 0 or not (hitValue and hitValue > 0) then return end
+  if res == ACTION_RESULT_DOT_TICK or res == ACTION_RESULT_DOT_TICK_CRITICAL then return end
+  local t = now()
+  if PSM.lastSlotUse and t - PSM.lastSlotUse <= 3000 then
+    local _, px, _, pz = GetUnitRawWorldPosition("player")
+    PSM.hitDelay[uid] = { t = t, ms = t - PSM.lastSlotUse, px = px, pz = pz }
+  end
+end
+function PSM.TrackPlayer()
+  local _, px, _, pz = GetUnitRawWorldPosition("player")
+  if not px then return end
+  local h = PSM.posHist
+  h[#h + 1] = { now(), px, pz }
+  while #h > 60 do table.remove(h, 1) end
+end
+-- beta13: 魂は少し手前で拾えるので、拾った時に動いていた向きの先に PICKUP_R だけ進めた所を魂の中心とみなす
+PSM.PICKUP_R = 0   -- beta15: 拾った時はすでに魂を通り過ぎていることが多い(ゲームのログで前後のずれの中央値 -1.3m)ので、補正しない
+function PSM.PickCenter(px, py, pz)
+  if not px then return px, py, pz, nil end
+  local h, t = PSM.posHist, now()
+  local old
+  for i = #h, 1, -1 do
+    if t - h[i][1] >= 400 then old = h[i]; break end
+  end
+  if not old or t - old[1] > 1500 then return px, py, pz, nil end
+  local dx, dz = px - old[2], pz - old[3]
+  local dl = math.sqrt(dx * dx + dz * dz)
+  local sp = dl / math.max(0.1, (t - old[1]) / 1000)
+  if sp < 100 then return px, py, pz, nil end
+  local ux, uz = dx / dl, dz / dl
+  return px + ux * PSM.PICKUP_R, py, pz + uz * PSM.PICKUP_R, { ux = ux, uz = uz, sp = sp, rx = px, rz = pz }
+end
+
+-- 魂が出た時の参考情報(倒れた敵の個体ID・コンパニオンの位置・直前5秒の突進)
+function PSM.RefSnapshot(uid)
+  if not PSM.logEnabled then return nil end
+  local ref = { uid = uid, t = now() }
+  if DoesUnitExist and DoesUnitExist("companion") then
+    local ok, _, cx, _, cz = pcall(GetUnitRawWorldPosition, "companion")
+    if ok and cx and cx ~= 0 then ref.comp = { cx, cz } end
+  end
+  local h, best = PSM.posHist, nil
+  for i = 1, #h do
+    if ref.t - h[i][1] <= 5000 then
+      for j = i + 1, #h do
+        if h[j][1] - h[i][1] > 500 then break end
+        local dd = math.sqrt((h[j][2] - h[i][2]) ^ 2 + (h[j][3] - h[i][3]) ^ 2)
+        if dd >= 500 and (not best or dd > best.d) then best = { d = dd, t = h[j][1], x = h[j][2], z = h[j][3] } end
+      end
+    end
+  end
+  ref.jump = best
+  return ref
+end
+function PSM.LogRef(ref, px, pz)
+  if not PSM.logEnabled or not ref or not px then return end
+  local function dist(x, z) return math.sqrt((x - px) ^ 2 + (z - pz) ^ 2) / 100 end
+  local atk, del = "なし", "-"
+  local a = ref.uid and PSM.enemyAtk[ref.uid]
+  if a and ref.t - a.t <= 6000 and a.px then
+    atk = string.format("あり(%.1f秒前 攻撃された時の自分〜拾得 %.1fm ability=%s)", (ref.t - a.t) / 1000, dist(a.px, a.pz), tostring(a.abil))
+  end
+  local hd = ref.uid and PSM.hitDelay[ref.uid]
+  if hd and ref.t - hd.t <= 6000 and hd.px then
+    del = string.format("%dms(命中時の自分〜拾得 %.1fm)", hd.ms, dist(hd.px, hd.pz))
+  end
+  local comp = ref.comp and string.format("拾得から%.1fm", dist(ref.comp[1], ref.comp[2])) or "なし"
+  local jump = ref.jump and string.format("あり(%.1f秒前 %.0fm移動 移動先〜拾得 %.1fm)", (ref.t - ref.jump.t) / 1000, ref.jump.d / 100, dist(ref.jump.x, ref.jump.z)) or "なし"
+  PSM.d(string.format("[Sul-Xan's marker] 参考: 敵からの攻撃 %s / 命中の遅れ %s / コンパニオン %s / 突進 %s", atk, del, comp, jump))
+end
+
+-- 照準していない敵の推定(案C)。範囲の継続ダメージを置いた場所(置いた時に照準していた敵の推定位置)を覚え、
+-- その範囲のダメージが当たっていた敵が倒れたら、そこを魂の位置とする
+PSM.aoeInst, PSM.dotHits = {}, {}
+function PSM.NoteDotTick(res, uid, abilityId, hitValue)
+  if not (res == ACTION_RESULT_DOT_TICK or res == ACTION_RESULT_DOT_TICK_CRITICAL) then return end
+  if not uid or uid == 0 or not abilityId or not (hitValue and hitValue > 0) then return end
+  local t = now()
+  PSM.dotHits[uid] = { t = t, abil = abilityId }
+  -- 同じスキルの範囲が最近置かれていなければ、今回を新しく置いた範囲とみなし、照準中の敵の推定位置を中心にする
+  local list = PSM.aoeInst[abilityId] or {}
+  PSM.aoeInst[abilityId] = list
+  local last = list[#list]
+  if (not last or t - last.t0 > (PSM.aoeNewGap or 1500)) and IsHostileTarget() then
+    local ok, ox, oy, oz, fx, fy, fz = pcall(GetCameraRay)
+    if ok and ox and fx then
+      local hl = math.sqrt(fx * fx + fz * fz)
+      if hl > 0.01 then
+        local st = PSM.HabitStats and PSM.HabitStats()
+        local dm = (st and st.dmed) or 1500
+        local _, _, py = GetUnitRawWorldPosition("player")
+        local _, spx, spy, spz = GetUnitRawWorldPosition("player")
+        list[#list + 1] = { t0 = t, last = t, pos = { ox + fx / hl * dm, py or oy, oz + fz / hl * dm }, selfPos = spx and { spx, spy, spz } or nil }
+        while #list > 4 do table.remove(list, 1) end
+      end
+    end
+  elseif last then
+    last.last = t
+  end
+end
+-- beta13: 範囲の中心が「照準先」か「自分」かを、スキルごとに拾った位置で学習する(3回たまるまでは使わない)
+function PSM.AoeInstFor(uid)
+  local h = uid and PSM.dotHits[uid]
+  if not h or now() - h.t > 3000 then return nil end
+  local list = PSM.aoeInst[h.abil]
+  if not list or #list == 0 then return nil end
+  local inst = list[#list]
+  if h.t - inst.t0 > 12000 then return nil end
+  return inst, h.abil
+end
+function PSM.AoeType(abil)
+  local box = PSM.LearnBox()
+  box.aoeType = box.aoeType or {}
+  local a = box.aoeType[tostring(abil)]
+  -- beta16: 5回以上学習し、どちらかが8割以上の時だけ使う(混ざっているスキルは使わない)
+  local nt, ns = a and (a.tgt or 0) or 0, a and (a.self or 0) or 0
+  if nt + ns < 5 then return nil end
+  if ns >= (nt + ns) * 0.8 then return "self" end
+  if nt >= (nt + ns) * 0.8 then return "tgt" end
+  return nil
+end
+function PSM.LearnAoeType(ld, px, pz)
+  local L = ld and ld.aoeLearn
+  if not L or not px then return end
+  ld.aoeLearn = nil
+  local dt = L.tgt and math.sqrt((L.tgt[1] - px) ^ 2 + (L.tgt[3] - pz) ^ 2) or math.huge
+  local ds = L.self and math.sqrt((L.self[1] - px) ^ 2 + (L.self[3] - pz) ^ 2) or math.huge
+  if math.min(dt, ds) > 1500 then return end
+  local box = PSM.LearnBox()
+  box.aoeType = box.aoeType or {}
+  local k = tostring(L.abil)
+  local a = box.aoeType[k] or { tgt = 0, self = 0 }
+  box.aoeType[k] = a
+  if ds < dt then a.self = (a.self or 0) + 1 else a.tgt = (a.tgt or 0) + 1 end
+  -- 古い学習が残りすぎないよう、合計20回を超えたら半分にする
+  if a.self + a.tgt > 20 then a.self, a.tgt = a.self / 2, a.tgt / 2 end
+end
+function PSM.AoeCEstimate(uid)
+  local inst, abil = PSM.AoeInstFor(uid)
+  if not inst then return nil end
+  local typ = PSM.AoeType(abil)
+  if not typ then return nil end
+  local c = (typ == "self" and inst.selfPos) or inst.pos
+  if not c then return nil end
+  do
+    local bx, bz = PSM.MapArgmax(c[1], c[3], PSM.mapAoeR or 1000, 100, true)
+    if bx then return { bx, c[2], bz } end
+  end
+  return { c[1], c[2], c[3] }
+end
+PSM.recentHits = recentHits
+PSM.AbilityMaxRange = AbilityMaxRange
+-- 案D: 敵が倒れやすい場所の地図(自分の範囲攻撃・直接当てた線・仲間の位置・射程)
+PSM.hitRays = {}
+function PSM.NoteHitRay(res, hitValue, abilityId)
+  if not (hitValue and hitValue > 0) then return end
+  if res == ACTION_RESULT_DOT_TICK or res == ACTION_RESULT_DOT_TICK_CRITICAL then return end
+  local ok, ox, oy, oz, fx, fy, fz = pcall(GetCameraRay)
+  if not ok or not ox or not fx then return end
+  local hl = math.sqrt(fx * fx + fz * fz)
+  if hl < 0.01 then return end
+  local l = PSM.hitRays
+  l[#l + 1] = { t = now(), ox = ox, oz = oz, ux = fx / hl, uz = fz / hl, range = PSM.AbilityMaxRange(abilityId) or 1400 }
+  while #l > 30 do table.remove(l, 1) end
+end
+function PSM.MapPrep()
+  local t = now()
+  local m = { aoe = {}, rays = {}, mem = {} }
+  for _, list in pairs(PSM.aoeInst) do
+    for _, inst in ipairs(list) do
+      if t - inst.t0 <= 11000 then m.aoe[#m.aoe + 1] = inst.pos end
+    end
+  end
+  for _, r in ipairs(PSM.hitRays) do if t - r.t <= 4000 then m.rays[#m.rays + 1] = r end end
+  if IsUnitGrouped and IsUnitGrouped("player") and GetGroupSize then
+    for i = 1, GetGroupSize() do
+      local tag = GetGroupUnitTagByIndex(i)
+      if tag and not (AreUnitsEqual and AreUnitsEqual(tag, "player")) then
+        local ok, _, x, _, z = pcall(GetUnitRawWorldPosition, tag)
+        if ok and x and x ~= 0 then m.mem[#m.mem + 1] = { x, z } end
+      end
+    end
+  end
+  local _, px, _, pz = GetUnitRawWorldPosition("player")
+  m.px, m.pz = px, pz
+  local mx
+  for _, h in ipairs(PSM.recentHits) do if t - h[1] <= 4000 and (not mx or h[4] > mx) then mx = h[4] end end
+  m.maxR = mx
+  return m
+end
+function PSM.MapScore(m, x, z, noAoe)
+  local s = 0.05
+  local R = PSM.mapAoeR or 1000
+  if not noAoe then
+    for _, c in ipairs(m.aoe) do
+      if (c[1] - x) ^ 2 + (c[3] - z) ^ 2 <= R * R then s = s + (PSM.mapWAoe or 1.0) end
+    end
+  end
+  for _, r in ipairs(m.rays) do
+    local wx, wz = x - r.ox, z - r.oz
+    local along = wx * r.ux + wz * r.uz
+    if along > 100 and along < r.range + 1200 then
+      local lat = wx * r.uz - wz * r.ux
+      s = s + (PSM.mapWRay or 0.6) * math.exp(-(lat / 200) ^ 2) / math.max(1, #m.rays / 4)
+    end
+  end
+  local g = 0
+  for _, q in ipairs(m.mem) do
+    local v = math.exp(-((q[1] - x) ^ 2 + (q[2] - z) ^ 2) / (400 * 400))
+    if v > g then g = v end
+  end
+  s = s + (PSM.mapWGrp or 0.8) * g
+  if m.maxR and m.px and ((x - m.px) ^ 2 + (z - m.pz) ^ 2) > (m.maxR + 300) ^ 2 then s = s * 0.3 end
+  return s
+end
+function PSM.MapArgmax(cx, cz, rad, step, noAoe, minScore)
+  local m = PSM.MapPrep()
+  if not m.px then return nil end
+  cx, cz = cx or m.px, cz or m.pz
+  local best, bx, bz
+  for dx = -rad, rad, step do
+    for dz = -rad, rad, step do
+      if dx * dx + dz * dz <= rad * rad then
+        local sc = PSM.MapScore(m, cx + dx, cz + dz, noAoe) * math.exp(-0.5 * (dx * dx + dz * dz) / (rad * rad))
+        if not best or sc > best then best, bx, bz = sc, cx + dx, cz + dz end
+      end
+    end
+  end
+  if not best or (minScore and best < minScore) then return nil end
+  return bx, bz, best
+end
 
 local function NarrowCandidates(pos, extras, name, chosen)
   local all = { pos }
@@ -1589,7 +2065,7 @@ local function NarrowCandidates(pos, extras, name, chosen)
     end
   end
 
-  if #notes > 0 and PSM.logEnabled then d("[Sul-Xan's marker] narrow: " .. table.concat(notes, ", ")) end
+  if #notes > 0 and PSM.logEnabled then PSM.d("[Sul-Xan's marker] narrow: " .. table.concat(notes, ", ")) end
   local p = all[1]
   local rest = {}
   for k = 2, #all do rest[#rest + 1] = all[k] end
@@ -1697,6 +2173,8 @@ local function SampleTarget()
     PurgeOld()
   end
 
+  -- beta26: 戦闘していない時は、照準先の記録をしない(地形の高さの記録と古い記録の掃除は続ける)
+  if not PSM.inCombat then return end
   if IsHostileTarget() then
     local x, y, z, src, alts = GetTargetPos()
     local name = ReticleName()
@@ -1733,9 +2211,15 @@ end
 -- ワールド描画 (LibCombatAlerts)
 -- ----------------------------------------------------------------------------
 
-local function PackColor(c)
+function PSM.Opacity()
+  local o = PSM.sv and tonumber(PSM.sv.opacity) or 1
+  if o < 0.1 then o = 0.1 elseif o > 1 then o = 1 end
+  return o
+end
+
+local function PackColor(c, alphaMul)
   local function b(v) return zo_floor((v or 1) * 255 + 0.5) end
-  return b(c[1]) * 0x1000000 + b(c[2]) * 0x10000 + b(c[3]) * 0x100 + b(c[4])
+  return b(c[1]) * 0x1000000 + b(c[2]) * 0x10000 + b(c[3]) * 0x100 + b((c[4] or 1) * (alphaMul or 1))
 end
 
 local function Remove3D()
@@ -1749,6 +2233,8 @@ local function Remove3D()
 end
 
 local UNCERTAIN_COLOR = { 1, 0.55, 0.1, 1 }  -- 位置が不確かな時の色(オレンジ)
+PSM.HP0_BEFORE_MS = 800
+PSM.HP0_CONTINUOUS_MS = 300
 PSM.FALLBACK_CIRCLE_SCALE = 0.8   -- 赤い丸の大きさ(矢印に対する割合)
 local FALLBACK_COLOR = { 1, 0, 0, 1 }         -- 位置不明時の画面マーカーは赤
 local FALLBACK_LEFT_FACTOR = 1.35            -- キャラクターの中央位置から左へずらす幅(サイズ倍率)
@@ -1757,7 +2243,6 @@ local FALLBACK_LEFT_FACTOR = 1.35            -- キャラクターの中央位�
 local NUM_SCALE             = 0.34       -- 矢印の大きさに対する数字の大きさ
 local NUM_Y                 = 0.10       -- 数字を矢印の中心より上にずらす量(矢印の大きさの割合)
 local NUM_TOWARD_CAMERA_CM  = 60         -- 矢印より手前に描くため、カメラ側へ寄せる量
-local COUNTDOWN_COLOR       = 0x000000FF -- 数字の色(黒)
 
 local function CountdownSec()
   local sec = zo_ceil((PSM.endTime - now()) / 1000)
@@ -1779,7 +2264,7 @@ local function Place3D(pos, uncertain, sizeScale)
       size                = markerSize,
       elevation           = sv.height,
       playerFacing        = true,
-      color               = PackColor(color),
+      color               = PackColor(color, PSM.Opacity()),
       disableDepthBuffers = true, -- 地形や壁に隠れない
     })
   end)
@@ -1798,7 +2283,7 @@ local function Place3D(pos, uncertain, sizeScale)
         size                = markerSize * NUM_SCALE,
         elevation           = sv.height + markerSize * NUM_Y,
         playerFacing        = true,
-        color               = COUNTDOWN_COLOR,
+        color               = PackColor({ 0, 0, 0, 1 }, PSM.Opacity()),
         disableDepthBuffers = true,
       })
     end)
@@ -1888,7 +2373,8 @@ function PSM.ApplyLayout()
   ui.icon:SetAnchor(TOP, ui.win, TOP, 0, math.floor((size - iconSize) / 2))
   -- LibCombatAlerts のテクスチャIDは、LCA.SetTexture でパスと切り出し座標に変換して設定する
   LCA.SetTexture(ui.icon, useFallbackStyle and FALLBACK_TEXTURE or ARROW_TEXTURE)
-  ui.icon:SetColor(unpack(useFallbackStyle and FALLBACK_COLOR or sv.color))
+  local ic = useFallbackStyle and FALLBACK_COLOR or sv.color
+  ui.icon:SetColor(ic[1], ic[2], ic[3], (ic[4] or 1) * PSM.Opacity())
 
   -- 残り秒数: 矢印の時は中心より少し上、赤い丸(位置不明・プレビュー)の時は丸の中央に表示する
   ui.label:ClearAnchors()
@@ -1896,7 +2382,7 @@ function PSM.ApplyLayout()
   ui.label:SetDimensions(size, math.floor(size * 0.5))
   ui.label:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin", math.max(12, zo_floor(size * 0.34))))
   -- 残り秒数の色: 赤い丸(位置不明・プレビュー)の時は白、矢印の時は黒
-  if useFallbackStyle then ui.label:SetColor(1, 1, 1, 1) else ui.label:SetColor(0, 0, 0, 1) end
+  if useFallbackStyle then ui.label:SetColor(1, 1, 1, PSM.Opacity()) else ui.label:SetColor(0, 0, 0, PSM.Opacity()) end
 end
 
 -- 画面表示の出し分け: iconVisible = ↓ を画面に出すか
@@ -2050,12 +2536,6 @@ end
 local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, _, _, _, sourceUnitId, targetUnitId)
   -- 魂のドロップは GAINED_DURATION(hitValue = 持続時間 約6000ms)。
   -- 直前に来る GAINED(hitValue=1)は持続時間が入っていないので使わない。
-  if PSM.logEnabled then
-    -- 魂のイベントの対象は自分自身なので、キャラクター名はログに出さない(ログを人に見せても名前が出ないように)
-    d(string.format("[Sul-Xan's marker] soul event: result=%s hit=%s targetType=%s unitId src=%s tgt=%s",
-      tostring(result), tostring(hitValue), tostring(targetType),
-      tostring(sourceUnitId), tostring(targetUnitId)))
-  end
   if result ~= ACTION_RESULT_EFFECT_GAINED_DURATION then
     return
   end
@@ -2064,12 +2544,24 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
 
   -- 魂は同時に1つしか出ない。表示中(拾うまで)に来た追加イベントでは位置を動かさない
   -- (動かすと、その時の照準先へ矢印が移ってしまう)
+  -- beta21: ただし、前の魂のイベントから1秒以上たって届いたイベントは新しい魂として扱う
+  --         (前の魂を拾った直後や、前の魂が消える直前に次の魂が落ちると、今までは何も表示されなかった)
   if (PSM.endTime > t or PSM.pending) and not PSM.testing then
-    if PSM.logEnabled then
-      d(string.format("[Sul-Xan's marker] soul event ignored (active, %.1fs left, hit=%s)", (PSM.endTime - t) / 1000, tostring(hitValue)))
+    local since = PSM.lastSoulEventAt and (t - PSM.lastSoulEventAt) or math.huge
+    if PSM.pending or since < (PSM.SOUL_NEW_MIN_MS or 1000) then
+      if PSM.logEnabled then
+        PSM.d(string.format("[Sul-Xan's marker] soul event ignored (active, %.1fs left, %.1fs after previous, hit=%s)", (PSM.endTime - t) / 1000, since / 1000, tostring(hitValue)))
+      end
+      return
     end
-    return
+    if PSM.logEnabled then
+      PSM.d(string.format(L("[Sul-Xan's marker] 前の魂の表示中に新しい魂(前のイベントから%.1f秒): 前の表示を消して新しい魂を表示します",
+        "[Sul-Xan's marker] New soul while the previous one is shown (%.1fs after previous): replacing it"), since / 1000))
+    end
+    if activeSoulInterval and not activeSoulInterval.finish then activeSoulInterval.finish = t end
+    PSM.Hide()
   end
+  PSM.lastSoulEventAt = t
 
   local duration = DEFAULT_DURATION_MS
   if hitValue and hitValue >= 1000 then duration = hitValue end
@@ -2106,9 +2598,10 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
     local pickedUpBeforeDisplay = PSM.sv.hideOnPickup and PSM.pendingPickup
     PSM.pendingPickup = false
     if pickedUpBeforeDisplay and PSM.logEnabled then
-      d(L("[Sul-Xan's marker] 表示前に拾得済みのため、短時間表示します", "[Sul-Xan's marker] Picked up before display; showing marker briefly"))
+      PSM.d(L("[Sul-Xan's marker] 表示前に拾得済みのため、短時間表示します", "[Sul-Xan's marker] Picked up before display; showing marker briefly"))
     end
     PSM.rejectedTris = {}
+    PSM.hmCmp = {}
     local pos, src = earlyPos, earlySrc
     local posAlts = nil
     local consumedSegs = {}
@@ -2152,6 +2645,25 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       chosen = lastDeath
       chosenReason = "lastDeath-time"
     end
+    -- 死亡イベントが届かない時(仲間がとどめを刺した等): 魂の前後に、照準し続けていた敵の体力が0になった個体を、倒れた敵とみなす
+    -- (体力0の直前0.3秒以内に生きている状態を見ていた時だけ。照準を外している間に倒れた敵は対象外)
+    if not chosen then
+      local best, bd, bname
+      for name, e in pairs(rays) do
+        for _, sg in ipairs(e.segs or {}) do
+          if sg.deadAt and not sg.consumed and sg.deadAt >= t - PSM.HP0_BEFORE_MS and sg.deadAt <= t + DROP_DELAY_MS
+              and sg.aliveAt and sg.deadAt - sg.aliveAt <= PSM.HP0_CONTINUOUS_MS then
+            local dd = math.abs(sg.deadAt - t)
+            if not bd or dd < bd then best, bd, bname = sg, dd, name end
+          end
+        end
+      end
+      if best then
+        chosen = { name = bname, time = best.deadAt, hp0 = true }
+        chosenReason = "hp0-time"
+        if PSM.logEnabled then PSM.d(string.format("[Sul-Xan's marker] no death event; using HP0 seen %dms from soul: %s", zo_floor(best.deadAt - t), bname)) end
+      end
+    end
 
     local targetName = snap and snap.name
     if chosen then
@@ -2163,7 +2675,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       local activeTracks = RecentSegmentCount(rays[chosen.name], now())
       local aimedAlive = AimedStillAlive(chosen.name, chosen.time)
       if aimedAlive then
-        if PSM.logEnabled then d("[Sul-Xan's marker] aimed same-name enemy is still alive; reticle position not used") end
+        if PSM.logEnabled then PSM.d("[Sul-Xan's marker] aimed same-name enemy is still alive; reticle position not used") end
       elseif activeTracks <= 1 and snap and snap.name == chosen.name then
         pos, src = snap.pos, "death+snap(" .. tostring(snap.src) .. ")"
         posAlts = snap.alts
@@ -2184,10 +2696,17 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
     if triPos then
       pos, src = triPos, "death+" .. triInfo
       if type(triQuality) == "table" and triQuality.alts then posAlts = triQuality.alts end
-    elseif PSM.logEnabled then
-      d("[Sul-Xan's marker] triangulation skipped: " .. tostring(triInfo))
     end
     local ambiguousTrack = triInfo == "ambiguous-segments"
+    -- 確認用(aim-check): 倒れた敵に向けた照準線を覚えておき、拾った位置から狙いの高さ・横ずれを逆算する
+    do
+      PSM.CaptureAimData(e, triQuality, targetName, (chosen and chosen.name == targetName) and chosen.time or nil)
+      if PSM.aimPickPending then
+        local pp = PSM.aimPickPending
+        PSM.aimPickPending = nil
+        PSM.AimCheck(pp)
+      end
+    end
 
     -- 位置が不確かかどうか: 三角測量が使えなかった / 同名の敵が同時に複数倒れた
     local sameNameDeaths, idMatch, otherDeaths = 0, matchedDeath ~= nil, 0
@@ -2231,7 +2750,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
     local loggedDeathName = chosen and chosen.name or "nil"
     local function LogSoulDrop()
       if not PSM.logEnabled then return end
-      d(string.format("[Sul-Xan's marker] soul drop: hit=%s pos=%s src=%s death=%s sameNameDeaths=%d otherDeaths=%d idMatch=%s uncertain=%s",
+      PSM.d(string.format("[Sul-Xan's marker] soul drop: hit=%s pos=%s src=%s death=%s sameNameDeaths=%d otherDeaths=%d idMatch=%s uncertain=%s",
         tostring(hitValue),
         pos and string.format("%d,%d,%d", pos[1], pos[2], pos[3]) or "nil", tostring(src),
         tostring(loggedDeathName), sameNameDeaths, otherDeaths, tostring(idMatch), tostring(uncertain)))
@@ -2280,6 +2799,10 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
             positionMethod = "sample(" .. tostring(sample[5]) .. ")"
           end
         end
+        if not ep then
+          local cp = PSM.AoeCEstimate(dd.unitId)
+          if cp then ep, positionMethod = cp, "aoeC" end
+        end
         if not ep and PSM.def.G then
           local gp, gm = AoeEstimate(dd.unitId)
           if gp then ep, positionMethod = gp, "aoe(" .. tostring(gm) .. ")" end
@@ -2300,7 +2823,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
             if PSM.logEnabled then
               StoreDiagnostic(string.format("CANDIDATE name=%s id=%s deathT=%d result=shown method=%s detail=%s",
                 tostring(dd.name), tostring(dd.unitId), dd.time, tostring(positionMethod), tostring(einfo or "position available")))
-              d(string.format(L("[Sul-Xan's marker] 候補を追加: %s (%s; %s)", "[Sul-Xan's marker] Candidate added: %s (%s; %s)"), dd.name, positionMethod, tostring(einfo or "position available")))
+              PSM.d(string.format(L("[Sul-Xan's marker] 候補を追加: %s (%s; %s)", "[Sul-Xan's marker] Candidate added: %s (%s; %s)"), dd.name, positionMethod, tostring(einfo or "position available")))
             end
           elseif PSM.logEnabled then
             StoreDiagnostic(string.format("CANDIDATE name=%s id=%s deathT=%d result=excluded reason=%s",
@@ -2309,7 +2832,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
         elseif PSM.logEnabled then
           StoreDiagnostic(string.format("CANDIDATE name=%s id=%s deathT=%d result=excluded reason=%s",
             tostring(dd.name), tostring(dd.unitId), dd.time, tostring(einfo)))
-          d(string.format(L("[Sul-Xan's marker] 候補位置を計算できません: %s (%s)", "[Sul-Xan's marker] Candidate position could not be calculated: %s (%s)"), dd.name, tostring(einfo)))
+          PSM.d(string.format(L("[Sul-Xan's marker] 候補位置を計算できません: %s (%s)", "[Sul-Xan's marker] Candidate position could not be calculated: %s (%s)"), dd.name, tostring(einfo)))
         end
       end
       -- 複数死亡時は、三角測量または新鮮な名前一致スナップショット/座標で
@@ -2339,7 +2862,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       uncertain = true
       if not pos then
         -- 候補位置を1つも計算できない時も、位置不明(赤い丸)で表示する(下の共通処理へ)
-        if PSM.logEnabled then d(L("[Sul-Xan's marker] 候補位置を計算できないため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] No candidate positions could be calculated; showing the no-position marker")) end
+        if PSM.logEnabled then PSM.d(L("[Sul-Xan's marker] 候補位置を計算できないため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] No candidate positions could be calculated; showing the no-position marker")) end
       end
     elseif uncertain then
       -- 死亡が1件なら、既存の曖昧さ表示(必要時の補助候補)を維持する。
@@ -2360,7 +2883,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
           if distinct then
             extras[#extras + 1] = ep
             if PSM.logEnabled then
-              d(string.format(L("[Sul-Xan's marker] 候補を追加: %s (%s)", "[Sul-Xan's marker] Candidate added: %s (%s)"), dd.name, tostring(einfo or "triangulation")))
+              PSM.d(string.format(L("[Sul-Xan's marker] 候補を追加: %s (%s)", "[Sul-Xan's marker] Candidate added: %s (%s)"), dd.name, tostring(einfo or "triangulation")))
             end
           end
         end
@@ -2388,7 +2911,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
         local dist = math.sqrt((pos[1] - px) ^ 2 + (pos[3] - pz) ^ 2)
         if dist > (PSM.sv.maxShowDist or 36) * 100 then
           if PSM.logEnabled then
-            d(string.format(L("[Sul-Xan's marker] 推測位置が遠すぎる(%dm)ので表示しません", "[Sul-Xan's marker] Estimated position too far (%d m); not shown"), zo_floor(dist / 100)))
+            PSM.d(string.format(L("[Sul-Xan's marker] 推測位置が遠すぎる(%dm)ので表示しません", "[Sul-Xan's marker] Estimated position too far (%d m); not shown"), zo_floor(dist / 100)))
           end
           pos = nil
           tooFar = true
@@ -2403,7 +2926,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
         if not far and math.sqrt((a[1] - pos[1]) ^ 2 + (a[3] - pos[3]) ^ 2) >= 300 then
           extras[#extras + 1] = a
           if PSM.logEnabled then
-            d(string.format("[Sul-Xan's marker] graze candidate: (%d,%d,%d)", a[1], a[2], a[3]))
+            PSM.d(string.format("[Sul-Xan's marker] graze candidate: (%d,%d,%d)", a[1], a[2], a[3]))
           end
         end
       end
@@ -2433,20 +2956,25 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
             unc = HEIGHT_UNC_HM_CM
           end
           local herr = D * unc / H
-          if PSM.logEnabled then
-            d(string.format("[Sul-Xan's marker] height-risk: dist=%dm camH=%dcm err~%dm", zo_floor(D / 100), zo_floor(H), zo_floor(herr / 100)))
-          end
           -- 曖昧(amb)な時は候補をすべて出しているので、消さずに「不確か」にする
           if herr > HEIGHT_ERR_HIDE_CM and not isAmb then
             pos = nil
             tooFar = true
             if PSM.logEnabled then
-              d(L("[Sul-Xan's marker] 高低差の不確かさによる誤差が大きすぎるため表示しません", "[Sul-Xan's marker] Not shown: height uncertainty makes the estimate too unreliable"))
+              PSM.d(L("[Sul-Xan's marker] 高低差の不確かさによる誤差が大きすぎるため表示しません", "[Sul-Xan's marker] Not shown: height uncertainty makes the estimate too unreliable"))
             end
           elseif herr > HEIGHT_ERR_WARN_CM or isAmb then
             uncertain = true
           end
         end
+      end
+    end
+    -- 案C: 範囲の継続ダメージで倒れた、照準していない敵
+    if not pos and chosen and chosen.unitId then
+      local cp = PSM.AoeCEstimate(chosen.unitId)
+      if cp then
+        pos, src, uncertain = cp, "death+aoeC", true
+        ambiguousTrack = false
       end
     end
     -- G: 照準していない敵(範囲攻撃で倒れた敵)は、当てた時に照準していた敵の位置を使う
@@ -2461,17 +2989,23 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       pos = table.remove(extras, 1)
       uncertain = true
     end
+    -- 死亡イベントがなく倒れた敵が分からない時は、照準中の(生きている)敵の位置で推測せず、位置不明(赤い丸)にする
+    if not chosen and pos and PSM.sv.strictGuess then
+      if PSM.logEnabled then PSM.d(L("[Sul-Xan's marker] 倒れた敵が分からないため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] Killed enemy unknown; showing the no-position marker")) end
+      pos, posAlts = nil, nil
+      extras = {}
+    end
     -- 位置が決められない時(個体追跡が曖昧・遠すぎる・高低差で誤差が大きい)は、
     -- 地面のマーカーは出さず、画面上の赤い丸(位置不明)を出す
     if not pos and ambiguousTrack and PSM.logEnabled then
-      d(L("[Sul-Xan's marker] 個体追跡が曖昧なため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] Target tracking is ambiguous; showing the no-position marker"))
+      PSM.d(L("[Sul-Xan's marker] 個体追跡が曖昧なため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] Target tracking is ambiguous; showing the no-position marker"))
     end
     if not pos and tooFar and PSM.logEnabled then
-      d(L("[Sul-Xan's marker] 推測位置が使えないため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] Estimate unusable; showing the no-position marker"))
+      PSM.d(L("[Sul-Xan's marker] 推測位置が使えないため位置不明(赤い丸)で表示します", "[Sul-Xan's marker] Estimate unusable; showing the no-position marker"))
     end
     if not pos and PSM.sv.hideWhenNoPos then
       PSM.lastDrop = nil
-      if PSM.logEnabled then d(L("[Sul-Xan's marker] 位置が取れないので表示しません(設定)", "[Sul-Xan's marker] No position available; not shown (setting)")) end
+      if PSM.logEnabled then PSM.d(L("[Sul-Xan's marker] 位置が取れないので表示しません(設定)", "[Sul-Xan's marker] No position available; not shown (setting)")) end
       return
     end
 
@@ -2486,11 +3020,25 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       local np, nx, changed = NarrowCandidates(pos, extras, targetName, chosen)
       if changed then pos, extras = np, nx end
     end
+    local corrInfo
+    if pos then pos, src, corrInfo = PSM.ApplyCorr(pos, src) end
     local all = {}
     if pos then all[1] = pos end
     for _, ep in ipairs(extras) do all[#all + 1] = ep end
     PSM.lastDrop = { pos = pos, all = all, src = src, uncertain = uncertain, sameNameDeaths = sameNameDeaths, name = targetName,
-      rejected = PSM.rejectedTris }
+      ref = PSM.RefSnapshot(chosen and chosen.unitId),
+      aoeLearn = (function()
+        local inst, abil = PSM.AoeInstFor(chosen and chosen.unitId)
+        if inst then return { abil = abil, tgt = inst.pos, self = inst.selfPos } end
+      end)(),
+      rejected = PSM.rejectedTris, hmcmp = PSM.hmCmp, corr = corrInfo }
+    if pickedUpBeforeDisplay and PSM.earlyPickPos then
+      local ep = PSM.earlyPickPos
+      PSM.earlyPickPos = nil
+      PSM.LogPickupDiff(PSM.lastDrop, ep[1], ep[2], ep[3], true, ep[4])
+      PSM.LearnCorr(PSM.lastDrop, ep[1], ep[3])
+      PSM.LearnAoeType(PSM.lastDrop, ep[1], ep[3])
+    end
     local showDuration = math.max(duration - DROP_DELAY_MS, 1000)
     if pickedUpBeforeDisplay then
       showDuration = (pos ~= nil and #extras > 0) and EARLY_CANDIDATE_DISPLAY_MS or EARLY_PICKUP_DISPLAY_MS
@@ -2499,6 +3047,251 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
     local multipleMarkers = pos ~= nil and #extras > 0
     PSM.Show(showDuration, pos, uncertain, extras, multipleMarkers)
   end, DROP_DELAY_MS)
+end
+
+-- 上下の角度の癖を学習する(1本ごとの下向きの傾き s と、カメラから敵までの水平距離 D)
+-- 学習データの入れ物: キャラクターごとに SavedVariables (PSM.sv.learn[キャラクターID]) に保存し、ログアウト後も残す。
+-- 魂を拾うたびに更新する(ファイルへの書き出しは、ESO がログアウト・/reloadui の時に行う)。
+-- beta6 のアカウント共通のデータ(PSM.sv.habit)があれば、最初にログインしたキャラクターへ引き継ぐ。
+function PSM.LearnBox()
+  local sv = PSM.sv or {}
+  PSM.sv = sv
+  local cid = (GetCurrentCharacterId and tostring(GetCurrentCharacterId())) or "?"
+  if type(sv.learn) ~= "table" then sv.learn = {} end
+  local b = sv.learn[cid]
+  if type(b) ~= "table" then
+    b = { habit = { s = {}, d = {} }, corr = {} }
+    local old = sv.habit
+    if type(old) == "table" and type(old.s) == "table" and type(old.d) == "table" and #old.s == #old.d and #old.s > 0 then
+      for i = 1, #old.s do b.habit.s[i], b.habit.d[i] = old.s[i], old.d[i] end
+      sv.habit = nil
+    end
+    sv.learn[cid] = b
+  end
+  if type(b.habit) ~= "table" or type(b.habit.s) ~= "table" or type(b.habit.d) ~= "table" then b.habit = { s = {}, d = {} } end
+  if type(b.corr) ~= "table" then b.corr = {} end
+  if PSM.lastBoxId ~= cid then PSM.lastBoxId = cid; PSM.habitDirty = true end
+  return b
+end
+function PSM.HabitAdd(sl, D, cls)
+  local h = PSM.LearnBox().habit
+  h.c = nil   -- beta8 の近接・遠距離の区別は使わない
+  h.s[#h.s + 1] = zo_floor(sl * 1000 + 0.5) / 1000
+  h.d[#h.d + 1] = zo_floor(D + 0.5)
+  while #h.s > 400 do table.remove(h.s, 1); table.remove(h.d, 1) end
+  PSM.habitDirty = true
+end
+local function HabitStats()
+  local h = PSM.LearnBox().habit
+  if not h or not h.s or #h.s < 40 or #h.d ~= #h.s then return nil end
+  if not PSM.habitDirty and PSM.habitSt then return PSM.habitSt end
+  PSM.habitDirty = false
+  local n = #h.s
+  -- s = a + b/D の当てはめ(体を狙う人は b が大きく、上下の角度が一定の人は b が小さい)
+  local mx, my = 0, 0
+  for i = 1, n do mx = mx + 1 / math.max(h.d[i], 100); my = my + h.s[i] end
+  mx, my = mx / n, my / n
+  local sxx, sxy, syy = 0, 0, 0
+  for i = 1, n do
+    local x, y = 1 / math.max(h.d[i], 100) - mx, h.s[i] - my
+    sxx, sxy, syy = sxx + x * x, sxy + x * y, syy + y * y
+  end
+  local b = sxx > 0 and sxy / sxx or 0
+  local r2 = (sxx > 0 and syy > 0) and (sxy * sxy) / (sxx * syy) or 0
+  local c = {}
+  for i = 1, n do c[i] = h.s[i] end
+  table.sort(c)
+  local med = c[math.floor(n / 2) + 1]
+  local dev = {}
+  for i = 1, n do dev[i] = math.abs(h.s[i] - med) end
+  table.sort(dev)
+  local sd = 1.4826 * dev[math.floor(n / 2) + 1]
+  local dd = {}
+  for i = 1, n do dd[i] = h.d[i] end
+  table.sort(dd)
+  PSM.habitSt = { n = n, med = med, sd = sd, b = b, r2 = r2, dmed = dd[math.floor(n / 2) + 1], informative = (r2 >= 0.3 and b >= 150) }
+  return PSM.habitSt
+end
+PSM.HabitStats = HabitStats
+-- 照準線の上下の角度が「いつもの角度」の範囲内で、距離の手がかりにならない時は true
+function PSM.VertUninformative(fx, fy, fz)
+  local st = HabitStats()
+  if not st or st.informative then return false, st end
+  local hl = math.sqrt(fx * fx + fz * fz)
+  if hl < 0.01 then return false, st end
+  local sl = -fy / hl
+  return math.abs(sl - st.med) <= math.max(0.04, 2 * st.sd), st
+end
+
+-- 方法ごとの距離の補正: 拾った位置と表示した位置の「カメラからの距離の比」を方法(tri・lastray(hm) など)ごとに直近30回覚え、
+-- 5回たまったら、その中央値(0.6〜1.6倍)で距離を伸ばす・縮める(ログの src に *corr1.25 のように出る)
+function PSM.CorrKey(src)
+  src = tostring(src)
+  local m = src:match("lastray%(([%w%+]+)%)")
+  if m then return "lr:" .. m end
+  if src:find("^death%+tri") then return "tri" end
+  return nil
+end
+function PSM.CorrMedian(t)
+  local c = {}
+  for i, v in ipairs(t) do c[i] = v end
+  table.sort(c)
+  return c[math.floor(#c / 2) + 1]
+end
+function PSM.ApplyCorr(pos, src)
+  local key = PSM.CorrKey(src)
+  local ad = PSM.aimData
+  if not key or not ad or not ad.rays or #ad.rays == 0 then return pos, src, nil end
+  local r = ad.rays[#ad.rays]
+  local O = { r[2], r[3], r[4] }
+  local info = { key = key, O = O, raw = { pos[1], pos[2], pos[3] } }
+  local t = PSM.LearnBox().corr[key]
+  if t and #t >= (PSM.corrMin or 5) then
+    local k = math.max(0.6, math.min(PSM.corrMax or 1.6, PSM.CorrMedian(t)))
+    if math.abs(k - 1) >= 0.03 then
+      pos = { O[1] + (pos[1] - O[1]) * k, pos[2], O[3] + (pos[3] - O[3]) * k }
+      src = tostring(src) .. string.format("*corr%.2f", k)
+    end
+  end
+  return pos, src, info
+end
+function PSM.LearnCorr(ld, px, pz)
+  if not ld or not ld.corr or not px then return end
+  local c = ld.corr
+  ld.corr = nil
+  local rx, rz = c.raw[1] - c.O[1], c.raw[3] - c.O[3]
+  local dRaw = math.sqrt(rx * rx + rz * rz)
+  if dRaw < 200 then return end
+  local ux, uz = rx / dRaw, rz / dRaw
+  local qx, qz = px - c.O[1], pz - c.O[3]
+  local along = qx * ux + qz * uz
+  local lateral = math.abs(qx * uz - qz * ux)
+  if along <= 0 or lateral > 400 then return end
+  local box = PSM.LearnBox()
+  local t = box.corr[c.key] or {}
+  box.corr[c.key] = t
+  t[#t + 1] = zo_floor(along / dRaw * 1000 + 0.5) / 1000
+  while #t > 30 do table.remove(t, 1) end
+end
+
+-- 確認用(aim-check): 魂の位置に使った個体の照準線を保存する
+function PSM.CaptureAimData(e, triQuality, name, deathTime)
+  PSM.aimData = nil
+  if not e or not e.segs or #e.segs == 0 then return end
+  local seg = type(triQuality) == "table" and triQuality.seg or nil
+  if not seg then
+    -- 交点に使った区間が無い時: 死亡時刻に近く倒れた区間 → 最後に照準した区間
+    local bestD
+    for _, sg in ipairs(e.segs) do
+      if sg.deadAt and #sg.list > 0 then
+        local dd = deathTime and math.abs(sg.deadAt - deathTime) or (now() - sg.deadAt)
+        if not bestD or dd < bestD then seg, bestD = sg, dd end
+      end
+    end
+    if not seg then
+      for _, sg in ipairs(e.segs) do
+        if #sg.list > 0 and (not seg or sg.last > seg.last) then seg = sg end
+      end
+    end
+  end
+  if not seg or #seg.list == 0 then return end
+  local copy = {}
+  local tEnd = deathTime and (deathTime + PSM.RAY_AFTER_DEATH_MS) or math.huge
+  local tLastC
+  for i = #seg.list, 1, -1 do if seg.list[i][1] <= tEnd then tLastC = seg.list[i][1]; break end end
+  for i, r in ipairs(seg.list) do
+    if r[1] <= tEnd and (not tLastC or r[1] >= tLastC - PSM.RayWindow()) then copy[#copy + 1] = r end
+  end
+  if #copy == 0 then return end
+  PSM.aimData = { name = name, rays = copy, t = now(), hpMax = seg.hpMax }
+end
+
+-- 確認用(aim-check): 拾った位置の真上に縦の線を立て、各照準線がそこへ最も近づく所の高さと横ずれを出す
+function PSM.AimCheck(pick)
+  local ad = PSM.aimData
+  PSM.aimData = nil
+  if not ad or not pick or now() - ad.t > 20000 then return end
+  local hs, ls, ds, backs, ups = {}, {}, {}, {}, {}
+  for _, r in ipairs(ad.rays) do
+    local ox, oy, oz, fx, fy, fz = r[2], r[3], r[4], r[5], r[6], r[7]
+    local hl2 = fx * fx + fz * fz
+    if hl2 > 0.0001 then
+      local tt = ((pick[1] - ox) * fx + (pick[3] - oz) * fz) / hl2
+      if tt > 0 then
+        local qx, qy, qz = ox + fx * tt, oy + fy * tt, oz + fz * tt
+        hs[#hs + 1] = qy - pick[2]
+        PSM.HabitAdd(-fy / math.sqrt(hl2), math.sqrt((pick[1] - ox) ^ 2 + (pick[3] - oz) ^ 2))
+        ls[#ls + 1] = math.sqrt((qx - pick[1]) ^ 2 + (qz - pick[3]) ^ 2)
+        ds[#ds + 1] = math.sqrt((pick[1] - ox) ^ 2 + (pick[3] - oz) ^ 2)
+        if r[8] then
+          backs[#backs + 1] = math.sqrt((ox - r[8]) ^ 2 + (oz - r[10]) ^ 2)
+          ups[#ups + 1] = oy - r[9]
+        end
+      end
+    end
+  end
+  if #hs == 0 then
+    return   -- beta25: aim-check のログは削除
+  end
+  local function pct(t, p)
+    if #t == 0 then return 0 end
+    local c = {}
+    for i, v in ipairs(t) do c[i] = v end
+    table.sort(c)
+    local k = math.max(1, math.min(#c, math.floor(#c * p + 0.5)))
+    return c[k]
+  end
+  do return end   -- beta25: aim-check のログは削除(計算は距離の補正のため残す)
+  local m = function(v) return v / 100 end
+  PSM.d(string.format("[Sul-Xan's marker] aim-check: %s 線=%d 高さ 中央%.1fm (%.1f〜%.1fm) 横ずれ 中央%.1fm (最大%.1fm) 距離 中央%.0fm cam=後ろ%.1fm 上%.1fm",
+    tostring(ad.name), #hs, m(pct(hs, 0.5)), m(pct(hs, 0.1)), m(pct(hs, 0.9)), m(pct(ls, 0.5)), m(pct(ls, 1)),
+    m(pct(ds, 0.5)), m(pct(backs, 0.5)), m(pct(ups, 0.5))))
+end
+
+-- 精度の計測: 拾った瞬間の自分の位置と、表示していた位置との差をログに出す
+-- (魂が表示される前に拾った時も、表示する直前にこの関数でログを出す)
+function PSM.LogPickupDiff(ld, px, py, pz, early, mv)
+  if not PSM.logEnabled or not ld or not px then return end
+  -- beta25: 「参考」(敵からの攻撃・命中の遅れ 等)と「拾得時の移動」のログは削除
+  if ld.pos then
+    do
+      local best, bestIdx, bestDh = nil, 0, math.huge
+      for i, cp in ipairs(ld.all or { ld.pos }) do
+        local dx, dz = px - cp[1], pz - cp[3]
+        local dh = math.sqrt(dx * dx + dz * dz)
+        if dh < bestDh then best, bestIdx, bestDh = cp, i, dh end
+      end
+      local dx, dz = px - best[1], pz - best[3]
+      local dy = py - best[2]
+      PSM.d(string.format(L("[Sul-Xan's marker] 拾得" .. (early and "(表示前)" or "") .. ": 最も近い矢印(%d/%d番目)との差 水平%dcm (dx=%+d,dz=%+d) 基準位置との高さ%+dcm (%s / 同名死亡%d / 不確か=%s)", "[Sul-Xan's marker] Pickup" .. (early and " (before display)" or "") .. ": nearest arrow (%d/%d) delta horizontal %dcm (dx=%+d,dz=%+d) anchor height %+dcm (%s / same-name deaths %d / uncertain=%s)"),
+        bestIdx, #(ld.all or { ld.pos }), zo_floor(bestDh), zo_floor(dx), zo_floor(dz), zo_floor(dy), (tostring(ld.src):gsub("%(.*", "")),
+        ld.sameNameDeaths or 0, tostring(ld.uncertain)))
+    end
+  end
+  -- 確認用: 捨てた交点との差(交点を使っていたら、どれだけずれていたか)
+  if ld.rejected and #ld.rejected > 0 then
+    do
+      for i, rj in ipairs(ld.rejected) do
+        local dt = math.sqrt((px - rj.tri[1]) ^ 2 + (pz - rj.tri[3]) ^ 2)
+        local dl = math.sqrt((px - rj.lr[1]) ^ 2 + (pz - rj.lr[3]) ^ 2)
+        PSM.d(string.format(rj.kept and L("[Sul-Xan's marker] 拾得" .. (early and "(表示前)" or "") .. ": 残した交点との差 水平%dcm 高さ%+dcm / 前のルールなら使っていた最後の線(%s)との差 水平%dcm → %s (%s)",
+          "[Sul-Xan's marker] Pickup" .. (early and " (before display)" or "") .. ": kept tri delta horizontal %dcm height %+dcm / last ray (%s) the old rule would use delta %dcm -> %s (%s)")
+          or L("[Sul-Xan's marker] 拾得" .. (early and "(表示前)" or "") .. ": 捨てた交点との差 水平%dcm 高さ%+dcm / 代わりに使った最後の線(%s)との差 水平%dcm → %s (%s)",
+          "[Sul-Xan's marker] Pickup" .. (early and " (before display)" or "") .. ": rejected tri delta horizontal %dcm height %+dcm / last ray (%s) used instead delta %dcm -> %s (%s)"),
+          zo_floor(dt), zo_floor(py - rj.tri[2]), rj.method, zo_floor(dl),
+          dt < dl and L("交点の方が近い", "tri was closer") or L("最後の線の方が近い", "last ray was closer"), tostring(rj.name)))
+        -- beta24: 両方の場合の位置(交点を使っていた場合 / ルールCで捨てて実際に処理した場合)との差
+        if rj.fin and not rj.kept then
+          local df = math.sqrt((px - rj.fin[1]) ^ 2 + (pz - rj.fin[3]) ^ 2)
+          PSM.d(string.format(L("[Sul-Xan's marker] 拾得" .. (early and "(表示前)" or "") .. ": ルールCの比較 交点を使った場合との差 水平%dcm / 捨てた場合(%s)との差 水平%dcm → %s (%s)",
+            "[Sul-Xan's marker] Pickup" .. (early and " (before display)" or "") .. ": rule C check if tri used delta %dcm / if rejected (%s) delta %dcm -> %s (%s)"),
+            zo_floor(dt), tostring(rj.finMethod), zo_floor(df),
+            math.abs(dt - df) < 50 and L("ほぼ同じ", "about the same") or (dt < df and L("交点を使った方が近い", "using tri was closer") or L("捨てた方が近い", "rejecting was closer")),
+            tostring(rj.name)))
+        end
+      end
+    end
+  end
 end
 
 local function OnSoulPickup(_, result, _, _, _, _, _, sourceType, _, _, hitValue)
@@ -2521,47 +3314,30 @@ local function OnSoulPickup(_, result, _, _, _, _, _, sourceType, _, _, hitValue
   else
     PSM.ClearUsedRays(activeSoulInterval, pickupTime)
   end
+  -- 確認用(aim-check): 拾った位置(≒倒れた敵の足元)から、照準線が敵のどこを通っていたかを逆算する
+  do
+    local apx, apy, apz = PSM.PickCenter(ReadPos("player"))
+    if apx then
+      if PSM.pending then PSM.aimPickPending = { apx, apy, apz } else PSM.AimCheck({ apx, apy, apz }) end
+    end
+  end
   if not PSM.sv.hideOnPickup then return end
 
   -- Pickup may precede the delayed Show() call by a few frames. Remember it
   -- so the callback can display the marker briefly.
   if PSM.pending then
     PSM.pendingPickup = true
-    if PSM.logEnabled then d(L("[Sul-Xan's marker] 表示前の拾得を記録（短時間表示）", "[Sul-Xan's marker] Pickup recorded before display (brief marker)")) end
+    local epx, epy, epz, mv = PSM.PickCenter(ReadPos("player"))
+    PSM.earlyPickPos = epx and { epx, epy, epz, mv } or nil
     return
   end
 
-  -- 精度の計測: 拾った瞬間の自分の位置と、表示していた位置との差をログに出す
   local ld = PSM.lastDrop
-  if PSM.logEnabled and ld and ld.pos and PSM.endTime > now() then
-    local px, py, pz = ReadPos("player")
-    if px then
-      local best, bestIdx, bestDh = nil, 0, math.huge
-      for i, cp in ipairs(ld.all or { ld.pos }) do
-        local dx, dz = px - cp[1], pz - cp[3]
-        local dh = math.sqrt(dx * dx + dz * dz)
-        if dh < bestDh then best, bestIdx, bestDh = cp, i, dh end
-      end
-      local dx, dz = px - best[1], pz - best[3]
-      local dy = py - best[2]
-      d(string.format(L("[Sul-Xan's marker] 拾得: 最も近い矢印(%d/%d番目)との差 水平%dcm (dx=%+d,dz=%+d) 基準位置との高さ%+dcm (%s / 同名死亡%d / 不確か=%s)", "[Sul-Xan's marker] Pickup: nearest arrow (%d/%d) delta horizontal %dcm (dx=%+d,dz=%+d) anchor height %+dcm (%s / same-name deaths %d / uncertain=%s)"),
-        bestIdx, #(ld.all or { ld.pos }), zo_floor(bestDh), zo_floor(dx), zo_floor(dz), zo_floor(dy), (tostring(ld.src):gsub("%(.*", "")),
-        ld.sameNameDeaths or 0, tostring(ld.uncertain)))
-    end
-  end
-  -- 確認用: 捨てた交点との差(交点を使っていたら、どれだけずれていたか)
-  if PSM.logEnabled and ld and ld.rejected and #ld.rejected > 0 and PSM.endTime > now() then
-    local px, py, pz = ReadPos("player")
-    if px then
-      for i, rj in ipairs(ld.rejected) do
-        local dt = math.sqrt((px - rj.tri[1]) ^ 2 + (pz - rj.tri[3]) ^ 2)
-        local dl = math.sqrt((px - rj.lr[1]) ^ 2 + (pz - rj.lr[3]) ^ 2)
-        d(string.format(L("[Sul-Xan's marker] 拾得: 捨てた交点との差 水平%dcm 高さ%+dcm / 代わりに使った最後の線(%s)との差 水平%dcm → %s (%s)",
-          "[Sul-Xan's marker] Pickup: rejected tri delta horizontal %dcm height %+dcm / last ray (%s) used instead delta %dcm -> %s (%s)"),
-          zo_floor(dt), zo_floor(py - rj.tri[2]), rj.method, zo_floor(dl),
-          dt < dl and L("交点の方が近い", "tri was closer") or L("最後の線の方が近い", "last ray was closer"), tostring(rj.name)))
-      end
-    end
+  if ld and PSM.endTime > now() then
+    local px, py, pz, mv = PSM.PickCenter(ReadPos("player"))
+    PSM.LogPickupDiff(ld, px, py, pz, nil, mv)
+    PSM.LearnCorr(ld, px, pz)
+    PSM.LearnAoeType(ld, px, pz)
   end
   PSM.Hide()
 end
@@ -2598,7 +3374,7 @@ local function OnEnemyDied(_, result, _, _, _, _, _, sourceType, targetName, tar
     local hpText = (okp and hp and hpMax and hpMax > 0) and string.format("%d%%", zo_floor(hp * 100 / hpMax)) or "-"
     StoreDiagnostic(string.format("ENEMY-DIED t=%d name=%s id=%s reticle=%s hp=%s track={%s}",
       t, tostring(name), tostring(targetUnitId), tostring(rn), hpText, SegmentIdDiag(name, t)))
-    d(string.format("[Sul-Xan's marker] enemy died: %s (result=%s, unitId=%s) reticle=%s(%s)%s",
+    PSM.d(string.format("[Sul-Xan's marker] enemy died: %s (result=%s, unitId=%s) reticle=%s(%s)%s",
       name, tostring(result), tostring(targetUnitId), tostring(rn), hpText,
       (rn and rn ~= name) and (" rawName=" .. tostring(targetName)) or ""))
   end
@@ -2652,8 +3428,20 @@ local function RegisterCombat()
   EM:RegisterForEvent(targetEvent, EVENT_COMBAT_EVENT, OnPlayerCombatTarget)
   EM:AddFilterForEvent(targetEvent, EVENT_COMBAT_EVENT,
     REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+
+  -- 参考ログ用(ログがオンの時だけ中身が動く)
+  local atkEvent = PSM.name .. "_EnemyAttack"
+  EM:RegisterForEvent(atkEvent, EVENT_COMBAT_EVENT, PSM.OnEnemyAttack)
+  if REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE then
+    EM:AddFilterForEvent(atkEvent, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+  end
+  if EVENT_ACTION_SLOT_ABILITY_USED then
+    EM:RegisterForEvent(PSM.name .. "_SlotUsed", EVENT_ACTION_SLOT_ABILITY_USED, PSM.OnSlotUsed)
+  end
+  EM:RegisterForUpdate(PSM.name .. "_TrackPlayer", 100, PSM.TrackPlayer)
 end
 
+PSM.StartCombat = function() RegisterCombat() end
 local function UnregisterCombat()
   if not combatRegistered then return end
   combatRegistered = false
@@ -2665,11 +3453,15 @@ local function UnregisterCombat()
   EM:UnregisterForEvent(PSM.name .. "_SoulPickup", EVENT_COMBAT_EVENT)
   EM:UnregisterForEvent(PSM.name .. "_Dead", EVENT_PLAYER_DEAD)
   EM:UnregisterForEvent(PSM.name .. "_PlayerTargetId", EVENT_COMBAT_EVENT)
+  EM:UnregisterForEvent(PSM.name .. "_EnemyAttack", EVENT_COMBAT_EVENT)
+  if EVENT_ACTION_SLOT_ABILITY_USED then EM:UnregisterForEvent(PSM.name .. "_SlotUsed", EVENT_ACTION_SLOT_ABILITY_USED) end
+  EM:UnregisterForUpdate(PSM.name .. "_TrackPlayer")
   EM:UnregisterForUpdate(SAMPLE_NAME)
 
   PSM.Hide()
   ResetState()
 end
+PSM.StopCombat = function() UnregisterCombat() end
 
 -- ----------------------------------------------------------------------------
 -- スルザン装備の判定
@@ -2717,13 +3509,88 @@ end
 
 PSM.active = nil
 
+-- beta18: 版と、位置の推定に関わる設定をログに1行出す(装備を検出した時と、設定を変えた時)
+function PSM.LogSettings(reason)
+  if not PSM.logEnabled then return end
+  local sv = PSM.sv or {}
+  local st = PSM.HabitStats and PSM.HabitStats()
+  PSM.d(string.format("[Sul-Xan's marker] 設定(%s): 版=%s 推測を厳しく=%s 矢印の大きさ=%d%% 位置不明は非表示=%s 推測の最大距離=%dm グループ=%s 癖の学習=%s",
+    tostring(reason), tostring(PSM.version),
+    sv.strictGuess == true and "ON" or "OFF",
+    sv.arrowScale or 100,
+    sv.hideWhenNoPos == true and "ON" or "OFF",
+    sv.maxShowDist or 36,
+    (IsUnitGrouped and IsUnitGrouped("player")) and "あり" or "なし",
+    st and string.format("線%d本 いつもの距離%.0fm", st.n, st.dmed / 100) or "学習中"))
+end
+-- beta26: 戦闘が起きない場所(家・街)にいて戦闘していない間は、全部止める(待機)。
+--   ゲームに「街かどうか」を調べる機能はないため、次の方法で判断する(ESOUI フォーラムの方法)。
+--   ・家: GetCurrentZoneHouseId() が 0 以外
+--   ・街: 地図の種類がサブゾーンで、内容が「なし」(ダンジョン・PvP ではない)。例外のゾーンは除く
+--   間違えて待機しても、戦闘が始まった時点ですぐ再開する。戦闘が終わってから10秒は待機しない(最後の魂を拾うため)。
+PSM.NOT_TOWN_ZONES = { [1021] = true, [1089] = true, [1090] = true, [1283] = true }
+PSM.IDLE_AFTER_COMBAT_MS = 10000
+function PSM.IsSafePlace()
+  if GetCurrentZoneHouseId and GetCurrentZoneHouseId() ~= 0 then return true, "house" end
+  local ok, zoneId = pcall(GetUnitRawWorldPosition, "player")
+  if ok and zoneId and PSM.NOT_TOWN_ZONES[zoneId] then return false end
+  if not (GetMapType and GetMapContentType and MAPTYPE_SUBZONE and MAP_CONTENT_NONE) then return false end
+  -- 地図を自分のいる場所に合わせる(地図を開いている時は動かさない)
+  if SetMapToPlayerLocation and not (ZO_WorldMap_IsWorldMapShowing and ZO_WorldMap_IsWorldMapShowing()) then
+    pcall(SetMapToPlayerLocation)
+  end
+  if GetMapType() == MAPTYPE_SUBZONE and GetMapContentType() == MAP_CONTENT_NONE then return true, "town" end
+  return false
+end
+function PSM.UpdateIdle()
+  if not PSM.active then return end
+  local t = now()
+  local want = PSM.safePlace and not PSM.inCombat and t - (PSM.combatEndAt or -1e9) >= PSM.IDLE_AFTER_COMBAT_MS
+    and not PSM.pending and (PSM.endTime or 0) <= t
+  if want == (PSM.idle == true) then return end
+  PSM.idle = want
+  if want then PSM.StopCombat() else PSM.StartCombat() end
+  if PSM.logEnabled then
+    PSM.d(want and L("[Sul-Xan's marker] 戦闘が起きない場所(" .. (PSM.safeKind == "house" and "家" or "街") .. ")のため待機します", "[Sul-Xan's marker] No-combat area (" .. tostring(PSM.safeKind) .. "): idle")
+      or L("[Sul-Xan's marker] 待機を解除しました", "[Sul-Xan's marker] Resumed"))
+  end
+end
+function PSM.OnCombatState(_, inCombat)
+  PSM.inCombat = inCombat == true
+  if PSM.inCombat then
+    PSM.UpdateIdle()
+  else
+    PSM.combatEndAt = now()
+    zo_callLater(PSM.UpdateIdle, PSM.IDLE_AFTER_COMBAT_MS + 500)
+  end
+end
+function PSM.OnZoneChanged()
+  zo_callLater(function()
+    local safe, kind = PSM.IsSafePlace()
+    PSM.safePlace, PSM.safeKind = safe, kind
+    PSM.UpdateIdle()
+  end, 500)
+end
 function PSM.UpdateActive()
   local on = PSM.IsSetEquipped()
   if on == PSM.active then return end
   PSM.active = on
-  if on then RegisterCombat() else UnregisterCombat() end
+  if on then
+    PSM.inCombat = IsUnitInCombat and IsUnitInCombat("player") or false
+    PSM.idle = false
+    RegisterCombat()
+    EM:RegisterForEvent(PSM.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, PSM.OnCombatState)
+    if EVENT_ZONE_CHANGED then EM:RegisterForEvent(PSM.name .. "_ZoneChanged", EVENT_ZONE_CHANGED, PSM.OnZoneChanged) end
+    PSM.OnZoneChanged()
+  else
+    EM:UnregisterForEvent(PSM.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE)
+    if EVENT_ZONE_CHANGED then EM:UnregisterForEvent(PSM.name .. "_ZoneChanged", EVENT_ZONE_CHANGED) end
+    PSM.idle = false
+    UnregisterCombat()
+  end
   if PSM.logEnabled then
-    d("[Sul-Xan's marker] " .. (on and L("スルザン装備を検出: 動作開始", "Sul-Xan's Torment detected: started") or L("スルザン装備なし: 完全停止", "Sul-Xan's Torment not worn: fully stopped")))
+    PSM.d("[Sul-Xan's marker] " .. (on and L("スルザン装備を検出: 動作開始", "Sul-Xan's Torment detected: started") or L("スルザン装備なし: 完全停止", "Sul-Xan's Torment not worn: fully stopped")))
+    if on then PSM.LogSettings(L("装備を検出", "equipped")) end
   end
 end
 
@@ -2747,6 +3614,7 @@ function PSM.RegisterEvents()
     ResetState()
     PSM.Hide()
     PSM.UpdateActive()
+    if PSM.active then PSM.OnZoneChanged() end   -- beta26: 場所が変わったので、待機するかを判断し直す
   end)
 
   PSM.UpdateActive()
@@ -2757,7 +3625,7 @@ end
 -- ----------------------------------------------------------------------------
 
 local function PrintDebug()
-  local function p(s) d("[Sul-Xan's marker] " .. s) end
+  local function p(s) PSM.d("[Sul-Xan's marker] " .. s) end
   p("version " .. PSM.version)
   p("baseline guard: min=" .. tostring(MIN_BASELINE_CM) .. "cm / final-check=ON")
   p("LibCombatAlerts: " .. ((LCA and LCA.WorldDrawing) and "OK" or "NOT FOUND"))
@@ -2786,7 +3654,7 @@ end
 -- Use while the reticle is directly on the dropped soul. This reports the
 -- interaction name and tests whether either unit tag exposes world coordinates.
 local function ProbeSoulTarget()
-  local function p(s) d("[Sul-Xan's marker] probe: " .. s) end
+  local function p(s) PSM.d("[Sul-Xan's marker] probe: " .. s) end
   local action, name = nil, nil
   if type(GetGameCameraInteractableActionInfo) == "function" then
     local ok, a, n = pcall(GetGameCameraInteractableActionInfo)
@@ -2816,6 +3684,14 @@ local function OnAddOnLoaded(_, addonName)
   EM:UnregisterForEvent(PSM.name .. "_Loaded", EVENT_ADD_ON_LOADED)
 
   PSM.sv = ZO_SavedVars:NewAccountWide("SulXansMarkerVars", 2, nil, PSM.defaults)
+  -- 学習データ(キャラクターごと。ログアウト後も残す)
+  PSM.LearnBox()
+  PSM.habitDirty = true
+  PSM.sv.logSave, PSM.sv.logAlways = nil, nil   -- beta17: ログの設定は Sul-Xan's marker Log に移した
+  PSM.sv.hmPriority = nil   -- beta21: 地形を優先(beta12)の設定は削除した
+  PSM.sv.movePredict = nil  -- beta24: 動きの予測(beta23 試験)は廃止した
+  PSM.sv.logLines = nil   -- beta16: 本体の保存データにあった古いログは消す(ログは SulXansMarkerLog.lua へ)
+  PSM.UpdateLogFlags()
   -- These behaviors are fixed on and are no longer user-configurable.
   -- Override older saved values so existing installs receive the same behavior.
   PSM.sv.hideOnPickup = true
@@ -2823,7 +3699,10 @@ local function OnAddOnLoaded(_, addonName)
   PSM.sv.useGround = true
   PSM.sv.weightTau = 1.5
   PSM.sv.use3D = true
-  PSM.sv.size3D = 200
+  -- beta25: 地面の矢印の大きさは設定(arrowScale %)で決める(基準 2m)
+  PSM.sv.arrowScale = math.max(50, math.min(200, tonumber(PSM.sv.arrowScale) or 100))
+  PSM.sv.size3D = 200 * PSM.sv.arrowScale / 100
+  PSM.sv.longRays = nil   -- beta25: 照準線を10秒分使う(beta22 試験)は削除した
   PSM.sv.height = 200
 
   CreateUI()
@@ -2848,10 +3727,39 @@ local function OnAddOnLoaded(_, addonName)
       PSM.Test()
     elseif arg == "unlock" then
       PSM.SetUnlocked(true)
-      d(L("[Sul-Xan's marker] 移動モード ON: アイコンをドラッグして移動。終わったら /sulxan lock", "[Sul-Xan's marker] Move mode ON: drag the icon. Type /sulxan lock when done"))
+      PSM.d(L("[Sul-Xan's marker] 移動モード ON: アイコンをドラッグして移動。終わったら /sulxan lock", "[Sul-Xan's marker] Move mode ON: drag the icon. Type /sulxan lock when done"))
     elseif arg == "lock" then
       PSM.SetUnlocked(false)
-      d(L("[Sul-Xan's marker] 位置を固定しました", "[Sul-Xan's marker] Position locked"))
+      PSM.d(L("[Sul-Xan's marker] 位置を固定しました", "[Sul-Xan's marker] Position locked"))
+    elseif arg == "habit" then
+      local st = HabitStats()
+      if st then
+        PSM.d(string.format("[Sul-Xan's marker] 癖の学習: 線=%d いつもの下向きの傾き %.2f (±%.2f) いつもの距離 %.0fm r2=%.2f %s",
+          st.n, st.med, 2 * st.sd, st.dmed / 100, st.r2, st.informative and "(体を狙う型: 使わない)" or "(使う)"))
+      else
+        PSM.d(string.format("[Sul-Xan's marker] 癖の学習: 学習中 (線=%d/40)", #PSM.LearnBox().habit.s))
+      end
+      -- 方法ごとの距離の補正
+      local parts = {}
+      for k, t in pairs(PSM.LearnBox().corr) do
+        if #t > 0 then
+          parts[#parts + 1] = string.format("%s=%.2f(%d%s)", k, PSM.CorrMedian(t), #t, #t >= 5 and "" or ",学習中")
+        end
+      end
+      table.sort(parts)
+      PSM.d("[Sul-Xan's marker] 距離の補正: " .. (#parts > 0 and table.concat(parts, " ") or "なし"))
+    elseif arg == "habit reset" then
+      local b = PSM.LearnBox()
+      b.habit, b.corr = { s = {}, d = {} }, {}
+      PSM.habitSt, PSM.habitDirty = nil, true
+      PSM.d("[Sul-Xan's marker] このキャラクターの学習データ(癖・距離の補正)を消去しました")
+    elseif arg == "strict on" or arg == "strict off" then
+      -- strict on = 位置が曖昧な場合の推測を厳しくする(赤い丸) / strict off = 推測する(オレンジ)
+      PSM.sv.strictGuess = (arg == "strict on")
+      PSM.LogSettings(L("変更", "changed"))
+      PSM.d(PSM.sv.strictGuess
+        and L("[Sul-Xan's marker] 倒れた敵が分からない時は推測せず、赤い丸を出します", "[Sul-Xan's marker] When the killed enemy is unknown: no guess (red circle)")
+        or L("[Sul-Xan's marker] 倒れた敵が分からない時は、照準中の敵の位置で推測します(オレンジ)", "[Sul-Xan's marker] When the killed enemy is unknown: guess from the aimed enemy (orange)"))
     elseif arg == "debug" then
       PrintDebug()
     elseif arg:match("^hmline") then
@@ -2860,7 +3768,7 @@ local function OnAddOnLoaded(_, addonName)
       -- 調査用: ペット・コンパニオン・照準先の座標が取れるかを表示する
       -- (非戦闘ペットを照準した状態でも実行して、reticleover の結果を確認する)
       local _, px, py, pz = GetUnitRawWorldPosition("player")
-      d("[Sul-Xan's marker] petprobe: 自分 " .. string.format("(%d,%d,%d)", px or 0, py or 0, pz or 0))
+      PSM.d("[Sul-Xan's marker] petprobe: 自分 " .. string.format("(%d,%d,%d)", px or 0, py or 0, pz or 0))
       local tags = { "companion", "reticleover", "reticleoverplayer", "interact" }
       for i = 1, 7 do tags[#tags + 1] = "playerpet" .. i end
       for _, tag in ipairs(tags) do
@@ -2869,7 +3777,7 @@ local function OnAddOnLoaded(_, addonName)
         local okP, zone, x, y, z = pcall(GetUnitRawWorldPosition, tag)
         local okW, wz, wx, wy, wzz = pcall(GetUnitWorldPosition, tag)
         local dist = (okP and x and px and not (x == 0 and z == 0)) and math.sqrt((x - px) ^ 2 + (z - pz) ^ 2) / 100 or nil
-        d(string.format("  %-18s exist=%s name=%s raw=%s world=%s%s", tag, tostring(okE and ex),
+        PSM.d(string.format("  %-18s exist=%s name=%s raw=%s world=%s%s", tag, tostring(okE and ex),
           tostring(okN and nm or "-"),
           okP and string.format("(%s,%s,%s)", tostring(x), tostring(y), tostring(z)) or "err",
           okW and string.format("(%s,%s,%s)", tostring(wx), tostring(wy), tostring(wzz)) or "err",
@@ -2877,24 +3785,31 @@ local function OnAddOnLoaded(_, addonName)
       end
     elseif arg == "hm" then
       local _, px, py, pz = GetUnitRawWorldPosition("player")
-      d(string.format("[Sul-Xan's marker] heightmap: zone=%s cells=%d", tostring(hm.zone), hm.count))
+      PSM.d(string.format("[Sul-Xan's marker] heightmap: zone=%s cells=%d", tostring(hm.zone), hm.count))
       if px then
         local h, direct = HmHeight(px, pz, py)
-        d(string.format("  here: ground=%s (%s) player y=%d", h and tostring(zo_floor(h)) or "-", direct and "cell" or "near", py))
+        PSM.d(string.format("  here: ground=%s (%s) player y=%d", h and tostring(zo_floor(h)) or "-", direct and "cell" or "near", py))
         local okc, ox, oy, oz, fx, fy, fz = pcall(GetCameraRay)
         if okc and ox then
           local cr, status = HmRayScan(ox, oy, oz, fx, fy, fz)
           if #cr > 0 then
             for k, c in ipairs(cr) do
-              d(string.format("  aim hit %d/%d (%s): (%d,%d,%d) dist=%.1fm dy=%dcm", k, #cr, tostring(status), c[1], c[2], c[3], math.sqrt((c[1] - px) ^ 2 + (c[3] - pz) ^ 2) / 100, c[2] - py))
+              PSM.d(string.format("  aim hit %d/%d (%s): (%d,%d,%d) dist=%.1fm dy=%dcm", k, #cr, tostring(status), c[1], c[2], c[3], math.sqrt((c[1] - px) ^ 2 + (c[3] - pz) ^ 2) / 100, c[2] - py))
             end
           else
-            d("  aim hit: none")
+            PSM.d("  aim hit: none")
           end
         end
       end
     elseif arg == "probe" then
       ProbeSoulTarget()
+    elseif arg == "logclear" then
+      if type(_G.SulXansMarkerLog_Data) == "table" then
+        _G.SulXansMarkerLog_Data.lines = {}
+        d("[Sul-Xan's marker] 記録したログを消去しました")
+      else
+        d("[Sul-Xan's marker] ログ保存用アドオン(Sul-Xan's marker Log)が有効になっていません")
+      end
     elseif arg == "dump" then
       DumpDiagnosticLog()
     elseif arg == "sets" then
@@ -2902,33 +3817,42 @@ local function OnAddOnLoaded(_, addonName)
     elseif arg:sub(1, 7) == "setname" then
       local nm = arg:sub(9)
       if nm == "" then
-        d(L("[Sul-Xan's marker] 使い方: /sulxan setname セット名の一部  (/sulxan sets で装備中のセット名を確認)", "[Sul-Xan's marker] Usage: /sulxan setname <part of set name>  (use /sulxan sets to see worn set names)"))
+        PSM.d(L("[Sul-Xan's marker] 使い方: /sulxan setname セット名の一部  (/sulxan sets で装備中のセット名を確認)", "[Sul-Xan's marker] Usage: /sulxan setname <part of set name>  (use /sulxan sets to see worn set names)"))
       else
         PSM.sv.extraSetNames = PSM.sv.extraSetNames or {}
         table.insert(PSM.sv.extraSetNames, nm)
-        d(L("[Sul-Xan's marker] セット名を追加: ", "[Sul-Xan's marker] Set name added: ") .. nm)
+        PSM.d(L("[Sul-Xan's marker] セット名を追加: ", "[Sul-Xan's marker] Set name added: ") .. nm)
         PSM.UpdateActive()
       end
     elseif arg:sub(1, 4) == "lang" then
       local v = arg:sub(6)
       if v == "ja" or v == "en" or v == "auto" then
         PSM.sv.language = v
-        d("[Sul-Xan's marker] language = " .. v .. L("  (設定画面は /reloadui 後に反映)", "  (settings menu changes after /reloadui)"))
+        PSM.d("[Sul-Xan's marker] language = " .. v .. L("  (設定画面は /reloadui 後に反映)", "  (settings menu changes after /reloadui)"))
       else
-        d("[Sul-Xan's marker] /sulxan lang ja | en | auto   (current: " .. tostring(PSM.sv.language) .. ", detected: " .. (DetectJa() and "ja" or "en") .. ")")
+        PSM.d("[Sul-Xan's marker] /sulxan lang ja | en | auto   (current: " .. tostring(PSM.sv.language) .. ", detected: " .. (DetectJa() and "ja" or "en") .. ")")
         local _, lines = ProbeLanguage()
-        d("[Sul-Xan's marker] probes: " .. table.concat(lines, ", "))
+        PSM.d("[Sul-Xan's marker] probes: " .. table.concat(lines, ", "))
       end
     elseif arg == "log" then
-      PSM.logEnabled = not PSM.logEnabled
-      d(L("[Sul-Xan's marker] ログ ", "[Sul-Xan's marker] Log ") .. (PSM.logEnabled and "ON" or "OFF"))
+      local LD = _G.SulXansMarkerLog_Data
+      if type(LD) == "table" then LD.chat = not (LD.chat == true) else PSM.sv.debugLog = not (PSM.sv.debugLog == true) end
+      PSM.UpdateLogFlags()
+      d(L("[Sul-Xan's marker] ログのチャット表示 ", "[Sul-Xan's marker] Log in chat ") .. (PSM.chatLog and "ON" or "OFF"))
     else
-      d("[Sul-Xan's marker] /sulxan test | unlock | lock | debug | probe | dump | sets | setname <name> | lang | log | hm")
+      PSM.d("[Sul-Xan's marker] /sulxan test | unlock | lock | debug | probe | dump | sets | setname <name> | lang | log | hm | logclear")
     end
   end
 
-  SLASH_COMMANDS["/sulxan"]   = OnSlashCommand
-  SLASH_COMMANDS["/puyosoul"] = OnSlashCommand  -- 旧名(互換用)
+  -- コマンドの返事は、デバッグ表示がオフでもチャットに出す(beta15)
+  local function OnSlashWrapped(...)
+    PSM.inCommand = true
+    local ok, err = pcall(OnSlashCommand, ...)
+    PSM.inCommand = false
+    if not ok then error(err) end
+  end
+  SLASH_COMMANDS["/sulxan"]   = OnSlashWrapped
+  SLASH_COMMANDS["/puyosoul"] = OnSlashWrapped  -- 旧名(互換用)
 end
 
 EM:RegisterForEvent(PSM.name .. "_Loaded", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

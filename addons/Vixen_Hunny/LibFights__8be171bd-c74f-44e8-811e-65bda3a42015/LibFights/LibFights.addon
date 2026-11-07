@@ -1,0 +1,28 @@
+## Title: LibFights
+## Description: Combat, ability, set, proc, stat and build logging library with lightweight predictive models (target resistance, damage reduction, crit, time-to-kill). Logs NOTHING until Start_Logging() is called.
+## Author: Vixen Hunny
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101047 101048
+## IsLibrary: true
+## SavedVariables: LibFightsSV
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibSets
+
+src/Core.lua
+src/Util.lua
+src/Constants.lua
+src/Abilities.lua
+src/Sets.lua
+src/Stats.lua
+src/Build.lua
+src/Models.lua
+src/Fight.lua
+src/Procs.lua
+src/Logger.lua
+src/Search.lua
+src/Storage.lua
+src/Report.lua
+src/HUD.lua
+src/Settings.lua
+src/Slash.lua
+src/Init.lua

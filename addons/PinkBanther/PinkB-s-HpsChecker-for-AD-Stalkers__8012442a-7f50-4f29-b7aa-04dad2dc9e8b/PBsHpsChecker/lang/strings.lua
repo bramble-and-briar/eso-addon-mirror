@@ -20,9 +20,6 @@ local strings = {
 	SI_PBSHPS_ROW_GROUP = "To party  %s  %s  %s players",
 	SI_PBSHPS_ROW_OTHER = "To others  %s  %s  %s players",
 	SI_PBSHPS_ROW_SELF = "To you  %s  %s",
-	SI_PBSHPS_ROW_PT_SHARE = "Your share of party healing  %s",
-	SI_PBSHPS_PT_UNKNOWN = "-",
-	SI_PBSHPS_TAG_PARTY_SHARE = "[PT %s]",
 	SI_PBSHPS_TAG_PARTY = "[PT]",
 
 	-- the HUD meter
@@ -31,11 +28,10 @@ local strings = {
 	SI_PBSHPS_HUD_ENDED = "Fight over",
 	SI_PBSHPS_HUD_TOTAL = "Healed  %s   %s   %d players",
 	SI_PBSHPS_HUD_SHARE = "Party %d%%  Others %d%%  You %d%%",
-	SI_PBSHPS_HUD_PT_SHARE = "Your share of party healing  %s",
 
 	-- the statistics screen
 	SI_PBSHPS_BLOCK_SUMMARY = "Summary",
-	SI_PBSHPS_BLOCK_TARGETS = "Top 10 healed  [PT n%] = your share",
+	SI_PBSHPS_BLOCK_TARGETS = "Top 10 healed  [PT] = party member",
 	SI_PBSHPS_BLOCK_SKILLS = "Top 10 skills",
 	SI_PBSHPS_BLOCK_FIGHTS = "Latest 10 fights",
 
@@ -52,8 +48,8 @@ local strings = {
 	SI_PBSHPS_SCREEN_PERIOD = "Period: %s  (%d / %d)",
 	SI_PBSHPS_SCREEN_PERIODS = "%d periods. Choose one and press A to open its statistics.",
 	SI_PBSHPS_SCREEN_FIGHTS = "Latest %d fights, newest first",
-	SI_PBSHPS_HINT_STATS = "Left / Right: period    LB / RB: page    X: today    [PT n%] and Your share = your share of what party members received",
-	SI_PBSHPS_HINT_PERIODS = "Up / Down: choose    A: open    LB / RB: page    X: today    Your share = your share of what party members received",
+	SI_PBSHPS_HINT_STATS = "Left / Right: period    LB / RB: page    X: today",
+	SI_PBSHPS_HINT_PERIODS = "Up / Down: choose    A: open    LB / RB: page    X: today",
 	SI_PBSHPS_HINT_FIGHTS = "Up / Down: scroll    LB / RB: page    X: today",
 	SI_PBSHPS_COL_PERIOD = "Period",
 	SI_PBSHPS_COL_HEAL = "Healed",
@@ -61,7 +57,6 @@ local strings = {
 	SI_PBSHPS_COL_FIGHTS = "Fights",
 	SI_PBSHPS_COL_TIME = "Time",
 	SI_PBSHPS_COL_PARTY = "To party",
-	SI_PBSHPS_COL_SHARE = "Your share",
 	SI_PBSHPS_COL_WHEN = "When",
 	SI_PBSHPS_COL_LENGTH = "Length",
 	SI_PBSHPS_COL_PEOPLE = "Players",
@@ -99,8 +94,6 @@ local strings = {
 	SI_PBSHPS_SECTION_RECORD = "Recording",
 	SI_PBSHPS_ENABLED = "Record healing",
 	SI_PBSHPS_ENABLED_TIP = "Off, nothing is counted.",
-	SI_PBSHPS_OTHERS = "Count other healers' heals",
-	SI_PBSHPS_OTHERS_TIP = "Also counts the heals other healers do to your party members, to work out your share of what a party member received. Off, only your own heals are counted, so the share reads 100%. The same while none of their heals reaches the add-on. In a big fight this is every healer's heals, so switch it off if the game feels heavy.",
 	SI_PBSHPS_ZONES = "Where to count",
 	SI_PBSHPS_ZONES_TIP = "Cyrodiil only (default), every PvP zone (Cyrodiil, the Imperial City, Battlegrounds), or everywhere including PvE.",
 	SI_PBSHPS_ZONE_CYRODIIL = "Cyrodiil only",
@@ -133,7 +126,7 @@ local strings = {
 	-- the probe (/hps probe)
 	SI_PBSHPS_PROBE_START = "Probe started: for %d seconds every heal the game sends is counted, whoever heals whom. Stand where other healers are healing. /hps probe again stops it early and shows the result.",
 	SI_PBSHPS_PROBE_RUNNING = "[HPS] Probe running, %d s left.",
-	SI_PBSHPS_PROBE_HEADING = "[HPS] Probe result (%d s). Heals the game sent, as source > target:",
+	SI_PBSHPS_PROBE_HEADING = "[HPS] Probe result (%d s). Heals the game sent, as source > target (heals, amount/overflow, sources, e.g. [ability]):",
 	SI_PBSHPS_PROBE_NONE = "No heal arrived at all.",
 	SI_PBSHPS_PROBE_LINE = "  %s > %s  heals: %d  amount: %s  sources: %d  e.g. %s",
 	SI_PBSHPS_PROBE_LEGEND = "[HPS] Did it arrive? (PLAYER = you, GROUP = a party member, OTHER = anybody else)",
@@ -142,6 +135,8 @@ local strings = {
 	SI_PBSHPS_PROBE_Q_GROUP_GROUP = "Party member > party member",
 	SI_PBSHPS_PROBE_Q_OTHER_GROUP = "Outside the party > party member",
 	SI_PBSHPS_PROBE_Q_OTHER_OTHER = "Outside the party > outside the party",
+	SI_PBSHPS_PROBE_Q_NAMELESS_GROUP = "Nameless heal > a party member (by its unit ID)",
+	SI_PBSHPS_PROBE_NAMELESS = "  Heals sent without a name: %d  %s > %s  [%s]",
 	SI_PBSHPS_PROBE_YES = "YES (heals: %d)",
 	SI_PBSHPS_PROBE_NO = "NO",
 	SI_PBSHPS_PROBE_CAVEAT = "[HPS] A NO may only mean it did not happen while probing: it needs other healers healing near you, and for the first two lines, heals of your own.",

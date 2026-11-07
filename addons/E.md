@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Effective Damage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/harog/Effective-Damage__3975) | harog | PC / Mac | 1.5 |
 | [Eidetic Memory Of Item](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Eidetic-Memory-Of-Item__1854) | 2ch | PC / Mac | 4.7 |
 | [EisherzGuildIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SamoAquila/EisherzGuildIcons__4495) | SamoAquila | PC / Mac | 1.0.2 |
-| [Elden Ring UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI__4623) | Geldis | PC / Mac | 2.0.1 |
+| [Elden Ring UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI__4623) | Geldis | PC / Mac | 2.1.0 |
 | [Elden Ring UI - Cmx Module](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI---Cmx-Module__4624) | Geldis | PC / Mac | 1.0.1 |
 | [ElderScrollsOfAlts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts__2070) | Echomap | PC / Mac | 2.00.10 |
 | [ElderScrollsOfAlts 1.00.53.beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts-1.00.53.beta__3969) | Echomap | PC / Mac | 1.00.53.beta |
@@ -56,6 +56,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Equipment Level (for Update 6)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Equipment-Level-for-Update-6__625) | Garkin | PC / Mac | 1.3 |
 | [Equipped Champion Stars - Equipped CP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Equipped-Champion-Stars---Equipped-CP__3691) | notnear | PC / Mac | 1.1.1 |
 | [ERA's Collection Book](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WildEra/ERA-s-Collection-Book__2235) | WildEra | PC / Mac | 2.2.0 |
+| [Eskiodoe's Font Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BrutalCrime/Eskiodoe-s-Font-Switcher__c68a988b-e050-4ab0-8cfe-4f7f9e5f5f50) | BrutalCrime | Console | — |
 | [ESO Adventurer Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HoZayyBadazz/ESO-Adventurer-Suite__4779) | HoZayyBadazz | PC / Mac | 0.29.790 |
 | [ESO Arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/ESO-Arabic__3e5cdaca-d941-4fff-873b-7fd31d726a80) | Lofand | Console | — |
 | [ESO Arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/ESO-Arabic__a46a8bd0-fa70-4d6a-817e-5f69d01e04ec) | Lofand | Console | — |

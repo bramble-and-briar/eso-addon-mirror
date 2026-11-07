@@ -1,7 +1,9 @@
 -- ConsoleMetrics_PCDialog.lua
--- Full keyboard/mouse dialog for ConsoleMetrics on PC.
--- Replaces the LibConsoleDialogs / LibHarvensAddonSettings gamepad flow with
--- a native ESO top-level scrollable window that works with mouse & keyboard.
+-- Keyboard/mouse window for ConsoleMetrics on PC, styled after the base-game
+-- keyboard UI: the standard window backdrop, gold-on-dark fonts, divider
+-- art, a journal-style category list on the left, ESO buttons / edit boxes,
+-- the regular mouse-over tooltip, and ESC / cursor handling through the
+-- scene manager's top-level windows.
 
 local CM = ConsoleMetrics
 local Util = ConsoleMetrics.Util
@@ -30,33 +32,88 @@ local InferProtectionFromDr = Fight.InferProtectionFromDr
 local WM = WINDOW_MANAGER
 
 -------------------------------------------------------------------------------
--- Constants
+-- Layout
 -------------------------------------------------------------------------------
-local WIN_W        = 800
-local WIN_H        = 860
-local TITLE_H      = 56
-local NAV_H        = 48
-local TOOLTIP_H    = 70          -- bottom info bar
-local PADDING      = 14
-local SB_W         = 16          -- scrollbar width
-local CONTENT_W    = WIN_W - PADDING * 2 - SB_W - 4
-local SECTION_H    = 38
-local STAT_H       = 32
-local BTN_H        = 40
+local WIN_W        = 980
+local WIN_H        = 760
+local HEADER_H     = 64          -- title row
+local FOOTER_H     = 58          -- fight navigation row
+local EDGE         = 22          -- inner margin from the window edge
+local NAV_W        = 210         -- left category column
+local GAP          = 18          -- space between nav and content
+local SB_W         = 10          -- scrollbar width
+local PADDING      = 8
+local CONTENT_W    = WIN_W - EDGE * 2 - NAV_W - GAP - SB_W - 8
+local SECTION_H    = 42
+local STAT_H       = 28
+local BTN_W        = 300
+local BTN_H        = 30
 local BTN_PAD      = 6
-local FONT_TITLE   = "ZoFontGamepad34"
-local FONT_SECTION = "ZoFontGamepad27"
-local FONT_STAT    = "ZoFontGamepad22"
-local FONT_BTN     = "ZoFontGamepad22"
-local COL_BG       = { 0.05, 0.05, 0.08, 0.96 }
-local COL_TITLE_BG = { 0.10, 0.10, 0.16, 1.00 }
-local COL_SECTION  = { 0.18, 0.18, 0.28, 1.00 }
-local COL_EDGE     = { 0.30, 0.30, 0.50, 0.80 }
-local COL_STAT_TXT = { 0.90, 0.90, 0.90, 1.00 }
-local COL_BTN_NORM = { 0.20, 0.26, 0.38, 1.00 }
-local COL_BTN_HOVR = { 0.30, 0.38, 0.54, 1.00 }
-local COL_BTN_PRES = { 0.14, 0.18, 0.26, 1.00 }
-local COL_BTN_TXT  = { 0.95, 0.95, 1.00, 1.00 }
+local TILE_H       = 70
+local NAV_ROW_H    = 30
+local NAV_HEADER_H = 32
+
+local FONT_TITLE     = "ZoFontWinH1"
+local FONT_SUBTITLE  = "ZoFontWinH4"
+local FONT_PANEL     = "ZoFontWinH2"
+local FONT_SECTION   = "ZoFontWinH3"
+local FONT_NAV       = "ZoFontHeader2"
+local FONT_NAV_HEAD  = "ZoFontWinH5"
+local FONT_STAT      = "ZoFontGame"
+local FONT_VALUE     = "ZoFontGameBold"
+local FONT_TILE      = "ZoFontWinH2"
+local FONT_TILE_CAP  = "ZoFontWinH5"
+
+local DIVIDER_TEXTURE = "EsoUI/Art/Miscellaneous/horizontalDivider.dds"
+
+-- Base-game text colors (with fallbacks in case a global is missing).
+local function Color(def, r, g, b)
+    if def and def.UnpackRGBA then
+        local cr, cg, cb, ca = def:UnpackRGBA()
+        return { cr, cg, cb, ca or 1 }
+    end
+    return { r, g, b, 1 }
+end
+local COL_NORMAL    = Color(ZO_NORMAL_TEXT,    0.773, 0.761, 0.620)   -- gold/beige labels
+local COL_SELECTED  = Color(ZO_SELECTED_TEXT,  1.000, 1.000, 1.000)   -- values, selected entries
+local COL_HIGHLIGHT = Color(ZO_HIGHLIGHT_TEXT, 1.000, 1.000, 1.000)
+local COL_DISABLED  = Color(ZO_DISABLED_TEXT,  0.380, 0.380, 0.380)
+local COL_HEADER    = Color(ZO_SECOND_CONTRAST_TEXT, 0.933, 0.886, 0.722)
+local COL_ROW_ALT   = { 0, 0, 0, 0.28 }
+local COL_ROW_HOVER = { 1, 1, 1, 0.07 }
+local COL_TILE_BG   = { 0, 0, 0, 0.40 }
+local COL_NAV_SEL   = { 0.773, 0.761, 0.620, 0.16 }
+
+local function SetColor(ctrl, col)
+    ctrl:SetColor(col[1], col[2], col[3], col[4] or 1)
+end
+
+-------------------------------------------------------------------------------
+-- Category list (left column)
+-------------------------------------------------------------------------------
+local NAV_GROUPS = {
+    { header = "Fight", entries = {
+        { key = "main",       label = "Summary" },
+        { key = "overview",   label = "Overview" },
+        { key = "skills",     label = "Abilities" },
+        { key = "buffs",      label = "Buffs & Sets" },
+        { key = "debuffs",    label = "Debuffs" },
+        { key = "mitigation", label = "Mitigation" },
+        { key = "resistance", label = "Resistance" },
+        { key = "resources",  label = "Resources" },
+    } },
+    { header = "Character", entries = {
+        { key = "build",      label = "Build" },
+        { key = "behavior",   label = "Behavior Model" },
+        { key = "formulas",   label = "Formulas" },
+    } },
+    { header = "Tools", entries = {
+        { key = "share",      label = "Share to Chat" },
+        { key = "saves",      label = "Saved Fights", also = { save = true } },
+        { key = "libfights",  label = "LibFights" },
+        { key = "options",    label = "Options" },
+    } },
+}
 
 -------------------------------------------------------------------------------
 -- Internals
@@ -67,18 +124,99 @@ ConsoleMetrics.pcDlg = pcDlg
 local contentHeight    = 0
 local currentScrollPos = 0     -- manual scroll offset in pixels
 local lastRenderedPanel = nil  -- detect panel changes to reset scroll
+local rowIndex         = 0     -- alternating row shading
 local ScrollContent            -- forward declaration; defined below CreatePCDialog
 
+-- Interaction tracking. The live refresh rebuilds every control in the
+-- content area, so it must not run while the player is clicking (the click
+-- would land on a control that was just recycled) or scrolling, and
+-- auto-hide must not close the window while the player is using it.
+local INTERACTION_HOLD_MS = 1500   -- no rebuild for this long after a click / scroll
+local lastInteractionMs = 0
+local mouseButtonDown = false
+
+local function NoteInteraction()
+    lastInteractionMs = GetFrameTimeMilliseconds()
+    -- Any use of the window restarts the auto-hide countdown.
+    if ConsoleMetrics.dialogAutoHideAtMs then
+        ConsoleMetrics:ArmDialogAutoHide()
+    end
+end
+
+function ConsoleMetrics:IsPCDialogBusy()
+    if not pcDlg.window or pcDlg.window:IsHidden() then
+        return false
+    end
+    local nowMs = GetFrameTimeMilliseconds()
+    if mouseButtonDown and nowMs > lastInteractionMs + 5000 then
+        -- The release happened outside the control; don't stay stuck.
+        mouseButtonDown = false
+    end
+    if mouseButtonDown or pcDlg.sbDragging then
+        return true
+    end
+    return nowMs < lastInteractionMs + INTERACTION_HOLD_MS
+end
+
+function ConsoleMetrics:IsPCDialogInUse()
+    if not pcDlg.window or pcDlg.window:IsHidden() then
+        return false
+    end
+    if self:IsPCDialogBusy() or self:IsPCDialogEditing() then
+        return true
+    end
+    -- Cursor over the window. Only counts while the mouse cursor is shown:
+    -- with the cursor hidden it sits at screen center, where the window opens.
+    if type(IsGameCameraUIModeActive) == "function" and not IsGameCameraUIModeActive() then
+        return false
+    end
+    local ok, over = pcall(MouseIsOver, pcDlg.window)
+    return ok and over == true
+end
 
 -------------------------------------------------------------------------------
--- Helper: make a backdrop control
+-- Tooltips (the base-game information tooltip)
 -------------------------------------------------------------------------------
-local function MakeBD(name, parent, r, g, b, a, er, eg, eb, ea)
-    local bd = WM:CreateControl(name, parent, CT_BACKDROP)
-    bd:SetCenterColor(r, g, b, a)
-    bd:SetEdgeColor(er or COL_EDGE[1], eg or COL_EDGE[2], eb or COL_EDGE[3], ea or COL_EDGE[4])
-    bd:SetEdgeTexture(nil, 1, 1, 0, 0)
-    return bd
+local function ShowCMTooltip(owner, text)
+    if not text or text == "" or not InformationTooltip then return end
+    InitializeTooltip(InformationTooltip, owner, LEFT, 12, 0, RIGHT)
+    SetTooltipText(InformationTooltip, text)
+end
+
+local function HideCMTooltip()
+    if InformationTooltip then
+        ClearTooltip(InformationTooltip)
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Small control helpers
+-------------------------------------------------------------------------------
+local function MakeLabel(name, parent, font, col, text)
+    local lbl = WM:CreateControl(name, parent, CT_LABEL)
+    lbl:SetFont(font)
+    SetColor(lbl, col)
+    lbl:SetText(text or "")
+    return lbl
+end
+
+local function MakeDivider(name, parent)
+    local tex = WM:CreateControl(name, parent, CT_TEXTURE)
+    tex:SetTexture(DIVIDER_TEXTURE)
+    tex:SetTextureCoords(0.181640625, 0.818359375, 0, 1)
+    tex:SetHeight(4)
+    return tex
+end
+
+local function MakeButton(name, parent, text, width, onClick)
+    local btn = WM:CreateControlFromVirtual(name, parent, "ZO_DefaultButton")
+    btn:SetDimensions(width or 140, BTN_H)
+    btn:SetText(text)
+    btn:SetHandler("OnClicked", function()
+        NoteInteraction()
+        onClick()
+    end)
+    return btn
 end
 
 -------------------------------------------------------------------------------
@@ -94,140 +232,190 @@ function ConsoleMetrics:CreatePCDialog()
     win:SetMouseEnabled(true)
     win:SetClampedToScreen(true)
     win:SetHidden(true)
-    pcDlg.window = win
 
-    -- background
-    local bg = MakeBD("$(parent)BG", win, COL_BG[1], COL_BG[2], COL_BG[3], COL_BG[4])
+    pcDlg.window = win
+    -- Dragging the window counts as using it.
+    win:SetHandler("OnMoveStart", function() mouseButtonDown = true; NoteInteraction() end)
+    win:SetHandler("OnMoveStop", function() mouseButtonDown = false; NoteInteraction() end)
+    win:SetHandler("OnMouseEnter", function() NoteInteraction() end)
+
+    -- Standard keyboard window backdrop.
+    local bg = WM:CreateControlFromVirtual("$(parent)BG", win, "ZO_DefaultBackdrop")
     bg:SetAnchorFill(win)
 
-    -- title bar
-    local titleBG = MakeBD("$(parent)TitleBG", win,
-        COL_TITLE_BG[1], COL_TITLE_BG[2], COL_TITLE_BG[3], COL_TITLE_BG[4])
-    titleBG:SetAnchor(TOPLEFT,     win, TOPLEFT,     0, 0)
-    titleBG:SetAnchor(TOPRIGHT,    win, TOPRIGHT,    0, 0)
-    titleBG:SetHeight(TITLE_H)
+    -- Header: title, what is being viewed, close button.
+    local title = MakeLabel("$(parent)Title", win, FONT_TITLE, COL_NORMAL, zo_strupper and zo_strupper("Console Metrics") or "CONSOLE METRICS")
+    title:SetAnchor(TOPLEFT, win, TOPLEFT, EDGE, 14)
+    pcDlg.titleLabel = title
 
-    local titleLabel = WM:CreateControl("$(parent)Title", titleBG, CT_LABEL)
-    titleLabel:SetFont(FONT_TITLE)
-    titleLabel:SetColor(1, 1, 1, 1)
-    titleLabel:SetText("Console Metrics")
-    titleLabel:SetAnchor(LEFT, titleBG, LEFT, PADDING, 0)
-    pcDlg.titleLabel = titleLabel
+    local subtitle = MakeLabel("$(parent)Subtitle", win, FONT_SUBTITLE, COL_SELECTED, "")
+    subtitle:SetAnchor(BOTTOMLEFT, title, BOTTOMRIGHT, 16, -3)
+    pcDlg.subtitle = subtitle
 
-    -- close button  [X]
-    local closeBtn = WM:CreateControl("$(parent)Close", win, CT_BUTTON)
-    closeBtn:SetDimensions(28, 28)
-    closeBtn:SetAnchor(TOPRIGHT, win, TOPRIGHT, -4, 4)
-    closeBtn:SetText("X")
-    closeBtn:SetFont(FONT_SECTION)
-    closeBtn:SetNormalFontColor(1, 0.4, 0.4, 1)
+    local closeBtn = WM:CreateControlFromVirtual("$(parent)Close", win, "ZO_CloseButton")
+    closeBtn:SetAnchor(TOPRIGHT, win, TOPRIGHT, -EDGE + 4, 18)
     closeBtn:SetHandler("OnClicked", function()
         ConsoleMetrics:CloseFightViewDialog(true, "button")
     end)
 
-    -- nav bar (Back + breadcrumb)
-    local navBG = MakeBD("$(parent)NavBG", win,
-        COL_SECTION[1], COL_SECTION[2], COL_SECTION[3], COL_SECTION[4])
-    navBG:SetAnchor(TOPLEFT,  win, TOPLEFT,  0,      TITLE_H)
-    navBG:SetAnchor(TOPRIGHT, win, TOPRIGHT, 0,      TITLE_H)
-    navBG:SetHeight(NAV_H)
+    local topDivider = MakeDivider("$(parent)TopDivider", win)
+    topDivider:SetAnchor(TOPLEFT, win, TOPLEFT, EDGE - 6, HEADER_H)
+    topDivider:SetAnchor(TOPRIGHT, win, TOPRIGHT, -EDGE + 6, HEADER_H)
 
-    local backBtn = WM:CreateControl("$(parent)Back", navBG, CT_BUTTON)
-    backBtn:SetDimensions(60, NAV_H - 6)
-    backBtn:SetText("< Back")
-    backBtn:SetFont(FONT_STAT)
-    backBtn:SetNormalFontColor(0.8, 0.9, 1, 1)
-    backBtn:SetAnchor(LEFT, navBG, LEFT, PADDING, 0)
-    backBtn:SetHandler("OnClicked", function()
-        ConsoleMetrics.dialogPanel = "main"
-        ConsoleMetrics:RefreshPCDialog()
-    end)
-    pcDlg.backBtn = backBtn
+    local bottomDivider = MakeDivider("$(parent)BottomDivider", win)
+    bottomDivider:SetAnchor(BOTTOMLEFT, win, BOTTOMLEFT, EDGE - 6, -FOOTER_H)
+    bottomDivider:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -EDGE + 6, -FOOTER_H)
 
-    local breadcrumb = WM:CreateControl("$(parent)Breadcrumb", navBG, CT_LABEL)
-    breadcrumb:SetFont(FONT_SECTION)
-    breadcrumb:SetColor(0.85, 0.85, 1, 1)
-    breadcrumb:SetAnchor(LEFT, backBtn, RIGHT, 8, 0)
-    pcDlg.breadcrumb = breadcrumb
+    local bodyTop = HEADER_H + 14
+    local bodyBottom = FOOTER_H + 10
 
-    -- viewport: plain CT_CONTROL that clips overflow children naturally
-    local scrollTop = TITLE_H + NAV_H + PADDING
+    -- Left category list (journal style).
+    local nav = WM:CreateControl("$(parent)Nav", win, CT_CONTROL)
+    nav:SetAnchor(TOPLEFT, win, TOPLEFT, EDGE, bodyTop)
+    nav:SetAnchor(BOTTOMLEFT, win, BOTTOMLEFT, EDGE, -bodyBottom)
+    nav:SetWidth(NAV_W)
+    pcDlg.navEntries = {}
 
+    local navY = 0
+    for g = 1, #NAV_GROUPS do
+        local group = NAV_GROUPS[g]
+        local head = MakeLabel("$(parent)Head" .. g, nav, FONT_NAV_HEAD, COL_HEADER, zo_strupper and zo_strupper(group.header) or string.upper(group.header))
+        head:SetAnchor(TOPLEFT, nav, TOPLEFT, 4, navY + 6)
+        navY = navY + NAV_HEADER_H
+
+        for e = 1, #group.entries do
+            local entry = group.entries[e]
+            local row = WM:CreateControl("$(parent)Row" .. g .. "_" .. e, nav, CT_CONTROL)
+            row:SetAnchor(TOPLEFT, nav, TOPLEFT, 0, navY)
+            row:SetDimensions(NAV_W, NAV_ROW_H)
+            row:SetMouseEnabled(true)
+
+            local highlight = WM:CreateControl("$(parent)Highlight", row, CT_TEXTURE)
+            highlight:SetAnchorFill(row)
+            highlight:SetColor(COL_NAV_SEL[1], COL_NAV_SEL[2], COL_NAV_SEL[3], COL_NAV_SEL[4])
+            highlight:SetHidden(true)
+
+            local marker = WM:CreateControl("$(parent)Marker", row, CT_TEXTURE)
+            marker:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 3)
+            marker:SetDimensions(3, NAV_ROW_H - 6)
+            SetColor(marker, COL_NORMAL)
+            marker:SetHidden(true)
+
+            local label = MakeLabel("$(parent)Label", row, FONT_NAV, COL_NORMAL, entry.label)
+            label:SetAnchor(LEFT, row, LEFT, 16, 0)
+
+            row:SetHandler("OnMouseEnter", function()
+                if not row.selected then SetColor(label, COL_HIGHLIGHT) end
+            end)
+            row:SetHandler("OnMouseExit", function()
+                if not row.selected then SetColor(label, COL_NORMAL) end
+            end)
+            row:SetHandler("OnMouseUp", function(_, button, upInside)
+                if button ~= MOUSE_BUTTON_INDEX_LEFT or not upInside then return end
+                NoteInteraction()
+                if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then PlaySound(SOUNDS.DEFAULT_CLICK) end
+                ConsoleMetrics.dialogPanel = entry.key
+                ConsoleMetrics:RefreshPCDialog()
+            end)
+
+            row.entry = entry
+            row.label = label
+            row.highlight = highlight
+            row.marker = marker
+            pcDlg.navEntries[#pcDlg.navEntries + 1] = row
+            navY = navY + NAV_ROW_H
+        end
+        navY = navY + 8
+    end
+
+    -- Thin vertical rule between the category list and the content.
+    local rule = WM:CreateControl("$(parent)Rule", win, CT_TEXTURE)
+    rule:SetAnchor(TOPLEFT, nav, TOPRIGHT, GAP / 2, 0)
+    rule:SetAnchor(BOTTOMLEFT, nav, BOTTOMRIGHT, GAP / 2, 0)
+    rule:SetWidth(1)
+    rule:SetColor(COL_NORMAL[1], COL_NORMAL[2], COL_NORMAL[3], 0.25)
+
+    -- Panel heading above the scroll area.
+    local contentLeft = EDGE + NAV_W + GAP
+    local panelTitle = MakeLabel("$(parent)PanelTitle", win, FONT_PANEL, COL_SELECTED, "")
+    panelTitle:SetAnchor(TOPLEFT, win, TOPLEFT, contentLeft + 2, bodyTop - 4)
+    pcDlg.breadcrumb = panelTitle
+
+    -- Viewport: plain CT_CONTROL that clips its children.
+    local scrollTop = bodyTop + 40
     local scrollFrame = WM:CreateControl("$(parent)Scroll", win, CT_CONTROL)
-    scrollFrame:SetAnchor(TOPLEFT,     win, TOPLEFT,  PADDING,           scrollTop)
-    scrollFrame:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -(PADDING + SB_W + 4), TOOLTIP_H + PADDING)
+    scrollFrame:SetAnchor(TOPLEFT,     win, TOPLEFT,     contentLeft, scrollTop)
+    scrollFrame:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -(EDGE + SB_W + 8), -bodyBottom)
     scrollFrame:SetMouseEnabled(true)
     scrollFrame:SetHandler("OnMouseWheel", function(_, delta) ScrollContent(delta) end)
-    -- Clip children to the visible viewport so content above/below the frame is hidden
     pcall(function() scrollFrame:SetClipChildren(true) end)
     pcDlg.scrollFrame = scrollFrame
 
-    -- scrollbar track (also stops above tooltip bar)
-    local sbTrack = MakeBD("$(parent)SBTrack", win, 0.10, 0.10, 0.16, 0.95,
-        0.25, 0.25, 0.40, 0.80)
+    -- Slim scrollbar in the base-game colors.
+    local sbTrack = WM:CreateControl("$(parent)SBTrack", win, CT_TEXTURE)
     sbTrack:SetWidth(SB_W)
-    sbTrack:SetAnchor(TOPRIGHT,    win, TOPRIGHT, -PADDING, scrollTop)
-    sbTrack:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -PADDING, TOOLTIP_H + PADDING)
+    sbTrack:SetAnchor(TOPRIGHT,    win, TOPRIGHT,    -EDGE, scrollTop)
+    sbTrack:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -EDGE, -bodyBottom)
+    sbTrack:SetColor(0, 0, 0, 0.45)
     sbTrack:SetMouseEnabled(true)
     pcDlg.sbTrack = sbTrack
 
-    -- scrollbar thumb
-    local sbThumb = MakeBD("$(parent)SBThumb", win, 0.45, 0.50, 0.75, 0.95,
-        0.60, 0.65, 0.90, 1.00)
+    local sbThumb = WM:CreateControl("$(parent)SBThumb", win, CT_TEXTURE)
     sbThumb:SetWidth(SB_W)
     sbThumb:SetHeight(60)
-    sbThumb:SetAnchor(TOPRIGHT, win, TOPRIGHT, -PADDING, scrollTop)
+    sbThumb:SetAnchor(TOPRIGHT, win, TOPRIGHT, -EDGE, scrollTop)
+    sbThumb:SetColor(COL_NORMAL[1], COL_NORMAL[2], COL_NORMAL[3], 0.55)
     sbThumb:SetMouseEnabled(true)
     pcDlg.sbThumb = sbThumb
     pcDlg.sbDragging = false
     pcDlg.sbDragStartY = 0
     pcDlg.sbDragStartScroll = 0
 
-    -- thumb drag handlers
-    sbThumb:SetHandler("OnMouseDown", function(ctrl, btn)
-        if btn ~= 1 then return end
+    sbThumb:SetHandler("OnMouseEnter", function() sbThumb:SetColor(COL_NORMAL[1], COL_NORMAL[2], COL_NORMAL[3], 0.85) end)
+    sbThumb:SetHandler("OnMouseExit", function() sbThumb:SetColor(COL_NORMAL[1], COL_NORMAL[2], COL_NORMAL[3], 0.55) end)
+    sbThumb:SetHandler("OnMouseDown", function(_, btn)
+        if btn ~= MOUSE_BUTTON_INDEX_LEFT then return end
         pcDlg.sbDragging = true
-        pcDlg.sbDragStartY = select(2, GetCursorPosition())
+        pcDlg.sbDragStartY = select(2, GetUIMousePosition())
         pcDlg.sbDragStartScroll = currentScrollPos
+        NoteInteraction()
     end)
     sbThumb:SetHandler("OnMouseUp", function()
         pcDlg.sbDragging = false
+        NoteInteraction()
     end)
     sbThumb:SetHandler("OnUpdate", function()
         if not pcDlg.sbDragging then return end
-        local _, curY = GetCursorPosition()
-        local deltaY  = pcDlg.sbDragStartY - curY
+        local _, curY = GetUIMousePosition()
+        local deltaY  = curY - pcDlg.sbDragStartY
         local trackH  = sbTrack:GetHeight()
         local thumbH  = sbThumb:GetHeight()
         local visH    = scrollFrame:GetHeight()
         local totalH  = pcDlg.content:GetHeight()
         local maxScroll = math.max(0, totalH - visH)
         if trackH <= thumbH then return end
-        local scrollDelta = deltaY * maxScroll / (trackH - thumbH)
-        local newScroll = math.max(0, math.min(maxScroll,
-            pcDlg.sbDragStartScroll + scrollDelta))
-        ConsoleMetrics:SetScrollPos(newScroll)
+        ConsoleMetrics:SetScrollPos(pcDlg.sbDragStartScroll + deltaY * maxScroll / (trackH - thumbH))
     end)
 
-    -- track click: jump to position
-    sbTrack:SetHandler("OnMouseDown", function(ctrl, btn)
-        if btn ~= 1 then return end
-        local _, curY    = GetCursorPosition()
-        local _, trackY  = sbTrack:GetScreenRect()
+    sbTrack:SetHandler("OnMouseDown", function(_, btn)
+        if btn ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        local _, curY    = GetUIMousePosition()
+        local trackY     = sbTrack:GetTop()
         local trackH     = sbTrack:GetHeight()
         local visH       = scrollFrame:GetHeight()
         local totalH     = pcDlg.content:GetHeight()
         local maxScroll  = math.max(0, totalH - visH)
         local frac       = math.max(0, math.min(1, (curY - trackY) / trackH))
         ConsoleMetrics:SetScrollPos(frac * maxScroll)
+        NoteInteraction()
     end)
 
-    -- window-level catch-all so the wheel works even when hovering the title / nav bar
+    -- Wheel anywhere in the window scrolls the content.
     win:SetHandler("OnMouseWheel", function(_, delta)
         ScrollContent(delta)
     end)
 
-    -- Close dialog on controller / keyboard movement when the option is enabled.
+    -- Close on movement when the option is enabled.
     win:SetHandler("OnUpdate", function()
         if not pcDlg.window or pcDlg.window:IsHidden() then return end
         if ConsoleMetrics.saved and ConsoleMetrics.saved.closeOnMove then
@@ -237,30 +425,92 @@ function ConsoleMetrics:CreatePCDialog()
         end
     end)
 
-    -- content container inside scroll
     local content = WM:CreateControl("$(parent)Content", scrollFrame, CT_CONTROL)
     content:SetWidth(CONTENT_W)
     content:SetHeight(100)
     content:SetAnchor(TOPLEFT, scrollFrame, TOPLEFT, 0, 0)
     pcDlg.content = content
 
-    -- tooltip / info bar at the bottom of the window
-    local ttBG = MakeBD("$(parent)TTBar", win, 0.08, 0.08, 0.14, 0.97,
-        0.30, 0.35, 0.55, 0.90)
-    ttBG:SetAnchor(BOTTOMLEFT,  win, BOTTOMLEFT,  0, 0)
-    ttBG:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, 0, 0)
-    ttBG:SetHeight(TOOLTIP_H)
+    -- Footer: fight history navigation (like a keybind strip).
+    local footerY = -(FOOTER_H / 2) + 2
+    local prevBtn = MakeButton("$(parent)Prev", win, "Previous", 130, function()
+        ConsoleMetrics:StepFightView(-1)
+        ConsoleMetrics:RefreshPCDialog()
+    end)
+    prevBtn:SetAnchor(LEFT, win, BOTTOMLEFT, EDGE, footerY)
+    pcDlg.prevBtn = prevBtn
 
-    local ttLabel = WM:CreateControl("$(parent)TTText", ttBG, CT_LABEL)
-    ttLabel:SetFont(FONT_STAT)
-    ttLabel:SetColor(1, 1, 0.80, 1)
-    ttLabel:SetAnchor(TOPLEFT,     ttBG, TOPLEFT,     PADDING, 6)
-    ttLabel:SetAnchor(BOTTOMRIGHT, ttBG, BOTTOMRIGHT, -PADDING, -6)
-    ttLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    ttLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    ttLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    ttLabel:SetText("")
-    pcDlg.ttLabel = ttLabel
+    local nextBtn = MakeButton("$(parent)Next", win, "Next", 130, function()
+        ConsoleMetrics:StepFightView(1)
+        ConsoleMetrics:RefreshPCDialog()
+    end)
+    nextBtn:SetAnchor(LEFT, prevBtn, RIGHT, 8, 0)
+    pcDlg.nextBtn = nextBtn
+
+    local liveBtn = MakeButton("$(parent)Live", win, "Live", 110, function()
+        ConsoleMetrics.viewFightIndex = 0
+        ConsoleMetrics:RefreshPCDialog()
+    end)
+    liveBtn:SetAnchor(LEFT, nextBtn, RIGHT, 8, 0)
+    pcDlg.liveBtn = liveBtn
+
+    local fightLabel = MakeLabel("$(parent)FightLabel", win, FONT_STAT, COL_NORMAL, "")
+    fightLabel:SetAnchor(LEFT, liveBtn, RIGHT, 18, 0)
+    fightLabel:SetDimensions(WIN_W - EDGE * 2 - 3 * 130 - 180, 24)
+    fightLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    pcDlg.fightLabel = fightLabel
+
+    local saveBtn = MakeButton("$(parent)Save", win, "Save Fight", 150, function()
+        local snap = ConsoleMetrics:GetViewedFightSnapshot() or {}
+        ConsoleMetrics.saved.saveFightDraftName = BuildDefaultFightSaveName(snap, #ConsoleMetrics:GetSavedFights() + 1)
+        ConsoleMetrics.dialogPanel = "save"
+        ConsoleMetrics:RefreshPCDialog()
+    end)
+    saveBtn:SetAnchor(RIGHT, win, BOTTOMRIGHT, -EDGE, footerY)
+    pcDlg.saveBtn = saveBtn
+
+    -- ESC closes the window and opening it shows the mouse cursor, like any
+    -- base-game window. Falls back to plain show/hide if unavailable.
+    if SCENE_MANAGER and type(SCENE_MANAGER.RegisterTopLevel) == "function" then
+        local ok = pcall(SCENE_MANAGER.RegisterTopLevel, SCENE_MANAGER, win, false)
+        pcDlg.isTopLevel = ok
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Chrome updates (title, nav selection, footer)
+-------------------------------------------------------------------------------
+local function UpdateChrome(self, panel)
+    local snap, isLive = self:GetViewedFightSnapshot()
+    snap = snap or {}
+    local viewing
+    if isLive then
+        viewing = self.inCombat and "Live  -  in combat" or "Live"
+    elseif type(snap.savedLabel) == "string" and snap.savedLabel ~= "" then
+        viewing = snap.savedLabel
+    else
+        viewing = string.format("Fight %d of %d", self.viewFightIndex or 0, #self.fightHistory)
+    end
+    pcDlg.subtitle:SetText(viewing)
+
+    local fightText = string.format("%s   |   %.1fs   |   %s DPS",
+        (snap.title and snap.title ~= "") and snap.title or (isLive and "No fight yet" or "Fight"),
+        snap.duration or 0, ShortNumber(snap.dps or 0))
+    pcDlg.fightLabel:SetText(fightText)
+
+    local hasHistory = #self.fightHistory > 0
+    pcDlg.prevBtn:SetEnabled(hasHistory)
+    pcDlg.nextBtn:SetEnabled(hasHistory)
+    pcDlg.liveBtn:SetEnabled(not isLive)
+
+    for i = 1, #pcDlg.navEntries do
+        local row = pcDlg.navEntries[i]
+        local selected = row.entry.key == panel or (row.entry.also and row.entry.also[panel]) or false
+        row.selected = selected
+        row.highlight:SetHidden(not selected)
+        row.marker:SetHidden(not selected)
+        SetColor(row.label, selected and COL_SELECTED or COL_NORMAL)
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -274,7 +524,11 @@ function ConsoleMetrics:OpenPCDialog(forceLive)
     elseif not self.dialogPanel then
         self.dialogPanel = "main"
     end
-    pcDlg.window:SetHidden(false)
+    if pcDlg.isTopLevel then
+        SCENE_MANAGER:ShowTopLevel(pcDlg.window)
+    else
+        pcDlg.window:SetHidden(false)
+    end
     pcDlg.window:BringWindowToTop()
     lastRenderedPanel = nil  -- force scroll-to-top on first render
     self:RefreshPCDialog()
@@ -286,7 +540,12 @@ end
 
 function ConsoleMetrics:ClosePCDialog()
     if pcDlg.window then
-        pcDlg.window:SetHidden(true)
+        HideCMTooltip()
+        if pcDlg.isTopLevel then
+            SCENE_MANAGER:HideTopLevel(pcDlg.window)
+        else
+            pcDlg.window:SetHidden(true)
+        end
     end
     self.wasFightViewDialogShowing = false
 end
@@ -296,31 +555,14 @@ function ConsoleMetrics:IsFightViewDialogShowingPC()
 end
 
 -------------------------------------------------------------------------------
--- Tooltip helpers (update the bottom info bar)
--------------------------------------------------------------------------------
-local function ShowCMTooltip(text)
-    if pcDlg.ttLabel then
-        pcDlg.ttLabel:SetText(text or "")
-    end
-end
-
-local function HideCMTooltip()
-    if pcDlg.ttLabel then
-        pcDlg.ttLabel:SetText("")
-    end
-end
-
--------------------------------------------------------------------------------
--- Shared scroll helper
+-- Scrolling
 -------------------------------------------------------------------------------
 ScrollContent = function(delta)
     if not pcDlg.scrollFrame then return end
+    NoteInteraction()
     ConsoleMetrics:SetScrollPos(currentScrollPos - delta * 60)
 end
 
--------------------------------------------------------------------------------
--- SetScrollPos: move the content container by anchor offset
--------------------------------------------------------------------------------
 function ConsoleMetrics:SetScrollPos(pos)
     local sf = pcDlg.scrollFrame
     if not sf or not pcDlg.content then return end
@@ -333,73 +575,106 @@ function ConsoleMetrics:SetScrollPos(pos)
     self:UpdateScrollThumb()
 end
 
+function ConsoleMetrics:UpdateScrollThumb()
+    local thumb, track, sf = pcDlg.sbThumb, pcDlg.sbTrack, pcDlg.scrollFrame
+    if not thumb or not track or not sf then return end
+
+    local visH   = sf:GetHeight()
+    local totalH = pcDlg.content:GetHeight()
+    if totalH <= visH then
+        thumb:SetHidden(true)
+        track:SetHidden(true)
+        return
+    end
+    thumb:SetHidden(false)
+    track:SetHidden(false)
+
+    local trackH    = track:GetHeight()
+    local thumbH    = math.max(30, math.floor(trackH * visH / totalH))
+    local maxScroll = totalH - visH
+    local offset    = math.floor((Clamp(currentScrollPos, 0, maxScroll) / maxScroll) * (trackH - thumbH))
+    thumb:SetHeight(thumbH)
+    thumb:ClearAnchors()
+    thumb:SetAnchor(TOPLEFT, track, TOPLEFT, 0, offset)
+end
+
 -------------------------------------------------------------------------------
 -- Dynamic control pool
 -------------------------------------------------------------------------------
 -- ESO cannot destroy controls and the panel is rebuilt on every refresh, so
--- controls are pooled per type and reused. Without this every refresh leaked
--- a few dozen controls for the lifetime of the UI.
-local POOL_TYPES = {
-    label    = CT_LABEL,
-    button   = CT_BUTTON,
-    backdrop = CT_BACKDROP,
-    editbox  = CT_EDITBOX,
-    texture  = CT_TEXTURE,
-}
+-- controls are pooled per kind and reused.
 local HANDLERS_TO_RESET = {
     "OnMouseEnter", "OnMouseExit", "OnClicked", "OnMouseDown", "OnMouseUp",
     "OnTextChanged", "OnFocusLost", "OnFocusGained",
 }
 
-local pools = {}
-for kind in pairs(POOL_TYPES) do
-    pools[kind] = {}
-end
+local pools = { label = {}, texture = {}, button = {}, edit = {} }
 local activeControls = {}   -- { kind = ..., ctrl = ... } in use by the current render
 local controlCounter = 0
 
+local function CreatePooled(kind, parent)
+    controlCounter = controlCounter + 1
+    local name = "ConsoleMetricsPC_" .. kind .. controlCounter
+    if kind == "label" then
+        return WM:CreateControl(name, parent, CT_LABEL)
+    elseif kind == "texture" then
+        return WM:CreateControl(name, parent, CT_TEXTURE)
+    elseif kind == "button" then
+        return WM:CreateControlFromVirtual(name, parent, "ZO_DefaultButton")
+    elseif kind == "edit" then
+        local backdrop = WM:CreateControlFromVirtual(name, parent, "ZO_EditBackdrop")
+        backdrop.edit = WM:CreateControlFromVirtual(name .. "Box", backdrop, "ZO_DefaultEditForBackdrop")
+        return backdrop
+    end
+end
+
+local function ResetHandlers(ctrl)
+    for i = 1, #HANDLERS_TO_RESET do
+        pcall(ctrl.SetHandler, ctrl, HANDLERS_TO_RESET[i], nil)
+    end
+    -- Forward wheel events so scrolling works over every row.
+    pcall(ctrl.SetHandler, ctrl, "OnMouseWheel", function(_, delta) ScrollContent(delta) end)
+end
+
 local function Acquire(kind, parent)
-    local pool = pools[kind]
-    local ctrl = table.remove(pool)
+    local ctrl = table.remove(pools[kind])
     if not ctrl then
-        controlCounter = controlCounter + 1
-        ctrl = WM:CreateControl("ConsoleMetricsPC_" .. kind .. controlCounter, parent, POOL_TYPES[kind])
+        ctrl = CreatePooled(kind, parent)
     else
         ctrl:SetParent(parent)
     end
 
     ctrl:ClearAnchors()
     ctrl:SetHidden(false)
-    ctrl:SetMouseEnabled(false)
-    for i = 1, #HANDLERS_TO_RESET do
-        pcall(ctrl.SetHandler, ctrl, HANDLERS_TO_RESET[i], nil)
-    end
-    -- Forward wheel events from every child so they always reach the scroll logic.
-    pcall(ctrl.SetHandler, ctrl, "OnMouseWheel", function(_, delta) ScrollContent(delta) end)
+    ctrl:SetMouseEnabled(kind == "button" or kind == "edit")
+    ResetHandlers(ctrl)
 
     if kind == "label" then
-        -- Zero dimensions = auto-size to text; builders set explicit widths where needed.
-        ctrl:SetDimensions(0, 0)
+        ctrl:SetDimensions(0, 0)   -- auto-size; builders set widths where needed
         ctrl:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-        ctrl:SetVerticalAlignment(TEXT_ALIGN_TOP)
+        ctrl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         ctrl:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    elseif kind == "texture" then
+        ctrl:SetTexture("")
+        ctrl:SetTextureCoords(0, 1, 0, 1)
+        ctrl:SetColor(1, 1, 1, 1)
+    elseif kind == "button" then
+        ctrl:SetEnabled(true)
+    elseif kind == "edit" then
+        ResetHandlers(ctrl.edit)
+        ctrl.edit:SetMouseEnabled(true)
     end
 
     activeControls[#activeControls + 1] = { kind = kind, ctrl = ctrl }
     return ctrl
 end
 
-local function AcquireBackdrop(parent, r, g, b, a, er, eg, eb, ea)
-    local bd = Acquire("backdrop", parent)
-    bd:SetCenterColor(r, g, b, a)
-    bd:SetEdgeColor(er or COL_EDGE[1], eg or COL_EDGE[2], eb or COL_EDGE[3], ea or COL_EDGE[4])
-    bd:SetEdgeTexture(nil, 1, 1, 0, 0)
-    return bd
-end
-
 local function ReleaseAll()
     for i = 1, #activeControls do
         local entry = activeControls[i]
+        if entry.kind == "edit" then
+            pcall(entry.ctrl.edit.LoseFocus, entry.ctrl.edit)
+        end
         entry.ctrl:SetHidden(true)
         entry.ctrl:ClearAnchors()
         local pool = pools[entry.kind]
@@ -407,6 +682,8 @@ local function ReleaseAll()
     end
     activeControls = {}
     contentHeight = 0
+    rowIndex = 0
+    HideCMTooltip()
 end
 
 -- True while any edit box in the current render has keyboard focus.
@@ -416,8 +693,8 @@ function ConsoleMetrics:IsPCDialogEditing()
     end
     for i = 1, #activeControls do
         local entry = activeControls[i]
-        if entry.kind == "editbox" then
-            local ok, focused = pcall(entry.ctrl.HasFocus, entry.ctrl)
+        if entry.kind == "edit" then
+            local ok, focused = pcall(entry.ctrl.edit.HasFocus, entry.ctrl.edit)
             if ok and focused then
                 return true
             end
@@ -434,283 +711,295 @@ local function AdvanceCursor(h, extra)
 end
 
 local function ContentY()
-    return contentHeight   -- top edge for next item
+    return contentHeight
 end
 
--- Section header
+-- Section header: gold caps text over the divider art.
 local function AddSection(content, text)
-    local y = ContentY()
-    local bd = AcquireBackdrop(content, COL_SECTION[1], COL_SECTION[2], COL_SECTION[3], 0.85)
-    bd:SetAnchor(TOPLEFT,  content, TOPLEFT,  0, y)
-    bd:SetAnchor(TOPRIGHT, content, TOPRIGHT, 0, y)
-    bd:SetHeight(SECTION_H)
-
-    local lbl = Acquire("label", bd)
-    lbl:SetFont(FONT_SECTION)
-    lbl:SetColor(1, 0.88, 0.55, 1)
-    lbl:SetText(text)
-    lbl:SetAnchor(LEFT, bd, LEFT, PADDING, 0)
-
-    AdvanceCursor(SECTION_H, 4)
-end
-
--- Stat line (left label, optional right value)
-local function AddStat(content, leftText, rightText, tooltip)
+    if contentHeight > 0 then
+        AdvanceCursor(10)
+    end
     local y = ContentY()
     local lbl = Acquire("label", content)
-    lbl:SetFont(FONT_STAT)
-    lbl:SetColor(COL_STAT_TXT[1], COL_STAT_TXT[2], COL_STAT_TXT[3], COL_STAT_TXT[4])
-    lbl:SetText(leftText or "")
-    lbl:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y + 2)
-    lbl:SetWidth(rightText and (CONTENT_W * 0.65) or (CONTENT_W - PADDING * 2))
+    lbl:SetFont(FONT_SECTION)
+    SetColor(lbl, COL_NORMAL)
+    lbl:SetText(zo_strupper and zo_strupper(text or "") or string.upper(text or ""))
+    lbl:SetAnchor(TOPLEFT, content, TOPLEFT, 2, y + 6)
+    lbl:SetDimensions(CONTENT_W - 4, 26)
 
-    if rightText then
-        local rbl = Acquire("label", content)
-        rbl:SetFont(FONT_STAT)
-        rbl:SetColor(0.70, 0.90, 0.70, 1)
-        rbl:SetText(tostring(rightText))
-        rbl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        rbl:SetAnchor(TOPRIGHT, content, TOPRIGHT, -PADDING, y + 2)
-        rbl:SetWidth(CONTENT_W * 0.30)
-    end
+    local line = Acquire("texture", content)
+    line:SetTexture(DIVIDER_TEXTURE)
+    line:SetTextureCoords(0.181640625, 0.818359375, 0, 1)
+    line:SetAnchor(TOPLEFT,  content, TOPLEFT,  -6, y + 34)
+    line:SetAnchor(TOPRIGHT, content, TOPRIGHT,  6, y + 34)
+    line:SetHeight(4)
 
-    if tooltip then
-        lbl:SetMouseEnabled(true)
-        lbl:SetHandler("OnMouseEnter", function() ShowCMTooltip(tooltip) end)
-        lbl:SetHandler("OnMouseExit",  function() HideCMTooltip() end)
-    end
-
-    AdvanceCursor(STAT_H, 2)
+    rowIndex = 0
+    AdvanceCursor(SECTION_H)
 end
 
--- Clickable action button
-local function AddButton(content, labelText, tooltip, callback, disabled)
+-- Stat row: gold label on the left, white value on the right, alternating
+-- shading, hover highlight and a tooltip when one is given.
+local function AddStat(content, leftText, rightText, tooltip)
     local y = ContentY()
-    local btn = Acquire("button", content)
-    btn:SetDimensions(CONTENT_W - PADDING * 2, BTN_H)
-    btn:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y)
-    btn:SetText(labelText)
-    btn:SetFont(FONT_STAT)
-    if disabled then
-        btn:SetNormalFontColor(0.5, 0.5, 0.5, 1)
-    else
-        btn:SetNormalFontColor(COL_BTN_TXT[1], COL_BTN_TXT[2], COL_BTN_TXT[3], COL_BTN_TXT[4])
+    rowIndex = rowIndex + 1
+
+    local bg = Acquire("texture", content)
+    bg:SetAnchor(TOPLEFT,  content, TOPLEFT,  0, y)
+    bg:SetAnchor(TOPRIGHT, content, TOPRIGHT, 0, y)
+    bg:SetHeight(STAT_H)
+    local base = (rowIndex % 2 == 0) and COL_ROW_ALT or { 0, 0, 0, 0 }
+    bg:SetColor(base[1], base[2], base[3], base[4])
+
+    local lbl = Acquire("label", bg)
+    lbl:SetFont(FONT_STAT)
+    SetColor(lbl, rightText and COL_NORMAL or COL_SELECTED)
+    lbl:SetText(leftText or "")
+    lbl:SetAnchor(LEFT, bg, LEFT, PADDING, 0)
+    lbl:SetDimensions(rightText and (CONTENT_W * 0.58) or (CONTENT_W - PADDING * 2), STAT_H)
+
+    if rightText then
+        local rbl = Acquire("label", bg)
+        rbl:SetFont(FONT_VALUE)
+        SetColor(rbl, COL_SELECTED)
+        rbl:SetText(tostring(rightText))
+        rbl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        rbl:SetAnchor(RIGHT, bg, RIGHT, -PADDING, 0)
+        rbl:SetDimensions(CONTENT_W * 0.40, STAT_H)
     end
-    btn:SetMouseEnabled(true)
 
     if tooltip then
-        btn:SetHandler("OnMouseEnter", function() ShowCMTooltip(tooltip) end)
-        btn:SetHandler("OnMouseExit",  function() HideCMTooltip() end)
+        bg:SetMouseEnabled(true)
+        bg:SetHandler("OnMouseEnter", function(ctrl)
+            ctrl:SetColor(COL_ROW_HOVER[1], COL_ROW_HOVER[2], COL_ROW_HOVER[3], COL_ROW_HOVER[4])
+            ShowCMTooltip(ctrl, tooltip)
+        end)
+        bg:SetHandler("OnMouseExit", function(ctrl)
+            ctrl:SetColor(base[1], base[2], base[3], base[4])
+            HideCMTooltip()
+        end)
     end
+
+    AdvanceCursor(STAT_H)
+end
+
+-- Row of big number tiles for the summary page.
+-- tiles: array of { label, value, tooltip }
+local function AddTiles(content, tiles, perRow)
+    perRow = perRow or 4
+    local gap = 8
+    local tileW = math.floor((CONTENT_W - gap * (perRow - 1)) / perRow)
+    for i = 1, #tiles do
+        local col = (i - 1) % perRow
+        if col == 0 and i > 1 then
+            AdvanceCursor(TILE_H, gap)
+        end
+        local y = ContentY()
+        local tile = Acquire("texture", content)
+        tile:SetAnchor(TOPLEFT, content, TOPLEFT, col * (tileW + gap), y)
+        tile:SetDimensions(tileW, TILE_H)
+        tile:SetColor(COL_TILE_BG[1], COL_TILE_BG[2], COL_TILE_BG[3], COL_TILE_BG[4])
+
+        local value = Acquire("label", tile)
+        value:SetFont(FONT_TILE)
+        SetColor(value, COL_SELECTED)
+        value:SetText(tostring(tiles[i].value or ""))
+        value:SetAnchor(TOPLEFT, tile, TOPLEFT, 12, 8)
+        value:SetDimensions(tileW - 24, 34)
+
+        local caption = Acquire("label", tile)
+        caption:SetFont(FONT_TILE_CAP)
+        SetColor(caption, COL_NORMAL)
+        caption:SetText(zo_strupper and zo_strupper(tiles[i].label or "") or string.upper(tiles[i].label or ""))
+        caption:SetAnchor(BOTTOMLEFT, tile, BOTTOMLEFT, 12, -8)
+        caption:SetDimensions(tileW - 24, 20)
+
+        if tiles[i].tooltip then
+            local tip = tiles[i].tooltip
+            tile:SetMouseEnabled(true)
+            tile:SetHandler("OnMouseEnter", function(ctrl)
+                ctrl:SetColor(0, 0, 0, 0.6)
+                ShowCMTooltip(ctrl, tip)
+            end)
+            tile:SetHandler("OnMouseExit", function(ctrl)
+                ctrl:SetColor(COL_TILE_BG[1], COL_TILE_BG[2], COL_TILE_BG[3], COL_TILE_BG[4])
+                HideCMTooltip()
+            end)
+        end
+    end
+    if #tiles > 0 then
+        AdvanceCursor(TILE_H, 4)
+    end
+end
+
+-- Standard ESO button.
+local function AddButton(content, labelText, tooltip, callback, disabled)
+    AdvanceCursor(BTN_PAD / 2)
+    local y = ContentY()
+    local btn = Acquire("button", content)
+    btn:SetDimensions(BTN_W, BTN_H)
+    btn:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y)
+    btn:SetText(labelText)
+    btn:SetEnabled(not disabled)
+
+    btn:SetHandler("OnMouseEnter", function(ctrl) ShowCMTooltip(ctrl, tooltip) end)
+    btn:SetHandler("OnMouseExit",  function() HideCMTooltip() end)
+    -- Hold off live rebuilds between press and release so the click is not lost.
+    btn:SetHandler("OnMouseDown", function() mouseButtonDown = true; NoteInteraction() end)
+    btn:SetHandler("OnMouseUp", function() mouseButtonDown = false; NoteInteraction() end)
 
     if callback and not disabled then
         btn:SetHandler("OnClicked", function()
+            mouseButtonDown = false
+            NoteInteraction()
             callback()
+            -- A callback may have closed the window; RefreshPCDialog checks that.
             ConsoleMetrics:RefreshPCDialog()
         end)
     end
 
-    AdvanceCursor(BTN_H, BTN_PAD)
+    AdvanceCursor(BTN_H, BTN_PAD / 2)
 end
 
--- Text edit field (for save-name inputs etc.)
+-- Text field (save-name inputs etc.) using the base-game edit box.
 local function AddEditBox(content, labelText, getter, setter, maxChars)
     local y = ContentY()
-
     local lbl = Acquire("label", content)
     lbl:SetFont(FONT_STAT)
-    lbl:SetColor(COL_STAT_TXT[1], COL_STAT_TXT[2], COL_STAT_TXT[3], 1)
+    SetColor(lbl, COL_NORMAL)
     lbl:SetText(labelText or "")
-    lbl:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y + 2)
-    AdvanceCursor(STAT_H, 2)
+    lbl:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, y)
+    lbl:SetDimensions(CONTENT_W - PADDING * 2, STAT_H)
+    AdvanceCursor(STAT_H)
 
-    local editH = STAT_H + 8   -- tall enough for ZoFontGamepad22
-    local editBG = AcquireBackdrop(content, 0.10, 0.10, 0.10, 1, 0.5, 0.5, 0.7, 1)
-    editBG:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, ContentY())
-    editBG:SetDimensions(CONTENT_W - PADDING * 2, editH)
+    local holder = Acquire("edit", content)
+    holder:SetAnchor(TOPLEFT, content, TOPLEFT, PADDING, ContentY())
+    holder:SetDimensions(CONTENT_W - PADDING * 2, 30)
 
-    local edit = Acquire("editbox", editBG)
-    edit:SetFont(FONT_STAT)
-    edit:SetAnchorFill(editBG)
+    local edit = holder.edit
     edit:SetMaxInputChars(maxChars or 80)
     edit:SetText(getter and getter() or "")
-    edit:SetAllowMarkupType(ALLOW_MARKUP_TYPE_NONE)
-    edit:SetMultiLine(false)
-    edit:SetMouseEnabled(true)
-    edit:SetHandler("OnMouseDown", function(ctrl)
-        ctrl:TakeFocus()
-    end)
+    edit:SetHandler("OnMouseDown", function(ctrl) ctrl:TakeFocus() end)
     edit:SetHandler("OnTextChanged", function(ctrl)
+        NoteInteraction()
         if setter then setter(ctrl:GetText()) end
     end)
     edit:SetHandler("OnFocusLost", function(ctrl)
         if setter then setter(ctrl:GetText()) end
     end)
+    pcall(edit.SetHandler, edit, "OnEnter", function(ctrl) ctrl:LoseFocus() end)
+    pcall(edit.SetHandler, edit, "OnEscape", function(ctrl) ctrl:LoseFocus() end)
 
-    AdvanceCursor(editH, BTN_PAD)
+    AdvanceCursor(30, BTN_PAD)
     return edit
 end
 
--- Horizontal divider
+-- Horizontal divider.
 local function AddDivider(content)
     local y = ContentY()
     local line = Acquire("texture", content)
-    line:SetAnchor(TOPLEFT,  content, TOPLEFT,  PADDING, y + 4)
-    line:SetAnchor(TOPRIGHT, content, TOPRIGHT, -PADDING, y + 4)
-    line:SetHeight(1)
-    line:SetColor(0.35, 0.35, 0.50, 0.60)
-    AdvanceCursor(9, 0)
-end
-
--------------------------------------------------------------------------------
--- Scrollbar thumb update
--------------------------------------------------------------------------------
-function ConsoleMetrics:UpdateScrollThumb()
-    local thumb   = pcDlg.sbThumb
-    local track   = pcDlg.sbTrack
-    local sf      = pcDlg.scrollFrame
-    if not thumb or not track or not sf then return end
-
-    local visH    = sf:GetHeight()
-    local totalH  = pcDlg.content:GetHeight()
-
-    if totalH <= visH then
-        thumb:SetHidden(true)
-        return
-    end
-    thumb:SetHidden(false)
-
-    local trackH  = track:GetHeight()
-    local thumbH  = math.max(30, math.floor(trackH * visH / totalH))
-    thumb:SetHeight(thumbH)
-
-    local maxScroll  = totalH - visH
-    local scrollPos  = math.max(0, math.min(maxScroll, currentScrollPos))
-    local offset     = math.floor((scrollPos / maxScroll) * (trackH - thumbH))
-
-    local _, trackScreenY = track:GetScreenRect()
-    local _, winScreenY   = pcDlg.window:GetScreenRect()
-    local trackTopInWin   = trackScreenY - winScreenY
-
-    thumb:ClearAnchors()
-    thumb:SetAnchor(TOPRIGHT, pcDlg.window, TOPRIGHT, -PADDING, trackTopInWin + offset)
+    line:SetTexture(DIVIDER_TEXTURE)
+    line:SetTextureCoords(0.181640625, 0.818359375, 0, 1)
+    line:SetAnchor(TOPLEFT,  content, TOPLEFT,  0, y + 6)
+    line:SetAnchor(TOPRIGHT, content, TOPRIGHT, 0, y + 6)
+    line:SetHeight(4)
+    AdvanceCursor(16)
 end
 
 -------------------------------------------------------------------------------
 -- Commit / scroll-range update
 -------------------------------------------------------------------------------
 local function CommitContent(resetScroll)
-    local total = contentHeight + PADDING
-    pcDlg.content:SetHeight(math.max(total, 100))
+    pcDlg.content:SetHeight(math.max(contentHeight + PADDING * 2, 100))
     if resetScroll then
         currentScrollPos = 0
-        pcDlg.content:ClearAnchors()
-        pcDlg.content:SetAnchor(TOPLEFT, pcDlg.scrollFrame, TOPLEFT, 0, 0)
-    else
-        -- same panel refresh: clamp position to new content height then re-apply
-        ConsoleMetrics:SetScrollPos(currentScrollPos)
     end
-    ConsoleMetrics:UpdateScrollThumb()
+    ConsoleMetrics:SetScrollPos(currentScrollPos)
 end
 
 -------------------------------------------------------------------------------
 -- Panel rendering helpers
 -------------------------------------------------------------------------------
-local function AddFightNavButtons(content, self)
-    AddDivider(content)
-    local noHistory = #self.fightHistory == 0
-    AddButton(content, "Previous Fight", "Step back one fight in history",
-        function() self:StepFightView(-1) end, noHistory)
-    AddButton(content, "Next Fight", "Step forward one fight in history",
-        function() self:StepFightView(1) end, noHistory)
-    AddButton(content, "View Live Fight", "Return to current live combat view",
-        function() self.viewFightIndex = 0 end)
-end
-
-local function AddBackButton(content, self)
-    AddDivider(content)
-    AddButton(content, "< Back to Main", "Return to the main panel",
-        function() self.dialogPanel = "main" end)
-end
+-- Fight navigation and "back" now live in the window chrome (footer and
+-- category list); panels keep calling these so the renderers stay simple.
+local function AddFightNavButtons() end
+local function AddBackButton() end
 
 -------------------------------------------------------------------------------
--- Main panel
+-- Summary panel
 -------------------------------------------------------------------------------
 local function RenderMain(content, self)
-    local snap, isLive = self:GetViewedFightSnapshot()
-    snap = snap or {}
-    local viewingText = isLive and "Live" or string.format("Fight %d/%d", self.viewFightIndex, #self.fightHistory)
-    if not isLive and type(snap.savedLabel) == "string" and snap.savedLabel ~= "" then
-        viewingText = snap.savedLabel
-    end
-    pcDlg.titleLabel:SetText("Console Metrics  —  " .. viewingText)
-    pcDlg.breadcrumb:SetText("Main Panel")
-    pcDlg.backBtn:SetHidden(true)
+    local snap = self:GetViewedFightSnapshot() or {}
+    pcDlg.breadcrumb:SetText("Summary")
 
-    -- Live stats summary
     local bs = snap.burstWindowStats or {}
     local hs = snap.healingWindowStats or {}
     local topDmgSkill  = (snap.skillList or {})[1]
     local topHealSkill = (snap.healSkillList or {})[1]
-    AddSection(content, string.format("Fight Summary  (%s)", viewingText))
-    AddStat(content, "Duration",     string.format("%.1fs", snap.duration or 0),
-        "Total fight time in seconds")
-    AddStat(content, "DPS",          ShortNumber(snap.dps or 0),
-        string.format("Damage Per Second  (total damage ÷ duration)  |  Peak burst: %s", ShortNumber(snap.peakDps or 0)))
-    AddStat(content, "HPS",          ShortNumber(snap.hps or 0),
-        string.format("Healing Per Second  (total healing ÷ duration)  |  Peak burst: %s", ShortNumber(snap.peakHps or 0)))
+    local duration = snap.duration or 0
+    local perSec = function(total) return duration > 0 and (total or 0) / duration or 0 end
+
+    AddTiles(content, {
+        { label = "Damage / s", value = ShortNumber(snap.dps or 0),
+          tooltip = "Damage per second (total damage / duration)" },
+        { label = "Healing / s", value = ShortNumber(snap.hps or 0),
+          tooltip = "Healing per second (total healing / duration)" },
+        { label = "Taken / s", value = ShortNumber(perSec(snap.totalTaken)),
+          tooltip = "Damage taken per second" },
+        { label = "Duration", value = string.format("%.1fs", duration),
+          tooltip = "Total fight time" },
+        { label = "Critical", value = string.format("%.1f%%", snap.critPct or 0),
+          tooltip = "Share of your outgoing hits that were critical" },
+        { label = "Peak DPS", value = ShortNumber(snap.peakDps or 0),
+          tooltip = bs.peakWindowTime and ("Highest burst-window DPS, at " .. bs.peakWindowTime) or "Highest burst-window DPS" },
+        { label = "Peak HPS", value = ShortNumber(snap.peakHps or 0),
+          tooltip = hs.peakWindowTime and ("Highest burst-window HPS, at " .. hs.peakWindowTime) or "Highest burst-window HPS" },
+        { label = "Shielded", value = ShortNumber(snap.totalIncomingShieldedDamage or 0),
+          tooltip = "Incoming damage absorbed by shields on you" },
+    }, 4)
+
+    AddSection(content, "Totals")
     AddStat(content, "Damage Done",  NumberText(snap.totalDamage or 0),
         topDmgSkill
-            and string.format("Total outgoing damage  |  Top skill: %s  →  %s  (%d hits)",
+            and string.format("Total outgoing damage\nTop ability: %s  -  %s  (%d hits)",
                 topDmgSkill.name or "?", NumberText(topDmgSkill.damage or 0), topDmgSkill.hits or 0)
             or  "Total outgoing damage dealt this fight")
     AddStat(content, "Healing Done", NumberText(snap.totalHeal or 0),
         topHealSkill
-            and string.format("Total outgoing healing  |  Top skill: %s  →  %s",
+            and string.format("Total outgoing healing\nTop ability: %s  -  %s",
                 topHealSkill.name or "?", NumberText(topHealSkill.heal or 0))
             or  "Total outgoing healing this fight")
     AddStat(content, "Damage Taken", NumberText(snap.totalTaken or 0),
-        string.format("Incoming damage received  |  Overflow: %s  |  Blocked: %s  |  Shielded: %s",
+        string.format("Incoming damage\nOverflow: %s\nBlocked: %s\nShielded: %s",
             NumberText(snap.totalIncomingOverflowDamage or 0),
             NumberText(snap.totalIncomingBlockedDamage or 0),
             NumberText(snap.totalIncomingShieldedDamage or 0)))
-    AddStat(content, "Crit Rate",    string.format("%.1f%%", snap.critPct or 0),
-        "% of outgoing hits that were critical strikes")
-    AddStat(content, "Hit Value Range",
+    AddStat(content, "Hit Range",
         string.format("%s - %s", NumberText(snap.minHitValue or 0), NumberText(snap.maxHitValue or 0)),
-        "Lowest and highest positive hit values recorded during this fight")
-    AddStat(content, "Peak DPS",     ShortNumber(snap.peakDps or 0),
-        bs.peakWindowTime
-            and string.format("Highest burst-window DPS  |  Occurred at: %s", bs.peakWindowTime)
-            or  "Highest single burst-window DPS recorded this fight")
-    AddStat(content, "Peak HPS",     ShortNumber(snap.peakHps or 0),
-        hs.peakWindowTime
-            and string.format("Highest burst-window HPS  |  Occurred at: %s", hs.peakWindowTime)
-            or  "Highest single burst-window HPS recorded this fight")
+        "Smallest and largest hit this fight")
+    AddStat(content, "Peak DPS (5s)", ShortNumber(snap.peakDps or 0),
+        bs.peakWindowTime and ("Best one-second damage at " .. bs.peakWindowTime) or nil)
+    AddStat(content, "Peak HPS (5s)", ShortNumber(snap.peakHps or 0),
+        hs.peakWindowTime and ("Best one-second healing at " .. hs.peakWindowTime) or nil)
 
-    -- Panel navigation
-    AddSection(content, "Panels")
-    AddButton(content, "Overview",    "Fight totals, burst windows, and timeline",         function() self.dialogPanel = "overview" end)
-    AddButton(content, "Skills",      "Top damage and healing skill breakdown",             function() self.dialogPanel = "skills"   end)
-    AddButton(content, "Resources",   "HP / Magicka / Stamina sustain profile",             function() self.dialogPanel = "resources"end)
-    AddButton(content, "Buffs",       "Player buff uptime and set procs",                  function() self.dialogPanel = "buffs"    end)
-    AddButton(content, "Debuffs",     "Debuffs applied by player to enemies",              function() self.dialogPanel = "debuffs"  end)
-    AddButton(content, "Mitigation",  "Mitigation totals and top moments",                 function() self.dialogPanel = "mitigation"end)
-    AddButton(content, "Resistance",  "Resistance, DR, and inferred protections",          function() self.dialogPanel = "resistance"end)
-    AddButton(content, "Build",       "Action bars, gear, champion, and boon snapshot",    function() self.dialogPanel = "build"    end)
-    AddButton(content, "Behavior",    "ML-lite model outputs and confidence",               function() self.dialogPanel = "behavior" end)
-    AddButton(content, "Formulas",    "ESO stat math reference",                           function() self.dialogPanel = "formulas" end)
-    AddButton(content, "Share",       "Send stats or build to chat",                       function() self.dialogPanel = "share"    end)
-    AddButton(content, "Options",     "Toggles, clear fight data, and help",               function() self.dialogPanel = "options"  end)
+    local skills = snap.skillList or {}
+    if #skills > 0 then
+        AddSection(content, "Top Abilities")
+        local total = math.max(1, snap.totalDamage or 0)
+        for i = 1, math.min(5, #skills) do
+            local s = skills[i]
+            AddStat(content, string.format("%d.  %s", i, s.name or "?"),
+                string.format("%s  (%.0f%%)", ShortNumber(s.damage or 0), (s.damage or 0) / total * 100),
+                string.format("%d hits  |  max %s", s.hits or 0, NumberText(s.maxHit or 0)))
+        end
+    end
 
-    -- Fight navigation & history
-    AddSection(content, "Fight History  (" .. #self.fightHistory .. " stored)")
-    AddFightNavButtons(content, self)
-
-    -- Save / manage
-    AddButton(content, "Save This Fight…", "Name and persist this fight across sessions",
-        function() self.saved.saveFightDraftName = BuildDefaultFightSaveName(snap, #self:GetSavedFights() + 1)
-            self.dialogPanel = "save" end)
+    AddSection(content, string.format("History  (%d stored, %d saved)", #self.fightHistory, #self:GetSavedFights()))
+    AddButton(content, "Save This Fight...", "Name and keep this fight across sessions",
+        function()
+            self.saved.saveFightDraftName = BuildDefaultFightSaveName(snap, #self:GetSavedFights() + 1)
+            self.dialogPanel = "save"
+        end)
     AddButton(content, "Saved Fights", string.format("Browse %d saved fights", #self:GetSavedFights()),
         function() self.dialogPanel = "saves" end)
 end
@@ -1292,9 +1581,51 @@ local function RenderSaves(content, self)
 end
 
 -------------------------------------------------------------------------------
+-- LibFights panel
+-------------------------------------------------------------------------------
+local function RenderLibFights(content, self)
+    local bridge = self.LibFightsBridge
+    pcDlg.breadcrumb:SetText("LibFights")
+
+    local rows = self:BuildLibFightsRows()
+    for i = 1, #rows do
+        local row = rows[i]
+        if row.section then
+            AddSection(content, row.section)
+        else
+            AddStat(content, row.label, row.value or "", row.tooltip)
+        end
+    end
+
+    if bridge.IsAvailable() then
+        AddSection(content, "LibFights Controls")
+        if bridge.IsLogging() then
+            AddButton(content, "Stop LibFights Logging", "Stop_Logging(): end the current fight and unregister LibFights events",
+                function() self:StopLibFightsLogging() end)
+        else
+            AddButton(content, "Start LibFights Logging", "Start_Logging(): LibFights records nothing until this is called",
+                function()
+                    local ok, reason = self:StartLibFightsLogging()
+                    if not ok then
+                        self:Print("LibFights: " .. tostring(reason))
+                    end
+                end)
+        end
+        AddButton(content, "Previous LibFights Fight", "Show the LibFights fight before this one",
+            function() self:StepLibFightsView(-1) end)
+        AddButton(content, "Next LibFights Fight", "Show the next LibFights fight (towards the live one)",
+            function() self:StepLibFightsView(1) end)
+        AddButton(content, "Print LibFights Report", "Print the full LibFights report for this fight to chat",
+            function() self:PrintLibFightsLines("all") end)
+    end
+    AddBackButton(content, self)
+end
+
+-------------------------------------------------------------------------------
 -- Router: pick and render the correct panel
 -------------------------------------------------------------------------------
 local PANELS = {
+    libfights   = RenderLibFights,
     main        = RenderMain,
     overview    = RenderOverview,
     skills      = RenderSkills,
@@ -1317,18 +1648,14 @@ function ConsoleMetrics:RefreshPCDialog()
     ReleaseAll()
 
     local panel = self.dialogPanel or "main"
+    if not PANELS[panel] then
+        panel = "main"
+        self.dialogPanel = panel
+    end
     local panelChanged = (panel ~= lastRenderedPanel)
     lastRenderedPanel = panel
 
-    pcDlg.backBtn:SetHidden(panel == "main")
-
-    local renderer = PANELS[panel]
-    if renderer then
-        renderer(pcDlg.content, self)
-    else
-        AddSection(pcDlg.content, "Unknown panel: " .. tostring(panel))
-        AddButton(pcDlg.content, "Back", nil, function() self.dialogPanel = "main" end)
-    end
-
+    UpdateChrome(self, panel)
+    PANELS[panel](pcDlg.content, self)
     CommitContent(panelChanged)
 end

@@ -1,3 +1,5 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
+
 local Log = IMP_STATS_Logger('IMP_STATS_TRIBUTE_LEADERBOARD')
 
 local addon = {}

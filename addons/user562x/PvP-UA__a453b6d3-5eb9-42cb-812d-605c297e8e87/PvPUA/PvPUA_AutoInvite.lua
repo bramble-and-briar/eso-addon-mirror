@@ -500,7 +500,7 @@ function PvPUA:AutoInviteMenu()
     self:AIRefreshGuildChoices()
     return { type = "submenu",
           name = "|c" .. EP_HEX .. "Auto Invite|r",
-          tooltip = SAVED_CHARACTER_TIP,
+          tooltip = "Invites players who type your keyword in chat.\n\n" .. SAVED_CHARACTER_TIP,
           icon = "EsoUI/Art/HUD/Gamepad/gp_radialIcon_inviteGroup_down.dds",
           options = {
         { type = "toggle",

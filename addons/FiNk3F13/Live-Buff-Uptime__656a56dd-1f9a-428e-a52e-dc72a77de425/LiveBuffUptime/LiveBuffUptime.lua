@@ -772,6 +772,11 @@ local function captureFallbackReport(receiptStart, receiptEnd)
 end
 
 local function combatChanged(_, value)
+    if value and liveUptimeMode and LibCombat and LibCombat.name == "LibCombat2" and BuffReports then
+        -- Start at ESO's actual combat transition. A queued library COMBATSTART
+        -- can arrive later than the one-second pre-combat lookback.
+        BuffReports.BeginNativeDamage(nowSeconds(), false, true)
+    end
     if useLibCombat then return end
     if value == inCombat then return end
     if value then
@@ -1108,8 +1113,9 @@ local function registerLibCombat()
     if useLibCombat then return end
     local bridge = LiveBuffUptimeCombatBridge
     local adapted
-    local preferPC = IsConsoleUI and not IsConsoleUI() and _G.LibCombat
-    if bridge and not preferPC then adapted, libraryStatusReason = bridge.Create(_G.LibCombat2) end
+    -- Console backend first. Keep PC LibCombat only as a fallback for local
+    -- testing when a compatible LibCombat2 is not installed.
+    if bridge then adapted, libraryStatusReason = bridge.Create(_G.LibCombat2) end
     LibCombat = adapted or _G.LibCombat
     if not LibCombat or type(LibCombat.RegisterForCombatEvent) ~= "function" then return end
     for _, name in ipairs({ "EVENT_MESSAGES", "EVENT_FIGHTSUMMARY", "EVENT_DAMAGE_OUT", "EVENT_DAMAGE_SELF",
@@ -1130,8 +1136,12 @@ local function registerLibCombat()
         end
         registerCombatEvent(NAME, libConstant("EVENT_MESSAGES"), function(_, timeMS, message)
             if message == libConstant("MESSAGE_COMBATSTART") then
-                if LibCombat.IsContinuation and not LibCombat.IsContinuation() then inCombat = false end
+                local continuation = LibCombat.IsContinuation and LibCombat.IsContinuation()
+                if LibCombat.IsContinuation and not continuation then inCombat = false end
                 startLibraryFight(libTime(timeMS))
+                if LibCombat.name == "LibCombat2" and BuffReports then
+                    BuffReports.BeginNativeDamage(libTime(timeMS), continuation, true)
+                end
             end
         end)
         for _, name in ipairs(liveUptimeEvents) do
@@ -1185,8 +1195,11 @@ local function registerLibCombat()
                     end
                 end)
             else
-                registerCombatEvent(NAME, libConstant(name), function(_, timeMS, _, source, target, _, value, _, overflow)
-                    if libraryFightClosed then
+                registerCombatEvent(NAME, libConstant(name), function(_, timeMS, _, source, target, abilityId, value, _, overflow)
+                    -- PC LibCombat can emit the next fight's opening damage
+                    -- before COMBATSTART. Let that hit start the new encounter;
+                    -- post-fight healing must still leave the saved fight closed.
+                    if libraryFightClosed and not (eventName == "EVENT_DAMAGE_OUT" and LibCombat.name == "LibCombat") then
                         return
                     end
                     local time = libTime(timeMS)
@@ -1197,6 +1210,14 @@ local function registerLibCombat()
                         liveUptimePlayerId = LibCombat.GetPlayerUnitId() or liveUptimePlayerId
                     end
                     LiveUptime.Action(liveUptimeFight, eventName, time, source, target, value, overflow)
+                    if eventName == "EVENT_DAMAGE_OUT" and BuffReports then
+                        -- Both libraries aggregate hitValue + overflow. Use one
+                        -- authoritative stream so raw callback order cannot lose
+                        -- the opening hit or count a library hit twice.
+                        local targetKind = LibCombat.GetUnitType and LibCombat.GetUnitType(target)
+                        BuffReports.RecordDamage(COMBAT_UNIT_TYPE_PLAYER, targetKind, target, nil,
+                            (value or 0) + (overflow or 0), abilityId)
+                    end
                     -- SELF can involve pets as well; never infer player identity from its target.
                     activeStartedAt, lastActiveAt = liveUptimeFight.starts, liveUptimeFight.ends
                 end)
@@ -1229,6 +1250,14 @@ local function registerLibCombat()
             finalDuration = liveUptimeFight.starts and liveUptimeFight.ends and math.max(1, liveUptimeFight.ends - liveUptimeFight.starts) or nil
             inCombat = false
             update()
+            if BuffReports then
+                local snapshot, damageDuration = fight.skillDamageSnapshot, fight.dpstime
+                if LibCombat.name == "LibCombat2" then
+                    local native = BuffReports.FinishNativeDamage()
+                    if native then snapshot, damageDuration = native, native.duration end
+                end
+                BuffReports.SkillDamageSummary(damageDuration, fight.units, snapshot)
+            end
             local report = BuffReports and BuffReports.Capture(liveUptimeFight, enabledTrackers, liveUptimePlayerId, liveUptimeTargetId, displayName)
             for _, tracker in ipairs(enabledTrackers) do
                 if tracker.config.unit == "reticleover" then
@@ -1359,11 +1388,17 @@ local function groupCombatEffect(result, ability, targetId, sourceType, hitValue
     end
 end
 
-local function combatActivity(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, ability)
+local function combatActivity(_, result, isError, abilityName, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, ability)
     if liveUptimeMode then
+        if not isError and damageResults[result] and BuffReports and LibCombat.name == "LibCombat2" then
+            BuffReports.RecordNativeDamage(nowSeconds(), sourceType, targetType, targetId, targetName, hitValue, ability, abilityName)
+        end
         if isError or not inCombat or not liveUptimeFight then return end
         if damageResults[result] then LiveUptime.EncounterDamage(liveUptimeFight, nowSeconds()) end
-        if damageResults[result] and BuffReports then BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue) end
+        if damageResults[result] and BuffReports then
+            BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue, ability, abilityName,
+                true)
+        end
         LiveUptime.Kind(liveUptimeFight, sourceId, sourceType)
         LiveUptime.Kind(liveUptimeFight, targetId, targetType)
         if sourceType == COMBAT_UNIT_TYPE_PLAYER then liveUptimePlayerId = sourceId or liveUptimePlayerId end
@@ -1391,7 +1426,7 @@ local function combatActivity(_, result, isError, _, _, _, _, sourceType, target
             tracker.group.lastDamageAt = now
         end
     end
-    if inCombat and BuffReports then BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue) end
+    if inCombat and BuffReports then BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue, ability, abilityName) end
 end
 
 local function isOwnProc(sourceName, sourceType)

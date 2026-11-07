@@ -136,7 +136,7 @@ function settings:Initialize(addon)
             name = '|cFFA500Debug mode|r',
             getFunc = function() return sv.battlegrounds.debugging end,
             setFunc = function(value) sv.battlegrounds.debugging = value end,
-            tooltip = '- Turns character filter off',
+            tooltip = 'Turns character filter off',
             requiresReload = true,
         }
     end

@@ -55,7 +55,6 @@ ADDON.defaults = {
     showPsn = true,
     -- Count the heals other healers do to party members as well, for "your share of what a party
     -- member received".
-    countOthers = true,
     hud = true,
     -- The HUD stays up this long after a fight ends, so the result can be read.
     hudHoldSec = 10,
@@ -77,7 +76,6 @@ local debugLeft = 0
 -- What the engine has told us, for /hps status: how many heals arrived, and of which target type.
 local counters = {
     seen = 0, counted = 0, skippedZone = 0, skippedTarget = 0, byType = {},
-    incoming = 0, incomingCounted = 0, incomingSkipped = 0,
 }
 ADDON.counters = counters
 
@@ -245,57 +243,6 @@ local function RegisterHealEvents()
     end
 end
 
--- Heals somebody else did to a party member. Only the sources that are people count: the player's own
--- pets and companions are neither the player's heals nor another healer's.
-local INCOMING_SOURCES = {
-    [COMBAT_UNIT_TYPE_GROUP] = true,
-    [COMBAT_UNIT_TYPE_OTHER] = true,
-}
-
-local function OnIncomingHeal(_, _, isError, _, _, _, _, sourceType, targetName, _, hitValue, _, _, _, _, _, _, overflow)
-    -- The player's own heals on party members arrive here too (the registration is filtered on the
-    -- target alone), and are counted by their own handler.
-    if isError or sourceType == COMBAT_UNIT_TYPE_PLAYER then
-        return
-    end
-    counters.incoming = counters.incoming + 1
-    if not sv.enabled or not zoneOk then
-        return
-    end
-    if not INCOMING_SOURCES[sourceType] then
-        counters.incomingSkipped = counters.incomingSkipped + 1
-        return
-    end
-    local hit = records.ReadAmounts(hitValue, overflow)
-    if records:RecordReceived(GetFrameTimeMilliseconds(), targetName, hit) then
-        counters.incomingCounted = counters.incomingCounted + 1
-    end
-end
-
-local incomingOn = false
-
--- Registered only while it is wanted: in a big fight these are the heals of every healer in the
--- party, and nobody should pay for them who does not want the number.
-function ADDON.SetCountOthers(value)
-    value = value and true or false
-    sv.countOthers = value
-    if value == incomingOn then
-        return
-    end
-    incomingOn = value
-    for _, entry in ipairs(HEAL_RESULTS) do
-        local namespace = ADDON.name .. "In" .. entry.name
-        if value then
-            EVENT_MANAGER:RegisterForEvent(namespace, EVENT_COMBAT_EVENT, OnIncomingHeal)
-            EVENT_MANAGER:AddFilterForEvent(namespace, EVENT_COMBAT_EVENT,
-                REGISTER_FILTER_COMBAT_RESULT, entry.result,
-                REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP)
-        else
-            EVENT_MANAGER:UnregisterForEvent(namespace, EVENT_COMBAT_EVENT)
-        end
-    end
-end
-
 ---------------------------------------------------------------------------------------------------
 -- Switches
 ---------------------------------------------------------------------------------------------------
@@ -351,8 +298,6 @@ local function PrintStatus()
         Print(string.format("[HPS] fight: %s healed, %.1f s, %d people",
             records.Commas(fight.heal), fight.secs, fight.people))
     end
-    Print(string.format("[HPS] others > party members (%s): arrived %d  counted %d  not a person %d",
-        incomingOn and "on" or "off", counters.incoming, counters.incomingCounted, counters.incomingSkipped))
     Print(string.format("[HPS] PSN IDs known: %d  learned from the group %d, the reticle %d, the kill feed %d  (no name to learn: %d)",
         ADDON.psn:Count(), ADDON.psn.learned.group, ADDON.psn.learned.reticle, ADDON.psn.learned.killfeed, ADDON.psn.empty))
     local left = ADDON.probe:SecondsLeft(GetFrameTimeMilliseconds())
@@ -524,7 +469,6 @@ local function OnAddOnLoaded(_, addonName)
     ADDON.menu:Initialize()
 
     RegisterHealEvents()
-    ADDON.SetCountOthers(sv.countOthers)
     -- The names the game shows for players: from the group, whoever the reticle is on, and the kill feed
     -- (a line carries the display name and the character name of the killer and of the victim).
     EVENT_MANAGER:RegisterForEvent(ADDON.name .. "Group", EVENT_GROUP_UPDATE, function() ADDON.psn:LearnGroup() end)

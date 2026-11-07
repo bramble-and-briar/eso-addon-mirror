@@ -154,7 +154,7 @@ function PvPUA:SettingsMenu()
           setFunc = function(v) self.savedVariables.settingsRemember = v end },
         { type = "button", name = "|cFF3333Reset All|r",
           buttonText = "Reset All",
-          tooltip = function() return "Puts every " .. PVPUA_MENU_TITLE_COLORED .. " setting back to its default. Auto Invite and Icon are only reset on this character." end,
+          details = "Resets all categories to default.",
           confirm = function() return "Reset every " .. PVPUA_MENU_TITLE_COLORED .. " setting to its default? This can't be undone." end,
           func = function() self:ResetAllSettings() end },
           } }

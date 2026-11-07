@@ -1,9 +1,9 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/ualtinova/Inventory-2.0__5009",
+  "archive_path": "addons/blekays/Inventory-2.0__5009",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
-  "author": "ualtinova",
+  "author": "blekays",
   "canonical_id": "esoui:5009",
   "category_id": "20",
   "compatibility": [
@@ -18,7 +18,7 @@
     "Inventory2"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5009/",
-  "fingerprint": "7490659cb82715f65d339e0052f288e6e8fd1a93acfbf05dae581671613f48cf",
+  "fingerprint": "d87d3c5eeb27b12df2450e37498477c9d4006cfcd3b1a600f2783a513c749209",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18263.png",
     "https://cdn-eso.mmoui.com/preview/pvw18264.png",
@@ -35,9 +35,9 @@
   "source_id": "5009",
   "source_url": "https://www.esoui.com/downloads/info5009-Inventory2.0.html",
   "stats": {
-    "downloads": 245,
-    "favorites": 1,
-    "monthly_downloads": 224
+    "downloads": 336,
+    "favorites": 2,
+    "monthly_downloads": 330
   },
   "title": "Inventory 2.0",
   "updated_at": 1793744549000,

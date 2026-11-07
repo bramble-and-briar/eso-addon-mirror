@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/cudddel/WhatDropsHere__5030",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "cudddel",
+  "canonical_id": "esoui:5030",
+  "category_id": "26",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5030",
+  "deleted": false,
+  "directories": [
+    "WhatDropsHere"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5030/",
+  "fingerprint": "a517d0a233feb7febc07808c4c30f6bc758359e3ded50ec3c75e219fb5436c30",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18347.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18348.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5030",
+  "source_url": "https://www.esoui.com/downloads/info5030-WhatDropsHere.html",
+  "stats": {
+    "downloads": 11,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "WhatDropsHere?",
+  "updated_at": 1793997311000,
+  "version": "0.2.0"
+}

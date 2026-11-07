@@ -1,3 +1,5 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
+
 local PATRON_ABBRIVIATIONS = {
     [1] = "Saint Pelin",  -- Saint Pelin
     [2] = "Treasury",  -- Treasury

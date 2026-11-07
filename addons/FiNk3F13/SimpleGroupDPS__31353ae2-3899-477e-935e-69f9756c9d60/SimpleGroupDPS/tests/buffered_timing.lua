@@ -18,12 +18,12 @@ for _, targetType in ipairs({7,8}) do
     clock = 23700
     meter:OnDamage(1,false,1,'Target',targetType,23500,10,99)
     local live = meter:GetStats()
-    assert(live.total == 23600 and live.durationMS == 23600 and live.dps == 1000,
-        'Include the buffered 999ms for dummies and normal enemies equally')
+    assert(live.total == 23600 and live.durationMS == 22601 and math.abs(live.dps - 23600000 / 22601) < 0.000001,
+        'Replay buffered damage without backdating combat start, exactly as BattleScrolls')
     clock = 30000
     meter:Finish()
     local final = meter:GetStats()
-    assert(final.durationMS == 29900 and math.abs(final.dps - 23600000 / 29900) < 0.000001,
+    assert(final.durationMS == live.durationMS and final.dps == live.dps,
         'Combat exit does not add a second or change final DPS')
 end
 clock = 40000

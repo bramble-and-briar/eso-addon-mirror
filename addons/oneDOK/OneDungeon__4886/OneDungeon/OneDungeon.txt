@@ -1,8 +1,9 @@
 ## Title: OneDungeon
 ## Author: oneDOK
-## Version: 26.1
+## Version: 26.11.1
 ## APIVersion: 101051
 ## SavedVariables: OneDungeonSavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
 
 lang/en.lua
 lang/$(language).lua
@@ -16,4 +17,5 @@ QuestData.lua
 AchievementData.lua
 SpecificDungeonsUI.xml
 SpecificDungeonsUI.lua
+Settings.lua
 Integration.lua

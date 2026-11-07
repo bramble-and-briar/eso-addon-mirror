@@ -27,26 +27,26 @@ SLASH_COMMANDS["/lbu"]("uptime")
 assert(#nativeList.entries == 1 and nativeList.entries[1].text == "Testgebiet")
 Reports.ShowZone()
 assert(env.controls.LiveBuffUptimeReportCovered1.text == "0,00 s" or env.controls.LiveBuffUptimeReportCovered1.text == "23,00 s")
-assert(nativeList.entries[1].text == "Gegner unbekannt")
-local newest = env.controls.LiveBuffUptimeReportTotal.text
+assert(nativeList.entries[1].text == "Gegnergruppe: Gegner 99")
+local newest = env.controls.LiveBuffUptimeReportCovered1.text
 nativeList:SetSelectedIndex(2)
-assert(env.controls.LiveBuffUptimeReportTotal.text ~= newest, "Controller down must select an older fight")
+assert(env.controls.LiveBuffUptimeReportCovered1.text ~= newest, "Controller down must select an older fight")
 Reports.SelectFight(300)
-assert(nativeList.index == 300 and nativeList.entries[300].text == "Gegner unbekannt", "Older fights must remain selectable without invented names")
-local selectedValue = env.controls.LiveBuffUptimeReportTotal.text
+assert(nativeList.index == 300 and nativeList.entries[300].text == "Gegnergruppe: Gegner 99", "Older fights retain the recorded enemy ID without invented names")
+local selectedValue = env.controls.LiveBuffUptimeReportCovered1.text
 local time = 40000
 setup.begin(time); setup.raw(time, 2, 1, time + 20); setup.damage(time + 50)
 env.setClock(time + 51)
 setup.callbacks[51](51, { unitIds = { player = 1 }, units = {} })
-assert(#history == 300 and env.controls.LiveBuffUptimeReportTotal.text ~= selectedValue, "Evicted selection must clamp safely")
+assert(#history == 300 and env.controls.LiveBuffUptimeReportCovered1.text ~= selectedValue, "Evicted selection must clamp safely")
 Reports.SelectFight(10)
 local selectedReport = history[10]
-local selectedPercent = env.controls.LiveBuffUptimeReportTotal.text
+local selectedPercent = env.controls.LiveBuffUptimeReportCovered1.text
 time = 40100
 setup.begin(time); setup.raw(time, 2, 1, time + 21); setup.damage(time + 50)
 env.setClock(time + 51)
 setup.callbacks[51](51, { unitIds = { player = 1 }, units = {} })
-assert(history[11] == selectedReport and env.controls.LiveBuffUptimeReportTotal.text == selectedPercent, "Incoming fights must preserve the fight being viewed")
+assert(history[11] == selectedReport and env.controls.LiveBuffUptimeReportCovered1.text == selectedPercent, "Incoming fights must preserve the fight being viewed")
 Reports.Close()
 local settings = { lastUptimeReport = history[1] }
 Reports.Init(settings)

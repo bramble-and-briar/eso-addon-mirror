@@ -1,9 +1,9 @@
 ## Title: |cFFD15ATamriel Collections|r |c44D5C7- Archive Antiquities|r
-## Description: Browse all native Antiquity reward types with lead sources, codex progress and related achievements in the shared Archives layout.
+## Description: Browse Antiquity families, rewards and fragments in the middle panel with sources, codex progress and achievements in the Details panel.
 ## Author: |c73E58CMajesticMinxi|r
-## Version: 0.1.8
+## Version: 1.0.2
 ## APIVersion: 101051
-## AddOnVersion: 108
+## AddOnVersion: 10002
 
 Shared.lua
 AntiquitySources.lua

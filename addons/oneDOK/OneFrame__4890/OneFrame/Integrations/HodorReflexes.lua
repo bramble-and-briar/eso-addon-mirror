@@ -8,7 +8,7 @@ function H:Debug()
         tostring(self.connected), tostring(self:Compatible()), tostring(self.failed),
         tostring(self.cutoff), tostring(GetGameTimeMilliseconds())))
     if not self:IsAvailable() then return end
-    d(string.format("Hodor DPS=%s HPS=%s ULT=%s", tostring(self:MetricEnabled("dps")),
+    d(string.format("LibGroupCombatStats %s DPS=%s HPS=%s ULT=%s", tostring(self.library.version), tostring(self:MetricEnabled("dps")),
         tostring(self:MetricEnabled("hps")), tostring(self:MetricEnabled("ult"))))
     for i = 1, GetGroupSize() do
         local tag = GetGroupUnitTagByIndex(i)
@@ -23,34 +23,26 @@ function H:Debug()
     end
 end
 
--- Source-verified pair: Hodor 2026-05-17 + LGCS 2026-07-26.
+-- Direct LGCS integration, source-checked against 2026-10-04.
 -- LGCS's actual encoder (not its outdated README) stores both rates in thousands.
 -- No access to playersData: its merged lastUpdate cannot establish per-metric freshness.
 local function finite(value)
     return type(value) == "number" and value == value and value >= 0 and value < math.huge
 end
 function H:Compatible()
-    local hr, lib = HodorReflexes, LibGroupCombatStats
-    if type(hr) ~= "table" or hr.version ~= "2026-05-17" or hr.internal ~= nil
-        or type(hr.modules) ~= "table" or type(hr.RegisterCallback) ~= "function"
-        or type(hr.UnregisterCallback) ~= "function" then return false end
-    if type(lib) ~= "table" or lib.version ~= "2026-07-26"
+    local lib = LibGroupCombatStats
+    if type(lib) ~= "table"
         or type(lib.RegisterAddon) ~= "function" then return false end
     if lib.DAMAGE_UNKNOWN ~= 0 or lib.DAMAGE_TOTAL ~= 1 or lib.DAMAGE_BOSS ~= 2 then return false end
     for _, name in ipairs({ "EVENT_GROUP_DPS_UPDATE", "EVENT_GROUP_HPS_UPDATE",
         "EVENT_PLAYER_DPS_UPDATE", "EVENT_PLAYER_HPS_UPDATE" }) do
         if type(lib[name]) ~= "string" then return false end
     end
-    for _, name in ipairs({ "HR_EVENT_COMBAT_START", "HR_EVENT_COMBAT_END",
-        "HR_EVENT_PLAYER_ACTIVATED", "HR_EVENT_GROUP_CHANGED",
-        "HR_EVENT_TEST_STARTED", "HR_EVENT_TEST_STOPPED" }) do
-        if type(hr[name]) ~= "string" then return false end
-    end
     return true
 end
 function H:IsAvailable()
     return self.connected == true and not self.failed and self:Compatible()
-        and self.hodor == HodorReflexes and self.library == LibGroupCombatStats
+        and self.library == LibGroupCombatStats
 end
 function H:Notify()
     if self.pending or not self.connected then return end
@@ -72,11 +64,7 @@ function H:Disconnect()
     self.connected = false
     self.ultimateRecords = setmetatable({}, { __mode = "k" })
     for _, item in ipairs(self.subscriptions) do
-        if item.kind == "library" then
-            pcall(item.owner.UnregisterForEvent, item.owner, item.event, item.callback)
-        else
-            pcall(item.owner.UnregisterCallback, item.event, item.callback)
-        end
+        pcall(item.owner.UnregisterForEvent, item.owner, item.event, item.callback)
     end
     self.subscriptions = {}
     EVENT_MANAGER:UnregisterForUpdate(A.name .. "SharedExpiry")
@@ -86,8 +74,7 @@ end
 function H:Subscribe(owner, kind, event, callback)
     -- Keep cleanup metadata before registration, including a partially failing provider.
     self.subscriptions[#self.subscriptions + 1] = { owner = owner, kind = kind, event = event, callback = callback }
-    if kind == "library" then return pcall(owner.RegisterForEvent, owner, event, callback) end
-    return pcall(owner.RegisterCallback, event, callback)
+    return pcall(owner.RegisterForEvent, owner, event, callback)
 end
 function H:Configure()
     local wanted = A.active and A.sv.hodor and (A.sv.dps or A.sv.hps or A.sv.ultimate) and GetGroupSize() > 0
@@ -95,11 +82,12 @@ function H:Configure()
     if self:IsAvailable() then self:InstallUltimateObserver(); return end
     self:Disconnect()
     if self.failed then return end
-    local hr, lib = HodorReflexes, LibGroupCombatStats
+    local lib = LibGroupCombatStats
     -- RegisterAddon is once-only and has no unregister-addon counterpart. Reuse its
-    -- lightweight getter object across toggles, but remove every callback/timer on disable.
+    -- object across toggles, but remove every callback/timer on disable. LGCS owns
+    -- collection and broadcasting; registering also enables sharing, once per session.
     if self.library ~= lib then
-        local ok, object = pcall(lib.RegisterAddon, A.name .. "HodorReader", {})
+        local ok, object = pcall(lib.RegisterAddon, A.name, { "DPS", "HPS", "ULT" })
         if not ok or type(object) ~= "table" then self.failed = true; return end
         self.reader, self.library = object, lib
     end
@@ -107,7 +95,7 @@ function H:Configure()
     for _, method in ipairs({ "GetUnitStats", "RegisterForEvent", "UnregisterForEvent" }) do
         if type(reader[method]) ~= "function" then self.failed = true; return end
     end
-    self.hodor, self.connected = hr, true
+    self.connected = true
     -- Existing packets can be used on first enable, provided they are still fresh.
     -- Explicit combat/zone/roster resets retain a stricter cutoff across toggles.
     local function subscribe(owner, kind, event, fn)
@@ -124,13 +112,6 @@ function H:Configure()
             subscribe(reader, "library", lib[name], function() self:Notify() end)
         end
     end
-    for _, name in ipairs({ "HR_EVENT_COMBAT_START", "HR_EVENT_PLAYER_ACTIVATED",
-        "HR_EVENT_GROUP_CHANGED", "HR_EVENT_TEST_STARTED", "HR_EVENT_TEST_STOPPED" }) do
-        subscribe(hr, "hodor", hr[name], function() self:Reset(name ~= "HR_EVENT_COMBAT_START") end)
-    end
-    subscribe(hr, "hodor", hr.HR_EVENT_COMBAT_END, function(confirmed)
-        if confirmed then self.ended = GetGameTimeMilliseconds(); self:Notify() end
-    end)
     if self.failed then self:Disconnect(); return end
     self:InstallUltimateObserver()
     -- LGCS updates _lastUpdated without callbacks when packets repeat unchanged values
@@ -143,10 +124,8 @@ function H:Configure()
     self:Notify()
 end
 function H:MetricEnabled(kind)
-    local module = self.hodor.modules[kind]
-    if type(module) ~= "table" or type(module.IsEnabled) ~= "function" or module.isTestRunning then return false end
-    local ok, enabled = pcall(module.IsEnabled, module)
-    return ok and enabled == true
+    return self:IsAvailable() and (kind == "ult" and A.sv.ultimate
+        or kind == "dps" and A.sv.dps or kind == "hps" and A.sv.hps) == true
 end
 function H:Value(stats, kind, now, localPlayer)
     if not self:MetricEnabled(kind) then return nil end
@@ -194,7 +173,7 @@ function H:InstallUltimateObserver()
     if self.ultimateMeta == meta then return end
     -- Public ULT callbacks merge type, cost and points. Even GetUnitULT timestamps
     -- cannot prove that the default 0 was ever received (a type-only packet updates
-    -- the same timestamp). One version-gated POST hook observes field receipts,
+    -- the same timestamp). A structurally checked POST hook observes field receipts,
     -- including unchanged zero, without changing values, callbacks or source files.
     -- The verified ObservableTable metatable is shared by local/remote statistics.
     local success = pcall(ZO_PostHook, meta, "__newindex", function(object, key, value)

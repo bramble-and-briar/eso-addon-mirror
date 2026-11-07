@@ -91,6 +91,12 @@ local function ShowRMBMenu(control, button)
         addon:Update()
     end)
 
+    AddCustomMenuItem(GetString(SI_PLAYER_TO_PLAYER_WHISPER), function()
+        local playerDisplayName = data[2]
+
+        KEYBOARD_CHAT_SYSTEM:StartTextEntry(nil, CHAT_CHANNEL_WHISPER, playerDisplayName)
+    end)
+
     ShowMenu()
 end
 
@@ -321,8 +327,11 @@ function addon:Initialize()
     if PP then
         self.control:ClearAnchors()
 
-        self.control:SetAnchor(TOPRIGHT, IMP_STATS_MATCHES, TOPLEFT, -24, 200)
-        self.control:SetAnchor(BOTTOMRIGHT, IMP_STATS_MATCHES, BOTTOMLEFT, -24, -50)
+        self.control:SetAnchor(TOPRIGHT, IMP_STATS_MATCHES, TOPLEFT, -32, 0)
+        self.control:SetAnchor(BOTTOMRIGHT, IMP_STATS_MATCHES, BOTTOMLEFT, -32, 0)
+
+        self.control:GetNamedChild('BG'):SetHidden(true)
+        PP:CreateBackground(self.control, --[[#1]] nil, nil, nil, -10, -10, --[[#2]] nil, nil, nil, 10, 10)
     end
 
     return self
@@ -335,17 +344,29 @@ function addon:_initTable()
 	local Column = LibScrollList.Column
 	local Table = LibScrollList.Table
 
+    local function ShowCategoryName(iconCtrl)
+        local rowCtrl = iconCtrl:GetParent():GetParent()
+        ZO_Tooltips_ShowTextTooltip(iconCtrl, LEFT, categories[rowCtrl.dataEntry.data[1]].name)
+    end
+
 	local function setCategoryIcon(ctrl, category)
         if not category then
             ctrl:SetColor(0.25, 0.25, 0.25)
+            ctrl:SetHandler('OnMouseEnter', nil)
+            ctrl:SetHandler('OnMouseExit', nil)
         else
             ctrl:SetColor(hex2rgb(categories[category].color))
+            ctrl:SetHandler('OnMouseEnter', ShowCategoryName)
+            ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
         end
 	end
 
 	local iconStyle = {
+        SetTexture = {'/esoui/art/dye/gamepad/dye_circle.dds'},
 		SetDimensions = {20, 20},
 		SetDrawLayer = {DL_CONTROLS},
+		SetDrawTier = {DT_MEDIUM},
+        SetMouseEnabled = {true},
 	}
 
     local CategoryIcon = Texture(iconStyle, setCategoryIcon)

@@ -103,7 +103,6 @@ screen.TABLES = {
             { head = SI_PBSHPS_COL_FIGHTS, right = true, samples = function() return { "999" } end },
             { head = SI_PBSHPS_COL_TIME, right = true, samples = function() return { "99:59:59" } end },
             { head = SI_PBSHPS_COL_PARTY, right = true, samples = function() return { "100.0%" } end },
-            { head = SI_PBSHPS_COL_SHARE, right = true, samples = function() return { "100.0%" } end },
         },
     },
     [3] = {

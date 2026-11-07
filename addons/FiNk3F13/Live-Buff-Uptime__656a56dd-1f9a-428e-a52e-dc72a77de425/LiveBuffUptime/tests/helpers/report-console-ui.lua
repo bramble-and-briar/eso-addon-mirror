@@ -55,6 +55,7 @@ function base:SetCurrentList(list) assert(list == nativeList); nativeList.curren
 ZO_Scene = { New = function()
     local scene = { fragments = {}, AddFragmentGroup = function() end,
         AddFragment = function(self, fragment) self.fragments[fragment] = true end,
+        RemoveFragment = function(self, fragment) self.fragments[fragment] = nil end,
         RegisterCallback = function(self, _, callback) self.callback = callback end }
     nativeList.scene = scene
     return scene

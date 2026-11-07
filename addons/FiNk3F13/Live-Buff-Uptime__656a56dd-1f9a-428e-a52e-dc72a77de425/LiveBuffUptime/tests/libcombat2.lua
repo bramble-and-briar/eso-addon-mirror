@@ -5,10 +5,13 @@ LIBCOMBAT_LOG_EVENT_COMBATSTATE, LIBCOMBAT_LOG_EVENT_DAMAGE, LIBCOMBAT_LOG_EVENT
 LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_MESSAGE_COMBATSTART = 51, 1
 -- Stale v1 globals must not override bridge event keys when both versions are loaded.
 LIBCOMBAT_EVENT_MESSAGES, LIBCOMBAT_EVENT_DAMAGE_OUT = 999, 998
+LIBCOMBAT_EVENT_DAMAGE_SELF, LIBCOMBAT_EVENT_EFFECTS_IN = 997, 996
 local callbacks, registrations = {}, 0
 local kinds = { [1] = COMBAT_UNIT_TYPE_PLAYER, [10] = COMBAT_UNIT_TYPE_GROUP,
     [99] = COMBAT_UNIT_TYPE_OTHER, [20] = COMBAT_UNIT_TYPE_PLAYER_PET }
-LibCombat = { RegisterForCombatEvent = function() error("v1 must not be registered when v2 is available") end }
+LibCombat = { name = "LibCombat",
+    GetCurrentFight = function() error("v1 must not be queried when v2 is available") end,
+    RegisterForCombatEvent = function() error("v1 must not be registered when v2 is available") end }
 LibCombat2 = {
     RegisterForCombatEvent = function(name, event, callback)
         assert(name == "LiveBuffUptime" and type(event) == "number" and type(callback) == "function", "v2 requires dot calls")

@@ -1,0 +1,18 @@
+Third-party acknowledgements
+
+CombatMetronome — Darianopolis and barny
+https://www.esoui.com/downloads/info2373-CombatMetronomeGCDTracker.html
+https://github.com/barny22/CombatMetronome
+
+The existing OneCrosshair sources identify CombatMetronome 1.7.7 as a
+reference for ability exceptions, heavy attack/cast/channel tracking and
+the latency readiness heuristic. These are used in Effects/HeavyChannelData.lua,
+Effects/HeavyChannel.lua and HUD/GCD.lua. OneCrosshair uses its own crosshair
+and resource-ring presentation rather than CombatMetronome's timing bar.
+It is separately named and does not require or replace CombatMetronome.
+The upstream Artistic License 2.0 is preserved verbatim in
+licenses/CombatMetronome-Artistic-2.0.txt.
+
+LibAddonMenu-2.0 — Seerah, sirinsidiator and contributors
+https://www.esoui.com/downloads/info7-LibAddonMenu.html
+Required external library; installed separately and not bundled.

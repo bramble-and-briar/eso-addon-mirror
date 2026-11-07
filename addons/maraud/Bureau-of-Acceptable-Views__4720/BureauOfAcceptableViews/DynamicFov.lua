@@ -36,14 +36,16 @@ local EVENT_MANAGER = EVENT_MANAGER
 -- toward its target and tears itself down the moment it lands, so there is no
 -- standing per-frame cost when FOV is not moving. This module supplies only the
 -- payload (which FOV to write each step); Ease owns the register/progress/land/
--- self-tear lifecycle. Resolved eagerly here because Ease loads before this file
--- in the manifest (same as CameraSettings below).
+-- self-tear lifecycle. Keep zoom-driven FOV animation separate from the global
+-- camera-smoothing setting so it leaves native camera input unchanged. The
+-- response profile still supplies the FOV glide duration and curve.
+-- Resolved eagerly here because Ease loads before this file in the manifest
+-- (same as CameraSettings below).
 local Ease = addon.Ease
 local CameraResponse = addon.CameraResponse
 local ANIM_UPDATE_NAME = "BAV_DynamicFovSmoothing"
 local OBSERVER_UPDATE_NAME = "BAV_DynamicFovObserver"
 local OBSERVER_INTERVAL_MS = 100
-local RESPONSE_OWNER = "DynamicFov"
 
 -- Total time (ms) for a smoothed FOV transition. Short enough to feel immediate,
 -- long enough to read as a glide rather than a snap. Each zoom step restarts the
@@ -214,9 +216,6 @@ end
 -- is turned off or reconfigured.
 local function StopAnimation()
     Ease.Stop(ANIM_UPDATE_NAME)
-    if CameraResponse and CameraResponse.ReleaseSmoothing then
-        CameraResponse.ReleaseSmoothing(RESPONSE_OWNER)
-    end
 end
 
 -- Cancel a pending dynamic-FOV glide when a higher-priority owner takes FOV.
@@ -260,9 +259,6 @@ end
 
 local function OnSmoothLand()
     WriteFov(animTo)
-    if CameraResponse and CameraResponse.ReleaseSmoothing then
-        CameraResponse.ReleaseSmoothing(RESPONSE_OWNER)
-    end
 end
 
 local SMOOTH_SPEC = {
@@ -294,9 +290,6 @@ local function StartAnimation(targetFov, durationMs, curve)
     animTo   = targetFov
     SMOOTH_SPEC.durMs = durationMs or ANIM_DURATION_MS
     SMOOTH_SPEC.curve = curve
-    if CameraResponse and CameraResponse.AcquireSmoothing then
-        CameraResponse.AcquireSmoothing(RESPONSE_OWNER)
-    end
     Ease.Start(ANIM_UPDATE_NAME, SMOOTH_SPEC)
     return true
 end
@@ -465,18 +458,9 @@ function DynamicFov.Apply(zoom)
     end
 
     StopAnimation()
-    if CameraResponse and CameraResponse.AcquireSmoothing then
-        CameraResponse.AcquireSmoothing(RESPONSE_OWNER)
-    end
     if not WriteFov(targetFov) then
-        if CameraResponse and CameraResponse.ReleaseSmoothing then
-            CameraResponse.ReleaseSmoothing(RESPONSE_OWNER)
-        end
         LogWarn("DynamicFov.Apply: failed to set FOV=%.2f", targetFov)
         return false
-    end
-    if CameraResponse and CameraResponse.ReleaseSmoothing then
-        CameraResponse.ReleaseSmoothing(RESPONSE_OWNER)
     end
 
     LogDebug("DynamicFov.Apply: FOV=%.2f", targetFov)

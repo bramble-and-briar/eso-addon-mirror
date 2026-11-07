@@ -2,6 +2,15 @@ local L = SimpleGroupDPS_Translate or function(text) return text end
 -- Damage and received healing are separate sections; only damage enters the DPS sum.
 local panel = {}
 SimpleGroupDPS_DPSPanel = panel
+local function formatDuration(durationMS)
+    local seconds = math.max(0, durationMS or 0) / 1000
+    if ZO_FormatTime then
+        -- Same ESO formatter and precision as BattleScrolls' FormatDuration.
+        return (ZO_FormatTime(seconds, TIME_FORMAT_STYLE_COLONS, TIME_FORMAT_PRECISION_SECONDS))
+    end
+    local wholeSeconds = math.floor(seconds)
+    return string.format("%d:%02d", math.floor(wholeSeconds / 60), wholeSeconds % 60)
+end
 local function isHealing(member)
     if LFG_ROLE_HEAL ~= nil and member.role == LFG_ROLE_HEAL then return true end
     if (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)
@@ -200,10 +209,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
     header:SetAnchor(TOPLEFT, parent, TOPLEFT, 12, 4)
     header:SetText(bossFight and L("Boss-Schaden (Gesamtschaden)") or L("Gesamtschaden"))
     header:SetColor(0.9, 0.96, 1, 1)
-    -- Show completed whole seconds; preserve full precision in the meter.
-    local seconds = math.floor(math.max(0, durationMS or 0) / 1000)
-    local durationText = string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
-    setValue(header.swtDPSValue, durationText)
+    setValue(header.swtDPSValue, formatDuration(durationMS))
     header.swtDPSValue:SetColor(0.9, 0.96, 1, 1)
     header:SetHidden(damageCount == 0)
 
@@ -221,8 +227,7 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
             local hasDamage = localTotals and ((localTotals.total or 0) > 0 or (localTotals.groupTotal or 0) > 0)
             local healingMS = hasDamage and (durationMS or 0)
                 or (localTotals and localTotals.healingDurationMS or durationMS or 0)
-            local healingSeconds = math.floor(math.max(0, healingMS) / 1000)
-            healingTime = string.format("%d:%02d", math.floor(healingSeconds / 60), healingSeconds % 60)
+            healingTime = formatDuration(healingMS)
         end
         setValue(healingHeader.swtDPSValue, healingTime)
         healingHeader:SetColor(0.55, 0.95, 0.7, 1)

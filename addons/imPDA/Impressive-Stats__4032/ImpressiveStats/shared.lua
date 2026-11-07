@@ -14,6 +14,18 @@ function addon.FormatNumber(number)
     end
 end
 
+function addon.FormatNumberWithoutSpace(number)
+    if number > 1e9 then
+        return string.format('%.1fB', number / 1e9)
+    elseif number > 1e6 then
+        return string.format('%.1fM', number / 1e6)
+    elseif number > 1e3 then
+        return string.format('%.1fK', number / 1e3)
+    else
+        return string.format('%d', number)
+    end
+end
+
 local RACE_ICONS = {
     [1] = 'esoui/art/charactercreate/charactercreate_bretonicon_up.dds',
     [2] = 'esoui/art/charactercreate/charactercreate_redguardicon_up.dds',
@@ -203,7 +215,7 @@ function addon.InitializePlayerCharactersFilter(self, filterControl, charactersL
     filter = InitializeFilter(filterControl, entriesData, callback)
 
     filter:SetNoSelectionText('|cFF0000Select Character|r')
-    filter:SetMultiSelectionTextFormatter('<<1[$d Character/$d Characters]>> Selected')
+    filter:SetMultiSelectionTextFormatter('<<1[$d Character/$d Characters]>>')
 
     for i, item in ipairs(filter.m_sortedItems) do
         -- Log('%d - %s', i, item.name)
@@ -232,7 +244,7 @@ function addon.InitializePlayerCharactersFilter(self, filterControl, charactersL
                 characters[item.filterType] = false
             end
         elseif selectionType == CHARACTER_SELECTION_TYPE_CURRENT or selectionType == CHARACTER_SELECTION_TYPE_CUSTOM then
-            -- filter:ClearAllSelections() 
+            -- filter:ClearAllSelections()
             for i, item in ipairs(filter.m_sortedItems) do
                 characters[item.filterType] = true
                 filter:SelectItem(item, true)
@@ -258,7 +270,7 @@ function addon.InitializePlayerCharactersFilter(self, filterControl, charactersL
 end
 
 function addon.SetGaugeKDAMeter(kdaMeterControl, value)
-    local r, g, b = IMP_STATS_SHARED.Blend({1, 0, 0}, {0, 1, 0}, value)
+    local r, g, b = addon.Blend({1, 0, 0}, {0, 1, 0}, value)
 
     GetControl(kdaMeterControl, 'Bar'):StartFixedCooldown(value, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)  -- TODO
     GetControl(kdaMeterControl, 'Bar'):SetFillColor(r, g, b)

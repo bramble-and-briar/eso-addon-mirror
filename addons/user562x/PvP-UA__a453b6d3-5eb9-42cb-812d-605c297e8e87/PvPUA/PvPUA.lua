@@ -1961,7 +1961,7 @@ function PvPUA:CreateUI()
                     if PvPUA.Move and PvPUA.Move.target then
                         PvPUA.keepPage = true
                     else
-                        PvPUA.listPreview = false
+                        PvPUA:EndSettingsPreviews()
                     end
                 elseif newState == SCENE_SHOWN then
                     PvPUA.keepPage = nil
@@ -1980,6 +1980,49 @@ end
 PvPUA.queue = { active = false }
 
 local QUEUE_SIDE_PAD   = 10
+local QUEUE_CORNER     = 10
+local BOX_FILL         = "PvPUA/Textures/boxfill.dds"
+local BOX_EDGE         = "PvPUA/Textures/boxedge.dds"
+local BOX_COORDS = {
+    { 0,    0.25, 0,    0.25 }, { 0.25, 0.75, 0,    0.25 }, { 0.75, 1,    0,    0.25 },
+    { 0,    0.25, 0.25, 0.75 }, { 0.25, 0.75, 0.25, 0.75 }, { 0.75, 1,    0.25, 0.75 },
+    { 0,    0.25, 0.75, 1    }, { 0.25, 0.75, 0.75, 1    }, { 0.75, 1,    0.75, 1    },
+}
+
+local function RoundPieces(parent, file, level, r)
+    local pieces = {}
+    for i = 1, #BOX_COORDS do
+        local piece = wm:CreateControl(nil, parent, CT_TEXTURE)
+        local c = BOX_COORDS[i]
+        piece:SetTexture(file)
+        piece:SetTextureCoords(c[1], c[2], c[3], c[4])
+        piece:SetDrawLevel(level)
+        pieces[i] = piece
+    end
+    pieces[1]:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+    pieces[1]:SetDimensions(r, r)
+    pieces[3]:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, 0)
+    pieces[3]:SetDimensions(r, r)
+    pieces[7]:SetAnchor(BOTTOMLEFT, parent, BOTTOMLEFT, 0, 0)
+    pieces[7]:SetDimensions(r, r)
+    pieces[9]:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, 0, 0)
+    pieces[9]:SetDimensions(r, r)
+    pieces[2]:SetAnchor(TOPLEFT, parent, TOPLEFT, r, 0)
+    pieces[2]:SetAnchor(BOTTOMRIGHT, parent, TOPRIGHT, -r, r)
+    pieces[8]:SetAnchor(TOPLEFT, parent, BOTTOMLEFT, r, -r)
+    pieces[8]:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, -r, 0)
+    pieces[4]:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, r)
+    pieces[4]:SetAnchor(BOTTOMRIGHT, parent, BOTTOMLEFT, r, -r)
+    pieces[6]:SetAnchor(TOPLEFT, parent, TOPRIGHT, -r, r)
+    pieces[6]:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, 0, -r)
+    pieces[5]:SetAnchor(TOPLEFT, parent, TOPLEFT, r, r)
+    pieces[5]:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, -r, -r)
+    return pieces
+end
+
+local function TintPieces(pieces, r, g, b, a)
+    for i = 1, #pieces do pieces[i]:SetColor(r, g, b, a) end
+end
 local QUEUE_EDGE_PAD   = 6
 local QUEUE_MAX_ROWS   = 3
 local QUEUE_FONT       = "ZoFontGamepad27"
@@ -2015,12 +2058,14 @@ function PvPUA:CreateQueueUI()
 
     self:AnchorQueueWindow(QUEUE_EDGE_PAD * 2 + QUEUE_HEADER_H + QUEUE_ROW_H)
 
-    local bg = wm:CreateControl(nil, tlw, CT_BACKDROP)
+    local bg = wm:CreateControl(nil, tlw, CT_CONTROL)
     bg:SetAnchor(TOPLEFT, tlw, TOPLEFT, 0, 0)
     bg:SetAnchor(BOTTOMRIGHT, tlw, BOTTOMRIGHT, 0, 0)
-    bg:SetCenterColor(0, 0, 0, 0.6)
-    bg:SetEdgeColor(0.6, 0.6, 0.6, 0.8)
-    bg:SetEdgeTexture(nil, 1, 1, 1, 0)
+    bg.fill = RoundPieces(bg, BOX_FILL, 0, QUEUE_CORNER)
+    bg.edge = RoundPieces(bg, BOX_EDGE, 1, QUEUE_CORNER)
+    TintPieces(bg.fill, 0, 0, 0, 1)
+    local ac = GetColorForAlliance(GetUnitAlliance("player"))
+    TintPieces(bg.edge, ac.r, ac.g, ac.b, 1)
     self.controls.queueBg = bg
 
     local header = wm:CreateControl(nil, tlw, CT_LABEL)
@@ -2029,6 +2074,7 @@ function PvPUA:CreateQueueUI()
     header:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     header:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     header:SetColor(0, 1, 0, 1)
+    header:SetDrawLevel(2)
     self.controls.queueHeader = header
 
     self.controls.queueRows = {}
@@ -2040,6 +2086,7 @@ function PvPUA:CreateQueueUI()
         row:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         row:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         row:SetColor(1, 1, 1, 1)
+        row:SetDrawLevel(2)
         row:SetHidden(true)
         self.controls.queueRows[i] = row
     end
@@ -3227,7 +3274,7 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.3",
+        version         = "5.4",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
         textFont        = function()

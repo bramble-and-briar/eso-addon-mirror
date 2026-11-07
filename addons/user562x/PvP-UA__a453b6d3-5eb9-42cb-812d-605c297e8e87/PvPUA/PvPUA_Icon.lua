@@ -715,8 +715,6 @@ function PvPUA:IconMenu()
           choices = {
               { name = "Self",   value = "self" },
               { name = "Others", value = "others" },
-              { name = "Small Group Frames - Disabled NEED TO WORK ON IT!", value = "smallGroupFrames" },
-              { name = "Large Group Frames - Disabled NEED TO WORK ON IT!", value = "largeGroupFrames" },
           },
           default = { "self", "others" },
           getFunc = function()

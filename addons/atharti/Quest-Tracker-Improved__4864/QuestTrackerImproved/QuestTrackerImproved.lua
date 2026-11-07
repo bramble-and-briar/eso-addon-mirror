@@ -86,6 +86,8 @@ local defaultSV = {
 	houseTagsColor = { r = 0.5450980663, g = 0.5490196347, b = 0.5215686560, a = 1 },
 
 	houseWidth = 350,
+	houseUseIcon = false,
+	houseShowTags = true,
 
 	dynamicEventsWidth = 240,
 	dynamicEventsIconSize = 32,

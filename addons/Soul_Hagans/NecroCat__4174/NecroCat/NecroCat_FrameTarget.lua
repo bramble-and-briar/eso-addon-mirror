@@ -35,6 +35,7 @@ local defaultTargetSV = {
     allianceIconSize     = 44,
     levelDisplayMode     = 1,
     showRace             = true,
+    showNpcTitle         = true,
     showRank             = true,
     showSkull            = true,
     executeEnabled       = true,
@@ -833,7 +834,20 @@ function Frames.UpdateTargetData()
             end
         end
     else
-        Frames.TargetSubLabel:SetHidden(true)
+        if sv.showNpcTitle ~= false then
+            local caption = GetUnitCaption("reticleover")
+            if caption and caption ~= "" then
+                Frames.TargetSubLabel:ClearAnchors()
+                Frames.TargetSubLabel:SetAnchor(TOPLEFT, Frames.TargetFrame, BOTTOMLEFT, 0, 4)
+                Frames.TargetSubLabel:SetText(zo_strformat("<<1>>", caption))
+                Frames.TargetSubLabel:SetHidden(false)
+            else
+                Frames.TargetSubLabel:SetHidden(true)
+            end
+        else
+            Frames.TargetSubLabel:SetHidden(true)
+        end
+
         if Frames.TargetRankLabel then
             Frames.TargetRankLabel:SetHidden(true)
         end

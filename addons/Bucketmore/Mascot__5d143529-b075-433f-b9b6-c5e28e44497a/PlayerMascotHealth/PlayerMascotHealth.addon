@@ -1,8 +1,8 @@
 ## Title: PlayerMascotHealth
 ## Description: Shows an original character whose condition (NORMAL / CAUTION / CRITICAL) follows your own HP. Console (PS5/CS) first.
 ## Author: PlayerMascotHealth project
-## Version: 1.0.0
-## AddOnVersion: 100
+## Version: 1.2.0
+## AddOnVersion: 120
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: PlayerMascotHealth_SV
 ## OptionalDependsOn: LibAddonMenu-2.0

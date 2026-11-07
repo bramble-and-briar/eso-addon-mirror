@@ -27,8 +27,8 @@ local RESUME_S = 0.5 -- a gap this long between frames means the reticle was hid
 local floor, abs, exp, max, min = math.floor, math.abs, math.exp, math.max, math.min
 local pi = math.pi
 
-local FILES = { dot = "dot", ring = "ring", orbit = "orbit", armH = "arm_h", armV = "arm_v", bracket = "brk", hit = "hit" }
-local WEIGHTED = { ring = true, orbit = true, armH = true, armV = true, bracket = true }
+local FILES = { dot = "dot", prismDot = "prism_dot", prism = "prism", ring = "ring", orbit = "orbit", armH = "arm_h", armV = "arm_v", bracket = "brk", hit = "hit" }
+local WEIGHTED = { prism = true, ring = true, orbit = true, armH = true, armV = true, bracket = true }
 
 local function texturePath(shape, weight, outline)
 	local name = FILES[shape]
@@ -91,6 +91,7 @@ function A.NewReticle(name, parent, anchorTo, offsetY, layer, level)
 		return { halo = halo, core = core, hidden = true, rot = 0 }
 	end
 	self.dotEl = element("Dot", 0)
+	self.prismEl = element("Prism", 0)
 	self.ringEl = element("Ring", 0)
 	self.orbitEl = element("Orbit", 0)
 	self.armR, self.armL = element("ArmR", 0), element("ArmL", 0)
@@ -125,7 +126,7 @@ end
 function R:Layout()
 	local sv = A.sv
 	self.sv = sv
-	local preset = A.PRESETS[sv.style] or A.PRESETS.orbit
+	local preset = A.PRESETS[sv.style] or A.PRESETS.prism
 	self.preset = preset
 	local weight = sv.weight
 	self.s = sv.size / 100
@@ -144,7 +145,8 @@ function R:Layout()
 		end
 		setHidden(el, not on)
 	end
-	use(self.dotEl, "dot", A.ShowDot(sv, preset))
+	use(self.dotEl, preset.dotShape or "dot", A.ShowDot(sv, preset))
+	use(self.prismEl, "prism", preset.prism ~= nil)
 	use(self.ringEl, "ring", preset.ring ~= nil)
 	use(self.orbitEl, "orbit", preset.orbit ~= nil)
 	local arms = preset.arms ~= nil
@@ -210,12 +212,17 @@ function R:Place()
 		local k = A.DotCore(sv, preset, pose) / SH.dot.core * s
 		self:Put(self.dotEl, 0, 0, SH.dot.w * k, SH.dot.h * k, 0)
 	end
+	if preset.prism then
+		local k = A.RingScale(pose, self.pulse) * s
+		self:Put(self.prismEl, 0, 0, SH.prism.w * k, SH.prism.h * k, 0)
+	end
 	if preset.arms then
-		local c = (A.ArmInner(sv, preset, pose) + SH.armH.len / 2) * s
-		self:Put(self.armR, c, 0, SH.armH.w * s, SH.armH.h * s, 0)
-		self:Put(self.armL, -c, 0, SH.armH.w * s, SH.armH.h * s, 0)
-		self:Put(self.armD, 0, c, SH.armV.w * s, SH.armV.h * s, 0)
-		self:Put(self.armU, 0, -c, SH.armV.w * s, SH.armV.h * s, 0)
+		local length = preset.arms.length or 1
+		local c = (A.ArmInner(sv, preset, pose) + SH.armH.len * length / 2) * s
+		self:Put(self.armR, c, 0, SH.armH.w * length * s, SH.armH.h * s, 0)
+		self:Put(self.armL, -c, 0, SH.armH.w * length * s, SH.armH.h * s, 0)
+		self:Put(self.armD, 0, c, SH.armV.w * s, SH.armV.h * length * s, 0)
+		self:Put(self.armU, 0, -c, SH.armV.w * s, SH.armV.h * length * s, 0)
 	end
 	if preset.ring then
 		local k = preset.ring.r / SH.ring.r * A.RingScale(pose, self.pulse) * s
@@ -223,7 +230,7 @@ function R:Place()
 	end
 	if preset.orbit then
 		local k = preset.orbit.r / SH.orbit.r * A.RingScale(pose, self.pulse) * s
-		self:Put(self.orbitEl, 0, 0, SH.orbit.w * k, SH.orbit.h * k, A.OrbitTurn(pose))
+		self:Put(self.orbitEl, 0, 0, SH.orbit.w * k, SH.orbit.h * k, A.OrbitTurn(pose, preset.orbit))
 	end
 	if preset.brackets then
 		local half = A.BracketHalf(sv, preset, pose)

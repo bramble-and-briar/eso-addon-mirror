@@ -1,3 +1,4 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
 local zo_strformat = zo_strformat
 
 -- ----------------------------------------------------------------------------

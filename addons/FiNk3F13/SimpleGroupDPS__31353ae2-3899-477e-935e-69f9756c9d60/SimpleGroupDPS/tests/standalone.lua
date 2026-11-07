@@ -72,6 +72,7 @@ ZO_SavedVars = { NewAccountWide = function(_, namespace, _, _, defaults)
     saved.dpsWidth = 800
     saved.lingerSeconds = 0 -- Migrate the former permanent-display option.
     saved.chatSummary = true -- Old preferences must not restore automatic chat output.
+    saved.shareDPS = true -- Legacy sending preference must be removed.
     return saved
 end }
 LibHarvensAddonSettings = {
@@ -95,8 +96,8 @@ assert(intervals.SimpleGroupDPSUI == 300 and updates.SimpleGroupDPSSend == nil,
     "display and outgoing values share one 300ms tick")
 assert(window and window.hidden, "standalone addon starts without buff addon")
 assert(menu["Move UI"].type == LibHarvensAddonSettings.ST_BUTTON)
-assert(settingsPanel.version == "1.9.6", "Settings header shows the running version")
-assert(menu["Installierte Version: 1.9.6"] == nil, "No duplicate version entry in General")
+assert(settingsPanel.version == "1.9.14", "Settings header shows the running version")
+assert(menu["Installierte Version: 1.9.14"] == nil, "No duplicate version entry in General")
 assert(menu["Autor: FiNk3--F13--"].type == LibHarvensAddonSettings.ST_LABEL)
 local overallSize = menu["HUD-Gesamtgröße"]
 assert(overallSize and overallSize.min == 50 and overallSize.max == 150 and overallSize.step == 5)
@@ -200,33 +201,29 @@ assert(not window.hidden, "HUD cursor mode remains visible")
 showScene("hud")
 clock = 3500
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:02"
-    and window.swtGroupDPSLabels[1].swtDPSValue.text == "4,8 Tsd.",
+assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01"
+    and window.swtGroupDPSLabels[1].swtDPSValue.text == "12,0 Tsd.",
     "HUD timer and DPS use the same measured damage duration")
 clock = 4000
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:03", "Active HUD clock advances without new damage")
+assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01", "No damage means no additional damage time")
 clock = 4999
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:03", "HUD keeps the same time base during damage pauses")
-local sentStats
-local originalSend = SimpleGroupDPS_BattleScrolls.SendDPS
-SimpleGroupDPS_BattleScrolls.SendDPS = function(_, dps) sentStats = dps end
-updates.SimpleGroupDPSUI()
-SimpleGroupDPS_BattleScrolls.SendDPS = originalSend
-assert(math.abs(sentStats - 12000000 / 3999) < 0.000001, "group sending continues without DoTs and uses the correct damage window")
+assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01", "HUD keeps the same time base during damage pauses")
+assert(type(SimpleGroupDPS_BattleScrolls.SendDPS) == "function" and type(SimpleGroupDPS_BattleScrolls.SendHPS) == "function"
+    and type(SimpleGroupDPS_BattleScrolls.SendMetrics) == "function", "Automatic group sending is restored")
 clock, inCombat = 5000, false
 events["SimpleGroupDPSDamageState:combat"](nil, false)
 assert(updates.SimpleGroupDPSDamageReset, "combat exit schedules Battle Scrolls-style finish check")
 clock = clock + 150
 updates.SimpleGroupDPSDamageReset()
-assert(saved.lastSummary.dps == 3000 and saved.lastSummary.damageTotal == 12000
-    and saved.lastSummary.damageDurationMS == 4000, "Final DPS uses the same elapsed combat time")
-assert(saved.lastSummary.elapsedMS == nil and window.swtGroupDPSLabels[0].swtDPSValue.text == "0:04",
+assert(saved.lastSummary.dps == 12000 and saved.lastSummary.damageTotal == 12000
+    and saved.lastSummary.damageDurationMS == 1000, "Final DPS uses the same elapsed combat time")
+assert(saved.lastSummary.elapsedMS == nil and window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01",
     "finishing saves only the common HUD/DPS/chat duration")
 clock = 5500
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:04", "result timer remains frozen after finish")
+assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01", "result timer remains frozen after finish")
 assert(#logs == 0 and saved.chatSummary == nil, "Completed fights must not print automatic chat summaries")
 assert(not window.hidden, "last result remains visible")
 COMBAT_UNIT_TYPE_TARGET_DUMMY = 7
@@ -236,14 +233,14 @@ events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Dum
 clock = 6677
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Dummy", 7, 2319, nil, nil, nil, 99, 10)
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01", "subsecond damage burst uses a stable one-second minimum")
+assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:00", "Subsecond timer follows BattleScrolls without a floor")
 clock, inCombat = 9000, false
 updates.SimpleGroupDPSUI()
 local dummyLive = SimpleGroupDPS_DamageMeter:GetStats()
 events["SimpleGroupDPSDamageState:combat"](nil, false)
 updates.SimpleGroupDPSDamageReset()
-assert(saved.lastSummary.dps == dummyLive.dps and saved.lastSummary.damageDurationMS == 3000
-    and math.floor(saved.lastSummary.dps + 0.5) == 1440 and #logs == 0,
+assert(saved.lastSummary.dps == dummyLive.dps and saved.lastSummary.damageDurationMS == 677
+    and math.floor(saved.lastSummary.dps + 0.5) == 6380 and #logs == 0,
     "Dummy result must retain the calculation without printing a chat summary")
 retention.setFunction(nil, nil, retention.items[1])
 clock = 68999
@@ -306,7 +303,7 @@ assert(type(SLASH_COMMANDS["/sgdmove"]) == "function")
 assert(type(SLASH_COMMANDS["/sgdstatus"]) == "function")
 SLASH_COMMANDS["/sgdstatus"]()
 local diagnosticText = table.concat(logs, "\n")
-assert(diagnosticText:find("SimpleGroupDPS 1.9.6", 1, true)
+assert(diagnosticText:find("SimpleGroupDPS 1.9.14", 1, true)
     and diagnosticText:find("Takt: 300 ms", 1, true)
     and diagnosticText:find("Letzter Schaden:", 1, true)
     and diagnosticText:find("Schadensereignisse:", 1, true),
@@ -325,6 +322,7 @@ events["SimpleGroupDPSDamageBosses:boss"]()
 clock = 20500
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 0, "Local Boss", 2, 6000, nil, nil, nil, 0, 42)
 assert(SimpleGroupDPS_DamageMeter:GetStats().groupTotal == 0, "Anonymous hit waits for a confirmed target")
+events["SimpleGroupDPSDamageEffects:effect"](nil, 1, nil, nil, "boss1", nil, nil, nil, nil, nil, nil, nil, nil, "Local Boss", 42, 0)
 clock = 21000
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 4, "Local Boss", 2, 10000, nil, nil, nil, 100, 42)
 updates.SimpleGroupDPSUI()
@@ -334,14 +332,14 @@ assert(SimpleGroupDPS_DamageMeter:GetStats().bossDPS == 0)
 clock = 22000
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Local Boss", 2, 4000, nil, nil, nil, 99, 42)
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "13,3 Tsd. (13,3 Tsd.)", "One-boss fight combines anonymous, group and own damage once")
-assert(math.abs(SimpleGroupDPS_DamageMeter:GetStats().dps - 4000 / 1.5) < 0.000001, "Anonymous group damage must not increase own damage total")
+assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "10,0 Tsd. (10,0 Tsd.)", "One-boss fight combines anonymous, group and own damage once")
+assert(math.abs(SimpleGroupDPS_DamageMeter:GetStats().dps - 4000 / 2) < 0.000001, "Anonymous group damage must not increase own damage total")
 clock, inCombat = 23000, false
 events["SimpleGroupDPSDamageState:combat"](nil, false)
 updates.SimpleGroupDPSDamageReset()
-assert(saved.lastSummary.groupDamageTotal == 20000 and math.abs(saved.lastSummary.groupDPS - 20000 / 2.5) < 0.000001)
+assert(saved.lastSummary.groupDamageTotal == 20000 and math.abs(saved.lastSummary.groupDPS - 20000 / 2) < 0.000001)
 receive("group1", {messageType = "damage", allTargetsDPS = 40000, bossDPS = 30000})
-assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "8,0 Tsd. (8,0 Tsd.)")
+assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "10,0 Tsd. (10,0 Tsd.)")
 clock = 42000
 updates.SimpleGroupDPSUI()
 assert(SimpleGroupDPS_BattleScrolls:GetRows()[1].stale, "Old peer values remain visible but stale")

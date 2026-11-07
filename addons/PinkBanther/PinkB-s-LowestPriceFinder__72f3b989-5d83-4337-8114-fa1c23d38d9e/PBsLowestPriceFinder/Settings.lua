@@ -98,6 +98,45 @@ function ADDON:InitializeSettings()
 
 	-- ---- the watched items ------------------------------------------------------------------
 	Heading(SI_PBSLPF_SECTION_ITEMS)
+
+	-- The guild store's Quality choices: "any", then Normal ... Legendary. `data` 0 is "any".
+	local function QualityItems()
+		local items = { { name = self.QualityName(nil), data = 0 } }
+		for _, quality in ipairs(self.QualityValues()) do
+			items[#items + 1] = { name = self.QualityName(quality), data = quality }
+		end
+		return items
+	end
+
+	local function QualityRow(label, tooltip, getQuality, setQuality)
+		local items = QualityItems()
+		return {
+			type = LHAS.ST_DROPDOWN,
+			label = label,
+			tooltip = tooltip,
+			items = items,
+			default = items[1].name,
+			getFunction = function()
+				local quality = getQuality() or 0
+				for _, item in ipairs(items) do
+					if item.data == quality then
+						return item.name
+					end
+				end
+				return items[1].name
+			end,
+			setFunction = function(_, _, item)
+				setQuality(item.data ~= 0 and item.data or nil)
+			end,
+		}
+	end
+
+	settings:AddSetting(QualityRow(GetString(SI_PBSLPF_QUALITY_ROW), GetString(SI_PBSLPF_QUALITY_ROW_TOOLTIP), function()
+		return self.sv.addQuality
+	end, function(quality)
+		self.sv.addQuality = quality
+	end))
+
 	if LHAS.ST_EDIT then
 		pcall(function()
 			settings:AddSetting({
@@ -105,11 +144,18 @@ function ADDON:InitializeSettings()
 				label = GetString(SI_PBSLPF_ADD_EDIT),
 				tooltip = GetString(SI_PBSLPF_ADD_EDIT_TOOLTIP),
 				default = "",
+				-- The newest name searched in the guild store that is not watched yet (the first one /lpf history
+				-- lists), with the quality chosen there, is filled in: confirming the row watches it. Nothing to
+				-- fill in: empty.
 				getFunction = function()
-					return ""
+					local ok, text = pcall(function()
+						local choices = self:HistoryChoices()
+						return choices and choices[1] and self:EntryInputText(choices[1], self.sv.addQuality) or ""
+					end)
+					return ok and text or ""
 				end,
 				setFunction = function(value)
-					if value and value ~= "" and self:AddWatch(value) then
+					if value and value ~= "" and self:AddWatch(value, self.sv.addQuality) then
 						panel:Refresh()
 						self:RebuildSettingsRows()
 					end
@@ -128,14 +174,37 @@ function ADDON:InitializeSettings()
 		if #watch == 0 then
 			rows[1] = { type = LHAS.ST_LABEL, label = GetString(SI_PBSLPF_NO_ITEMS) }
 		end
+		local function PositionOf(entry)
+			local position
+			for candidate, existing in ipairs(watch) do
+				if existing == entry then
+					position = candidate
+				end
+			end
+			return position
+		end
 		for index, entry in ipairs(watch) do
+			-- the quality it is searched in, as the guild store's own choices
+			rows[#rows + 1] = QualityRow(string.format("%d. %s", index, self:WatchLabel(entry, true)), GetString(SI_PBSLPF_QUALITY_ITEM_TOOLTIP), function()
+				return entry.quality
+			end, function(quality)
+				local position = PositionOf(entry)
+				if position then
+					local ok, _, other = self:SetWatchQuality(position, quality)
+					if not ok and other then
+						ADDON.Print(ADDON.Format(SI_PBSLPF_ADD_DUP, self:WatchLabel(other)))
+					end
+				end
+				panel:Refresh()
+				Refresh()
+			end)
 			rows[#rows + 1] = {
 				type = LHAS.ST_BUTTON,
-				label = string.format("%d. %s", index, self:WatchLabel(entry)),
+				label = ADDON.Format(SI_PBSLPF_REMOVE_ROW, index),
 				tooltip = GetString(SI_PBSLPF_REMOVE_TOOLTIP),
 				buttonText = GetString(SI_PBSLPF_REMOVE_BUTTON),
 				clickHandler = function()
-					local position = self:FindWatch(index)
+					local position = PositionOf(entry)
 					if position then
 						self:RemoveWatch(position)
 					end
@@ -145,6 +214,33 @@ function ADDON:InitializeSettings()
 				end,
 			}
 			key[#key + 1] = self:WatchKey(entry)
+		end
+
+		-- the names searched in the guild store lately (not watched yet), to pick from instead of typing
+		rows[#rows + 1] = { type = LHAS.ST_SECTION or LHAS.ST_LABEL, label = GetString(SI_PBSLPF_SECTION_HISTORY) }
+		local choices = self:HistoryChoices()
+		if choices == nil then
+			rows[#rows + 1] = { type = LHAS.ST_LABEL, label = GetString(SI_PBSLPF_HISTORY_ROW_UNREADABLE) }
+			key[#key + 1] = "history:unreadable"
+		elseif #choices == 0 then
+			rows[#rows + 1] = { type = LHAS.ST_LABEL, label = GetString(SI_PBSLPF_HISTORY_ROW_EMPTY) }
+			key[#key + 1] = "history:none"
+		end
+		for _, choice in ipairs(choices or {}) do
+			rows[#rows + 1] = {
+				type = LHAS.ST_BUTTON,
+				label = self:WatchLabel(choice),
+				tooltip = GetString(SI_PBSLPF_HISTORY_TOOLTIP),
+				buttonText = GetString(SI_PBSLPF_HISTORY_BUTTON),
+				clickHandler = function()
+					if self:AddEntry(choice) then
+						panel:Refresh()
+						self:RebuildSettingsRows()
+						Refresh()
+					end
+				end,
+			}
+			key[#key + 1] = "history:" .. self:WatchKey(choice)
 		end
 		return rows, table.concat(key, "\n")
 	end
@@ -184,6 +280,8 @@ function ADDON:InitializeSettings()
 			if newState == SCENE_SHOWN and settings.selected == true then
 				pcall(function()
 					self:RebuildSettingsRows()
+					-- the panel is already drawn on a revisit: the text row's filled-in name is read again
+					Refresh()
 				end)
 			end
 		end)

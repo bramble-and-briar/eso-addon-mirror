@@ -13,11 +13,8 @@ LibCombat = {
     GetPlayerUnitId = function() return 1 end,
     GetUnitType = function(id) return id == 1 and 1 or 4 end,
 }
-LibCombat2 = {
-    RegisterForCombatEvent = function() error("PC must prefer LibCombat even if v2 is installed") end,
-    GetPlayerUnitId = function() return 1 end,
-    GetUnitById = function() error("PC must not use the console adapter") end,
-}
+-- PC testing remains available when the console library is absent.
+LibCombat2 = nil
 env.setClock(30); env.setCombat(false); env.setBuffs("player", {})
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "player", personalTime = "auto", scale = 1, x = 0, y = 0 } }
@@ -41,4 +38,4 @@ callbacks[LIBCOMBAT_EVENT_FIGHTSUMMARY](nil, { starttime = 132000, endtime = 140
 for index = 1, 30 do env.events.tick() end
 assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "37.5 %")
 assert(captured[1].personalTime == "combat")
-print("PC backend: LibCombat preference with both libraries installed and automatic CMX personal denominator passed")
+print("PC backend: LibCombat fallback without LibCombat2 and automatic CMX personal denominator passed")

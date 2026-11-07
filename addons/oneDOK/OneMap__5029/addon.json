@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/oneDOK/OneMap__5029",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "oneDOK",
+  "canonical_id": "esoui:5029",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5029",
+  "deleted": false,
+  "directories": [
+    "OneMap"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5029/",
+  "fingerprint": "3185e0d43d29de9435f7438dac50b838cb0a85558a0360038bb39d2a24c35df4",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18346.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5029",
+  "source_url": "https://www.esoui.com/downloads/info5029-OneMap.html",
+  "stats": {
+    "downloads": 44,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "OneMap",
+  "updated_at": 1793988953000,
+  "version": "26.11.1"
+}

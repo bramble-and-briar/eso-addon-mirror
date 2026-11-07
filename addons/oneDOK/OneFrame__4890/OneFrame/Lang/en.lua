@@ -33,10 +33,10 @@ if not ONEFRAME_HPS_LABEL then ZO_CreateStringId("ONEFRAME_HPS_LABEL", "HPS") en
 if not ONEFRAME_UNAVAILABLE then ZO_CreateStringId("ONEFRAME_UNAVAILABLE", "—") end
 if not ONEFRAME_KILO then ZO_CreateStringId("ONEFRAME_KILO", "%.1fk") end
 if not ONEFRAME_MILLION then ZO_CreateStringId("ONEFRAME_MILLION", "%.2fm") end
-if not ONEFRAME_HODOR then ZO_CreateStringId("ONEFRAME_HODOR", "Use Hodor Reflexes data") end
+if not ONEFRAME_HODOR then ZO_CreateStringId("ONEFRAME_HODOR", "Share combat statistics (LibGroupCombatStats)") end
 if not ONEFRAME_ULTIMATE then ZO_CreateStringId("ONEFRAME_ULTIMATE", "Show shared Ultimate icons") end
 if not ONEFRAME_ULTIMATE_TIP then ZO_CreateStringId("ONEFRAME_ULTIMATE_TIP", "Available for every role, independently of DPS/HPS. Hodor shares both bars, not the active bar: show both distinct abilities. Numbers are received Ultimate points. Dim = not ready; bright = ready; neutral = unknown/rounded boundary. No data hides the element. Remote points/cost have a 2-point step. Wait for fresh type and points packets after resets.") end
-if not ONEFRAME_HODOR_TIP then ZO_CreateStringId("ONEFRAME_HODOR_TIP", "Read existing shared DPS and effective HPS through Hodor's LibGroupCombatStats dependency. No extra broadcasting. Requires the verified Hodor 2026-05-17 / library 2026-07-26 versions. Missing, stale or incompatible data shows — for other members.") end
+if not ONEFRAME_HODOR_TIP then ZO_CreateStringId("ONEFRAME_HODOR_TIP", "Share DPS, effective HPS and Ultimate through LibGroupCombatStats. Hodor is optional. Other members must transmit their data too. Library sharing continues until UI reload once registered. Missing or stale data shows —.") end
 if not ONEFRAME_STATS_TIP then ZO_CreateStringId("ONEFRAME_STATS_TIP", "Damage dealers show DPS, healers HPS, tanks neither. Ultimate is independent for all roles. Shared rates take priority; local fallback measures direct outgoing damage/raw healing (not effective HPS), excluding pets, companions and shields. Shared rates expire after 10 seconds and reset with combat/group/zone changes. No measurement = —; received zero = 0.") end
 if not ONEFRAME_SHIELDS then ZO_CreateStringId("ONEFRAME_SHIELDS", "Damage shields") end
 if not ONEFRAME_SHIELD then ZO_CreateStringId("ONEFRAME_SHIELD", "Show damage shields") end

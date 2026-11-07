@@ -46,13 +46,18 @@ options.dpsFontSize = 14
 panel:Render(parent, members, false, 10000, options)
 assert(row.swtDPSValue.font:find("|32|", 1, true), "name size cannot shrink the selected DPS digits")
 
-ZO_FormatTime = function() return "0:06" end -- A formatter rounding up must not change the measured timer.
+TIME_FORMAT_STYLE_COLONS, TIME_FORMAT_PRECISION_SECONDS = 7, 9
+ZO_FormatTime = function(seconds, style, precision)
+    assert(style == TIME_FORMAT_STYLE_COLONS and precision == TIME_FORMAT_PRECISION_SECONDS)
+    assert(type(seconds) == "number")
+    return "0:06", 0
+end -- BattleScrolls uses this same ESO formatter, including its rounding.
 panel:Render(parent, members, false, 5100, options)
-assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == "0:05", "5.1s measurement must never display as 6s")
+assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == "0:06", "Use original BattleScrolls ESO timer formatting")
 panel:Render(parent, members, false, 5999, options)
-assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == "0:05", "only completed seconds appear without rounding up")
+assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == "0:06", "Match ESO formatting instead of custom truncation")
 panel:Render(parent, members, false, 6000, options)
-assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == "0:06", "six seconds appear only at six measured seconds")
+assert(parent.swtGroupDPSLabels[0].swtDPSValue.text == "0:06", "Exact-second display uses the same formatter")
 
 local bossMembers = {{name = "@Known", dps = 2000, bossDPS = 1000}, {name = "@Unknown", dps = 1000}}
 panel:Render(parent, bossMembers, true, 6000, options)

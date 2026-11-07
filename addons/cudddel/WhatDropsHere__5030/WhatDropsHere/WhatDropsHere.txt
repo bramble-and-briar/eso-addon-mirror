@@ -1,0 +1,19 @@
+## Title: What Drops Here? |cFF8800(Beta)|r
+## Author: @Cudddel
+## Version: 0.2.0-beta
+## APIVersion: 101051 101052
+## SavedVariables: WDH_Saved
+## Description: Merkt sich, was jede Beutequelle dir bisher gegeben hat, und zeigt es am Fadenkreuz an.
+## AddOnVersion: 2
+## OptionalDependsOn: LibAddonMenu-2.0>=32
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+lang/de.lua
+WDH_Categories.lua
+WhatDropsHere.lua
+WDH_Hud.lua
+WDH_Menu.lua

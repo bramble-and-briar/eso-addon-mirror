@@ -11,8 +11,12 @@ end
 function QTI.BuildHouseStrings(self)
 	local housingEditorState = HOUSING_EDITOR_STATE
 
-	local houseName = housingEditorState:GetHouseName()
-	self:SetHeaderText(zo_strformat("<<1>>", houseName))
+	if QTI.SV.houseUseIcon then
+		self:SetHeaderText("|t24:24:/esoui/art/campaign/campaignbrowser_homecampaign.dds|t")
+	else
+		local houseName = housingEditorState:GetHouseName()
+		self:SetHeaderText(zo_strformat("<<1>>", houseName))
+	end
 
 	local sublabelParts = {}
 
@@ -43,15 +47,22 @@ function QTI.BuildHouseStrings(self)
 	local maxPopulation = housingEditorState:GetMaxPopulation()
 	self.populationLabel:SetText(string.format("%d / %d", population, maxPopulation))
 
-	self:RefreshListingTags(true)
+	if QTI.SV.houseShowTags then
+		self:RefreshListingTags(true)
+		self.tagsLabel:SetHidden(false)
+	else
+		self.tagsLabel:SetHidden(true)
+	end
 end
 
 function QTI.ApplyHouseStyle()
 	local header, subLabel, population, tags = QTI.GetHouseTrackerControls()
 
+	local headerSize = QTI.SV.houseUseIcon and 10 or QTI.SV.houseHeaderSize
+
 	header:SetFont(QTI.GetFont(
 		QTI.SV.houseHeaderFont,
-		QTI.SV.houseHeaderSize,
+		headerSize,
 		QTI.SV.houseHeaderStyle))
 	QTI.ApplyControlColor(header, QTI.SV.houseHeaderColor)
 

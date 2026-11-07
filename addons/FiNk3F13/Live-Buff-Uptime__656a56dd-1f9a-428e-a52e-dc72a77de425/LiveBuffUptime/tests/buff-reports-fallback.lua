@@ -40,6 +40,7 @@ assert(dd.groupRole == "damage" and #dd.members == 2 and dd.covered == 10 and dd
 assert(dd.members[1].counted and not dd.members[2].counted)
 reports.Open()
 reports.SelectFight(1)
+reports.ShowBuffs()
 reports.ChangeBuff(1)
 assert(env.controls.LiveBuffUptimeReportTotal.text == "DD-Uptime  100,0 %", "DD fallback reports must preserve the filter")
 assert(env.controls.LiveBuffUptimeReportName2.text == "Bob" and env.controls.LiveBuffUptimeReportPercent2.text == "-",

@@ -15,9 +15,8 @@ env.events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, "Enemy",
     "Me", COMBAT_UNIT_TYPE_PLAYER, 100, nil, nil, nil, 99, 10, 200, 0)
 env.events["SimpleGroupDPSDamage:damage"](nil, 5, false, nil, nil, nil, "Me", COMBAT_UNIT_TYPE_PLAYER,
     "Friend", COMBAT_UNIT_TYPE_GROUP, 400, nil, nil, nil, 10, 20, 100, 600)
-local sent = {}
--- Capture final uncompressed stats going into the real role-based routing.
-bridge.SendHPS = function(_, raw, effective, force) sent[#sent+1] = {raw, effective, force}; return true end
+local sent={}
+bridge.SendHPS=function(_,raw,effective,force) sent[#sent+1]={raw,effective,force};return true end
 env.tick()
 local function ownRow()
     for key, row in pairs(env.window.swtGroupDPSLabels) do
@@ -27,15 +26,15 @@ local function ownRow()
 end
 assert(ownRow().swtDPSValue.text == "400 (1,0 Tsd.)" and not env.window.swtGroupDPSLabels.healingHeader.hidden,
     "Own healer displays measured HPS immediately without a local BattleScrolls callback")
-assert(sent[#sent][1] == 1000 and sent[#sent][2] == 400 and sent[#sent][3] == false,
-    "Live UI and sender get the same snapshot")
+assert(sent[#sent][1]==1000 and sent[#sent][2]==400 and sent[#sent][3]==false, "Own HPS is sent automatically")
+
 env.receive("group1", {messageType = "healing", rawHPS = 2000, effectiveHPS = 600})
 assert(ownRow().swtDPSValue.text == "400 (1,0 Tsd.)", "Receiving another healer never overwrites own HPS")
 env.setCombat(false)
 env.events["SimpleGroupDPSDamageState:combat"](nil, false)
 env.updates.SimpleGroupDPSDamageReset()
-assert(sent[#sent][3] == true and env.saved.lastSummary.rawHPS == 1000
-    and env.saved.lastSummary.effectiveHPS == 400, "Final HPS is forced to queue and saved with the result")
+assert(sent[#sent][3]==true and env.saved.lastSummary.rawHPS == 1000
+    and env.saved.lastSummary.effectiveHPS == 400, "Final HPS is sent and saved")
 env.setClock(803000)
 env.tick()
 assert(ownRow().swtDPSValue.text == "400 (1,0 Tsd.)", "Finished own healing remains frozen")
@@ -43,4 +42,4 @@ env.setClock(861000)
 env.tick()
 assert(meter:GetStats().rawHPS == nil and next(env.saved.lastSummary) == nil,
     "Retention expiry clears own healing result and saved data")
-print("PASS: healer event -> own HUD and role-based send -> final queue/save -> retention reset")
+print("PASS: healer event -> own HUD and sender -> final result -> retention reset")

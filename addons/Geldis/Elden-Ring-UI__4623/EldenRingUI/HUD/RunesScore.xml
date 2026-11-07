@@ -1,0 +1,14 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="ERUI_RunesScoreFrame" mouseEnabled="false" movable="false" hidden="true">
+            <Dimensions x="155" y="24"/>
+            <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT" offsetX="-55" offsetY="-30"/>
+            <Controls>
+                <Label name="$(parent)Text" font="EldenRingUI/Fonts/Vollkorn-Regular_0.slug|$(KB_22)|soft-shadow-thick" horizontalAlignment="RIGHT" verticalAlignment="CENTER">
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-8" offsetY="-5"/>
+                    <Dimensions y="24"/>
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

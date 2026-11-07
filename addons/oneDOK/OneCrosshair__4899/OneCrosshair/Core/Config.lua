@@ -1,9 +1,5 @@
 local O = OneCrosshair
--- Release appearance captured from saved settings for 1.0.
--- EDIT HERE, then /reloadui. Values override old SavedVariables.
--- Меняйте оформление здесь; ползунки из клиента удалены.
--- After changing ring geometry, run tools/generate_arcs.py for smooth textures.
--- Without regeneration, arbitrary geometry retains the procedural fallback.
+-- Default appearance; players can override these values in the settings panel.
 O.Config = {
     resourceLength = 90,        -- Arc length, percent of each quadrant (0..100).
     resourceRadius = 45.25,     -- Ring radius in ESO UI units (20..100).

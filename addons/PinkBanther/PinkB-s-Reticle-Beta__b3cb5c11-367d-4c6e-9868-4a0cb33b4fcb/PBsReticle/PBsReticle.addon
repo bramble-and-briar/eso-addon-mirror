@@ -1,8 +1,8 @@
-## Title: |cFF69B4PB's Reticle|r 1.0.0
+## Title: |cFF69B4PB's Reticle|r 1.1.0
 ## Author: |cFF69B4PinkBanther|r
-## Description: A stylish, high-visibility reticle. Six designs with a dark outline that reads on any background, colour by what you look at, a lock-on and open motion, hit and kill markers, and a preview on a dark and a light background in the settings.
-## Version: 1.0.0
-## AddOnVersion: 100
+## Description: A stylish, high-visibility reticle. Eight designs with a dark outline, colour by what you look at, subtle motion, hit and kill markers, and a preview on dark and light backgrounds.
+## Version: 1.1.0
+## AddOnVersion: 110
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsReticle_Data
@@ -16,6 +16,14 @@ Preview.lua
 Settings.lua
 Main.lua
 assets/solid.dds
+assets/prism_dot.dds
+assets/prism_dot_o.dds
+assets/prism_thin.dds
+assets/prism_thin_o.dds
+assets/prism_regular.dds
+assets/prism_regular_o.dds
+assets/prism_bold.dds
+assets/prism_bold_o.dds
 assets/dot.dds
 assets/dot_o.dds
 assets/hit.dds

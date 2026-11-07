@@ -1,4 +1,4 @@
--- Battle Scrolls DPS sharing; no local Battle Scrolls install needed.
+-- BattleScrolls-compatible DPS/HPS sending and reception.
 -- Wire format: https://github.com/vladislavsheludchenkov/BattleScrolls/blob/main/BattleScrolls/network/dpsshare.lua
 local bridge = {}
 SimpleGroupDPS_BattleScrolls = bridge
@@ -8,13 +8,12 @@ local receiverReady = false
 local receiverAttempted = false
 local damageProtocol
 local healingProtocol
-local lastSendAt
-local lastSendResult
 local connectionError
 local receivedCount, queuedCount = 0, 0
+local lastSendAt, lastSendResult
+local SEND_INTERVAL_MS = 300
 local lastReceivedAt
 local STALE_MS = 15000
-local SEND_INTERVAL_MS = 300
 
 local function decodeDPS(encoded, bits, literalMax)
     local maxValue = 2 ^ bits - 1
@@ -79,7 +78,7 @@ function bridge:Connect()
         receiverAttempted = true
         local handler = lgb:RegisterHandler("SimpleGroupDPS_BattleScrolls")
         handler:SetDisplayName("SimpleGroupDPS: Battle Scrolls DPS")
-        handler:SetDescription("Teilt eigene DPS und empfaengt Gruppen-DPS im Battle-Scrolls-Format.")
+        handler:SetDescription("Teilt eigene DPS/HPS und empfaengt Gruppenwerte im BattleScrolls-Format.")
         -- DeclareProtocol rejects occupied IDs. Leave any existing owner intact.
         local ok, damage = pcall(handler.DeclareProtocol, handler, 430, "SimpleGroupDPS_BattleScrollsDamage")
         if not ok or not damage then
@@ -129,10 +128,6 @@ function bridge:Clear()
     lastSendAt = nil
 end
 
-function bridge:ResetSendClock()
-    lastSendAt = nil
-end
-
 function bridge:Expire(ageMS)
     local now = GetGameTimeMilliseconds()
     for tag, member in pairs(members) do
@@ -140,8 +135,12 @@ function bridge:Expire(ageMS)
     end
 end
 
+function bridge:ResetSendClock()
+    lastSendAt = nil
+end
+
 function bridge:SendDPS(dps, force, bossDPS)
-    -- A local Battle Scrolls installation already owns and sends this metric.
+    -- Locally installed BattleScrolls owns its sender: never send duplicates.
     if BattleScrolls and BattleScrolls.dpsShare then return false end
     if not damageProtocol then self:Connect() end
     if not damageProtocol or not IsUnitGrouped("player") or not damageProtocol:IsEnabled() then return false end
@@ -154,7 +153,7 @@ function bridge:SendDPS(dps, force, bossDPS)
     if bossDPS and bossDPS >= 0 and bossDPS < math.huge then
         encodedBoss = encodeDPS(math.min(dps, bossDPS), 12, 511)
     end
-    local queued = damageProtocol:Send({ encodedAllDPS = encodeDPS(dps, 11, 255), encodedBossDPS = encodedBoss })
+    local queued = damageProtocol:Send({encodedAllDPS = encodeDPS(dps, 11, 255), encodedBossDPS = encodedBoss})
     lastSendResult = queued and "queued" or "failed"
     if queued then lastSendAt = now; queuedCount = queuedCount + 1 end
     return queued
@@ -179,27 +178,24 @@ end
 
 function bridge:SendMetrics(stats, force)
     local role = GetSelectedLFGRole and GetSelectedLFGRole()
-    -- Match the role-based display instead of switching tanks to HPS on self-heals.
     if LFG_ROLE_HEAL ~= nil and role == LFG_ROLE_HEAL then
         return self:SendHPS(stats.rawHPS, stats.effectiveHPS, force)
     end
     return self:SendDPS(stats.dps, force, stats.bossDPS)
 end
 
--- Queue acceptance is observable here; delivery to another client is not.
 function bridge:GetStatus()
     local localShare = BattleScrolls and BattleScrolls.dpsShare
     return {
         grouped = IsUnitGrouped("player"),
         connected = (localShare and registeredShare == localShare) or damageProtocol ~= nil,
         localBattleScrolls = localShare ~= nil,
-        enabled = damageProtocol and damageProtocol:IsEnabled() or false,
         healingConnected = (localShare and registeredShare == localShare) or healingProtocol ~= nil,
-        healingEnabled = healingProtocol and healingProtocol:IsEnabled() or false,
-        lastSendAt = lastSendAt,
-        lastSendResult = lastSendResult,
         error = connectionError,
         receivedCount = receivedCount, queuedCount = queuedCount, lastReceivedAt = lastReceivedAt,
+        enabled = damageProtocol and damageProtocol:IsEnabled() or false,
+        healingEnabled = healingProtocol and healingProtocol:IsEnabled() or false,
+        lastSendAt = lastSendAt, lastSendResult = lastSendResult,
     }
 end
 

@@ -3,7 +3,7 @@
 ## Version: 1.1.0
 ## APIVersion: 101050
 ## SavedVariables: ConsoleMetricsSavedVars
-## OptionalDependsOn: PvPCooldownTracker LibConsoleDialogs LibHarvensAddonSettings LMB
+## OptionalDependsOn: PvPCooldownTracker LibConsoleDialogs LibHarvensAddonSettings LibAddonMenu-2.0 LMB LibFights
 
 src/ConsoleMetrics_Core.lua
 src/ConsoleMetrics_Build.lua
@@ -12,6 +12,7 @@ src/ConsoleMetrics_Sets.lua
 src/ConsoleMetrics_FightData.lua
 src/ConsoleMetrics_Combat.lua
 src/ConsoleMetrics_Chat.lua
+src/ConsoleMetrics_LibFights.lua
 src/ConsoleMetrics_Dialog.lua
 src/ConsoleMetrics_PCDialog.lua
 src/ConsoleMetrics_Integration.lua

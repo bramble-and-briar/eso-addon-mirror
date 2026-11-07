@@ -1,3 +1,5 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
+
 local MyNotificationProvider = ZO_NotificationProvider:Subclass()
 
 function MyNotificationProvider:Initialize(notificationManager)

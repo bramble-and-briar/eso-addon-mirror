@@ -18,7 +18,7 @@
     "SulXansMarker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4943/",
-  "fingerprint": "a9fda788f0ca440f3e48a9546b98abbf6f3a12e0b8abef633a0f0207456d3b34",
+  "fingerprint": "435d549ef0d14b674fd5939c59012f01420caadb3dce30b5a47f1ca1849c09b8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17938.png",
     "https://cdn-eso.mmoui.com/preview/pvw17936.png"
@@ -29,11 +29,11 @@
   "source_id": "4943",
   "source_url": "https://www.esoui.com/downloads/info4943-Sul-Xansmarker.html",
   "stats": {
-    "downloads": 126,
+    "downloads": 180,
     "favorites": 1,
-    "monthly_downloads": 122
+    "monthly_downloads": 171
   },
   "title": "Sul-Xan's marker",
-  "updated_at": 1792235804000,
-  "version": "2.6"
+  "updated_at": 1794021560000,
+  "version": "2.7"
 }

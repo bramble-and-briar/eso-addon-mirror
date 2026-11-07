@@ -37,7 +37,7 @@ assert(clears == before and env.controls.LiveBuffUptimeReportName1.text == "13",
     "Changing the player page must not rebuild or scroll the effect list")
 reports.ChangeCategory()
 list:SetSelectedIndex(7)
-reports.ChangeCategory()
+reports.ChangeCategory(-1)
 assert(list.index == 5 and env.controls.LiveBuffUptimeReportName1.text == "13",
     "Returning to buffs must restore both the selected effect and player page")
 reports.ChangeCategory()

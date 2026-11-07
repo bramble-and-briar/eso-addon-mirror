@@ -1,4 +1,4 @@
-local clock, zone, inCombat = 1000, 1, true
+local clock, zone, inCombat = 1000, 638, true
 local callbacks, updates, finished = {}, {}, {}
 local bosses = {}
 ACTION_RESULT_DAMAGE = 1

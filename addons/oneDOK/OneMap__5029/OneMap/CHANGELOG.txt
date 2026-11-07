@@ -1,0 +1,9 @@
+26.11.1
+- Map enlargement, optional Area Completion hiding and a visible blue player highlight.
+- Smooth wheel navigation between map levels, including cities, with a short pause to prevent accidental transitions.
+- Separate Trials and Dungeons headings in the combined sidebar, with trials first; house locations appear on one line.
+- Quest selection shows the correct zone and retains all active quests in the list.
+- Right-click sidebar travel prioritizes free player jumps, with compact price tooltips and an Antiquities menu action.
+- Optional skipping of teleport confirmations for wayshrines and houses.
+- Short Shift-click markers without blocking map dragging, zoom or level navigation.
+- English, Russian, German, French, Spanish, Japanese and Simplified Chinese interfaces.

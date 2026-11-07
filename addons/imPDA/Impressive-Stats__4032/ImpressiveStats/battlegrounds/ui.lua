@@ -1,4 +1,11 @@
+local IMP_STATS_SHARED = IMP_STATS_SHARED
 local PossibleNan = IMP_STATS_SHARED.PossibleNan
+local FormatNumber = IMP_STATS_SHARED.FormatNumberWithoutSpace
+
+local function comma_value(n) -- credit http://richard.warburton.it
+	local left, num, right = string.match(n, '^([^%d]*%d)(%d*)(.-)$')
+	return left..(num:reverse():gsub('(%d%d%d)', '%1,'):reverse())..right
+end
 
 -- ----------------------------------------------------------------------------
 
@@ -84,6 +91,7 @@ function MatchesStats:Clear()
     self.totalDamageDone = 0
     self.totalHealingDone = 0
     self.totalDamageTaken = 0
+    self.totalScore = 0
 
     self.observationsDamageDone = {}
     self.observationsHealingDone = {}
@@ -105,7 +113,7 @@ local function _avg(tbl)
     return _sum(tbl) / #tbl
 end
 
-local function _sd(tbl, E)
+local function _var(tbl, E)
     E = E or _avg(tbl)
     local s = 0
     for i = 1, #tbl do
@@ -126,6 +134,7 @@ function MatchesStats:AddMatch(index, data)
     self.totalDamageDone    = self.totalDamageDone  + data.damageDone
     self.totalHealingDone   = self.totalHealingDone + data.healingDone
     self.totalDamageTaken   = self.totalDamageTaken + data.damageTaken
+    self.totalScore         = self.totalScore       + data.medalScore
 
     if data.result == BATTLEGROUND_RESULT_WIN then
         self.totalWon = self.totalWon + 1
@@ -149,7 +158,7 @@ end
 
 local function _calcStats(observations)
     if #observations < 16 then
-        return 0, 0
+        return nil, nil
     end
     table.sort(observations)
 
@@ -159,7 +168,7 @@ local function _calcStats(observations)
     local Q3 = observations[q*3]
     local IQR = Q3-Q1
     local IQR1_5 = IQR * 1.5
-    local left, right = Q2 - IQR1_5, Q2 + IQR1_5
+    local left, right = Q1 - IQR1_5, Q3 + IQR1_5
 
     local filtered = {}
     for l = 1, #observations do
@@ -170,57 +179,91 @@ local function _calcStats(observations)
     end
 
     local avg = _sum(filtered) / #filtered
-    local sigma = math.sqrt(_sd(filtered, avg))
+    local sigma = math.sqrt(_var(filtered, avg))
 
-    return avg, sigma
+    -- return avg, sigma
+    return Q2, Q1, Q3
 end
 
 function MatchesStats:NewStats()
-    self.EDD, self.sigmaDD = _calcStats(self.observationsDamageDone)
-    self.EDT, self.sigmaDT = _calcStats(self.observationsDamageTaken)
-    self.EHD, self.sigmaHD = _calcStats(self.observationsHealingDone)
-    self.EK, self.sigmaK = _calcStats(self.observationsKills)
+    -- self.EDD, self.sigmaDD = _calcStats(self.observationsDamageDone)
+    self.EDD, self.Q1DD, self.Q3DD = _calcStats(self.observationsDamageDone)
+    self.EDT, self.Q1DT, self.Q3DT = _calcStats(self.observationsDamageTaken)
+    self.EHD, self.Q1HD, self.Q3HD = _calcStats(self.observationsHealingDone)
+    -- self.EK, self.sigmaK = _calcStats(self.observationsKills)  -- TODO: ?
 end
 --#endregion
 
 --#region IMP STATS MATCHES ADDON
+local WL_VALUE_TEXT_FORMAT = '|c00FF00%sW|r - |cFF0000%sL|r'
+local KDA_VALUE_TEXT_FORMAT = '%.1f / %.1f / %.1f'
+local ONE_F_TEXT_FORMAT = '%.1f'
+local D_TEXT_FORMAT = '%d'
 function addon:UpdateStatsControl()
-    local totalMatches = #self.matches  -- self.stats.totalMatches
+    local totalMatchesRecorded = #self.matches  -- self.stats.totalMatches
 
-    self.statsControl:GetNamedChild('TotalMatchesValue'):SetText(totalMatches)
+    self.matchCounterValue:SetText(totalMatchesRecorded)
 
-    local N = self.stats.totalMatches
+    local stats = self.stats
+
+    local N = stats.totalMatches
     if IMP_STATS_MATCHES_MANAGER.sv.last150 then N = math.min(N, 150) end
-    self.statsControl:GetNamedChild('MatchesCount'):SetText(zo_strformat('Stats over last <<1>> <<m:2>>', N, 'match^n'))
+    -- TODO: reimplement counter how many matches are currently selected
+    -- self.statsControl:GetNamedChild('MatchesCount'):SetText(zo_strformat('Stats over last <<1>> <<m:2>>', N, 'match^n'))
 
-    local winrate = PossibleNan(self.stats.totalWon / self.stats.totalMatches)
-    self.statsControl:GetNamedChild('WinrateValue'):SetText(
-        string.format(
-            '%.1f %% (|c00FF00%s|r / |cFF0000%s|r / |c555555%s|r)',
-            winrate * 100,
-            IMP_STATS_SHARED.FormatNumber(self.stats.totalWon),
-            IMP_STATS_SHARED.FormatNumber(self.stats.totalLost),
-            IMP_STATS_SHARED.FormatNumber(self.stats.totalTied)
-        )
-    )
+    local totalMatches = stats.totalMatches
 
-    self.statsControl:GetNamedChild('KDValue'):SetText(
-        string.format('%.1f', PossibleNan(self.stats.totalKills / self.stats.totalDeaths))
-    )
+    local winrate = PossibleNan(stats.totalWon / totalMatches)
+
+    self.winLoseValue:SetText(WL_VALUE_TEXT_FORMAT:format(
+        FormatNumber(stats.totalWon),
+        FormatNumber(stats.totalLost)
+    ))
+
+    local kdaRatio = PossibleNan((stats.totalKills + stats.totalAssists) / stats.totalDeaths)
+    self.kdaRatioValue:SetText(string.format('%.1f', kdaRatio))
 
     -- TODO: left
 
-    local KDAStatsControl = self.statsControl:GetNamedChild('KDAStats')
-    KDAStatsControl:GetNamedChild('KSum'):SetText(IMP_STATS_SHARED.FormatNumber(self.stats.totalKills))
-    KDAStatsControl:GetNamedChild('DSum'):SetText(IMP_STATS_SHARED.FormatNumber(self.stats.totalDeaths))
-    KDAStatsControl:GetNamedChild('ASum'):SetText(IMP_STATS_SHARED.FormatNumber(self.stats.totalAssists))
+    -- TODO: reimplement everything below (add tooltip with totals)
+    -- local KDAStatsControl = self.statsControl:GetNamedChild('KDAStats')
+    -- KDAStatsControl:GetNamedChild('KSum'):SetText(IMP_STATS_SHARED.FormatNumber(stats.totalKills))
+    -- KDAStatsControl:GetNamedChild('DSum'):SetText(IMP_STATS_SHARED.FormatNumber(stats.totalDeaths))
+    -- KDAStatsControl:GetNamedChild('ASum'):SetText(IMP_STATS_SHARED.FormatNumber(stats.totalAssists))
 
-    KDAStatsControl:GetNamedChild('KAvg'):SetText(string.format('%.1f', PossibleNan(self.stats.totalKills / self.stats.totalMatches)))
-    KDAStatsControl:GetNamedChild('DAvg'):SetText(string.format('%.1f', PossibleNan(self.stats.totalDeaths / self.stats.totalMatches)))
-    KDAStatsControl:GetNamedChild('AAvg'):SetText(string.format('%.1f', PossibleNan(self.stats.totalAssists / self.stats.totalMatches)))
+    local avgK = PossibleNan(stats.totalKills / totalMatches)
+    local avgD = PossibleNan(stats.totalDeaths / totalMatches)
+    local avgA = PossibleNan(stats.totalAssists / totalMatches)
+    self.kdaValue:SetText(KDA_VALUE_TEXT_FORMAT:format(avgK, avgD, avgA))
 
-    IMP_STATS_SHARED.SetGaugeKDAMeter(self.statsControl:GetNamedChild('GaugeKDAMeter'), winrate)
+    local avgDD = PossibleNan(stats.totalDamageDone / totalMatches)
+    self.damageDoneValue:SetText(FormatNumber(avgDD))
+
+    local avgHD = PossibleNan(stats.totalHealingDone / totalMatches)
+    self.healingDoneValue:SetText(FormatNumber(avgHD))
+
+    local avgDT = PossibleNan(stats.totalDamageTaken / totalMatches)
+    self.damageTakenValue:SetText(FormatNumber(avgDT))
+
+    local avgMS = PossibleNan(stats.totalScore / totalMatches)
+    self.medalScoreValue:SetText(math.floor(avgMS))
+
+    IMP_STATS_SHARED.SetGaugeKDAMeter(self.gaugeKDAMeter, winrate)
+
+    self.damageDonePerformance:SetValue(stats.EDD or 0)
+    self.healingDonePerformance:SetValue(stats.EHD or 0)
+    self.damageTakenPerformance:SetValue(stats.EDT or 0)
 end
+
+local WIN_LOSE_TEXT_TEMPLATE = 'Won: |c00FF00%d|r\nLost: |cFF0000%d|r\nTied: |c555555%d|r\n\nWR: |cFFFFFF%.2f%%|r'
+local DAMAGE_DONE_TEXT_TEMPLATE = 'Average Damage Done:\n|cFFFFFF%s|r\n\nTotal Damage Done:\n|cFFFFFF%s|r'
+local HEALING_DONE_TEXT_TEMPLATE = 'Average Healing Done:\n|cFFFFFF%s|r\n\nTotal Healing Done:\n|cFFFFFF%s|r'
+local DAMAGE_TAKEN_TEXT_TEMPLATE = 'Average Damage Taken:\n|cFFFFFF%s|r\n\nTotal Damage Taken:\n|cFFFFFF%s|r'
+local MEDAL_SCORE_TEXT_TEMPLATE = 'Average Medal Score:\n|cFFFFFF%s|r\n\nTotal Medal Score:\n|cFFFFFF%s|r'
+
+-- local PERFORMANCE_TEMPLATE = 'You are |cFFFFFF%.2f|r times %s in this than others on average.'
+local PERFORMANCE_TEMPLATE = '|cFFFFFF%.1fx|r vs. Others\' Avg\n\nTypical range: |cFFFFFF%.1fx - %.1fx|r'
+local NOT_ENOUGH_DATA = 'Not enough data... Play some matches first!'
 
 function addon:CreateControls()
     local matchesControl = IMP_STATS_MATCHES
@@ -229,8 +272,8 @@ function addon:CreateControls()
     assert(matchesControl ~= nil, 'Matches control was not created')
 
     -- local listControl = matchesControl:GetNamedChild('Listing'):GetNamedChild('ScrollableList')
-    local statsControl = matchesControl:GetNamedChild('TopBlock'):GetNamedChild('Stats')
-    local filtersControl = matchesControl:GetNamedChild('TopBlock'):GetNamedChild('Filters')
+    local statsControl = matchesControl:GetNamedChild('Header'):GetNamedChild('Stats')
+    local filtersControl = matchesControl:GetNamedChild('Header'):GetNamedChild('Filters')
 
     self.matchesControl = matchesControl
     -- self.listControl = listControl
@@ -242,10 +285,144 @@ function addon:CreateControls()
         if self.dirty then self:Update() end
     end)
 
+    local leftInnerContainer = statsControl:GetNamedChild('LeftContainerInnerContainer')
+    self.winLoseValue = leftInnerContainer:GetNamedChild('WLValue')
+    self.gaugeKDAMeter = leftInnerContainer:GetNamedChild('GaugeKDAMeter')
+    IMP_STATS_SHARED.SetGaugeKDAMeter(self.gaugeKDAMeter, 0.5)
+
+    local rightContainer = statsControl:GetNamedChild('RightContainer')
+
+    local topContainer = rightContainer:GetNamedChild('TopContainer')
+    self.kdaRatioValue = topContainer:GetNamedChild('KDARatio'):GetNamedChild('Value')
+    self.kdaValue = topContainer:GetNamedChild('KDA'):GetNamedChild('Value')
+    self.matchCounterValue = topContainer:GetNamedChild('MatchCounterValue')
+
+    local bottomContainer = rightContainer:GetNamedChild('BottomContainer')
+    self.damageDoneValue = bottomContainer:GetNamedChild('Damage'):GetNamedChild('Value')
+    self.healingDoneValue = bottomContainer:GetNamedChild('Healing'):GetNamedChild('Value')
+    self.damageTakenValue = bottomContainer:GetNamedChild('Taken'):GetNamedChild('Value')
+    self.medalScoreValue = bottomContainer:GetNamedChild('Medals'):GetNamedChild('Value')
+
+    self.damageDonePerformance = bottomContainer:GetNamedChild('DamagePerformance')
+    self.healingDonePerformance = bottomContainer:GetNamedChild('HealingPerformance')
+    self.damageTakenPerformance = bottomContainer:GetNamedChild('TakenPerformance')
+
+    local controlsWithTooltips = {
+        self.winLoseValue,
+        -- self.gaugeKDAMeter,
+        -- self.kdaRatioValue,
+        -- self.kdaValue,
+        -- self.matchCounterValue,
+        self.damageDoneValue,
+        self.healingDoneValue,
+        self.damageTakenValue,
+        self.medalScoreValue,
+        self.damageDonePerformance,
+        self.healingDonePerformance,
+        self.damageTakenPerformance,
+    }
+
+    for i = 1, #controlsWithTooltips do
+        local ctrl = controlsWithTooltips[i]
+        ctrl:SetMouseEnabled(true)
+        ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
+    end
+
+    local stats = self.stats
+
+    self.winLoseValue:SetHandler('OnMouseEnter', function(ctrl)
+        if not stats.totalMatches or stats.totalMatches == 0 then
+            ZO_Tooltips_ShowTextTooltip(ctrl, nil, NOT_ENOUGH_DATA)
+        else
+            local winrate = stats.totalWon / stats.totalMatches * 100
+            ZO_Tooltips_ShowTextTooltip(ctrl, nil,
+                WIN_LOSE_TEXT_TEMPLATE:format(stats.totalWon, stats.totalLost, stats.totalTied, winrate)
+            )
+        end
+    end)
+
+    local function _tooltipHelper(parameter, tooltipTemplate)
+        return function(ctrl)
+            if not stats[parameter] or stats.totalMatches == 0 then return end
+
+            -- ZO_Tooltips_ShowTextTooltip(ctrl, nil, tooltipTemplate:format(
+            --     comma_value(math.floor(stats[parameter] / stats.totalMatches)..''),
+            --     comma_value(stats[parameter]..''))
+            -- )
+
+            local r, g, b = ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB()
+
+            InitializeTooltip(InformationTooltip)
+            ZO_Tooltips_SetupDynamicTooltipAnchors(InformationTooltip, ctrl)
+            InformationTooltip:AddLine(
+                tooltipTemplate:format(
+                    comma_value(math.floor(stats[parameter] / stats.totalMatches)..''),
+                    comma_value(stats[parameter]..'')
+                ),
+                '',
+                r, g, b,
+                nil,
+                nil,
+                TEXT_ALIGN_CENTER
+            )
+        end
+    end
+
+    self.damageDoneValue:SetHandler('OnMouseEnter', _tooltipHelper('totalDamageDone', DAMAGE_DONE_TEXT_TEMPLATE))
+    self.healingDoneValue:SetHandler('OnMouseEnter', _tooltipHelper('totalHealingDone', HEALING_DONE_TEXT_TEMPLATE))
+    self.damageTakenValue:SetHandler('OnMouseEnter', _tooltipHelper('totalDamageTaken', DAMAGE_TAKEN_TEXT_TEMPLATE))
+    self.medalScoreValue:SetHandler('OnMouseEnter', _tooltipHelper('totalScore', MEDAL_SCORE_TEXT_TEMPLATE))
+
+    -- self.damageDoneValue:SetHandler('OnMouseEnter', function(ctrl)
+    --     if not stats.totalDamageDone then return end
+
+    --     ZO_Tooltips_ShowTextTooltip(ctrl, nil, DAMAGE_DONE_TEXT_TEMPLATE:format(
+    --         comma_value(stats.totalDamageDone / stats.totalMatches),
+    --         comma_value(stats.totalDamageDone))
+    --     )
+    -- end)
+
+    local function _tooltipHelperPerformance(parameter, parameterQ1, parameterQ3)
+        local r, g, b = ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB()
+
+        return function(ctrl)
+            InitializeTooltip(InformationTooltip)
+            ZO_Tooltips_SetupDynamicTooltipAnchors(InformationTooltip, ctrl)
+            local value = stats[parameter]
+
+            if value then
+                InformationTooltip:AddLine(
+                    PERFORMANCE_TEMPLATE:format(
+                        -- value >= 1 and value or 1 / value,
+                        value,
+                        -- value >= 1 and 'Higher' or 'Lower',
+                        stats[parameterQ1],
+                        stats[parameterQ3]
+                    ),
+                    '',
+                    r, g, b,
+                    nil,
+                    nil,
+                    TEXT_ALIGN_CENTER
+                )
+            else
+                InformationTooltip:AddLine(NOT_ENOUGH_DATA, '', r, g, b, nil, nil, TEXT_ALIGN_CENTER)
+            end
+        end
+    end
+
+    self.damageDonePerformance:SetHandler('OnMouseEnter', _tooltipHelperPerformance('EDD', 'Q1DD', 'Q3DD'))
+    self.healingDonePerformance:SetHandler('OnMouseEnter', _tooltipHelperPerformance('EHD', 'Q1HD', 'Q3HD'))
+    self.damageTakenPerformance:SetHandler('OnMouseEnter', _tooltipHelperPerformance('EDT', 'Q1DT', 'Q3DT'))
+
     if PP then
         local playersButton = self.tlc:GetNamedChild('OpenPlayers')
         playersButton:ClearAnchors()
         playersButton:SetAnchor(BOTTOMLEFT, self.tlc, TOPLEFT, -12, -8)
+
+        local divider = matchesControl:GetNamedChild('Divider')
+        local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY, anchorConstrains = divider:GetAnchor(0)
+        divider:SetAnchorOffsets(8, offsetY, 1)
     end
 
     Log('Controls created')
@@ -616,7 +793,7 @@ function addon:UpdateScrollList()
     self.table:Update(1, data)
 end
 
-InitializeFilter = IMP_STATS_SHARED.InitializeFilter
+local InitializeFilter = IMP_STATS_SHARED.InitializeFilter
 
 -- local function SelectAllElements(filter)
 --     for i, item in ipairs(filter.m_sortedItems) do
@@ -642,7 +819,7 @@ function addon:InitializeTeamTypeFilter()
     local filterControl = GetControl(self.filtersControl, 'FilterTeamType')
     local filter = InitializeFilter(filterControl, entriesData, callback)
     filter:SetNoSelectionText('|cFF0000Select Team Type|r')
-    filter:SetMultiSelectionTextFormatter('<<1[$d Team Type/$d Team Types]>> Selected')
+    filter:SetMultiSelectionTextFormatter('<<1[$d Team Type/$d Team Types]>>')
 
     -- SelectAllElements(filter)
     -- TODO: hash table?
@@ -697,7 +874,7 @@ function addon:InitializeMatchModeFilter()
     local filterControl = GetControl(self.filtersControl, 'FilterGameMode')
     local filter = InitializeFilter(filterControl, entriesData, callback)
     filter:SetNoSelectionText('|cFF0000Select Match Mode|r')
-    filter:SetMultiSelectionTextFormatter('<<1[$d Mode/$d Modes]>> Selected')
+    filter:SetMultiSelectionTextFormatter('<<1[$d Mode/$d Modes]>>')
 
     -- SelectAllElements(filter)
     -- TODO: hash table?

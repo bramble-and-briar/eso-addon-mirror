@@ -1,0 +1,19 @@
+## Title: OneMap
+## Description: Map enhancements and social-first travel for the keyboard world map.
+## Author: oneDOK
+## Version: 26.11.1
+## AddOnVersion: 261101
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: OneMapSavedVariables
+
+Core.lua
+Strings.lua
+Destinations.lua
+Travel.lua
+Map.lua
+Scroll.lua
+MapInput.lua
+Panels.lua
+Settings.lua
+OneMap.lua

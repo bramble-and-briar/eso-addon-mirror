@@ -77,7 +77,7 @@ EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_AP", EVENT_ALLIANCE_POINT_UPDATE,
 function PvPUA:APChatMenu()
     return { type = "submenu",
           name = "|c00FF00AP in Chat|r",
-          tooltip = SAVED_ACCOUNT_TIP,
+          tooltip = "Prints the AP you earn to chat.\n\n" .. SAVED_ACCOUNT_TIP,
           icon = "EsoUI/Art/HUD/Gamepad/gp_HUDNotification_notification.dds",
           options = {
         { type = "toggle", name = "Enabled", preset = "YES_NO",

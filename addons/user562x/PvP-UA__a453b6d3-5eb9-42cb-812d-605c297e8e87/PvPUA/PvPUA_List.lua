@@ -544,7 +544,8 @@ end
 function PvPUA:ListMenu()
     return { type = "submenu",
           name = "|c" .. DC_HEX .. "List|r",
-          tooltip = SAVED_ACCOUNT_TIP,
+          tooltip = "Shows what's under attack in Cyrodiil and Imperial City, with your rank bar and K/D.\n\n"
+                 .. SAVED_ACCOUNT_TIP,
           icon = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_uiGraphics.dds",
           options = {
         { type = "dropdown", name = "Layout",
@@ -608,9 +609,9 @@ function PvPUA:ListMenu()
         { type = "toggle", name = "Preview",
           details = function()
               if self:IsRankBarOnly() then
-                  return "Shows the rank bar and K/D here so you can size and position them. Turns off when you close settings."
+                  return "Shows the rank bar and K/D here so you can see your changes. Stays on until you turn it off or leave the settings."
               end
-              return "Shows the list here so you can size and position it. Turns off when you close settings."
+              return "Shows the list here so you can see your changes. Stays on until you turn it off or leave the settings."
           end,
           disabled = function() return not IsInCyrodiilOrIC() end,
           getFunc = function() return PvPUA.listPreview == true end,

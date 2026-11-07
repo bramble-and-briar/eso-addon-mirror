@@ -3,6 +3,13 @@
 
 
 
+[color=#6FCB9F]Version: 3.14.215445[/color]
+
+- If ESO rejects or cannot immediately verify a temporary smoothing disable, the original value is now retained and restored instead of leaving native camera input unsmoothed.
+- Dynamic FOV no longer toggles ESO's native camera smoothing while following live zoom input; response-profile timing and curves are preserved.
+
+
+
 [color=#6FCB9F]Version: 3.13.232847[/color]
 
 Camera-smoothing restoration reliability fix.

@@ -178,13 +178,78 @@ local function QualityName(quality)
 	return tostring(quality)
 end
 
+-- The qualities the guild store's Quality drop-down offers, in its order (after "any quality"):
+-- Normal, Fine, Superior, Epic, Legendary. The drop-down picks exactly one, not "this or better".
+function ADDON.QualityValues()
+	return {
+		ITEM_DISPLAY_QUALITY_NORMAL or 1,
+		ITEM_DISPLAY_QUALITY_MAGIC or 2,
+		ITEM_DISPLAY_QUALITY_ARCANE or 3,
+		ITEM_DISPLAY_QUALITY_ARTIFACT or 4,
+		ITEM_DISPLAY_QUALITY_LEGENDARY or 5,
+	}
+end
+
+-- nil is "any quality".
+function ADDON.QualityName(quality)
+	if quality == nil then
+		return GetString(SI_PBSLPF_QUALITY_ANY)
+	end
+	return QualityName(quality)
+end
+
+local QUALITY_WORDS = { "normal", "fine", "superior", "epic", "legendary" }
+local ANY_WORDS = { any = true, none = true, all = true, ["0"] = true, ["-"] = true, ["指定なし"] = true, ["なし"] = true }
+
+-- What a player types for a quality: a number 1-5, the English word, the game's own word in the client's
+-- language, or "any". Returns found, quality (quality nil: any).
+function ADDON:ParseQuality(text)
+	local word = Lower(zo_strtrim(text or ""))
+	if word == "" then
+		return false
+	end
+	if ANY_WORDS[word] or word == Lower(GetString(SI_PBSLPF_QUALITY_ANY)) then
+		return true, nil
+	end
+	local values = ADDON.QualityValues()
+	local number = tonumber(word)
+	if number and number == math.floor(number) and values[number] then
+		return true, values[number]
+	end
+	for position, value in ipairs(values) do
+		if word == QUALITY_WORDS[position] or word == Lower(QualityName(value)) then
+			return true, value
+		end
+	end
+	return false
+end
+
+-- The guild store saves which entry of its Quality drop-down was chosen: 1 is "any", then the qualities above.
+local function QualityFromChoice(choice)
+	if type(choice) ~= "number" or choice < 2 then
+		return nil
+	end
+	return ADDON.QualityValues()[choice - 1]
+end
+
 -- What the user typed after /lpf add: an item link, "an exact name", or a name (searched the way the
 -- game's own name search does, i.e. part of a name matches). Returns entry, or nil and a reason:
 -- "usage", or "short" with the minimum number of letters.
-function ADDON:ParseItem(argument)
+function ADDON:ParseItem(argument, defaultQuality)
 	argument = zo_strtrim(argument or "")
 	if argument == "" then
 		return nil, "usage"
+	end
+	-- A trailing "#epic" (or "#any") demands that quality, whatever an item link says.
+	local qualityGiven, demanded = false, nil
+	local rest, token = argument:match("^(.-)%s+#([^%s#]+)$")
+	if rest and rest ~= "" then
+		local found, value = self:ParseQuality(token)
+		if not found then
+			return nil, "quality", token
+		end
+		qualityGiven, demanded = true, value
+		argument = zo_strtrim(rest)
 	end
 	local link = argument:match(LINK_PATTERN)
 	local entry
@@ -213,6 +278,11 @@ function ADDON:ParseItem(argument)
 		end
 		entry = { text = text, name = text, exact = exact }
 	end
+	if qualityGiven then
+		entry.quality = demanded
+	elseif entry.quality == nil and defaultQuality then
+		entry.quality = defaultQuality
+	end
 	local minimum = SafeCall(GetMinLettersInTradingHouseItemNameForCurrentLanguage) or 3
 	if TextLength(entry.text) < minimum then
 		return nil, "short", minimum
@@ -220,16 +290,8 @@ function ADDON:ParseItem(argument)
 	return entry
 end
 
-function ADDON:AddWatch(argument)
-	local entry, reason, extra = self:ParseItem(argument)
-	if not entry then
-		if reason == "short" then
-			Print(ADDON.Format(SI_PBSLPF_ADD_SHORT, zo_strtrim(argument or ""), extra))
-		else
-			Print(GetString(SI_PBSLPF_ADD_USAGE))
-		end
-		return false
-	end
+-- Puts a parsed item on the watch list, or says why not. Returns true, entry.
+function ADDON:AddEntry(entry)
 	local watch = self.sv.watch
 	local key = self:WatchKey(entry)
 	for _, existing in ipairs(watch) do
@@ -247,13 +309,79 @@ function ADDON:AddWatch(argument)
 	return true, entry
 end
 
+-- `defaultQuality`: the quality a typed name gets when the text names none (the settings panel's choice).
+function ADDON:AddWatch(argument, defaultQuality)
+	local entry, reason, extra = self:ParseItem(argument, defaultQuality)
+	if not entry then
+		if reason == "short" then
+			Print(ADDON.Format(SI_PBSLPF_ADD_SHORT, zo_strtrim(argument or ""), extra))
+		elseif reason == "quality" then
+			Print(ADDON.Format(SI_PBSLPF_QUALITY_UNKNOWN, extra))
+		else
+			Print(GetString(SI_PBSLPF_ADD_USAGE))
+		end
+		return false
+	end
+	return self:AddEntry(entry)
+end
+
+-- Changes the quality an item is demanded in (nil: any). The prices kept for the old quality are for a
+-- different search and go. Returns true, entry; or false, "none" / "dup", the entry that already has it.
+function ADDON:SetWatchQuality(index, quality)
+	local watch = self.sv.watch
+	local entry = watch[index]
+	if not entry then
+		return false, "none"
+	end
+	if entry.quality == quality then
+		return true, entry
+	end
+	local oldKey = self:WatchKey(entry)
+	local changed = { text = entry.text, exact = entry.exact, quality = quality }
+	local newKey = self:WatchKey(changed)
+	for position, other in ipairs(watch) do
+		if position ~= index and self:WatchKey(other) == newKey then
+			return false, "dup", other
+		end
+	end
+	self.sv.prices[oldKey] = nil
+	entry.quality = quality
+	return true, entry
+end
+
+-- /lpf quality <number or part of a name> <quality>
+function ADDON:SetQualityCommand(argument)
+	local reference, token = zo_strtrim(argument or ""):match("^(.-)%s*(%S+)$")
+	if not reference or reference == "" then
+		Print(GetString(SI_PBSLPF_QUALITY_USAGE))
+		return false
+	end
+	local found, quality = self:ParseQuality(token)
+	if not found then
+		Print(ADDON.Format(SI_PBSLPF_QUALITY_UNKNOWN, token))
+		return false
+	end
+	local index = self:FindWatch(reference)
+	if not index then
+		Print(ADDON.Format(SI_PBSLPF_REMOVE_NONE, reference))
+		return false
+	end
+	local ok, entry, other = self:SetWatchQuality(index, quality)
+	if not ok then
+		Print(ADDON.Format(SI_PBSLPF_ADD_DUP, self:WatchLabel(other)))
+		return false
+	end
+	Print(ADDON.Format(SI_PBSLPF_QUALITY_DONE, self:WatchLabel(entry)))
+	return true, entry
+end
+
 -- "Dreugh Wax (exact name)" / "Fortified Nirncrux (Epic quality only)".
-function ADDON:WatchLabel(entry)
+function ADDON:WatchLabel(entry, withoutQuality)
 	local tags = {}
 	if entry.exact and not entry.link then
 		tags[#tags + 1] = GetString(SI_PBSLPF_TAG_EXACT)
 	end
-	if entry.quality then
+	if entry.quality and not withoutQuality then
 		tags[#tags + 1] = ADDON.Format(SI_PBSLPF_TAG_QUALITY, QualityName(entry.quality))
 	end
 	if #tags == 0 then
@@ -305,6 +433,117 @@ end
 function ADDON:ForgetData()
 	self.sv.prices = {}
 	self.sv.places = { kiosks = {}, guilds = {} }
+end
+
+---------------------------------------------------------------------------------------------------
+-- The guild store's search history
+--
+-- Every search the player runs in the guild store is saved by the client (TRADING_HOUSE_SEARCH_HISTORY_MANAGER,
+-- in ZO_Ingame_SavedVariables) with the name that was typed and the entry chosen in the Quality drop-down. That
+-- is the "copy" of a name searched there: it is read, never changed, and no client function is called.
+-- Searches this add-on makes itself never reach it (they do not go through the store's screen).
+---------------------------------------------------------------------------------------------------
+
+ADDON.HISTORY_LIMIT = 8
+
+-- The name searches in the history, newest first, as entries ready for the watch list; then how many
+-- searches the history holds and how many of those had a name. nil when the history cannot be read.
+function ADDON:ReadSearchHistory()
+	local manager = _G.TRADING_HOUSE_SEARCH_HISTORY_MANAGER
+	local entries = type(manager) == "table" and manager.searchEntries or nil
+	if type(entries) ~= "table" then
+		return nil
+	end
+	local list, seen = {}, {}
+	local total, named = 0, 0
+	for index = #entries, 1, -1 do
+		local saved = entries[index]
+		local search = type(saved) == "table" and saved.searchTable or nil
+		if type(search) == "table" then
+			total = total + 1
+			local text = search["NameSearch"]
+			if type(text) == "string" and zo_strtrim(text) ~= "" then
+				named = named + 1
+				local entry = self:ParseItem(text)
+				if entry then
+					entry.quality = QualityFromChoice(search["Quality"])
+					local key = self:WatchKey(entry)
+					if not seen[key] then
+						seen[key] = true
+						list[#list + 1] = entry
+					end
+				end
+			end
+		end
+	end
+	return list, total, named
+end
+
+-- The text that, typed after /lpf add or into the settings panel's text row, makes this entry again: the name
+-- (in quotes when it is exact) and the quality as a trailing #word. A name the store searched at any quality
+-- says #any when the panel's default quality would otherwise be put on it.
+function ADDON:EntryInputText(entry, defaultQuality)
+	local text = entry.exact and ('"' .. entry.text .. '"') or entry.text
+	local word
+	for position, value in ipairs(ADDON.QualityValues()) do
+		if entry.quality == value then
+			word = QUALITY_WORDS[position]
+		end
+	end
+	if not word and entry.quality == nil and defaultQuality then
+		word = "any"
+	end
+	return word and (text .. " #" .. word) or text
+end
+
+-- What can be added from the history: the searches not on the watch list yet, newest first.
+function ADDON:HistoryChoices()
+	local list, total, named = self:ReadSearchHistory()
+	if not list then
+		return nil
+	end
+	local watched = {}
+	for _, entry in ipairs(self.sv.watch) do
+		watched[self:WatchKey(entry)] = true
+	end
+	local choices = {}
+	for _, entry in ipairs(list) do
+		if not watched[self:WatchKey(entry)] and #choices < ADDON.HISTORY_LIMIT then
+			choices[#choices + 1] = entry
+		end
+	end
+	return choices, total, named
+end
+
+-- /lpf history lists them; /lpf history <number> watches one.
+function ADDON:History(argument)
+	argument = zo_strtrim(argument or "")
+	local choices, total, named = self:HistoryChoices()
+	if not choices then
+		Print(GetString(SI_PBSLPF_HISTORY_UNREADABLE))
+		if self.scan then
+			self.scan:Log("history: TRADING_HOUSE_SEARCH_HISTORY_MANAGER.searchEntries is %s", type(_G.TRADING_HOUSE_SEARCH_HISTORY_MANAGER))
+		end
+		return false
+	end
+	if argument ~= "" then
+		local number = tonumber(argument)
+		local entry = number and choices[math.floor(number)]
+		if not entry then
+			Print(ADDON.Format(SI_PBSLPF_HISTORY_BAD_NUMBER, argument))
+			return false
+		end
+		return self:AddEntry(entry)
+	end
+	if #choices == 0 then
+		Print(ADDON.Format(SI_PBSLPF_HISTORY_NONE, total, named))
+		return false
+	end
+	Print(GetString(SI_PBSLPF_HISTORY_HEADER))
+	for index, entry in ipairs(choices) do
+		Print(string.format("%d. %s", index, self:WatchLabel(entry)))
+	end
+	return true
 end
 
 ---------------------------------------------------------------------------------------------------

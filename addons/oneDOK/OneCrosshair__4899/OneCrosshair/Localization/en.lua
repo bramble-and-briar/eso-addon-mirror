@@ -1,5 +1,4 @@
 local strings = {
-    LOCKED_APPEARANCE = "Locked in release 1.0. Edit Core/Config.lua and reload the UI.",
     PRESET_LARGE_DOT = "Large Dots (5x)",
     PRESET_RAYS = "Rays", PRESET_DIAMONDS = "Diamonds", PRESET_ESO = "ESO Default",
     PRESET_DOT = "Dot", NORMAL = "Normal", TARGET = "Target", BLOCK = "Block",

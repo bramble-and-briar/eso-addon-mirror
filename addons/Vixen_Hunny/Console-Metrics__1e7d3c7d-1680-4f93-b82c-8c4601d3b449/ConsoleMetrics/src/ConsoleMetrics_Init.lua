@@ -45,11 +45,12 @@ end
 local function LiveDialogRefreshKey(self)
     local fight = self.fight or {}
     return string.format(
-        "%s|%d|%d|%d",
+        "%s|%d|%d|%d|%s",
         tostring(self.dialogPanel or "main"),
         self.inCombat and 1 or 0,
         math.floor(tonumber(fight.snapshotRev) or 0),
-        self.viewFightIndex or 0
+        self.viewFightIndex or 0,
+        self:GetLibFightsRefreshKey()
     )
 end
 
@@ -100,8 +101,13 @@ function ConsoleMetrics:OnUpdate()
     end
 
     if self.dialogAutoHideAtMs and self.saved.dialogAutoHide and not self.inCombat and nowMs >= self.dialogAutoHideAtMs then
-        self:CloseFightViewDialog(true, "autohide")
-        dialogShowing = false
+        if self:IsFightViewDialogInUse() then
+            -- The player is reading or using the window: push the timer back.
+            self:ArmDialogAutoHide()
+        else
+            self:CloseFightViewDialog(true, "autohide")
+            dialogShowing = false
+        end
     end
 
     if self.inCombat then
@@ -123,7 +129,8 @@ function ConsoleMetrics:OnUpdate()
     if dialogShowing then
         if not self.dialogRefreshAtMs or nowMs >= self.dialogRefreshAtMs then
             local refreshKey = LiveDialogRefreshKey(self)
-            if self.lastDialogRefreshKey ~= refreshKey and not self:IsFightViewDialogEditing() then
+            -- Never rebuild under the cursor while the player is clicking, typing or scrolling.
+            if self.lastDialogRefreshKey ~= refreshKey and not self:IsFightViewDialogEditing() and not self:IsFightViewDialogBusy() then
                 self:RefreshFightViewDialog()
                 self.lastDialogRefreshKey = refreshKey
             end
@@ -166,6 +173,7 @@ function ConsoleMetrics:Initialize()
     self.fpsRuntime = { samples = 0, total = 0, min = nil, bins = {} }
     self.fight = NewFight(GetFrameTimeMilliseconds())
 
+    self:InitLibFightsIntegration()
     self:RegisterSettingsMenu()
     self:RegisterJournalIntegrationHooks()
 

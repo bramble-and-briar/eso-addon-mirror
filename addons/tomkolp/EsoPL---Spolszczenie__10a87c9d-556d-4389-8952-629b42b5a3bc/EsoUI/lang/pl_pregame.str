@@ -89,6 +89,9 @@
 [Font:ZoFontGamepadHeaderDataValue] = "EsoPL/fonts/univers57.slug|40|soft-shadow-thick"
 [Font:ZoMarketGamepadCalloutFont] = "EsoPL/fonts/univers57.slug|40|soft-shadow-thick"
 [Font:ZoFontTributeAntique30] = "EsoPL/fonts/univers57.slug|30|soft-shadow-thick"
+[Font:ZoFontTributeAntique20] = "EsoPL/fonts/univers57.slug|20|soft-shadow-thick"
+[Font:ZoFontTributeAntique30NoShadow] = "EsoPL/fonts/univers57.slug|30"
+[Font:ZoFontTributeAntique52] = "EsoPL/fonts/univers57.slug|52|soft-shadow-thick"
 
 [SI_ABILITYPROGRESSIONRESULT1] = "Nie znasz tej zdolności."
 [SI_ABILITYPROGRESSIONRESULT10] = "Nie masz żadnych punktów umiejętności."

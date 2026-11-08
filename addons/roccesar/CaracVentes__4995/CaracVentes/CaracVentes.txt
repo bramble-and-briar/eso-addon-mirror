@@ -1,8 +1,10 @@
 ## Title: CaracVentes
 ## Description: Suivi des ventes en guildes marchandes
 ## Author: Roccesar & Claude IA
-## Version: 1.1
+## Version: 1.2
 ## APIVersion: 101051
 ## SavedVariables: CaracVentes_Data
 
+lang/default.lua
+lang/$(language).lua
 CaracVentes.lua

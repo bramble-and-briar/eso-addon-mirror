@@ -20,7 +20,7 @@ local AAB_COLORS = {
     trace    = "9a7fd6",  -- violett für /aab track
 }
 
-local ADDON_VERSION = "2.1.0"
+local ADDON_VERSION = "2.4.0"
 
 -- werte dürfen auch negativ sein, die engine mag das aber nicht überall.
 -- deshalb erst beim benutzen abfangen
@@ -441,6 +441,8 @@ local defaults = {
     -- pro-skill feuer-zeitpunkt via /aab setend <id> <ms|auto>. key = id (string),
     -- value = ms nach cast. "auto" löscht den eintrag
     expireDurationOverride = {},
+    -- ablauf-animation pro skill aus. key = ability-id (string), value = true
+    expireDisabled = {},
 
     shrinkScale          = 0.9,
     growScale            = 1.1,
@@ -550,7 +552,7 @@ local defaults = {
     uiLastPage           = "bounce",
     uiAutoDemo           = true,
     uiProcSim            = true,
-    uiTheme              = "nebula",   -- "nebula" oder "lace"
+    uiTheme              = "nebula",   -- "nebula", "lace" oder "classic"
     uiBgMotion           = true,       -- hintergrund im studio bewegt sich
 }
 
@@ -1152,24 +1154,101 @@ local function RefreshProcGlowSuppression()
     end
 end
 
+-- proc-zustand pro leiste+slot, unabhängig vom pulse. bounce nur beim wechsel
+-- aus -> an. bewusst nicht an der ability-id festgemacht: manche skills melden
+-- kurzzeitig eine andere id im slot (z.b. grimm fokus während schattenhafte
+-- verkleidung), das darf keinen neuen proc auslösen.
+local procState   = {}
+-- proc per tastendruck "quittiert" (stopGlowOnPress), pulse bleibt aus bis
+-- der proc weg ist
+local procPressed = {}
+-- kurzes aus/an vom highlight (gcd, stack-wechsel) nicht als neuen proc werten
+local procOffAt   = {}
+local PROC_REARM_MS = 1200
+
+-- /aab track schaltet das mit an
+local procTraceOn = false
+local function ProcTrace(fmt, ...)
+    if not procTraceOn then return end
+    local ok, msg = pcall(string.format, fmt, ...)
+    d("|c9a7fd6[AAB+ proc]|r " .. (ok and msg or tostring(fmt)))
+end
+
+local function IsProcSlot(slotNum)
+    return slotNum and slotNum >= ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1
+        and slotNum <= ACTION_BAR_ULTIMATE_SLOT_INDEX
+end
+
+local function ProcKey(slotNum)
+    return GetActiveHotbarCategory() * 100 + slotNum
+end
+
+local function PlayProcBounce(slotNum, btn)
+    if not sv.bounceOnProc or not BounceEnabledFor(slotNum) then return end
+    btn = btn or GetActionSlotControl(slotNum)
+    if btn and btn.PlayAbilityUsedBounce then btn:PlayAbilityUsedBounce() end
+end
+
+local function UpdateProcState(slotNum, btn)
+    local key = ProcKey(slotNum)
+
+    if not IsSlotProcd(slotNum) then
+        if procState[key] then
+            procOffAt[key] = GetFrameTimeMilliseconds()
+            ProcTrace("aus slot=%d id=%d", slotNum, GetSlotBoundId(slotNum) or 0)
+        end
+        procState[key] = nil
+        if activeProcs[slotNum] then StopPulse(slotNum) end
+        return
+    end
+
+    if procState[key] then return end
+
+    -- war nur ein flackern: zustand still wiederherstellen
+    local offAt = procOffAt[key]
+    procOffAt[key] = nil
+    procState[key] = true
+    if offAt and GetFrameTimeMilliseconds() - offAt < PROC_REARM_MS then
+        ProcTrace("flackern ignoriert slot=%d", slotNum)
+        if sv.pulseEnabled and not procPressed[key] and not activeProcs[slotNum] then
+            StartPulse(slotNum)
+        end
+        return
+    end
+
+    -- echter neuer proc
+    ProcTrace("NEU slot=%d id=%d -> bounce", slotNum, GetSlotBoundId(slotNum) or 0)
+    procPressed[key] = nil
+    if sv.pulseEnabled and not activeProcs[slotNum] then StartPulse(slotNum) end
+    PlayProcBounce(slotNum, btn)
+end
+
+-- events liefern je nach client (eventCode, slot, ...) oder
+-- (eventCode, hotbarCategory, slot, ...). beides abfangen.
+local function ResolveEventSlot(a, b)
+    if type(b) == "number" then
+        if a ~= GetActiveHotbarCategory() then return nil end
+        return b
+    end
+    return a
+end
+
 local function RefreshAllProcs()
     RefreshProcGlowSuppression()
-    if not sv.pulseEnabled then return end
     for slotNum = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_ULTIMATE_SLOT_INDEX do
-        if IsSlotProcd(slotNum) then
+        UpdateProcState(slotNum)
+        -- pulse nach bar-wechsel/settings wieder aufnehmen, ohne neuen bounce
+        local key = ProcKey(slotNum)
+        if procState[key] and not procPressed[key]
+           and sv.pulseEnabled and not activeProcs[slotNum] then
             StartPulse(slotNum)
-            if BounceEnabledFor(slotNum) and sv.bounceOnProc then
-                local btn = GetActionSlotControl(slotNum)
-                if btn and btn.PlayAbilityUsedBounce then btn:PlayAbilityUsedBounce() end
-            end
-        else
-            StopPulse(slotNum)
         end
     end
 end
 
 local function OnAbilitySlotted(_, slotNum)
     if not slotNum then return end
+    ProcTrace("cast slot=%d id=%d", slotNum, GetSlotBoundId(slotNum) or 0)
     local btn = GetActionSlotControl(slotNum)
     if btn and btn.PlayAbilityUsedBounce and BounceEnabledFor(slotNum) then
         btn:PlayAbilityUsedBounce()
@@ -1184,6 +1263,7 @@ local function OnAbilitySlotted(_, slotNum)
     end
 
     if sv.stopGlowOnPress and activeProcs[slotNum] then
+        procPressed[ProcKey(slotNum)] = true
         StopPulse(slotNum)
         return
     end
@@ -1191,51 +1271,27 @@ local function OnAbilitySlotted(_, slotNum)
     PlayGlow(slotNum)
 end
 
-local function OnActivationHighlightChanged(_, slotNum, isShown)
-    if not slotNum then return end
+local function OnActivationHighlightChanged(_, a, b)
+    local slotNum = ResolveEventSlot(a, b)
+    if not IsProcSlot(slotNum) then return end
 
     -- engine-glow sofort unterdrücken bzw. wiederherstellen, sobald sich der
     -- proc-status ändert - nicht erst beim nächsten bar-wechsel.
     ApplyProcGlowSuppression(slotNum)
-
-    -- auf das von ESO gemeldete flag nicht blind vertrauen
-    local procd = isShown
-    if procd == nil then procd = IsSlotProcd(slotNum) end
-
-    if procd then
-        StartPulse(slotNum)
-        if BounceEnabledFor(slotNum) and sv.bounceOnProc then
-            local btn = GetActionSlotControl(slotNum)
-            if btn and btn.PlayAbilityUsedBounce then btn:PlayAbilityUsedBounce() end
-        end
-    else
-        StopPulse(slotNum)
-    end
+    UpdateProcState(slotNum)
 end
 
 -- direktes slot-update: update sobald ein proc aktiv/inaktiv wird,
 -- ohne dass ein bar-wechsel nötig ist.
-local function OnSingleSlotUpdated(_, slotNum)
-    if not slotNum then return end
-    if slotNum < ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1 or slotNum > ACTION_BAR_ULTIMATE_SLOT_INDEX then
-        return
-    end
+local function OnSingleSlotUpdated(_, a, b)
+    local slotNum = ResolveEventSlot(a, b)
+    if not IsProcSlot(slotNum) then return end
     ApplyProcGlowSuppression(slotNum)
-    if not sv.pulseEnabled then return end
-    if IsSlotProcd(slotNum) then
-        if not activeProcs[slotNum] then
-            StartPulse(slotNum)
-            if BounceEnabledFor(slotNum) and sv.bounceOnProc then
-                local btn = GetActionSlotControl(slotNum)
-                if btn and btn.PlayAbilityUsedBounce then btn:PlayAbilityUsedBounce() end
-            end
-        end
-    else
-        StopPulse(slotNum)
-    end
+    UpdateProcState(slotNum)
 end
 
 -- der zuverlässigste punkt um auf proc-änderungen zu reagieren ist die
+-- engine-funktion selbst, die den vanilla-glow setzt
 local activationHighlightHookInstalled = false
 local function InstallActivationHighlightHook()
     if activationHighlightHookInstalled then return end
@@ -1245,8 +1301,7 @@ local function InstallActivationHighlightHook()
     SecurePostHook(ActionButton, "UpdateActivationHighlight", function(self)
         if not self or not self.slot then return end
         local slotNum = self.slot.slotNum
-        if not slotNum then return end
-        if slotNum < ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1 or slotNum > ACTION_BAR_ULTIMATE_SLOT_INDEX then return end
+        if not IsProcSlot(slotNum) then return end
         if slotNum == ULT_SLOT_INDEX then return end -- ulti hat eigene logik
 
         -- vanilla-glow killen direkt nachdem ESO ihn gesetzt hat
@@ -1260,21 +1315,7 @@ local function InstallActivationHighlightHook()
         end
 
         -- proc-pulse gleich im selben frame, kein event-roundtrip nötig
-        if sv.pulseEnabled then
-            local procd = HasActivationHighlight(slotNum)
-            if procd then
-                if not activeProcs[slotNum] then
-                    StartPulse(slotNum)
-                    if BounceEnabledFor(slotNum) and sv.bounceOnProc and self.PlayAbilityUsedBounce then
-                        self:PlayAbilityUsedBounce()
-                    end
-                end
-            else
-                if activeProcs[slotNum] then
-                    StopPulse(slotNum)
-                end
-            end
-        end
+        UpdateProcState(slotNum, self)
     end)
 end
 
@@ -2114,11 +2155,27 @@ local function ETrace(fmt, ...)
 end
 local function ToggleExpireTrace()
     expireTrace = not expireTrace
+    procTraceOn = expireTrace
     d("|ca970ff[AAB+]|r " .. GetString(expireTrace and SI_AAB_TRACE_ON or SI_AAB_TRACE_OFF))
 end
 
 local function ExpireKey(hotbar, slotNum)
     return hotbar * 100 + slotNum
+end
+
+local function IsExpireDisabled(abilityId)
+    if not abilityId or abilityId == 0 then return false end
+    return sv.expireDisabled[tostring(abilityId)] == true
+end
+
+local function SetExpireDisabled(abilityId, off)
+    if not abilityId or abilityId == 0 then return end
+    sv.expireDisabled[tostring(abilityId)] = off and true or nil
+    if not off then return end
+    -- laufende timer für den skill gleich verwerfen
+    for k, rec in pairs(expireTrack) do
+        if rec.abilityId == abilityId then expireTrack[k] = nil end
+    end
 end
 
 local function ResolveExpireStyle()
@@ -2270,6 +2327,7 @@ local function FireExpireAnim(key, gen)
     expireTrack[key] = nil
 
     if not sv.expireAnimEnabled then return end
+    if IsExpireDisabled(rec.abilityId) then return end
     -- slot neu auflösen, nach bar-swap sitzt der skill evtl woanders
     local target, cat = rec.slotNum, rec.hotbar
     if GetSlotBoundId(rec.slotNum, rec.hotbar) ~= rec.abilityId then
@@ -2320,6 +2378,7 @@ TrackExpireOnCast = function(slotNum)
     local hotbar    = GetActiveHotbarCategory()
     local abilityId = GetSlotBoundId(slotNum, hotbar)
     if not abilityId or abilityId == 0 then return end
+    if IsExpireDisabled(abilityId) then return end
 
     -- override hat vorrang und schedulet immer, auch wenn die engine 0 meldet
     local ov = sv.expireDurationOverride[tostring(abilityId)]
@@ -2351,6 +2410,8 @@ local function OnEffectChanged(_, changeType, _, effectName, unitTag, beginTime,
 
     local slotNum, hotbar = FindSlotForAbility(abilityId, effectName)
     if not slotNum then return end
+    -- effekt-id und geslottete id können abweichen, beide prüfen
+    if IsExpireDisabled(abilityId) or IsExpireDisabled(GetSlotBoundId(slotNum, hotbar)) then return end
     local key = ExpireKey(hotbar, slotNum)
     local rec = expireTrack[key]
 
@@ -2682,10 +2743,11 @@ local function PrintSlottedIds()
                 local col   = durMS > 0 and "|c6fd66f" or "|cd64f4f"
                 local ov    = sv.expireDurationOverride[tostring(id)]
                 local ovTxt = ov and ("  |cd69a4f» " .. tostring(ov) .. "ms|r") or ""
-                d(string.format("  |c8a7fa6[%d]|r %s  |c8a7fa6%s:|r %s%dms|r  |c8a7fa6id:|r %d%s%s",
+                local offTxt = IsExpireDisabled(id) and ("  |cd64f4f" .. GetString(SI_AAB_DBG_EXPIRE_OFF) .. "|r") or ""
+                d(string.format("  |c8a7fa6[%d]|r %s  |c8a7fa6%s:|r %s%dms|r  |c8a7fa6id:|r %d%s%s%s",
                     slotNum, name, GetString(SI_AAB_DBG_DURATION), col, math.floor(durMS), id,
                     track and ("  |c6fd66f" .. GetString(SI_AAB_DBG_TRACKING) .. "|r") or "",
-                    ovTxt))
+                    ovTxt, offTxt))
             end
         end
     end
@@ -2721,6 +2783,34 @@ local function SetExpireOverride(idStr, valStr)
     d(string.format("|c6fd66f[AAB+]|r " .. GetString(SI_AAB_SETEND_SET), name, id, ms))
 end
 
+-- /aab expire <id> [on|off] - ohne zweiten wert wird umgeschaltet
+local function SetExpireSkill(idStr, valStr)
+    local id = tonumber(idStr)
+    if not id or id <= 0 then
+        d("|cd64f4f[AAB+]|r " .. GetString(SI_AAB_SETEND_BADID))
+        return
+    end
+    id = math.floor(id)
+
+    local off
+    valStr = (valStr or ""):lower()
+    if valStr == "off" or valStr == "aus" or valStr == "0" then
+        off = true
+    elseif valStr == "on" or valStr == "an" or valStr == "1" then
+        off = false
+    else
+        off = not IsExpireDisabled(id)
+    end
+
+    SetExpireDisabled(id, off)
+    local name = zo_strformat("<<1>>", GetAbilityName(id))
+    if off then
+        d(string.format("|c6fd66f[AAB+]|r " .. GetString(SI_AAB_EXPIRE_SKILL_OFF), name, id))
+    else
+        d(string.format("|c6fd66f[AAB+]|r " .. GetString(SI_AAB_EXPIRE_SKILL_ON), name, id))
+    end
+end
+
 -- kurzer befehls-überblick im chat
 local function PrintCommandHelp()
     local h = "|ca970ff"; local k = "|ca970ff"; local e = "|r"
@@ -2730,6 +2820,7 @@ local function PrintCommandHelp()
     d(k .. "/aab ui" .. e .. " - " .. GetString(SI_AAB_CMD_UI))
     d(k .. "/aab id" .. e .. " |c8a7fa6(/aabids)|r - " .. GetString(SI_AAB_CMD_ID))
     d(k .. "/aab setend <id> <ms|auto>" .. e .. " - " .. GetString(SI_AAB_CMD_SETEND))
+    d(k .. "/aab expire <id> [on|off]" .. e .. " - " .. GetString(SI_AAB_CMD_EXPIRE))
     d(k .. "/aab debug" .. e .. " - " .. GetString(SI_AAB_CMD_DEBUG))
     d(k .. "/aab cmd" .. e .. " |c8a7fa6(/aabcmds)|r - " .. GetString(SI_AAB_CMD_LIST))
 end
@@ -2873,11 +2964,42 @@ local function OpenStudio(page)
     if studio and studio.Open then studio.Open(page) end
 end
 
+-- geslottete skills beider leisten fürs dropdown, doppelte nur einmal
+local expirePickId = nil
+local function SlottedAbilityChoices()
+    local names, values, seen = {}, {}, {}
+    for _, hotbar in ipairs({ HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }) do
+        for slotNum = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_ULTIMATE_SLOT_INDEX do
+            local id = GetSlotBoundId(slotNum, hotbar)
+            if id and id > 0 and not seen[id] then
+                seen[id] = true
+                names[#names + 1]  = zo_strformat("<<1>>", GetAbilityName(id))
+                values[#values + 1] = id
+            end
+        end
+    end
+    return names, values
+end
+
+local function RefreshExpirePick()
+    local ctrl = _G["AABPlus_ExpireSkillPick"]
+    local names, values = SlottedAbilityChoices()
+    local found = false
+    for _, id in ipairs(values) do
+        if id == expirePickId then found = true; break end
+    end
+    if not found then expirePickId = values[1] end
+    if ctrl and ctrl.UpdateChoices then
+        ctrl:UpdateChoices(names, values)
+        if ctrl.UpdateValue then ctrl:UpdateValue() end
+    end
+end
+
 local function BuildMenu()
     local LAM = LibAddonMenu2
     if not LAM then return end
 
-    LAM:RegisterAddonPanel(ADDON_NAME .. "Panel", {
+    local lamPanel = LAM:RegisterAddonPanel(ADDON_NAME .. "Panel", {
         type                = "panel",
         name                = "AnimatedActionBar+",
         displayName         = C_TITLE .. "Animated" .. C_RESET .. "ActionBar" .. C_TITLE .. "+" .. C_RESET,
@@ -2902,8 +3024,8 @@ local function BuildMenu()
             type    = "dropdown",
             name    = GetString(SI_AAB_UI_THEME),
             tooltip = GetString(SI_AAB_UI_THEME_TT),
-            choices = { GetString(SI_AAB_UI_THEME_NEBULA), GetString(SI_AAB_UI_THEME_LACE) },
-            choicesValues = { "nebula", "lace" },
+            choices = { GetString(SI_AAB_UI_THEME_CLASSIC), GetString(SI_AAB_UI_THEME_NEBULA), GetString(SI_AAB_UI_THEME_LACE) },
+            choicesValues = { "classic", "nebula", "lace" },
             getFunc = function() return sv.uiTheme end,
             setFunc = function(v) sv.uiTheme = v end,
             default = defaults.uiTheme,
@@ -3150,6 +3272,38 @@ local function BuildMenu()
                     disabled = function() return not sv.expireAnimEnabled end,
                 },
                 { type = "description", text = GetString(SI_AAB_EXPIRE_OVERRIDE_NOTE) },
+                { type = "header", name = GetString(SI_AAB_EXPIRE_SKILLS_HDR) },
+                { type = "description", text = GetString(SI_AAB_EXPIRE_SKILLS_DESC) },
+                {
+                    type      = "dropdown",
+                    name      = GetString(SI_AAB_EXPIRE_SKILL_PICK),
+                    tooltip   = GetString(SI_AAB_EXPIRE_SKILL_PICK_TT),
+                    choices       = {},
+                    choicesValues = {},
+                    scrollable = true,
+                    getFunc   = function() return expirePickId end,
+                    setFunc   = function(v) expirePickId = v end,
+                    reference = "AABPlus_ExpireSkillPick",
+                    width     = "half",
+                    disabled  = function() return not sv.expireAnimEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_EXPIRE_SKILL_TOGGLE),
+                    tooltip = GetString(SI_AAB_EXPIRE_SKILL_TT),
+                    getFunc = function() return not IsExpireDisabled(expirePickId) end,
+                    setFunc = function(v) SetExpireDisabled(expirePickId, not v) end,
+                    width   = "half",
+                    disabled = function() return not sv.expireAnimEnabled or not expirePickId end,
+                },
+                {
+                    type    = "button",
+                    name    = GetString(SI_AAB_EXPIRE_DISABLED_CLEAR),
+                    tooltip = GetString(SI_AAB_EXPIRE_DISABLED_CLEAR_TT),
+                    func    = function() sv.expireDisabled = {} end,
+                    width   = "half",
+                    disabled = function() return not sv.expireAnimEnabled end,
+                },
             },
         },
 
@@ -4008,9 +4162,17 @@ local function BuildMenu()
             name      = C_FRAME .. GetString(SI_AAB_SUB_INFO) .. C_RESET,
             tooltip   = GetString(SI_AAB_SUB_INFO_TT),
             controls  = {
+                { type = "description", text = GetString(SI_AAB_INFO_VERSION) },
+                { type = "header", name = GetString(SI_AAB_INFO_HDR_FEATURES) },
+                { type = "description", text = GetString(SI_AAB_INFO_FEATURES) },
+                { type = "header", name = GetString(SI_AAB_INFO_HDR_COMMANDS) },
+                { type = "description", text = GetString(SI_AAB_INFO_COMMANDS) },
+                { type = "header", name = GetString(SI_AAB_INFO_HDR_COMPAT) },
                 { type = "description", text = GetString(SI_AAB_INFO_THINFRAMES) },
                 { type = "divider" },
                 { type = "description", text = GetString(SI_AAB_INFO_GAMEPAD) },
+                { type = "header", name = GetString(SI_AAB_INFO_HDR_SUPPORT) },
+                { type = "description", text = GetString(SI_AAB_INFO_SUPPORT) },
             },
         },
         {
@@ -4029,6 +4191,13 @@ local function BuildMenu()
             },
         },
     })
+
+    -- skill-liste beim öffnen neu holen, die leisten ändern sich ja
+    local function OnLamPanel(panel)
+        if panel == lamPanel then RefreshExpirePick() end
+    end
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", OnLamPanel)
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", OnLamPanel)
 end
 
 -- intern fürs studio
@@ -4054,6 +4223,8 @@ local function ExposeStudioApi()
         PlayPreviewAnim     = function(...) if PlayPreviewAnim then PlayPreviewAnim(...) end end,
         ResolveExpireStyle  = ResolveExpireStyle,
         ResolveExpireScale  = ResolveExpireScale,
+        IsExpireDisabled    = IsExpireDisabled,
+        SetExpireDisabled   = SetExpireDisabled,
 
         InvalidateAnimTimelines = function() if InvalidateAnimTimelines then InvalidateAnimTimelines() end end,
         RestartActivePulses     = RestartActivePulses,
@@ -4108,6 +4279,8 @@ local function OnAddOnLoaded(_, addonName)
             end
         end
     end
+
+    if type(sv.expireDisabled) ~= "table" then sv.expireDisabled = {} end
 
     KbLook.InstallHooks()
     KbLook.PatchFab()
@@ -4260,6 +4433,8 @@ local function OnAddOnLoaded(_, addonName)
             PrintSlottedIds()
         elseif cmd == "setend" then
             SetExpireOverride(a1, a2)
+        elseif cmd == "expire" then
+            SetExpireSkill(a1, a2)
         elseif cmd == "debug" then
             PrintDebugDump()
         elseif cmd == "track" or cmd == "trace" then
@@ -4315,8 +4490,8 @@ local function OnAddOnLoaded(_, addonName)
         if sv.perfSlotLookupMap and RebuildSlotLookup then RebuildSlotLookup() end
         QS.Sync()
 
-        -- einmaliger hinweis-dialog. etwas später, damit er nicht in den
-        -- lade-screen platzt sondern erst wenn der spieler wirklich im spiel ist
+        -- einmaliger hinweis-dialog. grr
+        -- grrr
         zo_callLater(function() ShowInfoDialog(false) end, 2000)
     end, 500)
 end

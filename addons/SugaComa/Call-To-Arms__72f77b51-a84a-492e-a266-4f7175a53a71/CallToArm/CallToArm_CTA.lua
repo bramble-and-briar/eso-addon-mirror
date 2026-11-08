@@ -727,24 +727,30 @@ local function ExpandTemplate(template, replacements)
     return text
 end
 
-local function WrapCenterMessage(text, maxChars)
-    local limit = tonumber(maxChars) or 64
-    local s = tostring(text or "")
-    if s == "" or #s <= limit then return s end
-    local out = {}
-    local line = ""
-    for word in s:gmatch("%S+") do
-        if #line == 0 then
-            line = word
-        elseif (#line + 1 + #word) <= limit then
-            line = line .. " " .. word
-        else
-            out[#out + 1] = line
-            line = word
-        end
+local function ShowCtaCenterMessage(msg, allianceId, duration)
+    local r, g, b = GetAllianceRGB(allianceId)
+    local text = string.format("|c%s%s|r", RGBToHex(r, g, b), tostring(msg or ""))
+    if CALLTOARM.UI and CALLTOARM.UI.ShowCenter then
+        CALLTOARM.UI.ShowCenter(text, duration)
+        return
     end
-    if line ~= "" then out[#out + 1] = line end
-    return table.concat(out, "\n")
+
+    -- Compatibility fallback if the main settings/UI module is unavailable.
+    -- Use the same native heading/body layout and queued dispatch in both paths.
+    local sound = SOUNDS and SOUNDS.ACHIEVEMENT_AWARDED
+    if CENTER_SCREEN_ANNOUNCE and CENTER_SCREEN_ANNOUNCE.CreateMessageParams and CENTER_SCREEN_ANNOUNCE.AddMessageWithParams then
+        local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, sound)
+        local seconds = tonumber(duration)
+        if params.SetLifespanMS and seconds then
+            params:SetLifespanMS(math.max(2, math.min(30, seconds)) * 1000)
+        end
+        params:SetText("CALL TO ARMS", text)
+        CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
+    elseif ZO_Alert and UI_ALERT_CATEGORY_ALERT and sound then
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, sound, text)
+    else
+        d(text)
+    end
 end
 
 local function Lower(text)
@@ -917,32 +923,8 @@ local function FireAlert(settings, templateKey, replacements)
     local template = settings.templates and settings.templates[templateKey] or ""
     local msg = ExpandTemplate(template, replacements)
     local duration = tonumber(settings.display and settings.display.popupSeconds) or 6
-    local guildId = replacements and replacements.guildId or 0
     local allianceId = replacements and replacements.allianceId or 0
-
-    local iconPrefix = BuildCtaCenterMessage("")
-    local r, g, b = GetAllianceRGB(allianceId)
-    local allianceHex = RGBToHex(r, g, b)
-    local wrapped = WrapCenterMessage(msg, 64)
-    local coloredMsg = string.format("|c%s%s|r", allianceHex, wrapped)
-    local centerMsg = string.format("%s%s", iconPrefix, coloredMsg)
-
-    local sound = (SOUNDS and SOUNDS.ACHIEVEMENT_AWARDED) or nil
-
-    if CALLTOARM.UI and CALLTOARM.UI.ShowCenter then
-        CALLTOARM.UI.ShowCenter(centerMsg, duration)
-    elseif CENTER_SCREEN_ANNOUNCE and CENTER_SCREEN_ANNOUNCE.CreateMessageParams and CENTER_SCREEN_ANNOUNCE.DisplayMessage and sound then
-        local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, sound)
-        if params.SetLifespanMS and duration then
-            params:SetLifespanMS(duration * 1000)
-        end
-        params:SetText(centerMsg)
-        CENTER_SCREEN_ANNOUNCE:DisplayMessage(params)
-    elseif ZO_Alert and UI_ALERT_CATEGORY_ALERT and sound then
-        ZO_Alert(UI_ALERT_CATEGORY_ALERT, sound, centerMsg)
-    else
-        d(centerMsg)
-    end
+    ShowCtaCenterMessage(msg, allianceId, duration)
     DebugCTA("CTA Triggered: " .. tostring(templateKey))
     DebugCTA("CTA Fired: " .. tostring(msg))
 end
@@ -1133,32 +1115,8 @@ local function FireAlertText(settings, messageText, replacements)
     local template = tostring(messageText or "")
     local msg = ExpandTemplate(template, replacements)
     local duration = tonumber(settings.display and settings.display.popupSeconds) or 6
-    local guildId = replacements and replacements.guildId or 0
     local allianceId = replacements and replacements.allianceId or 0
-
-    local iconPrefix = BuildCtaCenterMessage("")
-    local r, g, b = GetAllianceRGB(allianceId)
-    local allianceHex = RGBToHex(r, g, b)
-    local wrapped = WrapCenterMessage(msg, 64)
-    local coloredMsg = string.format("|c%s%s|r", allianceHex, wrapped)
-    local centerMsg = string.format("%s%s", iconPrefix, coloredMsg)
-
-    local sound = (SOUNDS and SOUNDS.ACHIEVEMENT_AWARDED) or nil
-
-    if CALLTOARM.UI and CALLTOARM.UI.ShowCenter then
-        CALLTOARM.UI.ShowCenter(centerMsg, duration)
-    elseif CENTER_SCREEN_ANNOUNCE and CENTER_SCREEN_ANNOUNCE.CreateMessageParams and CENTER_SCREEN_ANNOUNCE.DisplayMessage and sound then
-        local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, sound)
-        if params.SetLifespanMS and duration then
-            params:SetLifespanMS(duration * 1000)
-        end
-        params:SetText(centerMsg)
-        CENTER_SCREEN_ANNOUNCE:DisplayMessage(params)
-    elseif ZO_Alert and UI_ALERT_CATEGORY_ALERT and sound then
-        ZO_Alert(UI_ALERT_CATEGORY_ALERT, sound, centerMsg)
-    else
-        d(centerMsg)
-    end
+    ShowCtaCenterMessage(msg, allianceId, duration)
     DebugCTA("CTA Triggered: population tier message")
     DebugCTA("CTA Fired: " .. tostring(msg))
 end

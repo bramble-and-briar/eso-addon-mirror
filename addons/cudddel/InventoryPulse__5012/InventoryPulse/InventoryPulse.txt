@@ -1,9 +1,9 @@
 ## Title: InventoryPulse
 ## Author: cudddel
-## Version: 1.0.0
-## AddOnVersion: 1
+## Version: 1.0.1
+## AddOnVersion: 2
 ## APIVersion: 101051 101052
-## Description: BagCount shows your used/free backpack slots as flying text. StackCount reports full 200 stacks in the craft bag.
+## Description: BagCount shows your used/free backpack slots (number or percent) as flying text. StackCount reports full 200 stacks in the backpack and, with ESO Plus, in the craft bag.
 ## SavedVariables: InventoryPulse_SV
 ## OptionalDependsOn: LibAddonMenu-2.0 LibMediaProvider
 

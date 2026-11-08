@@ -304,6 +304,20 @@ local strings =
     SI_AAB_SETEND_BADVAL = "Valeur invalide. Utilisez des millisecondes ou 'auto'.",
     SI_AAB_SETEND_SET    = "L'animation de fin de %s (id %d) se declenchera %dms apres l'incantation.",
     SI_AAB_SETEND_CLEARED= "Declenchement pour l'id %d efface (retour a la duree de la capacite).",
+    SI_AAB_CMD_EXPIRE    = "activer/desactiver l'animation d'expiration d'une capacite (sans valeur = basculer)",
+    SI_AAB_EXPIRE_SKILL_OFF = "Animation d'expiration pour %s (id %d) DESACTIVEE.",
+    SI_AAB_EXPIRE_SKILL_ON  = "Animation d'expiration pour %s (id %d) de nouveau ACTIVEE.",
+    SI_AAB_DBG_EXPIRE_OFF   = "expiration off",
+    SI_AAB_EXPIRE_SKILLS_HDR  = "Expiration par capacite",
+    SI_AAB_EXPIRE_SKILLS_DESC = "Desactive l'animation d'expiration pour certaines capacites equipees. Le reglage est enregistre par capacite, il s'applique donc aussi si elle est sur les deux barres.",
+    SI_AAB_EXPIRE_SKILL_TT    = "Active = cette capacite joue l'animation d'expiration. Desactive = rien ne se passe a la fin de l'effet.",
+    SI_AAB_EXPIRE_SKILL_EMPTY = "vide",
+    SI_AAB_EXPIRE_SKILL_BAR   = "Barre %d",
+    SI_AAB_EXPIRE_SKILL_PICK    = "Capacite",
+    SI_AAB_EXPIRE_SKILL_PICK_TT = "Choisis une de tes capacites actuellement equipees (les deux barres).",
+    SI_AAB_EXPIRE_SKILL_TOGGLE  = "Animation d'expiration pour cette capacite",
+    SI_AAB_EXPIRE_DISABLED_CLEAR    = "Reactiver toutes les capacites",
+    SI_AAB_EXPIRE_DISABLED_CLEAR_TT = "Reactive l'animation d'expiration pour toutes les capacites desactivees.",
 
     -- fenêtre d'aide / diagnostic
 
@@ -348,15 +362,9 @@ local strings =
     SI_AAB_CONTACT_DONATE_BTN_TT  = "Ouvre le panneau de courrier avec le destinataire et le titre pré-remplis.",
 
     SI_AAB_SUB_INFO               = "Info",
-    SI_AAB_SUB_INFO_TT            = "Notes de compatibilité pour utiliser AnimatedActionBar+ avec d'autres addons.",
-    SI_AAB_INFO_THINFRAMES        = "Si vous utilisez l'option \"Frame Appearance: Thin Frames\" de cet addon, désactivez les options suivantes dans FancyActionBar+ sous UI Customization -> Custom Frames Keyboard :\n\n" ..
-                                        "  - \"Hide Default Frames\"\n" ..
-                                        "  - \"Use Thin Frames\"\n\n" ..
-                                        "Si les deux addons dessinent des cadres fins en même temps, les cadres se doublent ou se décalent.",
-    SI_AAB_INFO_GAMEPAD           = "Vous jouez à la manette ?\n\n" ..
-                                        "Si vos compétences sont décalées, mal alignées ou affichées incorrectement, désactivez le \"Gamepad Mode\" dans FancyActionBar+.\n\n" ..
-                                        "Les joueurs à la manette devraient également désactiver \"Use Thin Frame\" dans FancyActionBar+ et dans AnimatedActionBar+ pour un résultat optimal.\n\n" ..
-                                        "Si le problème persiste, contactez-moi sur Discord (haze.3169) afin que nous puissions le résoudre ensemble.",
+    SI_AAB_SUB_INFO_TT            = "Ce que fait AnimatedActionBar+, toutes les commandes et les notes de compatibilité avec d'autres addons.",
+    SI_AAB_INFO_THINFRAMES        = "Vous utilisez FancyActionBar+ ? Désactivez alors les options suivantes dans FancyActionBar+ :\n\n  - \"Custom Frames\" sous \"UI Customizations\"\n  - \"Show keyboard text\" sous \"General\"\n\nSinon les deux addons dessinent l'un sur l'autre et les cadres ou le texte des touches apparaissent doublés ou décalés.",
+    SI_AAB_INFO_GAMEPAD           = "Vous jouez à la manette ?\n\nSi vos compétences sont décalées, mal alignées ou affichées incorrectement, désactivez le \"Gamepad Mode\" dans FancyActionBar+.\n\nLes joueurs à la manette devraient également désactiver \"Use Thin Frame\" dans FancyActionBar+ et dans AnimatedActionBar+ pour un résultat optimal.",
 
     SI_AAB_DLG_TITLE              = "AnimatedActionBar+",
     SI_AAB_DLG_BODY               = "Merci d'avoir installé AnimatedActionBar+ !\n\n" ..
@@ -421,6 +429,7 @@ local strings =
     SI_AAB_UI_THEME_TT            = "Apparence de cette fenêtre. Change immédiatement, sans rechargement.",
     SI_AAB_UI_THEME_NEBULA        = "Nébuleuse",
     SI_AAB_UI_THEME_LACE          = "Dentelle de corbeau",
+    SI_AAB_UI_THEME_CLASSIC       = "Classique",
     SI_AAB_UI_BGMOTION            = "Fond animé",
     SI_AAB_UI_BGMOTION_TT         = "Nébuleuse qui dérive, étoiles scintillantes et étoiles filantes dans le studio. Actif uniquement quand le studio est ouvert. Désactiver pour un fond fixe.",
     SI_AAB_UI_KB_THEME            = "Thème",
@@ -436,6 +445,18 @@ local strings =
     SI_AAB_ULTGP_FULLCOLOR_TT     = "Couleur du cadre et du remplissage tant que l'ultime est prête.",
     SI_AAB_ULTGP_RAINBOW          = "Arc-en-ciel quand pleine",
     SI_AAB_ULTGP_RAINBOW_TT       = "Le cadre et le remplissage parcourent l'arc-en-ciel tant que l'ultime est prête. Utilise la saturation et la luminosité de l'arc-en-ciel.",
+
+    -- info
+    SI_AAB_INFO_VERSION           = "AnimatedActionBar+ 2.2.0 par @haze068 - animations, lueur et pulse pour votre barre d'action, au clavier et à la manette.",
+    SI_AAB_INFO_HDR_FEATURES      = "Fonctionnalités",
+    SI_AAB_INFO_FEATURES          = "- Studio (/aab ui) : tous les réglages avec aperçu en direct, deux thèmes (Nébuleuse, Dentelle de corbeau), disposition clavier et manette.\n- Préréglages : Minimal, Standard, Flashy en un clic.\n- Animation d'appui : Rebond, Flash, Secousse ou Inclinaison, force et temps de retour réglables, aussi sur les procs et l'emplacement rapide.\n- Animation d'expiration : style, force et lueur propres quand un buff d'une compétence équipée expire, durée liée à celle de la compétence, réglable par compétence avec /aab setend.\n- Lueur : couleur, durée, marge et intensité, réglages séparés pour l'ultime.\n- Pulse de proc : Doux, Clignotement ou Stroboscope, seconde couleur en option.\n- Ultime : lueur d'appui, bordure prête (Doux, Clignotement, Arc-en-ciel), cadre de progression manette (5 styles de bord et 3 de lueur) et le cadre d'ultime manette comme dans FAB+.\n- Cadres : cadres fins avec 8 styles de bord, transparence du cadre et barre PC en mode manette.\n- Performance : filtre d'ID d'effet, recherche d'emplacement, uniquement en combat, arc-en-ciel lent et plus pour les grands combats.\n- Titres spéciaux : certains joueurs ont un titre coloré sur les cadres d'unité et un chat coloré, visibles par tous ceux qui utilisent AnimatedActionBar+.",
+    SI_AAB_INFO_HDR_COMMANDS      = "Commandes",
+    SI_AAB_INFO_COMMANDS          = "/aab - ouvrir les réglages\n/aab ui [page] - ouvrir le studio\n/aab info - ouvrir cet onglet\n/aab id (/aabids) - afficher les ID des compétences équipées\n/aab setend <id> <ms|auto> - quand l'animation d'expiration d'une compétence se déclenche\n/aab debug - état complet\n/aab cmd (/aabcmds) - liste des commandes dans le chat",
+    SI_AAB_INFO_HDR_COMPAT        = "Compatibilité",
+
+    -- support
+    SI_AAB_INFO_HDR_SUPPORT       = "Support",
+    SI_AAB_INFO_SUPPORT           = "Des problèmes avec vos cadres ou la barre d'action ? Contactez-moi sur Discord : haze.3169\n\nImportant : envoyez-moi directement un message décrivant votre problème. Je reçois énormément de demandes d'ami, dont beaucoup de bots - je ne peux pas répondre aux demandes sans message.",
 }
 
 for stringId, stringValue in pairs(strings) do

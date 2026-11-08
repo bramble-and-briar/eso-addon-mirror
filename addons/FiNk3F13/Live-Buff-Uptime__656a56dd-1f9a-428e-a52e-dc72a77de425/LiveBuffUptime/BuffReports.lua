@@ -9,6 +9,7 @@ local consoleLayout, nativeList, nativeScreen, rebuildingList, detailWindow
 local historyFirst, historyCount
 local listMode, listReport, lastListMode = "zones", nil, nil
 local category, listCategory = "buffs", nil
+local skillTarget = "all"
 local enemyTypeIndex, enemyTypePage, listEffect = 1, 1, nil
 local effectSelections = setmetatable({}, { __mode = "k" })
 local enemyEffects, activeEnemyEffects = {}, {}
@@ -16,6 +17,7 @@ local selectedZone, listZone, selectionIndices = nil, nil, {}
 local encounterTargets, encounterLocation, encounterBoss = {}, nil, nil
 local encounterSkills, encounterSkillCount, encounterDamage, encounterSkillDuration = {}, 0, 0, nil
 local nativeDamage = { buffer = {}, count = 0, index = 0 }
+local skillEncounterClock, encounterGroupDamageDuration
 local categories = { "buffs", "debuffs", "skills" }
 local function categoryName(value)
     return value == "skills" and L("Skills") or value == "debuffs" and L("Debuffs") or L("Buffs")
@@ -149,6 +151,7 @@ end
 function Reports.BeginEncounter(now, running, playerKey)
     encounterTargets, encounterBoss = {}, nil
     encounterSkills, encounterSkillCount, encounterDamage, encounterSkillDuration = {}, 0, 0, nil
+    encounterGroupDamageDuration=nil
     encounterBossNames, bossCandidates, bossCheckedAt = {}, {}, nil
     refreshBossCandidates()
     encounterDeaths, encounterRunning = {}, running ~= false
@@ -349,7 +352,7 @@ function Reports.ObserveDeathRoster(roster, time, playerKey, playerDead)
     end
 end
 
-function Reports.RecordDamage(sourceType, targetType, targetId, targetName, damage, abilityId, abilityName, metadataOnly)
+function Reports.RecordDamage(sourceType, targetType, targetId, targetName, damage, abilityId, abilityName, metadataOnly, time)
     if sourceType == nil or COMBAT_UNIT_TYPE_PLAYER == nil then return end
     if sourceType ~= COMBAT_UNIT_TYPE_PLAYER and (COMBAT_UNIT_TYPE_PLAYER_PET == nil or sourceType ~= COMBAT_UNIT_TYPE_PLAYER_PET) then return end
     if targetType == COMBAT_UNIT_TYPE_PLAYER or (COMBAT_UNIT_TYPE_GROUP ~= nil and targetType == COMBAT_UNIT_TYPE_GROUP)
@@ -380,9 +383,18 @@ function Reports.RecordDamage(sourceType, targetType, targetId, targetName, dama
         encounterTargets[key] = entry
     end
     if targetName and targetName ~= "" then entry.name = zo_strformat("<<C:1>>", targetName) end
-    if not metadataOnly then entry.damage = entry.damage + damage end
+    if not metadataOnly then
+        entry.damage = entry.damage + damage
+        local id = type(abilityId) == "number" and abilityId > 0 and abilityId or 0
+        entry.skills = entry.skills or {}
+        local row = entry.skills[id] or { damage = 0, hits = 0, name = abilityName }
+        entry.skills[id] = row
+        row.damage, row.hits = row.damage + damage, row.hits + 1
+        time = time or (GetFrameTimeSeconds and GetFrameTimeSeconds())
+        if time then entry.starts, entry.ends = math.min(entry.starts or time,time), math.max(entry.ends or time,time) end
+    end
     refreshBossCandidates()
-    if entry.name and bossCandidates[entry.name] then encounterBossNames[entry.name] = true end
+    if entry.name and bossCandidates[entry.name] then encounterBossNames[entry.name],entry.isBoss = true,true end
 end
 
 local function addNativeDamage(snapshot, event)
@@ -401,11 +413,17 @@ local function addNativeDamage(snapshot, event)
     if key then
         local target = snapshot.targets[key]
         if not target and snapshot.targetCount < 48 then
-            target = { damage = 0, name = event.targetName }
+            target = { damage = 0, name = event.targetName, skills = {} }
             snapshot.targets[key] = target
             snapshot.targetCount = snapshot.targetCount + 1
         end
-        if target then target.damage = target.damage + event.damage end
+        if target then
+            target.damage = target.damage + event.damage
+            local row = target.skills[id] or { damage = 0, hits = 0, name = event.abilityName }
+            target.skills[id] = row
+            row.damage, row.hits = row.damage + event.damage, row.hits + 1
+            target.starts, target.ends = math.min(target.starts or event.time,event.time), math.max(target.ends or event.time,event.time)
+        end
     end
 end
 
@@ -432,6 +450,9 @@ end
 function Reports.BeginNativeDamage(time, continuation, preserveActive)
     if (continuation or preserveActive) and nativeDamage.active then return end
     local snapshot = { skills = {}, targets = {}, total = 0, skillCount = 0, targetCount = 0, starts = time, ends = time }
+    local now = GetFrameTimeSeconds and GetFrameTimeSeconds() or time
+    snapshot.clockStartMS = GetGameTimeMilliseconds and GetGameTimeMilliseconds() + (time - now) * 1000 or time * 1000
+    snapshot.clockEndMS = snapshot.clockStartMS
     nativeDamage.active = snapshot
     for index = 1, nativeDamage.count do
         local event = nativeDamage.buffer[(nativeDamage.index - nativeDamage.count + index - 1) % 200 + 1]
@@ -440,17 +461,75 @@ function Reports.BeginNativeDamage(time, continuation, preserveActive)
     nativeDamage.buffer, nativeDamage.count, nativeDamage.index = {}, 0, 0
 end
 
+function Reports.StartNativeEncounterClock(timeMS)
+    local snapshot = nativeDamage.active
+    if snapshot and not snapshot.clockConfirmed then
+        snapshot.clockStartMS, snapshot.clockEndMS, snapshot.clockConfirmed = timeMS, timeMS, true
+    end
+end
+
+function Reports.RecordNativeEncounterDamage(timeMS)
+    local snapshot = nativeDamage.active
+    if snapshot then snapshot.clockEndMS = math.max(snapshot.clockEndMS, timeMS) end
+end
+
+function Reports.ObserveNativeUnitDamage(time, sourceId, targetId)
+    local snapshot=nativeDamage.active
+    if not snapshot then return end
+    snapshot.unitTimes=snapshot.unitTimes or {}
+    snapshot.unitTimeCount=snapshot.unitTimeCount or 0
+    for _,id in ipairs({sourceId or 0,targetId or 0}) do
+        if type(id)=="number" and id>0 then
+            local unit=snapshot.unitTimes[id]
+            if not unit and snapshot.unitTimeCount<256 then
+                unit={starts=time,ends=time}; snapshot.unitTimes[id]=unit; snapshot.unitTimeCount=snapshot.unitTimeCount+1
+            end
+            if unit then unit.starts,unit.ends=math.min(unit.starts,time),math.max(unit.ends,time) end
+        end
+    end
+end
+
 function Reports.FinishNativeDamage()
     local snapshot = nativeDamage.active
     nativeDamage.active = nil
     if not snapshot or snapshot.total <= 0 then return end
-    -- ESO's target-dummy log starts on the first actual hit, including a hit
-    -- buffered before the later combat-state notification.
-    snapshot.duration = math.max(1, snapshot.ends - snapshot.firstHit)
+    -- Match SimpleGroupDPS: combat initialization to the last valid damage
+    -- event of any source. Only the numerator remains own player/pet damage.
+    -- As in the group display, use current time until a later damage exists.
+    local ends = snapshot.clockEndMS
+    if ends <= snapshot.clockStartMS then
+        ends = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or snapshot.ends * 1000
+    end
+    snapshot.duration = math.max(0, ends - snapshot.clockStartMS) / 1000
+    for id, target in pairs(snapshot.targets) do
+        local unit=snapshot.unitTimes and snapshot.unitTimes[id]
+        local starts=unit and math.min(unit.starts,target.starts) or target.starts
+        local ends=unit and math.max(unit.ends,target.ends) or target.ends
+        target.duration = math.max(1,ends-starts)
+    end
     return snapshot
 end
 
-function Reports.SkillDamageSummary(duration, units, snapshot)
+function Reports.StartSkillEncounterClock(timeMS, confirmed)
+    if not skillEncounterClock or (confirmed and not skillEncounterClock.confirmed) then
+        skillEncounterClock={starts=timeMS,ends=timeMS,confirmed=confirmed}
+    end
+end
+
+function Reports.RecordSkillEncounterDamage(timeMS)
+    if skillEncounterClock then skillEncounterClock.ends=math.max(skillEncounterClock.ends,timeMS) end
+end
+
+function Reports.FinishSkillEncounterClock()
+    local clock=skillEncounterClock; skillEncounterClock=nil
+    if not clock then return end
+    local ends=clock.ends
+    if ends<=clock.starts then ends=GetGameTimeMilliseconds() end
+    return math.max(0,ends-clock.starts)/1000
+end
+
+function Reports.SkillDamageSummary(duration, units, snapshot, groupDuration)
+    encounterGroupDamageDuration=groupDuration
     if snapshot then
         -- Replace partial live counters with v2's complete per-ID aggregates.
         -- Never add the snapshot on top of the same already-counted hits.
@@ -463,7 +542,7 @@ function Reports.SkillDamageSummary(duration, units, snapshot)
                 encounterSkillCount = encounterSkillCount + 1
             end
         end
-        for _, target in pairs(encounterTargets) do target.damage = 0 end
+        for _, target in pairs(encounterTargets) do target.damage, target.skills, target.starts, target.ends, target.duration = 0, nil, nil, nil, nil end
         local count = 0
         for _ in pairs(encounterTargets) do count = count + 1 end
         for id, data in pairs(snapshot.targets) do
@@ -473,20 +552,28 @@ function Reports.SkillDamageSummary(duration, units, snapshot)
             end
             if target then
                 target.damage = data.damage
+                target.skills, target.duration = data.skills, data.duration
                 if data.name then target.name = zo_strformat("<<C:1>>", data.name) end
             end
         end
     end
-    if type(duration) == "number" and duration > 0 and duration < math.huge then encounterSkillDuration = duration end
+    if type(duration) == "number" and duration >= 0 and duration < math.huge then encounterSkillDuration = duration end
     for id, unit in pairs(units or {}) do
         local target = encounterTargets[id]
         if target and unit.name then target.name = zo_strformat("<<C:1>>", unit.name) end
+        if target and (unit.isBoss or unit.bossId) then target.isBoss=true end
+        -- CMX's target list divides by this exact v1 unit damage window.
+        -- Skill rows themselves continue to use the whole-fight dpstime.
+        if target and type(unit.dpsstart)=="number" and type(unit.dpsend)=="number" then
+            target.duration=math.max(1,(unit.dpsend-unit.dpsstart)/1000)
+        end
     end
 end
 
 local function attachEncounter(report, trackers, receiptWindow)
     report.skills, report.ownDamage, report.skillDamageRecorded = {}, encounterDamage, true
     report.skillDamageDuration = encounterSkillDuration
+    report.groupDamageDuration = encounterGroupDamageDuration
     for _, skill in pairs(encounterSkills) do
         report.skills[#report.skills + 1] = { id = skill.id, name = skill.name, damage = skill.damage, hits = skill.hits }
     end
@@ -503,9 +590,23 @@ local function attachEncounter(report, trackers, receiptWindow)
     end
     if encounterLocation then report.zone, report.zoneIndex = encounterLocation.zone, encounterLocation.zoneIndex end
     report.enemies = {}
-    for _, target in pairs(encounterTargets) do
-        report.enemies[#report.enemies + 1] = { id = target.id, name = target.name or (L("Gegner ") .. target.id), damage = target.damage }
+    local targetSkillCount,targetDamageTotal=0,0
+    for key, target in pairs(encounterTargets) do
+        local skills = {}
+        for id, data in pairs(target.skills or {}) do
+            if targetSkillCount<1024 then
+            skills[#skills+1] = { id=id, name=data.name and data.name~="" and zo_strformat("<<1>>",data.name)
+                or (GetAbilityName and zo_strformat("<<1>>",GetAbilityName(id))) or tostring(id), damage=data.damage,hits=data.hits }
+            targetSkillCount=targetSkillCount+1
+            else report.skillTargetsTruncated=true end
+        end
+        targetDamageTotal=targetDamageTotal+target.damage
+        if #skills>0 then report.skillTargetsRecorded=true end
+        report.enemies[#report.enemies + 1] = { id = target.id, key=key, name = target.name or (L("Gegner ") .. tostring(target.id or key)), damage = target.damage,
+            skills=skills, duration=target.duration or (target.starts and target.ends and math.max(1,target.ends-target.starts)),
+            isBoss=target.isBoss or encounterBossNames[target.name]==true }
     end
+    if report.skillTargetsRecorded and targetDamageTotal<report.ownDamage then report.skillTargetsTruncated=true end
     table.sort(report.enemies, function(a, b) if a.damage == b.damage then return a.name < b.name end; return a.damage > b.damage end)
     report.enemyName = report.enemies[1] and report.enemies[1].name or encounterBoss or report.title
     report.bossNames = {}
@@ -608,12 +709,14 @@ end
 function Reports.Init(settings)
     saved = settings
     nativeDamage = { buffer = {}, count = 0, index = 0 }
+    skillEncounterClock,encounterGroupDamageDuration=nil,nil
     saved.uptimeHistory = saved.uptimeHistory or {}
     if #saved.uptimeHistory == 0 and saved.lastUptimeReport then saved.uptimeHistory[1] = saved.lastUptimeReport end
     trimHistory(saved.uptimeHistory)
     saved.lastUptimeReport = saved.uptimeHistory[1]
     selectedFight = 1
     category, listCategory = "buffs", nil
+    skillTarget="all"
     selectionChosen = false
     selectedZone, listZone, lastListMode = nil, nil, nil
 end
@@ -639,9 +742,14 @@ local function selectionLocked()
     return report and report.locked == true or false
 end
 
-function Reports.SkillRows(report)
+function Reports.SkillRows(report, targetKey)
     local rows, byId = {}, {}
-    for _, skill in ipairs(report and report.skills or {}) do
+    local source = report and report.skills or {}
+    if targetKey and targetKey~="all" then
+        source = {}
+        for _,target in ipairs(report and report.enemies or {}) do if (target.key or target.id)==targetKey then source=target.skills or {}; break end end
+    end
+    for _, skill in ipairs(source) do
         local name = zo_strformat("<<1>>", skill.name or tostring(skill.id or 0))
         local key = skill.id or 0
         local group = byId[key]
@@ -656,8 +764,33 @@ function Reports.SkillRows(report)
     return rows
 end
 
+function Reports.SkillTargets(report)
+    local duration=report and (report.skillDamageDuration or math.max(0,(report.ended or 0)-(report.started or 0))) or 0
+    local targets={{key="all",name=L("Alle Ziele"),damage=report and report.ownDamage or 0,duration=duration}}
+    local names={}
+    for _,target in ipairs(report and report.enemies or {}) do
+        if target.damage>0 and #(target.skills or {})>0 then names[target.name]=(names[target.name] or 0)+1 end
+    end
+    for _,target in ipairs(report and report.enemies or {}) do
+        if target.damage>0 and #(target.skills or {})>0 then
+            local isBoss=target.isBoss==true
+            for _,name in ipairs(report.bossNames or {}) do if name==target.name then isBoss=true end end
+            local targetDuration=isBoss and (report.groupDamageDuration or duration) or (target.duration or duration)
+            targets[#targets+1]={key=target.key or target.id,name=target.name..((names[target.name] or 0)>1 and (" ["..tostring(target.id or target.key).."]") or ""),
+                damage=target.damage,duration=targetDuration,fightDuration=duration,isBoss=isBoss}
+        end
+    end
+    return targets
+end
+
+local function selectedSkillTarget(report)
+    local targets=Reports.SkillTargets(report)
+    for _,target in ipairs(targets) do if target.key==skillTarget then return target end end
+    skillTarget="all"; return targets[1]
+end
+
 local function currentEffects(report)
-    if category == "skills" then return Reports.SkillRows(report) end
+    if category == "skills" then selectedSkillTarget(report); return Reports.SkillRows(report,skillTarget) end
     return report and report[category] or {}
 end
 
@@ -709,7 +842,7 @@ local function rememberEffectSelection()
     local report = currentReport()
     if not report then return end
     local selections = effectSelections[report] or {}
-    selections[category] = { selected = selected, page = page, enemyTypeIndex = enemyTypeIndex, enemyTypePage = enemyTypePage }
+    selections[category] = { selected = selected, page = page, enemyTypeIndex = enemyTypeIndex, enemyTypePage = enemyTypePage, skillTarget=skillTarget }
     effectSelections[report] = selections
 end
 
@@ -717,6 +850,7 @@ local function restoreEffectSelection()
     local report = currentReport()
     local selection = report and effectSelections[report] and effectSelections[report][category]
     selected, page = selection and selection.selected or 1, selection and selection.page or 1
+    skillTarget=selection and selection.skillTarget or "all"
     enemyTypeIndex, enemyTypePage = selection and selection.enemyTypeIndex or 1, selection and selection.enemyTypePage or 1
 end
 
@@ -893,6 +1027,9 @@ local function renderOverview(report)
     local duration = report and math.max(0, (report.ended or 0) - (report.started or 0)) or 0
     local totalDamage = report and report.ownDamage or 0
     local damageDuration = report and report.skillDamageDuration or duration
+    local target=skills and selectedSkillTarget(report)
+    local targetDamage=target and target.damage or totalDamage
+    if target and target.isBoss then damageDuration=target.duration end
     local legacy = skills and report and not report.skillDamageRecorded
     controls.heading:SetText(categoryName(category))
     controls.subject:SetText(skills and L("Skill") or categoryName(category))
@@ -905,6 +1042,9 @@ local function renderOverview(report)
     controls.subtitle:SetText(report and string.format("%s | %s | %d:%s", reportDate(report), report.clock or "",
         math.floor(duration / 60), decimal(duration % 60, "%04.1f")) or "")
     controls.basis:SetText(skills and L("Eigener Schaden inklusive eigener Begleiter") or L("Uebersicht des ausgewaehlten Kampfes"))
+    if target and report and report.skillTargetsRecorded then
+        controls.basis:SetText(target.name)
+    end
     for index = 1, ROWS do
         local entry = rows[offset + index]
         local row = controls.rows[index]
@@ -922,7 +1062,7 @@ local function renderOverview(report)
         row.roleIcon:SetColor(1,1,1,1)
         if icon then row.roleIcon:SetTexture(icon) end
         local covered = entry and (skills and entry.damage or entry.covered) or 0
-        local reference = skills and totalDamage or entry and entry.duration or 0
+        local reference = skills and targetDamage or entry and entry.duration or 0
         row.covered:SetText(entry and (skills and decimal(covered,"%.0f") or decimal(covered).." s") or "")
         row.duration:SetText(entry and (skills and decimal(damageDuration > 0 and covered / damageDuration or 0,"%.0f")
             or decimal(entry.duration).." s") or "")
@@ -930,9 +1070,12 @@ local function renderOverview(report)
         row.percent:SetColor(0.55,0.95,0.65,1)
         row.buffIcon:SetHidden(true); row.received:SetText("")
     end
-    controls.total:SetText(report and not legacy and (skills and (L("Gesamtschaden").."  "..decimal(totalDamage,"%.0f"))
+    local singleTarget=skills and target and target.key~="all"
+    local footerDamage=singleTarget and targetDamage or totalDamage
+    controls.total:SetText(report and not legacy and (skills and (L(singleTarget and "Schaden" or "Gesamtschaden").."  "..decimal(footerDamage,"%.0f"))
         or categoryName(category).."  "..#rows) or "")
-    controls.times:SetText(skills and report and not legacy and ("DPS  "..decimal(damageDuration > 0 and totalDamage/damageDuration or 0,"%.0f")) or "")
+    local footerDuration=singleTarget and target.duration or (report and report.skillDamageDuration or duration)
+    controls.times:SetText(skills and report and not legacy and (L(singleTarget and (target.isBoss and "Boss-DPS" or "DPS") or "Gesamt-DPS").."  "..decimal(footerDuration > 0 and footerDamage/footerDuration or 0,"%.0f")) or "")
     controls.page:SetText(listMode == "buffs" and (string.format(L("Seite %d / 3"),categoryIndex())
         .. (not skills and pages>1 and string.format("\n%d / %d",page,pages) or "")) or "")
     local scrollable = skills and listMode == "buffs" and #rows > ROWS
@@ -947,7 +1090,7 @@ local function renderOverview(report)
         controls.skillScrollThumb:SetDimensions(5, thumbHeight)
     end
     if legacy then controls.basis:SetText(L("Alte Kaempfe enthalten keine Skill-Schadensdaten.")) end
-    controls.warning:SetText(#rows == 0 and (legacy
+    controls.warning:SetText(skills and report and report.skillTargetsTruncated and L("Einzelwerte unvollstaendig") or #rows == 0 and (legacy
         and L("Keine Skill-Daten")
         or skills and L("Kein eigener Schaden aufgezeichnet") or L("Keine aufgezeichneten Effekte")) or "")
 end
@@ -1016,6 +1159,14 @@ function Reports.Refresh()
                     selectionIndices[#selectionIndices + 1] = index
                 end
             elseif listMode == "buffs" then
+                if category=="skills" and report and report.skillTargetsRecorded then
+                    for _,target in ipairs(Reports.SkillTargets(report)) do
+                        local entry=ZO_GamepadEntryData:New(target.name,report.placeIcon or DEFAULT_PLACE_ICON)
+                        entry.skillTargetKey=target.key
+                        nativeList:AddEntry("ZO_GamepadMenuEntryTemplate",entry)
+                        selectionIndices[#selectionIndices+1]=target.key
+                    end
+                else
                 for index, buff in ipairs(currentEffects(report)) do
                     local entry = ZO_GamepadEntryData:New(buff.name, GetAbilityIcon(buff.id))
                     entry.buffIndex = index
@@ -1024,6 +1175,7 @@ function Reports.Refresh()
                         or buff.unit == "group" and L("Auf der Gruppe") or L("Auf mir")) end
                     nativeList:AddEntry("ZO_GamepadMenuEntryTemplate", entry)
                     selectionIndices[#selectionIndices + 1] = index
+                end
                 end
             else
                 for index, record in ipairs(history) do
@@ -1049,7 +1201,7 @@ function Reports.Refresh()
             rebuilt = true
         end
         local key = listMode == "zones" and selectedZone or listMode == "fights" and selectedFight
-            or listMode == "enemyTypes" and enemyTypeIndex or selected
+            or listMode == "enemyTypes" and enemyTypeIndex or (category=="skills" and report and report.skillTargetsRecorded and skillTarget) or selected
         local index = 1
         for position, value in ipairs(selectionIndices) do if value == key then index = position; break end end
         if #selectionIndices > 0 and (rebuilt or not nativeList.GetSelectedIndex or nativeList:GetSelectedIndex() ~= index) then
@@ -1479,6 +1631,9 @@ local function createWindow()
             if rebuildingList or not entry then return end
             if entry.zoneKey then Reports.SelectZone(entry.zoneKey)
             elseif entry.fightIndex then Reports.SelectFight(entry.fightIndex)
+            elseif entry.skillTargetKey then
+                if skillTarget~=entry.skillTargetKey then skillTarget,page=entry.skillTargetKey,1 end
+                rememberEffectSelection(); Reports.Refresh()
             elseif entry.buffIndex then
                 if selected ~= entry.buffIndex then
                     selected = entry.buffIndex
@@ -1537,7 +1692,7 @@ local function createWindow()
     controls.subtitle = label(window, "LiveBuffUptimeReportSubtitle", 28, 48, 880, 32, "ZoFontGamepad27")
     controls.buff = label(window, "LiveBuffUptimeReportBuff", 28, 82, 740, 44, "ZoFontGamepad42")
     controls.selection = label(window, nil, 820, 82, 100, 44, "ZoFontGamepad34")
-    controls.basis = label(window, nil, 28, 126, 720, 30, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
+    controls.basis = label(window, "LiveBuffUptimeReportBasis", 28, 126, 720, 30, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
     local columns = { { L("Spieler"), 36, 308 }, { L("Buffzeit"), 362, 150 }, { L("Bezugszeit"), 528, 150 }, { "Uptime", 694, 150 } }
     for index, column in ipairs(columns) do
         local control = label(window, nil, column[2], 158, column[3], 38, "ZoFontGamepad34")
@@ -1579,7 +1734,7 @@ local function createWindow()
         controls.rows[index] = row
     end
     controls.total = label(window, "LiveBuffUptimeReportTotal", 36, 1054, 580, 42, "ZoFontGamepad42", { 0.55, 0.95, 0.7, 1 })
-    controls.times = label(window, nil, 36, 1096, 650, 30, "ZoFontGamepad27")
+    controls.times = label(window, "LiveBuffUptimeReportTimes", 36, 1096, 650, 30, "ZoFontGamepad27")
     controls.page = label(window, "LiveBuffUptimeReportPage", 708, 1084, 224, 44, "ZoFontGamepad22")
     controls.page:SetMaxLineCount(2)
     controls.warning = label(window, "LiveBuffUptimeReportWarning", 650, 1054, 282, 28, "ZoFontGamepad22", { 1, 0.7, 0.4, 1 })

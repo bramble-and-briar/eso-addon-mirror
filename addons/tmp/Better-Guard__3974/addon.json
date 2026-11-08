@@ -8,6 +8,10 @@
   "category_id": "25",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "BetterGuard"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3974/",
-  "fingerprint": "843e0e4184a7d46cb0a52b09b5f710c3dc8e5c80ac952dee1edfde953c34f758",
+  "fingerprint": "9199689a140cc4e7ee7b4c6b6bf8a8c7678ab8141459510ab47781efb0d697a5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16598.png",
     "https://cdn-eso.mmoui.com/preview/pvw16601.png",
@@ -31,11 +35,11 @@
   "source_id": "3974",
   "source_url": "https://www.esoui.com/downloads/info3974-BetterGuard.html",
   "stats": {
-    "downloads": 2109,
+    "downloads": 2330,
     "favorites": 2,
-    "monthly_downloads": 101
+    "monthly_downloads": 60
   },
   "title": "Better Guard",
-  "updated_at": 1786962015000,
-  "version": "2.8"
+  "updated_at": 1794102192000,
+  "version": "2.9"
 }

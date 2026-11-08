@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Weyland/Weyland-Vampire-Stage-Tracker__5035",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Weyland",
+  "canonical_id": "esoui:5035",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5035",
+  "deleted": false,
+  "directories": [
+    "WeylandVampireStageTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5035/",
+  "fingerprint": "b4d87a5ca0295982e5e2ae47221661f59c6d74f7f057bbbf660eab2da2af30c8",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18361.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18357.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18358.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18359.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18360.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5035",
+  "source_url": "https://www.esoui.com/downloads/info5035-WeylandVampireStageTracker.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Weyland Vampire Stage Tracker",
+  "updated_at": 1794109524000,
+  "version": "1.2.0"
+}

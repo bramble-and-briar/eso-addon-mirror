@@ -1,0 +1,39 @@
+VERSION 2.2.3 - ULTIMATE PRIORITY SORTING ONLY
+- Each of the five existing player-name columns is sorted by current
+  Ultimate points, highest first, every time group data refreshes.
+- Players without valid ultimate data remain at the bottom of the list.
+- Ties are consistently ordered by PSN name.
+- All icon positioning, box styling, bar height, font size, settings,
+  group broadcasting, and Corrosive fixes are unchanged from v2.2.2.
+
+VERSION 2.2.2 - CORROSIVE ICON ONLY
+- Kept all icon dimensions, spacing, bar dimensions and fonts identical to foundation v2.2.1.
+- Replaced the earlier U49-specific hardcoded Corrosive fallback filename.
+- Resolves unmorphed Magma Armor art through the client skill-line API when available.
+- Rechecks the icon once player skills are initialized.
+- Shows MAGMA text only if no actual image can be rendered.
+
+VERSION 2.2.1
+- Boxed the five icons while keeping their original spacing and positions.
+- Increased PSN-name bar height and text size for clearer readability.
+- Improved Corrosive icon resolution by using the base ability ID icon lookup.
+- Saves the resolved Corrosive icon so it persists after it is seen in group data.
+
+VERSION 2.2.1
+- Fixed remote group members filtered by stats.isPlayer == false.
+- Fixed /gurt debug showing local player only.
+- Added PSN-labelled grey placeholder bars for members awaiting ULT packets.
+- Added per-member packet diagnostics and local sharing status.
+- Kept 5 icons, per-player bar tracking and console settings integration.
+
+VERSION 2.1.0
+- Replaced the nonfunctional custom GAMEPAD_OPTIONS category attempt with
+  LibHarvensAddonSettings registration for the actual console Settings > Add-ons page.
+- Added ConsoleDependsOn: LibHarvensAddonSettings>=20107.
+- Added native console/gamepad sliders for scale, X position, and Y position.
+- Added a reset position/scale button and reset-to-default behavior.
+- Corrosive Armor and Magma Shell now normalize through ability progression
+  to the unmorphed Magma Armor base ability.
+- Corrosive icon can refresh from ESO's returned base ability texture.
+- Retained fixed Magma Armor icon texture as the fallback.
+- No LibVotans or LibGamepadOptions dependency.

@@ -51,6 +51,7 @@ local mCooldown = {}
 ---@field slotNum? number
 ---@field shifted? boolean
 ---@field appendIndex? number
+---@field nativeMode? boolean
 ---@field visible? boolean
 ---@field slot? Control
 ---@field slotIcon? Control
@@ -76,7 +77,7 @@ local mCooldown = {}
 ---@class adr.views.M
 ---@field getSlotBaseSize? fun(): number
 ---@field newCooldown? fun(background: Control, drawTier: number): adr.views.Cooldown
----@field newWidget? fun(slotNum: number, shifted: boolean, appendIndex?: number): adr.views.Widget
+---@field newWidget? fun(slotNum: number, shifted: boolean, appendIndex?: number, nativeSlotControl?: Control): adr.views.Widget
 ---@field updateWidgetCooldown? fun(widget: adr.views.Widget)
 ---@field updateWidgetProgress? fun(widget: adr.views.Widget)
 ---@field updateWidgetFont? fun(widget: adr.views.Widget)
@@ -132,8 +133,6 @@ l.getStackLabelFont = function()
     .. l.getSavedVars().barStackLabelFontStyle
 end
 
----@type number[]
-l.debugIdList = {}
 --========================================
 --        m
 --========================================
@@ -143,7 +142,6 @@ m.newCooldown = function(background, drawTier)
   ---@type adr.views.Cooldown
   local inst = {}
   inst.id = GetGameTimeMilliseconds()
-  table.insert(l.debugIdList, inst.id)
   inst.background = background
   inst.drawTier = drawTier
   inst.hidden = false
@@ -163,16 +161,19 @@ m.newCooldown = function(background, drawTier)
 end
 
 ---@type fun(slotNum: number, shifted: boolean, appendIndex?: number): adr.views.Widget
-m.newWidget = function(slotNum, shifted, appendIndex)
+m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
   local savedVars = l.getSavedVars()
   ---@type adr.views.Widget
   local inst = {}
   inst.slotNum = slotNum
   inst.shifted = shifted
   inst.appendIndex = appendIndex
+  -- native模式：标签直接挂在 BackBar 克隆按钮上，不建贴图背景
+  inst.nativeMode = nativeSlotControl ~= nil
   --
   inst.visible = true
-  local slot = ZO_ActionBar_GetButton(slotNum, slotNum > 8 and HOTBAR_CATEGORY_QUICKSLOT_WHEEL or nil).slot --Control#Control
+  local slot = nativeSlotControl
+    or ZO_ActionBar_GetButton(slotNum, slotNum > 8 and HOTBAR_CATEGORY_QUICKSLOT_WHEEL or nil).slot --Control#Control
   inst.slot = slot
   local slotIcon = slot:GetNamedChild("Icon")
   --  local flipCard = slot:GetNamedChild("FlipCard")
@@ -181,7 +182,7 @@ m.newWidget = function(slotNum, shifted, appendIndex)
   --========================================
   local backdrop = nil
   local background = nil
-  if shifted then
+  if shifted and not inst.nativeMode then
     local offsetX = savedVars.barShiftOffsetX
     local offsetY = savedVars.barShiftOffsetY
     local baseSize = l.getSlotBaseSize()
@@ -205,7 +206,10 @@ m.newWidget = function(slotNum, shifted, appendIndex)
     background:SetAnchor(BOTTOMRIGHT, backdrop, BOTTOMRIGHT, -offset, -offset)
     m.updateWidgetShiftLayering(inst)
   end
-  local label = WINDOW_MANAGER:CreateControl(nil, backdrop or slotIcon, CT_LABEL) --LabelControl#LabelControl
+  -- 标签父控件：贴图模式挂 backdrop/slotIcon，native模式挂克隆按钮槽位
+  local labelParent = backdrop or nativeSlotControl or slotIcon
+  local textureShifted = shifted and not inst.nativeMode
+  local label = WINDOW_MANAGER:CreateControl(nil, labelParent, CT_LABEL) --LabelControl#LabelControl
   inst.label = label
   label:SetFont(l.getLabelFont())
   label:SetColor(1, 1, 1)
@@ -218,13 +222,13 @@ m.newWidget = function(slotNum, shifted, appendIndex)
   else
     label:SetAnchor(
       BOTTOM,
-      backdrop or slotIcon,
+      labelParent,
       BOTTOM,
       0,
-      shifted and (-savedVars.barLabelYOffsetInShift + 1) or (-savedVars.barLabelYOffset + 3)
+      textureShifted and (-savedVars.barLabelYOffsetInShift + 1) or (-savedVars.barLabelYOffset + 3)
     )
   end
-  local stackLabel = WINDOW_MANAGER:CreateControl(nil, backdrop or slotIcon, CT_LABEL)
+  local stackLabel = WINDOW_MANAGER:CreateControl(nil, labelParent, CT_LABEL)
   inst.stackLabel = stackLabel
   stackLabel:SetFont(l.getStackLabelFont())
   stackLabel:SetColor(1, 1, 1)
@@ -233,12 +237,12 @@ m.newWidget = function(slotNum, shifted, appendIndex)
   stackLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
   stackLabel:SetAnchor(
     TOPRIGHT,
-    backdrop or slotIcon,
+    labelParent,
     TOPRIGHT,
     -5,
-    shifted and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
+    textureShifted and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
   )
-  local stackLabel2 = WINDOW_MANAGER:CreateControl(nil, backdrop or slotIcon, CT_LABEL)
+  local stackLabel2 = WINDOW_MANAGER:CreateControl(nil, labelParent, CT_LABEL)
   inst.stackLabel2 = stackLabel2
   stackLabel2:SetFont(l.getStackLabelFont())
   stackLabel2:SetColor(1, 1, 1)
@@ -247,14 +251,16 @@ m.newWidget = function(slotNum, shifted, appendIndex)
   stackLabel2:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
   stackLabel2:SetAnchor(
     TOPLEFT,
-    backdrop or slotIcon,
+    labelParent,
     TOPLEFT,
     5,
-    shifted and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
+    textureShifted and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
   )
 
   ---@type adr.views.Cooldown
   inst.cooldown = m.newCooldown(backdrop or slot, backdrop and 0 or DT_HIGH)
+  -- 贴图行(backdrop SetScale)与克隆行(容器 SetScale)均携带 barShowShiftScalePercent 缩放，
+  -- drawRemain 的 *100/percent 补偿两种模式都需要(默认100%时为无操作)
   inst.cooldown.shifted = shifted
   inst.cdMark = 0
 
@@ -315,13 +321,14 @@ end
 ---@type fun(widget: adr.views.Widget)
 m.updateWidgetLabelYOffset = function(widget)
   if widget.label then
+    local textureShifted = widget.shifted and not widget.nativeMode
     widget.label:ClearAnchors()
     widget.label:SetAnchor(
       BOTTOM,
       widget.label:GetParent(),
       BOTTOM,
       0,
-      widget.shifted and (-l.getSavedVars().barLabelYOffsetInShift + 1) or (-l.getSavedVars().barLabelYOffset + 3)
+      textureShifted and (-l.getSavedVars().barLabelYOffsetInShift + 1) or (-l.getSavedVars().barLabelYOffset + 3)
     )
   end
 end
@@ -396,27 +403,18 @@ end
 
 ---@type fun(widget: adr.views.Widget)
 m.updateWidgetStackLabelYOffset = function(widget)
+  -- 与 newWidget 的初始定位严格一致(框内右上/左上角)，
+  -- 否则滑条调整或回收站复用后标签会跳到顶边外(表现为“超过边框”)
+  local textureShifted = widget.shifted and not widget.nativeMode
+  local offsetY = textureShifted and (-l.getSavedVars().barStackLabelYOffsetInShift + 2)
+    or (-l.getSavedVars().barStackLabelYOffset + 0)
   if widget.stackLabel then
     widget.stackLabel:ClearAnchors()
-    widget.stackLabel:SetAnchor(
-      TOPRIGHT,
-      widget.stackLabel:GetParent(),
-      TOPRIGHT,
-      0,
-      widget.shifted and (-l.getSavedVars().barStackLabelYOffsetInShift - 5)
-        or (-l.getSavedVars().barStackLabelYOffset - 5)
-    )
+    widget.stackLabel:SetAnchor(TOPRIGHT, widget.stackLabel:GetParent(), TOPRIGHT, -5, offsetY)
   end
   if widget.stackLabel2 then
     widget.stackLabel2:ClearAnchors()
-    widget.stackLabel2:SetAnchor(
-      TOPLEFT,
-      widget.stackLabel2:GetParent(),
-      TOPLEFT,
-      2,
-      widget.shifted and (-l.getSavedVars().barStackLabelYOffsetInShift - 5)
-        or (-l.getSavedVars().barStackLabelYOffset - 5)
-    )
+    widget.stackLabel2:SetAnchor(TOPLEFT, widget.stackLabel2:GetParent(), TOPLEFT, 5, offsetY)
   end
 end
 
@@ -471,7 +469,18 @@ mCooldown.drawRemain = function(self, remain)
   local duration = self.duration
   local savedVars = l.getSavedVars()
   local shrink = 1
-  local width, height = self.background:GetDimensions()
+  -- 锚定目标动态解析：手柄模式用 FlipCard(冷却线随翻转动画缩展，与手柄边框
+  -- 同行为——Backdrop±4 锚 FlipCard)；键盘模式用原 background(键盘边框锚槽不
+  -- 翻转，线保持固定)。绘制时解析=平台切换后下一拍(≤40ms)自动适应，零钩子。
+  -- 贴图行(背景为自建 backdrop，无 FlipCard 子控件)不受影响
+  local anchorTarget = self.background
+  if IsInGamepadPreferredMode() and anchorTarget.GetNamedChild then
+    local fc = anchorTarget:GetNamedChild("FlipCard")
+    if fc then
+      anchorTarget = fc
+    end
+  end
+  local width, height = anchorTarget:GetDimensions()
   if Azurah then
     local scale = Azurah:CheckModified("ZO_ActionBar1")
     if scale and scale ~= 1 then
@@ -494,7 +503,7 @@ mCooldown.drawRemain = function(self, remain)
       self.topRight = self:createPart()
     end
     local length = width / 2 * math.min(1, remain * 8 / duration - 7)
-    self.topRight:SetAnchor(TOPRIGHT, self.background, TOPRIGHT, -shrink, shrink)
+    self.topRight:SetAnchor(TOPRIGHT, anchorTarget, TOPRIGHT, -shrink, shrink)
     self.topRight:SetDimensions(length, savedVars.barCooldownThickness)
     self.topRight:SetHidden(false)
   else
@@ -508,7 +517,7 @@ mCooldown.drawRemain = function(self, remain)
       self.right = self:createPart()
     end
     local length = height * math.min(1, (remain * 8 / duration - 5) / 2)
-    self.right:SetAnchor(BOTTOMRIGHT, self.background, BOTTOMRIGHT, -shrink, -shrink)
+    self.right:SetAnchor(BOTTOMRIGHT, anchorTarget, BOTTOMRIGHT, -shrink, -shrink)
     self.right:SetDimensions(savedVars.barCooldownThickness, length)
     self.right:SetHidden(false)
   else
@@ -522,7 +531,7 @@ mCooldown.drawRemain = function(self, remain)
       self.bottom = self:createPart()
     end
     local length = width * math.min(1, (remain * 8 / duration - 3) / 2)
-    self.bottom:SetAnchor(BOTTOMLEFT, self.background, BOTTOMLEFT, shrink, -shrink)
+    self.bottom:SetAnchor(BOTTOMLEFT, anchorTarget, BOTTOMLEFT, shrink, -shrink)
     self.bottom:SetDimensions(length, savedVars.barCooldownThickness)
     self.bottom:SetHidden(false)
   else
@@ -536,7 +545,7 @@ mCooldown.drawRemain = function(self, remain)
       self.left = self:createPart()
     end
     local length = height * math.min(1, (remain * 8 / duration - 1) / 2)
-    self.left:SetAnchor(TOPLEFT, self.background, TOPLEFT, shrink, shrink)
+    self.left:SetAnchor(TOPLEFT, anchorTarget, TOPLEFT, shrink, shrink)
     self.left:SetDimensions(savedVars.barCooldownThickness, length)
     self.left:SetHidden(false)
   else
@@ -550,7 +559,7 @@ mCooldown.drawRemain = function(self, remain)
       self.topLeft = self:createPart()
     end
     local length = width / 2 * math.min(1, remain * 8 / duration)
-    self.topLeft:SetAnchor(TOPRIGHT, self.background, TOP, 0, shrink)
+    self.topLeft:SetAnchor(TOPRIGHT, anchorTarget, TOP, 0, shrink)
     self.topLeft:SetDimensions(length, savedVars.barCooldownThickness)
     self.topLeft:SetHidden(false)
   else

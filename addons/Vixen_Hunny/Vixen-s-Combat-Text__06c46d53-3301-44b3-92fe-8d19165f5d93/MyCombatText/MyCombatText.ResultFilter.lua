@@ -227,3 +227,115 @@ end
 function R.IsHeal(result)
     return HasResult(RESULT_IS_HEAL, result)
 end
+
+-- ---------------------------------------------------------------
+-- Additional result classifiers: mitigation, energize, drain.
+-- These map to CombatCloud-equivalent events that show when the
+-- player's outgoing attack was mitigated by the target, or when
+-- resource energize/drain abilities fire.
+-- ---------------------------------------------------------------
+
+-- RESULT_IS_MISS: the source missed the target completely.
+local RESULT_IS_MISS = {}
+AddResult(RESULT_IS_MISS, ACTION_RESULT_MISS)
+
+-- RESULT_IS_IMMUNE: the target is immune to the effect.
+local RESULT_IS_IMMUNE = {}
+AddResult(RESULT_IS_IMMUNE, ACTION_RESULT_IMMUNE)
+
+-- RESULT_IS_PARRIED: the target parried the incoming attack.
+local RESULT_IS_PARRIED = {}
+AddResult(RESULT_IS_PARRIED, ACTION_RESULT_PARRIED)
+
+-- RESULT_IS_REFLECTED: the target reflected the ability back at the source.
+local RESULT_IS_REFLECTED = {}
+AddResult(RESULT_IS_REFLECTED, ACTION_RESULT_REFLECTED)
+
+-- RESULT_IS_ENERGIZE: an ability restored a resource pool (power energize).
+local RESULT_IS_ENERGIZE = {}
+AddResult(RESULT_IS_ENERGIZE, ACTION_RESULT_POWER_ENERGIZE)
+
+-- RESULT_IS_DRAIN: an ability drained a resource pool (power drain).
+local RESULT_IS_DRAIN = {}
+AddResult(RESULT_IS_DRAIN, ACTION_RESULT_POWER_DRAIN)
+
+-- Returns true when the attacker missed the target.
+function R.IsMiss(result)
+    return HasResult(RESULT_IS_MISS, result)
+end
+
+-- Returns true when the target is immune to the attack.
+function R.IsImmune(result)
+    return HasResult(RESULT_IS_IMMUNE, result)
+end
+
+-- Returns true when the target parried the attack.
+function R.IsParried(result)
+    return HasResult(RESULT_IS_PARRIED, result)
+end
+
+-- Returns true when the target reflected the attack back at the player.
+function R.IsReflected(result)
+    return HasResult(RESULT_IS_REFLECTED, result)
+end
+
+-- Returns true when the result is a power energize (resource restore via ability).
+function R.IsEnergize(result)
+    return HasResult(RESULT_IS_ENERGIZE, result)
+end
+
+-- Returns true when the result is a power drain (resource drained via ability).
+function R.IsDrain(result)
+    return HasResult(RESULT_IS_DRAIN, result)
+end
+
+-- ---------------------------------------------------------------
+-- Single-lookup classifiers for the combat hot path.
+-- EVENT_COMBAT_EVENT can fire hundreds of times per second in large
+-- fights; asking eight separate Is*() questions per event costs eight
+-- function calls + table lookups. These tables answer "which CC/
+-- mitigation label is this?" with one indexed read.
+-- ---------------------------------------------------------------
+
+-- result -> ShowText "special" code. Order of precedence matches the
+-- original if/elseif chain (dodge > charm > stun > fear > silence >
+-- disorient > offbalance > immobilize): later sets never overwrite.
+local CC_SPECIAL = {}
+local function AddSpecial(set, special)
+    for result in pairs(set) do
+        if CC_SPECIAL[result] == nil then
+            CC_SPECIAL[result] = special
+        end
+    end
+end
+AddSpecial(RESULT_IS_DODGED, "dodged")
+AddSpecial(RESULT_IS_CHARMED, "charmed")
+AddSpecial(RESULT_IS_STUNNED, "stunned")
+AddSpecial(RESULT_IS_FEARED, "feared")
+AddSpecial(RESULT_IS_SILENCED, "silenced")
+AddSpecial(RESULT_IS_DISORIENTED, "disoriented")
+AddSpecial(RESULT_IS_OFFBALANCE, "offbalanced")
+AddSpecial(RESULT_IS_IMMOBILIZED, "immobilized")
+
+-- Returns the ShowText special code for a CC/dodge result, or nil.
+function R.GetCCSpecial(result)
+    return CC_SPECIAL[result]
+end
+
+-- Raw set tables for callers that want to index them directly
+-- (one table read instead of a function call per check).
+R.Sets = {
+    damage      = RESULT_IS_DAMAGE,
+    damageTaken = RESULT_IS_DAMAGE_TAKEN,
+    heal        = RESULT_IS_HEAL,
+    crit        = RESULT_IS_CRIT,
+    dot         = RESULT_IS_DOT,
+    blocked     = RESULT_IS_BLOCKED,
+    shielded    = RESULT_IS_SHIELDED,
+    miss        = RESULT_IS_MISS,
+    immune      = RESULT_IS_IMMUNE,
+    parried     = RESULT_IS_PARRIED,
+    reflected   = RESULT_IS_REFLECTED,
+    energize    = RESULT_IS_ENERGIZE,
+    drain       = RESULT_IS_DRAIN,
+}

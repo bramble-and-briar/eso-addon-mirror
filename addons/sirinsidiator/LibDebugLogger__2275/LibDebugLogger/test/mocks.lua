@@ -30,6 +30,18 @@ if not ZO_ERROR_FRAME then
     ZO_ERROR_FRAME = { suppressedErrors = {} }
 end
 
+if not CHAT_ROUTER then
+    CHAT_ROUTER = ZO_CallbackObject:New()
+    function CHAT_ROUTER:AddSystemMessage(messageText)
+        if RequestDebugPrintText then
+            RequestDebugPrintText(messageText)
+        end
+    end
+    function CHAT_ROUTER:AddDebugMessage(messageText)
+        self:AddSystemMessage(messageText)
+    end
+end
+
 function GetWorldName() return "ESOLua" end
 function GetPlatformServiceType() return PLATFORM_SERVICE_TYPE_ZOS end
 

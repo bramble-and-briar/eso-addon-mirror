@@ -10,6 +10,7 @@ local ALCHEMY_MASTER_WRIT_REQUIRED_STACK_COUNT = 16
 local ALCHEMY_POTION_SOLVENT_ID = 199
 local LIGHT_ROBE_ICON = "/esoui/art/icons/gear_breton_light_robe_d.dds"
 local PROVISIONING_CRAFT_ITERATIONS = 2
+local ADDON_NAME = "queueNextWrit"
 
 local MASTER_WRIT_ICON_CRAFTING_TYPE = {
     ["/esoui/art/icons/master_writ_blacksmithing.dds"] = CRAFTING_TYPE_BLACKSMITHING,
@@ -151,12 +152,47 @@ local MASTER_WRIT_QUEST_NAME = {
     },
 }
 
-local callLaterRegistrationId = 1
+local QueueNextWrit = ZO_InitializingObject:Subclass()
+local queueNextWrit
 
-local function callLater(callback, delayMilliseconds)
-    local registrationId = callLaterRegistrationId
-    local updateName = "queueNextWrit" .. registrationId
-    callLaterRegistrationId = callLaterRegistrationId + 1
+function QueueNextWrit:Initialize()
+    self.callLaterRegistrationId = 1
+    self.completableByCraftingType = {
+        [CRAFTING_TYPE_BLACKSMITHING] = self.IsGearWritCompletable,
+        [CRAFTING_TYPE_CLOTHIER] = self.IsGearWritCompletable,
+        [CRAFTING_TYPE_WOODWORKING] = self.IsGearWritCompletable,
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = self.IsGearWritCompletable,
+        [CRAFTING_TYPE_ENCHANTING] = self.IsEnchantingWritCompletable,
+        [CRAFTING_TYPE_PROVISIONING] = self.IsProvisioningWritCompletable,
+        [CRAFTING_TYPE_ALCHEMY] = self.IsAlchemyWritCompletable,
+    }
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_QUEST_COMPLETE, function(eventId, questName, level, previousExperience, currentExperience, championPoints, questType, zoneDisplayType)
+        self:OnQuestComplete(eventId, questName, level, previousExperience, currentExperience, championPoints, questType, zoneDisplayType)
+    end)
+end
+
+function QueueNextWrit:OnQuestComplete(_eventId, questName, _level, _previousExperience, _currentExperience, _championPoints, questType, _zoneDisplayType)
+    if questType ~= QUEST_TYPE_CRAFTING or not self:IsMasterWritQuestName(questName) then
+        return
+    end
+    local slotIndex = self:FindCompletableMasterWritSlotIndex()
+    if not slotIndex then
+        return
+    end
+    self:CallLater(function()
+        if IsInGamepadPreferredMode() then
+            self:BeginGamepadAccept(slotIndex)
+        else
+            SCENE_MANAGER:Toggle("hud")
+            self:UseMasterWritAndAcceptQuest(slotIndex)
+        end
+    end, HUD_TOGGLE_DELAY_MILLISECONDS)
+end
+
+function QueueNextWrit:CallLater(callback, delayMilliseconds)
+    local registrationId = self.callLaterRegistrationId
+    local updateName = ADDON_NAME .. registrationId
+    self.callLaterRegistrationId = self.callLaterRegistrationId + 1
 
     EVENT_MANAGER:RegisterForUpdate(updateName, delayMilliseconds, function()
         EVENT_MANAGER:UnregisterForUpdate(updateName)
@@ -165,7 +201,7 @@ local function callLater(callback, delayMilliseconds)
     return registrationId
 end
 
-local function isMasterWritQuestName(questName)
+function QueueNextWrit:IsMasterWritQuestName(questName)
     if type(questName) ~= "string" then
         return false
     end
@@ -179,7 +215,7 @@ local function isMasterWritQuestName(questName)
     return questNamesForLanguage[zo_strformat("<<1>>", questName)] == true
 end
 
-local function readSealedWritLink(itemLink)
+function QueueNextWrit:ReadSealedWritLink(itemLink)
     local linkFields = { ZO_LinkHandler_ParseLink(itemLink) }
     if linkFields[3] ~= ITEM_LINK_TYPE then
         return nil
@@ -200,7 +236,7 @@ local function readSealedWritLink(itemLink)
     }
 end
 
-local function isItemCraftedByPlayer(slotIndex, itemLink)
+function QueueNextWrit:IsItemCraftedByPlayer(slotIndex, itemLink)
     if not IsItemLinkCrafted(itemLink) then
         return false
     end
@@ -211,18 +247,18 @@ local function isItemCraftedByPlayer(slotIndex, itemLink)
     return creatorName == zo_strformat(SI_UNIT_NAME, GetUnitName("player"))
 end
 
-local function countMatchingCraftedItems(itemMatches)
+function QueueNextWrit:CountMatchingCraftedItems(itemMatches)
     local stackCount = 0
     for slotIndex in ZO_IterateBagSlots(BAG_BACKPACK) do
         local itemLink = GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT)
-        if itemLink ~= "" and isItemCraftedByPlayer(slotIndex, itemLink) and itemMatches(itemLink) then
+        if itemLink ~= "" and self:IsItemCraftedByPlayer(slotIndex, itemLink) and itemMatches(itemLink) then
             stackCount = stackCount + (GetSlotStackSize(BAG_BACKPACK, slotIndex) or 0)
         end
     end
     return stackCount
 end
 
-local function isLightRobe(itemLink)
+function QueueNextWrit:IsLightRobe(itemLink)
     local itemId = GetItemLinkItemId(itemLink)
     if not itemId or itemId == 0 then
         return false
@@ -231,7 +267,7 @@ local function isLightRobe(itemLink)
     return GetItemLinkIcon(baseItemLink) == LIGHT_ROBE_ICON
 end
 
-local function doesGearItemMatchPiece(itemLink, gearPiece)
+function QueueNextWrit:DoesGearItemMatchPiece(itemLink, gearPiece)
     if GetItemLinkCraftingSkillType(itemLink) ~= gearPiece.craftingType then
         return false
     end
@@ -244,13 +280,13 @@ local function doesGearItemMatchPiece(itemLink, gearPiece)
     if gearPiece.equipType and GetItemLinkEquipType(itemLink) ~= gearPiece.equipType then
         return false
     end
-    if gearPiece.isRobe ~= nil and isLightRobe(itemLink) ~= gearPiece.isRobe then
+    if gearPiece.isRobe ~= nil and self:IsLightRobe(itemLink) ~= gearPiece.isRobe then
         return false
     end
     return true
 end
 
-local function doesGearItemFulfillWrit(itemLink, sealedWrit)
+function QueueNextWrit:DoesGearItemFulfillWrit(itemLink, sealedWrit)
     local templateId = sealedWrit.firstValue
     local quality = sealedWrit.thirdValue
     local setId = sealedWrit.fourthValue
@@ -269,7 +305,7 @@ local function doesGearItemFulfillWrit(itemLink, sealedWrit)
     if GetItemLinkFunctionalQuality(itemLink) < quality then
         return false
     end
-    local hasSet, _, _, _, _, itemSetId = GetItemLinkSetInfo(itemLink)
+    local hasSet, _setName, _numBonuses, _numNormalEquipped, _maxEquipped, itemSetId = GetItemLinkSetInfo(itemLink)
     if not hasSet or itemSetId ~= setId then
         return false
     end
@@ -279,10 +315,10 @@ local function doesGearItemFulfillWrit(itemLink, sealedWrit)
     if styleId and styleId > 0 and GetItemLinkItemStyle(itemLink) ~= styleId then
         return false
     end
-    return doesGearItemMatchPiece(itemLink, gearPiece)
+    return self:DoesGearItemMatchPiece(itemLink, gearPiece)
 end
 
-local function doesGlyphFulfillWrit(itemLink, sealedWrit)
+function QueueNextWrit:DoesGlyphFulfillWrit(itemLink, sealedWrit)
     local glyphItemId = sealedWrit.firstValue
     local championPoints = ENCHANTING_WRIT_LEVEL_CHAMPION_POINTS[sealedWrit.secondValue]
     local quality = sealedWrit.thirdValue
@@ -298,8 +334,8 @@ local function doesGlyphFulfillWrit(itemLink, sealedWrit)
     return GetItemLinkFunctionalQuality(itemLink) >= quality
 end
 
-local function getProvisioningRequiredStackCount(resultItemId)
-    local _, recipeListIndex, recipeIndex = GetRecipeInfoFromItemId(resultItemId)
+function QueueNextWrit:GetProvisioningRequiredStackCount(resultItemId)
+    local _craftingStationType, recipeListIndex, recipeIndex = GetRecipeInfoFromItemId(resultItemId)
     if not recipeListIndex or not recipeIndex then
         return nil
     end
@@ -310,7 +346,7 @@ local function getProvisioningRequiredStackCount(resultItemId)
     return requiredStackCount
 end
 
-local function readPotionEffectIds(itemLink)
+function QueueNextWrit:ReadPotionEffectIds(itemLink)
     local encodedEffects = tonumber(select(24, ZO_LinkHandler_ParseLink(itemLink)))
     if not encodedEffects then
         return nil
@@ -318,11 +354,11 @@ local function readPotionEffectIds(itemLink)
     return BitAnd(BitRShift(encodedEffects, 16), 0x7F), BitAnd(BitRShift(encodedEffects, 8), 0x7F), BitAnd(encodedEffects, 0x7F)
 end
 
-local function doPotionEffectsMatch(itemLink, writEffectId1, writEffectId2, writEffectId3)
+function QueueNextWrit:DoPotionEffectsMatch(itemLink, writEffectId1, writEffectId2, writEffectId3)
     if not writEffectId1 or not writEffectId2 or not writEffectId3 then
         return false
     end
-    local itemEffectId1, itemEffectId2, itemEffectId3 = readPotionEffectIds(itemLink)
+    local itemEffectId1, itemEffectId2, itemEffectId3 = self:ReadPotionEffectIds(itemLink)
     if not itemEffectId1 then
         return false
     end
@@ -334,30 +370,30 @@ local function doPotionEffectsMatch(itemLink, writEffectId1, writEffectId2, writ
     return itemEffectIds[writEffectId1] and itemEffectIds[writEffectId2] and itemEffectIds[writEffectId3]
 end
 
-local function isGearWritCompletable(sealedWrit)
-    return countMatchingCraftedItems(function(itemLink)
-        return doesGearItemFulfillWrit(itemLink, sealedWrit)
+function QueueNextWrit:IsGearWritCompletable(sealedWrit)
+    return self:CountMatchingCraftedItems(function(itemLink)
+        return self:DoesGearItemFulfillWrit(itemLink, sealedWrit)
     end) >= 1
 end
 
-local function isEnchantingWritCompletable(sealedWrit)
-    return countMatchingCraftedItems(function(itemLink)
-        return doesGlyphFulfillWrit(itemLink, sealedWrit)
+function QueueNextWrit:IsEnchantingWritCompletable(sealedWrit)
+    return self:CountMatchingCraftedItems(function(itemLink)
+        return self:DoesGlyphFulfillWrit(itemLink, sealedWrit)
     end) >= 1
 end
 
-local function isProvisioningWritCompletable(sealedWrit)
+function QueueNextWrit:IsProvisioningWritCompletable(sealedWrit)
     local resultItemId = sealedWrit.firstValue
-    local requiredStackCount = resultItemId and getProvisioningRequiredStackCount(resultItemId)
+    local requiredStackCount = resultItemId and self:GetProvisioningRequiredStackCount(resultItemId)
     if not requiredStackCount then
         return false
     end
-    return countMatchingCraftedItems(function(itemLink)
+    return self:CountMatchingCraftedItems(function(itemLink)
         return GetItemLinkItemId(itemLink) == resultItemId
     end) >= requiredStackCount
 end
 
-local function isAlchemyWritCompletable(sealedWrit)
+function QueueNextWrit:IsAlchemyWritCompletable(sealedWrit)
     local solventId = sealedWrit.firstValue
     if not solventId then
         return false
@@ -366,66 +402,77 @@ local function isAlchemyWritCompletable(sealedWrit)
     if solventId == ALCHEMY_POTION_SOLVENT_ID then
         requiredItemType = ITEMTYPE_POTION
     end
-    return countMatchingCraftedItems(function(itemLink)
+    return self:CountMatchingCraftedItems(function(itemLink)
         if GetItemLinkItemType(itemLink) ~= requiredItemType then
             return false
         end
         if GetItemLinkRequiredChampionPoints(itemLink) ~= ALCHEMY_MASTER_WRIT_CHAMPION_POINTS then
             return false
         end
-        return doPotionEffectsMatch(itemLink, sealedWrit.secondValue, sealedWrit.thirdValue, sealedWrit.fourthValue)
+        return self:DoPotionEffectsMatch(itemLink, sealedWrit.secondValue, sealedWrit.thirdValue, sealedWrit.fourthValue)
     end) >= ALCHEMY_MASTER_WRIT_REQUIRED_STACK_COUNT
 end
 
-local WRIT_COMPLETABLE_BY_CRAFTING_TYPE = {
-    [CRAFTING_TYPE_BLACKSMITHING] = isGearWritCompletable,
-    [CRAFTING_TYPE_CLOTHIER] = isGearWritCompletable,
-    [CRAFTING_TYPE_WOODWORKING] = isGearWritCompletable,
-    [CRAFTING_TYPE_JEWELRYCRAFTING] = isGearWritCompletable,
-    [CRAFTING_TYPE_ENCHANTING] = isEnchantingWritCompletable,
-    [CRAFTING_TYPE_PROVISIONING] = isProvisioningWritCompletable,
-    [CRAFTING_TYPE_ALCHEMY] = isAlchemyWritCompletable,
-}
-
-local function isMasterWritCompletable(itemLink)
-    local sealedWrit = readSealedWritLink(itemLink)
+function QueueNextWrit:IsMasterWritCompletable(itemLink)
+    local sealedWrit = self:ReadSealedWritLink(itemLink)
     if not sealedWrit then
         return false
     end
-    local isWritCompletable = WRIT_COMPLETABLE_BY_CRAFTING_TYPE[sealedWrit.craftingType]
-    return isWritCompletable ~= nil and isWritCompletable(sealedWrit)
+    local isWritCompletable = self.completableByCraftingType[sealedWrit.craftingType]
+    return isWritCompletable ~= nil and isWritCompletable(self, sealedWrit)
 end
 
-local function findCompletableMasterWritSlotIndex()
+function QueueNextWrit:FindCompletableMasterWritSlotIndex()
     for slotIndex in ZO_IterateBagSlots(BAG_BACKPACK) do
         if GetItemType(BAG_BACKPACK, slotIndex) == ITEMTYPE_MASTER_WRIT then
             local itemLink = GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT)
-            if itemLink ~= "" and isMasterWritCompletable(itemLink) then
+            if itemLink ~= "" and self:IsMasterWritCompletable(itemLink) then
                 return slotIndex
             end
         end
     end
 end
 
-local function useMasterWritAndAcceptQuest(slotIndex)
-    callLater(function()
+function QueueNextWrit:UseMasterWritAndAcceptQuest(slotIndex)
+    self:CallLater(function()
         CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
     end, USE_ITEM_DELAY_MILLISECONDS)
-    callLater(function()
+    self:CallLater(function()
         AcceptOfferedQuest()
     end, ACCEPT_QUEST_DELAY_MILLISECONDS)
 end
 
-EVENT_MANAGER:RegisterForEvent("queueNextWrit", EVENT_QUEST_COMPLETE, function(eventId, questName, level, previousExperience, currentExperience, championPoints, questType, zoneDisplayType)
-    if questType ~= QUEST_TYPE_CRAFTING or not isMasterWritQuestName(questName) then
+function QueueNextWrit:UseGamepadMasterWrit(slotIndex)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_QUEST_OFFERED, function(_eventId)
+        EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_QUEST_OFFERED)
+        AcceptOfferedQuest()
+    end)
+    CallSecureProtected("UseItem", BAG_BACKPACK, slotIndex)
+end
+
+function QueueNextWrit:BeginGamepadAccept(slotIndex)
+    local interactionObject = SYSTEMS:GetObject(ZO_INTERACTION_SYSTEM_NAME)
+    local interactSceneName = interactionObject and interactionObject.sceneName
+    local function useMasterWrit()
+        self:UseGamepadMasterWrit(slotIndex)
+    end
+    local currentScene = SCENE_MANAGER:GetCurrentScene()
+    local interactSceneIsCurrent = interactSceneName and currentScene and currentScene:GetName() == interactSceneName and currentScene:GetState() ~= SCENE_HIDDEN
+    if interactSceneIsCurrent then
+        SCENE_MANAGER:CallWhen(interactSceneName, SCENE_HIDDEN, useMasterWrit)
+    end
+    SCENE_MANAGER:ShowBaseScene()
+    if not interactSceneIsCurrent then
+        useMasterWrit()
+    end
+end
+
+local function OnAddOnLoaded(_eventId, addonName)
+    if addonName ~= ADDON_NAME then
         return
     end
-    local slotIndex = findCompletableMasterWritSlotIndex()
-    if not slotIndex then
-        return
-    end
-    callLater(function()
-        SCENE_MANAGER:Toggle("hud")
-        useMasterWritAndAcceptQuest(slotIndex)
-    end, HUD_TOGGLE_DELAY_MILLISECONDS)
-end)
+    EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
+    queueNextWrit = QueueNextWrit:New()
+end
+
+EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

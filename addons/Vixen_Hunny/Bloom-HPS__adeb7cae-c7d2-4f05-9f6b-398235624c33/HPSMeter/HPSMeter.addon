@@ -1,0 +1,15 @@
+## Title: Bloom HPS
+## APIVersion: 101047 101048
+## AddOnVersion: 4
+## Author: Vixen Hunny
+## SavedVariables: HPSMeterSavedVars
+## DependsOn: LibFights>=10000
+## OptionalDependsOn: LibAddonMenu-2.0
+## Description: HPS / HPM and shield per second / minute meter, powered by LibFights
+
+src/Core.lua
+src/Data.lua
+src/UI.lua
+src/Settings.lua
+src/Commands.lua
+src/Init.lua

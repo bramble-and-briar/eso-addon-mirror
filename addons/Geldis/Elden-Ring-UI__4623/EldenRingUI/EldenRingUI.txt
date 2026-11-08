@@ -2,7 +2,7 @@
 ## Author: Geldis1306
 ## Description: Based ui
 ## APIVersion: 101049 101050 101051 101052
-## Version: 2.1.0
+## Version: 2.1.1
 ## SavedVariables: ERUiVars
 ## DependsOn: LibAddonMenu-2.0
 

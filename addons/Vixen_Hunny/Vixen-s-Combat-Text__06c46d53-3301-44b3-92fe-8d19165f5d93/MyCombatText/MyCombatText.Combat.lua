@@ -1,668 +1,744 @@
--- ============================================================
+﻿-- ============================================================
 -- MyCombatText.Combat.lua
--- Main combat event processing pipeline.
--- Registers LibCombat2 and EVENT_COMBAT_EVENT callbacks, parses
--- raw ESO event payloads into a normalized form, classifies each
--- event as damage/heal/CC, applies per-feature filters, and
--- dispatches to the merge queue (MCT.Tracking) for display.
--- Also handles resource restore events and the resource display.
+-- Standalone combat event processing pipeline.
+-- Registers native ESO events, classifies each event as
+-- damage/heal/CC, applies per-feature filters, and dispatches to
+-- the merge queue (MCT.Tracking) for display.
+-- No external library dependencies — uses ESO API directly.
+--
+-- Performance notes
+-- -----------------
+-- * EVENT_COMBAT_EVENT is registered TWICE with engine-side filters
+--   (source == player, target == player) and IS_ERROR == false. The
+--   game client then only calls into Lua for events that involve the
+--   player, instead of every combat event in the zone. In a Cyrodiil
+--   zerg this cuts handler invocations by one to two orders of
+--   magnitude.
+-- * EVENT_POWER_UPDATE is likewise filtered by unit tag ("player",
+--   and "reticleover" + health only for the execute alert), and both
+--   power features share one handler that uses the event's own
+--   power values instead of re-querying GetUnitPower().
+-- * Classification uses single table lookups (MCT.Result.Sets /
+--   GetCCSpecial) instead of chains of Is*() calls.
+-- * Notification strings are cached per (text, color) so steady-state
+--   combat doesn't allocate a new string per label.
 -- ============================================================
 
 MyCombatText = MyCombatText or {}
 local MCT = MyCombatText
-local LC = LibCombat2          -- LibCombat2 library handle; provides higher-level combat callbacks.
 local RF = MCT.Result           -- Combat result classifier namespace from ResultFilter.lua.
+local SETS = RF.Sets
+local GetCCSpecial = RF.GetCCSpecial
 
--- Local alias for frequently called timer function.
+-- Local aliases for frequently called globals.
 local GetGameTimeMs = GetGameTimeMilliseconds
+local EM = EVENT_MANAGER
+local tonumber = tonumber
+local floor = math.floor
+
+local SET_HEAL        = SETS.heal
+local SET_DAMAGE      = SETS.damage
+local SET_DAMAGETAKEN = SETS.damageTaken
+local SET_CRIT        = SETS.crit
+local SET_DOT         = SETS.dot
+local SET_BLOCKED     = SETS.blocked
+local SET_SHIELDED    = SETS.shielded
+local SET_MISS        = SETS.miss
+local SET_IMMUNE      = SETS.immune
+local SET_PARRIED     = SETS.parried
+local SET_REFLECTED   = SETS.reflected
+local SET_ENERGIZE    = SETS.energize
+local SET_DRAIN       = SETS.drain
+
+local POWER_HEALTH   = COMBAT_MECHANIC_FLAGS_HEALTH
+local POWER_MAGICKA  = COMBAT_MECHANIC_FLAGS_MAGICKA
+local POWER_STAMINA  = COMBAT_MECHANIC_FLAGS_STAMINA
+local POWER_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+-- Legacy alias: older API versions used POWERTYPE_HEALTH.
+local POWER_HEALTH_LEGACY = POWERTYPE_HEALTH
+
+local UNIT_PLAYER = COMBAT_UNIT_TYPE_PLAYER
+
+-- Per-type "show" toggle for crowd-control / dodge labels.
+local CC_TOGGLE = {
+    dodged = "showDodges",
+    stunned = "showStuns",
+    feared = "showFears",
+    charmed = "showCharms",
+    silenced = "showSilences",
+    disoriented = "showDisorients",
+    offbalanced = "showOffbalances",
+    immobilized = "showImmobilizes",
+}
+
+-- Cached colored label text (see MCT:ColorTextCached in Formatting.lua).
+local function Colored(hex, text)
+    return MCT:ColorTextCached(hex, text)
+end
 
 -- ---------------------------------------------------------------
--- IsHealingResult: extended heal classifier that falls back to a
--- power-type heuristic when the ESO ACTION_RESULT_* constant does
--- not match any known heal result. This handles API version drift
--- where new result IDs appear that our result table hasn't been
--- updated to include yet.
---
--- Logic:
---   1. Check RF.IsHeal() first (explicit ACTION_RESULT match).
---   2. Fallback: if powerType == POWERTYPE_HEALTH and there is a
---      non-zero hit/overflow value and the result is NOT classified
---      as damage, treat it as healing.
---
--- Parameters:
---   result    : ACTION_RESULT_* integer from the combat event
---   powerType : POWERTYPE_* integer (HEALTH, MAGICKA, STAMINA)
---   hitValue  : raw hit amount from the event
---   overflow  : overflow (overheal) amount from the event
--- Returns: true when the event should be treated as healing.
+-- Player Unit ID Cache
+-- ESO does not expose a direct GetPlayerUnitId() API. We derive
+-- and cache the player's combat unit ID from EVENT_COMBAT_EVENT
+-- callbacks where sourceType or targetType is COMBAT_UNIT_TYPE_PLAYER.
+-- ---------------------------------------------------------------
+MCT._playerUnitId = MCT._playerUnitId or nil
+
+function MCT:GetPlayerUnitId()
+    return MCT._playerUnitId
+end
+
+-- ---------------------------------------------------------------
+-- PvP flag cache. IsUnitPvPFlagged() is a C call; in pvpOnly mode it
+-- used to run on every single combat event. The flag changes rarely,
+-- so re-check at most every 1000 ms.
+-- ---------------------------------------------------------------
+local pvpFlagCached = false
+local pvpFlagCheckedAt = -1000000
+
+local function IsPlayerPvPFlaggedCached(now)
+    if now - pvpFlagCheckedAt >= 1000 then
+        pvpFlagCheckedAt = now
+        pvpFlagCached = IsUnitPvPFlagged("player") and true or false
+    end
+    return pvpFlagCached
+end
+
+-- ---------------------------------------------------------------
+-- IsHealingResult: explicit ACTION_RESULT match first, then a
+-- power-type heuristic for result IDs our table doesn't know yet
+-- (API drift safety net).
 -- ---------------------------------------------------------------
 local function IsHealingResult(result, powerType, hitValue, overflow)
-    -- Primary check: known heal result constant.
-    if RF.IsHeal(result) then
+    if SET_HEAL[result] then
         return true
     end
-
-    -- Fallback for API/result-id drift: health gain with no damage flag is healing.
-    local value = tonumber(hitValue) or 0
-    local over = tonumber(overflow) or 0
-    local isHealthPower = (powerType == POWERTYPE_HEALTH)
-    if isHealthPower and (value > 0 or over > 0) and not RF.IsDamage(result) then
+    if (powerType == POWER_HEALTH or (POWER_HEALTH_LEGACY and powerType == POWER_HEALTH_LEGACY))
+        and (hitValue > 0 or overflow > 0)
+        and not SET_DAMAGE[result]
+    then
         return true
     end
-
     return false
 end
 
--- ---------------------------------------------------------------
--- ParseLibCombatPayload: normalizes a raw LibCombat2 callback
--- vararg into a consistent table with named fields.
---
--- Problem: LibCombat can deliver events in multiple argument
--- layouts ("shapes") depending on the event type and library
--- version. Rather than hard-coding one layout, we produce multiple
--- candidate interpretations and score each one to pick the most
--- plausible one for the current player.
---
--- Scoring weights (applied by scoreCandidate):
---   +4  one of source/target matches the player's unit ID
---   +3  hitValue or overflow is > 0 (the event actually did something)
---   +2  result maps to a recognized damage or heal constant
---
--- Shape A (compact LibCombat callback, <=16 args):
---   ec, [timeMs?], result, sourceUnitId, targetUnitId,
---   abilityId, hitValue, damageType, overflow
---
--- Shape B (full combat-event mirror, 17+ args):
---   ec, result, _, _, _, _, _, _, _, _, hitValue, _,
---   damageType, _, sourceUnitId, targetUnitId, abilityId, overflow
---
--- Parameters:
---   playerId : the player's unit ID string from LC.GetPlayerUnitId()
---   ...      : raw callback varargs
--- Returns: the best-scoring candidate table, or candidates[1] as fallback.
--- ---------------------------------------------------------------
-local function ParseLibCombatPayload(playerId, ...)
-    local argc = select("#", ...)
-
-    -- pickCandidate: evaluates all candidate interpretations and returns
-    -- the one with the highest relevance score for the current player.
-    local function pickCandidate(candidates)
-        local bestCandidate = nil
-        local bestScore = -1
-
-        -- scoreCandidate: assigns an integer score to a single candidate
-        -- interpretation based on how well it matches expected event fields.
-        local function scoreCandidate(c)
-            local score = 0
-            local sourceUnitId = c and c.sourceUnitId
-            local targetUnitId = c and c.targetUnitId
-            local hitValue = tonumber(c and c.hitValue) or 0
-            local overflow = tonumber(c and c.overflow) or 0
-            local result = c and c.result
-
-            -- Highest weight: at least one unit ID is the player.
-            if sourceUnitId == playerId or targetUnitId == playerId then
-                score = score + 4
-            end
-
-            -- Mid weight: the event actually has a non-zero value to display.
-            if hitValue > 0 or overflow > 0 then
-                score = score + 3
-            end
-
-            -- Lower weight: result maps to a known damage or heal constant.
-            if RF.IsDamage(result) or RF.IsHeal(result) then
-                score = score + 2
-            end
-
-            return score
-        end
-
-        for i = 1, #candidates do
-            local c = candidates[i]
-            if c then
-                local score = scoreCandidate(c)
-                if score > bestScore then
-                    bestScore = score
-                    bestCandidate = c
-                end
-            end
-        end
-
-        return bestCandidate or candidates[1]
-    end
-
-    -- ----- Shape B: 17+ args — full combat-event-like callback -----
-    -- Shape A (compact callback):  ec, timeMs, result, src, tgt, abilityId, hitValue, dmgType, overflow
-    -- Shape B (combat-event-like): ec, result, _, _, _, _, _, _, _, _, hitValue, _, dmgType, _, src, tgt, abilityId, overflow
-    if argc >= 17 then
-        return pickCandidate({
-            {
-                -- Interpret as Shape B: result at arg 2, unitIds at 15/16.
-                ec = select(1, ...),
-                result = select(2, ...),
-                sourceUnitId = select(15, ...),
-                targetUnitId = select(16, ...),
-                abilityId = select(17, ...),
-                hitValue = select(11, ...),
-                damageType = select(13, ...),
-                overflow = select(18, ...),
-            },
-            {
-                -- Interpret as Shape A (compact) but with a time offset.
-                ec = select(1, ...),
-                result = select(3, ...),
-                sourceUnitId = select(4, ...),
-                targetUnitId = select(5, ...),
-                abilityId = select(6, ...),
-                hitValue = select(7, ...),
-                damageType = select(8, ...),
-                overflow = select(9, ...),
-            },
-        })
-    end
-
-    local ec = select(1, ...)
-    local arg2 = select(2, ...)
-    local arg3 = select(3, ...)
-
-    -- ----- Shape A variant: arg2 is a number (timestamp offset) -----
-    -- When arg2 is numeric it is a timestamp in the compact layout, so
-    -- the result starts at arg3 and unit IDs shift by one position.
-    if type(arg2) == "number" then
-        return pickCandidate({
-            {
-                -- result at arg3, unitIds at 4/5.
-                ec = ec,
-                result = arg3,
-                sourceUnitId = select(4, ...),
-                targetUnitId = select(5, ...),
-                abilityId = select(6, ...),
-                hitValue = select(7, ...),
-                damageType = select(8, ...),
-                overflow = select(9, ...),
-            },
-            {
-                -- Alternate: result at arg2 (numeric could be a result ID).
-                ec = ec,
-                result = arg2,
-                sourceUnitId = select(3, ...),
-                targetUnitId = select(4, ...),
-                abilityId = select(5, ...),
-                hitValue = select(6, ...),
-                damageType = select(7, ...),
-                overflow = select(8, ...),
-            },
-        })
-    end
-
-    -- ----- Default shape: result at arg2, unitIds at 3/4 -----
-    return pickCandidate({
-        {
-            ec = ec,
-            result = arg2,
-            sourceUnitId = select(3, ...),
-            targetUnitId = select(4, ...),
-            abilityId = select(5, ...),
-            hitValue = select(6, ...),
-            damageType = select(7, ...),
-            overflow = select(8, ...),
-        },
-        {
-            -- Alternate with one-position shift in case layout differs.
-            ec = ec,
-            result = arg3,
-            sourceUnitId = select(4, ...),
-            targetUnitId = select(5, ...),
-            abilityId = select(6, ...),
-            hitValue = select(7, ...),
-            damageType = select(8, ...),
-            overflow = select(9, ...),
-        },
-    })
+local function PowerName(powerType)
+    if powerType == POWER_MAGICKA then return "Magicka" end
+    if powerType == POWER_STAMINA then return "Stamina" end
+    return "Resource"
 end
 
 -- ---------------------------------------------------------------
--- OnLibCombatEventDone: handles raw EVENT_COMBAT_EVENT callbacks.
--- This is the primary heal/HoT handler and the CC display handler.
--- It uses the full named-parameter ESO combat event signature so
--- there is no payload shape ambiguity — all fields are explicit.
+-- HandleCombatEvent: shared body for both filtered registrations.
 --
--- Heal routing: if the result classifies as healing, it is queued
--- via MCT:QueueHit directly from here, bypassing LibCombat entirely.
--- This makes self-heals, incoming heals, and HoT ticks reliable
--- even when the LibCombat payload parser picks the wrong shape.
---
--- CC routing: dodge and crowd-control results on a target that is
--- NOT the player are shown as status labels. Damage results on the
--- player (damageTaken) are also dispatched from here for the simple
--- direct-display path (no merge window, shown immediately).
---
--- Parameters (all from ESO EVENT_COMBAT_EVENT):
---   ec           : event code constant
---   result       : ACTION_RESULT_* integer
---   ABILITYNAME  : display name of the ability (unused, for reference)
---   slotType     : action slot type enum
---   sourceName   : display name of the source unit
---   sourceType   : COMBAT_UNIT_TYPE_* of the source
---   targetName   : display name of the target unit
---   targetType   : COMBAT_UNIT_TYPE_* of the target
---   hitValue     : raw damage or healing amount
---   powerType    : POWERTYPE_* involved in the event
---   damageType   : DAMAGE_TYPE_* (fire, physical, etc.)
---   log          : whether this event appears in the combat log
---   sourceUnitId : unit ID string of the source
---   targetUnitId : unit ID string of the target
---   abilityId    : ESO ability integer ID
---   overflow     : overheal or over-shield amount
+-- Processing order:
+--   1. Early-exit guards (disabled, pvpOnly).
+--   2. Cache/update player unit ID; patch missing unit IDs.
+--   3. Healing branch (all directions) via QueueHit.
+--   4. CC labels (both directions) via ShowText.
+--   5. Outgoing: mitigation / energize / drain / damage + tracking.
+--   6. Incoming/self: cleanse alert + damage taken via QueueHit.
 -- ---------------------------------------------------------------
-function OnLibCombatEventDone(ec, result, _, ABILITYNAME, _, slotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
-    if not MCT.sv.enabled then return end
+local function HandleCombatEvent(result, powerType, sourceIsPlayer, targetIsPlayer, hitValue, sourceUnitId, targetUnitId, abilityId, overflow)
+    local sv = MCT.sv
+    if not sv or not sv.enabled then return end
 
-    local playerId = LC.GetPlayerUnitId()
-
-    -- Determine player involvement using both unit IDs and unit type enums.
-    -- The type enum fallback handles events where unit IDs arrive as 0 or nil.
-    local sourceIsPlayer = (sourceUnitId == playerId) or (sourceType == COMBAT_UNIT_TYPE_PLAYER)
-    local targetIsPlayer = (targetUnitId == playerId) or (targetType == COMBAT_UNIT_TYPE_PLAYER)
-
-    -- Skip events that involve neither the player as source nor target.
-    if not sourceIsPlayer and not targetIsPlayer then return end
-
-    -- Patch missing/zero unit IDs using the type-based detection above
-    -- so downstream code can safely compare against playerId.
-    if sourceUnitId == nil or sourceUnitId == 0 then
-        sourceUnitId = sourceIsPlayer and playerId or sourceUnitId
+    -- Cache the player's unit ID from whichever side is the player.
+    if sourceIsPlayer and sourceUnitId and sourceUnitId ~= 0 then
+        MCT._playerUnitId = sourceUnitId
+    elseif targetIsPlayer and targetUnitId and targetUnitId ~= 0 then
+        MCT._playerUnitId = targetUnitId
     end
-    if targetUnitId == nil or targetUnitId == 0 then
-        targetUnitId = targetIsPlayer and playerId or targetUnitId
+    local playerId = MCT._playerUnitId
+
+    -- Patch missing/zero unit IDs so downstream comparisons work.
+    if (sourceUnitId == nil or sourceUnitId == 0) and sourceIsPlayer then
+        sourceUnitId = playerId
+    end
+    if (targetUnitId == nil or targetUnitId == 0) and targetIsPlayer then
+        targetUnitId = playerId
     end
 
-    if MCT.sv.pvpOnly and not IsUnitPvPFlagged("player") then return end
+    local now = GetGameTimeMs()
+    if sv.pvpOnly and not IsPlayerPvPFlaggedCached(now) then return end
 
-    -- Classify event direction relative to the player.
-    local outgoing = sourceIsPlayer and not targetIsPlayer  -- player acted on another unit
-    local incoming = not sourceIsPlayer and targetIsPlayer  -- another unit acted on the player
-    local selfEvent = sourceIsPlayer and targetIsPlayer     -- player acted on themselves
+    local outgoing = sourceIsPlayer and not targetIsPlayer
+    local incoming = targetIsPlayer and not sourceIsPlayer
 
-    -- ---- Healing / HoT branch ----
-    -- Checked before the CC/damage branches so heals are never misrouted.
-    local isHeal = IsHealingResult(result, powerType, hitValue, overflow)
-    if isHeal then
-        local value = tonumber(hitValue) or 0
-        local over = tonumber(overflow) or 0
-        local crit = RF.IsCrit(result)
-
-        if MCT.sv.showHealing and (not MCT.sv.critOnly or crit) then
-            if value > 0 then
-                -- Choose merge group based on direction so labels appear in
-                -- the correct screen position and aggregate correctly.
-                local mergeGroup = "healing:self"
-                if incoming then
-                    mergeGroup = "healing:incoming"   -- healed by someone else
-                elseif outgoing then
-                    mergeGroup = "healing:outgoing"   -- player healed another target
-                elseif selfEvent then
-                    mergeGroup = "healing:self"        -- self-cast heal or HoT tick
-                end
-
-                MCT:QueueHit(value, crit, true, sourceUnitId, targetUnitId, false, abilityId, mergeGroup)
-            end
-
-            -- Show overheal separately if it is configured and present.
-            if MCT.sv.showOverhealing and over > 0 then
-                MCT:QueueOverhealing(over, crit, sourceUnitId, targetUnitId, abilityId)
-            end
-        end
-
-        -- Healing is fully handled here; return before the CC/damage section.
-        return
-    end
-
-    -- ---- CC on other units (outgoing CC the player applied) ----
-    -- When the target is NOT the player, this event may be a CC the player
-    -- applied to an enemy. Only CC results are shown for other targets;
-    -- damage to other targets is handled by OnLibCombatEvent instead.
-    if targetUnitId ~= playerId then
-        local dodge     = RF.IsDodged(result)
-        local charm     = RF.IsCharmed(result)
-        local stun      = RF.IsStunned(result)
-        local fear      = RF.IsFeared(result)
-        local silence   = RF.IsSilenced(result)
-        local disorient = RF.IsDisoriented(result)
-        local offbalance  = RF.IsOffbalanced(result)
-        local immobilized = RF.IsImmobilized(result)
-
-        -- If not any recognized CC type, skip the event entirely.
-        if not (dodge or charm or stun or fear or silence or disorient or offbalance or immobilized) then return end
-
-        -- Display the appropriate CC label for the target.
-        if dodge then
-            MCT:ShowText(nil, false, false, "dodged", sourceUnitId, targetUnitId, false, abilityId)
-        elseif charm then
-            MCT:ShowText(nil, false, false, "charmed", sourceUnitId, targetUnitId, false, abilityId)
-        elseif stun then
-            MCT:ShowText(nil, false, false, "stunned", sourceUnitId, targetUnitId, false, abilityId)
-        elseif fear then
-            MCT:ShowText(nil, false, false, "feared", sourceUnitId, targetUnitId, false, abilityId)
-        elseif silence then
-            MCT:ShowText(nil, false, false, "silenced", sourceUnitId, targetUnitId, false, abilityId)
-        elseif disorient then
-            MCT:ShowText(nil, false, false, "disoriented", sourceUnitId, targetUnitId, false, abilityId)
-        elseif offbalance then
-            MCT:ShowText(nil, false, false, "offbalanced", sourceUnitId, targetUnitId, false, abilityId)
-        elseif immobilized then
-            MCT:ShowText(nil, false, false, "immobilized", sourceUnitId, targetUnitId, false, abilityId)
-        end
-        return
-    end
-
-    -- ---- Damage taken / CC received by the player ----
-    -- At this point targetUnitId == playerId, so all remaining events are
-    -- things that happened TO the player: damage taken and CC received.
-    local crit        = RF.IsCrit(result)
-    local damageTaken = RF.IsDamageTaken(result)
-    local dodge       = RF.IsDodged(result)
-    local charm       = RF.IsCharmed(result)
-    local stun        = RF.IsStunned(result)
-    local fear        = RF.IsFeared(result)
-    local silence     = RF.IsSilenced(result)
-    local disorient   = RF.IsDisoriented(result)
-    local offbalance  = RF.IsOffbalanced(result)
-    local immobilized = RF.IsImmobilized(result)
-
-    -- Skip if the result is not one we handle.
-    if not (damageTaken or dodge or charm or stun or fear or silence or disorient or offbalance or immobilized) then return end
-
-    -- Display the matching label for whatever happened to the player.
-    if dodge then
-        MCT:ShowText(nil, false, false, "dodged", sourceUnitId, targetUnitId, false, abilityId)
-    elseif damageTaken and crit then
-        -- Critical incoming damage: show with crit styling.
-        MCT:ShowText(hitValue, true, false, nil, sourceUnitId, targetUnitId, false, abilityId)
-    elseif damageTaken then
-        -- Regular incoming damage.
-        MCT:ShowText(hitValue, false, false, nil, sourceUnitId, targetUnitId, false, abilityId)
-    elseif charm then
-        MCT:ShowText(nil, false, false, "charmed", sourceUnitId, targetUnitId, false, abilityId)
-    elseif stun then
-        MCT:ShowText(nil, false, false, "stunned", sourceUnitId, targetUnitId, false, abilityId)
-    elseif fear then
-        MCT:ShowText(nil, false, false, "feared", sourceUnitId, targetUnitId, false, abilityId)
-    elseif silence then
-        MCT:ShowText(nil, false, false, "silenced", sourceUnitId, targetUnitId, false, abilityId)
-    elseif disorient then
-        MCT:ShowText(nil, false, false, "disoriented", sourceUnitId, targetUnitId, false, abilityId)
-    elseif offbalance then
-        MCT:ShowText(nil, false, false, "offbalanced", sourceUnitId, targetUnitId, false, abilityId)
-    elseif immobilized then
-        MCT:ShowText(nil, false, false, "immobilized", sourceUnitId, targetUnitId, false, abilityId)
-    end
-end
-
--- ---------------------------------------------------------------
--- OnLibCombatEvent: handles LibCombat2 damage callbacks.
--- LibCombat2 provides pre-processed callbacks with a more
--- consistent payload than raw ESO events, but the argument layout
--- can still vary. ParseLibCombatPayload normalizes it.
---
--- This function handles outgoing damage (player -> target) only;
--- heal routing has been moved to OnLibCombatEventDone to use the
--- explicit named-argument ESO signature instead.
---
--- Parameters:
---   forcedKind : "damage" or "heal" string injected by the callback
---                registration so the event type is always unambiguous
---   ...        : raw LibCombat2 callback varargs
--- ---------------------------------------------------------------
-function OnLibCombatEvent(forcedKind, ...)
-    if not MCT.sv.enabled then return end
-
-    local playerId = LC.GetPlayerUnitId()
-    -- Normalize the vararg payload into a named-field table.
-    local payload = ParseLibCombatPayload(playerId, ...)
-    local ec = payload.ec
-    local result = payload.result
-    local sourceUnitId = payload.sourceUnitId
-    local targetUnitId = payload.targetUnitId
-    local abilityId = payload.abilityId
-    local hitValue = payload.hitValue
-    local overflow = payload.overflow
-
-    -- Ensure numeric types; discard events with no meaningful value.
     hitValue = tonumber(hitValue) or 0
     overflow = tonumber(overflow) or 0
-    if hitValue <= 0 and overflow <= 0 then return end
 
-    if MCT.sv.pvpOnly and not IsUnitPvPFlagged("player") then return end
+    -- Opportunistic tracking-table cleanup (self-throttled to every 5s).
+    MCT:PruneTrackingTables(now)
 
-    -- Opportunistic tracking table cleanup every 5 seconds.
-    MCT:PruneTrackingTables(GetGameTimeMs())
-
-    -- Classify event direction relative to the player.
-    local playerHealing    = targetUnitId == playerId                                    -- Player is being healed.
-    local playerHeals      = sourceUnitId == playerId and targetUnitId ~= playerId       -- Player is healing another.
-    local playerDamaging   = sourceUnitId == playerId and targetUnitId ~= playerId       -- Player is dealing damage.
-    local playerDamageTaken = sourceUnitId ~= playerId and targetUnitId == playerId      -- Player is taking damage.
-    local outgoing = sourceUnitId == playerId and targetUnitId ~= playerId               -- Any outgoing event.
-    local incoming = sourceUnitId ~= playerId and targetUnitId == playerId               -- Any incoming event.
-
-    -- Skip events that are entirely unrelated to the player.
-    if not (outgoing or incoming or playerHealing or (sourceUnitId == playerId and targetUnitId == playerId)) then return end
-
-    -- Determine event category using both the forcedKind hint and the
-    -- result constant. forcedKind wins when it is explicitly set because
-    -- LibCombat2 already classified the event before calling us.
-    local isDamageEvent = (forcedKind == "damage") or (ec == LIBCOMBAT_LOG_EVENT_DAMAGE)
-    local isHealEvent   = (forcedKind == "heal")   or (ec == LIBCOMBAT_LOG_EVENT_HEAL)
-    local dmg  = RF.IsDamage(result) or isDamageEvent
-    local heal = RF.IsHeal(result)   or isHealEvent
-
-    -- If the callback explicitly declares the kind, override ambiguous result lookups.
-    if isHealEvent then
-        dmg  = false
-        heal = true
-    elseif isDamageEvent then
-        dmg  = true
-        heal = false
-    end
-
-    local crit    = RF.IsCrit(result)
-    local dot     = RF.IsDot(result)     -- damage-over-time tick result
-    local blocked = RF.IsBlocked(result) -- attack was blocked by the target
-
-    -- Global display filters: skip categories disabled in settings.
-    if MCT.sv.critOnly and not crit then return end          -- critOnly mode: ignore all non-crits
-    if dmg  and not MCT.sv.showDamage  then return end       -- damage display disabled
-    if heal and not MCT.sv.showHealing then return end       -- healing display disabled
-    if dot  and not MCT.sv.showDots    then return end       -- DoT tick display disabled
-
-    -- ---- Outgoing events (player acted on another target) ----
-    if outgoing then
-        if dmg then
+    -- ---- Healing branch ----
+    if IsHealingResult(result, powerType, hitValue, overflow) then
+        local crit = SET_CRIT[result] == true
+        if sv.showHealing and (not sv.critOnly or crit) then
             if hitValue > 0 then
-                -- Queue the outgoing damage hit for display.
-                MCT:QueueHit(hitValue, crit, false, sourceUnitId, targetUnitId, blocked, abilityId, "damage:outgoing")
-                -- Feed the hit into the rolling DPS tracker.
-                MCT:AddDps(targetUnitId, hitValue)
-                -- Check if this hit, combined with recent hits, triggers a burst alert.
-                MCT:TrackBurst(targetUnitId, hitValue, crit)
-                -- Check if hitting a shielded unit signals a shield-break opportunity.
-                MCT:TrackShieldbreak(targetUnitId, hitValue, RF.IsShielded(result))
-                -- Apply the "pressure" priority marker for sustained offensive pressure.
-                MCT:ApplyMarkerRule(targetUnitId, "pressure")
+                local mergeGroup = (incoming and "healing:incoming")
+                    or (outgoing and "healing:outgoing")
+                    or "healing:self"
+                MCT:QueueHit(hitValue, crit, true, sourceUnitId, targetUnitId, false, abilityId, mergeGroup)
             end
-        elseif heal then
-            -- Outgoing heal: player healed another unit (e.g. healing ally).
-            if hitValue > 0 then
-                MCT:QueueHit(hitValue, crit, true, sourceUnitId, targetUnitId, false, abilityId, "healing:outgoing")
-            end
-            -- Also queue any overflow as overhealing.
-            if MCT.sv.showOverhealing and overflow > 0 then
+            if sv.showOverhealing and overflow > 0 then
                 MCT:QueueOverhealing(overflow, crit, sourceUnitId, targetUnitId, abilityId)
             end
         end
-        return  -- Outgoing events are fully handled above.
+        return
     end
 
-    -- ---- Incoming / self events (player is the target or self-cast) ----
-    if dmg then
-        if hitValue > 0 then
-            -- Select the merge group based on whether this is incoming or self-damage.
-            local mergeGroup = "damage:self"
-            if incoming then
-                -- Incoming damage from another unit: show as damageTaken.
-                mergeGroup = blocked and "damageTaken:blocked" or "damageTaken"
+    -- ---- Crowd control / dodge (either direction) ----
+    local ccSpecial = GetCCSpecial(result)
+    if ccSpecial then
+        if sv[CC_TOGGLE[ccSpecial]] ~= false then
+            MCT:ShowText(nil, false, false, ccSpecial, sourceUnitId, targetUnitId, false, abilityId)
+        end
+        return
+    end
+
+    -- ---- Outgoing (player acting on another unit) ----
+    if outgoing then
+        -- Mitigation: the player's attack was negated.
+        if SET_MISS[result] then
+            if sv.showMiss then
+                MCT:ShowNotification(Colored(sv.missColor, "MISS"), "miss", sv.mitigationFontSize)
+                return
             end
-            MCT:QueueHit(hitValue, crit, false, sourceUnitId, targetUnitId, blocked, abilityId, mergeGroup)
+        elseif SET_IMMUNE[result] then
+            if sv.showImmune then
+                MCT:ShowNotification(Colored(sv.immuneColor, "IMMUNE"), "immune", sv.mitigationFontSize)
+                return
+            end
+        elseif SET_PARRIED[result] then
+            if sv.showParried then
+                MCT:ShowNotification(Colored(sv.parriedColor, "PARRIED"), "parried", sv.mitigationFontSize)
+                return
+            end
+        elseif SET_REFLECTED[result] then
+            if sv.showReflected then
+                MCT:ShowNotification(Colored(sv.reflectedColor, "REFLECTED"), "reflected", sv.mitigationFontSize)
+                return
+            end
+        elseif SET_ENERGIZE[result] then
+            if sv.showEnergize and hitValue > 0 then
+                MCT:ShowNotification(string.format("|c%s+%s %s|r", sv.energizeColor, MCT:FormatShortNumber(hitValue), PowerName(powerType)), "energize", sv.energizeFontSize)
+                return
+            end
+        elseif SET_DRAIN[result] then
+            if sv.showDrain and hitValue > 0 then
+                MCT:ShowNotification(string.format("|c%sDrain -%s %s|r", sv.drainColor, MCT:FormatShortNumber(hitValue), PowerName(powerType)), "drain", sv.energizeFontSize)
+                return
+            end
         end
-    elseif heal then
-        -- Incoming or self heal (HoT ticks, received heals).
-        if hitValue > 0 then
-            local mergeGroup = incoming and "healing:incoming" or "healing:self"
-            MCT:QueueHit(hitValue, crit, true, sourceUnitId, targetUnitId, false, abilityId, mergeGroup)
+
+        if hitValue > 0 and SET_DAMAGE[result] then
+            local crit = SET_CRIT[result] == true
+            if sv.critOnly and not crit then return end
+            if not sv.showDamage then return end
+            if SET_DOT[result] and not sv.showDots then return end
+
+            MCT:QueueHit(hitValue, crit, false, sourceUnitId, targetUnitId, SET_BLOCKED[result] == true, abilityId, "damage:outgoing")
+            MCT:AddDps(targetUnitId, hitValue, now)
+            MCT:TrackBurst(targetUnitId, hitValue, crit, now)
+            MCT:TrackShieldbreak(targetUnitId, hitValue, SET_SHIELDED[result] == true, now)
+            MCT:ApplyMarkerRule(targetUnitId, "pressure")
         end
-        -- Also queue overflow as overhealing.
-        if MCT.sv.showOverhealing and overflow > 0 then
-            MCT:QueueOverhealing(overflow, crit, sourceUnitId, targetUnitId, abilityId)
+        return
+    end
+
+    -- ---- Incoming / self (player is the target) ----
+
+    -- Cleanse alert: warn when an incoming DoT tick lands (throttled to 5s).
+    if incoming and SET_DOT[result] and sv.showAlertCleanse then
+        local last = MCT._cleanseAlertAt or 0
+        if (now - last) > 5000 then
+            MCT._cleanseAlertAt = now
+            MCT:ShowNotification(Colored(sv.alertColor, "CLEANSE!"), "alert", sv.alertFontSize)
         end
+    end
+
+    if hitValue > 0 and SET_DAMAGETAKEN[result] then
+        local crit = SET_CRIT[result] == true
+        if sv.critOnly and not crit then return end
+        if not sv.showDamageTaken then return end
+
+        local blocked = SET_BLOCKED[result] == true
+        local mergeGroup
+        if not incoming then
+            mergeGroup = "damage:self"
+        else
+            mergeGroup = blocked and "damageTaken:blocked" or "damageTaken"
+        end
+        MCT:QueueHit(hitValue, crit, false, sourceUnitId, targetUnitId, blocked, abilityId, mergeGroup)
     end
 end
 
--- ---------------------------------------------------------------
--- MCT:RegisterCombat: registers all combat and power update event
--- listeners. Called once during addon initialization.
---
--- LibCombat "Damage" callback: handles all outgoing damage events
--- via OnLibCombatEvent("damage"). LibCombat pre-processes these
--- into a cleaner format than raw ESO events.
---
--- EVENT_COMBAT_EVENT (CCDone): ESO's raw combat event. Used here
--- as the primary heal/HoT handler (OnLibCombatEventDone) because
--- it exposes all fields by name, making heal routing reliable
--- without depending on LibCombat payload shape.
---
--- EVENT_POWER_UPDATE (ResourceRestore): fires whenever the player's
--- power pool changes. Used to detect magicka/stamina/health regen.
--- ---------------------------------------------------------------
-function MCT:RegisterCombat()
-    -- Register LibCombat2 damage callback. forcedKind="damage" is injected
-    -- so OnLibCombatEvent always knows it is processing a damage event.
-    LC:RegisterCallbackType(LIBCOMBAT_LOG_EVENT_DAMAGE, function(...)
-        OnLibCombatEvent("damage", ...)
-    end, MCT.name .. "Damage")
+-- Registration with source == player filter. Handles outgoing + self.
+local function OnCombatEventFromPlayer(_, result, isError, _, _, _, _, sourceType, _, targetType, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)
+    if isError then return end -- belt-and-braces; the engine filter already drops these
+    HandleCombatEvent(result, powerType, true, targetType == UNIT_PLAYER, hitValue, sourceUnitId, targetUnitId, abilityId, overflow)
+end
 
-    -- Raw ESO combat event: used for heals (primary path) and CC labels.
-    EVENT_MANAGER:RegisterForEvent(MCT.name .. "CCDone", EVENT_COMBAT_EVENT, OnLibCombatEventDone)
+-- Registration with target == player filter. Self events (source is also
+-- the player) were already delivered by the source-filtered registration,
+-- so skip them here to avoid double-processing.
+local function OnCombatEventToPlayer(_, result, isError, _, _, _, _, sourceType, _, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)
+    if isError or sourceType == UNIT_PLAYER then return end
+    HandleCombatEvent(result, powerType, false, true, hitValue, sourceUnitId, targetUnitId, abilityId, overflow)
+end
 
-    -- Power update: detect resource restoration (magicka, stamina, health).
-    EVENT_MANAGER:RegisterForEvent(MCT.name .. "ResourceRestore", EVENT_POWER_UPDATE, OnResourceRestore)
+-- Unfiltered fallback (only used if the filter API is unavailable).
+local function OnCombatEventUnfiltered(_, result, isError, _, _, _, _, sourceType, _, targetType, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)
+    if isError then return end
+    local sourceIsPlayer = (sourceType == UNIT_PLAYER)
+    local targetIsPlayer = (targetType == UNIT_PLAYER)
+    if not sourceIsPlayer and not targetIsPlayer then return end
+    HandleCombatEvent(result, powerType, sourceIsPlayer, targetIsPlayer, hitValue, sourceUnitId, targetUnitId, abilityId, overflow)
 end
 
 -- ---------------------------------------------------------------
--- MCT.lastResourceAmounts: stores the last known power value for
--- each resource type so OnResourceRestore can calculate the delta.
--- Initialized to 0 so the first real value is always an increase.
+-- MCT.lastResourceAmounts: last known power value per resource type
+-- so resource restore can compute the delta.
 -- ---------------------------------------------------------------
--- Track resource restoration (magicka, stamina, health recovery)
-MCT.lastResourceAmounts = { POWERTYPE_MAGICKA = 0, POWERTYPE_STAMINA = 0, POWERTYPE_HEALTH = 0 }
+MCT.lastResourceAmounts = MCT.lastResourceAmounts or {}
 
 -- ---------------------------------------------------------------
--- OnResourceRestore: ESO EVENT_POWER_UPDATE handler.
--- Fires every time a unit's power pool value changes. We listen
--- only for the player and only for increases (restores).
--- A minimum threshold of 50 prevents spam from natural 1-point
--- regen ticks and floating-point differences.
---
--- Parameters (from ESO):
---   eventCode : EVENT_POWER_UPDATE constant
---   unitTag   : unit tag string ("player", "group1", etc.)
---   powerType : POWERTYPE_* constant (MAGICKA, STAMINA, HEALTH)
---   powerIndex: power index (reserved / unused here)
+-- MCT:ShowResourceRestore: constructs and animates a floating label
+-- for a magicka/stamina/health restoration event.
 -- ---------------------------------------------------------------
-function OnResourceRestore(eventCode, unitTag, powerType, powerIndex)
-    if not MCT.sv.enabled or not MCT.sv.showResourceRestore then return end
-    -- Only track the local player's resource pools.
-    if unitTag ~= "player" then return end
-    if MCT.sv.pvpOnly and not IsUnitPvPFlagged("player") then return end
-    
-    -- GetUnitPower returns the current value; maxPower is retrieved but
-    -- not used beyond the pattern — kept as documentation of what is available.
-    local maxPower = GetUnitPower("player", powerType)
-    local currentPower = GetUnitPower("player", powerType)
-    local lastAmount = MCT.lastResourceAmounts[powerType] or 0
-    
-    -- Only show if the current value is higher than it was before this event.
-    if currentPower > lastAmount then
-        local restoreAmount = currentPower - lastAmount
-        local playerId = LibCombat2.GetPlayerUnitId()
-        
-        -- Apply a minimum threshold to suppress trivial 1-point regen ticks.
-        if restoreAmount > 50 then
-            MCT:QueueResourceRestore(restoreAmount, powerType, playerId)
-        end
-    end
-    
-    -- Record the current power value for comparison on the next event.
-    MCT.lastResourceAmounts[powerType] = currentPower
+local RESOURCE_LABELS = {}
+local RESOURCE_TEXTURE_CODES = {}
+if POWER_MAGICKA then
+    RESOURCE_LABELS[POWER_MAGICKA] = "\226\156\166 Magicka"
+    RESOURCE_TEXTURE_CODES[POWER_MAGICKA] = "magicka"
+end
+if POWER_STAMINA then
+    RESOURCE_LABELS[POWER_STAMINA] = "\226\156\166 Stamina"
+    RESOURCE_TEXTURE_CODES[POWER_STAMINA] = "stamina"
+end
+if POWER_HEALTH then
+    RESOURCE_LABELS[POWER_HEALTH] = "\226\156\166 Health"
 end
 
--- ---------------------------------------------------------------
--- MCT:ShowResourceRestore: constructs and immediately animates a
--- floating label for a magicka/stamina/health restoration event.
--- Unlike combat hit labels, resource restore labels bypass the
--- merge queue and are shown directly from QueueResourceRestore.
---
--- Parameters:
---   amount    : the numeric restore amount (already above threshold)
---   powerType : POWERTYPE_MAGICKA, POWERTYPE_STAMINA, or POWERTYPE_HEALTH
---   playerId  : the player's unit ID (carried through from the event)
--- ---------------------------------------------------------------
 function MCT:ShowResourceRestore(amount, powerType, playerId)
-    -- Acquire a recycled label control from the label pool.
     local label, key = MCT.pool:AcquireObject()
-    label:SetHidden(false)
-    label:SetAlpha(1)
+    if not label then return end
+    local sv = MCT.sv
 
-    -- Map the power type to a human-readable display name shown in the label.
-    local resourceName = "RESOURCE"   -- Fallback for unknown power types.
-    if powerType == POWERTYPE_MAGICKA then
-        resourceName = "✦ Magicka"
-    elseif powerType == POWERTYPE_STAMINA then
-        resourceName = "✦ Stamina"
-    elseif powerType == POWERTYPE_HEALTH then
-        resourceName = "✦ Health"
-    end
+    label.mctAbilityId = nil
+    label.mctAbilityIds = nil
+    label.mctEventCode = RESOURCE_TEXTURE_CODES[powerType] or "resource"
 
-    -- Map the power type to a texture code used by MCT.Formatting.EventTextures
-    -- to select the icon displayed alongside the label text.
-    local textureCode = "resource"    -- Generic fallback icon.
-    if powerType == POWERTYPE_MAGICKA then
-        textureCode = "magicka"       -- Blue magic icon.
-    elseif powerType == POWERTYPE_STAMINA then
-        textureCode = "stamina"       -- Green stamina icon.
-    end
-    -- NOTE: POWERTYPE_HEALTH uses the generic "resource" code (no special icon).
-
-    -- Tag the label so the animation system can look up its icon later.
-    label.mctAbilityId = nil          -- Not tied to a specific ability.
-    label.mctEventCode = textureCode  -- Used by MCT:Animate for icon selection.
-
-    -- Apply font, anchor, formatted text, and scale before playing the animation.
-    label:SetFont(MCT:GetCachedFTNFont(MCT.sv.resourceRestoreFontSize))
-    label:SetAnchor(MCT:GetAnchor("resource"))  -- Screen position for resource lane.
+    label:SetFont(MCT:GetCachedFTNFont(sv.resourceRestoreFontSize))
+    label:SetAnchor(MCT:GetAnchor("resource"))
     label:SetText(MCT:StylizeDisplayText(
         string.format("|c%s+%s (%s)|r",
-            MCT.sv.resourceRestoreColor,
+            sv.resourceRestoreColor,
             MCT:FormatShortNumber(amount),
-            resourceName
+            RESOURCE_LABELS[powerType] or "RESOURCE"
         ),
         "resource"
     ))
-    label:SetScale(1.6)  -- Slightly enlarged so resource labels stand out from damage.
 
-    -- Hand the label to the animation system; it will release it back to
-    -- the pool when the "resourceRestore" animation sequence completes.
     MCT:Animate(label, "resourceRestore", key)
 end
 
+-- ---------------------------------------------------------------
+-- Active combat tip alerts (EVENT_DISPLAY_ACTIVE_COMBAT_TIP).
+-- tipId mapping: 1=block, 2=exploit weakness, 3=interrupt, 4=dodge roll.
+-- ---------------------------------------------------------------
+local ALERT_TIPS = {
+    [1] = { toggle = "showAlertBlock",     text = "BLOCK!" },
+    [2] = { toggle = "showAlertExploit",   text = "EXPLOIT!" },
+    [3] = { toggle = "showAlertInterrupt", text = "INTERRUPT!" },
+    [4] = { toggle = "showAlertDodge",     text = "DODGE!" },
+}
+
+local function OnAlertTip(_, tipId)
+    local sv = MCT.sv
+    if not sv or not sv.enabled then return end
+    local tip = ALERT_TIPS[tipId]
+    if tip and sv[tip.toggle] then
+        MCT:ShowNotification(Colored(sv.alertColor, tip.text), "alert", sv.alertFontSize)
+    end
+end
+
+-- ---------------------------------------------------------------
+-- MCT:ResetCombatTracking: clears every per-fight table and all
+-- visible labels. Runs whenever the player leaves combat, whether or
+-- not the "Entered/Left Combat" notification is enabled.
+-- ---------------------------------------------------------------
+function MCT:ResetCombatTracking()
+    if MCT.pool and MCT.pool.ReleaseAllObjects then
+        MCT.pool:ReleaseAllObjects()
+    end
+    MCT.burstTargets = {}
+    MCT.shields      = {}
+    MCT.dps          = {}
+    MCT.merge        = {}
+    MCT.mergeTimers  = {}
+    if MCT.ResetLaneQueues then
+        MCT:ResetLaneQueues()
+    end
+    MCT._displayRateWindowStart = 0
+    MCT._displayRateCount = 0
+    MCT._eventTextureSuppressedUntil = 0
+    MCT.lastPruneMs = 0
+    MCT._execAlerts = {}
+end
+
+-- OnCombatState: handles EVENT_PLAYER_COMBAT_STATE.
+local function OnCombatState(_, inCombat)
+    local sv = MCT.sv
+    if not sv then return end
+
+    if not inCombat then
+        -- Clear first so the "Left Combat" label below isn't immediately
+        -- released along with everything else.
+        MCT:ResetCombatTracking()
+    end
+
+    if not sv.enabled or not sv.showCombatState then return end
+    if inCombat then
+        MCT:ShowNotification(Colored(sv.combatStateColor, "Entered Combat"), "combatState", sv.combatStateFontSize)
+    else
+        MCT:ShowNotification(Colored(sv.combatStateColor, "Left Combat"), "combatState", sv.combatStateFontSize)
+    end
+end
+
+-- OnAlliancePoints: handles EVENT_ALLIANCE_POINT_UPDATE.
+local function OnAlliancePoints(_, alliancePoints, playSound, difference)
+    local sv = MCT.sv
+    if not sv or not sv.enabled or not sv.showAlliancePoints then return end
+    if not difference or difference <= 0 then return end
+    MCT:ShowNotification(string.format("|c%s+%s AP|r", sv.alliancePointsColor, MCT:FormatShortNumber(difference)), "points", sv.pointsFontSize)
+end
+
+-- ---------------------------------------------------------------
+-- Buffered XP / CP gains (500 ms batching so multi-kill spikes merge).
+-- The flush callbacks are created once instead of per event.
+-- ---------------------------------------------------------------
+MCT._xpGainBuffer = MCT._xpGainBuffer or 0
+MCT._xpGainTimerActive = MCT._xpGainTimerActive or false
+MCT._xpPreviousXp = nil
+MCT._xpPreviousMaxXp = nil
+
+local function FlushXpGain()
+    local buffered = MCT._xpGainBuffer
+    MCT._xpGainBuffer = 0
+    MCT._xpGainTimerActive = false
+    local sv = MCT.sv
+    if buffered > 0 and sv and sv.enabled then
+        MCT:ShowNotification(string.format("|c%s+%s XP|r", sv.experiencePointsColor, MCT:FormatShortNumber(buffered)), "points", sv.pointsFontSize)
+    end
+end
+
+local function OnExperiencePoints(_, unit, currentXp, maxXp, reason)
+    local sv = MCT.sv
+    if not sv or not sv.enabled or not sv.showExperiencePoints then return end
+
+    local prevXp  = MCT._xpPreviousXp  or currentXp
+    local prevMax = MCT._xpPreviousMaxXp or maxXp
+    local gain
+    if maxXp ~= prevMax or currentXp < prevXp then
+        gain = (prevMax - prevXp) + currentXp
+    else
+        gain = currentXp - prevXp
+    end
+
+    MCT._xpPreviousXp  = currentXp
+    MCT._xpPreviousMaxXp = maxXp
+
+    if gain <= 0 then return end
+    MCT._xpGainBuffer = MCT._xpGainBuffer + gain
+
+    if not MCT._xpGainTimerActive then
+        MCT._xpGainTimerActive = true
+        zo_callLater(FlushXpGain, 500)
+    end
+end
+
+MCT._cpGainBuffer = MCT._cpGainBuffer or 0
+MCT._cpGainTimerActive = MCT._cpGainTimerActive or false
+MCT._cpPreviousPoints = nil
+
+local function FlushCpGain()
+    local buffered = MCT._cpGainBuffer
+    MCT._cpGainBuffer = 0
+    MCT._cpGainTimerActive = false
+    local sv = MCT.sv
+    if buffered > 0 and sv and sv.enabled then
+        MCT:ShowNotification(string.format("|c%s+%s CP|r", sv.championPointsColor, MCT:FormatShortNumber(buffered)), "points", sv.pointsFontSize)
+    end
+end
+
+local function OnChampionPoints(_, unit, currentPoints, maxPoints, reason)
+    local sv = MCT.sv
+    if not sv or not sv.enabled or not sv.showChampionPoints then return end
+
+    local prev = MCT._cpPreviousPoints or currentPoints
+    local gain = currentPoints - prev
+    MCT._cpPreviousPoints = currentPoints
+
+    if gain <= 0 then return end
+    MCT._cpGainBuffer = MCT._cpGainBuffer + gain
+
+    if not MCT._cpGainTimerActive then
+        MCT._cpGainTimerActive = true
+        zo_callLater(FlushCpGain, 500)
+    end
+end
+
+-- ---------------------------------------------------------------
+-- Power updates.
+-- EVENT_POWER_UPDATE signature:
+--   (eventCode, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+-- One player-filtered handler drives resource-restore, ultimate-ready
+-- and low-resource warnings; a separate reticleover/health-filtered
+-- handler drives the execute alert.
+-- ---------------------------------------------------------------
+MCT._powerWarnState  = MCT._powerWarnState  or {}
+MCT._ultimateState   = MCT._ultimateState   or { notified = false, maximum = 0 }
+MCT._execAlerts      = MCT._execAlerts      or {}
+
+-- Per-power-type low-resource warning config (sv key names).
+local LOW_WARN = {}
+if POWER_HEALTH then
+    LOW_WARN[POWER_HEALTH]  = { color = "lowHealthColor",  toggle = "showLowHealth",  threshold = "healthThreshold",  name = "HEALTH" }
+end
+if POWER_MAGICKA then
+    LOW_WARN[POWER_MAGICKA] = { color = "lowMagickaColor", toggle = "showLowMagicka", threshold = "magickaThreshold", name = "MAGICKA" }
+end
+if POWER_STAMINA then
+    LOW_WARN[POWER_STAMINA] = { color = "lowStaminaColor", toggle = "showLowStamina", threshold = "staminaThreshold", name = "STAMINA" }
+end
+
+-- Action-bar slot of the ultimate ability (nil-safe across API changes).
+local ULTIMATE_SLOT = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
+
+local function PlayWarningSound(sv)
+    if sv.warningSoundEnabled then pcall(PlaySound, "Ability_Failed") end
+end
+
+-- Resource restore (magicka / stamina only — health gains are already
+-- displayed as heals by the combat-event pipeline, so showing them here
+-- too would double every heal on screen).
+local function HandleResourceRestore(sv, powerType, power)
+    if powerType ~= POWER_MAGICKA and powerType ~= POWER_STAMINA then return end
+
+    local last = MCT.lastResourceAmounts[powerType]
+    MCT.lastResourceAmounts[powerType] = power
+    -- First sample after login/reload only seeds the baseline; without
+    -- this the entire pool was reported as a "restore".
+    if last == nil then return end
+
+    if not sv.showResourceRestore then return end
+    if sv.pvpOnly and not IsPlayerPvPFlaggedCached(GetGameTimeMs()) then return end
+
+    local restoreAmount = power - last
+    if restoreAmount > 50 then
+        MCT:QueueResourceRestore(restoreAmount, powerType, MCT._playerUnitId)
+    end
+end
+
+local function HandleUltimate(sv, power)
+    local ultState = MCT._ultimateState
+    local ok, cost = false, nil
+    if ULTIMATE_SLOT then
+        ok, cost = pcall(GetSlotAbilityCost, ULTIMATE_SLOT)
+    end
+    if ok and type(cost) == "number" and cost > 0 then
+        ultState.maximum = cost
+    end
+
+    if sv.showUltimateReady and ultState.maximum > 0 then
+        if power >= ultState.maximum then
+            if not ultState.notified then
+                ultState.notified = true
+                MCT:ShowNotification(Colored(sv.ultimateReadyColor, "ULTIMATE READY!"), "resourceWarning", sv.resourceWarningFontSize)
+                PlayWarningSound(sv)
+            end
+        else
+            ultState.notified = false
+        end
+    end
+end
+
+local function HandleLowResource(sv, powerType, power, powerMax)
+    local cfg = LOW_WARN[powerType]
+    if not cfg or not sv[cfg.toggle] then return end
+    if not powerMax or powerMax <= 0 then return end
+
+    local pct = power / powerMax * 100
+    local threshold = tonumber(sv[cfg.threshold]) or 35
+
+    local state = MCT._powerWarnState[powerType]
+    if not state then
+        state = { warned = false }
+        MCT._powerWarnState[powerType] = state
+    end
+
+    if pct < threshold then
+        if not state.warned then
+            state.warned = true
+            MCT:ShowNotification(Colored(sv[cfg.color], "LOW " .. cfg.name .. "!"), "resourceWarning", sv.resourceWarningFontSize)
+            PlayWarningSound(sv)
+        end
+    elseif pct > threshold + 10 then
+        state.warned = false
+    end
+end
+
+local function OnPlayerPowerUpdate(_, unitTag, powerIndex, powerType, power, powerMax)
+    if unitTag ~= "player" then return end -- safety if the unit filter is unavailable
+    local sv = MCT.sv
+    if not sv or not sv.enabled then return end
+
+    if powerType == POWER_ULTIMATE then
+        HandleUltimate(sv, power)
+        return
+    end
+
+    HandleResourceRestore(sv, powerType, power)
+    HandleLowResource(sv, powerType, power, powerMax)
+end
+
+local function OnReticlePowerUpdate(_, unitTag, powerIndex, powerType, power, powerMax)
+    local sv = MCT.sv
+    if not sv or not sv.enabled or not sv.showAlertExecute then return end
+    if unitTag ~= "reticleover" or powerType ~= POWER_HEALTH then return end
+    if not powerMax or powerMax <= 0 then return end
+
+    local pct = power / powerMax * 100
+    local threshold = tonumber(sv.executeThreshold) or 20
+    if pct > threshold then return end
+
+    -- Cheap numeric checks first; only now touch the unit API.
+    if IsUnitDead("reticleover") or not IsUnitAttackable("reticleover") then return end
+
+    local now      = GetGameTimeMs()
+    local freqMs   = (tonumber(sv.executeFrequency) or 8) * 1000
+    local unitName = GetRawUnitName("reticleover") or "reticle"
+    local last     = MCT._execAlerts[unitName] or 0
+    if (now - last) > freqMs then
+        MCT._execAlerts[unitName] = now
+        MCT:ShowNotification(string.format("|c%sEXECUTE! (%d%%)|r", sv.alertColor, floor(pct)), "alert", sv.alertFontSize)
+    end
+end
+
+-- Unfiltered fallback for EVENT_POWER_UPDATE.
+local function OnPowerUpdateUnfiltered(eventCode, unitTag, ...)
+    if unitTag == "player" then
+        OnPlayerPowerUpdate(eventCode, unitTag, ...)
+    elseif unitTag == "reticleover" then
+        OnReticlePowerUpdate(eventCode, unitTag, ...)
+    end
+end
+
+-- ---------------------------------------------------------------
+-- InitPotionReady: hooks the quickslot action button to detect when a
+-- potion cooldown finishes, then fires a notification.
+-- Wrapped in pcall to survive API drift across ESO updates.
+-- ---------------------------------------------------------------
+local function InitPotionReady()
+    local ok, btn = pcall(function()
+        return ZO_ActionBar_GetButton(ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1)
+    end)
+    if not ok or not btn or not btn.UpdateCooldown then return end
+
+    local UpdateCooldown_Orig = btn.UpdateCooldown
+    local inCooldown = false
+
+    btn.UpdateCooldown = function(button, ...)
+        UpdateCooldown_Orig(button, ...)
+        local sv = MCT.sv
+        if not sv or not sv.showPotionReady then return end
+        -- Cheapest checks first: nothing to do unless a new cooldown started.
+        if inCooldown or not button.inCooldown then return end
+
+        local ok2, slotNum = pcall(button.GetSlot, button)
+        if not ok2 then return end
+
+        local ok3, snd = pcall(GetSlotItemSound, slotNum)
+        if not ok3 or snd ~= ITEM_SOUND_CATEGORY_POTION then return end
+
+        local cooldown = button.cooldown and button.cooldown:GetTimeLeft() or 0
+        if cooldown <= 0 then return end
+
+        inCooldown = true
+        local ok4, slotName = pcall(function()
+            return zo_strformat(SI_LINK_FORMAT_ITEM_NAME, GetSlotName(slotNum))
+        end)
+        local name = (ok4 and slotName and slotName ~= "") and slotName or "Potion"
+        zo_callLater(function()
+            local sv2 = MCT.sv
+            if sv2 and sv2.enabled and sv2.showPotionReady then
+                MCT:ShowNotification(string.format("|c%s%s Ready!|r", sv2.potionReadyColor, name), "resourceWarning", sv2.resourceWarningFontSize)
+                PlayWarningSound(sv2)
+            end
+            inCooldown = false
+        end, cooldown)
+    end
+end
+
+-- ---------------------------------------------------------------
+-- MCT:RegisterCombat: registers all event listeners with engine-side
+-- filters wherever the API supports them.
+-- ---------------------------------------------------------------
+local function AddFilter(name, event, ...)
+    if not EM.AddFilterForEvent then return false end
+    local ok, res = pcall(EM.AddFilterForEvent, EM, name, event, ...)
+    return ok and res ~= false
+end
+
+function MCT:RegisterCombat()
+    local base = MCT.name
+
+    -- Combat events: two filtered registrations (player as source, player as
+    -- target). Falls back to one unfiltered registration on very old clients.
+    local outName, inName = base .. "CombatOut", base .. "CombatIn"
+    EM:RegisterForEvent(outName, EVENT_COMBAT_EVENT, OnCombatEventFromPlayer)
+    EM:RegisterForEvent(inName, EVENT_COMBAT_EVENT, OnCombatEventToPlayer)
+    local filtered = REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE ~= nil
+        and AddFilter(outName, EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, UNIT_PLAYER, REGISTER_FILTER_IS_ERROR, false)
+        and AddFilter(inName, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, UNIT_PLAYER, REGISTER_FILTER_IS_ERROR, false)
+    if not filtered then
+        EM:UnregisterForEvent(outName, EVENT_COMBAT_EVENT)
+        EM:UnregisterForEvent(inName, EVENT_COMBAT_EVENT)
+        EM:RegisterForEvent(base .. "Combat", EVENT_COMBAT_EVENT, OnCombatEventUnfiltered)
+    end
+
+    -- Power updates: player (restore / warnings / ultimate) and reticle
+    -- health (execute alert), each filtered engine-side.
+    local playerPower, reticlePower = base .. "PowerPlayer", base .. "PowerReticle"
+    EM:RegisterForEvent(playerPower, EVENT_POWER_UPDATE, OnPlayerPowerUpdate)
+    EM:RegisterForEvent(reticlePower, EVENT_POWER_UPDATE, OnReticlePowerUpdate)
+    local powerFiltered = AddFilter(playerPower, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+        and AddFilter(reticlePower, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "reticleover", REGISTER_FILTER_POWER_TYPE, POWER_HEALTH)
+    if not powerFiltered then
+        EM:UnregisterForEvent(playerPower, EVENT_POWER_UPDATE)
+        EM:UnregisterForEvent(reticlePower, EVENT_POWER_UPDATE)
+        EM:RegisterForEvent(base .. "Power", EVENT_POWER_UPDATE, OnPowerUpdateUnfiltered)
+    end
+
+    -- Active combat tip alerts: block, exploit weakness, interrupt, dodge roll.
+    EM:RegisterForEvent(base .. "AlertTip", EVENT_DISPLAY_ACTIVE_COMBAT_TIP, OnAlertTip)
+
+    -- Combat state: entered / left combat (+ per-fight cleanup).
+    EM:RegisterForEvent(base .. "CombatState", EVENT_PLAYER_COMBAT_STATE, OnCombatState)
+
+    -- Alliance points gained (PvP).
+    EM:RegisterForEvent(base .. "AlliancePoints", EVENT_ALLIANCE_POINT_UPDATE, OnAlliancePoints)
+
+    -- Experience points (player only).
+    EM:RegisterForEvent(base .. "ExperiencePoints", EVENT_EXPERIENCE_UPDATE, OnExperiencePoints)
+    AddFilter(base .. "ExperiencePoints", EVENT_EXPERIENCE_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+
+    -- Champion points (player only).
+    EM:RegisterForEvent(base .. "ChampionPoints", EVENT_CHAMPION_POINT_UPDATE, OnChampionPoints)
+    AddFilter(base .. "ChampionPoints", EVENT_CHAMPION_POINT_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+
+    -- Potion ready hook (deferred 1s to let the action bar initialize first).
+    zo_callLater(InitPotionReady, 1000)
+end

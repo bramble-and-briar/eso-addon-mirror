@@ -1,0 +1,19 @@
+## Title: |cFF69B4PB's Equipment Changer|r 0.3.0
+## Author: |cFF69B4PinkBanther|r
+## Description: Saves your worn gear, the skills on both action bars and the slotted champion skills under a name, and puts them back from the settings panel or from an extra page of the D-pad up wheel.
+## Version: 0.3.0
+## AddOnVersion: 3
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsEquipmentChanger_Data
+
+lang/strings.lua
+lang/$(language).lua
+Core.lua
+Apply.lua
+Actions.lua
+Wheel.lua
+Settings.lua
+Main.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

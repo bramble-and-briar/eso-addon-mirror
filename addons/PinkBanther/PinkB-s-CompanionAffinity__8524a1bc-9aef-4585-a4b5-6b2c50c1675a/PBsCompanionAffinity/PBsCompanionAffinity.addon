@@ -1,0 +1,23 @@
+## Title: |cFF69B4PB's Companion Affinity|r 0.5.1
+## Author: |cFF69B4PinkBanther|r
+## Description: Shows on the HUD when each way of raising your companion's rapport can be used again. The game gives no cooldown to read, so every rapport gain is noticed, traced to what you had just done, and timed.
+## Version: 0.5.1
+## AddOnVersion: 51
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsCompanionAffinity_Data
+
+Boot.lua
+lang/strings.lua
+lang/$(language).lua
+Core.lua
+Catalog.lua
+Actions.lua
+Context.lua
+Tracker.lua
+UI.lua
+Preview.lua
+Settings.lua
+Main.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

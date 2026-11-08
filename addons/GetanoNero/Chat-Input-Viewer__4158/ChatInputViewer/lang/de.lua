@@ -1,8 +1,6 @@
 local localization_strings = {
   CHATIV_WARNING_CAPTION = "Bitte beachten:",
-  CHATIV_WARNING_TEXT = "Das Feld für die Anzeige der Chateingabe wird unterhalb des Chatfensters angezeigt. Das Chatfenster reicht"
-    .. " normalerweise bis zum unteren Rand des Bildschirms. Wird das Fenster beim sichtbar Machen des AddOns nicht automatisch"
-    .. " nach oben verschoben, muss der untere Rand des Chatfensters manuell nach oben geschoben werden.",
+  CHATIV_WARNING_TEXT = "Das Feld für die Anzeige der Chateingabe wird unterhalb des Chatfensters angezeigt.\nDas Chatfenster reicht normalerweise bis zum unteren Rand des Bildschirms.\nWird das Fenster beim sichtbar Machen des AddOns nicht automatisch nach oben verschoben, muss der untere Rand des Chatfensters manuell nach oben geschoben werden.",
   CHATIV_VISIBLE = "Sichtbarkeit",
   CHATIV_VISIBLE_TOOLTIP = "Blendet das Fenster ein oder aus.",
   CHATIV_MINIMISED = "Reduzierte Fenstergröße",
@@ -27,6 +25,5 @@ local localization_strings = {
 }
 
 for stringId, stringValue in pairs(localization_strings) do
-  ZO_CreateStringId(stringId, stringValue)
-  SafeAddVersion(stringId, 1)
+  SafeAddString(_G[stringId], stringValue, 2)
 end

@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/lousytourist/Hide-Friend-Status-messages__5034",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "lousytourist",
+  "canonical_id": "esoui:5034",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5034",
+  "deleted": false,
+  "directories": [
+    "HideFriendStatus"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5034/",
+  "fingerprint": "2122e805f1d533303805704abae682f00771436bbf05f4304e2d5e5970466b4b",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5034",
+  "source_url": "https://www.esoui.com/downloads/info5034-HideFriendStatusmessages.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Hide Friend Status messages",
+  "updated_at": 1794108932000,
+  "version": "2026.11.07"
+}

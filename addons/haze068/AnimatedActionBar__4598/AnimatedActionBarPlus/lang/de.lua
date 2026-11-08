@@ -304,6 +304,20 @@ local strings =
     SI_AAB_SETEND_BADVAL = "Ungültiger Wert. Nutze Millisekunden oder 'auto'.",
     SI_AAB_SETEND_SET    = "End-Animation für %s (id %d) feuert jetzt %dms nach dem Cast.",
     SI_AAB_SETEND_CLEARED= "Feuer-Override für id %d gelöscht (zurück auf die Skill-Dauer).",
+    SI_AAB_CMD_EXPIRE    = "Ablauf-Animation für einen Skill an/aus (ohne Wert = umschalten)",
+    SI_AAB_EXPIRE_SKILL_OFF = "Ablauf-Animation für %s (id %d) ist jetzt AUS.",
+    SI_AAB_EXPIRE_SKILL_ON  = "Ablauf-Animation für %s (id %d) ist wieder AN.",
+    SI_AAB_DBG_EXPIRE_OFF   = "Ablauf aus",
+    SI_AAB_EXPIRE_SKILLS_HDR  = "Ablauf pro Skill",
+    SI_AAB_EXPIRE_SKILLS_DESC = "Schalte die Ablauf-Animation für einzelne geslottete Skills ab. Gespeichert wird pro Ability, gilt also auch, wenn der Skill auf beiden Leisten liegt.",
+    SI_AAB_EXPIRE_SKILL_TT    = "An = dieser Skill spielt die Ablauf-Animation. Aus = beim Auslaufen passiert nichts.",
+    SI_AAB_EXPIRE_SKILL_EMPTY = "leer",
+    SI_AAB_EXPIRE_SKILL_BAR   = "Leiste %d",
+    SI_AAB_EXPIRE_SKILL_PICK    = "Skill",
+    SI_AAB_EXPIRE_SKILL_PICK_TT = "Wähle einen deiner aktuell geslotteten Skills (beide Leisten).",
+    SI_AAB_EXPIRE_SKILL_TOGGLE  = "Ablauf-Animation für diesen Skill",
+    SI_AAB_EXPIRE_DISABLED_CLEAR    = "Alle Skills wieder aktivieren",
+    SI_AAB_EXPIRE_DISABLED_CLEAR_TT = "Schaltet die Ablauf-Animation für alle abgeschalteten Skills wieder ein.",
 
     -- hilfe-/diagnosefenster
 
@@ -348,15 +362,9 @@ local strings =
     SI_AAB_CONTACT_DONATE_BTN_TT  = "Öffnet das Ingame-Mailfenster mit vorausgefülltem Empfänger und Titel.",
 
     SI_AAB_SUB_INFO               = "Info",
-    SI_AAB_SUB_INFO_TT            = "Kompatibilitäts-Hinweise zur Nutzung von AnimatedActionBar+ zusammen mit anderen Addons.",
-    SI_AAB_INFO_THINFRAMES        = "Wenn du die Option \"Frame Appearance: Thin Frames\" aus diesem Addon nutzt, deaktiviere bitte in FancyActionBar+ unter UI Customization -> Custom Frames Keyboard folgendes:\n\n" ..
-                                        "  - \"Hide Default Frames\"\n" ..
-                                        "  - \"Use Thin Frames\"\n\n" ..
-                                        "Zeichnen beide Addons gleichzeitig schlanke Rahmen, kommt es zu doppelten oder versetzten Rahmen.",
-    SI_AAB_INFO_GAMEPAD           = "Spielst du mit Controller?\n\n" ..
-                                        "Wenn deine Fähigkeiten verschoben, versetzt oder anderweitig falsch dargestellt werden, deaktiviere bitte in FancyActionBar+ den \"Gamepad Mode\".\n\n" ..
-                                        "Controller-Spieler sollten außerdem \"Use Thin Frame\" sowohl in FancyActionBar+ als auch in AnimatedActionBar+ deaktivieren, um das beste Ergebnis zu erhalten.\n\n" ..
-                                        "Sollte das Problem danach immer noch bestehen, kontaktiere mich bitte über Discord (haze.3169), damit wir das gemeinsam beheben können.",
+    SI_AAB_SUB_INFO_TT            = "Was AnimatedActionBar+ kann, alle Befehle und Kompatibilitäts-Hinweise zu anderen Addons.",
+    SI_AAB_INFO_THINFRAMES        = "Nutzt du FancyActionBar+? Dann schalte dort bitte folgendes AUS:\n\n  - \"Custom Frames\" unter \"UI Customizations\"\n  - \"Show keyboard text\" unter \"General\"\n\nSonst zeichnen beide Addons übereinander und Rahmen oder Tastentext erscheinen doppelt oder versetzt.",
+    SI_AAB_INFO_GAMEPAD           = "Spielst du mit Controller?\n\nWenn deine Fähigkeiten verschoben, versetzt oder anderweitig falsch dargestellt werden, deaktiviere bitte in FancyActionBar+ den \"Gamepad Mode\".\n\nController-Spieler sollten außerdem \"Use Thin Frame\" sowohl in FancyActionBar+ als auch in AnimatedActionBar+ deaktivieren, um das beste Ergebnis zu erhalten.",
 
     SI_AAB_DLG_TITLE              = "AnimatedActionBar+",
     SI_AAB_DLG_BODY               = "Danke fürs Installieren von AnimatedActionBar+!\n\n" ..
@@ -421,6 +429,7 @@ local strings =
     SI_AAB_UI_THEME_TT            = "Aussehen dieses Fensters. Wechselt sofort, kein Reload nötig.",
     SI_AAB_UI_THEME_NEBULA        = "Sternennebel",
     SI_AAB_UI_THEME_LACE          = "Rabenspitze",
+    SI_AAB_UI_THEME_CLASSIC       = "Klassisch",
     SI_AAB_UI_BGMOTION            = "Bewegter Hintergrund",
     SI_AAB_UI_BGMOTION_TT         = "Wandernder Nebel, funkelnde Sterne und Sternschnuppen im Studio. Läuft nur, solange das Studio offen ist. Aus = stehender Hintergrund.",
     SI_AAB_UI_KB_THEME            = "Design",
@@ -436,6 +445,18 @@ local strings =
     SI_AAB_ULTGP_FULLCOLOR_TT     = "Farbe von Rahmen und Füllung, solange die Ultimative bereit ist.",
     SI_AAB_ULTGP_RAINBOW          = "Regenbogen bei voller Ulti",
     SI_AAB_ULTGP_RAINBOW_TT       = "Rahmen und Füllung laufen durch den Regenbogen, solange die Ultimative bereit ist. Nutzt Regenbogen-Sättigung und -Helligkeit.",
+
+    -- info
+    SI_AAB_INFO_VERSION           = "AnimatedActionBar+ 2.2.0 von @haze068 - Animationen, Glow und Puls für deine Aktionsleiste, im Tastatur- und Controller-Modus.",
+    SI_AAB_INFO_HDR_FEATURES      = "Funktionen",
+    SI_AAB_INFO_FEATURES          = "- Studio (/aab ui): alle Einstellungen mit Live-Vorschau, zwei Designs (Sternennebel, Rabenspitze), Tastatur- und Controller-Layout.\n- Presets: Minimal, Standard, Flashy mit einem Klick.\n- Drück-Animation: Bounce, Flash, Shake oder Tilt, Stärke und Reset-Zeit einstellbar, auch bei Procs und am Quickslot.\n- Ablauf-Animation: eigener Stil, Stärke und Glow, wenn ein Buff eines geslotteten Skills ausläuft, Länge an die Skill-Dauer gekoppelt, pro Skill per /aab setend anpassbar.\n- Glow: Farbe, Dauer, Abstand und Intensität, eigene Werte für die Ultimate.\n- Proc-Puls: Sanft, Blinken oder Strobo, optional mit Zweitfarbe.\n- Ultimate: Drück-Glow, Bereit-Rahmen (Sanft, Blinken, Regenbogen), Controller-Fortschrittsrahmen (5 Kanten- und 3 Leucht-Stile) und der Gamepad-Ultirahmen wie in FAB+.\n- Rahmen: Thin Frames mit 8 Kanten-Stilen, Rahmen-Transparenz und PC-Leiste im Controller-Modus.\n- Performance: Effekt-ID-Filter, Slot-Lookup, nur im Kampf, langsamer Regenbogen und mehr für große Kämpfe.\n- Spezial-Titel: ausgewählte Spieler haben einen farbigen Titel auf Unitframes und farbigen Chat, sichtbar für alle mit AnimatedActionBar+.",
+    SI_AAB_INFO_HDR_COMMANDS      = "Befehle",
+    SI_AAB_INFO_COMMANDS          = "/aab - Einstellungen öffnen\n/aab ui [Seite] - Studio öffnen\n/aab info - diesen Tab öffnen\n/aab id (/aabids) - geslottete Ability-IDs anzeigen\n/aab setend <id> <ms|auto> - wann die Ablauf-Animation eines Skills feuert\n/aab debug - kompletter Status-Dump\n/aab cmd (/aabcmds) - Befehlsliste im Chat",
+    SI_AAB_INFO_HDR_COMPAT        = "Kompatibilität",
+
+    -- support
+    SI_AAB_INFO_HDR_SUPPORT       = "Support",
+    SI_AAB_INFO_SUPPORT           = "Probleme mit deinen Rahmen oder der Aktionsleiste? Schreib mir bitte auf Discord: haze.3169\n\nWichtig: Bitte schick mir direkt eine Nachricht mit deinem Problem. Ich bekomme sehr viele Freundschaftsanfragen, viele davon von Bots - Anfragen ohne Nachricht kann ich nicht beantworten.",
 }
 
 for stringId, stringValue in pairs(strings) do

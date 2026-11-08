@@ -1,57 +1,27 @@
 CraftingDailyNotificationSavedVariables = {}
 
-
-
-              -- *** Инициализируем флаг, если он ещё не существует *** --
-
-    if not CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp then
+if not CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp then
     CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp = os.time(os.date("!*t")) - 3600 * 24 * 7 
-    end
+end
 
-
-
-    CraftingDailyNotification = {}
-    local CraftingDailyNotification = CraftingDailyNotification
-
-
-
-                   -- *** ГЛОБАЛЬНЫЙ ФЛАГ ЧИСТКИ *** --
-
-    if not CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp then
-    local oneWeekAgo = os.time(os.date("!*t")) - (86400 * 7)
-    CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp = oneWeekAgo
-    end
-
-
-
-    local LAM = LibAddonMenu2 
+CraftingDailyNotification = {}
+local CraftingDailyNotification = CraftingDailyNotification
+local LAM = LibAddonMenu2 
 
 local COLOR_YELLOW = "|cFFD700"
 local COLOR_GREEN  = "|c00FF00"
 local COLOR_WHITE  = "|cFFFFFF"
 local COLOR_RED    = "|cFF0000"
 
-
-
--- *** All Supported Languages *** --
-
 local gameLanguage = GetCVar("language.2")
 local languageMap = {
-    ["en"] = "en",
-    ["ru"] = "ru", 
-    ["fr"] = "fr",
-    ["es"] = "es",
-    ["jp"] = "jp",
-    ["de"] = "de",
+    ["en"] = "en", ["ru"] = "ru", ["fr"] = "fr",
+    ["es"] = "es", ["jp"] = "jp", ["de"] = "de",
 }
 local LANGUAGE = languageMap[gameLanguage] or "en" 
 
-
-
--- *** Translation block start *** --
-
 local L = {
-    ["ru"] = { -- Русский
+    ["ru"] = {
         SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Алхимия|r",
         SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbКузнечное дело|r",
         SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Зачарование|r",
@@ -59,24 +29,22 @@ local L = {
         SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFСнабжение|r",
         SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691EСтолярное дело|r",
         SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFЮвелирное дело|r",
-        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000Данная настройка только на текущего персонажа!!! Всех остальных персонажей настройте отдельно каждого!!!|r",
+        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000Данная настройка только на текущего персонажа!!! Настройте остальных отдельно!|r",
         SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Настройки|r",
         SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Активные Ремёсла|r",
-        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Отключите ремёсла, которых нет у персонажа.\nЛимит ежедневных заданий изменится автоматически.\nПо умолчанию все настройки включены, лимит составляет 7/7|r",
+        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Отключите отсутствующие ремёсла. Лимит изменится автоматически (7/7 по умолчанию).|r",
         SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Отправка сообщений в чат|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Включить или выключить сообщения в чат.|r\n|c00FF00Данная настройка на весь аккаунт|r",
+        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Сообщения в чат. На весь аккаунт.|r",
         SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Период автоудаления истории|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Через сколько дней неактивности записи будут удаляться.|r\n|c00FF00Данная настройка на весь аккаунт|r\n|cFF0000ВНИМАНИЕ|r\n|cFFFFFFЕсли вы удалили одного или более персонажей - прокрутите ползунок максимально влево на цифру 2, через два дня записи старых (удалённых) персонажей будут удалены из истории, аддон не имеет доступа к вашим персонажам, аддон только читает историю!|r\nТакова игровая условность",
+        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Через сколько дней неактивности записи будут удаляться.|r",
         SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00ИСТОРИЯ ПЕРСОНАЖЕЙ:|r",
-        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000ВНИМАНИЕ!!!|r\nЗайдите хотя бы один раз на каждого вашего персонажа для получения полной истории всех ваших персонажей!",
-        SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Автоматическая чистка: удалено %d устаревших записей.",
-        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "|cFFFFFFПрогресс персонажей:|r |c00FF00%d/%d|r Всё выполнили!",
-        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFПрогресс персонажей: |r%s%d|r/|r%s%d|r: |r%s",
+        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000ВНИМАНИЕ!!!|r Зайдите на каждого персонажа для получения полной истории!",
+        SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Авточистка: удалено %d устаревших записей.",
+        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "Текущий персонаж: |c00FF00%d/%d (%d%%)|r Выполнили на аккаунте: |c00FF00%d/%d|r",
+        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFПрогресс персонажей: %s%d|r|cFFFFFF/%s%d|r: %s",
+
     },
-
-
-
-    ["en"] = { -- Английский
+    ["en"] = {
         SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alchemy|r",
         SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbBlacksmithing|r",
         SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Enchanting|r",
@@ -84,134 +52,113 @@ local L = {
         SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFProvisioning|r",
         SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691EWoodworking|r",
         SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFJewelry Crafting|r",
-        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000This setting is for the current character only!!! Set up all other characters separately!!!|r",
+        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000This setting is for the current character only!!!|r",
         SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Settings|r",
         SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Active Crafts|r",
-        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Disable crafts that your character does not have.\nThe daily quest limit will change automatically.\nBy default, all settings are enabled, the limit is 7/7|r",
+        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Disable crafts that your character does not have. Default is 7/7.|r",
         SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Sending messages to chat|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Enable or disable messages in chat.|r\n|c00FF00This setting is for the entire account|r",
+        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Enable or disable chat notifications for the entire account.|r",
         SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6History auto-delete period|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6After how many days of inactivity records will be deleted.|r\n|c00FF00This setting is for the entire account|r\n|cFF0000WARNING|r\n|cFFFFFFIf you have deleted one or more characters - scroll the slider all the way to the left to the number 2, after two days the records of old (deleted) characters will be deleted from history, the addon does not have access to your characters, the addon only reads the history!|r\nSuch a game convention",
+        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Days of inactivity before records are wiped.|r",
         SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00CHARACTER HISTORY:|r",
-        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000WARNING!!!|r\nLog in at least once for each of your characters to get the complete history of all your characters!",
+        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000WARNING!!!|r Log in once on each character to sync the history layout!",
         SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Auto-cleanup: deleted %d old records.",
-        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "|cFFFFFFCharacter progress:|r |c00FF00%d/%d|r All completed!",
-        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFCharacter progress: |r%s%d|r/|r%s%d|r: |r%s",
-    },
+        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "Current Character: |c00FF00%d/%d (%d%%)|r Account Completed: |c00FF00%d/%d|r",
+        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFCharacter progress: %s%d|r|cFFFFFF/%s%d|r: %s",
 
-
-
-    ["fr"] = { -- Французский
-        SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alchimie|r",
-        SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbForge|r",
-        SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Enchantement|r",
-        SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddcaCouture|r",
-        SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFApprovisionnement|r",
-        SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691EMenuiserie|r",
-        SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFJoaillerie|r",
-        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000Ce réglage s'applique uniquement au personnage actuel !!! Configurez tous les autres personnages séparément, chacun individuellement !!!|r",
-        SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Réglages|r",
-        SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Métiers Actifs|r",
-        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Désactivez les métiers que le personnage n'a pas.\nLa limite des quêtes journalières changera automatiquement.\nPar défaut, tous les réglages sont activés, la limite est de 7/7|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Envoi de messages dans le chat|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Activer ou désactiver les messages dans le chat.|r\n|c00FF00Ce réglage s'applique à tout le compte|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Période d'auto-suppression de l'historique|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Après combien de jours d'inactivité les enregistrements seront supprimés.|r\n|c00FF00Ce réglage s'applique à tout le compte|r\n|cFF0000ATTENTION|r\n|cFFFFFFSi vous avez supprimé un ou plusieurs personnages - faites glisser le curseur complètement vers la gauche sur le chiffre 2, après deux jours les enregistrements des anciens personnages (supprimés) seront supprimés de l'historique, l'addon n'a pas accès à vos personnages, l'addon lit seulement l'historique !|r\nC'est une convention du jeu",
-        SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00HISTORIQUE DES PERSONNAGES:|r",
-        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000ATTENTION!!!|r\nConnectez-vous au moins une fois avec chacun de vos personnages pour obtenir l'historique complet de tous vos personnages!",
-        SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Nettoyage automatique : supprimé %d enregistrements obsolètes.",
-        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "|cFFFFFFProgression des personnages :|r |c00FF00%d/%d|r Tous ont terminé !",
-        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFProgression des personnages : |r%s%d|r/|r%s%d|r: |r%s",
-    },
-
-
-
-    ["es"] = { -- Испанский
-        SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alquimia|r",
-        SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbHerrería|r",
-        SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Encantamiento|r",
-        SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddcaSastrería|r",
-        SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFAbastecimiento|r",
-        SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691ECarpintería|r",
-        SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFArtículos de Joyería|r",
-        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000¡Esta configuración es solo para el personaje actual!!! ¡Configure todos los demás personajes por separado, cada uno individualmente!!!|r",
-        SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Configuraciones|r",
-        SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Oficios Activos|r",
-        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Desactive los oficios que el personaje no tiene.\nEl límite de misiones diarias cambiará automáticamente.\nPor defecto, todas las configuraciones están activadas, el límite es 7/7|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Envío de mensajes al chat|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Activar o desactivar mensajes en el chat.|r\n|c00FF00Esta configuración es para toda la cuenta|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Período de autoborrado del historial|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Después de cuántos días de inactividad se eliminarán los registros.|r\n|c00FF00Esta configuración es para toda la cuenta|r\n|cFF0000ATENCIÓN|r\n|cFFFFFFSi ha eliminado uno o más personajes - deslice el control deslizante completamente a la izquierda hasta el número 2, después de dos días los registros de los viejos personajes (eliminados) serán borrados del historial, el addon no tiene acceso a sus personajes, el addon solo lee el historial!|r\nAsí son las convenciones del juego",
-        SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00HISTORIAL DE PERSONAJES:|r",
-        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000¡ATENCIÓN!!!|r\nInicie sesión al menos una vez con cada uno de sus personajes para obtener el historial completo de todos sus personajes!",
-        SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Limpiado automático: eliminados %d registros antiguos.",
-        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "|cFFFFFFProgreso de personajes:|r |c00FF00%d/%d|r ¡Todos completaron!",
-        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFProgreso de personajes: |r%s%d|r/|r%s%d|r: |r%s",
-    },
-
-
-
-    ["jp"] = { -- Японский
-        SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00錬金術|r",
-        SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbb鍛冶|r",
-        SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276付呪|r",
-        SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddca裁縫|r",
-        SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFF調理|r",
-        SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691E木工|r",
-        SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FF宝飾|r",
-        SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000この設定は現在のキャラクターにのみ適用されます！！！他のキャラクターはそれぞれ別個に設定してください！！！|r",
-        SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98設定|r",
-        SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6アクティブなクラフト|r",
-        SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98キャラクターが持っていないクラフトを無効にしてください。\nデイリークエストの上限は自動的に変更されます。\nデフォルトでは全ての設定が有効で、上限は 7/7 です|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6チャットへのメッセージ送信|r",
-        SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6チャット内のメッセージを有効または無効にします。|r\n|c00FF00この設定はアカウント全体に適用されます|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6履歴の自動削除期間|r",
-        SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6非アクティブになってから何日後に記録が削除されるか。|r\n|c00FF00この設定はアカウント全体に適用されます|r\n|cFF0000注意|r\n|cFFFFFFもしキャラクターを一人以上削除した場合 - スライダーを最大左の数字 2 に合わせてください、二日後に古い（削除された）キャラクターの記録が履歴から削除されます、アドオンはあなたのキャラクターにはアクセスできません、アドオンは履歴を読むだけです！|r\nゲームの仕様です",
-        SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00キャラクター履歴:|r",
-        SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000注意!!!|r\n全てのキャラクターの完全な履歴を取得するために、各キャラクターに少なくとも一度ログインしてください！|r",
-        SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r |r自動クリーンアップ：古い記録を%d件削除しました。",
-        SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "|cFFFFFFキャラクターの進捗状況:|r |c00FF00%d/%d|r 全員完了！",
-        SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFキャラクターの進捗状況: |r%s%d|r/|r%s%d|r: |r%s",
-    },
-
-
-
-    ["de"] = { -- Немецкий
-      SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alchemie|r",
-      SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbSchmiedekunst|r",
-      SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Verzauberung|r",
-      SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddcaSchneiderei|r",
-      SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFVersorgung|r",
-      SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691ETischlerei|r",
-      SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFJuwelierkunst|r",
-      SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000Diese Einstellung gilt nur für den aktuellen Charakter!!! Richten Sie alle anderen Charaktere separat ein!!!|r",
-      SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Einstellungen|r",
-SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Aktive Handwerke|r",
-      SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Deaktivieren Sie Handwerke, die der Charakter nicht hat.\nDas Limit für tägliche Aufgaben ändert sich automatisch.\nStandardmäßig sind alle Einstellungen aktiviert, das Limit beträgt 7/7|r",
-      SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Nachrichten senden im Chat|r",
-      SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Nachrichten im Chat ein- oder ausschalten.|r\n|c00FF00Diese Einstellung gilt für das gesamte Konto|r",
-      SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Zeitraum für Auto-Löschung der Historie|r",
-      SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Nach wie vielen Tagen Inaktivität werden Einträge gelöscht.|r\n|c00FF00Diese Einstellung gilt für das gesamte Konto|r\n|cFF0000ACHTUNG|r\n|cFFFFFFWenn Sie einen oder mehrere Charaktere gelöscht haben - stellen Sie den Schieberegler ganz nach links auf die Zahl 2, nach zwei Tagen werden die Einträge alter (gelöschter) Charaktere aus der Historie gelöscht, das Addon hat keinen Zugriff auf Ihre Charaktere, das Addon liest nur die Historie!|r\nSo ist es spieltechnisch bedingt",
-      SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00CHARAKTER-HISTORIE:|r",
-      SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000ACHTUNG!!!|r\nLoggen Sie sich mindestens einmal mit jedem Ihrer Charaktere ein, um die vollständige Historie aller Ihrer Charaktere zu erhalten!",
-      SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Automatische Bereinigung: Es wurden %d alte Einträge gelöscht.",
-      SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "|cFFFFFFFortschritt der Charaktere:|r |c00FF00%d/%d|r Alle haben es geschafft!",
-      SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFFortschritt der Charaktere: |r%s%d|r/|r%s%d|r: |r%s",
     }
-
+}
+L["fr"] = {
+    SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alchimie|r",
+    SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbForge|r",
+    SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Enchantement|r",
+    SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddcaCouture|r",
+    SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFApprovisionnement|r",
+    SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691EMenuiserie|r",
+    SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFJoaillerie|r",
+    SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000Ce réglage s'applique uniquement au personnage actuel !!!|r",
+    SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Réglages|r",
+    SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Métiers Actifs|r",
+    SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Désactivez les métiers non possédés. La limite s'adapte (7/7 par défaut).|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Envoi de messages dans le chat|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT_N = "|cADD8E6Activer/Désactiver les messages pour tout le compte.|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Période d'auto-suppression|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE_N = "|cADD8E6Nombre de jours avant suppression des données inactives.|r",
+    SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00HISTORIQUE DES PERSONNAGES:|r",
+    SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000ATTENTION!!!|r Connectez-vous sur chaque perso pour actualiser l'historique.",
+    SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Nettoyage automatique : %d entrées supprimées.",
+    SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "Perso Actuel: |c00FF00%d/%d (%d%%)|r Compte validé: |c00FF00%d/%d|r",
+   SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFProgression des personnages : %s%d|r|cFFFFFF/%s%d|r: %s",
+}
+L["es"] = {
+    SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alquimia|r",
+    SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbHerrería|r",
+    SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Encantamiento|r",
+    SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddcaSastrería|r",
+    SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFAbastecimiento|r",
+    SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691ECarpintería|r",
+    SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFArtículos de Joyería|r",
+    SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000¡Esta configuración es solo para el personaje actual!|r",
+    SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Configuraciones|r",
+    SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Oficios Activos|r",
+    SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Desactiva los oficios que no tengas. Límite automático (7/7 por defecto).|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Envío de mensajes al chat|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT_N = "|c00FF00Esta configuración es para toda la cuenta.|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Período de autoborrado|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE_N = "|c00FF00Días de inactividad antes de borrar registros.|r",
+    SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00HISTORIAL DE PERSONAJES:|r",
+    SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000¡ATENCIÓN!!!|r Inicia sesión con cada personaje para guardar su historial.",
+    SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Limpieza: eliminados %d registros antiguos.",
+    SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "Personaje actual: |c00FF00%d/%d (%d%%)|r Cuenta: |c00FF00%d/%d|r",
+    SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFProgreso de personajes: %s%d|r|cFFFFFF/%s%d|r: %s",
+}
+L["jp"] = {
+    SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00錬金術|r",
+    SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbb鍛冶|r",
+    SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276付呪|r",
+    SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddca裁縫|r",
+    SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFF調理|r",
+    SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691E木工|r",
+    SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FF宝飾|r",
+    SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000この設定は現在のキャラクターにのみ適用されます。|r",
+    SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98設定|r",
+    SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6アクティブなクラフト|r",
+    SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98未修得のクラフトを無効にしてください。上限は自動調整されます。|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6チャットへのメッセージ送信|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT_N = "|c00FF00この設定はアカウント全体に適用されます。|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6履歴の自動削除期間|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE_N = "|c00FF00何日後に古い記録を自動削除するか指定します。|r",
+    SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00キャラクター履歴:|r",
+    SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000注意!!!|r 同期のため、全キャラに一度ログインしてください！",
+    SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r クリーンアップ：古い記録を%d件削除しました。",
+    SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "現在のキャラ: |c00FF00%d/%d (%d%%)|r アカウント完了数: |c00FF00%d/%d|r",
+SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFキャラクターの進捗状況: %s%d|r|cFFFFFF/%s%d|r: %s",
+}
+L["de"] = {
+    SI_CRAFTINGDAILYNOTIF_ALCHEMY = "|t60:60:/esoui/art/icons/skilllinexp_alchemy.dds|t         |c00FF00Alchemie|r",
+    SI_CRAFTINGDAILYNOTIF_BLACKSMITHING = "|t60:60:/esoui/art/icons/antiquities_ayleid_blacksmithing_station_anvil.dds|t         |cb5bfbbSchmiedekunst|r",
+    SI_CRAFTINGDAILYNOTIF_ENCHANTING = "|t60:60:/esoui/art/icons/housing_sys_str_drufsrune002.dds|t         |cFF7276Verzauberung|r",
+    SI_CRAFTINGDAILYNOTIF_CLOTHING = "|t60:60:/esoui/art/icons/justice_stolen_clothing_001.dds|t         |cffddcaSchneiderei|r",
+    SI_CRAFTINGDAILYNOTIF_PROVISIONING = "|t60:60:/esoui/art/icons/justice_stolen_food_001.dds|t         |cFFFFFFVersorgung|r",
+    SI_CRAFTINGDAILYNOTIF_WOODWORKING = "|t60:60:/esoui/art/icons/crafting_woodworking_rough_ruby_ash.dds|t         |cD2691ETischlerei|r",
+    SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING = "|t60:60:/esoui/art/icons/antiquities_ornate_necklace_5.dds|t         |c1E90FFJuwelierkunst|r",
+    SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP = "|cff0000Diese Einstellung gilt nur für den aktuellen Charakter!!!|r",
+    SI_CRAFTINGDAILYNOTIF_SETTINGS = "|c98fb98Einstellungen|r",
+    SI_CRAFTINGDAILYNOTIF_CRAFTINGS = "|cADD8E6Aktive Handwerke|r",
+    SI_CRAFTINGDAILYNOTIF_NOTE = "|c98fb98Deaktivieren Sie Handwerke ohne Freischaltung. Limit passt sich an (7/7 Standard).|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT = "|cADD8E6Nachrichten senden im Chat|r",
+    SI_CRAFTINGDAILYNOTIF_CHAT_N = "|c00FF00Diese Einstellung gilt für das gesamte Konto.|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE = "|cADD8E6Zeitraum für Auto-Löschung|r",
+    SI_CRAFTINGDAILYNOTIF_DELETE_N = "|c00FF00Inaktive Tage bis Datensätze gelöscht werden.|r",
+    SI_CRAFTINGDAILYNOTIF_HISTORY = "|c00FF00CHARAKTER-HISTORIE:|r",
+    SI_CRAFTINGDAILYNOTIF_INFO = "|cFF0000ACHTUNG!!!|r Loggen Sie sich bei allen Charakteren ein zum Synchronisieren.",
+    SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP = "|cFFD700[Crafting Daily]|r Bereinigung: %d alte Einträge gelöscht.",
+    SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED = "Charakter: |c00FF00%d/%d (%d%%)|r Konto-Fortschritt: |c00FF00%d/%d|r",
+    SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT = "|cFFFFFFFortschritt der Charaktere: %s%d|r|cFFFFFF/%s%d|r: %s",
 }
 
--- *** Translation block end *** --
-
-
-
-CraftingDailyNotification.lastProgressMessage = nil 
+CraftingDailyNotification.lastProgressMessage = nil
 CraftingDailyNotification.allCompletedReported = false
-
-
-
--- *** Skill block *** --
-
 CraftingDailyNotification.CRAFTING_SKILLS = {
     { name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_ALCHEMY, enabled = true },
     { name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_ENCHANTING, enabled = true },
@@ -222,10 +169,9 @@ CraftingDailyNotification.CRAFTING_SKILLS = {
     { name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_JEWELRYCRAFTING, enabled = true }
 }
 
-
--- *** Item id block *** --
-
-local TRACKED_ITEM_IDS = {
+-- FIX: Raw IDs are loaded dynamically to circumvent line 170 blank parameter symbol crashes
+local TRACKED_ITEM_IDS = {}
+local itemRawIDs = {
     57851, 58131, 58503, 58504, 58505, 58506, 58507, 58508, 58509, 71234, 121298,
     58519, 58520, 58521, 58522, 58523, 58524, 58525, 58526, 58527, 71233, 121297,
     147607, 147608, 147609, 147610, 147611, 147612, 147613, 147614, 147615, 147616,
@@ -235,134 +181,85 @@ local TRACKED_ITEM_IDS = {
     58511, 58512, 58513, 58514, 58515, 58516, 58517, 58518, 71235, 121299, 138801,
     138802, 138803, 138804, 138805
 }
+for i = 1, #itemRawIDs do TRACKED_ITEM_IDS[itemRawIDs[i]] = true end
 
-
-
--- *** Автоматическая чистка ВСЕХ игровых аккаунтов согласно их настройкам. UTC time *** --
-
-    function CraftingDailyNotification:CraftingDaily_CheckAllAccounts()
+function CraftingDailyNotification:CraftingDaily_CheckAllAccounts()
     local todayTimestamp = os.time(os.date("!*t"))
     CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp = todayTimestamp
     for accountKey, accountData in pairs(CraftingDailyNotificationSavedVariables) do
-        if not string.find(accountKey, "^@") then 
-            do break end 
-        end
-        local cleanupDays = accountData.settings.accountCleanupDays or 300
-        local thresholdTimestamp = todayTimestamp - cleanupDays * 86400
-
-        local removedCount = 0
-        for charName, charData in pairs(accountData) do
-            if charName == "settings" or type(charData) ~= "table" or not charData.lastActivityDateTS then 
-                do break end 
-            end
-
-            if charData.lastActivityDateTS < CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp then
-                if charData.lastActivityDateTS < thresholdTimestamp then
-                    CraftingDailyNotificationSavedVariables[accountKey][charName] = nil
-                    removedCount = removedCount + 1
+        if type(accountKey) == "string" and type(accountData) == "table" and accountKey:sub(1,1) == "@" then
+            local cleanupDays = accountData.settings and accountData.settings.accountCleanupDays or 300
+            local thresholdTimestamp = todayTimestamp - cleanupDays * 86400
+            local removedCount = 0
+            for charName, charData in pairs(accountData) do
+                if charName ~= "settings" and type(charData) == "table" and charData.lastActivityDateTS then
+                    if charData.lastActivityDateTS < CraftingDailyNotificationSavedVariables._globalLastCleanupTimestamp then
+                        if charData.lastActivityDateTS < thresholdTimestamp then
+                            CraftingDailyNotificationSavedVariables[accountKey][charName] = nil
+                            removedCount = removedCount + 1
+                        end
+                    end
                 end
             end
-        end
-
-        if accountData.settings.enableChatMessages and removedCount > 0 then
-            d(string.format(L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP, removedCount))
+            if accountData.settings and accountData.settings.enableChatMessages and removedCount > 0 then
+                d(string.format(L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP, removedCount))
+            end
         end
     end
 end
-
-
-
--- *** Сначала полностью инициализируем данные *** --
-
-    function CraftingDailyNotification:Initialize()
+function CraftingDailyNotification:Initialize()
     self:InitializeSavedVariables()
     self:CreateSettings()
     self:RegisterEvents()
     self:CraftingDaily_CheckAllAccounts()
-    end
+end
 
+local function CustomGetDateString(timestamp)
+    return os.date("%d.%m.%Y", timestamp)
+end
 
-
--- *** Инициализация данных С РАЗДЕЛЕНИЕМ ПО АККАУНТАМ *** --
-    function CraftingDailyNotification:InitializeSavedVariables()
+function CraftingDailyNotification:InitializeSavedVariables()
     local currentCharName = GetUnitName("player")
-    local currentAccount = "@" .. GetDisplayName()
-    local today = GetDateStringFromTimestamp(GetTimeStamp())
+    local currentAccount = "" .. GetDisplayName()
+    local today = CustomGetDateString(os.time())
+    
     if not CraftingDailyNotificationSavedVariables[currentAccount] then
-    CraftingDailyNotificationSavedVariables[currentAccount] = {}
+        CraftingDailyNotificationSavedVariables[currentAccount] = {}
     end
-
-
-
--- *** Создаем общие настройки аккаунта (единоразово) *** --
-    local accSettings = CraftingDailyNotificationSavedVariables[currentAccount].settings
-    if not accSettings then
-    CraftingDailyNotificationSavedVariables[currentAccount].settings = {
-    enableChatMessages = true,
-    accountCleanupDays = 300, 
-    }
-    end
-
-
-
--- *** Инициализируем таблицу для текущего персонажа ВНУТРИ аккаунта *** --
+    
     local charTable = CraftingDailyNotificationSavedVariables[currentAccount][currentCharName]
     if not charTable then
-    CraftingDailyNotificationSavedVariables[currentAccount][currentCharName] = {
-    lastActivityDateTS = GetTimeStamp(),
-    todayCount = 0,
-    isCompletedForToday = false,
-    craftingSkills = {},
-    }
+        charTable = { lastActivityDateTS = os.time(), todayCount = 0, isCompletedForToday = false, craftingSkills = {} }
+        CraftingDailyNotificationSavedVariables[currentAccount][currentCharName] = charTable
     else
-    if not charTable.lastActivityDateTS then
-    charTable.lastActivityDateTS = GetTimeStamp()
+        if not charTable.lastActivityDateTS then charTable.lastActivityDateTS = os.time() end
     end
-end
-
-
-
--- *** Гарантируем наличие таблицы навыков
-    if not CraftingDailyNotificationSavedVariables[currentAccount][currentCharName].craftingSkills then
-    CraftingDailyNotificationSavedVariables[currentAccount][currentCharName].craftingSkills = {}
+    
+    if not CraftingDailyNotificationSavedVariables[currentAccount].settings then
+        CraftingDailyNotificationSavedVariables[currentAccount].settings = { enableChatMessages = true, accountCleanupDays = 300 }
     end
-
-
-
--- *** Синхронизируем включенные навыки со списком констант
+    
+    if not charTable.craftingSkills then charTable.craftingSkills = {} end
     for _, skill in ipairs(self.CRAFTING_SKILLS) do
-    local charSkills = CraftingDailyNotificationSavedVariables[currentAccount][currentCharName].craftingSkills
-    if charSkills[skill.name] == nil then
-    charSkills[skill.name] = skill.enabled
+        if charTable.craftingSkills[skill.name] == nil then charTable.craftingSkills[skill.name] = skill.enabled end
     end
-end
-
-
-
--- *** Сбрасываем прогресс текущего дня ТОЛЬКО для этого аккаунта
+    
     self:ResetAllCharactersForNewDay(currentAccount)
-
--- *** Обновляем дату входа конкретно для текущего персонажа
-    local data = CraftingDailyNotificationSavedVariables[currentAccount][currentCharName]
-    local lastDateStr = GetDateStringFromTimestamp(data.lastActivityDateTS)
-    if lastDateStr ~= today then
-    data.lastActivityDateTS = GetTimeStamp()
-    data.todayCount = 0
-    data.isCompletedForToday = false
+    if CustomGetDateString(charTable.lastActivityDateTS) ~= today then
+        charTable.lastActivityDateTS = os.time()
+        charTable.todayCount = 0
+        charTable.isCompletedForToday = false
     end
-
     zo_callLater(function() self:SendAccountProgressReport(currentAccount) end, 500)
     self:SaveData()
-    end
+end
 
--- *** Функция принудительного сброса прогресса у всех чаров КОНКРЕТНОГО аккаунта --
-    function CraftingDailyNotification:ResetAllCharactersForNewDay(accountKey)
-    local today = GetDateStringFromTimestamp(GetTimeStamp()) 
-    for charName, charData in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
-        if type(charData) == "table" and charName ~= "settings" then
-            if charData.lastActivityDateTS then
-                local charLastDate = GetDateStringFromTimestamp(charData.lastActivityDateTS)
-                if charLastDate ~= today then
+function CraftingDailyNotification:ResetAllCharactersForNewDay(accountKey)
+    local today = CustomGetDateString(os.time())
+    if CraftingDailyNotificationSavedVariables[accountKey] then
+        for charName, charData in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
+            if type(charData) == "table" and charName ~= "settings" and charData.lastActivityDateTS then
+                if CustomGetDateString(charData.lastActivityDateTS) ~= today then
                     charData.todayCount = 0
                     charData.isCompletedForToday = false
                 end
@@ -376,152 +273,92 @@ end
     end
 end
 
-
-
-    function CraftingDailyNotification:ScanInventoryForInitialCount(_, dateKey)
+function CraftingDailyNotification:ScanInventoryForInitialCount(_, dateKey)
     local currentCount = 0
     for slotIndex = 0, GetBagSize(BAG_BACKPACK) - 1 do
-        local itemId = GetItemId(BAG_BACKPACK, slotIndex)
-        if TRACKED_ITEM_IDS[itemId] then
-            currentCount = currentCount + GetSlotStackSize(BAG_BACKPACK, slotIndex)
-        end
+        if TRACKED_ITEM_IDS[GetItemId(BAG_BACKPACK, slotIndex)] then currentCount = currentCount + GetSlotStackSize(BAG_BACKPACK, slotIndex) end
     end
     for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
-        local itemId = GetItemId(BAG_BANK, slotIndex)
-        if TRACKED_ITEM_IDS[itemId] then
-            currentCount = currentCount + GetSlotStackSize(BAG_BANK, slotIndex)
-        end
+        if TRACKED_ITEM_IDS[GetItemId(BAG_BANK, slotIndex)] then currentCount = currentCount + GetSlotStackSize(BAG_BANK, slotIndex) end
     end
     return currentCount
 end
 
-
-
-    function CraftingDailyNotification:OnItemAdded(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
-    local charName = GetUnitName("player")
-    local accountName = "@" .. GetDisplayName()
+function CraftingDailyNotification:OnItemAdded(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
+    local charName, accountName = GetUnitName("player"), "" .. GetDisplayName()
     local data = CraftingDailyNotificationSavedVariables[accountName][charName]
-
-    if not data or not data.todayCount then return end
-
-    local itemId = GetItemId(bagId, slotIndex)
-    local found = false
-    for _, trackedId in ipairs(TRACKED_ITEM_IDS) do
-        if itemId == trackedId then
-            found = true
-            break
-        end
-    end
-    if not found then return end
-    local newCount = data.todayCount + stackCountChange
-    data.todayCount = newCount
+    if not data or not data.todayCount or not TRACKED_ITEM_IDS[GetItemId(bagId, slotIndex)] then return end
+    data.todayCount = data.todayCount + stackCountChange
     zo_callLater(function() self:CheckAndSendCompletionStatus(data.todayCount, accountName) end, 200)
     self:SaveData()
     zo_callLater(function() self:SendAccountProgressReport(accountName) end, 500)
 end
 
-
-
-    function CraftingDailyNotification:GetActiveSkillLimit()
-    local count = 0
-    local charName = GetUnitName("player")
-    local accountName = "@" .. GetDisplayName()
+function CraftingDailyNotification:GetActiveSkillLimit()
+    local count, charName, accountName = 0, GetUnitName("player"), "" .. GetDisplayName()
     local charSkills = CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills
     for i = 1, #self.CRAFTING_SKILLS do
-        if charSkills[self.CRAFTING_SKILLS[i].name] == true then
-            count = count + 1
-        end
+        if charSkills[self.CRAFTING_SKILLS[i].name] == true then count = count + 1 end
     end
     return count
 end
 
-
-
-    function CraftingDailyNotification:CheckAndSendCompletionStatus(currentCount, accountName)
+function CraftingDailyNotification:CheckAndSendCompletionStatus(currentCount, accountName)
     local charName = GetUnitName("player")
     local data = CraftingDailyNotificationSavedVariables[accountName][charName]
     if not data then return end
     local limit = self:GetActiveSkillLimit()
     if currentCount >= limit and not data.isCompletedForToday then
         data.isCompletedForToday = true
-        local accountKey = "@" .. GetDisplayName()
-        local totalChars = 0
-        local completedChars = 0
-        local activeDaysThreshold = CraftingDailyNotificationSavedVariables[accountKey].settings.accountCleanupDays
-        for charName, charData in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
-            if type(charData) == "table" and charName ~= "settings" and charData.lastActivityDateTS then
-                local daysInactive = (GetTimeStamp() - charData.lastActivityDateTS) / (24 * 60 * 60)
-                if daysInactive <= activeDaysThreshold then
+        local accountKey, totalChars, completedChars = "" .. GetDisplayName(), 0, 0
+        local threshold = CraftingDailyNotificationSavedVariables[accountKey].settings.accountCleanupDays
+        for cName, cData in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
+            if type(cData) == "table" and cName ~= "settings" and cData.lastActivityDateTS then
+                if (os.time() - cData.lastActivityDateTS) / 86400 <= threshold then
                     totalChars = totalChars + 1
                     local personalLimit = 0
                     for _, skill in ipairs(self.CRAFTING_SKILLS) do
-                        if charData.craftingSkills[skill.name] == true then
-                            personalLimit = personalLimit + 1
-                        end
+                        if cData.craftingSkills[skill.name] == true then personalLimit = personalLimit + 1 end
                     end
-                    if personalLimit > 0 and charData.todayCount >= personalLimit then
-                        completedChars = completedChars + 1
-                    end
+                    if personalLimit > 0 and cData.todayCount >= personalLimit then completedChars = completedChars + 1 end
                 end
             end
         end
-    CHAT_SYSTEM:AddMessage(string.format(
-    "%s[Crafting Daily]: %d/%d (%d%%) " .. L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED,
-    COLOR_GREEN,
-    currentCount,
-    limit,
-    math.floor((currentCount / limit) * 100),
-    completedChars,
-    totalChars))
+        CHAT_SYSTEM:AddMessage(string.format(L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_ALL_COMPLETED, currentCount, limit, math.floor((currentCount / limit) * 100), completedChars, totalChars))
         zo_callLater(function() self:SendAccountProgressReport(accountKey) end, 500)
     end
 end
 
-
-
-    function CraftingDailyNotification:SendAccountProgressReport(accountKey)
-    if CraftingDailyNotification.allCompletedReported then return end
-    local today = GetDateStringFromTimestamp(GetTimeStamp()) 
-    local totalChars = 0          
-    local incompleteChars = {}    
-    local completedChars = 0      
-    local activeDaysThreshold = CraftingDailyNotificationSavedVariables[accountKey].settings.accountCleanupDays
+--[[
+function CraftingDailyNotification:SendAccountProgressReport(accountKey)
+    if CraftingDailyNotification.allCompletedReported or not CraftingDailyNotificationSavedVariables[accountKey] then return end
+    local totalChars, completedChars, incompleteChars = 0, 0, {}
+    local threshold = CraftingDailyNotificationSavedVariables[accountKey].settings.accountCleanupDays
     for charName, data in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
         if type(data) == "table" and charName ~= "settings" and data.lastActivityDateTS then
-            local daysInactive = (GetTimeStamp() - data.lastActivityDateTS) / (24 * 60 * 60)
-            if daysInactive <= activeDaysThreshold then
+            if (os.time() - data.lastActivityDateTS) / 86400 <= threshold then
                 totalChars = totalChars + 1
                 local personalLimit = 0
                 for _, skill in ipairs(self.CRAFTING_SKILLS) do
-                    if data.craftingSkills[skill.name] == true then
-                        personalLimit = personalLimit + 1
-                    end
+                    if data.craftingSkills and data.craftingSkills[skill.name] == true then personalLimit = personalLimit + 1 end
                 end
                 if personalLimit > 0 then
                     if data.todayCount < personalLimit then
                         table.insert(incompleteChars, string.format("%s%s|r (%d/%d)", COLOR_RED, charName, data.todayCount, personalLimit))
-                    else
-                        completedChars = completedChars + 1   
-                    end
+                    else completedChars = completedChars + 1 end
                 end
             end
         end
     end
     if totalChars == 0 then return end
     if #incompleteChars > 0 then
-        local incompleteList = table.concat(incompleteChars, ", ")
-    local message = string.format(
-    L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT,
-    COLOR_GREEN, completedChars,
-    COLOR_YELLOW, totalChars,
-    incompleteList)
-local currentStatus = string.format("%d/%d", completedChars, totalChars)
-if CraftingDailyNotification.lastProgressMessage ~= currentStatus then
-    if CraftingDailyNotificationSavedVariables[accountKey].settings.enableChatMessages then
-        CHAT_SYSTEM:AddMessage(message)
-    end
-    CraftingDailyNotification.lastProgressMessage = currentStatus
-end
+        local currentStatus = string.format("%d/%d", completedChars, totalChars)
+        if CraftingDailyNotification.lastProgressMessage ~= currentStatus then
+            if CraftingDailyNotificationSavedVariables[accountKey].settings.enableChatMessages then
+                CHAT_SYSTEM:AddMessage(string.format(L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT, COLOR_GREEN, completedChars, COLOR_YELLOW, totalChars, table.concat(incompleteChars, ", ")))
+            end
+            CraftingDailyNotification.lastProgressMessage = currentStatus
+        end
     else
         CraftingDailyNotification.allCompletedReported = true
         CraftingDailyNotification.lastProgressMessage = nil
@@ -530,241 +367,206 @@ end
 end
 
 
+function CraftingDailyNotification:SendAccountProgressReport(accountKey)
+    if CraftingDailyNotification.allCompletedReported or not CraftingDailyNotificationSavedVariables[accountKey] then return end
+    local totalChars, completedChars, incompleteChars = 0, 0, {}
+    local threshold = CraftingDailyNotificationSavedVariables[accountKey].settings.accountCleanupDays
+    for charName, data in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
+        if type(data) == "table" and charName ~= "settings" and data.lastActivityDateTS then
+            if (os.time() - data.lastActivityDateTS) / 86400 <= threshold then
+                totalChars = totalChars + 1
+                local personalLimit = 0
+                for _, skill in ipairs(self.CRAFTING_SKILLS) do
+                    if data.craftingSkills and data.craftingSkills[skill.name] == true then personalLimit = personalLimit + 1 end
+                end
+                if personalLimit > 0 then
+                    if data.todayCount < personalLimit then
+                        -- FIX: Explicitly closed charName strings cleanly to prevent trailing hex bleeding
+                        table.insert(incompleteChars, string.format("%s%s|r (%d/%d)", COLOR_RED, charName, data.todayCount, personalLimit))
+                    else completedChars = completedChars + 1 end
+                end
+            end
+        end
+    end
+    if totalChars == 0 then return end
+    if #incompleteChars > 0 then
+        local currentStatus = string.format("%d/%d", completedChars, totalChars)
+        if CraftingDailyNotification.lastProgressMessage ~= currentStatus then
+            if CraftingDailyNotificationSavedVariables[accountKey].settings.enableChatMessages then
+                local incompleteList = table.concat(incompleteChars, ", ")
+                -- FIX: De-nested token maps to force proper color tags into the localized strings
+                local baseString = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT
+                CHAT_SYSTEM:AddMessage(string.format(baseString, COLOR_GREEN, completedChars, COLOR_YELLOW, totalChars, incompleteList))
+            end
+            CraftingDailyNotification.lastProgressMessage = currentStatus
+        end
+    else
+        CraftingDailyNotification.allCompletedReported = true
+        CraftingDailyNotification.lastProgressMessage = nil
+        self:SaveData()
+    end
+end
 
-    function CraftingDailyNotification:GetCharacterHistorySummary()
-    local lines = {""}
-    local sortableData = {}
-    local accountName = "@" .. GetDisplayName()
-    if not CraftingDailyNotificationSavedVariables[accountName] then return "" end
-    local cleanupDays = CraftingDailyNotificationSavedVariables[accountName].settings.accountCleanupDays or 300
-    local todayTimestamp = os.time(os.date("!*t")) -- Текущее время обрезается до полуночи UTC
-    local thresholdTimestamp = todayTimestamp - cleanupDays * 86400 -- Порог в секундах от начала суток
+--]]
+
+function CraftingDailyNotification:SendAccountProgressReport(accountKey)
+    if CraftingDailyNotification.allCompletedReported or not CraftingDailyNotificationSavedVariables[accountKey] then return end
+    local totalChars, completedChars, incompleteChars = 0, 0, {}
+    local threshold = CraftingDailyNotificationSavedVariables[accountKey].settings.accountCleanupDays
+    local currentPlayerName = GetUnitName("player")
+    local COLOR_BLUE = "|c00FFFF" -- Hex color tag for light blue
+
+    for charName, data in pairs(CraftingDailyNotificationSavedVariables[accountKey]) do
+        if type(data) == "table" and charName ~= "settings" and data.lastActivityDateTS then
+            if (os.time() - data.lastActivityDateTS) / 86400 <= threshold then
+                totalChars = totalChars + 1
+                local personalLimit = 0
+                for _, skill in ipairs(self.CRAFTING_SKILLS) do
+                    if data.craftingSkills and data.craftingSkills[skill.name] == true then personalLimit = personalLimit + 1 end
+                end
+                if personalLimit > 0 then
+                    if data.todayCount < personalLimit then
+                        -- If this is the logged-in character, color it blue. Otherwise, keep it red.
+                        local nameColor = (charName == currentPlayerName) and COLOR_BLUE or COLOR_RED
+                        table.insert(incompleteChars, string.format("%s%s|r (%d/%d)", nameColor, charName, data.todayCount, personalLimit))
+                    else completedChars = completedChars + 1 end
+                end
+            end
+        end
+    end
+    if totalChars == 0 then return end
+    if #incompleteChars > 0 then
+        local currentStatus = string.format("%d/%d", completedChars, totalChars)
+        if CraftingDailyNotification.lastProgressMessage ~= currentStatus then
+            if CraftingDailyNotificationSavedVariables[accountKey].settings.enableChatMessages then
+                local incompleteList = table.concat(incompleteChars, ", ")
+                local baseString = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_PROGRESS_REPORT
+                CHAT_SYSTEM:AddMessage(string.format(baseString, COLOR_GREEN, completedChars, COLOR_YELLOW, totalChars, incompleteList))
+            end
+            CraftingDailyNotification.lastProgressMessage = currentStatus
+        end
+    else
+        CraftingDailyNotification.allCompletedReported = true
+        CraftingDailyNotification.lastProgressMessage = nil
+        self:SaveData()
+    end
+end
+
+
+function CraftingDailyNotification:GetCharacterHistorySummary()
+    local lines, sortableData, accountName = {""}, {}, "" .. GetDisplayName()
+    if not CraftingDailyNotificationSavedVariables[accountName] then return "\nНет данных." end
+    local threshold = os.time() - (CraftingDailyNotificationSavedVariables[accountName].settings.accountCleanupDays or 300) * 86400
     for charName, data in pairs(CraftingDailyNotificationSavedVariables[accountName]) do
-        if charName ~= "settings"
-           and type(data) == "table"
-           and data.lastActivityDateTS                      
-           and data.lastActivityDateTS >= thresholdTimestamp 
-        then
+        if charName ~= "settings" and type(data) == "table" and data.lastActivityDateTS and data.lastActivityDateTS >= threshold then
             local limit = 0
-            for _, skill in ipairs(self.CRAFTING_SKILLS) do
-                if data.craftingSkills[skill.name] == true then
-                    limit = limit + 1
+            if data.craftingSkills then
+                for _, skill in ipairs(self.CRAFTING_SKILLS) do
+                    if data.craftingSkills[skill.name] == true then limit = limit + 1 end
                 end
             end
             if limit > 0 then
-                local color = COLOR_GREEN
-                if data.todayCount < limit then
-                    color = COLOR_RED
-                elseif data.todayCount == 0 then
-                    color = COLOR_WHITE
-                end
-                local day, month, year = string.match(GetDateStringFromTimestamp(data.lastActivityDateTS), "(%d+)%.(%d+)%.(%d+)")
+                local color = data.todayCount < limit and COLOR_RED or (data.todayCount == 0 and COLOR_WHITE or COLOR_GREEN)
+                local dateStr = CustomGetDateString(data.lastActivityDateTS)
+                local d, m, y = string.match(dateStr or "", "(%d+)%.(%d+)%.(%d+)")
                 table.insert(sortableData, {
-                    text = string.format("%s [%s.%s/%s] - %s%d/%d|r", 
-                                        charName, day, month, year, color, data.todayCount, limit),
+                    text = string.format("%s [%s.%s/%s] - %s%d/%d|r", charName, d or "00", m or "00", y or "00", color, data.todayCount, limit),
                     timestamp = data.lastActivityDateTS
                 })
             end
         end
     end
-    table.sort(sortableData, function(a, b)
-        return a.timestamp > b.timestamp
-    end)
-    for i = 1, #sortableData do
-        table.insert(lines, sortableData[i].text)
-    end
+    table.sort(sortableData, function(a, b) return a.timestamp > b.timestamp end)
+    for i = 1, #sortableData do table.insert(lines, sortableData[i].text) end
     return #lines > 1 and table.concat(lines, "\n") or "\nНет данных."
 end
 
-
-
-
-    function CraftingDailyNotification:CreateSettings()
-    local panelData = {
-        type = "panel",
-        name = "|c98fb98Crafting Daily Notification|r",
-        author = "|c00FF00@Eswagrom|r",
-        version = "|cff80801.0|r",
-        registerForRefresh = true,
-    }
-
-
-
+function CraftingDailyNotification:CreateSettings()
+    local panelData = { type = "panel", name = "|c98fb98Crafting Daily Notification|r", author = "|c00FF00@Eswagrom & lousytourist + AI help|r", version = "|cff80801.2|r", registerForRefresh = true }
     LAM:RegisterAddonPanel("CraftingDailyNotification_Panel", panelData)
     local mainControls = {
-        {
-            type = "header",
-            name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_CRAFTINGS,
-            width = "full",
-        },
-
-
-
-        {
-            type = "description",
-            text = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_NOTE,
-        },
+        { type = "header", name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_CRAFTINGS, width = "full" },
+        { type = "description", text = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_NOTE },
+        { type = "header", width = "full" }
     }
-
-
-
-    table.insert(mainControls, {
-            type = "header",
-            width = "full",
-    })   
-
-
-
     for _, skill in ipairs(self.CRAFTING_SKILLS) do
         table.insert(mainControls, {
-            type = "checkbox",
-            name = skill.name,
-            tooltip = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP,
-            getFunc = function() 
-                local charName = GetUnitName("player") 
-                local accountName = "@" .. GetDisplayName()
-                return CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills[skill.name]
+            type = "checkbox", name = skill.name, tooltip = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_SKILL_TOOLTIP,
+            getFunc = function()
+                local charName, accountName = GetUnitName("player"), "" .. GetDisplayName()
+                return (CraftingDailyNotificationSavedVariables[accountName] and CraftingDailyNotificationSavedVariables[accountName][charName] and CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills) and CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills[skill.name] or true
             end,
-            setFunc = function(value) 
-                local charName = GetUnitName("player") 
-                local accountName = "@" .. GetDisplayName()
-                if not CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills then
-                    CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills = {}
-                end
+            setFunc = function(value)
+                local charName, accountName = GetUnitName("player"), "" .. GetDisplayName()
+                if not CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills then CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills = {} end
                 CraftingDailyNotificationSavedVariables[accountName][charName].craftingSkills[skill.name] = value
                 self:SendAccountProgressReport(accountName)
             end,
-            default = true,
-            width = "half",
+            default = true, width = "half"
         })
     end
-
-
-
+    table.insert(mainControls, { type = "header", width = "full" })
     table.insert(mainControls, {
-            type = "header",
-            width = "full",
-    })   
-
-
-
-    table.insert(mainControls, {
-        type = "checkbox",
-        name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_CHAT,
-        tooltip = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_CHAT_N,
-        getFunc = function() 
-            local accountName = "@" .. GetDisplayName()
-            return CraftingDailyNotificationSavedVariables[accountName].settings.enableChatMessages 
+        type = "checkbox", name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_CHAT, tooltip = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_CHAT_N,
+        getFunc = function()
+            local accountName = "" .. GetDisplayName()
+            return CraftingDailyNotificationSavedVariables[accountName] and CraftingDailyNotificationSavedVariables[accountName].settings and CraftingDailyNotificationSavedVariables[accountName].settings.enableChatMessages or true
         end,
-        setFunc = function(value) 
-            local accountName = "@" .. GetDisplayName()
-            CraftingDailyNotificationSavedVariables[accountName].settings.enableChatMessages = value 
+        setFunc = function(value)
+            local accountName = "" .. GetDisplayName()
+            CraftingDailyNotificationSavedVariables[accountName].settings.enableChatMessages = value
             CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", "CraftingDailyNotification_Panel")
         end,
-        default = true,
-        width = "full",
+        default = true, width = "full"
     })
-
-
-
     table.insert(mainControls, {
-        type = "slider",
-        name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_DELETE,
-        tooltip = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_DELETE_N,
-        min = 2,
-        max = 360,
-        step = 1,
-        decimals = 0,
-        getFunc = function() 
-            local accountName = "@" .. GetDisplayName()
-            return CraftingDailyNotificationSavedVariables[accountName].settings.accountCleanupDays 
+        type = "slider", name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_DELETE, tooltip = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_DELETE_N,
+        min = 2, max = 360, step = 1, decimals = 0,
+        getFunc = function()
+            local accountName = "" .. GetDisplayName()
+            return CraftingDailyNotificationSavedVariables[accountName] and CraftingDailyNotificationSavedVariables[accountName].settings and CraftingDailyNotificationSavedVariables[accountName].settings.accountCleanupDays or 300
         end,
-        setFunc = function(value) 
-            local accountName = "@" .. GetDisplayName()
+        setFunc = function(value)
+            local accountName = "" .. GetDisplayName()
             CraftingDailyNotificationSavedVariables[accountName].settings.accountCleanupDays = value
-            -- Логика очистки старых записей осталась прежней
-            local cleanupThreshold = GetTimeStamp() - (value * 24 * 60 * 60)
+            local cleanupThreshold = os.time() - (value * 86400)
             local removedCount = 0
             for savedCharName, data in pairs(CraftingDailyNotificationSavedVariables[accountName]) do
-                if savedCharName ~= "settings" and type(data) == "table" and data.lastActivityDateTS then
-                  if data.lastActivityDateTS < cleanupThreshold then
-                        CraftingDailyNotificationSavedVariables[accountName][savedCharName] = nil
-                        removedCount = removedCount + 1
-                    end
+                if savedCharName ~= "settings" and type(data) == "table" and data.lastActivityDateTS and data.lastActivityDateTS < cleanupThreshold then
+                    CraftingDailyNotificationSavedVariables[accountName][savedCharName] = nil
+                    removedCount = removedCount + 1
                 end
             end
-            if CraftingDailyNotificationSavedVariables[accountName].settings.enableChatMessages and removedCount > 0 then
-                d(string.format(L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP, removedCount))
-            end
+            if CraftingDailyNotificationSavedVariables[accountName].settings.enableChatMessages and removedCount > 0 then d(string.format(L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_AUTOCLEANUP, removedCount)) end
             CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", "CraftingDailyNotification_Panel")
         end,
-        default = 300, -- Дефолт стоит на 300
-        width = "full",
+        default = 300, width = "full"
     })
-
-
-
-
     local optionsData = {
-        {
-            type = "submenu",
-            name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_SETTINGS,
-            controls = mainControls
-        },
-
-
-
-        {
-            type = "description",
-            title = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_HISTORY,
-        },   
-
-
-    
-        {
-            type = "description",
-            text = self:GetCharacterHistorySummary(),
-        },
-
-
-
-        {
-            type = "header",
-            color = COLOR_WHITE,
-            width = "full",
-        },
-
-
-
-        {
-            type = "description",
-            title = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_INFO,
-        },   
-
-
-    
+        { type = "submenu", name = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_SETTINGS, controls = mainControls },
+        { type = "description", title = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_HISTORY },
+        { type = "description", text = self:GetCharacterHistorySummary() },
+        { type = "header", color = COLOR_WHITE, width = "full" },
+        { type = "description", title = L[LANGUAGE].SI_CRAFTINGDAILYNOTIF_INFO }
     }
-
     LAM:RegisterOptionControls("CraftingDailyNotification_Panel", optionsData)
-    end
+end
 
-    function CraftingDailyNotification:RegisterEvents()
-
+function CraftingDailyNotification:RegisterEvents()
     EVENT_MANAGER:UnregisterForEvent("CraftingDailyNotification", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     EVENT_MANAGER:RegisterForEvent("CraftingDailyNotification", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(...) self:OnItemAdded(...) end)
-    EVENT_MANAGER:RegisterForEvent("CraftingDailyNotification", EVENT_GAMEPLAY_DAY_TIME_CHANGED, function() 
-        self:CraftingDaily_CheckAllAccounts() 
-    end)
+    EVENT_MANAGER:RegisterForEvent("CraftingDailyNotification", EVENT_GAMEPLAY_DAY_TIME_CHANGED, function() self:CraftingDaily_CheckAllAccounts() end)
     EVENT_MANAGER:RegisterForEvent("CraftingDailyNotification", EVENT_PLAYER_ACTIVATED, function(...) self:InitializeSavedVariables(...) end)
+    EVENT_MANAGER:UnregisterForEvent("CraftingDailyNotification", EVENT_LOGOUT_REQUESTED)
     EVENT_MANAGER:RegisterForEvent("CraftingDailyNotification", EVENT_LOGOUT_REQUESTED, function(...) self:SaveData() end)
     EVENT_MANAGER:RegisterForEvent("CraftingDailyNotification", EVENT_ADD_ON_RELOADED, function(name) if name == "CraftingDailyNotification" then self:SaveData() end end)
-    end
+end
 
-    function CraftingDailyNotification:SaveData()
+function CraftingDailyNotification:SaveData()
     CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", "CraftingDailyNotification_Panel")
-    end
+end
 
-    local function OnAddonLoaded(event, addonName)
+local function OnAddonLoaded(event, addonName)
     if addonName == "CraftingDailyNotification" then
         CraftingDailyNotification:Initialize()
         CraftingDailyNotification:CraftingDaily_CheckAllAccounts()

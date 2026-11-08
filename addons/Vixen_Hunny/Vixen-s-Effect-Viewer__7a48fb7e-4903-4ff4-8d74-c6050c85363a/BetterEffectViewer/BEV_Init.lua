@@ -2,53 +2,33 @@ local BEV = BetterEffectViewer
 
 function BEV:Initialize()
     self.sv = ZO_SavedVars:NewAccountWide("BetterEffectViewer_SV", 3, nil, self.defaults)
-    self:EnsureSavedVarSchema()
+    self:MigrateSavedVars()
 
-    self.reticleHoldDuration = self.sv.reticleHoldDuration
-    self.targetSwitchDelay = self.sv.targetSwitchDelay
-
-    self.lockedPlayerName = nil
-    self.lockedIsActive = false
+    self.hasTarget = false
+    self.targetLostAt = nil
     self.needsRedraw = false
-    self.currentReticleKey = nil
-    self.visibleBuffSlotCount = 0
-    self.visibleDebuffSlotCount = 0
-    self.lastLayoutKey = nil
+    self.nextRescanAt = 0
     self.nextMaintenanceAt = 0
     self.nextVisualUpdateAt = 0
-    self.nextFallbackRescanAt = 0
 
     self:ApplyRuntimePlatformTuning()
-    self:ApplyCurrentLayout()
-
     self:CreateUI()
+    self:ApplyCurrentLayout()
+    self:ApplyLockState()
+
     self:CreateSettingsMenu()
-    self:ResetEffects()
+    self:RegisterSlashCommands()
+    self:RegisterEvents()
 
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_RETICLE_TARGET_CHANGED, function()
-        self:OnReticleTargetChanged()
-    end)
-
-    self:RegisterEffectEvents()
-
-    EVENT_MANAGER:RegisterForEvent(self.name .. "_Zone", EVENT_PLAYER_ACTIVATED, function()
-        self:ApplyCurrentLayout()
-    end)
-
-    EVENT_MANAGER:RegisterForUpdate(self.name .. "_Update", 100, function()
-        self:OnUpdate()
-    end)
-
-    self:RescanReticleBuffs()
+    self:OnReticleTargetChanged()
 end
 
-local function OnAddonLoaded(eventCode, addonName)
-    if addonName ~= BetterEffectViewer.name then
+local function OnAddonLoaded(_, addonName)
+    if addonName ~= BEV.name then
         return
     end
-
-    EVENT_MANAGER:UnregisterForEvent(BetterEffectViewer.name, EVENT_ADD_ON_LOADED)
+    EVENT_MANAGER:UnregisterForEvent(BEV.name, EVENT_ADD_ON_LOADED)
     BEV:Initialize()
 end
 
-EVENT_MANAGER:RegisterForEvent(BetterEffectViewer.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+EVENT_MANAGER:RegisterForEvent(BEV.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)

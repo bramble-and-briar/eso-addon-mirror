@@ -1,7 +1,8 @@
 ------------------------------------------------------------
 -- RÉGLAGES (modifie ici)
+-- Les textes affichés sont dans lang/default.lua (anglais) et lang/fr.lua (français)
 ------------------------------------------------------------
-local VERSION_ADDON       = "v1.1"   -- version affichée à côté du titre (même couleur que le titre)
+local VERSION_ADDON       = "v1.2"   -- version affichée à côté du titre (même couleur que le titre)
 
 local TAILLE_ICONE        = 60     -- taille de l'icône de l'addon (en pixels)
 local FOND_BOUTON         = false  -- true = fond noir translucide derrière l'icône
@@ -24,8 +25,8 @@ local ICONE_VOYANT_KO     = "/esoui/art/contacts/social_status_dnd.dds"      -- 
 local TAILLE_VOYANT       = 28     -- taille des voyants vert / rouge (pixels)
 local LARGEUR_INFOBULLE_HISTO = 480   -- largeur maximale de l'infobulle du voyant (pixels) ; le texte passe à la ligne
 
-local TEXTE_HISTO_INCOMPLET = "Historique incomplet : sans trou depuis le %s."   -- %s = date, ne pas l'enlever
-local TEXTE_HISTO_AIDE = COUL_ERREUR .. "Patientez ou listez manuellement les pages de l'historique du Marchand (option guilde) pour accélérer la récupération, puis relancez l'opération. Le voyant restera rouge si les données sont manquantes sur la période : pas de marchand de guilde, guilde rejointe depuis moins de 7 jours, trou dans l'historique, etc."
+local TEXTE_HISTO_INCOMPLET = GetString(CARACVENTES_HISTO_INCOMPLET)   -- contient %s = date (voir lang/)
+local TEXTE_HISTO_AIDE = COUL_ERREUR .. GetString(CARACVENTES_HISTO_AIDE)
 
 local COUL_CHAMP_RECHERCHE = "FFD700"   -- couleur du nom écrit dans la zone de recherche  
 
@@ -40,11 +41,11 @@ local NB_LETTRES_AIDE     = 3      -- nombre de lettres tapées avant l'ouvertur
 local NB_PROPOSITIONS     = 8      -- nombre maximum de joueurs proposés
 local LARGEUR_PROPOSITIONS = 280   -- largeur de la liste de propositions (pixels)
 
-local TITRE_DERNIERES_VENTES = "Dernière(s) vente(s) enregistrée(s)"   -- titre de la section des objets vendus
+local TITRE_DERNIERES_VENTES = GetString(CARACVENTES_TITRE_DERNIERES_VENTES)   -- titre de la section des objets vendus
 local NB_LIGNES_VENTES    = 6      -- nombre de lignes visibles dans la section (les autres défilent)
-local TEXTE_BTN_AFFICHER  = "Afficher"
-local TEXTE_BTN_MASQUER   = "Masquer"
-local TEXTE_STATUT_PRET   = "Prêt."   -- message affiché à l'ouverture de la fenêtre
+local TEXTE_BTN_AFFICHER  = GetString(CARACVENTES_BTN_AFFICHER)
+local TEXTE_BTN_MASQUER   = GetString(CARACVENTES_BTN_MASQUER)
+local TEXTE_STATUT_PRET   = GetString(CARACVENTES_STATUT_PRET)   -- message affiché à l'ouverture de la fenêtre
 local PRIX_EST_POUR_LE_LOT = true  -- true : le prix donné par le jeu est celui du lot entier ; false : celui d'une pièce
 local LARGEUR_SEPARATEUR  = 0.7    -- largeur des lignes de séparation (0.5 = moitié du tableau, 1 = toute la largeur)
 local ICONE_FLECHE_HAUT   = "/esoui/art/buttons/scrollbox_uparrow_up.dds"     -- flèche ▲ de la barre de défilement
@@ -56,9 +57,9 @@ local POLICE_STATUT       = "ZoFontGameBold"   -- police des messages d'informat
 
 local LARGEUR_TABLEAU     = 880
 
-local TEXTE_INFO_COLLECTER = "Lance la récupération des ventes."
-local TEXTE_INFO_PURGER    = "Efface les données sauvegardées, à utiliser notamment lors de la première utilisation, si les ventes ne s'affichent pas."
-local TEXTE_INFO_FERMER    = "Ferme la fenêtre."
+local TEXTE_INFO_COLLECTER = GetString(CARACVENTES_INFO_COLLECTER)
+local TEXTE_INFO_PURGER    = GetString(CARACVENTES_INFO_PURGER)
+local TEXTE_INFO_FERMER    = GetString(CARACVENTES_INFO_FERMER)
 
 ------------------------------------------------------------
 -- FIN DES RÉGLAGES
@@ -83,7 +84,7 @@ CV.defaults = {
     fenetre = { x = 200, y = 200 },
     guildesDesactivees = {},   -- [guildId] = true si décochée
     options = { taxeDeduite = true, nbMeilleurs = NB_MEILLEURS_DEFAUT, opacite = OPACITE_FOND },
-    -- Totaux seulement : [guildId] = { nom, dernierId, dernierTs, couvertDepuis, collecte,
+    -- Totaux seulement : [guildId] = { nom, collecte, couvertDepuis, plages,
     --   sem = { [début de semaine] = { [vendeur normalisé] = { n = nom, b = brut, t = taxe, c = nombre } } } }
     ventes = {},
 }
@@ -238,7 +239,7 @@ local function DebutsDePeriode()
 end
 
 local function DateLisible(ts)
-    return os.date("!%d/%m/%Y %H:%M UTC", ts)
+    return os.date("!" .. GetString(CARACVENTES_DATE_FORMAT), ts)
 end
 
 -- ajoute une vente aux totaux : semaines[début de semaine][vendeur] = { n, b, t, c }
@@ -334,21 +335,21 @@ end
 ---------------------------------------------------------------
 local COLONNES = {
     -- { clé, titre, x, largeur }
-    { "nom",   "Guilde(s)",    44,  190 },
-    { "moi",   "Ventes",       250, 160 },
-    { "gui",   "Total guilde", 420, 160 },
-    { "gains", "Gains Guilde", 590, 160 },
-    { "histo", "Historique",   760, 100 },
+    { "nom",   GetString(CARACVENTES_COL_GUILDES),       44,  190 },
+    { "moi",   GetString(CARACVENTES_COL_VENTES),       250, 160 },
+    { "gui",   GetString(CARACVENTES_COL_TOTAL_GUILDE), 420, 160 },
+    { "gains", GetString(CARACVENTES_COL_GAINS_GUILDE), 590, 160 },
+    { "histo", GetString(CARACVENTES_COL_HISTORIQUE),   760, 100 },
 }
 
 local CLES_CHIFFRES = { "moi", "gui", "gains" }
 
 -- colonnes de la section "Dernières ventes" : { clé, titre, x, largeur }
 local COLONNES_VENTES = {
-    { "article", "Article",    54,  300 },
-    { "unite",   "Prix/pièce", 360, 150 },
-    { "total",   "Prix total", 520, 160 },
-    { "acheteur", "Acheteur",  700, 150 },
+    { "article",  GetString(CARACVENTES_COLV_ARTICLE),  54,  300 },
+    { "unite",    GetString(CARACVENTES_COLV_UNITE),    360, 150 },
+    { "total",    GetString(CARACVENTES_COLV_TOTAL),    520, 160 },
+    { "acheteur", GetString(CARACVENTES_COLV_ACHETEUR), 700, 150 },
 }
 
 function CV:ChoisirSemaine(code)
@@ -385,11 +386,11 @@ function CV:CreerTableau()
     local version = CreerLabel("CaracVentesTableauVersion", c, "ZoFontGame",
         COUL_TITRE .. VERSION_ADDON .. "|r", 12 + titre:GetTextWidth() + 8, 8, 70, 26)
 
-    local bT, lT = CreerCaseACocher("CaracVentesCaseTaxe", c, "Ventes taxes déduites",
+    local bT, lT = CreerCaseACocher("CaracVentesCaseTaxe", c, GetString(CARACVENTES_CASE_TAXES_DEDUITES),
         function() CV:BasculerTaxe() end)
-    local bC, lC = CreerCaseACocher("CaracVentesCaseCur", c, "Semaine en cours",
+    local bC, lC = CreerCaseACocher("CaracVentesCaseCur", c, GetString(CARACVENTES_CASE_SEMAINE_COURS),
         function() CV:ChoisirSemaine("Cur") end)
-    local bP, lP = CreerCaseACocher("CaracVentesCasePas", c, "Semaine passée",
+    local bP, lP = CreerCaseACocher("CaracVentesCasePas", c, GetString(CARACVENTES_CASE_SEMAINE_PASSEE),
         function() CV:ChoisirSemaine("Pas") end)
     self.caseTaxe, self.caseCur, self.casePas = bT, bC, bP
 
@@ -464,7 +465,7 @@ function CV:CreerTableau()
     self.totalTrait:SetDimensions(120, 2)
     self.totalTrait:SetHidden(true)
 
-    self.totalNom = CreerLabel("CaracVentesTotalNom", c, "ZoFontGameBold", "Total", 44, 234, 190, 24)
+    self.totalNom = CreerLabel("CaracVentesTotalNom", c, "ZoFontGameBold", GetString(CARACVENTES_LIGNE_TOTAL), 44, 234, 190, 24)
     self.totalNom:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     self.totalNom:SetColor(COUL_MENU:UnpackRGBA())
     self.totalNom:SetHidden(true)
@@ -601,7 +602,7 @@ function CV:CreerTableau()
     self.btnPlus  = BoutonNombre("Plus",  "+", 1)
 
     self.meilleursNombre = CreerLabel("CaracVentesMeilleursNombre", c, "ZoFontGame",
-        "Nombre de vendeur(s) :", 0, 0)
+        GetString(CARACVENTES_NB_VENDEURS), 0, 0)
     self.meilleursNombre:SetColor(COUL_MENU:UnpackRGBA())
 
     -- une ligne = un contrôle (25 lignes au maximum)
@@ -647,11 +648,11 @@ function CV:CreerTableau()
         ZO_PostHookHandler(b, "OnMouseExit",  function() CV:CacherInfobulle() end)
         return b
     end
-    Bouton("Collecter", "Collecter", 12,  function() CV:Collecter() end,
+    Bouton("Collecter", GetString(CARACVENTES_BTN_COLLECTER), 12,  function() CV:Collecter() end,
         TEXTE_INFO_COLLECTER, "haut-gauche")
-    Bouton("Purger",    "Purger",    175, function() CV:Purger() end,
+    Bouton("Purger",    GetString(CARACVENTES_BTN_PURGER),    175, function() CV:Purger() end,
         TEXTE_INFO_PURGER, "haut-gauche")
-    Bouton("Fermer",    "Fermer",    LARGEUR_TABLEAU - 12 - 150, function() CV:FermerTableau() end,
+    Bouton("Fermer",    GetString(CARACVENTES_BTN_FERMER),    LARGEUR_TABLEAU - 12 - 150, function() CV:FermerTableau() end,
         TEXTE_INFO_FERMER, "haut-droite")
 
     -- recherche d'un joueur : loupe + zone de texte (vide ou ton nom = tes ventes)
@@ -722,7 +723,7 @@ function CV:CreerTableau()
     end
 
     -- opacité du fond : - / +
-    local etiquetteFond = CreerLabel("CaracVentesFondTexte", c, "ZoFontGame", "Fond", 592, 0, 44, 28)
+    local etiquetteFond = CreerLabel("CaracVentesFondTexte", c, "ZoFontGame", GetString(CARACVENTES_FOND), 592, 0, 44, 28)
     etiquetteFond:ClearAnchors()
     etiquetteFond:SetAnchor(BOTTOMLEFT, c, BOTTOMLEFT, 592, -14)
     etiquetteFond:SetColor(COUL_MENU:UnpackRGBA())
@@ -851,9 +852,9 @@ function CV:EtatHistorique(guildId)
     local debut = (self.semaine == "Cur") and cur or pas
 
     if rec.couvertDepuis and rec.couvertDepuis <= debut then
-        return true, "Historique complet."
+        return true, GetString(CARACVENTES_HISTO_COMPLET)
     end
-    local depuis = rec.couvertDepuis and DateLisible(rec.couvertDepuis) or "une date inconnue"
+    local depuis = rec.couvertDepuis and DateLisible(rec.couvertDepuis) or GetString(CARACVENTES_HISTO_DATE_INCONNUE)
     return false, string.format(TEXTE_HISTO_INCOMPLET, depuis) .. "\n\n" .. TEXTE_HISTO_AIDE
 end
 
@@ -1122,13 +1123,14 @@ function CV:PlacerMeilleurs(yM)
             local classement = self:Classement(guildId)
             if classement then
                 local nom = GetGuildName(guildId)
-                local ligneBrute = nom .. " : "                  -- sans couleurs, pour mesurer
-                local ligneCouleur = "|cFFFFFF" .. nom .. " :|r "
+                local deuxPoints = GetString(CARACVENTES_DEUX_POINTS_GUILDE)   -- " :" en français, ":" en anglais
+                local ligneBrute = nom .. deuxPoints .. " "                  -- sans couleurs, pour mesurer
+                local ligneCouleur = "|cFFFFFF" .. nom .. deuxPoints .. "|r "
                 local vide = true
                 local n = math.min(nbMax, #classement)
 
                 if n == 0 then
-                    AjouterLigne(ligneCouleur .. "aucune vente.")
+                    AjouterLigne(ligneCouleur .. GetString(CARACVENTES_AUCUNE_VENTE))
                 else
                     for k = 1, n do
                         local v = classement[k]
@@ -1170,7 +1172,7 @@ function CV:PlacerMeilleurs(yM)
     if visible then
         local titre, nombre = self.meilleursTitre, self.meilleursNombre
         titre:SetColor(COUL_MENU:UnpackRGBA())
-        local debutTitre, finTitre = "Le(s) ", " meilleur(s) vendeur(s)"
+        local debutTitre, finTitre = GetString(CARACVENTES_TOP_DEBUT), GetString(CARACVENTES_TOP_FIN)
         titre:SetText(debutTitre .. nbMax .. finTitre)
         local lt, ln = titre:GetTextWidth(), nombre:GetTextWidth()
         titre:SetDimensions(lt + 4, 26)
@@ -1230,7 +1232,7 @@ function CV:LancerRecherche()
         if not self.sv.guildesDesactivees[guildId] then guildes[#guildes + 1] = guildId end
     end
     if #guildes == 0 then
-        self.statut:SetText(COUL_ERREUR .. "Aucune guilde sélectionnée.|r")
+        self.statut:SetText(COUL_ERREUR .. GetString(CARACVENTES_AUCUNE_GUILDE) .. "|r")
         return
     end
 
@@ -1240,7 +1242,7 @@ function CV:LancerRecherche()
 
     self.recherche = { guildes = guildes, g = 1, idx = 1, lignes = {},
                        debut = debut, fin = fin, cible = self:JoueurCible() }
-    self.statut:SetText("Recherche des ventes en cours...")
+    self.statut:SetText(GetString(CARACVENTES_RECHERCHE_EN_COURS))
     self:DefinirProgression(0)
     EVENT_MANAGER:RegisterForUpdate(self.name .. "Recherche", 0, function() CV:ImageRecherche() end)
 end
@@ -1296,9 +1298,9 @@ function CV:ImageRecherche()
     self.ventes, self.defil, self.ventesOuvertes = R.lignes, 0, true
     self.btnVentes:SetText(TEXTE_BTN_MASQUER)
     if #R.lignes == 0 then
-        self.statut:SetText("Aucune vente trouvée pour ce joueur sur cette période.")
+        self.statut:SetText(GetString(CARACVENTES_AUCUNE_VENTE_TROUVEE))
     else
-        self.statut:SetText(#R.lignes .. " vente(s) trouvée(s).")
+        self.statut:SetText(string.format(GetString(CARACVENTES_VENTES_TROUVEES), #R.lignes))
     end
     self:Disposer()
     self:AfficherLignesVentes()
@@ -1440,11 +1442,10 @@ end
 local function RecordGuilde(guildId)
     local rec = CV.sv.ventes[guildId]
     if not rec then
-        rec = { dernierId = 0, sem = {} }
+        rec = { sem = {} }
         CV.sv.ventes[guildId] = rec
     end
     rec.sem = rec.sem or {}
-    rec.dernierId = rec.dernierId or 0
     return rec
 end
 
@@ -1452,7 +1453,6 @@ end
 local function TerminerGuilde(E, guildId, C)
     local rec = C.rec
     FusionnerSemaines(rec.sem, C.sem)
-    if C.premierTs then rec.dernierTs = C.premierTs end
     rec.nom = GetGuildName(guildId)
     rec.collecte = true
 
@@ -1473,7 +1473,7 @@ local function FinCollecte()
     CV.etat = nil
     CV:DefinirProgression(nil)
     CV:RafraichirGuildes()
-    CV.statut:SetText("Terminé : " .. E.total .. " nouvelle(s) vente(s).")
+    CV.statut:SetText(string.format(GetString(CARACVENTES_COLLECTE_TERMINEE), E.total))
 end
 
 local function ImageCollecte()
@@ -1513,7 +1513,6 @@ local function ImageCollecte()
             if not ts then
                 fini = true
             else
-                if C.idx == 1 then C.premierTs = ts end
                 if ts >= E.debutPas and typeEv == TYPE_VENTE and not redacte
                     and not DejaCompte(C.rec.plages, idNum) then
                     Agreger(C.sem, ts, vendeur, prix or 0, taxe or 0)
@@ -1577,13 +1576,13 @@ function CV:Collecter()
         end
     end
     if #guildes == 0 then
-        self.statut:SetText(COUL_ERREUR .. "Aucune guilde sélectionnée.|r")
+        self.statut:SetText(COUL_ERREUR .. GetString(CARACVENTES_AUCUNE_GUILDE) .. "|r")
         return
     end
 
     local _, debutPas = DebutsDePeriode()
     self.etat = { guildes = guildes, g = 1, total = 0, debutPas = debutPas }
-    self.statut:SetText("Collecte en cours...")
+    self.statut:SetText(GetString(CARACVENTES_COLLECTE_EN_COURS))
     self:DefinirProgression(0)
     EVENT_MANAGER:RegisterForUpdate(self.name .. "Collecte", 0, ImageCollecte)
 end
@@ -1592,7 +1591,7 @@ function CV:Purger()
     if self.etat or self.recherche then return end
     self.sv.ventes = {}
     self:RafraichirGuildes()
-    self.statut:SetText("Données purgées (effet complet dans le fichier après /reloadui).")
+    self.statut:SetText(GetString(CARACVENTES_DONNEES_PURGEES))
 end
 
 ---------------------------------------------------------------

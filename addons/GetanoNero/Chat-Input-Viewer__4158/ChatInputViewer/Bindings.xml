@@ -13,7 +13,7 @@
 			</Action>
 			-->
 			<Action name="CIV_TOGGLE_WINDOW">
-				<Down>ToggleViewer()</Down>
+				<Down>ChatInputViewer.ToggleViewer()</Down>
 			</Action>
 		</Category>
 	</Layer>

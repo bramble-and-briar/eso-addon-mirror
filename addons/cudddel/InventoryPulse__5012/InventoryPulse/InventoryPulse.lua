@@ -1,6 +1,6 @@
 InventoryPulse = {
     name = "InventoryPulse",
-    version = "1.0.0",
+    version = "1.0.1",
 }
 local IP = InventoryPulse
 local L = InventoryPulse_Strings
@@ -13,6 +13,8 @@ local defaults = {
     -- BagCount
     mode         = "used",             -- "used" or "free" slots
     showMax      = true,               -- append total capacity ("161/215")
+    display      = "number",           -- "number", "percent" or "both" ("161/215 (75% full)")
+    percentWord  = true,               -- "75% full" instead of "75%"
     minFill      = 0,                  -- only show from this backpack fill level (%)
     step         = 1,                  -- only show when the displayed number reaches a multiple of this
     sizeByFill   = false,              -- font size grows with the fill level up to fontSize
@@ -21,6 +23,7 @@ local defaults = {
     -- StackCount
     stackDisplay = "both",             -- "both" (icon + name), "icon", "name"
     stackSound   = "NEW_NOTIFICATION", -- key from SOUNDS or "none"
+    stackBackpack = true,              -- also watch backpack stacks (potions, soul gems ...); the craft bag is watched with ESO Plus
 
     -- Shared
     font         = "bold",             -- key from FONTS or a LibMediaProvider font name
@@ -39,6 +42,9 @@ local defaults = {
     color15      = { 1, 0.85, 0.3 },   -- up to 15 free slots
     color5       = { 1, 0.45, 0.2 },   -- up to 5 free slots
     color0       = { 1, 0.2, 0.2 },    -- inventory full
+    colorP80     = { 1, 0.85, 0.3 },   -- percent display: from 80 % fill level
+    colorP90     = { 1, 0.45, 0.2 },   -- percent display: from 90 %
+    colorP95     = { 1, 0.3, 0.3 },    -- percent display: from 95 %
     stackColor   = { 0.4, 0.9, 1 },
 }
 
@@ -144,12 +150,13 @@ local function BagCountEnabled()
     return IP.sv.enabled == "all" or IP.sv.enabled == "bag"
 end
 
-local function StackCountAvailable()
+-- With ESO Plus StackCount also watches the craft bag
+local function UsesCraftBag()
     return HasCraftBagAccess()
 end
 
 local function StackCountEnabled()
-    return (IP.sv.enabled == "all" or IP.sv.enabled == "stack") and StackCountAvailable()
+    return IP.sv.enabled == "all" or IP.sv.enabled == "stack"
 end
 
 local function IsHudScene()
@@ -274,11 +281,32 @@ end
 -- BagCount
 -- ---------------------------------------------------------------------------
 
-local function ColorFor(free)
+-- Number display: colors by free slots; percent display: colors by fill level
+local function ColorFor(free, size)
     if free == 0 then return IP.sv.color0 end
-    if free <= 5 then return IP.sv.color5 end
-    if free <= 15 then return IP.sv.color15 end
+    if IP.sv.display == "number" then
+        if free <= 5 then return IP.sv.color5 end
+        if free <= 15 then return IP.sv.color15 end
+    else
+        local fill = (size - free) / size * 100
+        if fill >= 95 then return IP.sv.colorP95 end
+        if fill >= 90 then return IP.sv.colorP90 end
+        if fill >= 80 then return IP.sv.colorP80 end
+    end
     return IP.sv.colorNormal
+end
+
+local function PercentText(used, free, size)
+    local percent
+    if IP.sv.mode == "free" then
+        percent = zo_max(1, zo_round(free / size * 100))   -- never "0% free" while slots are left
+    else
+        percent = zo_min(99, zo_round(used / size * 100))  -- never "100% full" while slots are left
+    end
+    if not IP.sv.percentWord then
+        return string.format("%d%%", percent)
+    end
+    return string.format(IP.sv.mode == "free" and L.PERCENT_FREE or L.PERCENT_FULL, percent)
 end
 
 function IP.ShowBagCount()
@@ -290,9 +318,16 @@ function IP.ShowBagCount()
     if free == 0 then
         text = L.INVENTORY_FULL
     else
-        text = tostring(IP.sv.mode == "free" and free or used)
+        local number = tostring(IP.sv.mode == "free" and free or used)
         if IP.sv.showMax then
-            text = text .. "/" .. size
+            number = number .. "/" .. size
+        end
+        if IP.sv.display == "percent" then
+            text = PercentText(used, free, size)
+        elseif IP.sv.display == "both" then
+            text = number .. " (" .. PercentText(used, free, size) .. ")"
+        else
+            text = number
         end
     end
 
@@ -303,7 +338,7 @@ function IP.ShowBagCount()
         fontSize = zo_round(minSize + (IP.sv.fontSize - minSize) * used / size)
     end
 
-    Spawn(text, ColorFor(free), 1, fontSize)
+    Spawn(text, ColorFor(free, size), 1, fontSize)
 end
 
 local function CheckFreeSlots()
@@ -341,11 +376,11 @@ end
 -- StackCount
 -- ---------------------------------------------------------------------------
 
-function IP.ShowStackCount(slotId, count)
-    local icon = GetItemInfo(BAG_VIRTUAL, slotId)
-    local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(BAG_VIRTUAL, slotId))
+function IP.ShowStackCount(bagId, slotIndex, fullStacks)
+    local icon = GetItemInfo(bagId, slotIndex)
+    local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
     local iconText = zo_iconFormat(icon, IP.sv.fontSize, IP.sv.fontSize)
-    local stacks = string.format("%d×%d", zo_floor(count / STACK_SIZE), STACK_SIZE)
+    local stacks = string.format("%d×%d", fullStacks, STACK_SIZE)
 
     local text
     if IP.sv.stackDisplay == "icon" then
@@ -370,22 +405,52 @@ local function OnCraftBagUpdate(_, _, slotId, _, _, _, stackCountChange)
     local count = GetSlotStackSize(BAG_VIRTUAL, slotId)
     local before = count - stackCountChange
     if zo_floor(count / STACK_SIZE) > zo_floor(before / STACK_SIZE) then
-        IP.ShowStackCount(slotId, count)
+        IP.ShowStackCount(BAG_VIRTUAL, slotId, zo_floor(count / STACK_SIZE))
+    end
+end
+
+-- Number of full 200 stacks of an item in the backpack
+local function CountFullStacks(itemId)
+    local fullStacks = 0
+    local slotIndex = ZO_GetNextBagSlotIndex(BAG_BACKPACK)
+    while slotIndex do
+        if GetItemId(BAG_BACKPACK, slotIndex) == itemId and GetSlotStackSize(BAG_BACKPACK, slotIndex) >= STACK_SIZE then
+            fullStacks = fullStacks + 1
+        end
+        slotIndex = ZO_GetNextBagSlotIndex(BAG_BACKPACK, slotIndex)
+    end
+    return fullStacks
+end
+
+-- A message when a backpack stack reaches 200 (items that never go into the craft bag, or no ESO Plus)
+local function OnBackpackStackUpdate(_, _, slotIndex, _, _, _, stackCountChange)
+    if not IP.sv.stackBackpack or not StackCountEnabled() or IsMuted() or not stackCountChange or stackCountChange <= 0 then return end
+    local count, maxStack = GetSlotStackSize(BAG_BACKPACK, slotIndex)
+    if maxStack >= STACK_SIZE and count >= STACK_SIZE and count - stackCountChange < STACK_SIZE then
+        IP.ShowStackCount(BAG_BACKPACK, slotIndex, CountFullStacks(GetItemId(BAG_BACKPACK, slotIndex)))
     end
 end
 
 function IP.TestStackCount()
-    if not StackCountAvailable() then
-        Print(L.NO_CRAFTBAG)
+    -- craft bag first, otherwise the first backpack item that can be stacked to 200
+    local craftSlot = UsesCraftBag() and ZO_GetNextBagSlotIndex(BAG_VIRTUAL)
+    if craftSlot then
+        local count = GetSlotStackSize(BAG_VIRTUAL, craftSlot)
+        IP.ShowStackCount(BAG_VIRTUAL, craftSlot, zo_max(1, zo_floor(count / STACK_SIZE)))
         return
     end
-    local slotId = ZO_GetNextBagSlotIndex(BAG_VIRTUAL)
-    if not slotId then
-        Print(L.CRAFTBAG_EMPTY)
-        return
+
+    local slotIndex = ZO_GetNextBagSlotIndex(BAG_BACKPACK)
+    while slotIndex do
+        local _, maxStack = GetSlotStackSize(BAG_BACKPACK, slotIndex)
+        if maxStack >= STACK_SIZE then
+            local fullStacks = CountFullStacks(GetItemId(BAG_BACKPACK, slotIndex))
+            IP.ShowStackCount(BAG_BACKPACK, slotIndex, zo_max(1, fullStacks))
+            return
+        end
+        slotIndex = ZO_GetNextBagSlotIndex(BAG_BACKPACK, slotIndex)
     end
-    local count = GetSlotStackSize(BAG_VIRTUAL, slotId)
-    IP.ShowStackCount(slotId, zo_max(count, STACK_SIZE))
+    Print(L.NO_STACKABLE)
 end
 
 -- ---------------------------------------------------------------------------
@@ -466,11 +531,27 @@ local function CreateSettingsMenu()
             default = defaults.mode,
         },
         {
+            type = "dropdown", name = L.DISPLAY, tooltip = L.DISPLAY_TT,
+            choices = { L.DISPLAY_NUMBER, L.DISPLAY_PERCENT, L.DISPLAY_BOTH },
+            choicesValues = { "number", "percent", "both" },
+            getFunc = function() return IP.sv.display end,
+            setFunc = function(v) IP.sv.display = v end,
+            disabled = bagOff,
+            default = defaults.display,
+        },
+        {
             type = "checkbox", name = L.SHOW_MAX,
             getFunc = function() return IP.sv.showMax end,
             setFunc = function(v) IP.sv.showMax = v end,
-            disabled = bagOff,
+            disabled = function() return not BagCountEnabled() or IP.sv.display == "percent" end,
             default = defaults.showMax,
+        },
+        {
+            type = "checkbox", name = L.PERCENT_WORD, tooltip = L.PERCENT_WORD_TT,
+            getFunc = function() return IP.sv.percentWord end,
+            setFunc = function(v) IP.sv.percentWord = v end,
+            disabled = function() return not BagCountEnabled() or IP.sv.display == "number" end,
+            default = defaults.percentWord,
         },
         {
             type = "slider", name = L.MIN_FILL, tooltip = L.MIN_FILL_TT, min = 0, max = 100, step = 10,
@@ -509,7 +590,14 @@ local function CreateSettingsMenu()
         { type = "header", name = L.STACK_HEADER },
         {
             type = "description",
-            text = StackCountAvailable() and L.STACK_DESC or (L.STACK_DESC .. "\n" .. L.STACK_NO_ESOPLUS),
+            text = L.STACK_DESC .. "\n" .. (UsesCraftBag() and L.STACK_MODE_CRAFTBAG or L.STACK_MODE_BACKPACK),
+        },
+        {
+            type = "checkbox", name = L.STACK_BACKPACK, tooltip = L.STACK_BACKPACK_TT,
+            getFunc = function() return IP.sv.stackBackpack end,
+            setFunc = function(v) IP.sv.stackBackpack = v end,
+            disabled = stackOff,
+            default = defaults.stackBackpack,
         },
         {
             type = "dropdown", name = L.STACK_DISPLAY,
@@ -534,7 +622,6 @@ local function CreateSettingsMenu()
         {
             type = "button", name = L.TEST_STACK,
             func = function() IP.TestStackCount() end,
-            disabled = function() return not StackCountAvailable() end,
         },
 
         -- Shared ------------------------------------------------------------
@@ -614,6 +701,9 @@ local function CreateSettingsMenu()
         ColorOption(L.COLOR_NORMAL, "colorNormal"),
         ColorOption(L.COLOR_15, "color15"),
         ColorOption(L.COLOR_5, "color5"),
+        ColorOption(L.COLOR_P80, "colorP80"),
+        ColorOption(L.COLOR_P90, "colorP90"),
+        ColorOption(L.COLOR_P95, "colorP95"),
         ColorOption(L.COLOR_FULL, "color0"),
         ColorOption(L.COLOR_STACK, "stackColor"),
     })
@@ -623,7 +713,11 @@ end
 -- Slash commands (work without LibAddonMenu as well)
 -- ---------------------------------------------------------------------------
 
-local COLOR_KEYS = { normal = "colorNormal", ["15"] = "color15", ["5"] = "color5", full = "color0", stack = "stackColor" }
+local COLOR_KEYS = {
+    normal = "colorNormal", ["15"] = "color15", ["5"] = "color5",
+    p80 = "colorP80", p90 = "colorP90", p95 = "colorP95",
+    full = "color0", stack = "stackColor",
+}
 
 local function ToHex(color)
     return string.format("%02X%02X%02X", zo_round(color[1] * 255), zo_round(color[2] * 255), zo_round(color[3] * 255))
@@ -656,12 +750,15 @@ local function ShowHelp()
         { "hudonly <on|off>", OnOff(sv.hudOnly), L.HELP_HUDONLY },
         { "bankmute <on|off>", OnOff(sv.bankMute), L.HELP_BANKMUTE },
         { "mode <used|free>", sv.mode, L.HELP_MODE },
+        { "display <number|percent|both>", sv.display, L.HELP_DISPLAY },
         { "max <on|off>", OnOff(sv.showMax), L.HELP_MAX },
+        { "pctword <on|off>", OnOff(sv.percentWord), L.HELP_PCTWORD },
         { "fill <0-100>", sv.minFill, L.HELP_FILL },
         { "step <1-20>", sv.step, L.HELP_STEP },
         { "sizebyfill <on|off>", OnOff(sv.sizeByFill), L.HELP_SIZEBYFILL },
         { "minsize <8-150>", sv.minFontSize, L.HELP_MINSIZE },
         { "stackdisplay <both|icon|name>", sv.stackDisplay, L.HELP_STACKDISPLAY },
+        { "stackbag <on|off>", OnOff(sv.stackBackpack), L.HELP_STACKBACKPACK },
         { "sound <none|" .. table.concat(soundKeysForHelp, "|") .. ">", sv.stackSound, L.HELP_SOUND },
         { "font <name>", sv.font, L.HELP_FONT },
         { "effect <none|shadow|outline|thick-outline|soft-shadow-thin|soft-shadow-thick>", sv.effect, L.HELP_EFFECT },
@@ -674,8 +771,9 @@ local function ShowHelp()
         { "speed <200-5000>", sv.flightMs, L.HELP_SPEED },
         { "length <10-300>", sv.flightLength, L.HELP_LENGTH },
         { "shrink <0-90>", sv.shrink, L.HELP_SHRINK },
-        { "color <normal|15|5|full|stack> <RRGGBB>", string.format("%s, %s, %s, %s, %s",
-            ToHex(sv.colorNormal), ToHex(sv.color15), ToHex(sv.color5), ToHex(sv.color0), ToHex(sv.stackColor)), L.HELP_COLOR },
+        { "color <normal|15|5|p80|p90|p95|full|stack> <RRGGBB>", string.format("%s, %s, %s, %s, %s, %s, %s, %s",
+            ToHex(sv.colorNormal), ToHex(sv.color15), ToHex(sv.color5), ToHex(sv.colorP80), ToHex(sv.colorP90),
+            ToHex(sv.colorP95), ToHex(sv.color0), ToHex(sv.stackColor)), L.HELP_COLOR },
         { "test | stacktest", nil, L.HELP_TEST },
         { "reset", nil, L.HELP_RESET },
     }
@@ -737,6 +835,10 @@ local function SlashCommand(args)
         sv.mode = arg
     elseif cmd == "max" and (arg == "on" or arg == "off") then
         sv.showMax = arg == "on"
+    elseif cmd == "display" and (arg == "number" or arg == "percent" or arg == "both") then
+        sv.display = arg
+    elseif cmd == "pctword" and (arg == "on" or arg == "off") then
+        sv.percentWord = arg == "on"
     elseif cmd == "fill" and value then
         sv.minFill = zo_clamp(zo_round(value / 10) * 10, 0, 100)
     elseif cmd == "step" then
@@ -758,6 +860,8 @@ local function SlashCommand(args)
         end
     elseif cmd == "stackdisplay" and (arg == "both" or arg == "icon" or arg == "name") then
         sv.stackDisplay = arg
+    elseif cmd == "stackbag" and (arg == "on" or arg == "off") then
+        sv.stackBackpack = arg == "on"
     elseif cmd == "font" and arg ~= "" then
         local _, keys = GetFontChoices()
         ok = false
@@ -847,6 +951,8 @@ local function OnAddOnLoaded(_, addonName)
     -- StackCount
     EVENT_MANAGER:RegisterForEvent(IP.name .. "Craft", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCraftBagUpdate)
     EVENT_MANAGER:AddFilterForEvent(IP.name .. "Craft", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_VIRTUAL)
+    EVENT_MANAGER:RegisterForEvent(IP.name .. "Stack", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBackpackStackUpdate)
+    EVENT_MANAGER:AddFilterForEvent(IP.name .. "Stack", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
 
     -- Bank mute
     local function SetBankOpen(open)

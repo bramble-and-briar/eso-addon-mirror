@@ -1,14 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Harven/LibHarvensAddonSettings__584",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Harven",
   "canonical_id": "esoui:584",
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:584",
@@ -17,7 +22,7 @@
     "LibHarvensAddonSettings"
   ],
   "download_url": "https://www.esoui.com/downloads/dl584/",
-  "fingerprint": "bd48b9b6e8b6f3c57cea2ead85bba75f78b829e6e975c9caadbec8a03c7edd79",
+  "fingerprint": "b10f836861876c19afb1551a6432b8abe6578c722da84b1e8c494ee1e0ace47f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw1797.jpg"
   ],
@@ -27,11 +32,11 @@
   "source_id": "584",
   "source_url": "https://www.esoui.com/downloads/info584-LibHarvensAddonSettings.html",
   "stats": {
-    "downloads": 2148487,
-    "favorites": 897,
-    "monthly_downloads": 72377
+    "downloads": 2213357,
+    "favorites": 907,
+    "monthly_downloads": 19545
   },
   "title": "LibHarvensAddonSettings",
-  "updated_at": 1784461577000,
-  "version": "2.2.0"
+  "updated_at": 1794059624000,
+  "version": "2.2.1"
 }

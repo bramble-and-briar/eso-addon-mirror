@@ -4,7 +4,7 @@ local BG = BetterGuardAddon
 local characterName = GetRawUnitName("player")
 
 function BG.GuardGained(_, _, _, _, _, _, sourceName, unitType, targetName, ...)
-    if unitType == COMBAT_UNIT_TYPE_PLAYER then
+    if unitType == COMBAT_UNIT_TYPE_GROUP or unitType == COMBAT_UNIT_TYPE_PLAYER then
         local sourceGroupMember = BG.groupMembers[sourceName]
         local targetGroupMember = BG.groupMembers[targetName]
         if not sourceGroupMember or not targetGroupMember then return end

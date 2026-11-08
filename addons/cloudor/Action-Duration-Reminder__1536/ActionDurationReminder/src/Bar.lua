@@ -11,6 +11,8 @@ local core = addon.load("Core#M")
 local views = addon.load("Views#M")
 ---@type adr.models.M
 local models = addon.load("Models#M")
+---@type adr.backbar.M
+local backBar = addon.load("BackBar#M")
 local l = {}
 ---@type adr.bar.M
 local m = { l = l }
@@ -24,8 +26,7 @@ local m = { l = l }
 ---扩展 adr.settings.SavedVars:本模块持久化字段,与下方 defaults 一一对应
 ---@class adr.settings.SavedVars
 ---@field barEnabled? boolean
----@field barShowShift? boolean
----@field barShowShiftFully? boolean
+---@field barPreset? string
 ---@field barShowShiftScalePercent? number
 ---@field barShowInQuickslot? boolean
 ---@field barShiftOffsetX? number
@@ -61,8 +62,7 @@ local m = { l = l }
 ---@type adr.settings.SavedVars
 local barSavedVarsDefaults = {
   barEnabled = true,
-  barShowShift = true,
-  barShowShiftFully = false,
+  barPreset = "dynamic",
   barShowShiftScalePercent = 100,
   barShowInQuickslot = false,
   barShiftOffsetX = 0,
@@ -113,10 +113,77 @@ l.shiftedBarWidgetMap = {}
 ---@type table<number, adr.views.Widget>
 l.appendedBarWidgetMap = {}
 
+---shift控件回收站：slotNum -> {texture=, native=}；预设/模式切换时隐藏的控件
+---进入回收站而非丢弃，下次需要同类型时复用，避免反复切换累积隐藏控件
+---@type table<number, table<string, adr.views.Widget>>
+l.shiftedWidgetFreelist = {}
+
+---@type fun(slotNum: number, widget: adr.views.Widget)
+l.stashShiftedWidget = function(slotNum, widget)
+  local bucket = l.shiftedWidgetFreelist[slotNum]
+  if not bucket then
+    bucket = {}
+    l.shiftedWidgetFreelist[slotNum] = bucket
+  end
+  bucket[widget.backdrop and "texture" or "native"] = widget
+end
+
+---@type fun(slotNum: number, wantNative: boolean, desiredSlot?: Control): adr.views.Widget|nil
+l.takeShiftedWidget = function(slotNum, wantNative, desiredSlot)
+  local bucket = l.shiftedWidgetFreelist[slotNum]
+  if not bucket then
+    return nil
+  end
+  local key = wantNative and "native" or "texture"
+  local widget = bucket[key]
+  if widget then
+    bucket[key] = nil
+    -- 父控件校验：native 控件挂在哪组克隆取决于模式(动态=D组/静态=twin组)，
+    -- 归还挂在错误组(如静态切回动态时挂在已隐藏 twin 上)的控件=隐形标签，直接废弃
+    if desiredSlot and widget.slot ~= desiredSlot then
+      widget:hide()
+      return nil
+    end
+    -- 复用时重应用当前样式(回收期间可能改过字体/颜色设置)
+    views.updateWidgetFont(widget)
+    views.updateWidgetLabelYOffset(widget)
+    views.updateWidgetStackLabelYOffset(widget)
+    views.updateWidgetCooldown(widget)
+  end
+  return widget
+end
+
 ---@type fun(): adr.settings.SavedVars
 l.getSavedVars = function()
   return settings.getSavedVars()
 end
+
+---经典预设（贴图渲染的第二行，仅显示带计时的技能）
+---@type fun(): boolean
+l.isClassicPreset = function()
+  return l.getSavedVars().barPreset == "classic"
+end
+
+---启动迁移：旧版 barShowShift/barShowShiftFully → barPreset（只跑一次，迁移后删除旧键）
+addon.hookStart(function()
+  local sv = l.getSavedVars()
+  --旧字段一次性迁移(字段已从类定义移除，访问需临时关闭诊断)
+  ---@diagnostic disable: undefined-field, inject-field
+  if sv.barShowShift ~= nil or sv.barShowShiftFully ~= nil then
+    if sv.barShowShift ~= false and sv.barShowShiftFully then
+      sv.barPreset = "dynamic"
+    else
+      sv.barPreset = "classic"
+    end
+    sv.barShowShift = nil
+    sv.barShowShiftFully = nil
+  end
+  ---@diagnostic enable: undefined-field, inject-field
+  -- 非法值重置为默认(如下拉框写入过本地化文本)
+  if sv.barPreset ~= "classic" and sv.barPreset ~= "dynamic" and sv.barPreset ~= "static" then
+    sv.barPreset = barSavedVarsDefaults.barPreset
+  end
+end)
 
 ---@type fun()
 l.hideWidgets = function()
@@ -141,8 +208,23 @@ l.onCoreUpdate = function()
   local showedActionMap = {}
   local hotbarCategory = GetActiveHotbarCategory()
   -- 1. show in action bar widgets
+  -- 静态双克隆行接管时，主条(激活条)计时标签重定向到激活克隆行(原生槽已隐藏)；
+  -- 换武器后激活集互换，旧控件挂在旧集上一并清洗重建(标签+冷却线随之落位新集)
+  local staticEngaged = backBar.isStaticNativeHidden()
   for slotNum = 3, 8 do
+    ---@type adr.views.Widget|nil
     local widget = l.mainBarWidgetMap[slotNum]
+    if
+      widget
+      and (
+        widget.nativeMode ~= staticEngaged
+        or (staticEngaged and widget.slot ~= backBar.getActiveSlotControl(slotNum))
+      )
+    then
+      widget:hide()
+      widget = nil
+      l.mainBarWidgetMap[slotNum] = nil
+    end
     local abilityId = GetSlotBoundId(slotNum, hotbarCategory)
     if GetSlotType(slotNum, hotbarCategory) == ACTION_TYPE_CRAFTED_ABILITY then
       abilityId = GetAbilityIdForCraftedAbilityId(abilityId)
@@ -164,7 +246,7 @@ l.onCoreUpdate = function()
       showedActionMap[action.ability.id] = action
       showedActionMap[abilityId] = action
       if not widget then
-        widget = views.newWidget(slotNum, false)
+        widget = views.newWidget(slotNum, false, nil, staticEngaged and backBar.getActiveSlotControl(slotNum) or nil)
         l.mainBarWidgetMap[slotNum] = widget
       end
       widget:updateWithAction(action, now)
@@ -200,8 +282,22 @@ l.onCoreUpdate = function()
     end
   end
   -- 4. prepare to show shift and extend
-  if not l.getSavedVars().barShowShift then
-    return
+  -- 克隆行可用性(存在、已同步非激活条、非 Oakensoul)；不可用时退回贴图行。
+  -- 克隆行可用时贴图 shift 控件一律淘汰(含 classic：所有槽位动作已上克隆槽，
+  -- 防止 Oakensoul 期间残留 visible 的贴图图标)
+  local nativeUsable = backBar.isRowUsable()
+  local classicHybrid = backBar.isActive() and backBar.isClassicMode()
+  for slotNum, widget in pairs(l.shiftedBarWidgetMap) do
+    local isTexture = widget.backdrop ~= nil
+    if isTexture and nativeUsable then
+      widget:hide()
+      l.stashShiftedWidget(slotNum, widget)
+      l.shiftedBarWidgetMap[slotNum] = nil
+    elseif not isTexture and not nativeUsable then
+      widget:hide()
+      l.stashShiftedWidget(slotNum, widget)
+      l.shiftedBarWidgetMap[slotNum] = nil
+    end
   end
   ---@type table<number, adr.models.Action>
   local toShowActionMap = {}
@@ -227,6 +323,9 @@ l.onCoreUpdate = function()
     end
   end
   -- 4.1 sort later actions show first
+  -- 所有槽位动作的计时都骑克隆按钮(标签为克隆槽子控件，任意缩放下天然对齐)；
+  -- 仅克隆行不可用(Oakensoul等)时回退贴图行
+  local nativeVisibleMap = {}
   if #toShowIdList > 0 then
     table.sort(toShowIdList, function(id1, id2)
       return toShowActionMap[id1]:getStartTime() > toShowActionMap[id2]:getStartTime()
@@ -237,7 +336,20 @@ l.onCoreUpdate = function()
       local action = toShowActionMap[id]
       local slotNum = action.slotNum
       local inAppend = false
+      local wantNative = nativeUsable
       local widget = l.shiftedBarWidgetMap[slotNum]
+      if
+        widget
+        and (
+          (widget.backdrop ~= nil) ~= wantNative
+          or (wantNative and widget.slot ~= backBar.getSlotControl(slotNum))
+        )
+      then
+        widget:hide()
+        l.stashShiftedWidget(slotNum, widget)
+        l.shiftedBarWidgetMap[slotNum] = nil
+        widget = nil
+      end
       if inAppend or (widget and widget.visible) then
         appendIndex = appendIndex + 1
         widget = l.appendedBarWidgetMap[appendIndex]
@@ -246,15 +358,27 @@ l.onCoreUpdate = function()
           l.appendedBarWidgetMap[appendIndex] = widget
         end
       elseif not widget then
-        widget = views.newWidget(slotNum, true)
+        local nativeSlot = wantNative and backBar.getSlotControl(slotNum) or nil
+        local desiredSlot = nativeSlot or ZO_ActionBar_GetButton(slotNum).slot
+        widget = l.takeShiftedWidget(slotNum, wantNative, desiredSlot)
+          or views.newWidget(slotNum, true, nil, nativeSlot)
         l.shiftedBarWidgetMap[slotNum] = widget
       end
+      if wantNative then
+        nativeVisibleMap[slotNum] = true
+      end
       widget:updateWithAction(action, now)
-      widget.backdrop:SetDimensions(views.getSlotBaseSize(), views.getSlotBaseSize())
+      if widget.backdrop then
+        widget.backdrop:SetDimensions(views.getSlotBaseSize(), views.getSlotBaseSize())
+      end
     end
   end
-  -- 4.2 show fully
-  if l.getSavedVars().barShowShiftFully then
+  -- 经典模式按可见集控制克隆槽；全克隆模式恒全部显示
+  if backBar.isActive() then
+    backBar.setSlotsVisible(classicHybrid and nativeVisibleMap or nil)
+  end
+  -- 4.2 show fully (texture fallback when the native clone row failed to activate)
+  if not nativeUsable and backBar.getEffectivePreset() ~= "classic" then
     local withOakensoul = GetItemLinkIcon(GetItemLink(BAG_WORN, EQUIP_SLOT_RING1)):find("oakensoul")
       or GetItemLinkIcon(GetItemLink(BAG_WORN, EQUIP_SLOT_RING2)):find("oakensoul")
     if not withOakensoul then
@@ -453,98 +577,26 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
         default = barSavedVarsDefaults.barEnabled,
       },
       {
-        type = "checkbox",
-        name = text("Show Shift Bar"),
-        tooltip = text("Display a secondary bar above your action bar showing timers for your other weapon set"),
+        type = "dropdown",
+        name = text("Bar Style Preset"),
+        tooltip = text("Choose the overall look of your bars"),
+        choices = {
+          text("Classic - Timer Icons"),
+          text("Dynamic Double Bar"),
+          text("Static Double Bar"),
+        },
+        choicesValues = { "classic", "dynamic", "static" },
         getFunc = function()
-          return l.getSavedVars().barShowShift
+          return l.getSavedVars().barPreset
         end,
         setFunc = function(value)
-          l.getSavedVars().barShowShift = value
+          l.getSavedVars().barPreset = value
+          backBar.updateLayout()
         end,
         width = "full",
-        default = barSavedVarsDefaults.barShowShift,
+        default = barSavedVarsDefaults.barPreset,
         disabled = function()
           return not l.getSavedVars().barEnabled
-        end,
-      },
-      {
-        type = "slider",
-        name = text("Shift Bar Scale"),
-        tooltip = text("Scale of the shift bar"),
-        min = 40,
-        max = 100,
-        step = 10,
-        getFunc = function()
-          return l.getSavedVars().barShowShiftScalePercent
-        end,
-        setFunc = function(value)
-          l.getSavedVars().barShowShiftScalePercent = value
-          l.updateWidgets(views.updateWidgetShiftScalePercent)
-        end,
-        width = "full",
-        default = barSavedVarsDefaults.barShowShiftScalePercent,
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barShowShift
-        end,
-      },
-      {
-        type = "description",
-        text = "",
-        title = text("Shift Bar Position"),
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled
-        end,
-      },
-      {
-        type = "button",
-        name = text("Move Shift Bar"),
-        tooltip = text("Show a draggable frame to position the shift bar"),
-        func = function()
-          SCENE_MANAGER:Hide("gameMenuInGame")
-          l.openShiftBarFrame()
-          zo_callLater(function()
-            SetGameCameraUIMode(true)
-          end, 10)
-        end,
-        width = "half",
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barShowShift
-        end,
-      },
-      {
-        type = "button",
-        name = text("Reset Shift Bar"),
-        tooltip = text("Reset the shift bar position back to the default"),
-        func = function()
-          l.getSavedVars().barShiftOffsetX = barSavedVarsDefaults.barShiftOffsetX
-          l.getSavedVars().barShiftOffsetY = barSavedVarsDefaults.barShiftOffsetY
-          l.updateWidgets(views.updateWidgetShiftOffset)
-          -- re-anchor the positioning frame if it is currently open
-          if l.shiftBarFrame and not l.shiftBarFrame:IsControlHidden() then
-            l.openShiftBarFrame()
-          end
-        end,
-        width = "half",
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barShowShift
-        end,
-      },
-      {
-        type = "checkbox",
-        name = text("Show Empty Slots"),
-        tooltip = text("Display all 6 slots even when empty"),
-        getFunc = function()
-          return l.getSavedVars().barShowShiftFully
-        end,
-        setFunc = function(value)
-          l.getSavedVars().barShowShiftFully = value
-        end,
-        width = "full",
-        default = barSavedVarsDefaults.barShowShiftFully,
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barShowShift
         end,
       },
       {
@@ -564,8 +616,157 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
         end,
       },
       {
-        type = "checkbox",
-        name = text("Show Time Labels"),
+        type = "submenu",
+        name = text("Shift Bar"),
+        controls = {
+          {
+            type = "slider",
+            name = text("Shift Bar Icon Opacity"),
+            tooltip = text("Opacity of the shift bar icons; 100 keeps them fully bright"),
+            min = 10,
+            max = 100,
+            step = 5,
+            getFunc = function()
+              return l.getSavedVars().backBarDimAlpha
+            end,
+            setFunc = function(value)
+              l.getSavedVars().backBarDimAlpha = value
+              backBar.updateStyle()
+            end,
+            width = "full",
+            default = 50,
+          },
+          {
+            type = "slider",
+            name = text("Shift Bar Icon Desaturation"),
+            tooltip = text("Desaturation of the shift bar icons; 0 keeps full color"),
+            min = 0,
+            max = 100,
+            step = 5,
+            getFunc = function()
+              return l.getSavedVars().backBarDesaturation
+            end,
+            setFunc = function(value)
+              l.getSavedVars().backBarDesaturation = value
+              backBar.updateStyle()
+            end,
+            width = "full",
+            default = 50,
+          },
+          {
+            type = "slider",
+            name = text("Shift Bar Scale"),
+            tooltip = text("Scale of the shift bar"),
+            min = 40,
+            max = 100,
+            step = 5,
+            getFunc = function()
+              return l.getSavedVars().barShowShiftScalePercent
+            end,
+            setFunc = function(value)
+              l.getSavedVars().barShowShiftScalePercent = value
+              l.updateWidgets(views.updateWidgetShiftScalePercent)
+              backBar.updateScale()
+            end,
+            width = "full",
+            default = barSavedVarsDefaults.barShowShiftScalePercent,
+            disabled = function()
+              return not l.getSavedVars().barEnabled
+            end,
+          },
+          {
+            type = "description",
+            text = "",
+            title = text("Shift Bar Position"),
+            width = "full",
+            disabled = function()
+              return not l.getSavedVars().barEnabled or not l.isClassicPreset()
+            end,
+          },
+          {
+            type = "button",
+            name = text("Move Shift Bar"),
+            tooltip = text("Show a draggable frame to position the shift bar"),
+            func = function()
+              SCENE_MANAGER:Hide("gameMenuInGame")
+              l.openShiftBarFrame()
+              zo_callLater(function()
+                SetGameCameraUIMode(true)
+              end, 10)
+            end,
+            width = "half",
+            disabled = function()
+              return not l.getSavedVars().barEnabled or not l.isClassicPreset()
+            end,
+          },
+          {
+            type = "button",
+            name = text("Reset Shift Bar"),
+            tooltip = text("Reset the shift bar position back to the default"),
+            func = function()
+              l.getSavedVars().barShiftOffsetX = barSavedVarsDefaults.barShiftOffsetX
+              l.getSavedVars().barShiftOffsetY = barSavedVarsDefaults.barShiftOffsetY
+              l.updateWidgets(views.updateWidgetShiftOffset)
+              -- re-anchor the positioning frame if it is currently open
+              if l.shiftBarFrame and not l.shiftBarFrame:IsControlHidden() then
+                l.openShiftBarFrame()
+              end
+            end,
+            width = "half",
+            disabled = function()
+              return not l.getSavedVars().barEnabled or not l.isClassicPreset()
+            end,
+          },
+          {
+            type = "slider",
+            name = text("Label Offset (Shift Bar)"),
+            tooltip = text("Adjust time label position on the shift bar"),
+            min = -50,
+            max = 50,
+            step = 1,
+            getFunc = function()
+              return l.getSavedVars().barLabelYOffsetInShift
+            end,
+            setFunc = function(value)
+              l.getSavedVars().barLabelYOffsetInShift = value
+              l.updateWidgets(views.updateWidgetLabelYOffset)
+            end,
+            width = "full",
+            disabled = function()
+              return not l.getSavedVars().barEnabled
+                or not l.getSavedVars().barLabelEnabled
+            end,
+            default = barSavedVarsDefaults.barLabelYOffsetInShift,
+          },
+          {
+            type = "slider",
+            name = text("Stack Label Offset (Shift Bar)"),
+            min = -50,
+            max = 50,
+            step = 1,
+            getFunc = function()
+              return l.getSavedVars().barStackLabelYOffsetInShift
+            end,
+            setFunc = function(value)
+              l.getSavedVars().barStackLabelYOffsetInShift = value
+              l.updateWidgets(views.updateWidgetStackLabelYOffset)
+            end,
+            width = "full",
+            disabled = function()
+              return not l.getSavedVars().barEnabled
+                or not l.getSavedVars().barStackLabelEnabled
+            end,
+            default = barSavedVarsDefaults.barStackLabelYOffsetInShift,
+          },
+        },
+      },
+      {
+        type = "submenu",
+        name = text("Time Labels"),
+        controls = {
+          {
+            type = "checkbox",
+            name = text("Show Time Labels"),
         tooltip = text("Display remaining time as text on timer bars"),
         getFunc = function()
           return l.getSavedVars().barLabelEnabled
@@ -662,28 +863,6 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
         end,
       },
       {
-        type = "slider",
-        name = text("Label Offset (Shift Bar)"),
-        tooltip = text("Adjust time label position on the shift bar"),
-        min = -50,
-        max = 50,
-        step = 1,
-        getFunc = function()
-          return l.getSavedVars().barLabelYOffsetInShift
-        end,
-        setFunc = function(value)
-          l.getSavedVars().barLabelYOffsetInShift = value
-          l.updateWidgets(views.updateWidgetLabelYOffset)
-        end,
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled
-            or not l.getSavedVars().barShowShift
-            or not l.getSavedVars().barLabelEnabled
-        end,
-        default = barSavedVarsDefaults.barLabelYOffsetInShift,
-      },
-      {
         type = "checkbox",
         name = text("Hide Decimals When Long"),
         tooltip = text("Show only whole seconds when time remaining is above threshold"),
@@ -721,8 +900,75 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
         default = barSavedVarsDefaults.barLabelIgnoreDeciamlThreshold,
       },
       {
-        type = "checkbox",
-        name = text("Show Stack Count"),
+        type = "colorpicker",
+        name = text("Low Priority Effect Color"),
+        tooltip = text("Color for low priority effects (tail effects, Crux, etc.) displayed with angle brackets"),
+        getFunc = function()
+          return unpack(l.getSavedVars().barLowPriorityLabelColor)
+        end,
+        setFunc = function(r, g, b, a)
+          l.getSavedVars().barLowPriorityLabelColor = { r, g, b }
+        end,
+        width = "full",
+        disabled = function()
+          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
+        end,
+        default = {
+          r = barSavedVarsDefaults.barLowPriorityLabelColor[1],
+          g = barSavedVarsDefaults.barLowPriorityLabelColor[2],
+          b = barSavedVarsDefaults.barLowPriorityLabelColor[3],
+        },
+      },
+      {
+        type = "colorpicker",
+        name = text("Label Color"),
+        getFunc = function()
+          return unpack(l.getSavedVars().barLabelColor)
+        end,
+        setFunc = function(r, g, b, a)
+          l.getSavedVars().barLabelColor = { r, g, b }
+          l.updateWidgets(views.updateWidgetCooldown)
+        end,
+        width = "full",
+        disabled = function()
+          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
+        end,
+        default = {
+          r = barSavedVarsDefaults.barLabelColor[1],
+          g = barSavedVarsDefaults.barLabelColor[2],
+          b = barSavedVarsDefaults.barLabelColor[3],
+        },
+      },
+      {
+        type = "colorpicker",
+        name = text("Label Ending Color"),
+        tooltip = text("Label color when remaining time is below threshold"),
+        getFunc = function()
+          return unpack(l.getSavedVars().barLabelEndingColor)
+        end,
+        setFunc = function(r, g, b, a)
+          l.getSavedVars().barLabelEndingColor = { r, g, b }
+          l.updateWidgets(views.updateWidgetCooldown)
+        end,
+        width = "full",
+        disabled = function()
+          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
+        end,
+        default = {
+          r = barSavedVarsDefaults.barLabelEndingColor[1],
+          g = barSavedVarsDefaults.barLabelEndingColor[2],
+          b = barSavedVarsDefaults.barLabelEndingColor[3],
+        },
+      },
+        },
+      },
+      {
+        type = "submenu",
+        name = text("Stack Labels"),
+        controls = {
+          {
+            type = "checkbox",
+            name = text("Show Stack Count"),
         tooltip = text("Display stack count for stackable effects"),
         getFunc = function()
           return l.getSavedVars().barStackLabelEnabled
@@ -755,27 +1001,6 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
         disabled = function()
           return not l.getSavedVars().barEnabled or not l.getSavedVars().barStackLabelEnabled
         end,
-      },
-      {
-        type = "slider",
-        name = text("Stack Label Offset (Shift Bar)"),
-        min = -50,
-        max = 50,
-        step = 1,
-        getFunc = function()
-          return l.getSavedVars().barStackLabelYOffsetInShift
-        end,
-        setFunc = function(value)
-          l.getSavedVars().barStackLabelYOffsetInShift = value
-          l.updateWidgets(views.updateWidgetStackLabelYOffset)
-        end,
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled
-            or not l.getSavedVars().barShowShift
-            or not l.getSavedVars().barStackLabelEnabled
-        end,
-        default = barSavedVarsDefaults.barStackLabelYOffsetInShift,
       },
       {
         type = "dropdown",
@@ -840,8 +1065,34 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
         end,
       },
       {
-        type = "checkbox",
-        name = text("Show Cooldown Line"),
+        type = "colorpicker",
+        name = text("Stack Label Color"),
+        getFunc = function()
+          return unpack(l.getSavedVars().barStackLabelColor)
+        end,
+        setFunc = function(r, g, b, a)
+          l.getSavedVars().barStackLabelColor = { r, g, b }
+          l.updateWidgets(views.updateWidgetCooldown)
+        end,
+        width = "full",
+        disabled = function()
+          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
+        end,
+        default = {
+          r = barSavedVarsDefaults.barStackLabelColor[1],
+          g = barSavedVarsDefaults.barStackLabelColor[2],
+          b = barSavedVarsDefaults.barStackLabelColor[3],
+        },
+      },
+        },
+      },
+      {
+        type = "submenu",
+        name = text("Cooldown Line"),
+        controls = {
+          {
+            type = "checkbox",
+            name = text("Show Cooldown Line"),
         tooltip = text("Display a progress line under skill slots showing remaining cooldown"),
         getFunc = function()
           return l.getSavedVars().barCooldownVisible
@@ -955,9 +1206,15 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
           b = barSavedVarsDefaults.barCooldownEndingColor[3],
         },
       },
+        },
+      },
       {
-        type = "checkbox",
-        name = text("Show Progress Bar"),
+        type = "submenu",
+        name = text("Progress Bar"),
+        controls = {
+          {
+            type = "checkbox",
+            name = text("Show Progress Bar"),
         tooltip = text("Display a horizontal progress bar that shrinks from right to left"),
         getFunc = function()
           return l.getSavedVars().barProgressVisible
@@ -1031,85 +1288,6 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
           return not l.getSavedVars().barEnabled or not l.getSavedVars().barProgressVisible
         end,
       },
-      {
-        type = "colorpicker",
-        name = text("Low Priority Effect Color"),
-        tooltip = text("Color for low priority effects (tail effects, Crux, etc.) displayed with angle brackets"),
-        getFunc = function()
-          return unpack(l.getSavedVars().barLowPriorityLabelColor)
-        end,
-        setFunc = function(r, g, b, a)
-          l.getSavedVars().barLowPriorityLabelColor = { r, g, b }
-        end,
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
-        end,
-        default = {
-          r = barSavedVarsDefaults.barLowPriorityLabelColor[1],
-          g = barSavedVarsDefaults.barLowPriorityLabelColor[2],
-          b = barSavedVarsDefaults.barLowPriorityLabelColor[3],
-        },
-      },
-      {
-        type = "colorpicker",
-        name = text("Label Color"),
-        getFunc = function()
-          return unpack(l.getSavedVars().barLabelColor)
-        end,
-        setFunc = function(r, g, b, a)
-          l.getSavedVars().barLabelColor = { r, g, b }
-          l.updateWidgets(views.updateWidgetCooldown)
-        end,
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
-        end,
-        default = {
-          r = barSavedVarsDefaults.barLabelColor[1],
-          g = barSavedVarsDefaults.barLabelColor[2],
-          b = barSavedVarsDefaults.barLabelColor[3],
-        },
-      },
-      {
-        type = "colorpicker",
-        name = text("Label Ending Color"),
-        tooltip = text("Label color when remaining time is below threshold"),
-        getFunc = function()
-          return unpack(l.getSavedVars().barLabelEndingColor)
-        end,
-        setFunc = function(r, g, b, a)
-          l.getSavedVars().barLabelEndingColor = { r, g, b }
-          l.updateWidgets(views.updateWidgetCooldown)
-        end,
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
-        end,
-        default = {
-          r = barSavedVarsDefaults.barLabelEndingColor[1],
-          g = barSavedVarsDefaults.barLabelEndingColor[2],
-          b = barSavedVarsDefaults.barLabelEndingColor[3],
-        },
-      },
-      {
-        type = "colorpicker",
-        name = text("Stack Label Color"),
-        getFunc = function()
-          return unpack(l.getSavedVars().barStackLabelColor)
-        end,
-        setFunc = function(r, g, b, a)
-          l.getSavedVars().barStackLabelColor = { r, g, b }
-          l.updateWidgets(views.updateWidgetCooldown)
-        end,
-        width = "full",
-        disabled = function()
-          return not l.getSavedVars().barEnabled or not l.getSavedVars().barLabelEnabled
-        end,
-        default = {
-          r = barSavedVarsDefaults.barStackLabelColor[1],
-          g = barSavedVarsDefaults.barStackLabelColor[2],
-          b = barSavedVarsDefaults.barStackLabelColor[3],
         },
       },
     },

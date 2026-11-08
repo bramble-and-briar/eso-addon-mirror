@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/votan/Votan-s-Addon-List__2094",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "votan",
   "canonical_id": "esoui:2094",
   "category_id": "159",
   "compatibility": [
     {
-      "name": " Seasons of the Worm Cult Pt1",
-      "version": "11.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Fallen Banners",
-      "version": "10.3.5"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2094",
@@ -21,7 +22,7 @@
     "LibVotansAddonList"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2094/",
-  "fingerprint": "ba856e281c4ea30612db27624694a672b7796723efbd153d9df2eaf494b0f479",
+  "fingerprint": "b3a6e7ebfe3fe5df3b875ea7587483b1897fc1afd538d190ce989057c64ccba0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8389.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw8390.jpg"
@@ -32,11 +33,11 @@
   "source_id": "2094",
   "source_url": "https://www.esoui.com/downloads/info2094-VotansAddonList.html",
   "stats": {
-    "downloads": 194695,
-    "favorites": 278,
-    "monthly_downloads": 262
+    "downloads": 196037,
+    "favorites": 277,
+    "monthly_downloads": 615
   },
   "title": "Votan's Addon List",
-  "updated_at": 1745344031000,
-  "version": "1.10.0"
+  "updated_at": 1794059742000,
+  "version": "1.10.1"
 }

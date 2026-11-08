@@ -1,8 +1,15 @@
-## Title: Duel Results
+## Title: |cC5A15ADuel Results|r
 ## APIVersion: 101046
-## AddOnVersion: 2.1
+## AddOnVersion: 300
+## Version: 3.0.0
 ## Author: Vixen Hunny
-## DependsOn: LibAddonMenu-2.0 LibCombat2
-## Description: Track Damage Done, healing done and effects uptime
+## Description: Live duel tracker with a window: damage, healing, crits, blocks, buff/debuff uptimes, ability breakdown and duel history.
+## SavedVariables: DuelResultsSV
+## OptionalDependsOn: LibAddonMenu-2.0
 
 DuelResults.lua
+Tracker.lua
+UI.xml
+UI.lua
+Settings.lua
+Bindings.xml

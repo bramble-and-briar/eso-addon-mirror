@@ -1,0 +1,10 @@
+## Title: |cc9a44cCity Lights|r
+## Author: JuneSky
+## Version: 1.1.0
+## AddOnVersion: 3
+## APIVersion: 101051 101050
+## SavedVariables: CityLightsSV
+## OptionalDependsOn: LibAddonMenu-2.0>=32
+## Description: Accessibility helper for the zone map: keeps towns highlighted and labelled so they are easy to spot, in colours and sizes you choose. Settings (needs LibAddonMenu-2.0): on/off, highlight, outline and name colours, name size. /citylights toggles it, /citylights labels toggles names, /citylights settings opens the options.
+
+CityLights.lua

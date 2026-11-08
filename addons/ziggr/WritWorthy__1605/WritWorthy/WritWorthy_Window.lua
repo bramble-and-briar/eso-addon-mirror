@@ -147,8 +147,8 @@ WritWorthyInventoryList.CELL_NAME_LIST = {
   WritWorthyInventoryList.CELL_DETAIL3,
   WritWorthyInventoryList.CELL_DETAIL4,
   WritWorthyInventoryList.CELL_DETAIL5,
-  WritWorthyInventoryList.CELL_ENQUEUE,
-  WritWorthyInventoryList.CELL_MIMIC
+  WritWorthyInventoryList.CELL_MIMIC,
+  WritWorthyInventoryList.CELL_ENQUEUE
 }
 -- Cells that are shown/hidden click buttons, not text data.
 WritWorthyInventoryList.CELL_UNTEXT_LIST = {
@@ -1240,59 +1240,75 @@ end
 -- LibLazyCrafting API k:CraftProvisioningItemByRecipeId
 --
 function WritWorthyInventoryList:GetLLC()
-  if self.LibLazyCrafting then
-    return self.LibLazyCrafting
+  -- Cache on the class. singleton:GetLLC() and
+  -- WritWorthyInventoryList:GetLLC() do not share self, and a second
+  -- AddRequestingAddon(WritWorthy.name) wipes LLC's crafting queue.
+  if WritWorthyInventoryList.LibLazyCrafting then
+    return WritWorthyInventoryList.LibLazyCrafting
   end
 
-  local lib = LibLazyCrafting
-  self.LibLazyCrafting_lib = lib
-  self.LibLazyCrafting = lib:AddRequestingAddon(
-    WritWorthy.name, -- name
-    true, -- autocraft
-    WritWorthyInventoryList_LLCCompleted -- functionCallback
-  )
+  local libLazyCrafting = LibLazyCrafting
+  WritWorthyInventoryList.LibLazyCrafting_lib = libLazyCrafting
 
-  Log:StartNewEvent()
-  if not self.LibLazyCrafting then
+  local llcInteraction = nil
+  if libLazyCrafting then
+    llcInteraction = libLazyCrafting:GetRequestingAddon(WritWorthy.name)
+  end
+
+  local registeredThisCall = false
+  if not llcInteraction and libLazyCrafting then
+    llcInteraction = libLazyCrafting:AddRequestingAddon(
+      WritWorthy.name, -- name
+      true, -- autocraft
+      WritWorthyInventoryList_LLCCompleted -- functionCallback
+    )
+    registeredThisCall = llcInteraction ~= nil
+  end
+  WritWorthyInventoryList.LibLazyCrafting = llcInteraction
+
+  if registeredThisCall then
+    Log:StartNewEvent()
+    Log:Add("LibLazyCrafting LLC:" .. tostring(llcInteraction))
+
+    -- Record API names to log so that I have them handy
+    -- rather than spending any time asking "is Xxx()
+    -- available?"
+    -- No need to log .personalQueue contents here: the
+    -- LLC queue is always initially empty. It has no
+    -- savedVariables of its own; we control that.
+    for apiName, apiValue in pairs(llcInteraction) do
+      Log:Add("LibLazyCrafting API k:" .. tostring(apiName) .. "  v:" .. tostring(apiValue))
+    end
+
+    -- Install our custom pre-crafting hooks.
+    -- These write "insufficient materials" errors to chat
+    -- when LLC cannot craft an item due to missing mats.
+    -- Only on a new registration: wrapping again would call our hook as the original.
+    if libLazyCrafting.craftInteractionTables then
+      WritWorthyInventoryList.llc_orig_is_item_craftable = {}
+      for craftingType, craftingTable in ipairs(libLazyCrafting.craftInteractionTables) do
+        -- First, save original interaction function so that
+        -- we can still call it.
+        WritWorthyInventoryList.llc_orig_is_item_craftable[craftingType] = craftingTable["isItemCraftable"]
+        -- Then replace it with our own.
+        craftingTable["isItemCraftable"] = WritWorthy_LLC_IsItemCraftable
+      end
+      -- Promote LLC's internal function
+      -- GetCurrentSetInteractionIndex() so that we can
+      -- reuse it later without going through LLC's global.
+      llcInteraction.GetCurrentSetInteractionIndex = libLazyCrafting.functionTable.GetCurrentSetInteractionIndex
+    end
+  elseif not llcInteraction then
+    Log:StartNewEvent()
     d("WritWorthy: Unable to load LibLazyCrafting")
     Log:Add("Unable to load LibLazyCrafting")
   end
-  Log:Add("LibLazyCrafting LLC:" .. tostring(self.LibLazyCrafting))
-
-  -- Record API names to log so that I have them handy
-  -- rather than spending any time asking "is Xxx()
-  -- available?"
-  -- No need to log .personalQueue contents here: the
-  -- LLC queue is always initially empty. It has no
-  -- savedVariables of its own; we control that.
-  for k, v in pairs(self.LibLazyCrafting) do
-    Log:Add("LibLazyCrafting API k:" .. tostring(k) .. "  v:" .. tostring(v))
-  end
-
-  -- Install our custom pre-crafting hooks.
-  -- These write "insufficient materials" errors to chat
-  -- when LLC cannot craft an item due to missing mats.
-  local llc_global = LibLazyCrafting
-  if llc_global and llc_global.craftInteractionTables then
-    self.llc_orig_is_item_craftable = {}
-    for ctype, v in ipairs(llc_global.craftInteractionTables) do
-      -- First, save original interaction function so that
-      -- we can still call it.
-      self.llc_orig_is_item_craftable[ctype] = v["isItemCraftable"]
-      -- Then replace it with our own.
-      v["isItemCraftable"] = WritWorthy_LLC_IsItemCraftable
-    end
-    -- Promote LLC's internal function
-    -- GetCurrentSetInteractionIndex() so that we can
-    -- reuse it later without going through LLC's global.
-    self.LibLazyCrafting.GetCurrentSetInteractionIndex = llc_global.functionTable.GetCurrentSetInteractionIndex
-  end
-  -- if      llc_global
-  --     and llc_global.craftInteractionTables
-  --     and llc_global.craftInteractionTables[CRAFTING_TYPE_ALCHEMY     ]
-  --     and llc_global.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] then
-  --     llc_global.craftInteractionTables[CRAFTING_TYPE_ALCHEMY     ]["isItemCraftable"] = WritWorthy_LLC_IsItemCraftable_Alchemy
-  --     llc_global.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["isItemCraftable"] = WritWorthy_LLC_IsItemCraftable_Provisioning
+  -- if      libLazyCrafting
+  --     and libLazyCrafting.craftInteractionTables
+  --     and libLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ALCHEMY     ]
+  --     and libLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] then
+  --     libLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ALCHEMY     ]["isItemCraftable"] = WritWorthy_LLC_IsItemCraftable_Alchemy
+  --     libLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["isItemCraftable"] = WritWorthy_LLC_IsItemCraftable_Provisioning
   -- else
   --     d("WritWorthy warning: unable to install code to check"
   --       .." provisioning/alchemy materials. Auto-crafting these types"
@@ -1305,11 +1321,11 @@ function WritWorthyInventoryList:GetLLC()
   -- exhaustion of crafting materials.
   -- LLC version 2.9 has reports of not infinite-looping.
   WritWorthy.Smithing.SCHOOL_JEWELRY.autocraft_not_implemented = true
-  if llc_global and llc_global.version and (2.91 <= llc_global.version) then
+  if libLazyCrafting and libLazyCrafting.version and (2.91 <= libLazyCrafting.version) then
     WritWorthy.Smithing.SCHOOL_JEWELRY.autocraft_not_implemented = false
   end
 
-  return self.LibLazyCrafting
+  return WritWorthyInventoryList.LibLazyCrafting
 end
 
 -- Copied from LLC internals

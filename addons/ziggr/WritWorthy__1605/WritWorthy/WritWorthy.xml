@@ -95,26 +95,26 @@
                   <Dimensions x="200" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail2", "Detail 2", "ui_detail2")</OnInitialized>
                 </Control>
-                <!-- mimic stones go here right before motif column -->
-                <Control name="$(parent)Mimic" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-455" />
-                  <Dimensions x="30" y="20" />
-                  <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Mimic", "M", "ui_use_mimic")</OnInitialized>
-                </Control>
                 <Control name="$(parent)Detail3" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-305" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-340" />
                   <Dimensions x="150" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail3", "Detail 3", "ui_detail3")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Detail4" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-150" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-185" />
                   <Dimensions x="150" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail4", "Detail 4", "ui_detail4")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Detail5" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-45" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-80" />
                   <Dimensions x="100" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail5", "Quality", "ui_detail5")</OnInitialized>
+                </Control>
+                <!-- Mimic sits with Q: both are per-row action checkboxes. -->
+                <Control name="$(parent)Mimic" inherits="ZO_SortHeader">
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-45" />
+                  <Dimensions x="30" y="20" />
+                  <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Mimic", "M", "ui_use_mimic")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Enqueue" inherits="ZO_SortHeader">
                   <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-10" />

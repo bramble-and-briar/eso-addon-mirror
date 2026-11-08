@@ -16,11 +16,11 @@
 --    is already loaded: skip the whole embedded set. ADR_EMBED_SKIP is the
 --    guard line automatically prepended to every module file. Also expose a
 --    no-op fallback so hosts may call ADR_EMBED.activate() unconditionally.
-if _G.ActionDurationReminder then
+if ActionDurationReminder then
   _G.ADR_EMBED_SKIP = true
   if not _G.ADR_EMBED then
     _G.ADR_EMBED = {
-      version = "3.169",
+      version = "3.171",
       apiVersion = tonumber("3") or 0,
       activate = function() end,
     }
@@ -35,7 +35,7 @@ end
 local l = {} -- private table for local use
 local m = { l = l } -- public table for module use
 local NAME = "ActionDurationReminder"
-local VERSION = "3.169"
+local VERSION = "3.171"
 local API_VERSION = tonumber("3") or 0
 
 --========================================

@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/lousytourist/Colorblind__5032",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "lousytourist",
+  "canonical_id": "esoui:5032",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5032",
+  "deleted": false,
+  "directories": [
+    "Colorblind"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5032/",
+  "fingerprint": "6519258222e10e68d8f416cc02ae895eaab973eacefcc6e86aab73687cf1cfb2",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5032",
+  "source_url": "https://www.esoui.com/downloads/info5032-Colorblind.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Colorblind",
+  "updated_at": 1794108492000,
+  "version": "2026.11.07"
+}

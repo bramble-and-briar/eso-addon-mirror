@@ -8,6 +8,10 @@
   "category_id": "40",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "WritWorthy"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1605/",
-  "fingerprint": "ee234d5ff681b2a74869f89c7ff64a0d79676cb57f9790895d5a28b39beea071",
+  "fingerprint": "77c434862d594a2ed456467db49c23e4c9629aabf0144b45ab3a2cfc43342334",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5719.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5262.jpg",
@@ -36,11 +40,11 @@
   "source_id": "1605",
   "source_url": "https://www.esoui.com/downloads/info1605-WritWorthy.html",
   "stats": {
-    "downloads": 2524506,
-    "favorites": 987,
-    "monthly_downloads": 13268
+    "downloads": 2549755,
+    "favorites": 989,
+    "monthly_downloads": 10535
   },
   "title": "WritWorthy",
-  "updated_at": 1790611185000,
-  "version": "7.5.9"
+  "updated_at": 1794135624000,
+  "version": "7.6.1"
 }

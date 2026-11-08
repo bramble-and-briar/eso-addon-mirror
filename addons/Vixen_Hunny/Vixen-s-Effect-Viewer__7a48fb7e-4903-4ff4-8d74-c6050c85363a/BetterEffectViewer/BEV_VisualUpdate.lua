@@ -1,143 +1,105 @@
+-- Per-tick loop: target hold timeout, rescans, expiry, timers and flashing.
 local BEV = BetterEffectViewer
 
-local function updateVisualSlot(self, slot, now, flashThreshold, flashColor, flashPulse)
+local function lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+-- Updates one slot's timer text and flash state. Returns its remaining time.
+local function updateSlot(self, slot, now, flashThreshold, flashColor, pulse)
     local effect = slot.effect
     if not effect then
-        if slot.lastTimerText ~= "" then
-            slot.timer:SetText("")
-            slot.lastTimerText = ""
-        end
-        if slot.border then
-            slot.border:SetEdgeColor(0, 0, 0, 0)
-        end
-        slot.wasFlashing = false
         return math.huge
     end
 
     local remaining = self:TimeRemaining(effect, now)
-    local minRemaining = math.huge
-    if not effect.isPermanent and remaining > 0 then
-        minRemaining = remaining
+    local text = self:FormatTime(remaining)
+    if text ~= slot.lastTimerText then
+        slot.timer:SetText(text)
+        slot.lastTimerText = text
     end
 
-    local timerText = self:FormatTime(remaining, effect.isPermanent)
-    if slot.lastTimerText ~= timerText then
-        slot.timer:SetText(timerText)
-        slot.lastTimerText = timerText
-    end
-
-    local borderBase = slot.baseBorderColor
-    local timerBase = slot.baseTimerColor
-    if (not borderBase) or (not timerBase) then
-        borderBase, timerBase = self:GetColorsForEffect(effect)
-        slot.baseBorderColor = borderBase
-        slot.baseTimerColor = timerBase
-    end
-
-    local br, bg, bb, ba = self:UnpackColor(borderBase)
-    local tr, tg, tb, ta = self:UnpackColor(timerBase)
-
-    local shouldFlash = not effect.isPermanent
-        and remaining ~= math.huge
-        and remaining > 0
-        and remaining <= flashThreshold
-
-    if shouldFlash then
+    local flashing = remaining > 0 and remaining <= flashThreshold
+    if flashing then
+        local br, bg, bb, ba = self:UnpackColor(slot.baseBorderColor)
+        local tr, tg, tb, ta = self:UnpackColor(slot.baseTimerColor)
         local fr, fg, fb, fa = self:UnpackColor(flashColor)
-
-        br = br + (fr - br) * flashPulse
-        bg = bg + (fg - bg) * flashPulse
-        bb = bb + (fb - bb) * flashPulse
-        ba = ba + (fa - ba) * flashPulse
-
-        tr = tr + (fr - tr) * flashPulse
-        tg = tg + (fg - tg) * flashPulse
-        tb = tb + (fb - tb) * flashPulse
-        ta = ta + (fa - ta) * flashPulse
-
-        slot.wasFlashing = true
-    elseif not slot.wasFlashing then
-        return minRemaining
-    else
-        slot.wasFlashing = false
+        slot.border:SetEdgeColor(lerp(br, fr, pulse), lerp(bg, fg, pulse), lerp(bb, fb, pulse), lerp(ba, fa, pulse))
+        slot.timer:SetColor(lerp(tr, fr, pulse), lerp(tg, fg, pulse), lerp(tb, fb, pulse), lerp(ta, fa, pulse))
+        slot.isFlashing = true
+    elseif slot.isFlashing then
+        slot.border:SetEdgeColor(self:UnpackColor(slot.baseBorderColor))
+        slot.timer:SetColor(self:UnpackColor(slot.baseTimerColor))
+        slot.isFlashing = false
     end
 
-    if slot.border then
-        slot.border:SetCenterColor(0, 0, 0, 0)
-        slot.border:SetEdgeColor(br, bg, bb, ba)
+    if remaining <= 0 then
+        return math.huge
     end
-    slot.timer:SetColor(tr, tg, tb, ta)
-
-    return minRemaining
+    return remaining
 end
 
-function BEV:OnUpdate()
-    if self.needsRedraw then
-        self:Redraw()
-        self.needsRedraw = false
-    end
-
-    local now = GetFrameTimeSeconds()
-    local perfProfile = self:GetPerformanceProfile()
-
-    if now >= (self.nextMaintenanceAt or 0) then
-        self:UpdateLockedTarget(now)
-        self:CleanupExpiredEffects(now)
-        self.nextMaintenanceAt = now + perfProfile.maintenance
-    end
-
-    local hasReticleContext = self:HandleReticleState()
-    if hasReticleContext then
-        if self.fadeOut:IsPlaying() then
-            self.fadeOut:Stop()
-        end
-        self.win:SetHidden(false)
-        self.win:SetAlpha(1)
-    elseif not self.win:IsHidden() and not self.fadeOut:IsPlaying() then
-        self.fadeOut:PlayFromStart()
-    end
-
-    local rescanInterval = self.runtimeRescanInterval or self.sv.fallbackRescanInterval or self.defaults.fallbackRescanInterval
-
-    if hasReticleContext and now >= (self.nextFallbackRescanAt or 0) then
-        -- Fallback sync for effects that may not emit reliable EVENT_EFFECT_CHANGED updates.
-        self:RescanReticleBuffs()
-        self.nextFallbackRescanAt = now + rescanInterval
-    end
-
-    if now < (self.nextVisualUpdateAt or 0) then
+function BEV:UpdateVisuals(now, profile)
+    if not self.contentShown then
+        self.nextVisualUpdateAt = now + profile.visualIdle
         return
     end
 
-    local nowMs = GetFrameTimeMilliseconds()
-    local flashThreshold = self.sv.flashThreshold or self.defaults.flashThreshold
-    local flashColor = self.sv.flashColor or self.defaults.flashColor
-    local flashPulse = 0.5 + 0.5 * math.sin((nowMs / 150) % (2 * math.pi))
-    local minTimedRemaining = math.huge
+    local sv = self.sv
+    local flashThreshold = sv.flashThreshold
+    local flashColor = sv.flashColor
+    local pulse = 0.5 + 0.5 * math.sin(GetFrameTimeMilliseconds() / 150)
+    local minRemaining = math.huge
 
-    if self.buffSlots and self.visibleBuffSlotCount then
-        for i = 1, self.visibleBuffSlotCount do
-            local slotMin = updateVisualSlot(self, self.buffSlots[i], now, flashThreshold, flashColor, flashPulse)
-            if slotMin < minTimedRemaining then
-                minTimedRemaining = slotMin
+    for _, group in pairs(self.groups) do
+        local slots = group.slots
+        for i = 1, group.visible do
+            local remaining = updateSlot(self, slots[i], now, flashThreshold, flashColor, pulse)
+            if remaining < minRemaining then
+                minRemaining = remaining
             end
         end
     end
 
-    if self.debuffSlots and self.visibleDebuffSlotCount then
-        for i = 1, self.visibleDebuffSlotCount do
-            local slotMin = updateVisualSlot(self, self.debuffSlots[i], now, flashThreshold, flashColor, flashPulse)
-            if slotMin < minTimedRemaining then
-                minTimedRemaining = slotMin
-            end
-        end
-    end
-
-    if minTimedRemaining < 10 then
-        self.nextVisualUpdateAt = now + perfProfile.visualFast
-    elseif minTimedRemaining < math.huge then
-        self.nextVisualUpdateAt = now + perfProfile.visualNormal
+    local fastBelow = math.max(sv.decimalThreshold, flashThreshold)
+    if minRemaining <= fastBelow then
+        self.nextVisualUpdateAt = now + profile.visualFast
+    elseif minRemaining < math.huge then
+        self.nextVisualUpdateAt = now + profile.visualNormal
     else
-        self.nextVisualUpdateAt = now + perfProfile.visualIdle
+        self.nextVisualUpdateAt = now + profile.visualIdle
+    end
+end
+
+function BEV:OnUpdate()
+    local now = GetFrameTimeSeconds()
+    local profile = self:GetPerformanceProfile()
+
+    if self.targetLostAt and now - self.targetLostAt >= self.sv.reticleHoldDuration then
+        self:ClearTarget()
+    end
+
+    -- Fallback sync for effects that don't emit reliable EVENT_EFFECT_CHANGED updates.
+    if self.hasTarget and not self.targetLostAt and now >= self.nextRescanAt then
+        self:RescanTarget(now)
+    end
+
+    if self.previewActive and self:RefreshPreviewEffects(now) then
+        self.needsRedraw = true
+    end
+
+    if now >= self.nextMaintenanceAt then
+        if self:CleanupExpiredEffects(now) then
+            self.needsRedraw = true
+        end
+        self.nextMaintenanceAt = now + profile.maintenance
+    end
+
+    if self.needsRedraw then
+        self:Redraw(now)
+    end
+
+    if now >= self.nextVisualUpdateAt then
+        self:UpdateVisuals(now, profile)
     end
 end

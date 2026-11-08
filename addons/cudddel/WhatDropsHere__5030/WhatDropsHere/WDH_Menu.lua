@@ -6,6 +6,7 @@
 --
 -- Wichtig: Alle Einstellungen wirken NUR auf die Anzeige am Fadenkreuz.
 -- Gespeichert wird immer jede Pluenderung, jedes Item mit Item-ID und Kategorie.
+-- Die Anzeige-Einstellungen gelten je Charakter, die Debug-Ausgabe fuer den ganzen Account.
 
 local WDH  = WhatDropsHere
 local Menu = {}
@@ -18,7 +19,7 @@ local PANEL_NAME = "WhatDropsHereMenu"
 -- -----------------------------------------------------------------------------
 
 local function Settings()
-    return WDH_Saved.settings
+    return WDH.Settings()
 end
 
 -- Auswahlliste der Qualitaeten 0 (Trash) bis 5 (Legendaer), farbig
@@ -28,6 +29,14 @@ local function QualityChoices()
         names[#names + 1]  = WDH.ColorByQuality(quality, WDH.QualityName(quality))
         values[#values + 1] = quality
     end
+    return names, values
+end
+
+-- Wie QualityChoices, mit "Aus" vorne (Schwelle je Art der Quelle)
+local function TypeChoices()
+    local names, values = QualityChoices()
+    table.insert(names, 1, WDH_STRINGS.MENU_SHOW_OFF)
+    table.insert(values, 1, WDH.SHOW_OFF)
     return names, values
 end
 
@@ -49,6 +58,24 @@ end
 
 local function HudDisabled()
     return not Settings().hud
+end
+
+-- Auswahl der Anzeige-Schwelle fuer eine Art der Quelle
+local function TypeDropdown(key, name, tooltip, names, values)
+    return {
+        type          = "dropdown",
+        name          = name,
+        tooltip       = tooltip,
+        choices       = names,
+        choicesValues = values,
+        getFunc       = function() return Settings()[key] end,
+        setFunc       = function(value)
+            Settings()[key] = value
+            WDH.Hud:Invalidate()
+        end,
+        disabled      = HudDisabled,
+        default       = ITEM_DISPLAY_QUALITY_NORMAL,
+    }
 end
 
 -- Kurze Uebersicht ueber die gespeicherten Daten
@@ -75,6 +102,15 @@ function Menu:Init()
     if not LAM then return end
 
     local qualityNames, qualityValues = QualityChoices()
+    local typeNames, typeValues       = TypeChoices()
+
+    -- Andere Charaktere, deren Einstellungen kopiert werden koennen
+    local charNames, charIds = WDH.OtherCharacters()
+    local copyFrom = charIds[1]
+    local noChars  = #charIds == 0
+    if noChars then
+        charNames, charIds = { WDH_STRINGS.MENU_COPY_NONE }, { "" }
+    end
 
     LAM:RegisterAddonPanel(PANEL_NAME, {
         type               = "panel",
@@ -94,21 +130,11 @@ function Menu:Init()
 
         -- Anzeige am Fadenkreuz
         { type = "header", name = WDH_STRINGS.MENU_HUD_HEADER },
-        HudCheckbox("hud", WDH_STRINGS.MENU_HUD, WDH_STRINGS.MENU_HUD_TT),
         {
-            type     = "dropdown",
-            name     = WDH_STRINGS.MENU_SHOW_QUALITY,
-            tooltip  = WDH_STRINGS.MENU_SHOW_QUALITY_TT,
-            choices       = qualityNames,
-            choicesValues = qualityValues,
-            getFunc  = function() return Settings().showQuality end,
-            setFunc  = function(value)
-                Settings().showQuality = value
-                WDH.Hud:Invalidate()
-            end,
-            disabled = HudDisabled,
-            default  = ITEM_DISPLAY_QUALITY_NORMAL,
+            type = "description",
+            text = string.format(WDH_STRINGS.MENU_CHAR_INFO, WDH_Saved.chars[WDH.charId].name),
         },
+        HudCheckbox("hud", WDH_STRINGS.MENU_HUD, WDH_STRINGS.MENU_HUD_TT),
         {
             type     = "dropdown",
             name     = WDH_STRINGS.MENU_NAME_QUALITY,
@@ -145,14 +171,49 @@ function Menu:Init()
             type = "description",
             text = WDH_STRINGS.MENU_TYPES_INFO,
         },
-        HudCheckbox("hudEnemies",    WDH_STRINGS.MENU_ENEMIES,    WDH_STRINGS.MENU_ENEMIES_TT,    HudDisabled),
-        HudCheckbox("hudUnits",      WDH_STRINGS.MENU_UNITS,      WDH_STRINGS.MENU_UNITS_TT, function()
-            return HudDisabled() or not Settings().hudEnemies
+        TypeDropdown("showEnemy",     WDH_STRINGS.MENU_ENEMIES,    WDH_STRINGS.MENU_ENEMIES_TT,    typeNames, typeValues),
+        HudCheckbox("hudUnits",       WDH_STRINGS.MENU_UNITS,      WDH_STRINGS.MENU_UNITS_TT, function()
+            return HudDisabled() or Settings().showEnemy == WDH.SHOW_OFF
         end),
-        HudCheckbox("hudContainers", WDH_STRINGS.MENU_CONTAINERS, WDH_STRINGS.MENU_CONTAINERS_TT, HudDisabled),
-        HudCheckbox("hudResources",  WDH_STRINGS.MENU_RESOURCES,  WDH_STRINGS.MENU_RESOURCES_TT,  HudDisabled),
-        HudCheckbox("hudOther",      WDH_STRINGS.MENU_OTHER,      WDH_STRINGS.MENU_OTHER_TT,      HudDisabled),
-        HudCheckbox("hudTheft",      WDH_STRINGS.MENU_THEFT,      WDH_STRINGS.MENU_THEFT_TT,      HudDisabled),
+        TypeDropdown("showContainer", WDH_STRINGS.MENU_CONTAINERS, WDH_STRINGS.MENU_CONTAINERS_TT, typeNames, typeValues),
+        TypeDropdown("showResource",  WDH_STRINGS.MENU_RESOURCES,  WDH_STRINGS.MENU_RESOURCES_TT,  typeNames, typeValues),
+        TypeDropdown("showOther",     WDH_STRINGS.MENU_OTHER,      WDH_STRINGS.MENU_OTHER_TT,      typeNames, typeValues),
+        TypeDropdown("showTheft",     WDH_STRINGS.MENU_THEFT,      WDH_STRINGS.MENU_THEFT_TT,      typeNames, typeValues),
+
+        -- Einstellungen anderer Charaktere
+        { type = "header", name = WDH_STRINGS.MENU_COPY_HEADER },
+        {
+            type = "description",
+            text = WDH_STRINGS.MENU_COPY_INFO,
+        },
+        {
+            type          = "dropdown",
+            name          = WDH_STRINGS.MENU_COPY_FROM,
+            tooltip       = WDH_STRINGS.MENU_COPY_FROM_TT,
+            choices       = charNames,
+            choicesValues = charIds,
+            getFunc       = function() return copyFrom or "" end,
+            setFunc       = function(value) copyFrom = value end,
+            disabled      = noChars,
+            scrollable    = true,
+        },
+        {
+            type        = "button",
+            name        = WDH_STRINGS.MENU_COPY,
+            tooltip     = WDH_STRINGS.MENU_COPY_TT,
+            isDangerous = true,
+            warning     = WDH_STRINGS.MENU_COPY_WARNING,
+            disabled    = noChars,
+            func        = function()
+                if WDH.CopySettingsFrom(copyFrom) then
+                    for i, id in ipairs(charIds) do
+                        if id == copyFrom then
+                            d(string.format(WDH_STRINGS.COPY_DONE, charNames[i]))
+                        end
+                    end
+                end
+            end,
+        },
 
         -- Datenbank
         { type = "header", name = WDH_STRINGS.MENU_DATA_HEADER },
@@ -185,8 +246,8 @@ function Menu:Init()
             type    = "checkbox",
             name    = WDH_STRINGS.MENU_DEBUG,
             tooltip = WDH_STRINGS.MENU_DEBUG_TT,
-            getFunc = function() return Settings().debug end,
-            setFunc = function(value) Settings().debug = value end,
+            getFunc = function() return WDH_Saved.settings.debug end,
+            setFunc = function(value) WDH_Saved.settings.debug = value end,
             default = false,
         },
     })

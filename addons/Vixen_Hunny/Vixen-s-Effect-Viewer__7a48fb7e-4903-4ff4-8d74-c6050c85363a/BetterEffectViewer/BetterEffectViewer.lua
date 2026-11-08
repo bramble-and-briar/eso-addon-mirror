@@ -1,14 +1,14 @@
+-- BetterEffectViewer: core namespace, constants, defaults and shared helpers.
+
 BetterEffectViewer = {
     name = "BetterEffectViewer",
-    version = "1.2",
+    title = "|c4FC3F7Better|rEffectViewer",
+    version = "2.0",
+    author = "Vixen Hunny",
 
-    maxCols = 10,
-    maxRows = 3,
-    minRows = 1,
-
-    iconSize = 32,
     effects = {},
-    UI = {},
+    effectCount = 0,
+    runtime = {},
 }
 
 BetterEffectViewer.Auth = {
@@ -23,66 +23,84 @@ BetterEffectViewer.Auth = {
 
 local BEV = BetterEffectViewer
 
-BEV.lastReticleUnitTag = nil
-BEV.reticleLostTime = 0
-BEV.reticleHoldDuration = 1.0
-BEV.targetSwitchDelay = 0.25
-BEV.pendingTarget = nil
-BEV.pendingTime = 0
-
+-- Effects lasting at least this long (seconds) are treated as permanent.
 BEV.PERMANENT_DURATION_THRESHOLD = 600
+-- Vertical gap between the header and groups, and between the two groups.
+BEV.HEADER_GAP = 4
+BEV.GROUP_GAP = 6
+-- Hard ceiling on slots created per group, whatever the settings say.
+BEV.MAX_SLOTS_PER_GROUP = 120
+
+-- Seed lists for fresh installs. Kept out of `defaults` so ZO_SavedVars does not
+-- re-add entries the user has deliberately removed.
+BEV.DEFAULT_WHITELIST = {
+    [61747] = true,
+    [61745] = true,
+}
+
+BEV.DEFAULT_BLACKLIST = {
+    [64228] = true,
+}
 
 BEV.defaults = {
-    autoWhitelist = true,
-    autoWhitelistDuration = 5,
-    filterMode = "none",
-    maxWhitelistSize = 500,
-
-    whitelist = {
-        [61747] = true,
-        [61745] = true,
-    },
-
-    blacklist = {
-        [64228] = true,
-    },
-
+    -- Window
     offsetX = 0,
     offsetY = -250,
+    lockWindow = true,
+
+    -- Display
     showBuffs = true,
     showDebuffs = true,
-    iconSize = 32,
-    lockWindow = false,
-    playerEffectBorderColor = { 0.2, 0.8, 1.0, 1.0 },
     showPermanents = true,
-    targetSwitchDelay = 0.25,
+    showTargetName = true,
+    targetNameFontSize = 16,
+    groupOrder = "buffsFirst",
+    alignment = "center",
+    collapseEmptyRows = false,
+    iconSpacing = 3,
+    borderSize = 1,
+    maxRows = 4,
+    showDurationSweep = true,
+    dimOtherEffects = true,
     reticleHoldDuration = 1.0,
+    fadeOutDuration = 0.6,
 
+    -- Per-content layouts (PvP is used in Cyrodiil, Imperial City and battlegrounds)
     pveLayout = {
         iconSize = 32,
         fontSize = 18,
         maxCols = 10,
     },
-
     pvpLayout = {
         iconSize = 36,
         fontSize = 20,
         maxCols = 8,
     },
 
-    fontSize = 18,
-    flashThreshold = 5,
+    -- Sorting & filtering
+    sortMode = "shortest",
+    playerEffectsFirst = false,
+    filterMode = "none",
+    autoWhitelist = true,
+    autoWhitelistDuration = 5,
+    maxWhitelistSize = 500,
 
+    -- Timers
+    decimalThreshold = 10,
+    flashThreshold = 5,
+    flashColor = { 1.0, 1.0, 1.0, 1.0 },
+
+    -- Colors
+    playerEffectBorderColor = { 0.2, 0.8, 1.0, 1.0 },
     buffBorderColor = { 0.2, 0.8, 0.2, 1.0 },
     debuffBorderColor = { 0.9, 0.2, 0.2, 1.0 },
     permanentBorderColor = { 0.2, 0.6, 1.0, 1.0 },
-
     buffTimerColor = { 1.0, 1.0, 1.0, 1.0 },
     debuffTimerColor = { 1.0, 0.6, 0.3, 1.0 },
     permanentTimerColor = { 0.8, 0.8, 1.0, 1.0 },
+    stackColor = { 1.0, 0.92, 0.75, 1.0 },
 
-    flashColor = { 1.0, 1.0, 1.0, 1.0 },
-    sortMode = "shortest",
+    -- Performance
     performanceMode = "low",
     fallbackRescanInterval = 1.5,
     autoConsoleTuning = true,
@@ -91,105 +109,80 @@ BEV.defaults = {
     consoleMaxColsCap = 8,
 }
 
+-- Update cadences in seconds.
 BEV.PERFORMANCE_PROFILES = {
-    balanced = {
-        maintenance = 0.25,
-        visualFast = 0.1,
-        visualNormal = 0.25,
-        visualIdle = 0.5,
-    },
-    low = {
-        maintenance = 0.4,
-        visualFast = 0.15,
-        visualNormal = 0.35,
-        visualIdle = 0.75,
-    },
-    ultra = {
-        maintenance = 0.6,
-        visualFast = 0.25,
-        visualNormal = 0.5,
-        visualIdle = 1.0,
-    },
+    balanced = { maintenance = 0.25, visualFast = 0.1, visualNormal = 0.25, visualIdle = 0.5 },
+    low = { maintenance = 0.4, visualFast = 0.15, visualNormal = 0.35, visualIdle = 0.75 },
+    ultra = { maintenance = 0.6, visualFast = 0.25, visualNormal = 0.5, visualIdle = 1.0 },
 }
+
+---------------------------------------------------------------------------
+-- Helpers
+---------------------------------------------------------------------------
+
+function BEV.Clamp(value, minValue, maxValue, fallback)
+    local n = tonumber(value) or fallback
+    if n < minValue then
+        return minValue
+    elseif n > maxValue then
+        return maxValue
+    end
+    return n
+end
+
+function BEV.ClampInt(value, minValue, maxValue, fallback)
+    return math.floor(BEV.Clamp(value, minValue, maxValue, fallback))
+end
 
 function BEV:UnpackColor(t)
     return t[1], t[2], t[3], t[4]
 end
 
-function BEV:ResolveReticleUnitTag()
-    if DoesUnitExist("reticleover") then
-        return "reticleover"
+function BEV:Print(message, ...)
+    if select("#", ...) > 0 then
+        message = string.format(message, ...)
     end
-    if DoesUnitExist("reticleoverplayer") then
-        return "reticleoverplayer"
-    end
-    return nil
+    d(string.format("%s: %s", self.title, message))
 end
 
-function BEV:MakeEffectKey(abilityId, iconName, effectType)
-    return string.format("%d|%s|%d", abilityId or 0, iconName or "", effectType or 0)
+-- Numeric keys are cheaper than formatted strings and are what the event and
+-- rescan paths both produce for the same effect.
+function BEV:MakeEffectKey(abilityId, effectType)
+    return (abilityId or 0) * 4 + (effectType or 0)
 end
 
 function BEV:IsPermanentEffect(startTime, endTime)
     if not endTime or endTime == 0 then
         return true
     end
-    if startTime and endTime and (endTime - startTime) >= self.PERMANENT_DURATION_THRESHOLD then
-        return true
-    end
-    return false
-end
-
-function BEV:BuildEffect(effectName, abilityId, iconName, effectType, buffType, startTime, endTime, stackCount, statusEffectType, sourceType)
-    return {
-        key = self:MakeEffectKey(abilityId, iconName, effectType),
-        name = effectName,
-        abilityId = abilityId,
-        iconName = iconName,
-        effectType = effectType,
-        buffType = buffType,
-        startTime = startTime,
-        endTime = endTime,
-        stackCount = stackCount,
-        statusEffectType = statusEffectType,
-        sourceType = sourceType,
-        isPermanent = self:IsPermanentEffect(startTime, endTime),
-        lastSeen = GetFrameTimeSeconds(),
-    }
+    return startTime ~= nil and (endTime - startTime) >= self.PERMANENT_DURATION_THRESHOLD
 end
 
 function BEV:TimeRemaining(effect, now)
-    if not effect.endTime or effect.endTime == 0 then
+    if effect.isPermanent or not effect.endTime or effect.endTime == 0 then
         return math.huge
     end
-    local t = now or GetFrameTimeSeconds()
-    return effect.endTime - t
+    return effect.endTime - (now or GetFrameTimeSeconds())
 end
 
-function BEV:FormatTime(remaining, isPermanent)
-    if isPermanent then
-        return ""
-    end
-
+function BEV:FormatTime(remaining)
     if remaining == math.huge or remaining <= 0 then
         return ""
-    elseif remaining < 10 then
+    elseif remaining < (self.sv.decimalThreshold or 0) then
         return string.format("%.1f", remaining)
     elseif remaining < 60 then
-        return string.format("%d", remaining)
+        return tostring(math.floor(remaining))
+    elseif remaining < 3600 then
+        return string.format("%d:%02d", math.floor(remaining / 60), math.floor(remaining % 60))
     end
-
-    local m = math.floor(remaining / 60)
-    local s = math.floor(remaining % 60)
-    return string.format("%d:%02d", m, s)
+    return string.format("%dh", math.floor(remaining / 3600))
 end
 
 function BEV:GetPerformanceProfile()
-    local mode = self.runtimePerformanceMode or self.sv.performanceMode or self.defaults.performanceMode
+    local mode = self.runtime.performanceMode or self.sv.performanceMode
     return self.PERFORMANCE_PROFILES[mode] or self.PERFORMANCE_PROFILES.low
 end
 
-function BEV:GetSlotPoolSize()
-    local rows = self.runtimeSlotRows or 10
-    return (self.maxCols or self.defaults.pveLayout.maxCols) * rows
+function BEV:GetRescanInterval()
+    return self.runtime.rescanInterval or self.sv.fallbackRescanInterval or self.defaults.fallbackRescanInterval
 end

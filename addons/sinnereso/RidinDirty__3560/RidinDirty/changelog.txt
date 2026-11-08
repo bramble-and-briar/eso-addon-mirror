@@ -1,5 +1,5 @@
-2026.11.04
-- Minor /tp code iprovements.
+2026.11.07
+- Minor code performance iprovements.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 - add needs hook to trader window

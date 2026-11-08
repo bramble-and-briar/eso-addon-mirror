@@ -1,466 +1,462 @@
+-- LibAddonMenu panel and /bev slash commands.
 local BEV = BetterEffectViewer
-local LAM = LibAddonMenu2
 
-SLASH_COMMANDS["/bev"] = function(cmd)
-    local args = {}
-    for word in cmd:gmatch("%S+") do
-        args[#args + 1] = word
-    end
+---------------------------------------------------------------------------
+-- Option builders
+---------------------------------------------------------------------------
 
-    if args[1] == "whitelist" then
-        local id = tonumber(args[2])
-        if id then
-            BEV.sv.whitelist[id] = true
-            d("Added to whitelist: " .. id)
-        end
-    elseif args[1] == "blacklist" then
-        local id = tonumber(args[2])
-        if id then
-            BEV.sv.blacklist[id] = true
-            d("Added to blacklist: " .. id)
-        end
-    end
+local function lamColor(t)
+    return { r = t[1], g = t[2], b = t[3], a = t[4] }
 end
 
+local function checkbox(self, name, key, tooltip, onChange, extra)
+    local option = {
+        type = "checkbox",
+        name = name,
+        tooltip = tooltip,
+        getFunc = function() return self.sv[key] end,
+        setFunc = function(value)
+            self.sv[key] = value
+            if onChange then onChange(value) end
+        end,
+        default = self.defaults[key],
+    }
+    if extra then
+        for k, v in pairs(extra) do option[k] = v end
+    end
+    return option
+end
+
+local function slider(self, name, key, min, max, step, tooltip, onChange, extra)
+    local option = {
+        type = "slider",
+        name = name,
+        tooltip = tooltip,
+        min = min,
+        max = max,
+        step = step,
+        decimals = step < 1 and 1 or 0,
+        getFunc = function() return self.sv[key] end,
+        setFunc = function(value)
+            self.sv[key] = value
+            if onChange then onChange(value) end
+        end,
+        default = self.defaults[key],
+    }
+    if extra then
+        for k, v in pairs(extra) do option[k] = v end
+    end
+    return option
+end
+
+local function dropdown(self, name, key, entries, tooltip, onChange, extra)
+    local choices, values = {}, {}
+    for i, entry in ipairs(entries) do
+        values[i] = entry[1]
+        choices[i] = entry[2]
+    end
+    local option = {
+        type = "dropdown",
+        name = name,
+        tooltip = tooltip,
+        choices = choices,
+        choicesValues = values,
+        getFunc = function() return self.sv[key] end,
+        setFunc = function(value)
+            self.sv[key] = value
+            if onChange then onChange(value) end
+        end,
+        default = self.defaults[key],
+    }
+    if extra then
+        for k, v in pairs(extra) do option[k] = v end
+    end
+    return option
+end
+
+local function color(self, name, key, tooltip)
+    return {
+        type = "colorpicker",
+        name = name,
+        tooltip = tooltip,
+        getFunc = function() return self:UnpackColor(self.sv[key]) end,
+        setFunc = function(r, g, b, a)
+            self.sv[key] = { r, g, b, a }
+            self:RefreshAppearance()
+        end,
+        default = lamColor(self.defaults[key]),
+    }
+end
+
+local function layoutSubmenu(self, title, layoutKey)
+    local function layoutSlider(name, field, min, max, tooltip)
+        return {
+            type = "slider",
+            name = name,
+            tooltip = tooltip,
+            min = min,
+            max = max,
+            step = 1,
+            getFunc = function() return self.sv[layoutKey][field] end,
+            setFunc = function(value)
+                self.sv[layoutKey][field] = value
+                self:ApplyCurrentLayout()
+            end,
+            default = self.defaults[layoutKey][field],
+        }
+    end
+
+    return {
+        type = "submenu",
+        name = title,
+        controls = {
+            layoutSlider("Icon Size", "iconSize", 16, 72, "Width and height of each effect icon."),
+            layoutSlider("Timer Font Size", "fontSize", 8, 32, "Size of the countdown text. Stack counts scale with it."),
+            layoutSlider("Icons Per Row", "maxCols", 1, 20, "How many icons fit on one row before wrapping."),
+        },
+    }
+end
+
+local function listEditbox(self, name, listName, add, tooltip)
+    return {
+        type = "editbox",
+        name = name,
+        tooltip = tooltip,
+        isMultiline = false,
+        getFunc = function() return "" end,
+        setFunc = function(text)
+            local ids = self:ParseAbilityIds(text)
+            if #ids == 0 then
+                return
+            end
+            local changed = self:EditList(listName, ids, add)
+            self:Print("%s %d ability id(s) %s the %s.", add and "Added" or "Removed", changed,
+                add and "to" or "from", listName)
+        end,
+    }
+end
+
+---------------------------------------------------------------------------
+-- Panel
+---------------------------------------------------------------------------
+
 function BEV:CreateSettingsMenu()
+    local LAM = LibAddonMenu2
     if not LAM then
         return
     end
 
-    local defaults = self.defaults
+    local function redraw() self:Redraw() end
+    local function relayout() self:RefreshAppearance() end
+    local function retune()
+        self:ApplyRuntimePlatformTuning()
+        self:ApplyCurrentLayout()
+    end
+    local function consoleTuningDisabled() return not self.sv.autoConsoleTuning end
 
     local panelData = {
         type = "panel",
         name = "BetterEffectViewer",
-        displayName = "BetterEffectViewer",
-        author = "You",
+        displayName = self.title,
+        author = self.author,
         version = self.version,
+        slashCommand = "/bevsettings",
         registerForRefresh = true,
         registerForDefaults = true,
     }
 
-    local optionsData = {
+    local options = {
         {
             type = "description",
-            text = "LUI-style buff/debuff tracker for your reticle target.",
+            text = "Buffs and debuffs on whatever is under your reticle. Unlock the window to see a preview "
+                .. "and drag it into place, then lock it again. Chat: |c4FC3F7/bev help|r",
         },
+        checkbox(self, "Lock Window", "lockWindow",
+            "Unlock to drag the window around. A preview is shown while unlocked.",
+            function(value) self:SetLocked(value) end),
         {
-            type = "checkbox",
-            name = "Lock Window",
-            tooltip = "Lock the window so it cannot be dragged.",
-            getFunc = function()
-                return self.sv.lockWindow
-            end,
-            setFunc = function(value)
-                self.sv.lockWindow = value
-                self.win:SetMovable(not value)
-                self.win:SetMouseEnabled(not value)
-            end,
-            default = defaults.lockWindow,
+            type = "button",
+            name = "Reset Position",
+            tooltip = "Move the window back to its default spot above the reticle.",
+            width = "half",
+            func = function() self:ResetPosition() end,
         },
-        {
-            type = "checkbox",
-            name = "Auto Detect Important Buffs",
-            tooltip = "Automatically add longer buffs to the whitelist.",
-            getFunc = function()
-                return self.sv.autoWhitelist
-            end,
-            setFunc = function(v)
-                self.sv.autoWhitelist = v
-            end,
-            default = true,
-        },
-        {
-            type = "slider",
-            name = "Position X",
-            tooltip = "Horizontal offset from the screen center.",
-            min = -2000,
-            max = 2000,
-            step = 1,
-            getFunc = function()
-                return self.sv.offsetX
-            end,
-            setFunc = function(value)
-                self.sv.offsetX = value
-                self.win:ClearAnchors()
-                self.win:SetAnchor(CENTER, GuiRoot, CENTER, self.sv.offsetX, self.sv.offsetY)
-            end,
-            default = defaults.offsetX,
-        },
-        {
-            type = "slider",
-            name = "Position Y",
-            tooltip = "Vertical offset from the screen center.",
-            min = -2000,
-            max = 2000,
-            step = 1,
-            getFunc = function()
-                return self.sv.offsetY
-            end,
-            setFunc = function(value)
-                self.sv.offsetY = value
-                self.win:ClearAnchors()
-                self.win:SetAnchor(CENTER, GuiRoot, CENTER, self.sv.offsetX, self.sv.offsetY)
-            end,
-            default = defaults.offsetY,
-        },
-        {
-            type = "slider",
-            name = "Icon Size",
-            tooltip = "Size of buff/debuff icons.",
-            min = 16,
-            max = 64,
-            step = 1,
-            getFunc = function()
-                return self.sv.iconSize
-            end,
-            setFunc = function(value)
-                self.sv.iconSize = value
-                self:UpdateSlotLayout()
-                self:Redraw()
-            end,
-            default = defaults.iconSize,
-        },
-        {
-            type = "slider",
-            name = "Font Size",
-            tooltip = "Size of timer and stack text.",
-            min = 10,
-            max = 32,
-            step = 1,
-            getFunc = function()
-                return self.sv.fontSize
-            end,
-            setFunc = function(value)
-                self.sv.fontSize = value
-                self:ApplyFontSettings()
-            end,
-            default = defaults.fontSize,
-        },
-        {
-            type = "slider",
-            name = "Flash threshold (seconds)",
-            tooltip = "When remaining duration is below this, buffs/debuffs will flash.",
-            min = 1,
-            max = 15,
-            step = 1,
-            getFunc = function()
-                return self.sv.flashThreshold
-            end,
-            setFunc = function(value)
-                self.sv.flashThreshold = value
-            end,
-            default = defaults.flashThreshold,
-        },
-        {
-            type = "dropdown",
-            name = "Performance Mode",
-            tooltip = "Lower CPU usage by reducing update frequency.",
-            choices = { "Balanced", "Low CPU", "Ultra Low CPU" },
-            getFunc = function()
-                local map = {
-                    balanced = "Balanced",
-                    low = "Low CPU",
-                    ultra = "Ultra Low CPU",
-                }
-                return map[self.sv.performanceMode] or "Low CPU"
-            end,
-            setFunc = function(choice)
-                if choice == "Balanced" then
-                    self.sv.performanceMode = "balanced"
-                elseif choice == "Ultra Low CPU" then
-                    self.sv.performanceMode = "ultra"
-                else
-                    self.sv.performanceMode = "low"
-                end
 
-                self.nextMaintenanceAt = 0
-                self.nextVisualUpdateAt = 0
-            end,
-            default = "Low CPU",
-        },
         {
-            type = "slider",
-            name = "Fallback Rescan Interval (seconds)",
-            tooltip = "How often to rescan reticle effects when events are missed.",
-            min = 0.5,
-            max = 5.0,
-            step = 0.1,
-            getFunc = function()
-                return self.sv.fallbackRescanInterval
-            end,
-            setFunc = function(value)
-                self.sv.fallbackRescanInterval = value
-                self:ApplyRuntimePlatformTuning()
-                self.nextFallbackRescanAt = 0
-            end,
-            default = defaults.fallbackRescanInterval,
-        },
-        {
-            type = "checkbox",
-            name = "Auto Console Tuning",
-            tooltip = "On console, reduce memory usage and update load automatically.",
-            getFunc = function()
-                return self.sv.autoConsoleTuning
-            end,
-            setFunc = function(value)
-                self.sv.autoConsoleTuning = value
-            end,
-            default = defaults.autoConsoleTuning,
-        },
-        {
-            type = "slider",
-            name = "Console Slot Rows Cap",
-            tooltip = "Maximum slot rows allocated on console when Auto Console Tuning is enabled.",
-            min = 1,
-            max = 256,
-            step = 1,
-            getFunc = function()
-                return self.sv.consoleSlotRowsCap
-            end,
-            setFunc = function(value)
-                self.sv.consoleSlotRowsCap = value
-                self:ApplyRuntimePlatformTuning()
-                self:ApplyCurrentLayout()
-                self:Redraw()
-                if d then
-                    d("BetterEffectViewer: Slot pool cap updated. Use /reloadui to reclaim memory immediately.")
-                end
-            end,
-            default = defaults.consoleSlotRowsCap,
-        },
-        {
-            type = "slider",
-            name = "Console Effect Cap",
-            tooltip = "Maximum number of active effects tracked on console when Auto Console Tuning is enabled.",
-            min = 1,
-            max = 256,
-            step = 1,
-            getFunc = function()
-                return self.sv.consoleEffectCap
-            end,
-            setFunc = function(value)
-                self.sv.consoleEffectCap = value
-                self:ApplyRuntimePlatformTuning()
-            end,
-            default = defaults.consoleEffectCap,
-        },
-        {
-            type = "slider",
-            name = "Console Max Cols Cap",
-            tooltip = "Maximum columns allowed on console when Auto Console Tuning is enabled.",
-            min = 1,
-            max = 256,
-            step = 1,
-            getFunc = function()
-                return self.sv.consoleMaxColsCap
-            end,
-            setFunc = function(value)
-                self.sv.consoleMaxColsCap = value
-                self:ApplyRuntimePlatformTuning()
-                self:ApplyCurrentLayout()
-            end,
-            default = defaults.consoleMaxColsCap,
-        },
-        {
-            type = "dropdown",
-            name = "Effect Filter Mode",
-            choices = { "None", "Whitelist", "Blacklist" },
-            getFunc = function()
-                if self.sv.filterMode == "whitelist" then
-                    return "Whitelist"
-                elseif self.sv.filterMode == "blacklist" then
-                    return "Blacklist"
-                end
-                return "None"
-            end,
-            setFunc = function(choice)
-                if choice == "Whitelist" then
-                    self.sv.filterMode = "whitelist"
-                elseif choice == "Blacklist" then
-                    self.sv.filterMode = "blacklist"
-                else
-                    self.sv.filterMode = "none"
-                end
-
-                self:Redraw()
-            end,
-        },
-        {
-            type = "header",
-            name = "Buff Colors",
-        },
-        {
-            type = "colorpicker",
-            name = "Buff border color",
-            getFunc = function()
-                return self:UnpackColor(self.sv.buffBorderColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.buffBorderColor = { r, g, b, a }
-                self:Redraw()
-            end,
-            default = defaults.buffBorderColor,
-        },
-        {
-            type = "colorpicker",
-            name = "Buff timer color",
-            getFunc = function()
-                return self:UnpackColor(self.sv.buffTimerColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.buffTimerColor = { r, g, b, a }
-                self:Redraw()
-            end,
-            default = defaults.buffTimerColor,
-        },
-        {
-            type = "header",
-            name = "Debuff Colors",
-        },
-        {
-            type = "colorpicker",
-            name = "Debuff border color",
-            getFunc = function()
-                return self:UnpackColor(self.sv.debuffBorderColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.debuffBorderColor = { r, g, b, a }
-                self:Redraw()
-            end,
-            default = defaults.debuffBorderColor,
-        },
-        {
-            type = "colorpicker",
-            name = "Debuff timer color",
-            getFunc = function()
-                return self:UnpackColor(self.sv.debuffTimerColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.debuffTimerColor = { r, g, b, a }
-                self:Redraw()
-            end,
-            default = defaults.debuffTimerColor,
-        },
-        {
-            type = "header",
-            name = "Permanent Effect Colors",
-        },
-        {
-            type = "colorpicker",
-            name = "Permanent border color",
-            getFunc = function()
-                return self:UnpackColor(self.sv.permanentBorderColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.permanentBorderColor = { r, g, b, a }
-                self:Redraw()
-            end,
-            default = defaults.permanentBorderColor,
-        },
-        {
-            type = "colorpicker",
-            name = "Permanent timer color",
-            getFunc = function()
-                return self:UnpackColor(self.sv.permanentTimerColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.permanentTimerColor = { r, g, b, a }
-                self:Redraw()
-            end,
-            default = defaults.permanentTimerColor,
-        },
-        {
-            type = "dropdown",
-            name = "Effect Sorting",
-            tooltip = "Choose how buffs and debuffs are sorted.",
-            choices = {
-                "Shortest Remaining",
-                "Longest Remaining",
-                "Newest First",
-                "Oldest First",
+            type = "submenu",
+            name = "Display",
+            controls = {
+                checkbox(self, "Show Buffs", "showBuffs", nil, redraw, { width = "half" }),
+                checkbox(self, "Show Debuffs", "showDebuffs", nil, redraw, { width = "half" }),
+                checkbox(self, "Show Permanent Effects", "showPermanents",
+                    "Show effects with no duration or a very long one.", redraw),
+                checkbox(self, "Show Target Name", "showTargetName",
+                    "Show the target's name above the icons, coloured by reaction.", relayout),
+                slider(self, "Target Name Font Size", "targetNameFontSize", 10, 28, 1, nil, relayout,
+                    { disabled = function() return not self.sv.showTargetName end }),
+                dropdown(self, "Row Order", "groupOrder", {
+                    { "buffsFirst", "Buffs on top" },
+                    { "debuffsFirst", "Debuffs on top" },
+                }, nil, relayout),
+                dropdown(self, "Icon Alignment", "alignment", {
+                    { "left", "Left" },
+                    { "center", "Centre" },
+                    { "right", "Right" },
+                }, "How partly filled rows line up.", relayout),
+                checkbox(self, "Collapse Empty Rows", "collapseEmptyRows",
+                    "Hide a group's row entirely when it has no effects. Off keeps the layout steady.", relayout),
+                slider(self, "Max Rows Per Group", "maxRows", 1, 10, 1,
+                    "Extra effects beyond this many rows are not shown.", redraw),
+                slider(self, "Icon Spacing", "iconSpacing", 0, 12, 1, nil, relayout),
+                slider(self, "Border Thickness", "borderSize", 1, 4, 1, nil, relayout),
+                checkbox(self, "Duration Sweep", "showDurationSweep",
+                    "Draw a radial sweep over icons as their duration runs down.", relayout),
+                checkbox(self, "Dim Others' Effects", "dimOtherEffects",
+                    "Slightly fade icons for effects you did not apply, so yours stand out.", redraw),
+                slider(self, "Target Hold Time (s)", "reticleHoldDuration", 0, 5, 0.1,
+                    "Keep showing the last target this long after your reticle leaves it."),
+                slider(self, "Fade Out Time (s)", "fadeOutDuration", 0, 2, 0.1,
+                    "How long the window takes to fade once the target is gone."),
             },
-            getFunc = function()
-                local map = {
-                    shortest = "Shortest Remaining",
-                    longest = "Longest Remaining",
-                    newest = "Newest First",
-                    oldest = "Oldest First",
-                }
-                return map[self.sv.sortMode]
-            end,
-            setFunc = function(choice)
-                if choice == "Shortest Remaining" then
-                    self.sv.sortMode = "shortest"
-                elseif choice == "Longest Remaining" then
-                    self.sv.sortMode = "longest"
-                elseif choice == "Newest First" then
-                    self.sv.sortMode = "newest"
-                elseif choice == "Oldest First" then
-                    self.sv.sortMode = "oldest"
-                end
+        },
 
-                self:Redraw()
-            end,
-            default = "Shortest Remaining",
-        },
+        layoutSubmenu(self, "PvE Layout", "pveLayout"),
+        layoutSubmenu(self, "PvP Layout (Cyrodiil, Imperial City, Battlegrounds)", "pvpLayout"),
+
         {
-            type = "header",
-            name = "Flash Color",
+            type = "submenu",
+            name = "Timers & Flashing",
+            controls = {
+                slider(self, "Show Tenths Below (s)", "decimalThreshold", 0, 15, 1,
+                    "Timers show one decimal place under this many seconds. 0 turns it off.", redraw),
+                slider(self, "Flash Below (s)", "flashThreshold", 0, 15, 1,
+                    "Icons pulse towards the flash colour when about to expire. 0 turns it off.", redraw),
+                color(self, "Flash Colour", "flashColor"),
+            },
         },
+
         {
-            type = "colorpicker",
-            name = "Flash color",
-            tooltip = "Color to flash towards when an effect is about to expire.",
-            getFunc = function()
-                return self:UnpackColor(self.sv.flashColor)
-            end,
-            setFunc = function(r, g, b, a)
-                self.sv.flashColor = { r, g, b, a }
-            end,
-            default = defaults.flashColor,
+            type = "submenu",
+            name = "Colours",
+            controls = {
+                { type = "header", name = "Borders" },
+                color(self, "Your Effects", "playerEffectBorderColor", "Border for anything you applied."),
+                color(self, "Buffs", "buffBorderColor"),
+                color(self, "Debuffs", "debuffBorderColor"),
+                color(self, "Permanent Effects", "permanentBorderColor"),
+                { type = "header", name = "Text" },
+                color(self, "Buff Timer", "buffTimerColor"),
+                color(self, "Debuff Timer", "debuffTimerColor"),
+                color(self, "Permanent Timer", "permanentTimerColor"),
+                color(self, "Stack Count", "stackColor"),
+            },
         },
+
         {
-            type = "checkbox",
-            name = "Show Buffs",
-            tooltip = "Show the buff section for the reticle target.",
-            getFunc = function()
-                return self.sv.showBuffs
-            end,
-            setFunc = function(value)
-                self.sv.showBuffs = value
-                self:Redraw()
-            end,
-            default = defaults.showBuffs,
+            type = "submenu",
+            name = "Sorting & Filtering",
+            controls = {
+                dropdown(self, "Sort Effects By", "sortMode", {
+                    { "shortest", "Shortest remaining" },
+                    { "longest", "Longest remaining" },
+                    { "newest", "Newest first" },
+                    { "oldest", "Oldest first" },
+                }, nil, redraw),
+                checkbox(self, "Your Effects First", "playerEffectsFirst",
+                    "Always place effects you applied ahead of everything else.", redraw),
+                dropdown(self, "Filter Mode", "filterMode", {
+                    { "none", "Show everything" },
+                    { "whitelist", "Whitelist only" },
+                    { "blacklist", "Hide blacklisted" },
+                }, nil, function() self:OnFilterChanged() end),
+                checkbox(self, "Auto-Whitelist Long Effects", "autoWhitelist",
+                    "In whitelist mode, automatically whitelist effects lasting at least the duration below.", nil,
+                    { disabled = function() return self.sv.filterMode ~= "whitelist" end }),
+                slider(self, "Auto-Whitelist Min Duration (s)", "autoWhitelistDuration", 1, 60, 1, nil, nil,
+                    { disabled = function() return self.sv.filterMode ~= "whitelist" or not self.sv.autoWhitelist end }),
+                { type = "header", name = "Whitelist" },
+                listEditbox(self, "Add Ability IDs", "whitelist", true,
+                    "One or more ability ids, separated by spaces or commas. Press Enter to apply."),
+                listEditbox(self, "Remove Ability IDs", "whitelist", false),
+                {
+                    type = "button",
+                    name = "Print Whitelist",
+                    width = "half",
+                    func = function() self:PrintList("whitelist") end,
+                },
+                {
+                    type = "button",
+                    name = "Clear Whitelist",
+                    width = "half",
+                    isDangerous = true,
+                    warning = "Removes every ability from the whitelist.",
+                    func = function()
+                        self:ClearList("whitelist")
+                        self:Print("Whitelist cleared.")
+                    end,
+                },
+                { type = "header", name = "Blacklist" },
+                listEditbox(self, "Add Ability IDs", "blacklist", true,
+                    "One or more ability ids, separated by spaces or commas. Press Enter to apply."),
+                listEditbox(self, "Remove Ability IDs", "blacklist", false),
+                {
+                    type = "button",
+                    name = "Print Blacklist",
+                    width = "half",
+                    func = function() self:PrintList("blacklist") end,
+                },
+                {
+                    type = "button",
+                    name = "Clear Blacklist",
+                    width = "half",
+                    isDangerous = true,
+                    warning = "Removes every ability from the blacklist.",
+                    func = function()
+                        self:ClearList("blacklist")
+                        self:Print("Blacklist cleared.")
+                    end,
+                },
+            },
         },
+
         {
-            type = "checkbox",
-            name = "Show Debuffs",
-            tooltip = "Show the debuff section for the reticle target.",
-            getFunc = function()
-                return self.sv.showDebuffs
-            end,
-            setFunc = function(value)
-                self.sv.showDebuffs = value
-                self:Redraw()
-            end,
-            default = defaults.showDebuffs,
-        },
-        {
-            type = "checkbox",
-            name = "Show permanent effects",
-            tooltip = "Show buffs/debuffs that have no duration or very long duration.",
-            getFunc = function()
-                return self.sv.showPermanents
-            end,
-            setFunc = function(value)
-                self.sv.showPermanents = value
-                self:Redraw()
-            end,
-            default = defaults.showPermanents,
+            type = "submenu",
+            name = "Performance",
+            controls = {
+                dropdown(self, "Update Rate", "performanceMode", {
+                    { "balanced", "Balanced" },
+                    { "low", "Low CPU" },
+                    { "ultra", "Ultra low CPU" },
+                }, "Lower settings update timers less often.", function()
+                    self.nextMaintenanceAt = 0
+                    self.nextVisualUpdateAt = 0
+                end),
+                slider(self, "Fallback Rescan Interval (s)", "fallbackRescanInterval", 0.5, 5, 0.1,
+                    "How often to re-read the target's effects in case an update event was missed.", function()
+                        self:ApplyRuntimePlatformTuning()
+                        self:RequestRescan(0)
+                    end),
+                { type = "header", name = "Console" },
+                checkbox(self, "Auto Console Tuning", "autoConsoleTuning",
+                    "On console, cap rows, columns and tracked effects and use the lowest update rate.", retune),
+                slider(self, "Max Rows", "consoleSlotRowsCap", 1, 20, 1, nil, retune,
+                    { disabled = consoleTuningDisabled }),
+                slider(self, "Max Tracked Effects", "consoleEffectCap", 8, 256, 1, nil, retune,
+                    { disabled = consoleTuningDisabled }),
+                slider(self, "Max Icons Per Row", "consoleMaxColsCap", 1, 20, 1, nil, retune,
+                    { disabled = consoleTuningDisabled }),
+            },
         },
     }
 
-    LAM:RegisterAddonPanel("BetterEffectViewerPanel", panelData)
-    LAM:RegisterOptionControls("BetterEffectViewerPanel", optionsData)
+    self.settingsPanel = LAM:RegisterAddonPanel("BetterEffectViewerPanel", panelData)
+    LAM:RegisterOptionControls("BetterEffectViewerPanel", options)
+end
+
+function BEV:OpenSettings()
+    if LibAddonMenu2 and self.settingsPanel then
+        LibAddonMenu2:OpenToPanel(self.settingsPanel)
+        return true
+    end
+    return false
+end
+
+---------------------------------------------------------------------------
+-- Chat
+---------------------------------------------------------------------------
+
+function BEV:PrintList(listName)
+    local ids = {}
+    for id in pairs(self.sv[listName]) do
+        ids[#ids + 1] = id
+    end
+    table.sort(ids)
+
+    if #ids == 0 then
+        self:Print("The %s is empty.", listName)
+        return
+    end
+
+    self:Print("%s (%d):", listName, #ids)
+    for _, id in ipairs(ids) do
+        local name = GetAbilityName(id)
+        d(string.format("  %d  %s", id, name ~= "" and zo_strformat(SI_ABILITY_NAME, name) or "|c888888unknown|r"))
+    end
+end
+
+local HELP = {
+    "/bev - open settings",
+    "/bev lock | unlock - lock the window, or unlock it to move with a preview",
+    "/bev reset - move the window back to its default position",
+    "/bev whitelist add|remove <ids> - edit the whitelist (also: wl)",
+    "/bev blacklist add|remove <ids> - edit the blacklist (also: bl)",
+    "/bev whitelist | blacklist - print a list",
+    "/bev filter none|whitelist|blacklist - change filter mode",
+}
+
+local LIST_ALIASES = { whitelist = "whitelist", wl = "whitelist", blacklist = "blacklist", bl = "blacklist" }
+local FILTER_MODES = { none = true, whitelist = true, blacklist = true }
+
+function BEV:HandleSlashCommand(text)
+    local args = {}
+    for word in tostring(text or ""):lower():gmatch("%S+") do
+        args[#args + 1] = word
+    end
+    local command = args[1]
+
+    if not command then
+        if not self:OpenSettings() then
+            self:Print("Settings need LibAddonMenu-2.0. Type /bev help for chat commands.")
+        end
+    elseif command == "help" then
+        self:Print("commands")
+        for _, line in ipairs(HELP) do
+            d("  " .. line)
+        end
+    elseif command == "lock" or command == "unlock" then
+        self:SetLocked(command == "lock")
+        self:Print(command == "lock" and "Window locked." or "Window unlocked - drag it into place.")
+    elseif command == "reset" then
+        self:ResetPosition()
+        self:Print("Position reset.")
+    elseif command == "filter" then
+        local mode = args[2]
+        if FILTER_MODES[mode] then
+            self.sv.filterMode = mode
+            self:OnFilterChanged()
+            self:Print("Filter mode: %s.", mode)
+        else
+            self:Print("Usage: /bev filter none|whitelist|blacklist")
+        end
+    elseif LIST_ALIASES[command] then
+        local listName = LIST_ALIASES[command]
+        local action = args[2]
+        local idsText = table.concat(args, " ", 3)
+
+        -- Back-compat: "/bev whitelist 12345" adds.
+        if action and tonumber(action) then
+            action, idsText = "add", table.concat(args, " ", 2)
+        end
+
+        if action == "add" or action == "remove" then
+            local ids = self:ParseAbilityIds(idsText)
+            if #ids == 0 then
+                self:Print("Give one or more ability ids, e.g. /bev %s %s 61747", command, action)
+                return
+            end
+            local changed = self:EditList(listName, ids, action == "add")
+            self:Print("%s %d ability id(s) %s the %s.", action == "add" and "Added" or "Removed", changed,
+                action == "add" and "to" or "from", listName)
+        else
+            self:PrintList(listName)
+        end
+    else
+        self:Print("Unknown command '%s'. Type /bev help.", command)
+    end
+end
+
+function BEV:RegisterSlashCommands()
+    SLASH_COMMANDS["/bev"] = function(text)
+        self:HandleSlashCommand(text)
+    end
 end

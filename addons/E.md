@@ -10,6 +10,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Easy PTE](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lydra/Easy-PTE__4209) | lydra | PC / Mac | 1.1 |
 | [Easy Quick Slots](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/Easy-Quick-Slots__71) | Jar-Ek | PC / Mac | 1.1 |
 | [Easy Stalking - Encounterlog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muh/Easy-Stalking---Encounterlog__2332) | muh | PC / Mac | 1.4.6 |
+| [EasyAddonSetting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/EasyAddonSetting__5036) | PUYO | PC / Mac | 2.14 |
 | [EasyCombatTextToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/carpenteer/EasyCombatTextToggle__2197) | carpenteer | PC / Mac | 1.0.3 |
 | [EasyGrassToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/carpenteer/EasyGrassToggle__1631) | carpenteer | PC / Mac | 1.0.8 |
 | [EasyHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/carpenteer/EasyHelmetToggle__1627) | carpenteer | PC / Mac | 1.0.4 |
@@ -24,7 +25,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Effective Damage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/harog/Effective-Damage__3975) | harog | PC / Mac | 1.5 |
 | [Eidetic Memory Of Item](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Eidetic-Memory-Of-Item__1854) | 2ch | PC / Mac | 4.7 |
 | [EisherzGuildIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SamoAquila/EisherzGuildIcons__4495) | SamoAquila | PC / Mac | 1.0.2 |
-| [Elden Ring UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI__4623) | Geldis | PC / Mac | 2.1.0 |
+| [Elden Ring UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI__4623) | Geldis | PC / Mac | 2.1.1 |
 | [Elden Ring UI - Cmx Module](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/Elden-Ring-UI---Cmx-Module__4624) | Geldis | PC / Mac | 1.0.1 |
 | [ElderScrollsOfAlts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts__2070) | Echomap | PC / Mac | 2.00.10 |
 | [ElderScrollsOfAlts 1.00.53.beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts-1.00.53.beta__3969) | Echomap | PC / Mac | 1.00.53.beta |

@@ -42,7 +42,7 @@
     "ChatInputViewer"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4158/",
-  "fingerprint": "f2a5b7b72af2f4866967bb6957dbd441e315f75f9c804bdd054a64fbbbe8c35b",
+  "fingerprint": "17bbbc763679fa2a12dcc67867fae17d31703aabf730a405e9f0eef94de083a7",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14198.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw14200.jpg",
@@ -56,11 +56,11 @@
   "source_id": "4158",
   "source_url": "https://www.esoui.com/downloads/info4158-ChatInputViewer.html",
   "stats": {
-    "downloads": 988,
+    "downloads": 1077,
     "favorites": 2,
-    "monthly_downloads": 34
+    "monthly_downloads": 57
   },
   "title": "Chat Input Viewer",
-  "updated_at": 1791047510000,
-  "version": "1.3.1"
+  "updated_at": 1794136236000,
+  "version": "1.4.0"
 }

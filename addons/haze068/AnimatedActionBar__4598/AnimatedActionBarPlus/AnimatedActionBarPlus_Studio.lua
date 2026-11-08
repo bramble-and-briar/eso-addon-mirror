@@ -117,7 +117,58 @@ local THEMES = {
         ornament = "R_Ornament.dds",
         feather = "R_Feather.dds",
     },
+    -- schlicht schwarz/weiß, alles deckend, keine texturen oder bewegung.
+    -- gedacht für maximale lesbarkeit
+    classic = {
+        name = "SI_AAB_UI_THEME_CLASSIC",
+        col = {
+            accent  = Hex("ffffff"),
+            accent2 = Hex("7a7a7a"),
+            good    = Hex("5fe08a"),
+            bad     = Hex("ff5a5a"),
+            warn    = Hex("ffd23f"),
+            value   = Hex("e6e6e6"),
+            dim     = Hex("b8b8b8"),
+            text    = Hex("ffffff"),
+            cyan    = Hex("ffffff"),
+            track   = { 0.22, 0.22, 0.22, 1 },
+            panel   = { 0.07, 0.07, 0.07, 1 },
+            stage   = { 0.0, 0.0, 0.0, 1 },
+            field   = { 0.0, 0.0, 0.0, 1 },
+            chip    = { 0.10, 0.10, 0.10, 1 },
+            chipOn  = { 0.32, 0.32, 0.32, 1 },
+            menu    = { 0.05, 0.05, 0.05, 1 },
+            note    = { 0.12, 0.12, 0.12, 1 },
+            -- knopf beim schalter: an = schwarz auf weißer spur, aus = hellgrau
+            knobOn  = { 0.0, 0.0, 0.0, 1 },
+            knobOff = { 0.80, 0.80, 0.80, 1 },
+        },
+        display = { "$(BOLD_FONT)", "$(GAMEPAD_BOLD_FONT)" },
+        heading = { "$(BOLD_FONT)", "$(GAMEPAD_BOLD_FONT)" },
+        sizes   = { kb = { 36, 28, 20, 18 }, gp = { 48, 36, 27, 23 } },
+        edges = {
+            frame = { "UI_RowEdge.dds", 128, 16, 16, 3 },
+            panel = { "UI_RowEdge.dds", 128, 16, 16, 3 },
+            row   = { "UI_RowEdge.dds", 128, 16, 16, 3 },
+        },
+        title  = "|cFFFFFFAnimated|r|cBFBFBFActionBar|r|cFFFFFF+|r",
+        sep    = "|c7A7A7A•|r",
+        marker = "UI_Knob.dds", markerF = 0.5,
+        layers = {
+            { color = { 0.03, 0.03, 0.03, 1 } },
+        },
+    },
 }
+
+-- reihenfolge für umschalter und design-chips
+local THEME_ORDER = { "classic", "lace", "nebula" }
+
+local function NextThemeId(id)
+    for i, tid in ipairs(THEME_ORDER) do
+        if tid == id then return THEME_ORDER[i % #THEME_ORDER + 1] end
+    end
+    return THEME_ORDER[1]
+end
 
 local T   = THEMES.nebula
 local COL = T.col
@@ -270,7 +321,11 @@ local function CopyValue(v)
     return t
 end
 
-local function S(id) return GetString(id) end
+-- name/text darf auch eine funktion sein (dynamische labels, z.b. skillnamen)
+local function S(id)
+    if type(id) == "function" then return id() or "" end
+    return GetString(id)
+end
 
 -- seiten
 
@@ -284,6 +339,7 @@ local PAGES
 
 local function BuildPageDefs()
     if PAGES then return PAGES end
+    local controlsById = {}
     PAGES = {
         {
             id = "presets", icon = "UI_Icon_Presets", title = SI_AAB_SUB_PRESETS, tip = SI_AAB_SUB_PRESETS_TT,
@@ -572,7 +628,7 @@ local function BuildPageDefs()
                 { type = "desc", text = SI_AAB_PERF_NOTE },
                 { type = "header", name = SI_AAB_UI_HDR_STUDIO },
                 { type = "choice", key = "uiTheme", name = SI_AAB_UI_THEME, tip = SI_AAB_UI_THEME_TT,
-                  choices = { { "nebula", SI_AAB_UI_THEME_NEBULA }, { "lace", SI_AAB_UI_THEME_LACE } },
+                  choices = { { "classic", SI_AAB_UI_THEME_CLASSIC }, { "nebula", SI_AAB_UI_THEME_NEBULA }, { "lace", SI_AAB_UI_THEME_LACE } },
                   apply = function(v) Studio.ShowTheme(v) end },
                 { type = "toggle", key = "uiBgMotion", name = SI_AAB_UI_BGMOTION, tip = SI_AAB_UI_BGMOTION_TT,
                   apply = function() Studio.RefreshMotion() end },
@@ -582,9 +638,17 @@ local function BuildPageDefs()
             id = "info", icon = "UI_Icon_Info", title = SI_AAB_SUB_INFO, tip = SI_AAB_SUB_INFO_TT,
             demo = "press",
             controls = {
+                { type = "desc", text = SI_AAB_INFO_VERSION },
+                { type = "header", name = SI_AAB_INFO_HDR_FEATURES },
+                { type = "desc", text = SI_AAB_INFO_FEATURES },
+                { type = "header", name = SI_AAB_INFO_HDR_COMMANDS },
+                { type = "desc", text = SI_AAB_INFO_COMMANDS },
+                { type = "header", name = SI_AAB_INFO_HDR_COMPAT },
                 { type = "desc", text = SI_AAB_INFO_THINFRAMES },
                 { type = "header", name = SI_AAB_UI_HDR_GAMEPAD },
                 { type = "desc", text = SI_AAB_INFO_GAMEPAD },
+                { type = "header", name = SI_AAB_INFO_HDR_SUPPORT },
+                { type = "desc", text = SI_AAB_INFO_SUPPORT },
             },
         },
         {
@@ -597,6 +661,42 @@ local function BuildPageDefs()
             },
         },
     }
+
+    -- ablauf pro skill: eine zeile je slot beider leisten, label = aktueller skill
+    for _, page in ipairs(PAGES) do controlsById[page.id] = page.controls end
+    local list = controlsById["bounce"]
+    list[#list + 1] = { type = "header", name = SI_AAB_EXPIRE_SKILLS_HDR }
+    list[#list + 1] = { type = "desc", text = SI_AAB_EXPIRE_SKILLS_DESC }
+    for barNum, hotbar in ipairs({ HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }) do
+        for slotNum = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_ULTIMATE_SLOT_INDEX do
+            local function SlotId()
+                local id = GetSlotBoundId(slotNum, hotbar)
+                return (id and id > 0) and id or nil
+            end
+            list[#list + 1] = {
+                type = "toggle",
+                name = function()
+                    local id = SlotId()
+                    local skill = id and zo_strformat("<<1>>", GetAbilityName(id)) or GetString(SI_AAB_EXPIRE_SKILL_EMPTY)
+                    return string.format(GetString(SI_AAB_EXPIRE_SKILL_BAR), barNum) .. "  " .. skill
+                end,
+                tip = SI_AAB_EXPIRE_SKILL_TT,
+                get = function()
+                    local id = SlotId()
+                    return id ~= nil and not api.IsExpireDisabled(id)
+                end,
+                set = function(v)
+                    local id = SlotId()
+                    if id then api.SetExpireDisabled(id, not v) end
+                end,
+                disabled = function() return not sv.expireAnimEnabled or not SlotId() end,
+            }
+        end
+    end
+    list[#list + 1] = { type = "button", name = SI_AAB_EXPIRE_DISABLED_CLEAR, tip = SI_AAB_EXPIRE_DISABLED_CLEAR_TT,
+        func = function() sv.expireDisabled = {} end,
+        disabled = function() return not sv.expireAnimEnabled end }
+
     return PAGES
 end
 
@@ -1271,11 +1371,17 @@ local function BuildToggle(w, parent, def)
         local g = Lerp(COL.track[2], COL.accent[2], t)
         local b = Lerp(COL.track[3], COL.accent[3], t)
         track:SetColor(r, g, b, 1)
-        knob:SetColor(Lerp(0.75, 1, t), Lerp(0.72, 1, t), Lerp(0.85, 1, t), 1)
+        local k0, k1 = COL.knobOff, COL.knobOn
+        if k0 and k1 then
+            knob:SetColor(Lerp(k0[1], k1[1], t), Lerp(k0[2], k1[2], t), Lerp(k0[3], k1[3], t), 1)
+        else
+            knob:SetColor(Lerp(0.75, 1, t), Lerp(0.72, 1, t), Lerp(0.85, 1, t), 1)
+        end
     end
 
     function row.Refresh(animate)
         ApplyDisabled(row)
+        if row.label and type(def.name) == "function" then row.label:SetText(def.name()) end
         local on = GetVal(def) and true or false
         if cur == on then return end
         local from = cur
@@ -2149,7 +2255,7 @@ local function BuildBackground(w)
         if d.add then t:SetBlendMode(TEX_BLEND_MODE_ADD) end
         if d.tile and t.SetAddressMode and TEX_MODE_WRAP then t:SetAddressMode(TEX_MODE_WRAP) end
         SetCol(t, d.color or { 1, 1, 1, 1 }, d.alpha)
-        Heavy(w, t, MEDIA .. d.file)
+        if d.file then Heavy(w, t, MEDIA .. d.file) end
         if d.vx or d.vy then w.moving = true end
         local period = d.twinkle or d.breathe
         if period then
@@ -2260,21 +2366,46 @@ local function BuildWindow(mode, theme)
         end
     end
 
+    -- schließen: die textur allein bekam keine klicks. eigene trefferfläche
+    -- über rahmen und kopfzeile, das x ist nur noch deko
     local close
     if mode == "keyboard" then
-        close = Tex(win, MEDIA .. "UI_Icon_Close.dds", 6)
-        close:SetDimensions(26, 26)
-        close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -L.pad, L.pad)
-        SetCol(close, COL.dim)
+        local cs = 28
+        close = WM:CreateControl(N("Close"), win, CT_CONTROL)
+        close:SetDimensions(cs + 16, cs + 16)
+        close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -L.pad + 8, L.pad - 8)
+        close:SetDrawLayer(DL_OVERLAY)
+        close:SetDrawTier(DT_HIGH)
+        close:SetDrawLevel(60)
         close:SetMouseEnabled(true)
-        close:SetHandler("OnMouseEnter", function() SetCol(close, COL.bad) end)
-        close:SetHandler("OnMouseExit", function() SetCol(close, COL.dim) end)
-        close:SetHandler("OnMouseUp", function(_, btn, inside) if inside and btn == MOUSE_BUTTON_INDEX_LEFT then Studio.Close() end end)
+        local halo = Tex(close, MEDIA .. "UI_SoftGlow.dds", 61)
+        halo:SetDrawLayer(DL_OVERLAY)
+        halo:SetDrawTier(DT_HIGH)
+        halo:SetAnchorFill(close)
+        SetCol(halo, COL.bad, 0)
+        local x = Tex(close, MEDIA .. "UI_Icon_Close.dds", 62)
+        x:SetDrawLayer(DL_OVERLAY)
+        x:SetDrawTier(DT_HIGH)
+        x:SetDimensions(cs * 0.82, cs * 0.82)
+        x:SetAnchor(CENTER, close, CENTER, 0, 0)
+        SetCol(x, COL.dim)
+        local pressed = false
+        close:SetHandler("OnMouseEnter", function() SetCol(x, COL.text); halo:SetAlpha(0.55) end)
+        close:SetHandler("OnMouseExit", function() pressed = false; SetCol(x, COL.dim); halo:SetAlpha(0) end)
+        close:SetHandler("OnMouseDown", function(_, btn)
+            if btn == MOUSE_BUTTON_INDEX_LEFT then pressed = true; SetCol(x, COL.bad) end
+        end)
+        close:SetHandler("OnMouseUp", function(_, btn, inside)
+            if btn ~= MOUSE_BUTTON_INDEX_LEFT then return end
+            local was = pressed
+            pressed = false
+            if inside or was then Click(); Studio.Close() end
+        end)
     end
     local chipH = zo_round(L.rowH * 0.7)
     local modeChip = Box(win, "row", COL.cyan, 0.6, COL.note, 5)
     modeChip:SetHeight(chipH)
-    if close then modeChip:SetAnchor(RIGHT, close, LEFT, -16, 0)
+    if close then modeChip:SetAnchor(RIGHT, close, LEFT, -8, 0)
     else modeChip:SetAnchor(TOPRIGHT, win, TOPRIGHT, -L.pad, (L.header - chipH) / 2) end
     local mIcon = Tex(modeChip, MEDIA .. "UI_Icon_Gamepad.dds", 6)
     mIcon:SetDimensions(chipH * 0.62, chipH * 0.62)
@@ -2287,7 +2418,7 @@ local function BuildWindow(mode, theme)
     -- design-umschalter
     w.themeChips = {}
     local prev = modeChip
-    for _, id in ipairs({ "lace", "nebula" }) do
+    for _, id in ipairs(THEME_ORDER) do
         local th = THEMES[id]
         local chip = MakeChip(w, win, th.marker, S(_G[th.name]), function() Studio.ShowTheme(id) end, true)
         local h = zo_round(L.rowH * L.chipF)
@@ -2419,7 +2550,9 @@ local function BuildWindow(mode, theme)
     sc:SetEasingFunction(ZO_EaseOutQuadratic)
 
     PlaceWindow(w)
-    UseTheme(prevT == THEMES.lace and "lace" or "nebula")
+    for id, th in pairs(THEMES) do
+        if th == prevT then UseTheme(id); break end
+    end
     return w
 end
 
@@ -2531,7 +2664,7 @@ local function BuildKeybinds(w)
         {
             name = function() return S(SI_AAB_UI_KB_THEME) end,
             keybind = "UI_SHORTCUT_RIGHT_STICK",
-            callback = function() Studio.ShowTheme(w.theme == "nebula" and "lace" or "nebula") end,
+            callback = function() Studio.ShowTheme(NextThemeId(w.theme)) end,
         },
         {
             name = function() return S(SI_AAB_UI_KB_PREV_TAB) end,

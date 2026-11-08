@@ -13,16 +13,21 @@ UI._built = UI._built or { main = false }
 -- Center message helper
 --------------------------------------------------------------
 function UI.ShowCenter(msg, durationSeconds)
-    local text = tostring(msg)
+    local text = tostring(msg or "")
+    if text == "" then return end
     local sound = (SOUNDS and SOUNDS.ACHIEVEMENT_AWARDED) or nil
 
-    if CENTER_SCREEN_ANNOUNCE and CENTER_SCREEN_ANNOUNCE.CreateMessageParams and CENTER_SCREEN_ANNOUNCE.DisplayMessage and sound then
+    if CENTER_SCREEN_ANNOUNCE and CENTER_SCREEN_ANNOUNCE.CreateMessageParams and CENTER_SCREEN_ANNOUNCE.AddMessageWithParams then
         local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, sound)
-        if params.SetLifespanMS and durationSeconds then
-            params:SetLifespanMS(tonumber(durationSeconds) * 1000)
+        local duration = tonumber(durationSeconds)
+        if params.SetLifespanMS and duration then
+            params:SetLifespanMS(math.max(2, math.min(30, duration)) * 1000)
         end
-        params:SetText(text)
-        CENTER_SCREEN_ANNOUNCE:DisplayMessage(params)
+        -- The large heading has a fixed one-line height. The native combined
+        -- body owns wrapping and multiline layout, including long guild names.
+        params:SetText("CALL TO ARMS", text)
+        -- Queue normally so concurrent guild/ESO announcements do not overlap.
+        CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
         return
     end
 
@@ -32,6 +37,15 @@ function UI.ShowCenter(msg, durationSeconds)
     end
 
     d(text)
+end
+
+function UI.TestCenterAnnouncements(durationSeconds)
+    UI.ShowCenter(
+        "TEST 1: The Fellowship of Exceptionally Long Guild Names calls you to Cyrodiil.\n" ..
+        "Rally at the home campaign, protect the throne, and prepare for the next battle.",
+        durationSeconds
+    )
+    UI.ShowCenter("TEST 2: This queued alert should appear after the first announcement clears.", durationSeconds)
 end
 
 --------------------------------------------------------------
@@ -528,6 +542,17 @@ local function CreateMainMenu()
     })
 
     settings:AddSetting({
+        type = LHAS.ST_BUTTON,
+        label = "Test Centre Alerts",
+        tooltip = "Queues two demonstration alerts: a long guild message with a line break, followed by a second message. Checks readability and ordering without changing campaign state or alert cooldowns.",
+        buttonText = "Test",
+        clickHandler = function()
+            local cta = GetScopeCtaSettings()
+            UI.TestCenterAnnouncements(cta and cta.display and cta.display.popupSeconds or 6)
+        end,
+    })
+
+    settings:AddSetting({
         type = LHAS.ST_DROPDOWN,
         label = "Throne Defense Threshold",
         tooltip = "Trigger when emperor keeps owned drop to this value.",
@@ -724,12 +749,10 @@ local function CreateMainMenu()
     ----------------------------------------------------------
     -- Signature
     ----------------------------------------------------------
-    settings:AddSetting({
-        type = LHAS.ST_SECTION,
-        subMenu = false,
-        label = "|cFFD700Built on tea, toast and ADHD, tested live on PS5.|r\n" ..
-                "|cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r",
-    })
+    -- Signature and contact supplied by FrameworkSettings.lua.
+
+    CallToArm_Framework:AddProfileControls(settings)
+    CallToArm_Framework:AddFooter(settings)
 end
 --------------------------------------------------------------
 -- Init

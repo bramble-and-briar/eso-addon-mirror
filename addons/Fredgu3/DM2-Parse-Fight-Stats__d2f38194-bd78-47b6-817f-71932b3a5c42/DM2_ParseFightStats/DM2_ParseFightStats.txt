@@ -1,9 +1,9 @@
 ## Title: DM2 Parse & Fight Stats
 ## APIVersion: 101048 101047
-## AddOnVersion: 31809
+## AddOnVersion: 31811
 ## Author: Skye-Forge
 ## Description: Parse + fight stats. Rotation pace bar. Raid strip crit chance.
-## Version: 3.18.9
+## Version: 3.18.11
 ## OptionalDependsOn: LibAddonMenu-2.0 LibAddonMenu2 LibStub
 ## SavedVariables: DM2_ParseFightStats_SV
 

@@ -3,12 +3,22 @@ local ERUI = EldenRingUI
 
 ERUI.name = "EldenRingUI"
 ERUI.dummyMode = false
-ERUI.currentMutualMax = 0
-ERUI.cachedMutualName = nil
 
 local BOSS_TAGS = { "boss1", "boss2", "boss3", "boss4", "boss5", "boss6" }
 
-local RefreshBars
+local IGNORED_BOSSES = {
+    ["Defense Prism"] = true,
+}
+
+local ALWAYS_COMBINED = {
+    ["Reef Guardian"] = "Reef Guardian",
+    ["Shaper of Flesh"] = "Hall of Fleshcraft",
+}
+
+local entries = {}
+local entryByTag = {}
+local peakCount = 0
+local presentCount = 0
 
 local function FormatHealth(value)
     if value >= 1000000 then
@@ -34,56 +44,117 @@ local function IsBossInvulnerable(unitTag)
     return invulnMax ~= nil
 end
 
-local function GetMutualEncounterName()
-    local bossNames = {}
-    local seenNames = {}
-    local isReefGuardianEncounter = false
+local function ResetFight()
+    entries = {}
+    entryByTag = {}
+    peakCount = 0
+    presentCount = 0
+end
 
+local function ScanBosses()
+    local units = {}
     for _, unitTag in ipairs(BOSS_TAGS) do
         if DoesUnitExist(unitTag) then
             local name = GetUnitName(unitTag)
-            if name and name ~= "" and name ~= "Defense Prism" and not seenNames[name] then
-                seenNames[name] = true
-                table.insert(bossNames, name)
-                if name == "Reef Guardian" or name == "Lizabet Charnis" then
-                    isReefGuardianEncounter = true
-                end
+            if name and name ~= "" and not IGNORED_BOSSES[name] then
+                local cur, max = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
+                table.insert(units, {
+                    tag = unitTag,
+                    name = name,
+                    cur = cur,
+                    max = max,
+                    invulnerable = IsBossInvulnerable(unitTag),
+                })
             end
         end
     end
-
-    if isReefGuardianEncounter or #bossNames > 2 then
-        return table.concat(bossNames, ", ")
-    end
-    return nil
+    return units
 end
 
-local function GetMutualTotals()
-    local totalCur, totalMax = 0, 0
-    local allInvulnerable, hasActiveBoss = true, false
+local function SyncFight()
+    local units = ScanBosses()
+    local matched = {}
+    local newByTag = {}
 
-    for _, unitTag in ipairs(BOSS_TAGS) do
-        if DoesUnitExist(unitTag) and GetUnitName(unitTag) ~= "Defense Prism" then
-            local cur, max = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-            totalCur = totalCur + cur
-            totalMax = totalMax + max
-            hasActiveBoss = true
-            if not IsBossInvulnerable(unitTag) then
-                allInvulnerable = false
-            end
+    local function Assign(unit, entry)
+        entry.cur = unit.cur
+        entry.max = math.max(entry.max, unit.max)
+        entry.invulnerable = unit.invulnerable
+        matched[entry] = true
+        newByTag[unit.tag] = entry
+    end
+
+    local unassigned = {}
+    for _, unit in ipairs(units) do
+        local entry = entryByTag[unit.tag]
+        if entry and entry.name == unit.name then
+            Assign(unit, entry)
+        else
+            table.insert(unassigned, unit)
         end
     end
 
-    if totalMax > ERUI.currentMutualMax then
-        ERUI.currentMutualMax = totalMax
+    for _, unit in ipairs(unassigned) do
+        local entry
+        for _, candidate in pairs(entryByTag) do
+            if not matched[candidate] and candidate.name == unit.name and candidate.cur > 0 then
+                entry = candidate
+                break
+            end
+        end
+
+        if not entry then
+            entry = { name = unit.name, cur = 0, max = 0, invulnerable = false }
+            table.insert(entries, entry)
+        end
+
+        Assign(unit, entry)
     end
 
-    return totalCur, hasActiveBoss and allInvulnerable
+    for _, entry in pairs(entryByTag) do
+        if not matched[entry] then
+            entry.cur = 0
+            entry.invulnerable = false
+        end
+    end
+
+    entryByTag = newByTag
+    presentCount = #units
+    peakCount = math.max(peakCount, presentCount)
 end
 
-local function UpdateBarVisuals(index, powerValue, powerMax, isInvulnerable)
-    local bar = ERUI_Container and ERUI_Container:GetNamedChild("Bar" .. index)
-    if not bar or powerMax <= 0 then return end
+local function IsCombinedFight()
+    if peakCount >= 3 then return true end
+
+    for _, entry in ipairs(entries) do
+        if ALWAYS_COMBINED[entry.name] then return true end
+    end
+    return false
+end
+
+local function GetCombinedName()
+    local names = {}
+    local seen = {}
+    for _, entry in ipairs(entries) do
+        if ALWAYS_COMBINED[entry.name] then
+            return ALWAYS_COMBINED[entry.name]
+        end
+        if not seen[entry.name] then
+            seen[entry.name] = true
+            table.insert(names, entry.name)
+        end
+    end
+
+    if #names <= 1 then
+        return names[1] or ""
+    end
+
+    local last = table.remove(names)
+    return table.concat(names, ", ") .. " & " .. last
+end
+
+local function UpdateBarVisuals(bar, powerValue, powerMax, isInvulnerable)
+    if powerMax <= 0 then return end
 
     ZO_StatusBar_SmoothTransition(bar, powerValue, powerMax)
 
@@ -99,10 +170,6 @@ local function UpdateBarVisuals(index, powerValue, powerMax, isInvulnerable)
         bar:SetTexture("EldenRingUI/Textures/ERShieldBarBoss.dds")
     else
         bar:SetTexture("EldenRingUI/Textures/ERHealthBarBoss.dds")
-    end
-
-    if powerValue <= 0 then
-        RefreshBars()
     end
 end
 
@@ -157,92 +224,107 @@ local function GetOrCreateBar(index)
     return bar
 end
 
-local function OnPowerUpdate(_, unitTag, _, _, powerValue, powerMax)
-    if ERUI.cachedMutualName then
-        local totalCur, allInvulnerable = GetMutualTotals()
-        if totalCur > 0 then
-            UpdateBarVisuals(1, totalCur, ERUI.currentMutualMax, allInvulnerable)
-        else
-            RefreshBars()
-        end
-        return
-    end
+local function ShowBar(index, name, cur, max, isInvulnerable)
+    local bar = GetOrCreateBar(index)
+    bar:ClearAnchors()
+    bar:SetAnchor(BOTTOMLEFT, ERUI_Container, BOTTOMLEFT, 0, -(index - 1) * 45)
+    bar:SetHidden(false)
 
-    if unitTag:sub(1, 4) == "boss" then
-        if GetUnitName(unitTag) == "Defense Prism" then return end
+    local nameLabel = bar:GetNamedChild("BossName")
+    nameLabel:SetText(name)
+    nameLabel:SetColor(0.9, 0.9, 0.9, 0.9)
 
-        local index = tonumber(unitTag:sub(5, 5))
-        if index then
-            UpdateBarVisuals(index, powerValue, powerMax, IsBossInvulnerable(unitTag))
-        end
-    elseif ERUI.dummyMode and unitTag == "reticleover" and powerMax >= 20000000 then
-        UpdateBarVisuals(1, powerValue, powerMax, IsBossInvulnerable("reticleover"))
+    UpdateBarVisuals(bar, cur, max, isInvulnerable)
+end
+
+local function HideBarsFrom(first)
+    for i = first, #BOSS_TAGS do
+        local bar = ERUI_Container:GetNamedChild("Bar" .. i)
+        if bar then bar:SetHidden(true) end
     end
 end
 
-RefreshBars = function()
-    ERUI.cachedMutualName = GetMutualEncounterName()
-    local mutualName = ERUI.cachedMutualName
+local function ShowDummyBar()
+    if not ERUI.dummyMode or not DoesUnitExist("reticleover") then return false end
 
-    if mutualName then
-        local totalCur, allInvulnerable = GetMutualTotals()
+    local cur, max = GetUnitPower("reticleover", COMBAT_MECHANIC_FLAGS_HEALTH)
+    if max < 20000000 or cur <= 1 then return false end
 
-        local bar = GetOrCreateBar(1)
-        bar:ClearAnchors()
-        bar:SetAnchor(BOTTOMLEFT, ERUI_Container, BOTTOMLEFT, 0, 0)
+    ShowBar(1, GetUnitName("reticleover"), cur, max, IsBossInvulnerable("reticleover"))
+    HideBarsFrom(2)
+    return true
+end
 
-        if totalCur > 0 then
-            bar:SetHidden(false)
-            bar:GetNamedChild("BossName"):SetText(mutualName)
-            bar:GetNamedChild("BossName"):SetColor(0.9, 0.9, 0.9, 0.9)
-            UpdateBarVisuals(1, totalCur, ERUI.currentMutualMax, allInvulnerable)
-        else
-            bar:SetHidden(true)
-            ERUI.currentMutualMax = 0
-        end
-
-        for i = 2, 6 do
-            local otherBar = ERUI_Container:GetNamedChild("Bar" .. i)
-            if otherBar then otherBar:SetHidden(true) end
+local function RenderBars()
+    if presentCount == 0 then
+        if not ShowDummyBar() then
+            HideBarsFrom(1)
         end
         return
     end
 
-    ERUI.currentMutualMax = 0
-
-    local visibleCount = 0
-    for i, unitTag in ipairs(BOSS_TAGS) do
-        local bar = GetOrCreateBar(i)
-
-        local isDummy = (i == 1 and ERUI.dummyMode and DoesUnitExist("reticleover"))
-        local effectiveTag = isDummy and "reticleover" or unitTag
-
-        local curHealth, maxHealth = GetUnitPower(effectiveTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-        local bossName = GetUnitName(effectiveTag)
-
-        local shouldShow = DoesUnitExist(effectiveTag)
-        if curHealth <= 1 or (isDummy and maxHealth < 20000000) or bossName == "Defense Prism" then
-            shouldShow = false
+    local totalCur, totalMax = 0, 0
+    local allInvulnerable = true
+    for _, entry in ipairs(entries) do
+        totalCur = totalCur + entry.cur
+        totalMax = totalMax + entry.max
+        if entry.cur > 0 and not entry.invulnerable then
+            allInvulnerable = false
         end
+    end
 
-        if shouldShow then
-            bar:ClearAnchors()
-            bar:SetAnchor(BOTTOMLEFT, ERUI_Container, BOTTOMLEFT, 0, -(visibleCount * 45))
-            visibleCount = visibleCount + 1
+    if totalCur <= 0 then
+        HideBarsFrom(1)
+        return
+    end
 
-            bar:SetHidden(false)
-            bar:GetNamedChild("BossName"):SetText(bossName)
-            bar:GetNamedChild("BossName"):SetColor(0.9, 0.9, 0.9, 0.9)
-            UpdateBarVisuals(i, curHealth, maxHealth, IsBossInvulnerable(effectiveTag))
-        else
-            bar:SetHidden(true)
-        end
+    if IsCombinedFight() then
+        ShowBar(1, GetCombinedName(), totalCur, totalMax, allInvulnerable)
+        HideBarsFrom(2)
+        return
+    end
+
+    local barCount = math.min(#entries, #BOSS_TAGS)
+    for i = 1, barCount do
+        local entry = entries[i]
+        ShowBar(i, entry.name, entry.cur, entry.max, entry.invulnerable)
+    end
+    HideBarsFrom(barCount + 1)
+end
+
+local function Refresh()
+    SyncFight()
+    RenderBars()
+end
+
+local function OnPowerUpdate(_, unitTag)
+    if unitTag == "reticleover" then
+        if presentCount == 0 then RenderBars() end
+        return
+    end
+    Refresh()
+end
+
+local function OnBossesChanged(_, forceReset)
+    if forceReset then ResetFight() end
+    Refresh()
+end
+
+local function OnPlayerActivated()
+    ResetFight()
+    Refresh()
+end
+
+local function OnCombatStateChanged(_, inCombat)
+    if not inCombat and presentCount == 0 then
+        ResetFight()
+        RenderBars()
     end
 end
 
 local function OnVisualChanged(_, _, unitAttributeVisual)
     if unitAttributeVisual == ATTRIBUTE_VISUAL_UNWAVERING_POWER then
-        RefreshBars()
+        Refresh()
     end
 end
 
@@ -254,12 +336,12 @@ SLASH_COMMANDS["/dummyboss"] = function()
 
     if ERUI.dummyMode then
         EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Reticle", EVENT_POWER_UPDATE, OnPowerUpdate)
-        EVENT_MANAGER:AddFilterForEvent(ERUI.name .. "Reticle", EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "reticleover")
+        EVENT_MANAGER:AddFilterForEvent(ERUI.name .. "Reticle", EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "reticleover", REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
     else
         EVENT_MANAGER:UnregisterForEvent(ERUI.name .. "Reticle", EVENT_POWER_UPDATE)
     end
 
-    RefreshBars()
+    Refresh()
     CALLBACK_MANAGER:FireCallbacks("ERUI_DummyModeChanged", ERUI.dummyMode)
 end
 
@@ -277,10 +359,11 @@ local function OnAddOnLoaded(_, addonName)
         return true
     end)
 
-    EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Reset", EVENT_PLAYER_ACTIVATED, function() RefreshBars() end)
-    EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Bosses", EVENT_BOSSES_CHANGED, function() RefreshBars() end)
+    EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Reset", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Bosses", EVENT_BOSSES_CHANGED, OnBossesChanged)
+    EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Combat", EVENT_PLAYER_COMBAT_STATE, OnCombatStateChanged)
     EVENT_MANAGER:RegisterForEvent(ERUI.name .. "ReticleTarget", EVENT_RETICLE_TARGET_CHANGED, function()
-        if ERUI.dummyMode then RefreshBars() end
+        if ERUI.dummyMode then RenderBars() end
     end)
 
     EVENT_MANAGER:RegisterForEvent(ERUI.name .. "Power", EVENT_POWER_UPDATE, OnPowerUpdate)
@@ -296,7 +379,7 @@ local function OnAddOnLoaded(_, addonName)
         EVENT_MANAGER:AddFilterForEvent(ERUI.name .. suffix, event, REGISTER_FILTER_UNIT_TAG_PREFIX, "boss")
     end
 
-    RefreshBars()
+    Refresh()
 end
 
 EVENT_MANAGER:RegisterForEvent(ERUI.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

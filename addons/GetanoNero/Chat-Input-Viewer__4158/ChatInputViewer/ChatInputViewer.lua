@@ -1,28 +1,36 @@
 --- ChatInput viewer
---- Version 1.3.1
+--- Version 1.4.0
 
 --- Changelog
---- V. 1.3.1 - Update for ESO Version 12.1.5, API version 101051.
---- V. 1.3.0 - Update for ESO Version 12.0.5, API version 101050.
----          - New view mode 'minimized'
----          - Key binding for tuggling the view state
----          - new chat commands '/civshow', '/civhide', '/civmini'
----          - Message with update information after login.
---- V. 1.2.3 - Update for ESO Version 11.3.4, API version 101049.
---- V. 1.2.2 - Bugfix for an issue during AddOn initialization
---- V. 1.2.1 - Update for ESO Version 11.2.6, API version 101048.
----          - Exception prevented, when slash commands were used more than one time.
----          - Slash commands /civshow and /civhide added.
---- V. 1.2.0 - Update for ESO Version 11.1.5, API version 101047.
----          - Repeating the channel color of the input textbox in the viewer.
---- V. 1.1.0 - Russian translation added.
----          - Bugfix for character counting of multibyte characters.
----          - Spelling errors removed
---- V. 1.0.0 - Initial version.
+--- V. 1.4.0  Code review to eliminate flaws and implement best practices.
+---           All changes implemented or recommended by Baertram (https://www.esoui.com/forums/member.php?u=2028)
+---           - Language files improved.
+---           - Event and slash command regestration moved to OnAddOnLoaded()
+---           - Leaking of global function ToggleViewer() removed.
+---           - Registration of the AddOn to the ZO_ChatWindowTextEntryEditBox.OnTextChanged event corrected.
+---           - Local references to global variables ZO_ChatWindow and ZO_ChatWindowTextEntryEditBox
+---             added.
+---           - Local references to global AddOn controls added.
+---           - In the SavedVariables structure a layer for the ESO server added.
+--- V. 1.3.1  - Update for ESO Version 12.1.5, API version 101051.
+--- V. 1.3.0  - Update for ESO Version 12.0.5, API version 101050.
+---           - New view mode 'minimized'
+---           - Key binding for tuggling the view state
+---           - new chat commands '/civshow', '/civhide', '/civmini'
+---           - Message with update information after login.
+--- V. 1.2.3  - Update for ESO Version 11.3.4, API version 101049.
+--- V. 1.2.2  - Bugfix for an issue during AddOn initialization
+--- V. 1.2.1  - Update for ESO Version 11.2.6, API version 101048.
+---           - Exception prevented, when slash commands were used more than one time.
+---           - Slash commands /civshow and /civhide added.
+--- V. 1.2.0  - Update for ESO Version 11.1.5, API version 101047.
+---           - Repeating the channel color of the input textbox in the viewer.
+--- V. 1.1.0  - Russian translation added.
+---           - Bugfix for character counting of multibyte characters.
+---           - Spelling errors removed
+--- V. 1.0.0  - Initial version.
 
 --- ---------------------------------------------------------------------
-
---	d( "----------" )
 
 
 --- The Addon namespace.
@@ -30,7 +38,32 @@
 --- @field OnAddOnLoaded function
 --- @field name string
 ChatInputViewer = {}
+
+--- Best practice: Create local reference to global variable, to speed up _G table search.
+--- Without the local variable each time ChatInputViewer is called, the global _G table is
+--- searched for the entry _G["ChatInputViewer"].
+--- (Baertram)
+local ChatInputViewer = ChatInputViewer
+
 ChatInputViewer.name = "ChatInputViewer"
+
+--- Best practice: Create local references for often used controls of the AddOn.
+--- The variables will be filled at EVENT_ADD_ON_LOADED after the XML file was processed too.
+--- (Baertram)
+ChatInputViewer.RootControl = nil
+ChatInputViewer.BGControl = nil
+ChatInputViewer.LabelControl = nil
+
+---  Best practice: Create local reference variables to often used global variables,
+---  that are available before AddOns load.
+---  This improves performance as looking up the global variables needs more ressources.
+---  (Baertram)
+
+--- Variable for the the chat window.
+local zoChatWindow = ZO_ChatWindow
+--- Variable for the the input text field of the chat window.
+local zoChatWindowTextEntryEditBox = ZO_ChatWindowTextEntryEditBox
+
 
 --- @field CivLogger object # Instance of the LibDebugLogger logger for this AddOn.
 local CivLogger
@@ -39,9 +72,9 @@ local CivLogger
 --- @class savedVariables
 local savedVariables
 
---- Existing OnTextChanged handler of other AddOns registered to the
---- ZO_ChatWindowTextEntryEditBox control.
-local ExistingOnTextChangedHandler
+--- Indicates whether the AddOn is already registered to the events of the chat input textbox.
+local RegisteredToChatHandlerAndHooks = false
+
 
 --- Status of the input string
 ---   1     0 - 279 characters
@@ -77,7 +110,7 @@ local function ShowWelcomeMessage()
 	d(GetString(CHATIV_UPDATEMESSAGE_04))
 	--d("Details findet ihr in der AddOn-Beschreibung auf USOUI: https://www.esoui.com/downloads/info4158-ChatInputViewer.html")
 	d(GetString(CHATIV_UPDATEMESSAGE_05))
-	if (savedVariables.updatemessages.messagecounter < 5) then
+	if (savedVariables.updatemessages.viewcounter < 5) then
 		--df("(Message will be shown %s more times after login.)", 5 - savedVariables.updatemessages.messagecounter)
 		df(GetString(CHATIV_UPDATEMESSAGE_06), 5 - savedVariables.updatemessages.messagecounter)
 	end
@@ -93,7 +126,7 @@ local function ShowChatInput()
 	local currentInputLengthState
 	local statCol
 
-	chatInput = ZO_ChatWindowTextEntryEditBox:GetText()
+	chatInput = zoChatWindowTextEntryEditBox:GetText()
 	chatInputSize = utf8.len(chatInput)
 	viewerOutput = ""
 
@@ -108,19 +141,19 @@ local function ShowChatInput()
 	end
 
 	if (savedVariables.minimised == false) then
-		ChatInputViewerControl_Label:SetText(chatInput)
+		ChatInputViewer.LabelControl:SetText(chatInput)
 	else
-		ChatInputViewerControl_Label:SetText(chatInputSize .. " / 350")
+		ChatInputViewer.LabelControl:SetText(chatInputSize .. " / 350")
 	end
 
 	if (currentInputLengthState > 1) then
 		if (currentInputLengthState ~= LastInputLengthState) then
 			statCol = InputLengthStateColors[currentInputLengthState]
-			ChatInputViewerControl_Label:SetColor(statCol[1], statCol[2], statCol[3], statCol[4])
+			ChatInputViewer.LabelControl:SetColor(statCol[1], statCol[2], statCol[3], statCol[4])
 			LastChannel = nil
 		end
 	elseif (LastChannel ~= CHAT_SYSTEM.currentChannel) then 
-		ChatInputViewerControl_Label:SetColor(ZO_ChatSystem_GetCategoryColorFromChannel(CHAT_SYSTEM.currentChannel))
+		ChatInputViewer.LabelControl:SetColor(ZO_ChatSystem_GetCategoryColorFromChannel(CHAT_SYSTEM.currentChannel))
 		LastChannel = CHAT_SYSTEM.currentChannel
 	end
 	LastInputLengthState = currentInputLengthState
@@ -168,8 +201,8 @@ local function CetCurrentViewerHeight()
 
 	currentHeight = 0
 	if (savedVariables.visible == true) then
-		if _G["ChatInputViewerControl"] ~= nil then
-			currentHeight = _G["ChatInputViewerControl"]:GetHeight()
+		if ChatInputViewer.RootControl ~= nil then
+			currentHeight = ChatInputViewer.RootControl:GetHeight()
 		end
 	end
 
@@ -185,11 +218,10 @@ end
 local function MoveChatWindowY(deltaY)
 
 	local chatXPos, chatYPos, rootYPos, chatheight1, chatheight2
-	--local chatYPos2
 
 	--CivLogger:Debug( "MoveChatWindowY()")
 
-	chatYPos = ZO_ChatWindow:GetBottom()
+	chatYPos = zoChatWindow:GetBottom()
 
 	if (deltaY > 0) then
 		rootYPos = GuiRoot:GetBottom()
@@ -198,48 +230,53 @@ local function MoveChatWindowY(deltaY)
 		end
 	end
 
-	--chatYPos2 = ZO_ChatWindow:GetBottom()
-	chatXPos = ZO_ChatWindow:GetLeft()
-	chatYPos = ZO_ChatWindow:GetTop()
-	chatheight1 = ZO_ChatWindow:GetHeight()
+	--chatYPos2 = zoChatWindow:GetBottom()
+	chatXPos = zoChatWindow:GetLeft()
+	chatYPos = zoChatWindow:GetTop()
+	chatheight1 = zoChatWindow:GetHeight()
 
-	ZO_ChatWindow:SetSimpleAnchorParent(chatXPos, chatYPos + deltaY)
-	chatheight2 = ZO_ChatWindow:GetHeight()
+	zoChatWindow:SetSimpleAnchorParent(chatXPos, chatYPos + deltaY)
+	chatheight2 = zoChatWindow:GetHeight()
 
 	if (chatheight2 ~= chatheight1) then
-		ZO_ChatWindow:SetSimpleAnchorParent(chatXPos, chatYPos + deltaY + 0.01)
-		ZO_ChatWindow:SetHeight(chatheight1)
+		zoChatWindow:SetSimpleAnchorParent(chatXPos, chatYPos + deltaY + 0.01)
+		zoChatWindow:SetHeight(chatheight1)
 	end
 
 end
 
 
-local function SetChatHandlers(addOnEnabled)
+local function SetChatHandlers()
 
-	if (addOnEnabled) then
+	--- Existing OnTextChanged handler of an other AddOn already registered to the
+	--- ZO_ChatWindowTextEntryEditBox control.
+	local existingOnTextChangedHandler
 
-		--CivLogger:Debug( "In SetChatHandlers: register to event")
+	-- Check if handler was added already; if so: Done (Baertram)
+	if RegisteredToChatHandlerAndHooks then
 
-		-- Store an already existing event handler of another AddOn in ExistingOnTextChangedHandler
-		ExistingOnTextChangedHandler = ZO_ChatWindowTextEntryEditBox:GetHandler("OnTextChanged")
-		-- Register ChatInputViewer to the event
-		ZO_ChatWindowTextEntryEditBox:SetHandler("OnTextChanged", function(self)
-			ShowChatInput()
-			if (ExistingOnTextChangedHandler ~= nil) then
-				ExistingOnTextChangedHandler(self)
-			end
-		end)
-	else
-
-		--CivLogger:Debug( "In SetChatHandlers: unregister from event")
-
-		-- If the Viewer is not visible, unregister the AddOn
-		if (ExistingOnTextChangedHandler ~= nil) then
-			-- Register the original event handler, that was stored in ExistingOnTextChangedHandler
-			ZO_ChatWindowTextEntryEditBox:SetHandler("OnTextChanged", ExistingOnTextChangedHandler)
-			ExistingOnTextChangedHandler = nil
-		end
+		return
 	end
+
+	-- Store an already existing event handler of another AddOn in existingOnTextChangedHandler
+	existingOnTextChangedHandler = zoChatWindowTextEntryEditBox:GetHandler("OnTextChanged")
+
+	-- Register ChatInputViewer to the event
+	zoChatWindowTextEntryEditBox:SetHandler("OnTextChanged",
+		function(self)
+			-- Only execute our addons' code if needed, and first always run the already existing code
+			if (existingOnTextChangedHandler ~= nil) then
+				existingOnTextChangedHandler(self)
+			end
+
+			-- Check if the handler must react on our chat input now (Baertram).
+			if not savedVariables.visible then return end
+
+			ShowChatInput()
+		end
+	)
+
+	RegisteredToChatHandlerAndHooks = true
 
 end
 
@@ -258,12 +295,12 @@ local function ShowViewer()
 		MoveChatWindowY(deltaY)
 	end
 
-	ChatInputViewerControl:SetHeight(newHeight)
-	ChatInputViewerControl_Label:SetHeight(newHeight - 10)
+	ChatInputViewer.RootControl:SetHeight(newHeight)
+	ChatInputViewer.LabelControl:SetHeight(newHeight - 10)
 	if (savedVariables.visible == false) then
-		ChatInputViewerControl_Label:SetHidden(false)
-		ChatInputViewerControl_BG:SetHidden(false)
-		SetChatHandlers(true)
+		ChatInputViewer.LabelControl:SetHidden(false)
+		ChatInputViewer.BGControl:SetHidden(false)
+		--SetChatHandlers(true)
 	end
 	savedVariables.visible = true
 	savedVariables.minimised = false
@@ -285,9 +322,9 @@ local function HideViewer()
 	end
 
 	if (savedVariables.visible == true) then
-		ChatInputViewerControl_Label:SetHidden(true)
-		ChatInputViewerControl_BG:SetHidden(true)
-		SetChatHandlers(false)
+		ChatInputViewer.LabelControl:SetHidden(true)
+		ChatInputViewer.BGControl:SetHidden(true)
+		--SetChatHandlers(false)
 	end
 	savedVariables.visible = false
 	savedVariables.minimised = false
@@ -313,12 +350,12 @@ local function MinimiseViewer()
 
 	-- Resize the viewer window
 	-- Set the new viewer state (visible, minimised)
-	ChatInputViewerControl:SetHeight(newHeight)
-	ChatInputViewerControl_Label:SetHeight(newHeight - 10)
+	ChatInputViewer.RootControl:SetHeight(newHeight)
+	ChatInputViewer.LabelControl:SetHeight(newHeight - 10)
 	if (savedVariables.visible == false) then
-		ChatInputViewerControl_Label:SetHidden(false)
-		ChatInputViewerControl_BG:SetHidden(false)
-		SetChatHandlers(true)
+		ChatInputViewer.LabelControl:SetHidden(false)
+		ChatInputViewer.BGControl:SetHidden(false)
+		--SetChatHandlers(true)
 	end
 	savedVariables.visible = true
 	savedVariables.minimised = true
@@ -362,13 +399,13 @@ local function ResizeViewerControl(width, nrOfLines, fontsize)
 
 	-- If a fixed width is given, set the width
 	if (width > 0) then
-		ChatInputViewerControl:SetWidth(width)
+		ChatInputViewer.RootControl:SetWidth(width)
 	end
 
 	nrOfShownLines = CalculateNrOfLines( savedVariables.visible, savedVariables.minimised, nrOfLines)
 	height = CalculateViewerHeight(nrOfShownLines, fontsize)
-	ChatInputViewerControl:SetHeight(height)
-	ChatInputViewerControl_Label:SetHeight(height - 10)
+	ChatInputViewer.RootControl:SetHeight(height)
+	ChatInputViewer.LabelControl:SetHeight(height - 10)
 
 end
 
@@ -418,14 +455,14 @@ local function setFontSize(val)
 	local nrOfShownLines
 
 	nrOfShownLines = CalculateNrOfLines( savedVariables.visible, savedVariables.minimised)
-	ChatInputViewerControl_Label:SetFont("$(CHAT_FONT)|$(KB_" .. val .. ")|soft-shadow-thick")
-	ChatInputViewerControl:ClearAnchors()
+	ChatInputViewer.LabelControl:SetFont("$(CHAT_FONT)|$(KB_" .. val .. ")|soft-shadow-thick")
+	ChatInputViewer.RootControl:ClearAnchors()
 	if (savedVariables.mode == 1) then
-		ChatInputViewerControl:SetAnchor(TOPLEFT, ZO_ChatWindow, BOTTOMLEFT, 0, 0)
-		ChatInputViewerControl:SetAnchor(TOPRIGHT, ZO_ChatWindow, BOTTOMRIGHT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPLEFT, zoChatWindow, BOTTOMLEFT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPRIGHT, zoChatWindow, BOTTOMRIGHT, 0, 0)
 		ResizeViewerControl(0, nrOfShownLines, val)
 	else
-		ChatInputViewerControl:SetAnchor(TOPLEFT, ZO_ChatWindow, BOTTOMLEFT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPLEFT, zoChatWindow, BOTTOMLEFT, 0, 0)
 		ResizeViewerControl(savedVariables.windowwidth, nrOfShownLines, val)
 	end
 	savedVariables.fontsize = val
@@ -451,13 +488,13 @@ local function setWindowMode(val)
 		end
 	end
 
-	ChatInputViewerControl:ClearAnchors()
+	ChatInputViewer.RootControl:ClearAnchors()
 	if (savedVariables.mode == 1) then
-		ChatInputViewerControl:SetAnchor(TOPLEFT, ZO_ChatWindow, BOTTOMLEFT, 0, 0)
-		ChatInputViewerControl:SetAnchor(TOPRIGHT, ZO_ChatWindow, BOTTOMRIGHT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPLEFT, zoChatWindow, BOTTOMLEFT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPRIGHT, zoChatWindow, BOTTOMRIGHT, 0, 0)
 		ResizeViewerControl(0, savedVariables.nroflines, savedVariables.fontsize)
 	else
-		ChatInputViewerControl:SetAnchor(TOPLEFT, ZO_ChatWindow, BOTTOMLEFT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPLEFT, zoChatWindow, BOTTOMLEFT, 0, 0)
 		ResizeViewerControl(savedVariables.windowwidth, savedVariables.nroflines, savedVariables.fontsize)
 	end
 end
@@ -497,7 +534,7 @@ end
 
 --- Function used for key binding. It is called by the game engine when the defined
 --- key is pressed.
-function ToggleViewer()
+function ChatInputViewer.ToggleViewer()
 
 	if (savedVariables.visible == true) then
 		if (savedVariables.minimised == true) then
@@ -532,6 +569,17 @@ end
 --- Initializes the AddOn
 local function initializeChatInputViewer()
 
+	-- Update the created global XML controls to the local table so that they can be accessed
+	-- via the local ChatInputViewer variable mroe easily.
+	-- (Baertram)
+	local civControl = ChatInputViewerControl
+	local civControlLabel = GetControl(civControl, "_Label")
+	local civControlBG = GetControl(civControl, "_BG")
+	ChatInputViewer.RootControl = civControl
+	ChatInputViewer.LabelControl = civControlLabel
+	ChatInputViewer.BGControl = civControlBG
+
+
 	local panelName = "ChatInputViewerOptions"
 	local nrOfShownLines
 	local kbText
@@ -551,20 +599,20 @@ local function initializeChatInputViewer()
 		[2] = GetString(CHATIV_WINDOWMODE_VAL2),
 	}
 
-	ChatInputViewerControl_Label:SetFont("$(CHAT_FONT)|$(KB_" .. savedVariables.fontsize .. ")|soft-shadow-thick")
-	ChatInputViewerControl_Label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-	ChatInputViewerControl:ClearAnchors()
+	ChatInputViewer.LabelControl:SetFont("$(CHAT_FONT)|$(KB_" .. savedVariables.fontsize .. ")|soft-shadow-thick")
+	ChatInputViewer.LabelControl:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+	ChatInputViewer.RootControl:ClearAnchors()
 	nrOfShownLines = CalculateNrOfLines( savedVariables.visible, savedVariables.minimised)
 	if (savedVariables.mode == 1) then
-		ChatInputViewerControl:SetAnchor(TOPLEFT, ZO_ChatWindow, BOTTOMLEFT, 0, 0)
-		ChatInputViewerControl:SetAnchor(TOPRIGHT, ZO_ChatWindow, BOTTOMRIGHT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPLEFT, zoChatWindow, BOTTOMLEFT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPRIGHT, zoChatWindow, BOTTOMRIGHT, 0, 0)
 		--ResizeViewerControl(0, nrOfShownLines, savedVariables.fontsize)
 	else
-		ChatInputViewerControl:SetAnchor(TOPLEFT, ZO_ChatWindow, BOTTOMLEFT, 0, 0)
+		ChatInputViewer.RootControl:SetAnchor(TOPLEFT, zoChatWindow, BOTTOMLEFT, 0, 0)
 		--ResizeViewerControl(savedVariables.windowwidth, nrOfShownLines, savedVariables.fontsize)
 	end
-	ChatInputViewerControl_Label:SetHidden(not savedVariables.visible)
-	ChatInputViewerControl_BG:SetHidden(not savedVariables.visible)
+	ChatInputViewer.LabelControl:SetHidden(not savedVariables.visible)
+	ChatInputViewer.BGControl:SetHidden(not savedVariables.visible)
 
 	--- The panel data for the ChatInputViewer addon, that are shown in the Addon settings GUI.
 	---   @class panelData
@@ -660,6 +708,15 @@ local function initializeChatInputViewer()
 	ZO_CreateStringId("SI_BINDING_NAME_CIV_TOGGLE_WINDOW", kbText)
 end
 
+--- Register the slash commands
+local function registerSlashCommands()
+
+	SLASH_COMMANDS["/civshow"] = ShowViewer
+	SLASH_COMMANDS["/civhide"] = HideViewer
+	SLASH_COMMANDS["/civmini"] = MinimiseViewer
+
+end
+
 --- Event handler for the EVENT_ADD_ON_LOADED event.
 ---   @param event string # The event name.
 ---   @param name string # The name of the loaded addon.
@@ -678,10 +735,11 @@ function ChatInputViewer.OnAddOnLoaded(event, name)
 	---   @field messagecounter number # Counter how often the current update information was shown.
 	local defaults = {
 		updatemessages = {
-			startversion = 10300,
-			messageversion = 0,
-			messagecounter = 0
+			messageversion = 0, -- was startversion = 10300,
+			shownversion = 0,  -- was messageversion = 0
+			viewcounter = 0   -- was messagecounter = 0
 		},
+		convertedTo10400 = false,
 		visible = true,
 		minimised = false,
 		fontsize = 22,
@@ -692,7 +750,25 @@ function ChatInputViewer.OnAddOnLoaded(event, name)
 
 	--CivLogger:Debug( ".   Vor savedVariables lesen: "..tostring(defaults.visible)..", "..tostring(defaults.minimised))
 
-	savedVariables = ZO_SavedVars:NewAccountWide("ChatInputViewerVars", 1, nil, defaults)
+	--savedVariables = ZO_SavedVars:NewAccountWide("ChatInputViewerVars", 1, nil, defaults, nil, nil)
+	savedVariables = ZO_SavedVars:NewAccountWide("ChatInputViewerVars", 1, nil, defaults, GetWorldName(), nil)
+	if savedVariables.convertedTo10400 == false then
+		local oldSavedVariables = ZO_SavedVars:NewAccountWide("ChatInputViewerVars", 1, nil, defaults, nil, nil)
+		-- Update messages are reset. There are no messages for this version. 
+		savedVariables.updatemessages = {
+			messageversion = 0,
+			shownversion = 0,
+			viewcounter = 0
+		}
+		savedVariables.visible = oldSavedVariables.visible
+		savedVariables.minimised = oldSavedVariables.minimised
+		savedVariables.fontsize = oldSavedVariables.fontsize
+		savedVariables.mode = oldSavedVariables.mode
+		savedVariables.windowwidth = oldSavedVariables.windowwidth
+		savedVariables.nroflines = oldSavedVariables.nroflines
+		ChatInputViewerVars["Default"] = nil
+		savedVariables.convertedTo10400 = true
+	end
 
 	--CivLogger:Debug( ".   Vor initializeChatInputViewer: "..tostring(savedVariables.visible)..", "..tostring(savedVariables.minimised))
 
@@ -705,7 +781,12 @@ function ChatInputViewer.OnAddOnLoaded(event, name)
 
 	--CivLogger:Debug( ".   Vor SetChatHandlers: "..tostring(savedVariables.visible)..", "..tostring(savedVariables.minimised))
 
-	SetChatHandlers(savedVariables.visible)
+	SetChatHandlers()
+
+	--- Register the EVENT_PLAYER_ACTIVATED event
+	EVENT_MANAGER:RegisterForEvent(ChatInputViewer.name, EVENT_PLAYER_ACTIVATED, ChatInputViewer.OnPlayerActivated)
+
+	registerSlashCommands()
 
 end
 
@@ -713,11 +794,11 @@ function ChatInputViewer.OnPlayerActivated(_, initial)
 
 	EVENT_MANAGER:UnregisterForEvent("ChatInputViewer", EVENT_PLAYER_ACTIVATED)
 
-	if (savedVariables.updatemessages.messageversion < 10300) then
+	if (savedVariables.updatemessages.shownversion < savedVariables.updatemessages.messageversion) then
 
 		if (savedVariables.updatemessages.messagecounter >= 5) then
 
-			savedVariables.updatemessages.messageversion = 10300
+			savedVariables.updatemessages.shownversion = savedVariables.updatemessages.messageversion
 			savedVariables.updatemessages.messagecounter = 0
 
 		else
@@ -738,13 +819,5 @@ end
 --CivLogger:SetMinLevelOverride(LibDebugLogger.LOG_LEVEL_DEBUG)
 --CivLogger:Debug( "CivLogger log level set to DEBUG.")
 
---- Register the slash commands
-SLASH_COMMANDS["/civshow"] = ShowViewer
-SLASH_COMMANDS["/civhide"] = HideViewer
-SLASH_COMMANDS["/civmini"] = MinimiseViewer
-
 --- Register the EVENT_ADD_ON_LOADED event
 EVENT_MANAGER:RegisterForEvent(ChatInputViewer.name, EVENT_ADD_ON_LOADED, ChatInputViewer.OnAddOnLoaded)
-
---- Register the EVENT_PLAYER_ACTIVATED  event
-EVENT_MANAGER:RegisterForEvent(ChatInputViewer.name, EVENT_PLAYER_ACTIVATED, ChatInputViewer.OnPlayerActivated)

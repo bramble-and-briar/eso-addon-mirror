@@ -1,0 +1,20 @@
+## Title: |cC5A86EKD|r Stat Tracker
+## Author: Vixen Hunny
+## Version: 3.0.0
+## AddOnVersion: 300
+## APIVersion: 101048 101049 101050
+## Description: Tracks battleground, Cyrodiil and duel kills / deaths with a HUD tracker, kill announcer and stats window (PC window + console dialog).
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibConsoleDialogs
+## SavedVariables: KDStatTrackerVars KDStatTrackerSettings
+
+src/KDStatTracker_Core.lua
+src/KDStatTracker_Views.lua
+src/KDStatTracker_HUD.lua
+src/KDStatTracker_Events.lua
+src/KDStatTracker_PCDialog.lua
+src/KDStatTracker_ConsoleDialog.lua
+src/KDStatTracker_Settings.lua
+src/KDStatTracker_Commands.lua
+src/KDStatTracker_Init.lua
+
+Bindings.xml

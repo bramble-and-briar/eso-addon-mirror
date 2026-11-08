@@ -11,7 +11,7 @@ DM2StatsMenuShell = DM2StatsMenuShell or {}
 local M = DM2StatsMenuShell
 
 M.name    = "DM2StatsMenuShell"
-M.version = "3.18.9"
+M.version = "3.18.11"
 
 local WM = WINDOW_MANAGER
 local SCENE_NAME = "dm2StatsMenuShellGamepad"
@@ -10731,7 +10731,7 @@ local function createInsightsUI(screen, mode)
   -- mode: "dps" | "build" — split for readability / room to grow
   mode = (mode == "build") and "build" or "dps"
   local storeKey = (mode == "build") and "insightsBuildUI" or "insightsDpsUI"
-  if screen[storeKey] and not screen[storeKey]._v31808 then screen[storeKey] = nil end
+  if screen[storeKey] and not screen[storeKey]._v31811 then screen[storeKey] = nil end
   if screen[storeKey] then
     local existing = screen[storeKey]
     -- Lazy-add Next Test action line (2.5.3) without full rebuild
@@ -10759,7 +10759,7 @@ local function createInsightsUI(screen, mode)
     ibCpStory = {},
     ibCpRows = {},
     ibPot = {},
-    _v31808 = true,
+    _v31811 = true,
   }
   local pfx = (mode == "build") and "DM2StatsMenuInBld" or "DM2StatsMenuInDps"
   local rootName = pfx .. "Root"
@@ -10821,8 +10821,18 @@ local function createInsightsUI(screen, mode)
   ui.meterLegend:SetMaxLineCount(1)
   ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   ui.wasteMeters = {}
+  ui.wasteVals = {}
+  ui.wasteNotes = {}
+  ui.wasteCaps = {}
   for i = 1, INSIGHT_WASTE_LINES do
     ui.wasteLines[i] = makeDashLabel(ui.wastePanel, pfx .. "WasteL6_" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.wasteVals[i] = makeDashLabel(ui.wastePanel, pfx .. "WasteV_" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.wasteVals[i]:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    ui.wasteNotes[i] = makeDashLabel(ui.wastePanel, pfx .. "WasteN_" .. i, 14, 0.86, 0.78, 0.50, 1)
+    ui.wasteNotes[i]:SetMaxLineCount(1)
+    ui.wasteCaps[i] = makeDashLabel(ui.wastePanel, pfx .. "WasteC_" .. i, 12, 0.92, 0.86, 0.55, 1)
+    ui.wasteCaps[i]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    ui.wasteCaps[i]:SetHidden(true)
     ui.wasteMeters[i] = M.MakeInsightMeter(ui.wastePanel, pfx .. "WstM" .. i)
   end
 
@@ -10861,20 +10871,28 @@ local function createInsightsUI(screen, mode)
   -- 3.18.0 Insights: Build stacked sections (not the old two-column src/CP clone)
   if mode == "build" then
     ui.ibSetHdr = makeDashLabel(ui.buildPanel, pfx .. "IbSetHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    ui.ibSetHdr:SetText("B  SETS")
+    ui.ibSetHdr:SetText("B. SET CONTRIBUTIONS")
     ui.ibSetNote = makeDashLabel(ui.buildPanel, pfx .. "IbSetNote", 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
-    ui.ibSetNote:SetMaxLineCount(2)
+    ui.ibSetNote:SetMaxLineCount(1)
+    ui.ibSetDetail = {}
     for i = 1, IB_SET_ROWS do
       local line = makeDashLabel(ui.buildPanel, pfx .. "IbSet" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
       ui.ibSetRows[i] = line
+      ui.ibSetDetail[i] = makeDashLabel(ui.buildPanel, pfx .. "IbSetD" .. i, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+      ui.ibSetDetail[i]:SetMaxLineCount(1)
     end
     ui.ibBroughtHdr = makeDashLabel(ui.buildPanel, pfx .. "IbBrHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    ui.ibBroughtHdr:SetText("C  WHAT YOU BROUGHT")
+    ui.ibBroughtHdr:SetText("C. BUILD SNAPSHOT")
+    ui.ibSnapKey = {}
+    for i = 1, 6 do
+      ui.ibSnapKey[i] = makeDashLabel(ui.buildPanel, pfx .. "IbSnapK" .. i, 13, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
+    end
     for i = 1, IB_BROUGHT do
       ui.ibBrought[i] = makeDashLabel(ui.buildPanel, pfx .. "IbBr" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
     end
+    ui.ibSnapVal6 = makeDashLabel(ui.buildPanel, pfx .. "IbSnapV6", 14, THEME.textR, THEME.textG, THEME.textB, 1)
     ui.ibCpHdr = makeDashLabel(ui.buildPanel, pfx .. "IbCpHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    ui.ibCpHdr:SetText("D  CHAMPION POINTS")
+    ui.ibCpHdr:SetText("D. CHAMPION POINT FIT")
     for i = 1, IB_CP_STORY do
       ui.ibCpStory[i] = makeDashLabel(ui.buildPanel, pfx .. "IbCpS" .. i, 14, THEME.mutedR, THEME.mutedG, THEME.mutedB, 1)
     end
@@ -10886,15 +10904,18 @@ local function createInsightsUI(screen, mode)
       ui.ibCpRows[i] = { row = row, fit = fit, name = name, impact = impact }
     end
     ui.ibBarHdr = makeDashLabel(ui.buildPanel, pfx .. "IbBarHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    ui.ibBarHdr:SetText("E  FRONT / BACK")
+    ui.ibBarHdr:SetText("E. FRONT / BACK")
     ui.ibBarLine = makeDashLabel(ui.buildPanel, pfx .. "IbBarL", 14, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.ibBarLine:SetText("Dwell")
+    ui.ibDmgLbl = makeDashLabel(ui.buildPanel, pfx .. "IbDmgL", 14, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.ibDmgLbl:SetText("Damage")
     ui.ibPotHdr = makeDashLabel(ui.buildPanel, pfx .. "IbPotHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    ui.ibPotHdr:SetText("F  POTIONS")
+    ui.ibPotHdr:SetText("F. POTION COVERAGE")
     for i = 1, IB_POT_LINES do
       ui.ibPot[i] = makeDashLabel(ui.buildPanel, pfx .. "IbPot" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
     end
     ui.ibNextHdr = makeDashLabel(ui.buildPanel, pfx .. "IbNxHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
-    ui.ibNextHdr:SetText("G  BUILD NEXT TEST")
+    ui.ibNextHdr:SetText("G. BUILD NEXT TEST")
     ui.ibNextHead = makeDashLabel(ui.buildPanel, pfx .. "IbNxH", 16, 0.98, 0.84, 0.40, 1)
     ui.ibNextBody = makeDashLabel(ui.buildPanel, pfx .. "IbNxB", 14, THEME.textR, THEME.textG, THEME.textB, 1)
     ui.ibNextBody:SetMaxLineCount(3)
@@ -10910,6 +10931,41 @@ local function createInsightsUI(screen, mode)
     end
     ui.ibBarMeter = M.MakeInsightMeter(ui.buildPanel, pfx .. "BarM")
     ui.ibPotMeter = M.MakeInsightMeter(ui.buildPanel, pfx .. "PotM")
+    ui.payCaps = {}
+    ui.payVals = {}
+    for i = 1, 4 do
+      ui.payCaps[i] = makeDashLabel(ui.buildPanel, pfx .. "PayC" .. i, 12, 0.86, 0.78, 0.50, 1)
+      ui.payCaps[i]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+      ui.payVals[i] = makeDashLabel(ui.buildPanel, pfx .. "PayV" .. i, 16, THEME.textR, THEME.textG, THEME.textB, 1)
+      ui.payVals[i]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    end
+    ui.ibMixHdr = makeDashLabel(ui.buildPanel, pfx .. "MixHdr", 15, THEME.titleR, THEME.titleG, THEME.titleB, 1)
+    ui.ibMixHdr:SetText("A. DAMAGE MIX")
+    ui.ibMixDirect = M.MakeInsightMeter(ui.buildPanel, pfx .. "MixD")
+    ui.ibMixDot = M.MakeInsightMeter(ui.buildPanel, pfx .. "MixT")
+    ui.ibMixPet = makeDashLabel(ui.buildPanel, pfx .. "MixPet", 14, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.ibCpElig = {}
+    for i = 1, IB_CP_ROWS do
+      if ui.ibCpRows[i] then
+        ui.ibCpElig[i] = makeDashLabel(ui.ibCpRows[i].row, pfx .. "IbCpE" .. i, 14, THEME.textR, THEME.textG, THEME.textB, 1)
+        ui.ibCpElig[i]:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+      end
+    end
+    ui.ibDwellFront = M.MakeInsightMeter(ui.buildPanel, pfx .. "DwF")
+    ui.ibDwellBack = M.MakeInsightMeter(ui.buildPanel, pfx .. "DwB")
+    ui.ibDmgFront = M.MakeInsightMeter(ui.buildPanel, pfx .. "DmF")
+    ui.ibDmgBack = M.MakeInsightMeter(ui.buildPanel, pfx .. "DmB")
+    ui.ibBarCaps = {}
+    for i = 1, 4 do
+      ui.ibBarCaps[i] = makeDashLabel(ui.buildPanel, pfx .. "BarCap" .. i, 12, 0.96, 0.96, 0.94, 1)
+      ui.ibBarCaps[i]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    end
+    ui.ibFrames = {}
+    for i = 1, 8 do
+      local fr = makeSectionFrame(ui.buildPanel, pfx .. "Band" .. i, false)
+      stampForeground(fr, 30)
+      ui.ibFrames[i] = fr
+    end
   end
 
   ui.execPanel = WM:CreateControl(pfx .. "ExecV6", ui.root, CT_CONTROL)
@@ -10918,8 +10974,18 @@ local function createInsightsUI(screen, mode)
   ui.execTitle = makeDashLabel(ui.execPanel, pfx .. "ExecTitleV6", 16, THEME.titleR, THEME.titleG, THEME.titleB, 1)
   ui.execTitle:SetText("4  EXECUTION")
   ui.execSummary = makeDashLabel(ui.execPanel, pfx .. "ExecSumV6", 15, THEME.textR, THEME.textG, THEME.textB, 1)
+  ui.execVal = makeDashLabel(ui.execPanel, pfx .. "ExecVal", 15, THEME.textR, THEME.textG, THEME.textB, 1)
+  ui.execVal:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+  ui.execPaceCap = makeDashLabel(ui.execPanel, pfx .. "PaceCap", 12, 0.92, 0.86, 0.55, 1)
+  ui.execPaceCap:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  ui.execPaceCap:SetHidden(true)
+  ui.execNames = {}
+  ui.execVals = {}
   for i = 1, INSIGHT_EXEC_LINES do
     ui.execLines[i] = makeDashLabel(ui.execPanel, pfx .. "ExecL6_" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.execNames[i] = makeDashLabel(ui.execPanel, pfx .. "ExN" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.execVals[i] = makeDashLabel(ui.execPanel, pfx .. "ExV" .. i, 15, THEME.textR, THEME.textG, THEME.textB, 1)
+    ui.execVals[i]:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   end
   ui.execPace = M.MakeInsightMeter(ui.execPanel, pfx .. "PaceM")
 
@@ -10989,8 +11055,12 @@ local function layoutInsightsUI(ui, hostW, hostH)
     ui.profileBadge:SetMaxLineCount(1)
   end
 
-  -- Title, one meta line, one assumption line. Sections start under that.
-  local y0 = 64
+  -- DPS matches the diagnosis dashboard: title and one meta line. Build keeps the assumption.
+  if ui.assumption then ui.assumption:SetHidden(mode ~= "build") end
+  if ui.primary and mode ~= "build" then ui.primary:SetHidden(true) end
+  if ui.limitsHdr and mode ~= "build" then ui.limitsHdr:SetHidden(true) end
+  if ui.meterLegend and mode ~= "build" then ui.meterLegend:SetHidden(true) end
+  local y0 = (mode == "build") and 64 or 44
   local gap = 5
   local mode = ui.mode or "dps"
   local heights, panels
@@ -11000,9 +11070,9 @@ local function layoutInsightsUI(ui, hostW, hostH)
     if ui.buildPanel then ui.buildPanel:SetHidden(false) end
   else
     local avail = H - y0 - gap * 3 - 2
-    -- Diagnosis holds three labeled phase bars and three limit rows. Next holds head, body, action, one disclaimer line.
-    local mins = { 210, 188, 150, 164 }
-    local minSum = 712
+    -- Packed dashboard: phase ribbon + 3 limits, 8 waste rows, pace + 4 execution rows, next-test card.
+    local mins = { 156, 220, 148, 124 }
+    local minSum = 648
     heights = {}
     if avail >= minSum then
       local extra = avail - minSum
@@ -11063,40 +11133,44 @@ local function layoutInsightsUI(ui, hostW, hostH)
     end
   end
 
-  -- One reading measure. Section frames stay the full plate.
-  -- Bars start just after their label. A wide TV was pinning a short bar to the plate's right edge.
-  local readW = W - 8
-  if readW > 1240 then readW = 1240 end
+  -- Bars start after the value and run to the card edge. Build keeps the 1240 reading cap.
+  local readW = W - 16
+  if mode == "build" and readW > 1240 then readW = 1240 end
   ui.readW = readW
-  local wasteLabelW = 260
-  if readW < 720 then wasteLabelW = math.max(150, math.floor(readW * 0.40)) end
-  ui.meterLabelW = wasteLabelW
-  local wasteBarLeft = 12 + wasteLabelW + 22
-  local wasteBarW = readW - wasteBarLeft - 12
-  if wasteBarW < 120 then wasteBarW = 120 end
+  local nameW = 188
+  local valW = 72
+  if readW < 760 then nameW = math.max(128, math.floor(readW * 0.28)) end
+  ui.meterLabelW = nameW
+  local wasteBarLeft = 28 + nameW + valW + 14
+  local wasteBarW = readW - wasteBarLeft - 10
+  if wasteBarW < 80 then wasteBarW = 80 end
   ui.barW = wasteBarW
+  ui.dashNameW = nameW
+  ui.dashValW = valW
 
   local dH = heights[1] or 0
   if mode ~= "build" and ui.diagPanel and not ui.diagPanel:IsHidden() then
-    local spec = { 22, 44, 86, 104, 122, 142 }
-    local need = spec[6] + 48
-    if dH < need then
-      local scale = math.max(0.62, (dH - 8) / need)
-      for i = 1, 6 do spec[i] = math.max(4, math.floor(spec[i] * scale)) end
+    local headlineY, phaseY, phaseBarY, oppTop = 24, 46, 64, 80
+    if dH < 156 then
+      local scale = math.max(0.72, (dH - 8) / 156)
+      headlineY = math.max(18, math.floor(headlineY * scale))
+      phaseY = math.max(32, math.floor(phaseY * scale))
+      phaseBarY = math.max(46, math.floor(phaseBarY * scale))
+      oppTop = math.max(58, math.floor(oppTop * scale))
     end
-    local headlineY, primaryY, phaseY = spec[1], spec[2], spec[3]
-    local phaseBarY, limitsY, oppTop = spec[4], spec[5], spec[6]
     ui.diagTitle:ClearAnchors()
     ui.diagTitle:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 10, 4)
     ui.diagTitle:SetWidth(W - 20)
     ui.headline:ClearAnchors()
     ui.headline:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, headlineY)
-    ui.headline:SetWidth(W - 24)
-    ui.primary:ClearAnchors()
-    ui.primary:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, primaryY)
-    ui.primary:SetWidth(W - 24)
+    ui.headline:SetWidth(readW - 8)
+    ui.headline:SetMaxLineCount(1)
+    ui.phaseCapY = phaseY
+    ui.phaseBarY = phaseBarY
+    if ui.primary then ui.primary:SetHidden(true) end
     if ui.phase then ui.phase:SetHidden(true) end
-    local gapB = 14
+    if ui.limitsHdr then ui.limitsHdr:SetHidden(true) end
+    local gapB = 2
     local phaseW = math.max(48, math.floor((math.max(180, readW - 24) - gapB * 2) / 3))
     for i = 1, 3 do
       local x = 12 + (i - 1) * (phaseW + gapB)
@@ -11111,26 +11185,21 @@ local function layoutInsightsUI(ui, hostW, hostH)
       local m = ui.phaseMeters and ui.phaseMeters[i]
       if m and m.bg then
         m.w = phaseW
-        m.h = 8
+        m.h = 10
         m.bg:ClearAnchors()
         m.bg:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, x, phaseBarY)
-        m.bg:SetDimensions(phaseW, 8)
+        m.bg:SetDimensions(phaseW, 10)
         if m.pip then m.pip:SetHidden(true) end
       end
     end
-    ui.limitsHdr:ClearAnchors()
-    ui.limitsHdr:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, 12, limitsY)
-    ui.limitsHdr:SetWidth(W - 24)
-    local oppH = math.floor((dH - oppTop - 4) / INSIGHT_DIAG_OPP)
-    if oppH < 1 then oppH = 1 end
-    -- rank | name | value | bar, adjacent. Name stays wide enough for the longest limit title.
-    local oppNameW = 340
-    local oppEstW = 78
-    if readW < 860 then oppNameW = math.max(160, math.floor(readW * 0.36)) end
-    local oppBarLeft = 24 + oppNameW + 8 + oppEstW + 18
-    local oppRowW = math.max(oppBarLeft + 80, readW - 10)
+    local oppRoom = dH - oppTop - 6
+    local oppH = math.floor(oppRoom / INSIGHT_DIAG_OPP)
+    if oppH > 26 then oppH = 26 end
+    if oppH < 16 then oppH = 16 end
+    local oppBarLeft = 24 + nameW + 8 + valW + 10
+    local oppRowW = readW - 8
     local oppBarW = oppRowW - oppBarLeft - 4
-    if oppBarW < 100 then oppBarW = 100 end
+    if oppBarW < 80 then oppBarW = 80 end
     for i = 1, INSIGHT_DIAG_OPP do
       local r = ui.oppRows[i]
       if r then
@@ -11142,41 +11211,62 @@ local function layoutInsightsUI(ui, hostW, hostH)
         r.rank:SetWidth(22)
         r.title:ClearAnchors()
         r.title:SetAnchor(LEFT, r.row, LEFT, 24, 0)
-        r.title:SetWidth(oppNameW)
+        r.title:SetWidth(nameW)
         r.title:SetMaxLineCount(1)
         r.est:ClearAnchors()
-        r.est:SetAnchor(LEFT, r.row, LEFT, 24 + oppNameW + 6, 0)
-        r.est:SetWidth(oppEstW)
+        r.est:SetAnchor(LEFT, r.row, LEFT, 24 + nameW + 6, 0)
+        r.est:SetWidth(valW)
         r.ev:SetHidden(true)
-        placeTrack(r.meter, r.row, oppBarLeft, math.max(0, math.floor((oppH - 8) / 2)), oppBarW, 8)
+        placeTrack(r.meter, r.row, oppBarLeft, math.max(0, math.floor((oppH - 10) / 2)), oppBarW, 10)
+        if r.meter and r.meter.pip then r.meter.pip:SetHidden(true) end
       end
     end
 
     ui.wasteTitle:ClearAnchors()
     ui.wasteTitle:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 10, 4)
-    ui.wasteTitle:SetWidth(300)
+    ui.wasteTitle:SetWidth(readW - 16)
     ui.wasteTitle:SetMaxLineCount(1)
-    if ui.meterLegend then
-      ui.meterLegend:ClearAnchors()
-      ui.meterLegend:SetAnchor(TOPRIGHT, ui.wastePanel, TOPLEFT, readW - 8, 6)
-      ui.meterLegend:SetWidth(math.max(160, math.min(520, readW - 340)))
-      ui.meterLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-      ui.meterLegend:SetMaxLineCount(1)
-    end
-    local wTop = 30
-    local wRowH = math.floor(((heights[2] or 100) - wTop - 4) / INSIGHT_WASTE_LINES)
-    if wRowH < 1 then wRowH = 1 end
+    if ui.meterLegend then ui.meterLegend:SetHidden(true) end
+    local wTop = 28
+    local wRoom = (heights[2] or 200) - wTop - 6
+    local wRowH = math.floor(wRoom / INSIGHT_WASTE_LINES)
+    if wRowH > 26 then wRowH = 26 end
+    if wRowH < 16 then wRowH = 16 end
+    local nameX = 28
+    local valX = nameX + nameW
     for i = 1, INSIGHT_WASTE_LINES do
+      local yRow = wTop + (i - 1) * wRowH
+      local mid = yRow + math.max(0, math.floor((wRowH - 10) / 2))
       local line = ui.wasteLines[i]
       if line then
         line:ClearAnchors()
-        line:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 12, wTop + (i - 1) * wRowH)
-        line:SetWidth(wasteLabelW)
+        line:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, nameX, yRow)
+        line:SetWidth(nameW)
         line:SetMaxLineCount(1)
       end
+      if ui.wasteVals and ui.wasteVals[i] then
+        ui.wasteVals[i]:ClearAnchors()
+        ui.wasteVals[i]:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, valX, yRow)
+        ui.wasteVals[i]:SetWidth(valW)
+      end
+      if ui.wasteNotes and ui.wasteNotes[i] then
+        ui.wasteNotes[i]:ClearAnchors()
+        ui.wasteNotes[i]:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, wasteBarLeft, yRow)
+        ui.wasteNotes[i]:SetWidth(wasteBarW)
+      end
+      if ui.wasteCaps and ui.wasteCaps[i] then
+        ui.wasteCaps[i]:ClearAnchors()
+        ui.wasteCaps[i]:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, wasteBarLeft, yRow - 1)
+        ui.wasteCaps[i]:SetWidth(88)
+      end
       if ui.wasteMeters then
-        placeTrack(ui.wasteMeters[i], ui.wastePanel, wasteBarLeft,
-          wTop + (i - 1) * wRowH + math.max(0, math.floor((wRowH - 8) / 2)), wasteBarW, 8)
+        placeTrack(ui.wasteMeters[i], ui.wastePanel, wasteBarLeft, mid, wasteBarW, 10)
+        local meter = ui.wasteMeters[i]
+        if meter and meter.pip then
+          meter.pip:ClearAnchors()
+          meter.pip:SetAnchor(TOPLEFT, ui.wastePanel, TOPLEFT, 12, mid + 1)
+          meter.pip:SetDimensions(8, 8)
+        end
       end
     end
   end
@@ -11201,114 +11291,243 @@ local function layoutInsightsUI(ui, hostW, hostH)
     for i = 1, INSIGHT_BUILD_CP do
       if ui.buildCps[i] then ui.buildCps[i].row:SetHidden(true) end
     end
-    local buildH = heights[3] or 200
-    local lineH, cpPitch, noteH = 16, 20, 32
-    local function stackH(lh, ch, nh)
-      return 58 + (6 * 20) + nh + 20 + 20 + 48 + 24 + (17 * lh) + (4 * ch)
+    if ui.buildFp then ui.buildFp:SetHidden(true) end
+    if ui.ibBarMeter and M.PaintInsightMeter then M.PaintInsightMeter(ui.ibBarMeter, nil) end
+    local buildH = heights[3] or 640
+    local setPitch, cpPitch, snapPitch = 20, 20, 18
+    local payH, mixH, efH, gH = 42, 50, 112, 52
+    local function needH(sp, cp, sn)
+      return 8 + payH + mixH + (24 + IB_SET_ROWS * sp + 18) + (24 + 3 * sn + 8)
+        + (24 + 18 + IB_CP_ROWS * cp + 18) + efH + gH + 28
     end
-    while stackH(lineH, cpPitch, noteH) > buildH - 22 and lineH > 14 do
-      lineH = lineH - 1
-      if cpPitch > lineH + 2 then cpPitch = cpPitch - 1 end
+    while needH(setPitch, cpPitch, snapPitch) > buildH - 4 and setPitch > 16 do
+      setPitch = setPitch - 1
+      if cpPitch > 16 then cpPitch = cpPitch - 1 end
     end
-    local yb = 58
-    local innerW = W - 24
-    -- Name and note stay in a fixed column. The bar starts at the end of that column.
-    local buildBar = 280
-    local buildTextW = math.min(760, readW - 40 - buildBar)
-    if buildTextW < 180 then
-      buildBar = math.max(120, math.floor((readW - 36) * 0.32))
-      buildTextW = math.max(140, readW - 40 - buildBar)
+    local y = 4
+    local gapB = 4
+    local frames = ui.ibFrames or {}
+    local function box(idx, top, h, x, w)
+      local fr = frames[idx]
+      if not fr then return end
+      fr:ClearAnchors()
+      fr:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x or 4, top)
+      fr:SetDimensions(w or (W - 8), h)
+      fr:SetHidden(false)
     end
-    local buildBarLeft = 14 + buildTextW + 20
-    local function placeHdr(lbl, textY)
-      if not lbl then return textY end
+    local function hdr(lbl, textY, x, w)
+      if not lbl then return end
       lbl:ClearAnchors()
-      lbl:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, textY)
-      lbl:SetWidth(innerW)
-      return textY + 20
-    end
-    local function placeLine(lbl, textY, h, reserve)
-      if not lbl then return textY end
-      lbl:ClearAnchors()
-      lbl:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, textY)
-      lbl:SetWidth(math.max(40, innerW - 4 - (reserve or 0)))
+      lbl:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x or 12, textY)
+      lbl:SetWidth(w or (W - 24))
       lbl:SetMaxLineCount(1)
-      return textY + (h or lineH)
     end
-    yb = placeHdr(ui.ibSetHdr, yb)
-    yb = placeLine(ui.ibSetNote, yb, noteH, 0)
-    if ui.ibSetNote then ui.ibSetNote:SetMaxLineCount(2) end
-    for i = 1, IB_SET_ROWS do
-      local yLine = yb
-      yb = placeLine(ui.ibSetRows[i], yb, lineH, 0)
-      if ui.ibSetRows[i] then ui.ibSetRows[i]:SetWidth(buildTextW) end
-      if ui.ibSetMeters then
-        placeTrack(ui.ibSetMeters[i], ui.buildPanel, buildBarLeft,
-          yLine + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
+    box(1, y, payH)
+    if ui.buildTitle then
+      ui.buildTitle:ClearAnchors()
+      ui.buildTitle:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, y + 8)
+      ui.buildTitle:SetWidth(math.max(160, math.floor(W * 0.34)))
+      ui.buildTitle:SetMaxLineCount(2)
+      ui.buildTitle:SetText("WHAT YOU BROUGHT — AND DID IT PAY?")
+    end
+    local colW = math.floor(math.max(80, W * 0.60) / 4)
+    local col0 = W - 12 - colW * 4
+    for i = 1, 4 do
+      local x = col0 + (i - 1) * colW
+      if ui.payCaps and ui.payCaps[i] then
+        ui.payCaps[i]:ClearAnchors()
+        ui.payCaps[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x, y + 4)
+        ui.payCaps[i]:SetWidth(colW - 6)
+      end
+      if ui.payVals and ui.payVals[i] then
+        ui.payVals[i]:ClearAnchors()
+        ui.payVals[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x, y + 18)
+        ui.payVals[i]:SetWidth(colW - 6)
       end
     end
-    yb = yb + 4
-    yb = placeHdr(ui.ibBroughtHdr, yb)
-    for i = 1, IB_BROUGHT do
-      yb = placeLine(ui.ibBrought[i], yb, lineH, 0)
+    y = y + payH + gapB
+    box(2, y, mixH)
+    hdr(ui.ibMixHdr, y + 4, 12, 180)
+    if ui.buildMix then
+      ui.buildMix:ClearAnchors()
+      ui.buildMix:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 196, y + 6)
+      ui.buildMix:SetWidth(math.max(80, W - 220))
+      ui.buildMix:SetMaxLineCount(1)
     end
-    yb = yb + 4
-    yb = placeHdr(ui.ibCpHdr, yb)
-    for i = 1, IB_CP_STORY do
-      yb = placeLine(ui.ibCpStory[i], yb, lineH, 0)
+    local petW = 92
+    local mixX, mixW = 16, W - 32 - petW
+    ui.mixGeom = { x = mixX, y = y + 28, w = mixW, h = 12 }
+    if ui.ibMixPet then
+      ui.ibMixPet:ClearAnchors()
+      ui.ibMixPet:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, mixX + mixW + 8, y + 26)
+      ui.ibMixPet:SetWidth(petW)
     end
+    y = y + mixH + gapB
+    local setH = 22 + IB_SET_ROWS * setPitch + 16
+    box(3, y, setH)
+    hdr(ui.ibSetHdr, y + 4)
+    local nameWSet, detW = 200, 240
+    if W < 980 then nameWSet, detW = 150, 190 end
+    local setBarX = 16 + nameWSet + detW + 8
+    local setBarW = W - setBarX - 16
+    if setBarW < 70 then setBarW = 70 end
+    for i = 1, IB_SET_ROWS do
+      local yLine = y + 24 + (i - 1) * setPitch
+      if ui.ibSetRows[i] then
+        ui.ibSetRows[i]:ClearAnchors()
+        ui.ibSetRows[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, yLine)
+        ui.ibSetRows[i]:SetWidth(nameWSet)
+        ui.ibSetRows[i]:SetMaxLineCount(1)
+      end
+      if ui.ibSetDetail and ui.ibSetDetail[i] then
+        ui.ibSetDetail[i]:ClearAnchors()
+        ui.ibSetDetail[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14 + nameWSet, yLine)
+        ui.ibSetDetail[i]:SetWidth(detW)
+      end
+      if ui.ibSetMeters then
+        placeTrack(ui.ibSetMeters[i], ui.buildPanel, setBarX, yLine + 3, setBarW, 10)
+        if ui.ibSetMeters[i] and ui.ibSetMeters[i].pip then ui.ibSetMeters[i].pip:SetHidden(true) end
+      end
+    end
+    if ui.ibSetNote then
+      ui.ibSetNote:ClearAnchors()
+      ui.ibSetNote:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, y + setH - 16)
+      ui.ibSetNote:SetWidth(W - 28)
+      ui.ibSetNote:SetMaxLineCount(1)
+    end
+    y = y + setH + gapB
+    local snapH = 24 + 3 * snapPitch + 6
+    box(4, y, snapH)
+    hdr(ui.ibBroughtHdr, y + 4)
+    local pairW = math.floor((W - 28) / 2)
+    local keyW, valW2 = 130, pairW - 138
+    local snapVals = {}
+    for i = 1, IB_BROUGHT do snapVals[i] = ui.ibBrought[i] end
+    snapVals[6] = ui.ibSnapVal6
+    for i = 1, 6 do
+      local col = (i - 1) % 2
+      local rowN = math.floor((i - 1) / 2)
+      local x = 14 + col * pairW
+      local yy = y + 24 + rowN * snapPitch
+      if ui.ibSnapKey and ui.ibSnapKey[i] then
+        ui.ibSnapKey[i]:ClearAnchors()
+        ui.ibSnapKey[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x, yy)
+        ui.ibSnapKey[i]:SetWidth(keyW)
+      end
+      if snapVals[i] then
+        snapVals[i]:ClearAnchors()
+        snapVals[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x + keyW, yy)
+        snapVals[i]:SetWidth(math.max(40, valW2))
+        snapVals[i]:SetMaxLineCount(1)
+      end
+    end
+    y = y + snapH + gapB
+    local cpBoxH = 22 + 18 + IB_CP_ROWS * cpPitch + 18
+    box(5, y, cpBoxH)
+    hdr(ui.ibCpHdr, y + 4, 12, 260)
+    if ui.ibCpStory[1] then
+      ui.ibCpStory[1]:SetHidden(false)
+      ui.ibCpStory[1]:ClearAnchors()
+      ui.ibCpStory[1]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 280, y + 6)
+      ui.ibCpStory[1]:SetWidth(math.max(80, W - 296))
+      ui.ibCpStory[1]:SetMaxLineCount(1)
+    end
+    if ui.ibCpStory[2] then
+      ui.ibCpStory[2]:SetHidden(false)
+      ui.ibCpStory[2]:ClearAnchors()
+      ui.ibCpStory[2]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, y + cpBoxH - 16)
+      ui.ibCpStory[2]:SetWidth(W - 28)
+      ui.ibCpStory[2]:SetMaxLineCount(1)
+    end
+    if ui.ibCpStory[3] then ui.ibCpStory[3]:SetHidden(true) end
+    local chW, cpNameW, fitW, eligW = 110, 180, 56, 64
+    local cpBarX = 14 + cpNameW + fitW + eligW + 12
+    local cpBarW = W - cpBarX - chW - 24
+    if cpBarW < 50 then cpBarW = 50 end
     for i = 1, IB_CP_ROWS do
       local r = ui.ibCpRows[i]
+      local yy = y + 26 + (i - 1) * cpPitch
       if r then
-        local cpRowW = (buildBarLeft - 12) + buildBar + 4
         r.row:ClearAnchors()
-        r.row:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, yb)
-        r.row:SetDimensions(cpRowW, math.max(1, cpPitch - 1))
-        r.fit:ClearAnchors()
-        r.fit:SetAnchor(LEFT, r.row, LEFT, 0, 0)
-        r.fit:SetWidth(48)
-        local nW = 168
+        r.row:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 12, yy)
+        r.row:SetDimensions(W - 24, math.max(1, cpPitch - 1))
         r.name:ClearAnchors()
-        r.name:SetAnchor(LEFT, r.row, LEFT, 52, 0)
-        r.name:SetWidth(nW)
+        r.name:SetAnchor(LEFT, r.row, LEFT, 2, 0)
+        r.name:SetWidth(cpNameW)
         r.name:SetMaxLineCount(1)
+        r.fit:ClearAnchors()
+        r.fit:SetAnchor(LEFT, r.row, LEFT, cpNameW, 0)
+        r.fit:SetWidth(fitW)
+        if ui.ibCpElig and ui.ibCpElig[i] then
+          ui.ibCpElig[i]:ClearAnchors()
+          ui.ibCpElig[i]:SetAnchor(LEFT, r.row, LEFT, cpNameW + fitW, 0)
+          ui.ibCpElig[i]:SetWidth(eligW)
+        end
         r.impact:ClearAnchors()
-        r.impact:SetAnchor(LEFT, r.row, LEFT, 56 + nW, 0)
-        r.impact:SetWidth(math.max(60, (buildBarLeft - 12) - (56 + nW) - 8))
+        r.impact:SetAnchor(RIGHT, r.row, RIGHT, -4, 0)
+        r.impact:SetWidth(chW)
+        r.impact:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
         r.impact:SetMaxLineCount(1)
-        placeTrack(r.meter, r.row, buildBarLeft - 12, math.max(0, math.floor((cpPitch - 8) / 2)), buildBar, 8)
-        yb = yb + cpPitch
+        placeTrack(r.meter, r.row, cpBarX - 12, math.max(0, math.floor((cpPitch - 10) / 2)), cpBarW, 10)
+        if r.meter and r.meter.pip then r.meter.pip:SetHidden(true) end
       end
     end
-    yb = yb + 4
-    yb = placeHdr(ui.ibBarHdr, yb)
-    local barY = yb
-    yb = placeLine(ui.ibBarLine, yb, math.max(lineH, 18), 0)
-    if ui.ibBarLine then ui.ibBarLine:SetWidth(buildTextW) end
-    placeTrack(ui.ibBarMeter, ui.buildPanel, buildBarLeft, barY + 4, buildBar, 8)
-    yb = yb + 4
-    yb = placeHdr(ui.ibPotHdr, yb)
+    y = y + cpBoxH + gapB
+    local half = math.floor((W - 14) / 2)
+    box(6, y, efH, 4, half - 2)
+    box(7, y, efH, half + 2, half - 2)
+    hdr(ui.ibBarHdr, y + 4, 12, half - 24)
+    hdr(ui.ibPotHdr, y + 4, half + 12, half - 28)
+    local labW = 72
+    local splitX = 14 + labW
+    local splitW = half - labW - 28
+    if ui.ibBarLine then
+      ui.ibBarLine:ClearAnchors()
+      ui.ibBarLine:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, y + 34)
+      ui.ibBarLine:SetWidth(labW)
+      ui.ibBarLine:SetText("Dwell")
+    end
+    if ui.ibDmgLbl then
+      ui.ibDmgLbl:ClearAnchors()
+      ui.ibDmgLbl:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, y + 64)
+      ui.ibDmgLbl:SetWidth(labW)
+    end
+    ui.dwellGeom = { x = splitX, y = y + 32, w = math.max(40, splitW), h = 14 }
+    ui.dmgGeom = { x = splitX, y = y + 62, w = math.max(40, splitW), h = 14 }
+    local potX = half + 14
+    local potW = half - 30
     for i = 1, IB_POT_LINES do
-      local potY = yb
-      yb = placeLine(ui.ibPot[i], yb, lineH, 0)
-      if i == 1 then
-        if ui.ibPot[i] then ui.ibPot[i]:SetWidth(buildTextW) end
-        placeTrack(ui.ibPotMeter, ui.buildPanel, buildBarLeft, potY + math.max(0, math.floor((lineH - 7) / 2)), buildBar, 8)
+      if ui.ibPot[i] then
+        local py = y + 26
+        if i == 2 then py = y + 64 end
+        if i == 3 then py = y + 84 end
+        ui.ibPot[i]:ClearAnchors()
+        ui.ibPot[i]:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, potX, py)
+        ui.ibPot[i]:SetWidth(potW)
+        ui.ibPot[i]:SetMaxLineCount(1)
       end
     end
-    yb = yb + 4
-    yb = placeHdr(ui.ibNextHdr, yb)
-    yb = placeLine(ui.ibNextHead, yb, 20, 0)
+    placeTrack(ui.ibPotMeter, ui.buildPanel, potX, y + 46, math.max(70, potW), 10)
+    if ui.ibPotMeter and ui.ibPotMeter.pip then ui.ibPotMeter.pip:SetHidden(true) end
+    y = y + efH + gapB
+    box(8, y, gH)
+    hdr(ui.ibNextHdr, y + 14, 12, 200)
+    if ui.ibNextHead then
+      ui.ibNextHead:ClearAnchors()
+      ui.ibNextHead:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 220, y + 6)
+      ui.ibNextHead:SetWidth(math.max(80, W - 236))
+      ui.ibNextHead:SetMaxLineCount(1)
+    end
     if ui.ibNextBody then
       ui.ibNextBody:ClearAnchors()
-      ui.ibNextBody:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 14, yb)
-      ui.ibNextBody:SetWidth(innerW - 4)
-      ui.ibNextBody:SetMaxLineCount(3)
+      ui.ibNextBody:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, 220, y + 26)
+      ui.ibNextBody:SetWidth(math.max(80, W - 236))
+      ui.ibNextBody:SetMaxLineCount(2)
     end
     if ui.ibFoot then
       ui.ibFoot:ClearAnchors()
-      ui.ibFoot:SetAnchor(BOTTOMLEFT, ui.buildPanel, BOTTOMLEFT, 12, -4)
-      ui.ibFoot:SetWidth(innerW)
+      ui.ibFoot:SetAnchor(BOTTOMLEFT, ui.buildPanel, BOTTOMLEFT, 12, -2)
+      ui.ibFoot:SetWidth(W - 24)
     end
   else
     local colGap = 12
@@ -11370,25 +11589,55 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.execTitle:ClearAnchors()
   ui.execTitle:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 10, 4)
   ui.execTitle:SetWidth(W - 20)
-  ui.execSummary:ClearAnchors()
-  ui.execSummary:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, 24)
-  local sumW = math.min(700, math.max(160, readW - 36 - 200))
-  ui.execSummary:SetWidth(sumW)
-  ui.execSummary:SetMaxLineCount(1)
-  local paceLeft = 12 + sumW + 22
-  local paceW = readW - paceLeft - 12
-  if paceW > 360 then paceW = 360 end
+  local exNameX, exValX = 12, 12 + nameW + 6
+  local exDetailX = exValX + valW + 12
+  local paceBarLeft = exDetailX
+  local paceW = readW - paceBarLeft - 10
   if paceW < 80 then paceW = 80 end
-  placeTrack(ui.execPace, ui.execPanel, paceLeft, 28, paceW, 8)
-  local eTop = 46
-  local eH = math.floor(((heights[4] or 80) - eTop - 4) / INSIGHT_EXEC_LINES)
-  if eH < 1 then eH = 1 end
+  ui.execSummary:ClearAnchors()
+  ui.execSummary:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, exNameX, 26)
+  ui.execSummary:SetWidth(nameW)
+  ui.execSummary:SetMaxLineCount(1)
+  if ui.execVal then
+    ui.execVal:ClearAnchors()
+    ui.execVal:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, exValX, 26)
+    ui.execVal:SetWidth(valW)
+  end
+  placeTrack(ui.execPace, ui.execPanel, paceBarLeft, 30, paceW, 10)
+  if ui.execPace and ui.execPace.pip then ui.execPace.pip:SetHidden(true) end
+  if ui.execPaceCap then
+    ui.execPaceCap:ClearAnchors()
+    ui.execPaceCap:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, paceBarLeft, 12)
+    ui.execPaceCap:SetWidth(64)
+  end
+  local eTop = 50
+  local eRoom = (heights[4] or 140) - eTop - 4
+  local eRows = 4
+  local eH = math.floor(eRoom / eRows)
+  if eH > 26 then eH = 26 end
+  if eH < 16 then eH = 16 end
   for i = 1, INSIGHT_EXEC_LINES do
+    local yRow = eTop + (i - 1) * eH
+    local showRow = i <= eRows
+    if ui.execNames and ui.execNames[i] then ui.execNames[i]:SetHidden(not showRow) end
+    if ui.execVals and ui.execVals[i] then ui.execVals[i]:SetHidden(not showRow) end
+    if ui.execLines[i] then ui.execLines[i]:SetHidden(not showRow) end
+    if showRow and ui.execNames and ui.execNames[i] then
+      ui.execNames[i]:ClearAnchors()
+      ui.execNames[i]:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, exNameX, yRow)
+      ui.execNames[i]:SetWidth(nameW)
+      ui.execNames[i]:SetMaxLineCount(1)
+    end
+    if ui.execVals and ui.execVals[i] then
+      ui.execVals[i]:ClearAnchors()
+      ui.execVals[i]:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, exValX, yRow)
+      ui.execVals[i]:SetWidth(valW)
+    end
     local line = ui.execLines[i]
     if line then
       line:ClearAnchors()
-      line:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, 12, eTop + (i - 1) * eH)
-      line:SetWidth(W - 24)
+      line:SetAnchor(TOPLEFT, ui.execPanel, TOPLEFT, exDetailX, yRow)
+      line:SetWidth(math.max(80, readW - exDetailX - 8))
       line:SetMaxLineCount(1)
     end
   end
@@ -11398,34 +11647,37 @@ local function layoutInsightsUI(ui, hostW, hostH)
   ui.nextTitle:SetWidth(W - 20)
   ui.nextHead:ClearAnchors()
   ui.nextHead:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 24)
-  ui.nextHead:SetWidth(W - 24)
-  ui.nextBody:ClearAnchors()
-  ui.nextBody:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 46)
-  ui.nextBody:SetWidth(W - 24)
-  if ui.nextBody.SetHeight then
-    -- Body ends above the action (anchored 40px up) so it does not cover that line.
-    local room = (heights[5] or 140) - 108
-    if room < 16 then room = 16 end
-    ui.nextBody:SetHeight(room)
-  end
-  if ui.nextAction then
-    ui.nextAction:ClearAnchors()
-    ui.nextAction:SetAnchor(BOTTOMLEFT, ui.nextPanel, BOTTOMLEFT, 12, -40)
-    ui.nextAction:SetWidth(math.max(80, W - 88))
-  end
+  ui.nextHead:SetWidth(readW - 8)
+  ui.nextHead:SetMaxLineCount(2)
   if ui.nextPips then
     for i = 1, 3 do
       local pip = ui.nextPips[i]
       if pip then
         pip:ClearAnchors()
-        pip:SetAnchor(BOTTOMRIGHT, ui.nextPanel, BOTTOMRIGHT, -12 - (3 - i) * 14, -42)
-        pip:SetDimensions(8, 8)
+        pip:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12 + (i - 1) * 16, 52)
+        pip:SetDimensions(10, 10)
       end
     end
   end
+  if ui.nextAction then
+    ui.nextAction:ClearAnchors()
+    ui.nextAction:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 68, 48)
+    ui.nextAction:SetWidth(math.max(80, readW - 80))
+    ui.nextAction:SetMaxLineCount(1)
+  end
+  ui.nextBody:ClearAnchors()
+  ui.nextBody:SetAnchor(TOPLEFT, ui.nextPanel, TOPLEFT, 12, 70)
+  ui.nextBody:SetWidth(readW - 8)
+  ui.nextBody:SetMaxLineCount(2)
+  if ui.nextBody.SetHeight then
+    local room = (heights[5] or 124) - 96
+    if room < 18 then room = 18 end
+    ui.nextBody:SetHeight(room)
+  end
   ui.disclaimer:ClearAnchors()
   ui.disclaimer:SetAnchor(BOTTOMLEFT, ui.nextPanel, BOTTOMLEFT, 12, -4)
-  ui.disclaimer:SetWidth(W - 24)
+  ui.disclaimer:SetWidth(readW - 8)
+  ui.disclaimer:SetMaxLineCount(2)
   end
 end
 
@@ -11433,35 +11685,152 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
   if not ui or not ui.ibSetHdr then return end
   syn = syn or {}
   coach = coach or {}
+  profile = profile or {}
   local dur = tonumber(session.durationMs) or 0
   local total = tonumber(session.totalDamage) or 0
+  local function pct0(x)
+    return string.format("%0.0f%%", (tonumber(x) or 0) * 100)
+  end
+  local function compactNum(n)
+    n = tonumber(n) or 0
+    if n >= 1000000 then return string.format("%0.1fM", n / 1000000) end
+    if n >= 1000 then return string.format("%0.0fk", n / 1000) end
+    return fmtInt(n)
+  end
+  local function clamp01(x)
+    x = tonumber(x) or 0
+    if x < 0 then return 0 end
+    if x > 1 then return 1 end
+    return x
+  end
 
-  -- Header: mix already on buildMix; fingerprint on buildFp. Cohort on mix suffix if needed.
+  -- Score strip: this parse, same-build cohort median and best.
   local cohort = buildFingerprintCohort(session)
   local thisDps = sessionAvgDps(session)
-  if cohort and (tonumber(cohort.n) or 0) >= 2 and ui.buildFp then
-    local delta = thisDps - (tonumber(cohort.medianDps) or thisDps)
-    ui.buildFp:SetText(string.format(
-      "Build ID %s  ·  cohort n=%d  median %s  best %s  this %s (%s vs median)",
-      string.sub(tostring(cohort.fingerprint or ""), 1, 8),
-      cohort.n,
-      fmtDps(cohort.medianDps),
-      fmtDps(cohort.bestDps),
-      fmtDps(thisDps),
-      fmtDpsDelta(delta)
-    ))
+  local nCoh = cohort and (tonumber(cohort.n) or 0) or 0
+  local medTxt, bestTxt, cohTxt = "—", "—", "need parses"
+  if nCoh >= 2 then
+    medTxt = fmtDps(cohort.medianDps)
+    bestTxt = fmtDps(cohort.bestDps)
+    cohTxt = string.format("%d parses", nCoh)
+  elseif nCoh == 1 then
+    cohTxt = "1 parse"
   end
-  if ui.buildMix then
-    ui.buildMix:SetText("A  MIX  ·  " .. (syn.mixLine or "—"))
+  local payCaps = { "THIS PARSE", "MEDIAN", "BEST", "COHORT" }
+  local payVals = { fmtDps(thisDps), medTxt, bestTxt, cohTxt }
+  for i = 1, 4 do
+    if ui.payCaps and ui.payCaps[i] then ui.payCaps[i]:SetText(payCaps[i]) end
+    if ui.payVals and ui.payVals[i] then ui.payVals[i]:SetText(payVals[i]) end
   end
 
-  -- B. Sets (honest)
-  if ui.ibSetNote then
-    ui.ibSetNote:SetText(
-      "Proc rows show observed set/proc damage. Buff-mediated sets (Rallying Cry, Shacklebreaker, many 5pc) have no damage event — Damage will not grow a proc row."
-    )
+  -- A. Direct / DoT split. Pet only when a familiar, clanfear, twilight, or tormentor dealt damage.
+  local directPct = clamp01(syn.directPct)
+  local dotPct = clamp01(syn.dotPct)
+  local mixTotal = tonumber(syn.totalDmg) or total
+  local petPct = nil
+  if mixTotal > 0 and type(session.skills) == "table" then
+    local petDmg = 0
+    for _, sk in pairs(session.skills) do
+      if type(sk) == "table" then
+        local nm = string.lower(tostring(sk.name or ""))
+        local dmg = tonumber(sk.dmg) or 0
+        if dmg > 0 and nm ~= "" and (
+            string.find(nm, "familiar", 1, true)
+            or string.find(nm, "clanfear", 1, true)
+            or string.find(nm, "twilight", 1, true)
+            or string.find(nm, "tormentor", 1, true)
+          ) then
+          petDmg = petDmg + dmg
+        end
+      end
+    end
+    if petDmg > 0 then
+      local p = petDmg / mixTotal
+      if p >= 0.005 then petPct = p end
+    end
   end
-  local setRows, setBars = {}, {}
+  if ui.ibMixPet then
+    if petPct then
+      ui.ibMixPet:SetHidden(false)
+      ui.ibMixPet:SetText("Pet: " .. pct0(petPct))
+    else
+      ui.ibMixPet:SetText("")
+      ui.ibMixPet:SetHidden(true)
+    end
+  end
+  if ui.buildMix then
+    if directPct <= 0 and dotPct <= 0 then
+      ui.buildMix:SetText("No damage mix on this parse")
+    else
+      local cap = string.format("A mix: %s direct · %s DoT", pct0(directPct), pct0(dotPct))
+      if petPct then cap = cap .. " · pet " .. pct0(petPct) end
+      ui.buildMix:SetText(cap)
+    end
+  end
+  local function hideMeter(meter)
+    if M.PaintInsightMeter then M.PaintInsightMeter(meter, nil) end
+  end
+  local function placeSplitCap(cap, x, y, w, h, text)
+    if not cap then return end
+    if not text or text == "" or w < 64 then
+      cap:SetHidden(true)
+      cap:SetText("")
+      return
+    end
+    stampForeground(cap, 160)
+    cap:SetHidden(false)
+    cap:SetText(text)
+    cap:ClearAnchors()
+    cap:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x, y)
+    if cap.SetDimensions then cap:SetDimensions(w, h) end
+    cap:SetWidth(w)
+    if cap.SetHeight then cap:SetHeight(h) end
+    cap:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    cap:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+  end
+  local function paintSplit(leftM, rightM, geom, leftPct, leftTone, rightTone, capL, capR, textL, textR)
+    if not geom or leftPct == nil or not M.PaintInsightMeter then
+      hideMeter(leftM)
+      hideMeter(rightM)
+      if capL then capL:SetHidden(true) end
+      if capR then capR:SetHidden(true) end
+      return
+    end
+    local w = math.max(8, tonumber(geom.w) or 40)
+    local h = tonumber(geom.h) or 12
+    local lp = clamp01(leftPct)
+    local lw = math.floor(w * lp + 0.5)
+    if lw < 3 then lw = 0 end
+    if w - lw < 3 then lw = w end
+    local rw = w - lw
+    local function seat(meter, x, segW, tone)
+      if not meter or not meter.bg or segW < 3 then
+        hideMeter(meter)
+        return
+      end
+      meter.w = segW
+      meter.h = h
+      meter.bg:ClearAnchors()
+      meter.bg:SetAnchor(TOPLEFT, ui.buildPanel, TOPLEFT, x, geom.y)
+      meter.bg:SetDimensions(segW, h)
+      if meter.pip then meter.pip:SetHidden(true) end
+      M.PaintInsightMeter(meter, 1, nil, tone, false)
+    end
+    seat(leftM, geom.x, lw, leftTone)
+    seat(rightM, geom.x + lw, rw, rightTone)
+    placeSplitCap(capL, geom.x, geom.y, lw, h, textL)
+    placeSplitCap(capR, geom.x + lw, geom.y, rw, h, textR)
+  end
+  local mixLeft = nil
+  local mixSum = directPct + dotPct
+  if mixSum > 0 then mixLeft = directPct / mixSum end
+  paintSplit(ui.ibMixDirect, ui.ibMixDot, ui.mixGeom, mixLeft, "warn", "good", nil, nil, nil, nil)
+
+  -- B. Sets. Proc bars share one damage scale. Buff bars are raw uptime.
+  if ui.ibSetNote then
+    ui.ibSetNote:SetText("Proc rows show observed damage. Buff and passive rows show their effect.")
+  end
+  local setRows = {}
   local dmgByName = {}
   if type(session.sets) == "table" then
     for _, ps in pairs(session.sets) do
@@ -11470,20 +11839,31 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
       end
     end
   end
-  local names = {}
+  local names, seenName = {}, {}
   if type(session.equippedSets) == "table" then
-    for _, n in ipairs(session.equippedSets) do names[#names + 1] = tostring(n) end
+    for _, n in ipairs(session.equippedSets) do
+      local s = tostring(n)
+      local low = string.lower(s)
+      if low ~= "" and not seenName[low] then
+        seenName[low] = true
+        names[#names + 1] = s
+      end
+    end
   end
   if #names == 0 then
     for _, si in ipairs(coach.setImpact or {}) do
-      names[#names + 1] = tostring(si.name or "?")
+      local s = tostring(si.name or "")
+      local low = string.lower(s)
+      if low ~= "" and not seenName[low] then
+        seenName[low] = true
+        names[#names + 1] = s
+      end
     end
   end
   for _, name in ipairs(names) do
     local low = string.lower(name)
     local ps = dmgByName[low]
     local dmg = (ps and tonumber(ps.dmg)) or 0
-    local hits = (ps and tonumber(ps.hits)) or 0
     local share = total > 0 and (dmg / total) or 0
     local dps = dur > 0 and (dmg / (dur / 1000)) or 0
     local buffUp, buffName = 0, nil
@@ -11498,41 +11878,60 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
         end
       end
     end
-    local line, barPct, barTone = nil, nil, nil
-    if dmg > 0 then
-      line = string.format("%s  ·  %s  %s DPS  %s share  %s",
-        displayName(name, 28), fmtInt(dmg), fmtDps(dps), fmtPct(share), "[Observed]")
-      barPct, barTone = share, "good"
-    elseif buffUp > 0.02 then
-      line = string.format("%s  ·  buff set / no damage event  ·  %s up %s  %s",
-        displayName(name, 28), displayName(buffName or "buff", 22), fmtPct(buffUp),
-        "[Observed uptime, no proc DPS]")
-      barPct, barTone = buffUp, "warn"
-    else
-      line = string.format("%s  ·  buff set / no damage event  %s",
-        displayName(name, 36), "[Observed]")
-    end
-    setRows[#setRows + 1] = line
-    setBars[#setBars + 1] = { pct = barPct, tone = barTone }
+    setRows[#setRows + 1] = {
+      name = name, dmg = dmg, share = share, dps = dps, buffUp = buffUp, buffName = buffName,
+    }
   end
-  local maxSetBar = 0
-  for _, bm in ipairs(setBars) do
-    local p = tonumber(bm.pct) or 0
-    if p > maxSetBar then maxSetBar = p end
+  table.sort(setRows, function(a, b)
+    local function rank(row)
+      if row.dmg > 0 then return 2 end
+      if row.buffUp > 0.02 then return 1 end
+      return 0
+    end
+    local ar, br = rank(a), rank(b)
+    if ar ~= br then return ar > br end
+    if ar == 2 and a.dmg ~= b.dmg then return a.dmg > b.dmg end
+    if ar == 1 and a.buffUp ~= b.buffUp then return a.buffUp > b.buffUp end
+    return tostring(a.name) < tostring(b.name)
+  end)
+  local maxProc = 0
+  for _, row in ipairs(setRows) do
+    if row.dmg > 0 and row.share > maxProc then maxProc = row.share end
   end
   for i = 1, IB_SET_ROWS do
-    if ui.ibSetRows[i] then
-      ui.ibSetRows[i]:SetText(displayNamePlain(setRows[i] or (i == 1 and "(no equipped sets captured)" or ""), 110))
-    end
-    if M.PaintInsightMeter and ui.ibSetMeters then
-      local bm = setBars[i]
-      local pct = nil
-      if bm and bm.pct and maxSetBar > 0 then pct = bm.pct / maxSetBar end
-      M.PaintInsightMeter(ui.ibSetMeters[i], pct, nil, bm and bm.tone, true)
+    local row = setRows[i]
+    local nameLbl = ui.ibSetRows and ui.ibSetRows[i]
+    local det = ui.ibSetDetail and ui.ibSetDetail[i]
+    local meter = ui.ibSetMeters and ui.ibSetMeters[i]
+    if not row then
+      if nameLbl then nameLbl:SetText(i == 1 and #setRows == 0 and "(no equipped sets)" or "") end
+      if det then det:SetText("") end
+      hideMeter(meter)
+    else
+      if nameLbl then nameLbl:SetText(displayName(row.name, 28)) end
+      if row.dmg > 0 then
+        if det then
+          det:SetText(string.format("%s · %s DPS · %s", compactNum(row.dmg), fmtDps(row.dps), pct0(row.share)))
+        end
+        if M.PaintInsightMeter then
+          local pct = (maxProc > 0) and (row.share / maxProc) or nil
+          M.PaintInsightMeter(meter, pct, nil, "warn", false)
+        end
+      elseif row.buffUp > 0.02 then
+        if det then
+          det:SetText(string.format("%s %s", displayName(row.buffName or "buff", 22), pct0(row.buffUp)))
+        end
+        if M.PaintInsightMeter then
+          M.PaintInsightMeter(meter, clamp01(row.buffUp), nil, "good", false)
+        end
+      else
+        if det then det:SetText("Passive · no damage event") end
+        hideMeter(meter)
+      end
     end
   end
 
-  -- C. What you brought
+  -- C. Snapshot grid. Keys are the row labels; values stay short.
   local snap = session.playerStatsEnd or session.playerStats or {}
   local buffed = snap.buffed or {}
   local mundus = canonicalMundusName(session.mundus)
@@ -11540,103 +11939,143 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
     or session.mundus or "—"
   local food = (session.build and session.build.food) or session.food or "—"
   local foodStart = session.playerStatsStart and session.playerStatsStart.food
-  local foodNote = ""
   if foodStart and tostring(foodStart) ~= "" and tostring(food) ~= tostring(foodStart) then
-    foodNote = "  ·  food changed this pull"
+    food = tostring(food) .. " · changed"
   end
   local attrs = snap.attributes or (session.build and session.build.attributes) or {}
-  local brought = {
-    string.format("Mundus %s  ·  Food %s%s", tostring(mundus), displayName(tostring(food), 40), foodNote),
-    string.format("Sheet crit %0.1f%%  ·  Pen phys %s  ·  Pen spell %s",
-      (tonumber(buffed.critChance) or 0) * 100,
-      fmtInt(buffed.penPhysical or 0),
-      fmtInt(buffed.penSpell or 0)),
-    string.format("Attributes  Mag %s  HP %s  Stam %s",
-      tostring(attrs.magicka or "—"), tostring(attrs.health or "—"), tostring(attrs.stamina or "—")),
-  }
-  local support = nil
-  if type(coach.wasteLines) == "table" then
-    for _, ln in ipairs(coach.wasteLines) do
-      if type(ln) == "string" and string.find(string.lower(ln), "support you brought", 1, true) then
-        support = ln
-        break
+  local function supportLine()
+    if type(session.buffs) ~= "table" then return "—" end
+    local pool = {}
+    for _, b in pairs(session.buffs) do
+      if type(b) == "table" and b.name then
+        local hint = buffEffectHint(b.name)
+        local srcKey = classifyBuffSourceDetailed(session, b)
+        if hint and (srcKey == "Skill" or srcKey == "Self" or srcKey == "Set" or srcKey == "Group") then
+          pool[#pool + 1] = tostring(b.name)
+        end
       end
     end
-  end
-  brought[#brought + 1] = support or "Support you brought: see Buffs for the full list."
-  for i = 1, IB_BROUGHT do
-    if ui.ibBrought[i] then
-      ui.ibBrought[i]:SetText(displayNamePlain(brought[i] or "", 110))
+    if #pool == 0 then return "—" end
+    local prefer = { "breach", "crusher", "vulnerab", "force", "slayer", "berserk", "courage", "brittle" }
+    local used, picked = {}, {}
+    local function take(pred)
+      for _, nm in ipairs(pool) do
+        if not used[nm] and pred(string.lower(nm)) then
+          used[nm] = true
+          picked[#picked + 1] = nm
+          if #picked >= 3 then return true end
+        end
+      end
     end
+    for _, key in ipairs(prefer) do
+      if take(function(low) return string.find(low, key, 1, true) ~= nil end) then break end
+    end
+    if #picked < 3 then
+      table.sort(pool)
+      take(function() return true end)
+    end
+    if #picked == 0 then return "—" end
+    return table.concat(picked, " · ")
+  end
+  local snapKeys = { "Mundus", "Food", "Sheet crit", "Pen phys / spell", "Attributes", "Support" }
+  local snapVals = {
+    tostring(mundus),
+    displayName(tostring(food), 36),
+    fmtPct(buffed.critChance or 0),
+    string.format("%s / %s", fmtInt(buffed.penPhysical or 0), fmtInt(buffed.penSpell or 0)),
+    string.format("Mag %s · HP %s · Stam %s",
+      tostring(attrs.magicka or "—"), tostring(attrs.health or "—"), tostring(attrs.stamina or "—")),
+    supportLine(),
+  }
+  local snapLabels = {}
+  for i = 1, IB_BROUGHT do snapLabels[i] = ui.ibBrought and ui.ibBrought[i] end
+  snapLabels[6] = ui.ibSnapVal6
+  for i = 1, 6 do
+    if ui.ibSnapKey and ui.ibSnapKey[i] then ui.ibSnapKey[i]:SetText(snapKeys[i]) end
+    if snapLabels[i] then snapLabels[i]:SetText(snapVals[i] or "") end
   end
 
-  -- D. CP story + warfare rows
+  -- D. Warfare fit. FIT/SOFT and the channel are view labels on the existing fit key.
   local cps = syn.cps or {}
-  local war, strongN, softN = {}, 0, 0
-  local directPct = tonumber(syn.directPct) or 0
-  local dotPct = tonumber(syn.dotPct) or 0
+  local war = {}
+  local strongN, okN, softN = 0, 0, 0
+  local softName, softScore = nil, 999
   for _, c in ipairs(cps) do
     if c.constellation ~= "fitness" then
       war[#war + 1] = c
-      if c.fitKey == "strong" then strongN = strongN + 1 end
-      if c.fitKey == "soft" then softN = softN + 1 end
+      if c.fitKey == "strong" then strongN = strongN + 1
+      elseif c.fitKey == "ok" then okN = okN + 1
+      elseif c.fitKey == "soft" then
+        softN = softN + 1
+        local sc = tonumber(c.score) or 0
+        if sc < softScore then softScore, softName = sc, c.name end
+      end
     end
   end
-  local story = {}
-  story[1] = string.format(
-    "Parse mix Direct %s · DoT %s · %d Strong · %d Soft of %d Warfare  (Fitness N/A on dummy)",
-    fmtPct(directPct), fmtPct(dotPct), strongN, softN, #war
-  )
-  local pay, softNames = {}, {}
-  for _, c in ipairs(war) do
-    if c.fitKey == "strong" then pay[#pay + 1] = c.name end
-    if c.fitKey == "soft" then softNames[#softNames + 1] = c.name end
+  local function cpChannel(c)
+    local name = string.lower(tostring(c.name or ""))
+    if string.find(name, "backstabber", 1, true) then return "Flanking" end
+    local cat = c.cat or ""
+    if cat == "crit" then return "Critical" end
+    if cat == "direct" then return "Direct" end
+    if cat == "dot" then return "DoT" end
+    if cat == "utility" or cat == "survivability" then return "Dummy" end
+    if cat == "ult" then return "Ultimate" end
+    if cat == "pen" then return "Pen" end
+    if cat == "aoe" then return "AoE" end
+    if c.fitKey == "soft" then return "Dummy" end
+    return c.catLabel or "Mixed"
   end
-  if #pay > 0 then
-    story[2] = string.format("Pays on this dummy: %s", table.concat(pay, ", "))
+  local story1, story2
+  if #war == 0 then
+    story1 = "No Warfare stars on this parse"
+    story2 = "Slot Champion Points, then parse again."
   else
-    story[2] = "No Strong Warfare fit vs this parse mix."
+    if okN > 0 then
+      story1 = string.format("%d strong · %d ok · %d soft of %d Warfare slots", strongN, okN, softN, #war)
+    else
+      story1 = string.format("%d strong · %d soft of %d Warfare slots", strongN, softN, #war)
+    end
+    if softName then
+      story2 = string.format("Next comparison: swap %s toward Direct / DoT / Crit, then run three parses.", softName)
+    else
+      story2 = "Warfare stars match this parse mix."
+    end
   end
-  if #softNames > 0 then
-    story[3] = string.format("Soft vs this mix: %s — swap toward Direct/DoT/crit shape, then three parses.",
-      table.concat(softNames, ", "))
-  else
-    story[3] = "No Soft Warfare star on this parse."
-  end
-  for i = 1, IB_CP_STORY do
-    if ui.ibCpStory[i] then ui.ibCpStory[i]:SetText(displayNamePlain(story[i] or "", 110)) end
-  end
+  if ui.ibCpStory[1] then ui.ibCpStory[1]:SetText(story1) end
+  if ui.ibCpStory[2] then ui.ibCpStory[2]:SetText(story2) end
+  if ui.ibCpStory[3] then ui.ibCpStory[3]:SetText("") end
   for i = 1, IB_CP_ROWS do
     local r = ui.ibCpRows[i]
     local c = war[i]
+    local elig = ui.ibCpElig and ui.ibCpElig[i]
     if r then
       if c then
         r.row:SetHidden(false)
-        r.fit:SetText(c.fitLabel or "?")
-        local fr, fg, fb, fa = fitBadgeColor(c.fitKey)
-        r.fit:SetColor(fr, fg, fb, fa or 1)
-        r.name:SetText(displayName(c.name or "?", 28))
-        local impact
-        if c.marginalDps ~= nil then
-          impact = string.format("#%s Eligible %s · A/B %s",
-            c.rankTxt or tostring(i), fmtPct(c.eligiblePct or 0), fmtDpsDelta(c.marginalDps))
-        else
-          impact = string.format("#%s Eligible %s · %s",
-            c.rankTxt or tostring(i), fmtPct(c.eligiblePct or 0), c.eligibleNote or c.reason or "")
+        local badge, colorKey = "FIT", "strong"
+        if c.fitKey == "soft" then badge, colorKey = "SOFT", "soft"
+        elseif c.fitKey ~= "strong" and c.fitKey ~= "ok" then
+          badge, colorKey = c.fitLabel or "?", c.fitKey
         end
-        r.impact:SetText(displayNamePlain(impact, 72))
+        r.fit:SetText(badge)
+        local fr, fg, fb, fa = fitBadgeColor(colorKey)
+        r.fit:SetColor(fr, fg, fb, fa or 1)
+        r.name:SetText(displayName(c.name or "?", 26))
+        r.impact:SetText(cpChannel(c))
+        if elig then elig:SetText(string.format("%0.0f%%", (tonumber(c.eligiblePct) or 0) * 100)) end
         if M.PaintInsightMeter then
           local tone = (c.fitKey == "soft") and "warn" or "good"
-          M.PaintInsightMeter(r.meter, tonumber(c.eligiblePct) or 0, nil, tone, true)
+          M.PaintInsightMeter(r.meter, clamp01(c.eligiblePct), nil, tone, false)
         end
       else
         r.row:SetHidden(true)
-        if M.PaintInsightMeter then M.PaintInsightMeter(r.meter, nil) end
+        if elig then elig:SetText("") end
+        hideMeter(r.meter)
       end
     end
   end
 
-  -- E. Front / back
+  -- E. Front / back split bars. Front is green, back is gold.
   local frontDmg, backDmg = 0, 0
   if type(session.skills) == "table" then
     for id, sk in pairs(session.skills) do
@@ -11655,88 +12094,80 @@ local function fillInsightsBuildPage(ui, session, syn, coach, profile)
   local fMs = tonumber(bs.frontMs) or 0
   local bMs = tonumber(bs.backMs) or 0
   local dwell = fMs + bMs
-  if ui.ibBarLine then
-    ui.ibBarLine:SetText(string.format(
-      "Dwell F %s / B %s   ·   Damage F %s / B %s",
-      dwell > 0 and fmtPct(fMs / dwell) or "—",
-      dwell > 0 and fmtPct(bMs / dwell) or "—",
-      barSum > 0 and fmtPct(frontDmg / barSum) or "—",
-      barSum > 0 and fmtPct(backDmg / barSum) or "—"
-    ))
-  end
-  if M.PaintInsightMeter then
-    M.PaintInsightMeter(ui.ibBarMeter, (barSum > 0) and (frontDmg / barSum) or nil, nil, "good", false)
-  end
+  if ui.ibBarLine then ui.ibBarLine:SetText("Dwell") end
+  if ui.ibDmgLbl then ui.ibDmgLbl:SetText("Damage") end
+  hideMeter(ui.ibBarMeter)
+  local caps = ui.ibBarCaps or {}
+  local dwellLeft = (dwell > 0) and (fMs / dwell) or nil
+  paintSplit(ui.ibDwellFront, ui.ibDwellBack, ui.dwellGeom, dwellLeft, "good", "warn",
+    caps[1], caps[2],
+    dwellLeft and ("Front " .. pct0(fMs / dwell)) or "",
+    dwellLeft and ("Back " .. pct0(bMs / dwell)) or "")
+  local dmgLeft = (barSum > 0) and (frontDmg / barSum) or nil
+  paintSplit(ui.ibDmgFront, ui.ibDmgBack, ui.dmgGeom, dmgLeft, "good", "warn",
+    caps[3], caps[4],
+    dmgLeft and ("Front " .. pct0(frontDmg / barSum)) or "",
+    dmgLeft and ("Back " .. pct0(backDmg / barSum)) or "")
 
-  -- F. Potions
+  -- F. Coverage only. No potion DPS.
   local pot = session.potion
-  if type(pot) ~= "table" or (tonumber(pot.uses) or 0) <= 0 and (tonumber(pot.coveredMs) or 0) <= 0 then
-    if ui.ibPot[1] then
-      ui.ibPot[1]:SetText("Needs a new parse after 3.18.0 — potion uses/coverage were not stored on older fights.")
-    end
+  local kindLabel = {
+    ["tri-stat"] = "Tri-stat potion",
+    magicka = "Magicka potion",
+    stamina = "Stamina potion",
+  }
+  if type(pot) ~= "table" or ((tonumber(pot.uses) or 0) <= 0 and (tonumber(pot.coveredMs) or 0) <= 0) then
+    if ui.ibPot[1] then ui.ibPot[1]:SetText("No potion coverage stored on this fight") end
     if ui.ibPot[2] then ui.ibPot[2]:SetText("") end
-    if ui.ibPot[3] then ui.ibPot[3]:SetText("") end
-    if M.PaintInsightMeter then M.PaintInsightMeter(ui.ibPotMeter, nil) end
+    if ui.ibPot[3] then ui.ibPot[3]:SetText("Coverage only — no potion DPS claimed.") end
+    hideMeter(ui.ibPotMeter)
   else
     local cover = dur > 0 and math.min(1, (tonumber(pot.coveredMs) or 0) / dur) or 0
     local first = tonumber(pot.firstUseMs)
     local firstTxt = pot.prePot and "first use at pull (pre-pot)"
-      or (first and string.format("first use +%0.1fs", first / 1000) or "")
-    local conf = pot.estimated and "[Estimated — may be skill/set]" or "[Observed]"
-    if session.isDummy then conf = "[Observed]" end
+      or (first and string.format("first use +%0.1fs", first / 1000) or "first use unknown")
+    local uses = tonumber(pot.uses) or 0
     if ui.ibPot[1] then
-      ui.ibPot[1]:SetText(string.format(
-        "%d use%s · %s · covered %s of the pull · %s  %s",
-        tonumber(pot.uses) or 0,
-        (tonumber(pot.uses) or 0) == 1 and "" or "s",
-        pot.kind or "unknown",
-        fmtPct(cover),
-        firstTxt,
-        conf
-      ))
+      ui.ibPot[1]:SetText(kindLabel[pot.kind or ""] or "Potion")
     end
-    if M.PaintInsightMeter then
-      M.PaintInsightMeter(ui.ibPotMeter, cover, nil, pot.estimated and "est" or "good", true)
+    if ui.ibPot[2] then
+      ui.ibPot[2]:SetText(string.format("%d use%s · %s coverage · %s",
+        uses, (uses == 1) and "" or "s", pct0(cover), firstTxt))
     end
     local st = pot.stats or {}
-    if ui.ibPot[2] then
-      ui.ibPot[2]:SetText(string.format(
-        "Intellect %s · Endurance %s · Fortitude %s · Expedition %s",
-        fmtPct(st.intellect or 0), fmtPct(st.endurance or 0),
-        fmtPct(st.fortitude or 0), fmtPct(st.expedition or 0)
-      ))
+    if ui.ibPot[3] then
+      ui.ibPot[3]:SetText(string.format(
+        "Intellect %s · Endurance %s · Fortitude %s · Expedition %s · Coverage only — no potion DPS claimed.",
+        pct0(st.intellect or 0), pct0(st.endurance or 0),
+        pct0(st.fortitude or 0), pct0(st.expedition or 0)))
     end
-    local uses = tonumber(pot.uses) or 0
-    local expect = dur > 0 and math.floor(dur / 45000 + 0.15) or 0
-    if dur >= 90000 and uses > 0 and uses < expect then
-      local miss = math.max(0, (expect - uses) * 45)
-      if ui.ibPot[3] then
-        ui.ibPot[3]:SetText(string.format("possible missed window ~%ds  [Estimated]", miss))
-      end
-    elseif ui.ibPot[3] then
-      ui.ibPot[3]:SetText("No potion DPS is claimed — coverage only.")
+    if M.PaintInsightMeter then
+      local tone = (cover >= 0.55) and "good" or "warn"
+      M.PaintInsightMeter(ui.ibPotMeter, cover, nil, tone, false)
     end
   end
 
-  -- G. Build next test (build-shaped rules only)
+  -- G. Build-shaped next test, otherwise send execution work back to Insights: DPS.
   local nxt = coach.nextTest
   local buildRules = {
     soft_cp = true, pen_waste = true, crit_overcap_risk = true, sample_size = true,
   }
+  local function cleanBody(s)
+    s = stripColorMarkup(s or "")
+    s = string.gsub(s, "%s*%[[^%]]+%]%s*$", "")
+    return s
+  end
   if nxt and buildRules[nxt.ruleId or ""] then
     if ui.ibNextHead then ui.ibNextHead:SetText(nxt.title or "") end
-    if ui.ibNextBody then ui.ibNextBody:SetText(displayNamePlain(nxt.body or "", 240)) end
-  elseif nxt then
-    if ui.ibNextHead then ui.ibNextHead:SetText("Hold build; execution lives on Insights: DPS") end
-    if ui.ibNextBody then
-      ui.ibNextBody:SetText("No high-confidence gear/CP swap on this parse. Use Insights: DPS for weave / DoT / next test. Y still starts experiments from that page.")
-    end
+    if ui.ibNextBody then ui.ibNextBody:SetText(cleanBody(nxt.body)) end
   else
-    if ui.ibNextHead then ui.ibNextHead:SetText("") end
-    if ui.ibNextBody then ui.ibNextBody:SetText("") end
+    if ui.ibNextHead then ui.ibNextHead:SetText("Hold build; tighten execution on Insights: DPS.") end
+    if ui.ibNextBody then
+      ui.ibNextBody:SetText("No high-confidence gear or CP swap on this parse. Start weave and DoT experiments from Insights: DPS.")
+    end
   end
   if ui.ibFoot then
-    ui.ibFoot:SetText("[Observed] this fight. [Estimated] heuristic. Bars are share, uptime, or eligible damage.")
+    ui.ibFoot:SetText("Observed = measured this fight. Estimated = heuristic. Bars show damage share, uptime, or eligible damage.")
     ui.ibFoot:SetMaxLineCount(1)
   end
 end
@@ -11776,15 +12207,32 @@ local function refreshInsightsUI(screen, session, mode)
     end
     hideTrack(ui.ibBarMeter)
     hideTrack(ui.ibPotMeter)
+    hideTrack(ui.ibMixDirect)
+    hideTrack(ui.ibMixDot)
+    hideTrack(ui.ibDwellFront)
+    hideTrack(ui.ibDwellBack)
+    hideTrack(ui.ibDmgFront)
+    hideTrack(ui.ibDmgBack)
   end
   local hostW, hostH = layoutContentHost(screen)
   layoutInsightsUI(ui, hostW, hostH)
   local profile = getActiveContentProfile()
   if ui.profileBadge then
-    ui.profileBadge:SetText(formatProfileBadge(profile))
+    if mode == "dps" then
+      ui.profileBadge:SetText(profile.label or profile.shortLabel or "")
+    else
+      ui.profileBadge:SetText(profile.label or profile.shortLabel or "")
+    end
   end
   if ui.assumption then
-    ui.assumption:SetText("Trial-prep: estimates may assume tank and healer buffs. Observed numbers are this fight.")
+    if mode == "build" then
+      local ceilPct = (tonumber(profile.critDamageCeiling) or 1.25) * 100
+      ui.assumption:SetText(string.format(
+        "Profile: %s resist · %0.0f%% crit-damage ceiling",
+        fmtInt(profile.bossResist or 18200), ceilPct))
+    else
+      ui.assumption:SetText("")
+    end
   end
 
   if not session then
@@ -11802,6 +12250,9 @@ local function refreshInsightsUI(screen, session, mode)
     end
     for i = 1, INSIGHT_WASTE_LINES do
       if ui.wasteLines[i] then ui.wasteLines[i]:SetText("") end
+      if ui.wasteVals and ui.wasteVals[i] then ui.wasteVals[i]:SetText("") end
+      if ui.wasteNotes and ui.wasteNotes[i] then ui.wasteNotes[i]:SetText("") ui.wasteNotes[i]:SetHidden(true) end
+      if ui.wasteCaps and ui.wasteCaps[i] then ui.wasteCaps[i]:SetHidden(true) end
     end
     if ui.buildMix then ui.buildMix:SetText("") end
     if ui.buildFp then ui.buildFp:SetText("") end
@@ -11812,13 +12263,55 @@ local function refreshInsightsUI(screen, session, mode)
       if ui.buildCps[i] then ui.buildCps[i].row:SetHidden(true) end
     end
     if ui.execSummary then ui.execSummary:SetText("") end
+    if ui.execVal then ui.execVal:SetText("") end
+    if ui.execPaceCap then ui.execPaceCap:SetHidden(true) end
     for i = 1, INSIGHT_EXEC_LINES do
       if ui.execLines[i] then ui.execLines[i]:SetText("") end
+      if ui.execNames and ui.execNames[i] then ui.execNames[i]:SetText("") end
+      if ui.execVals and ui.execVals[i] then ui.execVals[i]:SetText("") end
     end
     if ui.nextHead then ui.nextHead:SetText("") end
     if ui.nextBody then ui.nextBody:SetText("Parse a dummy or trial pull, then reopen Insights.") end
     if ui.nextAction then ui.nextAction:SetText("") end
     if ui.disclaimer then ui.disclaimer:SetText("") end
+    if ui.payCaps then
+      local payCap = { "THIS PARSE", "MEDIAN", "BEST", "COHORT" }
+      for i = 1, 4 do
+        if ui.payCaps[i] then ui.payCaps[i]:SetText(payCap[i]) end
+        if ui.payVals and ui.payVals[i] then ui.payVals[i]:SetText("—") end
+      end
+    end
+    if ui.ibMixPet then ui.ibMixPet:SetText("") ui.ibMixPet:SetHidden(true) end
+    if ui.ibSetRows then
+      for i = 1, IB_SET_ROWS do
+        if ui.ibSetRows[i] then ui.ibSetRows[i]:SetText("") end
+        if ui.ibSetDetail and ui.ibSetDetail[i] then ui.ibSetDetail[i]:SetText("") end
+      end
+    end
+    if ui.ibSnapKey then
+      for i = 1, 6 do if ui.ibSnapKey[i] then ui.ibSnapKey[i]:SetText("") end end
+    end
+    for i = 1, IB_BROUGHT do
+      if ui.ibBrought and ui.ibBrought[i] then ui.ibBrought[i]:SetText("") end
+    end
+    if ui.ibSnapVal6 then ui.ibSnapVal6:SetText("") end
+    if ui.ibCpStory then
+      for i = 1, IB_CP_STORY do
+        if ui.ibCpStory[i] then ui.ibCpStory[i]:SetText("") end
+      end
+    end
+    if ui.ibBarCaps then
+      for i = 1, 4 do if ui.ibBarCaps[i] then ui.ibBarCaps[i]:SetHidden(true) end end
+    end
+    if ui.ibPot then
+      for i = 1, IB_POT_LINES do if ui.ibPot[i] then ui.ibPot[i]:SetText("") end end
+    end
+    if ui.ibNextHead then ui.ibNextHead:SetText("") end
+    if ui.ibNextBody then ui.ibNextBody:SetText("") end
+    if ui.ibSetNote then ui.ibSetNote:SetText("") end
+    if ui.ibFoot then
+      ui.ibFoot:SetText("Observed = measured this fight. Estimated = heuristic. Bars show damage share, uptime, or eligible damage.")
+    end
     hideInsightMeters()
     return
   end
@@ -11827,34 +12320,80 @@ local function refreshInsightsUI(screen, session, mode)
   local syn = buildBuildSynergy(session)
   local coach = buildCoachAnalysis(session, syn, diag, profile)
   setSessionCoach(session, coach) -- menu-local cache only — never onto SV history
-  local bench = diag.bench
-  local benchNote = ""
-  if bench and (bench.comparableCount or 0) >= 2 then
-    benchNote = string.format("  ·  vs best %s  ·  avg %s (%d runs)",
-      fmtDps(bench.personalBest), fmtDps(bench.recentAvg), bench.comparableCount)
+  local totalDmg = tonumber(session.totalDamage) or 0
+  local dmgTxt
+  if totalDmg >= 1000000 then
+    dmgTxt = string.format("%0.1fM", totalDmg / 1000000)
+  elseif totalDmg >= 1000 then
+    dmgTxt = string.format("%0.1fk", totalDmg / 1000)
+  else
+    dmgTxt = fmtInt(totalDmg)
   end
-  ui.meta:SetText(string.format("%s  ·  %s  ·  weave %s%s",
-    displayName(session.lastTargetName or "fight", 40),
-    fmtDur(session.durationMs),
-    fmtPct(getWeaveSuccessRatio(session)),
-    benchNote))
+  local fpShort = ""
+  local buildNow = session.build or session.buildEnd or session.buildStart
+  if buildNow and buildNow.fingerprint then
+    fpShort = string.sub(tostring(buildNow.fingerprint), 1, 4)
+  end
+  if mode == "dps" then
+    ui.meta:SetText(string.format("%s  ·  %s  ·  %s%s",
+      displayName(session.lastTargetName or "fight", 28),
+      fmtDur(session.durationMs),
+      dmgTxt,
+      (fpShort ~= "") and ("  ·  build " .. fpShort) or ""))
+  else
+    local fp8 = ""
+    local fpSrc = (buildNow and buildNow.fingerprint) or session.buildFingerprint
+    if fpSrc and tostring(fpSrc) ~= "" then fp8 = string.sub(tostring(fpSrc), 1, 8) end
+    ui.meta:SetText(string.format("%s  ·  %s%s",
+      displayName(session.lastTargetName or "fight", 28),
+      fmtDur(session.durationMs),
+      (fp8 ~= "") and ("  ·  build " .. fp8) or ""))
+  end
 
   if ui.headline then ui.headline:SetText(diag.headline or "") end
-  if ui.primary then ui.primary:SetText(diag.primaryLine or "") end
+  if ui.primary then ui.primary:SetHidden(mode == "dps") ui.primary:SetText(mode == "dps" and "" or (diag.primaryLine or "")) end
   local ph = diag.phases or {}
   if ui.phase then ui.phase:SetHidden(true) end
   if ui.phaseMeters and M.PaintInsightMeter then
     local phaseVals = { tonumber(ph.opener) or 0, tonumber(ph.sustained) or 0, tonumber(ph.execute) or 0 }
     local capNames = { "Opener", "Sustained", "Late" }
-    local maxPh = 0
-    for _, pv in ipairs(phaseVals) do if pv > maxPh then maxPh = pv end end
+    local maxPh, weightSum = 0, 0
+    local weights = {}
     for i = 1, 3 do
+      if phaseVals[i] > maxPh then maxPh = phaseVals[i] end
+    end
+    for i = 1, 3 do
+      weights[i] = math.max(phaseVals[i], (maxPh > 0) and (maxPh * 0.18) or 1)
+      weightSum = weightSum + weights[i]
+    end
+    local ribbon = math.max(180, (tonumber(ui.readW) or 800) - 24)
+    local gapB = 2
+    local inner = ribbon - gapB * 2
+    local x = 12
+    local capY = tonumber(ui.phaseCapY) or 46
+    local barY = tonumber(ui.phaseBarY) or 64
+    for i = 1, 3 do
+      local seg = math.floor(inner * weights[i] / math.max(1, weightSum))
+      if i == 3 then seg = (12 + ribbon) - x end
+      if seg < 56 then seg = 56 end
       if ui.phaseCaps and ui.phaseCaps[i] then
-        ui.phaseCaps[i]:SetText(string.format("%s  %s", capNames[i], fmtDps(phaseVals[i])))
+        local cap = ui.phaseCaps[i]
+        cap:ClearAnchors()
+        cap:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, x, capY)
+        cap:SetWidth(seg)
+        cap:SetText(string.format("%s %s", capNames[i], fmtDps(phaseVals[i])))
       end
-      local tone = (phaseVals[i] >= maxPh * 0.92) and "good" or "warn"
-      local pct = (maxPh > 0) and (phaseVals[i] / maxPh) or 0
-      M.PaintInsightMeter(ui.phaseMeters[i], pct, nil, tone, false)
+      local meter = ui.phaseMeters[i]
+      if meter and meter.bg then
+        meter.w = seg
+        meter.h = 10
+        meter.bg:ClearAnchors()
+        meter.bg:SetAnchor(TOPLEFT, ui.diagPanel, TOPLEFT, x, barY)
+        meter.bg:SetDimensions(seg, 10)
+      end
+      local tone = (maxPh > 0 and phaseVals[i] >= maxPh * 0.92) and "good" or "warn"
+      M.PaintInsightMeter(meter, (maxPh > 0) and 1 or 0, nil, tone, false)
+      x = x + seg + gapB
     end
   end
   local opps = diag.opportunities or {}
@@ -11871,11 +12410,11 @@ local function refreshInsightsUI(screen, session, mode)
       if o then
         r.row:SetHidden(false)
         r.rank:SetText(tostring(i) .. ".")
-        r.title:SetText(displayName(o.title or "?", 40))
-        r.est:SetText("~" .. fmtDps(o.estDps or 0))
-        r.ev:SetText(displayName(o.evidence or "", 80))
+        r.title:SetText(displayName(o.title or "?", 28))
+        r.est:SetText(fmtDps(o.estDps or 0))
+        r.ev:SetText("")
         if M.PaintInsightMeter then
-          M.PaintInsightMeter(r.meter, (tonumber(o.estDps) or 0) / maxEst, nil, "warn", true)
+          M.PaintInsightMeter(r.meter, (tonumber(o.estDps) or 0) / maxEst, nil, "warn", false)
         end
       else
         if M.PaintInsightMeter then M.PaintInsightMeter(r.meter, nil) end
@@ -11885,32 +12424,160 @@ local function refreshInsightsUI(screen, session, mode)
           r.rank:SetText("")
           r.title:SetText("No large estimated gaps on this parse")
           r.est:SetText("")
-          r.ev:SetText("Run more dummies for personal-best comparison")
+          r.ev:SetText("")
         end
       end
     end
   end
 
-  -- §2 Waste — prefer coach lines (pen profile + crit/Force risk)
-  local waste = coach.wasteLines or {}
-  local wasteMeters = coach.wasteMeters or {}
-  local rootW = (ui.root and ui.root.GetWidth and ui.root:GetWidth()) or 900
-  local meterLabelW = tonumber(ui.meterLabelW) or 260
-  for i = 1, INSIGHT_WASTE_LINES do
-    local wm = wasteMeters[i]
-    local hasBar = wm and wm.pct ~= nil
-    if ui.wasteLines[i] then
-      local shown = (hasBar and wm.label) or waste[i] or ""
-      ui.wasteLines[i]:SetText(displayName(shown, hasBar and 42 or 110))
-      -- Metered rows keep the short label. Sentences with no bar use the plate.
-      ui.wasteLines[i]:SetWidth(hasBar and meterLabelW or math.max(80, rootW - 24))
+  -- §2 Waste — eight dashboard rows. Filled pip is observed. Hollow pip is estimated.
+  local penW = (coach.waste and coach.waste.pen) or {}
+  local critW = (coach.waste and coach.waste.critDmg) or {}
+  local function pct0(x)
+    return string.format("%0.0f%%", (tonumber(x) or 0) * 100)
+  end
+  local function paintWastePip(meter, obs)
+    if not meter or not meter.pip then return end
+    meter.pip:SetHidden(false)
+    if obs then
+      meter.pip:SetCenterColor(0.40, 0.82, 0.48, 0.95)
+      meter.pip:SetEdgeColor(0.20, 0.45, 0.25, 0.45)
+    else
+      meter.pip:SetCenterColor(0.06, 0.07, 0.08, 0.15)
+      meter.pip:SetEdgeColor(0.78, 0.86, 0.94, 0.95)
     end
-    if M.PaintInsightMeter and ui.wasteMeters then
-      if hasBar then
-        M.PaintInsightMeter(ui.wasteMeters[i], wm.pct, wm.tick, wm.tone, true)
+  end
+  local function placeWasteCap(i, meter, text)
+    local cap = ui.wasteCaps and ui.wasteCaps[i]
+    if not cap then return end
+    if not text or text == "" or not meter or not meter.tick or meter.tick:IsHidden() then
+      cap:SetHidden(true)
+      return
+    end
+    cap:SetHidden(false)
+    cap:SetText(text)
+    cap:ClearAnchors()
+    cap:SetAnchor(BOTTOM, meter.tick, TOP, 0, -1)
+    cap:SetWidth(84)
+  end
+  local function applyWaste(i, row)
+    if ui.wasteLines[i] then ui.wasteLines[i]:SetText(row and row.name or "") end
+    if ui.wasteVals and ui.wasteVals[i] then ui.wasteVals[i]:SetText(row and row.value or "") end
+    local note = ui.wasteNotes and ui.wasteNotes[i]
+    if note then
+      if row and row.note and row.note ~= "" and row.pct == nil then
+        note:SetHidden(false)
+        note:SetText(row.note)
       else
-        M.PaintInsightMeter(ui.wasteMeters[i], nil)
+        note:SetHidden(true)
+        note:SetText("")
       end
+    end
+    local meter = ui.wasteMeters and ui.wasteMeters[i]
+    if not meter or not M.PaintInsightMeter then return end
+    if row and row.pct ~= nil then
+      M.PaintInsightMeter(meter, row.pct, row.tick, row.tone, true)
+      paintWastePip(meter, row.obs)
+      placeWasteCap(i, meter, row.tickText)
+    else
+      M.PaintInsightMeter(meter, nil)
+      if row then paintWastePip(meter, row.obs) end
+      if ui.wasteCaps and ui.wasteCaps[i] then ui.wasteCaps[i]:SetHidden(true) end
+    end
+  end
+  if mode == "dps" then
+    local hitCrit = sessionCritPct(session)
+    local sheetCrit = 0
+    local snapW = (type(session.playerStatsEnd) == "table") and session.playerStatsEnd
+      or (type(session.playerStats) == "table") and session.playerStats or nil
+    if snapW and snapW.buffed then sheetCrit = tonumber(snapW.buffed.critChance) or 0 end
+    local critPct = tonumber(critW.sheetPct) or 0
+    local ceiling = tonumber(critW.ceilingPct) or 125
+    local critObs = critPct > 0
+    if not critObs then
+      local rec = estimateCritDamageRecipe(session, profile)
+      critPct = tonumber(rec and rec.pct) or 50
+      ceiling = tonumber(rec and rec.ceiling) or ceiling
+    end
+    local forceUp = tonumber(critW.majorForceUptime) or 0
+    local groupNote = {}
+    if type(penW.groupBits) == "table" then
+      for _, bit in ipairs(penW.groupBits) do
+        local s = tostring(bit or "")
+        s = string.gsub(s, "%s*%b()", "")
+        s = string.gsub(s, " you applied.*", "")
+        s = string.gsub(s, "%s+%d+%.?%d*%%", "")
+        if s ~= "" then groupNote[#groupNote + 1] = s end
+      end
+    end
+    local chips, seenChip = {}, {}
+    if type(session.buffs) == "table" then
+      for _, b in pairs(session.buffs) do
+        if type(b) == "table" and b.name then
+          local hint = buffEffectHint(b.name)
+          local srcKey = classifyBuffSourceDetailed(session, b)
+          if hint and (srcKey == "Skill" or srcKey == "Self" or srcKey == "Set" or srcKey == "Group") then
+            local low = string.lower(tostring(b.name))
+            local token = nil
+            if string.find(low, "breach", 1, true) then token = "BR"
+            elseif string.find(low, "crusher", 1, true) then token = "CR"
+            elseif string.find(low, "vulnerab", 1, true) then token = "MV"
+            elseif string.find(low, "force", 1, true) then token = "FR"
+            elseif string.find(low, "brittle", 1, true) then token = "BT"
+            elseif string.find(low, "slayer", 1, true) then token = "SL"
+            elseif string.find(low, "berserk", 1, true) then token = "BZ"
+            elseif string.find(low, "courage", 1, true) then token = "CO"
+            end
+            if token and not seenChip[token] then
+              seenChip[token] = true
+              chips[#chips + 1] = token
+            end
+          end
+        end
+      end
+    end
+    local remain = tonumber(penW.remaining) or 0
+    local rows = {
+      {
+        name = "Crit rate", value = pct0(hitCrit), obs = true,
+        pct = hitCrit, tick = (sheetCrit > 0) and sheetCrit or nil,
+        tickText = (sheetCrit > 0) and ("sheet " .. pct0(sheetCrit)) or nil,
+        tone = (sheetCrit > 0 and hitCrit + 0.02 < sheetCrit) and "warn" or "good",
+      },
+      {
+        name = "Crit damage", value = string.format("%s%0.0f%%", critObs and "" or "~", critPct),
+        obs = critObs, pct = (ceiling > 0) and (critPct / ceiling) or 0, tick = 1,
+        tickText = string.format("%0.0f cap", ceiling), tone = (critPct >= ceiling - 1) and "good" or "warn",
+      },
+      {
+        name = "Force", value = pct0(forceUp), obs = true, pct = forceUp,
+        tone = (forceUp >= 0.75) and "good" or "warn",
+      },
+      {
+        name = "Pen phys / spell", value = fmtDps(penW.personal or 0), obs = true,
+        note = string.format("phys %s · spell %s · personal max %s",
+          fmtInt(penW.penPhys or 0), fmtInt(penW.penSpell or 0), fmtInt(penW.personal or 0)),
+      },
+      {
+        name = "Group resist", value = "+" .. fmtDps(penW.groupEst or 0), obs = false,
+        note = (#groupNote > 0) and table.concat(groupNote, ", ") or "no group reduction seen",
+      },
+      {
+        name = "Effective pen", value = fmtDps(penW.effective or 0), obs = false,
+        pct = ((tonumber(penW.resistTarget) or 0) > 0) and ((penW.effective or 0) / penW.resistTarget) or 0,
+        tick = 1, tickText = fmtDps(penW.resistTarget or 0), tone = "warn",
+      },
+      {
+        name = "Resist left", value = fmtDps(remain), obs = false,
+        note = (remain <= 0) and "at the resist reference" or "if the group assumptions hold",
+      },
+      {
+        name = "Support", value = tostring(#chips), obs = true,
+        note = (#chips > 0) and table.concat(chips, "   ") or "see Buffs",
+      },
+    }
+    for i = 1, INSIGHT_WASTE_LINES do
+      applyWaste(i, rows[i])
     end
   end
 
@@ -11937,7 +12604,7 @@ local function refreshInsightsUI(screen, session, mode)
       fmtPct(s1.directShare or 0)
     )
   end
-  if ui.buildMix then
+  if mode ~= "build" and ui.buildMix then
     local mix = (syn.mixLine or syn.headline or "") .. setHint
     -- Phase 2.5 scaffold: CP A/B candidate when history has comparable champion diffs
     if coach.cpAbHint and coach.cpAbHint ~= "" then
@@ -12021,122 +12688,153 @@ local function refreshInsightsUI(screen, session, mode)
       end
     end
   end
+  if mode == "build" then
+    for i = 1, INSIGHT_BUILD_SRC do
+      if ui.buildSrcs[i] then ui.buildSrcs[i].row:SetHidden(true) end
+    end
+    for i = 1, INSIGHT_BUILD_CP do
+      if ui.buildCps[i] then ui.buildCps[i].row:SetHidden(true) end
+    end
+  end
 
-  -- Phase 3 P0: exception-driven execution summary
+  -- Execution rows match the dashboard: name, value, then a bar or a short note.
   ensurePhase3Summary(session)
-  local ex = session.execSummary
-  if ui.execSummary then
-    local pace = M.SkillCastPace(session)
-    local durSec = (tonumber(session.durationMs) or 0) / 1000
-    local lostSec = (tonumber(pace.totalLostMs) or 0) / 1000
-    local gain = (durSec > 0) and ((lostSec * sessionAvgDps(session)) / durSec) or 0
-    if pace.samples >= 8 then
-      ui.execSummary:SetText(string.format(
-        "Pace %0.3f s/cast · %0.1fs to recapture · %s DPS at fight average",
-        pace.medianLostMs / 1000, lostSec, fmtDpsDelta(gain)
-      ))
-    elseif pace.early >= 8 then
-      ui.execSummary:SetText("Presses landed early, so cast pace is not comparable on this pull.")
+  local pace = M.SkillCastPace(session)
+  local paceSamples = pace and (tonumber(pace.samples) or 0) or 0
+  if ui.execSummary then ui.execSummary:SetText("Cast pace") end
+  if ui.execVal then
+    if paceSamples >= 8 then
+      ui.execVal:SetText(string.format("%0.2fs", (tonumber(pace.medianLostMs) or 0) / 1000))
+    elseif pace and (tonumber(pace.early) or 0) >= 8 then
+      ui.execVal:SetText("early")
     else
-      ui.execSummary:SetText("4  ·  exception-driven (detail on Rotation)")
+      ui.execVal:SetText("—")
     end
   end
   if M.PaintInsightMeter then
-    local paceBar = M.SkillCastPace(session)
-    if paceBar and (tonumber(paceBar.samples) or 0) >= 8 then
-      local lost = (tonumber(paceBar.medianLostMs) or 0) / 300
+    if paceSamples >= 8 then
+      local lost = (tonumber(pace.medianLostMs) or 0) / 400
       if lost < 0 then lost = 0 end
       if lost > 1 then lost = 1 end
-      M.PaintInsightMeter(ui.execPace, 1 - lost, nil, (lost > 0.35) and "warn" or "good", false)
+      M.PaintInsightMeter(ui.execPace, 1 - lost, 0.75, (lost > 0.30) and "warn" or "good", false)
+      if ui.execPaceCap and ui.execPace and ui.execPace.tick and not ui.execPace.tick:IsHidden() then
+        ui.execPaceCap:SetHidden(false)
+        ui.execPaceCap:SetText("LA")
+        ui.execPaceCap:ClearAnchors()
+        ui.execPaceCap:SetAnchor(BOTTOM, ui.execPace.tick, TOP, 0, -1)
+      elseif ui.execPaceCap then
+        ui.execPaceCap:SetHidden(true)
+      end
     else
       M.PaintInsightMeter(ui.execPace, nil)
+      if ui.execPaceCap then ui.execPaceCap:SetHidden(true) end
     end
   end
-  local shown = 0
-  if type(ex) == "table" and type(ex.lines) == "table" then
-    for _, line in ipairs(ex.lines) do
-      if shown >= INSIGHT_EXEC_LINES then break end
-      shown = shown + 1
-      if ui.execLines[shown] then
-        ui.execLines[shown]:SetText(displayName(tostring(line), 200))
+  local execRows = {}
+  local weave = type(session.weave) == "table" and session.weave or {}
+  execRows[#execRows + 1] = {
+    name = "Weave",
+    value = string.format("%0.0f%%", (tonumber(getWeaveSuccessRatio(session)) or 0) * 100),
+    detail = string.format("Miss %d    Late %d    Fast %d",
+      tonumber(weave.missedCount) or 0,
+      tonumber(weave.lateCount) or 0,
+      tonumber(weave.tooFastCount) or 0),
+  }
+  local dqGaps, dqName, dqMax = 0, nil, 0
+  if type(session.dotQuality) == "table" then
+    for _, dq in pairs(session.dotQuality) do
+      if type(dq) == "table" and (tonumber(dq.gapCount) or 0) > dqGaps then
+        dqGaps = tonumber(dq.gapCount) or 0
+        dqName = dq.name
+        dqMax = tonumber(dq.maxGapMs) or 0
       end
     end
   end
-  if shown == 0 then
-    local weave = type(session.weave) == "table" and session.weave or {}
-    if ui.execLines[1] then
-      ui.execLines[1]:SetText(string.format(
-        "Weave %s · Miss %d · Late %d · Fast %d  %s",
-        fmtPct(getWeaveSuccessRatio(session)),
-        tonumber(weave.missedCount) or 0,
-        tonumber(weave.lateCount) or 0,
-        tonumber(weave.tooFastCount) or 0,
-        confidenceChip(CONFIDENCE.OBSERVED)
-      ))
-      shown = 1
-    end
+  if dqName and dqGaps >= 1 then
+    local times = (dqGaps == 1) and "once" or (dqGaps == 2) and "twice" or (tostring(dqGaps) .. " times")
+    execRows[#execRows + 1] = {
+      name = "DoT gap",
+      value = string.format("%d ×", dqGaps),
+      detail = string.format("%s dropped %0.1fs %s.", displayName(dqName, 28), dqMax / 1000, times),
+    }
   end
-  for i = shown + 1, INSIGHT_EXEC_LINES do
-    if ui.execLines[i] then ui.execLines[i]:SetText("") end
+  local bs = type(session.barStats) == "table" and session.barStats or {}
+  local swapLate = tonumber(bs.delayOverThresholdCount) or 0
+  if swapLate >= 1 or (tonumber(bs.delayMedian) or 0) > 0 then
+    local medS = (tonumber(bs.delayMedian) or 0) / 1000
+    execRows[#execRows + 1] = {
+      name = "Bar swap",
+      value = string.format("%0.1fs", medS),
+      detail = (swapLate >= 1) and string.format("Late %d in the pull.", swapLate) or "Within the swap window.",
+    }
+  end
+  local wstat = type(session.windowStats) == "table" and session.windowStats or {}
+  local bestW, worstW = wstat.bestActive20, wstat.worstActive20
+  if bestW and worstW and (tonumber(bestW.dps) or 0) > 0 and (tonumber(worstW.dps) or 0) > 0
+      and worstW.dps < bestW.dps * 0.82 and #execRows < 4 then
+    execRows[#execRows + 1] = {
+      name = "Window",
+      value = fmtDps(worstW.dps),
+      detail = string.format("Weakest active 20s. Best was %s.", fmtDps(bestW.dps)),
+    }
+  end
+  for i = 1, INSIGHT_EXEC_LINES do
+    local row = execRows[i]
+    if ui.execNames and ui.execNames[i] then ui.execNames[i]:SetText(row and row.name or "") end
+    if ui.execVals and ui.execVals[i] then ui.execVals[i]:SetText(row and row.value or "") end
+    if ui.execLines[i] then ui.execLines[i]:SetText(row and row.detail or "") end
   end
 
   local nxt = coach.nextTest or select(1, buildNextTestStub(session, diag, syn, profile))
-  if ui.nextHead then ui.nextHead:SetText(nxt.title or "") end
-  if ui.nextBody then
-    local body = nxt.body or ""
-    if session.experimentRun and type(session.experimentRun) == "table" then
-      body = body .. string.format(
-        "  ·  This parse = experiment run %s",
-        tostring(session.experimentRun.runIndex or "?")
-      )
-    end
-    ui.nextBody:SetText(body)
+  local headTxt = nxt.title or ""
+  local bodyTxt = nxt.body or ""
+  if nxt.ruleId == "execution_opp" and diag.opportunities and diag.opportunities[1] and diag.opportunities[1].drill then
+    headTxt = diag.opportunities[1].drill
+    bodyTxt = "Keep gear, bars, Mundus, and Champion Points unchanged."
   end
-  if ui.nextAction then
-    local expNow = getActiveExperiment()
-    local hint
-    if expNow then
-      local n = type(expNow.runs) == "table" and #expNow.runs or 0
-      local need = tonumber(expNow.targetRuns) or 3
-      if expNow.completed then
-        hint = string.format("|c66FF88EXP DONE %d/%d|r  ·  footer A/× : Clear experiment", n, need)
-      else
-        hint = string.format("|cFFCC66EXP ON %d/%d|r  ·  %s  ·  footer A/× : End experiment",
-          n, need, displayName(expNow.title or "test", 40))
-      end
-    else
-      hint = nxt.actionHint or ""
-      if hint == "" or string.find(hint, "Y:", 1, true) then
-        if nxt.ruleId and nxt.ruleId ~= "sample_size" then
-          hint = "Footer |c66FF88A / ×|r : Start experiment (3 parses) — state shows here when ON"
-        else
-          hint = ""
-        end
-      end
+  if ui.nextHead then ui.nextHead:SetText(headTxt) end
+  if ui.nextBody then
+    if session.experimentRun and type(session.experimentRun) == "table" then
+      bodyTxt = bodyTxt .. string.format("  ·  This parse = experiment run %s", tostring(session.experimentRun.runIndex or "?"))
     end
-    ui.nextAction:SetText(hint or "")
+    ui.nextBody:SetText(bodyTxt)
+  end
+  local expP = getActiveExperiment()
+  local nP = (expP and type(expP.runs) == "table") and #expP.runs or 0
+  local needP = (expP and tonumber(expP.targetRuns)) or 3
+  if ui.nextAction then
+    if mode == "dps" then
+      ui.nextAction:SetText(string.format("%d / %d parses", nP, needP))
+    else
+      ui.nextAction:SetText("")
+    end
   end
   if ui.nextPips then
-    local expP = getActiveExperiment()
-    local nP = (expP and type(expP.runs) == "table") and #expP.runs or 0
     for i = 1, 3 do
       local pip = ui.nextPips[i]
       if pip then
-        pip:SetHidden(expP == nil)
-        if expP then
-          if i <= nP then
-            pip:SetCenterColor(0.40, 0.85, 0.50, 0.95)
-            pip:SetEdgeColor(0.20, 0.45, 0.25, 0.4)
-          else
-            pip:SetCenterColor(0.08, 0.09, 0.10, 0.25)
-            pip:SetEdgeColor(0.75, 0.82, 0.88, 0.9)
-          end
+        pip:SetHidden(mode ~= "dps")
+        if i <= nP then
+          pip:SetCenterColor(0.93, 0.72, 0.28, 0.95)
+          pip:SetEdgeColor(0.45, 0.32, 0.12, 0.45)
+        else
+          pip:SetCenterColor(0.08, 0.09, 0.10, 0.25)
+          pip:SetEdgeColor(0.75, 0.82, 0.88, 0.9)
         end
       end
     end
   end
   if ui.disclaimer then
-    ui.disclaimer:SetText(diag.disclaimer or "Estimates use this fight's observed damage — not guaranteed free DPS.")
+    local penD = coach.waste and coach.waste.pen
+    if mode == "dps" and penD and (tonumber(penD.effective) or 0) > 0 then
+      ui.disclaimer:SetText(string.format(
+        "EFFECTIVE PEN    Personal %s plus group %s is %s. The tick is the %s resist reference.",
+        fmtInt(penD.personal or 0), fmtInt(penD.groupEst or 0),
+        fmtInt(penD.effective or 0), fmtInt(penD.resistTarget or 0)
+      ))
+    else
+      ui.disclaimer:SetText(diag.disclaimer or "Estimates use this fight's observed damage — not guaranteed free DPS.")
+    end
   end
 end
 

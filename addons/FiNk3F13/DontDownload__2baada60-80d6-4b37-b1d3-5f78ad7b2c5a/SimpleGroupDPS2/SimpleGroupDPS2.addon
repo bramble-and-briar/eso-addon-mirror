@@ -1,0 +1,16 @@
+## Title: SimpleGroupDPS2
+## APIVersion: 101051
+## Version: 1.9.18
+## Author: FiNk3--F13--
+## Description: Eigene und Gruppen-DPS mit BattleScrolls-Austausch und eigenem Move-UI-Menue.
+## DependsOn: LibHarvensAddonSettings LibGroupBroadcast
+## OptionalDependsOn: BattleScrolls
+## SavedVariables: SimpleGroupDPS2_SavedVariables
+
+Localization.lua
+BattleScrollsBridge.lua
+DamageMeter.lua
+MeasurementComparison.lua
+DPSPanel.lua
+PersonalDPSPanel.lua
+SimpleGroupDPS.lua

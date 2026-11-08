@@ -1,0 +1,11 @@
+## Title: Group Ultimate Tracker
+## Description: Five fixed unmorphed ultimate icons with individual PSN-labelled group progress bars and PS5 settings.
+## Author: Daveemafiaa
+## Version: 2.2.3
+## APIVersion: 101051
+## AddOnVersion: 223
+## SavedVariables: GroupUltimateReadyTrackerSavedVariables
+## DependsOn: LibGroupCombatStats
+## ConsoleDependsOn: LibHarvensAddonSettings>=20107
+
+GroupUltimateReadyTracker.lua

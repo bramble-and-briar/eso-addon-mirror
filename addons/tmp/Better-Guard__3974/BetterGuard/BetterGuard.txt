@@ -2,9 +2,9 @@
 ## Description: Draws a more visible line on your screen when guarding groupmates
 ## Author: TheMrPancake
 ## DependsOn: LibImplex>=24 LibAddonMenu-2.0>=43
-## APIVersion: 101050
-## Version: 2.8
-## AddOnVersion: 28
+## APIVersion: 101051
+## Version: 2.9
+## AddOnVersion: 29
 ## SavedVariables: BetterGuardSavedVariables
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 

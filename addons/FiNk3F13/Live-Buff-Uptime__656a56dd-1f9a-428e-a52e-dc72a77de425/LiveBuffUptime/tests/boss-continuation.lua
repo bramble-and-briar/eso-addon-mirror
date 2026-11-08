@@ -147,4 +147,6 @@ callbacks[51](51,{unitIds={player=1},units={[1]={unitType=1},[99]={unitType=4}},
 assert(result.skillDamageSnapshot.total==300 and result.skillDamageSnapshot.skills[123].hits==3,
     "final skill snapshot includes each boss segment once, rather than replacing earlier phases")
 assert(result.skillDamageSnapshot.targets[99].damage==300 and result.dpstime==30)
+assert(result.skillDamageSnapshot.targets[99].skills[123].damage==300 and result.skillDamageSnapshot.targets[99].skills[123].hits==3,
+    "per-target skill breakdown survives a continued boss encounter")
 print("Boss continuation: phases, pause effects, full span, recipients, frozen end, resets, boss identity, wipes and disappearance passed")

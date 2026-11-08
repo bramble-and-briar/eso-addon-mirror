@@ -136,15 +136,20 @@ function Bridge.Create(lib)
                                     snapshot.skills[id] = skill
                                     skill.damage = skill.damage + data.totalAmount
                                     skill.hits = skill.hits + (data.totalCount or 0)
-                                    local recipient = snapshot.targets[targetId] or { damage = 0 }
+                                    local recipient = snapshot.targets[targetId] or { damage = 0, skills={} }
                                     snapshot.targets[targetId] = recipient
                                     recipient.damage = recipient.damage + data.totalAmount
+                                    local targetSkill=recipient.skills[id] or {damage=0,hits=0}
+                                    recipient.skills[id]=targetSkill
+                                    targetSkill.damage,targetSkill.hits=targetSkill.damage+data.totalAmount,targetSkill.hits+(data.totalCount or 0)
                                     snapshot.total = snapshot.total + data.totalAmount
                                     local starts = data.startTime or target.startTime
                                     local ends = data.endTime or target.endTime
                                     if starts and ends then
                                         snapshot.starts = math.min(snapshot.starts or starts, starts)
                                         snapshot.ends = math.max(snapshot.ends or ends, ends)
+                                        recipient.starts=math.min(recipient.starts or starts,starts)
+                                        recipient.ends=math.max(recipient.ends or ends,ends)
                                     end
                                 end
                             end
@@ -163,6 +168,16 @@ function Bridge.Create(lib)
                 current[key][id] = entry
                 entry.damage = entry.damage + row.damage
                 if key == "skills" then entry.hits = (entry.hits or 0) + row.hits end
+                if key=="targets" then
+                    entry.skills=entry.skills or {}
+                    for ability,data in pairs(row.skills or {}) do
+                        local skill=entry.skills[ability] or {damage=0,hits=0}
+                        entry.skills[ability]=skill
+                        skill.damage,skill.hits=skill.damage+data.damage,skill.hits+data.hits
+                    end
+                    if row.starts then entry.starts=math.min(entry.starts or row.starts,row.starts) end
+                    if row.ends then entry.ends=math.max(entry.ends or row.ends,row.ends) end
+                end
             end
         end
         current.total = current.total + previous.total
@@ -259,7 +274,8 @@ function Bridge.Create(lib)
             if not fight then return end
             local units = {}
             for id, unit in pairs(fight.units or {}) do
-                units[id] = { unitType = unit.unitType, name = unit.name, displayname = unit.displayName }
+                units[id] = { unitType = unit.unitType, name = unit.name, displayname = unit.displayName,
+                    bossId=unit.bossId,isBoss=unit.isBoss or (fight.unitIds and fight.unitIds.bosses and fight.unitIds.bosses[id]) }
             end
             -- v2 may omit units whose effects only arrived through the raw path.
             for id, unit in pairs(rawUnits) do
@@ -293,6 +309,9 @@ function Bridge.Create(lib)
             if pending then snapshot = mergeDamageSnapshot(snapshot, pending.skillDamageSnapshot) end
             if snapshot and snapshot.starts and snapshot.ends then
                 dps = math.max(1, (snapshot.ends - snapshot.starts) / 1000)
+            end
+            for _,target in pairs(snapshot and snapshot.targets or {}) do
+                if target.starts and target.ends then target.duration=math.max(1,(target.ends-target.starts)/1000) end
             end
             first, last = starts, ends
             local summary = { starttime = starts, endtime = ends, units = units, playerid = playerId,

@@ -5,11 +5,11 @@
 -- Original author: ziggr (project started 2017-02-12)
 --
 -- Current maintainer: Sharlikran (contributions since 2022-11-12)
--- Contributor: jogietze (formerly otac0n) ó GitHub PR contributions
+-- Contributor: jogietze (formerly otac0n) ‚Äî GitHub PR contributions
 --
 -- ----------------------------------------------------------------------------
--- Unless otherwise stated, portions of this software are © ziggr and may
--- be subject to ìAll Rights Reservedî status due to the absence of a public
+-- Unless otherwise stated, portions of this software are ¬© ziggr and may
+-- be subject to ‚ÄúAll Rights Reserved‚Äù status due to the absence of a public
 -- open-source license declaration.
 --
 -- ----------------------------------------------------------------------------

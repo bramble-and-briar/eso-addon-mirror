@@ -40,14 +40,14 @@ assert(#report.skills==3,"incoming, self damage, healing and raw duplicates are 
 assert(report.skillDamageDuration==3,"skill DPS spans only own and own-pet damage, not later healing or incoming damage")
 assert(report.skills[1].id==46743 and report.skills[1].damage==100000 and report.skills[1].hits==1)
 assert(report.skills[2].damage==12345 and report.skills[2].hits==1)
--- A later single-hit encounter uses the minimum one-second damage window.
+-- A single-hit encounter without any later damage uses the group clock fallback.
 send(1,200,1)
 send(2,200,10,1,900,16145,8287,1,0); raw(200,16145,8287)
 send(3,205,10,1,1,555,5000,1,0)
 env.setClock(206)
 callbacks[51](51,{unitIds={player=1},units={[1]={unitType=1},[900]={unitType=4,name="Dummy"}},
     damageDone={[1]={startTime=300000,endTime=300000}},healingDone={[1]={startTime=305000,endTime=305000}}})
-assert(saved.lastUptimeReport.ownDamage==8287 and saved.lastUptimeReport.skillDamageDuration==1,
-    "one light attack is not diluted by later healing or the previous fight")
+assert(saved.lastUptimeReport.ownDamage==8287 and saved.lastUptimeReport.skillDamageDuration==6,
+    "a single-hit encounter uses the same current-time fallback as the group display")
 assert(report.ownDamage==112845 and report.skillDamageDuration==3,"previous report remains frozen")
 print("LibCombat2 skill stream: first hit, raw dedup, full amount, pets and independent damage duration")

@@ -53,7 +53,7 @@ local WW = WritWorthy
 local LAM2 = LibAddonMenu2
 
 WritWorthy.name = "WritWorthy"
-WritWorthy.version = "7.5.9"
+WritWorthy.version = "7.6.1"
 WritWorthy.savedVarVersion = 1
 
 WritWorthy.default = {
@@ -895,6 +895,7 @@ function WritWorthy.OnAddOnLoaded(event, addonName)
     end
     WritWorthy:Initialize()
     WritWorthy.RegisterAGSInitCallback()
+    EVENT_MANAGER:UnregisterForEvent(WritWorthy.name, EVENT_ADD_ON_LOADED)
   end
 end
 

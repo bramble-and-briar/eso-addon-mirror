@@ -1,0 +1,281 @@
+<GuiXml>
+    <Controls>
+        <!-- ============================================================ -->
+        <!-- Templates                                                    -->
+        <!-- ============================================================ -->
+
+        <!-- Text tab / toggle button with an underline for the selected state -->
+        <Button name="DuelResults_TabButton" virtual="true" font="ZoFontWinH4">
+            <Dimensions x="120" y="30" />
+            <FontColors normalColor="8A8A8A" mouseOverColor="FFFFFF" pressedColor="FFFFFF" disabledColor="5A5A5A" />
+            <Controls>
+                <Texture name="$(parent)Underline" color="C5A15A" hidden="true">
+                    <Dimensions y="2" />
+                    <Anchor point="BOTTOMLEFT" offsetX="10" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" />
+                </Texture>
+            </Controls>
+        </Button>
+
+        <!-- Overview: "value | label | value" with a tug-of-war bar underneath -->
+        <Control name="DuelResults_StatRow" virtual="true">
+            <Dimensions x="480" y="34" />
+            <Controls>
+                <Label name="$(parent)Label" font="ZoFontGameSmall" color="B8B29A" horizontalAlignment="CENTER">
+                    <Dimensions x="180" />
+                    <Anchor point="TOP" offsetY="4" />
+                </Label>
+                <Label name="$(parent)Left" font="ZoFontGameBold" color="FFFFFF" horizontalAlignment="LEFT">
+                    <Dimensions x="150" />
+                    <Anchor point="TOPLEFT" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Right" font="ZoFontGameBold" color="FFFFFF" horizontalAlignment="RIGHT">
+                    <Dimensions x="150" />
+                    <Anchor point="TOPRIGHT" offsetY="2" />
+                </Label>
+                <Texture name="$(parent)BarBg" color="000000" alpha="0.55">
+                    <Dimensions x="480" y="5" />
+                    <Anchor point="BOTTOMLEFT" offsetY="-3" />
+                </Texture>
+                <Texture name="$(parent)BarLeft" color="3FA9F5" level="1">
+                    <Dimensions x="240" y="5" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BarBg" relativePoint="LEFT" />
+                </Texture>
+                <Texture name="$(parent)BarRight" color="F5563F" level="1">
+                    <Dimensions x="240" y="5" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)BarBg" relativePoint="RIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Effects / abilities list row: icon + filled bar + name + value -->
+        <Control name="DuelResults_BarRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="460" y="30" />
+            <OnMouseEnter>DuelResults.UI.OnBarRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>DuelResults.UI.OnBarRowExit(self)</OnMouseExit>
+            <Controls>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="2" />
+                </Texture>
+                <Texture name="$(parent)BarBg" color="000000" alpha="0.45">
+                    <Dimensions x="424" y="24" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                </Texture>
+                <Texture name="$(parent)Bar" color="3FA9F5" level="1">
+                    <Dimensions x="0" y="24" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BarBg" relativePoint="LEFT" />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGameSmall" color="FFFFFF" level="2" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                    <Dimensions x="300" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BarBg" relativePoint="LEFT" offsetX="6" />
+                </Label>
+                <Label name="$(parent)Value" font="ZoFontGameSmall" color="FFFFFF" level="2" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" relativeTo="$(parent)BarBg" relativePoint="RIGHT" offsetX="-6" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- History list row -->
+        <Control name="DuelResults_HistoryRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="460" y="46" />
+            <OnMouseEnter>self:GetNamedChild("Bg"):SetAlpha(0.7)</OnMouseEnter>
+            <OnMouseExit>self:GetNamedChild("Bg"):SetAlpha(0.35)</OnMouseExit>
+            <OnMouseUp>if upInside then DuelResults.UI.OnHistoryRowClicked(self, button) end</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Bg" color="000000" alpha="0.35">
+                    <Anchor point="TOPLEFT" offsetY="2" />
+                    <Anchor point="BOTTOMRIGHT" offsetY="-2" />
+                </Texture>
+                <Label name="$(parent)Title" font="ZoFontGameBold" color="FFFFFF" level="1" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                    <Dimensions x="300" />
+                    <Anchor point="TOPLEFT" offsetX="10" offsetY="5" />
+                </Label>
+                <Label name="$(parent)Sub" font="ZoFontGameSmall" color="8A8A8A" level="1" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                    <Dimensions x="300" />
+                    <Anchor point="BOTTOMLEFT" offsetX="10" offsetY="-5" />
+                </Label>
+                <Label name="$(parent)Result" font="ZoFontGameBold" color="C5A15A" level="1" horizontalAlignment="RIGHT" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                    <Dimensions x="140" />
+                    <Anchor point="RIGHT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- ============================================================ -->
+        <!-- Main window                                                  -->
+        <!-- ============================================================ -->
+        <TopLevelControl name="DuelResultsWindow" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+            <Dimensions x="520" y="620" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <OnMoveStop>DuelResults.UI.SavePosition()</OnMoveStop>
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <!-- Title bar -->
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="C5A15A" text="DUEL RESULTS">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
+                </Label>
+                <Label name="$(parent)Version" font="ZoFontGameSmall" color="6A6A6A">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="8" offsetY="-3" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-14" offsetY="16" />
+                    <OnClicked>DuelResults.UI.Hide()</OnClicked>
+                </Button>
+                <Texture name="$(parent)TitleDivider" color="C5A15A" alpha="0.35">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" offsetX="14" offsetY="48" />
+                    <Anchor point="TOPRIGHT" offsetX="-14" offsetY="48" />
+                </Texture>
+
+                <!-- Versus header -->
+                <Control name="$(parent)Header">
+                    <Dimensions y="64" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="58" />
+                    <Anchor point="TOPRIGHT" offsetX="-20" offsetY="58" />
+                    <Controls>
+                        <Texture name="$(parent)P1Strip" color="3FA9F5">
+                            <Dimensions x="4" y="46" />
+                            <Anchor point="TOPLEFT" offsetY="4" />
+                        </Texture>
+                        <Label name="$(parent)P1Name" font="ZoFontWinH3" color="3FA9F5" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="180" />
+                            <Anchor point="TOPLEFT" offsetX="12" offsetY="2" />
+                        </Label>
+                        <Label name="$(parent)P1Sub" font="ZoFontGameSmall" color="8A8A8A" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="180" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)P1Name" relativePoint="BOTTOMLEFT" offsetY="2" />
+                        </Label>
+
+                        <Texture name="$(parent)P2Strip" color="F5563F">
+                            <Dimensions x="4" y="46" />
+                            <Anchor point="TOPRIGHT" offsetY="4" />
+                        </Texture>
+                        <Label name="$(parent)P2Name" font="ZoFontWinH3" color="F5563F" horizontalAlignment="RIGHT" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="180" />
+                            <Anchor point="TOPRIGHT" offsetX="-12" offsetY="2" />
+                        </Label>
+                        <Label name="$(parent)P2Sub" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="RIGHT" wrapMode="TEXT_WRAP_MODE_ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="180" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)P2Name" relativePoint="BOTTOMRIGHT" offsetY="2" />
+                        </Label>
+
+                        <Label name="$(parent)VS" font="ZoFontWinH2" color="5A5A5A" text="VS">
+                            <Anchor point="TOP" offsetY="0" />
+                        </Label>
+                        <Label name="$(parent)Status" font="ZoFontGameSmall" color="B8B29A" horizontalAlignment="CENTER">
+                            <Dimensions x="130" />
+                            <Anchor point="TOP" relativeTo="$(parent)VS" relativePoint="BOTTOM" offsetY="0" />
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <!-- Tabs -->
+                <Control name="$(parent)Tabs">
+                    <Dimensions y="32" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="128" />
+                    <Anchor point="TOPRIGHT" offsetX="-20" offsetY="128" />
+                    <Controls>
+                        <Button name="$(parent)Tab1" inherits="DuelResults_TabButton">
+                            <Anchor point="TOPLEFT" />
+                        </Button>
+                        <Button name="$(parent)Tab2" inherits="DuelResults_TabButton">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Tab1" relativePoint="TOPRIGHT" />
+                        </Button>
+                        <Button name="$(parent)Tab3" inherits="DuelResults_TabButton">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Tab2" relativePoint="TOPRIGHT" />
+                        </Button>
+                        <Button name="$(parent)Tab4" inherits="DuelResults_TabButton">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Tab3" relativePoint="TOPRIGHT" />
+                        </Button>
+                        <Texture name="$(parent)Divider" color="C5A15A" alpha="0.2">
+                            <Dimensions y="1" />
+                            <Anchor point="BOTTOMLEFT" />
+                            <Anchor point="BOTTOMRIGHT" />
+                        </Texture>
+                    </Controls>
+                </Control>
+
+                <!-- Tab content -->
+                <Control name="$(parent)Content">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="170" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-56" />
+                    <Controls>
+                        <!-- Overview (stat rows are created in Lua) -->
+                        <Control name="$(parent)Overview">
+                            <AnchorFill />
+                            <Controls>
+                                <Label name="$(parent)Empty" font="ZoFontWinH4" color="8A8A8A" horizontalAlignment="CENTER" hidden="true">
+                                    <Dimensions x="420" />
+                                    <Anchor point="CENTER" offsetY="-30" />
+                                </Label>
+                            </Controls>
+                        </Control>
+
+                        <!-- Effects / Abilities -->
+                        <Control name="$(parent)ListPanel" hidden="true">
+                            <AnchorFill />
+                            <Controls>
+                                <Button name="$(parent)P1Toggle" inherits="DuelResults_TabButton">
+                                    <Dimensions x="240" y="28" />
+                                    <Anchor point="TOPLEFT" />
+                                </Button>
+                                <Button name="$(parent)P2Toggle" inherits="DuelResults_TabButton">
+                                    <Dimensions x="240" y="28" />
+                                    <Anchor point="TOPRIGHT" />
+                                </Button>
+                                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                                    <Anchor point="TOPLEFT" offsetY="36" />
+                                    <Anchor point="BOTTOMRIGHT" />
+                                </Control>
+                                <Label name="$(parent)Empty" font="ZoFontWinH4" color="8A8A8A" horizontalAlignment="CENTER" hidden="true">
+                                    <Dimensions x="420" />
+                                    <Anchor point="CENTER" />
+                                </Label>
+                            </Controls>
+                        </Control>
+
+                        <!-- History -->
+                        <Control name="$(parent)HistoryPanel" hidden="true">
+                            <AnchorFill />
+                            <Controls>
+                                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="6A6A6A">
+                                    <Anchor point="TOPLEFT" />
+                                </Label>
+                                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                                    <Anchor point="TOPLEFT" offsetY="22" />
+                                    <Anchor point="BOTTOMRIGHT" />
+                                </Control>
+                                <Label name="$(parent)Empty" font="ZoFontWinH4" color="8A8A8A" horizontalAlignment="CENTER" hidden="true">
+                                    <Dimensions x="420" />
+                                    <Anchor point="CENTER" />
+                                </Label>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <!-- Footer -->
+                <Button name="$(parent)Reset" inherits="ZO_DefaultButton">
+                    <Dimensions x="120" y="28" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-16" />
+                </Button>
+                <Button name="$(parent)Print" inherits="ZO_DefaultButton">
+                    <Dimensions x="140" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Reset" relativePoint="RIGHT" offsetX="4" />
+                </Button>
+                <Button name="$(parent)Settings" inherits="ZO_DefaultButton">
+                    <Dimensions x="110" y="28" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-16" />
+                </Button>
+                <Button name="$(parent)Current" inherits="ZO_DefaultButton" hidden="true">
+                    <Dimensions x="110" y="28" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Settings" relativePoint="LEFT" offsetX="-4" />
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

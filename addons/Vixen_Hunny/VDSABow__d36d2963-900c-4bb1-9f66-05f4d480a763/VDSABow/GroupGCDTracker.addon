@@ -1,15 +1,12 @@
 ## Title: Group GCD Tracker
-## Description: Per-skill GCD + proximity detonation tracker for 12-member groups.
-## Author: 
-## Version: 1.2
+## Description: Per-member GCD and Proximity Detonation tracker for groups of up to 12.
+## Author:
+## Version: 2.0
+## AddOnVersion: 200
 ## APIVersion: 101042
 ## SavedVariables: GroupGCDTracker_SavedVars
-
-## -- NOTE: ESO requires the addon folder name to match this filename.
-## -- Rename the containing folder to "GroupGCDTracker" for ESO to load this addon.
-
-## -- Combat library priority: LibCombat → LibCombat2 → native EVENT_COMBAT_EVENT
-## OptionalDependsOn: LibCombat LibCombat2 LibAddonMenu-2.0
+## OptionalDependsOn: LibAddonMenu-2.0
 
 GroupGCDTracker.lua
+GroupGCDTracker_Settings.lua
 GroupGCDTracker_UI.lua

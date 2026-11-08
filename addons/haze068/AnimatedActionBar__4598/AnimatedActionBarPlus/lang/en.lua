@@ -304,6 +304,20 @@ local strings =
     SI_AAB_SETEND_BADVAL = "Invalid value. Use a number of milliseconds or 'auto'.",
     SI_AAB_SETEND_SET    = "End animation for %s (id %d) will now fire %dms after cast.",
     SI_AAB_SETEND_CLEARED= "Fire-timing override for id %d cleared (back to the ability's own duration).",
+    SI_AAB_CMD_EXPIRE    = "turn the expire animation on/off for one ability (no value = toggle)",
+    SI_AAB_EXPIRE_SKILL_OFF = "Expire animation for %s (id %d) is now OFF.",
+    SI_AAB_EXPIRE_SKILL_ON  = "Expire animation for %s (id %d) is now ON again.",
+    SI_AAB_DBG_EXPIRE_OFF   = "expire off",
+    SI_AAB_EXPIRE_SKILLS_HDR  = "Expire per Ability",
+    SI_AAB_EXPIRE_SKILLS_DESC = "Turn the expire animation off for single slotted abilities. The setting is stored per ability, so it also applies if the skill is slotted on both bars.",
+    SI_AAB_EXPIRE_SKILL_TT    = "On = this ability plays the expire animation. Off = nothing fires when its effect runs out.",
+    SI_AAB_EXPIRE_SKILL_EMPTY = "empty",
+    SI_AAB_EXPIRE_SKILL_BAR   = "Bar %d",
+    SI_AAB_EXPIRE_SKILL_PICK    = "Ability",
+    SI_AAB_EXPIRE_SKILL_PICK_TT = "Pick one of your currently slotted abilities (both bars).",
+    SI_AAB_EXPIRE_SKILL_TOGGLE  = "Expire animation for this ability",
+    SI_AAB_EXPIRE_DISABLED_CLEAR    = "Re-enable all abilities",
+    SI_AAB_EXPIRE_DISABLED_CLEAR_TT = "Turns the expire animation back on for every ability you switched off.",
 
     -- help / diagnostics window
 
@@ -348,15 +362,9 @@ local strings =
     SI_AAB_CONTACT_DONATE_BTN_TT  = "Opens the in-game mail panel with recipient and title prefilled.",
 
     SI_AAB_SUB_INFO               = "Info",
-    SI_AAB_SUB_INFO_TT            = "Compatibility notes for using AnimatedActionBar+ together with other addons.",
-    SI_AAB_INFO_THINFRAMES        = "If you use the \"Frame Appearance: Thin Frames\" option from this addon, please turn OFF the following in FancyActionBar+ under UI Customization -> Custom Frames Keyboard:\n\n" ..
-                                        "  - \"Hide Default Frames\"\n" ..
-                                        "  - \"Use Thin Frames\"\n\n" ..
-                                        "Both addons drawing thin frames at once causes doubled or misaligned frames.",
-    SI_AAB_INFO_GAMEPAD           = "Playing on controller?\n\n" ..
-                                        "If your abilities are shifted, misaligned or otherwise displayed incorrectly, please turn OFF \"Gamepad Mode\" in FancyActionBar+.\n\n" ..
-                                        "Controller players should also turn OFF \"Use Thin Frame\" in both FancyActionBar+ and AnimatedActionBar+ for the best result.\n\n" ..
-                                        "If that still does not fix it, please contact me on Discord (haze.3169) so we can sort the problem out together.",
+    SI_AAB_SUB_INFO_TT            = "What AnimatedActionBar+ can do, all commands and compatibility notes for other addons.",
+    SI_AAB_INFO_THINFRAMES        = "Using FancyActionBar+? Please turn OFF the following in FancyActionBar+:\n\n  - \"Custom Frames\" under \"UI Customizations\"\n  - \"Show keyboard text\" under \"General\"\n\nOtherwise both addons draw over each other and frames or keybind text end up doubled or misaligned.",
+    SI_AAB_INFO_GAMEPAD           = "Playing on controller?\n\nIf your abilities are shifted, misaligned or otherwise displayed incorrectly, please turn OFF \"Gamepad Mode\" in FancyActionBar+.\n\nController players should also turn OFF \"Use Thin Frame\" in both FancyActionBar+ and AnimatedActionBar+ for the best result.",
 
     SI_AAB_DLG_TITLE              = "AnimatedActionBar+",
     SI_AAB_DLG_BODY               = "Thanks for installing AnimatedActionBar+!\n\n" ..
@@ -421,6 +429,7 @@ local strings =
     SI_AAB_UI_THEME_TT            = "Look of this window. Switches live, no reload needed.",
     SI_AAB_UI_THEME_NEBULA        = "Star Nebula",
     SI_AAB_UI_THEME_LACE          = "Raven Lace",
+    SI_AAB_UI_THEME_CLASSIC       = "Classic",
     SI_AAB_UI_BGMOTION            = "Animated background",
     SI_AAB_UI_BGMOTION_TT         = "Drifting nebula, twinkling stars and shooting stars in the studio. Only runs while the studio is open. Turn off for a still background.",
     SI_AAB_UI_KB_THEME            = "Design",
@@ -436,6 +445,18 @@ local strings =
     SI_AAB_ULTGP_FULLCOLOR_TT     = "Color of frame and fill while the ultimate is ready.",
     SI_AAB_ULTGP_RAINBOW          = "Rainbow when full",
     SI_AAB_ULTGP_RAINBOW_TT       = "Frame and fill cycle through the rainbow while the ultimate is ready. Uses the rainbow saturation and lightness.",
+
+    -- info
+    SI_AAB_INFO_VERSION           = "AnimatedActionBar+ 2.2.0 by @haze068 - animations, glow and pulse for your action bar, in keyboard and controller mode.",
+    SI_AAB_INFO_HDR_FEATURES      = "Features",
+    SI_AAB_INFO_FEATURES          = "- Studio (/aab ui): every setting with live preview, two designs (Star Nebula, Raven Lace), keyboard and controller layout.\n- Presets: Minimal, Standard, Flashy in one click.\n- Press animation: Bounce, Flash, Shake or Tilt, adjustable strength and reset time, also on procs and the quickslot.\n- Expire animation: own style, strength and glow when a buff of a slotted skill runs out, length coupled to the skill duration, per skill adjustable with /aab setend.\n- Glow: color, duration, padding and intensity, separate settings for the ultimate.\n- Proc pulse: Smooth, Blink or Strobe, optional second color.\n- Ultimate: press glow, ready border (Smooth, Blink, Rainbow), controller progress frame (5 edge and 3 glow styles) and the gamepad ultimate frame like in FAB+.\n- Frames: Thin Frames with 8 edge styles, frame alpha and the PC bar layout in controller mode.\n- Performance: effect ID filter, slot lookup, combat-only, slow rainbow and more for big fights.\n- Special titles: selected players get a colored title on unit frames and colored chat, visible to everyone with AnimatedActionBar+.",
+    SI_AAB_INFO_HDR_COMMANDS      = "Commands",
+    SI_AAB_INFO_COMMANDS          = "/aab - open the settings\n/aab ui [page] - open the studio\n/aab info - open this tab\n/aab id (/aabids) - show slotted ability IDs\n/aab setend <id> <ms|auto> - when the expire animation of a skill fires\n/aab debug - full status dump\n/aab cmd (/aabcmds) - command list in chat",
+    SI_AAB_INFO_HDR_COMPAT        = "Compatibility",
+
+    -- support
+    SI_AAB_INFO_HDR_SUPPORT       = "Support",
+    SI_AAB_INFO_SUPPORT           = "Problems with your frames or the action bar? Please contact me on Discord: haze.3169\n\nImportant: please send me a message with your problem right away. I get a lot of friend requests, many of them from bots - requests without a message cannot be answered.",
 }
 
 for stringId, stringValue in pairs(strings) do

@@ -53,7 +53,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Volette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FeynmanRules/Volette__3940) | FeynmanRules | PC / Mac | 0.1.5 |
 | [Votan's Achievements Overview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Achievements-Overview__1001) | votan | PC / Mac | 1.6.8 |
 | [Votan's Adaptive (Video-)Settings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Adaptive-Video--Settings__1239) | votan | PC / Mac | 1.5.9 |
-| [Votan's Addon List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Addon-List__2094) | votan | PC / Mac | 1.10.0 |
+| [Votan's Addon List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Addon-List__2094) | votan | PC / Mac | 1.10.1 |
 | [Votan's Addon List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Votan-s-Addon-List__e0ba98a7-7f17-4c46-8ef2-b2dfc1a2f1e1) | votan73 | Console | — |
 | [Votan's Advanced Settings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Advanced-Settings__1482) | votan | PC / Mac | 1.2.5 |
 | [Votan's Cartographer (for Harven's Custom Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Cartographer-for-Harven-s-Custom-Map-Pins__917) | votan | PC / Mac | 1.3.7 |
@@ -62,9 +62,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Votan's Craglorn Dungeon Codes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Craglorn-Dungeon-Codes__3529) | votan | PC / Mac | 1.0.5 |
 | [Votan's Darker Nights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Darker-Nights__1558) | votan | PC / Mac | 1.1.1 |
 | [Votan's Fish Fillet](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Fish-Fillet__958) | votan | PC / Mac | 1.6.5 |
-| [Votan's Fisherman](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Fisherman__918) | votan | PC / Mac | 1.16.3 |
+| [Votan's Fisherman](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Fisherman__918) | votan | PC / Mac | 1.16.4 |
 | [Votan's Fisherman](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Votan-s-Fisherman__033f7a4a-8918-4753-be5b-2874afa50230) | votan73 | Console | — |
-| [Votan's Group Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Group-Pins__1619) | votan | PC / Mac | 1.2.19 |
+| [Votan's Group Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Group-Pins__1619) | votan | PC / Mac | 1.3.0 |
 | [Votan's Housing Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Housing-Filter__2884) | votan | PC / Mac | 1.0.3 |
 | [Votan's Improved House Tours](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-House-Tours__3950) | votan | PC / Mac | 1.0.2 |
 | [Votan's Improved Locations](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Locations__1096) | votan | PC / Mac | 1.23.7 |
@@ -76,7 +76,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Votan's Keybinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Keybinder__1174) | votan | PC / Mac | 1.4.6 |
 | [Votan's Lore Library Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Lore-Library-Search__1248) | votan | PC / Mac | 1.1.10 |
 | [Votan's Map Pin Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Map-Pin-Colors__1843) | votan | PC / Mac | 1.2.3 |
-| [Votan's Minimap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Minimap__1399) | votan | PC / Mac | 2.2.2 |
+| [Votan's Minimap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Minimap__1399) | votan | PC / Mac | 2.3.0 |
 | [Votan's Minimap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Votan-s-Minimap__afe5bbbc-a2e0-48de-965a-29eff222393f) | votan73 | Console | — |
 | [Votan's Quickslot Copy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Quickslot-Copy__3447) | votan | PC / Mac | 1.0.1 |
 | [Votan's Rune Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Rune-Tooltips__915) | votan | PC / Mac | 1.4.8 |

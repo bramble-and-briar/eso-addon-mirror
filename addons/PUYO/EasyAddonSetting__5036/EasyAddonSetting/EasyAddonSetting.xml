@@ -1,0 +1,18 @@
+<GuiXml>
+    <Controls>
+        <Control name="CASW_AddOnRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="26"/>
+            <OnMouseUp>CASW_OnRowMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Button name="$(parent)Check" inherits="ZO_CheckButton">
+                    <Anchor point="LEFT" offsetX="4"/>
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontGameMedium" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER">
+                    <Dimensions y="26"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Check" relativePoint="RIGHT" offsetX="6"/>
+                    <Anchor point="RIGHT" offsetX="-6"/>
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

@@ -51,6 +51,16 @@ MCT.CombatFontStyles = MCT.CombatFontStyles or {
         fontFace = "EsoUI/Common/Fonts/Univers67.otf",
         burstFace = "ZoFontCombat",
     },
+    -- Sweetheart: ESO's handwritten font, glossy hearts and sparkles around
+    -- each number, softer wording. Pairs with the SWEETHEART preset (pastel
+    -- palette + bouncy pop animation).
+    CUTE = {
+        name = "Sweetheart (cute)",
+        fontFace = "$(HANDWRITTEN_FONT)",
+        burstFace = "$(HANDWRITTEN_FONT)",
+        fontEffect = "soft-shadow-thick",
+        cute = true,
+    },
 }
 
 -- EventTextures: maps event code strings to ESO DDS icon file paths.
@@ -87,8 +97,9 @@ end
 
 -- GetCombatFontStyleKey: resolves SavedVariables value to a valid style key.
 function MCT:GetCombatFontStyleKey()
-    local key = tostring((self.sv and self.sv.combatFontStyle) or "DEFAULT")
-    if not self.CombatFontStyles[key] then
+    local sv = MCT.sv
+    local key = sv and sv.combatFontStyle or "DEFAULT"
+    if not MCT.CombatFontStyles[key] then
         key = "DEFAULT"
     end
     return key
@@ -101,7 +112,7 @@ end
 
 -- GetCombatFontStyleChoices: returns ordered labels and values for dropdowns.
 function MCT:GetCombatFontStyleChoices()
-    local order = { "DEFAULT", "HEARTS", "HEARTS_WHITE", "IMPERIAL", "ARCANE", "WARDRUM" }
+    local order = { "DEFAULT", "CUTE", "HEARTS", "HEARTS_WHITE", "IMPERIAL", "ARCANE", "WARDRUM" }
     local labels, values = {}, {}
     for i = 1, #order do
         local key = order[i]
@@ -114,18 +125,31 @@ function MCT:GetCombatFontStyleChoices()
     return labels, values
 end
 
+-- Heart decoration lines are identical for a given (path, count), so build
+-- each one once instead of on every label.
+local heartLineCache = {}
+
 local function BuildHeartTextureLine(iconPath, iconCount)
     local count = tonumber(iconCount) or 3
     if count < 1 then count = 1 end
 
-        local resolvedPath = tostring(iconPath or "MyCombatText/media/glossy-pink.dds")
+    local resolvedPath = tostring(iconPath or "MyCombatText/media/glossy-pink.dds")
+    local byPath = heartLineCache[resolvedPath]
+    if not byPath then
+        byPath = {}
+        heartLineCache[resolvedPath] = byPath
+    end
+    local cached = byPath[count]
+    if cached then return cached end
+
     local icon = "|t18:18:" .. resolvedPath .. "|t"
     local line = {}
     for i = 1, count do
-        line[#line + 1] = icon
+        line[i] = icon
     end
-
-    return table.concat(line, "  ")
+    cached = table.concat(line, "  ")
+    byPath[count] = cached
+    return cached
 end
 
 -- GetCachedCombatFont: style-aware cached font descriptor.
@@ -140,15 +164,22 @@ function MCT:GetCachedCombatFont(size, useBurstFace)
 
     numericSize = math.max(8, math.floor((numericSize * sizeMultiplier) + 0.5))
 
+    -- Nested lookup [style][burst|normal][size] — no per-call key string or
+    -- temporary table (the old version allocated both on every label).
     local styleKey = self:GetCombatFontStyleKey()
-    local style = self:GetCombatFontStyle()
-    local face = (useBurstFace and style.burstFace) or style.fontFace or "EsoUI/Common/Fonts/FTN57.otf"
-    local cacheKey = table.concat({ styleKey, tostring(face), tostring(numericSize), useBurstFace and "burst" or "normal" }, "|")
+    local byStyle = self._fontCacheByStyle[styleKey]
+    if not byStyle then
+        byStyle = { [true] = {}, [false] = {} }
+        self._fontCacheByStyle[styleKey] = byStyle
+    end
+    local bySize = byStyle[useBurstFace and true or false]
 
-    local font = self._fontCacheByStyle[cacheKey]
+    local font = bySize[numericSize]
     if not font then
-        font = tostring(face) .. "|" .. tostring(numericSize) .. "|soft-shadow-thick"
-        self._fontCacheByStyle[cacheKey] = font
+        local style = self.CombatFontStyles[styleKey] or self.CombatFontStyles.DEFAULT
+        local face = (useBurstFace and style.burstFace) or style.fontFace or "EsoUI/Common/Fonts/FTN57.otf"
+        font = tostring(face) .. "|" .. tostring(numericSize) .. "|" .. (style.fontEffect or "soft-shadow-thick")
+        bySize[numericSize] = font
     end
     return font
 end
@@ -164,18 +195,87 @@ end
 
 -- StylizeDisplayText: applies the selected text style decoration to a label
 -- payload while preserving existing color markup inside `text`.
-function MCT:StylizeDisplayText(text, eventCode)
-    local s = tostring(text or "")
-    local styleKey = self:GetCombatFontStyleKey()
-    local heartCount = tonumber(self.sv and self.sv.heartCount) or 3
-    local heartsEnabled = (self.sv and self.sv.enableHeartTextures) == true
+-- ---------------------------------------------------------------
+-- Sweetheart (CUTE) decorations.
+-- Inline textures (|t...|t) sized in % of the font height so they scale
+-- with every font size. Tinted pieces use ESO's ":inheritColor" flag so
+-- the white heart / sparkle take on the label's own pastel colour.
+-- ---------------------------------------------------------------
+local MEDIA = "MyCombatText/media/"
+local function Icon(file, pct, tinted)
+    return "|t" .. pct .. "%:" .. pct .. "%:" .. MEDIA .. file .. (tinted and ":inheritColor" or "") .. "|t"
+end
+local PINK_HEART = function(p) return Icon("glossy-pink-heart.dds", p, false) end
+local TINT_HEART = function(p) return Icon("soft-heart.dds", p, true) end
+local SPARKLE    = function(p) return Icon("sparkle.dds", p, true) end
 
-        if styleKey == "HEARTS" and heartsEnabled then
-            local top = BuildHeartTextureLine("MyCombatText/media/glossy-pink.dds", heartCount)
-            return top .. "\n" .. s
-        elseif styleKey == "HEARTS_WHITE" and heartsEnabled then
-            local top = BuildHeartTextureLine("MyCombatText/media/glossy-white.dds", heartCount)
-            return top .. "\n" .. s
+-- [isCrit][eventCode] = { left, right }. `nil` sides are left bare.
+local CUTE_DECOR = { [false] = {}, [true] = {} }
+local function Decor(code, normal, crit)
+    CUTE_DECOR[false][code] = normal
+    CUTE_DECOR[true][code] = crit or normal
+end
+Decor("healing",     { TINT_HEART(90) },                       { PINK_HEART(110), PINK_HEART(110) })
+Decor("overhealing", { TINT_HEART(70) })
+Decor("damage",      { SPARKLE(80) },                          { SPARKLE(105), SPARKLE(105) })
+Decor("dot",         { SPARKLE(60) })
+Decor("damageTaken", { TINT_HEART(75) },                       { TINT_HEART(95), TINT_HEART(95) })
+Decor("burst",       { PINK_HEART(120) .. SPARKLE(90), SPARKLE(90) .. PINK_HEART(120) })
+Decor("shieldbreak", { SPARKLE(100), SPARKLE(100) })
+for _, code in ipairs({ "dodge", "stun", "fear", "charm", "silence", "disorient", "offbalance", "combatState" }) do
+    Decor(code, { SPARKLE(80), SPARKLE(80) })
+end
+Decor("alert",           { PINK_HEART(95), PINK_HEART(95) })
+Decor("resourceWarning", { PINK_HEART(95), PINK_HEART(95) })
+for _, code in ipairs({ "points", "resource", "resourceRestore", "energize", "drain", "miss", "immune", "parried", "reflected" }) do
+    Decor(code, { SPARKLE(70) })
+end
+
+-- Built decorated prefixes/suffixes, cached per decor row and colour.
+local cuteDecorCache = setmetatable({}, { __mode = "k" })
+
+local function CuteDecorate(s, eventCode, isCrit)
+    local row = CUTE_DECOR[isCrit and true or false][eventCode]
+    if not row then return s end
+
+    -- Tinted icons must sit inside a colour span to inherit it.
+    local hex = string.match(s, "^|c(%x%x%x%x%x%x)") or "ffffff"
+    local byHex = cuteDecorCache[row]
+    if not byHex then
+        byHex = {}
+        cuteDecorCache[row] = byHex
+    end
+    local pair = byHex[hex]
+    if not pair then
+        pair = {
+            row[1] and ("|c" .. hex .. row[1] .. "|r ") or "",
+            row[2] and (" |c" .. hex .. row[2] .. "|r") or "",
+        }
+        byHex[hex] = pair
+    end
+    return pair[1] .. s .. pair[2]
+end
+
+function MCT:StylizeDisplayText(text, eventCode, isCrit)
+    local s = text
+    if type(s) ~= "string" then s = tostring(text or "") end
+    local styleKey = self:GetCombatFontStyleKey()
+    if styleKey == "DEFAULT" then
+        return s -- fast path: most users never change the style
+    end
+    if styleKey == "CUTE" then
+        return CuteDecorate(s, eventCode, isCrit)
+    end
+
+    local sv = self.sv
+    local heartsEnabled = sv and sv.enableHeartTextures == true
+
+    if styleKey == "HEARTS" and heartsEnabled then
+        local top = BuildHeartTextureLine("MyCombatText/media/glossy-pink.dds", sv.heartCount)
+        return top .. "\n" .. s
+    elseif styleKey == "HEARTS_WHITE" and heartsEnabled then
+        local top = BuildHeartTextureLine("MyCombatText/media/glossy-white.dds", sv.heartCount)
+        return top .. "\n" .. s
     elseif styleKey == "IMPERIAL" then
         return "[ " .. s .. " ]"
     elseif styleKey == "ARCANE" then
@@ -195,6 +295,51 @@ function MCT:ColorText(hex, text, suffix)
         return "|c" .. tostring(hex) .. tostring(text) .. tostring(suffix) .. "|r"
     end
     return "|c" .. tostring(hex) .. tostring(text) .. "|r"
+end
+
+-- ColorTextCached: like ColorText(hex, text) but memoizes the result per
+-- (text, hex) pair. Used for fixed labels ("MISS", "STUN", "LOW HEALTH!")
+-- that are shown repeatedly, so steady-state combat creates no new strings.
+-- Do not use it for numeric values (unbounded key space).
+local colorTextCache = {}
+
+-- Softer wording for fixed labels while the Sweetheart style is active.
+local CUTE_WORDS = {
+    ["DODGE"] = "dodged~",            ["TARGET DODGE"] = "they dodged~",
+    ["STUN"] = "dizzy~",              ["TARGET STUN"] = "stunned~",
+    ["FEAR"] = "eep! feared",         ["TARGET FEAR"] = "scared~",
+    ["CHARM"] = "charmed~",           ["TARGET CHARM"] = "charmed~",
+    ["SILENCE"] = "shh~ silenced",    ["TARGET SILENCE"] = "shh~",
+    ["DISORIENT"] = "woozy~",         ["TARGET DISORIENT"] = "woozy~",
+    ["OFFBALANCE"] = "wobbly~",       ["TARGET OFFBALANCE"] = "wobbly~",
+    ["IMMOBILIZED"] = "stuck~",       ["TARGET IMMOBILIZED"] = "stuck~",
+    ["MISS"] = "oopsie~",             ["IMMUNE"] = "immune~",
+    ["PARRIED"] = "parried~",         ["REFLECTED"] = "bounced back~",
+    ["BLOCK!"] = "block it!",         ["EXPLOIT!"] = "exploit!",
+    ["INTERRUPT!"] = "interrupt!",    ["DODGE!"] = "roll away!",
+    ["CLEANSE!"] = "cleanse!",        ["ULTIMATE READY!"] = "ultimate ready~",
+    ["LOW HEALTH!"] = "low health!",  ["LOW MAGICKA!"] = "low magicka!",
+    ["LOW STAMINA!"] = "low stamina!",
+    ["Entered Combat"] = "let's go~", ["Left Combat"] = "phew~ all safe",
+}
+
+function MCT:ColorTextCached(hex, text)
+    hex = hex or "ffffff"
+    local sv = MCT.sv
+    if sv and sv.combatFontStyle == "CUTE" then
+        text = CUTE_WORDS[text] or text
+    end
+    local byText = colorTextCache[text]
+    if not byText then
+        byText = {}
+        colorTextCache[text] = byText
+    end
+    local s = byText[hex]
+    if not s then
+        s = "|c" .. tostring(hex) .. tostring(text) .. "|r"
+        byText[hex] = s
+    end
+    return s
 end
 
 -- FormatShortNumber: converts a large integer into a human-readable

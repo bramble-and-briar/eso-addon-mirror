@@ -12,13 +12,13 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HARDCORE](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/HARDCORE__4480) | Wrynch | PC / Mac | 1.5.1 |
 | [Hardened Ward Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Hardened-Ward-Tracker__268f4e04-0e98-4b2c-874e-c9da484f991e) | codeWarrior82 | Console | — |
 | [Harven's Aliases](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Aliases__380) | Harven | PC / Mac | 1.5.0 |
-| [Harven's All Experience Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-All-Experience-Bars__467) | Harven | PC / Mac | 2.8.4 |
+| [Harven's All Experience Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-All-Experience-Bars__467) | Harven | PC / Mac | 2.8.5 |
 | [Harven's AS to LAM adapter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-AS-to-LAM-adapter__937) | Harven | PC / Mac | 2.3.0 |
 | [Harven's Attribute Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Attribute-Bars__527) | Harven | PC / Mac | 1.6a |
 | [Harven's Bag Space (in the Loot Window)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Bag-Space-in-the-Loot-Window__619) | Harven | PC / Mac | 1.1e |
 | [Harven's Book Copy (to the system Clipboard)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Book-Copy-to-the-system-Clipboard__453) | Harven | PC / Mac | 1.3 |
 | [Harven's Chat Completion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Chat-Completion__555) | Harven | PC / Mac | 1.1n |
-| [Harven's Custom Map Pins (Markers)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Custom-Map-Pins-Markers__357) | Harven | PC / Mac | 3.4.2 |
+| [Harven's Custom Map Pins (Markers)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Custom-Map-Pins-Markers__357) | Harven | PC / Mac | 3.4.3 |
 | [Harven's Custom Map Pins World Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Harven-s-Custom-Map-Pins-World-Pins__4018) | votan | PC / Mac | 0.5.1 |
 | [Harven's Durability and Charges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Durability-and-Charges__506) | Harven | PC / Mac | 1.5.0 |
 | [Harven's Dwemer Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Dwemer-Clock__642) | Harven | PC / Mac | 1.3 |
@@ -82,7 +82,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Hide Antiquarian's Eye Prompt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Hide-Antiquarian-s-Eye-Prompt__9d18decc-c49a-447c-afad-03a243ddfc6a) | code65536 | Console | — |
 | [Hide Antiquarian's Eye Prompt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Hide-Antiquarian-s-Eye-Prompt__4902) | code65536 | PC / Mac | 1.0.0 |
 | [Hide Completed Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Hide-Completed-Tome-Challenges__4811) | Infinite_1st | PC / Mac | 1.0 |
+| [Hide Friend Status messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-Friend-Status-messages__5034) | lousytourist | PC / Mac | 2026.11.07 |
 | [Hide Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Hide-Group-Frames__2159) | init3 | PC / Mac | 1.0 |
+| [Hide MOTD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-MOTD__5033) | lousytourist | PC / Mac | 2026.11.07 |
 | [Hide Performance Meter Background](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zinival/Hide-Performance-Meter-Background__1567) | Zinival | PC / Mac | 1.1 |
 | [Hide Scrying Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Hide-Scrying-Tooltips__4782) | Beacze | PC / Mac | 1.0.1 |
 | [Hide Smugger Fee](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Hide-Smugger-Fee__3000) | kawamonkey | PC / Mac | 1.0 |

@@ -8,8 +8,8 @@
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4808",
@@ -18,7 +18,7 @@
     "CraftingDailyNotification"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4808/",
-  "fingerprint": "dd1668043e5092242e44ee2e5e3ce9a3cb02cd632906d20bfb52f943f16d1dcf",
+  "fingerprint": "3c88b0947836196e180213869e61961927b325189d1adbfcd9db591de157394f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17247.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17248.jpg",
@@ -31,11 +31,11 @@
   "source_id": "4808",
   "source_url": "https://www.esoui.com/downloads/info4808-CraftingDailyNotification.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 153,
     "favorites": 0,
-    "monthly_downloads": 5
+    "monthly_downloads": 48
   },
   "title": "CraftingDailyNotification",
-  "updated_at": 1788402991000,
-  "version": "1.0"
+  "updated_at": 1794038194000,
+  "version": "1.2"
 }

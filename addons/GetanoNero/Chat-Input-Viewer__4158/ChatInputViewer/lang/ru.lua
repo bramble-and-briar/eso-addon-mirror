@@ -28,6 +28,5 @@ local localization_strings = {
 }
 
 for stringId, stringValue in pairs(localization_strings) do
-  ZO_CreateStringId(stringId, stringValue)
-  SafeAddVersion(stringId, 1)
+  SafeAddString(_G[stringId], stringValue, 2)
 end

@@ -7,61 +7,23 @@ local SV_NAME = "CaracBuffDebuffSV" -- nom de la variable sauvegardée (inchang�
 -- Les réglages sont sauvegardés sous l'IDENTIFIANT (la clé à gauche, ex. "hawkEye"),
 -- jamais sous le libellé : changer un texte ne fait donc perdre aucun réglage.
 ------------------------------------------------------------
-local TEXT = {
-    gear = { tip = "Paramétrage du panneau." },
+local function T(name) return GetString(_G["CARACBUFFDEBUFF_" .. name]) end
 
-    account = {
-        label = "Paramètres communs au compte.",
-        tip   = "Cochée : position du panneau et paramètres communs au compte ; Décochée : position du panneau et paramètres propres au personnage.",
-    },
-    playerBuffs = {
-        label = "Bonus du joueur.",
-        tip   = "Cochée : Affiche tous les bonus (buffs) du joueur ; Décochée : n’affiche pas les bonus (buffs) du joueur.",
-    },
-    hawkEye = {
-        label = "Oeil de faucon (arc).",
-        tip   = "Cochée : Le bonus du passif Oeil de faucon (arc) s’affiche dans une couleur différente, la couleur change lorsque le stack maximum est atteint.",
-    },
-    othersBuffs = {
-        label = "Bonus des autres joueurs.",
-        tip   = "Cochée : Affiche tous les bonus (buffs) donnés par les autres joueurs ; Décochée : n’affiche pas les bonus (buffs) donnés par les autres joueurs.",
-    },
-    foodDrink = {
-        label = "Bonus de nourriture & boisson.",
-        tip   = "Cochée : Affiche le bonus de nourriture ou de boisson ; Décochée : n’affiche pas le bonus de nourriture ou de boisson.",
-    },
-    longBuffs = {
-        label = "Les bonus longs.",
-        tip   = "Cochée : Affiche les bonus longs ; Décochée : n’affiche pas les bonus longs.",
-    },
-    vampLycan = {
-        label = "Vampirisme & Lycanthropie.",
-        tip   = "Cochée : Affiche le niveau de vampirisme et la lycanthropie ; Décochée : n’affiche ni le vampirisme ni la lycanthropie.",
-    },
-    mundus = {
-        label = "Pierre de mundus.",
-        tip   = "Cochée : Affiche la pierre de mundus ; Décochée : n’affiche pas la pierre de mundus.",
-    },
-    esoPlus = {
-        label = "Abonnement ESO Plus.",
-        tip   = "Cochée : Affiche l’abonnement ESO Plus s’il est actif ; Décochée : ne l’affiche pas.",
-    },
-    permOthers = {
-        label = "Autres effets permanents.",
-        tip   = "Cochée : Affiche les autres effets permanents (passifs, mythiques) ; Décochée : ne les affiche pas.",
-    },
-    showDebuffs = {
-        label = "Afficher les malus (debuffs).",
-        tip   = "Cochée : Affiche tous les malus (debuffs) ; Décochée : n’affiche pas les malus (debuffs).",
-    },
-    taunt = {
-        label = "Provocation (couleur spéciale).",
-        tip   = "Cochée : Le malus Provocation sur la cible s’affiche dans une couleur différente ; Décochée : il s’affiche comme les autres malus.",
-    },
-    reset = {
-        label = "Réinitialiser",
-        tip   = "Remet le panneau à sa position d’origine et les boîtes à cocher à leur valeur initiale.",
-    },
+local TEXT = {
+    gear        = { tip = T("GEAR_TIP") },
+    account     = { label = T("ACCOUNT_LABEL"),     tip = T("ACCOUNT_TIP") },
+    playerBuffs = { label = T("PLAYERBUFFS_LABEL"), tip = T("PLAYERBUFFS_TIP") },
+    hawkEye     = { label = T("HAWKEYE_LABEL"),     tip = T("HAWKEYE_TIP") },
+    othersBuffs = { label = T("OTHERSBUFFS_LABEL"), tip = T("OTHERSBUFFS_TIP") },
+    foodDrink   = { label = T("FOODDRINK_LABEL"),   tip = T("FOODDRINK_TIP") },
+    longBuffs   = { label = T("LONGBUFFS_LABEL"),   tip = T("LONGBUFFS_TIP") },
+    vampLycan   = { label = T("VAMPLYCAN_LABEL"),   tip = T("VAMPLYCAN_TIP") },
+    mundus      = { label = T("MUNDUS_LABEL"),      tip = T("MUNDUS_TIP") },
+    esoPlus     = { label = T("ESOPLUS_LABEL"),     tip = T("ESOPLUS_TIP") },
+    permOthers  = { label = T("PERMOTHERS_LABEL"),  tip = T("PERMOTHERS_TIP") },
+    showDebuffs = { label = T("SHOWDEBUFFS_LABEL"), tip = T("SHOWDEBUFFS_TIP") },
+    taunt       = { label = T("TAUNT_LABEL"),       tip = T("TAUNT_TIP") },
+    reset       = { label = T("RESET_LABEL"),       tip = T("RESET_TIP") },
 }
 
 -- Contenu du menu de chaque panneau (dans l'ordre d'affichage). Le bouton « Réinitialiser » est ajouté en dernier.
@@ -312,11 +274,11 @@ end
 ------------------------------------------------------------
 -- OUTILS
 ------------------------------------------------------------
--- Durée restante : "6,3" (secondes), "2m" au-delà d'une minute
+-- Durée restante : "6,3" (secondes) en français et "6.3" en anglais, "2m" au-delà d'une minute
 local function FormatDuration(r)
     if r <= 0 then return "" end
     if r >= 60 then return zo_floor(r / 60) .. "m" end
-    return (string.format("%.1f", r):gsub("%.", ","))
+    return (string.format("%.1f", r):gsub("%.", T("DECIMAL")))
 end
 
 -- Ajoute un traitement à un événement de contrôle sans supprimer celui qui existe déjà
@@ -634,7 +596,8 @@ local function Classify(buffName, iconFile, abilityId, remaining, total)
 end
 
 -- Débuffs : mineOnly : ne garder que les effets lancés par toi
-local function CollectDebuffs(unitTag, mineOnly, color)
+-- tauntOnly : ne garder que la Provocation (utilisé quand « Afficher les malus » est décoché)
+local function CollectDebuffs(unitTag, mineOnly, color, tauntOnly)  -- MODIF
     local list = {}
     local now = GetFrameTimeSeconds()
     local useTauntColor = (unitTag == "reticleover") and GetOpt("debuff", "taunt")
@@ -644,7 +607,8 @@ local function CollectDebuffs(unitTag, mineOnly, color)
             GetUnitBuffInfo(unitTag, i)
 
         if iconFile and iconFile ~= "" and effectType == BUFF_EFFECT_TYPE_DEBUFF
-            and (castByPlayer or not mineOnly) then
+            and (castByPlayer or not mineOnly)
+            and (not tauntOnly or abilityId == CFG.tauntId) then  -- MODIF
             local remaining = (timeEnding and timeEnding > 0) and (timeEnding - now) or 0
             if remaining > CFG.minSeconds then
                 local text = zo_strformat(SI_ABILITY_NAME, buffName)
@@ -753,7 +717,7 @@ local function CollectLong()
     return list
 end
 
--- Panneau CaracPermanent : effets sans durée (mundus, abonnement, passifs, mythiques) + vampirisme & lycanthropie
+-- Panneau CaracPermanent : effets sans durée (mundus, abonnement, passifs, mythiques, malus) + vampirisme & lycanthropie
 local function CollectPermanent()
     local key = "perm"
     local list = {}
@@ -771,9 +735,10 @@ local function CollectPermanent()
             local remaining, total = Timing(timeStarted, timeEnding, now)
             local class = Classify(buffName, iconFile, abilityId, remaining, total)
             local isVamp = (class == "vampire")
+            local isDebuff = (effectType == BUFF_EFFECT_TYPE_DEBUFF)
 
-            -- Vampirisme et lycanthropie : acceptés quel que soit leur type ; les autres permanents : buffs seulement
-            if isVamp or (class == "perm" and effectType ~= BUFF_EFFECT_TYPE_DEBUFF) then
+            -- Vampirisme et lycanthropie, ou tout effet permanent (bonus comme malus)
+            if isVamp or class == "perm" then
                 local isMundus = FileMatches(iconFile, CFG.mundusIconPatterns)
                 local show
                 if isVamp then show = optVamp
@@ -784,9 +749,12 @@ local function CollectPermanent()
                     local text = zo_strformat(SI_ABILITY_NAME, buffName)
                     if not isVamp and stackCount and stackCount > 1 then text = text .. " x" .. stackCount end
 
+                    -- Malus permanent : couleur des debuffs subis ; sinon couleur des permanents
+                    local color, shown = CFG.permanentColor, 0
+                    if isDebuff and not isVamp then color = CFG.debuffColor end
+
                     -- Vampirisme : si une minuterie existe et qu'il reste peu de temps (changement de niveau proche),
                     -- on affiche la durée et le nom prend la couleur du cooldown
-                    local color, shown = CFG.permanentColor, 0
                     if isVamp and remaining > 0 then
                         shown = remaining
                         if remaining <= CFG.cooldownSeconds then color = CFG.cooldownColor end
@@ -795,7 +763,6 @@ local function CollectPermanent()
                     list[#list + 1] = { icon = iconFile, name = text, remaining = shown,
                                         mine = true, color = color }
                 end
-
             end
         end
     end
@@ -866,9 +833,16 @@ local function Update()
     FillBlock(permBlock, CollectPermanent(), cursorMode)
 
     -- Debuffs de la cible
+    -- Provocation cochée : elle s'affiche même si « Afficher les malus » est décochée
     local debuffs = {}
-    if GetOpt("debuff", "showDebuffs") and DoesUnitExist("reticleover") then
-        debuffs = CollectDebuffs("reticleover", CFG.onlyMine, CFG.debuffcibleColor)
+    if DoesUnitExist("reticleover") then
+        local showAll   = GetOpt("debuff", "showDebuffs")
+        local showTaunt = GetOpt("debuff", "taunt")
+        if showAll then
+            debuffs = CollectDebuffs("reticleover", CFG.onlyMine, CFG.debuffcibleColor)
+        elseif showTaunt then
+            debuffs = CollectDebuffs("reticleover", CFG.onlyMine, CFG.debuffcibleColor, true)
+        end
     end
     FillBlock(debuffBlock, debuffs, cursorMode)
 
@@ -890,11 +864,11 @@ SLASH_COMMANDS["/caracids"] = function()
         local tag = ""
         local class = Classify(name, icon, abilityId, remaining, total)
         if class == "vampire" then
-            tag = CFG.lycanIds[abilityId] and " [LYCANTHROPIE]" or " [VAMPIRISME]"
-        elseif class == "food" then tag = " [NOURRITURE]"
-        elseif class == "long" then tag = " [LONG]"
-        elseif class == "perm" then tag = " [PERMANENT]" end
-        d(string.format("%s : %s (cumuls : %d, reste : %ds, durée totale : %ds) %s%s",
+            tag = " " .. (CFG.lycanIds[abilityId] and T("TAG_LYCAN") or T("TAG_VAMP"))
+        elseif class == "food" then tag = " " .. T("TAG_FOOD")
+        elseif class == "long" then tag = " " .. T("TAG_LONG")
+        elseif class == "perm" then tag = " " .. T("TAG_PERM") end
+        d(string.format(T("IDS_FORMAT"),
             zo_strformat(SI_ABILITY_NAME, name), tostring(abilityId), stackCount or 0,
             zo_round(remaining), zo_round(total), tostring(icon), tag))
     end
@@ -904,10 +878,10 @@ end
 -- COMMANDE /caracidscible : liste les effets de la cible visée (lecture après 5 secondes)
 ------------------------------------------------------------
 SLASH_COMMANDS["/caracidscible"] = function()
-    d("Vise la cible : lecture dans 5 secondes...")
+    d(T("TARGET_PROMPT"))
     zo_callLater(function()
         if not DoesUnitExist("reticleover") then
-            d("Aucune cible visée.")
+            d(T("TARGET_NONE"))
             return
         end
         local now = GetFrameTimeSeconds()
@@ -915,7 +889,7 @@ SLASH_COMMANDS["/caracidscible"] = function()
             local name, started, ending, _, stackCount, icon, _, effectType, _, _, abilityId, _, castByPlayer =
                 GetUnitBuffInfo("reticleover", i)
             local remaining = (ending and ending > 0) and (ending - now) or 0
-            d(string.format("%s : %s (type : %s, lancé par moi : %s, cumuls : %d, reste : %ds) %s",
+            d(string.format(T("TARGET_FORMAT"),
                 zo_strformat(SI_ABILITY_NAME, name), tostring(abilityId), tostring(effectType),
                 tostring(castByPlayer), stackCount or 0, zo_round(remaining), tostring(icon)))
         end

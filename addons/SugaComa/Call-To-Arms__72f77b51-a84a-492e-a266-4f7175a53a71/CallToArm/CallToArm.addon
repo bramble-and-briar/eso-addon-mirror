@@ -1,10 +1,12 @@
 ﻿## Title: CallToArm
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Version: V1.1.6-test5
-## APIVersion: 101051
+## Version: 1.2.2
+## APIVersion: 101051 101050
 ## Description: CallToArm — Guild-focused Call-to-Arms alerts for Cyrodiil.
 ## SavedVariables: CallToArm_SV
 ## OptionalDependsOn: LibHarvensAddonSettings LibConsoleDialogs
+
+
 
 
 ; DISCLAIMER:
@@ -15,7 +17,7 @@
 ; You can read the full terms at:
 ; https://account.elderscrollsonline.com/add-on-terms
 
-
+FrameworkSettings.lua
 CallToArm_Strings.lua
 CallToArm_Config.lua
 CallToArm_Guild.lua

@@ -1,6 +1,6 @@
 # What Drops Here? (Beta)
 
-> **Beta-Version 0.2.0.** Die Grundfunktionen sind getestet, aber vieles lässt sich allein nicht in absehbarer Zeit prüfen:
+> **Beta-Version 0.3.0.** Die Grundfunktionen sind getestet, aber vieles lässt sich allein nicht in absehbarer Zeit prüfen:
 > Verliese und Prüfungen, Weltbosse, Taschendiebstahl, Diebstahl, Spuren, andere Auto-Loot-Addons, Gamepad-Modus.
 > Rückmeldungen sind sehr willkommen, siehe [Beta-Rückmeldung](#beta-rückmeldung).
 
@@ -37,8 +37,13 @@ Die Statistik gilt pro Quelle und Zone und für alle Charaktere deines Accounts.
 Im Spiel unter *Einstellungen → Erweiterungen → What Drops Here?* oder mit `/wdh_menu` (benötigt LibAddonMenu-2.0).
 
 **Alle Plünderungen werden immer gespeichert.** Die Anzeige-Einstellungen bestimmen nur, was am Fadenkreuz erscheint:
-- Anzeige an/aus, ab welcher Qualität, wie viele Einträge
-- nach Art der Quelle: **Feinde** (auch lebende), **Truhen und Behälter**, **Rohstoffe**, **Kleintiere und Sonstiges**, **Diebstahl**
+- Anzeige an/aus, wie viele Einträge
+- **je Art der Quelle eine eigene Schwelle**: „Aus" oder ab welcher Qualität. Arten: **Feinde** (auch lebende),
+  **Truhen und Behälter**, **Rohstoffe**, **Kleintiere und Sonstiges**, **Diebstahl**.
+  So zeigt z. B. ein Farm-Charakter bei Rohstoffen schon grüne Funde, bei Feinden erst lila.
+
+**Je Charakter:** Jeder Charakter hat seine eigenen Anzeige-Einstellungen; im Menü unter *Einstellungen anderer Charaktere*
+lassen sich die eines anderen übernehmen. Die gesammelten Daten gelten weiterhin für den ganzen Account.
 
 **Mit Namen anzeigen ab Qualität:** darunter erscheinen Items zusammengefasst in ihrer Kategorie, darüber einzeln
 mit Namen. Weil immer alles mit Item-ID gespeichert wird, wirkt die Einstellung sofort auch auf alle bisherigen Funde.
@@ -58,10 +63,10 @@ erscheint bei einem fremden Behälter die Diebstahl-Statistik.
 | `/wdh_zones` | alle Zonen mit gespeicherten Daten |
 | `/wdh_hud` | Anzeige am Fadenkreuz an/aus |
 | `/wdh_units` | Anzeige für lebende Ziele an/aus |
-| `/wdh_show 0-5` | Anzeige-Schwelle (Qualität) |
+| `/wdh_show 0-5` | Anzeige-Schwelle (Qualität) für alle eingeschalteten Arten; einzeln im Menü |
 | `/wdh_names 0-5` | am Fadenkreuz mit Namen ab Qualität, darunter als Kategorie |
 | `/wdh_debug` | Debug-Ausgabe im Chat an/aus |
-| `/wdh_reset ja` | alle Daten löschen |
+| `/wdh_reset ja` | alle Daten löschen (`yes` geht in jeder Sprache) |
 
 ## Bekannte Einschränkungen
 
@@ -87,10 +92,11 @@ Bei lebenden Zielen am Fadenkreuz werden nur die eindeutigen Zuordnungen gezeigt
   gehen die Plünderungen seit dem letzten Speichern verloren. Das betrifft alle Addons.
 - **Taschendiebstahl:** Der Name des Opfers kommt von der letzten Interaktion bzw. dem Ziel unter dem Fadenkreuz.
 
-### Nur Deutsch
+### Sprachen
 
-Alle Texte des Addons sind bisher deutsch, auch im englischen oder französischen Spielclient.
+Die Texte gibt es auf Deutsch und Englisch; andere Client-Sprachen zeigen Englisch.
 Die Erfassung funktioniert in jeder Sprache, Quellen werden aber unter ihrem Namen in der Client-Sprache gespeichert.
+Daten aus verschiedenen Client-Sprachen mischen sich deshalb nicht.
 
 ## Geplant
 
@@ -98,7 +104,7 @@ Die Erfassung funktioniert in jeder Sprache, Quellen werden aber unter ihrem Nam
   mehrerer Spieler zusammenführt. Eigene und gemeinsame Daten sollen getrennt sichtbar bleiben.
 - **Feinere Anzeige:** z. B. für Rohstoffe die Spanne pro Plünderung (Minimum–Maximum) statt nur der Gesamtmenge.
 - **Heatmap:** Karte, wo bestimmte Rohstoffe oder Set-Gegenstände besonders häufig droppen, zum gezielten Farmen.
-- **Weitere Sprachen**, zuerst Englisch.
+- **Weitere Sprachen:** Übersetzungen (z. B. Französisch) sind willkommen, eine Vorlage ist `lang/en.lua`.
 
 ## Beta-Rückmeldung
 
@@ -114,3 +120,21 @@ Taschendiebstahl, Diebstahl, Spuren, Gamepad-Modus und andere Auto-Loot-Addons.
 
 Getestet mit *Much Smarter AutoLoot* und *Smarter AutoLoot*. Erfasst wird, was eine Quelle **angeboten** hat,
 nicht nur was genommen wurde. Die Filter deines Auto-Loot-Addons verfälschen die Statistik also nicht.
+
+## Installation
+
+ZIP von den [Releases](https://github.com/cudddel-spec/WhatDropsHere/releases) laden und nach
+`Dokumente\Elder Scrolls Online\live\AddOns\` entpacken, sodass dort der Ordner `WhatDropsHere` liegt.
+
+Optional: [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) für das Einstellungsmenü.
+
+## Entwicklung
+
+- Die Addon-Dateien liegen direkt im Hauptordner des Repositorys; ein Klon im `AddOns`-Ordner lässt sich sofort im Spiel testen.
+- `python tools/build_release.py` baut `dist/WhatDropsHere-<Version>.zip` mit nur den Dateien, die Spieler brauchen.
+- `docs/` enthält das Konzept mit Testprotokollen und offenen Fragen sowie die ESOUI-Beschreibungen (Deutsch und Englisch) und die Änderungsliste für ESOUI.
+- Fehler und Ideen gern als [Issue](https://github.com/cudddel-spec/WhatDropsHere/issues).
+
+## Lizenz
+
+MIT, siehe [LICENSE](LICENSE).

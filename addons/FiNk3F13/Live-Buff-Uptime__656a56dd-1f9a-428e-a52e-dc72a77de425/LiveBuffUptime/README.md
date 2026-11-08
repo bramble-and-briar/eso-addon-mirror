@@ -1,5 +1,42 @@
 # LiveBuffUptime
 
+2.4.9: Erkannte Bosse verwenden in ihrer Skills-Auswahl die gemeinsame
+Schadenszeit wie SimpleGroupDPS. Boss-DPS unten und die zugehoerigen Skill-DPS
+teilen denselben Nenner. Add-Schaden bleibt aus der Boss-Auswahl ausgeschlossen.
+Die Gruppenzeit wird auch in der PC-Testkopie separat von LibCombats aktiver
+Zeit erfasst. Normale Add-Einzelzeiten, Gesamtansicht und Schadenssummen bleiben
+erhalten. Der Schaden wird weiterhin selbst erfasst; keine Abhaengigkeit von
+oder Aenderung an SimpleGroupDPS. Neue Kaempfe speichern diese Gruppenzeit mit.
+
+2.4.8: Schaden und DPS stehen gesammelt unten auf der Skills-Seite. Alle Ziele
+zeigt Gesamtschaden und Gesamt-DPS; bei einem einzelnen Gegner zeigt derselbe
+Bereich ausschliesslich dessen Schaden und Ziel-DPS. Die doppelten Zahlen im
+oberen Beschreibungstext und unter den linken Zieleintraegen entfallen.
+Berechnung, Skill-Zeilen und aufgezeichnete Daten bleiben erhalten.
+
+2.4.7: Einzelziel-DPS verwenden die aktive Zeit des jeweiligen Gegners, wie
+die CMX-Zielliste. Auf PC wird dafuer direkt LibCombats unit.dpsstart/dpsend
+verwendet. Auf Konsole wird die Zeit pro Gegner aus dessen Schadensereignissen
+ermittelt. Skill-DPS behalten die gesamte Schadenszeit als Nenner, auch bei
+Zielauswahl; Gesamtwerte bleiben unveraendert. Einzelziel-DPS sind deshalb
+keine addierbaren Anteile der Gesamt-DPS mehr.
+
+2.4.6: Die Skills-Seite bietet links Alle Ziele und jeden einzeln erfassten
+Gegner. Gleichnamige Gegner bleiben anhand ihrer ID unterscheidbar. Die rechte
+Tabelle filtert Skills, Treffer und Schaden nach der Auswahl; der Gesamtschaden
+und die Gesamt-DPS bleiben unten sichtbar. Alle DPS-Anteile verwenden dieselbe
+Kampfzeit und ergeben zusammen die Gesamt-DPS. Neue Berichte speichern pro
+Gegner hoechstens zusammen 1024 Skill-Eintraege; unvollstaendige Einzelwerte
+werden gekennzeichnet. Alte Berichte ohne Ziel-Aufteilung behalten ihre
+Gesamtansicht. Die PC-Testkopie LiveBuffUptime2 bietet dieselbe Ansicht mit LibCombat.
+
+2.4.5: Die Skill-DPS-Zeit folgt jetzt der bestehenden SimpleGroupDPS-Anzeige:
+Kampfstart bis zum letzten gueltigen Schadensereignis, auch bei Gruppen- oder
+eingehendem Schaden. Ohne spaeteres Schadensereignis wird die laufende Kampfzeit
+verwendet; keine zusaetzliche Ein-Sekunden-Untergrenze. Der Zaehler selbst
+enthaelt weiterhin ausschliesslich eigenen Spieler-/Pet-Schaden. Die Korrektur
+frueher Anfangstreffer bleibt erhalten. SimpleGroupDPS wird nicht veraendert.
+
 2.4.4: Der native Skill-Zaehler startet bereits mit ESOs eigenem Kampfstatus.
 Eine spaetere LibCombat2-Startmeldung setzt laufende Rohsummen nicht zurueck.
 Damit bleiben Anfangstreffer auch dann erhalten, wenn die Bibliotheksmeldung

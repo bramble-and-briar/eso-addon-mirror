@@ -2,12 +2,12 @@
 ## Description: This AddOn shows the complete text of the Chat Input text field in a multi line textfield.
 ## APIVersion: 101051 101051
 ## Author: GetanoNero
-## Version: 1.3.1
-## AddOnVersion: 13
+## Version: 1.4.0
+## AddOnVersion: 14
 ##
 ## SavedVariables: ChatInputViewerVars
 ##
-## DependsOn: LibAddonMenu-2.0>=40
+## DependsOn: LibAddonMenu-2.0>=43
 ##
 ## OptionalDependsOn: pChat
 ##
@@ -20,7 +20,7 @@
 
 
 # Language files
-lang/en.lua
+lang/default.lua
 lang/$(language).lua
 
 # Addon base functions and code.

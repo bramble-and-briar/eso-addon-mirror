@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.11.04",
+	version = "2026.11.07",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -2962,7 +2962,7 @@ local function ChatterWhiteList(choice)
 	"Armory",
 	}
 	for _, option in ipairs(options) do
-		if string.find(choice, option) then return true end
+		if string.find(choice, option, 1, true) then return true end
 	end
 	return false
 end
@@ -3181,6 +3181,11 @@ end
 ---------------------------------------------
 --------- SLASH COMMANDS --
 ---------------------------------------------
+local function TeleportInstructions()
+	df(RD_LOGO .. " /tp partialzonename => overland zones") df(RD_LOGO .. " /tp home => your primary home")
+	df(RD_LOGO .. " /tp home partialhousename => owned or preview home") df(RD_LOGO .. " /tp exact@name partialhousename => player houses")
+end
+
 if not Teleport and not EasyTravel then
 	SLASH_COMMANDS["/tp"] = function (options)
 		local word = {}
@@ -3189,16 +3194,20 @@ if not Teleport and not EasyTravel then
 			if #word == 2 then break end
 		end
 		local isHome = string.lower(word[1]) == "home"
-		local isUsername = string.find(word[1], "^(@)")
-		if word[1] ~= nil and isHome and word[2] == nil then
-			RidinDirty.TravelToHome()
-		elseif word[1] ~= nil and not isUsername and word[2] == nil then
-			RidinDirty.Teleport(word[1])
-		elseif word[1] ~= nil and ((isUsername and word[1] ~= GetUnitDisplayName("player")) or isHome) and word[2] ~= nil and GetHouseID(word[2]) then
-			RidinDirty.Teleport(word[1], word[2])
+		local isUsername = string.find(word[1], "@", 1, true)
+		
+		if word[1] ~= nil then
+			if isHome and word[2] == nil then
+				RidinDirty.TravelToHome()
+			elseif not isUsername and word[2] == nil then
+				RidinDirty.Teleport(word[1])
+			elseif ((isUsername and word[1] ~= GetUnitDisplayName("player")) or isHome) and word[2] ~= nil and GetHouseID(word[2]) then
+				RidinDirty.Teleport(word[1], word[2])
+			else
+				TeleportInstructions()
+			end
 		else
-			df(RD_LOGO .. " /tp partialzonename => overland zones") df(RD_LOGO .. " /tp home => your primary home")
-			df(RD_LOGO .. " /tp home partialhousename => owned or preview home") df(RD_LOGO .. " /tp exact@name partialhousename => player houses")
+			TeleportInstructions()
 		end
 	end
 end
@@ -3227,7 +3236,7 @@ function RidinDirty.RDBopTradeable()
 			for iD = 1, GetGroupSize() do
 				local playerID = GetGroupUnitTagByIndex(iD)
 				local playerDisplayName = GetUnitDisplayName(playerID)
-				if playerDisplayName ~= GetUnitDisplayName("player") and string.find(GetItemBoPTradeableDisplayNamesString(bagId, slotIndex), playerDisplayName) then
+				if playerDisplayName ~= GetUnitDisplayName("player") and string.find(GetItemBoPTradeableDisplayNamesString(bagId, slotIndex), playerDisplayName, 1, true) then
 					isTradeable = true
 					break
 				end

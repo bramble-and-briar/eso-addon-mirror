@@ -1,14 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/votan/Votan-s-Minimap__1399",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "votan",
   "canonical_id": "esoui:1399",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1399",
@@ -17,7 +22,7 @@
     "VotansMiniMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1399/",
-  "fingerprint": "ec83f4060aecea242e9f9715eec8f22e700cb6f4a44f53a555f55e38dff65ff6",
+  "fingerprint": "3d765d79234f4826fcc19207a44357b4aaccf6211db4e88a3b3b821ceb7300f4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw4553.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw4554.jpg"
@@ -28,11 +33,11 @@
   "source_id": "1399",
   "source_url": "https://www.esoui.com/downloads/info1399-VotansMinimap.html",
   "stats": {
-    "downloads": 4259551,
-    "favorites": 1919,
-    "monthly_downloads": 17213
+    "downloads": 4302601,
+    "favorites": 1930,
+    "monthly_downloads": 13867
   },
   "title": "Votan's Minimap",
-  "updated_at": 1781516716000,
-  "version": "2.2.2"
+  "updated_at": 1794060107000,
+  "version": "2.3.0"
 }

@@ -1,0 +1,129 @@
+Weyland Vampire Stage Tracker - Changelog
+
+Version 1.2.0 - visibility rules and layout refinement
+- Blood drops and the progress bar are now one inseparable visibility group controlled by a single setting.
+- The large stage icon remains independently configurable.
+- Added visibility safeguards: at least one stage indicator is always shown; stages II-IV also retain at least one time indicator.
+- Stage I's timer option is disabled in the settings with an explanation; the saved timer preference is preserved for stages II-IV.
+- Invalid legacy visibility combinations are repaired with minimal changes while preserving all other settings.
+- Added localized visibility guidance and explanatory tooltips in English, German, French, Spanish and Russian.
+- Centered the timer and blood-drop group within the text column when the large icon is hidden.
+
+Version 1.1.0 - layout and visibility controls
+- Applied the requested layout metrics: 62px default icon height, 72px minimum plate height, 5px icon padding, 10px icon left offset, 4px icon/text gap, 10px right padding, 98px base text column, 9x12px drops with 3px gaps, 2px bar, and 5px/9px content spacing.
+- Added independent visibility controls for the stage icon and plate background.
+- Decoupled the progress bar from the timer; the bar can remain visible with only blood drops enabled.
+- The frame-opacity and background-opacity sliders are disabled whenever their corresponding visual layer is hidden.
+- Fresh installs and reset/default actions use the exact screen center; an existing saved position is preserved when upgrading.
+- Lightened the settings preview canvas so the plate background and decorative frame remain easy to distinguish.
+
+Version 1.0.0 - first public release
+- Stage I-IV HUD plate: stage icon, blood drops, live remaining time and progress bar, warning color when time is low.
+- Stage detected by ability ID (works on every client language); timer read live from the buff.
+- Shown only in the game view; hidden in menus, inventory, map and settings.
+- In-game settings panel (optional LibAddonMenu-2.0) with a live preview, stage selector, scale, icon size, palettes, opacity, font size, timer format and element toggles.
+- Move mode with mouse dragging, account-wide saved position.
+- Languages: English, German, French, Spanish, Russian.
+- Free; optional gifts to @The'Inquisitor (EU megaserver).
+- Cinzel font under the SIL Open Font License (fonts/OFL.txt).
+
+
+-------------------------------------------------------------------
+Development history (builds before the first public release)
+-------------------------------------------------------------------
+
+Version 0.8.2
+- Documentation only: README lists every slash command (/vampirestage alias, /vst colors blood|classic).
+
+
+Version 0.8.1
+- "Support" section in the settings panel (EN/DE/FR/ES/RU): the addon is free; optional gold or Crown Store gifts to @The'Inquisitor (EU megaserver).
+
+
+Version 0.8.0
+- Localization: English, German, French, Spanish and Russian. Texts live in lang/*.lua; English is the fallback.
+- The font license (SIL OFL 1.1) and credits are now included (fonts/OFL.txt, README).
+- No chat message at login when LibAddonMenu-2.0 is missing (it is optional). /vst settings explains it when needed.
+- Stage detection, timer logic, layout and saved settings are unchanged.
+
+
+Version 0.7.0
+- New live preview in the settings panel (same drawing code as the HUD), with a "Preview stage" selector.
+- The plate is registered with the HUD scenes: no longer visible in menus, inventory, map or the settings screen.
+- Move mode (/vst unlock or the settings button) now closes menus and switches to cursor mode, like Weyland Huntsman Mark.
+- Dragging uses ESO's own movable handling only (the extra mouse handlers were removed) and saves on move stop.
+- A "Drag me, then type /vst lock" hint is shown while unlocked.
+- The sample plate (move mode / "preview when not a vampire") uses the selected preview stage.
+- Stage detection, timer logic, palettes and saved settings are unchanged.
+
+
+Version 0.6.0
+- Renamed to Weyland Vampire Stage Tracker (folder/manifest WeylandVampireStageTracker).
+- Saved variables are now WeylandVampireStageTrackerSavedVars: settings and position start from defaults once. Use /vst unlock to place the HUD again.
+- Stage icons no longer waste space: the transparent left/right margins of the 256x256 textures are cropped via texture coordinates.
+- The plate height and width are now computed from the icon size, so a bigger icon makes a bigger HUD instead of adding padding.
+- Stage icon size slider range widened from 42-70 to 32-120.
+- Timer, blood drops and bar are centered vertically next to the icon.
+- Stage detection, timer API logic and palettes are unchanged.
+
+
+0.1.3
+- Removed the "Vampirism" text from the HUD.
+- Added relog-safe 4-hour stage countdown persistence.
+
+
+0.1.5
+- Compact HUD layout: icon, Stage, dash, remaining time.
+- Stage I is green, II turquoise, III yellow, IV alert red.
+- Stage and timer are separate UI elements so their colors can change independently.
+
+Version 0.1.11 changes
+- Replaced the local 4-hour countdown with the live Vampire Stage buff timeEnding returned by GetUnitBuffInfo().
+- Calculates remaining time from GetGameTimeMilliseconds(), matching the ESO buff clock used by LibVampire.
+- Removed local relog/deactivation timer restoration so the addon never resets the real stage timer.
+- Kept the 45px icon, stage colors, compact layout and saved position unchanged.
+
+Version 0.1.7 changes
+- Corrected icon texture crop so the full icon is visible.
+- Added a small space after the dash before the remaining-time text.
+- Cropped transparent DDS margins so the Stage label anchors to the visible icon edge.
+- Reduced spacing between icon, stage, separator and timer to 1 px gaps.
+- Kept the relog-safe timer and colored stage display unchanged.
+
+
+Version 0.1.13 changes
+- The icon is always blood-red.
+- Only the Roman Stage numeral changes to the existing Stage color.
+- No other UI, icon size/crop, layout, or timer behavior changes.
+
+
+Version 0.5.0
+- Added an in-game LibAddonMenu settings panel.
+- Added icon size, overall scale, background opacity and timer font size controls.
+- Added visibility toggles, timer formats, warning threshold and preview mode.
+- Added move/lock and reset-position buttons in the settings panel.
+
+
+Version 0.5.1
+- Improved position persistence across zone changes and world activation.
+- Keeps the original supplied visual assets and default HUD appearance unchanged.
+
+
+Version 0.5.2
+- Updated the progress-bar preview timer so the sample fill matches the displayed time.
+- No visual asset or styling changes.
+
+Version 0.5.3
+- The live progress bar now uses timeStarted/timeEnding from the same Vampire Stage buff used by the timer.
+- Timer and bar share one remaining-time value and the ESO game clock for exact synchronization.
+- Removed the hard-coded four-hour denominator from live progress.
+- If the buff has no valid start timestamp, the timer still works and the bar avoids showing a false percentage.
+- No visual asset or styling changes.
+
+
+Version 0.5.4
+- Fixed the progress bar jumping back to full after /reloadui.
+- The remaining time still comes directly from the live Vampire Stage buff.
+- The bar's full range uses ESO's documented four-hour stage duration; it no longer relies on timeStarted, which may be reinitialized after a UI reload.
+- Timer and bar use the same live remaining-time value and game clock.
+- No visual assets, styling, layout, icons, colors or settings changed.

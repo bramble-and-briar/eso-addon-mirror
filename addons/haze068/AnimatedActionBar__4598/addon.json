@@ -8,12 +8,8 @@
   "category_id": "19",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4598",
@@ -22,7 +18,7 @@
     "AnimatedActionBarPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4598/",
-  "fingerprint": "8361c683bb79256853766469ea6eff82fd97fae416494eaaca7d13b8b652a523",
+  "fingerprint": "9af0bef7d362409cc6fdd0a4a38bf5255a2b0b976ae8d6a07cc0f75c7bc6ed83",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16133.png",
     "https://cdn-eso.mmoui.com/preview/pvw16132.png"
@@ -33,11 +29,11 @@
   "source_id": "4598",
   "source_url": "https://www.esoui.com/downloads/info4598-AnimatedActionBar.html",
   "stats": {
-    "downloads": 2470,
+    "downloads": 2883,
     "favorites": 9,
-    "monthly_downloads": 401
+    "monthly_downloads": 555
   },
   "title": "AnimatedActionBar+",
-  "updated_at": 1792690949000,
+  "updated_at": 1794055086000,
   "version": "2.0"
 }

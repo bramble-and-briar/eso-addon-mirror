@@ -1,0 +1,8 @@
+## Title: Colorblind
+## APIVersion: 101042
+## Version: 2026.11.07
+## Author: LousyTourist
+## SavedVariables: ColorblindVars
+## OptionalDependsOn: LibAddonMenu-2.0
+
+Colorblind.lua

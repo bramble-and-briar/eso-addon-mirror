@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.04",
+	version = "2026.11.07",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -74,7 +74,7 @@ local function LayoutNameRow(ctrl, data, scrollList)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-		if string.find(data.name, LINKED_MARKER) then
+		if string.find(data.name, LINKED_MARKER, 1, true) then
 			SetTooltipText(InformationTooltip, "(CURRENT) ~ VIEW GUILD DETAILS")
 		else
 			SetTooltipText(InformationTooltip, "(PENDING) ~ VIEW GUILD DETAILS")
@@ -150,7 +150,7 @@ local function LayoutPreviousNameRow(ctrl, data, scrollList)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-		if string.find(data.name, LINKED_MARKER) then
+		if string.find(data.name, LINKED_MARKER, 1, true) then
 			SetTooltipText(InformationTooltip, "(CURRENT) ~ VIEW GUILD DETAILS")
 		else
 			SetTooltipText(InformationTooltip, "(PENDING) ~ VIEW GUILD DETAILS")
@@ -942,8 +942,8 @@ local function PopulateTraderActivity()
 		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
-			local guildName = (LINKED_MARKER .. GetGuildName(guildId))--GetGuildName(guildId)-->> TESTING
-			--if LibHistoire.gtaLinked[guildId][CATEGORY] or not GetGuildOwnedKioskInfo(guildId) then guildName = (LINKED_MARKER .. guildName) else guildName = (UNLINKED_MARKER .. guildName) end-->> TESTING
+			local guildName = GetGuildName(guildId)-->> TESTING--(LINKED_MARKER .. GetGuildName(guildId))
+			if LibHistoire.gtaLinked[guildId][CATEGORY] or not GetGuildOwnedKioskInfo(guildId) then guildName = (LINKED_MARKER .. guildName) else guildName = (UNLINKED_MARKER .. guildName) end-->> TESTING
 			for x = 1, GetNumGuildHistoryEvents(guildId, CATEGORY) do
 				local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(guildId, x)
 				if eventStamp > resetStamp then

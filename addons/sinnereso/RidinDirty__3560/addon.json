@@ -18,7 +18,7 @@
     "RidinDirty"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3560/",
-  "fingerprint": "2bb0d28e6f744a639aca39cafa44814c52c41617b8c69a515e44269ddd744b7a",
+  "fingerprint": "4cb16f650591a536f4688dfb6a5f35d8b1960d3786645e90fe103d33c41a4745",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17749.jpg"
   ],
@@ -28,11 +28,11 @@
   "source_id": "3560",
   "source_url": "https://www.esoui.com/downloads/info3560-RidinDirty.html",
   "stats": {
-    "downloads": 55311,
+    "downloads": 55425,
     "favorites": 22,
-    "monthly_downloads": 699
+    "monthly_downloads": 758
   },
   "title": "RidinDirty",
-  "updated_at": 1793850009000,
-  "version": "2026.11.04"
+  "updated_at": 1794056412000,
+  "version": "2026.11.07"
 }

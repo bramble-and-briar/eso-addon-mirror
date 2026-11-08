@@ -18,7 +18,7 @@
     "CaracVentes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4995/",
-  "fingerprint": "b9ac80aaf0cea1da133a6827665c592ebec0aaa77daad039c7a42ec62b6c9824",
+  "fingerprint": "263ad0107536d6e2b67db6629d01697bd37c2810993eae2894b0ab3c5329c323",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18152.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18153.jpg"
@@ -29,11 +29,11 @@
   "source_id": "4995",
   "source_url": "https://www.esoui.com/downloads/info4995-CaracVentes.html",
   "stats": {
-    "downloads": 20,
+    "downloads": 32,
     "favorites": 0,
-    "monthly_downloads": 19
+    "monthly_downloads": 31
   },
   "title": "CaracVentes",
-  "updated_at": 1793389412000,
-  "version": "1.1"
+  "updated_at": 1794135621000,
+  "version": "1.2"
 }

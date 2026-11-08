@@ -46,25 +46,54 @@ local INTERACT_POLL_MS   = 100   -- Abfrage-Intervall fuer die Art der Interakti
 -- Addon-Objekt
 -- -----------------------------------------------------------------------------
 WhatDropsHere = {
-    VERSION = "0.2.0-beta",  -- wie "## Version" im Manifest
+    VERSION = "0.3.0-beta",  -- wie "## Version" im Manifest
 }
 local WDH = WhatDropsHere
 local CAT = WDH_Categories
 
-local DEFAULT_SETTINGS = {
+-- Schwelle je Art der Quelle: Anzeige fuer diese Art aus
+local SHOW_OFF = -1
+
+-- Einstellungen fuer den ganzen Account
+local DEFAULT_ACCOUNT = {
     debug         = false,                        -- Debug-Ausgabe im Chat (/wdh_debug, Menue)
-    nameQuality   = ITEM_DISPLAY_QUALITY_ARCANE,  -- am Fadenkreuz mit Namen ab blau, darunter als Kategorie
+}
+
+-- Anzeige-Einstellungen, je Charakter gespeichert (gespeichert wird immer alles)
+local DEFAULT_DISPLAY = {
     hud           = true,                         -- Anzeige am Fadenkreuz
     hudUnits      = true,                         -- auch fuer lebende Ziele (Gegner, Tiere, NPCs)
-    -- Anzeige nach Art der Quelle (gespeichert wird immer alles)
-    hudEnemies    = true,                         -- Feinde: Leichen und lebende Ziele
-    hudContainers = true,                         -- Truhen und Behaelter
-    hudResources  = true,                         -- Rohstoffvorkommen
-    hudOther      = true,                         -- Kleintiere, einzelne Gegenstaende, Sonstiges
-    hudTheft      = true,                         -- Diebstahl aus fremdem Besitz
-    showQuality   = ITEM_DISPLAY_QUALITY_NORMAL,  -- Anzeige-Schwelle: ab weiss (Trash ausgeblendet)
+    nameQuality   = ITEM_DISPLAY_QUALITY_ARCANE,  -- am Fadenkreuz mit Namen ab blau, darunter als Kategorie
     hudMaxLines   = 6,                            -- Eintraege am Fadenkreuz, Rest als "+N weitere"
+    -- Anzeige-Schwelle je Art der Quelle (Qualitaet oder SHOW_OFF); ab weiss = Trash ausgeblendet
+    showEnemy     = ITEM_DISPLAY_QUALITY_NORMAL,  -- Feinde: Leichen und lebende Ziele
+    showContainer = ITEM_DISPLAY_QUALITY_NORMAL,  -- Truhen und Behaelter
+    showResource  = ITEM_DISPLAY_QUALITY_NORMAL,  -- Rohstoffvorkommen
+    showOther     = ITEM_DISPLAY_QUALITY_NORMAL,  -- Kleintiere, einzelne Gegenstaende, Sonstiges
+    showTheft     = ITEM_DISPLAY_QUALITY_NORMAL,  -- Diebstahl aus fremdem Besitz
 }
+
+-- Bis 0.2: Schalter je Art + eine gemeinsame Schwelle (Account-weit)
+local LEGACY_TYPE_SWITCH = {
+    showEnemy     = "hudEnemies",
+    showContainer = "hudContainers",
+    showResource  = "hudResources",
+    showOther     = "hudOther",
+    showTheft     = "hudTheft",
+}
+
+local function FillDefaults(target, defaults)
+    for k, v in pairs(defaults) do
+        if target[k] == nil then target[k] = v end
+    end
+end
+
+local function CopyDisplay(source)
+    local copy = {}
+    for k in pairs(DEFAULT_DISPLAY) do copy[k] = source[k] end
+    FillDefaults(copy, DEFAULT_DISPLAY)
+    return copy
+end
 
 -- -----------------------------------------------------------------------------
 -- Interne Zustaende
@@ -72,6 +101,12 @@ local DEFAULT_SETTINGS = {
 
 -- Laufende Pluender-Sitzung (nil, wenn kein Lootfenster offen)
 local WDH_Session = nil
+
+-- Abgeschlossenes Lootfenster, das schon leer war, als wir es lesen konnten:
+-- Ein Auto-Loot-Addon (z. B. Much Smarter AutoLoot) war schneller, hat alles genommen und das
+-- Fenster geschlossen. Die Beute kommt danach noch ueber LOOT_RECEIVED bzw. CURRENCY_UPDATE an
+-- und wird hier gesammelt, bevor die Sitzung gespeichert wird.
+local WDH_Pending = nil
 
 -- Zuletzt gespeicherte Quelle, fuer verspaetete Spuren und /wdh ohne Argument
 local WDH_Last = {
@@ -302,6 +337,7 @@ local function NewSession(name, targetType, kind, isOwned)
         zoneId     = zoneId,
         targetType = targetType,
         aoe        = aoe,
+        startedAt  = Now(),
         gold       = 0,
         seen       = {},
         itemIds    = {},  -- angebotene Item-IDs (fuer den Abgleich mit LOOT_RECEIVED)
@@ -461,11 +497,35 @@ end
 -- -----------------------------------------------------------------------------
 
 -- Laufende Sitzung speichern (LOOT_CLOSED, Zeitueberschreitung, Ladebildschirm)
+local function FinishPending()
+    EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_Pending")
+    if not WDH_Pending then return end
+    local session = WDH_Pending
+    WDH_Pending = nil
+    CommitSession(session)
+end
+
 local function FinishSession()
     EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_SessionTimeout")
     if not WDH_Session then return end
-    CommitSession(WDH_Session)
+    local session = WDH_Session
     WDH_Session = nil
+    if session.emptyWindow then
+        -- Beute ist noch unterwegs: kurz sammeln, dann speichern
+        FinishPending()
+        WDH_Pending = session
+        EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "_Pending", RECEIVED_GRACE_MS, FinishPending)
+    else
+        CommitSession(session)
+    end
+end
+
+-- Sitzung, die Beute aus LOOT_RECEIVED/CURRENCY_UPDATE uebernimmt (nur bei leer vorgefundenem Fenster)
+local function LateTarget()
+    if WDH_Session then
+        return WDH_Session.emptyWindow and WDH_Session or nil
+    end
+    return WDH_Pending
 end
 
 -- Im Test kam LOOT_CLOSED nicht immer (vermutlich wenn ein Auto-Loot-Addon das Fenster schliesst).
@@ -490,9 +550,16 @@ local function OnLootUpdated()
     local rawName, targetType, _, isOwned = GetLootTargetInfo()
     local name = FormatTargetName(rawName, targetType)
 
-    -- Manche Behaelter liefern im Lootfenster keinen Namen: dann die letzte Interaktion nehmen
-    if name == "" and WDH_Interact.name and Now() - WDH_Interact.at <= INTERACT_VALID_MS then
-        name = WDH_Interact.name
+    -- Manche Behaelter liefern im Lootfenster keinen Namen (z. B. die Truhe am Dunklen Anker).
+    -- Gibt es seit Beginn der offenen Sitzung keine neue Interaktion, ist es dasselbe Fenster
+    -- (z. B. Update nach dem Nehmen eines Items); sonst die letzte Interaktion nehmen.
+    if name == "" then
+        local recent = WDH_Interact.name and Now() - WDH_Interact.at <= INTERACT_VALID_MS
+        if WDH_Session and not (recent and WDH_Interact.at > WDH_Session.startedAt) then
+            name = WDH_Session.name
+        elseif recent then
+            name = WDH_Interact.name
+        end
     end
 
     if WDH_Session and WDH_Session.name ~= name then
@@ -500,13 +567,22 @@ local function OnLootUpdated()
         FinishSession()
     end
     if not WDH_Session then
+        FinishPending()
         WDH_Session = NewSession(name, targetType, "loot", isOwned)
+        -- Fenster ohne Ziel und ohne Inhalt: ein Auto-Loot-Addon hat es vor uns geleert und geschlossen
+        if rawName == "" and GetNumLootItems() == 0 then
+            WDH_Session.emptyWindow = true
+            WDH_Session.lines[#WDH_Session.lines + 1] = WDH_STRINGS.DEBUG_LATE
+        end
         -- Gleiche Quelle wie zuletzt: liegen gebliebene Reste nicht erneut zaehlen
         if WDH_Last.lootKey == WDH_Session.key then
             WDH_Session.prevSeen = WDH_Last.lootSeen
         end
     end
     ReadLootList(WDH_Session)
+    if WDH_Session.emptyWindow and (next(WDH_Session.seen) or WDH_Session.gold > 0) then
+        WDH_Session.emptyWindow = false
+    end
     ArmSessionTimeout()
 end
 
@@ -568,12 +644,24 @@ local function OnInteractionStart()
     dbg(string.format(WDH_STRINGS.DEBUG_INTERACT, tostring(action), WDH_Interact.name))
 end
 
+-- Gold, das ein Auto-Loot-Addon aus einem leer vorgefundenen Fenster genommen hat
+local function OnMoneyUpdate(_, newMoney, oldMoney, reason)
+    if reason ~= CURRENCY_CHANGE_REASON_LOOT and reason ~= CURRENCY_CHANGE_REASON_LOOT_STOLEN then return end
+    local late = LateTarget()
+    if late and newMoney > oldMoney then
+        late.gold = late.gold + (newMoney - oldMoney)
+    end
+end
+
 local function OnLootReceived(_, _, itemLink, quantity, _, lootType, isSelf, isPickpocketLoot, _, itemId)
     if not isSelf then return end
 
     -- Spuren: itemId ist hier die Antiquitaeten-ID
     if lootType == LOOT_TYPE_ANTIQUITY_LEAD then
-        if WDH_Session then
+        local late = LateTarget()
+        if late then
+            AddLead(late, itemId)
+        elseif WDH_Session then
             AddLead(WDH_Session, itemId)
         elseif Now() - WDH_Last.closedAt <= RECEIVED_GRACE_MS then
             AddLeadToLastRecord(itemId)
@@ -598,6 +686,13 @@ local function OnLootReceived(_, _, itemLink, quantity, _, lootType, isSelf, isP
             AddItem(session, itemLink, quantity)
         end
         CommitSession(session)
+        return
+    end
+
+    -- Lootfenster war schon leer: Beute hier zaehlen
+    local late = LateTarget()
+    if late then
+        if lootType == LOOT_TYPE_ITEM then AddItem(late, itemLink, quantity) end
         return
     end
 
@@ -653,6 +748,40 @@ WDH.CatName        = CatName
 WDH.ColorByQuality = ColorByQuality
 WDH.BestQuality    = BestQuality
 WDH.QualityName    = QualityName
+WDH.SHOW_OFF       = SHOW_OFF
+
+-- Anzeige-Einstellungen des eingeloggten Charakters
+function WDH.Settings()
+    return WDH_Saved.chars[WDH.charId].settings
+end
+
+-- Andere Charaktere des Accounts mit gespeicherten Einstellungen: Namen und IDs, sortiert.
+-- Geloeschte Charaktere fallen heraus, umbenannte erscheinen mit aktuellem Namen.
+function WDH.OtherCharacters()
+    local list = {}
+    for i = 1, GetNumCharacters() do
+        local name, _, _, _, _, _, id = GetCharacterInfo(i)
+        if id ~= WDH.charId and WDH_Saved.chars[id] then
+            list[#list + 1] = { name = zo_strformat("<<1>>", name), id = id }
+        end
+    end
+    table.sort(list, function(a, b) return a.name < b.name end)
+    local names, ids = {}, {}
+    for _, c in ipairs(list) do
+        names[#names + 1] = c.name
+        ids[#ids + 1]     = c.id
+    end
+    return names, ids
+end
+
+-- Uebernimmt die Anzeige-Einstellungen eines anderen Charakters
+function WDH.CopySettingsFrom(charId)
+    local source = WDH_Saved.chars[charId]
+    if not source or charId == WDH.charId then return false end
+    WDH_Saved.chars[WDH.charId].settings = CopyDisplay(source.settings)
+    if WDH.Hud then WDH.Hud:Invalidate() end
+    return true
+end
 
 function WDH:PrintRecord(zoneId, rec)
     local header = string.format(WDH_STRINGS.RECORD_HEADER, rec.name, ZoneName(zoneId), rec.loots, rec.gold)
@@ -801,13 +930,14 @@ local function RegisterSlashCommands()
     end
 
     SLASH_COMMANDS["/wdh_hud"] = function()
-        WDH_Saved.settings.hud = not WDH_Saved.settings.hud
-        d(WDH_Saved.settings.hud and WDH_STRINGS.HUD_ON or WDH_STRINGS.HUD_OFF)
+        WDH.Settings().hud = not WDH.Settings().hud
+        d(WDH.Settings().hud and WDH_STRINGS.HUD_ON or WDH_STRINGS.HUD_OFF)
     end
 
     SLASH_COMMANDS["/wdh_units"] = function()
-        WDH_Saved.settings.hudUnits = not WDH_Saved.settings.hudUnits
-        d(WDH_Saved.settings.hudUnits and WDH_STRINGS.HUD_UNITS_ON or WDH_STRINGS.HUD_UNITS_OFF)
+        WDH.Settings().hudUnits = not WDH.Settings().hudUnits
+        WDH.Hud:Invalidate()
+        d(WDH.Settings().hudUnits and WDH_STRINGS.HUD_UNITS_ON or WDH_STRINGS.HUD_UNITS_OFF)
     end
 
     SLASH_COMMANDS["/wdh_show"] = function(args)
@@ -816,7 +946,11 @@ local function RegisterSlashCommands()
             d(WDH_STRINGS.SHOW_USAGE)
             return
         end
-        WDH_Saved.settings.showQuality = quality
+        -- Gilt fuer alle eingeschalteten Arten; einzeln im Menue
+        local settings = WDH.Settings()
+        for key in pairs(LEGACY_TYPE_SWITCH) do
+            if settings[key] ~= SHOW_OFF then settings[key] = quality end
+        end
         WDH.Hud:Invalidate()
         d(string.format(WDH_STRINGS.SHOW_SET, ColorByQuality(quality, QualityName(quality))))
     end
@@ -832,13 +966,15 @@ local function RegisterSlashCommands()
             d(WDH_STRINGS.NAMES_USAGE)
             return
         end
-        WDH_Saved.settings.nameQuality = quality
+        WDH.Settings().nameQuality = quality
         WDH.Hud:Invalidate()
         d(string.format(WDH_STRINGS.NAMES_SET, ColorByQuality(quality, QualityName(quality))))
     end
 
     SLASH_COMMANDS["/wdh_reset"] = function(args)
-        if zo_strtrim(args or "") ~= "ja" then
+        -- "yes" funktioniert in jeder Sprache, dazu das Wort der Client-Sprache ("ja")
+        local answer = zo_strlower(zo_strtrim(args or ""))
+        if answer ~= "yes" and answer ~= WDH_STRINGS.RESET_CONFIRM then
             d(WDH_STRINGS.RESET_USAGE)
             return
         end
@@ -850,13 +986,45 @@ end
 -- Initialisierung
 -- -----------------------------------------------------------------------------
 
+-- Bis 0.2 lagen die Anzeige-Einstellungen Account-weit in WDH_Saved.settings.
+-- Sie werden zur Vorlage, mit der jeder Charakter beim ersten Einloggen startet.
+local function MigrateAccountDisplay()
+    local old = WDH_Saved.settings
+    if old.showQuality == nil and old.hud == nil then return end
+    local template = {}
+    for k in pairs(DEFAULT_DISPLAY) do template[k] = old[k] end
+    for key, switch in pairs(LEGACY_TYPE_SWITCH) do
+        if old[switch] == false then
+            template[key] = SHOW_OFF
+        else
+            template[key] = old.showQuality
+        end
+        old[switch] = nil
+    end
+    for k in pairs(DEFAULT_DISPLAY) do old[k] = nil end
+    old.showQuality = nil
+    WDH_Saved.template = CopyDisplay(template)
+end
+
 local function InitSaved()
     if type(WDH_Saved) ~= "table" then WDH_Saved = {} end
     WDH_Saved.version  = SAVED_VERSION
     WDH_Saved.settings = WDH_Saved.settings or {}
-    for k, v in pairs(DEFAULT_SETTINGS) do
-        if WDH_Saved.settings[k] == nil then WDH_Saved.settings[k] = v end
+    MigrateAccountDisplay()
+    FillDefaults(WDH_Saved.settings, DEFAULT_ACCOUNT)
+
+    -- Anzeige-Einstellungen je Charakter (ID bleibt bei Umbenennung gleich)
+    WDH_Saved.chars = WDH_Saved.chars or {}
+    local charId = GetCurrentCharacterId()
+    local char = WDH_Saved.chars[charId]
+    if not char then
+        char = { settings = CopyDisplay(WDH_Saved.template or DEFAULT_DISPLAY) }
+        WDH_Saved.chars[charId] = char
     end
+    char.name = zo_strformat("<<1>>", GetUnitName("player"))
+    FillDefaults(char.settings, DEFAULT_DISPLAY)
+    WDH.charId = charId
+
     WDH_Saved.zones = WDH_Saved.zones or {}
     if WDH_Saved.last then
         WDH_Last.zoneId = WDH_Saved.last.zoneId
@@ -869,8 +1037,10 @@ local function RegisterLootTracking()
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootClosed",   EVENT_LOOT_CLOSED,   OnLootClosed)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootReceived", EVENT_LOOT_RECEIVED, OnLootReceived)
     -- Vor Ladebildschirm, /reloadui und Logout offene Sitzungen sichern
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Money",        EVENT_MONEY_UPDATE,  OnMoneyUpdate)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Deactivated",  EVENT_PLAYER_DEACTIVATED, function()
         FinishSession()
+        FinishPending()
         FinishDirectSession()
     end)
     -- Quelle fuer Beute ohne Lootfenster merken. Der Hook gibt nichts zurueck,

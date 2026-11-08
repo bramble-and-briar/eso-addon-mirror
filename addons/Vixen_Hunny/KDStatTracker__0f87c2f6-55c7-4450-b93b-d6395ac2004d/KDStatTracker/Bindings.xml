@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="KD Stat Tracker">
+            <Action name="KDSTATTRACKER_TOGGLE_DIALOG">
+                <Down>KDStatTracker.ToggleStatsDialog()</Down>
+            </Action>
+            <Action name="KDSTATTRACKER_TOGGLE_HUD">
+                <Down>KDStatTracker.ToggleHUD()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

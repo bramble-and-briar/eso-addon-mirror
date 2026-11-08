@@ -1,0 +1,44 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/JuneSky/City-Lights---Easy-to-Spot-Towns__5031",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "JuneSky",
+  "canonical_id": "esoui:5031",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:5031",
+  "deleted": false,
+  "directories": [
+    "CityLights"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5031/",
+  "fingerprint": "d92637526a4e8501c48ff8f821cb93a5b0efa73fd26ce94a648bce4d6d9eb132",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18349.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18350.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18351.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5031",
+  "source_url": "https://www.esoui.com/downloads/info5031-CityLights-EasytoSpotTowns.html",
+  "stats": {
+    "downloads": 30,
+    "favorites": 1,
+    "monthly_downloads": 10
+  },
+  "title": "City Lights - Easy to Spot Towns",
+  "updated_at": 1794081105000,
+  "version": "1.1.0"
+}

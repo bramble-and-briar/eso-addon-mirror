@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__fc98f3c0-0b5a-4797-aaa4-379955c3310c) | sirinsidiator | Console | — |
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__2277) | sirinsidiator | PC / Mac | 1.2.0 |
 | [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__031ddfc1-c44d-4452-ab48-42b7c429bc81) | sirinsidiator | Console | — |
-| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.7.1 |
+| [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.7.2 |
 | [LibDelayedHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibDelayedHandler__2807) | zelenin | PC / Mac | 0.0.2 |
 | [LibDialog - Custom confirmation dialog with 2 buttons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibDialog---Custom-confirmation-dialog-with-2-buttons__1931) | Baertram | PC / Mac | 1.27 |
 | [LibDungeonFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jindra/LibDungeonFinder__4600) | Jindra | PC / Mac | 1.2.0 |
@@ -171,7 +171,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibGroupUIReload](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibGroupUIReload__4403) | sirinsidiator | PC / Mac | 2.0.0 |
 | [LibGuildRoster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/LibGuildRoster__2784) | ghostbane | PC / Mac | 1.0.4 |
 | [LibHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibHandler__3156) | zelenin | PC / Mac | 0.0.3 |
-| [LibHarvensAddonSettings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/LibHarvensAddonSettings__584) | Harven | PC / Mac | 2.2.0 |
+| [LibHarvensAddonSettings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/LibHarvensAddonSettings__584) | Harven | PC / Mac | 2.2.1 |
 | [LibHarvensAddonSettings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/LibHarvensAddonSettings__ff73a91e-28b3-476c-be2b-ac5e47d079eb) | votan73 | Console | — |
 | [LibHistoire](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibHistoire__f7fc3e7c-b17d-47bd-915b-40c09291efb0) | sirinsidiator | Console | — |
 | [LibHistoire - Guild History](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibHistoire---Guild-History__2817) | sirinsidiator | PC / Mac | 2.7.2 |

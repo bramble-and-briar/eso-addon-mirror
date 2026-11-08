@@ -10,8 +10,8 @@ There are no settings. The same path runs on keyboard and gamepad.
 
 1. A crafting quest completes, and its name is a master writ quest name for your client language (`GetCVar("language.2")`).
 2. The backpack is scanned from the first slot forward. The first sealed master writ that meets the checks below is chosen.
-3. 300 ms after that quest complete, the accept sequence starts and the HUD scene is toggled.
-4. 300 ms later the sealed writ is used. 200 ms after the use, the offered quest is accepted.
+3. 300 ms after that quest complete, keyboard toggles the HUD scene. Gamepad returns to the base scene and waits until the gamepad interaction scene is hidden.
+4. Keyboard uses the sealed writ 300 ms later, then accepts the offered quest 200 ms after the use. Gamepad uses the sealed writ once that interaction scene is hidden, and accepts when the quest offer arrives.
 
 Each completed master writ queues at most one new writ. Turn that one in and the addon looks for the next match. A sealed writ that fails the checks is skipped, and a later slot can still be chosen in the same pass.
 

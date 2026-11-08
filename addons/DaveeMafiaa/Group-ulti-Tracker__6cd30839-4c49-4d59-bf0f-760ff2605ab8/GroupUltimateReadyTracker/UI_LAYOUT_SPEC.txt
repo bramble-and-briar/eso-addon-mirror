@@ -1,0 +1,121 @@
+GROUP ULTIMATE TRACKER v2.2.1 — SPECIFICATION
+
+TARGET
+- ESO console / PlayStation 5
+- Native console/gamepad Settings > Add-ons panel
+- Automatic 6–12 player group handling
+
+FIXED ICON ROW
+1. Sorc: unmorphed Negate Magic icon
+2. GIB: unmorphed Gibbering Shield icon
+3. Corrosive: unmorphed Magma Armor icon
+4. Barrier: unmorphed Barrier icon
+5. Dawnbreaker: unmorphed Dawnbreaker icon, used as a catch-all for every
+   ultimate outside the first four families, including actual Dawnbreaker
+   and its morphs.
+
+MORPH FAMILIES
+- Negate Magic, Absorption Field, Suppression Field -> Sorc
+- Gibbering Shield, Gibbering Shelter, Sanctum of the Abyssal Sea -> GIB
+- Magma Armor, Corrosive Armor, Magma Shell -> Corrosive
+- Barrier, Replenishing Barrier, Reviving Barrier -> Barrier
+- Every other slotted ultimate -> Dawnbreaker catch-all
+
+CORROSIVE ICON / CLASSIFICATION
+- Static unmorphed Magma Armor texture fallback:
+  EsoUI/Art/Icons/ability_dragonknight_018_u49_new.dds
+- When a group member's Corrosive Armor or Magma Shell morph is observed,
+  resolve its progression index and retrieve the actual base ability info
+  with GetAbilityProgressionAbilityInfo(progressionIndex, 0, 1).
+- Use ESO's returned base texture to refresh the Corrosive icon.
+- Resolve the base name and classify through the base Magma Armor family.
+
+DISPLAY
+- Exactly five fixed icons in one horizontal row.
+- Individual PSN/account display-name bars stack below the matching icon.
+- A player can appear under both columns if front and back bar ultimates are
+  in different categories.
+- A player appears only once per category. If both bars match one category,
+  the higher readiness ratio is used.
+- Orange fill while charging; full green when that individual ultimate is ready.
+- Grey track when ultimate data has not yet been transmitted.
+- No READY/NOT READY words and no DPS/class role labels.
+
+PSN NAME CORRECTION
+- The displayed name is stats.displayName from LibGroupCombatStats.
+- For the local player, GetUnitDisplayName("player") is used if needed.
+- stats.name is only used internally as a character-name join key and is
+  never displayed.
+- If the account display name is unavailable, the bar says "PSN unavailable".
+
+DATA SOURCE
+- LibGroupCombatStats ULT data.
+- Uses GetGroupStats() snapshot and its unitTag -> stats mapping.
+- Uses stats.ult.ultValue, ult1ID, ult2ID, ult1Cost, ult2Cost, _lastUpdated.
+- Every player's progress is calculated independently:
+      progress = current ultimate points / that slotted ultimate's cost
+- Both slotted ultimate IDs are checked. The API does not report which remote
+  weapon bar is currently active.
+- Every group member whose ULT data is to be tracked must have
+  LibGroupCombatStats and a compatible addon registering {"ULT"}.
+
+SETTINGS
+- Console Settings > Add-ons > Group Ultimate Tracker.
+- Uses LibHarvensAddonSettings ST_SLIDER and ST_BUTTON controls.
+- HUD Scale: 0.70–2.00, step 0.05.
+- Horizontal Position (X): -960 to +960, step 5.
+- Vertical Position (Y): -540 to +540, step 5.
+- Reset HUD Position and Scale button.
+- Values save through account-wide SavedVariables.
+- No LibVotans or LibGamepadOptions dependency.
+- Manifest declares ## ConsoleDependsOn: LibHarvensAddonSettings>=20107.
+
+SLASH COMMAND FALLBACK
+/gurt settings
+/gurt scale 1.20
+/gurt x -100
+/gurt y 180
+/gurt move -100 180
+/gurt left [pixels]
+/gurt right [pixels]
+/gurt up [pixels]
+/gurt down [pixels]
+/gurt reset
+/gurt hide
+/gurt show
+/gurt debug
+
+VALIDATION STATUS
+- ZIP structure, manifest entries, and source block balance checked.
+- Settings integration now follows the console Settings > Add-ons library API.
+- No live ESO or PS5 runtime is available in this build environment.
+- Live testing is still required for settings-page registration, sliders,
+  texture paths, console broadcasts, and PSN display names.
+
+V2.2.0 FIX — REMOTE GROUP MEMBER VISIBILITY
+- LibGroupCombatStats stats.isPlayer is true for the local player only.
+- The previous BuildOrderedMembers()/debug filter incorrectly excluded
+  all remote group members whose isPlayer=false.
+- All native group members are now eligible for PSN bars.
+- Unreceived ultimate data is represented by a grey "pending/unknown" PSN
+  bar under the catch-all fifth icon. It is not categorized as Dawnbreaker.
+- Debug prints every native group member, local sharing state, available
+  library records, front/back ultimate IDs and last update timestamp.
+
+
+V2.2.1 FOUNDATION LAYOUT ADJUSTMENTS
+- Icon spacing unchanged from v2.2.0.
+- 64x64 icon frames now have a visible 1px border.
+- Player bars increased from 18px to 24px height.
+- Player-name text increased to 16px base size with minor downscaling for long PSN names.
+- Corrosive icon uses base-ability icon lookup and saved resolved texture when available.
+
+
+V2.2.2: Only Corrosive icon loading and fallback text changed. Layout/positions/fonts unchanged.
+
+
+V2.2.3 — PER-COLUMN ULTIMATE ORDER
+- Each icon retains original placement, box, bar height and text font.
+- Sort each icon's assigned PSN rows by CURRENT Ultimate value descending.
+- Pending data is ranked after known Ultimate values.
+- Equal values use a stable PSN-name alphabetical tie-breaker.

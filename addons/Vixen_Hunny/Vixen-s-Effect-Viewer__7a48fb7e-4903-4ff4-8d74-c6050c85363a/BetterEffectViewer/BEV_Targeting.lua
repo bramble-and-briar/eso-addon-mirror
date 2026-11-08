@@ -1,151 +1,112 @@
+-- Reticle target tracking, rescans and PvE/PvP layout selection.
 local BEV = BetterEffectViewer
 
-function BEV:RescanReticleBuffs()
-    self:ResetEffects()
+function BEV:ResolveReticleUnitTag()
+    if DoesUnitExist("reticleover") then
+        return "reticleover"
+    end
+    if DoesUnitExist("reticleoverplayer") then
+        return "reticleoverplayer"
+    end
+    return nil
+end
+
+-- Schedules a rescan no later than `delay` seconds from now.
+function BEV:RequestRescan(delay)
+    local at = GetFrameTimeSeconds() + (delay or 0)
+    if at < (self.nextRescanAt or math.huge) then
+        self.nextRescanAt = at
+    end
+end
+
+-- Reads every effect on the reticle target and drops anything no longer present.
+function BEV:RescanTarget(now, reset)
+    now = now or GetFrameTimeSeconds()
+    self.nextRescanAt = now + self:GetRescanInterval()
+
+    if reset then
+        self:ResetEffects()
+    end
 
     local unitTag = self:ResolveReticleUnitTag()
     if not unitTag then
-        self:Redraw()
         return
     end
 
-    local now = GetFrameTimeSeconds()
-    local index = 1
-    while true do
-        local name, startTime, endTime, buffSlot, stackCount, iconName,
-            buffType, effectType, abilityType, statusEffectType, abilityId = GetUnitBuffInfo(unitTag, index)
+    self.scanId = (self.scanId or 0) + 1
+    local scanId = self.scanId
+    local changed = reset == true
 
-        if not name or name == "" then
-            break
+    for index = 1, GetNumBuffs(unitTag) do
+        local name, startTime, endTime, _, stackCount, iconName, _, effectType, _, _, abilityId, _, castByPlayer =
+            GetUnitBuffInfo(unitTag, index)
+
+        if name and name ~= "" then
+            if self:UpsertEffect(name, abilityId, iconName, effectType, startTime, endTime, stackCount, castByPlayer, now, scanId) then
+                changed = true
+            end
         end
-
-        local effect = self:BuildEffect(
-            name,
-            abilityId,
-            iconName,
-            effectType,
-            buffType,
-            startTime,
-            endTime,
-            stackCount,
-            statusEffectType,
-            nil
-        )
-
-        self:UpsertEffect(effect, now)
-        index = index + 1
     end
 
-    self:Redraw()
-end
-
-function BEV:HandleReticleState()
-    local unitTag = self:ResolveReticleUnitTag()
-
-    if unitTag then
-        self.lastReticleUnitTag = unitTag
-        self.reticleLostTime = 0
-        return true
+    for key, effect in pairs(self.effects) do
+        if effect.scanId ~= scanId then
+            self:RemoveEffect(key)
+            changed = true
+        end
     end
 
-    if self.lastReticleUnitTag then
-        if self.reticleLostTime == 0 then
-            self.reticleLostTime = GetFrameTimeSeconds()
-        end
-
-        if GetFrameTimeSeconds() - self.reticleLostTime < self.reticleHoldDuration then
-            return true
-        end
-
-        self.lastReticleUnitTag = nil
-        self.currentReticleKey = nil
-        self:ResetEffects()
-        return false
+    if changed then
+        self.needsRedraw = true
     end
-
-    return false
 end
 
 function BEV:OnReticleTargetChanged()
     local unitTag = self:ResolveReticleUnitTag()
-    self:UpdateTargetName(unitTag)
 
-    if not unitTag then
-        self.currentReticleKey = nil
-        self:ResetEffects()
-        self.needsRedraw = true
-        return
+    if unitTag then
+        self.hasTarget = true
+        self.targetLostAt = nil
+        self:UpdateTargetHeader(unitTag)
+        self:RescanTarget(GetFrameTimeSeconds(), true)
+        self:Redraw()
+    elseif self.hasTarget and not self.targetLostAt then
+        -- Keep the last target on screen briefly so flicking the camera doesn't blank it.
+        self.targetLostAt = GetFrameTimeSeconds()
+        self:SetHeaderStale(true)
     end
-
-    local unitId = (GetUnitId ~= nil and GetUnitId(unitTag)) or 0
-    local reticleKey = unitTag .. ":" .. unitId
-    if reticleKey == self.currentReticleKey then
-        return
-    end
-
-    self.currentReticleKey = reticleKey
-    self:RescanReticleBuffs()
 end
 
-function BEV:UpdateLockedTarget(now)
-    local unitTag = self:ResolveReticleUnitTag()
-    if not unitTag then
-        return
-    end
-    if not IsUnitAttackable(unitTag) then
-        return
-    end
-
-    local name = GetUnitName(unitTag)
-    if name ~= self.lockedTargetName then
-        if self.pendingTarget ~= name then
-            self.pendingTarget = name
-            self.pendingTime = now
-            return
-        end
-
-        if now - self.pendingTime >= self.targetSwitchDelay then
-            self.lockedTargetName = name
-            self.pendingTarget = nil
-
-            self:ResetEffects()
-            self:RescanReticleBuffs()
-            self:UpdateTargetName(unitTag)
-        end
-    end
+function BEV:ClearTarget()
+    self.hasTarget = false
+    self.targetLostAt = nil
+    self:ResetEffects()
+    self:UpdateTargetHeader(nil)
+    self:Redraw()
 end
 
 function BEV:IsPvPZone()
-    if IsActiveWorldBattleground() then
+    if IsActiveWorldBattleground ~= nil and IsActiveWorldBattleground() then
         return true
     end
+    return IsPlayerInAvAWorld ~= nil and IsPlayerInAvAWorld() == true
+end
 
-    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
-    local pvpZones = {
-        [584] = true,
-        [643] = true,
-    }
-
-    return pvpZones[zoneId]
+function BEV:GetActiveLayoutKey()
+    return self:IsPvPZone() and "pvpLayout" or "pveLayout"
 end
 
 function BEV:ApplyCurrentLayout()
-    local layout
-    if self:IsPvPZone() then
-        layout = self.sv.pvpLayout
-    else
-        layout = self.sv.pveLayout
-    end
+    self.activeLayoutKey = self:GetActiveLayoutKey()
+    local layout = self.sv[self.activeLayoutKey]
 
     self.iconSize = layout.iconSize
-    self.maxCols = layout.maxCols
-    if self.runtimeMaxColsCap and self.maxCols > self.runtimeMaxColsCap then
-        self.maxCols = self.runtimeMaxColsCap
+    self.fontSize = layout.fontSize
+
+    local cols = layout.maxCols
+    if self.runtime.maxColsCap then
+        cols = math.min(cols, self.runtime.maxColsCap)
     end
+    self.maxCols = math.max(1, cols)
 
-    self.sv.fontSize = layout.fontSize
-
-    self:UpdateSlotLayout()
-    self:ApplyFontSettings()
-    self:Redraw()
+    self:RefreshAppearance()
 end

@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/votan/Votan-s-Group-Pins__1619",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "votan",
   "canonical_id": "esoui:1619",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Fallen Banners",
-      "version": "10.3.5"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Update 44",
-      "version": "10.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1619",
@@ -21,7 +22,7 @@
     "VotansGroupPins"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1619/",
-  "fingerprint": "221f938d1f4725da4eaa0b5e6dc6e67a4fe2bae0582ad74fb3677a44ec1fa020",
+  "fingerprint": "3b7e04ed874a810bd17180da6db2095500b4e5cc4546ab12b512fcc6136775e1",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5314.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5315.jpg",
@@ -34,11 +35,11 @@
   "source_id": "1619",
   "source_url": "https://www.esoui.com/downloads/info1619-VotansGroupPins.html",
   "stats": {
-    "downloads": 96605,
-    "favorites": 180,
-    "monthly_downloads": 167
+    "downloads": 97495,
+    "favorites": 179,
+    "monthly_downloads": 408
   },
   "title": "Votan's Group Pins",
-  "updated_at": 1742323019000,
-  "version": "1.2.19"
+  "updated_at": 1794059984000,
+  "version": "1.3.0"
 }

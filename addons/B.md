@@ -73,7 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Better BG Sounds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ToRUk72/Better-BG-Sounds__4807) | ToRUk72 | PC / Mac | 2.0 |
 | [Better Buffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Better-Buffs__ecd02472-565e-4f7f-83ce-812e8a5b0bde) | BMGxSancho | Console | — |
 | [Better Difficulties](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Better-Difficulties__3003) | kawamonkey | PC / Mac | 1.0.1 |
-| [Better Guard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/Better-Guard__3974) | tmp | PC / Mac | 2.8 |
+| [Better Guard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/Better-Guard__3974) | tmp | PC / Mac | 2.9 |
 | [Better Rally](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Better-Rally__1255) | CaptainBlagbird | PC / Mac | 1.0.12 |
 | [Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Better-Scoreboard__bb565e61-5481-49e2-9550-7c8aa18aa17a) | M0R | Console | — |
 | [Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Better-Scoreboard__3182) | M0R | PC / Mac | 4.2 |

@@ -40,7 +40,7 @@ local unitView     = NewView()
 -- -----------------------------------------------------------------------------
 
 local function Settings()
-    return WDH_Saved.settings
+    return WDH.Settings()
 end
 
 local function Percent(hits, loots)
@@ -74,8 +74,7 @@ end
 -- Text aufbauen
 -- -----------------------------------------------------------------------------
 
-local function BuildText(rec)
-    local minQuality = Settings().showQuality
+local function BuildText(rec, minQuality)
     local maxLines   = Settings().hudMaxLines
     local entries    = {}
 
@@ -153,19 +152,31 @@ end
 -- Aktualisierung
 -- -----------------------------------------------------------------------------
 
--- Einstellung je Art der Quelle (rec.type, siehe DetermineSourceType in WhatDropsHere.lua)
+-- Anzeige-Schwelle je Art der Quelle (rec.type, siehe DetermineSourceType in WhatDropsHere.lua)
 local TYPE_SETTING = {
-    enemy     = "hudEnemies",
-    container = "hudContainers",
-    resource  = "hudResources",
-    other     = "hudOther",
-    theft     = "hudTheft",
+    enemy     = "showEnemy",
+    container = "showContainer",
+    resource  = "showResource",
+    other     = "showOther",
+    theft     = "showTheft",
 }
 
--- Aeltere Eintraege ohne Art werden immer angezeigt
-local function IsTypeShown(rec)
+-- Mindestqualitaet fuer die Anzeige dieser Quelle, nil = fuer diese Art ausgeschaltet.
+-- Aeltere Eintraege ohne Art: niedrigste eingeschaltete Schwelle.
+local function MinQuality(rec)
+    local settings = Settings()
     local key = TYPE_SETTING[rec.type]
-    return key == nil or Settings()[key]
+    if key then
+        local quality = settings[key]
+        if quality == WDH.SHOW_OFF then return nil end
+        return quality
+    end
+    local lowest
+    for _, k in pairs(TYPE_SETTING) do
+        local quality = settings[k]
+        if quality ~= WDH.SHOW_OFF and (lowest == nil or quality < lowest) then lowest = quality end
+    end
+    return lowest
 end
 
 -- Zeigt die Statistik fuer name (oder blendet aus, wenn name nil ist bzw. keine Daten vorliegen).
@@ -180,10 +191,11 @@ local function ShowFor(view, name, isOwned)
     if view.dirty or key ~= view.shownKey then
         view.shownKey, view.dirty = key, false
         local rec = WDH.FindRecord(WDH.CurrentZoneId(), key)
-        view.hasText = rec ~= nil and IsTypeShown(rec)
+        local minQuality = rec and MinQuality(rec)
+        view.hasText = minQuality ~= nil
         if view.hasText then
             ApplyFont(view.label)
-            view.label:SetText(BuildText(rec))
+            view.label:SetText(BuildText(rec, minQuality))
         end
     end
     view.label:SetHidden(not view.hasText)
@@ -213,7 +225,7 @@ end
 -- Nachlauf zu ZO_Reticle:UpdateInteractText(currentFrameTimeSeconds)
 local function OnUpdateInteractText()
     -- Lebende Ziele sind immer Feinde (bzw. Tiere/NPCs): beide Schalter muessen an sein
-    if not HudAllowed() or not Settings().hudEnemies or not Settings().hudUnits
+    if not HudAllowed() or Settings().showEnemy == WDH.SHOW_OFF or not Settings().hudUnits
        or not RETICLE.interact:IsHidden() then
         unitView.label:SetHidden(true)
         return

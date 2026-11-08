@@ -1,0 +1,8 @@
+## Title: HideFriendStatus
+## APIVersion: 101045
+## Version: 1.0.0
+## Author: LousyTourist
+## Description: Suppresses friend logging in and out notifications from the chat box window.
+
+HideFriendStatus.lua
+

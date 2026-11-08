@@ -1,10 +1,10 @@
 ## Title: What Drops Here? |cFF8800(Beta)|r
 ## Author: @Cudddel
-## Version: 0.2.0-beta
+## Version: 0.3.0-beta
 ## APIVersion: 101051 101052
 ## SavedVariables: WDH_Saved
-## Description: Merkt sich, was jede Beutequelle dir bisher gegeben hat, und zeigt es am Fadenkreuz an.
-## AddOnVersion: 2
+## Description: Remembers what every loot source has given you so far and shows it at the crosshair.
+## AddOnVersion: 3
 ## OptionalDependsOn: LibAddonMenu-2.0>=32
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
@@ -12,7 +12,8 @@
 ; in the United States and/or other countries. All rights reserved.
 ; https://account.elderscrollsonline.com/add-on-terms
 
-lang/de.lua
+lang/en.lua
+lang/$(language).lua
 WDH_Categories.lua
 WhatDropsHere.lua
 WDH_Hud.lua

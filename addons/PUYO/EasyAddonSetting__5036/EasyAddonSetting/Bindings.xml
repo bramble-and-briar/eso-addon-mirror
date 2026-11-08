@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Easy Addon Setting">
+            <Action name="CASW_TOGGLE">
+                <Down>CASW_Toggle()</Down>
+            </Action>
+            <Action name="CASW_CURSOR">
+                <Down>CASW_Cursor()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

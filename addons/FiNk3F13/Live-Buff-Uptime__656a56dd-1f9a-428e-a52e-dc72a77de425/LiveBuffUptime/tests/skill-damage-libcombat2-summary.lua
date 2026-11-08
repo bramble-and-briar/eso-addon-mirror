@@ -48,6 +48,8 @@ assert(report.skillDamageDuration==2,"friendly/self damage cannot extend the aut
 local enemyTotal=0
 for _,target in ipairs(report.enemies) do enemyTotal=enemyTotal+target.damage end
 assert(enemyTotal==report.ownDamage and report.enemies[1].name=="Dummy","enemy totals and names match the restored skills")
+assert(report.skillTargetsRecorded and #report.enemies[1].skills==3 and #report.enemies[2].skills==1,
+    "v2 final summaries retain independent per-target skill rows")
 fight.damageDone[1][900][16499].totalAmount=999999
 assert(report.skills[2].damage==11715,"report owns copies, not references into mutable library data")
 -- A fresh encounter cannot inherit any previous damage or hits.

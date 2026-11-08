@@ -37,15 +37,18 @@ callbacks[51](51,{unitIds={player=1},units={[1]={unitType=1},[900]={unitType=4,n
         [16499]={totalAmount=2000,totalCount=1,startTime=203000,endTime=203000}}}}})
 local report=assert(saved.lastUptimeReport)
 local expectedDamage=9715+100000+500+2000
-local expectedTime=math.max(1,103-100) -- ESO ZO_DPSLog: last hit minus first hit, minimum one second
+local expectedTime=(206000-200100)/1000 -- group display: combat start to last valid damage (including zero damage)
 assert(report.ownDamage==expectedDamage and report.skillDamageDuration==expectedTime,
-    "native damage and first-hit clock match ESO's dummy log even when LibCombat2 itself lacks the opening hit")
+    "opening damage stays intact while DPS time follows the group display's full encounter clock")
 assert(#report.skills==3 and report.skills[2].id==16499 and report.skills[2].hits==2)
+assert(report.skillTargetsRecorded and #report.enemies[1].skills==3 and report.enemies[1].damage==expectedDamage,
+    "native player and pet hits preserve a separate skill breakdown for their actual target")
+assert(report.enemies[1].duration==4,"positive group damage extends this enemy's activity window; zero damage does not")
 assert(report.skills[3].id==133494 and report.skills[3].damage==500,"source type identifies an own pet even before library unit lookup")
 assert(report.ownDamage/report.skillDamageDuration==expectedDamage/expectedTime)
 raw(200,16499,8287); send(1,200.3,1); send(2,200.3,10,1,900,16499,8287,1,0)
 env.setClock(205); callbacks[51](51,{unitIds={player=1},units={}})
-assert(saved.lastUptimeReport.ownDamage==8287 and saved.lastUptimeReport.skillDamageDuration==1)
+assert(saved.lastUptimeReport.ownDamage==8287 and saved.lastUptimeReport.skillDamageDuration==4.7)
 assert(report.ownDamage==expectedDamage,"old report stays immutable")
 -- ESO enters combat immediately, while LibCombat2 reports the start much later.
 -- Even a correctly sized pre-combat ring cannot recover this hit if anchored
@@ -59,7 +62,7 @@ send(1,302,1)
 raw(303,25260,20000); send(2,303,10,1,900,25260,20000,1,0)
 env.setClock(304)
 callbacks[51](51,{unitIds={player=1},units={}})
-assert(saved.lastUptimeReport.ownDamage==34068 and saved.lastUptimeReport.skillDamageDuration==3,
+assert(saved.lastUptimeReport.ownDamage==34068 and saved.lastUptimeReport.skillDamageDuration==2.95,
     "delayed library start must neither expire the opening hit nor reset native damage accumulated after ESO combat start")
 assert(saved.lastUptimeReport.skills[1].damage==30000 and saved.lastUptimeReport.skills[1].hits==2)
 -- The lookback queue has a fixed 200-event bound.

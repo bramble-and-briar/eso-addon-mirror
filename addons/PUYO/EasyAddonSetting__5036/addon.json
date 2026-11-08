@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/PUYO/EasyAddonSetting__5036",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PUYO",
+  "canonical_id": "esoui:5036",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5036",
+  "deleted": false,
+  "directories": [
+    "EasyAddonSetting"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5036/",
+  "fingerprint": "60bf3c2be39d820ee22dfdfe5a2432028417b8044c961a894c90fd0e3d20afd2",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18355.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5036",
+  "source_url": "https://www.esoui.com/downloads/info5036-EasyAddonSetting.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "EasyAddonSetting",
+  "updated_at": 1794125300000,
+  "version": "2.14"
+}

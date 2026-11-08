@@ -26,8 +26,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CanThisBeCraftedAtHome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CanThisBeCraftedAtHome__434ce5ca-211a-4a6b-8682-21f39dcb2d25) | Masteroshi430 | Console | — |
 | [CapsLOCK](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkOODaT/CapsLOCK__653) | SkOODaT | PC / Mac | 101032.1 |
 | [Capybara Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Capybara-Icons__4176) | wicked_prophet | PC / Mac | 1.9.4 |
-| [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9.1 |
-| [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.1 |
+| [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9.4 |
+| [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.2 |
 | [Card Combo - Mini Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Traybair/Card-Combo---Mini-Game__4512) | Traybair | PC / Mac | 1.0.2 |
 | [Caro's Auto Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Caro-s-Auto-Marker__3500) | Irniben | PC / Mac | 0.1.2 |
 | [Caro's Collection Mail Group](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Caro-s-Collection-Mail-Group__3234) | Irniben | PC / Mac | 1.0.0 |
@@ -80,7 +80,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Chat Be Gone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Chat-Be-Gone__85e2f419-414a-48a9-ad3b-4b713c098ca2) | xPricee | Console | — |
 | [Chat Command Exit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/Chat-Command-Exit__4944) | VotMyID | PC / Mac | 1.1.4 |
 | [Chat Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Chat-Emotes__3658) | akamatsu02 | PC / Mac | 2.6 |
-| [Chat Input Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GetanoNero/Chat-Input-Viewer__4158) | GetanoNero | PC / Mac | 1.3.1 |
+| [Chat Input Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GetanoNero/Chat-Input-Viewer__4158) | GetanoNero | PC / Mac | 1.4.0 |
 | [Chat keeper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Chat-keeper__47608f50-4be4-46b1-833f-575274a7dbf2) | TheGreyWolf98 | Console | — |
 | [Chat Log Preserver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Chat-Log-Preserver__cebfe41b-3168-432c-a3cf-795bbe56e54e) | clubwratt | Console | — |
 | [Chat Palette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Chat-Palette__3ecd8aa0-ce2c-4b41-b059-214dad8bac4f) | TheGreyWolf98 | Console | — |
@@ -119,6 +119,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Circular Votan's Mini Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Circular-Votan-s-Mini-Map__f5b8ee78-0ef3-4ee5-803c-79785f34173d) | votan73 | Console | — |
 | [CircularMiniMap's Covers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/t.vicson/CircularMiniMap-s-Covers__3697) | t.vicson | PC / Mac | 1.0.0 |
 | [CitizenAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Citizen/CitizenAddon__3799) | Citizen | PC / Mac | 1.1.04 |
+| [City Lights - Easy to Spot Towns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JuneSky/City-Lights---Easy-to-Spot-Towns__5031) | JuneSky | PC / Mac | 1.1.0 |
 | [CKS Custom Kill Sound - Killblow PvP Sound Effect](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fonillius/CKS-Custom-Kill-Sound---Killblow-PvP-Sound-Effect__4547) | fonillius | PC / Mac | 5.0 |
 | [Clan Cercone Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Josh-cr/Clan-Cercone-Addon__3735) | Josh-cr | PC / Mac | 4.4.0 |
 | [Clarity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muenchhausen/Clarity__2874) | muenchhausen | PC / Mac | 1.1.2 |
@@ -153,6 +154,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.4 |
 | [Collection bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarth/Collection-bars__2339) | Jarth | PC / Mac | 1.1.14 |
 | [Color Blind Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Color-Blind-Mode__2981) | attriel | PC / Mac | 1.0.12 |
+| [Colorblind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Colorblind__5032) | lousytourist | PC / Mac | 2026.11.07 |
 | [Colorful Map Areas - Quests, Forward Camps, Dig Sites!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/Colorful-Map-Areas---Quests-Forward-Camps-Dig-Sites__3393) | Valve | PC / Mac | 1.2.0 |
 | [Colourful ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Colourful-ESO__1662) | Dolgubon | PC / Mac | 2.3 |
 | [Combat Alerts Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DrSova/Combat-Alerts-Extended__3439) | DrSova | PC / Mac | 1.0.5 |

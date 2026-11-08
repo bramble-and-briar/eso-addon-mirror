@@ -1,0 +1,8 @@
+## Title: Duel Results
+## APIVersion: 101046
+## AddOnVersion: 2.1
+## Author: Vixen Hunny
+## DependsOn: LibAddonMenu-2.0 LibCombat2
+## Description: Track Damage Done, healing done and effects uptime
+
+DuelResults.lua

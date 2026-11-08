@@ -1,22 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/votan/Votan-s-Fisherman__918",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "votan",
   "canonical_id": "esoui:918",
   "category_id": "40",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Feast of Shadows",
-      "version": "11.1.0"
-    },
-    {
-      "name": " Seasons of the Worm Cult Pt1",
-      "version": "11.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:918",
@@ -25,7 +22,7 @@
     "VotansFisherman"
   ],
   "download_url": "https://www.esoui.com/downloads/dl918/",
-  "fingerprint": "b7b1488abf6ecfe6cd9258eb1eb23acf0af7f563b5e3ea142f805741d554936d",
+  "fingerprint": "ec3739b85d25526d1e179ef2882f9458cb338115f19ce9bc25d643d8be6e3d13",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw2769.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw2770.jpg",
@@ -37,11 +34,11 @@
   "source_id": "918",
   "source_url": "https://www.esoui.com/downloads/info918-VotansFisherman.html",
   "stats": {
-    "downloads": 1666496,
-    "favorites": 1044,
-    "monthly_downloads": 2203
+    "downloads": 1676778,
+    "favorites": 1046,
+    "monthly_downloads": 4067
   },
   "title": "Votan's Fisherman",
-  "updated_at": 1753613917000,
-  "version": "1.16.3"
+  "updated_at": 1794059866000,
+  "version": "1.16.4"
 }

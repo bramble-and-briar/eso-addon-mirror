@@ -33,6 +33,8 @@ reports.RecordDamage(1,4,900,"Boss",-1,105,"Invalid")
 for id=201,213 do reports.RecordDamage(1,4,900,"Boss",1,id,"Small "..id) end
 reports.CaptureFallback({},100,110,10,false,function(id) return tostring(id) end,{},function() return false end)
 local report = saved.lastUptimeReport
+-- Legacy reports retain the historical skill-selection layout.
+report.skillTargetsRecorded=false
 assert(report and #report.skills==15 and report.ownDamage==18013,"only player/own pet damage is captured, even without uptime trackers")
 assert(report.skills[1].id==101 and report.skills[1].damage==12000 and report.skills[1].hits==2)
 assert(report.skills[2].id==102 and report.skills[2].damage==6000)

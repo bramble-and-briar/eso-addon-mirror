@@ -27,23 +27,17 @@ local C             = MugShot.Constants
 local Q             = C.QUADRANTS
 local V             = C.VALUES
 
+local PlaySound = PlaySound or function() end
+local SOUNDS    = SOUNDS or {}
+
 -- ESO Standard DrawLayer constants
 local DL_BACKGROUND = _G.DL_BACKGROUND or 0
 local DL_CONTROLS   = _G.DL_CONTROLS   or 1
 local DL_TEXT       = _G.DL_TEXT       or 2
 local DL_OVERLAY    = _G.DL_OVERLAY    or 3
 
-local function SafeSetDrawLevel(ctrl, level)
-    if ctrl and ctrl.SetDrawLevel then
-        ctrl:SetDrawLevel(level)
-    end
-end
-
 local function ShallowCopy(t)
-    if ZO_ShallowTableCopy then return ZO_ShallowTableCopy(t) end
-    local copy = {}
-    for k, v in pairs(t or {}) do copy[k] = v end
-    return copy
+    return ZO_ShallowTableCopy(t)
 end
 
 -- ── Quadrant Configurations (3 Equal Lines, Left & Right) ──
@@ -103,71 +97,9 @@ local QUADRANT_CONFIG = {
         lineIndex = 3,
     },
 }
--- Aliases for backward compatibility
-QUADRANT_CONFIG[Q.TOP_LEFT]     = QUADRANT_CONFIG[Q.LINE1_LEFT]
-QUADRANT_CONFIG[Q.TOP_RIGHT]    = QUADRANT_CONFIG[Q.LINE1_RIGHT]
-QUADRANT_CONFIG[Q.BOTTOM_LEFT]  = QUADRANT_CONFIG[Q.LINE2_LEFT]
-QUADRANT_CONFIG[Q.BOTTOM_RIGHT] = QUADRANT_CONFIG[Q.LINE2_RIGHT]
 
--- Short Debuff Tag Mapping
-local SHORT_DEBUFF_NAMES = {
-    ["Crusher"]                  = "CRUSH",
-    ["Breach"]                   = "BREACH",
-    ["Major Breach"]             = "BREACH",
-    ["Minor Breach"]             = "BREACH",
-    ["Brittle"]                  = "BRIT",
-    ["Major Brittle"]            = "BRIT",
-    ["Minor Brittle"]            = "BRIT",
-    ["Line Breaker"]             = "LN-BRK",
-    ["Maim"]                     = "MAIM",
-    ["Major Maim"]               = "MAIM",
-    ["Minor Maim"]               = "MAIM",
-    ["Weakening"]                = "WEAK",
-    ["Off Balance"]              = "OFF-BAL",
-    ["Touch of Z'en"]            = "Z'EN",
-    ["Martial Knowledge"]        = "MK",
-    ["Heat Shock"]               = "HEAT",
-    ["Vulnerability"]            = "VULN",
-    ["Major Vulnerability"]      = "VULN",
-    ["Minor Vulnerability"]      = "VULN",
-    ["The Morag Tong"]           = "MORAG",
-    ["Combat Prayer"]            = "PRAYER",
-    ["Spell Power Cure"]         = "SPC",
-    -- French
-    ["Écrasement"]               = "CRUSH",
-    ["Ecrasement"]               = "CRUSH",
-    ["Brèche majeure"]           = "BREACH",
-    ["Brèche mineure"]           = "BREACH",
-    ["Brèche"]                   = "BREACH",
-    ["Breche majeure"]           = "BREACH",
-    ["Breche mineure"]           = "BREACH",
-    ["Breche"]                   = "BREACH",
-    ["Friabilité majeure"]       = "BRIT",
-    ["Friabilité mineure"]       = "BRIT",
-    ["Friabilité"]               = "BRIT",
-    ["Friabilite majeure"]       = "BRIT",
-    ["Friabilite mineure"]       = "BRIT",
-    ["Friabilite"]               = "BRIT",
-    ["Mutilation majeure"]       = "MAIM",
-    ["Mutilation mineure"]       = "MAIM",
-    ["Mutilation"]               = "MAIM",
-    ["Vulnérabilité majeure"]    = "VULN",
-    ["Vulnérabilité mineure"]    = "VULN",
-    ["Vulnérabilité"]            = "VULN",
-    ["Vulnerabilite majeure"]    = "VULN",
-    ["Vulnerabilite mineure"]    = "VULN",
-    ["Vulnerabilite"]            = "VULN",
-    ["Affaiblissement"]          = "WEAK",
-    ["Déséquilibre"]             = "OFF-BAL",
-    ["Desequilibre"]             = "OFF-BAL",
-    ["Brise-ligne"]              = "LN-BRK",
-    ["Contact de Z'en"]          = "Z'EN",
-    ["Savoir martial"]           = "MK",
-    ["Connaissance martiale"]    = "MK",
-    ["Prière de combat"]         = "PRAYER",
-    ["Priere de combat"]         = "PRAYER",
-    ["Puissance curative"]       = "SPC",
-}
+-- Short Debuff Tag Mapping (Referenced from data-driven Constants)
+local SHORT_DEBUFF_NAMES = MugShot.Constants.SHORT_DEBUFF_NAMES
 
 -- ── Constructor ───────────────────────────────────────────
 function TargetFrameView.New()
@@ -186,12 +118,14 @@ function TargetFrameView.New()
     self._activePrivileged   = nil
     self._lastRaceIcon       = nil
     self._lastAllianceIcon   = nil
+    self._lastAllianceBase   = nil
     self._lastAllianceColor  = nil
     self._lastIsPlayer       = false
     self._lastReaction       = nil
     self._controller         = nil
     self:_Build()
     self:ApplyLayout()
+    self:RegisterDialogs()
     return self
 end
 
@@ -326,7 +260,7 @@ function TargetFrameView:_Build()
         qCtrl:SetEdgeColor(Style.QUADRANT_BORDER.r, Style.QUADRANT_BORDER.g, Style.QUADRANT_BORDER.b, Style.QUADRANT_BORDER.a)
         qCtrl:SetMouseEnabled(true)
         qCtrl:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(qCtrl, 1)
+        qCtrl:SetDrawLevel(1)
         qCtrl:SetHidden(true)
         self.quadrantControls[qKey] = qCtrl
     end
@@ -344,7 +278,7 @@ function TargetFrameView:_Build()
         lHandle:SetEdgeColor(Style.QUADRANT_BORDER.r, Style.QUADRANT_BORDER.g, Style.QUADRANT_BORDER.b, Style.QUADRANT_BORDER.a)
         lHandle:SetMouseEnabled(true)
         lHandle:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(lHandle, 2)
+        lHandle:SetDrawLevel(2)
         lHandle:SetHidden(true)
 
         local lText = CreateControl("MugShot_LineHandleText_" .. lineIdx, lHandle, CT_LABEL)
@@ -356,7 +290,7 @@ function TargetFrameView:_Build()
         lText:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         lText:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         lText:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(lText, 3)
+        lText:SetDrawLevel(3)
 
         lHandle._label = lText
         self.lineHandles[lineIdx] = lHandle
@@ -387,7 +321,7 @@ function TargetFrameView:_Build()
     raceIcon:SetHidden(true)
     raceIcon:SetMouseEnabled(true)
     raceIcon:SetDrawLayer(DL_OVERLAY)
-    SafeSetDrawLevel(raceIcon, 1)
+    raceIcon:SetDrawLevel(1)
 
     -- Race toggle button overlay (yellow 'X' or '+')
     local raceToggleBtn = CreateControl("MugShot_RaceToggleBtn", portraitBg, CT_LABEL)
@@ -399,30 +333,44 @@ function TargetFrameView:_Build()
     raceToggleBtn:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     raceToggleBtn:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     raceToggleBtn:SetDrawLayer(DL_OVERLAY)
-    SafeSetDrawLevel(raceToggleBtn, 2)
+    raceToggleBtn:SetDrawLevel(2)
     raceToggleBtn:SetMouseEnabled(true)
     raceToggleBtn:SetHidden(true)
 
-    -- Alliance / Class badge on bottom-right of portrait
+    -- Alliance composite badge on bottom-right of portrait
+    -- 1. Base flag (ava_flagneutral.dds tinted with high-contrast alliance color)
+    local allianceBase = CreateControl("MugShot_AllianceBase", portraitBg, CT_TEXTURE)
+    allianceBase:SetDimensions(Style.ALLIANCE_BASE_WIDTH or 28, Style.ALLIANCE_BASE_HEIGHT or 40)
+    allianceBase:SetAnchor(CENTER, portrait, BOTTOMRIGHT, 0, 0)
+    allianceBase:SetTexture(MugShot.Constants.ALLIANCE_FLAG_BASE)
+    if Style.ALLIANCE_BASE_COORDS then
+        allianceBase:SetTextureCoords(unpack(Style.ALLIANCE_BASE_COORDS))
+    end
+    allianceBase:SetHidden(true)
+    allianceBase:SetMouseEnabled(true)
+    allianceBase:SetDrawLayer(DL_OVERLAY)
+    allianceBase:SetDrawLevel(1)
+
+    -- 2. Crest badge on top (alliancebadge_<alliance>.dds in neutral white, centered in rectangular field)
     local allianceIcon = CreateControl("MugShot_AllianceIcon", portraitBg, CT_TEXTURE)
-    allianceIcon:SetDimensions(Style.BADGE_SIZE, Style.BADGE_SIZE)
-    allianceIcon:SetAnchor(CENTER, portrait, BOTTOMRIGHT, 0, 0)
+    allianceIcon:SetDimensions(Style.ALLIANCE_ICON_SIZE or 20, Style.ALLIANCE_ICON_SIZE or 20)
+    allianceIcon:SetAnchor(CENTER, allianceBase, CENTER, 0, Style.ALLIANCE_ICON_OFFSET_Y or -4)
     allianceIcon:SetHidden(true)
     allianceIcon:SetMouseEnabled(true)
     allianceIcon:SetDrawLayer(DL_OVERLAY)
-    SafeSetDrawLevel(allianceIcon, 1)
+    allianceIcon:SetDrawLevel(2)
 
     -- Alliance toggle button overlay (yellow 'X' or '+')
     local allianceToggleBtn = CreateControl("MugShot_AllianceToggleBtn", portraitBg, CT_LABEL)
     allianceToggleBtn:SetDimensions(Style.BADGE_TOGGLE_SIZE, Style.BADGE_TOGGLE_SIZE)
-    allianceToggleBtn:SetAnchor(CENTER, allianceIcon, TOPRIGHT, -2, 2)
+    allianceToggleBtn:SetAnchor(CENTER, allianceBase, TOPRIGHT, -2, 2)
     allianceToggleBtn:SetFont(Style.FONT_BADGE_TOGGLE)
     allianceToggleBtn:SetColor(Style.BADGE_TOGGLE_TEXT.r, Style.BADGE_TOGGLE_TEXT.g, Style.BADGE_TOGGLE_TEXT.b, Style.BADGE_TOGGLE_TEXT.a)
     allianceToggleBtn:SetText("X")
     allianceToggleBtn:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     allianceToggleBtn:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     allianceToggleBtn:SetDrawLayer(DL_OVERLAY)
-    SafeSetDrawLevel(allianceToggleBtn, 2)
+    allianceToggleBtn:SetDrawLevel(3)
     allianceToggleBtn:SetMouseEnabled(true)
     allianceToggleBtn:SetHidden(true)
 
@@ -431,92 +379,97 @@ function TargetFrameView:_Build()
     privilegedContainer:SetDimensions(Style.BAR_WIDTH, Style.LINE_HEIGHT)
     privilegedContainer:SetAnchor(TOPLEFT, barContainer, TOPLEFT, Style.BORDER_THICKNESS, Style.BORDER_THICKNESS + Style.LINE_HEIGHT * 2)
     privilegedContainer:SetDrawLayer(DL_OVERLAY)
-    SafeSetDrawLevel(privilegedContainer, 1)
+    privilegedContainer:SetDrawLevel(1)
     privilegedContainer:SetMouseEnabled(true)
     privilegedContainer:SetHidden(true)
     self.privilegedContainer = privilegedContainer
 
     self.privilegedSlots = {}
+    local slotWidth  = Style.PRIVILEGED_SLOT_WIDTH
+    local slotHeight = Style.PRIVILEGED_SLOT_HEIGHT
+    local slotGap    = Style.PRIVILEGED_SLOT_GAP or 2
+    local startX     = 1
+
     for i = 1, 5 do
-        local slotX = (i - 1) * Style.PRIVILEGED_SLOT_WIDTH
+        local slotX = startX + (i - 1) * (slotWidth + slotGap)
         local pBg = CreateControl("MugShot_PrivilegedSlot_" .. i, privilegedContainer, CT_BACKDROP)
         pBg._slotIndex = i
-        pBg:SetDimensions(Style.PRIVILEGED_SLOT_WIDTH, Style.PRIVILEGED_SLOT_HEIGHT)
-        pBg:SetAnchor(TOPLEFT, privilegedContainer, TOPLEFT, slotX, 0)
+        pBg:SetDimensions(slotWidth, slotHeight)
+        pBg:SetAnchor(TOPLEFT, privilegedContainer, TOPLEFT, slotX, 1)
         pBg:SetCenterTexture("")
         pBg:SetEdgeTexture("", Style.GRID_BORDER_THICKNESS, Style.GRID_BORDER_THICKNESS, Style.GRID_BORDER_THICKNESS)
         pBg:SetCenterColor(Style.SLOT_BG_COLOR.r, Style.SLOT_BG_COLOR.g, Style.SLOT_BG_COLOR.b, Style.SLOT_BG_COLOR.a)
         pBg:SetEdgeColor(Style.DEBUFF_GHOST_BORDER.r, Style.DEBUFF_GHOST_BORDER.g, Style.DEBUFF_GHOST_BORDER.b, Style.DEBUFF_GHOST_BORDER.a)
         pBg:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pBg, 1)
+        pBg:SetDrawLevel(1)
         pBg:SetMouseEnabled(true)
         pBg:SetHidden(true)
 
-        -- Header tag centered at top
+        -- Header tag centered at top with clean margin
         local pHeader = CreateControl("MugShot_PrivilegedHeader_" .. i, pBg, CT_LABEL)
-        pHeader:SetDimensions(Style.PRIVILEGED_SLOT_WIDTH, 14)
-        pHeader:SetAnchor(TOPLEFT, pBg, TOPLEFT, 0, 1)
+        pHeader:SetDimensions(slotWidth - 4, 13)
+        pHeader:SetAnchor(TOPLEFT, pBg, TOPLEFT, 2, 2)
         pHeader:SetFont(Style.FONT_DEBUFF_HEADER)
         pHeader:SetColor(1, 1, 1, 1)
         pHeader:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         pHeader:SetVerticalAlignment(TEXT_ALIGN_TOP)
         pHeader:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pHeader, 2)
+        pHeader:SetDrawLevel(2)
 
-        -- Paired: Major M on left half (30px)
+        -- Paired: Major M on left half (inset 4px from left border to prevent clipping)
         local pMajorBadge = CreateControl("MugShot_PrivilegedMajorBadge_" .. i, pBg, CT_LABEL)
-        pMajorBadge:SetDimensions(12, 16)
-        pMajorBadge:SetAnchor(TOPLEFT, pBg, TOPLEFT, 1, 15)
+        pMajorBadge:SetDimensions(10, 13)
+        pMajorBadge:SetAnchor(TOPLEFT, pBg, TOPLEFT, 4, 15)
         pMajorBadge:SetFont(Style.FONT_DEBUFF_BADGE)
         pMajorBadge:SetColor(Style.DEBUFF_MAJOR_COLOR.r, Style.DEBUFF_MAJOR_COLOR.g, Style.DEBUFF_MAJOR_COLOR.b, Style.DEBUFF_MAJOR_COLOR.a)
         pMajorBadge:SetText("M")
-        pMajorBadge:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        pMajorBadge:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         pMajorBadge:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         pMajorBadge:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pMajorBadge, 2)
+        pMajorBadge:SetDrawLevel(2)
 
         local pMajorTimer = CreateControl("MugShot_PrivilegedMajorTimer_" .. i, pBg, CT_LABEL)
-        pMajorTimer:SetDimensions(16, 16)
-        pMajorTimer:SetAnchor(TOPLEFT, pBg, TOPLEFT, 13, 15)
+        pMajorTimer:SetDimensions(14, 13)
+        pMajorTimer:SetAnchor(TOPLEFT, pBg, TOPLEFT, 14, 15)
         pMajorTimer:SetFont(Style.FONT_DEBUFF_TIMER)
         pMajorTimer:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
-        pMajorTimer:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        pMajorTimer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         pMajorTimer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         pMajorTimer:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pMajorTimer, 2)
+        pMajorTimer:SetDrawLevel(2)
 
-        -- Paired: Minor m on right half (30px)
+        -- Paired: Minor m on right half (inset 4px from right border)
         local pMinorBadge = CreateControl("MugShot_PrivilegedMinorBadge_" .. i, pBg, CT_LABEL)
-        pMinorBadge:SetDimensions(12, 16)
+        pMinorBadge:SetDimensions(9, 13)
         pMinorBadge:SetAnchor(TOPLEFT, pBg, TOPLEFT, 31, 15)
         pMinorBadge:SetFont(Style.FONT_DEBUFF_BADGE)
         pMinorBadge:SetColor(Style.DEBUFF_MINOR_COLOR.r, Style.DEBUFF_MINOR_COLOR.g, Style.DEBUFF_MINOR_COLOR.b, Style.DEBUFF_MINOR_COLOR.a)
         pMinorBadge:SetText("m")
-        pMinorBadge:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        pMinorBadge:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         pMinorBadge:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         pMinorBadge:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pMinorBadge, 2)
+        pMinorBadge:SetDrawLevel(2)
 
         local pMinorTimer = CreateControl("MugShot_PrivilegedMinorTimer_" .. i, pBg, CT_LABEL)
-        pMinorTimer:SetDimensions(16, 16)
-        pMinorTimer:SetAnchor(TOPLEFT, pBg, TOPLEFT, 43, 15)
+        pMinorTimer:SetDimensions(14, 13)
+        pMinorTimer:SetAnchor(TOPLEFT, pBg, TOPLEFT, 40, 15)
         pMinorTimer:SetFont(Style.FONT_DEBUFF_TIMER)
         pMinorTimer:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
-        pMinorTimer:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        pMinorTimer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         pMinorTimer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         pMinorTimer:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pMinorTimer, 2)
+        pMinorTimer:SetDrawLevel(2)
 
-        -- Single debuff timer centered below header
+        -- Single debuff timer centered below header (standardized 11pt font)
         local pSingleTimer = CreateControl("MugShot_PrivilegedSingleTimer_" .. i, pBg, CT_LABEL)
-        pSingleTimer:SetDimensions(Style.PRIVILEGED_SLOT_WIDTH, 16)
-        pSingleTimer:SetAnchor(TOPLEFT, pBg, TOPLEFT, 0, 15)
+        pSingleTimer:SetDimensions(slotWidth - 4, 13)
+        pSingleTimer:SetAnchor(TOPLEFT, pBg, TOPLEFT, 2, 15)
         pSingleTimer:SetFont(Style.FONT_DEBUFF_SINGLE)
         pSingleTimer:SetColor(Style.TEXT_COLOR_CYAN.r, Style.TEXT_COLOR_CYAN.g, Style.TEXT_COLOR_CYAN.b, Style.TEXT_COLOR_CYAN.a)
         pSingleTimer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
         pSingleTimer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         pSingleTimer:SetDrawLayer(DL_OVERLAY)
-        SafeSetDrawLevel(pSingleTimer, 2)
+        pSingleTimer:SetDrawLevel(2)
 
         self.privilegedSlots[i] = {
             bg          = pBg,
@@ -538,9 +491,6 @@ function TargetFrameView:_Build()
     effectContainer:SetMouseEnabled(true)
     effectContainer:SetDrawLayer(DL_CONTROLS)
     self.effectContainer = effectContainer
-    effectContainer:SetMouseEnabled(true)
-    effectContainer:SetDrawLayer(DL_CONTROLS)
-    self.effectContainer = effectContainer
 
     -- ── Move Mode Target Toggle Button (Ennemi / Joueur) ───
     local moveTargetBtn = CreateControl("MugShot_MoveTargetBtn", frame, CT_LABEL)
@@ -553,9 +503,23 @@ function TargetFrameView:_Build()
     moveTargetBtn:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     moveTargetBtn:SetMouseEnabled(true)
     moveTargetBtn:SetDrawLayer(DL_OVERLAY)
-    SafeSetDrawLevel(moveTargetBtn, 2)
+    moveTargetBtn:SetDrawLevel(2)
     moveTargetBtn:SetHidden(true)
     self.moveTargetBtn = moveTargetBtn
+
+    -- ── Move Mode Instructions ───────────────────────────
+    local moveInstructionsLabel = CreateControl("MugShot_MoveInstructions", frame, CT_LABEL)
+    moveInstructionsLabel:SetAnchor(TOPLEFT, moveTargetBtn, BOTTOMLEFT, -20, 4)
+    moveInstructionsLabel:SetDimensions(Style.FRAME_WIDTH + 40, 16)
+    moveInstructionsLabel:SetFont("$(BOLD_FONT)|11|soft-shadow-thick")
+    moveInstructionsLabel:SetColor(Style.DEBUFF_GHOST_TEXT.r, Style.DEBUFF_GHOST_TEXT.g, Style.DEBUFF_GHOST_TEXT.b, 0.95)
+    moveInstructionsLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    moveInstructionsLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    moveInstructionsLabel:SetText((MugShot.GetText and MugShot.GetText("MOVE_MODE_INSTRUCTIONS")) or "[Mode Déplacement] Glisser : Déplacer cadre | Ligne 3 : Clic G = Permuter, Clic D = Renommer")
+    moveInstructionsLabel:SetDrawLayer(DL_OVERLAY)
+    moveInstructionsLabel:SetDrawLevel(2)
+    moveInstructionsLabel:SetHidden(true)
+    self.moveInstructionsLabel = moveInstructionsLabel
 
     -- Pre-create reusable pool of effect slots
     self.effectSlots = {}
@@ -617,14 +581,43 @@ function TargetFrameView:_Build()
         lHandle:SetHandler("OnMouseUp", OnLineHandleClicked)
     end
 
-    -- Privileged debuff slot click handlers
+    -- Privileged debuff slot click & hover handlers
     for i, slot in ipairs(self.privilegedSlots) do
         local function OnSlotClicked(ctrl, button)
-            if button == MOUSE_BUTTON_INDEX_LEFT and self._inMoveMode then
-                self:_OnPrivilegedSlotClicked(i)
+            if self._inMoveMode then
+                if button == MOUSE_BUTTON_INDEX_LEFT then
+                    self:_OnPrivilegedSlotClicked(i)
+                elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+                    self:_OnPrivilegedSlotRightClicked(i, ctrl)
+                end
             end
         end
+
+        local function OnSlotMouseEnter(ctrl)
+            if not self._inMoveMode then return end
+            local debuff = self._activePrivileged and self._activePrivileged[i]
+            if not debuff then return end
+
+            local name = debuff.name or "Debuff"
+            local title = string.format("|cffffff%s|r", name)
+            local tagInfo = ""
+            if debuff.defaultTag and debuff.defaultTag ~= debuff.tag then
+                tagInfo = string.format("\n" .. ((MugShot.GetText and MugShot.GetText("TOOLTIP_TAG_INFO")) or "Displayed tag: |c00ffcc%s|r (Default: %s)"), debuff.tag or "", debuff.defaultTag or "")
+            end
+            local leftAction  = (MugShot.GetText and MugShot.GetText("TOOLTIP_LEFT_CLICK")) or "|cffd700• Left-Click:|r Swap debuffs"
+            local rightAction = (MugShot.GetText and MugShot.GetText("TOOLTIP_RIGHT_CLICK")) or "|cffd700• Right-Click:|r Rename tag"
+            local text = string.format("%s%s\n\n%s\n%s", title, tagInfo, leftAction, rightAction)
+
+            ZO_Tooltips_ShowTextTooltip(ctrl, TOP, text)
+        end
+
+        local function OnSlotMouseExit(ctrl)
+            ZO_Tooltips_HideTextTooltip()
+        end
+
         slot.bg:SetHandler("OnMouseUp", OnSlotClicked)
+        slot.bg:SetHandler("OnMouseEnter", OnSlotMouseEnter)
+        slot.bg:SetHandler("OnMouseExit", OnSlotMouseExit)
     end
 
     -- Move Mode Target Toggle Button click handler
@@ -646,9 +639,7 @@ function TargetFrameView:_Build()
         if cur == nil then cur = true end
         settings:Set(badgeKey, not cur)
         self:_UpdateBadgeToggles()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then
-            PlaySound(SOUNDS.CLICK)
-        end
+        PlaySound(SOUNDS.CLICK)
     end
 
     raceToggleBtn:SetHandler("OnMouseUp", function(ctrl, button)
@@ -681,6 +672,7 @@ function TargetFrameView:_Build()
     self.portraitBg          = portraitBg
     self.portrait            = portrait
     self.raceIcon            = raceIcon
+    self.allianceBase        = allianceBase
     self.allianceIcon        = allianceIcon
     self.raceToggleBtn       = raceToggleBtn
     self.allianceToggleBtn   = allianceToggleBtn
@@ -771,12 +763,7 @@ function TargetFrameView:SetIdentity(pres)
     local hasPortrait = pres.portraitTexture and pres.portraitTexture ~= ""
     if hasPortrait then
         self.portrait:SetTexture(pres.portraitTexture)
-        local pc = pres.portraitColor or { 1.0, 1.0, 1.0, 1.0 }
-        local pr = pc[1] or pc.r or 1.0
-        local pg = pc[2] or pc.g or 1.0
-        local pb = pc[3] or pc.b or 1.0
-        local pa = pc[4] or pc.a or 1.0
-        self.portrait:SetColor(pr, pg, pb, pa)
+        self.portrait:SetColor(1.0, 1.0, 1.0, 1.0)
         if pres.portraitCoords then
             self.portrait:SetTextureCoords(unpack(pres.portraitCoords))
         else
@@ -806,13 +793,39 @@ function TargetFrameView:SetIdentity(pres)
     -- Badges
     self._lastRaceIcon      = pres.raceIcon
     self._lastAllianceIcon  = pres.allianceIcon
-    self._lastAllianceColor = pres.allianceColor
+    self._lastAllianceBase  = pres.allianceBase or (pres.allianceIcon and MugShot.Constants.ALLIANCE_FLAG_BASE)
+
+    local allianceColor = pres.allianceColor
+    if not allianceColor and pres.allianceId then
+        allianceColor = MugShot.Constants.ALLIANCE_COLORS[pres.allianceId]
+    end
+    if not allianceColor and pres.allianceIcon then
+        local iconLower = pres.allianceIcon:lower()
+        if iconLower:find("aldmeri", 1, true) then
+            allianceColor = MugShot.Constants.ALLIANCE_COLORS[1]
+        elseif iconLower:find("ebonheart", 1, true) then
+            allianceColor = MugShot.Constants.ALLIANCE_COLORS[2]
+        elseif iconLower:find("daggerfall", 1, true) then
+            allianceColor = MugShot.Constants.ALLIANCE_COLORS[3]
+        end
+    end
+    self._lastAllianceColor = allianceColor
 
     if pres.raceIcon and pres.raceIcon ~= "" then
         self.raceIcon:SetTexture(pres.raceIcon)
     end
+    if self._lastAllianceBase and self._lastAllianceBase ~= "" then
+        self.allianceBase:SetTexture(self._lastAllianceBase)
+        if Style.ALLIANCE_BASE_COORDS then
+            self.allianceBase:SetTextureCoords(unpack(Style.ALLIANCE_BASE_COORDS))
+        end
+        if allianceColor then
+            self.allianceBase:SetColor(allianceColor.r, allianceColor.g, allianceColor.b, allianceColor.a or 1.0)
+        end
+    end
     if pres.allianceIcon and pres.allianceIcon ~= "" then
         self.allianceIcon:SetTexture(pres.allianceIcon)
+        self.allianceIcon:SetColor(1.0, 1.0, 1.0, 1.0)
     end
 
     self:_UpdateBadgeToggles()
@@ -860,7 +873,8 @@ function TargetFrameView:SetEffects(effects)
         self._lastInMoveMode = self._inMoveMode
     end
 
-    local maxSlots = math_max(num, Style.MAX_EFFECTS)
+    local totalSlots = #self.effectSlots
+    local maxSlots = math_max(num, totalSlots, Style.MAX_EFFECTS)
     for i = 1, maxSlots do
         local slot = self:_GetOrCreateEffectSlot(i)
         if i <= num then
@@ -1004,7 +1018,7 @@ function TargetFrameView:SetPrivilegedDebuffs(debuffs)
                     slot.header:SetColor(Style.TEXT_COLOR_CYAN.r, Style.TEXT_COLOR_CYAN.g, Style.TEXT_COLOR_CYAN.b, 1.00)
                     if singleIsPlayer then
                         slot.singleTimer:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, 1.00)
-                        slot.bg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
+                        slot.bg:SetEdgeColor(Style.DEBUFF_MAJOR_COLOR.r, Style.DEBUFF_MAJOR_COLOR.g, Style.DEBUFF_MAJOR_COLOR.b, 0.95)
                     else
                         slot.singleTimer:SetColor(Style.TEXT_COLOR_CYAN.r, Style.TEXT_COLOR_CYAN.g, Style.TEXT_COLOR_CYAN.b, 1.00)
                         slot.bg:SetEdgeColor(Style.BORDER_COLOR_GROUP.r, Style.BORDER_COLOR_GROUP.g, Style.BORDER_COLOR_GROUP.b, 0.95)
@@ -1056,11 +1070,11 @@ function TargetFrameView:_OnLineHandleClicked(lineIndex)
     if not self._selectedLine then
         self._selectedLine = lineIndex
         self:_UpdateLineHandleHighlights()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then PlaySound(SOUNDS.CLICK) end
+        PlaySound(SOUNDS.CLICK)
     elseif self._selectedLine == lineIndex then
         self._selectedLine = nil
         self:_UpdateLineHandleHighlights()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then PlaySound(SOUNDS.CLICK) end
+        PlaySound(SOUNDS.CLICK)
     else
         local l1 = self._selectedLine
         local l2 = lineIndex
@@ -1068,9 +1082,7 @@ function TargetFrameView:_OnLineHandleClicked(lineIndex)
         self:_UpdateLineHandleHighlights()
 
         self:SwapLines(l1, l2)
-        if PlaySound and SOUNDS and SOUNDS.INVENTORY_ITEM_UNLOCKED then
-            PlaySound(SOUNDS.INVENTORY_ITEM_UNLOCKED)
-        end
+        PlaySound(SOUNDS.INVENTORY_ITEM_UNLOCKED)
     end
 end
 
@@ -1100,11 +1112,11 @@ function TargetFrameView:_OnQuadrantClicked(qKey)
     if not self._selectedQuadrant then
         self._selectedQuadrant = qKey
         self:_UpdateQuadrantHighlights()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then PlaySound(SOUNDS.CLICK) end
+        PlaySound(SOUNDS.CLICK)
     elseif self._selectedQuadrant == qKey then
         self._selectedQuadrant = nil
         self:_UpdateQuadrantHighlights()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then PlaySound(SOUNDS.CLICK) end
+        PlaySound(SOUNDS.CLICK)
     else
         local q1 = self._selectedQuadrant
         local q2 = qKey
@@ -1122,9 +1134,7 @@ function TargetFrameView:_OnQuadrantClicked(qKey)
         self._selectedQuadrant = nil
         self:_UpdateQuadrantHighlights()
         self:ApplyQuadrantLayout(quadrants)
-        if PlaySound and SOUNDS and SOUNDS.INVENTORY_ITEM_UNLOCKED then
-            PlaySound(SOUNDS.INVENTORY_ITEM_UNLOCKED)
-        end
+        PlaySound(SOUNDS.INVENTORY_ITEM_UNLOCKED)
     end
 end
 
@@ -1147,11 +1157,11 @@ function TargetFrameView:_OnPrivilegedSlotClicked(slotIndex)
     if not self._selectedPrivileged then
         self._selectedPrivileged = slotIndex
         self:_UpdatePrivilegedSlotHighlights()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then PlaySound(SOUNDS.CLICK) end
+        PlaySound(SOUNDS.CLICK)
     elseif self._selectedPrivileged == slotIndex then
         self._selectedPrivileged = nil
         self:_UpdatePrivilegedSlotHighlights()
-        if PlaySound and SOUNDS and SOUNDS.CLICK then PlaySound(SOUNDS.CLICK) end
+        PlaySound(SOUNDS.CLICK)
     else
         local s1 = self._selectedPrivileged
         local s2 = slotIndex
@@ -1162,9 +1172,7 @@ function TargetFrameView:_OnPrivilegedSlotClicked(slotIndex)
         if ctrl and ctrl.SwapPrivilegedDebuffs then
             ctrl:SwapPrivilegedDebuffs(s1, s2)
         end
-        if PlaySound and SOUNDS and SOUNDS.INVENTORY_ITEM_UNLOCKED then
-            PlaySound(SOUNDS.INVENTORY_ITEM_UNLOCKED)
-        end
+        PlaySound(SOUNDS.INVENTORY_ITEM_UNLOCKED)
     end
 end
 
@@ -1204,6 +1212,90 @@ function TargetFrameView:_UpdatePrivilegedSlotHighlights()
     end
 end
 
+local DIALOG_RENAME_DEBUFF = "MUGSHOT_RENAME_DEBUFF_TAG"
+
+function TargetFrameView:RegisterDialogs()
+    if not ZO_Dialogs_RegisterCustomDialog then return end
+
+    ZO_Dialogs_RegisterCustomDialog(DIALOG_RENAME_DEBUFF, {
+        title = {
+            text = function(dialog)
+                return (MugShot.GetText and MugShot.GetText("DIALOG_RENAME_TITLE")) or "Rename Debuff Tag"
+            end,
+        },
+        mainText = {
+            text = function(dialog)
+                local data = dialog.data or {}
+                local fmt = (MugShot.GetText and MugShot.GetText("DIALOG_RENAME_BODY")) or "Enter tag for %s (Default: %s, max 7 chars):"
+                return string.format(fmt, data.name or "", data.defaultTag or "")
+            end,
+        },
+        editBox = {
+            maxInputCharacters = 7,
+            selectAll = true,
+            defaultText = function(dialog)
+                return (dialog.data and dialog.data.currentTag) or ""
+            end,
+        },
+        buttons = {
+            [1] = {
+                text = SI_DIALOG_CONFIRM,
+                callback = function(dialog)
+                    local text = ZO_Dialogs_GetEditBoxText(dialog) or ""
+                    local data = dialog.data or {}
+                    local ctrl = self._controller or MugShot._controller
+                    if ctrl and ctrl.SetCustomDebuffTag and data.key then
+                        ctrl:SetCustomDebuffTag(data.key, text)
+                    end
+                end,
+            },
+            [2] = {
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+    })
+end
+
+function TargetFrameView:ShowRenameDebuffDialog(debuffKey, debuffName, currentTag, defaultTag)
+    local data = {
+        key        = debuffKey,
+        name       = debuffName,
+        currentTag = currentTag,
+        defaultTag = defaultTag,
+    }
+    local textParams = {
+        editBoxDefaultText = currentTag,
+        initialEditText    = currentTag,
+    }
+    ZO_Dialogs_ShowPlatformDialog(DIALOG_RENAME_DEBUFF, data, textParams)
+end
+
+function TargetFrameView:_OnPrivilegedSlotRightClicked(slotIndex, anchorCtrl)
+    if not self._inMoveMode then return end
+    local debuff = self._activePrivileged and self._activePrivileged[slotIndex]
+    if not debuff then return end
+
+    local debuffKey = debuff.key or (debuff.name and debuff.name:lower():gsub("%s+", "_"):gsub("[^%w_]", ""))
+    local curTag = debuff.tag or "DEBUFF"
+    local defTag = debuff.defaultTag or curTag
+    local hasCustom = (debuff.hasCustomTag == true) or (curTag ~= defTag)
+
+    ClearMenu()
+    AddCustomMenuItem((MugShot.GetText and MugShot.GetText("MENU_RENAME_TAG")) or "Rename tag...", function()
+        self:ShowRenameDebuffDialog(debuffKey, debuff.name, curTag, defTag)
+    end)
+    if hasCustom then
+        local resetText = string.format((MugShot.GetText and MugShot.GetText("MENU_RESET_TAG")) or "Reset default tag [%s]", defTag)
+        AddCustomMenuItem(resetText, function()
+            local ctrl = self._controller or MugShot._controller
+            if ctrl and ctrl.ResetCustomDebuffTag then
+                ctrl:ResetCustomDebuffTag(debuffKey)
+            end
+        end)
+    end
+    ShowMenu(anchorCtrl or (self.privilegedSlots and self.privilegedSlots[slotIndex] and self.privilegedSlots[slotIndex].bg))
+end
+
 -- ── ApplyQuadrantLayout ───────────────────────────────────
 function TargetFrameView:ApplyQuadrantLayout(quadrants)
     local isEnemy = (self._inMoveMode and self._moveModeTarget == "enemy") or (not self._inMoveMode and self._lastReaction == UNIT_REACTION_HOSTILE)
@@ -1236,11 +1328,15 @@ function TargetFrameView:ApplyQuadrantLayout(quadrants)
 
     self._currentQuadrants = quadrants
 
-    local labelMap = {
-        [V.PERCENT] = self.percentageLabel,
-        [V.HEALTH]  = self.healthLabel,
-        [V.NAME]    = self.targetNameLabel,
-    }
+    local labelMap = self._labelMap
+    if not labelMap then
+        labelMap = {
+            [V.PERCENT] = self.percentageLabel,
+            [V.HEALTH]  = self.healthLabel,
+            [V.NAME]    = self.targetNameLabel,
+        }
+        self._labelMap = labelMap
+    end
 
     for _, label in pairs(labelMap) do
         label:ClearAnchors()
@@ -1306,6 +1402,11 @@ function TargetFrameView:SetMoveMode(enabled, targetType)
                 self.moveTargetBtn:SetColor(0.4, 1.0, 0.4, 1.0)
             end
         end
+
+        if self.moveInstructionsLabel then
+            self.moveInstructionsLabel:SetHidden(false)
+            self.moveInstructionsLabel:SetText((MugShot.GetText and MugShot.GetText("MOVE_MODE_INSTRUCTIONS")) or "[Mode Déplacement] Glisser : Déplacer cadre | Ligne 3 : Clic G = Permuter, Clic D = Renommer")
+        end
     else
         self.barBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
         self.portraitBg:SetEdgeColor(Style.BORDER_COLOR_PLAYER.r, Style.BORDER_COLOR_PLAYER.g, Style.BORDER_COLOR_PLAYER.b, Style.BORDER_COLOR_PLAYER.a)
@@ -1314,6 +1415,8 @@ function TargetFrameView:SetMoveMode(enabled, targetType)
             for _, ctrl in pairs(self.lineHandles) do ctrl:SetHidden(true) end
         end
         if self.moveTargetBtn then self.moveTargetBtn:SetHidden(true) end
+        if self.moveInstructionsLabel then self.moveInstructionsLabel:SetHidden(true) end
+        ZO_Tooltips_HideTextTooltip()
         self:_UpdatePrivilegedSlotHighlights()
         self:_UpdateBadgeToggles()
     end
@@ -1330,6 +1433,7 @@ function TargetFrameView:_UpdateBadgeToggles()
         if not isPlayerPreview then
             -- Enemy preview: STRICTLY HIDE race and alliance badges & toggles!
             self.raceIcon:SetHidden(true)
+            self.allianceBase:SetHidden(true)
             self.allianceIcon:SetHidden(true)
             if self.raceToggleBtn then self.raceToggleBtn:SetHidden(true) end
             if self.allianceToggleBtn then self.allianceToggleBtn:SetHidden(true) end
@@ -1353,21 +1457,34 @@ function TargetFrameView:_UpdateBadgeToggles()
                 end
             end
 
+            self.allianceBase:SetHidden(false)
             self.allianceIcon:SetHidden(false)
             if self.allianceToggleBtn then self.allianceToggleBtn:SetHidden(false) end
             if showAlliance then
+                self.allianceBase:SetAlpha(Style.ALPHA_OPAQUE)
                 self.allianceIcon:SetAlpha(Style.ALPHA_OPAQUE)
-                if self._lastAllianceColor then
-                    self.allianceIcon:SetColor(unpack(self._lastAllianceColor))
-                else
-                    self.allianceIcon:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
+                local c = self._lastAllianceColor
+                if not c and self._lastAllianceIcon then
+                    local iconLower = self._lastAllianceIcon:lower()
+                    if iconLower:find("aldmeri", 1, true) then c = MugShot.Constants.ALLIANCE_COLORS[1]
+                    elseif iconLower:find("ebonheart", 1, true) then c = MugShot.Constants.ALLIANCE_COLORS[2]
+                    elseif iconLower:find("daggerfall", 1, true) then c = MugShot.Constants.ALLIANCE_COLORS[3]
+                    end
                 end
+                if c then
+                    self.allianceBase:SetColor(c.r, c.g, c.b, c.a or 1.0)
+                else
+                    self.allianceBase:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
+                end
+                self.allianceIcon:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
                 if self.allianceToggleBtn then
                     self.allianceToggleBtn:SetText("X")
                     self.allianceToggleBtn:SetColor(Style.BADGE_TOGGLE_TEXT.r, Style.BADGE_TOGGLE_TEXT.g, Style.BADGE_TOGGLE_TEXT.b, Style.BADGE_TOGGLE_TEXT.a)
                 end
             else
+                self.allianceBase:SetAlpha(Style.ALPHA_DISABLED)
                 self.allianceIcon:SetAlpha(Style.ALPHA_DISABLED)
+                self.allianceBase:SetColor(Style.BADGE_DISABLED_COLOR.r, Style.BADGE_DISABLED_COLOR.g, Style.BADGE_DISABLED_COLOR.b, Style.BADGE_DISABLED_COLOR.a)
                 self.allianceIcon:SetColor(Style.BADGE_DISABLED_COLOR.r, Style.BADGE_DISABLED_COLOR.g, Style.BADGE_DISABLED_COLOR.b, Style.BADGE_DISABLED_COLOR.a)
                 if self.allianceToggleBtn then
                     self.allianceToggleBtn:SetText("+")
@@ -1380,21 +1497,33 @@ function TargetFrameView:_UpdateBadgeToggles()
         if self.allianceToggleBtn then self.allianceToggleBtn:SetHidden(true) end
         self.raceIcon:SetAlpha(Style.ALPHA_OPAQUE)
         self.raceIcon:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
+        self.allianceBase:SetAlpha(Style.ALPHA_OPAQUE)
         self.allianceIcon:SetAlpha(Style.ALPHA_OPAQUE)
-        if self._lastAllianceColor then
-            self.allianceIcon:SetColor(unpack(self._lastAllianceColor))
-        else
-            self.allianceIcon:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
+        local c = self._lastAllianceColor
+        if not c and self._lastAllianceIcon then
+            local iconLower = self._lastAllianceIcon:lower()
+            if iconLower:find("aldmeri", 1, true) then c = MugShot.Constants.ALLIANCE_COLORS[1]
+            elseif iconLower:find("ebonheart", 1, true) then c = MugShot.Constants.ALLIANCE_COLORS[2]
+            elseif iconLower:find("daggerfall", 1, true) then c = MugShot.Constants.ALLIANCE_COLORS[3]
+            end
         end
+        if c then
+            self.allianceBase:SetColor(c.r, c.g, c.b, c.a or 1.0)
+        else
+            self.allianceBase:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
+        end
+        self.allianceIcon:SetColor(Style.TEXT_COLOR_WHITE.r, Style.TEXT_COLOR_WHITE.g, Style.TEXT_COLOR_WHITE.b, Style.TEXT_COLOR_WHITE.a)
 
         local isPlayer = (self._lastIsPlayer == true)
         local hasPortrait = self.portrait and not self.portrait:IsHidden()
         local hasRace = self._lastRaceIcon and self._lastRaceIcon ~= ""
         local hasAlliance = self._lastAllianceIcon and self._lastAllianceIcon ~= ""
+        local shouldShowAlliance = (isPlayer and hasPortrait and hasAlliance and showAlliance)
 
         -- STRICT RULE: race and alliance badges are ONLY shown on players!
         self.raceIcon:SetHidden(not (isPlayer and hasPortrait and hasRace and showRace))
-        self.allianceIcon:SetHidden(not (isPlayer and hasPortrait and hasAlliance and showAlliance))
+        self.allianceBase:SetHidden(not shouldShowAlliance)
+        self.allianceIcon:SetHidden(not shouldShowAlliance)
     end
 end
 
@@ -1437,6 +1566,7 @@ function TargetFrameView:Reset()
     self._selectedPrivileged = nil
     self._lastRaceIcon       = nil
     self._lastAllianceIcon   = nil
+    self._lastAllianceBase   = nil
     self._lastAllianceColor  = nil
     self._lastIsPlayer       = false
     self._lastReaction       = nil
@@ -1452,6 +1582,7 @@ function TargetFrameView:Reset()
     self.portrait:SetHidden(true)
     self.portraitBg:SetHidden(true)
     self.raceIcon:SetHidden(true)
+    self.allianceBase:SetHidden(true)
     self.allianceIcon:SetHidden(true)
     if self.raceToggleBtn then self.raceToggleBtn:SetHidden(true) end
     if self.allianceToggleBtn then self.allianceToggleBtn:SetHidden(true) end

@@ -3,6 +3,8 @@
 local bridge = {}
 SimpleGroupDPS_BattleScrolls = bridge
 local members = {}
+local retained = {}
+local lastGrouped
 local registeredShare
 local receiverReady = false
 local receiverAttempted = false
@@ -33,6 +35,7 @@ local function encodeDPS(value, bits, literalMax)
 end
 
 local function onData(unitTag, data)
+    if not IsUnitGrouped("player") then return end
     if type(unitTag) ~= "string" or not unitTag:match("^group%d+$") then return end
     if not DoesUnitExist(unitTag) or AreUnitsEqual(unitTag, "player") then return end
     if type(data) ~= "table" then return end
@@ -55,7 +58,12 @@ local function onData(unitTag, data)
     local now = GetGameTimeMilliseconds()
     member.messageType = data.messageType
     member.role = GetGroupMemberSelectedRole and GetGroupMemberSelectedRole(unitTag) or data.role
+    if GetUnitClassId then
+        local classId = GetUnitClassId(unitTag)
+        if type(classId) == "number" and classId > 0 then member.classId = classId end
+    end
     member.receivedAt = now
+    member.resultAt = nil
     if healing then
         member.rawHPS, member.effectiveHPS, member.healingAt = rawHPS, effectiveHPS, now
     else
@@ -118,6 +126,7 @@ function bridge:Connect()
         registeredShare:UnregisterCallback("SimpleGroupDPS")
     end
     members = {}
+    retained = {}
     share:RegisterCallback("SimpleGroupDPS", onData)
     registeredShare = share
     return true
@@ -125,13 +134,30 @@ end
 
 function bridge:Clear()
     members = {}
+    retained = {}
     lastSendAt = nil
+end
+
+function bridge:BeginEncounter()
+    retained = {}
+    for _, member in pairs(members) do member.resultAt = nil end
+    -- A new solo encounter must not inherit the previous group's result rows.
+    if not IsUnitGrouped("player") then members = {}; lastGrouped = false end
+end
+
+function bridge:MarkResult()
+    local now = GetGameTimeMilliseconds()
+    for _, member in pairs(members) do member.resultAt = now end
+    for _, member in pairs(retained) do member.resultAt = now end
 end
 
 function bridge:Expire(ageMS)
     local now = GetGameTimeMilliseconds()
     for tag, member in pairs(members) do
-        if now - member.receivedAt >= ageMS then members[tag] = nil end
+        if now - (member.resultAt or member.receivedAt) >= ageMS then members[tag] = nil end
+    end
+    for tag, member in pairs(retained) do
+        if now - (member.resultAt or member.receivedAt) >= ageMS then retained[tag] = nil end
     end
 end
 
@@ -177,8 +203,8 @@ function bridge:SendHPS(rawHPS, effectiveHPS, force)
 end
 
 function bridge:SendMetrics(stats, force)
-    local role = GetSelectedLFGRole and GetSelectedLFGRole()
-    if LFG_ROLE_HEAL ~= nil and role == LFG_ROLE_HEAL then
+    -- Same automatic classification as BattleScrolls network/dpsshare.lua.
+    if (stats.rawHPS or 0) > (stats.dps or 0) then
         return self:SendHPS(stats.rawHPS, stats.effectiveHPS, force)
     end
     return self:SendDPS(stats.dps, force, stats.bossDPS)
@@ -202,16 +228,23 @@ end
 function bridge:GetRows()
     local rows = {}
     local now = GetGameTimeMilliseconds()
+    local grouped = IsUnitGrouped("player")
+    if not grouped and next(members) then
+        -- Unit tags are already invalid when GROUP_UPDATE fires. Keep cached
+        -- identities, roles and classes without consulting those tags again.
+        retained, members = members, {}
+    elseif grouped and lastGrouped == false then
+        retained = {}
+    end
+    lastGrouped = grouped
     local function append(member, tag)
-        if GetGroupMemberSelectedRole then member.role = GetGroupMemberSelectedRole(tag) end
-        if GetUnitClassId then
+        if tag and GetGroupMemberSelectedRole then member.role = GetGroupMemberSelectedRole(tag) end
+        if tag and GetUnitClassId then
             local classId = GetUnitClassId(tag)
             if type(classId) == "number" and classId > 0 then member.classId = classId end
         end
-        local healing = LFG_ROLE_HEAL ~= nil and member.role == LFG_ROLE_HEAL
-        local damage = (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)
-            or (LFG_ROLE_TANK ~= nil and member.role == LFG_ROLE_TANK)
-        member.displayType = (healing or (not damage and member.messageType == "healing")) and "healing" or "damage"
+        -- BattleScrolls displays the received type, not a role-based guess.
+        member.displayType = member.messageType
         local metricAt
         if member.displayType == "healing" then metricAt = member.healingAt else metricAt = member.damageAt end
         member.stale = not metricAt or now - metricAt > STALE_MS
@@ -219,12 +252,15 @@ function bridge:GetRows()
         rows[#rows + 1] = member
     end
     for tag, member in pairs(members) do
-        if not IsUnitGrouped("player") or not DoesUnitExist(tag)
+        if not DoesUnitExist(tag)
             or AreUnitsEqual(tag, "player") or GetUnitDisplayName(tag) ~= member.identity then
             members[tag] = nil
         else
             append(member, tag)
         end
+    end
+    if not grouped then
+        for _, member in pairs(retained) do append(member) end
     end
     table.sort(rows, function(a, b)
         local aHealing, bHealing = a.displayType == "healing", b.displayType == "healing"

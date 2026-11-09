@@ -42,7 +42,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pawksickles Updated and jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Pawksickles-Updated-and-jpFix__1401) | 2ch | PC / Mac | 1.5.2 |
 | [Pawksickles updated for High Isle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/trollusk/Pawksickles-updated-for-High-Isle__3422) | trollusk | PC / Mac | 1.6.1 |
 | [PB](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alexdragian/PB__2499) | alexdragian | PC / Mac | 0.0.23 |
-| [PBsProcSetTimer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PBsProcSetTimer-Beta__81a06296-da7a-447d-8784-8b2116d37dbf) | PinkBanther | Console | — |
 | [pChat (Chat customization & help: look/notification/sound/automation/history)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Puddy/pChat-Chat-customization-help-look-notification-sound-automation-history__93) | Puddy | PC / Mac | 10.0.7.6 |
 | [pChat - jp Nickname Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/pChat---jp-Nickname-Patch__2697) | Marify | PC / Mac | 1.3.12 |
 | [pChatZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/pChatZHPatch__3908) | FusRoDah | PC / Mac | 10.0.5.3 |
@@ -110,7 +109,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
 | [PinkB's EmoteSynchronizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EmoteSynchronizer__6b42fd29-e6c4-4aec-8f92-e5c54de4c28c) | PinkBanther | Console | — |
 | [PinkB's EmoteSynchronizer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EmoteSynchronizer-Beta__5cc8ec52-378a-4e09-aa6a-02f2409b2f2a) | PinkBanther | Console | — |
-| [PinkB's EquipmentChanger(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EquipmentChanger-Beta__da044120-ac5c-4f05-8e4b-9910b5df0568) | PinkBanther | Console | — |
+| [PinkB's EquipmentChanger with Yonechi(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EquipmentChanger-with-Yonechi-Beta__da044120-ac5c-4f05-8e4b-9910b5df0568) | PinkBanther | Console | — |
 | [PinkB's F-MEGA(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-F-MEGA-Beta__a73b49be-3025-4010-b2de-104c419bec54) | PinkBanther | Console | — |
 | [PinkB's FurnitureEditor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor__656edbf4-6ad8-4faf-8bd8-25f06199c990) | PinkBanther | Console | — |
 | [PinkB's FurnitureEditor(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor-Beta__c2c3621e-0b20-4fae-9195-05862d266eef) | PinkBanther | Console | — |
@@ -136,6 +135,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's Omikuji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji__e9774308-4827-4806-b3bd-924016769cd3) | PinkBanther | Console | — |
 | [PinkB's Omikuji(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji-Beta__20cda1ba-c4a4-4f82-9dcb-81e274222d9e) | PinkBanther | Console | — |
 | [PinkB's ProcSetTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer__92429895-8851-446b-83ef-a1333a7ac486) | PinkBanther | Console | — |
+| [PinkB's ProcSetTimer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer-Beta__81a06296-da7a-447d-8784-8b2116d37dbf) | PinkBanther | Console | — |
 | [PinkB's QuestTrackerFontChanger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-QuestTrackerFontChanger__cc94a283-12a5-4e75-8e54-727d2ab6977c) | PinkBanther | Console | — |
 | [PinkB's QuestTrackerFontChanger(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-QuestTrackerFontChanger-Beta__35920898-3b27-4e32-9f59-c0d8fee0b3bb) | PinkBanther | Console | — |
 | [PinkB's ResourceAndSkillBarCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ResourceAndSkillBarCustomizer__51bd8b59-40b0-4e2f-b31d-527bb63f0bfc) | PinkBanther | Console | — |
@@ -234,7 +234,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Procseason](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaveeMafiaa/Procseason__79d34de4-5c42-452f-9ce7-b03858b6b1e1) | DaveeMafiaa | Console | — |
 | [Profanity+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Profanity__e5945fc9-cef6-468d-9335-b4657a89f1f1) | Scribe_Rob | Console | — |
 | [Profit Calculator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/anufi/Profit-Calculator__2947) | anufi | PC / Mac | 1.1.1 |
-| [Provinatus - Heads Up Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AlbinoPython/Provinatus---Heads-Up-Display__1943) | AlbinoPython | PC / Mac | 2.6.1 |
+| [Provinatus - Heads Up Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AlbinoPython/Provinatus---Heads-Up-Display__1943) | AlbinoPython | PC / Mac | 2.6.3 |
 | [Provision's Boot Monitor - Alpha](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Provision/Provision-s-Boot-Monitor---Alpha__2216) | Provision | PC / Mac | 1.0.1 |
 | [Provision's Chalutier : Fishing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Provision/Provision-s-Chalutier-Fishing__2203) | Provision | PC / Mac | 1.0.3 |
 | [Provision's TeamFormation : Teammate Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Provision/Provision-s-TeamFormation-Teammate-Radar__1135) | Provision | PC / Mac | 1.3.1b |

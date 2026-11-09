@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Weyland/Weyland-Huntsman-s-Warmask-Tracker__5040",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Weyland",
+  "canonical_id": "esoui:5040",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5040",
+  "deleted": false,
+  "directories": [
+    "WeylandHuntsmansWarmaskTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5040/",
+  "fingerprint": "8fc3d991b97d57d676eedca7380396e3fb1e5463bd25293a416ec4b96c69dfcd",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18383.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18379.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18380.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18381.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18382.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5040",
+  "source_url": "https://www.esoui.com/downloads/info5040-WeylandHuntsmansWarmaskTracker.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Weyland Huntsman's Warmask Tracker",
+  "updated_at": 1794207693000,
+  "version": "1.0.0"
+}

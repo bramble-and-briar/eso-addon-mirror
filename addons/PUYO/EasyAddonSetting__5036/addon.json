@@ -18,9 +18,9 @@
     "EasyAddonSetting"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5036/",
-  "fingerprint": "60bf3c2be39d820ee22dfdfe5a2432028417b8044c961a894c90fd0e3d20afd2",
+  "fingerprint": "3afd6b6069103f4ccfcfd56a255efe0a2c4ff2dd7f472d070ffc8ba17e41e1c4",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18355.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18384.png"
   ],
   "platform": "pc",
   "published": true,
@@ -28,11 +28,11 @@
   "source_id": "5036",
   "source_url": "https://www.esoui.com/downloads/info5036-EasyAddonSetting.html",
   "stats": {
-    "downloads": 1,
+    "downloads": 32,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 9
   },
   "title": "EasyAddonSetting",
-  "updated_at": 1794125300000,
-  "version": "2.14"
+  "updated_at": 1794155981000,
+  "version": "2.14.1"
 }

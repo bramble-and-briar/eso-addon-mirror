@@ -229,9 +229,9 @@ local function OnAddonLoaded(_eventCode, addonName)
 
     local function CommandDispatcher(extra)
         local raw = extra or ""
-        local action, param = string.match(raw, "^%s*(%S+)%s*(%S*)")
+        local action, param = string.match(raw, "^%s*(%S+)%s*(.*)")
         action = action and string.lower(action) or ""
-        param  = param and string.lower(param) or ""
+        param  = param and string.gsub(param, "^%s*(.-)%s*$", "%1") or ""
 
         if action == "" or action == "help" or action == "?" then
             handlers.help()

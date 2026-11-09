@@ -43,7 +43,7 @@ env.receive("group1", {messageType = "damage", allTargetsDPS = 2000})
 assert(env.window.swtGroupDPSLabels.status == nil and row("Tank").swtDPSValue.color[1] == 0.88)
 roles.group1 = LFG_ROLE_HEAL
 env.tick()
-assert(row("Tank").swtDPSValue.text == "0", "A role change cannot reuse DPS as HPS")
+assert(row("Tank").swtDPSValue.text == "2,0 Tsd.", "Role changes cannot replace a received damage packet with missing HPS")
 local showPersonal = env.menu["Anteil-HUD anzeigen"]
 assert(showPersonal.getFunction() and not env.personalWindow.hidden)
 showPersonal.setFunction(false)

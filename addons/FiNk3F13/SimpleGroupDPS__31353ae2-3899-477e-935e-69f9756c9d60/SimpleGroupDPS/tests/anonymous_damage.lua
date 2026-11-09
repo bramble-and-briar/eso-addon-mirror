@@ -36,6 +36,8 @@ assert(meter:GetStats().groupTotal == 14000 and meter:GetStats().durationMS == 7
 hit(1800, 0, 0, 48, 1000, 88, nil, "Second Boss")
 hit(1900, 0, 0, 48, 2000, 88, nil, "Second Boss")
 meter:CorrelateBoss("boss2", 48, "Second Boss")
+assert(meter:GetStats().groupTotal == 14000, "Boss correlation alone does not classify hostility")
+hit(1900, 0, 1, 1, 10, 48, nil, "Player")
 assert(meter:GetStats().groupTotal == 17000 and meter:GetStats().groupBossTotal == 13000)
 meter:CorrelateBoss("boss2", 48, "Second Boss")
 assert(meter:GetStats().groupTotal == 17000, "Repeated identification must not replay damage twice")

@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/nayim/Writ-Folio-Inspector__5039",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "nayim",
+  "canonical_id": "esoui:5039",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5039",
+  "deleted": false,
+  "directories": [
+    "WritFolioInspector"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5039/",
+  "fingerprint": "8699b8fa5dcf1eb942e84af533229cbbb3217bbb55b78884b68ca8ec60fc2cc7",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18377.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5039",
+  "source_url": "https://www.esoui.com/downloads/info5039-WritFolioInspector.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Writ Folio Inspector",
+  "updated_at": 1794206558000,
+  "version": "1.0.0"
+}

@@ -1,0 +1,11 @@
+## Title: Writ Folio Inspector
+## Author: ByNayim
+## Version: 0.8.23
+## AddOnVersion: 823
+## APIVersion: 101051 101052
+## DependsOn: LibFurnitureCatalogue>=1002000
+## Description: Inspect furnishing folios and all catalogue furnishing plans, learned / missing status. Random documents and their writ-voucher prices; unverified drop pools are explicitly marked.
+Textures/WF_Emblem.dds
+Data.lua
+Main.lua
+Bindings.xml

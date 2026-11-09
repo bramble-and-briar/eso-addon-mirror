@@ -27,6 +27,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CapsLOCK](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkOODaT/CapsLOCK__653) | SkOODaT | PC / Mac | 101032.1 |
 | [Capybara Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Capybara-Icons__4176) | wicked_prophet | PC / Mac | 1.9.4 |
 | [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9.4 |
+| [CaracTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracTracker__5038) | roccesar | PC / Mac | 1 |
 | [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.2 |
 | [Card Combo - Mini Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Traybair/Card-Combo---Mini-Game__4512) | Traybair | PC / Mac | 1.0.2 |
 | [Caro's Auto Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Caro-s-Auto-Marker__3500) | Irniben | PC / Mac | 0.1.2 |

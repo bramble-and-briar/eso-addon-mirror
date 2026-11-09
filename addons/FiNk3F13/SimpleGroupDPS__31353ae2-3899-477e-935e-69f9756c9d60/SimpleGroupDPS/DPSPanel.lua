@@ -12,10 +12,10 @@ local function formatDuration(durationMS)
     return string.format("%d:%02d", math.floor(wholeSeconds / 60), wholeSeconds % 60)
 end
 local function isHealing(member)
+    local kind = member.displayType or member.messageType
+    if kind ~= nil then return kind == "healing" end
     if LFG_ROLE_HEAL ~= nil and member.role == LFG_ROLE_HEAL then return true end
-    if (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)
-        or (LFG_ROLE_TANK ~= nil and member.role == LFG_ROLE_TANK) then return false end
-    return (member.displayType or member.messageType) == "healing"
+    return false
 end
 local function getLayout(options)
     options = type(options) == "table" and options or {}
@@ -102,7 +102,8 @@ end
 
 local function roleIcon(member)
     if LFG_ROLE_TANK and member.role == LFG_ROLE_TANK then return "EsoUI/Art/LFG/Gamepad/lfg_roleicon_tank.dds" end
-    if isHealing(member) then
+    if (LFG_ROLE_HEAL and member.role == LFG_ROLE_HEAL)
+        or (member.role == nil and isHealing(member)) then
         return "EsoUI/Art/LFG/Gamepad/lfg_roleicon_healer.dds"
     end
     return "EsoUI/Art/LFG/LFG_icon_dps.dds"

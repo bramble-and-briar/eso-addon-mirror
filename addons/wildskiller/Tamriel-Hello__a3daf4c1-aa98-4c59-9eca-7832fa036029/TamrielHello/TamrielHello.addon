@@ -1,0 +1,7 @@
+## Title: Tamriel Hello
+## Description: Shows a one-time welcome notification when your character enters the world.
+## APIVersion: 101051
+## Version: 0.1.0
+## AddOnVersion: 1
+
+TamrielHello.lua

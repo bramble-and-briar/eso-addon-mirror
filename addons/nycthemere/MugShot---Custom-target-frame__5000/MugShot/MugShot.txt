@@ -6,8 +6,8 @@
 
 ## Title: |c9b00afMug Shot|r
 ## AddOnName: MugShot
-## Version: 2026.11.03-101113
-## AddOnVersion: 101113
+## Version: 2026.11.08-101121
+## AddOnVersion: 101121
 ## APIVersion: 101051 101052
 ## Description: A custom target frame with personalized portraits, buff and debuff tracking, and configurable display settings.
 ## Author: |c783f04nyc|r|c8fce00thé|r|c6a329fmère|r

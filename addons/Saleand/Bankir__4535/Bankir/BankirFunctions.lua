@@ -41,30 +41,25 @@ local function normalizeItemLink(itemLink)
 	return table.concat(parts, ":")
 end
 
+local function getNormalizedLink(itemLink)
+	local itemId = GetItemLinkItemId(itemLink)
+	local level = GetItemLinkRequiredLevel(itemLink)
+	local cp = GetItemLinkRequiredChampionPoints(itemLink)
+	local quality = GetItemLinkDisplayQuality(itemLink)
+	
+	return string.format("%d|%d|%d|%d", itemId, level, cp, quality)
+end
+
 local function isEqualItemLink(itemLink1, itemLink2)
 	if not itemLink1 or not itemLink2 then
 		return false
 	end
 	
-	itemLink1 = Bankir.Functions.normalizeItemLink(itemLink1)
-	itemLink2 = Bankir.Functions.normalizeItemLink(itemLink2)
-	
-	if itemLink1 ~= itemLink2 then
+	if getNormalizedLink(itemLink1) ~= getNormalizedLink(itemLink2) then
 		return false
 	end
 	
-	--[[
-	if GetItemLinkItemId(itemLink1) ~= GetItemLinkItemId(itemLink2) then
-		return false
-	end
-	if GetItemLinkDisplayQuality(itemLink1) ~= GetItemLinkDisplayQuality(itemLink2) then
-		return false
-	end	
-	if GetItemLinkRequiredLevel(itemLink1) ~= GetItemLinkRequiredLevel(itemLink2) then
-		return false
-	end
-	]]--
-    return true
+	return true
 end
 
 local function isInArray(array, value)
@@ -79,23 +74,24 @@ local function isInArray(array, value)
 end
 
 local function copyData(data)
-	local newData = {}
-	for k, v in pairs(data) do
-		if type(v) == "table" then
+	if not data then return nil end
+	if type(data) == "table" then
+		local newData = {}
+		for k, v in pairs(data) do
 			newData[k] = copyData(v)
-		else
-			newData[k] = v
 		end
+		return newData
+	else
+		return data
 	end
-	return newData
 end
 
 local function mergeData(dest, src)
 	for k, v in pairs(src) do
-		if dest[k] == nil or type(dest[k]) ~= type(v) then
-			dest[k] = copyData(v)
-		elseif type(dest[k]) == "table" and type(v) == "table" then
+		if type(dest[k]) == "table" and type(v) == "table" then
 			dest[k] = mergeData(dest[k], v)
+		elseif dest[k] == nil or type(dest[k]) ~= type(v) then
+			dest[k] = copyData(v)
 		end
 	end
 	return dest
@@ -137,13 +133,51 @@ local function getEquipFilterType(itemLink)
 	end
 end
 
+local function canLearnOnOtherCharacters(itemLink)
+	if LCK then
+		for charId in pairs(Bankir.savedVarsServer.ResearchCharactersList) do
+			if LCK.GetItemKnowledgeForCharacter(itemLink, nil, charId) == LCK.KNOWLEDGE_UNKNOWN then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function canLearnOnOtherCharacters(itemLink, traitType)
+	if LCK then
+		for charId in pairs(Bankir.savedVarsServer.ResearchCharactersList) do
+			if traitType then
+				if LCK.CanItemLinkBeTraitResearchedByCharacter(itemLink, nil, charId) then
+					return true
+				end
+			elseif LCK.GetItemKnowledgeForCharacter(itemLink, nil, charId) == LCK.KNOWLEDGE_UNKNOWN then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function setNameOfLearnableTypeId(prefix, suffix, canLearnOnCurrent, canLearnOnOthers)
+	local name
+	if canLearnOnCurrent and canLearnOnOthers then
+		name = prefix .. "UnknownBoth".. suffix
+	elseif canLearnOnCurrent then
+		name = prefix .. "Unknown" .. suffix
+	elseif canLearnOnOthers then
+		name = prefix .. "UnknownOthers" .. suffix
+	end
+	return name
+end
+
 local function redefineItemTypes(itemLink)
 	local itemType, specializedItemType = GetItemLinkItemType(itemLink)
 	local itemId = GetItemLinkItemId(itemLink)
 	
 	-- redefine the item types for armor/weapon
 	if itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON then
-		local equipFilterType = Bankir.Functions.getEquipFilterType(itemLink)
+		local equipFilterType = getEquipFilterType(itemLink)
 		if equipFilterType then
 			itemType = "Equipment" .. equipFilterType
 			
@@ -156,32 +190,31 @@ local function redefineItemTypes(itemLink)
 			elseif GetItemLinkActorCategory(itemLink) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
 				specializedItemType = "Companion" .. equipFilterType
 			else
-				if CanItemLinkBeTraitResearched(itemLink) then
-					specializedItemType = "Research" .. equipFilterType
-				end
-				if LCK then
-					for charId in pairs(Bankir.savedVarsServer.ResearchCharactersList) do
-						if LCK.CanItemLinkBeTraitResearchedByCharacter(itemLink, nil, charId) then
-							if specializedItemType == "Research" .. equipFilterType then
-								specializedItemType = "ResearchBoth" .. equipFilterType
-							else
-								specializedItemType = "ResearchOthers" .. equipFilterType
-							end
-							break
-						end
-					end
-				end
+				specializedItemType = setNameOfLearnableTypeId("Trait", equipFilterType,
+					CanItemLinkBeTraitResearched(itemLink), canLearnOnOtherCharacters(itemLink, true))
+					or specializedItemType
 			end
 		end
 	-- redefine the item id for unknown recipes/motifs
-	elseif itemType == ITEMTYPE_RECIPE
-	or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_BOOK
+	elseif itemType == ITEMTYPE_RECIPE then
+		if specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD
+		or specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK
+		then
+			itemType = "RecipeEdible"
+		elseif Bankir.Data.furnitureBlueprintsSpecializedTypes[specializedItemType] then
+			itemType = "RecipeFurniture"
+		end
+		specializedItemType = setNameOfLearnableTypeId("Recipe", specializedItemType,
+			CanItemLinkBeUsedToLearn(itemLink), canLearnOnOtherCharacters(itemLink))
+			or specializedItemType
+	elseif specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_BOOK
 	or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER
 	or specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE
 	then
-		if CanItemLinkBeUsedToLearn(itemLink) then
-			itemId = "RecipeUnknown" .. specializedItemType
-		end
+		itemType = "Motif" .. specializedItemType
+		specializedItemType = setNameOfLearnableTypeId("Motif", specializedItemType,
+			CanItemLinkBeUsedToLearn(itemLink), canLearnOnOtherCharacters(itemLink))
+			or specializedItemType
 	-- redefine the item type for 150-160CP consumables
 	elseif itemType == ITEMTYPE_FOOD or itemType == ITEMTYPE_DRINK
 	or itemType == ITEMTYPE_POTION or itemType == ITEMTYPE_POISON then
@@ -193,7 +226,7 @@ local function redefineItemTypes(itemLink)
 			specializedItemType = "Scalable" .. itemType
 		end
 	elseif itemType == ITEMTYPE_STYLE_MATERIAL then
-		if Bankir.Data.isTweenOf("itemId", itemId, "StyleMaterialRacial") then
+		if Bankir.Data.isTweenOf(itemId, "itemId", "StyleMaterialRacial", "specializedItemType") then
 			specializedItemType = "StyleMaterialRacial"
 		else
 			specializedItemType = "StyleMaterialOther"
@@ -204,54 +237,88 @@ local function redefineItemTypes(itemLink)
 end
 
 local function getNameOfType(itemType, idTypeStr)
-	local s = ""
-	if type(itemType) == "string" then -- Bankir custom string types
-		local id = string.match(itemType, "(%d+)$") -- get ending number
-		if id then
-			local name = string.match(itemType, "^(%D+)") -- get starting word
-			if name == "Equipment" then
-				s = GetString("SI_EQUIPMENTFILTERTYPE", id)
-			elseif name == "Intricate" then
-				s = GetString(SI_ITEMTRAITTYPE20) -- "Intricate"
-			elseif name == "Research" then
-				s = GetString(SI_ITEMSELLINFORMATION3) -- "Can research"
-			elseif name == "ResearchOthers" then
-				s = GetString(SI_ITEMSELLINFORMATION3) .. GetString(BANKIR_MENU_OTHER_CHARACTERS) -- "Can research"
-			elseif name == "Companion" then
-				s = GetString(SI_ITEM_FORMAT_STR_COMPANION) -- "Companion Item"
-			elseif name == "RecipeUnknown" or name == "Unopened" then
-				s = zo_strformat(GetString(SI_ALCHEMY_UNKNOWN_RESULT), GetString("SI_SPECIALIZEDITEMTYPE", id)) -- e.g., "Food recipe (unknown)"
-			elseif name == "CapCP" then
-				s = string.format("%s (%s %s)", GetString("SI_ITEMTYPE", id), zo_iconTextFormatNoSpace(ZO_GetGamepadChampionPointsIcon(), 18, 18, GetString(SI_ITEM_FORMAT_STR_CHAMPION)), "150-160") -- "Food (CP150-160)"
-			elseif name == "Scalable" then
-				s = string.format("%s (%s)", GetString("SI_ITEMTYPE", id), GetString(SI_STATS_SCALED_LEVEL)) -- "Food (Scaled level)"
+	local s
+	if idTypeStr == "specializedItemType" then
+		s = Bankir.Data.recipeTypeNames[itemType]
+	end
+	if not s then
+		if type(itemType) == "string" then
+			if not s then
+				local name = string.match(itemType, "^(%D+)") -- get starting word
+				local id = tonumber(string.match(itemType, "(%d+)$")) -- get ending number
+				if not id then
+					s = Bankir.Data.stringTypeNames[itemType]
+				else
+					if name == "Equipment" then
+						s = GetString("SI_EQUIPMENTFILTERTYPE", id)
+					elseif name == "CapCP" then
+						s = string.format("%s (%s %s)", GetString("SI_ITEMTYPE", id), zo_iconTextFormatNoSpace(ZO_GetGamepadChampionPointsIcon(), 18, 18, GetString(SI_ITEM_FORMAT_STR_CHAMPION)), "150-160") -- "Food (CP150-160)"
+					elseif name == "Scalable" then
+						s = string.format("%s (%s)", GetString("SI_ITEMTYPE", id), GetString(SI_STATS_SCALED_LEVEL)) -- "Food (Scaled level)"
+					elseif idTypeStr == "specializedItemType" then
+						s = Bankir.Data.recipeTypeNames[id]
+						if s then
+							if string.find(name, "Unknown") then
+								s = zo_strformat(GetString(SI_ALCHEMY_UNKNOWN_RESULT), s) -- e.g., "Food recipe (unknown)"
+							end
+							if string.find(name, "Others") then
+								s = s .. GetString(BANKIR_MENU_OTHER_CHARACTERS) -- "Food recipe (unknown) on Other Characters"
+							end
+						end
+					end
+				end
 			end
-		else
-			if itemType == "EquipmentAll" then
-				s = GetString(SI_ARMORY_EQUIPMENT_LABEL)
-			elseif itemType == "IntricateAll" then
-				s = GetString(SI_ITEMTRAITTYPE20) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
-			elseif itemType == "ResearchAll" then
-				s = GetString(SI_ITEMSELLINFORMATION3) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
-			elseif itemType == "ResearchOthersAll" then
-				s = GetString(SI_ITEMSELLINFORMATION3) .. GetString(BANKIR_MENU_OTHER_CHARACTERS) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
-			elseif itemType == "CompanionAll" then
-				s = GetString(SI_ITEM_FORMAT_STR_COMPANION) .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
-			elseif itemType == "StyleMaterialRacial" then
-				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - " .. GetString(SI_SKILLTYPE7) -- "Style material - Racial"
-			elseif itemType == "StyleMaterialOther" then
-				s = GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL) .. " - " .. GetString(SI_GUILDLANGUAGEATTRIBUTEVALUE32) -- "Style material - Others" SI_GAMEPAD_HOUSING_PERMISSIONS_GUILD_OTHER
+		elseif type(itemType) == "number" then
+			if idTypeStr == "itemId" then
+				local itemLink = buildItemLink(itemType)
+				s = GetItemLinkName(itemLink)
+			elseif idTypeStr == "itemType" then
+				s = GetString("SI_ITEMTYPE", itemType)
+			elseif idTypeStr == "specializedItemType" then
+				s = GetString("SI_SPECIALIZEDITEMTYPE", itemType)
 			end
 		end
-	elseif idTypeStr == "itemId" then
-		local itemLink = buildItemLink(itemType)
-		s = GetItemLinkName(itemLink)
-	elseif idTypeStr == "itemType" then
-		s = GetString("SI_ITEMTYPE", itemType)
-	elseif idTypeStr == "specializedItemType" then
-		s = GetString("SI_SPECIALIZEDITEMTYPE", itemType)
 	end
 	return s
+end
+
+-- return rule from the ruleset (as copy table). If no rule found, returns rule with default values. If rule has missing values, they also become defaults.
+local function getEffectiveRule(id, idTypeStr, bankBagId, itemQuality, itemStackSize)
+	local rule = {}
+	
+	-- special case for items with types like 'ResearchBoth', 'MotifUnknownBoth'
+	-- a combination of their respective 'Research' and 'ResearchOthers'
+	local bothStart = string.find(id, "Both")
+	if bothStart then
+		local typeS = string.sub(id, 1, bothStart - 1) -- substring before the 'Both', e.g. 'Research'
+		local typeO = typeS .. "Others" -- e.g., 'ResearchOthers'
+		local id = string.match(id, "(%d+)$") -- get ending number
+		local ruleS = getEffectiveRule(typeS .. id, idTypeStr, bankBagId, itemQuality, itemStackSize)
+		local ruleO = getEffectiveRule(typeO .. id, idTypeStr, bankBagId, itemQuality, itemStackSize)
+		
+		rule.push = math.max(ruleS.push, ruleO.push)
+		if ruleS and ruleS.pullInStacks then
+			ruleS.pull = ruleS.pull * itemStackSize
+		end
+		if ruleO and ruleO.pullInStacks then
+			ruleO.pull = ruleO.pull * itemStackSize
+		end
+		rule.pull = math.max(ruleS.pull, ruleO.pull)
+		rule.pullInStacks = false
+	else
+		rule = copyData(Bankir.savedVarsProfile[bankBagId][idTypeStr][id]) or {}
+		
+		if itemQuality and rule.quality and not isInArray(rule.quality, itemQuality) then
+			rule = {}
+		end
+		
+		rule.push = rule.push or 0
+		rule.pull = rule.pull or 0
+		rule.pullInStacks = rule.pullInStacks or false
+		rule.quality = rule.quality or Bankir.Data.defaultQualityValues
+	end
+	
+	return rule
 end
 
 local function getHouseBankName(bagId)
@@ -269,15 +336,6 @@ local function getHouseBankName(bagId)
 	return name
 end
 
-local function getGuildNameFromString(guildString)
-	local guildId = string.match(guildString, "(%d+)$")
-	local guildName = GetGuildName(tonumber(guildId))
-	if not guildName or guildName == "" then
-		guildName = "Guild" .. getGuildIndexFromId(guildId)
-	end
-	return guildName
-end
-
 local function getGuildIndexFromId(guildId)
 	for i = 1, GetNumGuilds() do
 		local id = GetGuildId(i)
@@ -285,6 +343,15 @@ local function getGuildIndexFromId(guildId)
 			return i
 		end
 	end
+end
+
+local function getGuildNameFromString(guildString)
+	local guildId = string.match(guildString, "(%d+)$")
+	local guildName = GetGuildName(tonumber(guildId))
+	if not guildName or guildName == "" then
+		guildName = "Guild" .. getGuildIndexFromId(guildId)
+	end
+	return guildName
 end
 
 local function getBagName(bagId)
@@ -325,15 +392,19 @@ end
 Bankir.Functions = {
 	buildItemLink = buildItemLink,
 	normalizeItemLink = normalizeItemLink,
+	getNormalizedLink = getNormalizedLink,
 	isEqualItemLink = isEqualItemLink,
 	copyData = copyData,
+	mergeData = mergeData,
 	isInArray = isInArray,
 	getEquipFilterType = getEquipFilterType,
 	redefineItemTypes = redefineItemTypes,
 	getNameOfType = getNameOfType,
+	getSavedVarForIdType = getSavedVarForIdType,
+	getEffectiveRule = getEffectiveRule,
 	getHouseBankName = getHouseBankName,
-	getGuildNameFromString = getGuildNameFromString,
 	getGuildIndexFromId = getGuildIndexFromId,
+	getGuildNameFromString = getGuildNameFromString,
 	getBagName = getBagName,
 	checkItemForQuests = checkItemForQuests,
 }

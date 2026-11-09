@@ -18,7 +18,7 @@
     "MugShot"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5000/",
-  "fingerprint": "8cba6631f56a60d1e16772432be2e89775eb0d5f5cd789204277cc87d659efd7",
+  "fingerprint": "61155d3ce2393cdb6c9ddd349e176f88b61caf6ff3703ce8d0f3e4d75e0a83b8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18296.png",
     "https://cdn-eso.mmoui.com/preview/pvw18298.png",
@@ -36,11 +36,11 @@
   "source_id": "5000",
   "source_url": "https://www.esoui.com/downloads/info5000-MugShot-Customtargetframe.html",
   "stats": {
-    "downloads": 62,
+    "downloads": 69,
     "favorites": 2,
-    "monthly_downloads": 58
+    "monthly_downloads": 66
   },
   "title": "MugShot - Custom target frame",
-  "updated_at": 1793771086000,
-  "version": "2026.11.03-101113"
+  "updated_at": 1794196976000,
+  "version": "2026.11.08-101121"
 }

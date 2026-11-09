@@ -6,6 +6,24 @@ A custom target frame with personalized portraits, buff and debuff tracking, and
 <!-- ESOUI:start -->
 ## History
 
+### 2026.11.08-101121 — Add debuff tag customization, composite alliance badges, and refine role templates.
+
+- #### Added
+
+- Add custom debuff tag renaming and resetting in Move Mode via right-click context menu and modal edit dialog, persisted across sessions in SavedVariables;
+- Add contextual interaction tooltips on Line 3 slots during Move Mode indicating Left-Click to swap and Right-Click to rename;
+- Add composite Alliance badges combining an alliance-colored flag base with a native high-resolution crest overlay.
+
+- #### Fixed
+
+- Align healer debuff builder templates with enemy boss mechanics (such as Weakening, Off-Balance, and Vulnerability), replacing inappropriate friendly player buffs.
+
+- #### Improved
+
+- Restyle Line 3 privileged debuffs into distinct 58×30 px cards with 2 px spacing for sharper badge alignment and timer clarity;
+- Migrate settings storage to native ZO_SavedVars:NewAccountWide for standardized account-wide persistence;
+- Resolve player class and race portraits directly through native ESO Gamepad icon assets.
+
 ### 2026.11.03-101113 — Differentiate player vs team debuffs, add layout command, and refine 3-line UI.
 
 #### Added

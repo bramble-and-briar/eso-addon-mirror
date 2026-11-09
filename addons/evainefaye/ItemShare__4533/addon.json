@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/evainefaye/ItemShare__4533",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "evainefaye",
   "canonical_id": "esoui:4533",
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4533",
@@ -17,7 +18,7 @@
     "ItemShare"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4533/",
-  "fingerprint": "12ae34d64d8402788f83df3cead2f310562237b244cfc46c04f857121aa74358",
+  "fingerprint": "5d8d4cdda0d81389dd19ca83055e1279bb0e41eba330ea7accfc111c64bfea3e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15870.png",
     "https://cdn-eso.mmoui.com/preview/pvw15871.png",
@@ -33,11 +34,11 @@
   "source_id": "4533",
   "source_url": "https://www.esoui.com/downloads/info4533-ItemShare.html",
   "stats": {
-    "downloads": 138,
+    "downloads": 183,
     "favorites": 0,
     "monthly_downloads": 11
   },
   "title": "ItemShare",
-  "updated_at": 1776746401000,
-  "version": "1.2.5"
+  "updated_at": 1794214364000,
+  "version": "1.11.3"
 }

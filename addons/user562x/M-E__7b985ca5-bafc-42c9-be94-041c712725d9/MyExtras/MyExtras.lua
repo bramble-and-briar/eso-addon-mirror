@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "2.9"
+MyExtras.version = "3.1"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -20,7 +20,7 @@ MyExtras.features = {}
 MyExtras.SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 MyExtras.SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
 
-local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "Antiquity", "Streamer", "GuildLoop", "ChatTravel" }
+local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "FriendsStatus", "Streamer", "Antiquity", "ChatTravel", "GuildLoop" }
 
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"

@@ -10,7 +10,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Easy PTE](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lydra/Easy-PTE__4209) | lydra | PC / Mac | 1.1 |
 | [Easy Quick Slots](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/Easy-Quick-Slots__71) | Jar-Ek | PC / Mac | 1.1 |
 | [Easy Stalking - Encounterlog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muh/Easy-Stalking---Encounterlog__2332) | muh | PC / Mac | 1.4.6 |
-| [EasyAddonSetting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/EasyAddonSetting__5036) | PUYO | PC / Mac | 2.14 |
+| [EasyAddonSetting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/EasyAddonSetting__5036) | PUYO | PC / Mac | 2.14.1 |
 | [EasyCombatTextToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/carpenteer/EasyCombatTextToggle__2197) | carpenteer | PC / Mac | 1.0.3 |
 | [EasyGrassToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/carpenteer/EasyGrassToggle__1631) | carpenteer | PC / Mac | 1.0.8 |
 | [EasyHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/carpenteer/EasyHelmetToggle__1627) | carpenteer | PC / Mac | 1.0.4 |
@@ -65,6 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO Build Tracker - Prototype](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ItsCraniBaby1/ESO-Build-Tracker---Prototype__23c4dbd3-8273-4fc3-8416-f6c79eeb76ab) | ItsCraniBaby1 | Console | — |
 | [ESO Calendar Reborn: RP Edition](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Priapia/ESO-Calendar-Reborn-RP-Edition__1685) | Priapia | PC / Mac | 1.0 |
 | [ESO Combat Lock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/solaegis/ESO-Combat-Lock__4754) | solaegis | PC / Mac | 1.2.0 |
+| [ESO Companion QR Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/ESO-Companion-QR-Test__95d71844-4b3c-4d6b-b4f1-15716d72792f) | Khazaril | Console | — |
 | [ESO Emoji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitkathy1994/ESO-Emoji__3376) | kitkathy1994 | PC / Mac | 0.4.2 |
 | [ESO Farm-Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Farm-Buddy__2553) | Keldor | PC / Mac | 1.0.36 |
 | [ESO Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marcjordan/ESO-Grinder__2788) | marcjordan | PC / Mac | 2.1.0 |
@@ -81,7 +82,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO-Database.com Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Export-AddOn__916) | Keldor | PC / Mac | 4.6.18 |
 | [ESO-Database.com Game Data Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Game-Data-Export-AddOn__2687) | Keldor | PC / Mac | 1.0.24 |
 | [ESO-Database.com Leaderboard Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Leaderboard-Export-AddOn__3438) | Keldor | PC / Mac | 1.0.13 |
-| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.11.02.02.54 |
+| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.11.09.02.54 |
 | [ESO-Skillfactory.com Build Export](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Skillfactory.com-Build-Export__2899) | Keldor | PC / Mac | 1.2.12 |
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |

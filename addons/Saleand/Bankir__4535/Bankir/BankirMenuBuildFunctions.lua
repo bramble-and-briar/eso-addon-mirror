@@ -6,7 +6,6 @@ local actionChoices = {
 	[3] = GetString(BANKIR_MENU_MODE_WITHDRAW),
 }
 
-local defaultQualityValues = { 1, 2, 3, 4, 5 }
 local qualityChoices = {
 	GetItemQualityColor(1):Colorize(GetString("SI_ITEMQUALITY", 1)),
 	GetItemQualityColor(2):Colorize(GetString("SI_ITEMQUALITY", 2)),
@@ -15,49 +14,8 @@ local qualityChoices = {
 	GetItemQualityColor(5):Colorize(GetString("SI_ITEMQUALITY", 5)),
 }
 
-local function getSavedVarForIdType(idTypeStr)
-	local selectedBagRules = Bankir.savedVarsProfile[Bankir.Menu.selectedBankId]
-	if idTypeStr == "itemType" then
-		return selectedBagRules.byItemType
-	elseif idTypeStr == "specializedItemType" then
-		return selectedBagRules.bySpecializedItemType
-	elseif idTypeStr == "itemId" then
-		return selectedBagRules.byItemId
-	end
-end
-
-local function getTypeChildrenLists(id, idTypeStr)
-	local result
-	if idTypeStr == "itemType" then
-		if Bankir.Data.itemTypeChildrenItemIds[id] then
-			result = result or {}
-			table.insert(result, { idTypeStr = "itemId", list = Bankir.Data.itemTypeChildrenItemIds[id] })
-		end
-		if Bankir.Data.itemTypeChildrenSpecializedTypes[id] then
-			result = result or {}
-			table.insert(result, { idTypeStr = "specializedItemType", list = Bankir.Data.itemTypeChildrenSpecializedTypes[id] })
-		end
-	elseif idTypeStr == "specializedItemType" then
-		if Bankir.Data.specializedItemTypeChildrenItemIds[id] then
-			result = result or {}
-			table.insert(result, { idTypeStr = "itemId", list = Bankir.Data.specializedItemTypeChildrenItemIds[id] })
-		end
-	end
-	
-	return result
-end
-
-local function getRuleValues(id, idTypeStr)
-	local rule = getSavedVarForIdType(idTypeStr)[id]
-	if rule then
-		return rule.push or 0, rule.pull or 0, rule.pullInStacks or false, rule.quality or defaultQualityValues
-	else
-		return 0, 0, false, defaultQualityValues
-	end
-end
-
 local function setRuleValue(valueName, value, id, idTypeStr, hasQualityRuleSet)
-	local ruleList = getSavedVarForIdType(idTypeStr)
+	local ruleList = Bankir.savedVarsProfile[Bankir.Menu.selectedBankId][idTypeStr]
 	local oldValue
 	
 	if ruleList[id] then
@@ -70,18 +28,21 @@ local function setRuleValue(valueName, value, id, idTypeStr, hasQualityRuleSet)
 		ruleList[id][valueName] = value
 		
 		-- update children ids
-		local childrenLists = getTypeChildrenLists(id, idTypeStr)
-		if childrenLists then
-			for _, list in ipairs(childrenLists) do
-				for i, childId in ipairs(list.list) do
-					setRuleValue(valueName, value, childId, list.idTypeStr)
+		if Bankir.Data.childrenTable[idTypeStr][id] then
+			for childTypeStr in pairs(Bankir.Data.childrenTable[idTypeStr][id]) do
+				local list = Bankir.Data.childrenTable[idTypeStr][id][childTypeStr]
+				for i, childId in ipairs(list) do
+					setRuleValue(valueName, value, childId, childTypeStr)
 				end
 			end
 		end
 		-- update tweens
-		if Bankir.Data.tweens[idTypeStr][id] then
-			for i, childId in ipairs(Bankir.Data.tweens[idTypeStr][id]) do
-				setRuleValue(valueName, value, childId, idTypeStr)
+		if Bankir.Data.tweensTable[idTypeStr][id] then
+			for tweenTypeStr in pairs(Bankir.Data.tweensTable[idTypeStr][id]) do
+				local list = Bankir.Data.tweensTable[idTypeStr][id][tweenTypeStr]
+				for i, tweenId in ipairs(list) do
+					setRuleValue(valueName, value, tweenId, tweenTypeStr)
+				end
 			end
 		end
 	end
@@ -89,7 +50,7 @@ local function setRuleValue(valueName, value, id, idTypeStr, hasQualityRuleSet)
 	local rule = ruleList[id]
 	if rule.push == 0 and rule.pull == 0 then
 		if not rule.pullInStacks then
-			if not rule.quality or #rule.quality == #defaultQualityValues then
+			if not rule.quality or #rule.quality == #Bankir.Data.defaultQualityValues then
 				ruleList[id] = nil
 			end
 		end
@@ -246,14 +207,14 @@ local function makeQualityDropdown(id, idTypeStr)
 		tooltip = GetString(BANKIR_MENU_QUALITY_SELECT_DESC),
 		width = "full",
 		choices = qualityChoices,
-		choicesValues = defaultQualityValues,
+		choicesValues = Bankir.Data.defaultQualityValues,
 		multiSelect = true,
 		getFunc = function()
-			local neededQualities = select(4, getRuleValues(id, idTypeStr))
+			local neededQualities = Bankir.Functions.getEffectiveRule(id, idTypeStr, Bankir.Menu.selectedBankId).quality
 			return neededQualities
 		end,
 		setFunc = function(selectedChoices)
-			if #selectedChoices == #defaultQualityValues then
+			if #selectedChoices == #Bankir.Data.defaultQualityValues then
 				setRuleValue("quality", nil, id, idTypeStr)
 			else
 				setRuleValue("quality", selectedChoices, id, idTypeStr)
@@ -312,7 +273,7 @@ local function makeSettingsMenu()
 			type = "button",
 			name = GetString(BANKIR_MENU_PROFILE_NEW),
 			func = function()
-				Bankir.Profiles.createNewProfile("New profile")
+				Bankir.Profiles.initProfile("New profile")
 				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
@@ -397,25 +358,30 @@ local function makeSettingsMenu()
 	return controls
 end
 
-local function makeIdTypeSliders(id, idTypeStr)
+local function makeIdTypeSliders(id, idTypeStr, useHeader)
 	-- pre-declare so the functions of these two know about each other
-	local header, label, sliderPush, sliderPull, pullCheckbox
+	local header, sliderPush, sliderPull, pullCheckbox
 	
 	-- prepare name
 	local name = Bankir.Functions.getNameOfType(id, idTypeStr)
 	name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name) -- make first char uppercase
-	if getTypeChildrenLists(id, idTypeStr) then
+	
+	if Bankir.Data.childrenTable[idTypeStr][id] then
+		useHeader = true
 		name = name .. " - " .. GetString(SI_INVENTORY_WALLET_ALL_FILTER) -- "Name of type - All"
 	end
 	
-	header = {
-		type = "header",
-		name = name,
-	}
-	label = {
-		type = "description",
-		title = name,
-	}
+	if useHeader then
+		header = {
+			type = "header",
+			name = name,
+		}
+	else
+		header = {
+			type = "description",
+			title = name,
+		}
+	end
 	sliderPush = {
 		type = "slider",
 		name = GetString(SI_ITEM_ACTION_BANK_DEPOSIT),
@@ -425,7 +391,7 @@ local function makeIdTypeSliders(id, idTypeStr)
 		step = 1,
 		width = "full",
 		getFunc = function()
-			return select(1, getRuleValues(id, idTypeStr))
+			return Bankir.Functions.getEffectiveRule(id, idTypeStr, Bankir.Menu.selectedBankId).push
 		end,
 		setFunc = function(value)
 			setRuleValue("push", value, id, idTypeStr)
@@ -440,7 +406,7 @@ local function makeIdTypeSliders(id, idTypeStr)
 		step = 1,
 		width = "full",
 		getFunc = function()
-			return select(2, getRuleValues(id, idTypeStr))
+			return Bankir.Functions.getEffectiveRule(id, idTypeStr, Bankir.Menu.selectedBankId).pull
 		end,
 		setFunc = function(value)
 			setRuleValue("pull", value, id, idTypeStr)
@@ -452,51 +418,52 @@ local function makeIdTypeSliders(id, idTypeStr)
 		tooltip = zo_strformat(GetString(BANKIR_MENU_PULL_IN_STACKS_DESC), GetString(SI_ITEM_ACTION_BANK_WITHDRAW)),
 		width = "full",
 		getFunc = function()
-			return select(3, getRuleValues(id, idTypeStr))
+			return Bankir.Functions.getEffectiveRule(id, idTypeStr, Bankir.Menu.selectedBankId).pullInStacks
 		end,
 		setFunc = function(value)
 			setRuleValue("pullInStacks", value, id, idTypeStr)
 		end,
 	}
-	return header, label, sliderPush, sliderPull, pullCheckbox
+	return header, sliderPush, sliderPull, pullCheckbox
 end
 
-local function makeWidgetsForTypes(typesData)
+local function makeWidgetsForTypes(typesData, useHeader, useQuality)
+	if useHeader == nil then useHeader = true end
+	
 	local controls = {}
 	for i, typeData in ipairs(typesData) do
 		local id = typeData.id
 		local idTypeStr = typeData.idTypeStr
-		local header, _, sliderPush, sliderPull, pullCheckbox = makeIdTypeSliders(id, idTypeStr)
+		local header, sliderPush, sliderPull, pullCheckbox = makeIdTypeSliders(id, idTypeStr, useHeader)
 		table.insert(controls, header)
 		table.insert(controls, sliderPush)
 		table.insert(controls, sliderPull)
 		table.insert(controls, pullCheckbox)
-		local isQualityRuled = false
-		for i = 1, #Bankir.Data.qualityRuledItemTypes[idTypeStr] do
-			if Bankir.Data.qualityRuledItemTypes[idTypeStr][i] == id then
-				isQualityRuled = true
-				local qualityDropdown = makeQualityDropdown(id, idTypeStr)
-				table.insert(controls, qualityDropdown)
+		if useQuality == nil then
+			for i = 1, #Bankir.Data.qualityRuledItemTypes[idTypeStr] do
+				if Bankir.Data.qualityRuledItemTypes[idTypeStr][i] == id then
+					useQuality = true
+					break
+				end
 			end
 		end
-		local childrenLists = getTypeChildrenLists(id, idTypeStr)
-		if childrenLists then
-			for _, list in ipairs(childrenLists) do
-				for i, childId in ipairs(list.list) do
-					local _, label, sliderPush, sliderPull, pullCheckbox = makeIdTypeSliders(childId, list.idTypeStr)
-					table.insert(controls, dividerSmall)
-					table.insert(controls, label)
-					table.insert(controls, sliderPush)
-					table.insert(controls, sliderPull)
-					table.insert(controls, pullCheckbox)
-					if isQualityRuled then
-						local qualityDropdown = makeQualityDropdown(childId, list.idTypeStr)
-						table.insert(controls, qualityDropdown)
+		if useQuality then
+			local qualityDropdown = makeQualityDropdown(id, idTypeStr)
+			table.insert(controls, qualityDropdown)
+		end
+		table.insert(controls, dividerSmall)
+		if Bankir.Data.childrenTable[idTypeStr][id] then
+			for childTypeStr in pairs(Bankir.Data.childrenTable[idTypeStr][id]) do
+				local list = Bankir.Data.childrenTable[idTypeStr][id][childTypeStr]
+				for i, childId in ipairs(list) do
+					local childControls = makeWidgetsForTypes(
+						{{ id = childId, idTypeStr = childTypeStr }}, false, useQuality)
+					for _, childControl in pairs(childControls) do
+						table.insert(controls, childControl)
 					end
 				end
 			end
 		end
-		table.insert(controls, dividerInvisible)
 	end
 	return controls
 end

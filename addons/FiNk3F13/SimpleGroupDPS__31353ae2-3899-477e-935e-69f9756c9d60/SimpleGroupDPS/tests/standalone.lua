@@ -86,7 +86,7 @@ LibHarvensAddonSettings = {
         return settingsPanel
     end,
 }
-for _, file in ipairs({ "Localization.lua", "BattleScrollsBridge.lua", "DamageMeter.lua", "DPSPanel.lua", "PersonalDPSPanel.lua", "SimpleGroupDPS.lua" }) do dofile(file) end
+for _, file in ipairs({ "Localization.lua", "BattleScrollsBridge.lua", "HealthRecovery.lua", "DamageMeter.lua", "DPSPanel.lua", "PersonalDPSPanel.lua", "SimpleGroupDPS.lua" }) do dofile(file) end
 assert(SimpleWarhornTimer_DamageMeter == nil and LibCombat == nil)
 events["SimpleGroupDPS:load"](nil, "SimpleGroupDPS")
 local window = windows.SimpleGroupDPSWindow
@@ -96,8 +96,8 @@ assert(intervals.SimpleGroupDPSUI == 300 and updates.SimpleGroupDPSSend == nil,
     "display and outgoing values share one 300ms tick")
 assert(window and window.hidden, "standalone addon starts without buff addon")
 assert(menu["Move UI"].type == LibHarvensAddonSettings.ST_BUTTON)
-assert(settingsPanel.version == "1.9.14", "Settings header shows the running version")
-assert(menu["Installierte Version: 1.9.14"] == nil, "No duplicate version entry in General")
+assert(settingsPanel.version == "2.0.0", "Settings header shows the running version")
+assert(menu["Installierte Version: 2.0.0"] == nil, "No duplicate version entry in General")
 assert(menu["Autor: FiNk3--F13--"].type == LibHarvensAddonSettings.ST_LABEL)
 local overallSize = menu["HUD-Gesamtgröße"]
 assert(overallSize and overallSize.min == 50 and overallSize.max == 150 and overallSize.step == 5)
@@ -210,8 +210,8 @@ assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01", "No damage means 
 clock = 4999
 updates.SimpleGroupDPSUI()
 assert(window.swtGroupDPSLabels[0].swtDPSValue.text == "0:01", "HUD keeps the same time base during damage pauses")
-assert(type(SimpleGroupDPS_BattleScrolls.SendDPS) == "function" and type(SimpleGroupDPS_BattleScrolls.SendHPS) == "function"
-    and type(SimpleGroupDPS_BattleScrolls.SendMetrics) == "function", "Automatic group sending is restored")
+assert(type(SimpleGroupDPS_BattleScrolls.SendDPS)=="function" and type(SimpleGroupDPS_BattleScrolls.SendHPS)=="function"
+    and type(SimpleGroupDPS_BattleScrolls.SendMetrics)=="function", "Production sender is retained")
 clock, inCombat = 5000, false
 events["SimpleGroupDPSDamageState:combat"](nil, false)
 assert(updates.SimpleGroupDPSDamageReset, "combat exit schedules Battle Scrolls-style finish check")
@@ -303,7 +303,7 @@ assert(type(SLASH_COMMANDS["/sgdmove"]) == "function")
 assert(type(SLASH_COMMANDS["/sgdstatus"]) == "function")
 SLASH_COMMANDS["/sgdstatus"]()
 local diagnosticText = table.concat(logs, "\n")
-assert(diagnosticText:find("SimpleGroupDPS 1.9.14", 1, true)
+assert(diagnosticText:find("SimpleGroupDPS 2.0.0", 1, true)
     and diagnosticText:find("Takt: 300 ms", 1, true)
     and diagnosticText:find("Letzter Schaden:", 1, true)
     and diagnosticText:find("Schadensereignisse:", 1, true),
@@ -326,9 +326,9 @@ events["SimpleGroupDPSDamageEffects:effect"](nil, 1, nil, nil, "boss1", nil, nil
 clock = 21000
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 4, "Local Boss", 2, 10000, nil, nil, nil, 100, 42)
 updates.SimpleGroupDPSUI()
-assert(window.swtGroupDPSLabels[0].text == "Boss-Schaden (Gesamtschaden)")
-assert(window.swtGroupDPSLabels.summary.swtDPSValue.text == "16,0 Tsd. (16,0 Tsd.)", "Boss total includes locally observed anonymous damage without adding remote packets")
-assert(SimpleGroupDPS_DamageMeter:GetStats().bossDPS == 0)
+assert(window.swtGroupDPSLabels[0].text == "Gesamtschaden")
+assert(SimpleGroupDPS_DamageMeter:GetStats().groupTotal == 0, "Boss effects do not prematurely release unidentified group damage")
+assert(SimpleGroupDPS_DamageMeter:GetStats().bossDPS == nil)
 clock = 22000
 events["SimpleGroupDPSDamage:damage"](nil, 1, false, nil, nil, nil, nil, 1, "Local Boss", 2, 4000, nil, nil, nil, 99, 42)
 updates.SimpleGroupDPSUI()

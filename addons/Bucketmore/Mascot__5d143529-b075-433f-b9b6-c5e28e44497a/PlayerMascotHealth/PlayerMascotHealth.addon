@@ -1,8 +1,8 @@
 ## Title: PlayerMascotHealth
-## Description: Shows an original character whose condition (NORMAL / CAUTION / DANGER / CRITICAL / ZERO) follows your own HP. Console (PS5/CS) first.
+## Description: [DIAG build] Shows an original character whose condition (NORMAL / CAUTION / DANGER / CRITICAL / ZERO) follows your own HP. Console (PS5/CS) first.
 ## Author: PlayerMascotHealth project
-## Version: 1.3.3
-## AddOnVersion: 133
+## Version: 1.3.4-diag
+## AddOnVersion: 134
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: PlayerMascotHealth_SV
 ## OptionalDependsOn: LibAddonMenu-2.0

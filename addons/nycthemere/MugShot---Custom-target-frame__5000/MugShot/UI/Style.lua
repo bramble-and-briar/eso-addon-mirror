@@ -21,8 +21,13 @@ MugShot.Style = {
     GRID_BORDER_THICKNESS = 1,
 
     -- Portrait Badges (Race / Alliance)
-    BADGE_SIZE        = 30,
-    BADGE_TOGGLE_SIZE = 16,
+    BADGE_SIZE                = 32,
+    ALLIANCE_BASE_WIDTH       = 28,
+    ALLIANCE_BASE_HEIGHT      = 40,
+    ALLIANCE_BASE_COORDS      = { 16 / 64, 48 / 64, 10 / 64, 56 / 64 },
+    ALLIANCE_ICON_SIZE        = 20,
+    ALLIANCE_ICON_OFFSET_Y    = -5,
+    BADGE_TOGGLE_SIZE         = 16,
     ALPHA_OPAQUE      = 1.0,
     ALPHA_DISABLED    = 0.35,
 
@@ -32,10 +37,10 @@ MugShot.Style = {
     EFFECT_GAP        = 2,
     MAX_EFFECTS       = 30,  -- Pre-allocated effect slots (3 rows of 10)
 
-    -- Privileged Debuff Slots on Line 3 (5 full-bleed slots across 300px bar: 60px each)
-    PRIVILEGED_SLOT_WIDTH  = 60,
-    PRIVILEGED_SLOT_HEIGHT = 32,
-    PRIVILEGED_SLOT_GAP    = 0,
+    -- Privileged Debuff Slots on Line 3 (5 standardized cards with 2px gap across 300px bar)
+    PRIVILEGED_SLOT_WIDTH  = 58,
+    PRIVILEGED_SLOT_HEIGHT = 30,
+    PRIVILEGED_SLOT_GAP    = 2,
 
     -- Vivid reaction colours matching TargetFrame
     REACTION_COLORS = {
@@ -45,17 +50,6 @@ MugShot.Style = {
         [UNIT_REACTION_NPC_ALLY]    = RGBA.REACTION_FRIENDLY or { r = 0.00, g = 1.00, b = 0.00, a = 1.00 },
         [UNIT_REACTION_NEUTRAL]     = RGBA.REACTION_NEUTRAL  or { r = 1.00, g = 0.85, b = 0.00, a = 1.00 },
         [UNIT_REACTION_DEFAULT]     = RGBA.REACTION_DEFAULT  or { r = 0.85, g = 0.85, b = 0.85, a = 1.00 },
-    },
-
-    -- Full-color Class Theme Colors (Vivid class identity colors for class portraits)
-    CLASS_COLORS = {
-        [1]   = { r = 1.00, g = 0.45, b = 0.15, a = 1.00 }, -- Dragonknight (Orange)
-        [2]   = { r = 0.45, g = 0.55, b = 1.00, a = 1.00 }, -- Sorcerer (Purple/Blue)
-        [3]   = { r = 0.95, g = 0.20, b = 0.20, a = 1.00 }, -- Nightblade (Crimson)
-        [4]   = { r = 0.35, g = 0.85, b = 0.65, a = 1.00 }, -- Warden (Green/Teal)
-        [5]   = { r = 0.35, g = 0.85, b = 0.95, a = 1.00 }, -- Necromancer (Cyan)
-        [6]   = { r = 1.00, g = 0.85, b = 0.25, a = 1.00 }, -- Templar (Yellow/Gold)
-        [117] = { r = 0.50, g = 1.00, b = 0.30, a = 1.00 }, -- Arcanist (Lime)
     },
 
     -- Shield overlay colour (translucent teal/cyan)
@@ -75,7 +69,7 @@ MugShot.Style = {
     FONT_DEBUFF_HEADER  = "$(BOLD_FONT)|11|soft-shadow-thick",
     FONT_DEBUFF_BADGE   = "$(BOLD_FONT)|10|soft-shadow-thick",
     FONT_DEBUFF_TIMER   = "$(BOLD_FONT)|11|soft-shadow-thick",
-    FONT_DEBUFF_SINGLE  = "$(BOLD_FONT)|14|soft-shadow-thick",
+    FONT_DEBUFF_SINGLE  = "$(BOLD_FONT)|11|soft-shadow-thick",
 
     -- Standardized UI Element Colors from Constants.RGBA
     FRAME_BORDER         = RGBA.BLACK               or { r = 0.00, g = 0.00, b = 0.00, a = 1.00 },

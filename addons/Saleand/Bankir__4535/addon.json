@@ -8,8 +8,8 @@
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4535",
@@ -18,7 +18,7 @@
     "Bankir"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4535/",
-  "fingerprint": "46d0cbe86e474679a95d39a019b7ce8e069f722df2d357486ed265b6fa3b9c3c",
+  "fingerprint": "afac73d7f2985d0ea48685d5463eb29cad391d22d5621225eb2a3d5b83b34466",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18262.png",
     "https://cdn-eso.mmoui.com/preview/pvw18144.png",
@@ -35,11 +35,11 @@
   "source_id": "4535",
   "source_url": "https://www.esoui.com/downloads/info4535-Bankir.html",
   "stats": {
-    "downloads": 451,
+    "downloads": 473,
     "favorites": 3,
-    "monthly_downloads": 121
+    "monthly_downloads": 135
   },
   "title": "Bankir",
-  "updated_at": 1793902392000,
-  "version": "2.8.3"
+  "updated_at": 1794193111000,
+  "version": "2.9.2"
 }

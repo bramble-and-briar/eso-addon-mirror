@@ -32,6 +32,8 @@ bossName='Next Boss';meter:RefreshBosses()
 hit(5000,40,9000,4)
 assert(meter:GetStats().groupBossTotal==1700,'Group-only damage does not invent boss ID assignment')
 meter:CorrelateBoss('boss1',40,'Next Boss')
+assert(meter:GetStats().groupBossTotal==1700,'Boss effect does not release unknown group damage')
+meter:OnDamage(1,false,0,'Player',1,10,99,40)
 assert(meter:GetStats().groupBossTotal==10700 and meter:GetStats().bossTotal==1700,
  'Boss tag reuse includes confirmed group boss damage while keeping own damage separate')
 print('PASS: one-target boss fallback, correction, same-name adds, recreated IDs and group boss confirmation')

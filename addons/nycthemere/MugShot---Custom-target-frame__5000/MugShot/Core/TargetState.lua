@@ -25,7 +25,6 @@ function TargetState.New()
         portraitTexture = nil,
         raceIcon        = nil,
         allianceIcon    = nil,
-        allianceColor   = nil,
     }
     self.vitals = {
         healthKnown   = false,
@@ -52,7 +51,6 @@ function TargetState:ResetForTargetChange()
         portraitTexture = nil,
         raceIcon        = nil,
         allianceIcon    = nil,
-        allianceColor   = nil,
     }
     self.vitals = {
         healthKnown   = false,

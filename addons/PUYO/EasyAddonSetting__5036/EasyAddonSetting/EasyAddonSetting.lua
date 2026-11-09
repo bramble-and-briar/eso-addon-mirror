@@ -1,11 +1,11 @@
--- Easy Addon Setting v2.14.0 (author: PUYO)
+-- Easy Addon Setting v2.14.1 (author: PUYO)
 -- /charaddons : キャラクター一覧とアドオン一覧を1つのウィンドウに表示し、
 -- キャラを選んでそのキャラ用のアドオンON/OFFを切り替える。
 -- 標準AddOns画面と同じAPI(SetAddOnFilter / SetAddOnEnabled)を使う。
 -- フィルターは操作ごとに設定→解除するので、標準画面の挙動には影響しない。
 
 local ADDON_NAME = "EasyAddonSetting"
-local VERSION = "2.14.0"
+local VERSION = "2.14.1"
 
 ---------------------------------------------------------------------
 -- localization (ja / en)  ゲームの言語が日本語なら日本語、それ以外は英語
@@ -20,7 +20,7 @@ local STR = {
         outOfDate     = "期限切れ",
         target        = "対象キャラ: ",
         loggedIn      = "ログイン中",
-        title         = "キャラ別アドオン ON/OFF  (タイトル付近をドラッグで移動)",
+        title         = "キャラ別アドオン ON/OFF",
         characters    = "キャラクター",
         search        = "検索:",
         reload        = "UIリロード",
@@ -64,7 +64,7 @@ local STR = {
         outOfDate     = "out of date",
         target        = "Character: ",
         loggedIn      = "Logged in",
-        title         = "Per-Character AddOns ON/OFF  (drag to move)",
+        title         = "Per-Character AddOns ON/OFF",
         characters    = "Characters",
         search        = "Search:",
         reload        = "Reload UI",

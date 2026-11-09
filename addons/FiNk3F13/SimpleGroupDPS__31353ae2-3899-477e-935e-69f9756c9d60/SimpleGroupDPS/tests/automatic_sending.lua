@@ -36,10 +36,10 @@ env.tick()
 assert(#sent==1,'Automatic DPS sends respect the 300ms send budget')
 role=LFG_ROLE_HEAL
 env.setClock(802000)
-meter:OnDamage(5,false,1,'Self',1,400,99,99,600,123)
+meter:OnDamage(5,false,1,'Self',1,400,99,99,1600,123)
 env.tick()
 assert(#sent==2 and sent[2].id==431 and sent[2].data.encodedEffectiveHPS==400,
- 'Healer role automatically shares HPS')
+ 'Higher raw HPS automatically selects healing regardless of role')
 enabled=false
 env.setClock(802500);env.tick()
 assert(#sent==2,'LibGroupBroadcast native send preference is respected')
@@ -50,7 +50,7 @@ env.setCombat(false)
 env.events['SimpleGroupDPSDamageState:combat'](nil,false)
 env.updates.SimpleGroupDPSDamageReset()
 assert(#sent==4 and sent[4].id==431 and env.saved.lastSummary.damageTotal==1000
- and env.saved.lastSummary.rawHPS==1000 and env.saved.lastSummary.effectiveHPS==400,
+ and env.saved.lastSummary.rawHPS==2000 and env.saved.lastSummary.effectiveHPS==400,
  'Final HPS is forced to the queue and the same own result is saved')
 assert(meter:GetStats().dps==1000 and meter:GetStats().durationMS==1000,
  'Restored sending does not change measured damage or timer')

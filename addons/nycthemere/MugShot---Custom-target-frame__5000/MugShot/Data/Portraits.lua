@@ -91,33 +91,10 @@ MugShot.Portraits.BossPortraits = {
 }
 MugShot.Portraits.SpecificPortraits = MugShot.Portraits.BossPortraits
 
--- ── Badges Metadata ───────────────────────────────────────
-MugShot.Portraits.RaceIdToName = {
-    [1]  = 'breton',    [2]  = 'redguard',  [3]  = 'orc',
-    [4]  = 'dunmer',    [5]  = 'nord',      [6]  = 'argonian',
-    [7]  = 'altmer',    [8]  = 'bosmer',    [9]  = 'khajiit',
-    [10] = 'imperial',
-}
-
-MugShot.Portraits.AllianceNames = {
-    [1] = 'aldmeri', [2] = 'ebonheart', [3] = 'daggerfall',
-}
-
-MugShot.Portraits.AllianceColors = {
-    [1] = { 1.0, 1.0, 0.5 },
-    [2] = { 1.0, 0.5, 0.5 },
-    [3] = { 0.5, 0.5, 1.0 },
-}
-
-MugShot.Portraits.ClassIcons = {
-    [1]   = '/esoui/art/icons/class/gamepad/gp_class_dragonknight.dds',
-    [2]   = '/esoui/art/icons/class/gamepad/gp_class_sorcerer.dds',
-    [3]   = '/esoui/art/icons/class/gamepad/gp_class_nightblade.dds',
-    [4]   = '/esoui/art/icons/class/gamepad/gp_class_warden.dds',
-    [5]   = '/esoui/art/icons/class/gamepad/gp_class_necromancer.dds',
-    [6]   = '/esoui/art/icons/class/gamepad/gp_class_templar.dds',
-    [117] = '/esoui/art/icons/class/gamepad/gp_class_arcanist.dds',
-}
+-- ── Badges Metadata (Referenced from Constants) ───────────
+MugShot.Portraits.RaceIdToName   = MugShot.Constants.RACE_ID_TO_NAME
+MugShot.Portraits.ClassIcons     = MugShot.Constants.CLASS_ICONS
+MugShot.Portraits.AllianceIcons  = MugShot.Constants.ALLIANCE_ICONS
 
 -- Pure numeric ability IDs for summons across classes
 local SUMMON_ABILITY_IDS = {
@@ -217,7 +194,7 @@ end
 
 -- ── Portrait Resolution ───────────────────────────────────
 function MugShot.Portraits.GetPortraitInfo(unitTag)
-    local isPlayer = IsUnitPlayer(unitTag) or (unitTag == 'player')
+    local isPlayer = IsUnitPlayer(unitTag) or (unitTag == 'player') or (AreUnitsEqual and AreUnitsEqual(unitTag, 'player'))
 
     if isPlayer then
         -- 1. Custom avatar (LibCustomIcons / HodorReflexes)
@@ -226,11 +203,9 @@ function MugShot.Portraits.GetPortraitInfo(unitTag)
         local allowCustom = not settings or settings:Get().useHodorIcons ~= false
 
         if allowCustom then
-            local displayName = (GetUnitDisplayName and GetUnitDisplayName(unitTag))
+            local displayName = GetUnitDisplayName(unitTag)
             if (not displayName or displayName == "") and (unitTag == 'player' or (AreUnitsEqual and AreUnitsEqual(unitTag, 'player'))) then
-                if GetDisplayName then
-                    displayName = GetDisplayName()
-                end
+                displayName = GetDisplayName()
             end
             displayName = displayName or ""
             if displayName ~= "" then
@@ -286,81 +261,56 @@ function MugShot.Portraits.GetPortraitInfo(unitTag)
             end
         end
 
-        -- 2. Full-color Class icon (Native ESO gamepad class icons)
-        local classId = GetUnitClassId and GetUnitClassId(unitTag)
-        local classIcon = (classId and MugShot.Portraits.ClassIcons[classId])
-
-        if not classIcon and classId and GetClassIndexById and GetClassInfo then
-            local classIndex = GetClassIndexById(classId)
-            if classIndex then
-                local _, _, normalKb, _, _, _, ingameKb, ingameGp = GetClassInfo(classIndex)
-                classIcon = ingameGp or ingameKb or normalKb
-            end
+        -- 2. Full-color Gamepad Class Icon
+        local classId = GetUnitClassId(unitTag)
+        if (not classId or classId == 0) and (unitTag == "player" or (AreUnitsEqual and AreUnitsEqual(unitTag, "player"))) then
+            classId = GetUnitClassId("player")
         end
 
-        if not classIcon and classId and GetClassInfo then
-            local _, _, c3, _, _, _, c7, c8 = GetClassInfo(classId)
-            classIcon = c8 or c7 or c3
-        end
+        local classIcon = (classId and ZO_GetGamepadClassIcon(classId))
+            or (classId and MugShot.Constants.CLASS_ICONS and MugShot.Constants.CLASS_ICONS[classId])
 
-        if not classIcon and GetUnitClass then
+        if not classIcon then
             local className = string.lower(GetUnitClass(unitTag) or "")
             if className ~= "" then
                 classIcon = '/esoui/art/icons/class/gamepad/gp_class_' .. className .. '.dds'
             end
         end
 
-        if not classIcon or classIcon == "" then
-            classIcon = '/esoui/art/icons/class/gamepad/gp_class_dragonknight.dds'
-        end
-
-        -- Class Color resolution (Style.CLASS_COLORS)
-        local classColor = nil
-        if classId and MugShot.Style and MugShot.Style.CLASS_COLORS then
-            local sc = MugShot.Style.CLASS_COLORS[classId]
-            if sc then
-                local sr = sc.r or sc[1] or 1.0
-                local sg = sc.g or sc[2] or 1.0
-                local sb = sc.b or sc[3] or 1.0
-                local sa = sc.a or sc[4] or 1.0
-                classColor = { sr, sg, sb, sa, r = sr, g = sg, b = sb, a = sa }
-            end
-        end
-        if not classColor then
-            classColor = { 1.0, 1.0, 1.0, 1.0, r = 1.0, g = 1.0, b = 1.0, a = 1.0 }
-        end
-
         -- 3. Race badge
-        local raceIcon = nil
         local raceId = GetUnitRaceId(unitTag)
-        local rName = raceId and MugShot.Portraits.RaceIdToName[raceId]
+        if (not raceId or raceId == 0) and (unitTag == "player" or (AreUnitsEqual and AreUnitsEqual(unitTag, "player"))) then
+            raceId = GetUnitRaceId("player")
+        end
+        local raceIcon = nil
+        local rName = raceId and MugShot.Constants.RACE_ID_TO_NAME and MugShot.Constants.RACE_ID_TO_NAME[raceId]
         if rName then
             raceIcon = '/esoui/art/charactercreate/gamepad/charactercreate_' .. rName .. 'icon_down.dds'
         end
 
-        -- 4. Alliance badge
-        local allianceIcon, allianceColor = nil, nil
+        -- 4. Alliance badge composite (Base: ava_flagneutral.dds + Crest: alliancebadge_<alliance>.dds)
         local aId = GetUnitAlliance(unitTag)
-        local aName = aId and MugShot.Portraits.AllianceNames[aId]
-        if aName then
-            allianceIcon  = '/esoui/art/stats/alliancebadge_' .. aName .. '.dds'
-            allianceColor = MugShot.Portraits.AllianceColors[aId]
+        if (not aId or aId == 0) and (unitTag == "player" or (AreUnitsEqual and AreUnitsEqual(unitTag, "player"))) then
+            aId = GetUnitAlliance("player")
         end
-
-        local isClass = (customIcon == nil)
-        local portraitColor = isClass and classColor or { 1.0, 1.0, 1.0, 1.0, r = 1.0, g = 1.0, b = 1.0, a = 1.0 }
+        local allianceIcon = (aId and MugShot.Constants.ALLIANCE_ICONS and MugShot.Constants.ALLIANCE_ICONS[aId])
+            or (aId and ZO_GetLargeAllianceSymbolIcon(aId))
+            or nil
+        local allianceBase = allianceIcon and MugShot.Constants.ALLIANCE_FLAG_BASE or nil
+        local allianceColor = aId and MugShot.Constants.ALLIANCE_COLORS and MugShot.Constants.ALLIANCE_COLORS[aId]
 
         return {
             portraitTexture = customIcon or classIcon,
             portraitCoords  = customCoords,
-            portraitColor   = portraitColor,
-            classColor      = classColor,
+            portraitColor   = { 1.0, 1.0, 1.0, 1.0 },
             classIcon       = classIcon,
             customIcon      = customIcon,
-            isClassIcon     = isClass,
+            isClassIcon     = (customIcon == nil),
             raceIcon        = raceIcon,
             allianceIcon    = allianceIcon,
+            allianceBase    = allianceBase,
             allianceColor   = allianceColor,
+            allianceId      = aId,
         }
     else
         -- Non-player (Boss, Companion, Pet, NPC)
@@ -387,7 +337,7 @@ function MugShot.Portraits.GetPortraitInfo(unitTag)
         end
 
         -- 3. Active companion fallback (when unit is active companion)
-        if not tex and AreUnitsEqual(unitTag, "companion") then
+        if not tex and AreUnitsEqual and AreUnitsEqual(unitTag, "companion") then
             local defId = GetActiveCompanionDefId()
             if defId and defId > 0 then
                 local colId = GetCompanionCollectibleId(defId)
@@ -404,13 +354,14 @@ function MugShot.Portraits.GetPortraitInfo(unitTag)
             portraitTexture = tex,
             portraitCoords  = nil,
             portraitColor   = { 1.0, 1.0, 1.0, 1.0 },
-            classColor      = nil,
             classIcon       = nil,
             customIcon      = nil,
             isClassIcon     = false,
             raceIcon        = nil,
             allianceIcon    = nil,
+            allianceBase    = nil,
             allianceColor   = nil,
+            allianceId      = nil,
         }
     end
 end

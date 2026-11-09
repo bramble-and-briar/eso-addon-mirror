@@ -46,6 +46,16 @@ local strings = {
         CMD_HELP_HODOR          = "  • |cffffff/mugshot hodor|r : Toggle custom Hodor avatars",
         CMD_HELP_HELP           = "  • |cffffff/mugshot help|r : Show this help message",
         CMD_UNKNOWN             = "|c9b00afMugShot|r: Unknown subcommand '%s'. Type |cffffff/mugshot help|r.",
+        MOVE_MODE_INSTRUCTIONS  = "[Move Mode] Drag: Move frame | Line 3: Left-Click = Swap, Right-Click = Rename",
+        TOOLTIP_LEFT_CLICK      = "|cffd700• Left-Click:|r Swap debuffs",
+        TOOLTIP_RIGHT_CLICK     = "|cffd700• Right-Click:|r Rename tag",
+        TOOLTIP_TAG_INFO        = "Displayed tag: |c00ffcc%s|r (Default: %s)",
+        MENU_RENAME_TAG         = "Rename tag...",
+        MENU_RESET_TAG          = "Reset default tag [%s]",
+        DIALOG_RENAME_TITLE     = "Rename Debuff Tag",
+        DIALOG_RENAME_BODY      = "Enter tag for %s (Default: %s, max 7 chars):",
+        TAG_SAVED               = "|c9b00afMugShot|r: Custom tag for '%s' set to '%s'.",
+        TAG_RESET               = "|c9b00afMugShot|r: Custom tag for '%s' reset to default ('%s').",
     },
     fr = {
         ENABLED                 = "|c9b00afMugShot|r activé.",
@@ -86,13 +96,23 @@ local strings = {
         CMD_HELP_HODOR          = "  • |cffffff/mugshot hodor|r : Portraits personnalisés Hodor",
         CMD_HELP_HELP           = "  • |cffffff/mugshot help|r : Afficher ce message d'aide",
         CMD_UNKNOWN             = "|c9b00afMugShot|r : Sous-commande inconnue '%s'. Tapez |cffffff/mugshot help|r.",
+        MOVE_MODE_INSTRUCTIONS  = "[Mode Déplacement] Glisser : Déplacer cadre | Ligne 3 : Clic G = Permuter, Clic D = Renommer",
+        TOOLTIP_LEFT_CLICK      = "|cffd700• Clic Gauche :|r Permuter les débuffs",
+        TOOLTIP_RIGHT_CLICK     = "|cffd700• Clic Droit :|r Renommer le tag",
+        TOOLTIP_TAG_INFO        = "Tag affiché : |c00ffcc%s|r (Défaut : %s)",
+        MENU_RENAME_TAG         = "Renommer le tag...",
+        MENU_RESET_TAG          = "Rétablir le tag par défaut [%s]",
+        DIALOG_RENAME_TITLE     = "Renommer le tag de débuff",
+        DIALOG_RENAME_BODY      = "Entrez le tag pour %s (Défaut : %s, max 7 car.) :",
+        TAG_SAVED               = "|c9b00afMugShot|r : Tag personnalisé pour '%s' défini à '%s'.",
+        TAG_RESET               = "|c9b00afMugShot|r : Tag personnalisé pour '%s' réinitialisé ('%s').",
     },
 }
 
 -- Detect client language
 function MugShot.InitLanguage()
     local lang = "en"
-    local cvarLang = (GetCVar and (GetCVar("Language.2") or GetCVar("language.2")))
+    local cvarLang = GetCVar("Language.2") or GetCVar("language.2")
     if cvarLang then
         cvarLang = string.lower(cvarLang)
         if strings[cvarLang] then

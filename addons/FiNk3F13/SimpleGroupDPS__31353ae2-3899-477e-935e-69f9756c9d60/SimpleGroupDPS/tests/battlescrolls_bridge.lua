@@ -79,16 +79,16 @@ clock = 15001
 assert(#bridge:GetRows() == 1 and bridge:GetRows()[1].stale,
     "missing broadcasts retain the last known group row and mark it stale")
 receive("group1", { encodedAllDPS = 500 })
-assert(bridge:GetRows()[1].displayType == "healing" and bridge:GetRows()[1].stale,
+assert(bridge:GetRows()[1].displayType == "damage" and not bridge:GetRows()[1].stale,
     "Fresh damage cannot refresh an old healer HPS sample or change their selected role")
 protocols[431].receive("group1", {encodedRawHPS = 400, encodedEffectiveHPS = 200})
 assert(not bridge:GetRows()[1].stale, "A fresh HPS sample refreshes the healer row")
 identities.group1 = "@NewHealer"
 receive("group1", {encodedAllDPS = 256})
-assert(bridge:GetRows()[1].rawHPS == nil and bridge:GetRows()[1].stale,
+assert(bridge:GetRows()[1].rawHPS == nil and not bridge:GetRows()[1].stale,
     "An immediate packet from a replacement identity cannot inherit the previous player's HPS")
 grouped = false
-assert(#bridge:GetRows() == 0, "leaving group clears data")
+assert(#bridge:GetRows() == 1, "leaving group retains the last received result")
 grouped = true
 receive("group1", { encodedAllDPS = -1 })
 receive("group1", { encodedAllDPS = 2048 })

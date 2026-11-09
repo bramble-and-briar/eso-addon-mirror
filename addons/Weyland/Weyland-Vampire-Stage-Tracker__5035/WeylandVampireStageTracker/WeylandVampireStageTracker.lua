@@ -1,4 +1,4 @@
--- Weyland Vampire Stage Tracker 1.2.0
+-- Weyland Vampire Stage Tracker 1.2.1
 -- Tracks the player's current vampirism stage and remaining time.
 -- The live player buff is the single source of truth for the stage.
 -- Unlock with: /vst unlock
@@ -15,7 +15,6 @@ local STRINGS = WeylandVampireStageTracker_Strings or {}
 local function T(key)
     return STRINGS[key] or key
 end
-local VST = {}
 
 -- ESO vampire stage effect ability IDs.
 -- These are the actual Vampire Stage buff abilities, so stage detection
@@ -974,6 +973,9 @@ local function RegisterEvents()
         -- inserted. A complete rescan handles that transition safely.
         UpdateDisplay()
     end)
+    -- Event filter: the game itself only calls us for the player's own effects
+    -- (the unit check above stays as a harmless safety net).
+    EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
 
     EVENT_MANAGER:RegisterForEvent(fullUpdateEventName, EVENT_EFFECTS_FULL_UPDATE, function()
         UpdateDisplay()
@@ -1087,7 +1089,7 @@ local function RegisterSettings()
         name = DISPLAY_NAME,
         displayName = DISPLAY_NAME,
         author = "Weyland",
-        version = "1.2.0",
+        version = "1.2.1",
         slashCommand = "/vstsettings",
         registerForRefresh = true,
         registerForDefaults = true,

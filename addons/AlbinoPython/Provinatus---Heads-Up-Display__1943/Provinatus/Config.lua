@@ -2,7 +2,7 @@ ProvinatusConfig = {
   Name = "Provinatus",
   FriendlyName = "Provinatus",
   Author = "AlbinoPython",
-  Version = "2.6.1",
+  Version = "2.6.3",
   Website = "http://www.esoui.com/downloads/info1943-Provinatus.html",
   Feedback = "https://www.esoui.com/portal.php?uid=25876&a=listbugs",
   SlashCommand = "/provinatus",

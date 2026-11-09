@@ -1,6 +1,6 @@
 ## Title: MyExtras
 ## Author: user562
-## Version: 2.9
+## Version: 3.1
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: MyExtras_SavedVars MyExtras_CharVars
 ## DependsOn: LibUser562
@@ -14,3 +14,5 @@ MyExtras_Antiquity.lua
 MyExtras_ActionBar.lua
 MyExtras_Gear.lua
 MyExtras_Streamer.lua
+MyExtras_FriendsStatus.lua
+MyExtras_DungeonsTrials.lua

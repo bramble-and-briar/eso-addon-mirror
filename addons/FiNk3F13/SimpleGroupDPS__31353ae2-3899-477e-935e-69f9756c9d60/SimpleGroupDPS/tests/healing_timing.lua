@@ -20,18 +20,18 @@ end
 heal(2000)
 heal(12000)
 local stats = meter:GetStats()
-assert(stats.rawHealingTotal == 20000 and stats.rawHPS == 2000 and stats.effectiveHPS == 1000)
+assert(stats.rawHealingTotal == 20000 and stats.rawHPS == 20000000 and stats.effectiveHPS == 10000000)
 assert(stats.healingDurationMS == 10000 and stats.durationMS == 1 and stats.dps == 2000000,
     'Only healing continues: healing clock advances without changing damage time')
 clock = 12100
 meter:OnDamage(1,false,1,'Enemy',0,1000,99,10)
-assert(meter:GetStats().rawHPS == stats.rawHPS and meter:GetStats().effectiveHPS == stats.effectiveHPS,
-    'Resuming attacks cannot reset or change HPS')
+assert(math.abs(meter:GetStats().rawHPS-20000/11.1)<0.000001,
+    'Resuming attacks changes the common encounter denominator exactly as BattleScrolls')
 heal(22000)
-assert(meter:GetStats().rawHPS == 1500 and meter:GetStats().effectiveHPS == 750,
-    'Continued healing extends its own denominator')
+assert(math.abs(meter:GetStats().rawHPS-30000/11.1)<0.000001 and math.abs(meter:GetStats().effectiveHPS-15000/11.1)<0.000001,
+    'Continued healing uses the same last-damage encounter duration')
 clock = 30000
 meter:Finish()
-assert(meter:GetStats().rawHPS == 1500 and meter:GetStats().healingDurationMS == 20000,
-    'Final healing result freezes with its own duration')
-print('PASS: heal-only continuation, attack resumption, independent HPS clock and subsecond DPS safety')
+assert(math.abs(meter:GetStats().rawHPS-30000/11.1)<0.000001 and meter:GetStats().healingDurationMS == 20000,
+    'Final healing result freezes with the encounter duration')
+print('PASS: heal-only continuation, attack resumption, BattleScrolls encounter HPS clock and subsecond DPS safety')

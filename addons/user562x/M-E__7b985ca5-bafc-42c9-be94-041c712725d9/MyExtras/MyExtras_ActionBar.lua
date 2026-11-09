@@ -40,6 +40,10 @@ local BUFF_ROWS = {
     "ZO_BuffDebuffTopLevelSelfContainerContainer1",
     "ZO_BuffDebuffTopLevelSelfContainerContainer2",
 }
+local BUFF_CONTAINER      = "ZO_BuffDebuffTopLevelSelfContainer"
+local BUFF_GAP            = 6
+local BUFF_SPACE_GAMEPAD  = 80
+local BUFF_SPACE_KEYBOARD = 66
 local PROMPT_BASE  = "ZO_PlayerToPlayerAreaPromptContainer"
 local PROMPT_PARTS = {
     "ZO_PlayerToPlayerAreaPromptContainerActionArea",
@@ -106,6 +110,7 @@ AB.defaults = {
     actionBarShow       = "Always",
     actionBarStatic     = true,
     actionBarResources  = "Row",
+    actionBarBuffs      = "Above",
     actionBarPulse      = true,
     actionBarPulseSpeed = 3,
     actionBarRingStyle  = "Alliance",
@@ -127,6 +132,11 @@ AB.showChoices = {
 AB.resourceChoices = {
     { name = "Same Row",      value = "Row"   },
     { name = "Health on Top", value = "Split" },
+}
+
+AB.buffChoices = {
+    { name = "Above Action Bar", value = "Above" },
+    { name = "Below Action Bar", value = "Below" },
 }
 
 AB.ultChoices = {
@@ -202,6 +212,14 @@ end
 local function IsEnabled()
     local sv = SV()
     return sv ~= nil and sv.actionBarEnabled == true
+end
+
+local function BuffsBelow()
+    return IsEnabled() and SV().actionBarBuffs == "Below"
+end
+
+local function BuffSpace()
+    return IsInGamepadPreferredMode() and BUFF_SPACE_GAMEPAD or BUFF_SPACE_KEYBOARD
 end
 
 local function NumberText(value)
@@ -605,8 +623,12 @@ end
 function AB:ApplyPosition()
     if not self.panel then return end
     local sv = SV()
+    local lift = 0
+    if BuffsBelow() then
+        lift = math.max(0, sv.actionBarPosY + BuffSpace() - GuiRoot:GetHeight())
+    end
     self.panel:ClearAnchors()
-    self.panel:SetAnchor(BOTTOM, GuiRoot, TOPLEFT, sv.actionBarPosX, sv.actionBarPosY)
+    self.panel:SetAnchor(BOTTOM, GuiRoot, TOPLEFT, sv.actionBarPosX, sv.actionBarPosY - lift)
     self:ApplyStack()
 end
 
@@ -1118,6 +1140,48 @@ function AB:ApplyResourceBars()
     self:ApplyResourceLayout(bars)
 end
 
+local function RestoreBuffs(container)
+    local element
+    if HUD_MANAGER then
+        if IsInGamepadPreferredMode() then
+            if HUD_MANAGER.GetGamepadElementForControl then
+                element = HUD_MANAGER:GetGamepadElementForControl(container)
+            end
+        elseif HUD_MANAGER.GetKeyboardElementForControl then
+            element = HUD_MANAGER:GetKeyboardElementForControl(container)
+        end
+    end
+    if element and element.RevertOffsetModifications then
+        element:RevertOffsetModifications()
+        return
+    end
+    local bars = GetControl("ZO_PlayerAttribute")
+    if not bars then return end
+    container:ClearAnchors()
+    container:SetAnchor(CENTER, bars, TOP, 0, -40)
+end
+
+function AB:ApplyBuffs()
+    local container = GetControl(BUFF_CONTAINER)
+    if not (container and self.panel) then return end
+    if BuffsBelow() then
+        container:ClearAnchors()
+        container:SetAnchor(TOP, self.panel, BOTTOM, 0, BUFF_GAP)
+        self.buffsMoved = true
+    elseif self.buffsMoved then
+        self.buffsMoved = false
+        RestoreBuffs(container)
+    end
+end
+
+function AB:HookBuffs()
+    if self.buffsHooked or not (HUD_MANAGER and HUD_MANAGER.RegisterCallback) then return end
+    self.buffsHooked = true
+    HUD_MANAGER:RegisterCallback("PropagateSettings", function()
+        if AB.buffsMoved then AB:ApplyBuffs() end
+    end)
+end
+
 local function MeasureFloor()
     local floor
     for i = 1, #FLOOR_CONTROLS do
@@ -1274,6 +1338,7 @@ function AB:Refresh()
     self:ApplyPosition()
     self:ApplyDefaultBar()
     self:ApplyResourceBars()
+    self:ApplyBuffs()
     self:ApplyStack()
     self:RefreshIcons()
     self:ScanFood()
@@ -1602,6 +1667,25 @@ function AB:GetOptions()
                     end,
                 },
                 {
+                    type     = "dropdown",
+                    name     = "Buffs / Debuffs",
+                    choices  = AB.buffChoices,
+                    default  = defaults.actionBarBuffs,
+                    disabled = IsOff,
+                    details  = function()
+                        if SV().actionBarBuffs == "Below" then
+                            return "Buffs and debuffs sit below the action bar."
+                        end
+                        return "Buffs and debuffs sit above your health, magicka and stamina."
+                    end,
+                    getFunc  = function() return SV().actionBarBuffs end,
+                    setFunc  = function(val)
+                        SV().actionBarBuffs = val
+                        AB:ApplyPosition()
+                        AB:ApplyBuffs()
+                    end,
+                },
+                {
                     type         = "stylecolor",
                     name         = ME.RainbowText("Ring / Arrow Color"),
                     choices      = { "Alliance", "Custom" },
@@ -1740,6 +1824,7 @@ function AB:Init()
     end
     self:CreatePanel()
     self:HookResourceBars()
+    self:HookBuffs()
     self:WatchStack()
     self:RegisterEvents()
     self:RegisterScenes()

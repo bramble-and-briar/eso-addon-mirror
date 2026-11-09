@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Khazaril/ESO-Companion-QR-Test__95d71844-4b3c-4d6b-b4f1-15716d72792f",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Khazaril",
+  "canonical_id": "bethesda:95d71844-4b3c-4d6b-b4f1-15716d72792f",
+  "content_id": "95d71844-4b3c-4d6b-b4f1-15716d72792f",
+  "deleted": false,
+  "fingerprint": "7963c6582e2b16990ee5828a66db4808f688536759493fffca773d22cd14a42c",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "95d71844-4b3c-4d6b-b4f1-15716d72792f",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/95d71844-4b3c-4d6b-b4f1-15716d72792f",
+  "title": "ESO Companion QR Test"
+}

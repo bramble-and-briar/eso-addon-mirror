@@ -39,7 +39,7 @@ end
 end
 end
 local PS_BUTTONS={["Press X"]="Press Square",["press X"]="press Square",["Press A"]="Press Cross",
-["LT or RT"]="L2 or R2",["Hit start"]="Hit Options"}
+["LT or RT"]="L2 or R2",["Hit start"]="Hit Options",["Y %(Options%)"]="Triangle (Options)"}
 function LazyCrown.Buttons(text)
 local ps=false
 if ZO_IsPlaystationPlatform then
@@ -74,6 +74,7 @@ local ICON_PERSONALITY="EsoUI/Art/Campaign/Gamepad/gp_bonusIcon_emperor.dds"
 local ICON_GROUP="EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_groups.dds"
 local ICON_HISTORY="EsoUI/Art/Guild/History/Gamepad/gp_guildHistory_allianceWar.dds"
 local ICON_OVERRIDE="EsoUI/Art/TargetMarkers/Gamepad/Target_Red_Weapons.dds"
+local ICON_CLEANUP="EsoUI/Art/Options/Gamepad/gp_options_addons.dds"
 local SHARE_HELP="Too lazy to lead? Let the crown decide. Places the call in the Text Chat box. Press X to send."
 local SCOREBOARD_SHARE_HELP="Places the scoreboard in the Text Chat box. Press X to send."
 pcall(function()
@@ -92,6 +93,8 @@ LibRadialMenu:RegisterEntry(ADDON_NAME,"History","7history",ICON_HISTORY,FromWhe
 "Your calls this run with their W or L. Shows in your chat window. Resetting the scoreboard clears it.")
 LibRadialMenu:RegisterEntry(ADDON_NAME,"Override","8override",ICON_OVERRIDE,FromWheel("Override"),
 "Opens Text Chat. Type where you're going and press Send. Lazy Crown judges your W or L on that one instead of its own call.")
+LibRadialMenu:RegisterEntry(ADDON_NAME,"Clean Up","9cleanup",ICON_CLEANUP,FromWheel("CleanUp"),
+"Clears LibDebugLogger's log so your next login loads less, and shows how full add-on memory and saved data are. Shows in your chat window.")
 end)
 local function AskWhenShown(entryId,fields)
 local mine=LibRadialMenu.registeredEntries and LibRadialMenu.registeredEntries[ADDON_NAME]

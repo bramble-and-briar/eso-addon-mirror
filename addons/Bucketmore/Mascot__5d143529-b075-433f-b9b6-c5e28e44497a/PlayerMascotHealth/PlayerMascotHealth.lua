@@ -1,4 +1,4 @@
--- PlayerMascotHealth v1.3.3
+-- PlayerMascotHealth v1.3.4-diag  (v1.3.3 + diagnostics only: no change to HP rules, animation or images)
 -- Shows one animation per HP state (5 states: NORMAL / CAUTION / DANGER / CRITICAL / ZERO) depending on the PLAYER's own HP. Own HP only (no enemy/NPC/target HP).
 -- Each state is either STATIC (one image) or ANIMATION (sprite sheet played by the game engine through
 -- ANIMATION_TEXTURE - no Lua timer, no OnUpdate). See STATE_IMAGE below.
@@ -6,7 +6,7 @@
 -- rare lifecycle events. The texture is only swapped when the state actually changes.
 
 local ADDON      = "PlayerMascotHealth"
-local VERSION    = "1.3.3"
+local VERSION    = "1.3.4-diag"
 local DEBUG      = true       -- v1.3.1: prints a few "[PMH]" lines (max 12 per session) to find why nothing is shown; set false to silence
 local SV_NAME    = "PlayerMascotHealth_SV"
 local SV_VERSION = 1
@@ -85,10 +85,25 @@ local loadedSet = {}       -- files for which the engine reported OnTextureLoade
 local preview = false      -- settings preview (runtime only, never saved; OFF after every login)
 local hudFragment          -- scene fragment that hides the mascot in menus (nil if it could not be created)
 
+local DEBUG_MAX = 400      -- v1.3.4-diag: was 12
+local function NowMs()
+    if GetGameTimeMilliseconds then
+        local ok, v = pcall(GetGameTimeMilliseconds)
+        if ok and type(v) == "number" then return v end
+    end
+    return 0
+end
+local t0Ms = NowMs()
+local reqSeq, reqFile, reqMs = 0, nil, 0      -- the image request that is currently in flight (for the loaded-event log)
+local forcedState          -- diag: state chosen in the settings (nil = automatic from HP); runtime only
+local watchdogOff = false  -- diag: stops the "set the image again" watchdog; runtime only
+
 local function Dbg(msg)       -- bounded: never floods the chat
-    if DEBUG and debugLines < 12 then
+    if not DEBUG then return end
+    if debugLines < DEBUG_MAX then
         debugLines = debugLines + 1
-        d("[PMH] " .. msg)
+        d(("[PMH %.1fs] %s"):format((NowMs() - t0Ms) / 1000, msg))
+        if debugLines == DEBUG_MAX then d("[PMH] debug line limit reached") end
     end
 end
 
@@ -185,12 +200,14 @@ end
 local function ShowImage(state, cfg)
     if cfg.type == "ANIMATION" and not animBroken[state] then
         shownFile = cfg.file
+        reqSeq = reqSeq + 1; reqFile = shownFile; reqMs = NowMs()
         tex:SetTexture(cfg.file)
         if StartAnim(state, cfg) then return end
         animBroken[state] = true      -- animation API unusable: never retry, use the static fallback
         Dbg("animation FAILED for " .. state .. " -> static fallback")
     end
     shownFile = (cfg.type == "ANIMATION") and cfg.fallback or cfg.file
+    reqSeq = reqSeq + 1; reqFile = shownFile; reqMs = NowMs()
     tex:SetTexture(shownFile)
     ResetCoords()
 end
@@ -224,6 +241,7 @@ function ScheduleWatch()
     watchPending = true
     zo_callLater(function()
         watchPending = false
+        if watchdogOff then Dbg("watchdog is OFF (diag): not setting the image again") return end
         if not tex or not shownState or not shownFile or loadedSet[shownFile] then return end   -- loaded, or nothing shown
         if watchAttempt >= LOAD_CHECK_MAX then
             Dbg("texture never reported loaded: " .. tostring(shownFile))
@@ -257,7 +275,7 @@ local function ApplyTexture()
     if shownState == currentState then return end   -- same state: never reload
     StopAnim()                                      -- nothing of the previous state keeps playing
     shownState = currentState
-    Dbg("state -> " .. currentState)
+    Dbg("state -> " .. currentState .. "  file=" .. tostring(STATE_IMAGE[currentState].file))
     ShowImage(currentState, STATE_IMAGE[currentState])
     LayoutLabel()
     tex:SetHidden(false)          -- first time the control becomes visible = image already set
@@ -306,6 +324,7 @@ end
 local function UpdateState(cur, max)
     local s = CalcState(cur, max)
     if s == nil then return false end   -- HP data not available (yet)
+    if forcedState then s = forcedState end      -- diag: the settings dropdown overrides the HP state
     if s ~= currentState then
         currentState = s
         if sv.enabled then ApplyTexture() end
@@ -334,6 +353,20 @@ local function ReadHealthNow()
 end
 
 -- One-shot delayed re-read (never repeats itself; cancelled by any newer valid HP event).
+-- diag: show one state on purpose (to test every sheet without having to lose HP). Runtime only.
+local function SetForcedState(name)
+    if name and STATE_IMAGE[name] then
+        forcedState = name
+        currentState = name
+        Dbg("diag: state forced to " .. name)
+        if sv.enabled then ApplyTexture(); ApplyLayout() end
+    else
+        forcedState = nil
+        Dbg("diag: state back to automatic (HP)")
+        ReadHealthNow()
+    end
+end
+
 local function ScheduleResync()
     resyncGen = resyncGen + 1
     local gen = resyncGen
@@ -426,7 +459,8 @@ local function BuildUI()
             if shownFile then loadedSet[shownFile] = true end
             if DEBUG then
                 local ok, w, h = pcall(tex.GetTextureFileDimensions, tex)
-                Dbg("texture loaded: " .. tostring(shownFile) .. " " .. (ok and (tostring(w) .. "x" .. tostring(h)) or "?"))
+                Dbg(("texture loaded event: current request=%s (#%d, %d ms ago) size=%s"):format(
+                    tostring(shownFile), reqSeq, NowMs() - reqMs, ok and (tostring(w) .. "x" .. tostring(h)) or "?"))
             end
         end)
     end)
@@ -438,7 +472,7 @@ local function BuildUI()
         tex:SetHandler("OnEffectivelyShown", function()
             if sv and sv.enabled then
                 EnsurePlayback()
-                if shownFile and not loadedSet[shownFile] then ReapplyImage() end   -- visible now: let the engine load it
+                if shownFile and not loadedSet[shownFile] and not watchdogOff then ReapplyImage() end   -- visible now: let the engine load it
             end
         end)
     end)
@@ -465,6 +499,113 @@ local function BuildUI()
         HUD_SCENE:AddFragment(hudFragment)
         HUD_UI_SCENE:AddFragment(hudFragment)
     end)
+end
+
+---------------------------------------------------------------------------
+-- DIAGNOSTICS (v1.3.4-diag): nothing here changes HP rules, animation or images unless a diag option is used
+---------------------------------------------------------------------------
+local STATE_ORDER = { "NORMAL", "CAUTION", "DANGER", "CRITICAL", "ZERO" }
+local PROBE_FILES = {}
+for _, st in ipairs(STATE_ORDER) do
+    PROBE_FILES[#PROBE_FILES + 1] = STATE_IMAGE[st].file
+    PROBE_FILES[#PROBE_FILES + 1] = STATE_IMAGE[st].fallback
+end
+local probeTLW, probes
+local function ShortName(path) return tostring(path):match("[^/]+$") or tostring(path) end
+
+-- Loads each of the 10 image files (5 sheets + 5 fallbacks) on its own small control and reports which ones the engine loads.
+local function RunProbes()
+    local ok, err = pcall(function()
+        if not probeTLW then
+            probeTLW = WINDOW_MANAGER:CreateTopLevelWindow(ADDON .. "_ProbeTLW")   -- no scene fragment: visible in menus too
+            probeTLW:SetMouseEnabled(false); probeTLW:SetMovable(false)
+            probeTLW:SetDimensions(#PROBE_FILES * 34 + 8, 40)
+            probeTLW:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 40, 40)
+            probes = {}
+            for i, f in ipairs(PROBE_FILES) do
+                local c = WINDOW_MANAGER:CreateControl(ADDON .. "_Probe" .. i, probeTLW, CT_TEXTURE)
+                c:SetDimensions(28, 28)
+                c:SetAnchor(TOPLEFT, probeTLW, TOPLEFT, 4 + (i - 1) * 34, 6)
+                probes[i] = { ctl = c, file = f }
+                pcall(function()
+                    c:SetHandler("OnTextureLoaded", function()
+                        local pr = probes[i]
+                        if not pr.loaded then
+                            pr.loaded = true; pr.ms = NowMs() - pr.t
+                            local okd, w, h = pcall(c.GetTextureFileDimensions, c)
+                            pr.dims = okd and (tostring(w) .. "x" .. tostring(h)) or "?"
+                        end
+                    end)
+                end)
+            end
+        end
+        probeTLW:SetHidden(false)
+        Dbg("probe: loading the 10 image files on separate controls ...")
+        for _, pr in ipairs(probes) do
+            pr.loaded = false; pr.ms = nil; pr.t = NowMs()
+            pr.ctl:SetTexture(pr.file)
+        end
+        local function summary(tag)
+            local bad = 0
+            for _, pr in ipairs(probes) do
+                if pr.loaded then
+                    Dbg(("probe%s %s: LOADED %s in %d ms"):format(tag, ShortName(pr.file), tostring(pr.dims), pr.ms or -1))
+                else
+                    bad = bad + 1
+                    Dbg(("probe%s %s: NOT LOADED"):format(tag, ShortName(pr.file)))
+                end
+            end
+            return bad
+        end
+        zo_callLater(function()
+            local bad = summary("")
+            if bad > 0 then
+                zo_callLater(function() summary(" (late check)"); if probeTLW then probeTLW:SetHidden(true) end end, 6000)
+            elseif probeTLW then
+                probeTLW:SetHidden(true)
+            end
+        end, 4000)
+    end)
+    if not ok then Dbg("probe error: " .. tostring(err)) end
+end
+
+-- Prints the whole status to the chat (not limited by the debug line cap).
+local function PrintReport()
+    local function say(t) d("[PMH report] " .. t) end
+    local function try(f, ...) local r = { pcall(f, ...) }; if r[1] then table.remove(r, 1); return unpack(r) end return "n/a" end
+    local lam = collectgarbage("count")
+    say(("v%s enabled=%s preview=%s forced=%s watchdogOff=%s"):format(VERSION, tostring(sv and sv.enabled), tostring(preview), tostring(forcedState), tostring(watchdogOff)))
+    say(("state current=%s shown=%s | HP raw=%s/%s/%s percent=%s"):format(tostring(currentState), tostring(shownState), tostring(rawCur), tostring(rawMax), tostring(rawEff), tostring(currentPercent)))
+    if tex then
+        local playing = activeTL and try(activeTL.IsPlaying, activeTL) or false
+        local cl, cr, ct, cb = try(tex.GetTextureCoords, tex)
+        local w, h = try(tex.GetTextureFileDimensions, tex)
+        say(("image file=%s | control hidden=%s tlw hidden=%s | animation playing=%s | coords=%s,%s,%s,%s | file size=%sx%s"):format(
+            tostring(shownFile), tostring(try(tex.IsHidden, tex)), tostring(tlw and try(tlw.IsHidden, tlw)), tostring(playing),
+            tostring(cl), tostring(cr), tostring(ct), tostring(cb), tostring(w), tostring(h)))
+    end
+    say(("thresholds: NORMAL >= %s%%, CAUTION >= %s%%, DANGER >= %s%%, CRITICAL = above 0 and below DANGER, ZERO = HP 0"):format(
+        tostring(sv and sv.normalStart), tostring(sv and sv.cautionStart), tostring(sv and sv.dangerStart)))
+    local created = 0; for _ in pairs(timelines) do created = created + 1 end
+    for _, st in ipairs(STATE_ORDER) do
+        local cfg = STATE_IMAGE[st]
+        say(("map %-8s -> %s | fallback %s | loaded=%s animationBroken=%s timeline=%s"):format(
+            st, ShortName(cfg.file), ShortName(cfg.fallback), tostring(loadedSet[cfg.file] == true), tostring(animBroken[st] == true), tostring(timelines[st] ~= nil)))
+    end
+    say(("Lua memory %.0f KB | game time %d s | timelines %d | debug lines %d/%d"):format(lam, math.floor(NowMs() / 1000), created, debugLines, DEBUG_MAX))
+end
+
+-- Throws the current image + animation away and builds them again (for testing recovery after a memory crash).
+local function ForceReload()
+    if not tex or not shownState then Dbg("diag: re-initialize: nothing is shown yet"); return end
+    local st, cfg = shownState, STATE_IMAGE[shownState]
+    Dbg("diag: re-initializing " .. st .. " (" .. ShortName(cfg.file) .. ")")
+    StopAnim()
+    loadedSet[cfg.file] = nil; loadedSet[cfg.fallback] = nil
+    animBroken[st] = nil; timelines[st] = nil
+    ShowImage(st, cfg)
+    tex:SetHidden(not sv.enabled)
+    WatchLoad()
 end
 
 ---------------------------------------------------------------------------
@@ -579,6 +720,37 @@ local function BuildSettings()
                 ReadHealthNow(); Refresh()
             end,
             default = DEFAULTS.dangerStart,
+        },
+        -- ---------------- diagnostics (v1.3.4-diag) ----------------
+        { type = "header", name = "Diagnostics (診断)" },
+        {
+            type = "dropdown", name = "Diag: show one state (状態を固定して表示)",
+            tooltip = "Shows the chosen state's animation regardless of HP, to test every sheet. Back to 'Auto (HP)' at the next login.",
+            choices = { "Auto (HP)", "NORMAL", "CAUTION", "DANGER", "CRITICAL", "ZERO" },
+            getFunc = function() return forcedState or "Auto (HP)" end,
+            setFunc = function(choice) SetForcedState(STATE_IMAGE[choice] and choice or nil) end,
+            default = "Auto (HP)",
+        },
+        {
+            type = "checkbox", name = "Diag: stop the re-set watchdog (再設定を止める)",
+            tooltip = "ON: the image is not set again when the engine is slow to report it as loaded. Back to OFF at the next login.",
+            getFunc = function() return watchdogOff end,
+            setFunc = function(v) watchdogOff = v and true or false; Dbg("diag: watchdog " .. (watchdogOff and "OFF" or "ON")) end,
+            default = false,
+        },
+        {
+            type = "button", name = "Diag: test-load all 10 image files (全ファイル読み込み確認)",
+            tooltip = "Loads the 5 sheets and 5 fallback images on separate small controls and prints LOADED / NOT LOADED for each.",
+            func = function() RunProbes() end,
+        },
+        {
+            type = "button", name = "Diag: print status report (状態をチャットに出す)",
+            func = function() PrintReport() end,
+        },
+        {
+            type = "button", name = "Diag: re-initialize image + animation (再初期化)",
+            tooltip = "Builds the current image and animation again (to test recovery after a crash).",
+            func = function() ForceReload() end,
         },
     })
 end

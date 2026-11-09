@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.07",
+	version = "2026.11.08",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -371,7 +371,7 @@ GTANameList:SetDimensions(380, scrollListHeight)--350
 GTANameList:SetAnchor(TOPLEFT, GTAPersonalView, TOPLEFT, 0, 58)
 ZO_ScrollList_AddDataType(GTANameList, 1, "ZO_SelectableLabel", 20, LayoutNameRow)
 local GTANameLabel = WINDOW_MANAGER:CreateControl("GTANameLabel", GTAPersonalView, CT_LABEL)
-GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-->> TESTING
+GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-- 0, 0)-->> TESTING
 GTANameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTANameLabel:SetFont("ZoFontGameMedium")
 GTANameLabel:SetColor(0.3, 0.3, 0.2, 0.9)
@@ -942,8 +942,8 @@ local function PopulateTraderActivity()
 		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
-			local guildName = GetGuildName(guildId)-->> TESTING--(LINKED_MARKER .. GetGuildName(guildId))
-			if LibHistoire.gtaLinked[guildId][CATEGORY] or not GetGuildOwnedKioskInfo(guildId) then guildName = (LINKED_MARKER .. guildName) else guildName = (UNLINKED_MARKER .. guildName) end-->> TESTING
+			local guildName = (LINKED_MARKER .. GetGuildName(guildId))--GetGuildName(guildId)-->> TESTING--(LINKED_MARKER .. GetGuildName(guildId))
+			--if LibHistoire.gtaLinked[guildId][CATEGORY] or not GetGuildOwnedKioskInfo(guildId) then guildName = (LINKED_MARKER .. guildName) else guildName = (UNLINKED_MARKER .. guildName) end-->> TESTING
 			for x = 1, GetNumGuildHistoryEvents(guildId, CATEGORY) do
 				local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(guildId, x)
 				if eventStamp > resetStamp then

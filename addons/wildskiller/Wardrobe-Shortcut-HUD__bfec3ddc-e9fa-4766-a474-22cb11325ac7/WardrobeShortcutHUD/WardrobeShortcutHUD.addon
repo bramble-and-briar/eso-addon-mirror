@@ -1,0 +1,8 @@
+## Title: Wardrobe Shortcut HUD
+## Description: Shows Wizard's Wardrobe quickslot destinations on the gameplay HUD.
+## APIVersion: 101051
+## Version: 0.1.4
+## AddOnVersion: 5
+## DependsOn: WizardsWardrobe
+
+WardrobeShortcutHUD.lua

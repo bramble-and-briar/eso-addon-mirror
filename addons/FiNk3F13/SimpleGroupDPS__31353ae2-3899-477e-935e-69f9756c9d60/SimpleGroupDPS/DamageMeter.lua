@@ -1,7 +1,7 @@
 -- Combat timing follows BattleScrolls ef6d762d48998fa91e302d99fafce334568a3845:
 -- combat initialization -> last damage event of any source; current-time fallback
 -- only until a later damage timestamp exists. No backdating or one-second DPS floor.
--- HUD, DPS, sharing and saved result use this same duration. Healing stays separate.
+-- DPS and HPS rates use this encounter duration; the standalone healing HUD retains its display clock.
 -- Reference: BattleScrolls/combat/{state,arithmancer,scribe}.lua
 local meter = {}
 SimpleGroupDPS_DamageMeter = meter
@@ -42,9 +42,9 @@ end
 
 local function normalizeName(name)
     if type(name) ~= "string" or name == "" then return nil end
-    if zo_strformat then name = zo_strformat(_G.SI_UNIT_NAME or "<<1>>", name) end
-    name = zo_strlower and zo_strlower(name) or string.lower(name)
-    return name:match("^%s*(.-)%s*$")
+    -- BattleScrolls compares raw names, including grammar suffixes and case.
+    -- Stripping ^n can merge a boss and a distinct same-display-name target.
+    return name
 end
 
 local function isBossTarget(target)
@@ -75,19 +75,58 @@ function meter:CorrelateBoss(tag, id, name)
     if not state or type(tag) ~= "string" or not tag:match("^boss%d+$") or not id or id == 0 then return end
     local boss = state.bossTags[tag]
     name = normalizeName(name)
-    if not boss or (name and boss.name ~= name) then
+    if not boss then
+        boss = {name = name, id = id, confirmed = true}
+        state.bossTags[tag] = boss
+        state.bossIds[id] = true
+        return
+    end
+    if boss.id == id then boss.confirmed = true; return end
+    if state.bossRedirects[id] then return end
+    if boss.id and boss.confirmed and boss.name == name then
+        -- Same raw-name boss recreated: keep a stable canonical ID and merge
+        -- damage already recorded under the new ID, as redirectBossUnitId does.
+        local canonical = boss.id
+        state.bossRedirects[id] = canonical
+        state.bossIds[id] = true
+        local from = state.targets[id]
+        if from then
+            local target = state.targets[canonical]
+            if target then
+                target.total = target.total + from.total
+                target.groupTotal = target.groupTotal + from.groupTotal
+            else
+                from.id = canonical
+                state.targets[canonical] = from
+            end
+            state.targets[id] = nil
+        end
+        if state.observedTargets[id] then
+            state.observedTargets[canonical] = {id = canonical, name = name}
+            state.observedTargets[id] = nil
+        end
+        local unknown = state.unassigned[id]
+        if unknown then
+            local target = state.unassigned[canonical]
+            if target then target.value = target.value + unknown.value
+            else state.unassigned[canonical] = unknown end
+            state.unassigned[id] = nil
+        end
+        return
+    end
+    if boss.id and not boss.confirmed then state.bossIds[boss.id] = nil end
+    if boss.id and boss.confirmed and boss.name ~= name then
         boss = {name = name}
         state.bossTags[tag] = boss
     end
-    -- An effect on a boss tag is authoritative. Correct an earlier name guess,
-    -- but retain confirmed IDs when that same boss is recreated on the client.
-    if boss.id and boss.id ~= id and not boss.confirmed then state.bossIds[boss.id] = nil end
     boss.id, boss.confirmed = id, true
     state.bossIds[id] = true
-    rememberUnit(id, false)
+    -- A boss effect establishes identity only. Native BattleScrolls does not
+    -- release unknown group damage until an actual personal interaction does.
 end
 
 local function accumulate(event)
+    event.id = state.bossRedirects[event.id] or event.id
     local key = event.id and event.id ~= 0 and event.id or ("name:" .. (event.name or ""))
     if not event.outgoing then
         if not event.catchAll or not event.id or event.id == 0 then return end
@@ -101,7 +140,9 @@ local function accumulate(event)
             return
         end
     end
-    if event.id and state.friendly[event.id] == true then return end
+    -- BattleScrolls records every personal damage event, including self/friendly
+    -- damage. Friendliness only filters third-party damage from the group bucket.
+    if not event.personal and event.id and state.friendly[event.id] == true then return end
     -- BattleScrolls uses a name fallback only for a boss tag without an ID,
     -- and only from personal damage. A second same-name target is not a boss.
     if event.personal and event.id and event.id ~= 0 and not state.bossIds[event.id] then
@@ -152,15 +193,19 @@ function meter:Start(timeMS)
     state = { startMS = timeMS, endMS = timeMS, total = 0, groupTotal = 0, targets = {},
         rawHealingTotal = 0, effectiveHealingTotal = 0,
         friendly = {}, unassigned = {},
-        observedTargets = {}, bossIds = {}, bossTags = {}, zoneId = currentZone(),
+        observedTargets = {}, bossIds = {}, bossTags = {}, bossRedirects = {}, zoneId = currentZone(),
         damageEvents = 0, personalEvents = 0, otherEvents = 0 }
     self:RefreshBosses()
+    if SimpleGroupDPS_HealthRecovery then SimpleGroupDPS_HealthRecovery:Start(timeMS) end
     -- Replay damage without backdating the combat initialization timestamp.
     for _, event in ipairs(pending) do
         if event.time >= timeMS - 1000 then rememberEventUnits(event); accumulate(event) end
     end
     pending = {}
     if SimpleGroupDPS_BattleScrolls then SimpleGroupDPS_BattleScrolls:ResetSendClock() end
+    -- Like BattleScrolls' OnStateInitialized: start a fresh HUD update cadence
+    -- once per encounter, never on temporary combat-state re-entry.
+    if self.onStarted then self.onStarted() end
 end
 
 function meter:IsActive() return state ~= nil end
@@ -249,8 +294,9 @@ function meter:GetStats()
     if endMS <= startMS then endMS = GetGameTimeMilliseconds() end
     local durationMS = math.max(0, endMS - startMS)
     local healingDurationMS = state.healingStartMS and math.max(0, state.healingEndMS - state.healingStartMS) or 0
-    -- The rate floor protects HPS estimates, but is not elapsed time for the HUD.
-    local healingScale = state.healingStartMS and 1000 / math.max(1000, healingDurationMS) or 0
+    -- BattleScrolls HPS uses the encounter duration, just like DPS. Do not divide
+    -- a late passive heal by a short first-to-last-heal window.
+    local healingScale = durationMS >= 1 and 1000 / durationMS or 0
     local bossTotal, groupBossTotal
     local hasBoss = false
     for _, target in pairs(state.observedTargets) do
@@ -266,6 +312,8 @@ function meter:GetStats()
         end
     end
     local scale = durationMS >= 1 and 1000 / durationMS or 0
+    local regenRaw, regenEffective = 0, 0
+    if SimpleGroupDPS_HealthRecovery then regenRaw, regenEffective = SimpleGroupDPS_HealthRecovery:GetTotals() end
     return {
         total = state.total, dps = state.total * scale, durationMS = durationMS,
         bossTotal = bossTotal, bossDPS = bossTotal and bossTotal * scale,
@@ -273,8 +321,9 @@ function meter:GetStats()
         groupTotal = state.groupTotal, groupDPS = durationMS >= 1 and state.groupTotal * scale or nil,
         groupBossTotal = groupBossTotal,
         groupBossDPS = durationMS >= 1 and groupBossTotal and groupBossTotal > 0 and groupBossTotal * scale or nil,
-        rawHealingTotal = state.rawHealingTotal, effectiveHealingTotal = state.effectiveHealingTotal,
-        rawHPS = state.rawHealingTotal * healingScale, effectiveHPS = state.effectiveHealingTotal * healingScale,
+        rawHealingTotal = state.rawHealingTotal + regenRaw, effectiveHealingTotal = state.effectiveHealingTotal + regenEffective,
+        rawHPS = (state.rawHealingTotal + regenRaw) * healingScale,
+        effectiveHPS = (state.effectiveHealingTotal + regenEffective) * healingScale,
         healingDurationMS = healingDurationMS,
     }
 end
@@ -286,6 +335,7 @@ function meter:Finish()
     completedClock = { damageAtMS = state.damageAtMS, finishedAtMS = GetGameTimeMilliseconds(),
         damageEvents = state.damageEvents, personalEvents = state.personalEvents, otherEvents = state.otherEvents }
     state = nil
+    if SimpleGroupDPS_HealthRecovery then SimpleGroupDPS_HealthRecovery:Stop() end
     if self.onFinished then self.onFinished(last) end
 end
 
@@ -299,8 +349,8 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         catchAll = isType(sourceType, "COMBAT_UNIT_TYPE_GROUP")
             or (not isPersonal(sourceType) and not isPersonal(targetType)
                 and not isType(targetType, "COMBAT_UNIT_TYPE_GROUP")),
-        outgoing = isPersonal(sourceType) and not isFriendly(targetType),
-        personal = isPersonal(sourceType) and not isFriendly(targetType) }
+        outgoing = isPersonal(sourceType),
+        personal = isPersonal(sourceType) }
     if not state then
         -- Initialize on the combat-state event, not on a preceding hit.
         local recent = {}
@@ -315,6 +365,11 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
         return
     end
     if not results[result] then
+        if SimpleGroupDPS_HealthRecovery and isType(targetType, "COMBAT_UNIT_TYPE_PLAYER")
+            and (isPersonal(sourceType) or isType(sourceType, "COMBAT_UNIT_TYPE_GROUP"))
+            and abilityId ~= 126366 and result ~= _G.ACTION_RESULT_HEAL_ABSORBED then
+            SimpleGroupDPS_HealthRecovery:OnHealing(hitValue)
+        end
         -- Ignore unsupported/empty healing routes for identity discovery too.
         local personalSource, personalTarget = isPersonal(sourceType), isPersonal(targetType)
         local supported = (personalSource and (personalTarget or isType(targetType, "COMBAT_UNIT_TYPE_GROUP")))
@@ -348,11 +403,12 @@ function meter:OnDamage(result, isError, sourceType, targetName, targetType, hit
     else state.otherEvents = state.otherEvents + 1 end
     if hitValue > 0 then
         rememberEventUnits(event)
-        if not (isFriendly(sourceType) and isFriendly(targetType)) then accumulate(event) end
+        accumulate(event)
     end
 end
 
 function meter:Initialize(saved)
+    if SimpleGroupDPS_HealthRecovery then SimpleGroupDPS_HealthRecovery:Initialize() end
     if type(saved) == "table" then
         last = { total = tonumber(saved.damageTotal) or 0, dps = tonumber(saved.dps) or 0,
             bossTotal = tonumber(saved.bossDamageTotal), bossDPS = tonumber(saved.bossDPS),

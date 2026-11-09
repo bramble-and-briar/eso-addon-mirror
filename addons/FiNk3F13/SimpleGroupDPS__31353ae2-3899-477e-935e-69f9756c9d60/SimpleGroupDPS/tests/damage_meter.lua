@@ -47,7 +47,7 @@ damage(11000, 1, "Boss", 2, 200, 10, 3)
 assert(meter:GetStats().total == 2000, "shield damage counted once")
 damage(11000, 1, "Friend", 4, 9000, 44)
 damage(11000, 2, "Player", 1, 9000, 99)
-assert(meter:GetStats().total == 2000, "friendly and incoming damage excluded from own total")
+assert(meter:GetStats().total == 11000, "BattleScrolls includes personal friendly damage but excludes incoming damage")
 damage(11000, 1, "Boss", 2, 500, 11)
 callbacks.SimpleGroupDPSDamageEffects(nil, 1, nil, nil, "boss1", nil, nil, nil, nil, nil, nil, nil, nil, "Boss", 10)
 assert(meter:GetStats().bossTotal == 1600, "authoritative boss unit ID disambiguates same-name adds retroactively")
@@ -66,7 +66,7 @@ updates.SimpleGroupDPSDamageReset.run()
 assert(not meter:IsActive() and meter:GetStats().dps == stats.dps
     and meter:GetStats().durationMS == stats.durationMS, "combat exit preserves the same damage window")
 damage(21000, 1, "New Add", 2, 500, 40)
-assert(meter:GetStats().total == 3600, "precombat hits do not overwrite previous result")
+assert(meter:GetStats().total == 12600, "precombat hits do not overwrite previous result")
 
 bosses = {}
 clock, inCombat = 21500, true
@@ -99,13 +99,18 @@ assert(meter:GetStats().bossDPS == nil, "nearby boss tag alone does not turn add
 callbacks.SimpleGroupDPSDamageEffects(nil, 1, nil, nil, "boss1", nil, nil, nil, nil, nil, nil, nil, nil, "Boss", 10)
 assert(meter:GetStats().bossDPS == nil, "boss effect without boss damage does not trigger boss encounter")
 damage(42000, 4, "Boss", 2, 200, 10)
+assert(meter:GetStats().bossDPS == nil, "Unclassified group target remains pending even after boss effect")
+clock = 42000
+meter:OnDamage(1, false, 2, "Player", 1, 10, 99, 10)
 assert(meter:GetStats().bossDPS == 0 and meter:GetStats().dps == 50,
     "group boss damage confirms encounter while own add damage stays in overall DPS")
 meter:Finish()
 clock = 50000
 meter:Start(clock)
 damage(51000, 1, "BOSS", 2, 100, 10)
-assert(meter:GetStats().bossDPS == 100, "boss names match across grammar suffixes and case")
+assert(meter:GetStats().bossDPS == nil, "Raw boss names must not match different grammar suffixes or case")
+meter:CorrelateBoss("boss1", 10, "Boss^Mx")
+assert(meter:GetStats().bossDPS == 100, "An authoritative boss effect can identify the exact target independently of name fallback")
 meter:Finish()
 
 -- Keep one encounter through group combat, boss phases, death and portals.

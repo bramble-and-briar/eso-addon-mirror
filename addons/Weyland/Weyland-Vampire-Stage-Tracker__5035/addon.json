@@ -22,7 +22,7 @@
     "WeylandVampireStageTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5035/",
-  "fingerprint": "b4d87a5ca0295982e5e2ae47221661f59c6d74f7f057bbbf660eab2da2af30c8",
+  "fingerprint": "ea369b34d28c30e48a4b0d5c83a8570636c667c109510a8331d5166b6e0b7e76",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18361.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18357.png",
@@ -36,11 +36,11 @@
   "source_id": "5035",
   "source_url": "https://www.esoui.com/downloads/info5035-WeylandVampireStageTracker.html",
   "stats": {
-    "downloads": 1,
+    "downloads": 13,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 10
   },
   "title": "Weyland Vampire Stage Tracker",
-  "updated_at": 1794109524000,
-  "version": "1.2.0"
+  "updated_at": 1794200220000,
+  "version": "1.2.1"
 }

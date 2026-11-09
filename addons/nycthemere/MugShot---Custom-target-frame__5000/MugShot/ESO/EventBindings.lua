@@ -52,7 +52,8 @@ function EventBindings:Start(controller)
             controller:RefreshVitals(powerValue, powerMax, powerEffectiveMax, nil, "reticleover")
         end)
     EVENT_MANAGER:AddFilterForEvent(NS_VITALS, EVENT_POWER_UPDATE,
-        REGISTER_FILTER_UNIT_TAG, "reticleover",
+        REGISTER_FILTER_UNIT_TAG, "reticleover")
+    EVENT_MANAGER:AddFilterForEvent(NS_VITALS, EVENT_POWER_UPDATE,
         REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
 
     -- Filter on "reticleover" already applied below; no unitTag re-check needed.
@@ -88,24 +89,28 @@ function EventBindings:Start(controller)
         REGISTER_FILTER_UNIT_TAG, "reticleover")
 
     -- ── 5. Disposition & Reaction Updates ─────────────────
-    EVENT_MANAGER:RegisterForEvent(NS_TARGET .. "_Disp", EVENT_DISPOSITION_UPDATE, function(_eventCode, unitTag)
+    -- Filter guarantees unitTag == "reticleover"; no Lua re-check needed.
+    EVENT_MANAGER:RegisterForEvent(NS_TARGET .. "_Disp", EVENT_DISPOSITION_UPDATE, function(_eventCode, _unitTag)
         if controller:IsInMoveMode() then
             return
         end
-        if AreUnitsEqual(unitTag, "reticleover") then
-            controller:RefreshIdentity(false, nil, "reticleover")
-        end
+        controller:RefreshIdentity(false, nil, "reticleover")
     end)
+    EVENT_MANAGER:AddFilterForEvent(NS_TARGET .. "_Disp", EVENT_DISPOSITION_UPDATE,
+        REGISTER_FILTER_UNIT_TAG, "reticleover")
 
     -- ── 6. Unit Death ─────────────────────────────────────
-    EVENT_MANAGER:RegisterForEvent(NS_TARGET .. "_Death", EVENT_UNIT_DEATH_STATE_CHANGED, function(_eventCode, unitTag, isDead)
+    -- Filter guarantees unitTag == "reticleover"; no Lua re-check needed.
+    EVENT_MANAGER:RegisterForEvent(NS_TARGET .. "_Death", EVENT_UNIT_DEATH_STATE_CHANGED, function(_eventCode, _unitTag, isDead)
         if controller:IsInMoveMode() then
             return
         end
-        if isDead and AreUnitsEqual(unitTag, "reticleover") then
+        if isDead then
             controller:OnTargetDeath()
         end
     end)
+    EVENT_MANAGER:AddFilterForEvent(NS_TARGET .. "_Death", EVENT_UNIT_DEATH_STATE_CHANGED,
+        REGISTER_FILTER_UNIT_TAG, "reticleover")
 
     -- ── 7. Zone / Trial Activation ────────────────────────
     EVENT_MANAGER:RegisterForEvent(NS_TARGET .. "_Zone", EVENT_PLAYER_ACTIVATED, function()
@@ -132,7 +137,8 @@ function EventBindings:StartEffectTimer()
     if self._timerActive then return end
     self._timerActive = true
     local ctrl = self._controller
-    EVENT_MANAGER:RegisterForUpdate(NS_UPDATE, 250, function()
+    local interval = (MugShot.Constants and MugShot.Constants.UPDATE_INTERVAL_MS) or 250
+    EVENT_MANAGER:RegisterForUpdate(NS_UPDATE, interval, function()
         local gen = ctrl:GetGeneration()
         ctrl:UpdateEffectTimers(gen)
     end)
@@ -160,7 +166,8 @@ function EventBindings:StartMoveModeEvents()
             ctrl:RefreshVitals(powerValue, powerMax, powerEffectiveMax, nil, "player")
         end)
     EVENT_MANAGER:AddFilterForEvent(NS_VITALS .. "_Player", EVENT_POWER_UPDATE,
-        REGISTER_FILTER_UNIT_TAG, "player",
+        REGISTER_FILTER_UNIT_TAG, "player")
+    EVENT_MANAGER:AddFilterForEvent(NS_VITALS .. "_Player", EVENT_POWER_UPDATE,
         REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
 
     local function OnPlayerShieldEvent(_eventCode, _unitTag, unitAttributeVisual)

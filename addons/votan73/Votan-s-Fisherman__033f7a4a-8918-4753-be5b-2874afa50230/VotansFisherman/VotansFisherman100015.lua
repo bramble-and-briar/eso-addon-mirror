@@ -1467,18 +1467,21 @@ local function AddFilter()
 	end
 	if WORLD_MAP_FILTERS then
 		local function AddCheckBox(panel, filter)
+            if not panel then return end
 			panelToFilter[panel] = filter
 			panel:AddPinFilterCheckBox(data.pinTypeId, FilterCallback)
 		end
 		local self = WORLD_MAP_FILTERS
 		AddCheckBox(self.pvePanel, "pve")
 		AddCheckBox(self.pvpPanel, "pvp")
+        AddCheckBox(self.jerallPvPPanel, "jerallPvP")
 		AddCheckBox(self.imperialPvPPanel, "imperialPvP")
 		AddCheckBox(self.battlegroundPanel, "battleground")
 		AddCheckBox(self.globalPanel, "global")
 	end
 	if GAMEPAD_WORLD_MAP_FILTERS then
 		local function AddCheckBox(panel, filter)
+            if not panel then return end
 			panelToFilter[panel] = filter
 			local orgBuild = panel.PostBuildControls
 			function panel.PostBuildControls(panel)
@@ -1489,13 +1492,14 @@ local function AddFilter()
 		local self = GAMEPAD_WORLD_MAP_FILTERS
 		AddCheckBox(self.pvePanel, "pve")
 		AddCheckBox(self.pvpPanel, "pvp")
+        AddCheckBox(self.jerallPvPPanel, "jerallPvP")
 		AddCheckBox(self.imperialPvPPanel, "imperialPvP")
 		AddCheckBox(self.battlegroundPanel, "battleground")
 		AddCheckBox(self.globalPanel, "global")
 	end
 
 	local function OnMapChanged()
-		local filters = ((IsInGamepadPreferredMode() or IsConsoleUI()) and GAMEPAD_WORLD_MAP_FILTERS or WORLD_MAP_FILTERS).currentPanel
+		local filters = ((IsInGamepadPreferredMode() or ZO_IsConsoleOrGameCoreUI()) and GAMEPAD_WORLD_MAP_FILTERS or WORLD_MAP_FILTERS).currentPanel
 		currentFilter = panelToFilter[filters]
 		if WORLD_MAP_FILTERS then
 			WORLD_MAP_FILTERS.currentPanel:SetPinFilter(data.pinTypeId, data.player.showPins[currentFilter] ~= false)
@@ -2489,7 +2493,7 @@ function data:AddPinType()
 
 	ZO_CreateStringId("SI_MAPFILTER" .. self.pinTypeId, data.title)
 
-	if IsConsoleUI() then
+	if ZO_IsConsoleOrGameCoreUI() then
 		return
 	end
 
@@ -2596,7 +2600,7 @@ local soundNames = {
 	"Raid Trial Failed"
 }
 
-if IsConsoleUI() then
+if ZO_IsConsoleOrGameCoreUI() then
 	function data:InitSettings()
 		local LibHarvensAddonSettings = LibHarvensAddonSettings
 
@@ -2606,7 +2610,7 @@ if IsConsoleUI() then
 		end
 
 		settings.author = "votan"
-		settings.version = "1.16.3"
+		settings.version = "1.16.4"
 		settings.website = "http://www.esoui.com/downloads/info918-VotansFisherman.html"
 
 		local optionsTable = {
@@ -2897,7 +2901,7 @@ if IsConsoleUI() then
 				return not (RFT and RFT.window)
 			end
 		}
-		if not IsConsoleUI() then
+		if not ZO_IsConsoleOrGameCoreUI() then
 			optionsTable[#optionsTable + 1] = {
 				type = LibHarvensAddonSettings.ST_CHECKBOX,
 				label = GetString(SI_FISHERMAN_SETTING_PIN_SHOW_CONTEXTMENU),
@@ -3017,7 +3021,7 @@ else
 			name = data.title,
 			displayName = data.title,
 			author = "votan",
-			version = "1.16.3",
+			version = "1.16.4",
 			-- slashCommand = "",
 			-- registerForRefresh = true,
 			registerForDefaults = true,

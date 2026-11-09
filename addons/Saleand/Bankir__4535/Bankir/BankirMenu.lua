@@ -399,10 +399,10 @@ function Bankir.createSettingsMenu(name, author, version)
 			),
 		},
 		{
-			title = zo_strformat(GetString(SI_ALCHEMY_UNKNOWN_RESULT), GetString("SI_ITEMTYPE", ITEMTYPE_MASTER_WRIT)),
+			title = string.format("%s (%s)", GetString("SI_SPECIALIZEDITEMTYPE", SPECIALIZED_ITEMTYPE_MASTER_WRIT), GetString(SI_ITEMTYPE75)), -- Master writ (Unopened),
 			widgets = BMBF.makeWidgetsForTypes(
 				{
-					{ id = "Unopened" .. SPECIALIZED_ITEMTYPE_MASTER_WRIT, idTypeStr = "itemType" }
+					{ id = "Unopened" .. SPECIALIZED_ITEMTYPE_MASTER_WRIT, idTypeStr = "specializedItemType" }
 				}
 			),
 		},
@@ -444,6 +444,7 @@ function Bankir.createSettingsMenu(name, author, version)
 				{
 					{ id = ITEMTYPE_AVA_REPAIR, idTypeStr = "itemType" },
 					{ id = ITEMTYPE_SIEGE, idTypeStr = "itemType" },
+					{ id = ITEMTYPE_RECALL_STONE, idTypeStr = "itemType" },
 				}
 			),
 		},
@@ -471,8 +472,7 @@ function Bankir.createSettingsMenu(name, author, version)
 			iconPressed = "/esoui/art/tradinghouse/tradinghouse_trophy_recipe_fragment_down.dds",
 			widgets = BMBF.makeWidgetsForTypes(
 				{
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK, idTypeStr = "specializedItemType" },
+					{ id = "RecipeEdible", idTypeStr = "itemType" },
 					{ id = SPECIALIZED_ITEMTYPE_TROPHY_RECIPE_FRAGMENT, idTypeStr = "specializedItemType" },
 				}
 			),
@@ -483,13 +483,7 @@ function Bankir.createSettingsMenu(name, author, version)
 			iconPressed = "/esoui/art/crafting/provisioner_indexicon_furnishings_down.dds",
 			widgets = BMBF.makeWidgetsForTypes(
 				{
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_ALCHEMY_FORMULA_FURNISHING, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_BLACKSMITHING_DIAGRAM_FURNISHING, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_CLOTHIER_PATTERN_FURNISHING, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_ENCHANTING_SCHEMATIC_FURNISHING, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_JEWELRYCRAFTING_SKETCH_FURNISHING, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_DESIGN_FURNISHING, idTypeStr = "specializedItemType" },
-					{ id = SPECIALIZED_ITEMTYPE_RECIPE_WOODWORKING_BLUEPRINT_FURNISHING, idTypeStr = "specializedItemType" },
+					{ id = "RecipeFurniture", idTypeStr = "itemType" },
 				}
 			),
 		},
@@ -510,8 +504,9 @@ function Bankir.createSettingsMenu(name, author, version)
 			title = GetString(SI_GAMEPADITEMCATEGORY31), -- "Trophy"
 			widgets = BMBF.makeWidgetsForTypes(
 				{
-					{ id = SPECIALIZED_ITEMTYPE_TROPHY_COLLECTIBLE_FRAGMENT, idTypeStr = "specializedItemType" },
+					{ id = SPECIALIZED_ITEMTYPE_TROPHY_KEY, idTypeStr = "specializedItemType" },
 					{ id = SPECIALIZED_ITEMTYPE_TROPHY_KEY_FRAGMENT, idTypeStr = "specializedItemType" },
+					{ id = SPECIALIZED_ITEMTYPE_TROPHY_COLLECTIBLE_FRAGMENT, idTypeStr = "specializedItemType" },
 					{ id = SPECIALIZED_ITEMTYPE_TROPHY_RUNEBOX_FRAGMENT, idTypeStr = "specializedItemType" },
 					{ id = SPECIALIZED_ITEMTYPE_TROPHY_UPGRADE_FRAGMENT, idTypeStr = "specializedItemType" },
 					{ id = SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH, idTypeStr = "specializedItemType" },

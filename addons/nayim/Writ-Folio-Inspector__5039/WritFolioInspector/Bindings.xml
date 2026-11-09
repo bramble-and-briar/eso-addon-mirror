@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Writ Folio Inspector">
+            <Action name="WRITFOLIOINSPECTOR_TOGGLE">
+                <Down>WritFolioInspector_ToggleKeybind()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

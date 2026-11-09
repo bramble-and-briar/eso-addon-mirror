@@ -11,6 +11,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ward Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ratparol101/Ward-Helper__1676) | @ratparol101 | PC / Mac | 1.1a |
 | [Ward Shield Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Supplier/Ward-Shield-Reminder__2456) | Supplier | PC / Mac | 1.1 |
 | [WardenMastery](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/WardenMastery__4832) | its_wifey | PC / Mac | 1.3 |
+| [Wardrobe Shortcut HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wildskiller/Wardrobe-Shortcut-HUD__bfec3ddc-e9fa-4766-a474-22cb11325ac7) | wildskiller | Console | — |
 | [WareGuild - Guild Banks Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/WareGuild---Guild-Banks-Manager__3877) | MelanAster | PC / Mac | 0.23 |
 | [Warhorn Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uta.karas/Warhorn-Timer__1964) | uta.karas | PC / Mac | 1.31.1 |
 | [WarHorn Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/WarHorn-Tracker__d978b81f-b679-4aa8-b9a2-6d1b0511c3b3) | codeWarrior82 | Console | — |
@@ -39,7 +40,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WerewolfHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/im_rookie/WerewolfHelper__3832) | im_rookie | PC / Mac | 1.1 |
 | [Werra's Guild Addons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werra/Werra-s-Guild-Addons__3982) | Werra | PC / Mac | 1.0 |
 | [WestonUi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BuckleyChance/WestonUi__c2664980-589b-4f81-a99e-02204268cab3) | BuckleyChance | Console | — |
-| [Weyland Vampire Stage Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Vampire-Stage-Tracker__5035) | Weyland | PC / Mac | 1.2.0 |
+| [Weyland Huntsman's Warmask Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Huntsman-s-Warmask-Tracker__5040) | Weyland | PC / Mac | 1.0.0 |
+| [Weyland Vampire Stage Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Vampire-Stage-Tracker__5035) | Weyland | PC / Mac | 1.2.1 |
 | [What Bar Am I On](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CyberOnEso/What-Bar-Am-I-On__1667) | CyberOnEso | PC / Mac | 1 |
 | [What Class Am I?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace-r/What-Class-Am-I__4138) | Ace'r | PC / Mac | 1.0 |
 | [What's Left?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/What-s-Left__3495) | Complicative | PC / Mac | 1.0.2 |
@@ -85,6 +87,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [World of Warcraft Chat Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Faustus/World-of-Warcraft-Chat-Colors__631) | Faustus | PC / Mac | 1.2.2 |
 | [WPamA (What Pledges at my Alts)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/WPamA-What-Pledges-at-my-Alts__1190) | ForgottenLight | PC / Mac | 2.6.8 |
 | [Wretched Vitality Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Wretched-Vitality-Tracker__af0511e3-aa4e-4d26-8665-e486da04c1cd) | codeWarrior82 | Console | — |
+| [Writ Folio Inspector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/nayim/Writ-Folio-Inspector__5039) | nayim | PC / Mac | 1.0.0 |
 | [Writ Style Price](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bulton-fr/Writ-Style-Price__2818) | bulton-fr | PC / Mac | 1.0.0 |
 | [Writ2Style - Find Motifs for Master Writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/Writ2Style---Find-Motifs-for-Master-Writs__3849) | MelanAster | PC / Mac | 2.02 |
 | [Writcraft API 100018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/retired_adventurer/Writcraft-API-100018__1603) | retired_adventurer | PC / Mac | 100018 |

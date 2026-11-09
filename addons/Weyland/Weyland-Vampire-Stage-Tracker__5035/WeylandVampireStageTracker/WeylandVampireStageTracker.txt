@@ -1,11 +1,11 @@
 ## Title: Weyland Vampire Stage Tracker
 ## Author: Weyland
-## Version: 1.2.0
-## AddOnVersion: 12000
+## Version: 1.2.1
+## AddOnVersion: 12001
 ## APIVersion: 101051
 ## Description: Customizable gothic vampire stage HUD with stage icons, live timer, progress bar and in-game settings. Languages: EN, DE, FR, ES, RU.
 ## SavedVariables: WeylandVampireStageTrackerSavedVars
-## OptionalDependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibAddonMenu-2.0>=43
 
 lang/en.lua
 lang/de.lua

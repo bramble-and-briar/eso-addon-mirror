@@ -1,7 +1,7 @@
 ## Title: LibEsoHubPrices
 ## APIVersion: 101051
 ## Author: Solinur
-## Version: 2026.11.02.02.54
+## Version: 2026.11.09.02.54
 ## AddOnVersion: 20
 ## IsLibrary: true
 ## Description: This Library supplies EsoHub price recommendations for items
@@ -27,4 +27,4 @@ PriceDataNA1.lua
 PriceDataNA2.lua
 PriceDataNA3.lua
 PriceDataNA4.lua
-## IntVersion: 1793588054
+## IntVersion: 1794192873

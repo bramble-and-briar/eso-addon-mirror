@@ -38,7 +38,6 @@ end
 --     portraitTexture: string | nil
 --     raceIcon       : string | nil
 --     allianceIcon   : string | nil
---     allianceColor  : table | nil
 -- }
 function EsoAdapter:ReadIdentity(unitTag)
     local name        = GetUnitName(unitTag) or ""
@@ -49,7 +48,7 @@ function EsoAdapter:ReadIdentity(unitTag)
 
     if unitTag == "player" or isLocal then
         isPlayer = true
-        if (displayName == "" or displayName == nil) and GetDisplayName then
+        if displayName == "" or displayName == nil then
             displayName = GetDisplayName() or ""
         end
         if reaction == nil or reaction == UNIT_REACTION_DEFAULT then
@@ -67,10 +66,7 @@ function EsoAdapter:ReadIdentity(unitTag)
         if qr then r, g, b = qr, qg, qb end
     end
 
-    local attackable = false
-    if IsUnitAttackable then
-        attackable = (IsUnitAttackable(unitTag) == true)
-    end
+    local attackable = (IsUnitAttackable(unitTag) == true)
 
     -- Portrait and badge resolution
     local pInfo = MugShot.Portraits.GetPortraitInfo(unitTag) or {}
@@ -87,11 +83,15 @@ function EsoAdapter:ReadIdentity(unitTag)
         reactionB       = b,
         portraitTexture = pInfo.portraitTexture,
         portraitCoords  = pInfo.portraitCoords,
+        portraitColor   = pInfo.portraitColor,
         classIcon       = pInfo.classIcon,
         customIcon      = pInfo.customIcon,
+        isClassIcon     = pInfo.isClassIcon,
         raceIcon        = pInfo.raceIcon,
         allianceIcon    = pInfo.allianceIcon,
+        allianceBase    = pInfo.allianceBase,
         allianceColor   = pInfo.allianceColor,
+        allianceId      = pInfo.allianceId,
     }
 end
 

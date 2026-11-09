@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="PVP Data Insight">
+            <Action name="PVPDI_TOGGLE">
+                <Down>PVPDataInsight.UI:Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

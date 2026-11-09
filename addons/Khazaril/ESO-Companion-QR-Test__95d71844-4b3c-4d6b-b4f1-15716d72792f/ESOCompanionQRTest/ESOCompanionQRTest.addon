@@ -1,0 +1,14 @@
+## Title: ESO Companion QR Test
+## Description: Test for the ESO Companion phone app. Shows QR codes of increasing size to measure what a phone can scan from your TV, and can export the game's skill data as a QR slideshow.
+## Author: ESO Companion
+## Version: 0.6.2
+## AddOnVersion: 12
+## APIVersion: 101051
+## SavedVariables: ESOCompanionQRTest_SV
+
+QREncode.lua
+SkillExport.lua
+CharacterSync.lua
+CPPresets.lua
+WritStock.lua
+ESOCompanionQRTest.lua

@@ -1,0 +1,10 @@
+## Title: Carac Tracker
+## Description: suivi en temps réel de certaines caractéristiques de son personnage.
+## Author: Roccesar & Claude IA
+## Version: 1
+## APIVersion: 101051
+## SavedVariables: CaracTrackerSV 
+
+lang/default.lua
+lang/$(language).lua
+CaracTracker.lua

@@ -38,9 +38,9 @@ assert(not member("@TankOne").stale and not member("@TankTwo").stale)
 now = 17001
 env.receive("group1", {messageType = "healing", rawHPS = 9000, effectiveHPS = 2000})
 env.receive("group2", {messageType = "damage", allTargetsDPS = 3200})
-assert(member("@TankOne").stale and not member("@TankTwo").stale,
+assert(not member("@TankOne").stale and not member("@TankTwo").stale,
     "One tank's old DPS may fade while the second tank keeps receiving DPS updates")
-assert(row("TankOne").swtDPSValue.text == "5,2 Tsd.", "Cached value is retained, not silently replaced by HPS")
+assert(row("TankOne").swtDPSValue.text == "2,0 Tsd. (9,0 Tsd.)", "Tank shows the received HPS rather than stale damage")
 now = 17301
 env.receive("group1", {messageType = "damage", allTargetsDPS = 5400})
 assert(not member("@TankOne").stale and row("TankOne").swtDPSValue.text == "5,4 Tsd.",
@@ -51,8 +51,8 @@ bridge:Clear()
 env.receive("group3", {messageType = "healing", rawHPS = 27200, effectiveHPS = 4900})
 env.receive("group4", {messageType = "damage", allTargetsDPS = 500})
 assert(row("HealerOne").swtDPSValue.text == "4,9 Tsd. (27,2 Tsd.)"
-    and row("HealerTwo").swtDPSValue.text == "0", "Missing second-healer HPS is not a one-healer limit")
-assert(member("@HealerTwo").rawHPS == nil and member("@HealerTwo").displayType == "healing")
+    and row("HealerTwo").swtDPSValue.text == "500", "Damage-only healer shows the received damage packet")
+assert(member("@HealerTwo").rawHPS == nil and member("@HealerTwo").displayType == "damage")
 env.receive("group4", {messageType = "healing", rawHPS = 18000, effectiveHPS = 6000})
 assert(row("HealerTwo").swtDPSValue.text == "6,0 Tsd. (18,0 Tsd.)",
     "Receiving HPS makes the second healer's values appear immediately")

@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/roccesar/CaracTracker__5038",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "roccesar",
+  "canonical_id": "esoui:5038",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5038",
+  "deleted": false,
+  "directories": [
+    "CaracTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5038/",
+  "fingerprint": "fe94ba0c5b981ef2ff18c112009ebb49245db690f4531b85782f90ebc6aace11",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18362.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18363.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18364.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18365.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5038",
+  "source_url": "https://www.esoui.com/downloads/info5038-CaracTracker.html",
+  "stats": {
+    "downloads": 31,
+    "favorites": 0,
+    "monthly_downloads": 8
+  },
+  "title": "CaracTracker",
+  "updated_at": 1794144956000,
+  "version": "1"
+}

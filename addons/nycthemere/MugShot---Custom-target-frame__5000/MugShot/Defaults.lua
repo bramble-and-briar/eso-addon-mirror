@@ -49,6 +49,7 @@ MugShot.Defaults = {
     builderTemplate     = "tank",
     showRace            = true,
     showAlliance        = true,
+    customTags          = {},
     lines = {
         [1] = "name",
         [2] = "health",

@@ -1,5 +1,5 @@
-2026.11.07
-- Minor code performance iprovements.
+2026.11.08
+- Fix for upcoming LibHistiore improvements being enabled. Sorry I have a tweaked version that works fully ahead of libhistiore update which we are all waiting for.
 
 ** POSSIBLE FUTURE OPTIONS **
 - fix name length issue

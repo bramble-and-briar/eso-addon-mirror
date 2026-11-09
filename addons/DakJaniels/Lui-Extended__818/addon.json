@@ -18,7 +18,7 @@
     "LuiExtended"
   ],
   "download_url": "https://www.esoui.com/downloads/dl818/",
-  "fingerprint": "cf2a49ddf7db3d6db224e67cf6cfa40a6b74380217f2782541d644154246f78b",
+  "fingerprint": "9070e2efc08951f3c6e3455368e8b65d8b5ccaa428795511b5ed6659aa0687dc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10179.png",
     "https://cdn-eso.mmoui.com/preview/pvw10199.png",
@@ -37,11 +37,11 @@
   "source_id": "818",
   "source_url": "https://www.esoui.com/downloads/info818-LuiExtended.html",
   "stats": {
-    "downloads": 3130256,
+    "downloads": 3135156,
     "favorites": 1128,
-    "monthly_downloads": 33420
+    "monthly_downloads": 36633
   },
   "title": "Lui Extended",
-  "updated_at": 1793740146000,
-  "version": "7.2.8.0"
+  "updated_at": 1794167807000,
+  "version": "7.2.8.1"
 }

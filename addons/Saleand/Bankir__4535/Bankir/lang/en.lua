@@ -11,6 +11,8 @@ local strings = {
 
 	BANKIR_MENU_MOVE_LOCKED_ITEMS = "Move locked items",
 	BANKIR_MENU_MOVE_LOCKED_ITEMS_DESC = "Allow moving items locked by the player",
+	BANKIR_MENU_SHOW_MOVE_REASON = "Show move reason",
+	BANKIR_MENU_SHOW_MOVE_REASON_DESC = "Moved item info in chat will have an additional tag with rule name based on which the item has been moved by Bankir",
 	BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE = "Show fail messages",
 	BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE_DESC = "Print in chat if item transaction failed",
 	BANKIR_MENU_BANK_SLIDERS_MAX_VALUE = "Bank sliders max",
@@ -45,6 +47,8 @@ local strings = {
 	
 	BANKIR_MENU_INTEGRATIONS = "Integrations",
 	BANKIR_MENU_INTEGRATIONS_LCK_DESC = "If LibCharacterKnowledge addon is enabled, Bankir will have special rules for equipment that can be trait-researched on your other characters.\n\nHere is a list of your other characters on this server.\n\nIf you have set a rule to deposit items that can be researched on other characters, Bankir will move such items only for the characters enabled in this list. Not enabled characters will be ignored.",
+	
+	BANKIR_DEBUG_UNKNOWN = "Bankir doesn't know this thing",
 }
 
 -- Create the string values, so other languages can add new versions

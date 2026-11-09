@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/wildskiller/Tamriel-Hello__a3daf4c1-aa98-4c59-9eca-7832fa036029",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "wildskiller",
+  "canonical_id": "bethesda:a3daf4c1-aa98-4c59-9eca-7832fa036029",
+  "content_id": "a3daf4c1-aa98-4c59-9eca-7832fa036029",
+  "deleted": false,
+  "fingerprint": "0770b49d21ee22ff7e07783b496856debae343d407284ef78e312aec33a2fdf1",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "a3daf4c1-aa98-4c59-9eca-7832fa036029",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/a3daf4c1-aa98-4c59-9eca-7832fa036029",
+  "title": "Tamriel Hello"
+}

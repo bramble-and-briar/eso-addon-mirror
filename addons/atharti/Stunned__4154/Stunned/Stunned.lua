@@ -37,6 +37,7 @@ local BLOCKED_ABILITIES = {
 	[187215] = true, -- SE | Ansuul Portal 1
 	[187210] = true, -- SE | Ansuul Portal 2
 	[187216] = true, -- SE | Ansuul Portal 3
+	[113642] = true, -- FV | Skeever Transform
 }
 
 local combatResults = {

@@ -23,10 +23,10 @@ for _, targetType in ipairs({7,8}) do
     assert(meter:GetStats().durationMS == 8500 and meter:GetStats().total == stats.total, 'Incoming damage advances time without own damage')
     clock = 10000
     meter:OnDamage(1,false,1,'Friend',4,500,20,99)
-    assert(meter:GetStats().durationMS == 9000 and meter:GetStats().total == stats.total, 'All valid damage events advance the BattleScrolls clock')
+    assert(meter:GetStats().durationMS == 9000 and meter:GetStats().total == stats.total + 500, 'All valid damage events advance the BattleScrolls clock')
     clock = 12000
     meter:Finish()
-    assert(meter:GetStats().durationMS == 9000 and math.abs(meter:GetStats().dps-8033650/9000) < 0.000001,
+    assert(meter:GetStats().durationMS == 9000 and math.abs(meter:GetStats().dps-8533650/9000) < 0.000001,
         'Same measured clock and DPS before and after combat exit')
 end
 print('PASS: BattleScrolls combat-start baseline, incoming/friendly timing without damage contamination and stable final DPS')

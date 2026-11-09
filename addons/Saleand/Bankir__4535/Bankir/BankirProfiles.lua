@@ -16,7 +16,7 @@ local function getProfilesNames()
 	return profilesNames
 end
 
-local function createNewProfile(name)
+local function initProfile(name)
 	BankirSavedVariables.Profiles = BankirSavedVariables.Profiles or {}
 	BankirSavedVariables.Profiles[name] = BankirSavedVariables.Profiles[name] or Bankir.Data.getDefaultProfileSettings()
 	Bankir.savedVarsProfile = BankirSavedVariables.Profiles[name]
@@ -78,7 +78,7 @@ end
 Bankir.Profiles = {
 	updateProfilesNames = updateProfilesNames,
 	getProfilesNames = getProfilesNames,
-	createNewProfile = createNewProfile,
+	initProfile = initProfile,
 	copyCurrentProfile = copyCurrentProfile,
 	deleteCurrentProfile = deleteCurrentProfile,
 	setCurrentProfile = setCurrentProfile,

@@ -1,0 +1,45 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Lethal2k/Lethal-PvP-Insights__5037",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Lethal2k",
+  "canonical_id": "esoui:5037",
+  "category_id": "96",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5037",
+  "deleted": false,
+  "directories": [
+    "LethalPVPInsights"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5037/",
+  "fingerprint": "b76d696d36cceb247cbfe3c0aed70b9b9157487852936d03821b31a0ecaae011",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18367.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18374.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18375.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18376.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18370.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18372.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18373.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18371.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5037",
+  "source_url": "https://www.esoui.com/downloads/info5037-LethalPvPInsights.html",
+  "stats": {
+    "downloads": 34,
+    "favorites": 0,
+    "monthly_downloads": 11
+  },
+  "title": "Lethal PvP Insights",
+  "updated_at": 1794163645000,
+  "version": "1.9.74"
+}

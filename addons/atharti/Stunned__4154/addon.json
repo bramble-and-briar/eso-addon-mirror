@@ -8,8 +8,8 @@
   "category_id": "25",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4154",
@@ -18,7 +18,7 @@
     "Stunned"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4154/",
-  "fingerprint": "c361c3dad72afe988fc1ad7c97b4c23f047cf4a6e468f5b4135c8528bede6383",
+  "fingerprint": "8f825512aa7a0805e72e2b91e617d8cc3d96be66646b134abb61a4e35b54473f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17240.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18040.jpg",
@@ -30,11 +30,11 @@
   "source_id": "4154",
   "source_url": "https://www.esoui.com/downloads/info4154-Stunned.html",
   "stats": {
-    "downloads": 5463,
+    "downloads": 5576,
     "favorites": 8,
-    "monthly_downloads": 1169
+    "monthly_downloads": 1163
   },
   "title": "Stunned",
-  "updated_at": 1793888669000,
-  "version": "3.0"
+  "updated_at": 1794198433000,
+  "version": "3.1"
 }

@@ -1582,6 +1582,70 @@ if score then Say(score)end
 Say(ScrollsLine(GetUnitAlliance("player")))
 end)
 end
+local function CleanUp()
+local function MB(x)return string.format(x>=10 and "%.0f" or "%.1f",x)end
+local okG,manager=pcall(function()return GetAddOnManager and GetAddOnManager()end)
+manager=okG and manager or nil
+local function Ask(method,...)
+local f=manager and manager[method]
+if type(f)~="function" then return nil end
+local ok,value=pcall(f,manager,...)
+if ok then return value end
+end
+local logger,log=rawget(_G,"LibDebugLogger"),rawget(_G,"LibDebugLoggerLog")
+local skip=false
+if type(logger)=="table" and type(logger.ClearLog)=="function" then
+local entries=type(log)=="table" and#log or 0
+if entries==0 then
+skip=true
+Say("LibDebugLogger's log is already empty.")
+elseif pcall(logger.ClearLog,logger)then
+skip=true
+local save=manager and manager.RequestAddOnSavedVariablesPrioritySave
+local saved=type(save)=="function" and pcall(save,manager,"LibDebugLogger")
+Say(string.format("Cleared %s LibDebugLogger %s. %s",Comma(entries),entries==1 and "entry" or "entries",
+saved and "It saves soon, for sure when you log out or reload." or "It's saved when you log out or reload."))
+else
+Diag("Couldn't clear LibDebugLogger's log. Try /debuglogger clear.")
+end
+else
+Say("LibDebugLogger isn't on, so there's no log to clear.")
+end
+local okM,used=pcall(GetTotalUserAddOnMemoryPoolUsageMB)
+local okC,total=pcall(GetTotalUserAddOnMemoryPoolCapacityMB)
+if okM and okC and type(used)=="number" and type(total)=="number" and total>0 then
+Say(string.format("Add-on memory is at %s of %s MB.",MB(used),MB(total)))
+end
+local disk,diskMax=Ask("GetTotalUserAddOnSavedVariablesDiskUsageMB"),Ask("GetTotalUserAddOnSavedVariablesDiskCapacityMB")
+local big={}
+for i=1,tonumber((Ask("GetNumAddOns")))or 0 do
+local size=Ask("GetUserAddOnSavedVariablesDiskUsageMB",i)
+local okI,name,title=pcall(manager.GetAddOnInfo,manager,i)
+if type(size)~="number" or not okI then
+elseif skip and name=="LibDebugLogger" then
+if type(disk)=="number" then disk=math.max(0,disk - size)end
+elseif size>=0.1 then
+table.insert(big,{size=size,title=tostring(title or name):gsub("|c%x%x%x%x%x%x",""):gsub("|r","")})
+end
+end
+if type(disk)=="number" and type(diskMax)=="number" and diskMax>0 then
+Say(string.format("Saved data is at %s of %s MB.",MB(disk),MB(diskMax)))
+end
+table.sort(big,function(a,b)return a.size>b.size end)
+local parts={}
+for i=1,math.min(3,#big)do parts[i]=string.format("%s (%s MB)",big[i].title,MB(big[i].size))end
+if#parts>0 then
+local last=table.remove(parts)
+Say(string.format("Biggest saved data is %s.",#parts>0 and(table.concat(parts,", ").. " and " .. last)or last))
+if big[1].size>=1 then
+Diag(Buttons("To clear one, go to Settings > Addons > Manage My Add-Ons, highlight it and press Y (Options). Best at character select, before you load in."))
+end
+end
+local unused=Ask("GetTotalUnusedAddOnSavedVariablesDiskUsageMB")
+if type(unused)=="number" and unused>=0.1 then
+Diag(Buttons(string.format("Add-ons you've uninstalled left %s MB of saved data. Clear it in Settings > Addons > Manage My Add-Ons, Y (Options), Delete Unused Saved Variables.",MB(unused))))
+end
+end
 local function CyclePersonality()
 local P=Personalities()
 if not P then return end
@@ -1591,8 +1655,8 @@ if key==current then return WearCrown(order[i%#order+1])end
 end
 WearCrown(order[1])
 end
-local WHEEL_ORDER={"1share","2persona","3record","4reset","5group","6pick","7history","8override"}
-local WHEEL_ROWS={{"2persona","Change Personality"},{"1share","Crown Command"},{"5group","Group Check"},
+local WHEEL_ORDER={"1share","2persona","3record","4reset","5group","6pick","7history","8override","9cleanup"}
+local WHEEL_ROWS={{"2persona","Change Personality"},{"9cleanup","Clean Up"},{"1share","Crown Command"},{"5group","Group Check"},
 {"7history","History"},{"8override","Override"},{"6pick","Private Command"},{"4reset","Reset Scoreboard"},
 {"3record","Scoreboard"}}
 local COLORS={{"Blue","4FA8FF"},{"Cyan","33F0FF"},{"Gold","F2C65A"},{"Green","4CFF4C"},{"Grey","9A9A9A"},
@@ -1849,7 +1913,7 @@ LazyCrown.core={
 PickAndShare=Used(PickAndShare),PickPrivately=Used(PickPrivately),CyclePersonality=Used(CyclePersonality),
 ShareScoreboard=Used(CyrodiilOnly(ShareScoreboard)),ResetScoreboard=Used(CyrodiilOnly(ResetScoreboard)),
 GroupCheck=Used(GroupCheck),SlashCommand=Used(SlashCommand),SettingsRows=SettingsRows,
-History=Used(ShowHistory),Override=Used(CyrodiilOnly(OverrideFromWheel)),
+History=Used(ShowHistory),Override=Used(CyrodiilOnly(OverrideFromWheel)),CleanUp=Used(CleanUp),
 }
 LazyCrown=LazyCrown or{}
 LazyCrown.BuildTargets,LazyCrown.PickTarget=BuildTargets,PickTarget

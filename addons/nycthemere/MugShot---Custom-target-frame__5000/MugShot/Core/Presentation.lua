@@ -41,18 +41,8 @@ local function FormatNumber(num)
     if not num then
         return "0"
     end
-    local s
-    if ZO_AbbreviateAndLocalizeNumber then
-        s = ZO_AbbreviateAndLocalizeNumber(num, NUMBER_ABBREVIATION_PRECISION_TENTHS, true)
-    elseif num >= 1000000 then
-        s = string_format("%.1fM", num / 1000000):gsub("%.0M", "M")
-    elseif num >= 1000 then
-        s = string_format("%.1fK", num / 1000):gsub("%.0K", "K")
-    else
-        s = tostring(math_floor(num + 0.5))
-    end
-    s = tostring(s or num)
-    return s:gsub("k", "K"):gsub("m", "M")
+    local s = ZO_AbbreviateAndLocalizeNumber(num, NUMBER_ABBREVIATION_PRECISION_TENTHS, true)
+    return tostring(s):gsub("k", "K"):gsub("m", "M")
 end
 
 -- Helper to resolve custom nicknames from LibCustomNames or HodorReflexes
@@ -111,7 +101,6 @@ end
 --     portraitTexture: string | nil
 --     raceIcon       : string | nil
 --     allianceIcon   : string | nil
---     allianceColor  : table | nil
 -- }
 function Presentation.BuildIdentity(state, _settings)
     local id = state.identity or {}
@@ -171,7 +160,7 @@ function Presentation.BuildIdentity(state, _settings)
         if not allowCustom or isDummyOrMissing then
             portraitTexture = id.classIcon
             portraitCoords  = nil
-            portraitColor   = id.classColor or COLOR_WHITE_ARRAY
+            portraitColor   = COLOR_WHITE_ARRAY
         end
     end
 
@@ -188,7 +177,9 @@ function Presentation.BuildIdentity(state, _settings)
         portraitColor   = portraitColor,
         raceIcon        = id.raceIcon,
         allianceIcon    = id.allianceIcon,
+        allianceBase    = id.allianceBase,
         allianceColor   = id.allianceColor,
+        allianceId      = id.allianceId,
     }
 end
 

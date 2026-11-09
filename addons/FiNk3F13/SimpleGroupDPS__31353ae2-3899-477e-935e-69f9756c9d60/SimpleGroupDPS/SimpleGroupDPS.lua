@@ -1,6 +1,6 @@
 local L = SimpleGroupDPS_Translate or function(text) return text end
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "1.9.14"
+local ADDON_VERSION = "2.0.0"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel
@@ -131,7 +131,7 @@ local function setMoveMode(enabled, requestedWindow)
         if previousCameraMode == false and SetGameCameraUIMode then SetGameCameraUIMode(false) end
         previousUIMode, previousCameraMode = nil, nil
     end
-    refreshUpdateLoop()
+    if not meter:IsActive() then refreshUpdateLoop() end
     updateUI()
 end
 
@@ -160,6 +160,8 @@ updateUI = function(sceneVisible, snapshot)
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, isPlayer = true,
             rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
             role = GetSelectedLFGRole and GetSelectedLFGRole(),
+            -- Same automatic classification as BattleScrolls' classifyData.
+            messageType = (stats.rawHPS or 0) > (stats.dps or 0) and "healing" or "damage",
             classId = GetUnitClassId and GetUnitClassId("player"),
         }
     end
@@ -190,7 +192,7 @@ tick = function()
     tickCount = tickCount + 1
     -- Receiving must also connect while idle, without waiting for our first attack.
     bridge:Connect()
-    -- Share and display the same independently measured snapshot.
+    -- Display and share the same independently measured snapshot.
     local stats = meter:GetStats()
     if meter:IsActive() then bridge:SendMetrics(stats, false) end
     updateUI(nil, stats)
@@ -380,6 +382,10 @@ local function onAddonLoaded(_, name)
     settings.scale = math.max(0.5, math.min(1.5, tonumber(settings.scale) or defaults.scale))
     settings.personalScale = math.max(0.5, math.min(2, tonumber(settings.personalScale) or settings.scale))
     if settings.dpsValueFontSize == nil then settings.dpsValueFontSize = panel:GetValueFontSize(settings) end
+    meter.onStarted = function()
+        bridge:BeginEncounter()
+        refreshUpdateLoop()
+    end
     meter.onFinished = function(stats)
         lastResultAt = GetGameTimeMilliseconds()
         settings.lastSummary = {
@@ -391,6 +397,7 @@ local function onAddonLoaded(_, name)
             rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
             healingDurationMS = stats.healingDurationMS,
         }
+        bridge:MarkResult()
         bridge:SendMetrics(stats, true)
         updateUI()
     end

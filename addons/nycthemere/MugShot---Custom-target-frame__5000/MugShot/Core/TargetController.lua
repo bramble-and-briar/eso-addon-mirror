@@ -31,11 +31,9 @@ local ICONS                 = MugShot.Constants.ICONS
 local COLOR_WHITE_ARRAY     = RGBA.WHITE_ARRAY
 local COLOR_HOSTILE_DEFAULT = RGBA.REACTION_HOSTILE
 
-local DEFAULT_CLASS_ICON = "/esoui/art/icons/class/class_dragonknight.dds"
-
 -- Native ability icon resolver (queries engine via GetAbilityIcon or falls back to missing icon)
 local function ResolveAbilityIcon(abilityId, fallback)
-    if abilityId and abilityId > 0 and GetAbilityIcon then
+    if abilityId and abilityId > 0 then
         local icon = GetAbilityIcon(abilityId)
         if icon and icon ~= "" then
             return icon
@@ -44,11 +42,7 @@ local function ResolveAbilityIcon(abilityId, fallback)
     return fallback or ICONS.MISSING
 end
 
-local SAMPLE_EFFECT_DEFS = {
-    { abilityId = 61744, defaultIcon = "/esoui/art/icons/icon_missing.dds", timerText = "3s", stackText = "x2", isGroup = true },
-    { abilityId = 39077, defaultIcon = "/esoui/art/icons/icon_missing.dds", timerText = "15s", stackText = "" },
-    { abilityId = 17906, defaultIcon = "/esoui/art/icons/icon_missing.dds", timerText = "2s", stackText = "" },
-}
+local SAMPLE_EFFECT_DEFS = MugShot.Constants.SAMPLE_EFFECT_DEFS
 
 function TargetController:GetSampleEffects()
     local sample = {}
@@ -69,46 +63,36 @@ function TargetController:GetSampleEffects()
     return sample
 end
 
--- Backward compatibility alias
-local SAMPLE_EFFECTS = TargetController:GetSampleEffects()
+function TargetController:GetDebuffTag(debuffDef)
+    if not debuffDef then return "DEBUFF" end
+    local sv = self._settings and self._settings:Get()
+    local customTags = sv and sv.customTags
+    local key = debuffDef.key or (debuffDef.name and debuffDef.name:lower():gsub("%s+", "_"):gsub("[^%w_]", ""))
+    if customTags and key and customTags[key] and customTags[key] ~= "" then
+        return customTags[key]
+    end
+    return debuffDef.defaultTag or debuffDef.tag or (debuffDef.name and MugShot.Constants.SHORT_DEBUFF_NAMES[debuffDef.name]) or (debuffDef.name and debuffDef.name:sub(1, 6):upper()) or "DEBUFF"
+end
 
--- ── Role Debuff Builder Templates (Line 3 Privileged Debuffs) ─────────
-local BUILDER_TEMPLATES = {
-    tank = {
-        name = "Tank (Raid)",
-        debuffs = {
-            { tag = "CRUSH",   name = "Crusher",       abilityId = 17906, isPair = false, timerText = "4s",  isActive = true, fromPlayer = true },
-            { tag = "BREACH",  name = "Breach",        majorAbilityId = 61743, minorAbilityId = 61742, isPair = true,  majorName = "Major Breach", minorName = "Minor Breach", majorTimerText = "18s", minorTimerText = "22s", majorActive = true, minorActive = true, majorFromPlayer = true, minorFromPlayer = false },
-            { tag = "BRIT",    name = "Brittle",       majorAbilityId = 145975, minorAbilityId = 145977, isPair = true,  majorName = "Major Brittle", minorName = "Minor Brittle", majorTimerText = "8s", minorTimerText = "0s", majorActive = true, minorActive = false, majorFromPlayer = false, minorFromPlayer = false },
-            { tag = "LN-BRK",  name = "Line Breaker",  abilityId = 139708, isPair = false, timerText = "0s",  isActive = false, isGhost = true },
-            { tag = "MAIM",    name = "Maim",          majorAbilityId = 61725, minorAbilityId = 61723, isPair = true,  majorName = "Major Maim", minorName = "Minor Maim", majorTimerText = "6s", minorTimerText = "0s", majorActive = true, minorActive = false, majorFromPlayer = false, minorFromPlayer = false },
-            { tag = "WEAK",    name = "Weakening",     abilityId = 17945, isPair = false, timerText = "3s",  isActive = true, fromPlayer = true },
-            { tag = "OFF-BAL", name = "Off Balance",   abilityId = 39077, isPair = false, timerText = "0s",  isActive = false, isGhost = true },
-        }
-    },
-    healer = {
-        name = "Healer (Raid)",
-        debuffs = {
-            { tag = "PRAYER",  name = "Combat Prayer",    abilityId = 61902, isPair = false, timerText = "10s", isActive = true, fromPlayer = true },
-            { tag = "BRIT",    name = "Brittle",          majorAbilityId = 145975, minorAbilityId = 145977, isPair = true,  majorName = "Major Brittle", minorName = "Minor Brittle", majorTimerText = "0s", minorTimerText = "12s", majorActive = false, minorActive = true, majorFromPlayer = false, minorFromPlayer = true },
-            { tag = "WEAK",    name = "Weakening",        abilityId = 17945, isPair = false, timerText = "5s",  isActive = true, fromPlayer = false },
-            { tag = "SPC",     name = "Spell Power Cure", abilityId = 67342, isPair = false, timerText = "15s", isActive = true, fromPlayer = true },
-            { tag = "MAIM",    name = "Maim",             majorAbilityId = 61725, minorAbilityId = 61723, isPair = true,  majorName = "Major Maim", minorName = "Minor Maim", majorTimerText = "0s", minorTimerText = "9s", majorActive = false, minorActive = true, majorFromPlayer = false, minorFromPlayer = true },
-            { tag = "OFF-BAL", name = "Off Balance",     abilityId = 39077, isPair = false, timerText = "0s",  isActive = false, isGhost = true },
-        }
-    },
-    dps = {
-        name = "DPS Mag (Z'en / MK)",
-        debuffs = {
-            { tag = "Z'EN",    name = "Touch of Z'en",     abilityId = 126597, isPair = false, timerText = "14s", stackText = "5", isActive = true, fromPlayer = true },
-            { tag = "MK",      name = "Martial Knowledge", abilityId = 127070, isPair = false, timerText = "5s",  stackText = "",  isActive = true, fromPlayer = true },
-            { tag = "HEAT",    name = "Heat Shock",        abilityId = 0, icon = "/esoui/art/icons/icon_missing.dds", isPair = false, timerText = "8s",  stackText = "3",  isActive = true, fromPlayer = true },
-            { tag = "VULN",    name = "Vulnerability",     majorAbilityId = 106754, minorAbilityId = 106757, isPair = true,  majorName = "Major Vulnerability", minorName = "Minor Vulnerability", majorTimerText = "7s", minorTimerText = "12s", majorActive = true, minorActive = true, majorFromPlayer = false, minorFromPlayer = false },
-            { tag = "OFF-BAL", name = "Off Balance",       abilityId = 39077, isPair = false, timerText = "15s", stackText = "",  isActive = true, fromPlayer = true },
-            { tag = "MORAG",   name = "The Morag Tong",    abilityId = 104743, isPair = false, timerText = "0s",  stackText = "",  isActive = false, isGhost = true },
-        }
-    },
-}
+-- Isolated mock privileged debuffs for Move Mode / UI repositioning preview
+function TargetController:GetSamplePrivilegedDebuffs()
+    local sample = {
+        { key = "crusher",      tag = "CRUSH",   name = "Crusher",       abilityId = 17906, isPair = false, timerText = "4s",  isActive = true, fromPlayer = true },
+        { key = "breach",       tag = "BREACH",  name = "Breach",        majorAbilityId = 61743, minorAbilityId = 61742, isPair = true,  majorName = "Major Breach", minorName = "Minor Breach", majorTimerText = "18s", minorTimerText = "22s", majorActive = true, minorActive = true, majorFromPlayer = true, minorFromPlayer = false },
+        { key = "brittle",      tag = "BRITTLE", name = "Brittle",       majorAbilityId = 145975, minorAbilityId = 145977, isPair = true,  majorName = "Major Brittle", minorName = "Minor Brittle", majorTimerText = "8s", minorTimerText = "0s", majorActive = true, minorActive = false, majorFromPlayer = false, minorFromPlayer = false },
+        { key = "line_breaker", tag = "ALKOSH",  name = "Line Breaker",  abilityId = 139708, isPair = false, timerText = "0s",  isActive = false, isGhost = true },
+        { key = "maim",         tag = "MAIM",    name = "Maim",          majorAbilityId = 61725, minorAbilityId = 61723, isPair = true,  majorName = "Major Maim", minorName = "Minor Maim", majorTimerText = "6s", minorTimerText = "0s", majorActive = true, minorActive = false, majorFromPlayer = false, minorFromPlayer = false },
+    }
+    for _, d in ipairs(sample) do
+        d.defaultTag = d.tag
+        d.tag = self:GetDebuffTag(d)
+        d.hasCustomTag = (d.tag ~= d.defaultTag)
+    end
+    return sample
+end
+
+-- ── Role Debuff Builder Templates (Referenced from data-driven Constants) ──
+local BUILDER_TEMPLATES = MugShot.Constants.BUILDER_TEMPLATES
 
 -- ── Constructor ───────────────────────────────────────────
 function TargetController.New(deps)
@@ -201,6 +185,7 @@ function TargetController:_UpdateVitalsView()
 end
 
 -- Returns the active debuff list (from custom settings or role template)
+-- Caches resolved debuffs per template to achieve zero GC allocation per tick
 function TargetController:_GetActiveDebuffList()
     local sv = self._settings and self._settings:Get()
     if sv and sv.customDebuffs and #sv.customDebuffs > 0 then
@@ -209,10 +194,24 @@ function TargetController:_GetActiveDebuffList()
             if id and id > 0 then
                 d.icon = ResolveAbilityIcon(id, d.icon)
             end
+            if not d.defaultTag then d.defaultTag = d.tag end
+            d.key = d.key or (d.name and d.name:lower():gsub("%s+", "_"):gsub("[^%w_]", ""))
+            d.tag = self:GetDebuffTag(d)
         end
         return sv.customDebuffs
     end
     local activeTemplate = self._currentTemplate or (sv and sv.builderTemplate) or "tank"
+    if not self._templateCache then
+        self._templateCache = {}
+    end
+    local cached = self._templateCache[activeTemplate]
+    if cached then
+        for _, d in ipairs(cached) do
+            d.tag = self:GetDebuffTag(d)
+        end
+        return cached
+    end
+
     local t = BUILDER_TEMPLATES[activeTemplate] or BUILDER_TEMPLATES.tank
     local list = {}
     for i, d in ipairs(t.debuffs) do
@@ -222,80 +221,13 @@ function TargetController:_GetActiveDebuffList()
         if id and id > 0 then
             copy.icon = ResolveAbilityIcon(id, copy.icon)
         end
+        copy.key = copy.key or (copy.name and copy.name:lower():gsub("%s+", "_"):gsub("[^%w_]", ""))
+        copy.defaultTag = d.tag
+        copy.tag = self:GetDebuffTag(copy)
         list[i] = copy
     end
+    self._templateCache[activeTemplate] = list
     return list
-end
-
-local ACCENT_MAP = {
-    ["É"] = "e", ["È"] = "e", ["Ê"] = "e", ["Ë"] = "e",
-    ["é"] = "e", ["è"] = "e", ["ê"] = "e", ["ë"] = "e",
-    ["À"] = "a", ["Â"] = "a", ["Ä"] = "a",
-    ["à"] = "a", ["â"] = "a", ["ä"] = "a",
-    ["Î"] = "i", ["Ï"] = "i",
-    ["î"] = "i", ["ï"] = "i",
-    ["Ô"] = "o", ["Ö"] = "o",
-    ["ô"] = "o", ["ö"] = "o",
-    ["Ù"] = "u", ["Û"] = "u", ["Ü"] = "u",
-    ["ù"] = "u", ["û"] = "u", ["ü"] = "u",
-    ["Ç"] = "c", ["ç"] = "c",
-    ["ß"] = "ss",
-}
-
-local NORMALIZE_CACHE = {}
-local function NormalizeStr(s)
-    if not s or s == "" then return "" end
-    local cached = NORMALIZE_CACHE[s]
-    if cached then return cached end
-    local res = s
-    for k, v in pairs(ACCENT_MAP) do
-        res = res:gsub(k, v)
-    end
-    res = res:lower()
-    NORMALIZE_CACHE[s] = res
-    return res
-end
-
--- Debuff Multilingual Keywords for robust language-agnostic detection
-local DEBUFF_KEYWORDS = {
-    ["Breach"]             = { "breach", "breche", "bruch", "fraktur" },
-    ["Crusher"]            = { "crusher", "ecrasement", "zerschlagen" },
-    ["Brittle"]            = { "brittle", "friabilite", "glaciale", "sprode" },
-    ["Maim"]               = { "maim", "mutilation", "estropiement", "verstummeln" },
-    ["Weakening"]          = { "weakening", "affaiblissement", "schwachung" },
-    ["Off Balance"]        = { "off balance", "off-balance", "desequilibre", "aus dem gleichgewicht" },
-    ["Vulnerability"]      = { "vulnerability", "vulnerabilite", "verwundbarkeit" },
-    ["Line Breaker"]       = { "line breaker", "line-breaker", "brise-ligne", "brise ligne", "linienbrecher" },
-    ["Touch of Z'en"]      = { "z'en", "zen" },
-    ["Martial Knowledge"]  = { "martial knowledge", "savoir martial", "connaissance martiale", "kriegerische kenntnis" },
-    ["Combat Prayer"]      = { "combat prayer", "priere de combat", "kampfgebet" },
-    ["Spell Power Cure"]   = { "spell power cure", "puissance curative", "heilkraft" },
-}
-
-local function MatchesDebuffKeywords(name, debuffName)
-    if not name or name == "" or not debuffName then return false end
-    local norm = NormalizeStr(name)
-    local kwList = DEBUFF_KEYWORDS[debuffName]
-    if kwList then
-        for _, kw in ipairs(kwList) do
-            if norm:find(kw, 1, true) then
-                return true
-            end
-        end
-    end
-    return norm:find(NormalizeStr(debuffName), 1, true) ~= nil
-end
-
-local function IsMajorEffect(eff)
-    if eff.isMajor == true then return true end
-    local n = NormalizeStr(eff.name or "")
-    return n:find("major", 1, true) ~= nil or n:find("majeur", 1, true) ~= nil or n:find("grosere", 1, true) ~= nil
-end
-
-local function IsMinorEffect(eff)
-    if eff.isMinor == true then return true end
-    local n = NormalizeStr(eff.name or "")
-    return n:find("minor", 1, true) ~= nil or n:find("mineur", 1, true) ~= nil or n:find("kleinere", 1, true) ~= nil
 end
 
 -- Builds and applies effects presentation table (filters out privileged debuffs from standard icon row)
@@ -328,15 +260,15 @@ function TargetController:_UpdateEffectsView()
             if tDebuff.isPair then
                 if tDebuff.majorAbilityId then privilegedAbilityIds[tDebuff.majorAbilityId] = true end
                 if tDebuff.minorAbilityId then privilegedAbilityIds[tDebuff.minorAbilityId] = true end
-                local majorLoc = (GetAbilityName and tDebuff.majorAbilityId and GetAbilityName(tDebuff.majorAbilityId))
-                local minorLoc = (GetAbilityName and tDebuff.minorAbilityId and GetAbilityName(tDebuff.minorAbilityId))
+                local majorLoc = tDebuff.majorAbilityId and GetAbilityName(tDebuff.majorAbilityId)
+                local minorLoc = tDebuff.minorAbilityId and GetAbilityName(tDebuff.minorAbilityId)
                 if majorLoc and majorLoc ~= "" then privilegedNames[majorLoc] = true end
                 if minorLoc and minorLoc ~= "" then privilegedNames[minorLoc] = true end
                 privilegedNames[tDebuff.majorName or ("Major " .. tDebuff.name)] = true
                 privilegedNames[tDebuff.minorName or ("Minor " .. tDebuff.name)] = true
             else
                 if tDebuff.abilityId then privilegedAbilityIds[tDebuff.abilityId] = true end
-                local loc = (GetAbilityName and tDebuff.abilityId and GetAbilityName(tDebuff.abilityId))
+                local loc = tDebuff.abilityId and GetAbilityName(tDebuff.abilityId)
                 if loc and loc ~= "" then privilegedNames[loc] = true end
             end
             if tDebuff.name then privilegedNames[tDebuff.name] = true end
@@ -346,16 +278,10 @@ function TargetController:_UpdateEffectsView()
         -- Mark all matching effects on target as privileged so they never duplicate in the bottom row
         for _, eff in ipairs(self._state.effects or {}) do
             local effName = eff.name or ""
-            for _, tDebuff in ipairs(debuffList) do
-                if MatchesDebuffKeywords(effName, tDebuff.name)
-                    or (tDebuff.majorAbilityId and eff.abilityId == tDebuff.majorAbilityId)
-                    or (tDebuff.minorAbilityId and eff.abilityId == tDebuff.minorAbilityId)
-                    or (tDebuff.abilityId and eff.abilityId == tDebuff.abilityId) then
-                    eff._isPrivileged = true
-                    if eff.name and eff.name ~= "" then privilegedNames[eff.name] = true end
-                    if eff.abilityId and eff.abilityId > 0 then privilegedAbilityIds[eff.abilityId] = true end
-                    break
-                end
+            local effId = eff.abilityId
+            if (effId and privilegedAbilityIds[effId])
+                or (effName ~= "" and privilegedNames[effName]) then
+                eff._isPrivileged = true
             end
         end
     end
@@ -365,7 +291,7 @@ function TargetController:_UpdateEffectsView()
         local isClassic = (self._settings and self._settings:Get().layout == "classic")
         if self._inMoveMode then
             if isEnemy and not isClassic then
-                local priv = (self._state.privilegedDebuffs and #self._state.privilegedDebuffs > 0) and self._state.privilegedDebuffs or debuffList
+                local priv = (self._state.privilegedDebuffs and #self._state.privilegedDebuffs > 0) and self._state.privilegedDebuffs or self:GetSamplePrivilegedDebuffs()
                 self._view:SetPrivilegedDebuffs(priv)
             else
                 self._view:SetPrivilegedDebuffs({})
@@ -381,8 +307,8 @@ function TargetController:_UpdateEffectsView()
                     if tDebuff.isPair then
                         local majorName = tDebuff.majorName or ("Major " .. tDebuff.name)
                         local minorName = tDebuff.minorName or ("Minor " .. tDebuff.name)
-                        local majorLoc  = (GetAbilityName and tDebuff.majorAbilityId and GetAbilityName(tDebuff.majorAbilityId))
-                        local minorLoc  = (GetAbilityName and tDebuff.minorAbilityId and GetAbilityName(tDebuff.minorAbilityId))
+                        local majorLoc  = tDebuff.majorAbilityId and GetAbilityName(tDebuff.majorAbilityId)
+                        local minorLoc  = tDebuff.minorAbilityId and GetAbilityName(tDebuff.minorAbilityId)
                         local effMajor = nil
                         local effMinor = nil
                         local majorPlayerTimer = 0
@@ -393,12 +319,10 @@ function TargetController:_UpdateEffectsView()
                         for _, eff in ipairs(self._state.effects or {}) do
                             local effId = eff.abilityId
                             local effName = eff.name or ""
-                            local matchesKw = MatchesDebuffKeywords(effName, tDebuff.name)
 
                             if (tDebuff.majorAbilityId and effId == tDebuff.majorAbilityId)
-                                or effName == majorName
                                 or (majorLoc and effName == majorLoc)
-                                or (matchesKw and IsMajorEffect(eff)) then
+                                or effName == majorName then
                                 effMajor = eff
                                 eff._isPrivileged = true
                                 local pT = eff.playerTimer or (eff.castByPlayer and eff.timer) or 0
@@ -406,9 +330,8 @@ function TargetController:_UpdateEffectsView()
                                 if pT > majorPlayerTimer then majorPlayerTimer = pT end
                                 if tT > majorTeamTimer then majorTeamTimer = tT end
                             elseif (tDebuff.minorAbilityId and effId == tDebuff.minorAbilityId)
-                                or effName == minorName
                                 or (minorLoc and effName == minorLoc)
-                                or (matchesKw and IsMinorEffect(eff)) then
+                                or effName == minorName then
                                 effMinor = eff
                                 eff._isPrivileged = true
                                 local pT = eff.playerTimer or (eff.castByPlayer and eff.timer) or 0
@@ -439,7 +362,9 @@ function TargetController:_UpdateEffectsView()
                         local minorTimerText = minorActive and string_format("%ds", math_ceil(minorTimerVal)) or "0s"
 
                         table_insert(privileged, {
-                            tag             = tDebuff.tag,
+                            key             = tDebuff.key or (tDebuff.name and tDebuff.name:lower():gsub("%s+", "_"):gsub("[^%w_]", "")),
+                            tag             = self:GetDebuffTag(tDebuff),
+                            defaultTag      = tDebuff.defaultTag or tDebuff.tag,
                             name            = tDebuff.name,
                             isPair          = true,
                             majorTimerText  = majorTimerText,
@@ -453,7 +378,7 @@ function TargetController:_UpdateEffectsView()
                                            or (effMinor and (effMinor.isGroup or (effMinor.sourceCount and effMinor.sourceCount > 1))),
                         })
                     else
-                        local locName = (GetAbilityName and tDebuff.abilityId and GetAbilityName(tDebuff.abilityId))
+                        local locName = tDebuff.abilityId and GetAbilityName(tDebuff.abilityId)
                         local matched = nil
                         local singlePlayerTimer = 0
                         local singleTeamTimer   = 0
@@ -462,9 +387,8 @@ function TargetController:_UpdateEffectsView()
                             local effId = eff.abilityId
                             local effName = eff.name or ""
                             if (tDebuff.abilityId and effId == tDebuff.abilityId)
-                                or effName == tDebuff.name
                                 or (locName and effName == locName)
-                                or MatchesDebuffKeywords(effName, tDebuff.name) then
+                                or effName == tDebuff.name then
                                 matched = eff
                                 eff._isPrivileged = true
                                 local pT = eff.playerTimer or (eff.castByPlayer and eff.timer) or 0
@@ -506,7 +430,9 @@ function TargetController:_UpdateEffectsView()
                             end
 
                             table_insert(privileged, {
-                                tag        = tDebuff.tag,
+                                key        = tDebuff.key or (tDebuff.name and tDebuff.name:lower():gsub("%s+", "_"):gsub("[^%w_]", "")),
+                                tag        = self:GetDebuffTag(tDebuff),
+                                defaultTag = tDebuff.defaultTag or tDebuff.tag,
                                 name       = tDebuff.name,
                                 isPair     = false,
                                 isGhost    = false,
@@ -519,7 +445,9 @@ function TargetController:_UpdateEffectsView()
                         else
                             -- Inactive on target -> GHOST DEBUFF!
                             table_insert(privileged, {
-                                tag        = tDebuff.tag,
+                                key        = tDebuff.key or (tDebuff.name and tDebuff.name:lower():gsub("%s+", "_"):gsub("[^%w_]", "")),
+                                tag        = self:GetDebuffTag(tDebuff),
+                                defaultTag = tDebuff.defaultTag or tDebuff.tag,
                                 name       = tDebuff.name,
                                 isPair     = false,
                                 isGhost    = true,
@@ -639,6 +567,7 @@ function TargetController:RefreshMoveModeEnemy(customDebuffs)
         portraitColor   = COLOR_WHITE_ARRAY,
         raceIcon        = nil,
         allianceIcon    = nil,
+        allianceBase    = nil,
         allianceColor   = nil,
     }
     state.identity = {
@@ -680,6 +609,13 @@ function TargetController:RefreshMoveModeEnemy(customDebuffs)
         debuffs = {}
     else
         debuffs = customDebuffs or (self._state.privilegedDebuffs and #self._state.privilegedDebuffs > 0 and self._state.privilegedDebuffs) or self:_GetActiveDebuffList()
+    end
+    if debuffs then
+        for _, d in ipairs(debuffs) do
+            if not d.defaultTag then d.defaultTag = d.tag end
+            d.tag = self:GetDebuffTag(d)
+            d.hasCustomTag = (d.defaultTag and d.tag ~= d.defaultTag)
+        end
     end
     self._state.privilegedDebuffs = debuffs
     if self._view.SetPrivilegedDebuffs then
@@ -749,20 +685,15 @@ function TargetController:RefreshMoveModeIdentity()
         or (type(idPres.portraitTexture) == "string" and (idPres.portraitTexture:find("campaignbrowser_guestcampaign", 1, true) or idPres.portraitTexture:find("icon_missing", 1, true)))
 
     if isDummyOrMissing then
-        idPres.portraitTexture = (id and id.classIcon and id.classIcon ~= "" and id.classIcon) or DEFAULT_CLASS_ICON
-        idPres.portraitColor = (id and id.classColor) or COLOR_WHITE_ARRAY
+        idPres.portraitTexture = (id and id.classIcon and id.classIcon ~= "") and id.classIcon or nil
+        idPres.portraitColor = COLOR_WHITE_ARRAY
     end
 
-    if idPres.isPlayer then
-        if not idPres.raceIcon or idPres.raceIcon == "" then
-            idPres.raceIcon = ICONS.FALLBACK_RACE
-        end
-        if not idPres.allianceIcon or idPres.allianceIcon == "" then
-            idPres.allianceIcon = ICONS.FALLBACK_ALLIANCE
-        end
-    else
+    if not idPres.isPlayer then
         idPres.raceIcon = nil
         idPres.allianceIcon = nil
+        idPres.allianceBase = nil
+        idPres.allianceColor = nil
     end
 
     self._view:SetIdentity(idPres)
@@ -774,6 +705,7 @@ function TargetController:SwapPrivilegedDebuffs(s1, s2)
         local temp = debuffs[s1]
         debuffs[s1] = debuffs[s2]
         debuffs[s2] = temp
+        self._templateCache = nil
         if self._settings then
             self._settings:Set("customDebuffs", debuffs)
         end
@@ -784,6 +716,92 @@ function TargetController:SwapPrivilegedDebuffs(s1, s2)
             self:_UpdateEffectsView()
         end
     end
+end
+
+function TargetController:SetCustomDebuffTag(debuffKey, newTag)
+    if not debuffKey or debuffKey == "" then return false end
+    local sv = self._settings and self._settings:Get()
+    if not sv then return false end
+    sv.customTags = sv.customTags or {}
+
+    local sanitized = tostring(newTag or ""):gsub("^%s+", ""):gsub("%s+$", ""):upper()
+    if #sanitized > 7 then
+        sanitized = sanitized:sub(1, 7)
+    end
+
+    if sanitized == "" then
+        return self:ResetCustomDebuffTag(debuffKey)
+    end
+
+    sv.customTags[debuffKey] = sanitized
+    self._templateCache = nil
+
+    local debuffName = debuffKey
+    local debuffs = self._state and self._state.privilegedDebuffs
+    if debuffs then
+        for _, d in ipairs(debuffs) do
+            if d.key == debuffKey then
+                d.tag = sanitized
+                d.hasCustomTag = (d.defaultTag and sanitized ~= d.defaultTag)
+                debuffName = d.name or debuffName
+                break
+            end
+        end
+    end
+
+    if self._inMoveMode and self._moveModeTarget == "enemy" then
+        self:RefreshMoveModeEnemy()
+    else
+        self:_UpdateEffectsView()
+    end
+
+    local textFmt = (MugShot.GetText and MugShot.GetText("TAG_SAVED")) or "|c9b00afMugShot|r: Custom tag for '%s' set to '%s'."
+    local msg = string.format(textFmt, debuffName, sanitized)
+    if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
+        CHAT_SYSTEM:AddMessage(msg)
+    elseif MugShot.logger then
+        MugShot.logger:Info(msg)
+    end
+    return true
+end
+
+function TargetController:ResetCustomDebuffTag(debuffKey)
+    if not debuffKey or debuffKey == "" then return false end
+    local sv = self._settings and self._settings:Get()
+    if not sv or not sv.customTags then return false end
+
+    sv.customTags[debuffKey] = nil
+    self._templateCache = nil
+
+    local debuffName = debuffKey
+    local defaultTag = "DEBUFF"
+    local debuffs = self._state and self._state.privilegedDebuffs
+    if debuffs then
+        for _, d in ipairs(debuffs) do
+            if d.key == debuffKey then
+                d.tag = self:GetDebuffTag(d)
+                d.hasCustomTag = false
+                debuffName = d.name or debuffName
+                defaultTag = d.defaultTag or d.tag
+                break
+            end
+        end
+    end
+
+    if self._inMoveMode and self._moveModeTarget == "enemy" then
+        self:RefreshMoveModeEnemy()
+    else
+        self:_UpdateEffectsView()
+    end
+
+    local textFmt = (MugShot.GetText and MugShot.GetText("TAG_RESET")) or "|c9b00afMugShot|r: Custom tag for '%s' reset to default ('%s')."
+    local msg = string.format(textFmt, debuffName, defaultTag)
+    if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
+        CHAT_SYSTEM:AddMessage(msg)
+    elseif MugShot.logger then
+        MugShot.logger:Info(msg)
+    end
+    return true
 end
 
 function TargetController:SetLayout(layoutName)
@@ -815,6 +833,8 @@ function TargetController:SetDebugMode(active)
             portraitTexture = "/esoui/art/icons/event_witchfest_sacking_skelet.dds",
             raceIcon        = nil,
             allianceIcon    = nil,
+            allianceBase    = nil,
+            allianceColor   = nil,
         })
         self._view:SetVitals({
             healthKnown   = true,
@@ -827,9 +847,9 @@ function TargetController:SetDebugMode(active)
         local sample = self:GetSampleEffects()
         self._state.effects = sample
         self._view:SetEffects(sample)
-        local t = BUILDER_TEMPLATES.tank
+        local sampleDebuffs = self:GetSamplePrivilegedDebuffs()
         if self._view.SetPrivilegedDebuffs then
-            self._view:SetPrivilegedDebuffs(t.debuffs)
+            self._view:SetPrivilegedDebuffs(sampleDebuffs)
         end
         self._view:SetVisible(true)
     else
@@ -936,6 +956,19 @@ function TargetController:RefreshVitals(cur, max, _effectiveMax, targetGeneratio
     end
 
     local state = self._state
+    if not self._inMoveMode then
+        local tag = state.unitTag
+        if not DoesUnitExist(tag) or AreUnitsEqual(tag, "player") then
+            return
+        end
+        if state.identity and state.identity.name and GetUnitName then
+            local currentName = GetUnitName(tag)
+            if currentName and currentName ~= "" and currentName ~= state.identity.name then
+                return
+            end
+        end
+    end
+
     local isDead = (cur <= 0) or IsUnitDead(state.unitTag)
     if isDead and not self._inMoveMode then
         state.vitals.isDead = true
@@ -972,10 +1005,23 @@ function TargetController:RefreshIdentity(force, targetGeneration, unitTag)
     if not id then return end
 
     local Presentation = MugShot.Presentation
-    if force or not state.identity or id.reaction ~= state.identity.reaction or id.name ~= state.identity.name then
+    if force or not state.identity
+        or id.reaction ~= state.identity.reaction
+        or id.name ~= state.identity.name
+        or id.portraitTexture ~= state.identity.portraitTexture
+        or id.allianceIcon ~= state.identity.allianceIcon
+        or id.raceIcon ~= state.identity.raceIcon
+        or id.classIcon ~= state.identity.classIcon then
         local prevReaction = state.identity and state.identity.reaction
         state.identity = id
         local settings = self._settings:Get()
+
+        local TargetPolicy = MugShot.TargetPolicy
+        if TargetPolicy and not TargetPolicy.ShouldDisplay(state, settings, self._isInTrial) then
+            self:_ClearTarget(true)
+            return
+        end
+
         local isEnemy = (id.reaction == UNIT_REACTION_HOSTILE)
         if prevReaction ~= id.reaction then
             if self._view.ApplyQuadrantLayout then
@@ -999,6 +1045,20 @@ function TargetController:RefreshShield(targetGeneration, unitTag)
         return
     end
 
+    local state = self._state
+    if not self._inMoveMode then
+        local tag = state.unitTag
+        if not DoesUnitExist(tag) or AreUnitsEqual(tag, "player") then
+            return
+        end
+        if state.identity and state.identity.name and GetUnitName then
+            local currentName = GetUnitName(tag)
+            if currentName and currentName ~= "" and currentName ~= state.identity.name then
+                return
+            end
+        end
+    end
+
     self._state.vitals.shield = self._adapter:ReadVitals(self._state.unitTag).shield or 0
     self:_UpdateVitalsView()
 end
@@ -1012,8 +1072,25 @@ function TargetController:RefreshEffects(targetGeneration, unitTag)
         return
     end
 
+    local tag = self._state.unitTag
     local settings = self._settings:Get()
-    local effects = self._adapter:ReadEffects(self._state.unitTag, nil, settings and settings.trackGroupDebuffs, self._effectsRawBuffer)
+    if not self._inMoveMode then
+        if not DoesUnitExist(tag) or AreUnitsEqual(tag, "player") then
+            return
+        end
+        local TargetPolicy = MugShot.TargetPolicy
+        if TargetPolicy and not TargetPolicy.ShouldDisplay(self._state, settings, self._isInTrial) then
+            return
+        end
+        if self._state.identity and self._state.identity.name and GetUnitName then
+            local currentName = GetUnitName(tag)
+            if currentName and currentName ~= "" and currentName ~= self._state.identity.name then
+                return
+            end
+        end
+    end
+
+    local effects = self._adapter:ReadEffects(tag, nil, settings and settings.trackGroupDebuffs, self._effectsRawBuffer)
     self._state.effects = effects
 
     self:_UpdateEffectsView()

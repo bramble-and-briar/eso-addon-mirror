@@ -18,7 +18,7 @@
     "HideFriendStatus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5034/",
-  "fingerprint": "2122e805f1d533303805704abae682f00771436bbf05f4304e2d5e5970466b4b",
+  "fingerprint": "90ffa3d2273afd74a3b17d70d7d63f48d434ce7bd2cbffbdd2bd06d159ca52f1",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "5034",
   "source_url": "https://www.esoui.com/downloads/info5034-HideFriendStatusmessages.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 10,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 5
   },
   "title": "Hide Friend Status messages",
-  "updated_at": 1794108932000,
-  "version": "2026.11.07"
+  "updated_at": 1794145267000,
+  "version": "2026.11.08"
 }

@@ -426,7 +426,11 @@ l.layoutDynamic = function()
     local nativeButton = ZO_ActionBar_GetButton(slotNum)
     local button = l.buttons[slotNum]
     button.slot:ClearAnchors()
-    button.slot:SetAnchor(BOTTOM, nativeButton.slot, TOP, 0, -gapY)
+    -- 用户拖拽偏移(Move Shift Bar)叠加在默认间距上：经典/动态两预设统一生效，
+    -- 静态双行不适用(孪生行位置固定，菜单已置灰)
+    local sv = l.getSavedVars()
+    button.slot:SetAnchor(BOTTOM, nativeButton.slot, TOP,
+      (sv.barShiftOffsetX or 0), (sv.barShiftOffsetY or 0) - gapY)
     -- 硬设尺寸(与静态双行同款)：ApplyStyle 模板注入在克隆上不可靠，
     -- 键盘下基模板50恰好撞对，手柄下原生变64而克隆仍50就会偏小
     l.setCloneSize(button, slotNum == 8 and dims.ult or dims.ability)
@@ -434,6 +438,15 @@ l.layoutDynamic = function()
   -- 手柄下同时缩原生 slot8(动态模式可见，与克隆行保持一致)
   l.resizeNativeUlt()
   l.applyScale()
+end
+
+---当前预设下克隆槽应显示的本地尺寸(平台模板尺寸；ult 略大)。切手动画
+---起止值/半程回缩都必须用它，硬编码会把动画播成错误尺寸(实测坑)
+---@param slotNum number
+---@return number
+l.currentSlotSize = function(slotNum)
+  local dims = IsInGamepadPreferredMode() and PLATFORM_DIMS.gamepad or PLATFORM_DIMS.keyboard
+  return slotNum == 8 and dims.ult or dims.ability
 end
 
 ---按键提示(ButtonText)固定/还原：静态下原生槽被隐藏，键提示重父到 ZO_ActionBar1
@@ -614,6 +627,33 @@ l.setCloneSize = function(button, w)
     backdrop:ClearAnchors()
     backdrop:SetAnchor(TOPLEFT, flipCard, TOPLEFT, -4, -4)
     backdrop:SetAnchor(BOTTOMRIGHT, flipCard, BOTTOMRIGHT, 4, 4)
+    -- 层级归零：模板继承链给边框类子控件设了 layer/tier/level——三者都是
+    -- 全局比较器，任何残留都会跳出树序浮到原生条之上(用户可见的残留边框
+    -- 来源不止 Backdrop，dump 证实克隆 BD 已隐藏仍见框→Button 状态贴图/
+    -- Frame 等一并归零)。全归零后低于图标(0/1/1)且随子树沉入原生条之下；
+    -- setCloneSize 在 ApplyStyle 各路径之后运行，模板重放后会被重新归零
+    local zeroTriple = function(c)
+      if c then
+        c:SetDrawLayer(DL_BACKGROUND)
+        c:SetDrawTier(0)
+        c:SetDrawLevel(0)
+      end
+    end
+    zeroTriple(backdrop)
+    zeroTriple(button.slot:GetNamedChild("Button"))
+    zeroTriple(button.slot:GetNamedChild("Frame"))
+    zeroTriple(button.slot:GetNamedChild("Glow"))
+    zeroTriple(button.slot:GetNamedChild("BG"))
+    zeroTriple(button.slot:GetNamedChild("DropCallout"))
+    zeroTriple(button.slot:GetNamedChild("Status"))
+    -- 图标下沉一档：模板给 (0/1/1) 会盖过原生条边框(BD=0/1/0，手柄框粗更明显)；
+    -- 归一到 (0/1/0) 与原生边框平齐→树序→原生边框之下；冷却线段/进度条同
+    -- (0/1/0) 与图标平局→创建序(更晚)→图标之上，链路两端都成立
+    local icon = button.slot:GetNamedChild("Icon")
+    if icon then
+      icon:SetDrawTier(1)
+      icon:SetDrawLevel(0)
+    end
   end
   -- Frame(ult 独有装饰框)：已隐藏但一并重锚保险
   local frame = button.slot:GetNamedChild("Frame")
@@ -952,7 +992,8 @@ l.layoutRow = function()
   if not l.buttons[3] or not l.container then
     return
   end
-  if l.getSavedVars().barPreset == "static" and l.effectivePreset() == "static" then
+  local preset = l.effectivePreset()
+  if l.getSavedVars().barPreset == "static" and preset == "static" then
     l.layoutStatic()
   else
     l.exitStatic()
@@ -1266,7 +1307,10 @@ l.syncAll = function(relayout)
     l.container:SetHidden(true)
     return
   end
-  l.container:SetHidden(false)
+  -- 拖拽定位期间(update 各路径会试图重新显示，此处必须尊重闩锁)
+  if not l.shiftRowForceHidden then
+    l.container:SetHidden(false)
+  end
   if relayout ~= false then
     l.layoutRow()
   end
@@ -1302,10 +1346,11 @@ local function onSwapAnimationHalfDone(_, button)
   -- HandleSlotChanged→ApplyStyle 会把 FlipCard 重置到模板值(ult=67)且
   -- ApplySwapAnimationStyle 读到 67 设入动画后半程起止值——克隆 ult 在
   -- 翻转展开阶段会偏大。同原生 reapply 的修法：缩回目标值后重设动画参数
-  local dims = IsInGamepadPreferredMode() and PLATFORM_DIMS.gamepad or PLATFORM_DIMS.keyboard
-  l.setCloneSize(button, button.slot.slotNum == 8 and dims.ult or dims.ability)
+  -- (预设感知：迷你行回缩到 32，否则动画把迷你行变成全尺寸双条)
+  local size = l.currentSlotSize(button.slot.slotNum)
+  l.setCloneSize(button, size)
   -- 动画后半程起止值用本地尺寸直写(原生读 GetDimensions 含 scale，会双重缩小)
-  l.applySwapAnimStyleLocal(button, (button.slot.slotNum == 8 and dims.ult or dims.ability) - 3)
+  l.applySwapAnimStyleLocal(button, size - 3)
   l.applyInactiveStyle(button)
   -- Q 键提示锚的重断言已改为 PostHook 原生药剂栏按钮(见 registerEvents)，
   -- 不再在此处追赶原生刷新时机
@@ -1516,6 +1561,11 @@ end
 ---调用点：layoutDynamic / applyPlatformStyle / onSwapAnimationDone
 ---@type fun()
 l.reassertUltKeybinds = function()
+  -- 迷你行不显示肩键提示(信息行非操作行)，且其 D8 已缩到 32px，
+  -- 绝对锚的肩键会飘在行外——切手动画回调会调本函数，必须在此拦下
+  if l.effectivePreset() == "mini" then
+    return
+  end
   if not (l.buttons[8] and l.buttons[8].slot) then
     return
   end
@@ -1705,8 +1755,8 @@ local function onSwapAnimationDone(_, button)
   -- 解锁内容更新抑制(所有按钮动画完毕；最后一个回调时 swapInProgress 已被600ms兜底清)
   l.swapInProgress = false
   -- 翻转动画后原生 ApplyStyle 可能重置了 Backdrop/Frame 锚和尺寸，补上
-  local dims = IsInGamepadPreferredMode() and PLATFORM_DIMS.gamepad or PLATFORM_DIMS.keyboard
-  l.setCloneSize(button, button.slot.slotNum == 8 and dims.ult or dims.ability)
+  -- (预设感知：迷你行回缩到 32)
+  l.setCloneSize(button, l.currentSlotSize(button.slot.slotNum))
   -- 确保内容与 hotbar 同步(动画期间被抑制的更新在此补齐)
   if button.slot.hotbarCategory ~= l.currentHotbar then
     l.currentHotbar = button.slot.hotbarCategory
@@ -1783,7 +1833,12 @@ l.createRow = function()
     return
   end
   local parent = ZO_ActionBar_GetButton(3).slot:GetParent()
-  l.container = WINDOW_MANAGER:CreateControl("ADRBackBarRow", parent, CT_CONTROL)
+  -- 容器重父到 WeaponSwap(XML 顺序：KeybindBG→WeaponSwap→技能槽按钮)：
+  -- 深度优先绘制序使整个克隆子树先于技能槽子树——用户把浮动条拖到与原生条
+  -- 重叠时原生条遮挡克隆行(与旧贴图行行为一致)。tier/layer 方案已试无效
+  -- (负 tier 被钳)。KeybindBG 虽更早但手柄下隐藏(隐藏父级会藏整个子树)不可用
+  local weaponSwapHost = ZO_ActionBar1 and ZO_ActionBar1:GetNamedChild("WeaponSwap")
+  l.container = WINDOW_MANAGER:CreateControl("ADRBackBarRow", weaponSwapHost or parent, CT_CONTROL)
   local hotbar = l.inactiveHotbar() or HOTBAR_CATEGORY_BACKUP
   for slotNum = 3, 8 do
     local template = slotNum == 8 and "ZO_UltimateActionButton" or "ZO_ActionButton"
@@ -1891,12 +1946,12 @@ l.playSwapAnimation = function()
   if l.getSavedVars().barPreset ~= "static" then
     -- 动画期间抑制其他事件源的内容更新(否则半程前就被 syncAll/syncSlot 换掉)
     l.swapInProgress = true
-    local dims = IsInGamepadPreferredMode() and PLATFORM_DIMS.gamepad or PLATFORM_DIMS.keyboard
     for slotNum = 3, 8 do
       local button = l.buttons[slotNum]
       if button and button.hotbarSwapAnimation then
         -- 先写本地起止值再播：上次 ApplyStyle 链读的是含 scale 的屏幕值
-        l.applySwapAnimStyleLocal(button, (slotNum == 8 and dims.ult or dims.ability) - 3)
+        -- (预设感知尺寸：迷你行 32，否则动画把迷你行播成全尺寸)
+        l.applySwapAnimStyleLocal(button, l.currentSlotSize(slotNum) - 3)
         button.hotbarSwapAnimation:PlayFromStart()
       end
     end
@@ -2057,11 +2112,10 @@ end
 
 ---停用克隆行(切回经典预设/关闭计时条)
 ---@type fun()
-l.deactivate = function()
-  l.unregisterEvents()
-  l.active = false
-  l.lastAppliedPreset = nil
-  l.exitStatic()
+---动态预设的原生干预解除(切到迷你/停用时共用)：键位偏移还原、Q 钉扎还原、
+---D8 肩键重父回槽、原生 ult 尺寸还原、切手按钮回原生语义(手柄下永久隐藏)
+---@type fun()
+l.disarmDynamicInterventions = function()
   l.restoreKeybindOffsets()
   -- Q 提示还原原生(重父回药水槽+重放模板锚)
   l.unpinQuickslotKeybind()
@@ -2088,6 +2142,15 @@ l.deactivate = function()
       ZO_WeaponSwap_SetPermanentlyHidden(weaponSwap, true)
     end
   end
+end
+
+---@type fun()
+l.deactivate = function()
+  l.unregisterEvents()
+  l.active = false
+  l.lastAppliedPreset = nil
+  l.exitStatic()
+  l.disarmDynamicInterventions()
   if l.container then
     l.container:SetHidden(true)
   end
@@ -2097,8 +2160,10 @@ end
 l.onCoreUpdate = function()
   local sv = l.getSavedVars()
   -- FAB 存在时任何预设都不激活克隆行(回退贴图经典)；否则所有预设激活，
-  -- classic 仅作为可见性模式(每槽有计时才显示，由 Bar 模块每帧传入可见集)
+  -- classic 仅作为可见性模式(每槽有计时才显示，由 Bar 模块每帧传入可见集)；
+  -- mainonly/mini 完全不激活(无克隆行，原生条零干预；mini 由 MiniBar 模块自管)
   local want = sv.barEnabled and FancyActionBar == nil
+    and sv.barPreset ~= "mainonly" and sv.barPreset ~= "mini"
   if want and not l.active then
     l.activate()
   elseif not want and l.active then
@@ -2274,6 +2339,25 @@ end
 --========================================
 --        register
 --========================================
+---供 Bar 模块调用：浮动条位置设置变化后重排克隆行(动态预设吃 X/Y 偏移；
+---经典走贴图路径不经过这里；迷你行由 MiniBar 模块自管；静态无操作)
+m.refreshShiftRow = function()
+  if l.active and l.effectivePreset() == "dynamic" then
+    l.layoutDynamic()
+  end
+end
+
+---拖拽定位期间隐藏/恢复克隆行：克隆按钮会遮盖定位框架(鼠标/视觉双重竞争)，
+---隐藏后框架清晰可见可拖，关闭框架时行在新位置出现
+m.setShiftRowHidden = function(hidden)
+  -- 闩锁必需：update() 每次同步都会无条件重显容器(心跳/事件驱动)，
+  -- 不加锁拖拽中行会立刻回来盖住框架
+  l.shiftRowForceHidden = hidden or nil
+  if l.container then
+    l.container:SetHidden(hidden)
+  end
+end
+
 addon.register("BackBar#M", m)
 
 addon.register("BackBar", m)
@@ -2311,7 +2395,6 @@ SLASH_COMMANDS["/adrbackbar"] = function()
   ))
   if l.active and l.container then
     l.syncAll()
-    d("[ADR] relayout forced: " .. tostring(l.effectivePreset()))
     -- 极简 dump：每槽一行内联尺寸(slot|FC|Icon|BD|Btn)，D3/D8/N3/N8 四行直接对比
     local function oneLine(label, button)
       if not (button and button.slot) then
@@ -2336,53 +2419,55 @@ SLASH_COMMANDS["/adrbackbar"] = function()
         bdRel = relTo and relTo.GetName and relTo:GetName() or "nil"
         bdRel = bdRel:gsub("ADRBackBarRowActionButton%d+", "CLONE"):gsub("ZO_ActionBar%dButton%d+", "NATIVE")
       end
-      d(string.format("[ADR] %s slot=%.0f sc=%.2f | FC=%s Icon=%s BD=%s→%s%s Btn=%s",
+      -- 绘制三元组(layer/tier/level，均为层内全局比较器)：定位层级放置问题
+      local function triple(c)
+        if not c then
+          return "--"
+        end
+        return string.format("%d/%d/%d", c:GetDrawLayer() or -1, c:GetDrawTier() or -1, c:GetDrawLevel() or -1)
+      end
+      d(string.format("[ADR] %s slot=%.0f sc=%.2f | FC=%s Icon=%s[%s] BD=%s→%s%s[%s] Btn=[%s] slotTri=[%s]",
         label, s:GetWidth() or -1, s:GetScale() or -1,
-        dim(fc), dim(ic),
-        dim(bd), bdRel, bd and bd:IsControlHidden() and "[hid]" or "", dim(bt)))
+        dim(fc), dim(ic), triple(ic),
+        dim(bd), bdRel, bd and bd:IsControlHidden() and "[hid]" or "", triple(bd),
+        triple(bt), triple(s)))
     end
     oneLine("D3", l.buttons[3])
     oneLine("D8", l.buttons[8])
     oneLine("N3", ZO_ActionBar_GetButton(3))
     oneLine("N8", ZO_ActionBar_GetButton(8))
-    -- 1-5/T 键位提示状态(定位叠堆篡改)：重父后从 ZO_ActionBar1 递归查找
+    -- 键位钉扎健康检查(旧案已结：叠堆篡改/Q飞位)：健康时一行汇总，异常才展开明细
     do
-      for slotNum = 3, 8 do
-        local text = l.pinnedKeybindTexts and l.pinnedKeybindTexts[slotNum]
-          and l.pinnedKeybindTexts[slotNum].text
-          or (ZO_ActionBar1 and ZO_ActionBar1:GetNamedChild("ActionButton" .. slotNum .. "ButtonText"))
-        if text then
-          local _, pt, rel, relPt, ox, oy = text:GetAnchor(0)
-          d(string.format("[ADR] KB%d n=%d parent=%s pt=%s relTo=%s relPt=%s ox=%s oy=%s l=%.0f t=%.0f",
-            slotNum,
-            text:GetNumAnchors(),
-            text:GetParent() and text:GetParent():GetName() or "?",
-            tostring(pt),
-            rel and rel.GetName and rel:GetName() or "nil",
-            tostring(relPt), tostring(ox), tostring(oy),
-            text:GetLeft() or -1, text:GetTop() or -1))
+      local issues = {}
+      if l.keybindsPinned and l.pinnedKeybindTexts then
+        for slotNum, entry in pairs(l.pinnedKeybindTexts) do
+          local text = entry.text
+          if text and text:GetParent() == ZO_ActionBar1 then
+            local ok = false
+            if text:GetNumAnchors() == 1 then
+              local _, _, relTo, relPt = text:GetAnchor(0)
+              ok = relTo == ZO_ActionBar1 and relPt == TOPLEFT
+            end
+            if not ok then
+              issues[#issues + 1] = string.format("KB%d anchor tampered", slotNum)
+            end
+          end
         end
       end
-    end
-    -- Q 键提示状态：父级/锚/坐标(定位重父后位置异常)
-    do
-      local qs = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-      if qs and qs.slot then
-        local qsText = qs.slot:GetNamedChild("ButtonText")
-          or (ZO_ActionBar1 and ZO_ActionBar1:GetNamedChild("QuickslotButtonButtonText"))
-        if qsText then
-          local _, pt, rel, relPt, ox = qsText:GetAnchor(0)
-          d(string.format(
-            "[ADR] Q label parent=%s pt=%s relTo=%s relPt=%s l=%.0f t=%.0f w=%.0f off=%s",
-            qsText:GetParent() and qsText:GetParent():GetName() or "?",
-            tostring(pt),
-            rel and rel.GetName and rel:GetName() or "nil",
-            tostring(relPt),
-            qsText:GetLeft() or -1, qsText:GetTop() or -1,
-            qsText:GetWidth() or -1, tostring(ox)))
-        else
-          d("[ADR] Q label not found")
+      if l.qsKeybindPinned and l.pinnedQsLabel then
+        if l.pinnedQsLabel:GetParent() ~= ZO_ActionBar1 then
+          issues[#issues + 1] = "Q parent wrong"
         end
+      end
+      if l.pinnedUltLk and l.container and l.pinnedUltLk:GetParent() ~= l.container then
+        issues[#issues + 1] = "D8 ult keybind parent wrong"
+      end
+      if next(issues) then
+        for i = 1, #issues do
+          d("[ADR] keybind issue: " .. issues[i])
+        end
+      else
+        d("[ADR] keybinds OK")
       end
     end
     -- 激活光效诊断：对比三个数据源(激活条查询/各自条查询/玩家 buff 表)，

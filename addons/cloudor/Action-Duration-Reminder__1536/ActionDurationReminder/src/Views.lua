@@ -208,7 +208,7 @@ m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
   end
   -- 标签父控件：贴图模式挂 backdrop/slotIcon，native模式挂克隆按钮槽位
   local labelParent = backdrop or nativeSlotControl or slotIcon
-  local textureShifted = shifted and not inst.nativeMode
+  local shiftRow = shifted -- 贴图行与原生克隆行统一用浮动条偏移(动态预设下 Label Offset (Shift Bar) 生效)
   local label = WINDOW_MANAGER:CreateControl(nil, labelParent, CT_LABEL) --LabelControl#LabelControl
   inst.label = label
   label:SetFont(l.getLabelFont())
@@ -225,7 +225,7 @@ m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
       labelParent,
       BOTTOM,
       0,
-      textureShifted and (-savedVars.barLabelYOffsetInShift + 1) or (-savedVars.barLabelYOffset + 3)
+      shiftRow and (-savedVars.barLabelYOffsetInShift + 1) or (-savedVars.barLabelYOffset + 3)
     )
   end
   local stackLabel = WINDOW_MANAGER:CreateControl(nil, labelParent, CT_LABEL)
@@ -240,7 +240,7 @@ m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
     labelParent,
     TOPRIGHT,
     -5,
-    textureShifted and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
+    shiftRow and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
   )
   local stackLabel2 = WINDOW_MANAGER:CreateControl(nil, labelParent, CT_LABEL)
   inst.stackLabel2 = stackLabel2
@@ -254,7 +254,7 @@ m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
     labelParent,
     TOPLEFT,
     5,
-    textureShifted and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
+    shiftRow and (-savedVars.barStackLabelYOffsetInShift + 2) or (-savedVars.barStackLabelYOffset + 0)
   )
 
   ---@type adr.views.Cooldown
@@ -266,8 +266,14 @@ m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
 
   -- Progress bar (horizontal bar that shrinks from right to left)
   local progressBar = WINDOW_MANAGER:CreateControl(nil, backdrop or slot, CT_BACKDROP)
-  progressBar:SetDrawLayer(DL_CONTROLS)
-  progressBar:SetDrawLevel(1) -- Above icon (DL_BACKGROUND), below cooldown line
+  -- 同冷却线段：浮动行平级匹配 level=1(树序裁决双胜)，主条恢复高位
+  if shifted then
+    progressBar:SetDrawTier(1) -- (0/1/0)：同冷却线段——与图标平齐靠创建序压上，随子树沉
+    progressBar:SetDrawLevel(0)
+  else
+    progressBar:SetDrawLayer(DL_CONTROLS)
+    progressBar:SetDrawLevel(1)
+  end
   local progressColor = savedVars.barProgressColor
   local progressAlpha = savedVars.barProgressOpacity / 100
   progressBar:SetCenterColor(progressColor[1], progressColor[2], progressColor[3], progressAlpha)
@@ -321,14 +327,14 @@ end
 ---@type fun(widget: adr.views.Widget)
 m.updateWidgetLabelYOffset = function(widget)
   if widget.label then
-    local textureShifted = widget.shifted and not widget.nativeMode
+    local shiftRow = widget.shifted -- 同 newWidget：克隆行也用浮动条偏移
     widget.label:ClearAnchors()
     widget.label:SetAnchor(
       BOTTOM,
       widget.label:GetParent(),
       BOTTOM,
       0,
-      textureShifted and (-l.getSavedVars().barLabelYOffsetInShift + 1) or (-l.getSavedVars().barLabelYOffset + 3)
+      shiftRow and (-l.getSavedVars().barLabelYOffsetInShift + 1) or (-l.getSavedVars().barLabelYOffset + 3)
     )
   end
 end
@@ -405,8 +411,8 @@ end
 m.updateWidgetStackLabelYOffset = function(widget)
   -- 与 newWidget 的初始定位严格一致(框内右上/左上角)，
   -- 否则滑条调整或回收站复用后标签会跳到顶边外(表现为“超过边框”)
-  local textureShifted = widget.shifted and not widget.nativeMode
-  local offsetY = textureShifted and (-l.getSavedVars().barStackLabelYOffsetInShift + 2)
+  local shiftRow = widget.shifted -- 同 newWidget：克隆行也用浮动条偏移
+  local offsetY = shiftRow and (-l.getSavedVars().barStackLabelYOffsetInShift + 2)
     or (-l.getSavedVars().barStackLabelYOffset + 0)
   if widget.stackLabel then
     widget.stackLabel:ClearAnchors()
@@ -424,9 +430,13 @@ end
 ---@type fun(self: adr.views.Cooldown): TextureControl
 mCooldown.createPart = function(self)
   local part = self.background:CreateControl(nil, CT_TEXTURE) --TextureControl#TextureControl
-  if self.drawTier and self.drawTier > 0 then
-    part:SetDrawTier(self.drawTier)
-    part:SetDrawLayer(DL_TEXT)
+  -- 层级策略(实测绘得)：layer桶→tier(层内全局)→level(层内全局)→树序。
+  -- 模板给图标设了 level=1：浮动行线段【平级匹配 level=1】→与克隆图标打平由
+  -- 树序裁决(创建更晚→图标之上)，与原生图标打平由子树序裁决(容器在 WeaponSwap
+  -- 宿主下→原生条之下)。主条(非浮动行)不下沉，恢复高位
+  if self.shifted then
+    part:SetDrawTier(1) -- (0/1/0)：与克隆图标及原生边框(BD=0/1/0)平齐——
+    part:SetDrawLevel(0) -- 平局均落树序：晚于克隆图标→其上；WeaponSwap 子树→原生条之下
   else
     part:SetDrawLayer(DL_CONTROLS)
     part:SetDrawLevel(2)

@@ -1,0 +1,12 @@
+## Author: Thory'JP
+## Version: 0.4.0
+## AddOnVersion: 040
+## Description: add tags M(agica) / S(tamina) to Potions
+## Version: 0.4.0
+## APIVersion: 101051
+
+Classifier.lua
+Overlay.lua
+Diagnostics.lua
+Hooks.lua
+Bootstrap.lua

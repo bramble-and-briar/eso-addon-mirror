@@ -1,4 +1,4 @@
--- PlayerMascotHealth v1.3.4-diag  (v1.3.3 + diagnostics only: no change to HP rules, animation or images)
+-- PlayerMascotHealth v1.3.6  (v1.3.5-diag minus the diagnostics; NORMAL sheet renamed + automatic still-image fallback)
 -- Shows one animation per HP state (5 states: NORMAL / CAUTION / DANGER / CRITICAL / ZERO) depending on the PLAYER's own HP. Own HP only (no enemy/NPC/target HP).
 -- Each state is either STATIC (one image) or ANIMATION (sprite sheet played by the game engine through
 -- ANIMATION_TEXTURE - no Lua timer, no OnUpdate). See STATE_IMAGE below.
@@ -6,8 +6,8 @@
 -- rare lifecycle events. The texture is only swapped when the state actually changes.
 
 local ADDON      = "PlayerMascotHealth"
-local VERSION    = "1.3.4-diag"
-local DEBUG      = true       -- v1.3.1: prints a few "[PMH]" lines (max 12 per session) to find why nothing is shown; set false to silence
+local VERSION    = "1.3.6"
+local DEBUG      = false      -- true prints "[PMH]" debug lines (max DEBUG_MAX per session); off in the release
 local SV_NAME    = "PlayerMascotHealth_SV"
 local SV_VERSION = 1
 
@@ -23,8 +23,11 @@ local TEX_DIR = "PlayerMascotHealth/tex/"
 -- To animate another state later, change its entry (e.g. CAUTION = { type = "ANIMATION", file = ".../CAUTION_SHEET.dds",
 -- cols = 4, rows = 2, fps = 8, fallback = ".../CAUTION.png", contentBottom = ... }). No other code change is needed.
 local STATE_IMAGE = {
-    NORMAL   = { type = "ANIMATION", file = TEX_DIR .. "NORMAL_SHEET.dds", cols = 4, rows = 2, fps = 8,
-                 fallback = TEX_DIR .. "NORMAL.png", contentBottom = 498 / 512 },
+    -- v1.3.6: sheet renamed NORMAL_SHEET.dds -> NORMAL_ANIMATION.dds (the old name never reported "loaded" on PS5; the file bytes are
+    -- unchanged). fallbackAfter = after this many unanswered load checks (1 s apart) the sheet is given up for this session and
+    -- NORMAL.png is shown instead. Only NORMAL has it; the other states keep their original behaviour.
+    NORMAL   = { type = "ANIMATION", file = TEX_DIR .. "NORMAL_ANIMATION.dds", cols = 4, rows = 2, fps = 8,
+                 fallback = TEX_DIR .. "NORMAL.png", contentBottom = 498 / 512, fallbackAfter = 3 },
     CAUTION  = { type = "ANIMATION", file = TEX_DIR .. "CAUTION_SHEET.dds", cols = 4, rows = 2, fps = 8,
                  fallback = TEX_DIR .. "CAUTION.png", contentBottom = 498 / 512 },
     DANGER   = { type = "ANIMATION", file = TEX_DIR .. "DANGER_SHEET.dds", cols = 4, rows = 2, fps = 8,
@@ -80,12 +83,11 @@ local activeTL          -- timeline that is playing right now (nil = nothing pla
 local rawCur, rawMax, rawEff   -- what GetUnitPower returned last (for the debug line only)
 local shownFile            -- file currently set on the control (debug only)
 local debugLines, firstEventSeen = 0, false
-local evtLines, seenPairs = 0, {}
 local loadedSet = {}       -- files for which the engine reported OnTextureLoaded (verified API on PS5)
 local preview = false      -- settings preview (runtime only, never saved; OFF after every login)
 local hudFragment          -- scene fragment that hides the mascot in menus (nil if it could not be created)
 
-local DEBUG_MAX = 400      -- v1.3.4-diag: was 12
+local DEBUG_MAX = 400      -- hard cap on debug lines per session (only used when DEBUG = true)
 local function NowMs()
     if GetGameTimeMilliseconds then
         local ok, v = pcall(GetGameTimeMilliseconds)
@@ -95,8 +97,7 @@ local function NowMs()
 end
 local t0Ms = NowMs()
 local reqSeq, reqFile, reqMs = 0, nil, 0      -- the image request that is currently in flight (for the loaded-event log)
-local forcedState          -- diag: state chosen in the settings (nil = automatic from HP); runtime only
-local watchdogOff = false  -- diag: stops the "set the image again" watchdog; runtime only
+local forcedState          -- state chosen in the settings preview dropdown (nil = automatic from HP); runtime only
 
 local function Dbg(msg)       -- bounded: never floods the chat
     if not DEBUG then return end
@@ -241,8 +242,21 @@ function ScheduleWatch()
     watchPending = true
     zo_callLater(function()
         watchPending = false
-        if watchdogOff then Dbg("watchdog is OFF (diag): not setting the image again") return end
         if not tex or not shownState or not shownFile or loadedSet[shownFile] then return end   -- loaded, or nothing shown
+        local cfg = STATE_IMAGE[shownState]
+        -- v1.3.6: a sheet that never reports "loaded" is dropped for this session and the still image is shown instead
+        -- (once per state: animBroken makes ShowImage use the PNG from now on, so the sheet is never requested again).
+        if cfg and cfg.fallbackAfter and cfg.type == "ANIMATION" and not animBroken[shownState]
+           and shownFile == cfg.file and watchAttempt >= cfg.fallbackAfter then
+            d("[PlayerMascotHealth] " .. shownState .. " animation sheet was not loaded -> showing the still image instead")
+            StopAnim()
+            timelines[shownState] = nil
+            animBroken[shownState] = true
+            ShowImage(shownState, cfg)
+            watchAttempt = 1
+            ScheduleWatch()                   -- one more bounded check that the still image itself arrives
+            return
+        end
         if watchAttempt >= LOAD_CHECK_MAX then
             Dbg("texture never reported loaded: " .. tostring(shownFile))
             return
@@ -324,7 +338,7 @@ end
 local function UpdateState(cur, max)
     local s = CalcState(cur, max)
     if s == nil then return false end   -- HP data not available (yet)
-    if forcedState then s = forcedState end      -- diag: the settings dropdown overrides the HP state
+    if forcedState then s = forcedState end      -- the settings preview dropdown overrides the HP state
     if s ~= currentState then
         currentState = s
         if sv.enabled then ApplyTexture() end
@@ -332,16 +346,6 @@ local function UpdateState(cur, max)
     currentPercent = CalcPercent(cur, max)
     if sv.enabled and sv.showPercent then ApplyPercent() end   -- no-op while the integer is unchanged
     return true
-end
-
--- debug only: lists each (unit, power type) pair the first time an EVENT_POWER_UPDATE shows it (max 8 lines)
-local function NoteEvent(unitTag, powerType, value, max)
-    local key = tostring(unitTag) .. ":" .. tostring(powerType)
-    if seenPairs[key] then return end
-    seenPairs[key] = true
-    evtLines = evtLines + 1
-    d(("[PMH] event unit=%s type=%s value=%s max=%s %s"):format(tostring(unitTag), tostring(powerType), tostring(value), tostring(max),
-        (unitTag == "player" and HEALTH_TYPES[powerType]) and "=HEALTH" or ""))
 end
 
 -- Full re-read: login / zone change / respawn / death / revive (rare events)
@@ -353,16 +357,16 @@ local function ReadHealthNow()
 end
 
 -- One-shot delayed re-read (never repeats itself; cancelled by any newer valid HP event).
--- diag: show one state on purpose (to test every sheet without having to lose HP). Runtime only.
+-- Settings preview: show one state on purpose (check every animation without having to lose HP). Runtime only, never saved.
 local function SetForcedState(name)
     if name and STATE_IMAGE[name] then
         forcedState = name
         currentState = name
-        Dbg("diag: state forced to " .. name)
+        Dbg("preview: state forced to " .. name)
         if sv.enabled then ApplyTexture(); ApplyLayout() end
     else
         forcedState = nil
-        Dbg("diag: state back to automatic (HP)")
+        Dbg("preview: state back to automatic (HP)")
         ReadHealthNow()
     end
 end
@@ -380,7 +384,6 @@ end
 -- The handler checks unit AND resource type itself (does not rely on registration filters), so Stamina /
 -- Magicka / Ultimate / other units can never reach the image or the % text.
 local function OnPowerUpdate(_, unitTag, _, powerType, powerValue, powerMax, powerEffectiveMax)
-    if DEBUG and evtLines < 8 then NoteEvent(unitTag, powerType, powerValue, powerMax) end
     if unitTag ~= "player" or not HEALTH_TYPES[powerType] then return end
     if not firstEventSeen then firstEventSeen = true; Dbg("first HP event " .. tostring(powerValue) .. "/" .. tostring(powerMax) .. "/" .. tostring(powerEffectiveMax)) end
 
@@ -472,7 +475,7 @@ local function BuildUI()
         tex:SetHandler("OnEffectivelyShown", function()
             if sv and sv.enabled then
                 EnsurePlayback()
-                if shownFile and not loadedSet[shownFile] and not watchdogOff then ReapplyImage() end   -- visible now: let the engine load it
+                if shownFile and not loadedSet[shownFile] then ReapplyImage() end   -- visible now: let the engine load it
             end
         end)
     end)
@@ -499,113 +502,6 @@ local function BuildUI()
         HUD_SCENE:AddFragment(hudFragment)
         HUD_UI_SCENE:AddFragment(hudFragment)
     end)
-end
-
----------------------------------------------------------------------------
--- DIAGNOSTICS (v1.3.4-diag): nothing here changes HP rules, animation or images unless a diag option is used
----------------------------------------------------------------------------
-local STATE_ORDER = { "NORMAL", "CAUTION", "DANGER", "CRITICAL", "ZERO" }
-local PROBE_FILES = {}
-for _, st in ipairs(STATE_ORDER) do
-    PROBE_FILES[#PROBE_FILES + 1] = STATE_IMAGE[st].file
-    PROBE_FILES[#PROBE_FILES + 1] = STATE_IMAGE[st].fallback
-end
-local probeTLW, probes
-local function ShortName(path) return tostring(path):match("[^/]+$") or tostring(path) end
-
--- Loads each of the 10 image files (5 sheets + 5 fallbacks) on its own small control and reports which ones the engine loads.
-local function RunProbes()
-    local ok, err = pcall(function()
-        if not probeTLW then
-            probeTLW = WINDOW_MANAGER:CreateTopLevelWindow(ADDON .. "_ProbeTLW")   -- no scene fragment: visible in menus too
-            probeTLW:SetMouseEnabled(false); probeTLW:SetMovable(false)
-            probeTLW:SetDimensions(#PROBE_FILES * 34 + 8, 40)
-            probeTLW:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 40, 40)
-            probes = {}
-            for i, f in ipairs(PROBE_FILES) do
-                local c = WINDOW_MANAGER:CreateControl(ADDON .. "_Probe" .. i, probeTLW, CT_TEXTURE)
-                c:SetDimensions(28, 28)
-                c:SetAnchor(TOPLEFT, probeTLW, TOPLEFT, 4 + (i - 1) * 34, 6)
-                probes[i] = { ctl = c, file = f }
-                pcall(function()
-                    c:SetHandler("OnTextureLoaded", function()
-                        local pr = probes[i]
-                        if not pr.loaded then
-                            pr.loaded = true; pr.ms = NowMs() - pr.t
-                            local okd, w, h = pcall(c.GetTextureFileDimensions, c)
-                            pr.dims = okd and (tostring(w) .. "x" .. tostring(h)) or "?"
-                        end
-                    end)
-                end)
-            end
-        end
-        probeTLW:SetHidden(false)
-        Dbg("probe: loading the 10 image files on separate controls ...")
-        for _, pr in ipairs(probes) do
-            pr.loaded = false; pr.ms = nil; pr.t = NowMs()
-            pr.ctl:SetTexture(pr.file)
-        end
-        local function summary(tag)
-            local bad = 0
-            for _, pr in ipairs(probes) do
-                if pr.loaded then
-                    Dbg(("probe%s %s: LOADED %s in %d ms"):format(tag, ShortName(pr.file), tostring(pr.dims), pr.ms or -1))
-                else
-                    bad = bad + 1
-                    Dbg(("probe%s %s: NOT LOADED"):format(tag, ShortName(pr.file)))
-                end
-            end
-            return bad
-        end
-        zo_callLater(function()
-            local bad = summary("")
-            if bad > 0 then
-                zo_callLater(function() summary(" (late check)"); if probeTLW then probeTLW:SetHidden(true) end end, 6000)
-            elseif probeTLW then
-                probeTLW:SetHidden(true)
-            end
-        end, 4000)
-    end)
-    if not ok then Dbg("probe error: " .. tostring(err)) end
-end
-
--- Prints the whole status to the chat (not limited by the debug line cap).
-local function PrintReport()
-    local function say(t) d("[PMH report] " .. t) end
-    local function try(f, ...) local r = { pcall(f, ...) }; if r[1] then table.remove(r, 1); return unpack(r) end return "n/a" end
-    local lam = collectgarbage("count")
-    say(("v%s enabled=%s preview=%s forced=%s watchdogOff=%s"):format(VERSION, tostring(sv and sv.enabled), tostring(preview), tostring(forcedState), tostring(watchdogOff)))
-    say(("state current=%s shown=%s | HP raw=%s/%s/%s percent=%s"):format(tostring(currentState), tostring(shownState), tostring(rawCur), tostring(rawMax), tostring(rawEff), tostring(currentPercent)))
-    if tex then
-        local playing = activeTL and try(activeTL.IsPlaying, activeTL) or false
-        local cl, cr, ct, cb = try(tex.GetTextureCoords, tex)
-        local w, h = try(tex.GetTextureFileDimensions, tex)
-        say(("image file=%s | control hidden=%s tlw hidden=%s | animation playing=%s | coords=%s,%s,%s,%s | file size=%sx%s"):format(
-            tostring(shownFile), tostring(try(tex.IsHidden, tex)), tostring(tlw and try(tlw.IsHidden, tlw)), tostring(playing),
-            tostring(cl), tostring(cr), tostring(ct), tostring(cb), tostring(w), tostring(h)))
-    end
-    say(("thresholds: NORMAL >= %s%%, CAUTION >= %s%%, DANGER >= %s%%, CRITICAL = above 0 and below DANGER, ZERO = HP 0"):format(
-        tostring(sv and sv.normalStart), tostring(sv and sv.cautionStart), tostring(sv and sv.dangerStart)))
-    local created = 0; for _ in pairs(timelines) do created = created + 1 end
-    for _, st in ipairs(STATE_ORDER) do
-        local cfg = STATE_IMAGE[st]
-        say(("map %-8s -> %s | fallback %s | loaded=%s animationBroken=%s timeline=%s"):format(
-            st, ShortName(cfg.file), ShortName(cfg.fallback), tostring(loadedSet[cfg.file] == true), tostring(animBroken[st] == true), tostring(timelines[st] ~= nil)))
-    end
-    say(("Lua memory %.0f KB | game time %d s | timelines %d | debug lines %d/%d"):format(lam, math.floor(NowMs() / 1000), created, debugLines, DEBUG_MAX))
-end
-
--- Throws the current image + animation away and builds them again (for testing recovery after a memory crash).
-local function ForceReload()
-    if not tex or not shownState then Dbg("diag: re-initialize: nothing is shown yet"); return end
-    local st, cfg = shownState, STATE_IMAGE[shownState]
-    Dbg("diag: re-initializing " .. st .. " (" .. ShortName(cfg.file) .. ")")
-    StopAnim()
-    loadedSet[cfg.file] = nil; loadedSet[cfg.fallback] = nil
-    animBroken[st] = nil; timelines[st] = nil
-    ShowImage(st, cfg)
-    tex:SetHidden(not sv.enabled)
-    WatchLoad()
 end
 
 ---------------------------------------------------------------------------
@@ -721,36 +617,14 @@ local function BuildSettings()
             end,
             default = DEFAULTS.dangerStart,
         },
-        -- ---------------- diagnostics (v1.3.4-diag) ----------------
-        { type = "header", name = "Diagnostics (診断)" },
+        -- ---------------- state preview (runtime only) ----------------
         {
-            type = "dropdown", name = "Diag: show one state (状態を固定して表示)",
-            tooltip = "Shows the chosen state's animation regardless of HP, to test every sheet. Back to 'Auto (HP)' at the next login.",
+            type = "dropdown", name = "Preview state (状態を固定して表示)",
+            tooltip = "Shows the chosen state's animation regardless of HP, to check all 5 states. Back to 'Auto (HP)' at the next login.",
             choices = { "Auto (HP)", "NORMAL", "CAUTION", "DANGER", "CRITICAL", "ZERO" },
             getFunc = function() return forcedState or "Auto (HP)" end,
             setFunc = function(choice) SetForcedState(STATE_IMAGE[choice] and choice or nil) end,
             default = "Auto (HP)",
-        },
-        {
-            type = "checkbox", name = "Diag: stop the re-set watchdog (再設定を止める)",
-            tooltip = "ON: the image is not set again when the engine is slow to report it as loaded. Back to OFF at the next login.",
-            getFunc = function() return watchdogOff end,
-            setFunc = function(v) watchdogOff = v and true or false; Dbg("diag: watchdog " .. (watchdogOff and "OFF" or "ON")) end,
-            default = false,
-        },
-        {
-            type = "button", name = "Diag: test-load all 10 image files (全ファイル読み込み確認)",
-            tooltip = "Loads the 5 sheets and 5 fallback images on separate small controls and prints LOADED / NOT LOADED for each.",
-            func = function() RunProbes() end,
-        },
-        {
-            type = "button", name = "Diag: print status report (状態をチャットに出す)",
-            func = function() PrintReport() end,
-        },
-        {
-            type = "button", name = "Diag: re-initialize image + animation (再初期化)",
-            tooltip = "Builds the current image and animation again (to test recovery after a crash).",
-            func = function() ForceReload() end,
         },
     })
 end

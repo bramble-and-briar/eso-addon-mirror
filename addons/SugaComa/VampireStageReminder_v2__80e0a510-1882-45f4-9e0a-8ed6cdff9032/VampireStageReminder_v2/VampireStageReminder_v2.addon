@@ -1,0 +1,23 @@
+## Title: Vampire Stage Reminder
+## Description: Shows vampire stage and decay in a movable fang HUD, with optional automatic reminders.
+## APIVersion: 101049 101050 101051
+## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
+## Version: 2.1.4
+## SavedVariables: VampireStageReminder_v2_SV VampireStageReminder_v2_FrameworkScopeSV
+## Credits:
+## Thanks to the ESOUI community for API documentation.
+## OptionalDependsOn: LibHarvensAddonSettings
+
+
+
+; DISCLAIMER:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+FrameworkSettings.lua
+VampireStageReminder_v2.lua
+VSRMenu_v2.lua

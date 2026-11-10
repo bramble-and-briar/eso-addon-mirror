@@ -40,8 +40,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WerewolfHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/im_rookie/WerewolfHelper__3832) | im_rookie | PC / Mac | 1.1 |
 | [Werra's Guild Addons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werra/Werra-s-Guild-Addons__3982) | Werra | PC / Mac | 1.0 |
 | [WestonUi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BuckleyChance/WestonUi__c2664980-589b-4f81-a99e-02204268cab3) | BuckleyChance | Console | — |
-| [Weyland Huntsman's Warmask Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Huntsman-s-Warmask-Tracker__5040) | Weyland | PC / Mac | 1.0.0 |
-| [Weyland Vampire Stage Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Vampire-Stage-Tracker__5035) | Weyland | PC / Mac | 1.2.1 |
+| [Weyland Huntsman's Warmask Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Huntsman-s-Warmask-Tracker__5040) | Weyland | PC / Mac | 1.0.1 |
+| [Weyland Vampire Stage Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Vampire-Stage-Tracker__5035) | Weyland | PC / Mac | 1.2.2 |
 | [What Bar Am I On](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CyberOnEso/What-Bar-Am-I-On__1667) | CyberOnEso | PC / Mac | 1 |
 | [What Class Am I?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace-r/What-Class-Am-I__4138) | Ace'r | PC / Mac | 1.0 |
 | [What's Left?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/What-s-Left__3495) | Complicative | PC / Mac | 1.0.2 |
@@ -94,7 +94,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WritGrabber](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kendaron/WritGrabber__1179) | kendaron | PC / Mac | 1.0.14 |
 | [WritHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/WritHelper__1610) | Wheels | PC / Mac | 1.0.1 |
 | [Written Item Quality](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SatinderESO/Written-Item-Quality__4721) | SatinderESO | PC / Mac | 1.0.1 |
-| [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.6.1 |
+| [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.6.2 |
 | [WTBConduits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/WTBConduits__2176) | init3 | PC / Mac | 3.1 |
 | [WtWsGuildhall for GuildMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/WtWsGuildhall-for-GuildMenu__3286) | sityDJVEN25 | PC / Mac | 2.0 beta |
 | [WtWsGuildhallforChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/WtWsGuildhallforChat__3278) | sityDJVEN25 | PC / Mac | 2.0 beta |

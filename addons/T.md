@@ -125,7 +125,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TheElderSporesOnline](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/reishi_spores/TheElderSporesOnline__4386) | reishi_spores | PC / Mac | 2.2.1 |
 | [ThemeUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KA3ZUS/ThemeUI__3734) | KA3ZUS | PC / Mac | 0.1.1 |
 | [TheShining - AoE & Target Glow Brightness](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/TheShining---AoE-Target-Glow-Brightness__3081) | Odylon | PC / Mac | 1.0.1 |
-| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5.4 |
+| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5.5 |
 | [Thief Tools - Filtered AutoSteal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools---Filtered-AutoSteal__3752) | Shadowfen | PC / Mac | 1.3.10 |
 | [Thief Tools Stolen Item Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/linuxhell/Thief-Tools-Stolen-Item-Counter__4813) | linuxhell | PC / Mac | 4.0.0 |
 | [ThiefHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/ThiefHelper__1473) | Upyachka | PC / Mac | 1.1_1 |
@@ -180,6 +180,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Tracker__32c238c5-9b75-4645-b717-70cf82c64f15) | Bucketmore | Console | — |
 | [Trade Skills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Necis/Trade-Skills__6062f2e4-8b5a-48e5-9327-cf8de18eb5e5) | Necis | Console | — |
 | [Trade Skills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thurderan/Trade-Skills__4232) | Thurderan | PC / Mac | 8.1 |
+| [TradeQR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RereRongonui/TradeQR__46afefc4-e422-4c9f-a163-3b7ed6c11a84) | RereRongonui | Console | — |
 | [TraderFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wh0c4r35ab0utth15/TraderFilter__44df98e8-01a5-48d2-903d-41d3516f3289) | wh0c4r35ab0utth15 | Console | — |
 | [TradesMan](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Argusus/TradesMan__842) | Argusus | PC / Mac | 2.1b |
 | [Traduzione Italiana ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muflonebarbuto/Traduzione-Italiana-ESO__4271) | Muflonebarbuto | PC / Mac | 2.0.1 |

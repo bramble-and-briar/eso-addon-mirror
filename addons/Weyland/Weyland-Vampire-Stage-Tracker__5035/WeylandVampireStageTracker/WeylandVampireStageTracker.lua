@@ -1,4 +1,4 @@
--- Weyland Vampire Stage Tracker 1.2.1
+-- Weyland Vampire Stage Tracker 1.2.2
 -- Tracks the player's current vampirism stage and remaining time.
 -- The live player buff is the single source of truth for the stage.
 -- Unlock with: /vst unlock
@@ -956,26 +956,20 @@ local function StartTimer()
 end
 
 local function RegisterEvents()
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, function(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId)
-        if unitTag ~= "player" then
-            return
-        end
-
-        -- Vampire stage changed/gained/faded. Re-read the live buff list instead
-        -- of trusting the event payload alone, so the displayed stage always
-        -- reflects the current state after transitions and reloads.
-        if STAGE_BY_ABILITY_ID[abilityId] then
+    -- One registration per stage ability ID. The game itself filters the event
+    -- (player unit + this exact ability), so the callback only runs when a
+    -- vampire stage buff is gained, changed or faded: no Lua-side checks needed.
+    -- The callback re-reads the live buff list, so transitions between stages
+    -- (one fades while the next appears) always end in the correct state.
+    for abilityId in pairs(STAGE_BY_ABILITY_ID) do
+        local name = eventName .. abilityId
+        EVENT_MANAGER:RegisterForEvent(name, EVENT_EFFECT_CHANGED, function()
             UpdateDisplay()
-            return
-        end
-
-        -- A stage may have disappeared while another stage is already being
-        -- inserted. A complete rescan handles that transition safely.
-        UpdateDisplay()
-    end)
-    -- Event filter: the game itself only calls us for the player's own effects
-    -- (the unit check above stays as a harmless safety net).
-    EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
+        end)
+        EVENT_MANAGER:AddFilterForEvent(name, EVENT_EFFECT_CHANGED,
+            REGISTER_FILTER_UNIT_TAG, "player",
+            REGISTER_FILTER_ABILITY_ID, abilityId)
+    end
 
     EVENT_MANAGER:RegisterForEvent(fullUpdateEventName, EVENT_EFFECTS_FULL_UPDATE, function()
         UpdateDisplay()
@@ -1089,7 +1083,7 @@ local function RegisterSettings()
         name = DISPLAY_NAME,
         displayName = DISPLAY_NAME,
         author = "Weyland",
-        version = "1.2.1",
+        version = "1.2.2",
         slashCommand = "/vstsettings",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -1333,8 +1327,53 @@ local function RegisterSettings()
     LibAddonMenu2:RegisterOptionControls(panelId, options)
 end
 
+local SAVED_VARS_NAME = "WeylandVampireStageTrackerSavedVars"
+local SAVED_VARS_VERSION = 1
+
+local function DeepCopy(value)
+    if type(value) ~= "table" then
+        return value
+    end
+    local copy = {}
+    for k, v in pairs(value) do
+        copy[k] = DeepCopy(v)
+    end
+    return copy
+end
+
+-- Versions up to 1.2.1 stored the settings in the shared "Default" profile, so
+-- NA, EU and PTS all used the same data. Settings are now stored per megaserver
+-- (GetWorldName()). The first time a megaserver is used, copy the old shared
+-- settings into it so nobody loses their position and options.
+-- The old "Default" data is left untouched so the other megaservers can migrate too.
+local function MigrateSharedSavedVars()
+    local raw = _G[SAVED_VARS_NAME]
+    if type(raw) ~= "table" then
+        return   -- first start ever: nothing to migrate
+    end
+
+    local world = GetWorldName()
+    local account = GetDisplayName()
+
+    local worldData = raw[world]
+    if type(worldData) == "table" and type(worldData[account]) == "table" then
+        return   -- this megaserver already has its own data
+    end
+
+    local old = raw["Default"]
+    old = type(old) == "table" and old[account] or nil
+    old = type(old) == "table" and old["$AccountWide"] or nil
+    if type(old) ~= "table" then
+        return
+    end
+
+    raw[world] = type(worldData) == "table" and worldData or {}
+    raw[world][account] = { ["$AccountWide"] = DeepCopy(old) }
+end
+
 local function Initialize()
-    savedVars = ZO_SavedVars:NewAccountWide("WeylandVampireStageTrackerSavedVars", 1, nil, DEFAULTS)
+    MigrateSharedSavedVars()
+    savedVars = ZO_SavedVars:NewAccountWide(SAVED_VARS_NAME, SAVED_VARS_VERSION, nil, DEFAULTS, GetWorldName())
     local visibilityWasRepaired = NormalizeSavedVars()
 
     -- Timer values from pre-0.1.11 builds are legacy and must not be used:

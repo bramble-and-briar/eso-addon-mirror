@@ -301,6 +301,7 @@ local function make_control(control, rel)
 
     logDebug("making control for ", name)
 
+
     -- Icon creation
     local icon = WM:CreateControl(TT.name .. "Icon" .. name, bg, CT_TEXTURE)
     icon:SetTexture(control.texture)
@@ -319,7 +320,7 @@ local function make_control(control, rel)
 
     -- create this to make icon hover work for tooltips
     local hit = WM:CreateControl(TT.name .. "IconHit" .. name, bg, CT_CONTROL)
-    hit:SetDimensions(24, 24)
+    hit:SetDimensions(22, 22)
     hit:SetAnchorFill(icon)
     hit:SetMouseEnabled(true)
 
@@ -340,7 +341,6 @@ local function make_control(control, rel)
     local labelWidth = (label:GetStringWidth(control.showText and control.text or " ")/pixel2UI) * math.min(1.0, scale)
 
     label:SetWidth(labelWidth)
-    label:SetText(text)
 
     -- Store controls using the names expected by UpdateControls().
     local lowerName = string.lower(name)
@@ -413,7 +413,6 @@ end
 function TT.shouldShowAutoSteal()
     TT.dshow.Loot = TT.options.chartt.autoSteal
         or isTTFASenabled()
-    --TT.dshow.Loot = true
 end
 
 
@@ -447,7 +446,9 @@ function TT:InitializeBelt()
     TT.beltWindow = win
 
     -- Apply initial visibility, layout, and styling.
+    win:SetScale(1)
     self:UpdateControls()
+    win:SetScale(TT.options.display.scale)
 end
 
 --[[ Updates the visibility, layout, and appearance of existing belt
@@ -517,22 +518,9 @@ function TT:UpdateControls()
             local labelWidth = label:GetTextWidth() * min(1.0, scale)
             label:SetWidth(labelWidth)
 
-            -- Measure the configured label text.
-            --[[local text = label:GetText()
-
-            if control.showText then
-                label:SetText(control.text)
-            else
-                label:SetText(" ")
-            end
-            
-
-            local labelWidth = label:GetTextWidth() * min(1.0, scale)
-            --]]
             label:SetDimensionConstraints(labelWidth, 0, 0, 0)
             label:SetText(text)
             label:SetDimensionConstraints(0, 0, 0, 0)
-            --label:SetWidth(labelWidth)
 
             if icon then
                 icon:ClearAnchors()

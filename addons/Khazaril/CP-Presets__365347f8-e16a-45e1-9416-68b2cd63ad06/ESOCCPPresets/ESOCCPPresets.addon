@@ -1,0 +1,14 @@
+## Title: CP Presets
+## Description: One-press Champion Point presets. Open the Champion screen and click the left stick: pick a starter preset (single-target DPS, AoE DPS, heavy attacks, tank, healer, solo, PvP) and it unlocks the path, spends your points and slots the stars, with a respec first if your points are spent differently. Save your own points and slotted stars as presets, then apply, rename or delete them on any character. Find it useful? Gold donations by in-game mail to @DextrousDigits (Xbox NA or EU) are very welcome.
+## Author: ESO Companion
+## Version: 1.0.4
+## AddOnVersion: 5
+## APIVersion: 101051
+## SavedVariables: ESOCCPPresets_SV
+
+Presets.lua
+CPPresets.lua
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.

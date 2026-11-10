@@ -164,6 +164,28 @@ l.isClassicPreset = function()
   return l.getSavedVars().barPreset == "classic"
 end
 
+---浮动条位置相关选项适用的预设：经典(贴图行)/动态(克隆行)吃 X/Y 偏移；
+---静态双行/仅主条/迷你行(位置纯原生)不适用(菜单置灰)。后续新增预设在此登记
+l.isShiftRowMovable = function()
+  local p = l.getSavedVars().barPreset
+  return p == "classic" or p == "dynamic"
+end
+
+---预设值单一真源：下拉菜单 choicesValues 与启动校验共用，
+---新增预设只改这一处(否则校验会把新值当非法值重置回默认——v3.172 实现过
+---mini/mainonly 被 startup 校验吞回 dynamic 的 bug)
+local PRESET_VALUES = { "classic", "dynamic", "static", "mini", "mainonly" }
+
+---@type fun(): boolean
+local function isValidPreset(v)
+  for i = 1, #PRESET_VALUES do
+    if PRESET_VALUES[i] == v then
+      return true
+    end
+  end
+  return false
+end
+
 ---启动迁移：旧版 barShowShift/barShowShiftFully → barPreset（只跑一次，迁移后删除旧键）
 addon.hookStart(function()
   local sv = l.getSavedVars()
@@ -180,7 +202,7 @@ addon.hookStart(function()
   end
   ---@diagnostic enable: undefined-field, inject-field
   -- 非法值重置为默认(如下拉框写入过本地化文本)
-  if sv.barPreset ~= "classic" and sv.barPreset ~= "dynamic" and sv.barPreset ~= "static" then
+  if not isValidPreset(sv.barPreset) then
     sv.barPreset = barSavedVarsDefaults.barPreset
   end
 end)
@@ -280,6 +302,14 @@ l.onCoreUpdate = function()
     elseif l.quickslotWidget then
       l.quickslotWidget:hide()
     end
+  end
+  -- Main Bar Only / Mini Row 预设：不走 ADR 计时器的第二行渲染。
+  -- mainonly 无第二行；mini 由 MiniBar 模块自驱(Core action 数据源，
+  -- 与 Bar/BackBar 零相互引用)。
+  -- 第 2 步已隐藏全部 shift 控件，此处直接返回不再重建
+  local preset = l.getSavedVars().barPreset
+  if preset == "mainonly" or preset == "mini" then
+    return
   end
   -- 4. prepare to show shift and extend
   -- 克隆行可用性(存在、已同步非激活条、非 Oakensoul)；不可用时退回贴图行。
@@ -422,6 +452,10 @@ l.openShiftBarFrame = function()
         l.getSavedVars().barShiftOffsetX = left - slotLeft
         l.getSavedVars().barShiftOffsetY = bottom - slotTop
         l.updateWidgets(views.updateWidgetShiftOffset)
+        -- 动态预设下同步克隆行锚(经典走贴图路径不需要)
+        if backBar.refreshShiftRow then
+          backBar.refreshShiftRow()
+        end
       end
       zo_callLater(function()
         SetGameCameraUIMode(true)
@@ -472,6 +506,10 @@ l.openShiftBarFrame = function()
       if button == 1 then
         self.parentFrame:SetHidden(true)
         self:SetHidden(true)
+        -- 恢复克隆行显示(在新位置)
+        if backBar.setShiftRowHidden then
+          backBar.setShiftRowHidden(false)
+        end
       end
     end)
     l.shiftBarCloseBtn = closeBtn
@@ -479,6 +517,29 @@ l.openShiftBarFrame = function()
     l.shiftBarSlot3 = slot3
   end
   l.shiftBarFrame:SetHidden(false)
+  -- 槽位边框预览：按原生槽位实际几何画同款框(abilityframe64_up.dds，
+  -- 与贴图行同款艺术)，拖拽时所见即所得
+  l.shiftBarSlotBorders = l.shiftBarSlotBorders or {}
+  for slotNum = 3, 8 do
+    local border = l.shiftBarSlotBorders[slotNum]
+    if not border then
+      border = WINDOW_MANAGER:CreateControl(nil, l.shiftBarFrame, CT_TEXTURE)
+      border:SetTexture("esoui/art/actionbar/abilityframe64_up.dds")
+      l.shiftBarSlotBorders[slotNum] = border
+    end
+    local s = ZO_ActionBar_GetButton(slotNum).slot
+    local x = s:GetLeft() - slot3:GetLeft()
+    local y = s:GetTop() - slot3:GetTop()
+    local w = s:GetWidth()
+    border:ClearAnchors()
+    border:SetAnchor(TOPLEFT, l.shiftBarFrame, TOPLEFT, x, y)
+    border:SetDimensions(w, w)
+    border:SetHidden(false)
+  end
+  -- 拖拽期间隐藏克隆行(会遮盖框架且拦截鼠标)；关闭框架时恢复
+  if backBar.setShiftRowHidden then
+    backBar.setShiftRowHidden(true)
+  end
   l.shiftBarFrame:ClearAnchors()
   -- U51 engine regression: dragging a movable control whose anchor targets a
   -- non-GuiRoot control (like slot3) computes new anchor offsets in absolute
@@ -584,8 +645,10 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
           text("Classic - Timer Icons"),
           text("Dynamic Double Bar"),
           text("Static Double Bar"),
+          text("Mini Row"),
+          text("Main Bar Only"),
         },
-        choicesValues = { "classic", "dynamic", "static" },
+        choicesValues = PRESET_VALUES,
         getFunc = function()
           return l.getSavedVars().barPreset
         end,
@@ -618,6 +681,10 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
       {
         type = "submenu",
         name = text("Shift Bar"),
+        disabled = function()
+          -- Main Bar Only 无第二行，整个子菜单置灰
+          return not l.getSavedVars().barEnabled or l.getSavedVars().barPreset == "mainonly"
+        end,
         controls = {
           {
             type = "slider",
@@ -680,7 +747,7 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
             title = text("Shift Bar Position"),
             width = "full",
             disabled = function()
-              return not l.getSavedVars().barEnabled or not l.isClassicPreset()
+              return not l.getSavedVars().barEnabled or not l.isShiftRowMovable()
             end,
           },
           {
@@ -696,7 +763,7 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
             end,
             width = "half",
             disabled = function()
-              return not l.getSavedVars().barEnabled or not l.isClassicPreset()
+              return not l.getSavedVars().barEnabled or not l.isShiftRowMovable()
             end,
           },
           {
@@ -707,6 +774,10 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
               l.getSavedVars().barShiftOffsetX = barSavedVarsDefaults.barShiftOffsetX
               l.getSavedVars().barShiftOffsetY = barSavedVarsDefaults.barShiftOffsetY
               l.updateWidgets(views.updateWidgetShiftOffset)
+              -- 动态预设下同步克隆行锚
+              if backBar.refreshShiftRow then
+                backBar.refreshShiftRow()
+              end
               -- re-anchor the positioning frame if it is currently open
               if l.shiftBarFrame and not l.shiftBarFrame:IsControlHidden() then
                 l.openShiftBarFrame()
@@ -714,7 +785,7 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
             end,
             width = "half",
             disabled = function()
-              return not l.getSavedVars().barEnabled or not l.isClassicPreset()
+              return not l.getSavedVars().barEnabled or not l.isShiftRowMovable()
             end,
           },
           {
@@ -735,6 +806,7 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
             disabled = function()
               return not l.getSavedVars().barEnabled
                 or not l.getSavedVars().barLabelEnabled
+                or l.getSavedVars().barPreset == "static"
             end,
             default = barSavedVarsDefaults.barLabelYOffsetInShift,
           },
@@ -755,6 +827,7 @@ addon.extend(settings.EXTKEY_ADD_MENUS, function()
             disabled = function()
               return not l.getSavedVars().barEnabled
                 or not l.getSavedVars().barStackLabelEnabled
+                or l.getSavedVars().barPreset == "static"
             end,
             default = barSavedVarsDefaults.barStackLabelYOffsetInShift,
           },

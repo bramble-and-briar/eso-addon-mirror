@@ -15,7 +15,7 @@ local STRINGS = HMK.Strings
 local function T(key) return STRINGS[key] or key end
 
 HMK.name = ADDON
-HMK.version = "1.0.0"
+HMK.version = "1.0.1"
 HMK.active = false   -- mask equipped right now
 HMK.unlocked = false -- move mode (not saved)
 
@@ -606,14 +606,12 @@ end
 
 local function OnEffectChanged(_, changeType, _, effectName, unitTag, beginTime, endTime, _, _, _, _, _, _, unitName, unitId, abilityId, sourceType)
     if unitId == 0 then unitId = nil end
-    if not IsMarkAbility(abilityId, effectName) then return end
 
-    local isOwnSource = sourceType == COMBAT_UNIT_TYPE_PLAYER
+    -- The event filters (see SetActive) already guarantee: Mark of Hircine only,
+    -- on the reticle/boss units only, cast by this player (PLAYER) or with an
+    -- unknown source (NONE). NONE is ambiguous, so it is accepted only when
+    -- GetUnitBuffInfo confirms castByPlayer.
     local sourceIsUnknown = sourceType == COMBAT_UNIT_TYPE_NONE
-
-    -- Group members, other players, pets and NPCs are never accepted. NONE is
-    -- ambiguous, so it is accepted only when GetUnitBuffInfo confirms castByPlayer.
-    if not isOwnSource and not sourceIsUnknown then return end
 
     local effectTargetName = unitName
     if (not effectTargetName or effectTargetName == "") and unitTag == "reticleover"
@@ -746,15 +744,36 @@ local function IsMaskEquipped()
     return false
 end
 
+local EFFECT_REGISTRATIONS = {
+    { name = ADDON .. "_Effect_RetPlayer", unitFilter = REGISTER_FILTER_UNIT_TAG,        unitValue = "reticleover", source = COMBAT_UNIT_TYPE_PLAYER },
+    { name = ADDON .. "_Effect_RetNone",   unitFilter = REGISTER_FILTER_UNIT_TAG,        unitValue = "reticleover", source = COMBAT_UNIT_TYPE_NONE },
+}
+-- Bosses (boss1..boss6) share the prefix "boss".
+if REGISTER_FILTER_UNIT_TAG_PREFIX then
+    for _, source in ipairs({ COMBAT_UNIT_TYPE_PLAYER, COMBAT_UNIT_TYPE_NONE }) do
+        EFFECT_REGISTRATIONS[#EFFECT_REGISTRATIONS + 1] = {
+            name = ADDON .. "_Effect_Boss" .. source,
+            unitFilter = REGISTER_FILTER_UNIT_TAG_PREFIX, unitValue = "boss", source = source,
+        }
+    end
+end
+
 local function SetActive(on)
     if on == HMK.active then return end
     HMK.active = on
 
     if on then
-        -- Keep unit/source filters open for ESO's inconsistent event tags, but filter
-        -- by the single Mark of Hircine ability to avoid processing unrelated effects.
-        EM:RegisterForEvent(ADDON .. "_Effect", EVENT_EFFECT_CHANGED, OnEffectChanged)
-        EM:AddFilterForEvent(ADDON .. "_Effect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, MARK_OF_HIRCINE_ABILITY_ID)
+        -- The mark is a debuff on an ENEMY, so the unit is the reticle target or a boss
+        -- (not "player"). One filter type can hold one value only, so every
+        -- unit/source combination gets its own registration; the game then fires
+        -- the callback only for our own Mark of Hircine.
+        for _, reg in ipairs(EFFECT_REGISTRATIONS) do
+            EM:RegisterForEvent(reg.name, EVENT_EFFECT_CHANGED, OnEffectChanged)
+            EM:AddFilterForEvent(reg.name, EVENT_EFFECT_CHANGED,
+                REGISTER_FILTER_ABILITY_ID, MARK_OF_HIRCINE_ABILITY_ID,
+                reg.unitFilter, reg.unitValue,
+                REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, reg.source)
+        end
 
         EM:RegisterForEvent(ADDON .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)
 
@@ -771,7 +790,9 @@ local function SetActive(on)
 
         ScanReticle()
     else
-        EM:UnregisterForEvent(ADDON .. "_Effect", EVENT_EFFECT_CHANGED)
+        for _, reg in ipairs(EFFECT_REGISTRATIONS) do
+            EM:UnregisterForEvent(reg.name, EVENT_EFFECT_CHANGED)
+        end
         EM:UnregisterForEvent(ADDON .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED)
         EM:UnregisterForEvent(ADDON .. "_UnitDeath", EVENT_UNIT_DEATH_STATE_CHANGED)
         EM:UnregisterForEvent(ADDON .. "_Died", EVENT_COMBAT_EVENT)
@@ -1163,11 +1184,42 @@ local function OnPlayerActivated()
     RefreshMask()
 end
 
+local SAVED_VARS_NAME = "WeylandHuntsmansWarmaskTrackerSavedVars"
+
+local function DeepCopy(value)
+    if type(value) ~= "table" then return value end
+    local copy = {}
+    for k, v in pairs(value) do copy[k] = DeepCopy(v) end
+    return copy
+end
+
+-- Version 1.0.0 stored settings in the shared "Default" profile, so NA, EU and PTS
+-- used the same data. Settings are now stored per megaserver (GetWorldName()).
+-- The first time a megaserver is used, copy the old shared settings into it.
+-- The old "Default" data stays untouched so other megaservers can migrate too.
+local function MigrateSharedSavedVars()
+    local raw = _G[SAVED_VARS_NAME]
+    if type(raw) ~= "table" then return end
+
+    local world, account = GetWorldName(), GetDisplayName()
+    local worldData = raw[world]
+    if type(worldData) == "table" and type(worldData[account]) == "table" then return end
+
+    local old = raw["Default"]
+    old = type(old) == "table" and old[account] or nil
+    old = type(old) == "table" and old["$AccountWide"] or nil
+    if type(old) ~= "table" then return end
+
+    raw[world] = type(worldData) == "table" and worldData or {}
+    raw[world][account] = { ["$AccountWide"] = DeepCopy(old) }
+end
+
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= ADDON then return end
     EM:UnregisterForEvent(ADDON .. "_Load", EVENT_ADD_ON_LOADED)
 
-    sv = ZO_SavedVars:NewAccountWide("WeylandHuntsmansWarmaskTrackerSavedVars", 1, nil, DEFAULTS)
+    MigrateSharedSavedVars()
+    sv = ZO_SavedVars:NewAccountWide(SAVED_VARS_NAME, 1, nil, DEFAULTS, GetWorldName())
     if type(rawget(sv, "markIds")) ~= "table" then sv.markIds = {} end   -- never write into the shared defaults
 
     -- Discard the unused range preferences saved by previous versions.
@@ -1207,7 +1259,9 @@ local function OnAddOnLoaded(_, addonName)
 
     -- Standby listeners: the only things alive while the mask is NOT worn.
     EM:RegisterForEvent(ADDON .. "_Slot", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnSlotUpdate)
-    EM:AddFilterForEvent(ADDON .. "_Slot", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+    EM:AddFilterForEvent(ADDON .. "_Slot", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+        REGISTER_FILTER_BAG_ID, BAG_WORN,
+        REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
     EM:RegisterForEvent(ADDON .. "_Full", EVENT_INVENTORY_FULL_UPDATE, OnSlotUpdate)
     EM:RegisterForEvent(ADDON .. "_Activated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     EM:RegisterForEvent(ADDON .. "_Deactivated", EVENT_PLAYER_DEACTIVATED, OnPlayerDeactivated)

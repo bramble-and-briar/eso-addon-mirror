@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/Thory/Potion-Resorce-Tags__5027",
+  "archive_path": "addons/Thory/Potion-Resource-Tags__5027",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "Thory",
@@ -18,7 +18,7 @@
     "PotionResourceTags"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5027/",
-  "fingerprint": "0608a0d6e345087323fe53e75eab59a8388cdb65f88d03563c649494303af175",
+  "fingerprint": "0a2db67fa1c8d54340aee1827ab900b077ecd0ccc9a1074200f4b9c6f8de999e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18342.png",
     "https://cdn-eso.mmoui.com/preview/pvw18343.png",
@@ -28,13 +28,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "5027",
-  "source_url": "https://www.esoui.com/downloads/info5027-PotionResorceTags.html",
+  "source_url": "https://www.esoui.com/downloads/info5027-PotionResourceTags.html",
   "stats": {
-    "downloads": 3,
+    "downloads": 18,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 18
   },
-  "title": "Potion Resorce Tags",
+  "title": "Potion Resource Tags",
   "updated_at": 1793941180000,
   "version": "0.4.0"
 }

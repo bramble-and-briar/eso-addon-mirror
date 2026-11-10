@@ -1,6 +1,5 @@
 -- Weyland Vampire Stage Tracker: texts for language "fr".
 -- Keep the %s / %d / %.2f placeholders. Missing keys fall back to English.
-if GetCVar("Language.2") ~= "fr" then return end
 local S = WeylandVampireStageTracker_Strings
 S.DESC = "Configurez le HUD vampire. Les changements sont appliqués immédiatement et affichés dans l'aperçu en direct ci-dessous. Utilisez le bouton de « Position et taille » (ou /vst unlock) pour déplacer le widget à la souris."
 S.PREVIEW_STAGE = "Stade de l'aperçu"

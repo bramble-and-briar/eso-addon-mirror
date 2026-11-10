@@ -8,6 +8,10 @@
   "category_id": "109",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "ThiefTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1721/",
-  "fingerprint": "935f9b656acaf9c8d12f049e90e79ca5d7d043f7aa96da5c4f93673845bec33a",
+  "fingerprint": "43b67438ff184cbdda316137783b298c87f275e2db5bfcf3a9648363aecd87bb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5683.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5684.jpg",
@@ -89,11 +93,11 @@
   "source_id": "1721",
   "source_url": "https://www.esoui.com/downloads/info1721-ThiefTools.html",
   "stats": {
-    "downloads": 122244,
+    "downloads": 122930,
     "favorites": 210,
-    "monthly_downloads": 1581
+    "monthly_downloads": 1553
   },
   "title": "Thief Tools",
-  "updated_at": 1793152328000,
-  "version": "3.5.4"
+  "updated_at": 1794274274000,
+  "version": "3.5.5"
 }

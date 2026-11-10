@@ -22,7 +22,7 @@
     "WeylandHuntsmansWarmaskTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5040/",
-  "fingerprint": "8fc3d991b97d57d676eedca7380396e3fb1e5463bd25293a416ec4b96c69dfcd",
+  "fingerprint": "09e751ca5a55033d1b6c0beaf4dda93e39e5fbf15923f69b027250a299ae7d5d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18383.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18379.png",
@@ -36,11 +36,11 @@
   "source_id": "5040",
   "source_url": "https://www.esoui.com/downloads/info5040-WeylandHuntsmansWarmaskTracker.html",
   "stats": {
-    "downloads": 1,
+    "downloads": 12,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 9
   },
   "title": "Weyland Huntsman's Warmask Tracker",
-  "updated_at": 1794207693000,
-  "version": "1.0.0"
+  "updated_at": 1794252407000,
+  "version": "1.0.1"
 }

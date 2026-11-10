@@ -123,7 +123,7 @@ local function BuildSettings()
     if not LAM then return end
     panel = LAM:RegisterAddonPanel("CityLightsSettings", {
         type = "panel", name = "City Lights", displayName = "|cc9a44cCity Lights|r",
-        author = "JuneSky", version = "1.1.0", slashCommand = "/citylightsset",
+        author = "JuneSky", version = "1.1.1", slashCommand = "/citylightsset",
         registerForRefresh = true, registerForDefaults = true,
     })
     local off = function() return not CL.sv.enabled end

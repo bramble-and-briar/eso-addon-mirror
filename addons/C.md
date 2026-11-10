@@ -120,7 +120,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Circular Votan's Mini Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Circular-Votan-s-Mini-Map__f5b8ee78-0ef3-4ee5-803c-79785f34173d) | votan73 | Console | — |
 | [CircularMiniMap's Covers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/t.vicson/CircularMiniMap-s-Covers__3697) | t.vicson | PC / Mac | 1.0.0 |
 | [CitizenAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Citizen/CitizenAddon__3799) | Citizen | PC / Mac | 1.1.04 |
-| [City Lights - Easy to Spot Towns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JuneSky/City-Lights---Easy-to-Spot-Towns__5031) | JuneSky | PC / Mac | 1.1.0 |
+| [City Lights - Easy to Spot Towns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JuneSky/City-Lights---Easy-to-Spot-Towns__5031) | JuneSky | PC / Mac | 1.1.1 |
 | [CKS Custom Kill Sound - Killblow PvP Sound Effect](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fonillius/CKS-Custom-Kill-Sound---Killblow-PvP-Sound-Effect__4547) | fonillius | PC / Mac | 5.0 |
 | [Clan Cercone Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Josh-cr/Clan-Cercone-Addon__3735) | Josh-cr | PC / Mac | 4.4.0 |
 | [Clarity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muenchhausen/Clarity__2874) | muenchhausen | PC / Mac | 1.1.2 |
@@ -244,6 +244,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CovetousCountess ZH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NeiL978/CovetousCountess-ZH__3600) | NeiL978 | PC / Mac | 1.0 |
 | [Cowl - helm/hat toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Binary-Heart/Cowl---helm-hat-toggle__1913) | Binary Heart | PC / Mac | 1.1.4.4.3 |
 | [CP Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/CP-Hotkey__2953) | Hyperioxes | PC / Mac | 0.5 |
+| [CP Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/CP-Presets__365347f8-e16a-45e1-9416-68b2cd63ad06) | Khazaril | Console | — |
 | [CP Veterancy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/CP-Veterancy__7f8752f5-11f4-4e26-a26b-fc0ee813d8e1) | clubwratt | Console | — |
 | [CPSlotsConsole](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/CPSlotsConsole__2fe8e45f-ebf9-4507-b981-91023b441f3e) | thewizadt | Console | — |
 | [CPViewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/CPViewer__4294) | Konten | PC / Mac | 1.0.1 |

@@ -1,3 +1,9 @@
+[COLOR="DeepSkyBlue"]3.5.5 (63)[/COLOR]:
+[LIST]
+[*] Slightly reduced the length of the mouse "hit box" so that you should be able to drag around the belt/bar by finding the small gap between the icons and labels.
+[*] Replicated the text scaling used by the settings to also be used at initialization. Hopefully this will correct the text being too big for the size it goes in. (Shadowcep please check since you saw this, and I never do.)
+[/LIST]
+
 [COLOR="DeepSkyBlue"]3.5.4 (62)[/COLOR]:
 [LIST]
 [*] Part 4 This time it works...

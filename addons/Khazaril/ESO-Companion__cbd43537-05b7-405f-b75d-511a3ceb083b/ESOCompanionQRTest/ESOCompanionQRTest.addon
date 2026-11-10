@@ -1,0 +1,14 @@
+## Title: ESO Companion
+## Description: Sends your characters, gear stats, skill bars, Champion stars, bank, craft bag and house chests to the ESO Companion phone app as QR codes you scan from the TV. Open it from Settings > Add-Ons > ESO Companion (needs LibHarvensAddonSettings); it no longer opens by itself at login unless you turn that on.
+## Author: ESO Companion
+## Version: 0.9.0
+## AddOnVersion: 17
+## APIVersion: 101051
+## SavedVariables: ESOCompanionQRTest_SV
+## OptionalDependsOn: LibHarvensAddonSettings
+
+QREncode.lua
+SkillExport.lua
+CharacterSync.lua
+Storage.lua
+ESOCompanionQRTest.lua

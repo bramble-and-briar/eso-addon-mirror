@@ -1,15 +1,12 @@
 ## Title: Weyland Huntsman's Warmask Tracker
 ## Author: Weyland
-## Version: 1.0.0
-## AddOnVersion: 10000
+## Version: 1.0.1
+## AddOnVersion: 10001
 ## APIVersion: 101051
 ## Description: Tracks your own Mark of Hircine while Huntsman's Warmask is equipped. Languages: EN, DE, FR, ES, RU.
-## OptionalDependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibAddonMenu-2.0
 ## SavedVariables: WeylandHuntsmansWarmaskTrackerSavedVars
 
 lang/en.lua
-lang/de.lua
-lang/fr.lua
-lang/es.lua
-lang/ru.lua
+lang/$(language).lua
 WeylandHuntsmansWarmaskTracker.lua

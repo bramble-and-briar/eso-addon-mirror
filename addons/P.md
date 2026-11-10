@@ -109,6 +109,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
 | [PinkB's EmoteSynchronizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EmoteSynchronizer__6b42fd29-e6c4-4aec-8f92-e5c54de4c28c) | PinkBanther | Console | — |
 | [PinkB's EmoteSynchronizer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EmoteSynchronizer-Beta__5cc8ec52-378a-4e09-aa6a-02f2409b2f2a) | PinkBanther | Console | — |
+| [PinkB's EquipmentChanger with Yonechi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EquipmentChanger-with-Yonechi__18130d34-73cc-4a58-be8c-a9f9ba92d4ed) | PinkBanther | Console | — |
 | [PinkB's EquipmentChanger with Yonechi(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EquipmentChanger-with-Yonechi-Beta__da044120-ac5c-4f05-8e4b-9910b5df0568) | PinkBanther | Console | — |
 | [PinkB's F-MEGA(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-F-MEGA-Beta__a73b49be-3025-4010-b2de-104c419bec54) | PinkBanther | Console | — |
 | [PinkB's FurnitureEditor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor__656edbf4-6ad8-4faf-8bd8-25f06199c990) | PinkBanther | Console | — |
@@ -202,7 +203,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Potion Cooldown Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/Potion-Cooldown-Tracker__4122) | partdark | PC / Mac | 1.3.3 |
 | [Potion Maker (for Alchemy Crafting)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/facit/Potion-Maker-for-Alchemy-Crafting__405) | facit | PC / Mac | 5.11.0 |
 | [Potion Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kamaros/Potion-Reminder__2768) | Kamaros | PC / Mac | 1.2.0 |
-| [Potion Resorce Tags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/Potion-Resorce-Tags__5027) | Thory | PC / Mac | 0.4.0 |
+| [Potion Resource Tags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/Potion-Resource-Tags__5027) | Thory | PC / Mac | 0.4.0 |
 | [Potion Taken Sound Fix & Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trader08/Potion-Taken-Sound-Fix-Alerts__2463) | Trader08 | PC / Mac | 1.10 |
 | [Power Lash Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Power-Lash-Tracker__32111121-29be-4447-ba40-3c064d28680e) | Vixen_Hunny | Console | — |
 | [Powerful Assault](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Powerful-Assault__2757) | Wheels | PC / Mac | 1.1 |

@@ -22,7 +22,7 @@
     "CityLights"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5031/",
-  "fingerprint": "d92637526a4e8501c48ff8f821cb93a5b0efa73fd26ce94a648bce4d6d9eb132",
+  "fingerprint": "7b7a3d3f5a38ac7c11aae7cc0b89747194a928ac1ee712145a6a8017149290ed",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18349.png",
     "https://cdn-eso.mmoui.com/preview/pvw18350.png",
@@ -34,11 +34,11 @@
   "source_id": "5031",
   "source_url": "https://www.esoui.com/downloads/info5031-CityLights-EasytoSpotTowns.html",
   "stats": {
-    "downloads": 30,
-    "favorites": 1,
-    "monthly_downloads": 10
+    "downloads": 93,
+    "favorites": 3,
+    "monthly_downloads": 73
   },
   "title": "City Lights - Easy to Spot Towns",
-  "updated_at": 1794081105000,
-  "version": "1.1.0"
+  "updated_at": 1794264345000,
+  "version": "1.1.1"
 }

@@ -1,5 +1,39 @@
 local A = OneMap
 
+function A:CurrentMapDestination()
+    local mapType = GetMapType()
+    if mapType == MAPTYPE_WORLD or mapType == MAPTYPE_COSMIC then return nil end
+    local zoneIndex = GetCurrentMapZoneIndex()
+    if not zoneIndex or zoneIndex <= 0 then return nil end
+    return self:ZoneDestination(GetZoneId(zoneIndex))
+end
+
+function A:ResizeEnlargedMap()
+    if IsInGamepadPreferredMode() or WORLD_MAP_MANAGER:GetModeMapSize() ~= 1 or not self.saved.enlargeMap then
+        return false
+    end
+
+    -- Match ESO's fullscreen keyboard bounds before adding our enlargement.
+    -- Its sizing helpers are local to worldmap.lua, so only this mode is handled
+    -- here; the native pan/zoom code still lays out tiles, pins and scroll bounds.
+    local uiWidth, uiHeight = GuiRoot:GetDimensions()
+    local scale = GetUIGlobalScale()
+    local size = math.min(math.max(200, uiHeight - 240 - 30 / scale), uiWidth, uiHeight)
+    if (uiWidth - size) / 2 < 425 then
+        size = math.min(math.max(200, uiWidth - 850), uiWidth, uiHeight)
+    end
+    size = math.min(size * 1.10, uiWidth, uiHeight)
+    ZO_WorldMap:SetDimensionConstraints(200, 200, uiWidth, uiHeight)
+    ZO_WorldMap:SetDimensions(size, size)
+    ZO_WorldMap:ClearAnchors()
+    ZO_WorldMap:SetAnchor(CENTER, nil, CENTER, 0, 9 / scale)
+    local zoom = ZO_WorldMap_GetPanAndZoom()
+    -- Refresh once at the final size without cancelling an active zoom target.
+    zoom:SetCurrentNormalizedZoomInternal(zoom:GetCurrentNormalizedZoom())
+    WORLD_MAP_MANAGER.blobNamesDirty = true
+    return true
+end
+
 function A:ApplyMapSettings()
     if not self.baseMapScale then return end
     local keyboard = not IsInGamepadPreferredMode()
@@ -60,6 +94,7 @@ function A:UpdateWaves()
 end
 
 function A:UpdateMapActivity()
+    if self.mapTravelKeybindActive then KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mapTravelKeybind) end
     EVENT_MANAGER:UnregisterForUpdate("OneMapWaves")
     EVENT_MANAGER:UnregisterForUpdate("OneMapHover")
     if self:IsKeyboardMap() then
@@ -87,6 +122,20 @@ function A:UpdateMapActivity()
 end
 
 function A:InitializeMap()
+    self.mapTravelKeybind = {
+        alignment = KEYBIND_STRIP_ALIGN_CENTER,
+        {
+            name = self:Text("travelAction"),
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            visible = function() return self:CanUseMap() end,
+            enabled = function() return self:CanUseMap() and self:CurrentMapDestination() ~= nil end,
+            callback = function()
+                if not self:CanUseMap() then return end
+                local destination = self:CurrentMapDestination()
+                if destination then self:Travel(destination) end
+            end,
+        },
+    }
     self.baseMapScale = ZO_WorldMap:GetScale()
     self.waves = {}
     for index = 1, 3 do
@@ -116,18 +165,13 @@ function A:InitializeMap()
     tooltip.label:SetFont("ZoFontGameSmall")
     self.travelTooltip = tooltip
 
-    -- Resize the native viewport once per layout pass, without scaling pins.
-    ZO_PostHook(WORLD_MAP_MANAGER, "ResizeAndReanchorMap", function()
-        if not IsInGamepadPreferredMode() and WORLD_MAP_MANAGER:GetModeMapSize() == 1 and self.saved.enlargeMap then
-            local width, height = ZO_WorldMap:GetDimensions()
-            ZO_WorldMap:SetDimensions(width * 1.10, height * 1.10)
-            local zoom = ZO_WorldMap_GetPanAndZoom()
-            zoom:SetCurrentNormalizedZoom(zoom:GetCurrentNormalizedZoom())
-        end
-        self:ApplyMapSettings()
+    -- Avoid laying out the ordinary map before laying out the enlarged map.
+    ZO_PreHook(WORLD_MAP_MANAGER, "ResizeAndReanchorMap", function()
+        return self:ResizeEnlargedMap()
     end)
     CALLBACK_MANAGER:RegisterCallback("OnWorldMapModeChanged", function() self:ApplyMapSettings() end)
     CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
+        if self.mapTravelKeybindActive then KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mapTravelKeybind) end
         self.quote = nil
         self.questPointCache = {}
         if self.pendingQuest and self.pendingQuest.mapId ~= GetCurrentMapId() then
@@ -137,10 +181,22 @@ function A:InitializeMap()
         self:HideTravelTooltip()
     end)
     WORLD_MAP_QUEST_BREADCRUMBS:RegisterCallback("QuestAvailable", function(questIndex) self:CacheQuestPoints(questIndex) end)
-    SCENE_MANAGER:GetScene("worldMap"):RegisterCallback("StateChange", function()
-        WORLD_MAP_MANAGER:ResizeAndReanchorMap()
+    SCENE_MANAGER:GetScene("worldMap"):RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_SHOWING then
+            WORLD_MAP_INFO:SelectTab(SI_MAP_INFO_MODE_LOCATIONS)
+            if not self.mapTravelKeybindActive then
+                self.mapTravelKeybindActive = true
+                KEYBIND_STRIP:AddKeybindButtonGroup(self.mapTravelKeybind)
+            end
+        elseif newState == SCENE_SHOWN then
+            WORLD_MAP_INFO:SelectTab(SI_MAP_INFO_MODE_LOCATIONS)
+        elseif newState == SCENE_HIDDEN then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mapTravelKeybind)
+            self.mapTravelKeybindActive = false
+        end
         self:ApplyMapSettings()
     end)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() self:ApplyMapSettings() end)
 
+    self:ResizeEnlargedMap()
 end

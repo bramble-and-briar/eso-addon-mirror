@@ -1,10 +1,10 @@
 ## Title: PvPCooldownTracker
 ## APIVersion: 101046
 ## SavedVariables: CooldownsVariables1 CooldownsVariables2 CooldownsVariables2AccountWide
-## Description: Displays cooldowns for various procs from set bonuses, synergies, or class passives.
-## Version: 1.1.1
-## AddOnVersion: 111
-## Author: |cFFCCCCAwh_Lina|r 
+## Description: Displays cooldowns for various procs from set bonuses
+## Version: 1.2.1
+## AddOnVersion: 121
+## Author: |cFFCCCCVixen Hunny|r 
 ## DependsOn: LibAddonMenu-2.0
 
 lib/LibEquipmentBonus/LibEquipmentBonus.lua
@@ -16,6 +16,7 @@ src/Defaults.lua
 src/Interface.lua
 src/Sounds.lua
 src/EquippedSets.lua
+src/ProcCapture.lua
 src/Settings.lua
 
 ; PackageExcludes: art/*

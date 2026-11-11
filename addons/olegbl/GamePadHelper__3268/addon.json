@@ -8,8 +8,8 @@
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3268",
@@ -18,7 +18,7 @@
     "GamePadHelper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3268/",
-  "fingerprint": "02bd185a3cf65418cd0222feaf27cc772a44ee8f8f47cba92cbac53350afdf80",
+  "fingerprint": "7696d51ece22ea3399d16e89c18fdf3416b4d6fbf3b53a5abdf3889f807b9262",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11112.png",
     "https://cdn-eso.mmoui.com/preview/pvw14553.png",
@@ -37,11 +37,11 @@
   "source_id": "3268",
   "source_url": "https://www.esoui.com/downloads/info3268-GamePadHelper.html",
   "stats": {
-    "downloads": 12897,
-    "favorites": 27,
-    "monthly_downloads": 845
+    "downloads": 14082,
+    "favorites": 29,
+    "monthly_downloads": 351
   },
   "title": "GamePadHelper",
-  "updated_at": 1786372646000,
-  "version": "1.06.18"
+  "updated_at": 1794326561000,
+  "version": "1.06.19"
 }

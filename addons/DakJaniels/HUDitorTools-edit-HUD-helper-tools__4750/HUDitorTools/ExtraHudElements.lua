@@ -36,6 +36,10 @@ local PLAYER_PROGRESS_GAMEPAD_CHAMPION_OFFSET_Y = -53
 -- ObjectiveCaptureMeter.xml 35-39. Keyboard offset is
 -- ZO_COMMON_INFO_DEFAULT_KEYBOARD_BOTTOM_OFFSET_Y (CommonConstants.lua 4).
 local OBJECTIVE_CAPTURE_METER_GAMEPAD_OFFSET_Y = -270
+-- ObjectiveCaptureMeter.xml 51-53. Background, bar, and frame are this size.
+local OBJECTIVE_CAPTURE_METER_SIZE = 128
+-- Reticle.xml 48-50.
+local STEALTH_ICON_SIZE = 64
 
 local function GetOrCreateHudElementRef(control)
     if control.hudElementRef then
@@ -53,11 +57,19 @@ local function GetOrCreateHudElementRef(control)
     ref:ClearAnchors()
     local controlName = control:GetName()
     if controlName == "ZO_ObjectiveCaptureMeter" then
-        -- ObjectiveCaptureMeter.xml 48-53. The meter has no dimensions. The drawn
-        -- meter is the 128 background, anchored BOTTOM.
-        local background = control:GetNamedChild("Background")
-        ref:SetAnchor(TOPLEFT, background, TOPLEFT)
-        ref:SetAnchor(BOTTOMRIGHT, background, BOTTOMRIGHT)
+        -- ObjectiveCaptureMeter.xml 48-53. The meter has no dimensions. The
+        -- drawn piece is the 128 background, anchored BOTTOM. ZO_ObjectiveCapture
+        -- stays hidden (line 42) until a capture. GetDimensions on a ref that is
+        -- only sized by anchors stays 0 then, and the editor box is a cross.
+        -- GetConvertedRefControlAnchorInfo reads GetDimensions (HUDManager.lua 110).
+        ref:SetAnchor(BOTTOM, control, BOTTOM)
+        ref:SetDimensions(OBJECTIVE_CAPTURE_METER_SIZE, OBJECTIVE_CAPTURE_METER_SIZE)
+    elseif controlName == "ZO_ReticleContainerStealthIcon" then
+        -- Reticle.xml 46-50 and 57. The container has no dimensions. The eye is
+        -- 64, anchored CENTER. The reticle stays hidden, so an anchor-sized ref
+        -- reports 0 from GetDimensions and the editor box is a cross.
+        ref:SetAnchor(CENTER, control, CENTER)
+        ref:SetDimensions(STEALTH_ICON_SIZE, STEALTH_ICON_SIZE)
     elseif controlName == "ZO_PlayerToPlayerAreaPromptContainer" then
         -- PlayerToPlayer.xml 52-62. Width is 870 and there is no height. Target
         -- spans that width. ActionArea hangs below the target.
@@ -343,12 +355,7 @@ end
 --- runs after OnBarLevelChange, so the saved offsets stay in the profile and the
 --- control shows the template anchor until this runs.
 local function RestorePlayerProgressSavedAnchor()
-    local element
-    if IsInGamepadPreferredMode() then
-        element = HUD_MANAGER:GetGamepadElementForControl(ZO_PlayerProgress)
-    else
-        element = HUD_MANAGER:GetKeyboardElementForControl(ZO_PlayerProgress)
-    end
+    local element = HT.GetHudElementForControl(ZO_PlayerProgress)
     if not element or element:IsUsingDefaultAnchor() then
         return
     end

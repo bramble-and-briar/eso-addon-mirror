@@ -34,7 +34,7 @@ PBS_EQUIPMENT_CHANGER = {
 	baseTitle = "PB’s Equipment Changer",
 	chatName = "PB’s Equipment Changer",
 	author = "PinkBanther",
-	version = "0.7.0",
+	version = "0.8.0",
 	slash = "/pbequip",
 	shortSlash = "/pbec",
 	NUM_SLOTS = 8, -- the size of one wheel page (ACTION_BAR_UTILITY_BAR_SIZE)
@@ -651,8 +651,49 @@ end
 -- skills that belong to a line that is not active now cannot be slotted.
 -- ---------------------------------------------------------------------------------------
 
--- { lines = { {id, name} ... }, mastery = { {id, name} ... }, masteryOn = bool }, or nil when the client's
--- skills data cannot say (no subclassing in this API, or the data is not there yet).
+-- What a Class Mastery line holds that the character has learned: the skills the line lists (actives and passives)
+-- that are purchased, in the line's own order. Each is { id = "<line id>:<skill index>", name, passive = bool } and
+-- for a passive { rank, ranks } (the rank it is at, of how many), for an active { morph } (the morph slot it is at;
+-- its name is already the name of that morph, the client reads it the same way). nil when the line cannot say, so
+-- that "nothing learned" ({}) and "not recorded" (nil) stay different things.
+local function ReadMasterySkills(line)
+	if type(line.GetNumSkills) ~= "function" or type(line.GetSkillDataByIndex) ~= "function" then
+		return nil
+	end
+	local ok, skills = pcall(function()
+		local lineId = line:GetId()
+		local list = {}
+		for index = 1, line:GetNumSkills() do
+			local skill = line:GetSkillDataByIndex(index)
+			if skill and skill:IsPurchased() then
+				local progression = skill:GetCurrentProgressionData()
+				local name = progression and progression:GetName() or nil
+				local passive = skill:IsPassive() == true
+				local entry = {
+					id = tostring(lineId) .. ":" .. tostring(index),
+					name = name and Plain(SI_ABILITY_NAME, name) or ("#" .. tostring(index)),
+					passive = passive,
+				}
+				if passive then
+					entry.rank, entry.ranks = skill:GetCurrentRank(), skill:GetNumRanks()
+				else
+					entry.morph = skill:GetCurrentMorphSlot()
+				end
+				list[#list + 1] = entry
+			end
+		end
+		return list
+	end)
+	if ok and type(skills) == "table" then
+		return skills
+	end
+	return nil
+end
+A.ReadMasterySkills = ReadMasterySkills
+
+-- { lines = { {id, name} ... }, mastery = { {id, name, skills} ... }, masteryOn = bool }, or nil when the client's
+-- skills data cannot say (no subclassing in this API, or the data is not there yet). `skills` is what
+-- ReadMasterySkills gives for the line.
 function A:ReadClassState()
 	local manager = SKILLS_DATA_MANAGER
 	if type(manager) ~= "table" then
@@ -664,12 +705,12 @@ function A:ReadClassState()
 		end
 	end
 	local ok, state = pcall(function()
-		local function collect(count, get)
+		local function collect(count, get, withSkills)
 			local list = {}
 			for i = 1, count do
 				local line = get(manager, i)
 				if line then
-					list[#list + 1] = { id = line:GetId(), name = Plain(nil, line:GetName()) }
+					list[#list + 1] = { id = line:GetId(), name = Plain(nil, line:GetName()), skills = withSkills and ReadMasterySkills(line) or nil }
 				end
 			end
 			return list
@@ -677,7 +718,7 @@ function A:ReadClassState()
 		local numLines = manager:GetNumActiveClassSkillLines()
 		local state = {
 			lines = collect(numLines, manager.GetActiveClassSkillLine),
-			mastery = collect(manager:GetNumActiveClassMasterySkillLines(), manager.GetActiveClassMasterySkillLine),
+			mastery = collect(manager:GetNumActiveClassMasterySkillLines(), manager.GetActiveClassMasterySkillLine, true),
 		}
 		if type(manager.GetNumPlayerClassActiveSkillLines) == "function" then
 			state.masteryOn = manager:GetNumPlayerClassActiveSkillLines() == numLines

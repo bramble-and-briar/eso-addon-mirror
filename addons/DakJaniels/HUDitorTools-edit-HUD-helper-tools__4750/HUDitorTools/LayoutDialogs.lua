@@ -3,8 +3,6 @@
 -- Host: ZO_HUDEditor_Keyboard_TLInfoBox (hudeditor_keyboard.xml)
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
-
-local INTERACTABLE_LEVEL = ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL
 local IGNORE_CALLBACK = true
 
 local layoutInfoBoxSection
@@ -291,11 +289,10 @@ end
 
 local function InitializeImportDialog()
     importDialogControl = HUDitorTools_LayoutImportDialog
-    importDialogControl:SetDrawTier(DT_HIGH)
-    importDialogControl:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(importDialogControl, HT.INFO_BOX_INTERACTABLE_LEVEL)
 
     local closeButton = importDialogControl:GetNamedChild("Close")
-    closeButton:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(closeButton, HT.INFO_BOX_INTERACTABLE_LEVEL)
     closeButton:SetHandler("OnClicked", HT.HideLayoutDialogs)
     importDialogControl:GetNamedChild("Cancel"):SetHandler("OnClicked", HT.HideLayoutDialogs)
     importDialogControl:GetNamedChild("Import"):SetHandler("OnClicked", ConfirmImportLayout)
@@ -316,11 +313,10 @@ end
 
 local function InitializeExportDialog()
     exportDialogControl = HUDitorTools_LayoutExportDialog
-    exportDialogControl:SetDrawTier(DT_HIGH)
-    exportDialogControl:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(exportDialogControl, HT.INFO_BOX_INTERACTABLE_LEVEL)
 
     local closeButton = exportDialogControl:GetNamedChild("Close")
-    closeButton:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(closeButton, HT.INFO_BOX_INTERACTABLE_LEVEL)
     closeButton:SetHandler("OnClicked", HT.HideLayoutDialogs)
     exportDialogControl:GetNamedChild("CloseBottom"):SetHandler("OnClicked", HT.HideLayoutDialogs)
     exportDialogControl:GetNamedChild("SelectAll"):SetHandler("OnClicked", SelectExportShareString)
@@ -328,11 +324,10 @@ end
 
 local function InitializeNameDialog()
     nameDialogControl = HUDitorTools_LayoutNameDialog
-    nameDialogControl:SetDrawTier(DT_HIGH)
-    nameDialogControl:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(nameDialogControl, HT.INFO_BOX_INTERACTABLE_LEVEL)
 
     local closeButton = nameDialogControl:GetNamedChild("Close")
-    closeButton:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(closeButton, HT.INFO_BOX_INTERACTABLE_LEVEL)
     closeButton:SetHandler("OnClicked", HT.HideLayoutDialogs)
     nameDialogControl:GetNamedChild("Cancel"):SetHandler("OnClicked", HT.HideLayoutDialogs)
     nameDialogControl:GetNamedChild("Confirm"):SetHandler("OnClicked", ConfirmNameDialog)
@@ -353,7 +348,7 @@ local function InitializeInfoBoxSection()
     local comboControl = layoutInfoBoxSection:GetNamedChild("ComboBox")
     layoutComboBox = ZO_ComboBox_ObjectFromContainer(comboControl)
     layoutComboBox:SetSortsItems(false)
-    comboControl:SetDrawLevel(INTERACTABLE_LEVEL)
+    comboControl:SetDrawLevel(HT.INFO_BOX_INTERACTABLE_LEVEL)
 
     layoutInfoBoxSection:GetNamedChild("Save"):SetHandler("OnClicked", function()
         HT.SaveActiveLayout()

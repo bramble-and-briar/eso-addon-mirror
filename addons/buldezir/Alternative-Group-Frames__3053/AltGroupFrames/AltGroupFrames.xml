@@ -50,10 +50,9 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="ALTGF_UnitFrames" mouseEnabled="false" movable="false" clampedToScreen="true">
+        <TopLevelControl name="ALTGF_UnitFrames" mouseEnabled="false" clampedToScreen="true" inherits="ZO_HUDManager_Element">
             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="5" offsetY="5" />
 
-            <OnMoveStop>self.m_object:SaveLoc()</OnMoveStop>
             <OnResizeStop>self.m_object:SaveSize()</OnResizeStop>
             <OnMouseUp>if button == MOUSE_BUTTON_INDEX_LEFT and self.m_object.dragState then self.m_object:EndDrag() end</OnMouseUp>
 

@@ -5,9 +5,10 @@
 ; https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: Skill Styles
-## APIVersion: 101050 101051
+## APIVersion: 101051 101052
 ## Author: |ce6202dKwiebe-Kwibus|r
-## AddOnVersion: 20
+## Version: 2.0.1
+## AddOnVersion: 201
 ## IsLibrary: false
 ## DependsOn: AbilityIconsFramework
 

@@ -1,178 +1,115 @@
--- Bridges gamepad utility-wheel cycling to ESO's keyboard utility wheel.
--- Update 51 has separate keyboard/gamepad wheel classes and gates the native
--- gamepad cycle actions on IsInGamepadPreferredMode(). We keep the keyboard
--- wheel selected, then add a short-lived gamepad-input action layer.
+-- Hybrid quickslot (utility) wheel.
+--
+-- ESO has separate keyboard and gamepad wheel classes. The manager caches
+-- its selected platform when StartInteraction runs, so each wheel must be
+-- started under the platform that should own it. The optional controller bridge
+-- uses native inherited keybindings rather than mutating protected bindings.
+-- Fishing, target-marker, and player-interaction wheels keep ESO's native presentation.
 
 local ADDON = ESOHybridUI
+local rt = ADDON.runtime
 local BRIDGE_LAYER = "ESOHybridUI_UTILITY_WHEEL_BRIDGE"
 
-ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT", "Cycle utility wheel left (controller)")
-ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT", "Cycle utility wheel right (controller)")
-
 function ADDON:ShouldBridgeUtilityWheelInput()
-    return self.runtime.utilityWheelLayerActive == true
-        and not self:GetSettings().useControllerUI
-        and self:IsNativeGamepadMode()
-        and INTERACTIVE_WHEEL_MANAGER ~= nil
-        and INTERACTIVE_WHEEL_MANAGER.gamepad == false
+    return rt.utilityWheelLayerActive == true and self:IsHybrid() and self:IsNativeGamepadMode()
 end
 
 function ADDON:CycleUtilityWheel(direction)
-    if not self:ShouldBridgeUtilityWheelInput() then
+    if not self:ShouldBridgeUtilityWheelInput() or not INTERACTIVE_WHEEL_MANAGER then
         return false
     end
 
-    if not INTERACTIVE_WHEEL_MANAGER then
+    local methodName = direction < 0 and "CycleLeft" or "CycleRight"
+    local manager = INTERACTIVE_WHEEL_MANAGER
+    if type(manager[methodName]) ~= "function" then
+        self:LogWarn("Wheel manager has no", methodName, "- cannot cycle the quickslot wheel.")
         return false
     end
 
-    if direction < 0 then
-        return INTERACTIVE_WHEEL_MANAGER:CycleLeft(ZO_INTERACTIVE_WHEEL_TYPE_UTILITY)
+    -- The manager picks its keyboard or gamepad wheel from IsInGamepadPreferredMode()
+    -- on every call. The open wheel was started under the keyboard answer, so cycling
+    -- must be asked under the same answer; otherwise the manager addresses the
+    -- (closed) gamepad wheel and the button press does nothing.
+    local ok, result = pcall(self.WithKeyboardWheelMode, self, manager[methodName], manager, ZO_INTERACTIVE_WHEEL_TYPE_UTILITY)
+    if not ok then
+        self:LogWarn("Quickslot wheel", methodName, "failed:", tostring(result))
+        return false
     end
-    return INTERACTIVE_WHEEL_MANAGER:CycleRight(ZO_INTERACTIVE_WHEEL_TYPE_UTILITY)
+    self:LogDebug("Quickslot wheel", methodName, "result:", tostring(result))
+    -- The press was ours either way; do not let it fall through to ESO's gated action.
+    return true
 end
 
-local function CopyGamepadDefaultBindings(sourceActionName, targetActionName)
-    local sourceLayer, sourceCategory, sourceAction = GetActionIndicesFromName(sourceActionName)
-    local targetLayer, targetCategory, targetAction = GetActionIndicesFromName(targetActionName)
-    if not sourceLayer or not targetLayer then
-        return false
+local function PushBridgeLayer()
+    if not rt.utilityWheelLayerActive then
+        PushActionLayerByName(BRIDGE_LAYER)
+        rt.utilityWheelLayerActive = true
+        ADDON:LogDebug("Wheel bridge layer pushed.")
     end
-
-    local copiedAny = false
-    for bindingIndex = 1, GetMaxBindingsPerAction() do
-        local key, mod1, mod2, mod3, mod4 =
-            GetActionBindingInfo(sourceLayer, sourceCategory, sourceAction, bindingIndex)
-
-        if not key or key == KEY_INVALID then
-            key, mod1, mod2, mod3, mod4 =
-                GetActionDefaultBindingInfo(sourceLayer, sourceCategory, sourceAction, bindingIndex)
-        end
-
-        if key and key ~= KEY_INVALID and IsKeyCodeGamepadKey(key) then
-            CreateDefaultActionBind(targetActionName, key, mod1, mod2, mod3, mod4)
-            copiedAny = true
-        end
-    end
-
-    return copiedAny
 end
 
 local function RemoveBridgeLayer()
-    if ADDON.runtime.utilityWheelLayerActive then
+    if rt.utilityWheelLayerActive then
         RemoveActionLayerByName(BRIDGE_LAYER)
-        ADDON.runtime.utilityWheelLayerActive = false
+        rt.utilityWheelLayerActive = false
+        ADDON:LogDebug("Wheel bridge layer removed.")
     end
+end
+
+local function WantsKeyboardQuickslot()
+    return ADDON:GetSettings().hybridQuickslotWheel ~= false
+end
+
+-- StartInteraction returns a started flag (ESO's input binding consumes it) plus
+-- anything else; hand every value back unchanged.
+local function AfterUtilityStart(started, ...)
+    if started then
+        PushBridgeLayer()
+    end
+    return started, ...
 end
 
 local function InstallManagerHooks()
     local managerClass = ZO_InteractiveWheel_Manager
-    if not INTERACTIVE_WHEEL_MANAGER or ADDON.runtime.utilityWheelHooksInstalled then
-        return
+    if not managerClass or not INTERACTIVE_WHEEL_MANAGER or type(managerClass.StartInteraction) ~= "function" then
+        return false
     end
 
-    -- Hook the manager class rather than assigning an override to the live
-    -- singleton. Preserve StartInteraction's complete return tuple because
-    -- ESO's input binding consumes its boolean result.
+    -- Hook the class, not the live singleton.
     local originalStart = managerClass.StartInteraction
-
     managerClass.StartInteraction = function(self, wheelType, ...)
-        local function Pack(...) return { n = select("#", ...), ... } end
-        local args = { n = select("#", ...), ... }
-        local function StartNativeWheel()
-            return originalStart(self, wheelType, unpack(args, 1, args.n))
-        end
-        local settings = ADDON:GetSettings()
-        local results
-        -- Hybrid's keyboard-style override is intentionally limited to the
-        -- utility/quickslot wheel. Fishing and target-marker wheels retain
-        -- ESO's native presentation; player-to-player has its own hook below.
         if wheelType == ZO_INTERACTIVE_WHEEL_TYPE_UTILITY
-            and settings.useHybridUI
-            and ADDON:IsNativeGamepadMode() then
-            results = Pack(ADDON:WithKeyboardWheelMode(StartNativeWheel))
-        else
-            results = Pack(StartNativeWheel())
+            and ADDON:IsHybrid() and ADDON:IsNativeGamepadMode() then
+            if WantsKeyboardQuickslot() then
+                return AfterUtilityStart(ADDON:WithKeyboardWheelMode(originalStart, self, wheelType, ...))
+            end
+            -- Explicitly select ESO's real Gamepad radial wheel when the option
+            -- is off; the Hybrid HUD itself reports keyboard mode.
+            return ADDON:WithNativeGamepadMode(originalStart, self, wheelType, ...)
         end
-        local started = results[1]
-        if started
-            and wheelType == ZO_INTERACTIVE_WHEEL_TYPE_UTILITY
-            and self.gamepad == false
-            and ADDON:GetSettings().useControllerUI ~= true
-            and ADDON:IsNativeGamepadMode() then
-            PushActionLayerByName(BRIDGE_LAYER)
-            ADDON.runtime.utilityWheelLayerActive = true
+        if ADDON:IsHybrid() and ADDON:IsNativeGamepadMode()
+            and (wheelType == ZO_INTERACTIVE_WHEEL_TYPE_FISHING
+                or wheelType == ZO_INTERACTIVE_WHEEL_TYPE_TARGET_MARKER) then
+            return ADDON:WithNativeGamepadMode(originalStart, self, wheelType, ...)
         end
-        return unpack(results, 1, results.n)
+        return originalStart(self, wheelType, ...)
     end
 
-    ZO_PreHook(managerClass, "StopInteraction", function(self, wheelType)
-        -- Only the utility wheel owns this temporary bridge layer. Other
-        -- wheels can stop while it is still open (or during nested UI flows).
+    ZO_PreHook(managerClass, "StopInteraction", function(_, wheelType)
+        -- Only the utility wheel owns the bridge layer.
         if wheelType == ZO_INTERACTIVE_WHEEL_TYPE_UTILITY then
-            -- Remove our layer before ESO pops the utility wheel's own layer.
             RemoveBridgeLayer()
         end
         return false
     end)
-
-    ADDON.runtime.utilityWheelHooksInstalled = true
-end
-
-local function InstallPlayerInteractionWheelHook()
-    local playerToPlayerClass = ZO_PlayerToPlayer
-    if not playerToPlayerClass or ADDON.runtime.playerInteractionWheelHookInstalled then
-        return
-    end
-
-    local originalStart = playerToPlayerClass.StartInteraction
-    if type(originalStart) ~= "function" then
-        return
-    end
-
-    playerToPlayerClass.StartInteraction = function(self, ...)
-        local settings = ADDON:GetSettings()
-        if settings.useHybridUI and ADDON:IsNativeGamepadMode() then
-            local args = { n = select("#", ...), ... }
-            local function StartKeyboardWheel()
-                return originalStart(self, unpack(args, 1, args.n))
-            end
-            return ADDON:WithKeyboardWheelMode(StartKeyboardWheel)
-        end
-        return originalStart(self, ...)
-    end
-
-    ADDON.runtime.playerInteractionWheelHookInstalled = true
+    return true
 end
 
 function ADDON:ApplyUtilityWheel()
-    InstallManagerHooks()
-    InstallPlayerInteractionWheelHook()
-
-    if not self.runtime.utilityWheelLeftCopied then
-        self.runtime.utilityWheelLeftCopied = CopyGamepadDefaultBindings(
-            "UTILITY_WHEEL_GAMEPAD_CYCLE_LEFT",
-            "ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT"
-        )
-    end
-    if not self.runtime.utilityWheelRightCopied then
-        self.runtime.utilityWheelRightCopied = CopyGamepadDefaultBindings(
-            "UTILITY_WHEEL_GAMEPAD_CYCLE_RIGHT",
-            "ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT"
-        )
-    end
-    self.runtime.utilityWheelDefaultsCopied =
-        self.runtime.utilityWheelLeftCopied and self.runtime.utilityWheelRightCopied
-
-    if not self.runtime.utilityWheelRetryHook
-        and (not self.runtime.utilityWheelHooksInstalled or not self.runtime.utilityWheelDefaultsCopied) then
-        EVENT_MANAGER:RegisterForEvent(self.ADDON_NAME .. "_UtilityWheelRetry", EVENT_PLAYER_ACTIVATED, function()
-            self:ApplyUtilityWheel()
-            if self.runtime.utilityWheelHooksInstalled and self.runtime.utilityWheelDefaultsCopied then
-                EVENT_MANAGER:UnregisterForEvent(self.ADDON_NAME .. "_UtilityWheelRetry", EVENT_PLAYER_ACTIVATED)
-                self.runtime.utilityWheelRetryHook = false
-            end
-        end)
-        self.runtime.utilityWheelRetryHook = true
-    end
+    self:InstallWhenReady("utilityWheelHooks", InstallManagerHooks)
+    self:InstallWhenReady("wheelCleanup", function()
+        -- Never leave the bridge layer behind across a zone change or logout.
+        EVENT_MANAGER:RegisterForEvent(ADDON.ADDON_NAME .. "_WheelCleanup", EVENT_PLAYER_DEACTIVATED, RemoveBridgeLayer)
+        return true
+    end)
 end

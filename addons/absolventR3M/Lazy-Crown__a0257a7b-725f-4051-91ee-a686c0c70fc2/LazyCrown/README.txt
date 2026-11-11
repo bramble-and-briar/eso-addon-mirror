@@ -7,12 +7,12 @@ how it talks. Every call goes on the scoreboard. Nothing is ever sent
 unless you press Send.
 
 Every wheel entry, crown and option is explained on Lazy Crown's page
-in the add-on browser, and in game under Main Menu > Add-Ons > Lazy
+in the add-on browser, and in game under Main Menu > Addons > Lazy
 Crown.
 
 SETUP
   1. Enable Lazy Crown, LibRadialMenu and LibHarvensAddonSettings in
-     the Add-Ons menu, then Reload UI.
+     Settings > Addons > Manage My Add-Ons, then Reload UI.
   2. Turn on HUD Chat Display in Settings > Social, or you won't see
      Lazy Crown's lines on screen.
   3. In the LibRadialMenu settings, set "Wheel Location" above 0.

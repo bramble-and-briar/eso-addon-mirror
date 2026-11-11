@@ -3,7 +3,7 @@
 -- Every HARVEST_NODE compass pin the engine creates is handed to us by the XML (addedAnimation OnPlay/OnStop).
 -- Every 50 ms each not-yet-located pin is sampled: strip position -> cot(angle) (Shinni's table), scale -> distance,
 -- cast from the camera in the raw world frame. After 3 samples within 3 m the node is located and never resampled.
--- Every 100 ms the pin under the reticle is named from the compass description (-> pin type).
+-- Every 100 ms the pin under the reticle is named from the compass description (-> node name and pin type).
 --
 -- Console facts that cost a day (2026-10-05): pin controls arrive as USERDATA, not Lua tables - never guard with
 -- type(control) == "table". And d() output is not a reliable way to see load/event-time logs on console; use
@@ -93,7 +93,11 @@ local function SamplePositions()
                     Detection.locatedCount = Detection.locatedCount + 1
                     for old in pairs(Detection.lingering) do
                         local dx, dz = old.x - node.x, old.z - node.z
-                        if dx * dx + dz * dz <= 9 then Detection.lingering[old] = nil end
+                        if dx * dx + dz * dz <= 9 then
+                            -- the same node under a recycled pin: it keeps the name the reticle gave it
+                            if old.pinTypeId and not node.pinTypeId then node.pinTypeId, node.name = old.pinTypeId, old.name end
+                            Detection.lingering[old] = nil
+                        end
                     end
                     LogUtils.Debug("located node at %.1f, %.1f (%dm)", node.x, node.z, math.floor(distance + 0.5))
                 end
@@ -108,7 +112,8 @@ local function NamePins()
     local left, width = c:GetLeft(), c:GetWidth()
     for i = 1, c:GetNumCenterOveredPins() do
         if c:GetCenterOveredPinType(i) == MAP_PIN_TYPE_HARVEST_NODE then
-            local pinTypeId = PinTypeUtils.FromName(c:GetCenterOveredPinDescription(i))
+            local key = PinTypeUtils.Key(c:GetCenterOveredPinDescription(i))
+            local pinTypeId = key and PinTypeUtils.TypeOfKey(key)
             if pinTypeId then
                 local _, level = c:GetCenterOveredPinLayerAndLevel(i)
                 local match
@@ -119,7 +124,7 @@ local function NamePins()
                     end
                 end
                 if match then
-                    match.pinTypeId = pinTypeId
+                    match.pinTypeId, match.name = pinTypeId, key
                     LogUtils.Debug("named '%s' -> type %d", tostring(c:GetCenterOveredPinDescription(i)), pinTypeId)
                 end
             end

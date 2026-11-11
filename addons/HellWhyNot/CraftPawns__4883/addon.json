@@ -8,8 +8,8 @@
   "category_id": "40",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4883",
@@ -18,7 +18,7 @@
     "CraftPawns"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4883/",
-  "fingerprint": "12b89b4f7865a8531a9ba27eaa87dbbcbe7dacb73079127b39b5d02c90612359",
+  "fingerprint": "bd023c23def5b8ae498eca96a844af7654eba8fb97d87d5dc9a76bd2426c54b4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17602.png",
     "https://cdn-eso.mmoui.com/preview/pvw17603.png"
@@ -29,11 +29,11 @@
   "source_id": "4883",
   "source_url": "https://www.esoui.com/downloads/info4883-CraftPawns.html",
   "stats": {
-    "downloads": 156,
+    "downloads": 209,
     "favorites": 0,
-    "monthly_downloads": 153
+    "monthly_downloads": 21
   },
   "title": "CraftPawns",
   "updated_at": 1791168353000,
-  "version": "1.2"
+  "version": "1.2.1"
 }

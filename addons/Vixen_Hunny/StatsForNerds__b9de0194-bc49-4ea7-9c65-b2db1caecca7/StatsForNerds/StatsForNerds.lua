@@ -40,7 +40,7 @@ local DEFAULTS = {
     bgR         = 0.047,  -- #0C1025 dark navy
     bgG         = 0.063,
     bgB         = 0.145,
-    bgAlpha     = 0.92,
+    bgAlpha     = 0,      -- transparent background
 }
 
 -- ─── Performance color thresholds ─────────────────────────────────────────
@@ -63,7 +63,6 @@ end
 
 local function SetPerfColor(ref, c)
     ref.value:SetColor(c[1], c[2], c[3], 1)
-    ref.bar:SetColor(c[1], c[2], c[3], 0.88)
 end
 
 -- ─── State ──────────────────────────────────────────────────────────────────
@@ -136,12 +135,6 @@ local function CountSpikes(buf)
     return n
 end
 
-local function SetBar(bar, value, maxVal)
-    local cap = math.max(maxVal, 1)
-    bar:SetMinMax(0, cap)
-    bar:SetValue(math.min(value, cap))
-end
-
 -- ─── Color application ──────────────────────────────────────────────────────
 
 function SNS:ApplyColors()
@@ -153,16 +146,13 @@ function SNS:ApplyColors()
     local bb = self.saved.bgB
     local ba = self.saved.bgAlpha
 
+    -- Border fades with the background, so alpha 0 means fully transparent
     uiRefs.bg:SetCenterColor(br, bg, bb, ba)
-    uiRefs.bg:SetEdgeColor(r, g, b, 0.80)
-    uiRefs.titleLbl:SetColor(r, g, b, 1)
+    uiRefs.bg:SetEdgeColor(r, g, b, math.min(ba, 0.80))
 
     for _, row in ipairs(uiRefs.rows) do
         row.lbl:SetColor(r, g, b, 0.55)
         row.value:SetColor(r, g, b, 1)
-        row.track:SetCenterColor(br, bg, bb, 0.95)
-        row.track:SetEdgeColor(r * 0.35, g * 0.35, b * 0.35, 0.70)
-        row.bar:SetColor(r, g, b, 0.88)
     end
 end
 
@@ -200,90 +190,70 @@ local function Tick()
 
     -- FPS
     uiRefs.fps.value:SetText(string.format("%.0f", fps))
-    SetBar(uiRefs.fps.bar, fps, FPS_MAX)
     SetPerfColor(uiRefs.fps, FpsColor(fps))
 
     -- 1% low FPS (only meaningful once 100 samples are recorded)
     if #fpsBuffer >= FPS_1LOW_MIN_SAMPLES then
         local fps1Low = PercentileLow(fpsBuffer, 0.01)
         uiRefs.fps1Low.value:SetText(string.format("%.0f", fps1Low))
-        SetBar(uiRefs.fps1Low.bar, fps1Low, FPS_MAX)
         SetPerfColor(uiRefs.fps1Low, FpsColor(fps1Low))
     else
-        uiRefs.fps1Low.value:SetText(string.format("-- (%ds)", #fpsBuffer))
-        SetBar(uiRefs.fps1Low.bar, 0, FPS_MAX)
+        uiRefs.fps1Low.value:SetText("--")
     end
 
-    -- Latency (rolling avg RTT)
+    -- Latency (current RTT, coloured by rolling average)
     uiRefs.latency.value:SetText(string.format("%d ms", math.floor(ping + 0.5)))
-    SetBar(uiRefs.latency.bar, avgPing, LATENCY_MAX)
     SetPerfColor(uiRefs.latency, PingColor(avgPing))
 
     -- Desync: mean abs deviation of ping in ms (matches CombatMetrics desync display)
     uiRefs.desync.value:SetText(string.format("%d ms", math.floor(desync + 0.5)))
-    SetBar(uiRefs.desync.bar, desync, DESYNC_MAX)
 
     -- Packet loss
     uiRefs.pktLoss.value:SetText(string.format("%.1f%%", pktLoss))
-    SetBar(uiRefs.pktLoss.bar, pktLoss, PKTLOSS_MAX)
 
     zo_callLater(Tick, UPDATE_INTERVAL_MS)
 end
 
 -- ─── UI construction ────────────────────────────────────────────────────────
 
-local ROW_STRIDE = 46
-local PAD        = 8
-local ROW_W      = 300
+local PAD       = 8
+local LINE_H    = 30
+local LABEL_GAP = 6    -- between a label and its value
+local CELL_GAP  = 16   -- between one stat and the next
 
-local function MakeRow(parent, labelText, yOffset, barMax)
+-- Adds one "LABEL value" cell to the line at xOffset.
+-- Returns the cell refs and the x offset where the next cell starts.
+local function MakeCell(parent, labelText, xOffset, valueWidth)
     local wm = WINDOW_MANAGER
 
-    local row = wm:CreateControl(nil, parent, CT_CONTROL)
-    row:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, yOffset)
-    row:SetDimensions(ROW_W, ROW_STRIDE - 4)
-
-    local lbl = wm:CreateControl(nil, row, CT_LABEL)
-    lbl:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 0)
+    local lbl = wm:CreateControl(nil, parent, CT_LABEL)
+    lbl:SetAnchor(LEFT, parent, LEFT, xOffset, 0)
     lbl:SetFont("ZoFontGamepad22")
     lbl:SetColor(1, 1, 1, 0.55)
     lbl:SetText(labelText)
 
-    local val = wm:CreateControl(nil, row, CT_LABEL)
-    val:SetAnchor(TOPRIGHT, row, TOPRIGHT, 0, 0)
+    local valX = xOffset + lbl:GetTextWidth() + LABEL_GAP
+
+    -- Fixed-width value slot so the line doesn't shift as numbers change
+    local val = wm:CreateControl(nil, parent, CT_LABEL)
+    val:SetAnchor(LEFT, parent, LEFT, valX, 0)
+    val:SetDimensions(valueWidth, LINE_H)
     val:SetFont("ZoFontGamepad22")
     val:SetColor(1, 1, 1, 1)
-    val:SetText("---")
-    val:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    val:SetText("--")
+    val:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    val:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 
-    local track = wm:CreateControl(nil, row, CT_BACKDROP)
-    track:SetAnchor(BOTTOMLEFT, row, BOTTOMLEFT, 0, 0)
-    track:SetDimensions(ROW_W, 8)
-    track:SetCenterColor(0, 0, 0, 0.90)
-    track:SetEdgeColor(0.3, 0.3, 0.3, 0.60)
-    track:SetEdgeTexture(nil, 1, 1, 0, 0)
-
-    local bar = wm:CreateControl(nil, track, CT_STATUSBAR)
-    bar:SetAnchor(TOPLEFT, track, TOPLEFT, 1, 1)
-    bar:SetDimensions(ROW_W - 2, 6)
-    bar:SetTexture("EsoUI/Art/Miscellaneous/progressbar_genericfill.dds")
-    bar:SetColor(1, 1, 1, 0.88)
-    bar:SetMinMax(0, barMax)
-    bar:SetValue(0)
-
-    return { lbl = lbl, value = val, track = track, bar = bar }
+    return { lbl = lbl, value = val }, valX + valueWidth + CELL_GAP
 end
 
 function SNS:BuildUI()
     local wm = WINDOW_MANAGER
-    local W  = ROW_W + PAD * 2
-    local H  = 30 + ROW_STRIDE * 5 + PAD * 2
 
     local startX = self.saved.x or 30
     local startY = self.saved.y or 30
 
     local root = wm:CreateTopLevelWindow("StatsForNerdsRoot")
-    root:SetDimensions(W, H)
     root:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, startX, startY)
     root:SetMovable(true)
     root:SetMouseEnabled(true)
@@ -295,39 +265,31 @@ function SNS:BuildUI()
         self.saved.y = ctrl:GetTop()
     end)
 
-    -- Single flat backdrop
+    -- Backdrop (transparent by default; opacity comes from the Background Color setting)
     local bg = wm:CreateControl(nil, root, CT_BACKDROP)
     bg:SetAnchorFill(root)
-    bg:SetCenterColor(0, 0, 0, 0.90)
-    bg:SetEdgeColor(1, 1, 1, 0.80)
+    bg:SetCenterColor(0, 0, 0, 0)
+    bg:SetEdgeColor(0, 0, 0, 0)
     bg:SetEdgeTexture(nil, 1, 1, 0, 0)
 
-    -- Title
-    local titleLbl = wm:CreateControl(nil, root, CT_LABEL)
-    titleLbl:SetAnchor(TOPLEFT, root, TOPLEFT, PAD, PAD - 2)
-    titleLbl:SetFont("ZoFontGamepad20")
-    titleLbl:SetColor(1, 1, 1, 1)
-    titleLbl:SetText("STATS FOR NERDS")
+    -- One line: FPS | 1% LOW | PING | DESYNC | LOSS
+    local x = PAD
+    local fps, fps1Low, latency, desync, pktLoss
+    fps,     x = MakeCell(root, "FPS",    x, 44)
+    fps1Low, x = MakeCell(root, "1% LOW", x, 44)
+    latency, x = MakeCell(root, "PING",   x, 84)
+    desync,  x = MakeCell(root, "DESYNC", x, 72)
+    pktLoss, x = MakeCell(root, "LOSS",   x, 80)
 
-    -- Content container
-    local content = wm:CreateControl(nil, root, CT_CONTROL)
-    content:SetAnchor(TOPLEFT, root, TOPLEFT, PAD, 28)
-    content:SetDimensions(ROW_W, ROW_STRIDE * 5)
-
-    local fps     = MakeRow(content, "FPS",           0 * ROW_STRIDE, FPS_MAX)
-    local fps1Low = MakeRow(content, "1% LOW FPS",    1 * ROW_STRIDE, FPS_MAX)
-    local latency = MakeRow(content, "PING", 2 * ROW_STRIDE, LATENCY_MAX)
-    local desync  = MakeRow(content, "DESYNC",        3 * ROW_STRIDE, DESYNC_MAX)
-    local pktLoss = MakeRow(content, "PACKET LOSS",   4 * ROW_STRIDE, PKTLOSS_MAX)
+    root:SetDimensions(x - CELL_GAP + PAD, LINE_H)
 
     uiRefs.fps     = fps
     uiRefs.fps1Low = fps1Low
     uiRefs.latency = latency
     uiRefs.desync  = desync
     uiRefs.pktLoss = pktLoss
-    uiRefs.bg       = bg
-    uiRefs.titleLbl = titleLbl
-    uiRefs.rows     = { fps, fps1Low, latency, desync, pktLoss }
+    uiRefs.bg      = bg
+    uiRefs.rows    = { fps, fps1Low, latency, desync, pktLoss }
 
     self.rootControl = root
 end
@@ -356,7 +318,7 @@ function SNS:RegisterSettings()
         {
             type    = "colorpicker",
             name    = "Accent Color",
-            tooltip = "Color applied to text, progress bars, and the border.",
+            tooltip = "Color applied to the labels and the border.",
             getFunc = function()
                 return self.saved.accentR, self.saved.accentG, self.saved.accentB, 1
             end,
@@ -370,7 +332,7 @@ function SNS:RegisterSettings()
         {
             type    = "colorpicker",
             name    = "Background Color",
-            tooltip = "Fill color and opacity of the overlay background.",
+            tooltip = "Fill color and opacity of the overlay background. Transparent by default; raise the alpha to bring it back.",
             getFunc = function()
                 return self.saved.bgR, self.saved.bgG, self.saved.bgB, self.saved.bgAlpha
             end,
@@ -605,6 +567,11 @@ function SNS:Initialize()
         nil,
         DEFAULTS
     )
+    -- One-time: existing saves still hold the old opaque background
+    if not self.saved.transparentBgApplied then
+        self.saved.bgAlpha = 0
+        self.saved.transparentBgApplied = true
+    end
     self:BuildUI()
     self:ApplyColors()
     self:RegisterSettings()

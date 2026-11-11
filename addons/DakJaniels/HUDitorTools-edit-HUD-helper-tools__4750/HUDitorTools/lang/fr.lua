@@ -58,6 +58,8 @@ local strings = {
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Taille de police",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Contour de police",
     ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Réinitialiser l'échelle et la police",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_POSITION"] = "Réinitialiser la position",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_SCALE"] = "Réinitialiser l'échelle",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Moyen",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Gras",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Antique",
@@ -67,6 +69,7 @@ local strings = {
     ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Barres de ressources",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Disposition en pyramide",
     ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Ne pas agrandir",
+    ["SI_HUDITORTOOLS_RESOURCE_HIDE_HEALTH_GLOW"] = "Masquer la lueur de buff de santé",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Largeur de santé",
 
     ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Score de champ de bataille",

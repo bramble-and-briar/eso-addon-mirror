@@ -7,6 +7,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
 | [I Summon Thee](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/I-Summon-Thee__1582) | manavortex | PC / Mac | 0.3b |
+| [I Would Like Auto Run on Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/I-Would-Like-Auto-Run-on-Console__47d6c0f1-6f87-46d0-b1a3-3b896b0e2d56) | Vixen_Hunny | Console | — |
 | [I'm Calling U - Don't miss notification and chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/I-m-Calling-U---Don-t-miss-notification-and-chat__3147) | tdenc | PC / Mac | 0.6.0 |
 | [IAH Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/IAH-Test__2e7370ba-81d3-4bb3-8b0b-2bff4a943421) | Gamer_sa22 | Console | — |
 | [IC The Next Boss (Imperial City Spawn Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/IC-The-Next-Boss-Imperial-City-Spawn-Tracker__2552) | ownedbynico | PC / Mac | 1.3.0 |
@@ -139,7 +140,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/A5ha/Item-Tracker__4351) | A5ha | PC / Mac | 5 |
 | [ItemHound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/ItemHound__70b691c1-ae82-42c5-ad2d-4dad6bd53b36) | TheGreyWolf98 | Console | — |
 | [Items tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/Items-tracker__1472) | Upyachka | PC / Mac | 1.1_ |
-| [ItemShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/ItemShare__4533) | evainefaye | PC / Mac | 1.11.3 |
+| [ItemShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/ItemShare__4533) | evainefaye | PC / Mac | 1.11.31 |
 | [ItemTrig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/ItemTrig__2312) | DavidJCobb | PC / Mac | 1.0.14 |
 | [ITTs Donation Bot ( ITTDB )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/ITTs-Donation-Bot-ITTDB__2765) | ghostbane | PC / Mac | 2.1.3 |
 | [ITTs Ghostwriter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jnslevin/ITTs-Ghostwriter__3208) | jnslevin | PC / Mac | 2.2.3 |

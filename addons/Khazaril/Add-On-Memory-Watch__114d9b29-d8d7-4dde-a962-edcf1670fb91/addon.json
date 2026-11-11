@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Khazaril/Add-On-Memory-Watch__114d9b29-d8d7-4dde-a962-edcf1670fb91",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Khazaril",
+  "canonical_id": "bethesda:114d9b29-d8d7-4dde-a962-edcf1670fb91",
+  "content_id": "114d9b29-d8d7-4dde-a962-edcf1670fb91",
+  "deleted": false,
+  "fingerprint": "677b54bc5121a730fffe44b2a69369ea0ba42e0c4889dfc124c023593c5b9d4f",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "114d9b29-d8d7-4dde-a962-edcf1670fb91",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/114d9b29-d8d7-4dde-a962-edcf1670fb91",
+  "title": "Add-On Memory Watch"
+}

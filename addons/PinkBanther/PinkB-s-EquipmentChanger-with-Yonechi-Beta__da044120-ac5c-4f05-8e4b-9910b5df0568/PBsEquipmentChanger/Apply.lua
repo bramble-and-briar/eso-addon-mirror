@@ -393,9 +393,10 @@ end
 -- ---------------------------------------------------------------------------------------
 -- Subclass and Class Mastery: only compared
 --
--- A set remembers the active class skill lines and Class Mastery (Core.lua, ReadClassState). They cannot be
--- changed from the HUD, so a load only says when they are not what they were: skills of a line that is not
--- active now are the ones that then show up as "not available".
+-- A set remembers the active class skill lines and Class Mastery (Core.lua, ReadClassState): for the mastery the
+-- lines, whether it is in effect, and the skills of the lines the character has learned (with a passive's rank and an
+-- active's morph). They cannot be changed from the HUD, so a load only says when they are not what they were: skills
+-- of a line that is not active now are the ones that then show up as "not available".
 -- ---------------------------------------------------------------------------------------
 
 local function IdKey(list)
@@ -426,15 +427,74 @@ local function LinesText(list)
 	return #names > 0 and Join(names) or S.noneText
 end
 
+-- One learned skill as the player reads it: the name, and for a passive that has ranks the rank it is at ("Name (2/3)").
+local function MasterySkillLabel(skill)
+	if skill.passive and (tonumber(skill.ranks) or 0) > 1 and tonumber(skill.rank) then
+		return string.format(S.masterySkillRank, skill.name, skill.rank, skill.ranks)
+	end
+	return skill.name
+end
+
+-- What the mastery lines hold that the character has learned, as text; nil when no line says (a set saved before the
+-- skills were recorded, or a client that could not read them), so that "nothing learned" can be said as such.
+-- With several lines each skill list carries its line's name.
+local function MasterySkillsText(state)
+	local lines = state.mastery
+	if type(lines) ~= "table" then
+		return nil
+	end
+	local parts, recorded = {}, false
+	for _, line in ipairs(lines) do
+		if type(line.skills) == "table" then
+			recorded = true
+			local labels = {}
+			for _, skill in ipairs(line.skills) do
+				labels[#labels + 1] = MasterySkillLabel(skill)
+			end
+			local text = #labels > 0 and Join(labels) or S.masteryNoSkills
+			if #lines > 1 then
+				text = string.format(S.masteryLineSkills, tostring(line.name), text)
+			end
+			parts[#parts + 1] = text
+		end
+	end
+	if not recorded then
+		return nil
+	end
+	return table.concat(parts, S.masteryLineSeparator)
+end
+
+-- The mastery as the report names it: the lines, whether it is in effect, and what is learned ("Own Mastery (in
+-- effect); learned: A, B (2/3)"). A set that did not record the skills says what it knows.
 local function MasteryText(state)
 	local names = NameList(state.mastery)
 	if #names == 0 then
 		return S.noneText
 	end
-	return string.format(state.masteryOn and S.masteryOn or S.masteryOff, Join(names))
+	local text = string.format(state.masteryOn and S.masteryOn or S.masteryOff, Join(names))
+	local skills = MasterySkillsText(state)
+	if skills then
+		text = string.format(S.masteryLearned, text, skills)
+	end
+	return text
 end
 
-A.LinesText, A.MasteryText = LinesText, MasteryText
+-- The mastery as the preview's line says it: "Class Mastery (in effect): A, B (2/3)". The line's own name is left out
+-- when there is only one (it is the character's class, which the window does not need to be told); a set that did not
+-- record the skills shows the lines and the state, as before.
+local function MasteryPreviewText(state)
+	local names = NameList(state.mastery)
+	if #names == 0 then
+		return string.format(S.previewMastery, S.noneText)
+	end
+	local skills = MasterySkillsText(state)
+	if not skills then
+		return string.format(S.previewMastery, MasteryText(state))
+	end
+	return string.format(S.previewMasteryDetail, state.masteryOn and S.masteryStateOn or S.masteryStateOff, skills)
+end
+
+A.LinesText, A.MasteryText, A.MasteryPreviewText = LinesText, MasteryText, MasteryPreviewText
 
 local function MasteryKey(state)
 	local key = IdKey(state.mastery)
@@ -442,6 +502,39 @@ local function MasteryKey(state)
 		key = key .. (state.masteryOn and "+" or "-")
 	end
 	return key
+end
+
+-- How many of the skills the set learned are not as learned now: gone, a lower rank (a passive) or another morph (an
+-- active). A skill learned since the set was saved is not a difference: the set's own skills are all still there. A line
+-- that did not record its skills (an older set) or cannot be read now says nothing.
+local function MasterySkillsLost(saved, now)
+	local nowById, readable = {}, {}
+	for _, line in ipairs(type(now.mastery) == "table" and now.mastery or {}) do
+		if type(line.skills) == "table" then
+			readable[tostring(line.id)] = true
+			for _, skill in ipairs(line.skills) do
+				nowById[tostring(skill.id)] = skill
+			end
+		end
+	end
+	local lost = 0
+	for _, line in ipairs(type(saved.mastery) == "table" and saved.mastery or {}) do
+		if type(line.skills) == "table" and readable[tostring(line.id)] then
+			for _, skill in ipairs(line.skills) do
+				local current = nowById[tostring(skill.id)]
+				if not current then
+					lost = lost + 1
+				elseif skill.passive then
+					if (tonumber(current.rank) or 0) < (tonumber(skill.rank) or 0) then
+						lost = lost + 1
+					end
+				elseif skill.morph ~= nil and current.morph ~= skill.morph then
+					lost = lost + 1
+				end
+			end
+		end
+	end
+	return lost
 end
 
 -- The report lines for a subclass or Class Mastery that differs from the set's, and nothing for a set saved before
@@ -461,7 +554,7 @@ function A:ClassStateNotes(set)
 		notes[#notes + 1] = string.format(S.reportSubclass, LinesText(saved.lines), LinesText(now.lines))
 		kinds[#kinds + 1] = "subclass"
 	end
-	if MasteryKey(saved) ~= MasteryKey(now) then
+	if MasteryKey(saved) ~= MasteryKey(now) or MasterySkillsLost(saved, now) > 0 then
 		notes[#notes + 1] = string.format(S.reportMastery, MasteryText(saved), MasteryText(now))
 		kinds[#kinds + 1] = "mastery"
 	end

@@ -130,7 +130,7 @@ end
 end
 end
 local recallTo={}
-local nearKeep=false
+local nearKeep,gateWeighed=false,false
 for _,t in ipairs(targets)do
 if Dist(player,t)and Dist(player,t)<=NEAR_KEEP then nearKeep=true end
 end
@@ -141,7 +141,7 @@ table.insert(recallTo,t)
 end
 end
 for _,node in ipairs(nodes)do
-if not byId[node.keepId] then table.insert(recallTo,node)end
+if not byId[node.keepId] then table.insert(recallTo,node);gateWeighed=true end
 end
 end
 local cache={}
@@ -171,8 +171,9 @@ elseif best.seconds>=RIGHT_THERE then
 best.ride=RideLine(player,t)
 end
 if recall and recall.seconds+WORTH_IT<=best.seconds then
-best.line,best.recall=recall.line,true
+best.line,best.recall,best.recallSeconds=recall.line,true,recall.seconds
 end
+best.gateWeighed=gateWeighed
 cache[t]=best
 return best
 end

@@ -58,6 +58,8 @@ local strings = {
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Font size",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Font outline",
     ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Reset scale and font",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_POSITION"] = "Reset position",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_SCALE"] = "Reset scale",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Medium",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Bold",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Antique",
@@ -67,6 +69,7 @@ local strings = {
     ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Resource bars",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Pyramid layout",
     ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Don't expand",
+    ["SI_HUDITORTOOLS_RESOURCE_HIDE_HEALTH_GLOW"] = "Hide health buff glow",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Health width",
 
     ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Battleground Score",

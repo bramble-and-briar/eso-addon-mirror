@@ -13,6 +13,11 @@
 -- D-pad Left (UI_SHORTCUT_INPUT_LEFT) is otherwise the ethereal "back" bind on stick-navigation
 -- screens, so the button is only registered when no other button owns that keybind in the scene
 -- (the strip would evict the other one), and it is removed again as the scene hides.
+--
+-- Grid screens move their selection with the D-pad through DIRECTIONAL_INPUT, which the keybind
+-- strip knows nothing about: there a D-pad Left press would both step the grid and open the
+-- preview. Those scenes are named in SCENE_KEYBIND and get the button on R3 (the vendor Buy tab's
+-- own Preview button) instead.
 local PA = PreviewAnywhere
 local ProbeUtils = PA.ProbeUtils
 
@@ -26,10 +31,18 @@ local EXCLUDED_SCENES = {
     gamepadChatMenu = true,        -- ZO_GamepadLinks hold-Square button
 }
 
+local DEFAULT_KEYBIND = "UI_SHORTCUT_INPUT_LEFT"
+
+-- Scenes whose own navigation is the D-pad: the button goes on the keybind named here.
+local SCENE_KEYBIND = {
+    reconstruct_gamepad = "UI_SHORTCUT_RIGHT_STICK", -- transmute station, Reconstruct: set-piece grid
+    gamepadItemSetsBook = "UI_SHORTCUT_RIGHT_STICK", -- Collections, Sets: the same grid
+}
+
 -- tooltipType -> item link currently laid out on that tooltip (nil when cleared)
 local shownLinks = {}
 local buttonAdded = false
-local suppressedForScene = nil -- scene name where a ZO_GamepadLinks instance owns D-pad Left
+local suppressedForScene = nil -- scene name where another button owns the scene's hover keybind
 
 local function CurrentHoveredLink()
     for _, tooltipType in ipairs(TOOLTIP_TYPES) do
@@ -52,9 +65,11 @@ local function IsHoverButtonVisible()
     return link ~= nil and ProbeUtils.CanPreviewLink(link)
 end
 
+-- keybind is set per scene as the button is added (TryAddHoverButton); the strip indexes a button
+-- by its keybind, so it only changes while the button is off the strip.
 local hoverDescriptor = {
     alignment = KEYBIND_STRIP_ALIGN_LEFT,
-    keybind = "UI_SHORTCUT_INPUT_LEFT",
+    keybind = DEFAULT_KEYBIND,
     name = GetString(SI_ITEM_ACTION_PREVIEW),
     order = 50,
     visible = IsHoverButtonVisible,
@@ -86,7 +101,7 @@ local function RemoveHoverButton()
     end
 end
 
----Register the button for the current scene if nobody else holds D-pad Left there.
+---Register the button for the current scene if nobody else holds the scene's hover keybind there.
 local function TryAddHoverButton()
     if buttonAdded then
         return
@@ -103,15 +118,17 @@ local function TryAddHoverButton()
     if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
         return
     end
-    if KEYBIND_STRIP.keybinds and KEYBIND_STRIP.keybinds[hoverDescriptor.keybind] ~= nil then
-        PA.Debug("hover: D-pad Left taken in %s; no hover preview button", sceneName)
+    local keybind = SCENE_KEYBIND[sceneName] or DEFAULT_KEYBIND
+    if KEYBIND_STRIP.keybinds and KEYBIND_STRIP.keybinds[keybind] ~= nil then
+        PA.Debug("hover: %s taken in %s; no hover preview button", keybind, sceneName)
         suppressedForScene = sceneName
         return
     end
+    hoverDescriptor.keybind = keybind
     KEYBIND_STRIP:AddKeybindButton(hoverDescriptor)
     buttonAdded = true
     PA.Count("hoverButtonAdds")
-    PA.Debug("hover: preview button added in %s", sceneName)
+    PA.Debug("hover: preview button added in %s on %s", sceneName, keybind)
 end
 
 local function RefreshHoverButton()

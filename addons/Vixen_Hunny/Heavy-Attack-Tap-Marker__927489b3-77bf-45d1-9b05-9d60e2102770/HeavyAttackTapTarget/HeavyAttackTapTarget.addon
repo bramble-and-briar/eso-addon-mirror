@@ -1,0 +1,10 @@
+## Title: Heavy Attack Tap Target
+## APIVersion: 101048 101049 101050
+## AddOnVersion: 1
+## Version: 1.0.0
+## Author: Vixen Hunny
+## Description: Puts a target marker on the enemy you heavy attack and removes it when that enemy dies.
+## OptionalDependsOn: LibAddonMenu-2.0 LibGroupBroadcast
+## SavedVariables: HeavyAttackTapTargetSV
+
+HeavyAttackTapTarget.lua

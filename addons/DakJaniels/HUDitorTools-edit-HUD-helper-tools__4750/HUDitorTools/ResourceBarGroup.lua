@@ -4,8 +4,7 @@
 -- Pyramid matches LuiExtended UnitFrames.RepositionDefaultFrames: magicka
 -- TOPRIGHT and stamina TOPLEFT on health BOTTOM. Health stays CENTER.
 -- ShrinkExpand stays registered. Don't expand keeps increased max power at
--- normalWidth. Other PlayerAttributeBars visual modules are unregistered
--- by class .. GetModuleId().
+-- normalWidth. Shield, armor, regen, unwavering, and possession stay registered.
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
 
@@ -23,42 +22,27 @@ local resourceBarHooksInstalled = false
 local shrinkExpandOnValueChangedHooked = false
 local shrinkExpandModule = nil
 
--- Event namespace is the string passed to RegisterForEvent in each module's OnAdded.
-local VISUAL_MODULE_EVENT_PREFIX =
-{
-    [ZO_UnitVisualizer_ArrowRegenerationModule] = "ZO_UnitVisualizer_ArrowRegenerationModule",
-    [ZO_UnitVisualizer_ShrinkExpandModule] = "ZO_UnitVisualizer_ShrinkExpandModule",
-    [ZO_UnitVisualizer_ArmorDamage] = "ZO_UnitVisualizer_ArmorDamage",
-    [ZO_UnitVisualizer_UnwaveringModule] = "ZO_UnitVisualizer_UnwaveringModule",
-    [ZO_UnitVisualizer_PossessionModule] = "ZO_UnitVisualizer_PossessionModule",
-    [ZO_UnitVisualizer_PowerShieldModule] = "ZO_UnitVisualizer_PowerShieldModule",
-}
-
 local function ClampHealthWidth(healthWidth)
-    healthWidth = zo_floor(tonumber(healthWidth) or HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH)
-    if healthWidth < MIN_HEALTH_WIDTH then
-        return MIN_HEALTH_WIDTH
-    end
-    if healthWidth > MAX_HEALTH_WIDTH then
-        return MAX_HEALTH_WIDTH
-    end
-    return healthWidth
+    return HT.ClampInteger(healthWidth, MIN_HEALTH_WIDTH, MAX_HEALTH_WIDTH, HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH)
 end
 
 function HT.CopyResourceBarGroup(sourceGroup)
     local healthWidth = HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH
     local enabled = false
     local preventExpand = false
+    local hideHealthGlow = false
     if type(sourceGroup) == "table" then
         enabled = sourceGroup.enabled == true
         healthWidth = ClampHealthWidth(sourceGroup.healthWidth)
         preventExpand = sourceGroup.preventExpand == true
+        hideHealthGlow = sourceGroup.hideHealthGlow == true
     end
     return
     {
         enabled = enabled,
         healthWidth = healthWidth,
         preventExpand = preventExpand,
+        hideHealthGlow = hideHealthGlow,
     }
 end
 
@@ -71,12 +55,95 @@ local function GetResourceBarGroupSettings()
     settings.healthWidth = ClampHealthWidth(settings.healthWidth)
     settings.enabled = settings.enabled == true
     settings.preventExpand = settings.preventExpand == true
+    settings.hideHealthGlow = settings.hideHealthGlow == true
     return settings
 end
 
 function HT.IsResourceBarGroupEnabled()
     local settings = HT.SV.resourceBarGroup
     return type(settings) == "table" and settings.enabled == true
+end
+
+function HT.IsHealthBuffGlowHidden()
+    local settings = HT.SV.resourceBarGroup
+    return type(settings) == "table" and settings.hideHealthGlow == true
+end
+
+local playerHealthBuffGlowHookInstalled = false
+
+local function GetPlayerArmorDamageModule()
+    local visualModules = PLAYER_ATTRIBUTE_BARS.attributeVisualizer.visualModules
+    for visualModule in pairs(visualModules) do
+        if visualModule:IsInstanceOf(ZO_UnitVisualizer_ArmorDamage) then
+            return visualModule
+        end
+    end
+    return nil
+end
+
+local function SetPlayerHealthBuffGlowControlsHidden(hidden)
+    local armorModule = GetPlayerArmorDamageModule()
+    if not armorModule then
+        return
+    end
+    local healthBar = ZO_PlayerAttributeHealth
+    local activeObjects = armorModule:GetOrCreateIncreasePowerPool():GetActiveObjects()
+    for _, container in pairs(activeObjects) do
+        local fadeAnimation = container.fadeAnimation
+        local glowOnHealthBar = fadeAnimation and fadeAnimation.bar == healthBar
+        if not glowOnHealthBar and container.increasedPowerGlow then
+            glowOnHealthBar = container.increasedPowerGlow:GetParent() == healthBar
+        end
+        if glowOnHealthBar then
+            if container.increasedPowerGlow then
+                container.increasedPowerGlow:SetHidden(hidden)
+            end
+            if container.increasedPowerTexture then
+                container.increasedPowerTexture:SetHidden(hidden)
+            end
+        end
+    end
+end
+
+local function PlayPowerIncreaseWithoutHealthBuffGlow(originalPlay, self, bar, info, instant)
+    local animation = originalPlay(self, bar, info, instant)
+    if HT.IsHealthBuffGlowHidden() and bar == ZO_PlayerAttributeHealth then
+        SetPlayerHealthBuffGlowControlsHidden(true)
+    end
+    return animation
+end
+
+local function ApplyPlayerHealthBuffGlow()
+    local armorModule = GetPlayerArmorDamageModule()
+    if not armorModule then
+        return
+    end
+    if not playerHealthBuffGlowHookInstalled then
+        playerHealthBuffGlowHookInstalled = true
+        -- InitializeBarValues stores self.PlayPowerIncreaseAnimation on barInfo
+        -- (ArmorDamage.lua 227) before this addon loads, so the instance method
+        -- is not what OnValueChanged calls.
+        local originalPlayPowerIncreaseAnimation = armorModule.PlayPowerIncreaseAnimation
+        local wrappedPlay = function (self, bar, info, instant)
+            return PlayPowerIncreaseWithoutHealthBuffGlow(originalPlayPowerIncreaseAnimation, self, bar, info, instant)
+        end
+        armorModule.PlayPowerIncreaseAnimation = wrappedPlay
+        local powerInfo = armorModule.barInfo and armorModule.barInfo[STAT_POWER]
+        if powerInfo then
+            powerInfo.playIncreaseAnimation = wrappedPlay
+        end
+    end
+    -- ArmorDamage.lua 446-449 parents increasedPowerGlow
+    -- (ArmorDamage.xml ZO_IncreasedPowerGlowArrow) and the animated halo
+    -- (increasedPower_animatedHalo_32fr.dds) onto the health bar.
+    SetPlayerHealthBuffGlowControlsHidden(HT.IsHealthBuffGlowHidden())
+end
+
+function HT.SetHealthBuffGlowHidden(hideHealthGlow)
+    local settings = GetResourceBarGroupSettings()
+    settings.hideHealthGlow = hideHealthGlow == true
+    ApplyPlayerHealthBuffGlow()
+    HT.RefreshLayoutInfoBoxSection()
 end
 
 function HT.IsResourceBarPreventExpand()
@@ -130,10 +197,7 @@ local function SetBarWidth(bar, width)
 end
 
 local function GetPlayerAttributeFrameElement()
-    if IsInGamepadPreferredMode() then
-        return HUD_MANAGER:GetGamepadElementForControl(ZO_PlayerAttribute)
-    end
-    return HUD_MANAGER:GetKeyboardElementForControl(ZO_PlayerAttribute)
+    return HT.GetHudElementForControl(ZO_PlayerAttribute)
 end
 
 local function IsPlayerAttributeFrameCombined()
@@ -260,6 +324,7 @@ function HT.ApplyResourceBarGroup()
         groupedLayoutIsApplied = false
     end
     ApplyResourceBarExpandSetting()
+    ApplyPlayerHealthBuffGlow()
 end
 
 function HT.SetResourceBarPreventExpand(preventExpand)
@@ -276,9 +341,7 @@ function HT.SetResourceBarGroupEnabled(enabled)
         SetResourceBarsCombined()
     end
     HT.ApplyResourceBarGroup()
-    if HUD_EDITOR_KEYBOARD:IsShowing() then
-        HUD_EDITOR_KEYBOARD:RebuildAllElements()
-    end
+    HT.RebuildHudEditorIfShowing()
     HT.RefreshLayoutInfoBoxSection()
 end
 
@@ -287,9 +350,7 @@ function HT.SetResourceBarGroupHealthWidth(healthWidth)
     settings.healthWidth = ClampHealthWidth(healthWidth)
     if settings.enabled then
         HT.ApplyResourceBarGroup()
-        if HUD_EDITOR_KEYBOARD:IsShowing() then
-            HUD_EDITOR_KEYBOARD:RebuildAllElements()
-        end
+        HT.RebuildHudEditorIfShowing()
     end
     HT.RefreshLayoutInfoBoxSection()
     return settings.healthWidth
@@ -315,71 +376,6 @@ local function HookPlayerAttributeBarsMethod(methodName)
     PLAYER_ATTRIBUTE_BARS[methodName] = hookedMethod
 end
 
-local function GetPlayerAttributeVisualEventName(visualModule)
-    for visualClass, eventPrefix in pairs(VISUAL_MODULE_EVENT_PREFIX) do
-        if visualModule:IsInstanceOf(visualClass) then
-            return eventPrefix .. visualModule:GetModuleId()
-        end
-    end
-    return nil
-end
-
-local function HideNamedControl(info, controlFieldName)
-    local control = info[controlFieldName]
-    if control then
-        control:SetHidden(true)
-    end
-end
-
-local function ReleasePlayerAttributeVisualModule(visualModule)
-    if visualModule:IsInstanceOf(ZO_UnitVisualizer_ArrowRegenerationModule) then
-        visualModule.arrowPool:ReleaseAllObjects()
-        return
-    end
-    if visualModule:IsInstanceOf(ZO_UnitVisualizer_ArmorDamage) then
-        visualModule:GetOrCreateIncreaseArmorPool():ReleaseAllObjects()
-        visualModule:GetOrCreateDecreaseArmorPool():ReleaseAllObjects()
-        visualModule:GetOrCreateIncreasePowerPool():ReleaseAllObjects()
-        return
-    end
-    -- ShowOverlay and PlayAnimation create these controls the first time the effect runs.
-    if visualModule:IsInstanceOf(ZO_UnitVisualizer_PowerShieldModule) and visualModule.attributeInfo then
-        for _, info in pairs(visualModule.attributeInfo) do
-            if info.overlayControls then
-                for _, overlay in ipairs(info.overlayControls) do
-                    overlay:SetHidden(true)
-                end
-            end
-        end
-        return
-    end
-    if visualModule:IsInstanceOf(ZO_UnitVisualizer_UnwaveringModule) and visualModule.barInfo then
-        for _, info in pairs(visualModule.barInfo) do
-            HideNamedControl(info, "control")
-        end
-        return
-    end
-    if visualModule:IsInstanceOf(ZO_UnitVisualizer_PossessionModule) and visualModule.barInfo then
-        for _, info in pairs(visualModule.barInfo) do
-            HideNamedControl(info, "barOverlayControl")
-        end
-    end
-end
-
-local function SilencePlayerAttributeVisualizer()
-    local visualModules = PLAYER_ATTRIBUTE_BARS.attributeVisualizer.visualModules
-    for visualModule in pairs(visualModules) do
-        -- ShrinkExpand stays registered so Don't expand can restore stock grow and shrink.
-        if not visualModule:IsInstanceOf(ZO_UnitVisualizer_ShrinkExpandModule) then
-            local eventName = GetPlayerAttributeVisualEventName(visualModule)
-            EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_PLAYER_ACTIVATED)
-            EVENT_MANAGER:UnregisterForUpdate(eventName)
-            ReleasePlayerAttributeVisualModule(visualModule)
-            visualModules[visualModule] = nil
-        end
-    end
-end
-
 function HT.InitializeResourceBarGroup()
     GetResourceBarGroupSettings()
     if not resourceBarHooksInstalled then
@@ -388,5 +384,4 @@ function HT.InitializeResourceBarGroup()
         HookPlayerAttributeBarsMethod("OnScreenResized")
     end
     HT.ApplyResourceBarGroup()
-    SilencePlayerAttributeVisualizer()
 end

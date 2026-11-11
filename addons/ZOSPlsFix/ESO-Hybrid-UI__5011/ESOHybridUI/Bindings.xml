@@ -7,12 +7,15 @@
         </Category>
     </Layer>
 
+    <!-- Temporary layer pushed only while Hybrid's keyboard-style quickslot wheel
+         is open. It re-exposes the controller's cycle buttons, which ESO gates
+         on IsInGamepadPreferredMode() and would otherwise ignore. -->
     <Layer name="ESOHybridUI_UTILITY_WHEEL_BRIDGE" allowFallthrough="true">
-        <Category name="SI_KEYBINDINGS_CATEGORY_UTILITY_WHEEL_GAMEPAD">
-            <Action name="ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT">
+        <Category name="SI_KEYBINDINGS_CATEGORY_ESO_HYBRID_UI_WHEEL">
+            <Action name="ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_LEFT" inheritsBindFrom="UTILITY_WHEEL_GAMEPAD_CYCLE_LEFT">
                 <Down>if ESOHybridUI and ESOHybridUI:ShouldBridgeUtilityWheelInput() then return ESOHybridUI:CycleUtilityWheel(-1) end return false</Down>
             </Action>
-            <Action name="ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT">
+            <Action name="ESOHYBRIDUI_UTILITY_WHEEL_CYCLE_RIGHT" inheritsBindFrom="UTILITY_WHEEL_GAMEPAD_CYCLE_RIGHT">
                 <Down>if ESOHybridUI and ESOHybridUI:ShouldBridgeUtilityWheelInput() then return ESOHybridUI:CycleUtilityWheel(1) end return false</Down>
             </Action>
         </Category>

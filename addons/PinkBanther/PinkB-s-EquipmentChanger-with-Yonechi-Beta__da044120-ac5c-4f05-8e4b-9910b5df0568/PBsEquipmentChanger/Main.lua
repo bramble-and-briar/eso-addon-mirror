@@ -156,6 +156,20 @@ function A:StatusLines()
 	local slots = type(GetNumAvailableMundusStoneSlots) == "function" and select(2, pcall(GetNumAvailableMundusStoneSlots)) or "?"
 	add("mundus: option=%s read=%s now=%s slots=%s [%s]", tostring(self.sv.mundus), mundus and "ok" or "cannot read", mundus and self.MundusText(mundus) or "-", tostring(slots),
 		raw and #raw > 0 and table.concat(raw, "; ") or "no active buff")
+	-- the Class Mastery lines and what each holds (the read of the skills inside is unmeasured on a console)
+	local class = self:ReadClassState()
+	if not class then
+		add("class mastery: cannot read")
+	else
+		add("class mastery: on=%s now=%s", tostring(class.masteryOn), self.MasteryText(class))
+		for _, line in ipairs(class.mastery) do
+			local parts = {}
+			for _, skill in ipairs(line.skills or {}) do
+				parts[#parts + 1] = string.format("%s %s %s", skill.id, skill.passive and "passive" or "active", skill.passive and (tostring(skill.rank) .. "/" .. tostring(skill.ranks)) or ("morph " .. tostring(skill.morph)))
+			end
+			add("class mastery line %s \"%s\": %s [%s]", tostring(line.id), tostring(line.name), line.skills and (tostring(#line.skills) .. " learned") or "skills cannot be read", table.concat(parts, "; "))
+		end
+	end
 	add("options: wheel=%s first=%s save=%s/%s/%s apply=%s/%s/%s clearSkills=%s unequipEmpty=%s",
 		tostring(self.sv.wheel), tostring(self.sv.wheelFirst), tostring(self.sv.saveGear), tostring(self.sv.saveSkills), tostring(self.sv.saveChampion),
 		tostring(self.sv.applyGear), tostring(self.sv.applySkills), tostring(self.sv.applyChampion), tostring(self.sv.clearSkills), tostring(self.sv.unequipEmpty))

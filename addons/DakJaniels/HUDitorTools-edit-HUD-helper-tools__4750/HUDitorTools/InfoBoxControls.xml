@@ -260,10 +260,17 @@
                       relativePoint="BOTTOMLEFT"
                       offsetY="6" />
             </Button>
+            <Button name="$(parent)HideHealthGlowCheck"
+                    inherits="ZO_HUDInfoBoxCheckButton_Keyboard">
+              <Anchor point="TOPLEFT"
+                      relativeTo="$(parent)PreventExpandCheck"
+                      relativePoint="BOTTOMLEFT"
+                      offsetY="6" />
+            </Button>
             <Control name="$(parent)WidthRow"
                      resizeToFitDescendents="true">
               <Anchor point="TOPLEFT"
-                      relativeTo="$(parent)PreventExpandCheck"
+                      relativeTo="$(parent)HideHealthGlowCheck"
                       relativePoint="BOTTOMLEFT"
                       offsetY="8" />
               <Controls>

@@ -12,7 +12,7 @@ local EVENT = {
 }
 ALT_GROUP_FRAMES = {
 	EVENT = EVENT,
-	VERSION = "1.1",
+	VERSION = "1.5",
 }
 
 local ROLE_ORDER = {
@@ -79,15 +79,15 @@ local DEFAULTS = {
 	UNIT_FRAME_PAD_X = 4,
 	UNIT_FRAME_PAD_Y = 2,
 
-	UNIT_FRAME_ALT_SIZE = { 4, 50, 55, 120, 50, 4, 2 },
+	UNIT_FRAME_ALT_SIZE = { 4, 120, 50, 4, 2 },
 
 	UNIT_FRAME_FONTSIZE = 22,
 	UNIT_FRAME_ICONSIZE = 22,
 
 	LFG_COLORS = {
-		[LFG_ROLE_TANK] = ZO_POWER_BAR_GRADIENT_COLORS[POWERTYPE_HEALTH],
+		[LFG_ROLE_TANK] = ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH],
 		[LFG_ROLE_HEAL] = ZO_SKILL_XP_BAR_GRADIENT_COLORS,
-		[LFG_ROLE_DPS] = ZO_POWER_BAR_GRADIENT_COLORS[POWERTYPE_MAGICKA],
+		[LFG_ROLE_DPS] = ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_MAGICKA],
 	},
 
 	CLASS_COLORS = {
@@ -112,6 +112,10 @@ local DEFAULTS = {
 }
 
 local CONTANER_PAD = 5
+-- The container is always sized for this many frames, rather than MAX_GROUP_SIZE_THRESHOLD (24,
+-- i.e. a full raid), so its default/resized size - and the box shown by the Edit HUD - is
+-- representative of a typical (trial-sized) group instead of reserving space for a raid.
+local SIZING_GROUP_SIZE = 12
 
 local ALTGF_MostRecentPowerUpdateHandler = ZO_MostRecentEventHandler:Subclass()
 
@@ -143,7 +147,7 @@ do
 			obj:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
 		end
 
-		obj:AddFilterForEvent(REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
+		obj:AddFilterForEvent(REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
 
 		return obj
 	end
@@ -240,7 +244,7 @@ function UnitFrame:RefreshView()
 	self.levelControl:SetFont(fontLevel)
 
 	PRI = settings.SHOW_CUSTOM_ROLE_ICONS and PlayerRoleIndicator or nil
-	ODY = settings.SHOW_CUSTOM_ODY_ICONS and OSI or nil
+	ODY = settings.SHOW_CUSTOM_ODY_ICONS and OSI and OSI.GetIconDataForPlayer or nil
 
 	self.iconControl:ClearAnchors()
 	self.nameControl:ClearAnchors()
@@ -302,7 +306,7 @@ function UnitFrame:RefreshData(force)
 	self:OnOnlineStatusChange(IsUnitOnline(self.unitTag))
 
 	if force then
-		local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+		local health, maxHealth = GetUnitPower(self.unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
 		self:OnUpdateHp(health, maxHealth, true)
 	end
 
@@ -418,7 +422,7 @@ function UnitFrame:RefreshColor()
 	elseif IsActiveWorldBattleground() then
 		ZO_StatusBar_SetGradientColor(self.healthBarControl, self.container.SETTINGS.LFG_COLORS[LFG_ROLE_DPS])
 	else
-		ZO_StatusBar_SetGradientColor(self.healthBarControl, ZO_POWER_BAR_GRADIENT_COLORS[POWERTYPE_HEALTH])
+		ZO_StatusBar_SetGradientColor(self.healthBarControl, ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH])
 	end
 end
 
@@ -453,7 +457,7 @@ end
 function UnitFrame:OnOnlineStatusChange(isOnline)
 	self.isOnline = isOnline
 	if isOnline then
-		local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+		local health, maxHealth = GetUnitPower(self.unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
 		self:OnUpdateHp(health, maxHealth, true)
 		self:OnUpdateShield(0, true)
 		self:OnUpdateTrauma(0, true)
@@ -555,7 +559,7 @@ function UnitFrame:UpdateResurrectionState()
 			self:UpdateResurrectionState()
 		end)
 	else
-		local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+		local health, maxHealth = GetUnitPower(self.unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
 		self:UpdateResourceNumbers(health, maxHealth, 0)
 	end
 end
@@ -603,7 +607,7 @@ function UnitFrame:HandleMouseEnter()
 	ZO_Tooltip_AddDivider(InformationTooltip)
 
 	if IsUnitOnline(self.unitTag) then
-		local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+		local health, maxHealth = GetUnitPower(self.unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
 		local hp = health .. " / " .. maxHealth
 		local classIconPath = select(8, GetClassInfo(GetClassIndexById(GetUnitClassId(self.unitTag))))
 		InformationTooltip:AddLine(zo_iconFormat(classIconPath, 22, 22) .. GetUnitClass(self.unitTag))
@@ -661,9 +665,15 @@ function UnitFrame:HandleMouseUp(button, upInside)
 			end
 		end
 
+		if not isPlayer and self.accountName ~= "" and not IsFriend(self.accountName) and not IsIgnored(self.accountName) then
+			AddMenuItem(GetString(SI_SOCIAL_MENU_ADD_FRIEND), function()
+				ZO_Dialogs_ShowDialog("REQUEST_FRIEND", { name = self.accountName })
+			end)
+		end
+
 		if IsUnitGroupLeader("player") then
 			if isPlayer or self.accountName == "" then
-				if not modificationRequiresVoting then
+				if IsGroupModificationAvailable() and not modificationRequiresVoting then
 					AddMenuItem(GetString(SI_GROUP_LIST_MENU_DISBAND_GROUP), function()
 						ZO_Dialogs_ShowDialog("GROUP_DISBAND_DIALOG")
 					end)
@@ -674,23 +684,15 @@ function UnitFrame:HandleMouseUp(button, upInside)
 						GroupPromote(self.unitTag)
 					end)
 				end
-				if not modificationRequiresVoting then
+				-- Kicking (unlike promoting) counts as a group modification, and voted kicks can't be
+				-- started by an addon (the server rejects it as GROUP_ELECTION_FAILURE_ADDON_FORBIDDEN),
+				-- so only offer the direct kick when one isn't required.
+				if IsGroupModificationAvailable() and not modificationRequiresVoting then
 					AddMenuItem(GetString(SI_GROUP_LIST_MENU_KICK_FROM_GROUP), function()
 						GroupKick(self.unitTag)
 					end)
 				end
 			end
-		end
-
-		if modificationRequiresVoting and not isPlayer then
-			AddMenuItem(GetString(SI_GROUP_LIST_MENU_VOTE_KICK_FROM_GROUP), function()
-				BeginGroupElection(
-					GROUP_ELECTION_TYPE_KICK_MEMBER,
-					ZO_GROUP_ELECTION_DESCRIPTORS.NONE,
-					self.unitTag,
-					GROUP_ELECTION_FLAGS_IGNORE_OFFLINE_MEMBERS
-				)
-			end)
 		end
 
 		-- PlayerRoleIndicator custom role assignments
@@ -740,7 +742,7 @@ function UnitFrameCompanion:RefreshData(force)
 	self:OnOnlineStatusChange(IsUnitOnline(self.unitTag))
 
 	if force then
-		local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+		local health, maxHealth = GetUnitPower(self.unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
 		self:OnUpdateHp(health, maxHealth, true)
 	end
 
@@ -807,6 +809,8 @@ function UnitFramesManager:Initialize(topLevelControl)
 	self.SAVEVARS.TRAUMA_COLOR = ZO_ColorDef:New(self.SAVEVARS.TRAUMA_COLOR)
 
 	self.SETTINGS = UnitFrameSettings:New(self.SAVEVARS)
+
+	self:RegisterHUDElements()
 
 	--self:RefreshData()
 	--self:RefreshView()
@@ -921,7 +925,7 @@ function UnitFramesManager:RegisterEvents(topLevelControl)
 	topLevelControl:AddFilterForEvent(EVENT_GROUP_SUPPORT_RANGE_UPDATE, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
 	topLevelControl:RegisterForEvent(EVENT_UNIT_DEATH_STATE_CHANGED, function(_, unitTag, isDead)
 		self:GetFrame(unitTag):OnDeathStatusChange(isDead)
-	end) -- может баговаться
+	end)
 	topLevelControl:AddFilterForEvent(EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
 	topLevelControl:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, onVisualPower)
 	topLevelControl:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
@@ -992,14 +996,41 @@ function UnitFramesManager:GetControl()
 	return self.control
 end
 
-function UnitFramesManager:SaveLoc()
-	self.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_X = zo_round(self.control:GetLeft())
-	self.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_Y = zo_round(self.control:GetTop())
+function UnitFramesManager:RegisterHUDElements()
+	-- Placement is handled by the U51 Edit HUD (Esc menu > Edit HUD) rather than our own
+	-- drag-to-move logic. The container's current saved position becomes the default anchor
+	-- so existing users aren't moved when they first update into this.
+	local keyboardDefaultAnchor = ZO_Anchor:New(
+		TOPLEFT,
+		GuiRoot,
+		TOPLEFT,
+		self.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_X,
+		self.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_Y
+	)
+	local gamepadDefaultAnchor = ZO_Anchor:New(
+		TOPLEFT,
+		GuiRoot,
+		TOPLEFT,
+		self.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_X,
+		self.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_Y
+	)
+
+	self.keyboardHUDElement =
+		HUD_MANAGER:RegisterKeyboardElement(self.control, "Alt Group Frames", { defaultAnchor = keyboardDefaultAnchor })
+	self.gamepadHUDElement =
+		HUD_MANAGER:RegisterGamepadElement(self.control, "Alt Group Frames", { defaultAnchor = gamepadDefaultAnchor })
+end
+
+function UnitFramesManager:ResetPosition()
+	local element = IsInGamepadPreferredMode() and self.gamepadHUDElement or self.keyboardHUDElement
+	if element then
+		element:ResetToDefaultAnchor()
+	end
 end
 
 function UnitFramesManager:SaveSize()
-	local maxCol = zo_ceil(GROUP_SIZE_MAX / self.SETTINGS.FRAMES_PER_COLUMN)
-	local maxRow = zo_min(GROUP_SIZE_MAX, self.SETTINGS.FRAMES_PER_COLUMN)
+	local maxCol = zo_ceil(SIZING_GROUP_SIZE / self.SETTINGS.FRAMES_PER_COLUMN)
+	local maxRow = zo_min(SIZING_GROUP_SIZE, self.SETTINGS.FRAMES_PER_COLUMN)
 
 	local x = self.control:GetWidth() - 2 * CONTANER_PAD
 	local y = self.control:GetHeight() - 2 * CONTANER_PAD
@@ -1010,38 +1041,27 @@ function UnitFramesManager:SaveSize()
 	self:RefreshView(true)
 end
 
-function UnitFramesManager:UnlockUI(movable)
-	self.control:SetMouseEnabled(movable)
-	self.control:SetMovable(movable)
-	self.control:SetResizeHandleSize(movable and 5 or 0)
-	self.borderControl:SetEdgeColor(0.75, 0.75, 0.75, movable and 1. or 0.)
-	self.backgroundControl:SetColor(0.75, 0.75, 0.75, movable and 0.5 or 0.)
-	self.control:SetHandler("OnMouseEnter", movable and function()
-		WINDOW_MANAGER:SetMouseCursor(MOUSE_CURSOR_PAN)
-	end or nil)
-	self.control:SetHandler("OnMouseExit", movable and function()
-		WINDOW_MANAGER:SetMouseCursor(MOUSE_CURSOR_DEFAULT_CURSOR)
-	end or nil)
+function UnitFramesManager:UnlockUI(unlocked)
+	-- Only resizing goes through this toggle now; moving the frame is done via the Edit HUD,
+	-- which doesn't need the container to be SetMovable to work.
+	self.control:SetMouseEnabled(unlocked)
+	self.control:SetResizeHandleSize(unlocked and 5 or 0)
+	self.borderControl:SetEdgeColor(0.75, 0.75, 0.75, unlocked and 1. or 0.)
+	self.backgroundControl:SetColor(0.75, 0.75, 0.75, unlocked and 0.5 or 0.)
 end
 
 function UnitFramesManager:RefreshView(withElems)
 	self.control:StopMovingOrResizing()
 
-	local maxCol = zo_ceil(GROUP_SIZE_MAX / self.SETTINGS.FRAMES_PER_COLUMN)
-	local maxRow = zo_min(GROUP_SIZE_MAX, self.SETTINGS.FRAMES_PER_COLUMN)
+	local maxCol = zo_ceil(SIZING_GROUP_SIZE / self.SETTINGS.FRAMES_PER_COLUMN)
+	local maxRow = zo_min(SIZING_GROUP_SIZE, self.SETTINGS.FRAMES_PER_COLUMN)
 
 	local x = maxCol * (self.SETTINGS.UNIT_FRAME_WIDTH + self.SETTINGS.UNIT_FRAME_PAD_X)
 	local y = maxRow * (self.SETTINGS.UNIT_FRAME_HEIGHT + self.SETTINGS.UNIT_FRAME_PAD_Y)
 
+	-- Position is owned by the Edit HUD (see RegisterHUDElements/ResetPosition); only the
+	-- container's size is managed here.
 	self.control:SetDimensions(x + (CONTANER_PAD * 2), y + (CONTANER_PAD * 2))
-	self.control:ClearAnchors()
-	self.control:SetAnchor(
-		TOPLEFT,
-		GuiRoot,
-		TOPLEFT,
-		self.SETTINGS.FRAME_CONTAINER_BASE_OFFSET_X,
-		self.SETTINGS.FRAME_CONTAINER_BASE_OFFSET_Y
-	)
 
 	if withElems then
 		for _, unitFrame in pairs(self.unitFrames) do
@@ -1343,7 +1363,7 @@ function UnitFramesManager:RefreshData()
 	self:CancelDrag()
 	local newGroupSize = GetGroupSize() + GetNumCompanionsInGroup()
 
-	for i = 1, GROUP_SIZE_MAX do
+	for i = 1, MAX_GROUP_SIZE_THRESHOLD do
 		local unitTag = "group" .. i
 		local frame = self:GetFrame(unitTag)
 		if DoesUnitExist(unitTag) then

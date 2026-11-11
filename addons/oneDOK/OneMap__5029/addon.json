@@ -18,7 +18,7 @@
     "OneMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5029/",
-  "fingerprint": "3185e0d43d29de9435f7438dac50b838cb0a85558a0360038bb39d2a24c35df4",
+  "fingerprint": "24d6a7af2905872e2cb2ccd059aaaf012a25e52ab262fc7d57f0c6be6134612e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18346.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5029",
   "source_url": "https://www.esoui.com/downloads/info5029-OneMap.html",
   "stats": {
-    "downloads": 44,
-    "favorites": 0,
-    "monthly_downloads": 2
+    "downloads": 102,
+    "favorites": 1,
+    "monthly_downloads": 79
   },
   "title": "OneMap",
-  "updated_at": 1793988953000,
-  "version": "26.11.1"
+  "updated_at": 1794350298000,
+  "version": "26.11.2"
 }

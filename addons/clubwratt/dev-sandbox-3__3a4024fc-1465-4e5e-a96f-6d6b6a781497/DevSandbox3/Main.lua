@@ -1,6 +1,7 @@
 local function Initialize()
     DevSandbox3.state = DevSandbox3.State.Create()
     DevSandbox3.state.savedVars = ZO_SavedVars:NewAccountWide(DevSandbox3.savedVarsName, 17, nil, DevSandbox3.State.CreateSavedVarsDefaults())
+    DevSandbox3.state.savedVars.settings.cyrodiilOnly = nil   -- setting removed in 4.20.0: each mark has its own zones
     DevSandbox3.Detection.Initialize()
     DevSandbox3.SlotActions.Initialize()
     DevSandbox3.Markers.Initialize()

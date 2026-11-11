@@ -217,6 +217,11 @@ end
 w._flags=flags
 return flags
 end
+local function Breached(w,t)
+if not(w.UnderAttack and w.UnderAttack(t.keepId))then return false end
+local f=Flags(w)[t.keepId]
+return f~=nil and(f.moving>0 or f.lost>0)
+end
 local function Sieges(w,t,alliance)
 if alliance==nil then return Safe(GetNumSieges,t.keepId,w.ctx,alliance)or 0 end
 local known=w._sieges
@@ -515,6 +520,13 @@ if d and(not closest or d<closest)then wing,closest=wg,d end
 end
 end
 return wing
+end
+local function InTheWing(w,wing)
+for _,keepId in ipairs({wing.town,wing.outpost,wing.keep})do
+local d=Dist(w.player,w.byId[keepId])
+if d and d<=NEAR then return true end
+end
+return false
 end
 local function InWing(wing,t)
 return t~=nil and(t.keepId==wing.town or t.keepId==wing.outpost or t.keepId==wing.keep or t.parent==wing.keep)
@@ -819,7 +831,7 @@ local hammer=Hammer(w)
 if not(hammer and hammer.x)or hammer.withUs then return nil end
 if rule~="always" and hammer.holder~=w.mine then return nil end
 if rule=="safe" and(ScrollKeepUnderAttack(w)or ThroneAtRisk(w))then return nil end
-local near=Nearest(hammer,Filter(w.targets,function(t)return w.Allied(t.owner)and(not w.KindOn or w.KindOn(t.kind))end))
+local near=Nearest(hammer,Filter(w.targets,function(t)return w.Allied(t.owner)and(not w.KindOn or w.KindOn(t.kind))end),AREA)
 if not near then return nil end
 local pick={}
 for k,v in pairs(near)do pick[k]=v end
@@ -1041,7 +1053,8 @@ for _,r in ipairs(resources)do
 local detour=(Away(w,r)or 0)+(Dist(r,target)or 0)- toTarget -(r.parent==target.keepId and 0.02 or 0)
 if not bestDetour or detour<bestDetour then best,bestDetour=r,detour end
 end
-if best and bestDetour<=NEAR then return best end
+local real=best and bestDetour+(best.parent==target.keepId and 0.02 or 0)
+if best and bestDetour<=NEAR and(not Away(w,target)or real<=toTarget/2)then return best end
 return nil
 end
 local function Heat(w,t,flags)
@@ -1169,7 +1182,7 @@ end,style.n,10)
 if not pick then return nil end
 if viaGate[pick.keepId] and not pick.defend then
 local leg=w.Route and w.Route(pick)
-if not(leg and leg.recall)then return{pick=pick,how="Stone down to the gate."}end
+if not(leg and(leg.recall or leg.gateWeighed))and(Away(w,pick)or 1)>GATE_HOP then return{pick=pick,how="Stone down to the gate."}end
 return{pick=pick}
 end
 local left,owned=ContinuousAttack(w)
@@ -1186,7 +1199,9 @@ local function SiegeLine(w,plan,trebs)
 local leg=plan.pick
 if leg.kind~="Keep" or leg.defend then return nil end
 if leg.directive then return "20/20 siege." end
-if WayIn(w,leg,"nine")=="wall" then
+local way=WayIn(w,leg,"nine")
+if Breached(w,leg)then return "20/20 siege." end
+if way=="wall" then
 local line="20/20 siege, look for a weak wall"
 if trebs and w.Random(1,2)==1 then line=line .. " and I wanna see a few Trebs" end
 return line .. "."
@@ -1252,7 +1267,7 @@ local d=Away(w,t)
 local total=FightNear(w,t)
 if d and d<=NEAR and total>=10 then return total end
 end,1)
-if fight then return{pick=fight,extras={string.format(FREE_RIDE,RIDE_HOME[w.mine] or "south")}}end
+if fight then return{pick=fight,busy=fight.keepId,extras={string.format(FREE_RIDE,RIDE_HOME[w.mine] or "south")}}end
 end
 local plan=Strategist(w,{n=2,dist=40,greedy=true,careful=true,dtick=true,gateHop=2*GATE_HOP})
 if plan then
@@ -1349,7 +1364,9 @@ local flipping=(pick.kind=="Keep" or pick.kind=="Outpost")and f and(f.moving>0 o
 if(pick.defend and pick.kind=="Keep")or LosingFight(w,pick)or flipping then table.insert(extras,RISK)end
 local going=f and(f.moving>0 or f.lost>0)
 local nearlyDone=going and(f.back or f.total<=1 or f.lost>=f.total - 1)
-if nearlyDone or(IsResource(pick)and w.UnderAttack(pick.keepId))then plan.grenade=true end
+local theirs=false
+for holder in pairs(not pick.defend and f and f.by or{})do if holder~=w.mine then theirs=true end end
+if not theirs and(nearlyDone or(IsResource(pick)and w.UnderAttack(pick.keepId)))then plan.grenade=true end
 if#extras>0 then
 plan.extras=plan.extras or{}
 for _,line in ipairs(extras)do table.insert(plan.extras,line)end
@@ -1426,28 +1443,23 @@ end,1)
 if resource then return{pick=resource}end
 end
 local wing=WingYoureIn(w)
-if Gated(w)then
-if wing then
-local edge=Filter(fair,function(t)return t.keepId==wing.town or t.keepId==wing.outpost end)
-local pick=TopPick(w,edge,function(t)
-local d=Away(w,t)
-return d and -d or 0
-end,2,0.05)
+if wing and not held then
+local function near(t)local d=Away(w,t);return d and d<=2*AREA end
+if InTheWing(w,wing)or Gated(w)then
+local edge=Filter(fair,function(t)return(t.keepId==wing.town or t.keepId==wing.outpost)and near(t)end)
+local pick=TopPick(w,edge,function(t)return -Away(w,t)end,2,0.05)
 if pick then return{pick=pick}end
-local keep=w.byId[wing.keep]
-local grudge=push and grudgeOf(push)or{}
-if keep and keep.owner~=w.mine and(#grudge==0 or keep.owner==push)then
-for _,t in ipairs(fair)do if t.keepId==wing.keep then return{pick=troll(t)}end end
-elseif keep and keep.owner~=w.mine and w.Random(1,2)==2 then
-local wingRes=Filter(fair,function(t)return t.parent==wing.keep end)
-local resource=WantedResource(w,keep,Filter(wingRes,function(t)
-local d=Dist(w.player,t)
-return d and d<=NEAR
-end),"door")or Nearest(w.player,wingRes,NEAR)
+local wingRes=Filter(fair,function(t)return t.parent==wing.keep and near(t)end)
+for _,t in ipairs(fair)do
+if t.keepId==wing.keep and near(t)then return{pick=troll(t)}end
+end
+local resource=Nearest(w.player,wingRes)
 if resource then return{pick=resource}end
 end
-if#grudge>0 then return{pick=AnyOf(w,grudge)}end
 end
+if Gated(w)and wing then
+local grudge=push and grudgeOf(push)or{}
+if#grudge>0 then return{pick=AnyOf(w,grudge)}end
 end
 local emperor=EmperorAlliance(w)
 if emperor and emperor~=w.mine and not Gated(w)then
@@ -1495,7 +1507,9 @@ local BEHIND_DETOUR=0.05
 local function DiilSiege(w,pick)
 if pick.defend or(pick.kind~="Keep" and pick.kind~="Outpost")then return nil end
 if pick.directive then return "20/20 siege." end
-if WayIn(w,pick,"any")=="wall" then return "20/20 siege, look for a weak wall." end
+local way=WayIn(w,pick,"any")
+if Breached(w,pick)then return "20/20 siege." end
+if way=="wall" then return "20/20 siege, look for a weak wall." end
 return "20/20 siege, front door."
 end
 P.diil=function(w)
@@ -1647,22 +1661,28 @@ local town=open(wing.town)
 if not lostHere and town and within(town,AREA)then return town end
 local keepSpot=w.byId[wing.keep]
 local townOurs=OwnerOf(w,wing.town)==w.mine
-if not lostHere and townOurs and((keepSpot and keepSpot.owner==opp)or Gated(w))then
+local pushing=(keepSpot and keepSpot.owner==opp)or Gated(w)
+local here=InTheWing(w,wing)
+if not lostHere and townOurs and(pushing or here)then
+local past=pushing and not here
 local outpost=open(wing.outpost)
 if outpost and within(outpost,2*AREA)then
 local pool={outpost,outpost,outpost,outpost}
+local tries=w.tonight and w.tonight[tostring(outpost.keepId)]
+local straight=not(tries and(tries.l or 0)>=2)
 local wingRes=Filter(fair,function(t)return t.parent==wing.keep end)
-local resource=WantedResource(w,keepSpot,Filter(wingRes,function(t)
+local resource=not straight and(WantedResource(w,keepSpot,Filter(wingRes,function(t)
 local d=Dist(outpost,t)
 return d and d<=NEAR
-end),"door")or Nearest(outpost,wingRes,NEAR)
+end),"door")or Nearest(outpost,wingRes,NEAR))
 if resource then table.insert(pool,resource)end
 local townSpot=w.byId[wing.town]
 for _,t in ipairs(fair)do
 local d=Dist(townSpot,t)
-if t.kind=="Outpost" and t~=outpost and t.owner==opp and d and d<=AREA then table.insert(pool,t)end
+if past and t.kind=="Outpost" and t~=outpost and t.owner==opp and d and d<=AREA then table.insert(pool,t)end
 end
-return AnyOf(w,pool)
+local pick=AnyOf(w,pool)
+return pick,straight and pick==outpost
 end
 local keep=open(wing.keep)
 if keep and within(keep,2*AREA)then
@@ -1673,12 +1693,14 @@ if resource then table.insert(pool,resource)end
 local townSpot,outSpot=w.byId[wing.town],w.byId[wing.outpost]
 for _,t in ipairs(fair)do
 local a,b,c=Dist(townSpot,outSpot),Dist(outSpot,t),Dist(townSpot,t)
-if t.kind=="Keep" and t.keepId~=wing.keep and t.owner==opp and a and b and c and b<=AREA and a+b - c<=BEHIND_DETOUR then
+if past and t.kind=="Keep" and t.keepId~=wing.keep and t.owner==opp and a and b and c and b<=AREA and a+b - c<=BEHIND_DETOUR then
 table.insert(pool,t)
 end
 end
 return AnyOf(w,pool)
 end
+local resource=here and Nearest(w.player or{},Filter(fair,function(t)return t.parent==wing.keep and within(t,2*AREA)end))
+if resource then return resource end
 end
 end
 local guarding=GuardingThrone(w)
@@ -1724,8 +1746,8 @@ elseif losses>=3 then
 local close=NearTroll(w,Trolls(w))
 if close then return{pick=close}end
 end
-local flank=NovemberFlanks(w)
-if flank then return{pick=flank}end
+local flank,straight=NovemberFlanks(w)
+if flank then return{pick=flank,straight=straight}end
 local list={}
 for _,wing in pairs(WINGS)do for _,t in ipairs(WingTargets(w,wing))do table.insert(list,t)end end
 local pick=TopPick(w,list,function(t)
@@ -1786,11 +1808,11 @@ end
 return a -(d and 10*d or 0)
 end,3,10)
 if pick then
-local plan={pick=pick}
+local plan={pick=pick,busy=pick.keepId}
 if far[pick] then
 plan.extras={ActionLine(w,pick)}
 local leg=w.Route and w.Route(pick)
-if HOME[w.mine][pick.keepId] and not(leg and leg.recall)then
+if HOME[w.mine][pick.keepId] and not(leg and(leg.recall or leg.line or leg.gateWeighed))then
 table.insert(plan.extras,"Stone down to the gate if you've got a recall stone.")
 end
 end
@@ -1878,7 +1900,7 @@ end
 end
 end
 local pick=type(plan)=="table" and plan.pick
-if not pick or not w.player or pick.defend or pick.directive or pick.unscored or IsResource(pick)or plan.grenade then return plan end
+if not pick or not w.player or pick.defend or pick.directive or pick.unscored or IsResource(pick)or plan.grenade or plan.straight then return plan end
 local left,owned=ContinuousAttack(w)
 if not owned or left>=CA_LOW then return plan end
 local leg=OnTheWay(w,pick,WAY_RULE[key])
@@ -1889,7 +1911,7 @@ end
 end
 local function WeakWallLine(w,plan)
 local leg=plan.pick
-if leg.kind=="Keep" and not leg.defend and not leg.directive and WayIn(w,leg,"nine")=="wall" then return "Look for a weak wall." end
+if leg.kind=="Keep" and not leg.defend and not leg.directive and WayIn(w,leg,"nine")=="wall" and not Breached(w,leg)then return "Look for a weak wall." end
 end
 for _,key in ipairs({"confessor","deano","greedy","november"})do
 local choose=P[key]

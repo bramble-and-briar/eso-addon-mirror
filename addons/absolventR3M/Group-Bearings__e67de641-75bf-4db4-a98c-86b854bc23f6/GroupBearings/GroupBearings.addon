@@ -1,0 +1,19 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+
+## Title: Group Bearings
+## Author: absolventR3M
+## Version: 0.1.0
+## AddOnVersion: 1
+## APIVersion: 101051 101052
+## Description: Distance under marked symbols on your compass, optional group members on the compass, and arrows and light beams pointing to marked symbols. Settings: Settings > Add-Ons > Group Bearings.
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: GroupBearings_SV
+
+Core.lua
+GroupBearings.lua
+Compass.lua
+World.lua
+Settings.lua

@@ -57,7 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Equipment Level (for Update 6)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Equipment-Level-for-Update-6__625) | Garkin | PC / Mac | 1.3 |
 | [Equipped Champion Stars - Equipped CP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Equipped-Champion-Stars---Equipped-CP__3691) | notnear | PC / Mac | 1.1.1 |
 | [ERA's Collection Book](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WildEra/ERA-s-Collection-Book__2235) | WildEra | PC / Mac | 2.2.0 |
-| [Eskiodoe's Font Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BrutalCrime/Eskiodoe-s-Font-Switcher__c68a988b-e050-4ab0-8cfe-4f7f9e5f5f50) | BrutalCrime | Console | — |
+| [Eskiodoe's Font Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eskiodoe/Eskiodoe-s-Font-Switcher__c68a988b-e050-4ab0-8cfe-4f7f9e5f5f50) | Eskiodoe | Console | — |
 | [ESO Adventurer Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HoZayyBadazz/ESO-Adventurer-Suite__4779) | HoZayyBadazz | PC / Mac | 0.29.790 |
 | [ESO Arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/ESO-Arabic__3e5cdaca-d941-4fff-873b-7fd31d726a80) | Lofand | Console | — |
 | [ESO Arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/ESO-Arabic__a46a8bd0-fa70-4d6a-817e-5f69d01e04ec) | Lofand | Console | — |
@@ -70,7 +70,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO Emoji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitkathy1994/ESO-Emoji__3376) | kitkathy1994 | PC / Mac | 0.4.2 |
 | [ESO Farm-Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Farm-Buddy__2553) | Keldor | PC / Mac | 1.0.36 |
 | [ESO Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marcjordan/ESO-Grinder__2788) | marcjordan | PC / Mac | 2.1.0 |
-| [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 3.3.8 |
+| [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 4.2.1-beta |
 | [ESO Language Overrider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hevnokaaz/ESO-Language-Overrider__2655) | Hevnokaaz | PC / Mac | 1.2.2 |
 | [ESO Launcher Closer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Draco9990/ESO-Launcher-Closer__3298) | Draco9990 | PC / Mac | 1.1 |
 | [ESO Master Recipe List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/ESO-Master-Recipe-List__1043) | Phinix | PC / Mac | 1.56.76 |

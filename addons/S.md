@@ -177,7 +177,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Skill-Point-Finder__427000e9-72c4-4fc9-b9b6-3cca4f863607) | TheGreyWolf98 | Console | — |
 | [Skill Ranks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Ranks__3745) | notnear | PC / Mac | 1.4.0 |
 | [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |
-| [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 2.0 |
+| [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 2.0.1 |
 | [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.3 |
 | [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.1 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
@@ -258,6 +258,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SousChef Fix For API 100018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirAndy/SousChef-Fix-For-API-100018__1637) | SirAndy | PC / Mac | 2.7 |
 | [SousChef Fix For API 100020](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirAndy/SousChef-Fix-For-API-100020__1780) | SirAndy | PC / Mac | 2.8 |
 | [SousChef Fix For API 100021](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirAndy/SousChef-Fix-For-API-100021__1856) | SirAndy | PC / Mac | 2.1 |
+| [Sow Travels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VoidAnkhx/Sow-Travels__5041) | VoidAnkhx | PC / Mac | 1.0.0 |
 | [SPAULDER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/SPAULDER__4092) | STUDLETON | PC / Mac | 1.0.2 |
 | [Spaulder Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Spaulder-Notifier__13e3ca65-dc26-4831-a1f1-e950fd465df9) | Shienar | Console | — |
 | [Spaulder Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bjørn/Spaulder-Tracker__3230) | Bjørn | PC / Mac | 1.1.0 |
@@ -332,7 +333,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 3.2 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 3.3 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |

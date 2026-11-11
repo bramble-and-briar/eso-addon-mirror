@@ -232,19 +232,24 @@ CALLBACK_MANAGER:RegisterCallback(ALT_GROUP_FRAMES.EVENT.MANAGER_CREATED, functi
 			end,
 			setFunc = function(newValue)
 				UnitFramesManager.SAVEVARS.SINGLE_ROW_FRAME = newValue
-				local c, x, y, w, h, dx, dy = unpack(UnitFramesManager.SAVEVARS.UNIT_FRAME_ALT_SIZE)
+				-- Position is no longer part of this swap: it's owned by the Edit HUD now,
+				-- not per-layout saved offsets.
+				local altSize = UnitFramesManager.SAVEVARS.UNIT_FRAME_ALT_SIZE
+				local c, w, h, dx, dy, _
+				if #altSize == 7 then
+					-- Saved before the Edit HUD migration dropped the position fields: {col, x, y, w, h, dx, dy}
+					c, _, _, w, h, dx, dy = unpack(altSize)
+				else
+					c, w, h, dx, dy = unpack(altSize)
+				end
 				UnitFramesManager.SAVEVARS.UNIT_FRAME_ALT_SIZE = {
 					UnitFramesManager.SAVEVARS.FRAMES_PER_COLUMN,
-					UnitFramesManager.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_X,
-					UnitFramesManager.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_Y,
 					UnitFramesManager.SAVEVARS.UNIT_FRAME_WIDTH,
 					UnitFramesManager.SAVEVARS.UNIT_FRAME_HEIGHT,
 					UnitFramesManager.SAVEVARS.UNIT_FRAME_PAD_X,
 					UnitFramesManager.SAVEVARS.UNIT_FRAME_PAD_Y,
 				}
 				UnitFramesManager.SAVEVARS.FRAMES_PER_COLUMN = c
-				UnitFramesManager.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_X = x
-				UnitFramesManager.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_Y = y
 				UnitFramesManager.SAVEVARS.UNIT_FRAME_WIDTH = w
 				UnitFramesManager.SAVEVARS.UNIT_FRAME_HEIGHT = h
 				UnitFramesManager.SAVEVARS.UNIT_FRAME_PAD_X = dx
@@ -255,8 +260,8 @@ CALLBACK_MANAGER:RegisterCallback(ALT_GROUP_FRAMES.EVENT.MANAGER_CREATED, functi
 		},
 		{
 			type = "checkbox",
-			name = "Unlock UI",
-			tooltip = "Unlocks the frame container so it can be dragged to a new position. Disable to lock it back in place.",
+			name = "Unlock Frame Resizing",
+			tooltip = "Shows a resize handle on the frame container so you can resize it. To move the frame to a new position, open the Esc menu and choose Edit HUD.",
 			default = function()
 				return false
 			end,
@@ -273,13 +278,9 @@ CALLBACK_MANAGER:RegisterCallback(ALT_GROUP_FRAMES.EVENT.MANAGER_CREATED, functi
 		{
 			type = "button",
 			name = "Reset Frame Position",
-			tooltip = "Move the frame back to its default screen position. Useful if the frame has been dragged off-screen.",
+			tooltip = "Move the frame back to its default screen position. Useful if the frame has been dragged off-screen in the Edit HUD.",
 			func = function()
-				UnitFramesManager.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_X =
-					UnitFramesManager.DEFAULTS["FRAME_CONTAINER_BASE_OFFSET_X"]
-				UnitFramesManager.SAVEVARS.FRAME_CONTAINER_BASE_OFFSET_Y =
-					UnitFramesManager.DEFAULTS["FRAME_CONTAINER_BASE_OFFSET_Y"]
-				UnitFramesManager:RefreshView(true)
+				UnitFramesManager:ResetPosition()
 			end,
 		},
 		{

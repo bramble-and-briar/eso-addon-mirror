@@ -1,7 +1,7 @@
 -- -----------------------------------------------------------------------------
--- Cooldowns
--- Author:  g4rr3t
--- Created: May 5, 2018
+-- PvPCooldownTracker
+-- Author:  @VixenHunny
+-- Edited: 4/15/2026
 --
 -- Defaults.lua
 -- -----------------------------------------------------------------------------
@@ -30,19 +30,30 @@ local defaults = {
     gridSize = 16,
     showOutsideCombat = true,
     lagCompensation = true,
+    -- Recent-proc recorder (ProcCapture.lua)
+    procCapture = true,
+    procCaptureMode = "standard",
     size = 64,
     set_active = "3CB043",
     labelSize = 1.5,
     labelFont = "$(BOLD_FONT)|18|soft-shadow-thick",
     timerFont = "$(BOLD_FONT)|22|soft-shadow-thick",
     style = {
-        labelColor = { 0.96, 0.92, 0.86, 1.0 },
+        -- Colours (the "Ember" theme, see UI.Themes in Interface.lua)
+        theme = "Ember",
+        labelColor = { 0.96, 0.93, 0.88, 1.0 },
         timerColor = { 1.0, 0.97, 0.91, 1.0 },
-        cooldownTint = { 0.68, 0.63, 0.58, 1.0 },
-        glowColor = { 0.90, 0.40, 0.20, 0.35 },
-        barBackgroundColor = { 0.08, 0.08, 0.08, 0.80 },
-        barFillColor = { 0.84, 0.46, 0.20, 0.95 },
-        barReadyColor = { 0.42, 0.72, 0.24, 0.95 },
+        cooldownTint = { 0.62, 0.60, 0.58, 1.0 },
+        glowColor = { 1.0, 0.55, 0.20, 1.0 },
+        barBackgroundColor = { 0.0, 0.0, 0.0, 0.55 },
+        barFillColor = { 0.95, 0.45, 0.15, 1.0 },
+        barReadyColor = { 0.36, 0.80, 0.36, 1.0 },
+        cardColor = { 0.06, 0.05, 0.05, 0.78 },
+        -- Layout: "bar" (icon + name + countdown bar) or "icon" (icon + timer)
+        layout = "bar",
+        showCard = true,
+        showName = true,
+        showAnnouncements = true,
     },
     LabelLocation = {
         x = 600,

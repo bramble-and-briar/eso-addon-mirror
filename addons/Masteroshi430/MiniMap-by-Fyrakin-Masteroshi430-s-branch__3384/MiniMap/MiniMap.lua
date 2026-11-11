@@ -281,12 +281,6 @@ end
 -----------------------------------------------------------------
 
 local function CancelUpdates()
-    -- 03/07/2026: Removed three UnregisterForUpdate() calls for "FyrMiniMapPOIPins",
-    -- "FyrMiniMapLocationsPins", and "FyrMiniMapWayshrinesPins" - the same class of dead reference
-    -- as the SetBorderPinHandlers() fix above. POI/Location/Wayshrine pins are built via direct
-    -- one-shot calls (FyrMM.POIPins(), FyrMM.LocationPins(), FyrMM.Wayshrines(), see PinUpdate) and
-    -- were never registered under these names anywhere in the addon, so these were always no-ops
-    -- left over from a since-removed timer-based version of that code.
     FyrMM.UpdatingCustomPins = {}
     FyrMM.LoadingCustomPins = {}
     if PinRef then
@@ -307,8 +301,8 @@ local function IsCurrentLocation(pin) -- is player at pin + calculate distance f
     local nX = pin.nX or pin.normalizedX
     local nY = pin.nY or pin.normalizedY
 
-    if nX == nil or nY == nil or CurrentMap.TrueMapSize == nil then
-        return false
+    if nX == nil or nY == nil or CurrentMap.TrueMapSize == nil or CurrentMap.TrueMapSize <= 1 then
+        return false -- unknown map size (1 = not calibrated): a distance would be meaningless
     end
 
     local distance = zo_round(CurrentMap.TrueMapSize * zo_sqrt(((x - nX) ^ 2) + ((y - nY) ^ 2)) * 7.55) / 10 -- assumed size is 1.325 times larger than approximate effective skill distance in meters.
@@ -443,16 +437,8 @@ function FyrMM.MapHalfDiagonal()
     return FyrMM.DiagonalND
 end
 
--- local function IsSubmap() -- never used
-    -- return CurrentMap.MapContent == MAP_CONTENT_DUNGEON or GetMapType() == MAPTYPE_SUBZONE
--- end
 
 local function GetQuestJournalMaxValidIndex()
-    -- 02/07/2026 optimization: Scan backward and return on the first hit instead of always
-    -- scanning all MAX_JOURNAL_QUESTS slots forward. Since we only want the highest valid index,
-    -- a backward scan finds the identical answer but can stop immediately instead of always
-    -- checking all 50 slots - this runs on every quest condition counter change, which can fire
-    -- in bursts during combat on kill-quests.
     for i = MAX_JOURNAL_QUESTS, 1, -1 do
         if IsValidQuestIndex(i) then
             return i
@@ -464,10 +450,6 @@ end
 local function IsAssisted(pinType)
     return ASSISTED_PIN_TYPES[pinType] ~= nil -- non-existent key = nil
 end
-
--- local function IsQuestType(pinType)        -- never used
-    -- return QUEST_PIN_TYPES[pinType] ~= nil -- non-existent key = nil
--- end
 
 local function valueExists(i, x)
     for j = 1, #x do -- instead of ipairs to avoid overhead
@@ -496,7 +478,6 @@ function FyrMM.SetTargetScale(pin, targetScale)
         return
     end
 
-    local primaryPin, secondaryPin, tertiaryPin = pin.primaryPin, pin.secondaryPin, pin.tertiaryPin
     local newScale
     pin.targetScale = targetScale
     for i = 1, 50 do
@@ -504,28 +485,10 @@ function FyrMM.SetTargetScale(pin, targetScale)
             newScale = zo_deltaNormalizedLerp(pin:GetScale(), targetScale, 0.1)
             if (abs(newScale - targetScale) < 0.01) then
                 pin:SetScale(targetScale)
-                if primaryPin then
-                    pin.primaryPin:SetScale(targetScale)
-                end
-                if secondaryPin then
-                    pin.secondaryPin:SetScale(targetScale)
-                end
-                if tertiaryPin then
-                    pin.tertiaryPin:SetScale(targetScale)
-                end
                 pin.targetScale = nil
                 return
             end
             pin:SetScale(newScale)
-            if primaryPin then
-                pin.primaryPin:SetScale(newScale)
-            end
-            if secondaryPin then
-                pin.secondaryPin:SetScale(newScale)
-            end
-            if tertiaryPin then
-                pin.tertiaryPin:SetScale(newScale)
-            end
         end, i * 5)
     end
 end
@@ -611,7 +574,7 @@ local function SkyshardDistances()
 end
 
 local function KeepDistances()
-    if not (FyrMM.SV.BorderPins and FyrMM.SV.BorderKeep) or CurrentMap.MapId ~= 16 then
+    if not (FyrMM.SV.BorderPins and FyrMM.SV.BorderKeep) or (CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 2847) then
         return
     end
 
@@ -629,8 +592,6 @@ local function KeepDistances()
         CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", string.format("KeepDistances Start: %s", GetNumKeeps()))  
     end
 
-    -- 26/06/2026 optimization: Run the distance calculation synchronously rather than using a 20ms update registration.
-    -- This avoids timer overhead, callback latency, and string allocation churn.
     local function checkKeepDistance(wDi)
         local keep = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", wDi))
         if keep and keep.nX and keep.nY then
@@ -653,42 +614,77 @@ local function KeepDistances()
             end
         end
     end
-
-    -- keeps: 3 to 20
-    for wDi = 3, 20 do checkKeepDistance(wDi) end
-    -- outposts: 132 to 134 and 163 to 165
-    for wDi = 132, 134 do checkKeepDistance(wDi) end
-    for wDi = 163, 165 do checkKeepDistance(wDi) end
-    -- towns: 149, 151, 152
-    for wDi = 149, 152 do checkKeepDistance(wDi) end
-	
-    for i = 3, 20 do -- keeps
-        local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
-        if l ~= nil then
-            l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+   
+    if CurrentMap.MapId == 16 then -- Cyrodiil
+        -- keeps: 3 to 20
+        for wDi = 3, 20 do checkKeepDistance(wDi) end
+        -- outposts: 132 to 134 and 163 to 165
+        for wDi = 132, 134 do checkKeepDistance(wDi) end
+        for wDi = 163, 165 do checkKeepDistance(wDi) end
+        -- towns: 149, 151, 152
+        for wDi = 149, 152 do checkKeepDistance(wDi) end
+      
+        for i = 3, 20 do -- keeps
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
+            if l ~= nil then
+                l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+            end
         end
-    end
-			
-    for i = 132, 134 do -- outposts 
-        local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
-        if l ~= nil then
-            l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+          
+        for i = 132, 134 do -- outposts 
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
+            if l ~= nil then
+                l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+            end
         end
-    end
-			
-    for i = 163, 165 do -- outposts 
-        local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
-        if l ~= nil then
-            l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+          
+        for i = 163, 165 do -- outposts 
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
+            if l ~= nil then
+                l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+            end
         end
-    end
-			
-    for i = 149, 152 do -- towns 
-        local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
-        if l ~= nil then
-            l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+          
+        for i = 149, 152 do -- towns 
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
+            if l ~= nil then
+                l.Closest = (i == wDmi) or (i == wDmi2) or (i == wDmi3)
+            end
         end
-    end
+        
+     elseif CurrentMap.MapId == 2847 then -- Jerall Pass
+          -- your base
+          local playerAlliance = GetUnitAlliance("player")
+          local yourBase
+          if playerAlliance == 1 then -- yellow
+                 yourBase = 170
+          elseif playerAlliance == 2 then -- red
+                 yourBase = 169
+          elseif playerAlliance == 3 then -- blue
+                 yourBase = 168
+          end
+          
+          for i = 1, 1 do -- keeps
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
+            if l ~= nil then
+                l.Closest = true
+            end
+          end
+          
+          for i = 25, 27 do -- resources
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", i))
+            if l ~= nil then
+                l.Closest = true
+            end
+          end
+          
+          for i = yourBase, yourBase do -- your base
+            local l = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", yourBase))
+            if l ~= nil then
+                l.Closest = true
+            end 
+          end
+     end
 
     if FyrMM.DebugMode then
         CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", string.format("KeepDistances Done.(%s) %s", wDmi, GetGameTimeMilliseconds() - gameTime))
@@ -787,8 +783,6 @@ local function WayshrineDistances()
         return
     end
 
-    -- 26/06/2026 optimization: Run the distance calculation synchronously rather than using a 100ms update registration.
-    -- This avoids timer overhead, callback latency, and string allocation churn.
     for wDi = 1, FyrMM.currentWayshrineCount do
         if Wayshrines[wDi] and Wayshrines[wDi].isRealWayshrine then
             Wayshrines[wDi].nDistance = zo_sqrt((playerX - Wayshrines[wDi].nX) ^ 2 + (playerY - Wayshrines[wDi].nY) ^ 2)
@@ -967,7 +961,7 @@ function FyrMM.Is_PinInsideWheel(pin)
 
     local width = pin:GetWidth() or 32
 
-    local threshold = cachedDi / 2 - ((30 / 512) * cachedDi)
+    local threshold = cachedDi / 2 -- visible up to the circular clip edge (was inset by 30/512 of the width)
     if (pin.radius and pin.radius > 0) or pin.borderInformation then 
         threshold = threshold + width / 2 - 10
     end
@@ -1009,11 +1003,6 @@ local function SetDigSitePoints(digSite)
     local RotateMap = FyrMM.SV.RotateMap
     local heading = CurrentMap.Heading
 
-    -- 02/07/2026 optimization: Skip recomputing the rotated polygon (trig per border point) if
-    -- the heading hasn't changed meaningfully since last time. This runs on every RefreshAnchor
-    -- for bordered dig-site pins while RotateMap is on - roughly every 60ms - and was previously
-    -- redoing the full rotation every call even while the player stood still or moved without
-    -- turning, mirroring the same redundant-draw check already used for the camera/player textures.
     if RotateMap and heading and CurrentMap.PlayerNX and digSite.lastPointsHeading and
         abs(digSite.lastPointsHeading - heading) < 0.0001 then
         return
@@ -1021,20 +1010,6 @@ local function SetDigSitePoints(digSite)
 
     digSite:ClearPoints()
 	
-
-	-- for i = 0, 11 do -- supposed to draw a perfect circle around the dig site, why do I sometimes have to multiply x by two at the end I don't know... 
-	
-        -- local ix = borderInformation.centerX  
-        -- local iy = borderInformation.centerZ 
-        -- local sine = zo_sin(i*doublePi/12)
-        -- local cosine = zo_cos(i*doublePi/12)
-        -- local rx =  (cosine * ix) - (sine * iy)
-        -- local ry = (cosine * iy) + (sine * ix) 
-        -- digSite:AddPoint(rx, ry*(4/3))
-		-- -- multiply ry by 4/3 works
-    -- end
-    -- if FyrMM then return end
-
 
     if not (RotateMap and heading and CurrentMap.PlayerNX) then -- steady map
         for i = 1, #borderInformation.borderPoints do
@@ -1048,13 +1023,6 @@ local function SetDigSitePoints(digSite)
 		
     for i = 1, #points do 
 
-		
-		-- method 2	(same shit, less precise) 
-		-- local newX, newY = GetRotatedPosition(points[i].x, points[i].y)
-        -- digSite:AddPoint((newX/1000)*2, newY/1000)
-
-		
-        -- method 1		
         local point = points[i]
         local ix = point.x - 0.5
         local iy = point.y - 0.5
@@ -1063,28 +1031,12 @@ local function SetDigSitePoints(digSite)
         local rx = (cosine * ix) - (sine * iy)
         local ry = (cosine * iy) + (sine * ix)
 		digSite:AddPoint(rx,ry)
-		
-		
-		
-		-- method 3
-		--digSite:AddPoint(borderInformation.borderPoints[i].x, borderInformation.borderPoints[i].y)
-		
 
-        
 		
-		-- depending on which tile is the point :
-		--(rx*0.7, ry*0.9) more accurate when heading north...
-        --(rx*2, ry) stays in shape when rotating...
-
-
 		
    end
    
     digSite.lastPointsHeading = heading
-
-    -- method 3
-	-- local newAngle = (heading + pi) % (doublePi)
-    -- digSite:SetTransformRotationZ(newAngle)	
 end
 
 
@@ -1252,9 +1204,7 @@ local function AxisSwitch()
 end
 
 do
-    -- 19/06/2026 Optimization: Cache axis angles table to prevent high-frequency table allocation (225 tables/sec)
     local AxisAngles = nil
-    -- 26/06/2026 optimization: Cache last layout state to avoid redundant ClearAnchors and SetAnchor calls
     local lastHeading = nil
     local lastMapW = nil
     local lastMapH = nil
@@ -1272,7 +1222,6 @@ do
             return
         end
 
-        -- 19/06/2026 Optimization: Lazy initialize and reuse the static control table
         if not AxisAngles then
             AxisAngles = { {
                 pin = Fyr_MM_Axis_NE,
@@ -1306,7 +1255,6 @@ do
         h = h or FyrMM.SV.MapHeight
         local heading = CurrentMap.Heading
 
-        -- 26/06/2026 optimization: Cache last layout state to avoid redundant ClearAnchors and SetAnchor calls (16 layout operations/frame)
         if lastHeading and abs(lastHeading - heading) < 0.0001 and lastMapW == w and lastMapH == h then
             return
         end
@@ -1345,7 +1293,7 @@ local function IsCoordinateInRange(x, y)
     end
 
     local mapSize = CurrentMap.TrueMapSize
-    if mapSize <= 0 then
+    if mapSize <= 1 then -- 1 = unknown/uncalibrated size, don't filter pins with a bogus range
         return true
     end
 
@@ -1441,8 +1389,6 @@ local function RescaleLinks()
     local linkExists = false
 
     FyrMM.MapLinkCache = FyrMM.MapLinkCache or {}
-    FyrMM.MapLinkNSCache = FyrMM.MapLinkNSCache or {}
-    FyrMM.MapLinkWECache = FyrMM.MapLinkWECache or {}
 
     -- 03/07/2026 optimization: Cache link UI controls to avoid expensive GetControl lookups and string allocations in hot paths
     for i = 1, 100 do
@@ -1476,63 +1422,6 @@ local function RescaleLinks()
             end
         end
 
-        mapLink = FyrMM.MapLinkNSCache[i]
-        if mapLink == nil then
-            mapLink = GetControl(string.format("Fyr_MM_Scroll_Map_LinksNS_Link%s", i))
-            if mapLink ~= nil then
-                FyrMM.MapLinkNSCache[i] = mapLink
-            end
-        end
-        if mapLink then
-            linkExists = true
-            if FyrMM.SV.WheelMap then
-                mapLink:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-            else
-                mapLink:SetParent(Fyr_MM_Scroll_Map_Links)
-            end
-            
-            if FyrMM.SV.RotateMap then
-                mapLink:ClearAnchors()
-                mapLink:SetAnchor(TOPLEFT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(mapLink.startNX, mapLink.startNY))
-                mapLink:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(mapLink.endNX, mapLink.endNY))
-            else
-                startX, startY, endX, endY = mapLink.startNX * mWidth - mWidth / 2,
-                    mapLink.startNY * mHeight - mHeight / 2,
-                    mapLink.endNX * mWidth - mWidth / 2, mapLink.endNY * mHeight - mHeight / 2
-                mapLink:ClearAnchors()
-                mapLink:SetAnchor(TOPLEFT, Fyr_MM_Scroll_Map_Links, CENTER, zo_round(startX), zo_round(startY))
-                mapLink:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll_Map_Links, CENTER, zo_round(endX), zo_round(endY))
-            end
-        end
-
-        mapLink = FyrMM.MapLinkWECache[i]
-        if mapLink == nil then
-            mapLink = GetControl(string.format("Fyr_MM_Scroll_Map_LinksWE_Link%s", i))
-            if mapLink ~= nil then
-                FyrMM.MapLinkWECache[i] = mapLink
-            end
-        end
-        if mapLink then
-            linkExists = true
-            if FyrMM.SV.WheelMap then
-                mapLink:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-            else
-                mapLink:SetParent(Fyr_MM_Scroll_Map_Links)
-            end
-            
-            if FyrMM.SV.RotateMap then
-                mapLink:ClearAnchors()
-                mapLink:SetAnchor(TOPLEFT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(mapLink.startNX, mapLink.startNY))
-                mapLink:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(mapLink.endNX, mapLink.endNY))
-            else
-                startX, startY, endX, endY = mapLink.startNX * mWidth - mWidth / 2,
-                    mapLink.startNY * mHeight - mHeight / 2,
-                    mapLink.endNX * mWidth - mWidth / 2, mapLink.endNY * mHeight - mHeight / 2
-                mapLink:ClearAnchors()
-                mapLink:SetAnchor(TOPLEFT, Fyr_MM_Scroll_Map_Links, CENTER, zo_round(startX), zo_round(startY))
-                mapLink:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll_Map_Links, CENTER, zo_round(endX), zo_round(endY))
-            end
-        end
         
         -- only on cyrodiil main map because it would block links from updating their position when moving while arriving for the 1st time in one of the 6 bases
         if not linkExists and CurrentMap.MapId == 16 then
@@ -1625,7 +1514,7 @@ local function RescalePinPositions()
 			local width = v.borderInformation.borderWidth * mWidth
 			local height = v.borderInformation.borderHeight * mHeight
 			v:SetDimensions(width, height)
-		elseif FyrMM.SV.autoResizePin and v ~= ZO_WorldMap_GetPinManager():GetPlayerPin() and v.m_textureAnimTimeline == nil and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and
+		elseif FyrMM.SV.autoResizePin and v ~= ZO_WorldMap_GetPinManager():GetPlayerPin() and v.m_textureAnimTimeline == nil and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and CurrentMap.MapId ~= 2847 and
 			   (v.radius == 0 or v.radius == nil) and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND and not v.noZoomResize then -- autoresize pins to zoom option
 			if v.m_PinType == 9999 then -- Elder Scroll aura 
 				local size = 64
@@ -1650,7 +1539,7 @@ local function RescalePinPositions()
 		end
 	
 	  if v.isForwardCampPreview then -- forward camp preview pin
-			if FyrMM.Visible and FORWARD_CAMP_PREVIEW and FORWARD_CAMP_PREVIEW.forwardCampSlotted and CurrentMap.MapId == 16 then
+			if FyrMM.Visible and FORWARD_CAMP_PREVIEW and FORWARD_CAMP_PREVIEW.forwardCampSlotted and (CurrentMap.MapId == 16 or CurrentMap.MapId == 2847) then
     		   v.nX = CurrentMap.PlayerNX 
 			     v.nY = CurrentMap.PlayerNY
            v.radius = 0.026000000536442
@@ -1677,7 +1566,7 @@ local function RescalePinPositions()
        end
   end
 	
-	if FORWARD_CAMP_PREVIEW == nil or FORWARD_CAMP_PREVIEW.forwardCampSlotted ~= true or CurrentMap.MapId ~= 16 then
+	if FORWARD_CAMP_PREVIEW == nil or FORWARD_CAMP_PREVIEW.forwardCampSlotted ~= true or (CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 2847) then
 		FyrMM.ForwardCampPreview = nil
 	end
 	
@@ -1708,7 +1597,7 @@ local function AnimateZoom(newzoom)
             --d("zoom ended")           
 		    FyrMM.SetCurrentMapZoom(newzoom)
 			
-			if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
+			if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 2847 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
 				-- zoom: 1 to 50 default: 10
 				-- should be between 0.1 and 5
 				FyrMM.pinZoomScale = (CurrentMap.ZoomLevel) / 10
@@ -1865,7 +1754,7 @@ function FyrMM.IsValidBorderPin(pin)
         if pin.m_Pin:IsFastTravelWayShrine() then 
             local index, _ = string.gsub(pin:GetName(), "Fyr_MM_Scroll_Map_WayshrinePins_Pin", "")
             if Wayshrines[tonumber(index)] then
-                if Wayshrines[tonumber(index)].Closest and CurrentMap.MapId and CurrentMap.MapId ~= 16 then -- removes wayshrine border pin on Cyrodiil map
+                if Wayshrines[tonumber(index)].Closest and CurrentMap.MapId and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 2847 then -- removes wayshrine border pin on Cyrodiil/ jerall pass map
                     Tracked = FyrMM.SV.BorderWayshrine
                 else
                     Tracked = false
@@ -1887,22 +1776,22 @@ function FyrMM.IsValidBorderPin(pin)
 	
 	-- keeps
 	if ZO_MapPin.KEEP_PIN_TYPES[pin.m_PinType] then 
-			if pin.Closest and CurrentMap.MapId and CurrentMap.MapId == 16 then 
-				Tracked = FyrMM.SV.BorderKeep
+			if pin.Closest and CurrentMap.MapId and (CurrentMap.MapId == 16 or CurrentMap.MapId == 2847) then 
+				  Tracked = FyrMM.SV.BorderKeep
 			else
-				Tracked = false
+				  Tracked = false
 			end
-    end
+  end
 	
     -- under attack keep texture
     if pin.m_PinType == MAP_PIN_TYPE_KEEP_ATTACKED_LARGE or pin.m_PinType == MAP_PIN_TYPE_KEEP_ATTACKED_SMALL then 
             local keep = GetControl(string.format("Fyr_MM_Scroll_Map_Keeps_Keep%s", pin.keepId))
-	     	if CurrentMap.MapId and CurrentMap.MapId == 16 and keep and keep.Closest then
+	     	if CurrentMap.MapId and (CurrentMap.MapId == 16 or CurrentMap.MapId == 2847) and keep and keep.Closest then
             keep.hasAura = true
 				    Tracked = FyrMM.SV.BorderKeep
 			else
 			    if keep then keep.hasAura = false end
-				Tracked = false
+				  Tracked = false
 			end
     end	
 
@@ -1917,6 +1806,7 @@ function FyrMM.IsValidBorderPin(pin)
         if pin.IsCraftingServicePin and FyrMM.SV.BorderCrafting then
             Tracked = pin.IsCraftingServicePin
         end
+
         -- Community Leveling Guides
         if pin.isZGESO then
             Tracked = pin.isZGESO
@@ -2024,9 +1914,6 @@ local function RemoveBorderPin(pin)
     pin:SetHidden(true)
     pin:SetMouseEnabled(false)
 
-    -- stop any leftover ZOS texture-frame animation before this control is recycled for a
-    -- different pin type, otherwise the stale timeline keeps stepping frames on whatever
-    -- static texture gets assigned next (border pin "randomly animates" bug)
     if pin.m_textureAnimTimeline then
         if pin.m_textureAnimTimeline ~= "yes" then
             pin.m_textureAnimTimeline:Stop()
@@ -2043,8 +1930,7 @@ local function RemoveBorderPin(pin)
         end
     end
 
-    pin.pin = nil -- clear the border pin's own forward reference so GetNewBorderPinIndex()
-                  -- can recognize and recycle this slot instead of always allocating a new one
+    pin.pin = nil 
 end
 
 local function CleanUpMisc()
@@ -2052,8 +1938,6 @@ local function CleanUpMisc()
     if not IsInAvAZone() or (CurrentMap.MapId < 578 and CurrentMap.MapId > 571 and FyrMM.dirtyLinks) then
         KeepIndex = {}
         local LinksDone = false
-        local LinksNSDone = false
-        local LinksWEDone = false
         local LocksDone = false
 		local l
         for index = 1, 100 do
@@ -2064,22 +1948,6 @@ local function CleanUpMisc()
                 l:SetMouseEnabled(false)
             else
                 LinksDone = true
-            end
-            l = GetControl(string.format("Fyr_MM_Scroll_Map_LinksNS_Link%s", index))
-            if l ~= nil then
-                l:ClearAnchors()
-                l:SetHidden(true)
-                l:SetMouseEnabled(false)
-            else
-                LinksNSDone = true
-            end
-            l = GetControl(string.format("Fyr_MM_Scroll_Map_LinksWE_Link%s", index))
-            if l ~= nil then
-                l:ClearAnchors()
-                l:SetHidden(true)
-                l:SetMouseEnabled(false)
-            else
-                LinksWEDone = true
             end
             l = GetControl(string.format("Fyr_MM_Scroll_Map_Locks_Lock%s", index))
             if l ~= nil then
@@ -2092,10 +1960,7 @@ local function CleanUpMisc()
             else
                 LocksDone = true
             end
-            -- 03/07/2026: Reverted the 02/07/2026 "break" optimization here at the user's request
-            -- while investigating a reported Cyrodiil link-position regression. Restored to
-            -- original behavior (all 100 iterations always run) until the cause is confirmed.
-            if LinksDone and LinksNSDone and LinksWEDone and LocksDone then
+            if LinksDone and LocksDone then
                 index = 100
             end
 			
@@ -2111,8 +1976,6 @@ local function CleanUpMisc()
     FyrMM.Reloading = false
 
     if FyrMM.ReloadPending then
-        -- a map change happened while we were cleaning up: reload again for the new micro-zone
-        -- instead of preloading a map that is already outdated
         FyrMM.ReloadPending = false
         zo_callLater(FyrMM.Reload, 100) -- zo_callLater ok
     else
@@ -2125,10 +1988,37 @@ local function CleanUpMisc()
     end
 end
 
-function FyrMM.RemoveCustomPin(p)
-    if p == nil then 
-	-- d("FyrMM.RemoveCustomPin pin is nil") 
+function FyrMM.AddAvailableQuestGiver(pin)
+    FyrMM.AvailableQuestGivers = FyrMM.AvailableQuestGivers or {}
+    for i = 1, #FyrMM.AvailableQuestGivers do
+        if FyrMM.AvailableQuestGivers[i] == pin then
+            return
+        end
+    end
+    table.insert(FyrMM.AvailableQuestGivers, pin)
+end
+
+function FyrMM.RemoveAvailableQuestGiver(pin)
+    local list = FyrMM.AvailableQuestGivers
+    if not list then
         return
+    end
+    for i = #list, 1, -1 do
+        if list[i] == pin then
+            table.remove(list, i)
+        end
+    end
+end
+
+function FyrMM.RemoveCustomPin(p)
+    if p == nil then
+	-- d("FyrMM.RemoveCustomPin pin is nil")
+        return
+    end
+
+    FyrMM.RemoveAvailableQuestGiver(p)
+    if FyrMM.ZoneStoryPin == p then
+        FyrMM.ZoneStoryPin = nil
     end
 
     if p.BorderPin then
@@ -2158,9 +2048,10 @@ function FyrMM.RemoveCustomPin(p)
     p.IsAvailableQuest = nil
     p.pinTexture = nil
 
+    if p.Index and p:GetParent() ~= Fyr_MM_Scroll_Map_Pins then
+        p:SetParent(Fyr_MM_Scroll_Map_Pins)
+    end
 
-    -- if p.Key == nil then d("p.Key == nil, could not remove that pin") end
-    -- if p.Index == nil then d("p.Index == nil, could not remove that pin") end
 
     if FyrMM.CustomPinList[p.m_PinType] and FyrMM.CustomPinList[p.m_PinType][p.Key] and FyrMM.CustomPinList[p.m_PinType][p.Key].pin then
         FyrMM.CustomPinList[p.m_PinType][p.Key].pin = nil
@@ -2192,30 +2083,8 @@ function FyrMM.RemoveCustomPin(p)
     p.m_PinType = nil
     p.Index = nil
 
-	if p.tertiaryPin then
-		FyrMM.RemoveCustomPin(p.tertiaryPin)
-	end
-  
-	if p.secondaryPin then
-		FyrMM.RemoveCustomPin(p.secondaryPin)
-	end
-	
-	-- if p.primaryPin then -- this causes a loop, don't do!
-		-- FyrMM.RemoveCustomPin(p.primaryPin)
-	-- end
-	
     p = nil
-    -- d("pin was removed")
-	--FyrMM.AddCustomPinTypesToCheckForConsistence(Type) -- test 03/08/2023
 end
-
-
-
--- function FyrMM.AddCustomPinTypesToCheckForConsistence(Type)
-     -- if Type == nil or Type <= MAP_PIN_TYPE_INVALID or Type == 9999 then return end 
-     -- FyrMM.CustomPinTypesToCheckForConsistence = FyrMM.CustomPinTypesToCheckForConsistence or {}
-	 -- FyrMM.CustomPinTypesToCheckForConsistence[Type] = true
--- end
 
 
 function FyrMM.CheckCustomPinConsistence(Type)
@@ -2335,10 +2204,6 @@ local function CleanUpPins()
                     pin.Index = nil
                     pin.questName = nil
                     pin.PinToolTipText = nil
-                    pin.primaryPin = nil
-                    pin.secondaryPin = nil
-                    pin.tertiaryPin = nil
-                    pin.MM_Tag = nil
                     pin.pinAge = nil
                     pin.IsTreasure = nil
                     pin.isDps = nil
@@ -2363,12 +2228,6 @@ local function CleanUpPins()
 end
 
 local function GetNewBorderPinIndex()
-    -- 02/07/2026 optimization: Previously called GetNumChildren() up to 4 times and could run
-    -- two full loops over every border-pin child (one hidden inside GetNumBorderPins just to
-    -- decide whether a free slot might exist, one to actually find it). A single pass searching
-    -- directly for a free slot returns the identical index with a third of the work. The
-    -- SetHidden(true) that GetNumBorderPins used to do for orphaned slots is already performed
-    -- at every site that clears pin.BorderPin.pin, so nothing is lost by not calling it here.
     local numChildren = Fyr_MM_Axis_Border_Pins:GetNumChildren()
     if numChildren == 0 then
         return 1
@@ -2762,16 +2621,6 @@ end
 
 local function SetBorderPinHandlers(pin)
     if pin == nil then
-        -- 03/07/2026 optimization: This branch is called unconditionally, for every player
-        -- regardless of settings, on every PlaceWaypointBorderPins() call (itself part of the
-        -- ~60ms PlaceBorderPins tick). It looked up controls named "Fyr_MM_Axis_Border_Pins_Pin"..i,
-        -- but that name is never created anywhere in the addon - real border pin slots are named
-        -- "Fyr_MM_Axis_Border_Pin"..i (see CreateBorderPin above), without the extra "s". Because
-        -- of that mismatch GetControl() always found nothing and the loop returned after its very
-        -- first iteration, so this cleanup pass never actually removed anything - it only ever
-        -- burned one wasted string concatenation + name lookup per call. Same bug class as the
-        -- 02/07/2026 fix above; removed rather than "fixed" since it has never been functional and
-        -- no other code path relies on its (nonexistent) effect.
         return
     end
     pin:SetHandler("OnMouseEnter", FyrMM.BorderPinOnMouseEnter)
@@ -2817,7 +2666,7 @@ function FyrMM.CreateBorderPin(pin) -- Should have been called create / update b
     if pinX ~= 0 then
         m = pinY / pinX
     end
-    local D = mmWidth / 2 - ((38 / 512) * mmWidth)
+    local D = mmWidth / 2 -- wheel map: border pins sit on the edge of the circular clip (was inset by 38/512 of the width)
     local newX, newY
     local na = math.atan((mmWidth / 2) / (mmHeight / 2))
     local nb = pi * 0.5 - na
@@ -3167,19 +3016,6 @@ function FyrMM.PlaceBorderPins()
         end
     end
 
-    -- 02/07/2026 optimization: Removed a dead loop that looked up controls named
-    -- "Fyr_MM_Scroll_Map_Pinsgroup"..i, a name never created anywhere in the addon (real
-    -- group pins are named "Fyr_MM_Scroll_Map_GroupPins_"..tag). It always found nil and did
-    -- nothing, yet still burned up to 24 GetControl calls every call - and this function runs
-    -- roughly every 60ms via RescalePinPositions, not just its nominal 2000ms timer.
-
-    -- Bank - stables - crafting - community leveling guides
-    -- 03/07/2026 optimization: Same GetControl()-by-name-every-call pattern as the keep loop above,
-    -- but this one isn't Cyrodiil-only - it runs for any player with Border Pins Bank/Stables/
-    -- Crafting/UseOriginalAPI enabled (very common settings), in every zone, on the same ~60ms
-    -- PlaceBorderPins cadence. Location pin controls are also created once and reused by index
-    -- (see the location pin build code) rather than destroyed between zones, so the same
-    -- cache-on-first-lookup approach applies safely here.
     if FyrMM.SV.BorderPinsBank or FyrMM.SV.BorderPinsStables or FyrMM.SV.BorderCrafting or FyrMM.SV.UseOriginalAPI then
         FyrMM.LocationPinControlCache = FyrMM.LocationPinControlCache or {}
         for i = 1, FyrMM.currentLocationsCount do
@@ -3239,18 +3075,10 @@ function FyrMM.PlaceBorderPins()
         end
     end
 	
-    -- keeps
-    -- 03/07/2026 optimization: This loop runs up to 163 GetControl() calls (each preceded by a
-    -- string concatenation) every time PlaceBorderPins() runs - and per the 02/07/2026 note above,
-    -- that's roughly every 60ms via RescalePinPositions, not just the nominal 2000ms timer. For
-    -- Cyrodiil players with Border Keep Pins enabled that's up to ~5,000+ redundant name lookups/sec,
-    -- even though keep/under-attack controls are created once (see the keep refresh function) and
-    -- never destroyed for the rest of the session - only ever hidden/shown. Cache each resolved
-    -- control by keep index the first time it's found, so later calls skip straight to a table read.
-    if FyrMM.SV.BorderKeep and CurrentMap.MapId == 16 then  
+    if FyrMM.SV.BorderKeep and (CurrentMap.MapId == 16 or CurrentMap.MapId == 2847) then  
         FyrMM.KeepPinControlCache = FyrMM.KeepPinControlCache or {}
         FyrMM.UnderAttackKeepPinControlCache = FyrMM.UnderAttackKeepPinControlCache or {}
-        for i = 3, 165 do
+        for i = 1, 170 do
                 local l = FyrMM.KeepPinControlCache[i]
                 if l == nil then
                     l = GetControl("Fyr_MM_Scroll_Map_Keeps_Keep"..tostring(i))
@@ -3346,7 +3174,7 @@ function FyrMM.PlaceWaypointBorderPins()
                 end
             else
                 if FyrMM.Waypoint.BorderPin ~= nil then
-                    RemoveBorderPin(FyrMM.Waypoint)
+                    RemoveBorderPin(FyrMM.Waypoint.BorderPin)
                 end
             end
         end
@@ -3360,7 +3188,7 @@ function FyrMM.PlaceWaypointBorderPins()
                 end
             else
                 if FyrMM.Ping.BorderPin ~= nil then
-                    RemoveBorderPin(FyrMM.Ping)
+                    RemoveBorderPin(FyrMM.Ping.BorderPin)
                 end
             end
         end
@@ -3374,7 +3202,7 @@ function FyrMM.PlaceWaypointBorderPins()
                 end
             else
                 if FyrMM.Rally.BorderPin ~= nil then
-                    RemoveBorderPin(FyrMM.Rally)
+                    RemoveBorderPin(FyrMM.Rally.BorderPin)
                 end
             end
         end
@@ -3568,23 +3396,6 @@ local function RemoveQuestPin(l)
 		l.OnBorder = nil
 	end
 	
-    if l.MM_Tag ~= nil then
-        if l.MM_Tag == 1 then
-            if l.secondaryPin ~= nil then
-                l.secondaryPin.MM_Tag = nil
-                RemoveQuestPin(l.secondaryPin)
-            end
-            if l.tertiaryPin ~= nil then
-                l.tertiaryPin.MM_Tag = nil
-                RemoveQuestPin(l.tertiaryPin)
-            end
-        else
-            if l.primaryPin ~= nil then
-                l.primaryPin.MM_Tag = nil
-                RemoveQuestPin(l.primaryPin)
-            end
-        end
-    end
     if l.questdataIndex ~= nil then
         if FyrMM.questPinCount > 0 then
             FyrMM.questPinCount = FyrMM.questPinCount - 1
@@ -3601,7 +3412,6 @@ local function RemoveQuestPin(l)
     l:SetMouseEnabled(false)
     l:SetDimensions(0, 0)
     l.questdataIndex = nil
-    l.MM_Tag = nil
     l.m_PinTag = nil
     l.m_PinType = nil
     l.m_Pin = nil
@@ -3612,9 +3422,6 @@ local function RemoveQuestPin(l)
     l.questIndex = nil
     l.questName = nil
     l.PinToolTipText = nil
-    l.primaryPin = nil
-    l.secondaryPin = nil
-    l.tertiaryPin = nil
     l.pinAge = nil
     PinsList[l:GetName()] = nil
 	l = nil
@@ -3631,76 +3438,6 @@ local function ClearDigsiteBlob(digSite)
     digSite.MapId = nil
     digSite.borderInformation = nil
     digSite:SetHidden(true)
-end
-
-local function CreateDigSiteAreaSidePins(pin, width, height, isTracked)
-    local DigSiteAreaSidePinNS
-    DigSiteAreaSidePinNS = GetControl("Fyr_MM_Scroll_Map_DigSite"..tostring(FyrMM.currentDigSiteCount).."_NS")
-    if DigSiteAreaSidePinNS == nil then
-        DigSiteAreaSidePinNS = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_DigSite"..tostring(FyrMM.currentDigSiteCount) .. "_NS", Fyr_MM_Scroll_NS_Map_Pins, CT_POLYGON)
-    else
-        DigSiteAreaSidePinNS:SetParent(Fyr_MM_Scroll_NS_Map_Pins)
-    end
-
-    DigSiteAreaSidePinNS.m_PinType = pin.m_PinType
-    DigSiteAreaSidePinNS.nX = pin.nX
-    DigSiteAreaSidePinNS.nY = pin.nY
-    DigSiteAreaSidePinNS.borderInformation = pin.borderInformation
-    DigSiteAreaSidePinNS.lastPointsHeading = nil -- 02/07/2026: invalidate cached rotation since this pin control may be reused for a different dig site
-    DigSiteAreaSidePinNS.MapId = pin.MapId
-    DigSiteAreaSidePinNS:SetDimensions(width, height)
-    DigSiteAreaSidePinNS:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_DIG_SITES))
-
-    local centerColor = isTracked and ZO_MAP_PIN_TRACKED_DIG_SITE_COLOR or ZO_MAP_PIN_DIG_SITE_COLOR
-    local r, g, b = centerColor:UnpackRGB()
-    local alpha = 0.39
-    DigSiteAreaSidePinNS:SetCenterColor(r, g, b, alpha)
-    local borderColor = ZO_MAP_PIN_DIG_SITE_BORDER_COLOR
-    DigSiteAreaSidePinNS:SetBorderColor(borderColor:UnpackRGBA())
-    DigSiteAreaSidePinNS:SetSmoothingEnabled(true)
-    DigSiteAreaSidePinNS:SetBorderThickness(3, 3, 0)
-    DigSiteAreaSidePinNS:SetShapeType(SHAPE_CIRCLE)
-    DigSiteAreaSidePinNS:SetDrawLayer(1)
-
-    FyrMM.SetPinAnchor(DigSiteAreaSidePinNS, DigSiteAreaSidePinNS.nX, DigSiteAreaSidePinNS.nY, Fyr_MM_Scroll_Map_Pins)
-    if FyrMM.SV.WheelMap then
-        DigSiteAreaSidePinNS:SetParent(Fyr_MM_Scroll_NS_Map_Pins)
-    end
-    DigSiteAreaSidePinNS:SetHandler("OnMouseUp", PinOnMouseUp)
-    DigSiteAreaSidePinNS:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    DigSiteAreaSidePinNS:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-    SetDigSitePoints(DigSiteAreaSidePinNS)
-
-    local DigSiteAreaSidePinWE
-    DigSiteAreaSidePinWE = GetControl("Fyr_MM_Scroll_Map_DigSite" .. tostring(FyrMM.currentDigSiteCount) .. "_WE")
-    if DigSiteAreaSidePinWE == nil then
-        DigSiteAreaSidePinWE = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_DigSite"..tostring(FyrMM.currentDigSiteCount).."_WE", Fyr_MM_Scroll_WE_Map_Pins, CT_POLYGON)
-    else
-        DigSiteAreaSidePinWE:SetParent(Fyr_MM_Scroll_WE_Map_Pins)
-    end
-
-    DigSiteAreaSidePinWE.m_PinType = pin.m_PinType
-    DigSiteAreaSidePinWE.nX = pin.nX
-    DigSiteAreaSidePinWE.nY = pin.nY
-    DigSiteAreaSidePinWE.borderInformation = pin.borderInformation
-    DigSiteAreaSidePinWE.lastPointsHeading = nil -- 02/07/2026: invalidate cached rotation since this pin control may be reused for a different dig site
-    DigSiteAreaSidePinWE.MapId = pin.MapId
-    DigSiteAreaSidePinWE:SetDimensions(width, height) 
-    DigSiteAreaSidePinWE:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_DIG_SITES))
-    DigSiteAreaSidePinWE:SetCenterColor(r, g, b, alpha)
-    DigSiteAreaSidePinWE:SetBorderColor(borderColor:UnpackRGBA())
-    DigSiteAreaSidePinWE:SetSmoothingEnabled(true)
-    DigSiteAreaSidePinWE:SetBorderThickness(3, 3, 0)
-    DigSiteAreaSidePinWE:SetShapeType(SHAPE_CIRCLE)
-    DigSiteAreaSidePinWE:SetDrawLayer(1)
-    FyrMM.SetPinAnchor(DigSiteAreaSidePinWE, DigSiteAreaSidePinWE.nX, DigSiteAreaSidePinWE.nY, Fyr_MM_Scroll_Map_Pins)
-    if FyrMM.SV.WheelMap then
-        DigSiteAreaSidePinWE:SetParent(Fyr_MM_Scroll_WE_Map_Pins)
-    end
-    DigSiteAreaSidePinWE:SetHandler("OnMouseUp", PinOnMouseUp)
-    DigSiteAreaSidePinWE:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    DigSiteAreaSidePinWE:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-    SetDigSitePoints(DigSiteAreaSidePinWE)
 end
 
 local function CreateDigSiteBlob(DigsiteId)
@@ -3804,7 +3541,6 @@ local function CreateDigSiteBlob(DigsiteId)
             else
                 digSite:SetParent(FyrMM.GetScrollObject(digSite))
             end
-            CreateDigSiteAreaSidePins(digSite, width, height, isTracked)
         end
 
         digSite:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_DIG_SITES))
@@ -3819,17 +3555,7 @@ function FyrMM.UpdateAntiquityDigSites()
         Digsites = {}
         for i = 1, FyrMM.currentDigSiteCount, 1 do
             local digSite = GetControl("Fyr_MM_Scroll_Map_DigSite" .. tostring(i))
-            local digSiteNS = GetControl("Fyr_MM_Scroll_Map_DigSite" .. tostring(i) .. "_NS")
-            local digSiteWE = GetControl("Fyr_MM_Scroll_Map_DigSite" .. tostring(i) .. "_WE")
             
-            if FyrMM.SV.WheelMap then
-                if digSiteNS then
-                    ClearDigsiteBlob(digSiteNS)
-                end
-                if digSiteWE then
-                    ClearDigsiteBlob(digSiteWE)
-                end
-            end
 			ClearDigsiteBlob(digSite)
         end
     end
@@ -4021,7 +3747,13 @@ function FyrMM.MeasureDistance()
         return
     end
 
+    if FyrMM.DistanceMeasurementStarted then -- a measurement is already running, don't schedule a duplicate
+        return
+    end
+
     local _
+    FyrMM.MeasurementFilename = CurrentMap.filename -- remember which map is measured, aborted if it changes
+    FyrMM.MeasurementMapId = CurrentMap.MapId
     FyrMM.SetMapToPlayerLocation()
     FyrMM.MeasurementXl, FyrMM.MeasurementYl, _ = GetMapPlayerPosition("player")
     local mapIndex = GetCurrentMapIndex()
@@ -4042,23 +3774,34 @@ end
 
 function FyrMM.FinishDistanceMeasurement()
     if Fyr_MM:IsHidden() or FyrMM.worldMapShowing then
+        FyrMM.DistanceMeasurementStarted = false -- allow a later retry
         return
     end
     FyrMM.DistanceMeasurementStarted = false
-    if CurrentMap == nil or CurrentMap.TrueMapSize == nil or  CurrentMap.TrueMapSize > 1 then
+    if CurrentMap == nil or CurrentMap.TrueMapSize == nil or CurrentMap.TrueMapSize > 1 then
+        return
+    end
+    -- the player changed map during the 5s window: the two samples don't belong together
+    if FyrMM.MeasurementFilename == nil or CurrentMap.filename ~= FyrMM.MeasurementFilename or
+        CurrentMap.MapId ~= FyrMM.MeasurementMapId then
         return
     end
     local x, y = FyrMM.MeasurementX, FyrMM.MeasurementY
-    FyrMM.SetMapToPlayerLocation()
     local xl, yl = FyrMM.MeasurementXl, FyrMM.MeasurementYl
+    if x == nil or y == nil or xl == nil or yl == nil then
+        return
+    end
+
+    FyrMM.SetMapToPlayerLocation()
     local x2l, y2l, _ = GetMapPlayerPosition("player")
     local mapIndex = GetCurrentMapIndex()
     if mapIndex == nil then
         MapZoomOut()
         mapIndex = GetCurrentMapIndex()
     end
-    local worldsize, multiplier
+    local multiplier = FyrMM.GetMapMeasureMultiplier() -- must be evaluated on the local map, not on Tamriel
 
+    local worldsize
     if mapIndex ~= 23 then -- not coldharbour
         SetMapToMapListIndex(1)
         worldsize = 33440  -- Assumed Tamriel size in feet taken from ZygorGuides
@@ -4066,15 +3809,16 @@ function FyrMM.FinishDistanceMeasurement()
         worldsize = 5684   -- Assumed Coldharbour size in feet
     end
 
-    local multiplier = FyrMM.GetMapMeasureMultiplier()
-
     local x2, y2, _ = GetMapPlayerPosition("player")
     FyrMM.SetMapToPlayerLocation()
     local localdistance = zo_sqrt((xl - x2l) * (xl - x2l) + (yl - y2l) * (yl - y2l)) -- Local map distance
     local continentdistance = zo_sqrt((x - x2) * (x - x2) + (y - y2) * (y - y2))     -- Tamriel/Coldharbour
+    -- player barely moved (or positions invalid): result would be garbage / division by ~0, retry later
+    if not (localdistance > 0.0002) or not (continentdistance > 0) then
+        return
+    end
     local mapSize = (worldsize * continentdistance / localdistance) * multiplier
-    if not (mapSize > 0) then                                                          -- Error
-        FyrMM.DistanceMeasurementStarted = true
+    if not (mapSize > 1) or mapSize == math.huge then -- Error (NaN, inf, or unusable)
         return
     end
     if FyrMM.SV.MapSizes == nil then
@@ -4295,6 +4039,7 @@ function FyrMM.WorldMapShowHide()
         CurrentTasks = {}
         FyrMM.worldMapShowing = false
         FyrMM.Reloading = false
+        zo_callLater(FyrMM.checkWaypoints, 150) -- after the map has been reset to the player location
     end
 end
 
@@ -4349,8 +4094,6 @@ function FyrMM.Hide()
     Fyr_MM_Coordinates:SetHidden(true)
     Fyr_MM_Axis_Control:SetHidden(true)
     Fyr_MM_Scroll_WheelCenter:SetHidden(true)
-    Fyr_MM_Scroll_WheelNS:SetHidden(true)
-    Fyr_MM_Scroll_WheelWE:SetHidden(true)
     Fyr_MM_Frame_Wheel:SetHidden(true)
     if not FyrMM.SV.ShowBorder then
         Fyr_MM_Border:SetAlpha(0)
@@ -4367,20 +4110,99 @@ function FyrMM.Hide()
     Fyr_MM:SetHidden(true)
 end
 
+-- Real circular mask for the wheel map (replaces the old NS/WE fade-gradient approximation).
+function FyrMM.ApplyCircularClip()
+    local w = Fyr_MM:GetWidth()
+    if not w or w <= 0 then
+        return
+    end
+    -- The clip is stored in screen coordinates and does NOT follow the control when the
+    -- minimap is moved, so we use the control's current screen centre and re-apply on change.
+    local c = Fyr_MM_Scroll_WheelCenter
+    local cx, cy = c:GetCenter()
+    if not cx or not cy then
+        return
+    end
+    local r = w / 2
+
+    if FyrMM.clipW == w and FyrMM.clipX == cx and FyrMM.clipY == cy and FyrMM.clipR == r then
+        return -- unchanged
+    end
+    FyrMM.clipW, FyrMM.clipX, FyrMM.clipY, FyrMM.clipR = w, cx, cy, r
+    c:ClearCircularClip()
+    c:SetCircularClip(cx, cy, r)
+end
+
+-- Keep the player arrow (and its camera cone) above every group / companion pin, in square AND wheel mode.
+-- Draw order in ESO compares tier, then layer, then level. Valid layers are DL_BACKGROUND(0) .. DL_TEXT(3),
+-- so the former layer value 4 was not a reliable "topmost". Group pins/labels are kept below DL_TEXT.
+function FyrMM.RaisePlayerArrow()
+    if Fyr_MM_Camera then
+        Fyr_MM_Camera:SetDrawTier(DT_HIGH)
+        Fyr_MM_Camera:SetDrawLayer(DL_TEXT)
+        Fyr_MM_Camera:SetDrawLevel(499)
+    end
+    if Fyr_MM_Player then
+        Fyr_MM_Player:SetDrawTier(DT_HIGH)
+        Fyr_MM_Player:SetDrawLayer(DL_TEXT)
+        Fyr_MM_Player:SetDrawLevel(500)
+    end
+end
+
+-- Wheel mode only: lift the regular pin scroll (and the player arrow / camera) to the HIGH tier so they
+-- draw above the wheel frame ring (MEDIUM). Controls parented to WheelCenter stay in the LOW tier, under the ring.
+-- In square mode the controls are left exactly as the XML defines them: their original tier/layer/level are
+-- saved before the first wheel change and restored when leaving wheel mode.
+function FyrMM.ApplyWheelDrawOrder(isWheel)
+    isWheel = isWheel and true or false
+    if FyrMM.wheelDrawOrder == isWheel then
+        return
+    end
+    FyrMM.wheelDrawOrder = isWheel
+
+    local controls = { Fyr_MM_Scroll, Fyr_MM_Player, Fyr_MM_Player_incombat, Fyr_MM_Camera }
+    if isWheel then
+        if not FyrMM.drawOrderBackup then
+            FyrMM.drawOrderBackup = {}
+            for i, c in ipairs(controls) do
+                FyrMM.drawOrderBackup[i] = { c:GetDrawTier(), c:GetDrawLayer(), c:GetDrawLevel() }
+            end
+        end
+        Fyr_MM_Scroll:SetDrawTier(DT_HIGH)
+        Fyr_MM_Player:SetDrawTier(DT_HIGH)
+        Fyr_MM_Camera:SetDrawTier(DT_HIGH)
+        FyrMM.RaisePlayerArrow()
+        Fyr_MM_Player_incombat:SetDrawTier(DT_MEDIUM) -- one tier under the player arrow
+        -- the square background fill would otherwise be drawn over the ring in the HIGH tier
+        if not Fyr_MM_Scroll_Fill:IsHidden() then
+            Fyr_MM_Scroll_Fill:SetHidden(true)
+            FyrMM.fillHiddenByWheel = true
+        end
+    else
+        if FyrMM.drawOrderBackup then
+            for i, c in ipairs(controls) do
+                local b = FyrMM.drawOrderBackup[i]
+                c:SetDrawTier(b[1])
+                c:SetDrawLayer(b[2])
+                c:SetDrawLevel(b[3])
+            end
+        end
+        FyrMM.RaisePlayerArrow()
+        if FyrMM.fillHiddenByWheel then
+            Fyr_MM_Scroll_Fill:SetHidden(false)
+            FyrMM.fillHiddenByWheel = nil
+        end
+    end
+end
+
 function FyrMM.Show_WheelScrolls()
     FyrMM.UpdateMapTiles(true)
     Fyr_MM_Wheel_Background:SetHidden(not FyrMM.SV.WheelMap)
     Fyr_MM_Scroll_WheelCenter:SetHidden(not FyrMM.SV.WheelMap)
-    Fyr_MM_Scroll_WheelNS:SetHidden(not FyrMM.SV.WheelMap)
-    Fyr_MM_Scroll_WheelWE:SetHidden(not FyrMM.SV.WheelMap)
     Fyr_MM_Scroll:SetHorizontalScroll(CurrentMap.hpos)
     Fyr_MM_Scroll:SetVerticalScroll(CurrentMap.vpos)
    -- Fyr_MM_Scroll_WheelCenter:SetHorizontalScroll(CurrentMap.hpos)
     --Fyr_MM_Scroll_WheelCenter:SetVerticalScroll(CurrentMap.vpos)
-   -- Fyr_MM_Scroll_WheelNS:SetHorizontalScroll(CurrentMap.hpos)
-   -- Fyr_MM_Scroll_WheelNS:SetVerticalScroll(CurrentMap.vpos)
-   -- Fyr_MM_Scroll_WheelWE:SetHorizontalScroll(CurrentMap.hpos)
-   -- Fyr_MM_Scroll_WheelWE:SetVerticalScroll(CurrentMap.vpos)
 end
 
 function FyrMM.Show()
@@ -4412,6 +4234,7 @@ function FyrMM.Show()
         zo_callLater(function() -- zo_callLater ok
             FyrMM.UpdateMapTiles(true)
             FyrMM.RegisterUpdates()
+            if FyrMM.WaypointRefreshPending then FyrMM.checkWaypoints() end
         end, 5) -- was 100
 
         Fyr_MM_Frame_Wheel:SetHidden(not FyrMM.SV.WheelMap)
@@ -4488,8 +4311,6 @@ function FyrMM.ActionMap.Show()
 	
 	local actionMapAlpha = 0.40
 	Fyr_MM:SetAlpha(actionMapAlpha)
-	Fyr_MM_Scroll_WheelWE:SetAlpha(actionMapAlpha)
-	Fyr_MM_Scroll_WheelNS:SetAlpha(actionMapAlpha)
 	Fyr_MM_Scroll_WheelCenter:SetAlpha(actionMapAlpha)
 	Fyr_MM_Axis_Control:SetAlpha(actionMapAlpha)
 	
@@ -4525,8 +4346,6 @@ function FyrMM.ActionMap.Hide()
    FyrMM.ActionMapMode = false
    
   Fyr_MM:SetAlpha(FyrMM.SV.MapAlpha/100) 
-	Fyr_MM_Scroll_WheelWE:SetAlpha(FyrMM.SV.MapAlpha/100)
-	Fyr_MM_Scroll_WheelNS:SetAlpha(FyrMM.SV.MapAlpha/100)
 	Fyr_MM_Scroll_WheelCenter:SetAlpha(FyrMM.SV.MapAlpha/100)
   Fyr_MM_Axis_Control:SetAlpha(1)	
    
@@ -4632,7 +4451,7 @@ local function ZoneCheck()
             local ZoneIndex = 0
             local mapId = FyrMM.GetMapId()
 
-            if FyrMM.MapSizes[mapId] then
+            if mapId and mapId ~= 0 then -- any known map (MapSizes no longer lists unknown sizes)
                 FyrMM.ResetOrLoadCustomPinList()
             end
 
@@ -4742,26 +4561,8 @@ local function RemoveObsoleteQuestPins()
         end
         if l ~= nil and l.questdataIndex ~= nil then
             if QuestPins[l.questdataIndex] == nil then
-                if l.MM_Tag == nil then
-                    RemoveQuestPin(l)
-					          removed = true
-                else
-                    if l.MM_Tag == 1 then
-                        if l.secondaryPin ~= nil then
-                            l.secondaryPin.MM_Tag = nil
-                            RemoveQuestPin(l.secondaryPin)
-						              	removed = true
-                        end
-                        if l.tertiaryPin ~= nil then
-                            l.tertiaryPin.MM_Tag = nil
-                            RemoveQuestPin(l.tertiaryPin)
-					              		removed = true
-                        end
-                        l.MM_Tag = nil
-                        RemoveQuestPin(l)
-				            		removed = true
-                    end
-                end
+                RemoveQuestPin(l)
+                removed = true
             end
         end
     end
@@ -4841,9 +4642,6 @@ function FyrMM.PinUpdate()
         return
     end
 	
-    -- 02/07/2026 optimization: Only capture the debug-profiling timestamp when DebugMode is
-    -- actually on, instead of calling GetGameTimeMilliseconds() unconditionally every tick
-    -- for a value that's discarded for virtually every user, who has DebugMode off by default.
     local a = FyrMM.DebugMode and GetGameTimeMilliseconds() or nil
 	
 	CurrentMap.ZoneIndex = GetCurrentMapZoneIndex()
@@ -4872,13 +4670,6 @@ function FyrMM.PinUpdate()
        end	
     end
 
-
-    -- 02/07/2026 optimization: AvailableCustomPins() walks a nested table of every custom pin
-    -- every time it's called, purely to catch drift in FyrMM.CustomPinCount (which is already
-    -- incrementally tracked at every add/remove site). Running that full re-walk on every
-    -- PinUpdate tick (up to 10x/sec by default) was wasted work in the common case where nothing
-    -- changed. Throttle it to twice a second - the cheap empty-list and new-pin-detected checks
-    -- stay fully responsive every tick.
     local countMismatch = false
     local now = GetGameTimeMilliseconds()
     if now - lastCustomPinCountCheck > 500 then
@@ -4946,9 +4737,6 @@ function FyrMM.Debug_d(value)
 end
 
 function FyrMM.SetMiniCompass()
-    -- 02/07/2026 optimization: Cache MM_GetMapWidth() once - it queries Fyr_MM_Scroll:GetWidth()
-    -- from the UI engine, and this function was calling it 9 times for a value that cannot
-    -- change within a single call.
     local mapWidth = MM_GetMapWidth()
     if ZO_Compass:GetScale() ~= mapWidth / 350 then
         if not Harvest then
@@ -5029,16 +4817,6 @@ function FyrMM.Reload()
     end
 end
 
--- function FyrMM.WheelScroll(x, y)
-    -- if x and y then
-        -- Fyr_MM_Scroll_WheelCenter:SetHorizontalScroll(x) 
-        -- Fyr_MM_Scroll_WheelCenter:SetVerticalScroll(y)
-        -- Fyr_MM_Scroll_WheelNS:SetHorizontalScroll(x)
-        -- Fyr_MM_Scroll_WheelNS:SetVerticalScroll(y)
-        -- Fyr_MM_Scroll_WheelWE:SetHorizontalScroll(x)
-        -- Fyr_MM_Scroll_WheelWE:SetVerticalScroll(y)
-    -- end
--- end
 
 local function SetSpeedLabel(speed)
     if speed == nil then
@@ -5306,13 +5084,6 @@ local function LogPosition() -- called every 30ms
 		   end
     end
 
-    -- 19/06/2026 Optimization: Only update coordinate label text and dimensions if value changed to avoid UI reflow overhead
-    -- 03/07/2026 optimization: The check above only skipped the SetText/GetTextDimensions/SetDimensions
-    -- calls, but string.format() itself - which allocates a new string - was still being run
-    -- unconditionally every 30ms (33 times/sec), even though its result is thrown away whenever the
-    -- displayed coordinates haven't changed (e.g. player standing still, reading a quest, in a menu).
-    -- Round to the same precision %05.02f would produce and compare those numbers first, so the
-    -- string is only built when it would actually differ from what's already on screen.
     local roundedX = zo_round(CurrentMap.PlayerNX * 10000) / 100
     local roundedY = zo_round(CurrentMap.PlayerNY * 10000) / 100
     if CurrentMap.lastPositionX ~= roundedX or CurrentMap.lastPositionY ~= roundedY then
@@ -5343,7 +5114,6 @@ local function SpeedMeasure()
     local x12d, y12d = 0, 0 -- aren't used till after they are assigned in for loop
     local x23d, y23d, z23d, t2, x22d, y22d = 0, 0, 0, 0, 0, 0
     local d3d, v13d, va3d = 0, 0, 0
-    local size = FyrMM.MapSizes[CurrentMap.MapId] or FyrMM.currentMap.TrueMapSize
 
     if IsPlayerMoving() then
         for i = 2, PositionLogCounter do
@@ -5358,12 +5128,11 @@ local function SpeedMeasure()
             return
         end
 		
-        local nsize = 0.0143 * zo_sqrt((x23d - x13d) ^ 2 + (y23d - y13d) ^ 2) /
-            zo_sqrt((x22d - x12d) ^ 2 + (y22d - y12d) ^ 2)
-        if nsize and size and nsize ~= 1e309 and size < nsize then
-            FyrMM.currentMap.TrueMapSize = nsize
+        if PositionLogCounter > 1 then
+            va3d = va3d / (PositionLogCounter - 1) * multiplier
+        else
+            va3d = 0
         end
-        va3d = va3d / (PositionLogCounter - 1) * multiplier
     end
 
     PositionLogCounter = 0
@@ -5395,9 +5164,6 @@ function FyrMM.PositionUpdate()
         FyrMM.ZoneCheck()
     end
 
-    -- 02/07/2026 optimization: Only capture the debug-profiling timestamp when DebugMode is
-    -- actually on, instead of calling GetGameTimeMilliseconds() unconditionally every 40ms tick
-    -- for a value that's discarded for virtually every user, who has DebugMode off by default.
     local a = FyrMM.DebugMode and GetGameTimeMilliseconds() or nil
     local x = CurrentMap.PlayerNX
     local y = CurrentMap.PlayerNY
@@ -5471,10 +5237,6 @@ function FyrMM.PositionUpdate()
     FyrMM.UpdateMapTiles(moved)   -- can cause tiles not updating but should be fixed by now
     CurrentMap.needRescale = true -- REMOVING THIS CAUSES OCCASIONAL PINS DEPHASING ON ROTATING MAPS
 
-    -- 03/07/2026: Call RescaleLinks() directly here instead of relying solely on the indirect
-    -- RescalePinPositions chain, so keep-network link positions get reliably re-anchored to the
-    -- player's current heading every 40ms while moving/turning, rather than only snapping to a
-    -- new position whenever a keep-network event happens to fire.
     if IsInAvAZone() then
         RescaleLinks()
     end
@@ -5522,6 +5284,7 @@ function FyrMM.UpdateMapInfo(IgnoreZone)
     local id = FyrMM.GetMapId()
 
     if string.lower(CurrentMap.filename) == "tamriel_0" then 
+        CurrentMap.TrueMapSize = 1 -- don't keep the previous map's size
         CurrentMap.ready = true
         zo_callLater(FyrMM.UpdateMapInfo, 5) -- mmmmh should be good 
         return
@@ -5576,7 +5339,7 @@ function FyrMM.UpdateMapInfo(IgnoreZone)
         CurrentMap.ZoomLevel = FyrMM.SV.ZoomTable[CurrentMap.filename]
     end
 
-    if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
+    if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 2847 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
         -- zoom: 1 to 50 default: 10
         FyrMM.pinZoomScale = (CurrentMap.ZoomLevel) / 10
     else
@@ -5586,7 +5349,7 @@ function FyrMM.UpdateMapInfo(IgnoreZone)
     if id ~= 0 then
         CurrentMap.MapId = id
         if CurrentMap.TrueMapSize == 1 then
-            if FyrMM.SV.MapSizes[CurrentMap.filename] then
+            if FyrMM.SV.MapSizes and FyrMM.SV.MapSizes[CurrentMap.filename] then
                 CurrentMap.TrueMapSize = FyrMM.SV.MapSizes[CurrentMap.filename]
             end
         end
@@ -5594,7 +5357,6 @@ function FyrMM.UpdateMapInfo(IgnoreZone)
         CurrentMap.MapId = 0 -- "unknown"
         if FyrMM.SV.MapSizes == nil then
             FyrMM.SV.MapSizes = {}
-            FyrMM.SV.MapSizes[CurrentMap.filename] = 1
             CurrentMap.TrueMapSize = 1
         else
             if FyrMM.SV.MapSizes[CurrentMap.filename] ~= nil then
@@ -5639,10 +5401,6 @@ function FyrMM.UpdateMapTiles(stealth)
         return
     end
 
-    -- 02/07/2026 optimization: Moved GetTileDimensions() (which does a texture-file-dimensions
-    -- query plus two more native API calls) to after the cache check below, since it was
-    -- previously computed unconditionally before an early-return that fires on nearly every
-    -- tick for every user - wasting the call ~25x/sec regardless of whether anything changed.
     local mapFilename = CurrentMap.filename
     local zoomLevel = CurrentMap.ZoomLevel
     local rotateMap = FyrMM.SV.RotateMap
@@ -5696,28 +5454,21 @@ function FyrMM.UpdateMapTiles(stealth)
     if FyrMM.DebugMode then
         CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", "FyrMM.UpdateMapTiles " .. tostring(stealth))
     end
-    local sa, sb, centerSize
+    local centerSize
     local i = 0
 
-    -- 02/07/2026 optimization: Removed a duplicate GetTileDimensions() call here - reuse the
-    -- value computed once above, since map id, zoom level, and texture dimensions can't change
-    -- within this same function call.
     local mWidth, mHeight = MM_TileSizeW * CurrentMap.Dx, MM_TileSizeH * CurrentMap.Dy
     Fyr_MM_Scroll_Map:SetDimensions(mWidth, mHeight)
     Fyr_MM_Scroll_Map:SetDrawLayer(0) 
 
-    if not FyrMM.SV.WheelMap then 
+    FyrMM.ApplyWheelDrawOrder(FyrMM.SV.WheelMap)
+    if not FyrMM.SV.WheelMap then
         Fyr_MM_Bg:SetColor(0, 0, 0, 1)
-        Fyr_MM_Scroll_WheelNS:SetHidden(true)
         Fyr_MM_Scroll_WheelCenter:SetHidden(true)
-        Fyr_MM_Scroll_WheelWE:SetHidden(true)
     else
         Fyr_MM_Bg:SetColor(1, 1, 1, 0)
         Fyr_MM_Border:SetHidden(true)
-        sa = Fyr_MM:GetWidth() - ((50 / 512) * Fyr_MM:GetWidth())
-        sb = (220 / 512) * Fyr_MM:GetWidth()
-        Fyr_MM_Scroll_WheelWE:SetDimensions(sa, sb)
-        Fyr_MM_Scroll_WheelNS:SetDimensions(sb, sa)
+        -- the Center layer is full size and clipped to a real circle (see FyrMM.ApplyCircularClip)
         Fyr_MM_Frame_Control:SetDimensions(Fyr_MM:GetWidth(), Fyr_MM:GetWidth())
         Fyr_MM_Frame_Wheel:SetDimensions(Fyr_MM:GetWidth() + 8, Fyr_MM:GetWidth() + 8)
 
@@ -5725,8 +5476,9 @@ function FyrMM.UpdateMapTiles(stealth)
             Fyr_MM_Frame_Wheel:SetTextureCoordsRotation(CurrentMap.Heading)
         end
 
-        centerSize = zo_sqrt(2 * Fyr_MM:GetWidth() * Fyr_MM:GetWidth()) / 2
+        centerSize = Fyr_MM:GetWidth()
         Fyr_MM_Scroll_WheelCenter:SetDimensions(centerSize, centerSize)
+        FyrMM.ApplyCircularClip()
 
         if CurrentMap.PlayerX == nil or CurrentMap.PlayerY == nil or CurrentMap.Heading == nil then
             local x, y, pheading = GetMapPlayerPosition("player")
@@ -5742,18 +5494,8 @@ function FyrMM.UpdateMapTiles(stealth)
     local tileposX, tileposY, x, y
     
     FyrMM.MapTileCache = FyrMM.MapTileCache or {}
-    FyrMM.MapTileNSCache = FyrMM.MapTileNSCache or {}
     FyrMM.MapTileCCache = FyrMM.MapTileCCache or {}
-    FyrMM.MapTileWECache = FyrMM.MapTileWECache or {}
 
-    -- 10/07/2026 optimization: the "wheel map" skin (NS/Center/WE tile sets) is an alternate
-    -- display mode that's hidden whenever FyrMM.SV.WheelMap is off, which is the common case.
-    -- Previously every tile still got 3 extra texture controls fully updated (SetTexture,
-    -- SetDimensions, SetDrawLayer, ClearAnchors, rotation, scale, anchor) every single call even
-    -- though they were invisible - up to 4x the necessary work per tile, on a function that can
-    -- run every ~40ms while RotateMap + player movement are active. Now those 3 sets are only
-    -- touched when the wheel map is actually being shown; otherwise they're just hidden once
-    -- (only if they were already created from a prior WheelMap session) and left alone.
     local wheelModeActive = FyrMM.SV.WheelMap
 
     -- 03/07/2026 optimization: Cache map tile UI controls to avoid expensive GetControl lookups and string allocations in hot paths
@@ -5774,70 +5516,32 @@ function FyrMM.UpdateMapTiles(stealth)
             if tileControl:GetTextureFileName():lower() ~= CurrentMap.tiles[i]:lower() then
                 tileControl:SetTexture(CurrentMap.tiles[i])
             end
-            -- 02/07/2026 optimization: Reuse the MM_TileSizeW/H already computed once for this
-            -- whole function call instead of calling GetTileDimensions() 4 times per tile. With
-            -- Dx*Dy tiles on the map this was up to 4x that many redundant native API calls on
-            -- every invocation - and this loop can run every 40ms while RotateMap is active and
-            -- the player is moving or turning.
             tileControl:SetDimensions(MM_TileSizeW, MM_TileSizeH)
             tileControl:SetDrawLayer(0)
             tileControl:ClearAnchors()
 
-            local tilens, tilec, tilewe
+            local tilec
 
             if wheelModeActive then
-                tilens = FyrMM.MapTileNSCache[idx]
-                if tilens == nil then
-                    tilens = GetControl("Fyr_MM_Scroll_WNS_Map_" .. tostring(idx)) -- top & bottom
-                    if tilens == nil then
-                        tilens = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_WNS_Map_"..tostring(idx), Fyr_MM_Scroll_WheelNS, CT_TEXTURE)
-                    end
-                    FyrMM.MapTileNSCache[idx] = tilens
-                end
                 tilec = FyrMM.MapTileCCache[idx]
                 if tilec == nil then
-                    tilec = GetControl("Fyr_MM_Scroll_CW_Map_"..tostring(idx)) -- corners
+                    tilec = GetControl("Fyr_MM_Scroll_CW_Map_"..tostring(idx))
                     if tilec == nil then
                         tilec = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_CW_Map_"..tostring(idx), Fyr_MM_Scroll_WheelCenter, CT_TEXTURE)
                     end
                     FyrMM.MapTileCCache[idx] = tilec
                 end
-                tilewe = FyrMM.MapTileWECache[idx]
-                if tilewe == nil then
-                    tilewe = GetControl("Fyr_MM_Scroll_WWE_Map_"..tostring(idx)) -- left and right
-                    if tilewe == nil then
-                        tilewe = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_WWE_Map_"..tostring(idx), Fyr_MM_Scroll_WheelWE, CT_TEXTURE)
-                    end
-                    FyrMM.MapTileWECache[idx] = tilewe
-                end
 
-                tilens:SetHidden(false)
                 tilec:SetHidden(false)
-                tilewe:SetHidden(false)
-                if tilens:GetTextureFileName():lower() ~= CurrentMap.tiles[i]:lower() then
-                    tilens:SetTexture(CurrentMap.tiles[i])
+                if tilec:GetTextureFileName():lower() ~= CurrentMap.tiles[i]:lower() then
                     tilec:SetTexture(CurrentMap.tiles[i])
-                    tilewe:SetTexture(CurrentMap.tiles[i])
                 end
-                tilens:SetDimensions(MM_TileSizeW, MM_TileSizeH)
                 tilec:SetDimensions(MM_TileSizeW, MM_TileSizeH)
-                tilewe:SetDimensions(MM_TileSizeW, MM_TileSizeH)
-                tilens:SetDrawLayer(0)
                 tilec:SetDrawLayer(0)
-                tilewe:SetDrawLayer(0)
-                tilens:ClearAnchors()
                 tilec:ClearAnchors()
-                tilewe:ClearAnchors()
             else
-                -- Wheel map is off: just make sure any tiles left over from a prior WheelMap
-                -- session stay hidden. No texture/dimension/anchor work needed since nothing
-                -- reads their state while hidden.
-                tilens = FyrMM.MapTileNSCache[idx]
-                if tilens then tilens:SetHidden(true) end
                 tilec = FyrMM.MapTileCCache[idx]
                 if tilec then tilec:SetHidden(true) end
-                tilewe = FyrMM.MapTileWECache[idx]
-                if tilewe then tilewe:SetHidden(true) end
             end
 
             if FyrMM.SV.RotateMap then
@@ -5859,15 +5563,9 @@ function FyrMM.UpdateMapTiles(stealth)
                 tileControl:SetScale(scale)
                 tileControl:SetAnchor(CENTER, Fyr_MM_Scroll, CENTER, tileposX, tileposY)
                 if wheelModeActive then
-                    tilens:SetTextureRotation(CurrentMap.Heading, 0.5, 0.5)
                     tilec:SetTextureRotation(CurrentMap.Heading, 0.5, 0.5)
-                    tilewe:SetTextureRotation(CurrentMap.Heading, 0.5, 0.5)
-                    tilens:SetScale(scale)
                     tilec:SetScale(scale)
-                    tilewe:SetScale(scale)
-                    tilens:SetAnchor(CENTER, Fyr_MM_Scroll_WheelNS, CENTER, tileposX, tileposY)
                     tilec:SetAnchor(CENTER, Fyr_MM_Scroll_WheelCenter, CENTER, tileposX, tileposY)
-                    tilewe:SetAnchor(CENTER, Fyr_MM_Scroll_WheelWE, CENTER, tileposX, tileposY)
                 end
             else
                 tileposX = ((b - 0.5) * mWidth / CurrentMap.Dx) - mWidth / 2
@@ -5876,15 +5574,9 @@ function FyrMM.UpdateMapTiles(stealth)
                 tileControl:SetTextureRotation(0)
                 tileControl:SetAnchor(CENTER, Fyr_MM_Scroll_Map, CENTER, tileposX, tileposY)
                 if wheelModeActive then
-                    tilens:SetScale(1)
                     tilec:SetScale(1)
-                    tilewe:SetScale(1)
-                    tilens:SetTextureRotation(0)
                     tilec:SetTextureRotation(0)
-                    tilewe:SetTextureRotation(0)
-                    tilens:SetAnchor(CENTER, Fyr_MM_Scroll_Map, CENTER, tileposX, tileposY)
                     tilec:SetAnchor(CENTER, Fyr_MM_Scroll_Map, CENTER, tileposX, tileposY)
-                    tilewe:SetAnchor(CENTER, Fyr_MM_Scroll_Map, CENTER, tileposX, tileposY)
                 end
             end
         end
@@ -5898,51 +5590,22 @@ function FyrMM.UpdateMapTiles(stealth)
                 FyrMM.MapTileCache[j] = tileControl
             end
         end
-        tilens = FyrMM.MapTileNSCache[j]
-        if tilens == nil then
-            tilens = GetControl("Fyr_MM_Scroll_WNS_Map_" .. tostring(j))
-            if tilens ~= nil then
-                FyrMM.MapTileNSCache[j] = tilens
-            end
-        end
-        tilec = FyrMM.MapTileCCache[j]
+        local tilec = FyrMM.MapTileCCache[j]
         if tilec == nil then
             tilec = GetControl("Fyr_MM_Scroll_CW_Map_" .. tostring(j))
             if tilec ~= nil then
                 FyrMM.MapTileCCache[j] = tilec
             end
         end
-        tilewe = FyrMM.MapTileWECache[j]
-        if tilewe == nil then
-            tilewe = GetControl("Fyr_MM_Scroll_WWE_Map_" .. tostring(j))
-            if tilewe ~= nil then
-                FyrMM.MapTileWECache[j] = tilewe
-            end
-        end
         if (tileControl) then
             tileControl:ClearAnchors()
             tileControl:SetHidden(true)
-        end
-        if (tilens) then
-            tilens:ClearAnchors()
-            tilens:SetHidden(true)
         end
         if (tilec) then
             tilec:ClearAnchors()
             tilec:SetHidden(true)
         end
-        if (tilewe) then
-            tilewe:ClearAnchors()
-            tilewe:SetHidden(true)
-        end
     end
-	
-    -- if FyrMM.SV.WheelMap then
-        -- CurrentMap.TextureAngle = CurrentMap.Heading
-    -- else
-        -- CurrentMap.TextureAngle = 0
-    -- end
-	
     Tiles = false
 end
 
@@ -5955,17 +5618,10 @@ function FyrMM.GetScrollObject(control)
     local xr = control:GetRight()
     local yt = control:GetTop()
     local yb = control:GetBottom()
-    local scrollWheels = {
-        Fyr_MM_Scroll_WheelCenter,
-        Fyr_MM_Scroll_WheelNS,
-        Fyr_MM_Scroll_WheelWE,
-    }
-
-    for _, scrollWheel in ipairs(scrollWheels) do
-        if (xr >= scrollWheel:GetLeft() + 6 and xl <= scrollWheel:GetRight() - 10 and yb >=
-                scrollWheel:GetTop() + 6 and yt <= scrollWheel:GetBottom() - 10) then
-            return scrollWheel
-        end
+    local scrollWheel = Fyr_MM_Scroll_WheelCenter
+    if (xr >= scrollWheel:GetLeft() + 6 and xl <= scrollWheel:GetRight() - 10 and yb >=
+            scrollWheel:GetTop() + 6 and yt <= scrollWheel:GetBottom() - 10) then
+        return scrollWheel
     end
 
     return Fyr_MM_Scroll_Map
@@ -5990,10 +5646,6 @@ local function GetPinTexture(pinType, control)
     return questPinTextures[pinType]
 end
 
--- 14/10/2026 fix: a pin control is "in use" while its m_PinType is set (RemoveCustomPin clears it).
--- Previously CustomPins() reset LastCustomPinIndex to 0 on every pass, so pins inserted later
--- (a pin type refreshed after a map change, new survey/treasure pins...) were handed Pin1, Pin2...
--- even when those controls were already displaying other pins, silently overwriting them.
 local function GetCustomPinControl(index)
     local p = GetControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(index))
     if p == nil then
@@ -6056,16 +5708,8 @@ function FyrMM.RemoveCustomPinDuplicates(pin)
 
 			if v.pin.nX == pin.nX and v.pin.nY == pin.nY and v.pin.radius == pin.radius and v.pin.MapId == pin.MapId and v.pin.Index ~= pin.Index and v.pin.created < pin.created then
 			  
-			  
-			   -- local pinTypeName = pin.m_PinType
-				-- if PRCustomPins[pin.m_PinType].pinTypeString then
-					-- pinTypeName = PRCustomPins[pin.m_PinType].pinTypeString
-				-- end
-			   -- d("removed a custom pin duplicate "..pinTypeName) 
 			   
 			  FyrMM.RemoveCustomPin(pinFromList) 
-			  -- 25/10/2026 fix: the removed duplicate shares its key with the surviving pin, RemoveCustomPin flagged
-			  -- that entry as removed (Id = 0) and CheckForNewCustomPins() then re-inserted the duplicate
 			  local dupKey = string.format("%s:%s:%s", pin.nX, pin.nY, pin.radius)
 			  if FyrMM.CustomPinCheckList[pin.m_PinType] and FyrMM.CustomPinCheckList[pin.m_PinType][dupKey] and pin.Key then
 			     FyrMM.CustomPinCheckList[pin.m_PinType][dupKey].Id = pin.Key
@@ -6167,7 +5811,7 @@ function FyrMM.InsertCustomPin(p, key)
 		      	pin.created = GetFrameTimeMilliseconds()
             -- pin.GetPinTypeAndTag = function(self) return self.m_PinType, self.m_PinTag end
 
-            if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
+            if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 2847 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
                 -- zoom: 1 to 50 default: 10
                 FyrMM.pinZoomScale = (CurrentMap.ZoomLevel) / 10
             else
@@ -6288,7 +5932,7 @@ function FyrMM.InsertCustomPin(p, key)
                         pin.m_PinTag.activityId = activityId
                         FyrMM.ZoneStoryPin = pin
                     end
-                    table.insert(FyrMM.AvailableQuestGivers, pin)
+                    FyrMM.AddAvailableQuestGiver(pin)
 
                     if p.radius and p.radius > 0 and p.m_PinType then
                         local properType, pinTexture, size = FyrMM.GetQuestPinInfo(p.m_PinType, false, false, p.radius)
@@ -6301,9 +5945,8 @@ function FyrMM.InsertCustomPin(p, key)
                         areaPin:SetColor(color:UnpackRGBA())
                         if FyrMM.SV.WheelMap then
                             areaPin:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-                            FyrMM.CreateSuggestedAreaSidePins(areaPin, p.radius)
                         end
-                        table.insert(FyrMM.AvailableQuestGivers, areaPin)
+                        FyrMM.AddAvailableQuestGiver(areaPin)
                     end
                 end
             end
@@ -6326,7 +5969,6 @@ function FyrMM.InsertCustomPin(p, key)
 				pin:SetColor(color:UnpackRGBA())
 				if FyrMM.SV.WheelMap then
 					pin:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-					FyrMM.CreateSuggestedAreaSidePins(pin, p.radius) 
 				end
 				FyrMM.ForwardCampPreview = true
 			else
@@ -6355,9 +5997,6 @@ function FyrMM.CustomPins()
     end
 
     FyrMM.CustomPinCount = 0 -- mandatory
-
-    -- 14/10/2026 fix: do not restart slot allocation from 0 while pins are already displayed;
-    -- start after the highest control index currently owned by a list entry.
     LastCustomPinIndex = 0
     for _, entries in pairs(FyrMM.CustomPinList) do
         for _, entry in pairs(entries) do
@@ -6433,8 +6072,7 @@ function FyrMM.CustomPins()
                     FyrMM.ZoneStoryPin = nil
                 end
             end
-			FyrMM.AvailableQuestGivers = FyrMM.AvailableQuestGivers or {}
-            table.insert(FyrMM.AvailableQuestGivers, pin)
+			FyrMM.AddAvailableQuestGiver(pin)
         end
 
         if (pin.pinTexture and string.find(pin.pinTexture, "MapPins/Treasure_")) or
@@ -6598,12 +6236,56 @@ function FyrMM.WaypointPins(pingEventType, pinType, wpx, wpy)
     end
 end
 
-function FyrMM.checkWaypoints()
-		local waypointX, waypointY = GetMapPlayerWaypoint() 
-		if not (waypointX == 0 and waypointY == 0) then FyrMM.WaypointPins(PING_EVENT_ADDED, MAP_PIN_TYPE_PLAYER_WAYPOINT, waypointX, waypointY) end
-		
-		local rallypointX, rallypointY = GetMapRallyPoint() 
-		if not (rallypointX == 0 and rallypointY == 0) then FyrMM.WaypointPins(PING_EVENT_ADDED, MAP_PIN_TYPE_RALLY_POINT, rallypointX, rallypointY) end		
+FyrMM.PingSources = FyrMM.PingSources or {}
+
+local function ConvertToCurrentMap(srcMapId, x, y)
+    if not srcMapId or srcMapId == CurrentMap.MapId then
+        return x, y
+    end
+    if not GetUniversallyNormalizedMapInfo then
+        return x, y
+    end
+    local sx, sy, sw, sh = GetUniversallyNormalizedMapInfo(srcMapId)
+    local dx, dy, dw, dh = GetUniversallyNormalizedMapInfo(CurrentMap.MapId)
+    if not (sx and sw and dx and dw) or sw == 0 or sh == 0 or dw == 0 or dh == 0 then
+        return x, y
+    end
+    local ux, uy = sx + x * sw, sy + y * sh
+    return (ux - dx) / dw, (uy - dy) / dh
+end
+
+local function RefreshOnePing(pinType, source, getter)
+    local x, y
+    if source then
+        x, y = ConvertToCurrentMap(source.mapId, source.x, source.y)
+    else
+        x, y = getter() -- existing ping we never saw an event for (login / reloadui)
+        if x == 0 and y == 0 then
+            return
+        end
+    end
+    FyrMM.WaypointPins(PING_EVENT_ADDED, pinType, x, y)
+end
+
+function FyrMM.checkWaypoints(retry)
+    if FyrMM.worldMapShowing or Fyr_MM:IsHidden() then
+        FyrMM.WaypointRefreshPending = true
+        return
+    end
+    if CurrentMap.MapId ~= FyrMM.GetMapId() then -- minimap map not in sync yet, try again shortly
+        if not retry or retry < 5 then
+            zo_callLater(function() FyrMM.checkWaypoints((retry or 0) + 1) end, 200)
+        end
+        return
+    end
+    FyrMM.WaypointRefreshPending = false
+
+    RefreshOnePing(MAP_PIN_TYPE_PLAYER_WAYPOINT, FyrMM.PingSources[MAP_PIN_TYPE_PLAYER_WAYPOINT], GetMapPlayerWaypoint)
+    RefreshOnePing(MAP_PIN_TYPE_RALLY_POINT, FyrMM.PingSources[MAP_PIN_TYPE_RALLY_POINT], GetMapRallyPoint)
+
+    if FyrMM.SV.BorderPinsWaypoint then
+        FyrMM.PlaceWaypointBorderPins()
+    end
 end
 
 ------------------------------------------------------------
@@ -6726,10 +6408,7 @@ function FyrMM.Wayshrines() -- that one seems to trigger only once when zoning, 
         end
     end
 	
-	FyrMM.wayshrineCheckMapId = CurrentMap.MapId
-    -- One-time delayed re-check: known/discovered status can be momentarily stale right after
-    -- zoning in, before the game finishes syncing discovery data. Re-run once, 2s later, to
-    -- catch and correct any wayshrines that were still reporting as undiscovered at build time.
+	  FyrMM.wayshrineCheckMapId = CurrentMap.MapId
     zo_callLater(function() -- zo_callLater ok
         if CurrentMap.MapId == FyrMM.wayshrineCheckMapId then
             FyrMM.wayshrineCheckMapId = nil
@@ -6920,8 +6599,8 @@ end
 
 local function CreatePOIPin(poiIndex)
     local POIPin
-	local POIPinWall
-	local POIPinCaustics
+	  local POIPinWall
+	  local POIPinCaustics
     local nX, nY, iconType, icon = MM_GetPOIMapInfo(CurrentMap.ZoneIndex, poiIndex)
 
     if CraftingStations ~= nil and icon and zo_strfind(icon, "icons/poi/poi_crafting_") then -- Crafting stations mix-up fix by Garkin
@@ -6956,7 +6635,6 @@ local function CreatePOIPin(poiIndex)
                 POIPin:SetColor(1, 1, 1, 1)
             end
 			
-			
             POIPin.poiIndex = poiIndex
             pin.m_PinType = iconType
             pin.m_PinTag = tag
@@ -6972,7 +6650,7 @@ local function CreatePOIPin(poiIndex)
 			if GetActiveSpectacleEventIdsForPOI(CurrentMap.ZoneIndex, poiIndex) then -- Spectacle event pin aura
 			    local auraSize = 48 * FyrMM.pScalePercent * FyrMM.pinZoomScale
 			    POIPin.spectacleEventPin = true
-				POIPinWall = GetControl("Fyr_MM_Scroll_Map_POIPins_Pin"..tostring(FyrMM.currentPOICount).."_Wall")
+				  POIPinWall = GetControl("Fyr_MM_Scroll_Map_POIPins_Pin"..tostring(FyrMM.currentPOICount).."_Wall")
 				if POIPinWall == nil then
 				    POIPinWall = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_POIPins_Pin"..tostring(FyrMM.currentPOICount).."_Wall", Fyr_MM_Scroll_Map_POIPins, CT_TEXTURE)
 				end	
@@ -7047,9 +6725,10 @@ local function CreatePOIPin(poiIndex)
              
             FyrMM.SetPinAnchor(POIPin, nX, nY, Fyr_MM_Scroll_Map_POIPins)
             POIPin:SetMouseEnabled(true)
-			POIPin:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_OBJECTIVES))
+			      POIPin:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_OBJECTIVES))
         end
     end
+
 end
 
 function FyrMM.POIPins() 
@@ -7240,13 +6919,6 @@ end
 ------------------------------------------------------------
 -- Event Units (Dragons, Cartoklepts, Arcane Knots)
 ------------------------------------------------------------
--- 31/07/2026 fix: event-unit pins used to be named after the dynamic unitTag string
--- ("Fyr_MM_Scroll_Map_EventUnits_"..unitTag), so every new dragon/cartoklept/arcane-knot
--- instance permanently added a brand new control - ESO controls can't be destroyed, so this
--- grew Fyr_MM_Scroll_Map_EventUnits's child count (and Lua/UI memory) without bound over a
--- session, and made the 100ms cleanup scan progressively slower. Controls are now created with
--- fixed slot names and reused via FyrMM.EventUnitPinByTag, the same pooling pattern used for
--- wayshrine/skyshard/dig site pins elsewhere in this file.
 function FyrMM.ReleaseEventUnitPin(pin)
     if pin.unitTag and FyrMM.EventUnitPinByTag then
         FyrMM.EventUnitPinByTag[pin.unitTag] = nil
@@ -7296,10 +6968,6 @@ local function RemoveEventUnitPins()
     end
 end
 
--- Force every active event-unit pin back into the pool on zone change instead of waiting for
--- DoesUnitExist()/IsUnitDead() to catch up next tick. World event units never carry over between
--- zones, so there's nothing worth preserving, and this guarantees slots are free before the new
--- zone's AddWorldEvent() pass runs (per-zone request: suppress event pins on zone change).
 function FyrMM.ReleaseAllEventUnitPins()
     local num = Fyr_MM_Scroll_Map_EventUnits:GetNumChildren()
     for i = 1, num do
@@ -7314,9 +6982,6 @@ local function GetNextWorldEventInstanceIdIter(state, var1)
     return GetNextWorldEventInstanceId(var1)
 end
 
--- 31/07/2026 fix: bounded pool of event-unit pin controls, reused across unitTags/zones instead
--- of creating a new permanently-named control per unitTag. Pool size is capped at the max number
--- of world event units ever concurrently visible in one pass, not the number ever seen this session.
 local function GetPooledEventUnitPin(unitTag)
     FyrMM.EventUnitPinByTag = FyrMM.EventUnitPinByTag or {}
     FyrMM.EventUnitPinPool = FyrMM.EventUnitPinPool or {}
@@ -7344,10 +7009,6 @@ local function GetPooledEventUnitPin(unitTag)
     return pin
 end
 
--- 31/07/2026 fix: same issue as GetPooledEventUnitPin above, but for dolmens/harrowstorms.
--- Controls were named "Fyr_MM_Scroll_Map_EventPOIs_"..poiIndex with no zoneIndex qualifier, so
--- visiting a zone whose event POI table used a poiIndex not seen in any previously-visited zone
--- always minted a brand new permanent control. Bounded pool + key->pin map instead, same pattern.
 local function GetPooledEventPOIPin(poiIndex)
     FyrMM.EventPOIPinByKey = FyrMM.EventPOIPinByKey or {}
     FyrMM.EventPOIPinPool = FyrMM.EventPOIPinPool or {}
@@ -7510,7 +7171,7 @@ function FyrMM.SetEventPin(pin, pinType, tag, ntag, context) -- moving world eve
 
     if FyrMM.IsValidBorderPin(pin) then
         FyrMM.CreateBorderPin(pin)
-	end
+	  end
 end
 
 function FyrMM.SetEventPOIPin(pin, pinType, tag, poiIndex, context) -- world events (dolmens, harrow storms, etc)
@@ -7637,8 +7298,6 @@ function FyrMM.GroupEvent()
     FyrMM.RefreshGroup()
 end
 
--- 02/07/2026 optimization: Shared constant for the "target marker override" white color, reused
--- below instead of allocating a fresh {1,1,1,1} table on every group-pin texture update.
 local WHITE_PIN_COLOR = {1, 1, 1, 1}
 
 function FyrMM.SetGroupPinTexture(gmPin, odyTexture)
@@ -7687,9 +7346,6 @@ function FyrMM.SetGroupPinTexture(gmPin, odyTexture)
                 gmPinTexture = odyTexture
             end
 			
-            -- 02/07/2026 optimization: Call GetTargetMarkerPicture once and reuse the shared
-            -- white color constant instead of calling the function twice and allocating a fresh
-            -- color table, every group-pin update.
             local leaderMarkerPicture = FyrMM.GetTargetMarkerPicture(gmPin.unitTag)
             if leaderMarkerPicture then
                 gmPinTexture = leaderMarkerPicture
@@ -7740,9 +7396,6 @@ function FyrMM.SetGroupPinTexture(gmPin, odyTexture)
                 gmPinTexture = odyTexture
             end
 			
-            -- 02/07/2026 optimization: Call GetTargetMarkerPicture once and reuse the shared
-            -- white color constant instead of calling the function twice and allocating a fresh
-            -- color table, every group-pin update.
             local memberMarkerPicture = FyrMM.GetTargetMarkerPicture(gmPin.unitTag)
             if memberMarkerPicture then
                 gmPinTexture = memberMarkerPicture
@@ -7777,8 +7430,6 @@ function FyrMM.SetGroupPinTexture(gmPin, odyTexture)
     end
 	
 	-- Apply target marker colors to Mounted, Stealthed, Swimming group pins
-	-- 02/07/2026 optimization: Call GetTargetMarkerColor once and reuse the result instead of
-	-- calling it twice (condition + body) for every group member every RefreshGroup tick.
 	local targetColor = FyrMM.GetTargetMarkerColor(gmPin.unitTag)
 	if targetColor and (not gmPin.engaged) and (gmPin.isMounted or gmPin.isStealthed or gmPin.isSwimming or gmPin.isDisguised) then
 	   gmPin.color = targetColor
@@ -7789,9 +7440,6 @@ function FyrMM.SetGroupPinTexture(gmPin, odyTexture)
     gmPin.pinTexture = gmPinTexture -- we set that here to avoid resetting it for borderpins
 end
 
--- 02/07/2026 optimization: Build these lookup tables once instead of allocating them (targetMarkerColor
--- allocates 8 nested sub-tables) fresh on every call. Both functions run per group member on the
--- 40ms RefreshGroup path, so this was significant table-allocation churn for groups using target markers.
 local targetMarkerTexture = {
     [TARGET_MARKER_TYPE_ONE] = "EsoUI/Art/TargetMarkers/Target_Blue_Square_64.dds",
     [TARGET_MARKER_TYPE_TWO] = "EsoUI/Art/TargetMarkers/Target_Gold_Star_64.dds",
@@ -7827,8 +7475,6 @@ function FyrMM.GetTargetMarkerColor(tag)
         return nil
     end
 
-    -- 02/07/2026 optimization: Call GetUnitTargetMarkerType once instead of twice (guard + return),
-    -- while still short-circuiting the native call entirely when the feature is disabled above.
     local markerType = GetUnitTargetMarkerType(tag)
     if markerType == 0 then
         return nil
@@ -7929,10 +7575,6 @@ function FyrMM.SetGroupPin(tag)
     pin.isSwimming = IsUnitSwimming(tag)
 	pin.isDisguised = GetUnitDisguiseState(tag) == DISGUISE_STATE_DISGUISED
 
-    -- 02/07/2026 optimization: The early-return guard above already established that
-    -- DoesUnitExist(tag), not AreUnitsEqual(tag,"player"), and IsUnitOnline(tag) all hold -
-    -- otherwise this function would have already returned. Re-checking them here was 3 wasted
-    -- native API calls per group member on every 40ms RefreshGroup tick.
     do
         local isGroupMemberHiddenByInstance = false
         -- If we're in an instance and it has its own map, it's going to be a dungeon map or house. Don't show on the map if we're on different instances/layers
@@ -8082,8 +7724,7 @@ function FyrMM.SetGroupPin(tag)
     pin.nY = nY
     pin.unitTag = tag
 
-    -- 02/07/2026 optimization: Dropped a redundant IsUnitOnline(tag) check here - already
-    -- guaranteed true by the early-return guard at the top of this function.
+
     if IsUnitActivelyEngaged(tag) and FyrMM.SV.InCombatState and not isDead then -- IsUnitActivelyEngaged instead of IsUnitInCombat to get individual combat state instead of group combat state
         pin_ic.nX = nX
         pin_ic.nY = nY
@@ -8113,7 +7754,7 @@ function FyrMM.SetGroupPin(tag)
 			      groupLabel:ClearAnchors()
 			      groupLabel:SetAnchor(TOP, pin, BOTTOM, 0, -5)
 			      groupLabel:SetDrawLevel(ZO_MapPin.PIN_DATA[pin.m_PinType].level) 
-	          groupLabel:SetDrawLayer(4) 
+	          groupLabel:SetDrawLayer(DL_OVERLAY) -- below the player arrow (DL_TEXT)
 			      groupLabel:SetDrawTier(DT_HIGH)
         else
             if groupLabel then  
@@ -8171,9 +7812,9 @@ function FyrMM.SetGroupPin(tag)
 
     FyrMM.SetPinSize(pin_ic, pin:GetDesiredHeight() + 10, 0) -- +6
 
-    pin:SetDrawLayer(3)
+    pin:SetDrawLayer(DL_OVERLAY) -- below the player arrow (DL_TEXT)
     pin:SetDrawLevel(ZO_MapPin.PIN_DATA[pin.m_PinType].level)
-    pin_ic:SetDrawLayer(2)
+    pin_ic:SetDrawLayer(DL_CONTROLS)
 
     pin:SetMouseEnabled(true)
     FyrMM.SetPinAnchor(pin, nX, nY, Fyr_MM_Scroll_Map_GroupPins)
@@ -8280,10 +7921,7 @@ function FyrMM.RefreshGroup()
     if (not FyrMM.GroupRefreshNeeded and not IsCompanionAround) or Fyr_MM:IsHidden() then
         return
     end
-	
-    -- 02/07/2026 optimization: Bound the loop by the actual group size instead of the fixed raid-size
-    -- constant (24), which was forcing up to 24 GetGroupUnitTagByIndex calls every 40ms (25x/sec)
-    -- even for small groups or solo play. Real group sizes are almost always far below the cap.
+
     local tag, pin, pin_ic, groupLabel
 	  local groupSize = GetGroupSize()
 	  local noGroup = groupSize == 0
@@ -8333,10 +7971,6 @@ function FyrMM.RefreshGroup()
         end
     end
 
-    
-    -- 02/07/2026 optimization: Only capture the debug-profiling timestamp when DebugMode is
-    -- actually on, instead of calling GetGameTimeMilliseconds() unconditionally every 40ms tick
-    -- for a value that's discarded for virtually every user, who has DebugMode off by default.
     local gameTime = FyrMM.DebugMode and GetGameTimeMilliseconds() or nil
 
     for index = 1, groupSize do
@@ -8479,25 +8113,11 @@ local function UpdateQuestPinPosition(questPin)
     questPin:SetDrawLayer(drawLayerIndex)
 
     FyrMM.SetPinAnchor(questPin, questPin.normalizedX, questPin.normalizedY, Fyr_MM_Scroll_Map_QuestPins)
-    if FyrMM.SV.WheelMap and questPin.radius > 0 and questPin.MM_Tag == nil then
-        questPin:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-    elseif questPin.MM_Tag == 1 and not FyrMM.SV.WheelMap then
-        questPin:SetParent(Fyr_MM_Scroll_Map_QuestPins)
-    elseif questPin.MM_Tag == 1 and questPin.radius > 0 then
-        questPin:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-        if questPin.secondaryPin then
-            questPin.secondaryPin:SetTexture(pinTexture)
+    if (questPin.radius or 0) > 0 then -- area pins live in the wheel layer only in wheel mode
+        local wantedParent = FyrMM.SV.WheelMap and Fyr_MM_Scroll_CW_Map_Pins or Fyr_MM_Scroll_Map_QuestPins
+        if questPin:GetParent() ~= wantedParent then
+            questPin:SetParent(wantedParent)
         end
-        if questPin.tertiaryPin then
-            questPin.tertiaryPin:SetTexture(pinTexture)
-        end
-    elseif questPin.MM_Tag == 2 then
-        questPin:SetParent(Fyr_MM_Scroll_NS_Map_Pins)
-    elseif questPin.MM_Tag == 3 then
-        questPin:SetParent(Fyr_MM_Scroll_WE_Map_Pins)
-    elseif questPin.MM_Tag then
-        questPin.MM_Tag = nil
-        questPin:SetParent(Fyr_MM_Scroll_Map_QuestPins)
     end
 
     if FyrMM.IsValidBorderPin(questPin) then
@@ -8511,12 +8131,6 @@ function FyrMM.UpdateQuestPinPositions()
     end
     for _, v in pairs(QuestPins) do
         UpdateQuestPinPosition(v.Pin)
-        if v.Pin.secondaryPin then
-            UpdateQuestPinPosition(v.Pin.secondaryPin)
-        end
-        if v.Pin.tertiaryPin then
-            UpdateQuestPinPosition(v.Pin.tertiaryPin)
-        end
     end
 end
 
@@ -8556,239 +8170,6 @@ function FyrMM.ResetAnimation(pin, resetOptions, loopCount, pulseIcon, overlayIc
         ZO_AlphaAnimation_GetAnimation(pulseControl):FadeOut(0, 300, ZO_ALPHA_ANIMATION_OPTION_USE_CURRENT_ALPHA,
             ZO_MapPin.HidePulseAfterFadeOut)
     end
-end
-
-local function CreateQuestAreaSidePins(pin, assisted)
-    local index
-    local properType, pinTexture, size = FyrMM.GetQuestPinInfo(pinType,
-        GetTrackedIsAssisted(TRACK_TYPE_QUEST, pin.m_PinTag[1]), pin.m_PinTag.isBreadcrumb, pin.radius)
-    FyrMM.questPinCount = FyrMM.questPinCount + 1
-    local questPinNS
-    index = GetQuestFreePinIndex()
-    questPinNS = GetControl("Fyr_MM_Scroll_Map_QuestPins_Pin" .. tostring(index))
-    if questPinNS == nil then
-        questPinNS = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_QuestPins_Pin" .. tostring(index),
-            Fyr_MM_Scroll_NS_Map_Pins, CT_TEXTURE)
-    else
-        questPinNS:SetParent(Fyr_MM_Scroll_NS_Map_Pins)
-    end
-    questPinNS.m_PinTag = pin.m_PinTag
-    questPinNS.questIndex = pin.questIndex
-    questPinNS.m_PinType = properType
-    questPinNS.PinToolTipText = pin.PinToolTipText
-    questPinNS.questName = pin.questName
-    questPinNS.normalizedX = pin.normalizedX
-    questPinNS.normalizedY = pin.normalizedY
-    questPinNS.radius = pin.radius
-    questPinNS.MapId = pin.MapId
-    questPinNS:SetTexture(pinTexture)
-    -- FyrMM.SetPinSize(questPinNS, size, 0)
-    questPinNS:SetDimensions(size, size)
-    questPinNS.pinAge = pin.pinAge
-    questPinNS:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_QUESTS))
-    questPinNS.MM_Tag = 2
-    questPinNS.primaryPin = pin
-    pin.secondaryPin = questPinNS
-
-    if assisted then
-        local assistedColor = ZO_MAP_PIN_ASSISTED_COLOR
-        questPinNS:SetColor(assistedColor:UnpackRGBA())
-    else
-        local color = ZO_MAP_PIN_NORMAL_COLOR
-        questPinNS:SetColor(color:UnpackRGBA())
-    end
-
-    questPinNS:SetDrawLayer(3)
-
-    FyrMM.SetPinAnchor(questPinNS, questPinNS.normalizedX, questPinNS.normalizedY, Fyr_MM_Scroll_Map_QuestPins)
-    questPinNS:SetHandler("OnMouseUp", PinOnMouseUp)
-    questPinNS:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    questPinNS:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-
-    FyrMM.questPinCount = FyrMM.questPinCount + 1
-    local questPinWE
-    index = GetQuestFreePinIndex()
-    questPinWE = GetControl("Fyr_MM_Scroll_Map_QuestPins_Pin" .. tostring(index))
-    if questPinWE == nil then
-        questPinWE = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_QuestPins_Pin" .. tostring(index),
-            Fyr_MM_Scroll_WE_Map_Pins, CT_TEXTURE)
-    else
-        questPinWE:SetParent(Fyr_MM_Scroll_WE_Map_Pins)
-    end
-    questPinWE.m_PinTag = pin.m_PinTag
-    questPinWE.questIndex = pin.questIndex
-    questPinWE.m_PinType = properType
-    questPinWE.PinToolTipText = pin.PinToolTipText
-    questPinWE.questName = pin.questName
-    questPinWE.normalizedX = pin.normalizedX
-    questPinWE.normalizedY = pin.normalizedY
-    questPinWE.radius = pin.radius
-    questPinWE.MapId = pin.MapId
-    questPinWE:SetTexture(pinTexture)
-    -- FyrMM.SetPinSize(questPinWE, size, 0)
-    questPinWE:SetDimensions(size, size)
-    questPinWE.pinAge = pin.pinAge
-    questPinWE:SetHidden(not ZO_WorldMap_IsPinGroupShown(MAP_FILTER_QUESTS))
-    questPinWE.MM_Tag = 3
-    questPinWE.primaryPin = pin
-    pin.tertiaryPin = questPinWE
-
-    if assisted then
-        local assistedColor = ZO_MAP_PIN_ASSISTED_COLOR
-        questPinWE:SetColor(assistedColor:UnpackRGBA())
-    else
-        local color = ZO_MAP_PIN_NORMAL_COLOR
-        questPinWE:SetColor(color:UnpackRGBA())
-    end
-    questPinWE:SetDrawLayer(3)
-    FyrMM.SetPinAnchor(questPinWE, questPinWE.normalizedX, questPinWE.normalizedY, Fyr_MM_Scroll_Map_QuestPins)
-    questPinWE:SetHandler("OnMouseUp", PinOnMouseUp)
-    questPinWE:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    questPinWE:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-end
-
-function FyrMM.CreateSuggestedAreaSidePins(pin, radius)
-    local index = pin.Index
-    local properType, pinTexture, size = FyrMM.GetQuestPinInfo(pin.m_PinType, false, false, radius)
-
-    local suggestedPinNS
-    suggestedPinNS = GetControl("Fyr_MM_Scroll_Map_Pins_Pin"..tostring(index).."_NS")
-    if suggestedPinNS == nil then
-        suggestedPinNS = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Pins_Pin"..tostring(index).."_NS", Fyr_MM_Scroll_NS_Map_Pins, CT_TEXTURE)
-    else
-        suggestedPinNS:SetParent(Fyr_MM_Scroll_NS_Map_Pins)
-    end
-    suggestedPinNS.m_PinTag = pin.m_PinTag
-    suggestedPinNS.questIndex = pin.questIndex
-    suggestedPinNS.m_PinType = pin.m_PinType
-    suggestedPinNS.PinToolTipText = pin.PinToolTipText
-    suggestedPinNS.questName = pin.questName
-    suggestedPinNS.normalizedX = pin.nX
-    suggestedPinNS.normalizedY = pin.nY
-    suggestedPinNS.radius = pin.radius
-    suggestedPinNS.MapId = pin.MapId
-    suggestedPinNS:SetTexture(pinTexture)
-    suggestedPinNS:SetDimensions(size, size)
-    suggestedPinNS.pinAge = pin.pinAge
-    suggestedPinNS:SetHidden(false)
-    suggestedPinNS.MM_Tag = 2
-    suggestedPinNS.primaryPin = pin
-    pin.secondaryPin = suggestedPinNS
-
-    local color = ZO_MAP_PIN_NORMAL_COLOR
-    suggestedPinNS:SetColor(color:UnpackRGBA())
-    suggestedPinNS:SetDrawLayer(3)
-
-    FyrMM.SetPinAnchor(suggestedPinNS, suggestedPinNS.normalizedX, suggestedPinNS.normalizedY, Fyr_MM_Scroll_NS_Map_Pins) -- Fyr_MM_Scroll_Map_QuestPins
-    suggestedPinNS:SetHandler("OnMouseUp", PinOnMouseUp)
-    suggestedPinNS:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    suggestedPinNS:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-
-    local suggestedPinWE
-    suggestedPinWE = GetControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(index) .. "_WE")
-    if suggestedPinWE == nil then
-        suggestedPinWE = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Pins_Pin"..tostring(index).."_WE", Fyr_MM_Scroll_WE_Map_Pins, CT_TEXTURE)
-    else
-        suggestedPinWE:SetParent(Fyr_MM_Scroll_WE_Map_Pins)
-    end
-    suggestedPinWE.m_PinTag = pin.m_PinTag
-    suggestedPinWE.questIndex = pin.questIndex
-    suggestedPinWE.m_PinType = pin.m_PinType
-    suggestedPinWE.PinToolTipText = pin.PinToolTipText
-    suggestedPinWE.questName = pin.questName
-    suggestedPinWE.normalizedX = pin.nX
-    suggestedPinWE.normalizedY = pin.nY
-    suggestedPinWE.radius = pin.radius
-    suggestedPinWE.MapId = pin.MapId
-    suggestedPinWE:SetTexture(pinTexture)
-    suggestedPinWE:SetDimensions(size, size)
-    suggestedPinWE.pinAge = pin.pinAge
-    suggestedPinWE:SetHidden(false)
-    suggestedPinWE.MM_Tag = 3
-    suggestedPinWE.primaryPin = pin
-    pin.tertiaryPin = suggestedPinWE
-
-    local color = ZO_MAP_PIN_NORMAL_COLOR
-    suggestedPinWE:SetColor(color:UnpackRGBA())
-    suggestedPinWE:SetDrawLayer(3)
-
-    FyrMM.SetPinAnchor(suggestedPinWE, suggestedPinWE.normalizedX, suggestedPinWE.normalizedY, Fyr_MM_Scroll_WE_Map_Pins) --Fyr_MM_Scroll_Map_QuestPins
-    suggestedPinWE:SetHandler("OnMouseUp", PinOnMouseUp)
-    suggestedPinWE:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    suggestedPinWE:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-end
-
-local function CreateForwardCampAreaSidePins(pin, size, usable)
-    local pinTexture = "esoui/art/mappins/map_areapin.dds"
-
-    local ForwardCampPinNS
-    ForwardCampPinNS = GetControl("Fyr_MM_Scroll_Map_ForwardCamps_Pin"..tostring(FyrMM.currentForwardCamps).."_Blob".."_NS")
-    if ForwardCampPinNS == nil then
-        ForwardCampPinNS = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_ForwardCamps_Pin"..tostring(FyrMM.currentForwardCamps).."_Blob".."_NS", Fyr_MM_Scroll_NS_Map_Pins, CT_TEXTURE)
-    else
-        ForwardCampPinNS:SetParent(Fyr_MM_Scroll_NS_Map_Pins)
-    end
-
-    ForwardCampPinNS.m_PinTag = pin.m_PinTag
-    ForwardCampPinNS.questIndex = pin.questIndex
-    ForwardCampPinNS.m_PinType = pin.m_PinType
-    ForwardCampPinNS.PinToolTipText = pin.PinToolTipText
-    ForwardCampPinNS.questName = pin.questName
-    ForwardCampPinNS.normalizedX = pin.normalizedX
-    ForwardCampPinNS.normalizedY = pin.normalizedY
-    ForwardCampPinNS.radius = pin.radius
-    ForwardCampPinNS.MapId = pin.MapId
-    ForwardCampPinNS:SetTexture(pinTexture)
-    -- FyrMM.SetPinSize(ForwardCampPinNS, size, 0)
-    ForwardCampPinNS:SetDimensions(size, size)
-    ForwardCampPinNS.pinAge = pin.pinAge
-    ForwardCampPinNS:SetHidden(not usable)
-    ForwardCampPinNS.MM_Tag = 2
-    ForwardCampPinNS.primaryPin = pin
-    pin.secondaryPin = ForwardCampPinNS
-
-    local color = ZO_MAP_PIN_NORMAL_COLOR
-    ForwardCampPinNS:SetColor(color:UnpackRGBA())
-    ForwardCampPinNS:SetDrawLayer(3)
-
-    FyrMM.SetPinAnchor(ForwardCampPinNS, ForwardCampPinNS.normalizedX, ForwardCampPinNS.normalizedY, Fyr_MM_Scroll_Map_Pins) -- Fyr_MM_Scroll_Map_QuestPins
-    ForwardCampPinNS:SetHandler("OnMouseUp", PinOnMouseUp)
-    ForwardCampPinNS:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    ForwardCampPinNS:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-
-    local ForwardCampPinWE
-    ForwardCampPinWE = GetControl(
-        "Fyr_MM_Scroll_Map_ForwardCamps_Pin"..tostring(FyrMM.currentForwardCamps).."_Blob".."_WE")
-    if ForwardCampPinWE == nil then
-        ForwardCampPinWE = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_ForwardCamps_Pin"..tostring(FyrMM.currentForwardCamps).."_Blob".."_WE",
-        Fyr_MM_Scroll_WE_Map_Pins, CT_TEXTURE)
-    else
-        ForwardCampPinWE:SetParent(Fyr_MM_Scroll_WE_Map_Pins)
-    end
-    ForwardCampPinWE.m_PinTag = pin.m_PinTag
-    ForwardCampPinWE.questIndex = pin.questIndex
-    ForwardCampPinWE.m_PinType = pin.m_PinType
-    ForwardCampPinWE.PinToolTipText = pin.PinToolTipText
-    ForwardCampPinWE.questName = pin.questName
-    ForwardCampPinWE.normalizedX = pin.normalizedX
-    ForwardCampPinWE.normalizedY = pin.normalizedY
-    ForwardCampPinWE.radius = pin.radius
-    ForwardCampPinWE.MapId = pin.MapId
-    ForwardCampPinWE:SetTexture(pinTexture)
-    -- FyrMM.SetPinSize(ForwardCampPinWE, size, 0)
-    ForwardCampPinWE:SetDimensions(size, size)
-    ForwardCampPinWE.pinAge = pin.pinAge
-    ForwardCampPinWE:SetHidden(not usable)
-    ForwardCampPinWE.MM_Tag = 3
-    ForwardCampPinWE.primaryPin = pin
-    pin.tertiaryPin = ForwardCampPinWE
-
-    ForwardCampPinWE:SetColor(color:UnpackRGBA())
-    ForwardCampPinWE:SetDrawLayer(3)
-    FyrMM.SetPinAnchor(ForwardCampPinWE, ForwardCampPinWE.normalizedX, ForwardCampPinWE.normalizedY,Fyr_MM_Scroll_Map_Pins) -- Fyr_MM_Scroll_Map_QuestPins
-    ForwardCampPinWE:SetHandler("OnMouseUp", PinOnMouseUp)
-    ForwardCampPinWE:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-    ForwardCampPinWE:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
 end
 
 local function QuestPinExists(pinType, tag, xLoc, yLoc, radius)
@@ -8892,22 +8273,7 @@ function FyrMM.CreateQuestPin(pinType, tag, xLoc, yLoc, radius)
             FyrMM.PlayTextureAnimation(questPin, questPinData.framesWide, questPinData.framesHigh, questPinData.framesPerSecond, LOOP_INDEFINITELY, ANIMATION_PLAYBACK_LOOP)
         end
 
-        if FyrMM.SV.WheelMap and questPin.radius > 0 then
-            questPin.MM_Tag = 1
-            CreateQuestAreaSidePins(questPin, pinData.isAssisted)
-        else
-            if questPin.secondaryPin ~= nil then
-                questPin.secondaryPin.MM_Tag = nil
-                RemoveQuestPin(questPin.secondaryPin)
-            end
-            if questPin.tertiaryPin ~= nil then
-                questPin.tertiaryPin.MM_Tag = nil
-                RemoveQuestPin(questPin.tertiaryPin)
-            end
-            questPin.MM_Tag = nil
-            questPin.primaryPin = nil
-            questPin.secondaryPin = nil
-            questPin.tertiaryPin = nil
+        if not (FyrMM.SV.WheelMap and questPin.radius > 0) then
             questPin:SetParent(Fyr_MM_Scroll_Map_QuestPins)
         end
 
@@ -9225,6 +8591,36 @@ function FyrMM.KeepNetworkCleanupReminder(from, parent)
     end
 end
 
+FyrMM.forwardCampSlots = FyrMM.forwardCampSlots or 0
+
+function FyrMM.CleanupForwardCamps(fromIndex)
+    for i = fromIndex, FyrMM.forwardCampSlots do
+        for _, suffix in ipairs({ "", "_Blob" }) do
+            local name = "Fyr_MM_Scroll_Map_ForwardCamps_Pin" .. tostring(i) .. suffix
+            local l = GetControl(name)
+            if l ~= nil then
+                if l.BorderPin ~= nil then
+                    RemoveBorderPin(l.BorderPin)
+                end
+                l:ClearAnchors()
+                l.nX = nil
+                l.nY = nil
+                l.radius = nil
+                l.m_PinType = nil
+                l.m_Pin = nil
+                l.tooltipId = nil
+                l:SetHidden(true)
+                l:SetMouseEnabled(false)
+                l:SetDimensions(0, 0)
+                if suffix == "_Blob" then
+                    l:SetParent(Fyr_MM_Scroll_Map_ForwardCamps)
+                end
+                PinsList[name] = nil
+            end
+        end
+    end
+end
+
 function FyrMM.UpdateKeepNetwork()
     if FyrMM.Halted then
         return
@@ -9234,13 +8630,12 @@ function FyrMM.UpdateKeepNetwork()
         FyrMM.dirtyLinks = true
     end  
 
-    if CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and (CurrentMap.MapId > 577 or CurrentMap.MapId < 572) then -- no links & keep display when not on Cyrodiil map, Imperial city, or the 6 bases
+    if CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and CurrentMap.MapId ~= 2847 and (CurrentMap.MapId > 577 or CurrentMap.MapId < 572) then -- no links & keep display when not on Cyrodiil map, Imperial city, or the 6 bases
         KeepIndex = {}
+        FyrMM.CleanupForwardCamps(1) -- forward camps (pins + area blobs) must go when leaving the AvA maps
         local LinksDone = false
-        local LinksNSDone = false
-        local LinksWEDone = false
         local LocksDone = false
-		local l
+		    local l
         for i = 1, 100 do
             l = GetControl("Fyr_MM_Scroll_Map_Links_Link" .. tostring(i))
             if l ~= nil then
@@ -9249,22 +8644,6 @@ function FyrMM.UpdateKeepNetwork()
                 l:SetMouseEnabled(false)
             else
                 LinksDone = true
-            end
-            l = GetControl("Fyr_MM_Scroll_Map_LinksNS_Link" .. tostring(i))
-            if l ~= nil then
-                l:ClearAnchors()
-                l:SetHidden(true)
-                l:SetMouseEnabled(false)
-            else
-                LinksNSDone = true
-            end
-            l = GetControl("Fyr_MM_Scroll_Map_LinksWE_Link" .. tostring(i))
-            if l ~= nil then
-                l:ClearAnchors()
-                l:SetHidden(true)
-                l:SetMouseEnabled(false)
-            else
-                LinksWEDone = true
             end
             l = GetControl("Fyr_MM_Scroll_Map_Locks_Lock" .. tostring(i))
             if l ~= nil then
@@ -9277,10 +8656,7 @@ function FyrMM.UpdateKeepNetwork()
             else
                 LocksDone = true
             end
-            -- 03/07/2026: Reverted the 02/07/2026 "break" optimization here at the user's request
-            -- while investigating a reported Cyrodiil link-position regression. Restored to
-            -- original behavior (all 100 iterations always run) until the cause is confirmed.
-            if LinksDone and LinksNSDone and LinksWEDone and LocksDone then
+            if LinksDone and LocksDone then
                 i = 100
             end
         end
@@ -9398,7 +8774,7 @@ function FyrMM.UpdateKeepNetwork()
 				      normalizedY = 0.6432
 				end
 			
-			    local nodeControl = GetControl("Fyr_MM_Scroll_Map_Keeps_Node" .. tostring(keepId))
+			  local nodeControl = GetControl("Fyr_MM_Scroll_Map_Keeps_Node" .. tostring(keepId))
 				if nodeControl == nil then
 					nodeControl = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Keeps_Node" .. tostring(keepId), Fyr_MM_Scroll_Map_Keeps, CT_TEXTURE)
 					nodeControl:SetHandler("OnMouseEnter", FyrMM.AvAPinOnMouseEnter)
@@ -9433,7 +8809,6 @@ function FyrMM.UpdateKeepNetwork()
 
     local numForwardCamps = GetNumForwardCamps(bgContext)
     FyrMM.currentForwardCamps = 0
-    FyrMM.KeepNetworkCleanupReminder(numForwardCamps + 1, Fyr_MM_Scroll_Map_ForwardCamps)
     for i = 1, numForwardCamps do
         local pinType, normalizedX, normalizedY, radius, usable = GetForwardCampPinInfo(bgContext, i)
         if (normalizedX > 0 and normalizedX < 1.0001 and normalizedY > 0 and normalizedY < 1.0001) then
@@ -9458,6 +8833,7 @@ function FyrMM.UpdateKeepNetwork()
             forwardCampControl.nY = normalizedY
             forwardCampBlobControl.nX = normalizedX
             forwardCampBlobControl.nY = normalizedY
+            forwardCampBlobControl.radius = radius -- needed by RescalePinPositions() to resize the area on zoom
             pin.normalizedX = normalizedX
             pin.normalizedY = normalizedY
             pin.radius = radius
@@ -9478,7 +8854,8 @@ function FyrMM.UpdateKeepNetwork()
             forwardCampBlobControl:SetDimensions(campBlobSize, campBlobSize)
             if FyrMM.SV.WheelMap then
                 forwardCampBlobControl:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
-                CreateForwardCampAreaSidePins(pin, campBlobSize, usable)
+            else
+                forwardCampBlobControl:SetParent(Fyr_MM_Scroll_Map_ForwardCamps) -- back from wheel mode
             end
 
             forwardCampControl:SetHidden(false)
@@ -9489,6 +8866,12 @@ function FyrMM.UpdateKeepNetwork()
             forwardCampControl:SetMouseEnabled(true)
         end
     end
+
+    -- remove every slot that was not (re)built this pass, including camps skipped for being outside the map
+    if FyrMM.currentForwardCamps > FyrMM.forwardCampSlots then
+        FyrMM.forwardCampSlots = FyrMM.currentForwardCamps
+    end
+    FyrMM.CleanupForwardCamps(FyrMM.currentForwardCamps + 1)
 
     --- Kill Locations (Battles) ---
     local killPinCount = 0
@@ -9512,7 +8895,7 @@ function FyrMM.UpdateKeepNetwork()
                     pin.normalizedX = normalizedX
                     pin.normalizedY = normalizedY
                     pin.m_PinType = pinType
-					pin.m_PinTag = i
+					          pin.m_PinTag = i
                     killPin.m_Pin = pin
                     killPin.m_PinType = pinType
                     killPin.nX = normalizedX
@@ -9530,7 +8913,7 @@ function FyrMM.UpdateKeepNetwork()
 
     local r, g, b
     local numLinks = GetNumKeepTravelNetworkLinks(bgContext)
-    local linkControl, linkControlNS, linkControlWE
+    local linkControl
 
     for linkIndex = 1, numLinks do
         local linkType, linkOwner, restrictedToAlliance, startNX, startNY, endNX, endNY = GetHistoricalKeepTravelNetworkLinkInfo(linkIndex, bgContext, historyPercent)
@@ -9544,17 +8927,6 @@ function FyrMM.UpdateKeepNetwork()
             if linkControl == nil then
                 linkControl = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Links_Link" .. tostring(linkIndex), Fyr_MM_Scroll_Map_Links, CT_LINE)
             end
-            local linkControlNS = GetControl("Fyr_MM_Scroll_Map_LinksNS_Link" .. tostring(linkIndex))
-            if linkControlNS == nil then
-                linkControlNS = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_LinksNS_Link" .. tostring(linkIndex), Fyr_MM_Scroll_NS_Map_Pins, CT_LINE)
-            end
-            -- 03/07/2026: Reverted the 02/07/2026 optimization here at the user's request while
-            -- investigating a reported Cyrodiil link-position regression. Restored to original
-            -- code (calls GetControl() twice) until the cause is confirmed.
-            local linkControlWE = GetControl("Fyr_MM_Scroll_Map_LinksWE_Link" .. tostring(linkIndex))
-            if GetControl("Fyr_MM_Scroll_Map_LinksWE_Link" .. tostring(linkIndex)) == nil then
-                linkControlWE = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_LinksWE_Link" .. tostring(linkIndex),Fyr_MM_Scroll_WE_Map_Pins, CT_LINE)
-            end
             linkControl.startNX = startNX
             linkControl.startNY = startNY
             linkControl.endNX = endNX
@@ -9562,59 +8934,31 @@ function FyrMM.UpdateKeepNetwork()
             linkControl:SetHidden(false)
             linkControl:SetDrawLayer(1)
 
-            linkControlNS.startNX = startNX
-            linkControlNS.startNY = startNY
-            linkControlNS.endNX = endNX
-            linkControlNS.endNY = endNY
-            linkControlNS:SetHidden(false)
-            linkControlNS:SetDrawLayer(1)
-
-            linkControlWE.startNX = startNX
-            linkControlWE.startNY = startNY
-            linkControlWE.endNX = endNX
-            linkControlWE.endNY = endNY
-            linkControlWE:SetHidden(false)
-            linkControlWE:SetDrawLayer(1)
-
             local linkThickness = floor((zo_round(80 * FyrMM.pScalePercent) / 10) / 2) * 2
             if linkThickness < 6 then
                 linkThickness = 6
             end
             linkControl:SetThickness(linkThickness)
-            linkControlNS:SetThickness(linkThickness)
-            linkControlWE:SetThickness(linkThickness)
 
             if (GetKeepFastTravelInteraction()) then
                 if (linkOwner == playerAlliance) then
                     if (linkType == FAST_TRAVEL_LINK_ACTIVE) then
                         linkControl:SetColor(ZO_KeepNetwork.LINK_READY_COLOR:UnpackRGBA())
-                        linkControlNS:SetColor(ZO_KeepNetwork.LINK_READY_COLOR:UnpackRGBA())
-                        linkControlWE:SetColor(ZO_KeepNetwork.LINK_READY_COLOR:UnpackRGBA())
                     else
                         linkControl:SetColor(ZO_KeepNetwork.LINK_NOT_READY_COLOR:UnpackRGBA())
-                        linkControlNS:SetColor(ZO_KeepNetwork.LINK_NOT_READY_COLOR:UnpackRGBA())
-                        linkControlWE:SetColor(ZO_KeepNetwork.LINK_NOT_READY_COLOR:UnpackRGBA())
                     end
                 else
                     r, g, b = GetAllianceColor(linkOwner):UnpackRGB()
                     linkControl:SetColor(r, g, b, ZO_KeepNetwork.ALLIANCE_OWNER_ALPHA[linkOwner])
-                    linkControlNS:SetColor(r, g, b, ZO_KeepNetwork.ALLIANCE_OWNER_ALPHA[linkOwner])
-                    linkControlWE:SetColor(r, g, b, ZO_KeepNetwork.ALLIANCE_OWNER_ALPHA[linkOwner])
                 end
             else
                 r, g, b = GetAllianceColor(linkOwner):UnpackRGB()
                 linkControl:SetColor(r, g, b, ZO_KeepNetwork.ALLIANCE_OWNER_ALPHA[linkOwner])
-                linkControlNS:SetColor(r, g, b, ZO_KeepNetwork.ALLIANCE_OWNER_ALPHA[linkOwner])
-                linkControlWE:SetColor(r, g, b, ZO_KeepNetwork.ALLIANCE_OWNER_ALPHA[linkOwner])
             end
             if (linkType == FAST_TRAVEL_LINK_IN_COMBAT) then
                 linkControl:SetTexture("EsoUI/Art/AvA/AvA_transitLine_dashed.dds")
-                linkControlNS:SetTexture("EsoUI/Art/AvA/AvA_transitLine_dashed.dds")
-                linkControlWE:SetTexture("EsoUI/Art/AvA/AvA_transitLine_dashed.dds")
             else
                 linkControl:SetTexture("EsoUI/Art/AvA/AvA_transitLine.dds")
-                linkControlNS:SetTexture("EsoUI/Art/AvA/AvA_transitLine.dds")
-                linkControlWE:SetTexture("EsoUI/Art/AvA/AvA_transitLine.dds")
             end
             if FyrMM.SV.WheelMap then
                 linkControl:SetParent(Fyr_MM_Scroll_CW_Map_Pins)
@@ -9623,23 +8967,13 @@ function FyrMM.UpdateKeepNetwork()
             end
 
             linkControl:ClearAnchors()
-            linkControlNS:ClearAnchors()
-            linkControlWE:ClearAnchors()
 
             if FyrMM.SV.RotateMap then
                 linkControl:SetAnchor(TOPLEFT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(startNX, startNY))
                 linkControl:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(endNX, endNY))
-                linkControlNS:SetAnchor(TOPLEFT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(startNX, startNY))
-                linkControlNS:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(endNX, endNY))
-                linkControlWE:SetAnchor(TOPLEFT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(startNX, startNY))
-                linkControlWE:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll, CENTER, GetRotatedPosition(endNX, endNY))
             else
                 linkControl:SetAnchor(TOPLEFT, Fyr_MM_Scroll_Map_Links, CENTER, startX, startY)
                 linkControl:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll_Map_Links, CENTER, endX, endY)
-                linkControlNS:SetAnchor(TOPLEFT, Fyr_MM_Scroll_Map_Links, CENTER, startX, startY)
-                linkControlNS:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll_Map_Links, CENTER, endX, endY)
-                linkControlWE:SetAnchor(TOPLEFT, Fyr_MM_Scroll_Map_Links, CENTER, startX, startY)
-                linkControlWE:SetAnchor(BOTTOMRIGHT, Fyr_MM_Scroll_Map_Links, CENTER, endX, endY)
             end
 
             -- Link Locks
@@ -9683,7 +9017,7 @@ end
 
 function FyrMM.RequestKeepRefresh()
     if not IsInAvAZone() or FyrMM.SV.HidePvPPins then
-	    FyrMM.KeepRefreshNeeded = false
+	      FyrMM.KeepRefreshNeeded = false
         return
     end
 	
@@ -10086,6 +9420,7 @@ function FyrMM.InitialPreload() -- Also called when zoning or reloading via keyb
 	FyrMM.Reloading = false
 	FyrMM.PinUpdate()
 	FyrMM.UpdateAntiquityDigSites()
+	FyrMM.checkWaypoints() -- CleanUpPins wipes waypoint pins on every reload, restore them once cleanup is done
 
 	if FyrMM.DebugMode then
 		CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", "FyrMM.InitialPreload Done." ..
@@ -10354,8 +9689,6 @@ function FyrMM.LoadCustomPinGroup(Type)
         FyrMM.LoadingCustomPins[Type] = true 
         FyrMM.CustomPinList = FyrMM.CustomPinList or {}
         FyrMM.CustomPinList[Type] = {}
-        -- 25/10/2026 fix: protected call, an error in a third party layoutCallback used to leave
-        -- LoadingCustomPins[Type] = true, which blocks PinUpdate's custom pin reconciliation
         pcall(PRCustomPins[Type].layoutCallback, PinRef)
         FyrMM.LoadingCustomPins[Type] = false
 
@@ -10404,8 +9737,6 @@ function FyrMM.UpdateCustomPinGroup(pinType)
             
             local removeOk, removeErr = pcall(function()
             for i, n in pairs(FyrMM.CustomPinList[pinType]) do
-                -- 14/10/2026 fix: only remove a control that still belongs to this pin type, so a stale
-                -- reference can never wipe a pin of another type that reused the same control
                 if n.pin then
                     local pin = GetControl(n.pin:GetName())
                     -- d("method 1: removing pin "..n.pin:GetName())
@@ -10424,17 +9755,12 @@ function FyrMM.UpdateCustomPinGroup(pinType)
                 end
             end
             end)
-            -- 25/10/2026 fix: an error in the removal loop left UpdatingCustomPins[pinType] = true forever,
-            -- so every later refresh of that pin type (e.g. lorebooks) was ignored and pins never got removed
             FyrMM.UpdatingCustomPins[pinType] = nil
             if not removeOk and FyrMM.DebugMode then
                 CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", "UpdateCustomPinGroup removal error: "..tostring(removeErr))
             end
-            -- 25/10/2026 fix: forget the check-list of this type. RemoveCustomPin leaves entries with Id = 0
-            -- there and CheckForNewCustomPins() re-inserts every Id == 0 entry as soon as any new pin is
-            -- detected, which resurrected pins that were just removed (collected lorebooks, etc.)
             FyrMM.CustomPinCheckList[pinType] = {}
-			FyrMM.CustomPinList[pinType] = {}
+	      		FyrMM.CustomPinList[pinType] = {}
 			if PRCustomPins and PRCustomPins[pinType] and PRCustomPins[pinType].enabled then
 		       FyrMM.LoadCustomPinGroup(pinType)
 
@@ -10496,10 +9822,41 @@ local function OnInit() -- Initialize Map and Update events after add-on load
     Fyr_MM_Frame_Control:SetAnchor(CENTER, Fyr_MM, CENTER, 0, 0)
     Fyr_MM_Wheel_Background:SetAnchor(CENTER, Fyr_MM, CENTER, 0, 0)
     Fyr_MM_Wheel_Background:SetTexture("MiniMap/Textures/wheelbackground.dds")
-    Fyr_MM_Scroll_WheelNS:SetAnchor(CENTER, Fyr_MM_Scroll, CENTER, 0, 0)
-    Fyr_MM_Scroll_WheelWE:SetAnchor(CENTER, Fyr_MM_Scroll, CENTER, 0, 0) 
     Fyr_MM_Scroll_WheelCenter:SetAnchor(CENTER, Fyr_MM_Scroll, CENTER, 0, 0)
     MenuAnimation = ZO_AlphaAnimation:New(Fyr_MM_Menu)
+
+    -- Wheel draw order, bottom to top (see FyrMM.ApplyWheelDrawOrder for the rest):
+    --   map tiles + area/dig-site/link/lock/forward-camp pins (WheelCenter, tier LOW)
+    --   < wheel frame ring (tier MEDIUM) < regular map pins, player arrow, camera (tier HIGH)
+    Fyr_MM_Frame_Wheel:SetDrawTier(DT_MEDIUM)
+    Fyr_MM_Frame_Wheel:SetDrawLayer(DL_BACKGROUND)
+    Fyr_MM_Frame_Wheel:SetDrawLevel(1)
+
+    -- The player arrow must stay above every other pin: several pins use layer 4 with high draw levels
+    -- (group labels use the pin data levels, objective auras 104, ...), so give the arrow a higher level.
+    -- Tier/layer/level are set explicitly (DT_HIGH / DL_TEXT / 500); group pins sit on lower layers.
+    FyrMM.RaisePlayerArrow()
+
+    -- Under-attack keep pins must be drawn under the keep pins they refer to. Their container is declared
+    -- after the keeps container (so it was drawn on top of it): put it one draw level below all AvA containers.
+    Fyr_MM_Scroll_Map_Keeps_Under_Attack:SetDrawLevel(0)
+    for _, container in ipairs({
+        Fyr_MM_Scroll_Map_Keeps,
+        Fyr_MM_Scroll_Map_ForwardCamps,
+        Fyr_MM_Scroll_Map_Kill_Locations,
+        Fyr_MM_Scroll_Map_Objectives,
+        Fyr_MM_Scroll_Map_Links,
+        Fyr_MM_Scroll_Map_Locks,
+    }) do
+        container:SetDrawLevel(1)
+    end
+
+    -- keep the circular clip glued to the minimap when it is moved / re-anchored (cheap: only re-applies on change)
+    EVENT_MANAGER:RegisterForUpdate("FyrMMCircularClipFollow", 50, function()
+        if FyrMM.SV and FyrMM.SV.WheelMap and not Fyr_MM:IsHidden() then
+            FyrMM.ApplyCircularClip()
+        end
+    end)
 
     FyrMM.LAM = LibAddonMenu2
     FyrMM.CPL = FyrMM.LAM:RegisterAddonPanel("FyrMiniMap", FyrMM.Panel)
@@ -10915,36 +10272,36 @@ local function OnLoaded(eventCode, addOnName)
     -- end)
     Fyr_MM_Coordinates:SetHandler("OnMouseUp", function(self)
         local pos = {}
-		pos[1] = CENTER 
-		pos[2] = "GuiRoot"
-	    pos[3] = TOPLEFT
+		    pos[1] = CENTER 
+	    	pos[2] = "GuiRoot"
+	      pos[3] = TOPLEFT
 
         local coordFrameX, coordFrameY = Fyr_MM_Coordinates:GetCenter()
         pos[4] = coordFrameX
-		pos[5] = coordFrameY
+	    	pos[5] = coordFrameY
         FyrMM.SV.CoordinatesAnchor = pos
     end)
     Fyr_MM_ZoneFrame:SetHandler("OnMouseUp", function(self) 
         local pos = {}
         pos[1] = CENTER 
-		pos[2] = "GuiRoot"
-	    pos[3] = TOPLEFT
+	    	pos[2] = "GuiRoot"
+	      pos[3] = TOPLEFT
 
         local zoneFrameX, zoneFrameY = Fyr_MM_ZoneFrame:GetCenter()
         pos[4] = zoneFrameX
-		pos[5] = zoneFrameY
+	    	pos[5] = zoneFrameY
         FyrMM.SV.ZoneFrameAnchor = pos
         --d("Zone frame anchor set to: " .. pos[1] .. " " .. pos[2] .. " " .. pos[3] .. " " .. pos[4] .. " " .. pos[5])
     end)
     Fyr_MM_Speed:SetHandler("OnMouseUp", function(self)
         local pos = {}
         pos[1] = CENTER 
-		pos[2] = "GuiRoot"
-	    pos[3] = TOPLEFT
+		    pos[2] = "GuiRoot"
+	      pos[3] = TOPLEFT
 		
         local speedFrameX, speedFrameY = Fyr_MM_Speed:GetCenter()
         pos[4] = speedFrameX
-		pos[5] = speedFrameX
+	    	pos[5] = speedFrameX
         FyrMM.SV.SpeedAnchor = pos
     end)
     Fyr_MM_Scroll:SetScrollBounding(0)
@@ -11049,7 +10406,19 @@ EVENT_MANAGER:RegisterForEvent( "MiniMap", EVENT_PLAYER_ALIVE, FyrMM.HideCheck)
 
 EVENT_MANAGER:RegisterForEvent("MiniMap", EVENT_MAP_PING, function(eventCode, pingEventType, pinType, _, x, y)
     -- we avoid using ping pin types because it is monopolysed by some addons spamming it for sharing data
-    if pinType ~= MAP_PIN_TYPE_PING then FyrMM.WaypointPins(pingEventType, pinType, x, y) end 
+    if pinType == MAP_PIN_TYPE_PLAYER_WAYPOINT or pinType == MAP_PIN_TYPE_RALLY_POINT then
+        if pingEventType == PING_EVENT_ADDED and not (x == 0 and y == 0) then
+            -- x, y belong to the game's current map right now: remember which one, convert later
+            FyrMM.PingSources[pinType] = { mapId = GetCurrentMapId(), x = x, y = y }
+            FyrMM.WaypointRefreshPending = true
+            if not FyrMM.worldMapShowing then
+                zo_callLater(FyrMM.checkWaypoints, 100)
+            end
+        else
+            FyrMM.PingSources[pinType] = nil
+            FyrMM.WaypointPins(pingEventType, pinType, x, y)
+        end
+    end
 end)
 
 CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)

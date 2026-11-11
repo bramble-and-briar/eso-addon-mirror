@@ -1,0 +1,14 @@
+## Title: Add Kill Counter
+## Author: FiNk3--F13--
+## Version: 1.3.4
+## AddOnVersion: 10304
+## APIVersion: 101051
+## Description: PvE-Killzaehler mit Gesamtzahl, Tagesstatistik und Controller-Menue.
+## SavedVariables: AddKillCounterSavedVariables
+## DependsOn: LibHarvensAddonSettings
+
+Core.lua
+Main.lua
+Gamepad.lua
+Settings.lua
+UI.xml

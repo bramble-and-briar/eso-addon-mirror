@@ -1,12 +1,15 @@
 -- DevSandbox3MarkerActions.lua: dots in the 3D world (the 0.8 renderer, known to work on console)
 --
--- Every 100 ms while the HUD is up: judge the slots around the player, then draw
---   orange  dot 1.5 m above every empty harvestable slot in Cyrodiil      (war torte)
---   purple  dot 1.5 m above every empty enchanting slot                    (psijic; anywhere only with CYRODIIL ONLY off)
---   yellow  dot 1.5 m above every uncovered slot beyond the confirmed distance (unknown yet)
---   pale blue (translucent) instead of any of the above for a slot the player has been within checkedM of recently
---   cyan    dot above every known node when debugNodes is on (must sit on real nodes). Same size as the other dots,
---           1.5 m above the nearest known location's ground height (nodes carry no height), else player height.
+-- Every 100 ms while the HUD is up: judge the slots around the player, then draw one dot 1.5 m above a slot:
+--   tracker colour  a node a tracker hunts stands there (name read by the reticle, or remembered)
+--   orange          empty harvestable slot in Cyrodiil                         (war torte)
+--   purple          empty enchanting slot, every zone                          (psijic)
+--   yellow          candidate: not determined yet. For war torte / psijic a slot with no node beyond the confirmed
+--                   distance; for a tracker with candidates on, also a slot of its kind whose node is not named yet.
+--                   A candidate that resolves to something nobody hunts just disappears.
+--   checkpoint colour instead of orange / purple / yellow for a slot the player has been within checkedM of recently
+--   cyan            dot above every known node when debugNodes is on (must sit on real nodes). Same size as the other
+--                   dots, 1.5 m above the nearest known location's ground height (nodes carry no height), else player height.
 -- CT_TEXTURE controls with a render space, billboarded, constant apparent size (optional far shrink). Each dot has a
 -- black outline: a second texture 30 % larger drawn just behind it (one draw level lower).
 -- No per-tick allocation: fixed pools of MAX controls are repositioned in place.
@@ -23,7 +26,7 @@ local OUTLINE_SCALE = 1.3
 Markers.pool = {}
 Markers.outlines = {}
 Markers.shown = 0
-Markers.drawn = { empty = 0, unknown = 0, checked = 0 }   -- last tick, by state
+Markers.drawn = { tracked = 0, empty = 0, unknown = 0, checked = 0 }   -- last tick, by dot (unknown = candidates)
 local lastSummaryMs = 0
 local SUMMARY_MS = 5000
 
@@ -96,7 +99,7 @@ end
 local function Update()
     if IsReticleHidden() or not SlotActions.IsActiveZone() then
         HideFrom(1)
-        if not SlotActions.IsActiveZone() then local dr = Markers.drawn; dr.empty, dr.unknown, dr.checked = 0, 0, 0 end
+        if not SlotActions.IsActiveZone() then local dr = Markers.drawn; dr.tracked, dr.empty, dr.unknown, dr.checked = 0, 0, 0, 0 end
         return
     end
     local s = S()
@@ -116,24 +119,42 @@ local function Update()
     local wt, ps, un, ck = s.warTorteColor, s.psijicColor, s.unknownColor, s.checkedColor
     local showUnknown = s.markUnknown
 
-    local nEmpty, nUnknown, nChecked = 0, 0, 0
-    local inRange, empty, unknown = SlotActions.inRange, SlotActions.empty, SlotActions.unknown
+    local nTracked, nEmpty, nUnknown, nChecked = 0, 0, 0, 0
+    local inRange, empty, unknown, named, unnamed = SlotActions.inRange, SlotActions.empty, SlotActions.unknown, SlotActions.named, SlotActions.unnamed
+    local trackerByKey, candidateKinds = SlotActions.trackerByKey, SlotActions.candidateKinds
+    -- tracked nodes first: the pool is finite (MAX) and they are the dots that must not be the ones left out
     for i = 1, SlotActions.inRangeCount do
         local slot = inRange[i]
-        local state = empty[slot] and "empty" or (showUnknown and unknown[slot] and "unknown") or nil
-        if state then
+        local tracker = trackerByKey[named[slot]]
+        if tracker then
+            local c = tracker.color
+            Place(slot.x, slot.z, slot.h + DOT_HEIGHT_M, c.r, c.g, c.b, c.a)
+            nTracked = nTracked + 1
+        end
+    end
+    for i = 1, SlotActions.inRangeCount do
+        local slot = inRange[i]
+        -- c: the colour this slot gets unless it is a checkpoint; nil = no dot (a named node nobody hunts included)
+        local c, candidate
+        if empty[slot] then
             local kind = SlotActions.MarkerKind(slot)
-            if kind then
-                local h = slot.h + DOT_HEIGHT_M
-                if SlotActions.IsChecked(slot) then Place(slot.x, slot.z, h, ck.r, ck.g, ck.b, ck.a); nChecked = nChecked + 1
-                elseif state == "unknown" then Place(slot.x, slot.z, h, un.r, un.g, un.b, un.a); nUnknown = nUnknown + 1
-                elseif kind == "psijic" then Place(slot.x, slot.z, h, ps.r, ps.g, ps.b, ps.a); nEmpty = nEmpty + 1
-                else Place(slot.x, slot.z, h, wt.r, wt.g, wt.b, wt.a); nEmpty = nEmpty + 1 end
+            c = kind == "psijic" and ps or (kind == "wartorte" and wt) or nil
+        elseif unknown[slot] then
+            if candidateKinds[slot.pinTypeId] or (showUnknown and SlotActions.MarkerKind(slot)) then c, candidate = un, true end
+        elseif unnamed[slot] then
+            if candidateKinds[slot.pinTypeId] then c, candidate = un, true end
+        end
+        if c then
+            local h = slot.h + DOT_HEIGHT_M
+            if SlotActions.IsChecked(slot) then Place(slot.x, slot.z, h, ck.r, ck.g, ck.b, ck.a); nChecked = nChecked + 1
+            else
+                Place(slot.x, slot.z, h, c.r, c.g, c.b, c.a)
+                if candidate then nUnknown = nUnknown + 1 else nEmpty = nEmpty + 1 end
             end
         end
     end
     local drawn = Markers.drawn
-    drawn.empty, drawn.unknown, drawn.checked = nEmpty, nUnknown, nChecked
+    drawn.tracked, drawn.empty, drawn.unknown, drawn.checked = nTracked, nEmpty, nUnknown, nChecked
     -- every 5 s: one summary line for the export (chat too when debug is on)
     local now = GetFrameTimeMilliseconds()
     if now - lastSummaryMs >= SUMMARY_MS then
@@ -145,11 +166,9 @@ local function Update()
             local d2 = dx * dx + dz * dz
             if d2 > far then far = d2 end
         end
-        local nUnk = 0
-        for _ in pairs(SlotActions.unknown) do nUnk = nUnk + 1 end
-        DevSandbox3.LogUtils.Debug("state: pins %d located %d farthest %dm confirmed %dm | in range %d: drawn empty %d, unknown %d (of %d, shown=%s), checked %d",
+        DevSandbox3.LogUtils.Debug("state: pins %d located %d farthest %dm confirmed %dm | in range %d: drawn tracked %d, empty %d, candidates %d, checked %d",
             D.liveCount, D.locatedCount, math.floor(math.sqrt(far) + 0.5), math.floor(SlotActions.confirmedM + 0.5),
-            SlotActions.inRangeCount, nEmpty, nUnknown, nUnk, tostring(showUnknown), nChecked)
+            SlotActions.inRangeCount, nTracked, nEmpty, nUnknown, nChecked)
     end
     if s.debugNodes then
         local D = DevSandbox3.Detection

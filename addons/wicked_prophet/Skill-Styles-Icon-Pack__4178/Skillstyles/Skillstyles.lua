@@ -46,6 +46,7 @@ local ADDON_ICONS = {
 	"ability_dragonknight_003_emerald.dds",
 	"ability_dragonknight_004_blue.dds",
 	"ability_dragonknight_004_emerald.dds",
+	"ability_dragonknight_004_volcanic.dds",
 	"ability_dragonknight_005_blue.dds",
 	"ability_dragonknight_006_blue.dds",
 	"ability_dragonknight_007_blue.dds",
@@ -62,8 +63,10 @@ local ADDON_ICONS = {
 	"ability_dragonknight_015_noweaponswap.dds",
 	"ability_dragonknight_016_blue.dds",
 	"ability_dragonknight_017_blue.dds",
+	"ability_dragonknight_017_goldroadleaves.dds",
 	"ability_dragonknight_018_blue.dds",
 	"ability_dragonknight_018_emerald.dds",
+	"ability_dragonknight_superheatedward_azureblue.dds",
 	"u49_ability_dragonknight_ashcloud.dds",
 	"u49_ability_dragonknight_darktalons.dds",
 	"u49_ability_dragonknight_dragonblood.dds",
@@ -80,7 +83,9 @@ local ADDON_ICONS = {
 
 	-- necromancer
 	"ability_necromancer_001_red.dds",
+	"ability_necromancer_002_sunsetorange.dds",
 	"ability_necromancer_004_fireytorment.dds",
+	"ability_necromancer_004_gravestake.dds",
 	"ability_necromancer_006_red.dds",
 	"ability_necromancer_007_red.dds",
 	"ability_necromancer_008_red.dds",
@@ -96,24 +101,29 @@ local ADDON_ICONS = {
 	"ability_nightblade_007_purple.dds",
 	"ability_nightblade_007_strikinggold.dds",
 	"ability_nightblade_012_violet.dds",
+	"ability_nightblade_017_azureblight.dds",
 	"ability_nightblade_017_purple.dds",
 	"u49_ability_shadowcloak_dawn.dds",
 
 	-- sorcerer
 	"ability_sorcerer_daedric_curse_red.dds",
+	"ability_sorcerer_dark_exchange_icequeen.dds",
 	"ability_sorcerer_dark_exchange_red.dds",
 	"ability_sorcerer_lightning_form_red.dds",
 	"ability_sorcerer_lightning_prey_redcelestial.dds",
 	"ability_sorcerer_mage_fury_red.dds",
 	"ability_sorcerer_overload_lightningyellow.dds",
 	"ability_sorcerer_surge_fieryyellow.dds",
+	"ability_sorcerer_thunderclap_icequeen.dds",
 	"ability_sorcerer_thunderclap_red.dds",
 	"u49_ability_stormcalling_lightningform_celestial.dds",
 
 	-- templar
 	"ability_templar_backlash_blue.dds",
 	"ability_templar_cleansing_ritual_blue.dds",
+	"ability_templar_nova_sunbird.dds",
 	"ability_templar_over_exposure_blue.dds",
+	"ability_templar_rune_focus_azureblight.dds",
 	"ability_templar_rushed_ceremony_blue.dds",
 	"ability_templar_sun_strike_fierytorment.dds",
 	"ability_templar_trained_attacker_blue.dds",
@@ -126,7 +136,10 @@ local ADDON_ICONS = {
 	"ability_warden_008_orange.dds",
 	"ability_warden_013_crow.dds",
 	"ability_warden_014_crows.dds",
+	"ability_warden_014_icequeen.dds",
 	"ability_warden_015_orange.dds",
+	"ability_warden_017_azureblight.dds",
+	"ability_warden_018_frostatronach.dds",
 	"ability_warden_018_grey.dds",
 	"ability_warden_018_polar.dds",
 
@@ -145,6 +158,7 @@ local ADDON_ICONS = {
 	-- 2h
 	"ability_2handed_001_green.dds",
 	"ability_2handed_002_blue.dds",
+	"ability_2handed_002_goldroadleaves.dds",
 	"ability_2handed_002_red.dds",
 	"ability_2handed_003_ice.dds",
 	"ability_2handed_003_vividpurple.dds",
@@ -157,6 +171,7 @@ local ADDON_ICONS = {
 	"ability_bow_001_rose.dds",
 	"ability_bow_001_yellow.dds",
 	"ability_bow_002_red.dds",
+	"ability_bow_003_azureblight.dds",
 	"ability_bow_003_ice.dds",
 	"ability_bow_003_meteors.dds",
 	"ability_bow_005_goldcoin.dds",
@@ -168,6 +183,7 @@ local ADDON_ICONS = {
 	"ability_destructionstaff_002_green.dds",
 	"ability_destructionstaff_002_purple.dds",
 	"ability_destructionstaff_005_green.dds",
+	"ability_destructionstaff_011_darkanimus.dds",
 	"ability_destructionstaff_011_orange.dds",
 	"ability_destructionstaff_011_purple.dds",
 	"ability_destructionstaff_012_padomayvortex.dds",
@@ -187,6 +203,7 @@ local ADDON_ICONS = {
 
 	-- restoration staff
 	"ability_restorationstaff_001_green.dds",
+	"ability_restorationstaff_001_icequeen.dds",
 	"ability_restorationstaff_002_blue.dds",
 	"ability_restorationstaff_002_purple.dds",
 	"ability_restorationstaff_002_radianceofanu.dds",
@@ -203,6 +220,7 @@ local ADDON_ICONS = {
 	"ability_fightersguild_002_red.dds",
 	"ability_fightersguild_003_gold.dds",
 	"ability_fightersguild_004_orange.dds",
+	"ability_fightersguild_005_azureblight.dds",
 	"ability_fightersguild_005_darkpurple.dds",
 	"ability_fightersguild_005_yellow.dds",
 	"u49_ability_circleofprotection_fightersguild.dds",
@@ -212,6 +230,7 @@ local ADDON_ICONS = {
 	"ability_mageguild_001_white.dds",
 	"ability_mageguild_002_floral.dds",
 	"ability_mageguild_002_green.dds",
+	"ability_mageguild_002_icequeen.dds",
 	"ability_mageguild_004_purple.dds",
 	"ability_mageguild_004_yellow.dds",
 	"ability_mageguild_005_ice.dds",
@@ -219,6 +238,7 @@ local ADDON_ICONS = {
 
 	-- psijic order
 	"ability_psijic_001_purple.dds",
+	"ability_psijic_003_azureblight.dds",
 	"ability_psijic_005_purple.dds",
 
 	-- ========================================================================
@@ -233,6 +253,7 @@ local ADDON_ICONS = {
 	"ability_ava_001_bones.dds",
 	"ability_ava_003_orange.dds",
 	"ability_ava_003_shell.dds",
+	"ability_ava_004_violet.dds",
 	"ability_ava_006_blue.dds",
 	"ability_ava_006_green.dds",
 	"ability_ava_revealing_flare_orange.dds",
@@ -273,7 +294,7 @@ local function InitializeSettings()
 		name = "Skill Styles",
 		displayName = "|cffaa00SkillStyles|r",
 		author = "|ce6202dKwiebe-Kwibus|r",
-		version = tostring(GetAddOnVersion and GetAddOnVersion(ADDON_NAME) or ""),
+		version = "2.0.1",
 		registerForRefresh = true,
 		registerForDefaults = true,
 	}

@@ -31,8 +31,7 @@ function A:CanContinueScroll(state)
 end
 
 function A:CanScrollOut()
-    local mapType = GetMapType()
-    return mapType ~= MAPTYPE_WORLD and mapType ~= MAPTYPE_COSMIC
+    return GetMapType() ~= MAPTYPE_COSMIC
 end
 
 function A:StartScrollTransition(boundary)
@@ -98,7 +97,7 @@ function A:HandleSmoothScroll(delta)
     end
     if direction < 0 and not self:CanScrollOut() then
         self.scrollBoundary = nil
-        return true -- Top-level maps have no outward transition or fade.
+        return true -- The cosmic map has no outward transition or fade.
     end
     local target = direction > 0 and self:GetScrollTarget() or nil
     if direction > 0 and not target then self.scrollBoundary = nil; return true end

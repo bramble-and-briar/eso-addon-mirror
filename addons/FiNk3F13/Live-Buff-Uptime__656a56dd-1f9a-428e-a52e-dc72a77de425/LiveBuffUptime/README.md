@@ -1,5 +1,10 @@
 # LiveBuffUptime
 
+2.4.10: Mechanikblick als eigene Cooldown-Quelle ergaenzt. Tracker: Effekt-ID
+99204, Einheit Auf mir, Cooldown-Quelle Mechanikblick (eigener Proc). Der
+25-Sekunden-Cooldown startet auf das separate eigene Proc-Ereignis 164087;
+Stack-Aufbau von 99204 startet ihn nicht. Bestehende Timer-/Stackanzeige bleibt.
+
 2.4.9: Erkannte Bosse verwenden in ihrer Skills-Auswahl die gemeinsame
 Schadenszeit wie SimpleGroupDPS. Boss-DPS unten und die zugehoerigen Skill-DPS
 teilen denselben Nenner. Add-Schaden bleibt aus der Boss-Auswahl ausgeschlossen.

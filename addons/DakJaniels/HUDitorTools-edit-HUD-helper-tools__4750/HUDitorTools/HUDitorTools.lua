@@ -10,7 +10,7 @@ local HT = HUDitorTools
 
 -- Addon data
 local addonWebsite = "https://www.esoui.com/downloads/info4750"
-HT.version = "1.3.3"
+HT.version = "1.3.5"
 HT.name = "HUDitor Tools"
 HT.displayName = "|c00FF00HUD|cFFFF00itor|r Tools"
 HT.eventName = "HUDitorTools"
@@ -115,6 +115,7 @@ HT.Defaults =
         enabled = false,
         healthWidth = 474,
         preventExpand = false,
+        hideHealthGlow = false,
     },
 }
 
@@ -889,9 +890,8 @@ local function InstallEditorHooks(fromSceneChange)
                 infoBoxSettingsButton.type = "settings"
             end
             if infoBoxSettingsButton then
-                infoBoxSettingsButton:SetDrawTier(DT_HIGH)
+                HT.SetEditorDrawTierAndLevel(infoBoxSettingsButton, HT.INFO_BOX_INTERACTABLE_LEVEL)
                 infoBoxSettingsButton:SetDrawLayer(DL_CONTROLS)
-                infoBoxSettingsButton:SetDrawLevel(ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL)
             end
         end)
         infoBoxShownAtSceneChangeHookDone = true
@@ -1088,7 +1088,7 @@ local function InstallEditorElementHooks()
     if HUDEditorElementHooksDone or not HT.SV.gridSnap then return end
 
     ZO_PreHook(ZO_HUDEditorElement_Keyboard, "ApplyChanges", function (self)
-        if not HT.SV.gridSnap then
+        if HT.nudgeSkipsGridSnap or not HT.SV.gridSnap then
             return false
         end
         SnapControlTopLeft(self.control)
@@ -1096,7 +1096,7 @@ local function InstallEditorElementHooks()
     end)
 
     ZO_PreHook(ZO_HUDEditorElement_Keyboard, "SetPositionFromTopLeft", function (self, offsetX, offsetY)
-        if not HT.SV.gridSnap then
+        if HT.nudgeSkipsGridSnap or not HT.SV.gridSnap then
             return false
         end
         offsetX, offsetY = HT.ApplySnap(tonumber(offsetX), tonumber(offsetY), HT.SV.gridSize)
@@ -1232,6 +1232,91 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- HUD Editor Scene
 ------------------------------------------------------------------------------------------------------------------------
+-- PerfectPixel parents infoBox.PP_BG to PP.TLW_BG (DT_LOW). A child cannot draw
+-- above that tier, so the skinned background stays under the selection boxes
+-- (tier HIGH, selected draw level 4). The nudge reset labels are on CONTROLS
+-- at level 6. The info box backdrop stays on CONTROLS at level 10 so it covers
+-- those two labels. Dropdown and edit-box frames are backdrops with no level
+-- of their own (HUDEditor_Keyboard.xml ComboBox BG, ZO_SingleLineEditBackdrop),
+-- so they were still under that backdrop. They use HT.INFO_BOX_INTERACTABLE_LEVEL.
+-- Labels are not changed.
+local INFO_BOX_BACKGROUND_DRAW_LEVEL = 10
+
+local function RaiseInfoBoxBackground(control)
+    if not control then
+        return
+    end
+    HT.SetEditorDrawTierAndLevel(control, INFO_BOX_BACKGROUND_DRAW_LEVEL)
+    control:SetDrawLayer(DL_CONTROLS)
+end
+
+local function RaiseInfoBoxFields(control, infoBox)
+    if not control then
+        return
+    end
+    local isEditBox = control:GetType() == CT_EDITBOX
+    local isFieldBackdrop = control:GetType() == CT_BACKDROP
+        and control ~= infoBox:GetNamedChild("BG")
+        and control ~= infoBox.PP_BG
+    if (isEditBox or isFieldBackdrop) and control:GetDrawLevel() < HT.INFO_BOX_INTERACTABLE_LEVEL then
+        HT.SetEditorDrawTierAndLevel(control, HT.INFO_BOX_INTERACTABLE_LEVEL)
+    end
+    local childCount = control:GetNumChildren()
+    for childIndex = 1, childCount do
+        local childControl = control:GetChild(childIndex)
+        if childControl then
+            RaiseInfoBoxFields(childControl, infoBox)
+        end
+    end
+end
+
+local function RaisePerfectPixelInfoBoxBackground()
+    local infoBox = ZO_HUDEditor_Keyboard_TLInfoBox
+    if not infoBox then
+        return
+    end
+    RaiseInfoBoxBackground(infoBox:GetNamedChild("BG"))
+    local background = infoBox.PP_BG
+    if background and background:GetParent() ~= infoBox then
+        -- SetParent clears anchors. PerfectPixel anchored this backdrop to the info box.
+        local savedAnchors = {}
+        local anchorCount = background:GetNumAnchors()
+        for anchorIndex = 0, anchorCount - 1 do
+            local isValid, point, relativeTo, relativePoint, offsetX, offsetY = background:GetAnchor(anchorIndex)
+            if isValid then
+                savedAnchors[#savedAnchors + 1] =
+                {
+                    point = point,
+                    relativeTo = relativeTo,
+                    relativePoint = relativePoint,
+                    offsetX = offsetX,
+                    offsetY = offsetY,
+                }
+            end
+        end
+        background:SetParent(infoBox)
+        -- Info box is resizeToFitConstrains Y (HUDEditor_Keyboard.xml). PP_BG is
+        -- anchored outside that box. Counting it grows the box forever and the
+        -- client crashes when select shows the box. Stock BG uses the same flag.
+        background:SetExcludeFromResizeToFitExtents(true)
+        background:ClearAnchors()
+        for _, savedAnchor in ipairs(savedAnchors) do
+            background:SetAnchor(savedAnchor.point, savedAnchor.relativeTo, savedAnchor.relativePoint, savedAnchor.offsetX, savedAnchor.offsetY)
+        end
+    elseif background then
+        background:SetExcludeFromResizeToFitExtents(true)
+    end
+    RaiseInfoBoxBackground(background)
+    RaiseInfoBoxFields(infoBox, infoBox)
+end
+
+ZO_PostHook(ZO_HUDEditor_Keyboard, "RefreshInfoBox", function ()
+    local infoBox = ZO_HUDEditor_Keyboard_TLInfoBox
+    if infoBox then
+        RaiseInfoBoxFields(infoBox, infoBox)
+    end
+end)
+
 local function OnEditorSceneStateChange(oldState, newState)
     local isSceneShowing = newState == SCENE_SHOWING
     if isSceneShowing or newState == SCENE_SHOWN then
@@ -1239,6 +1324,7 @@ local function OnEditorSceneStateChange(oldState, newState)
         if isSceneShowing then
             InstallEditorHooks(true)
         end
+        RaisePerfectPixelInfoBoxBackground()
         HT.RefreshGridOverlay()
         HT.RefreshColorPickerVisibility()
     elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
@@ -1278,10 +1364,11 @@ local function OnAddOnLoaded(_, addonName)
     HT.InstallColorPicker()
     HT.InstallLayoutInfoBoxSection()
     HT.InstallAppearanceInfoBoxSection()
+    HT.InstallNudgePanel()
     HT.InitializeHudLayouts()
 
     -- Scenes and hooks
-    SM:GetScene("hud_editor_keyboard"):RegisterCallback("StateChange", OnEditorSceneStateChange)
+    SM:GetScene(HT.EDITOR_SCENE_NAME):RegisterCallback("StateChange", OnEditorSceneStateChange)
     InstallHooks()
 end
 EM:RegisterForEvent(HT.eventName, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

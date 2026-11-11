@@ -11,10 +11,9 @@ TradeQR = {
     defaults = {
         -- Only sales where the current account is the seller.
         onlyMySales = true,
-        -- How far back to look the very first time a guild is scanned.
-        initialLookbackSeconds = 24 * 60 * 60,
-        -- Re-scan overlap, so events that reach the client late are not skipped.
-        rescanOverlapSeconds = 10 * 60,
+        -- Every scan re-reads this much recent history from the local cache (seen ids prevent duplicates),
+        -- so sales that reach the client late are still found. Must stay well below seenRetentionSeconds.
+        scanWindowSeconds = 48 * 60 * 60,
         -- Seen event ids are forgotten after this long (keeps SavedVariables small on console).
         seenRetentionSeconds = 30 * 24 * 60 * 60,
         -- "Later" button: how long the screen stays quiet.
@@ -22,9 +21,10 @@ TradeQR = {
 
         pendingSales = {},
         seenEventIds = {},
-        lastScanTimestampByGuildId = {},
     },
 
     pollIntervalMs = 5 * 60 * 1000,
+    -- An unfinished (queued) history request is recreated only after this long.
+    maxRequestAgeSeconds = 30 * 60,
     autoShowCheckIntervalMs = 15 * 1000,
 }

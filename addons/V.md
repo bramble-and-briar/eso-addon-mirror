@@ -44,6 +44,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Visual Swap - Lightweight & Clean Swap Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lahabria/Visual-Swap---Lightweight-Clean-Swap-Indicator__2670) | Lahabria | PC / Mac | 1.0 |
 | [Vixen's Combat Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixen-s-Combat-Text__06c46d53-3301-44b3-92fe-8d19165f5d93) | Vixen_Hunny | Console | — |
 | [Vixen's Effect Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixen-s-Effect-Viewer__7a48fb7e-4903-4ff4-8d74-c6050c85363a) | Vixen_Hunny | Console | — |
+| [Vixen's Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixen-s-Group-Frames__81245a8d-0a99-4036-a4dc-52c4f82a9803) | Vixen_Hunny | Console | — |
 | [Vixen's Testing grounds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixen-s-Testing-grounds__4b4ddced-3d97-431c-8c43-a9c732ea2cae) | Vixen_Hunny | Console | — |
 | [Vixy's Testing Grounds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixy-s-Testing-Grounds__ac8a5471-5c72-448f-86f0-1d33a74c88ae) | Vixen_Hunny | Console | — |
 | [Void Bash](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Void-Bash__4924) | atharti | PC / Mac | 1.0 |

@@ -249,9 +249,7 @@ function HT.ApplyHudLayoutPayload(payload, layoutName)
     ReplaceElementMap(profile.gamepadElements, payloadToApply.gamepadElements)
 
     HUD_MANAGER:PropagateSettings()
-    if HUD_EDITOR_KEYBOARD:IsShowing() then
-        HUD_EDITOR_KEYBOARD:RebuildAllElements()
-    end
+    HT.RebuildHudEditorIfShowing()
 
     suppressOffsetsChangedRefresh = false
     SetLiveLayoutBaseline(payloadToApply)

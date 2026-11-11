@@ -1,8 +1,8 @@
 ## Title: OneMap
 ## Description: Map enhancements and social-first travel for the keyboard world map.
 ## Author: oneDOK
-## Version: 26.11.1
-## AddOnVersion: 261101
+## Version: 26.11.2
+## AddOnVersion: 261102
 ## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: OneMapSavedVariables

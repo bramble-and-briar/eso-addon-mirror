@@ -35,6 +35,7 @@ QM.DEFAULTS = {
     sellTrash = true,
     sellTreasure = true,
     sellPotions = true, -- looted potions and poisons
+    sellTrophies = true, -- monster trophies (collectible items only worth gold)
     sellRepairKits = true, -- green or lower repair kits
     sellOrnate = true, -- Ornate gear of any quality
     sellWhiteGear = true, -- all white (normal quality) gear
@@ -169,8 +170,12 @@ function QM.SellReason(bag, slot, isMine)
     if ITEM_SELL_INFORMATION_CANNOT_SELL ~= nil and safe(GetItemSellInformation, bag, slot) == ITEM_SELL_INFORMATION_CANNOT_SELL then return nil end
     if (safe(GetItemSellValueWithBonuses, bag, slot) or 1) <= 0 then return nil end
 
-    local itemType = safe(GetItemType, bag, slot)
+    local itemType, specialized = safe(GetItemType, bag, slot)
     local quality = safe(GetItemDisplayQuality, bag, slot)
+    if itemType ~= nil and itemType == ITEMTYPE_COLLECTIBLE and specialized ~= nil
+        and specialized == SPECIALIZED_ITEMTYPE_COLLECTIBLE_MONSTER_TROPHY then
+        return o.sellTrophies and "monster trophies" or nil
+    end
     if itemType == ITEMTYPE_TRASH then return o.sellTrash and "trash" or nil end
     if itemType == ITEMTYPE_TREASURE then return o.sellTreasure and "treasure" or nil end
     if itemType == ITEMTYPE_POTION or itemType == ITEMTYPE_POISON then return o.sellPotions and "potions" or nil end
@@ -295,8 +300,10 @@ function QM.Repair()
     if not opts.autoRepair or not safe(CanStoreRepair) then return nil end
     local cost = safe(GetRepairAllCost) or 0
     if cost <= 0 then return nil end
-    local gold = safe(GetCarriedCurrencyAmount, CURT_MONEY) or 0
-    if gold < cost then
+    -- GetCarriedCurrencyAmount is PC-only (a compatibility alias); consoles need GetCurrencyAmount
+    local gold = safe(GetCurrencyAmount, CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
+        or safe(GetCarriedCurrencyAmount, CURT_MONEY)
+    if gold ~= nil and gold < cost then
         say("Not enough gold to repair (" .. money(cost) .. " needed).")
         return nil
     end
@@ -476,6 +483,7 @@ function QM.CreateSettings(saved, extra)
         check("Trash", "Items in the Trash category.", "sellTrash"),
         check("Treasure", "Treasure that isn't stolen (stolen goods only sell at a fence).", "sellTreasure"),
         check("Looted potions and poisons", "Never ones crafted by your characters, never Crown potions.", "sellPotions"),
+        check("Monster trophies", "Trophies dropped by monsters, worth only their gold.", "sellTrophies"),
         check("Repair kits (green or lower)", "Higher-quality, group and Crown repair kits are kept.", "sellRepairKits"),
         check("Ornate gear (any quality)", "Ornate pieces are worth more sold than deconstructed.", "sellOrnate"),
         check("White gear", "All white (normal quality) armor, weapons and jewelry, including companion gear.", "sellWhiteGear"),

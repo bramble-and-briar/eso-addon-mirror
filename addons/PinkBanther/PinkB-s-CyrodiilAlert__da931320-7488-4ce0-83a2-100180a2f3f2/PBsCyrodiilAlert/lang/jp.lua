@@ -360,6 +360,12 @@ local strings = {
 	SI_PBSCA_BOARD_POP_TEXT_TOOLTIP = "人口はゲーム自身のキャンペーンブラウザのアイコン（入場時のキャンペーン画面に出るものと同じ）で表示します。オンにすると文字（低・中・高・満杯）になります。アイコンを描画できないクライアントでは、オフのままでも自動的に文字になります。",
 	SI_PBSCA_HELP_BOARD_POP = "/pbalert board pop icon | text -- 人口の表示方法",
 	SI_PBSCA_ERROR_POP = "icon か text を指定してください",
+	SI_PBSCA_BOARD_EMPEROR_NAME = "皇帝の名前の表示",
+	SI_PBSCA_BOARD_EMPEROR_NAME_TOOLTIP = "戦況表示に出す皇帝の名前を選びます。アカウント名（コンソールではPSN ID）か、キャラクター名です。",
+	SI_PBSCA_EMPEROR_NAME_ACCOUNT = "アカウント名（PSN ID）",
+	SI_PBSCA_EMPEROR_NAME_CHARACTER = "キャラクター名",
+	SI_PBSCA_ERROR_EMPEROR_NAME = "account か character を指定してください",
+	SI_PBSCA_HELP_BOARD_EMPEROR = "/pbalert board emperor account | character -- 皇帝の名前の表示",
 	SI_PBSCA_BOARD_LINE = "%s%s  拠点 %d  得点 %s",
 	-- 帝都のキャンペーンには砦も砦の得点も無く、攻撃中に数えるものも無い。その場合の
 	-- 陣営行は「陣営名＋混雑度」だけになる。

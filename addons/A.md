@@ -40,6 +40,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ACUS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/ACUS__35468315-d34f-4779-b62b-ccb35919ce0f) | user562x | Console | — |
 | [AdBlock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/AdBlock__2862) | peniku8 | PC / Mac | 1.3.7 |
 | [AdBlock Plus - Block Chat Advertisements, Spam, & More!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scorpius2k1/AdBlock-Plus---Block-Chat-Advertisements-Spam-More__3032) | scorpius2k1 | PC / Mac | 1.7 |
+| [Add-On Memory Watch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/Add-On-Memory-Watch__114d9b29-d8d7-4dde-a962-edcf1670fb91) | Khazaril | Console | — |
 | [Added Info - Friend List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Added-Info---Friend-List__2629) | MrPikPik | PC / Mac | 1.3.1 |
 | [Added Info - Group Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Added-Info---Group-Window__2632) | MrPikPik | PC / Mac | 2.1 |
 | [Added Info - Group Window: Show Ignored Players Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Added-Info---Group-Window-Show-Ignored-Players-Patch__2658) | MrPikPik | PC / Mac | 1.1 |
@@ -50,6 +51,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Added Info - Unit Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Added-Info---Unit-Frames__2771) | MrPikPik | PC / Mac | 1.3.3 |
 | [Additional Ignore List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akarivs/Additional-Ignore-List__4193) | akarivs | PC / Mac | 0.4.5 |
 | [Additional Reminders](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Additional-Reminders__301799ca-d139-4097-8799-022ef07985ad) | M0R | Console | — |
+| [AddKillCounter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/AddKillCounter__145d6efe-63bc-46fb-bf64-f0bf0b063de0) | FiNk3F13 | Console | — |
 | [Addon Load Time Monitor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Addon-Load-Time-Monitor__a89e4472-1774-4182-bc32-05d04d19ca06) | code65536 | Console | — |
 | [Addon Loadouts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/Addon-Loadouts__1ff1b2cd-ba65-4264-a11d-2c55b57eb158) | Dack.Janiels | Console | — |
 | [Addon Selector (Save & Load AddOn profiles/packs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Addon-Selector-Save-Load-AddOn-profiles-packs__1161) | Baertram | PC / Mac | 3.23 |
@@ -196,7 +198,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alternative Boss Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Boss-Bar__3052) | buldezir | PC / Mac | 1.0.19 |
 | [Alternative Boss Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Boss-Bar__ab71c694-e122-4792-9268-fe2c2595f986) | j.hhh | Console | — |
 | [Alternative Buffs/Debuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Buffs-Debuffs__3875) | buldezir | PC / Mac | 1.0.3 |
-| [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.5.39 |
+| [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.6.40 |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Alternative-Group-Frames__21f64968-c492-4b43-82ff-b7b1f25c7500) | Copper0 | Console | — |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Group-Frames__a020fed1-e58d-4c59-8ec5-6fb71e8ee9cc) | j.hhh | Console | — |
 | [ALTHI Suite – Farming & Fishing Toolkit &#127907;&#127807;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Suite-Farming-Fishing-Toolkit__4984) | Namorstradam | PC / Mac | 2.0.0 |

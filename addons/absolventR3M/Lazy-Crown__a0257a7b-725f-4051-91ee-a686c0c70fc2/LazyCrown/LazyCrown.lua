@@ -596,17 +596,18 @@ local P=Personalities()
 local key=PersonalityKey()
 local skipNikel=P and P.SKIP_NIKEL and P.SKIP_NIKEL[key]
 if pick.keepId==NIKEL and not skipNikel then
-return pick.defend and "We're gonna protect Nikel's pickle from tickling." or "We're gonna tickle Nikel's pickle."
+if pick.defend then return "We're gonna protect Nikel's pickle from tickling." end
+if pick.owner~=mine then return "We're gonna tickle Nikel's pickle." end
 end
 if pick.keepId==BLUE_ROAD and P and P.SAY_SGX and P.SAY_SGX[key] and sv.insideJokes==true then
 return "And don't forget sgx says the mine side is cursed."
 end
 local drakelowe=pick.keepId==DRAKELOWE or(pick.parent==DRAKELOWE and pick.kind=="Mine")
-if drakelowe and not pick.defend and P and P.SHARE_DRAKELOWE and P.SHARE_DRAKELOWE[key] then
+if drakelowe and not pick.defend and pick.owner~=mine and P and P.SHARE_DRAKELOWE and P.SHARE_DRAKELOWE[key] then
 return "Make sure you share the Drakelowe quests with everyone."
 end
 if pick.keepId==BRUMA then return "Bruma is the key to the whole map guys." end
-if GATE_KEEPS[mine] and GATE_KEEPS[mine][pick.keepId] then return "I guess we gotta go bail out the alliance ugh." end
+if GATE_KEEPS[mine] and GATE_KEEPS[mine][pick.keepId] and(pick.defend or pick.owner~=mine)then return "I guess we gotta go bail out the alliance ugh." end
 end
 local VOICES={
 declare={attack="The crown doth declare an attack on %s.",defend="The crown doth declare the defense of %s.",
@@ -634,13 +635,16 @@ local CALL_VARIANTS={
 {text="Let's go see what %s has for us.",who={confessor=2,lazy=1}},
 {text="%s, I guess.",who={lazy=2},losing={november=2,deano=2}},
 {text="Eh... %s?",who={lazy=2,november=1,deano=1},rerolls={november=2,deano=2}},
-{text="Something's happening at %s. Finally.",who={bored=2,confessor=1}},
-{text="Alright, %s. Bring your own siege.",who={diil=2,november=1}},
+{text="Something's happening at %s. Finally.",who={bored=2,confessor=1},busy=true},
+{text="Alright, %s. Bring your own siege.",who={diil=2,november=1},kinds={Keep=true,Outpost=true}},
 {text="%s or %s, whatever. %s.",who={lazy=1,november=1},alt=true},
 }
 local PAYING_US={confessor=true,deano=true,greedy=true,lazy=true}
 local GRENADE="Bring out the Holy Hand Grenade of %s. We are going to leech that tick if we can. %s"
 local function Wording(pick,where,opts)
+local function Unfit(v)
+return(v.kinds and not v.kinds[pick.kind])or(v.busy and not(opts and opts.busy)and not UnderAttack(pick.keepId))
+end
 local voice=Voice()
 if pick.directive then return string.format(voice.directive,pick.directive)end
 local key=PersonalityKey()
@@ -648,7 +652,7 @@ if key=="random" and opts and opts.variants then
 local pool={}
 for _,v in pairs(VOICES)do table.insert(pool,pick.defend and v.defend or v.attack)end
 if not pick.defend then
-for _,v in ipairs(CALL_VARIANTS)do if not v.alt then table.insert(pool,v.text)end end
+for _,v in ipairs(CALL_VARIANTS)do if not v.alt and not Unfit(v)then table.insert(pool,v.text)end end
 end
 return string.format(pool[Random(1,#pool)],where)
 end
@@ -667,7 +671,7 @@ for _,v in ipairs(CALL_VARIANTS)do
 local weight=v.who[key] or 0
 if losing and v.losing and v.losing[key] then weight=math.max(weight,v.losing[key])end
 if rerolls and v.rerolls and v.rerolls[key] then weight=math.max(weight,v.rerolls[key])end
-if v.alt and not opts.alt then weight=0 end
+if weight>0 and((v.alt and not opts.alt)or Unfit(v))then weight=0 end
 if weight>0 then
 table.insert(choices,{variant=v,weight=weight})
 total=total+weight
@@ -757,6 +761,7 @@ KindOn=function(kind)return sv[KIND_SETTING[kind] or ""]~=false end,
 lifetime=sv.lifetime or{},lastCall=sv.lastDecidedCall,
 streakL=sv.streakL or 0,streakBy=sv.streakBy or{},
 lossesBy=type(sv.night)=="table" and sv.night.lossesBy or{},
+tonight=type(sv.night)=="table" and sv.night.targets or{},
 memory=sv.memory,ignoreCA=sv.continuousAttack==false,now=Now(),
 }
 if IsCurrentCampaignVengeanceRuleset then
@@ -862,7 +867,17 @@ local POTATO_SMOKE={
 local function PotatoBreak(targets,mine,where)
 local kind=Random(1,3)
 if kind==1 then return POTATO_HUNGRY[Random(1,#POTATO_HUNGRY)] end
-if kind==2 then return POTATO_SMOKE[Random(1,#POTATO_SMOKE)] end
+if kind==2 then
+local i=Random(1,#POTATO_SMOKE)
+if i==1 then
+local atKeep=false
+for _,t in ipairs(where and targets or{})do
+if t.kind=="Keep" and t.owner==mine and t.x and math.sqrt((t.x - where.x)^2+(t.y - where.y)^2)<=0.05 then atKeep=true end
+end
+if not atKeep then i=Random(2,#POTATO_SMOKE)end
+end
+return POTATO_SMOKE[i]
+end
 if Random(1,2)==1 then
 local stop,best
 for _,t in ipairs(targets)do
@@ -1060,7 +1075,7 @@ local how=leg and(leg.line or leg.ride)
 if plan and plan.how then
 how=plan.how
 elseif leg and sv.showEta then
-local eta=LazyCrown.Travel.Eta(leg.seconds)
+local eta=LazyCrown.Travel.Eta(leg.recallSeconds or leg.seconds)
 how=how and(how:gsub("%.$",", " .. eta .. "."))or("It's right there, " .. eta .. ".")
 end
 if how then
@@ -1076,8 +1091,10 @@ if not quickReroll then sv.memory.diilSnackIn=(sv.memory.diilSnackIn or Random(5
 if(sv.memory.diilSnackIn or 1)<=0 then
 sv.memory.diilSnackIn=Random(5,10)
 local lines=Random(1,2)==1 and POTATO_HUNGRY or POTATO_SMOKE
+local i=Random(1,#lines)
+if lines==POTATO_SMOKE and i==1 and pick.kind~="Keep" then i=Random(2,#lines)end
 tail=tail or{}
-table.insert(tail,lines[Random(1,#lines)])
+table.insert(tail,lines[i])
 end
 end
 if sv.mean==true and(sv.streakL or 0)>=5 and PAYING_US[personality] and Random(1,2)==1 then
@@ -1097,7 +1114,8 @@ end
 end
 alt=best and best.name
 end
-local wording={variants=true,grenade=plan and plan.grenade,seconds=leg and leg.seconds,alt=alt}
+local wording={variants=true,grenade=plan and plan.grenade,seconds=leg and(leg.recallSeconds or leg.seconds),alt=alt,
+busy=plan and plan.busy~=nil and plan.busy==pick.keepId}
 local line=Drunk(CallLine(pick,mine,extras,tail,plan and plan.quietTarget,wording),pick.owner)
 Say(line)
 local steps
@@ -1385,7 +1403,7 @@ Diag(string.format("We already hold %s and nobody's attacking it.",t.name))
 return
 end
 SettleIfDecided()
-local already=sv.open and sv.open.keepId==t.keepId
+local already=sv.open and sv.open.keepId==t.keepId and((sv.open.defend==true)==(owner==mine))
 OnCyrodiilMap(function()
 if sv.open and not already then
 if Since(sv.open.at)<VOID_SECONDS then

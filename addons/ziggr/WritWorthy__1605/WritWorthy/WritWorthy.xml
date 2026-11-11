@@ -84,8 +84,13 @@
                   <Dimensions x="50" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "VoucherCt", "V", "ui_voucher_ct")</OnInitialized>
                 </Control>
-                <Control name="$(parent)Detail1" inherits="ZO_SortHeader">
+                <Control name="$(parent)CraftCt" inherits="ZO_SortHeader">
                   <Anchor relativeTo="$(parent)" relativePoint="TOPLEFT" point="TOPLEFT" offsetX="160" />
+                  <Dimensions x="45" y="20" />
+                  <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "CraftCt", "Ct", "ui_craft_ct")</OnInitialized>
+                </Control>
+                <Control name="$(parent)Detail1" inherits="ZO_SortHeader">
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPLEFT" point="TOPLEFT" offsetX="210" />
                   <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-645" />
                   <Dimensions x="300" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail1", "Detail 1", "ui_detail1")</OnInitialized>

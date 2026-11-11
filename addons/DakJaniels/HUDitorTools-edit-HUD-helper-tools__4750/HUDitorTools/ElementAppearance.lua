@@ -4,8 +4,8 @@
 -- Reapply after ZO_HUDManager:PropagateSettings (hudmanager.lua) and when
 -- the hud_editor_keyboard scene hides. SetScale is only on the HUD control.
 -- RefreshAnchors copies hudElementRef:GetDimensions(). That value includes
--- the control scale, same as GetHeight in ZO_Scroll_UpdateScrollBar. Divide
--- by the HUD control GetScale once. The anchor from
+-- the control scale, same as GetHeight in ZO_Scroll_UpdateScrollBar, so the
+-- editor selection box matches the scaled control. The anchor from
 -- ZO_GetControlPointOffsetFromGuiRoot is left as RefreshAnchors set it.
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
@@ -73,15 +73,7 @@ local function ReadScale(scale)
 end
 
 local function ReadFontSize(fontSize)
-    fontSize = tonumber(fontSize)
-    if fontSize == nil then
-        return HT.APPEARANCE_FONT_SIZE_DEFAULT
-    end
-    fontSize = zo_floor(fontSize)
-    if fontSize < 1 then
-        return 1
-    end
-    return fontSize
+    return HT.ClampInteger(fontSize, 1, nil, HT.APPEARANCE_FONT_SIZE_DEFAULT)
 end
 
 function HT.GetAppearanceInputModeKey()
@@ -187,12 +179,6 @@ function HT.SetAppearanceRow(saveKey, row, inputModeKey)
     }
 end
 
---- @param layoutValue number
---- @return string
-local function FormatUiLayoutMeasurement(layoutValue)
-    return string.format("%dui", zo_round(layoutValue))
-end
-
 --- @param label LabelControl
 --- @param text string|nil
 --- @return number
@@ -240,7 +226,7 @@ local function CenterResourceNumbersLabel(label)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     local parentControl = label:GetParent()
     label:ClearAnchors()
-    label:SetAnchor(CENTER, parentControl, CENTER, FormatUiLayoutMeasurement(0), FormatUiLayoutMeasurement(0))
+    label:SetAnchor(CENTER, parentControl, CENTER, HT.FormatUiLayoutMeasurement(0), HT.FormatUiLayoutMeasurement(0))
     local textWidth = GetLabelStringWidthUI(label, label:GetText())
     if textWidth > 0 then
         label:SetWidth(textWidth)
@@ -406,9 +392,22 @@ end
 
 -- Quest lines take FONT_HEADER, FONT_GENERAL, and FONT_SUBCATEGORY when the
 -- header, condition, and step pools acquire them (QuestTracker.lua).
+-- IsDetached calls the manager element's IsValid (HUDTracker_Base.lua 42-47
+-- and 181). keyboardHUDElement is assigned in InitializeHUDElements
+-- (HUDTracker_Manager.lua 169) on EVENT_ADD_ONS_LOADED. A user addon can call
+-- AddQuest from its own EVENT_ADD_ON_LOADED, while that field is still nil.
+-- SeparatedTrackers defaults to false (HUDTracker_Manager.lua 130).
 local function FontStringForTracker(trackerOwner)
     local fontString = FontStringFromAppearanceRow(HT.GetAppearanceRow(trackerOwner.control:GetName()))
-    if not fontString and not trackerOwner:IsDetached() then
+    if fontString then
+        return fontString
+    end
+    local trackerManagerElement = HUD_TRACKER_MANAGER:GetPlatformHUDElement()
+    local trackerIsDetached = false
+    if trackerManagerElement then
+        trackerIsDetached = trackerOwner:IsDetached()
+    end
+    if not trackerIsDetached then
         fontString = FontStringFromAppearanceRow(HT.GetAppearanceRow(TRACKERS_SAVE_KEY))
     end
     return fontString
@@ -515,16 +514,28 @@ local function InstallShownHook(control, element)
 end
 
 --- Target buffs are SetParent'd onto the target frame (BuffDebuff.lua 388-389).
---- That is the only registered HUD element ZOS parents onto a different HUD element.
---- Health, magicka, and stamina stay children of ZO_PlayerAttribute
---- (PlayerAttributeBars.xml 85, 132, 197). Combined Resources and the pyramid
---- layout (ResourceBarGroup.lua 149-159) depend on that parent.
---- Trackers stay under ZO_HUDTrackers (HUDTracker_Manager.lua 244-255).
+--- That parents them out of ZO_BuffDebuffTopLevel. BUFF_DEBUFF_FRAGMENT is that
+--- window (BuffDebuff.lua 343, HUDScene.lua 106). A child of GuiRoot is not in
+--- the fragment, so the icons never draw. Put the container back on the buff
+--- window and anchor it to the target caption (same point as BuffDebuff.lua 388).
+--- The caption anchor does not inherit the target frame's SetScale.
+--- A saved HUD move is a GuiRoot anchor, so that one is applied instead.
 function HT.DetachTargetBuffsFromTargetFrame()
     local targetContainer = ZO_BuffDebuffTopLevelTargetContainer
+    if not targetContainer then
+        return
+    end
     local parentControl = targetContainer:GetParent()
-    if parentControl ~= ZO_BuffDebuffTopLevel and parentControl ~= GuiRoot then
-        targetContainer:SetParent(GuiRoot)
+    if not parentControl or parentControl == ZO_BuffDebuffTopLevel then
+        return
+    end
+    local caption = parentControl:GetNamedChild("Caption")
+    local element = HT.GetHudElementForControl(targetContainer)
+    targetContainer:SetParent(ZO_BuffDebuffTopLevel)
+    if element and not element:IsUsingDefaultAnchor() then
+        element:GetCurrentAnchor():Set(targetContainer)
+    elseif caption then
+        targetContainer:SetAnchor(CENTER, caption, BOTTOM, 0, 40)
     end
 end
 
@@ -588,12 +599,7 @@ function HT.ApplyAllElementAppearances()
         if not HT.IsAppearanceRowDefault(row) then
             local control = _G[saveKey]
             if type(control) == "userdata" then
-                local element
-                if IsInGamepadPreferredMode() then
-                    element = HUD_MANAGER:GetGamepadElementForControl(control)
-                else
-                    element = HUD_MANAGER:GetKeyboardElementForControl(control)
-                end
+                local element = HT.GetHudElementForControl(control)
                 if element then
                     HT.ApplyElementAppearance(element)
                 end
@@ -639,6 +645,100 @@ local function OnEditorElementMouseWheel(editorControl, delta)
     HT.StepSelectedElementScale(editorElement, direction)
 end
 
+-- WorldMap.xml resizeHandleSize="8". WorldMap.lua ZO_WorldMap_OnResizeStart.
+local EDITOR_RESIZE_HANDLE_SIZE = 8
+local resizeDragByEditorControl = {}
+
+local function RememberEditorResizeScreenSize(editorControl)
+    local resizeDrag = resizeDragByEditorControl[editorControl]
+    if not resizeDrag then
+        return
+    end
+    -- OnResizeStop runs after StopMovingOrResizing, and GetDimensions is 0 then.
+    -- The screen rect from the last update is the size the user actually dragged.
+    local left, top, right, bottom = editorControl:GetScreenRect()
+    local screenWidth = right - left
+    local screenHeight = bottom - top
+    if screenWidth > 1 then
+        resizeDrag.screenWidth = screenWidth
+    end
+    if screenHeight > 1 then
+        resizeDrag.screenHeight = screenHeight
+    end
+end
+
+local function OnEditorElementResizeStart(editorControl)
+    local editorElement = editorControl.object
+    if not editorElement or not editorElement.GetElementData then
+        return
+    end
+    local elementData = editorElement:GetElementData()
+    if not elementData then
+        return
+    end
+    editorElement:Select()
+    local hudControl = elementData:GetControl()
+    local scale = hudControl:GetScale()
+    if not scale or scale == 0 then
+        scale = 1
+    end
+    local left, top, right, bottom = editorControl:GetScreenRect()
+    local mouseX, mouseY = GetUIMousePosition()
+    local minDistanceToVerticalEdge = zo_min(zo_abs(mouseX - left), zo_abs(mouseX - right))
+    local minDistanceToHorizontalEdge = zo_min(zo_abs(mouseY - top), zo_abs(mouseY - bottom))
+    resizeDragByEditorControl[editorControl] =
+    {
+        startScale = scale,
+        startScreenWidth = right - left,
+        startScreenHeight = bottom - top,
+        screenWidth = right - left,
+        screenHeight = bottom - top,
+        isWidthDriven = minDistanceToVerticalEdge < minDistanceToHorizontalEdge,
+    }
+    editorControl:SetHandler("OnUpdate", RememberEditorResizeScreenSize)
+end
+
+local function OnEditorElementResizeStop(editorControl)
+    editorControl:SetHandler("OnUpdate", nil)
+    local resizeDrag = resizeDragByEditorControl[editorControl]
+    resizeDragByEditorControl[editorControl] = nil
+    local editorElement = editorControl.object
+    if not resizeDrag or not editorElement or not editorElement.GetElementData then
+        return
+    end
+    local elementData = editorElement:GetElementData()
+    if not elementData then
+        return
+    end
+    local newScale
+    if resizeDrag.isWidthDriven then
+        if resizeDrag.startScreenWidth > 1 and resizeDrag.screenWidth > 1 then
+            newScale = resizeDrag.startScale * (resizeDrag.screenWidth / resizeDrag.startScreenWidth)
+        end
+    elseif resizeDrag.startScreenHeight > 1 and resizeDrag.screenHeight > 1 then
+        newScale = resizeDrag.startScale * (resizeDrag.screenHeight / resizeDrag.startScreenHeight)
+    end
+    if newScale == nil or newScale <= 0 then
+        return
+    end
+    newScale = zo_roundToNearest(newScale, HT.APPEARANCE_SCALE_STEP)
+    if newScale <= 0 then
+        return
+    end
+    local saveKey = elementData:GetSaveKey()
+    local row = HT.GetAppearanceRow(saveKey) or {}
+    HT.SetAppearanceRow(saveKey, {
+        scale = newScale,
+        fontFace = row.fontFace,
+        fontSize = row.fontSize,
+        fontOutline = row.fontOutline,
+    })
+    HT.ApplyElementAppearance(elementData)
+    editorElement:RefreshAnchors()
+    HT.RefreshAppearanceInfoBox()
+    HT.RefreshLayoutInfoBoxSection()
+end
+
 function HT.InstallElementScaleMouseWheel(editor)
     for _, elementControl in ipairs(editor.elementControls) do
         if not elementControl.huditorToolsScaleWheelInstalled then
@@ -646,19 +746,15 @@ function HT.InstallElementScaleMouseWheel(editor)
             if not elementControl:GetHandler("OnMouseWheel") then
                 elementControl:SetHandler("OnMouseWheel", OnEditorElementMouseWheel)
             end
+            elementControl:SetResizeHandleSize(EDITOR_RESIZE_HANDLE_SIZE)
+            if not elementControl:GetHandler("OnResizeStart") then
+                elementControl:SetHandler("OnResizeStart", OnEditorElementResizeStart)
+            end
+            if not elementControl:GetHandler("OnResizeStop") then
+                elementControl:SetHandler("OnResizeStop", OnEditorElementResizeStop)
+            end
         end
     end
-end
-
-local function ApplyEditorSelectorLayoutSize(editorElement)
-    local hudControl = editorElement:GetElementData():GetControl()
-    local scale = hudControl:GetScale()
-    if zo_abs(scale - 1) < 0.001 then
-        return
-    end
-    local editorControl = editorElement:GetControl()
-    local width, height = editorControl:GetDimensions()
-    editorControl:SetDimensions(width / scale, height / scale)
 end
 
 function HT.InstallElementAppearanceEditorHooks()
@@ -668,9 +764,6 @@ function HT.InstallElementAppearanceEditorHooks()
     editorScaleHooksInstalled = true
     SecurePostHook(ZO_HUDEditor_Keyboard, "PopulateElementControls", function (editor)
         HT.InstallElementScaleMouseWheel(editor)
-    end)
-    SecurePostHook(ZO_HUDEditorElement_Keyboard, "RefreshAnchors", function (editorElement)
-        ApplyEditorSelectorLayoutSize(editorElement)
     end)
 end
 

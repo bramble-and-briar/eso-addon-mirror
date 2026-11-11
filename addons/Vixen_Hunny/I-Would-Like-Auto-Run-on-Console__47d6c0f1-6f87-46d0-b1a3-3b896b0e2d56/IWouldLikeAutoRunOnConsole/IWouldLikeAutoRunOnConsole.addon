@@ -1,0 +1,10 @@
+## Title: I Would Like Auto Run On Console
+## APIVersion: 101048 101049 101050
+## AddOnVersion: 1
+## Version: 1.0.0
+## Author: Vixen Hunny
+## Description: Puts the game's own Auto Run toggle on a controller button combo. Press once to run, press again (or move the stick) to stop.
+## OptionalDependsOn: LibAddonMenu-2.0
+## SavedVariables: IWouldLikeAutoRunOnConsoleSV
+
+IWouldLikeAutoRunOnConsole.lua

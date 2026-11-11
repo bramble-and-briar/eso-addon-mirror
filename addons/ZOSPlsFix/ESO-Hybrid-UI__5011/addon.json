@@ -8,8 +8,8 @@
   "category_id": "162",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:5011",
@@ -18,7 +18,7 @@
     "ESOHybridUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5011/",
-  "fingerprint": "6a6417ebc3f782071ed1b567384c1497339fdfcfa27c054436f1d96b8662f8e0",
+  "fingerprint": "be3b80bdfaf8aa94a8c7571ec80a79411ee7b66ba1557b48142aa113b473d1e1",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18249.png",
     "https://cdn-eso.mmoui.com/preview/pvw18250.png",
@@ -31,11 +31,11 @@
   "source_id": "5011",
   "source_url": "https://www.esoui.com/downloads/info5011-ESOHybridUI.html",
   "stats": {
-    "downloads": 60,
+    "downloads": 123,
     "favorites": 0,
-    "monthly_downloads": 54
+    "monthly_downloads": 111
   },
   "title": "ESO Hybrid UI",
-  "updated_at": 1793640004000,
-  "version": "3.3.8"
+  "updated_at": 1794323776000,
+  "version": "4.2.1-beta"
 }

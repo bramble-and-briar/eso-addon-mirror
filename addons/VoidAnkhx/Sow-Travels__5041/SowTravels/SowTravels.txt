@@ -1,0 +1,8 @@
+## Title: Sow Travels
+## APIVersion: 101051
+## Author: |cDAFF21Sowano|r
+## Version: 1.0.0
+## Description: Keybinds your favorite trials !
+
+Bindings.xml
+main.lua

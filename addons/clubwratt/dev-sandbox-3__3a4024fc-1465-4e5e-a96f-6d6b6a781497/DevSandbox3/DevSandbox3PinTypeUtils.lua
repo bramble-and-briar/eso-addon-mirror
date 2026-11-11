@@ -21,22 +21,49 @@ local BY_NAME = {
     ["Pewter Seam"] = P.BLACKSMITH, ["Copper Seam"] = P.BLACKSMITH, ["Silver Seam"] = P.BLACKSMITH, ["Electrum Seam"] = P.BLACKSMITH, ["Platinum Seam"] = P.BLACKSMITH,
     ["Jute"] = P.CLOTHING, ["Flax"] = P.CLOTHING, ["Cotton"] = P.CLOTHING, ["Spidersilk"] = P.CLOTHING, ["Ebonthread"] = P.CLOTHING,
     ["Kreshweed"] = P.CLOTHING, ["Ironweed"] = P.CLOTHING, ["Silverweed"] = P.CLOTHING, ["Void Bloom"] = P.CLOTHING, ["Ancestor Silk"] = P.CLOTHING,
-    ["Pure Water"] = P.WATER, ["Water Skin"] = P.WATER, ["Herbalist's Satchel"] = P.HERBALIST,
+    ["Pure Water"] = P.WATER, ["Water Skin"] = P.WATER, ["Potable Liquids"] = P.WATER, ["Herbalist's Satchel"] = P.HERBALIST,
+    ["Torn Cloth"] = P.CLOTHING, ["Scrap Wood"] = P.WOODWORKING,
 }
 local lower = {}
 for name, id in pairs(BY_NAME) do lower[string.lower(name)] = id end
 local PREFIXES = { "rich ", "lush ", "pristine ", "protean " }
 
+-- Every node name, in the order the tracker dropdown lists them: alchemy reagents first, then the rest; each
+-- group alphabetical (the console dropdown is a left/right list that does not wrap).
+local REAGENT = { [P.FLOWER] = true, [P.MUSHROOM] = true, [P.WATERPLANT] = true, [P.CRIMSON] = true }
+PinTypeUtils.NAMES = {}
+for name in pairs(BY_NAME) do PinTypeUtils.NAMES[#PinTypeUtils.NAMES + 1] = name end
+table.sort(PinTypeUtils.NAMES, function(a, b)
+    local ra, rb = REAGENT[BY_NAME[a]] or false, REAGENT[BY_NAME[b]] or false
+    if ra ~= rb then return ra end
+    return a < b
+end)
+
+---The node a name stands for: lower case, quality prefix dropped ("Lush Columbine" and "Columbine" -> "columbine").
+---@param name string|nil compass pin description, or a name from NAMES
+---@return string|nil key nil for a name that is not a harvest node
+function PinTypeUtils.Key(name)
+    if type(name) ~= "string" then return nil end
+    local s = string.lower(name)
+    if lower[s] then return s end
+    for _, p in ipairs(PREFIXES) do
+        local rest = s:sub(#p + 1)
+        if s:sub(1, #p) == p and lower[rest] then return rest end
+    end
+    return nil
+end
+
+---@param key string a key from PinTypeUtils.Key
+---@return integer|nil
+function PinTypeUtils.TypeOfKey(key)
+    return lower[key]
+end
+
 ---@param name string|nil compass pin description
 ---@return integer|nil
 function PinTypeUtils.FromName(name)
-    if type(name) ~= "string" then return nil end
-    local s = string.lower(name)
-    if lower[s] then return lower[s] end
-    for _, p in ipairs(PREFIXES) do
-        if s:sub(1, #p) == p and lower[s:sub(#p + 1)] then return lower[s:sub(#p + 1)] end
-    end
-    return nil
+    local key = PinTypeUtils.Key(name)
+    return key and lower[key]
 end
 
 DevSandbox3.PinTypeUtils = PinTypeUtils

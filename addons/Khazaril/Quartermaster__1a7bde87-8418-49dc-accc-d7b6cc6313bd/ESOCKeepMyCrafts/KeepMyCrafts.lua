@@ -12,6 +12,12 @@
 --     both put their rows on screen through AddFilteredDataToList (inherited from
 --     ZO_GamepadCraftingInventory); we override it on those two subclasses only, so crafting
 --     creation and improvement lists are untouched.
+--   * Bank: GAMEPAD_BANKING builds its lists on first open and hands the Deposit list to
+--     SetDepositList; that list's itemFilterFunction (the game's own hides stolen items) is wrapped
+--     so writ stock your characters crafted (white gear, glyphs, potions, poisons) isn't offered for
+--     the bank or house storage. The bank's own X button (UI_SHORTCUT_SECONDARY) is only used to
+--     rename house storage, so at the bank that same descriptor is borrowed to show/hide them; adding
+--     a second button on a key the game already registered would trip its duplicate-keybind check.
 --   * Toggle button: GAMEPAD_SMITHING_DECONSTRUCT_SCENE and UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE add
 --     their buttons on SCENE_SHOWING and remove them on SCENE_HIDDEN; we do the same.
 
@@ -19,7 +25,7 @@ local ADDON_NAME = "ESOCKeepMyCrafts"
 ESOC_KeepMyCrafts = ESOC_KeepMyCrafts or {}
 local WS = ESOC_KeepMyCrafts
 
-local settings = { hide = true }
+local settings = { hide = true, hideBank = true }
 local myNames = nil
 WS.hiddenCount = 0
 
@@ -54,6 +60,24 @@ function WS.IsProtected(bagId, slotIndex)
     if WS.IsWritStock(bagId, slotIndex) then return true end
     local QM = ESOC_Quartermaster
     return QM ~= nil and QM.IsKept ~= nil and QM.IsKept(bagId, slotIndex) == true
+end
+
+-- Writ stock one of your characters crafted, no use in the bank: white gear, glyphs, potions, poisons.
+local function isWritConsumable(itemType)
+    if itemType == nil then return false end
+    return itemType == ITEMTYPE_POTION or itemType == ITEMTYPE_POISON or itemType == ITEMTYPE_GLYPH_ARMOR
+        or itemType == ITEMTYPE_GLYPH_WEAPON or itemType == ITEMTYPE_GLYPH_JEWELRY
+end
+
+function WS.IsWritGear(bagId, slotIndex)
+    local itemType = GetItemType(bagId, slotIndex)
+    if itemType ~= nil and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then
+        local ok, quality = pcall(GetItemDisplayQuality, bagId, slotIndex)
+        if not ok or quality == nil or quality ~= ITEM_DISPLAY_QUALITY_NORMAL then return false end
+    elseif not isWritConsumable(itemType) then
+        return false
+    end
+    return WS.IsWritStock(bagId, slotIndex)
 end
 
 function WS.IsHiding()
@@ -163,6 +187,105 @@ local function hookSell()
     return true
 end
 
+local function wrapDepositFilter(list)
+    if not list or list.esocWrapped then return end
+    list.esocWrapped = true
+    local function hideFromBank(slot)
+        if not settings.hideBank or not slot or not slot.bagId or not slot.slotIndex then return false end
+        local ok, writ = pcall(WS.IsWritGear, slot.bagId, slot.slotIndex)
+        return ok and writ
+    end
+    local original = list.itemFilterFunction
+    list.itemFilterFunction = function(slot)
+        if original and not original(slot) then return false end
+        return not hideFromBank(slot)
+    end
+    -- if the game sets its own filter again later, keep ours on top of it
+    local setFilter = list.SetItemFilterFunction
+    if setFilter then
+        list.SetItemFilterFunction = function(self, fn)
+            return setFilter(self, function(slot)
+                if fn and not fn(slot) then return false end
+                return not hideFromBank(slot)
+            end)
+        end
+    end
+end
+
+-- How many backpack items the bank is (or would be) leaving out.
+local function bankHiddenCount()
+    local n = 0
+    for slot = 0, (GetBagSize(BAG_BACKPACK) or 0) - 1 do
+        local ok, writ = pcall(WS.IsWritGear, BAG_BACKPACK, slot)
+        if ok and writ then n = n + 1 end
+    end
+    return n
+end
+
+-- Borrow the bank's X button (house-storage rename) as a show/hide toggle at the real bank.
+local function wrapBankToggle(bank)
+    local group = bank.mainKeybindStripDescriptor
+    if type(group) ~= "table" or group.esocWrapped then return false end
+    local button
+    for _, b in ipairs(group) do
+        if type(b) == "table" and b.keybind == "UI_SHORTCUT_SECONDARY" then button = b end
+    end
+    if not button then
+        -- the game no longer has one: add ours (X is free on this screen then)
+        button = { keybind = "UI_SHORTCUT_SECONDARY", visible = function() return false end, callback = function() end }
+        group[#group + 1] = button
+    end
+    group.esocWrapped = true
+    local function ours()
+        local ok, mine = pcall(function()
+            return GetBankingBag() == BAG_BANK and bank:IsInDepositMode()
+        end)
+        return ok and mine
+    end
+    local gameName, gameVisible, gameCallback = button.name, button.visible, button.callback
+    button.name = function(...)
+        if ours() then
+            if settings.hideBank then
+                local n = bankHiddenCount()
+                return n > 0 and string.format("Show crafted (%d)", n) or "Show crafted"
+            end
+            return "Hide crafted"
+        end
+        if type(gameName) == "function" then return gameName(...) end
+        return gameName
+    end
+    button.visible = function(...)
+        if ours() then return true end
+        if type(gameVisible) == "function" then return gameVisible(...) end
+        return gameVisible ~= false
+    end
+    button.callback = function(...)
+        if ours() then
+            settings.hideBank = not settings.hideBank
+            if bank.depositList and bank.depositList.RefreshList then pcall(bank.depositList.RefreshList, bank.depositList) end
+            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(group) end)
+            return
+        end
+        if gameCallback then return gameCallback(...) end
+    end
+    return true
+end
+
+local function hookBank()
+    local bank = GAMEPAD_BANKING
+    if not bank or not bank.SetDepositList then return false end
+    if bank.depositList then wrapDepositFilter(bank.depositList) end
+    pcall(wrapBankToggle, bank)
+    local original = bank.SetDepositList
+    bank.SetDepositList = function(self, list, ...)
+        local result = original(self, list, ...)
+        pcall(wrapDepositFilter, list)
+        pcall(wrapBankToggle, self)
+        return result
+    end
+    return true
+end
+
 local function hookInventoryClass(class)
     if not class then return false end
     local original = class.AddFilteredDataToList -- inherited from ZO_GamepadCraftingInventory
@@ -193,9 +316,10 @@ end
 function WS.Init(saved)
     if saved then
         if saved.hide == nil then saved.hide = true end
+        if saved.hideBank == nil then saved.hideBank = true end
         settings = setmetatable({}, {
-            __index = function(_, k) if k == "hide" then return saved.hide end end,
-            __newindex = function(_, k, v) if k == "hide" then saved.hide = v end end,
+            __index = function(_, k) return saved[k] end,
+            __newindex = function(_, k, v) saved[k] = v end,
         })
     end
     local done = {}
@@ -213,6 +337,7 @@ function WS.Init(saved)
         return hookInventoryClass(ZO_UniversalDeconstructionInventory_Gamepad)
             and hookScene(UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE, panel)
     end)
+    try("bank", hookBank)
     return done
 end
 
@@ -234,6 +359,12 @@ local function makeSettings()
             getFunction = function() return savedVars.hide end,
             setFunction = function(v) savedVars.hide = v; changed() end,
         },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Hide crafted writ items from the bank", default = true,
+            tooltip = "White gear, glyphs, potions and poisons your characters crafted are left out of the bank's Deposit list, and house storage's. At the bank, X shows or hides them.",
+            getFunction = function() return savedVars.hideBank end,
+            setFunction = function(v) savedVars.hideBank = v end,
+        },
     })
 end
 
@@ -251,7 +382,7 @@ EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, name
     end)
     if not ok then
         pcall(d, "[Quartermaster] could not start: " .. tostring(result))
-    elseif #result < 3 then
+    elseif #result < 4 then
         pcall(d, "[Quartermaster] only partly active (" .. table.concat(result, ", ") .. "); a game update may have changed these screens")
     end
     pcall(makeSettings)

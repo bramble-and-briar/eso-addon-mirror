@@ -1,0 +1,41 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="AddKillCounterMoveHelp" hidden="true" mouseEnabled="false" tier="HIGH">
+            <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetY="45" />
+            <Dimensions x="1100" y="90" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontGamepadCondensed34" color="D5B66F" horizontalAlignment="CENTER" text="Zähler verschieben · Rechter Stick&#10;Speichert nach 3 Sekunden ohne Bewegung">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+        <TopLevelControl name="AddKillCounterWindow" inherits="ZO_Gamepad_ParametricList_Screen" />
+        <TopLevelControl name="AddKillCounterDetails" inherits="ZO_GamepadGrid_NavQuadrant_2_3_Anchors" hidden="true">
+            <Controls>
+                <Label name="$(parent)Title" font="ZoFontGamepadBold34" color="D5B66F" wrapMode="ELLIPSIS">
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="65" />
+                    <Anchor point="TOPRIGHT" offsetX="-40" offsetY="65" />
+                    <Dimensions y="90" />
+                </Label>
+                <Label name="$(parent)Body" font="ZoFontGamepadCondensed34" color="E6E2D9" verticalAlignment="TOP">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="25" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-40" offsetY="-120" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+        <TopLevelControl name="AddKillCounterHUD" hidden="true" mouseEnabled="false" tier="MEDIUM">
+            <Dimensions x="500" y="96" />
+            <Controls>
+                <Backdrop name="$(parent)Background" centerColor="080B10C0" edgeColor="00000000">
+                    <AnchorFill />
+                    <Center file="EsoUI/Art/Miscellaneous/Gamepad/gp_edgeFill.dds" />
+                    <Insets left="4" top="4" right="-4" bottom="-4" />
+                </Backdrop>
+                <Label name="$(parent)Text" font="ZoFontGamepadCondensed27" color="F0ECE3" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="10" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-10" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

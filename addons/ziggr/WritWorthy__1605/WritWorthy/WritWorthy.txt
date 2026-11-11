@@ -1,7 +1,7 @@
-## Title: WritWorthy 7.6.1
-## Version: 7.6.1
-## AddOnVersion: 070601
-## Last Updated: 2026-10-22
+## Title: WritWorthy 7.6.2
+## Version: 7.6.2
+## AddOnVersion: 070602
+## Last Updated: 2026-11-08
 ## APIVersion: 101051 101052
 ## Description: Master Writs: calculate material costs and automate crafting.
 ## Author: ziggr, |cff9b15Sharlikran|r
@@ -95,6 +95,7 @@ WritWorthy_Smithing.lua
 WritWorthy_Alchemy.lua
 WritWorthy_Enchanting.lua
 WritWorthy_Provisioning.lua
+WritWorthy_Holiday.lua
 WritWorthy_Link.lua
 WritWorthy_MatRow.lua
 WritWorthy_Window.lua

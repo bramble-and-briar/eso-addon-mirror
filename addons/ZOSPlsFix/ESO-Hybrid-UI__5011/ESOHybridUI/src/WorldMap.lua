@@ -1,19 +1,18 @@
--- Preserve native gamepad map routing in Hybrid mode.
+-- Hybrid keeps ESO's native gamepad world map: the Map button and every direct
+-- map-open call are routed through the native gamepad scene.
 
 local ADDON = ESOHybridUI
 
-local function InstallHybridMapCategoryHook()
-    if ADDON.runtime.hybridMapCategoryHookInstalled then
-        return
+local function InstallMapCategoryHook()
+    local mainMenu = MAIN_MENU_KEYBOARD
+    if not mainMenu or not mainMenu.ToggleCategory then
+        return false
     end
 
-    local mainMenu = MAIN_MENU_KEYBOARD
-
     ZO_PreHook(mainMenu, "ToggleCategory", function(_, category)
-        local settings = ADDON:GetSettings()
-        if settings.useHybridUI and ADDON:IsNativeGamepadMode() and category == MENU_CATEGORY_MAP then
-            -- The dedicated Map button is routed through the keyboard main-menu
-            -- object in Hybrid mode. Bypass its keyboard scene selection.
+        if ADDON:IsHybrid() and ADDON:IsNativeGamepadMode() and category == MENU_CATEGORY_MAP then
+            -- The dedicated Map button runs through the keyboard main menu in
+            -- Hybrid; bypass its keyboard scene selection.
             ADDON:WithNativeGamepadMode(function()
                 SCENE_MANAGER:Show("gamepad_worldMap")
             end)
@@ -21,31 +20,28 @@ local function InstallHybridMapCategoryHook()
         end
         return false
     end)
-
-    ADDON.runtime.hybridMapCategoryHookInstalled = true
+    return true
 end
 
-local function InstallHybridWorldMapSceneHook()
-    if ADDON.runtime.hybridWorldMapHookInstalled then
-        return
+local function InstallMapSceneHook()
+    local originalShowWorldMap = _G.ZO_WorldMap_ShowWorldMap
+    if type(originalShowWorldMap) ~= "function" then
+        return false
     end
 
-    local originalShowWorldMap = ZO_WorldMap_ShowWorldMap
-    -- ESO's function only selects/shows a scene and has no return value,
-    -- so a native pre-hook can safely run it under the gamepad context.
+    -- ESO's function only selects/shows a scene and returns nothing, so a
+    -- pre-hook can safely run it under the native answer and suppress the original.
     ZO_PreHook("ZO_WorldMap_ShowWorldMap", function(...)
-        local settings = ADDON:GetSettings()
-        if settings.useHybridUI and ADDON:IsNativeGamepadMode() then
+        if ADDON:IsHybrid() and ADDON:IsNativeGamepadMode() then
             ADDON:WithNativeGamepadMode(originalShowWorldMap, ...)
             return true
         end
         return false
     end)
-
-    ADDON.runtime.hybridWorldMapHookInstalled = true
+    return true
 end
 
 function ADDON:ApplyWorldMap()
-    InstallHybridWorldMapSceneHook()
-    InstallHybridMapCategoryHook()
+    self:InstallWhenReady("mapSceneHook", InstallMapSceneHook)
+    self:InstallWhenReady("mapCategoryHook", InstallMapCategoryHook)
 end

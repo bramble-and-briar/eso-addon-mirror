@@ -1,0 +1,222 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="Sow Travels">
+			<Action name="SOW_TRAVEL_HEL_RA_CITADEL">
+				<Down>SOWTRAVELS.Travel(230, "Hel Ra Citadel")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_AETHERIAN_ARCHIVE">
+				<Down>SOWTRAVELS.Travel(231, "Aetherian Archive")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_SANCTUM_OPHIDIA">
+				<Down>SOWTRAVELS.Travel(232, "Sanctum Ophidia")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_MAW_OF_LORKHAJ">
+				<Down>SOWTRAVELS.Travel(258, "Maw of Lorkhaj")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_HALLS_OF_FABRICATION">
+				<Down>SOWTRAVELS.Travel(331, "Halls of Fabrication")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_ASYLUM_SANCTORIUM">
+				<Down>SOWTRAVELS.Travel(346, "Asylum Sanctorium")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_CLOUDREST">
+				<Down>SOWTRAVELS.Travel(364, "Cloudrest")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_SUNSPIRE">
+				<Down>SOWTRAVELS.Travel(399, "Sunspire")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_KYNES_AEGIS">
+				<Down>SOWTRAVELS.Travel(434, "Kyne's Aegis")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_ROCKGROVE">
+				<Down>SOWTRAVELS.Travel(468, "Rockgrove")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_DREADSAIL_REEF">
+				<Down>SOWTRAVELS.Travel(488, "Dreadsail Reef")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_SANITYS_EDGE">
+				<Down>SOWTRAVELS.Travel(534, "Sanity's Edge")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_LUCENT_CITADEL">
+				<Down>SOWTRAVELS.Travel(568, "Lucent Citadel")</Down>
+			</Action>
+			<Action name="SOW_TRAVEL_OSSEIN_CAGE">
+				<Down>SOWTRAVELS.Travel(589, "Ossein Cage")</Down>
+			</Action>
+			<!-- <Action name="SOW_TRAVELL_FANG_LAIR">
+				<Down>SOWTRAVELS.Travel(341, "Fang Lair")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_SCALECALLER_PEAK">
+				<Down>SOWTRAVELS.Travel(363, "Scalecaller Peak")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_MOON_HUNTER_KEEP">
+				<Down>SOWTRAVELS.Travel(371, "Moon Hunter Keep")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_MARCH_OF_SACRIFICES">
+				<Down>SOWTRAVELS.Travel(370, "March of Sacrifices")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_FROSTVAULT">
+				<Down>SOWTRAVELS.Travel(389, "Frostvault")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_DEPTHS_OF_MALATAR">
+				<Down>SOWTRAVELS.Travel(390, "Depths of Malatar")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_LAIR_OF_MAARSELOK">
+				<Down>SOWTRAVELS.Travel(398, "Lair of Maarselok")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_MOONGRAVE_FANE">
+				<Down>SOWTRAVELS.Travel(391, "Moongrave Fane")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_ICEREACH">
+				<Down>SOWTRAVELS.Travel(424, "Icereach")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_UNHALLOWED_GRAVE">
+				<Down>SOWTRAVELS.Travel(425, "Unhallowed Grave")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_STONE_GARDEN">
+				<Down>SOWTRAVELS.Travel(435, "Stone Garden")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CASTLE_THORN">
+				<Down>SOWTRAVELS.Travel(436, "Castle Thorn")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BLACK_DRAKE_VILLA">
+				<Down>SOWTRAVELS.Travel(437, "Black Drake Villa")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_THE_CAULDRON">
+				<Down>SOWTRAVELS.Travel(454, "The Cauldron")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_RED_PETAL_BASTION">
+				<Down>SOWTRAVELS.Travel(470, "Red Petal Bastion")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_DREAD_CELLAR">
+				<Down>SOWTRAVELS.Travel(469, "Dread Cellar")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CORAL_AERIE">
+				<Down>SOWTRAVELS.Travel(497, "Coral Aerie")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_SHIPWRIGHTS_REGRET">
+				<Down>SOWTRAVELS.Travel(498, "Shipwright's Regret")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_EARTHEN_ROOT_ENCLAVE">
+				<Down>SOWTRAVELS.Travel(520, "Earthen Root Enclave")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_GRAVEN_DEEP">
+				<Down>SOWTRAVELS.Travel(521, "Graven Deep")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BAL_SUNNAR">
+				<Down>SOWTRAVELS.Travel(531, "Bal Sunnar")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_SCRIVENERS_HALL">
+				<Down>SOWTRAVELS.Travel(532, "Scrivener's Hall")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_OATHSWORN_PIT">
+				<Down>SOWTRAVELS.Travel(556, "Oathsworn Pit")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BEDLAM_VEIL">
+				<Down>SOWTRAVELS.Travel(565, "Bedlam Veil")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_EXILED_REDOUBT">
+				<Down>SOWTRAVELS.Travel(581, "Exiled Redoubt")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_LEP_SECLUSA">
+				<Down>SOWTRAVELS.Travel(582, "Lep Seclusa")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_NAJ_CALDEESH">
+				<Down>SOWTRAVELS.Travel(606, "Naj-Caldeesh")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BLACK_GEM_FOUNDRY">
+				<Down>SOWTRAVELS.Travel(605, "Black Gem Foundry")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_FUNGAL_GROTTO_I">
+				<Down>SOWTRAVELS.Travel(98, "Fungal Grotto I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_FUNGAL_GROTTO_II">
+				<Down>SOWTRAVELS.Travel(266, "Fungal Grotto II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BANISHED_CELLS_I">
+				<Down>SOWTRAVELS.Travel(194, "Banished Cells I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BANISHED_CELLS_II">
+				<Down>SOWTRAVELS.Travel(262, "Banished Cells II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_ELDEN_HOLLOW_I">
+				<Down>SOWTRAVELS.Travel(191, "Elden Hollow I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_ELDEN_HOLLOW_II">
+				<Down>SOWTRAVELS.Travel(265, "Elden Hollow II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CITY_OF_ASH_I">
+				<Down>SOWTRAVELS.Travel(197, "City of Ash I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CITY_OF_ASH_II">
+				<Down>SOWTRAVELS.Travel(268, "City of Ash II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CRYPT_OF_HEARTS_I">
+				<Down>SOWTRAVELS.Travel(190, "Crypt of Hearts I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CRYPT_OF_HEARTS_II">
+				<Down>SOWTRAVELS.Travel(269, "Crypt of Hearts II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_DARKSHADE_CAVERNS_I">
+				<Down>SOWTRAVELS.Travel(198, "Darkshade Caverns I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_DARKSHADE_CAVERNS_II">
+				<Down>SOWTRAVELS.Travel(264, "Darkshade Caverns II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_SPINDLECLUTCH_I">
+				<Down>SOWTRAVELS.Travel(193, "Spindleclutch I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_SPINDLECLUTCH_II">
+				<Down>SOWTRAVELS.Travel(267, "Spindleclutch II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_WAYREST_SEWERS_I">
+				<Down>SOWTRAVELS.Travel(189, "Wayrest Sewers I")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_WAYREST_SEWERS_II">
+				<Down>SOWTRAVELS.Travel(263, "Wayrest Sewers II")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_ARX_CORINIUM">
+				<Down>SOWTRAVELS.Travel(192, "Arx Corinium")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BLACKHEART_HAVEN">
+				<Down>SOWTRAVELS.Travel(186, "Blackheart Haven")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BLESSED_CRUCIBLE">
+				<Down>SOWTRAVELS.Travel(187, "Blessed Crucible")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_DIREFROST_KEEP">
+				<Down>SOWTRAVELS.Travel(195, "Direfrost Keep")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_SELENES_WEB">
+				<Down>SOWTRAVELS.Travel(185, "Selene's Web")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_TEMPEST_ISLAND">
+				<Down>SOWTRAVELS.Travel(188, "Tempest Island")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_VAULTS_OF_MADNESS">
+				<Down>SOWTRAVELS.Travel(184, "Vaults of Madness")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_VOLENFELL">
+				<Down>SOWTRAVELS.Travel(196, "Volenfell")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_WHITE_GOLD_TOWER">
+				<Down>SOWTRAVELS.Travel(247, "White Gold Tower")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_IMPERIAL_CITY_PRISON">
+				<Down>SOWTRAVELS.Travel(236, "Imperial City Prison")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_RUINS_OF_MAZZATUN">
+				<Down>SOWTRAVELS.Travel(260, "Ruins of Mazzatun")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_CRADLE_OF_SHADOWS">
+				<Down>SOWTRAVELS.Travel(261, "Cradle of Shadows")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_FALKREATH_HOLD">
+				<Down>SOWTRAVELS.Travel(332, "Falkreath Hold")</Down>
+			</Action>
+			<Action name="SOW_TRAVELL_BLOODROOT_FORGE">
+				<Down>SOWTRAVELS.Travel(326, "Bloodroot Forge")</Down>
+			</Action>-->
+		</Category>
+	</Layer>
+</Bindings>

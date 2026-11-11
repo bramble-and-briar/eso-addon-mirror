@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/VoidAnkhx/Sow-Travels__5041",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "VoidAnkhx",
+  "canonical_id": "esoui:5041",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5041",
+  "deleted": false,
+  "directories": [
+    "SowTravels"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5041/",
+  "fingerprint": "5a1ce3b0e6295c43547ff46f7a2b23ef7bd18125d04bbd3797c6c816a0303a12",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18385.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5041",
+  "source_url": "https://www.esoui.com/downloads/info5041-SowTravels.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Sow Travels",
+  "updated_at": 1794323911000,
+  "version": "1.0.0"
+}

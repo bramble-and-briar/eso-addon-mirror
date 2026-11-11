@@ -1,0 +1,116 @@
+<!--
+  HUDitorTools - reset and nudge controls under the selected HUD editor box
+-->
+<GuiXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/DakJaniels/esoui_gui_xsd/main/esoui_gui_xml.xsd">
+  <Controls>
+    <Control name="HUDitorTools_NudgePanel"
+             virtual="true"
+             mouseEnabled="true"
+             level="6">
+      <Dimensions x="302"
+                  y="82" />
+      <Controls>
+        <Backdrop name="$(parent)BG"
+                  inherits="ZO_DefaultBackdrop">
+          <AnchorFill />
+        </Backdrop>
+        <Button name="$(parent)ResetPosition"
+                inherits="ZO_DefaultButton"
+                level="6">
+          <Anchor point="TOPLEFT"
+                  offsetX="8"
+                  offsetY="8" />
+          <Dimensions x="140"
+                      y="28" />
+          <Controls>
+            <Label name="$(parent)Text"
+                   font="ZoFontGameBold"
+                   text="SI_HUDITORTOOLS_NUDGE_RESET_POSITION"
+                   horizontalAlignment="CENTER"
+                   verticalAlignment="CENTER"
+                   wrapMode="ELLIPSIS"
+                   layer="CONTROLS"
+                   level="6"
+                   mouseEnabled="false"
+                   color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+              <AnchorFill />
+            </Label>
+          </Controls>
+        </Button>
+        <Button name="$(parent)ResetScale"
+                inherits="ZO_DefaultButton"
+                level="6">
+          <Anchor point="LEFT"
+                  relativeTo="$(parent)ResetPosition"
+                  relativePoint="RIGHT"
+                  offsetX="6" />
+          <Dimensions x="140"
+                      y="28" />
+          <Controls>
+            <Label name="$(parent)Text"
+                   font="ZoFontGameBold"
+                   text="SI_HUDITORTOOLS_NUDGE_RESET_SCALE"
+                   horizontalAlignment="CENTER"
+                   verticalAlignment="CENTER"
+                   wrapMode="ELLIPSIS"
+                   layer="CONTROLS"
+                   level="6"
+                   mouseEnabled="false"
+                   color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+              <AnchorFill />
+            </Label>
+          </Controls>
+        </Button>
+        <Button name="$(parent)NudgeLeft"
+                level="6">
+          <Dimensions x="32"
+                      y="32" />
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)ResetPosition"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="6" />
+          <Textures normal="EsoUI/Art/Buttons/large_leftArrow_up.dds"
+                    pressed="EsoUI/Art/Buttons/large_leftArrow_down.dds"
+                    mouseOver="EsoUI/Art/Buttons/large_leftArrow_over.dds" />
+        </Button>
+        <Button name="$(parent)NudgeUp"
+                level="6">
+          <Dimensions x="32"
+                      y="32" />
+          <Anchor point="LEFT"
+                  relativeTo="$(parent)NudgeLeft"
+                  relativePoint="RIGHT"
+                  offsetX="4" />
+          <Textures normal="EsoUI/Art/Buttons/large_upArrow_up.dds"
+                    pressed="EsoUI/Art/Buttons/large_upArrow_down.dds"
+                    mouseOver="EsoUI/Art/Buttons/large_upArrow_over.dds" />
+        </Button>
+        <Button name="$(parent)NudgeDown"
+                level="6">
+          <Dimensions x="32"
+                      y="32" />
+          <Anchor point="LEFT"
+                  relativeTo="$(parent)NudgeUp"
+                  relativePoint="RIGHT"
+                  offsetX="4" />
+          <Textures normal="EsoUI/Art/Buttons/large_downArrow_up.dds"
+                    pressed="EsoUI/Art/Buttons/large_downArrow_down.dds"
+                    mouseOver="EsoUI/Art/Buttons/large_downArrow_over.dds" />
+        </Button>
+        <Button name="$(parent)NudgeRight"
+                level="6">
+          <Dimensions x="32"
+                      y="32" />
+          <Anchor point="LEFT"
+                  relativeTo="$(parent)NudgeDown"
+                  relativePoint="RIGHT"
+                  offsetX="4" />
+          <Textures normal="EsoUI/Art/Buttons/large_rightArrow_up.dds"
+                    pressed="EsoUI/Art/Buttons/large_rightArrow_down.dds"
+                    mouseOver="EsoUI/Art/Buttons/large_rightArrow_over.dds" />
+        </Button>
+      </Controls>
+    </Control>
+  </Controls>
+</GuiXml>

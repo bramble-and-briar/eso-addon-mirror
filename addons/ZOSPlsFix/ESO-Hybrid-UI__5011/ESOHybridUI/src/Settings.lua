@@ -1,29 +1,198 @@
--- LibAddonMenu-2.0 settings panel. Access LAM through its native global; no LibStub.
+-- Settings: one control list feeds both the keyboard Add-Ons panel (LibAddonMenu)
+-- and the optional native controller page (LibGamepadOptions).
+-- All visible text comes from lang/*.lua through GetString.
 
 local ADDON = ESOHybridUI
 
-local function FontDropdown(name, tooltip, key, choices, values)
+local FONT_VALUES = {
+    reticle = { "ZoFontWinH5", "ZoFontKeybindStripDescription", "ZoFontCallout", "ZoFontCallout2" },
+    reticleContext = { "ZoFontWinH5", "ZoInteractionPrompt", "ZoFontCallout", "ZoFontCallout2" },
+    stealthIcon = { "ZoFontWinH5", "ZoInteractionPrompt", "ZoFontCallout", "ZoFontCallout2" },
+}
+
+local function FontChoices()
+    return {
+        GetString(SI_ESOHYBRIDUI_FONT_SMALL),
+        GetString(SI_ESOHYBRIDUI_FONT_DEFAULT),
+        GetString(SI_ESOHYBRIDUI_FONT_LARGE),
+        GetString(SI_ESOHYBRIDUI_FONT_XLARGE),
+    }
+end
+
+local function FontDropdown(nameId, tooltipId, key)
+    local values = FONT_VALUES[key]
     return {
         type = "dropdown",
-        name = name,
-        tooltip = tooltip,
-        choices = choices,
+        name = GetString(nameId),
+        tooltip = GetString(tooltipId),
+        choices = FontChoices(),
         choicesValues = values,
         default = ADDON.defaults.fonts[key],
         getFunc = function()
-            local current = ADDON:GetSettings().fonts[key]
+            local current = ADDON:GetFont(key)
             for _, value in ipairs(values) do
-                if current == value then return current end
+                if current == value then
+                    return current
+                end
             end
-            -- Older versions offered many more font sizes. Show the default
-            -- choice for legacy values without changing the saved value.
+            -- Older versions offered more sizes; show the default for those
+            -- without changing what is saved.
             return ADDON.defaults.fonts[key]
         end,
         setFunc = function(value)
-            ADDON:GetSettings().fonts[key] = value
+            ADDON:SetFont(key, value)
             ADDON:ApplyPrompts()
         end,
     }
+end
+
+local function Checkbox(nameId, tooltipId, key, default, onChange)
+    return {
+        type = "checkbox",
+        name = GetString(nameId),
+        tooltip = GetString(tooltipId),
+        default = default,
+        getFunc = function()
+            local value = ADDON:GetSettings()[key]
+            if value == nil then
+                return default
+            end
+            return value == true
+        end,
+        setFunc = function(value)
+            ADDON:GetSettings()[key] = value == true
+            if onChange then onChange(value) end
+        end,
+    }
+end
+
+local function OpenDonationMail()
+    if not MAIL_SEND or not MAIL_SEND.ComposeMailTo then
+        ADDON:Say(GetString(SI_ESOHYBRIDUI_MAIL_UNAVAILABLE))
+        return
+    end
+    -- Only opens an addressed draft; the player chooses any gold and amount.
+    MAIL_SEND:ComposeMailTo("@ZOSPlsFix")
+end
+
+local function BuildControls(isGamepad)
+    local controls = {}
+    local function add(control) controls[#controls + 1] = control end
+
+    if isGamepad then
+        add({ type = "description", name = GetString(SI_ESOHYBRIDUI_GP_INTRO_NAME),
+            text = GetString(SI_ESOHYBRIDUI_GP_INTRO_TEXT) })
+        add({ type = "header", name = GetString(SI_ESOHYBRIDUI_HEADER_INTERFACE) })
+    else
+        add({ type = "description", text = GetString(SI_ESOHYBRIDUI_KB_INTRO_TEXT) })
+    end
+
+    add({
+        type = "button",
+        name = GetString(SI_ESOHYBRIDUI_RECOMMENDED_NAME),
+        tooltip = GetString(SI_ESOHYBRIDUI_RECOMMENDED_TOOLTIP),
+        buttonText = GetString(SI_ESOHYBRIDUI_RECOMMENDED_BUTTON),
+        func = function() ADDON:ApplyRecommendedESOSettings() end,
+    })
+
+    add({
+        type = "dropdown",
+        name = GetString(SI_ESOHYBRIDUI_MODE_NAME),
+        tooltip = GetString(SI_ESOHYBRIDUI_MODE_TOOLTIP),
+        choices = { GetString(SI_ESOHYBRIDUI_MODE_GAMEPAD), GetString(SI_ESOHYBRIDUI_MODE_HYBRID) },
+        choicesValues = { ADDON.MODE_GAMEPAD, ADDON.MODE_HYBRID },
+        default = ADDON.MODE_GAMEPAD,
+        getFunc = function() return ADDON:IsHybrid() and ADDON.MODE_HYBRID or ADDON.MODE_GAMEPAD end,
+        setFunc = function(value) ADDON:SetMode(value) end,
+    })
+
+    add({
+        type = "dropdown",
+        name = GetString(SI_ESOHYBRIDUI_POLICY_NAME),
+        tooltip = GetString(SI_ESOHYBRIDUI_POLICY_TOOLTIP),
+        choices = { GetString(SI_ESOHYBRIDUI_POLICY_GAMEPAD), GetString(SI_ESOHYBRIDUI_POLICY_LEGACY) },
+        choicesValues = { ADDON.POLICY_GAMEPAD, ADDON.POLICY_LEGACY },
+        default = ADDON.POLICY_GAMEPAD,
+        getFunc = function()
+            return ADDON:GetSettings().menuPolicy == ADDON.POLICY_LEGACY and ADDON.POLICY_LEGACY or ADDON.POLICY_GAMEPAD
+        end,
+        setFunc = function(value) ADDON:SetMenuPolicy(value) end,
+    })
+
+    add({
+        type = "checkbox",
+        name = GetString(SI_ESOHYBRIDUI_ACCOUNT_NAME),
+        tooltip = GetString(SI_ESOHYBRIDUI_ACCOUNT_TOOLTIP),
+        default = false,
+        getFunc = function()
+            local account = ADDON.savedVariablesAccountWide
+            return account ~= nil and account._esoHybridUseAccountWideSettings == true
+        end,
+        setFunc = function(value) ADDON:SetUseAccountWideSettings(value) end,
+    })
+
+    add({ type = "header", name = GetString(SI_ESOHYBRIDUI_HEADER_HYBRID_HUD) })
+    local refresh = function() ADDON:Refresh() end
+    add(Checkbox(SI_ESOHYBRIDUI_WHEEL_NAME, SI_ESOHYBRIDUI_WHEEL_TOOLTIP, "hybridQuickslotWheel", true, refresh))
+    add(Checkbox(SI_ESOHYBRIDUI_GLYPHS_NAME, SI_ESOHYBRIDUI_GLYPHS_TOOLTIP, "hybridActionBarGlyphs", true, refresh))
+
+    add({ type = "header", name = GetString(SI_ESOHYBRIDUI_HEADER_PROMPTS) })
+    add(FontDropdown(SI_ESOHYBRIDUI_FONT_RETICLE_NAME, SI_ESOHYBRIDUI_FONT_RETICLE_TOOLTIP, "reticle"))
+    add(FontDropdown(SI_ESOHYBRIDUI_FONT_CONTEXT_NAME, SI_ESOHYBRIDUI_FONT_CONTEXT_TOOLTIP, "reticleContext"))
+    add(FontDropdown(SI_ESOHYBRIDUI_FONT_STEALTH_NAME, SI_ESOHYBRIDUI_FONT_STEALTH_TOOLTIP, "stealthIcon"))
+
+    local advanced = {
+        Checkbox(SI_ESOHYBRIDUI_DEBUG_NAME, SI_ESOHYBRIDUI_DEBUG_TOOLTIP, "debugLoggingEnabled", false,
+            function(value) ADDON:SetDebugLogging(value) end),
+        Checkbox(SI_ESOHYBRIDUI_ANNOUNCE_NAME, SI_ESOHYBRIDUI_ANNOUNCE_TOOLTIP, "announceLoaded", false),
+        { type = "description", text = GetString(SI_ESOHYBRIDUI_COMMANDS_TEXT) },
+    }
+    if isGamepad then
+        add({ type = "header", name = GetString(SI_ESOHYBRIDUI_ADVANCED_NAME) })
+        for _, control in ipairs(advanced) do add(control) end
+    else
+        add({ type = "submenu", name = GetString(SI_ESOHYBRIDUI_ADVANCED_NAME),
+            tooltip = GetString(SI_ESOHYBRIDUI_ADVANCED_TOOLTIP), controls = advanced })
+    end
+
+    add({ type = "header", name = GetString(SI_ESOHYBRIDUI_HEADER_SUPPORT) })
+    add({ type = "description", text = GetString(SI_ESOHYBRIDUI_SUPPORT_TEXT) })
+    add({
+        type = "button",
+        name = GetString(SI_ESOHYBRIDUI_DONATE_NAME),
+        tooltip = GetString(SI_ESOHYBRIDUI_DONATE_TOOLTIP),
+        buttonText = GetString(SI_ESOHYBRIDUI_DONATE_BUTTON),
+        func = OpenDonationMail,
+    })
+
+    return controls
+end
+
+local function RegisterGamepadOptions()
+    local library = LibGamepadOptions
+    if type(library) ~= "table" or type(library.RegisterAddon) ~= "function" then
+        ADDON:LogInfo("LibGamepadOptions is not installed; native gamepad settings are unavailable.")
+        return false
+    end
+
+    local ok, err = pcall(function()
+        library:RegisterAddon("ESOHybridUI", {
+            name = "ESO Hybrid UI",
+            displayName = "ESO Hybrid UI",
+            categoryName = "ESO Hybrid UI",
+            directOpen = true,
+            showInRoot = false,
+            tooltip = GetString(SI_ESOHYBRIDUI_GP_INTRO_TEXT),
+            sortOrder = 200,
+        }, BuildControls(true))
+    end)
+
+    if not ok then
+        ADDON:LogError("Could not register native gamepad settings:", tostring(err))
+        return false
+    end
+    ADDON:LogInfo("Registered native gamepad settings.")
+    return true
 end
 
 function ADDON:RegisterSettings()
@@ -37,227 +206,6 @@ function ADDON:RegisterSettings()
         registerForRefresh = true,
         registerForDefaults = true,
     })
-
-    local fontChoices = { "Small", "Default", "Large", "Extra large" }
-    local fontValues = {
-        reticle = { "ZoFontWinH5", "ZoFontKeybindStripDescription", "ZoFontCallout", "ZoFontCallout2" },
-        reticleContext = { "ZoFontWinH5", "ZoInteractionPrompt", "ZoFontCallout", "ZoFontCallout2" },
-        stealthIcon = { "ZoFontWinH5", "ZoInteractionPrompt", "ZoFontCallout", "ZoFontCallout2" },
-    }
-
-    local function OpenDonationMail()
-        if not MAIL_SEND or not MAIL_SEND.ComposeMailTo then
-            if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
-                CHAT_SYSTEM:AddMessage("[ESO Hybrid UI] The mail composer is not available.")
-            end
-            return
-        end
-
-        -- Only open an addressed draft. The player manually chooses whether
-        -- to attach gold and the amount; this addon never changes mail gold.
-        MAIL_SEND:ComposeMailTo("@ZOSPlsFix")
-    end
-
-    local function RegisterGamepadOptions()
-        local library = LibGamepadOptions
-        if type(library) ~= "table" or type(library.RegisterAddon) ~= "function" then
-            ADDON:LogInfo("LibGamepadOptions is not installed; native gamepad settings are unavailable.")
-            return false
-        end
-
-        local gamepadOptions = {
-            {
-                type = "description",
-                name = "Controller settings",
-                text = "Configure ESO Hybrid UI without leaving the gamepad interface. These settings are shared with the keyboard Add-Ons panel.",
-            },
-            {
-                type = "header",
-                name = "Interface",
-            },
-            {
-                type = "button",
-                name = "Recommended ESO settings",
-                tooltip = "Saves Gamepad Mode, Gamepad keybind display, Keyboard Chat, and cursor-on-chat-focus in ESO.",
-                buttonText = "Apply settings",
-                func = function() ADDON:ApplyRecommendedESOSettings() end,
-            },
-            {
-                type = "dropdown",
-                name = "Interface mode",
-                tooltip = "Gamepad uses ESO's full controller interface. Hybrid uses the compact keyboard HUD and keyboard-style wheels while menus remain native gamepad UI. ESO Gamepad Mode must be On, not Auto.",
-                choices = { "Gamepad", "Hybrid" },
-                choicesValues = { "gamepad", "hybrid" },
-                default = "gamepad",
-                getFunc = function()
-                    return ADDON:GetSettings().useHybridUI and "hybrid" or "gamepad"
-                end,
-                setFunc = function(value)
-                    local saved = ADDON:GetSettings()
-                    saved.useHybridUI = value == "hybrid"
-                    saved.useControllerUI = value == "gamepad"
-                    saved.useGamepadButtons = true
-                    ADDON:Refresh()
-                end,
-            },
-            {
-                type = "checkbox",
-                name = "Account-wide settings",
-                tooltip = "Use the same settings on all characters. Your current settings are copied to the shared profile when first enabled.",
-                default = false,
-                getFunc = function()
-                    return ADDON.savedVariablesAccountWide
-                        and ADDON.savedVariablesAccountWide._esoHybridUseAccountWideSettings == true
-                        or false
-                end,
-                setFunc = function(value) ADDON:SetUseAccountWideSettings(value) end,
-            },
-            {
-                type = "header",
-                name = "HUD prompts",
-            },
-            FontDropdown("Interaction button font", "Size of the button label beside the reticle.", "reticle", fontChoices, fontValues.reticle),
-            FontDropdown("Interaction context font", "Size of the interaction description beside the reticle.", "reticleContext", fontChoices, fontValues.reticleContext),
-            FontDropdown("Stealth icon font", "Size of stealth and lockpicking prompt icons.", "stealthIcon", fontChoices, fontValues.stealthIcon),
-            {
-                type = "header",
-                name = "Advanced",
-            },
-            {
-                type = "checkbox",
-                name = "Diagnostic logging",
-                tooltip = "Enable detailed debug messages. For saved logs and stack traces, install LibDebugLogger and DebugLogViewer.",
-                default = false,
-                getFunc = function() return ADDON.runtime.debugLoggingEnabled end,
-                setFunc = function(value) ADDON:SetDebugLogging(value) end,
-            },
-            {
-                type = "description",
-                name = "Troubleshooting",
-                text = "Chat commands: /esohybrid_debug on|off and /esohybrid_dump.",
-            },
-            {
-                type = "header",
-                name = "Support the addon",
-            },
-            {
-                type = "description",
-                name = "Optional donations",
-                text = "The button opens a mail draft addressed to @ZOSPlsFix. You choose whether to attach gold and the amount.",
-            },
-            {
-                type = "button",
-                name = "Donation mail",
-                tooltip = "Opens a mail draft only. ESO Hybrid UI does not attach or modify gold.",
-                buttonText = "Open mail",
-                func = OpenDonationMail,
-            },
-        }
-
-        local ok, err = pcall(function()
-            library:RegisterAddon("ESOHybridUI", {
-                name = "ESO Hybrid UI",
-                displayName = "ESO Hybrid UI",
-                categoryName = "ESO Hybrid UI",
-                directOpen = true,
-                showInRoot = false,
-                tooltip = "Controller-friendly settings for ESO Hybrid UI.",
-                sortOrder = 200,
-            }, gamepadOptions)
-        end)
-
-        if not ok then
-            ADDON:LogError("Could not register native gamepad settings:", tostring(err))
-            return false
-        end
-
-        ADDON:LogInfo("Registered native gamepad settings.")
-        return true
-    end
-
-    local options = {
-        {
-            type = "description",
-            text = "For controller users. Use the button below once to configure ESO's recommended input and chat settings, then choose your interface style.",
-        },
-        {
-            type = "button",
-            name = "Recommended ESO settings",
-            tooltip = "One click enables Gamepad Mode, Gamepad keybind display, Keyboard Chat, and the cursor when chat receives focus. The settings are saved by ESO and are not reapplied automatically.",
-            buttonText = "Apply settings",
-            func = function() ADDON:ApplyRecommendedESOSettings() end,
-            width = "half",
-        },
-        {
-            type = "dropdown",
-            name = "Interface mode",
-            tooltip = "Gamepad uses ESO's full controller interface. Hybrid uses the compact keyboard HUD and keyboard-style quickslot/player-interaction wheels. Menus and navigation remain native gamepad UI, with controller input and glyphs. ESO's Gamepad Mode must be set to On, not Auto.",
-            choices = { "Gamepad", "Hybrid" },
-            choicesValues = { "gamepad", "hybrid" },
-            default = "gamepad",
-            getFunc = function()
-                return ADDON:GetSettings().useHybridUI and "hybrid" or "gamepad"
-            end,
-            setFunc = function(value)
-                local settings = ADDON:GetSettings()
-                settings.useHybridUI = value == "hybrid"
-                settings.useControllerUI = value == "gamepad"
-                settings.useGamepadButtons = true
-                ADDON:Refresh()
-            end,
-        },
-        {
-            type = "checkbox",
-            name = "Account-wide settings",
-            tooltip = "Use the same settings on all characters. Your current settings are copied to the shared profile when first enabled.",
-            default = false,
-            getFunc = function()
-                return ADDON.savedVariablesAccountWide
-                    and ADDON.savedVariablesAccountWide._esoHybridUseAccountWideSettings == true
-                    or false
-            end,
-            setFunc = function(value) ADDON:SetUseAccountWideSettings(value) end,
-        },
-        FontDropdown("Interaction button font", "Size of the button label beside the reticle.", "reticle", fontChoices, fontValues.reticle),
-        FontDropdown("Interaction context font", "Size of the interaction description beside the reticle.", "reticleContext", fontChoices, fontValues.reticleContext),
-        FontDropdown("Stealth icon font", "Size of stealth and lockpicking prompt icons.", "stealthIcon", fontChoices, fontValues.stealthIcon),
-        {
-            type = "submenu",
-            name = "Advanced",
-            tooltip = "Troubleshooting options.",
-            controls = {
-                {
-                    type = "checkbox",
-                    name = "Diagnostic logging",
-                    tooltip = "Enable detailed debug messages. For saved logs and stack traces, install LibDebugLogger and DebugLogViewer.",
-                    default = false,
-                    getFunc = function() return ADDON.runtime.debugLoggingEnabled end,
-                    setFunc = function(value) ADDON:SetDebugLogging(value) end,
-                },
-                {
-                    type = "description",
-                    text = "Troubleshooting commands: /esohybrid_debug on|off and /esohybrid_dump.",
-                },
-            },
-        },
-        {
-            type = "header",
-            name = "Support the addon",
-        },
-        {
-            type = "description",
-            text = "Optional gold donations are appreciated. This opens a mail addressed to @ZOSPlsFix; you choose whether to attach gold and the amount.",
-        },
-        {
-            type = "button",
-            name = "Donation mail",
-            tooltip = "Opens a mail draft only. ESO Hybrid UI does not attach or modify gold.",
-            buttonText = "Open mail",
-            func = OpenDonationMail,
-            width = "half",
-        },
-    }
-
-    LibAddonMenu2:RegisterOptionControls(panelName, options)
+    LibAddonMenu2:RegisterOptionControls(panelName, BuildControls(false))
     RegisterGamepadOptions()
 end

@@ -1,4 +1,4 @@
-OneMap = { name = "OneMap", version = "26.11.1" }
+OneMap = { name = "OneMap", version = "26.11.2" }
 local A = OneMap
 
 A.defaults = {

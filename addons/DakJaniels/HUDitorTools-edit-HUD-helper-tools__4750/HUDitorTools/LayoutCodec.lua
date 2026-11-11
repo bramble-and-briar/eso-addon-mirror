@@ -6,9 +6,10 @@
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
 
-HT.HUDT_FORMAT_VERSION = 3
+HT.HUDT_FORMAT_VERSION = 4
 HT.HUDT_FORMAT_VERSION_V1 = 1
 HT.HUDT_FORMAT_VERSION_V2 = 2
+HT.HUDT_FORMAT_VERSION_V3 = 3
 HT.HUDT_MAGIC = "HUDT"
 
 -- Offset precision matches ZO_HUDManager:SaveAnchorOffsets (hudmanager.lua)
@@ -489,6 +490,11 @@ function HT.EncodeHudLayoutPayload(payload)
     tokens[#tokens + 1] = resourceEnabled
     tokens[#tokens + 1] = tostring(zo_floor(tonumber(resourceBarGroup.healthWidth) or HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH or 474))
     tokens[#tokens + 1] = preventExpandToken
+    local hideHealthGlowToken = "0"
+    if resourceBarGroup.hideHealthGlow then
+        hideHealthGlowToken = "1"
+    end
+    tokens[#tokens + 1] = hideHealthGlowToken
 
     -- table.concat matches zo_strjoin(" ", ...) without Lua 5.1 vararg limits
     return table.concat(tokens, " ")
@@ -508,7 +514,8 @@ function HT.DecodeHudLayoutString(sourceString)
     local formatVersion = tonumber(tokens[2])
     if formatVersion ~= HT.HUDT_FORMAT_VERSION
         and formatVersion ~= HT.HUDT_FORMAT_VERSION_V1
-        and formatVersion ~= HT.HUDT_FORMAT_VERSION_V2 then
+        and formatVersion ~= HT.HUDT_FORMAT_VERSION_V2
+        and formatVersion ~= HT.HUDT_FORMAT_VERSION_V3 then
         return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION)
     end
     local keyboardCount = tonumber(tokens[3])
@@ -539,6 +546,7 @@ function HT.DecodeHudLayoutString(sourceString)
         enabled = false,
         healthWidth = HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH or 474,
         preventExpand = false,
+        hideHealthGlow = false,
     }
 
     if formatVersion == HT.HUDT_FORMAT_VERSION_V1 then
@@ -577,8 +585,9 @@ function HT.DecodeHudLayoutString(sourceString)
         return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER)
     end
     local preventExpand = false
+    local hideHealthGlow = false
     local trailingIndex = resourceIndex + 3
-    if formatVersion == HT.HUDT_FORMAT_VERSION then
+    if formatVersion == HT.HUDT_FORMAT_VERSION or formatVersion == HT.HUDT_FORMAT_VERSION_V3 then
         local preventExpandToken = tokens[resourceIndex + 3]
         if preventExpandToken == nil then
             return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED)
@@ -588,6 +597,17 @@ function HT.DecodeHudLayoutString(sourceString)
         end
         preventExpand = preventExpandToken == "1"
         trailingIndex = resourceIndex + 4
+    end
+    if formatVersion == HT.HUDT_FORMAT_VERSION then
+        local hideHealthGlowToken = tokens[resourceIndex + 4]
+        if hideHealthGlowToken == nil then
+            return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED)
+        end
+        if hideHealthGlowToken ~= "0" and hideHealthGlowToken ~= "1" then
+            return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER)
+        end
+        hideHealthGlow = hideHealthGlowToken == "1"
+        trailingIndex = resourceIndex + 5
     end
     if trailingIndex <= #tokens then
         return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING)
@@ -606,6 +626,7 @@ function HT.DecodeHudLayoutString(sourceString)
             enabled = enabledToken == "1",
             healthWidth = healthWidth,
             preventExpand = preventExpand,
+            hideHealthGlow = hideHealthGlow,
         },
     }, nil
 end

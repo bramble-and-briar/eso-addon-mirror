@@ -7,7 +7,7 @@ local HT = HUDitorTools
 local PANEL_TEMPLATE = "HUDitorTools_ColorPickerPanel"
 local DEFAULT_ANCHOR_OFFSET_X = 24
 local DEFAULT_ANCHOR_OFFSET_Y = -24
-local INTERACTABLE_LEVEL = ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL
+local COLOR_PICKER_PANEL_LEVEL = 10
 
 local SLOT_LABEL_NORMAL = ZO_NORMAL_TEXT
 local SLOT_LABEL_SELECTED = ZO_SELECTED_TEXT
@@ -51,8 +51,7 @@ function ColorPicker:Initialize(control)
     self.isUpdatingColors = false
     self.swatchInterpolator = ZO_SimpleControlScaleInterpolator:New(1.0, ZO_DYEING_SWATCH_SELECTION_SCALE)
 
-    control:SetDrawTier(DT_HIGH)
-    control:SetDrawLevel(10)
+    HT.SetEditorDrawTierAndLevel(control, COLOR_PICKER_PANEL_LEVEL)
     control:SetMouseEnabled(true)
     control:SetMovable(true)
     control:SetClampedToScreen(true)
@@ -62,7 +61,7 @@ function ColorPicker:Initialize(control)
     titleLabel:SetText(GetString(SI_WINDOW_TITLE_COLOR_PICKER))
 
     local closeButton = control:GetNamedChild("Close")
-    closeButton:SetDrawLevel(INTERACTABLE_LEVEL)
+    HT.SetEditorDrawTierAndLevel(closeButton, HT.INFO_BOX_INTERACTABLE_LEVEL)
     closeButton:SetHandler("OnClicked", function ()
         HT.SetColorPickerVisible(false)
     end)

@@ -1,17 +1,19 @@
-AI disclosure: Code and translations were created with OpenAI Codex.
+AI disclosure: Code and translations were generated with OpenAI Codex.
 
-Required: LibAddonMenu-2.0 r43 or newer, installed separately.
+Dependencies
+Required: LibAddonMenu-2.0 r43 or newer. Install separately.
 https://www.esoui.com/downloads/info7-LibAddonMenu.html
 
-OneMap improves the world map and travel in ESO’s keyboard and mouse interface.
+Credits
+By oneDOK. Thanks to sirinsidiator and Seerah.
 
-- Enlarge the map, highlight your character, hide Area Completion and scroll smoothly between map levels.
-- View house locations and browse dungeons and trials in one tab.
-- Left-click quests to show their zone. Right-click sidebar destinations to travel; for Antiquities, select Teleport from the menu.
-- Prefer free travel through your group, friends and guilds. See the travel price before clicking.
-- Travel into houses and dungeons, or to unlocked wayshrines near known quest objectives and dig sites.
-- Optionally skip teleport confirmations. Paid travel then spends gold immediately.
+About OneMap
+OneMap improves the world map and travel in ESO's keyboard and mouse interface.
 
-Settings: Settings > Addons > OneMap. Settings apply to the whole account. Supports English, Russian, German, French, Spanish, Japanese and Simplified Chinese.
-
-Author: oneDOK. LibAddonMenu-2.0: sirinsidiator and Seerah.
+- A larger map, a highlighted player marker, optional Area Completion hiding and smooth scrolling between map levels.
+- House locations and a combined dungeon and trial list.
+- Quick access to quest zones and travel from the map sidebar.
+- A Teleport button for the displayed zone and Locations selected when opening the map.
+- Free travel through group members, friends and guildmates, with travel prices shown in advance.
+- Travel to houses and dungeons, or unlocked wayshrines near known quest objectives and dig sites.
+- Optional confirmation skipping for faster travel, including immediate payment for paid travel.

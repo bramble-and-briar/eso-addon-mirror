@@ -5,14 +5,19 @@ local LogUtils = DevSandbox3.LogUtils
 function Slash.Status()
     local D, Sl = DevSandbox3.Detection, DevSandbox3.SlotActions
     local s = DevSandbox3.state.savedVars.settings
-    local empty, unknown, lingering = 0, 0, 0
+    local empty, unknown, named, unnamed, lingering = 0, 0, 0, 0, 0
     for _ in pairs(Sl.empty) do empty = empty + 1 end
     for _ in pairs(Sl.unknown) do unknown = unknown + 1 end
+    for _ in pairs(Sl.named) do named = named + 1 end
+    for _ in pairs(Sl.unnamed) do unnamed = unnamed + 1 end
     for _ in pairs(D.lingering) do lingering = lingering + 1 end
-    LogUtils.Log("v%s: pins live %d, located %d (+%d lingering), confirmed to %dm; zone %s (%s), %d locations within %dm: %d EMPTY, %d unconfirmed; drawn: %d empty, %d unknown, %d checked; orange=%s purple=%s yellow=%s cyan=%s cyrodiilOnly=%s",
-        DevSandbox3.version, D.liveCount, D.locatedCount, lingering, math.floor(Sl.confirmedM + 0.5), tostring(Sl.zoneId), Sl.IsActiveZone() and "active" or "INACTIVE outside Cyrodiil", Sl.inRangeCount, Sl.RANGE_M, empty, unknown,
-        DevSandbox3.Markers.drawn.empty, DevSandbox3.Markers.drawn.unknown, DevSandbox3.Markers.drawn.checked,
-        tostring(s.markWarTorte), tostring(s.markPsijic), tostring(s.markUnknown), tostring(s.debugNodes), tostring(s.cyrodiilOnly))
+    local hunted = {}
+    for i, t in ipairs(s.trackers) do hunted[i] = t.node .. (t.candidates and "+candidates" or "") end
+    local M = DevSandbox3.Markers.drawn
+    LogUtils.Log("v%s: pins live %d, located %d (+%d lingering), confirmed to %dm; zone %s (%s, kinds %s), %d locations within %dm: %d EMPTY, %d unknown, %d named, %d unnamed; drawn: %d tracked, %d empty, %d candidates, %d checked; trackers=[%s] wartorte=%s psijic=%s candidates=%s cyan=%s",
+        DevSandbox3.version, D.liveCount, D.locatedCount, lingering, math.floor(Sl.confirmedM + 0.5), tostring(Sl.zoneId), Sl.IsActiveZone() and "active" or "INACTIVE: nothing marked here", tostring(Sl.loadedKinds), Sl.inRangeCount, Sl.RANGE_M, empty, unknown, named, unnamed,
+        M.tracked, M.empty, M.unknown, M.checked,
+        table.concat(hunted, ", "), tostring(s.markWarTorte), tostring(s.markPsijic), tostring(s.markUnknown), tostring(s.debugNodes))
     local _, prx, _py, prz = GetUnitRawWorldPosition("player")
     local px, pz = prx / 100, prz / 100
     local list = {}
@@ -30,7 +35,7 @@ function Slash.Status()
             local d = math.sqrt(dx * dx + dz * dz)
             if not best or d < best then best = d end
         end
-        LogUtils.Log("  node %dm away (type %s) -> nearest known location %s", math.floor(list[i].d + 0.5), tostring(n.pinTypeId or "?"), best and string.format("%.1fm", best) or "none in range")
+        LogUtils.Log("  node %dm away (%s, type %s) -> nearest known location %s", math.floor(list[i].d + 0.5), n.name or "unnamed", tostring(n.pinTypeId or "?"), best and string.format("%.1fm", best) or "none in range")
     end
 end
 
@@ -42,8 +47,7 @@ function Slash.Handle(args)
     elseif cmd == "clear" then DevSandbox3.SlotActions.ClearCheckpoints()
     elseif cmd == "nodes" then s.debugNodes = not s.debugNodes; LogUtils.Log("cyan node dots %s", s.debugNodes and "ON" or "OFF")
     elseif cmd == "debug" then s.debug = not s.debug; LogUtils.Log("debug logging %s", s.debug and "ON" or "OFF")
-    elseif cmd == "cyrodiil" then s.cyrodiilOnly = not s.cyrodiilOnly; DevSandbox3.SlotActions.LoadZone(); LogUtils.Log("Cyrodiil only %s", s.cyrodiilOnly and "ON" or "OFF")
-    else LogUtils.Log("/ds3 status | clear (forget checkpoints) | export (push log to receiver) | nodes (cyan dot on every located node) | debug | cyrodiil (toggle Cyrodiil only)") end
+    else LogUtils.Log("/ds3 status | clear (forget checkpoints) | export (push log to receiver) | nodes (cyan dot on every located node) | debug") end
 end
 
 DevSandbox3.Slash = Slash

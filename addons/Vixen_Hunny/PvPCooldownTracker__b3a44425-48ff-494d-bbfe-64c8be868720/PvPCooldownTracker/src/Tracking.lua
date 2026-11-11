@@ -1,13 +1,19 @@
+-- -----------------------------------------------------------------------------
+-- PCT - Tracking.lua
+-- Event registration, cooldown tracking, and set enable/disable logic.
+-- -----------------------------------------------------------------------------
 PvPCooldownTracker = PvPCooldownTracker or {}
 PvPCooldownTracker.Tracking = {}
-d("[PvPCooldownTracker] Tracking.lua loaded - module created")
-
-local EM = EVENT_MANAGER
-local updateIntervalMs = 100
 PvPCooldownTracker.first_run = PvPCooldownTracker.first_run or {}
 
-local ignoreAbilityId = {
-    [973] = true,
+local Tracking = PvPCooldownTracker.Tracking
+local PCT = PvPCooldownTracker
+
+local EM = EVENT_MANAGER
+local UPDATE_INTERVAL_MS = 100
+
+local IGNORE_ABILITY_IDS = {
+    [973]   = true,
     [15356] = true,
     [14890] = true,
     [55146] = true,
@@ -17,304 +23,278 @@ local ignoreAbilityId = {
     [69143] = true,
 }
 
-local setAliases = {
+-- Critical results count as their non-critical counterpart when matching procs.
+local RESULT_EQUIVALENT = {}
+if ACTION_RESULT_CRITICAL_DAMAGE ~= nil then RESULT_EQUIVALENT[ACTION_RESULT_CRITICAL_DAMAGE] = ACTION_RESULT_DAMAGE end
+if ACTION_RESULT_CRITICAL_HEAL ~= nil then RESULT_EQUIVALENT[ACTION_RESULT_CRITICAL_HEAL] = ACTION_RESULT_HEAL end
+PvPCooldownTracker.Tracking.RESULT_EQUIVALENT = RESULT_EQUIVALENT
+PvPCooldownTracker.Tracking.IGNORE_ABILITY_IDS = IGNORE_ABILITY_IDS
+
+local SET_ALIASES = {
     ["Two-Fanged Snake"] = "Twice-Fanged Serpent",
 }
 
+-- -----------------------------------------------------------------------------
+-- Helpers (delegate to shared state at runtime)
+-- -----------------------------------------------------------------------------
+local function GetSavedVars()
+    if PCT.Settings and type(PCT.Settings.EnsureState) == "function" then
+        return PCT.Settings.EnsureState()
+    end
+    return PCT.savedVars or {}
+end
+
+local function IsStateContainer(value)
+    if type(PCT.IsStateContainer) == "function" then
+        return PCT.IsStateContainer(value)
+    end
+    local t = type(value)
+    return value ~= nil and (t == "table" or t == "userdata")
+end
+
+-- Normalize set.id (number or array) into a flat array for iteration.
+local function GetAbilityIds(set)
+    if type(set.id) == "table" then return set.id end
+    return { set.id }
+end
+
+-- -----------------------------------------------------------------------------
+-- Cooldown start
+-- -----------------------------------------------------------------------------
 local function StartCooldown(setKey)
-    local set = PvPCooldownTracker.Data.Sets[setKey]
+    local set = PCT.Data.Sets[setKey]
     if not set then return end
-    local savedSet = PvPCooldownTracker.preferences.sets[setKey]
+
+    local savedVars = GetSavedVars()
+    local savedSet  = savedVars.sets and savedVars.sets[setKey]
     if not savedSet then return end
 
     set.timeOfProc = GetGameTimeMilliseconds()
-
-    if PvPCooldownTracker.preferences.lagCompensation then
+    if savedVars.lagCompensation then
         set.timeOfProc = set.timeOfProc + GetFrameDeltaTimeMilliseconds()
     end
 
-    local procDelayMs = tonumber(set.procDelayMs) or 0
-    if procDelayMs > 0 then
-        set.timeOfProc = set.timeOfProc + procDelayMs
+    local delay = tonumber(set.procDelayMs) or 0
+    if delay > 0 then
+        set.timeOfProc = set.timeOfProc + delay
     end
 
-    set.onCooldown = true
-    set.enabled = true
+    set.onCooldown  = true
+    set.enabled     = true
     set.justProcced = true
-    PvPCooldownTracker.first_run[setKey] = true
+    PCT.first_run[setKey] = true
 
-    PvPCooldownTracker.UI.PlaySound(savedSet.sounds.onProc)
-    EM:RegisterForUpdate(PvPCooldownTracker.name .. setKey .. "Count", updateIntervalMs, function(...) PvPCooldownTracker.UI.Update(setKey) return end)
+    PCT.UI.PlaySound(savedSet.sounds.onProc)
+    EM:RegisterForUpdate(
+        PCT.name .. setKey .. "Count",
+        UPDATE_INTERVAL_MS,
+        function() PCT.UI.Update(setKey) end
+    )
 end
--- ----------------------------------------------------------------------------
--- Callback Functions
--- ----------------------------------------------------------------------------
 
-local function OnCooldownUpdated(setKey, eventCode, abilityId)
-    -- When cooldown of this ability occurs, this function is continually called
-    -- until the set is off cooldown.
-    -- We can use the first call of this function to detect a proc state.
-
-    local set = PvPCooldownTracker.Data.Sets[setKey]
-
-    -- Ignore if set is on cooldown
-    if set.onCooldown == true then return end
-
+-- -----------------------------------------------------------------------------
+-- Event callbacks
+-- -----------------------------------------------------------------------------
+local function OnCooldownUpdated(setKey, _, abilityId)
+    local set = PCT.Data.Sets[setKey]
+    if set.onCooldown then return end
     StartCooldown(setKey)
-
-    PvPCooldownTracker:Trace(1, "Cooldown proc for <<1>> (<<2>>)", setKey, abilityId)
+    PCT:Trace(1, "Cooldown proc for <<1>> (<<2>>)", setKey, abilityId)
 end
 
 local function OnCombatEvent(setKey, _, result, _, abilityName, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
-
-    local set = PvPCooldownTracker.Data.Sets[setKey]
-
+    local set = PCT.Data.Sets[setKey]
     if result == ACTION_RESULT_ABILITY_ON_COOLDOWN then
-        PvPCooldownTracker:Trace(1, "<<1>> (<<2>>) on Cooldown", abilityName, abilityId)
+        PCT:Trace(1, "<<1>> (<<2>>) on Cooldown", abilityName, abilityId)
         return
     end
-
-    if result == set.result then
-        PvPCooldownTracker:Trace(1, "Name: <<1>> ID: <<2>> with result <<3>> INFO", abilityName, abilityId, result)
+    if not set then return end
+    -- A critical hit/heal of the proc is still the proc.
+    if result == set.result or (RESULT_EQUIVALENT[result] ~= nil and RESULT_EQUIVALENT[result] == set.result) then
+        PCT:Trace(1, "Name: <<1>> ID: <<2>> with result <<3>> INFO", abilityName, abilityId, result)
         StartCooldown(setKey)
     end
-
 end
 
-local function IsInCombat(_, inCombat)
-    PvPCooldownTracker.isInCombat = inCombat
-    PvPCooldownTracker:Trace(2, "In Combat: <<1>>", tostring(inCombat))
-    PvPCooldownTracker.UI:SetCombatStateDisplay()
+local function OnCombatStateChanged(_, inCombat)
+    PCT.isInCombat = inCombat
+    PCT:Trace(2, "In Combat: <<1>>", tostring(inCombat))
+    PCT.UI:SetCombatStateDisplay()
 end
 
 local function OnAlive()
-    PvPCooldownTracker.isDead = false
-    PvPCooldownTracker.UI:SetCombatStateDisplay()
+    PCT.isDead = false
+    PCT.UI:SetCombatStateDisplay()
 end
 
 local function OnDeath()
-    PvPCooldownTracker.isDead = true
-    PvPCooldownTracker.UI:SetCombatStateDisplay()
+    PCT.isDead = true
+    PCT.UI:SetCombatStateDisplay()
 end
 
 local function OnCombatEventUnfiltered(_, result, _, abilityName, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
-    if ignoreAbilityId[abilityId] then return end
-
-    PvPCooldownTracker:Trace(1, "<<1>> (<<2>>) with result <<3>>", abilityName, abilityId, result)
+    if IGNORE_ABILITY_IDS[abilityId] then return end
+    PCT:Trace(1, "<<1>> (<<2>>) with result <<3>>", abilityName, abilityId, result)
 end
 
-local function OnEffectChangedUnfiltered(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-    if ignoreAbilityId[abilityId] then return end
-
-    PvPCooldownTracker:Trace(1, "<<1>> (<<2>>) with change type <<3>> <<4>>", effectName, abilityId, changeType, iconName)
+-- Kept for debug use; enable via RegisterUnfiltered() by uncommenting below.
+local function OnEffectChangedUnfiltered(_, changeType, _, effectName, _, _, _, _, iconName, _, _, _, _, _, _, abilityId)
+    if IGNORE_ABILITY_IDS[abilityId] then return end
+    PCT:Trace(1, "<<1>> (<<2>>) with change type <<3>> <<4>>", effectName, abilityId, changeType, iconName)
 end
 
--- ----------------------------------------------------------------------------
--- Event Register/Unregister
--- ----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+-- Normalize "Perfect" / "Perfected" set names
+-- -----------------------------------------------------------------------------
+local function NormalizePerfectSetName(setKey)
+    if not string.find(setKey, "Perfect", 1, true) then
+        return setKey
+    end
+    for _, prefix in ipairs(PCT.Data.PerfectString) do
+        local stripped, count = string.gsub(setKey, prefix, "")
+        if count > 0 then
+            PCT:Trace(1, "Found <<1>> version of <<2>>", prefix, stripped)
+            return stripped
+        end
+    end
+    return setKey
+end
 
+-- -----------------------------------------------------------------------------
+-- Set-level event registration helpers
+-- Extracted from EnableTrackingForSet to avoid duplicated loop code.
+-- -----------------------------------------------------------------------------
+local function RegisterSetEvents(setKey, set)
+    local callback = (set.event == EVENT_ABILITY_COOLDOWN_UPDATED)
+        and OnCooldownUpdated or OnCombatEvent
+    for _, id in ipairs(GetAbilityIds(set)) do
+        local eventName = PCT.name .. "_" .. id
+        EM:RegisterForEvent(eventName, set.event, function(...) callback(setKey, ...) end)
+        EM:AddFilterForEvent(eventName, set.event,
+            REGISTER_FILTER_ABILITY_ID, id,
+            REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    end
+end
+
+local function UnregisterSetEvents(setKey, set)
+    EM:UnregisterForUpdate(PCT.name .. setKey .. "Count")
+    for _, id in ipairs(GetAbilityIds(set)) do
+        EM:UnregisterForEvent(PCT.name .. "_" .. id, set.event)
+    end
+end
+
+-- -----------------------------------------------------------------------------
+-- Public: global event management
+-- -----------------------------------------------------------------------------
 function PvPCooldownTracker.Tracking.RegisterUnfiltered()
-    --EM:RegisterForEvent(PvPCooldownTracker.name .. "_UnfilteredEffect", EVENT_EFFECT_CHANGED, OnEffectChangedUnfiltered)
-    --EM:AddFilterForEvent(PvPCooldownTracker.name .. "_UnfilteredEffect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    -- Uncomment for effect-change debugging:
+    -- EM:RegisterForEvent(PCT.name .. "_UnfilteredEffect", EVENT_EFFECT_CHANGED, OnEffectChangedUnfiltered)
+    -- EM:AddFilterForEvent(PCT.name .. "_UnfilteredEffect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
-    EM:RegisterForEvent(PvPCooldownTracker.name .. "_Unfiltered", EVENT_COMBAT_EVENT, OnCombatEventUnfiltered)
-    EM:AddFilterForEvent(PvPCooldownTracker.name .. "_Unfiltered", EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
-    PvPCooldownTracker:Trace(1, "Registered Unfiltered Events")
+    EM:RegisterForEvent(PCT.name .. "_Unfiltered", EVENT_COMBAT_EVENT, OnCombatEventUnfiltered)
+    EM:AddFilterForEvent(PCT.name .. "_Unfiltered", EVENT_COMBAT_EVENT,
+        REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    PCT:Trace(1, "Registered Unfiltered Events")
 end
 
 function PvPCooldownTracker.Tracking.UnregisterUnfiltered()
-    EM:UnregisterForEvent(PvPCooldownTracker.name .. "_Unfiltered", EVENT_COMBAT_EVENT)
-    PvPCooldownTracker:Trace(1, "Unregistered Unfiltered Events")
+    EM:UnregisterForEvent(PCT.name .. "_Unfiltered", EVENT_COMBAT_EVENT)
+    PCT:Trace(1, "Unregistered Unfiltered Events")
 end
 
 function PvPCooldownTracker.Tracking.RegisterEvents()
-    EM:RegisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_ALIVE, OnAlive)
-    EM:RegisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_DEAD, OnDeath)
-
-    if not PvPCooldownTracker.preferences.showOutsideCombat then
-        PvPCooldownTracker.Tracking.RegisterCombatEvent()
+    local sv = GetSavedVars()
+    EM:RegisterForEvent(PCT.name, EVENT_PLAYER_ALIVE, OnAlive)
+    EM:RegisterForEvent(PCT.name, EVENT_PLAYER_DEAD, OnDeath)
+    if not sv.showOutsideCombat then
+        Tracking.RegisterCombatEvent()
     end
-
-    PvPCooldownTracker:Trace(2, "Registered Events")
+    PCT:Trace(2, "Registered Events")
 end
 
 function PvPCooldownTracker.Tracking.UnregisterEvents()
-    EM:UnregisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_ALIVE)
-    EM:UnregisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_DEAD)
-    PvPCooldownTracker:Trace(2, "Unregistered Events")
+    EM:UnregisterForEvent(PCT.name, EVENT_PLAYER_ALIVE)
+    EM:UnregisterForEvent(PCT.name, EVENT_PLAYER_DEAD)
+    PCT:Trace(2, "Unregistered Events")
 end
 
 function PvPCooldownTracker.Tracking.RegisterCombatEvent()
-    EM:RegisterForEvent(PvPCooldownTracker.name .. "COMBAT", EVENT_PLAYER_COMBAT_STATE, IsInCombat)
-    PvPCooldownTracker:Trace(2, "Registered combat events")
+    EM:RegisterForEvent(PCT.name .. "COMBAT", EVENT_PLAYER_COMBAT_STATE, OnCombatStateChanged)
+    PCT:Trace(2, "Registered combat events")
 end
 
 function PvPCooldownTracker.Tracking.UnregisterCombatEvent()
-    EM:UnregisterForEvent(PvPCooldownTracker.name .. "COMBAT", EVENT_PLAYER_COMBAT_STATE)
-    PvPCooldownTracker:Trace(2, "Unregistered combat events")
+    EM:UnregisterForEvent(PCT.name .. "COMBAT", EVENT_PLAYER_COMBAT_STATE)
+    PCT:Trace(2, "Unregistered combat events")
 end
 
--- ----------------------------------------------------------------------------
--- Utility Functions
--- ----------------------------------------------------------------------------
-
-local function RenameWhenPerfectSet(setKey)
-    -- Check for Perfect/Perfected
-    local isPerfect = string.find(setKey, "Perfect", 1, true)
-
-    -- Only if a perfect set is suspect do we run through
-    -- our table of "Perfect" strings to replace
-    if isPerfect ~= nil and isPerfect > 0 then
-        PvPCooldownTracker:Trace(3, "Perfect suspect, string matches: <<1>>", isPerfect)
-
-        -- Normalize Perfect and Non-Perfect variant names
-        for _, perfectString in ipairs(PvPCooldownTracker.Data.PerfectString) do
-
-            -- Find strings related to being Perfect
-            local newSetKey, count = string.gsub(setKey, perfectString, "")
-
-            -- Update name if a perfect version is detected
-            if count > 0 then
-                PvPCooldownTracker:Trace(1, "Found <<1>> version of <<2>>", perfectString, newSetKey)
-                return newSetKey
-            end
-
-            PvPCooldownTracker:Trace(3, "Perfect suspect, but no match for \"<<1>>\"", perfectString)
-        end
-    end
-
-    -- Return unmodified if perfect could not be matched
-    return setKey
-
-end
-
-function PvPCooldownTracker:Debug(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, HitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-    if not isError then
-            d(string.format("Target Name: %s Ability ID: %d Ability Name: %s Result: %s Ability Graphic: %s",targetName, abilityId, abilityName, result, abilityGraphic))
-    end
-end
-
+-- -----------------------------------------------------------------------------
+-- Public: enable/disable tracking for a specific set
+-- -----------------------------------------------------------------------------
 function PvPCooldownTracker.Tracking.EnableTrackingForSet(setKey, enabled)
+    -- Exact catalog keys (e.g. player-added procs) win over name normalization.
+    if not PCT.Data.Sets[setKey] then
+        setKey = NormalizePerfectSetName(setKey)
+        setKey = SET_ALIASES[setKey] or setKey
+    end
 
-    setKey = RenameWhenPerfectSet(setKey);
-    setKey = setAliases[setKey] or setKey
-    local set = PvPCooldownTracker.Data.Sets[setKey]
+    local set = PCT.Data.Sets[setKey]
+    if not set then return end
 
-    -- Ignore sets not in our table
-    if set == nil then return end
-
-
-    -- Full bonus active
     if enabled then
-
-        -- Check manual disable first
-        if type(PvPCooldownTracker.character) == "table"
-            and type(PvPCooldownTracker.character[set.procType]) == "table"
-            and PvPCooldownTracker.character[set.procType][setKey] == false then
-            -- Skip enabling set
-            PvPCooldownTracker:Trace(1, "Force disabled <<1>>, skipping enable", setKey)
+        -- Respect manual disable
+        if PCT.character
+            and IsStateContainer(PCT.character[set.procType])
+            and PCT.character[set.procType][setKey] == false then
+            PCT:Trace(1, "Force disabled <<1>>, skipping enable", setKey)
             return
         end
 
-        PvPCooldownTracker:Trace(1, "Enabling tracking for <<1>>", setKey)
-
-        -- Set callback based on event
-        local procFunction = nil
-        if set.event == EVENT_ABILITY_COOLDOWN_UPDATED then
-            procFunction = OnCooldownUpdated
-        else
-            procFunction = OnCombatEvent
-        end
-
-        -- Register events (re-registering same event key is safe and refreshes stale callback state).
-        if type(set.id) == 'table' then
-            for i=1, #set.id do
-                EM:RegisterForEvent(PvPCooldownTracker.name .. "_" .. set.id[i], set.event, function(...) procFunction(setKey, ...) end)
-                EM:AddFilterForEvent(PvPCooldownTracker.name .. "_" .. set.id[i], set.event,
-                    REGISTER_FILTER_ABILITY_ID, set.id[i],
-                    REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
-            end
-        else
-            EM:RegisterForEvent(PvPCooldownTracker.name .. "_" .. set.id, set.event, function(...) procFunction(setKey, ...) end)
-            EM:AddFilterForEvent(PvPCooldownTracker.name .. "_" .. set.id, set.event,
-                REGISTER_FILTER_ABILITY_ID, set.id,
-                REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
-        end
-
+        PCT:Trace(1, "Enabling tracking for <<1>>", setKey)
+        RegisterSetEvents(setKey, set)
         set.enabled = true
-        PvPCooldownTracker.UI.Draw(setKey)
-
-    -- Full bonus not active
+        PCT.UI.Draw(setKey)
     else
-
-        -- If manually enabled in settings, don't let equipment callbacks disable it.
-        -- This keeps the tracking toggle authoritative for users who want persistent tracking.
+        -- Respect manual enable (don't auto-disable user-pinned sets)
         if set.procType == "set"
-            and type(PvPCooldownTracker.character) == "table"
-            and type(PvPCooldownTracker.character[set.procType]) == "table"
-            and PvPCooldownTracker.character[set.procType][setKey] == true then
-            PvPCooldownTracker:Trace(2, "Manual setting keeps <<1>> enabled, skipping auto-disable", setKey)
+            and PCT.character
+            and IsStateContainer(PCT.character[set.procType])
+            and PCT.character[set.procType][setKey] == true then
+            PCT:Trace(2, "Manual setting keeps <<1>> enabled", setKey)
             if not set.enabled then
                 set.enabled = true
-                PvPCooldownTracker.UI.Draw(setKey)
+                PCT.UI.Draw(setKey)
             end
             return
         end
 
-        -- Don't disable if already disabled
         if set.enabled then
-            PvPCooldownTracker:Trace(1, "Not active for: <<1>>, unregistering events", setKey)
-            EM:UnregisterForUpdate(PvPCooldownTracker.name .. setKey .. "Count")
-            if type(set.id) == 'table' then
-                for i=1, #set.id do
-                    EM:UnregisterForEvent(PvPCooldownTracker.name .. "_" .. set.id[i], set.event)
-                end
-            else
-                EM:UnregisterForEvent(PvPCooldownTracker.name .. "_" .. set.id, set.event)
-            end
-            set.enabled = false
+            PCT:Trace(1, "Disabling tracking for: <<1>>", setKey)
+            UnregisterSetEvents(setKey, set)
+            set.enabled    = false
             set.onCooldown = false
-        else
-            PvPCooldownTracker:Trace(2, "Set already disabled for: <<1>>", setKey)
         end
     end
-
 end
 
-if type(PvPCooldownTracker.Tracking.RegisterCombatEvent) ~= "function" then
-    function PvPCooldownTracker.Tracking.RegisterCombatEvent()
-        EM:RegisterForEvent(PvPCooldownTracker.name .. "COMBAT", EVENT_PLAYER_COMBAT_STATE, IsInCombat)
-        PvPCooldownTracker:Trace(2, "Registered combat events (fallback)")
+-- -----------------------------------------------------------------------------
+-- Public: fake a proc so the player can preview a tracker from the settings menu
+-- -----------------------------------------------------------------------------
+function PvPCooldownTracker.Tracking.TestProc(setKey)
+    local set = PCT.Data.Sets[setKey]
+    if not set or not set.enabled then return false end
+    StartCooldown(setKey)
+    return true
+end
+
+-- -----------------------------------------------------------------------------
+-- Debug callback (used for raw EVENT_COMBAT_EVENT inspection)
+-- -----------------------------------------------------------------------------
+function PvPCooldownTracker:Debug(eventCode, result, isError, abilityName, abilityGraphic,
+    abilityActionSlotType, sourceName, sourceType, targetName, targetType, HitValue,
+    powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+    if not isError then
+        d(string.format("Target Name: %s Ability ID: %d Ability Name: %s Result: %s Ability Graphic: %s",
+            targetName, abilityId, abilityName, result, abilityGraphic))
     end
 end
-
-if type(PvPCooldownTracker.Tracking.UnregisterCombatEvent) ~= "function" then
-    function PvPCooldownTracker.Tracking.UnregisterCombatEvent()
-        EM:UnregisterForEvent(PvPCooldownTracker.name .. "COMBAT", EVENT_PLAYER_COMBAT_STATE)
-        PvPCooldownTracker:Trace(2, "Unregistered combat events (fallback)")
-    end
-end
-
-if type(PvPCooldownTracker.Tracking.RegisterEvents) ~= "function" then
-    function PvPCooldownTracker.Tracking.RegisterEvents()
-        EM:RegisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_ALIVE, OnAlive)
-        EM:RegisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_DEAD, OnDeath)
-
-        if not PvPCooldownTracker.preferences.showOutsideCombat then
-            PvPCooldownTracker.Tracking.RegisterCombatEvent()
-        end
-
-        PvPCooldownTracker:Trace(2, "Registered Events (fallback)")
-    end
-end
-
-if type(PvPCooldownTracker.Tracking.UnregisterEvents) ~= "function" then
-    function PvPCooldownTracker.Tracking.UnregisterEvents()
-        EM:UnregisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_ALIVE)
-        EM:UnregisterForEvent(PvPCooldownTracker.name, EVENT_PLAYER_DEAD)
-        PvPCooldownTracker:Trace(2, "Unregistered Events (fallback)")
-    end
-end
-
-d("[PvPCooldownTracker] Tracking.lua ready - RegisterEvents type=" .. type(PvPCooldownTracker.Tracking.RegisterEvents))
-

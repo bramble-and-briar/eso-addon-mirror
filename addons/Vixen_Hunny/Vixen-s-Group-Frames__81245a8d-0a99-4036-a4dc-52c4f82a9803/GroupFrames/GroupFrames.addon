@@ -1,0 +1,15 @@
+## Title: GroupFrames
+## Description: Group frames showing health, shared magicka/stamina (LibGroupResources) and Major/Minor buffs of group members.
+## Author: Vixen Hunny
+## Version: 1.2.0
+## AddOnVersion: 3
+## APIVersion: 101048 101049
+## DependsOn: LibAddonMenu-2.0>=38
+## OptionalDependsOn: LibHarvensAddonSettings LibGroupBroadcast LibGroupResources LibGroupCombatStats
+## SavedVariables: GroupFrames_SV
+
+Buffs.lua
+Share.lua
+Stats.lua
+GroupFrames.lua
+Settings.lua

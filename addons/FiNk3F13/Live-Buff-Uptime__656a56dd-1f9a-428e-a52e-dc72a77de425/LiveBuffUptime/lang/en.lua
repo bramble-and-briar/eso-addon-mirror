@@ -183,5 +183,6 @@ LiveBuffUptimeEnglish = {
     ["Symphony of Blades (pro Empfaenger)"] = "Symphony of Blades (per recipient)",
     ["Crusader (eigener Proc)"] = "Crusader (own proc)",
     ["Brands of Imperium (eigener Proc)"] = "Brands of Imperium (own proc)",
+    ["Mechanikblick (eigener Proc)"] = "Mechanical Acuity (own proc)",
     [": Einstellungen unter Addons. /lbu uptime | /lbu move | /lbu reset | /lbu status"] = ": Settings under Add-ons. /lbu uptime | /lbu move | /lbu reset | /lbu status",
 }

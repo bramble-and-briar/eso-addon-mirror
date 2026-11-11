@@ -10,7 +10,6 @@ local DEFAULT_GRID_SIZE = 15
 local OVERLAY_CONTROL_NAME = "HUDitorTools_GridSnap_Overlay"
 local LINE_TEMPLATE_V = "HUDitorTools_GridSnap_Overlay_Line_V"
 local LINE_TEMPLATE_H = "HUDitorTools_GridSnap_Overlay_Line_H"
-local EDITOR_SCENE_NAME = "hud_editor_keyboard"
 local GRID_SIZE_SLIDER_UPDATE_NAME = HT.eventName .. "_GridSizeSlider"
 local SCREEN_RESIZE_EVENT_NAME = HT.eventName .. "_GridOverlay"
 local GRID_SIZE_SLIDER_DEBOUNCE_MS = 50
@@ -24,10 +23,6 @@ local zo_round = zo_round
 local function ResetLine(line)
     line:ClearAnchors()
     line:SetHidden(true)
-end
-
-local function FormatUiLayoutMeasurement(layoutValue)
-    return string.format("%dui", zo_round(layoutValue))
 end
 
 local function ApplyLineStyle(line)
@@ -75,14 +70,14 @@ function Overlay:OnDeferredInitialize()
 end
 
 function Overlay:AddFragmentToEditorScene()
-    local scene = sceneManager:GetScene(EDITOR_SCENE_NAME)
+    local scene = sceneManager:GetScene(HT.EDITOR_SCENE_NAME)
     if not scene:HasFragment(self.fragment) then
         scene:AddFragment(self.fragment)
     end
 end
 
 function Overlay:RemoveFragmentFromEditorScene()
-    sceneManager:GetScene(EDITOR_SCENE_NAME):RemoveFragment(self.fragment)
+    sceneManager:GetScene(HT.EDITOR_SCENE_NAME):RemoveFragment(self.fragment)
 end
 
 function Overlay:OnShowing()
@@ -116,11 +111,11 @@ function Overlay:UpdateLines(gridSize)
     self.lastRootWidth = canvasWidth
     self.lastRootHeight = canvasHeight
 
-    local layoutOffsetZero = FormatUiLayoutMeasurement(0)
+    local layoutOffsetZero = HT.FormatUiLayoutMeasurement(0)
     local verticalLineCount = zo_floor(canvasWidth / gridSize)
     for lineIndex = 0, verticalLineCount do
         local offsetX = zo_round(lineIndex * gridSize)
-        local layoutOffsetX = FormatUiLayoutMeasurement(offsetX)
+        local layoutOffsetX = HT.FormatUiLayoutMeasurement(offsetX)
         local line = self:AcquireLine(self.verticalPool, lineIndex)
         line:ClearAnchors()
         line:SetAnchor(TOPLEFT, self.control, TOPLEFT, layoutOffsetX, layoutOffsetZero)
@@ -131,7 +126,7 @@ function Overlay:UpdateLines(gridSize)
     local horizontalLineCount = zo_floor(canvasHeight / gridSize)
     for lineIndex = 0, horizontalLineCount do
         local offsetY = zo_round(lineIndex * gridSize)
-        local layoutOffsetY = FormatUiLayoutMeasurement(offsetY)
+        local layoutOffsetY = HT.FormatUiLayoutMeasurement(offsetY)
         local line = self:AcquireLine(self.horizontalPool, lineIndex)
         line:ClearAnchors()
         line:SetAnchor(TOPLEFT, self.control, TOPLEFT, layoutOffsetZero, layoutOffsetY)

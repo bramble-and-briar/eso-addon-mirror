@@ -131,6 +131,7 @@ WritWorthyInventoryList.COLOR_TEXT_BS = "FFCE93"
 -- Useful when iterating through columns/cells.
 WritWorthyInventoryList.CELL_TYPE = "Type"
 WritWorthyInventoryList.CELL_VOUCHERCT = "VoucherCt"
+WritWorthyInventoryList.CELL_CRAFTCT = "CraftCt"
 WritWorthyInventoryList.CELL_DETAIL1 = "Detail1"
 WritWorthyInventoryList.CELL_DETAIL2 = "Detail2"
 WritWorthyInventoryList.CELL_DETAIL3 = "Detail3"
@@ -142,6 +143,7 @@ WritWorthyInventoryList.CELL_ENQUEUE_MASK = "EnqueueMask" -- not a cell on its o
 WritWorthyInventoryList.CELL_NAME_LIST = {
   WritWorthyInventoryList.CELL_TYPE,
   WritWorthyInventoryList.CELL_VOUCHERCT,
+  WritWorthyInventoryList.CELL_CRAFTCT,
   WritWorthyInventoryList.CELL_DETAIL1,
   WritWorthyInventoryList.CELL_DETAIL2,
   WritWorthyInventoryList.CELL_DETAIL3,
@@ -268,6 +270,7 @@ function WritWorthyInventoryList_HeaderInit(control, name, text, key)
   WritWorthyInventoryList.HEADER_TOOLTIPS = {
     [WritWorthyInventoryList.CELL_TYPE] = WW.Str("header_tooltip_Type"),
     [WritWorthyInventoryList.CELL_VOUCHERCT] = WW.Str("header_tooltip_V"),
+    [WritWorthyInventoryList.CELL_CRAFTCT] = WW.Str("header_tooltip_Ct"),
     [WritWorthyInventoryList.CELL_DETAIL1] = WW.Str("header_tooltip_Detail1"),
     [WritWorthyInventoryList.CELL_DETAIL2] = WW.Str("header_tooltip_Detail2"),
     [WritWorthyInventoryList.CELL_DETAIL3] = WW.Str("header_tooltip_Detail3"),
@@ -830,6 +833,17 @@ function WritWorthyInventoryList:PopulateUIFields(inventory_data)
   elseif parser.class == WritWorthy.Provisioning.Parser.class then
     inventory_data.ui_type = UI_TYPE_PROVISIONING
     inventory_data.ui_detail1 = parser.recipe.fooddrink_name
+  elseif parser.class == WritWorthy.Holiday.Parser.class then
+    if parser.requested_item_type == ITEMTYPE_FURNISHING then
+      inventory_data.ui_type = GetString("SI_TRADESKILLTYPE", parser.crafting_type)
+    else
+      inventory_data.ui_type = GetString("SI_ITEMTYPE", parser.requested_item_type)
+    end
+    inventory_data.ui_detail1 = parser.requested_item_name
+    inventory_data.ui_craft_ct = parser.still_needed_count or 0
+  end
+  if inventory_data.ui_craft_ct == nil then
+    inventory_data.ui_craft_ct = -1
   end
   -- Since the point of these UI fields is to  drive the
   -- UI, we might as well shorten them here, once, rather
@@ -855,6 +869,8 @@ function WritWorthyInventoryList:PopulateUIFields(inventory_data)
     inventory_data.ui_station_sort = "02 enchanting"
   elseif parser.class == WritWorthy.Provisioning.Parser.class then
     inventory_data.ui_station_sort = "03 provisioning"
+  elseif parser.class == WritWorthy.Holiday.Parser.class then
+    inventory_data.ui_station_sort = string.format("05 %02d", parser.crafting_type or 0)
   elseif parser.class == WritWorthy.Smithing.Parser.class then
     local set_name = inventory_data.ui_detail1
     local crafting_type = parser.request_item.school.trade_skill_type
@@ -1049,6 +1065,11 @@ function WritWorthyInventoryList:SetupRowControl(row_control, inventory_data)
   -- Fill in the cells with data for this row.
   rc[self.CELL_TYPE]:SetText(fn(c2, i_d.ui_type))
   rc[self.CELL_VOUCHERCT]:SetText(fn(c, tostring(i_d.ui_voucher_ct)))
+  local craft_ct_text = ""
+  if i_d.ui_craft_ct and i_d.ui_craft_ct >= 0 then
+    craft_ct_text = tostring(i_d.ui_craft_ct)
+  end
+  rc[self.CELL_CRAFTCT]:SetText(fn(c, craft_ct_text))
   rc[self.CELL_DETAIL1]:SetText(fn(c2, i_d.ui_detail1))
   rc[self.CELL_DETAIL2]:SetText(fn(c, i_d.ui_detail2))
   rc[self.CELL_DETAIL3]:SetText(fn(c, i_d.ui_detail3))
@@ -1076,7 +1097,10 @@ function WritWorthyInventoryList:SetupRowControl(row_control, inventory_data)
   b.inventory_data = inventory_data
   b_mask.inventory_data = inventory_data
   ZO_CheckButton_SetCheckState(b, i_d.ui_is_queued)
-  if i_d.ui_can_queue then
+  -- A completed row stays clickable so a writ crafted with the wrong
+  -- count can be queued again. The mask only blocks rows that cannot
+  -- be crafted at all.
+  if i_d.ui_can_queue or i_d.ui_is_completed then
     b_mask:SetHidden(true)
   else
     b_mask:SetHidden(false)

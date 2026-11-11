@@ -3,13 +3,36 @@
 --
 -- Scans the player's equipped gear, matches set names against the proc catalog
 -- in PvPCooldownTracker.Data.Sets, auto-registers cooldown/proc data into
--- preferences, and provides LAM controls for manual import of unknown sets.
+-- savedVars, and provides LAM controls for manual import of unknown sets.
 -- -----------------------------------------------------------------------------
 PvPCooldownTracker            = PvPCooldownTracker or {}
 PvPCooldownTracker.EquippedSets = {}
 
 local PCT = PvPCooldownTracker
 local EM = EVENT_MANAGER
+
+local function GetStateTables()
+    if PCT.Settings and type(PCT.Settings.EnsureState) == "function" then
+        local savedVars = PCT.Settings.EnsureState()
+        return savedVars or {}, PCT.character or {}
+    end
+
+    if type(PCT.EnsureSavedVariables) == "function" then
+        local savedVars, character = PCT.EnsureSavedVariables()
+        return savedVars or {}, character or {}
+    end
+
+    return PCT.savedVars or {}, PCT.character or {}
+end
+
+local function IsStateContainer(value)
+    if type(PCT.IsStateContainer) == "function" then
+        return PCT.IsStateContainer(value)
+    end
+
+    local valueType = type(value)
+    return value ~= nil and (valueType == "table" or valueType == "userdata")
+end
 
 -- Equipped item slots to scan (mirrors Data.ITEM_SLOTS).
 local WORN_SLOTS = {
@@ -274,7 +297,7 @@ end
 
 local function BuildSavedSetDefaults()
     local defaults = PCT.Defaults and PCT.Defaults.Get and PCT.Defaults.Get()
-    local prefs = PCT.preferences or {}
+    local prefs = PCT.savedVars or {}
     local defaultSounds = (type(defaults) == "table" and type(defaults.sounds) == "table")
         and CloneTable(defaults.sounds)
         or {
@@ -283,10 +306,10 @@ local function BuildSavedSetDefaults()
         }
 
     return {
-        x      = (type(prefs.TextureLocation) == "table" and prefs.TextureLocation.x) or 640,
-        y      = (type(prefs.TextureLocation) == "table" and prefs.TextureLocation.y) or 300,
-        labelx = (type(prefs.LabelLocation) == "table" and prefs.LabelLocation.x) or 600,
-        labely = (type(prefs.LabelLocation) == "table" and prefs.LabelLocation.y) or 300,
+        x      = (IsStateContainer(prefs.TextureLocation) and prefs.TextureLocation.x) or 640,
+        y      = (IsStateContainer(prefs.TextureLocation) and prefs.TextureLocation.y) or 300,
+        labelx = (IsStateContainer(prefs.LabelLocation) and prefs.LabelLocation.x) or 600,
+        labely = (IsStateContainer(prefs.LabelLocation) and prefs.LabelLocation.y) or 300,
         size   = prefs.size or 64,
         sounds = defaultSounds,
     }
@@ -306,35 +329,31 @@ local function EnsureDefaultSet(setKey)
 end
 
 local function EnsureCharacterSetState(setKey)
-    if type(PCT.character) ~= "table" then
-        return
+    local _, character = GetStateTables()
+
+    if not IsStateContainer(character.set) then
+        character.set = {}
     end
 
-    if type(PCT.character.set) ~= "table" then
-        PCT.character.set = {}
-    end
-
-    if type(setKey) == "string" and setKey ~= "" and PCT.character.set[setKey] == nil then
+    if type(setKey) == "string" and setKey ~= "" and character.set[setKey] == nil then
         -- New sets added after SavedVars are loaded should still get a default enabled state.
-        PCT.character.set[setKey] = true
+        character.set[setKey] = true
     end
 end
 
 local function EnsureCustomSetStore()
-    if type(PCT.preferences) ~= "table" then
-        return nil
+    local savedVars = GetStateTables()
+
+    if not IsStateContainer(savedVars.customSetData) then
+        savedVars.customSetData = {}
     end
 
-    if type(PCT.preferences.customSetData) ~= "table" then
-        PCT.preferences.customSetData = {}
-    end
-
-    return PCT.preferences.customSetData
+    return savedVars.customSetData
 end
 
-local function SaveCustomSetToPreferences(setKey, entry)
+local function SaveCustomSetToSavedVars(setKey, entry)
     local store = EnsureCustomSetStore()
-    if type(store) ~= "table" or type(entry) ~= "table" then
+    if not IsStateContainer(store) or type(entry) ~= "table" then
         return
     end
 
@@ -354,6 +373,7 @@ local function SaveCustomSetToPreferences(setKey, entry)
         procDelayMs = NormalizeInteger(entry.procDelayMs) or 0,
         texture = entry.texture,
         showFrame = entry.showFrame ~= false,
+        userProc = entry.userProc == true or nil,
         customRegistered = true,
     }
 end
@@ -381,13 +401,13 @@ local function MoveSavedSetKey(oldKey, newKey)
         return
     end
 
-    local prefs = PCT.preferences
-    if type(prefs) == "table" and type(prefs.sets) == "table" and prefs.sets[oldKey] ~= nil then
+    local prefs = PCT.savedVars
+    if IsStateContainer(prefs) and IsStateContainer(prefs.sets) and prefs.sets[oldKey] ~= nil then
         prefs.sets[newKey] = prefs.sets[oldKey]
         prefs.sets[oldKey] = nil
     end
 
-    if type(prefs) == "table" and type(prefs.customSetData) == "table" and prefs.customSetData[oldKey] ~= nil then
+    if IsStateContainer(prefs) and IsStateContainer(prefs.customSetData) and prefs.customSetData[oldKey] ~= nil then
         prefs.customSetData[newKey] = prefs.customSetData[oldKey]
         prefs.customSetData[oldKey] = nil
     end
@@ -398,9 +418,10 @@ local function MoveSavedSetKey(oldKey, newKey)
         defaults.sets[oldKey] = nil
     end
 
-    if type(PCT.character) == "table" and type(PCT.character.set) == "table" and PCT.character.set[oldKey] ~= nil then
-        PCT.character.set[newKey] = PCT.character.set[oldKey]
-        PCT.character.set[oldKey] = nil
+    local _, character = GetStateTables()
+    if IsStateContainer(character.set) and character.set[oldKey] ~= nil then
+        character.set[newKey] = character.set[oldKey]
+        character.set[oldKey] = nil
     end
 end
 
@@ -467,16 +488,16 @@ local function GetEquippedSetNames()
     return results
 end
 
--- Ensures a set that already exists in Data.Sets has a valid preferences.sets
+-- Ensures a set that already exists in Data.Sets has a valid savedVars.sets
 -- entry (position, size, sounds).  Returns true if successful.
-local function EnsureInPreferences(setKey)
+local function EnsureInSavedVars(setKey)
     local catalog = PCT.Data and PCT.Data.Sets
     if not catalog or not catalog[setKey] then return false end
 
-    local prefs = PCT.preferences
-    if type(prefs) ~= "table" or type(prefs.sets) ~= "table" then return false end
+    local prefs = PCT.savedVars
+    if not IsStateContainer(prefs) or not IsStateContainer(prefs.sets) then return false end
 
-    if type(prefs.sets[setKey]) == "table" then return true end  -- already present
+    if IsStateContainer(prefs.sets[setKey]) then return true end  -- already present
 
     local defaultSet = EnsureDefaultSet(setKey)
 
@@ -492,7 +513,7 @@ end
 -- -----------------------------------------------------------------------------
 -- Public: Scan
 -- Matches equipped sets against the proc catalog.  Side-effects:
---   • Any matched set with valid proc data is registered into preferences.
+--   • Any matched set with valid proc data is registered into savedVars.
 --   • The result table is cached in PCT.EquippedSets.lastScanResults.
 -- Returns { found, noProc, unknown }
 -- -----------------------------------------------------------------------------
@@ -531,7 +552,7 @@ function PCT.EquippedSets.Scan()
                     texture            = setData.texture,
                     description        = setData.description or "",
                 }
-                EnsureInPreferences(name)
+                EnsureInSavedVars(name)
                 EnsureCharacterSetState(name)
             else
                 noProc[#noProc + 1] = {
@@ -558,7 +579,7 @@ end
 
 -- -----------------------------------------------------------------------------
 -- Public: RegisterCustomEntry
--- Adds a brand-new set entry into Data.Sets + preferences for sets not already
+-- Adds a brand-new set entry into Data.Sets + savedVars for sets not already
 -- in the catalog.  Immediately wires up event tracking.
 -- Parameters:
 --   setName     (string)  – exact display name
@@ -587,10 +608,10 @@ function PCT.EquippedSets.RegisterCustomEntry(setName, abilityId, cooldownMs, re
         return false, "Data.Sets is not available."
     end
 
-    -- Already catalogued – just make sure preferences has it.
+    -- Already catalogued – just make sure savedVars has it.
     if catalog[setName] then
-        EnsureInPreferences(setName)
-        return true, string.format("'%s' already in catalog; preferences updated.", setName)
+        EnsureInSavedVars(setName)
+        return true, string.format("'%s' already in catalog; savedVars updated.", setName)
     end
 
     return PCT.EquippedSets.SaveSetData({
@@ -646,9 +667,11 @@ function PCT.EquippedSets.SaveSetData(draft)
         end
     end
 
-    local eventCodeText = draft.eventCode
-    local eventCode = EVENT_COMBAT_EVENT      
-     if eventCodeText ~= "" and eventCode == nil then
+    local eventCodeText = TrimString(draft and draft.eventCode)
+    local eventCode = NormalizeInteger(eventCodeText)
+    if eventCodeText == "" then
+        eventCode = EVENT_COMBAT_EVENT
+    elseif eventCode == nil then
         return false, "Event code must be numeric."
     end
     if eventCode == nil then
@@ -680,9 +703,9 @@ function PCT.EquippedSets.SaveSetData(draft)
 
     local existingCopy = CloneTable(existingEntry)
     local shouldEnable = existingCopy and existingCopy.enabled == true
-    local manuallyEnabled = type(PCT.character) == "table"
-        and type(PCT.character.set) == "table"
-        and PCT.character.set[originalSetName] == true
+    local _, character = GetStateTables()
+    local manuallyEnabled = IsStateContainer(character.set)
+        and character.set[originalSetName] == true
 
     if existingCopy then
         UnregisterTrackingForEntry(originalSetName, existingCopy)
@@ -706,6 +729,10 @@ function PCT.EquippedSets.SaveSetData(draft)
     newEntry.texture = texture ~= "" and texture or nil
     newEntry.showFrame = draft == nil or draft.showFrame ~= false
     newEntry.customRegistered = true
+    if draft ~= nil and draft.userProc == true then
+        -- Added from the recent-procs list: tracked regardless of equipped gear.
+        newEntry.userProc = true
+    end
 
     if originalSetName ~= newSetName then
         catalog[originalSetName] = nil
@@ -713,12 +740,12 @@ function PCT.EquippedSets.SaveSetData(draft)
     end
 
     catalog[newSetName] = newEntry
-    SaveCustomSetToPreferences(newSetName, newEntry)
+    SaveCustomSetToSavedVars(newSetName, newEntry)
     EnsureDefaultSet(newSetName)
-    EnsureInPreferences(newSetName)
+    EnsureInSavedVars(newSetName)
     EnsureCharacterSetState(newSetName)
 
-    local characterState = type(PCT.character) == "table" and type(PCT.character.set) == "table" and PCT.character.set[newSetName]
+    local characterState = IsStateContainer(character.set) and character.set[newSetName]
     local isManuallyDisabled = characterState == false
     local isEquippedNow = IsSetCurrentlyEquipped(newSetName)
 
@@ -743,7 +770,7 @@ end
 function PCT.EquippedSets.RestoreCustomSets()
     local catalog = PCT.Data and PCT.Data.Sets
     local store = EnsureCustomSetStore()
-    if type(catalog) ~= "table" or type(store) ~= "table" then
+    if type(catalog) ~= "table" or not IsStateContainer(store) then
         return 0
     end
 
@@ -774,10 +801,11 @@ function PCT.EquippedSets.RestoreCustomSets()
                 restoredEntry.onCooldown = existing and existing.onCooldown or false
                 restoredEntry.timeOfProc = tonumber(NormalizeInteger(existing and existing.timeOfProc)) or 0
                 restoredEntry.customRegistered = true
+                restoredEntry.userProc = saved.userProc == true or nil
 
                 catalog[setName] = restoredEntry
                 EnsureDefaultSet(setName)
-                EnsureInPreferences(setName)
+                EnsureInSavedVars(setName)
                 EnsureCharacterSetState(setName)
 
                 restored = restored + 1
@@ -799,9 +827,9 @@ function PCT.EquippedSets.BuildLAMControls()
         setName    = "",
         abilityIds = "",
         cooldownMs = "",
-        timeOfProcMs = 0,
-        resultCode = 2240,
-        eventCode  = EVENT_COMBAT_EVENT,
+        timeOfProcMs = "0",
+        resultCode = "2240",
+        eventCode  = tostring(EVENT_COMBAT_EVENT),
         texture    = "",
         description = "",
         settingsColor = "3A97CF",
@@ -815,8 +843,17 @@ function PCT.EquippedSets.BuildLAMControls()
     local selectedEquippedSet = ""
     local SetStatus
 
+    -- LibAddonMenu only reads a dropdown's choices when it is built, so push
+    -- list changes to the live control (if the panel has been opened already).
+    local function PushChoices(reference, choices)
+        if PCT.Settings and type(PCT.Settings.PushDropdownChoices) == "function" then
+            PCT.Settings.PushDropdownChoices(reference, choices)
+        end
+    end
+
     local function RefreshCatalogChoices(preferredSetName)
         ReplaceListContents(catalogChoices, BuildCatalogSetChoices())
+        PushChoices("PvPCooldownTracker_CatalogDropdown", catalogChoices)
 
         if preferredSetName and preferredSetName ~= "" then
             selectedCatalogSet = preferredSetName
@@ -834,6 +871,7 @@ function PCT.EquippedSets.BuildLAMControls()
 
     local function RefreshEquippedChoices(preferredSetName)
         ReplaceListContents(equippedChoices, BuildEquippedListedChoices(PCT.EquippedSets.lastScanResults))
+        PushChoices("PvPCooldownTracker_EquippedDropdown", equippedChoices)
 
         if preferredSetName and preferredSetName ~= "" then
             for i = 1, #equippedChoices do
@@ -913,6 +951,9 @@ function PCT.EquippedSets.BuildLAMControls()
             end
             RefreshCatalogChoices(setName)
             RefreshEquippedChoices(setName)
+            if PCT.Settings and type(PCT.Settings.RefreshSetChoices) == "function" then
+                PCT.Settings.RefreshSetChoices()
+            end
         end
 
         SetStatus(message)
@@ -978,7 +1019,7 @@ function PCT.EquippedSets.BuildLAMControls()
         },
         {
             type  = "description",
-            text  = "Reads your equipped gear and matches item set names against the proc catalog. Matched sets are auto-registered into preferences (cooldown, proc ID, texture).",
+            text  = "Reads your equipped gear and matches item set names against the proc catalog. Matched sets are auto-registered into savedVars (cooldown, proc ID, texture).",
             width = "full",
         },
         {
@@ -1010,6 +1051,7 @@ function PCT.EquippedSets.BuildLAMControls()
             end,
             scrollable = true,
             width      = "full",
+            reference  = "PvPCooldownTracker_CatalogDropdown",
         },
         {
             type       = "dropdown",
@@ -1025,6 +1067,7 @@ function PCT.EquippedSets.BuildLAMControls()
             end,
             scrollable = true,
             width      = "full",
+            reference  = "PvPCooldownTracker_EquippedDropdown",
         },
         {
             type  = "description",

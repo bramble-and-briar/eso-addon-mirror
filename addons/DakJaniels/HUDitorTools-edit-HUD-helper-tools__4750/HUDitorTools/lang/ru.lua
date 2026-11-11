@@ -58,6 +58,8 @@ local strings = {
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Размер шрифта",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Контур шрифта",
     ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Сбросить масштаб и шрифт",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_POSITION"] = "Сбросить позицию",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_SCALE"] = "Сбросить масштаб",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Средний",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Жирный",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Антиква",
@@ -67,6 +69,7 @@ local strings = {
     ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Полосы ресурсов",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Пирамида",
     ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Не расширять",
+    ["SI_HUDITORTOOLS_RESOURCE_HIDE_HEALTH_GLOW"] = "Скрыть свечение баффа здоровья",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Ширина здоровья",
 
     ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Счёт поля боя",

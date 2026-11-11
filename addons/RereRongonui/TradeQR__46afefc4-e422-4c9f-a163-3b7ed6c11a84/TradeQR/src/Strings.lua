@@ -16,6 +16,21 @@ local strings = {
     TRADEQR_CHAT_NEW_SALES = "TradeQR: <<1>> nuove vendite da registrare.",
     TRADEQR_CHAT_NOTHING_PENDING = "TradeQR: nessuna vendita da registrare.",
     TRADEQR_CHAT_QR_ERROR = "TradeQR: impossibile generare il QR code (<<1>>).",
+    TRADEQR_CHAT_SCAN_STARTED = "TradeQR: controllo vendite avviato, riprova /tradeqr diag tra un minuto.",
+    -- "/tradeqr diag" lines (string.format placeholders).
+    TRADEQR_DIAG_HEADER = "TradeQR diag: account %s, gilde %d, in coda %d, id visti %d, finestra %d ore",
+    TRADEQR_DIAG_GUILD = "[%s] eventi negozio in cache %d, aggiornata %s, ultimo indice senza buchi %s",
+    TRADEQR_DIAG_SCAN = "  scansione: eventi %d, vendite %d, mie %d, nuove %d (%s)",
+    TRADEQR_DIAG_REQUEST = "  richiesta: %s, flag %s, completa %s, creata %s, aggiornamenti ricevuti %d (flag %s), ultimo poll %s",
+    TRADEQR_DIAG_NEWEST_SELLER = "  venditore più recente visto: %s (%s), sei tu: %s",
+    TRADEQR_DIAG_MINUTES_AGO = "%.0f min fa",
+    TRADEQR_DIAG_YES = "sì",
+    TRADEQR_DIAG_NO = "no",
+    TRADEQR_DIAG_STATE_READY = "pronta",
+    TRADEQR_DIAG_STATE_PENDING = "in attesa del server",
+    TRADEQR_DIAG_STATE_COOLDOWN = "in cooldown (accodata)",
+    TRADEQR_DIAG_STATE_INVALID = "non valida",
+    TRADEQR_DIAG_STATE_NONE = "nessuna",
 }
 
 for stringId, text in pairs(strings) do

@@ -78,6 +78,7 @@ function A:Travel(destination)
     self:CancelPendingTravel()
     local plan = self:PlanTravel(destination)
     if plan.reason then self:Alert(plan.reason); return false end
+    SCENE_MANAGER:ShowBaseScene()
     if plan.kind == "player" then
         if plan.player.source == "group" then JumpToGroupMember(plan.player.name)
         elseif plan.player.source == "friend" then JumpToFriend(plan.player.name)
@@ -85,14 +86,12 @@ function A:Travel(destination)
     elseif plan.kind == "house" then
         if self.saved.skipPaidConfirmation then
             RequestJumpToHouse(plan.houseId, false)
-            SCENE_MANAGER:ShowBaseScene()
         else
             ZO_Dialogs_ShowPlatformDialog("TRAVEL_TO_HOUSE_CONFIRM",
                 { houseId = plan.houseId, travelOutside = false }, { mainTextParams = { destination.name } })
         end
     elseif self.saved.skipPaidConfirmation then
         FastTravelToNode(plan.nodeIndex)
-        SCENE_MANAGER:ShowBaseScene()
     else
         -- Let the stock dialogs handle confirmation, last-moment affordability,
         -- cooldowns and restrictions. Never silently charge after a failed jump.

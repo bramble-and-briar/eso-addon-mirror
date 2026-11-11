@@ -1,0 +1,13 @@
+## Title: Guild Bid Ledger
+## Author: HellWhyNot
+## Version: 1.0
+## AddOnVersion: 10000
+## APIVersion: 101050 101051
+## SavedVariables: GuildBidLedgerSavedVariables
+## DependsOn: LibHistoire>=1105
+## Description: Shows your guild's previous trader bids, wins, losses, and average bid amounts when bidding on a trader. Also lets you automatically fill in a bid amount.
+Ledger.lua
+Attempts.lua
+History.lua
+UI.lua
+GuildBidLedger.lua

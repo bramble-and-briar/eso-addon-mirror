@@ -1,0 +1,13 @@
+## Title: Add-On Memory Watch
+## Description: Finds the add-on that is filling your add-on memory or throwing errors. It records how much memory each add-on uses as it loads, estimates how much data each one holds (every 5 minutes, spread out so it doesn't stutter), shows each add-on's saved data size, logs which add-on every error came from, and keeps a record of the session before the game turns add-ons off. Open it from Settings > Add-Ons > Add-On Memory Watch (needs LibHarvensAddonSettings). Find it useful? Gold donations by in-game mail to @DextrousDigits (Xbox NA or EU) are very welcome.
+## Author: ESO Companion
+## Version: 1.0.0
+## AddOnVersion: 1
+## APIVersion: 101051
+## SavedVariables: AAMemoryWatch_SV
+
+MemoryWatch.lua
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.

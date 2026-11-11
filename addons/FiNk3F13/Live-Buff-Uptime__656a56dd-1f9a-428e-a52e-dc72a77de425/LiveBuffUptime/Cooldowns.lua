@@ -15,6 +15,8 @@ Cooldowns.profiles = {
     { key = "symphony", name = L("Symphony of Blades (pro Empfaenger)"), id = 117111, seconds = 18, effect = 117111, recipient = true },
     { key = "crusader", name = L("Crusader (eigener Proc)"), id = 160395, seconds = 20, effect = 147417, friendly = true },
     { key = "imperium", name = L("Brands of Imperium (eigener Proc)"), id = 66887, seconds = 12, effect = 66887, friendly = true },
+    -- Active stacks use 99204; 164087 is the separate lockout trigger, not the first stack.
+    { key = "mechanicalAcuity", name = L("Mechanikblick (eigener Proc)"), id = 164087, seconds = 25, effect = 99204, unit = "player", gainOnly = true },
 }
 local procs = {}
 

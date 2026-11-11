@@ -13,15 +13,18 @@ function State.CreateSavedVarsDefaults()
             farScalePct = 50,                             -- dot size at farScaleM relative to near size (100 = constant)
             farScaleM = 100,                              -- distance at which farScalePct applies
             outline = true,                               -- black ring behind each dot
-            cyrodiilOnly = true,                          -- nothing at all outside Cyrodiil (not even runestone / Psijic dots)
-            markWarTorte = true,                          -- orange: any empty harvestable location in Cyrodiil
+            -- node trackers, any number: { node = "Columbine", color = {r,g,b,a}, candidates = true }
+            --   a node named `node` (any quality prefix) gets a dot in `color`, in every zone;
+            --   `candidates`: yellow dot on locations of that kind where the node is not identified yet
+            trackers = {},
+            markWarTorte = true,                          -- orange: any empty harvestable location, Cyrodiil only
             warTorteColor = { r = 1.0, g = 0.55, b = 0.15, a = 0.9 },
             markPsijic = true,                            -- purple: any empty enchanting location, every zone
             psijicColor = { r = 0.7, g = 0.3, b = 1.0, a = 0.9 },
-            markUnknown = true,                           -- yellow: no node seen, but beyond the confirmed distance
-            unknownColor = { r = 1.0, g = 0.9, b = 0.2, a = 0.9 }, -- yellow
+            markUnknown = true,                           -- yellow candidates for the two above: no node seen, but beyond the confirmed distance
+            unknownColor = { r = 1.0, g = 0.9, b = 0.2, a = 0.9 }, -- yellow: every candidate dot
             unknownM = 80,                                -- unknown starts here (field log 2026-10-05: false-empties cleared at 80-138 m)
-            unknownLimitM = 150,                          -- unknown dots are not drawn beyond this
+            unknownLimitM = 150,                          -- candidate dots are not drawn beyond this
             checkedM = 36,                                -- coming within this distance marks a slot checked...
             checkedMin = 60,                              -- ...and verdicts are remembered this many minutes; 0 = until cleared manually
             checkedColor = { r = 0.0, g = 0.9, b = 0.9, a = 0.5 }, -- neon teal, half transparent

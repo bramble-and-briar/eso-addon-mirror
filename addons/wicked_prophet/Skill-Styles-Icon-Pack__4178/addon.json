@@ -8,8 +8,8 @@
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4178",
@@ -18,7 +18,7 @@
     "Skillstyles"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4178/",
-  "fingerprint": "93c9bd4e503a3da9b940730bb3fe04b4490b0d205a8d4bd4aa36bb201e616438",
+  "fingerprint": "e08f36559e049e16fb83b89c2776b3a32cfc5c51334da68aa2f26a8d2047b42a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16082.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4178",
   "source_url": "https://www.esoui.com/downloads/info4178-SkillStylesIconPack.html",
   "stats": {
-    "downloads": 3745,
+    "downloads": 4127,
     "favorites": 8,
-    "monthly_downloads": 162
+    "monthly_downloads": 213
   },
   "title": "Skill Styles Icon Pack",
-  "updated_at": 1791292011000,
-  "version": "2.0"
+  "updated_at": 1794347516000,
+  "version": "2.0.1"
 }

@@ -12,14 +12,7 @@ local infoBoxSection
 local HE_KB = HUD_EDITOR_KEYBOARD
 
 local function ClampGridSize(value)
-    value = zo_floor(tonumber(value) or HT.SV.gridSize)
-    if value < MIN_GRID_SIZE then
-        return MIN_GRID_SIZE
-    end
-    if value > MAX_GRID_SIZE then
-        return MAX_GRID_SIZE
-    end
-    return value
+    return HT.ClampInteger(value, MIN_GRID_SIZE, MAX_GRID_SIZE, HT.SV.gridSize)
 end
 
 local function GetInfoBox()
@@ -276,6 +269,8 @@ local function UpdateResourceGroupBlock(saveKey)
     widthRow:SetExcludeFromResizeToFitExtents(true)
     local enableCheck = resourceGroup:GetNamedChild("EnableCheck")
     local preventExpandCheck = resourceGroup:GetNamedChild("PreventExpandCheck")
+    local hideHealthGlowCheck = resourceGroup:GetNamedChild("HideHealthGlowCheck")
+    local showHealthGlow = saveKey == "ZO_PlayerAttributeHealth" or HT.IsPlayerAttributeFrameSaveKey(saveKey)
     enableCheck:SetHidden(not showPyramid)
     enableCheck:SetExcludeFromResizeToFitExtents(not showPyramid)
     preventExpandCheck:ClearAnchors()
@@ -284,11 +279,16 @@ local function UpdateResourceGroupBlock(saveKey)
     else
         preventExpandCheck:SetAnchor(TOPLEFT, resourceGroup:GetNamedChild("Header"), BOTTOMLEFT, 0, 8)
     end
+    hideHealthGlowCheck:SetHidden(not showHealthGlow)
+    hideHealthGlowCheck:SetExcludeFromResizeToFitExtents(not showHealthGlow)
+    hideHealthGlowCheck:ClearAnchors()
+    hideHealthGlowCheck:SetAnchor(TOPLEFT, preventExpandCheck, BOTTOMLEFT, 0, 6)
     if showResourceGroup then
         local settings = HT.SV and HT.SV.resourceBarGroup
         if type(settings) == "table" then
             ZO_CheckButton_SetCheckState(enableCheck, settings.enabled == true)
             ZO_CheckButton_SetCheckState(preventExpandCheck, settings.preventExpand == true)
+            ZO_CheckButton_SetCheckState(hideHealthGlowCheck, settings.hideHealthGlow == true)
         end
     end
 end
@@ -425,6 +425,12 @@ local function CreateAppearanceSection()
     ZO_CheckButton_SetLabelText(preventExpandCheck, GetString(SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND))
     ZO_CheckButton_SetToggleFunction(preventExpandCheck, function (_, checked)
         HT.SetResourceBarPreventExpand(checked)
+    end)
+
+    local hideHealthGlowCheck = resourceGroup:GetNamedChild("HideHealthGlowCheck")
+    ZO_CheckButton_SetLabelText(hideHealthGlowCheck, GetString(SI_HUDITORTOOLS_RESOURCE_HIDE_HEALTH_GLOW))
+    ZO_CheckButton_SetToggleFunction(hideHealthGlowCheck, function (_, checked)
+        HT.SetHealthBuffGlowHidden(checked)
     end)
 
     local widthEdit = GetResourceWidthEdit()

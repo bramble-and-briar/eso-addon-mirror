@@ -1,3 +1,9 @@
+26.11.2
+- Added a Teleport button for the displayed zone; the map closes when travel starts.
+- The map now opens on the Locations tab.
+- Restored outward scrolling from the world map to the cosmic map.
+- Improved enlarged-map layout to avoid an intermediate resize that could cause flicker.
+
 26.11.1
 - Map enlargement, optional Area Completion hiding and a visible blue player highlight.
 - Smooth wheel navigation between map levels, including cities, with a short pause to prevent accidental transitions.

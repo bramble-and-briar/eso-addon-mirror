@@ -363,6 +363,12 @@ local strings = {
 	SI_PBSCA_BOARD_POP_TEXT_TOOLTIP = "The population is drawn as the game's own campaign-browser icon -- the same one the campaign screen shows on the way in. Tick this to have the word instead (Low, Medium, High, Full), which is also what happens by itself on a client where the icon cannot be drawn.",
 	SI_PBSCA_HELP_BOARD_POP = "/pbalert board pop icon | text -- how the population is shown",
 	SI_PBSCA_ERROR_POP = "say icon or text",
+	SI_PBSCA_BOARD_EMPEROR_NAME = "Emperor shown by",
+	SI_PBSCA_BOARD_EMPEROR_NAME_TOOLTIP = "Which of the emperor's names the summary shows: the account name (the PSN ID on a console) or the character name.",
+	SI_PBSCA_EMPEROR_NAME_ACCOUNT = "Account name (PSN ID)",
+	SI_PBSCA_EMPEROR_NAME_CHARACTER = "Character name",
+	SI_PBSCA_ERROR_EMPEROR_NAME = "say account or character",
+	SI_PBSCA_HELP_BOARD_EMPEROR = "/pbalert board emperor account | character -- which of the emperor's names is shown",
 	SI_PBSCA_BOARD_LINE = "%s%s  keeps %d  score %s",
 	-- The Imperial City has no keeps, no keep score and nothing of ours to be under attack, so
 	-- in one of its campaigns the alliance line is the alliance and how busy it is.

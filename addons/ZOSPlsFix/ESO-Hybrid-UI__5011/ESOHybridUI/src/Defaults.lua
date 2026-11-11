@@ -1,54 +1,80 @@
--- ESO Hybrid UI
--- ESO Hybrid UI Update 51 baseline and maintained configuration.
+-- ESO Hybrid UI: the single shared addon table, string ids, defaults, runtime state.
+-- User-facing strings live in lang/en.lua.
+-- Every other file starts with `local ADDON = ESOHybridUI` (one global, per ESOUI guidance).
 
--- Create one shared addon table using the manifest's exact addon name.
--- Every module keeps a local reference to this single global.
 local ADDON = _G.ESOHybridUI or {}
 _G.ESOHybridUI = ADDON
 
-ZO_CreateStringId("SI_KEYBINDINGS_CATEGORY_ESO_HYBRID_UI", "ESO Hybrid UI")
-ZO_CreateStringId("SI_BINDING_NAME_ESOHYBRIDUI_TOGGLE_UI", "Toggle gamepad / hybrid UI")
 
 ADDON.ADDON_NAME = "ESOHybridUI"
 ADDON.SAVED_VARIABLES = "ESOHybridUI_SavedVariables"
+-- Keep at 1: changing it makes ZO_SavedVars discard every user's saved settings.
 ADDON.SAVED_VARIABLES_VERSION = 1
-ADDON.VERSION = "3.3.8"
+ADDON.VERSION = "4.2.1-beta"
 
+ADDON.MODE_GAMEPAD = "gamepad"
+ADDON.MODE_HYBRID = "hybrid"
+
+-- How menus opened from the HUD are chosen (see Policy.lua).
+ADDON.POLICY_GAMEPAD = "gamepad"
+ADDON.POLICY_LEGACY = "legacy"
+
+-- Only plain values and the one nested "fonts" table live here. Nested tables are
+-- always read and written through helpers in Core.lua (GetFont/SetFont) so the
+-- code never depends on how ZO_SavedVars proxies nested defaults.
 ADDON.defaults = {
-    -- Main behavior
-    useControllerUI = true,
-    useHybridUI = false,
-    useGamepadButtons = true,
+    mode = ADDON.MODE_GAMEPAD,
+    menuPolicy = ADDON.POLICY_GAMEPAD,
 
-    -- Reticle / stealth prompt fonts
+    -- Hybrid feature switches (each one can be turned off if a game patch breaks it).
+    hybridQuickslotWheel = true,
+    hybridActionBarGlyphs = true,
+
     fonts = {
         reticle = "ZoFontKeybindStripDescription",
         reticleContext = "ZoInteractionPrompt",
         stealthIcon = "ZoInteractionPrompt",
     },
 
+    announceLoaded = false,
     debugLoggingEnabled = false,
 }
 
 ADDON.runtime = {
     originalIsInGamepadPreferredMode = nil,
     modeOverrideInstalled = false,
+    overrideFunction = nil,
+
+    -- Context depth counters (see Policy.lua). >0 means "answer this way".
     forceNativeModeDepth = 0,
     forceKeyboardWheelDepth = 0,
+    gamepadDialogName = nil,
+
+    -- Cached copy of "is Hybrid selected" so the hot path never touches saved vars.
+    hybrid = false,
+    menusGamepad = true,
+
     isLockpicking = false,
     isRefreshing = false,
-    platformRefreshPending = false,
+    platformDirty = false,
     platformRefreshScheduled = false,
     initialized = false,
-    actionBarHooksInstalled = false,
-    promptHooksInstalled = false,
-    utilityWheelHooksInstalled = false,
-    utilityWheelDefaultsCopied = false,
-    utilityWheelLeftCopied = false,
-    utilityWheelRightCopied = false,
+
+    -- Install bookkeeping (InstallWhenReady in Core.lua).
+    installed = {},
+    attempts = {},
+    retryRegistered = {},
+
+    -- Active only while the keyboard-style quickslot wheel is open.
     utilityWheelLayerActive = false,
-    promptOriginals = {},
+
+    -- Prompt bookkeeping. Weak keys so we never keep a dead descriptor alive.
+    promptOriginals = setmetatable({}, { __mode = "k" }),
     stackAllOriginals = setmetatable({}, { __mode = "k" }),
+
+    -- Diagnostics.
     logger = nil,
     debugLoggingEnabled = false,
+    traceEnabled = false,
+    trace = nil,
 }

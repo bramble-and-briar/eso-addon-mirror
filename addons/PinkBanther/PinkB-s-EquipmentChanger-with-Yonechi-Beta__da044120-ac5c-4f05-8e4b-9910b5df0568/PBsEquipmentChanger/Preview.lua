@@ -133,7 +133,7 @@ function A:PreviewModel(index)
 		end
 		model.class = {
 			{ text = string.format(S.previewSubclass, A.LinesText(set.class.lines)), state = note(differs.subclass and DIFFERENT or OK) },
-			{ text = string.format(S.previewMastery, A.MasteryText(set.class)), state = note(differs.mastery and DIFFERENT or OK) },
+			{ text = A.MasteryPreviewText(set.class), state = note(differs.mastery and DIFFERENT or OK) },
 		}
 	end
 
@@ -168,10 +168,13 @@ local NAME = "PBsEquipmentChangerPreview"
 -- UI units: the gamepad UI is laid out on 1920 x 1080 (ZO_GAMEPAD_UI_REFERENCE_WIDTH), with a safe zone of 96 x 54.
 local WIDTH = 820
 local PAD = 18
+local BOTTOM_PAD = 12
 local COLUMN_GAP = 24
 local ROW = 30
 local ICON = 26
 local ICON_GAP = 8
+local MASTERY_LINES = 3 -- what a Class Mastery has learned may not fit one line: the mastery row wraps to three, in the small font
+local MASTERY_HEIGHT = 69 -- three lines of the small font
 local EMPTY_HEIGHT = 190 -- an empty slot needs only the title and the hint
 local GEAR_ROWS = 8
 local CHAMPION_ROWS = 4
@@ -202,15 +205,17 @@ local function Texture(parent, r, g, b, a)
 	return texture
 end
 
--- One line of text that ends in "..." rather than wrapping into the line below.
-local function Label(parent, font, width, height)
+-- Text that ends in "..." rather than wrapping into the row below: one line, or `lines` of them (which then start at
+-- the top of the label, so that the first line sits where a one-line row's text does).
+local function Label(parent, font, width, height, lines)
 	local label = WINDOW_MANAGER:CreateControl(Unique("Label"), parent, CT_LABEL)
 	label:SetFont(font)
 	label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-	label:SetMaxLineCount(1)
+	label:SetMaxLineCount(lines or 1)
 	label:SetDimensions(width, height)
-	if label.SetVerticalAlignment and TEXT_ALIGN_CENTER then
-		label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	local align = (lines or 1) > 1 and TEXT_ALIGN_TOP or TEXT_ALIGN_CENTER
+	if label.SetVerticalAlignment and align then
+		label:SetVerticalAlignment(align)
 	end
 	return label
 end
@@ -294,6 +299,16 @@ function preview:Create()
 	end
 
 	header("gearHeader")
+	-- the legend of the colours sits at the right of the first header, which is only a word wide: the window has no row
+	-- to spare for a line of its own
+	local legendWidth = tonumber(S.previewLegendWidth) or 560
+	self.gearHeader:SetDimensions(contentWidth - legendWidth - COLUMN_GAP, 36)
+	self.legend = Label(top, FONT_SMALL, legendWidth, 36)
+	Place(self.legend, top, PAD + contentWidth - legendWidth, y - 36)
+	Paint(self.legend, DIM)
+	if self.legend.SetHorizontalAlignment and TEXT_ALIGN_RIGHT then
+		self.legend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+	end
 	local gearTop = y
 	for i = 1, GEAR_ROWS * 2 do
 		local column, row = math.floor((i - 1) / GEAR_ROWS), (i - 1) % GEAR_ROWS
@@ -339,16 +354,14 @@ function preview:Create()
 	end
 	y = championTop + CHAMPION_ROWS * ROW + 4
 
-	for i = 1, 2 do
-		local label = Label(top, FONT_ROW, contentWidth, ROW)
-		Place(label, top, PAD, y)
-		self.class[i] = label
-		y = y + ROW
-	end
-	self.legend = Label(top, FONT_SMALL, contentWidth, 26)
-	Place(self.legend, top, PAD, y)
-	Paint(self.legend, DIM)
-	y = y + 26 + PAD
+	-- the subclass: one line; the Class Mastery: what the character has learned of it, up to three lines (the window's
+	-- bottom margin is a little thinner than its top: that is what is left of the 901 units the quadrants give)
+	self.class[1] = Label(top, FONT_ROW, contentWidth, ROW)
+	Place(self.class[1], top, PAD, y)
+	y = y + ROW
+	self.class[2] = Label(top, FONT_SMALL, contentWidth, MASTERY_HEIGHT, MASTERY_LINES)
+	Place(self.class[2], top, PAD, y)
+	y = y + MASTERY_HEIGHT + BOTTOM_PAD
 
 	-- the empty slot's hint is a wrapped paragraph, not a line
 	self.hint = WINDOW_MANAGER:CreateControl(Unique("Hint"), top, CT_LABEL)

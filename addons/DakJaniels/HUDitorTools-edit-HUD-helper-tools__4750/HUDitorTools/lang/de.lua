@@ -58,6 +58,8 @@ local strings = {
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Schriftgröße",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Schriftkontur",
     ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Skal. & Schrift zurücks.",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_POSITION"] = "Position zurücksetzen",
+    ["SI_HUDITORTOOLS_NUDGE_RESET_SCALE"] = "Skalierung zurücksetzen",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Mittel",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Fett",
     ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Antiqua",
@@ -67,6 +69,7 @@ local strings = {
     ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Attributleisten",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Pyramidenlayout",
     ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Nicht vergrößern",
+    ["SI_HUDITORTOOLS_RESOURCE_HIDE_HEALTH_GLOW"] = "Lebensbuff-Leuchten ausblenden",
     ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Lebensbreite",
 
     ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Schlachtfeld-Punktestand",

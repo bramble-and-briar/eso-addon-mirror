@@ -8,8 +8,8 @@
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:3384",
@@ -18,7 +18,7 @@
     "MiniMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3384/",
-  "fingerprint": "b7b987aadfec389bb1209db8cd6358e01a9f85e56fbfab4600f405b9ce9b3998",
+  "fingerprint": "c84abf71053c9b42c3791fb1263bddf4511bb4cdf5140f7df6a0c5b00c605c87",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12275.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw11995.jpg",
@@ -37,11 +37,11 @@
   "source_id": "3384",
   "source_url": "https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html",
   "stats": {
-    "downloads": 1449235,
+    "downloads": 1455207,
     "favorites": 430,
-    "monthly_downloads": 16241
+    "monthly_downloads": 14740
   },
   "title": "MiniMap by Fyrakin [Masteroshi430's branch]",
-  "updated_at": 1792919292000,
-  "version": "2026.10.25"
+  "updated_at": 1794322975000,
+  "version": "2026.11.10"
 }

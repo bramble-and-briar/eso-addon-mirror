@@ -1,8 +1,8 @@
-## Title: |cFF69B4PB's Equipment Changer|r 0.7.0
+## Title: |cFF69B4PB's Equipment Changer|r 0.8.0
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Saves your worn gear, the skills on both action bars and the slotted champion skills under a name, and puts them back from the settings panel or from an extra page of the D-pad up wheel.
-## Version: 0.7.0
-## AddOnVersion: 7
+## Version: 0.8.0
+## AddOnVersion: 8
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsEquipmentChanger_Data
